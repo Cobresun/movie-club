@@ -8,6 +8,7 @@ npm i netlify-cli -g
 
 ### Compiles and hot-reloads for development (including Netlify functions)
 ```
+netlify init (authorize with Cobresun Netlify account)
 netlify dev
 ```
 
