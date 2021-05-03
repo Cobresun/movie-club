@@ -1,42 +1,14 @@
-exports.handler = async function(event, context) {
-    const mockReviews = [
-        {
-            movieTitle: "Knives Out", 
-            dateWatched: "Nov 1, 2020",
-            scores: {
-                "cole": 9,
-                "brian": 10,
-                "wes": 10,
-                "sunny": 9.5,
-                "average": 9.625
-            }
-        },
-        {
-            movieTitle: "Forrest Gump", 
-            dateWatched: "Dec 13, 2020",
-            scores: {
-                "cole": 8.5,
-                "brian": 9,
-                "wes": 9.5,
-                "sunny": 9,
-                "average": 9
-            }
-        },
-        {
-            movieTitle: "Fight Club", 
-            dateWatched: "Jan 3, 2021",
-            scores: {
-                "cole": 8,
-                "brian": 9,
-                "wes": 7.5,
-                "sunny": 10,
-                "average": 8.625
-            }
-        }
-    ]
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const faunadb = require('faunadb')
 
-    return {
-        statusCode: 200,
-        body: JSON.stringify(mockReviews)
+const faunaClient = new faunadb.Client({ secret: process.env.FAUNADB_SERVER_SECRET })
+const q = faunadb.query
+
+exports.handler = async function(event, context) {
+    try {
+        const req = await faunaClient.query(q.Map(q.Paginate(q.Match(q.Index("all_reviews"))), q.Lambda("attr", q.Get(q.Var("attr")))))
+        return { statusCode: 200, body: JSON.stringify(req.data) }
+    } catch (err) {
+        return { statusCode: 500, body: JSON.stringify({ error: err.message}) }
     }
 }
