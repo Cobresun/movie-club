@@ -1,6 +1,7 @@
 <template>
   <div class="hello">
-    <h1>{{ msg }}</h1>
+    <h1 class="pb-10">{{ msg }}</h1>
+    <v-btn>Hello</v-btn>
     <p>
       For a guide and recipes on how to configure / customize this project,<br>
       check out the
