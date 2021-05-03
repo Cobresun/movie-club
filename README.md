@@ -3,11 +3,12 @@
 ## Project setup
 ```
 npm install
+npm i netlify-cli -g 
 ```
 
-### Compiles and hot-reloads for development
+### Compiles and hot-reloads for development (including Netlify functions)
 ```
-npm run serve
+netlify dev
 ```
 
 ### Compiles and minifies for production
