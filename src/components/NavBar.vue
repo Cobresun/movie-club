@@ -1,6 +1,6 @@
 <template>
   <div>
-    <h3 class="title">MovieClub</h3>
+    <h3 class="title"><router-link to="/">MovieClub</router-link></h3>
   </div>
 </template>
 

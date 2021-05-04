@@ -4,3 +4,8 @@
 
   --text-color: #FFFFFF;
 }
+
+a {
+  color: var(--primary-color);
+  text-decoration: none;
+}

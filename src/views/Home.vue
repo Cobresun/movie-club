@@ -14,6 +14,7 @@ import { Component, Vue } from 'vue-property-decorator';
 export default class Home extends Vue {
   doStuff(): void {
     console.log("stuff");
+    this.$router.push({path: "reviews"})
   }
 }
 </script>
