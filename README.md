@@ -1,4 +1,5 @@
 # movie-club
+[![Netlify Status](https://api.netlify.com/api/v1/badges/1d88681f-226e-4972-a2bb-1360f2610294/deploy-status)](https://app.netlify.com/sites/awesome-kalam-929708/deploys)
 
 ## Project setup
 ```
