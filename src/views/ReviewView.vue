@@ -3,7 +3,7 @@
     <h1>Cobresun Reviews</h1>
     <div>
       <li v-for="review in reviews" :key="review">
-        {{ review.data.movieTitle }} - {{ review.data.scores }}
+        {{ review.movieTitle }} - {{ review.scores }}
       </li>
     </div>
 

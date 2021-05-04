@@ -3,7 +3,7 @@
     <h1>Cobresun Watch List</h1>
 
     <li v-for="movie in watchList" :key="movie">
-      {{ movie.data.movieTitle }} - {{ movie.data.genre }}
+      {{ movie.movieTitle }} - {{ movie.genre }}
     </li>
   </div>
 </template>
