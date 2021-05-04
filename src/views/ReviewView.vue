@@ -1,14 +1,32 @@
 <template>
   <div>
+    <h1>Cobresun Reviews</h1>
+    <div>
+      <li v-for="review in reviews" :key="review">
+        {{ review.data.movieTitle }} - {{ review.data.scores }}
+      </li>
+    </div>
+
   </div>
 </template>
+
 <script lang="ts">
 import { Options, Vue } from 'vue-class-component';
+import axios from 'axios'
 
-@Options({
-})
-export default class ReviewView extends Vue {}
+export default class ReviewView extends Vue {
+  data(): { reviews: null; } {
+    return {
+      reviews: null
+    }
+  }
+  mounted(): void {
+    axios
+      .get('/api/getReviews')
+      .then(response => ((this as any).reviews = response.data))
+  }
+}
 </script>
-<style scoped>
 
+<style scoped>
 </style>
