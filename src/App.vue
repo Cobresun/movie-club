@@ -4,6 +4,7 @@
     <router-view/>
   </div>
 </template>
+
 <script lang="ts">
 import { Options, Vue } from 'vue-class-component';
 import NavBar from '@/components/NavBar.vue';
@@ -15,6 +16,7 @@ import NavBar from '@/components/NavBar.vue';
 })
 export default class App extends Vue {}
 </script>
+
 <style>
 @import './assets/styles/variables.css';
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;700&display=swap');

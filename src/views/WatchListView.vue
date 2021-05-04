@@ -1,5 +1,6 @@
 <template>
   <div>
+    <h1>Cobresun Watch List</h1>
   </div>
 </template>
 <script lang="ts">
