@@ -9,19 +9,16 @@
 </template>
 
 <script lang="ts">
-import { Options, Vue } from 'vue-class-component';
+import { Vue } from 'vue-class-component';
 import axios from 'axios'
 
 export default class WatchListView extends Vue {
-    data(): { watchList: null; } {
-    return {
-      watchList: null
-    }
-  }
+  private watchList = null;
+
   mounted(): void {
     axios
       .get('/api/getWatchList')
-      .then(response => ((this as any).watchList = response.data))
+      .then((response) => (this.watchList = response.data))
   }
 }
 </script>

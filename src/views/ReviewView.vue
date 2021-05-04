@@ -11,19 +11,16 @@
 </template>
 
 <script lang="ts">
-import { Options, Vue } from 'vue-class-component';
+import { Vue } from 'vue-class-component';
 import axios from 'axios'
 
 export default class ReviewView extends Vue {
-  data(): { reviews: null; } {
-    return {
-      reviews: null
-    }
-  }
+  private reviews = null;
+
   mounted(): void {
     axios
       .get('/api/getReviews')
-      .then(response => ((this as any).reviews = response.data))
+      .then((response) => (this.reviews = response.data))
   }
 }
 </script>
