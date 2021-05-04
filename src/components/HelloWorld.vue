@@ -1,7 +1,10 @@
 <template>
   <div class="hello">
     <h1 class="pb-10">{{ msg }}</h1>
-    <v-btn>Hello</v-btn>
+    <btn>
+      Sign In
+      <mdicon name="arrow-right" />
+    </btn>
     <p>
       For a guide and recipes on how to configure / customize this project,<br>
       check out the
