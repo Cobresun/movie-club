@@ -8,10 +8,9 @@
 </template>
 
 <script lang="ts">
-import { Options, Vue } from 'vue-class-component';
+import { Component, Vue } from 'vue-property-decorator';
 
-@Options({
-})
+@Component({})
 export default class Home extends Vue {
   doStuff(): void {
     console.log("stuff");

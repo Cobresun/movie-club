@@ -9,9 +9,10 @@
 </template>
 
 <script lang="ts">
-import { Vue } from 'vue-class-component';
+import { Component, Vue } from 'vue-property-decorator';
 import axios from 'axios'
 
+@Component({})
 export default class WatchListView extends Vue {
   private watchList = null;
 

@@ -6,10 +6,10 @@
 </template>
 
 <script lang="ts">
-import { Options, Vue } from 'vue-class-component';
+import { Component, Vue } from 'vue-property-decorator';
 import NavBar from '@/components/NavBar.vue';
 
-@Options({
+@Component({
   components: {
     NavBar,
   },
@@ -25,7 +25,7 @@ export default class App extends Vue {}
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-align: center;
-  color: #ffffff;
+  color: var(--text-color);
 }
 
 .nav {

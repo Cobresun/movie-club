@@ -1,20 +1,20 @@
-import { createApp } from 'vue'
-import App from './App.vue'
-import router from './router'
-import store from './store'
+import Vue from "vue";
+import App from "./App.vue";
+import router from "./router";
+import store from "./store";
 
-import mdiVue from 'mdi-vue/v3'
-import * as mdijs from '@mdi/js'
+import mdiVue from "mdi-vue/v2";
+import * as mdijs from "@mdi/js";
 
-import Btn from '@/components/Btn.vue'
+import Btn from "@/components/Btn.vue";
 
-const app = createApp(App)
-  .use(router)
-  .use(store)
-  .use(mdiVue, {
-    icons: mdijs
-  })
-
-app.component('btn', Btn)
-
-app.mount('#app')
+Vue.config.productionTip = false;
+Vue.component("btn", Btn);
+Vue.use(mdiVue, {
+  icons: mdijs
+})
+new Vue({
+  router,
+  store,
+  render: (h) => h(App),
+}).$mount("#app");

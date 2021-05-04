@@ -1,29 +1,31 @@
-import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router'
-import Home from '../views/Home.vue'
-import ReviewView from '../views/ReviewView.vue'
-import WatchListView from '../views/WatchListView.vue'
+import Vue from "vue";
+import VueRouter, { RouteConfig } from "vue-router";
+import Home from "../views/Home.vue";
+import ReviewView from "../views/ReviewView.vue";
+import WatchListView from "../views/WatchListView.vue";
 
-const routes: Array<RouteRecordRaw> = [
+Vue.use(VueRouter);
+
+const routes: Array<RouteConfig> = [
   {
-    path: '/',
-    name: 'Home',
-    component: Home
+    path: "/",
+    name: "Home",
+    component: Home,
   },
   {
-    path: '/reviews',
-    name: 'Reviews',
-    component: ReviewView
+    path: "/reviews",
+    name: "Reviews",
+    component: ReviewView,
   },
   {
-    path: '/watchList',
-    name: 'WatchList',
-    component: WatchListView
-  }
-]
+    path: "/watchList",
+    name: "WatchList",
+    component: WatchListView,
+  },
+];
 
-const router = createRouter({
-  history: createWebHistory(process.env.BASE_URL),
-  routes
-})
+const router = new VueRouter({
+  routes,
+});
 
-export default router
+export default router;

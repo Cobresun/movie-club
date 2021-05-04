@@ -6,10 +6,9 @@
   </button>
 </template>
 <script lang="ts">
-import { Options, Vue } from 'vue-class-component';
+import { Component, Vue } from 'vue-property-decorator';
 
-@Options({
-})
+@Component({})
 export default class Btn extends Vue {
   //TODO: Add customizable colours. Looks like all buttons are primary color for this sprint
 }
