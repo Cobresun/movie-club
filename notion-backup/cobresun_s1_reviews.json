@@ -1,0 +1,200 @@
+[ 
+    { 
+        "movieTitle": "Captain America: The First Avenger",
+        "dateWatched": "May 30, 2020",
+        "scores": {
+            "cole": 7,
+            "brian": 7,
+            "wes": 8,
+            "sunny": 8.5,
+            "average": 7.625
+        }
+    },
+    { 
+        "movieTitle": "The Avengers",
+        "dateWatched": "Jun 9, 2020",
+        "scores": {
+            "cole": 8.5,
+            "brian": 8.5,
+            "wes": 8,
+            "sunny": 9,
+            "average": 8.5
+        }
+    },
+    { 
+        "movieTitle": "Thor: The Dark World",
+        "dateWatched": "Jun 21, 2020",
+        "scores": {
+            "cole": 6,
+            "brian": 6,
+            "wes": 7.5,
+            "sunny": 6,
+            "average": 6.375
+        }
+    },
+    { 
+        "movieTitle": "Captain America: The Winter Soldier",
+        "dateWatched": "Jun 28, 2020",
+        "scores": {
+            "cole": 7,
+            "brian": 10,
+            "wes": 7.5,
+            "sunny": 8,
+            "average": 8.125
+        }
+    },
+    { 
+        "movieTitle": "Guardians of the Galaxy",
+        "dateWatched": "Jul 5, 2020",
+        "scores": {
+            "cole": 8.5,
+            "brian": 8.5,
+            "wes": 8,
+            "sunny": 8,
+            "average": 8.25
+        }
+    },
+    { 
+        "movieTitle": "Avengers: Age of Ultron",
+        "dateWatched": "Jul 14, 2020",
+        "scores": {
+            "cole": 7,
+            "brian": 8,
+            "wes": 8.5,
+            "sunny": 3,
+            "average": 6.625
+        }
+    },
+    { 
+        "movieTitle": "Ant-Man",
+        "dateWatched": "Jul 20, 2020",
+        "scores": {
+            "cole": 8,
+            "brian": 8.5,
+            "wes": 8.5,
+            "sunny": 9,
+            "average": 8.5
+        }
+    },
+    { 
+        "movieTitle": "Captain America: Civil War",
+        "dateWatched": "Jul 26, 2020",
+        "scores": {
+            "cole": 6.5,
+            "brian": 9,
+            "wes": 8.5,
+            "sunny": 9,
+            "average": 8.25
+        }
+    },
+    { 
+        "movieTitle": "Doctor Strange",
+        "dateWatched": "Aug 3, 2020",
+        "scores": {
+            "cole": 8,
+            "brian": 6.5,
+            "wes": 9,
+            "sunny": 8.5,
+            "average": 8
+        }
+    },
+    { 
+        "movieTitle": "Guardians of the Galaxy Vol. 2",
+        "dateWatched": "Aug 9, 2020",
+        "scores": {
+            "cole": 8.5,
+            "brian": 7.5,
+            "wes": 8.5,
+            "sunny": 8,
+            "average": 8.125
+        }
+    },
+    { 
+        "movieTitle": "Spider-Man: Homecoming",
+        "dateWatched": "Aug 13, 2020",
+        "scores": {
+            "cole": 9,
+            "brian": 9,
+            "wes": 9.5,
+            "sunny": 10,
+            "average": 9.375
+        }
+    },
+    { 
+        "movieTitle": "Thor: Ragnarok",
+        "dateWatched": "Aug 23, 2020",
+        "scores": {
+            "cole": 8,
+            "brian": 8.5,
+            "wes": 9,
+            "sunny": 7.5,
+            "average": 8.25
+        }
+    },
+    { 
+        "movieTitle": "Black Panther",
+        "dateWatched": "Aug 31, 2020",
+        "scores": {
+            "cole": 9,
+            "brian": 10,
+            "wes": 10,
+            "sunny": 9,
+            "average": 9.5
+        }
+    },
+    { 
+        "movieTitle": "Avengers: Infinity War",
+        "dateWatched": "Sep 7, 2020",
+        "scores": {
+            "cole": 8.5,
+            "brian": 9,
+            "wes": 9.5,
+            "sunny": 8,
+            "average": 8.75
+        }
+    },
+    { 
+        "movieTitle": "Ant-Man and the Wasp",
+        "dateWatched": "Sep 13, 2020",
+        "scores": {
+            "cole": 6.5,
+            "brian": 9,
+            "wes": 8.5,
+            "sunny": 8.5,
+            "average": 8.125
+        }
+    },
+    { 
+        "movieTitle": "Captain Marvel",
+        "dateWatched": "Sep 20, 2020",
+        "scores": {
+            "cole": 8,
+            "brian": 7,
+            "wes": 8.5,
+            "sunny": 8.5,
+            "average": 8
+        }
+    },
+    { 
+        "movieTitle": "Avengers: Endgame",
+        "dateWatched": "Sep 27, 2020",
+        "scores": {
+            "cole": 9,
+            "brian": 10,
+            "wes": 9,
+            "sunny": 9.5,
+            "average": 9.375
+        }
+    },
+    { 
+        "movieTitle": "Spider-Man: Far from Home",
+        "dateWatched": "Oct 5, 2020",
+        "scores": {
+            "cole": 10,
+            "brian": 10,
+            "wes": 10,
+            "sunny": 10,
+            "average": 10
+        }
+    }
+]

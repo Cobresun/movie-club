@@ -1,0 +1,332 @@
+[
+    {
+        "movieTitle": "Bad Times at the El Royale",
+        "dateWatched": "Oct 14, 2020",
+        "scores": {
+            "cole": 8,
+            "brian": 7.5,
+            "wes": 9,
+            "sunny": 9,
+            "average": 8.375
+        }
+    },
+    {
+        "movieTitle": "The Matrix",
+        "dateWatched": "Oct 18, 2020",
+        "scores": {
+            "cole": 5,
+            "brian": 8,
+            "wes": 9,
+            "sunny": 7,
+            "average": 7.25
+        }
+    },
+    {
+        "movieTitle": "Monty Python and the Holy Grail",
+        "dateWatched": "Oct 26, 2020",
+        "scores": {
+            "cole": 6,
+            "brian": 3,
+            "wes": 9.5,
+            "sunny": 9,
+            "average": 6.875
+        }
+    },
+    {
+        "movieTitle": "Knives Out",
+        "dateWatched": "Nov 1, 2020",
+        "scores": {
+            "cole": 9,
+            "brian": 10,
+            "wes": 10,
+            "sunny": 9.5,
+            "average": 9.625
+        }
+    },
+    {
+        "movieTitle": "LOTR: The Fellowship of the Ring",
+        "dateWatched": "Nov 7, 2020",
+        "scores": {
+            "cole": 7,
+            "brian": 9,
+            "wes": 7.5,
+            "sunny": 8.5,
+            "average": 8
+        }
+    },
+    {
+        "movieTitle": "LOTR: The Two Towers",
+        "dateWatched": "Nov 15, 2020",
+        "scores": {
+            "cole": 7.5,
+            "brian": 8.5,
+            "wes": 9,
+            "sunny": 7.5,
+            "average": 8.125
+        }
+    },
+    {
+        "movieTitle": "LOTR: The Return of the King",
+        "dateWatched": "Nov 22, 2020",
+        "scores": {
+            "cole": 8,
+            "brian": 10,
+            "wes": 9,
+            "sunny": 9,
+            "average": 9
+        }
+    },
+    {
+        "movieTitle": "Wolf of Wall Street",
+        "dateWatched": "Nov 29, 2020",
+        "scores": {
+            "cole": 7.5,
+            "brian": 7,
+            "wes": null,
+            "sunny": 9,
+            "average": 7.833
+        }
+    },
+    {
+        "movieTitle": "Planes, Trains, and Automobiles",
+        "dateWatched": "Dec 6, 2020",
+        "scores": {
+            "cole": 7.5,
+            "brian": 7.5,
+            "wes": null,
+            "sunny": 8.5,
+            "average": 7.833
+        }
+    },
+    {
+        "movieTitle": "Forrest Gump",
+        "dateWatched": "Dec 13, 2020",
+        "scores": {
+            "cole": 8.5,
+            "brian": 9,
+            "wes": 9.5,
+            "sunny": 9,
+            "average": 9
+        }
+    },
+    {
+        "movieTitle": "Klaus",
+        "dateWatched": "Dec 20, 2020",
+        "scores": {
+            "cole": 7.5,
+            "brian": 7.5,
+            "wes": 8,
+            "sunny": 8.5,
+            "average": 7.875
+        }
+    },
+    {
+        "movieTitle": "Her",
+        "dateWatched": "Dec 27, 2020",
+        "scores": {
+            "cole": 6,
+            "brian": 9,
+            "wes": 9,
+            "sunny": 8.5,
+            "average": 8.125
+        }
+    },
+    {
+        "movieTitle": "Fight Club",
+        "dateWatched": "Jan 3, 2021",
+        "scores": {
+            "cole": 8,
+            "brian": 9,
+            "wes": 7.5,
+            "sunny": 10,
+            "average": 8.625
+        }
+    },
+    {
+        "movieTitle": "Dunkirk",
+        "dateWatched": "Jan 10, 2021",
+        "scores": {
+            "cole": 8,
+            "brian": 9.5,
+            "wes": 7.5,
+            "sunny": 7,
+            "average": 8
+        }
+    },
+    {
+        "movieTitle": "American Psycho",
+        "dateWatched": "Jan 18, 2021",
+        "scores": {
+            "cole": 7,
+            "brian": 7.5,
+            "wes": 7,
+            "sunny": 8,
+            "average": 7.375
+        }
+    },
+    {
+        "movieTitle": "Dr. Horrible's Sing along Blog",
+        "dateWatched": "Jan 24, 2021",
+        "scores": {
+            "cole": 4,
+            "brian": 2,
+            "wes": 10,
+            "sunny": 7.5,
+            "average": 5.875
+        }
+    },
+    {
+        "movieTitle": "Back to the Future",
+        "dateWatched": "Jan 31, 2021",
+        "scores": {
+            "cole": 9,
+            "brian": 9,
+            "wes": 9.5,
+            "sunny": 10,
+            "average": 9.375
+        }
+    },
+    {
+        "movieTitle": "Back to the Future 2",
+        "dateWatched": "Feb 7, 2021",
+        "scores": {
+            "cole": 7,
+            "brian": 6,
+            "wes": 6.5,
+            "sunny": 10,
+            "average": 7.375
+        }
+    },
+    {
+        "movieTitle": "Back to the Future 3",
+        "dateWatched": "Feb 15, 2021",
+        "scores": {
+            "cole": 8,
+            "brian": 7,
+            "wes": 8,
+            "sunny": 8,
+            "average": 7.75
+        }
+    },
+    {
+        "movieTitle": "Interstellar",
+        "dateWatched": "Feb 21, 2021",
+        "scores": {
+            "cole": 9,
+            "brian": 9.5,
+            "wes": 9.5,
+            "sunny": 9,
+            "average": 9.25
+        }
+    },
+    {
+        "movieTitle": "Raiders of the Lost Ark",
+        "dateWatched": "Mar 1, 2021",
+        "scores": {
+            "cole": 7,
+            "brian": 6.5,
+            "wes": 7.5,
+            "sunny": 8,
+            "average": 7.25
+        }
+    },
+    {
+        "movieTitle": "Indiana Jones and the Temple of Doom",
+        "dateWatched": "Mar 7, 2021",
+        "scores": {
+            "cole": 7.5,
+            "brian": 7,
+            "wes": 7,
+            "sunny": 9,
+            "average": 7.625
+        }
+    },
+    {
+        "movieTitle": "Indiana Jones and the Last Crusade",
+        "dateWatched": "Mar 14, 2021",
+        "scores": {
+            "cole": 7.5,
+            "brian": 7,
+            "wes": 8,
+            "sunny": 7,
+            "average": 7.375
+        }
+    },
+    {
+        "movieTitle": "Indiana Jones and the Kingdom of the Crystal Skull",
+        "dateWatched": "Mar 21, 2021",
+        "scores": {
+            "cole": 6,
+            "brian": 7,
+            "wes": 7,
+            "sunny": 6.5,
+            "average": 6.625
+        }
+    },
+    {
+        "movieTitle": "The Usual Suspects",
+        "dateWatched": "Mar 27, 2021",
+        "scores": {
+            "cole": 8.5,
+            "brian": 9,
+            "wes": 7,
+            "sunny": 7.5,
+            "average": 8
+        }
+    },
+    {
+        "movieTitle": "Uncut Gems",
+        "dateWatched": "Apr 5, 2021",
+        "scores": {
+            "cole": 8.5,
+            "brian": 3,
+            "wes": 6.5,
+            "sunny": 9,
+            "average": 6.75
+        }
+    },
+    {
+        "movieTitle": "The Godfather",
+        "dateWatched": "Apr 11, 2021",
+        "scores": {
+            "cole": 8,
+            "brian": 10,
+            "wes": 6.5,
+            "sunny": 8,
+            "average": 8.125
+        }
+    },
+    {
+        "movieTitle": "The Godfather 2",
+        "dateWatched": "Apr 20, 2021",
+        "scores": {
+            "cole": 8.5,
+            "brian": 9.75,
+            "wes": 6.5,
+            "sunny": 6,
+            "average": 7.6875
+        }
+    },
+    {
+        "movieTitle": "The Godfather 3",
+        "dateWatched": "Apr 26, 2021",
+        "scores": {
+            "cole": 7.5,
+            "brian": 7,
+            "wes": 6.5,
+            "sunny": 5,
+            "average": 6.5
+        }
+    },
+    {
+        "movieTitle": "Parasite",
+        "dateWatched": "May 2, 2021",
+        "scores": {
+            "cole": 10,
+            "brian": 10,
+            "wes": 9.9,
+            "sunny": 10,
+            "average": 9.975
+        }
+    }
+]
