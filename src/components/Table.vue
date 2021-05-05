@@ -12,8 +12,10 @@
               {{ head.value }}
             </slot>
           </div>
-          <div v-if="head.sortable" @click="sort(head.value)">
-            <mdicon name="chevron-down" />
+          <div class="sort-button" v-if="head.sortable" @click="sort(head.value)">
+            <mdicon v-if="sortBy[head.value] === 0" name="menu-down" />
+            <mdicon v-else-if="sortBy[head.value] === 1" name="arrow-down-drop-circle" />
+            <mdicon v-else name="arrow-up-drop-circle" />
           </div>
         </div>
       </th>
@@ -38,6 +40,7 @@ export default class Table extends Vue {
   @Prop({default: true}) header!: boolean;
 
   private tableData: Record<string, any>[] = [];
+  private sortBy: Record<string, number> = {};
 
   get tableHeaders(): Header[] {
     const tableHeaders: Header[] = [];
@@ -61,8 +64,27 @@ export default class Table extends Vue {
     this.tableData = this.data.slice(0);
   }
 
+  @Watch('header', {immediate: true})
+  updateSortBy(): void {
+    for (const head of this.headers) {
+      this.sortBy[head.value] = 0;
+    }
+  }
+
   sort(value: string): void {
-    this.tableData.sort((a, b) => a[value] - b[value]);
+    if (this.sortBy[value] === 0) {
+      for (const col of Object.keys(this.sortBy)) {
+        this.sortBy[col] = 0;
+      }
+      this.tableData.sort((a, b) => a[value] - b[value]);
+      this.sortBy[value]++;
+    } else if (this.sortBy[value] === 1) {
+      this.tableData.sort((a, b) => b[value] - a[value]);
+      this.sortBy[value]++;
+    } else {
+      this.updateTableData();
+      this.sortBy[value] = 0;
+    }
   }
 }
 </script>
@@ -110,5 +132,9 @@ tr td:first-child {
 tr td:last-child {
   border-top-right-radius: 10px;
   border-bottom-right-radius: 10px;
+}
+
+.sort-button {
+  cursor: pointer;
 }
 </style>
