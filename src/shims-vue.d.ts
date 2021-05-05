@@ -4,3 +4,4 @@ declare module '*.vue' {
 }
 
 declare module 'mdi-vue/v2';
+declare module 'vue-avatar-component';

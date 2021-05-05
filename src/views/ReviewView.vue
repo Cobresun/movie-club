@@ -4,7 +4,19 @@
     <movie-table
       :headers="headers"
       :data="tableData"
-    ></movie-table>
+      v-if="reviews.length > 0"
+    >
+      <template v-slot:movieTitle>
+        <btn>
+          Add Review
+          <mdicon name="plus"/>
+        </btn>
+      </template>
+      <template v-slot:dateWatched> </template>
+      <template v-for="(value, name) in reviews[0].scores" v-slot:[name]>
+        <avatar :key="name" :fullname="name"></avatar>
+      </template>
+    </movie-table>
   </div>
 </template>
 
@@ -38,7 +50,9 @@ export default class ReviewView extends Vue {
   }
 
   get headers(): Header[] {
-    const headers = [{value: "movieTitle", style:"font-weight: 700"},{value: "dateWatched"}];
+    const headers: Header[] = [
+      {value: "movieTitle", style:"font-weight: 700", sortable: false, centerHeader: false},
+      {value: "dateWatched", sortable: false, includeHeader: false}];
 
     if (this.reviews.length > 0) {
       for (const key of Object.keys(this.reviews[0].scores)) {
