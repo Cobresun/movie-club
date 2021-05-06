@@ -6,9 +6,23 @@ const q = faunadb.query
 
 exports.handler = async function(event, context) {
     try {
-        const req = await faunaClient.query(q.Map(q.Paginate(q.Match(q.Index("all_watchList"))), q.Lambda("attr", q.Get(q.Var("attr")))))
-        let scrapedWatchList = []
+        const req = await faunaClient.query(
+            q.Map(
+                q.Paginate(
+                    q.Match(
+                        q.Index("all_watchList")
+                    )
+                ), 
+                q.Lambda(
+                    "attr", 
+                    q.Get(
+                        q.Var("attr")
+                    )
+                )
+            )
+        )
 
+        let scrapedWatchList = []
         req.data.forEach(movie => {
             scrapedWatchList.push(movie.data)
         });

@@ -6,9 +6,23 @@ const q = faunadb.query
 
 exports.handler = async function(event, context) {
     try {
-        const req = await faunaClient.query(q.Map(q.Paginate(q.Match(q.Index("all_reviews"))), q.Lambda("attr", q.Get(q.Var("attr")))))
-        let scrapedReviews = []
+        const req = await faunaClient.query(
+            q.Map(
+                q.Paginate(
+                    q.Match(
+                        q.Index("all_reviews")
+                    )
+                ), 
+                q.Lambda(
+                    "attr", 
+                    q.Get(
+                        q.Var("attr")
+                    )
+                )
+            )
+        )
 
+        let scrapedReviews = []
         req.data.forEach(review => {
             scrapedReviews.push(review.data)
         });
