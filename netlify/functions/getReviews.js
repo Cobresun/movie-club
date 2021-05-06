@@ -10,25 +10,24 @@ exports.handler = async function(event, context) {
             q.Map(
                 q.Paginate(
                     q.Match(
-                        q.Index("all_reviews")
+                        q.Index("all_reviews_sort_by_date")
                     )
                 ), 
                 q.Lambda(
-                    "attr", 
-                    q.Get(
-                        q.Var("attr")
+                    ["d", "ref"], 
+                    q.Select(
+                        ["data"], 
+                        q.Get(
+                            q.Var("ref")
+                        )
                     )
                 )
             )
         )
 
-        let scrapedReviews = []
-        req.data.forEach(review => {
-            scrapedReviews.push(review.data)
-        });
-
-        return { statusCode: 200, body: JSON.stringify(scrapedReviews) }
+        return { statusCode: 200, body: JSON.stringify(req.data) }
     } catch (err) {
+        console.error(err)
         return { statusCode: 500, body: JSON.stringify({ error: err.message}) }
     }
 }

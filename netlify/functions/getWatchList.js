@@ -10,24 +10,22 @@ exports.handler = async function(event, context) {
             q.Map(
                 q.Paginate(
                     q.Match(
-                        q.Index("all_watchList")
+                        q.Index("all_watchList_sort_by_date")
                     )
                 ), 
                 q.Lambda(
-                    "attr", 
-                    q.Get(
-                        q.Var("attr")
+                    ["d", "ref"], 
+                    q.Select(
+                        ["data"], 
+                        q.Get(
+                            q.Var("ref")
+                        )
                     )
                 )
             )
         )
-
-        let scrapedWatchList = []
-        req.data.forEach(movie => {
-            scrapedWatchList.push(movie.data)
-        });
         
-        return { statusCode: 200, body: JSON.stringify(scrapedWatchList) }
+        return { statusCode: 200, body: JSON.stringify(req.data) }
     } catch (err) {
         return { statusCode: 500, body: JSON.stringify({ error: err.message}) }
     }
