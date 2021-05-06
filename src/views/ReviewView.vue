@@ -12,7 +12,6 @@
           <mdicon name="plus"/>
         </btn>
       </template>
-      <template v-slot:dateWatched> </template>
       <template v-for="(value, name) in reviews[0].scores" v-slot:[name]>
         <avatar :key="name" :fullname="name"></avatar>
       </template>
@@ -52,7 +51,7 @@ export default class ReviewView extends Vue {
   get headers(): Header[] {
     const headers: Header[] = [
       {value: "movieTitle", style:"font-weight: 700", sortable: false, centerHeader: false},
-      {value: "dateWatched", sortable: false, includeHeader: false}];
+      {value: "dateWatched", title:"Date Reviewed", sortable: true}];
 
     if (this.reviews.length > 0) {
       for (const key of Object.keys(this.reviews[0].scores)) {

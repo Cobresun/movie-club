@@ -9,7 +9,7 @@
         >
           <div v-if="head.includeHeader">
             <slot :name="head.value">
-              {{ head.value }}
+              {{ head.title }}
             </slot>
           </div>
           <div class="sort-button" v-if="head.sortable" @click="sort(head.value)">
