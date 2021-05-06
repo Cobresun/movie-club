@@ -11,3 +11,9 @@ export interface ReviewResponse {
   dateWatched: string;
   scores: Object;
 }
+
+export interface WatchListResponse {
+  movieTitle: string;
+  dateAdded: string;
+  addedBy: string;
+}
