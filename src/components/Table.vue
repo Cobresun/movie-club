@@ -23,7 +23,9 @@
     <tbody>
       <tr v-for="(item, index) in tableData" :key="index">
         <td class="item" v-for="(head, index) in tableHeaders" :key="index" :style="head.style">
-          {{ item[head.value] }}
+          <slot :name="'item-'+head.value" v-bind:item="item" v-bind:head="head">
+            {{ item[head.value] }}
+          </slot>
         </td>
       </tr>
     </tbody>
