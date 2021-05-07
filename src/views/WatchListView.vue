@@ -3,7 +3,7 @@
     <h1>Cobresun Watch List</h1>
     <movie-table
       :headers="headers"
-      :data="watchList"
+      :data="tableData"
     >
     <template v-slot:movieTitle>
         <btn>
@@ -41,6 +41,19 @@ export default class WatchListView extends Vue {
     axios
       .get('/api/getWatchList')
       .then((response) => (this.watchList = response.data))
+  }
+
+  get tableData(): any[] {
+    const data: any[] = [];
+    for (let i = 0; i < this.watchList.length; i++) {
+      const obj: any = {};
+      obj.movieTitle = this.watchList[i].movieTitle;
+      obj.dateAdded = this.watchList[i].dateAdded['@date'];
+      obj.addedBy = this.watchList[i].addedBy;
+      data[i] = obj;
+    }
+    console.log(data);
+    return data;
   }
 }
 </script>
