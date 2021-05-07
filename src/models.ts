@@ -7,9 +7,13 @@ export interface Header {
   centerHeader?: boolean;
 }
 
+type DateWatched = {
+  "@date": string
+};
+
 export interface ReviewResponse {
   movieTitle: string;
-  dateWatched: string;
+  dateWatched: DateWatched;
   scores: Object;
 }
 

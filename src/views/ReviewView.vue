@@ -39,7 +39,7 @@ export default class ReviewView extends Vue {
     for (let i = 0; i < this.reviews.length; i++) {
       const obj: any = {};
       obj.movieTitle = this.reviews[i].movieTitle;
-      obj.dateWatched = this.reviews[i].dateWatched;
+      obj.dateWatched = this.reviews[i].dateWatched['@date'];
       for (const key of Object.keys(this.reviews[i].scores)) {
         obj[key] = (this.reviews[i].scores as any)[key]; 
       }
