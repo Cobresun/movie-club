@@ -13,7 +13,8 @@
         </btn>
       </template>
       <template v-for="(value, name) in reviews[0].scores" v-slot:[name]>
-        <avatar :key="name" :fullname="name"></avatar>
+        <img v-if="name === 'average' " :key="name" src="@/assets/average.svg" width="64" height="48" />
+        <avatar v-else :key="name" :fullname="name"></avatar>
       </template>
     </movie-table>
   </div>
