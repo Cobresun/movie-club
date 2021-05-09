@@ -1,6 +1,9 @@
 <template>
   <div>
-    <h1>Cobresun Reviews</h1>
+    <div class="title">
+      <router-link to="/"><mdicon class="back" name="arrow-left" size="40"/></router-link>
+      <h1>Cobresun Reviews</h1>
+    </div>
     <movie-table
       :headers="headers"
       :data="tableData"
@@ -63,6 +66,23 @@ export default class ReviewView extends Vue {
   }
 }
 </script>
-
 <style scoped>
+.title {
+  display: grid;
+  grid-column-gap: 32px;
+  align-items: center;
+  grid-template-columns: 1fr auto 1fr;
+}
+
+.title:first-child {
+  justify-items: right;
+}
+
+.back {
+  color: var(--text-color);
+}
+
+.back:hover {
+  cursor: pointer;
+}
 </style>
