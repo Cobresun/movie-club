@@ -1,9 +1,18 @@
 <template>
   <div class="home">
     <h1>Cobresun</h1>
-    <btn @click="doStuff()">Sign In <mdicon name="arrow-right" /></btn>
-    <h3><router-link to="/reviews">Reviews</router-link></h3>
-    <h3><router-link to="/watchList">Watch List</router-link></h3>
+    <div class="menu">
+      <div class="menu-option">
+        <router-link to="/reviews"><menu-card image="review.svg">Reviews</menu-card></router-link>
+      </div>
+      <div class="menu-option">
+        <router-link to="/watchList"><menu-card image="watchlist.svg">Watch List</menu-card></router-link>
+      </div>
+      <div class="menu-option">
+        <router-link to="/"><menu-card image="statistics.svg">Statistics</menu-card></router-link>
+      </div>
+    </div>
+    <btn>Club Settings <mdicon name="cog-outline" /></btn>
   </div>
 </template>
 
@@ -18,3 +27,14 @@ export default class Home extends Vue {
   }
 }
 </script>
+<style scoped>
+.menu {
+  display: flex;
+  justify-content: center;
+  padding-bottom: 24px;
+}
+
+.menu-option {
+  padding: 12px;
+}
+</style>
