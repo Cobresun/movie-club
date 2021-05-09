@@ -1,8 +1,11 @@
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+/* eslint-disable @typescript-eslint/no-var-requires */
 const faunadb = require('faunadb')
+const axios = require('axios')
 
 const faunaClient = new faunadb.Client({ secret: process.env.FAUNADB_SERVER_SECRET })
 const q = faunadb.query
+
+const tmdbApiKey = process.env.TMDB_API_KEY
 
 exports.handler = async function(event, context) {
     try {
@@ -24,9 +27,20 @@ exports.handler = async function(event, context) {
                 )
             )
         )
-        
-        return { statusCode: 200, body: JSON.stringify(req.data) }
+
+        let watchList = await getMovieTitles(req.data)
+        return { statusCode: 200, body: JSON.stringify(watchList) }
     } catch (err) {
         return { statusCode: 500, body: JSON.stringify({ error: err.message}) }
     }
+}
+
+// TODO: Make these requests run in parallel
+async function getMovieTitles(watchList) {
+    for (const movie of watchList) {
+        await axios
+            .get(`https://api.themoviedb.org/3/movie/${movie.movieId}?api_key=${tmdbApiKey}`)
+            .then(response => movie.movieTitle = response.data.title)
+    }
+    return watchList
 }
