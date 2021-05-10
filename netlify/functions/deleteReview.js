@@ -5,12 +5,12 @@ const faunaClient = new faunadb.Client({ secret: process.env.FAUNADB_SERVER_SECR
 const q = faunadb.query
 
 exports.handler = async function(event, context) {
-    if (event.httpMethod !== 'POST') {
+    if (event.httpMethod !== 'DELETE') {
         return {
             statusCode: 400,
-            body: 'You are not using a http POST method for this endpoint.',
+            body: 'You are not using a http DELETE method for this endpoint.',
             headers: {
-                'Allow': 'POST'
+                'Allow': 'DELETE'
             }
         }
     }
@@ -24,25 +24,17 @@ exports.handler = async function(event, context) {
     }
 
     try {
-        let date = new Date()
-        date = date.toISOString().slice(0, 10)
-
         const req = await faunaClient.query(
-            q.Create(
-                q.Collection("reviews"),
-                {
-                    data: {
-                        "movieId": parseInt(body.movieId),
-                        "dateWatched": q.Date(`${date}`),
-                        "scores": {
-                            "cole": "null",
-                            "brian": "null",
-                            "wes": "null",
-                            "sunny": "null",
-                            "average": "null"
-                        }
-                    }
-                }
+            q.Delete(
+                q.Select(
+                    "ref",
+                    q.Get(
+                        q.Match(
+                            q.Index("reviews_by_movieId"),
+                            parseInt(body.movieId)
+                        )
+                    )
+                )
             )
         )
 
