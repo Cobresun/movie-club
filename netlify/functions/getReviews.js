@@ -28,6 +28,14 @@ exports.handler = async function(event, context) {
             )
         )
 
+        req.data.forEach(review => {
+            for (let [user, score] of Object.entries(review.scores)) {
+                if (score === "null") {
+                    review.scores[user] = null
+                }
+            }
+        })
+
         let reviews = await getMovieTitles(req.data)
         return { statusCode: 200, body: JSON.stringify(reviews) }
     } catch (err) {
