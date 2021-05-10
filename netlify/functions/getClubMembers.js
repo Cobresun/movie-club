@@ -5,38 +5,39 @@ const faunaClient = new faunadb.Client({ secret: process.env.FAUNADB_SERVER_SECR
 const q = faunadb.query
 
 exports.handler = async function(event, context) {
-    if (event.httpMethod !== 'POST') {
+    if (event.httpMethod !== 'GET') {
         return {
             statusCode: 400,
-            body: 'You are not using a http POST method for this endpoint.',
+            body: 'You are not using a http GET method for this endpoint.',
             headers: {
-                'Allow': 'POST'
+                'Allow': 'GET'
             }
         }
     }
 
     let body = event.queryStringParameters
-    if (body.name === "" || !body.movieId) {
+    if (body.name === "" || !body.clubName) {
         return {
             statusCode: 402,
-            body: 'No movieId specified. Please specify a movieId.'
+            body: 'No clubName specified. Please specify a clubName.'
         }
     }
 
     try {
-        let date = new Date()
-        date = date.toISOString().slice(0, 10)
-
         const req = await faunaClient.query(
-            q.Create(
-                q.Collection("reviews"),
-                {
-                    data: {
-                        "movieId": parseInt(body.movieId),
-                        "dateWatched": q.Date(`${date}`),
-                        "scores": { }
-                    }
-                }
+            q.Map(
+                q.Paginate(
+                    q.Match(
+                        q.Index("all_members_in_club_by_club_name"),
+                        body.clubName
+                    )
+                ),
+                q.Lambda(
+                    "X",
+                    q.Get(
+                        q.Var("X")
+                    )
+                )
             )
         )
 
@@ -45,10 +46,9 @@ exports.handler = async function(event, context) {
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify(req.data)
+            body: JSON.stringify(req.data[0].data.members)
         }
     } catch (err) {
-        console.error(err)
         return { statusCode: 500, body: JSON.stringify({ error: err.message}) }
     }
 }
