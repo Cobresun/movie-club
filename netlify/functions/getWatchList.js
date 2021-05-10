@@ -35,10 +35,9 @@ exports.handler = async function(event, context) {
     }
 }
 
-// TODO: Make these requests run in parallel
-async function getMovieTitles(reviews) {
+async function getMovieTitles(watchList) {
   const promises = [];
-  for (const review of reviews) {
+  for (const review of watchList) {
     const promise = axios
       .get(
         `https://api.themoviedb.org/3/movie/${review.movieId}?api_key=${tmdbApiKey}`
@@ -47,5 +46,5 @@ async function getMovieTitles(reviews) {
     promises.push(promise);
   }
   await Promise.all(promises);
-  return reviews;
+  return watchList;
 }

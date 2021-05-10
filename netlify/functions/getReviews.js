@@ -36,8 +36,6 @@ exports.handler = async function(event, context) {
     }
 }
 
-
-// TODO: Make these requests run in parallel
 async function getMovieTitles(reviews) {
     const promises = [];
     for (const review of reviews) {
