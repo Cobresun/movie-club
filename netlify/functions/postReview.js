@@ -24,9 +24,8 @@ exports.handler = async function(event, context) {
     }
 
     try {
-        let d = new Date()
-        d = d.toISOString().slice(0, 10)
-        console.log(d)
+        let date = new Date()
+        date = date.toISOString().slice(0, 10)
 
         const req = await faunaClient.query(
             q.Create(
@@ -34,7 +33,7 @@ exports.handler = async function(event, context) {
                 {
                     data: {
                         "movieId": body.movieId,
-                        "dateWatched": q.Date(`${d}`),
+                        "dateWatched": q.Date(`${date}`),
                         "scores": {
                             "cole": "null",
                             "brian": "null",
@@ -47,7 +46,7 @@ exports.handler = async function(event, context) {
             )
         )
 
-        return { statusCode: 200, body: "Success" }
+        return { statusCode: 200, body: JSON.stringify(req.data) }
     } catch (err) {
         console.error(err)
         return { statusCode: 500, body: JSON.stringify({ error: err.message}) }
