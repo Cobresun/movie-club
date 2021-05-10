@@ -37,7 +37,13 @@ exports.handler = async function(event, context) {
         })
 
         let reviews = await getMovieTitles(req.data)
-        return { statusCode: 200, body: JSON.stringify(reviews) }
+        return {
+            statusCode: 200,
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(reviews)
+        }
     } catch (err) {
         console.error(err)
         return { statusCode: 500, body: JSON.stringify({ error: err.message}) }
