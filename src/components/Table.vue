@@ -116,6 +116,19 @@ table {
   grid-column-start: 2;
 }
 
+th {
+  background-color: var(--primary-color);
+  padding-top: 7px;
+}
+
+th:first-child {
+  border-top-left-radius: 10px;
+}
+
+th:last-child {
+  border-top-right-radius: 10px;
+}
+
 tr {
   background-color: var(--primary-color);
   height: 75px;

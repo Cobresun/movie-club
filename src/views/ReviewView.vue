@@ -4,17 +4,15 @@
       <router-link to="/"><mdicon class="back" name="arrow-left" size="40"/></router-link>
       <h1>Cobresun Reviews</h1>
     </div>
+    <btn class="button">
+      Add Review
+      <mdicon name="plus"/>
+    </btn>
     <movie-table
       :headers="headers"
       :data="tableData"
       v-if="reviews.length > 0"
     >
-      <template v-slot:movieTitle>
-        <btn>
-          Add Review
-          <mdicon name="plus"/>
-        </btn>
-      </template>
       <template v-for="(value, name) in reviews[0].scores" v-slot:[name]>
         <img v-if="name === 'average' " :key="name" src="@/assets/average.svg" width="64" height="48" />
         <avatar v-else :key="name" :fullname="name"></avatar>
@@ -54,8 +52,8 @@ export default class ReviewView extends Vue {
 
   get headers(): Header[] {
     const headers: Header[] = [
-      {value: "movieTitle", style:"font-weight: 700", sortable: false, centerHeader: false},
-      {value: "dateWatched", title:"Date Reviewed", sortable: true}];
+      {value: "movieTitle", style:"font-weight: 700", title:"Title"},
+      {value: "dateWatched", title:"Date Reviewed"}];
 
     if (this.reviews.length > 0) {
       for (const key of Object.keys(this.reviews[0].scores)) {
@@ -84,5 +82,9 @@ export default class ReviewView extends Vue {
 
 .back:hover {
   cursor: pointer;
+}
+
+.button {
+  float: left;
 }
 </style>
