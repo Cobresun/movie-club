@@ -4,20 +4,27 @@
       <router-link to="/"><mdicon class="back" name="arrow-left" size="40"/></router-link>
       <h1>Cobresun Reviews</h1>
     </div>
-    <btn class="button">
-      Add Review
-      <mdicon name="plus"/>
-    </btn>
-    <movie-table
-      :headers="headers"
-      :data="tableData"
-      v-if="reviews.length > 0"
-    >
-      <template v-for="(value, name) in reviews[0].scores" v-slot:[name]>
-        <img v-if="name === 'average' " :key="name" src="@/assets/average.svg" width="64" height="48" />
-        <avatar v-else :key="name" :fullname="name"></avatar>
-      </template>
-    </movie-table>
+    
+    <div v-if="loading" class="loading">
+      Loading...
+    </div>
+
+    <div v-if="!loading">
+      <btn class="button">
+        Add Review
+        <mdicon name="plus"/>
+      </btn>
+      <movie-table
+        :headers="headers"
+        :data="tableData"
+        v-if="reviews.length > 0"
+      >
+        <template v-for="(value, name) in reviews[0].scores" v-slot:[name]>
+          <img v-if="name === 'average' " :key="name" src="@/assets/average.svg" width="64" height="48" />
+          <avatar v-else :key="name" :fullname="name"></avatar>
+        </template>
+      </movie-table>
+    </div>
   </div>
 </template>
 
@@ -29,11 +36,16 @@ import axios from 'axios'
 @Component({})
 export default class ReviewView extends Vue {
   private reviews: ReviewResponse[] = [];
+  private loading = false;
 
   mounted(): void {
+    this.loading = true;
     axios
       .get('/api/getReviews')
-      .then((response) => (this.reviews = response.data))
+      .then((response) => {
+        this.loading = false;
+        (this.reviews = response.data);
+      })
   }
 
   get tableData(): any[] {
@@ -64,6 +76,7 @@ export default class ReviewView extends Vue {
   }
 }
 </script>
+
 <style scoped>
 .title {
   display: grid;
