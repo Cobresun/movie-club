@@ -5,9 +5,7 @@
       <h1>Cobresun Watch List</h1>
     </div>
 
-    <div v-if="loading" class="loading">
-      Loading...
-    </div>
+    <loading-spinner v-if="loading"/>
 
     <div v-if="!loading">
       <movie-table

@@ -5,9 +5,7 @@
       <h1>Cobresun Reviews</h1>
     </div>
     
-    <div v-if="loading" class="loading">
-      Loading...
-    </div>
+    <loading-spinner v-if="loading"/>
 
     <div v-if="!loading">
       <btn class="button">
