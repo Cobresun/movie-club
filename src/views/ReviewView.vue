@@ -1,24 +1,31 @@
 <template>
   <div>
-    <movie-search-prompt />
-    <div class="title">
-      <router-link to="/"><mdicon class="back" name="arrow-left" size="40"/></router-link>
-      <h1>Cobresun Reviews</h1>
+    <movie-search-prompt
+      v-if="modalOpen"
+      @close="closePrompt()" 
+    />
+    <div>
+      <div class="title">
+        <router-link to="/"><mdicon class="back" name="arrow-left" size="40"/></router-link>
+        <h1>Cobresun Reviews</h1>
+      </div>
+      <btn 
+        class="button"
+        @click="openPrompt()">
+        Add Review
+        <mdicon name="plus"/>
+      </btn>
+      <movie-table
+        :headers="headers"
+        :data="tableData"
+        v-if="reviews.length > 0"
+      >
+        <template v-for="(value, name) in reviews[0].scores" v-slot:[name]>
+          <img v-if="name === 'average' " :key="name" src="@/assets/average.svg" width="64" height="48" />
+          <avatar v-else :key="name" :fullname="name"></avatar>
+        </template>
+      </movie-table>
     </div>
-    <btn class="button">
-      Add Review
-      <mdicon name="plus"/>
-    </btn>
-    <movie-table
-      :headers="headers"
-      :data="tableData"
-      v-if="reviews.length > 0"
-    >
-      <template v-for="(value, name) in reviews[0].scores" v-slot:[name]>
-        <img v-if="name === 'average' " :key="name" src="@/assets/average.svg" width="64" height="48" />
-        <avatar v-else :key="name" :fullname="name"></avatar>
-      </template>
-    </movie-table>
   </div>
 </template>
 
@@ -33,6 +40,8 @@ import axios from 'axios'
 })
 export default class ReviewView extends Vue {
   private reviews: ReviewResponse[] = [];
+
+  private modalOpen = false;
 
   mounted(): void {
     axios
@@ -65,6 +74,14 @@ export default class ReviewView extends Vue {
       }
     }
     return headers;
+  }
+
+  openPrompt(): void {
+    this.modalOpen = true;
+  }
+
+  closePrompt(): void {
+    this.modalOpen = false;
   }
 }
 </script>
