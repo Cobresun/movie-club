@@ -68,14 +68,14 @@ exports.handler = async function(event, context) {
 
 async function getMovieData(watchList) {
   const promises = [];
-  for (const review of watchList) {
+  for (const movie of watchList) {
     const promise = axios
       .get(
-        `https://api.themoviedb.org/3/movie/${review.movieId}?api_key=${tmdbApiKey}`
+        `https://api.themoviedb.org/3/movie/${movie.movieId}?api_key=${tmdbApiKey}`
       )
       .then((response) => {
-          review.movieTitle = response.data.title;
-          review.releaseDate = response.data.release_date;
+            movie.movieTitle = response.data.title;
+            movie.releaseDate = response.data.release_date;
         });
     promises.push(promise);
   }
