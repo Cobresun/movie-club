@@ -116,7 +116,7 @@ table {
 }
 
 th {
-  background-color: var(--primary-color);
+  background-color: var(--secondary-color);
   padding-top: 7px;
 }
 
@@ -129,13 +129,13 @@ th:last-child {
 }
 
 tr {
-  background-color: var(--primary-color);
+  background-color: var(--low-key-background-color);
   height: 75px;
   border-bottom: 10px solid transparent;
 }
 
 td {
-  color: black;
+  color: var(--text-color);;
 }
 
 tr td:first-child {

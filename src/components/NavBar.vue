@@ -1,6 +1,6 @@
 <template>
   <div>
-    <h3 class="title"><router-link to="/">MovieClub</router-link></h3>
+    <router-link to="/"><h3 class="title">MovieClub</h3></router-link>
   </div>
 </template>
 
@@ -16,7 +16,7 @@ export default class NavBar extends Vue {}
   font-family: 'Poppins', sans-serif;
   font-weight: 700;
   font-size: 25px;
-  color: var(--primary-color);
+  color: var(--highlight-color);
   text-align: left;
   margin-left:20px;
 }
