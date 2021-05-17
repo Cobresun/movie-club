@@ -19,9 +19,9 @@
           </btn>
         </template>
         <template v-slot:dateAdded>
-          <btn>
-            Shuffle
-            <mdicon name="shuffle-variant"/>
+          <btn @click="selectRandom()">
+            Random
+            <mdicon name="dice-multiple-outline"/>
           </btn>
         </template>
         <template v-slot:item-addedBy="slotProps">
@@ -69,6 +69,11 @@ export default class WatchListView extends Vue {
       data[i] = obj;
     }
     return data;
+  }
+
+  selectRandom(): void {
+    const randomMovie = this.watchList[Math.floor(Math.random() * this.watchList.length)];
+    console.log("TODO: postNextWatch movieId for: " + randomMovie.movieTitle)
   }
 }
 </script>
