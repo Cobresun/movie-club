@@ -95,7 +95,6 @@ table {
   width: 100%;
   border-collapse: separate;
   border-spacing: 0 10px;
-  margin: 20px auto;
 }
 
 .header-child {
