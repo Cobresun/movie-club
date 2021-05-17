@@ -8,6 +8,7 @@ import * as mdijs from "@mdi/js";
 
 import Avatar from "vue-avatar-component";
 import Btn from "@/components/Btn.vue";
+import Loading from "@/components/Loading.vue"
 import Table from "@/components/Table.vue";
 import MenuCard from "@/components/MenuCard.vue";
 import Modal from "@/components/Modal.vue";
@@ -16,6 +17,7 @@ Vue.config.productionTip = false;
 
 Vue.component("avatar", Avatar);
 Vue.component("btn", Btn);
+Vue.component("loading-spinner", Loading);
 Vue.component("movie-table", Table);
 Vue.component("menu-card", MenuCard);
 Vue.component("modal", Modal);

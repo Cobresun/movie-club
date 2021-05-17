@@ -4,26 +4,31 @@
       <router-link to="/"><mdicon class="back" name="arrow-left" size="40"/></router-link>
       <h1>Cobresun Watch List</h1>
     </div>
-    <movie-table
-      :headers="headers"
-      :data="tableData"
-    >
-    <template v-slot:movieTitle>
-        <btn>
-          Add Movie
-          <mdicon name="plus"/>
-        </btn>
-      </template>
-      <template v-slot:dateAdded>
-        <btn>
-          Shuffle
-          <mdicon name="shuffle-variant"/>
-        </btn>
-      </template>
-      <template v-slot:item-addedBy="slotProps">
-         <avatar :fullname="slotProps.item[slotProps.head.value]"></avatar>
-      </template>
-    </movie-table>
+
+    <loading-spinner v-if="loading"/>
+
+    <div v-if="!loading">
+      <movie-table
+        :headers="headers"
+        :data="tableData"
+      >
+      <template v-slot:movieTitle>
+          <btn>
+            Add Movie
+            <mdicon name="plus"/>
+          </btn>
+        </template>
+        <template v-slot:dateAdded>
+          <btn>
+            Shuffle
+            <mdicon name="shuffle-variant"/>
+          </btn>
+        </template>
+        <template v-slot:item-addedBy="slotProps">
+          <avatar :fullname="slotProps.item[slotProps.head.value]"></avatar>
+        </template>
+      </movie-table>
+    </div>
   </div>
 </template>
 
@@ -35,15 +40,20 @@ import axios from 'axios'
 @Component({})
 export default class WatchListView extends Vue {
   private watchList: WatchListResponse[] = [];
+  private loading = false;
   private headers: Header[] = [
       {value: "movieTitle", style:"font-weight: 700", sortable: false, centerHeader: false},
       {value: "dateAdded", sortable: false},
       {value: "addedBy", sortable: false, includeHeader: false}];
 
   mounted(): void {
+    this.loading = true;
     axios
       .get('/api/getWatchList')
-      .then((response) => (this.watchList = response.data))
+      .then((response) => {
+        this.loading = false;
+        (this.watchList = response.data);
+      })
   }
 
   get tableData(): any[] {
@@ -60,6 +70,7 @@ export default class WatchListView extends Vue {
   }
 }
 </script>
+
 <style scoped>
 .title {
   display: grid;
