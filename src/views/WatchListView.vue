@@ -8,22 +8,43 @@
     <loading-spinner v-if="loading"/>
 
     <div v-if="!loading">
-      <movie-table
+      <btn>
+        Add Movie
+        <mdicon name="plus"/>
+      </btn>
+
+      <btn @click="selectRandom()">
+        Random
+        <mdicon name="dice-multiple-outline"/>
+      </btn>
+
+      <movie-table v-if="nextMovie"
+        :header="false" 
         :headers="headers"
-        :data="tableData"
+        :data="nextMovieTableData"
       >
-      <template v-slot:movieTitle>
-          <btn>
-            Add Movie
-            <mdicon name="plus"/>
-          </btn>
+        <template v-slot:movieTitle>
         </template>
+        
         <template v-slot:dateAdded>
-          <btn @click="selectRandom()">
-            Random
-            <mdicon name="dice-multiple-outline"/>
-          </btn>
         </template>
+        
+        <template v-slot:item-addedBy="slotProps">
+          <avatar :fullname="slotProps.item[slotProps.head.value]"></avatar>
+        </template>
+      </movie-table>
+
+      <movie-table
+        :header="false" 
+        :headers="headers"
+        :data="watchListTableData"
+      >
+        <template v-slot:movieTitle>
+        </template>
+        
+        <template v-slot:dateAdded>
+        </template>
+        
         <template v-slot:item-addedBy="slotProps">
           <avatar :fullname="slotProps.item[slotProps.head.value]"></avatar>
         </template>
@@ -40,7 +61,7 @@ import axios from 'axios'
 @Component({})
 export default class WatchListView extends Vue {
   private watchList: WatchListResponse[] = [];
-  private nextMovie: NextMovieResponse = {movieTitle: "Null", datePicked: {'@date': "2020-01-01"}};
+  private nextMovie: NextMovieResponse | null = null;
   private loading = false;
   private headers: Header[] = [
       {value: "movieTitle", style:"font-weight: 700", sortable: false, centerHeader: false},
@@ -55,11 +76,10 @@ export default class WatchListView extends Vue {
         this.loading = false;
         this.watchList = response.data.watchList;
         this.nextMovie = response.data.nextMovie;
-        console.log("Next Movie: ", this.nextMovie.movieTitle)
       })
   }
 
-  get tableData(): any[] {
+  get watchListTableData(): any[] {
     const data: any[] = [];
     for (let i = 0; i < this.watchList.length; i++) {
       const obj: any = {};
@@ -68,6 +88,23 @@ export default class WatchListView extends Vue {
       obj.addedBy = this.watchList[i].addedBy;
       data[i] = obj;
     }
+    return data;
+  }
+
+  get nextMovieTableData() : any[] {
+    const data: any[] = [];
+    
+    if (this.nextMovie) {
+      const matchingMovie = this.watchList.find(movie => movie.movieTitle === this.nextMovie?.movieTitle);
+      if (matchingMovie) {
+        const obj: any = {}
+        obj.movieTitle = matchingMovie.movieTitle;
+        obj.dateAdded = matchingMovie.dateAdded['@date'];
+        obj.addedBy = matchingMovie.addedBy;
+        data[0] = obj;
+      }
+    }
+    
     return data;
   }
 
