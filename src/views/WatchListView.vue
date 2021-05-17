@@ -18,22 +18,6 @@
         <mdicon name="dice-multiple-outline"/>
       </btn>
 
-      <movie-table v-if="nextMovie"
-        :header="false" 
-        :headers="headers"
-        :data="nextMovieTableData"
-      >
-        <template v-slot:movieTitle>
-        </template>
-        
-        <template v-slot:dateAdded>
-        </template>
-        
-        <template v-slot:item-addedBy="slotProps">
-          <avatar :fullname="slotProps.item[slotProps.head.value]"></avatar>
-        </template>
-      </movie-table>
-
       <movie-table
         :header="false" 
         :headers="headers"
@@ -80,32 +64,22 @@ export default class WatchListView extends Vue {
   }
 
   get watchListTableData(): any[] {
-    const data: any[] = [];
-    for (let i = 0; i < this.watchList.length; i++) {
-      const obj: any = {};
-      obj.movieTitle = this.watchList[i].movieTitle;
-      obj.dateAdded = this.watchList[i].dateAdded['@date'];
-      obj.addedBy = this.watchList[i].addedBy;
-      data[i] = obj;
-    }
-    return data;
-  }
+    const nextMovie: WatchListResponse | undefined = this.watchList.find(movie => movie.movieTitle === this.nextMovie?.movieTitle)
+    let sortedWatchList = this.watchList
 
-  get nextMovieTableData() : any[] {
-    const data: any[] = [];
-    
-    if (this.nextMovie) {
-      const matchingMovie = this.watchList.find(movie => movie.movieTitle === this.nextMovie?.movieTitle);
-      if (matchingMovie) {
-        const obj: any = {}
-        obj.movieTitle = matchingMovie.movieTitle;
-        obj.dateAdded = matchingMovie.dateAdded['@date'];
-        obj.addedBy = matchingMovie.addedBy;
-        data[0] = obj;
-      }
+    // If there is a nextMovie set, it gets shifted to the top of the watch list
+    if (nextMovie) {
+      sortedWatchList = sortedWatchList.filter(movie => movie.movieTitle !== this.nextMovie?.movieTitle)
+      sortedWatchList.unshift(nextMovie)
     }
-    
-    return data;
+
+    return sortedWatchList.map(movie => {
+      return {
+        movieTitle: movie.movieTitle,
+        dateAdded: movie.dateAdded['@date'],
+        addedBy: movie.addedBy
+      }
+    })
   }
 
   selectRandom(): void {
