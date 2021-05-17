@@ -1,5 +1,6 @@
 <template>
   <div>
+    <movie-search-prompt />
     <div class="title">
       <router-link to="/"><mdicon class="back" name="arrow-left" size="40"/></router-link>
       <h1>Cobresun Reviews</h1>
@@ -24,9 +25,12 @@
 <script lang="ts">
 import { Component, Vue } from 'vue-property-decorator';
 import { ReviewResponse, Header } from '@/models';
+import MovieSearchPrompt from '@/components/MovieSearchPrompt.vue';
 import axios from 'axios'
 
-@Component({})
+@Component({
+  components: { MovieSearchPrompt },
+})
 export default class ReviewView extends Vue {
   private reviews: ReviewResponse[] = [];
 
