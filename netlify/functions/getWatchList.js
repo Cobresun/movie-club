@@ -28,7 +28,7 @@ exports.handler = async function(event, context) {
             )
         )
         
-        let watchList = await getMovieTitles(reqWatchList.data)
+        let watchList = await getMovieData(reqWatchList.data)
 
         // TODO: when expanding past mvp to multiple watchlists, fetch watchlistid for both queries
         // from event.queryStringParameters like reviewMovieFromWatchList.js instead of using "0"
@@ -66,14 +66,17 @@ exports.handler = async function(event, context) {
     }
 }
 
-async function getMovieTitles(watchList) {
+async function getMovieData(watchList) {
   const promises = [];
   for (const review of watchList) {
     const promise = axios
       .get(
         `https://api.themoviedb.org/3/movie/${review.movieId}?api_key=${tmdbApiKey}`
       )
-      .then((response) => (review.movieTitle = response.data.title));
+      .then((response) => {
+          review.movieTitle = response.data.title;
+          review.releaseDate = response.data.release_date;
+        });
     promises.push(promise);
   }
   await Promise.all(promises);
