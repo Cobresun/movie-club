@@ -34,12 +34,13 @@
 
 <script lang="ts">
 import { Component, Vue } from 'vue-property-decorator';
-import { WatchListResponse, Header } from '@/models';
+import { WatchListResponse, Header, NextMovieResponse } from '@/models';
 import axios from 'axios'
 
 @Component({})
 export default class WatchListView extends Vue {
   private watchList: WatchListResponse[] = [];
+  private nextMovie: NextMovieResponse = {movieTitle: "Null", datePicked: {'@date': "2020-01-01"}};
   private loading = false;
   private headers: Header[] = [
       {value: "movieTitle", style:"font-weight: 700", sortable: false, centerHeader: false},
@@ -52,7 +53,9 @@ export default class WatchListView extends Vue {
       .get('/api/getWatchList')
       .then((response) => {
         this.loading = false;
-        (this.watchList = response.data);
+        this.watchList = response.data.watchList;
+        this.nextMovie = response.data.nextMovie;
+        console.log("Next Movie: ", this.nextMovie.movieTitle)
       })
   }
 
@@ -65,7 +68,6 @@ export default class WatchListView extends Vue {
       obj.addedBy = this.watchList[i].addedBy;
       data[i] = obj;
     }
-    console.log(data);
     return data;
   }
 }

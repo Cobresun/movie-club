@@ -22,3 +22,8 @@ export interface WatchListResponse {
   dateAdded: DateObject;
   addedBy: string;
 }
+
+export interface NextMovieResponse {
+  movieTitle: string;
+  datePicked: DateObject;
+}
