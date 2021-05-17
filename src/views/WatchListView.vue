@@ -8,12 +8,12 @@
     <loading-spinner v-if="loading"/>
 
     <div v-if="!loading">
-      <btn>
+      <btn class="button">
         Add Movie
         <mdicon name="plus"/>
       </btn>
 
-      <btn @click="selectRandom()">
+      <btn class="button" @click="selectRandom()">
         Random
         <mdicon name="dice-multiple-outline"/>
       </btn>
@@ -133,5 +133,10 @@ export default class WatchListView extends Vue {
 
 .back:hover {
   cursor: pointer;
+}
+
+.button {
+  float: left;
+  margin-right: 1em;
 }
 </style>
