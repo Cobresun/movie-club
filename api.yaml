@@ -207,7 +207,16 @@ components:
           $ref: "#/components/schemas/members"
     
     review:
-      type: 
+      type: object
+      required:
+        - movieId
+        - dateWatched
+        - scores
+        - movieTitle
+      properties:
+        movieId:
+          type: integer
+          example: 1234
 
     reviews:
       type: array
