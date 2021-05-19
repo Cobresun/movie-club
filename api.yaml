@@ -221,9 +221,7 @@ components:
     reviews:
       type: array
       items:
-        schema:
-          $ref: "#/components/schemas/review"
-          
+        $ref: "#/components/schemas/review"
     
     error:
       type: string
