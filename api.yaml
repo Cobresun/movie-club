@@ -1,0 +1,198 @@
+openapi: 3.0.0
+
+info:
+  version: 0.0.1
+  title: Movie Club REST API
+
+servers:
+  - url: 'http://localhost:8888/api'
+
+paths:
+  /club/{clubId}:
+    get:
+      summary: Returns club data
+      operationId: get-club
+      parameters:
+        - $ref: "#/components/parameters/clubId"
+      responses:
+        '200':
+          description: clubId, clubName, and members of club
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/club"
+        '400':
+          description: Invalid accessor on club data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+              example: Invalid accessor "photo" on club data.
+        '404':
+          description: Club not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+              example: Cannot read property 'data' of undefined
+        '405':
+          description: Method Not Allowed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+              example: You are not using a http GET method for this endpoint.
+        '422':
+          description: Invalid clubId
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error' 
+              example: Invalid clubId.
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+
+  /club/{clubId}/clubName:
+    get:
+      summary: Returns club name
+      operationId: get-club-name
+      parameters:
+        - $ref: "#/components/parameters/clubId"
+      responses:
+        '200':
+          description: Name of club
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/clubName"
+        '400':
+          description: Invalid accessor on club data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+              example: Invalid accessor "photo" on club data.
+        '404':
+          description: Club not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+              example: Cannot read property 'data' of undefined
+        '405':
+          description: Method Not Allowed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+              example: You are not using a http GET method for this endpoint.
+        '422':
+          description: Invalid clubId
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error' 
+              example: Invalid clubId.
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+
+  /club/{clubId}/members:
+    get:
+      summary: Returns club members
+      operationId: get-club-members
+      parameters:
+        - $ref: "#/components/parameters/clubId"
+      responses:
+        '200':
+          description: List of club members unsorted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/members"
+        '400':
+          description: Invalid accessor on club data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+              example: Invalid accessor "photo" on club data.
+        '404':
+          description: Club not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+              example: Cannot read property 'data' of undefined
+        '405':
+          description: Method Not Allowed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+              example: You are not using a http GET method for this endpoint.
+        '422':
+          description: Invalid clubId
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error' 
+              example: Invalid clubId.
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+
+components:
+  parameters:
+    clubId:
+      description: Unique ID for club
+      name: clubId
+      in: path
+      required: true
+      schema:
+        $ref: "#/components/schemas/clubId"
+
+  schemas:
+    clubId:
+      type: integer
+      format: int32
+      example: 8
+    
+    clubName:
+      type: string
+      example: Cobresun
+    
+    members:
+      type: array
+      items:
+        type: string
+      example: ["Cole", "Brian", "Wesley", "Sunny"]
+    
+    club:
+      type: object
+      required:
+        - clubId
+        - clubName
+        - members
+      properties:
+        clubId:
+          $ref: "#/components/schemas/clubId"
+        clubName:
+          $ref: "#/components/schemas/clubName"
+        members:
+          $ref: "#/components/schemas/members"
+    
+    error:
+      type: string
+      maxLength: 256
+      description: A text message describing an error      
