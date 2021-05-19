@@ -151,6 +151,20 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/error'
+  /club/{clubId}/reviews:
+    get:
+      summary: Returns reviews in club
+      operationId: get-club-reviews
+      parameters:
+        - $ref: "#/components/parameters/clubId"
+      responses:
+        '200':
+          description: List of reviews in club
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/reviews"
+          
 
 components:
   parameters:
