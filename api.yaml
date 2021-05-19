@@ -222,7 +222,7 @@ components:
       type: array
       items:
         schema:
-          $ref: 
+          $ref: "#/components/schemas/review"
           
     
     error:
