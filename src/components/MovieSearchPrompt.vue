@@ -6,33 +6,40 @@
         class="search-bar"
         placeholder="Type to filter or search"
       >
+      <p v-if="this.noResults">Sorry, your search did not return any results</p>
+      <loading-spinner class="spinner" v-if="loadingWatchList"/>
       <div class="results">
-        <h5 class="watchlist-title">From Watch List</h5>
-        <movie-table
-          :data="data"
-          :headers="headers"
-          :header="false"
-        >
-          <template v-slot:item-title="{item, head}">
-            <p><b>{{ item[head.value] }}</b><i> ({{ item.year }})</i></p>
-          </template>
-          <template v-slot:item-add>
-            <mdicon name="plus" />
-          </template>
-        </movie-table>
-        <h5>Search</h5>
-        <movie-table
-          :data="data"
-          :headers="headers"
-          :header="false"
-        >
-          <template v-slot:item-title="{item, head}">
-            <p><b>{{ item[head.value] }}</b><i> ({{ item.year }})</i></p>
-          </template>
-          <template v-slot:item-add>
-            <mdicon name="plus" />
-          </template>
-        </movie-table>
+        <div v-if="filteredWatchList.length > 0">
+          <h5 class="watchlist-title">From Watch List</h5>
+          <movie-table
+            :data="filteredWatchList"
+            :headers="watchListHeaders"
+            :header="false"
+          >
+            <template v-slot:item-movieTitle="{item, head}">
+              <p><b>{{ item[head.value] }}</b><i> ({{ item.releaseDate.substring(0,4) }})</i></p>
+            </template>
+            <template v-slot:item-add>
+              <mdicon name="plus" />
+            </template>
+          </movie-table>
+        </div>
+        <div v-if="searchData.length > 0">
+          <h5>Search</h5>
+          <movie-table
+            :data="searchData"
+            :headers="searchHeaders"
+            :header="false"
+          >
+            <template v-slot:item-title="{item, head}">
+              <p><b>{{ item[head.value] }}</b><i> ({{ item.release_date.substring(0,4) }})</i></p>
+            </template>
+            <template v-slot:item-add>
+              <mdicon name="plus" />
+            </template>
+          </movie-table>
+        </div>
+        <loading-spinner class="spinner" v-if="loadingSearch"/>
       </div>
       <div class="action">
         <btn @click="$emit('close')">Cancel</btn>
@@ -43,31 +50,88 @@
 </template>
 
 <script lang="ts">
-import { Component, Vue } from 'vue-property-decorator';
+import { Component, Vue, Watch } from 'vue-property-decorator';
+import axios, { CancelTokenSource } from 'axios';
+
+import { WatchListResponse } from '@/models';
 
 @Component({})
 export default class MovieSearchPrompt extends Vue {
+  private apiKey = process.env.VUE_APP_TMDB_API_KEY;
   private searchText = "";
-  private data = [{
-    title: "Uncut Gems",
-    year: "2017",
+  private watchList: WatchListResponse[] = [];
+  private watchListHeaders = [{
+    value: "movieTitle",
+    style: "text-align:left; padding-left:10px"
   },
   {
-    title: "Uncut Dogs",
-    year: "2027",
-  },
-  {
-    title: "Uncut Knives",
-    year: "2037",
+    value: "add"
   }]
-  private headers = [{
+  private searchHeaders = [{
     value: "title",
     style: "text-align:left; padding-left:10px"
   },
   {
     value: "add"
   }]
-  //TODO: Add customizable colours. Looks like all buttons are primary color for this sprint
+
+  private loadingWatchList = false;
+  private loadingSearch = false;
+
+  private token!: CancelTokenSource;
+
+  private searchData = [];
+
+  mounted(): void {
+    this.loadingWatchList = true;
+    axios
+      .get('/api/getWatchList')
+      .then((response) => {
+        this.loadingWatchList = false;
+        this.watchList = response.data.watchList;
+      })
+  }
+
+  @Watch('searchText')
+  search(): void {
+    if (this.token) {
+      this.token.cancel();
+    }
+
+    if (this.searchText === "") {
+      this.searchData = [];
+      return;
+    }
+
+    this.token = axios.CancelToken.source();
+    this.loadingSearch = true;
+    axios
+      .get(`https://api.themoviedb.org/3/search/movie?api_key=${this.apiKey}&query=${this.searchText}&language=en-US&include_adult=false`,
+      {
+        cancelToken: this.token.token
+      })
+      .then((response) => {
+        this.loadingSearch = false;
+        this.searchData = response.data.results;
+      })
+      .catch((error) => {
+        if (!axios.isCancel(error)) {
+          console.error(error);
+        }
+      })
+  }
+
+  get filteredWatchList(): any[] {
+    const lower = this.searchText.toLowerCase();
+    return this.watchList.filter((item) => item.movieTitle.toLowerCase().includes(lower));
+  }
+
+  get noResults(): boolean {
+    return !this.loadingWatchList && 
+            !this.loadingSearch &&
+            this.filteredWatchList.length == 0 &&
+            this.searchData.length == 0
+  }
 }
 </script>
 <style scoped>
@@ -98,6 +162,7 @@ h5 {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  text-align: center;
   height: 100%;
 }
 
@@ -112,5 +177,10 @@ h5 {
   align-self: bottom;
   display: flex;
   justify-content: space-between;
+}
+
+.spinner {
+  align-self: center;
+  margin-top: 10px;
 }
 </style>
