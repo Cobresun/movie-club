@@ -43,18 +43,31 @@ import axios from 'axios'
 })
 export default class ReviewView extends Vue {
   private reviews: ReviewResponse[] = [];
-  private loading = false;
+  private members: string[] = [];
+  private loadingReviews = false;
+  private loadingMembers = false;
 
   private modalOpen = false;
 
   mounted(): void {
-    this.loading = true;
+    this.loadingReviews = true;
     axios
       .get('/api/getReviews')
       .then((response) => {
-        this.loading = false;
+        this.loadingReviews = false;
         (this.reviews = response.data);
       })
+    this.loadingMembers = true;
+    axios
+      .get('/api/club/8/members')
+      .then((response) => {
+        this.loadingMembers = false;
+        this.members = response.data;
+      })
+  }
+
+  get loading(): boolean {
+    return this.loadingReviews || this.loadingMembers;
   }
 
   get tableData(): any[] {
@@ -76,9 +89,9 @@ export default class ReviewView extends Vue {
       {value: "movieTitle", style:"font-weight: 700", title:"Title"},
       {value: "dateWatched", title:"Date Reviewed"}];
 
-    if (this.reviews.length > 0) {
-      for (const key of Object.keys(this.reviews[0].scores)) {
-        headers.push({value:key});
+    if (this.members.length > 0) {
+      for (const member of this.members) {
+        headers.push({value:member.toLowerCase()});
       }
     }
     return headers;
