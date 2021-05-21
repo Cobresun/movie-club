@@ -68,7 +68,7 @@ exports.handler = async function(event, context) {
                     )
                 ),
                 {
-                    data: { score: scores }
+                    data: { scores: scores }
                 }
             )
         )
