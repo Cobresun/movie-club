@@ -56,6 +56,20 @@ exports.handler = async function(event, context) {
         let scores = getReviewScoresQuery.data[0].data.scores
         scores[body.user] = parseInt(body.score)
 
+        if (scores['average'] === undefined) {
+            // If no existing average, set the average to the current review's score
+            scores['average'] = parseInt(body.score)
+        } else {
+            const numberOfScores = Object.keys(scores).length - 1
+            scores['average'] = 0
+
+            Object.keys(scores)
+                .filter(user => user !== 'average')
+                .map(user => scores.average += scores[user])
+
+            scores['average'] = scores['average']/numberOfScores
+        }
+
         const updateReviewScoresQuery = await faunaClient.query(
             q.Update(
                 q.Select(
