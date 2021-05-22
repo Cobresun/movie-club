@@ -21,7 +21,12 @@
       </th>
     </thead>
     <tbody>
-      <tr v-for="(item, index) in tableData" :key="index">
+      <tr 
+        v-for="(item, index) in tableData" 
+        :key="index"
+        :class="{ selectable: selectable }" 
+        @click="$emit('clickRow', item)"
+      >
         <td class="item" v-for="(head, index) in tableHeaders" :key="index" :style="head.style">
           <slot :name="'item-'+head.value" v-bind:item="item" v-bind:head="head">
             {{ item[head.value] }}
@@ -40,6 +45,7 @@ export default class Table extends Vue {
   @Prop() headers!: Header[];
   @Prop() data!: Record<string, any>[];
   @Prop({default: true}) header!: boolean;
+  @Prop({default: false}) selectable!: boolean;
 
   private tableData: Record<string, any>[] = [];
   private sortBy: Record<string, number> = {};
@@ -150,5 +156,10 @@ tr td:last-child {
 
 .sort-button {
   cursor: pointer;
+}
+
+.selectable:hover {
+  cursor: pointer;
+  filter: brightness(105%);
 }
 </style>
