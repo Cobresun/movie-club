@@ -1,49 +1,55 @@
 <template>
   <modal>
     <div class="wrapper">
-      <input 
-        v-model="searchText"
-        class="search-bar"
-        placeholder="Type to filter or search"
-      >
-      <p v-if="this.noResults">Sorry, your search did not return any results</p>
-      <loading-spinner class="spinner" v-if="loadingWatchList"/>
-      <div class="results">
-        <div v-if="filteredWatchList.length > 0">
-          <h5 class="watchlist-title">From Watch List</h5>
-          <movie-table
-            :data="filteredWatchList"
-            :headers="watchListHeaders"
-            :header="false"
-          >
-            <template v-slot:item-movieTitle="{item, head}">
-              <p><b>{{ item[head.value] }}</b><i> ({{ item.releaseDate.substring(0,4) }})</i></p>
-            </template>
-            <template v-slot:item-add>
-              <mdicon name="plus" />
-            </template>
-          </movie-table>
+      <loading-spinner class="spinner" v-if="processing"/>
+      <div class = "wrapper" v-else>
+        <input 
+          v-model="searchText"
+          class="search-bar"
+          placeholder="Type to filter or search"
+        >
+        <p v-if="this.noResults">Sorry, your search did not return any results</p>
+        <loading-spinner class="spinner" v-if="loadingWatchList"/>
+        <div class="results">
+          <div v-if="filteredWatchList.length > 0">
+            <h5 class="watchlist-title">From Watch List</h5>
+            <movie-table
+              :data="filteredWatchList"
+              :headers="watchListHeaders"
+              :header="false"
+              :selectable="true"
+              @clickRow="selectFromWatchList"
+            >
+              <template v-slot:item-movieTitle="{item, head}">
+                <p><b>{{ item[head.value] }}</b><i> ({{ getReleaseYear(item.releaseDate) }})</i></p>
+              </template>
+              <template v-slot:item-add>
+                <mdicon name="plus" />
+              </template>
+            </movie-table>
+          </div>
+          <div v-if="searchData.length > 0">
+            <h5>Search</h5>
+            <movie-table
+              :data="searchData"
+              :headers="searchHeaders"
+              :header="false"
+              :selectable="true"
+              @clickRow="selectFromSearch"
+            >
+              <template v-slot:item-title="{item, head}">
+                <p><b>{{ item[head.value] }}</b><i> ({{ getReleaseYear(item.release_date) }})</i></p>
+              </template>
+              <template v-slot:item-add>
+                <mdicon name="plus" />
+              </template>
+            </movie-table>
+          </div>
+          <loading-spinner class="spinner" v-if="loadingSearch"/>
         </div>
-        <div v-if="searchData.length > 0">
-          <h5>Search</h5>
-          <movie-table
-            :data="searchData"
-            :headers="searchHeaders"
-            :header="false"
-          >
-            <template v-slot:item-title="{item, head}">
-              <p><b>{{ item[head.value] }}</b><i> ({{ item.release_date.substring(0,4) }})</i></p>
-            </template>
-            <template v-slot:item-add>
-              <mdicon name="plus" />
-            </template>
-          </movie-table>
+        <div class="action">
+          <btn @click="$emit('close')">Cancel</btn>
         </div>
-        <loading-spinner class="spinner" v-if="loadingSearch"/>
-      </div>
-      <div class="action">
-        <btn @click="$emit('close')">Cancel</btn>
-        <btn>Add Review</btn>
       </div>
     </div>
   </modal>
@@ -63,20 +69,16 @@ export default class MovieSearchPrompt extends Vue {
   private watchListHeaders = [{
     value: "movieTitle",
     style: "text-align:left; padding-left:10px"
-  },
-  {
-    value: "add"
   }]
   private searchHeaders = [{
     value: "title",
     style: "text-align:left; padding-left:10px"
-  },
-  {
-    value: "add"
   }]
 
   private loadingWatchList = false;
   private loadingSearch = false;
+
+  private processing = false;
 
   private token!: CancelTokenSource;
 
@@ -113,12 +115,41 @@ export default class MovieSearchPrompt extends Vue {
       .then((response) => {
         this.loadingSearch = false;
         this.searchData = response.data.results;
+        console.log(this.searchData);
       })
       .catch((error) => {
         if (!axios.isCancel(error)) {
           console.error(error);
         }
       })
+  }
+
+  selectFromWatchList(movie: WatchListResponse): void {
+    this.processing = true;
+    axios.post(`/api/reviewMovieFromWatchList?movieId=${ movie.movieId }`)
+          .then(
+            (response) => {
+              console.log(response);
+              this.$emit("close", true, response.data);
+            });
+  }
+
+  selectFromSearch(movie: any): void {
+    this.processing = true;
+    axios.post(`/api/postReview?movieId=${ movie.id }`)
+          .then(
+            (response) => {
+              console.log(response);
+              this.$emit("close", true, response.data);
+            });
+  }
+
+  getReleaseYear(releaseDate: string): string {
+    if (releaseDate!==undefined && releaseDate.length > 4) {
+      return releaseDate.substring(0,4);
+    } else {
+      return "";
+    }
   }
 
   get filteredWatchList(): any[] {

@@ -2,7 +2,7 @@
   <div>
     <movie-search-prompt
       v-if="modalOpen"
-      @close="closePrompt()" 
+      @close="closePrompt" 
     />
     <div>
       <div class="title">
@@ -22,9 +22,11 @@
           :data="tableData"
           v-if="reviews.length > 0"
         >
-          <template v-for="(value, name) in reviews[0].scores" v-slot:[name]>
-            <img v-if="name === 'average' " :key="name" src="@/assets/average.svg" width="64" height="48" />
-            <avatar v-else :key="name" :fullname="name"></avatar>
+          <template v-for="name in members" v-slot:[name]>
+            <avatar :key="name" :fullname="name"></avatar>
+          </template>
+          <template v-slot:average>
+            <img src="@/assets/average.svg" width="64" height="48" />
           </template>
         </movie-table>
       </div>
@@ -91,9 +93,10 @@ export default class ReviewView extends Vue {
 
     if (this.members.length > 0) {
       for (const member of this.members) {
-        headers.push({value:member.toLowerCase()});
+        headers.push({value:member});
       }
     }
+    headers.push({value: "average"});
     return headers;
   }
 
@@ -101,8 +104,11 @@ export default class ReviewView extends Vue {
     this.modalOpen = true;
   }
 
-  closePrompt(): void {
+  closePrompt(reviewAdded: boolean, newReview: ReviewResponse): void {
     this.modalOpen = false;
+    if (reviewAdded) {
+      this.reviews.unshift(newReview);
+    }
   }
 }
 </script>
