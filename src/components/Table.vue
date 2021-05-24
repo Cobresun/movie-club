@@ -89,10 +89,27 @@ export default class Table extends Vue {
       for (const col of Object.keys(this.sortBy)) {
         this.sortBy[col] = 0;
       }
-      this.tableData.sort((a, b) => a[value] - b[value]);
+      this.tableData.sort((a, b) => {
+        if (typeof a[value] === "number") {
+          return a[value] - b[value];
+        }
+        if (!isNaN(Date.parse(a[value]))) {
+          return Date.parse(a[value]) - Date.parse(b[value]);
+        }
+        return a[value].localeCompare(b[value]);
+      });
       this.sortBy[value]++;
     } else if (this.sortBy[value] === 1) {
-      this.tableData.sort((a, b) => b[value] - a[value]);
+      this.tableData.sort((a, b) => {
+        console.log(typeof b[value])
+        if (typeof b[value] === "number") {
+          return b[value] - a[value];
+        }
+        if (!isNaN(Date.parse(b[value]))) {
+          return Date.parse(b[value]) - Date.parse(a[value]);
+        }
+        return b[value].localeCompare(a[value]);
+      });
       this.sortBy[value]++;
     } else {
       this.updateTableData();
