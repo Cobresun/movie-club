@@ -141,6 +141,10 @@ export default class MovieSearchPrompt extends Vue {
             (response) => {
               console.log(response);
               this.$emit("close", true, response.data);
+            })
+            .catch((error) => {
+              console.error(error);
+              this.$emit("close");
             });
   }
 
