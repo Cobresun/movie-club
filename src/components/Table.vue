@@ -24,7 +24,7 @@
       <tr 
         v-for="(item, index) in tableData" 
         :key="index"
-        :class="{ selectable: selectable }" 
+        :class="{ selectable: selectable, highlighted: item.highlighted }" 
         @click="$emit('clickRow', item)"
       >
         <td class="item" v-for="(head, index) in tableHeaders" :key="index" :style="head.style">
@@ -77,6 +77,11 @@ export default class Table extends Vue {
     for (const head of this.headers) {
       this.sortBy[head.value] = 0;
     }
+  }
+
+  // For debugging in v-for loops https://stackoverflow.com/a/54077708
+  log(item: any) {
+    console.log(item);
   }
 
   sort(value: string): void {
@@ -138,6 +143,12 @@ tr {
   background-color: var(--low-key-background-color);
   height: 75px;
   border-bottom: 10px solid transparent;
+}
+
+.highlighted {
+  background-color: var(--highlight-background-color);
+  cursor: pointer;
+  filter: brightness(105%);
 }
 
 td {

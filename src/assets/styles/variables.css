@@ -4,6 +4,7 @@
   --secondary-color: #394B68;
   --background-color: #222831;
   --low-key-background-color: #393E46;
+  --highlight-background-color: #b1a005;
   --text-color: #FFFFFF;
 
   background-color: var(--background-color);

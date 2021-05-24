@@ -59,8 +59,8 @@ export default class WatchListView extends Vue {
       .then((response) => {
         this.loading = false;
         this.watchList = response.data.watchList;
-        console.log(response);
-        console.log(this.watchList);
+        // console.log(response);
+        // console.log(this.watchList);
         this.nextMovie = response.data.nextMovie;
       })
   }
@@ -79,7 +79,8 @@ export default class WatchListView extends Vue {
       return {
         movieTitle: movie.movieTitle,
         dateAdded: movie.dateAdded['@date'],
-        addedBy: movie.addedBy
+        addedBy: movie.addedBy,
+        highlighted: movie.movieTitle === this.nextMovie?.movieTitle
       }
     })
   }
@@ -90,7 +91,7 @@ export default class WatchListView extends Vue {
     axios.post(`/api/postNextWatch?movieId=${ randomMovie.movieId }&watchListId=${ 0 }`)
           .then(
             (response) => {
-              console.log(response);
+              //console.log(response);
               this.$emit("close", true, response.data);
             });
   }
