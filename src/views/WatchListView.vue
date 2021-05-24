@@ -92,6 +92,7 @@ export default class WatchListView extends Vue {
           .then(
             (response) => {
               //console.log(response);
+              this.nextMovie = response.data;
               this.$emit("close", true, response.data);
             });
   }
