@@ -59,6 +59,8 @@ export default class WatchListView extends Vue {
       .then((response) => {
         this.loading = false;
         this.watchList = response.data.watchList;
+        console.log(response);
+        console.log(this.watchList);
         this.nextMovie = response.data.nextMovie;
       })
   }
@@ -83,8 +85,14 @@ export default class WatchListView extends Vue {
   }
 
   selectRandom(): void {
-    const randomMovie = this.watchList[Math.floor(Math.random() * this.watchList.length)];
-    console.log("TODO: postNextWatch movieId for: " + randomMovie.movieTitle)
+    let randomMovie = this.watchList[Math.floor(Math.random() * this.watchList.length)];
+    console.log("TODO: get watchlistId once we expand to other watchlists");
+    axios.post(`/api/postNextWatch?movieId=${ randomMovie.movieId }&watchListId=${ 0 }`)
+          .then(
+            (response) => {
+              console.log(response);
+              this.$emit("close", true, response.data);
+            });
   }
 }
 </script>
