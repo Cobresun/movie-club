@@ -16,8 +16,8 @@
           :selectable="true"
           @clickRow="selectFromDefaultList"
         >
-          <template v-slot:item-movieTitle="{item, head}">
-            <p><b>{{ item[head.value] }}</b><i> ({{ getReleaseYear(item.releaseDate) }})</i></p>
+          <template v-slot:item-title="{item, head}">
+            <p><b>{{ item[head.value] }}</b><i> ({{ getReleaseYear(item.release_date) }})</i></p>
           </template>
           <template v-slot:item-add>
             <mdicon name="plus" />
@@ -61,7 +61,7 @@ export default class MovieSearchPrompt extends Vue {
   private apiKey = process.env.VUE_APP_TMDB_API_KEY;
   private searchText = "";
   private defaultListHeaders = [{
-    value: "movieTitle",
+    value: "title",
     style: "text-align:left; padding-left:10px"
   }]
   private searchHeaders = [{
@@ -123,7 +123,7 @@ export default class MovieSearchPrompt extends Vue {
 
   get filteredDefaultList(): any[] {
     const lower = this.searchText.toLowerCase();
-    return this.defaultList.filter((item) => item.movieTitle.toLowerCase().includes(lower));
+    return this.defaultList.filter((item) => item.title.toLowerCase().includes(lower));
   }
 
   get noResults(): boolean {

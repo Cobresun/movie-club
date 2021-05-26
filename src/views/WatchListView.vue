@@ -1,38 +1,44 @@
 <template>
   <div>
-    <div class="title">
-      <router-link to="/"><mdicon class="back" name="arrow-left" size="40"/></router-link>
-      <h1>Cobresun Watch List</h1>
-    </div>
+    <add-movie-to-watchlist-prompt
+      v-if="modalOpen"
+      @close="closePrompt" 
+    />
+    <div>
+      <div class="title">
+        <router-link to="/"><mdicon class="back" name="arrow-left" size="40"/></router-link>
+        <h1>Cobresun Watch List</h1>
+      </div>
 
-    <loading-spinner v-if="loading"/>
+      <loading-spinner v-if="loading"/>
 
-    <div v-if="!loading">
-      <btn class="button">
-        Add Movie
-        <mdicon name="plus"/>
-      </btn>
+      <div v-if="!loading">
+        <btn class="button" @click="openPrompt">
+          Add Movie
+          <mdicon name="plus"/>
+        </btn>
 
-      <btn class="button" @click="selectRandom()">
-        Random
-        <mdicon name="dice-multiple-outline"/>
-      </btn>
+        <btn class="button" @click="selectRandom()">
+          Random
+          <mdicon name="dice-multiple-outline"/>
+        </btn>
 
-      <movie-table
-        :header="false" 
-        :headers="headers"
-        :data="watchListTableData"
-      >
-        <template v-slot:movieTitle>
-        </template>
-        
-        <template v-slot:dateAdded>
-        </template>
-        
-        <template v-slot:item-addedBy="slotProps">
-          <avatar :fullname="slotProps.item[slotProps.head.value]"></avatar>
-        </template>
-      </movie-table>
+        <movie-table
+          :header="false" 
+          :headers="headers"
+          :data="watchListTableData"
+        >
+          <template v-slot:movieTitle>
+          </template>
+          
+          <template v-slot:dateAdded>
+          </template>
+          
+          <template v-slot:item-addedBy="slotProps">
+            <avatar :fullname="slotProps.item[slotProps.head.value]"></avatar>
+          </template>
+        </movie-table>
+      </div>
     </div>
   </div>
 </template>
@@ -41,8 +47,11 @@
 import { Component, Vue } from 'vue-property-decorator';
 import { WatchListResponse, Header, NextMovieResponse } from '@/models';
 import axios from 'axios'
+import AddMovieToWatchlistPrompt from '@/components/SearchPrompt/AddMovieToWatchlistPrompt.vue';
 
-@Component({})
+@Component({
+  components: { AddMovieToWatchlistPrompt },
+})
 export default class WatchListView extends Vue {
   private watchList: WatchListResponse[] = [];
   private nextMovie: NextMovieResponse | null = null;
@@ -52,6 +61,8 @@ export default class WatchListView extends Vue {
       {value: "dateAdded", sortable: false},
       {value: "addedBy", sortable: false, includeHeader: false}];
 
+  private modalOpen = false;
+
   mounted(): void {
     this.loading = true;
     axios
@@ -59,8 +70,6 @@ export default class WatchListView extends Vue {
       .then((response) => {
         this.loading = false;
         this.watchList = response.data.watchList;
-        // console.log(response);
-        // console.log(this.watchList);
         this.nextMovie = response.data.nextMovie;
       })
   }
@@ -95,6 +104,17 @@ export default class WatchListView extends Vue {
               this.nextMovie = response.data;
               this.$emit("close", true, response.data);
             });
+  }
+
+  openPrompt(): void {
+    this.modalOpen = true;
+  }
+
+  closePrompt(reviewAdded: boolean, newMovie: WatchListResponse): void {
+    this.modalOpen = false;
+    if (reviewAdded) {
+      this.watchList.unshift(newMovie);
+    }
   }
 }
 </script>

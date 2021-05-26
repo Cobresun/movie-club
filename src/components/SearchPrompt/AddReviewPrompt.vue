@@ -14,6 +14,7 @@
 
 <script lang="ts">
 import { WatchListResponse } from '@/models';
+import WatchListView from '@/views/WatchListView.vue';
 import axios from 'axios';
 import { Component, Vue } from 'vue-property-decorator';
 import MovieSearchPrompt from './MovieSearchPrompt.vue';
@@ -24,7 +25,7 @@ import MovieSearchPrompt from './MovieSearchPrompt.vue';
   }
 })
 export default class AddReviewPrompt extends Vue {
-  watchList: WatchListResponse[] = [];
+  watchList: any[] = [];
   loading = true;
 
   mounted(): void {
@@ -33,7 +34,14 @@ export default class AddReviewPrompt extends Vue {
       .get('/api/getWatchList')
       .then((response) => {
         this.loading = false;
-        this.watchList = response.data.watchList;
+        const arr = response.data.watchList;
+        arr.forEach((element: any) => {
+          element.title = element.movieTitle;
+          element.release_date = element.releaseDate;
+          delete element.movieTitle;
+          delete element.releaseDate;
+        });
+        this.watchList = arr;
       })
   }
 
