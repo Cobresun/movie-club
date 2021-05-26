@@ -1,6 +1,6 @@
 <template>
   <div>
-    <movie-search-prompt
+    <add-review-prompt
       v-if="modalOpen"
       @close="closePrompt" 
     />
@@ -37,11 +37,11 @@
 <script lang="ts">
 import { Component, Vue } from 'vue-property-decorator';
 import { ReviewResponse, Header } from '@/models';
-import MovieSearchPrompt from '@/components/MovieSearchPrompt.vue';
+import AddReviewPrompt from '@/components/SearchPrompt/AddReviewPrompt.vue';
 import axios from 'axios'
 
 @Component({
-  components: { MovieSearchPrompt },
+  components: { AddReviewPrompt },
 })
 export default class ReviewView extends Vue {
   private reviews: ReviewResponse[] = [];
