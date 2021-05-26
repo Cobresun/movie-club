@@ -1,8 +1,11 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 const faunadb = require('faunadb')
+const axios = require('axios')
 
 const faunaClient = new faunadb.Client({ secret: process.env.FAUNADB_SERVER_SECRET })
 const q = faunadb.query
+
+const tmdbApiKey = process.env.TMDB_API_KEY
 
 exports.handler = async function(event, context) {
     if (event.httpMethod !== 'POST') {
@@ -45,6 +48,8 @@ exports.handler = async function(event, context) {
             )
         )
 
+        req.data.movieTitle = await getMovieTitleForId(req.data.movieId);
+
         return {
             statusCode: 200,
             headers: {
@@ -57,3 +62,14 @@ exports.handler = async function(event, context) {
         return { statusCode: 500, body: JSON.stringify({ error: err.message}) }
     }
 }
+
+async function getMovieTitleForId(movieId) {
+    let title = "null";
+    const promise = axios
+      .get(
+        `https://api.themoviedb.org/3/movie/${movieId}?api_key=${tmdbApiKey}`
+      )
+      .then((response) => (title = response.data.title));
+    await promise;
+    return title;
+  }
