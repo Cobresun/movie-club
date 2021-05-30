@@ -34,6 +34,12 @@ export default class Home extends Vue {
   padding-bottom: 24px;
 }
 
+@media (max-width: 700px) {
+  .menu {
+    flex-direction: column;
+  }
+}
+
 .menu-option {
   padding: 12px;
 }
