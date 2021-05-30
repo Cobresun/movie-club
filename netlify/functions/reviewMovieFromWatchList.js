@@ -26,6 +26,13 @@ exports.handler = async function(event, context) {
         }
     }
 
+    if (!body.movieTitle) {
+        return {
+            statusCode: 412,
+            body: 'No movie title specified. Please specify a title.'
+        }
+    }
+
     try {
         let date = new Date()
         date = date.toISOString().slice(0, 10)
@@ -50,6 +57,7 @@ exports.handler = async function(event, context) {
                 {
                     data: {
                         "movieId": parseInt(body.movieId),
+                        "movieTitle": body.movieTitle,
                         "dateWatched": q.Date(`${date}`),
                         "scores": { }
                     }

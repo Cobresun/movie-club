@@ -50,8 +50,6 @@ exports.handler = async function(event, context) {
         )
 
         let nextMovie = reqNextMovie.data[0].data
-        nextMovie.movieTitle = await getMovieTitleForId(nextMovie.nextMovieId)
-
         let nextMovieAndWatchList = {nextMovie, watchList}
 
         return {
@@ -74,22 +72,10 @@ async function getMovieData(watchList) {
         `https://api.themoviedb.org/3/movie/${movie.movieId}?api_key=${tmdbApiKey}`
       )
       .then((response) => {
-            movie.movieTitle = response.data.title;
             movie.releaseDate = response.data.release_date;
         });
     promises.push(promise);
   }
   await Promise.all(promises);
   return watchList;
-}
-
-async function getMovieTitleForId(movieId) {
-  let title = "null";
-  const promise = axios
-    .get(
-      `https://api.themoviedb.org/3/movie/${movieId}?api_key=${tmdbApiKey}`
-    )
-    .then((response) => (title = response.data.title));
-  await promise;
-  return title;
 }

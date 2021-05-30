@@ -21,8 +21,15 @@ exports.handler = async function(event, context) {
     let body = event.queryStringParameters
     if (body.name === "" || !body.movieId) {
         return {
-            statusCode: 402,
+            statusCode: 412,
             body: 'No movieId specified. Please specify a movieId.'
+        }
+    }
+
+    if (!body.movieTitle) {
+        return {
+            statusCode: 412,
+            body: 'No movie title specified. Please specify a title.'
         }
     }
 
@@ -36,6 +43,7 @@ exports.handler = async function(event, context) {
                 {
                     data: {
                         "movieId": parseInt(body.movieId),
+                        "movieTitle": body.movieTitle,
                         "dateWatched": q.Date(`${date}`),
                         "scores": { }
                     }
@@ -43,27 +51,15 @@ exports.handler = async function(event, context) {
             )
         )
 
-        let newReviewMovie = req.data
-        newReviewMovie.movieTitle = await getMovieTitleForId(newReviewMovie.movieId)
-
         return {
             statusCode: 200,
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify(newReviewMovie)
+            body: JSON.stringify(req.data)
         }
     } catch (err) {
         console.error(err)
         return { statusCode: 500, body: JSON.stringify({ error: err.message}) }
     }
-}
-
-async function getMovieTitleForId(movieId) {
-    let title = "null";
-    const promise = axios
-        .get(`https://api.themoviedb.org/3/movie/${movieId}?api_key=${tmdbApiKey}`)
-        .then((response) => (title = response.data.title));
-    await promise;
-    return title;
 }

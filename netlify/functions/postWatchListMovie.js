@@ -1,11 +1,8 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 const faunadb = require('faunadb')
-const axios = require('axios')
 
 const faunaClient = new faunadb.Client({ secret: process.env.FAUNADB_SERVER_SECRET })
 const q = faunadb.query
-
-const tmdbApiKey = process.env.TMDB_API_KEY
 
 exports.handler = async function(event, context) {
     if (event.httpMethod !== 'POST') {
@@ -21,13 +18,20 @@ exports.handler = async function(event, context) {
     let body = event.queryStringParameters
     if (body.name === "" || !body.movieId) {
         return {
-            statusCode: 402,
+            statusCode: 412,
             body: 'No movieId specified. Please specify a movieId.'
         }
-    } else if (!body.user) {
+    } 
+    if (!body.user) {
         return {
-            statusCode: 402,
+            statusCode: 412,
             body: 'No user specified. Please specify a user.'
+        }
+    }
+    if (!body.movieTitle) {
+        return {
+            statusCode: 412,
+            body: 'No movie title specified. Please specify a title.'
         }
     }
 
@@ -41,14 +45,13 @@ exports.handler = async function(event, context) {
                 {
                     data: {
                         "movieId": parseInt(body.movieId),
+                        "movieTitle": body.movieTitle,
                         "dateAdded": q.Date(`${date}`),
                         "addedBy": body.user
                     }
                 }
             )
         )
-
-        req.data.movieTitle = await getMovieTitleForId(req.data.movieId);
 
         return {
             statusCode: 200,
@@ -62,14 +65,3 @@ exports.handler = async function(event, context) {
         return { statusCode: 500, body: JSON.stringify({ error: err.message}) }
     }
 }
-
-async function getMovieTitleForId(movieId) {
-    let title = "null";
-    const promise = axios
-      .get(
-        `https://api.themoviedb.org/3/movie/${movieId}?api_key=${tmdbApiKey}`
-      )
-      .then((response) => (title = response.data.title));
-    await promise;
-    return title;
-  }

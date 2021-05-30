@@ -97,10 +97,9 @@ export default class WatchListView extends Vue {
   selectRandom(): void {
     let randomMovie = this.watchList[Math.floor(Math.random() * this.watchList.length)];
     console.log("TODO: get watchlistId once we expand to other watchlists");
-    axios.post(`/api/postNextWatch?movieId=${ randomMovie.movieId }&watchListId=${ 0 }`)
+    axios.post(`/api/postNextWatch?movieId=${ randomMovie.movieId }&watchListId=${ 0 }&movieTitle=${ randomMovie.movieTitle }`)
           .then(
             (response) => {
-              //console.log(response);
               this.nextMovie = response.data;
               this.$emit("close", true, response.data);
             });

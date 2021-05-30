@@ -38,7 +38,7 @@ export default class AddReviewPrompt extends Vue {
         arr.forEach((element: any) => {
           element.title = element.movieTitle;
           element.release_date = element.releaseDate;
-          delete element.movieTitle;
+          // delete element.movieTitle;
           delete element.releaseDate;
         });
         this.watchList = arr;
@@ -47,7 +47,7 @@ export default class AddReviewPrompt extends Vue {
 
   selectFromWatchList(movie: WatchListResponse): void {
     this.loading = true;
-    axios.post(`/api/reviewMovieFromWatchList?movieId=${ movie.movieId }`)
+    axios.post(`/api/reviewMovieFromWatchList?movieId=${ movie.movieId }&movieTitle=${ movie.movieTitle }`)
           .then(
             (response) => {
               this.$emit("close", true, response.data);
@@ -56,7 +56,7 @@ export default class AddReviewPrompt extends Vue {
 
   selectFromSearch(movie: any): void {
     this.loading = true;
-    axios.post(`/api/postReview?movieId=${ movie.id }`)
+    axios.post(`/api/postReview?movieId=${ movie.id }&movieTitle=${ movie.title }`)
           .then(
             (response) => {
               console.log(response);

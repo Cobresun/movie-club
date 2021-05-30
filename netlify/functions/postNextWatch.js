@@ -17,17 +17,24 @@ exports.handler = async function(event, context) {
             }
         }
     }
-    console.log("Hello sunjeep");
+
     let body = event.queryStringParameters
     if (body.name === "" || !body.movieId) {
         return {
-            statusCode: 402,
+            statusCode: 412,
             body: 'No movieId specified. Please specify a movieId.'
         }
-    } else if (!body.watchListId) {
+    } 
+    if (!body.watchListId) {
         return {
-            statusCode: 402,
+            statusCode: 412,
             body: 'No watchListId specified. Please specify a watchListId.'
+        }
+    }
+    if (!body.movieTitle) {
+        return {
+            statusCode: 412,
+            body: 'No movie title specified. Please specify a title.'
         }
     }
 
@@ -37,6 +44,7 @@ exports.handler = async function(event, context) {
 
         const data = {
             "nextMovieId": parseInt(body.movieId),
+            "movieTitle": body.movieTitle,
             "watchListId": parseInt(body.watchListId),
             "datePicked": q.Date(`${date}`)
         };
