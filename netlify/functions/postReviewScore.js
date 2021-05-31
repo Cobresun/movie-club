@@ -54,11 +54,11 @@ exports.handler = async function(event, context) {
 
         // Updates existing scores with new review
         let scores = getReviewScoresQuery.data[0].data.scores
-        scores[body.user] = parseInt(body.score)
+        scores[body.user] = parseFloat(body.score)
 
         if (scores['average'] === undefined) {
             // If no existing average, set the average to the current review's score
-            scores['average'] = parseInt(body.score)
+            scores['average'] = parseFloat(body.score)
         } else {
             const numberOfScores = Object.keys(scores).length - 1
             scores['average'] = 0
