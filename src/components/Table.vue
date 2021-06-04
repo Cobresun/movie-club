@@ -143,6 +143,30 @@ table {
   grid-column-start: 2;
 }
 
+.highlighted {
+  background-color: var(--highlight-background-color);
+  cursor: pointer;
+  filter: brightness(105%);
+}
+
+table thead th {
+  position: sticky;
+  position: -webkit-sticky;
+  top: 0;
+  z-index: 1;
+}
+
+table thead th:first-child {
+  position: sticky;
+  z-index: 2;
+  left: 0;
+}
+
+table tbody th {
+  position: sticky;
+  z-index: 1;
+  left: 0
+}
 th {
   background-color: var(--secondary-color);
   padding-top: 7px;
@@ -160,12 +184,6 @@ tr {
   background-color: var(--low-key-background-color);
   height: 75px;
   border-bottom: 10px solid transparent;
-}
-
-.highlighted {
-  background-color: var(--highlight-background-color);
-  cursor: pointer;
-  filter: brightness(105%);
 }
 
 td {
@@ -190,4 +208,5 @@ tr td:last-child {
   cursor: pointer;
   filter: brightness(105%);
 }
+
 </style>
