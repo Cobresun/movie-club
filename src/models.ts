@@ -12,6 +12,7 @@ type DateObject = {
 };
 
 export interface ReviewResponse {
+  movieId: number;
   movieTitle: string;
   dateWatched: DateObject;
   scores: Object;

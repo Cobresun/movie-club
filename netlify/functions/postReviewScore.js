@@ -18,17 +18,17 @@ exports.handler = async function(event, context) {
     let body = event.queryStringParameters
     if (body.name === "" || !body.movieId) {
         return {
-            statusCode: 402,
+            statusCode: 400,
             body: 'No movieId specified. Please specify a movieId.'
         }
     } else if (!body.user) {
         return {
-            statusCode: 402,
+            statusCode: 400,
             body: 'No user specified. Please specify a user.'
         }
     } else if (!body.score) {
         return {
-            statusCode: 402,
+            statusCode: 400,
             body: 'No score specified. Please specify a score.'
         }
     }

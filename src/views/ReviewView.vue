@@ -25,17 +25,35 @@
           <template v-for="name in members" v-slot:[name]>
             <avatar :key="name" :fullname="name"></avatar>
           </template>
+
+          <template v-for="name in members" v-slot:[`item-${name}`]="slotProps">
+            <div 
+              v-if="slotProps.item[name] === undefined" 
+              :key="name"
+              @click="openScoreInput(slotProps.item.movieId, name)"
+            >
+              <input
+                class="score-input"
+                :ref="'scoreInput' + slotProps.item.movieId + name"
+                v-show="addScoreInput === slotProps.item.movieId + name"
+                v-model="newScore"
+                @keypress.enter="submitScore(slotProps.item.movieId, name)"
+              />
+              <mdicon v-if="addScoreInput !== slotProps.item.movieId + name" class="score-button" name="plus"/>
+            </div>
+          </template>
+
           <template v-slot:average>
             <img src="@/assets/average.svg" width="64" height="48" />
           </template>
         </movie-table>
       </div>
-    </div> 
+    </div>
   </div>
 </template>
 
 <script lang="ts">
-import { Component, Vue } from 'vue-property-decorator';
+import { Component, Vue, Ref } from 'vue-property-decorator';
 import { ReviewResponse, Header } from '@/models';
 import AddReviewPrompt from '@/components/SearchPrompt/AddReviewPrompt.vue';
 import axios from 'axios'
@@ -48,6 +66,10 @@ export default class ReviewView extends Vue {
   private members: string[] = [];
   private loadingReviews = false;
   private loadingMembers = false;
+
+  private addScoreInput = "";
+  private newScore = "";
+  @Ref() readonly scoreInput!: HTMLInputElement
 
   private modalOpen = false;
 
@@ -78,6 +100,7 @@ export default class ReviewView extends Vue {
       const obj: any = {};
       obj.movieTitle = this.reviews[i].movieTitle;
       obj.dateWatched = this.reviews[i].dateWatched['@date'];
+      obj.movieId = this.reviews[i].movieId;
       for (const key of Object.keys(this.reviews[i].scores)) {
         obj[key] = (this.reviews[i].scores as any)[key]; 
       }
@@ -110,6 +133,27 @@ export default class ReviewView extends Vue {
       this.reviews.unshift(newReview);
     }
   }
+
+  openScoreInput(movieId: number, user: string): void {
+    this.newScore = "";
+    this.addScoreInput = movieId + user;
+    this.$nextTick(() => (this.$refs['scoreInput' + movieId + user] as HTMLInputElement[])[0].focus());
+  }
+
+  submitScore(movieId: number, user: string): void {
+    let newScore = parseInt(this.newScore);
+
+    if (!isNaN(newScore) && newScore >= 0 && newScore <= 10) {
+      axios
+        .post(`/api/postReviewScore?movieId=${ movieId }&user=${ user }&score=${ newScore }`)
+        .then(response => {
+          let newReview = this.reviews.find(review => review.movieId === movieId)
+          if (newReview !== undefined) {
+            newReview.scores = response.data.scores
+          }
+        })
+    }
+  }
 }
 </script>
 
@@ -135,5 +179,18 @@ export default class ReviewView extends Vue {
 
 .button {
   float: left;
+}
+
+.score-button {
+  cursor: pointer;
+}
+
+.score-input {
+  background-color: var(--background-color);
+  border-radius: 4px;
+  border: none;
+  padding: 0.5rem;
+  color: white;
+  width: 2rem;
 }
 </style>
