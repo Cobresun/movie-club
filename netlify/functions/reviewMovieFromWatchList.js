@@ -21,15 +21,8 @@ exports.handler = async function(event, context) {
     let body = event.queryStringParameters
     if (body.name === "" || !body.movieId) {
         return {
-            statusCode: 402,
-            body: 'No movieId specified. Please specify a movieId.'
-        }
-    }
-
-    if (!body.movieTitle) {
-        return {
             statusCode: 412,
-            body: 'No movie title specified. Please specify a title.'
+            body: 'No movieId specified. Please specify a movieId.'
         }
     }
 
@@ -37,7 +30,7 @@ exports.handler = async function(event, context) {
         let date = new Date()
         date = date.toISOString().slice(0, 10)
 
-        const deleteWatchListMovieQuery = await faunaClient.query(
+        await faunaClient.query(
             q.Delete(
                 q.Select(
                     "ref",
@@ -57,7 +50,7 @@ exports.handler = async function(event, context) {
                 {
                     data: {
                         "movieId": parseInt(body.movieId),
-                        "movieTitle": body.movieTitle,
+                        "movieTitle": await getMovieTitleForId(body.movieId),
                         "dateWatched": q.Date(`${date}`),
                         "scores": { }
                     }
@@ -65,15 +58,12 @@ exports.handler = async function(event, context) {
             )
         )
 
-        let newReviewMovie = postReviewQuery.data
-        newReviewMovie.movieTitle = await getMovieTitleForId(newReviewMovie.movieId)
-
         return {
             statusCode: 200,
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify(newReviewMovie)
+            body: JSON.stringify(postReviewQuery.data)
         }
     } catch (err) {
         console.error(err)

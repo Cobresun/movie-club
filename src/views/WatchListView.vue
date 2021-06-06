@@ -37,6 +37,12 @@
           <template v-slot:item-addedBy="slotProps">
             <avatar :fullname="slotProps.item[slotProps.head.value]"></avatar>
           </template>
+
+          <template v-slot:item-reviewMovie="slotProps">
+            <btn @click="reviewMovie(slotProps.item[slotProps.head.value])">
+              <mdicon name="check"/>
+            </btn>
+          </template>
         </movie-table>
       </div>
     </div>
@@ -57,9 +63,11 @@ export default class WatchListView extends Vue {
   private nextMovie: NextMovieResponse | null = null;
   private loading = false;
   private headers: Header[] = [
-      {value: "movieTitle", style:"font-weight: 700", sortable: false, centerHeader: false},
-      {value: "dateAdded", sortable: false},
-      {value: "addedBy", sortable: false, includeHeader: false}];
+    {value: "movieTitle", style:"font-weight: 700", sortable: false, centerHeader: false},
+    {value: "dateAdded", sortable: false},
+    {value: "addedBy", sortable: false, includeHeader: false},
+    {value: "reviewMovie", sortable: false, includeHeader: false}
+  ];
 
   private modalOpen = false;
 
@@ -89,7 +97,8 @@ export default class WatchListView extends Vue {
         movieTitle: movie.movieTitle,
         dateAdded: movie.dateAdded['@date'],
         addedBy: movie.addedBy,
-        highlighted: movie.movieTitle === this.nextMovie?.movieTitle
+        highlighted: movie.movieTitle === this.nextMovie?.movieTitle,
+        reviewMovie: movie.movieId
       }
     })
   }
@@ -107,6 +116,16 @@ export default class WatchListView extends Vue {
 
   openPrompt(): void {
     this.modalOpen = true;
+  }
+
+  reviewMovie(movieId: number): void {
+    // TODO: Should probably delete next watch movie here too
+    axios.post(`/api/reviewMovieFromWatchList?movieId=${ movieId }`)
+      .then(response => {
+        // Remove movie from our table
+        let idx = this.watchList.indexOf(response as unknown as WatchListResponse)
+        this.watchList.splice(idx, 1)
+      })
   }
 
   closePrompt(reviewAdded: boolean, newMovie: WatchListResponse): void {
