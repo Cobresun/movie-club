@@ -145,7 +145,6 @@ table {
 
 .highlighted {
   background-color: var(--highlight-background-color);
-  cursor: pointer;
   filter: brightness(105%);
 }
 
