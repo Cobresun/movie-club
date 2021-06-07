@@ -144,8 +144,21 @@ table {
 }
 
 .highlighted {
-  background-color: var(--highlight-background-color);
+  cursor: pointer;
   filter: brightness(105%);
+}
+
+.highlighted td {
+    border-top: 5px solid var(--highlight-background-color);
+    border-bottom: 5px solid var(--highlight-background-color);
+}
+
+.highlighted td:first-child {
+    border-left: 5px solid var(--highlight-background-color);
+}
+
+.highlighted td:last-child {
+    border-right: 5px solid var(--highlight-background-color);
 }
 
 table thead th {

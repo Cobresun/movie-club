@@ -59,8 +59,10 @@ import AddMovieToWatchlistPrompt from '@/components/SearchPrompt/AddMovieToWatch
   components: { AddMovieToWatchlistPrompt },
 })
 export default class WatchListView extends Vue {
+  private readonly ROTATE_ITERATIONS = 30;
   private watchList: WatchListResponse[] = [];
   private nextMovie: NextMovieResponse | null = null;
+  private nextMovieId!: number;
   private loading = false;
   private headers: Header[] = [
     {value: "movieTitle", style:"font-weight: 700", sortable: false, centerHeader: false},
@@ -70,6 +72,10 @@ export default class WatchListView extends Vue {
   ];
 
   private modalOpen = false;
+  private animateInterval!: number;
+  private animate = false;
+
+  private rotateReps = this.ROTATE_ITERATIONS;
 
   mounted(): void {
     this.loading = true;
@@ -83,28 +89,50 @@ export default class WatchListView extends Vue {
   }
 
   get watchListTableData(): any[] {
-    const nextMovie: WatchListResponse | undefined = this.watchList.find(movie => movie.movieTitle === this.nextMovie?.movieTitle)
-    let sortedWatchList = this.watchList
+    if (!this.animate){
+      const nextMovie: WatchListResponse | undefined = this.watchList.find(movie => movie.movieTitle === this.nextMovie?.movieTitle)
+      let sortedWatchList = this.watchList
 
-    // If there is a nextMovie set, it gets shifted to the top of the watch list
-    if (nextMovie) {
-      sortedWatchList = sortedWatchList.filter(movie => movie.movieTitle !== this.nextMovie?.movieTitle)
-      sortedWatchList.unshift(nextMovie)
-    }
-
-    return sortedWatchList.map(movie => {
-      return {
-        movieTitle: movie.movieTitle,
-        dateAdded: movie.dateAdded['@date'],
-        addedBy: movie.addedBy,
-        highlighted: movie.movieTitle === this.nextMovie?.movieTitle,
-        reviewMovie: movie.movieId
+      // If there is a nextMovie set, it gets shifted to the top of the watch list
+      if (nextMovie) {
+        sortedWatchList = sortedWatchList.filter(movie => movie.movieTitle !== this.nextMovie?.movieTitle)
+        sortedWatchList.unshift(nextMovie)
       }
-    })
+
+      return sortedWatchList.map(movie => {
+        return {
+          movieTitle: movie.movieTitle,
+          dateAdded: movie.dateAdded['@date'],
+          addedBy: movie.addedBy,
+          highlighted: movie.movieTitle === this.nextMovie?.movieTitle,
+          reviewMovie: movie.movieId
+        }
+      })
+    } else {
+      const sortedWatchList = this.watchList;
+      const fisrtMovieId = sortedWatchList[0].movieId;
+      return sortedWatchList.map(movie => {
+        return {
+          movieTitle: movie.movieTitle,
+          dateAdded: movie.dateAdded['@date'],
+          addedBy: movie.addedBy,
+          highlighted: movie.movieId === fisrtMovieId,
+          reviewMovie: movie.movieId
+        }
+      })
+    }
   }
 
   selectRandom(): void {
     let randomMovie = this.watchList[Math.floor(Math.random() * this.watchList.length)];
+    this.nextMovieId = randomMovie.movieId;
+    console.log(this.nextMovie);
+    console.log(this.nextMovieId);
+
+    this.rotateReps = this.ROTATE_ITERATIONS;
+    this.animateInterval = setInterval(this.animateRotate, 100);
+    this.animate = true;
+
     console.log("TODO: get watchlistId once we expand to other watchlists");
     axios.post(`/api/postNextWatch?movieId=${ randomMovie.movieId }&watchListId=${ 0 }&movieTitle=${ randomMovie.movieTitle }`)
           .then(
@@ -112,6 +140,17 @@ export default class WatchListView extends Vue {
               this.nextMovie = response.data;
               this.$emit("close", true, response.data);
             });
+  }
+
+  animateRotate(): void {
+    if (this.rotateReps > 0 || this.watchList[0].movieId !== this.nextMovieId){
+      this.watchList.unshift(this.watchList[this.watchList.length-1]);
+      this.watchList.pop();
+      this.rotateReps-=1;
+    } else {
+      clearInterval(this.animateInterval);
+      this.animate = false;
+    }
   }
 
   openPrompt(): void {
