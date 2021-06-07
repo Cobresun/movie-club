@@ -141,7 +141,7 @@ export default class ReviewView extends Vue {
   }
 
   submitScore(movieId: number, user: string): void {
-    let newScore = parseInt(this.newScore);
+    let newScore = parseFloat(this.newScore);
 
     if (!isNaN(newScore) && newScore >= 0 && newScore <= 10) {
       axios
