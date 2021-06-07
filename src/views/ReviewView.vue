@@ -30,7 +30,6 @@
             <div 
               v-if="slotProps.item[name] === undefined" 
               :key="name"
-              @click="openScoreInput(slotProps.item.movieId, name)"
             >
               <input
                 class="score-input"
@@ -39,7 +38,13 @@
                 v-model="newScore"
                 @keypress.enter="submitScore(slotProps.item.movieId, name)"
               />
-              <mdicon v-if="addScoreInput !== slotProps.item.movieId + name" class="score-button" name="plus"/>
+              <div
+                v-if="addScoreInput !== slotProps.item.movieId + name" 
+                class="score-button"
+                @click="openScoreInput(slotProps.item.movieId, name)"
+              >
+                <mdicon  name="plus"/>
+              </div>
             </div>
           </template>
 
