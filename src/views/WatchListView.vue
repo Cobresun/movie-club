@@ -35,7 +35,10 @@
           </template>
           
           <template v-slot:item-addedBy="slotProps">
-            <avatar :fullname="slotProps.item[slotProps.head.value]"></avatar>
+            <avatar
+              :key="slotProps.item[slotProps.head.value]"
+              :image="members.find(member => member.name === slotProps.item[slotProps.head.value]).image"
+            />
           </template>
 
           <template v-slot:item-reviewMovie="slotProps">
@@ -57,7 +60,7 @@
 
 <script lang="ts">
 import { Component, Vue } from 'vue-property-decorator';
-import { WatchListResponse, Header, NextMovieResponse } from '@/models';
+import { WatchListResponse, Header, NextMovieResponse, Member } from '@/models';
 import axios from 'axios'
 import AddMovieToWatchlistPrompt from '@/components/SearchPrompt/AddMovieToWatchlistPrompt.vue';
 
@@ -69,7 +72,9 @@ export default class WatchListView extends Vue {
   private watchList: WatchListResponse[] = [];
   private nextMovie: NextMovieResponse | null = null;
   private nextMovieId!: number;
+  private members: Member[] = [];
   private loading = false;
+  private loadingMembers = false;
   private headers: Header[] = [
     {value: "movieTitle", style:"font-weight: 700", sortable: false, centerHeader: false},
     {value: "dateAdded", sortable: false},
@@ -92,6 +97,13 @@ export default class WatchListView extends Vue {
         this.loading = false;
         this.watchList = response.data.watchList;
         this.nextMovie = response.data.nextMovie;
+      })
+    this.loadingMembers = true;
+    axios
+      .get('/api/club/8/members')
+      .then((response) => {
+        this.loadingMembers = false;
+        this.members = response.data;
       })
   }
 
