@@ -35,12 +35,21 @@
           </template>
           
           <template v-slot:item-addedBy="slotProps">
-            <avatar :fullname="slotProps.item[slotProps.head.value]"></avatar>
+            <avatar
+              :key="slotProps.item[slotProps.head.value]"
+              :image="members.find(member => member.name === slotProps.item[slotProps.head.value]).image"
+            />
           </template>
 
           <template v-slot:item-reviewMovie="slotProps">
             <btn @click="reviewMovie(slotProps.item[slotProps.head.value])">
               <mdicon name="check"/>
+            </btn>
+          </template>
+
+          <template v-slot:item-makeNextWatch="slotProps">
+            <btn @click="makeNextWatch(slotProps.item[slotProps.head.value])">
+              <mdicon name="arrow-collapse-up"/>
             </btn>
           </template>
         </movie-table>
@@ -51,7 +60,7 @@
 
 <script lang="ts">
 import { Component, Vue } from 'vue-property-decorator';
-import { WatchListResponse, Header, NextMovieResponse } from '@/models';
+import { WatchListResponse, Header, NextMovieResponse, Member } from '@/models';
 import axios from 'axios'
 import AddMovieToWatchlistPrompt from '@/components/SearchPrompt/AddMovieToWatchlistPrompt.vue';
 
@@ -63,12 +72,15 @@ export default class WatchListView extends Vue {
   private watchList: WatchListResponse[] = [];
   private nextMovie: NextMovieResponse | null = null;
   private nextMovieId!: number;
+  private members: Member[] = [];
   private loading = false;
+  private loadingMembers = false;
   private headers: Header[] = [
     {value: "movieTitle", style:"font-weight: 700", sortable: false, centerHeader: false},
     {value: "dateAdded", sortable: false},
     {value: "addedBy", sortable: false, includeHeader: false},
-    {value: "reviewMovie", sortable: false, includeHeader: false}
+    {value: "reviewMovie", sortable: false, includeHeader: false},
+    {value: "makeNextWatch", sortable: false, includeHeader: false}
   ];
 
   private modalOpen = false;
@@ -85,6 +97,13 @@ export default class WatchListView extends Vue {
         this.loading = false;
         this.watchList = response.data.watchList;
         this.nextMovie = response.data.nextMovie;
+      })
+    this.loadingMembers = true;
+    axios
+      .get('/api/club/8/members')
+      .then((response) => {
+        this.loadingMembers = false;
+        this.members = response.data;
       })
   }
 
@@ -105,7 +124,8 @@ export default class WatchListView extends Vue {
           dateAdded: movie.dateAdded['@date'],
           addedBy: movie.addedBy,
           highlighted: movie.movieTitle === this.nextMovie?.movieTitle,
-          reviewMovie: movie.movieId
+          reviewMovie: movie.movieId,
+          makeNextWatch: movie.movieId
         }
       })
     } else {
@@ -117,7 +137,8 @@ export default class WatchListView extends Vue {
           dateAdded: movie.dateAdded['@date'],
           addedBy: movie.addedBy,
           highlighted: movie.movieId === fisrtMovieId,
-          reviewMovie: movie.movieId
+          reviewMovie: movie.movieId,
+          makeNextWatch: movie.movieId
         }
       })
     }
@@ -126,8 +147,6 @@ export default class WatchListView extends Vue {
   selectRandom(): void {
     let randomMovie = this.watchList[Math.floor(Math.random() * this.watchList.length)];
     this.nextMovieId = randomMovie.movieId;
-    console.log(this.nextMovie);
-    console.log(this.nextMovieId);
 
     this.rotateReps = this.ROTATE_ITERATIONS;
     this.animateInterval = setInterval(this.animateRotate, 100);
@@ -165,6 +184,18 @@ export default class WatchListView extends Vue {
         this.watchList.splice(idx, 1)
         this.$router.push({path: "./reviews"})
       })
+  }
+
+  makeNextWatch(movieId: number): void {
+    this.nextMovieId = movieId;
+    const movieTitle = this.watchList.find(movie => movie.movieId === movieId)?.movieTitle
+
+    axios.post(`/api/postNextWatch?movieId=${ movieId }&watchListId=${ 0 }&movieTitle=${ movieTitle }`)
+      .then(
+        (response) => {
+          this.nextMovie = response.data;
+          this.$emit("close", true, response.data);
+        });
   }
 
   closePrompt(reviewAdded: boolean, newMovie: WatchListResponse): void {

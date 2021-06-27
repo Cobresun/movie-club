@@ -29,3 +29,8 @@ export interface NextMovieResponse {
   movieTitle: string;
   datePicked: DateObject;
 }
+
+export interface Member {
+  name: string;
+  image: string;
+}

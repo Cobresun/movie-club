@@ -8,7 +8,7 @@ const q = faunadb.query
  * 
  * GET /club/:clubId -> returns full club data (clubId, clubName, members)
  * GET /club/:clubId/clubName -> returns club name
- * GET /club/:clubId/members -> returns array of members in club
+ * GET /club/:clubId/members -> returns array of members in club including their profile data (name, image)
  * 
  */
 
@@ -32,7 +32,7 @@ exports.handler = async function(event, context) {
                 q.Map(
                     q.Paginate(
                         q.Match(
-                            q.Index("all_members_in_club_by_clubId"),
+                            q.Index("club_by_clubId"),
                             clubId
                         )
                     ),
@@ -45,9 +45,30 @@ exports.handler = async function(event, context) {
                 )
             )
 
+            let members = []
+            for (const userName of req.data[0].data.members) {
+                const memberReq = await faunaClient.query(
+                    q.Map(
+                        q.Paginate(
+                            q.Match(
+                                q.Index("member_by_name"),
+                                userName
+                            )
+                        ),
+                        q.Lambda(
+                            "X",
+                            q.Get(
+                                q.Var("X")
+                            )
+                        )
+                    )
+                )
+                members.push(memberReq.data[0].data)
+            }
+            
             let responseBody;
             if (method === 'members') {
-                responseBody = req.data[0].data.members
+                responseBody = members
             } else if (method === 'clubName') {
                 responseBody = req.data[0].data.clubName
             } else if (method === undefined || method === '') {

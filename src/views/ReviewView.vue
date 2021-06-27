@@ -22,28 +22,28 @@
           :data="tableData"
           v-if="reviews.length > 0"
         >
-          <template v-for="name in members" v-slot:[name]>
-            <avatar :key="name" :fullname="name"></avatar>
+          <template v-for="member in members" v-slot:[member.name]>
+            <avatar :key="member.name" :image="member.image"></avatar>
           </template>
 
-          <template v-for="name in members" v-slot:[`item-${name}`]="slotProps">
-            <div 
-              v-if="slotProps.item[name] === undefined" 
-              :key="name"
+          <template v-for="member in members" v-slot:[`item-${member.name}`]="slotProps">
+            <div
+              v-if="slotProps.item[member.name] === undefined" 
+              :key="member.name"
             >
               <input
                 class="score-input"
-                :ref="'scoreInput' + slotProps.item.movieId + name"
-                v-show="addScoreInput === slotProps.item.movieId + name"
+                :ref="'scoreInput' + slotProps.item.movieId + member.name"
+                v-show="addScoreInput === slotProps.item.movieId + member.name"
                 v-model="newScore"
-                @keypress.enter="submitScore(slotProps.item.movieId, name)"
+                @keypress.enter="submitScore(slotProps.item.movieId, member.name)"
               />
               <div
-                v-if="addScoreInput !== slotProps.item.movieId + name" 
+                v-if="addScoreInput !== slotProps.item.movieId + member.name" 
                 class="score-button"
-                @click="openScoreInput(slotProps.item.movieId, name)"
+                @click="openScoreInput(slotProps.item.movieId, member.name)"
               >
-                <mdicon  name="plus"/>
+                <mdicon name="plus"/>
               </div>
             </div>
           </template>
@@ -59,7 +59,7 @@
 
 <script lang="ts">
 import { Component, Vue, Ref } from 'vue-property-decorator';
-import { ReviewResponse, Header } from '@/models';
+import { ReviewResponse, Member, Header } from '@/models';
 import AddReviewPrompt from '@/components/SearchPrompt/AddReviewPrompt.vue';
 import axios from 'axios'
 
@@ -68,7 +68,7 @@ import axios from 'axios'
 })
 export default class ReviewView extends Vue {
   private reviews: ReviewResponse[] = [];
-  private members: string[] = [];
+  private members: Member[] = [];
   private loadingReviews = false;
   private loadingMembers = false;
 
@@ -92,6 +92,7 @@ export default class ReviewView extends Vue {
       .then((response) => {
         this.loadingMembers = false;
         this.members = response.data;
+        console.log(response.data)
       })
   }
 
@@ -121,7 +122,7 @@ export default class ReviewView extends Vue {
 
     if (this.members.length > 0) {
       for (const member of this.members) {
-        headers.push({value:member});
+        headers.push({value: member.name});
       }
     }
     headers.push({value: "average"});
