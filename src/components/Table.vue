@@ -90,7 +90,13 @@ export default class Table extends Vue {
         this.sortBy[col] = 0;
       }
       this.tableData.sort((a, b) => {
-        if (typeof a[value] === "number" || a === null || b === null) {
+        if (a[value] === undefined) {
+          return 1;
+        }
+        if (b[value] === undefined) {
+          return -1;
+        }
+        if (typeof a[value] === "number") {
           return a[value] - b[value];
         }
         if (!isNaN(Date.parse(a[value]))) {
@@ -101,8 +107,13 @@ export default class Table extends Vue {
       this.sortBy[value]++;
     } else if (this.sortBy[value] === 1) {
       this.tableData.sort((a, b) => {
-        console.log(typeof b[value])
-        if (typeof b[value] === "number" || a === null || b === null) {
+        if (a[value] === undefined) {
+          return 1;
+        }
+        if (b[value] === undefined) {
+          return -1;
+        }
+        if (typeof a[value] === "number") {
           return b[value] - a[value];
         }
         if (!isNaN(Date.parse(b[value]))) {
