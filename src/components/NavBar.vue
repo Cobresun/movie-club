@@ -1,6 +1,10 @@
 <template>
-  <div>
+  <div class="bar">
     <router-link to="/"><h3 class="title">MovieClub</h3></router-link>
+    <btn
+      @click="login"
+
+    >Login</btn>
   </div>
 </template>
 
@@ -8,7 +12,11 @@
 import { Component, Vue } from 'vue-property-decorator';
 
 @Component({})
-export default class NavBar extends Vue {}
+export default class NavBar extends Vue {
+  login(): void {
+    this.$store.dispatch('login');
+  }
+}
 </script>
 
 <style scoped>
@@ -19,5 +27,11 @@ export default class NavBar extends Vue {}
   color: var(--highlight-color);
   text-align: left;
   margin-left:20px;
+}
+
+.bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 </style>

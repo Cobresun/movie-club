@@ -31,6 +31,8 @@ button {
   border-radius: 5px;
 
   transition-duration: 0.2s;
+
+  height: 36px;
 }
 
 button:hover {

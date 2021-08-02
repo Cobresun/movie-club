@@ -14,7 +14,11 @@ import NavBar from '@/components/NavBar.vue';
     NavBar,
   },
 })
-export default class App extends Vue {}
+export default class App extends Vue {
+  mounted(): void {
+    this.$store.dispatch('init');
+  }
+}
 </script>
 
 <style>
