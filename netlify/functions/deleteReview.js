@@ -5,22 +5,23 @@ const faunaClient = new faunadb.Client({ secret: process.env.FAUNADB_SERVER_SECR
 const q = faunadb.query
 
 exports.handler = async function(event, context) {
+    if (!context.clientContext.user) {
+        return response(401, {
+            message: 'You are not authorized to perform this action'
+        });
+    }
+
     if (event.httpMethod !== 'DELETE') {
-        return {
-            statusCode: 400,
-            body: 'You are not using a http DELETE method for this endpoint.',
-            headers: {
-                'Allow': 'DELETE'
-            }
-        }
+        return response(400, { 
+            message: 'You are not using http DELETE Method for this endpoint'
+        });
     }
 
     let body = event.queryStringParameters
     if (body.name === "" || !body.movieId) {
-        return {
-            statusCode: 402,
-            body: 'No movieId specified. Please specify a movieId.'
-        }
+        return response(400, {
+            message: 'No movieId specified. Please specify a movieId.'
+        });
     }
 
     try {
@@ -38,15 +39,19 @@ exports.handler = async function(event, context) {
             )
         )
 
-        return {
-            statusCode: 200,
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(req.data)
-        }
+        return response(200, req.data);
     } catch (err) {
         console.error(err)
-        return { statusCode: 500, body: JSON.stringify({ error: err.message}) }
+        return response(500, { error: err.message });
     }
+}
+
+function response(code, body) {
+    return {
+        statusCode: code,
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+    };
 }

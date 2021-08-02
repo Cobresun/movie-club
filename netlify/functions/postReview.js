@@ -1,36 +1,33 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 const faunadb = require('faunadb')
-const axios = require('axios')
 
 const faunaClient = new faunadb.Client({ secret: process.env.FAUNADB_SERVER_SECRET })
 const q = faunadb.query
 
-const tmdbApiKey = process.env.TMDB_API_KEY
-
 exports.handler = async function(event, context) {
+    if (!context.clientContext.user) {
+        return response(401, {
+            message: 'You are not authorized to perform this action'
+        });
+    }
+
     if (event.httpMethod !== 'POST') {
-        return {
-            statusCode: 400,
-            body: 'You are not using a http POST method for this endpoint.',
-            headers: {
-                'Allow': 'POST'
-            }
-        }
+        return response(400, { 
+            message: 'You are not using http POST Method for this endpoint'
+        });
     }
 
     let body = event.queryStringParameters
     if (body.name === "" || !body.movieId) {
-        return {
-            statusCode: 412,
-            body: 'No movieId specified. Please specify a movieId.'
-        }
-    }
+        return response(400, {
+            message: 'No movieId specified. Please specify a movieId.'
+        });
+    } 
 
     if (!body.movieTitle) {
-        return {
-            statusCode: 412,
-            body: 'No movie title specified. Please specify a title.'
-        }
+        return response(400, {
+            message: 'No movieTitle specified. Please specify a movieTitle.'
+        });
     }
 
     try {
@@ -51,15 +48,19 @@ exports.handler = async function(event, context) {
             )
         )
 
-        return {
-            statusCode: 200,
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(req.data)
-        }
+        return response(200, req.data);
     } catch (err) {
         console.error(err)
-        return { statusCode: 500, body: JSON.stringify({ error: err.message}) }
+        return response(500, { error: err.message });
     }
+}
+
+function response(code, body) {
+    return {
+        statusCode: code,
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+    };
 }
