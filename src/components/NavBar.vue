@@ -1,10 +1,24 @@
 <template>
   <div class="bar">
     <router-link to="/"><h3 class="title">MovieClub</h3></router-link>
-    <btn
-      @click="login"
-
-    >Login</btn>
+    <div 
+      v-if="authReady"
+      class="auth-buttons">
+      <avatar
+        v-if="isLoggedIn"
+        class="avatar"
+        :fullname="fullName"
+        :image="avatarURL"
+      ></avatar>
+      <btn
+        v-if="!isLoggedIn"
+        @click="login"
+      >Login</btn>
+      <btn
+        v-else
+        @click="logout"
+      >Logout</btn>
+    </div>
   </div>
 </template>
 
@@ -13,8 +27,28 @@ import { Component, Vue } from 'vue-property-decorator';
 
 @Component({})
 export default class NavBar extends Vue {
+  get isLoggedIn(): boolean {
+    return this.$store.state.auth.user !== null
+  }
+
+  get fullName(): string {
+    return this.$store.state.auth.user.user_metadata.full_name;
+  }
+
+  get avatarURL(): string | undefined {
+    return this.$store.state.auth.user.user_metadata.avatar_url;
+  }
+
+  get authReady(): boolean {
+    return this.$store.state.auth.ready;
+  }
+
   login(): void {
     this.$store.dispatch('login');
+  }
+
+  logout(): void {
+    this.$store.dispatch('logout');
   }
 }
 </script>
@@ -33,5 +67,14 @@ export default class NavBar extends Vue {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.auth-buttons {
+  display: flex;
+  align-items: center;
+}
+
+.avatar {
+  margin-right: 12px;
 }
 </style>
