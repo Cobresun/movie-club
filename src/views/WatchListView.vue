@@ -153,12 +153,14 @@ export default class WatchListView extends Vue {
     this.animate = true;
 
     console.log("TODO: get watchlistId once we expand to other watchlists");
-    axios.post(`/api/postNextWatch?movieId=${ randomMovie.movieId }&watchListId=${ 0 }&movieTitle=${ randomMovie.movieTitle }`)
-          .then(
-            (response) => {
-              this.nextMovie = response.data;
-              this.$emit("close", true, response.data);
-            });
+    axios.post(`/api/postNextWatch?movieId=${ randomMovie.movieId }&watchListId=${ 0 }&movieTitle=${ randomMovie.movieTitle }`, {}, {
+      headers: {
+        Authorization: `Bearer ${this.$store.state.auth.user.token.access_token}`
+      }
+    }).then((response) => {
+        this.nextMovie = response.data;
+        this.$emit("close", true, response.data);
+      });
   }
 
   animateRotate(): void {
@@ -177,8 +179,11 @@ export default class WatchListView extends Vue {
   }
 
   reviewMovie(movieId: number): void {
-    axios.post(`/api/reviewMovieFromWatchList?movieId=${ movieId }`)
-      .then(response => {
+    axios.post(`/api/reviewMovieFromWatchList?movieId=${ movieId }`, {}, {
+      headers: {
+        Authorization: `Bearer ${this.$store.state.auth.user.token.access_token}`
+      }
+    }).then(response => {
         // Remove movie from our table
         let idx = this.watchList.indexOf(response as unknown as WatchListResponse)
         this.watchList.splice(idx, 1)
@@ -190,7 +195,11 @@ export default class WatchListView extends Vue {
     this.nextMovieId = movieId;
     const movieTitle = this.watchList.find(movie => movie.movieId === movieId)?.movieTitle
 
-    axios.post(`/api/postNextWatch?movieId=${ movieId }&watchListId=${ 0 }&movieTitle=${ movieTitle }`)
+    axios.post(`/api/postNextWatch?movieId=${ movieId }&watchListId=${ 0 }&movieTitle=${ movieTitle }`, {}, {
+      headers: {
+        Authorization: `Bearer ${this.$store.state.auth.user.token.access_token}`
+      }
+    })
       .then(
         (response) => {
           this.nextMovie = response.data;

@@ -40,7 +40,11 @@ export default class AddMovieToWatchlistPrompt extends Vue {
 
   selectFromSearch(movie: any): void {
     this.loading = true;
-    axios.post(`/api/postWatchListMovie?movieId=${ movie.id }&user=cole&movieTitle=${ movie.title }`)
+    axios.post(`/api/postWatchListMovie?movieId=${ movie.id }&user=cole&movieTitle=${ movie.title }`, {}, {
+      headers: {
+        Authorization: `Bearer ${this.$store.state.auth.user.token.access_token}`
+      }
+    })
           .then(
             (response) => {
               console.log(response);

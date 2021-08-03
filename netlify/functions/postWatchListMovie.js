@@ -5,6 +5,7 @@ const faunaClient = new faunadb.Client({ secret: process.env.FAUNADB_SERVER_SECR
 const q = faunadb.query
 
 exports.handler = async function(event, context) {
+    console.log(context);
     if (!context.clientContext.user) {
         return response(401, {
             message: 'You are not authorized to perform this action'

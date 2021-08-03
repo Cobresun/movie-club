@@ -151,7 +151,11 @@ export default class ReviewView extends Vue {
 
     if (!isNaN(newScore) && newScore >= 0 && newScore <= 10) {
       axios
-        .post(`/api/postReviewScore?movieId=${ movieId }&user=${ user }&score=${ newScore }`)
+        .post(`/api/postReviewScore?movieId=${ movieId }&user=${ user }&score=${ newScore }`, {}, {
+          headers: {
+            Authorization: `Bearer ${this.$store.state.auth.user.token.access_token}`
+          }
+        })
         .then(response => {
           let newReview = this.reviews.find(review => review.movieId === movieId)
           if (newReview !== undefined) {

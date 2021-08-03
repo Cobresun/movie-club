@@ -47,8 +47,11 @@ export default class AddReviewPrompt extends Vue {
 
   selectFromWatchList(movie: WatchListResponse): void {
     this.loading = true;
-    axios.post(`/api/reviewMovieFromWatchList?movieId=${ movie.movieId }&movieTitle=${ movie.movieTitle }`)
-          .then(
+    axios.post(`/api/reviewMovieFromWatchList?movieId=${ movie.movieId }&movieTitle=${ movie.movieTitle }`, {}, {
+      headers: {
+        Authorization: `Bearer ${this.$store.state.auth.user.token.access_token}`
+      }
+    }).then(
             (response) => {
               this.$emit("close", true, response.data);
             });
@@ -56,8 +59,11 @@ export default class AddReviewPrompt extends Vue {
 
   selectFromSearch(movie: any): void {
     this.loading = true;
-    axios.post(`/api/postReview?movieId=${ movie.id }&movieTitle=${ movie.title }`)
-          .then(
+    axios.post(`/api/postReview?movieId=${ movie.id }&movieTitle=${ movie.title }`, {}, {
+      headers: {
+        Authorization: `Bearer ${this.$store.state.auth.user.token.access_token}`
+      }
+    }).then(
             (response) => {
               console.log(response);
               this.$emit("close", true, response.data);
