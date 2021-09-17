@@ -14,7 +14,8 @@ exports.handler = async function(event, context) {
                 q.Paginate(
                     q.Match(
                         q.Index("all_watchList_sort_by_date")
-                    )
+                    ),
+                    { size: 100000 }
                 ), 
                 q.Lambda(
                     ["d", "ref"], 

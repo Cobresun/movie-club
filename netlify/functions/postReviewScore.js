@@ -40,7 +40,8 @@ exports.handler = async function(event, context) {
                     q.Match(
                         q.Index("reviews_by_movieId"),
                         parseInt(body.movieId)
-                    )
+                    ),
+                    { size: 100000 }
                 ),
                 q.Lambda(
                     "X",
