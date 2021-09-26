@@ -8,11 +8,15 @@
         <loading-spinner v-if="loading"/>
         
         <div v-if="!loading">
-            <h2 v-if="mostLovedMovie">Most Loved Movie</h2>
-            <img :src="mostLovedMovie.poster_url" />
-
-            <h2 v-if="leastLovedMovie">Least Loved Movie</h2>
-            <img :src="leastLovedMovie.poster_url" />
+            <div v-if="mostLovedMovie">
+                <h2>Most Loved Movie</h2>
+                <img :src="mostLovedMovie.poster_url" />
+            </div>
+            
+            <div v-if="leastLovedMovie">
+                <h2>Least Loved Movie</h2>
+                <img :src="leastLovedMovie.poster_url" />
+            </div>
         </div>
     </div>
 </template>
@@ -29,8 +33,8 @@
         private loadingMostLovedMovie = false
         private loadingLeastMostLovedMovie = false
 
-        private mostLovedMovie: TMDBMovieData|undefined
-        private leastLovedMovie: TMDBMovieData|undefined
+        private mostLovedMovie: TMDBMovieData|null = null
+        private leastLovedMovie: TMDBMovieData|null = null
 
         mounted(): void {
             this.loadingMostLovedMovie = true
