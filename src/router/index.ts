@@ -3,6 +3,7 @@ import VueRouter, { RouteConfig } from "vue-router";
 import Home from "../views/Home.vue";
 import ReviewView from "../views/ReviewView.vue";
 import WatchListView from "../views/WatchListView.vue";
+import StatisticsView from "../views/StatisticsView.vue";
 
 Vue.use(VueRouter);
 
@@ -21,6 +22,11 @@ const routes: Array<RouteConfig> = [
     path: "/watchList",
     name: "WatchList",
     component: WatchListView,
+  },
+  {
+    path: "/statistics",
+    name: "Statistics",
+    component: StatisticsView,
   },
 ];
 
