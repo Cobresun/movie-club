@@ -5,26 +5,35 @@
             <h1>Cobresun Statistics</h1>
         </div>
 
-        <div>
+        <loading-spinner v-if="loading"/>
+        
+        <div v-if="!loading">
             <h2>Most Loved Movie</h2>
-            <p>{{mostLovedMovie}}</p>
+            <img :src="mostLovedMovie.poster_url" />
         </div>
     </div>
 </template>
 
 <script lang="ts">
-    import { Vue } from 'vue-property-decorator'
+    import { Component, Vue } from 'vue-property-decorator'
     import axios from 'axios'
+    import { TMDBMovieData } from '@/models';
+
+
+    @Component({})
 
     export default class StatisticsView extends Vue {
-        private mostLovedMovie!: any
+        private loading = false
+        private mostLovedMovie: TMDBMovieData|undefined
 
         mounted(): void {
+            this.loading = true
             axios
                 .get('/api/movie/446021')
-                .then(response =>
-                    this.mostLovedMovie = response
-                )
+                .then(response => {
+                    this.loading = false
+                    this.mostLovedMovie = response.data
+                })
         }
     }
 </script>

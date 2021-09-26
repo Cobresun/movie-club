@@ -1,4 +1,5 @@
 // eslint-disable-next-line @typescript-eslint/no-var-requires
+const { mdiConsoleNetwork } = require('@mdi/js')
 const axios = require('axios')
 const tmdbApiKey = process.env.TMDB_API_KEY
 
@@ -22,16 +23,25 @@ exports.handler = async function(event, _context) {
             }
         }
 
+        let configuration = await getConfiguration()
+
         let movieData = await getMovieData(movieId)
+
+        movieData.data.poster_url = configuration.data.images.base_url + "w500" + movieData.data.poster_path
 
         return {
             statusCode: 200,
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify(movieData)
+            body: JSON.stringify(movieData.data)
         }
     }
+}
+
+async function getConfiguration() {
+    return axios
+        .get(`https://api.themoviedb.org/3/configuration?api_key=${tmdbApiKey}`)
 }
 
 async function getMovieData(movieId) {

@@ -34,3 +34,29 @@ export interface Member {
   name: string;
   image: string;
 }
+
+export interface TMDBGenre {
+  id: number;
+  name: string;
+}
+
+export interface TMDBMovieData {
+  adult: boolean;
+  backdrop_path: string;
+  budget: number;
+  genres: TMDBGenre[];
+  homepage: string;
+  id: number;
+  imdb_id: string;
+  original_language: string;
+  original_title: string;
+  overview: string;
+  popularity: number;
+  poster_path: string;
+  release_date: string;
+  revenue: number;
+  runtime: number;
+  tagline: string;
+  title: string;
+  poster_url: string;
+}
