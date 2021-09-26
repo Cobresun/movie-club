@@ -9,7 +9,7 @@
         <router-link to="/watchList"><menu-card image="watchlist.svg">Watch List</menu-card></router-link>
       </div>
       <div class="menu-option">
-        <router-link to="/"><menu-card image="statistics.svg">Statistics</menu-card></router-link>
+        <router-link to="/statistics"><menu-card image="statistics.svg">Statistics</menu-card></router-link>
       </div>
     </div>
     <btn>Club Settings <mdicon name="cog-outline" /></btn>
