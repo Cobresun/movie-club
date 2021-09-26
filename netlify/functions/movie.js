@@ -1,5 +1,4 @@
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const { mdiConsoleNetwork } = require('@mdi/js')
 const axios = require('axios')
 const tmdbApiKey = process.env.TMDB_API_KEY
 

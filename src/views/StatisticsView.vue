@@ -8,8 +8,11 @@
         <loading-spinner v-if="loading"/>
         
         <div v-if="!loading">
-            <h2>Most Loved Movie</h2>
+            <h2 v-if="mostLovedMovie">Most Loved Movie</h2>
             <img :src="mostLovedMovie.poster_url" />
+
+            <h2 v-if="leastLovedMovie">Least Loved Movie</h2>
+            <img :src="leastLovedMovie.poster_url" />
         </div>
     </div>
 </template>
@@ -23,17 +26,33 @@
     @Component({})
 
     export default class StatisticsView extends Vue {
-        private loading = false
+        private loadingMostLovedMovie = false
+        private loadingLeastMostLovedMovie = false
+
         private mostLovedMovie: TMDBMovieData|undefined
+        private leastLovedMovie: TMDBMovieData|undefined
 
         mounted(): void {
-            this.loading = true
+            this.loadingMostLovedMovie = true
+            this.loadingLeastMostLovedMovie = true
+
             axios
-                .get('/api/movie/446021')
+                .get('/api/movie/496243')
                 .then(response => {
-                    this.loading = false
                     this.mostLovedMovie = response.data
+                    this.loadingMostLovedMovie = false
                 })
+
+            axios
+                .get('/api/movie/1724')
+                .then(response => {
+                    this.leastLovedMovie = response.data
+                    this.loadingLeastMostLovedMovie = false
+                })
+        }
+
+        get loading(): boolean {
+            return this.loadingMostLovedMovie || this.loadingLeastMostLovedMovie
         }
     }
 </script>
