@@ -9,6 +9,7 @@ const q = faunadb.query
  * GET /club/:clubId -> returns full club data (clubId, clubName, members)
  * GET /club/:clubId/clubName -> returns club name
  * GET /club/:clubId/members -> returns array of members in club including their profile data (name, image)
+ * TODO: GET /club/:clubId/stats -> returns club's stats object
  * 
  */
 

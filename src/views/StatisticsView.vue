@@ -3,9 +3,8 @@
         <div class="title">
             <router-link to="/"><mdicon class="back" name="arrow-left" size="40"/></router-link>
             <h1>Cobresun Statistics</h1>
+            <div class="refresh" @click="refreshStats()"><mdicon name="refresh" size="40"/></div>
         </div>
-
-        <!-- Add refresh button to the right of h1 that triggers all the stats functions -->
 
         <loading-spinner v-if="loading"/>
         
@@ -72,6 +71,10 @@
                 })
         }
 
+        refreshStats(): void {
+            console.log("Refreshing stats...")
+        }
+
         get loading(): boolean {
             return this.loadingMostLovedMovie || this.loadingLeastMostLovedMovie
         }
@@ -87,7 +90,7 @@
     }
 
     .title:first-child {
-        justify-items: right;
+        justify-items: end;
     }
 
     .back {
@@ -95,6 +98,14 @@
     }
 
     .back:hover {
+        cursor: pointer;
+    }
+
+    .refresh {
+        justify-self: start;
+    }
+
+    .refresh:hover {
         cursor: pointer;
     }
 </style>
