@@ -36,9 +36,6 @@ exports.handler = async function(event, context) {
     }
 
     try {
-        let date = new Date()
-        date = date.toISOString().slice(0, 10)
-
         const req = await faunaClient.query(
             q.Create(
                 q.Collection("watchList"),
@@ -46,7 +43,7 @@ exports.handler = async function(event, context) {
                     data: {
                         "movieId": parseInt(body.movieId),
                         "movieTitle": body.movieTitle,
-                        "dateAdded": q.Date(`${date}`),
+                        "timeAdded": q.Now(),
                         "addedBy": body.user
                     }
                 }

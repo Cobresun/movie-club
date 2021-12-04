@@ -38,14 +38,11 @@ exports.handler = async function(event, context) {
     }
 
     try {
-        let date = new Date()
-        date = date.toISOString().slice(0, 10)
-
         const data = {
             "nextMovieId": parseInt(body.movieId),
             "movieTitle": body.movieTitle,
             "watchListId": parseInt(body.watchListId),
-            "datePicked": q.Date(`${date}`)
+            "datePicked": q.Now()
         };
 
         const req = await faunaClient.query(

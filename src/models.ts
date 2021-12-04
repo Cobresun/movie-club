@@ -8,19 +8,19 @@ export interface Header {
 }
 
 type DateObject = {
-  "@date": string
+  "@ts": string
 };
 
 export interface ReviewResponse {
   movieId: number;
   movieTitle: string;
-  dateWatched: DateObject;
+  timeWatched: DateObject;
   scores: Object;
 }
 
 export interface WatchListResponse {
+  timeAdded: DateObject;
   movieTitle: string;
-  dateAdded: DateObject;
   addedBy: string;
   movieId: number;
 }

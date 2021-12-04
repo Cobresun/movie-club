@@ -62,6 +62,7 @@ import { Component, Vue, Ref } from 'vue-property-decorator';
 import { ReviewResponse, Member, Header } from '@/models';
 import AddReviewPrompt from '@/components/SearchPrompt/AddReviewPrompt.vue';
 import axios from 'axios'
+import { DateTime } from "luxon";
 
 @Component({
   components: { AddReviewPrompt },
@@ -105,7 +106,7 @@ export default class ReviewView extends Vue {
     for (let i = 0; i < this.reviews.length; i++) {
       const obj: any = {};
       obj.movieTitle = this.reviews[i].movieTitle;
-      obj.dateWatched = this.reviews[i].dateWatched['@date'];
+      obj.dateWatched = DateTime.fromISO(this.reviews[i].timeWatched['@ts']).toLocaleString();  
       obj.movieId = this.reviews[i].movieId;
       for (const key of Object.keys(this.reviews[i].scores)) {
         obj[key] = (this.reviews[i].scores as any)[key]; 

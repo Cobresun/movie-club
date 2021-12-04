@@ -13,7 +13,7 @@ exports.handler = async function(event, context) {
             q.Map(
                 q.Paginate(
                     q.Match(
-                        q.Index("all_watchList_sort_by_date")
+                        q.Index("all_watchList_sort_by_time")
                     ),
                     { size: 100000 }
                 ), 

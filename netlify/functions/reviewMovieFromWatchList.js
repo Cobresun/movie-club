@@ -28,9 +28,6 @@ exports.handler = async function(event, context) {
     } 
 
     try {
-        let date = new Date()
-        date = date.toISOString().slice(0, 10)
-
         await faunaClient.query(
             q.Delete(
                 q.Select(
@@ -52,7 +49,7 @@ exports.handler = async function(event, context) {
                     data: {
                         "movieId": parseInt(body.movieId),
                         "movieTitle": await getMovieTitleForId(body.movieId),
-                        "dateWatched": q.Date(`${date}`),
+                        "timeWatched": q.Now(),
                         "scores": { }
                     }
                 }

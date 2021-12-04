@@ -10,7 +10,7 @@ exports.handler = async function(event, context) {
             q.Map(
                 q.Paginate(
                     q.Match(
-                        q.Index("all_reviews_sort_by_date_desc")
+                        q.Index("all_reviews_sort_by_time")
                     ),
                     { size: 100000 }
                 ),

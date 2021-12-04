@@ -63,6 +63,7 @@ import { Component, Vue } from 'vue-property-decorator';
 import { WatchListResponse, Header, NextMovieResponse, Member } from '@/models';
 import axios from 'axios'
 import AddMovieToWatchlistPrompt from '@/components/SearchPrompt/AddMovieToWatchlistPrompt.vue';
+import { DateTime } from "luxon";
 
 @Component({
   components: { AddMovieToWatchlistPrompt },
@@ -121,7 +122,7 @@ export default class WatchListView extends Vue {
       return sortedWatchList.map(movie => {
         return {
           movieTitle: movie.movieTitle,
-          dateAdded: movie.dateAdded['@date'],
+          dateAdded: DateTime.fromISO(movie.timeAdded['@ts']).toLocaleString(),
           addedBy: movie.addedBy,
           highlighted: movie.movieTitle === this.nextMovie?.movieTitle,
           reviewMovie: movie.movieId,
@@ -134,7 +135,7 @@ export default class WatchListView extends Vue {
       return sortedWatchList.map(movie => {
         return {
           movieTitle: movie.movieTitle,
-          dateAdded: movie.dateAdded['@date'],
+          dateAdded: DateTime.fromISO(movie.timeAdded['@ts']).toLocaleString(),
           addedBy: movie.addedBy,
           highlighted: movie.movieId === fisrtMovieId,
           reviewMovie: movie.movieId,
