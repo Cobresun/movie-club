@@ -4,8 +4,16 @@
 ## Project setup
 ```
 npm install
-npm i netlify-cli -g 
+npm i netlify-cli -g
 ```
+
+When developing if you don't see the Login button on the screen, go into your browser console and execute the following command:
+
+`localStorage.setItem("netlifySiteURL", "https://cobresun-movie-club.netlify.app")`
+
+... then refresh the page.
+
+Also when developing use the `cobresunofficial@gmail.com` account.
 
 ### Compiles and hot-reloads for development (including Netlify functions)
 ```

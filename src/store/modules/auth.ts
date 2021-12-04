@@ -33,7 +33,9 @@ export const authModule = {
         console.log('init event');
       })
 
-      netlifyIdentity.init();
+      netlifyIdentity.init({
+        APIUrl: "https://cobresun-movie-club.netlify.app/.netlify/identity"
+      });
     },
     cleanup() {
       netlifyIdentity.off('login');
