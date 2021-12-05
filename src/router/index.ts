@@ -1,6 +1,6 @@
 import Vue from "vue";
 import VueRouter, { RouteConfig } from "vue-router";
-import Home from "../views/Home.vue";
+import ClubHomeView from "../views/ClubHomeView.vue";
 import ReviewView from "../views/ReviewView.vue";
 import WatchListView from "../views/WatchListView.vue";
 import StatisticsView from "../views/StatisticsView.vue";
@@ -17,7 +17,7 @@ const routes: Array<RouteConfig> = [
   {
     path: "/clubHome",
     name: "Club Home",
-    component: Home,
+    component: ClubHomeView,
   },
   {
     path: "/reviews",
