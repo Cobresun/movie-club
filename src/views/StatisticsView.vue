@@ -1,7 +1,7 @@
 <template>
     <div>
         <div class="title">
-            <router-link to="/"><mdicon class="back" name="arrow-left" size="40"/></router-link>
+            <router-link to="/clubHome"><mdicon class="back" name="arrow-left" size="40"/></router-link>
             <h1>Cobresun Statistics</h1>
             <div class="refresh" @click="refreshStats()"><mdicon name="refresh" size="40"/></div>
         </div>

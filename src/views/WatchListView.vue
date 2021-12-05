@@ -6,7 +6,7 @@
     />
     <div>
       <div class="title">
-        <router-link to="/"><mdicon class="back" name="arrow-left" size="40"/></router-link>
+        <router-link to="/clubHome"><mdicon class="back" name="arrow-left" size="40"/></router-link>
         <h1>Cobresun Watch List</h1>
       </div>
 
