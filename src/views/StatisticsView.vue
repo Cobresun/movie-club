@@ -72,7 +72,7 @@
         }
 
         refreshStats(): void {
-            console.log("Refreshing stats...")
+            console.info("Refreshing stats...")
         }
 
         get loading(): boolean {

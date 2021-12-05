@@ -96,7 +96,6 @@ export default class MovieSearchPrompt extends Vue {
       .then((response) => {
         this.loadingSearch = false;
         this.searchData = response.data.results;
-        console.log(this.searchData);
       })
       .catch((error) => {
         if (!axios.isCancel(error)) {

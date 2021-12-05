@@ -21,12 +21,9 @@ import { Component, Vue } from 'vue-property-decorator';
 
 @Component({})
 export default class Home extends Vue {
-  doStuff(): void {
-    console.log("stuff");
-    this.$router.push({path: "reviews"})
-  }
 }
 </script>
+
 <style scoped>
 .menu {
   display: flex;

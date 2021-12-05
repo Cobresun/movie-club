@@ -93,7 +93,6 @@ export default class ReviewView extends Vue {
       .then((response) => {
         this.loadingMembers = false;
         this.members = response.data;
-        console.log(response.data)
       })
   }
 

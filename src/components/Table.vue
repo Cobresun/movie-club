@@ -79,11 +79,6 @@ export default class Table extends Vue {
     }
   }
 
-  // For debugging in v-for loops https://stackoverflow.com/a/54077708
-  log(item: any) {
-    console.log(item);
-  }
-
   sort(value: string): void {
     if (this.sortBy[value] === 0) {
       for (const col of Object.keys(this.sortBy)) {

@@ -153,7 +153,6 @@ export default class WatchListView extends Vue {
     this.animateInterval = setInterval(this.animateRotate, 100);
     this.animate = true;
 
-    console.log("TODO: get watchlistId once we expand to other watchlists");
     axios.post(`/api/postNextWatch?movieId=${ randomMovie.movieId }&watchListId=${ 0 }&movieTitle=${ randomMovie.movieTitle }`, {}, {
       headers: {
         Authorization: `Bearer ${this.$store.state.auth.user.token.access_token}`

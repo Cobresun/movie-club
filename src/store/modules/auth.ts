@@ -16,21 +16,18 @@ export const authModule = {
   actions: {
     init(context: any) {
       netlifyIdentity.on('login', (user) => {
-        netlifyIdentity.refresh().then((jwt)=>console.log("jwt token: " + jwt))
+        netlifyIdentity.refresh().then((jwt)=>console.log({jwt}))
         context.commit('setUser', user);
         netlifyIdentity.close();
-        console.log('login event', user);
       }),
 
       netlifyIdentity.on('logout', () => {
         context.commit('setUser', null);
-        console.log('logout event');
       });
 
       netlifyIdentity.on('init', (user) => {
         context.commit('setUser', user);
         context.commit('setAuthReady', true);
-        console.log('init event');
       })
 
       netlifyIdentity.init({

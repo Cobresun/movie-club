@@ -65,7 +65,6 @@ export default class AddReviewPrompt extends Vue {
       }
     }).then(
             (response) => {
-              console.log(response);
               this.$emit("close", true, response.data);
             })
             .catch((error) => {
