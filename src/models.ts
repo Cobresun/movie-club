@@ -15,7 +15,7 @@ export interface ReviewResponse {
   movieId: number;
   movieTitle: string;
   timeWatched: DateObject;
-  scores: Object;
+  scores: any;
 }
 
 export interface WatchListResponse {
@@ -31,6 +31,8 @@ export interface NextMovieResponse {
 }
 
 export interface Member {
+  devAccount: boolean;
+  email: string;
   name: string;
   image: string;
 }

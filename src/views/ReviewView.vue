@@ -122,7 +122,9 @@ export default class ReviewView extends Vue {
 
     if (this.members.length > 0) {
       for (const member of this.members) {
-        headers.push({value: member.name});
+        if (!member.devAccount) {
+          headers.push({value: member.name});
+        }
       }
     }
     headers.push({value: "average"});

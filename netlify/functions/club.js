@@ -52,7 +52,7 @@ exports.handler = async function(event, context) {
                     q.Map(
                         q.Paginate(
                             q.Match(
-                                q.Index("member_by_name"),
+                                q.Index("members_by_email"),
                                 userName
                             )
                         ),
