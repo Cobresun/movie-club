@@ -45,7 +45,8 @@
         mounted(): void {
             this.loading = true
 
-            // Needs to only be done when loggedin
+            // TODO: Needs to only be done when loggedin, 
+            // then replace hardcode with ${this.$store.state.auth.user.email}
             axios
                 .get(`/api/member/cobresunofficial@gmail.com`)
                 .then((response) => {
@@ -53,12 +54,12 @@
                     this.user.clubs.forEach((clubId: number) => {
                         axios
                             .get(`/api/club/${clubId}/clubName`)
-                            .then(response =>{
+                            .then(response => {
                                 this.clubs.push(response.data)
                                 this.loading = false
                             })
                     });
-                })
+            })
         }
 
         get isLoggedIn(): boolean {
