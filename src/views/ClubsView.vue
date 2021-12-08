@@ -53,7 +53,8 @@
         @Watch('isLoggedIn')
         onCountChange(newIsLoggedIn: any, oldIsLoggedIn: any) {
             console.log(`We have ${newIsLoggedIn} now, yay!`)
-            axios
+            if (newIsLoggedIn !== null) {
+                axios
                 .get(`/api/member/${this.$store.state.auth.user.email}`)
                 .then((response) => {
                     this.user = response.data
@@ -65,7 +66,8 @@
                                 this.loading = false
                             })
                     })
-            })
+                })
+            }
         }
     }
 </script>
