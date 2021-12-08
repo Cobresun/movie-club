@@ -32,7 +32,7 @@
 </template>
 
 <script lang="ts">
-    import { Component, Vue } from 'vue-property-decorator'
+    import { Component, Vue, Watch } from 'vue-property-decorator'
     import axios from 'axios'
 
     @Component({})
@@ -44,11 +44,17 @@
 
         mounted(): void {
             this.loading = true
+        }
 
-            // TODO: Needs to only be done when loggedin, 
-            // then replace hardcode with ${this.$store.state.auth.user.email}
+        get isLoggedIn(): boolean {
+            return this.$store.state.auth.user !== null
+        }
+
+        @Watch('isLoggedIn')
+        onCountChange(newIsLoggedIn: any, oldIsLoggedIn: any) {
+            console.log(`We have ${newIsLoggedIn} now, yay!`)
             axios
-                .get(`/api/member/cobresunofficial@gmail.com`)
+                .get(`/api/member/${this.$store.state.auth.user.email}`)
                 .then((response) => {
                     this.user = response.data
                     this.user.clubs.forEach((clubId: number) => {
@@ -58,12 +64,8 @@
                                 this.clubs.push(response.data)
                                 this.loading = false
                             })
-                    });
+                    })
             })
-        }
-
-        get isLoggedIn(): boolean {
-            return this.$store.state.auth.user !== null
         }
     }
 </script>
