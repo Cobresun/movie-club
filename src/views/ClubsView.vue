@@ -38,13 +38,9 @@
     @Component({})
 
     export default class ClubsView extends Vue {
-        private loading = false
+        private loading = true
         private user: any
         private clubs: string[] = []
-
-        mounted(): void {
-            this.loading = true
-        }
 
         get isLoggedIn(): boolean {
             return this.$store.state.auth.user !== null
