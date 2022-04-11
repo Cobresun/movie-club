@@ -108,7 +108,9 @@ export default class ReviewView extends Vue {
       obj.dateWatched = DateTime.fromISO(this.reviews[i].timeWatched['@ts']).toLocaleString();  
       obj.movieId = this.reviews[i].movieId;
       for (const key of Object.keys(this.reviews[i].scores)) {
-        obj[key] = (this.reviews[i].scores as any)[key]; 
+        obj[key] = (this.reviews[i].scores as any)[key];
+        // Round the score to 2 decimal places
+        obj[key] = Math.round(obj[key] * 100)/100
       }
       data[i] = obj;
     }
