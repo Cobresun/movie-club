@@ -12,12 +12,12 @@
         <router-link to="/statistics"><menu-card image="statistics.svg">Statistics</menu-card></router-link>
       </div>
     </div>
-    <btn>Club Settings <mdicon name="cog-outline" /></btn>
+    <!-- <btn class="club-settings-button">Club Settings <mdicon name="cog-outline" /></btn> -->
   </div>
 </template>
 
 <script lang="ts">
-import { Component, Vue } from 'vue-property-decorator';
+import { Component, Vue } from 'vue-property-decorator'
 
 @Component({})
 export default class Home extends Vue {
@@ -39,5 +39,9 @@ export default class Home extends Vue {
 
 .menu-option {
   padding: 12px;
+}
+
+.club-settings-button {
+  background-color: var(--low-key-background-color);
 }
 </style>
