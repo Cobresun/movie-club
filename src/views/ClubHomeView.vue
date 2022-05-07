@@ -6,6 +6,9 @@
         <router-link to="/reviews"><menu-card image="review.svg">Reviews</menu-card></router-link>
       </div>
       <div class="menu-option">
+        <router-link to="/reviews-gallery"><menu-card image="review.svg">Reviews Gallery</menu-card></router-link>
+      </div>
+      <div class="menu-option">
         <router-link to="/watchList"><menu-card image="watchlist.svg">Watch List</menu-card></router-link>
       </div>
       <div class="menu-option">

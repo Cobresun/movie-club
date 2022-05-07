@@ -1,10 +1,11 @@
-import Vue from "vue";
-import VueRouter, { RouteConfig } from "vue-router";
-import ClubHomeView from "../views/ClubHomeView.vue";
-import ReviewView from "../views/ReviewView.vue";
-import WatchListView from "../views/WatchListView.vue";
-import StatisticsView from "../views/StatisticsView.vue";
-import ClubsView from "../views/ClubsView.vue";
+import Vue from "vue"
+import VueRouter, { RouteConfig } from "vue-router"
+import ClubHomeView from "../views/ClubHomeView.vue"
+import ReviewView from "../views/ReviewView.vue"
+import ReviewsGalleryView from "../views/ReviewsGalleryView.vue"
+import WatchListView from "../views/WatchListView.vue"
+import StatisticsView from "../views/StatisticsView.vue"
+import ClubsView from "../views/ClubsView.vue"
 
 Vue.use(VueRouter);
 
@@ -23,6 +24,11 @@ const routes: Array<RouteConfig> = [
     path: "/reviews",
     name: "Reviews",
     component: ReviewView,
+  },
+  {
+    path: "/reviews-gallery",
+    name: "Reviews-Gallery",
+    component: ReviewsGalleryView,
   },
   {
     path: "/watchList",
