@@ -179,13 +179,13 @@ export default class WatchListView extends Vue {
   }
 
   reviewMovie(movieId: number): void {
-    axios.post(`/api/reviewMovieFromWatchList?movieId=${ movieId }`, {}, {
+    axios.post<WatchListResponse>(`/api/reviewMovieFromWatchList?movieId=${ movieId }`, {}, {
       headers: {
         Authorization: `Bearer ${this.$store.state.auth.user.token.access_token}`
       }
     }).then(response => {
         // Remove movie from our table
-        let idx = this.watchList.indexOf(response as unknown as WatchListResponse)
+        let idx = this.watchList.indexOf(response.data)
         this.watchList.splice(idx, 1)
         this.$router.push({path: "./reviews"})
       })
