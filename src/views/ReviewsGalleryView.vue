@@ -7,9 +7,13 @@
 
     <loading-spinner v-if="loading"/>
 
-    <div v-else class="cards">
-        <div v-for="review in reviews" :key="review.movieId">
-            <ReviewCard :review="review" :members="members"/>
+    <div v-else>
+        <ReviewsSearchBar class="searchBar" v-model="search" @updateSearch="updateSearch" />
+
+        <div class="cards">
+            <div v-for="review in filteredReviews" :key="review.movieId">
+                <ReviewCard :review="review" :members="members"/>
+            </div>
         </div>
     </div>
 </div>
@@ -20,22 +24,31 @@ import { Component, Vue } from 'vue-property-decorator'
 import { ReviewResponse, Member } from '@/models'
 import axios from 'axios'
 
-import ReviewCard from '@/components/ReviewCard.vue';
+import ReviewsSearchBar from '@/components/ReviewsSearchBar.vue'
+import ReviewCard from '@/components/ReviewCard.vue'
 
 
 @Component({
-  components: { ReviewCard },
+  components: { ReviewCard, ReviewsSearchBar },
 })
 
 export default class ReviewsGalleryView extends Vue {
-    private reviews: ReviewResponse[] = []
-    private members: Member[] = []
+    allReviews: ReviewResponse[] = []
+    members: Member[] = []
+    search = ""
 
-    private loadingReviews = false
-    private loadingMembers = false
+    loadingReviews = false
+    loadingMembers = false
 
     get loading(): boolean {
         return this.loadingReviews || this.loadingMembers
+    }
+
+    get filteredReviews(): ReviewResponse[] {
+        return this.allReviews.filter(review => 
+            review.movieTitle.toLowerCase().includes(this.search.toLowerCase())
+            // TODO: Get the TMDB response in this component and filter by various other things like studio, director, etc.
+        )
     }
 
     mounted(): void {
@@ -44,7 +57,7 @@ export default class ReviewsGalleryView extends Vue {
             .get<ReviewResponse[]>('/api/getReviews')
             .then((response) => {
                 this.loadingReviews = false
-                this.reviews = response.data
+                this.allReviews = response.data
             })
         this.loadingMembers = true;
         axios
@@ -54,38 +67,46 @@ export default class ReviewsGalleryView extends Vue {
                 this.members = response.data.filter(member => !member.devAccount)
             })
     }
+
+    updateSearch(newSearch: string): void {
+        this.search = newSearch
+    }
 }
 
 </script>
 
 <style scoped>
-    .title {
-        display: grid;
-        grid-column-gap: 32px;
-        align-items: center;
-        grid-template-columns: 1fr auto 1fr;
-    }
+.title {
+    display: grid;
+    grid-column-gap: 32px;
+    align-items: center;
+    grid-template-columns: 1fr auto 1fr;
+}
 
-    .back {
-        color: var(--text-color);
-    }
+.back {
+    color: var(--text-color);
+}
 
-    .back:hover {
-        cursor: pointer;
-    }
+.back:hover {
+    cursor: pointer;
+}
 
+.searchBar {
+    margin-bottom: 1rem;
+}
+
+.cards {
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr;
+    grid-auto-rows: auto;
+    grid-gap: 2rem;
+    justify-content: center;
+}
+
+@media screen and (max-width: 600px) {
     .cards {
-        margin: 0 auto;
-        display: grid;
-        grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr;
-        grid-auto-rows: auto;
-        grid-gap: 2rem;
-        justify-content: center;
+        grid-template-columns: 1fr 1fr;
     }
-
-    @media screen and (max-width: 600px) {
-        .cards {
-            grid-template-columns: 1fr 1fr;
-        }
-    }
+}
 </style>
