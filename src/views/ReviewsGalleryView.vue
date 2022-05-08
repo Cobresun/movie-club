@@ -77,9 +77,15 @@ export default class ReviewsGalleryView extends Vue {
     .cards {
         margin: 0 auto;
         display: grid;
-        grid-template-columns: repeat(auto-fill, 320px);
+        grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr;
         grid-auto-rows: auto;
         grid-gap: 2rem;
         justify-content: center;
+    }
+
+    @media screen and (max-width: 600px) {
+        .cards {
+            grid-template-columns: 1fr 1fr;
+        }
     }
 </style>

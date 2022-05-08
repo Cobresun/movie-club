@@ -52,13 +52,6 @@ export default class ReviewView extends Vue {
         padding-bottom: 1rem;
     }
 
-    .card:hover {
-        -webkit-transform:scale(1.1);
-        -ms-transform: scale(1.1);
-        transform: scale(1.1);
-        transition: 0.5s ease;
-    }
-
     img {
         object-fit: cover;
     }
@@ -66,9 +59,10 @@ export default class ReviewView extends Vue {
     .chips {
         margin: 0 auto;
         display: grid;
-        grid-template-columns: repeat(auto-fill, 130px);
+        grid-template-columns: 1fr 1fr;
         grid-auto-rows: auto;
-        grid-gap: 1rem;
+        row-gap: 1rem;
+        column-gap: 0.5rem;
         justify-content: center;
     }
 
@@ -88,5 +82,28 @@ export default class ReviewView extends Vue {
         height: 50px;
         width: 50px;
         border-radius: 50%;
+    }
+
+    @media screen and (max-width: 600px) {
+        h3 {
+            font-size: small;
+        }
+
+        .chips {
+            gap: 0.5rem;
+        }
+
+        .chip {
+            height: 25px;
+            line-height: 25px;
+            padding: 0 12px;
+            font-size: 13px;
+        }
+
+        .chip img {
+            margin: 0 10px 0 -12px;
+            height: 25px;
+            width: 25px;
+        }
     }
 </style>
