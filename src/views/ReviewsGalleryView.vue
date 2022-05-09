@@ -8,7 +8,11 @@
     <loading-spinner v-if="loading"/>
 
     <div v-else>
-        <ReviewsSearchBar class="searchBar" v-model="search" @updateSearch="updateSearch" />
+        <input
+            class="searchBar"
+            placeholder="Search"
+            @input="updateSearch($event.target.value)"
+        />
 
         <div class="cards">
             <div v-for="review in filteredReviews" :key="review.movieId">
@@ -24,12 +28,11 @@ import { Component, Vue } from 'vue-property-decorator'
 import { ReviewResponse, Member } from '@/models'
 import axios from 'axios'
 
-import ReviewsSearchBar from '@/components/ReviewsSearchBar.vue'
 import ReviewCard from '@/components/ReviewCard.vue'
 
 
 @Component({
-  components: { ReviewCard, ReviewsSearchBar },
+  components: { ReviewCard },
 })
 
 export default class ReviewsGalleryView extends Vue {
@@ -93,6 +96,11 @@ export default class ReviewsGalleryView extends Vue {
 
 .searchBar {
     margin-bottom: 1rem;
+    padding: 6px;
+    border: 1em black;
+    font-size: 17px;
+    width: 50%;
+    border-radius: 4px;
 }
 
 .cards {
