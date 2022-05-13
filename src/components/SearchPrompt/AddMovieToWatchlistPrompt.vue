@@ -1,6 +1,6 @@
 <template>
   <modal>
-    <loading-spinner class="center" v-if="loading" />
+    <loading-spinner class="self-center" v-if="loading" />
     <movie-search-prompt
       v-else
       defaultListTitle="Trending"
@@ -56,9 +56,3 @@ export default class AddMovieToWatchlistPrompt extends Vue {
   }
 }
 </script>
-
-<style scoped>
-.center {
-  align-self: center;
-}
-</style>

@@ -1,18 +1,18 @@
 <template>
-  <div>
+  <div class="m-2">
     <add-review-prompt
       v-if="modalOpen"
       @close="closePrompt" 
     />
     <div>
-      <div class="title">
-        <router-link to="/clubHome"><mdicon class="back" name="arrow-left" size="40"/></router-link>
-        <h1>Cobresun Reviews</h1>
+      <div class="grid items-center grid-cols-centerHeader gap-x-8">
+        <router-link class="flex justify-end" to="/clubHome"><mdicon class="cursor-pointer" name="arrow-left" size="40"/></router-link>
+        <h1 class="text-3xl font-bold m-4">Cobresun Reviews</h1>
       </div>
       <loading-spinner v-if="loading"/>
       <div v-else>
         <btn 
-          class="button"
+          class="float-left"
           @click="openPrompt()">
           Add Review
           <mdicon name="plus"/>
@@ -30,9 +30,10 @@
             <div
               v-if="slotProps.item[member.name] === undefined" 
               :key="member.name"
+              class="flex justify-center"
             >
               <input
-                class="score-input"
+                class=" bg-background rounded-lg outline-none border border-gray-300 focus:border-primary p-2 w-10 text-center"
                 :ref="'scoreInput' + slotProps.item.movieId + member.name"
                 v-show="addScoreInput === slotProps.item.movieId + member.name"
                 v-model="newScore"
@@ -40,7 +41,7 @@
               />
               <div
                 v-if="addScoreInput !== slotProps.item.movieId + member.name" 
-                class="score-button"
+                class="cursor-pointer"
                 @click="openScoreInput(slotProps.item.movieId, member.name)"
               >
                 <mdicon name="plus"/>
@@ -119,7 +120,7 @@ export default class ReviewView extends Vue {
 
   get headers(): Header[] {
     const headers: Header[] = [
-      {value: "movieTitle", style:"font-weight: 700", title:"Title"},
+      {value: "movieTitle", style:"font-bold", title:"Title"},
       {value: "dateWatched", title:"Date Reviewed"}];
 
     if (this.members.length > 0) {
@@ -170,41 +171,3 @@ export default class ReviewView extends Vue {
   }
 }
 </script>
-
-<style scoped>
-.title {
-  display: grid;
-  grid-column-gap: 32px;
-  align-items: center;
-  grid-template-columns: 1fr auto 1fr;
-}
-
-.title:first-child {
-  justify-items: right;
-}
-
-.back {
-  color: var(--text-color);
-}
-
-.back:hover {
-  cursor: pointer;
-}
-
-.button {
-  float: left;
-}
-
-.score-button {
-  cursor: pointer;
-}
-
-.score-input {
-  background-color: var(--background-color);
-  border-radius: 4px;
-  border: none;
-  padding: 0.5rem;
-  color: white;
-  width: 2rem;
-}
-</style>

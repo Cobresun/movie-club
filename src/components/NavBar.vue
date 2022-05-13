@@ -1,12 +1,14 @@
 <template>
-  <div class="bar">
-    <router-link to="/"><h3 class="title">MovieClub</h3></router-link>
+  <div class="flex justify-between items-center p-4">
+    <router-link to="/">
+      <h3 class="font-bold text-2xl text-highlight">MovieClub</h3>
+    </router-link>
     <div 
       v-if="authReady"
-      class="auth-buttons">
+      class="flex items-center">
       <avatar
         v-if="isLoggedIn"
-        class="avatar"
+        class="mr-3"
         :fullname="fullName"
         :image="avatarURL"
       ></avatar>
@@ -52,29 +54,3 @@ export default class NavBar extends Vue {
   }
 }
 </script>
-
-<style scoped>
-.title {
-  font-family: 'Poppins', sans-serif;
-  font-weight: 700;
-  font-size: 25px;
-  color: var(--highlight-color);
-  text-align: left;
-  margin-left:20px;
-}
-
-.bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.auth-buttons {
-  display: flex;
-  align-items: center;
-}
-
-.avatar {
-  margin-right: 12px;
-}
-</style>

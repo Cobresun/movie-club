@@ -1,24 +1,24 @@
 <template>
-  <div>
+  <div class="m-2">
     <add-movie-to-watchlist-prompt
       v-if="modalOpen"
       @close="closePrompt" 
     />
     <div>
-      <div class="title">
-        <router-link to="/clubHome"><mdicon class="back" name="arrow-left" size="40"/></router-link>
-        <h1>Cobresun Watch List</h1>
+      <div class="grid items-center grid-cols-centerHeader gap-x-8">
+        <router-link class="flex justify-end" to="/clubHome"><mdicon class="cursor-pointer" name="arrow-left" size="40"/></router-link>
+        <h1 class="text-3xl font-bold m-4">Cobresun Watch List</h1>
       </div>
 
       <loading-spinner v-if="loading"/>
 
       <div v-if="!loading">
-        <btn class="button" @click="openPrompt">
+        <btn class="float-left mr-3" @click="openPrompt">
           Add Movie
           <mdicon name="plus"/>
         </btn>
 
-        <btn class="button" @click="selectRandom()">
+        <btn class="float-left mr-3" @click="selectRandom()">
           Random
           <mdicon name="dice-multiple-outline"/>
         </btn>
@@ -77,7 +77,7 @@ export default class WatchListView extends Vue {
   private loading = false;
   private loadingMembers = false;
   private headers: Header[] = [
-    {value: "movieTitle", style:"font-weight: 700", sortable: false, centerHeader: false},
+    {value: "movieTitle", style:"font-bold", sortable: false, centerHeader: false},
     {value: "dateAdded", sortable: false},
     {value: "addedBy", sortable: false, includeHeader: false},
     {value: "reviewMovie", sortable: false, includeHeader: false},

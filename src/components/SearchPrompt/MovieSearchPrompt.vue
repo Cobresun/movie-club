@@ -1,14 +1,14 @@
 <template>
-  <div class="wrapper">
+  <div class="flex flex-col justify-between text-center h-full">
     <input 
       v-model="searchText"
-      class="search-bar"
+      class="p-1 font-bold text-base text-black outline-none rounded-md border-2 border-gray-300 focus:border-primary"
       placeholder="Type to filter or search"
     >
     <p v-if="this.noResults">Sorry, your search did not return any results</p>
-    <div class="results">
+    <div class="overflow-y-auto mt-3">
       <div v-if="filteredDefaultList.length > 0">
-        <h5 class="defaultlist-title">{{ defaultListTitle }}</h5>
+        <h5 class="float-left font-bold">{{ defaultListTitle }}</h5>
         <movie-table
           :data="filteredDefaultList"
           :headers="defaultListHeaders"
@@ -25,7 +25,7 @@
         </movie-table>
       </div>
       <div v-if="searchData.length > 0">
-        <h5>Search</h5>
+        <h5 class="float-left font-bold">Search</h5>
         <movie-table
           :data="searchData"
           :headers="searchHeaders"
@@ -41,9 +41,9 @@
           </template>
         </movie-table>
       </div>
-      <loading-spinner class="spinner" v-if="loadingSearch"/>
+      <loading-spinner class="self-center mt-3" v-if="loadingSearch"/>
     </div>
-    <div class="action">
+    <div class="pt-2 flex justify-between">
       <btn @click="$emit('close')">Cancel</btn>
     </div>
   </div>
@@ -62,11 +62,11 @@ export default class MovieSearchPrompt extends Vue {
   private searchText = "";
   private defaultListHeaders = [{
     value: "title",
-    style: "text-align:left; padding-left:10px"
+    style: "text-left pl-4"
   }]
   private searchHeaders = [{
     value: "title",
-    style: "text-align:left; padding-left:10px"
+    style: "text-left pl-4"
   }]
 
   private loadingSearch = false;
@@ -132,53 +132,3 @@ export default class MovieSearchPrompt extends Vue {
   }
 }
 </script>
-<style scoped>
-.search-bar {
-  font-family: 'Poppins', sans-serif;
-  font-weight: 700;
-  font-size: 16px;
-  letter-spacing: 0.75px;
-
-  outline: none;
-  border-radius: 5px;
-  border: 2px solid #ccc;
-
-  width: calc(100%-4px);
-}
-
-.search-bar:focus {
-  border: 2px solid var(--primary-color);
-}
-
-h5 {
-  float: left;
-  margin-bottom: 0px;
-  margin-top: 0px;
-}
-
-.wrapper {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  text-align: center;
-  height: 100%;
-}
-
-.results {
-  height: calc(100% - 100px);
-  overflow-y: auto;
-  margin-top: 8px;
-}
-
-.action {
-  padding-top: 8px;
-  align-self: bottom;
-  display: flex;
-  justify-content: space-between;
-}
-
-.spinner {
-  align-self: center;
-  margin-top: 10px;
-}
-</style>

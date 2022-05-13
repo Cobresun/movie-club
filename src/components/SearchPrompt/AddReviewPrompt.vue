@@ -1,6 +1,6 @@
 <template>
   <modal>
-    <loading-spinner class="center" v-if="loading" />
+    <loading-spinner class="self-center" v-if="loading" />
     <movie-search-prompt
       v-else
       defaultListTitle="From Watch List"
@@ -14,7 +14,6 @@
 
 <script lang="ts">
 import { WatchListResponse } from '@/models';
-import WatchListView from '@/views/WatchListView.vue';
 import axios from 'axios';
 import { Component, Vue } from 'vue-property-decorator';
 import MovieSearchPrompt from './MovieSearchPrompt.vue';
@@ -74,9 +73,3 @@ export default class AddReviewPrompt extends Vue {
   }
 }
 </script>
-
-<style scoped>
-.center {
-  align-self: center;
-}
-</style>

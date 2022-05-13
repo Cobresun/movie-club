@@ -5,21 +5,21 @@
         <div v-if="isLoggedIn">
             <loading-spinner v-if="loading"/>
 
-            <div class="clubs" v-if="!loading">
-                <div class="club-option" v-for="club in clubs" :key="club">
+            <div class="flex justify-center pb-6 flex-col md:flex-row" v-if="!loading">
+                <div class="p-3" v-for="club in clubs" :key="club">
                     <router-link to="/clubHome">
                         <menu-card 
-                            bgColor="var(--low-key-background-color)" 
+                            bgColor="lowBackground" 
                             image="club.svg"
                         >
                             {{ club }}
                         </menu-card>
                     </router-link>
                 </div>
-                <div class="club-option">
+                <div class="p-3">
                     <router-link to="/clubHome">
                         <menu-card
-                            bgColor="var(--low-key-background-color)" 
+                            bgColor="lowBackground" 
                             image="club.svg"
                         >
                             + New Club
@@ -66,21 +66,3 @@
         }
     }
 </script>
-
-<style scoped>
-    .clubs {
-        display: flex;
-        justify-content: center;
-        padding-bottom: 24px;
-    }
-
-    .club-option {
-        padding: 12px;
-    }
-
-    @media (max-width: 700px) {
-        .clubs {
-            flex-direction: column;
-        }
-    }
-</style>

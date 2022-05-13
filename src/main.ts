@@ -12,6 +12,7 @@ import Loading from "@/components/Loading.vue"
 import Table from "@/components/Table.vue";
 import MenuCard from "@/components/MenuCard.vue";
 import Modal from "@/components/Modal.vue";
+import './assets/tailwind.css'
 
 Vue.config.productionTip = false;
 

@@ -1,5 +1,5 @@
 <template>
-  <div id="app">
+  <div>
     <nav-bar/>
     <router-view/>
   </div>
@@ -20,19 +20,3 @@ export default class App extends Vue {
   }
 }
 </script>
-
-<style>
-@import './assets/styles/variables.css';
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;700&display=swap');
-#app {
-  font-family: 'Poppins', sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: var(--text-color);
-}
-
-.nav {
-  padding: 30px;
-}
-</style>

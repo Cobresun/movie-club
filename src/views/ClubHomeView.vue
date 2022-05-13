@@ -1,21 +1,21 @@
 <template>
-  <div class="home">
-    <h1>Cobresun</h1>
-    <div class="menu">
-      <div class="menu-option">
+  <div>
+    <h1 class="font-bold text-3xl m-4">Cobresun</h1>
+    <div class="flex justify-center pb-6 flex-col md:flex-row">
+      <div class="p-3">
         <router-link to="/reviews"><menu-card image="review.svg">Reviews</menu-card></router-link>
       </div>
-      <div class="menu-option">
+      <div class="p-3">
         <router-link to="/reviews-gallery"><menu-card image="review.svg">Reviews Gallery</menu-card></router-link>
       </div>
-      <div class="menu-option">
+      <div class="p-3">
         <router-link to="/watchList"><menu-card image="watchlist.svg">Watch List</menu-card></router-link>
       </div>
-      <div class="menu-option">
+      <div class="p-3">
         <router-link to="/statistics"><menu-card image="statistics.svg">Statistics</menu-card></router-link>
       </div>
     </div>
-    <!-- <btn class="club-settings-button">Club Settings <mdicon name="cog-outline" /></btn> -->
+    <!-- <btn>Club Settings <mdicon name="cog-outline" /></btn> -->
   </div>
 </template>
 
@@ -26,25 +26,3 @@ import { Component, Vue } from 'vue-property-decorator'
 export default class Home extends Vue {
 }
 </script>
-
-<style scoped>
-.menu {
-  display: flex;
-  justify-content: center;
-  padding-bottom: 24px;
-}
-
-@media (max-width: 700px) {
-  .menu {
-    flex-direction: column;
-  }
-}
-
-.menu-option {
-  padding: 12px;
-}
-
-.club-settings-button {
-  background-color: var(--low-key-background-color);
-}
-</style>

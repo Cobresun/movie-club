@@ -1,20 +1,30 @@
 <template>
-<div class="card">
-    <loading-spinner v-if="loading" />
-    
-    <div v-else>
-        <img :src="movie.poster_url" style="width:100%"/>
-        <h3>{{ review.movieTitle }}</h3>
-        <div class="chips">
-            <div v-for="member in members" :key="member.name">
-                <div class="chip">
-                    <img :src="member.image" width="96" height="96">
-                    {{ review.scores[member.name] }}
+    <div class="border-2 border-gray-200 rounded w-48 mb-4">
+        <loading-spinner v-if="loading" />
+        <div class="flex flex-col h-full" v-else>
+            <img :src="movie.poster_url" />
+            <div class="px-2 pb-2 flex flex-col h-auto flex-grow">
+                <div class="my-2 flex flex-grow items-center justify-center">
+                    <h3 class="font-semibold h-min" style="height: min-content">{{ review.movieTitle }}</h3>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div 
+                        v-for="member in members" :key="member.name"
+                        class="flex items-center bg-lowBackground rounded-3xl"
+                    >
+                        <avatar
+                            :size="32"
+                            :fullname="member.name"
+                            :image="member.image"
+                        ></avatar>
+                        <div class="flex-grow">
+                            {{ review.scores[member.name] }}
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
 </template>
 
 <script lang="ts">
@@ -43,67 +53,3 @@ export default class ReviewView extends Vue {
     }
 }
 </script>
-
-<style scoped>
-    .card {
-        border: 2px solid #e7e7e7;
-        border-radius: 4px;
-        transition: 0.5s ease;
-        padding-bottom: 1rem;
-    }
-
-    img {
-        object-fit: cover;
-    }
-
-    .chips {
-        margin: 0 auto;
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        grid-auto-rows: auto;
-        row-gap: 1rem;
-        column-gap: 0.5rem;
-        justify-content: center;
-    }
-
-    .chip {
-        display: inline-block;
-        padding: 0 25px;
-        height: 50px;
-        font-size: 16px;
-        line-height: 50px;
-        border-radius: 25px;
-        background-color: var(--low-key-background-color);
-    }
-
-    .chip img {
-        float: left;
-        margin: 0 10px 0 -25px;
-        height: 50px;
-        width: 50px;
-        border-radius: 50%;
-    }
-
-    @media screen and (max-width: 600px) {
-        h3 {
-            font-size: small;
-        }
-
-        .chips {
-            gap: 0.5rem;
-        }
-
-        .chip {
-            height: 25px;
-            line-height: 25px;
-            padding: 0 12px;
-            font-size: 13px;
-        }
-
-        .chip img {
-            margin: 0 10px 0 -12px;
-            height: 25px;
-            width: 25px;
-        }
-    }
-</style>
