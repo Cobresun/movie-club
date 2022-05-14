@@ -63,10 +63,15 @@ export interface TMDBMovieData {
   overview: string;
   popularity: number;
   poster_path: string;
+  production_companies: ProductionCompany[];
   release_date: string;
   revenue: number;
   runtime: number;
   tagline: string;
   title: string;
   poster_url: string;
+}
+
+export interface ProductionCompany {
+  name: string;
 }

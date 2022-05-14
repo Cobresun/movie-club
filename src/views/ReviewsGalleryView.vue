@@ -52,9 +52,11 @@ export default class ReviewsGalleryView extends Vue {
     }
 
     get filteredReviews(): DetailedReviewResponse[] {
-        return this.allReviews.filter(review => 
+        return this.allReviews.filter(review =>
             review.movieTitle.toLowerCase().includes(this.search.toLowerCase())
-            // TODO: Get the TMDB response in this component and filter by various other things like studio, director, etc.
+            || review.movieData.production_companies
+                .map(company => company.name)
+                .some(companyName => companyName.toLowerCase().includes(this.search.toLowerCase()))
         )
     }
 
