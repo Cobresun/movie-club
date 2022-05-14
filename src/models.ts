@@ -18,6 +18,14 @@ export interface ReviewResponse {
   scores: any;
 }
 
+export interface DetailedReviewResponse {
+  movieId: number;
+  movieTitle: string;
+  timeWatched: DateObject;
+  scores: any;
+  movieData: TMDBMovieData
+}
+
 export interface WatchListResponse {
   timeAdded: DateObject;
   movieTitle: string;

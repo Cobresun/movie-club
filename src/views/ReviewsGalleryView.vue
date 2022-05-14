@@ -9,16 +9,18 @@
 
         <div v-else>
             <input
-                class=" mb-4 p-2 text-base text-black outline-none rounded-md border-2 border-gray-300 focus:border-primary w-11/12 max-w-md"
+                class="mb-4 p-2 text-base text-black outline-none rounded-md border-2 border-gray-300 focus:border-primary w-11/12 max-w-md"
                 placeholder="Search"
                 @input="updateSearch($event.target.value)"
             />
             <div class="grid grid-cols-auto justify-items-center">
                 <ReviewCard
                     v-for="review in filteredReviews"
-                    :review="review" 
+                    :review="review"
                     :members="members"
                     :key="review.movieId"
+                    :movieTitle="review.movieData.title"
+                    :moviePosterUrl="review.movieData.poster_url"
                 />
             </div>
         </div>
@@ -27,7 +29,7 @@
 
 <script lang="ts">
 import { Component, Vue } from 'vue-property-decorator'
-import { ReviewResponse, Member } from '@/models'
+import { DetailedReviewResponse, Member } from '@/models'
 import axios from 'axios'
 
 import ReviewCard from '@/components/ReviewCard.vue'
@@ -38,7 +40,7 @@ import ReviewCard from '@/components/ReviewCard.vue'
 })
 
 export default class ReviewsGalleryView extends Vue {
-    allReviews: ReviewResponse[] = []
+    allReviews: DetailedReviewResponse[] = []
     members: Member[] = []
     search = ""
 
@@ -49,7 +51,7 @@ export default class ReviewsGalleryView extends Vue {
         return this.loadingReviews || this.loadingMembers
     }
 
-    get filteredReviews(): ReviewResponse[] {
+    get filteredReviews(): DetailedReviewResponse[] {
         return this.allReviews.filter(review => 
             review.movieTitle.toLowerCase().includes(this.search.toLowerCase())
             // TODO: Get the TMDB response in this component and filter by various other things like studio, director, etc.
@@ -59,7 +61,7 @@ export default class ReviewsGalleryView extends Vue {
     mounted(): void {
         this.loadingReviews = true
         axios
-            .get<ReviewResponse[]>('/api/getReviews')
+            .get<DetailedReviewResponse[]>('/api/reviews', { params: { detailed: true } })
             .then((response) => {
                 this.loadingReviews = false
                 this.allReviews = response.data

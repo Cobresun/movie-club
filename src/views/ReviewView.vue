@@ -83,7 +83,7 @@ export default class ReviewView extends Vue {
   mounted(): void {
     this.loadingReviews = true;
     axios
-      .get('/api/getReviews')
+      .get('/api/reviews')
       .then((response) => {
         this.loadingReviews = false;
         (this.reviews = response.data);
