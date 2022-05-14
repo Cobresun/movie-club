@@ -1,4 +1,4 @@
-<template>
+<!-- <template>
   <button 
     class="text-2xl tracking-wide p-3 duration-150 rounded-xl filter hover:brightness-105 active:brightness-110" 
     :class="`bg-${bgColor}`" 
@@ -23,4 +23,4 @@
       return require('@/assets/menu-images/' + this.image);
     }
   }
-</script>
+</script> -->

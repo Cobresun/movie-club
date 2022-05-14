@@ -1,4 +1,4 @@
-<template>
+<!-- <template>
     <div>
         <div v-if="!isLoggedIn">Need to be logged in!</div>
 
@@ -65,4 +65,4 @@
             }
         }
     }
-</script>
+</script> -->

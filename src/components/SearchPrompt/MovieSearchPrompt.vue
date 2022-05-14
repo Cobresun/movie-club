@@ -1,4 +1,4 @@
-<template>
+<!-- <template>
   <div class="flex flex-col justify-between text-center h-full">
     <input 
       v-model="searchText"
@@ -131,4 +131,4 @@ export default class MovieSearchPrompt extends Vue {
             this.searchData.length == 0
   }
 }
-</script>
+</script> -->

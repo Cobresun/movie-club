@@ -1,4 +1,4 @@
-<template>
+<!-- <template>
     <div class="m-1">
         <div class="grid items-center grid-cols-centerHeader gap-x-8">
             <router-link class="flex justify-end" to="/clubHome"><mdicon class="cursor-pointer" name="arrow-left" size="40"/></router-link>
@@ -82,4 +82,4 @@ export default class ReviewsGalleryView extends Vue {
     }
 }
 
-</script>
+</script> -->

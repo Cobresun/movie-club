@@ -1,4 +1,4 @@
-<template>
+<!-- <template>
     <div class="border-2 border-gray-200 rounded w-40 mb-4">
         <div class="flex flex-col h-full">
             <img :src="moviePosterUrl" />
@@ -40,4 +40,4 @@ export default class ReviewView extends Vue {
     @Prop() movieTitle! : string
     @Prop() moviePosterUrl! : string
 }
-</script>
+</script> -->

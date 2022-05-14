@@ -6,17 +6,17 @@
 </template>
 
 <script lang="ts">
-import { Component, Vue } from 'vue-property-decorator';
-import NavBar from '@/components/NavBar.vue';
+import { defineComponent, onMounted } from 'vue'
+import { useStore } from 'vuex';
+import NavBar from '@/components/NavBar.vue'
 
-@Component({
-  components: {
-    NavBar,
+export default defineComponent({
+  components: { NavBar },
+  setup() {
+    const store = useStore();
+    onMounted(() => {
+      store.dispatch('init');
+    });
   },
 })
-export default class App extends Vue {
-  mounted(): void {
-    this.$store.dispatch('init');
-  }
-}
 </script>

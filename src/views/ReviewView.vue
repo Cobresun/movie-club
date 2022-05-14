@@ -1,4 +1,4 @@
-<template>
+<!-- <template>
   <div class="m-2">
     <add-review-prompt
       v-if="modalOpen"
@@ -170,4 +170,4 @@ export default class ReviewView extends Vue {
     }
   }
 }
-</script>
+</script> -->

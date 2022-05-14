@@ -1,4 +1,4 @@
-<template>
+<!-- <template>
   <div class="m-2">
     <add-movie-to-watchlist-prompt
       v-if="modalOpen"
@@ -214,30 +214,4 @@ export default class WatchListView extends Vue {
     }
   }
 }
-</script>
-
-<style scoped>
-.title {
-  display: grid;
-  grid-column-gap: 32px;
-  align-items: center;
-  grid-template-columns: 1fr auto 1fr;
-}
-
-.title:first-child {
-  justify-items: right;
-}
-
-.back {
-  color: var(--text-color);
-}
-
-.back:hover {
-  cursor: pointer;
-}
-
-.button {
-  float: left;
-  margin-right: 1em;
-}
-</style>
+</script> -->

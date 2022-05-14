@@ -1,4 +1,4 @@
-<template>
+<!-- <template>
   <modal>
     <loading-spinner class="self-center" v-if="loading" />
     <movie-search-prompt
@@ -72,4 +72,4 @@ export default class AddReviewPrompt extends Vue {
             });
   }
 }
-</script>
+</script> -->

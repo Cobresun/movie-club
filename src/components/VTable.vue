@@ -1,4 +1,4 @@
-<template>
+<!-- <template>
   <table class="w-full border-separate" style="border-spacing: 0 10px">
     <thead v-if="header">
       <th v-for="head in tableHeaders" :key="head.value" class="sticky top-0 bg-secondary pt-2 first:rounded-tl-xl last:rounded-tr-xl">
@@ -128,4 +128,4 @@ export default class Table extends Vue {
     }
   }
 }
-</script>
+</script> -->

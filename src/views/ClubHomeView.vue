@@ -1,4 +1,4 @@
-<template>
+<!-- <template>
   <div>
     <h1 class="font-bold text-3xl m-4">Cobresun</h1>
     <div class="flex justify-center pb-6 flex-col md:flex-row">
@@ -15,7 +15,7 @@
         <router-link to="/statistics"><menu-card image="statistics.svg">Statistics</menu-card></router-link>
       </div>
     </div>
-    <!-- <btn>Club Settings <mdicon name="cog-outline" /></btn> -->
+    <btn>Club Settings <mdicon name="cog-outline" /></btn>
   </div>
 </template>
 
@@ -25,4 +25,4 @@ import { Component, Vue } from 'vue-property-decorator'
 @Component({})
 export default class Home extends Vue {
 }
-</script>
+</script> -->

@@ -6,51 +6,39 @@
     <div 
       v-if="authReady"
       class="flex items-center">
-      <avatar
+      <v-avatar
         v-if="isLoggedIn"
         class="mr-3"
-        :fullname="fullName"
-        :image="avatarURL"
-      ></avatar>
-      <btn
+        :name="fullName"
+        :src="avatarURL"
+      ></v-avatar>
+      <v-btn
         v-if="!isLoggedIn"
         @click="login"
-      >Login</btn>
-      <btn
+      >Login</v-btn>
+      <v-btn
         v-else
         @click="logout"
-      >Logout</btn>
+      >Logout</v-btn>
     </div>
   </div>
 </template>
+<script setup lang="ts">
+import { computed } from 'vue';
+import { useStore } from 'vuex';
 
-<script lang="ts">
-import { Component, Vue } from 'vue-property-decorator';
+const store = useStore();
 
-@Component({})
-export default class NavBar extends Vue {
-  get isLoggedIn(): boolean {
-    return this.$store.state.auth.user !== null
-  }
+const isLoggedIn = computed(() => store.state.auth.user !== null);
+const fullName = computed(() => store.state.auth.user.user_metadata.full_name);
+const avatarURL = computed(() => store.state.auth.user.user_metadata.avatar_url);
+const authReady = computed(() => store.state.auth.ready);
 
-  get fullName(): string {
-    return this.$store.state.auth.user.user_metadata.full_name;
-  }
+function login() {
+ store.dispatch('login');
+}
 
-  get avatarURL(): string | undefined {
-    return this.$store.state.auth.user.user_metadata.avatar_url;
-  }
-
-  get authReady(): boolean {
-    return this.$store.state.auth.ready;
-  }
-
-  login(): void {
-    this.$store.dispatch('login');
-  }
-
-  logout(): void {
-    this.$store.dispatch('logout');
-  }
+function logout() {
+  store.dispatch('logout');
 }
 </script>

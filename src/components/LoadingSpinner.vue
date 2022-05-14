@@ -1,4 +1,4 @@
-<template>
+<!-- <template>
     <div class="lds-spinner">
         <div></div>
         <div></div>
@@ -102,4 +102,4 @@ export default class Loading extends Vue {
     opacity: 0;
   }
 }
-</style>
+</style> -->
