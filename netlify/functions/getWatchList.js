@@ -66,16 +66,17 @@ exports.handler = async function(event, context) {
 }
 
 async function getMovieData(watchList) {
-  const promises = []
-
+  const promises = [];
   for (const movie of watchList) {
     const promise = axios
       .get(
         `https://api.themoviedb.org/3/movie/${movie.movieId}?api_key=${tmdbApiKey}`
       )
-    promises.push(promise)
+      .then((response) => {
+            movie.releaseDate = response.data.release_date;
+        });
+    promises.push(promise);
   }
-
-  await Promise.all(promises)
-  return watchList
+  await Promise.all(promises);
+  return watchList;
 }
