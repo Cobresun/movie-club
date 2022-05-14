@@ -50,7 +50,7 @@
           </template>
 
           <template v-slot:average>
-            <img src="@/assets/average.svg" width="64" height="48" />
+            <img src="@/assets/average.svg" class="w-16 h-12 max-w-none" />
           </template>
         </movie-table>
       </div>

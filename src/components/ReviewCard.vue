@@ -1,5 +1,5 @@
 <template>
-    <div class="border-2 border-gray-200 rounded w-48 mb-4">
+    <div class="border-2 border-gray-200 rounded w-44 mb-4">
         <loading-spinner v-if="loading" />
         <div class="flex flex-col h-full" v-else>
             <img :src="movie.poster_url" />
