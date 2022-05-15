@@ -1,4 +1,4 @@
-<!-- <template>
+<template>
     <div class="lds-spinner">
         <div></div>
         <div></div>
@@ -14,14 +14,6 @@
         <div></div>
     </div>
 </template>
-
-<script lang="ts">
-import { Component, Vue } from 'vue-property-decorator';
-
-@Component({})
-export default class Loading extends Vue {
-}
-</script>
 
 <style scoped>
 .lds-spinner {
@@ -102,4 +94,4 @@ export default class Loading extends Vue {
     opacity: 0;
   }
 }
-</style> -->
+</style>

@@ -27,7 +27,7 @@ import randomColor from 'randomcolor';
 interface Props {
   src?: string;
   name: string;
-  size: number;
+  size?: number;
 }
 const { src, name = '', size = 48 } = defineProps<Props>();
 

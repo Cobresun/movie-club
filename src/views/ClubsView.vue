@@ -1,68 +1,65 @@
-<!-- <template>
-    <div>
-        <div v-if="!isLoggedIn">Need to be logged in!</div>
+<template>
+  <div>
+    <div v-if="!isLoggedIn">Need to be logged in!</div>
 
-        <div v-if="isLoggedIn">
-            <loading-spinner v-if="loading"/>
+    <div v-if="isLoggedIn">
+      <loading-spinner v-if="loading" />
 
-            <div class="flex justify-center pb-6 flex-col md:flex-row" v-if="!loading">
-                <div class="p-3" v-for="club in clubs" :key="club">
-                    <router-link to="/clubHome">
-                        <menu-card 
-                            bgColor="lowBackground" 
-                            image="club.svg"
-                        >
-                            {{ club }}
-                        </menu-card>
-                    </router-link>
-                </div>
-                <div class="p-3">
-                    <router-link to="/clubHome">
-                        <menu-card
-                            bgColor="lowBackground" 
-                            image="club.svg"
-                        >
-                            + New Club
-                        </menu-card>
-                    </router-link>
-                </div>
-            </div>
+      <div v-else class="flex justify-center pb-6 flex-col md:flex-row">
+        <div class="p-3" v-for="club in clubs" :key="club">
+          <router-link to="/clubHome">
+            <menu-card bgColor="lowBackground" :image="clubSvg">
+              {{ club }}
+            </menu-card>
+          </router-link>
         </div>
+        <div class="p-3">
+          <router-link to="/clubHome">
+            <menu-card bgColor="lowBackground" :image="clubSvg">
+              + New Club
+            </menu-card>
+          </router-link>
+        </div>
+      </div>
     </div>
+  </div>
 </template>
 
-<script lang="ts">
-    import { Component, Vue, Watch } from 'vue-property-decorator'
-    import axios from 'axios'
+<script setup lang="ts">
+import { ref, computed, watch } from "vue";
+import { useStore } from "vuex";
+import axios from "axios";
 
-    @Component({})
+import clubSvg from "@/assets/menu-images/club.svg";
 
-    export default class ClubsView extends Vue {
-        private loading = true
-        private user: any
-        private clubs: string[] = []
+const store = useStore();
 
-        get isLoggedIn(): boolean {
-            return this.$store.state.auth.user !== null
-        }
+const loading = ref(true);
+const isLoggedIn = computed(() => store.state.auth.user);
 
-        @Watch('isLoggedIn')
-        onCountChange(newIsLoggedIn: any, oldIsLoggedIn: any) {
-            if (newIsLoggedIn !== null) {
-                axios
-                .get(`/api/member/${this.$store.state.auth.user.email}`)
-                .then((response) => {
-                    this.user = response.data
-                    this.user.clubs.forEach((clubId: number) => {
-                        axios
-                            .get(`/api/club/${clubId}/clubName`)
-                            .then(response => {
-                                this.clubs.push(response.data)
-                                this.loading = false
-                            })
-                    })
-                })
-            }
-        }
-    }
-</script> -->
+const clubs = ref<string[]>([]);
+const getClubs = (newVal: boolean) => {
+  if (newVal) {
+    axios
+      .get(`/api/member/${store.state.auth.user.email}`)
+      .then(async (response) => {
+        const promises: Promise<string>[] = [];
+
+        response.data.clubs.forEach((clubId: number) => {
+          promises.push(
+            axios.get(`/api/club/${clubId}/clubName`).then((response) => {
+              return response.data;
+            })
+          );
+        });
+
+        clubs.value = await Promise.all(promises);
+        loading.value = false;
+      });
+  }
+};
+
+watch(isLoggedIn, getClubs);
+
+getClubs(isLoggedIn.value);
+</script>
