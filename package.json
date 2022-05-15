@@ -16,11 +16,12 @@
     "mdi-vue": "^3.0.13",
     "netlify-identity-widget": "^1.9.2",
     "randomcolor": "^0.6.2",
-    "vue": "3.2.13",
+    "vue": "^3.2.13",
     "vue-router": "^4.0.3",
     "vuex": "^4.0.0"
   },
   "devDependencies": {
+    "@types/luxon": "^2.3.2",
     "@types/netlify-identity-widget": "^1.9.3",
     "@types/node": "^17.0.33",
     "@types/randomcolor": "^0.5.6",

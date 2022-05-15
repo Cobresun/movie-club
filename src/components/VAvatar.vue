@@ -2,7 +2,7 @@
   <div>
     <img 
       v-if="src"
-      class="rounded-full"
+      class="rounded-full max-w-none"
       :width="size" 
       :height="size" 
       :src="src" 
@@ -10,7 +10,7 @@
     <div 
       v-else 
       :style="{ 'background-color': color, width: `${size}px`, height: `${size}px` }"
-      class="rounded-full flex items-center justify-center"
+      class="rounded-full flex items-center justify-center max-w-none"
     >
       <div 
         class="font-normal"

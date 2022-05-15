@@ -15,7 +15,7 @@ export interface ReviewResponse {
   movieId: number;
   movieTitle: string;
   timeWatched: DateObject;
-  scores: any;
+  scores: Record<string, number>;
 }
 
 export interface DetailedReviewResponse {
