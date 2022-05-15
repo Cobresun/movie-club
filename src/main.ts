@@ -3,7 +3,7 @@ import App from "@/App.vue";
 import router from "./router";
 import store from "./store";
 
-import mdiVue from "mdi-vue/v2";
+import mdiVue from "mdi-vue/v3";
 import * as mdijs from "@mdi/js";
 
 import VBtn from "@/components/VBtn.vue";

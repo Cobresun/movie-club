@@ -1,28 +1,26 @@
-<!-- <template>
+<template>
   <div>
     <h1 class="font-bold text-3xl m-4">Cobresun</h1>
     <div class="flex justify-center pb-6 flex-col md:flex-row">
       <div class="p-3">
-        <router-link to="/reviews"><menu-card image="review.svg">Reviews</menu-card></router-link>
+        <router-link to="/reviews"><menu-card :image="reviewSvg">Reviews</menu-card></router-link>
       </div>
       <div class="p-3">
-        <router-link to="/reviews-gallery"><menu-card image="review.svg">Reviews Gallery</menu-card></router-link>
+        <router-link to="/reviews-gallery"><menu-card :image="reviewSvg">Reviews Gallery</menu-card></router-link>
       </div>
       <div class="p-3">
-        <router-link to="/watchList"><menu-card image="watchlist.svg">Watch List</menu-card></router-link>
+        <router-link to="/watchList"><menu-card :image="watchlistSvg">Watch List</menu-card></router-link>
       </div>
       <div class="p-3">
-        <router-link to="/statistics"><menu-card image="statistics.svg">Statistics</menu-card></router-link>
+        <router-link to="/statistics"><menu-card :image="statisticsSvg">Statistics</menu-card></router-link>
       </div>
     </div>
-    <btn>Club Settings <mdicon name="cog-outline" /></btn>
+    <!--<v-btn>Club Settings <mdicon name="cog-outline" /></v-btn> -->
   </div>
 </template>
 
-<script lang="ts">
-import { Component, Vue } from 'vue-property-decorator'
-
-@Component({})
-export default class Home extends Vue {
-}
-</script> -->
+<script setup lang="ts">
+import reviewSvg from "@/assets/menu-images/review.svg";
+import watchlistSvg from "@/assets/menu-images/watchlist.svg";
+import statisticsSvg from "@/assets/menu-images/statistics.svg";
+</script>

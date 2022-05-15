@@ -14,7 +14,7 @@
 <script setup lang="ts">
 const { image, bgColor = 'primary' } = defineProps<{
   image: string;
-  bgColor: string;
+  bgColor?: string;
 }>();
 
 const emit = defineEmits<{
