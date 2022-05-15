@@ -1,18 +1,36 @@
 <template>
   <div>
-    <h1 class="font-bold text-3xl m-4">Cobresun</h1>
+    <h1 class="font-bold text-3xl m-4">
+      Cobresun
+    </h1>
     <div class="flex justify-center pb-6 flex-col md:flex-row">
       <div class="p-3">
-        <router-link to="/reviews"><menu-card :image="reviewSvg">Reviews</menu-card></router-link>
+        <router-link to="/reviews">
+          <menu-card :image="reviewSvg">
+            Reviews
+          </menu-card>
+        </router-link>
       </div>
       <div class="p-3">
-        <router-link to="/reviews-gallery"><menu-card :image="reviewSvg">Reviews Gallery</menu-card></router-link>
+        <router-link to="/reviews-gallery">
+          <menu-card :image="reviewSvg">
+            Reviews Gallery
+          </menu-card>
+        </router-link>
       </div>
       <div class="p-3">
-        <router-link to="/watchList"><menu-card :image="watchlistSvg">Watch List</menu-card></router-link>
+        <router-link to="/watchList">
+          <menu-card :image="watchlistSvg">
+            Watch List
+          </menu-card>
+        </router-link>
       </div>
       <div class="p-3">
-        <router-link to="/statistics"><menu-card :image="statisticsSvg">Statistics</menu-card></router-link>
+        <router-link to="/statistics">
+          <menu-card :image="statisticsSvg">
+            Statistics
+          </menu-card>
+        </router-link>
       </div>
     </div>
     <!--<v-btn>Club Settings <mdicon name="cog-outline" /></v-btn> -->

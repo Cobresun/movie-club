@@ -4,6 +4,3 @@ declare module "*.vue" {
   const component: DefineComponent<{}, {}, any>;
   export default component;
 }
-
-declare module "mdi-vue/v2";
-declare module "vue-avatar-component";

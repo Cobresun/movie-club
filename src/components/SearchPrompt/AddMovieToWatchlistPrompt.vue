@@ -1,10 +1,13 @@
 <template>
   <modal>
-    <loading-spinner class="self-center" v-if="loading" />
+    <loading-spinner
+      v-if="loading"
+      class="self-center"
+    />
     <movie-search-prompt
       v-else
-      defaultListTitle="Trending"
-      :defaultList="trending"
+      default-list-title="Trending"
+      :default-list="trending"
       @close="$emit('close')"
       @selectFromDefault="selectFromSearch"
       @selectFromSearch="selectFromSearch"

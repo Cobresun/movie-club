@@ -1,25 +1,32 @@
 <template>
   <div class="flex justify-between items-center p-4">
     <router-link to="/">
-      <h3 class="font-bold text-2xl text-highlight">MovieClub</h3>
+      <h3 class="font-bold text-2xl text-highlight">
+        MovieClub
+      </h3>
     </router-link>
     <div 
       v-if="authReady"
-      class="flex items-center">
+      class="flex items-center"
+    >
       <v-avatar
         v-if="isLoggedIn"
         class="mr-3"
         :name="fullName"
         :src="avatarURL"
-      ></v-avatar>
+      />
       <v-btn
         v-if="!isLoggedIn"
         @click="login"
-      >Login</v-btn>
+      >
+        Login
+      </v-btn>
       <v-btn
         v-else
         @click="logout"
-      >Logout</v-btn>
+      >
+        Logout
+      </v-btn>
     </div>
   </div>
 </template>

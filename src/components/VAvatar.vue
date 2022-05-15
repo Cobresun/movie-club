@@ -6,7 +6,7 @@
       :width="size" 
       :height="size" 
       :src="src" 
-    />
+    >
     <div 
       v-else 
       :style="{ 'background-color': color, width: `${size}px`, height: `${size}px` }"
@@ -15,7 +15,9 @@
       <div 
         class="font-normal"
         :style="{'font-size': `${size * 0.4}px`}"
-      >{{ initials }}</div>
+      >
+        {{ initials }}
+      </div>
     </div>
   </div>
 </template>

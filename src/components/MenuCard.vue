@@ -4,9 +4,12 @@
     :class="`bg-${bgColor}`" 
     @click="emit('click')"
   >
-    <img :src="image" class="h-24 w-48 mb-2" />
+    <img 
+      :src="image"
+      class="h-24 w-48 mb-2"
+    >
     <div class="prompt">
-      <slot></slot>
+      <slot />
     </div>
   </button>
 </template>

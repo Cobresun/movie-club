@@ -1,21 +1,36 @@
 <template>
   <div>
-    <div v-if="!isLoggedIn">Need to be logged in!</div>
+    <div v-if="!isLoggedIn">
+      Need to be logged in!
+    </div>
 
     <div v-if="isLoggedIn">
       <loading-spinner v-if="loading" />
 
-      <div v-else class="flex justify-center pb-6 flex-col md:flex-row">
-        <div class="p-3" v-for="club in clubs" :key="club">
+      <div
+        v-else
+        class="flex justify-center pb-6 flex-col md:flex-row"
+      >
+        <div
+          v-for="club in clubs"
+          :key="club"
+          class="p-3"
+        >
           <router-link to="/clubHome">
-            <menu-card bgColor="lowBackground" :image="clubSvg">
+            <menu-card
+              bg-color="lowBackground"
+              :image="clubSvg"
+            >
               {{ club }}
             </menu-card>
           </router-link>
         </div>
         <div class="p-3">
           <router-link to="/clubHome">
-            <menu-card bgColor="lowBackground" :image="clubSvg">
+            <menu-card
+              bg-color="lowBackground"
+              :image="clubSvg"
+            >
               + New Club
             </menu-card>
           </router-link>
