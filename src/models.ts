@@ -27,10 +27,16 @@ export interface DetailedReviewResponse {
 }
 
 export interface WatchListResponse {
+  watchList: WatchListItem[],
+  nextMovie: WatchListItem
+}
+
+export interface WatchListItem {
   timeAdded: DateObject;
   movieTitle: string;
   addedBy: string;
   movieId: number;
+  releaseDate: string;
 }
 
 export interface NextMovieResponse {
@@ -74,4 +80,10 @@ export interface TMDBMovieData {
 
 export interface ProductionCompany {
   name: string;
+}
+
+export interface MovieSearchIndex {
+  title: string;
+  release_date: string;
+  id: number;
 }

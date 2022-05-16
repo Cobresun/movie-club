@@ -117,9 +117,9 @@ axios
 
 const modalOpen = ref(false);
 const openPrompt = () => { modalOpen.value = true };
-const closePrompt = (reviewAdded: boolean, newReview: ReviewResponse) => {
+const closePrompt = (newReview?: ReviewResponse) => {
   modalOpen.value = false;
-  if (reviewAdded) {
+  if (newReview) {
     reviews.value.unshift(newReview);
   }
 }

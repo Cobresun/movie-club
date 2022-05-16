@@ -11,7 +11,7 @@ import VAvatar from "./components/VAvatar.vue";
 import Loading from "@/components/LoadingSpinner.vue"
 import VTable from "@/components/VTable.vue";
 import MenuCard from "@/components/MenuCard.vue";
-// import Modal from "@/components/VModal.vue";
+import VModal from "@/components/VModal.vue";
 import './assets/tailwind.css'
 
 createApp(App)
@@ -20,7 +20,7 @@ createApp(App)
   .component("loading-spinner", Loading)
   .component("movie-table", VTable)
   .component("menu-card", MenuCard)
-  // .component("v-modal", Modal)
+  .component("v-modal", VModal)
   .use(mdiVue, {
     icons: mdijs
   })
