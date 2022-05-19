@@ -41,6 +41,7 @@ export interface WatchListItem {
 
 export interface NextMovieResponse {
   movieTitle: string;
+  nextMovieId: number;
   datePicked: DateObject;
 }
 

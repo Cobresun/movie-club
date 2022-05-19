@@ -1,5 +1,5 @@
 <template>
-  <modal>
+  <v-modal>
     <loading-spinner
       v-if="loading"
       class="self-center"
@@ -9,10 +9,10 @@
       default-list-title="Trending"
       :default-list="trending"
       @close="$emit('close')"
-      @selectFromDefault="selectFromSearch"
-      @selectFromSearch="selectFromSearch"
+      @select-from-default="selectFromSearch"
+      @select-from-search="selectFromSearch"
     />
-  </modal>
+  </v-modal>
 </template>
 
 <script setup lang="ts">
@@ -20,30 +20,33 @@ import { ref, defineEmits } from 'vue';
 import { useStore } from 'vuex';
 import axios from 'axios';
 import MovieSearchPrompt from './MovieSearchPrompt.vue';
+import { MovieSearchIndex, WatchListItem } from '@/models';
 
-const emit = defineEmits(['close']);
+const emit = defineEmits<{
+  (e: "close", item?: WatchListItem): void
+}>();
 
 const loading = ref(true);
-const trending = ref([]);
+const trending = ref<MovieSearchIndex[]>([]);
 const store = useStore();
 
 const apiKey = import.meta.env.VITE_TMDB_API_KEY;
 
-axios.get(`https://api.themoviedb.org/3/trending/movie/week?api_key=${apiKey}`)
+axios.get<{results: MovieSearchIndex[]}>(`https://api.themoviedb.org/3/trending/movie/week?api_key=${apiKey}`)
   .then((response) => {
     loading.value = false;
     trending.value = response.data.results;
   });
 
-const selectFromSearch = (movie: any) => {
+const selectFromSearch = (movie: MovieSearchIndex) => {
   loading.value = true;
-  axios.post(`/api/postWatchListMovie?movieId=${ movie.id }&user=cole&movieTitle=${ movie.title }`, {}, {
+  axios.post<WatchListItem>(`/api/postWatchListMovie?movieId=${ movie.id }&user=cole&movieTitle=${ movie.title }`, {}, {
     headers: {
       Authorization: `Bearer ${store.state.auth.user.token.access_token}`
     }
   })
   .then((response) => {
-    emit("close", true, response.data);
+    emit("close", response.data);
   })
   .catch((error) => {
     console.error(error);
