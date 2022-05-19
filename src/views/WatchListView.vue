@@ -1,4 +1,4 @@
-<!-- <template>
+<template>
   <div class="m-2">
     <add-movie-to-watchlist-prompt
       v-if="modalOpen"
@@ -6,51 +6,66 @@
     />
     <div>
       <div class="grid items-center grid-cols-centerHeader gap-x-8">
-        <router-link class="flex justify-end" to="/clubHome"><mdicon class="cursor-pointer" name="arrow-left" size="40"/></router-link>
-        <h1 class="text-3xl font-bold m-4">Cobresun Watch List</h1>
+        <router-link
+          class="flex justify-end"
+          to="/clubHome"
+        >
+          <mdicon
+            class="cursor-pointer"
+            name="arrow-left"
+            size="40"
+          />
+        </router-link>
+        <h1 class="text-3xl font-bold m-4">
+          Cobresun Watch List
+        </h1>
       </div>
 
-      <loading-spinner v-if="loading"/>
+      <loading-spinner v-if="loading" />
 
       <div v-if="!loading">
-        <btn class="float-left mr-3" @click="openPrompt">
+        <v-btn
+          class="float-left mr-3"
+          @click="openPrompt"
+        >
           Add Movie
-          <mdicon name="plus"/>
-        </btn>
+          <mdicon name="plus" />
+        </v-btn>
 
-        <btn class="float-left mr-3" @click="selectRandom()">
+        <v-btn
+          class="float-left mr-3"
+          @click="selectRandom()"
+        >
           Random
-          <mdicon name="dice-multiple-outline"/>
-        </btn>
+          <mdicon name="dice-multiple-outline" />
+        </v-btn>
 
         <movie-table
           :header="false" 
           :headers="headers"
           :data="watchListTableData"
         >
-          <template v-slot:movieTitle>
-          </template>
+          <template #movieTitle />
           
-          <template v-slot:dateAdded>
-          </template>
+          <template #dateAdded />
           
-          <template v-slot:item-addedBy="slotProps">
-            <avatar
+          <template #item-addedBy="slotProps">
+            <v-avatar
               :key="slotProps.item[slotProps.head.value]"
-              :image="members.find(member => member.name === slotProps.item[slotProps.head.value]).image"
+              :src="members.find(member => member.name === slotProps.item[slotProps.head.value]).image"
             />
           </template>
 
-          <template v-slot:item-reviewMovie="slotProps">
-            <btn @click="reviewMovie(slotProps.item[slotProps.head.value])">
-              <mdicon name="check"/>
-            </btn>
+          <template #item-reviewMovie="slotProps">
+            <v-btn @click="reviewMovie(slotProps.item[slotProps.head.value])">
+              <mdicon name="check" />
+            </v-btn>
           </template>
 
-          <template v-slot:item-makeNextWatch="slotProps">
-            <btn @click="makeNextWatch(slotProps.item[slotProps.head.value])">
-              <mdicon name="arrow-collapse-up"/>
-            </btn>
+          <template #item-makeNextWatch="slotProps">
+            <v-btn @click="makeNextWatch(slotProps.item[slotProps.head.value])">
+              <mdicon name="arrow-collapse-up" />
+            </v-btn>
           </template>
         </movie-table>
       </div>
@@ -59,11 +74,6 @@
 </template>
 
 <script lang="ts">
-import { Component, Vue } from 'vue-property-decorator';
-import { WatchListResponse, Header, NextMovieResponse, Member } from '@/models';
-import axios from 'axios'
-import AddMovieToWatchlistPrompt from '@/components/SearchPrompt/AddMovieToWatchlistPrompt.vue';
-import { DateTime } from "luxon";
 
 @Component({
   components: { AddMovieToWatchlistPrompt },
@@ -84,33 +94,14 @@ export default class WatchListView extends Vue {
     {value: "makeNextWatch", sortable: false, includeHeader: false}
   ];
 
-  private modalOpen = false;
   private animateInterval!: number;
   private animate = false;
 
   private rotateReps = this.ROTATE_ITERATIONS;
 
-  mounted(): void {
-    this.loading = true;
-    axios
-      .get('/api/getWatchList')
-      .then((response) => {
-        this.loading = false;
-        this.watchList = response.data.watchList;
-        this.nextMovie = response.data.nextMovie;
-      })
-    this.loadingMembers = true;
-    axios
-      .get('/api/club/8/members')
-      .then((response) => {
-        this.loadingMembers = false;
-        this.members = response.data;
-      })
-  }
-
   get watchListTableData(): any[] {
     if (!this.animate){
-      const nextMovie: WatchListResponse | undefined = this.watchList.find(movie => movie.movieTitle === this.nextMovie?.movieTitle)
+      
       let sortedWatchList = this.watchList
 
       // If there is a nextMovie set, it gets shifted to the top of the watch list
@@ -174,10 +165,6 @@ export default class WatchListView extends Vue {
     }
   }
 
-  openPrompt(): void {
-    this.modalOpen = true;
-  }
-
   reviewMovie(movieId: number): void {
     axios.post<WatchListResponse>(`/api/reviewMovieFromWatchList?movieId=${ movieId }`, {}, {
       headers: {
@@ -206,12 +193,125 @@ export default class WatchListView extends Vue {
           this.$emit("close", true, response.data);
         });
   }
+}
+</script>
+<script setup lang="ts">
+import { ref, computed } from 'vue';
+import { useStore } from 'vuex';
+import { useRouter } from 'vue-router';
+import axios from 'axios';
+import { DateTime } from 'luxon';
+import { WatchListResponse, Header, NextMovieResponse, Member, WatchListItem, ReviewResponse } from '@/models';
+import AddMovieToWatchlistPrompt from '@/components/SearchPrompt/AddMovieToWatchlistPrompt.vue';
 
-  closePrompt(reviewAdded: boolean, newMovie: WatchListResponse): void {
-    this.modalOpen = false;
-    if (reviewAdded) {
-      this.watchList.unshift(newMovie);
+const store = useStore();
+const router = useRouter();
+
+const watchList = ref<WatchListItem[]>([]);
+const nextMovie = ref<NextMovieResponse>();
+const members = ref<Member[]>([]);
+
+const loadingWatchList = ref(true);
+const loadingMembers = ref(true);
+const loading = computed(() => loadingWatchList.value || loadingMembers.value );
+
+axios
+  .get<WatchListResponse>('/api/getWatchList')
+  .then((response) => {
+    loadingWatchList.value = false;
+    watchList.value = response.data.watchList;
+    nextMovie.value = response.data.nextMovie;
+  });
+axios
+  .get('/api/club/8/members')
+  .then((response) => {
+    loadingMembers.value = false;
+    members.value = response.data;
+  });
+
+const headers: Header[] = [
+  {value: "movieTitle", style:"font-bold", sortable: false, centerHeader: false},
+  {value: "dateAdded", sortable: false},
+  {value: "addedBy", sortable: false, includeHeader: false},
+  {value: "reviewMovie", sortable: false, includeHeader: false},
+  {value: "makeNextWatch", sortable: false, includeHeader: false}
+];
+
+const watchListTableData = computed(() => {
+  let sortedWatchList = watchList.value.slice(0);
+  if (!animate.value) {
+    const nextMovieItem: WatchListItem | undefined = watchList.value.find(movie => movie.movieTitle === nextMovie.value?.movieTitle);
+
+    if (nextMovieItem) {
+      sortedWatchList = watchList.value.filter(movie => movie.movieId !== nextMovieItem.movieId);
+      sortedWatchList.unshift(nextMovieItem);
     }
   }
+
+  return sortedWatchList.map(movie => {
+    return {
+      movieTitle: movie.movieTitle,
+      dateAdded: DateTime.fromISO(movie.timeAdded['@ts']).toLocaleString(),
+      addedBy: movie.addedBy,
+      highlighted: movie.movieTitle === nextMovie.value?.movieTitle
+    }
+  });
+});
+
+const reviewMovie = (movieId: number) => {
+  axios.post<WatchListItem>(`/api/reviewMovieFromWatchList?movieId=${ movieId }`, {}, {
+    headers: {
+      Authorization: `Bearer ${store.state.auth.user.token.access_token}`
+    }
+  }).then(response => {
+    const idx = watchList.value.indexOf(response.data);
+    watchList.value.splice(idx,1);
+    router.push({name:"Reviews"});
+  })
+};
+
+const makeNextWatch = (movieId: number) => {
+  nextMovieId.value = movieId;
 }
-</script> -->
+
+const ROTATE_ITERATIONS = 30;
+const rotateReps = ref(ROTATE_ITERATIONS);
+const animate = ref(false);
+const nextMovieId = ref<number | undefined>();
+const animateInterval = ref<number | undefined>();
+
+const selectRandom = () => {
+  let randomMovie = watchList.value[Math.floor(Math.random() * watchList.value.length)];
+  nextMovieId.value = randomMovie.movieId;
+  rotateReps.value = ROTATE_ITERATIONS;
+  animateInterval.value = window.setInterval(animateRotate, 100);
+  animate.value = true;
+
+  axios.post<NextMovieResponse>(`/api/postNextWatch?movieId=${ randomMovie.movieId }&watchListId=${ 0 }&movieTitle=${ randomMovie.movieTitle }`, {}, {
+    headers: {
+      Authorization: `Bearer ${store.state.auth.user.token.access_token}`
+    }
+  }).then((response) => {
+    nextMovie.value = response.data;
+  });
+}
+
+const animateRotate = () => {
+  if (rotateReps.value > 0 || watchList.value[0].movieId !== nextMovieId.value) {
+    watchList.value.unshift(watchList.value[watchList.value.length-1]);
+    watchList.value.pop();
+    rotateReps.value-=1;
+  } else {
+    window.clearInterval(animateInterval.value);
+  }
+}
+
+const modalOpen = ref(false);
+const openPrompt = () => { modalOpen.value = true };
+const closePrompt = (movie: WatchListItem) => {
+  modalOpen.value = false;
+  if (movie) {
+    watchList.value.unshift(movie);
+  }
+};
+</script>

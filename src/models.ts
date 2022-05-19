@@ -28,7 +28,7 @@ export interface DetailedReviewResponse {
 
 export interface WatchListResponse {
   watchList: WatchListItem[],
-  nextMovie: WatchListItem
+  nextMovie: NextMovieResponse
 }
 
 export interface WatchListItem {
