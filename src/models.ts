@@ -15,26 +15,29 @@ export interface ReviewResponse {
   movieId: number;
   movieTitle: string;
   timeWatched: DateObject;
-  scores: any;
+  scores: Record<string, number>;
 }
 
-export interface DetailedReviewResponse {
-  movieId: number;
-  movieTitle: string;
-  timeWatched: DateObject;
-  scores: any;
+export interface DetailedReviewResponse extends ReviewResponse {
   movieData: TMDBMovieData
 }
 
 export interface WatchListResponse {
+  watchList: WatchListItem[],
+  nextMovie: NextMovieResponse
+}
+
+export interface WatchListItem {
   timeAdded: DateObject;
   movieTitle: string;
   addedBy: string;
   movieId: number;
+  releaseDate: string;
 }
 
 export interface NextMovieResponse {
   movieTitle: string;
+  nextMovieId: number;
   datePicked: DateObject;
 }
 
@@ -74,4 +77,10 @@ export interface TMDBMovieData {
 
 export interface ProductionCompany {
   name: string;
+}
+
+export interface MovieSearchIndex {
+  title: string;
+  release_date: string;
+  id: number;
 }

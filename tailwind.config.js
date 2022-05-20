@@ -1,4 +1,5 @@
 module.exports = {
+  content: ["./index.html", "./src/**/*.{vue,js,ts,jsx,tsx}"],
   theme: {
     extend: {
       colors: {
@@ -16,15 +17,9 @@ module.exports = {
         leftHeader: "auto 1fr",
       },
       borderWidth: {
-        '10': '10px'
-      }
+        10: "10px",
+      },
     },
   },
-  variants: {
-    extend: {
-      brightness: ["hover", "focus"],
-      borderWidth: ["first", "last"],
-      borderRadius: ["first", "last"]
-    },
-  },
+  plugins: [],
 };

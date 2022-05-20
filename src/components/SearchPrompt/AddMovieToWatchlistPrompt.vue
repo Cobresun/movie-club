@@ -1,58 +1,56 @@
 <template>
-  <modal>
-    <loading-spinner class="self-center" v-if="loading" />
+  <v-modal>
+    <loading-spinner
+      v-if="loading"
+      class="self-center"
+    />
     <movie-search-prompt
       v-else
-      defaultListTitle="Trending"
-      :defaultList="trending"
+      default-list-title="Trending"
+      :default-list="trending"
       @close="$emit('close')"
-      @selectFromDefault="selectFromSearch"
-      @selectFromSearch="selectFromSearch"
+      @select-from-default="selectFromSearch"
+      @select-from-search="selectFromSearch"
     />
-  </modal>
+  </v-modal>
 </template>
 
-<script lang="ts">
+<script setup lang="ts">
+import { ref, defineEmits } from 'vue';
+import { useStore } from 'vuex';
 import axios from 'axios';
-import { Component, Vue } from 'vue-property-decorator';
 import MovieSearchPrompt from './MovieSearchPrompt.vue';
+import { MovieSearchIndex, WatchListItem } from '@/models';
 
-@Component({
-  components: {
-    MovieSearchPrompt
-  }
-})
-export default class AddMovieToWatchlistPrompt extends Vue {
-  private apiKey = process.env.VUE_APP_TMDB_API_KEY;
-  private trending = [];
-  private loading = true;
+const emit = defineEmits<{
+  (e: "close", item?: WatchListItem): void
+}>();
 
-  mounted(): void {
-    this.loading = true;
-    axios
-      axios
-      .get(`https://api.themoviedb.org/3/trending/movie/week?api_key=${this.apiKey}`)
-      .then((response) => {
-        this.loading = false;
-        this.trending = response.data.results;
-      })
-  }
+const loading = ref(true);
+const trending = ref<MovieSearchIndex[]>([]);
+const store = useStore();
 
-  selectFromSearch(movie: any): void {
-    this.loading = true;
-    axios.post(`/api/postWatchListMovie?movieId=${ movie.id }&user=cole&movieTitle=${ movie.title }`, {}, {
-      headers: {
-        Authorization: `Bearer ${this.$store.state.auth.user.token.access_token}`
-      }
-    })
-          .then(
-            (response) => {
-              this.$emit("close", true, response.data);
-            })
-            .catch((error) => {
-              console.error(error);
-              this.$emit("close");
-            });
-  }
+const apiKey = import.meta.env.VITE_TMDB_API_KEY;
+
+axios.get<{results: MovieSearchIndex[]}>(`https://api.themoviedb.org/3/trending/movie/week?api_key=${apiKey}`)
+  .then((response) => {
+    loading.value = false;
+    trending.value = response.data.results;
+  });
+
+const selectFromSearch = (movie: MovieSearchIndex) => {
+  loading.value = true;
+  axios.post<WatchListItem>(`/api/postWatchListMovie?movieId=${ movie.id }&user=cole&movieTitle=${ movie.title }`, {}, {
+    headers: {
+      Authorization: `Bearer ${store.state.auth.user.token.access_token}`
+    }
+  })
+  .then((response) => {
+    emit("close", response.data);
+  })
+  .catch((error) => {
+    console.error(error);
+    emit("close");
+  });
 }
 </script>

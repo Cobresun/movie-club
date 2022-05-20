@@ -1,5 +1,4 @@
-import Vue from "vue"
-import VueRouter, { RouteConfig } from "vue-router"
+import { createRouter, createWebHistory, RouteRecordRaw } from "vue-router";
 import ClubHomeView from "../views/ClubHomeView.vue"
 import ReviewView from "../views/ReviewView.vue"
 import ReviewsGalleryView from "../views/ReviewsGalleryView.vue"
@@ -7,17 +6,15 @@ import WatchListView from "../views/WatchListView.vue"
 import StatisticsView from "../views/StatisticsView.vue"
 import ClubsView from "../views/ClubsView.vue"
 
-Vue.use(VueRouter);
-
-const routes: Array<RouteConfig> = [
+const routes: Array<RouteRecordRaw> = [
   {
     path: "/",
     name: "Clubs",
     component: ClubsView,
   },
   {
-    path: "/clubHome",
-    name: "Club Home",
+    path: "/club-home",
+    name: "ClubHome",
     component: ClubHomeView,
   },
   {
@@ -31,7 +28,7 @@ const routes: Array<RouteConfig> = [
     component: ReviewsGalleryView,
   },
   {
-    path: "/watchList",
+    path: "/watch-list",
     name: "WatchList",
     component: WatchListView,
   },
@@ -42,9 +39,7 @@ const routes: Array<RouteConfig> = [
   },
 ];
 
-const router = new VueRouter({
+export default createRouter({
   routes,
-  mode: 'history',
+  history: createWebHistory(),
 });
-
-export default router;

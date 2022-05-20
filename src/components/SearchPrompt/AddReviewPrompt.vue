@@ -1,75 +1,70 @@
 <template>
-  <modal>
-    <loading-spinner class="self-center" v-if="loading" />
+  <v-modal>
+    <loading-spinner
+      v-if="loading"
+      class="self-center"
+    />
     <movie-search-prompt
       v-else
-      defaultListTitle="From Watch List"
-      :defaultList="watchList"
-      @close="$emit('close')"
-      @selectFromDefault="selectFromWatchList"
-      @selectFromSearch="selectFromSearch"
+      default-list-title="From Watch List"
+      :default-list="watchlistSearchIndex"
+      @close="emit('close')"
+      @select-from-default="selectFromWatchList"
+      @select-from-search="selectFromSearch"
     />
-  </modal>
+  </v-modal>
 </template>
 
-<script lang="ts">
-import { WatchListResponse } from '@/models';
+<script setup lang="ts">
+import { ref } from 'vue';
+import { useStore } from 'vuex';
 import axios from 'axios';
-import { Component, Vue } from 'vue-property-decorator';
+import { WatchListResponse, WatchListItem, MovieSearchIndex, ReviewResponse } from '@/models';
 import MovieSearchPrompt from './MovieSearchPrompt.vue';
 
-@Component({
-  components: {
-    MovieSearchPrompt
-  }
-})
-export default class AddReviewPrompt extends Vue {
-  watchList: any[] = [];
-  loading = true;
+const emit = defineEmits<{
+  (e: "close", review?: ReviewResponse) : void
+}>()
 
-  mounted(): void {
-    this.loading = true;
-    axios
-      .get('/api/getWatchList')
-      .then((response) => {
-        this.loading = false;
-        const arr = response.data.watchList;
-        arr.forEach((element: any) => {
-          element.title = element.movieTitle;
-          element.release_date = element.releaseDate;
-          // delete element.movieTitle;
-          delete element.releaseDate;
-        });
-        this.watchList = arr;
-      })
-  }
+const store = useStore();
 
-  selectFromWatchList(movie: WatchListResponse): void {
-    this.loading = true;
-    axios.post(`/api/reviewMovieFromWatchList?movieId=${ movie.movieId }&movieTitle=${ movie.movieTitle }`, {}, {
-      headers: {
-        Authorization: `Bearer ${this.$store.state.auth.user.token.access_token}`
-      }
-    }).then(
-            (response) => {
-              this.$emit("close", true, response.data);
-            });
-  }
+const loading = ref(true);
+const watchlistSearchIndex = ref<MovieSearchIndex[]>([]);
 
-  selectFromSearch(movie: any): void {
-    this.loading = true;
-    axios.post(`/api/postReview?movieId=${ movie.id }&movieTitle=${ movie.title }`, {}, {
-      headers: {
-        Authorization: `Bearer ${this.$store.state.auth.user.token.access_token}`
-      }
-    }).then(
-            (response) => {
-              this.$emit("close", true, response.data);
-            })
-            .catch((error) => {
-              console.error(error);
-              this.$emit("close");
-            });
-  }
+axios.get<WatchListResponse>('/api/getWatchList')
+  .then((response) => {
+    loading.value = false; 
+    response.data.watchList.forEach((element: WatchListItem) => {
+      watchlistSearchIndex.value.push({
+        id: element.movieId,
+        title: element.movieTitle,
+        release_date: element.releaseDate
+      });
+    });
+  });
+
+const selectFromWatchList = (movie: MovieSearchIndex) => {
+  loading.value = true;
+  axios.post<ReviewResponse>(`/api/reviewMovieFromWatchList?movieId=${ movie.id }&movieTitle=${ movie.title }`, {}, {
+    headers: {
+      Authorization: `Bearer ${store.state.auth.user.token.access_token}`
+    }
+  }).then((response) => {
+    emit('close', response.data);
+  })
+}
+
+const selectFromSearch = (movie: MovieSearchIndex) => {
+  loading.value = true;
+  axios.post<ReviewResponse>(`/api/postReview?movieId=${ movie.id }&movieTitle=${ movie.title }`, {}, {
+    headers: {
+      Authorization: `Bearer ${store.state.auth.user.token.access_token}`
+    }
+  }).then((response) => {
+    emit("close", response.data);
+  }).catch((error) => {
+    console.error(error);
+    emit("close");
+  });
 }
 </script>

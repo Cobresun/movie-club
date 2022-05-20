@@ -1,22 +1,14 @@
 <template>
   <div>
-    <nav-bar/>
-    <router-view/>
+    <nav-bar />
+    <router-view />
   </div>
 </template>
 
-<script lang="ts">
-import { Component, Vue } from 'vue-property-decorator';
-import NavBar from '@/components/NavBar.vue';
+<script setup lang="ts">
+import { useStore } from 'vuex';
+import NavBar from '@/components/NavBar.vue'
 
-@Component({
-  components: {
-    NavBar,
-  },
-})
-export default class App extends Vue {
-  mounted(): void {
-    this.$store.dispatch('init');
-  }
-}
+const store = useStore();
+store.dispatch('init');
 </script>
