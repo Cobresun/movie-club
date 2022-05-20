@@ -14,9 +14,13 @@
       <h1 class="text-3xl font-bold m-4">
         Cobresun Reviews
       </h1>
+      <div class="min-w-[40px]" />
     </div>
     <loading-spinner v-if="loading" />
-    <div v-else>
+    <div 
+      v-else 
+      class="md:px-6"
+    >
       <input
         v-model="search"
         class="mb-4 p-2 text-base text-black outline-none rounded-md border-2 border-gray-300 focus:border-primary w-11/12 max-w-md"

@@ -7,7 +7,7 @@
       <th
         v-for="head in tableHeaders"
         :key="head.value"
-        class="sticky top-0 bg-secondary pt-2 first:rounded-tl-xl last:rounded-tr-xl"
+        class="sticky top-0 bg-secondary py-2 first:rounded-tl-xl last:rounded-tr-xl"
       >
         <div 
           v-if="head.includeHeader"
