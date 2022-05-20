@@ -9,11 +9,13 @@
         <loading-spinner v-if="loading"/>
         
         <div v-if="!loading">
+            <!-- Make this a carousel if tied ->
             <div v-if="mostLovedMovie">
                 <h2>Most Loved Movie</h2>
                 <img :src="mostLovedMovie.poster_url" />
             </div>
             
+            <!-- Make this a carousel if tied ->
             <div v-if="leastLovedMovie">
                 <h2>Least Loved Movie</h2>
                 <img :src="leastLovedMovie.poster_url" />
@@ -21,10 +23,15 @@
 
             <h2>Each Member's Average Score</h2>
 
+            <!-- Make this a carousel if tied ->
             <h2>Most Devisive Movie</h2>
+            <!-- variance ->
 
+            <!-- Make this a carousel if tied ->
             <h2>Most Seen Director</h2>
+            <!-- And a list of the movies we've seen of theirs ->
 
+            <!-- Make this a carousel if tied ->
             <h2>Most Loved Director</h2>
 
         </div>
