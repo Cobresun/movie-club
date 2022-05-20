@@ -18,11 +18,7 @@ export interface ReviewResponse {
   scores: Record<string, number>;
 }
 
-export interface DetailedReviewResponse {
-  movieId: number;
-  movieTitle: string;
-  timeWatched: DateObject;
-  scores: any;
+export interface DetailedReviewResponse extends ReviewResponse {
   movieData: TMDBMovieData
 }
 

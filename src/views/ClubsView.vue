@@ -16,7 +16,7 @@
           :key="club"
           class="p-3"
         >
-          <router-link to="/clubHome">
+          <router-link to="/club-home">
             <menu-card
               bg-color="lowBackground"
               :image="clubSvg"
@@ -26,7 +26,7 @@
           </router-link>
         </div>
         <div class="p-3">
-          <router-link to="/clubHome">
+          <router-link to="/club-home">
             <menu-card
               bg-color="lowBackground"
               :image="clubSvg"

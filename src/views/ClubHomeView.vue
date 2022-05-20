@@ -19,7 +19,7 @@
         </router-link>
       </div>
       <div class="p-3">
-        <router-link to="/watchList">
+        <router-link to="/watch-list">
           <menu-card :image="watchlistSvg">
             Watch List
           </menu-card>

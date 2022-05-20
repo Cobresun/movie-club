@@ -13,8 +13,8 @@ const routes: Array<RouteRecordRaw> = [
     component: ClubsView,
   },
   {
-    path: "/clubHome",
-    name: "Club Home",
+    path: "/club-home",
+    name: "ClubHome",
     component: ClubHomeView,
   },
   {
@@ -28,7 +28,7 @@ const routes: Array<RouteRecordRaw> = [
     component: ReviewsGalleryView,
   },
   {
-    path: "/watchList",
+    path: "/watch-list",
     name: "WatchList",
     component: WatchListView,
   },
