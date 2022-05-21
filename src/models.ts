@@ -33,6 +33,7 @@ export interface WatchListItem {
   addedBy: string;
   movieId: number;
   releaseDate: string;
+  poster_url: string;
 }
 
 export interface NextMovieResponse {
