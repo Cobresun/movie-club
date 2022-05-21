@@ -1,7 +1,11 @@
-/* eslint-disable @typescript-eslint/no-var-requires */
-const faunadb = require('faunadb')
+import { Handler } from "@netlify/functions";
+import faunadb from "faunadb";
+import { QueryResponse } from "./utils/types";
+import { getErrorMessage } from "./utils/validation";
 
-const faunaClient = new faunadb.Client({ secret: process.env.FAUNADB_SERVER_SECRET })
+import { Member, Club } from "../../src/models";
+
+const faunaClient = new faunadb.Client({ secret: process.env.FAUNADB_SERVER_SECRET ?? "" })
 const q = faunadb.query
 
 /**
@@ -13,7 +17,7 @@ const q = faunadb.query
  * 
  */
 
-exports.handler = async function(event, context) {
+const handler: Handler = async function(event) {
     if (event.httpMethod === 'GET') {
         const pathArray = event.path.split("/")
         const clubIdIndex = pathArray.indexOf('club') + 1
@@ -29,39 +33,19 @@ exports.handler = async function(event, context) {
         const method = pathArray[clubIdIndex + 1]
         
         try {
-            const req = await faunaClient.query(
+            const req = await faunaClient.query<QueryResponse<Club>>(
                 q.Map(
-                    q.Paginate(
-                        q.Match(
-                            q.Index("club_by_clubId"),
-                            clubId
-                        )
-                    ),
-                    q.Lambda(
-                        "X",
-                        q.Get(
-                            q.Var("X")
-                        )
-                    )
+                    q.Paginate(q.Match(q.Index("club_by_clubId"), clubId)),
+                    q.Lambda("X", q.Get(q.Var("X")))
                 )
             )
 
-            let members = []
+            const members = []
             for (const userName of req.data[0].data.members) {
-                const memberReq = await faunaClient.query(
+                const memberReq = await faunaClient.query<QueryResponse<Member>>(
                     q.Map(
-                        q.Paginate(
-                            q.Match(
-                                q.Index("members_by_email"),
-                                userName
-                            )
-                        ),
-                        q.Lambda(
-                            "X",
-                            q.Get(
-                                q.Var("X")
-                            )
-                        )
+                        q.Paginate(q.Match(q.Index("members_by_email"), userName)),
+                        q.Lambda("X", q.Get(q.Var("X")))
                     )
                 )
                 members.push(memberReq.data[0].data)
@@ -89,15 +73,16 @@ exports.handler = async function(event, context) {
                 body: JSON.stringify(responseBody)
             }
         } catch (err) {
-            return { statusCode: 404, body: JSON.stringify({ error: err.message}) }
+            return { statusCode: 404, body: JSON.stringify({ error: getErrorMessage(err) }) }
         }
     } else {
         return {
             statusCode: 405,
             body: 'You are not using a http GET method for this endpoint.',
-            headers: {
-                'Allow': 'GET'
-            }
         }
     }
 }
+
+
+
+export { handler };
