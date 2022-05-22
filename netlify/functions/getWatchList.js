@@ -65,18 +65,25 @@ exports.handler = async function(event, context) {
     }
 }
 
+async function getConfiguration() {
+    return axios
+        .get(`https://api.themoviedb.org/3/configuration?api_key=${tmdbApiKey}`)
+}
+
 async function getMovieData(watchList) {
-  const promises = [];
-  for (const movie of watchList) {
+    let configuration = await getConfiguration()
+    const promises = []
+    for (const movie of watchList) {
     const promise = axios
-      .get(
+        .get(
         `https://api.themoviedb.org/3/movie/${movie.movieId}?api_key=${tmdbApiKey}`
-      )
-      .then((response) => {
-            movie.releaseDate = response.data.release_date;
+        )
+        .then((response) => {
+            movie.releaseDate = response.data.release_date
+            movie.poster_url = configuration.data.images.base_url + "w500" + response.data.poster_path
         });
-    promises.push(promise);
-  }
-  await Promise.all(promises);
-  return watchList;
+    promises.push(promise)
+    }
+    await Promise.all(promises)
+    return watchList
 }
