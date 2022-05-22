@@ -24,23 +24,23 @@
       <loading-spinner v-if="loading" />
 
       <div v-if="!loading">
-        <v-btn
-          class="float-left mr-3"
-          @click="openPrompt"
-        >
-          Add Movie
-          <mdicon name="plus" />
-        </v-btn>
+        <div class="flex items-start gap-2">
+          <v-btn
+            @click="openPrompt"
+          >
+            Add Movie
+            <mdicon name="plus" />
+          </v-btn>
 
-        <v-btn
-          class="float-left mr-3"
-          @click="selectRandom()"
-        >
-          Random
-          <mdicon name="dice-multiple-outline" />
-        </v-btn>
+          <v-btn
+            @click="selectRandom()"
+          >
+            Random
+            <mdicon name="dice-multiple-outline" />
+          </v-btn>
+        </div>
 
-        <div class="grid grid-cols-auto justify-items-center">
+        <div class="grid grid-cols-auto justify-items-center my-4">
           <MoviePosterCard
             v-for="movie in watchList"
             :key="movie.movieId"
@@ -49,11 +49,17 @@
             :highlighted="movie.movieId === nextMovieId"
           >
             <div class="grid grid-cols-2 gap-2">
-              <v-btn @click="reviewMovie(movie.movieId)">
+              <v-btn
+                class="flex justify-center"
+                @click="reviewMovie(movie.movieId)"
+              >
                 <mdicon name="check" />
               </v-btn>
 
-              <v-btn @click="makeNextWatch(movie)">
+              <v-btn
+                class="flex justify-center"
+                @click="makeNextWatch(movie)"
+              >
                 <mdicon name="arrow-collapse-up" />
               </v-btn>
             </div>
