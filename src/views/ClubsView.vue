@@ -44,6 +44,7 @@
 import { ref, computed, watch } from "vue";
 import { useStore } from "vuex";
 import axios from "axios";
+import { Club } from "../models"
 
 import clubSvg from "@/assets/menu-images/club.svg";
 
@@ -62,9 +63,13 @@ const getClubs = (newVal: boolean) => {
 
         response.data.clubs.forEach((clubId: number) => {
           promises.push(
-            axios.get(`/api/club/${clubId}/clubName`).then((response) => {
-              return response.data;
-            })
+            axios
+              .get<Club>(`/api/club/${clubId}`)
+              .then((response) => {
+                console.log(response.data)
+                return response.data.clubName;
+              }
+            )
           );
         });
 

@@ -44,7 +44,7 @@
 import { ref, computed } from 'vue';
 import axios from 'axios'
 import ReviewCard from '@/components/ReviewCard.vue'
-import { DetailedReviewResponse, Member } from '@/models';
+import { DetailedReviewResponse, Club, Member } from '@/models';
 import LoadingSpinner from '@/components/LoadingSpinner.vue';
 
 const reviews = ref<DetailedReviewResponse[]>([]);
@@ -59,9 +59,9 @@ axios
 const members = ref<Member[]>([]);
 const loadingMembers = ref(true);
 axios
-  .get<Member[]>('/api/club/8/members')
+  .get<Club>('/api/club/8')
   .then((response) => {
-    members.value = response.data.filter(member => !member.devAccount);
+    members.value = response.data.members.filter(member => !member.devAccount);
     loadingMembers.value = false;
   });
 

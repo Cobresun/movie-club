@@ -88,7 +88,7 @@
 import { ref, computed, nextTick } from "vue";
 import { useStore } from "vuex";
 import AddReviewPrompt from '@/components/SearchPrompt/AddReviewPrompt.vue';
-import { Header, Member, ReviewResponse } from '@/models';
+import { Header, Member, ReviewResponse, Club } from '@/models';
 import axios from 'axios'
 import { DateTime } from "luxon";
 
@@ -109,10 +109,10 @@ axios
   });
 
 axios
-  .get('/api/club/8/members')
+  .get<Club>('/api/club/8')
   .then((response) => {
     loadingMembers.value = false;
-    members.value = response.data;
+    members.value = response.data.members;
   });
 
 const modalOpen = ref(false);

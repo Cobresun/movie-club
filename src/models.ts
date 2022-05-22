@@ -47,6 +47,7 @@ export interface Member {
   email: string;
   name: string;
   image: string;
+  clubs: number[];
 }
 
 export interface TMDBGenre {
@@ -84,4 +85,10 @@ export interface MovieSearchIndex {
   title: string;
   release_date: string;
   id: number;
+}
+
+export interface Club {
+  clubId: number;
+  clubName: string;
+  members: Member[];
 }
