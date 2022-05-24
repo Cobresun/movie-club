@@ -22,11 +22,6 @@ export interface DetailedReviewResponse extends ReviewResponse {
   movieData: TMDBMovieData
 }
 
-export interface WatchListResponse {
-  watchList: WatchListItem[],
-  nextMovie: NextMovieResponse
-}
-
 export interface WatchListItem {
   timeAdded: DateObject;
   movieTitle: string;
@@ -34,12 +29,6 @@ export interface WatchListItem {
   movieId: number;
   releaseDate: string;
   poster_url: string;
-}
-
-export interface NextMovieResponse {
-  movieTitle: string;
-  nextMovieId: number;
-  datePicked: DateObject;
 }
 
 export interface Member {
@@ -91,4 +80,5 @@ export interface Club {
   clubId: number;
   clubName: string;
   members: Member[];
+  nextMovieId?: number;
 }

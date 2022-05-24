@@ -58,7 +58,7 @@
 
               <v-btn
                 class="flex justify-center"
-                @click="makeNextWatch(movie)"
+                @click="makeNextWatch(movie.movieId)"
               >
                 <mdicon name="arrow-collapse-up" />
               </v-btn>
@@ -76,25 +76,36 @@ import { useStore } from 'vuex';
 import { useRouter } from 'vue-router';
 import axios from 'axios';
 import MoviePosterCard from '@/components/MoviePosterCard.vue'
-import { WatchListResponse, NextMovieResponse, WatchListItem } from '@/models';
+import { Club, WatchListItem } from '@/models';
 import AddMovieToWatchlistPrompt from '@/components/SearchPrompt/AddMovieToWatchlistPrompt.vue';
 
 const store = useStore();
 const router = useRouter();
 
 const watchList = ref<WatchListItem[]>([]);
-const nextMovie = ref<NextMovieResponse>();
 
 const loadingWatchList = ref(true);
-const loading = computed(() => loadingWatchList.value );
+const loadingNextWatch = ref(true);
+const loading = computed(() => loadingWatchList.value || loadingNextWatch.value );
+
+const ROTATE_ITERATIONS = 30;
+const rotateReps = ref(ROTATE_ITERATIONS);
+const animate = ref(false);
+const nextMovieId = ref<number | undefined>();
+const animateInterval = ref<number | undefined>();
 
 axios
-  .get<WatchListResponse>('/api/getWatchList')
-  .then((response) => {
-    loadingWatchList.value = false;
-    watchList.value = response.data.watchList;
-    nextMovie.value = response.data.nextMovie;
-    nextMovieId.value = nextMovie.value.nextMovieId;
+  .get<WatchListItem[]>('/api/getWatchList')
+  .then(response => {
+    loadingWatchList.value = false
+    watchList.value = response.data
+  })
+
+axios
+  .get<Club>('/api/club/8')
+  .then(response => {
+    loadingNextWatch.value = false
+    nextMovieId.value = response.data.nextMovieId
   });
 
 const reviewMovie = (movieId: number) => {
@@ -109,27 +120,24 @@ const reviewMovie = (movieId: number) => {
   })
 };
 
-const makeNextWatch = (movie: {movieId: number, movieTitle: string}) => {
-  nextMovieId.value = movie.movieId;
-
-  axios.post<NextMovieResponse>(`/api/postNextWatch?movieId=${movie.movieId}&watchListId=${0}&movieTitle=${movie.movieTitle}`, {}, {
-    headers: {
-      Authorization: `Bearer ${store.state.auth.user.token.access_token}`
-    }
-  }).then((response) => {
-    nextMovie.value = response.data;
-  });
+const makeNextWatch = (movieId: number) => {
+  axios
+    .put(
+      '/api/club/8',
+      null,
+      {
+        params: { nextMovieId: movieId },
+        headers: { Authorization: `Bearer ${store.state.auth.user.token.access_token}` }
+      }
+    )
+    .then(() => {
+      nextMovieId.value = movieId
+    })
 }
-
-const ROTATE_ITERATIONS = 30;
-const rotateReps = ref(ROTATE_ITERATIONS);
-const animate = ref(false);
-const nextMovieId = ref<number | undefined>();
-const animateInterval = ref<number | undefined>();
 
 const selectRandom = () => {
   let randomMovie = watchList.value[Math.floor(Math.random() * watchList.value.length)];
-  makeNextWatch(randomMovie);
+  makeNextWatch(randomMovie.movieId);
   rotateReps.value = ROTATE_ITERATIONS;
   animateInterval.value = window.setInterval(animateRotate, 100);
   animate.value = true;

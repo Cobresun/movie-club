@@ -31,34 +31,12 @@ exports.handler = async function(event, context) {
         
         let watchList = await getMovieData(reqWatchList.data)
 
-        // TODO: when expanding past mvp to multiple watchlists, fetch watchlistid for both queries
-        // from event.queryStringParameters like reviewMovieFromWatchList.js instead of using "0"
-        const reqNextMovie = await faunaClient.query(
-            q.Map(
-                q.Paginate(
-                    q.Match(
-                        q.Index("nextMovie_by_watchListId"),
-                        parseInt("0")
-                    )
-                ),
-                q.Lambda(
-                    "X",
-                    q.Get(
-                        q.Var("X")
-                    )
-                )
-            )
-        )
-
-        let nextMovie = reqNextMovie.data[0].data
-        let nextMovieAndWatchList = {nextMovie, watchList}
-
         return {
             statusCode: 200,
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify(nextMovieAndWatchList)
+            body: JSON.stringify(watchList)
         }
     } catch (err) {
         return { statusCode: 500, body: JSON.stringify({ error: err.message}) }

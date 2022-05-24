@@ -2,6 +2,7 @@
   <MoviePosterCard
     :movie-title="movieTitle"
     :movie-poster-url="moviePosterUrl"
+    :highlighted="false"
   >
     <div class="grid grid-cols-2 gap-2">
       <div 
