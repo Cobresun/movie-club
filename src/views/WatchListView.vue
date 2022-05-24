@@ -40,13 +40,19 @@
           </v-btn>
         </div>
 
-        <div class="grid grid-cols-auto justify-items-center my-4">
+        <transition-group
+          tag="div"
+          move-class="transition ease-linear duration-300"
+          class="grid grid-cols-auto justify-items-center my-4"
+        >
           <MoviePosterCard
-            v-for="movie in watchList"
+            v-for="(movie, index) in sortedWatchList"
             :key="movie.movieId"
+            :class="[index==0?'z-0':'z-10']"
+            class="bg-background"
             :movie-title="movie.movieTitle"
             :movie-poster-url="movie.poster_url"
-            :highlighted="movie.movieId === nextMovieId"
+            :highlighted="nextMovieId !== undefined && !animate && index == 0"
           >
             <div class="grid grid-cols-2 gap-2">
               <v-btn
@@ -64,7 +70,7 @@
               </v-btn>
             </div>
           </MoviePosterCard>
-        </div>
+        </transition-group>
       </div>
     </div>
   </div>
@@ -88,7 +94,7 @@ const loadingWatchList = ref(true);
 const loadingNextWatch = ref(true);
 const loading = computed(() => loadingWatchList.value || loadingNextWatch.value );
 
-const ROTATE_ITERATIONS = 30;
+const ROTATE_ITERATIONS = 20;
 const rotateReps = ref(ROTATE_ITERATIONS);
 const animate = ref(false);
 const nextMovieId = ref<number | undefined>();
@@ -107,6 +113,18 @@ axios
     loadingNextWatch.value = false
     nextMovieId.value = response.data.nextMovieId
   });
+
+const sortedWatchList = computed(() => {
+  let sortedWatchList = watchList.value.slice(0);
+  if (!animate.value) {
+    const nextMovieItem: WatchListItem | undefined = watchList.value.find(movie => movie.movieId === nextMovieId.value);
+    if (nextMovieItem) {
+      sortedWatchList = watchList.value.filter(movie => movie.movieId !== nextMovieItem.movieId);
+      sortedWatchList.unshift(nextMovieItem);
+    }
+  }
+  return sortedWatchList;
+});
 
 const reviewMovie = (movieId: number) => {
   axios.post<WatchListItem>(`/api/reviewMovieFromWatchList?movieId=${ movieId }`, {}, {
@@ -139,7 +157,7 @@ const selectRandom = () => {
   let randomMovie = watchList.value[Math.floor(Math.random() * watchList.value.length)];
   makeNextWatch(randomMovie.movieId);
   rotateReps.value = ROTATE_ITERATIONS;
-  animateInterval.value = window.setInterval(animateRotate, 100);
+  animateInterval.value = window.setInterval(animateRotate, 300);
   animate.value = true;
 }
 
