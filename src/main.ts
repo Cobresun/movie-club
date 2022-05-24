@@ -13,6 +13,7 @@ import VTable from "@/components/VTable.vue";
 import MenuCard from "@/components/MenuCard.vue";
 import VModal from "@/components/VModal.vue";
 import './assets/tailwind.css'
+import 'animate.css';
 
 createApp(App)
   .component("v-avatar", VAvatar)
