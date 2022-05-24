@@ -3,13 +3,12 @@
     <nav-bar />
     <router-view v-slot="{ Component, route }">
       <transition
-        tag="div"
-        class="w-full fixed"
         :enter-active-class="route.meta.transitionIn"
         :leave-active-class="route.meta.transitionOut"
       >
         <component
           :is="Component"
+          class="absolute w-full"
         />
       </transition>
     </router-view>

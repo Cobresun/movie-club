@@ -1,5 +1,5 @@
 <template>
-  <div class="m-2">
+  <div class="p-2">
     <add-movie-to-watchlist-prompt
       v-if="modalOpen"
       @close="closePrompt" 
