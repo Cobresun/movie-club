@@ -26,16 +26,23 @@
         class="mb-4 p-2 text-base text-black outline-none rounded-md border-2 border-gray-300 focus:border-primary w-11/12 max-w-md"
         placeholder="Search"
       >
-      <div class="grid grid-cols-auto justify-items-center">
+      <transition-group
+        tag="div"
+        leave-active-class="absolute hidden"
+        enter-from-class="opacity-0"
+        leave-to-class="opacity-0"
+        class="grid grid-cols-auto justify-items-center"
+      >
         <ReviewCard
           v-for="review in filteredReviews"
           :key="review.movieId"
+          class="transition-all ease duration-500"
           :review="review"
           :members="members"
           :movie-title="review.movieData.title"
           :movie-poster-url="review.movieData.poster_url"
         />
-      </div>
+      </transition-group>
     </div>
   </div>
 </template>
