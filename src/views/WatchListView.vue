@@ -52,7 +52,7 @@
             class="bg-background"
             :movie-title="movie.movieTitle"
             :movie-poster-url="movie.poster_url"
-            :highlighted="nextMovieId !== undefined && !animate && index == 0"
+            :highlighted="!animate && movie.movieId == nextMovieId"
           >
             <div class="grid grid-cols-2 gap-2">
               <v-btn
