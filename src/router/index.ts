@@ -63,6 +63,7 @@ const router = createRouter({
 });
 
 router.beforeEach((to, from) => {
+  console.log(navigator.userAgent);
   if (/^((?!chrome|android).)*safari/i.test(navigator.userAgent)) {
     to.meta.transitionIn = "";
     to.meta.transitionOut = "";
