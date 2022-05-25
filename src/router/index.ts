@@ -63,6 +63,10 @@ const router = createRouter({
 });
 
 router.beforeEach((to, from) => {
+  if (/^((?!chrome|android).)*safari/i.test(navigator.userAgent)) {
+    to.meta.transitionIn = "";
+    to.meta.transitionOut = "";
+  }
   if (!from.name) {
     to.meta.transitionIn = "animate__animated animate__faster animate__fadeIn"
     return;
