@@ -43,7 +43,7 @@
         <transition-group
           tag="div"
           move-class="transition ease-linear duration-300"
-          class="grid grid-cols-auto justify-items-center my-4"
+          class="grid grid-cols-auto my-4"
         >
           <MoviePosterCard
             v-for="(movie, index) in sortedWatchList"
