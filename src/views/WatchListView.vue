@@ -101,10 +101,10 @@ const nextMovieId = ref<number | undefined>();
 const animateInterval = ref<number | undefined>();
 
 axios
-  .get<WatchListItem[]>('/api/getWatchList')
+  .get<Club>('/api/club/8')
   .then(response => {
     loadingWatchList.value = false
-    watchList.value = response.data
+    watchList.value = response.data.watchList
   })
 
 axios

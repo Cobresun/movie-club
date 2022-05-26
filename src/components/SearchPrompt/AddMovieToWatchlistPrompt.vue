@@ -40,11 +40,15 @@ axios.get<{results: MovieSearchIndex[]}>(`https://api.themoviedb.org/3/trending/
 
 const selectFromSearch = (movie: MovieSearchIndex) => {
   loading.value = true;
-  axios.post<WatchListItem>(`/api/postWatchListMovie?movieId=${ movie.id }`, {}, {
-    headers: {
-      Authorization: `Bearer ${store.state.auth.user.token.access_token}`
-    }
-  })
+  axios
+    .post<WatchListItem>(
+      `/api/club/8`,
+      null,
+      {
+        params: { newWatchListItem: movie.id },
+        headers: { Authorization: `Bearer ${store.state.auth.user.token.access_token}` }
+      }
+    )
   .then((response) => {
     emit("close", response.data);
   })
