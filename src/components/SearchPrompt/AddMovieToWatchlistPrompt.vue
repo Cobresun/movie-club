@@ -40,7 +40,7 @@ axios.get<{results: MovieSearchIndex[]}>(`https://api.themoviedb.org/3/trending/
 
 const selectFromSearch = (movie: MovieSearchIndex) => {
   loading.value = true;
-  axios.post<WatchListItem>(`/api/postWatchListMovie?movieId=${ movie.id }&user=cole&movieTitle=${ movie.title }`, {}, {
+  axios.post<WatchListItem>(`/api/postWatchListMovie?movieId=${ movie.id }`, {}, {
     headers: {
       Authorization: `Bearer ${store.state.auth.user.token.access_token}`
     }

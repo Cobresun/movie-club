@@ -57,6 +57,7 @@ async function getMovieData(watchList) {
         `https://api.themoviedb.org/3/movie/${movie.movieId}?api_key=${tmdbApiKey}`
         )
         .then((response) => {
+            movie.movieTitle = response.data.title
             movie.releaseDate = response.data.release_date
             movie.poster_url = configuration.data.images.base_url + "w500" + response.data.poster_path
         });

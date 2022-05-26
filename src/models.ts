@@ -25,7 +25,6 @@ export interface DetailedReviewResponse extends ReviewResponse {
 export interface WatchListItem {
   timeAdded: DateObject;
   movieTitle: string;
-  addedBy: string;
   movieId: number;
   releaseDate: string;
   poster_url: string;

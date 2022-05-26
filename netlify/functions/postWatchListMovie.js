@@ -23,16 +23,6 @@ exports.handler = async function(event, context) {
             message: 'No movieId specified. Please specify a movieId.'
         });
     } 
-    if (!body.user) {
-        return response(400, {
-            message: 'No user specified. Please specify a user.'
-        });
-    }
-    if (!body.movieTitle) {
-        return response(400, {
-            message: 'No movieTitle specified. Please specify a movieTitle.'
-        });
-    }
 
     try {
         const req = await faunaClient.query(
@@ -41,9 +31,7 @@ exports.handler = async function(event, context) {
                 {
                     data: {
                         "movieId": parseInt(body.movieId),
-                        "movieTitle": body.movieTitle,
                         "timeAdded": q.Now(),
-                        "addedBy": body.user
                     }
                 }
             )
