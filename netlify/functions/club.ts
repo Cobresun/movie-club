@@ -91,20 +91,11 @@ const handler = async function(event: HandlerEvent, context: HandlerContext) {
                 data: {}
             }
         }
-    } else if (event.httpMethod === 'GET') {
+    }
+    else if (event.httpMethod === 'GET') {
         try {
             const club = await faunaClient.query<Club>(
-                q.Select("data", q.Get(q.Match(q.Index("club_by_clubId"), clubId)))
-            )
-
-            club.members = await faunaClient.query<Member[]>(
-                q.Map(
-                    q.Select(["data", "members"], q.Get(q.Match(q.Index("club_by_clubId"), clubId))),
-                    q.Lambda(
-                        "memberRef",
-                        q.Select("data", q.Get(q.Var("memberRef")))
-                    )
-                )
+                q.Call(q.Function("GetClub"), clubId)
             )
 
             club.watchList = await getMovieData(club.watchList)
@@ -119,7 +110,8 @@ const handler = async function(event: HandlerEvent, context: HandlerContext) {
         } catch (err) {
             return { statusCode: 404, body: JSON.stringify({ error: getErrorMessage(err) }) }
         }
-    } else {
+    }
+    else {
         return {
             statusCode: 405,
             body: 'You are not using a valid http method for this endpoint.'
