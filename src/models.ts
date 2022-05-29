@@ -80,5 +80,6 @@ export interface Club {
   clubName: string;
   members: Member[];
   nextMovieId?: number;
-  watchList: WatchListItem[]
+  watchList: WatchListItem[];
+  backlog: WatchListItem[];
 }

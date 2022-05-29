@@ -71,6 +71,23 @@
             </div>
           </MoviePosterCard>
         </transition-group>
+
+        <h1>Backlog</h1>
+        <transition-group
+          tag="div"
+          move-class="transition ease-linear duration-300"
+          class="grid grid-cols-auto my-4"
+        >
+          <MoviePosterCard
+            v-for="(movie, index) in backlog"
+            :key="movie.movieId"
+            :class="[index==0?'z-0':'z-10']"
+            class="bg-background"
+            :movie-title="movie.movieTitle"
+            :movie-poster-url="movie.poster_url"
+            :highlighted="!animate && movie.movieId == nextMovieId"
+          />
+        </transition-group>
       </div>
     </div>
   </div>
@@ -89,6 +106,7 @@ const store = useStore();
 const router = useRouter();
 
 const watchList = ref<WatchListItem[]>([]);
+const backlog = ref<WatchListItem[]>([])
 
 const loadingWatchList = ref(true);
 const loadingNextWatch = ref(true);
@@ -105,6 +123,7 @@ axios
   .then(response => {
     loadingWatchList.value = false
     watchList.value = response.data.watchList
+    backlog.value = response.data.backlog
   })
 
 axios

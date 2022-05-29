@@ -1,7 +1,7 @@
 import { HandlerContext, HandlerEvent} from "@netlify/functions"
 import faunadb from "faunadb"
 import { getErrorMessage } from "./utils/validation"
-import { Club, Member } from "../../src/models"
+import { Club, WatchListItem } from "../../src/models"
 import axios from "axios"
 
 const faunaClient = new faunadb.Client({ secret: process.env.FAUNADB_SERVER_SECRET ?? "" })
@@ -99,6 +99,7 @@ const handler = async function(event: HandlerEvent, context: HandlerContext) {
             )
 
             club.watchList = await getMovieData(club.watchList)
+            club.backlog = await getMovieData(club.backlog)
 
             return {
                 statusCode: 200,
@@ -121,7 +122,7 @@ const handler = async function(event: HandlerEvent, context: HandlerContext) {
 
 export { handler }
 
-async function getMovieData(watchList: any[]) {
+async function getMovieData(watchList: WatchListItem[]) {
     const configuration = await axios.get(`https://api.themoviedb.org/3/configuration?api_key=${tmdbApiKey}`)
 
     const promises = []
