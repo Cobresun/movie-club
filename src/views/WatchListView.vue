@@ -26,13 +26,6 @@
       <div v-if="!loading">
         <div class="flex items-start gap-2">
           <v-btn
-            @click="openPrompt"
-          >
-            Add Movie
-            <mdicon name="plus" />
-          </v-btn>
-
-          <v-btn
             @click="selectRandom()"
           >
             Random
@@ -73,6 +66,15 @@
         </transition-group>
 
         <h1>Backlog</h1>
+        <div class="flex items-start gap-2">
+          <v-btn
+            @click="openPrompt"
+          >
+            Add Movie
+            <mdicon name="plus" />
+          </v-btn>
+        </div>
+        
         <transition-group
           tag="div"
           move-class="transition ease-linear duration-300"

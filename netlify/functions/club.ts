@@ -41,18 +41,8 @@ const handler = async function(event: HandlerEvent, context: HandlerContext) {
         if (event.queryStringParameters != null && event.queryStringParameters.newWatchListItem != null) {
             const newWatchListItem = parseInt(event.queryStringParameters.newWatchListItem)
 
-            await faunaClient.query<void>(
-                q.Let(
-                    {
-                      ref: q.Select("ref", q.Get(q.Match(q.Index("club_by_clubId"), clubId))),
-                      doc: q.Get(q.Var('ref')),
-                      array: q.Select(['data','watchList'], q.Var('doc'))
-                    },
-                    q.Update(
-                        q.Var('ref'), 
-                        { data: { watchList: q.Append([{ movieId: newWatchListItem, timeAdded: q.Now() }], q.Var('array')) } }
-                    )
-                )
+            const club = await faunaClient.query<void>(
+                q.Call(q.Function("AddMovieToBacklog"), [clubId, newWatchListItem])
             )
 
             return {
@@ -60,7 +50,7 @@ const handler = async function(event: HandlerEvent, context: HandlerContext) {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                data: {}
+                data: {club}
             }
         }
     }
