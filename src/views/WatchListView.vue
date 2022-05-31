@@ -88,7 +88,20 @@
             :movie-title="movie.movieTitle"
             :movie-poster-url="movie.poster_url"
             :highlighted="!animate && movie.movieId == nextMovieId"
-          />
+          >
+            <div class="grid grid-cols-2 gap-2">
+              <v-btn
+                class="flex justify-center"
+              >
+                <mdicon name="arrow-collapse-up" />
+              </v-btn>
+              <v-btn
+                class="flex justify-center"
+              >
+                <mdicon name="delete" />
+              </v-btn>
+            </div>
+          </MoviePosterCard>
         </transition-group>
       </div>
     </div>
