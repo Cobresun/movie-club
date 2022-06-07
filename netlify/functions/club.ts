@@ -42,7 +42,6 @@ const handler: Handler = async function(event: HandlerEvent, context: HandlerCon
     }
 
     const backlogPathMatch = backlogPath.partialTest(event.path);
-    console.log(backlogPathMatch);
     if (backlogPathMatch != null) {
         return await backlogHandler(event, context, backlogPathMatch);
     }
@@ -118,7 +117,6 @@ async function addMovieToBacklog(clubId: number, movieId: number) {
 }
 
 async function deleteMovieFromBacklog(clubId: number, movieId: number) {
-    console.log("hi");
     await faunaClient.query(
         q.Call(q.Function("DeleteBacklogItem"), [clubId, movieId])
     ).catch((error) => {console.log(error)});
