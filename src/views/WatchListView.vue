@@ -211,7 +211,7 @@ const openPrompt = () => { modalOpen.value = true };
 const closePrompt = (movie?: WatchListItem) => {
   modalOpen.value = false;
   if (movie) {
-    watchList.value.unshift(movie);
+    backlog.value.push(movie);
   }
 };
 </script>

@@ -41,16 +41,23 @@ const handler = async function(event: HandlerEvent, context: HandlerContext) {
         if (event.queryStringParameters != null && event.queryStringParameters.newWatchListItem != null) {
             const newWatchListItem = parseInt(event.queryStringParameters.newWatchListItem)
 
-            const club = await faunaClient.query<void>(
+            await faunaClient.query(
                 q.Call(q.Function("AddMovieToBacklog"), [clubId, newWatchListItem])
             )
+
+            const club = await faunaClient.query<Club>(
+                q.Call(q.Function("GetClub"), clubId)
+            )
+
+            club.watchList = await getMovieData(club.watchList)
+            club.backlog = await getMovieData(club.backlog)
 
             return {
                 statusCode: 200,
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                data: {club}
+                body: JSON.stringify(club)
             }
         }
     }
