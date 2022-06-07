@@ -29,17 +29,7 @@ exports.handler = async function(event, context) {
 
     try {
         await faunaClient.query(
-            q.Delete(
-                q.Select(
-                    "ref",
-                    q.Get(
-                        q.Match(
-                            q.Index("watchList_by_movieId"),
-                            parseInt(body.movieId)
-                        )
-                    )
-                )
-            )
+            q.Call(q.Function("DeleteWatchListItem"), [8, parseInt(body.movieId)]) // TODO: Don't hardcode clubId lol
         )
 
         const postReviewQuery = await faunaClient.query(
