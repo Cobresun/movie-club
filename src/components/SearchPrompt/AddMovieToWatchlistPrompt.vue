@@ -42,10 +42,9 @@ const selectFromSearch = (movie: MovieSearchIndex) => {
   loading.value = true;
   axios
     .post<Club>(
-      `/api/club/8`,
+      `/api/club/8/backlog/${movie.id}`,
       null,
       {
-        params: { newWatchListItem: movie.id },
         headers: { Authorization: `Bearer ${store.state.auth.user.token.access_token}` }
       }
     )

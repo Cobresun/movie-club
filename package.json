@@ -17,6 +17,7 @@
     "luxon": "^2.4.0",
     "mdi-vue": "^3.0.13",
     "netlify-identity-widget": "^1.9.2",
+    "path-parser": "^6.1.0",
     "randomcolor": "^0.6.2",
     "vue": "^3.2.13",
     "vue-router": "^4.0.3",

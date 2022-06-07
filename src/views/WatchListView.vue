@@ -65,7 +65,9 @@
           </MoviePosterCard>
         </transition-group>
 
-        <h1>Backlog</h1>
+        <h1 class="text-2xl font-bold m-4">
+          Backlog
+        </h1>
         <div class="flex items-start gap-2">
           <v-btn
             @click="openPrompt"
@@ -78,6 +80,9 @@
         <transition-group
           tag="div"
           move-class="transition ease-linear duration-300"
+          leave-active-class="absolute hidden"
+          enter-from-class="opacity-0"
+          leave-to-class="opacity-0"
           class="grid grid-cols-auto my-4"
         >
           <MoviePosterCard
@@ -97,6 +102,7 @@
               </v-btn>
               <v-btn
                 class="flex justify-center"
+                @click="() => deleteBacklogItem(movie.movieId)"
               >
                 <mdicon name="delete" />
               </v-btn>
@@ -175,10 +181,9 @@ const reviewMovie = (movieId: number) => {
 const makeNextWatch = (movieId: number) => {
   axios
     .put(
-      '/api/club/8',
-      null,
+      '/api/club/8/nextMovie',
+      { nextMovieId: movieId },
       {
-        params: { nextMovieId: movieId },
         headers: { Authorization: `Bearer ${store.state.auth.user.token.access_token}` }
       }
     )
@@ -214,4 +219,20 @@ const closePrompt = (movie?: WatchListItem) => {
     backlog.value.push(movie);
   }
 };
+
+const deleteBacklogItem = (id: number) => {
+  axios
+    .delete<void>(
+      `/api/club/8/backlog/${id}`,
+      {
+        headers: { Authorization: `Bearer ${store.state.auth.user.token.access_token}` }
+      }
+    )
+  .then(() => {
+    backlog.value = backlog.value.filter(x => x.movieId !== id);
+  })
+  .catch((error) => {
+    console.error(error);
+  });
+}
 </script>
