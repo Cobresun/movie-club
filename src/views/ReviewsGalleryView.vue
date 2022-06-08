@@ -3,7 +3,7 @@
     <div class="grid items-center grid-cols-centerHeader gap-x-8">
       <router-link
         class="flex justify-end"
-        to="/club-home"
+        :to="{ name: 'ClubHome' }"
       >
         <mdicon
           class="cursor-pointer"
@@ -49,6 +49,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
+import { useRoute } from 'vue-router';
 import axios from 'axios'
 import ReviewCard from '@/components/ReviewCard.vue'
 import { DetailedReviewResponse, Club, Member } from '@/models';
@@ -63,10 +64,11 @@ axios
     loadingReviews.value = false;
   });
 
+const route = useRoute();
 const members = ref<Member[]>([]);
 const loadingMembers = ref(true);
 axios
-  .get<Club>('/api/club/8')
+  .get<Club>(`/api/club/${route.params.clubId}`)
   .then((response) => {
     members.value = response.data.members.filter(member => !member.devAccount);
     loadingMembers.value = false;

@@ -13,15 +13,15 @@
       >
         <div
           v-for="club in clubs"
-          :key="club"
+          :key="club.clubId"
           class="p-3"
         >
-          <router-link to="/club-home">
+          <router-link :to="{ name: 'ClubHome', params: { clubId: club.clubId }}">
             <menu-card
               bg-color="lowBackground"
               :image="clubSvg"
             >
-              {{ club }}
+              {{ club.clubName }}
             </menu-card>
           </router-link>
         </div>
@@ -53,13 +53,13 @@ const store = useStore();
 const loading = ref(true);
 const isLoggedIn = computed(() => store.state.auth.user);
 
-const clubs = ref<string[]>([]);
+const clubs = ref<Club[]>([]);
 const getClubs = (newVal: boolean) => {
   if (newVal) {
     axios
       .get(`/api/member/${store.state.auth.user.email}`)
       .then(async (response) => {
-        const promises: Promise<string>[] = [];
+        const promises: Promise<Club>[] = [];
 
         response.data.clubs.forEach((clubId: number) => {
           promises.push(
@@ -67,7 +67,7 @@ const getClubs = (newVal: boolean) => {
               .get<Club>(`/api/club/${clubId}`)
               .then((response) => {
                 console.log(response.data)
-                return response.data.clubName;
+                return response.data;
               }
             )
           );

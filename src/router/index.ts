@@ -16,7 +16,7 @@ const routes: Array<RouteRecordRaw> = [
     }
   },
   {
-    path: "/club-home",
+    path: "/club/:clubId",
     name: "ClubHome",
     component: ClubHomeView,
     meta: {
@@ -24,7 +24,7 @@ const routes: Array<RouteRecordRaw> = [
     }
   },
   {
-    path: "/reviews",
+    path: "/club/:clubId/reviews",
     name: "Reviews",
     component: ReviewView,
     meta: {
@@ -32,15 +32,15 @@ const routes: Array<RouteRecordRaw> = [
     }
   },
   {
-    path: "/reviews-gallery",
-    name: "Reviews-Gallery",
+    path: "/club/:clubId/reviews-gallery",
+    name: "ReviewsGallery",
     component: ReviewsGalleryView,
     meta: {
       depth: 2,
     }
   },
   {
-    path: "/watch-list",
+    path: "/club/:clubId/watch-list",
     name: "WatchList",
     component: WatchListView,
     meta: {
@@ -48,7 +48,7 @@ const routes: Array<RouteRecordRaw> = [
     }
   },
   {
-    path: "/statistics",
+    path: "/club/:clubId/statistics",
     name: "Statistics",
     component: StatisticsView,
     meta: {

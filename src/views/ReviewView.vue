@@ -8,7 +8,7 @@
       <div class="grid items-center grid-cols-centerHeader gap-x-8">
         <router-link
           class="flex justify-end"
-          to="/club-home"
+          :to="{ name: 'ClubHome' }"
         >
           <mdicon
             class="cursor-pointer"
@@ -87,12 +87,14 @@
 <script setup lang="ts">
 import { ref, computed, nextTick } from "vue";
 import { useStore } from "vuex";
+import { useRoute } from 'vue-router';
 import AddReviewPrompt from '@/components/SearchPrompt/AddReviewPrompt.vue';
 import { Header, Member, ReviewResponse, Club } from '@/models';
 import axios from 'axios'
 import { DateTime } from "luxon";
 
 const store = useStore();
+const route = useRoute();
 
 const loadingReviews = ref(true);
 const loadingMembers = ref(true);
@@ -109,7 +111,7 @@ axios
   });
 
 axios
-  .get<Club>('/api/club/8')
+  .get<Club>(`/api/club/${route.params.clubId}`)
   .then((response) => {
     loadingMembers.value = false;
     members.value = response.data.members;

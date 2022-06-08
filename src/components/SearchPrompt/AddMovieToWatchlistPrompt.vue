@@ -18,6 +18,7 @@
 <script setup lang="ts">
 import { ref, defineEmits } from 'vue';
 import { useStore } from 'vuex';
+import { useRoute } from 'vue-router';
 import axios from 'axios';
 import MovieSearchPrompt from './MovieSearchPrompt.vue';
 import { MovieSearchIndex, WatchListItem, Club } from '@/models';
@@ -29,6 +30,7 @@ const emit = defineEmits<{
 const loading = ref(true);
 const trending = ref<MovieSearchIndex[]>([]);
 const store = useStore();
+const route = useRoute();
 
 const apiKey = import.meta.env.VITE_TMDB_API_KEY;
 
@@ -42,7 +44,7 @@ const selectFromSearch = (movie: MovieSearchIndex) => {
   loading.value = true;
   axios
     .post<Club>(
-      `/api/club/8/backlog/${movie.id}`,
+      `/api/club/${route.params.clubId}/backlog/${movie.id}`,
       null,
       {
         headers: { Authorization: `Bearer ${store.state.auth.user.token.access_token}` }

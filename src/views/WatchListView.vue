@@ -8,7 +8,7 @@
       <div class="grid items-center grid-cols-centerHeader gap-x-8">
         <router-link
           class="flex justify-end"
-          to="/club-home"
+          :to="{ name: 'ClubHome' }"
         >
           <mdicon
             class="cursor-pointer"
@@ -117,7 +117,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useStore } from 'vuex';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import axios from 'axios';
 import MoviePosterCard from '@/components/MoviePosterCard.vue'
 import { Club, WatchListItem } from '@/models';
@@ -125,13 +125,12 @@ import AddMovieToWatchlistPrompt from '@/components/SearchPrompt/AddMovieToWatch
 
 const store = useStore();
 const router = useRouter();
+const route = useRoute();
 
 const watchList = ref<WatchListItem[]>([]);
 const backlog = ref<WatchListItem[]>([])
 
-const loadingWatchList = ref(true);
-const loadingNextWatch = ref(true);
-const loading = computed(() => loadingWatchList.value || loadingNextWatch.value );
+const loading = ref(true);
 
 const ROTATE_ITERATIONS = 20;
 const rotateReps = ref(ROTATE_ITERATIONS);
@@ -140,17 +139,11 @@ const nextMovieId = ref<number | undefined>();
 const animateInterval = ref<number | undefined>();
 
 axios
-  .get<Club>('/api/club/8')
+  .get<Club>(`/api/club/${route.params.clubId}`)
   .then(response => {
-    loadingWatchList.value = false
+    loading.value = false
     watchList.value = response.data.watchList
     backlog.value = response.data.backlog
-  })
-
-axios
-  .get<Club>('/api/club/8')
-  .then(response => {
-    loadingNextWatch.value = false
     nextMovieId.value = response.data.nextMovieId
   });
 
@@ -181,7 +174,7 @@ const reviewMovie = (movieId: number) => {
 const makeNextWatch = (movieId: number) => {
   axios
     .put(
-      '/api/club/8/nextMovie',
+      `/api/club/${route.params.clubId}/nextMovie`,
       { nextMovieId: movieId },
       {
         headers: { Authorization: `Bearer ${store.state.auth.user.token.access_token}` }
@@ -223,7 +216,7 @@ const closePrompt = (movie?: WatchListItem) => {
 const deleteBacklogItem = (id: number) => {
   axios
     .delete<void>(
-      `/api/club/8/backlog/${id}`,
+      `/api/club/${route.params.clubId}/backlog/${id}`,
       {
         headers: { Authorization: `Bearer ${store.state.auth.user.token.access_token}` }
       }
