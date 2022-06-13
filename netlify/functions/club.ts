@@ -1,6 +1,6 @@
 import { Handler, HandlerContext, HandlerEvent, HandlerResponse } from "@netlify/functions"
 import faunadb from "faunadb"
-import { Club, DetailedReviewResponse, ReviewResponse, WatchListItem } from "../../src/models"
+import { Club, WatchListItem } from "../../src/models"
 import axios from "axios"
 import { Path } from "path-parser";
 import { ok, methodNotAllowed, notFound, unauthorized, badRequest } from "./utils/responses"
@@ -15,11 +15,9 @@ type StringRecord = Record<string, string>
 const clubPath = new Path<StringRecord>('/api/club/:clubId<\\d+>');
 const nextMoviePath = new Path<StringRecord>('/api/club/:clubId<\\d+>/nextMovie');
 const backlogPath = new Path<StringRecord>('/api/club/:clubId<\\d+>/backlog/:movieId<\\d+>');
-const reviewsPath = new Path<StringRecord>('/api/club/:clubId<\\d+>/reviews/:detailed')
 
 /**
  * GET /club/:clubId -> returns full club data (clubId, clubName, members, nextMovieId, watchList)
- * GET /club/:clubId/reviews/:detailed -> where detailed is a boolean
  * 
  * Next Movie:
  * PUT /club/:clubId/nextMovie
@@ -48,11 +46,6 @@ const handler: Handler = async function(event: HandlerEvent, context: HandlerCon
         return await backlogHandler(event, context, backlogPathMatch);
     }
 
-    const reviewsPathMatch = reviewsPath.partialTest(event.path);
-    if (reviewsPathMatch != null) {
-        return await reviewsHandler(event, context, reviewsPathMatch);
-    }
-
     return await getClubHandler(event, context, clubPathMatch);
 
 }
@@ -65,7 +58,6 @@ async function getClubHandler(event: HandlerEvent, context: HandlerContext, path
     )
 
     club.watchList = await getMovieData(club.watchList)
-    club.reviews = await getReviewData(club.reviews)
     club.backlog = await getMovieData(club.backlog)
 
     return ok(JSON.stringify(club)) 
@@ -106,23 +98,6 @@ async function backlogHandler(event: HandlerEvent, context: HandlerContext, path
             return deleteMovieFromBacklog(parseInt(path.clubId), parseInt(path.movieId))
         default:
             return methodNotAllowed();
-    }
-}
-
-async function reviewsHandler(event: HandlerEvent, context: HandlerContext, path: StringRecord): Promise<HandlerResponse> {
-    if (event.httpMethod !== 'GET') return methodNotAllowed();
-
-    const club = await faunaClient.query<Club>(
-        q.Call(q.Function("GetClub"), parseInt(path.clubId))
-    )
-
-    if (path.detailed === 'true') {
-        club.reviews = await getReviewData(club.reviews)
-        const detailedReviews = await detDetailedMovieData(club.reviews as DetailedReviewResponse[])
-        return ok(JSON.stringify(detailedReviews))
-    } else {
-        club.reviews = await getReviewData(club.reviews)
-        return ok(JSON.stringify(club.reviews))
     }
 }
 
@@ -172,40 +147,4 @@ async function getMovieData(watchList: WatchListItem[]) {
 
     await Promise.all(promises)
     return watchList
-}
-
-async function getReviewData(reviews: ReviewResponse[]) {
-    const promises = []
-    for (const movie of reviews) {
-        const promise = axios
-            .get(`https://api.themoviedb.org/3/movie/${movie.movieId}?api_key=${tmdbApiKey}`)
-            .then(response => {
-                movie.movieTitle = response.data.title
-            })
-        promises.push(promise)
-    }
-
-    await Promise.all(promises)
-    return reviews
-}
-
-async function detDetailedMovieData(reviews: DetailedReviewResponse[]) {
-    const promises = []
-
-    const configuration = await axios.get(`https://api.themoviedb.org/3/configuration?api_key=${tmdbApiKey}`)
-
-    for (const movie of reviews) {
-      const promise = axios
-        .get(
-          `https://api.themoviedb.org/3/movie/${movie.movieId}?api_key=${tmdbApiKey}`
-        )
-        .then((response) => {
-              movie.movieData = response.data
-              movie.movieData.poster_url = configuration.data.images.base_url + "w500" + response.data.poster_path
-          })
-      promises.push(promise)
-    }
-
-    await Promise.all(promises)
-    return reviews
 }

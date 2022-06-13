@@ -66,6 +66,7 @@ const getClubs = (newVal: boolean) => {
             axios
               .get<Club>(`/api/club/${clubId}`)
               .then((response) => {
+                console.log(response.data)
                 return response.data;
               }
             )
