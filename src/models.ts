@@ -82,4 +82,5 @@ export interface Club {
   nextMovieId?: number;
   watchList: WatchListItem[];
   backlog: WatchListItem[];
+  reviews: ReviewResponse[];
 }
