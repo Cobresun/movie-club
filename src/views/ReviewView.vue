@@ -104,7 +104,7 @@ const reviews = ref<ReviewResponse[]>([]);
 const members = ref<Member[]>([]);
 
 axios
-  .get('/api/reviews')
+  .get<ReviewResponse[]>(`/api/club/${route.params.clubId}/reviews/false`)
   .then((response) => {
     loadingReviews.value = false;
     reviews.value = response.data;

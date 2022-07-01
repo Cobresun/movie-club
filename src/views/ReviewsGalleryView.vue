@@ -57,16 +57,18 @@ import LoadingSpinner from '@/components/LoadingSpinner.vue';
 
 const reviews = ref<DetailedReviewResponse[]>([]);
 const loadingReviews = ref(true);
+
+const route = useRoute();
+const members = ref<Member[]>([]);
+const loadingMembers = ref(true);
+
 axios
-  .get<DetailedReviewResponse[]>('/api/reviews', { params: { detailed: true } })
+  .get<DetailedReviewResponse[]>(`/api/club/${route.params.clubId}/reviews/true`)
   .then((response) => {
     reviews.value = response.data;
     loadingReviews.value = false;
   });
 
-const route = useRoute();
-const members = ref<Member[]>([]);
-const loadingMembers = ref(true);
 axios
   .get<Member[]>(`/api/club/${route.params.clubId}/members`)
   .then((response) => {

@@ -1,6 +1,6 @@
 import { Handler, HandlerContext, HandlerEvent, HandlerResponse } from "@netlify/functions"
 import faunadb from "faunadb"
-import { ClubsViewClub, Member, WatchListItem, WatchListViewModel } from "../../src/models"
+import { ClubsViewClub, DetailedReviewResponse, Member, ReviewResponse, WatchListItem, WatchListViewModel } from "../../src/models"
 import axios from "axios"
 import { Path } from "path-parser";
 import { ok, methodNotAllowed, notFound, unauthorized, badRequest } from "./utils/responses"
@@ -17,11 +17,13 @@ const watchListPath = new Path<StringRecord>('/api/club/:clubId<\\d+>/watchList'
 const membersPath = new Path<StringRecord>('/api/club/:clubId<\\d+>/members')
 const nextMoviePath = new Path<StringRecord>('/api/club/:clubId<\\d+>/nextMovie')
 const backlogPath = new Path<StringRecord>('/api/club/:clubId<\\d+>/backlog/:movieId<\\d+>')
+const reviewsPath = new Path<StringRecord>('/api/club/:clubId<\\d+>/reviews/:detailed')
 
 /**
  * GET /club/:clubId -> ClubsViewClub
  * GET /club/:clubId/watchList -> WatchListViewModel
  * GET /club/:clubId/members -> Member[]
+ * GET /club/:clubId/reviews/:detailed -> DetailedReviewResponse || ReviewResponse (where detailed is a boolean)
  * 
  * Next Movie:
  * PUT /club/:clubId/nextMovie
@@ -58,6 +60,11 @@ const handler: Handler = async function(event: HandlerEvent, context: HandlerCon
     const backlogPathMatch = backlogPath.partialTest(event.path);
     if (backlogPathMatch != null) {
         return await backlogHandler(event, context, backlogPathMatch);
+    }
+
+    const reviewsPathMatch = reviewsPath.partialTest(event.path);
+    if (reviewsPathMatch != null) {
+        return await reviewsHandler(event, context, reviewsPathMatch);
     }
 
     return await getClubHandler(event, context, clubPathMatch);
@@ -145,6 +152,28 @@ async function backlogHandler(event: HandlerEvent, context: HandlerContext, path
 }
 
 // TODO: Don't really want this to exist, update Fauna function
+export interface ReviewResponseResponse {
+    reviews: ReviewResponse[];
+}
+
+async function reviewsHandler(event: HandlerEvent, context: HandlerContext, path: StringRecord): Promise<HandlerResponse> {
+    if (event.httpMethod !== 'GET') return methodNotAllowed();
+
+    const reviews = await faunaClient.query<ReviewResponseResponse>(
+        q.Call(q.Function("GetClubReviews"), parseInt(path.clubId))
+    )
+
+    if (path.detailed === 'true') {
+        reviews.reviews = await getReviewData(reviews.reviews)
+        const detailedReviews = await detDetailedMovieData(reviews.reviews as DetailedReviewResponse[])
+        return ok(JSON.stringify(detailedReviews))
+    } else {
+        reviews.reviews = await getReviewData(reviews.reviews)
+        return ok(JSON.stringify(reviews.reviews))
+    }
+}
+
+// TODO: Don't really want this to exist, update Fauna function
 export interface BacklogResponse {
     backlog: WatchListItem[];
 }
@@ -194,4 +223,40 @@ async function getMovieData(watchList: WatchListItem[]) {
 
     await Promise.all(promises)
     return watchList
+}
+
+async function getReviewData(reviews: ReviewResponse[]) {
+    const promises = []
+    for (const movie of reviews) {
+        const promise = axios
+            .get(`https://api.themoviedb.org/3/movie/${movie.movieId}?api_key=${tmdbApiKey}`)
+            .then(response => {
+                movie.movieTitle = response.data.title
+            })
+        promises.push(promise)
+    }
+
+    await Promise.all(promises)
+    return reviews
+}
+
+async function detDetailedMovieData(reviews: DetailedReviewResponse[]) {
+    const promises = []
+
+    const configuration = await axios.get(`https://api.themoviedb.org/3/configuration?api_key=${tmdbApiKey}`)
+
+    for (const movie of reviews) {
+      const promise = axios
+        .get(
+          `https://api.themoviedb.org/3/movie/${movie.movieId}?api_key=${tmdbApiKey}`
+        )
+        .then((response) => {
+              movie.movieData = response.data
+              movie.movieData.poster_url = configuration.data.images.base_url + "w500" + response.data.poster_path
+          })
+      promises.push(promise)
+    }
+
+    await Promise.all(promises)
+    return reviews
 }
