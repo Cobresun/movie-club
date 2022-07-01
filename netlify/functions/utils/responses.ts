@@ -1,5 +1,8 @@
 export const ok = (body?: string) => ({
     statusCode: 200,
+    headers: {
+        'Content-Type': 'application/json',
+    },
     body
 });
 
