@@ -16,7 +16,7 @@ export const authModule = {
   actions: {
     init(context: any) {
       netlifyIdentity.on('login', (user) => {
-        netlifyIdentity.refresh().then((jwt)=>console.log({jwt}))
+        netlifyIdentity.refresh()
         context.commit('setUser', user);
         netlifyIdentity.close();
       }),
