@@ -1,6 +1,6 @@
 import { Handler, HandlerContext, HandlerEvent, HandlerResponse } from "@netlify/functions"
 import faunadb from "faunadb"
-import { Club, WatchListItem } from "../../src/models"
+import { Club, ClubsViewClub, Member, WatchListItem, WatchListViewModel } from "../../src/models"
 import axios from "axios"
 import { Path } from "path-parser";
 import { ok, methodNotAllowed, notFound, unauthorized, badRequest } from "./utils/responses"
@@ -12,12 +12,16 @@ const tmdbApiKey = process.env.TMDB_API_KEY
 
 type StringRecord = Record<string, string>
 
-const clubPath = new Path<StringRecord>('/api/club/:clubId<\\d+>');
-const nextMoviePath = new Path<StringRecord>('/api/club/:clubId<\\d+>/nextMovie');
-const backlogPath = new Path<StringRecord>('/api/club/:clubId<\\d+>/backlog/:movieId<\\d+>');
+const clubPath = new Path<StringRecord>('/api/club/:clubId<\\d+>')
+const watchListPath = new Path<StringRecord>('/api/club/:clubId<\\d+>/watchList')
+const membersPath = new Path<StringRecord>('/api/club/:clubId<\\d+>/members')
+const nextMoviePath = new Path<StringRecord>('/api/club/:clubId<\\d+>/nextMovie')
+const backlogPath = new Path<StringRecord>('/api/club/:clubId<\\d+>/backlog/:movieId<\\d+>')
 
 /**
- * GET /club/:clubId -> returns full club data (clubId, clubName, members, nextMovieId, watchList)
+ * GET /club/:clubId -> ClubsViewClub
+ * GET /club/:clubId/watchList -> WatchListViewModel
+ * GET /club/:clubId/members -> Member[]
  * 
  * Next Movie:
  * PUT /club/:clubId/nextMovie
@@ -34,6 +38,16 @@ const handler: Handler = async function(event: HandlerEvent, context: HandlerCon
     const clubPathMatch = clubPath.partialTest(event.path);
     if (clubPathMatch == null) {
         return notFound("Invalid club id");
+    }
+
+    const watchListPathMatch = watchListPath.test(event.path);
+    if (watchListPathMatch != null) {
+        return await watchListHandler(event, context, watchListPathMatch)
+    }
+
+    const membersPathMatch = membersPath.test(event.path);
+    if (membersPathMatch != null) {
+        return await membersHandler(event, context, membersPathMatch)
     }
 
     const nextMoviePathMatch = nextMoviePath.test(event.path);
@@ -53,14 +67,43 @@ const handler: Handler = async function(event: HandlerEvent, context: HandlerCon
 async function getClubHandler(event: HandlerEvent, context: HandlerContext, path: StringRecord) {
     if (event.httpMethod !== 'GET') return methodNotAllowed();
 
-    const club = await faunaClient.query<Club>(
+    const club = await faunaClient.query<ClubsViewClub>(
         q.Call(q.Function("GetClub"), parseInt(path.clubId))
     )
 
-    club.watchList = await getMovieData(club.watchList)
-    club.backlog = await getMovieData(club.backlog)
-
     return ok(JSON.stringify(club)) 
+}
+
+async function watchListHandler(event: HandlerEvent, context: HandlerContext, path: StringRecord): Promise<HandlerResponse> {
+    if (event.httpMethod !== 'GET') return methodNotAllowed();
+
+    const clubId = parseInt(path.clubId)
+
+    const watchListViewModel = await faunaClient.query<WatchListViewModel>(
+        q.Call(q.Function("GetWatchList"), clubId)
+    )
+
+    watchListViewModel.watchList = await getMovieData(watchListViewModel.watchList)
+    watchListViewModel.backlog = await getMovieData(watchListViewModel.backlog)
+
+    return ok(JSON.stringify(watchListViewModel))
+}
+
+// TODO: Don't really want this to exist, update Fauna function
+export interface MembersResponse {
+    members: Member[];
+}
+
+async function membersHandler(event: HandlerEvent, context: HandlerContext, path: StringRecord): Promise<HandlerResponse> {
+    if (event.httpMethod !== 'GET') return methodNotAllowed();
+
+    const clubId = parseInt(path.clubId)
+
+    const members = await faunaClient.query<MembersResponse>(
+        q.Call(q.Function("GetClubMembers"), clubId)
+    )
+
+    return ok(JSON.stringify(members.members))
 }
 
 async function nextMovieHandler(event: HandlerEvent, context: HandlerContext, path: StringRecord): Promise<HandlerResponse> {
@@ -101,6 +144,7 @@ async function backlogHandler(event: HandlerEvent, context: HandlerContext, path
     }
 }
 
+// TODO: modify references and eliminate this guy
 async function addMovieToBacklog(clubId: number, movieId: number) {
     await faunaClient.query(
         q.Call(q.Function("AddMovieToBacklog"), [clubId, movieId])
@@ -119,7 +163,7 @@ async function addMovieToBacklog(clubId: number, movieId: number) {
 async function deleteMovieFromBacklog(clubId: number, movieId: number) {
     await faunaClient.query(
         q.Call(q.Function("DeleteBacklogItem"), [clubId, movieId])
-    ).catch((error) => {console.log(error)});
+    ).catch((error) => {console.error(error)});
 
     return ok();
 }

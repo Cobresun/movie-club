@@ -52,7 +52,7 @@ import { ref, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import axios from 'axios'
 import ReviewCard from '@/components/ReviewCard.vue'
-import { DetailedReviewResponse, Club, Member } from '@/models';
+import { DetailedReviewResponse, Member } from '@/models';
 import LoadingSpinner from '@/components/LoadingSpinner.vue';
 
 const reviews = ref<DetailedReviewResponse[]>([]);
@@ -68,9 +68,9 @@ const route = useRoute();
 const members = ref<Member[]>([]);
 const loadingMembers = ref(true);
 axios
-  .get<Club>(`/api/club/${route.params.clubId}`)
+  .get<Member[]>(`/api/club/${route.params.clubId}/members`)
   .then((response) => {
-    members.value = response.data.members.filter(member => !member.devAccount);
+    members.value = response.data.filter(member => !member.devAccount);
     loadingMembers.value = false;
   });
 

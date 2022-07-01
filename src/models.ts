@@ -75,6 +75,18 @@ export interface MovieSearchIndex {
   id: number;
 }
 
+export interface ClubsViewClub {
+  clubId: number;
+  clubName: string;
+}
+
+export interface WatchListViewModel {
+  watchList: WatchListItem[];
+  backlog: WatchListItem[];
+  nextMovieId?: number;
+}
+
+// TODO: modify references and eliminate this guy
 export interface Club {
   clubId: number;
   clubName: string;

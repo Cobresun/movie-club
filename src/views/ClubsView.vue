@@ -25,16 +25,6 @@
             </menu-card>
           </router-link>
         </div>
-        <div class="p-3">
-          <router-link to="/club-home">
-            <menu-card
-              bg-color="lowBackground"
-              :image="clubSvg"
-            >
-              + New Club
-            </menu-card>
-          </router-link>
-        </div>
       </div>
     </div>
   </div>
@@ -44,7 +34,7 @@
 import { ref, computed, watch } from "vue";
 import { useStore } from "vuex";
 import axios from "axios";
-import { Club } from "../models"
+import { ClubsViewClub } from "../models"
 
 import clubSvg from "@/assets/menu-images/club.svg";
 
@@ -53,23 +43,21 @@ const store = useStore();
 const loading = ref(true);
 const isLoggedIn = computed(() => store.state.auth.user);
 
-const clubs = ref<Club[]>([]);
+const clubs = ref<ClubsViewClub[]>([]);
 const getClubs = (newVal: boolean) => {
   if (newVal) {
     axios
       .get(`/api/member/${store.state.auth.user.email}`)
       .then(async (response) => {
-        const promises: Promise<Club>[] = [];
+        const promises: Promise<ClubsViewClub>[] = [];
 
         response.data.clubs.forEach((clubId: number) => {
           promises.push(
             axios
-              .get<Club>(`/api/club/${clubId}`)
+              .get<ClubsViewClub>(`/api/club/${clubId}`)
               .then((response) => {
-                console.log(response.data)
-                return response.data;
-              }
-            )
+                  return response.data;
+                })
           );
         });
 

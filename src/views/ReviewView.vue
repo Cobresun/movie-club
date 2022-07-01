@@ -89,7 +89,7 @@ import { ref, computed, nextTick } from "vue";
 import { useStore } from "vuex";
 import { useRoute } from 'vue-router';
 import AddReviewPrompt from '@/components/SearchPrompt/AddReviewPrompt.vue';
-import { Header, Member, ReviewResponse, Club } from '@/models';
+import { Header, Member, ReviewResponse } from '@/models';
 import axios from 'axios'
 import { DateTime } from "luxon";
 
@@ -111,10 +111,10 @@ axios
   });
 
 axios
-  .get<Club>(`/api/club/${route.params.clubId}`)
+  .get<Member[]>(`/api/club/${route.params.clubId}/members`)
   .then((response) => {
     loadingMembers.value = false;
-    members.value = response.data.members;
+    members.value = response.data;
   });
 
 const modalOpen = ref(false);

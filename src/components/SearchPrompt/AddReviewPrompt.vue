@@ -19,7 +19,7 @@
 import { ref } from 'vue';
 import { useStore } from 'vuex';
 import axios from 'axios';
-import { Club, WatchListItem, MovieSearchIndex, ReviewResponse } from '@/models';
+import { WatchListItem, MovieSearchIndex, ReviewResponse, WatchListViewModel } from '@/models';
 import MovieSearchPrompt from './MovieSearchPrompt.vue';
 
 const emit = defineEmits<{
@@ -31,17 +31,19 @@ const store = useStore();
 const loading = ref(true);
 const watchlistSearchIndex = ref<MovieSearchIndex[]>([]);
 
-axios.get<Club>('/api/club/8')
+// TODO: Needs to be updated for the correct clubId
+axios.get<WatchListViewModel>('/api/club/8/watchList')
   .then(response => {
-    loading.value = false; 
     response.data.watchList.forEach((element: WatchListItem) => {
       watchlistSearchIndex.value.push({
         id: element.movieId,
         title: element.movieTitle,
         release_date: element.releaseDate
-      });
-    });
-  });
+      })
+    })
+
+    loading.value = false
+  })
 
 const selectFromWatchList = (movie: MovieSearchIndex) => {
   loading.value = true;
