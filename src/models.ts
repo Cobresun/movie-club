@@ -85,13 +85,3 @@ export interface WatchListViewModel {
   backlog: WatchListItem[];
   nextMovieId?: number;
 }
-
-// TODO: modify references and eliminate this guy
-export interface Club {
-  clubId: number;
-  clubName: string;
-  members: Member[];
-  nextMovieId?: number;
-  watchList: WatchListItem[];
-  backlog: WatchListItem[];
-}

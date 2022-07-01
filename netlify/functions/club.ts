@@ -1,6 +1,6 @@
 import { Handler, HandlerContext, HandlerEvent, HandlerResponse } from "@netlify/functions"
 import faunadb from "faunadb"
-import { Club, ClubsViewClub, Member, WatchListItem, WatchListViewModel } from "../../src/models"
+import { ClubsViewClub, Member, WatchListItem, WatchListViewModel } from "../../src/models"
 import axios from "axios"
 import { Path } from "path-parser";
 import { ok, methodNotAllowed, notFound, unauthorized, badRequest } from "./utils/responses"
@@ -132,7 +132,7 @@ async function nextMovieHandler(event: HandlerEvent, context: HandlerContext, pa
 }
 
 async function backlogHandler(event: HandlerEvent, context: HandlerContext, path: StringRecord): Promise<HandlerResponse> {
-    if (!isAuthorized(context)) return unauthorized();
+    if (!isAuthorized(context)) return unauthorized()
 
     switch(event.httpMethod) {
         case "POST":
@@ -140,30 +140,33 @@ async function backlogHandler(event: HandlerEvent, context: HandlerContext, path
         case "DELETE":
             return deleteMovieFromBacklog(parseInt(path.clubId), parseInt(path.movieId))
         default:
-            return methodNotAllowed();
+            return methodNotAllowed()
     }
 }
 
-// TODO: modify references and eliminate this guy
+// TODO: Don't really want this to exist, update Fauna function
+export interface BacklogResponse {
+    backlog: WatchListItem[];
+}
+
 async function addMovieToBacklog(clubId: number, movieId: number) {
     await faunaClient.query(
         q.Call(q.Function("AddMovieToBacklog"), [clubId, movieId])
     )
 
-    const club = await faunaClient.query<Club>(
-        q.Call(q.Function("GetClub"), clubId)
+    const backlog = await faunaClient.query<BacklogResponse>(
+        q.Call(q.Function("GetBacklog"), clubId)
     )
 
-    club.watchList = await getMovieData(club.watchList)
-    club.backlog = await getMovieData(club.backlog)
+    backlog.backlog = await getMovieData(backlog.backlog)
 
-    return ok(JSON.stringify(club));
+    return ok(JSON.stringify(backlog.backlog))
 }
 
 async function deleteMovieFromBacklog(clubId: number, movieId: number) {
-    await faunaClient.query(
-        q.Call(q.Function("DeleteBacklogItem"), [clubId, movieId])
-    ).catch((error) => {console.error(error)});
+    await faunaClient
+        .query(q.Call(q.Function("DeleteBacklogItem"), [clubId, movieId]))
+        .catch((error) => {console.error(error)});
 
     return ok();
 }

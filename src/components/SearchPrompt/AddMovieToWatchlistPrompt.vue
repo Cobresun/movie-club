@@ -21,7 +21,7 @@ import { useStore } from 'vuex';
 import { useRoute } from 'vue-router';
 import axios from 'axios';
 import MovieSearchPrompt from './MovieSearchPrompt.vue';
-import { MovieSearchIndex, WatchListItem, Club } from '@/models';
+import { MovieSearchIndex, WatchListItem } from '@/models';
 
 const emit = defineEmits<{
   (e: "close", item?: WatchListItem): void
@@ -43,7 +43,7 @@ axios.get<{results: MovieSearchIndex[]}>(`https://api.themoviedb.org/3/trending/
 const selectFromSearch = (movie: MovieSearchIndex) => {
   loading.value = true;
   axios
-    .post<Club>(
+    .post<WatchListItem[]>(
       `/api/club/${route.params.clubId}/backlog/${movie.id}`,
       null,
       {
@@ -51,7 +51,7 @@ const selectFromSearch = (movie: MovieSearchIndex) => {
       }
     )
   .then((response) => {
-    emit("close", response.data.backlog.at(response.data.backlog.length - 1));
+    emit("close", response.data.at(response.data.length - 1));
   })
   .catch((error) => {
     console.error(error);
