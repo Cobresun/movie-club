@@ -14,6 +14,7 @@ type StringRecord = Record<string, string>
 
 const clubPath = new Path<StringRecord>('/api/club/:clubId<\\d+>')
 const watchListPath = new Path<StringRecord>('/api/club/:clubId<\\d+>/watchList')
+const postWatchListPath = new Path<StringRecord>('/api/club/:clubId<\\d+>/watchList/:movieId<\\d+>')
 const membersPath = new Path<StringRecord>('/api/club/:clubId<\\d+>/members')
 const nextMoviePath = new Path<StringRecord>('/api/club/:clubId<\\d+>/nextMovie')
 const backlogPath = new Path<StringRecord>('/api/club/:clubId<\\d+>/backlog/:movieId<\\d+>')
@@ -21,7 +22,6 @@ const reviewsPath = new Path<StringRecord>('/api/club/:clubId<\\d+>/reviews')
 
 /**
  * GET /club/:clubId -> ClubsViewClub
- * GET /club/:clubId/watchList -> WatchListViewModel
  * GET /club/:clubId/members -> Member[]
  * GET /club/:clubId/reviews/:detailed -> DetailedReviewResponse || ReviewResponse (where detailed is a boolean)
  * 
@@ -35,6 +35,10 @@ const reviewsPath = new Path<StringRecord>('/api/club/:clubId<\\d+>/reviews')
  * POST /club/:clubId/backlog/:movieId
  * DELETE /club/:clubId/backlog/:movieId
  * 
+ * Watchlist:
+ * GET /club/:clubId/watchList -> WatchListViewModel
+ * POST /club/:clubId/watchList/:movieId
+ * 
  * Reviews:
  * GET /club/:clubId/reviews?detailed=false
  * GET /club/:clubId/reviews?detailed=true
@@ -44,6 +48,11 @@ const handler: Handler = async function(event: HandlerEvent, context: HandlerCon
     const clubPathMatch = clubPath.partialTest(event.path);
     if (clubPathMatch == null) {
         return notFound("Invalid club id");
+    }
+
+    const postWatchListPathMatch = postWatchListPath.test(event.path);
+    if (postWatchListPathMatch != null) {
+        return await postWatchListHandler(event, context, postWatchListPathMatch)
     }
 
     const watchListPathMatch = watchListPath.test(event.path);
@@ -85,13 +94,24 @@ async function getClubHandler(event: HandlerEvent, context: HandlerContext, path
     return ok(JSON.stringify(club)) 
 }
 
+async function postWatchListHandler(event: HandlerEvent, context: HandlerContext, path: StringRecord): Promise<HandlerResponse> {
+    // TODO: Commented out because it wasn't working, but idk why
+    // if (!isAuthorized(context)) return unauthorized()
+
+    if (event.httpMethod !== 'POST') return methodNotAllowed()
+
+    await faunaClient.query(
+        q.Call(q.Function("AddMovieToWatchList"), [parseInt(path.clubId), parseInt(path.movieId)])
+    )
+
+    return ok()
+}
+
 async function watchListHandler(event: HandlerEvent, context: HandlerContext, path: StringRecord): Promise<HandlerResponse> {
-    if (event.httpMethod !== 'GET') return methodNotAllowed();
-
-    const clubId = parseInt(path.clubId)
-
+    if (event.httpMethod !== 'GET') return methodNotAllowed()
+    
     const watchListViewModel = await faunaClient.query<WatchListViewModel>(
-        q.Call(q.Function("GetWatchList"), clubId)
+        q.Call(q.Function("GetWatchList"), parseInt(path.clubId))
     )
 
     watchListViewModel.watchList = await getMovieData(watchListViewModel.watchList)

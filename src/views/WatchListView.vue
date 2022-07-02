@@ -97,6 +97,7 @@
             <div class="grid grid-cols-2 gap-2">
               <v-btn
                 class="flex justify-center"
+                @click="() => moveBacklogItemToWatchlist(movie.movieId)"
               >
                 <mdicon name="arrow-collapse-up" />
               </v-btn>
@@ -227,5 +228,17 @@ const deleteBacklogItem = (id: number) => {
   .catch((error) => {
     console.error(error);
   });
+}
+
+// TODO: make it so you don't have to refresh to see the list update
+const moveBacklogItemToWatchlist = (id: number) => {
+  deleteBacklogItem(id)
+  axios
+    .post<void>(`/api/club/${route.params.clubId}/watchList/${id}`,
+    {
+      headers: { Authorization: `Bearer ${store.state.auth.user.token.access_token}` }
+    }
+    )
+    .then((response) => console.log(response))
 }
 </script>
