@@ -17,7 +17,7 @@ const watchListPath = new Path<StringRecord>('/api/club/:clubId<\\d+>/watchList'
 const membersPath = new Path<StringRecord>('/api/club/:clubId<\\d+>/members')
 const nextMoviePath = new Path<StringRecord>('/api/club/:clubId<\\d+>/nextMovie')
 const backlogPath = new Path<StringRecord>('/api/club/:clubId<\\d+>/backlog/:movieId<\\d+>')
-const reviewsPath = new Path<StringRecord>('/api/club/:clubId<\\d+>/reviews/:detailed')
+const reviewsPath = new Path<StringRecord>('/api/club/:clubId<\\d+>/reviews')
 
 /**
  * GET /club/:clubId -> ClubsViewClub
@@ -34,6 +34,10 @@ const reviewsPath = new Path<StringRecord>('/api/club/:clubId<\\d+>/reviews/:det
  * Backlog:
  * POST /club/:clubId/backlog/:movieId
  * DELETE /club/:clubId/backlog/:movieId
+ * 
+ * Reviews:
+ * GET /club/:clubId/reviews?detailed=false
+ * GET /club/:clubId/reviews?detailed=true
  */
 
 const handler: Handler = async function(event: HandlerEvent, context: HandlerContext) {
@@ -157,13 +161,27 @@ export interface ReviewResponseResponse {
 }
 
 async function reviewsHandler(event: HandlerEvent, context: HandlerContext, path: StringRecord): Promise<HandlerResponse> {
-    if (event.httpMethod !== 'GET') return methodNotAllowed();
+    let detailed = false
+    if (event.queryStringParameters != null) {
+        if (event.queryStringParameters['detailed'] === 'true') {
+            detailed = true
+        }
+    }
 
+    switch(event.httpMethod) {
+        case "GET":
+            return await getReviews(parseInt(path.clubId), detailed)
+        default:
+            return methodNotAllowed()
+    }
+}
+
+async function getReviews(clubId: number, detailed: boolean): Promise<HandlerResponse> {
     const reviews = await faunaClient.query<ReviewResponseResponse>(
-        q.Call(q.Function("GetClubReviews"), parseInt(path.clubId))
+        q.Call(q.Function("GetClubReviews"), clubId)
     )
 
-    if (path.detailed === 'true') {
+    if (detailed) {
         reviews.reviews = await getReviewData(reviews.reviews)
         const detailedReviews = await detDetailedMovieData(reviews.reviews as DetailedReviewResponse[])
         return ok(JSON.stringify(detailedReviews))
