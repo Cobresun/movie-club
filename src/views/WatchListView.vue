@@ -133,7 +133,7 @@ const backlog = ref<WatchListItem[]>([])
 
 const loading = ref(true);
 
-const ROTATE_ITERATIONS = 20;
+const ROTATE_ITERATIONS = 6;
 const rotateReps = ref(ROTATE_ITERATIONS);
 const animate = ref(false);
 const nextMovieId = ref<number | undefined>();
