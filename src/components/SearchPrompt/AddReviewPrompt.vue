@@ -59,7 +59,7 @@ const selectFromWatchList = (movie: MovieSearchIndex) => {
 
 const selectFromSearch = (movie: MovieSearchIndex) => {
   loading.value = true;
-  axios.post<ReviewResponse>(`/api/postReview?movieId=${ movie.id }&movieTitle=${ movie.title }`, {}, {
+  axios.post<ReviewResponse>(`/api/club/${ route.params.clubId }/reviews/${ movie.id }`, {}, {
     headers: {
       Authorization: `Bearer ${store.state.auth.user.token.access_token}`
     }

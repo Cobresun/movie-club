@@ -2,7 +2,7 @@ import { Member } from "@/models"
 import { Handler, HandlerEvent } from "@netlify/functions"
 import faunadb from "faunadb"
 import { badRequest, ok } from "./utils/responses"
-import { QueryResponse } from "./utils/types"
+import { QueryListResponse } from "./utils/types"
 
 const faunaClient = new faunadb.Client({ secret: process.env.FAUNADB_SERVER_SECRET ?? "" })
 const q = faunadb.query
@@ -19,7 +19,7 @@ const q = faunadb.query
         const emailIndex = pathArray.indexOf('member') + 1
         const email = pathArray[emailIndex]
 
-        const req: QueryResponse<Member[]> = await faunaClient.query(
+        const req: QueryListResponse<Member[]> = await faunaClient.query(
             q.Map(
                 q.Paginate(
                     q.Match(

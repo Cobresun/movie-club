@@ -85,3 +85,13 @@ export interface WatchListViewModel {
   backlog: WatchListItem[];
   nextMovieId?: number;
 }
+
+export interface Club {
+  clubId: number;
+  clubName: string;
+  members: Member[];
+  nextMovieId?: number;
+  watchList: WatchListItem[];
+  backlog: WatchListItem[];
+  reviews: ReviewResponse[];
+}

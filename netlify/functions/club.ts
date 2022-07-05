@@ -1,9 +1,10 @@
 import { Handler, HandlerContext, HandlerEvent, HandlerResponse } from "@netlify/functions"
 import faunadb from "faunadb"
-import { ClubsViewClub, DetailedReviewResponse, Member, ReviewResponse, WatchListItem, WatchListViewModel } from "../../src/models"
+import { Club, ClubsViewClub, DetailedReviewResponse, Member, ReviewResponse, WatchListItem, WatchListViewModel } from "../../src/models"
 import axios from "axios"
 import { Path } from "path-parser";
 import { ok, methodNotAllowed, notFound, unauthorized, badRequest } from "./utils/responses"
+import { QueryResponse } from "./utils/types";
 
 const faunaClient = new faunadb.Client({ secret: process.env.FAUNADB_SERVER_SECRET ?? "" })
 const q = faunadb.query
@@ -19,6 +20,7 @@ const membersPath = new Path<StringRecord>('/api/club/:clubId<\\d+>/members')
 const nextMoviePath = new Path<StringRecord>('/api/club/:clubId<\\d+>/nextMovie')
 const backlogPath = new Path<StringRecord>('/api/club/:clubId<\\d+>/backlog/:movieId<\\d+>')
 const reviewsPath = new Path<StringRecord>('/api/club/:clubId<\\d+>/reviews')
+const modifyReviewsPath = new Path<StringRecord>('/api/club/:clubId<\\d+>/reviews/:movieId<\\d+>')
 
 /**
  * GET /club/:clubId -> ClubsViewClub
@@ -42,6 +44,7 @@ const reviewsPath = new Path<StringRecord>('/api/club/:clubId<\\d+>/reviews')
  * Reviews:
  * GET /club/:clubId/reviews?detailed=false
  * GET /club/:clubId/reviews?detailed=true
+ * POST /club/:clubId/reviews/:movieId
  */
 
 const handler: Handler = async function(event: HandlerEvent, context: HandlerContext) {
@@ -75,13 +78,17 @@ const handler: Handler = async function(event: HandlerEvent, context: HandlerCon
         return await backlogHandler(event, context, backlogPathMatch);
     }
 
+    const modifyReviewsPathMatch = modifyReviewsPath.partialTest(event.path);
+    if (modifyReviewsPathMatch != null) {
+        return await reviewsHandler(event, context, modifyReviewsPathMatch);
+    }
+
     const reviewsPathMatch = reviewsPath.partialTest(event.path);
     if (reviewsPathMatch != null) {
         return await reviewsHandler(event, context, reviewsPathMatch);
     }
 
     return await getClubHandler(event, context, clubPathMatch);
-
 }
 
 async function getClubHandler(event: HandlerEvent, context: HandlerContext, path: StringRecord) {
@@ -191,6 +198,9 @@ async function reviewsHandler(event: HandlerEvent, context: HandlerContext, path
     switch(event.httpMethod) {
         case "GET":
             return await getReviews(parseInt(path.clubId), detailed)
+        case "POST":
+            if (!isAuthorized(context)) return unauthorized()
+            return await postReview(parseInt(path.clubId), parseInt(path.movieId))
         default:
             return methodNotAllowed()
     }
@@ -209,6 +219,17 @@ async function getReviews(clubId: number, detailed: boolean): Promise<HandlerRes
         reviews.reviews = await getReviewData(reviews.reviews)
         return ok(JSON.stringify(reviews.reviews))
     }
+}
+
+async function postReview(clubId: number, movieId: number): Promise<HandlerResponse> {
+    console.log(`movieId: ${movieId}`)
+    const clubResponse = await faunaClient.query<QueryResponse<Club>>(
+        q.Call(q.Function("AddMovieToReviews"), clubId, movieId)
+    )
+
+    clubResponse.data.reviews = await getReviewData(clubResponse.data.reviews)
+
+    return ok(JSON.stringify(clubResponse.data.reviews[0]))
 }
 
 // TODO: Don't really want this to exist, update Fauna function
