@@ -21,6 +21,7 @@ import { useStore } from 'vuex';
 import axios from 'axios';
 import { WatchListItem, MovieSearchIndex, ReviewResponse, WatchListViewModel } from '@/models';
 import MovieSearchPrompt from './MovieSearchPrompt.vue';
+import { useRoute } from 'vue-router';
 
 const emit = defineEmits<{
   (e: "close", review?: ReviewResponse) : void
@@ -30,9 +31,9 @@ const store = useStore();
 
 const loading = ref(true);
 const watchlistSearchIndex = ref<MovieSearchIndex[]>([]);
+const route = useRoute();
 
-// TODO: Needs to be updated for the correct clubId
-axios.get<WatchListViewModel>('/api/club/8/watchList')
+axios.get<WatchListViewModel>(`/api/club/${route.params.clubId}/watchList`)
   .then(response => {
     response.data.watchList.forEach((element: WatchListItem) => {
       watchlistSearchIndex.value.push({
