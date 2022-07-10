@@ -187,7 +187,7 @@ const submitScore = (movieId: number, user: string) => {
 
     if (!isNaN(newScore) && newScore >= 0 && newScore <= 10) {
       axios
-        .post(`/api/postReviewScore?movieId=${ movieId }&user=${ user }&score=${ newScore }`, {}, {
+        .put(`/api/club/${route.params.clubId}/reviews/${movieId}/score/${user}/${newScore}`, {}, {
           headers: {
             Authorization: `Bearer ${store.state.auth.user.token.access_token}`
           }

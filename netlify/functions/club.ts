@@ -1,6 +1,6 @@
 import { Handler, HandlerContext, HandlerEvent, HandlerResponse } from "@netlify/functions"
 import faunadb from "faunadb"
-import { Club, ClubsViewClub, DetailedReviewResponse, Member, ReviewResponse, WatchListItem, WatchListViewModel } from "../../src/models"
+import { Club, ClubsViewClub, DateObject, DetailedReviewResponse, Member, ReviewResponse, WatchListItem, WatchListViewModel } from "../../src/models"
 import axios from "axios"
 import { Path } from "path-parser";
 import { ok, methodNotAllowed, notFound, unauthorized, badRequest } from "./utils/responses"
@@ -21,6 +21,7 @@ const nextMoviePath = new Path<StringRecord>('/api/club/:clubId<\\d+>/nextMovie'
 const backlogPath = new Path<StringRecord>('/api/club/:clubId<\\d+>/backlog/:movieId<\\d+>')
 const reviewsPath = new Path<StringRecord>('/api/club/:clubId<\\d+>/reviews')
 const modifyReviewsPath = new Path<StringRecord>('/api/club/:clubId<\\d+>/reviews/:movieId<\\d+>')
+const modifyReviewScorePath = new Path<StringRecord>('/api/club/:clubId<\\d+>/reviews/:movieId<\\d+>/score/:userName/:score')
 
 /**
  * GET /club/:clubId -> ClubsViewClub
@@ -46,6 +47,7 @@ const modifyReviewsPath = new Path<StringRecord>('/api/club/:clubId<\\d+>/review
  * GET /club/:clubId/reviews?detailed=false
  * GET /club/:clubId/reviews?detailed=true
  * POST /club/:clubId/reviews/:movieId
+ * UPDATE /club/:clubId/reviews/:movieId/score/:userName/:score
  */
 
 const handler: Handler = async function(event: HandlerEvent, context: HandlerContext) {
@@ -77,6 +79,11 @@ const handler: Handler = async function(event: HandlerEvent, context: HandlerCon
     const backlogPathMatch = backlogPath.partialTest(event.path);
     if (backlogPathMatch != null) {
         return await backlogHandler(event, context, backlogPathMatch);
+    }
+
+    const modifyReviewScorePathMatch = modifyReviewScorePath.test(event.path);
+    if (modifyReviewScorePathMatch != null) {
+        return await reviewsHandler(event, context, modifyReviewScorePathMatch);
     }
 
     const modifyReviewsPathMatch = modifyReviewsPath.partialTest(event.path);
@@ -149,12 +156,12 @@ async function deleteWatchList(clubId: number, movieId: number): Promise<Handler
 }
 
 // TODO: Don't really want this to exist, update Fauna function
-export interface MembersResponse {
+interface MembersResponse {
     members: Member[];
 }
 
 async function membersHandler(event: HandlerEvent, context: HandlerContext, path: StringRecord): Promise<HandlerResponse> {
-    if (event.httpMethod !== 'GET') return methodNotAllowed();
+    if (event.httpMethod !== 'GET') return methodNotAllowed()
 
     const clubId = parseInt(path.clubId)
 
@@ -209,21 +216,28 @@ export interface ReviewResponseResponse {
 }
 
 async function reviewsHandler(event: HandlerEvent, context: HandlerContext, path: StringRecord): Promise<HandlerResponse> {
-    let detailed = false
-    if (event.queryStringParameters != null) {
-        if (event.queryStringParameters['detailed'] === 'true') {
-            detailed = true
+    try {
+        let detailed = false
+        if (event.queryStringParameters != null) {
+            if (event.queryStringParameters['detailed'] === 'true') {
+                detailed = true
+            }
         }
-    }
-
-    switch(event.httpMethod) {
-        case "GET":
-            return await getReviews(parseInt(path.clubId), detailed)
-        case "POST":
-            if (!isAuthorized(context)) return unauthorized()
-            return await postReview(parseInt(path.clubId), parseInt(path.movieId))
-        default:
-            return methodNotAllowed()
+    
+        switch(event.httpMethod) {
+            case "GET":
+                return await getReviews(parseInt(path.clubId), detailed)
+            case "POST":
+                if (!isAuthorized(context)) return unauthorized()
+                return await postReview(parseInt(path.clubId), parseInt(path.movieId))
+            case "PUT":
+                if (!isAuthorized(context)) return unauthorized()
+                return await updateReviewScore(parseInt(path.clubId), parseInt(path.movieId), path.userName, parseFloat(path.score))
+            default:
+                return methodNotAllowed()
+        }
+    } catch (error) {
+        console.error(error)
     }
 }
 
@@ -244,7 +258,6 @@ async function getReviews(clubId: number, detailed: boolean): Promise<HandlerRes
 }
 
 async function postReview(clubId: number, movieId: number): Promise<HandlerResponse> {
-    console.log(`movieId: ${movieId}`)
     const clubResponse = await faunaClient.query<QueryResponse<Club>>(
         q.Call(q.Function("AddMovieToReviews"), clubId, movieId)
     )
@@ -254,8 +267,43 @@ async function postReview(clubId: number, movieId: number): Promise<HandlerRespo
     return ok(JSON.stringify(clubResponse.data.reviews[0]))
 }
 
+async function updateReviewScore(clubId: number, movieId: number, userName: string, score: number): Promise<HandlerResponse> {
+    interface IntermediateReviewResponse {
+        movieId: number
+        timeWatched: DateObject
+        scores: Record<string, number>
+    }
+
+    const reviewResponse = await faunaClient.query<IntermediateReviewResponse[]>(
+        q.Call(q.Function("GetReviewByMovieId"), clubId, movieId)
+    )
+
+    const review = reviewResponse[0]
+
+    review.scores[userName] = score
+
+    // TODO: average should just be calculated in the client...
+    if (review.scores['average'] === undefined) {
+        // If no existing average, set the average to the current review's score
+        review.scores['average'] = score
+    } else {
+        const numberOfScores = Object.keys(review.scores).length - 1
+        review.scores['average'] = 0
+
+        Object.keys(review.scores)
+            .filter(user => user !== 'average')
+            .map(user => review.scores.average += review.scores[user])
+
+            review.scores['average'] = review.scores['average']/numberOfScores
+    }
+
+    // TODO: Update reviews with new review
+
+    return ok(JSON.stringify(review))
+}
+
 // TODO: Don't really want this to exist, update Fauna function
-export interface BacklogResponse {
+interface BacklogResponse {
     backlog: WatchListItem[];
 }
 
