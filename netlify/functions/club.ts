@@ -237,7 +237,7 @@ async function reviewsHandler(event: HandlerEvent, context: HandlerContext, path
                 return methodNotAllowed()
         }
     } catch (error) {
-        console.error(error)
+        notFound(JSON.stringify(error))
     }
 }
 
@@ -297,7 +297,13 @@ async function updateReviewScore(clubId: number, movieId: number, userName: stri
             review.scores['average'] = review.scores['average']/numberOfScores
     }
 
-    // TODO: Update reviews with new review
+    await faunaClient.query(
+        q.Call(q.Function("DeleteReviewByMovieId"), clubId, movieId)
+    )
+
+    await faunaClient.query(
+        q.Call(q.Function("AddReview"), clubId, review)
+    )
 
     return ok(JSON.stringify(review))
 }
@@ -324,7 +330,7 @@ async function addMovieToBacklog(clubId: number, movieId: number) {
 async function deleteMovieFromBacklog(clubId: number, movieId: number) {
     await faunaClient
         .query(q.Call(q.Function("DeleteBacklogItem"), [clubId, movieId]))
-        .catch((error) => {console.error(error)});
+        .catch((error) => {notFound(error)});
 
     return ok();
 }
