@@ -15,8 +15,7 @@ type StringRecord = Record<string, string>
 
 const clubPath = new Path<StringRecord>('/api/club/:clubId<\\d+>')
 const watchListPath = new Path<StringRecord>('/api/club/:clubId<\\d+>/watchList')
-const postWatchListPath = new Path<StringRecord>('/api/club/:clubId<\\d+>/watchList/:movieId<\\d+>')
-const deleteWatchListPath = new Path<StringRecord>('/api/club/:clubId<\\d+>/watchList/:movieId<\\d+>')
+const modifyWatchListPath = new Path<StringRecord>('/api/club/:clubId<\\d+>/watchList/:movieId<\\d+>')
 const membersPath = new Path<StringRecord>('/api/club/:clubId<\\d+>/members')
 const nextMoviePath = new Path<StringRecord>('/api/club/:clubId<\\d+>/nextMovie')
 const backlogPath = new Path<StringRecord>('/api/club/:clubId<\\d+>/backlog/:movieId<\\d+>')
@@ -55,14 +54,9 @@ const handler: Handler = async function(event: HandlerEvent, context: HandlerCon
         return notFound("Invalid club id");
     }
 
-    const postWatchListPathMatch = postWatchListPath.test(event.path);
-    if (postWatchListPathMatch != null) {
-        return await watchListHandler(event, context, postWatchListPathMatch)
-    }
-
-    const deleteWatchListPathMatch = deleteWatchListPath.test(event.path);
-    if (deleteWatchListPathMatch != null) {
-        return await watchListHandler(event, context, deleteWatchListPathMatch)
+    const modifyWatchListPathMatch = modifyWatchListPath.test(event.path);
+    if (modifyWatchListPathMatch != null) {
+        return await watchListHandler(event, context, modifyWatchListPathMatch)
     }
 
     const watchListPathMatch = watchListPath.test(event.path);
