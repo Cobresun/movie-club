@@ -237,7 +237,7 @@ async function reviewsHandler(event: HandlerEvent, context: HandlerContext, path
                 return methodNotAllowed()
         }
     } catch (error) {
-        notFound(JSON.stringify(error))
+        return notFound(JSON.stringify(error))
     }
 }
 
