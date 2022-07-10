@@ -161,16 +161,23 @@ const sortedWatchList = computed(() => {
 });
 
 const reviewMovie = (movieId: number) => {
-  axios.post<WatchListItem>(`/api/reviewMovieFromWatchList?movieId=${ movieId }`, {}, {
+  axios.delete(`/api/club/${route.params.clubId}/watchList/${movieId}`, {
     headers: {
       Authorization: `Bearer ${store.state.auth.user.token.access_token}`
     }
-  }).then(response => {
-    const idx = watchList.value.indexOf(response.data);
-    watchList.value.splice(idx,1);
-    router.push({name:"Reviews"});
   })
-};
+  .then(() => {
+    axios.post(`/api/club/${route.params.clubId}/reviews/${movieId}`, {}, {
+    headers: {
+      Authorization: `Bearer ${store.state.auth.user.token.access_token}`
+    }
+    }).then(response => {
+      const idx = watchList.value.indexOf(response.data)
+      watchList.value.splice(idx,1)
+      router.push({name:"Reviews"})
+    })
+  })
+}
 
 const makeNextWatch = (movieId: number) => {
   axios

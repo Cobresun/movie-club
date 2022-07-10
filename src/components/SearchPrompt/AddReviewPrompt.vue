@@ -48,12 +48,18 @@ axios.get<WatchListViewModel>(`/api/club/${route.params.clubId}/watchList`)
 
 const selectFromWatchList = (movie: MovieSearchIndex) => {
   loading.value = true;
-  axios.post<ReviewResponse>(`/api/reviewMovieFromWatchList?movieId=${ movie.id }&movieTitle=${ movie.title }`, {}, {
+  axios.delete(`/api/club/${route.params.clubId}/watchList/${ movie.id }`, {
     headers: {
       Authorization: `Bearer ${store.state.auth.user.token.access_token}`
     }
-  }).then((response) => {
-    emit('close', response.data);
+  }).then(() => {
+    axios.post(`/api/club/${route.params.clubId}/reviews/${movie.id}`, {}, {
+      headers: {
+        Authorization: `Bearer ${store.state.auth.user.token.access_token}`
+      }
+    }).then(response => {
+      emit('close', response.data)
+    })
   })
 }
 
