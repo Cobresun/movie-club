@@ -5,6 +5,7 @@ import axios from "axios"
 import { Path } from "path-parser";
 import { ok, methodNotAllowed, notFound, unauthorized, badRequest } from "./utils/responses"
 import { QueryResponse } from "./utils/types";
+import { isAuthorized } from "./utils/auth";
 
 const faunaClient = new faunadb.Client({ secret: process.env.FAUNADB_SERVER_SECRET ?? "" })
 const q = faunadb.query
@@ -134,7 +135,7 @@ async function getWatchList(clubId: number): Promise<HandlerResponse> {
 }
 
 async function postWatchList(clubId: number, movieId: number, context: HandlerContext): Promise<HandlerResponse> {
-    if (!isAuthorized(context)) return unauthorized()
+    if (!await isAuthorized(clubId, context)) return unauthorized()
 
     await faunaClient.query(
         q.Call(q.Function("AddMovieToWatchList"), [clubId, movieId])
@@ -144,7 +145,7 @@ async function postWatchList(clubId: number, movieId: number, context: HandlerCo
 }
 
 async function deleteWatchList(clubId: number, movieId: number, context: HandlerContext): Promise<HandlerResponse> {
-    if (!isAuthorized(context)) return unauthorized()
+    if (!await isAuthorized(clubId, context)) return unauthorized()
 
     await faunaClient.query(
         q.Call(q.Function("DeleteWatchListItem"), [clubId, movieId])
@@ -171,7 +172,8 @@ async function membersHandler(event: HandlerEvent, context: HandlerContext, path
 }
 
 async function nextMovieHandler(event: HandlerEvent, context: HandlerContext, path: StringRecord): Promise<HandlerResponse> {
-    if (!isAuthorized(context)) return unauthorized();
+    const clubId = parseInt(path.clubId);
+    if (!await isAuthorized(clubId, context)) return unauthorized();
     if (event.httpMethod !== 'PUT') return methodNotAllowed();
     if (event.body == null) return badRequest('Missing body');
 
@@ -184,7 +186,7 @@ async function nextMovieHandler(event: HandlerEvent, context: HandlerContext, pa
 
     await faunaClient.query<void>(
         q.Update(
-            q.Select("ref", q.Get(q.Match(q.Index("club_by_clubId"), parseInt(path.clubId)))),
+            q.Select("ref", q.Get(q.Match(q.Index("club_by_clubId"), clubId))),
             {
                 data: {
                     nextMovieId: movieId
@@ -196,13 +198,14 @@ async function nextMovieHandler(event: HandlerEvent, context: HandlerContext, pa
 }
 
 async function backlogHandler(event: HandlerEvent, context: HandlerContext, path: StringRecord): Promise<HandlerResponse> {
-    if (!isAuthorized(context)) return unauthorized()
+    const clubId = parseInt(path.clubId);
+    if (!await isAuthorized(clubId, context)) return unauthorized()
 
     switch(event.httpMethod) {
         case "POST":
-            return await addMovieToBacklog(parseInt(path.clubId), parseInt(path.movieId))
+            return await addMovieToBacklog(clubId, parseInt(path.movieId))
         case "DELETE":
-            return deleteMovieFromBacklog(parseInt(path.clubId), parseInt(path.movieId))
+            return deleteMovieFromBacklog(clubId, parseInt(path.movieId))
         default:
             return methodNotAllowed()
     }
@@ -221,16 +224,18 @@ async function reviewsHandler(event: HandlerEvent, context: HandlerContext, path
                 detailed = true
             }
         }
+
+        const clubId = parseInt(path.clubId);
     
         switch(event.httpMethod) {
             case "GET":
-                return await getReviews(parseInt(path.clubId), detailed)
+                return await getReviews(clubId, detailed)
             case "POST":
-                if (!isAuthorized(context)) return unauthorized()
+                if (!await isAuthorized(clubId, context)) return unauthorized()
                 return await postReview(parseInt(path.clubId), parseInt(path.movieId))
             case "PUT":
-                if (!isAuthorized(context)) return unauthorized()
-                return await updateReviewScore(parseInt(path.clubId), parseInt(path.movieId), path.userName, parseFloat(path.score))
+                if (!await isAuthorized(clubId, context)) return unauthorized()
+                return await updateReviewScore(clubId, parseInt(path.movieId), path.userName, parseFloat(path.score))
             default:
                 return methodNotAllowed()
         }
@@ -331,10 +336,6 @@ async function deleteMovieFromBacklog(clubId: number, movieId: number) {
         .catch((error) => {notFound(error)});
 
     return ok();
-}
-
-function isAuthorized(context: HandlerContext): boolean {
-    return context.clientContext != null && context.clientContext.user
 }
 
 export { handler }
