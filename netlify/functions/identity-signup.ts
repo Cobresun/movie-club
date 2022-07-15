@@ -9,6 +9,7 @@ const handler: Handler = async function (event: HandlerEvent) {
   if (event.body == null) return badRequest();
 
   const user = JSON.parse(event.body).user;
+  console.log(user);
   await faunaClient.query(q.Create(
     q.Collection('members'),
     {
