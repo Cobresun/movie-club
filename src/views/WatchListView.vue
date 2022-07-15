@@ -161,7 +161,7 @@ const sortedWatchList = computed(() => {
 });
 
 const reviewMovie = (movieId: number) => {
-  axios.delete(`/api/club/${route.params.clubId}/watchList/${movieId}`, {
+  axios.delete(`/api/club/${route.params.clubId}/watchList/${movieId}`,{
     headers: {
       Authorization: `Bearer ${store.state.auth.user.token.access_token}`
     }
@@ -241,7 +241,7 @@ const deleteBacklogItem = (id: number) => {
 const moveBacklogItemToWatchlist = (id: number) => {
   deleteBacklogItem(id)
   axios
-    .post<void>(`/api/club/${route.params.clubId}/watchList/${id}`,
+    .post<void>(`/api/club/${route.params.clubId}/watchList/${id}`, {},
     {
       headers: { Authorization: `Bearer ${store.state.auth.user.token.access_token}` }
     }

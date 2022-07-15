@@ -114,9 +114,9 @@ async function watchListHandler(event: HandlerEvent, context: HandlerContext, pa
         case "GET":
             return await getWatchList(parseInt(path.clubId))
         case "POST":
-            return await postWatchList(parseInt(path.clubId), parseInt(path.movieId))
+            return await postWatchList(parseInt(path.clubId), parseInt(path.movieId), context)
         case "DELETE":
-            return await deleteWatchList(parseInt(path.clubId), parseInt(path.movieId))
+            return await deleteWatchList(parseInt(path.clubId), parseInt(path.movieId), context)
         default:
             return methodNotAllowed()
     }
@@ -133,9 +133,8 @@ async function getWatchList(clubId: number): Promise<HandlerResponse> {
     return ok(JSON.stringify(watchListViewModel))
 }
 
-async function postWatchList(clubId: number, movieId: number): Promise<HandlerResponse> {
-    // TODO: Commented out because it wasn't working, but idk why
-    // if (!isAuthorized(context)) return unauthorized()
+async function postWatchList(clubId: number, movieId: number, context: HandlerContext): Promise<HandlerResponse> {
+    if (!isAuthorized(context)) return unauthorized()
 
     await faunaClient.query(
         q.Call(q.Function("AddMovieToWatchList"), [clubId, movieId])
@@ -144,9 +143,8 @@ async function postWatchList(clubId: number, movieId: number): Promise<HandlerRe
     return ok()
 }
 
-async function deleteWatchList(clubId: number, movieId: number): Promise<HandlerResponse> {
-    // TODO: Commented out because it wasn't working, but idk why
-    // if (!isAuthorized(context)) return unauthorized()
+async function deleteWatchList(clubId: number, movieId: number, context: HandlerContext): Promise<HandlerResponse> {
+    if (!isAuthorized(context)) return unauthorized()
 
     await faunaClient.query(
         q.Call(q.Function("DeleteWatchListItem"), [clubId, movieId])
