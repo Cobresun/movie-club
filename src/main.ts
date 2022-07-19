@@ -12,6 +12,7 @@ import Loading from "@/components/LoadingSpinner.vue"
 import VTable from "@/components/VTable.vue";
 import MenuCard from "@/components/MenuCard.vue";
 import VModal from "@/components/VModal.vue";
+import LazyLoad from "./directives/LazyLoad";
 import './assets/tailwind.css'
 import 'animate.css';
 
@@ -22,6 +23,7 @@ createApp(App)
   .component("movie-table", VTable)
   .component("menu-card", MenuCard)
   .component("v-modal", VModal)
+  .directive("lazy-load", LazyLoad)
   .use(mdiVue, {
     icons: mdijs
   })
