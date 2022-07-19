@@ -386,7 +386,7 @@ async function detDetailedMovieData(reviews: DetailedReviewResponse[]) {
         )
         .then((response) => {
               movie.movieData = response.data
-              movie.movieData.poster_url = configuration.data.images.base_url + "w500" + response.data.poster_path
+              movie.movieData.poster_url = configuration.data.images.base_url + "w200" + response.data.poster_path
           })
       promises.push(promise)
     }
