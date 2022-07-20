@@ -1,11 +1,16 @@
 import { Handler, HandlerContext, HandlerEvent, HandlerResponse } from "@netlify/functions"
 import faunadb from "faunadb"
-import { Club, ClubsViewClub, DateObject, DetailedReviewResponse, Member, ReviewResponse, WatchListItem, WatchListViewModel } from "../../src/models"
+import { Club, ClubsViewClub, DateObject, DetailedReviewResponse, ReviewResponse, WatchListItem, WatchListViewModel } from "../../../src/models"
 import axios from "axios"
 import { Path } from "path-parser";
-import { ok, methodNotAllowed, notFound, unauthorized, badRequest } from "./utils/responses"
-import { QueryResponse } from "./utils/types";
-import { isAuthorized } from "./utils/auth";
+import { ok, methodNotAllowed, notFound, unauthorized, badRequest } from "../utils/responses"
+import { QueryResponse } from "../utils/types";
+import { isAuthorized } from "../utils/auth";
+
+import { 
+    path as membersPath,
+    handler as membersHandler 
+} from "./members";
 
 const faunaClient = new faunadb.Client({ secret: process.env.FAUNADB_SERVER_SECRET ?? "" })
 const q = faunadb.query
@@ -17,7 +22,6 @@ type StringRecord = Record<string, string>
 const clubPath = new Path<StringRecord>('/api/club/:clubId<\\d+>')
 const watchListPath = new Path<StringRecord>('/api/club/:clubId<\\d+>/watchList')
 const modifyWatchListPath = new Path<StringRecord>('/api/club/:clubId<\\d+>/watchList/:movieId<\\d+>')
-const membersPath = new Path<StringRecord>('/api/club/:clubId<\\d+>/members')
 const nextMoviePath = new Path<StringRecord>('/api/club/:clubId<\\d+>/nextMovie')
 const backlogPath = new Path<StringRecord>('/api/club/:clubId<\\d+>/backlog/:movieId<\\d+>')
 const reviewsPath = new Path<StringRecord>('/api/club/:clubId<\\d+>/reviews')
@@ -152,23 +156,6 @@ async function deleteWatchList(clubId: number, movieId: number, context: Handler
     )
 
     return ok()
-}
-
-// TODO: Don't really want this to exist, update Fauna function
-interface MembersResponse {
-    members: Member[];
-}
-
-async function membersHandler(event: HandlerEvent, context: HandlerContext, path: StringRecord): Promise<HandlerResponse> {
-    if (event.httpMethod !== 'GET') return methodNotAllowed()
-
-    const clubId = parseInt(path.clubId)
-
-    const members = await faunaClient.query<MembersResponse>(
-        q.Call(q.Function("GetClubMembers"), clubId)
-    )
-
-    return ok(JSON.stringify(members.members))
 }
 
 async function nextMovieHandler(event: HandlerEvent, context: HandlerContext, path: StringRecord): Promise<HandlerResponse> {
