@@ -187,7 +187,10 @@ const submitScore = (movieId: number, user: string) => {
 
     if (!isNaN(newScore) && newScore >= 0 && newScore <= 10) {
       axios
-        .put(`/api/club/${route.params.clubId}/reviews/${movieId}/score/${user}/${newScore}`, {}, {
+        .put(`/api/club/${route.params.clubId}/reviews/${movieId}`, {
+          name: user,
+          score: newScore
+        }, {
           headers: {
             Authorization: `Bearer ${store.state.auth.user.token.access_token}`
           }

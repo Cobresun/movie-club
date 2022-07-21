@@ -1,11 +1,15 @@
 import { Handler, HandlerContext, HandlerEvent, HandlerResponse } from "@netlify/functions"
 import faunadb from "faunadb"
-import { Club, ClubsViewClub, DateObject, DetailedReviewResponse, ReviewResponse, WatchListItem, WatchListViewModel } from "../../../src/models"
+import { ClubsViewClub, WatchListItem, WatchListViewModel } from "../../../src/models"
 import axios from "axios"
 import { Path } from "path-parser";
-import { ok, methodNotAllowed, notFound, unauthorized, badRequest } from "../utils/responses"
-import { QueryResponse } from "../utils/types";
+import { ok, methodNotAllowed, notFound, unauthorized, badRequest } from "../utils/responses";
 import { isAuthorized } from "../utils/auth";
+
+import {
+    path as reviewsPath,
+    handler as reviewsHandler
+} from "./reviews";
 
 import { 
     path as membersPath,
@@ -24,9 +28,6 @@ const watchListPath = new Path<StringRecord>('/api/club/:clubId<\\d+>/watchList'
 const modifyWatchListPath = new Path<StringRecord>('/api/club/:clubId<\\d+>/watchList/:movieId<\\d+>')
 const nextMoviePath = new Path<StringRecord>('/api/club/:clubId<\\d+>/nextMovie')
 const backlogPath = new Path<StringRecord>('/api/club/:clubId<\\d+>/backlog/:movieId<\\d+>')
-const reviewsPath = new Path<StringRecord>('/api/club/:clubId<\\d+>/reviews')
-const modifyReviewsPath = new Path<StringRecord>('/api/club/:clubId<\\d+>/reviews/:movieId<\\d+>')
-const modifyReviewScorePath = new Path<StringRecord>('/api/club/:clubId<\\d+>/reviews/:movieId<\\d+>/score/:userName/:score')
 
 /**
  * GET /club/:clubId -> ClubsViewClub
@@ -49,10 +50,13 @@ const modifyReviewScorePath = new Path<StringRecord>('/api/club/:clubId<\\d+>/re
  * DELETE /club/:clubId/watchList/:movieId
  * 
  * Reviews:
- * GET /club/:clubId/reviews?detailed=false
- * GET /club/:clubId/reviews?detailed=true
+ * GET /club/:clubId/reviews?detailed={}
  * POST /club/:clubId/reviews/:movieId
- * UPDATE /club/:clubId/reviews/:movieId/score/:userName/:score
+ * PUT /club/:clubId/reviews/:movieId
+ * body {
+ *  name: string,
+ *  score: number,
+ * }
  */
 
 const handler: Handler = async function(event: HandlerEvent, context: HandlerContext) {
@@ -84,16 +88,6 @@ const handler: Handler = async function(event: HandlerEvent, context: HandlerCon
     const backlogPathMatch = backlogPath.partialTest(event.path);
     if (backlogPathMatch != null) {
         return await backlogHandler(event, context, backlogPathMatch);
-    }
-
-    const modifyReviewScorePathMatch = modifyReviewScorePath.test(event.path);
-    if (modifyReviewScorePathMatch != null) {
-        return await reviewsHandler(event, context, modifyReviewScorePathMatch);
-    }
-
-    const modifyReviewsPathMatch = modifyReviewsPath.partialTest(event.path);
-    if (modifyReviewsPathMatch != null) {
-        return await reviewsHandler(event, context, modifyReviewsPathMatch);
     }
 
     const reviewsPathMatch = reviewsPath.partialTest(event.path);
@@ -199,106 +193,6 @@ async function backlogHandler(event: HandlerEvent, context: HandlerContext, path
 }
 
 // TODO: Don't really want this to exist, update Fauna function
-export interface ReviewResponseResponse {
-    reviews: ReviewResponse[];
-}
-
-async function reviewsHandler(event: HandlerEvent, context: HandlerContext, path: StringRecord): Promise<HandlerResponse> {
-    try {
-        let detailed = false
-        if (event.queryStringParameters != null) {
-            if (event.queryStringParameters['detailed'] === 'true') {
-                detailed = true
-            }
-        }
-
-        const clubId = parseInt(path.clubId);
-    
-        switch(event.httpMethod) {
-            case "GET":
-                return await getReviews(clubId, detailed)
-            case "POST":
-                if (!await isAuthorized(clubId, context)) return unauthorized()
-                return await postReview(parseInt(path.clubId), parseInt(path.movieId))
-            case "PUT":
-                if (!await isAuthorized(clubId, context)) return unauthorized()
-                return await updateReviewScore(clubId, parseInt(path.movieId), path.userName, parseFloat(path.score))
-            default:
-                return methodNotAllowed()
-        }
-    } catch (error) {
-        return notFound(JSON.stringify(error))
-    }
-}
-
-// TODO: GetClubReviews needs to return them sorted
-async function getReviews(clubId: number, detailed: boolean): Promise<HandlerResponse> {
-    const reviews = await faunaClient.query<ReviewResponseResponse>(
-        q.Call(q.Function("GetClubReviews"), clubId)
-    )
-
-    if (detailed) {
-        reviews.reviews = await getReviewData(reviews.reviews)
-        const detailedReviews = await detDetailedMovieData(reviews.reviews as DetailedReviewResponse[])
-        return ok(JSON.stringify(detailedReviews))
-    } else {
-        reviews.reviews = await getReviewData(reviews.reviews)
-        return ok(JSON.stringify(reviews.reviews))
-    }
-}
-
-async function postReview(clubId: number, movieId: number): Promise<HandlerResponse> {
-    const clubResponse = await faunaClient.query<QueryResponse<Club>>(
-        q.Call(q.Function("AddMovieToReviews"), clubId, movieId)
-    )
-
-    clubResponse.data.reviews = await getReviewData(clubResponse.data.reviews)
-
-    return ok(JSON.stringify(clubResponse.data.reviews[0]))
-}
-
-async function updateReviewScore(clubId: number, movieId: number, userName: string, score: number): Promise<HandlerResponse> {
-    interface IntermediateReviewResponse {
-        movieId: number
-        timeWatched: DateObject
-        scores: Record<string, number>
-    }
-
-    const reviewResponse = await faunaClient.query<IntermediateReviewResponse[]>(
-        q.Call(q.Function("GetReviewByMovieId"), clubId, movieId)
-    )
-
-    const review = reviewResponse[0]
-
-    review.scores[userName] = score
-
-    // TODO: average should just be calculated in the client...
-    if (review.scores['average'] === undefined) {
-        // If no existing average, set the average to the current review's score
-        review.scores['average'] = score
-    } else {
-        const numberOfScores = Object.keys(review.scores).length - 1
-        review.scores['average'] = 0
-
-        Object.keys(review.scores)
-            .filter(user => user !== 'average')
-            .map(user => review.scores.average += review.scores[user])
-
-            review.scores['average'] = review.scores['average']/numberOfScores
-    }
-
-    await faunaClient.query(
-        q.Call(q.Function("DeleteReviewByMovieId"), clubId, movieId)
-    )
-
-    await faunaClient.query(
-        q.Call(q.Function("AddReview"), clubId, review)
-    )
-
-    return ok(JSON.stringify(review))
-}
-
-// TODO: Don't really want this to exist, update Fauna function
 interface BacklogResponse {
     backlog: WatchListItem[];
 }
@@ -344,40 +238,4 @@ async function getMovieData(watchList: WatchListItem[]) {
 
     await Promise.all(promises)
     return watchList
-}
-
-async function getReviewData(reviews: ReviewResponse[]) {
-    const promises = []
-    for (const movie of reviews) {
-        const promise = axios
-            .get(`https://api.themoviedb.org/3/movie/${movie.movieId}?api_key=${tmdbApiKey}`)
-            .then(response => {
-                movie.movieTitle = response.data.title
-            })
-        promises.push(promise)
-    }
-
-    await Promise.all(promises)
-    return reviews
-}
-
-async function detDetailedMovieData(reviews: DetailedReviewResponse[]) {
-    const promises = []
-
-    const configuration = await axios.get(`https://api.themoviedb.org/3/configuration?api_key=${tmdbApiKey}`)
-
-    for (const movie of reviews) {
-      const promise = axios
-        .get(
-          `https://api.themoviedb.org/3/movie/${movie.movieId}?api_key=${tmdbApiKey}`
-        )
-        .then((response) => {
-              movie.movieData = response.data
-              movie.movieData.poster_url = `${configuration.data.images.secure_base_url}w154${response.data.poster_path}`
-          })
-      promises.push(promise)
-    }
-
-    await Promise.all(promises)
-    return reviews
 }
