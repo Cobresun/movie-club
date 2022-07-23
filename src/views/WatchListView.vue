@@ -17,7 +17,7 @@
           />
         </router-link>
         <h1 class="text-3xl font-bold m-4">
-          Cobresun Watch List
+          {{ clubName }} Watch List
         </h1>
       </div>
 
@@ -121,7 +121,7 @@ import { useStore } from 'vuex';
 import { useRouter, useRoute } from 'vue-router';
 import axios from 'axios';
 import MoviePosterCard from '@/components/MoviePosterCard.vue'
-import { WatchListItem, WatchListViewModel } from '@/models';
+import { ClubsViewClub, WatchListItem, WatchListViewModel } from '@/models';
 import AddMovieToWatchlistPrompt from '@/components/SearchPrompt/AddMovieToWatchlistPrompt.vue';
 
 const store = useStore();
@@ -138,6 +138,14 @@ const rotateReps = ref(ROTATE_ITERATIONS);
 const animate = ref(false);
 const nextMovieId = ref<number | undefined>();
 const animateInterval = ref<number | undefined>();
+
+let clubName = ref("")
+
+axios
+  .get<ClubsViewClub>(`/api/club/${route.params.clubId}`)
+  .then((response) => {
+    clubName.value = response.data.clubName
+  })
 
 axios
   .get<WatchListViewModel>(`/api/club/${route.params.clubId}/watchList`)

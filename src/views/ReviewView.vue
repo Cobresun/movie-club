@@ -17,7 +17,7 @@
           />
         </router-link>
         <h1 class="text-3xl font-bold m-4">
-          Cobresun Reviews
+          {{ clubName }} Reviews
         </h1>
       </div>
       <loading-spinner v-if="loading" />
@@ -89,7 +89,7 @@ import { ref, computed, nextTick } from "vue";
 import { useStore } from "vuex";
 import { useRoute } from 'vue-router';
 import AddReviewPrompt from '@/components/SearchPrompt/AddReviewPrompt.vue';
-import { Header, Member, ReviewResponse } from '@/models';
+import { ClubsViewClub, Header, Member, ReviewResponse } from '@/models';
 import axios from 'axios'
 import { DateTime } from "luxon";
 
@@ -102,6 +102,14 @@ const loading = computed(() => loadingReviews.value || loadingMembers.value);
 
 const reviews = ref<ReviewResponse[]>([]);
 const members = ref<Member[]>([]);
+
+let clubName = ref("")
+
+axios
+  .get<ClubsViewClub>(`/api/club/${route.params.clubId}`)
+  .then((response) => {
+    clubName.value = response.data.clubName
+  })
 
 axios
   .get<ReviewResponse[]>(`/api/club/${route.params.clubId}/reviews?detailed=false`)
