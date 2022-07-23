@@ -121,8 +121,9 @@ import { useStore } from 'vuex';
 import { useRouter, useRoute } from 'vue-router';
 import axios from 'axios';
 import MoviePosterCard from '@/components/MoviePosterCard.vue'
-import { ClubsViewClub, WatchListItem, WatchListViewModel } from '@/models';
+import { WatchListItem, WatchListViewModel } from '@/models';
 import AddMovieToWatchlistPrompt from '@/components/SearchPrompt/AddMovieToWatchlistPrompt.vue';
+import { useClubName } from '@/clubName';
 
 const store = useStore();
 const router = useRouter();
@@ -139,13 +140,7 @@ const animate = ref(false);
 const nextMovieId = ref<number | undefined>();
 const animateInterval = ref<number | undefined>();
 
-let clubName = ref("")
-
-axios
-  .get<ClubsViewClub>(`/api/club/${route.params.clubId}`)
-  .then((response) => {
-    clubName.value = response.data.clubName
-  })
+const { clubName } = useClubName(route.params.clubId)
 
 axios
   .get<WatchListViewModel>(`/api/club/${route.params.clubId}/watchList`)

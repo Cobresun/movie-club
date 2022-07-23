@@ -89,9 +89,10 @@ import { ref, computed, nextTick } from "vue";
 import { useStore } from "vuex";
 import { useRoute } from 'vue-router';
 import AddReviewPrompt from '@/components/SearchPrompt/AddReviewPrompt.vue';
-import { ClubsViewClub, Header, Member, ReviewResponse } from '@/models';
+import { Header, Member, ReviewResponse } from '@/models';
 import axios from 'axios'
 import { DateTime } from "luxon";
+import { useClubName } from "@/clubName";
 
 const store = useStore();
 const route = useRoute();
@@ -103,13 +104,7 @@ const loading = computed(() => loadingReviews.value || loadingMembers.value);
 const reviews = ref<ReviewResponse[]>([]);
 const members = ref<Member[]>([]);
 
-let clubName = ref("")
-
-axios
-  .get<ClubsViewClub>(`/api/club/${route.params.clubId}`)
-  .then((response) => {
-    clubName.value = response.data.clubName
-  })
+const { clubName } = useClubName(route.params.clubId)
 
 axios
   .get<ReviewResponse[]>(`/api/club/${route.params.clubId}/reviews?detailed=false`)

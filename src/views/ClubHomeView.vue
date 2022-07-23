@@ -40,20 +40,11 @@
 <script setup lang="ts">
 import reviewSvg from "@/assets/menu-images/review.svg"
 import watchlistSvg from "@/assets/menu-images/watchlist.svg"
-import statisticsSvg from "@/assets/menu-images/statistics.svg"
-import { ref } from "vue"
-import { ClubsViewClub } from "@/models"
-import axios from "axios"
+import { useClubName } from "@/clubName";
 import { useRoute } from "vue-router"
 
 const route = useRoute()
 
-let clubName = ref("")
-
-axios
-  .get<ClubsViewClub>(`/api/club/${route.params.clubId}`)
-  .then((response) => {
-    clubName.value = response.data.clubName
-  })
+const { clubName } = useClubName(route.params.clubId)
 
 </script>

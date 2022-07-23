@@ -52,8 +52,9 @@ import { ref, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import axios from 'axios'
 import ReviewCard from '@/components/ReviewCard.vue'
-import { ClubsViewClub, DetailedReviewResponse, Member } from '@/models';
+import { DetailedReviewResponse, Member } from '@/models';
 import LoadingSpinner from '@/components/LoadingSpinner.vue';
+import { useClubName } from '@/clubName';
 
 const reviews = ref<DetailedReviewResponse[]>([]);
 const loadingReviews = ref(true);
@@ -62,13 +63,7 @@ const route = useRoute();
 const members = ref<Member[]>([]);
 const loadingMembers = ref(true);
 
-let clubName = ref("")
-
-axios
-  .get<ClubsViewClub>(`/api/club/${route.params.clubId}`)
-  .then((response) => {
-    clubName.value = response.data.clubName
-  })
+const { clubName } = useClubName(route.params.clubId)
 
 axios
   .get<DetailedReviewResponse[]>(`/api/club/${route.params.clubId}/reviews?detailed=true`)
