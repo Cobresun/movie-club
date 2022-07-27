@@ -1,20 +1,27 @@
-import netlifyIdentity from 'netlify-identity-widget';
+import netlifyIdentity, { User } from 'netlify-identity-widget';
+import { ActionContext, Module } from 'vuex';
 
-export const authModule = {
+interface State {
+  user?: User;
+  ready: boolean
+}
+
+export const authModule: Module<State, never> = {
+  namespaced: true,
   state: {
-    user: null,
+    user: undefined,
     ready: false
   },
   mutations: {
-    setUser(state: any, value: any) {
+    setUser(state: State, value: User) {
       state.user = value;
     },
-    setAuthReady(state: any, value: any) {
+    setAuthReady(state: State, value: boolean) {
       state.ready = value;
     },
   },
   actions: {
-    init(context: any) {
+    init(context: ActionContext<State, never>) {
       netlifyIdentity.on('login', (user) => {
         netlifyIdentity.refresh()
         context.commit('setUser', user);
