@@ -42,10 +42,10 @@ const avatarURL = computed(() => store.state.auth.user.user_metadata.avatar_url)
 const authReady = computed(() => store.state.auth.ready);
 
 function login() {
- store.dispatch('login');
+ store.dispatch('auth/login');
 }
 
 function logout() {
-  store.dispatch('logout');
+  store.dispatch('auth/logout');
 }
 </script>
