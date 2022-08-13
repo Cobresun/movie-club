@@ -17,7 +17,7 @@
           />
         </router-link>
         <h1 class="text-3xl font-bold m-4">
-          {{ clubName }} Reviews
+          {{ club.clubName }} Reviews
         </h1>
       </div>
       <loading-spinner v-if="loading" />
@@ -92,7 +92,7 @@ import AddReviewPrompt from '@/components/SearchPrompt/AddReviewPrompt.vue';
 import { Header, Member, ReviewResponse } from '@/models';
 import axios from 'axios'
 import { DateTime } from "luxon";
-import { useClubName } from "@/clubName";
+import { useClub } from "@/data/useClub";
 
 const store = useStore();
 const route = useRoute();
@@ -104,7 +104,7 @@ const loading = computed(() => loadingReviews.value || loadingMembers.value);
 const reviews = ref<ReviewResponse[]>([]);
 const members = ref<Member[]>([]);
 
-const { clubName } = useClubName(route.params.clubId)
+const { club } = useClub(route.params.clubId)
 
 axios
   .get<ReviewResponse[]>(`/api/club/${route.params.clubId}/reviews?detailed=false`)

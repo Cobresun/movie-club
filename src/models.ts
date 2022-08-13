@@ -1,3 +1,5 @@
+import { AxiosRequestConfig } from "axios";
+
 export interface Header {
   value: string;
   style?: string;
@@ -94,4 +96,8 @@ export interface Club {
   watchList: WatchListItem[];
   backlog: WatchListItem[];
   reviews: ReviewResponse[];
+}
+
+export interface FetchConfig extends AxiosRequestConfig {
+  skip?: boolean;
 }

@@ -1,7 +1,7 @@
 <template>
   <div>
     <h1 class="font-bold text-3xl m-4">
-      {{ clubName }}
+      {{ club.clubName }}
     </h1>
     <div class="flex justify-center pb-6 flex-col md:flex-row">
       <div class="p-3">
@@ -40,11 +40,11 @@
 <script setup lang="ts">
 import reviewSvg from "@/assets/menu-images/review.svg"
 import watchlistSvg from "@/assets/menu-images/watchlist.svg"
-import { useClubName } from "@/clubName";
+import { useClub } from "@/data/useClub";
 import { useRoute } from "vue-router"
 
 const route = useRoute()
 
-const { clubName } = useClubName(route.params.clubId)
+const { club } = useClub(route.params.clubId)
 
 </script>

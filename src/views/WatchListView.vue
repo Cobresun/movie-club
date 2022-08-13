@@ -17,7 +17,7 @@
           />
         </router-link>
         <h1 class="text-3xl font-bold m-4">
-          {{ clubName }} Watch List
+          {{ club.clubName }} Watch List
         </h1>
       </div>
 
@@ -123,7 +123,7 @@ import axios from 'axios';
 import MoviePosterCard from '@/components/MoviePosterCard.vue'
 import { WatchListItem, WatchListViewModel } from '@/models';
 import AddMovieToWatchlistPrompt from '@/components/SearchPrompt/AddMovieToWatchlistPrompt.vue';
-import { useClubName } from '@/clubName';
+import { useClub } from '@/data/useClub';
 
 const store = useStore();
 const router = useRouter();
@@ -140,7 +140,7 @@ const animate = ref(false);
 const nextMovieId = ref<number | undefined>();
 const animateInterval = ref<number | undefined>();
 
-const { clubName } = useClubName(route.params.clubId)
+const { club } = useClub(route.params.clubId)
 
 axios
   .get<WatchListViewModel>(`/api/club/${route.params.clubId}/watchList`)

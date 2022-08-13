@@ -12,7 +12,7 @@
         />
       </router-link>
       <h1 class="text-3xl font-bold m-4">
-        {{ clubName }} Reviews
+        {{ club.clubName }} Reviews
       </h1>
       <div class="min-w-[40px]" />
     </div>
@@ -54,7 +54,7 @@ import axios from 'axios'
 import ReviewCard from '@/components/ReviewCard.vue'
 import { DetailedReviewResponse, Member } from '@/models';
 import LoadingSpinner from '@/components/LoadingSpinner.vue';
-import { useClubName } from '@/clubName';
+import { useClub } from '@/data/useClub';
 
 const reviews = ref<DetailedReviewResponse[]>([]);
 const loadingReviews = ref(true);
@@ -63,7 +63,7 @@ const route = useRoute();
 const members = ref<Member[]>([]);
 const loadingMembers = ref(true);
 
-const { clubName } = useClubName(route.params.clubId)
+const { club } = useClub(route.params.clubId)
 
 axios
   .get<DetailedReviewResponse[]>(`/api/club/${route.params.clubId}/reviews?detailed=true`)
