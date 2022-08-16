@@ -1,21 +1,10 @@
 <template>
   <div class="p-1">
-    <div class="grid items-center grid-cols-centerHeader gap-x-8">
-      <router-link
-        class="flex justify-end"
-        :to="{ name: 'ClubHome' }"
-      >
-        <mdicon
-          class="cursor-pointer"
-          name="arrow-left"
-          size="40"
-        />
-      </router-link>
-      <h1 class="text-3xl font-bold m-4">
-        {{ club.clubName }} Reviews
-      </h1>
-      <div class="min-w-[40px]" />
-    </div>
+    <page-header 
+      :has-back="true"
+      back-route="ClubHome"
+      page-name="Reviews"
+    />
     <loading-spinner v-if="loading" />
     <div 
       v-else 
@@ -54,7 +43,6 @@ import axios from 'axios'
 import ReviewCard from '@/components/ReviewCard.vue'
 import { DetailedReviewResponse, Member } from '@/models';
 import LoadingSpinner from '@/components/LoadingSpinner.vue';
-import { useClub } from '@/data/useClub';
 
 const reviews = ref<DetailedReviewResponse[]>([]);
 const loadingReviews = ref(true);
@@ -62,8 +50,6 @@ const loadingReviews = ref(true);
 const route = useRoute();
 const members = ref<Member[]>([]);
 const loadingMembers = ref(true);
-
-const { club } = useClub(route.params.clubId)
 
 axios
   .get<DetailedReviewResponse[]>(`/api/club/${route.params.clubId}/reviews?detailed=true`)

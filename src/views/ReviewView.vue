@@ -5,21 +5,11 @@
       @close="closePrompt" 
     />
     <div>
-      <div class="grid items-center grid-cols-centerHeader gap-x-8">
-        <router-link
-          class="flex justify-end"
-          :to="{ name: 'ClubHome' }"
-        >
-          <mdicon
-            class="cursor-pointer"
-            name="arrow-left"
-            size="40"
-          />
-        </router-link>
-        <h1 class="text-3xl font-bold m-4">
-          {{ club.clubName }} Reviews
-        </h1>
-      </div>
+      <page-header 
+        :has-back="true"
+        back-route="ClubHome"
+        page-name="Reviews"
+      />
       <loading-spinner v-if="loading" />
       <div v-else>
         <v-btn 
@@ -92,7 +82,6 @@ import AddReviewPrompt from '@/components/SearchPrompt/AddReviewPrompt.vue';
 import { Header, Member, ReviewResponse } from '@/models';
 import axios from 'axios'
 import { DateTime } from "luxon";
-import { useClub } from "@/data/useClub";
 
 const store = useStore();
 const route = useRoute();
@@ -103,8 +92,6 @@ const loading = computed(() => loadingReviews.value || loadingMembers.value);
 
 const reviews = ref<ReviewResponse[]>([]);
 const members = ref<Member[]>([]);
-
-const { club } = useClub(route.params.clubId)
 
 axios
   .get<ReviewResponse[]>(`/api/club/${route.params.clubId}/reviews?detailed=false`)

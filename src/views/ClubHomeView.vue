@@ -1,8 +1,9 @@
 <template>
   <div>
-    <h1 class="font-bold text-3xl m-4">
-      {{ club.clubName }}
-    </h1>
+    <page-header
+      :has-back="false"
+      page-name=""
+    />
     <div class="flex justify-center pb-6 flex-col md:flex-row">
       <div class="p-3">
         <router-link :to="{ name: 'Reviews' }">
@@ -40,11 +41,4 @@
 <script setup lang="ts">
 import reviewSvg from "@/assets/menu-images/review.svg"
 import watchlistSvg from "@/assets/menu-images/watchlist.svg"
-import { useClub } from "@/data/useClub";
-import { useRoute } from "vue-router"
-
-const route = useRoute()
-
-const { club } = useClub(route.params.clubId)
-
 </script>

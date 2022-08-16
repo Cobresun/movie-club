@@ -5,21 +5,11 @@
       @close="closePrompt" 
     />
     <div>
-      <div class="grid items-center grid-cols-centerHeader gap-x-8">
-        <router-link
-          class="flex justify-end"
-          :to="{ name: 'ClubHome' }"
-        >
-          <mdicon
-            class="cursor-pointer"
-            name="arrow-left"
-            size="40"
-          />
-        </router-link>
-        <h1 class="text-3xl font-bold m-4">
-          {{ club.clubName }} Watch List
-        </h1>
-      </div>
+      <page-header 
+        :has-back="true"
+        back-route="ClubHome"
+        page-name="Watch List"
+      />
 
       <loading-spinner v-if="loading" />
 
@@ -123,7 +113,6 @@ import axios from 'axios';
 import MoviePosterCard from '@/components/MoviePosterCard.vue'
 import { WatchListItem, WatchListViewModel } from '@/models';
 import AddMovieToWatchlistPrompt from '@/components/SearchPrompt/AddMovieToWatchlistPrompt.vue';
-import { useClub } from '@/data/useClub';
 
 const store = useStore();
 const router = useRouter();
@@ -139,8 +128,6 @@ const rotateReps = ref(ROTATE_ITERATIONS);
 const animate = ref(false);
 const nextMovieId = ref<number | undefined>();
 const animateInterval = ref<number | undefined>();
-
-const { club } = useClub(route.params.clubId)
 
 axios
   .get<WatchListViewModel>(`/api/club/${route.params.clubId}/watchList`)
