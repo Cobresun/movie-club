@@ -1,3 +1,4 @@
+import { clearCache } from '@/data/useFetch';
 import netlifyIdentity, { User } from 'netlify-identity-widget';
 import { ActionContext, Module } from 'vuex';
 
@@ -20,6 +21,14 @@ export const authModule: Module<State, never> = {
       state.ready = value;
     },
   },
+  getters: {
+    authToken(state) {
+      return state.user?.token?.access_token;
+    },
+    isLoggedIn(state) {
+      return state.user;
+    }
+  },
   actions: {
     init(context: ActionContext<State, never>) {
       netlifyIdentity.on('login', (user) => {
@@ -30,6 +39,7 @@ export const authModule: Module<State, never> = {
 
       netlifyIdentity.on('logout', () => {
         context.commit('setUser', null);
+        clearCache();
       });
 
       netlifyIdentity.on('init', (user) => {

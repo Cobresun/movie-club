@@ -37,37 +37,34 @@ import axios from "axios";
 import { ClubsViewClub } from "../models"
 
 import clubSvg from "@/assets/menu-images/club.svg";
+import { useUser } from "@/data/useUser";
 
 const store = useStore();
 
 const loading = ref(true);
-const isLoggedIn = computed(() => store.state.auth.user);
+const isLoggedIn = computed(() => store.getters['auth/isLoggedIn']);
 
 const clubs = ref<ClubsViewClub[]>([]);
-const getClubs = (newVal: boolean) => {
-  if (newVal) {
-    axios
-      .get(`/api/member/${store.state.auth.user.email}`)
-      .then(async (response) => {
-        const promises: Promise<ClubsViewClub>[] = [];
+const { user } = useUser();
 
-        response.data.clubs.forEach((clubId: number) => {
-          promises.push(
-            axios
-              .get<ClubsViewClub>(`/api/club/${clubId}`)
-              .then((response) => {
-                  return response.data;
-                })
-          );
-        });
+const loadClubs = async () => {
+  if (user.value) {
+    const promises: Promise<ClubsViewClub>[] = [];
+    user.value.clubs.forEach((clubId: number) => {
+      promises.push(
+        axios
+          .get<ClubsViewClub>(`/api/club/${clubId}`)
+          .then((response) => {
+              return response.data;
+            })
+      );
+    });
 
-        clubs.value = await Promise.all(promises);
-        loading.value = false;
-      });
+    clubs.value = await Promise.all(promises);
+    loading.value = false;
   }
-};
+}
 
-watch(isLoggedIn, getClubs);
-
-getClubs(isLoggedIn.value);
+watch(user, loadClubs);
+loadClubs();
 </script>

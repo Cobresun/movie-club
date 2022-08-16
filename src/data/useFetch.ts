@@ -1,18 +1,23 @@
 import { FetchConfig } from "@/models";
 import axios, { AxiosError, AxiosResponse } from "axios";
 import { computed, reactive, ref } from "vue";
+import { useStore } from "vuex";
 
-export const useFetch = <T>(url: string, config: FetchConfig = {}) => {
+export const useFetch = <T>(urlInp: string, config: FetchConfig = {}) => {
   const data = ref<T>();
   const response = ref<AxiosResponse<T>>();
   const error = ref<AxiosError | unknown>();
   const loading = ref(false);
 
+  const url = ref<string>(urlInp);
+
+  const updateUrl = (value: string) => { url.value = value }
+
   const fetch = async () => {
     loading.value = true;
     try {
       const result = await axios.request<T>({
-        url,
+        url: url.value,
         ...config
       });
       response.value = result;
@@ -26,18 +31,26 @@ export const useFetch = <T>(url: string, config: FetchConfig = {}) => {
 
   !config.skip && fetch();
 
-  return { data, response, error, loading, fetch }
+  return { data, response, error, loading, fetch, updateUrl }
 }
 
 const cacheMap = reactive(new Map());
 
-export const useFetchCache = <T>(key: string, url: string, config: FetchConfig = {}) => {
+export const useFetchCache = <T>(keyInp: string, url: string, config: FetchConfig = {}) => {
   const info = useFetch<T>(url, { ...config, skip: true });
 
-  const update = () => cacheMap.set(key, info.response.value);
-  const clear = () => cacheMap.set(key, undefined);
+  const key = ref(keyInp);
+
+  const updateKey = (value: string) => { key.value = value };
+
+  const update = () => cacheMap.set(key.value, info.response.value);
+  const clear = () => cacheMap.set(key.value, undefined);
+
+  const response = computed<AxiosResponse<T>>(() => cacheMap.get(key.value));
+  const data = computed<T>(() => response.value?.data);
 
   const fetch = async () => {
+    if (response.value) return;
     try {
       await info.fetch();
       update();
@@ -46,10 +59,21 @@ export const useFetchCache = <T>(key: string, url: string, config: FetchConfig =
     }
   }
 
-  const response = computed<AxiosResponse<T>>(() => cacheMap.get(key));
-  const data = computed<T>(() => response.value?.data);
+  !config.skip && fetch();
 
-  if (response.value == null) fetch();
+  return { ...info, fetch, data, response, clear, updateKey };
+}
 
-  return { ...info, fetch, data, response, clear };
+export const clearCache = () => {
+  cacheMap.clear();
+}
+
+export const useAuthFetch = <T>(key: string, url: string, config: FetchConfig = {}) => {
+  const store = useStore();
+  const headers = {
+    ...config.headers, 
+    Authorization: `Bearer ${store.getters['auth/authToken']}`
+  };
+  const fetch = useFetchCache<T>(key, url, {...config, headers});
+  return {...fetch};
 }
