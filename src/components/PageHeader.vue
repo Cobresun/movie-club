@@ -28,5 +28,5 @@ const { hasBack, backRoute, pageName } = defineProps<{
 }>()
 
 const route = useRoute();
-const { data: club } = useClub(route.params.clubId);
+const { data: club } = useClub(route.params.clubId as string);
 </script>
