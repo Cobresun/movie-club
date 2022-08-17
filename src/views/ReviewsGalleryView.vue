@@ -39,31 +39,24 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useRoute } from 'vue-router';
-import axios from 'axios'
 import ReviewCard from '@/components/ReviewCard.vue'
-import { DetailedReviewResponse, Member } from '@/models';
 import LoadingSpinner from '@/components/LoadingSpinner.vue';
-
-const reviews = ref<DetailedReviewResponse[]>([]);
-const loadingReviews = ref(true);
+import { useDetailedReview } from '@/data/useReview';
+import { useMembers } from '@/data/useClub';
 
 const route = useRoute();
-const members = ref<Member[]>([]);
-const loadingMembers = ref(true);
 
-axios
-  .get<DetailedReviewResponse[]>(`/api/club/${route.params.clubId}/reviews?detailed=true`)
-  .then((response) => {
-    reviews.value = response.data;
-    loadingReviews.value = false;
-  });
+const { 
+  data: reviews, 
+  loading: loadingReviews 
+} = useDetailedReview(route.params.clubId as string);
 
-axios
-  .get<Member[]>(`/api/club/${route.params.clubId}/members`)
-  .then((response) => {
-    members.value = response.data.filter(member => !member.devAccount);
-    loadingMembers.value = false;
-  });
+const {
+  data: allMembers,
+  loading: loadingMembers
+} = useMembers(route.params.clubId as string);
+
+const members = computed(() => allMembers.value.filter(member => !member.devAccount));
 
 const loading = computed(() => loadingReviews.value || loadingMembers.value);
 
