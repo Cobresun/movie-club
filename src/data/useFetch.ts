@@ -38,6 +38,7 @@ const cacheMap = reactive(new Map());
 
 export const useFetchCache = <T>(keyInp: string, url: string, config: FetchConfig = {}) => {
   const info = useFetch<T>(url, { ...config, skip: true });
+  const loading = ref(false);
 
   const key = ref(keyInp);
 
@@ -51,17 +52,20 @@ export const useFetchCache = <T>(keyInp: string, url: string, config: FetchConfi
 
   const fetch = async () => {
     if (response.value) return;
+    loading.value = true;
     try {
       await info.fetch();
       update();
     } catch {
       clear();
+    } finally {
+      loading.value = false;
     }
   }
 
   !config.skip && fetch();
 
-  return { ...info, fetch, data, response, clear, updateKey };
+  return { ...info, fetch, data, response, clear, updateKey, loading };
 }
 
 export const clearCache = () => {

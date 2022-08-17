@@ -1,4 +1,5 @@
-import { AxiosRequestConfig } from "axios";
+import { AxiosError, AxiosRequestConfig, AxiosResponse } from "axios";
+import { ComputedRef, Ref } from "vue";
 
 export interface Header {
   value: string;
@@ -100,4 +101,13 @@ export interface Club {
 
 export interface FetchConfig extends AxiosRequestConfig {
   skip?: boolean;
+}
+
+export interface DataService<T> {
+  data: ComputedRef<T>,
+  response: ComputedRef<AxiosResponse>,
+  error: Ref<AxiosError | unknown>,
+  loading: Ref<boolean>,
+  fetch: () => void;
+  clear: () => void;
 }

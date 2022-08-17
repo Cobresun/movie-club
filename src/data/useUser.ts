@@ -1,9 +1,9 @@
-import { Member } from "@/models";
+import { DataService, Member } from "@/models";
 import { computed, watch } from "vue";
 import { useStore } from "vuex";
 import { useFetchCache } from "./useFetch";
 
-export function useUser() {
+export function useUser(): DataService<Member> {
   const store = useStore();
   const email = computed(() => store.state.auth.user?.email);
   const isLoggedIn = computed(() => store.getters['auth/isLoggedIn']);
@@ -17,5 +17,5 @@ export function useUser() {
     }
   });
 
-  return {...info, user: info.data, updateUrl: undefined, updateKey: undefined};
+  return {...info};
 }

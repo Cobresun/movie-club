@@ -6,11 +6,14 @@
 
     <div v-if="isLoggedIn">
       <loading-spinner v-if="loading" />
-
       <div
         v-else
         class="flex justify-center pb-6 flex-col md:flex-row"
       >
+        <!--Ignore the type errors on the below lines. 
+          The compiler is wrong. 
+          club is a ClubsVewClub not a computed ref in the template
+        -->
         <div
           v-for="club in clubs"
           :key="club.clubId"
@@ -31,40 +34,36 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from "vue";
+import { computed, ref, watch } from "vue";
 import { useStore } from "vuex";
-import axios from "axios";
-import { ClubsViewClub } from "../models"
 
 import clubSvg from "@/assets/menu-images/club.svg";
 import { useUser } from "@/data/useUser";
+import { useClub } from "@/data/useClub";
+import { ClubsViewClub, DataService } from "@/models";
 
 const store = useStore();
-
-const loading = ref(true);
 const isLoggedIn = computed(() => store.getters['auth/isLoggedIn']);
 
-const clubs = ref<ClubsViewClub[]>([]);
-const { user } = useUser();
+const { data: user, loading: userLoading } = useUser();
 
-const loadClubs = async () => {
-  if (user.value) {
-    const promises: Promise<ClubsViewClub>[] = [];
-    user.value.clubs.forEach((clubId: number) => {
-      promises.push(
-        axios
-          .get<ClubsViewClub>(`/api/club/${clubId}`)
-          .then((response) => {
-              return response.data;
-            })
-      );
-    });
+const clubServiceResults = ref<DataService<ClubsViewClub>[]>();
 
-    clubs.value = await Promise.all(promises);
-    loading.value = false;
-  }
+const setClubs = (isLoading: boolean) => {
+  if (isLoading) return;
+  clubServiceResults.value = user.value.clubs.map((club) => 
+    useClub(club.toString())
+  );
 }
+watch(userLoading, setClubs);
+setClubs(userLoading.value);
 
-watch(user, loadClubs);
-loadClubs();
+const loading = computed(() => {
+  return userLoading.value || clubServiceResults.value?.some(result => result.loading);
+});
+
+const clubs = computed(() => {
+  if (loading.value) return [];
+  return clubServiceResults.value?.map(result => result.data);
+});
 </script>
