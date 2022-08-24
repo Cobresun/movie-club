@@ -110,4 +110,5 @@ export interface DataService<T> {
   loading: Ref<boolean>,
   fetch: () => void;
   clear: () => void;
+  refresh: () => void;
 }

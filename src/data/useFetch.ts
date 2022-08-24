@@ -50,9 +50,9 @@ export const useFetchCache = <T>(keyInp: string, url: string, config: FetchConfi
   const response = computed<AxiosResponse<T>>(() => cacheMap.get(key.value));
   const data = computed<T>(() => response.value?.data);
 
-  const fetch = async () => {
-    if (response.value) return;
-    loading.value = true;
+  const fetch = async (isRefresh?: boolean) => {
+    if (!isRefresh && response.value) return;
+    loading.value = !isRefresh;
     try {
       await info.fetch();
       update();
@@ -63,9 +63,13 @@ export const useFetchCache = <T>(keyInp: string, url: string, config: FetchConfi
     }
   }
 
+  const refresh = async () => {
+    await fetch(true);
+  }
+
   !config.skip && fetch();
 
-  return { ...info, fetch, data, response, clear, updateKey, loading };
+  return { ...info, fetch, data, response, clear, updateKey, loading, refresh };
 }
 
 export const clearCache = () => {

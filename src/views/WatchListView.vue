@@ -111,32 +111,23 @@ import { useStore } from 'vuex';
 import { useRouter, useRoute } from 'vue-router';
 import axios from 'axios';
 import MoviePosterCard from '@/components/MoviePosterCard.vue'
-import { WatchListItem, WatchListViewModel } from '@/models';
+import { WatchListItem } from '@/models';
 import AddMovieToWatchlistPrompt from '@/components/SearchPrompt/AddMovieToWatchlistPrompt.vue';
+import { useWatchList } from '@/data/useWatchList';
 
 const store = useStore();
 const router = useRouter();
 const route = useRoute();
 
-const watchList = ref<WatchListItem[]>([]);
-const backlog = ref<WatchListItem[]>([])
-
-const loading = ref(true);
-
 const ROTATE_ITERATIONS = 6;
 const rotateReps = ref(ROTATE_ITERATIONS);
 const animate = ref(false);
-const nextMovieId = ref<number | undefined>();
 const animateInterval = ref<number | undefined>();
 
-axios
-  .get<WatchListViewModel>(`/api/club/${route.params.clubId}/watchList`)
-  .then(response => {
-    loading.value = false
-    watchList.value = response.data.watchList
-    backlog.value = response.data.backlog
-    nextMovieId.value = response.data.nextMovieId
-  });
+const { loading, data, refresh } = useWatchList(route.params.clubId as string);
+const watchList = computed(() => data.value.watchList);
+const backlog = computed(() => data.value.backlog);
+const nextMovieId = computed(() => data.value.nextMovieId);
 
 const sortedWatchList = computed(() => {
   let sortedWatchList = watchList.value.slice(0);
@@ -179,7 +170,7 @@ const makeNextWatch = (movieId: number) => {
       }
     )
     .then(() => {
-      nextMovieId.value = movieId
+      refresh();
     })
 }
 
@@ -220,14 +211,13 @@ const deleteBacklogItem = (id: number) => {
       }
     )
   .then(() => {
-    backlog.value = backlog.value.filter(x => x.movieId !== id);
+    refresh();
   })
   .catch((error) => {
     console.error(error);
   });
 }
 
-// TODO: make it so you don't have to refresh to see the list update
 const moveBacklogItemToWatchlist = (id: number) => {
   deleteBacklogItem(id)
   axios
@@ -236,6 +226,6 @@ const moveBacklogItemToWatchlist = (id: number) => {
       headers: { Authorization: `Bearer ${store.state.auth.user.token.access_token}` }
     }
     )
-    .then((response) => console.log(response))
+    .then(() => { refresh() })
 }
 </script>

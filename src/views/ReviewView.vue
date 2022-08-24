@@ -79,33 +79,19 @@ import { ref, computed, nextTick } from "vue";
 import { useStore } from "vuex";
 import { useRoute } from 'vue-router';
 import AddReviewPrompt from '@/components/SearchPrompt/AddReviewPrompt.vue';
-import { Header, Member, ReviewResponse } from '@/models';
+import { Header, ReviewResponse } from '@/models';
 import axios from 'axios'
 import { DateTime } from "luxon";
+import { useReview } from "@/data/useReview";
+import { useMembers } from "@/data/useClub";
 
 const store = useStore();
 const route = useRoute();
 
-const loadingReviews = ref(true);
-const loadingMembers = ref(true);
+const { loading: loadingReviews, data: reviews } = useReview(route.params.clubId as string);
+const { loading: loadingMembers, data: members } = useMembers(route.params.clubId as string);
+
 const loading = computed(() => loadingReviews.value || loadingMembers.value);
-
-const reviews = ref<ReviewResponse[]>([]);
-const members = ref<Member[]>([]);
-
-axios
-  .get<ReviewResponse[]>(`/api/club/${route.params.clubId}/reviews?detailed=false`)
-  .then((response) => {
-    loadingReviews.value = false;
-    reviews.value = response.data;
-  });
-
-axios
-  .get<Member[]>(`/api/club/${route.params.clubId}/members`)
-  .then((response) => {
-    loadingMembers.value = false;
-    members.value = response.data;
-  });
 
 const modalOpen = ref(false);
 const openPrompt = () => { modalOpen.value = true };
