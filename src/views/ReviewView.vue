@@ -44,10 +44,9 @@
               :key="member.name"
               class="flex justify-center"
             >
-              <!-- I don't know why the compiler complains about the next line. It is typed fine and compiles fine -->
               <input
                 v-show="activeScoreInput === getScoreInputRefKey(slotProps.item.movieId, member.name)"
-                :ref="(e) => scoreInputRefs[getScoreInputRefKey(slotProps.item.movieId, member.name)] = e"
+                :ref="(e) => scoreInputRefs[getScoreInputRefKey(slotProps.item.movieId, member.name)] = e as HTMLInputElement"
                 v-model="scoreInputValue"
                 class=" bg-background rounded-lg outline-none border border-gray-300 focus:border-primary p-2 w-10 text-center"
                 @keypress.enter="submitScore(slotProps.item.movieId, member.name)"
