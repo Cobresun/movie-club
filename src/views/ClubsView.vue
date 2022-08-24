@@ -50,7 +50,7 @@ const { data: user, loading: userLoading } = useUser();
 const clubServiceResults = ref<DataService<ClubsViewClub>[]>();
 
 const setClubs = (isLoading: boolean) => {
-  if (isLoading) return;
+  if (isLoading || !user.value) return;
   clubServiceResults.value = user.value.clubs.map((club) => 
     useClub(club.toString())
   );
