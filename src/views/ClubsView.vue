@@ -10,10 +10,6 @@
         v-else
         class="flex justify-center pb-6 flex-col md:flex-row"
       >
-        <!--Ignore the type errors on the below lines. 
-          The compiler is wrong. 
-          club is a ClubsVewClub not a computed ref in the template
-        -->
         <div
           v-for="club in clubs"
           :key="club.clubId"
@@ -34,7 +30,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed, reactive, watch } from "vue";
 import { useStore } from "vuex";
 
 import clubSvg from "@/assets/menu-images/club.svg";
@@ -47,23 +43,24 @@ const isLoggedIn = computed(() => store.getters['auth/isLoggedIn']);
 
 const { data: user, loading: userLoading } = useUser();
 
-const clubServiceResults = ref<DataService<ClubsViewClub>[]>();
+const clubServiceResults = reactive<DataService<ClubsViewClub>[]>([]);
 
 const setClubs = (isLoading: boolean) => {
   if (isLoading || !user.value) return;
-  clubServiceResults.value = user.value.clubs.map((club) => 
-    useClub(club.toString())
+  clubServiceResults.length = 0;
+  user.value.clubs.forEach((club) => 
+    clubServiceResults.push(reactive(useClub(club.toString())))
   );
 }
 watch(userLoading, setClubs);
 setClubs(userLoading.value);
 
 const loading = computed(() => {
-  return userLoading.value || clubServiceResults.value?.some(result => result.loading);
+  return userLoading.value || clubServiceResults.some(result => result.loading);
 });
 
 const clubs = computed(() => {
   if (loading.value) return [];
-  return clubServiceResults.value?.map(result => result.data);
+  return clubServiceResults.map(result => result.data);
 });
 </script>
