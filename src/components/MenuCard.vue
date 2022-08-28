@@ -6,7 +6,7 @@
   >
     <img 
       :src="image"
-      class="h-24 w-48 mb-2"
+      class="h-24 w-48 mb-2 mx-auto"
     >
     <div class="prompt">
       <slot />
