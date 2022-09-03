@@ -80,7 +80,7 @@ const handler: Handler = async function (
     return notFound("Invalid club id");
   }
 
-  const watchListPathMatch = watchListPath.test(event.path);
+  const watchListPathMatch = watchListPath.partialTest(event.path);
   if (watchListPathMatch != null) {
     return await watchListHandler(event, context, watchListPathMatch);
   }
