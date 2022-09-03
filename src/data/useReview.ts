@@ -1,18 +1,54 @@
-import { DataService, DetailedReviewResponse, ReviewResponse } from "@/models";
-import { useFetchCache } from "./useFetch";
+import {
+  CacheDataService,
+  DetailedReviewResponse,
+  ReviewResponse,
+} from "@/models";
+import { computed, watch } from "vue";
+import { useStore } from "vuex";
+import { useAuthRequest, useRequestCache } from "./useRequest";
 
-export function useReview(clubId: string): DataService<ReviewResponse[]> {
-  const fetch = useFetchCache<DetailedReviewResponse[]>(
-    `review-${clubId}`, 
+export function useReview(clubId: string): CacheDataService<ReviewResponse[]> {
+  const store = useStore();
+  const fetch = useRequestCache<DetailedReviewResponse[]>(
+    `review-${clubId}`,
     `/api/club/${clubId}/reviews`
   );
-  return {...fetch}
+  watch(fetch.data, (newValue) => {
+    if (newValue) {
+      store.commit("reviews/addClub", { clubId, reviews: newValue });
+    }
+  });
+  const data = computed(() => store.getters["reviews/getClubReviews"](clubId));
+  return { ...fetch, data };
 }
 
-export function useDetailedReview(clubId: string): DataService<DetailedReviewResponse[]> {
-  const fetch = useFetchCache<DetailedReviewResponse[]>(
-    `review-d-${clubId}`, 
+export function useDetailedReview(
+  clubId: string
+): CacheDataService<DetailedReviewResponse[]> {
+  const fetch = useRequestCache<DetailedReviewResponse[]>(
+    `review-d-${clubId}`,
     `/api/club/${clubId}/reviews?detailed=true`
   );
-  return {...fetch}
+  return { ...fetch };
+}
+
+export function useSubmitScore(clubId: string) {
+  const request = useAuthRequest<ReviewResponse>();
+  const store = useStore();
+  const submit = async (user: string, movieId: number, score: number) => {
+    await request.execute(`/api/club/${clubId}/reviews/${movieId}`, {
+      data: {
+        name: user,
+        score: score,
+      },
+      method: "PUT",
+    });
+    if (request.data.value) {
+      store.commit("reviews/updateScore", {
+        clubId,
+        review: request.data.value,
+      });
+    }
+  };
+  return { ...request, submit };
 }

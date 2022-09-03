@@ -1,12 +1,18 @@
-import { ClubsViewClub, DataService, Member } from '@/models';
-import { useFetchCache } from './useFetch'
+import { ClubsViewClub, CacheDataService, Member } from "@/models";
+import { useRequestCache } from "./useRequest";
 
-export function useClub(clubId: string): DataService<ClubsViewClub> {
-    const fetch = useFetchCache<ClubsViewClub>(`club-${clubId}`, `/api/club/${clubId}`);
-    return { ...fetch }
+export function useClub(clubId: string): CacheDataService<ClubsViewClub> {
+  const fetch = useRequestCache<ClubsViewClub>(
+    `club-${clubId}`,
+    `/api/club/${clubId}`
+  );
+  return { ...fetch };
 }
 
-export function useMembers(clubId: string): DataService<Member[]> {
-    const fetch = useFetchCache<Member[]>(`members-${clubId}`, `/api/club/${clubId}/members`);
-    return { ...fetch };
+export function useMembers(clubId: string): CacheDataService<Member[]> {
+  const fetch = useRequestCache<Member[]>(
+    `members-${clubId}`,
+    `/api/club/${clubId}/members`
+  );
+  return { ...fetch };
 }

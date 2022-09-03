@@ -25,7 +25,13 @@ const modifyPath = new Path<StringRecord>(
 const tmdbApiKey = process.env.TMDB_API_KEY;
 // TODO: Don't really want this to exist, update Fauna function
 export interface ReviewResponseResponse {
-  reviews: ReviewResponse[];
+  reviews: ReviewDatabaseObject[];
+}
+
+interface ReviewDatabaseObject {
+  movieId: number;
+  timeWatched: DateObject;
+  scores: Record<string, number>;
 }
 
 export async function handler(
@@ -107,15 +113,9 @@ async function updateReviewScore(
   userName: string,
   score: number
 ): Promise<HandlerResponse> {
-  interface IntermediateReviewResponse {
-    movieId: number;
-    timeWatched: DateObject;
-    scores: Record<string, number>;
-  }
-
   const { faunaClient, q } = getFaunaClient();
 
-  const reviewResponse = await faunaClient.query<IntermediateReviewResponse[]>(
+  const reviewResponse = await faunaClient.query<ReviewDatabaseObject[]>(
     q.Call(q.Function("GetReviewByMovieId"), clubId, movieId)
   );
 
@@ -144,24 +144,24 @@ async function updateReviewScore(
 
   await faunaClient.query(q.Call(q.Function("AddReview"), clubId, review));
 
-  return ok(JSON.stringify(review));
+  return ok(JSON.stringify((await getReviewData([review]))[0]));
 }
 
-async function getReviewData(reviews: ReviewResponse[]) {
-  const promises = [];
+async function getReviewData(reviews: ReviewDatabaseObject[]) {
+  const promises: Promise<ReviewResponse>[] = [];
   for (const movie of reviews) {
     const promise = axios
       .get(
         `https://api.themoviedb.org/3/movie/${movie.movieId}?api_key=${tmdbApiKey}`
       )
-      .then((response) => {
-        movie.movieTitle = response.data.title;
-      });
+      .then((response) => ({
+        ...movie,
+        movieTitle: response.data.title,
+      }));
     promises.push(promise);
   }
 
-  await Promise.all(promises);
-  return reviews;
+  return await Promise.all(promises);
 }
 
 async function getDetailedMovieData(reviews: DetailedReviewResponse[]) {

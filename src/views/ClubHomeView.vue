@@ -1,29 +1,20 @@
 <template>
   <div>
-    <page-header
-      :has-back="false"
-      page-name=""
-    />
+    <page-header :has-back="false" page-name="" />
     <div class="flex justify-center pb-6 flex-col md:flex-row">
       <div class="p-3">
         <router-link :to="{ name: 'Reviews' }">
-          <menu-card :image="reviewSvg">
-            Reviews
-          </menu-card>
+          <menu-card :image="reviewSvg"> Reviews </menu-card>
         </router-link>
       </div>
       <div class="p-3">
         <router-link :to="{ name: 'ReviewsGallery' }">
-          <menu-card :image="reviewSvg">
-            Reviews Gallery
-          </menu-card>
+          <menu-card :image="reviewSvg"> Reviews Gallery </menu-card>
         </router-link>
       </div>
       <div class="p-3">
         <router-link :to="{ name: 'WatchList' }">
-          <menu-card :image="watchlistSvg">
-            Watch List
-          </menu-card>
+          <menu-card :image="watchlistSvg"> Watch List </menu-card>
         </router-link>
       </div>
       <!-- <div class="p-3">
@@ -39,6 +30,6 @@
 </template>
 
 <script setup lang="ts">
-import reviewSvg from "@/assets/menu-images/review.svg"
-import watchlistSvg from "@/assets/menu-images/watchlist.svg"
+import reviewSvg from "@/assets/menu-images/review.svg";
+import watchlistSvg from "@/assets/menu-images/watchlist.svg";
 </script>

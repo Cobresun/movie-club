@@ -1,17 +1,17 @@
-import { clearCache } from '@/data/useFetch';
-import netlifyIdentity, { User } from 'netlify-identity-widget';
-import { ActionContext, Module } from 'vuex';
+import { clearCache } from "@/data/useRequest";
+import netlifyIdentity, { User } from "netlify-identity-widget";
+import { ActionContext, Module } from "vuex";
 
 interface State {
   user?: User;
-  ready: boolean
+  ready: boolean;
 }
 
 export const authModule: Module<State, never> = {
   namespaced: true,
   state: {
     user: undefined,
-    ready: false
+    ready: false,
   },
   mutations: {
     setUser(state: State, value: User) {
@@ -27,33 +27,32 @@ export const authModule: Module<State, never> = {
     },
     isLoggedIn(state) {
       return state.user;
-    }
+    },
   },
   actions: {
     init(context: ActionContext<State, never>) {
-      netlifyIdentity.on('login', (user) => {
-        netlifyIdentity.refresh()
-        context.commit('setUser', user);
+      netlifyIdentity.on("login", (user) => {
+        netlifyIdentity.refresh();
+        context.commit("setUser", user);
         netlifyIdentity.close();
       }),
+        netlifyIdentity.on("logout", () => {
+          context.commit("setUser", null);
+          clearCache();
+        });
 
-      netlifyIdentity.on('logout', () => {
-        context.commit('setUser', null);
-        clearCache();
+      netlifyIdentity.on("init", (user) => {
+        context.commit("setUser", user);
+        context.commit("setAuthReady", true);
       });
 
-      netlifyIdentity.on('init', (user) => {
-        context.commit('setUser', user);
-        context.commit('setAuthReady', true);
-      })
-
       netlifyIdentity.init({
-        APIUrl: "https://cobresun-movie-club.netlify.app/.netlify/identity"
+        APIUrl: "https://cobresun-movie-club.netlify.app/.netlify/identity",
       });
     },
     cleanup() {
-      netlifyIdentity.off('login');
-      netlifyIdentity.off('logout');
+      netlifyIdentity.off("login");
+      netlifyIdentity.off("logout");
     },
     login() {
       netlifyIdentity.open();
@@ -61,5 +60,5 @@ export const authModule: Module<State, never> = {
     logout() {
       netlifyIdentity.logout();
     },
-  }
-}
+  },
+};

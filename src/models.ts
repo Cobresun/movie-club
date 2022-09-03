@@ -11,7 +11,7 @@ export interface Header {
 }
 
 export type DateObject = {
-  "@ts": string
+  "@ts": string;
 };
 
 export interface ReviewResponse {
@@ -22,7 +22,7 @@ export interface ReviewResponse {
 }
 
 export interface DetailedReviewResponse extends ReviewResponse {
-  movieData: TMDBMovieData
+  movieData: TMDBMovieData;
 }
 
 export interface WatchListItem {
@@ -104,11 +104,14 @@ export interface FetchConfig extends AxiosRequestConfig {
 }
 
 export interface DataService<T> {
-  data: ComputedRef<T>,
-  response: ComputedRef<AxiosResponse>,
-  error: Ref<AxiosError | unknown>,
-  loading: Ref<boolean>,
-  fetch: () => void;
+  data: ComputedRef<T>;
+  response: ComputedRef<AxiosResponse>;
+  error: Ref<AxiosError | unknown>;
+  loading: Ref<boolean>;
+  execute: (arg1?: string, arg2?: FetchConfig) => void;
+}
+
+export interface CacheDataService<T> extends DataService<T> {
   clear: () => void;
   refresh: () => void;
 }

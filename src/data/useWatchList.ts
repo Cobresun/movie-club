@@ -1,10 +1,12 @@
-import { DataService, WatchListViewModel } from "@/models";
-import { useFetchCache } from "./useFetch";
+import { CacheDataService, WatchListViewModel } from "@/models";
+import { useRequestCache } from "./useRequest";
 
-export function useWatchList(clubId: string): DataService<WatchListViewModel> {
-  const fetch = useFetchCache<WatchListViewModel>(
-    `watchlist-${clubId}`, 
+export function useWatchList(
+  clubId: string
+): CacheDataService<WatchListViewModel> {
+  const fetch = useRequestCache<WatchListViewModel>(
+    `watchlist-${clubId}`,
     `/api/club/${clubId}/watchList`
   );
-  return {...fetch};
+  return { ...fetch };
 }
