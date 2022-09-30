@@ -17,13 +17,13 @@
           <menu-card :image="watchlistSvg"> Watch List </menu-card>
         </router-link>
       </div>
-      <!-- <div class="p-3">
+      <div class="p-3">
         <router-link :to="{ name: 'Statistics' }">
           <menu-card :image="statisticsSvg">
             Statistics
           </menu-card>
         </router-link>
-      </div> -->
+      </div>
     </div>
     <!--<v-btn>Club Settings <mdicon name="cog-outline" /></v-btn> -->
   </div>
