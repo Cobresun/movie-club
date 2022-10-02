@@ -1,26 +1,14 @@
 <template>
   <div>
-    <!-- <div class="title">
-      <router-link to="/clubHome"
-        ><mdicon class="back" name="arrow-left" size="40"
-      /></router-link>
-      <h1>Cobresun Statistics</h1>
-      <div class="refresh" @click="refreshStats()">
-        <mdicon name="refresh" size="40" />
-      </div>
-    </div> -->
 
     <page-header :has-back="true" back-route="ClubHome" page-name="Statistics" />
     <loading-spinner v-if="loading" />
 
     <div v-if="!loading">
-      <!-- Make this a carousel if tied -->
       <!-- <div v-if="mostLovedMovie">
         <h2>Most Loved Movie</h2>
         <img :src="mostLovedMovie.poster_url" />
       </div> -->
-
-      <!-- Make this a carousel if tied -->
       <!-- <div v-if="leastLovedMovie">
         <h2>Least Loved Movie</h2>
         <img :src="leastLovedMovie.poster_url" />
@@ -76,11 +64,20 @@ import { useRoute } from "vue-router";
 import axios from "axios";
 import { DateTime } from "luxon";
 import { ReviewResponse, TMDBMovieData, Member, Header } from "@/models";
-import { useReview, useSubmitScore } from "@/data/useReview";
-import { useMembers } from "@/data/useClub";
+import { useReview } from "@/data/useReview";
+import { useMembers, useClub } from "@/data/useClub";
 import movieMockData from './richMovieDataCopy.json';
 
 const route = useRoute();
+const { loading: loadingClub, data: club } = useClub(route.params.clubId as string);
+const { loading: loadingReviews, data: reviews } = useReview(
+  route.params.clubId as string
+);
+const { loading: loadingMembers, data: members } = useMembers(
+  route.params.clubId as string
+);
+
+const clubName = ref("Club");
 console.log(route);
 
 const loadingCalculations = ref(true);
@@ -90,6 +87,7 @@ const loadingLeastMostLovedMovie = ref(false);
 
 const normalize = ref(false);
 const movieData = ref<any[]>([]);
+const memberNames = ref<string[]>([]);
 
 const scoreChartOptions = ref({});
 const revenueChartOptions = ref({});
@@ -100,42 +98,9 @@ const normDistributionChartOptions = ref({});
 
 const mostLovedMovie = ref<TMDBMovieData | null>(null);
 const leastLovedMovie = ref<TMDBMovieData | null>(null);
-console.log(route);
-const { loading: loadingReviews, data: reviews } = useReview(
-  route.params.clubId as string
-);
 
-const setReviews = (isLoading: boolean) => {
-  if (isLoading) return;
-  // fetchMovieData(reviews).then(response => {
-  //     movieData.value = response; 
-  //     calculateStatistics();
-  //   }
-  // );
-  movieData.value = movieMockData; //reduce api calls for development
-  calculateStatistics();
-}
-
-watch(loadingReviews, setReviews);
-setReviews(loadingReviews.value);
-
-const { loading: loadingMembers, data: members } = useMembers(
-  route.params.clubId as string
-);
-
-// axios
-//     .get('/api/movie/496243')
-//     .then(response => {
-//         mostLovedMovie.value = response.data
-//         loadingMostLovedMovie.value = false
-//     })
-
-// axios
-//     .get('/api/movie/1724')
-//     .then(response => {
-//         leastLovedMovie.value = response.data
-//         loadingLeastMostLovedMovie.value = false
-//     })
+const loading = computed(() => loadingReviews.value || loadingMembers.value ||
+   loadingClub.value || loadingCalculations.value);
 
 const fetchMovieData = async (reviews: ReviewResponse[]) => {
   const data: any[] = [];
@@ -163,39 +128,54 @@ const fetchMovieData = async (reviews: ReviewResponse[]) => {
   return data;
 }
 
-const calculateStatistics = () => {
-  const coleScores: number[] = normalizeArray(movieData.value.map(data => data.cole));
-  const brianScores: number[] = normalizeArray(movieData.value.map(data => data.brian));
-  const wesleyScores: number[] = normalizeArray(movieData.value.map(data => data.wes));
-  const sunnyScores: number[] = normalizeArray(movieData.value.map(data => data.sunny));
-  let sunnysnines = 0;
-  for (let i = 0; i < movieData.value.length; i++) {
-    const scores = reviews.value[i].scores;
-    movieData.value[i]["coleNorm"] = coleScores[i];
-    movieData.value[i]["wesNorm"] = wesleyScores[i];
-    movieData.value[i]["brianNorm"] = brianScores[i];
-    movieData.value[i]["sunnyNorm"] = sunnyScores[i];
-    let avg = (coleScores[i] + wesleyScores[i] + brianScores[i] + sunnyScores[i])/4;
-    movieData.value[i]["averageNorm"] = Math.round(avg*100)/100;
-
-    movieData.value[i]["release_year"] = parseInt(movieData.value[i]["release_date"].substring(0,4));
-
-    if(movieData.value[i]["brian"] >= 9){
-      //console.log(movieData.value[i]["brian"]+ ": " + movieData.value[i]["title"]);
-      sunnysnines += 1;
+const setReviews = (isLoading: boolean) => {
+  if (isLoading) return;
+  fetchMovieData(reviews.value).then(response => {
+      movieData.value = response; 
+      console.log(response);
+      calculateStatistics();
     }
+  );
+  //movieData.value = movieMockData; //reduce api calls for development
+  //calculateStatistics();
+}
 
+const setClub = (isLoading: boolean) => {
+  if (isLoading) return;
+  clubName.value = club.value.clubName;
+}
+
+watch(loadingReviews, setReviews);
+setReviews(loadingReviews.value);
+
+watch(loadingClub, setClub);
+setClub(loadingClub.value);
+
+const calculateStatistics = () => {
+  memberNames.value = Object.keys(reviews.value[reviews.value.length-1].scores);
+  console.log(memberNames.value);
+
+  const memberScores: Record<string, number[]> = {}; //memberScores["cole"][7] = 4.5
+  for (const member of memberNames.value){
+    memberScores[member] = normalizeArray(movieData.value.map(data => data[member]));
+  }
+
+  for (let i = 0; i < movieData.value.length; i++) {
+    let avg = 0;
+    for (const member of memberNames.value){
+      movieData.value[i][member+"Norm"] = memberScores[member][i];
+      avg += memberScores[member][i];
+    }
+    avg = avg/memberNames.value.length;
+
+    movieData.value[i]["averageNorm"] = Math.round(avg*100)/100;
+    movieData.value[i]["release_year"] = parseInt(movieData.value[i]["release_date"].substring(0,4));
     movieData.value[i]["revenueMil"] = movieData.value[i]["revenue"]/1000000;  
     movieData.value[i]["budgetMil"] = movieData.value[i]["budget"]/1000000;  
 
   }
-  console.log(sunnysnines);
   console.log(movieData.value);
   loadChartOptions();
-
-  for (let i = 0; i < movieData.value.length; i++) {
-
-  }
   loadingCalculations.value = false;
 }
 
@@ -240,13 +220,13 @@ const loadChartOptions = () => {
     autoSize: true,
     theme: 'ag-default-dark',
     title: {
-      text: 'Cobresun Score vs Audience Score',
+      text: clubName.value+' Score vs Audience Score',
     },
     data: movieData.value,
     series: [{
         type: 'scatter',
         xKey: 'averageNorm',
-        xName: 'Cobresun Score',
+        xName: clubName.value+' Score',
         yKey: 'vote_average',
         yName: 'TMDB Audience Score',
         showInLegend: false,
@@ -277,13 +257,13 @@ const loadChartOptions = () => {
     autoSize: true,
     theme: 'ag-default-dark',
     title: {
-      text: 'Cobresun Score vs Film Budget (Millions)',
+      text: clubName.value+' Score vs Film Budget (Millions)',
     },
     data: movieData.value,
     series: [{
       type: 'scatter',
       xKey: 'averageNorm',
-      xName: 'Cobresun Score',
+      xName: clubName.value+' Score',
       yKey: 'budgetMil',
       yName: 'Film Budget',
       showInLegend: false,
@@ -312,13 +292,13 @@ const loadChartOptions = () => {
     autoSize: true,
     theme: 'ag-default-dark',
     title: {
-      text: 'Cobresun Score vs Film Revenue (Millions)',
+      text: clubName.value+' Score vs Film Revenue (Millions)',
     },
     data: movieData.value,
     series: [{
       type: 'scatter',
       xKey: 'averageNorm',
-      xName: 'Cobresun Score',
+      xName: clubName.value+' Score',
       yKey: 'revenueMil',
       yName: 'Film Revenue',
       showInLegend: false,
@@ -347,13 +327,13 @@ const loadChartOptions = () => {
     autoSize: true,
     theme: 'ag-material-dark',
     title: {
-      text: 'Cobresun Score vs Release Date',
+      text: clubName.value+' Score vs Release Date',
     },
     data: movieData.value,
     series: [{
       type: 'scatter',
       yKey: 'averageNorm',
-      yName: 'Cobresun Score',
+      yName: clubName.value+' Score',
       xKey: 'release_year',
       xName: 'Date',
       showInLegend: false,
@@ -381,13 +361,13 @@ const loadChartOptions = () => {
     autoSize: true,
     theme: 'ag-default-dark',
     title: {
-      text: 'Cobresun Score Distributions',
+      text: clubName.value+' Score Distributions',
     },
     data: movieData.value,
     series: [{
       type: 'histogram',
       xKey: 'average',
-      xName: 'Cobresun Score',
+      xName: clubName.value+' Score',
       fillOpacity: 0,
       strokeWidth: 3,
       stroke: 'red',
@@ -439,13 +419,13 @@ const loadChartOptions = () => {
     autoSize: true,
     theme: 'ag-default-dark',
     title: {
-      text: 'Cobresun Normalized Score Distributions',
+      text: clubName.value+' Normalized Score Distributions',
     },
     data: movieData.value,
     series: [{
       type: 'histogram',
       xKey: 'averageNorm',
-      xName: 'Cobresun Score',
+      xName: clubName.value+' Score',
       fillOpacity: 0,
       strokeWidth: 3,
       stroke: 'red',
@@ -496,11 +476,6 @@ const loadChartOptions = () => {
   ///////////////////
 }
 
-const loading = computed(() => {
-  return loadingMostLovedMovie.value ||
-    loadingLeastMostLovedMovie.value ||
-    loadingCalculations.value;
-});
 
 const normName = (name: string) => {
   return normalize.value ? name+"Norm" : name;
