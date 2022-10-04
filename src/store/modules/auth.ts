@@ -32,7 +32,7 @@ export const authModule: Module<State, never> = {
   actions: {
     init(context: ActionContext<State, never>) {
       netlifyIdentity.on("login", (user) => {
-        netlifyIdentity.refresh();
+        netlifyIdentity.refresh().then(() => console.log("Refreshed"));
         context.commit("setUser", user);
         netlifyIdentity.close();
       }),
