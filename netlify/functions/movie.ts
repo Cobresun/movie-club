@@ -1,4 +1,3 @@
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 import axios from "axios";
 import {
     HandlerEvent,
@@ -30,10 +29,10 @@ export async function handler(
             const pathArray = event.path.split("/");
             const movieIndex = pathArray.indexOf('movie') + 1;
             const movieId = parseInt(pathArray[movieIndex]);
-            
+
             if (isNaN(movieId)) {
                 return {
-                    statusCode: 422,
+                    statusCode: 404,
                     body: 'Invalid movieId.'
                 }
             }

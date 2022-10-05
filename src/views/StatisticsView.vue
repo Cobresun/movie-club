@@ -1,6 +1,5 @@
 <template>
   <div>
-
     <page-header :has-back="true" back-route="ClubHome" page-name="Statistics" />
     <loading-spinner v-if="loading" />
 
@@ -27,16 +26,17 @@
       <br/>
       <ag-charts-vue :options="dateChartOptions"></ag-charts-vue>
       <br/>
-      <!-- <ag-charts-vue :options="distributionChartOptions"></ag-charts-vue> -->
-      <!-- <ag-charts-vue :options="normDistributionChartOptions"></ag-charts-vue> -->
 
       <v-btn
-        class="ui button big tooltip"
-        v-bind:class="{'green': normalize, 'gray': !normalize}"
+        data-tooltip-target="tooltip-default"
+        class="ui button big"
         @click="toggle"
         >{{normButtonText}}
-        <span class="tooltiptext">How many standard deviations away is your score from your avg?</span>
       </v-btn>
+      <div id="tooltip-default" role="tooltip" class="inline-block absolute invisible z-10 py-2 px-3 text-sm font-medium text-white bg-gray-900 rounded-lg shadow-sm opacity-0 transition-opacity duration-300 tooltip dark:bg-gray-700">
+        How many standard deviations is your score from average?
+        <div class="tooltip-arrow" data-popper-arrow></div>
+      </div>
 
       <movie-table
           :headers="normalize?normHeaders:headers"
@@ -188,12 +188,14 @@ const calculateStatistics = () => {
 const normalizeArray = (array: number[]) => {
   var sum: number = 0;
   var count: number = 0;
+
   for (let i = 0; i < array.length; i++) {
     if (array[i] === undefined)
       count++;
     else
       sum += array[i];
   }
+
   const mean: number = sum / (array.length-count);
   const cleanArray: number[] = array.map((score) => {
     return score === undefined ? mean : score;  // default to mean if score missing
@@ -201,13 +203,12 @@ const normalizeArray = (array: number[]) => {
   const variance = cleanArray.reduce((s, n) => s + (n - mean) ** 2, 0) / (cleanArray.length - 1);
   const std = Math.sqrt(variance);
   const normArray: number[] = cleanArray.map(x => ((x-mean)/std));
-  const max: number = Math.max.apply(Math, normArray);
-  const min: number = Math.min.apply(Math, normArray);
-  //console.log(mean,variance,std,max,min);
-  // Scale normalized data to 0-10
-  const scaledArray: number[] = normArray.map(x =>  scaleScore(x, min, max));
-  const testArray: number[] = normArray.map(x =>  Math.round(x/std*100)/100);
-  return testArray;
+  const stdCorrectedArray: number[] = normArray.map(x =>  Math.round(x/std*100)/100);
+
+  if (array.length == count || std == 0){   // no reviews for user
+    return array.map(x => 0);
+  }
+  return stdCorrectedArray;
 }
 
 const scaleScore = (value: number, min: number, max: number) => {
@@ -359,124 +360,6 @@ const loadChartOptions = () => {
       }
     ],
   };
-
-  let bins = [[0,1], [1,2], [2,3], [3,4], [4,5], [5,6], [6,7], [7,8],[8,9],[9,10]];
-  distributionChartOptions.value = {
-    autoSize: true,
-    theme: 'ag-default-dark',
-    title: {
-      text: clubName.value+' Score Distributions',
-    },
-    data: movieData.value,
-    series: [{
-      type: 'histogram',
-      xKey: normalize.value ? 'averageNorm' : 'average',
-      xName: clubName.value+' Score',
-      fillOpacity: 0,
-      strokeWidth: 3,
-      stroke: 'red',
-      bins: bins,
-      showInLegend: false
-    },
-    {
-      type: 'histogram',
-      xKey: 'cole',
-      xName: 'Cole Score',
-      fillOpacity: 0,
-      strokeWidth: 3,
-      stroke: 'blue',
-      bins: bins,
-      showInLegend: false
-    },
-    {
-      type: 'histogram',
-      xKey: 'brian',
-      xName: 'Brian Score',
-      fillOpacity: 0,
-      strokeWidth: 3,
-      stroke: 'yellow',
-      bins: bins,
-      showInLegend: false
-    },
-    {
-      type: 'histogram',
-      xKey: 'wes',
-      xName: 'Wesley Score',
-      fillOpacity: 0,
-      strokeWidth: 3,
-      stroke: 'green',
-      bins: bins,
-      showInLegend: false
-    },
-    {
-      type: 'histogram',
-      xKey: 'sunny',
-      xName: 'Sunny Score',
-      fillOpacity: 0,
-      strokeWidth: 3,
-      stroke: 'purple',
-      bins: bins,
-      showInLegend: false
-    }]
-  };
-  normDistributionChartOptions.value = {
-    autoSize: true,
-    theme: 'ag-default-dark',
-    title: {
-      text: clubName.value+' Normalized Score Distributions',
-    },
-    data: movieData.value,
-    series: [{
-      type: 'histogram',
-      xKey: 'averageNorm',
-      xName: clubName.value+' Score',
-      fillOpacity: 0,
-      strokeWidth: 3,
-      stroke: 'red',
-      bins: bins,
-      showInLegend: false
-    },
-    {
-      type: 'histogram',
-      xKey: 'coleNorm',
-      xName: 'Cole Score',
-      fillOpacity: 0,
-      strokeWidth: 3,
-      stroke: 'blue',
-      bins: bins,
-      showInLegend: false
-    },
-    {
-      type: 'histogram',
-      xKey: 'brianNorm',
-      xName: 'Brian Score',
-      fillOpacity: 0,
-      strokeWidth: 3,
-      stroke: 'yellow',
-      bins: bins,
-      showInLegend: false
-    },
-    {
-      type: 'histogram',
-      xKey: 'wesNorm',
-      xName: 'Wesley Score',
-      fillOpacity: 0,
-      strokeWidth: 3,
-      stroke: 'green',
-      bins: bins,
-      showInLegend: false
-    },
-    {
-      type: 'histogram',
-      xKey: 'sunnyNorm',
-      xName: 'Sunny Score',
-      fillOpacity: 0,
-      strokeWidth: 3,
-      stroke: 'purple',
-      bins: bins,
-      showInLegend: false
-    }]
-  };
   ///////////////////
 }
 
@@ -519,64 +402,3 @@ const normHeaders = computed(() => {
   return headers;
 });
 </script>
-
-<style scoped>
-.title {
-  display: grid;
-  grid-column-gap: 32px;
-  align-items: center;
-  grid-template-columns: 1fr auto 1fr;
-}
-
-.title:first-child {
-  justify-items: end;
-}
-
-.back {
-  color: var(--text-color);
-}
-
-.back:hover {
-  cursor: pointer;
-}
-
-.refresh {
-  justify-self: start;
-}
-
-.refresh:hover {
-  cursor: pointer;
-}
-
-.green {
-  background-color: green;
-}
-
-/* Tooltip container */
-.tooltip {
-  position: relative;
-  display: inline-block;
-  border-bottom: 1px dotted black; /* If you want dots under the hoverable text */
-}
-
-/* Tooltip text */
-.tooltip .tooltiptext {
-  visibility: hidden;
-  width: 250px;
-  background-color: black;
-  color: #fff;
-  text-align: center;
-  padding: 5px 0;
-  border-radius: 6px;
-  position: absolute;
-  z-index: 1;
-  bottom: 150%;
-  left: 50%;
-  margin-left: -125px;
-}
-
-/* Show the tooltip text when you mouse over the tooltip container */
-.tooltip:hover .tooltiptext {
-  visibility: visible;
-}
-</style>
