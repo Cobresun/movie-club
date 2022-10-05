@@ -31,10 +31,11 @@
       <!-- <ag-charts-vue :options="normDistributionChartOptions"></ag-charts-vue> -->
 
       <v-btn
-        class="ui button big"
+        class="ui button big tooltip"
         v-bind:class="{'green': normalize, 'gray': !normalize}"
         @click="toggle"
-        >Normalise Scores
+        >{{normButtonText}}
+        <span class="tooltiptext">How many standard deviations away is your score from your avg?</span>
       </v-btn>
 
       <movie-table
@@ -78,6 +79,7 @@ const { loading: loadingMembers, data: members } = useMembers(
 );
 
 const clubName = ref("Club");
+const normButtonText = ref("Normalize Scores");
 console.log(route);
 
 const loadingCalculations = ref(true);
@@ -152,8 +154,12 @@ watch(loadingClub, setClub);
 setClub(loadingClub.value);
 
 const calculateStatistics = () => {
-  memberNames.value = Object.keys(reviews.value[reviews.value.length-1].scores);
-  console.log(memberNames.value);
+  memberNames.value = [];
+  for (const member of members.value) {
+    if (!member.devAccount) {
+      memberNames.value.push(member.name);
+    }
+  }
 
   const memberScores: Record<string, number[]> = {}; //memberScores["cole"][7] = 4.5
   for (const member of memberNames.value){
@@ -190,16 +196,18 @@ const normalizeArray = (array: number[]) => {
   }
   const mean: number = sum / (array.length-count);
   const cleanArray: number[] = array.map((score) => {
-    return score === undefined ? mean : score;
+    return score === undefined ? mean : score;  // default to mean if score missing
   });
   const variance = cleanArray.reduce((s, n) => s + (n - mean) ** 2, 0) / (cleanArray.length - 1);
   const std = Math.sqrt(variance);
   const normArray: number[] = cleanArray.map(x => ((x-mean)/std));
   const max: number = Math.max.apply(Math, normArray);
   const min: number = Math.min.apply(Math, normArray);
+  //console.log(mean,variance,std,max,min);
   // Scale normalized data to 0-10
   const scaledArray: number[] = normArray.map(x =>  scaleScore(x, min, max));
-  return scaledArray;
+  const testArray: number[] = normArray.map(x =>  Math.round(x/std*100)/100);
+  return testArray;
 }
 
 const scaleScore = (value: number, min: number, max: number) => {
@@ -213,6 +221,8 @@ const refreshStats = () => {
 
 const toggle = () => {
   normalize.value = !normalize.value;
+  normButtonText.value = normalize.value ? "Denormalize Scores" : "Normalize Scores";
+  loadChartOptions();
 }
 
 const loadChartOptions = () => {
@@ -225,7 +235,7 @@ const loadChartOptions = () => {
     data: movieData.value,
     series: [{
         type: 'scatter',
-        xKey: 'averageNorm',
+        xKey: normalize.value ? 'averageNorm' : 'average',
         xName: clubName.value+' Score',
         yKey: 'vote_average',
         yName: 'TMDB Audience Score',
@@ -240,9 +250,7 @@ const loadChartOptions = () => {
     axes: [
       {
         type: 'number',
-        position: 'bottom',
-        min: 0,
-        max: 10
+        position: 'bottom'
       },
       {
         type: 'number',
@@ -262,7 +270,7 @@ const loadChartOptions = () => {
     data: movieData.value,
     series: [{
       type: 'scatter',
-      xKey: 'averageNorm',
+      xKey: normalize.value ? 'averageNorm' : 'average',
       xName: clubName.value+' Score',
       yKey: 'budgetMil',
       yName: 'Film Budget',
@@ -277,9 +285,7 @@ const loadChartOptions = () => {
     axes: [
       {
         type: 'number',
-        position: 'bottom',
-        min: 0,
-        max: 10
+        position: 'bottom'
       },
       {
         type: 'number',
@@ -297,7 +303,7 @@ const loadChartOptions = () => {
     data: movieData.value,
     series: [{
       type: 'scatter',
-      xKey: 'averageNorm',
+      xKey: normalize.value ? 'averageNorm' : 'average',
       xName: clubName.value+' Score',
       yKey: 'revenueMil',
       yName: 'Film Revenue',
@@ -312,9 +318,7 @@ const loadChartOptions = () => {
     axes: [
       {
         type: 'number',
-        position: 'bottom',
-        min: 0,
-        max: 10
+        position: 'bottom'
       },
       {
         type: 'number',
@@ -332,7 +336,7 @@ const loadChartOptions = () => {
     data: movieData.value,
     series: [{
       type: 'scatter',
-      yKey: 'averageNorm',
+      yKey: normalize.value ? 'averageNorm' : 'average',
       yName: clubName.value+' Score',
       xKey: 'release_year',
       xName: 'Date',
@@ -366,7 +370,7 @@ const loadChartOptions = () => {
     data: movieData.value,
     series: [{
       type: 'histogram',
-      xKey: 'average',
+      xKey: normalize.value ? 'averageNorm' : 'average',
       xName: clubName.value+' Score',
       fillOpacity: 0,
       strokeWidth: 3,
@@ -546,5 +550,33 @@ const normHeaders = computed(() => {
 
 .green {
   background-color: green;
+}
+
+/* Tooltip container */
+.tooltip {
+  position: relative;
+  display: inline-block;
+  border-bottom: 1px dotted black; /* If you want dots under the hoverable text */
+}
+
+/* Tooltip text */
+.tooltip .tooltiptext {
+  visibility: hidden;
+  width: 250px;
+  background-color: black;
+  color: #fff;
+  text-align: center;
+  padding: 5px 0;
+  border-radius: 6px;
+  position: absolute;
+  z-index: 1;
+  bottom: 150%;
+  left: 50%;
+  margin-left: -125px;
+}
+
+/* Show the tooltip text when you mouse over the tooltip container */
+.tooltip:hover .tooltiptext {
+  visibility: visible;
 }
 </style>
