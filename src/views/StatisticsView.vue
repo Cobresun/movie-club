@@ -27,15 +27,31 @@
       <ag-charts-vue :options="dateChartOptions"></ag-charts-vue>
       <br/>
 
+      <!-- <select v-model="selectedChartBase" class="mr-4 font-bold text-base text-text tracking-wide bg-primary text-center cursor-pointer rounded-md duration-150 filter hover:brightness-110 active:brightness-105">
+        <option v-for="member in headers.concat(normHeaders)" :value="member.value">{{member.value}}</option>
+      </select>
+      <select v-model="selectedChartMeasure" class="mr-4 font-bold text-base text-text tracking-wide bg-primary text-center cursor-pointer rounded-md duration-150 filter hover:brightness-110 active:brightness-105">
+        <option v-for="key in Object.keys(movieData[0])" :value="key">{{key}}</option>
+      </select>
+      <v-btn
+        class="ui button big"
+        @click="generateCustomChart"
+        >Generate!
+      </v-btn> 
+      <br/>
+      <ag-charts-vue :options="customChartOptions"></ag-charts-vue>
+      <br/> -->
+
       <v-btn
         data-tooltip-target="tooltip-default"
         class="ui button big"
         @click="toggle"
         >{{normButtonText}}
       </v-btn>
+      <!-- TODO make this tooltip work -->
       <div id="tooltip-default" role="tooltip" class="inline-block absolute invisible z-10 py-2 px-3 text-sm font-medium text-white bg-gray-900 rounded-lg shadow-sm opacity-0 transition-opacity duration-300 tooltip dark:bg-gray-700">
-        How many standard deviations is your score from average?
-        <div class="tooltip-arrow" data-popper-arrow></div>
+          How many standard deviations is your score from average?
+          <div class="tooltip-arrow" data-popper-arrow></div>
       </div>
 
       <movie-table
@@ -90,10 +106,13 @@ const loadingLeastMostLovedMovie = ref(false);
 const normalize = ref(false);
 const movieData = ref<any[]>([]);
 const memberNames = ref<string[]>([]);
+const selectedChartBase = ref("average");
+const selectedChartMeasure = ref("runtime");
 
 const scoreChartOptions = ref({});
 const revenueChartOptions = ref({});
 const budgetChartOptions = ref({});
+const customChartOptions = ref({});
 const dateChartOptions = ref({});
 const distributionChartOptions = ref({});
 const normDistributionChartOptions = ref({});
@@ -182,6 +201,7 @@ const calculateStatistics = () => {
   }
   console.log(movieData.value);
   loadChartOptions();
+  loadCustomChart();
   loadingCalculations.value = false;
 }
 
@@ -226,6 +246,10 @@ const toggle = () => {
   loadChartOptions();
 }
 
+const generateCustomChart = () => {
+  loadCustomChart();
+}
+
 const loadChartOptions = () => {
   scoreChartOptions.value = {
     autoSize: true,
@@ -236,10 +260,10 @@ const loadChartOptions = () => {
     data: movieData.value,
     series: [{
         type: 'scatter',
-        xKey: normalize.value ? 'averageNorm' : 'average',
-        xName: clubName.value+' Score',
-        yKey: 'vote_average',
-        yName: 'TMDB Audience Score',
+        xKey: 'vote_average',
+        xName: 'TMDB Audience Score',
+        yKey: normalize.value ? 'averageNorm' : 'average',
+        yName: clubName.value+' Score',
         showInLegend: false,
         tooltip: {
             renderer: function (params) {
@@ -251,13 +275,19 @@ const loadChartOptions = () => {
     axes: [
       {
         type: 'number',
-        position: 'bottom'
+        position: 'bottom',
+        title: {
+          enabled: true,
+          text: "TMDB Audience Score"
+        }
       },
       {
         type: 'number',
         position: 'left',
-        min: 5,
-        max: 10
+        title: {
+          enabled: true,
+          text: "Average " + clubName.value + " Score"
+        }
       },
     ],
   };
@@ -271,10 +301,10 @@ const loadChartOptions = () => {
     data: movieData.value,
     series: [{
       type: 'scatter',
-      xKey: normalize.value ? 'averageNorm' : 'average',
-      xName: clubName.value+' Score',
-      yKey: 'budgetMil',
-      yName: 'Film Budget',
+      xKey: 'budgetMil',
+      xName: 'Film Budget',
+      yKey: normalize.value ? 'averageNorm' : 'average',
+      yName: clubName.value+' Score',
       showInLegend: false,
       tooltip: {
           renderer: function (params) {
@@ -286,11 +316,21 @@ const loadChartOptions = () => {
     axes: [
       {
         type: 'number',
-        position: 'bottom'
+        min: 0.1,
+        max: 250,
+        position: 'bottom',
+        title: {
+          enabled: true,
+          text: "Film Budget (Millions Of Dollars)"
+        }
       },
       {
         type: 'number',
         position: 'left',
+        title: {
+          enabled: true,
+          text: "Average " + clubName.value + " Score"
+        }
       },
     ],
   };
@@ -304,10 +344,10 @@ const loadChartOptions = () => {
     data: movieData.value,
     series: [{
       type: 'scatter',
-      xKey: normalize.value ? 'averageNorm' : 'average',
-      xName: clubName.value+' Score',
-      yKey: 'revenueMil',
-      yName: 'Film Revenue',
+      xKey: 'revenueMil',
+      xName: 'Film Revenue',
+      yKey: normalize.value ? 'averageNorm' : 'average',
+      yName: clubName.value+' Score',
       showInLegend: false,
       tooltip: {
           renderer: function (params) {
@@ -319,11 +359,19 @@ const loadChartOptions = () => {
     axes: [
       {
         type: 'number',
-        position: 'bottom'
+        position: 'bottom',
+        title: {
+          enabled: true,
+          text: "Film Revenue (Millions Of Dollars)"
+        }
       },
       {
         type: 'number',
         position: 'left',
+        title: {
+          enabled: true,
+          text: "Average " + clubName.value + " Score"
+        }
       },
     ],
   };
@@ -353,14 +401,63 @@ const loadChartOptions = () => {
       {
         type: 'number',
         position: 'left',
+        title: {
+          enabled: true,
+          text: "Average " + clubName.value + " Score"
+        }
       },
       {
         type: 'number',
-        position: 'bottom'
+        position: 'bottom',
+        title: {
+          enabled: true,
+          text: "Release Year"
+        }
       }
     ],
   };
   ///////////////////
+}
+
+const loadCustomChart = () => {
+  customChartOptions.value = {
+    autoSize: true,
+    theme: 'ag-default-dark',
+    title: {
+      text: 'Custom chart: ' + selectedChartBase.value + ' vs ' + selectedChartMeasure.value,
+    },
+    data: movieData.value,
+    series: [{
+      type: 'scatter',
+      xKey: selectedChartMeasure.value,
+      xName: selectedChartMeasure.value,
+      yKey: selectedChartBase.value,
+      yName: selectedChartBase.value,
+      showInLegend: false,
+      tooltip: {
+          renderer: function (params) {
+              return '<div class="ag-chart-tooltip-title" ' + 'style="background-color:' + params.color + '">' + params.datum.movieTitle + '</div>' + 
+                '<div class="ag-chart-tooltip-content">' + params.xName + ': ' + params.xValue + '</br>' + params.yName + ': ' + params.yValue + '</div>';
+          }
+      }
+    }],
+    axes: [
+      {
+        position: 'left',
+        title: {
+          enabled: true,
+          text: selectedChartBase.value
+        }
+      },
+      {
+        position: 'bottom',
+        title: {
+          enabled: true,
+          text: selectedChartMeasure.value
+        }
+      },
+    ],
+  };
 }
 
 
