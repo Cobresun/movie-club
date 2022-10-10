@@ -1,3 +1,501 @@
 <template>
-  <h1>Statistics</h1>
+  <div>
+    <page-header :has-back="true" back-route="ClubHome" page-name="Statistics" />
+    <loading-spinner v-if="loading" />
+
+    <div v-if="!loading">
+      <!-- <div v-if="mostLovedMovie">
+        <h2>Most Loved Movie</h2>
+        <img :src="mostLovedMovie.poster_url" />
+      </div> -->
+      <!-- <div v-if="leastLovedMovie">
+        <h2>Least Loved Movie</h2>
+        <img :src="leastLovedMovie.poster_url" />
+      </div> -->
+
+      <!-- <h2>Most Devisive Movie</h2>
+      <h2>Most Seen Director</h2>
+      <h2>Most Loved Director</h2> -->
+
+      <br/>
+      <ag-charts-vue :options="scoreChartOptions"></ag-charts-vue>
+      <br/>
+      <ag-charts-vue :options="budgetChartOptions"></ag-charts-vue>
+      <br/>
+      <ag-charts-vue :options="revenueChartOptions"></ag-charts-vue>
+      <br/>
+      <ag-charts-vue :options="dateChartOptions"></ag-charts-vue>
+      <br/>
+
+      <!-- <select v-model="selectedChartBase" class="mr-4 font-bold text-base text-text tracking-wide bg-primary text-center cursor-pointer rounded-md duration-150 filter hover:brightness-110 active:brightness-105">
+        <option v-for="member in headers.concat(normHeaders)" :value="member.value">{{member.value}}</option>
+      </select>
+      <select v-model="selectedChartMeasure" class="mr-4 font-bold text-base text-text tracking-wide bg-primary text-center cursor-pointer rounded-md duration-150 filter hover:brightness-110 active:brightness-105">
+        <option v-for="key in Object.keys(movieData[0])" :value="key">{{key}}</option>
+      </select>
+      <v-btn
+        class="ui button big"
+        @click="generateCustomChart"
+        >Generate!
+      </v-btn> 
+      <br/>
+      <ag-charts-vue :options="customChartOptions"></ag-charts-vue>
+      <br/> -->
+
+      <v-btn
+        data-tooltip-target="tooltip-default"
+        class="ui button big"
+        @click="toggle"
+        >{{normButtonText}}
+      </v-btn>
+      <!-- TODO make this tooltip work -->
+      <div id="tooltip-default" role="tooltip" class="inline-block absolute invisible z-10 py-2 px-3 text-sm font-medium text-white bg-gray-900 rounded-lg shadow-sm opacity-0 transition-opacity duration-300 tooltip dark:bg-gray-700">
+          How many standard deviations is your score from average?
+          <div class="tooltip-arrow" data-popper-arrow></div>
+      </div>
+
+      <movie-table
+          :headers="normalize?normHeaders:headers"
+          :data="movieData"
+          v-if="reviews.length > 0"
+      >
+        <template v-for="member in members" v-slot:[normName(member.name)]>
+            <v-avatar :src="member.image" :name="member.name" />
+        </template>
+
+        <template #average>
+            <img src="@/assets/average.svg" class="w-16 h-12 max-w-none" />
+        </template>
+        <template #averageNorm>
+            <img src="@/assets/average.svg" class="w-16 h-12 max-w-none" />
+        </template>
+      </movie-table>
+    </div>
+  </div>
 </template>
+
+<script setup lang="ts">
+import { ref, computed, watch } from "vue";
+import { AgChartsVue } from 'ag-charts-vue3';
+import { useRoute } from "vue-router";
+import axios from "axios";
+import { DateTime } from "luxon";
+import { ReviewResponse, TMDBMovieData, Member, Header } from "@/models";
+import { useReview } from "@/data/useReview";
+import { useMembers, useClub } from "@/data/useClub";
+import movieMockData from './richMovieDataCopy.json';
+
+const route = useRoute();
+const { loading: loadingClub, data: club } = useClub(route.params.clubId as string);
+const { loading: loadingReviews, data: reviews } = useReview(
+  route.params.clubId as string
+);
+const { loading: loadingMembers, data: members } = useMembers(
+  route.params.clubId as string
+);
+
+const clubName = ref("Club");
+const normButtonText = ref("Normalize Scores");
+console.log(route);
+
+const loadingCalculations = ref(true);
+const loadingMostLovedMovie = ref(false);
+const loadingLeastMostLovedMovie = ref(false);
+//const loadingReviews = ref(true);
+
+const normalize = ref(false);
+const movieData = ref<any[]>([]);
+const memberNames = ref<string[]>([]);
+const selectedChartBase = ref("average");
+const selectedChartMeasure = ref("runtime");
+
+const scoreChartOptions = ref({});
+const revenueChartOptions = ref({});
+const budgetChartOptions = ref({});
+const customChartOptions = ref({});
+const dateChartOptions = ref({});
+const distributionChartOptions = ref({});
+const normDistributionChartOptions = ref({});
+
+const mostLovedMovie = ref<TMDBMovieData | null>(null);
+const leastLovedMovie = ref<TMDBMovieData | null>(null);
+
+const loading = computed(() => loadingReviews.value || loadingMembers.value ||
+   loadingClub.value || loadingCalculations.value);
+
+const fetchMovieData = async (reviews: ReviewResponse[]) => {
+  const data: any[] = [];
+  const promise: any[] = [];
+  for (let i = 0; i < reviews.length; i++) {
+    promise.push(
+      axios
+      .get('/api/movie/'+reviews[i].movieId)
+      .then(response => {
+          const obj: any = {...response.data};
+          obj.movieTitle = reviews[i].movieTitle;
+          obj.dateWatched = DateTime.fromISO(reviews[i].timeWatched['@ts']).toLocaleString();  
+          obj.movieId = reviews[i].movieId;
+          obj.adult = response.data.adult;
+          for (const key of Object.keys(reviews[i].scores)) {
+            obj[key] = (reviews[i].scores as any)[key];
+            // Round the score to 2 decimal places
+            //obj[key] = Math.round(obj[key] * 100)/100
+          }
+          data[i] = obj;
+      })
+    );
+  }
+  await Promise.all(promise);
+  return data;
+}
+
+const setReviews = (isLoading: boolean) => {
+  if (isLoading) return;
+  fetchMovieData(reviews.value).then(response => {
+      movieData.value = response; 
+      console.log(response);
+      calculateStatistics();
+    }
+  );
+  //movieData.value = movieMockData; //reduce api calls for development
+  //calculateStatistics();
+}
+
+const setClub = (isLoading: boolean) => {
+  if (isLoading) return;
+  clubName.value = club.value.clubName;
+}
+
+watch(loadingReviews, setReviews);
+setReviews(loadingReviews.value);
+
+watch(loadingClub, setClub);
+setClub(loadingClub.value);
+
+const calculateStatistics = () => {
+  memberNames.value = [];
+  for (const member of members.value) {
+    if (!member.devAccount) {
+      memberNames.value.push(member.name);
+    }
+  }
+
+  const memberScores: Record<string, number[]> = {}; //memberScores["cole"][7] = 4.5
+  for (const member of memberNames.value){
+    memberScores[member] = normalizeArray(movieData.value.map(data => data[member]));
+  }
+
+  for (let i = 0; i < movieData.value.length; i++) {
+    let avg = 0;
+    for (const member of memberNames.value){
+      movieData.value[i][member+"Norm"] = memberScores[member][i];
+      avg += memberScores[member][i];
+    }
+    avg = avg/memberNames.value.length;
+
+    movieData.value[i]["averageNorm"] = Math.round(avg*100)/100;
+    movieData.value[i]["release_year"] = parseInt(movieData.value[i]["release_date"].substring(0,4));
+    movieData.value[i]["revenueMil"] = movieData.value[i]["revenue"]/1000000;  
+    movieData.value[i]["budgetMil"] = movieData.value[i]["budget"]/1000000;  
+
+  }
+  console.log(movieData.value);
+  loadChartOptions();
+  loadCustomChart();
+  loadingCalculations.value = false;
+}
+
+const normalizeArray = (array: number[]) => {
+  var sum: number = 0;
+  var count: number = 0;
+
+  for (let i = 0; i < array.length; i++) {
+    if (array[i] === undefined)
+      count++;
+    else
+      sum += array[i];
+  }
+
+  const mean: number = sum / (array.length-count);
+  const cleanArray: number[] = array.map((score) => {
+    return score === undefined ? mean : score;  // default to mean if score missing
+  });
+  const variance = cleanArray.reduce((s, n) => s + (n - mean) ** 2, 0) / (cleanArray.length - 1);
+  const std = Math.sqrt(variance);
+  const normArray: number[] = cleanArray.map(x => ((x-mean)/std));
+  const stdCorrectedArray: number[] = normArray.map(x =>  Math.round(x/std*100)/100);
+
+  if (array.length == count || std == 0){   // no reviews for user
+    return array.map(x => 0);
+  }
+  return stdCorrectedArray;
+}
+
+const scaleScore = (value: number, min: number, max: number) => {
+  let score: number = ((value-min)/(max-min))*9+1;
+  return Math.round(score*100)/100;
+}
+
+const refreshStats = () => {
+  console.info("Refreshing stats...");
+}
+
+const toggle = () => {
+  normalize.value = !normalize.value;
+  normButtonText.value = normalize.value ? "Denormalize Scores" : "Normalize Scores";
+  loadChartOptions();
+}
+
+const generateCustomChart = () => {
+  loadCustomChart();
+}
+
+const loadChartOptions = () => {
+  scoreChartOptions.value = {
+    autoSize: true,
+    theme: 'ag-default-dark',
+    title: {
+      text: clubName.value+' Score vs Audience Score',
+    },
+    data: movieData.value,
+    series: [{
+        type: 'scatter',
+        xKey: 'vote_average',
+        xName: 'TMDB Audience Score',
+        yKey: normalize.value ? 'averageNorm' : 'average',
+        yName: clubName.value+' Score',
+        showInLegend: false,
+        tooltip: {
+            renderer: function (params) {
+                return '<div class="ag-chart-tooltip-title" ' + 'style="background-color:' + params.color + '">' + params.datum.movieTitle + '</div>' + 
+                  '<div class="ag-chart-tooltip-content">' + params.xName + ': ' + params.xValue + '</br>' + params.yName + ': ' + params.yValue + '</div>';
+            }
+        }
+    }],
+    axes: [
+      {
+        type: 'number',
+        position: 'bottom',
+        title: {
+          enabled: true,
+          text: "TMDB Audience Score"
+        }
+      },
+      {
+        type: 'number',
+        position: 'left',
+        title: {
+          enabled: true,
+          text: "Average " + clubName.value + " Score"
+        }
+      },
+    ],
+  };
+
+  budgetChartOptions.value = {
+    autoSize: true,
+    theme: 'ag-default-dark',
+    title: {
+      text: clubName.value+' Score vs Film Budget (Millions)',
+    },
+    data: movieData.value,
+    series: [{
+      type: 'scatter',
+      xKey: 'budgetMil',
+      xName: 'Film Budget',
+      yKey: normalize.value ? 'averageNorm' : 'average',
+      yName: clubName.value+' Score',
+      showInLegend: false,
+      tooltip: {
+          renderer: function (params) {
+              return '<div class="ag-chart-tooltip-title" ' + 'style="background-color:' + params.color + '">' + params.datum.movieTitle + '</div>' + 
+                '<div class="ag-chart-tooltip-content">' + params.xName + ': ' + params.xValue + '</br>' + params.yName + ': ' + params.yValue + '</div>';
+          }
+      }
+    }],
+    axes: [
+      {
+        type: 'number',
+        min: 0.1,
+        max: 250,
+        position: 'bottom',
+        title: {
+          enabled: true,
+          text: "Film Budget (Millions Of Dollars)"
+        }
+      },
+      {
+        type: 'number',
+        position: 'left',
+        title: {
+          enabled: true,
+          text: "Average " + clubName.value + " Score"
+        }
+      },
+    ],
+  };
+
+  revenueChartOptions.value = {
+    autoSize: true,
+    theme: 'ag-default-dark',
+    title: {
+      text: clubName.value+' Score vs Film Revenue (Millions)',
+    },
+    data: movieData.value,
+    series: [{
+      type: 'scatter',
+      xKey: 'revenueMil',
+      xName: 'Film Revenue',
+      yKey: normalize.value ? 'averageNorm' : 'average',
+      yName: clubName.value+' Score',
+      showInLegend: false,
+      tooltip: {
+          renderer: function (params) {
+              return '<div class="ag-chart-tooltip-title" ' + 'style="background-color:' + params.color + '">' + params.datum.movieTitle + '</div>' + 
+                '<div class="ag-chart-tooltip-content">' + params.xName + ': ' + params.xValue + '</br>' + params.yName + ': ' + params.yValue + '</div>';
+          }
+      }
+    }],
+    axes: [
+      {
+        type: 'number',
+        position: 'bottom',
+        title: {
+          enabled: true,
+          text: "Film Revenue (Millions Of Dollars)"
+        }
+      },
+      {
+        type: 'number',
+        position: 'left',
+        title: {
+          enabled: true,
+          text: "Average " + clubName.value + " Score"
+        }
+      },
+    ],
+  };
+
+  dateChartOptions.value = {
+    autoSize: true,
+    theme: 'ag-material-dark',
+    title: {
+      text: clubName.value+' Score vs Release Date',
+    },
+    data: movieData.value,
+    series: [{
+      type: 'scatter',
+      yKey: normalize.value ? 'averageNorm' : 'average',
+      yName: clubName.value+' Score',
+      xKey: 'release_year',
+      xName: 'Date',
+      showInLegend: false,
+      tooltip: {
+          renderer: function (params) {
+              return '<div class="ag-chart-tooltip-title" ' + 'style="background-color:' + params.color + '">' + params.datum.movieTitle + '</div>' + 
+                '<div class="ag-chart-tooltip-content">' + params.xName + ': ' + params.xValue + '</br>' + params.yName + ': ' + params.yValue + '</div>';
+          }
+      }
+    }],
+    axes: [
+      {
+        type: 'number',
+        position: 'left',
+        title: {
+          enabled: true,
+          text: "Average " + clubName.value + " Score"
+        }
+      },
+      {
+        type: 'number',
+        position: 'bottom',
+        title: {
+          enabled: true,
+          text: "Release Year"
+        }
+      }
+    ],
+  };
+  ///////////////////
+}
+
+const loadCustomChart = () => {
+  customChartOptions.value = {
+    autoSize: true,
+    theme: 'ag-default-dark',
+    title: {
+      text: 'Custom chart: ' + selectedChartBase.value + ' vs ' + selectedChartMeasure.value,
+    },
+    data: movieData.value,
+    series: [{
+      type: 'scatter',
+      xKey: selectedChartMeasure.value,
+      xName: selectedChartMeasure.value,
+      yKey: selectedChartBase.value,
+      yName: selectedChartBase.value,
+      showInLegend: false,
+      tooltip: {
+          renderer: function (params) {
+              return '<div class="ag-chart-tooltip-title" ' + 'style="background-color:' + params.color + '">' + params.datum.movieTitle + '</div>' + 
+                '<div class="ag-chart-tooltip-content">' + params.xName + ': ' + params.xValue + '</br>' + params.yName + ': ' + params.yValue + '</div>';
+          }
+      }
+    }],
+    axes: [
+      {
+        position: 'left',
+        title: {
+          enabled: true,
+          text: selectedChartBase.value
+        }
+      },
+      {
+        position: 'bottom',
+        title: {
+          enabled: true,
+          text: selectedChartMeasure.value
+        }
+      },
+    ],
+  };
+}
+
+
+const normName = (name: string) => {
+  return normalize.value ? name+"Norm" : name;
+}
+
+const headers = computed(() => {
+  const headers: Header[] = [
+    {value: "movieTitle", style:"font-weight: 700", title:"Title"},
+    {value: "dateWatched", title:"Date Reviewed"}];
+
+  if (members.value.length > 0) {
+    for (const member of members.value) {
+      if (!member.devAccount) {
+        headers.push({value: member.name});
+      }
+    }
+  }
+  headers.push({value: "average"});
+  headers.push({value: "vote_average", title:"TMDB"});
+  return headers;
+});
+
+const normHeaders = computed(() => {
+  const headers: Header[] = [
+    {value: "movieTitle", style:"font-weight: 700", title:"Title"},
+    {value: "dateWatched", title:"Date Reviewed"}];
+
+  if (members.value.length > 0) {
+    for (const member of members.value) {
+      if (!member.devAccount) {
+        headers.push({value: member.name+"Norm"});
+      }
+    }
+  }
+  headers.push({value: "averageNorm"});
+  headers.push({value: "vote_average", title:"TMDB"});
+  return headers;
+});
+</script>
