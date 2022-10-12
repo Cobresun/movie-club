@@ -5,6 +5,8 @@
 
     <div v-if="!loading">
       <br/>
+      <ag-charts-vue :options="histChartOptions"></ag-charts-vue>
+      <br/>
       <ag-charts-vue :options="scoreChartOptions"></ag-charts-vue>
       <br/>
       <ag-charts-vue :options="budgetChartOptions"></ag-charts-vue>
@@ -84,12 +86,15 @@ const movieData = ref<any[]>([]);
 const memberNames = ref<string[]>([]);
 const selectedChartBase = ref("average");
 const selectedChartMeasure = ref("runtime");
+const histogramData = ref<any[]>([]);
+const histogramNormData = ref<any[]>([]);
 
 const scoreChartOptions = ref({});
 const revenueChartOptions = ref({});
 const budgetChartOptions = ref({});
 const customChartOptions = ref({});
 const dateChartOptions = ref({});
+const histChartOptions = ref({});
 
 const loading = computed(() => loadingReviews.value || loadingMembers.value ||
    loadingClub.value || loadingCalculations.value);
@@ -139,10 +144,19 @@ const calculateStatistics = () => {
     .filter( member => !member.devAccount )
     .map( member => member.name );
 
+  for(let i = 0; i <= 10; i++){
+    histogramData.value[i] = {'bin': i};
+    histogramNormData.value[i] = {'bin': i/4.0-1.25}; // TODO: stop using hardcoded bin for std
+  }
+
   const memberScores: Record<string, number[]> = {};
   const tmbd_norm = normalizeArray(movieData.value.map(data => data['vote_average']));
   for (const member of memberNames.value){
     memberScores[member] = normalizeArray(movieData.value.map(data => data[member]));
+    for(let i = 0; i <= 10; i++){
+      histogramData.value[i][member] = 0;
+      histogramNormData.value[i][member] = 0;
+    }
   }
 
   for (let i = 0; i < movieData.value.length; i++) {
@@ -150,6 +164,14 @@ const calculateStatistics = () => {
     for (const member of memberNames.value){
       movieData.value[i][member+"Norm"] = memberScores[member][i];
       avg += memberScores[member][i];
+
+      // Histogram
+      const score = Math.floor(movieData.value[i][member]);
+      if(isNaN(score)) continue;
+      histogramData.value[score][member] += 1;
+      let scoreNorm = Math.floor(movieData.value[i][member+"Norm"]*4+5);
+      scoreNorm = scoreNorm < 0 ? 0 : scoreNorm > 10 ? 10 : scoreNorm;
+      histogramNormData.value[scoreNorm][member] += 1;
     }
     avg = avg/memberNames.value.length;
 
@@ -185,6 +207,47 @@ watch(selectedChartMeasure, generateCustomChart);
 watch(selectedChartBase, generateCustomChart);
 
 const loadChartOptions = () => {
+  histChartOptions.value = {
+    autoSize: true,
+    theme: 'ag-default-dark',
+    title: { text: "Score Histogram" },
+    data: normalize.value ? histogramNormData.value : histogramData.value,
+    series: memberNames.value.map((member) => {
+      return {
+        type: 'line',
+        xKey: 'bin',
+        xName: 'Score',
+        yKey: member,
+        yName: member,
+        showInLegend: true,
+        tooltip: {
+            renderer: function (params) {
+                return '<div class="ag-chart-tooltip-title" ' + 'style="background-color:' + params.color + '">' + params.yKey + '</div>' + 
+                  '<div class="ag-chart-tooltip-content">' + params.xName + ': ' + params.xValue + '</br>' + params.yName + ': ' + params.yValue + '</div>';
+            }
+        }
+      }
+    }),
+    axes: [
+      {
+        type: 'number',
+        position: 'bottom',
+        title: {
+          enabled: true,
+          text: 'Score',
+        }
+      },
+      {
+        type: 'number',
+        position: 'left',
+        title: {
+          enabled: true,
+          text: 'Frequency of Score',
+        }
+      },
+    ],
+  };
+
   scoreChartOptions.value = loadDefaultChartSettings({
     chartTitle: clubName.value+' Score vs Audience Score',
     xName: 'TMDB Audience Score',
