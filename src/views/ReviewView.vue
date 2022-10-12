@@ -5,14 +5,16 @@
       <page-header :has-back="true" back-route="ClubHome" page-name="Reviews" />
       <loading-spinner v-if="loading" />
       <div v-else>
-        <v-btn class="float-left" @click="openPrompt()">
-          Add Review
-          <mdicon name="plus" />
-        </v-btn>
-        <v-btn class="float-left ml-4 bg-transparent font-light border-primary border-2"  @click="swapReviewScores()">
-          {{showPostReviewScores ? "Post" : ""}} Review Scores
-          <mdicon name="autorenew" />
-        </v-btn>
+        <div class="flex align-center">
+          <v-btn class="float-left" @click="openPrompt()">
+            Add Review
+            <mdicon name="plus" />
+          </v-btn>
+          <v-btn class="float-left ml-4 bg-transparent font-light border-primary border-2"  @click="swapReviewScores()">
+            {{showPostReviewScores ? "Post" : ""}} Review Scores
+            <mdicon name="autorenew" />
+          </v-btn>
+        </div>
         <movie-table
           v-if="reviews.length > 0"
           :headers="headers"
