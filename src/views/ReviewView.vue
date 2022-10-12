@@ -10,7 +10,7 @@
             Add Review
             <mdicon name="plus" />
           </v-btn>
-          <v-btn class="float-left ml-4 bg-transparent font-light border-primary border-2"  @click="swapReviewScores()">
+          <v-btn v-if="showPostReviewTable" class="float-left ml-4 bg-transparent font-light border-primary border-2"  @click="swapReviewScores()">
             {{showPostReviewScores ? "Post" : ""}} Review Scores
             <mdicon name="autorenew" />
           </v-btn>
@@ -114,6 +114,10 @@ const headers = computed<Header[]>(() => {
   headers.push({ value: "average" });
 
   return headers;
+});
+
+const showPostReviewTable = computed( () => {
+  return reviews.value.length > 0 && reviews.value[0].postReviewScores;
 });
 
 const showPostReviewScores = ref(false);
