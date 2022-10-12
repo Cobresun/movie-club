@@ -9,6 +9,10 @@
           Add Review
           <mdicon name="plus" />
         </v-btn>
+        <v-btn class="float-left ml-4 bg-transparent font-light border-primary border-2"  @click="swapReviewScores()">
+          {{showPostReviewScores ? "Post" : ""}} Review Scores
+          <mdicon name="autorenew" />
+        </v-btn>
         <movie-table
           v-if="reviews.length > 0"
           :headers="headers"
@@ -110,6 +114,11 @@ const headers = computed<Header[]>(() => {
   return headers;
 });
 
+const showPostReviewScores = ref(false);
+const swapReviewScores = () => {
+  showPostReviewScores.value = !showPostReviewScores.value;
+}
+
 const tableData = computed(() => {
   const data: Record<string, unknown>[] = [];
   for (let i = 0; i < reviews.value.length; i++) {
@@ -121,8 +130,9 @@ const tableData = computed(() => {
       movieId: reviews.value[i].movieId,
     };
 
-    for (const key of Object.keys(reviews.value[i].scores)) {
-      const score = reviews.value[i].scores[key];
+    const scores = showPostReviewScores.value ? reviews.value[i].postReviewScores : reviews.value[i].scores;
+    for (const key of Object.keys(scores)) {
+      const score = scores[key];
       // Round the score to 2 decimal places
       obj[key] = Math.round(score * 100) / 100;
     }
@@ -157,7 +167,7 @@ const submitScore = (movieId: number, user: string) => {
   let newScore = parseFloat(scoreInputValue.value);
 
   if (!isNaN(newScore) && newScore >= 0 && newScore <= 10) {
-    submit(user, movieId, newScore);
+    submit(user, movieId, newScore, showPostReviewScores.value);
   }
 };
 </script>

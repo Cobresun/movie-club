@@ -32,6 +32,7 @@ interface ReviewDatabaseObject {
   movieId: number;
   timeWatched: DateObject;
   scores: Record<string, number>;
+  postReviewScores: Record<string, number>;
 }
 
 export async function handler(
@@ -62,7 +63,8 @@ export async function handler(
         clubId,
         parseInt(path.movieId),
         body.name,
-        body.score
+        body.score,
+        event.queryStringParameters?.isPostReviewScores == "true"
       );
     }
     default:
@@ -111,7 +113,8 @@ async function updateReviewScore(
   clubId: number,
   movieId: number,
   userName: string,
-  score: number
+  score: number,
+  postReviewScores: boolean = false
 ): Promise<HandlerResponse> {
   const { faunaClient, q } = getFaunaClient();
 
@@ -121,21 +124,23 @@ async function updateReviewScore(
 
   const review = reviewResponse[0];
 
-  review.scores[userName] = score;
+  let scores = postReviewScores ? review.postReviewScores : review.scores;
+
+  scores[userName] = score;
 
   // TODO: average should just be calculated in the client...
-  if (review.scores["average"] === undefined) {
+  if (scores["average"] === undefined) {
     // If no existing average, set the average to the current review's score
-    review.scores["average"] = score;
+    scores["average"] = score;
   } else {
-    const numberOfScores = Object.keys(review.scores).length - 1;
-    review.scores["average"] = 0;
+    const numberOfScores = Object.keys(scores).length - 1;
+    scores["average"] = 0;
 
-    Object.keys(review.scores)
+    Object.keys(scores)
       .filter((user) => user !== "average")
-      .map((user) => (review.scores.average += review.scores[user]));
+      .map((user) => (scores.average += scores[user]));
 
-    review.scores["average"] = review.scores["average"] / numberOfScores;
+    scores["average"] = scores["average"] / numberOfScores;
   }
 
   await faunaClient.query(

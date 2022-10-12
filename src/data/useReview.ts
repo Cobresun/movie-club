@@ -35,11 +35,14 @@ export function useDetailedReview(
 export function useSubmitScore(clubId: string) {
   const request = useAuthRequest<ReviewResponse>();
   const store = useStore();
-  const submit = async (user: string, movieId: number, score: number) => {
+  const submit = async (user: string, movieId: number, score: number, isPostReviewScores: boolean) => {
     await request.execute(`/api/club/${clubId}/reviews/${movieId}`, {
       data: {
         name: user,
-        score: score,
+        score,
+      },
+      params: {
+        isPostReviewScores
       },
       method: "PUT",
     });
