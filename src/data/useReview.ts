@@ -52,3 +52,20 @@ export function useSubmitScore(clubId: string) {
   };
   return { ...request, submit };
 }
+
+export function useAddReview(clubId: string) {
+  const request = useAuthRequest<ReviewResponse>();
+  const store = useStore();
+  const addReview = async (movieId: number) => {
+    await request.execute(`/api/club/${clubId}/reviews/${movieId}`, {
+      method: "POST",
+    });
+    if (request.data.value) {
+      store.commit("reviews/addReview", {
+        clubId,
+        review: request.data.value,
+      });
+    }
+  };
+  return { ...request, addReview };
+}
