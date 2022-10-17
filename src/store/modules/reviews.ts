@@ -20,6 +20,9 @@ export const reviewModule: Module<State, never> = {
         curReview.movieId === review.movieId ? review : curReview
       );
     },
+    addReview(state: State, { clubId, review }) {
+      state.clubs[clubId]?.unshift(review);
+    },
   },
   getters: {
     getClubReviews: (state: State) => (clubId: string) => state.clubs[clubId],

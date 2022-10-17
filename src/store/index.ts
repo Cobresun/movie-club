@@ -1,6 +1,7 @@
 import { createStore } from "vuex";
 import { authModule } from "./modules/auth";
 import { reviewModule } from "./modules/reviews";
+import { watchListModule } from "./modules/watchList";
 
 export default createStore<never>({
   mutations: {},
@@ -8,5 +9,6 @@ export default createStore<never>({
   modules: {
     auth: authModule,
     reviews: reviewModule,
+    watchList: watchListModule,
   },
 });

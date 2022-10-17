@@ -1,4 +1,4 @@
-import { WatchListItem, WatchListViewModel } from "@/models";
+import { Club, WatchListItem, WatchListViewModel } from "@/models";
 import {
   HandlerContext,
   HandlerEvent,
@@ -9,7 +9,7 @@ import { Path } from "path-parser";
 import { isAuthorized } from "../utils/auth";
 import { getFaunaClient } from "../utils/fauna";
 import { methodNotAllowed, ok, unauthorized } from "../utils/responses";
-import { StringRecord } from "../utils/types";
+import { StringRecord, QueryResponse } from "../utils/types";
 
 export const path = new Path<StringRecord>("/api/club/:clubId<\\d+>/watchList");
 const modifyPath = new Path<StringRecord>(
@@ -69,11 +69,17 @@ async function postWatchList(
   if (!(await isAuthorized(clubId, context))) return unauthorized();
   const { faunaClient, q } = getFaunaClient();
 
-  await faunaClient.query(
-    q.Call(q.Function("AddMovieToWatchList"), [clubId, movieId])
-  );
+  const club = (
+    await faunaClient.query<QueryResponse<Club>>(
+      q.Call(q.Function("AddMovieToWatchList"), [clubId, movieId])
+    )
+  ).data;
 
-  return ok();
+  const movie = (
+    await getMovieData([club.watchList[club.watchList.length - 1]])
+  )[0];
+
+  return ok(JSON.stringify(movie));
 }
 
 async function deleteWatchList(
