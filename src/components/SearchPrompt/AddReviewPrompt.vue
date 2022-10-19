@@ -1,5 +1,5 @@
 <template>
-  <v-modal>
+  <v-modal @close="emit('close')">
     <loading-spinner v-if="loading" class="self-center" />
     <movie-search-prompt
       v-else
