@@ -22,6 +22,9 @@ export const watchListModule: Module<State, never> = {
         (movie) => movie.movieId !== movieId
       );
     },
+    addBacklogItem(state: State, { clubId, movie }) {
+      state.clubs[clubId].backlog.push(movie);
+    },
     deleteBacklogItem(state: State, { clubId, movieId }) {
       state.clubs[clubId].backlog = state.clubs[clubId].backlog.filter(
         (movie) => movie.movieId !== movieId

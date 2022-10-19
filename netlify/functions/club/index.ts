@@ -5,7 +5,7 @@ import {
   HandlerResponse,
 } from "@netlify/functions";
 import faunadb from "faunadb";
-import { ClubsViewClub, WatchListItem } from "../../../src/models";
+import { Club, ClubsViewClub, WatchListItem } from "../../../src/models";
 import axios from "axios";
 import { Path } from "path-parser";
 import {
@@ -23,6 +23,7 @@ import {
   path as watchListPath,
   handler as watchListHandler,
 } from "./watchList";
+import { QueryResponse } from "../utils/types";
 
 const faunaClient = new faunadb.Client({
   secret: process.env.FAUNADB_SERVER_SECRET ?? "",
@@ -170,23 +171,18 @@ async function backlogHandler(
   }
 }
 
-// TODO: Don't really want this to exist, update Fauna function
-interface BacklogResponse {
-  backlog: WatchListItem[];
-}
-
 async function addMovieToBacklog(clubId: number, movieId: number) {
-  await faunaClient.query(
-    q.Call(q.Function("AddMovieToBacklog"), [clubId, movieId])
-  );
+  const club = (
+    await faunaClient.query<QueryResponse<Club>>(
+      q.Call(q.Function("AddMovieToBacklog"), [clubId, movieId])
+    )
+  ).data;
 
-  const backlog = await faunaClient.query<BacklogResponse>(
-    q.Call(q.Function("GetBacklog"), clubId)
-  );
+  const movie = (
+    await getMovieData([club.backlog[club.backlog.length - 1]])
+  )[0];
 
-  backlog.backlog = await getMovieData(backlog.backlog);
-
-  return ok(JSON.stringify(backlog.backlog));
+  return ok(JSON.stringify(movie));
 }
 
 async function deleteMovieFromBacklog(clubId: number, movieId: number) {

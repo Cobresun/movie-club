@@ -1,9 +1,6 @@
 <template>
   <v-modal>
-    <loading-spinner
-      v-if="loading"
-      class="self-center"
-    />
+    <loading-spinner v-if="loading" class="self-center" />
     <movie-search-prompt
       v-else
       default-list-title="From Watch List"
@@ -16,64 +13,52 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
-import { useStore } from 'vuex';
-import axios from 'axios';
-import { WatchListItem, MovieSearchIndex, ReviewResponse, WatchListViewModel } from '@/models';
-import MovieSearchPrompt from './MovieSearchPrompt.vue';
-import { useRoute } from 'vue-router';
+import { computed } from "vue";
+import { MovieSearchIndex } from "@/models";
+import MovieSearchPrompt from "./MovieSearchPrompt.vue";
+import { useRoute } from "vue-router";
+import { useDeleteMovie, useWatchList } from "@/data/useWatchList";
+import { useAddReview } from "@/data/useReview";
 
 const emit = defineEmits<{
-  (e: "close", review?: ReviewResponse) : void
-}>()
+  (e: "close"): void;
+}>();
 
-const store = useStore();
-
-const loading = ref(true);
-const watchlistSearchIndex = ref<MovieSearchIndex[]>([]);
 const route = useRoute();
 
-axios.get<WatchListViewModel>(`/api/club/${route.params.clubId}/watchList`)
-  .then(response => {
-    response.data.watchList.forEach((element: WatchListItem) => {
-      watchlistSearchIndex.value.push({
-        id: element.movieId,
-        title: element.movieTitle,
-        release_date: element.releaseDate
-      })
-    })
+const { data: watchList, loading: watchListLoading } = useWatchList(
+  route.params.clubId as string
+);
 
-    loading.value = false
-  })
+const watchlistSearchIndex = computed(() =>
+  watchList.value
+    ? watchList.value.watchList.map((item) => ({
+        id: item.movieId,
+        title: item.movieTitle,
+        release_date: item.releaseDate,
+      }))
+    : []
+);
 
-const selectFromWatchList = (movie: MovieSearchIndex) => {
-  loading.value = true;
-  axios.delete(`/api/club/${route.params.clubId}/watchList/${ movie.id }`, {
-    headers: {
-      Authorization: `Bearer ${store.state.auth.user.token.access_token}`
-    }
-  }).then(() => {
-    axios.post(`/api/club/${route.params.clubId}/reviews/${movie.id}`, {}, {
-      headers: {
-        Authorization: `Bearer ${store.state.auth.user.token.access_token}`
-      }
-    }).then(response => {
-      emit('close', response.data)
-    })
-  })
-}
+const { deleteMovie, loading: deleteLoading } = useDeleteMovie(
+  route.params.clubId as string
+);
+const { addReview, loading: reviewLoading } = useAddReview(
+  route.params.clubId as string
+);
 
-const selectFromSearch = (movie: MovieSearchIndex) => {
-  loading.value = true;
-  axios.post<ReviewResponse>(`/api/club/${ route.params.clubId }/reviews/${ movie.id }`, {}, {
-    headers: {
-      Authorization: `Bearer ${store.state.auth.user.token.access_token}`
-    }
-  }).then((response) => {
-    emit("close", response.data);
-  }).catch((error) => {
-    console.error(error);
-    emit("close");
-  });
-}
+const selectFromWatchList = async (movie: MovieSearchIndex) => {
+  await deleteMovie(movie.id);
+  await addReview(movie.id);
+  emit("close");
+};
+
+const selectFromSearch = async (movie: MovieSearchIndex) => {
+  await addReview(movie.id);
+  emit("close");
+};
+
+const loading = computed(
+  () => watchListLoading.value || deleteLoading.value || reviewLoading.value
+);
 </script>

@@ -120,9 +120,9 @@ const animate = ref(false);
 const animateInterval = ref<number | undefined>();
 
 const { loading, data } = useWatchList(route.params.clubId as string);
-const watchList = computed(() => data.value.watchList);
-const backlog = computed(() => data.value.backlog);
-const nextMovieId = computed(() => data.value.nextMovieId);
+const watchList = computed(() => (data.value ? data.value.watchList : []));
+const backlog = computed(() => (data.value ? data.value.backlog : []));
+const nextMovieId = computed(() => data.value?.nextMovieId);
 
 const sortedWatchList = computed(() => {
   let sortedWatchList = watchList.value.slice(0);

@@ -41,10 +41,11 @@ const loading = computed(() => {
   );
 });
 
-const clubs = computed(() => {
-  if (loading.value) return [];
-  return clubServiceResults.map((result) => result.data);
-});
+const clubs = computed<ClubsViewClub[]>(() =>
+  clubServiceResults
+    .map((result) => result.data)
+    .filter((result): result is ClubsViewClub => !!result)
+);
 
 const setClubs = (isLoading: boolean) => {
   if (isLoading || loading.value || !user.value) return;
