@@ -79,3 +79,20 @@ export function useDeleteBacklogItem(clubId: string) {
   };
   return { ...request, deleteBacklogItem };
 }
+
+export function useAddBacklogItem(clubId: string) {
+  const store = useStore();
+  const request = useAuthRequest();
+  const addBacklogItem = async (movieId: number) => {
+    await request.execute(`/api/club/${clubId}/backlog/${movieId}`, {
+      method: "POST",
+    });
+    if (request.response.value) {
+      store.commit("watchList/addBacklogItem", {
+        clubId,
+        movie: request.data.value,
+      });
+    }
+  };
+  return { ...request, addBacklogItem };
+}

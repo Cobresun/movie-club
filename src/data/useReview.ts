@@ -60,7 +60,7 @@ export function useAddReview(clubId: string) {
     await request.execute(`/api/club/${clubId}/reviews/${movieId}`, {
       method: "POST",
     });
-    if (request.data.value) {
+    if (request.response.value) {
       store.commit("reviews/addReview", {
         clubId,
         review: request.data.value,

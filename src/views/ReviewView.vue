@@ -10,7 +10,7 @@
           <mdicon name="plus" />
         </v-btn>
         <movie-table
-          v-if="reviews.length > 0"
+          v-if="tableData.length > 0"
           :headers="headers"
           :data="tableData"
         >
@@ -65,7 +65,7 @@
 import { ref, computed, nextTick } from "vue";
 import { useRoute } from "vue-router";
 import AddReviewPrompt from "@/components/SearchPrompt/AddReviewPrompt.vue";
-import { Header, ReviewResponse } from "@/models";
+import { Header } from "@/models";
 import { DateTime } from "luxon";
 import { useReview, useSubmitScore } from "@/data/useReview";
 import { useMembers } from "@/data/useClub";
@@ -85,11 +85,8 @@ const modalOpen = ref(false);
 const openPrompt = () => {
   modalOpen.value = true;
 };
-const closePrompt = (newReview?: ReviewResponse) => {
+const closePrompt = () => {
   modalOpen.value = false;
-  if (newReview) {
-    reviews.value.unshift(newReview);
-  }
 };
 
 const headers = computed<Header[]>(() => {
@@ -98,7 +95,7 @@ const headers = computed<Header[]>(() => {
     { value: "dateWatched", title: "Date Reviewed" },
   ];
 
-  if (members.value.length > 0) {
+  if (members.value && members.value.length > 0) {
     for (const member of members.value) {
       if (!member.devAccount) {
         headers.push({ value: member.name });
@@ -111,6 +108,7 @@ const headers = computed<Header[]>(() => {
 });
 
 const tableData = computed(() => {
+  if (!reviews.value) return [];
   const data: Record<string, unknown>[] = [];
   for (let i = 0; i < reviews.value.length; i++) {
     const obj: Record<string, unknown> = {

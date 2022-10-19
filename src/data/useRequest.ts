@@ -1,9 +1,12 @@
-import { FetchConfig } from "@/models";
+import { DataService, FetchConfig } from "@/models";
 import axios, { AxiosError, AxiosResponse } from "axios";
 import { computed, reactive, ref } from "vue";
 import { useStore } from "vuex";
 
-export const useRequest = <T>(urlInp?: string, configInp: FetchConfig = {}) => {
+export const useRequest = <T>(
+  urlInp?: string,
+  configInp: FetchConfig = {}
+): DataService<T> => {
   const data = ref<T>();
   const response = ref<AxiosResponse<T>>();
   const error = ref<AxiosError | unknown>();

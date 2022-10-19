@@ -1,5 +1,5 @@
 import { AxiosError, AxiosRequestConfig, AxiosResponse } from "axios";
-import { ComputedRef, Ref } from "vue";
+import { Ref } from "vue";
 
 export interface Header {
   value: string;
@@ -72,6 +72,13 @@ export interface ProductionCompany {
   name: string;
 }
 
+export interface TMDBPageResponse {
+  results: TMDBMovieData[];
+  page: number;
+  total_pages: number;
+  total_results: number;
+}
+
 export interface MovieSearchIndex {
   title: string;
   release_date: string;
@@ -104,11 +111,11 @@ export interface FetchConfig extends AxiosRequestConfig {
 }
 
 export interface DataService<T> {
-  data: ComputedRef<T>;
-  response: ComputedRef<AxiosResponse>;
+  data: Ref<T | undefined>;
+  response: Ref<AxiosResponse | undefined>;
   error: Ref<AxiosError | unknown>;
   loading: Ref<boolean>;
-  execute: (arg1?: string, arg2?: FetchConfig) => void;
+  execute: (arg1?: string, arg2?: FetchConfig) => Promise<void>;
 }
 
 export interface CacheDataService<T> extends DataService<T> {
