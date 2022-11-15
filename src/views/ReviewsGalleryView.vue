@@ -66,7 +66,7 @@ const filteredReviews = computed(() => {
   return reviews.value.filter(review =>
     review.movieTitle.toLowerCase().includes(search.value.toLowerCase()) ||
     review.movieData.production_companies
-      .some(company => company.name.toLocaleLowerCase().includes(search.value))
+      .some(company => company.name.toLocaleLowerCase().includes(search.value.toLowerCase()))
     )
 })
 </script>
