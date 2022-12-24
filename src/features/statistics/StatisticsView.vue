@@ -64,7 +64,7 @@ import { DateTime } from "luxon";
 import { ReviewResponse, TMDBMovieData, Member, Header } from "@/common/types/models";
 import { useReview } from "@/data/useReview";
 import { useMembers, useClub } from "@/data/useClub";
-import { normalizeArray, loadDefaultChartSettings} from "../../util/StatisticsUtils";
+import { normalizeArray, loadDefaultChartSettings} from "./StatisticsUtils";
 
 const route = useRoute();
 const { loading: loadingClub, data: club } = useClub(route.params.clubId as string);
