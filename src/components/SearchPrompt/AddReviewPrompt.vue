@@ -14,7 +14,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { MovieSearchIndex } from "@/models";
+import { MovieSearchIndex } from "@/common/types/models";
 import MovieSearchPrompt from "./MovieSearchPrompt.vue";
 import { useRoute } from "vue-router";
 import { useDeleteMovie, useWatchList } from "@/data/useWatchList";

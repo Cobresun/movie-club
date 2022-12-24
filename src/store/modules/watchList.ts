@@ -1,4 +1,4 @@
-import { WatchListViewModel } from "@/models";
+import { WatchListViewModel } from "@/common/types/models";
 import { Module } from "vuex";
 
 interface State {

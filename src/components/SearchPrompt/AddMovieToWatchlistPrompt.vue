@@ -16,7 +16,7 @@
 import { computed, defineEmits } from "vue";
 import { useRoute } from "vue-router";
 import MovieSearchPrompt from "./MovieSearchPrompt.vue";
-import { MovieSearchIndex, WatchListItem } from "@/models";
+import { MovieSearchIndex, WatchListItem } from "@/common/types/models";
 import { useTrending } from "@/data/useTMDB";
 import { useAddBacklogItem } from "@/data/useWatchList";
 

@@ -1,10 +1,10 @@
 import { createRouter, createWebHistory, RouteRecordRaw } from "vue-router";
-import ClubHomeView from "../views/ClubHomeView.vue"
-import ReviewView from "../views/ReviewView.vue"
-import ReviewsGalleryView from "../views/ReviewsGalleryView.vue"
-import WatchListView from "../views/WatchListView.vue"
-import StatisticsView from "../views/StatisticsView.vue"
-import ClubsView from "../views/ClubsView.vue"
+import ClubHomeView from "../features/clubs/ClubHomeView.vue"
+import ReviewView from "../features/reviews/views/ReviewView.vue"
+import ReviewsGalleryView from "../features/reviews/views/ReviewsGalleryView.vue"
+import WatchListView from "../features/watch-list/WatchListView.vue"
+import StatisticsView from "../features/statistics/StatisticsView.vue"
+import ClubsView from "../features/clubs/ClubsView.vue"
 
 const routes: Array<RouteRecordRaw> = [
   {

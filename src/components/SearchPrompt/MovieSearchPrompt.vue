@@ -59,7 +59,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
-import { MovieSearchIndex } from "@/models";
+import { MovieSearchIndex } from "@/common/types/models";
 import { useSearch } from "@/data/useTMDB";
 
 const { defaultList, defaultListTitle } = defineProps<{

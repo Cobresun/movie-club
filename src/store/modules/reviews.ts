@@ -1,4 +1,4 @@
-import { ReviewResponse } from "@/models";
+import { ReviewResponse } from "@/common/types/models";
 import { Module } from "vuex";
 
 interface State {

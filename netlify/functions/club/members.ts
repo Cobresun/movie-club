@@ -1,4 +1,4 @@
-import { Member } from "@/models";
+import { Member } from "@/common/types/models";
 import { HandlerEvent, HandlerContext, HandlerResponse } from "@netlify/functions";
 import { Path } from "path-parser";
 import { getFaunaClient } from "../utils/fauna";

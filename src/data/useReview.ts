@@ -2,7 +2,7 @@ import {
   CacheDataService,
   DetailedReviewResponse,
   ReviewResponse,
-} from "@/models";
+} from "@/common/types/models";
 import { computed, watch } from "vue";
 import { useStore } from "vuex";
 import { useAuthRequest, useRequestCache } from "./useRequest";

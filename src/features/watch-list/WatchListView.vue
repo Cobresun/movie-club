@@ -99,8 +99,8 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { useRouter, useRoute } from "vue-router";
-import MoviePosterCard from "@/components/MoviePosterCard.vue";
-import { WatchListItem } from "@/models";
+import MoviePosterCard from "@/common/components/MoviePosterCard.vue";
+import { WatchListItem } from "@/common/types/models";
 import AddMovieToWatchlistPrompt from "@/components/SearchPrompt/AddMovieToWatchlistPrompt.vue";
 import {
   useAddMovie,

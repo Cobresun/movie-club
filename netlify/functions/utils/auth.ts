@@ -1,4 +1,4 @@
-import { Member } from "@/models";
+import { Member } from "@/common/types/models";
 import { HandlerContext } from "@netlify/functions";
 import faunadb from "faunadb";
 
