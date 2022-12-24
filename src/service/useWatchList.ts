@@ -1,4 +1,4 @@
-import { CacheDataService, WatchListViewModel } from "@/models";
+import { CacheDataService, WatchListViewModel } from "@/common/types/models";
 import { computed, watch } from "vue";
 import { useStore } from "vuex";
 import { useAuthRequest, useRequestCache } from "./useRequest";

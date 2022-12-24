@@ -1,4 +1,4 @@
-import { Member } from "@/models"
+import { Member } from "@/common/types/models"
 import { Handler, HandlerEvent } from "@netlify/functions"
 import faunadb from "faunadb"
 import { badRequest, ok } from "./utils/responses"

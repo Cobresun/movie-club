@@ -23,10 +23,10 @@
 import { computed, reactive, watch } from "vue";
 import { useStore } from "vuex";
 
-import clubSvg from "@/assets/menu-images/club.svg";
-import { useUser } from "@/data/useUser";
-import { useClub } from "@/data/useClub";
-import { ClubsViewClub, CacheDataService } from "@/models";
+import clubSvg from "@/assets/images/menu-images/club.svg";
+import { useUser } from "@/service/useUser";
+import { useClub } from "@/service/useClub";
+import { ClubsViewClub, CacheDataService } from "@/common/types/models";
 
 const store = useStore();
 const isLoggedIn = computed(() => store.getters["auth/isLoggedIn"]);

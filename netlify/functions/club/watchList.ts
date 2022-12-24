@@ -1,4 +1,4 @@
-import { Club, WatchListItem, WatchListViewModel } from "@/models";
+import { Club, WatchListItem, WatchListViewModel } from "@/common/types/models";
 import {
   HandlerContext,
   HandlerEvent,

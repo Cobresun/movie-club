@@ -5,7 +5,7 @@ import {
   HandlerResponse,
 } from "@netlify/functions";
 import faunadb from "faunadb";
-import { Club, ClubsViewClub, WatchListItem } from "../../../src/models";
+import { Club, ClubsViewClub, WatchListItem } from "../../../src/common/types/models";
 import axios from "axios";
 import { Path } from "path-parser";
 import {

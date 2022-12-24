@@ -48,7 +48,7 @@
         </template>
 
         <template v-slot:[normName()]>
-            <img src="@/assets/average.svg" class="w-16 h-12 max-w-none" />
+            <img src="@/assets/images/average.svg" class="w-16 h-12 max-w-none" />
         </template>
       </movie-table>
     </div>
@@ -61,10 +61,10 @@ import { AgChartsVue } from 'ag-charts-vue3';
 import { useRoute } from "vue-router";
 import axios from "axios";
 import { DateTime } from "luxon";
-import { ReviewResponse, TMDBMovieData, Member, Header } from "@/models";
-import { useReview } from "@/data/useReview";
-import { useMembers, useClub } from "@/data/useClub";
-import { normalizeArray, loadDefaultChartSettings} from "../util/StatisticsUtils";
+import { ReviewResponse, TMDBMovieData, Member, Header } from "@/common/types/models";
+import { useReview } from "@/service/useReview";
+import { useMembers, useClub } from "@/service/useClub";
+import { normalizeArray, loadDefaultChartSettings} from "./StatisticsUtils";
 
 const route = useRoute();
 const { loading: loadingClub, data: club } = useClub(route.params.clubId as string);

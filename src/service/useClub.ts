@@ -1,4 +1,4 @@
-import { ClubsViewClub, CacheDataService, Member } from "@/models";
+import { ClubsViewClub, CacheDataService, Member } from "@/common/types/models";
 import { useRequestCache } from "./useRequest";
 
 export function useClub(clubId: string): CacheDataService<ClubsViewClub> {

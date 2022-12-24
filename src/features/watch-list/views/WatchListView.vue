@@ -99,17 +99,17 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { useRouter, useRoute } from "vue-router";
-import MoviePosterCard from "@/components/MoviePosterCard.vue";
-import { WatchListItem } from "@/models";
-import AddMovieToWatchlistPrompt from "@/components/SearchPrompt/AddMovieToWatchlistPrompt.vue";
+import MoviePosterCard from "@/common/components/MoviePosterCard.vue";
+import { WatchListItem } from "@/common/types/models";
+import AddMovieToWatchlistPrompt from "@/features/watch-list/components/AddMovieToWatchlistPrompt.vue";
 import {
   useAddMovie,
   useDeleteBacklogItem,
   useDeleteMovie,
   useMakeNextWatch,
   useWatchList,
-} from "@/data/useWatchList";
-import { useAddReview } from "@/data/useReview";
+} from "@/service/useWatchList";
+import { useAddReview } from "@/service/useReview";
 
 const router = useRouter();
 const route = useRoute();

@@ -53,7 +53,7 @@
           </template>
 
           <template #average>
-            <img src="@/assets/average.svg" class="w-16 h-12 max-w-none" />
+            <img src="@/assets/images/average.svg" class="w-16 h-12 max-w-none" />
           </template>
         </movie-table>
       </div>
@@ -64,11 +64,11 @@
 <script setup lang="ts">
 import { ref, computed, nextTick } from "vue";
 import { useRoute } from "vue-router";
-import AddReviewPrompt from "@/components/SearchPrompt/AddReviewPrompt.vue";
-import { Header } from "@/models";
+import AddReviewPrompt from "@/features/reviews/components/AddReviewPrompt.vue";
+import { Header } from "@/common/types/models";
 import { DateTime } from "luxon";
-import { useReview, useSubmitScore } from "@/data/useReview";
-import { useMembers } from "@/data/useClub";
+import { useReview, useSubmitScore } from "@/service/useReview";
+import { useMembers } from "@/service/useClub";
 
 const route = useRoute();
 

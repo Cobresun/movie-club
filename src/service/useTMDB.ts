@@ -1,4 +1,4 @@
-import { DataService, TMDBPageResponse } from "@/models";
+import { DataService, TMDBPageResponse } from "@/common/types/models";
 import axios, { CancelTokenSource } from "axios";
 import { computed, ref } from "vue";
 import { useRequest, useRequestCache } from "./useRequest";
