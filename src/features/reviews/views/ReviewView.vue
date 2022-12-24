@@ -9,6 +9,11 @@
           Add Review
           <mdicon name="plus" />
         </v-btn>
+        <input
+        v-model="searchTerm"
+        class="mb-4 p-2 text-base text-black outline-none rounded-md border-2 border-gray-300 focus:border-primary w-11/12 max-w-md"
+        placeholder="Search"
+      >
         <movie-table
           v-if="tableData.length > 0"
           :headers="headers"
@@ -67,12 +72,13 @@ import { useRoute } from "vue-router";
 import AddReviewPrompt from "@/features/reviews/components/AddReviewPrompt.vue";
 import { Header } from "@/common/types/models";
 import { DateTime } from "luxon";
-import { useReview, useSubmitScore } from "@/service/useReview";
+import { useDetailedReview, useSubmitScore } from "@/service/useReview";
 import { useMembers } from "@/service/useClub";
+import { filterReviews } from "../searchReviews";
 
 const route = useRoute();
 
-const { loading: loadingReviews, data: reviews } = useReview(
+const { loading: loadingReviews, data: reviews } = useDetailedReview(
   route.params.clubId as string
 );
 const { loading: loadingMembers, data: members } = useMembers(
@@ -108,19 +114,19 @@ const headers = computed<Header[]>(() => {
 });
 
 const tableData = computed(() => {
-  if (!reviews.value) return [];
+  if (!filteredReviews.value) return [];
   const data: Record<string, unknown>[] = [];
-  for (let i = 0; i < reviews.value.length; i++) {
+  for (let i = 0; i < filteredReviews.value.length; i++) {
     const obj: Record<string, unknown> = {
-      movieTitle: reviews.value[i].movieTitle,
+      movieTitle: filteredReviews.value[i].movieTitle,
       dateWatched: DateTime.fromISO(
-        reviews.value[i].timeWatched["@ts"]
+        filteredReviews.value[i].timeWatched["@ts"]
       ).toLocaleString(),
-      movieId: reviews.value[i].movieId,
+      movieId: filteredReviews.value[i].movieId,
     };
 
-    for (const key of Object.keys(reviews.value[i].scores)) {
-      const score = reviews.value[i].scores[key];
+    for (const key of Object.keys(filteredReviews.value[i].scores)) {
+      const score = filteredReviews.value[i].scores[key];
       // Round the score to 2 decimal places
       obj[key] = Math.round(score * 100) / 100;
     }
@@ -158,4 +164,11 @@ const submitScore = (movieId: number, user: string) => {
     submit(user, movieId, newScore);
   }
 };
+
+const searchTerm = ref<string>("");
+
+const filteredReviews = computed(() => {
+  return filterReviews(reviews.value, searchTerm.value);
+});
+
 </script>

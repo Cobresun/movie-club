@@ -11,7 +11,7 @@
       class="md:px-6"
     >
       <input
-        v-model="search"
+        v-model="searchTerm"
         class="mb-4 p-2 text-base text-black outline-none rounded-md border-2 border-gray-300 focus:border-primary w-11/12 max-w-md"
         placeholder="Search"
       >
@@ -43,6 +43,7 @@ import ReviewCard from '@/features/reviews/components/ReviewCard.vue'
 import LoadingSpinner from '@/common/components/LoadingSpinner.vue';
 import { useDetailedReview } from '@/service/useReview';
 import { useMembers } from '@/service/useClub';
+import { filterReviews } from '../searchReviews';
 
 const route = useRoute();
 
@@ -60,13 +61,10 @@ const members = computed(() => allMembers.value.filter(member => !member.devAcco
 
 const loading = computed(() => loadingReviews.value || loadingMembers.value);
 
-const search = ref<string>("");
+const searchTerm = ref<string>("");
 
 const filteredReviews = computed(() => {
-  return reviews.value.filter(review =>
-    review.movieTitle.toLowerCase().includes(search.value.toLowerCase()) ||
-    review.movieData.production_companies
-      .some(company => company.name.toLocaleLowerCase().includes(search.value.toLowerCase()))
-    )
-})
+  return filterReviews(reviews.value, searchTerm.value);
+});
+
 </script>
