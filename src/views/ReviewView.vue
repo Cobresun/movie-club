@@ -53,7 +53,7 @@
           </template>
 
           <template #average>
-            <img src="@/assets/average.svg" class="w-16 h-12 max-w-none" />
+            <img src="@/assets/images/average.svg" class="w-16 h-12 max-w-none" />
           </template>
         </movie-table>
       </div>

@@ -14,7 +14,7 @@ import MenuCard from "@/components/MenuCard.vue";
 import VModal from "@/components/VModal.vue";
 import PageHeader from "@/components/PageHeader.vue";
 import LazyLoad from "./directives/LazyLoad";
-import './assets/tailwind.css'
+import './assets/styles/tailwind.css'
 import 'animate.css';
 
 createApp(App)

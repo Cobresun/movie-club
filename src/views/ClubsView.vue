@@ -23,7 +23,7 @@
 import { computed, reactive, watch } from "vue";
 import { useStore } from "vuex";
 
-import clubSvg from "@/assets/menu-images/club.svg";
+import clubSvg from "@/assets/images/menu-images/club.svg";
 import { useUser } from "@/data/useUser";
 import { useClub } from "@/data/useClub";
 import { ClubsViewClub, CacheDataService } from "@/models";

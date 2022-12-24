@@ -30,7 +30,7 @@
 </template>
 
 <script setup lang="ts">
-import reviewSvg from "@/assets/menu-images/review.svg";
-import watchlistSvg from "@/assets/menu-images/watchlist.svg";
-import statisticsSvg from "@/assets/menu-images/statistics.svg";
+import reviewSvg from "@/assets/images/menu-images/review.svg";
+import watchlistSvg from "@/assets/images/menu-images/watchlist.svg";
+import statisticsSvg from "@/assets/images/menu-images/statistics.svg";
 </script>
