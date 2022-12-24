@@ -67,8 +67,8 @@ import { useRoute } from "vue-router";
 import AddReviewPrompt from "@/features/reviews/components/AddReviewPrompt.vue";
 import { Header } from "@/common/types/models";
 import { DateTime } from "luxon";
-import { useReview, useSubmitScore } from "@/data/useReview";
-import { useMembers } from "@/data/useClub";
+import { useReview, useSubmitScore } from "@/service/useReview";
+import { useMembers } from "@/service/useClub";
 
 const route = useRoute();
 

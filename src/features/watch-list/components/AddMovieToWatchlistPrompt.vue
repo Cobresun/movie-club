@@ -17,8 +17,8 @@ import { computed, defineEmits } from "vue";
 import { useRoute } from "vue-router";
 import MovieSearchPrompt from "../../../common/components/MovieSearchPrompt.vue";
 import { MovieSearchIndex, WatchListItem } from "@/common/types/models";
-import { useTrending } from "@/data/useTMDB";
-import { useAddBacklogItem } from "@/data/useWatchList";
+import { useTrending } from "@/service/useTMDB";
+import { useAddBacklogItem } from "@/service/useWatchList";
 
 const emit = defineEmits<{
   (e: "close", item?: WatchListItem): void;

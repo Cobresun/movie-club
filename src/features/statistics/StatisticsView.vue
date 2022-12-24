@@ -62,8 +62,8 @@ import { useRoute } from "vue-router";
 import axios from "axios";
 import { DateTime } from "luxon";
 import { ReviewResponse, TMDBMovieData, Member, Header } from "@/common/types/models";
-import { useReview } from "@/data/useReview";
-import { useMembers, useClub } from "@/data/useClub";
+import { useReview } from "@/service/useReview";
+import { useMembers, useClub } from "@/service/useClub";
 import { normalizeArray, loadDefaultChartSettings} from "./StatisticsUtils";
 
 const route = useRoute();

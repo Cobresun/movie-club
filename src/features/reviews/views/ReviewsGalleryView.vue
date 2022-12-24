@@ -41,8 +41,8 @@ import { ref, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import ReviewCard from '@/features/reviews/components/ReviewCard.vue'
 import LoadingSpinner from '@/common/components/LoadingSpinner.vue';
-import { useDetailedReview } from '@/data/useReview';
-import { useMembers } from '@/data/useClub';
+import { useDetailedReview } from '@/service/useReview';
+import { useMembers } from '@/service/useClub';
 
 const route = useRoute();
 

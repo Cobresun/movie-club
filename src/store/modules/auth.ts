@@ -1,4 +1,4 @@
-import { clearCache } from "@/data/useRequest";
+import { clearCache } from "@/service/useRequest";
 import netlifyIdentity, { User } from "netlify-identity-widget";
 import { ActionContext, Module } from "vuex";
 

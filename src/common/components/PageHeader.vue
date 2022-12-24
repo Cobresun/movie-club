@@ -18,7 +18,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { useClub } from '@/data/useClub';
+import { useClub } from '@/service/useClub';
 import { useRoute } from 'vue-router';
 
 const { hasBack, backRoute, pageName } = defineProps<{

@@ -108,8 +108,8 @@ import {
   useDeleteMovie,
   useMakeNextWatch,
   useWatchList,
-} from "@/data/useWatchList";
-import { useAddReview } from "@/data/useReview";
+} from "@/service/useWatchList";
+import { useAddReview } from "@/service/useReview";
 
 const router = useRouter();
 const route = useRoute();
