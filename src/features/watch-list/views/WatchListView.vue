@@ -101,7 +101,7 @@ import { ref, computed } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import MoviePosterCard from "@/common/components/MoviePosterCard.vue";
 import { WatchListItem } from "@/common/types/models";
-import AddMovieToWatchlistPrompt from "@/components/SearchPrompt/AddMovieToWatchlistPrompt.vue";
+import AddMovieToWatchlistPrompt from "@/features/watch-list/components/AddMovieToWatchlistPrompt.vue";
 import {
   useAddMovie,
   useDeleteBacklogItem,

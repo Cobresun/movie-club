@@ -64,7 +64,7 @@
 <script setup lang="ts">
 import { ref, computed, nextTick } from "vue";
 import { useRoute } from "vue-router";
-import AddReviewPrompt from "@/components/SearchPrompt/AddReviewPrompt.vue";
+import AddReviewPrompt from "@/features/reviews/components/AddReviewPrompt.vue";
 import { Header } from "@/common/types/models";
 import { DateTime } from "luxon";
 import { useReview, useSubmitScore } from "@/data/useReview";

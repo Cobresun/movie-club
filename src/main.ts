@@ -10,7 +10,7 @@ import VBtn from "@/common/components/VBtn.vue";
 import VAvatar from "@/common/components/VAvatar.vue";
 import Loading from "@/common/components/LoadingSpinner.vue"
 import VTable from "@/common/components/VTable.vue";
-import MenuCard from "@/components/MenuCard.vue";
+import MenuCard from "@/features/clubs/components/MenuCard.vue";
 import VModal from "@/common/components/VModal.vue";
 import PageHeader from "@/common/components/PageHeader.vue";
 import LazyLoad from "./directives/LazyLoad";
