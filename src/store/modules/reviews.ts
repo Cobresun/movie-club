@@ -1,8 +1,8 @@
-import { ReviewResponse } from "@/common/types/models";
+import { DetailedReviewResponse } from "@/common/types/models";
 import { Module } from "vuex";
 
 interface State {
-  clubs: Record<string, ReviewResponse[]>;
+  clubs: Record<string, DetailedReviewResponse[]>;
 }
 
 export const reviewModule: Module<State, never> = {
@@ -14,11 +14,12 @@ export const reviewModule: Module<State, never> = {
     addClub(state: State, { clubId, reviews }) {
       state.clubs[clubId] = reviews;
     },
-    updateScore(state: State, { clubId, review }) {
-      const reviews = state.clubs[clubId];
-      state.clubs[clubId] = reviews.map((curReview) =>
-        curReview.movieId === review.movieId ? review : curReview
+    updateScore(state: State, { clubId, movieId, scores }) {
+      const review = state.clubs[clubId].find(
+        (movie) => movie.movieId === movieId
       );
+      if (!review) return;
+      review.scores = scores;
     },
     addReview(state: State, { clubId, review }) {
       state.clubs[clubId]?.unshift(review);

@@ -8,18 +8,11 @@ import { useStore } from "vuex";
 import { useAuthRequest, useRequestCache } from "./useRequest";
 
 export function useReview(clubId: string): CacheDataService<ReviewResponse[]> {
-  const store = useStore();
   const fetch = useRequestCache<DetailedReviewResponse[]>(
     `review-${clubId}`,
     `/api/club/${clubId}/reviews`
   );
-  watch(fetch.data, (newValue) => {
-    if (newValue) {
-      store.commit("reviews/addClub", { clubId, reviews: newValue });
-    }
-  });
-  const data = computed(() => store.getters["reviews/getClubReviews"](clubId));
-  return { ...fetch, data };
+  return { ...fetch };
 }
 
 export function useDetailedReview(
@@ -29,7 +22,14 @@ export function useDetailedReview(
     `review-d-${clubId}`,
     `/api/club/${clubId}/reviews?detailed=true`
   );
-  return { ...fetch };
+  const store = useStore();
+  watch(fetch.data, (newValue) => {
+    if (newValue) {
+      store.commit("reviews/addClub", { clubId, reviews: newValue });
+    }
+  });
+  const data = computed(() => store.getters["reviews/getClubReviews"](clubId));
+  return { ...fetch, data };
 }
 
 export function useSubmitScore(clubId: string) {
@@ -44,9 +44,11 @@ export function useSubmitScore(clubId: string) {
       method: "PUT",
     });
     if (request.data.value) {
+      const response = request.data.value;
       store.commit("reviews/updateScore", {
         clubId,
-        review: request.data.value,
+        movieId: response.movieId,
+        scores: response.scores,
       });
     }
   };
