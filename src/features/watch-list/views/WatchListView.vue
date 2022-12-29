@@ -18,13 +18,18 @@
           </v-btn>
         </div>
 
+        <input
+          v-model="searchTerm"
+          class="mb-4 p-2 text-base text-black outline-none rounded-md border-2 border-gray-300 focus:border-primary w-11/12 max-w-md"
+          placeholder="Search"
+        >
         <transition-group
           tag="div"
           move-class="transition ease-linear duration-300"
           class="grid grid-cols-auto my-4"
         >
           <MoviePosterCard
-            v-for="(movie, index) in sortedWatchList"
+            v-for="(movie, index) in filteredWatchList"
             :key="movie.movieId"
             :class="[index == 0 ? 'z-0' : 'z-10']"
             class="bg-background"
@@ -67,7 +72,7 @@
           class="grid grid-cols-auto my-4"
         >
           <MoviePosterCard
-            v-for="(movie, index) in backlog"
+            v-for="(movie, index) in filteredBacklog"
             :key="movie.movieId"
             :class="[index == 0 ? 'z-0' : 'z-10']"
             class="bg-background"
@@ -110,6 +115,7 @@ import {
   useWatchList,
 } from "@/service/useWatchList";
 import { useAddReview } from "@/service/useReview";
+import { filterWatchList } from "../searchWatchList"
 
 const router = useRouter();
 const route = useRoute();
@@ -118,6 +124,7 @@ const ROTATE_ITERATIONS = 6;
 const rotateReps = ref(ROTATE_ITERATIONS);
 const animate = ref(false);
 const animateInterval = ref<number | undefined>();
+const searchTerm = ref<string>("");
 
 const { loading, data } = useWatchList(route.params.clubId as string);
 const watchList = computed(() => (data.value ? data.value.watchList : []));
@@ -194,4 +201,12 @@ const moveBacklogItemToWatchlist = (id: number) => {
   deleteBacklogItem(id);
   addMovie(id);
 };
+
+const filteredWatchList = computed(() => {
+  return filterWatchList(sortedWatchList.value, searchTerm.value);
+});
+
+const filteredBacklog = computed(() => {
+  return filterWatchList(backlog.value, searchTerm.value);
+});
 </script>
