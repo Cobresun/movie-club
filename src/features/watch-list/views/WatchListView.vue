@@ -115,7 +115,6 @@ import {
   useWatchList,
 } from "@/service/useWatchList";
 import { useAddReview } from "@/service/useReview";
-import { filterWatchList } from "../searchWatchList"
 
 const router = useRouter();
 const route = useRoute();
@@ -159,8 +158,7 @@ const reviewMovie = async (movieId: number) => {
 const { makeNextWatch } = useMakeNextWatch(route.params.clubId as string);
 
 const selectRandom = () => {
-  let randomMovie =
-    watchList.value[Math.floor(Math.random() * watchList.value.length)];
+  const randomMovie = watchList.value[Math.floor(Math.random() * watchList.value.length)];
   makeNextWatch(randomMovie.movieId);
   rotateReps.value = ROTATE_ITERATIONS;
   animateInterval.value = window.setInterval(animateRotate, 300);
@@ -203,10 +201,14 @@ const moveBacklogItemToWatchlist = (id: number) => {
 };
 
 const filteredWatchList = computed(() => {
-  return filterWatchList(sortedWatchList.value, searchTerm.value);
+  return sortedWatchList.value.filter(review =>
+      review.movieTitle.toLowerCase().includes(searchTerm.value.toLowerCase())
+    );
 });
 
 const filteredBacklog = computed(() => {
-  return filterWatchList(backlog.value, searchTerm.value);
+  return backlog.value.filter(review =>
+      review.movieTitle.toLowerCase().includes(searchTerm.value.toLowerCase())
+    );
 });
 </script>

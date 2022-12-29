@@ -25,7 +25,6 @@
         </router-link>
       </div>
     </div>
-    <!--<v-btn>Club Settings <mdicon name="cog-outline" /></v-btn> -->
   </div>
 </template>
 

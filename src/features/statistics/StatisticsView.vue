@@ -39,15 +39,15 @@
       </div>
 
       <movie-table
+          v-if="reviews.length > 0"
           :headers="headers"
           :data="movieData"
-          v-if="reviews.length > 0"
       >
-        <template v-for="member in members" v-slot:[normName(member.name)]>
+        <template v-for="member in members" #[normName(member.name)]>
             <v-avatar :src="member.image" :name="member.name" />
         </template>
 
-        <template v-slot:[normName()]>
+        <template #[normName()]>
             <img src="@/assets/images/average.svg" class="w-16 h-12 max-w-none" />
         </template>
       </movie-table>
@@ -61,7 +61,7 @@ import { AgChartsVue } from 'ag-charts-vue3';
 import { useRoute } from "vue-router";
 import axios from "axios";
 import { DateTime } from "luxon";
-import { ReviewResponse, TMDBMovieData, Member, Header } from "@/common/types/models";
+import { ReviewResponse, Header } from "@/common/types/models";
 import { useReview } from "@/service/useReview";
 import { useMembers, useClub } from "@/service/useClub";
 import { normalizeArray, loadDefaultChartSettings} from "./StatisticsUtils";
@@ -297,7 +297,7 @@ const loadChartOptions = () => {
   });
 }
 
-const normName = (name: string = 'average') => {
+const normName = (name = 'average') => {
   return normalize.value ? name+"Norm" : name;
 }
 

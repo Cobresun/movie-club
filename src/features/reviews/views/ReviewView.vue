@@ -158,7 +158,7 @@ const openScoreInput = (movieId: number, user: string) => {
 const { submit } = useSubmitScore(route.params.clubId as string);
 
 const submitScore = (movieId: number, user: string) => {
-  let newScore = parseFloat(scoreInputValue.value);
+  const newScore = parseFloat(scoreInputValue.value);
 
   if (!isNaN(newScore) && newScore >= 0 && newScore <= 10) {
     submit(user, movieId, newScore);
@@ -170,5 +170,4 @@ const searchTerm = ref<string>("");
 const filteredReviews = computed(() => {
   return filterReviews(reviews.value, searchTerm.value);
 });
-
 </script>
