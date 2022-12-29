@@ -1,9 +1,8 @@
 import { Handler, HandlerEvent } from "@netlify/functions";
-import faunadb from "faunadb";
 import { badRequest, ok } from "./utils/responses";
+import { getFaunaClient } from "./utils/fauna";
 
-const faunaClient = new faunadb.Client({ secret: process.env.FAUNADB_SERVER_SECRET ?? "" })
-const q = faunadb.query
+const { faunaClient, q } = getFaunaClient();
 
 const handler: Handler = async function (event: HandlerEvent) {
   if (event.body == null) return badRequest();

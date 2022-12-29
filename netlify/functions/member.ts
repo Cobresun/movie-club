@@ -1,11 +1,10 @@
 import { Member } from "@/common/types/models"
 import { Handler, HandlerEvent } from "@netlify/functions"
-import faunadb from "faunadb"
+import { getFaunaClient } from "./utils/fauna"
 import { badRequest, ok } from "./utils/responses"
 import { QueryListResponse } from "./utils/types"
 
-const faunaClient = new faunadb.Client({ secret: process.env.FAUNADB_SERVER_SECRET ?? "" })
-const q = faunadb.query
+const { faunaClient, q } = getFaunaClient();
 
 /**
  * 

@@ -4,7 +4,6 @@ import {
   HandlerEvent,
   HandlerResponse,
 } from "@netlify/functions";
-import faunadb from "faunadb";
 import { Club, ClubsViewClub, WatchListItem } from "../../../src/common/types/models";
 import axios from "axios";
 import { Path } from "path-parser";
@@ -24,11 +23,9 @@ import {
   handler as watchListHandler,
 } from "./watchList";
 import { QueryResponse } from "../utils/types";
+import { getFaunaClient } from "../utils/fauna";
 
-const faunaClient = new faunadb.Client({
-  secret: process.env.FAUNADB_SERVER_SECRET ?? "",
-});
-const q = faunadb.query;
+const { faunaClient, q } = getFaunaClient();
 
 const tmdbApiKey = process.env.TMDB_API_KEY;
 

@@ -1,14 +1,14 @@
 import { Member } from "@/common/types/models";
 import { HandlerContext } from "@netlify/functions";
-import faunadb from "faunadb";
+import { getFaunaClient } from "./fauna";
 
 interface MembersResponse {
   members: Member[];
 }
 
 export async function isAuthorized(clubId: number, context: HandlerContext): Promise<boolean> {
-  const faunaClient = new faunadb.Client({ secret: process.env.FAUNADB_SERVER_SECRET ?? "" })
-  const q = faunadb.query
+  const { faunaClient, q } = getFaunaClient();
+
   if (!context.clientContext || !context.clientContext.user) return false;
   
   const members = await faunaClient.query<MembersResponse>(
