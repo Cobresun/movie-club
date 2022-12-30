@@ -79,7 +79,6 @@ const { loading: loadingMembers, data: members } = useMembers(
 
 const clubName = ref("Club");
 const normButtonText = ref("Normalize Scores");
-console.log(route);
 
 const loadingCalculations = ref(true);
 
@@ -122,12 +121,9 @@ const setReviews = (isLoading: boolean) => {
   if (isLoading) return;
   fetchMovieData(reviews.value).then(response => {
       movieData.value = response; 
-      console.log(response);
       calculateStatistics();
     }
   );
-  //movieData.value = movieMockData; //reduce api calls for development
-  //calculateStatistics();
 }
 
 const setClub = (isLoading: boolean) => {
