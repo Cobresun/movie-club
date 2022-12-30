@@ -37,6 +37,7 @@
     "autoprefixer": "^10.4.7",
     "eslint": "^8.15.0",
     "eslint-config-prettier": "^8.5.0",
+    "eslint-plugin-import": "^2.26.0",
     "eslint-plugin-vue": "^9.8.0",
     "postcss": "^8.4.20",
     "tailwindcss": "^3.2.4",
@@ -67,8 +68,21 @@
         "jsx": false
       }
     },
+    "plugins": ["import"],
     "rules": {
-      "vue/no-setup-props-destructure": "off"
+      "vue/no-setup-props-destructure": "off",
+      "import/order": ["error", {
+        "newlines-between": "always",
+        "groups": [
+            ["builtin", "external"],
+            ["internal", "parent", "sibling", "index"]
+        ],
+        "alphabetize": {
+            "order": "asc",
+            "caseInsensitive": true
+        }
+    }],
+    "import/newline-after-import": "error"
     }
   },
   "browserslist": [

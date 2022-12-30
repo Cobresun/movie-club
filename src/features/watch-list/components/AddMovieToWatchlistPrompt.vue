@@ -15,7 +15,9 @@
 <script setup lang="ts">
 import { computed, defineEmits } from "vue";
 import { useRoute } from "vue-router";
+
 import MovieSearchPrompt from "../../../common/components/MovieSearchPrompt.vue";
+
 import { MovieSearchIndex, WatchListItem } from "@/common/types/models";
 import { useTrending } from "@/service/useTMDB";
 import { useAddBacklogItem } from "@/service/useWatchList";

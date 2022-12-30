@@ -1,19 +1,20 @@
+import * as mdijs from "@mdi/js";
+import mdiVue from "mdi-vue/v3";
 import { createApp } from "vue";
-import App from "@/App.vue";
+
+import LazyLoad from "./directives/LazyLoad";
 import router from "./router";
 import store from "./store";
 
-import mdiVue from "mdi-vue/v3";
-import * as mdijs from "@mdi/js";
-
-import VBtn from "@/common/components/VBtn.vue";
-import VAvatar from "@/common/components/VAvatar.vue";
+import App from "@/App.vue";
 import Loading from "@/common/components/LoadingSpinner.vue"
+import PageHeader from "@/common/components/PageHeader.vue";
+import VAvatar from "@/common/components/VAvatar.vue";
+import VBtn from "@/common/components/VBtn.vue";
+import VModal from "@/common/components/VModal.vue";
 import VTable from "@/common/components/VTable.vue";
 import MenuCard from "@/features/clubs/components/MenuCard.vue";
-import VModal from "@/common/components/VModal.vue";
-import PageHeader from "@/common/components/PageHeader.vue";
-import LazyLoad from "./directives/LazyLoad";
+
 import './assets/styles/tailwind.css'
 import 'animate.css';
 

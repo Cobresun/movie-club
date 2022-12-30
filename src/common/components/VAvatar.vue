@@ -23,8 +23,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
 import randomColor from 'randomcolor';
+import { computed } from 'vue';
 
 interface Props {
   src?: string;

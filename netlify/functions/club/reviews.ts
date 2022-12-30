@@ -1,12 +1,14 @@
-import { DetailedReviewResponse, Club } from "@/common/types/models";
 import { HandlerEvent, HandlerContext, HandlerResponse } from "@netlify/functions";
-import { badRequest, ok } from "../utils/responses";
-import { isAuthorized } from "../utils/auth";
-import { unauthorized, methodNotAllowed } from "../utils/responses";
-import { StringRecord, QueryResponse, ReviewResponseResponse, ReviewDatabaseObject } from "../utils/types";
-import { getFaunaClient } from "../utils/fauna";
 import { Path } from "path-parser";
+
+import { isAuthorized } from "../utils/auth";
+import { getFaunaClient } from "../utils/fauna";
+import { badRequest, ok } from "../utils/responses";
+import { unauthorized, methodNotAllowed } from "../utils/responses";
 import { getDetailedReviewData, getReviewData } from "../utils/tmdb";
+import { StringRecord, QueryResponse, ReviewResponseResponse, ReviewDatabaseObject } from "../utils/types";
+
+import { DetailedReviewResponse, Club } from "@/common/types/models";
 
 export const path = new Path<StringRecord>("/api/club/:clubId<\\d+>/reviews");
 const modifyPath = new Path<StringRecord>(

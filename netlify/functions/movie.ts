@@ -1,9 +1,10 @@
 import { HandlerEvent, HandlerResponse } from "@netlify/functions";
 import { Path } from "path-parser";
+
 import { ok } from "./utils/responses";
 import { methodNotAllowed } from "./utils/responses";
-import { StringRecord } from "./utils/types";
 import { getTMDBConfig, getTMDBMovieData } from "./utils/tmdb";
+import { StringRecord } from "./utils/types";
 
 export const path = new Path<StringRecord>("/api/movie/:movieId<\\d+>");
 

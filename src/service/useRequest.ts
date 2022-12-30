@@ -1,7 +1,8 @@
-import { DataService, FetchConfig } from "@/common/types/models";
 import axios, { AxiosError, AxiosResponse } from "axios";
 import { computed, reactive, ref } from "vue";
 import { useStore } from "vuex";
+
+import { DataService, FetchConfig } from "@/common/types/models";
 
 export const useRequest = <T>(
   urlInp?: string,

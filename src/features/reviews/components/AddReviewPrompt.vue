@@ -14,11 +14,13 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { MovieSearchIndex } from "@/common/types/models";
-import MovieSearchPrompt from "../../../common/components/MovieSearchPrompt.vue";
 import { useRoute } from "vue-router";
-import { useDeleteMovie, useWatchList } from "@/service/useWatchList";
+
+import MovieSearchPrompt from "../../../common/components/MovieSearchPrompt.vue";
+
+import { MovieSearchIndex } from "@/common/types/models";
 import { useAddReview } from "@/service/useReview";
+import { useDeleteMovie, useWatchList } from "@/service/useWatchList";
 
 const emit = defineEmits<{
   (e: "close"): void;

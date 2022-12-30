@@ -1,6 +1,7 @@
-import { clearCache } from "@/service/useRequest";
 import netlifyIdentity, { User } from "netlify-identity-widget";
 import { ActionContext, Module } from "vuex";
+
+import { clearCache } from "@/service/useRequest";
 
 interface State {
   user?: User;

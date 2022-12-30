@@ -59,6 +59,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
+
 import { MovieSearchIndex } from "@/common/types/models";
 import { useSearch } from "@/service/useTMDB";
 

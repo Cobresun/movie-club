@@ -67,14 +67,17 @@
 </template>
 
 <script setup lang="ts">
+import { DateTime } from "luxon";
 import { ref, computed, nextTick } from "vue";
 import { useRoute } from "vue-router";
-import AddReviewPrompt from "@/features/reviews/components/AddReviewPrompt.vue";
-import { Header } from "@/common/types/models";
-import { DateTime } from "luxon";
-import { useDetailedReview, useSubmitScore } from "@/service/useReview";
-import { useMembers } from "@/service/useClub";
+
 import { filterReviews } from "../searchReviews";
+
+import { Header } from "@/common/types/models";
+import AddReviewPrompt from "@/features/reviews/components/AddReviewPrompt.vue";
+import { useMembers } from "@/service/useClub";
+import { useDetailedReview, useSubmitScore } from "@/service/useReview";
+
 
 const route = useRoute();
 

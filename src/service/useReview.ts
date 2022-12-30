@@ -1,11 +1,13 @@
+import { computed, watch } from "vue";
+import { useStore } from "vuex";
+
+import { useAuthRequest, useRequestCache } from "./useRequest";
+
 import {
   CacheDataService,
   DetailedReviewResponse,
   ReviewResponse,
 } from "@/common/types/models";
-import { computed, watch } from "vue";
-import { useStore } from "vuex";
-import { useAuthRequest, useRequestCache } from "./useRequest";
 
 export function useReview(clubId: string): CacheDataService<ReviewResponse[]> {
   const fetch = useRequestCache<DetailedReviewResponse[]>(

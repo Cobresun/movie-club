@@ -1,5 +1,6 @@
-import { DetailedReviewResponse } from "@/common/types/models";
 import { Module } from "vuex";
+
+import { DetailedReviewResponse } from "@/common/types/models";
 
 interface State {
   clubs: Record<string, DetailedReviewResponse[]>;

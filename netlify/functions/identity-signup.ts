@@ -1,6 +1,7 @@
 import { Handler, HandlerEvent } from "@netlify/functions";
-import { badRequest, ok } from "./utils/responses";
+
 import { getFaunaClient } from "./utils/fauna";
+import { badRequest, ok } from "./utils/responses";
 
 const { faunaClient, q } = getFaunaClient();
 

@@ -1,7 +1,9 @@
-import { CacheDataService, Member } from "@/common/types/models";
 import { computed, watch } from "vue";
 import { useStore } from "vuex";
+
 import { useRequestCache } from "./useRequest";
+
+import { CacheDataService, Member } from "@/common/types/models";
 
 export function useUser(): CacheDataService<Member> {
   const store = useStore();

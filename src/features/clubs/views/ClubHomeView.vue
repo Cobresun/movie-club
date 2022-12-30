@@ -30,6 +30,6 @@
 
 <script setup lang="ts">
 import reviewSvg from "@/assets/images/menu-images/review.svg";
-import watchlistSvg from "@/assets/images/menu-images/watchlist.svg";
 import statisticsSvg from "@/assets/images/menu-images/statistics.svg";
+import watchlistSvg from "@/assets/images/menu-images/watchlist.svg";
 </script>

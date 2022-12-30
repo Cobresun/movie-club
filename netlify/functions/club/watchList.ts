@@ -1,11 +1,13 @@
-import { Club, WatchListViewModel } from "@/common/types/models";
 import { HandlerContext, HandlerEvent, HandlerResponse } from "@netlify/functions";
 import { Path } from "path-parser";
+
 import { isAuthorized } from "../utils/auth";
 import { getFaunaClient } from "../utils/fauna";
 import { methodNotAllowed, ok, unauthorized } from "../utils/responses";
 import { getWatchlistItemMovieData } from "../utils/tmdb";
 import { StringRecord, QueryResponse } from "../utils/types";
+
+import { Club, WatchListViewModel } from "@/common/types/models";
 
 export const path = new Path<StringRecord>("/api/club/:clubId<\\d+>/watchList");
 const modifyPath = new Path<StringRecord>(

@@ -1,8 +1,10 @@
-import { Member } from "@/common/types/models"
 import { Handler, HandlerEvent } from "@netlify/functions"
+
 import { getFaunaClient } from "./utils/fauna"
 import { badRequest, ok } from "./utils/responses"
 import { QueryListResponse } from "./utils/types"
+
+import { Member } from "@/common/types/models"
 
 const { faunaClient, q } = getFaunaClient();
 

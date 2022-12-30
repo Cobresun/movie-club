@@ -24,8 +24,9 @@
 </template>
 
 <script setup lang="ts">
-  import { Member, ReviewResponse } from '@/common/types/models'
   import MoviePosterCard from "../../../common/components/MoviePosterCard.vue"
+
+  import { Member, ReviewResponse } from '@/common/types/models'
 
   const { review, members, movieTitle, moviePosterUrl } = defineProps<{
     review: ReviewResponse,

@@ -56,15 +56,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from "vue";
 import { AgChartsVue } from 'ag-charts-vue3';
-import { useRoute } from "vue-router";
 import axios from "axios";
 import { DateTime } from "luxon";
-import { ReviewResponse, Header } from "@/common/types/models";
-import { useReview } from "@/service/useReview";
-import { useMembers, useClub } from "@/service/useClub";
+import { ref, computed, watch } from "vue";
+import { useRoute } from "vue-router";
+
 import { normalizeArray, loadDefaultChartSettings} from "./StatisticsUtils";
+
+import { ReviewResponse, Header } from "@/common/types/models";
+import { useMembers, useClub } from "@/service/useClub";
+import { useReview } from "@/service/useReview";
 
 const route = useRoute();
 const { loading: loadingClub, data: club } = useClub(route.params.clubId as string);

@@ -24,6 +24,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useStore } from 'vuex';
+
 import NavBar from '@/common/components/NavBar.vue'
 
 const store = useStore();

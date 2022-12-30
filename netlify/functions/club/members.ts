@@ -1,9 +1,11 @@
-import { Member } from "@/common/types/models";
 import { HandlerEvent, HandlerContext, HandlerResponse } from "@netlify/functions";
 import { Path } from "path-parser";
+
 import { getFaunaClient } from "../utils/fauna";
 import { methodNotAllowed, ok } from "../utils/responses";
 import { StringRecord } from "../utils/types";
+
+import { Member } from "@/common/types/models";
 
 export const path = new Path<StringRecord>('/api/club/:clubId<\\d+>/members');
 

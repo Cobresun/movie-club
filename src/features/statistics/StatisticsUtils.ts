@@ -1,6 +1,6 @@
 export const normalizeArray = (array: number[]) => {
-  var sum: number = 0;
-  var count: number = 0;
+  let sum = 0;
+  let count = 0;
 
   for (let i = 0; i < array.length; i++) {
     if (array[i] === undefined)

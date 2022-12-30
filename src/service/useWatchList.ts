@@ -1,7 +1,9 @@
-import { CacheDataService, WatchListViewModel } from "@/common/types/models";
 import { computed, watch } from "vue";
 import { useStore } from "vuex";
+
 import { useAuthRequest, useRequestCache } from "./useRequest";
+
+import { CacheDataService, WatchListViewModel } from "@/common/types/models";
 
 export function useWatchList(
   clubId: string

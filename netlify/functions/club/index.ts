@@ -4,8 +4,11 @@ import {
   HandlerEvent,
   HandlerResponse,
 } from "@netlify/functions";
-import { Club, ClubsViewClub } from "../../../src/common/types/models";
 import { Path } from "path-parser";
+
+import { Club, ClubsViewClub } from "../../../src/common/types/models";
+import { isAuthorized } from "../utils/auth";
+import { getFaunaClient } from "../utils/fauna";
 import {
   ok,
   methodNotAllowed,
@@ -13,17 +16,14 @@ import {
   unauthorized,
   badRequest,
 } from "../utils/responses";
-import { isAuthorized } from "../utils/auth";
-
-import { path as reviewsPath, handler as reviewsHandler } from "./reviews";
+import { getWatchlistItemMovieData } from "../utils/tmdb";
+import { QueryResponse } from "../utils/types";
 import { path as membersPath, handler as membersHandler } from "./members";
+import { path as reviewsPath, handler as reviewsHandler } from "./reviews";
 import {
   path as watchListPath,
   handler as watchListHandler,
 } from "./watchList";
-import { QueryResponse } from "../utils/types";
-import { getFaunaClient } from "../utils/fauna";
-import { getWatchlistItemMovieData } from "../utils/tmdb";
 
 const { faunaClient, q } = getFaunaClient();
 

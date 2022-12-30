@@ -1,7 +1,9 @@
-import { DataService, TMDBPageResponse } from "@/common/types/models";
 import axios, { CancelTokenSource } from "axios";
 import { computed, ref } from "vue";
+
 import { useRequest, useRequestCache } from "./useRequest";
+
+import { DataService, TMDBPageResponse } from "@/common/types/models";
 
 const key = import.meta.env.VITE_TMDB_API_KEY;
 

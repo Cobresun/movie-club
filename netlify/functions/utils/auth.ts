@@ -1,6 +1,8 @@
-import { Member } from "@/common/types/models";
 import { HandlerContext } from "@netlify/functions";
+
 import { getFaunaClient } from "./fauna";
+
+import { Member } from "@/common/types/models";
 
 interface MembersResponse {
   members: Member[];

@@ -39,11 +39,14 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useRoute } from 'vue-router';
-import ReviewCard from '@/features/reviews/components/ReviewCard.vue'
-import LoadingSpinner from '@/common/components/LoadingSpinner.vue';
-import { useDetailedReview } from '@/service/useReview';
-import { useMembers } from '@/service/useClub';
+
 import { filterReviews } from '../searchReviews';
+
+import LoadingSpinner from '@/common/components/LoadingSpinner.vue';
+import ReviewCard from '@/features/reviews/components/ReviewCard.vue'
+import { useMembers } from '@/service/useClub';
+import { useDetailedReview } from '@/service/useReview';
+
 
 const route = useRoute();
 

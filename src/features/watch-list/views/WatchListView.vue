@@ -104,9 +104,11 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { useRouter, useRoute } from "vue-router";
+
 import MoviePosterCard from "@/common/components/MoviePosterCard.vue";
 import { WatchListItem } from "@/common/types/models";
 import AddMovieToWatchlistPrompt from "@/features/watch-list/components/AddMovieToWatchlistPrompt.vue";
+import { useAddReview } from "@/service/useReview";
 import {
   useAddMovie,
   useDeleteBacklogItem,
@@ -114,7 +116,6 @@ import {
   useMakeNextWatch,
   useWatchList,
 } from "@/service/useWatchList";
-import { useAddReview } from "@/service/useReview";
 
 const router = useRouter();
 const route = useRoute();

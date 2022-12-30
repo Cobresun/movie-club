@@ -1,6 +1,8 @@
-import { DetailedReviewResponse, ReviewResponse, WatchListItem } from "@/common/types/models";
 import axios from "axios";
+
 import { ReviewDatabaseObject } from "./types";
+
+import { DetailedReviewResponse, ReviewResponse, WatchListItem } from "@/common/types/models";
 
 async function makeTMDBApiCall(path: string): Promise<any> {
     const tmdbApiKey = process.env.TMDB_API_KEY

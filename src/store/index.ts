@@ -1,4 +1,5 @@
 import { createStore } from "vuex";
+
 import { authModule } from "./modules/auth";
 import { reviewModule } from "./modules/reviews";
 import { watchListModule } from "./modules/watchList";

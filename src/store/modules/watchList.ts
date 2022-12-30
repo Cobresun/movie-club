@@ -1,5 +1,6 @@
-import { WatchListViewModel } from "@/common/types/models";
 import { Module } from "vuex";
+
+import { WatchListViewModel } from "@/common/types/models";
 
 interface State {
   clubs: Record<string, WatchListViewModel>;
