@@ -1,23 +1,16 @@
-import { Club, WatchListItem, WatchListViewModel } from "@/common/types/models";
-import {
-  HandlerContext,
-  HandlerEvent,
-  HandlerResponse,
-} from "@netlify/functions";
-import axios from "axios";
+import { Club, WatchListViewModel } from "@/common/types/models";
+import { HandlerContext, HandlerEvent, HandlerResponse } from "@netlify/functions";
 import { Path } from "path-parser";
 import { isAuthorized } from "../utils/auth";
 import { getFaunaClient } from "../utils/fauna";
 import { methodNotAllowed, ok, unauthorized } from "../utils/responses";
-import { getTMDBConfig } from "../utils/tmdb";
+import { getWatchlistItemMovieData } from "../utils/tmdb";
 import { StringRecord, QueryResponse } from "../utils/types";
 
 export const path = new Path<StringRecord>("/api/club/:clubId<\\d+>/watchList");
 const modifyPath = new Path<StringRecord>(
   "/api/club/:clubId<\\d+>/watchList/:movieId<\\d+>"
 );
-
-const tmdbApiKey = process.env.TMDB_API_KEY;
 
 export async function handler(
   event: HandlerEvent,
@@ -54,10 +47,8 @@ async function getWatchList(clubId: number): Promise<HandlerResponse> {
     q.Call(q.Function("GetWatchList"), clubId)
   );
 
-  watchListViewModel.watchList = await getMovieData(
-    watchListViewModel.watchList
-  );
-  watchListViewModel.backlog = await getMovieData(watchListViewModel.backlog);
+  watchListViewModel.watchList = await getWatchlistItemMovieData(watchListViewModel.watchList);
+  watchListViewModel.backlog = await getWatchlistItemMovieData(watchListViewModel.backlog);
 
   return ok(JSON.stringify(watchListViewModel));
 }
@@ -76,9 +67,7 @@ async function postWatchList(
     )
   ).data;
 
-  const movie = (
-    await getMovieData([club.watchList[club.watchList.length - 1]])
-  )[0];
+  const movie = (await getWatchlistItemMovieData([club.watchList[club.watchList.length - 1]]))[0];
 
   return ok(JSON.stringify(movie));
 }
@@ -96,28 +85,4 @@ async function deleteWatchList(
   );
 
   return ok();
-}
-
-async function getMovieData(watchList: WatchListItem[]) {
-  const configuration = await getTMDBConfig()
-
-  const promises = [];
-  for (const movie of watchList) {
-    const promise = axios
-      .get(
-        `https://api.themoviedb.org/3/movie/${movie.movieId}?api_key=${tmdbApiKey}`
-      )
-      .then((response) => {
-        movie.movieTitle = response.data.title;
-        movie.releaseDate = response.data.release_date;
-        movie.poster_url =
-          configuration.data.images.base_url +
-          "w500" +
-          response.data.poster_path;
-      });
-    promises.push(promise);
-  }
-
-  await Promise.all(promises);
-  return watchList;
 }

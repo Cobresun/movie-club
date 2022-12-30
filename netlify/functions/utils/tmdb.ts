@@ -1,4 +1,4 @@
-import { DetailedReviewResponse, ReviewResponse } from "@/common/types/models";
+import { DetailedReviewResponse, ReviewResponse, WatchListItem } from "@/common/types/models";
 import axios from "axios";
 import { ReviewDatabaseObject } from "./types";
 
@@ -51,4 +51,28 @@ export async function getDetailedReviewData(reviews: DetailedReviewResponse[]) {
 
     await Promise.all(promises);
     return reviews;
+}
+
+export async function getWatchlistItemMovieData(watchList: WatchListItem[]) {
+    const configuration = await getTMDBConfig()
+
+    const promises = [];
+    for (const movie of watchList) {
+        const promise = axios
+        .get(
+            `https://api.themoviedb.org/3/movie/${movie.movieId}?api_key=${tmdbApiKey}`
+        )
+        .then((response) => {
+            movie.movieTitle = response.data.title;
+            movie.releaseDate = response.data.release_date;
+            movie.poster_url =
+            configuration.data.images.base_url +
+            "w500" +
+            response.data.poster_path;
+        });
+        promises.push(promise);
+    }
+
+    await Promise.all(promises);
+    return watchList;
 }
