@@ -1,39 +1,17 @@
-import {
-  ReviewResponse,
-  DetailedReviewResponse,
-  Club,
-  DateObject,
-} from "@/common/types/models";
-import {
-  HandlerEvent,
-  HandlerContext,
-  HandlerResponse,
-} from "@netlify/functions";
+import { DetailedReviewResponse, Club } from "@/common/types/models";
+import { HandlerEvent, HandlerContext, HandlerResponse } from "@netlify/functions";
 import { badRequest, ok } from "../utils/responses";
 import { isAuthorized } from "../utils/auth";
 import { unauthorized, methodNotAllowed } from "../utils/responses";
-import { StringRecord, QueryResponse } from "../utils/types";
+import { StringRecord, QueryResponse, ReviewResponseResponse, ReviewDatabaseObject } from "../utils/types";
 import { getFaunaClient } from "../utils/fauna";
-import axios from "axios";
 import { Path } from "path-parser";
-import { getTMDBConfig } from "../utils/tmdb";
+import { getDetailedReviewData, getReviewData } from "../utils/tmdb";
 
 export const path = new Path<StringRecord>("/api/club/:clubId<\\d+>/reviews");
 const modifyPath = new Path<StringRecord>(
   "/api/club/:clubId<\\d+>/reviews/:movieId<\\d+>"
 );
-
-const tmdbApiKey = process.env.TMDB_API_KEY;
-// TODO: Don't really want this to exist, update Fauna function
-export interface ReviewResponseResponse {
-  reviews: ReviewDatabaseObject[];
-}
-
-interface ReviewDatabaseObject {
-  movieId: number;
-  timeWatched: DateObject;
-  scores: Record<string, number>;
-}
 
 export async function handler(
   event: HandlerEvent,
@@ -83,7 +61,7 @@ async function getReviews(
   );
 
   if (detailed) {
-    const detailedReviews = await getDetailedMovieData(
+    const detailedReviews = await getDetailedReviewData(
       reviews.reviews as DetailedReviewResponse[]
     );
     return ok(JSON.stringify(detailedReviews));
@@ -146,43 +124,4 @@ async function updateReviewScore(
   await faunaClient.query(q.Call(q.Function("AddReview"), clubId, review));
 
   return ok(JSON.stringify((await getReviewData([review]))[0]));
-}
-
-async function getReviewData(reviews: ReviewDatabaseObject[]) {
-  const promises: Promise<ReviewResponse>[] = [];
-  for (const movie of reviews) {
-    const promise = axios
-      .get(
-        `https://api.themoviedb.org/3/movie/${movie.movieId}?api_key=${tmdbApiKey}`
-      )
-      .then((response) => ({
-        ...movie,
-        movieTitle: response.data.title,
-      }));
-    promises.push(promise);
-  }
-
-  return await Promise.all(promises);
-}
-
-async function getDetailedMovieData(reviews: DetailedReviewResponse[]) {
-  const promises = [];
-
-  const configuration = await getTMDBConfig()
-
-  for (const movie of reviews) {
-    const promise = axios
-      .get(
-        `https://api.themoviedb.org/3/movie/${movie.movieId}?api_key=${tmdbApiKey}`
-      )
-      .then((response) => {
-        movie.movieTitle = response.data.title;
-        movie.movieData = response.data;
-        movie.movieData.poster_url = `${configuration.data.images.secure_base_url}w154${response.data.poster_path}`;
-      });
-    promises.push(promise);
-  }
-
-  await Promise.all(promises);
-  return reviews;
 }

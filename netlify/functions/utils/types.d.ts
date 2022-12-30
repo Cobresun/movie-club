@@ -16,3 +16,13 @@ export type PageResponse<T> = {
 }
 
 export type StringRecord = Record<string, string>;
+
+export interface ReviewResponseResponse {
+    reviews: ReviewDatabaseObject[];
+}
+  
+export interface ReviewDatabaseObject {
+    movieId: number;
+    timeWatched: DateObject;
+    scores: Record<string, number>;
+}
