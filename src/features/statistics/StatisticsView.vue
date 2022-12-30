@@ -17,10 +17,10 @@
       <br/>
 
       <select v-model="selectedChartBase" class="mb-2 mr-4 font-bold text-base text-text tracking-wide bg-primary text-center cursor-pointer rounded-md duration-150 filter hover:brightness-110 active:brightness-105">
-        <option v-for="member in headers" :value="member.value">{{member.value}}</option>
+        <option v-for="member in headers" :key="member.title" :value="member.value">{{member.value}}</option>
       </select>
       <select v-model="selectedChartMeasure" class="mb-2 mr-4 font-bold text-base text-text tracking-wide bg-primary text-center cursor-pointer rounded-md duration-150 filter hover:brightness-110 active:brightness-105">
-        <option v-for="key in Object.keys(movieData[0])" :value="key">{{key}}</option>
+        <option v-for="key in Object.keys(movieData[0])" :key="key" :value="key">{{key}}</option>
       </select>
       <br/>
       <ag-charts-vue :options="customChartOptions"></ag-charts-vue>
@@ -43,7 +43,7 @@
           :headers="headers"
           :data="movieData"
       >
-        <template v-for="member in members" #[normName(member.name)]>
+        <template v-for="member in members" #[normName(member.name)] :key="member.name">
             <v-avatar :src="member.image" :name="member.name" />
         </template>
 

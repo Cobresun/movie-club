@@ -35,7 +35,7 @@
     "@vitejs/plugin-vue": "^2.3.2",
     "@vue/eslint-config-typescript": "^11.0.2",
     "autoprefixer": "^10.4.7",
-    "eslint": "^8.15.0",
+    "eslint": "^8.30.0",
     "eslint-config-prettier": "^8.5.0",
     "eslint-plugin-import": "^2.26.0",
     "eslint-plugin-vue": "^9.8.0",
@@ -68,21 +68,34 @@
         "jsx": false
       }
     },
-    "plugins": ["import"],
+    "plugins": [
+      "import"
+    ],
     "rules": {
       "vue/no-setup-props-destructure": "off",
-      "import/order": ["error", {
-        "newlines-between": "always",
-        "groups": [
-            ["builtin", "external"],
-            ["internal", "parent", "sibling", "index"]
-        ],
-        "alphabetize": {
+      "import/order": [
+        "error",
+        {
+          "newlines-between": "always",
+          "groups": [
+            [
+              "builtin",
+              "external"
+            ],
+            [
+              "internal",
+              "parent",
+              "sibling",
+              "index"
+            ]
+          ],
+          "alphabetize": {
             "order": "asc",
             "caseInsensitive": true
+          }
         }
-    }],
-    "import/newline-after-import": "error"
+      ],
+      "import/newline-after-import": "error"
     }
   },
   "browserslist": [
