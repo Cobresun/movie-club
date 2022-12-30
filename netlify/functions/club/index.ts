@@ -4,8 +4,7 @@ import {
   HandlerEvent,
   HandlerResponse,
 } from "@netlify/functions";
-import { Club, ClubsViewClub, WatchListItem } from "../../../src/common/types/models";
-import axios from "axios";
+import { Club, ClubsViewClub } from "../../../src/common/types/models";
 import { Path } from "path-parser";
 import {
   ok,
@@ -24,11 +23,9 @@ import {
 } from "./watchList";
 import { QueryResponse } from "../utils/types";
 import { getFaunaClient } from "../utils/fauna";
-import { getTMDBConfig } from "../utils/tmdb";
+import { getWatchlistItemMovieData } from "../utils/tmdb";
 
 const { faunaClient, q } = getFaunaClient();
-
-const tmdbApiKey = process.env.TMDB_API_KEY;
 
 type StringRecord = Record<string, string>;
 
@@ -176,9 +173,7 @@ async function addMovieToBacklog(clubId: number, movieId: number) {
     )
   ).data;
 
-  const movie = (
-    await getMovieData([club.backlog[club.backlog.length - 1]])
-  )[0];
+  const movie = (await getWatchlistItemMovieData([club.backlog[club.backlog.length - 1]]))[0];
 
   return ok(JSON.stringify(movie));
 }
@@ -194,27 +189,3 @@ async function deleteMovieFromBacklog(clubId: number, movieId: number) {
 }
 
 export { handler };
-
-async function getMovieData(watchList: WatchListItem[]) {
-  const configuration = await getTMDBConfig()
-
-  const promises = [];
-  for (const movie of watchList) {
-    const promise = axios
-      .get(
-        `https://api.themoviedb.org/3/movie/${movie.movieId}?api_key=${tmdbApiKey}`
-      )
-      .then((response) => {
-        movie.movieTitle = response.data.title;
-        movie.releaseDate = response.data.release_date;
-        movie.poster_url =
-          configuration.data.images.base_url +
-          "w500" +
-          response.data.poster_path;
-      });
-    promises.push(promise);
-  }
-
-  await Promise.all(promises);
-  return watchList;
-}

@@ -4,6 +4,7 @@ import { ReviewDatabaseObject } from "./types";
 
 const tmdbApiKey = process.env.TMDB_API_KEY
 
+// TODO: don't export this, get rid of any external usages
 export async function getTMDBConfig() {
     return axios
         .get(`https://api.themoviedb.org/3/configuration?api_key=${tmdbApiKey}`)
