@@ -16,6 +16,7 @@ import { StringRecord, QueryResponse } from "../utils/types";
 import { getFaunaClient } from "../utils/fauna";
 import axios from "axios";
 import { Path } from "path-parser";
+import { getTMDBConfig } from "../utils/tmdb";
 
 export const path = new Path<StringRecord>("/api/club/:clubId<\\d+>/reviews");
 const modifyPath = new Path<StringRecord>(
@@ -167,9 +168,7 @@ async function getReviewData(reviews: ReviewDatabaseObject[]) {
 async function getDetailedMovieData(reviews: DetailedReviewResponse[]) {
   const promises = [];
 
-  const configuration = await axios.get(
-    `https://api.themoviedb.org/3/configuration?api_key=${tmdbApiKey}`
-  );
+  const configuration = await getTMDBConfig()
 
   for (const movie of reviews) {
     const promise = axios

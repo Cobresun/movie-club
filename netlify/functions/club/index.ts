@@ -24,6 +24,7 @@ import {
 } from "./watchList";
 import { QueryResponse } from "../utils/types";
 import { getFaunaClient } from "../utils/fauna";
+import { getTMDBConfig } from "../utils/tmdb";
 
 const { faunaClient, q } = getFaunaClient();
 
@@ -195,9 +196,7 @@ async function deleteMovieFromBacklog(clubId: number, movieId: number) {
 export { handler };
 
 async function getMovieData(watchList: WatchListItem[]) {
-  const configuration = await axios.get(
-    `https://api.themoviedb.org/3/configuration?api_key=${tmdbApiKey}`
-  );
+  const configuration = await getTMDBConfig()
 
   const promises = [];
   for (const movie of watchList) {

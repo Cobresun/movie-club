@@ -9,6 +9,7 @@ import { Path } from "path-parser";
 import { isAuthorized } from "../utils/auth";
 import { getFaunaClient } from "../utils/fauna";
 import { methodNotAllowed, ok, unauthorized } from "../utils/responses";
+import { getTMDBConfig } from "../utils/tmdb";
 import { StringRecord, QueryResponse } from "../utils/types";
 
 export const path = new Path<StringRecord>("/api/club/:clubId<\\d+>/watchList");
@@ -98,9 +99,7 @@ async function deleteWatchList(
 }
 
 async function getMovieData(watchList: WatchListItem[]) {
-  const configuration = await axios.get(
-    `https://api.themoviedb.org/3/configuration?api_key=${tmdbApiKey}`
-  );
+  const configuration = await getTMDBConfig()
 
   const promises = [];
   for (const movie of watchList) {
