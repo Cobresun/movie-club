@@ -1,10 +1,10 @@
 import * as mdijs from "@mdi/js";
 import mdiVue from "mdi-vue/v3";
+import { createPinia } from 'pinia'
 import { createApp } from "vue";
 
 import LazyLoad from "./directives/LazyLoad";
 import router from "./router";
-import store from "./store";
 
 import App from "@/App.vue";
 import Loading from "@/common/components/LoadingSpinner.vue"
@@ -30,6 +30,6 @@ createApp(App)
   .use(mdiVue, {
     icons: mdijs
   })
-  .use(store)
+  .use(createPinia())
   .use(router)
   .mount('#app');

@@ -1,50 +1,29 @@
 import netlifyIdentity, { User } from "netlify-identity-widget";
-import { ActionContext, Module } from "vuex";
+import { defineStore } from 'pinia'
 
 import { clearCache } from "@/service/useRequest";
 
-interface State {
-  user?: User;
-  ready: boolean;
-}
-
-export const authModule: Module<State, never> = {
-  namespaced: true,
-  state: {
-    user: undefined,
-    ready: false,
-  },
-  mutations: {
-    setUser(state: State, value: User) {
-      state.user = value;
-    },
-    setAuthReady(state: State, value: boolean) {
-      state.ready = value;
-    },
-  },
+export const useAuthStore = defineStore('auth', {
+  state: () => ({ user: null as User | null, ready: false }),
   getters: {
-    authToken(state) {
-      return state.user?.token?.access_token;
-    },
-    isLoggedIn(state) {
-      return state.user;
-    },
+    authToken: (state) => state.user?.token?.access_token,
+    isLoggedIn: (state) => state.user
   },
   actions: {
-    init(context: ActionContext<State, never>) {
+    init() {
       netlifyIdentity.on("login", (user) => {
         netlifyIdentity.refresh().then(() => console.log("Refreshed"));
-        context.commit("setUser", user);
+        this.user = user;
         netlifyIdentity.close();
       }),
         netlifyIdentity.on("logout", () => {
-          context.commit("setUser", null);
+          this.user = null;
           clearCache();
         });
 
       netlifyIdentity.on("init", (user) => {
-        context.commit("setUser", user);
-        context.commit("setAuthReady", true);
+        this.user = user;
+        this.ready = true;
       });
 
       netlifyIdentity.init({
@@ -61,5 +40,5 @@ export const authModule: Module<State, never> = {
     logout() {
       netlifyIdentity.logout();
     },
-  },
-};
+  }
+})

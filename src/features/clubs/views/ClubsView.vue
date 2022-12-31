@@ -21,15 +21,15 @@
 
 <script setup lang="ts">
 import { computed, reactive, watch } from "vue";
-import { useStore } from "vuex";
 
 import clubSvg from "@/assets/images/menu-images/club.svg";
 import { ClubsViewClub, CacheDataService } from "@/common/types/models";
 import { useClub } from "@/service/useClub";
 import { useUser } from "@/service/useUser";
+import { useAuthStore } from "@/stores/auth";
 
-const store = useStore();
-const isLoggedIn = computed(() => store.getters["auth/isLoggedIn"]);
+const authStore = useAuthStore();
+const isLoggedIn = computed(() => authStore.isLoggedIn);
 
 const { data: user, loading: userLoading } = useUser();
 

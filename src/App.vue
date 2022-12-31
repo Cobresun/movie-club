@@ -23,12 +23,13 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import { useStore } from 'vuex';
+
+import { useAuthStore } from './stores/auth';
 
 import NavBar from '@/common/components/NavBar.vue'
 
-const store = useStore();
-store.dispatch('auth/init');
+const authStore = useAuthStore();
+authStore.init();
 
 const isSafari = computed(() => {
   return /^((?!chrome|android).)*safari/i.test(navigator.userAgent)

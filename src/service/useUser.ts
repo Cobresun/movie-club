@@ -1,14 +1,14 @@
 import { computed, watch } from "vue";
-import { useStore } from "vuex";
 
 import { useRequestCache } from "./useRequest";
 
 import { CacheDataService, Member } from "@/common/types/models";
+import { useAuthStore } from "@/stores/auth";
 
 export function useUser(): CacheDataService<Member> {
-  const store = useStore();
-  const email = computed(() => store.state.auth.user?.email);
-  const isLoggedIn = computed(() => store.getters["auth/isLoggedIn"]);
+  const store = useAuthStore();
+  const email = computed(() => store.user?.email);
+  const isLoggedIn = computed(() => store.isLoggedIn);
 
   const info = useRequestCache<Member>(
     `user-${email.value}`,

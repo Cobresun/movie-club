@@ -1,58 +1,58 @@
 import { computed, watch } from "vue";
-import { useStore } from "vuex";
 
 import { useAuthRequest, useRequestCache } from "./useRequest";
 
-import { CacheDataService, WatchListViewModel } from "@/common/types/models";
+import { CacheDataService, WatchListItem, WatchListViewModel } from "@/common/types/models";
+import { useWatchListStore } from "@/stores/watchList";
 
 export function useWatchList(
   clubId: string
 ): CacheDataService<WatchListViewModel> {
-  const store = useStore();
+  const store = useWatchListStore();
   const fetch = useRequestCache<WatchListViewModel>(
     `watchlist-${clubId}`,
     `/api/club/${clubId}/watchList`
   );
   watch(fetch.data, (newValue) => {
     if (newValue) {
-      store.commit("watchList/addClub", { clubId, watchList: newValue });
+      store.addClub(clubId, newValue);
     }
   });
-  const data = computed(() => store.getters["watchList/getWatchList"](clubId));
+  const data = computed(() => store.getWatchList(clubId));
 
   return { ...fetch, data };
 }
 
 export function useAddMovie(clubId: string) {
-  const store = useStore();
-  const request = useAuthRequest();
+  const store = useWatchListStore();
+  const request = useAuthRequest<WatchListItem>();
   const addMovie = async (movieId: number) => {
     await request.execute(`/api/club/${clubId}/watchList/${movieId}`, {
       method: "POST",
     });
-    if (request.response.value) {
-      store.commit("watchList/addMovie", { clubId, movie: request.data.value });
+    if (request.data.value) {
+      store.addMovie(clubId, request.data.value);
     }
   };
   return { ...request, addMovie };
 }
 
 export function useDeleteMovie(clubId: string) {
-  const store = useStore();
+  const store = useWatchListStore();
   const deleteRequest = useAuthRequest();
   const deleteMovie = async (movieId: number) => {
     await deleteRequest.execute(`/api/club/${clubId}/watchList/${movieId}`, {
       method: "DELETE",
     });
     if (!deleteRequest.error.value) {
-      store.commit("watchList/deleteMovie", { clubId, movieId });
+      store.deleteMovie(clubId, movieId);
     }
   };
   return { ...deleteRequest, deleteMovie };
 }
 
 export function useMakeNextWatch(clubId: string) {
-  const store = useStore();
+  const store = useWatchListStore();
   const request = useAuthRequest();
   const makeNextWatch = async (movieId: number) => {
     await request.execute(`/api/club/${clubId}/nextMovie`, {
@@ -62,38 +62,35 @@ export function useMakeNextWatch(clubId: string) {
       method: "PUT",
     });
     if (request.response.value) {
-      store.commit("watchList/nextMovie", { clubId, movieId });
+      store.nextMovie(clubId, movieId);
     }
   };
   return { ...request, makeNextWatch };
 }
 
 export function useDeleteBacklogItem(clubId: string) {
-  const store = useStore();
+  const store = useWatchListStore();
   const request = useAuthRequest();
   const deleteBacklogItem = async (movieId: number) => {
     await request.execute(`/api/club/${clubId}/backlog/${movieId}`, {
       method: "DELETE",
     });
     if (request.response.value) {
-      store.commit("watchList/deleteBacklogItem", { clubId, movieId });
+      store.deleteBacklogItem(clubId, movieId);
     }
   };
   return { ...request, deleteBacklogItem };
 }
 
 export function useAddBacklogItem(clubId: string) {
-  const store = useStore();
-  const request = useAuthRequest();
+  const store = useWatchListStore();
+  const request = useAuthRequest<WatchListItem>();
   const addBacklogItem = async (movieId: number) => {
     await request.execute(`/api/club/${clubId}/backlog/${movieId}`, {
       method: "POST",
     });
-    if (request.response.value) {
-      store.commit("watchList/addBacklogItem", {
-        clubId,
-        movie: request.data.value,
-      });
+    if (request.data.value) {
+      store.addBacklogItem(clubId, request.data.value);
     }
   };
   return { ...request, addBacklogItem };

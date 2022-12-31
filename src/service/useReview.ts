@@ -1,5 +1,4 @@
 import { computed, watch } from "vue";
-import { useStore } from "vuex";
 
 import { useAuthRequest, useRequestCache } from "./useRequest";
 
@@ -8,6 +7,7 @@ import {
   DetailedReviewResponse,
   ReviewResponse,
 } from "@/common/types/models";
+import { useReviewsStore } from "@/stores/reviews";
 
 export function useReview(clubId: string): CacheDataService<ReviewResponse[]> {
   const fetch = useRequestCache<DetailedReviewResponse[]>(
@@ -17,26 +17,24 @@ export function useReview(clubId: string): CacheDataService<ReviewResponse[]> {
   return { ...fetch };
 }
 
-export function useDetailedReview(
-  clubId: string
-): CacheDataService<DetailedReviewResponse[]> {
+export function useDetailedReview(clubId: string): CacheDataService<DetailedReviewResponse[]> {
   const fetch = useRequestCache<DetailedReviewResponse[]>(
     `review-d-${clubId}`,
     `/api/club/${clubId}/reviews?detailed=true`
   );
-  const store = useStore();
+  const store = useReviewsStore();
   watch(fetch.data, (newValue) => {
     if (newValue) {
-      store.commit("reviews/addClub", { clubId, reviews: newValue });
+      store.addClub(clubId, newValue);
     }
   });
-  const data = computed(() => store.getters["reviews/getClubReviews"](clubId));
+  const data = computed(() => store.getClubReviews(clubId));
   return { ...fetch, data };
 }
 
 export function useSubmitScore(clubId: string) {
   const request = useAuthRequest<ReviewResponse>();
-  const store = useStore();
+  const store = useReviewsStore();
   const submit = async (user: string, movieId: number, score: number) => {
     await request.execute(`/api/club/${clubId}/reviews/${movieId}`, {
       data: {
@@ -47,28 +45,21 @@ export function useSubmitScore(clubId: string) {
     });
     if (request.data.value) {
       const response = request.data.value;
-      store.commit("reviews/updateScore", {
-        clubId,
-        movieId: response.movieId,
-        scores: response.scores,
-      });
+      store.updateScore(clubId, response.movieId, response.scores);
     }
   };
   return { ...request, submit };
 }
 
 export function useAddReview(clubId: string) {
-  const request = useAuthRequest<ReviewResponse>();
-  const store = useStore();
+  const request = useAuthRequest<DetailedReviewResponse>();
+  const store = useReviewsStore();
   const addReview = async (movieId: number) => {
     await request.execute(`/api/club/${clubId}/reviews/${movieId}`, {
       method: "POST",
     });
-    if (request.response.value) {
-      store.commit("reviews/addReview", {
-        clubId,
-        review: request.data.value,
-      });
+    if (request.data.value) {
+      store.addReview(clubId, request.data.value);
     }
   };
   return { ...request, addReview };

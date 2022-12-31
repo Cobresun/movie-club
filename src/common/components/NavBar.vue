@@ -32,20 +32,21 @@
 </template>
 <script setup lang="ts">
 import { computed } from 'vue';
-import { useStore } from 'vuex';
 
-const store = useStore();
+import { useAuthStore } from '@/stores/auth';
 
-const isLoggedIn = computed(() => store.state.auth.user !== null);
-const fullName = computed(() => store.state.auth.user.user_metadata.full_name);
-const avatarURL = computed(() => store.state.auth.user.user_metadata.avatar_url);
-const authReady = computed(() => store.state.auth.ready);
+const store = useAuthStore();
+
+const isLoggedIn = computed(() => store.user !== null);
+const fullName = computed(() => store.user?.user_metadata?.full_name);
+const avatarURL = computed(() => store.user?.user_metadata?.avatar_url);
+const authReady = computed(() => store.ready);
 
 function login() {
- store.dispatch('auth/login');
+ store.login();
 }
 
 function logout() {
-  store.dispatch('auth/logout');
+  store.logout();
 }
 </script>

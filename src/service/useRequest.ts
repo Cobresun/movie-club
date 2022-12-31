@@ -1,8 +1,8 @@
 import axios, { AxiosError, AxiosResponse } from "axios";
 import { computed, reactive, ref } from "vue";
-import { useStore } from "vuex";
 
 import { DataService, FetchConfig } from "@/common/types/models";
+import { useAuthStore } from "@/stores/auth";
 
 export const useRequest = <T>(
   urlInp?: string,
@@ -97,10 +97,10 @@ export const clearCache = () => {
 };
 
 export const useAuthRequest = <T>(url?: string, config: FetchConfig = {}) => {
-  const store = useStore();
+  const store = useAuthStore();
   const headers = {
     ...config.headers,
-    Authorization: `Bearer ${store.getters["auth/authToken"]}`,
+    Authorization: `Bearer ${store.authToken}`,
   };
   const fetch = useRequest<T>(url, { ...config, headers });
   return { ...fetch };
