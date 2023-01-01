@@ -3,7 +3,7 @@ import { Path } from "path-parser";
 
 import { ok } from "./utils/responses";
 import { methodNotAllowed } from "./utils/responses";
-import { getTMDBConfig, getTMDBMovieData } from "./utils/tmdb";
+import { getMovieData } from "./utils/tmdb";
 import { StringRecord } from "./utils/types";
 
 export const path = new Path<StringRecord>("/api/movie/:movieId<\\d+>");
@@ -27,12 +27,9 @@ export async function handler(event: HandlerEvent): Promise<HandlerResponse> {
             }
         }
 
-        const configuration = await getTMDBConfig()
-        const movieData = await getTMDBMovieData(movieId)
+        const movieData = await getMovieData(movieId)
 
-        movieData.data.poster_url = configuration.data.images.base_url + "w500" + movieData.data.poster_path
-
-        return ok(JSON.stringify(movieData.data));
+        return ok(JSON.stringify(movieData));
     }
     else {
         return methodNotAllowed();

@@ -9,13 +9,21 @@ async function makeTMDBApiCall(path: string): Promise<any> {
     return axios.get(`https://api.themoviedb.org/3${path}?api_key=${tmdbApiKey}`);
 }
 
-// TODO: don't export this, get rid of any external usages
-export async function getTMDBConfig() {
+async function getTMDBConfig() {
     return makeTMDBApiCall("/configuration");
 }
 
 export async function getTMDBMovieData(movieId: number) {
     return makeTMDBApiCall(`/movie/${movieId}`);
+}
+
+export async function getMovieData(movieId: number) {
+    const configuration = await getTMDBConfig()
+    const movieData = await getTMDBMovieData(movieId)
+
+    movieData.data.poster_url = configuration.data.images.base_url + "w500" + movieData.data.poster_path
+
+    return movieData.data
 }
 
 export async function getReviewData(reviews: ReviewDatabaseObject[]): Promise<ReviewResponse[]> {
