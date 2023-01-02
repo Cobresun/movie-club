@@ -14,6 +14,16 @@
             </menu-card>
           </router-link>
         </div>
+        
+        <router-link
+          class="p-3"
+          :to="{ name: 'NewClub' }"
+        >
+          <!-- TODO: use a different image for the create club button -->
+          <menu-card bg-color="lowBackground" :image="clubSvg">
+            Create new club
+          </menu-card>
+        </router-link>
       </div>
     </div>
   </div>

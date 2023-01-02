@@ -2,6 +2,7 @@ import { createRouter, createWebHistory, RouteRecordRaw } from "vue-router";
 
 import ClubHomeView from "../features/clubs/views/ClubHomeView.vue"
 import ClubsView from "../features/clubs/views/ClubsView.vue"
+import NewClubView from "../features/clubs/views/NewClubView.vue"
 import ReviewsGalleryView from "../features/reviews/views/ReviewsGalleryView.vue"
 import ReviewView from "../features/reviews/views/ReviewView.vue"
 import StatisticsView from "../features/statistics/StatisticsView.vue"
@@ -20,6 +21,14 @@ const routes: Array<RouteRecordRaw> = [
     path: "/club/:clubId",
     name: "ClubHome",
     component: ClubHomeView,
+    meta: {
+      depth: 1,
+    }
+  },
+  {
+    path: "/newClub",
+    name: "NewClub",
+    component: NewClubView,
     meta: {
       depth: 1,
     }

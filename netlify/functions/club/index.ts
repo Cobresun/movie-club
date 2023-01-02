@@ -29,6 +29,8 @@ const { faunaClient, q } = getFaunaClient();
 
 type StringRecord = Record<string, string>;
 
+const newClubPath = new Path<StringRecord>("/api/club");
+
 const clubPath = new Path<StringRecord>("/api/club/:clubId<\\d+>");
 const nextMoviePath = new Path<StringRecord>(
   "/api/club/:clubId<\\d+>/nextMovie"
@@ -37,7 +39,9 @@ const backlogPath = new Path<StringRecord>(
   "/api/club/:clubId<\\d+>/backlog/:movieId<\\d+>"
 );
 
-/**
+/** 
+ * PUT /club -> ClubsViewClub
+ * 
  * GET /club/:clubId -> ClubsViewClub
  * GET /club/:clubId/members -> Member[]
  * GET /club/:clubId/reviews/:detailed -> DetailedReviewResponse || ReviewResponse (where detailed is a boolean)
@@ -71,7 +75,12 @@ const handler: Handler = async function (
   event: HandlerEvent,
   context: HandlerContext
 ) {
-  const clubPathMatch = clubPath.partialTest(event.path);
+  const newClubPathMatch = newClubPath.test(event.path);
+  if (newClubPathMatch != null) {
+    return await newClubHandler(event, context, newClubPathMatch);
+  }
+
+  const clubPathMatch = clubPath.test(event.path);
   if (clubPathMatch == null) {
     return notFound("Invalid club id");
   }
@@ -116,6 +125,51 @@ async function getClubHandler(
   );
 
   return ok(JSON.stringify(club));
+}
+
+async function newClubHandler(
+  event: HandlerEvent,
+  context: HandlerContext,
+  path: StringRecord
+) {
+  if (!event.body) return badRequest("Missing body");
+  const body = JSON.parse(event.body);
+
+  if (!body.name || body.name.length < 1) return badRequest("Missing name");
+  const name: string = body.name
+
+  if (!body.members || !body.members.length) return badRequest("Missing members");
+  const members: string[] = body.members
+  
+  if (event.httpMethod !== "PUT") return methodNotAllowed();
+
+  // Generate a random clubId
+  const clubId = Math.floor(Math.random() * 100000);
+
+  /**
+   * TODO:
+   * for member in members:
+   *  if they exist in members collection:
+   *    get their Ref
+   *  else:
+   *    make a new document in member for them
+   *    get their ref
+   **/
+
+  const clubResponse = await faunaClient.query<QueryResponse<Club>>(
+    q.Create(
+      q.Collection("clubs"),
+      {
+        data: {
+          clubId: clubId,
+          clubName: name,
+          members: members
+        }
+      }
+    )
+  );
+
+  return ok(JSON.stringify(clubResponse.data));
 }
 
 async function nextMovieHandler(
