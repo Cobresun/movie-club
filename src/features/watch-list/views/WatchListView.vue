@@ -103,6 +103,7 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { useRouter, useRoute } from "vue-router";
+import { useToast } from "vue-toastification";
 
 import MoviePosterCard from "@/common/components/MoviePosterCard.vue";
 import { WatchListItem } from "@/common/types/models";
@@ -193,7 +194,12 @@ const { deleteBacklogItem } = useDeleteBacklogItem(
 );
 const { addMovie } = useAddMovie(route.params.clubId as string);
 
+const toast = useToast();
 const moveBacklogItemToWatchlist = (id: number) => {
+  if (watchList.value.some((item) => item.movieId === id)) {
+    toast.error("That movie is already in your watchlist");
+    return;
+  }
   deleteBacklogItem(id);
   addMovie(id);
 };
