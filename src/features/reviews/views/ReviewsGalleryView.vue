@@ -1,20 +1,13 @@
 <template>
   <div class="p-1">
-    <page-header 
-      :has-back="true"
-      back-route="ClubHome"
-      page-name="Reviews"
-    />
+    <page-header :has-back="true" back-route="ClubHome" page-name="Reviews" />
     <loading-spinner v-if="loading" />
-    <div 
-      v-else 
-      class="md:px-6"
-    >
+    <div v-else class="md:px-6">
       <input
         v-model="searchTerm"
-        class="mb-4 p-2 text-base text-black outline-none rounded-md border-2 border-gray-300 focus:border-primary w-11/12 max-w-md"
+        class="mb-4 p-2 text-base outline-none rounded-md border-2 text-white border-slate-600 focus:border-primary w-11/12 max-w-md bg-background"
         placeholder="Search"
-      >
+      />
       <transition-group
         tag="div"
         leave-active-class="absolute hidden"
@@ -37,37 +30,35 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
-import { useRoute } from 'vue-router';
+import { ref, computed } from "vue";
+import { useRoute } from "vue-router";
 
-import { filterReviews } from '../searchReviews';
+import { filterReviews } from "../searchReviews";
 
-import LoadingSpinner from '@/common/components/LoadingSpinner.vue';
-import ReviewCard from '@/features/reviews/components/ReviewCard.vue'
-import { useMembers } from '@/service/useClub';
-import { useDetailedReview } from '@/service/useReview';
-
+import LoadingSpinner from "@/common/components/LoadingSpinner.vue";
+import ReviewCard from "@/features/reviews/components/ReviewCard.vue";
+import { useMembers } from "@/service/useClub";
+import { useDetailedReview } from "@/service/useReview";
 
 const route = useRoute();
 
-const { 
-  data: reviews, 
-  loading: loadingReviews 
-} = useDetailedReview(route.params.clubId as string);
+const { data: reviews, loading: loadingReviews } = useDetailedReview(
+  route.params.clubId as string
+);
 
-const {
-  data: allMembers,
-  loading: loadingMembers
-} = useMembers(route.params.clubId as string);
+const { data: allMembers, loading: loadingMembers } = useMembers(
+  route.params.clubId as string
+);
 
-const members = computed(() => allMembers.value.filter(member => !member.devAccount));
+const members = computed(
+  () => allMembers.value?.filter((member) => !member.devAccount) ?? []
+);
 
 const loading = computed(() => loadingReviews.value || loadingMembers.value);
 
 const searchTerm = ref<string>("");
 
 const filteredReviews = computed(() => {
-  return filterReviews(reviews.value, searchTerm.value);
+  return filterReviews(reviews.value ?? [], searchTerm.value);
 });
-
 </script>

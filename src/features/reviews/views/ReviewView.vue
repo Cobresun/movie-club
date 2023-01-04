@@ -5,15 +5,20 @@
       <page-header :has-back="true" back-route="ClubHome" page-name="Reviews" />
       <loading-spinner v-if="loading" />
       <div v-else>
-        <v-btn class="float-left" @click="openPrompt()">
-          Add Review
-          <mdicon name="plus" />
-        </v-btn>
-        <input
-        v-model="searchTerm"
-        class="mb-4 p-2 text-base text-black outline-none rounded-md border-2 border-gray-300 focus:border-primary w-11/12 max-w-md"
-        placeholder="Search"
-      >
+        <div class="flex justify-between items-center">
+          <input
+            v-model="searchTerm"
+            class="flex-grow h-8 p-2 text-base outline-none rounded-md border-2 text-white border-slate-600 focus:border-primary w-full bg-background"
+            size="18"
+            placeholder="Search"
+          />
+          <div>
+            <v-btn class="ml-2 whitespace-nowrap" @click="openPrompt()">
+              Add Review
+              <mdicon name="plus" />
+            </v-btn>
+          </div>
+        </div>
         <movie-table
           v-if="tableData.length > 0"
           :headers="headers"
@@ -58,7 +63,10 @@
           </template>
 
           <template #average>
-            <img src="@/assets/images/average.svg" class="w-16 h-12 max-w-none" />
+            <img
+              src="@/assets/images/average.svg"
+              class="w-16 h-12 max-w-none"
+            />
           </template>
         </movie-table>
       </div>
@@ -77,7 +85,6 @@ import { Header } from "@/common/types/models";
 import AddReviewPrompt from "@/features/reviews/components/AddReviewPrompt.vue";
 import { useMembers } from "@/service/useClub";
 import { useDetailedReview, useSubmitScore } from "@/service/useReview";
-
 
 const route = useRoute();
 
@@ -171,6 +178,6 @@ const submitScore = (movieId: number, user: string) => {
 const searchTerm = ref<string>("");
 
 const filteredReviews = computed(() => {
-  return filterReviews(reviews.value, searchTerm.value);
+  return filterReviews(reviews.value ?? [], searchTerm.value);
 });
 </script>

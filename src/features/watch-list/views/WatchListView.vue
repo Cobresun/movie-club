@@ -11,22 +11,21 @@
       <loading-spinner v-if="loading" />
 
       <div v-if="!loading">
-        <div class="flex items-start gap-2">
-          <v-btn @click="selectRandom()">
+        <div class="flex justify-between items-center">
+          <v-btn class="mr-2" @click="selectRandom()">
             Random
             <mdicon name="dice-multiple-outline" />
           </v-btn>
+          <input
+            v-model="searchTerm"
+            class="flex-grow h-8 p-2 text-base outline-none rounded-md border-2 text-white border-slate-600 focus:border-primary w-full bg-background"
+            placeholder="Search"
+          />
         </div>
-
-        <input
-          v-model="searchTerm"
-          class="mb-4 p-2 text-base text-black outline-none rounded-md border-2 border-gray-300 focus:border-primary w-11/12 max-w-md"
-          placeholder="Search"
-        />
         <transition-group
           tag="div"
           move-class="transition ease-linear duration-300"
-          class="grid grid-cols-auto my-4"
+          class="grid grid-cols-auto justify-items-center my-4"
         >
           <MoviePosterCard
             v-for="(movie, index) in filteredWatchList"
@@ -69,7 +68,7 @@
           leave-active-class="absolute hidden"
           enter-from-class="opacity-0"
           leave-to-class="opacity-0"
-          class="grid grid-cols-auto my-4"
+          class="grid grid-cols-auto justify-items-center my-4"
         >
           <MoviePosterCard
             v-for="(movie, index) in filteredBacklog"
