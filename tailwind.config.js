@@ -19,6 +19,9 @@ module.exports = {
       borderWidth: {
         10: "10px",
       },
+      fontFamily: {
+        default: "'Poppins', sans-serif",
+      },
     },
   },
   plugins: [],

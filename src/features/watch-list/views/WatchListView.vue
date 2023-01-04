@@ -22,7 +22,7 @@
           v-model="searchTerm"
           class="mb-4 p-2 text-base text-black outline-none rounded-md border-2 border-gray-300 focus:border-primary w-11/12 max-w-md"
           placeholder="Search"
-        >
+        />
         <transition-group
           tag="div"
           move-class="transition ease-linear duration-300"
@@ -159,7 +159,8 @@ const reviewMovie = async (movieId: number) => {
 const { makeNextWatch } = useMakeNextWatch(route.params.clubId as string);
 
 const selectRandom = () => {
-  const randomMovie = watchList.value[Math.floor(Math.random() * watchList.value.length)];
+  const randomMovie =
+    watchList.value[Math.floor(Math.random() * watchList.value.length)];
   makeNextWatch(randomMovie.movieId);
   rotateReps.value = ROTATE_ITERATIONS;
   animateInterval.value = window.setInterval(animateRotate, 300);
@@ -184,11 +185,8 @@ const modalOpen = ref(false);
 const openPrompt = () => {
   modalOpen.value = true;
 };
-const closePrompt = (movie?: WatchListItem) => {
+const closePrompt = () => {
   modalOpen.value = false;
-  if (movie) {
-    backlog.value.push(movie);
-  }
 };
 
 const { deleteBacklogItem } = useDeleteBacklogItem(
@@ -202,14 +200,14 @@ const moveBacklogItemToWatchlist = (id: number) => {
 };
 
 const filteredWatchList = computed(() => {
-  return sortedWatchList.value.filter(review =>
-      review.movieTitle.toLowerCase().includes(searchTerm.value.toLowerCase())
-    );
+  return sortedWatchList.value.filter((review) =>
+    review.movieTitle.toLowerCase().includes(searchTerm.value.toLowerCase())
+  );
 });
 
 const filteredBacklog = computed(() => {
-  return backlog.value.filter(review =>
-      review.movieTitle.toLowerCase().includes(searchTerm.value.toLowerCase())
-    );
+  return backlog.value.filter((review) =>
+    review.movieTitle.toLowerCase().includes(searchTerm.value.toLowerCase())
+  );
 });
 </script>
