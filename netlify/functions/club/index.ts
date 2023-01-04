@@ -16,8 +16,8 @@ import {
   unauthorized,
   badRequest,
 } from "../utils/responses";
-import { getWatchlistItemMovieData } from "../utils/tmdb";
 import { QueryResponse } from "../utils/types";
+import { path as backlogPath, handler as backlogHandler } from "./backlog";
 import { path as membersPath, handler as membersHandler } from "./members";
 import { path as reviewsPath, handler as reviewsHandler } from "./reviews";
 import {
@@ -35,13 +35,10 @@ const clubPath = new Path<StringRecord>("/api/club/:clubId<\\d+>");
 const nextMoviePath = new Path<StringRecord>(
   "/api/club/:clubId<\\d+>/nextMovie"
 );
-const backlogPath = new Path<StringRecord>(
-  "/api/club/:clubId<\\d+>/backlog/:movieId<\\d+>"
-);
 
-/** 
+/**
  * PUT /club -> ClubsViewClub
- * 
+ *
  * GET /club/:clubId -> ClubsViewClub
  * GET /club/:clubId/members -> Member[]
  * GET /club/:clubId/reviews/:detailed -> DetailedReviewResponse || ReviewResponse (where detailed is a boolean)
@@ -136,11 +133,12 @@ async function newClubHandler(
   const body = JSON.parse(event.body);
 
   if (!body.name || body.name.length < 1) return badRequest("Missing name");
-  const name: string = body.name
+  const name: string = body.name;
 
-  if (!body.members || !body.members.length) return badRequest("Missing members");
-  const members: string[] = body.members
-  
+  if (!body.members || !body.members.length)
+    return badRequest("Missing members");
+  const members: string[] = body.members;
+
   if (event.httpMethod !== "PUT") return methodNotAllowed();
 
   // Generate a random clubId
@@ -157,16 +155,13 @@ async function newClubHandler(
    **/
 
   const clubResponse = await faunaClient.query<QueryResponse<Club>>(
-    q.Create(
-      q.Collection("clubs"),
-      {
-        data: {
-          clubId: clubId,
-          clubName: name,
-          members: members
-        }
-      }
-    )
+    q.Create(q.Collection("clubs"), {
+      data: {
+        clubId: clubId,
+        clubName: name,
+        members: members,
+      },
+    })
   );
 
   return ok(JSON.stringify(clubResponse.data));
@@ -199,46 +194,6 @@ async function nextMovieHandler(
       }
     )
   );
-  return ok();
-}
-
-async function backlogHandler(
-  event: HandlerEvent,
-  context: HandlerContext,
-  path: StringRecord
-): Promise<HandlerResponse> {
-  const clubId = parseInt(path.clubId);
-  if (!(await isAuthorized(clubId, context))) return unauthorized();
-
-  switch (event.httpMethod) {
-    case "POST":
-      return await addMovieToBacklog(clubId, parseInt(path.movieId));
-    case "DELETE":
-      return deleteMovieFromBacklog(clubId, parseInt(path.movieId));
-    default:
-      return methodNotAllowed();
-  }
-}
-
-async function addMovieToBacklog(clubId: number, movieId: number) {
-  const club = (
-    await faunaClient.query<QueryResponse<Club>>(
-      q.Call(q.Function("AddMovieToBacklog"), [clubId, movieId])
-    )
-  ).data;
-
-  const movie = (await getWatchlistItemMovieData([club.backlog[club.backlog.length - 1]]))[0];
-
-  return ok(JSON.stringify(movie));
-}
-
-async function deleteMovieFromBacklog(clubId: number, movieId: number) {
-  await faunaClient
-    .query(q.Call(q.Function("DeleteBacklogItem"), [clubId, movieId]))
-    .catch((error) => {
-      notFound(error);
-    });
-
   return ok();
 }
 

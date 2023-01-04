@@ -1,9 +1,18 @@
-import { HandlerContext, HandlerEvent, HandlerResponse } from "@netlify/functions";
+import {
+  HandlerContext,
+  HandlerEvent,
+  HandlerResponse,
+} from "@netlify/functions";
 import { Path } from "path-parser";
 
 import { isAuthorized } from "../utils/auth";
 import { getFaunaClient } from "../utils/fauna";
-import { methodNotAllowed, ok, unauthorized } from "../utils/responses";
+import {
+  methodNotAllowed,
+  ok,
+  unauthorized,
+  badRequest,
+} from "../utils/responses";
 import { getWatchlistItemMovieData } from "../utils/tmdb";
 import { StringRecord, QueryResponse } from "../utils/types";
 
@@ -49,8 +58,12 @@ async function getWatchList(clubId: number): Promise<HandlerResponse> {
     q.Call(q.Function("GetWatchList"), clubId)
   );
 
-  watchListViewModel.watchList = await getWatchlistItemMovieData(watchListViewModel.watchList);
-  watchListViewModel.backlog = await getWatchlistItemMovieData(watchListViewModel.backlog);
+  watchListViewModel.watchList = await getWatchlistItemMovieData(
+    watchListViewModel.watchList
+  );
+  watchListViewModel.backlog = await getWatchlistItemMovieData(
+    watchListViewModel.backlog
+  );
 
   return ok(JSON.stringify(watchListViewModel));
 }
@@ -62,6 +75,12 @@ async function postWatchList(
 ): Promise<HandlerResponse> {
   if (!(await isAuthorized(clubId, context))) return unauthorized();
   const { faunaClient, q } = getFaunaClient();
+  const watchListResult = await faunaClient.query<WatchListViewModel>(
+    q.Call(q.Function("GetWatchList"), clubId)
+  );
+  if (watchListResult.watchList.some((item) => item.movieId === movieId)) {
+    return badRequest("This movie already exists in the watchlist");
+  }
 
   const club = (
     await faunaClient.query<QueryResponse<Club>>(
@@ -69,7 +88,9 @@ async function postWatchList(
     )
   ).data;
 
-  const movie = (await getWatchlistItemMovieData([club.watchList[club.watchList.length - 1]]))[0];
+  const movie = (
+    await getWatchlistItemMovieData([club.watchList[club.watchList.length - 1]])
+  )[0];
 
   return ok(JSON.stringify(movie));
 }
