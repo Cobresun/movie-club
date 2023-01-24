@@ -5,28 +5,23 @@
       class="flex justify-end"
       :to="{ name: backRoute }"
     >
-      <mdicon
-        class="cursor-pointer"
-        name="arrow-left"
-        size="40"
-      />
+      <mdicon class="cursor-pointer" name="arrow-left" size="40" />
     </router-link>
     <div v-else />
-    <h1 class="text-3xl font-bold m-4">
-      {{ club?.clubName }} {{ pageName }}
-    </h1>
+    <h1 class="text-3xl font-bold m-4">{{ club?.clubName }} {{ pageName }}</h1>
+    <slot />
   </div>
 </template>
 <script setup lang="ts">
-import { useRoute } from 'vue-router';
+import { useRoute } from "vue-router";
 
-import { useClub } from '@/service/useClub';
+import { useClub } from "@/service/useClub";
 
 const { hasBack, backRoute, pageName } = defineProps<{
-  hasBack: boolean,
-  backRoute?: string,
-  pageName: string
-}>()
+  hasBack: boolean;
+  backRoute?: string;
+  pageName: string;
+}>();
 
 const route = useRoute();
 const { data: club } = useClub(route.params.clubId as string);

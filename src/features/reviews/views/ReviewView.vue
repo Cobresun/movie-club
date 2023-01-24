@@ -1,90 +1,37 @@
 <template>
   <div class="p-2">
     <add-review-prompt v-if="modalOpen" @close="closePrompt" />
-    <div>
-      <page-header :has-back="true" back-route="ClubHome" page-name="Reviews" />
-      <loading-spinner v-if="loading" />
-      <div v-else>
-        <div class="flex justify-between items-center">
-          <input
-            v-model="searchTerm"
-            class="flex-grow h-8 p-2 text-base outline-none rounded-md border-2 text-white border-slate-600 focus:border-primary w-full bg-background"
-            size="18"
-            placeholder="Search"
-          />
-          <div>
-            <v-btn class="ml-2 whitespace-nowrap" @click="openPrompt()">
-              Add Review
-              <mdicon name="plus" />
-            </v-btn>
-          </div>
-        </div>
-        <movie-table
-          v-if="tableData.length > 0"
-          :headers="headers"
-          :data="tableData"
-        >
-          <template v-for="member in members" :key="member.name" #[member.name]>
-            <v-avatar :src="member.image" :name="member.name" />
-          </template>
-
-          <template
-            v-for="member in members"
-            #[`item-${member.name}`]="slotProps"
-          >
-            <div
-              v-if="slotProps.item[member.name] === undefined"
-              :key="member.name"
-              class="flex justify-center"
-            >
-              <input
-                v-show="
-                  activeScoreInput ===
-                  getScoreInputRefKey(slotProps.item.movieId, member.name)
-                "
-                :ref="(e) => scoreInputRefs[getScoreInputRefKey(slotProps.item.movieId, member.name)] = (e as HTMLInputElement)"
-                v-model="scoreInputValue"
-                class="bg-background rounded-lg outline-none border border-gray-300 focus:border-primary p-2 w-10 text-center"
-                @keypress.enter="
-                  submitScore(slotProps.item.movieId, member.name)
-                "
-              />
-              <div
-                v-if="
-                  activeScoreInput !==
-                  getScoreInputRefKey(slotProps.item.movieId, member.name)
-                "
-                class="cursor-pointer"
-                @click="openScoreInput(slotProps.item.movieId, member.name)"
-              >
-                <mdicon name="plus" />
-              </div>
-            </div>
-          </template>
-
-          <template #average>
-            <img
-              src="@/assets/images/average.svg"
-              class="w-16 h-12 max-w-none"
-            />
-          </template>
-        </movie-table>
+    <page-header :has-back="true" back-route="ClubHome" page-name="Reviews">
+      <div class="flex gap-2">
+        <mdicon name="table" />
+        <VToggle v-model="isGalleryView" />
+        <mdicon name="image-multiple" />
       </div>
-    </div>
+    </page-header>
+    <loading-spinner v-if="loading" />
+    <table-view
+      v-else-if="!isGalleryView"
+      :reviews="reviews ?? []"
+      :members="members ?? []"
+      :open-prompt="openPrompt"
+      :submit-score="submitScore"
+    />
+    <gallery-view v-else :reviews="reviews ?? []" :members="members ?? []" />
   </div>
 </template>
-
 <script setup lang="ts">
-import { DateTime } from "luxon";
-import { ref, computed, nextTick } from "vue";
+import { computed, ref } from "vue";
 import { useRoute } from "vue-router";
 
-import { filterReviews } from "../searchReviews";
+import GalleryView from "../components/GalleryView.vue";
+import TableView from "../components/TableView.vue";
 
-import { Header } from "@/common/types/models";
+import VToggle from "@/common/components/VToggle.vue";
 import AddReviewPrompt from "@/features/reviews/components/AddReviewPrompt.vue";
 import { useMembers } from "@/service/useClub";
 import { useDetailedReview, useSubmitScore } from "@/service/useReview";
+
+const isGalleryView = ref(false);
 
 const route = useRoute();
 
@@ -105,79 +52,11 @@ const closePrompt = () => {
   modalOpen.value = false;
 };
 
-const headers = computed<Header[]>(() => {
-  const headers: Header[] = [
-    { value: "movieTitle", style: "font-bold", title: "Title" },
-    { value: "dateWatched", title: "Date Reviewed" },
-  ];
-
-  if (members.value && members.value.length > 0) {
-    for (const member of members.value) {
-      if (!member.devAccount) {
-        headers.push({ value: member.name });
-      }
-    }
-  }
-  headers.push({ value: "average" });
-
-  return headers;
-});
-
-const tableData = computed(() => {
-  if (!filteredReviews.value) return [];
-  const data: Record<string, unknown>[] = [];
-  for (let i = 0; i < filteredReviews.value.length; i++) {
-    const obj: Record<string, unknown> = {
-      movieTitle: filteredReviews.value[i].movieTitle,
-      dateWatched: DateTime.fromISO(
-        filteredReviews.value[i].timeWatched["@ts"]
-      ).toLocaleString(),
-      movieId: filteredReviews.value[i].movieId,
-    };
-
-    for (const key of Object.keys(filteredReviews.value[i].scores)) {
-      const score = filteredReviews.value[i].scores[key];
-      // Round the score to 2 decimal places
-      obj[key] = Math.round(score * 100) / 100;
-    }
-    data[i] = obj;
-  }
-  return data;
-});
-
-const scoreInputRefs = ref<Record<string, HTMLInputElement | null>>({});
-const getScoreInputRefKey = (movieId: number, user: string) => {
-  return `${movieId}-${user}`;
-};
-
-const scoreInputValue = ref("");
-
-const activeScoreInput = ref("");
-
-const openScoreInput = (movieId: number, user: string) => {
-  scoreInputValue.value = "";
-  activeScoreInput.value = getScoreInputRefKey(movieId, user);
-  nextTick(() => {
-    const ref = scoreInputRefs.value[activeScoreInput.value];
-    if (ref !== null) {
-      ref.focus();
-    }
-  });
-};
-
 const { submit } = useSubmitScore(route.params.clubId as string);
 
-const submitScore = (movieId: number, user: string) => {
-  const newScore = parseFloat(scoreInputValue.value);
-
-  if (!isNaN(newScore) && newScore >= 0 && newScore <= 10) {
-    submit(user, movieId, newScore);
+const submitScore = (movieId: number, score: number) => {
+  if (!isNaN(score) && score >= 0 && score <= 10) {
+    submit(movieId, score);
   }
 };
-
-const searchTerm = ref<string>("");
-
-const filteredReviews = computed(() => {
-  return filterReviews(reviews.value ?? [], searchTerm.value);
-});
 </script>

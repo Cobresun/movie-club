@@ -1,12 +1,11 @@
 import { createRouter, createWebHistory, RouteRecordRaw } from "vue-router";
 
-import ClubHomeView from "../features/clubs/views/ClubHomeView.vue"
-import ClubsView from "../features/clubs/views/ClubsView.vue"
-import NewClubView from "../features/clubs/views/NewClubView.vue"
-import ReviewsGalleryView from "../features/reviews/views/ReviewsGalleryView.vue"
-import ReviewView from "../features/reviews/views/ReviewView.vue"
-import StatisticsView from "../features/statistics/StatisticsView.vue"
-import WatchListView from "../features/watch-list/views/WatchListView.vue"
+import ClubHomeView from "../features/clubs/views/ClubHomeView.vue";
+import ClubsView from "../features/clubs/views/ClubsView.vue";
+import NewClubView from "../features/clubs/views/NewClubView.vue";
+import ReviewView from "../features/reviews/views/ReviewView.vue";
+import StatisticsView from "../features/statistics/StatisticsView.vue";
+import WatchListView from "../features/watch-list/views/WatchListView.vue";
 
 const routes: Array<RouteRecordRaw> = [
   {
@@ -15,7 +14,7 @@ const routes: Array<RouteRecordRaw> = [
     component: ClubsView,
     meta: {
       depth: 0,
-    }
+    },
   },
   {
     path: "/club/:clubId",
@@ -23,7 +22,7 @@ const routes: Array<RouteRecordRaw> = [
     component: ClubHomeView,
     meta: {
       depth: 1,
-    }
+    },
   },
   {
     path: "/newClub",
@@ -31,7 +30,7 @@ const routes: Array<RouteRecordRaw> = [
     component: NewClubView,
     meta: {
       depth: 1,
-    }
+    },
   },
   {
     path: "/club/:clubId/reviews",
@@ -39,15 +38,7 @@ const routes: Array<RouteRecordRaw> = [
     component: ReviewView,
     meta: {
       depth: 2,
-    }
-  },
-  {
-    path: "/club/:clubId/reviews-gallery",
-    name: "ReviewsGallery",
-    component: ReviewsGalleryView,
-    meta: {
-      depth: 2,
-    }
+    },
   },
   {
     path: "/club/:clubId/watch-list",
@@ -55,7 +46,7 @@ const routes: Array<RouteRecordRaw> = [
     component: WatchListView,
     meta: {
       depth: 2,
-    }
+    },
   },
   {
     path: "/club/:clubId/statistics",
@@ -63,7 +54,7 @@ const routes: Array<RouteRecordRaw> = [
     component: StatisticsView,
     meta: {
       depth: 2,
-    }
+    },
   },
 ];
 
@@ -74,15 +65,20 @@ const router = createRouter({
 
 router.beforeEach((to, from) => {
   if (!from.name) {
-    to.meta.transitionIn = "animate__animated animate__faster animate__fadeIn"
+    to.meta.transitionIn = "animate__animated animate__faster animate__fadeIn";
     return;
   }
-  const slideInRight = "animate__animated animate__faster animate__slideInRight";
+  const slideInRight =
+    "animate__animated animate__faster animate__slideInRight";
   const slideInLeft = "animate__animated animate__faster animate__slideInLeft";
-  const slideOutRight = "animate__animated animate__faster animate__slideOutRight";
-  const slideOutLeft = "animate__animated animate__faster animate__slideOutLeft";
-  to.meta.transitionIn = to.meta.depth > from.meta.depth ? slideInRight : slideInLeft;
-  to.meta.transitionOut = to.meta.depth > from.meta.depth ? slideOutLeft : slideOutRight;
-})
+  const slideOutRight =
+    "animate__animated animate__faster animate__slideOutRight";
+  const slideOutLeft =
+    "animate__animated animate__faster animate__slideOutLeft";
+  to.meta.transitionIn =
+    to.meta.depth > from.meta.depth ? slideInRight : slideInLeft;
+  to.meta.transitionOut =
+    to.meta.depth > from.meta.depth ? slideOutLeft : slideOutRight;
+});
 
 export default router;
