@@ -1,6 +1,7 @@
 import { computed, watch } from "vue";
 
 import { useAuthRequest, useRequestCache } from "./useRequest";
+import { useUser } from "./useUser";
 
 import {
   CacheDataService,
@@ -17,7 +18,9 @@ export function useReview(clubId: string): CacheDataService<ReviewResponse[]> {
   return { ...fetch };
 }
 
-export function useDetailedReview(clubId: string): CacheDataService<DetailedReviewResponse[]> {
+export function useDetailedReview(
+  clubId: string
+): CacheDataService<DetailedReviewResponse[]> {
   const fetch = useRequestCache<DetailedReviewResponse[]>(
     `review-d-${clubId}`,
     `/api/club/${clubId}/reviews?detailed=true`
@@ -35,10 +38,11 @@ export function useDetailedReview(clubId: string): CacheDataService<DetailedRevi
 export function useSubmitScore(clubId: string) {
   const request = useAuthRequest<ReviewResponse>();
   const store = useReviewsStore();
-  const submit = async (user: string, movieId: number, score: number) => {
+  const { data: user } = useUser();
+  const submit = async (movieId: number, score: number) => {
     await request.execute(`/api/club/${clubId}/reviews/${movieId}`, {
       data: {
-        name: user,
+        name: user.value?.name,
         score: score,
       },
       method: "PUT",
