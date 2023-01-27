@@ -1,19 +1,5 @@
 <template>
   <div>
-    <div class="flex justify-between items-center">
-      <input
-        v-model="searchTerm"
-        class="flex-grow h-8 p-2 text-base outline-none rounded-md border-2 text-white border-slate-600 focus:border-primary w-full bg-background"
-        size="18"
-        placeholder="Search"
-      />
-      <div>
-        <v-btn class="ml-2 whitespace-nowrap" @click="openPrompt()">
-          Add Review
-          <mdicon name="plus" />
-        </v-btn>
-      </div>
-    </div>
     <movie-table
       v-if="tableData.length > 0"
       :headers="headers"
@@ -63,15 +49,12 @@
 import { DateTime } from "luxon";
 import { ref, computed, nextTick } from "vue";
 
-import { filterReviews } from "../searchReviews";
-
 import { DetailedReviewResponse, Header, Member } from "@/common/types/models";
 import { useUser } from "@/service/useUser";
 
-const { reviews, members, openPrompt, submitScore } = defineProps<{
+const { reviews, members, submitScore } = defineProps<{
   reviews: DetailedReviewResponse[];
   members: Member[];
-  openPrompt: () => void;
   submitScore: (movieId: number, score: number) => void;
 }>();
 
@@ -96,19 +79,18 @@ const headers = computed<Header[]>(() => {
 });
 
 const tableData = computed(() => {
-  if (!filteredReviews.value) return [];
   const data: Record<string, unknown>[] = [];
-  for (let i = 0; i < filteredReviews.value.length; i++) {
+  for (let i = 0; i < reviews.length; i++) {
     const obj: Record<string, unknown> = {
-      movieTitle: filteredReviews.value[i].movieTitle,
+      movieTitle: reviews[i].movieTitle,
       dateWatched: DateTime.fromISO(
-        filteredReviews.value[i].timeWatched["@ts"]
+        reviews[i].timeWatched["@ts"]
       ).toLocaleString(),
-      movieId: filteredReviews.value[i].movieId,
+      movieId: reviews[i].movieId,
     };
 
-    for (const key of Object.keys(filteredReviews.value[i].scores)) {
-      const score = filteredReviews.value[i].scores[key];
+    for (const key of Object.keys(reviews[i].scores)) {
+      const score = reviews[i].scores[key];
       // Round the score to 2 decimal places
       obj[key] = Math.round(score * 100) / 100;
     }
@@ -133,10 +115,4 @@ const openScoreInput = (movieId: number) => {
     }
   });
 };
-
-const searchTerm = ref<string>("");
-
-const filteredReviews = computed(() => {
-  return filterReviews(reviews ?? [], searchTerm.value);
-});
 </script>

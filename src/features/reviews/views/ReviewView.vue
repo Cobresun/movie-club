@@ -9,14 +9,36 @@
       </div>
     </page-header>
     <loading-spinner v-if="loading" />
-    <table-view
-      v-else-if="!isGalleryView"
-      :reviews="reviews ?? []"
-      :members="members ?? []"
-      :open-prompt="openPrompt"
-      :submit-score="submitScore"
-    />
-    <gallery-view v-else :reviews="reviews ?? []" :members="members ?? []" />
+    <div v-else>
+      <div
+        class="flex justify-center items-center"
+        :class="isGalleryView ? 'mb-4' : 'mb-0'"
+      >
+        <input
+          v-model="searchTerm"
+          class="p-2 text-base outline-none rounded-md border-2 text-white border-slate-600 focus:border-primary w-11/12 bg-background"
+          placeholder="Search"
+        />
+        <v-btn
+          class="ml-2 h-11 w-11 whitespace-nowrap flex justify-center items-center"
+          @click="openPrompt()"
+        >
+          <mdicon name="plus" />
+        </v-btn>
+      </div>
+      <table-view
+        v-if="!isGalleryView"
+        :reviews="filteredReviews"
+        :members="members ?? []"
+        :open-prompt="openPrompt"
+        :submit-score="submitScore"
+      />
+      <gallery-view
+        v-else
+        :reviews="filteredReviews"
+        :members="members ?? []"
+      />
+    </div>
   </div>
 </template>
 <script setup lang="ts">
@@ -25,6 +47,7 @@ import { useRoute } from "vue-router";
 
 import GalleryView from "../components/GalleryView.vue";
 import TableView from "../components/TableView.vue";
+import { filterReviews } from "../searchReviews";
 
 import VToggle from "@/common/components/VToggle.vue";
 import AddReviewPrompt from "@/features/reviews/components/AddReviewPrompt.vue";
@@ -59,4 +82,9 @@ const submitScore = (movieId: number, score: number) => {
     submit(movieId, score);
   }
 };
+
+const searchTerm = ref("");
+const filteredReviews = computed(() => {
+  return filterReviews(reviews.value ?? [], searchTerm.value);
+});
 </script>
