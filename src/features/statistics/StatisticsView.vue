@@ -66,11 +66,11 @@ import { normalizeArray, loadDefaultChartSettings} from "./StatisticsUtils";
 
 import { ReviewResponse, Header } from "@/common/types/models";
 import { useMembers, useClub } from "@/service/useClub";
-import { useReview } from "@/service/useReview";
+import { useDetailedReview } from "@/service/useReview";
 
 const route = useRoute();
 const { loading: loadingClub, data: club } = useClub(route.params.clubId as string);
-const { loading: loadingReviews, data: reviews } = useReview(
+const { loading: loadingReviews, data: reviews } = useDetailedReview(
   route.params.clubId as string
 );
 const { loading: loadingMembers, data: members } = useMembers(
@@ -100,30 +100,21 @@ const histChartOptions = ref({});
 const loading = computed(() => loadingReviews.value || loadingMembers.value ||
    loadingClub.value || loadingCalculations.value);
 
-const fetchMovieData = async (reviews: ReviewResponse[]) => {
-  return await Promise.all(reviews.map(review => {
-    return axios
-      .get('/api/movie/'+review.movieId)
-      .then(response => {
-          const obj: any = {
-            movieTitle: review.movieTitle,
-            dateWatched: DateTime.fromISO(review.timeWatched['@ts']).toLocaleString(),
-            adult: response.data.adult,
-            ...review.scores,
-            ...response.data
-          };
-          return obj;
-      })
-  }));
+const fetchMovieData = (reviews: ReviewResponse[]) => {
+  return reviews.map(review => {
+    return {
+      movieTitle: review.movieTitle,
+      dateWatched: DateTime.fromISO(review.timeWatched['@ts']).toLocaleString(),
+      ...review.scores,
+      ...review.movieData
+    }
+  });
 }
 
 const setReviews = (isLoading: boolean) => {
   if (isLoading) return;
-  fetchMovieData(reviews.value).then(response => {
-      movieData.value = response; 
-      calculateStatistics();
-    }
-  );
+  movieData.value = fetchMovieData(reviews.value)
+  calculateStatistics();
 }
 
 const setClub = (isLoading: boolean) => {
@@ -301,7 +292,7 @@ const normName = (name = 'average') => {
 
 const headers = computed(() => {
   const headers: Header[] = [
-    {value: "movieTitle", style:"font-weight: 700", title:"Title"},
+    {value: "movieTitle", style:"font-bold", title:"Title"},
     {value: "dateWatched", title:"Date Reviewed"}];
 
   if (members.value.length > 0) {
