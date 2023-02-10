@@ -111,76 +111,6 @@ const fetchMovieData = (reviews: ReviewResponse[]) => {
   });
 }
 
-const setReviews = (isLoading: boolean) => {
-  if (isLoading) return;
-  movieData.value = fetchMovieData(reviews.value)
-  calculateStatistics();
-}
-
-const setClub = (isLoading: boolean) => {
-  if (isLoading) return;
-  clubName.value = club.value.clubName;
-}
-
-watch(loadingReviews, setReviews);
-setReviews(loadingReviews.value);
-
-watch(loadingClub, setClub);
-setClub(loadingClub.value);
-
-const calculateStatistics = () => {
-  memberNames.value = members.value
-    .filter( member => !member.devAccount )
-    .map( member => member.name );
-
-  for(let i = 0; i <= 10; i++){
-    histogramData.value[i] = {'bin': i};
-    histogramNormData.value[i] = {'bin': i/4.0-1.25}; // TODO: stop using hardcoded bin for std
-  }
-
-  const memberScores: Record<string, number[]> = {};
-  const tmbd_norm = normalizeArray(movieData.value.map(data => data['vote_average']));
-  for (const member of memberNames.value){
-    memberScores[member] = normalizeArray(movieData.value.map(data => data[member]));
-    for(let i = 0; i <= 10; i++){
-      histogramData.value[i][member] = 0;
-      histogramNormData.value[i][member] = 0;
-    }
-  }
-
-  for (let i = 0; i < movieData.value.length; i++) {
-    let avg = 0;
-    for (const member of memberNames.value){
-      movieData.value[i][member+"Norm"] = memberScores[member][i];
-      avg += memberScores[member][i];
-
-      // Histogram
-      const score = Math.floor(movieData.value[i][member]);
-      if(isNaN(score)) continue;
-      histogramData.value[score][member] += 1;
-      let scoreNorm = Math.floor(movieData.value[i][member+"Norm"]*4+5);
-      scoreNorm = scoreNorm < 0 ? 0 : scoreNorm > 10 ? 10 : scoreNorm;
-      histogramNormData.value[scoreNorm][member] += 1;
-    }
-    avg = avg/memberNames.value.length;
-
-    movieData.value[i]["averageNorm"] = Math.round(avg*100)/100;
-    movieData.value[i]["release_year"] = parseInt(movieData.value[i]["release_date"].substring(0,4));
-    movieData.value[i]["revenueMil"] = movieData.value[i]["revenue"]/1000000;  
-    movieData.value[i]["budgetMil"] = movieData.value[i]["budget"]/1000000;
-    movieData.value[i]["vote_averageNorm"] = tmbd_norm[i];
-  }
-  loadChartOptions();
-  generateCustomChart();
-  loadingCalculations.value = false;
-}
-
-const toggle = () => {
-  normalize.value = !normalize.value;
-  normButtonText.value = normalize.value ? "Denormalize Scores" : "Normalize Scores";
-  loadChartOptions();
-}
-
 const generateCustomChart = () => {
   customChartOptions.value = loadDefaultChartSettings({
     chartTitle: 'Custom chart: ' + selectedChartBase.value + ' vs ' + selectedChartMeasure.value,
@@ -284,6 +214,77 @@ const loadChartOptions = () => {
     normalizeToggled: normalize.value,
     movieData: movieData.value
   });
+}
+
+const calculateStatistics = () => {
+  memberNames.value = members.value
+    .filter( member => !member.devAccount )
+    .map( member => member.name );
+
+  for(let i = 0; i <= 10; i++){
+    histogramData.value[i] = {'bin': i};
+    histogramNormData.value[i] = {'bin': i/4.0-1.25}; // TODO: stop using hardcoded bin for std
+  }
+
+  const memberScores: Record<string, number[]> = {};
+  const tmbd_norm = normalizeArray(movieData.value.map(data => data['vote_average']));
+  for (const member of memberNames.value){
+    memberScores[member] = normalizeArray(movieData.value.map(data => data[member]));
+    for(let i = 0; i <= 10; i++){
+      histogramData.value[i][member] = 0;
+      histogramNormData.value[i][member] = 0;
+    }
+  }
+
+  for (let i = 0; i < movieData.value.length; i++) {
+    let avg = 0;
+    for (const member of memberNames.value){
+      movieData.value[i][member+"Norm"] = memberScores[member][i];
+      avg += memberScores[member][i];
+
+      // Histogram
+      const score = Math.floor(movieData.value[i][member]);
+      if(isNaN(score)) continue;
+      histogramData.value[score][member] += 1;
+      let scoreNorm = Math.floor(movieData.value[i][member+"Norm"]*4+5);
+      scoreNorm = scoreNorm < 0 ? 0 : scoreNorm > 10 ? 10 : scoreNorm;
+      histogramNormData.value[scoreNorm][member] += 1;
+    }
+    avg = avg/memberNames.value.length;
+
+    movieData.value[i]["averageNorm"] = Math.round(avg*100)/100;
+    movieData.value[i]["release_year"] = parseInt(movieData.value[i]["release_date"].substring(0,4));
+    movieData.value[i]["revenueMil"] = movieData.value[i]["revenue"]/1000000;  
+    movieData.value[i]["budgetMil"] = movieData.value[i]["budget"]/1000000;
+    movieData.value[i]["vote_averageNorm"] = tmbd_norm[i];
+  }
+  loadChartOptions();
+  generateCustomChart();
+  loadingCalculations.value = false;
+}
+
+const setReviews = (isLoading: boolean) => {
+  if (isLoading) return;
+  movieData.value = fetchMovieData(reviews.value)
+  calculateStatistics();
+}
+
+const setClub = (isLoading: boolean) => {
+  if (isLoading) return;
+  clubName.value = club.value.clubName;
+}
+
+watch(loadingReviews, setReviews);
+setReviews(loadingReviews.value);
+
+watch(loadingClub, setClub);
+setClub(loadingClub.value);
+
+
+const toggle = () => {
+  normalize.value = !normalize.value;
+  normButtonText.value = normalize.value ? "Denormalize Scores" : "Normalize Scores";
+  loadChartOptions();
 }
 
 const normName = (name = 'average') => {
