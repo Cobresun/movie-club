@@ -28,13 +28,13 @@
           class="grid grid-cols-auto justify-items-center my-4"
         >
           <MoviePosterCard
-            v-for="(movie, index) in filteredWatchList"
+            v-for="(movie, index) in displayWatchlist"
             :key="movie.movieId"
             :class="[index == 0 ? 'z-0' : 'z-10']"
             class="bg-background"
             :movie-title="movie.movieTitle"
             :movie-poster-url="movie.poster_url"
-            :highlighted="!animate && movie.movieId == nextMovieId"
+            :highlighted="!isAnimating && movie.movieId == nextMovieId"
           >
             <div class="grid grid-cols-2 gap-2">
               <v-btn
@@ -77,7 +77,7 @@
             class="bg-background"
             :movie-title="movie.movieTitle"
             :movie-poster-url="movie.poster_url"
-            :highlighted="!animate && movie.movieId == nextMovieId"
+            :highlighted="!isAnimating && movie.movieId == nextMovieId"
           >
             <div class="grid grid-cols-2 gap-2">
               <v-btn
@@ -105,6 +105,8 @@ import { ref, computed } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useToast } from "vue-toastification";
 
+import { useAnimateRandom } from "../composables/useAnimateRandom";
+
 import MoviePosterCard from "@/common/components/MoviePosterCard.vue";
 import { WatchListItem } from "@/common/types/models";
 import AddMovieToWatchlistPrompt from "@/features/watch-list/components/AddMovieToWatchlistPrompt.vue";
@@ -120,10 +122,6 @@ import {
 const router = useRouter();
 const route = useRoute();
 
-const ROTATE_ITERATIONS = 6;
-const rotateReps = ref(ROTATE_ITERATIONS);
-const animate = ref(false);
-const animateInterval = ref<number | undefined>();
 const searchTerm = ref<string>("");
 
 const { loading, data } = useWatchList(route.params.clubId as string);
@@ -132,19 +130,17 @@ const backlog = computed(() => (data.value ? data.value.backlog : []));
 const nextMovieId = computed(() => data.value?.nextMovieId);
 
 const sortedWatchList = computed(() => {
-  let sortedWatchList = watchList.value.slice(0);
-  if (!animate.value) {
-    const nextMovieItem: WatchListItem | undefined = watchList.value.find(
-      (movie) => movie.movieId === nextMovieId.value
+  const nextMovieItem: WatchListItem | undefined = watchList.value.find(
+    (movie) => movie.movieId === nextMovieId.value
+  );
+  if (nextMovieItem) {
+    const sortedWatchList = watchList.value.filter(
+      (movie) => movie.movieId !== nextMovieItem.movieId
     );
-    if (nextMovieItem) {
-      sortedWatchList = watchList.value.filter(
-        (movie) => movie.movieId !== nextMovieItem.movieId
-      );
-      sortedWatchList.unshift(nextMovieItem);
-    }
+    sortedWatchList.unshift(nextMovieItem);
+    return sortedWatchList;
   }
-  return sortedWatchList;
+  return watchList.value;
 });
 
 const { deleteMovie } = useDeleteMovie(route.params.clubId as string);
@@ -154,31 +150,6 @@ const reviewMovie = async (movieId: number) => {
   await deleteMovie(movieId);
   await addReview(movieId);
   router.push({ name: "Reviews" });
-};
-
-const { makeNextWatch } = useMakeNextWatch(route.params.clubId as string);
-
-const selectRandom = () => {
-  const randomMovie =
-    watchList.value[Math.floor(Math.random() * watchList.value.length)];
-  makeNextWatch(randomMovie.movieId);
-  rotateReps.value = ROTATE_ITERATIONS;
-  animateInterval.value = window.setInterval(animateRotate, 300);
-  animate.value = true;
-};
-
-const animateRotate = () => {
-  if (
-    rotateReps.value > 0 ||
-    watchList.value[0].movieId !== nextMovieId.value
-  ) {
-    watchList.value.unshift(watchList.value[watchList.value.length - 1]);
-    watchList.value.pop();
-    rotateReps.value -= 1;
-  } else {
-    window.clearInterval(animateInterval.value);
-    animate.value = false;
-  }
 };
 
 const modalOpen = ref(false);
@@ -215,4 +186,24 @@ const filteredBacklog = computed(() => {
     review.movieTitle.toLowerCase().includes(searchTerm.value.toLowerCase())
   );
 });
+
+const { makeNextWatch } = useMakeNextWatch(route.params.clubId as string);
+
+const {
+  isAnimating,
+  animate,
+  list: displayWatchlist,
+} = useAnimateRandom<WatchListItem>(filteredWatchList);
+
+const nextMovieItem = computed(() =>
+  watchList.value.find((movie) => movie.movieId === nextMovieId.value)
+);
+
+const selectRandom = () => {
+  searchTerm.value = "";
+  const selectedIndex = Math.floor(Math.random() * watchList.value.length);
+  const randomMovie = sortedWatchList.value[selectedIndex];
+  makeNextWatch(randomMovie.movieId);
+  animate(nextMovieItem);
+};
 </script>
