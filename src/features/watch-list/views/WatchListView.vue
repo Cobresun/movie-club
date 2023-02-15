@@ -17,8 +17,8 @@
             placeholder="Search"
           />
         </div>
-        <WatchList :search-term="searchTerm" @start-animation="clearSearch" />
-        <ClubBacklog :search-term="searchTerm" />
+        <WatchList :search-term="searchTerm" :clear-search="clearSearch" />
+        <ClubBacklog :search-term="searchTerm" :clear-search="clearSearch" />
       </div>
     </div>
   </div>

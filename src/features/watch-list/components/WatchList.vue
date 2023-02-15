@@ -49,11 +49,10 @@ import {
   useWatchList,
 } from "@/service/useWatchList";
 
-const { searchTerm } = defineProps<{
+const { searchTerm, clearSearch } = defineProps<{
   searchTerm: string;
+  clearSearch: () => void;
 }>();
-
-const emit = defineEmits<{ (e: "startAnimation"): void }>();
 
 const route = useRoute();
 const router = useRouter();
@@ -104,7 +103,7 @@ const nextMovieItem = computed(() =>
 );
 
 const selectRandom = () => {
-  emit("startAnimation");
+  clearSearch();
   const selectedIndex = Math.floor(Math.random() * watchList.value.length);
   const randomMovie = sortedWatchList.value[selectedIndex];
   makeNextWatch(randomMovie.movieId);

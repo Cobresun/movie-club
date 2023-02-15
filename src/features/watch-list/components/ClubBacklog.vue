@@ -6,24 +6,28 @@
       Add Movie
       <mdicon name="plus" />
     </v-btn>
+    <v-btn @click="selectRandom">
+      Random
+      <mdicon name="dice-multiple-outline" />
+    </v-btn>
   </div>
 
   <transition-group
     tag="div"
-    move-class="transition ease-linear duration-300"
+    move-class="transition ease-in-out duration-300"
     leave-active-class="absolute hidden"
     enter-from-class="opacity-0"
     leave-to-class="opacity-0"
     class="grid grid-cols-auto justify-items-center my-4"
   >
     <MoviePosterCard
-      v-for="(movie, index) in filteredBacklog"
+      v-for="(movie, index) in sortedBacklog"
       :key="movie.movieId"
       :class="[index == 0 ? 'z-0' : 'z-10']"
       class="bg-background"
       :movie-title="movie.movieTitle"
       :movie-poster-url="movie.poster_url"
-      :highlighted="false"
+      :highlighted="movie === selectedMovie"
     >
       <div class="grid grid-cols-2 gap-2">
         <v-btn
@@ -47,14 +51,20 @@ import { computed, ref } from "vue";
 import { useRoute } from "vue-router";
 import { useToast } from "vue-toastification";
 
+import AddMovieToWatchlistPrompt from "./AddMovieToWatchlistPrompt.vue";
+
 import MoviePosterCard from "@/common/components/MoviePosterCard.vue";
+import { WatchListItem } from "@/common/types/models";
 import {
   useAddMovie,
   useDeleteBacklogItem,
   useWatchList,
 } from "@/service/useWatchList";
 
-const { searchTerm } = defineProps<{ searchTerm: string }>();
+const { searchTerm, clearSearch } = defineProps<{
+  searchTerm: string;
+  clearSearch: () => void;
+}>();
 
 const route = useRoute();
 
@@ -89,5 +99,25 @@ const openPrompt = () => {
 };
 const closePrompt = () => {
   modalOpen.value = false;
+};
+
+const selectedMovie = ref<WatchListItem>();
+
+const sortedBacklog = computed(() => {
+  const selectedIndex = filteredBacklog.value.findIndex(
+    (item) => item === selectedMovie.value
+  );
+  if (selectedIndex === -1) return filteredBacklog.value;
+  return [
+    ...filteredBacklog.value.slice(selectedIndex),
+    ...filteredBacklog.value.slice(0, selectedIndex),
+  ];
+});
+
+const selectRandom = () => {
+  clearSearch();
+  const selectedIndex = Math.floor(Math.random() * backlog.value.length);
+  const randomMovie = backlog.value[selectedIndex];
+  selectedMovie.value = randomMovie;
 };
 </script>
