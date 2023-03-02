@@ -58,7 +58,7 @@ const isGalleryView = ref(false);
 
 const route = useRoute();
 
-const { loading: loadingReviews, data: reviews } = useDetailedReview(
+const { isLoading: loadingReviews, data: reviews } = useDetailedReview(
   route.params.clubId as string
 );
 const { loading: loadingMembers, data: members } = useMembers(
@@ -75,11 +75,11 @@ const closePrompt = () => {
   modalOpen.value = false;
 };
 
-const { submit } = useSubmitScore(route.params.clubId as string);
+const { mutate: submit } = useSubmitScore(route.params.clubId as string);
 
 const submitScore = (movieId: number, score: number) => {
   if (!isNaN(score) && score >= 0 && score <= 10) {
-    submit(movieId, score);
+    submit({ movieId, score });
   }
 };
 

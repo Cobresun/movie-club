@@ -1,4 +1,5 @@
 import * as mdijs from "@mdi/js";
+import { VueQueryPlugin } from "@tanstack/vue-query";
 import mdiVue from "mdi-vue/v3";
 import { createPinia } from "pinia";
 import { createApp } from "vue";
@@ -37,6 +38,7 @@ createApp(App)
     hideProgressBar: true,
     bodyClassName: "font-default",
   })
+  .use(VueQueryPlugin)
   .use(createPinia())
   .use(router)
   .mount("#app");

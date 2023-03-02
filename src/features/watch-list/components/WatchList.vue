@@ -58,12 +58,11 @@ const route = useRoute();
 const router = useRouter();
 
 const { deleteMovie } = useDeleteMovie(route.params.clubId as string);
-const { addReview } = useAddReview(route.params.clubId as string);
+const { mutate: addReview } = useAddReview(route.params.clubId as string);
 
 const reviewMovie = async (movieId: number) => {
   await deleteMovie(movieId);
-  await addReview(movieId);
-  router.push({ name: "Reviews" });
+  addReview({ movieId }, { onSuccess: () => router.push({ name: "Reviews" }) });
 };
 
 const { data } = useWatchList(route.params.clubId as string);

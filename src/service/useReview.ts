@@ -1,70 +1,91 @@
-import { computed, watch } from "vue";
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  UseQueryReturnType,
+} from "@tanstack/vue-query";
+import axios, { AxiosError } from "axios";
 
-import { useAuthRequest, useRequestCache } from "./useRequest";
 import { useUser } from "./useUser";
 
-import {
-  CacheDataService,
-  DetailedReviewResponse,
-  ReviewResponse,
-} from "@/common/types/models";
-import { useReviewsStore } from "@/stores/reviews";
-
-export function useReview(clubId: string): CacheDataService<ReviewResponse[]> {
-  const fetch = useRequestCache<DetailedReviewResponse[]>(
-    `review-${clubId}`,
-    `/api/club/${clubId}/reviews`
-  );
-  return { ...fetch };
-}
+import { DetailedReviewResponse } from "@/common/types/models";
+import { useAuthStore } from "@/stores/auth";
 
 export function useDetailedReview(
   clubId: string
-): CacheDataService<DetailedReviewResponse[]> {
-  const fetch = useRequestCache<DetailedReviewResponse[]>(
-    `review-d-${clubId}`,
-    `/api/club/${clubId}/reviews?detailed=true`
+): UseQueryReturnType<DetailedReviewResponse[], AxiosError> {
+  return useQuery(
+    ["review-d", clubId],
+    async () =>
+      (
+        await axios.get<DetailedReviewResponse[]>(
+          `/api/club/${clubId}/reviews?detailed=true`
+        )
+      ).data
   );
-  const store = useReviewsStore();
-  watch(fetch.data, (newValue) => {
-    if (newValue) {
-      store.addClub(clubId, newValue);
-    }
-  });
-  const data = computed(() => store.getClubReviews(clubId));
-  return { ...fetch, data };
 }
 
 export function useSubmitScore(clubId: string) {
-  const request = useAuthRequest<ReviewResponse>();
-  const store = useReviewsStore();
   const { data: user } = useUser();
-  const submit = async (movieId: number, score: number) => {
-    await request.execute(`/api/club/${clubId}/reviews/${movieId}`, {
-      data: {
-        name: user.value?.name,
-        score: score,
+  const { authToken } = useAuthStore();
+  const queryClient = useQueryClient();
+  return useMutation(
+    ({ movieId, score }: { movieId: number; score: number }) =>
+      axios.put(
+        `/api/club/${clubId}/reviews/${movieId}`,
+        {
+          name: user.value?.name,
+          score: score,
+        },
+        { headers: { Authorization: `Bearer ${authToken}` } }
+      ),
+    {
+      onMutate: async ({ movieId, score }) => {
+        await queryClient.cancelQueries(["review-d", clubId]);
+        queryClient.setQueryData<DetailedReviewResponse[]>(
+          ["review-d", clubId],
+          (currentReviews) => {
+            const name = user.value?.name;
+            if (!currentReviews || !name) return currentReviews;
+            return currentReviews.map((review) =>
+              review.movieId === movieId
+                ? {
+                    ...review,
+                    scores: { ...review.scores, [name]: score },
+                  }
+                : { ...review }
+            );
+          }
+        );
       },
-      method: "PUT",
-    });
-    if (request.data.value) {
-      const response = request.data.value;
-      store.updateScore(clubId, response.movieId, response.scores);
+      onSettled: () => {
+        queryClient.invalidateQueries({ queryKey: ["review-d", clubId] });
+      },
     }
-  };
-  return { ...request, submit };
+  );
 }
 
 export function useAddReview(clubId: string) {
-  const request = useAuthRequest<DetailedReviewResponse>();
-  const store = useReviewsStore();
-  const addReview = async (movieId: number) => {
-    await request.execute(`/api/club/${clubId}/reviews/${movieId}`, {
-      method: "POST",
-    });
-    if (request.data.value) {
-      store.addReview(clubId, request.data.value);
+  const { authToken } = useAuthStore();
+  const queryClient = useQueryClient();
+  return useMutation(
+    ({ movieId }: { movieId: number }) =>
+      axios.post(`/api/club/${clubId}/reviews/${movieId}`, undefined, {
+        headers: { Authorization: `Bearer ${authToken}` },
+      }),
+    {
+      onSuccess: (response) => {
+        queryClient.setQueryData<DetailedReviewResponse[]>(
+          ["review-d", clubId],
+          (currentReviews) => {
+            if (!currentReviews) return [response.data];
+            return [response.data, ...currentReviews];
+          }
+        );
+      },
+      onSettled: () => {
+        queryClient.invalidateQueries({ queryKey: ["review-d", clubId] });
+      },
     }
-  };
-  return { ...request, addReview };
+  );
 }
