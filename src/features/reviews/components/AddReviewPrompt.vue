@@ -45,19 +45,17 @@ const watchlistSearchIndex = computed(() =>
 const { deleteMovie, loading: deleteLoading } = useDeleteMovie(
   route.params.clubId as string
 );
-const { addReview, loading: reviewLoading } = useAddReview(
+const { mutate: addReview, isLoading: reviewLoading } = useAddReview(
   route.params.clubId as string
 );
 
 const selectFromWatchList = async (movie: MovieSearchIndex) => {
   await deleteMovie(movie.id);
-  await addReview(movie.id);
-  emit("close");
+  addReview({ movieId: movie.id }, { onSuccess: () => emit("close") });
 };
 
 const selectFromSearch = async (movie: MovieSearchIndex) => {
-  await addReview(movie.id);
-  emit("close");
+  addReview({ movieId: movie.id }, { onSuccess: () => emit("close") });
 };
 
 const loading = computed(

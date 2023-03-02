@@ -1,18 +1,20 @@
 import netlifyIdentity, { User } from "netlify-identity-widget";
-import { defineStore } from 'pinia'
+import { defineStore } from "pinia";
 
 import { clearCache } from "@/service/useRequest";
 
-export const useAuthStore = defineStore('auth', {
+export const useAuthStore = defineStore("auth", {
   state: () => ({ user: null as User | null, ready: false }),
   getters: {
     authToken: (state) => state.user?.token?.access_token,
-    isLoggedIn: (state) => state.user
+    isLoggedIn: (state) => state.user,
   },
   actions: {
     init() {
       netlifyIdentity.on("login", (user) => {
-        netlifyIdentity.refresh().then(() => console.log("Refreshed"));
+        netlifyIdentity.refresh().then(() => {
+          this.user = netlifyIdentity.currentUser();
+        });
         this.user = user;
         netlifyIdentity.close();
       }),
@@ -40,5 +42,5 @@ export const useAuthStore = defineStore('auth', {
     logout() {
       netlifyIdentity.logout();
     },
-  }
-})
+  },
+});
