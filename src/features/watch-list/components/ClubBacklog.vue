@@ -32,7 +32,7 @@
       <div class="grid grid-cols-2 gap-2">
         <v-btn
           class="flex justify-center"
-          @click="() => moveBacklogItemToWatchlist(movie.movieId)"
+          @click="() => moveBacklogItemToWatchlist(movie)"
         >
           <mdicon name="arrow-collapse-up" />
         </v-btn>
@@ -72,19 +72,19 @@ const { data } = useWatchList(route.params.clubId as string);
 const backlog = computed(() => (data.value ? data.value.backlog : []));
 const watchList = computed(() => (data.value ? data.value.watchList : []));
 
-const { deleteBacklogItem } = useDeleteBacklogItem(
+const { mutate: deleteBacklogItem } = useDeleteBacklogItem(
   route.params.clubId as string
 );
-const { addMovie } = useAddMovie(route.params.clubId as string);
+const { mutate: addMovie } = useAddMovie(route.params.clubId as string);
 
 const toast = useToast();
-const moveBacklogItemToWatchlist = (id: number) => {
-  if (watchList.value.some((item) => item.movieId === id)) {
+const moveBacklogItemToWatchlist = (movie: WatchListItem) => {
+  if (watchList.value.some((item) => item.movieId === movie.movieId)) {
     toast.error("That movie is already in your watchlist");
     return;
   }
-  deleteBacklogItem(id);
-  addMovie(id);
+  deleteBacklogItem(movie.movieId);
+  addMovie(movie);
 };
 
 const filteredBacklog = computed(() => {

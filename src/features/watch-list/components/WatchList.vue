@@ -57,12 +57,12 @@ const { searchTerm, clearSearch } = defineProps<{
 const route = useRoute();
 const router = useRouter();
 
-const { deleteMovie } = useDeleteMovie(route.params.clubId as string);
+const { mutate: deleteMovie } = useDeleteMovie(route.params.clubId as string);
 const { mutate: addReview } = useAddReview(route.params.clubId as string);
 
 const reviewMovie = async (movieId: number) => {
-  await deleteMovie(movieId);
-  addReview({ movieId }, { onSuccess: () => router.push({ name: "Reviews" }) });
+  deleteMovie(movieId);
+  addReview(movieId, { onSuccess: () => router.push({ name: "Reviews" }) });
 };
 
 const { data } = useWatchList(route.params.clubId as string);
@@ -89,7 +89,9 @@ const filteredWatchList = computed(() => {
   );
 });
 
-const { makeNextWatch } = useMakeNextWatch(route.params.clubId as string);
+const { mutate: makeNextWatch } = useMakeNextWatch(
+  route.params.clubId as string
+);
 
 const {
   isAnimating,

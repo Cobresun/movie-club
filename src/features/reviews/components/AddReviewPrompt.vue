@@ -28,7 +28,7 @@ const emit = defineEmits<{
 
 const route = useRoute();
 
-const { data: watchList, loading: watchListLoading } = useWatchList(
+const { data: watchList, isLoading: watchListLoading } = useWatchList(
   route.params.clubId as string
 );
 
@@ -42,7 +42,7 @@ const watchlistSearchIndex = computed(() =>
     : []
 );
 
-const { deleteMovie, loading: deleteLoading } = useDeleteMovie(
+const { mutate: deleteMovie, isLoading: deleteLoading } = useDeleteMovie(
   route.params.clubId as string
 );
 const { mutate: addReview, isLoading: reviewLoading } = useAddReview(
@@ -50,12 +50,12 @@ const { mutate: addReview, isLoading: reviewLoading } = useAddReview(
 );
 
 const selectFromWatchList = async (movie: MovieSearchIndex) => {
-  await deleteMovie(movie.id);
-  addReview({ movieId: movie.id }, { onSuccess: () => emit("close") });
+  deleteMovie(movie.id);
+  addReview(movie.id, { onSuccess: () => emit("close") });
 };
 
 const selectFromSearch = async (movie: MovieSearchIndex) => {
-  addReview({ movieId: movie.id }, { onSuccess: () => emit("close") });
+  addReview(movie.id, { onSuccess: () => emit("close") });
 };
 
 const loading = computed(

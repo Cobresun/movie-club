@@ -7,9 +7,9 @@
         page-name="Watch List"
       />
 
-      <loading-spinner v-if="loading" />
+      <loading-spinner v-if="isLoading" />
 
-      <div v-if="!loading">
+      <div v-if="!isLoading">
         <div class="flex justify-center items-center mb-4">
           <input
             v-model="searchTerm"
@@ -37,7 +37,7 @@ const route = useRoute();
 
 const searchTerm = ref<string>("");
 
-const { loading } = useWatchList(route.params.clubId as string);
+const { isLoading } = useWatchList(route.params.clubId as string);
 
 const clearSearch = () => {
   searchTerm.value = "";
