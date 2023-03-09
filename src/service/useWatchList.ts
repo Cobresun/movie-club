@@ -5,17 +5,9 @@ import {
   UseQueryReturnType,
 } from "@tanstack/vue-query";
 import axios, { AxiosError } from "axios";
-import { computed, watch } from "vue";
 
-import { useAuthRequest, useRequestCache } from "./useRequest";
-
-import {
-  CacheDataService,
-  WatchListItem,
-  WatchListViewModel,
-} from "@/common/types/models";
+import { WatchListItem, WatchListViewModel } from "@/common/types/models";
 import { useAuthStore } from "@/stores/auth";
-import { useWatchListStore } from "@/stores/watchList";
 
 export function useWatchList(
   clubId: string
