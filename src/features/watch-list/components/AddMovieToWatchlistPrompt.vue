@@ -32,9 +32,10 @@ const clubId = route.params.clubId as string;
 
 const { loading: loadingTrending, data: trending } = useTrending();
 
-const { loading: loadingAdd, addBacklogItem } = useAddBacklogItem(clubId);
+const { isLoading: loadingAdd, mutate: addBacklogItem } =
+  useAddBacklogItem(clubId);
 
-const { loading: loadingBacklog, data } = useWatchList(clubId);
+const { isLoading: loadingBacklog, data } = useWatchList(clubId);
 const backlog = computed(() => (data.value ? data.value.backlog : []));
 
 const toast = useToast();
@@ -43,8 +44,7 @@ const selectFromSearch = async (movie: MovieSearchIndex) => {
     toast.error("That movie is already in your backlog");
     return;
   }
-  await addBacklogItem(movie.id);
-  emit("close");
+  addBacklogItem(movie.id, { onSuccess: () => emit("close") });
 };
 
 const loading = computed(

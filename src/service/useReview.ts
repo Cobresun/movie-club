@@ -14,15 +14,11 @@ import { useAuthStore } from "@/stores/auth";
 export function useDetailedReview(
   clubId: string
 ): UseQueryReturnType<DetailedReviewResponse[], AxiosError> {
-  return useQuery(
-    ["review-d", clubId],
-    async () =>
-      (
-        await axios.get<DetailedReviewResponse[]>(
-          `/api/club/${clubId}/reviews?detailed=true`
-        )
-      ).data
-  );
+  return useQuery({
+    queryKey: ["review-d", clubId],
+    queryFn: async () =>
+      (await axios.get(`/api/club/${clubId}/reviews?detailed=true`)).data,
+  });
 }
 
 export function useSubmitScore(clubId: string) {
@@ -69,7 +65,7 @@ export function useAddReview(clubId: string) {
   const { authToken } = useAuthStore();
   const queryClient = useQueryClient();
   return useMutation(
-    ({ movieId }: { movieId: number }) =>
+    (movieId: number) =>
       axios.post(`/api/club/${clubId}/reviews/${movieId}`, undefined, {
         headers: { Authorization: `Bearer ${authToken}` },
       }),

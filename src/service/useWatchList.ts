@@ -1,97 +1,162 @@
-import { computed, watch } from "vue";
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  UseQueryReturnType,
+} from "@tanstack/vue-query";
+import axios, { AxiosError } from "axios";
 
-import { useAuthRequest, useRequestCache } from "./useRequest";
-
-import { CacheDataService, WatchListItem, WatchListViewModel } from "@/common/types/models";
-import { useWatchListStore } from "@/stores/watchList";
+import { WatchListItem, WatchListViewModel } from "@/common/types/models";
+import { useAuthStore } from "@/stores/auth";
 
 export function useWatchList(
   clubId: string
-): CacheDataService<WatchListViewModel> {
-  const store = useWatchListStore();
-  const fetch = useRequestCache<WatchListViewModel>(
-    `watchlist-${clubId}`,
-    `/api/club/${clubId}/watchList`
-  );
-  watch(fetch.data, (newValue) => {
-    if (newValue) {
-      store.addClub(clubId, newValue);
-    }
+): UseQueryReturnType<WatchListViewModel, AxiosError> {
+  return useQuery({
+    queryKey: ["watchlist", clubId],
+    queryFn: async () =>
+      (await axios.get(`/api/club/${clubId}/watchList`)).data,
   });
-  const data = computed(() => store.getWatchList(clubId));
-
-  return { ...fetch, data };
 }
 
 export function useAddMovie(clubId: string) {
-  const store = useWatchListStore();
-  const request = useAuthRequest<WatchListItem>();
-  const addMovie = async (movieId: number) => {
-    await request.execute(`/api/club/${clubId}/watchList/${movieId}`, {
-      method: "POST",
-    });
-    if (request.data.value) {
-      store.addMovie(clubId, request.data.value);
+  const { authToken } = useAuthStore();
+  const queryClient = useQueryClient();
+  return useMutation(
+    (movie: WatchListItem) =>
+      axios.post(`/api/club/${clubId}/watchList/${movie.movieId}`, undefined, {
+        headers: { Authorization: `Bearer ${authToken}` },
+      }),
+    {
+      onMutate: (movie) => {
+        if (!movie) return;
+        queryClient.setQueryData<WatchListViewModel>(
+          ["watchlist", clubId],
+          (currentWatchlist) => {
+            if (!currentWatchlist) return currentWatchlist;
+            return {
+              ...currentWatchlist,
+              watchList: [...currentWatchlist.watchList, movie],
+            };
+          }
+        );
+      },
+      onSettled: () =>
+        queryClient.invalidateQueries({ queryKey: ["watchlist", clubId] }),
     }
-  };
-  return { ...request, addMovie };
+  );
 }
 
 export function useDeleteMovie(clubId: string) {
-  const store = useWatchListStore();
-  const deleteRequest = useAuthRequest();
-  const deleteMovie = async (movieId: number) => {
-    await deleteRequest.execute(`/api/club/${clubId}/watchList/${movieId}`, {
-      method: "DELETE",
-    });
-    if (!deleteRequest.error.value) {
-      store.deleteMovie(clubId, movieId);
+  const { authToken } = useAuthStore();
+  const queryClient = useQueryClient();
+  return useMutation(
+    (movieId: number) =>
+      axios.delete(`/api/club/${clubId}/watchList/${movieId}`, {
+        headers: { Authorization: `Bearer ${authToken}` },
+      }),
+    {
+      onMutate: async (movieId) => {
+        await queryClient.cancelQueries(["watchlist", clubId]);
+        queryClient.setQueryData<WatchListViewModel>(
+          ["watchlist", clubId],
+          (currentWatchlist) => {
+            if (!currentWatchlist) return currentWatchlist;
+            return {
+              ...currentWatchlist,
+              watchList: currentWatchlist?.watchList.filter(
+                (movie) => movie.movieId !== movieId
+              ),
+            };
+          }
+        );
+      },
+      onSettled: () =>
+        queryClient.invalidateQueries({ queryKey: ["watchlist", clubId] }),
     }
-  };
-  return { ...deleteRequest, deleteMovie };
+  );
 }
 
 export function useMakeNextWatch(clubId: string) {
-  const store = useWatchListStore();
-  const request = useAuthRequest();
-  const makeNextWatch = async (movieId: number) => {
-    await request.execute(`/api/club/${clubId}/nextMovie`, {
-      data: {
-        nextMovieId: movieId,
+  const { authToken } = useAuthStore();
+  const queryClient = useQueryClient();
+  return useMutation(
+    (movieId: number) =>
+      axios.put(
+        `/api/club/${clubId}/nextMovie`,
+        { nextMovieId: movieId },
+        { headers: { Authorization: `Bearer ${authToken}` } }
+      ),
+    {
+      onMutate: async (movieId) => {
+        await queryClient.cancelQueries(["watchlist", clubId]);
+        queryClient.setQueryData<WatchListViewModel>(
+          ["watchlist", clubId],
+          (currentWatchlist) => {
+            if (!currentWatchlist) return currentWatchlist;
+            return { ...currentWatchlist, nextMovieId: movieId };
+          }
+        );
       },
-      method: "PUT",
-    });
-    if (request.response.value) {
-      store.nextMovie(clubId, movieId);
+      onSettled: () =>
+        queryClient.invalidateQueries({ queryKey: ["watchlist", clubId] }),
     }
-  };
-  return { ...request, makeNextWatch };
+  );
 }
 
 export function useDeleteBacklogItem(clubId: string) {
-  const store = useWatchListStore();
-  const request = useAuthRequest();
-  const deleteBacklogItem = async (movieId: number) => {
-    await request.execute(`/api/club/${clubId}/backlog/${movieId}`, {
-      method: "DELETE",
-    });
-    if (request.response.value) {
-      store.deleteBacklogItem(clubId, movieId);
+  const { authToken } = useAuthStore();
+  const queryClient = useQueryClient();
+  return useMutation(
+    (movieId: number) =>
+      axios.delete(`/api/club/${clubId}/backlog/${movieId}`, {
+        headers: { Authorization: `Bearer ${authToken}` },
+      }),
+    {
+      onMutate: async (movieId) => {
+        await queryClient.cancelQueries(["watchlist", clubId]);
+        queryClient.setQueryData<WatchListViewModel>(
+          ["watchlist", clubId],
+          (currentWatchlist) => {
+            if (!currentWatchlist) return currentWatchlist;
+            return {
+              ...currentWatchlist,
+              backlog: currentWatchlist.backlog.filter(
+                (item) => item.movieId !== movieId
+              ),
+            };
+          }
+        );
+      },
+      onSettled: () =>
+        queryClient.invalidateQueries({ queryKey: ["watchlist", clubId] }),
     }
-  };
-  return { ...request, deleteBacklogItem };
+  );
 }
 
 export function useAddBacklogItem(clubId: string) {
-  const store = useWatchListStore();
-  const request = useAuthRequest<WatchListItem>();
-  const addBacklogItem = async (movieId: number) => {
-    await request.execute(`/api/club/${clubId}/backlog/${movieId}`, {
-      method: "POST",
-    });
-    if (request.data.value) {
-      store.addBacklogItem(clubId, request.data.value);
+  const { authToken } = useAuthStore();
+  const queryClient = useQueryClient();
+  return useMutation(
+    (movieId: number) =>
+      axios.post(`/api/club/${clubId}/backlog/${movieId}`, undefined, {
+        headers: { Authorization: `Bearer ${authToken}` },
+      }),
+    {
+      onSuccess: (response) => {
+        queryClient.setQueryData<WatchListViewModel>(
+          ["watchlist", clubId],
+          (currentWatchlist) => {
+            if (!currentWatchlist) return currentWatchlist;
+            return {
+              ...currentWatchlist,
+              backlog: [...currentWatchlist.backlog, response.data],
+            };
+          }
+        );
+      },
+      onSettled: () =>
+        queryClient.invalidateQueries({ queryKey: ["watchlist", clubId] }),
     }
-  };
-  return { ...request, addBacklogItem };
+  );
 }
