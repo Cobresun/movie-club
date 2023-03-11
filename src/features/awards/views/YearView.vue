@@ -1,6 +1,6 @@
 <template>
   <loading-spinner v-if="isLoading" />
-  <RouterView v-else />
+  <RouterView v-else :club-award="clubAward" />
 </template>
 <script setup lang="ts">
 import { toRefs } from "vue";
@@ -14,7 +14,7 @@ const { clubId, year } = toRefs(props);
 
 const router = useRouter();
 
-const { isLoading } = useAwards(clubId, year, (clubAward) => {
+const { data: clubAward, isLoading } = useAwards(clubId, year, (clubAward) => {
   switch (clubAward.step) {
     case AwardsStep.CategorySelect:
       router.push({ name: "AwardsCategories" });

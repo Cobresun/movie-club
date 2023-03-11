@@ -1,8 +1,14 @@
-import { useQuery, UseQueryReturnType } from "@tanstack/vue-query";
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  UseQueryReturnType,
+} from "@tanstack/vue-query";
 import axios, { AxiosError } from "axios";
 import { Ref } from "vue";
 
 import { ClubAwards } from "@/common/types/models";
+import { useAuthStore } from "@/stores/auth";
 
 export function useAwardYears(
   clubId: string
@@ -24,5 +30,34 @@ export function useAwards(
     queryFn: async () =>
       (await axios.get(`/api/club/${clubId.value}/awards/${year.value}`)).data,
     onSuccess,
+  });
+}
+
+export function useAddCategory(clubId: string, year: string) {
+  const { authToken } = useAuthStore();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (title: string) =>
+      axios.post(
+        `/api/club/${clubId}/awards/${year}/category`,
+        { title },
+        { headers: { Authorization: `Bearer ${authToken}` } }
+      ),
+    onMutate: async (title) => {
+      await queryClient.cancelQueries(["awards", clubId, year]);
+      queryClient.setQueryData<ClubAwards>(
+        ["awards", clubId, year],
+        (currentAwards) => {
+          if (!currentAwards) return currentAwards;
+          return {
+            ...currentAwards,
+            awards: [...currentAwards.awards, { title, nominations: [] }],
+          };
+        }
+      );
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries(["awards", clubId, year]);
+    },
   });
 }

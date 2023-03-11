@@ -77,6 +77,7 @@ const routes: Array<RouteRecordRaw> = [
           {
             path: "categories",
             name: "AwardsCategories",
+            props: true,
             component: CategoriesView,
           },
         ],

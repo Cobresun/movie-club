@@ -127,7 +127,7 @@ async function categoryHandler(
               q.Equals(q.Select("year", q.Var("awardYear")), year),
               q.Merge(q.Var("awardYear"), {
                 awards: q.Append(
-                  [{ title: body.title }],
+                  [{ title: body.title, nominations: [] }],
                   q.Select("awards", q.Var("awardYear"))
                 ),
               }),
