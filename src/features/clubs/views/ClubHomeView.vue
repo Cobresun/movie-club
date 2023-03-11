@@ -17,11 +17,17 @@
           <menu-card :image="statisticsSvg"> Statistics </menu-card>
         </router-link>
       </div>
+      <div class="p-3">
+        <router-link :to="{ name: 'Awards' }">
+          <menu-card :image="awardsSvg"> Awards </menu-card>
+        </router-link>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import awardsSvg from "@/assets/images/menu-images/awards.svg";
 import reviewSvg from "@/assets/images/menu-images/review.svg";
 import statisticsSvg from "@/assets/images/menu-images/statistics.svg";
 import watchlistSvg from "@/assets/images/menu-images/watchlist.svg";

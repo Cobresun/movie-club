@@ -1,7 +1,7 @@
 <template>
   <select
     v-model="value"
-    class="mb-2 mr-4 font-bold text-base text-text tracking-wide bg-primary text-center cursor-pointer rounded-md duration-150 filter hover:brightness-110 active:brightness-105"
+    class="mb-2 mr-4 px-2 py-1 font-bold text-base text-text tracking-wide bg-primary text-center cursor-pointer rounded-md duration-150 filter hover:brightness-110 active:brightness-105"
   >
     <option v-for="item in items" :key="item" :value="item">
       {{ item }}
