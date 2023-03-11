@@ -21,17 +21,23 @@ import {
 } from "../utils/responses";
 import { StringRecord } from "../utils/types";
 
-const BASE_PATH = "/api/club/:clubId<\\d+>/awards/:year<\\d+>";
+const BASE_PATH = "/api/club/:clubId<\\d+>/awards";
+const YEAR_PATH = `${BASE_PATH}/:year<\\d+>`;
 
 export const path = new Path<StringRecord>(BASE_PATH);
 
-const categoryPath = new Path<StringRecord>(`${BASE_PATH}/category`);
+const yearsPath = new Path<StringRecord>(`${BASE_PATH}/years`);
+const categoryPath = new Path<StringRecord>(`${YEAR_PATH}/category`);
 
 export async function handler(
   event: HandlerEvent,
   context: HandlerContext,
   path: StringRecord
 ): Promise<HandlerResponse> {
+  const yearsMatch = yearsPath.test(event.path);
+  if (yearsMatch) {
+    return await yearsHandler(event, context, yearsMatch);
+  }
   const categoryMatch = categoryPath.test(event.path);
   if (categoryMatch) {
     return await categoryHandler(event, context, categoryMatch);
@@ -66,6 +72,27 @@ async function getAwardsHandler(
   } else {
     return notFound();
   }
+}
+
+// TODO Maybe pull this from reviews table and add creation of award object to category handler?
+async function yearsHandler(
+  event: HandlerEvent,
+  context: HandlerContext,
+  path: StringRecord
+): Promise<HandlerResponse> {
+  if (event.httpMethod !== "GET") return methodNotAllowed();
+  const clubId = parseInt(path.clubId);
+
+  const { faunaClient, q } = getFaunaClient();
+
+  const years = await faunaClient.query(
+    q.Map(
+      getClubProperty(clubId, "clubAwards"),
+      q.Lambda("x", q.Select("year", q.Var("x")))
+    )
+  );
+
+  return ok(JSON.stringify(years));
 }
 
 async function categoryHandler(
