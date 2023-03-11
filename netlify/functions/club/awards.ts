@@ -26,6 +26,7 @@ const YEAR_PATH = `${BASE_PATH}/:year<\\d+>`;
 
 export const path = new Path<StringRecord>(BASE_PATH);
 
+const awardsPath = new Path<StringRecord>(YEAR_PATH);
 const yearsPath = new Path<StringRecord>(`${BASE_PATH}/years`);
 const categoryPath = new Path<StringRecord>(`${YEAR_PATH}/category`);
 
@@ -42,7 +43,11 @@ export async function handler(
   if (categoryMatch) {
     return await categoryHandler(event, context, categoryMatch);
   }
-  return await getAwardsHandler(event, context, path);
+  const awardsMatch = awardsPath.test(event.path);
+  if (awardsMatch) {
+    return await getAwardsHandler(event, context, awardsMatch);
+  }
+  return notFound();
 }
 
 async function getAwardsHandler(

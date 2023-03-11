@@ -106,6 +106,33 @@ export interface Club {
   reviews: ReviewResponse[];
 }
 
+export interface ClubAwards {
+  year: number;
+  step: AwardsStep;
+  awards: Award[];
+}
+
+export interface Award {
+  title: string;
+  nominations: AwardNomination[];
+}
+
+export interface AwardNomination {
+  movieId: number;
+  movieTitle: string;
+  nominatedBy: string[];
+  movieData: TMDBMovieData;
+  ranking?: Record<string, number>;
+}
+
+export enum AwardsStep {
+  CategorySelect,
+  Nominations,
+  Ratings,
+  Presentation,
+  Completed,
+}
+
 export interface FetchConfig extends AxiosRequestConfig {
   skip?: boolean;
 }

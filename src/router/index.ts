@@ -1,6 +1,5 @@
 import { createRouter, createWebHistory, RouteRecordRaw } from "vue-router";
 
-
 import ClubHomeView from "../features/clubs/views/ClubHomeView.vue";
 import ClubsView from "../features/clubs/views/ClubsView.vue";
 import NewClubView from "../features/clubs/views/NewClubView.vue";
@@ -9,6 +8,8 @@ import StatisticsView from "../features/statistics/StatisticsView.vue";
 import WatchListView from "../features/watch-list/views/WatchListView.vue";
 
 import AwardsView from "@/features/awards/views/AwardsView.vue";
+import CategoriesView from "@/features/awards/views/CategoriesView.vue";
+import YearView from "@/features/awards/views/YearView.vue";
 
 const routes: Array<RouteRecordRaw> = [
   {
@@ -64,9 +65,24 @@ const routes: Array<RouteRecordRaw> = [
     name: "Awards",
     component: AwardsView,
     meta: {
-      depth: 2
-    }
-  }
+      depth: 2,
+    },
+    children: [
+      {
+        path: ":year",
+        name: "AwardsYear",
+        component: YearView,
+        props: true,
+        children: [
+          {
+            path: "categories",
+            name: "AwardsCategories",
+            component: CategoriesView,
+          },
+        ],
+      },
+    ],
+  },
 ];
 
 const router = createRouter({
