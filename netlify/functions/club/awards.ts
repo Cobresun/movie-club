@@ -3,6 +3,7 @@ import {
   HandlerContext,
   HandlerResponse,
 } from "@netlify/functions";
+import { Expr, ExprArg, query } from "faunadb";
 import { Path } from "path-parser";
 
 import { isAuthorized } from "../utils/auth";
@@ -29,6 +30,7 @@ export const path = new Path<StringRecord>(BASE_PATH);
 const awardsPath = new Path<StringRecord>(YEAR_PATH);
 const yearsPath = new Path<StringRecord>(`${BASE_PATH}/years`);
 const categoryPath = new Path<StringRecord>(`${YEAR_PATH}/category`);
+const nominationPath = new Path<StringRecord>(`${YEAR_PATH}/nomination`);
 
 export async function handler(
   event: HandlerEvent,
@@ -42,6 +44,10 @@ export async function handler(
   const categoryMatch = categoryPath.test(event.path);
   if (categoryMatch) {
     return await categoryHandler(event, context, categoryMatch);
+  }
+  const nominationMatch = nominationPath.test(event.path);
+  if (nominationMatch) {
+    return await nominationHandler(event, context, nominationMatch);
   }
   const awardsMatch = awardsPath.test(event.path);
   if (awardsMatch) {
@@ -117,27 +123,128 @@ async function categoryHandler(
   const { faunaClient, q } = getFaunaClient();
 
   await faunaClient.query(
-    q.Update(getClubRef(clubId), {
-      data: {
-        clubAwards: q.Map(
-          getClubProperty(clubId, "clubAwards"),
-          q.Lambda(
-            "awardYear",
-            q.If(
-              q.Equals(q.Select("year", q.Var("awardYear")), year),
-              q.Merge(q.Var("awardYear"), {
-                awards: q.Append(
-                  [{ title: body.title, nominations: [] }],
-                  q.Select("awards", q.Var("awardYear"))
-                ),
-              }),
-              q.Var("awardYear")
-            )
-          )
-        ),
-      },
+    updateClubAwardYear(clubId, year, {
+      awards: q.Append(
+        [{ title: body.title, nominations: [] }],
+        q.Select("awards", q.Var("awardYear"))
+      ),
     })
   );
 
   return ok();
+}
+
+async function nominationHandler(
+  event: HandlerEvent,
+  context: HandlerContext,
+  path: StringRecord
+): Promise<HandlerResponse> {
+  if (event.httpMethod !== "POST") return methodNotAllowed();
+  const clubId = parseInt(path.clubId);
+  if (!isAuthorized(clubId, context)) return unauthorized();
+  if (!event.body) return badRequest("Missing body");
+  const body = JSON.parse(event.body);
+  if (!body.awardTitle) return badRequest("Missing award title in body");
+  if (!body.movieId) return badRequest("Missing movieId in body");
+  if (!body.nominatedBy) return badRequest("Missing nominatedBy in body");
+
+  const { awardTitle, movieId, nominatedBy } = body;
+  const year = parseInt(path.year);
+
+  const { faunaClient, q } = getFaunaClient();
+
+  await faunaClient.query(
+    updateIndividualAward(
+      clubId,
+      year,
+      awardTitle,
+      q.Let(
+        {
+          nominations: q.Select("nominations", q.Var("award")),
+          existingNomination: q.Filter(
+            q.Var("nominations"),
+            q.Lambda(
+              "nomination",
+              q.Equals(q.Select("movieId", q.Var("nomination")), movieId)
+            )
+          ),
+        },
+        q.If(
+          q.IsEmpty(q.Var("existingNomination")),
+          {
+            nominations: q.Append(
+              [{ movieId, nominatedBy: [nominatedBy], ranking: {} }],
+              q.Var("nominations")
+            ),
+          },
+          {
+            nominations: q.Map(
+              q.Var("nominations"),
+              q.Lambda(
+                "nomination",
+                q.If(
+                  q.Equals(q.Select("movieId", q.Var("nomination")), movieId),
+                  q.Merge(q.Var("nomination"), {
+                    nominatedBy: q.Append(
+                      [nominatedBy],
+                      q.Select("nominatedBy", q.Var("nomination"))
+                    ),
+                  }),
+                  q.Var("nomination")
+                )
+              )
+            ),
+          }
+        )
+      )
+    )
+  );
+  return ok();
+}
+
+function updateIndividualAward(
+  clubId: number,
+  year: number,
+  awardTitle: string,
+  expression: Expr
+) {
+  const q = query;
+
+  return updateClubAwardYear(clubId, year, {
+    awards: q.Map(
+      q.Select("awards", q.Var("awardYear")),
+      q.Lambda(
+        "award",
+        q.If(
+          q.Equals(q.Select("title", q.Var("award")), awardTitle),
+          q.Merge(q.Var("award"), expression),
+          q.Var("award")
+        )
+      )
+    ),
+  });
+}
+
+function updateClubAwardYear(
+  clubId: number,
+  year: number,
+  expression: ExprArg
+) {
+  const q = query;
+
+  return q.Update(getClubRef(clubId), {
+    data: {
+      clubAwards: q.Map(
+        getClubProperty(clubId, "clubAwards"),
+        q.Lambda(
+          "awardYear",
+          q.If(
+            q.Equals(q.Select("year", q.Var("awardYear")), year),
+            q.Merge(q.Var("awardYear"), expression),
+            q.Var("awardYear")
+          )
+        )
+      ),
+    },
+  });
 }

@@ -1,7 +1,7 @@
 <template>
   <div class="flex flex-col items-center">
     <h2 class="text-2xl font-bold m-4">Categories</h2>
-    <div class="w-11/12 max-w-md flex flex-col">
+    <div class="w-11/12 max-w-lg flex flex-col">
       <movie-table
         :data="clubAward.awards"
         :headers="headers"

@@ -1,6 +1,11 @@
 <template>
-  <loading-spinner v-if="isLoading" />
-  <RouterView v-else :club-award="clubAward" />
+  <div>
+    <loading-spinner v-if="isLoading" />
+    <RouterView v-else :club-award="clubAward" />
+    <v-btn class="m-4 mt-8 float-right"
+      >Nominations<mdicon name="chevron-right"
+    /></v-btn>
+  </div>
 </template>
 <script setup lang="ts">
 import { toRefs } from "vue";
