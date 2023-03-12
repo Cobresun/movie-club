@@ -29,6 +29,7 @@ export const path = new Path<StringRecord>(BASE_PATH);
 
 const awardsPath = new Path<StringRecord>(YEAR_PATH);
 const yearsPath = new Path<StringRecord>(`${BASE_PATH}/years`);
+const stepPath = new Path<StringRecord>(`${YEAR_PATH}/step`);
 const categoryPath = new Path<StringRecord>(`${YEAR_PATH}/category`);
 const nominationPath = new Path<StringRecord>(`${YEAR_PATH}/nomination`);
 
@@ -40,6 +41,10 @@ export async function handler(
   const yearsMatch = yearsPath.test(event.path);
   if (yearsMatch) {
     return await yearsHandler(event, context, yearsMatch);
+  }
+  const stepMatch = stepPath.test(event.path);
+  if (stepMatch) {
+    return await stepHandler(event, context, stepMatch);
   }
   const categoryMatch = categoryPath.test(event.path);
   if (categoryMatch) {
@@ -106,6 +111,27 @@ async function yearsHandler(
   return ok(JSON.stringify(years));
 }
 
+async function stepHandler(
+  event: HandlerEvent,
+  context: HandlerContext,
+  path: StringRecord
+): Promise<HandlerResponse> {
+  if (event.httpMethod !== "PUT") return methodNotAllowed();
+  const clubId = parseInt(path.clubId);
+  if (!isAuthorized(clubId, context)) return unauthorized();
+  if (!event.body) return badRequest("Missing body");
+  const body = JSON.parse(event.body);
+  if (!body.step) return badRequest("Missing step in body");
+
+  const year = parseInt(path.year);
+  const step = parseInt(body.step);
+  const { faunaClient } = getFaunaClient();
+
+  await faunaClient.query(updateClubAwardYear(clubId, year, { step }));
+
+  return ok();
+}
+
 async function categoryHandler(
   event: HandlerEvent,
   context: HandlerContext,
@@ -154,7 +180,7 @@ async function nominationHandler(
   const { faunaClient, q } = getFaunaClient();
 
   await faunaClient.query(
-    updateIndividualAward(
+    updateAward(
       clubId,
       year,
       awardTitle,
@@ -202,11 +228,35 @@ async function nominationHandler(
   return ok();
 }
 
-function updateIndividualAward(
+function updateNomination(
   clubId: number,
   year: number,
   awardTitle: string,
+  movieId: number,
   expression: Expr
+) {
+  const q = query;
+
+  return updateAward(clubId, year, awardTitle, {
+    nominations: q.Map(
+      q.Select("nominations", q.Var("award")),
+      q.Lambda(
+        "nomination",
+        q.If(
+          q.Equals(q.Select("movieId", q.Var("nomination")), movieId),
+          q.Merge(q.Var("nomination"), expression),
+          q.Var("nomination")
+        )
+      )
+    ),
+  });
+}
+
+function updateAward(
+  clubId: number,
+  year: number,
+  awardTitle: string,
+  expression: ExprArg
 ) {
   const q = query;
 
