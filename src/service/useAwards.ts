@@ -7,7 +7,9 @@ import {
 import axios, { AxiosError } from "axios";
 import { Ref } from "vue";
 
-import { ClubAwards } from "@/common/types/models";
+import { useUser } from "./useUser";
+
+import { ClubAwards, DetailedReviewResponse } from "@/common/types/models";
 import { useAuthStore } from "@/stores/auth";
 
 export function useAwardYears(
@@ -58,6 +60,65 @@ export function useAddCategory(clubId: string, year: string) {
     },
     onSettled: () => {
       queryClient.invalidateQueries(["awards", clubId, year]);
+    },
+  });
+}
+
+export function useAddNomination(clubId: string, year: string) {
+  const { data: user } = useUser();
+  const { authToken } = useAuthStore();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      awardTitle,
+      review,
+    }: {
+      awardTitle: string;
+      review: DetailedReviewResponse;
+    }) =>
+      axios.post(
+        `/api/club/${clubId}/awards/${year}/nomination`,
+        {
+          awardTitle,
+          movieId: review.movieId,
+          nominatedBy: user.value?.name,
+        },
+        { headers: { Authorization: `Bearer ${authToken}` } }
+      ),
+    onMutate: async ({ awardTitle, review }) => {
+      await queryClient.cancelQueries(["awards", clubId, year]);
+      queryClient.setQueryData<ClubAwards>(
+        ["awards", clubId, year],
+        (currentClubAwards) => {
+          const name = user.value?.name;
+          if (!currentClubAwards || !name) return currentClubAwards;
+          return {
+            ...currentClubAwards,
+            awards: currentClubAwards.awards.map((award) => {
+              if (award.title === awardTitle) {
+                return {
+                  ...award,
+                  nominations: [
+                    ...award.nominations,
+                    {
+                      movieId: review.movieId,
+                      nominatedBy: [name],
+                      ranking: {},
+                      movieData: review.movieData,
+                      movieTitle: review.movieTitle,
+                    },
+                  ],
+                };
+              } else {
+                return award;
+              }
+            }),
+          };
+        }
+      );
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["awards", clubId, year] });
     },
   });
 }
