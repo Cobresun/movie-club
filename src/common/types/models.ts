@@ -14,16 +14,21 @@ export type DateObject = {
   "@ts": string;
 };
 
-export interface ReviewResponse {
+export interface BaseMovie {
   movieId: number;
+}
+
+export interface DetailedMovie extends BaseMovie {
   movieTitle: string;
+  movieData: TMDBMovieData;
+}
+
+export interface ReviewResponse extends BaseMovie {
   timeWatched: DateObject;
   scores: Record<string, number>;
 }
 
-export interface DetailedReviewResponse extends ReviewResponse {
-  movieData: TMDBMovieData;
-}
+export type DetailedReviewResponse = ReviewResponse & DetailedMovie;
 
 export interface WatchListItem {
   timeAdded: DateObject;
@@ -106,24 +111,31 @@ export interface Club {
   reviews: ReviewResponse[];
 }
 
-export interface ClubAwards {
+export interface BaseClubAwards {
   year: number;
   step: AwardsStep;
+  awards: BaseAward[];
+}
+
+export interface ClubAwards extends BaseClubAwards {
   awards: Award[];
 }
 
-export interface Award {
+export interface BaseAward {
   title: string;
+  nominations: BaseAwardNomination[];
+}
+
+export interface Award extends BaseAward {
   nominations: AwardNomination[];
 }
 
-export interface AwardNomination {
-  movieId: number;
-  movieTitle: string;
+export interface BaseAwardNomination extends BaseMovie {
   nominatedBy: string[];
-  movieData: TMDBMovieData;
-  ranking?: Record<string, number>;
+  ranking: Record<string, number>;
 }
+
+export type AwardNomination = BaseAwardNomination & DetailedMovie;
 
 export enum AwardsStep {
   CategorySelect,

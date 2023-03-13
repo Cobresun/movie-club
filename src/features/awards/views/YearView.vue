@@ -24,6 +24,9 @@ const { data: clubAward, isLoading } = useAwards(clubId, year, (clubAward) => {
     case AwardsStep.CategorySelect:
       router.push({ name: "AwardsCategories" });
       return;
+    case AwardsStep.Nominations:
+      router.push({ name: "AwardsNominations" });
+      return;
     default:
       return;
   }

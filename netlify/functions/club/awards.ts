@@ -20,7 +20,10 @@ import {
   ok,
   unauthorized,
 } from "../utils/responses";
+import { getDetailedMovie } from "../utils/tmdb";
 import { StringRecord } from "../utils/types";
+
+import { BaseClubAwards, ClubAwards } from "@/common/types/models";
 
 const BASE_PATH = "/api/club/:clubId<\\d+>/awards";
 const YEAR_PATH = `${BASE_PATH}/:year<\\d+>`;
@@ -72,7 +75,7 @@ async function getAwardsHandler(
 
   const { faunaClient, q } = getFaunaClient();
 
-  const awardObj = await faunaClient.query(
+  const clubAwards = await faunaClient.query<BaseClubAwards | null>(
     q.Select(
       0,
       q.Filter(
@@ -83,8 +86,17 @@ async function getAwardsHandler(
     )
   );
 
-  if (awardObj) {
-    return ok(JSON.stringify(awardObj));
+  if (clubAwards) {
+    const retObj: ClubAwards = {
+      ...clubAwards,
+      awards: await Promise.all(
+        clubAwards.awards.map(async (award) => ({
+          ...award,
+          nominations: await getDetailedMovie(award.nominations),
+        }))
+      ),
+    };
+    return ok(JSON.stringify(retObj));
   } else {
     return notFound();
   }
