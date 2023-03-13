@@ -1,29 +1,23 @@
 <template>
   <h2 class="text-2xl font-bold m-4">Rankings</h2>
-  <div v-for="award in clubAward.awards" :key="award.title">
-    <h3 class="text-xl font-bold text-left mb-2">{{ award.title }}</h3>
-    <div class="grid grid-cols-auto">
-      <MoviePosterCard
-        v-for="nomination in award.nominations"
-        :key="nomination.movieId"
-        :movie-title="nomination.movieTitle"
-        :movie-poster-url="nomination.movieData.poster_url"
-        ><div class="flex gap-2">
-          <v-avatar
-            v-for="voter in nomination.nominatedBy"
-            :key="voter"
-            :size="32"
-            :name="voter"
-            :src="getMemberImage(voter)"
-          /></div
-      ></MoviePosterCard>
-    </div>
-  </div>
+  <div v-if="!user">Please log in to rank movies!</div>
+  <AwardRanking
+    v-for="award in clubAward.awards"
+    v-else
+    :key="award.title"
+    :award="award"
+    :members="members ?? []"
+    :user="user"
+    @submit-ranking="(movies) => mutate({ awardTitle: award.title, movies })"
+  />
 </template>
 <script setup lang="ts">
-import MoviePosterCard from "@/common/components/MoviePosterCard.vue";
+import AwardRanking from "../components/AwardRanking.vue";
+
 import { ClubAwards } from "@/common/types/models";
+import { useSubmitRanking } from "@/service/useAwards";
 import { useMembers } from "@/service/useClub";
+import { useUser } from "@/service/useUser";
 
 const { clubAward, clubId, year } = defineProps<{
   clubAward: ClubAwards;
@@ -32,10 +26,7 @@ const { clubAward, clubId, year } = defineProps<{
 }>();
 
 const { data: members } = useMembers(clubId);
+const { data: user } = useUser();
 
-const getMemberImage = (name: string) => {
-  const member = members.value?.find((member) => member.name === name);
-  if (member && member.image) return member.image;
-  return undefined;
-};
+const { mutate } = useSubmitRanking(clubId, year);
 </script>

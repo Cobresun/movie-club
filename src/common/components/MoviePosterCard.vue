@@ -7,7 +7,7 @@
         : 'border-2 border-gray-200',
     ]"
   >
-    <div class="flex flex-col h-full">
+    <div class="flex flex-col h-full bg-background">
       <img v-lazy-load :src="moviePosterUrl" />
       <div class="px-2 pb-2 flex flex-col h-auto flex-grow">
         <div class="my-2 flex flex-grow items-center justify-center">

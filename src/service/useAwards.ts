@@ -41,6 +41,7 @@ export function useAwards(
 
 export function useUpdateStep(clubId: Ref<string>, year: Ref<string>) {
   const { authToken } = useAuthStore();
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (step: AwardsStep) =>
       axios.put(
@@ -48,6 +49,9 @@ export function useUpdateStep(clubId: Ref<string>, year: Ref<string>) {
         { step },
         { headers: { Authorization: `Bearer ${authToken}` } }
       ),
+    onSettled: () => {
+      queryClient.invalidateQueries(["awards", clubId, year]);
+    },
   });
 }
 
@@ -133,6 +137,29 @@ export function useAddNomination(clubId: string, year: string) {
         }
       );
     },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["awards", clubId, year] });
+    },
+  });
+}
+
+export function useSubmitRanking(clubId: string, year: string) {
+  const { authToken } = useAuthStore();
+  const { data: user } = useUser();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      awardTitle,
+      movies,
+    }: {
+      awardTitle: string;
+      movies: number[];
+    }) =>
+      axios.post(
+        `/api/club/${clubId}/awards/${year}/ranking`,
+        { awardTitle, voter: user.value?.name, movies },
+        { headers: { Authorization: `Bearer ${authToken}` } }
+      ),
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["awards", clubId, year] });
     },
