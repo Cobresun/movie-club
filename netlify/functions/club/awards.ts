@@ -35,6 +35,7 @@ const yearsPath = new Path<StringRecord>(`${BASE_PATH}/years`);
 const stepPath = new Path<StringRecord>(`${YEAR_PATH}/step`);
 const categoryPath = new Path<StringRecord>(`${YEAR_PATH}/category`);
 const nominationPath = new Path<StringRecord>(`${YEAR_PATH}/nomination`);
+const rankingPath = new Path<StringRecord>(`${YEAR_PATH}/ranking`);
 
 export async function handler(
   event: HandlerEvent,
@@ -56,6 +57,10 @@ export async function handler(
   const nominationMatch = nominationPath.test(event.path);
   if (nominationMatch) {
     return await nominationHandler(event, context, nominationMatch);
+  }
+  const rankingMatch = rankingPath.test(event.path);
+  if (rankingMatch) {
+    return await rankingHandler(event, context, rankingMatch);
   }
   const awardsMatch = awardsPath.test(event.path);
   if (awardsMatch) {
@@ -240,28 +245,81 @@ async function nominationHandler(
   return ok();
 }
 
-function updateNomination(
-  clubId: number,
-  year: number,
-  awardTitle: string,
-  movieId: number,
-  expression: Expr
-) {
-  const q = query;
+async function rankingHandler(
+  event: HandlerEvent,
+  context: HandlerContext,
+  path: StringRecord
+): Promise<HandlerResponse> {
+  if (event.httpMethod !== "POST") return methodNotAllowed();
+  const clubId = parseInt(path.clubId);
+  if (!isAuthorized(clubId, context)) return unauthorized();
+  if (!event.body) return badRequest("Missing body");
+  const body = JSON.parse(event.body);
+  if (!body.awardTitle) return badRequest("Missing award title in body");
+  if (!body.voter) return badRequest("Missing voter in body");
+  if (!body.movies) return badRequest("Missing movies in body");
 
-  return updateAward(clubId, year, awardTitle, {
-    nominations: q.Map(
-      q.Select("nominations", q.Var("award")),
-      q.Lambda(
-        "nomination",
-        q.If(
-          q.Equals(q.Select("movieId", q.Var("nomination")), movieId),
-          q.Merge(q.Var("nomination"), expression),
-          q.Var("nomination")
-        )
+  const {
+    awardTitle,
+    movies,
+    voter,
+  }: { awardTitle: string; movies: number[]; voter: string } = body;
+  const year = parseInt(path.year);
+
+  const moviesWithRanking = movies.map((id, index) => ({
+    id,
+    rank: index + 1,
+  }));
+
+  const { faunaClient, q } = getFaunaClient();
+
+  await faunaClient.query(
+    updateAward(
+      clubId,
+      year,
+      awardTitle,
+      q.Let(
+        {
+          movies: moviesWithRanking,
+          nominations: q.Select("nominations", q.Var("award")),
+        },
+        {
+          nominations: q.Map(
+            q.Var("nominations"),
+            q.Lambda(
+              "nomination",
+              q.Let(
+                {
+                  rankingObj: q.Select("ranking", q.Var("nomination")),
+                  movieId: q.Select("movieId", q.Var("nomination")),
+                  rank: q.Select(
+                    [0, "rank"],
+                    q.Filter(
+                      q.Var("movies"),
+                      q.Lambda(
+                        "movie",
+                        q.Equals(
+                          q.Select("id", q.Var("movie")),
+                          q.Var("movieId")
+                        )
+                      )
+                    )
+                  ),
+                },
+                q.Merge(q.Var("nomination"), {
+                  ranking: q.Merge(q.Var("rankingObj"), {
+                    [voter]: q.Var("rank"),
+                  }),
+                })
+              )
+            )
+          ),
+        }
       )
-    ),
-  });
+    )
+  );
+
+  return ok();
 }
 
 function updateAward(
