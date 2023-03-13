@@ -30,7 +30,7 @@ const steps = [
     routeName: "AwardsNominations",
     title: "Nominations",
   },
-  { step: AwardsStep.Ratings, routeName: "AwardsRatings", title: "Ratings" },
+  { step: AwardsStep.Ratings, routeName: "AwardsRankings", title: "Rankings" },
   {
     step: AwardsStep.Presentation,
     routeName: "AwardsPresentation",

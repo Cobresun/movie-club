@@ -10,6 +10,7 @@ import WatchListView from "../features/watch-list/views/WatchListView.vue";
 import AwardsView from "@/features/awards/views/AwardsView.vue";
 import CategoriesView from "@/features/awards/views/CategoriesView.vue";
 import NominationsView from "@/features/awards/views/NominationsView.vue";
+import RankingsView from "@/features/awards/views/RankingsView.vue";
 import YearView from "@/features/awards/views/YearView.vue";
 
 const routes: Array<RouteRecordRaw> = [
@@ -86,6 +87,12 @@ const routes: Array<RouteRecordRaw> = [
             name: "AwardsNominations",
             props: true,
             component: NominationsView,
+          },
+          {
+            path: "rankings",
+            name: "AwardsRankings",
+            props: true,
+            component: RankingsView,
           },
         ],
       },
