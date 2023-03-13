@@ -9,7 +9,11 @@ import { Ref } from "vue";
 
 import { useUser } from "./useUser";
 
-import { ClubAwards, DetailedReviewResponse } from "@/common/types/models";
+import {
+  AwardsStep,
+  ClubAwards,
+  DetailedReviewResponse,
+} from "@/common/types/models";
 import { useAuthStore } from "@/stores/auth";
 
 export function useAwardYears(
@@ -32,6 +36,18 @@ export function useAwards(
     queryFn: async () =>
       (await axios.get(`/api/club/${clubId.value}/awards/${year.value}`)).data,
     onSuccess,
+  });
+}
+
+export function useUpdateStep(clubId: Ref<string>, year: Ref<string>) {
+  const { authToken } = useAuthStore();
+  return useMutation({
+    mutationFn: (step: AwardsStep) =>
+      axios.put(
+        `/api/club/${clubId.value}/awards/${year.value}/step`,
+        { step },
+        { headers: { Authorization: `Bearer ${authToken}` } }
+      ),
   });
 }
 
