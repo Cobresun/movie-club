@@ -1,10 +1,12 @@
 <template>
   <div>
     <loading-spinner v-if="isLoading" />
-    <RouterView v-else :club-award="clubAward" />
-    <v-btn v-if="nextStep" class="m-4 mt-8 float-right" @click="updateStep"
-      >{{ nextStep.title }}<mdicon name="chevron-right"
-    /></v-btn>
+    <div v-else>
+      <RouterView :club-award="clubAward" />
+      <v-btn v-if="nextStep" class="m-4 mt-8 float-right" @click="updateStep"
+        >{{ nextStep.title }}<mdicon name="chevron-right"
+      /></v-btn>
+    </div>
   </div>
 </template>
 <script setup lang="ts">
