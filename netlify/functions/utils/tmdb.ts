@@ -1,14 +1,6 @@
 import axios from "axios";
 
-import { ReviewDatabaseObject } from "./types";
-
-import {
-  BaseMovie,
-  DetailedMovie,
-  DetailedReviewResponse,
-  ReviewResponse,
-  WatchListItem,
-} from "@/common/types/models";
+import { BaseMovie, DetailedMovie, WatchListItem } from "@/common/types/models";
 
 async function makeTMDBApiCall(path: string): Promise<any> {
   const tmdbApiKey = process.env.TMDB_API_KEY;
@@ -31,36 +23,6 @@ export async function getMovieData(movieId: number) {
     configuration.data.images.base_url + "w500" + movieData.data.poster_path;
 
   return movieData.data;
-}
-
-export async function getReviewData(
-  reviews: ReviewDatabaseObject[]
-): Promise<ReviewResponse[]> {
-  return Promise.all(
-    reviews.map(async (review) => {
-      const response = await makeTMDBApiCall(`/movie/${review.movieId}`);
-      return {
-        ...review,
-        movieTitle: response.data.title,
-      };
-    })
-  );
-}
-
-export async function getDetailedReviewData(
-  reviews: DetailedReviewResponse[]
-): Promise<DetailedReviewResponse[]> {
-  const configuration = await getTMDBConfig();
-
-  await Promise.all(
-    reviews.map(async (review) => {
-      const response = await makeTMDBApiCall(`/movie/${review.movieId}`);
-      review.movieTitle = response.data.title;
-      review.movieData = response.data;
-      review.movieData.poster_url = `${configuration.data.images.secure_base_url}w154${response.data.poster_path}`;
-    })
-  );
-  return reviews;
 }
 
 export async function getDetailedMovie<T extends BaseMovie>(
