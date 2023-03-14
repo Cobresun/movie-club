@@ -20,9 +20,9 @@
           :to="{ name: 'NewClub' }"
         >
           <!-- TODO: use a different image for the create club button -->
-          <menu-card bg-color="lowBackground" :image="clubSvg">
+          <!-- <menu-card bg-color="lowBackground" :image="clubSvg">
             Create new club
-          </menu-card>
+          </menu-card> -->
         </router-link>
       </div>
     </div>
