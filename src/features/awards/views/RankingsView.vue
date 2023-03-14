@@ -8,13 +8,15 @@
     :award="award"
     :members="members ?? []"
     :user="user"
-    @submit-ranking="(movies) => mutate({ awardTitle: award.title, movies })"
+    @submit-ranking="(movies) => submitRanking(award, movies)"
   />
 </template>
 <script setup lang="ts">
+import { useToast } from "vue-toastification";
+
 import AwardRanking from "../components/AwardRanking.vue";
 
-import { ClubAwards } from "@/common/types/models";
+import { Award, ClubAwards } from "@/common/types/models";
 import { useSubmitRanking } from "@/service/useAwards";
 import { useMembers } from "@/service/useClub";
 import { useUser } from "@/service/useUser";
@@ -29,4 +31,12 @@ const { data: members } = useMembers(clubId);
 const { data: user } = useUser();
 
 const { mutate } = useSubmitRanking(clubId, year);
+const toast = useToast();
+
+const submitRanking = (award: Award, movies: number[]) => {
+  mutate(
+    { awardTitle: award.title, movies },
+    { onSuccess: () => toast.success(`Submitted ${award.title} ranking!`) }
+  );
+};
 </script>

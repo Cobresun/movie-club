@@ -11,6 +11,7 @@ import AwardsView from "@/features/awards/views/AwardsView.vue";
 import CategoriesView from "@/features/awards/views/CategoriesView.vue";
 import NominationsView from "@/features/awards/views/NominationsView.vue";
 import RankingsView from "@/features/awards/views/RankingsView.vue";
+import ResultView from "@/features/awards/views/ResultView.vue";
 import YearView from "@/features/awards/views/YearView.vue";
 
 const routes: Array<RouteRecordRaw> = [
@@ -93,6 +94,12 @@ const routes: Array<RouteRecordRaw> = [
             name: "AwardsRankings",
             props: true,
             component: RankingsView,
+          },
+          {
+            path: "results",
+            name: "AwardsResults",
+            props: true,
+            component: ResultView,
           },
         ],
       },

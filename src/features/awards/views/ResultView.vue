@@ -1,0 +1,49 @@
+<template>
+  <h2 class="text-2xl font-bold m-4">Awards</h2>
+  <AwardResult
+    v-for="award in clubAward.awards"
+    :key="award.title"
+    :award="award"
+    :members="filteredMembers ?? []"
+    :step="clubAward.step"
+    @reveal="revealHandler(award.title)"
+  />
+</template>
+<script setup lang="ts">
+import { computed, ref, toRefs } from "vue";
+
+import AwardResult from "../components/AwardResult.vue";
+
+import { AwardsStep, ClubAwards } from "@/common/types/models";
+import { useUpdateStep } from "@/service/useAwards";
+import { useMembers } from "@/service/useClub";
+
+const props = defineProps<{
+  clubAward: ClubAwards;
+  clubId: string;
+  year: string;
+}>();
+
+const { clubAward, clubId, year } = toRefs(props);
+
+const { data: members } = useMembers(clubId.value);
+
+const filteredMembers = computed(() =>
+  members.value?.filter((member) => !member.devAccount)
+);
+
+const revealedAwards = ref<string[]>([]);
+
+const { mutate } = useUpdateStep(clubId, year);
+
+const revealHandler = (awardTitle: string) => {
+  revealedAwards.value.push(awardTitle);
+  if (
+    clubAward.value.awards.every((award) =>
+      revealedAwards.value.some((title) => title === award.title)
+    )
+  ) {
+    mutate(AwardsStep.Completed);
+  }
+};
+</script>

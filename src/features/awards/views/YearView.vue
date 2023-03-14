@@ -33,10 +33,10 @@ const steps = [
   { step: AwardsStep.Ratings, routeName: "AwardsRankings", title: "Rankings" },
   {
     step: AwardsStep.Presentation,
-    routeName: "AwardsPresentation",
-    title: "Presentation",
+    routeName: "AwardsResults",
+    title: "Results",
   },
-  { step: AwardsStep.Completed, routeName: "AwardsCompleted", title: "Awards" },
+  { step: AwardsStep.Completed, routeName: "AwardsResults", title: "Awards" },
 ];
 
 const router = useRouter();
@@ -48,7 +48,7 @@ const { data: clubAward, isLoading } = useAwards(clubId, year, (clubAward) => {
 
 const nextStep = computed(() => {
   const index = steps.findIndex((step) => step.step === clubAward.value?.step);
-  if (0 <= index + 1 && index + 1 < steps.length) {
+  if (0 <= index + 1 && index + 1 < steps.length - 1) {
     return steps[index + 1];
   } else {
     return undefined;
