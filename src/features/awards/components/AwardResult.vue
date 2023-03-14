@@ -59,15 +59,14 @@ const nominationsWithScore = computed(() =>
       ...nomination,
       score: Object.keys(nomination.ranking).reduce(
         (currentScore, rankingKey) =>
-          currentScore +
-          (award.nominations.length - nomination.ranking[rankingKey]),
+          currentScore + nomination.ranking[rankingKey],
         0
       ),
     }))
-    .sort((nomA, nomB) => nomB.score - nomA.score)
+    .sort((nomA, nomB) => nomA.score - nomB.score)
 );
 
 const maxScore = computed(() =>
-  Math.max(...nominationsWithScore.value.map((nomination) => nomination.score))
+  Math.min(...nominationsWithScore.value.map((nomination) => nomination.score))
 );
 </script>

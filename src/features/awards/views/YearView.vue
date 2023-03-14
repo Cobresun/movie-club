@@ -3,7 +3,11 @@
     <loading-spinner v-if="isLoading" />
     <div v-else>
       <RouterView :club-award="clubAward" />
-      <v-btn v-if="nextStep" class="m-4 mt-8 float-right" @click="updateStep"
+      <v-btn
+        v-if="nextStep"
+        class="m-4 mt-8 float-right"
+        :disabled="!enableButton"
+        @click="updateStep"
         >{{ nextStep.title }}<mdicon name="chevron-right"
       /></v-btn>
     </div>
@@ -13,8 +17,11 @@
 import { computed, toRefs } from "vue";
 import { useRouter } from "vue-router";
 
+import { NOMINATIONS_PER_AWARD } from "../constants";
+
 import { AwardsStep } from "@/common/types/models";
 import { useAwards, useUpdateStep } from "@/service/useAwards";
+import { useMembers } from "@/service/useClub";
 
 const props = defineProps<{ clubId: string; year: string }>();
 const { clubId, year } = toRefs(props);
@@ -62,4 +69,57 @@ const updateStep = () => {
     router.push({ name: nextStep.value.routeName });
   }
 };
+
+const { data: members } = useMembers(clubId.value);
+const filteredMembers = computed(
+  () => members.value?.filter((member) => !member.devAccount) ?? []
+);
+
+const completedCategories = computed(() => {
+  if (!clubAward.value) return false;
+  return clubAward.value.awards.length > 0;
+});
+
+const completedNominations = computed(() => {
+  if (!clubAward.value) return false;
+  const nominationNumber = clubAward.value.awards.reduce(
+    (num, award) =>
+      num +
+      award.nominations.reduce(
+        (awardNum, nomination) => awardNum + nomination.nominatedBy.length,
+        0
+      ),
+    0
+  );
+  return (
+    nominationNumber >=
+    clubAward.value.awards.length *
+      NOMINATIONS_PER_AWARD *
+      filteredMembers.value.length
+  );
+});
+
+const completedRanking = computed(() => {
+  if (!clubAward.value) return false;
+  return clubAward.value.awards.every((award) =>
+    filteredMembers.value.every((member) =>
+      award.nominations.every(
+        (nomination) => nomination.ranking[member.name] !== undefined
+      )
+    )
+  );
+});
+
+const enableButton = computed(() => {
+  switch (clubAward.value?.step) {
+    case AwardsStep.CategorySelect:
+      return completedCategories.value;
+    case AwardsStep.Nominations:
+      return completedNominations.value;
+    case AwardsStep.Ratings:
+      return completedRanking.value;
+    default:
+      return true;
+  }
+});
 </script>

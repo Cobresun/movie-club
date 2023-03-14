@@ -36,6 +36,7 @@ import { DateTime } from "luxon";
 import { computed, ref } from "vue";
 
 import AddMovieButton from "../components/AddMovieButton.vue";
+import { NOMINATIONS_PER_AWARD } from "../constants";
 
 import MoviePosterCard from "@/common/components/MoviePosterCard.vue";
 import MovieSearchPrompt from "@/common/components/MovieSearchPrompt.vue";
@@ -43,8 +44,6 @@ import { ClubAwards, Award, MovieSearchIndex } from "@/common/types/models";
 import { useAddNomination } from "@/service/useAwards";
 import { useDetailedReview } from "@/service/useReview";
 import { useUser } from "@/service/useUser";
-
-const NOMINATIONS_PER_AWARD = 2;
 
 const { clubAward, clubId, year } = defineProps<{
   clubAward: ClubAwards;
