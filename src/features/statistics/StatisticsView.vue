@@ -20,30 +20,14 @@
       <ag-charts-vue :options="dateChartOptions"></ag-charts-vue>
       <br />
 
-      <select
+      <v-select
         v-model="selectedChartBase"
-        class="mb-2 mr-4 font-bold text-base text-text tracking-wide bg-primary text-center cursor-pointer rounded-md duration-150 filter hover:brightness-110 active:brightness-105"
-      >
-        <option
-          v-for="member in headers"
-          :key="member.title"
-          :value="member.value"
-        >
-          {{ member.value }}
-        </option>
-      </select>
-      <select
+        :items="headers.map((header) => header.value)"
+      />
+      <v-select
         v-model="selectedChartMeasure"
-        class="mb-2 mr-4 font-bold text-base text-text tracking-wide bg-primary text-center cursor-pointer rounded-md duration-150 filter hover:brightness-110 active:brightness-105"
-      >
-        <option
-          v-for="key in Object.keys(movieData[0])"
-          :key="key"
-          :value="key"
-        >
-          {{ key }}
-        </option>
-      </select>
+        :items="Object.keys(movieData[0])"
+      />
       <br />
       <ag-charts-vue :options="customChartOptions"></ag-charts-vue>
       <br />

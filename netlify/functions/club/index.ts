@@ -6,6 +6,14 @@ import {
 } from "@netlify/functions";
 import { Path } from "path-parser";
 
+import { path as awardsPath, handler as awardsHandler } from "./awards";
+import { path as backlogPath, handler as backlogHandler } from "./backlog";
+import { path as membersPath, handler as membersHandler } from "./members";
+import { path as reviewsPath, handler as reviewsHandler } from "./reviews";
+import {
+  path as watchListPath,
+  handler as watchListHandler,
+} from "./watchList";
 import { Club, ClubsViewClub } from "../../../src/common/types/models";
 import { isAuthorized } from "../utils/auth";
 import { getFaunaClient } from "../utils/fauna";
@@ -17,13 +25,6 @@ import {
   badRequest,
 } from "../utils/responses";
 import { QueryResponse } from "../utils/types";
-import { path as backlogPath, handler as backlogHandler } from "./backlog";
-import { path as membersPath, handler as membersHandler } from "./members";
-import { path as reviewsPath, handler as reviewsHandler } from "./reviews";
-import {
-  path as watchListPath,
-  handler as watchListHandler,
-} from "./watchList";
 
 const { faunaClient, q } = getFaunaClient();
 
@@ -105,6 +106,11 @@ const handler: Handler = async function (
   const reviewsPathMatch = reviewsPath.partialTest(event.path);
   if (reviewsPathMatch != null) {
     return await reviewsHandler(event, context, reviewsPathMatch);
+  }
+
+  const awardsPathMatch = awardsPath.partialTest(event.path);
+  if (awardsPathMatch != null) {
+    return await awardsHandler(event, context, awardsPathMatch);
   }
 
   return await getClubHandler(event, context, clubPathMatch);

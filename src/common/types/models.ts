@@ -14,16 +14,21 @@ export type DateObject = {
   "@ts": string;
 };
 
-export interface ReviewResponse {
+export interface BaseMovie {
   movieId: number;
+}
+
+export interface DetailedMovie extends BaseMovie {
   movieTitle: string;
+  movieData: TMDBMovieData;
+}
+
+export interface ReviewResponse extends BaseMovie {
   timeWatched: DateObject;
   scores: Record<string, number>;
 }
 
-export interface DetailedReviewResponse extends ReviewResponse {
-  movieData: TMDBMovieData;
-}
+export type DetailedReviewResponse = ReviewResponse & DetailedMovie;
 
 export interface WatchListItem {
   timeAdded: DateObject;
@@ -104,6 +109,40 @@ export interface Club {
   watchList: WatchListItem[];
   backlog: WatchListItem[];
   reviews: ReviewResponse[];
+}
+
+export interface BaseClubAwards {
+  year: number;
+  step: AwardsStep;
+  awards: BaseAward[];
+}
+
+export interface ClubAwards extends BaseClubAwards {
+  awards: Award[];
+}
+
+export interface BaseAward {
+  title: string;
+  nominations: BaseAwardNomination[];
+}
+
+export interface Award extends BaseAward {
+  nominations: AwardNomination[];
+}
+
+export interface BaseAwardNomination extends BaseMovie {
+  nominatedBy: string[];
+  ranking: Record<string, number>;
+}
+
+export type AwardNomination = BaseAwardNomination & DetailedMovie;
+
+export enum AwardsStep {
+  CategorySelect,
+  Nominations,
+  Ratings,
+  Presentation,
+  Completed,
 }
 
 export interface FetchConfig extends AxiosRequestConfig {

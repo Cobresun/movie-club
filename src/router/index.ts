@@ -7,6 +7,13 @@ import ReviewView from "../features/reviews/views/ReviewView.vue";
 import StatisticsView from "../features/statistics/StatisticsView.vue";
 import WatchListView from "../features/watch-list/views/WatchListView.vue";
 
+import AwardsView from "@/features/awards/views/AwardsView.vue";
+import CategoriesView from "@/features/awards/views/CategoriesView.vue";
+import NominationsView from "@/features/awards/views/NominationsView.vue";
+import RankingsView from "@/features/awards/views/RankingsView.vue";
+import ResultView from "@/features/awards/views/ResultView.vue";
+import YearView from "@/features/awards/views/YearView.vue";
+
 const routes: Array<RouteRecordRaw> = [
   {
     path: "/",
@@ -55,6 +62,48 @@ const routes: Array<RouteRecordRaw> = [
     meta: {
       depth: 2,
     },
+  },
+  {
+    path: "/club/:clubId/awards",
+    name: "Awards",
+    component: AwardsView,
+    meta: {
+      depth: 2,
+    },
+    children: [
+      {
+        path: ":year",
+        name: "AwardsYear",
+        component: YearView,
+        props: true,
+        children: [
+          {
+            path: "categories",
+            name: "AwardsCategories",
+            props: true,
+            component: CategoriesView,
+          },
+          {
+            path: "nominations",
+            name: "AwardsNominations",
+            props: true,
+            component: NominationsView,
+          },
+          {
+            path: "rankings",
+            name: "AwardsRankings",
+            props: true,
+            component: RankingsView,
+          },
+          {
+            path: "results",
+            name: "AwardsResults",
+            props: true,
+            component: ResultView,
+          },
+        ],
+      },
+    ],
   },
 ];
 

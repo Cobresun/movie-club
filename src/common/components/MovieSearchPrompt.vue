@@ -1,12 +1,12 @@
 <template>
-  <div class="flex flex-col justify-between text-center h-full">
+  <div class="flex flex-col text-center h-full">
     <input
       v-model="searchText"
       class="p-1 font-bold text-base text-black outline-none rounded-md border-2 border-gray-300 focus:border-primary"
       placeholder="Type to filter or search"
     />
-    <p v-if="noResults">Sorry, your search did not return any results</p>
     <div class="overflow-y-auto mt-3">
+      <p v-if="noResults">Sorry, your search did not return any results</p>
       <div v-if="filteredDefaultList.length > 0">
         <h5 class="float-left font-bold">
           {{ defaultListTitle }}
@@ -29,7 +29,13 @@
           </template>
         </movie-table>
       </div>
-      <div v-if="searchData?.results.length && searchData.results.length > 0">
+      <div
+        v-if="
+          includeSearch &&
+          searchData?.results.length &&
+          searchData.results.length > 0
+        "
+      >
         <h5 class="float-left font-bold">Search</h5>
         <movie-table
           :data="searchData.results"
@@ -51,7 +57,7 @@
       </div>
       <loading-spinner v-if="loadingSearch" class="self-center mt-3" />
     </div>
-    <div class="pt-2 flex justify-between">
+    <div class="pt-2 flex justify-between mt-auto">
       <v-btn @click="emit('close')"> Cancel </v-btn>
     </div>
   </div>
@@ -63,9 +69,14 @@ import { ref, computed, watch } from "vue";
 import { MovieSearchIndex } from "@/common/types/models";
 import { useSearch } from "@/service/useTMDB";
 
-const { defaultList, defaultListTitle } = defineProps<{
+const {
+  defaultList,
+  defaultListTitle,
+  includeSearch = true,
+} = defineProps<{
   defaultList: MovieSearchIndex[];
   defaultListTitle: string;
+  includeSearch?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -106,15 +117,21 @@ const filteredDefaultList = computed(() => {
 const { data: searchData, loading: loadingSearch, search } = useSearch();
 
 watch(searchText, () => {
-  search(searchText.value);
+  if (includeSearch) {
+    search(searchText.value);
+  }
 });
 
 const noResults = computed(() => {
-  return (
-    !loadingSearch.value &&
-    filteredDefaultList.value.length === 0 &&
-    searchData.value?.results.length === 0
-  );
+  if (includeSearch) {
+    return (
+      !loadingSearch.value &&
+      filteredDefaultList.value.length === 0 &&
+      searchData.value?.results.length === 0
+    );
+  } else {
+    return filteredDefaultList.value.length === 0;
+  }
 });
 
 const selectFromDefaultList = (movie: MovieSearchIndex) => {

@@ -1,22 +1,23 @@
 <template>
-  <table
-    class="w-full border-separate"
-    style="border-spacing: 0 10px"
-  >
+  <table class="w-full border-separate" style="border-spacing: 0 10px">
     <thead v-if="header">
       <th
         v-for="head in tableHeaders"
         :key="head.value"
         class="sticky top-0 bg-secondary py-2 first:rounded-tl-xl last:rounded-tr-xl"
       >
-        <div 
+        <div
           v-if="head.includeHeader"
-          class="grid gap-x-1 items-center " 
-          :class="[ head.centerHeader? 'grid-cols-centerHeader' : 'grid-cols-leftHeader' ]" 
+          class="grid gap-x-1 items-center"
+          :class="[
+            head.centerHeader
+              ? 'grid-cols-centerHeader'
+              : 'grid-cols-leftHeader',
+          ]"
         >
           <div
             v-if="head.includeHeader"
-            :class="{'col-start-2':head.centerHeader}"
+            :class="{ 'col-start-2': head.centerHeader }"
           >
             <slot :name="head.value">
               {{ head.title }}
@@ -35,20 +36,20 @@
               v-else-if="sortBy[head.value] === 1"
               name="arrow-down-drop-circle"
             />
-            <mdicon
-              v-else
-              name="arrow-up-drop-circle"
-            />
+            <mdicon v-else name="arrow-up-drop-circle" />
           </div>
         </div>
       </th>
     </thead>
     <tbody>
-      <tr 
-        v-for="(item, index) in tableData" 
+      <tr
+        v-for="(item, index) in tableData"
         :key="index"
-        class="filter bg-lowBackground h-20"
-        :class="{ 'cursor-pointer hover:brightness-105': selectable }" 
+        class="filter"
+        :class="{
+          'cursor-pointer hover:brightness-105': selectable,
+          [rowStyle]: true,
+        }"
         @click="emit('clickRow', item)"
       >
         <td
@@ -56,15 +57,13 @@
           :key="tdIndex"
           class="first:rounded-l-xl last:rounded-r-xl"
           :class="[
-            item.highlighted?'border-t-4 border-b-4 first:border-l-4 last:border-r-4 border-highlightBackground':'', 
-            head.style? head.style:''
+            item.highlighted
+              ? 'border-t-4 border-b-4 first:border-l-4 last:border-r-4 border-highlightBackground'
+              : '',
+            head.style ? head.style : '',
           ]"
         >
-          <slot
-            :name="'item-'+head.value"
-            :item="item"
-            :head="head"
-          >
+          <slot :name="'item-' + head.value" :item="item" :head="head">
             {{ item[head.value] }}
           </slot>
         </td>
@@ -74,21 +73,28 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch } from "vue";
 
-import { Header } from '@/common/types/models';
+import { Header } from "@/common/types/models";
 
 interface Props {
   headers: Header[];
   data: Record<string, unknown>[];
+  rowStyle?: string;
   header?: boolean;
   selectable?: boolean;
 }
 
-const { headers, data, header = true, selectable = false} = defineProps<Props>();
+const {
+  headers,
+  data,
+  rowStyle = "bg-lowBackground h-20",
+  header = true,
+  selectable = false,
+} = defineProps<Props>();
 
 const emit = defineEmits<{
-  (e: 'clickRow', item: Record<string, unknown>): void
+  (e: "clickRow", item: Record<string, unknown>): void;
 }>();
 
 const tableHeaders = computed(() => {
@@ -107,35 +113,49 @@ const tableHeaders = computed(() => {
     tableHeaders.push(itemHeader);
   }
   return tableHeaders;
-})
+});
 
 const tableData = ref(data.slice(0));
 
-const updateTableData = () => { tableData.value = data.slice(0) }
+const updateTableData = () => {
+  tableData.value = data.slice(0);
+};
 watch(() => data, updateTableData);
 
-const comparator = (value: string, order: boolean) => { 
-  const comp = (a: Record<string, unknown>, b:Record<string, unknown>) => {
+const comparator = (value: string, order: boolean) => {
+  const comp = (a: Record<string, unknown>, b: Record<string, unknown>) => {
     const aVal = a[value];
     const bVal = b[value];
-    if (aVal === undefined) { return 1; }
-    if (bVal === undefined) { return -1; }
+    if (aVal === undefined) {
+      return 1;
+    }
+    if (bVal === undefined) {
+      return -1;
+    }
     if (typeof aVal === "number" && typeof bVal === "number") {
       return aVal - bVal;
     }
-    if (typeof aVal === "string" &&  typeof bVal === 'string' && !isNaN(Date.parse(aVal))) {
+    if (
+      typeof aVal === "string" &&
+      typeof bVal === "string" &&
+      !isNaN(Date.parse(aVal))
+    ) {
       return Date.parse(aVal) - Date.parse(bVal);
     }
     if (typeof aVal === "string" && typeof bVal === "string") {
       return aVal.localeCompare(bVal);
     }
     return 0;
-  }
-  return order ? comp : (a:Record<string, unknown>,b:Record<string,unknown>) => {
-    if (a[value] === undefined || b[value] === undefined) { return comp(a,b) }
-    return comp(b,a)
-  }
-}
+  };
+  return order
+    ? comp
+    : (a: Record<string, unknown>, b: Record<string, unknown>) => {
+        if (a[value] === undefined || b[value] === undefined) {
+          return comp(a, b);
+        }
+        return comp(b, a);
+      };
+};
 
 const sortBy = ref<Record<string, number>>({});
 const sort = (value: string) => {
@@ -158,5 +178,4 @@ const sort = (value: string) => {
     sortBy.value[value] = 0;
   }
 };
-
 </script>

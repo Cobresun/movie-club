@@ -14,6 +14,7 @@ import PageHeader from "@/common/components/PageHeader.vue";
 import VAvatar from "@/common/components/VAvatar.vue";
 import VBtn from "@/common/components/VBtn.vue";
 import VModal from "@/common/components/VModal.vue";
+import VSelect from "@/common/components/VSelect.vue";
 import VTable from "@/common/components/VTable.vue";
 import MenuCard from "@/features/clubs/components/MenuCard.vue";
 
@@ -24,6 +25,7 @@ import "vue-toastification/dist/index.css";
 createApp(App)
   .component("v-avatar", VAvatar)
   .component("v-btn", VBtn)
+  .component("v-select", VSelect)
   .component("loading-spinner", Loading)
   .component("movie-table", VTable)
   .component("menu-card", MenuCard)

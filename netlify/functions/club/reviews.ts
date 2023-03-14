@@ -1,14 +1,22 @@
-import { HandlerEvent, HandlerContext, HandlerResponse } from "@netlify/functions";
+import {
+  HandlerEvent,
+  HandlerContext,
+  HandlerResponse,
+} from "@netlify/functions";
 import { Path } from "path-parser";
 
 import { isAuthorized } from "../utils/auth";
 import { getFaunaClient } from "../utils/fauna";
 import { badRequest, ok } from "../utils/responses";
 import { unauthorized, methodNotAllowed } from "../utils/responses";
-import { getDetailedReviewData, getReviewData } from "../utils/tmdb";
-import { StringRecord, QueryResponse, ReviewResponseResponse, ReviewDatabaseObject } from "../utils/types";
+import { getDetailedMovie } from "../utils/tmdb";
+import {
+  StringRecord,
+  QueryResponse,
+  ReviewResponseResponse,
+} from "../utils/types";
 
-import { DetailedReviewResponse, Club } from "@/common/types/models";
+import { Club, ReviewResponse } from "@/common/types/models";
 
 export const path = new Path<StringRecord>("/api/club/:clubId<\\d+>/reviews");
 const modifyPath = new Path<StringRecord>(
@@ -62,15 +70,8 @@ async function getReviews(
     q.Call(q.Function("GetClubReviews"), clubId)
   );
 
-  if (detailed) {
-    const detailedReviews = await getDetailedReviewData(
-      reviews.reviews as DetailedReviewResponse[]
-    );
-    return ok(JSON.stringify(detailedReviews));
-  } else {
-    reviews.reviews = await getReviewData(reviews.reviews);
-    return ok(JSON.stringify(reviews.reviews));
-  }
+  const detailedReviews = await getDetailedMovie(reviews.reviews);
+  return ok(JSON.stringify(detailedReviews));
 }
 
 async function postReview(
@@ -83,9 +84,11 @@ async function postReview(
     q.Call(q.Function("AddMovieToReviews"), clubId, movieId)
   );
 
-  clubResponse.data.reviews = await getReviewData(clubResponse.data.reviews);
+  const updatedReview = (
+    await getDetailedMovie([clubResponse.data.reviews[0]])
+  )[0];
 
-  return ok(JSON.stringify(clubResponse.data.reviews[0]));
+  return ok(JSON.stringify(updatedReview));
 }
 
 async function updateReviewScore(
@@ -96,7 +99,7 @@ async function updateReviewScore(
 ): Promise<HandlerResponse> {
   const { faunaClient, q } = getFaunaClient();
 
-  const reviewResponse = await faunaClient.query<ReviewDatabaseObject[]>(
+  const reviewResponse = await faunaClient.query<ReviewResponse[]>(
     q.Call(q.Function("GetReviewByMovieId"), clubId, movieId)
   );
 
@@ -125,5 +128,5 @@ async function updateReviewScore(
 
   await faunaClient.query(q.Call(q.Function("AddReview"), clubId, review));
 
-  return ok(JSON.stringify((await getReviewData([review]))[0]));
+  return ok(JSON.stringify((await getDetailedMovie([review]))[0]));
 }

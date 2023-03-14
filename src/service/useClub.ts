@@ -1,3 +1,5 @@
+import { useRoute } from "vue-router";
+
 import { useRequestCache, useAuthRequest } from "./useRequest";
 
 import { ClubsViewClub, CacheDataService, Member } from "@/common/types/models";
@@ -17,11 +19,11 @@ export function useCreateClub() {
     await request.execute(`/api/club`, {
       data: {
         name: clubName,
-        members: members
+        members: members,
       },
       method: "PUT",
     });
-  }
+  };
   return { ...request, createClub };
 }
 
@@ -31,4 +33,10 @@ export function useMembers(clubId: string): CacheDataService<Member[]> {
     `/api/club/${clubId}/members`
   );
   return { ...fetch };
+}
+
+export function useClubId(): string {
+  const route = useRoute();
+  if (route.params.clubId) return route.params.clubId as string;
+  throw Error("This route does not include a clubId");
 }
