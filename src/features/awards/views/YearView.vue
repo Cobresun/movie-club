@@ -114,8 +114,6 @@ const enableButton = computed(() => {
   switch (clubAward.value?.step) {
     case AwardsStep.CategorySelect:
       return completedCategories.value;
-    case AwardsStep.Nominations:
-      return completedNominations.value;
     case AwardsStep.Ratings:
       return completedRanking.value;
     default:

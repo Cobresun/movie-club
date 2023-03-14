@@ -1,1 +1,1 @@
-export const NOMINATIONS_PER_AWARD = 2;
+export const NOMINATIONS_PER_AWARD = 3;
