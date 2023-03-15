@@ -1,75 +1,17 @@
-import {
-  HandlerEvent,
-  HandlerContext,
-  HandlerResponse,
-} from "@netlify/functions";
-import { Path } from "path-parser";
+import { ExprArg, query } from "faunadb";
 
-import { isAuthorized } from "../utils/auth";
-import { getFaunaClient } from "../utils/fauna";
+import { secured } from "../utils/auth";
+import { getClubProperty, getClubRef, getFaunaClient } from "../utils/fauna";
 import { badRequest, ok } from "../utils/responses";
-import { unauthorized, methodNotAllowed } from "../utils/responses";
 import { Router } from "../utils/router";
 import { getDetailedMovie } from "../utils/tmdb";
-import {
-  StringRecord,
-  QueryResponse,
-  ReviewResponseResponse,
-} from "../utils/types";
+import { QueryResponse, ReviewResponseResponse } from "../utils/types";
 
-import { Club, ReviewResponse } from "@/common/types/models";
-
-export const path = new Path<StringRecord>("/api/club/:clubId<\\d+>/reviews");
-const modifyPath = new Path<StringRecord>(
-  "/api/club/:clubId<\\d+>/reviews/:movieId<\\d+>"
-);
+import { Club } from "@/common/types/models";
 
 const router = new Router("/api/club/:clubId<\\d+>/reviews");
-router.get("/", otherHandler);
-
-export { router };
-
-export async function otherHandler(
-  event: HandlerEvent,
-  context: HandlerContext,
-  _path: StringRecord
-): Promise<HandlerResponse> {
-  const modifyPathParam = modifyPath.test(event.path);
-  const path = modifyPathParam == null ? _path : modifyPathParam;
-  const clubId = parseInt(path.clubId);
-
-  switch (event.httpMethod) {
-    case "GET": {
-      const detailed = event.queryStringParameters?.detailed === "true";
-      return await getReviews(clubId, detailed);
-    }
-    case "POST":
-      if (!(await isAuthorized(clubId, context))) return unauthorized();
-      return await postReview(parseInt(path.clubId), parseInt(path.movieId));
-    case "PUT": {
-      if (!(await isAuthorized(clubId, context))) return unauthorized();
-      if (event.body == null) return badRequest("Missing body");
-      const body = JSON.parse(event.body);
-      if (!body.name || !body.score)
-        return badRequest("Missing required body parameters");
-
-      return await updateReviewScore(
-        clubId,
-        parseInt(path.movieId),
-        body.name,
-        body.score
-      );
-    }
-    default:
-      return methodNotAllowed();
-  }
-}
-
-// TODO: GetClubReviews needs to return them sorted
-async function getReviews(
-  clubId: number,
-  detailed: boolean
-): Promise<HandlerResponse> {
+router.get("/", async (event, context, params) => {
+  const clubId = parseInt(params.clubId);
   const { faunaClient, q } = getFaunaClient();
 
   const reviews = await faunaClient.query<ReviewResponseResponse>(
@@ -78,12 +20,11 @@ async function getReviews(
 
   const detailedReviews = await getDetailedMovie(reviews.reviews);
   return ok(JSON.stringify(detailedReviews));
-}
+});
 
-async function postReview(
-  clubId: number,
-  movieId: number
-): Promise<HandlerResponse> {
+router.post("/:movieId<\\d+>", secured, async (event, context, params) => {
+  const clubId = parseInt(params.clubId);
+  const movieId = parseInt(params.movieId);
   const { faunaClient, q } = getFaunaClient();
 
   const clubResponse = await faunaClient.query<QueryResponse<Club>>(
@@ -95,44 +36,79 @@ async function postReview(
   )[0];
 
   return ok(JSON.stringify(updatedReview));
-}
+});
 
-async function updateReviewScore(
-  clubId: number,
-  movieId: number,
-  userName: string,
-  score: number
-): Promise<HandlerResponse> {
+router.put("/:movieId<\\d+>", secured, async (event, context, params) => {
+  if (event.body == null) return badRequest("Missing body");
+  const body = JSON.parse(event.body);
+  if (!body.name || !body.score)
+    return badRequest("Missing required body parameters");
+
+  const { name, score } = body;
+  const clubId = parseInt(params.clubId);
+  const movieId = parseInt(params.movieId);
   const { faunaClient, q } = getFaunaClient();
 
-  const reviewResponse = await faunaClient.query<ReviewResponse[]>(
-    q.Call(q.Function("GetReviewByMovieId"), clubId, movieId)
-  );
-
-  const review = reviewResponse[0];
-
-  review.scores[userName] = score;
-
-  // TODO: average should just be calculated in the client...
-  if (review.scores["average"] === undefined) {
-    // If no existing average, set the average to the current review's score
-    review.scores["average"] = score;
-  } else {
-    const numberOfScores = Object.keys(review.scores).length - 1;
-    review.scores["average"] = 0;
-
-    Object.keys(review.scores)
-      .filter((user) => user !== "average")
-      .map((user) => (review.scores.average += review.scores[user]));
-
-    review.scores["average"] = review.scores["average"] / numberOfScores;
-  }
-
   await faunaClient.query(
-    q.Call(q.Function("DeleteReviewByMovieId"), clubId, movieId)
+    updateReview(
+      clubId,
+      movieId,
+      q.Let(
+        {
+          average: q.Mean(
+            q.Append(
+              score,
+              q.Map(
+                q.Filter(
+                  q.ToArray(q.Select("scores", q.Var("review"))),
+                  q.Lambda(
+                    "score",
+                    q.Let(
+                      { scoreKey: q.Select(0, q.Var("score")) },
+                      q.Not(
+                        q.Or(
+                          q.Equals(q.Var("scoreKey"), name),
+                          q.Equals(q.Var("scoreKey"), "average")
+                        )
+                      )
+                    )
+                  )
+                ),
+                q.Lambda("score", q.Select(1, q.Var("score")))
+              )
+            )
+          ),
+        },
+        {
+          scores: q.Merge(q.Select("scores", q.Var("review")), {
+            [name]: score,
+            average: q.Var("average"),
+          }),
+        }
+      )
+    )
   );
+  return ok();
+});
 
-  await faunaClient.query(q.Call(q.Function("AddReview"), clubId, review));
+function updateReview(clubId: number, movieId: number, expression: ExprArg) {
+  const q = query;
 
-  return ok(JSON.stringify((await getDetailedMovie([review]))[0]));
+  return q.Update(getClubRef(clubId), {
+    data: {
+      reviews: q.Map(
+        getClubProperty(clubId, "reviews"),
+        q.Lambda(
+          "review",
+          q.If(
+            q.Equals(q.Select("movieId", q.Var("review")), movieId),
+            q.Merge(q.Var("review"), expression),
+            q.Var("review")
+          )
+        )
+      ),
+    },
+  });
 }
+
+export { router };

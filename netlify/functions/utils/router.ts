@@ -8,7 +8,7 @@ import { Path } from "path-parser";
 import { internalServerError, methodNotAllowed, notFound } from "./responses";
 import { StringRecord } from "./types";
 
-type MiddewareCallback = (
+export type MiddewareCallback = (
   event: HandlerEvent,
   context: HandlerContext,
   params: StringRecord,
