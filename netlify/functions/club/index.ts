@@ -9,7 +9,7 @@ import { Path } from "path-parser";
 import { path as awardsPath, handler as awardsHandler } from "./awards";
 import { path as backlogPath, handler as backlogHandler } from "./backlog";
 import { path as membersPath, handler as membersHandler } from "./members";
-import { path as reviewsPath, handler as reviewsHandler } from "./reviews";
+import { router as reviewsRouter } from "./reviews";
 import {
   path as watchListPath,
   handler as watchListHandler,
@@ -24,6 +24,7 @@ import {
   unauthorized,
   badRequest,
 } from "../utils/responses";
+import { Router } from "../utils/router";
 import { QueryResponse } from "../utils/types";
 
 const { faunaClient, q } = getFaunaClient();
@@ -69,7 +70,19 @@ const nextMoviePath = new Path<StringRecord>(
  * }
  */
 
-const handler: Handler = async function (
+const router = new Router("/api/club");
+router.use("/:clubId<\\d+>/reviews", reviewsRouter);
+
+router.get("/:clubId<\\d+>", getClubHandler);
+
+const handler: Handler = async (
+  event: HandlerEvent,
+  context: HandlerContext
+) => {
+  return router.route(event, context);
+};
+
+const otherHandler: Handler = async function (
   event: HandlerEvent,
   context: HandlerContext
 ) {
@@ -121,8 +134,6 @@ async function getClubHandler(
   context: HandlerContext,
   path: StringRecord
 ) {
-  if (event.httpMethod !== "GET") return methodNotAllowed();
-
   const club = await faunaClient.query<ClubsViewClub>(
     q.Call(q.Function("GetClub"), parseInt(path.clubId))
   );

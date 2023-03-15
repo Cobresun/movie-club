@@ -9,6 +9,7 @@ import { isAuthorized } from "../utils/auth";
 import { getFaunaClient } from "../utils/fauna";
 import { badRequest, ok } from "../utils/responses";
 import { unauthorized, methodNotAllowed } from "../utils/responses";
+import { Router } from "../utils/router";
 import { getDetailedMovie } from "../utils/tmdb";
 import {
   StringRecord,
@@ -23,7 +24,12 @@ const modifyPath = new Path<StringRecord>(
   "/api/club/:clubId<\\d+>/reviews/:movieId<\\d+>"
 );
 
-export async function handler(
+const router = new Router("/api/club/:clubId<\\d+>/reviews");
+router.get("/", otherHandler);
+
+export { router };
+
+export async function otherHandler(
   event: HandlerEvent,
   context: HandlerContext,
   _path: StringRecord
