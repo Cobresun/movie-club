@@ -27,27 +27,28 @@ export async function isAuthorized(
   );
 }
 
-export const secured: MiddewareCallback = async (
-  event,
-  context,
-  params,
-  next
-) => {
-  const { faunaClient, q } = getFaunaClient();
+export const loggedIn: MiddewareCallback = (event, context, params, next) => {
   if (!context.clientContext || !context.clientContext.user)
+    return Promise.resolve(unauthorized());
+  return next();
+};
+
+export const secured: MiddewareCallback = (event, context, params, next) => {
+  return loggedIn(event, context, params, async () => {
+    const { faunaClient, q } = getFaunaClient();
+
+    const clubId = parseInt(params.clubId);
+    const members = await faunaClient.query<MembersResponse>(
+      q.Call(q.Function("GetClubMembers"), clubId)
+    );
+
+    if (
+      members.members.some(
+        (member) => member.email === context.clientContext?.user.email
+      )
+    ) {
+      return next();
+    }
     return unauthorized();
-
-  const clubId = parseInt(params.clubId);
-  const members = await faunaClient.query<MembersResponse>(
-    q.Call(q.Function("GetClubMembers"), clubId)
-  );
-
-  if (
-    members.members.some(
-      (member) => member.email === context.clientContext?.user.email
-    )
-  ) {
-    return next();
-  }
-  return unauthorized();
+  });
 };

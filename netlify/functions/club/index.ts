@@ -15,28 +15,13 @@ import {
   handler as watchListHandler,
 } from "./watchList";
 import { Club, ClubsViewClub } from "../../../src/common/types/models";
-import { isAuthorized } from "../utils/auth";
-import { getFaunaClient } from "../utils/fauna";
-import {
-  ok,
-  methodNotAllowed,
-  notFound,
-  unauthorized,
-  badRequest,
-} from "../utils/responses";
+import { loggedIn, secured } from "../utils/auth";
+import { getClubRef, getFaunaClient } from "../utils/fauna";
+import { ok, badRequest } from "../utils/responses";
 import { Router } from "../utils/router";
 import { QueryResponse } from "../utils/types";
 
 const { faunaClient, q } = getFaunaClient();
-
-type StringRecord = Record<string, string>;
-
-const newClubPath = new Path<StringRecord>("/api/club");
-
-const clubPath = new Path<StringRecord>("/api/club/:clubId<\\d+>");
-const nextMoviePath = new Path<StringRecord>(
-  "/api/club/:clubId<\\d+>/nextMovie"
-);
 
 /**
  * PUT /club -> ClubsViewClub
@@ -73,90 +58,23 @@ const nextMoviePath = new Path<StringRecord>(
 const router = new Router("/api/club");
 router.use("/:clubId<\\d+>/reviews", reviewsRouter);
 
-router.get("/:clubId<\\d+>", getClubHandler);
-
-const handler: Handler = async (
-  event: HandlerEvent,
-  context: HandlerContext
-) => {
-  return router.route(event, context);
-};
-
-const otherHandler: Handler = async function (
-  event: HandlerEvent,
-  context: HandlerContext
-) {
-  const newClubPathMatch = newClubPath.test(event.path);
-  if (newClubPathMatch != null) {
-    return await newClubHandler(event, context, newClubPathMatch);
-  }
-
-  const clubPathMatch = clubPath.partialTest(event.path);
-  if (clubPathMatch == null) {
-    return notFound("Invalid club id");
-  }
-
-  const watchListPathMatch = watchListPath.partialTest(event.path);
-  if (watchListPathMatch != null) {
-    return await watchListHandler(event, context, watchListPathMatch);
-  }
-
-  const membersPathMatch = membersPath.test(event.path);
-  if (membersPathMatch != null) {
-    return await membersHandler(event, context, membersPathMatch);
-  }
-
-  const nextMoviePathMatch = nextMoviePath.test(event.path);
-  if (nextMoviePathMatch != null) {
-    return await nextMovieHandler(event, context, nextMoviePathMatch);
-  }
-
-  const backlogPathMatch = backlogPath.partialTest(event.path);
-  if (backlogPathMatch != null) {
-    return await backlogHandler(event, context, backlogPathMatch);
-  }
-
-  const reviewsPathMatch = reviewsPath.partialTest(event.path);
-  if (reviewsPathMatch != null) {
-    return await reviewsHandler(event, context, reviewsPathMatch);
-  }
-
-  const awardsPathMatch = awardsPath.partialTest(event.path);
-  if (awardsPathMatch != null) {
-    return await awardsHandler(event, context, awardsPathMatch);
-  }
-
-  return await getClubHandler(event, context, clubPathMatch);
-};
-
-async function getClubHandler(
-  event: HandlerEvent,
-  context: HandlerContext,
-  path: StringRecord
-) {
+router.get("/:clubId<\\d+>", async (event, context, params) => {
   const club = await faunaClient.query<ClubsViewClub>(
-    q.Call(q.Function("GetClub"), parseInt(path.clubId))
+    q.Call(q.Function("GetClub"), parseInt(params.clubId))
   );
 
   return ok(JSON.stringify(club));
-}
+});
 
-async function newClubHandler(
-  event: HandlerEvent,
-  context: HandlerContext,
-  path: StringRecord
-) {
+router.post("/", loggedIn, async (event) => {
   if (!event.body) return badRequest("Missing body");
   const body = JSON.parse(event.body);
-
   if (!body.name || body.name.length < 1) return badRequest("Missing name");
-  const name: string = body.name;
-
   if (!body.members || !body.members.length)
     return badRequest("Missing members");
-  const members: string[] = body.members;
 
-  if (event.httpMethod !== "PUT") return methodNotAllowed();
+  const name: string = body.name;
+  const members: string[] = body.members;
 
   // Generate a random clubId
   const clubId = Math.floor(Math.random() * 100000);
@@ -182,36 +100,62 @@ async function newClubHandler(
   );
 
   return ok(JSON.stringify(clubResponse.data));
-}
+});
 
-async function nextMovieHandler(
-  event: HandlerEvent,
-  context: HandlerContext,
-  path: StringRecord
-): Promise<HandlerResponse> {
-  const clubId = parseInt(path.clubId);
-  if (!(await isAuthorized(clubId, context))) return unauthorized();
-  if (event.httpMethod !== "PUT") return methodNotAllowed();
-  if (event.body == null) return badRequest("Missing body");
+router.put(
+  "/:clubId<\\d+>/nextMovie",
+  secured,
+  async (event, context, params) => {
+    const clubId = parseInt(params.clubId);
+    if (!event.body) return badRequest("Missing body");
+    let movieId: number;
+    try {
+      movieId = parseInt(JSON.parse(event.body).nextMovieId);
+    } catch {
+      return badRequest("Invalid movie id");
+    }
 
-  let movieId: number;
-  try {
-    movieId = parseInt(JSON.parse(event.body).nextMovieId);
-  } catch {
-    return badRequest("Invalid movie id");
-  }
-
-  await faunaClient.query<void>(
-    q.Update(
-      q.Select("ref", q.Get(q.Match(q.Index("club_by_clubId"), clubId))),
-      {
+    await faunaClient.query(
+      q.Update(getClubRef(clubId), {
         data: {
           nextMovieId: movieId,
         },
-      }
-    )
-  );
-  return ok();
-}
+      })
+    );
+    return ok();
+  }
+);
+
+const handler: Handler = async (
+  event: HandlerEvent,
+  context: HandlerContext
+) => {
+  return router.route(event, context);
+};
+
+const otherHandler: Handler = async function (
+  event: HandlerEvent,
+  context: HandlerContext
+) {
+  const watchListPathMatch = watchListPath.partialTest(event.path);
+  if (watchListPathMatch != null) {
+    return await watchListHandler(event, context, watchListPathMatch);
+  }
+
+  const membersPathMatch = membersPath.test(event.path);
+  if (membersPathMatch != null) {
+    return await membersHandler(event, context, membersPathMatch);
+  }
+
+  const backlogPathMatch = backlogPath.partialTest(event.path);
+  if (backlogPathMatch != null) {
+    return await backlogHandler(event, context, backlogPathMatch);
+  }
+
+  const awardsPathMatch = awardsPath.partialTest(event.path);
+  if (awardsPathMatch != null) {
+    return await awardsHandler(event, context, awardsPathMatch);
+  }
+};
 
 export { handler };
