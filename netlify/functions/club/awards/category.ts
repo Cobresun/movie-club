@@ -5,7 +5,7 @@ import { badRequest, ok } from "../../utils/responses";
 import { Router } from "../../utils/router";
 
 const router = new Router(
-  "/api/club/:clubId<\\d+>/awards/:<\\d+>year/category"
+  "/api/club/:clubId<\\d+>/awards/:year<\\d+>/category"
 );
 router.post("/", secured, async (event, context, params) => {
   if (!event.body) return badRequest("Missing body");

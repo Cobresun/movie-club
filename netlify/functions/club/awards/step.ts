@@ -4,7 +4,7 @@ import { getFaunaClient } from "../../utils/fauna";
 import { badRequest, ok } from "../../utils/responses";
 import { Router } from "../../utils/router";
 
-const router = new Router("/api/club/:clubId<\\d+>/awards/:<\\d+>year/step");
+const router = new Router("/api/club/:clubId<\\d+>/awards/:year<\\d+>/step");
 router.put("/", secured, async (event, context, params) => {
   const clubId = parseInt(params.clubId);
   if (!event.body) return badRequest("Missing body");

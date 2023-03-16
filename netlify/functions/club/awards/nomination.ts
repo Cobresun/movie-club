@@ -5,7 +5,7 @@ import { badRequest, ok } from "../../utils/responses";
 import { Router } from "../../utils/router";
 
 const router = new Router(
-  "/api/club/:clubId<\\d+>/awards/:<\\d+>year/nomination"
+  "/api/club/:clubId<\\d+>/awards/:year<\\d+>/nomination"
 );
 
 router.post("/", secured, async (event, context, params) => {

@@ -17,7 +17,7 @@ const router = new Router("/api/club/:clubId<\\d+>/awards");
 router.use("/:year<\\d+>/category", categoryRouter);
 router.use("/:year<\\d+>/step", stepHandler);
 router.use("/:year<\\d+>/nomination", nominationRouter);
-router.use("/:year<\\d+>/awards", rankingRouter);
+router.use("/:year<\\d+>/ranking", rankingRouter);
 
 router.get("/:year<\\d+>", async (event, context, params) => {
   const clubId = parseInt(params.clubId);
