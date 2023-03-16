@@ -1,27 +1,19 @@
-import { HandlerEvent, HandlerContext, HandlerResponse } from "@netlify/functions";
-import { Path } from "path-parser";
+import { getClubProperty, getFaunaClient } from "../utils/fauna";
+import { ok } from "../utils/responses";
+import { Router } from "../utils/router";
 
-import { getFaunaClient } from "../utils/fauna";
-import { methodNotAllowed, ok } from "../utils/responses";
-import { StringRecord } from "../utils/types";
+const router = new Router("/api/club/:clubId<\\d+>/members");
 
-import { Member } from "@/common/types/models";
-
-export const path = new Path<StringRecord>('/api/club/:clubId<\\d+>/members');
-
-// TODO: Don't really want this to exist, update Fauna function
-interface MembersResponse {
-  members: Member[];
-}
-
-export async function handler(event: HandlerEvent, context: HandlerContext, path: StringRecord): Promise<HandlerResponse> {
-  if (event.httpMethod !== 'GET') return methodNotAllowed()
+router.get("/", async (event, context, params) => {
   const { faunaClient, q } = getFaunaClient();
-  const clubId = parseInt(path.clubId)
+  const clubId = parseInt(params.clubId);
+  const members = await faunaClient.query(
+    q.Map(
+      getClubProperty(clubId, "members"),
+      q.Lambda("memberRef", q.Select("data", q.Get(q.Var("memberRef"))))
+    )
+  );
+  return ok(JSON.stringify(members));
+});
 
-  const members = await faunaClient.query<MembersResponse>(
-      q.Call(q.Function("GetClubMembers"), clubId)
-  )
-
-  return ok(JSON.stringify(members.members));
-}
+export { router };

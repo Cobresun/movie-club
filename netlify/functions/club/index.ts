@@ -2,7 +2,7 @@ import { Handler, HandlerContext, HandlerEvent } from "@netlify/functions";
 
 import { path as awardsPath, handler as awardsHandler } from "./awards";
 import { path as backlogPath, handler as backlogHandler } from "./backlog";
-import { path as membersPath, handler as membersHandler } from "./members";
+import { router as membersRouter } from "./members";
 import { router as reviewsRouter } from "./reviews";
 import { router as watchlistRouter } from "./watchList";
 import { Club, ClubsViewClub } from "../../../src/common/types/models";
@@ -49,6 +49,7 @@ const { faunaClient, q } = getFaunaClient();
 const router = new Router("/api/club");
 router.use("/:clubId<\\d+>/reviews", reviewsRouter);
 router.use("/:clubId<\\d+>/watchlist", watchlistRouter);
+router.use("/:clubId<\\d+>/members", membersRouter);
 
 router.get("/:clubId<\\d+>", async (event, context, params) => {
   const club = await faunaClient.query<ClubsViewClub>(
@@ -129,11 +130,6 @@ const otherHandler: Handler = async function (
   event: HandlerEvent,
   context: HandlerContext
 ) {
-  const membersPathMatch = membersPath.test(event.path);
-  if (membersPathMatch != null) {
-    return await membersHandler(event, context, membersPathMatch);
-  }
-
   const backlogPathMatch = backlogPath.partialTest(event.path);
   if (backlogPathMatch != null) {
     return await backlogHandler(event, context, backlogPathMatch);
