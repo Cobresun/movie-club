@@ -63,4 +63,4 @@ router.delete("/:movieId<\\d+>", secured, async (event, context, params) => {
   return ok();
 });
 
-export { router };
+export default router;

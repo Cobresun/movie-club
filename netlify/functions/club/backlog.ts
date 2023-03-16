@@ -1,47 +1,17 @@
-import {
-  HandlerContext,
-  HandlerEvent,
-  HandlerResponse,
-} from "@netlify/functions";
-import { Path } from "path-parser";
-
-import { isAuthorized } from "../utils/auth";
+import { secured } from "../utils/auth";
 import { getFaunaClient } from "../utils/fauna";
-import {
-  badRequest,
-  methodNotAllowed,
-  notFound,
-  ok,
-  unauthorized,
-} from "../utils/responses";
+import { badRequest, notFound, ok } from "../utils/responses";
+import { Router } from "../utils/router";
 import { getWatchlistItemMovieData } from "../utils/tmdb";
-import { QueryResponse, StringRecord } from "../utils/types";
+import { QueryResponse } from "../utils/types";
 
 import { Club, WatchListViewModel } from "@/common/types/models";
 
-export const path = new Path<StringRecord>(
-  "/api/club/:clubId<\\d+>/backlog/:movieId<\\d+>"
-);
+const router = new Router("/api/club/:clubId<\\d+>/backlog");
 
-export async function handler(
-  event: HandlerEvent,
-  context: HandlerContext,
-  path: StringRecord
-): Promise<HandlerResponse> {
-  const clubId = parseInt(path.clubId);
-  if (!(await isAuthorized(clubId, context))) return unauthorized();
-
-  switch (event.httpMethod) {
-    case "POST":
-      return await addMovieToBacklog(clubId, parseInt(path.movieId));
-    case "DELETE":
-      return deleteMovieFromBacklog(clubId, parseInt(path.movieId));
-    default:
-      return methodNotAllowed();
-  }
-}
-
-async function addMovieToBacklog(clubId: number, movieId: number) {
+router.post("/:movieId<\\d+>", secured, async (event, context, params) => {
+  const clubId = parseInt(params.clubId);
+  const movieId = parseInt(params.movieId);
   const { faunaClient, q } = getFaunaClient();
   const watchListResult = await faunaClient.query<WatchListViewModel>(
     q.Call(q.Function("GetWatchList"), clubId)
@@ -60,15 +30,21 @@ async function addMovieToBacklog(clubId: number, movieId: number) {
   )[0];
 
   return ok(JSON.stringify(movie));
-}
+});
 
-async function deleteMovieFromBacklog(clubId: number, movieId: number) {
+router.delete("/:movieId<\\d+>", secured, async (event, context, params) => {
+  const clubId = parseInt(params.clubId);
+  const movieId = parseInt(params.movieId);
   const { faunaClient, q } = getFaunaClient();
-  await faunaClient
-    .query(q.Call(q.Function("DeleteBacklogItem"), [clubId, movieId]))
-    .catch((error) => {
-      notFound(error);
-    });
+  try {
+    await faunaClient.query(
+      q.Call(q.Function("DeleteBacklogItem"), [clubId, movieId])
+    );
+  } catch (err) {
+    return notFound(JSON.stringify(err));
+  }
 
   return ok();
-}
+});
+
+export default router;

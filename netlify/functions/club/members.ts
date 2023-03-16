@@ -16,4 +16,4 @@ router.get("/", async (event, context, params) => {
   return ok(JSON.stringify(members));
 });
 
-export { router };
+export default router;

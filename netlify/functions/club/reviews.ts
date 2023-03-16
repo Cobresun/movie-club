@@ -111,4 +111,4 @@ function updateReview(clubId: number, movieId: number, expression: ExprArg) {
   });
 }
 
-export { router };
+export default router;

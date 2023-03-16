@@ -1,10 +1,10 @@
 import { Handler, HandlerContext, HandlerEvent } from "@netlify/functions";
 
-import { path as awardsPath, handler as awardsHandler } from "./awards";
-import { path as backlogPath, handler as backlogHandler } from "./backlog";
-import { router as membersRouter } from "./members";
-import { router as reviewsRouter } from "./reviews";
-import { router as watchlistRouter } from "./watchList";
+import awardsRouter from "./awards";
+import backlogRouter from "./backlog";
+import membersRouter from "./members";
+import reviewsRouter from "./reviews";
+import watchlistRouter from "./watchList";
 import { Club, ClubsViewClub } from "../../../src/common/types/models";
 import { loggedIn, secured } from "../utils/auth";
 import { getClubRef, getFaunaClient } from "../utils/fauna";
@@ -49,7 +49,9 @@ const { faunaClient, q } = getFaunaClient();
 const router = new Router("/api/club");
 router.use("/:clubId<\\d+>/reviews", reviewsRouter);
 router.use("/:clubId<\\d+>/watchlist", watchlistRouter);
+router.use("/:clubId<\\d+>/backlog", backlogRouter);
 router.use("/:clubId<\\d+>/members", membersRouter);
+router.use("/:clubId<\\d+>/awards", awardsRouter);
 
 router.get("/:clubId<\\d+>", async (event, context, params) => {
   const club = await faunaClient.query<ClubsViewClub>(
@@ -124,21 +126,6 @@ const handler: Handler = async (
   context: HandlerContext
 ) => {
   return router.route(event, context);
-};
-
-const otherHandler: Handler = async function (
-  event: HandlerEvent,
-  context: HandlerContext
-) {
-  const backlogPathMatch = backlogPath.partialTest(event.path);
-  if (backlogPathMatch != null) {
-    return await backlogHandler(event, context, backlogPathMatch);
-  }
-
-  const awardsPathMatch = awardsPath.partialTest(event.path);
-  if (awardsPathMatch != null) {
-    return await awardsHandler(event, context, awardsPathMatch);
-  }
 };
 
 export { handler };
