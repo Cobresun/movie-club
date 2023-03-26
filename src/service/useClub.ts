@@ -21,7 +21,7 @@ export function useCreateClub() {
         name: clubName,
         members: members,
       },
-      method: "PUT",
+      method: "POST",
     });
   };
   return { ...request, createClub };

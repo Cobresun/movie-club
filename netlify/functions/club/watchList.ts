@@ -1,59 +1,18 @@
-import {
-  HandlerContext,
-  HandlerEvent,
-  HandlerResponse,
-} from "@netlify/functions";
-import { Path } from "path-parser";
-
-import { isAuthorized } from "../utils/auth";
+import { secured } from "../utils/auth";
 import { getFaunaClient } from "../utils/fauna";
-import {
-  methodNotAllowed,
-  ok,
-  unauthorized,
-  badRequest,
-} from "../utils/responses";
+import { ok, badRequest } from "../utils/responses";
+import { Router } from "../utils/router";
 import { getWatchlistItemMovieData } from "../utils/tmdb";
-import { StringRecord, QueryResponse } from "../utils/types";
+import { QueryResponse } from "../utils/types";
 
 import { Club, WatchListViewModel } from "@/common/types/models";
 
-export const path = new Path<StringRecord>("/api/club/:clubId<\\d+>/watchList");
-const modifyPath = new Path<StringRecord>(
-  "/api/club/:clubId<\\d+>/watchList/:movieId<\\d+>"
-);
+const router = new Router("/api/club/:clubId<\\d+>/watchlist");
 
-export async function handler(
-  event: HandlerEvent,
-  context: HandlerContext,
-  _path: StringRecord
-): Promise<HandlerResponse> {
-  const modifyPathParam = modifyPath.test(event.path);
-  const path = modifyPathParam == null ? _path : modifyPathParam;
-  const clubId = parseInt(path.clubId);
-
-  switch (event.httpMethod) {
-    case "GET":
-      return await getWatchList(clubId);
-    case "POST":
-      return await postWatchList(
-        parseInt(path.clubId),
-        parseInt(path.movieId),
-        context
-      );
-    case "DELETE":
-      return await deleteWatchList(
-        parseInt(path.clubId),
-        parseInt(path.movieId),
-        context
-      );
-    default:
-      return methodNotAllowed();
-  }
-}
-
-async function getWatchList(clubId: number): Promise<HandlerResponse> {
+router.get("/", async (event, context, params) => {
+  const clubId = parseInt(params.clubId);
   const { faunaClient, q } = getFaunaClient();
+
   const watchListViewModel = await faunaClient.query<WatchListViewModel>(
     q.Call(q.Function("GetWatchList"), clubId)
   );
@@ -66,14 +25,11 @@ async function getWatchList(clubId: number): Promise<HandlerResponse> {
   );
 
   return ok(JSON.stringify(watchListViewModel));
-}
+});
 
-async function postWatchList(
-  clubId: number,
-  movieId: number,
-  context: HandlerContext
-): Promise<HandlerResponse> {
-  if (!(await isAuthorized(clubId, context))) return unauthorized();
+router.post("/:movieId<\\d+>", secured, async (event, context, params) => {
+  const clubId = parseInt(params.clubId);
+  const movieId = parseInt(params.movieId);
   const { faunaClient, q } = getFaunaClient();
   const watchListResult = await faunaClient.query<WatchListViewModel>(
     q.Call(q.Function("GetWatchList"), clubId)
@@ -93,14 +49,11 @@ async function postWatchList(
   )[0];
 
   return ok(JSON.stringify(movie));
-}
+});
 
-async function deleteWatchList(
-  clubId: number,
-  movieId: number,
-  context: HandlerContext
-): Promise<HandlerResponse> {
-  if (!(await isAuthorized(clubId, context))) return unauthorized();
+router.delete("/:movieId<\\d+>", secured, async (event, context, params) => {
+  const clubId = parseInt(params.clubId);
+  const movieId = parseInt(params.movieId);
   const { faunaClient, q } = getFaunaClient();
 
   await faunaClient.query(
@@ -108,4 +61,6 @@ async function deleteWatchList(
   );
 
   return ok();
-}
+});
+
+export default router;
