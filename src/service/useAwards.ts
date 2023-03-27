@@ -10,6 +10,7 @@ import { Ref } from "vue";
 import { useUser } from "./useUser";
 
 import {
+  Award,
   AwardsStep,
   ClubAwards,
   DetailedReviewResponse,
@@ -74,6 +75,69 @@ export function useAddCategory(clubId: string, year: string) {
           return {
             ...currentAwards,
             awards: [...currentAwards.awards, { title, nominations: [] }],
+          };
+        }
+      );
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries(["awards", clubId, year]);
+    },
+  });
+}
+
+export function useReorderCategories(clubId: string, year: string) {
+  const { authToken } = useAuthStore();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (categories: string[]) =>
+      axios.put(
+        `/api/club/${clubId}/awards/${year}/category`,
+        { categories },
+        { headers: { Authorization: `Bearer ${authToken}` } }
+      ),
+    onMutate: async (categories) => {
+      await queryClient.cancelQueries(["awards", clubId, year]);
+      queryClient.setQueryData<ClubAwards>(
+        ["awards", clubId, year],
+        (currentAwards) => {
+          if (!currentAwards) return currentAwards;
+          return {
+            ...currentAwards,
+            awards: categories.map((category) =>
+              currentAwards.awards.find((award) => award.title === category)
+            ) as Award[],
+          };
+        }
+      );
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries(["awards", clubId, year]);
+    },
+  });
+}
+
+export function useDeleteCategory(clubId: string, year: string) {
+  const { authToken } = useAuthStore();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (award: Award) =>
+      axios.delete(
+        `/api/club/${clubId}/awards/${year}/category/${encodeURIComponent(
+          award.title
+        )}`,
+        { headers: { Authorization: `Bearer ${authToken}` } }
+      ),
+    onMutate: async (award) => {
+      await queryClient.cancelQueries(["awards", clubId, year]);
+      queryClient.setQueryData<ClubAwards>(
+        ["awards", clubId, year],
+        (currentAwards) => {
+          if (!currentAwards) return currentAwards;
+          return {
+            ...currentAwards,
+            awards: currentAwards.awards.filter(
+              (curAward) => curAward.title !== award.title
+            ),
           };
         }
       );
