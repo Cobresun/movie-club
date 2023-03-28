@@ -107,6 +107,8 @@ export class Router {
         }
       }
     }
+    console.log(event);
+    console.log(context);
     return notFound();
   }
 
