@@ -107,9 +107,6 @@ export class Router {
         }
       }
     }
-    console.log(event);
-    console.log(context);
-    console.log(this.routes);
     return notFound();
   }
 
