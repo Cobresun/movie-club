@@ -45,7 +45,7 @@
 import { computed, ref } from "vue";
 import { useRoute } from "vue-router";
 
-import { filterMovies } from "../../searchMovies";
+import { filterMovies } from "../../../common/searchMovies";
 import GalleryView from "../components/GalleryView.vue";
 import TableView from "../components/TableView.vue";
 
