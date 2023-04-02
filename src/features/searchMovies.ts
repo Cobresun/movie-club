@@ -33,8 +33,6 @@ export function filterMovies(reviews: DetailedMovie[], searchQuery: string): Det
         }, {} as Record<string, string>)
       : {};
 
-    console.log(filters)
-
     // If there are filters, remove the filter and the value from the search query.
     if (Object.keys(filters).length) {
       searchQuery = searchQuery.replace(/(\w+:\w+\s?)/g, '');
@@ -49,10 +47,6 @@ export function filterMovies(reviews: DetailedMovie[], searchQuery: string): Det
         review.movieData.production_companies.some(company => company.name.toLocaleLowerCase().includes(filters.company.toLowerCase()))
       );
     }
-
-    reviews.map(review => {
-      console.log(review.movieData.genres)
-    })
 
     if (filters.genre) {
       reviews = reviews.filter(review =>
