@@ -45,9 +45,9 @@
 import { computed, ref } from "vue";
 import { useRoute } from "vue-router";
 
+import { filterMovies } from "../../../common/searchMovies";
 import GalleryView from "../components/GalleryView.vue";
 import TableView from "../components/TableView.vue";
-import { filterReviews } from "../searchReviews";
 
 import VToggle from "@/common/components/VToggle.vue";
 import AddReviewPrompt from "@/features/reviews/components/AddReviewPrompt.vue";
@@ -85,6 +85,6 @@ const submitScore = (movieId: number, score: number) => {
 
 const searchTerm = ref("");
 const filteredReviews = computed(() => {
-  return filterReviews(reviews.value ?? [], searchTerm.value);
+  return filterMovies(reviews.value ?? [], searchTerm.value);
 });
 </script>
