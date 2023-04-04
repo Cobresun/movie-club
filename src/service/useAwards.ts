@@ -207,6 +207,59 @@ export function useAddNomination(clubId: string, year: string) {
   });
 }
 
+export function useDeleteNomination(clubId: string, year: string) {
+  const { authToken } = useAuthStore();
+  const queryClient = useQueryClient();
+  const { data: user } = useUser();
+
+  return useMutation({
+    mutationFn: (input: { awardTitle: string; movieId: number }) =>
+      axios.delete(
+        `/api/club/${clubId}/awards/${year}/nomination/${input.movieId}`,
+        {
+          headers: { Authorization: `Bearer ${authToken}` },
+          params: { awardTitle: input.awardTitle, userId: user.value?.name },
+        }
+      ),
+    onMutate: async (input) => {
+      await queryClient.cancelQueries(["awards", clubId, year]);
+
+      queryClient.setQueryData(
+        ["awards", clubId, year],
+        (currentAwards: ClubAwards | undefined) => {
+          if (!currentAwards) return currentAwards;
+
+          const updatedAwards = currentAwards.awards.map((award: Award) => {
+            if (award.title === input.awardTitle) {
+              const updatedNominations = award.nominations
+                .map((nomination) => {
+                  if (nomination.movieId === input.movieId) {
+                    return {
+                      ...nomination,
+                      nominatedBy: nomination.nominatedBy.filter(
+                        (nominator) => nominator !== user.value?.name
+                      ),
+                    };
+                  }
+                  return nomination;
+                })
+                .filter((nomination) => nomination.nominatedBy.length > 0);
+
+              return { ...award, nominations: updatedNominations };
+            }
+            return award;
+          });
+
+          return { ...currentAwards, awards: updatedAwards };
+        }
+      );
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries(["awards", clubId, year]);
+    },
+  });
+}
+
 export function useSubmitRanking(clubId: string, year: string) {
   const { authToken } = useAuthStore();
   const { data: user } = useUser();
