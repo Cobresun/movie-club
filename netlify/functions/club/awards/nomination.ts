@@ -69,4 +69,66 @@ router.post("/", secured, async (event, context, params) => {
   return ok();
 });
 
+router.delete("/:movieId", secured, async (event, context, params) => {
+  const clubId = parseInt(params.clubId);
+  const awardTitle = event.queryStringParameters?.awardTitle;
+  const movieId = parseInt(params.movieId);
+  const userId = event.queryStringParameters?.userId;
+
+  if (!awardTitle) return badRequest("Missing award title in query parameters");
+  if (!userId) return badRequest("Missing userId in query parameters");
+
+  const year = parseInt(params.year);
+  const { faunaClient, q } = getFaunaClient();
+
+  await faunaClient.query(
+    updateAward(
+      clubId,
+      year,
+      awardTitle,
+      q.Let(
+        {
+          nominations: q.Select("nominations", q.Var("award")),
+          existingNomination: q.Filter(
+            q.Var("nominations"),
+            q.Lambda(
+              "nomination",
+              q.Equals(q.Select("movieId", q.Var("nomination")), movieId)
+            )
+          ),
+        },
+        q.If(
+          q.Not(q.IsEmpty(q.Var("existingNomination"))),
+          {
+            nominations: q.Filter(
+              q.Map(
+                q.Var("nominations"),
+                q.Lambda(
+                  "nomination",
+                  q.If(
+                    q.Equals(q.Select("movieId", q.Var("nomination")), movieId),
+                    q.Merge(q.Var("nomination"), {
+                      nominatedBy: q.Difference(
+                        q.Select("nominatedBy", q.Var("nomination")),
+                        [userId]
+                      ),
+                    }),
+                    q.Var("nomination")
+                  )
+                )
+              ),
+              q.Lambda(
+                "nomination",
+                q.Not(q.IsEmpty(q.Select("nominatedBy", q.Var("nomination"))))
+              )
+            ),
+          },
+          { nominations: q.Var("nominations") }
+        )
+      )
+    )
+  );
+  return ok();
+});
+
 export default router;

@@ -22,6 +22,13 @@
         :key="nomination.movieId"
         :movie-title="nomination.movieTitle"
         :movie-poster-url="nomination.movieData.poster_url"
+        show-delete
+        @delete="
+          deleteNomination({
+            awardTitle: award.title,
+            movieId: nomination.movieId,
+          })
+        "
       ></MoviePosterCard>
       <AddMovieButton
         v-for="index in getAddButtonNumber(award)"
@@ -41,7 +48,7 @@ import { NOMINATIONS_PER_AWARD } from "../constants";
 import MoviePosterCard from "@/common/components/MoviePosterCard.vue";
 import MovieSearchPrompt from "@/common/components/MovieSearchPrompt.vue";
 import { ClubAwards, Award, MovieSearchIndex } from "@/common/types/models";
-import { useAddNomination } from "@/service/useAwards";
+import { useAddNomination, useDeleteNomination } from "@/service/useAwards";
 import { useDetailedReview } from "@/service/useReview";
 import { useUser } from "@/service/useUser";
 
@@ -93,4 +100,6 @@ const addNomination = (movie: MovieSearchIndex) => {
   mutate({ awardTitle: currentAward.value.title, review });
   closePrompt();
 };
+
+const { mutate: deleteNomination } = useDeleteNomination(clubId, year);
 </script>
