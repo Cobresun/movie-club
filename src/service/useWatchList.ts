@@ -20,13 +20,11 @@ export function useWatchList(
 }
 
 export function useAddMovie(clubId: string) {
-  const { authToken } = useAuthStore();
+  const auth = useAuthStore();
   const queryClient = useQueryClient();
   return useMutation(
     (movie: WatchListItem) =>
-      axios.post(`/api/club/${clubId}/watchList/${movie.movieId}`, undefined, {
-        headers: { Authorization: `Bearer ${authToken}` },
-      }),
+      auth.request.post(`/api/club/${clubId}/watchList/${movie.movieId}`),
     {
       onMutate: (movie) => {
         if (!movie) return;
@@ -48,13 +46,11 @@ export function useAddMovie(clubId: string) {
 }
 
 export function useDeleteMovie(clubId: string) {
-  const { authToken } = useAuthStore();
+  const auth = useAuthStore();
   const queryClient = useQueryClient();
   return useMutation(
     (movieId: number) =>
-      axios.delete(`/api/club/${clubId}/watchList/${movieId}`, {
-        headers: { Authorization: `Bearer ${authToken}` },
-      }),
+      auth.request.delete(`/api/club/${clubId}/watchList/${movieId}`),
     {
       onMutate: async (movieId) => {
         await queryClient.cancelQueries(["watchlist", clubId]);
@@ -78,15 +74,13 @@ export function useDeleteMovie(clubId: string) {
 }
 
 export function useMakeNextWatch(clubId: string) {
-  const { authToken } = useAuthStore();
+  const auth = useAuthStore();
   const queryClient = useQueryClient();
   return useMutation(
     (movieId: number) =>
-      axios.put(
-        `/api/club/${clubId}/nextMovie`,
-        { nextMovieId: movieId },
-        { headers: { Authorization: `Bearer ${authToken}` } }
-      ),
+      auth.request.put(`/api/club/${clubId}/nextMovie`, {
+        nextMovieId: movieId,
+      }),
     {
       onMutate: async (movieId) => {
         await queryClient.cancelQueries(["watchlist", clubId]);
@@ -105,13 +99,11 @@ export function useMakeNextWatch(clubId: string) {
 }
 
 export function useDeleteBacklogItem(clubId: string) {
-  const { authToken } = useAuthStore();
+  const auth = useAuthStore();
   const queryClient = useQueryClient();
   return useMutation(
     (movieId: number) =>
-      axios.delete(`/api/club/${clubId}/backlog/${movieId}`, {
-        headers: { Authorization: `Bearer ${authToken}` },
-      }),
+      auth.request.delete(`/api/club/${clubId}/backlog/${movieId}`),
     {
       onMutate: async (movieId) => {
         await queryClient.cancelQueries(["watchlist", clubId]);
@@ -135,13 +127,11 @@ export function useDeleteBacklogItem(clubId: string) {
 }
 
 export function useAddBacklogItem(clubId: string) {
-  const { authToken } = useAuthStore();
+  const auth = useAuthStore();
   const queryClient = useQueryClient();
   return useMutation(
     (movieId: number) =>
-      axios.post(`/api/club/${clubId}/backlog/${movieId}`, undefined, {
-        headers: { Authorization: `Bearer ${authToken}` },
-      }),
+      auth.request.post(`/api/club/${clubId}/backlog/${movieId}`),
     {
       onSuccess: (response) => {
         queryClient.setQueryData<WatchListViewModel>(
