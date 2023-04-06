@@ -23,18 +23,14 @@ export function useDetailedReview(
 
 export function useSubmitScore(clubId: string) {
   const { data: user } = useUser();
-  const { authToken } = useAuthStore();
+  const auth = useAuthStore();
   const queryClient = useQueryClient();
   return useMutation(
     ({ movieId, score }: { movieId: number; score: number }) =>
-      axios.put(
-        `/api/club/${clubId}/reviews/${movieId}`,
-        {
-          name: user.value?.name,
-          score: score,
-        },
-        { headers: { Authorization: `Bearer ${authToken}` } }
-      ),
+      auth.request.put(`/api/club/${clubId}/reviews/${movieId}`, {
+        name: user.value?.name,
+        score: score,
+      }),
     {
       onMutate: async ({ movieId, score }) => {
         await queryClient.cancelQueries(["review-d", clubId]);
@@ -62,13 +58,11 @@ export function useSubmitScore(clubId: string) {
 }
 
 export function useAddReview(clubId: string) {
-  const { authToken } = useAuthStore();
+  const auth = useAuthStore();
   const queryClient = useQueryClient();
   return useMutation(
     (movieId: number) =>
-      axios.post(`/api/club/${clubId}/reviews/${movieId}`, undefined, {
-        headers: { Authorization: `Bearer ${authToken}` },
-      }),
+      auth.request.post(`/api/club/${clubId}/reviews/${movieId}`),
     {
       onSuccess: (response) => {
         queryClient.setQueryData<DetailedReviewResponse[]>(

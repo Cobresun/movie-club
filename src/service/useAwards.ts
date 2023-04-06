@@ -41,15 +41,13 @@ export function useAwards(
 }
 
 export function useUpdateStep(clubId: Ref<string>, year: Ref<string>) {
-  const { authToken } = useAuthStore();
+  const auth = useAuthStore();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (step: AwardsStep) =>
-      axios.put(
-        `/api/club/${clubId.value}/awards/${year.value}/step`,
-        { step },
-        { headers: { Authorization: `Bearer ${authToken}` } }
-      ),
+      auth.request.put(`/api/club/${clubId.value}/awards/${year.value}/step`, {
+        step,
+      }),
     onSettled: () => {
       queryClient.invalidateQueries(["awards", clubId, year]);
     },
@@ -57,15 +55,13 @@ export function useUpdateStep(clubId: Ref<string>, year: Ref<string>) {
 }
 
 export function useAddCategory(clubId: string, year: string) {
-  const { authToken } = useAuthStore();
+  const auth = useAuthStore();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (title: string) =>
-      axios.post(
-        `/api/club/${clubId}/awards/${year}/category`,
-        { title },
-        { headers: { Authorization: `Bearer ${authToken}` } }
-      ),
+      auth.request.post(`/api/club/${clubId}/awards/${year}/category`, {
+        title,
+      }),
     onMutate: async (title) => {
       await queryClient.cancelQueries(["awards", clubId, year]);
       queryClient.setQueryData<ClubAwards>(
@@ -86,15 +82,13 @@ export function useAddCategory(clubId: string, year: string) {
 }
 
 export function useReorderCategories(clubId: string, year: string) {
-  const { authToken } = useAuthStore();
+  const auth = useAuthStore();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (categories: string[]) =>
-      axios.put(
-        `/api/club/${clubId}/awards/${year}/category`,
-        { categories },
-        { headers: { Authorization: `Bearer ${authToken}` } }
-      ),
+      auth.request.put(`/api/club/${clubId}/awards/${year}/category`, {
+        categories,
+      }),
     onMutate: async (categories) => {
       await queryClient.cancelQueries(["awards", clubId, year]);
       queryClient.setQueryData<ClubAwards>(
@@ -117,15 +111,14 @@ export function useReorderCategories(clubId: string, year: string) {
 }
 
 export function useDeleteCategory(clubId: string, year: string) {
-  const { authToken } = useAuthStore();
+  const auth = useAuthStore();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (award: Award) =>
-      axios.delete(
+      auth.request.delete(
         `/api/club/${clubId}/awards/${year}/category/${encodeURIComponent(
           award.title
-        )}`,
-        { headers: { Authorization: `Bearer ${authToken}` } }
+        )}`
       ),
     onMutate: async (award) => {
       await queryClient.cancelQueries(["awards", clubId, year]);
@@ -150,7 +143,7 @@ export function useDeleteCategory(clubId: string, year: string) {
 
 export function useAddNomination(clubId: string, year: string) {
   const { data: user } = useUser();
-  const { authToken } = useAuthStore();
+  const auth = useAuthStore();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({
@@ -160,15 +153,11 @@ export function useAddNomination(clubId: string, year: string) {
       awardTitle: string;
       review: DetailedReviewResponse;
     }) =>
-      axios.post(
-        `/api/club/${clubId}/awards/${year}/nomination`,
-        {
-          awardTitle,
-          movieId: review.movieId,
-          nominatedBy: user.value?.name,
-        },
-        { headers: { Authorization: `Bearer ${authToken}` } }
-      ),
+      auth.request.post(`/api/club/${clubId}/awards/${year}/nomination`, {
+        awardTitle,
+        movieId: review.movieId,
+        nominatedBy: user.value?.name,
+      }),
     onMutate: async ({ awardTitle, review }) => {
       await queryClient.cancelQueries(["awards", clubId, year]);
       queryClient.setQueryData<ClubAwards>(
@@ -208,7 +197,7 @@ export function useAddNomination(clubId: string, year: string) {
 }
 
 export function useSubmitRanking(clubId: string, year: string) {
-  const { authToken } = useAuthStore();
+  const auth = useAuthStore();
   const { data: user } = useUser();
   const queryClient = useQueryClient();
   return useMutation({
@@ -219,11 +208,11 @@ export function useSubmitRanking(clubId: string, year: string) {
       awardTitle: string;
       movies: number[];
     }) =>
-      axios.post(
-        `/api/club/${clubId}/awards/${year}/ranking`,
-        { awardTitle, voter: user.value?.name, movies },
-        { headers: { Authorization: `Bearer ${authToken}` } }
-      ),
+      auth.request.post(`/api/club/${clubId}/awards/${year}/ranking`, {
+        awardTitle,
+        voter: user.value?.name,
+        movies,
+      }),
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["awards", clubId, year] });
     },
