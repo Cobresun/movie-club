@@ -43,7 +43,6 @@
 </template>
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import { useRoute } from "vue-router";
 
 import { filterMovies } from "../../../common/searchMovies";
 import GalleryView from "../components/GalleryView.vue";
@@ -51,19 +50,14 @@ import TableView from "../components/TableView.vue";
 
 import VToggle from "@/common/components/VToggle.vue";
 import AddReviewPrompt from "@/features/reviews/components/AddReviewPrompt.vue";
-import { useMembers } from "@/service/useClub";
+import { useClubId, useMembers } from "@/service/useClub";
 import { useDetailedReview, useSubmitScore } from "@/service/useReview";
 
 const isGalleryView = ref(false);
 
-const route = useRoute();
-
-const { isLoading: loadingReviews, data: reviews } = useDetailedReview(
-  route.params.clubId as string
-);
-const { loading: loadingMembers, data: members } = useMembers(
-  route.params.clubId as string
-);
+const clubId = useClubId();
+const { isLoading: loadingReviews, data: reviews } = useDetailedReview(clubId);
+const { isLoading: loadingMembers, data: members } = useMembers(clubId);
 
 const loading = computed(() => loadingReviews.value || loadingMembers.value);
 
@@ -75,7 +69,7 @@ const closePrompt = () => {
   modalOpen.value = false;
 };
 
-const { mutate: submit } = useSubmitScore(route.params.clubId as string);
+const { mutate: submit } = useSubmitScore(clubId);
 
 const submitScore = (movieId: number, score: number) => {
   if (!isNaN(score) && score >= 0 && score <= 10) {
