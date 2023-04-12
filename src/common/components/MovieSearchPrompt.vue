@@ -55,7 +55,10 @@
           </template>
         </movie-table>
       </div>
-      <loading-spinner v-if="loadingSearch" class="self-center mt-3" />
+      <loading-spinner
+        v-if="includeSearch && loadingSearch"
+        class="self-center mt-3"
+      />
     </div>
     <div class="pt-2 flex justify-between mt-auto">
       <v-btn @click="emit('close')"> Cancel </v-btn>
@@ -64,7 +67,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from "vue";
+import { ref, computed } from "vue";
 
 import { MovieSearchIndex } from "@/common/types/models";
 import { useSearch } from "@/service/useTMDB";
@@ -114,13 +117,10 @@ const filteredDefaultList = computed(() => {
   return defaultList.filter((item) => item.title.toLowerCase().includes(lower));
 });
 
-const { data: searchData, loading: loadingSearch, search } = useSearch();
-
-watch(searchText, () => {
-  if (includeSearch) {
-    search(searchText.value);
-  }
-});
+const { data: searchData, isLoading: loadingSearch } = useSearch(
+  searchText,
+  includeSearch
+);
 
 const noResults = computed(() => {
   if (includeSearch) {

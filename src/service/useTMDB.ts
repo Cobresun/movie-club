@@ -1,47 +1,25 @@
-import axios, { CancelTokenSource } from "axios";
-import { computed, ref } from "vue";
+import { useQuery } from "@tanstack/vue-query";
+import axios from "axios";
+import { Ref } from "vue";
 
-import { useRequest, useRequestCache } from "./useRequest";
+import { useRequestCache } from "./useRequest";
 
 import { DataService, TMDBPageResponse } from "@/common/types/models";
 
 const key = import.meta.env.VITE_TMDB_API_KEY;
 
-interface SearchDataService<T> extends DataService<T> {
-  search: (query: string) => Promise<void>;
-}
-
-export function useSearch(): SearchDataService<TMDBPageResponse> {
-  const request = useRequest<TMDBPageResponse>();
-  const cancelToken = ref<CancelTokenSource>();
-  const emptySearch = ref(false);
-  const search = async (query: string) => {
-    if (cancelToken.value) {
-      cancelToken.value.cancel();
-    }
-    if (query === "") {
-      emptySearch.value = true;
-      return;
-    }
-    cancelToken.value = axios.CancelToken.source();
-    await request.execute(
-      `https://api.themoviedb.org/3/search/movie?api_key=${key}&query=${query}&language=en-US&include_adult=false`,
-      {
-        cancelToken: cancelToken.value?.token,
-      }
-    );
-  };
-  const emptyData = computed<TMDBPageResponse>(() => ({
-    page: 0,
-    total_pages: 0,
-    total_results: 0,
-    results: [],
-  }));
-  return {
-    ...request,
-    data: emptySearch.value ? emptyData : request.data,
-    search,
-  };
+export function useSearch(query: Ref<string>, enabled: boolean) {
+  return useQuery({
+    queryKey: ["tmdb", "search", query],
+    enabled,
+    queryFn: async ({ signal }) =>
+      (
+        await axios.get(
+          `https://api.themoviedb.org/3/search/movie?api_key=${key}&query=${query.value}&language=en-US&include_adult=false`,
+          { signal }
+        )
+      ).data,
+  });
 }
 
 export function useTrending(): DataService<TMDBPageResponse> {
