@@ -3,8 +3,6 @@ import netlifyIdentity, { User } from "netlify-identity-widget";
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 
-import { clearCache } from "@/service/useRequest";
-
 export const useAuthStore = defineStore("auth", () => {
   const user = ref<User | null>();
   const ready = ref(false);
@@ -31,7 +29,6 @@ export const useAuthStore = defineStore("auth", () => {
 
   netlifyIdentity.on("logout", () => {
     user.value = null;
-    clearCache();
   });
 
   netlifyIdentity.init({
