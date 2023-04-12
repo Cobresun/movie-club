@@ -1,38 +1,52 @@
+import { useMutation, useQueries, useQuery } from "@tanstack/vue-query";
+import axios from "axios";
+import { Ref, computed } from "vue";
 import { useRoute } from "vue-router";
 
-import { useRequestCache, useAuthRequest } from "./useRequest";
+import { ClubsViewClub, Member } from "@/common/types/models";
+import { useAuthStore } from "@/stores/auth";
 
-import { ClubsViewClub, CacheDataService, Member } from "@/common/types/models";
+const fetchClub = async (clubId: string | number) =>
+  (await axios.get(`/api/club/${clubId}`)).data;
 
-export function useClub(clubId: string): CacheDataService<ClubsViewClub> {
-  const fetch = useRequestCache<ClubsViewClub>(
-    `club-${clubId}`,
-    `/api/club/${clubId}`
+export function useClub(clubId: string) {
+  return useQuery<ClubsViewClub>({
+    queryKey: ["club", clubId],
+    queryFn: async () => await fetchClub(clubId),
+  });
+}
+
+export function useClubs(clubIds: Ref<number[]>, enabled: Ref<boolean>) {
+  const queries = computed(() =>
+    clubIds.value.map((clubId) => ({
+      queryKey: ["club", clubId],
+      queryFn: async () => await fetchClub(clubId),
+      enabled,
+    }))
   );
-  return { ...fetch };
+  return useQueries<ClubsViewClub[]>({
+    queries,
+  });
 }
 
 export function useCreateClub() {
-  const request = useAuthRequest();
-
-  const createClub = async (clubName: string, members: string[]) => {
-    await request.execute(`/api/club`, {
-      data: {
-        name: clubName,
-        members: members,
-      },
-      method: "POST",
-    });
-  };
-  return { ...request, createClub };
+  const auth = useAuthStore();
+  return useMutation({
+    mutationFn: ({
+      clubName,
+      members,
+    }: {
+      clubName: string;
+      members: string[];
+    }) => auth.request.post(`/api/club`, { name: clubName, members }),
+  });
 }
 
-export function useMembers(clubId: string): CacheDataService<Member[]> {
-  const fetch = useRequestCache<Member[]>(
-    `members-${clubId}`,
-    `/api/club/${clubId}/members`
-  );
-  return { ...fetch };
+export function useMembers(clubId: string) {
+  return useQuery<Member[]>({
+    queryKey: ["members", clubId],
+    queryFn: async () => (await axios.get(`/api/club/${clubId}/members`)).data,
+  });
 }
 
 export function useClubId(): string {

@@ -1,6 +1,3 @@
-import { AxiosError, AxiosRequestConfig, AxiosResponse } from "axios";
-import { Ref } from "vue";
-
 export interface Header {
   value: string;
   style?: string;
@@ -143,21 +140,4 @@ export enum AwardsStep {
   Ratings,
   Presentation,
   Completed,
-}
-
-export interface FetchConfig extends AxiosRequestConfig {
-  skip?: boolean;
-}
-
-export interface DataService<T> {
-  data: Ref<T | undefined>;
-  response: Ref<AxiosResponse | undefined>;
-  error: Ref<AxiosError | unknown>;
-  loading: Ref<boolean>;
-  execute: (arg1?: string, arg2?: FetchConfig) => Promise<void>;
-}
-
-export interface CacheDataService<T> extends DataService<T> {
-  clear: () => void;
-  refresh: () => void;
 }

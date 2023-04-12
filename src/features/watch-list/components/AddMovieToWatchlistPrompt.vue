@@ -30,7 +30,7 @@ const emit = defineEmits<{
 const route = useRoute();
 const clubId = route.params.clubId as string;
 
-const { loading: loadingTrending, data: trending } = useTrending();
+const { isLoading: loadingTrending, data: trending } = useTrending();
 
 const { isLoading: loadingAdd, mutate: addBacklogItem } =
   useAddBacklogItem(clubId);

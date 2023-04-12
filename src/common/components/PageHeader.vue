@@ -13,9 +13,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { useRoute } from "vue-router";
-
-import { useClub } from "@/service/useClub";
+import { useClub, useClubId } from "@/service/useClub";
 
 const { hasBack, backRoute, pageName } = defineProps<{
   hasBack: boolean;
@@ -23,6 +21,6 @@ const { hasBack, backRoute, pageName } = defineProps<{
   pageName: string;
 }>();
 
-const route = useRoute();
-const { data: club } = useClub(route.params.clubId as string);
+const clubId = useClubId();
+const { data: club } = useClub(clubId);
 </script>

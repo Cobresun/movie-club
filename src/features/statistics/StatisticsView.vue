@@ -71,36 +71,33 @@
 
 <script setup lang="ts">
 import { AgChartsVue } from "ag-charts-vue3";
-import axios from "axios";
 import { DateTime } from "luxon";
 import { ref, computed, watch } from "vue";
-import { useRoute } from "vue-router";
 
 import { normalizeArray, loadDefaultChartSettings } from "./StatisticsUtils";
 
 import { ReviewResponse, Header } from "@/common/types/models";
-import { useMembers, useClub } from "@/service/useClub";
+import { useMembers, useClub, useClubId } from "@/service/useClub";
 import { useDetailedReview } from "@/service/useReview";
 
-const route = useRoute();
-const { loading: loadingClub, data: club } = useClub(
-  route.params.clubId as string
-);
-const { isLoading: loadingReviews, data: reviews } = useDetailedReview(
-  route.params.clubId as string
-);
-const { loading: loadingMembers, data: members } = useMembers(
-  route.params.clubId as string
-);
+const clubId = useClubId();
+const { isLoading: loadingClub, data: club } = useClub(clubId);
+const { isLoading: loadingReviews, data: reviews } = useDetailedReview(clubId);
+const { isLoading: loadingMembers, data: members } = useMembers(clubId);
 
-const clubName = ref("Club");
+const clubName = computed(() => club.value?.clubName ?? "Club");
+const memberNames = computed<string[]>(
+  () =>
+    members.value
+      ?.filter((member) => !member.devAccount)
+      .map((member) => member.name) ?? []
+);
 const normButtonText = ref("Normalize Scores");
 
 const loadingCalculations = ref(true);
 
 const normalize = ref(false);
 const movieData = ref<any[]>([]);
-const memberNames = ref<string[]>([]);
 const selectedChartBase = ref("average");
 const selectedChartMeasure = ref("runtime");
 const histogramData = ref<any[]>([]);
@@ -257,10 +254,6 @@ const loadChartOptions = () => {
 };
 
 const calculateStatistics = () => {
-  memberNames.value = members.value
-    .filter((member) => !member.devAccount)
-    .map((member) => member.name);
-
   for (let i = 0; i <= 10; i++) {
     histogramData.value[i] = { bin: i };
     histogramNormData.value[i] = { bin: i / 4.0 - 1.25 }; // TODO: stop using hardcoded bin for std
@@ -315,16 +308,8 @@ const setReviews = (isLoading: boolean) => {
   calculateStatistics();
 };
 
-const setClub = (isLoading: boolean) => {
-  if (isLoading) return;
-  clubName.value = club.value.clubName;
-};
-
 watch(loadingReviews, setReviews);
 setReviews(loadingReviews.value);
-
-watch(loadingClub, setClub);
-setClub(loadingClub.value);
 
 const toggle = () => {
   normalize.value = !normalize.value;

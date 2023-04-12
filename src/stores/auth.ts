@@ -1,16 +1,24 @@
+import { useQuery } from "@tanstack/vue-query";
 import axios from "axios";
 import netlifyIdentity, { User } from "netlify-identity-widget";
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 
-import { clearCache } from "@/service/useRequest";
-
 export const useAuthStore = defineStore("auth", () => {
   const user = ref<User | null>();
   const ready = ref(false);
-
-  const authToken = computed(() => user.value?.token?.access_token);
   const isLoggedIn = computed(() => !!user.value);
+
+  const { data: authToken } = useQuery({
+    queryKey: ["authToken"],
+    queryFn: () => {
+      const token = netlifyIdentity.refresh();
+      user.value = netlifyIdentity.currentUser();
+      return token;
+    },
+    enabled: isLoggedIn,
+    refetchInterval: 60 * 59 * 1000, // Refetch after 59mins
+  });
 
   const request = computed(() =>
     axios.create({ headers: { Authorization: `Bearer ${authToken.value}` } })
@@ -22,16 +30,12 @@ export const useAuthStore = defineStore("auth", () => {
   });
 
   netlifyIdentity.on("login", (loginUser) => {
-    netlifyIdentity.refresh().then(() => {
-      user.value = netlifyIdentity.currentUser();
-    });
     user.value = loginUser;
     netlifyIdentity.close();
   });
 
   netlifyIdentity.on("logout", () => {
     user.value = null;
-    clearCache();
   });
 
   netlifyIdentity.init({
