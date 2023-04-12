@@ -38,7 +38,7 @@ import { useAuthStore } from "@/stores/auth";
 const authStore = useAuthStore();
 const isLoggedIn = computed(() => authStore.isLoggedIn);
 
-const { data: user, loading: userLoading } = useUser();
+const { data: user, isLoading: userLoading } = useUser();
 
 const userClubIds = computed(() => user.value?.clubs ?? []);
 const enableClubQuery = computed(() => !userLoading.value);
