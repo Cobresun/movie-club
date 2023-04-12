@@ -2,14 +2,12 @@ import { useQuery } from "@tanstack/vue-query";
 import axios from "axios";
 import { Ref } from "vue";
 
-import { useRequestCache } from "./useRequest";
-
-import { DataService, TMDBPageResponse } from "@/common/types/models";
+import { TMDBPageResponse } from "@/common/types/models";
 
 const key = import.meta.env.VITE_TMDB_API_KEY;
 
 export function useSearch(query: Ref<string>, enabled: boolean) {
-  return useQuery({
+  return useQuery<TMDBPageResponse>({
     queryKey: ["tmdb", "search", query],
     enabled,
     queryFn: async ({ signal }) =>
@@ -22,10 +20,14 @@ export function useSearch(query: Ref<string>, enabled: boolean) {
   });
 }
 
-export function useTrending(): DataService<TMDBPageResponse> {
-  const request = useRequestCache<TMDBPageResponse>(
-    "TMDB-trending",
-    `https://api.themoviedb.org/3/trending/movie/week?api_key=${key}`
-  );
-  return { ...request };
+export function useTrending() {
+  return useQuery<TMDBPageResponse>({
+    queryKey: ["tmdb", "trending"],
+    queryFn: async () =>
+      (
+        await axios.get(
+          `https://api.themoviedb.org/3/trending/movie/week?api_key=${key}`
+        )
+      ).data,
+  });
 }
