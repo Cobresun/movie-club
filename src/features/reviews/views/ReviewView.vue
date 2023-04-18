@@ -57,7 +57,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { computed, defineComponent, onBeforeMount, ref } from "vue";
+import { computed, ref } from "vue";
 
 import { filterMovies } from "../../../common/searchMovies";
 import GalleryView from "../components/GalleryView.vue";
