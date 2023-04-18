@@ -24,8 +24,13 @@
           v-model="searchTerm"
           class="p-2 pl-12 text-base outline-none rounded-md border-2 text-white border-slate-600 focus:border-primary w-11/12 bg-background"
           placeholder="Search"
+          @focusin="searchInputFocusIn"
+          @focusout="searchInputFocusOut"
         />
-        <div class="border-2 rounded-md absolute top-1/2 right-8 px-2 py-1 transform -translate-y-1/2 border-slate-600">
+        <div 
+          ref="searchInputSlash"
+          class="border-2 rounded-md absolute top-1/2 right-8 px-2 py-1 transform -translate-y-1/2 border-slate-600"
+        >
           <p
             name="slash"
             class="text-xs text-slate-200"
@@ -98,6 +103,7 @@ const filteredReviews = computed(() => {
 });
 
 const searchInput = ref<HTMLInputElement | null>(null)
+const searchInputSlash = ref<HTMLParagraphElement | null>(null)
 window.addEventListener("keypress", e => {
     if(e.key == "/") {
       if (searchInput.value?.matches(":focus")) {
@@ -107,4 +113,12 @@ window.addEventListener("keypress", e => {
       searchInput.value?.focus();
     }
 });
+
+const searchInputFocusIn = () => {
+  searchInputSlash.value?.setAttribute("hidden", "true");
+};
+
+const searchInputFocusOut = () => {
+  searchInputSlash.value?.removeAttribute("hidden");
+};
 </script>
