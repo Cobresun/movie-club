@@ -14,31 +14,26 @@
         class="flex justify-center items-center"
         :class="isGalleryView ? 'mb-4' : 'mb-0'"
       >
-      <div class="relative">
-        <mdicon
-          name="magnify"
-          class="absolute top-1/2 left-8 transform -translate-y-1/2 text-slate-200"
-        />
-        <input
-          ref="searchInput"
-          v-model="searchTerm"
-          class="p-2 pl-12 text-base outline-none rounded-md border-2 text-white border-slate-600 focus:border-primary w-11/12 bg-background"
-          placeholder="Search"
-          @focusin="searchInputFocusIn"
-          @focusout="searchInputFocusOut"
-        />
-        <div 
-          ref="searchInputSlash"
-          class="border-2 rounded-md absolute top-1/2 right-8 px-2 py-1 transform -translate-y-1/2 border-slate-600"
-        >
-          <p
-            name="slash"
-            class="text-xs text-slate-200"
+        <div class="relative">
+          <mdicon
+            name="magnify"
+            class="absolute top-1/2 left-8 transform -translate-y-1/2 text-slate-200"
+          />
+          <input
+            ref="searchInput"
+            v-model="searchTerm"
+            class="p-2 pl-12 text-base outline-none rounded-md border-2 text-white border-slate-600 focus:border-primary w-11/12 bg-background"
+            placeholder="Search"
+            @focusin="searchInputFocusIn"
+            @focusout="searchInputFocusOut"
+          />
+          <div
+            ref="searchInputSlash"
+            class="border-2 rounded-md absolute top-1/2 right-8 px-2 py-1 transform -translate-y-1/2 border-slate-600"
           >
-          /
-        </p>
+            <p name="slash" class="text-xs text-slate-200">/</p>
+          </div>
         </div>
-      </div>
         <v-btn
           class="ml-2 h-11 w-11 whitespace-nowrap flex justify-center items-center"
           @click="openPrompt()"
@@ -62,7 +57,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref, onMounted, onUnmounted } from "vue";
 
 import { filterMovies } from "../../../common/searchMovies";
 import GalleryView from "../components/GalleryView.vue";
@@ -103,16 +98,25 @@ const filteredReviews = computed(() => {
   return filterMovies(reviews.value ?? [], searchTerm.value);
 });
 
-const searchInput = ref<HTMLInputElement | null>(null)
-const searchInputSlash = ref<HTMLParagraphElement | null>(null)
-window.addEventListener("keypress", e => {
-    if(e.key == "/") {
-      if (searchInput.value?.matches(":focus")) {
-        return;
-      }
-      e.preventDefault();
-      searchInput.value?.focus();
+const searchInput = ref<HTMLInputElement | null>(null);
+const searchInputSlash = ref<HTMLParagraphElement | null>(null);
+
+const onKeyPress = (e: KeyboardEvent) => {
+  if (e.key == "/") {
+    if (searchInput.value === document.activeElement) {
+      return;
     }
+    e.preventDefault();
+    searchInput.value?.focus();
+  }
+};
+
+onMounted(() => {
+  window.addEventListener("keypress", onKeyPress);
+});
+
+onUnmounted(() => {
+  window.removeEventListener("keypress", onKeyPress);
 });
 
 const searchInputFocusIn = () => {

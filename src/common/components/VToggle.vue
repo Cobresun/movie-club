@@ -1,14 +1,8 @@
 <template>
   <div class="relative inline-block">
-    <input
-      type="checkbox"
-      class="hidden"
-      :checked="modelValue"
-      @change="
-        emit('update:modelValue', ($event.target as HTMLInputElement).checked)
-      "
-    />
     <div
+      role="switch"
+      :aria-checked="modelValue"
       class="relative w-12 h-6 bg-primary rounded-full shadow-inner cursor-pointer"
       @click="emit('update:modelValue', !modelValue)"
     >

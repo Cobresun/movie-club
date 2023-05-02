@@ -25,6 +25,7 @@ export default defineConfig({
       all: true,
       provider: "istanbul",
       reporter: ["text", "json", "html"],
+      exclude: ["**/mocks/**", "**/tests/**"],
     },
   },
 });

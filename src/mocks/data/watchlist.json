@@ -1,0 +1,25 @@
+{
+  "watchList": [
+    {
+      "movieId": 502356,
+      "timeAdded": {
+        "@ts": "2023-03-20T08:07:03.796716Z"
+      },
+      "movieTitle": "The Super Mario Bros. Movie",
+      "releaseDate": "2023-04-05",
+      "poster_url": "http://image.tmdb.org/t/p/w500/qNBAXBIQlnOThrVvA6mA2B5ggV6.jpg"
+    }
+  ],
+  "backlog": [
+    {
+      "movieId": 272,
+      "timeAdded": {
+        "@ts": "2022-05-31T11:36:24.963655Z"
+      },
+      "movieTitle": "Batman Begins",
+      "releaseDate": "2005-06-10",
+      "poster_url": "http://image.tmdb.org/t/p/w500/4MpN4kIEqUjW8OPtOQJXlTdHiJV.jpg"
+    }
+  ],
+  "nextMovieId": 502356
+}
