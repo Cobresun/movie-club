@@ -70,12 +70,13 @@ import TableView from "../components/TableView.vue";
 
 import VToggle from "@/common/components/VToggle.vue";
 import AddReviewPrompt from "@/features/reviews/components/AddReviewPrompt.vue";
-import { useClubId, useMembers } from "@/service/useClub";
+import { useMembers } from "@/service/useClub";
 import { useDetailedReview, useSubmitScore } from "@/service/useReview";
+
+const { clubId } = defineProps<{ clubId: string }>();
 
 const isGalleryView = ref(false);
 
-const clubId = useClubId();
 const { isLoading: loadingReviews, data: reviews } = useDetailedReview(clubId);
 const { isLoading: loadingMembers, data: members } = useMembers(clubId);
 
