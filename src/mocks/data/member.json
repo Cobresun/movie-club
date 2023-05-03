@@ -1,0 +1,7 @@
+{
+  "email": "user@email.com",
+  "name": "user",
+  "image": "https://test.com/otherProfile",
+  "clubs": [0, 1],
+  "devAccount": false
+}

@@ -1,0 +1,32 @@
+{
+  "api": {
+    "apiURL": "https://cobresun-movie-club.netlify.app/.netlify/identity",
+    "_sameOrigin": true,
+    "defaultHeaders": {}
+  },
+  "url": "https://cobresun-movie-club.netlify.app/.netlify/identity",
+  "token": {
+    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2ODMwNTkwODEsInN1YiI6IjdjMDYxMjExLTgyMmYtNGYwNC04NTkyLTFmNGIzNWFiYWE3ZCIsImVtYWlsIjoiY2FmcmVuY2g5OUBnbWFpbC5jb20iLCJhcHBfbWV0YWRhdGEiOnsicHJvdmlkZXIiOiJlbWFpbCJ9LCJ1c2VyX21ldGFkYXRhIjp7ImZ1bGxfbmFtZSI6InN0ZXZlIn19.rY4jNOboY9wbeN4GzgoZakMFcXkUQbs4EoHJwTtsqf8",
+    "token_type": "bearer",
+    "expires_in": 3600,
+    "refresh_token": "zgc6XxSPnFZrkZdsuuRhzQ",
+    "expires_at": 1683059081000
+  },
+  "id": "7c061211-822f-4f04-8592-1f4b35abaa7d",
+  "aud": "",
+  "role": "",
+  "email": "user@email.com",
+  "confirmed_at": "2022-07-15T05:18:22Z",
+  "confirmation_sent_at": "2022-07-15T05:18:10Z",
+  "app_metadata": {
+    "provider": "email",
+    "roles": []
+  },
+  "user_metadata": {
+    "full_name": "user"
+  },
+  "created_at": "2022-07-15T05:18:10Z",
+  "updated_at": "2022-07-15T05:18:10Z",
+  "invited_at": "",
+  "recovery_sent_at": ""
+}

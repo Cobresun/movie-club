@@ -43,6 +43,7 @@ const routes: Array<RouteRecordRaw> = [
     path: "/club/:clubId/reviews",
     name: "Reviews",
     component: ReviewView,
+    props: true,
     meta: {
       depth: 2,
     },

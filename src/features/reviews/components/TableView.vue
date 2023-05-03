@@ -22,6 +22,7 @@
             v-show="activeScoreInput === slotProps.item.movieId"
             :ref="(e) => scoreInputRefs[slotProps.item.movieId] = (e as HTMLInputElement)"
             v-model="scoreInputValue"
+            aria-label="Score"
             class="bg-background rounded-lg outline-none border border-gray-300 focus:border-primary p-2 w-10 text-center"
             @keypress.enter="
               () =>
@@ -30,6 +31,8 @@
           />
           <div
             v-if="activeScoreInput !== slotProps.item.movieId"
+            role="button"
+            aria-label="Add score"
             class="cursor-pointer"
             @click="openScoreInput(slotProps.item.movieId)"
           >
