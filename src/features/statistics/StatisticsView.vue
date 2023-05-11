@@ -49,7 +49,7 @@
       </div>
 
       <movie-table
-        v-if="reviews.length > 0"
+        v-if="reviews && reviews.length > 0"
         :headers="headers"
         :data="movieData"
       >
@@ -70,13 +70,14 @@
 </template>
 
 <script setup lang="ts">
+import { AgHistogramSeriesTooltipRendererParams } from "ag-charts-community";
 import { AgChartsVue } from "ag-charts-vue3";
 import { DateTime } from "luxon";
 import { ref, computed, watch } from "vue";
 
 import { normalizeArray, loadDefaultChartSettings } from "./StatisticsUtils";
 
-import { ReviewResponse, Header } from "@/common/types/models";
+import { Header, DetailedReviewResponse } from "@/common/types/models";
 import { useMembers, useClub, useClubId } from "@/service/useClub";
 import { useDetailedReview } from "@/service/useReview";
 
@@ -118,7 +119,7 @@ const loading = computed(
     loadingCalculations.value
 );
 
-const fetchMovieData = (reviews: ReviewResponse[]) => {
+const fetchMovieData = (reviews: DetailedReviewResponse[]) => {
   return reviews.map((review) => {
     return {
       movieTitle: review.movieTitle,
@@ -162,7 +163,7 @@ const loadChartOptions = () => {
         yName: member,
         showInLegend: true,
         tooltip: {
-          renderer: function (params) {
+          renderer: function (params: AgHistogramSeriesTooltipRendererParams) {
             return (
               '<div class="ag-chart-tooltip-title" ' +
               'style="background-color:' +
@@ -304,7 +305,7 @@ const calculateStatistics = () => {
 
 const setReviews = (isLoading: boolean) => {
   if (isLoading) return;
-  movieData.value = fetchMovieData(reviews.value);
+  movieData.value = fetchMovieData(reviews.value ?? []);
   calculateStatistics();
 };
 
@@ -329,7 +330,7 @@ const headers = computed(() => {
     { value: "dateWatched", title: "Date Reviewed" },
   ];
 
-  if (members.value.length > 0) {
+  if (members.value && members.value.length > 0) {
     for (const member of members.value) {
       if (!member.devAccount) {
         headers.push({ value: member.name + (normalize.value ? "Norm" : "") });
