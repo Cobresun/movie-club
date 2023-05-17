@@ -2,7 +2,7 @@ import { HandlerContext } from "@netlify/functions";
 
 import { getFaunaClient } from "./fauna";
 import { unauthorized } from "./responses";
-import { MiddewareCallback } from "./router";
+import { MiddlewareCallback } from "./router";
 
 import { Member } from "@/common/types/models";
 
@@ -27,13 +27,13 @@ export async function isAuthorized(
   );
 }
 
-export const loggedIn: MiddewareCallback = (event, context, params, next) => {
+export const loggedIn: MiddlewareCallback = (event, context, params, next) => {
   if (!context.clientContext || !context.clientContext.user)
     return Promise.resolve(unauthorized());
   return next();
 };
 
-export const secured: MiddewareCallback = (event, context, params, next) => {
+export const secured: MiddlewareCallback = (event, context, params, next) => {
   return loggedIn(event, context, params, async () => {
     const { faunaClient, q } = getFaunaClient();
 

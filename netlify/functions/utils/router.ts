@@ -8,7 +8,7 @@ import { Path } from "path-parser";
 import { internalServerError, methodNotAllowed, notFound } from "./responses";
 import { StringRecord } from "./types";
 
-export type MiddewareCallback = (
+export type MiddlewareCallback = (
   event: HandlerEvent,
   context: HandlerContext,
   params: StringRecord,
@@ -17,12 +17,7 @@ export type MiddewareCallback = (
 
 interface Route {
   path: Path<StringRecord>;
-  callbacks: MiddewareCallback[];
-}
-
-interface SubRouter {
-  path: Path<StringRecord>;
-  router: Router;
+  callbacks: MiddlewareCallback[];
 }
 
 enum HTTPMethod {
@@ -33,7 +28,7 @@ enum HTTPMethod {
 }
 
 export class Router {
-  private subRouters: SubRouter[];
+  private subRoutes: Route[];
   private routes: Record<HTTPMethod, Route[]>;
   private baseUrl: string;
 
@@ -44,14 +39,14 @@ export class Router {
       [HTTPMethod.PUT]: [],
       [HTTPMethod.DELETE]: [],
     };
-    this.subRouters = [];
+    this.subRoutes = [];
     this.baseUrl = baseUrl ?? "";
   }
 
   private addRoute(
     method: HTTPMethod,
     pathStr: string,
-    callbacks: MiddewareCallback[]
+    callbacks: MiddlewareCallback[]
   ) {
     this.routes[method].push({
       path: this.getPath(pathStr),
@@ -59,21 +54,31 @@ export class Router {
     });
   }
 
-  get(path: string, ...callbacks: MiddewareCallback[]) {
+  get(path: string, ...callbacks: MiddlewareCallback[]) {
     this.addRoute(HTTPMethod.GET, path, callbacks);
   }
-  post(path: string, ...callbacks: MiddewareCallback[]) {
+  post(path: string, ...callbacks: MiddlewareCallback[]) {
     this.addRoute(HTTPMethod.POST, path, callbacks);
   }
-  put(path: string, ...callbacks: MiddewareCallback[]) {
+  put(path: string, ...callbacks: MiddlewareCallback[]) {
     this.addRoute(HTTPMethod.PUT, path, callbacks);
   }
-  delete(path: string, ...callbacks: MiddewareCallback[]) {
+  delete(path: string, ...callbacks: MiddlewareCallback[]) {
     this.addRoute(HTTPMethod.DELETE, path, callbacks);
   }
 
-  use(pathStr: string, router: Router) {
-    this.subRouters.push({ path: this.getPath(pathStr), router });
+  use(pathStr: string, ...callbacks: (MiddlewareCallback | Router)[]) {
+    const resultCallbacks: MiddlewareCallback[] = callbacks.map((callback) => {
+      if (callback instanceof Router) {
+        return (event, context) => callback.route(event, context);
+      } else {
+        return callback;
+      }
+    });
+    this.subRoutes.push({
+      path: this.getPath(pathStr),
+      callbacks: resultCallbacks,
+    });
   }
 
   private getPath(pathStr: string) {
@@ -84,10 +89,10 @@ export class Router {
     event: HandlerEvent,
     context: HandlerContext
   ): Promise<HandlerResponse> {
-    for (const subRouter of this.subRouters) {
-      const pathTest = subRouter.path.partialTest(event.path);
+    for (const subRoute of this.subRoutes) {
+      const pathTest = subRoute.path.partialTest(event.path);
       if (pathTest) {
-        return subRouter.router.route(event, context);
+        return this.dispatch(event, context, pathTest, subRoute.callbacks);
       }
     }
 
@@ -114,7 +119,7 @@ export class Router {
     event: HandlerEvent,
     context: HandlerContext,
     params: StringRecord,
-    route: MiddewareCallback[]
+    route: MiddlewareCallback[]
   ) {
     let idx = 0;
     return next();
