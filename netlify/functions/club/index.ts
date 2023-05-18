@@ -11,6 +11,8 @@ import { getClubRef, getFaunaClient } from "../utils/fauna";
 import { ok, badRequest } from "../utils/responses";
 import { Router } from "../utils/router";
 import { QueryResponse } from "../utils/types";
+import type { ClubRequest } from "../utils/validation";
+import { validClubId } from "../utils/validation";
 
 const { faunaClient, q } = getFaunaClient();
 
@@ -47,21 +49,21 @@ const { faunaClient, q } = getFaunaClient();
  */
 
 const router = new Router("/api/club");
-router.use("/:clubId<\\d+>/reviews", reviewsRouter);
-router.use("/:clubId<\\d+>/watchlist", watchlistRouter);
-router.use("/:clubId<\\d+>/backlog", backlogRouter);
-router.use("/:clubId<\\d+>/members", membersRouter);
-router.use("/:clubId<\\d+>/awards", awardsRouter);
+router.use("/:clubId<\\d+>/reviews", validClubId, reviewsRouter);
+router.use("/:clubId<\\d+>/watchlist", validClubId, watchlistRouter);
+router.use("/:clubId<\\d+>/backlog", validClubId, backlogRouter);
+router.use("/:clubId<\\d+>/members", validClubId, membersRouter);
+router.use("/:clubId<\\d+>/awards", validClubId, awardsRouter);
 
-router.get("/:clubId<\\d+>", async (event, context, params) => {
+router.get("/:clubId<\\d+>", validClubId, async ({ clubId }: ClubRequest) => {
   const club = await faunaClient.query<ClubsViewClub>(
-    q.Call(q.Function("GetClub"), parseInt(params.clubId))
+    q.Call(q.Function("GetClub"), clubId!)
   );
 
   return ok(JSON.stringify(club));
 });
 
-router.post("/", loggedIn, async (event) => {
+router.post("/", loggedIn, async ({ event }) => {
   if (!event.body) return badRequest("Missing body");
   const body = JSON.parse(event.body);
   if (!body.name || body.name.length < 1) return badRequest("Missing name");
@@ -100,8 +102,8 @@ router.post("/", loggedIn, async (event) => {
 router.put(
   "/:clubId<\\d+>/nextMovie",
   secured,
-  async (event, context, params) => {
-    const clubId = parseInt(params.clubId);
+  validClubId,
+  async ({ event, clubId }: ClubRequest) => {
     if (!event.body) return badRequest("Missing body");
     let movieId: number;
     try {
@@ -111,7 +113,7 @@ router.put(
     }
 
     await faunaClient.query(
-      q.Update(getClubRef(clubId), {
+      q.Update(getClubRef(clubId!), {
         data: {
           nextMovieId: movieId,
         },
@@ -125,7 +127,7 @@ const handler: Handler = async (
   event: HandlerEvent,
   context: HandlerContext
 ) => {
-  return router.route(event, context);
+  return router.route({ event, context });
 };
 
 export { handler };
