@@ -101,8 +101,8 @@ router.post("/", loggedIn, async ({ event }) => {
 
 router.put(
   "/:clubId<\\d+>/nextMovie",
-  secured,
   validClubId,
+  secured,
   async ({ event, clubId }: ClubRequest) => {
     if (!event.body) return badRequest("Missing body");
     let movieId: number;

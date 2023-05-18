@@ -1,4 +1,4 @@
-import { updateAward } from "./utils";
+import { ClubAwardRequest, updateAward } from "./utils";
 import { secured } from "../../utils/auth";
 import { getFaunaClient } from "../../utils/fauna";
 import { badRequest, ok } from "../../utils/responses";
@@ -6,8 +6,7 @@ import { Router } from "../../utils/router";
 
 const router = new Router("/api/club/:clubId<\\d+>/awards/:year<\\d+>/ranking");
 
-router.post("/", secured, async (event, context, params) => {
-  const clubId = parseInt(params.clubId);
+router.post("/", secured, async ({ event, clubId, year }: ClubAwardRequest) => {
   if (!event.body) return badRequest("Missing body");
   const body = JSON.parse(event.body);
   if (!body.awardTitle) return badRequest("Missing award title in body");
@@ -19,7 +18,6 @@ router.post("/", secured, async (event, context, params) => {
     movies,
     voter,
   }: { awardTitle: string; movies: number[]; voter: string } = body;
-  const year = parseInt(params.year);
 
   const moviesWithRanking = movies.map((id, index) => ({
     id,
@@ -30,8 +28,8 @@ router.post("/", secured, async (event, context, params) => {
 
   await faunaClient.query(
     updateAward(
-      clubId,
-      year,
+      clubId!,
+      year!,
       awardTitle,
       q.Let(
         {
