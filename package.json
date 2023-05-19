@@ -87,6 +87,7 @@
     ],
     "rules": {
       "vue/no-setup-props-destructure": "off",
+      "@typescript-eslint/no-non-null-assertion": "off",
       "import/order": [
         "error",
         {

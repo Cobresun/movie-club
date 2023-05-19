@@ -1,6 +1,16 @@
 import { ExprArg, query } from "faunadb";
 
-import { getClubProperty, getClubRef } from "../../utils/fauna";
+import {
+  getClubDocument,
+  getClubProperty,
+  getClubRef,
+  getFaunaClient,
+} from "../../utils/fauna";
+import { badRequest, notFound } from "../../utils/responses";
+import { MiddlewareCallback } from "../../utils/router";
+import { ClubRequest } from "../../utils/validation";
+
+import { BaseClubAwards } from "@/common/types/models";
 
 const q = query;
 
@@ -48,3 +58,37 @@ export function updateClubAwardYear(
     },
   });
 }
+
+export interface ClubAwardRequest extends ClubRequest {
+  year?: number;
+  clubAwards?: BaseClubAwards;
+}
+
+export const validYear: MiddlewareCallback = async (
+  req: ClubAwardRequest,
+  next
+) => {
+  if (!req.params.year) return notFound();
+  const year = parseInt(req.params.year);
+  if (isNaN(year)) return badRequest();
+
+  const { faunaClient, q } = getFaunaClient();
+  const clubAwards = await faunaClient.query<BaseClubAwards | null>(
+    q.Select(
+      0,
+      q.Filter(
+        q.Select(["data", "clubAwards"], getClubDocument(req.clubId!)),
+        q.Lambda("x", q.Equals(q.Select(["year"], q.Var("x")), year))
+      ),
+      null
+    )
+  );
+
+  if (clubAwards) {
+    req.year = year;
+    req.clubAwards = clubAwards;
+    return next();
+  } else {
+    return notFound("Awards year not found");
+  }
+};
