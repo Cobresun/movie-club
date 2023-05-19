@@ -1,5 +1,7 @@
 import * as mdijs from "@mdi/js";
-import { VueQueryPlugin } from "@tanstack/vue-query";
+import { persistQueryClient } from "@tanstack/query-persist-client-core";
+import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
+import { VueQueryPlugin, VueQueryPluginOptions } from "@tanstack/vue-query";
 import mdiVue from "mdi-vue/v3";
 import { createPinia } from "pinia";
 import { createApp } from "vue";
@@ -22,6 +24,24 @@ import "./assets/styles/tailwind.css";
 import "animate.css";
 import "vue-toastification/dist/index.css";
 
+const vueQueryOptions: VueQueryPluginOptions = {
+  queryClientConfig: {
+    defaultOptions: {
+      queries: {
+        cacheTime: 1000 * 60 * 60 * 24 * 7, // One week
+      },
+    },
+  },
+  clientPersister: (queryClient) => {
+    return persistQueryClient({
+      //@ts-expect-error The types don't match because Vue doesn't have its own persistQueryClient, but it still works
+      queryClient,
+      persister: createSyncStoragePersister({ storage: localStorage }),
+      maxAge: 1000 * 60 * 60 * 24 * 7, // One week
+    });
+  },
+};
+
 createApp(App)
   .component("v-avatar", VAvatar)
   .component("v-btn", VBtn)
@@ -40,7 +60,7 @@ createApp(App)
     hideProgressBar: true,
     bodyClassName: "font-default",
   })
-  .use(VueQueryPlugin)
+  .use(VueQueryPlugin, vueQueryOptions)
   .use(createPinia())
   .use(router)
   .mount("#app");
