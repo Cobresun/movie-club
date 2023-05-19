@@ -1,4 +1,4 @@
-import { updateAward } from "./utils";
+import { ClubAwardRequest, updateAward } from "./utils";
 import { secured } from "../../utils/auth";
 import { getFaunaClient } from "../../utils/fauna";
 import { badRequest, ok } from "../../utils/responses";
@@ -8,8 +8,7 @@ const router = new Router(
   "/api/club/:clubId<\\d+>/awards/:year<\\d+>/nomination"
 );
 
-router.post("/", secured, async (event, context, params) => {
-  const clubId = parseInt(params.clubId);
+router.post("/", secured, async ({ event, clubId, year }: ClubAwardRequest) => {
   if (!event.body) return badRequest("Missing body");
   const body = JSON.parse(event.body);
   if (!body.awardTitle) return badRequest("Missing award title in body");
@@ -17,13 +16,12 @@ router.post("/", secured, async (event, context, params) => {
   if (!body.nominatedBy) return badRequest("Missing nominatedBy in body");
 
   const { awardTitle, movieId, nominatedBy } = body;
-  const year = parseInt(params.year);
   const { faunaClient, q } = getFaunaClient();
 
   await faunaClient.query(
     updateAward(
-      clubId,
-      year,
+      clubId!,
+      year!,
       awardTitle,
       q.Let(
         {
@@ -69,66 +67,72 @@ router.post("/", secured, async (event, context, params) => {
   return ok();
 });
 
-router.delete("/:movieId", secured, async (event, context, params) => {
-  const clubId = parseInt(params.clubId);
-  const awardTitle = event.queryStringParameters?.awardTitle;
-  const movieId = parseInt(params.movieId);
-  const userId = event.queryStringParameters?.userId;
+router.delete(
+  "/:movieId",
+  secured,
+  async ({ event, params, clubId, year }: ClubAwardRequest) => {
+    const awardTitle = event.queryStringParameters?.awardTitle;
+    const movieId = parseInt(params.movieId);
+    const userId = event.queryStringParameters?.userId;
 
-  if (!awardTitle) return badRequest("Missing award title in query parameters");
-  if (!userId) return badRequest("Missing userId in query parameters");
+    if (!awardTitle)
+      return badRequest("Missing award title in query parameters");
+    if (!userId) return badRequest("Missing userId in query parameters");
 
-  const year = parseInt(params.year);
-  const { faunaClient, q } = getFaunaClient();
+    const { faunaClient, q } = getFaunaClient();
 
-  await faunaClient.query(
-    updateAward(
-      clubId,
-      year,
-      awardTitle,
-      q.Let(
-        {
-          nominations: q.Select("nominations", q.Var("award")),
-          existingNomination: q.Filter(
-            q.Var("nominations"),
-            q.Lambda(
-              "nomination",
-              q.Equals(q.Select("movieId", q.Var("nomination")), movieId)
-            )
-          ),
-        },
-        q.If(
-          q.Not(q.IsEmpty(q.Var("existingNomination"))),
+    await faunaClient.query(
+      updateAward(
+        clubId!,
+        year!,
+        awardTitle,
+        q.Let(
           {
-            nominations: q.Filter(
-              q.Map(
-                q.Var("nominations"),
-                q.Lambda(
-                  "nomination",
-                  q.If(
-                    q.Equals(q.Select("movieId", q.Var("nomination")), movieId),
-                    q.Merge(q.Var("nomination"), {
-                      nominatedBy: q.Difference(
-                        q.Select("nominatedBy", q.Var("nomination")),
-                        [userId]
-                      ),
-                    }),
-                    q.Var("nomination")
-                  )
-                )
-              ),
+            nominations: q.Select("nominations", q.Var("award")),
+            existingNomination: q.Filter(
+              q.Var("nominations"),
               q.Lambda(
                 "nomination",
-                q.Not(q.IsEmpty(q.Select("nominatedBy", q.Var("nomination"))))
+                q.Equals(q.Select("movieId", q.Var("nomination")), movieId)
               )
             ),
           },
-          { nominations: q.Var("nominations") }
+          q.If(
+            q.Not(q.IsEmpty(q.Var("existingNomination"))),
+            {
+              nominations: q.Filter(
+                q.Map(
+                  q.Var("nominations"),
+                  q.Lambda(
+                    "nomination",
+                    q.If(
+                      q.Equals(
+                        q.Select("movieId", q.Var("nomination")),
+                        movieId
+                      ),
+                      q.Merge(q.Var("nomination"), {
+                        nominatedBy: q.Difference(
+                          q.Select("nominatedBy", q.Var("nomination")),
+                          [userId]
+                        ),
+                      }),
+                      q.Var("nomination")
+                    )
+                  )
+                ),
+                q.Lambda(
+                  "nomination",
+                  q.Not(q.IsEmpty(q.Select("nominatedBy", q.Var("nomination"))))
+                )
+              ),
+            },
+            { nominations: q.Var("nominations") }
+          )
         )
       )
-    )
-  );
-  return ok();
-});
+    );
+    return ok();
+  }
+);
 
 export default router;

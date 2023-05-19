@@ -2,7 +2,8 @@ import { HandlerContext } from "@netlify/functions";
 
 import { getFaunaClient } from "./fauna";
 import { unauthorized } from "./responses";
-import { MiddewareCallback } from "./router";
+import { MiddlewareCallback } from "./router";
+import { ClubRequest } from "./validation";
 
 import { Member } from "@/common/types/models";
 
@@ -27,24 +28,23 @@ export async function isAuthorized(
   );
 }
 
-export const loggedIn: MiddewareCallback = (event, context, params, next) => {
+export const loggedIn: MiddlewareCallback = ({ context }, next) => {
   if (!context.clientContext || !context.clientContext.user)
     return Promise.resolve(unauthorized());
   return next();
 };
 
-export const secured: MiddewareCallback = (event, context, params, next) => {
-  return loggedIn(event, context, params, async () => {
+export const secured: MiddlewareCallback = (req: ClubRequest, next) => {
+  return loggedIn(req, async () => {
     const { faunaClient, q } = getFaunaClient();
 
-    const clubId = parseInt(params.clubId);
     const members = await faunaClient.query<MembersResponse>(
-      q.Call(q.Function("GetClubMembers"), clubId)
+      q.Call(q.Function("GetClubMembers"), req.clubId!)
     );
 
     if (
       members.members.some(
-        (member) => member.email === context.clientContext?.user.email
+        (member) => member.email === req.context.clientContext?.user.email
       )
     ) {
       return next();
