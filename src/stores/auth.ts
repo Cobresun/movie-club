@@ -10,7 +10,7 @@ export const useAuthStore = defineStore("auth", () => {
   const isLoggedIn = computed(() => !!user.value);
 
   const { data: authToken } = useQuery({
-    queryKey: ["authToken"],
+    queryKey: ["authToken", user],
     queryFn: () => {
       const token = netlifyIdentity.refresh();
       user.value = netlifyIdentity.currentUser();
