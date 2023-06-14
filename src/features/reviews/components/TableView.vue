@@ -52,11 +52,13 @@
 import { DateTime } from "luxon";
 import { ref, computed, nextTick } from "vue";
 
-import { DetailedReviewResponse, Header, Member } from "@/common/types/models";
+import { Member } from "@/common/types/club";
+import { Header } from "@/common/types/common";
+import { Review } from "@/common/types/reviews";
 import { useUser } from "@/service/useUser";
 
 const { reviews, members, submitScore } = defineProps<{
-  reviews: DetailedReviewResponse[];
+  reviews: Review[];
   members: Member[];
   submitScore: (movieId: number, score: number) => void;
 }>();

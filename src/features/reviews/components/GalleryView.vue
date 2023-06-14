@@ -23,11 +23,12 @@
 <script setup lang="ts">
 import { computed } from "vue";
 
-import { DetailedReviewResponse, Member } from "@/common/types/models";
+import { Member } from "@/common/types/club";
+import { Review } from "@/common/types/reviews";
 import ReviewCard from "@/features/reviews/components/ReviewCard.vue";
 
 const { reviews, members: allMembers } = defineProps<{
-  reviews: DetailedReviewResponse[];
+  reviews: Review[];
   members: Member[];
 }>();
 

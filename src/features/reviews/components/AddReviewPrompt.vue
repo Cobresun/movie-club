@@ -18,7 +18,7 @@ import { useRoute } from "vue-router";
 
 import MovieSearchPrompt from "../../../common/components/MovieSearchPrompt.vue";
 
-import { MovieSearchIndex } from "@/common/types/models";
+import { MovieSearchIndex } from "@/common/types/movie";
 import { useAddReview } from "@/service/useReview";
 import { useDeleteMovie, useWatchList } from "@/service/useWatchList";
 
@@ -33,13 +33,7 @@ const { data: watchList, isLoading: watchListLoading } = useWatchList(
 );
 
 const watchlistSearchIndex = computed(() =>
-  watchList.value
-    ? watchList.value.watchList.map((item) => ({
-        id: item.movieId,
-        title: item.movieTitle,
-        release_date: item.releaseDate,
-      }))
-    : []
+  watchList.value ? watchList.value.watchList.map((item) => item.movieData) : []
 );
 
 const { mutate: deleteMovie, isLoading: deleteLoading } = useDeleteMovie(
