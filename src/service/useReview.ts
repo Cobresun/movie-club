@@ -8,12 +8,12 @@ import axios, { AxiosError } from "axios";
 
 import { useUser } from "./useUser";
 
-import { DetailedReviewResponse } from "@/common/types/models";
+import { Review } from "@/common/types/reviews";
 import { useAuthStore } from "@/stores/auth";
 
-export function useDetailedReview(
+export function useReviews(
   clubId: string
-): UseQueryReturnType<DetailedReviewResponse[], AxiosError> {
+): UseQueryReturnType<Review[], AxiosError> {
   return useQuery({
     queryKey: ["review-d", clubId],
     queryFn: async () =>
@@ -33,7 +33,7 @@ export function useSubmitScore(clubId: string) {
       }),
     onMutate: async ({ movieId, score }) => {
       await queryClient.cancelQueries(["review-d", clubId]);
-      queryClient.setQueryData<DetailedReviewResponse[]>(
+      queryClient.setQueryData<Review[]>(
         ["review-d", clubId],
         (currentReviews) => {
           const name = user.value?.name;
@@ -62,7 +62,7 @@ export function useAddReview(clubId: string) {
     mutationFn: (movieId: number) =>
       auth.request.post(`/api/club/${clubId}/reviews/${movieId}`),
     onSuccess: (response) => {
-      queryClient.setQueryData<DetailedReviewResponse[]>(
+      queryClient.setQueryData<Review[]>(
         ["review-d", clubId],
         (currentReviews) => {
           if (!currentReviews) return [response.data];

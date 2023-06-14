@@ -50,7 +50,7 @@ import MovieSearchPrompt from "@/common/components/MovieSearchPrompt.vue";
 import { Award, ClubAwards } from "@/common/types/awards";
 import { MovieSearchIndex } from "@/common/types/movie";
 import { useAddNomination, useDeleteNomination } from "@/service/useAwards";
-import { useDetailedReview } from "@/service/useReview";
+import { useReviews } from "@/service/useReview";
 import { useUser } from "@/service/useUser";
 
 const { clubAward, clubId, year } = defineProps<{
@@ -82,7 +82,7 @@ const closePrompt = () => {
   currentAward.value = undefined;
 };
 
-const { data: reviews } = useDetailedReview(clubId);
+const { data: reviews } = useReviews(clubId);
 const reviewsForYear = computed(() => {
   if (!reviews.value) return [];
   return reviews.value

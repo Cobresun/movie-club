@@ -79,11 +79,11 @@ import { normalizeArray, loadDefaultChartSettings } from "./StatisticsUtils";
 
 import { Header, DetailedReviewResponse } from "@/common/types/models";
 import { useMembers, useClub, useClubId } from "@/service/useClub";
-import { useDetailedReview } from "@/service/useReview";
+import { useReviews } from "@/service/useReview";
 
 const clubId = useClubId();
 const { isLoading: loadingClub, data: club } = useClub(clubId);
-const { isLoading: loadingReviews, data: reviews } = useDetailedReview(clubId);
+const { isLoading: loadingReviews, data: reviews } = useReviews(clubId);
 const { isLoading: loadingMembers, data: members } = useMembers(clubId);
 
 const clubName = computed(() => club.value?.clubName ?? "Club");
