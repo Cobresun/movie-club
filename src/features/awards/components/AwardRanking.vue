@@ -42,7 +42,8 @@
 import { ref } from "vue";
 
 import MoviePosterCard from "@/common/components/MoviePosterCard.vue";
-import { Award, Member } from "@/common/types/models";
+import { Award } from "@/common/types/awards";
+import { Member } from "@/common/types/club";
 
 const { award, members, user } = defineProps<{
   award: Award;

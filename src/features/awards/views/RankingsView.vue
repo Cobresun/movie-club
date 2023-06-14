@@ -16,7 +16,7 @@ import { useToast } from "vue-toastification";
 
 import AwardRanking from "../components/AwardRanking.vue";
 
-import { Award, ClubAwards } from "@/common/types/models";
+import { Award, ClubAwards } from "@/common/types/awards";
 import { useSubmitRanking } from "@/service/useAwards";
 import { useMembers } from "@/service/useClub";
 import { useUser } from "@/service/useUser";

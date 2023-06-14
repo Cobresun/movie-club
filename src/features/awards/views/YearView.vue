@@ -19,7 +19,7 @@ import { useRouter } from "vue-router";
 
 import { NOMINATIONS_PER_AWARD } from "../constants";
 
-import { AwardsStep } from "@/common/types/models";
+import { AwardsStep } from "@/common/types/awards";
 import { useAwards, useUpdateStep } from "@/service/useAwards";
 import { useMembers } from "@/service/useClub";
 

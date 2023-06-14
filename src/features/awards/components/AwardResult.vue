@@ -37,7 +37,8 @@
 import { computed, ref } from "vue";
 
 import MoviePosterCard from "@/common/components/MoviePosterCard.vue";
-import { Award, AwardsStep, Member } from "@/common/types/models";
+import { Award, AwardsStep } from "@/common/types/awards";
+import { Member } from "@/common/types/club";
 
 const { award, members, step } = defineProps<{
   award: Award;

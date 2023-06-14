@@ -47,7 +47,8 @@ import { NOMINATIONS_PER_AWARD } from "../constants";
 
 import MoviePosterCard from "@/common/components/MoviePosterCard.vue";
 import MovieSearchPrompt from "@/common/components/MovieSearchPrompt.vue";
-import { ClubAwards, Award, MovieSearchIndex } from "@/common/types/models";
+import { Award, ClubAwards } from "@/common/types/awards";
+import { MovieSearchIndex } from "@/common/types/movie";
 import { useAddNomination, useDeleteNomination } from "@/service/useAwards";
 import { useDetailedReview } from "@/service/useReview";
 import { useUser } from "@/service/useUser";
