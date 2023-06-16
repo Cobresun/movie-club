@@ -10,7 +10,7 @@ import { badRequest, notFound } from "../../utils/responses";
 import { MiddlewareCallback } from "../../utils/router";
 import { ClubRequest } from "../../utils/validation";
 
-import { BaseClubAwards } from "@/common/types/models";
+import { BaseClubAwards } from "@/common/types/awards";
 
 const q = query;
 

@@ -5,7 +5,6 @@ import backlogRouter from "./backlog";
 import membersRouter from "./members";
 import reviewsRouter from "./reviews";
 import watchlistRouter from "./watchList";
-import { Club, ClubsViewClub } from "../../../src/common/types/models";
 import { loggedIn, secured } from "../utils/auth";
 import { getClubRef, getFaunaClient } from "../utils/fauna";
 import { ok, badRequest } from "../utils/responses";
@@ -13,6 +12,8 @@ import { Router } from "../utils/router";
 import { QueryResponse } from "../utils/types";
 import type { ClubRequest } from "../utils/validation";
 import { validClubId } from "../utils/validation";
+
+import { BaseClub, ClubPreview } from "@/common/types/club";
 
 const { faunaClient, q } = getFaunaClient();
 
@@ -56,7 +57,7 @@ router.use("/:clubId<\\d+>/members", validClubId, membersRouter);
 router.use("/:clubId<\\d+>/awards", validClubId, awardsRouter);
 
 router.get("/:clubId<\\d+>", validClubId, async ({ clubId }: ClubRequest) => {
-  const club = await faunaClient.query<ClubsViewClub>(
+  const club = await faunaClient.query<ClubPreview>(
     q.Call(q.Function("GetClub"), clubId!)
   );
 
@@ -86,7 +87,7 @@ router.post("/", loggedIn, async ({ event }) => {
    *    get their ref
    **/
 
-  const clubResponse = await faunaClient.query<QueryResponse<Club>>(
+  const clubResponse = await faunaClient.query<QueryResponse<BaseClub>>(
     q.Create(q.Collection("clubs"), {
       data: {
         clubId: clubId,

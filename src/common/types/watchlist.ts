@@ -12,3 +12,9 @@ export interface WatchListViewModel {
   backlog: WatchListItem[];
   nextMovieId?: number;
 }
+
+export interface BaseWatchListViewModel {
+  watchList: BaseWatchListItem[];
+  backlog: BaseWatchListItem[];
+  nextMovieId?: number;
+}

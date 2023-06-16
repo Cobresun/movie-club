@@ -9,7 +9,7 @@ import { Router } from "../../utils/router";
 import { getDetailedMovie } from "../../utils/tmdb";
 import { ClubRequest } from "../../utils/validation";
 
-import { ClubAwards } from "@/common/types/models";
+import { ClubAwards } from "@/common/types/awards";
 
 const router = new Router("/api/club/:clubId<\\d+>/awards");
 router.use("/:year<\\d+>/category", validYear, categoryRouter);
