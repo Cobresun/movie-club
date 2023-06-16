@@ -169,13 +169,7 @@ export function useAddNomination(clubId: string, year: string) {
                   ...award,
                   nominations: [
                     ...award.nominations,
-                    {
-                      movieId: review.movieId,
-                      nominatedBy: [name],
-                      ranking: {},
-                      movieData: review.movieData,
-                      movieTitle: review.movieTitle,
-                    },
+                    { ...review, nominatedBy: [name], ranking: {} },
                   ],
                 };
               } else {

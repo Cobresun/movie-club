@@ -26,7 +26,7 @@
       :class="[index == 0 ? 'z-0' : 'z-10']"
       class="bg-background"
       :movie-title="movie.movieTitle"
-      :movie-poster-url="movie.movieData.poster_url"
+      :movie-poster-url="movie.posterUrl"
       :highlighted="movie === selectedMovie"
     >
       <div class="grid grid-cols-2 gap-2">
