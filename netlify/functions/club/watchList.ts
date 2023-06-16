@@ -3,10 +3,10 @@ import { getFaunaClient } from "../utils/fauna";
 import { ok, badRequest } from "../utils/responses";
 import { Router } from "../utils/router";
 import { getDetailedMovie } from "../utils/tmdb";
-import { QueryResponse } from "../utils/types";
+import { Document } from "../utils/types";
 import { ClubRequest } from "../utils/validation";
 
-import { Club } from "@/common/types/club";
+import { BaseClub } from "@/common/types/club";
 import {
   BaseWatchListViewModel,
   WatchListViewModel,
@@ -52,7 +52,7 @@ router.post(
     }
 
     const club = (
-      await faunaClient.query<QueryResponse<Club>>(
+      await faunaClient.query<Document<BaseClub>>(
         q.Call(q.Function("AddMovieToWatchList"), [clubId, movieId])
       )
     ).data;

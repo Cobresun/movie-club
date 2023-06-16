@@ -2,7 +2,7 @@ import { Handler, HandlerEvent } from "@netlify/functions";
 
 import { getFaunaClient } from "./utils/fauna";
 import { badRequest, ok } from "./utils/responses";
-import { QueryListResponse } from "./utils/types";
+import { Document } from "./utils/types";
 
 import { Member } from "@/common/types/club";
 
@@ -20,7 +20,7 @@ const handler: Handler = async function (event: HandlerEvent) {
     const emailIndex = pathArray.indexOf("member") + 1;
     const email = pathArray[emailIndex];
 
-    const req: QueryListResponse<Member[]> = await faunaClient.query(
+    const req = await faunaClient.query<{ data: Document<Member>[] }>(
       q.Map(
         q.Paginate(q.Match(q.Index("members_by_email"), email)),
         q.Lambda("X", q.Get(q.Var("X")))

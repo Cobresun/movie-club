@@ -9,7 +9,7 @@ import { loggedIn, secured } from "../utils/auth";
 import { getClubRef, getFaunaClient } from "../utils/fauna";
 import { ok, badRequest } from "../utils/responses";
 import { Router } from "../utils/router";
-import { QueryResponse } from "../utils/types";
+import { Document } from "../utils/types";
 import type { ClubRequest } from "../utils/validation";
 import { validClubId } from "../utils/validation";
 
@@ -87,7 +87,7 @@ router.post("/", loggedIn, async ({ event }) => {
    *    get their ref
    **/
 
-  const clubResponse = await faunaClient.query<QueryResponse<BaseClub>>(
+  const clubResponse = await faunaClient.query<Document<BaseClub>>(
     q.Create(q.Collection("clubs"), {
       data: {
         clubId: clubId,

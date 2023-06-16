@@ -5,20 +5,21 @@ import { getClubProperty, getClubRef, getFaunaClient } from "../utils/fauna";
 import { badRequest, ok } from "../utils/responses";
 import { Router } from "../utils/router";
 import { getDetailedMovie } from "../utils/tmdb";
-import { QueryResponse, ReviewResponseResponse } from "../utils/types";
+import { Document } from "../utils/types";
 import { ClubRequest } from "../utils/validation";
 
-import { Club } from "@/common/types/models";
+import { BaseClub } from "@/common/types/club";
+import { BaseReview } from "@/common/types/reviews";
 
 const router = new Router("/api/club/:clubId<\\d+>/reviews");
 router.get("/", async ({ clubId }: ClubRequest) => {
-  const { faunaClient, q } = getFaunaClient();
+  const { faunaClient } = getFaunaClient();
 
-  const reviews = await faunaClient.query<ReviewResponseResponse>(
-    q.Call(q.Function("GetClubReviews"), clubId!)
+  const reviews = await faunaClient.query<BaseReview[]>(
+    getClubProperty(clubId!, "reviews")
   );
 
-  const detailedReviews = await getDetailedMovie(reviews.reviews);
+  const detailedReviews = await getDetailedMovie(reviews);
   return ok(JSON.stringify(detailedReviews));
 });
 
@@ -29,7 +30,7 @@ router.post(
     const movieId = parseInt(params.movieId);
     const { faunaClient, q } = getFaunaClient();
 
-    const clubResponse = await faunaClient.query<QueryResponse<Club>>(
+    const clubResponse = await faunaClient.query<Document<BaseClub>>(
       q.Call(q.Function("AddMovieToReviews"), clubId!, movieId)
     );
 

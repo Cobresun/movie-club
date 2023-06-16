@@ -14,7 +14,7 @@
         :review="review"
         :members="members"
         :movie-title="review.movieData.title"
-        :movie-poster-url="review.movieData.poster_url"
+        :movie-poster-url="review.posterUrl"
       />
     </transition-group>
   </div>

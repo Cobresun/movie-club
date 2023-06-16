@@ -1,11 +1,5 @@
 import { values } from "faunadb";
 
-export type QueryListResponse<T> = {
-  data: values.Document<T>[];
-};
-
-export type QueryResponse<T> = {
-  data: T;
-};
+export type Document<T> = values.Document<T>;
 
 export type StringRecord = Record<string, string>;

@@ -1,22 +1,27 @@
-import axios from "axios";
+import axios, { AxiosResponse } from "axios";
 
-import { QueryResponse } from "./types";
+import {
+  BaseMovie,
+  DetailedMovie,
+  TMDBConfig,
+  TMDBMovieData,
+} from "@/common/types/movie";
 
-import { BaseMovie, DetailedMovie, TMDBMovieData } from "@/common/types/movie";
-
-async function makeTMDBApiCall(path: string) {
+async function makeTMDBApiCall<T>(path: string) {
   const tmdbApiKey = process.env.TMDB_API_KEY;
-  return axios.get(`https://api.themoviedb.org/3${path}?api_key=${tmdbApiKey}`);
+  return axios.get<T>(
+    `https://api.themoviedb.org/3${path}?api_key=${tmdbApiKey}`
+  );
 }
 
 async function getTMDBConfig() {
-  return makeTMDBApiCall("/configuration");
+  return makeTMDBApiCall<TMDBConfig>("/configuration");
 }
 
 export async function getTMDBMovieData(
   movieId: number
-): Promise<QueryResponse<TMDBMovieData>> {
-  return makeTMDBApiCall(`/movie/${movieId}`);
+): Promise<AxiosResponse<TMDBMovieData>> {
+  return makeTMDBApiCall<TMDBMovieData>(`/movie/${movieId}`);
 }
 
 export async function getDetailedMovie<T extends BaseMovie>(
@@ -25,7 +30,7 @@ export async function getDetailedMovie<T extends BaseMovie>(
   const configuration = await getTMDBConfig();
   return await Promise.all(
     movies.map(async (movie) => {
-      const response = await makeTMDBApiCall(`/movie/${movie.movieId}`);
+      const response = await getTMDBMovieData(movie.movieId);
       return {
         ...movie,
         movieTitle: response.data.title,

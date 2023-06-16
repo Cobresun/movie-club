@@ -14,7 +14,7 @@
         v-for="nomination in nominationsWithScore"
         :key="nomination.movieId"
         :movie-title="nomination.movieTitle"
-        :movie-poster-url="nomination.movieData.poster_url"
+        :movie-poster-url="nomination.posterUrl"
         :highlighted="nomination.score === maxScore"
       >
         <div class="grid grid-cols-2 gap-2">

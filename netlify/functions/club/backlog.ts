@@ -3,7 +3,7 @@ import { getFaunaClient } from "../utils/fauna";
 import { badRequest, notFound, ok } from "../utils/responses";
 import { Router } from "../utils/router";
 import { getDetailedMovie } from "../utils/tmdb";
-import { QueryResponse } from "../utils/types";
+import { Document } from "../utils/types";
 import { ClubRequest } from "../utils/validation";
 
 import { BaseClub } from "@/common/types/club";
@@ -24,7 +24,7 @@ router.post(
       return badRequest("This movie already exists in the backlog");
     }
     const club = (
-      await faunaClient.query<QueryResponse<BaseClub>>(
+      await faunaClient.query<Document<BaseClub>>(
         q.Call(q.Function("AddMovieToBacklog"), [clubId, movieId])
       )
     ).data;

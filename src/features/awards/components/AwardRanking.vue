@@ -12,7 +12,7 @@
       v-for="(nomination, index) in nominations"
       :key="nomination.movieId"
       :movie-title="nomination.movieTitle"
-      :movie-poster-url="nomination.movieData.poster_url"
+      :movie-poster-url="nomination.posterUrl"
     >
       <div class="flex gap-2 mb-4">
         <v-avatar

@@ -21,7 +21,7 @@
         v-for="nomination in award.nominations"
         :key="nomination.movieId"
         :movie-title="nomination.movieTitle"
-        :movie-poster-url="nomination.movieData.poster_url"
+        :movie-poster-url="nomination.posterUrl"
         show-delete
         @delete="
           deleteNomination({
