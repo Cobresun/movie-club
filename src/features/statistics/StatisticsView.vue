@@ -77,7 +77,8 @@ import { ref, computed, watch } from "vue";
 
 import { normalizeArray, loadDefaultChartSettings } from "./StatisticsUtils";
 
-import { Header, DetailedReviewResponse } from "@/common/types/models";
+import { Header } from "@/common/types/common";
+import { Review } from "@/common/types/reviews";
 import { useMembers, useClub, useClubId } from "@/service/useClub";
 import { useReviews } from "@/service/useReview";
 
@@ -119,7 +120,7 @@ const loading = computed(
     loadingCalculations.value
 );
 
-const fetchMovieData = (reviews: DetailedReviewResponse[]) => {
+const fetchMovieData = (reviews: Review[]) => {
   return reviews.map((review) => {
     return {
       movieTitle: review.movieTitle,
