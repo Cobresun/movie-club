@@ -9,6 +9,7 @@
       "average": 10
     },
     "movieTitle": "12 Angry Men",
+    "posterUrl": "https://image.tmdb.org/t/p/w154/ow3wq89wM8qd5X7hWKxiRfsFf9C.jpg",
     "movieData": {
       "adult": false,
       "backdrop_path": "/tj6iPnz18hGfr0LKqWmG6Cp3niO.jpg",
@@ -63,8 +64,7 @@
       "title": "12 Angry Men",
       "video": false,
       "vote_average": 8.537,
-      "vote_count": 7223,
-      "poster_url": "https://image.tmdb.org/t/p/w154/ow3wq89wM8qd5X7hWKxiRfsFf9C.jpg"
+      "vote_count": 7223
     }
   },
   {
@@ -77,6 +77,7 @@
       "cole": 8
     },
     "movieTitle": "The Empire Strikes Back",
+    "posterUrl": "https://image.tmdb.org/t/p/w154/2l05cFWJacyIsTpsqSgH0wQXe4V.jpg",
     "movieData": {
       "adult": false,
       "backdrop_path": "/aJCtkxLLzkk1pECehVjKHA2lBgw.jpg",
@@ -138,8 +139,7 @@
       "title": "The Empire Strikes Back",
       "video": false,
       "vote_average": 8.393,
-      "vote_count": 15283,
-      "poster_url": "https://image.tmdb.org/t/p/w154/2l05cFWJacyIsTpsqSgH0wQXe4V.jpg"
+      "vote_count": 15283
     }
   }
 ]

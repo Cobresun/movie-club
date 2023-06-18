@@ -1,5 +1,5 @@
 import { secured } from "../utils/auth";
-import { getFaunaClient } from "../utils/fauna";
+import { getClubProperty, getClubRef, getFaunaClient } from "../utils/fauna";
 import { badRequest, notFound, ok } from "../utils/responses";
 import { Router } from "../utils/router";
 import { getDetailedMovie } from "../utils/tmdb";
@@ -25,7 +25,14 @@ router.post(
     }
     const club = (
       await faunaClient.query<Document<BaseClub>>(
-        q.Call(q.Function("AddMovieToBacklog"), [clubId, movieId])
+        q.Update(getClubRef(clubId!), {
+          data: {
+            backlog: q.Append(
+              [{ movieId, timeAdded: q.Now() }],
+              getClubProperty(clubId!, "backlog")
+            ),
+          },
+        })
       )
     ).data;
 
