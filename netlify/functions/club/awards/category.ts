@@ -4,7 +4,7 @@ import { getClubDocument, getFaunaClient } from "../../utils/fauna";
 import { badRequest, notFound, ok } from "../../utils/responses";
 import { Router } from "../../utils/router";
 
-import { BaseClubAwards } from "@/common/types/models";
+import { BaseClubAwards } from "@/common/types/awards";
 
 const router = new Router(
   "/api/club/:clubId<\\d+>/awards/:year<\\d+>/category"

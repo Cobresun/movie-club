@@ -5,16 +5,12 @@
     :highlighted="false"
   >
     <div class="grid grid-cols-2 gap-2">
-      <div 
+      <div
         v-for="member in members"
         :key="member.name"
         class="flex items-center bg-lowBackground rounded-3xl"
       >
-        <v-avatar
-          :size="32"
-          :name="member.name"
-          :src="member.image"
-        />
+        <v-avatar :size="32" :name="member.name" :src="member.image" />
         <div class="flex-grow text-sm">
           {{ review.scores[member.name] }}
         </div>
@@ -24,14 +20,15 @@
 </template>
 
 <script setup lang="ts">
-  import MoviePosterCard from "../../../common/components/MoviePosterCard.vue"
+import MoviePosterCard from "../../../common/components/MoviePosterCard.vue";
 
-  import { Member, ReviewResponse } from '@/common/types/models'
+import { Member } from "@/common/types/club";
+import { Review } from "@/common/types/reviews";
 
-  const { review, members, movieTitle, moviePosterUrl } = defineProps<{
-    review: ReviewResponse,
-    members: Member[],
-    movieTitle: string,
-    moviePosterUrl: string
-  }>()
+const { review, members, movieTitle, moviePosterUrl } = defineProps<{
+  review: Review;
+  members: Member[];
+  movieTitle: string;
+  moviePosterUrl: string;
+}>();
 </script>

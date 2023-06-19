@@ -6,7 +6,7 @@ import {
 } from "@tanstack/vue-query";
 import axios, { AxiosError } from "axios";
 
-import { WatchListItem, WatchListViewModel } from "@/common/types/models";
+import { WatchListItem, WatchListViewModel } from "@/common/types/watchlist";
 import { useAuthStore } from "@/stores/auth";
 
 export function useWatchList(

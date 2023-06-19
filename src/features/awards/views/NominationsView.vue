@@ -21,7 +21,7 @@
         v-for="nomination in award.nominations"
         :key="nomination.movieId"
         :movie-title="nomination.movieTitle"
-        :movie-poster-url="nomination.movieData.poster_url"
+        :movie-poster-url="nomination.posterUrl"
         show-delete
         @delete="
           deleteNomination({
@@ -47,9 +47,10 @@ import { NOMINATIONS_PER_AWARD } from "../constants";
 
 import MoviePosterCard from "@/common/components/MoviePosterCard.vue";
 import MovieSearchPrompt from "@/common/components/MovieSearchPrompt.vue";
-import { ClubAwards, Award, MovieSearchIndex } from "@/common/types/models";
+import { Award, ClubAwards } from "@/common/types/awards";
+import { MovieSearchIndex } from "@/common/types/movie";
 import { useAddNomination, useDeleteNomination } from "@/service/useAwards";
-import { useDetailedReview } from "@/service/useReview";
+import { useReviews } from "@/service/useReview";
 import { useUser } from "@/service/useUser";
 
 const { clubAward, clubId, year } = defineProps<{
@@ -81,7 +82,7 @@ const closePrompt = () => {
   currentAward.value = undefined;
 };
 
-const { data: reviews } = useDetailedReview(clubId);
+const { data: reviews } = useReviews(clubId);
 const reviewsForYear = computed(() => {
   if (!reviews.value) return [];
   return reviews.value

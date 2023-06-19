@@ -2,29 +2,40 @@ import { secured } from "../utils/auth";
 import { getFaunaClient } from "../utils/fauna";
 import { ok, badRequest } from "../utils/responses";
 import { Router } from "../utils/router";
-import { getWatchlistItemMovieData } from "../utils/tmdb";
-import { QueryResponse } from "../utils/types";
+import { getDetailedMovie } from "../utils/tmdb";
+import { Document } from "../utils/types";
 import { ClubRequest } from "../utils/validation";
 
-import { Club, WatchListViewModel } from "@/common/types/models";
+import { BaseClub } from "@/common/types/club";
+import {
+  BaseWatchListViewModel,
+  WatchListViewModel,
+} from "@/common/types/watchlist";
 
 const router = new Router("/api/club/:clubId<\\d+>/watchlist");
 
 router.get("/", async ({ clubId }: ClubRequest) => {
   const { faunaClient, q } = getFaunaClient();
 
-  const watchListViewModel = await faunaClient.query<WatchListViewModel>(
+  const watchListViewModel = await faunaClient.query<BaseWatchListViewModel>(
     q.Call(q.Function("GetWatchList"), clubId!)
   );
 
-  watchListViewModel.watchList = await getWatchlistItemMovieData(
-    watchListViewModel.watchList
-  );
-  watchListViewModel.backlog = await getWatchlistItemMovieData(
-    watchListViewModel.backlog
-  );
+  const watchListPromise = getDetailedMovie(watchListViewModel.watchList);
+  const backlogPromies = getDetailedMovie(watchListViewModel.backlog);
 
-  return ok(JSON.stringify(watchListViewModel));
+  const [watchList, backlog] = await Promise.all([
+    watchListPromise,
+    backlogPromies,
+  ]);
+
+  return ok(
+    JSON.stringify({
+      watchList,
+      backlog,
+      nextMovieId: watchListViewModel.nextMovieId,
+    })
+  );
 });
 
 router.post(
@@ -41,15 +52,13 @@ router.post(
     }
 
     const club = (
-      await faunaClient.query<QueryResponse<Club>>(
+      await faunaClient.query<Document<BaseClub>>(
         q.Call(q.Function("AddMovieToWatchList"), [clubId, movieId])
       )
     ).data;
 
     const movie = (
-      await getWatchlistItemMovieData([
-        club.watchList[club.watchList.length - 1],
-      ])
+      await getDetailedMovie([club.watchList[club.watchList.length - 1]])
     )[0];
 
     return ok(JSON.stringify(movie));

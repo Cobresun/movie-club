@@ -1,12 +1,13 @@
 import { secured } from "../utils/auth";
-import { getFaunaClient } from "../utils/fauna";
+import { getClubProperty, getClubRef, getFaunaClient } from "../utils/fauna";
 import { badRequest, notFound, ok } from "../utils/responses";
 import { Router } from "../utils/router";
-import { getWatchlistItemMovieData } from "../utils/tmdb";
-import { QueryResponse } from "../utils/types";
+import { getDetailedMovie } from "../utils/tmdb";
+import { Document } from "../utils/types";
 import { ClubRequest } from "../utils/validation";
 
-import { Club, WatchListViewModel } from "@/common/types/models";
+import { BaseClub } from "@/common/types/club";
+import { WatchListViewModel } from "@/common/types/watchlist";
 
 const router = new Router("/api/club/:clubId<\\d+>/backlog");
 
@@ -23,13 +24,20 @@ router.post(
       return badRequest("This movie already exists in the backlog");
     }
     const club = (
-      await faunaClient.query<QueryResponse<Club>>(
-        q.Call(q.Function("AddMovieToBacklog"), [clubId, movieId])
+      await faunaClient.query<Document<BaseClub>>(
+        q.Update(getClubRef(clubId!), {
+          data: {
+            backlog: q.Append(
+              [{ movieId, timeAdded: q.Now() }],
+              getClubProperty(clubId!, "backlog")
+            ),
+          },
+        })
       )
     ).data;
 
     const movie = (
-      await getWatchlistItemMovieData([club.backlog[club.backlog.length - 1]])
+      await getDetailedMovie([club.backlog[club.backlog.length - 1]])
     )[0];
 
     return ok(JSON.stringify(movie));

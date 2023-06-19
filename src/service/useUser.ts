@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/vue-query";
 import axios from "axios";
 import { computed } from "vue";
 
-import { Member } from "@/common/types/models";
+import { Member } from "@/common/types/club";
 import { useAuthStore } from "@/stores/auth";
 
 export function useUser() {

@@ -19,7 +19,8 @@ import { useToast } from "vue-toastification";
 
 import MovieSearchPrompt from "../../../common/components/MovieSearchPrompt.vue";
 
-import { MovieSearchIndex, WatchListItem } from "@/common/types/models";
+import { MovieSearchIndex } from "@/common/types/movie";
+import { WatchListItem } from "@/common/types/watchlist";
 import { useTrending } from "@/service/useTMDB";
 import { useAddBacklogItem, useWatchList } from "@/service/useWatchList";
 

@@ -9,12 +9,8 @@ import { Ref } from "vue";
 
 import { useUser } from "./useUser";
 
-import {
-  Award,
-  AwardsStep,
-  ClubAwards,
-  DetailedReviewResponse,
-} from "@/common/types/models";
+import { Award, AwardsStep, ClubAwards } from "@/common/types/awards";
+import { Review } from "@/common/types/reviews";
 import { useAuthStore } from "@/stores/auth";
 
 export function useAwardYears(
@@ -151,7 +147,7 @@ export function useAddNomination(clubId: string, year: string) {
       review,
     }: {
       awardTitle: string;
-      review: DetailedReviewResponse;
+      review: Review;
     }) =>
       auth.request.post(`/api/club/${clubId}/awards/${year}/nomination`, {
         awardTitle,
@@ -173,13 +169,7 @@ export function useAddNomination(clubId: string, year: string) {
                   ...award,
                   nominations: [
                     ...award.nominations,
-                    {
-                      movieId: review.movieId,
-                      nominatedBy: [name],
-                      ranking: {},
-                      movieData: review.movieData,
-                      movieTitle: review.movieTitle,
-                    },
+                    { ...review, nominatedBy: [name], ranking: {} },
                   ],
                 };
               } else {

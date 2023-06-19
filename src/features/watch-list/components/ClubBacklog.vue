@@ -26,7 +26,7 @@
       :class="[index == 0 ? 'z-0' : 'z-10']"
       class="bg-background"
       :movie-title="movie.movieTitle"
-      :movie-poster-url="movie.poster_url"
+      :movie-poster-url="movie.posterUrl"
       :highlighted="movie === selectedMovie"
     >
       <div class="grid grid-cols-2 gap-2">
@@ -54,7 +54,7 @@ import { useToast } from "vue-toastification";
 import AddMovieToWatchlistPrompt from "./AddMovieToWatchlistPrompt.vue";
 
 import MoviePosterCard from "@/common/components/MoviePosterCard.vue";
-import { WatchListItem } from "@/common/types/models";
+import { WatchListItem } from "@/common/types/watchlist";
 import {
   useAddMovie,
   useDeleteBacklogItem,

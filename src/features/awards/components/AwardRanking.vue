@@ -12,7 +12,7 @@
       v-for="(nomination, index) in nominations"
       :key="nomination.movieId"
       :movie-title="nomination.movieTitle"
-      :movie-poster-url="nomination.movieData.poster_url"
+      :movie-poster-url="nomination.posterUrl"
     >
       <div class="flex gap-2 mb-4">
         <v-avatar
@@ -42,7 +42,8 @@
 import { ref } from "vue";
 
 import MoviePosterCard from "@/common/components/MoviePosterCard.vue";
-import { Award, Member } from "@/common/types/models";
+import { Award } from "@/common/types/awards";
+import { Member } from "@/common/types/club";
 
 const { award, members, user } = defineProps<{
   award: Award;

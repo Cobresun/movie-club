@@ -14,7 +14,7 @@ import { computed, ref, toRefs } from "vue";
 
 import AwardResult from "../components/AwardResult.vue";
 
-import { AwardsStep, ClubAwards } from "@/common/types/models";
+import { AwardsStep, ClubAwards } from "@/common/types/awards";
 import { useUpdateStep } from "@/service/useAwards";
 import { useMembers } from "@/service/useClub";
 

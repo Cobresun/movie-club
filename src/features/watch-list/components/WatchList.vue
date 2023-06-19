@@ -16,7 +16,7 @@
       :class="[index == 0 ? 'z-0' : 'z-10']"
       class="bg-background"
       :movie-title="movie.movieTitle"
-      :movie-poster-url="movie.poster_url"
+      :movie-poster-url="movie.posterUrl"
       :highlighted="!isAnimating && movie.movieId == nextMovieId"
     >
       <div class="grid grid-cols-2 gap-2">
@@ -41,7 +41,7 @@ import { useRoute, useRouter } from "vue-router";
 import { useAnimateRandom } from "../composables/useAnimateRandom";
 
 import MoviePosterCard from "@/common/components/MoviePosterCard.vue";
-import { WatchListItem } from "@/common/types/models";
+import { WatchListItem } from "@/common/types/watchlist";
 import { useAddReview } from "@/service/useReview";
 import {
   useDeleteMovie,

@@ -30,7 +30,7 @@
 import { computed } from "vue";
 
 import clubSvg from "@/assets/images/menu-images/club.svg";
-import { ClubsViewClub } from "@/common/types/models";
+import { BaseClub } from "@/common/types/club";
 import { useClubs } from "@/service/useClub";
 import { useUser } from "@/service/useUser";
 import { useAuthStore } from "@/stores/auth";
@@ -44,10 +44,10 @@ const userClubIds = computed(() => user.value?.clubs ?? []);
 const enableClubQuery = computed(() => !userLoading.value);
 const clubsQueryResults = useClubs(userClubIds, enableClubQuery);
 
-const clubs = computed<ClubsViewClub[]>(() =>
+const clubs = computed<BaseClub[]>(() =>
   clubsQueryResults
     .map((result) => result.data)
-    .filter((result): result is ClubsViewClub => !!result)
+    .filter((result): result is BaseClub => !!result)
 );
 
 const loading = computed(() => {

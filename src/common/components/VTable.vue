@@ -75,7 +75,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
 
-import { Header } from "@/common/types/models";
+import { Header } from "../types/common";
 
 interface Props {
   headers: Header[];

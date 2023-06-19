@@ -3,14 +3,14 @@ import axios from "axios";
 import { Ref, computed } from "vue";
 import { useRoute } from "vue-router";
 
-import { ClubsViewClub, Member } from "@/common/types/models";
+import { BaseClub, Member } from "@/common/types/club";
 import { useAuthStore } from "@/stores/auth";
 
 const fetchClub = async (clubId: string | number) =>
   (await axios.get(`/api/club/${clubId}`)).data;
 
 export function useClub(clubId: string) {
-  return useQuery<ClubsViewClub>({
+  return useQuery<BaseClub>({
     queryKey: ["club", clubId],
     queryFn: async () => await fetchClub(clubId),
   });
@@ -24,7 +24,7 @@ export function useClubs(clubIds: Ref<number[]>, enabled: Ref<boolean>) {
       enabled,
     }))
   );
-  return useQueries<ClubsViewClub[]>({
+  return useQueries<BaseClub[]>({
     queries,
   });
 }

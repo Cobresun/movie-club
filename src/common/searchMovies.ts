@@ -1,4 +1,4 @@
-import { DetailedMovie } from "@/common/types/models";
+import { DetailedMovie } from "./types/movie";
 
 /**
  *

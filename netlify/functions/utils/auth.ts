@@ -1,32 +1,9 @@
-import { HandlerContext } from "@netlify/functions";
-
-import { getFaunaClient } from "./fauna";
+import { getClubDocument, getFaunaClient } from "./fauna";
 import { unauthorized } from "./responses";
 import { MiddlewareCallback } from "./router";
 import { ClubRequest } from "./validation";
 
-import { Member } from "@/common/types/models";
-
-interface MembersResponse {
-  members: Member[];
-}
-
-export async function isAuthorized(
-  clubId: number,
-  context: HandlerContext
-): Promise<boolean> {
-  const { faunaClient, q } = getFaunaClient();
-
-  if (!context.clientContext || !context.clientContext.user) return false;
-
-  const members = await faunaClient.query<MembersResponse>(
-    q.Call(q.Function("GetClubMembers"), clubId)
-  );
-
-  return members.members.some(
-    (member) => member.email === context.clientContext?.user.email
-  );
-}
+import { Member } from "@/common/types/club";
 
 export const loggedIn: MiddlewareCallback = ({ context }, next) => {
   if (!context.clientContext || !context.clientContext.user)
@@ -38,12 +15,15 @@ export const secured: MiddlewareCallback = (req: ClubRequest, next) => {
   return loggedIn(req, async () => {
     const { faunaClient, q } = getFaunaClient();
 
-    const members = await faunaClient.query<MembersResponse>(
-      q.Call(q.Function("GetClubMembers"), req.clubId!)
+    const members = await faunaClient.query<Member[]>(
+      q.Map(
+        q.Select(["data", "members"], getClubDocument(req.clubId!)),
+        q.Lambda("memberRef", q.Select(["data"], q.Get(q.Var("memberRef"))))
+      )
     );
 
     if (
-      members.members.some(
+      members.some(
         (member) => member.email === req.context.clientContext?.user.email
       )
     ) {

@@ -14,7 +14,7 @@
         v-for="nomination in nominationsWithScore"
         :key="nomination.movieId"
         :movie-title="nomination.movieTitle"
-        :movie-poster-url="nomination.movieData.poster_url"
+        :movie-poster-url="nomination.posterUrl"
         :highlighted="nomination.score === maxScore"
       >
         <div class="grid grid-cols-2 gap-2">
@@ -37,7 +37,8 @@
 import { computed, ref } from "vue";
 
 import MoviePosterCard from "@/common/components/MoviePosterCard.vue";
-import { Award, AwardsStep, Member } from "@/common/types/models";
+import { Award, AwardsStep } from "@/common/types/awards";
+import { Member } from "@/common/types/club";
 
 const { award, members, step } = defineProps<{
   award: Award;
