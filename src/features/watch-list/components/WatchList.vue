@@ -48,6 +48,7 @@ import {
   useMakeNextWatch,
   useWatchList,
 } from "@/service/useWatchList";
+import { filterMovies } from "@/common/searchMovies";
 
 const { searchTerm, clearSearch } = defineProps<{
   searchTerm: string;
@@ -84,9 +85,7 @@ const sortedWatchList = computed(() => {
 });
 
 const filteredWatchList = computed(() => {
-  return sortedWatchList.value.filter((review) =>
-    review.movieTitle.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  return filterMovies(watchList.value ?? [], searchTerm);
 });
 
 const { mutate: makeNextWatch } = useMakeNextWatch(
