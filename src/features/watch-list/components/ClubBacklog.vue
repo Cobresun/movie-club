@@ -60,6 +60,7 @@ import {
   useDeleteBacklogItem,
   useWatchList,
 } from "@/service/useWatchList";
+import { filterMovies } from "@/common/searchMovies";
 
 const { searchTerm, clearSearch } = defineProps<{
   searchTerm: string;
@@ -88,9 +89,7 @@ const moveBacklogItemToWatchlist = (movie: WatchListItem) => {
 };
 
 const filteredBacklog = computed(() => {
-  return backlog.value.filter((review) =>
-    review.movieTitle.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  return filterMovies(backlog.value ?? [], searchTerm);
 });
 
 const modalOpen = ref(false);
