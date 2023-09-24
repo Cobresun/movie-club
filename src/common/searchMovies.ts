@@ -21,7 +21,7 @@ export function filterMovies<T extends DetailedMovie>(
   reviews: T[],
   searchQuery: string
 ): T[] {
-  let filteredReviews = reviews;
+  let filteredReviews = [...reviews];
 
   // If the search query has text followed by a colon, extract that out into a map
   // of filters. Otherwise, just return an empty map. Type the map as a Record
