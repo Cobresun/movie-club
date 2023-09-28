@@ -72,7 +72,7 @@ describe("ReviewView", () => {
     expect(inputSlash).toBeVisible();
   });
 
-  it("should submit score", async () => {
+  it("should submit score in table view", async () => {
     const { user, pinia } = render(ReviewView, { props: { clubId: "1" } });
     const authStore = useAuthStore(pinia);
     authStore.user = userData;
@@ -106,5 +106,42 @@ describe("ReviewView", () => {
     ).not.toBeInTheDocument();
     expect(within(row).getByRole("cell", { name: "10" })).toBeInTheDocument();
     expect(within(row).getByRole("cell", { name: "9" })).toBeInTheDocument();
+  });
+
+  it("should submit score in gallery view", async () => {
+    const { user, pinia } = render(ReviewView, { props: { clubId: "1" } });
+    const authStore = useAuthStore(pinia);
+    authStore.user = userData;
+
+    const viewSwitch = screen.getByRole("switch");
+    await user.click(viewSwitch);
+    const tile = (
+      await screen.findByRole("img", { name: "The Empire Strikes Back" })
+    ).closest("div") as HTMLElement;
+    const addScoreButton = within(tile).getByRole("button", {
+      name: "Add score",
+    });
+    expect(addScoreButton).toBeInTheDocument();
+
+    await user.click(addScoreButton);
+    const scoreInput = screen.getByRole("textbox", { name: "Score" });
+    expect(scoreInput).toBeInTheDocument();
+    expect(scoreInput).toHaveFocus();
+
+    const newReviews = [
+      reviews[0],
+      { ...reviews[1], scores: { user: 10, cole: 8, average: 9 } },
+    ];
+    server.use(
+      rest.get("/api/club/:id/reviews", (req, res, ctx) => {
+        return res(ctx.status(200), ctx.json(newReviews));
+      })
+    );
+
+    await user.keyboard("10{Enter}");
+    expect(
+      screen.queryByRole("textbox", { name: "Score" })
+    ).not.toBeInTheDocument();
+    expect(within(tile).getByText("10")).toBeInTheDocument();
   });
 });

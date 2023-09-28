@@ -15,7 +15,7 @@
       <mdicon name="close-circle-outline" />
     </button>
     <div class="flex flex-col h-full bg-background">
-      <img v-lazy-load :src="moviePosterUrl" />
+      <img v-lazy-load :src="moviePosterUrl" :alt="movieTitle" />
       <div class="px-2 pb-2 flex flex-col h-auto flex-grow">
         <div class="my-2 flex flex-grow items-center justify-center">
           <h3 class="font-semibold h-min" style="height: min-content">

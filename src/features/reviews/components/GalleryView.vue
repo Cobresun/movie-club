@@ -15,6 +15,7 @@
         :members="members"
         :movie-title="review.movieData.title"
         :movie-poster-url="review.posterUrl"
+        @submit-score="(score) => emit('submitScore', review.movieId, score)"
       />
     </transition-group>
   </div>
@@ -30,6 +31,10 @@ import ReviewCard from "@/features/reviews/components/ReviewCard.vue";
 const { reviews, members: allMembers } = defineProps<{
   reviews: Review[];
   members: Member[];
+}>();
+
+const emit = defineEmits<{
+  (e: "submitScore", id: number, score: number): void;
 }>();
 
 const members = computed(() =>

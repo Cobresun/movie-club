@@ -26,7 +26,11 @@
             class="bg-background rounded-lg outline-none border border-gray-300 focus:border-primary p-2 w-10 text-center"
             @keypress.enter="
               () =>
-                submitScore(slotProps.item.movieId, parseFloat(scoreInputValue))
+                emit(
+                  'submitScore',
+                  slotProps.item.movieId,
+                  parseFloat(scoreInputValue)
+                )
             "
           />
           <div
@@ -57,10 +61,13 @@ import { Header } from "@/common/types/common";
 import { Review } from "@/common/types/reviews";
 import { useUser } from "@/service/useUser";
 
-const { reviews, members, submitScore } = defineProps<{
+const { reviews, members } = defineProps<{
   reviews: Review[];
   members: Member[];
-  submitScore: (movieId: number, score: number) => void;
+}>();
+
+const emit = defineEmits<{
+  (e: "submitScore", id: number, score: number): void;
 }>();
 
 const { data: user } = useUser();

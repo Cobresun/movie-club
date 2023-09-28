@@ -45,13 +45,13 @@
         v-if="!isGalleryView"
         :reviews="filteredReviews"
         :members="members ?? []"
-        :open-prompt="openPrompt"
-        :submit-score="submitScore"
+        @submit-score="submitScore"
       />
       <gallery-view
         v-else
         :reviews="filteredReviews"
         :members="members ?? []"
+        @submit-score="submitScore"
       />
     </div>
   </div>
