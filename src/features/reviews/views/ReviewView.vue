@@ -57,7 +57,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { computed, ref, onMounted, onUnmounted } from "vue";
+import { computed, ref, onMounted, onUnmounted, watch } from "vue";
 
 import { filterMovies } from "../../../common/searchMovies";
 import GalleryView from "../components/GalleryView.vue";
@@ -70,7 +70,10 @@ import { useReviews, useSubmitScore } from "@/service/useReview";
 
 const { clubId } = defineProps<{ clubId: string }>();
 
-const isGalleryView = ref(false);
+const isGalleryView = ref(localStorage.getItem("isGalleryView") === "true");
+watch(isGalleryView, () => {
+  localStorage.setItem("isGalleryView", isGalleryView.value.toString());
+});
 
 const { isLoading: loadingReviews, data: reviews } = useReviews(clubId);
 const { isLoading: loadingMembers, data: members } = useMembers(clubId);
