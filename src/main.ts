@@ -4,7 +4,7 @@ import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persist
 import { VueQueryPlugin, VueQueryPluginOptions } from "@tanstack/vue-query";
 import mdiVue from "mdi-vue/v3";
 import { createPinia } from "pinia";
-import { createApp } from "vue";
+import { createApp, reactive } from "vue";
 import Toast from "vue-toastification";
 
 import LazyLoad from "./directives/LazyLoad";
@@ -24,11 +24,23 @@ import "./assets/styles/tailwind.css";
 import "animate.css";
 import "vue-toastification/dist/index.css";
 
+const fetchedMap = reactive(new Map());
+
 const vueQueryOptions: VueQueryPluginOptions = {
   queryClientConfig: {
     defaultOptions: {
       queries: {
-        cacheTime: 1000 * 60 * 60 * 24 * 7, // One week
+        refetchOnWindowFocus: false,
+        refetchOnMount: (query) => {
+          const refetchTimes = fetchedMap.get(query.queryHash);
+          if (refetchTimes > 1) {
+            return false;
+          } else {
+            fetchedMap.set(query.queryHash, (refetchTimes || 0) + 1);
+            return true;
+          }
+        },
+        cacheTime: 1000 * 60 * 60 * 24 * 7, // One week,
       },
     },
   },
