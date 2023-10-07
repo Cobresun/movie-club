@@ -18,7 +18,16 @@ router.get("/", async ({ clubId }: ClubRequest) => {
   const { faunaClient, q } = getFaunaClient();
 
   const watchListViewModel = await faunaClient.query<BaseWatchListViewModel>(
-    q.Call(q.Function("GetWatchList"), clubId!)
+    q.Let(
+      {
+        clubDoc: q.Get(q.Match(q.Index("club_by_clubId"), clubId!))
+      },
+      {
+        watchList: q.Select(["data", "watchList"], q.Var("clubDoc")),
+        backlog: q.Select(["data", "backlog"], q.Var("clubDoc")),
+        nextMovieId: q.Select(["data", "nextMovieId"], q.Var("clubDoc"))
+      }
+    )
   );
 
   const watchListPromise = getDetailedMovie(watchListViewModel.watchList);
@@ -44,19 +53,38 @@ router.post(
   async ({ params, clubId }: ClubRequest) => {
     const movieId = parseInt(params.movieId);
     const { faunaClient, q } = getFaunaClient();
+
     const watchListResult = await faunaClient.query<WatchListViewModel>(
-      q.Call(q.Function("GetWatchList"), clubId!)
+      q.Let(
+        {
+          clubDoc: q.Get(q.Match(q.Index("club_by_clubId"), clubId!))
+        },
+        {
+          watchList: q.Select(["data", "watchList"], q.Var("clubDoc")),
+          backlog: q.Select(["data", "backlog"], q.Var("clubDoc")),
+          nextMovieId: q.Select(["data", "nextMovieId"], q.Var("clubDoc"))
+        }
+      )
     );
+
     if (watchListResult.watchList.some((item) => item.movieId === movieId)) {
       return badRequest("This movie already exists in the watchlist");
     }
 
     const club = (
       await faunaClient.query<Document<BaseClub>>(
-        q.Call(q.Function("AddMovieToWatchList"), [clubId, movieId])
+        q.Let(
+          {
+            ref: q.Select("ref", q.Get(q.Match(q.Index("club_by_clubId"), clubId!))),
+            doc: q.Get(q.Var("ref")),
+            array: q.Select(["data", "watchList"], q.Var("doc")),
+            updatedArray: q.Prepend([{ movieId: movieId, timeAdded: q.Now() }], q.Var("array"))
+          },
+          q.Update(q.Var("ref"), { data: { watchList: q.Var("updatedArray") } })
+        )
       )
     ).data;
-
+    
     const movie = (
       await getDetailedMovie([club.watchList[club.watchList.length - 1]])
     )[0];
@@ -73,7 +101,25 @@ router.delete(
     const { faunaClient, q } = getFaunaClient();
 
     await faunaClient.query(
-      q.Call(q.Function("DeleteWatchListItem"), [clubId, movieId])
+      q.Let(
+        {
+          clubRef: q.Select(
+            "ref",
+            q.Get(q.Match(q.Index("club_by_clubId"), clubId!))
+          )
+        },
+        q.Update(q.Var("clubRef"), {
+          data: {
+            watchList: q.Filter(
+              q.Select(["data", "watchList"], q.Get(q.Var("clubRef"))),
+              q.Lambda(
+                "watchListItem",
+                q.Not(q.Equals(movieId, q.Select(["movieId"], q.Var("watchListItem"))))
+              )
+            )
+          }
+        })
+      )
     );
 
     return ok();
