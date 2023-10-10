@@ -31,7 +31,30 @@ router.post(
     const { faunaClient, q } = getFaunaClient();
 
     const clubResponse = await faunaClient.query<Document<BaseClub>>(
-      q.Call(q.Function("AddMovieToReviews"), clubId!, movieId)
+      q.Let(
+        {
+          ref: q.Select(
+            "ref",
+            q.Get(q.Match(q.Index("club_by_clubId"), clubId!))
+          ),
+          doc: q.Get(q.Var("ref")),
+          array: q.Select(["data", "reviews"], q.Var("doc"))
+        },
+        q.Update(q.Var("ref"), {
+          data: {
+            reviews: q.Prepend(
+              [
+                {
+                  movieId: movieId,
+                  timeWatched: q.Now(),
+                  scores: {}
+                }
+              ],
+              q.Var("array")
+            )
+          }
+        })
+      )
     );
 
     const updatedReview = (

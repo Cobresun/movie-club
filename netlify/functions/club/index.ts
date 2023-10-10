@@ -58,7 +58,15 @@ router.use("/:clubId<\\d+>/awards", validClubId, awardsRouter);
 
 router.get("/:clubId<\\d+>", validClubId, async ({ clubId }: ClubRequest) => {
   const club = await faunaClient.query<ClubPreview>(
-    q.Call(q.Function("GetClub"), clubId!)
+    q.Call(
+      q.Let(
+        { clubDoc: q.Get(q.Match(q.Index("club_by_clubId"), clubId!)) },
+        {
+          clubId: q.Select(["data", "clubId"], q.Var("clubDoc")),
+          clubName: q.Select(["data", "clubName"], q.Var("clubDoc"))
+        }
+      )
+    )
   );
 
   return ok(JSON.stringify(club));

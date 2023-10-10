@@ -17,12 +17,24 @@ router.post(
   async ({ params, clubId }: ClubRequest) => {
     const movieId = parseInt(params.movieId);
     const { faunaClient, q } = getFaunaClient();
+
     const watchListResult = await faunaClient.query<WatchListViewModel>(
-      q.Call(q.Function("GetWatchList"), clubId!)
+      q.Let(
+        {
+          clubDoc: q.Get(q.Match(q.Index("club_by_clubId"), clubId!))
+        },
+        {
+          watchList: q.Select(["data", "watchList"], q.Var("clubDoc")),
+          backlog: q.Select(["data", "backlog"], q.Var("clubDoc")),
+          nextMovieId: q.Select(["data", "nextMovieId"], q.Var("clubDoc"))
+        }
+      )
     );
+
     if (watchListResult.backlog.some((item) => item.movieId === movieId)) {
       return badRequest("This movie already exists in the backlog");
     }
+
     const club = (
       await faunaClient.query<Document<BaseClub>>(
         q.Update(getClubRef(clubId!), {
@@ -52,7 +64,25 @@ router.delete(
     const { faunaClient, q } = getFaunaClient();
     try {
       await faunaClient.query(
-        q.Call(q.Function("DeleteBacklogItem"), [clubId, movieId])
+        q.Let(
+          {
+            clubRef: q.Select(
+              "ref",
+              q.Get(q.Match(q.Index("club_by_clubId"), clubId!))
+            )
+          },
+          q.Update(q.Var("clubRef"), {
+            data: {
+              backlog: q.Filter(
+                q.Select(["data", "backlog"], q.Get(q.Var("clubRef"))),
+                q.Lambda(
+                  "backlogItem",
+                  q.Not(q.Equals(movieId, q.Select(["movieId"], q.Var("backlogItem"))))
+                )
+              )
+            }
+          })
+        )
       );
     } catch (err) {
       return notFound(JSON.stringify(err));
