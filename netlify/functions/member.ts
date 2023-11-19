@@ -1,38 +1,43 @@
-import { Handler, HandlerEvent } from "@netlify/functions";
+import { Handler, HandlerContext, HandlerEvent } from "@netlify/functions";
 
 import { getFaunaClient } from "./utils/fauna";
 import { badRequest, ok } from "./utils/responses";
+import { Router } from "./utils/router";
 import { Document } from "./utils/types";
 
 import { Member } from "@/common/types/club";
 
 const { faunaClient, q } = getFaunaClient();
 
+const router = new Router("/api/member");
+
 /**
  *
  * GET /member/:email -> returns data for the member by email
  *
  */
+router.get("/:email", async (req) => {
+  if (!req.params.email) return badRequest("Missing email");
+  const email = req.params.email;
+  console.log(email);
+  console.log(typeof email);
 
-const handler: Handler = async function (event: HandlerEvent) {
-  if (event.httpMethod === "GET") {
-    const pathArray = event.path.split("/");
-    const emailIndex = pathArray.indexOf("member") + 1;
-    const email = pathArray[emailIndex];
+  const faunaReq = await faunaClient.query<{ data: Document<Member>[] }>(
+    q.Map(
+      q.Paginate(q.Match(q.Index("members_by_email"), email)),
+      q.Lambda("X", q.Get(q.Var("X")))
+    )
+  );
 
-    const req = await faunaClient.query<{ data: Document<Member>[] }>(
-      q.Map(
-        q.Paginate(q.Match(q.Index("members_by_email"), email)),
-        q.Lambda("X", q.Get(q.Var("X")))
-      )
-    );
+  const body = faunaReq.data[0].data;
+  return ok(JSON.stringify(body));
+});
 
-    const responseBody = req.data[0].data;
-
-    return ok(JSON.stringify(responseBody));
-  } else {
-    return badRequest("You are not using a http GET method for this endpoint.");
-  }
+const handler: Handler = async (
+  event: HandlerEvent,
+  context: HandlerContext
+) => {
+  return router.route({ event, context });
 };
 
 export { handler };
