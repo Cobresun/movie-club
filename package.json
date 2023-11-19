@@ -20,7 +20,7 @@
     "@tanstack/vue-query": "^4.24.9",
     "ag-charts-vue3": "^7.2.0",
     "animate.css": "^4.1.1",
-    "axios": "^1.1.1",
+    "axios": "^1.6.0",
     "faunadb": "^4.7.1",
     "luxon": "^3.2.1",
     "mdi-vue": "^3.0.13",
