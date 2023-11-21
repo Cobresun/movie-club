@@ -3,6 +3,8 @@ import axios from "axios";
 import netlifyIdentity, { User } from "netlify-identity-widget";
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
+import { useRoute } from "vue-router";
+import { useRouter } from "vue-router";
 
 export const useAuthStore = defineStore("auth", () => {
   const user = ref<User | null>();
@@ -49,7 +51,12 @@ export const useAuthStore = defineStore("auth", () => {
   const login = () => {
     netlifyIdentity.open();
   };
+  const router = useRouter();
+  const route = useRoute();
   const logout = () => {
+    if (route.meta.authRequired) {
+      router.push({ name: "Clubs" });
+    }
     netlifyIdentity.logout();
   };
 
