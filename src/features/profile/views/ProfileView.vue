@@ -9,12 +9,19 @@
         <p class="text-lg font-semibold">Email:</p>
         <p>{{ data?.email }}</p>
       </div>
-      <v-avatar
-        class="mb-4 md:mb-0"
-        :src="data?.image"
-        :name="data?.name"
-        size="160"
-      />
+      <button class="relative group cursor-pointer">
+        <v-avatar
+          class="mb-4 md:mb-0"
+          :src="data?.image"
+          :name="data?.name"
+          size="160"
+        />
+        <div
+          class="absolute top-0 left-0 rounded-full bg-black bg-opacity-30 w-full h-full hidden group-hover:flex items-center justify-center"
+        >
+          <mdicon name="pencil" size="32" />
+        </div>
+      </button>
     </div>
   </div>
 </template>
