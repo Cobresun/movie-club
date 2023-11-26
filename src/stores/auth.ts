@@ -3,8 +3,7 @@ import axios from "axios";
 import netlifyIdentity, { User } from "netlify-identity-widget";
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
-import { useRoute } from "vue-router";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 
 export const useAuthStore = defineStore("auth", () => {
   const user = ref<User | null>();

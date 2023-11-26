@@ -23,8 +23,6 @@ const router = new Router("/api/member");
 router.get("/:email", async (req) => {
   if (!req.params.email) return badRequest("Missing email");
   const email = req.params.email;
-  console.log(email);
-  console.log(typeof email);
 
   const faunaReq = await faunaClient.query<{ data: Document<Member>[] }>(
     q.Map(
