@@ -9,7 +9,8 @@
         <p class="text-lg font-semibold">Email:</p>
         <p>{{ data?.email }}</p>
       </div>
-      <button class="relative group cursor-pointer">
+      <input ref="fileInput" type="file" hidden @change="uploadAvatar" />
+      <button class="relative group cursor-pointer" @click="openFileSelector">
         <v-avatar
           class="mb-4 md:mb-0"
           :src="data?.image"
@@ -26,7 +27,25 @@
   </div>
 </template>
 <script setup lang="ts">
-import { useUser } from "@/service/useUser";
+import { ref, Ref } from "vue";
+
+import { useUser, useUpdateAvatar } from "@/service/useUser";
 
 const { data } = useUser();
+const fileInput: Ref<HTMLInputElement | null> = ref(null);
+
+const openFileSelector = () => {
+  fileInput.value?.click();
+};
+
+const { mutate } = useUpdateAvatar();
+const uploadAvatar = async (event: Event) => {
+  const input = event.target as HTMLInputElement;
+  if (!input.files?.length) return;
+
+  const formData = new FormData();
+  formData.append("avatar", input.files[0]);
+
+  mutate(formData);
+};
 </script>
