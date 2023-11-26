@@ -18,27 +18,29 @@
           size="160"
         />
         <div
-          class="absolute top-0 left-0 rounded-full bg-black bg-opacity-30 w-full h-full hidden group-hover:flex items-center justify-center"
+          class="absolute top-0 left-0 rounded-full bg-black bg-opacity-30 w-full h-full items-center justify-center"
+          :class="{ flex: isLoading, 'hidden group-hover:flex': !isLoading }"
         >
-          <mdicon name="pencil" size="32" />
+          <loading-spinner v-if="isLoading" />
+          <mdicon v-else name="pencil" size="32" />
         </div>
       </button>
     </div>
   </div>
 </template>
 <script setup lang="ts">
-import { ref, Ref } from "vue";
+import { computed, ref, Ref } from "vue";
 
 import { useUser, useUpdateAvatar } from "@/service/useUser";
 
-const { data } = useUser();
+const { data, isFetching: isUserLoading } = useUser();
 const fileInput: Ref<HTMLInputElement | null> = ref(null);
 
 const openFileSelector = () => {
   fileInput.value?.click();
 };
 
-const { mutate } = useUpdateAvatar();
+const { mutate, isLoading: isAvatarLoading } = useUpdateAvatar();
 const uploadAvatar = async (event: Event) => {
   const input = event.target as HTMLInputElement;
   if (!input.files?.length) return;
@@ -48,4 +50,6 @@ const uploadAvatar = async (event: Event) => {
 
   mutate(formData);
 };
+
+const isLoading = computed(() => isUserLoading.value || isAvatarLoading.value);
 </script>
