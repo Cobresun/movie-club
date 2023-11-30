@@ -9,7 +9,7 @@ const upload = async (file: Buffer) => {
             transformation: {
               width: 256,
               crop: "thumb",
-              gravity: "face",
+              gravity: "faces",
               aspect_ratio: "1.0",
             },
           },
