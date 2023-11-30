@@ -30,6 +30,7 @@
 </template>
 <script setup lang="ts">
 import { computed, ref, Ref } from "vue";
+import { useToast } from "vue-toastification";
 
 import { useUser, useUpdateAvatar } from "@/service/useUser";
 
@@ -41,9 +42,18 @@ const openFileSelector = () => {
 };
 
 const { mutate, isLoading: isAvatarLoading } = useUpdateAvatar();
+const toast = useToast();
 const uploadAvatar = async (event: Event) => {
   const input = event.target as HTMLInputElement;
   if (!input.files?.length) return;
+
+  const file = input.files[0];
+  const maxFileSize = 6 * 1024 * 1024;
+
+  if (file.size > maxFileSize) {
+    toast.error("The file size should not exceed 6MB");
+    return;
+  }
 
   const formData = new FormData();
   formData.append("avatar", input.files[0]);
