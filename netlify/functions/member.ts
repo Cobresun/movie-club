@@ -50,8 +50,8 @@ router.post("/avatar", loggedIn, async ({ event, context }) => {
     const { url, id } = await imageRepository.upload(avatarFile.content);
 
     // Delete old asset
-    if (user.data.assetId) {
-      await imageRepository.destroy(user.data.assetId);
+    if (user.data.imageId) {
+      await imageRepository.destroy(user.data.imageId);
     }
 
     // Update FaunaDB with the new avatar URL
