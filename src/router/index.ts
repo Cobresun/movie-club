@@ -13,6 +13,8 @@ import NominationsView from "@/features/awards/views/NominationsView.vue";
 import RankingsView from "@/features/awards/views/RankingsView.vue";
 import ResultView from "@/features/awards/views/ResultView.vue";
 import YearView from "@/features/awards/views/YearView.vue";
+import ProfileView from "@/features/profile/views/ProfileView.vue";
+import { useAuthStore } from "@/stores/auth";
 
 const routes: Array<RouteRecordRaw> = [
   {
@@ -21,6 +23,23 @@ const routes: Array<RouteRecordRaw> = [
     component: ClubsView,
     meta: {
       depth: 0,
+    },
+  },
+  {
+    path: "/profile",
+    name: "Profile",
+    component: ProfileView,
+    beforeEnter: (to, from, next) => {
+      const auth = useAuthStore();
+      if (!auth.isLoggedIn) {
+        next({ name: "Clubs" });
+      } else {
+        next();
+      }
+    },
+    meta: {
+      depth: 1,
+      authRequired: true,
     },
   },
   {
