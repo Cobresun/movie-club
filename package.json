@@ -12,6 +12,7 @@
     "type-check": "vue-tsc --noEmit --composite false",
     "migrate": "tsx --env-file=.env ./migrations/schemaMigrator.ts && npm run codegen",
     "migrate:down": "tsx --env-file=.env ./migrations/schemaMigrator.ts down && npm run codegen",
+    "migrate:data": "tsx --env-file=.env ./migrations/dataMigrator.ts",
     "codegen": "kysely-codegen --dialect postgres",
     "coverage": "vitest run --coverage"
   },

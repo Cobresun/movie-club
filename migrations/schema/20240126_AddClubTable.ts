@@ -4,7 +4,8 @@ export async function up(db: Kysely<unknown>) {
   await db.schema
     .createTable("club")
     .addColumn("id", "serial", (col) => col.primaryKey())
-    .addColumn("name", "varchar")
+    .addColumn("name", "varchar", (col) => col.notNull())
+    .addColumn("legacy_id", "integer")
     .execute();
 }
 
