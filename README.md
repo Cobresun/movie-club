@@ -55,3 +55,37 @@ npm run test:watch
 ```
 npm run coverage
 ```
+
+## Database Migrations
+
+To handle database migrations, use the following:
+
+- `migrate`: Executes schema migrations and runs code generation.
+- `migrate:down`: Reverts the last schema migration and runs code generation.
+- `migrate:data`: Handles data migrations.
+- `codegen`: Generates types and queries based on the current database schema.
+
+To run these migrations, you need a local `.env` file with the necessary environment variables. The `.env` file can be found in the Cobresun Notion.
+
+Migration scripts should be placed in the `migrations/schema` directory and named using the following convention: `<dateISO>_<yourchanges>`, e.g., `20240201_AddClubTable`.
+
+### Running Migrations
+
+- **Applying Migrations:**
+  ```
+  npm run migrate
+  ```
+- **Reverting the Last Migration:**
+  ```
+  npm run migrate:down
+  ```
+- **Handling Data Migrations:**
+  ```
+  npm run migrate:data -- <YourDataMigration>
+  ```
+- **Generating Code Based on Current Schema:**
+  ```
+  npm run codegen
+  ```
+
+Make sure to have the `.env` file set up correctly before running migrations. For details on the required environment variables, check the Cobresun Notion.

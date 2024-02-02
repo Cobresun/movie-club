@@ -9,12 +9,12 @@
     "lint": "eslint --ext .js,.vue --ignore-path .gitignore --fix src",
     "test": "vitest run",
     "test:watch": "vitest",
+    "coverage": "vitest run --coverage",
     "type-check": "vue-tsc --noEmit --composite false",
     "migrate": "tsx --env-file=.env ./migrations/schemaMigrator.ts && npm run codegen",
     "migrate:down": "tsx --env-file=.env ./migrations/schemaMigrator.ts down && npm run codegen",
     "migrate:data": "tsx --env-file=.env ./migrations/dataMigrator.ts",
-    "codegen": "kysely-codegen --dialect postgres",
-    "coverage": "vitest run --coverage"
+    "codegen": "kysely-codegen --dialect postgres"
   },
   "dependencies": {
     "@cubos/kysely-cockroach": "^1.0.0",
