@@ -1,7 +1,7 @@
 import { getClubDocument, getFaunaClient } from "./fauna";
 import { unauthorized } from "./responses";
 import { MiddlewareCallback } from "./router";
-import { ClubRequest } from "./validation";
+import { LegacyClubRequest } from "./validation";
 
 import { Member } from "@/common/types/club";
 
@@ -11,7 +11,7 @@ export const loggedIn: MiddlewareCallback = ({ context }, next) => {
   return next();
 };
 
-export const secured: MiddlewareCallback = (req: ClubRequest, next) => {
+export const secured: MiddlewareCallback = (req: LegacyClubRequest, next) => {
   return loggedIn(req, async () => {
     const { faunaClient, q } = getFaunaClient();
 

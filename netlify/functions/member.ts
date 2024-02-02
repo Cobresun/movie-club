@@ -1,6 +1,7 @@
 import { Handler, HandlerContext, HandlerEvent } from "@netlify/functions";
 import { parse } from "lambda-multipart-parser";
 
+import ClubRepository from "./repositories/ClubRepository";
 import imageRepository from "./repositories/imageRepository";
 import { loggedIn } from "./utils/auth";
 import { getFaunaClient } from "./utils/fauna";
@@ -23,7 +24,9 @@ router.get("/:email", async (req) => {
   if (!req.params.email) return badRequest("Missing email");
   const email = req.params.email;
 
-  const faunaReq = await faunaClient.query<{ data: Document<Member>[] }>(
+  const faunaReq = await faunaClient.query<{
+    data: Document<Member & { clubs: number[] }>[];
+  }>(
     q.Map(
       q.Paginate(q.Match(q.Index("members_by_email"), email)),
       q.Lambda("X", q.Get(q.Var("X")))
@@ -31,7 +34,11 @@ router.get("/:email", async (req) => {
   );
 
   const body = faunaReq.data[0].data;
-  return ok(JSON.stringify(body));
+  const result: Member = {
+    ...body,
+    clubs: await ClubRepository.mapLegacyIds(body.clubs),
+  };
+  return ok(JSON.stringify(result));
 });
 
 router.post("/avatar", loggedIn, async ({ event, context }) => {

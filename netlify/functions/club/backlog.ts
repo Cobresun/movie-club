@@ -4,7 +4,7 @@ import { badRequest, notFound, ok } from "../utils/responses";
 import { Router } from "../utils/router";
 import { getDetailedMovie } from "../utils/tmdb";
 import { Document } from "../utils/types";
-import { ClubRequest } from "../utils/validation";
+import { LegacyClubRequest } from "../utils/validation";
 
 import { BaseClub } from "@/common/types/club";
 import { WatchListViewModel } from "@/common/types/watchlist";
@@ -14,19 +14,19 @@ const router = new Router("/api/club/:clubId<\\d+>/backlog");
 router.post(
   "/:movieId<\\d+>",
   secured,
-  async ({ params, clubId }: ClubRequest) => {
+  async ({ params, clubId }: LegacyClubRequest) => {
     const movieId = parseInt(params.movieId);
     const { faunaClient, q } = getFaunaClient();
 
     const watchListResult = await faunaClient.query<WatchListViewModel>(
       q.Let(
         {
-          clubDoc: q.Get(q.Match(q.Index("club_by_clubId"), clubId!))
+          clubDoc: q.Get(q.Match(q.Index("club_by_clubId"), clubId!)),
         },
         {
           watchList: q.Select(["data", "watchList"], q.Var("clubDoc")),
           backlog: q.Select(["data", "backlog"], q.Var("clubDoc")),
-          nextMovieId: q.Select(["data", "nextMovieId"], q.Var("clubDoc"))
+          nextMovieId: q.Select(["data", "nextMovieId"], q.Var("clubDoc")),
         }
       )
     );
@@ -59,7 +59,7 @@ router.post(
 router.delete(
   "/:movieId<\\d+>",
   secured,
-  async ({ params, clubId }: ClubRequest) => {
+  async ({ params, clubId }: LegacyClubRequest) => {
     const movieId = parseInt(params.movieId);
     const { faunaClient, q } = getFaunaClient();
     try {
@@ -69,7 +69,7 @@ router.delete(
             clubRef: q.Select(
               "ref",
               q.Get(q.Match(q.Index("club_by_clubId"), clubId!))
-            )
+            ),
           },
           q.Update(q.Var("clubRef"), {
             data: {
@@ -77,10 +77,15 @@ router.delete(
                 q.Select(["data", "backlog"], q.Get(q.Var("clubRef"))),
                 q.Lambda(
                   "backlogItem",
-                  q.Not(q.Equals(movieId, q.Select(["movieId"], q.Var("backlogItem"))))
+                  q.Not(
+                    q.Equals(
+                      movieId,
+                      q.Select(["movieId"], q.Var("backlogItem"))
+                    )
+                  )
                 )
-              )
-            }
+              ),
+            },
           })
         )
       );

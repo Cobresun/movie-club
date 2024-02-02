@@ -7,11 +7,11 @@ export interface Member {
   name: string;
   image: string;
   imageId?: string;
-  clubs: number[];
+  clubs: string[];
 }
 
 export interface ClubPreview {
-  clubId: number;
+  clubId: string;
   clubName: string;
 }
 

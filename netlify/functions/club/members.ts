@@ -1,11 +1,11 @@
 import { getClubProperty, getFaunaClient } from "../utils/fauna";
 import { ok } from "../utils/responses";
 import { Router } from "../utils/router";
-import { ClubRequest } from "../utils/validation";
+import { LegacyClubRequest } from "../utils/validation";
 
 const router = new Router("/api/club/:clubId<\\d+>/members");
 
-router.get("/", async ({ clubId }: ClubRequest) => {
+router.get("/", async ({ clubId }: LegacyClubRequest) => {
   const { faunaClient, q } = getFaunaClient();
   const members = await faunaClient.query(
     q.Map(

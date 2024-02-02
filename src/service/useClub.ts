@@ -16,7 +16,7 @@ export function useClub(clubId: string) {
   });
 }
 
-export function useClubs(clubIds: Ref<number[]>, enabled: Ref<boolean>) {
+export function useClubs(clubIds: Ref<string[]>, enabled: Ref<boolean>) {
   const queries = computed(() =>
     clubIds.value.map((clubId) => ({
       queryKey: ["club", clubId],

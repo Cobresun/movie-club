@@ -1,6 +1,6 @@
-import { getFaunaClient } from "./fauna";
-import { badRequest, notFound } from "./responses";
+import { internalServerError, notFound } from "./responses";
 import { MiddlewareCallback, Request } from "./router";
+import ClubRepository from "../repositories/ClubRepository";
 
 export function getErrorMessage(error: unknown) {
   if (error instanceof Error) return error.message;
@@ -8,6 +8,10 @@ export function getErrorMessage(error: unknown) {
 }
 
 export interface ClubRequest extends Request {
+  clubId?: string;
+}
+
+export interface LegacyClubRequest extends Request {
   clubId?: number;
 }
 
@@ -16,18 +20,24 @@ export const validClubId: MiddlewareCallback = async (
   next
 ) => {
   if (!req.params.clubId) return notFound();
-  const clubId = parseInt(req.params.clubId);
-  if (isNaN(clubId)) return badRequest();
+  const clubId = req.params.clubId;
 
-  const { faunaClient, q } = getFaunaClient();
-  const clubExists = await faunaClient.query(
-    q.Exists(q.Match(q.Index("club_by_clubId"), clubId))
-  );
-
-  if (clubExists) {
+  if (await ClubRepository.exists(clubId)) {
     req.clubId = clubId;
     return next();
   } else {
     return notFound("Club not found");
   }
+};
+
+export const mapIdToLegacyId: MiddlewareCallback = async (
+  req: ClubRequest,
+  next
+) => {
+  const legacyId = await ClubRepository.getLegacyIdForId(req.clubId!);
+  if (!legacyId) {
+    return internalServerError("Invalid legacy id");
+  }
+  (req as LegacyClubRequest).clubId = parseInt(legacyId);
+  return next();
 };
