@@ -119,6 +119,8 @@ router.post("/", loggedIn, async ({ event }) => {
     })
   );
 
+  await ClubRepository.insert(name, clubId);
+
   return ok(JSON.stringify(clubResponse.data));
 });
 

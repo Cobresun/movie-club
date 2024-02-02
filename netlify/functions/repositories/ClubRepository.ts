@@ -45,6 +45,10 @@ class ClubRepository {
         .execute()
     ).map((row) => row.id);
   }
+
+  insert(name: string, legacy_id?: number) {
+    return db.insertInto("club").values({ name, legacy_id }).execute();
+  }
 }
 
 export default new ClubRepository();
