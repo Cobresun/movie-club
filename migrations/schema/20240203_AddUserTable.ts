@@ -4,10 +4,10 @@ export async function up(db: Kysely<unknown>) {
   await db.schema
     .createTable("user")
     .addColumn("id", "serial", (col) => col.primaryKey())
-    .addColumn("username", "varchar(100)", (col) => col.unique())
-    .addColumn("email", "varchar(255)", (col) => col.unique())
+    .addColumn("username", "varchar(100)", (col) => col.unique().notNull())
+    .addColumn("email", "varchar(255)", (col) => col.unique().notNull())
     .addColumn("image_url", "varchar(255)")
-    .addColumn("asset_id", "varchar(50)")
+    .addColumn("image_id", "varchar(50)")
     .execute();
 
   await db.schema
@@ -34,6 +34,6 @@ export async function up(db: Kysely<unknown>) {
 }
 
 export async function down(db: Kysely<unknown>) {
-  await db.schema.dropTable("user").execute();
   await db.schema.dropTable("club_member").execute();
+  await db.schema.dropTable("user").execute();
 }
