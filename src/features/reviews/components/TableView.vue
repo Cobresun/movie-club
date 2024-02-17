@@ -73,9 +73,7 @@ const headers = computed<Header[]>(() => {
 
   if (members && members.length > 0) {
     for (const member of members) {
-      if (!member.devAccount) {
-        headers.push({ value: member.name });
-      }
+      headers.push({ value: member.name });
     }
   }
   headers.push({ value: "average" });

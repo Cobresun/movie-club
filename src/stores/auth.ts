@@ -8,18 +8,20 @@ import { useRoute, useRouter } from "vue-router";
 export const useAuthStore = defineStore("auth", () => {
   const user = ref<User | null>();
   const ready = ref(false);
-  const isLoggedIn = computed(() => !!user.value);
+  const userHasValue = computed(() => !!user.value);
 
   const { data: authToken } = useQuery({
     queryKey: ["authToken", user],
     queryFn: () => {
-      const token = netlifyIdentity.refresh();
+      const token = netlifyIdentity.refresh(true);
       user.value = netlifyIdentity.currentUser();
       return token;
     },
-    enabled: isLoggedIn,
+    enabled: userHasValue,
     refetchInterval: 60 * 59 * 1000, // Refetch after 59mins
   });
+
+  const isLoggedIn = computed(() => !!authToken.value);
 
   const request = computed(() =>
     axios.create({ headers: { Authorization: `Bearer ${authToken.value}` } })

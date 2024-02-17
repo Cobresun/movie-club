@@ -2,12 +2,10 @@ import { BaseReview, Review } from "./reviews";
 import { BaseWatchListItem, WatchListItem } from "./watchlist";
 
 export interface Member {
-  devAccount: boolean;
   email: string;
   name: string;
-  image: string;
+  image?: string;
   imageId?: string;
-  clubs: string[];
 }
 
 export interface ClubPreview {

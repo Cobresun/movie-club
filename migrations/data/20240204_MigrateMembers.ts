@@ -8,7 +8,11 @@ const { faunaClient, q } = getFaunaClient();
 const migrateUsersAndMemberships = async () => {
   // Fetch users from FaunaDB
   const users = await faunaClient.query<
-    Document<Document<Member & { assetId?: string; clubs: string[] }>[]>
+    Document<
+      Document<
+        Member & { assetId?: string; clubs: string[]; devAccount?: boolean }
+      >[]
+    >
   >(
     q.Map(
       q.Paginate(q.Documents(q.Collection("members"))),
@@ -31,28 +35,31 @@ const migrateUsersAndMemberships = async () => {
       .returning("id")
       .execute();
 
-    // Assuming each user's `clubs` array contains club IDs that need to be migrated
-    for (const clubId of user.data.clubs) {
-      // Fetch the corresponding club's new ID from CockroachDB using the legacy_id
-      const club = await db
-        .selectFrom("club")
-        .select("id")
-        .where("legacy_id", "=", clubId)
-        .execute();
-
-      if (club.length > 0) {
-        // Insert club membership into `club_member`
-        console.log(
-          `Inserting club membership for user ${user.data.name} in club ${clubId}`
-        );
-        await db
-          .insertInto("club_member")
-          .values({
-            club_id: club[0].id, // First matching club ID
-            user_id: insertedUserId[0].id, // Assuming single row inserted
-            role: "member", // Default role, adjust as necessary
-          })
+    // Don't migrate clubs for dev account
+    if (!user.data.devAccount) {
+      // Assuming each user's `clubs` array contains club IDs that need to be migrated
+      for (const clubId of user.data.clubs) {
+        // Fetch the corresponding club's new ID from CockroachDB using the legacy_id
+        const club = await db
+          .selectFrom("club")
+          .select("id")
+          .where("legacy_id", "=", clubId)
           .execute();
+
+        if (club.length > 0) {
+          // Insert club membership into `club_member`
+          console.log(
+            `Inserting club membership for user ${user.data.name} in club ${clubId}`
+          );
+          await db
+            .insertInto("club_member")
+            .values({
+              club_id: club[0].id, // First matching club ID
+              user_id: insertedUserId[0].id, // Assuming single row inserted
+              role: "member", // Default role, adjust as necessary
+            })
+            .execute();
+        }
       }
     }
   }

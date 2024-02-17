@@ -1,13 +1,19 @@
 import { getClubDocument, getFaunaClient } from "./fauna";
 import { unauthorized } from "./responses";
-import { MiddlewareCallback } from "./router";
+import { MiddlewareCallback, Request } from "./router";
 import { LegacyClubRequest } from "./validation";
 
 import { Member } from "@/common/types/club";
 
-export const loggedIn: MiddlewareCallback = ({ context }, next) => {
-  if (!context.clientContext || !context.clientContext.user)
+export interface AuthRequest extends Request {
+  email?: string;
+}
+
+export const loggedIn: MiddlewareCallback = (req: AuthRequest, next) => {
+  if (!req.context.clientContext || !req.context.clientContext.user)
     return Promise.resolve(unauthorized());
+
+  req.email = req.context.clientContext.user.email;
   return next();
 };
 

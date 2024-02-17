@@ -89,10 +89,7 @@ const { isLoading: loadingMembers, data: members } = useMembers(clubId);
 
 const clubName = computed(() => club.value?.clubName ?? "Club");
 const memberNames = computed<string[]>(
-  () =>
-    members.value
-      ?.filter((member) => !member.devAccount)
-      .map((member) => member.name) ?? []
+  () => members.value?.map((member) => member.name) ?? []
 );
 const normButtonText = ref("Normalize Scores");
 
@@ -333,9 +330,7 @@ const headers = computed(() => {
 
   if (members.value && members.value.length > 0) {
     for (const member of members.value) {
-      if (!member.devAccount) {
-        headers.push({ value: member.name + (normalize.value ? "Norm" : "") });
-      }
+      headers.push({ value: member.name + (normalize.value ? "Norm" : "") });
     }
   }
   headers.push({ value: "average" + (normalize.value ? "Norm" : "") });

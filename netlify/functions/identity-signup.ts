@@ -9,20 +9,18 @@ const handler: Handler = async function (event: HandlerEvent) {
   if (event.body == null) return badRequest();
 
   const user = JSON.parse(event.body).user;
-  await faunaClient.query(q.Create(
-    q.Collection('members'),
-    {
+  await faunaClient.query(
+    q.Create(q.Collection("members"), {
       data: {
-        name: user.user_metadata.full_name ?? user.email.split('@')[0],
+        name: user.user_metadata.full_name ?? user.email.split("@")[0],
         email: user.email,
         image: user.image ?? undefined,
         clubs: [],
-        devAccount: false
-      }
-    }
-  ));
+      },
+    })
+  );
 
   return ok();
-}
+};
 
-export { handler }
+export { handler };

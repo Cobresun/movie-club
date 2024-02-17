@@ -2,21 +2,15 @@
   {
     "email": "dev@email.com",
     "name": "dev",
-    "image": "https://test.com/profile",
-    "clubs": [0, 1],
-    "devAccount": true
+    "image": "https://test.com/profile"
   },
   {
     "email": "user@email.com",
     "name": "user",
-    "image": "https://test.com/otherProfile",
-    "clubs": [0, 1],
-    "devAccount": false
+    "image": "https://test.com/otherProfile"
   },
   {
     "email": "cole@test.com",
-    "name": "cole",
-    "clubs": [1],
-    "devAccount": false
+    "name": "cole"
   }
 ]
