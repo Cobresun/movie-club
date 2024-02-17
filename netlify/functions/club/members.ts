@@ -1,19 +1,20 @@
-import { getClubProperty, getFaunaClient } from "../utils/fauna";
+import UserRepository from "../repositories/UserRepository";
 import { ok } from "../utils/responses";
 import { Router } from "../utils/router";
-import { LegacyClubRequest } from "../utils/validation";
+import { ClubRequest } from "../utils/validation";
+
+import { Member } from "@/common/types/club";
 
 const router = new Router("/api/club/:clubId<\\d+>/members");
 
-router.get("/", async ({ clubId }: LegacyClubRequest) => {
-  const { faunaClient, q } = getFaunaClient();
-  const members = await faunaClient.query(
-    q.Map(
-      getClubProperty(clubId!, "members"),
-      q.Lambda("memberRef", q.Select("data", q.Get(q.Var("memberRef"))))
-    )
-  );
-  return ok(JSON.stringify(members));
+router.get("/", async ({ clubId }: ClubRequest) => {
+  const members = await UserRepository.getMembersByClubId(clubId!);
+  const response: Member[] = members.map((member) => ({
+    email: member.email,
+    name: member.username,
+    image: member.image_url ?? undefined,
+  }));
+  return ok(JSON.stringify(response));
 });
 
 export default router;

@@ -69,12 +69,7 @@ router.use(
   mapIdToLegacyId,
   backlogRouter
 );
-router.use(
-  "/:clubId<\\d+>/members",
-  validClubId,
-  mapIdToLegacyId,
-  membersRouter
-);
+router.use("/:clubId<\\d+>/members", validClubId, membersRouter);
 router.use("/:clubId<\\d+>/awards", validClubId, mapIdToLegacyId, awardsRouter);
 
 router.get("/:clubId<\\d+>", validClubId, async ({ clubId }: ClubRequest) => {

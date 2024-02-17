@@ -21,6 +21,16 @@ class UserRepository {
       .execute();
   }
 
+  async getMembersByClubId(clubId: string) {
+    return await db
+      .selectFrom("club")
+      .where("club.id", "=", clubId)
+      .innerJoin("club_member", "club_member.club_id", "club.id")
+      .innerJoin("user", "user.id", "club_member.user_id")
+      .selectAll("user")
+      .execute();
+  }
+
   async updateImage(userId: string, imageUrl?: string, imageId?: string) {
     return await db
       .updateTable("user")
