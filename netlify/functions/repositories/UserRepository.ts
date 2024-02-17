@@ -1,3 +1,6 @@
+import { InsertExpression } from "kysely/dist/cjs/parser/insert-values-parser";
+import { DB } from "kysely-codegen";
+
 import { db } from "../utils/database";
 
 class UserRepository {
@@ -29,6 +32,22 @@ class UserRepository {
       .innerJoin("user", "user.id", "club_member.user_id")
       .selectAll("user")
       .execute();
+  }
+
+  async getExistingUser(username: string, email: string) {
+    return (
+      await db
+        .selectFrom("user")
+        .selectAll()
+        .where((eb) =>
+          eb.or([eb("email", "=", email), eb("username", "=", username)])
+        )
+        .execute()
+    )[0];
+  }
+
+  async add(newUser: InsertExpression<DB, "user">) {
+    return await db.insertInto("user").values(newUser).execute();
   }
 
   async updateImage(userId: string, imageUrl?: string, imageId?: string) {
