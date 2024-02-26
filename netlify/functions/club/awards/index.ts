@@ -7,7 +7,7 @@ import { getClubProperty, getFaunaClient } from "../../utils/fauna";
 import { ok } from "../../utils/responses";
 import { Router } from "../../utils/router";
 import { getDetailedMovie } from "../../utils/tmdb";
-import { ClubRequest } from "../../utils/validation";
+import { LegacyClubRequest } from "../../utils/validation";
 
 import { ClubAwards } from "@/common/types/awards";
 
@@ -34,7 +34,7 @@ router.get(
   }
 );
 
-router.get("/years", async ({ clubId }: ClubRequest) => {
+router.get("/years", async ({ clubId }: LegacyClubRequest) => {
   const { faunaClient, q } = getFaunaClient();
 
   const years = await faunaClient.query(

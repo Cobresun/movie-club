@@ -55,3 +55,43 @@ npm run test:watch
 ```
 npm run coverage
 ```
+
+## Database Migrations
+
+To manage database migrations, the following NPM scripts are used:
+
+- **For Deployment Environment:**
+  - `migrate`: Executes schema migrations for the deployment environment without specifying an `.env` file and runs code generation.
+- **For Development Environment:**
+  - `migrate:dev`: Executes schema migrations in the development environment, requiring the `.env` file, and runs code generation.
+  - `migrate:down`: Reverts the last schema migration in the development environment, requiring the `.env` file, and runs code generation.
+  - `migrate:data`: Handles data migrations in the development environment, requiring the `.env` file.
+- **Code Generation:**
+  - `codegen`: Generates types and queries based on the current database schema using the Kysely code generator with PostgreSQL dialect.
+
+Migration scripts should be placed in the `migrations/schema` directory and named following this convention: `<dateISO>_<yourchanges>`, e.g., `20240201_AddClubTable`.
+
+### Running Migrations
+
+- **Applying Migrations for Deployment:**
+  ```
+  npm run migrate
+  ```
+- **Applying Migrations for Development:**
+  ```
+  npm run migrate:dev
+  ```
+- **Reverting the Last Migration (Development Only):**
+  ```
+  npm run migrate:down
+  ```
+- **Handling Data Migrations (Development Only):**
+  ```
+  npm run migrate:data -- <YourDataMigration>
+  ```
+- **Generating Code Based on Current Schema:**
+  ```
+  npm run codegen
+  ```
+
+For development migrations, ensure you have the `.env` file set up with the necessary environment variables. The `.env` file details can be found in the Cobresun Notion.

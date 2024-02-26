@@ -8,7 +8,7 @@ import {
 } from "../../utils/fauna";
 import { badRequest, notFound } from "../../utils/responses";
 import { MiddlewareCallback } from "../../utils/router";
-import { ClubRequest } from "../../utils/validation";
+import { LegacyClubRequest } from "../../utils/validation";
 
 import { BaseClubAwards } from "@/common/types/awards";
 
@@ -59,7 +59,7 @@ export function updateClubAwardYear(
   });
 }
 
-export interface ClubAwardRequest extends ClubRequest {
+export interface ClubAwardRequest extends LegacyClubRequest {
   year?: number;
   clubAwards?: BaseClubAwards;
 }

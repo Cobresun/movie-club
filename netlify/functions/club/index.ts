@@ -5,13 +5,14 @@ import backlogRouter from "./backlog";
 import membersRouter from "./members";
 import reviewsRouter from "./reviews";
 import watchlistRouter from "./watchList";
+import ClubRepository from "../repositories/ClubRepository";
 import { loggedIn, secured } from "../utils/auth";
 import { getClubRef, getFaunaClient } from "../utils/fauna";
 import { ok, badRequest } from "../utils/responses";
 import { Router } from "../utils/router";
 import { Document } from "../utils/types";
-import type { ClubRequest } from "../utils/validation";
-import { validClubId } from "../utils/validation";
+import type { ClubRequest, LegacyClubRequest } from "../utils/validation";
+import { mapIdToLegacyId, validClubId } from "../utils/validation";
 
 import { BaseClub, ClubPreview } from "@/common/types/club";
 
@@ -50,24 +51,39 @@ const { faunaClient, q } = getFaunaClient();
  */
 
 const router = new Router("/api/club");
-router.use("/:clubId<\\d+>/reviews", validClubId, reviewsRouter);
-router.use("/:clubId<\\d+>/watchlist", validClubId, watchlistRouter);
-router.use("/:clubId<\\d+>/backlog", validClubId, backlogRouter);
-router.use("/:clubId<\\d+>/members", validClubId, membersRouter);
-router.use("/:clubId<\\d+>/awards", validClubId, awardsRouter);
+router.use(
+  "/:clubId<\\d+>/reviews",
+  validClubId,
+  mapIdToLegacyId,
+  reviewsRouter
+);
+router.use(
+  "/:clubId<\\d+>/watchlist",
+  validClubId,
+  mapIdToLegacyId,
+  watchlistRouter
+);
+router.use(
+  "/:clubId<\\d+>/backlog",
+  validClubId,
+  mapIdToLegacyId,
+  backlogRouter
+);
+router.use(
+  "/:clubId<\\d+>/members",
+  validClubId,
+  mapIdToLegacyId,
+  membersRouter
+);
+router.use("/:clubId<\\d+>/awards", validClubId, mapIdToLegacyId, awardsRouter);
 
 router.get("/:clubId<\\d+>", validClubId, async ({ clubId }: ClubRequest) => {
-  const club = await faunaClient.query<ClubPreview>(
-    q.Let(
-      { clubDoc: q.Get(q.Match(q.Index("club_by_clubId"), clubId!)) },
-      {
-        clubId: q.Select(["data", "clubId"], q.Var("clubDoc")),
-        clubName: q.Select(["data", "clubName"], q.Var("clubDoc"))
-      }
-    )
-  );
-
-  return ok(JSON.stringify(club));
+  const club = await ClubRepository.getById(clubId!);
+  const result: ClubPreview = {
+    clubId: club.id,
+    clubName: club.name,
+  };
+  return ok(JSON.stringify(result));
 });
 
 router.post("/", loggedIn, async ({ event }) => {
@@ -103,6 +119,8 @@ router.post("/", loggedIn, async ({ event }) => {
     })
   );
 
+  await ClubRepository.insert(name, clubId);
+
   return ok(JSON.stringify(clubResponse.data));
 });
 
@@ -110,7 +128,7 @@ router.put(
   "/:clubId<\\d+>/nextMovie",
   validClubId,
   secured,
-  async ({ event, clubId }: ClubRequest) => {
+  async ({ event, clubId }: LegacyClubRequest) => {
     if (!event.body) return badRequest("Missing body");
     let movieId: number;
     try {

@@ -4,7 +4,7 @@ import { ok, badRequest } from "../utils/responses";
 import { Router } from "../utils/router";
 import { getDetailedMovie } from "../utils/tmdb";
 import { Document } from "../utils/types";
-import { ClubRequest } from "../utils/validation";
+import { LegacyClubRequest } from "../utils/validation";
 
 import { BaseClub } from "@/common/types/club";
 import {
@@ -14,18 +14,18 @@ import {
 
 const router = new Router("/api/club/:clubId<\\d+>/watchlist");
 
-router.get("/", async ({ clubId }: ClubRequest) => {
+router.get("/", async ({ clubId }: LegacyClubRequest) => {
   const { faunaClient, q } = getFaunaClient();
 
   const watchListViewModel = await faunaClient.query<BaseWatchListViewModel>(
     q.Let(
       {
-        clubDoc: q.Get(q.Match(q.Index("club_by_clubId"), clubId!))
+        clubDoc: q.Get(q.Match(q.Index("club_by_clubId"), clubId!)),
       },
       {
         watchList: q.Select(["data", "watchList"], q.Var("clubDoc")),
         backlog: q.Select(["data", "backlog"], q.Var("clubDoc")),
-        nextMovieId: q.Select(["data", "nextMovieId"], q.Var("clubDoc"))
+        nextMovieId: q.Select(["data", "nextMovieId"], q.Var("clubDoc")),
       }
     )
   );
@@ -50,19 +50,19 @@ router.get("/", async ({ clubId }: ClubRequest) => {
 router.post(
   "/:movieId<\\d+>",
   secured,
-  async ({ params, clubId }: ClubRequest) => {
+  async ({ params, clubId }: LegacyClubRequest) => {
     const movieId = parseInt(params.movieId);
     const { faunaClient, q } = getFaunaClient();
 
     const watchListResult = await faunaClient.query<WatchListViewModel>(
       q.Let(
         {
-          clubDoc: q.Get(q.Match(q.Index("club_by_clubId"), clubId!))
+          clubDoc: q.Get(q.Match(q.Index("club_by_clubId"), clubId!)),
         },
         {
           watchList: q.Select(["data", "watchList"], q.Var("clubDoc")),
           backlog: q.Select(["data", "backlog"], q.Var("clubDoc")),
-          nextMovieId: q.Select(["data", "nextMovieId"], q.Var("clubDoc"))
+          nextMovieId: q.Select(["data", "nextMovieId"], q.Var("clubDoc")),
         }
       )
     );
@@ -75,16 +75,22 @@ router.post(
       await faunaClient.query<Document<BaseClub>>(
         q.Let(
           {
-            ref: q.Select("ref", q.Get(q.Match(q.Index("club_by_clubId"), clubId!))),
+            ref: q.Select(
+              "ref",
+              q.Get(q.Match(q.Index("club_by_clubId"), clubId!))
+            ),
             doc: q.Get(q.Var("ref")),
             array: q.Select(["data", "watchList"], q.Var("doc")),
-            updatedArray: q.Prepend([{ movieId: movieId, timeAdded: q.Now() }], q.Var("array"))
+            updatedArray: q.Prepend(
+              [{ movieId: movieId, timeAdded: q.Now() }],
+              q.Var("array")
+            ),
           },
           q.Update(q.Var("ref"), { data: { watchList: q.Var("updatedArray") } })
         )
       )
     ).data;
-    
+
     const movie = (
       await getDetailedMovie([club.watchList[club.watchList.length - 1]])
     )[0];
@@ -96,7 +102,7 @@ router.post(
 router.delete(
   "/:movieId<\\d+>",
   secured,
-  async ({ params, clubId }: ClubRequest) => {
+  async ({ params, clubId }: LegacyClubRequest) => {
     const movieId = parseInt(params.movieId);
     const { faunaClient, q } = getFaunaClient();
 
@@ -106,7 +112,7 @@ router.delete(
           clubRef: q.Select(
             "ref",
             q.Get(q.Match(q.Index("club_by_clubId"), clubId!))
-          )
+          ),
         },
         q.Update(q.Var("clubRef"), {
           data: {
@@ -114,10 +120,15 @@ router.delete(
               q.Select(["data", "watchList"], q.Get(q.Var("clubRef"))),
               q.Lambda(
                 "watchListItem",
-                q.Not(q.Equals(movieId, q.Select(["movieId"], q.Var("watchListItem"))))
+                q.Not(
+                  q.Equals(
+                    movieId,
+                    q.Select(["movieId"], q.Var("watchListItem"))
+                  )
+                )
               )
-            )
-          }
+            ),
+          },
         })
       )
     );

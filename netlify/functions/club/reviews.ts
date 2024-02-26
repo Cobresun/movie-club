@@ -6,13 +6,13 @@ import { badRequest, ok } from "../utils/responses";
 import { Router } from "../utils/router";
 import { getDetailedMovie } from "../utils/tmdb";
 import { Document } from "../utils/types";
-import { ClubRequest } from "../utils/validation";
+import { LegacyClubRequest } from "../utils/validation";
 
 import { BaseClub } from "@/common/types/club";
 import { BaseReview } from "@/common/types/reviews";
 
 const router = new Router("/api/club/:clubId<\\d+>/reviews");
-router.get("/", async ({ clubId }: ClubRequest) => {
+router.get("/", async ({ clubId }: LegacyClubRequest) => {
   const { faunaClient } = getFaunaClient();
 
   const reviews = await faunaClient.query<BaseReview[]>(
@@ -26,7 +26,7 @@ router.get("/", async ({ clubId }: ClubRequest) => {
 router.post(
   "/:movieId<\\d+>",
   secured,
-  async ({ params, clubId }: ClubRequest) => {
+  async ({ params, clubId }: LegacyClubRequest) => {
     const movieId = parseInt(params.movieId);
     const { faunaClient, q } = getFaunaClient();
 
@@ -38,7 +38,7 @@ router.post(
             q.Get(q.Match(q.Index("club_by_clubId"), clubId!))
           ),
           doc: q.Get(q.Var("ref")),
-          array: q.Select(["data", "reviews"], q.Var("doc"))
+          array: q.Select(["data", "reviews"], q.Var("doc")),
         },
         q.Update(q.Var("ref"), {
           data: {
@@ -47,12 +47,12 @@ router.post(
                 {
                   movieId: movieId,
                   timeWatched: q.Now(),
-                  scores: {}
-                }
+                  scores: {},
+                },
               ],
               q.Var("array")
-            )
-          }
+            ),
+          },
         })
       )
     );
@@ -68,7 +68,7 @@ router.post(
 router.put(
   "/:movieId<\\d+>",
   secured,
-  async ({ event, params, clubId }: ClubRequest) => {
+  async ({ event, params, clubId }: LegacyClubRequest) => {
     if (event.body == null) return badRequest("Missing body");
     const body = JSON.parse(event.body);
     if (!body.name || !body.score)
