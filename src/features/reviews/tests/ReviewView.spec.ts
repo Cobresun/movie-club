@@ -76,6 +76,8 @@ describe("ReviewView", () => {
     const { user, pinia } = render(ReviewView, { props: { clubId: "1" } });
     const authStore = useAuthStore(pinia);
     authStore.user = userData;
+    //@ts-expect-error Forcing logged in to true for testing
+    authStore.isLoggedIn = true;
 
     const row = (
       await screen.findByRole("cell", { name: "The Empire Strikes Back" })

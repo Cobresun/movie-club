@@ -8,7 +8,7 @@ import TMDBSearch from "./data/TMDBSearch.json";
 import watchlist from "./data/watchlist.json";
 
 export const handlers = [
-  rest.get("/api/member/:email", (req, res, ctx) => {
+  rest.get("/api/member", (req, res, ctx) => {
     return res(ctx.status(200), ctx.json(member));
   }),
   rest.get("/api/club/:id", (req, res, ctx) => {
