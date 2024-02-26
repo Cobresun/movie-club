@@ -1,6 +1,7 @@
 import { Handler, HandlerContext, HandlerEvent } from "@netlify/functions";
 import { parse } from "lambda-multipart-parser";
 
+import ClubRepository from "./repositories/ClubRepository";
 import ImageRepository from "./repositories/ImageRepository";
 import UserRepository from "./repositories/UserRepository";
 import { AuthRequest, loggedIn } from "./utils/auth";
@@ -22,7 +23,7 @@ router.get("/", loggedIn, async (req: AuthRequest) => {
 });
 
 router.get("/clubs", loggedIn, async (req: AuthRequest) => {
-  const clubs = await UserRepository.getClubPreviewsByEmail(req.email!);
+  const clubs = await ClubRepository.getClubPreviewsByEmail(req.email!);
   const result: ClubPreview[] = clubs.map((club) => ({
     clubId: club.club_id,
     clubName: club.club_name,

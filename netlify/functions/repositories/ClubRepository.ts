@@ -49,6 +49,16 @@ class ClubRepository {
   insert(name: string, legacy_id?: number) {
     return db.insertInto("club").values({ name, legacy_id }).execute();
   }
+
+  getClubPreviewsByEmail(email: string) {
+    return db
+      .selectFrom("user")
+      .where("email", "=", email)
+      .innerJoin("club_member", "club_member.user_id", "user.id")
+      .innerJoin("club", "club.id", "club_member.club_id")
+      .select(["club.id as club_id", "club.name as club_name"])
+      .execute();
+  }
 }
 
 export default new ClubRepository();
