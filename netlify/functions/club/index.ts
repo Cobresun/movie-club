@@ -127,6 +127,7 @@ router.post("/", loggedIn, async ({ event }) => {
 router.put(
   "/:clubId<\\d+>/nextMovie",
   validClubId,
+  mapIdToLegacyId,
   secured,
   async ({ event, clubId }: LegacyClubRequest) => {
     if (!event.body) return badRequest("Missing body");
