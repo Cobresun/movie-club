@@ -40,12 +40,12 @@ export async function up(db: Kysely<unknown>) {
     .createTable("work_list_item")
     .addColumn("list_id", "int8")
     .addColumn("work_id", "int8")
-    .addColumn("created_date", "datetime", (col) => col.notNull())
+    .addColumn("created_date", "date", (col) => col.notNull())
     .addPrimaryKeyConstraint("pk_work_list_item", ["list_id", "work_id"])
     .addForeignKeyConstraint(
       "fk_work_list_item_list_id",
       ["list_id"],
-      "list",
+      "work_list",
       ["id"],
       (cb) => cb.onDelete("cascade")
     )
@@ -57,4 +57,10 @@ export async function up(db: Kysely<unknown>) {
       (cb) => cb.onDelete("cascade")
     )
     .execute();
+}
+
+export async function down(db: Kysely<unknown>) {
+  await db.schema.dropTable("work_list_item").execute();
+  await db.schema.dropTable("work_list").execute();
+  await db.schema.dropTable("work").execute();
 }
