@@ -54,13 +54,14 @@ import { useToast } from "vue-toastification";
 import AddMovieToWatchlistPrompt from "./AddMovieToWatchlistPrompt.vue";
 
 import MoviePosterCard from "@/common/components/MoviePosterCard.vue";
+import { filterMovies } from "@/common/searchMovies";
 import { WatchListItem } from "@/common/types/watchlist";
 import {
   useAddMovie,
+  useBacklog,
   useDeleteBacklogItem,
   useWatchList,
 } from "@/service/useWatchList";
-import { filterMovies } from "@/common/searchMovies";
 
 const { searchTerm, clearSearch } = defineProps<{
   searchTerm: string;
@@ -70,7 +71,7 @@ const { searchTerm, clearSearch } = defineProps<{
 const route = useRoute();
 
 const { data } = useWatchList(route.params.clubId as string);
-const backlog = computed(() => (data.value ? data.value.backlog : []));
+const { data: backlog } = useBacklog(route.params.clubId as string);
 const watchList = computed(() => (data.value ? data.value.watchList : []));
 
 const { mutate: deleteBacklogItem } = useDeleteBacklogItem(
@@ -114,8 +115,9 @@ const sortedBacklog = computed(() => {
 });
 
 const selectRandom = () => {
+  if (!backlog.value) return;
   clearSearch();
-  const selectedIndex = Math.floor(Math.random() * backlog.value.length);
+  const selectedIndex = Math.floor(Math.random() * backlog.value?.length);
   const randomMovie = backlog.value[selectedIndex];
   selectedMovie.value = randomMovie;
 };

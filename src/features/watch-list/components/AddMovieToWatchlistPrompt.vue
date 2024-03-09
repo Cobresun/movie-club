@@ -22,7 +22,7 @@ import MovieSearchPrompt from "../../../common/components/MovieSearchPrompt.vue"
 import { MovieSearchIndex } from "@/common/types/movie";
 import { WatchListItem } from "@/common/types/watchlist";
 import { useTrending } from "@/service/useTMDB";
-import { useAddBacklogItem, useWatchList } from "@/service/useWatchList";
+import { useAddBacklogItem, useBacklog } from "@/service/useWatchList";
 
 const emit = defineEmits<{
   (e: "close", item?: WatchListItem): void;
@@ -36,12 +36,11 @@ const { isLoading: loadingTrending, data: trending } = useTrending();
 const { isLoading: loadingAdd, mutate: addBacklogItem } =
   useAddBacklogItem(clubId);
 
-const { isLoading: loadingBacklog, data } = useWatchList(clubId);
-const backlog = computed(() => (data.value ? data.value.backlog : []));
+const { data: backlog, isLoading: loadingBacklog } = useBacklog(clubId);
 
 const toast = useToast();
 const selectFromSearch = async (movie: MovieSearchIndex) => {
-  if (backlog.value.some((item) => item.movieId === movie.id)) {
+  if (backlog.value?.some((item) => item.movieId === movie.id)) {
     toast.error("That movie is already in your backlog");
     return;
   }

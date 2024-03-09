@@ -19,6 +19,15 @@ export function useWatchList(
   });
 }
 
+export function useBacklog(
+  clubId: string
+): UseQueryReturnType<WatchListItem[], AxiosError> {
+  return useQuery({
+    queryKey: ["backlog", clubId],
+    queryFn: async () => (await axios.get(`/api/club/${clubId}/backlog`)).data,
+  });
+}
+
 export function useAddMovie(clubId: string) {
   const auth = useAuthStore();
   const queryClient = useQueryClient();

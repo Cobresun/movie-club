@@ -1,15 +1,33 @@
+import ListRepository from "../repositories/ListRepository";
 import { securedLegacy } from "../utils/auth";
 import { getClubProperty, getClubRef, getFaunaClient } from "../utils/fauna";
 import { badRequest, notFound, ok } from "../utils/responses";
 import { Router } from "../utils/router";
 import { getDetailedMovie } from "../utils/tmdb";
 import { Document } from "../utils/types";
-import { LegacyClubRequest } from "../utils/validation";
+import { ClubRequest, LegacyClubRequest } from "../utils/validation";
 
 import { BaseClub } from "@/common/types/club";
-import { WatchListViewModel } from "@/common/types/watchlist";
+import {
+  BaseWatchListItem,
+  WatchListViewModel,
+} from "@/common/types/watchlist";
 
 const router = new Router("/api/club/:clubId<\\d+>/backlog");
+
+router.get("/", async ({ clubId }: ClubRequest) => {
+  const backlog = await ListRepository.getListByType(clubId!, "backlog");
+  const detailedMovies = await getDetailedMovie<BaseWatchListItem>(
+    backlog.map((item) => ({
+      movieId: parseInt(item.external_id ?? "0"),
+      timeAdded: {
+        ["@ts"]: item.created_date.toISOString(),
+      },
+    }))
+  );
+
+  return ok(JSON.stringify(detailedMovies));
+});
 
 router.post(
   "/:movieId<\\d+>",

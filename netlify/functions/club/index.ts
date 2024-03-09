@@ -63,12 +63,7 @@ router.use(
   mapIdToLegacyId,
   watchlistRouter
 );
-router.use(
-  "/:clubId<\\d+>/backlog",
-  validClubId,
-  mapIdToLegacyId,
-  backlogRouter
-);
+router.use("/:clubId<\\d+>/backlog", validClubId, backlogRouter);
 router.use("/:clubId<\\d+>/members", validClubId, membersRouter);
 router.use("/:clubId<\\d+>/awards", validClubId, mapIdToLegacyId, awardsRouter);
 
