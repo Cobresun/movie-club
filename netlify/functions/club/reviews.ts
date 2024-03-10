@@ -1,6 +1,6 @@
 import { ExprArg, query } from "faunadb";
 
-import { secured } from "../utils/auth";
+import { securedLegacy } from "../utils/auth";
 import { getClubProperty, getClubRef, getFaunaClient } from "../utils/fauna";
 import { badRequest, ok } from "../utils/responses";
 import { Router } from "../utils/router";
@@ -25,7 +25,7 @@ router.get("/", async ({ clubId }: LegacyClubRequest) => {
 
 router.post(
   "/:movieId<\\d+>",
-  secured,
+  securedLegacy,
   async ({ params, clubId }: LegacyClubRequest) => {
     const movieId = parseInt(params.movieId);
     const { faunaClient, q } = getFaunaClient();
@@ -67,7 +67,7 @@ router.post(
 
 router.put(
   "/:movieId<\\d+>",
-  secured,
+  securedLegacy,
   async ({ event, params, clubId }: LegacyClubRequest) => {
     if (event.body == null) return badRequest("Missing body");
     const body = JSON.parse(event.body);

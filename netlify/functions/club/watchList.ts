@@ -1,4 +1,4 @@
-import { secured } from "../utils/auth";
+import { securedLegacy } from "../utils/auth";
 import { getFaunaClient } from "../utils/fauna";
 import { ok, badRequest } from "../utils/responses";
 import { Router } from "../utils/router";
@@ -49,7 +49,7 @@ router.get("/", async ({ clubId }: LegacyClubRequest) => {
 
 router.post(
   "/:movieId<\\d+>",
-  secured,
+  securedLegacy,
   async ({ params, clubId }: LegacyClubRequest) => {
     const movieId = parseInt(params.movieId);
     const { faunaClient, q } = getFaunaClient();
@@ -101,7 +101,7 @@ router.post(
 
 router.delete(
   "/:movieId<\\d+>",
-  secured,
+  securedLegacy,
   async ({ params, clubId }: LegacyClubRequest) => {
     const movieId = parseInt(params.movieId);
     const { faunaClient, q } = getFaunaClient();
