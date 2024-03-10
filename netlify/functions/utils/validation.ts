@@ -8,17 +8,14 @@ export function getErrorMessage(error: unknown) {
 }
 
 export interface ClubRequest extends Request {
-  clubId?: string;
+  clubId: string;
 }
 
 export interface LegacyClubRequest extends Request {
-  clubId?: number;
+  clubId: number;
 }
 
-export const validClubId: MiddlewareCallback = async (
-  req: ClubRequest,
-  next
-) => {
+export const validClubId: MiddlewareCallback = async (req, next) => {
   if (!req.params.clubId) return notFound();
   const clubId = req.params.clubId;
 
@@ -30,7 +27,7 @@ export const validClubId: MiddlewareCallback = async (
   }
 };
 
-export const mapIdToLegacyId: MiddlewareCallback = async (
+export const mapIdToLegacyId: MiddlewareCallback<ClubRequest> = async (
   req: ClubRequest,
   next
 ) => {
@@ -38,6 +35,6 @@ export const mapIdToLegacyId: MiddlewareCallback = async (
   if (!legacyId) {
     return internalServerError("Invalid legacy id");
   }
-  (req as LegacyClubRequest).clubId = parseInt(legacyId);
+  (req as unknown as LegacyClubRequest).clubId = parseInt(legacyId);
   return next();
 };

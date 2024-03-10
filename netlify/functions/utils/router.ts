@@ -1,3 +1,5 @@
+// To fix some issues with definition resulting middlewares
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   HandlerContext,
   HandlerEvent,
@@ -12,10 +14,11 @@ export interface Request {
   event: HandlerEvent;
   context: HandlerContext;
   params: StringRecord;
+  [key: string]: unknown;
 }
 
-export type MiddlewareCallback = (
-  req: Request,
+export type MiddlewareCallback<T extends Request = Request> = (
+  req: T,
   next: () => Promise<HandlerResponse>
 ) => Promise<HandlerResponse>;
 
@@ -58,20 +61,20 @@ export class Router {
     });
   }
 
-  get(path: string, ...callbacks: MiddlewareCallback[]) {
+  get(path: string, ...callbacks: MiddlewareCallback<any>[]) {
     this.addRoute(HTTPMethod.GET, path, callbacks);
   }
-  post(path: string, ...callbacks: MiddlewareCallback[]) {
+  post(path: string, ...callbacks: MiddlewareCallback<any>[]) {
     this.addRoute(HTTPMethod.POST, path, callbacks);
   }
-  put(path: string, ...callbacks: MiddlewareCallback[]) {
+  put(path: string, ...callbacks: MiddlewareCallback<any>[]) {
     this.addRoute(HTTPMethod.PUT, path, callbacks);
   }
-  delete(path: string, ...callbacks: MiddlewareCallback[]) {
+  delete(path: string, ...callbacks: MiddlewareCallback<any>[]) {
     this.addRoute(HTTPMethod.DELETE, path, callbacks);
   }
 
-  use(pathStr: string, ...callbacks: (MiddlewareCallback | Router)[]) {
+  use(pathStr: string, ...callbacks: (MiddlewareCallback<any> | Router)[]) {
     const resultCallbacks: MiddlewareCallback[] = callbacks.map((callback) => {
       if (callback instanceof Router) {
         return (req) => callback.route(req);

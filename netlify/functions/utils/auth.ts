@@ -11,7 +11,10 @@ export const loggedIn: MiddlewareCallback = ({ context }, next) => {
   return next();
 };
 
-export const secured: MiddlewareCallback = (req: LegacyClubRequest, next) => {
+export const secured: MiddlewareCallback<LegacyClubRequest> = (
+  req: LegacyClubRequest,
+  next
+) => {
   return loggedIn(req, async () => {
     const { faunaClient, q } = getFaunaClient();
 

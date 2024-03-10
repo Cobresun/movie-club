@@ -60,12 +60,12 @@ export function updateClubAwardYear(
 }
 
 export interface ClubAwardRequest extends LegacyClubRequest {
-  year?: number;
-  clubAwards?: BaseClubAwards;
+  year: number;
+  clubAwards: BaseClubAwards;
 }
 
-export const validYear: MiddlewareCallback = async (
-  req: ClubAwardRequest,
+export const validYear: MiddlewareCallback<LegacyClubRequest> = async (
+  req: LegacyClubRequest,
   next
 ) => {
   if (!req.params.year) return notFound();
@@ -77,7 +77,7 @@ export const validYear: MiddlewareCallback = async (
     q.Select(
       0,
       q.Filter(
-        q.Select(["data", "clubAwards"], getClubDocument(req.clubId!)),
+        q.Select(["data", "clubAwards"], getClubDocument(req.clubId)),
         q.Lambda("x", q.Equals(q.Select(["year"], q.Var("x")), year))
       ),
       null
