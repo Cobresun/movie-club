@@ -55,8 +55,15 @@ export async function up(db: Kysely<unknown>) {
       ["work_id"],
       "work",
       ["id"],
-      (cb) => cb.onDelete("cascade")
+      (cb) => cb.onDelete("restrict")
     )
+    .execute();
+
+  // Add index for work_list type
+  await db.schema
+    .createIndex("idx_work_list_type")
+    .on("work_list")
+    .column("type")
     .execute();
 }
 

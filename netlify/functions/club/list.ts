@@ -58,4 +58,23 @@ router.post("/:type", async ({ clubId, params, event }: ClubRequest) => {
   return ok();
 });
 
+router.delete("/:type/:workId", async ({ clubId, params }: ClubRequest) => {
+  if (!params.type || !params.workId) {
+    return badRequest("No type or workId provided");
+  }
+  const type = params.type;
+  const workId = params.workId;
+  const isItemInList = await ListRepository.isItemInList(clubId, type, workId);
+  if (!isItemInList) {
+    return badRequest("This movie does not exist in the list");
+  }
+  await ListRepository.deleteItemFromList(clubId, type, workId);
+  try {
+    await WorkRepository.delete(clubId, workId);
+  } catch (e) {
+    console.error(e);
+  }
+  return ok();
+});
+
 export default router;

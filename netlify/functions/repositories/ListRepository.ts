@@ -46,6 +46,18 @@ class ListRepository {
       .execute();
   }
 
+  async deleteItemFromList(clubId: string, listType: string, workId: string) {
+    return db
+      .deleteFrom("work_list_item")
+      .where("work_list_item.work_id", "=", workId)
+      .where(
+        "work_list_item.list_id",
+        "=",
+        this.listIdFromType(clubId, listType)
+      )
+      .execute();
+  }
+
   private listIdFromType(
     clubId: string,
     type: string

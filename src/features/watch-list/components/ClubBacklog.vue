@@ -38,7 +38,7 @@
         </v-btn>
         <v-btn
           class="flex justify-center"
-          @click="() => deleteBacklogItem(parseInt(movie.externalId ?? '-1'))"
+          @click="() => deleteBacklogItem(movie.id)"
         >
           <mdicon name="delete" />
         </v-btn>
@@ -59,12 +59,8 @@ import { DetailedWorkListItem } from "@/common/types/lists";
 import { TMDBMovieData } from "@/common/types/movie";
 import { WatchListItem } from "@/common/types/watchlist";
 import { useClubId } from "@/service/useClub";
-import { useList } from "@/service/useList";
-import {
-  useAddMovie,
-  useDeleteBacklogItem,
-  useWatchList,
-} from "@/service/useWatchList";
+import { useDeleteListItem, useList } from "@/service/useList";
+import { useAddMovie, useWatchList } from "@/service/useWatchList";
 
 const { searchTerm, clearSearch } = defineProps<{
   searchTerm: string;
@@ -78,9 +74,7 @@ const { data } = useWatchList(route.params.clubId as string);
 const { data: backlog } = useList(clubId, "backlog");
 const watchList = computed(() => (data.value ? data.value.watchList : []));
 
-const { mutate: deleteBacklogItem } = useDeleteBacklogItem(
-  route.params.clubId as string
-);
+const { mutate: deleteBacklogItem } = useDeleteListItem(clubId, "backlog");
 const { mutate: addMovie } = useAddMovie(route.params.clubId as string);
 
 const toast = useToast();
@@ -91,7 +85,7 @@ const moveBacklogItemToWatchlist = (movie: DetailedWorkListItem) => {
     toast.error("That movie is already in your watchlist");
     return;
   }
-  deleteBacklogItem(parseInt(movie.externalId ?? "-1"));
+  deleteBacklogItem(movie.id);
   addMovie(toDetailedMovie(movie));
 };
 

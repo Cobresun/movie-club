@@ -52,3 +52,24 @@ export function useAddListItem(clubId: string, type: string) {
       queryClient.invalidateQueries({ queryKey: ["list", clubId, type] }),
   });
 }
+
+export function useDeleteListItem(clubId: string, type: string) {
+  const auth = useAuthStore();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (workId: string) =>
+      auth.request.delete(`/api/club/${clubId}/list/${type}/${workId}`),
+    onMutate: (workId) => {
+      if (!workId) return;
+      queryClient.setQueryData<DetailedWorkListItem[]>(
+        ["list", clubId, type],
+        (currentList) => {
+          if (!currentList) return currentList;
+          return currentList.filter((item) => item.id !== workId);
+        }
+      );
+    },
+    onSettled: () =>
+      queryClient.invalidateQueries({ queryKey: ["list", clubId, type] }),
+  });
+}

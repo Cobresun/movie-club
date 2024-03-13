@@ -1,7 +1,6 @@
 import { Handler, HandlerContext, HandlerEvent } from "@netlify/functions";
 
 import awardsRouter from "./awards";
-import backlogRouter from "./backlog";
 import listRouter from "./list";
 import membersRouter from "./members";
 import reviewsRouter from "./reviews";
@@ -19,38 +18,6 @@ import { BaseClub, ClubPreview } from "@/common/types/club";
 
 const { faunaClient, q } = getFaunaClient();
 
-/**
- * PUT /club -> ClubsViewClub
- *
- * GET /club/:clubId -> ClubsViewClub
- * GET /club/:clubId/members -> Member[]
- * GET /club/:clubId/reviews/:detailed -> DetailedReviewResponse || ReviewResponse (where detailed is a boolean)
- *
- * Next Movie:
- * PUT /club/:clubId/nextMovie
- * body {
- *  nextMovieId: number
- * }
- *
- * Backlog:
- * POST /club/:clubId/backlog/:movieId
- * DELETE /club/:clubId/backlog/:movieId
- *
- * Watchlist:
- * GET /club/:clubId/watchList -> WatchListViewModel
- * POST /club/:clubId/watchList/:movieId
- * DELETE /club/:clubId/watchList/:movieId
- *
- * Reviews:
- * GET /club/:clubId/reviews?detailed={}
- * POST /club/:clubId/reviews/:movieId
- * PUT /club/:clubId/reviews/:movieId
- * body {
- *  name: string,
- *  score: number,
- * }
- */
-
 const router = new Router("/api/club");
 router.use(
   "/:clubId<\\d+>/reviews",
@@ -65,7 +32,6 @@ router.use(
   watchlistRouter
 );
 router.use("/:clubId<\\d+>/list", validClubId, listRouter);
-router.use("/:clubId<\\d+>/backlog", validClubId, backlogRouter);
 router.use("/:clubId<\\d+>/members", validClubId, membersRouter);
 router.use("/:clubId<\\d+>/awards", validClubId, mapIdToLegacyId, awardsRouter);
 

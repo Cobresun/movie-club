@@ -101,29 +101,3 @@ export function useMakeNextWatch(clubId: string) {
       queryClient.invalidateQueries({ queryKey: ["watchlist", clubId] }),
   });
 }
-
-export function useDeleteBacklogItem(clubId: string) {
-  const auth = useAuthStore();
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (movieId: number) =>
-      auth.request.delete(`/api/club/${clubId}/backlog/${movieId}`),
-    onMutate: async (movieId) => {
-      await queryClient.cancelQueries(["watchlist", clubId]);
-      queryClient.setQueryData<WatchListViewModel>(
-        ["watchlist", clubId],
-        (currentWatchlist) => {
-          if (!currentWatchlist) return currentWatchlist;
-          return {
-            ...currentWatchlist,
-            backlog: currentWatchlist.backlog.filter(
-              (item) => item.movieId !== movieId
-            ),
-          };
-        }
-      );
-    },
-    onSettled: () =>
-      queryClient.invalidateQueries({ queryKey: ["watchlist", clubId] }),
-  });
-}

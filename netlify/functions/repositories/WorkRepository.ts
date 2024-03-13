@@ -25,6 +25,14 @@ class WorkRepository {
       .returning("id")
       .executeTakeFirst();
   }
+
+  async delete(clubId: string, workId: string) {
+    return db
+      .deleteFrom("work")
+      .where("id", "=", workId)
+      .where("club_id", "=", clubId)
+      .execute();
+  }
 }
 
 export default new WorkRepository();
