@@ -13,7 +13,7 @@ router.get("/:type", async ({ clubId, params }: ClubRequest) => {
   }
   const type = params.type;
   const list = await ListRepository.getListByType(clubId, type);
-  const detailedMovies = await getDetailedWorks(
+  const detailedWorks = await getDetailedWorks(
     list.map((item) => ({
       id: item.id,
       title: item.title,
@@ -24,7 +24,7 @@ router.get("/:type", async ({ clubId, params }: ClubRequest) => {
     }))
   );
 
-  return ok(JSON.stringify(detailedMovies));
+  return ok(JSON.stringify(detailedWorks));
 });
 
 router.post("/:type", async ({ clubId, params, event }: ClubRequest) => {
