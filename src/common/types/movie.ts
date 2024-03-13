@@ -44,6 +44,7 @@ export interface MovieSearchIndex {
   title: string;
   release_date: string;
   id: number;
+  poster_path: string;
 }
 
 export interface ProductionCompany {

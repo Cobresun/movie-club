@@ -22,11 +22,11 @@
   >
     <MoviePosterCard
       v-for="(movie, index) in sortedBacklog"
-      :key="movie.movieId"
+      :key="movie.id"
       :class="[index == 0 ? 'z-0' : 'z-10']"
       class="bg-background"
-      :movie-title="movie.movieTitle"
-      :movie-poster-url="movie.posterUrl"
+      :movie-title="movie.title"
+      :movie-poster-url="movie.imageUrl ?? ''"
       :highlighted="movie === selectedMovie"
     >
       <div class="grid grid-cols-2 gap-2">
@@ -38,7 +38,7 @@
         </v-btn>
         <v-btn
           class="flex justify-center"
-          @click="() => deleteBacklogItem(movie.movieId)"
+          @click="() => deleteBacklogItem(parseInt(movie.externalId ?? '-1'))"
         >
           <mdicon name="delete" />
         </v-btn>
@@ -55,10 +55,13 @@ import AddMovieToWatchlistPrompt from "./AddMovieToWatchlistPrompt.vue";
 
 import MoviePosterCard from "@/common/components/MoviePosterCard.vue";
 import { filterMovies } from "@/common/searchMovies";
+import { DetailedWorkListItem } from "@/common/types/lists";
+import { TMDBMovieData } from "@/common/types/movie";
 import { WatchListItem } from "@/common/types/watchlist";
+import { useClubId } from "@/service/useClub";
+import { useList } from "@/service/useList";
 import {
   useAddMovie,
-  useBacklog,
   useDeleteBacklogItem,
   useWatchList,
 } from "@/service/useWatchList";
@@ -70,8 +73,9 @@ const { searchTerm, clearSearch } = defineProps<{
 
 const route = useRoute();
 
+const clubId = useClubId();
 const { data } = useWatchList(route.params.clubId as string);
-const { data: backlog } = useBacklog(route.params.clubId as string);
+const { data: backlog } = useList(clubId, "backlog");
 const watchList = computed(() => (data.value ? data.value.watchList : []));
 
 const { mutate: deleteBacklogItem } = useDeleteBacklogItem(
@@ -80,17 +84,37 @@ const { mutate: deleteBacklogItem } = useDeleteBacklogItem(
 const { mutate: addMovie } = useAddMovie(route.params.clubId as string);
 
 const toast = useToast();
-const moveBacklogItemToWatchlist = (movie: WatchListItem) => {
-  if (watchList.value.some((item) => item.movieId === movie.movieId)) {
+const moveBacklogItemToWatchlist = (movie: DetailedWorkListItem) => {
+  if (
+    watchList.value.some((item) => item.movieId.toString() === movie.externalId)
+  ) {
     toast.error("That movie is already in your watchlist");
     return;
   }
-  deleteBacklogItem(movie.movieId);
-  addMovie(movie);
+  deleteBacklogItem(parseInt(movie.externalId ?? "-1"));
+  addMovie(toDetailedMovie(movie));
 };
 
+const toDetailedMovie = (item: DetailedWorkListItem): WatchListItem => ({
+  movieId: parseInt(item.externalId ?? "-1"),
+  movieTitle: item.title,
+  posterUrl: item.imageUrl ?? "",
+  movieData: item.externalData as TMDBMovieData,
+  timeAdded: {
+    ["@ts"]: item.createdDate,
+  },
+});
+
 const filteredBacklog = computed(() => {
-  return filterMovies(backlog.value ?? [], searchTerm);
+  const filtered = filterMovies(
+    backlog.value?.map((item) => toDetailedMovie(item)) ?? [],
+    searchTerm
+  );
+  return (
+    backlog.value?.filter((item) =>
+      filtered.some((movie) => movie.movieId.toString() === item.externalId)
+    ) ?? []
+  );
 });
 
 const modalOpen = ref(false);
@@ -101,7 +125,7 @@ const closePrompt = () => {
   modalOpen.value = false;
 };
 
-const selectedMovie = ref<WatchListItem>();
+const selectedMovie = ref<DetailedWorkListItem>();
 
 const sortedBacklog = computed(() => {
   const selectedIndex = filteredBacklog.value.findIndex(

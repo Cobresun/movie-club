@@ -33,6 +33,7 @@ export async function up(db: Kysely<unknown>) {
     )
     .addColumn("type", "varchar(50)", (col) => col.notNull())
     .addColumn("title", "varchar(255)")
+    .addUniqueConstraint("uq_work_list_club_id_type", ["club_id", "type"])
     .execute();
 
   // List items

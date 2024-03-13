@@ -2,6 +2,7 @@ import { Handler, HandlerContext, HandlerEvent } from "@netlify/functions";
 
 import awardsRouter from "./awards";
 import backlogRouter from "./backlog";
+import listRouter from "./list";
 import membersRouter from "./members";
 import reviewsRouter from "./reviews";
 import watchlistRouter from "./watchList";
@@ -63,6 +64,7 @@ router.use(
   mapIdToLegacyId,
   watchlistRouter
 );
+router.use("/:clubId<\\d+>/list", validClubId, listRouter);
 router.use("/:clubId<\\d+>/backlog", validClubId, backlogRouter);
 router.use("/:clubId<\\d+>/members", validClubId, membersRouter);
 router.use("/:clubId<\\d+>/awards", validClubId, mapIdToLegacyId, awardsRouter);

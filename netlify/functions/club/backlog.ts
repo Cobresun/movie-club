@@ -1,78 +1,22 @@
 import ListRepository from "../repositories/ListRepository";
-import { securedLegacy } from "../utils/auth";
+import WorkRepository from "../repositories/WorkRepository";
+import { securedLegacy, secured } from "../utils/auth";
 import { getClubProperty, getClubRef, getFaunaClient } from "../utils/fauna";
-import { badRequest, notFound, ok } from "../utils/responses";
+import {
+  badRequest,
+  internalServerError,
+  notFound,
+  ok,
+} from "../utils/responses";
 import { Router } from "../utils/router";
 import { getDetailedMovie } from "../utils/tmdb";
 import { Document } from "../utils/types";
 import { ClubRequest, LegacyClubRequest } from "../utils/validation";
 
 import { BaseClub } from "@/common/types/club";
-import {
-  BaseWatchListItem,
-  WatchListViewModel,
-} from "@/common/types/watchlist";
+import { WatchListViewModel } from "@/common/types/watchlist";
 
 const router = new Router("/api/club/:clubId<\\d+>/backlog");
-
-router.get("/", async ({ clubId }: ClubRequest) => {
-  const backlog = await ListRepository.getListByType(clubId!, "backlog");
-  const detailedMovies = await getDetailedMovie<BaseWatchListItem>(
-    backlog.map((item) => ({
-      movieId: parseInt(item.external_id ?? "0"),
-      timeAdded: {
-        ["@ts"]: item.created_date.toISOString(),
-      },
-    }))
-  );
-
-  return ok(JSON.stringify(detailedMovies));
-});
-
-router.post(
-  "/:movieId<\\d+>",
-  securedLegacy,
-  async ({ params, clubId }: LegacyClubRequest) => {
-    const movieId = parseInt(params.movieId);
-    const { faunaClient, q } = getFaunaClient();
-
-    const watchListResult = await faunaClient.query<WatchListViewModel>(
-      q.Let(
-        {
-          clubDoc: q.Get(q.Match(q.Index("club_by_clubId"), clubId!)),
-        },
-        {
-          watchList: q.Select(["data", "watchList"], q.Var("clubDoc")),
-          backlog: q.Select(["data", "backlog"], q.Var("clubDoc")),
-          nextMovieId: q.Select(["data", "nextMovieId"], q.Var("clubDoc")),
-        }
-      )
-    );
-
-    if (watchListResult.backlog.some((item) => item.movieId === movieId)) {
-      return badRequest("This movie already exists in the backlog");
-    }
-
-    const club = (
-      await faunaClient.query<Document<BaseClub>>(
-        q.Update(getClubRef(clubId!), {
-          data: {
-            backlog: q.Append(
-              [{ movieId, timeAdded: q.Now() }],
-              getClubProperty(clubId!, "backlog")
-            ),
-          },
-        })
-      )
-    ).data;
-
-    const movie = (
-      await getDetailedMovie([club.backlog[club.backlog.length - 1]])
-    )[0];
-
-    return ok(JSON.stringify(movie));
-  }
-);
 
 router.delete(
   "/:movieId<\\d+>",
