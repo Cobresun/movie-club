@@ -3,7 +3,7 @@
     <div v-if="!isLoggedIn">Need to be logged in!</div>
 
     <div v-if="isLoggedIn">
-      <loading-spinner v-if="loading" />
+      <loading-spinner v-if="isLoading" />
       <div v-else class="flex justify-center pb-6 flex-col md:flex-row">
         <div v-for="club in clubs" :key="club.clubId" class="p-3">
           <router-link
@@ -30,29 +30,11 @@
 import { computed } from "vue";
 
 import clubSvg from "@/assets/images/menu-images/club.svg";
-import { BaseClub } from "@/common/types/club";
-import { useClubs } from "@/service/useClub";
-import { useUser } from "@/service/useUser";
+import { useUserClubs } from "@/service/useUser";
 import { useAuthStore } from "@/stores/auth";
 
 const authStore = useAuthStore();
 const isLoggedIn = computed(() => authStore.isLoggedIn);
 
-const { data: user, isLoading: userLoading } = useUser();
-
-const userClubIds = computed(() => user.value?.clubs ?? []);
-const enableClubQuery = computed(() => !userLoading.value);
-const clubsQueryResults = useClubs(userClubIds, enableClubQuery);
-
-const clubs = computed<BaseClub[]>(() =>
-  clubsQueryResults
-    .map((result) => result.data)
-    .filter((result): result is BaseClub => !!result)
-);
-
-const loading = computed(() => {
-  return (
-    userLoading.value || clubsQueryResults.some((result) => result.isLoading)
-  );
-});
+const { data: clubs, isLoading } = useUserClubs();
 </script>

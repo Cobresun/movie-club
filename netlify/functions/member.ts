@@ -2,71 +2,53 @@ import { Handler, HandlerContext, HandlerEvent } from "@netlify/functions";
 import { parse } from "lambda-multipart-parser";
 
 import ClubRepository from "./repositories/ClubRepository";
-import imageRepository from "./repositories/imageRepository";
-import { loggedIn } from "./utils/auth";
-import { getFaunaClient } from "./utils/fauna";
+import ImageRepository from "./repositories/ImageRepository";
+import UserRepository from "./repositories/UserRepository";
+import { AuthRequest, loggedIn } from "./utils/auth";
 import { badRequest, ok } from "./utils/responses";
 import { Router } from "./utils/router";
-import { Document } from "./utils/types";
 
-import { Member } from "@/common/types/club";
-
-const { faunaClient, q } = getFaunaClient();
+import { ClubPreview, Member } from "@/common/types/club";
 
 const router = new Router("/api/member");
 
-/**
- *
- * GET /member/:email -> returns data for the member by email
- *
- */
-router.get("/:email", async (req) => {
-  if (!req.params.email) return badRequest("Missing email");
-  const email = req.params.email;
-
-  const faunaReq = await faunaClient.query<{
-    data: Document<Member & { clubs: number[] }>[];
-  }>(
-    q.Map(
-      q.Paginate(q.Match(q.Index("members_by_email"), email)),
-      q.Lambda("X", q.Get(q.Var("X")))
-    )
-  );
-
-  const body = faunaReq.data[0].data;
+router.get("/", loggedIn, async (req: AuthRequest) => {
+  const user = await UserRepository.getByEmail(req.email!);
   const result: Member = {
-    ...body,
-    clubs: await ClubRepository.mapLegacyIds(body.clubs),
+    email: user.email,
+    name: user.username,
+    image: user.image_url ?? undefined,
   };
   return ok(JSON.stringify(result));
 });
 
-router.post("/avatar", loggedIn, async ({ event, context }) => {
-  const email = context.clientContext!.user!.email;
+router.get("/clubs", loggedIn, async (req: AuthRequest) => {
+  const clubs = await ClubRepository.getClubPreviewsByEmail(req.email!);
+  const result: ClubPreview[] = clubs.map((club) => ({
+    clubId: club.club_id,
+    clubName: club.club_name,
+  }));
+  return ok(JSON.stringify(result));
+});
+
+router.post("/avatar", loggedIn, async (req: AuthRequest) => {
   try {
     // Parse the multipart/form-data request
-    const parsed = await parse(event);
+    const parsed = await parse(req.event);
     if (!parsed.files.length) return badRequest("No file uploaded");
 
     const avatarFile = parsed.files[0];
 
-    const user = await faunaClient.query<Document<Member>>(
-      q.Get(q.Match(q.Index("members_by_email"), email))
-    );
+    const user = await UserRepository.getByEmail(req.email!);
 
-    const { url, id } = await imageRepository.upload(avatarFile.content);
+    const { url, id } = await ImageRepository.upload(avatarFile.content);
 
     // Delete old asset
-    if (user.data.imageId) {
-      await imageRepository.destroy(user.data.imageId);
+    if (user.image_id) {
+      await ImageRepository.destroy(user.image_id);
     }
 
-    // Update FaunaDB with the new avatar URL
-    await faunaClient.query(
-      q.Update(user.ref, {
-        data: { image: url, assetId: id },
-      })
-    );
+    await UserRepository.updateImage(user.id, url, id);
 
     return ok("Avatar updated successfully");
   } catch (error) {

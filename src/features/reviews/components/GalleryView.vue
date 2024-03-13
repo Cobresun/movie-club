@@ -21,18 +21,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
-
 import { Member } from "@/common/types/club";
 import { Review } from "@/common/types/reviews";
 import ReviewCard from "@/features/reviews/components/ReviewCard.vue";
 
-const { reviews, members: allMembers } = defineProps<{
+const { reviews, members: members } = defineProps<{
   reviews: Review[];
   members: Member[];
 }>();
-
-const members = computed(() =>
-  allMembers.filter((member) => !member.devAccount)
-);
 </script>

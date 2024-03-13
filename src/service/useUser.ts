@@ -1,19 +1,29 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
-import axios from "axios";
 import { computed } from "vue";
 
-import { Member } from "@/common/types/club";
+import { ClubPreview, Member } from "@/common/types/club";
 import { useAuthStore } from "@/stores/auth";
 
 export function useUser() {
-  const store = useAuthStore();
-  const email = computed(() => store.user?.email);
-  const isLoggedIn = computed(() => store.isLoggedIn);
+  const auth = useAuthStore();
+  const email = computed(() => auth.user?.email);
+  const isLoggedIn = computed(() => auth.isLoggedIn);
 
   return useQuery<Member>({
     queryKey: ["user", email],
     enabled: isLoggedIn,
-    queryFn: async () => (await axios.get(`/api/member/${email.value}`)).data,
+    queryFn: async () => (await auth.request.get(`/api/member`)).data,
+  });
+}
+
+export function useUserClubs() {
+  const auth = useAuthStore();
+  const isLoggedIn = computed(() => auth.isLoggedIn);
+
+  return useQuery<ClubPreview[]>({
+    queryKey: ["user", "clubs"],
+    enabled: isLoggedIn,
+    queryFn: async () => (await auth.request.get("/api/member/clubs")).data,
   });
 }
 

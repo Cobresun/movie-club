@@ -71,9 +71,7 @@ const updateStep = () => {
 };
 
 const { data: members } = useMembers(clubId.value);
-const filteredMembers = computed(
-  () => members.value?.filter((member) => !member.devAccount) ?? []
-);
+const filteredMembers = computed(() => members.value ?? []);
 
 const completedCategories = computed(() => {
   if (!clubAward.value) return false;

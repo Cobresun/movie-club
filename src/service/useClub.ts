@@ -1,6 +1,5 @@
-import { useMutation, useQueries, useQuery } from "@tanstack/vue-query";
+import { useMutation, useQuery } from "@tanstack/vue-query";
 import axios from "axios";
-import { Ref, computed } from "vue";
 import { useRoute } from "vue-router";
 
 import { BaseClub, Member } from "@/common/types/club";
@@ -13,19 +12,6 @@ export function useClub(clubId: string) {
   return useQuery<BaseClub>({
     queryKey: ["club", clubId],
     queryFn: async () => await fetchClub(clubId),
-  });
-}
-
-export function useClubs(clubIds: Ref<string[]>, enabled: Ref<boolean>) {
-  const queries = computed(() =>
-    clubIds.value.map((clubId) => ({
-      queryKey: ["club", clubId],
-      queryFn: async () => await fetchClub(clubId),
-      enabled,
-    }))
-  );
-  return useQueries<BaseClub[]>({
-    queries,
   });
 }
 

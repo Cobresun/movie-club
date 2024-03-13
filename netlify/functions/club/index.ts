@@ -6,7 +6,7 @@ import membersRouter from "./members";
 import reviewsRouter from "./reviews";
 import watchlistRouter from "./watchList";
 import ClubRepository from "../repositories/ClubRepository";
-import { loggedIn, secured } from "../utils/auth";
+import { loggedIn, securedLegacy } from "../utils/auth";
 import { getClubRef, getFaunaClient } from "../utils/fauna";
 import { ok, badRequest } from "../utils/responses";
 import { Router } from "../utils/router";
@@ -69,12 +69,7 @@ router.use(
   mapIdToLegacyId,
   backlogRouter
 );
-router.use(
-  "/:clubId<\\d+>/members",
-  validClubId,
-  mapIdToLegacyId,
-  membersRouter
-);
+router.use("/:clubId<\\d+>/members", validClubId, membersRouter);
 router.use("/:clubId<\\d+>/awards", validClubId, mapIdToLegacyId, awardsRouter);
 
 router.get("/:clubId<\\d+>", validClubId, async ({ clubId }: ClubRequest) => {
@@ -128,7 +123,7 @@ router.put(
   "/:clubId<\\d+>/nextMovie",
   validClubId,
   mapIdToLegacyId,
-  secured,
+  securedLegacy,
   async ({ event, clubId }: LegacyClubRequest) => {
     if (!event.body) return badRequest("Missing body");
     let movieId: number;

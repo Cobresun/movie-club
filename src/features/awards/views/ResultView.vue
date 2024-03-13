@@ -4,13 +4,13 @@
     v-for="award in clubAward.awards"
     :key="award.title"
     :award="award"
-    :members="filteredMembers ?? []"
+    :members="members ?? []"
     :step="clubAward.step"
     @reveal="revealHandler(award.title)"
   />
 </template>
 <script setup lang="ts">
-import { computed, ref, toRefs } from "vue";
+import { ref, toRefs } from "vue";
 
 import AwardResult from "../components/AwardResult.vue";
 
@@ -27,10 +27,6 @@ const props = defineProps<{
 const { clubAward, clubId, year } = toRefs(props);
 
 const { data: members } = useMembers(clubId.value);
-
-const filteredMembers = computed(() =>
-  members.value?.filter((member) => !member.devAccount)
-);
 
 const revealedAwards = ref<string[]>([]);
 

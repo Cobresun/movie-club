@@ -1,37 +1,49 @@
-import { getClubDocument, getFaunaClient } from "./fauna";
 import { unauthorized } from "./responses";
-import { MiddlewareCallback } from "./router";
-import { LegacyClubRequest } from "./validation";
+import { MiddlewareCallback, Request } from "./router";
+import { ClubRequest, LegacyClubRequest } from "./validation";
+import ClubRepository from "../repositories/ClubRepository";
 
-import { Member } from "@/common/types/club";
+export interface AuthRequest extends Request {
+  email: string;
+}
 
-export const loggedIn: MiddlewareCallback = ({ context }, next) => {
-  if (!context.clientContext || !context.clientContext.user)
+export const loggedIn: MiddlewareCallback = (req, next) => {
+  if (!req.context.clientContext || !req.context.clientContext.user)
     return Promise.resolve(unauthorized());
+
+  req.email = req.context.clientContext.user.email;
   return next();
 };
 
-export const secured: MiddlewareCallback<LegacyClubRequest> = (
-  req: LegacyClubRequest,
+export const securedLegacy: MiddlewareCallback<
+  LegacyClubRequest & AuthRequest
+> = (req: LegacyClubRequest & AuthRequest, next) => {
+  return loggedIn(req, async () => {
+    if (
+      !(await ClubRepository.isUserInClub(
+        req.clubId.toString(),
+        req.email,
+        true
+      ))
+    ) {
+      return unauthorized();
+    } else {
+      return next();
+    }
+  });
+};
+
+export const secured: MiddlewareCallback<ClubRequest & AuthRequest> = (
+  req: ClubRequest & AuthRequest,
   next
 ) => {
   return loggedIn(req, async () => {
-    const { faunaClient, q } = getFaunaClient();
-
-    const members = await faunaClient.query<Member[]>(
-      q.Map(
-        q.Select(["data", "members"], getClubDocument(req.clubId!)),
-        q.Lambda("memberRef", q.Select(["data"], q.Get(q.Var("memberRef"))))
-      )
-    );
-
     if (
-      members.some(
-        (member) => member.email === req.context.clientContext?.user.email
-      )
+      !(await ClubRepository.isUserInClub(req.clubId.toString(), req.email))
     ) {
+      return unauthorized();
+    } else {
       return next();
     }
-    return unauthorized();
   });
 };
