@@ -1,5 +1,6 @@
 import axios, { AxiosResponse } from "axios";
 
+import { DetailedWorkListItem, WorkListItem } from "@/common/types/lists";
 import {
   BaseMovie,
   DetailedMovie,
@@ -36,6 +37,23 @@ export async function getDetailedMovie<T extends BaseMovie>(
         movieTitle: response.data.title,
         movieData: response.data,
         posterUrl: `${configuration.data.images.secure_base_url}w154${response.data.poster_path}`,
+      };
+    })
+  );
+}
+
+export async function getDetailedWorks(
+  works: WorkListItem[]
+): Promise<DetailedWorkListItem[]> {
+  return await Promise.all(
+    works.map(async (work) => {
+      if (!work.externalId) {
+        return work;
+      }
+      const response = await getTMDBMovieData(parseInt(work.externalId));
+      return {
+        ...work,
+        externalData: response.data,
       };
     })
   );

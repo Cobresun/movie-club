@@ -22,11 +22,11 @@
   >
     <MoviePosterCard
       v-for="(movie, index) in sortedBacklog"
-      :key="movie.movieId"
+      :key="movie.id"
       :class="[index == 0 ? 'z-0' : 'z-10']"
       class="bg-background"
-      :movie-title="movie.movieTitle"
-      :movie-poster-url="movie.posterUrl"
+      :movie-title="movie.title"
+      :movie-poster-url="movie.imageUrl ?? ''"
       :highlighted="movie === selectedMovie"
     >
       <div class="grid grid-cols-2 gap-2">
@@ -38,7 +38,7 @@
         </v-btn>
         <v-btn
           class="flex justify-center"
-          @click="() => deleteBacklogItem(movie.movieId)"
+          @click="() => deleteBacklogItem(movie.id)"
         >
           <mdicon name="delete" />
         </v-btn>
@@ -54,13 +54,13 @@ import { useToast } from "vue-toastification";
 import AddMovieToWatchlistPrompt from "./AddMovieToWatchlistPrompt.vue";
 
 import MoviePosterCard from "@/common/components/MoviePosterCard.vue";
-import { WatchListItem } from "@/common/types/watchlist";
-import {
-  useAddMovie,
-  useDeleteBacklogItem,
-  useWatchList,
-} from "@/service/useWatchList";
 import { filterMovies } from "@/common/searchMovies";
+import { DetailedWorkListItem } from "@/common/types/lists";
+import { TMDBMovieData } from "@/common/types/movie";
+import { WatchListItem } from "@/common/types/watchlist";
+import { useClubId } from "@/service/useClub";
+import { useDeleteListItem, useList } from "@/service/useList";
+import { useAddMovie, useWatchList } from "@/service/useWatchList";
 
 const { searchTerm, clearSearch } = defineProps<{
   searchTerm: string;
@@ -69,27 +69,46 @@ const { searchTerm, clearSearch } = defineProps<{
 
 const route = useRoute();
 
+const clubId = useClubId();
 const { data } = useWatchList(route.params.clubId as string);
-const backlog = computed(() => (data.value ? data.value.backlog : []));
+const { data: backlog } = useList(clubId, "backlog");
 const watchList = computed(() => (data.value ? data.value.watchList : []));
 
-const { mutate: deleteBacklogItem } = useDeleteBacklogItem(
-  route.params.clubId as string
-);
+const { mutate: deleteBacklogItem } = useDeleteListItem(clubId, "backlog");
 const { mutate: addMovie } = useAddMovie(route.params.clubId as string);
 
 const toast = useToast();
-const moveBacklogItemToWatchlist = (movie: WatchListItem) => {
-  if (watchList.value.some((item) => item.movieId === movie.movieId)) {
+const moveBacklogItemToWatchlist = (movie: DetailedWorkListItem) => {
+  if (
+    watchList.value.some((item) => item.movieId.toString() === movie.externalId)
+  ) {
     toast.error("That movie is already in your watchlist");
     return;
   }
-  deleteBacklogItem(movie.movieId);
-  addMovie(movie);
+  deleteBacklogItem(movie.id);
+  addMovie(toDetailedMovie(movie));
 };
 
+const toDetailedMovie = (item: DetailedWorkListItem): WatchListItem => ({
+  movieId: parseInt(item.externalId ?? "-1"),
+  movieTitle: item.title,
+  posterUrl: item.imageUrl ?? "",
+  movieData: item.externalData as TMDBMovieData,
+  timeAdded: {
+    ["@ts"]: item.createdDate,
+  },
+});
+
 const filteredBacklog = computed(() => {
-  return filterMovies(backlog.value ?? [], searchTerm);
+  const filtered = filterMovies(
+    backlog.value?.map((item) => toDetailedMovie(item)) ?? [],
+    searchTerm
+  );
+  return (
+    backlog.value?.filter((item) =>
+      filtered.some((movie) => movie.movieId.toString() === item.externalId)
+    ) ?? []
+  );
 });
 
 const modalOpen = ref(false);
@@ -100,7 +119,7 @@ const closePrompt = () => {
   modalOpen.value = false;
 };
 
-const selectedMovie = ref<WatchListItem>();
+const selectedMovie = ref<DetailedWorkListItem>();
 
 const sortedBacklog = computed(() => {
   const selectedIndex = filteredBacklog.value.findIndex(
@@ -114,8 +133,9 @@ const sortedBacklog = computed(() => {
 });
 
 const selectRandom = () => {
+  if (!backlog.value) return;
   clearSearch();
-  const selectedIndex = Math.floor(Math.random() * backlog.value.length);
+  const selectedIndex = Math.floor(Math.random() * backlog.value?.length);
   const randomMovie = backlog.value[selectedIndex];
   selectedMovie.value = randomMovie;
 };

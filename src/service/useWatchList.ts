@@ -19,6 +19,16 @@ export function useWatchList(
   });
 }
 
+export function useBacklog(
+  clubId: string
+): UseQueryReturnType<WatchListItem[], AxiosError> {
+  return useQuery({
+    queryKey: ["backlog", clubId],
+    queryFn: async () =>
+      (await axios.get(`/api/club/${clubId}/list/backlog`)).data,
+  });
+}
+
 export function useAddMovie(clubId: string) {
   const auth = useAuthStore();
   const queryClient = useQueryClient();
@@ -84,55 +94,6 @@ export function useMakeNextWatch(clubId: string) {
         (currentWatchlist) => {
           if (!currentWatchlist) return currentWatchlist;
           return { ...currentWatchlist, nextMovieId: movieId };
-        }
-      );
-    },
-    onSettled: () =>
-      queryClient.invalidateQueries({ queryKey: ["watchlist", clubId] }),
-  });
-}
-
-export function useDeleteBacklogItem(clubId: string) {
-  const auth = useAuthStore();
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (movieId: number) =>
-      auth.request.delete(`/api/club/${clubId}/backlog/${movieId}`),
-    onMutate: async (movieId) => {
-      await queryClient.cancelQueries(["watchlist", clubId]);
-      queryClient.setQueryData<WatchListViewModel>(
-        ["watchlist", clubId],
-        (currentWatchlist) => {
-          if (!currentWatchlist) return currentWatchlist;
-          return {
-            ...currentWatchlist,
-            backlog: currentWatchlist.backlog.filter(
-              (item) => item.movieId !== movieId
-            ),
-          };
-        }
-      );
-    },
-    onSettled: () =>
-      queryClient.invalidateQueries({ queryKey: ["watchlist", clubId] }),
-  });
-}
-
-export function useAddBacklogItem(clubId: string) {
-  const auth = useAuthStore();
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (movieId: number) =>
-      auth.request.post(`/api/club/${clubId}/backlog/${movieId}`),
-    onSuccess: (response) => {
-      queryClient.setQueryData<WatchListViewModel>(
-        ["watchlist", clubId],
-        (currentWatchlist) => {
-          if (!currentWatchlist) return currentWatchlist;
-          return {
-            ...currentWatchlist,
-            backlog: [...currentWatchlist.backlog, response.data],
-          };
         }
       );
     },
