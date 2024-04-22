@@ -18,6 +18,7 @@ import { useToast } from "vue-toastification";
 
 import MovieSearchPrompt from "../../../common/components/MovieSearchPrompt.vue";
 
+import { WorkType } from "@/common/types/generated/db";
 import { MovieSearchIndex } from "@/common/types/movie";
 import { WatchListItem } from "@/common/types/watchlist";
 import { useClubId } from "@/service/useClub";
@@ -52,7 +53,7 @@ const selectFromSearch = async (movie: MovieSearchIndex) => {
   }
   addBacklogItem(
     {
-      type: "movie",
+      type: WorkType.movie,
       title: movie.title,
       externalId: movie.id.toString(),
       imageUrl: `${BASE_IMAGE_URL}${movie.poster_path}`,

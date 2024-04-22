@@ -1,5 +1,5 @@
-import ListRepository from "../repositories/ListRepository";
-import WorkRepository from "../repositories/WorkRepository";
+import ListRepository, { isWorkListType } from "../repositories/ListRepository";
+import WorkRepository, { isWorkType } from "../repositories/WorkRepository";
 import { badRequest, internalServerError, ok } from "../utils/responses";
 import { Router } from "../utils/router";
 import { getDetailedWorks } from "../utils/tmdb";
@@ -12,6 +12,9 @@ router.get("/:type", async ({ clubId, params }: ClubRequest) => {
     return badRequest("No type provided");
   }
   const type = params.type;
+  if (!isWorkListType(type)) {
+    return badRequest("Invalid type provided");
+  }
   const list = await ListRepository.getListByType(clubId, type);
   const detailedWorks = await getDetailedWorks(
     list.map((item) => ({
@@ -32,14 +35,18 @@ router.post("/:type", async ({ clubId, params, event }: ClubRequest) => {
   if (!event.body) return badRequest("No body provided");
   const body = JSON.parse(event.body);
   if (!body.type || !body.title) return badRequest("Missing required fields");
-
   const type = params.type;
+  if (!isWorkListType(type)) {
+    return badRequest("Invalid list type provided");
+  }
+
+  if (!isWorkType(body.type)) return badRequest("Invalid work type provided");
 
   let workId: string | undefined;
   if (body.externalId) {
     const existingWork = await WorkRepository.findByType(
       clubId,
-      type,
+      body.type,
       body.externalId
     );
     workId = existingWork?.id;
@@ -63,6 +70,9 @@ router.delete("/:type/:workId", async ({ clubId, params }: ClubRequest) => {
     return badRequest("No type or workId provided");
   }
   const type = params.type;
+  if (!isWorkListType(type)) {
+    return badRequest("Invalid type provided");
+  }
   const workId = params.workId;
   const isItemInList = await ListRepository.isItemInList(clubId, type, workId);
   if (!isItemInList) {

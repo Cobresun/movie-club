@@ -1,10 +1,11 @@
 import { ValueExpression, expressionBuilder } from "kysely";
-import { DB } from "kysely-codegen";
 
 import { db } from "../utils/database";
 
+import { DB, WorkListType } from "@/common/types/generated/db";
+
 class ListRepository {
-  async getListByType(clubId: string, type: string) {
+  async getListByType(clubId: string, type: WorkListType) {
     return db
       .selectFrom("work_list")
       .where("work_list.club_id", "=", clubId)
@@ -22,7 +23,7 @@ class ListRepository {
       .execute();
   }
 
-  async isItemInList(clubId: string, listType: string, workId: string) {
+  async isItemInList(clubId: string, listType: WorkListType, workId: string) {
     return !!(await db
       .selectFrom("work_list_item")
       .select("list_id")
@@ -35,7 +36,11 @@ class ListRepository {
       .executeTakeFirst());
   }
 
-  async insertItemInList(clubId: string, listType: string, workId: string) {
+  async insertItemInList(
+    clubId: string,
+    listType: WorkListType,
+    workId: string
+  ) {
     return db
       .insertInto("work_list_item")
       .values({
@@ -46,7 +51,11 @@ class ListRepository {
       .execute();
   }
 
-  async deleteItemFromList(clubId: string, listType: string, workId: string) {
+  async deleteItemFromList(
+    clubId: string,
+    listType: WorkListType,
+    workId: string
+  ) {
     return db
       .deleteFrom("work_list_item")
       .where("work_list_item.work_id", "=", workId)
@@ -60,7 +69,7 @@ class ListRepository {
 
   private listIdFromType(
     clubId: string,
-    type: string
+    type: WorkListType
   ): ValueExpression<DB, "work_list_item", string> {
     const eb = expressionBuilder<DB, "work_list_item">();
     return eb
@@ -69,6 +78,10 @@ class ListRepository {
       .where("type", "=", type)
       .select("id");
   }
+}
+
+export function isWorkListType(type: string): type is WorkListType {
+  return Object.values(WorkListType).includes(type as WorkListType);
 }
 
 export default new ListRepository();

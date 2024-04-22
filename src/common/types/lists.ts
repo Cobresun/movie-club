@@ -1,8 +1,9 @@
+import { WorkType } from "./generated/db";
 import { TMDBMovieData } from "./movie";
 
 export interface WorkListItem {
   id: string;
-  type: string;
+  type: WorkType;
   title: string;
   createdDate: string;
   externalId?: string;
@@ -14,7 +15,7 @@ export interface DetailedWorkListItem<T = TMDBMovieData> extends WorkListItem {
 }
 
 export interface ListInsertDto {
-  type: string;
+  type: WorkType;
   title: string;
   externalId?: string;
   imageUrl?: string;

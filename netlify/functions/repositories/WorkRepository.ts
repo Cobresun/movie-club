@@ -1,11 +1,13 @@
 import { db } from "../utils/database";
 
+import { WorkType } from "@/common/types/generated/db";
 import { ListInsertDto } from "@/common/types/lists";
 
 class WorkRepository {
-  async findByType(clubId: string, type: string, externalId: string) {
+  async findByType(clubId: string, type: WorkType, externalId: string) {
     return db
       .selectFrom("work")
+      .where("club_id", "=", clubId)
       .where("external_id", "=", externalId)
       .where("type", "=", type)
       .select(["id"])
@@ -33,6 +35,10 @@ class WorkRepository {
       .where("club_id", "=", clubId)
       .execute();
   }
+}
+
+export function isWorkType(type: string): type is WorkType {
+  return Object.values(WorkType).includes(type as WorkType);
 }
 
 export default new WorkRepository();
