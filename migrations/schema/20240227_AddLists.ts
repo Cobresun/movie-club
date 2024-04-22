@@ -1,6 +1,9 @@
-import { Kysely } from "kysely";
+import { Kysely, sql } from "kysely";
 
 export async function up(db: Kysely<unknown>) {
+  // Work type enum
+  await db.schema.createType("work_type").asEnum(["movie"]).execute();
+
   // Work
   await db.schema
     .createTable("work")
@@ -13,10 +16,16 @@ export async function up(db: Kysely<unknown>) {
       ["id"],
       (cb) => cb.onDelete("cascade")
     )
-    .addColumn("type", "varchar(50)", (col) => col.notNull())
+    .addColumn("type", sql`work_type`, (col) => col.notNull())
     .addColumn("title", "varchar(255)", (col) => col.notNull())
     .addColumn("external_id", "varchar(255)")
     .addColumn("image_url", "varchar(255)")
+    .execute();
+
+  // Work list type enum
+  await db.schema
+    .createType("work_list_type")
+    .asEnum(["backlog", "watchlist", "reviews", "award_nominations"])
     .execute();
 
   // List
@@ -31,7 +40,7 @@ export async function up(db: Kysely<unknown>) {
       ["id"],
       (cb) => cb.onDelete("cascade")
     )
-    .addColumn("type", "varchar(50)", (col) => col.notNull())
+    .addColumn("type", sql`work_list_type`, (col) => col.notNull())
     .addColumn("title", "varchar(255)")
     .addUniqueConstraint("uq_work_list_club_id_type", ["club_id", "type"])
     .execute();
@@ -71,4 +80,6 @@ export async function down(db: Kysely<unknown>) {
   await db.schema.dropTable("work_list_item").execute();
   await db.schema.dropTable("work_list").execute();
   await db.schema.dropTable("work").execute();
+  await db.schema.dropType("work_list_type").execute();
+  await db.schema.dropType("work_type").execute();
 }
