@@ -15,7 +15,7 @@
     "migrate:dev": "tsx --env-file=.env ./migrations/schemaMigrator.ts && npm run codegen",
     "migrate:down": "tsx --env-file=.env ./migrations/schemaMigrator.ts down && npm run codegen",
     "migrate:data": "tsx --env-file=.env ./migrations/dataMigrator.ts",
-    "codegen": "kysely-codegen --dialect postgres"
+    "codegen": "kysely-codegen --dialect postgres --runtime-enums --out-file src/common/types/generated/db.ts --exclude-pattern crdb_internal.*"
   },
   "dependencies": {
     "@cubos/kysely-cockroach": "^1.0.0",
@@ -65,7 +65,7 @@
     "eslint-plugin-import": "^2.26.0",
     "eslint-plugin-vue": "^9.8.0",
     "jsdom": "^21.1.1",
-    "kysely-codegen": "^0.11.0",
+    "kysely-codegen": "^0.15.0",
     "msw": "^1.2.1",
     "postcss": "^8.4.31",
     "tailwindcss": "^3.2.4",

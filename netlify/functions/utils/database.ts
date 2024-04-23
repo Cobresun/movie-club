@@ -1,7 +1,8 @@
 import { CockroachDialect } from "@cubos/kysely-cockroach";
 import { Kysely } from "kysely";
-import { DB } from "kysely-codegen";
 import { Pool } from "pg";
+
+import { DB } from "@/common/types/generated/db";
 
 export const db = new Kysely<DB>({
   dialect: new CockroachDialect({

@@ -14,38 +14,52 @@
 
 <script setup lang="ts">
 import { computed, defineEmits } from "vue";
-import { useRoute } from "vue-router";
 import { useToast } from "vue-toastification";
 
 import MovieSearchPrompt from "../../../common/components/MovieSearchPrompt.vue";
 
+import { WorkType } from "@/common/types/generated/db";
 import { MovieSearchIndex } from "@/common/types/movie";
 import { WatchListItem } from "@/common/types/watchlist";
+import { useClubId } from "@/service/useClub";
+import { BASE_IMAGE_URL, useList } from "@/service/useList";
+import { useAddListItem } from "@/service/useList";
 import { useTrending } from "@/service/useTMDB";
-import { useAddBacklogItem, useWatchList } from "@/service/useWatchList";
 
 const emit = defineEmits<{
   (e: "close", item?: WatchListItem): void;
 }>();
 
-const route = useRoute();
-const clubId = route.params.clubId as string;
+const clubId = useClubId();
 
 const { isLoading: loadingTrending, data: trending } = useTrending();
 
-const { isLoading: loadingAdd, mutate: addBacklogItem } =
-  useAddBacklogItem(clubId);
+const { isLoading: loadingAdd, mutate: addBacklogItem } = useAddListItem(
+  clubId,
+  "backlog"
+);
 
-const { isLoading: loadingBacklog, data } = useWatchList(clubId);
-const backlog = computed(() => (data.value ? data.value.backlog : []));
+const { data: backlog, isLoading: loadingBacklog } = useList(clubId, "backlog");
 
 const toast = useToast();
 const selectFromSearch = async (movie: MovieSearchIndex) => {
-  if (backlog.value.some((item) => item.movieId === movie.id)) {
+  if (
+    backlog.value?.some(
+      (item) => parseInt(item.externalId ?? "-1") === movie.id
+    )
+  ) {
     toast.error("That movie is already in your backlog");
     return;
   }
-  addBacklogItem(movie.id, { onSuccess: () => emit("close") });
+  addBacklogItem(
+    {
+      type: WorkType.movie,
+      title: movie.title,
+      externalId: movie.id.toString(),
+      imageUrl: `${BASE_IMAGE_URL}${movie.poster_path}`,
+    },
+    { onSuccess: () => emit("close") }
+  );
 };
 
 const loading = computed(
