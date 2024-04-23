@@ -39,6 +39,7 @@ import { useAnimateRandom } from "../composables/useAnimateRandom";
 
 import MoviePosterCard from "@/common/components/MoviePosterCard.vue";
 import { filterMovies } from "@/common/searchMovies";
+import { WorkListType } from "@/common/types/generated/db";
 import { DetailedWorkListItem } from "@/common/types/lists";
 import { useClubId } from "@/service/useClub";
 import {
@@ -58,7 +59,10 @@ const route = useRoute();
 const router = useRouter();
 
 const clubId = useClubId();
-const { mutate: deleteWatchlistItem } = useDeleteListItem(clubId, "watchlist");
+const { mutate: deleteWatchlistItem } = useDeleteListItem(
+  clubId,
+  WorkListType.watchlist
+);
 const { mutate: addReview } = useAddReview(route.params.clubId as string);
 
 const reviewMovie = async (work: DetailedWorkListItem) => {
@@ -68,7 +72,7 @@ const reviewMovie = async (work: DetailedWorkListItem) => {
   });
 };
 
-const { data: watchList } = useList(clubId, "watchlist");
+const { data: watchList } = useList(clubId, WorkListType.watchlist);
 const { data: nextWorkId } = useNextWork(clubId);
 
 const filteredWatchList = computed(() => {

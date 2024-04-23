@@ -45,6 +45,7 @@ import { onMounted, onUnmounted, ref } from "vue";
 import ClubBacklog from "../components/ClubBacklog.vue";
 import WatchList from "../components/WatchList.vue";
 
+import { WorkListType } from "@/common/types/generated/db";
 import { useClubId } from "@/service/useClub";
 import { useList } from "@/service/useList";
 
@@ -52,7 +53,7 @@ const searchInput = ref<HTMLInputElement | null>(null);
 const searchInputSlash = ref<HTMLParagraphElement | null>(null);
 
 const clubId = useClubId();
-const { isLoading } = useList(clubId, "watchlist");
+const { isLoading } = useList(clubId, WorkListType.watchlist);
 
 const searchTerm = ref("");
 const clearSearch = () => {

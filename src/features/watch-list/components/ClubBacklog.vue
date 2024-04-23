@@ -54,6 +54,7 @@ import AddMovieToWatchlistPrompt from "./AddMovieToWatchlistPrompt.vue";
 
 import MoviePosterCard from "@/common/components/MoviePosterCard.vue";
 import { filterMovies } from "@/common/searchMovies";
+import { WorkListType } from "@/common/types/generated/db";
 import { DetailedWorkListItem } from "@/common/types/lists";
 import { useClubId } from "@/service/useClub";
 import { useAddListItem, useDeleteListItem, useList } from "@/service/useList";
@@ -64,11 +65,17 @@ const { searchTerm, clearSearch } = defineProps<{
 }>();
 
 const clubId = useClubId();
-const { data: watchList } = useList(clubId, "watchlist");
-const { data: backlog } = useList(clubId, "backlog");
+const { data: watchList } = useList(clubId, WorkListType.watchlist);
+const { data: backlog } = useList(clubId, WorkListType.backlog);
 
-const { mutate: deleteBacklogItem } = useDeleteListItem(clubId, "backlog");
-const { mutate: addToWatchlist } = useAddListItem(clubId, "watchlist");
+const { mutate: deleteBacklogItem } = useDeleteListItem(
+  clubId,
+  WorkListType.backlog
+);
+const { mutate: addToWatchlist } = useAddListItem(
+  clubId,
+  WorkListType.watchlist
+);
 
 const toast = useToast();
 const moveBacklogItemToWatchlist = (movie: DetailedWorkListItem) => {

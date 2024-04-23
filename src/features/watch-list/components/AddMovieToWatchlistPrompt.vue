@@ -18,7 +18,7 @@ import { useToast } from "vue-toastification";
 
 import MovieSearchPrompt from "../../../common/components/MovieSearchPrompt.vue";
 
-import { WorkType } from "@/common/types/generated/db";
+import { WorkListType, WorkType } from "@/common/types/generated/db";
 import { MovieSearchIndex } from "@/common/types/movie";
 import { WatchListItem } from "@/common/types/watchlist";
 import { useClubId } from "@/service/useClub";
@@ -36,10 +36,13 @@ const { isLoading: loadingTrending, data: trending } = useTrending();
 
 const { isLoading: loadingAdd, mutate: addBacklogItem } = useAddListItem(
   clubId,
-  "backlog"
+  WorkListType.backlog
 );
 
-const { data: backlog, isLoading: loadingBacklog } = useList(clubId, "backlog");
+const { data: backlog, isLoading: loadingBacklog } = useList(
+  clubId,
+  WorkListType.backlog
+);
 
 const toast = useToast();
 const selectFromSearch = async (movie: MovieSearchIndex) => {

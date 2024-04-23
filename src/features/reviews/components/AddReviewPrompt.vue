@@ -18,6 +18,7 @@ import { useRoute } from "vue-router";
 
 import MovieSearchPrompt from "../../../common/components/MovieSearchPrompt.vue";
 
+import { WorkListType } from "@/common/types/generated/db";
 import { MovieSearchIndex } from "@/common/types/movie";
 import { useClubId } from "@/service/useClub";
 import { useDeleteListItem, useList } from "@/service/useList";
@@ -31,7 +32,7 @@ const route = useRoute();
 const clubId = useClubId();
 const { data: watchList, isLoading: watchListLoading } = useList(
   clubId,
-  "watchlist"
+  WorkListType.watchlist
 );
 
 const watchlistSearchIndex = computed(
@@ -48,7 +49,7 @@ const watchlistSearchIndex = computed(
 );
 
 const { mutate: deleteWatchlistItem, isLoading: deleteLoading } =
-  useDeleteListItem(clubId, "watchlist");
+  useDeleteListItem(clubId, WorkListType.watchlist);
 const { mutate: addReview, isLoading: reviewLoading } = useAddReview(
   route.params.clubId as string
 );
