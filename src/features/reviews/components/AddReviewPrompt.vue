@@ -19,32 +19,46 @@ import { useRoute } from "vue-router";
 import MovieSearchPrompt from "../../../common/components/MovieSearchPrompt.vue";
 
 import { MovieSearchIndex } from "@/common/types/movie";
+import { useClubId } from "@/service/useClub";
+import { useDeleteListItem, useList } from "@/service/useList";
 import { useAddReview } from "@/service/useReview";
-import { useDeleteMovie, useWatchList } from "@/service/useWatchList";
 
 const emit = defineEmits<{
   (e: "close"): void;
 }>();
 
 const route = useRoute();
-
-const { data: watchList, isLoading: watchListLoading } = useWatchList(
-  route.params.clubId as string
+const clubId = useClubId();
+const { data: watchList, isLoading: watchListLoading } = useList(
+  clubId,
+  "watchlist"
 );
 
-const watchlistSearchIndex = computed(() =>
-  watchList.value ? watchList.value.watchList.map((item) => item.movieData) : []
+const watchlistSearchIndex = computed(
+  () =>
+    watchList.value?.map(
+      (item) =>
+        item.externalData ?? {
+          title: item.title,
+          release_date: "",
+          id: parseInt(item.externalId ?? "-1"),
+          poster_path: item.imageUrl ?? "",
+        }
+    ) ?? []
 );
 
-const { mutate: deleteMovie, isLoading: deleteLoading } = useDeleteMovie(
-  route.params.clubId as string
-);
+const { mutate: deleteWatchlistItem, isLoading: deleteLoading } =
+  useDeleteListItem(clubId, "watchlist");
 const { mutate: addReview, isLoading: reviewLoading } = useAddReview(
   route.params.clubId as string
 );
 
 const selectFromWatchList = async (movie: MovieSearchIndex) => {
-  deleteMovie(movie.id);
+  const watchlistItem = watchList.value?.find(
+    (item) => item.externalId === movie.id.toString()
+  );
+  if (!watchlistItem) return;
+  deleteWatchlistItem(watchlistItem.id);
   addReview(movie.id, { onSuccess: () => emit("close") });
 };
 

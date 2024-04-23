@@ -73,3 +73,27 @@ export function useDeleteListItem(clubId: string, type: string) {
       queryClient.invalidateQueries({ queryKey: ["list", clubId, type] }),
   });
 }
+
+export function useNextWork(clubId: string) {
+  return useQuery({
+    queryKey: ["nextWork", clubId],
+    queryFn: async () =>
+      (await axios.get<{ workId: string }>(`/api/club/${clubId}/nextWork`)).data
+        .workId,
+  });
+}
+
+export function useSetNextWork(clubId: string) {
+  const auth = useAuthStore();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (workId: string) =>
+      auth.request.put(`/api/club/${clubId}/nextWork`, { workId }),
+    onMutate: (workId) => {
+      if (!workId) return;
+      queryClient.setQueryData<string>(["nextWork", clubId], () => workId);
+    },
+    onSettled: () =>
+      queryClient.invalidateQueries({ queryKey: ["nextWork", clubId] }),
+  });
+}

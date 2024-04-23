@@ -3,9 +3,9 @@ import { Kysely } from "kysely";
 export async function up(db: Kysely<unknown>) {
   await db.schema
     .createTable("next_work")
+    .addColumn("id", "serial", (col) => col.primaryKey())
     .addColumn("work_id", "int8", (col) => col.notNull())
     .addColumn("club_id", "int8", (col) => col.notNull())
-    .addPrimaryKeyConstraint("pk_next_work", ["work_id", "club_id"])
     .addForeignKeyConstraint(
       "fk_next_work_club_id",
       ["club_id"],

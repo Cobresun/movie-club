@@ -24,6 +24,13 @@ const migrateWatchListAndNextMovie = async () => {
       .where("legacy_id", "=", club.data.clubId)
       .execute();
 
+    if (!cockroachClub) {
+      console.warn(
+        `Club with legacy_id ${club.data.clubId} not found in CockroachDB - skipping migration`
+      );
+      continue;
+    }
+
     // Ensure every club has a work list for watchlist
     const [watchListId] = await db
       .insertInto("work_list")

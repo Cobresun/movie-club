@@ -82,7 +82,10 @@ router.delete("/:type/:workId", async ({ clubId, params }: ClubRequest) => {
   try {
     await WorkRepository.delete(clubId, workId);
   } catch (e) {
-    console.error(e);
+    const error = e as { constraint?: string };
+    if (error?.constraint !== "fk_work_list_item_work_id") {
+      return internalServerError("Failed to delete work");
+    }
   }
   return ok();
 });

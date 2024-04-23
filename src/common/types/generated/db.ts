@@ -31,6 +31,12 @@ export interface ClubMember {
   user_id: Int8;
 }
 
+export interface NextWork {
+  club_id: Int8;
+  id: Generated<Int8>;
+  work_id: Int8;
+}
+
 export interface User {
   email: string;
   id: Generated<Int8>;
@@ -64,6 +70,7 @@ export interface WorkListItem {
 export interface DB {
   club: Club;
   club_member: ClubMember;
+  next_work: NextWork;
   user: User;
   work: Work;
   work_list: WorkList;

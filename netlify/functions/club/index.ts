@@ -6,12 +6,13 @@ import membersRouter from "./members";
 import reviewsRouter from "./reviews";
 import watchlistRouter from "./watchList";
 import ClubRepository from "../repositories/ClubRepository";
-import { loggedIn, securedLegacy } from "../utils/auth";
-import { getClubRef, getFaunaClient } from "../utils/fauna";
+import WorkRepository from "../repositories/WorkRepository";
+import { loggedIn, secured } from "../utils/auth";
+import { getFaunaClient } from "../utils/fauna";
 import { ok, badRequest } from "../utils/responses";
 import { Router } from "../utils/router";
 import { Document } from "../utils/types";
-import type { ClubRequest, LegacyClubRequest } from "../utils/validation";
+import type { ClubRequest } from "../utils/validation";
 import { mapIdToLegacyId, validClubId } from "../utils/validation";
 
 import { BaseClub, ClubPreview } from "@/common/types/club";
@@ -82,27 +83,27 @@ router.post("/", loggedIn, async ({ event }) => {
   return ok(JSON.stringify(clubResponse.data));
 });
 
-router.put(
-  "/:clubId<\\d+>/nextMovie",
+router.get(
+  "/:clubId<\\d+>/nextWork",
   validClubId,
-  mapIdToLegacyId,
-  securedLegacy,
-  async ({ event, clubId }: LegacyClubRequest) => {
-    if (!event.body) return badRequest("Missing body");
-    let movieId: number;
-    try {
-      movieId = parseInt(JSON.parse(event.body).nextMovieId);
-    } catch {
-      return badRequest("Invalid movie id");
-    }
+  async ({ clubId }: ClubRequest) => {
+    const nextWork = await WorkRepository.getNextWork(clubId);
+    return ok(JSON.stringify({ workId: nextWork.work_id }));
+  }
+);
 
-    await faunaClient.query(
-      q.Update(getClubRef(clubId!), {
-        data: {
-          nextMovieId: movieId,
-        },
-      })
-    );
+router.put(
+  "/:clubId<\\d+>/nextWork",
+  validClubId,
+  secured,
+  async ({ event, clubId }: ClubRequest) => {
+    if (!event.body) return badRequest("Missing body");
+    const body = JSON.parse(event.body);
+    if (!body.workId) return badRequest("Missing workId");
+
+    await WorkRepository.deleteNextWork(clubId);
+    await WorkRepository.setNextWork(clubId, body.workId);
+
     return ok();
   }
 );
