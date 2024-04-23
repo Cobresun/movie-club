@@ -4,7 +4,6 @@ import awardsRouter from "./awards";
 import listRouter from "./list";
 import membersRouter from "./members";
 import reviewsRouter from "./reviews";
-import watchlistRouter from "./watchList";
 import ClubRepository from "../repositories/ClubRepository";
 import WorkRepository from "../repositories/WorkRepository";
 import { loggedIn, secured } from "../utils/auth";
@@ -25,12 +24,6 @@ router.use(
   validClubId,
   mapIdToLegacyId,
   reviewsRouter
-);
-router.use(
-  "/:clubId<\\d+>/watchlist",
-  validClubId,
-  mapIdToLegacyId,
-  watchlistRouter
 );
 router.use("/:clubId<\\d+>/list", validClubId, listRouter);
 router.use("/:clubId<\\d+>/members", validClubId, membersRouter);
@@ -88,7 +81,7 @@ router.get(
   validClubId,
   async ({ clubId }: ClubRequest) => {
     const nextWork = await WorkRepository.getNextWork(clubId);
-    return ok(JSON.stringify({ workId: nextWork.work_id }));
+    return ok(JSON.stringify({ workId: nextWork?.work_id }));
   }
 );
 

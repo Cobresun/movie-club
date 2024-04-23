@@ -78,8 +78,8 @@ export function useNextWork(clubId: string) {
   return useQuery({
     queryKey: ["nextWork", clubId],
     queryFn: async () =>
-      (await axios.get<{ workId: string }>(`/api/club/${clubId}/nextWork`)).data
-        .workId,
+      (await axios.get<{ workId?: string }>(`/api/club/${clubId}/nextWork`))
+        .data.workId,
   });
 }
 

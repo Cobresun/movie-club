@@ -19,7 +19,7 @@ class WorkRepository {
       .selectFrom("next_work")
       .where("club_id", "=", clubId)
       .select(["work_id"])
-      .executeTakeFirstOrThrow();
+      .executeTakeFirst();
   }
 
   async setNextWork(clubId: string, workId: string) {
