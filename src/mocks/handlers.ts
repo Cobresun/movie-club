@@ -23,7 +23,7 @@ export const handlers = [
   rest.put("/api/club/:id/reviews/:movieId", (req, res, ctx) => {
     return res(ctx.status(200));
   }),
-  rest.get("/api/club/:id/watchList", (req, res, ctx) => {
+  rest.get("/api/club/:id/list/watchlist", (req, res, ctx) => {
     return res(ctx.status(200), ctx.json(watchlist));
   }),
   rest.get(`https://api.themoviedb.org/3/search/movie`, (req, res, ctx) => {

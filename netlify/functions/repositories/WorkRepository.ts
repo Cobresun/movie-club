@@ -14,6 +14,25 @@ class WorkRepository {
       .executeTakeFirst();
   }
 
+  async getNextWork(clubId: string) {
+    return db
+      .selectFrom("next_work")
+      .where("club_id", "=", clubId)
+      .select(["work_id"])
+      .executeTakeFirst();
+  }
+
+  async setNextWork(clubId: string, workId: string) {
+    return db
+      .insertInto("next_work")
+      .values({ club_id: clubId, work_id: workId })
+      .execute();
+  }
+
+  async deleteNextWork(clubId: string) {
+    return db.deleteFrom("next_work").where("club_id", "=", clubId).execute();
+  }
+
   async insert(clubId: string, work: ListInsertDto) {
     return db
       .insertInto("work")
@@ -24,6 +43,12 @@ class WorkRepository {
         external_id: work.externalId,
         image_url: work.imageUrl,
       })
+      .onConflict(
+        (oc) =>
+          oc
+            .constraint("uq_club_id_type_external_id")
+            .doUpdateSet({ club_id: clubId }) // This is a no-op, but required for the query to return the id
+      )
       .returning("id")
       .executeTakeFirst();
   }

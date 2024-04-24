@@ -1,8 +1,8 @@
-import { DetailedMovie } from "./types/movie";
+import { DetailedWorkListItem } from "./types/lists";
 
 /**
  *
- * @param reviews
+ * @param works
  * @param searchQuery
  * @returns reviews filtered by searchQuery.
  *
@@ -17,11 +17,11 @@ import { DetailedMovie } from "./types/movie";
  * TODO: Make the watchlist and backlog use DetailedMovie[] so they can use the same search function and bar.
  *
  */
-export function filterMovies<T extends DetailedMovie>(
-  reviews: T[],
+export function filterMovies<T extends DetailedWorkListItem>(
+  works: T[],
   searchQuery: string
 ): T[] {
-  let filteredReviews = [...reviews];
+  let filteredReviews = [...works];
 
   // If the search query has text followed by a colon, extract that out into a map
   // of filters. Otherwise, just return an empty map. Type the map as a Record
@@ -42,12 +42,12 @@ export function filterMovies<T extends DetailedMovie>(
   // If there are filters, filter the reviews by them.
   if (filters.title) {
     filteredReviews = filteredReviews.filter((review) =>
-      review.movieTitle.toLowerCase().includes(filters.title.toLowerCase())
+      review.title.toLowerCase().includes(filters.title.toLowerCase())
     );
   }
   if (filters.company) {
     filteredReviews = filteredReviews.filter((review) =>
-      review.movieData.production_companies.some((company) =>
+      review.externalData?.production_companies.some((company) =>
         company.name.toLocaleLowerCase().includes(filters.company.toLowerCase())
       )
     );
@@ -55,7 +55,7 @@ export function filterMovies<T extends DetailedMovie>(
 
   if (filters.genre) {
     filteredReviews = filteredReviews.filter((review) =>
-      review.movieData.genres.some((genre) =>
+      review.externalData?.genres.some((genre) =>
         genre.name.toLocaleLowerCase().includes(filters.genre.toLowerCase())
       )
     );
@@ -65,9 +65,9 @@ export function filterMovies<T extends DetailedMovie>(
   // filter the reviews by it.
   if (searchQuery) {
     filteredReviews = filteredReviews.filter((review) => {
-      const { movieTitle } = review;
+      const { title } = review;
 
-      return movieTitle.toLowerCase().includes(searchQuery.toLowerCase());
+      return title.toLowerCase().includes(searchQuery.toLowerCase());
     });
   }
 

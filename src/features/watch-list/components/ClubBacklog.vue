@@ -48,67 +48,47 @@
 </template>
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import { useRoute } from "vue-router";
 import { useToast } from "vue-toastification";
 
 import AddMovieToWatchlistPrompt from "./AddMovieToWatchlistPrompt.vue";
 
 import MoviePosterCard from "@/common/components/MoviePosterCard.vue";
 import { filterMovies } from "@/common/searchMovies";
+import { WorkListType } from "@/common/types/generated/db";
 import { DetailedWorkListItem } from "@/common/types/lists";
-import { TMDBMovieData } from "@/common/types/movie";
-import { WatchListItem } from "@/common/types/watchlist";
 import { useClubId } from "@/service/useClub";
-import { useDeleteListItem, useList } from "@/service/useList";
-import { useAddMovie, useWatchList } from "@/service/useWatchList";
+import { useAddListItem, useDeleteListItem, useList } from "@/service/useList";
 
 const { searchTerm, clearSearch } = defineProps<{
   searchTerm: string;
   clearSearch: () => void;
 }>();
 
-const route = useRoute();
-
 const clubId = useClubId();
-const { data } = useWatchList(route.params.clubId as string);
-const { data: backlog } = useList(clubId, "backlog");
-const watchList = computed(() => (data.value ? data.value.watchList : []));
+const { data: watchList } = useList(clubId, WorkListType.watchlist);
+const { data: backlog } = useList(clubId, WorkListType.backlog);
 
-const { mutate: deleteBacklogItem } = useDeleteListItem(clubId, "backlog");
-const { mutate: addMovie } = useAddMovie(route.params.clubId as string);
+const { mutate: deleteBacklogItem } = useDeleteListItem(
+  clubId,
+  WorkListType.backlog
+);
+const { mutate: addToWatchlist } = useAddListItem(
+  clubId,
+  WorkListType.watchlist
+);
 
 const toast = useToast();
 const moveBacklogItemToWatchlist = (movie: DetailedWorkListItem) => {
-  if (
-    watchList.value.some((item) => item.movieId.toString() === movie.externalId)
-  ) {
+  if (watchList.value?.some((item) => item.externalId === movie.externalId)) {
     toast.error("That movie is already in your watchlist");
     return;
   }
+  addToWatchlist(movie);
   deleteBacklogItem(movie.id);
-  addMovie(toDetailedMovie(movie));
 };
 
-const toDetailedMovie = (item: DetailedWorkListItem): WatchListItem => ({
-  movieId: parseInt(item.externalId ?? "-1"),
-  movieTitle: item.title,
-  posterUrl: item.imageUrl ?? "",
-  movieData: item.externalData as TMDBMovieData,
-  timeAdded: {
-    ["@ts"]: item.createdDate,
-  },
-});
-
 const filteredBacklog = computed(() => {
-  const filtered = filterMovies(
-    backlog.value?.map((item) => toDetailedMovie(item)) ?? [],
-    searchTerm
-  );
-  return (
-    backlog.value?.filter((item) =>
-      filtered.some((movie) => movie.movieId.toString() === item.externalId)
-    ) ?? []
-  );
+  return filterMovies(backlog.value ?? [], searchTerm);
 });
 
 const modalOpen = ref(false);

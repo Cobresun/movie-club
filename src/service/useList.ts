@@ -6,6 +6,7 @@ import {
 } from "@tanstack/vue-query";
 import axios, { AxiosError } from "axios";
 
+import { WorkListType } from "@/common/types/generated/db";
 import { DetailedWorkListItem, ListInsertDto } from "@/common/types/lists";
 import { useAuthStore } from "@/stores/auth";
 
@@ -13,7 +14,7 @@ export const BASE_IMAGE_URL = "https://image.tmdb.org/t/p/w154/";
 
 export function useList(
   clubId: string,
-  type: string
+  type: WorkListType
 ): UseQueryReturnType<DetailedWorkListItem[], AxiosError> {
   return useQuery({
     queryKey: ["list", clubId, type],
@@ -22,7 +23,7 @@ export function useList(
   });
 }
 
-export function useAddListItem(clubId: string, type: string) {
+export function useAddListItem(clubId: string, type: WorkListType) {
   const auth = useAuthStore();
   const queryClient = useQueryClient();
   return useMutation({
@@ -53,7 +54,7 @@ export function useAddListItem(clubId: string, type: string) {
   });
 }
 
-export function useDeleteListItem(clubId: string, type: string) {
+export function useDeleteListItem(clubId: string, type: WorkListType) {
   const auth = useAuthStore();
   const queryClient = useQueryClient();
   return useMutation({
@@ -71,5 +72,29 @@ export function useDeleteListItem(clubId: string, type: string) {
     },
     onSettled: () =>
       queryClient.invalidateQueries({ queryKey: ["list", clubId, type] }),
+  });
+}
+
+export function useNextWork(clubId: string) {
+  return useQuery({
+    queryKey: ["nextWork", clubId],
+    queryFn: async () =>
+      (await axios.get<{ workId?: string }>(`/api/club/${clubId}/nextWork`))
+        .data.workId,
+  });
+}
+
+export function useSetNextWork(clubId: string) {
+  const auth = useAuthStore();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (workId: string) =>
+      auth.request.put(`/api/club/${clubId}/nextWork`, { workId }),
+    onMutate: (workId) => {
+      if (!workId) return;
+      queryClient.setQueryData<string>(["nextWork", clubId], () => workId);
+    },
+    onSettled: () =>
+      queryClient.invalidateQueries({ queryKey: ["nextWork", clubId] }),
   });
 }
