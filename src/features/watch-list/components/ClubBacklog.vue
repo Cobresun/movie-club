@@ -62,11 +62,11 @@ const clubId = useClubId();
 const { data: watchList } = useList(clubId, WorkListType.watchlist);
 const { data: backlog } = useList(clubId, WorkListType.backlog);
 
-const { mutate: deleteBacklogItem } = useDeleteListItem(
+const { mutateAsync: deleteBacklogItem } = useDeleteListItem(
   clubId,
   WorkListType.backlog
 );
-const { mutate: addToWatchlist } = useAddListItem(
+const { mutateAsync: addToWatchlist } = useAddListItem(
   clubId,
   WorkListType.watchlist
 );
