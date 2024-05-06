@@ -28,21 +28,15 @@
       :movie-title="movie.title"
       :movie-poster-url="movie.imageUrl ?? ''"
       :highlighted="movie === selectedMovie"
+      show-delete
+      @delete="() => deleteBacklogItem(movie.id)"
     >
-      <div class="grid grid-cols-2 gap-2">
-        <v-btn
-          class="flex justify-center"
-          @click="() => moveBacklogItemToWatchlist(movie)"
-        >
-          <mdicon name="arrow-collapse-up" />
-        </v-btn>
-        <v-btn
-          class="flex justify-center"
-          @click="() => deleteBacklogItem(movie.id)"
-        >
-          <mdicon name="delete" />
-        </v-btn>
-      </div>
+      <v-btn
+        class="flex justify-center"
+        @click="() => moveBacklogItemToWatchlist(movie)"
+      >
+        <mdicon name="arrow-collapse-up" />
+      </v-btn>
     </MoviePosterCard>
   </transition-group>
 </template>
@@ -68,23 +62,23 @@ const clubId = useClubId();
 const { data: watchList } = useList(clubId, WorkListType.watchlist);
 const { data: backlog } = useList(clubId, WorkListType.backlog);
 
-const { mutate: deleteBacklogItem } = useDeleteListItem(
+const { mutateAsync: deleteBacklogItem } = useDeleteListItem(
   clubId,
   WorkListType.backlog
 );
-const { mutate: addToWatchlist } = useAddListItem(
+const { mutateAsync: addToWatchlist } = useAddListItem(
   clubId,
   WorkListType.watchlist
 );
 
 const toast = useToast();
-const moveBacklogItemToWatchlist = (movie: DetailedWorkListItem) => {
+const moveBacklogItemToWatchlist = async (movie: DetailedWorkListItem) => {
   if (watchList.value?.some((item) => item.externalId === movie.externalId)) {
     toast.error("That movie is already in your watchlist");
     return;
   }
-  addToWatchlist(movie);
-  deleteBacklogItem(movie.id);
+  await addToWatchlist(movie);
+  await deleteBacklogItem(movie.id);
 };
 
 const filteredBacklog = computed(() => {

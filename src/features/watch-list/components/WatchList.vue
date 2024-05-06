@@ -18,6 +18,12 @@
       :movie-title="work.title"
       :movie-poster-url="work.imageUrl ?? ''"
       :highlighted="!isAnimating && work.id == nextWorkId"
+      :loading="
+        work.id === OPTIMISTIC_WORK_ID ||
+        (loadingAddReview && reviewedWork?.toString() === work.externalId)
+      "
+      :show-delete="work.id !== OPTIMISTIC_WORK_ID"
+      @delete="() => deleteWatchlistItem(work.id)"
     >
       <div class="grid grid-cols-2 gap-2">
         <v-btn class="flex justify-center" @click="reviewMovie(work)">
@@ -47,6 +53,7 @@ import {
   useList,
   useNextWork,
   useSetNextWork,
+  OPTIMISTIC_WORK_ID,
 } from "@/service/useList";
 import { useAddReview } from "@/service/useReview";
 
@@ -59,17 +66,21 @@ const route = useRoute();
 const router = useRouter();
 
 const clubId = useClubId();
-const { mutate: deleteWatchlistItem } = useDeleteListItem(
+const { mutateAsync: deleteWatchlistItem } = useDeleteListItem(
   clubId,
   WorkListType.watchlist
 );
-const { mutate: addReview } = useAddReview(route.params.clubId as string);
+const {
+  mutateAsync: addReview,
+  isLoading: loadingAddReview,
+  variables: reviewedWork,
+} = useAddReview(route.params.clubId as string);
 
 const reviewMovie = async (work: DetailedWorkListItem) => {
-  deleteWatchlistItem(work.id);
-  addReview(parseInt(work.externalId ?? "0"), {
+  await addReview(parseInt(work.externalId ?? "0"), {
     onSuccess: () => router.push({ name: "Reviews" }),
   });
+  await deleteWatchlistItem(work.id);
 };
 
 const { data: watchList } = useList(clubId, WorkListType.watchlist);

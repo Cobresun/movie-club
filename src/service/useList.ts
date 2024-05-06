@@ -11,6 +11,7 @@ import { DetailedWorkListItem, ListInsertDto } from "@/common/types/lists";
 import { useAuthStore } from "@/stores/auth";
 
 export const BASE_IMAGE_URL = "https://image.tmdb.org/t/p/w154/";
+export const OPTIMISTIC_WORK_ID = "temp";
 
 export function useList(
   clubId: string,
@@ -38,7 +39,7 @@ export function useAddListItem(clubId: string, type: WorkListType) {
           return [
             ...currentList,
             {
-              id: "temp",
+              id: OPTIMISTIC_WORK_ID,
               type: insertDto.type,
               title: insertDto.title,
               createdDate: new Date().toISOString(),
