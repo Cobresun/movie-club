@@ -14,6 +14,13 @@
     >
       <mdicon name="close-circle-outline" />
     </button>
+    <div
+      v-if="loading"
+      class="absolute inset-0 flex items-center justify-center"
+    >
+      <div class="absolute inset-0 bg-background opacity-50" />
+      <loading-spinner />
+    </div>
     <div class="flex flex-col h-full bg-background">
       <img v-lazy-load :src="moviePosterUrl" />
       <div class="px-2 pb-2 flex flex-col h-auto flex-grow">
@@ -39,6 +46,7 @@ const {
   moviePosterUrl: string;
   highlighted?: boolean;
   showDelete?: boolean;
+  loading?: boolean;
 }>();
 
 const emit = defineEmits<{ (e: "delete"): void }>();
