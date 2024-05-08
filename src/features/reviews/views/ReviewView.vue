@@ -64,19 +64,21 @@ import GalleryView from "../components/GalleryView.vue";
 import TableView from "../components/TableView.vue";
 
 import VToggle from "@/common/components/VToggle.vue";
-import { WorkType } from "@/common/types/generated/db";
-import { DetailedWorkListItem } from "@/common/types/lists";
-import { TMDBMovieData } from "@/common/types/movie";
-import { Review } from "@/common/types/reviews";
+import { WorkListType } from "@/common/types/generated/db";
+import { DetailedReviewListItem } from "@/common/types/lists";
 import AddReviewPrompt from "@/features/reviews/components/AddReviewPrompt.vue";
 import { useMembers } from "@/service/useClub";
-import { useReviews, useSubmitScore } from "@/service/useReview";
+import { useList } from "@/service/useList";
+import { useSubmitScore } from "@/service/useReview";
 
 const { clubId } = defineProps<{ clubId: string }>();
 
 const isGalleryView = ref(false);
 
-const { isLoading: loadingReviews, data: reviews } = useReviews(clubId);
+const { isLoading: loadingReviews, data: reviews } = useList(
+  clubId,
+  WorkListType.reviews
+);
 const { isLoading: loadingMembers, data: members } = useMembers(clubId);
 
 const loading = computed(() => loadingReviews.value || loadingMembers.value);
@@ -97,31 +99,9 @@ const submitScore = (movieId: number, score: number) => {
   }
 };
 
-const reviewToDetailedWorkListItem = (
-  review: Review
-): DetailedWorkListItem<TMDBMovieData> => {
-  return {
-    id: review.movieId.toString(),
-    externalId: review.movieId.toString(),
-    title: review.movieTitle,
-    imageUrl: review.posterUrl,
-    type: WorkType.movie,
-    createdDate: review.timeWatched["@ts"],
-    externalData: review.movieData,
-  };
-};
-
 const searchTerm = ref("");
-const filteredReviews = computed<Review[]>(() => {
-  return filterMovies(
-    reviews.value?.map(reviewToDetailedWorkListItem) ?? [],
-    searchTerm.value
-  ).flatMap((movie) => {
-    const review = reviews.value?.find(
-      (review) => review.movieId.toString() === movie.id
-    );
-    return review ? [review] : [];
-  });
+const filteredReviews = computed<DetailedReviewListItem[]>(() => {
+  return filterMovies(reviews.value ?? [], searchTerm.value);
 });
 
 const searchInput = ref<HTMLInputElement | null>(null);

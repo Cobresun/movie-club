@@ -15,6 +15,7 @@ const router = new Router("/api/member");
 router.get("/", loggedIn, async (req: AuthRequest) => {
   const user = await UserRepository.getByEmail(req.email!);
   const result: Member = {
+    id: user.id,
     email: user.email,
     name: user.username,
     image: user.image_url ?? undefined,

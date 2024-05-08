@@ -55,7 +55,7 @@
       >
         <template
           v-for="member in members"
-          #[normName(member.name)]
+          #[normName(member.id)]
           :key="member.name"
         >
           <v-avatar :src="member.image" :name="member.name" />
@@ -78,19 +78,21 @@ import { ref, computed, watch } from "vue";
 import { normalizeArray, loadDefaultChartSettings } from "./StatisticsUtils";
 
 import { Header } from "@/common/types/common";
-import { Review } from "@/common/types/reviews";
+import { WorkListType } from "@/common/types/generated/db";
+import { DetailedReviewListItem } from "@/common/types/lists";
 import { useMembers, useClub, useClubId } from "@/service/useClub";
-import { useReviews } from "@/service/useReview";
+import { useList } from "@/service/useList";
 
 const clubId = useClubId();
 const { isLoading: loadingClub, data: club } = useClub(clubId);
-const { isLoading: loadingReviews, data: reviews } = useReviews(clubId);
-const { isLoading: loadingMembers, data: members } = useMembers(clubId);
+const { isLoading: loadingReviews, data: reviews } = useList(
+  clubId,
+  WorkListType.reviews
+);
+const { isLoading: loadingMembers, data: rawMembers } = useMembers(clubId);
+const members = computed(() => rawMembers.value ?? []);
 
 const clubName = computed(() => club.value?.clubName ?? "Club");
-const memberNames = computed<string[]>(
-  () => members.value?.map((member) => member.name) ?? []
-);
 const normButtonText = ref("Normalize Scores");
 
 const loadingCalculations = ref(true);
@@ -117,13 +119,13 @@ const loading = computed(
     loadingCalculations.value
 );
 
-const fetchMovieData = (reviews: Review[]) => {
+const fetchMovieData = (reviews: DetailedReviewListItem[]) => {
   return reviews.map((review) => {
     return {
-      movieTitle: review.movieTitle,
-      dateWatched: DateTime.fromISO(review.timeWatched["@ts"]).toLocaleString(),
+      movieTitle: review.title,
+      dateWatched: DateTime.fromISO(review.createdDate).toLocaleString(),
       ...review.scores,
-      ...review.movieData,
+      ...review.externalData,
     };
   });
 };
@@ -152,13 +154,13 @@ const loadChartOptions = () => {
     theme: "ag-default-dark",
     title: { text: "Score Histogram" },
     data: normalize.value ? histogramNormData.value : histogramData.value,
-    series: memberNames.value.map((member) => {
+    series: members.value.map((member) => {
       return {
         type: "line",
         xKey: "bin",
         xName: "Score",
-        yKey: member,
-        yName: member,
+        yKey: member.id,
+        yName: member.name,
         showInLegend: true,
         tooltip: {
           renderer: function (params: AgHistogramSeriesTooltipRendererParams) {
@@ -262,31 +264,31 @@ const calculateStatistics = () => {
   const tmbd_norm = normalizeArray(
     movieData.value.map((data) => data["vote_average"])
   );
-  for (const member of memberNames.value) {
-    memberScores[member] = normalizeArray(
-      movieData.value.map((data) => data[member])
+  for (const member of members.value) {
+    memberScores[member.id] = normalizeArray(
+      movieData.value.map((data) => data[member.id])
     );
     for (let i = 0; i <= 10; i++) {
-      histogramData.value[i][member] = 0;
-      histogramNormData.value[i][member] = 0;
+      histogramData.value[i][member.id] = 0;
+      histogramNormData.value[i][member.id] = 0;
     }
   }
 
   for (let i = 0; i < movieData.value.length; i++) {
     let avg = 0;
-    for (const member of memberNames.value) {
-      movieData.value[i][member + "Norm"] = memberScores[member][i];
-      avg += memberScores[member][i];
+    for (const member of members.value) {
+      movieData.value[i][member + "Norm"] = memberScores[member.id][i];
+      avg += memberScores[member.id][i];
 
       // Histogram
-      const score = Math.floor(movieData.value[i][member]);
+      const score = Math.floor(movieData.value[i][member.id]);
       if (isNaN(score)) continue;
-      histogramData.value[score][member] += 1;
+      histogramData.value[score][member.id] += 1;
       let scoreNorm = Math.floor(movieData.value[i][member + "Norm"] * 4 + 5);
       scoreNorm = scoreNorm < 0 ? 0 : scoreNorm > 10 ? 10 : scoreNorm;
-      histogramNormData.value[scoreNorm][member] += 1;
+      histogramNormData.value[scoreNorm][member.id] += 1;
     }
-    avg = avg / memberNames.value.length;
+    avg = avg / members.value.length;
 
     movieData.value[i]["averageNorm"] = Math.round(avg * 100) / 100;
     movieData.value[i]["release_year"] = parseInt(
@@ -330,7 +332,7 @@ const headers = computed(() => {
 
   if (members.value && members.value.length > 0) {
     for (const member of members.value) {
-      headers.push({ value: member.name + (normalize.value ? "Norm" : "") });
+      headers.push({ value: member.id + (normalize.value ? "Norm" : "") });
     }
   }
   headers.push({ value: "average" + (normalize.value ? "Norm" : "") });

@@ -5,36 +5,34 @@
       :headers="headers"
       :data="tableData"
     >
-      <template v-for="member in members" :key="member.name" #[member.name]>
+      <template v-for="member in members" :key="member.id" #[member.id]>
         <v-avatar :src="member.image" :name="member.name" />
       </template>
 
-      <template v-for="member in members" #[`item-${member.name}`]="slotProps">
+      <template v-for="member in members" #[`item-${member.id}`]="slotProps">
         <div
           v-if="
-            slotProps.item[member.name] === undefined &&
-            member.name === user?.name
+            slotProps.item[member.id] === undefined && member.id === user?.id
           "
-          :key="member.name"
+          :key="member.id"
           class="flex justify-center"
         >
           <input
-            v-show="activeScoreInput === slotProps.item.movieId"
-            :ref="(e) => scoreInputRefs[slotProps.item.movieId] = (e as HTMLInputElement)"
+            v-show="activeScoreInput === slotProps.item.id"
+            :ref="(e) => scoreInputRefs[slotProps.item.id] = (e as HTMLInputElement)"
             v-model="scoreInputValue"
             aria-label="Score"
             class="bg-background rounded-lg outline-none border border-gray-300 focus:border-primary p-2 w-10 text-center"
             @keypress.enter="
-              () =>
-                submitScore(slotProps.item.movieId, parseFloat(scoreInputValue))
+              () => submitScore(slotProps.item.id, parseFloat(scoreInputValue))
             "
           />
           <div
-            v-if="activeScoreInput !== slotProps.item.movieId"
+            v-if="activeScoreInput !== slotProps.item.id"
             role="button"
             aria-label="Add score"
             class="cursor-pointer"
-            @click="openScoreInput(slotProps.item.movieId)"
+            @click="openScoreInput(slotProps.item.id)"
           >
             <mdicon name="plus" />
           </div>
@@ -54,11 +52,11 @@ import { ref, computed, nextTick } from "vue";
 
 import { Member } from "@/common/types/club";
 import { Header } from "@/common/types/common";
-import { Review } from "@/common/types/reviews";
+import { DetailedReviewListItem } from "@/common/types/lists";
 import { useUser } from "@/service/useUser";
 
 const { reviews, members, submitScore } = defineProps<{
-  reviews: Review[];
+  reviews: DetailedReviewListItem[];
   members: Member[];
   submitScore: (movieId: number, score: number) => void;
 }>();
@@ -67,13 +65,13 @@ const { data: user } = useUser();
 
 const headers = computed<Header[]>(() => {
   const headers: Header[] = [
-    { value: "movieTitle", style: "font-bold", title: "Title" },
-    { value: "dateWatched", title: "Date Reviewed" },
+    { value: "title", style: "font-bold", title: "Title" },
+    { value: "createdDate", title: "Date Reviewed" },
   ];
 
   if (members && members.length > 0) {
     for (const member of members) {
-      headers.push({ value: member.name });
+      headers.push({ value: member.id });
     }
   }
   headers.push({ value: "average" });
@@ -85,11 +83,9 @@ const tableData = computed(() => {
   const data: Record<string, unknown>[] = [];
   for (let i = 0; i < reviews.length; i++) {
     const obj: Record<string, unknown> = {
-      movieTitle: reviews[i].movieTitle,
-      dateWatched: DateTime.fromISO(
-        reviews[i].timeWatched["@ts"]
-      ).toLocaleString(),
-      movieId: reviews[i].movieId,
+      title: reviews[i].title,
+      createdDate: DateTime.fromISO(reviews[i].createdDate).toLocaleString(),
+      id: reviews[i].id,
     };
 
     for (const key of Object.keys(reviews[i].scores)) {

@@ -48,9 +48,10 @@ import { NOMINATIONS_PER_AWARD } from "../constants";
 import MoviePosterCard from "@/common/components/MoviePosterCard.vue";
 import MovieSearchPrompt from "@/common/components/MovieSearchPrompt.vue";
 import { Award, ClubAwards } from "@/common/types/awards";
+import { WorkListType } from "@/common/types/generated/db";
 import { MovieSearchIndex } from "@/common/types/movie";
 import { useAddNomination, useDeleteNomination } from "@/service/useAwards";
-import { useReviews } from "@/service/useReview";
+import { useList } from "@/service/useList";
 import { useUser } from "@/service/useUser";
 
 const { clubAward, clubId, year } = defineProps<{
@@ -82,21 +83,27 @@ const closePrompt = () => {
   currentAward.value = undefined;
 };
 
-const { data: reviews } = useReviews(clubId);
+const { data: reviews } = useList(clubId, WorkListType.reviews);
 const reviewsForYear = computed(() => {
   if (!reviews.value) return [];
   return reviews.value
     .filter(
-      (review) =>
-        DateTime.fromISO(review.timeWatched["@ts"]).year === parseInt(year)
+      (review) => DateTime.fromISO(review.createdDate).year === parseInt(year)
     )
-    .map((review) => ({ ...review.movieData }));
+    .map((review) => ({
+      title: review.title,
+      release_date: review.externalData?.release_date ?? "",
+      id: parseInt(review.externalId ?? "0"),
+      poster_path: review.externalData?.poster_path ?? "",
+    }));
 });
 
 const { mutate } = useAddNomination(clubId, year);
 
 const addNomination = (movie: MovieSearchIndex) => {
-  const review = reviews.value?.find((review) => review.movieId === movie.id);
+  const review = reviews.value?.find(
+    (review) => review.externalData?.id === movie.id
+  );
   if (!currentAward.value || !review) return;
   mutate({ awardTitle: currentAward.value.title, review });
   closePrompt();

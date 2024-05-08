@@ -1,27 +1,26 @@
 import { ExprArg, query } from "faunadb";
 
+import ReviewRepository from "../repositories/ReviewRepository";
 import { securedLegacy } from "../utils/auth";
 import { getClubProperty, getClubRef, getFaunaClient } from "../utils/fauna";
 import { badRequest, ok } from "../utils/responses";
 import { Router } from "../utils/router";
-import { getDetailedMovie } from "../utils/tmdb";
+import { getDetailedMovie, getDetailedWorks } from "../utils/tmdb";
 import { Document } from "../utils/types";
-import { LegacyClubRequest } from "../utils/validation";
+import { ClubRequest, LegacyClubRequest } from "../utils/validation";
 
 import { BaseClub } from "@/common/types/club";
-import { BaseReview } from "@/common/types/reviews";
 
 const router = new Router("/api/club/:clubId<\\d+>/reviews");
-router.get("/", async ({ clubId }: LegacyClubRequest) => {
-  const { faunaClient } = getFaunaClient();
+// router.get("/", async ({ clubId }: ClubRequest) => {
+//   const reviews = await ReviewRepository.getReviewList(clubId);
 
-  const reviews = await faunaClient.query<BaseReview[]>(
-    getClubProperty(clubId!, "reviews")
-  );
+//   const detailedReviews = await getDetailedWorks(
 
-  const detailedReviews = await getDetailedMovie(reviews);
-  return ok(JSON.stringify(detailedReviews));
-});
+//   );
+
+//   return ok(JSON.stringify(detailedReviews));
+// });
 
 router.post(
   "/:movieId<\\d+>",

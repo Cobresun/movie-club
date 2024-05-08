@@ -1,10 +1,14 @@
 import ListRepository, { isWorkListType } from "../repositories/ListRepository";
+import ReviewRepository from "../repositories/ReviewRepository";
 import WorkRepository, { isWorkType } from "../repositories/WorkRepository";
 import { secured } from "../utils/auth";
 import { badRequest, internalServerError, ok } from "../utils/responses";
 import { Router } from "../utils/router";
 import { getDetailedWorks } from "../utils/tmdb";
 import { ClubRequest } from "../utils/validation";
+
+import { WorkListType } from "@/common/types/generated/db";
+import { ReviewListItem, WorkListItem } from "@/common/types/lists";
 
 const router = new Router("/api/club/:clubId<\\d+>/list");
 
@@ -16,20 +20,76 @@ router.get("/:type", async ({ clubId, params }: ClubRequest) => {
   if (!isWorkListType(type)) {
     return badRequest("Invalid type provided");
   }
-  const list = await ListRepository.getListByType(clubId, type);
-  const detailedWorks = await getDetailedWorks(
-    list.map((item) => ({
-      id: item.id,
-      title: item.title,
-      type: item.type,
-      createdDate: item.time_added.toISOString(),
-      imageUrl: item.image_url ?? undefined,
-      externalId: item.external_id ?? undefined,
-    }))
-  );
+
+  let workList: WorkListItem[];
+  switch (type) {
+    case WorkListType.watchlist:
+    case WorkListType.backlog:
+      workList = await getWorkList(clubId, type);
+      break;
+    case WorkListType.reviews:
+      workList = await getReviewList(clubId);
+      break;
+    default:
+      return badRequest("Invalid type provided");
+  }
+
+  const detailedWorks = await getDetailedWorks(workList);
 
   return ok(JSON.stringify(detailedWorks));
 });
+
+async function getWorkList(clubId: string, type: WorkListType) {
+  const list = await ListRepository.getListByType(clubId, type);
+  return list.map((item) => ({
+    id: item.id,
+    title: item.title,
+    type: item.type,
+    createdDate: item.time_added.toISOString(),
+    imageUrl: item.image_url ?? undefined,
+    externalId: item.external_id ?? undefined,
+  }));
+}
+
+async function getReviewList(clubId: string): Promise<ReviewListItem[]> {
+  const reviews = await ReviewRepository.getReviewList(clubId);
+  const groupedReviews = reviews.reduce<Record<string, (typeof reviews)[0][]>>(
+    (acc, review) => {
+      const key = review.id;
+      if (!acc[key]) {
+        acc[key] = [];
+      }
+      acc[key].push(review);
+      return acc;
+    },
+    {}
+  );
+
+  return Object.keys(groupedReviews).map((key) => {
+    const userScores: Record<string, number> = groupedReviews[key]?.reduce(
+      (acc, review) => ({
+        ...acc,
+        [review.user_id]: parseFloat(review.score),
+      }),
+      {}
+    );
+    const scores = {
+      ...userScores,
+      average:
+        Object.values(userScores).reduce((acc, score) => acc + score, 0) /
+        Object.keys(userScores).length,
+    };
+    return {
+      id: key,
+      title: groupedReviews[key][0].title,
+      createdDate: groupedReviews[key][0].time_added.toISOString(),
+      type: groupedReviews[key][0].type,
+      imageUrl: groupedReviews[key][0].image_url ?? undefined,
+      externalId: groupedReviews[key][0].external_id ?? undefined,
+      scores,
+    };
+  });
+}
 
 router.post(
   "/:type",

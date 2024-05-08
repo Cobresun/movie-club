@@ -7,12 +7,24 @@ import {
 import axios, { AxiosError } from "axios";
 
 import { WorkListType } from "@/common/types/generated/db";
-import { DetailedWorkListItem, ListInsertDto } from "@/common/types/lists";
+import {
+  DetailedReviewListItem,
+  DetailedWorkListItem,
+  ListInsertDto,
+} from "@/common/types/lists";
 import { useAuthStore } from "@/stores/auth";
 
 export const BASE_IMAGE_URL = "https://image.tmdb.org/t/p/w154/";
 export const OPTIMISTIC_WORK_ID = "temp";
 
+export function useList(
+  clubId: string,
+  type: WorkListType.reviews
+): UseQueryReturnType<DetailedReviewListItem[], AxiosError>;
+export function useList(
+  clubId: string,
+  type: WorkListType.backlog | WorkListType.watchlist
+): UseQueryReturnType<DetailedWorkListItem[], AxiosError>;
 export function useList(
   clubId: string,
   type: WorkListType

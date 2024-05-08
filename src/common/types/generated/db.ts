@@ -17,6 +17,8 @@ export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
 
 export type Int8 = ColumnType<string, bigint | number | string, bigint | number | string>;
 
+export type Numeric = ColumnType<string, number | string, number | string>;
+
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
 export interface Club {
@@ -34,6 +36,15 @@ export interface ClubMember {
 export interface NextWork {
   club_id: Int8;
   id: Generated<Int8>;
+  work_id: Int8;
+}
+
+export interface Review {
+  created_date: Timestamp;
+  id: Generated<Int8>;
+  list_id: Int8;
+  score: Numeric;
+  user_id: Int8;
   work_id: Int8;
 }
 
@@ -72,6 +83,7 @@ export interface DB {
   club: Club;
   club_member: ClubMember;
   next_work: NextWork;
+  review: Review;
   user: User;
   work: Work;
   work_list: WorkList;

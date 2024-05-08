@@ -1,6 +1,6 @@
 import axios, { AxiosResponse } from "axios";
 
-import { DetailedWorkListItem, WorkListItem } from "@/common/types/lists";
+import { ExternalWorkData, WorkListItem } from "@/common/types/lists";
 import {
   BaseMovie,
   DetailedMovie,
@@ -42,9 +42,9 @@ export async function getDetailedMovie<T extends BaseMovie>(
   );
 }
 
-export async function getDetailedWorks(
-  works: WorkListItem[]
-): Promise<DetailedWorkListItem[]> {
+export async function getDetailedWorks<T extends WorkListItem>(
+  works: T[]
+): Promise<(T & ExternalWorkData<TMDBMovieData>)[]> {
   return await Promise.all(
     works.map(async (work) => {
       if (!work.externalId) {

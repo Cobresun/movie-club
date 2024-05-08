@@ -8,16 +8,16 @@ import axios, { AxiosError } from "axios";
 
 import { useUser } from "./useUser";
 
+import { DetailedReviewListItem } from "@/common/types/lists";
 import { Review } from "@/common/types/reviews";
 import { useAuthStore } from "@/stores/auth";
 
 export function useReviews(
   clubId: string
-): UseQueryReturnType<Review[], AxiosError> {
+): UseQueryReturnType<DetailedReviewListItem[], AxiosError> {
   return useQuery({
     queryKey: ["review-d", clubId],
-    queryFn: async () =>
-      (await axios.get(`/api/club/${clubId}/reviews?detailed=true`)).data,
+    queryFn: async () => (await axios.get(`/api/club/${clubId}/reviews`)).data,
   });
 }
 

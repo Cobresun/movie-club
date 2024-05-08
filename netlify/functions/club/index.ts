@@ -19,12 +19,7 @@ import { BaseClub, ClubPreview } from "@/common/types/club";
 const { faunaClient, q } = getFaunaClient();
 
 const router = new Router("/api/club");
-router.use(
-  "/:clubId<\\d+>/reviews",
-  validClubId,
-  mapIdToLegacyId,
-  reviewsRouter
-);
+router.use("/:clubId<\\d+>/reviews", validClubId, reviewsRouter);
 router.use("/:clubId<\\d+>/list", validClubId, listRouter);
 router.use("/:clubId<\\d+>/members", validClubId, membersRouter);
 router.use("/:clubId<\\d+>/awards", validClubId, mapIdToLegacyId, awardsRouter);

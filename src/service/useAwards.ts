@@ -10,6 +10,8 @@ import { Ref } from "vue";
 import { useUser } from "./useUser";
 
 import { Award, AwardsStep, ClubAwards } from "@/common/types/awards";
+import { DetailedReviewListItem } from "@/common/types/lists";
+import { TMDBMovieData } from "@/common/types/movie";
 import { Review } from "@/common/types/reviews";
 import { useAuthStore } from "@/stores/auth";
 
@@ -147,11 +149,11 @@ export function useAddNomination(clubId: string, year: string) {
       review,
     }: {
       awardTitle: string;
-      review: Review;
+      review: DetailedReviewListItem;
     }) =>
       auth.request.post(`/api/club/${clubId}/awards/${year}/nomination`, {
         awardTitle,
-        movieId: review.movieId,
+        movieId: review.externalId,
         nominatedBy: user.value?.name,
       }),
     onMutate: async ({ awardTitle, review }) => {
@@ -169,7 +171,14 @@ export function useAddNomination(clubId: string, year: string) {
                   ...award,
                   nominations: [
                     ...award.nominations,
-                    { ...review, nominatedBy: [name], ranking: {} },
+                    {
+                      movieId: parseInt(review.externalId ?? "0"),
+                      movieTitle: review.title,
+                      posterUrl: review.imageUrl ?? "",
+                      movieData: review.externalData as TMDBMovieData,
+                      nominatedBy: [name],
+                      ranking: {},
+                    },
                   ],
                 };
               } else {
