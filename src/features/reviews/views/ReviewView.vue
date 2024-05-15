@@ -68,8 +68,7 @@ import { WorkListType } from "@/common/types/generated/db";
 import { DetailedReviewListItem } from "@/common/types/lists";
 import AddReviewPrompt from "@/features/reviews/components/AddReviewPrompt.vue";
 import { useMembers } from "@/service/useClub";
-import { useList } from "@/service/useList";
-import { useSubmitScore } from "@/service/useReview";
+import { useList, useReviewWork } from "@/service/useList";
 
 const { clubId } = defineProps<{ clubId: string }>();
 
@@ -91,11 +90,11 @@ const closePrompt = () => {
   modalOpen.value = false;
 };
 
-const { mutate: submit } = useSubmitScore(clubId);
+const { mutate: submit } = useReviewWork(clubId);
 
-const submitScore = (movieId: number, score: number) => {
+const submitScore = (workId: string, score: number) => {
   if (!isNaN(score) && score >= 0 && score <= 10) {
-    submit({ movieId, score });
+    submit({ workId, score });
   }
 };
 

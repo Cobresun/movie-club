@@ -6,13 +6,11 @@ import { DB } from "@/common/types/generated/db";
 
 class UserRepository {
   async getByEmail(email: string) {
-    return (
-      await db
-        .selectFrom("user")
-        .selectAll()
-        .where("email", "=", email)
-        .execute()
-    )[0];
+    return await db
+      .selectFrom("user")
+      .selectAll()
+      .where("email", "=", email)
+      .executeTakeFirst();
   }
 
   async getMembersByClubId(clubId: string) {

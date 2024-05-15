@@ -58,7 +58,7 @@ import { useUser } from "@/service/useUser";
 const { reviews, members, submitScore } = defineProps<{
   reviews: DetailedReviewListItem[];
   members: Member[];
-  submitScore: (movieId: number, score: number) => void;
+  submitScore: (workId: string, score: number) => void;
 }>();
 
 const { data: user } = useUser();

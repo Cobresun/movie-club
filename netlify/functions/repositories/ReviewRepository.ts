@@ -10,7 +10,7 @@ class ReviewRepository {
       .where("work_list.type", "=", WorkListType.reviews)
       .innerJoin("work_list_item", "work_list_item.list_id", "work_list.id")
       .innerJoin("work", "work.id", "work_list_item.work_id")
-      .innerJoin("review", "review.work_id", "work.id")
+      .leftJoin("review", "review.work_id", "work.id")
       .select([
         "work.id",
         "work.title",
@@ -21,6 +21,30 @@ class ReviewRepository {
         "review.score",
         "review.user_id",
       ])
+      .execute();
+  }
+
+  async insertReview(
+    clubId: string,
+    workId: string,
+    userId: string,
+    score: number
+  ) {
+    const listId = await db
+      .selectFrom("work_list")
+      .select("id")
+      .where("club_id", "=", clubId)
+      .where("type", "=", WorkListType.reviews)
+      .executeTakeFirstOrThrow();
+    return db
+      .insertInto("review")
+      .values({
+        list_id: listId.id,
+        work_id: workId,
+        user_id: userId,
+        score,
+        created_date: new Date(),
+      })
       .execute();
   }
 }

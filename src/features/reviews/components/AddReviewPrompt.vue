@@ -14,21 +14,23 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { useRoute } from "vue-router";
 
 import MovieSearchPrompt from "../../../common/components/MovieSearchPrompt.vue";
 
-import { WorkListType } from "@/common/types/generated/db";
+import { WorkListType, WorkType } from "@/common/types/generated/db";
 import { MovieSearchIndex } from "@/common/types/movie";
 import { useClubId } from "@/service/useClub";
-import { useDeleteListItem, useList } from "@/service/useList";
-import { useAddReview } from "@/service/useReview";
+import {
+  BASE_IMAGE_URL,
+  useAddListItem,
+  useDeleteListItem,
+  useList,
+} from "@/service/useList";
 
 const emit = defineEmits<{
   (e: "close"): void;
 }>();
 
-const route = useRoute();
 const clubId = useClubId();
 const { data: watchList, isLoading: watchListLoading } = useList(
   clubId,
@@ -48,10 +50,11 @@ const watchlistSearchIndex = computed(
     ) ?? []
 );
 
-const { mutate: deleteWatchlistItem, isLoading: deleteLoading } =
+const { mutateAsync: deleteWatchlistItem, isLoading: deleteLoading } =
   useDeleteListItem(clubId, WorkListType.watchlist);
-const { mutate: addReview, isLoading: reviewLoading } = useAddReview(
-  route.params.clubId as string
+const { mutateAsync: addReview, isLoading: reviewLoading } = useAddListItem(
+  clubId,
+  WorkListType.reviews
 );
 
 const selectFromWatchList = async (movie: MovieSearchIndex) => {
@@ -59,12 +62,28 @@ const selectFromWatchList = async (movie: MovieSearchIndex) => {
     (item) => item.externalId === movie.id.toString()
   );
   if (!watchlistItem) return;
-  deleteWatchlistItem(watchlistItem.id);
-  addReview(movie.id, { onSuccess: () => emit("close") });
+  await addReview(
+    {
+      type: WorkType.movie,
+      title: movie.title,
+      externalId: movie.id.toString(),
+      imageUrl: movie.poster_path,
+    },
+    { onSuccess: () => emit("close") }
+  );
+  await deleteWatchlistItem(watchlistItem.id);
 };
 
 const selectFromSearch = async (movie: MovieSearchIndex) => {
-  addReview(movie.id, { onSuccess: () => emit("close") });
+  await addReview(
+    {
+      type: WorkType.movie,
+      title: movie.title,
+      externalId: movie.id.toString(),
+      imageUrl: `${BASE_IMAGE_URL}${movie.poster_path}`,
+    },
+    { onSuccess: () => emit("close") }
+  );
 };
 
 const loading = computed(
