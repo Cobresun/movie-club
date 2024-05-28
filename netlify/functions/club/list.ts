@@ -22,7 +22,7 @@ router.get("/:type", async ({ clubId, params }: ClubRequest) => {
       id: item.id,
       title: item.title,
       type: item.type,
-      createdDate: item.created_date.toISOString(),
+      createdDate: item.time_added.toISOString(),
       imageUrl: item.image_url ?? undefined,
       externalId: item.external_id ?? undefined,
     }))

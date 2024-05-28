@@ -18,7 +18,7 @@ class ListRepository {
         "work.type",
         "work.image_url",
         "work.external_id",
-        "work_list_item.created_date",
+        "work_list_item.time_added",
       ])
       .execute();
   }
@@ -46,7 +46,6 @@ class ListRepository {
       .values({
         list_id: this.listIdFromType(clubId, listType),
         work_id: workId,
-        created_date: new Date(),
       })
       .execute();
   }
