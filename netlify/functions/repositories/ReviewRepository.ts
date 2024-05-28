@@ -43,7 +43,6 @@ class ReviewRepository {
         work_id: workId,
         user_id: userId,
         score,
-        created_date: new Date(),
       })
       .execute();
   }

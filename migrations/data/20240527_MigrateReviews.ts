@@ -133,8 +133,7 @@ const migrateReviews = async () => {
               work_id: work.id,
               list_id: reviewListId.id,
               user_id: user.id,
-              created_date: (review.timeWatched as unknown as { date: string })
-                .date,
+              created_date: review.timeWatched.date,
               score: review.scores[username],
             })
             .execute();

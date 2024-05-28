@@ -40,7 +40,7 @@ export interface NextWork {
 }
 
 export interface Review {
-  created_date: Timestamp;
+  created_date: Generated<Timestamp>;
   id: Generated<Int8>;
   list_id: Int8;
   score: Numeric;
