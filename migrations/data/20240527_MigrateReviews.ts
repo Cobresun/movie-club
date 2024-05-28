@@ -1,9 +1,33 @@
-import { db } from "../../netlify/functions/utils/database";
+import { CockroachDialect } from "@cubos/kysely-cockroach";
+import { Kysely } from "kysely";
+import { Pool } from "pg";
+
 import { getFaunaClient } from "../../netlify/functions/utils/fauna";
 import { getDetailedMovie } from "../../netlify/functions/utils/tmdb";
 import { Document } from "../../netlify/functions/utils/types";
-import { Club } from "../../src/common/types/club";
-import { WorkListType, WorkType } from "../../src/common/types/generated/db";
+import {
+  DB,
+  WorkListType,
+  WorkType,
+} from "../../src/common/types/generated/db";
+
+type Club = {
+  clubId: number;
+  clubName: string;
+  reviews: {
+    movieId: number;
+    timeWatched: { date: Date };
+    scores: Record<string, number>;
+  }[];
+};
+
+export const db = new Kysely<DB>({
+  dialect: new CockroachDialect({
+    pool: new Pool({
+      connectionString: process.env.DATABASE_URL,
+    }),
+  }),
+});
 
 const { faunaClient, q } = getFaunaClient();
 
@@ -20,7 +44,7 @@ const migrateReviews = async () => {
     const cockroachClub = await db
       .selectFrom("club")
       .select("id")
-      .where("legacy_id", "=", club.data.clubId)
+      .where("legacy_id", "=", club.data.clubId.toString())
       .executeTakeFirst();
 
     if (!cockroachClub) {
@@ -76,8 +100,7 @@ const migrateReviews = async () => {
             .values({
               list_id: reviewListId.id,
               work_id: work.id,
-              created_date: (review.timeWatched as unknown as { date: string })
-                .date,
+              time_added: review.timeWatched.date,
             })
             .execute();
         } catch (error) {

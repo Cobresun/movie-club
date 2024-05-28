@@ -73,7 +73,6 @@ export interface WorkList {
 }
 
 export interface WorkListItem {
-  created_date: Timestamp | null;
   list_id: Int8;
   time_added: Generated<Timestamp>;
   work_id: Int8;
