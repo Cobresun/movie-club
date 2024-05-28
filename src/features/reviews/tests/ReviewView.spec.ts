@@ -94,10 +94,10 @@ describe("ReviewView", () => {
 
     const newReviews = [
       reviews[0],
-      { ...reviews[1], scores: { user: 10, cole: 8, average: 9 } },
+      { ...reviews[1], scores: { "2": 10, "3": 8, average: 9 } },
     ];
     server.use(
-      rest.get("/api/club/:id/reviews", (req, res, ctx) => {
+      rest.get("/api/club/:id/list/reviews", (req, res, ctx) => {
         return res(ctx.status(200), ctx.json(newReviews));
       })
     );

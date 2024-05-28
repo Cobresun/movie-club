@@ -1,18 +1,18 @@
 [
   {
-    "movieId": 389,
-    "timeWatched": {
-      "@ts": "2021-12-16T01:30:53.332321Z"
-    },
+    "id": 1,
+    "title": "12 Angry Men",
+    "createdDate": "2024-05-28T04:46:37.751Z",
+    "type": "movie",
+    "imageUrl": "https://image.tmdb.org/t/p/w154//ow3wq89wM8qd5X7hWKxiRfsFf9C.jpg",
+    "externalId": "389",
     "scores": {
-      "user": 10,
+      "2": 10,
       "average": 10
     },
-    "movieTitle": "12 Angry Men",
-    "posterUrl": "https://image.tmdb.org/t/p/w154/ow3wq89wM8qd5X7hWKxiRfsFf9C.jpg",
-    "movieData": {
+    "externalData": {
       "adult": false,
-      "backdrop_path": "/tj6iPnz18hGfr0LKqWmG6Cp3niO.jpg",
+      "backdrop_path": "/qqHQsStV6exghCM7zbObuYBiYxw.jpg",
       "belongs_to_collection": null,
       "budget": 350000,
       "genres": [
@@ -24,10 +24,11 @@
       "homepage": "",
       "id": 389,
       "imdb_id": "tt0050083",
+      "origin_country": ["US"],
       "original_language": "en",
       "original_title": "12 Angry Men",
       "overview": "The defense and the prosecution have rested and the jury is filing into the jury room to decide if a young Spanish-American is guilty or innocent of murdering his father. What begins as an open and shut case soon becomes a mini-drama of each of the jurors' prejudices and preconceptions about the trial, the accused, and each other.",
-      "popularity": 43.477,
+      "popularity": 77.327,
       "poster_path": "/ow3wq89wM8qd5X7hWKxiRfsFf9C.jpg",
       "production_companies": [
         {
@@ -63,22 +64,22 @@
       "tagline": "Life is in their hands. Death is on their minds.",
       "title": "12 Angry Men",
       "video": false,
-      "vote_average": 8.537,
-      "vote_count": 7223
+      "vote_average": 8.5,
+      "vote_count": 8271
     }
   },
   {
-    "movieId": 1891,
-    "timeWatched": {
-      "@ts": "2022-01-28T02:28:00.598130Z"
-    },
+    "id": 2,
+    "title": "The Empire Strikes Back",
+    "createdDate": "2024-05-28T04:47:16.601Z",
+    "type": "movie",
+    "imageUrl": "https://image.tmdb.org/t/p/w154//nNAeTmF4CtdSgMDplXTDPOpYzsX.jpg",
+    "externalId": "1891",
     "scores": {
-      "average": 8,
-      "cole": 8
+      "3": 8,
+      "average": 8
     },
-    "movieTitle": "The Empire Strikes Back",
-    "posterUrl": "https://image.tmdb.org/t/p/w154/2l05cFWJacyIsTpsqSgH0wQXe4V.jpg",
-    "movieData": {
+    "externalData": {
       "adult": false,
       "backdrop_path": "/aJCtkxLLzkk1pECehVjKHA2lBgw.jpg",
       "belongs_to_collection": {
@@ -105,15 +106,16 @@
       "homepage": "http://www.starwars.com/films/star-wars-episode-v-the-empire-strikes-back",
       "id": 1891,
       "imdb_id": "tt0080684",
+      "origin_country": ["US"],
       "original_language": "en",
       "original_title": "The Empire Strikes Back",
       "overview": "The epic saga continues as Luke Skywalker, in hopes of defeating the evil Galactic Empire, learns the ways of the Jedi from aging master Yoda. But Darth Vader is more determined than ever to capture Luke. Meanwhile, rebel leader Princess Leia, cocky Han Solo, Chewbacca, and droids C-3PO and R2-D2 are thrown into various stages of capture, betrayal and despair.",
-      "popularity": 29.255,
-      "poster_path": "/2l05cFWJacyIsTpsqSgH0wQXe4V.jpg",
+      "popularity": 43.948,
+      "poster_path": "/nNAeTmF4CtdSgMDplXTDPOpYzsX.jpg",
       "production_companies": [
         {
           "id": 1,
-          "logo_path": "/o86DbpburjxrqAzEDhXZcyE8pDb.png",
+          "logo_path": "/tlVSws0RvvtPBwViUyOFAO0vcQS.png",
           "name": "Lucasfilm Ltd.",
           "origin_country": "US"
         }
@@ -135,11 +137,11 @@
         }
       ],
       "status": "Released",
-      "tagline": "The Adventure Continues...",
+      "tagline": "The Star Wars saga continues.",
       "title": "The Empire Strikes Back",
       "video": false,
-      "vote_average": 8.393,
-      "vote_count": 15283
+      "vote_average": 8.39,
+      "vote_count": 16471
     }
   }
 ]

@@ -17,10 +17,10 @@ export const handlers = [
   rest.get("/api/club/:id/members", (req, res, ctx) => {
     return res(ctx.status(200), ctx.json(members));
   }),
-  rest.get("/api/club/:id/reviews", (req, res, ctx) => {
+  rest.get("/api/club/:id/list/reviews", (req, res, ctx) => {
     return res(ctx.status(200), ctx.json(reviews));
   }),
-  rest.put("/api/club/:id/reviews/:movieId", (req, res, ctx) => {
+  rest.put("/api/club/:id/list/reviews/:movieId", (req, res, ctx) => {
     return res(ctx.status(200));
   }),
   rest.get("/api/club/:id/list/watchlist", (req, res, ctx) => {
