@@ -58,6 +58,7 @@
 </template>
 <script setup lang="ts">
 import { computed, ref, onMounted, onUnmounted } from "vue";
+import { useToast } from "vue-toastification";
 
 import { filterMovies } from "../../../common/searchMovies";
 import GalleryView from "../components/GalleryView.vue";
@@ -91,7 +92,13 @@ const closePrompt = () => {
 
 const { mutate: submit } = useSubmitScore(clubId);
 
+const toast = useToast();
+
 const submitScore = (movieId: number, score: number) => {
+  if (movieId === 807 && score !== 7) {
+    toast.error("Obviously the score for this movie should be 7.");
+    return;
+  }
   if (!isNaN(score) && score >= 0 && score <= 10) {
     submit({ movieId, score });
   }
