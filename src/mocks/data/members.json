@@ -1,15 +1,18 @@
 [
   {
+    "id": 1,
     "email": "dev@email.com",
     "name": "dev",
     "image": "https://test.com/profile"
   },
   {
+    "id": 2,
     "email": "user@email.com",
     "name": "user",
     "image": "https://test.com/otherProfile"
   },
   {
+    "id": 3,
     "email": "cole@test.com",
     "name": "cole"
   }

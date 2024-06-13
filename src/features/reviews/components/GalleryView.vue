@@ -9,12 +9,12 @@
     >
       <ReviewCard
         v-for="review in reviews"
-        :key="review.movieId"
+        :key="review.id"
         class="transition-all ease duration-500"
         :review="review"
         :members="members"
-        :movie-title="review.movieData.title"
-        :movie-poster-url="review.posterUrl"
+        :movie-title="review.title"
+        :movie-poster-url="review.imageUrl ?? ''"
       />
     </transition-group>
   </div>
@@ -22,11 +22,11 @@
 
 <script setup lang="ts">
 import { Member } from "@/common/types/club";
-import { Review } from "@/common/types/reviews";
+import { DetailedReviewListItem } from "@/common/types/lists";
 import ReviewCard from "@/features/reviews/components/ReviewCard.vue";
 
 const { reviews, members: members } = defineProps<{
-  reviews: Review[];
+  reviews: DetailedReviewListItem[];
   members: Member[];
 }>();
 </script>

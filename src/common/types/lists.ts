@@ -10,9 +10,19 @@ export interface WorkListItem {
   imageUrl?: string;
 }
 
-export interface DetailedWorkListItem<T = TMDBMovieData> extends WorkListItem {
+export interface ReviewListItem extends WorkListItem {
+  scores: Record<string, number>;
+}
+
+export interface ExternalWorkData<T> {
   externalData?: T;
 }
+
+export type DetailedWorkListItem<T = TMDBMovieData> = WorkListItem &
+  ExternalWorkData<T>;
+
+export type DetailedReviewListItem<T = TMDBMovieData> = ReviewListItem &
+  ExternalWorkData<T>;
 
 export interface ListInsertDto {
   type: WorkType;

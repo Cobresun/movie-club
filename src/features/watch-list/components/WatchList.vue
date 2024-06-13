@@ -38,14 +38,17 @@
   </transition-group>
 </template>
 <script setup lang="ts">
+import { AxiosError } from "axios";
 import { computed } from "vue";
-import { useRoute, useRouter } from "vue-router";
+import { useRouter } from "vue-router";
+import { useToast } from "vue-toastification";
 
 import { useAnimateRandom } from "../composables/useAnimateRandom";
 
 import MoviePosterCard from "@/common/components/MoviePosterCard.vue";
+import { BadRequest } from "@/common/errorCodes";
 import { filterMovies } from "@/common/searchMovies";
-import { WorkListType } from "@/common/types/generated/db";
+import { WorkListType, WorkType } from "@/common/types/generated/db";
 import { DetailedWorkListItem } from "@/common/types/lists";
 import { useClubId } from "@/service/useClub";
 import {
@@ -54,15 +57,14 @@ import {
   useNextWork,
   useSetNextWork,
   OPTIMISTIC_WORK_ID,
+  useAddListItem,
 } from "@/service/useList";
-import { useAddReview } from "@/service/useReview";
 
 const { searchTerm, clearSearch } = defineProps<{
   searchTerm: string;
   clearSearch: () => void;
 }>();
 
-const route = useRoute();
 const router = useRouter();
 
 const clubId = useClubId();
@@ -74,12 +76,27 @@ const {
   mutateAsync: addReview,
   isLoading: loadingAddReview,
   variables: reviewedWork,
-} = useAddReview(route.params.clubId as string);
+} = useAddListItem(clubId, WorkListType.reviews);
 
+const toast = useToast();
 const reviewMovie = async (work: DetailedWorkListItem) => {
-  await addReview(parseInt(work.externalId ?? "0"), {
-    onSuccess: () => router.push({ name: "Reviews" }),
-  });
+  await addReview(
+    {
+      type: WorkType.movie,
+      title: work.title,
+      externalId: work.externalId,
+      imageUrl: work.imageUrl,
+    },
+    {
+      onSuccess: () => router.push({ name: "Reviews" }),
+      onError: (e) => {
+        const error = e as AxiosError;
+        if (error.response?.data === BadRequest.ItemInList) {
+          toast.error("You've already reviewed this movie");
+        }
+      },
+    }
+  );
   await deleteWatchlistItem(work.id);
 };
 

@@ -3,7 +3,6 @@ import { Handler, HandlerContext, HandlerEvent } from "@netlify/functions";
 import awardsRouter from "./awards";
 import listRouter from "./list";
 import membersRouter from "./members";
-import reviewsRouter from "./reviews";
 import ClubRepository from "../repositories/ClubRepository";
 import WorkRepository from "../repositories/WorkRepository";
 import { loggedIn, secured } from "../utils/auth";
@@ -19,12 +18,6 @@ import { BaseClub, ClubPreview } from "@/common/types/club";
 const { faunaClient, q } = getFaunaClient();
 
 const router = new Router("/api/club");
-router.use(
-  "/:clubId<\\d+>/reviews",
-  validClubId,
-  mapIdToLegacyId,
-  reviewsRouter
-);
 router.use("/:clubId<\\d+>/list", validClubId, listRouter);
 router.use("/:clubId<\\d+>/members", validClubId, membersRouter);
 router.use("/:clubId<\\d+>/awards", validClubId, mapIdToLegacyId, awardsRouter);

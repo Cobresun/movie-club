@@ -5,7 +5,7 @@ import ClubRepository from "./repositories/ClubRepository";
 import ImageRepository from "./repositories/ImageRepository";
 import UserRepository from "./repositories/UserRepository";
 import { AuthRequest, loggedIn } from "./utils/auth";
-import { badRequest, ok } from "./utils/responses";
+import { badRequest, internalServerError, ok } from "./utils/responses";
 import { Router } from "./utils/router";
 
 import { ClubPreview, Member } from "@/common/types/club";
@@ -13,8 +13,10 @@ import { ClubPreview, Member } from "@/common/types/club";
 const router = new Router("/api/member");
 
 router.get("/", loggedIn, async (req: AuthRequest) => {
-  const user = await UserRepository.getByEmail(req.email!);
+  const user = await UserRepository.getByEmail(req.email);
+  if (!user) return internalServerError("User not found");
   const result: Member = {
+    id: user.id,
     email: user.email,
     name: user.username,
     image: user.image_url ?? undefined,
@@ -40,6 +42,7 @@ router.post("/avatar", loggedIn, async (req: AuthRequest) => {
     const avatarFile = parsed.files[0];
 
     const user = await UserRepository.getByEmail(req.email!);
+    if (!user) return internalServerError("User not found");
 
     const { url, id } = await ImageRepository.upload(avatarFile.content);
 
