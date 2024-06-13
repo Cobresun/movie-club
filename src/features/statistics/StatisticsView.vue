@@ -277,14 +277,14 @@ const calculateStatistics = () => {
   for (let i = 0; i < movieData.value.length; i++) {
     let avg = 0;
     for (const member of members.value) {
-      movieData.value[i][member + "Norm"] = memberScores[member.id][i];
+      movieData.value[i][member.id + "Norm"] = memberScores[member.id][i];
       avg += memberScores[member.id][i];
 
       // Histogram
       const score = Math.floor(movieData.value[i][member.id]);
       if (isNaN(score)) continue;
       histogramData.value[score][member.id] += 1;
-      let scoreNorm = Math.floor(movieData.value[i][member + "Norm"] * 4 + 5);
+      let scoreNorm = Math.floor(movieData.value[i][member.id + "Norm"] * 4 + 5);
       scoreNorm = scoreNorm < 0 ? 0 : scoreNorm > 10 ? 10 : scoreNorm;
       histogramNormData.value[scoreNorm][member.id] += 1;
     }
