@@ -48,7 +48,7 @@ describe("ReviewView", () => {
 
     expect(screen.getByText("12 Angry Men")).toBeInTheDocument();
     expect(
-      screen.queryByText("The Empire Strikes Back")
+      screen.queryByText("The Empire Strikes Back"),
     ).not.toBeInTheDocument();
   });
 
@@ -82,7 +82,7 @@ describe("ReviewView", () => {
     const row = (
       await screen.findByRole("cell", { name: "The Empire Strikes Back" })
     ).closest("tr") as HTMLElement;
-    const addScoreButton = within(row).getByRole("button", {
+    const addScoreButton = await within(row).findByRole("button", {
       name: "Add score",
     });
     expect(addScoreButton).toBeInTheDocument();
@@ -94,17 +94,36 @@ describe("ReviewView", () => {
 
     const newReviews = [
       reviews[0],
-      { ...reviews[1], scores: { "2": 10, "3": 8, average: 9 } },
+      {
+        ...reviews[1],
+        scores: {
+          "2": {
+            id: "test",
+            createdDate: "2024-05-28T04:46:37.751Z",
+            score: 10,
+          },
+          "3": {
+            id: "test2",
+            createdDate: "2024-05-28T04:46:37.751Z",
+            score: 8,
+          },
+          average: {
+            id: "average",
+            createdDate: "2024-05-28T04:46:37.751Z",
+            score: 9,
+          },
+        },
+      },
     ];
     server.use(
       rest.get("/api/club/:id/list/reviews", (req, res, ctx) => {
         return res(ctx.status(200), ctx.json(newReviews));
-      })
+      }),
     );
 
     await user.keyboard("10{Enter}");
     expect(
-      screen.queryByRole("textbox", { name: "Score" })
+      screen.queryByRole("textbox", { name: "Score" }),
     ).not.toBeInTheDocument();
     expect(within(row).getByRole("cell", { name: "10" })).toBeInTheDocument();
     expect(within(row).getByRole("cell", { name: "9" })).toBeInTheDocument();

@@ -1,14 +1,22 @@
 [
   {
-    "id": 1,
+    "id": "1",
     "title": "12 Angry Men",
     "createdDate": "2024-05-28T04:46:37.751Z",
     "type": "movie",
     "imageUrl": "https://image.tmdb.org/t/p/w154//ow3wq89wM8qd5X7hWKxiRfsFf9C.jpg",
     "externalId": "389",
     "scores": {
-      "2": 10,
-      "average": 10
+      "2": {
+        "id": "test",
+        "createdDate": "2024-05-28T04:46:37.751Z",
+        "score": 10
+      },
+      "average": {
+        "id": "average",
+        "createdDate": "2024-05-28T04:46:37.751Z",
+        "score": 10
+      }
     },
     "externalData": {
       "adult": false,
@@ -69,15 +77,23 @@
     }
   },
   {
-    "id": 2,
+    "id": "2",
     "title": "The Empire Strikes Back",
     "createdDate": "2024-05-28T04:47:16.601Z",
     "type": "movie",
     "imageUrl": "https://image.tmdb.org/t/p/w154//nNAeTmF4CtdSgMDplXTDPOpYzsX.jpg",
     "externalId": "1891",
     "scores": {
-      "3": 8,
-      "average": 8
+      "3": {
+        "id": "test2",
+        "createdDate": "2024-05-28T04:46:37.751Z",
+        "score": 8
+      },
+      "average": {
+        "id": "average",
+        "createdDate": "2024-05-28T04:46:37.751Z",
+        "score": 8
+      }
     },
     "externalData": {
       "adult": false,
