@@ -9,6 +9,8 @@ import {
 import mdiVue from "mdi-vue/v3";
 import Toast from "vue-toastification";
 
+import PiniaStoreHelperTest from "./PiniaStoreHelper.test.vue";
+
 import LoadingSpinner from "@/common/components/LoadingSpinner.vue";
 import PageHeader from "@/common/components/PageHeader.vue";
 import VAvatar from "@/common/components/VAvatar.vue";
@@ -19,10 +21,13 @@ import LazyLoad from "@/directives/LazyLoad";
 
 export const render = (
   component: unknown,
-  options: Partial<RenderOptions> = {}
+  options: Partial<RenderOptions> = {},
 ) => {
   const user = userEvent.setup();
   const pinia = createTestingPinia();
+  testingLibraryRender(PiniaStoreHelperTest, {
+    global: { plugins: [VueQueryPlugin, pinia] },
+  });
   return {
     ...testingLibraryRender(component, {
       ...options,
