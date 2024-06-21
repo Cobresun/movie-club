@@ -20,7 +20,10 @@ export const handlers = [
   rest.get("/api/club/:id/list/reviews", (req, res, ctx) => {
     return res(ctx.status(200), ctx.json(reviews));
   }),
-  rest.put("/api/club/:id/list/reviews/:movieId", (req, res, ctx) => {
+  rest.post("/api/club/:id/reviews", (req, res, ctx) => {
+    return res(ctx.status(200));
+  }),
+  rest.put("/api/club/:id/reviews/:reviewId", (req, res, ctx) => {
     return res(ctx.status(200));
   }),
   rest.get("/api/club/:id/list/watchlist", (req, res, ctx) => {

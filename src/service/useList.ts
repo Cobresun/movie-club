@@ -6,8 +6,6 @@ import {
 } from "@tanstack/vue-query";
 import axios, { AxiosError } from "axios";
 
-import { useUser } from "./useUser";
-
 import { WorkListType } from "@/common/types/generated/db";
 import {
   DetailedReviewListItem,
@@ -21,15 +19,15 @@ export const OPTIMISTIC_WORK_ID = "temp";
 
 export function useList(
   clubId: string,
-  type: WorkListType.reviews
+  type: WorkListType.reviews,
 ): UseQueryReturnType<DetailedReviewListItem[], AxiosError>;
 export function useList(
   clubId: string,
-  type: WorkListType.backlog | WorkListType.watchlist
+  type: WorkListType.backlog | WorkListType.watchlist,
 ): UseQueryReturnType<DetailedWorkListItem[], AxiosError>;
 export function useList(
   clubId: string,
-  type: WorkListType
+  type: WorkListType,
 ): UseQueryReturnType<DetailedWorkListItem[], AxiosError> {
   return useQuery({
     queryKey: ["list", clubId, type],
@@ -61,7 +59,7 @@ export function useAddListItem(clubId: string, type: WorkListType) {
               imageUrl: insertDto.imageUrl,
             },
           ];
-        }
+        },
       );
     },
     onSettled: () =>
@@ -82,7 +80,7 @@ export function useDeleteListItem(clubId: string, type: WorkListType) {
         (currentList) => {
           if (!currentList) return currentList;
           return currentList.filter((item) => item.id !== workId);
-        }
+        },
       );
     },
     onSettled: () =>
@@ -111,45 +109,5 @@ export function useSetNextWork(clubId: string) {
     },
     onSettled: () =>
       queryClient.invalidateQueries({ queryKey: ["nextWork", clubId] }),
-  });
-}
-
-export function useReviewWork(clubId: string) {
-  const auth = useAuthStore();
-  const queryClient = useQueryClient();
-  const { data: user } = useUser();
-
-  return useMutation({
-    mutationFn: ({ workId, score }: { workId: string; score: number }) =>
-      auth.request.put(
-        `/api/club/${clubId}/list/${WorkListType.reviews}/${workId}`,
-        {
-          score,
-        }
-      ),
-    onMutate: ({ workId, score }) => {
-      if (!workId) return;
-      queryClient.setQueryData<DetailedReviewListItem[]>(
-        ["list", clubId, WorkListType.reviews],
-        (currentReviews) => {
-          if (!currentReviews || !user.value?.id) return currentReviews;
-          return currentReviews.map((review) =>
-            review.id === workId
-              ? {
-                  ...review,
-                  scores: {
-                    ...review.scores,
-                    [user.value?.id]: score,
-                  },
-                }
-              : review
-          );
-        }
-      );
-    },
-    onSettled: () =>
-      queryClient.invalidateQueries({
-        queryKey: ["list", clubId, WorkListType.reviews],
-      }),
   });
 }

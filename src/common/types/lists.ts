@@ -11,7 +11,13 @@ export interface WorkListItem {
 }
 
 export interface ReviewListItem extends WorkListItem {
-  scores: Record<string, number>;
+  scores: Record<string, Review>;
+}
+
+export interface Review {
+  id: string;
+  created_date: string;
+  score: number;
 }
 
 export interface ExternalWorkData<T> {

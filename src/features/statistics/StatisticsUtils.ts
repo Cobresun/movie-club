@@ -19,7 +19,7 @@ export const normalizeArray = (array: number[]) => {
   const std = Math.sqrt(variance);
   const normArray: number[] = cleanArray.map((x) => (x - mean) / std);
   const stdCorrectedArray: number[] = normArray.map(
-    (x) => Math.round((x / std) * 100) / 100
+    (x) => Math.round((x / std) * 100) / 100,
   );
 
   if (array.length == count || std == 0) {
