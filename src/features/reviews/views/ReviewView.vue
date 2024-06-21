@@ -11,31 +11,31 @@
     <loading-spinner v-if="loading" />
     <div v-else>
       <div
-        class="flex justify-center items-center"
+        class="flex items-center justify-center"
         :class="isGalleryView ? 'mb-4' : 'mb-0'"
       >
         <div class="relative">
           <mdicon
             name="magnify"
-            class="absolute top-1/2 left-8 transform -translate-y-1/2 text-slate-200"
+            class="absolute left-8 top-1/2 -translate-y-1/2 transform text-slate-200"
           />
           <input
             ref="searchInput"
             v-model="searchTerm"
-            class="p-2 pl-12 text-base outline-none rounded-md border-2 text-white border-slate-600 focus:border-primary w-11/12 bg-background"
+            class="w-11/12 rounded-md border-2 border-slate-600 bg-background p-2 pl-12 text-base text-white outline-none focus:border-primary"
             placeholder="Search"
             @focusin="searchInputFocusIn"
             @focusout="searchInputFocusOut"
           />
           <div
             ref="searchInputSlash"
-            class="border-2 rounded-md absolute top-1/2 right-8 px-2 py-1 transform -translate-y-1/2 border-slate-600"
+            class="absolute right-8 top-1/2 -translate-y-1/2 transform rounded-md border-2 border-slate-600 px-2 py-1"
           >
             <p name="slash" class="text-xs text-slate-200">/</p>
           </div>
         </div>
         <v-btn
-          class="ml-2 h-11 w-11 whitespace-nowrap flex justify-center items-center"
+          class="ml-2 flex h-11 w-11 items-center justify-center whitespace-nowrap"
           @click="openPrompt()"
         >
           <mdicon name="plus" />
@@ -46,7 +46,6 @@
         :reviews="filteredReviews"
         :members="members ?? []"
         :open-prompt="openPrompt"
-        :submit-score="submitScore"
       />
       <gallery-view
         v-else
@@ -68,7 +67,7 @@ import { WorkListType } from "@/common/types/generated/db";
 import { DetailedReviewListItem } from "@/common/types/lists";
 import AddReviewPrompt from "@/features/reviews/components/AddReviewPrompt.vue";
 import { useMembers } from "@/service/useClub";
-import { useList, useReviewWork } from "@/service/useList";
+import { useList } from "@/service/useList";
 
 const { clubId } = defineProps<{ clubId: string }>();
 
@@ -76,7 +75,7 @@ const isGalleryView = ref(false);
 
 const { isLoading: loadingReviews, data: reviews } = useList(
   clubId,
-  WorkListType.reviews
+  WorkListType.reviews,
 );
 const { isLoading: loadingMembers, data: members } = useMembers(clubId);
 
@@ -88,14 +87,6 @@ const openPrompt = () => {
 };
 const closePrompt = () => {
   modalOpen.value = false;
-};
-
-const { mutate: submit } = useReviewWork(clubId);
-
-const submitScore = (workId: string, score: number) => {
-  if (!isNaN(score) && score >= 0 && score <= 10) {
-    submit({ workId, score });
-  }
 };
 
 const searchTerm = ref("");
