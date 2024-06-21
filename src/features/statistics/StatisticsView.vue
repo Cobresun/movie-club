@@ -42,7 +42,7 @@
       <div
         id="tooltip-default"
         role="tooltip"
-        class="inline-block absolute invisible z-10 py-2 px-3 text-sm font-medium text-white bg-gray-900 rounded-lg shadow-sm opacity-0 transition-opacity duration-300 tooltip dark:bg-gray-700"
+        class="tooltip invisible absolute z-10 inline-block rounded-lg bg-gray-900 px-3 py-2 text-sm font-medium text-white opacity-0 shadow-sm transition-opacity duration-300 dark:bg-gray-700"
       >
         How many standard deviations is your score from average?
         <div class="tooltip-arrow" data-popper-arrow></div>
@@ -62,7 +62,7 @@
         </template>
 
         <template #[normName()]>
-          <img src="@/assets/images/average.svg" class="w-16 h-12 max-w-none" />
+          <img src="@/assets/images/average.svg" class="h-12 w-16 max-w-none" />
         </template>
       </movie-table>
     </div>
@@ -87,7 +87,7 @@ const clubId = useClubId();
 const { isLoading: loadingClub, data: club } = useClub(clubId);
 const { isLoading: loadingReviews, data: reviews } = useList(
   clubId,
-  WorkListType.reviews
+  WorkListType.reviews,
 );
 const { isLoading: loadingMembers, data: rawMembers } = useMembers(clubId);
 const members = computed(() => rawMembers.value ?? []);
@@ -116,7 +116,7 @@ const loading = computed(
     loadingReviews.value ||
     loadingMembers.value ||
     loadingClub.value ||
-    loadingCalculations.value
+    loadingCalculations.value,
 );
 
 const fetchMovieData = (reviews: DetailedReviewListItem[]) => {
@@ -124,7 +124,13 @@ const fetchMovieData = (reviews: DetailedReviewListItem[]) => {
     return {
       movieTitle: review.title,
       dateWatched: DateTime.fromISO(review.createdDate).toLocaleString(),
-      ...review.scores,
+      ...Object.keys(review.scores).reduce<Record<string, number>>(
+        (acc, key) => {
+          acc[key] = review.scores[key].score;
+          return acc;
+        },
+        {},
+      ),
       ...review.externalData,
     };
   });
@@ -262,11 +268,11 @@ const calculateStatistics = () => {
 
   const memberScores: Record<string, number[]> = {};
   const tmbd_norm = normalizeArray(
-    movieData.value.map((data) => data["vote_average"])
+    movieData.value.map((data) => data["vote_average"]),
   );
   for (const member of members.value) {
     memberScores[member.id] = normalizeArray(
-      movieData.value.map((data) => data[member.id])
+      movieData.value.map((data) => data[member.id]),
     );
     for (let i = 0; i <= 10; i++) {
       histogramData.value[i][member.id] = 0;
@@ -284,7 +290,9 @@ const calculateStatistics = () => {
       const score = Math.floor(movieData.value[i][member.id]);
       if (isNaN(score)) continue;
       histogramData.value[score][member.id] += 1;
-      let scoreNorm = Math.floor(movieData.value[i][member.id + "Norm"] * 4 + 5);
+      let scoreNorm = Math.floor(
+        movieData.value[i][member.id + "Norm"] * 4 + 5,
+      );
       scoreNorm = scoreNorm < 0 ? 0 : scoreNorm > 10 ? 10 : scoreNorm;
       histogramNormData.value[scoreNorm][member.id] += 1;
     }
@@ -292,7 +300,7 @@ const calculateStatistics = () => {
 
     movieData.value[i]["averageNorm"] = Math.round(avg * 100) / 100;
     movieData.value[i]["release_year"] = parseInt(
-      movieData.value[i]["release_date"].substring(0, 4)
+      movieData.value[i]["release_date"].substring(0, 4),
     );
     movieData.value[i]["revenueMil"] = movieData.value[i]["revenue"] / 1000000;
     movieData.value[i]["budgetMil"] = movieData.value[i]["budget"] / 1000000;

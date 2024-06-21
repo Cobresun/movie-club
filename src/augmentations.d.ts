@@ -1,9 +1,17 @@
-export {}
+import "@tanstack/vue-table";
 
-declare module 'vue-router' {
-    interface RouteMeta {
-        depth: number;
-        transitionIn?: string;
-        transitionOut?: string;
-    }
+export {};
+
+declare module "vue-router" {
+  interface RouteMeta {
+    depth: number;
+    transitionIn?: string;
+    transitionOut?: string;
+  }
+}
+
+declare module "@tanstack/vue-table" {
+  interface ColumnMeta {
+    class?: string;
+  }
 }
