@@ -1,6 +1,9 @@
 import { useMutation, useQuery } from "@tanstack/vue-query";
 import axios from "axios";
+import { computed } from "vue";
 import { useRoute } from "vue-router";
+
+import { useUserClubs } from "./useUser";
 
 import { BaseClub, Member } from "@/common/types/club";
 import { useAuthStore } from "@/stores/auth";
@@ -39,4 +42,14 @@ export function useClubId(): string {
   const route = useRoute();
   if (route.params.clubId) return route.params.clubId as string;
   throw Error("This route does not include a clubId");
+}
+
+export function useIsInClub(clubId: string) {
+  const { data: clubs } = useUserClubs();
+  const isUserInClub = computed(() => {
+    console.log("clubs.value", clubs.value);
+    console.log("clubId", clubId);
+    return !!clubs.value?.some((club) => club.clubId === clubId);
+  });
+  return isUserInClub;
 }

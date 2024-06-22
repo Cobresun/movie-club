@@ -8,7 +8,7 @@
         <th
           v-for="header in headerGroup.headers"
           :key="header.id"
-          class="sticky top-0 bg-secondary py-2 first:rounded-tl-xl last:rounded-tr-xl"
+          class="sticky top-0 bg-secondary p-2 first:rounded-tl-xl last:rounded-tr-xl"
         >
           <div class="grid grid-cols-centerHeader items-center gap-x-1">
             <div class="col-start-2">
@@ -42,7 +42,7 @@
         <td
           v-for="cell in row.getVisibleCells()"
           :key="cell.id"
-          :class="`first:rounded-l-xl last:rounded-r-xl ${cell.column.columnDef.meta?.class ?? ''}`"
+          :class="`p-2 first:rounded-l-xl last:rounded-r-xl ${cell.column.columnDef.meta?.class ?? ''}`"
         >
           <FlexRender
             :render="cell.column.columnDef.cell"

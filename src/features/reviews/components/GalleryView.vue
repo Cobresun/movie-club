@@ -12,6 +12,8 @@
         :key="row.id"
         :movie-title="row.renderValue('title')"
         :movie-poster-url="row.renderValue('imageUrl')"
+        show-delete
+        @delete="deleteReview(row.original.id)"
       >
         <div class="mb-2 text-sm">
           <FlexRender
@@ -50,9 +52,11 @@ import { DetailedReviewListItem } from "@/common/types/lists";
 
 defineProps<{
   reviewTable: Table<DetailedReviewListItem>;
+  deleteReview: (workId: string) => void;
 }>();
 
 const CUSTOM_RENDERED_COLUMNS = ["title", "imageUrl", "createdDate"];
+
 const getVisibleCells = (row: Row<DetailedReviewListItem>) => {
   return row.getVisibleCells().filter((cell) => {
     return !CUSTOM_RENDERED_COLUMNS.includes(cell.column.id);

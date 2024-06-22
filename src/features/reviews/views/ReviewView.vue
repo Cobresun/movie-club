@@ -42,7 +42,11 @@
         </v-btn>
       </div>
       <table-view v-if="!isGalleryView" :review-table="reviewTable" />
-      <gallery-view v-else :review-table="reviewTable" />
+      <gallery-view
+        v-else
+        :review-table="reviewTable"
+        :delete-review="deleteReview"
+      />
     </div>
   </div>
 </template>
@@ -54,7 +58,14 @@ import {
   useVueTable,
 } from "@tanstack/vue-table";
 import { DateTime } from "luxon";
-import { computed, ref, onMounted, onUnmounted, h } from "vue";
+import {
+  computed,
+  ref,
+  onMounted,
+  onUnmounted,
+  h,
+  resolveComponent,
+} from "vue";
 
 import { filterMovies } from "../../../common/searchMovies";
 import GalleryView from "../components/GalleryView.vue";
@@ -67,8 +78,8 @@ import VToggle from "@/common/components/VToggle.vue";
 import { WorkListType } from "@/common/types/generated/db";
 import { DetailedReviewListItem } from "@/common/types/lists";
 import AddReviewPrompt from "@/features/reviews/components/AddReviewPrompt.vue";
-import { useMembers } from "@/service/useClub";
-import { useList } from "@/service/useList";
+import { useIsInClub, useMembers } from "@/service/useClub";
+import { useDeleteListItem, useList } from "@/service/useList";
 
 const { clubId } = defineProps<{ clubId: string }>();
 
@@ -127,8 +138,10 @@ const searchInputFocusOut = () => {
 const columnHelper = createColumnHelper<DetailedReviewListItem>();
 
 const members = computed(() => membersResponse.value ?? []);
+const isUserInClub = useIsInClub(clubId);
 
 const commonColumnVisibility = computed(() => ({
+  edit: isUserInClub.value,
   imageUrl: false,
   title: true,
   createdDate: true,
@@ -140,12 +153,41 @@ const commonColumnVisibility = computed(() => ({
 }));
 
 const galleryColumnVisibility = {
+  edit: false,
   imageUrl: true,
 };
+
+const editingTable = ref(false);
+
+const { mutate: deleteReview } = useDeleteListItem(
+  clubId,
+  WorkListType.reviews,
+);
+
+const mdicon = resolveComponent("mdicon");
 
 const columns = computed(() => [
   columnHelper.accessor("imageUrl", {
     header: "Poster",
+  }),
+  columnHelper.display({
+    id: "edit",
+    header: () =>
+      h(mdicon, {
+        name: "pencil",
+        class: "cursor-pointer",
+        onClick: () => (editingTable.value = !editingTable.value),
+      }),
+    cell: ({ row }) =>
+      editingTable.value
+        ? h(mdicon, {
+            name: "delete",
+            class: "cursor-pointer",
+            onClick: () => {
+              deleteReview(row.original.id);
+            },
+          })
+        : "",
   }),
   columnHelper.accessor("title", {
     header: "Title",
