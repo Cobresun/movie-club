@@ -41,27 +41,28 @@
           <mdicon name="plus" />
         </v-btn>
       </div>
-      <table-view
-        v-if="!isGalleryView"
-        :reviews="filteredReviews"
-        :members="members ?? []"
-        :open-prompt="openPrompt"
-      />
-      <gallery-view
-        v-else
-        :reviews="filteredReviews"
-        :members="members ?? []"
-      />
+      <table-view v-if="!isGalleryView" :review-table="reviewTable" />
+      <gallery-view v-else :review-table="reviewTable" />
     </div>
   </div>
 </template>
 <script setup lang="ts">
-import { computed, ref, onMounted, onUnmounted } from "vue";
+import {
+  createColumnHelper,
+  getCoreRowModel,
+  getSortedRowModel,
+  useVueTable,
+} from "@tanstack/vue-table";
+import { DateTime } from "luxon";
+import { computed, ref, onMounted, onUnmounted, h } from "vue";
 
 import { filterMovies } from "../../../common/searchMovies";
 import GalleryView from "../components/GalleryView.vue";
+import ReviewScore from "../components/ReviewScore.vue";
 import TableView from "../components/TableView.vue";
 
+import AverageImg from "@/assets/images/average.svg";
+import VAvatar from "@/common/components/VAvatar.vue";
 import VToggle from "@/common/components/VToggle.vue";
 import { WorkListType } from "@/common/types/generated/db";
 import { DetailedReviewListItem } from "@/common/types/lists";
@@ -77,7 +78,7 @@ const { isLoading: loadingReviews, data: reviews } = useList(
   clubId,
   WorkListType.reviews,
 );
-const { isLoading: loadingMembers, data: members } = useMembers(clubId);
+const { isLoading: loadingMembers, data: membersResponse } = useMembers(clubId);
 
 const loading = computed(() => loadingReviews.value || loadingMembers.value);
 
@@ -122,4 +123,109 @@ const searchInputFocusIn = () => {
 const searchInputFocusOut = () => {
   searchInputSlash.value?.removeAttribute("hidden");
 };
+
+const columnHelper = createColumnHelper<DetailedReviewListItem>();
+
+const members = computed(() => membersResponse.value ?? []);
+
+const commonColumnVisibility = computed(() => ({
+  imageUrl: false,
+  title: true,
+  createdDate: true,
+  score_average: true,
+  ...members.value.reduce<Record<string, boolean>>((acc, member) => {
+    acc[`member_${member.id}`] = true;
+    return acc;
+  }, {}),
+}));
+
+const galleryColumnVisibility = {
+  imageUrl: true,
+};
+
+const columns = computed(() => [
+  columnHelper.accessor("imageUrl", {
+    header: "Poster",
+  }),
+  columnHelper.accessor("title", {
+    header: "Title",
+    meta: {
+      class: "font-bold",
+    },
+  }),
+  columnHelper.accessor("createdDate", {
+    header: "Date Reviewed",
+    cell: (info) => DateTime.fromISO(info.getValue()).toLocaleString(),
+  }),
+  ...members.value.map((member) =>
+    columnHelper.accessor((row) => row.scores[member.id]?.score, {
+      id: `member_${member.id}`,
+      header: (context) => {
+        let size: number | undefined;
+        if (typeof context.meta?.size === "string") {
+          size = context.meta.size === "sm" ? 28 : undefined;
+        }
+        return h(VAvatar, {
+          src: member.image,
+          name: member.name,
+          size,
+        });
+      },
+      cell: (info) => {
+        const value = info.getValue();
+        const score =
+          value === undefined ? undefined : Math.round(value * 100) / 100;
+        let size: string | undefined;
+        if (typeof info.meta?.size === "string") {
+          size = info.meta.size;
+        }
+        return h(ReviewScore, {
+          workId: info.row.original.id,
+          memberId: member.id,
+          score,
+          reviewId: info.row.original.scores[member.id]?.id,
+          size,
+        });
+      },
+      sortUndefined: "last",
+    }),
+  ),
+  columnHelper.accessor((row) => row.scores.average?.score, {
+    id: "score_average",
+    header: (context) => {
+      let size = "w-16";
+      if (typeof context.meta?.size === "string") {
+        size = context.meta.size === "sm" ? "w-7 h-7" : "w-16";
+      }
+      return h("img", { src: AverageImg, class: `${size} max-w-none` });
+    },
+    cell: (info) => {
+      const review = info.getValue();
+      if (review === undefined) {
+        return "";
+      }
+      return Math.round(review * 100) / 100;
+    },
+    sortUndefined: "last",
+  }),
+]);
+
+const reviewTable = useVueTable({
+  get columns() {
+    return columns.value;
+  },
+  get data() {
+    return filteredReviews.value ?? [];
+  },
+  state: {
+    get columnVisibility() {
+      return {
+        ...commonColumnVisibility.value,
+        ...(isGalleryView.value ? galleryColumnVisibility : {}),
+      };
+    },
+  },
+  getCoreRowModel: getCoreRowModel<DetailedReviewListItem>(),
+  getSortedRowModel: getSortedRowModel<DetailedReviewListItem>(),
+});
 </script>
