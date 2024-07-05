@@ -1,7 +1,18 @@
 <template>
   <div>
-    <div v-if="!isLoggedIn">Need to be logged in!</div>
+    <div v-if="!isLoggedIn" class="flex flex-col space-y-10 px-10 py-10 md:px-48 md:py-48 md:space-x-14 md:flex-row-reverse">
+      <div class="flex-grow-0">
+        <img
+          :src="homeCinemaSvg"
+        />
+      </div>
 
+      <div class="flex flex-col text-left space-y-8">
+        <h1 class="text-3xl md:text-5xl font-bold leading-tight">Get your 🍿 ready for MovieClub: The Book Club for Movies</h1>
+        <h2 class="text-1xl md:text-2xl font-light">Rate movies, compare favorites, and find patterns.</h2>
+      </div>
+    </div>
+    
     <div v-if="isLoggedIn">
       <loading-spinner v-if="isLoading" />
       <div v-else class="flex justify-center pb-6 flex-col md:flex-row">
@@ -30,6 +41,7 @@
 import { computed } from "vue";
 
 import clubSvg from "@/assets/images/menu-images/club.svg";
+import homeCinemaSvg from "@/assets/images/home_cinema.svg"
 import { useUserClubs } from "@/service/useUser";
 import { useAuthStore } from "@/stores/auth";
 
