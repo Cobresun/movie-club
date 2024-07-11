@@ -1,10 +1,13 @@
 import "@testing-library/jest-dom";
+import PiniaStoreHelper from "./PiniaStoreHelper.test.vue";
+import { render } from "./utils";
+
 import { server } from "@/mocks/server";
 
 vi.mock("vue-router", () => ({
   useRoute: vi.fn(() => ({
     params: {
-      clubId: 1,
+      clubId: "1",
     },
   })),
   useRouter: vi.fn(() => ({
@@ -12,7 +15,13 @@ vi.mock("vue-router", () => ({
   })),
 }));
 
-beforeAll(() => server.listen());
+beforeAll(() => {
+  server.listen();
+});
+
+beforeEach(() => {
+  render(PiniaStoreHelper);
+});
 
 afterEach(() => server.resetHandlers());
 

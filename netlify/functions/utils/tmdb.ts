@@ -45,16 +45,32 @@ export async function getDetailedMovie<T extends BaseMovie>(
 export async function getDetailedWorks<T extends WorkListItem>(
   works: T[]
 ): Promise<(T & ExternalWorkData<TMDBMovieData>)[]> {
-  return await Promise.all(
-    works.map(async (work) => {
-      if (!work.externalId) {
-        return work;
-      }
-      const response = await getTMDBMovieData(parseInt(work.externalId));
-      return {
-        ...work,
-        externalData: response.data,
-      };
+  const chunkArray = <T>(array: T[], chunkSize: number): T[][] => {
+    const result = [];
+    for (let i = 0; i < array.length; i += chunkSize) {
+      result.push(array.slice(i, i + chunkSize));
+    }
+    return result;
+  };
+
+  const chunks = chunkArray(works, 50);
+
+  const processedChunks = await Promise.all(
+    chunks.map(async (chunk) => {
+      return await Promise.all(
+        chunk.map(async (work) => {
+          if (!work.externalId) {
+            return work;
+          }
+          const response = await getTMDBMovieData(parseInt(work.externalId));
+          return {
+            ...work,
+            externalData: response.data,
+          };
+        })
+      );
     })
   );
+
+  return processedChunks.flat();
 }

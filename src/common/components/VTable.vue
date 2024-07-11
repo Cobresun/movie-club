@@ -8,7 +8,7 @@
       >
         <div
           v-if="head.includeHeader"
-          class="grid gap-x-1 items-center"
+          class="grid items-center gap-x-1"
           :class="[
             head.centerHeader
               ? 'grid-cols-centerHeader'
@@ -58,7 +58,7 @@
           class="first:rounded-l-xl last:rounded-r-xl"
           :class="[
             item.highlighted
-              ? 'border-t-4 border-b-4 first:border-l-4 last:border-r-4 border-highlightBackground'
+              ? 'border-b-4 border-t-4 border-highlightBackground first:border-l-4 last:border-r-4'
               : '',
             head.style ? head.style : '',
           ]"

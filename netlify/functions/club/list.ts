@@ -1,8 +1,7 @@
 import ListRepository, { isWorkListType } from "../repositories/ListRepository";
 import ReviewRepository from "../repositories/ReviewRepository";
-import UserRepository from "../repositories/UserRepository";
 import WorkRepository, { isWorkType } from "../repositories/WorkRepository";
-import { AuthRequest, secured } from "../utils/auth";
+import { secured } from "../utils/auth";
 import { badRequest, internalServerError, ok } from "../utils/responses";
 import { Router } from "../utils/router";
 import { getDetailedWorks } from "../utils/tmdb";
@@ -10,7 +9,7 @@ import { ClubRequest } from "../utils/validation";
 
 import { BadRequest } from "@/common/errorCodes";
 import { WorkListType } from "@/common/types/generated/db";
-import { ReviewListItem, WorkListItem } from "@/common/types/lists";
+import { Review, ReviewListItem, WorkListItem } from "@/common/types/lists";
 
 const router = new Router("/api/club/:clubId<\\d+>/list");
 
@@ -64,33 +63,43 @@ async function getReviewList(clubId: string): Promise<ReviewListItem[]> {
       acc[key].push(review);
       return acc;
     },
-    {}
+    {},
   );
 
   return Object.keys(groupedReviews)
     .map((key) => {
-      const userScores: Record<string, number> = groupedReviews[key]?.reduce(
+      const userScores: Record<string, Review> = groupedReviews[key]?.reduce(
         (acc, review) => {
           if (review.user_id && review.score) {
             return {
               ...acc,
-              [review.user_id]: parseFloat(review.score),
+              [review.user_id]: {
+                id: review.review_id,
+                created_date: review.time_added.toISOString(),
+                score: parseFloat(review.score),
+              },
             };
           } else {
             return acc;
           }
         },
-        {}
+        {},
       );
-      let scores: Record<string, number>;
+      let scores: Record<string, Review>;
       if (Object.keys(userScores).length === 0) {
         scores = {};
       } else {
         scores = {
           ...userScores,
-          average:
-            Object.values(userScores).reduce((acc, score) => acc + score, 0) /
-            Object.keys(userScores).length,
+          average: {
+            id: "average",
+            created_date: new Date().toISOString(),
+            score:
+              Object.values(userScores).reduce(
+                (acc, review) => acc + review.score,
+                0,
+              ) / Object.keys(userScores).length,
+          },
         };
       }
       return {
@@ -126,7 +135,7 @@ router.post(
       const existingWork = await WorkRepository.findByType(
         clubId,
         body.type,
-        body.externalId
+        body.externalId,
       );
       workId = existingWork?.id;
     }
@@ -139,14 +148,14 @@ router.post(
     const isItemInList = await ListRepository.isItemInList(
       clubId,
       type,
-      workId
+      workId,
     );
     if (isItemInList) {
       return badRequest(BadRequest.ItemInList);
     }
     await ListRepository.insertItemInList(clubId, type, workId);
     return ok();
-  }
+  },
 );
 
 router.delete(
@@ -164,7 +173,7 @@ router.delete(
     const isItemInList = await ListRepository.isItemInList(
       clubId,
       type,
-      workId
+      workId,
     );
     if (!isItemInList) {
       return badRequest("This movie does not exist in the list");
@@ -179,37 +188,7 @@ router.delete(
       }
     }
     return ok();
-  }
-);
-
-router.put(
-  `/${WorkListType.reviews}/:workId`,
-  secured,
-  async ({ clubId, email, params, event }: ClubRequest & AuthRequest) => {
-    if (!params.workId) return badRequest("No workId provided");
-    if (!event.body) return badRequest("No body provided");
-    const body = JSON.parse(event.body);
-    if (!body.score) return badRequest("No score provided");
-    const score = parseFloat(body.score);
-    if (isNaN(score) || score < 0 || score > 10) {
-      return badRequest("Invalid score provided");
-    }
-    const workId = params.workId;
-    const isItemInList = await ListRepository.isItemInList(
-      clubId,
-      WorkListType.reviews,
-      workId
-    );
-    if (!isItemInList) {
-      return badRequest("This movie does not exist in the list");
-    }
-    const user = await UserRepository.getByEmail(email);
-    if (!user) {
-      return internalServerError("Failed to find user");
-    }
-    await ReviewRepository.insertReview(clubId, workId, user.id, score);
-    return ok();
-  }
+  },
 );
 
 export default router;

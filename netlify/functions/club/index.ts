@@ -3,6 +3,7 @@ import { Handler, HandlerContext, HandlerEvent } from "@netlify/functions";
 import awardsRouter from "./awards";
 import listRouter from "./list";
 import membersRouter from "./members";
+import reviewsRouter from "./reviews";
 import ClubRepository from "../repositories/ClubRepository";
 import WorkRepository from "../repositories/WorkRepository";
 import { loggedIn, secured } from "../utils/auth";
@@ -19,6 +20,7 @@ const { faunaClient, q } = getFaunaClient();
 
 const router = new Router("/api/club");
 router.use("/:clubId<\\d+>/list", validClubId, listRouter);
+router.use("/:clubId<\\d+>/reviews", validClubId, reviewsRouter);
 router.use("/:clubId<\\d+>/members", validClubId, membersRouter);
 router.use("/:clubId<\\d+>/awards", validClubId, mapIdToLegacyId, awardsRouter);
 
@@ -61,7 +63,7 @@ router.post("/", loggedIn, async ({ event }) => {
         clubName: name,
         members: members,
       },
-    })
+    }),
   );
 
   await ClubRepository.insert(name, clubId);
@@ -75,7 +77,7 @@ router.get(
   async ({ clubId }: ClubRequest) => {
     const nextWork = await WorkRepository.getNextWork(clubId);
     return ok(JSON.stringify({ workId: nextWork?.work_id }));
-  }
+  },
 );
 
 router.put(
@@ -91,12 +93,12 @@ router.put(
     await WorkRepository.setNextWork(clubId, body.workId);
 
     return ok();
-  }
+  },
 );
 
 const handler: Handler = async (
   event: HandlerEvent,
-  context: HandlerContext
+  context: HandlerContext,
 ) => {
   return router.route({ event, context });
 };

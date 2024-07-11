@@ -1,117 +1,139 @@
 <template>
-  <div>
-    <movie-table
-      v-if="tableData.length > 0"
-      :headers="headers"
-      :data="tableData"
-    >
-      <template v-for="member in members" :key="member.id" #[member.id]>
-        <v-avatar :src="member.image" :name="member.name" />
-      </template>
-
-      <template v-for="member in members" #[`item-${member.id}`]="slotProps">
-        <div
-          v-if="
-            slotProps.item[member.id] === undefined && member.id === user?.id
-          "
-          :key="member.id"
-          class="flex justify-center"
+  <table class="w-full border-separate border-spacing-y-3">
+    <thead>
+      <tr
+        v-for="headerGroup in reviewTable.getHeaderGroups()"
+        :key="headerGroup.id"
+      >
+        <th
+          v-for="header in headerGroup.headers"
+          :key="header.id"
+          class="sticky top-0 bg-secondary py-2 first:rounded-tl-xl last:rounded-tr-xl"
         >
-          <input
-            v-show="activeScoreInput === slotProps.item.id"
-            :ref="(e) => scoreInputRefs[slotProps.item.id] = (e as HTMLInputElement)"
-            v-model="scoreInputValue"
-            aria-label="Score"
-            class="bg-background rounded-lg outline-none border border-gray-300 focus:border-primary p-2 w-10 text-center"
-            @keypress.enter="
-              () => submitScore(slotProps.item.id, parseFloat(scoreInputValue))
-            "
-          />
-          <div
-            v-if="activeScoreInput !== slotProps.item.id"
-            role="button"
-            aria-label="Add score"
-            class="cursor-pointer"
-            @click="openScoreInput(slotProps.item.id)"
-          >
-            <mdicon name="plus" />
+          <div class="grid grid-cols-centerHeader items-center gap-x-1">
+            <div class="col-start-2">
+              <FlexRender
+                :render="header.column.columnDef.header"
+                :props="header.getContext()"
+              />
+            </div>
+            <mdicon
+              v-if="header.column.getCanSort()"
+              class="cursor-pointer"
+              :name="
+                header.column.getIsSorted()
+                  ? header.column.getIsSorted() === 'desc'
+                    ? 'arrow-down-drop-circle'
+                    : 'arrow-up-drop-circle'
+                  : 'menu-down'
+              "
+              @click="header.column.toggleSorting()"
+            />
           </div>
-        </div>
-      </template>
-
-      <template #average>
-        <img src="@/assets/images/average.svg" class="w-16 h-12 max-w-none" />
-      </template>
-    </movie-table>
-  </div>
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr
+        v-for="row in reviewTable.getRowModel().rows"
+        :key="row.id"
+        class="h-20 bg-lowBackground"
+      >
+        <td
+          v-for="cell in row.getVisibleCells()"
+          :key="cell.id"
+          :class="`first:rounded-l-xl last:rounded-r-xl ${cell.column.columnDef.meta?.class ?? ''}`"
+        >
+          <FlexRender
+            :render="cell.column.columnDef.cell"
+            :props="cell.getContext()"
+          />
+        </td>
+      </tr>
+    </tbody>
+  </table>
 </template>
 
 <script setup lang="ts">
+import {
+  createColumnHelper,
+  useVueTable,
+  getCoreRowModel,
+  FlexRender,
+  getSortedRowModel,
+} from "@tanstack/vue-table";
 import { DateTime } from "luxon";
-import { ref, computed, nextTick } from "vue";
+import { computed, h } from "vue";
 
+import ReviewScore from "./ReviewScore.vue";
+
+import AverageImg from "@/assets/images/average.svg";
+import VAvatar from "@/common/components/VAvatar.vue";
 import { Member } from "@/common/types/club";
-import { Header } from "@/common/types/common";
 import { DetailedReviewListItem } from "@/common/types/lists";
-import { useUser } from "@/service/useUser";
 
-const { reviews, members, submitScore } = defineProps<{
+const { reviews, members } = defineProps<{
   reviews: DetailedReviewListItem[];
   members: Member[];
-  submitScore: (workId: string, score: number) => void;
 }>();
 
-const { data: user } = useUser();
+const columnHelper = createColumnHelper<DetailedReviewListItem>();
 
-const headers = computed<Header[]>(() => {
-  const headers: Header[] = [
-    { value: "title", style: "font-bold", title: "Title" },
-    { value: "createdDate", title: "Date Reviewed" },
-  ];
+const columns = computed(() => [
+  columnHelper.accessor("title", {
+    header: "Title",
+    meta: {
+      class: "font-bold",
+    },
+  }),
+  columnHelper.accessor("createdDate", {
+    header: "Date Reviewed",
+    cell: (info) => DateTime.fromISO(info.getValue()).toLocaleString(),
+  }),
+  ...members.map((member) =>
+    columnHelper.accessor((row) => row.scores[member.id]?.score, {
+      id: `member-${member.id}`,
+      header: () =>
+        h(VAvatar, {
+          src: member.image,
+          name: member.name,
+        }),
+      cell: (info) => {
+        const value = info.getValue();
+        const score =
+          value === undefined ? undefined : Math.round(value * 100) / 100;
+        return h(ReviewScore, {
+          workId: info.row.original.id,
+          memberId: member.id,
+          score,
+          reviewId: info.row.original.scores[member.id]?.id,
+        });
+      },
+      sortUndefined: "last",
+    }),
+  ),
+  columnHelper.accessor((row) => row.scores.average?.score, {
+    id: "score-average",
+    header: () => h("img", { src: AverageImg, class: "w-16 h-12 max-w-none" }),
+    cell: (info) => {
+      const review = info.getValue();
+      if (review === undefined) {
+        return "";
+      }
+      return Math.round(review * 100) / 100;
+    },
+    sortUndefined: "last",
+  }),
+]);
 
-  if (members && members.length > 0) {
-    for (const member of members) {
-      headers.push({ value: member.id });
-    }
-  }
-  headers.push({ value: "average" });
-
-  return headers;
+const reviewTable = useVueTable({
+  get columns() {
+    return columns.value;
+  },
+  get data() {
+    return reviews;
+  },
+  getCoreRowModel: getCoreRowModel<DetailedReviewListItem>(),
+  getSortedRowModel: getSortedRowModel<DetailedReviewListItem>(),
 });
-
-const tableData = computed(() => {
-  const data: Record<string, unknown>[] = [];
-  for (let i = 0; i < reviews.length; i++) {
-    const obj: Record<string, unknown> = {
-      title: reviews[i].title,
-      createdDate: DateTime.fromISO(reviews[i].createdDate).toLocaleString(),
-      id: reviews[i].id,
-    };
-
-    for (const key of Object.keys(reviews[i].scores)) {
-      const score = reviews[i].scores[key];
-      // Round the score to 2 decimal places
-      obj[key] = Math.round(score * 100) / 100;
-    }
-    data[i] = obj;
-  }
-  return data;
-});
-
-const scoreInputRefs = ref<Record<number, HTMLInputElement | null>>({});
-
-const scoreInputValue = ref("");
-
-const activeScoreInput = ref(-1);
-
-const openScoreInput = (movieId: number) => {
-  scoreInputValue.value = "";
-  activeScoreInput.value = movieId;
-  nextTick(() => {
-    const ref = scoreInputRefs.value[activeScoreInput.value];
-    if (ref !== null) {
-      ref.focus();
-    }
-  });
-};
 </script>
