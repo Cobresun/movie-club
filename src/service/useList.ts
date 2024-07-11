@@ -44,23 +44,23 @@ export function useAddListItem(clubId: string, type: WorkListType) {
       auth.request.post(`/api/club/${clubId}/list/${type}`, insertDto),
     onMutate: (insertDto) => {
       if (!insertDto) return;
-      queryClient.setQueryData<DetailedWorkListItem[]>(
-        ["list", clubId, type],
-        (currentList) => {
-          if (!currentList) return currentList;
-          return [
-            ...currentList,
-            {
-              id: OPTIMISTIC_WORK_ID,
-              type: insertDto.type,
-              title: insertDto.title,
-              createdDate: new Date().toISOString(),
-              externalId: insertDto.externalId,
-              imageUrl: insertDto.imageUrl,
-            },
-          ];
-        },
-      );
+      queryClient.setQueryData<
+        DetailedWorkListItem[] | DetailedReviewListItem[]
+      >(["list", clubId, type], (currentList) => {
+        if (!currentList) return currentList;
+        return [
+          ...currentList,
+          {
+            id: OPTIMISTIC_WORK_ID,
+            type: insertDto.type,
+            title: insertDto.title,
+            createdDate: new Date().toISOString(),
+            externalId: insertDto.externalId,
+            imageUrl: insertDto.imageUrl,
+            scores: type === WorkListType.reviews ? {} : undefined,
+          },
+        ];
+      });
     },
     onSettled: () =>
       queryClient.invalidateQueries({ queryKey: ["list", clubId, type] }),

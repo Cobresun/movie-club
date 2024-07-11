@@ -45,12 +45,13 @@ const { data: user } = useUser();
 const isMe = computed(() => user.value?.id === props.memberId);
 
 const isInputOpen = ref(false);
-const scoreModel = ref(props.score?.toString() ?? "");
+const scoreModel = ref("");
 const scoreInput = ref<HTMLInputElement | null>(null);
 
 const openScoreInput = () => {
   if (!isMe.value) return;
   isInputOpen.value = true;
+  scoreModel.value = props.score?.toString() ?? "";
   nextTick(() => {
     scoreInput.value?.focus();
     scoreInput.value?.select();
