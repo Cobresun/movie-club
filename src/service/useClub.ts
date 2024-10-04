@@ -47,8 +47,6 @@ export function useClubId(): string {
 export function useIsInClub(clubId: string) {
   const { data: clubs } = useUserClubs();
   const isUserInClub = computed(() => {
-    console.log("clubs.value", clubs.value);
-    console.log("clubId", clubId);
     return !!clubs.value?.some((club) => club.clubId === clubId);
   });
   return isUserInClub;

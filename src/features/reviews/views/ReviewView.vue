@@ -46,6 +46,7 @@
         v-else
         :review-table="reviewTable"
         :delete-review="deleteReview"
+        :members="members"
       />
     </div>
   </div>
@@ -65,6 +66,7 @@ import {
   onUnmounted,
   h,
   resolveComponent,
+  watch,
 } from "vue";
 
 import { filterMovies } from "../../../common/searchMovies";
@@ -84,6 +86,17 @@ import { useDeleteListItem, useList } from "@/service/useList";
 const { clubId } = defineProps<{ clubId: string }>();
 
 const isGalleryView = ref(false);
+
+onMounted(() => {
+  const savedView = localStorage.getItem("isGalleryView");
+  if (savedView !== null) {
+    isGalleryView.value = savedView === "true";
+  }
+});
+
+watch(isGalleryView, (newVal) => {
+  localStorage.setItem("isGalleryView", newVal.toString());
+});
 
 const { isLoading: loadingReviews, data: reviews } = useList(
   clubId,
@@ -207,11 +220,23 @@ const columns = computed(() => [
         if (typeof context.meta?.size === "string") {
           size = context.meta.size === "sm" ? 28 : undefined;
         }
-        return h(VAvatar, {
-          src: member.image,
-          name: member.name,
-          size,
-        });
+
+        if (context.meta?.showName) {
+          return h("div", { class: "flex items-center gap-2" }, [
+            h(VAvatar, {
+              src: member.image,
+              name: member.name,
+              size,
+            }),
+            h("span", member.name),
+          ]);
+        } else {
+          return h(VAvatar, {
+            src: member.image,
+            name: member.name,
+            size,
+          });
+        }
       },
       cell: (info) => {
         const value = info.getValue();
@@ -239,7 +264,15 @@ const columns = computed(() => [
       if (typeof context.meta?.size === "string") {
         size = context.meta.size === "sm" ? "w-7 h-7" : "w-16";
       }
-      return h("img", { src: AverageImg, class: `${size} max-w-none` });
+
+      if (context.meta?.showName) {
+        return h("div", { class: "flex item-center gap-2" }, [
+          h("img", { src: AverageImg, class: `${size} max-w-none` }),
+          h("span", "Average"),
+        ]);
+      } else {
+        return h("img", { src: AverageImg, class: `${size} max-w-none` });
+      }
     },
     cell: (info) => {
       const review = info.getValue();
@@ -269,5 +302,6 @@ const reviewTable = useVueTable({
   },
   getCoreRowModel: getCoreRowModel<DetailedReviewListItem>(),
   getSortedRowModel: getSortedRowModel<DetailedReviewListItem>(),
+  getRowId: (row) => row.id,
 });
 </script>
