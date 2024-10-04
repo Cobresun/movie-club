@@ -91,7 +91,7 @@ onMounted(() => {
   const savedView = localStorage.getItem("isGalleryView");
   if (savedView !== null) {
     isGalleryView.value = savedView === "true";
-  } else {
+  } else if (window) {
     const isMobile = window.matchMedia("(max-width: 768px)").matches;
     isGalleryView.value = isMobile;
   }
