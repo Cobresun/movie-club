@@ -7,13 +7,13 @@
           ><span>Sort By</span><mdicon name="chevron-down"
         /></ListboxButton>
         <ListboxOptions
-          class="absolute z-10 rounded-md border border-white bg-background p-2"
+          class="absolute z-10 rounded-md border border-white bg-background"
         >
           <ListboxOption
             v-for="header in getSortableColumns()"
             :key="header.id"
             :value="header.id"
-            class="min-w-32 cursor-pointer text-left"
+            class="min-w-32 cursor-pointer px-2 py-1 text-left hover:bg-lowBackground"
           >
             <FlexRender
               :render="header.column.columnDef.header"
