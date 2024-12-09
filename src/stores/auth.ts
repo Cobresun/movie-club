@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/vue-query";
+import { useQuery, useQueryClient } from "@tanstack/vue-query";
 import axios from "axios";
 import netlifyIdentity, { User } from "netlify-identity-widget";
 import { defineStore } from "pinia";
@@ -24,7 +24,7 @@ export const useAuthStore = defineStore("auth", () => {
   const isLoggedIn = computed(() => !!authToken.value);
 
   const request = computed(() =>
-    axios.create({ headers: { Authorization: `Bearer ${authToken.value}` } })
+    axios.create({ headers: { Authorization: `Bearer ${authToken.value}` } }),
   );
 
   netlifyIdentity.on("init", (initUser) => {
@@ -37,8 +37,10 @@ export const useAuthStore = defineStore("auth", () => {
     netlifyIdentity.close();
   });
 
+  const queryClient = useQueryClient();
   netlifyIdentity.on("logout", () => {
     user.value = null;
+    queryClient.removeQueries({ queryKey: ["user"] });
   });
 
   netlifyIdentity.init({
