@@ -8,6 +8,12 @@ export interface DetailedMovie extends BaseMovie {
   movieData: TMDBMovieData;
 }
 
+export interface AwardNominatedMovie extends BaseMovie {
+  movieTitle: string;
+  posterUrl: string;
+  movieData: DetailedMovieData;
+}
+
 export interface TMDBGenre {
   id: number;
   name: string;
