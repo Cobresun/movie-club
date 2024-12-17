@@ -34,10 +34,7 @@ router.get("/:type", async ({ clubId, params }: ClubRequest) => {
     default:
       return badRequest("Invalid type provided");
   }
-
-  const detailedWorks = await getDetailedWorks(workList);
-
-  return ok(JSON.stringify(detailedWorks));
+  return ok(JSON.stringify(workList));
 });
 
 async function getWorkList(clubId: string, type: WorkListType) {
@@ -49,6 +46,31 @@ async function getWorkList(clubId: string, type: WorkListType) {
     createdDate: item.time_added.toISOString(),
     imageUrl: item.image_url ?? undefined,
     externalId: item.external_id ?? undefined,
+    externalData: item.overview
+      ? {
+          adult: item.adult,
+          backdrop_path: item.backdrop_path,
+          budget: item.budget,
+          homepage: item.homepage,
+          imdb_id: item.imdb_id,
+          original_language: item.original_language,
+          original_title: item.original_title,
+          overview: item.overview,
+          popularity: item.popularity,
+          poster_path: item.poster_path,
+          release_date: item.release_date?.toISOString(),
+          revenue: item.revenue,
+          runtime: item.runtime,
+          status: item.status,
+          tagline: item.tagline,
+          vote_average: item.tmdb_score,
+          genres: item.genres?.filter(Boolean) ?? [],
+          production_companies:
+            item.production_companies?.filter(Boolean) ?? [],
+          production_countries:
+            item.production_countries?.filter(Boolean) ?? [],
+        }
+      : undefined,
   }));
 }
 
@@ -68,6 +90,7 @@ async function getReviewList(clubId: string): Promise<ReviewListItem[]> {
 
   return Object.keys(groupedReviews)
     .map((key) => {
+      const review = groupedReviews[key][0];
       const userScores: Record<string, Review> = groupedReviews[key]?.reduce(
         (acc, review) => {
           if (review.user_id && review.score) {
@@ -85,6 +108,7 @@ async function getReviewList(clubId: string): Promise<ReviewListItem[]> {
         },
         {},
       );
+
       let scores: Record<string, Review>;
       if (Object.keys(userScores).length === 0) {
         scores = {};
@@ -102,14 +126,42 @@ async function getReviewList(clubId: string): Promise<ReviewListItem[]> {
           },
         };
       }
+
+      const externalData = review.overview
+        ? {
+            adult: review.adult,
+            backdrop_path: review.backdrop_path,
+            budget: review.budget,
+            homepage: review.homepage,
+            imdb_id: review.imdb_id,
+            original_language: review.original_language,
+            original_title: review.original_title,
+            overview: review.overview,
+            popularity: review.popularity,
+            poster_path: review.poster_path,
+            release_date: review.release_date?.toISOString(),
+            revenue: review.revenue,
+            runtime: review.runtime,
+            status: review.status,
+            tagline: review.tagline,
+            vote_average: review.tmdb_score,
+            genres: review.genres?.filter(Boolean) ?? [],
+            production_companies:
+              review.production_companies?.filter(Boolean) ?? [],
+            production_countries:
+              review.production_countries?.filter(Boolean) ?? [],
+          }
+        : undefined;
+
       return {
         id: key,
-        title: groupedReviews[key][0].title,
-        createdDate: groupedReviews[key][0].time_added.toISOString(),
-        type: groupedReviews[key][0].type,
-        imageUrl: groupedReviews[key][0].image_url ?? undefined,
-        externalId: groupedReviews[key][0].external_id ?? undefined,
+        title: review.title,
+        createdDate: review.time_added.toISOString(),
+        type: review.type,
+        imageUrl: review.image_url ?? undefined,
+        externalId: review.external_id ?? undefined,
         scores,
+        externalData,
       };
     })
     .sort((a, b) => b.createdDate.localeCompare(a.createdDate));
