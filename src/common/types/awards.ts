@@ -1,4 +1,4 @@
-import { BaseMovie, DetailedMovie } from "./movie";
+import { BaseMovie, AwardNominatedMovie } from "./movie";
 
 export interface BaseClubAwards {
   year: number;
@@ -24,7 +24,7 @@ export interface BaseAwardNomination extends BaseMovie {
   ranking: Record<string, number>;
 }
 
-export type AwardNomination = BaseAwardNomination & DetailedMovie;
+export type AwardNomination = BaseAwardNomination & AwardNominatedMovie;
 
 export enum AwardsStep {
   CategorySelect,

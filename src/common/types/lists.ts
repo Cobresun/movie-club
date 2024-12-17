@@ -1,5 +1,5 @@
 import { WorkType } from "./generated/db";
-import { TMDBMovieData } from "./movie";
+import { DetailedMovieData } from "./movie";
 
 export interface WorkListItem {
   id: string;
@@ -24,10 +24,10 @@ export interface ExternalWorkData<T> {
   externalData?: T;
 }
 
-export type DetailedWorkListItem<T = TMDBMovieData> = WorkListItem &
+export type DetailedWorkListItem<T = DetailedMovieData> = WorkListItem &
   ExternalWorkData<T>;
 
-export type DetailedReviewListItem<T = TMDBMovieData> = ReviewListItem &
+export type DetailedReviewListItem<T = DetailedMovieData> = ReviewListItem &
   ExternalWorkData<T>;
 
 export interface ListInsertDto {

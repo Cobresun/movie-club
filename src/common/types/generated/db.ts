@@ -33,6 +33,50 @@ export interface ClubMember {
   user_id: Int8;
 }
 
+export interface MovieDetails {
+  adult: boolean | null;
+  backdrop_path: string | null;
+  budget: Int8 | null;
+  external_id: string;
+  homepage: string | null;
+  id: Generated<Int8>;
+  imdb_id: string | null;
+  original_language: string | null;
+  original_title: string | null;
+  overview: string | null;
+  popularity: Numeric | null;
+  poster_path: string | null;
+  release_date: Timestamp | null;
+  revenue: Int8 | null;
+  runtime: Int8 | null;
+  status: string | null;
+  tagline: string | null;
+  title: string | null;
+  tmdb_score: Numeric | null;
+  updated_date: Generated<Timestamp>;
+}
+
+export interface MovieGenres {
+  external_id: string;
+  genre_name: string;
+  rowid: Generated<Int8>;
+}
+
+export interface MovieProductionCompanies {
+  company_name: string;
+  external_id: string;
+  logo_path: string | null;
+  origin_country: string | null;
+  rowid: Generated<Int8>;
+}
+
+export interface MovieProductionCountries {
+  country_code: string;
+  country_name: string;
+  external_id: string;
+  rowid: Generated<Int8>;
+}
+
 export interface NextWork {
   club_id: Int8;
   id: Generated<Int8>;
@@ -81,6 +125,10 @@ export interface WorkListItem {
 export interface DB {
   club: Club;
   club_member: ClubMember;
+  movie_details: MovieDetails;
+  movie_genres: MovieGenres;
+  movie_production_companies: MovieProductionCompanies;
+  movie_production_countries: MovieProductionCountries;
   next_work: NextWork;
   review: Review;
   user: User;
