@@ -14,4 +14,12 @@ declare module "@tanstack/vue-table" {
   interface ColumnMeta {
     class?: string;
   }
+
+  interface HeaderContext {
+    meta?: Record<string, unknown>;
+  }
+
+  interface CellContext {
+    meta?: Record<string, unknown>;
+  }
 }

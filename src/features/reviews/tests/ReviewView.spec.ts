@@ -13,6 +13,9 @@ import { render } from "@/tests/utils";
 mockIntersectionObserver();
 
 describe("ReviewView", () => {
+  afterEach(() => {
+    localStorage.clear();
+  });
   it("should render searchbox", async () => {
     render(ReviewView, { props: { clubId: "1" } });
     expect(await screen.findByRole("textbox")).toBeInTheDocument();

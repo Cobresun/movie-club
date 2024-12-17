@@ -22,7 +22,8 @@
     ref="scoreInput"
     v-model="scoreModel"
     aria-label="Score"
-    class="w-10 rounded-lg border border-gray-300 bg-background p-2 text-center outline-none focus:border-primary"
+    class="rounded-lg border border-gray-300 bg-background text-center outline-none focus:border-primary"
+    :class="{ 'w-10 p-2': size !== 'sm', 'w-8': size === 'sm' }"
     @blur="isInputOpen = false"
     @keypress.enter="submitScore(parseFloat(scoreModel))"
   />
@@ -39,6 +40,7 @@ const props = defineProps<{
   workId: string;
   score?: number;
   reviewId?: string;
+  size?: string;
 }>();
 
 const { data: user } = useUser();

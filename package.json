@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@cubos/kysely-cockroach": "^1.0.0",
+    "@headlessui/vue": "^1.7.22",
     "@mdi/js": "^7.1.96",
     "@netlify/functions": "^1.3.0",
     "@tanstack/query-persist-client-core": "^4.29.7",
