@@ -5,12 +5,19 @@ import { DetailedWorkListItem } from "./types/lists";
  * @param works
  * @param searchQuery
  * @returns reviews filtered by searchQuery.
+ * 
  *
  * You can apply filters on the searchQuery with text:value. For example, to filter by title and genre, you can use:
  *
  * "title:jaws genre:horror"
  *
  * Incluidng multiple filters seperated by spaces will implicitly do an AND search between them.
+ * 
+ * Supported filters:
+ * genre: filters by genre
+ * title: filters by title
+ * company: filters by production company
+ * year: filters by year review was created (not when the movie came out)
  *
  * TODO: Add support for OR searches.
  * TODO: Create a new vue component for the search bar that highlights filters different colors.
@@ -68,6 +75,12 @@ export function filterMovies<T extends DetailedWorkListItem>(
       review.externalData?.genres.some((genre) =>
         genre.toLocaleLowerCase().includes(filters.genre.toLowerCase()),
       ),
+    );
+  }
+
+  if (filters.year) {
+    filteredReviews = filteredReviews.filter((review) =>
+      new Date(review.createdDate).getFullYear() === parseInt(filters.year)
     );
   }
 
