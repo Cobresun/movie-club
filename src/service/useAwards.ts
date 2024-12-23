@@ -11,7 +11,7 @@ import { useUser } from "./useUser";
 
 import { Award, AwardsStep, ClubAwards } from "@/common/types/awards";
 import { DetailedReviewListItem } from "@/common/types/lists";
-import { TMDBMovieData } from "@/common/types/movie";
+import { DetailedMovieData } from "@/common/types/movie";
 import { Review } from "@/common/types/reviews";
 import { useAuthStore } from "@/stores/auth";
 
@@ -175,7 +175,7 @@ export function useAddNomination(clubId: string, year: string) {
                       movieId: parseInt(review.externalId ?? "0"),
                       movieTitle: review.title,
                       posterUrl: review.imageUrl ?? "",
-                      movieData: review.externalData as TMDBMovieData,
+                      movieData: review.externalData as DetailedMovieData,
                       nominatedBy: [name],
                       ranking: {},
                     },

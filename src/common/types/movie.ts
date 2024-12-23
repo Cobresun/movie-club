@@ -5,7 +5,7 @@ export interface BaseMovie {
 export interface DetailedMovie extends BaseMovie {
   movieTitle: string;
   posterUrl: string;
-  movieData: TMDBMovieData;
+  movieData: TMDBMovieData | DetailedMovieData;
 }
 
 export interface TMDBGenre {
