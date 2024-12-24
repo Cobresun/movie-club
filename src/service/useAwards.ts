@@ -196,16 +196,15 @@ export function useAddNomination(clubId: string, year: string) {
 }
 
 export function useDeleteNomination(clubId: string, year: string) {
-  const { authToken } = useAuthStore();
+  const auth = useAuthStore();
   const queryClient = useQueryClient();
   const { data: user } = useUser();
 
   return useMutation({
     mutationFn: (input: { awardTitle: string; movieId: number }) =>
-      axios.delete(
+      auth.request.delete(
         `/api/club/${clubId}/awards/${year}/nomination/${input.movieId}`,
         {
-          headers: { Authorization: `Bearer ${authToken}` },
           params: { awardTitle: input.awardTitle, userId: user.value?.name },
         }
       ),
