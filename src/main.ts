@@ -50,6 +50,9 @@ const vueQueryOptions: VueQueryPluginOptions = {
       queryClient,
       persister: createSyncStoragePersister({ storage: localStorage }),
       maxAge: 1000 * 60 * 60 * 24 * 7, // One week
+      dehydrateOptions: {
+        shouldDehydrateQuery: (query) => query.queryKey[0] !== "user",
+      },
     });
   },
 };
