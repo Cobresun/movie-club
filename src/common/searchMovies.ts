@@ -71,6 +71,12 @@ export function filterMovies<T extends DetailedWorkListItem>(
     );
   }
 
+  if (filters.year) {
+    filteredReviews = filteredReviews.filter((review) =>
+      new Date(review.createdDate).getFullYear() === parseInt(filters.year)
+    );
+  }
+
   // Now any text after the filters is a search query. If there is a search query,
   // filter the reviews by it.
   if (searchQuery) {
