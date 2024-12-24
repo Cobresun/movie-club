@@ -80,7 +80,7 @@
 </template>
 
 <script setup lang="ts">
-import { AgHistogramSeriesTooltipRendererParams } from "ag-charts-community";
+import { AgHistogramSeriesTooltipRendererParams, AgBarSeriesTooltipRendererParams } from "ag-charts-community";
 import { AgChartsVue } from "ag-charts-vue3";
 import { DateTime } from "luxon";
 import { ref, computed, watch } from "vue";
@@ -199,7 +199,7 @@ const generateGenreChart = () => {
     return acc;
   }, {} as Record<string, { count: number; totalScore: number }>);
 
-  const genreData = Object.entries(genreScores)
+  const genreData = Object.entries(genreScores as Record<string, { count: number; totalScore: number }>)
     .map(([genre, data]) => ({
       genre,
       averageScore: (data.totalScore ?? 0) / (data.count ?? 1),

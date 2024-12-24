@@ -88,7 +88,7 @@ export const baseChartConfig = {
   ],
 };
 
-export const loadDefaultChartSettings = (params: chartOptionParamTypes) => {
+export const loadDefaultChartSettings = (params: any) => {
   const {
     chartTitle,
     xName,
