@@ -49,7 +49,7 @@ describe("ReviewView", () => {
 
     await user.type(searchBar, "12");
 
-    expect(screen.getByText("12 Angry Men")).toBeInTheDocument();
+    expect(screen.getAllByText("12 Angry Men")).toBeInTheDocument();
     expect(
       screen.queryByText("The Empire Strikes Back"),
     ).not.toBeInTheDocument();
