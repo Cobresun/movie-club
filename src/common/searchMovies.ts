@@ -5,7 +5,7 @@ import { DetailedWorkListItem } from "./types/lists";
  * @param works
  * @param searchQuery
  * @returns reviews filtered by searchQuery.
- * 
+ *
  * You can apply filters on the searchQuery with text:value. For example, to filter by title and genre, you can use:
  *
  * "title:jaws genre:horror"
