@@ -4,7 +4,6 @@ import WorkRepository, { isWorkType } from "../repositories/WorkRepository";
 import { secured } from "../utils/auth";
 import { badRequest, internalServerError, ok } from "../utils/responses";
 import { Router } from "../utils/router";
-import { getDetailedWorks } from "../utils/tmdb";
 import { ClubRequest } from "../utils/validation";
 
 import { BadRequest } from "@/common/errorCodes";
