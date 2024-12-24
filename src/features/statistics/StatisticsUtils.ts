@@ -1,6 +1,10 @@
 import { AgScatterSeriesTooltipRendererParams } from "ag-charts-community";
 
+// Normalizes an array of scores by subtracting the mean and dividing by the standard deviation,
+// Allows us to compare scores from different members accounting for the variance in their scores
 export const normalizeArray = (array: number[]) => {
+  if (!array?.length) return [];
+  
   let sum = 0;
   let count = 0;
 
@@ -29,45 +33,85 @@ export const normalizeArray = (array: number[]) => {
   return stdCorrectedArray;
 };
 
-export interface chartOptionParamTypes {
-  chartTitle: string;
-  chartType?: string;
-  xName: string;
-  xData: string;
-  yName: string;
-  yData: string;
-  normalizeX?: boolean;
-  normalizeY?: boolean;
-  normalizeToggled?: boolean;
-  movieData: any[];
+export interface MovieStatistics {
+  movieTitle: string;
+  dateWatched: string;
+  vote_average: number;
+  revenue: number;
+  budget: number;
+  release_date: string | null;
+  release_year?: number;
+  revenueMil?: number;
+  budgetMil?: number;
+  genres: string[];
+  production_companies: string[];
+  production_countries: string[];
+  average: number;
+  averageNorm?: number;
+  vote_averageNorm?: number;
+  [key: string]: any; // For dynamic member scores
 }
 
-export const loadDefaultChartSettings = ({
-  chartTitle,
-  chartType = "scatter",
-  xName,
-  xData,
-  yName,
-  yData,
-  normalizeX = false,
-  normalizeY = false,
-  normalizeToggled = false,
-  movieData,
-}: chartOptionParamTypes) => {
-  return {
-    autoSize: true,
-    theme: "ag-default-dark",
-    title: {
-      text: chartTitle,
+export interface ChartOptions {
+  autoSize: boolean;
+  theme: string;
+  title: { text: string };
+  data: MovieStatistics[];
+  series: any[];
+  axes: any[];
+}
+
+export const createHistogramData = (scores: number[], normalized: boolean) => {
+  if (!scores?.length) return [];
+  
+  const bins = Array.from({ length: 11 }, (_, i) => ({
+    bin: normalized ? i / 4.0 - 1.25 : i, // TODO: stop using hardcoded bin for std, this works for clubs with 4 members
+    ...Object.fromEntries(scores.map((_, index) => [index, 0])),
+  }));
+  return bins;
+};
+
+export const baseChartConfig = {
+  autoSize: true,
+  theme: "ag-default-dark",
+  axes: [
+    {
+      type: "number",
+      position: "bottom",
+      title: { enabled: true },
     },
+    {
+      type: "number",
+      position: "left",
+      title: { enabled: true },
+    },
+  ],
+};
+
+export const loadDefaultChartSettings = (params: chartOptionParamTypes) => {
+  const {
+    chartTitle,
+    xName,
+    xData,
+    yName,
+    yData,
+    normalizeX,
+    normalizeY,
+    normalizeToggled,
+    movieData,
+  } = params;
+
+  return {
+    ...baseChartConfig,
+    title: { text: chartTitle },
     data: movieData,
     series: [
       {
-        type: chartType,
+        type: params.chartType ?? "scatter",
         xKey: xData + (normalizeX && normalizeToggled ? "Norm" : ""),
-        xName: xName,
+        xName,
         yKey: yData + (normalizeY && normalizeToggled ? "Norm" : ""),
-        yName: yName,
+        yName,
         showInLegend: false,
         tooltip: {
           renderer: function (params: AgScatterSeriesTooltipRendererParams) {
@@ -94,20 +138,12 @@ export const loadDefaultChartSettings = ({
     ],
     axes: [
       {
-        type: "number",
-        position: "bottom",
-        title: {
-          enabled: true,
-          text: xName,
-        },
+        ...baseChartConfig.axes[0],
+        title: { ...baseChartConfig.axes[0].title, text: xName },
       },
       {
-        type: "number",
-        position: "left",
-        title: {
-          enabled: true,
-          text: yName,
-        },
+        ...baseChartConfig.axes[1],
+        title: { ...baseChartConfig.axes[1].title, text: yName },
       },
     ],
   };
