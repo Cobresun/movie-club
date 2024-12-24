@@ -4,6 +4,7 @@ import { ExternalWorkData, WorkListItem } from "@/common/types/lists";
 import {
   BaseMovie,
   DetailedMovie,
+  DetailedMovieData,
   TMDBConfig,
   TMDBMovieData,
 } from "@/common/types/movie";
@@ -32,11 +33,41 @@ export async function getDetailedMovie<T extends BaseMovie>(
   return await Promise.all(
     movies.map(async (movie) => {
       const response = await getTMDBMovieData(movie.movieId);
+      const tmdbData = response.data;
+      
+      // Transform TMDBMovieData into DetailedMovieData
+      const movieData: DetailedMovieData = {
+        adult: tmdbData.adult,
+        backdrop_path: tmdbData.backdrop_path,
+        budget: tmdbData.budget,
+        genres: tmdbData.genres.map(g => g.name),
+        homepage: tmdbData.homepage,
+        id: tmdbData.id,
+        imdb_id: tmdbData.imdb_id,
+        original_language: tmdbData.original_language,
+        original_title: tmdbData.original_title,
+        overview: tmdbData.overview,
+        popularity: tmdbData.popularity,
+        poster_path: tmdbData.poster_path,
+        production_companies: tmdbData.production_companies.map(c => c.name),
+        production_countries: tmdbData.production_countries.map(c => c.name),
+        release_date: tmdbData.release_date,
+        revenue: tmdbData.revenue,
+        runtime: tmdbData.runtime,
+        spoken_languages: tmdbData.spoken_languages.map(l => l.name),
+        status: tmdbData.status,
+        tagline: tmdbData.tagline,
+        title: tmdbData.title,
+        video: tmdbData.video,
+        vote_average: tmdbData.vote_average,
+        vote_count: tmdbData.vote_count,
+      };
+
       return {
         ...movie,
-        movieTitle: response.data.title,
-        movieData: response.data,
-        posterUrl: `${configuration.data.images.secure_base_url}w154${response.data.poster_path}`,
+        movieTitle: tmdbData.title,
+        movieData,
+        posterUrl: `${configuration.data.images.secure_base_url}w154${tmdbData.poster_path}`,
       };
     })
   );
