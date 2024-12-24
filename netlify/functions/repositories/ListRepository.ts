@@ -12,6 +12,26 @@ class ListRepository {
       .where("work_list.type", "=", type)
       .innerJoin("work_list_item", "work_list_item.list_id", "work_list.id")
       .innerJoin("work", "work.id", "work_list_item.work_id")
+      .leftJoin(
+        "movie_details",
+        "movie_details.external_id",
+        "work.external_id",
+      )
+      .leftJoin(
+        "movie_genres",
+        "movie_genres.external_id",
+        "movie_details.external_id",
+      )
+      .leftJoin(
+        "movie_production_companies",
+        "movie_production_companies.external_id",
+        "movie_details.external_id",
+      )
+      .leftJoin(
+        "movie_production_countries",
+        "movie_production_countries.external_id",
+        "movie_details.external_id",
+      )
       .select([
         "work.id",
         "work.title",
@@ -19,6 +39,43 @@ class ListRepository {
         "work.image_url",
         "work.external_id",
         "work_list_item.time_added",
+        "movie_details.tmdb_score",
+        "movie_details.runtime",
+        "movie_details.budget",
+        "movie_details.revenue",
+        "movie_details.release_date",
+        "movie_details.adult",
+        "movie_details.backdrop_path",
+        "movie_details.homepage",
+        "movie_details.imdb_id",
+        "movie_details.original_language",
+        "movie_details.original_title",
+        "movie_details.overview",
+        "movie_details.popularity",
+        "movie_details.poster_path",
+        "movie_details.status",
+        "movie_details.tagline",
+        db.fn
+          .agg<string[]>("array_agg", ["movie_genres.genre_name"])
+          .distinct()
+          .as("genres"),
+        db.fn
+          .agg<
+            string[]
+          >("array_agg", ["movie_production_companies.company_name"])
+          .distinct()
+          .as("production_companies"),
+        db.fn
+          .agg<
+            string[]
+          >("array_agg", ["movie_production_countries.country_name"])
+          .distinct()
+          .as("production_countries"),
+      ])
+      .groupBy([
+        "work.id",
+        "work_list_item.time_added",
+        "movie_details.external_id",
       ])
       .execute();
   }
@@ -31,7 +88,7 @@ class ListRepository {
       .where(
         "work_list_item.list_id",
         "=",
-        this.listIdFromType(clubId, listType)
+        this.listIdFromType(clubId, listType),
       )
       .executeTakeFirst());
   }
@@ -39,7 +96,7 @@ class ListRepository {
   async insertItemInList(
     clubId: string,
     listType: WorkListType,
-    workId: string
+    workId: string,
   ) {
     return db
       .insertInto("work_list_item")
@@ -53,7 +110,7 @@ class ListRepository {
   async deleteItemFromList(
     clubId: string,
     listType: WorkListType,
-    workId: string
+    workId: string,
   ) {
     return db
       .deleteFrom("work_list_item")
@@ -61,14 +118,14 @@ class ListRepository {
       .where(
         "work_list_item.list_id",
         "=",
-        this.listIdFromType(clubId, listType)
+        this.listIdFromType(clubId, listType),
       )
       .execute();
   }
 
   private listIdFromType(
     clubId: string,
-    type: WorkListType
+    type: WorkListType,
   ): ValueExpression<DB, "work_list_item", string> {
     const eb = expressionBuilder<DB, "work_list_item">();
     return eb

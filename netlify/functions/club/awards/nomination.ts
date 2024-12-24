@@ -18,7 +18,10 @@ router.post(
     if (!body.movieId) return badRequest("Missing movieId in body");
     if (!body.nominatedBy) return badRequest("Missing nominatedBy in body");
 
-    const { awardTitle, movieId, nominatedBy } = body;
+    const awardTitle = body.awardTitle;
+    const movieId = parseInt(body.movieId);
+    const nominatedBy = body.nominatedBy;
+
     const { faunaClient, q } = getFaunaClient();
 
     await faunaClient.query(

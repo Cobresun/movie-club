@@ -19,7 +19,7 @@ import { DetailedWorkListItem } from "./types/lists";
  */
 export function filterMovies<T extends DetailedWorkListItem>(
   works: T[],
-  searchQuery: string
+  searchQuery: string,
 ): T[] {
   let filteredReviews = [...works];
 
@@ -27,11 +27,14 @@ export function filterMovies<T extends DetailedWorkListItem>(
   // of filters. Otherwise, just return an empty map. Type the map as a Record
   // so that TypeScript knows the keys are strings and the values are strings.
   const filters = searchQuery.includes(":")
-    ? searchQuery.split(" ").reduce((acc, filter) => {
-        const [key, value] = filter.split(":");
-        acc[key] = value;
-        return acc;
-      }, {} as Record<string, string>)
+    ? searchQuery.split(" ").reduce(
+        (acc, filter) => {
+          const [key, value] = filter.split(":");
+          acc[key] = value;
+          return acc;
+        },
+        {} as Record<string, string>,
+      )
     : {};
 
   // If there are filters, remove the filter and the value from the search query.
@@ -42,22 +45,35 @@ export function filterMovies<T extends DetailedWorkListItem>(
   // If there are filters, filter the reviews by them.
   if (filters.title) {
     filteredReviews = filteredReviews.filter((review) =>
-      review.title.toLowerCase().includes(filters.title.toLowerCase())
+      review.title.toLowerCase().includes(filters.title.toLowerCase()),
     );
   }
   if (filters.company) {
     filteredReviews = filteredReviews.filter((review) =>
       review.externalData?.production_companies.some((company) =>
-        company.name.toLocaleLowerCase().includes(filters.company.toLowerCase())
-      )
+        company.toLocaleLowerCase().includes(filters.company.toLowerCase()),
+      ),
+    );
+  }
+  if (filters.description) {
+    filteredReviews = filteredReviews.filter((review) =>
+      review.externalData?.overview
+        .toLocaleLowerCase()
+        .includes(filters.description.toLowerCase()),
     );
   }
 
   if (filters.genre) {
     filteredReviews = filteredReviews.filter((review) =>
       review.externalData?.genres.some((genre) =>
-        genre.name.toLocaleLowerCase().includes(filters.genre.toLowerCase())
-      )
+        genre.toLocaleLowerCase().includes(filters.genre.toLowerCase()),
+      ),
+    );
+  }
+
+  if (filters.year) {
+    filteredReviews = filteredReviews.filter((review) =>
+      new Date(review.createdDate).getFullYear() === parseInt(filters.year)
     );
   }
 

@@ -11,7 +11,7 @@ import { useUser } from "./useUser";
 
 import { Award, AwardsStep, ClubAwards } from "@/common/types/awards";
 import { DetailedReviewListItem } from "@/common/types/lists";
-import { TMDBMovieData } from "@/common/types/movie";
+import { DetailedMovieData } from "@/common/types/movie";
 import { Review } from "@/common/types/reviews";
 import { useAuthStore } from "@/stores/auth";
 
@@ -175,7 +175,7 @@ export function useAddNomination(clubId: string, year: string) {
                       movieId: parseInt(review.externalId ?? "0"),
                       movieTitle: review.title,
                       posterUrl: review.imageUrl ?? "",
-                      movieData: review.externalData as TMDBMovieData,
+                      movieData: review.externalData as DetailedMovieData,
                       nominatedBy: [name],
                       ranking: {},
                     },
@@ -196,16 +196,15 @@ export function useAddNomination(clubId: string, year: string) {
 }
 
 export function useDeleteNomination(clubId: string, year: string) {
-  const { authToken } = useAuthStore();
+  const auth = useAuthStore();
   const queryClient = useQueryClient();
   const { data: user } = useUser();
 
   return useMutation({
     mutationFn: (input: { awardTitle: string; movieId: number }) =>
-      axios.delete(
+      auth.request.delete(
         `/api/club/${clubId}/awards/${year}/nomination/${input.movieId}`,
         {
-          headers: { Authorization: `Bearer ${authToken}` },
           params: { awardTitle: input.awardTitle, userId: user.value?.name },
         }
       ),
