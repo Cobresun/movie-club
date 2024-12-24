@@ -13,12 +13,6 @@ import { DetailedWorkListItem } from "./types/lists";
  *
  * Incluidng multiple filters seperated by spaces will implicitly do an AND search between them.
  * 
- * Supported filters:
- * genre: filters by genre
- * title: filters by title
- * company: filters by production company
- * year: filters by year review was created (not when the movie came out)
- *
  * TODO: Add support for OR searches.
  * TODO: Create a new vue component for the search bar that highlights filters different colors.
  * TODO: Make the watchlist and backlog use DetailedMovie[] so they can use the same search function and bar.
