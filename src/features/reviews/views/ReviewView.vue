@@ -210,7 +210,7 @@ const columns = computed(() => [
     cell: (info) => h(
       'div', 
       { 
-        class: "font-bold relative group cursor-help",
+        class: "font-bold hover:relative group cursor-help",
       },
       [
         info.getValue(),
@@ -229,7 +229,7 @@ const columns = computed(() => [
           h('div', { class: 'flex gap-4 mb-4' }, [
             h('img', {
               src: `https://image.tmdb.org/t/p/w154${info.row.original.externalData?.poster_path}`,
-              class: 'w-[calc(10vw)] h-auto rounded-lg'
+              class: 'w-[calc(5vw)] h-auto rounded-lg'
             }),
             h('div', { class: 'flex flex-col items-center justify-center flex-1' }, [
               h('h3', { class: 'font-bold text-lg mb-1 text-white text-center' }, info.row.original.title),

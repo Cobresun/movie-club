@@ -44,7 +44,7 @@ async getListByType(clubId: string, type: WorkListType) {
     .leftJoin('companies_agg', 'companies_agg.external_id', 'movie_details.external_id')
     .leftJoin('countries_agg', 'countries_agg.external_id', 'movie_details.external_id')
     .select([
-      'work.id as work_id',
+      'work.id',
       'work.title',
       'work.type',
       'work.image_url',
