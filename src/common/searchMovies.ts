@@ -6,13 +6,12 @@ import { DetailedWorkListItem } from "./types/lists";
  * @param searchQuery
  * @returns reviews filtered by searchQuery.
  * 
- *
  * You can apply filters on the searchQuery with text:value. For example, to filter by title and genre, you can use:
  *
  * "title:jaws genre:horror"
  *
  * Incluidng multiple filters seperated by spaces will implicitly do an AND search between them.
- * 
+ *
  * TODO: Add support for OR searches.
  * TODO: Create a new vue component for the search bar that highlights filters different colors.
  * TODO: Make the watchlist and backlog use DetailedMovie[] so they can use the same search function and bar.
