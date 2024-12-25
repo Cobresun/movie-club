@@ -102,7 +102,7 @@ const { mutate } = useAddNomination(clubId, year);
 
 const addNomination = (movie: MovieSearchIndex) => {
   const review = reviews.value?.find(
-    (review) => review.externalData?.id === movie.id
+    (review) => parseInt(review.externalId ?? "0") === movie.id
   );
   if (!currentAward.value || !review) return;
   mutate({ awardTitle: currentAward.value.title, review });

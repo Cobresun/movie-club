@@ -11,6 +11,9 @@ export const handlers = [
   rest.get("/api/member", (req, res, ctx) => {
     return res(ctx.status(200), ctx.json(member));
   }),
+  rest.get("/api/member/clubs", (req, res, ctx) => {
+    return res(ctx.status(200), ctx.json([club]));
+  }),
   rest.get("/api/club/:id", (req, res, ctx) => {
     return res(ctx.status(200), ctx.json(club));
   }),
