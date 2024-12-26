@@ -1,5 +1,4 @@
 import { AgScatterSeriesTooltipRendererParams } from "ag-charts-community";
-import { useMemo } from "vue";
 
 /**
  * Normalizes an array of numbers by subtracting the mean and dividing by the standard deviation.

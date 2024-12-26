@@ -173,6 +173,9 @@ const generateCustomChart = () => {
     yName: selectedChartBase.value,
     yData: selectedChartBase.value,
     movieData: movieData.value,
+    normalizeX: false,
+    normalizeY: false,
+    normalizeToggled: normalize.value
   });
 };
 const generateGenreChart = () => {
