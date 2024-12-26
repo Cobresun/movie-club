@@ -73,6 +73,7 @@ import { filterMovies } from "../../../common/searchMovies";
 import GalleryView from "../components/GalleryView.vue";
 import ReviewScore from "../components/ReviewScore.vue";
 import TableView from "../components/TableView.vue";
+import MovieTooltip from "../components/MovieTooltip.vue";
 
 import AverageImg from "@/assets/images/average.svg";
 import VAvatar from "@/common/components/VAvatar.vue";
@@ -207,61 +208,11 @@ const columns = computed(() => [
   }),
   columnHelper.accessor("title", {
     header: "Title",
-    cell: (info) => h(
-      'div', 
-      { 
-        class: "font-bold hover:relative group cursor-help",
-      },
-      [
-        info.getValue(),
-        h('div', {
-          class: `
-            absolute left-0 top-full z-50
-            hidden group-hover:block
-            w-[calc(100vw)] md:w-96
-            p-4 rounded-lg
-            text-base text-slate-200
-            shadow-lg
-            backdrop-blur-lg
-            mx-auto
-          `
-        }, [
-          h('div', { class: 'flex gap-4 mb-4' }, [
-            h('img', {
-              src: `https://image.tmdb.org/t/p/w154${info.row.original.externalData?.poster_path}`,
-              class: 'w-[calc(5vw)] h-auto rounded-lg'
-            }),
-            h('div', { class: 'flex flex-col items-center justify-center flex-1' }, [
-              h('h3', { class: 'font-bold text-lg mb-1 text-white text-center' }, info.row.original.title),
-              h('p', { class: 'text-sm text-slate-400 italic text-center' }, info.row.original.externalData?.tagline),
-            ])
-          ]),
-          h('p', { class: 'mb-4 text-sm leading-relaxed text-slate-300' }, info.row.original.externalData?.overview),
-          h('div', { class: 'grid grid-cols-1 gap-y-3 gap-x-4 text-sm' }, [
-            h('div', [
-              h('span', { class: 'text-slate-400' }, 'Release Date: '),
-              h('span', { class: 'text-slate-200' }, DateTime.fromISO(info.row.original.externalData?.release_date ?? '').toLocaleString())
-            ]),
-            h('div', [
-              h('span', { class: 'text-slate-400' }, 'Runtime: '),
-              h('span', { class: 'text-slate-200' }, `${info.row.original.externalData?.runtime} minutes`)
-            ]),
-            h('div', [
-              h('span', { class: 'text-slate-400' }, 'Genres: '),
-              h('span', { class: 'text-slate-200' }, info.row.original.externalData?.genres.join(', '))
-            ]),
-            h('div', [
-              h('span', { class: 'text-slate-400' }, 'Rating: '),
-              h('span', { class: 'text-slate-200' }, `${Number(info.row.original.externalData?.vote_average).toFixed(1)}/10`)
-            ]),
-            h('div', { class: 'col-span-1' }, [
-              h('span', { class: 'text-slate-400' }, 'Studios: '),
-              h('span', { class: 'text-slate-200' }, info.row.original.externalData?.production_companies.join(', '))
-            ])
-          ])
-        ])
-      ]
-    ),
+    cell: (info) => h(MovieTooltip, {
+      title: info.getValue(),
+      imageUrl: info.row.original.imageUrl,
+      movie: info.row.original.externalData
+    }),
     meta: {
       class: "font-bold",
     },
