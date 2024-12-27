@@ -34,7 +34,7 @@ export const normalizeArray = (array: number[]): number[] => {
 };
 
 export interface MovieStatistics {
-  movieTitle: string;
+  title: string;
   dateWatched: string;
   vote_average: number;
   revenue: number;
@@ -156,7 +156,7 @@ export const loadDefaultChartSettings = (params: {
         showInLegend: false,
         tooltip: {
           renderer: (params: AgScatterSeriesTooltipRendererParams) =>
-            `<div class="ag-chart-tooltip-title" style="background-color:${params.color}">${params.datum.movieTitle}</div>` +
+            `<div class="ag-chart-tooltip-title" style="background-color:${params.color}">${params.datum.title}</div>` +
             `<div class="ag-chart-tooltip-content">${params.xName}: ${params.xValue}<br/>${params.yName}: ${params.yValue}</div>`,
         },
       },
