@@ -7,6 +7,17 @@
     />
     <loading-spinner v-if="loading" />
 
+    <v-btn
+      data-tooltip-target="tooltip-default"
+      class="ui button big"
+      @click="toggle"
+      >{{ normButtonText }}
+    </v-btn>
+    <p class="text-sm text-gray-500 mt-2 px-8">
+      Normalizing scores adjusts each member's ratings to account for their different scoring patterns. 
+      A normalized score of 0 means average, while lower and higher values indicate scores below and above your usual rating.
+    </p>
+
     <div v-if="!loading">
       <br />
       <ag-charts-vue :options="histChartOptions"></ag-charts-vue>
@@ -37,26 +48,6 @@
       <br />
       <ag-charts-vue :options="customChartOptions"></ag-charts-vue>
       <br /> -->
-
-      <v-btn
-        data-tooltip-target="tooltip-default"
-        class="ui button big"
-        @click="toggle"
-        >{{ normButtonText }}
-      </v-btn>
-      <p class="text-sm text-gray-500 mt-2 px-8">
-        Normalizing scores adjusts each member's ratings to account for their different scoring patterns. 
-        A normalized score of 0 means average, while lower and higher values indicate scores below and above your usual rating.
-      </p>
-      <!-- TODO make this tooltip work -->
-      <div
-        id="tooltip-default"
-        role="tooltip"
-        class="tooltip invisible absolute z-10 inline-block rounded-lg bg-gray-900 px-3 py-2 text-sm font-medium text-white opacity-0 shadow-sm transition-opacity duration-300 dark:bg-gray-700"
-      >
-        How many standard deviations is your score from average?
-        <div class="tooltip-arrow" data-popper-arrow></div>
-      </div>
 
       <movie-table
         v-if="reviews && reviews.length > 0"
@@ -182,6 +173,9 @@ const generateCustomChart = () => {
     yName: selectedChartBase.value,
     yData: selectedChartBase.value,
     movieData: movieData.value,
+    normalizeX: false,
+    normalizeY: false,
+    normalizeToggled: normalize.value
   });
 };
 const generateGenreChart = () => {
@@ -320,6 +314,12 @@ const loadChartOptions = async () => {
     };
     chartLoadingStates.value.histogram = false;
     
+    // Special handling for TMDB score chart where TMDB score is available
+    const validTMDBData = movieData.value.filter(movie => 
+      movie.vote_average && movie.vote_average > 0 && 
+      movie.average && movie.average > 0
+    );
+    
     scoreChartOptions.value = loadDefaultChartSettings({
       chartTitle: "Score vs TMDB Audience Score",
       xName: "TMDB Audience Score",
@@ -329,7 +329,7 @@ const loadChartOptions = async () => {
       yData: "average",
       normalizeY: true,
       normalizeToggled: normalize.value,
-      movieData: movieData.value,
+      movieData: validTMDBData,
     });
 
     budgetChartOptions.value = loadDefaultChartSettings({
@@ -386,7 +386,7 @@ const calculateStatistics = () => {
 
   const memberScores: Record<string, number[]> = {};
   const tmbd_norm = normalizeArray(
-    movieData.value.map((data) => data["vote_average"]),
+    movieData.value.map((data) => parseFloat(data["vote_average"])),
   );
   for (const member of members.value) {
     memberScores[member.id] = normalizeArray(

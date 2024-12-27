@@ -1,36 +1,36 @@
 import { AgScatterSeriesTooltipRendererParams } from "ag-charts-community";
 
-// Normalizes an array of scores by subtracting the mean and dividing by the standard deviation,
-// Allows us to compare scores from different members accounting for the variance in their scores
-export const normalizeArray = (array: number[]) => {
+/**
+ * Normalizes an array of numbers by subtracting the mean and dividing by the standard deviation.
+ * Replaces undefined values with the mean.
+ * @param array - The array of numbers to normalize.
+ * @returns A normalized array of numbers.
+ */
+export const normalizeArray = (array: number[]): number[] => {
   if (!array?.length) return [];
-  
-  let sum = 0;
-  let count = 0;
 
-  for (let i = 0; i < array.length; i++) {
-    if (array[i] === undefined) count++;
-    else sum += array[i];
-  }
+  const validScores = array.filter(score => score !== undefined);
+  const count = validScores.length;
 
-  const mean: number = sum / (array.length - count);
-  const cleanArray: number[] = array.map((score) => {
-    return score === undefined ? mean : score; // default to mean if score missing
-  });
-  const variance =
-    cleanArray.reduce((s, n) => s + (n - mean) ** 2, 0) /
-    (cleanArray.length - 1);
-  const std = Math.sqrt(variance);
-  const normArray: number[] = cleanArray.map((x) => (x - mean) / std);
-  const stdCorrectedArray: number[] = normArray.map(
-    (x) => Math.round((x / std) * 100) / 100,
-  );
-
-  if (array.length == count || std == 0) {
-    // no reviews for user
+  if (count === 0) {
     return array.map(() => 0);
   }
-  return stdCorrectedArray;
+
+  const sum = validScores.reduce((acc, score) => acc + score, 0);
+  const mean = sum / count;
+  const variance =
+    validScores.reduce((acc, score) => acc + Math.pow(score - mean, 2), 0) /
+    (count - 1);
+  const std = Math.sqrt(variance);
+
+  if (std === 0) {
+    return array.map(() => 0);
+  }
+
+  return array.map(score => {
+    const value = score === undefined ? mean : score;
+    return parseFloat(((value - mean) / std).toFixed(2));
+  });
 };
 
 export interface MovieStatistics {
@@ -52,13 +52,38 @@ export interface MovieStatistics {
   [key: string]: any; // For dynamic member scores
 }
 
-export interface ChartOptions {
+export interface ChartTitle {
+  text: string;
+}
+
+export interface ChartAxis {
+  type: string;
+  position: string;
+  title: {
+    enabled: boolean;
+    text: string;
+  };
+}
+
+export interface ChartSeries {
+  type: string;
+  xKey: string;
+  xName: string;
+  yKey: string;
+  yName: string;
+  showInLegend: boolean;
+  tooltip: {
+    renderer: (params: any) => string;
+  };
+}
+
+export interface ChartConfig {
   autoSize: boolean;
   theme: string;
-  title: { text: string };
+  title: ChartTitle;
   data: MovieStatistics[];
-  series: any[];
-  axes: any[];
+  series: ChartSeries[];
+  axes: ChartAxis[];
 }
 
 export const createHistogramData = (scores: number[], normalized: boolean) => {
@@ -88,7 +113,18 @@ export const baseChartConfig = {
   ],
 };
 
-export const loadDefaultChartSettings = (params: any) => {
+export const loadDefaultChartSettings = (params: {
+  chartTitle: string;
+  xName: string;
+  xData: string;
+  yName: string;
+  yData: string;
+  normalizeX: boolean;
+  normalizeY: boolean;
+  normalizeToggled: boolean;
+  movieData: MovieStatistics[];
+  chartType?: string;
+}): ChartConfig => {
   const {
     chartTitle,
     xName,
@@ -99,51 +135,42 @@ export const loadDefaultChartSettings = (params: any) => {
     normalizeY,
     normalizeToggled,
     movieData,
+    chartType = "scatter",
   } = params;
 
+  const finalXKey = xData + (normalizeX && normalizeToggled ? "Norm" : "");
+  const finalYKey = yData + (normalizeY && normalizeToggled ? "Norm" : "");
+
   return {
-    ...baseChartConfig,
+    autoSize: true,
+    theme: "ag-default-dark",
     title: { text: chartTitle },
     data: movieData,
     series: [
       {
-        type: params.chartType ?? "scatter",
-        xKey: xData + (normalizeX && normalizeToggled ? "Norm" : ""),
+        type: chartType,
+        xKey: finalXKey,
         xName,
-        yKey: yData + (normalizeY && normalizeToggled ? "Norm" : ""),
+        yKey: finalYKey,
         yName,
         showInLegend: false,
         tooltip: {
-          renderer: function (params: AgScatterSeriesTooltipRendererParams) {
-            return (
-              '<div class="ag-chart-tooltip-title" ' +
-              'style="background-color:' +
-              params.color +
-              '">' +
-              params.datum.movieTitle +
-              "</div>" +
-              '<div class="ag-chart-tooltip-content">' +
-              params.xName +
-              ": " +
-              params.xValue +
-              "</br>" +
-              params.yName +
-              ": " +
-              params.yValue +
-              "</div>"
-            );
-          },
+          renderer: (params: AgScatterSeriesTooltipRendererParams) =>
+            `<div class="ag-chart-tooltip-title" style="background-color:${params.color}">${params.datum.movieTitle}</div>` +
+            `<div class="ag-chart-tooltip-content">${params.xName}: ${params.xValue}<br/>${params.yName}: ${params.yValue}</div>`,
         },
       },
     ],
     axes: [
       {
-        ...baseChartConfig.axes[0],
-        title: { ...baseChartConfig.axes[0].title, text: xName },
+        type: "number",
+        position: "bottom",
+        title: { enabled: true, text: xName },
       },
       {
-        ...baseChartConfig.axes[1],
-        title: { ...baseChartConfig.axes[1].title, text: yName },
+        type: "number",
+        position: "left",
+        title: { enabled: true, text: yName },
       },
     ],
   };
