@@ -16,10 +16,10 @@ class ImageRepository {
             },
             (error, uploadResult) => {
               return resolve(uploadResult);
-            }
+            },
           )
           .end(file);
-      }
+      },
     );
 
     return {

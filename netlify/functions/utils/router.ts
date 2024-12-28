@@ -19,7 +19,7 @@ export interface Request {
 
 export type MiddlewareCallback<T extends Request = Request> = (
   req: T,
-  next: () => Promise<HandlerResponse>
+  next: () => Promise<HandlerResponse>,
 ) => Promise<HandlerResponse>;
 
 interface Route {
@@ -53,7 +53,7 @@ export class Router {
   private addRoute(
     method: HTTPMethod,
     pathStr: string,
-    callbacks: MiddlewareCallback[]
+    callbacks: MiddlewareCallback[],
   ) {
     this.routes[method].push({
       path: this.getPath(pathStr),

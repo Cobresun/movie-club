@@ -1,6 +1,6 @@
 <template>
   <div
-    class="relative rounded w-40 mb-4"
+    class="relative mb-4 w-40 rounded"
     :class="[
       highlighted
         ? 'border-4 border-highlightBackground'
@@ -9,7 +9,7 @@
   >
     <button
       v-if="showDelete"
-      class="absolute -top-3 -right-3 bg-background rounded-full"
+      class="absolute -right-3 -top-3 rounded-full bg-background"
       @click="emit('delete')"
     >
       <mdicon name="close-circle-outline" />
@@ -21,11 +21,11 @@
       <div class="absolute inset-0 bg-background opacity-50" />
       <loading-spinner />
     </div>
-    <div class="flex flex-col h-full bg-background">
+    <div class="flex h-full flex-col bg-background">
       <img v-lazy-load :src="moviePosterUrl" />
-      <div class="px-2 pb-2 flex flex-col h-auto flex-grow">
+      <div class="flex h-auto flex-grow flex-col px-2 pb-2">
         <div class="my-2 flex flex-grow items-center justify-center">
-          <h3 class="font-semibold h-min" style="height: min-content">
+          <h3 class="h-min font-semibold" style="height: min-content">
             {{ movieTitle }}
           </h3>
         </div>

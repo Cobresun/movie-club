@@ -18,7 +18,7 @@ export function updateAward(
   clubId: number,
   year: number,
   awardTitle: string,
-  expression: ExprArg
+  expression: ExprArg,
 ) {
   const q = query;
 
@@ -30,9 +30,9 @@ export function updateAward(
         q.If(
           q.Equals(q.Select("title", q.Var("award")), awardTitle),
           q.Merge(q.Var("award"), expression),
-          q.Var("award")
-        )
-      )
+          q.Var("award"),
+        ),
+      ),
     ),
   });
 }
@@ -40,7 +40,7 @@ export function updateAward(
 export function updateClubAwardYear(
   clubId: number,
   year: number,
-  expression: ExprArg
+  expression: ExprArg,
 ) {
   return q.Update(getClubRef(clubId), {
     data: {
@@ -51,9 +51,9 @@ export function updateClubAwardYear(
           q.If(
             q.Equals(q.Select("year", q.Var("awardYear")), year),
             q.Merge(q.Var("awardYear"), expression),
-            q.Var("awardYear")
-          )
-        )
+            q.Var("awardYear"),
+          ),
+        ),
       ),
     },
   });
@@ -66,7 +66,7 @@ export interface ClubAwardRequest extends LegacyClubRequest {
 
 export const validYear: MiddlewareCallback<LegacyClubRequest> = async (
   req: LegacyClubRequest,
-  next
+  next,
 ) => {
   if (!req.params.year) return notFound();
   const year = parseInt(req.params.year);
@@ -78,10 +78,10 @@ export const validYear: MiddlewareCallback<LegacyClubRequest> = async (
       0,
       q.Filter(
         q.Select(["data", "clubAwards"], getClubDocument(req.clubId)),
-        q.Lambda("x", q.Equals(q.Select(["year"], q.Var("x")), year))
+        q.Lambda("x", q.Equals(q.Select(["year"], q.Var("x")), year)),
       ),
-      null
-    )
+      null,
+    ),
   );
 
   if (clubAwards) {

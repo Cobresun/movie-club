@@ -5,7 +5,7 @@ import { badRequest, ok } from "../../utils/responses";
 import { Router } from "../../utils/router";
 
 const router = new Router(
-  "/api/club/:clubId<\\d+>/awards/:year<\\d+>/nomination"
+  "/api/club/:clubId<\\d+>/awards/:year<\\d+>/nomination",
 );
 
 router.post(
@@ -26,8 +26,8 @@ router.post(
 
     await faunaClient.query(
       updateAward(
-        clubId!,
-        year!,
+        clubId,
+        year,
         awardTitle,
         q.Let(
           {
@@ -36,8 +36,8 @@ router.post(
               q.Var("nominations"),
               q.Lambda(
                 "nomination",
-                q.Equals(q.Select("movieId", q.Var("nomination")), movieId)
-              )
+                q.Equals(q.Select("movieId", q.Var("nomination")), movieId),
+              ),
             ),
           },
           q.If(
@@ -45,7 +45,7 @@ router.post(
             {
               nominations: q.Append(
                 [{ movieId, nominatedBy: [nominatedBy], ranking: {} }],
-                q.Var("nominations")
+                q.Var("nominations"),
               ),
             },
             {
@@ -58,20 +58,20 @@ router.post(
                     q.Merge(q.Var("nomination"), {
                       nominatedBy: q.Append(
                         [nominatedBy],
-                        q.Select("nominatedBy", q.Var("nomination"))
+                        q.Select("nominatedBy", q.Var("nomination")),
                       ),
                     }),
-                    q.Var("nomination")
-                  )
-                )
+                    q.Var("nomination"),
+                  ),
+                ),
               ),
-            }
-          )
-        )
-      )
+            },
+          ),
+        ),
+      ),
     );
     return ok();
-  }
+  },
 );
 
 router.delete(
@@ -90,8 +90,8 @@ router.delete(
 
     await faunaClient.query(
       updateAward(
-        clubId!,
-        year!,
+        clubId,
+        year,
         awardTitle,
         q.Let(
           {
@@ -100,8 +100,8 @@ router.delete(
               q.Var("nominations"),
               q.Lambda(
                 "nomination",
-                q.Equals(q.Select("movieId", q.Var("nomination")), movieId)
-              )
+                q.Equals(q.Select("movieId", q.Var("nomination")), movieId),
+              ),
             ),
           },
           q.If(
@@ -115,31 +115,33 @@ router.delete(
                     q.If(
                       q.Equals(
                         q.Select("movieId", q.Var("nomination")),
-                        movieId
+                        movieId,
                       ),
                       q.Merge(q.Var("nomination"), {
                         nominatedBy: q.Difference(
                           q.Select("nominatedBy", q.Var("nomination")),
-                          [userId]
+                          [userId],
                         ),
                       }),
-                      q.Var("nomination")
-                    )
-                  )
+                      q.Var("nomination"),
+                    ),
+                  ),
                 ),
                 q.Lambda(
                   "nomination",
-                  q.Not(q.IsEmpty(q.Select("nominatedBy", q.Var("nomination"))))
-                )
+                  q.Not(
+                    q.IsEmpty(q.Select("nominatedBy", q.Var("nomination"))),
+                  ),
+                ),
               ),
             },
-            { nominations: q.Var("nominations") }
-          )
-        )
-      )
+            { nominations: q.Var("nominations") },
+          ),
+        ),
+      ),
     );
     return ok();
-  }
+  },
 );
 
 export default router;

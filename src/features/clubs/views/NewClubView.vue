@@ -10,10 +10,10 @@
           v-model="clubName"
           placeholder="Club name"
           type="text"
-          class="mb-4 p-2 text-base text-black outline-none rounded-md border-2 border-gray-300 focus:border-primary w-11/12 max-w-md"
+          class="mb-4 w-11/12 max-w-md rounded-md border-2 border-gray-300 p-2 text-base text-black outline-none focus:border-primary"
         />
 
-        <h2 class="text-2xl m-4">Add Members</h2>
+        <h2 class="m-4 text-2xl">Add Members</h2>
         <div>
           <!-- TODO: Align these input fields with the buttons correctly -->
           <div v-for="(member, memberIndex) in members" :key="memberIndex">
@@ -21,11 +21,11 @@
               v-model="members[memberIndex]"
               placeholder="Email address"
               type="text"
-              class="mb-4 p-2 text-base text-black outline-none rounded-md border-2 border-gray-300 focus:border-primary w-11/12 max-w-md"
+              class="mb-4 w-11/12 max-w-md rounded-md border-2 border-gray-300 p-2 text-base text-black outline-none focus:border-primary"
             />
             <v-btn
               v-if="memberIndex > 0"
-              class="align-middle m-2"
+              class="m-2 align-middle"
               @click="members.splice(memberIndex, 1)"
             >
               <mdicon name="minus" />

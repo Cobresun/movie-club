@@ -25,7 +25,7 @@ router.get("/", loggedIn, async (req: AuthRequest) => {
 });
 
 router.get("/clubs", loggedIn, async (req: AuthRequest) => {
-  const clubs = await ClubRepository.getClubPreviewsByEmail(req.email!);
+  const clubs = await ClubRepository.getClubPreviewsByEmail(req.email);
   const result: ClubPreview[] = clubs.map((club) => ({
     clubId: club.club_id,
     clubName: club.club_name,
@@ -37,11 +37,11 @@ router.post("/avatar", loggedIn, async (req: AuthRequest) => {
   try {
     // Parse the multipart/form-data request
     const parsed = await parse(req.event);
-    if (!parsed.files.length) return badRequest("No file uploaded");
+    if (parsed.files.length === 0) return badRequest("No file uploaded");
 
     const avatarFile = parsed.files[0];
 
-    const user = await UserRepository.getByEmail(req.email!);
+    const user = await UserRepository.getByEmail(req.email);
     if (!user) return internalServerError("User not found");
 
     const { url, id } = await ImageRepository.upload(avatarFile.content);
@@ -62,7 +62,7 @@ router.post("/avatar", loggedIn, async (req: AuthRequest) => {
 
 const handler: Handler = async (
   event: HandlerEvent,
-  context: HandlerContext
+  context: HandlerContext,
 ) => {
   return router.route({ event, context });
 };

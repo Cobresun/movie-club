@@ -6,7 +6,7 @@ class ClubRepository {
       await db
         .selectFrom("club")
         .selectAll()
-        .where("id", "=", clubId!.toString())
+        .where("id", "=", clubId.toString())
         .execute()
     )[0];
 
@@ -40,7 +40,7 @@ class ClubRepository {
         .where(
           "legacy_id",
           "in",
-          legacyIds.map((id) => id.toString())
+          legacyIds.map((id) => id.toString()),
         )
         .execute()
     ).map((row) => row.id);

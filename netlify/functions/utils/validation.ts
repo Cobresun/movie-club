@@ -29,9 +29,9 @@ export const validClubId: MiddlewareCallback = async (req, next) => {
 
 export const mapIdToLegacyId: MiddlewareCallback<ClubRequest> = async (
   req: ClubRequest,
-  next
+  next,
 ) => {
-  const legacyId = await ClubRepository.getLegacyIdForId(req.clubId!);
+  const legacyId = await ClubRepository.getLegacyIdForId(req.clubId);
   if (!legacyId) {
     return internalServerError("Invalid legacy id");
   }

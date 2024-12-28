@@ -10,23 +10,23 @@
       <loading-spinner v-if="isLoading" />
 
       <div v-if="!isLoading">
-        <div class="flex justify-center items-center" :class="'mb-0'">
+        <div class="flex items-center justify-center" :class="'mb-0'">
           <div class="relative">
             <mdicon
               name="magnify"
-              class="absolute top-1/2 left-8 transform -translate-y-1/2 text-slate-200"
+              class="absolute left-8 top-1/2 -translate-y-1/2 transform text-slate-200"
             />
             <input
               ref="searchInput"
               v-model="searchTerm"
-              class="p-2 pl-12 text-base outline-none rounded-md border-2 text-white border-slate-600 focus:border-primary w-11/12 bg-background"
+              class="w-11/12 rounded-md border-2 border-slate-600 bg-background p-2 pl-12 text-base text-white outline-none focus:border-primary"
               placeholder="Search"
               @focusin="searchInputFocusIn"
               @focusout="searchInputFocusOut"
             />
             <div
               ref="searchInputSlash"
-              class="border-2 rounded-md absolute top-1/2 right-8 px-2 py-1 transform -translate-y-1/2 border-slate-600"
+              class="absolute right-8 top-1/2 -translate-y-1/2 transform rounded-md border-2 border-slate-600 px-2 py-1"
             >
               <p name="slash" class="text-xs text-slate-200">/</p>
             </div>
@@ -69,7 +69,7 @@ onUnmounted(() => {
 });
 
 const onKeyPress = (e: KeyboardEvent) => {
-  if (e.key == "/") {
+  if (e.key === "/") {
     if (searchInput.value === document.activeElement) {
       return;
     }

@@ -23,7 +23,7 @@ export const securedLegacy: MiddlewareCallback<
       !(await ClubRepository.isUserInClub(
         req.clubId.toString(),
         req.email,
-        true
+        true,
       ))
     ) {
       return unauthorized();
@@ -35,7 +35,7 @@ export const securedLegacy: MiddlewareCallback<
 
 export const secured: MiddlewareCallback<ClubRequest & AuthRequest> = (
   req: ClubRequest & AuthRequest,
-  next
+  next,
 ) => {
   return loggedIn(req, async () => {
     if (

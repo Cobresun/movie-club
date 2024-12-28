@@ -14,7 +14,7 @@ export function useSearch(query: Ref<string>, enabled: boolean) {
       (
         await axios.get(
           `https://api.themoviedb.org/3/search/movie?api_key=${key}&query=${query.value}&language=en-US&include_adult=false`,
-          { signal }
+          { signal },
         )
       ).data,
   });
@@ -26,7 +26,7 @@ export function useTrending() {
     queryFn: async () =>
       (
         await axios.get(
-          `https://api.themoviedb.org/3/trending/movie/week?api_key=${key}`
+          `https://api.themoviedb.org/3/trending/movie/week?api_key=${key}`,
         )
       ).data,
   });

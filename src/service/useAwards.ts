@@ -16,7 +16,7 @@ import { Review } from "@/common/types/reviews";
 import { useAuthStore } from "@/stores/auth";
 
 export function useAwardYears(
-  clubId: string
+  clubId: string,
 ): UseQueryReturnType<number[], AxiosError> {
   return useQuery({
     queryKey: ["awards-years", clubId],
@@ -28,7 +28,7 @@ export function useAwardYears(
 export function useAwards(
   clubId: Ref<string>,
   year: Ref<string>,
-  onSuccess?: (data: ClubAwards) => void
+  onSuccess?: (data: ClubAwards) => void,
 ): UseQueryReturnType<ClubAwards, AxiosError> {
   return useQuery({
     queryKey: ["awards", clubId, year],
@@ -70,7 +70,7 @@ export function useAddCategory(clubId: string, year: string) {
             ...currentAwards,
             awards: [...currentAwards.awards, { title, nominations: [] }],
           };
-        }
+        },
       );
     },
     onSettled: () => {
@@ -96,10 +96,10 @@ export function useReorderCategories(clubId: string, year: string) {
           return {
             ...currentAwards,
             awards: categories.map((category) =>
-              currentAwards.awards.find((award) => award.title === category)
+              currentAwards.awards.find((award) => award.title === category),
             ) as Award[],
           };
-        }
+        },
       );
     },
     onSettled: () => {
@@ -115,8 +115,8 @@ export function useDeleteCategory(clubId: string, year: string) {
     mutationFn: (award: Award) =>
       auth.request.delete(
         `/api/club/${clubId}/awards/${year}/category/${encodeURIComponent(
-          award.title
-        )}`
+          award.title,
+        )}`,
       ),
     onMutate: async (award) => {
       await queryClient.cancelQueries(["awards", clubId, year]);
@@ -127,10 +127,10 @@ export function useDeleteCategory(clubId: string, year: string) {
           return {
             ...currentAwards,
             awards: currentAwards.awards.filter(
-              (curAward) => curAward.title !== award.title
+              (curAward) => curAward.title !== award.title,
             ),
           };
-        }
+        },
       );
     },
     onSettled: () => {
@@ -186,7 +186,7 @@ export function useAddNomination(clubId: string, year: string) {
               }
             }),
           };
-        }
+        },
       );
     },
     onSettled: () => {
@@ -206,7 +206,7 @@ export function useDeleteNomination(clubId: string, year: string) {
         `/api/club/${clubId}/awards/${year}/nomination/${input.movieId}`,
         {
           params: { awardTitle: input.awardTitle, userId: user.value?.name },
-        }
+        },
       ),
     onMutate: async (input) => {
       await queryClient.cancelQueries(["awards", clubId, year]);
@@ -224,7 +224,7 @@ export function useDeleteNomination(clubId: string, year: string) {
                     return {
                       ...nomination,
                       nominatedBy: nomination.nominatedBy.filter(
-                        (nominator) => nominator !== user.value?.name
+                        (nominator) => nominator !== user.value?.name,
                       ),
                     };
                   }
@@ -238,7 +238,7 @@ export function useDeleteNomination(clubId: string, year: string) {
           });
 
           return { ...currentAwards, awards: updatedAwards };
-        }
+        },
       );
     },
     onSettled: () => {

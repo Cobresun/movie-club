@@ -9,7 +9,7 @@ import { AgScatterSeriesTooltipRendererParams } from "ag-charts-community";
 export const normalizeArray = (array: number[]): number[] => {
   if (!array?.length) return [];
 
-  const validScores = array.filter(score => score !== undefined);
+  const validScores = array.filter((score) => score !== undefined);
   const count = validScores.length;
 
   if (count === 0) {
@@ -27,7 +27,7 @@ export const normalizeArray = (array: number[]): number[] => {
     return array.map(() => 0);
   }
 
-  return array.map(score => {
+  return array.map((score) => {
     const value = score === undefined ? mean : score;
     return parseFloat(((value - mean) / std).toFixed(2));
   });
@@ -88,7 +88,7 @@ export interface ChartConfig {
 
 export const createHistogramData = (scores: number[], normalized: boolean) => {
   if (!scores?.length) return [];
-  
+
   const bins = Array.from({ length: 11 }, (_, i) => ({
     bin: normalized ? i / 4.0 - 1.25 : i, // TODO: stop using hardcoded bin for std, this works for clubs with 4 members
     ...Object.fromEntries(scores.map((_, index) => [index, 0])),

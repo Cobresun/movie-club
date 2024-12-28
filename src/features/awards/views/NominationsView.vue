@@ -1,7 +1,7 @@
 <template>
   <v-modal v-if="currentAward" @close="closePrompt">
-    <div class="flex flex-col h-full">
-      <h3 class="text-xl font-bold text-left mb-2">{{ currentAward.title }}</h3>
+    <div class="flex h-full flex-col">
+      <h3 class="mb-2 text-left text-xl font-bold">{{ currentAward.title }}</h3>
       <div class="flex-grow overflow-auto">
         <MovieSearchPrompt
           :default-list="reviewsForYear"
@@ -13,9 +13,9 @@
       </div>
     </div>
   </v-modal>
-  <h2 class="text-2xl font-bold m-4">Nominations</h2>
+  <h2 class="m-4 text-2xl font-bold">Nominations</h2>
   <div v-for="award in userOnlyAwards" :key="award.title">
-    <h3 class="text-xl font-bold text-left mb-2">{{ award.title }}</h3>
+    <h3 class="mb-2 text-left text-xl font-bold">{{ award.title }}</h3>
     <div class="grid grid-cols-auto">
       <MoviePosterCard
         v-for="nomination in award.nominations"
@@ -67,7 +67,7 @@ const userOnlyAwards = computed(() => {
   return clubAward.awards.map((award) => ({
     ...award,
     nominations: award.nominations.filter((nomination) =>
-      nomination.nominatedBy.includes(user.value?.name ?? "")
+      nomination.nominatedBy.includes(user.value?.name ?? ""),
     ),
   }));
 });
@@ -88,7 +88,7 @@ const reviewsForYear = computed(() => {
   if (!reviews.value) return [];
   return reviews.value
     .filter(
-      (review) => DateTime.fromISO(review.createdDate).year === parseInt(year)
+      (review) => DateTime.fromISO(review.createdDate).year === parseInt(year),
     )
     .map((review) => ({
       title: review.title,
@@ -102,7 +102,7 @@ const { mutate } = useAddNomination(clubId, year);
 
 const addNomination = (movie: MovieSearchIndex) => {
   const review = reviews.value?.find(
-    (review) => parseInt(review.externalId ?? "0") === movie.id
+    (review) => parseInt(review.externalId ?? "0") === movie.id,
   );
   if (!currentAward.value || !review) return;
   mutate({ awardTitle: currentAward.value.title, review });

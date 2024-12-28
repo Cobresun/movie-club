@@ -9,8 +9,8 @@ const migrateClubs = async () => {
   const clubs = await faunaClient.query<Document<Document<Club>[]>>(
     q.Map(
       q.Paginate(q.Documents(q.Collection("clubs"))),
-      q.Lambda("clubRef", q.Get(q.Var("clubRef")))
-    )
+      q.Lambda("clubRef", q.Get(q.Var("clubRef"))),
+    ),
   );
 
   await Promise.all(
@@ -20,8 +20,8 @@ const migrateClubs = async () => {
         .insertInto("club")
         .values({ name: club.data.clubName, legacy_id: club.data.clubId })
         .execute();
-    })
+    }),
   );
 };
 
-migrateClubs();
+migrateClubs().catch(console.error);

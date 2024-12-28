@@ -1,15 +1,15 @@
 <template>
   <button
-    class="font-bold text-base text-text tracking-wide text-center rounded-md duration-150 filter"
+    class="rounded-md text-center text-base font-bold tracking-wide text-text filter duration-150"
     :class="{
       'bg-gray-600': disabled,
-      'bg-primary cursor-pointer hover:brightness-110 active:brightness-105':
+      'cursor-pointer bg-primary hover:brightness-110 active:brightness-105':
         !disabled,
     }"
     :disabled="disabled"
     @click="emit('click')"
   >
-    <div class="flex my-1 mx-2">
+    <div class="mx-2 my-1 flex">
       <slot />
     </div>
   </button>

@@ -1,5 +1,5 @@
 <template>
-  <div class="grid items-center grid-cols-centerHeader gap-x-8">
+  <div class="grid grid-cols-centerHeader items-center gap-x-8">
     <router-link
       v-if="hasBack"
       class="flex justify-end"
@@ -8,7 +8,7 @@
       <mdicon class="cursor-pointer" name="arrow-left" size="40" />
     </router-link>
     <div v-else />
-    <h1 class="text-3xl font-bold m-4">{{ club?.clubName }} {{ pageName }}</h1>
+    <h1 class="m-4 text-3xl font-bold">{{ club?.clubName }} {{ pageName }}</h1>
     <slot />
   </div>
 </template>

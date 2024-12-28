@@ -1,5 +1,5 @@
 <template>
-  <div class="p-2 flex justify-center">
+  <div class="flex justify-center p-2">
     <div class="w-full max-w-4xl text-center">
       <page-header has-back back-route="ClubHome" page-name="Awards" />
       <loading-spinner v-if="isLoading" />
@@ -21,7 +21,7 @@ const clubId = useClubId();
 const { data: years, isLoading } = useAwardYears(clubId);
 
 const selectYears = computed(() =>
-  years.value ? years.value.map((year) => year.toString()) : []
+  years.value ? years.value.map((year) => year.toString()) : [],
 );
 
 const route = useRoute();
