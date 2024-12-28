@@ -38,7 +38,7 @@ export function filterMovies<T extends DetailedWorkListItem>(
     : {};
 
   // If there are filters, remove the filter and the value from the search query.
-  if (Object.keys(filters).length) {
+  if (Object.keys(filters).length > 0) {
     searchQuery = searchQuery.replace(/(\w+:\w+\s?)/g, "");
   }
 
@@ -72,8 +72,9 @@ export function filterMovies<T extends DetailedWorkListItem>(
   }
 
   if (filters.year) {
-    filteredReviews = filteredReviews.filter((review) =>
-      new Date(review.createdDate).getFullYear() === parseInt(filters.year)
+    filteredReviews = filteredReviews.filter(
+      (review) =>
+        new Date(review.createdDate).getFullYear() === parseInt(filters.year),
     );
   }
 

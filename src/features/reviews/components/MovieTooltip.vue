@@ -1,38 +1,35 @@
 <template>
-  <div class="font-bold hover:relative group cursor-help">
+  <div class="group cursor-help font-bold hover:relative">
     {{ title }}
     <div
       v-if="movie"
-      class="
-        absolute left-0 top-full z-50
-        hidden group-hover:block
-        w-[calc(100vw)] md:w-96
-        p-4 rounded-lg
-        text-base text-slate-200
-        shadow-lg
-        backdrop-blur-lg
-        mx-auto
-      "
+      class="absolute left-0 top-full z-50 mx-auto hidden w-[calc(100vw)] rounded-lg p-4 text-base text-slate-200 shadow-lg backdrop-blur-lg group-hover:block md:w-96"
     >
-      <div class="flex gap-4 mb-4">
+      <div class="mb-4 flex gap-4">
         <img
           v-if="posterUrl"
           :src="posterUrl"
-          class="w-[calc(5vw)] h-auto rounded-lg"
+          class="h-auto w-[calc(5vw)] rounded-lg"
         />
-        <div class="flex flex-col items-center justify-center flex-1">
-          <h3 class="font-bold text-lg mb-1 text-white text-center">
+        <div class="flex flex-1 flex-col items-center justify-center">
+          <h3 class="mb-1 text-center text-lg font-bold text-white">
             {{ title }}
           </h3>
-          <p v-if="movie.tagline" class="text-sm text-slate-400 italic text-center">
+          <p
+            v-if="movie.tagline"
+            class="text-center text-sm italic text-slate-400"
+          >
             {{ movie.tagline }}
           </p>
         </div>
       </div>
-      <p v-if="movie.overview" class="mb-4 text-sm leading-relaxed text-slate-300 text-left">
+      <p
+        v-if="movie.overview"
+        class="mb-4 text-left text-sm leading-relaxed text-slate-300"
+      >
         {{ movie.overview }}
       </p>
-      <div class="grid grid-cols-1 gap-y-3 gap-x-4 text-sm text-left">
+      <div class="grid grid-cols-1 gap-x-4 gap-y-3 text-left text-sm">
         <div v-if="formattedReleaseDate">
           <span class="text-slate-400">Release Date: </span>
           <span class="text-slate-200">{{ formattedReleaseDate }}</span>
@@ -59,7 +56,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed } from "vue";
 import { DateTime } from "luxon";
 
 interface MovieProps {
@@ -79,23 +76,27 @@ const props = defineProps<{
   movie?: MovieProps;
 }>();
 
-const posterUrl = computed(() => 
-  props.imageUrl ? props.imageUrl : null
+const posterUrl = computed(() => (props.imageUrl ? props.imageUrl : null));
+
+const formattedReleaseDate = computed(() =>
+  props.movie?.release_date
+    ? DateTime.fromISO(props.movie.release_date).toLocaleString()
+    : null,
 );
 
-const formattedReleaseDate = computed(() => 
-  props.movie?.release_date ? DateTime.fromISO(props.movie.release_date).toLocaleString() : null
+const formattedGenres = computed(() =>
+  props.movie?.genres?.length ? props.movie.genres.join(", ") : null,
 );
 
-const formattedGenres = computed(() => 
-  props.movie?.genres?.length ? props.movie.genres.join(", ") : null
+const formattedRating = computed(() =>
+  props.movie?.vote_average
+    ? `${Number(props.movie.vote_average).toFixed(1)}/10`
+    : null,
 );
 
-const formattedRating = computed(() => 
-  props.movie?.vote_average ? `${Number(props.movie.vote_average).toFixed(1)}/10` : null
-);
-
-const formattedStudios = computed(() => 
-  props.movie?.production_companies?.length ? props.movie.production_companies.join(", ") : null
+const formattedStudios = computed(() =>
+  props.movie?.production_companies?.length
+    ? props.movie.production_companies.join(", ")
+    : null,
 );
 </script>

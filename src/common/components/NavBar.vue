@@ -1,7 +1,7 @@
 <template>
-  <div class="flex justify-between items-center p-4">
+  <div class="flex items-center justify-between p-4">
     <router-link to="/">
-      <h3 class="font-bold text-2xl text-highlight">MovieClub</h3>
+      <h3 class="text-2xl font-bold text-highlight">MovieClub</h3>
     </router-link>
     <div v-if="authReady" class="flex items-center">
       <v-avatar

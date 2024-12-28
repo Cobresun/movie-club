@@ -1,7 +1,7 @@
 <template>
   <add-movie-to-watchlist-prompt v-if="modalOpen" @close="closePrompt" />
-  <h1 class="text-2xl font-bold m-4">Backlog</h1>
-  <div class="flex items-start gap-2 ml-2">
+  <h1 class="m-4 text-2xl font-bold">Backlog</h1>
+  <div class="ml-2 flex items-start gap-2">
     <v-btn @click="openPrompt">
       Add Movie
       <mdicon name="plus" />
@@ -18,7 +18,7 @@
     leave-active-class="absolute hidden"
     enter-from-class="opacity-0"
     leave-to-class="opacity-0"
-    class="grid grid-cols-auto justify-items-center my-4"
+    class="my-4 grid grid-cols-auto justify-items-center"
   >
     <MoviePosterCard
       v-for="(movie, index) in sortedBacklog"
@@ -64,11 +64,11 @@ const { data: backlog } = useList(clubId, WorkListType.backlog);
 
 const { mutateAsync: deleteBacklogItem } = useDeleteListItem(
   clubId,
-  WorkListType.backlog
+  WorkListType.backlog,
 );
 const { mutateAsync: addToWatchlist } = useAddListItem(
   clubId,
-  WorkListType.watchlist
+  WorkListType.watchlist,
 );
 
 const toast = useToast();
@@ -97,7 +97,7 @@ const selectedMovie = ref<DetailedWorkListItem>();
 
 const sortedBacklog = computed(() => {
   const selectedIndex = filteredBacklog.value.findIndex(
-    (item) => item === selectedMovie.value
+    (item) => item === selectedMovie.value,
   );
   if (selectedIndex === -1) return filteredBacklog.value;
   return [

@@ -5,11 +5,12 @@
       <RouterView :club-award="clubAward" />
       <v-btn
         v-if="nextStep"
-        class="m-4 mt-8 float-right"
+        class="float-right m-4 mt-8"
         :disabled="!enableButton"
         @click="updateStep"
-        >{{ nextStep.title }}<mdicon name="chevron-right"
-      /></v-btn>
+      >
+        {{ nextStep.title }}<mdicon name="chevron-right" />
+      </v-btn>
     </div>
   </div>
 </template>
@@ -78,33 +79,14 @@ const completedCategories = computed(() => {
   return clubAward.value.awards.length > 0;
 });
 
-const completedNominations = computed(() => {
-  if (!clubAward.value) return false;
-  const nominationNumber = clubAward.value.awards.reduce(
-    (num, award) =>
-      num +
-      award.nominations.reduce(
-        (awardNum, nomination) => awardNum + nomination.nominatedBy.length,
-        0
-      ),
-    0
-  );
-  return (
-    nominationNumber >=
-    clubAward.value.awards.length *
-      NOMINATIONS_PER_AWARD *
-      filteredMembers.value.length
-  );
-});
-
 const completedRanking = computed(() => {
   if (!clubAward.value) return false;
   return clubAward.value.awards.every((award) =>
     filteredMembers.value.every((member) =>
       award.nominations.every(
-        (nomination) => nomination.ranking[member.name] !== undefined
-      )
-    )
+        (nomination) => nomination.ranking[member.name] !== undefined,
+      ),
+    ),
   );
 });
 

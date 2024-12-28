@@ -20,7 +20,7 @@ export function useAnimateRandom<T>(list: Ref<T[]>) {
       rotatedList.value[0] !== selectedValueRef.value?.value
     ) {
       rotatedList.value.unshift(
-        rotatedList.value[rotatedList.value.length - 1]
+        rotatedList.value[rotatedList.value.length - 1],
       );
       rotatedList.value.pop();
       rotateReps.value -= 1;

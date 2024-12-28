@@ -11,14 +11,14 @@ export async function up(db: Kysely<unknown>) {
       ["club_id"],
       "club",
       ["id"],
-      (cb) => cb.onDelete("cascade")
+      (cb) => cb.onDelete("cascade"),
     )
     .addForeignKeyConstraint(
       "fk_next_work_work_id",
       ["work_id"],
       "work",
       ["id"],
-      (cb) => cb.onDelete("cascade")
+      (cb) => cb.onDelete("cascade"),
     )
     .execute();
 

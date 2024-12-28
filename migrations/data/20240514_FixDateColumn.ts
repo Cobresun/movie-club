@@ -57,7 +57,7 @@ const migrateDatesToTimestamps = async () => {
     } else if (item.legacy_id) {
       // Fetch the corresponding club from FaunaDB
       const faunaData = await faunaClient.query<Document<Club>>(
-        q.Get(q.Match(q.Index("club_by_clubId"), parseInt(item.legacy_id)))
+        q.Get(q.Match(q.Index("club_by_clubId"), parseInt(item.legacy_id))),
       );
       club = faunaData.data;
       faunaClubMap.set(item.legacy_id, club);
@@ -67,7 +67,7 @@ const migrateDatesToTimestamps = async () => {
       const list =
         item.type === WorkListType.backlog ? club.backlog : club.watchList;
       const movie = list.find(
-        (movie) => movie.movieId.toString() === item.external_id
+        (movie) => movie.movieId.toString() === item.external_id,
       );
       if (movie) {
         timestamp = movie.timeAdded?.date ?? movie.timeWatched?.date;
@@ -79,7 +79,7 @@ const migrateDatesToTimestamps = async () => {
     }
 
     console.log(
-      `Migrating work list item for work ${item.title} in club ${item.name} to timestamp ${timestamp}`
+      `Migrating work list item for work ${item.title} in club ${item.name} to timestamp ${timestamp}`,
     );
     await db
       .updateTable("work_list_item")
@@ -93,5 +93,5 @@ const migrateDatesToTimestamps = async () => {
 };
 
 migrateDatesToTimestamps().then(() =>
-  console.log("Migration of dates to timestamps completed")
+  console.log("Migration of dates to timestamps completed"),
 );

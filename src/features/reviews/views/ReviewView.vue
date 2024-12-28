@@ -208,11 +208,12 @@ const columns = computed(() => [
   }),
   columnHelper.accessor("title", {
     header: "Title",
-    cell: (info) => h(MovieTooltip, {
-      title: info.getValue(),
-      imageUrl: info.row.original.imageUrl,
-      movie: info.row.original.externalData
-    }),
+    cell: (info) =>
+      h(MovieTooltip, {
+        title: info.getValue(),
+        imageUrl: info.row.original.imageUrl,
+        movie: info.row.original.externalData,
+      }),
     meta: {
       class: "font-bold",
     },
@@ -288,9 +289,13 @@ const columns = computed(() => [
       if (review === undefined) {
         return "";
       }
-      return h('div', {
-        class: 'font-bold text-lg text-primary'
-      }, Math.round(review * 100) / 100);
+      return h(
+        "div",
+        {
+          class: "font-bold text-lg text-primary",
+        },
+        Math.round(review * 100) / 100,
+      );
     },
     sortUndefined: "last",
   }),

@@ -36,19 +36,19 @@ const { isLoading: loadingTrending, data: trending } = useTrending();
 
 const { isLoading: loadingAdd, mutate: addBacklogItem } = useAddListItem(
   clubId,
-  WorkListType.backlog
+  WorkListType.backlog,
 );
 
 const { data: backlog, isLoading: loadingBacklog } = useList(
   clubId,
-  WorkListType.backlog
+  WorkListType.backlog,
 );
 
 const toast = useToast();
 const selectFromSearch = async (movie: MovieSearchIndex) => {
   if (
     backlog.value?.some(
-      (item) => parseInt(item.externalId ?? "-1") === movie.id
+      (item) => parseInt(item.externalId ?? "-1") === movie.id,
     )
   ) {
     toast.error("That movie is already in your backlog");
@@ -61,11 +61,11 @@ const selectFromSearch = async (movie: MovieSearchIndex) => {
       externalId: movie.id.toString(),
       imageUrl: `${BASE_IMAGE_URL}${movie.poster_path}`,
     },
-    { onSuccess: () => emit("close") }
+    { onSuccess: () => emit("close") },
   );
 };
 
 const loading = computed(
-  () => loadingTrending.value || loadingBacklog.value || loadingAdd.value
+  () => loadingTrending.value || loadingBacklog.value || loadingAdd.value,
 );
 </script>

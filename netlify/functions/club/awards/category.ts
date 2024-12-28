@@ -7,7 +7,7 @@ import { Router } from "../../utils/router";
 import { BaseClubAwards } from "@/common/types/awards";
 
 const router = new Router(
-  "/api/club/:clubId<\\d+>/awards/:year<\\d+>/category"
+  "/api/club/:clubId<\\d+>/awards/:year<\\d+>/category",
 );
 router.post(
   "/",
@@ -20,16 +20,16 @@ router.post(
     const { faunaClient, q } = getFaunaClient();
 
     await faunaClient.query(
-      updateClubAwardYear(clubId!, year!, {
+      updateClubAwardYear(clubId, year, {
         awards: q.Append(
           [{ title: body.title, nominations: [] }],
-          q.Select("awards", q.Var("awardYear"))
+          q.Select("awards", q.Var("awardYear")),
         ),
-      })
+      }),
     );
 
     return ok();
-  }
+  },
 );
 
 router.put(
@@ -47,31 +47,31 @@ router.put(
       q.Select(
         0,
         q.Filter(
-          q.Select(["data", "clubAwards"], getClubDocument(clubId!)),
-          q.Lambda("x", q.Equals(q.Select(["year"], q.Var("x")), year!))
+          q.Select(["data", "clubAwards"], getClubDocument(clubId)),
+          q.Lambda("x", q.Equals(q.Select(["year"], q.Var("x")), year)),
         ),
-        null
-      )
+        null,
+      ),
     );
 
     if (clubAwards) {
       const updatedAwards = categories.map((category) =>
-        clubAwards.awards.find((award) => award.title === category)
+        clubAwards.awards.find((award) => award.title === category),
       );
       if (updatedAwards.some((award) => !award)) {
         return badRequest(
-          "One or more of the category titles you provided does not exist"
+          "One or more of the category titles you provided does not exist",
         );
       }
 
       await faunaClient.query(
-        updateClubAwardYear(clubId!, year!, { awards: updatedAwards })
+        updateClubAwardYear(clubId, year, { awards: updatedAwards }),
       );
       return ok();
     } else {
       return notFound();
     }
-  }
+  },
 );
 
 router.delete(
@@ -82,19 +82,19 @@ router.delete(
     const { faunaClient, q } = getFaunaClient();
 
     await faunaClient.query(
-      updateClubAwardYear(clubId!, year!, {
+      updateClubAwardYear(clubId, year, {
         awards: q.Filter(
           q.Select("awards", q.Var("awardYear")),
           q.Lambda(
             "award",
-            q.Not(q.Equals(q.Select("title", q.Var("award")), awardTitle))
-          )
+            q.Not(q.Equals(q.Select("title", q.Var("award")), awardTitle)),
+          ),
         ),
-      })
+      }),
     );
 
     return ok();
-  }
+  },
 );
 
 export default router;

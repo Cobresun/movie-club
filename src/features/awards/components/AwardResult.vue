@@ -1,6 +1,6 @@
 <template>
-  <div class="flex justify-between mb-2">
-    <h3 class="text-xl font-bold text-left">{{ award.title }}</h3>
+  <div class="mb-2 flex justify-between">
+    <h3 class="text-left text-xl font-bold">{{ award.title }}</h3>
     <v-btn v-show="!showResult" @click="revealResult">Reveal</v-btn>
   </div>
   <transition-group
@@ -21,7 +21,7 @@
           <div
             v-for="member in members"
             :key="member.name"
-            class="flex items-center bg-lowBackground rounded-3xl"
+            class="flex items-center rounded-3xl bg-lowBackground"
           >
             <v-avatar :size="32" :name="member.name" :src="member.image" />
             <div class="flex-grow text-sm">
@@ -61,13 +61,13 @@ const nominationsWithScore = computed(() =>
       score: Object.keys(nomination.ranking).reduce(
         (currentScore, rankingKey) =>
           currentScore + nomination.ranking[rankingKey],
-        0
+        0,
       ),
     }))
-    .sort((nomA, nomB) => nomA.score - nomB.score)
+    .sort((nomA, nomB) => nomA.score - nomB.score),
 );
 
 const maxScore = computed(() =>
-  Math.min(...nominationsWithScore.value.map((nomination) => nomination.score))
+  Math.min(...nominationsWithScore.value.map((nomination) => nomination.score)),
 );
 </script>

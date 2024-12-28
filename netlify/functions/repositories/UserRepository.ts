@@ -29,7 +29,7 @@ class UserRepository {
         .selectFrom("user")
         .selectAll()
         .where((eb) =>
-          eb.or([eb("email", "=", email), eb("username", "=", username)])
+          eb.or([eb("email", "=", email), eb("username", "=", username)]),
         )
         .execute()
     )[0];

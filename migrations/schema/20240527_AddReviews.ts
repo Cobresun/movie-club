@@ -8,7 +8,7 @@ export async function up(db: Kysely<unknown>) {
     .addColumn("list_id", "int8", (col) => col.notNull())
     .addColumn("user_id", "int8", (col) => col.notNull())
     .addColumn("created_date", "timestamptz", (col) =>
-      col.notNull().defaultTo("now()")
+      col.notNull().defaultTo("now()"),
     )
     .addColumn("score", "decimal", (col) => col.notNull())
     .addForeignKeyConstraint(
@@ -16,14 +16,14 @@ export async function up(db: Kysely<unknown>) {
       ["list_id", "work_id"],
       "work_list_item",
       ["list_id", "work_id"],
-      (cb) => cb.onDelete("cascade")
+      (cb) => cb.onDelete("cascade"),
     )
     .addForeignKeyConstraint(
       "fk_review_user_id",
       ["user_id"],
       "user",
       ["id"],
-      (cb) => cb.onDelete("cascade")
+      (cb) => cb.onDelete("cascade"),
     )
     .execute();
 

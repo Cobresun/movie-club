@@ -35,8 +35,8 @@ const migrateReviews = async () => {
   const clubs = await faunaClient.query<Document<Document<Club>[]>>(
     q.Map(
       q.Paginate(q.Documents(q.Collection("clubs"))),
-      q.Lambda("clubRef", q.Get(q.Var("clubRef")))
-    )
+      q.Lambda("clubRef", q.Get(q.Var("clubRef"))),
+    ),
   );
 
   for (const club of clubs.data) {
@@ -49,7 +49,7 @@ const migrateReviews = async () => {
 
     if (!cockroachClub) {
       console.warn(
-        `Club with legacy_id ${club.data.clubId} not found in CockroachDB - skipping migration`
+        `Club with legacy_id ${club.data.clubId} not found in CockroachDB - skipping migration`,
       );
       continue;
     }
@@ -122,7 +122,7 @@ const migrateReviews = async () => {
 
           if (!user) {
             console.warn(
-              `User with username ${username} not found - skipping review score`
+              `User with username ${username} not found - skipping review score`,
             );
             continue;
           }

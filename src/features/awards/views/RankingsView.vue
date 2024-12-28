@@ -1,5 +1,5 @@
 <template>
-  <h2 class="text-2xl font-bold m-4">Rankings</h2>
+  <h2 class="m-4 text-2xl font-bold">Rankings</h2>
   <div v-if="!user">Please log in to rank movies!</div>
   <AwardRanking
     v-for="award in clubAward.awards"
@@ -36,7 +36,7 @@ const toast = useToast();
 const submitRanking = (award: Award, movies: number[]) => {
   mutate(
     { awardTitle: award.title, movies },
-    { onSuccess: () => toast.success(`Submitted ${award.title} ranking!`) }
+    { onSuccess: () => toast.success(`Submitted ${award.title} ranking!`) },
   );
 };
 </script>

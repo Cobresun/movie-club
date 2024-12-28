@@ -3,11 +3,11 @@
     <div
       role="switch"
       :aria-checked="modelValue"
-      class="relative w-12 h-6 bg-primary rounded-full shadow-inner cursor-pointer"
+      class="relative h-6 w-12 cursor-pointer rounded-full bg-primary shadow-inner"
       @click="emit('update:modelValue', !modelValue)"
     >
       <div
-        class="absolute mt-1 ml-1 w-4 h-4 rounded-full bg-white transition-all"
+        class="absolute ml-1 mt-1 h-4 w-4 rounded-full bg-white transition-all"
         :class="{ 'translate-x-6': modelValue }"
       ></div>
     </div>

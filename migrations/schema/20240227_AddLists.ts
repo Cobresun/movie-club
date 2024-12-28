@@ -14,7 +14,7 @@ export async function up(db: Kysely<unknown>) {
       ["club_id"],
       "club",
       ["id"],
-      (cb) => cb.onDelete("cascade")
+      (cb) => cb.onDelete("cascade"),
     )
     .addColumn("type", sql`work_type`, (col) => col.notNull())
     .addColumn("title", "varchar(255)", (col) => col.notNull())
@@ -38,7 +38,7 @@ export async function up(db: Kysely<unknown>) {
       ["club_id"],
       "club",
       ["id"],
-      (cb) => cb.onDelete("cascade")
+      (cb) => cb.onDelete("cascade"),
     )
     .addColumn("type", sql`work_list_type`, (col) => col.notNull())
     .addColumn("title", "varchar(255)")
@@ -57,14 +57,14 @@ export async function up(db: Kysely<unknown>) {
       ["list_id"],
       "work_list",
       ["id"],
-      (cb) => cb.onDelete("cascade")
+      (cb) => cb.onDelete("cascade"),
     )
     .addForeignKeyConstraint(
       "fk_work_list_item_work_id",
       ["work_id"],
       "work",
       ["id"],
-      (cb) => cb.onDelete("restrict")
+      (cb) => cb.onDelete("restrict"),
     )
     .execute();
 

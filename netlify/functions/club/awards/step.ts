@@ -16,10 +16,10 @@ router.put(
     const step = parseInt(body.step);
     const { faunaClient } = getFaunaClient();
 
-    await faunaClient.query(updateClubAwardYear(clubId!, year!, { step }));
+    await faunaClient.query(updateClubAwardYear(clubId, year, { step }));
 
     return ok();
-  }
+  },
 );
 
 export default router;

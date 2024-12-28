@@ -7,12 +7,14 @@
     />
     <loading-spinner v-if="loading" />
 
-    <div class="flex items-center justify-center sticky top-0 z-50 bg-background py-4">
-      <div class="w-11/12 relative flex gap-4">
-        <div class="flex-1 relative">
+    <div
+      class="sticky top-0 z-50 flex items-center justify-center bg-background py-4"
+    >
+      <div class="relative flex w-11/12 gap-4">
+        <div class="relative flex-1">
           <mdicon
             name="magnify"
-            class="absolute pl-4 top-1/2 -translate-y-1/2 transform text-slate-200"
+            class="absolute top-1/2 -translate-y-1/2 transform pl-4 text-slate-200"
           />
           <input
             ref="searchInput"
@@ -27,13 +29,16 @@
             @click="toggle"
             @mouseenter="showTooltip = true"
             @mouseleave="showTooltip = false"
-          >{{ normButtonText }}</v-btn>
+            >{{ normButtonText }}</v-btn
+          >
           <div
             v-if="showTooltip"
-            class="absolute z-10 p-2 bg-gray-800 text-sm text-gray-300 rounded-md shadow-lg -left-64 top-12 w-72"
+            class="absolute -left-64 top-12 z-10 w-72 rounded-md bg-gray-800 p-2 text-sm text-gray-300 shadow-lg"
           >
-            Normalizing scores adjusts each member's ratings to account for their different scoring patterns. 
-            A normalized score of 0 means average, while lower and higher values indicate scores below and above your usual rating.
+            Normalizing scores adjusts each member's ratings to account for
+            their different scoring patterns. A normalized score of 0 means
+            average, while lower and higher values indicate scores below and
+            above your usual rating.
           </div>
         </div>
       </div>
@@ -41,17 +46,17 @@
 
     <div v-if="!loading">
       <br />
-      <ag-charts-vue :options="histChartOptions"></ag-charts-vue>
+      <ag-charts-vue :options="histChartOptions" />
       <br />
-      <ag-charts-vue :options="scoreChartOptions"></ag-charts-vue>
+      <ag-charts-vue :options="scoreChartOptions" />
       <br />
-      <ag-charts-vue :options="budgetChartOptions"></ag-charts-vue>
+      <ag-charts-vue :options="budgetChartOptions" />
       <br />
-      <ag-charts-vue :options="revenueChartOptions"></ag-charts-vue>
+      <ag-charts-vue :options="revenueChartOptions" />
       <br />
-      <ag-charts-vue :options="dateChartOptions"></ag-charts-vue>
+      <ag-charts-vue :options="dateChartOptions" />
       <br />
-      <ag-charts-vue :options="genreChartOptions"></ag-charts-vue>
+      <ag-charts-vue :options="genreChartOptions" />
       <br />
 
       <!-- <v-select
@@ -75,11 +80,14 @@
 </template>
 
 <script setup lang="ts">
-import { AgHistogramSeriesTooltipRendererParams, AgBarSeriesTooltipRendererParams } from "ag-charts-community";
+import {
+  AgHistogramSeriesTooltipRendererParams,
+  AgBarSeriesTooltipRendererParams,
+} from "ag-charts-community";
 import { AgChartsVue } from "ag-charts-vue3";
 import { DateTime } from "luxon";
 import { ref, computed, watch, h } from "vue";
-import { filterMovies } from '@/common/searchMovies';
+import { filterMovies } from "@/common/searchMovies";
 import VAvatar from "@/common/components/VAvatar.vue";
 import AverageImg from "@/assets/images/average.svg";
 import MovieTooltip from "@/features/reviews/components/MovieTooltip.vue";
@@ -159,32 +167,34 @@ const filteredMovieData = computed(() => {
 });
 
 const fetchMovieData = (reviews: DetailedReviewListItem[]) => {
-  return reviews.map((review) => {
-    if (!review.externalData) return null;
-    
-    return {
-      title: review.title,
-      dateWatched: DateTime.fromISO(review.createdDate).toLocaleString(),
-      ...Object.keys(review.scores).reduce<Record<string, number>>(
-        (acc, key) => {
-          acc[key] = review.scores[key].score ?? 0;
-          return acc;
-        },
-        {},
-      ),
-      // Map the new external data structure
-      imageUrl: review.imageUrl,
-      createdDate: review.createdDate,
-      vote_average: review.externalData.vote_average,
-      revenue: review.externalData.revenue,
-      budget: review.externalData.budget,
-      release_date: review.externalData.release_date,
-      genres: review.externalData.genres,
-      production_companies: review.externalData.production_companies,
-      production_countries: review.externalData.production_countries,
-      externalData: review.externalData,
-    };
-  }).filter(Boolean); // Remove any null entries
+  return reviews
+    .map((review) => {
+      if (!review.externalData) return null;
+
+      return {
+        title: review.title,
+        dateWatched: DateTime.fromISO(review.createdDate).toLocaleString(),
+        ...Object.keys(review.scores).reduce<Record<string, number>>(
+          (acc, key) => {
+            acc[key] = review.scores[key].score ?? 0;
+            return acc;
+          },
+          {},
+        ),
+        // Map the new external data structure
+        imageUrl: review.imageUrl,
+        createdDate: review.createdDate,
+        vote_average: review.externalData.vote_average,
+        revenue: review.externalData.revenue,
+        budget: review.externalData.budget,
+        release_date: review.externalData.release_date,
+        genres: review.externalData.genres,
+        production_companies: review.externalData.production_companies,
+        production_countries: review.externalData.production_countries,
+        externalData: review.externalData,
+      };
+    })
+    .filter(Boolean); // Remove any null entries
 };
 
 const generateCustomChart = () => {
@@ -201,25 +211,30 @@ const generateCustomChart = () => {
     movieData: movieData.value,
     normalizeX: false,
     normalizeY: false,
-    normalizeToggled: normalize.value
+    normalizeToggled: normalize.value,
   });
 };
 const generateGenreChart = () => {
   // Aggregate scores by genre
-  const genreScores = movieData.value.reduce((acc, movie) => {
-    movie.genres.forEach((genre: string) => {
-      if (movie.average) {
-        if (!acc[genre]) {
-          acc[genre] = { count: 0, totalScore: 0 };
+  const genreScores = movieData.value.reduce(
+    (acc, movie) => {
+      movie.genres.forEach((genre: string) => {
+        if (movie.average) {
+          if (!acc[genre]) {
+            acc[genre] = { count: 0, totalScore: 0 };
+          }
+          acc[genre].count++;
+          acc[genre].totalScore += movie.average ?? 0;
         }
-        acc[genre].count++;
-        acc[genre].totalScore += movie.average ?? 0;
-      }
-    });
-    return acc;
-  }, {} as Record<string, { count: number; totalScore: number }>);
+      });
+      return acc;
+    },
+    {} as Record<string, { count: number; totalScore: number }>,
+  );
 
-  const genreData = Object.entries(genreScores as Record<string, { count: number; totalScore: number }>)
+  const genreData = Object.entries(
+    genreScores as Record<string, { count: number; totalScore: number }>,
+  )
     .map(([genre, data]) => ({
       genre,
       averageScore: (data.totalScore ?? 0) / (data.count ?? 1),
@@ -236,7 +251,7 @@ const generateGenreChart = () => {
       {
         type: "bar",
         xKey: "genre",
-        xName: "Genre", 
+        xName: "Genre",
         yKey: "averageScore",
         yName: "Average Score",
         showInLegend: false,
@@ -265,15 +280,17 @@ const generateGenreChart = () => {
           },
         },
       },
-    ]
+    ],
   };
 };
 
 const availableMetrics = computed(() => {
   if (!movieData.value?.[0]) return [];
-  return Object.keys(movieData.value[0]).filter(key => 
-    typeof movieData.value[0][key] === 'number' ||
-    (typeof movieData.value[0][key] === 'string' && !isNaN(Number(movieData.value[0][key])))
+  return Object.keys(movieData.value[0]).filter(
+    (key) =>
+      typeof movieData.value[0][key] === "number" ||
+      (typeof movieData.value[0][key] === "string" &&
+        !isNaN(Number(movieData.value[0][key]))),
   );
 });
 
@@ -284,24 +301,24 @@ const loadChartOptions = async () => {
   try {
     chartLoadingStates.value.histogram = true;
     // Filter the histogram data based on the filtered movies
-    const filteredHistData = histogramData.value.map(bin => {
+    const filteredHistData = histogramData.value.map((bin) => {
       const filtered = { ...bin };
-      members.value.forEach(member => {
+      members.value.forEach((member) => {
         filtered[member.id] = 0;
       });
       return filtered;
     });
-    const filteredHistNormData = histogramNormData.value.map(bin => {
+    const filteredHistNormData = histogramNormData.value.map((bin) => {
       const filtered = { ...bin };
-      members.value.forEach(member => {
+      members.value.forEach((member) => {
         filtered[member.id] = 0;
       });
       return filtered;
     });
 
     // Populate the filtered histogram data
-    filteredMovieData.value.forEach(movie => {
-      members.value.forEach(member => {
+    filteredMovieData.value.forEach((movie) => {
+      members.value.forEach((member) => {
         const score = Math.floor(movie[member.id]);
         if (!isNaN(score)) {
           filteredHistData[score][member.id] += 1;
@@ -326,13 +343,16 @@ const loadChartOptions = async () => {
           yName: member.name,
           showInLegend: true,
           tooltip: {
-            renderer: function (params: AgHistogramSeriesTooltipRendererParams) {
+            renderer: function (
+              params: AgHistogramSeriesTooltipRendererParams,
+            ) {
               return (
                 '<div class="ag-chart-tooltip-title" ' +
                 'style="background-color:' +
                 params.color +
                 '">' +
-                members.value.find(member => member.id === params.yKey)?.name +
+                members.value.find((member) => member.id === params.yKey)
+                  ?.name +
                 "</div>" +
                 '<div class="ag-chart-tooltip-content">' +
                 params.xName +
@@ -368,13 +388,16 @@ const loadChartOptions = async () => {
       ],
     };
     chartLoadingStates.value.histogram = false;
-    
+
     // Special handling for TMDB score chart where TMDB score is available
-    const validTMDBData = filteredMovieData.value.filter(movie => 
-      movie.vote_average && movie.vote_average > 0 && 
-      movie.average && movie.average > 0
+    const validTMDBData = filteredMovieData.value.filter(
+      (movie) =>
+        movie.vote_average &&
+        movie.vote_average > 0 &&
+        movie.average &&
+        movie.average > 0,
     );
-    
+
     scoreChartOptions.value = loadDefaultChartSettings({
       chartTitle: "Score vs TMDB Audience Score",
       xName: "TMDB Audience Score",
@@ -425,7 +448,7 @@ const loadChartOptions = async () => {
 
     genreChartOptions.value = generateGenreChart();
   } catch (error) {
-    console.error('Error loading charts:', error);
+    console.error("Error loading charts:", error);
   }
 };
 
@@ -472,12 +495,16 @@ const calculateStatistics = () => {
     avg = avg / members.value.length;
 
     movieData.value[i]["averageNorm"] = Math.round(avg * 100) / 100;
-    movieData.value[i]["vote_average"] = parseFloat(movieData.value[i]["vote_average"]);
-    movieData.value[i]["release_year"] = movieData.value[i]["release_date"] 
+    movieData.value[i]["vote_average"] = parseFloat(
+      movieData.value[i]["vote_average"],
+    );
+    movieData.value[i]["release_year"] = movieData.value[i]["release_date"]
       ? parseInt(movieData.value[i]["release_date"].substring(0, 4))
       : null;
-    movieData.value[i]["revenueMil"] = (movieData.value[i]["revenue"] ?? 0) / 1000000;
-    movieData.value[i]["budgetMil"] = (movieData.value[i]["budget"] ?? 0) / 1000000;
+    movieData.value[i]["revenueMil"] =
+      (movieData.value[i]["revenue"] ?? 0) / 1000000;
+    movieData.value[i]["budgetMil"] =
+      (movieData.value[i]["budget"] ?? 0) / 1000000;
     movieData.value[i]["vote_averageNorm"] = tmbd_norm[i];
   }
   loadChartOptions();
@@ -527,22 +554,27 @@ const headers = computed(() => {
 });
 
 // Add a watch on filteredMovieData to trigger chart updates
-watch(filteredMovieData, () => {
-  if (filteredMovieData.value) {
-    loadChartOptions();
-  }
-}, { immediate: true });
+watch(
+  filteredMovieData,
+  () => {
+    if (filteredMovieData.value) {
+      loadChartOptions();
+    }
+  },
+  { immediate: true },
+);
 
 const columnHelper = createColumnHelper<any>();
 
 const columns = computed(() => [
   columnHelper.accessor("title", {
     header: "Title",
-    cell: (info) => h(MovieTooltip, {
-      title: info.getValue(),
-      imageUrl: info.row.original.imageUrl,
-      movie: info.row.original.externalData
-    }),
+    cell: (info) =>
+      h(MovieTooltip, {
+        title: info.getValue(),
+        imageUrl: info.row.original.imageUrl,
+        movie: info.row.original.externalData,
+      }),
     meta: {
       class: "font-bold",
     },
@@ -553,25 +585,27 @@ const columns = computed(() => [
   ...members.value.map((member) =>
     columnHelper.accessor(normName(member.id), {
       id: normName(member.id),
-      header: () => h(VAvatar, {
-        src: member.image,
-        name: member.name,
-      }),
+      header: () =>
+        h(VAvatar, {
+          src: member.image,
+          name: member.name,
+        }),
       cell: (info) => {
         const value = info.getValue();
-        return value !== undefined ? Math.round(value * 100) / 100 : '';
+        return value !== undefined ? Math.round(value * 100) / 100 : "";
       },
       sortUndefined: "last",
     }),
   ),
   columnHelper.accessor(normName(), {
-    header: () => h("img", { 
-      src: AverageImg, 
-      class: "h-12 w-16 max-w-none" 
-    }),
+    header: () =>
+      h("img", {
+        src: AverageImg,
+        class: "h-12 w-16 max-w-none",
+      }),
     cell: (info) => {
       const value = info.getValue();
-      return value !== undefined ? Math.round(value * 100) / 100 : '';
+      return value !== undefined ? Math.round(value * 100) / 100 : "";
     },
     sortUndefined: "last",
   }),
@@ -579,7 +613,7 @@ const columns = computed(() => [
     header: "TMDB",
     cell: (info) => {
       const value = info.getValue();
-      return value !== undefined ? Math.round(value * 100) / 100 : '';
+      return value !== undefined ? Math.round(value * 100) / 100 : "";
     },
   }),
 ]);

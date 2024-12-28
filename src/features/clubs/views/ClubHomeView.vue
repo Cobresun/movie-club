@@ -1,7 +1,7 @@
 <template>
   <div>
     <page-header :has-back="false" page-name="" />
-    <div class="flex justify-center pb-6 flex-col md:flex-row">
+    <div class="flex flex-col justify-center pb-6 md:flex-row">
       <div class="p-3">
         <router-link :to="{ name: 'Reviews' }">
           <menu-card :image="reviewSvg"> Reviews </menu-card>

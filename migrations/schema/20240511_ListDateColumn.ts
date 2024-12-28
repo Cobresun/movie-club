@@ -9,7 +9,7 @@ export async function up(db: Kysely<unknown>) {
   await db.schema
     .alterTable("work_list_item")
     .addColumn("time_added", "timestamptz", (col) =>
-      col.notNull().defaultTo("now()")
+      col.notNull().defaultTo("now()"),
     )
     .execute();
 }

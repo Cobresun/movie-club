@@ -14,11 +14,18 @@
     "skipLibCheck": true,
     "types": ["node", "vitest/globals"],
     "paths": {
-    "@/*": [
-      "./src/*"
-    ]
-  }
+      "@/*": ["./src/*"]
+    }
   },
-  "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.tsx", "src/**/*.vue", "netlify/functions/**/*.ts", "netlify/functions/**/*.d.ts"],
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.d.ts",
+    "src/**/*.tsx",
+    "src/**/*.vue",
+    "netlify/functions/**/*.ts",
+    "netlify/functions/**/*.d.ts",
+    "migrations/**/*.ts",
+    "migrations/**/*.d.ts"
+  ],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

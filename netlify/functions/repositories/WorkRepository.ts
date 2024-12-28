@@ -49,20 +49,22 @@ class WorkRepository {
         (oc) =>
           oc
             .constraint("uq_club_id_type_external_id")
-            .doUpdateSet({ club_id: clubId }) // This is a no-op, but required for the query to return the id
+            .doUpdateSet({ club_id: clubId }), // This is a no-op, but required for the query to return the id
       )
       .returning("id")
       .executeTakeFirst();
 
     // If it's a movie with an external ID, fetch and store its details
     if (work.type === "movie" && work.externalId) {
-      const [movieDetails] = await getDetailedWorks([{
-        id: insertedWork!.id,
-        title: work.title,
-        type: work.type,
-        externalId: work.externalId,
-        createdDate: new Date().toISOString(),
-      }]);
+      const [movieDetails] = await getDetailedWorks([
+        {
+          id: insertedWork!.id,
+          title: work.title,
+          type: work.type,
+          externalId: work.externalId,
+          createdDate: new Date().toISOString(),
+        },
+      ]);
 
       if (movieDetails?.externalData) {
         // Insert movie details
@@ -90,9 +92,7 @@ class WorkRepository {
             tagline: movieDetails.externalData.tagline,
             title: movieDetails.externalData.title,
           })
-          .onConflict((oc) => 
-            oc.column("external_id").doNothing()
-          )
+          .onConflict((oc) => oc.column("external_id").doNothing())
           .execute();
 
         // Insert genres
@@ -103,10 +103,10 @@ class WorkRepository {
               movieDetails.externalData.genres.map((g) => ({
                 external_id: work.externalId!,
                 genre_name: g.name,
-              }))
+              })),
             )
-            .onConflict((oc) => 
-              oc.columns(["external_id", "genre_name"]).doNothing()
+            .onConflict((oc) =>
+              oc.columns(["external_id", "genre_name"]).doNothing(),
             )
             .execute();
         }
@@ -121,10 +121,10 @@ class WorkRepository {
                 company_name: c.name,
                 logo_path: c.logo_path,
                 origin_country: c.origin_country,
-              }))
+              })),
             )
-            .onConflict((oc) => 
-              oc.columns(["external_id", "company_name"]).doNothing()
+            .onConflict((oc) =>
+              oc.columns(["external_id", "company_name"]).doNothing(),
             )
             .execute();
         }
@@ -138,10 +138,10 @@ class WorkRepository {
                 external_id: work.externalId!,
                 country_code: c.iso_3166_1,
                 country_name: c.name,
-              }))
+              })),
             )
-            .onConflict((oc) => 
-              oc.columns(["external_id", "country_code"]).doNothing()
+            .onConflict((oc) =>
+              oc.columns(["external_id", "country_code"]).doNothing(),
             )
             .execute();
         }

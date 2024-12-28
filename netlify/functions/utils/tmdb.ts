@@ -12,7 +12,7 @@ import {
 async function makeTMDBApiCall<T>(path: string) {
   const tmdbApiKey = process.env.TMDB_API_KEY;
   return axios.get<T>(
-    `https://api.themoviedb.org/3${path}?api_key=${tmdbApiKey}`
+    `https://api.themoviedb.org/3${path}?api_key=${tmdbApiKey}`,
   );
 }
 
@@ -21,26 +21,26 @@ async function getTMDBConfig() {
 }
 
 export async function getTMDBMovieData(
-  movieId: number
+  movieId: number,
 ): Promise<AxiosResponse<TMDBMovieData>> {
   return makeTMDBApiCall<TMDBMovieData>(`/movie/${movieId}`);
 }
 
 export async function getDetailedMovie<T extends BaseMovie>(
-  movies: T[]
+  movies: T[],
 ): Promise<(T & DetailedMovie)[]> {
   const configuration = await getTMDBConfig();
   return await Promise.all(
     movies.map(async (movie) => {
       const response = await getTMDBMovieData(movie.movieId);
       const tmdbData = response.data;
-      
+
       // Transform TMDBMovieData into DetailedMovieData
       const movieData: DetailedMovieData = {
         adult: tmdbData.adult,
         backdrop_path: tmdbData.backdrop_path,
         budget: tmdbData.budget,
-        genres: tmdbData.genres.map(g => g.name),
+        genres: tmdbData.genres.map((g) => g.name),
         homepage: tmdbData.homepage,
         id: tmdbData.id,
         imdb_id: tmdbData.imdb_id,
@@ -49,12 +49,12 @@ export async function getDetailedMovie<T extends BaseMovie>(
         overview: tmdbData.overview,
         popularity: tmdbData.popularity,
         poster_path: tmdbData.poster_path,
-        production_companies: tmdbData.production_companies.map(c => c.name),
-        production_countries: tmdbData.production_countries.map(c => c.name),
+        production_companies: tmdbData.production_companies.map((c) => c.name),
+        production_countries: tmdbData.production_countries.map((c) => c.name),
         release_date: tmdbData.release_date,
         revenue: tmdbData.revenue,
         runtime: tmdbData.runtime,
-        spoken_languages: tmdbData.spoken_languages.map(l => l.name),
+        spoken_languages: tmdbData.spoken_languages.map((l) => l.name),
         status: tmdbData.status,
         tagline: tmdbData.tagline,
         title: tmdbData.title,
@@ -69,12 +69,12 @@ export async function getDetailedMovie<T extends BaseMovie>(
         movieData,
         posterUrl: `${configuration.data.images.secure_base_url}w154${tmdbData.poster_path}`,
       };
-    })
+    }),
   );
 }
 
 export async function getDetailedWorks<T extends WorkListItem>(
-  works: T[]
+  works: T[],
 ): Promise<(T & ExternalWorkData<TMDBMovieData>)[]> {
   const chunkArray = <T>(array: T[], chunkSize: number): T[][] => {
     const result = [];
@@ -98,9 +98,9 @@ export async function getDetailedWorks<T extends WorkListItem>(
             ...work,
             externalData: response.data,
           };
-        })
+        }),
       );
-    })
+    }),
   );
 
   return processedChunks.flat();

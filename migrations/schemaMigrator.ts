@@ -49,7 +49,7 @@ async function downgrade(migrator: Migrator) {
   results?.forEach((it) => {
     if (it.status === "Success") {
       console.log(
-        `migration "${it.migrationName}" was successfully downgraded`
+        `migration "${it.migrationName}" was successfully downgraded`,
       );
     } else if (it.status === "Error") {
       console.error(`failed to downgrade migration "${it.migrationName}"`);

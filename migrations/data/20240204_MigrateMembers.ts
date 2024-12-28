@@ -16,8 +16,8 @@ const migrateUsersAndMemberships = async () => {
   >(
     q.Map(
       q.Paginate(q.Documents(q.Collection("members"))),
-      q.Lambda("memberRef", q.Get(q.Var("memberRef")))
-    )
+      q.Lambda("memberRef", q.Get(q.Var("memberRef"))),
+    ),
   );
 
   // Migrate users
@@ -49,7 +49,7 @@ const migrateUsersAndMemberships = async () => {
         if (club.length > 0) {
           // Insert club membership into `club_member`
           console.log(
-            `Inserting club membership for user ${user.data.name} in club ${clubId}`
+            `Inserting club membership for user ${user.data.name} in club ${clubId}`,
           );
           await db
             .insertInto("club_member")

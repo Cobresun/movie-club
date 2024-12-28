@@ -31,8 +31,8 @@ router.post(
 
     await faunaClient.query(
       updateAward(
-        clubId!,
-        year!,
+        clubId,
+        year,
         awardTitle,
         q.Let(
           {
@@ -56,27 +56,27 @@ router.post(
                           "movie",
                           q.Equals(
                             q.Select("id", q.Var("movie")),
-                            q.Var("movieId")
-                          )
-                        )
-                      )
+                            q.Var("movieId"),
+                          ),
+                        ),
+                      ),
                     ),
                   },
                   q.Merge(q.Var("nomination"), {
                     ranking: q.Merge(q.Var("rankingObj"), {
                       [voter]: q.Var("rank"),
                     }),
-                  })
-                )
-              )
+                  }),
+                ),
+              ),
             ),
-          }
-        )
-      )
+          },
+        ),
+      ),
     );
 
     return ok();
-  }
+  },
 );
 
 export default router;

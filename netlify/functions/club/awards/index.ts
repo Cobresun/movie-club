@@ -22,16 +22,16 @@ router.get(
   validYear,
   async ({ clubAwards }: ClubAwardRequest) => {
     const retObj: ClubAwards = {
-      ...clubAwards!,
+      ...clubAwards,
       awards: await Promise.all(
-        clubAwards!.awards.map(async (award) => ({
+        clubAwards.awards.map(async (award) => ({
           ...award,
           nominations: await getDetailedMovie(award.nominations),
-        }))
+        })),
       ),
     };
     return ok(JSON.stringify(retObj));
-  }
+  },
 );
 
 router.get("/years", async ({ clubId }: LegacyClubRequest) => {
@@ -39,9 +39,9 @@ router.get("/years", async ({ clubId }: LegacyClubRequest) => {
 
   const years = await faunaClient.query(
     q.Map(
-      getClubProperty(clubId!, "clubAwards"),
-      q.Lambda("x", q.Select("year", q.Var("x")))
-    )
+      getClubProperty(clubId, "clubAwards"),
+      q.Lambda("x", q.Select("year", q.Var("x"))),
+    ),
   );
 
   return ok(JSON.stringify(years));

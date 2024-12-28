@@ -34,31 +34,29 @@ const emit = defineEmits<{
 const clubId = useClubId();
 const { data: watchList, isLoading: watchListLoading } = useList(
   clubId,
-  WorkListType.watchlist
+  WorkListType.watchlist,
 );
 
 const watchlistSearchIndex = computed(
   () =>
-    watchList.value?.map(
-      (item) => ({
-        title: item.title,
-        release_date: item.externalData?.release_date ?? "",
-        id: parseInt(item.externalId ?? "-1"),
-        poster_path: item.imageUrl ?? "",
-      })
-    ) ?? []
+    watchList.value?.map((item) => ({
+      title: item.title,
+      release_date: item.externalData?.release_date ?? "",
+      id: parseInt(item.externalId ?? "-1"),
+      poster_path: item.imageUrl ?? "",
+    })) ?? [],
 );
 
 const { mutateAsync: deleteWatchlistItem, isLoading: deleteLoading } =
   useDeleteListItem(clubId, WorkListType.watchlist);
 const { mutateAsync: addReview, isLoading: reviewLoading } = useAddListItem(
   clubId,
-  WorkListType.reviews
+  WorkListType.reviews,
 );
 
 const selectFromWatchList = async (movie: MovieSearchIndex) => {
   const watchlistItem = watchList.value?.find(
-    (item) => item.externalId === movie.id.toString()
+    (item) => item.externalId === movie.id.toString(),
   );
   if (!watchlistItem) return;
   await addReview(
@@ -68,7 +66,7 @@ const selectFromWatchList = async (movie: MovieSearchIndex) => {
       externalId: movie.id.toString(),
       imageUrl: movie.poster_path,
     },
-    { onSuccess: () => emit("close") }
+    { onSuccess: () => emit("close") },
   );
   await deleteWatchlistItem(watchlistItem.id);
 };
@@ -81,11 +79,11 @@ const selectFromSearch = async (movie: MovieSearchIndex) => {
       externalId: movie.id.toString(),
       imageUrl: `${BASE_IMAGE_URL}${movie.poster_path}`,
     },
-    { onSuccess: () => emit("close") }
+    { onSuccess: () => emit("close") },
   );
 };
 
 const loading = computed(
-  () => watchListLoading.value || deleteLoading.value || reviewLoading.value
+  () => watchListLoading.value || deleteLoading.value || reviewLoading.value,
 );
 </script>
