@@ -4,58 +4,57 @@ import { parse } from "lambda-multipart-parser";
 import ClubRepository from "./repositories/ClubRepository";
 import ImageRepository from "./repositories/ImageRepository";
 import UserRepository from "./repositories/UserRepository";
-import { AuthRequest, loggedIn } from "./utils/auth";
-import { badRequest, internalServerError, ok } from "./utils/responses";
+import { loggedIn } from "./utils/auth";
+import { badRequest, ok } from "./utils/responses";
 import { Router } from "./utils/router";
+import { isDefined } from "../../lib/checks/checks.js";
 import { ClubPreview, Member } from "../../lib/types/club";
 
 const router = new Router("/api/member");
 
-router.get("/", loggedIn, async (req: AuthRequest) => {
+router.get("/", loggedIn, async (req, res) => {
   const user = await UserRepository.getByEmail(req.email);
-  if (!user) return internalServerError("User not found");
+
   const result: Member = {
     id: user.id,
     email: user.email,
     name: user.username,
     image: user.image_url ?? undefined,
   };
-  return ok(JSON.stringify(result));
+  return res(ok(JSON.stringify(result)));
 });
 
-router.get("/clubs", loggedIn, async (req: AuthRequest) => {
+router.get("/clubs", loggedIn, async (req, res) => {
   const clubs = await ClubRepository.getClubPreviewsByEmail(req.email);
   const result: ClubPreview[] = clubs.map((club) => ({
     clubId: club.club_id,
     clubName: club.club_name,
   }));
-  return ok(JSON.stringify(result));
+  return res(ok(JSON.stringify(result)));
 });
 
-router.post("/avatar", loggedIn, async (req: AuthRequest) => {
+router.post("/avatar", loggedIn, async (req, res) => {
   try {
     // Parse the multipart/form-data request
     const parsed = await parse(req.event);
-    if (parsed.files.length === 0) return badRequest("No file uploaded");
+    if (parsed.files.length === 0) return res(badRequest("No file uploaded"));
 
     const avatarFile = parsed.files[0];
 
     const user = await UserRepository.getByEmail(req.email);
-    if (!user) return internalServerError("User not found");
-
     const { url, id } = await ImageRepository.upload(avatarFile.content);
 
     // Delete old asset
-    if (user.image_id) {
+    if (isDefined(user.image_id)) {
       await ImageRepository.destroy(user.image_id);
     }
 
     await UserRepository.updateImage(user.id, url, id);
 
-    return ok("Avatar updated successfully");
+    return res(ok("Avatar updated successfully"));
   } catch (error) {
     console.error("Error updating avatar:", error);
-    return badRequest("Error updating avatar");
+    return res(badRequest("Error updating avatar"));
   }
 });
 
@@ -63,7 +62,7 @@ const handler: Handler = async (
   event: HandlerEvent,
   context: HandlerContext,
 ) => {
-  return router.route({ event, context });
+  return router.route({ event, context, params: {} });
 };
 
 export { handler };

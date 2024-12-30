@@ -1,26 +1,31 @@
+import { z } from "zod";
+
 import { ClubAwardRequest, updateAward } from "./utils";
+import { hasValue } from "../../../../lib/checks/checks.js";
 import { securedLegacy } from "../../utils/auth";
 import { getFaunaClient } from "../../utils/fauna";
 import { badRequest, ok } from "../../utils/responses";
 import { Router } from "../../utils/router";
 
-const router = new Router("/api/club/:clubId<\\d+>/awards/:year<\\d+>/ranking");
+const router = new Router<ClubAwardRequest>(
+  "/api/club/:clubId<\\d+>/awards/:year<\\d+>/ranking",
+);
+
+const addRankingSchema = z.object({
+  awardTitle: z.string(),
+  movies: z.array(z.number()),
+  voter: z.string(),
+});
 
 router.post(
   "/",
-  securedLegacy,
-  async ({ event, clubId, year }: ClubAwardRequest) => {
-    if (!event.body) return badRequest("Missing body");
-    const body = JSON.parse(event.body);
-    if (!body.awardTitle) return badRequest("Missing award title in body");
-    if (!body.voter) return badRequest("Missing voter in body");
-    if (!body.movies) return badRequest("Missing movies in body");
+  securedLegacy<ClubAwardRequest>,
+  async ({ event, clubId, year }, res) => {
+    if (!hasValue(event.body)) return res(badRequest("Missing body"));
+    const body = addRankingSchema.safeParse(JSON.parse(event.body));
+    if (!body.success) return res(badRequest("Invalid body"));
 
-    const {
-      awardTitle,
-      movies,
-      voter,
-    }: { awardTitle: string; movies: number[]; voter: string } = body;
+    const { awardTitle, movies, voter } = body.data;
 
     const moviesWithRanking = movies.map((id, index) => ({
       id,
@@ -75,7 +80,7 @@ router.post(
       ),
     );
 
-    return ok();
+    return res(ok());
   },
 );
 

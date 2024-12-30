@@ -9,7 +9,7 @@ class UserRepository {
       .selectFrom("user")
       .selectAll()
       .where("email", "=", email)
-      .executeTakeFirst();
+      .executeTakeFirstOrThrow();
   }
 
   async getMembersByClubId(clubId: string) {
