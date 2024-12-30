@@ -56,8 +56,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
 import { DateTime } from "luxon";
+import { computed } from "vue";
 
 interface MovieProps {
   poster_path?: string;

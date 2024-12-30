@@ -1,13 +1,13 @@
 import axios, { AxiosResponse } from "axios";
 
-import { ExternalWorkData, WorkListItem } from "@/common/types/lists";
+import { ExternalWorkData, WorkListItem } from "../../../lib/types/lists";
 import {
   BaseMovie,
   DetailedMovie,
   DetailedMovieData,
   TMDBConfig,
   TMDBMovieData,
-} from "@/common/types/movie";
+} from "../../../lib/types/movie";
 
 async function makeTMDBApiCall<T>(path: string) {
   const tmdbApiKey = process.env.TMDB_API_KEY;

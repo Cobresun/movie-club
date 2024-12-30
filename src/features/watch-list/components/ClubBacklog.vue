@@ -45,11 +45,11 @@ import { computed, ref } from "vue";
 import { useToast } from "vue-toastification";
 
 import AddMovieToWatchlistPrompt from "./AddMovieToWatchlistPrompt.vue";
+import { WorkListType } from "../../../../lib/types/generated/db";
+import { DetailedWorkListItem } from "../../../../lib/types/lists";
 
 import MoviePosterCard from "@/common/components/MoviePosterCard.vue";
 import { filterMovies } from "@/common/searchMovies";
-import { WorkListType } from "@/common/types/generated/db";
-import { DetailedWorkListItem } from "@/common/types/lists";
 import { useClubId } from "@/service/useClub";
 import { useAddListItem, useDeleteListItem, useList } from "@/service/useList";
 

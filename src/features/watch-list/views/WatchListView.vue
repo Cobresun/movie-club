@@ -42,10 +42,10 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from "vue";
 
+import { WorkListType } from "../../../../lib/types/generated/db";
 import ClubBacklog from "../components/ClubBacklog.vue";
 import WatchList from "../components/WatchList.vue";
 
-import { WorkListType } from "@/common/types/generated/db";
 import { useClubId } from "@/service/useClub";
 import { useList } from "@/service/useList";
 

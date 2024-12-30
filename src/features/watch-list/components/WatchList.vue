@@ -43,13 +43,13 @@ import { computed } from "vue";
 import { useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
 
+import { WorkListType, WorkType } from "../../../../lib/types/generated/db";
+import { DetailedWorkListItem } from "../../../../lib/types/lists";
 import { useAnimateRandom } from "../composables/useAnimateRandom";
 
 import MoviePosterCard from "@/common/components/MoviePosterCard.vue";
 import { BadRequest } from "@/common/errorCodes";
 import { filterMovies } from "@/common/searchMovies";
-import { WorkListType, WorkType } from "@/common/types/generated/db";
-import { DetailedWorkListItem } from "@/common/types/lists";
 import { useClubId } from "@/service/useClub";
 import {
   useDeleteListItem,

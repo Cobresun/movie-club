@@ -104,10 +104,10 @@ import {
   loadDefaultChartSettings,
   createHistogramData,
 } from "./StatisticsUtils";
+import { Header } from "../../../lib/types/common";
+import { WorkListType } from "../../../lib/types/generated/db";
+import { DetailedReviewListItem } from "../../../lib/types/lists";
 
-import { Header } from "@/common/types/common";
-import { WorkListType } from "@/common/types/generated/db";
-import { DetailedReviewListItem } from "@/common/types/lists";
 import { useMembers, useClub, useClubId } from "@/service/useClub";
 import { useList } from "@/service/useList";
 

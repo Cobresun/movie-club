@@ -1,3 +1,4 @@
+import { WorkListType } from "../../../lib/types/generated/db";
 import ListRepository from "../repositories/ListRepository";
 import ReviewRepository from "../repositories/ReviewRepository";
 import UserRepository from "../repositories/UserRepository";
@@ -5,8 +6,6 @@ import { AuthRequest, secured } from "../utils/auth";
 import { badRequest, internalServerError, ok } from "../utils/responses";
 import { Router } from "../utils/router";
 import { ClubRequest } from "../utils/validation";
-
-import { WorkListType } from "@/common/types/generated/db";
 
 const router = new Router("/api/club/:clubId<\\d+>/reviews");
 

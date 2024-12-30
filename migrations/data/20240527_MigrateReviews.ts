@@ -2,14 +2,10 @@ import { CockroachDialect } from "@cubos/kysely-cockroach";
 import { Kysely } from "kysely";
 import { Pool } from "pg";
 
+import { DB, WorkListType, WorkType } from "../../lib/types/generated/db";
 import { getFaunaClient } from "../../netlify/functions/utils/fauna";
 import { getDetailedMovie } from "../../netlify/functions/utils/tmdb";
 import { Document } from "../../netlify/functions/utils/types";
-import {
-  DB,
-  WorkListType,
-  WorkType,
-} from "../../src/common/types/generated/db";
 
 type Club = {
   clubId: number;

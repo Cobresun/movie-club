@@ -29,10 +29,3 @@ export type DetailedWorkListItem<T = DetailedMovieData> = WorkListItem &
 
 export type DetailedReviewListItem<T = DetailedMovieData> = ReviewListItem &
   ExternalWorkData<T>;
-
-export interface ListInsertDto {
-  type: WorkType;
-  title: string;
-  externalId?: string;
-  imageUrl?: string;
-}

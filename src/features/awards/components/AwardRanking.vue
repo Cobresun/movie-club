@@ -41,9 +41,10 @@
 <script setup lang="ts">
 import { ref } from "vue";
 
+import { Award } from "../../../../lib/types/awards";
+import { Member } from "../../../../lib/types/club";
+
 import MoviePosterCard from "@/common/components/MoviePosterCard.vue";
-import { Award } from "@/common/types/awards";
-import { Member } from "@/common/types/club";
 
 const { award, members, user } = defineProps<{
   award: Award;

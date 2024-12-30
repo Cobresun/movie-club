@@ -69,17 +69,17 @@ import {
   watch,
 } from "vue";
 
+import { WorkListType } from "../../../../lib/types/generated/db";
+import { DetailedReviewListItem } from "../../../../lib/types/lists";
 import { filterMovies } from "../../../common/searchMovies";
 import GalleryView from "../components/GalleryView.vue";
+import MovieTooltip from "../components/MovieTooltip.vue";
 import ReviewScore from "../components/ReviewScore.vue";
 import TableView from "../components/TableView.vue";
-import MovieTooltip from "../components/MovieTooltip.vue";
 
 import AverageImg from "@/assets/images/average.svg";
 import VAvatar from "@/common/components/VAvatar.vue";
 import VToggle from "@/common/components/VToggle.vue";
-import { WorkListType } from "@/common/types/generated/db";
-import { DetailedReviewListItem } from "@/common/types/lists";
 import AddReviewPrompt from "@/features/reviews/components/AddReviewPrompt.vue";
 import { useIsInClub, useMembers } from "@/service/useClub";
 import { useDeleteListItem, useList } from "@/service/useList";

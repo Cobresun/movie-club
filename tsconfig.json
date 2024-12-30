@@ -25,7 +25,8 @@
     "netlify/functions/**/*.ts",
     "netlify/functions/**/*.d.ts",
     "migrations/**/*.ts",
-    "migrations/**/*.d.ts"
+    "migrations/**/*.d.ts",
+    "lib/**/*.ts"
   ],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

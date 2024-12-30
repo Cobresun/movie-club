@@ -12,9 +12,9 @@
 <script setup lang="ts">
 import { ref, toRefs } from "vue";
 
+import { AwardsStep, ClubAwards } from "../../../../lib/types/awards";
 import AwardResult from "../components/AwardResult.vue";
 
-import { AwardsStep, ClubAwards } from "@/common/types/awards";
 import { useUpdateStep } from "@/service/useAwards";
 import { useMembers } from "@/service/useClub";
 

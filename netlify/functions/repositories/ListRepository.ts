@@ -1,8 +1,7 @@
 import { ValueExpression, expressionBuilder } from "kysely";
 
+import { DB, WorkListType } from "../../../lib/types/generated/db";
 import { db } from "../utils/database";
-
-import { DB, WorkListType } from "@/common/types/generated/db";
 
 class ListRepository {
   async getListByType(clubId: string, type: WorkListType) {

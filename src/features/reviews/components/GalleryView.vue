@@ -105,9 +105,10 @@ import {
 import { FlexRender, Row, Table } from "@tanstack/vue-table";
 import { computed } from "vue";
 
+import { Member } from "../../../../lib/types/club";
+import { DetailedReviewListItem } from "../../../../lib/types/lists";
+
 import MoviePosterCard from "@/common/components/MoviePosterCard.vue";
-import { Member } from "@/common/types/club";
-import { DetailedReviewListItem } from "@/common/types/lists";
 
 const props = defineProps<{
   reviewTable: Table<DetailedReviewListItem>;

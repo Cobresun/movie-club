@@ -4,8 +4,8 @@ import { computed } from "vue";
 import { useRoute } from "vue-router";
 
 import { useUserClubs } from "./useUser";
+import { BaseClub, Member } from "../../lib/types/club";
 
-import { BaseClub, Member } from "@/common/types/club";
 import { useAuthStore } from "@/stores/auth";
 
 const fetchClub = async (clubId: string | number) =>

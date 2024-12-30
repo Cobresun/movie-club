@@ -18,9 +18,9 @@
 import { computed, toRefs } from "vue";
 import { useRouter } from "vue-router";
 
+import { AwardsStep } from "../../../../lib/types/awards";
 import { NOMINATIONS_PER_AWARD } from "../constants";
 
-import { AwardsStep } from "@/common/types/awards";
 import { useAwards, useUpdateStep } from "@/service/useAwards";
 import { useMembers } from "@/service/useClub";
 

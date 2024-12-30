@@ -7,8 +7,7 @@ import UserRepository from "./repositories/UserRepository";
 import { AuthRequest, loggedIn } from "./utils/auth";
 import { badRequest, internalServerError, ok } from "./utils/responses";
 import { Router } from "./utils/router";
-
-import { ClubPreview, Member } from "@/common/types/club";
+import { ClubPreview, Member } from "../../lib/types/club";
 
 const router = new Router("/api/member");
 

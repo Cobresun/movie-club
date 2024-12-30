@@ -1,7 +1,7 @@
+import { Member } from "../../lib/types/club";
 import { db } from "../../netlify/functions/utils/database";
 import { getFaunaClient } from "../../netlify/functions/utils/fauna";
 import { Document } from "../../netlify/functions/utils/types";
-import { Member } from "../../src/common/types/club";
 
 const { faunaClient, q } = getFaunaClient();
 

@@ -1,8 +1,7 @@
 import { InsertExpression } from "kysely/dist/cjs/parser/insert-values-parser";
 
+import { DB } from "../../../lib/types/generated/db";
 import { db } from "../utils/database";
-
-import { DB } from "@/common/types/generated/db";
 
 class UserRepository {
   async getByEmail(email: string) {

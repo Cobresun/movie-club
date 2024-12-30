@@ -1,9 +1,8 @@
+import { Member } from "../../../lib/types/club";
 import UserRepository from "../repositories/UserRepository";
 import { ok } from "../utils/responses";
 import { Router } from "../utils/router";
 import { ClubRequest } from "../utils/validation";
-
-import { Member } from "@/common/types/club";
 
 const router = new Router("/api/club/:clubId<\\d+>/members");
 
