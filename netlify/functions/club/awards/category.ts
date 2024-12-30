@@ -1,84 +1,85 @@
+import { z } from "zod";
+
 import { ClubAwardRequest, updateClubAwardYear } from "./utils";
-import { BaseClubAwards } from "../../../../lib/types/awards";
+import { hasValue } from "../../../../lib/checks/checks.js";
 import { securedLegacy } from "../../utils/auth";
-import { getClubDocument, getFaunaClient } from "../../utils/fauna";
-import { badRequest, notFound, ok } from "../../utils/responses";
+import { getFaunaClient } from "../../utils/fauna";
+import { badRequest, ok } from "../../utils/responses";
 import { Router } from "../../utils/router";
 
-const router = new Router(
+const router = new Router<ClubAwardRequest>(
   "/api/club/:clubId<\\d+>/awards/:year<\\d+>/category",
 );
+
+const addCategorySchema = z.object({
+  title: z.string(),
+});
+
 router.post(
   "/",
-  securedLegacy,
-  async ({ event, clubId, year }: ClubAwardRequest) => {
-    if (!event.body) return badRequest("Missing body");
-    const body = JSON.parse(event.body);
-    if (!body.title) return badRequest("Missing title in body");
+  securedLegacy<ClubAwardRequest>,
+  async ({ event, clubId, year }, res) => {
+    if (!hasValue(event.body)) return res(badRequest("Missing body"));
+    const body = addCategorySchema.safeParse(JSON.parse(event.body));
+    if (!body.success) return res(badRequest("Invalid body"));
+    const { title } = body.data;
 
     const { faunaClient, q } = getFaunaClient();
 
     await faunaClient.query(
       updateClubAwardYear(clubId, year, {
         awards: q.Append(
-          [{ title: body.title, nominations: [] }],
+          [{ title, nominations: [] }],
           q.Select("awards", q.Var("awardYear")),
         ),
       }),
     );
 
-    return ok();
+    return res(ok());
   },
 );
 
+const updateCategorySchema = z.object({
+  categories: z.array(z.string()),
+});
+
 router.put(
   "/",
-  securedLegacy,
-  async ({ event, clubId, year }: ClubAwardRequest) => {
-    if (!event.body) return badRequest("Missing body");
-    const body = JSON.parse(event.body);
-    if (!body.categories) return badRequest("Missing categories");
+  securedLegacy<ClubAwardRequest>,
+  async ({ event, clubId, year, clubAwards }, res) => {
+    if (!hasValue(event.body)) return res(badRequest("Missing body"));
+    const body = updateCategorySchema.safeParse(JSON.parse(event.body));
+    if (!body.success) return res(badRequest("Invalid body"));
 
-    const { categories } = body as { categories: string[] };
-    const { faunaClient, q } = getFaunaClient();
+    const { categories } = body.data;
+    const { faunaClient } = getFaunaClient();
 
-    const clubAwards = await faunaClient.query<BaseClubAwards | null>(
-      q.Select(
-        0,
-        q.Filter(
-          q.Select(["data", "clubAwards"], getClubDocument(clubId)),
-          q.Lambda("x", q.Equals(q.Select(["year"], q.Var("x")), year)),
-        ),
-        null,
-      ),
+    const updatedAwards = categories.map((category) =>
+      clubAwards.awards.find((award) => award.title === category),
     );
-
-    if (clubAwards) {
-      const updatedAwards = categories.map((category) =>
-        clubAwards.awards.find((award) => award.title === category),
-      );
-      if (updatedAwards.some((award) => !award)) {
-        return badRequest(
+    if (updatedAwards.some((award) => !award)) {
+      return res(
+        badRequest(
           "One or more of the category titles you provided does not exist",
-        );
-      }
-
-      await faunaClient.query(
-        updateClubAwardYear(clubId, year, { awards: updatedAwards }),
+        ),
       );
-      return ok();
-    } else {
-      return notFound();
     }
+
+    await faunaClient.query(
+      updateClubAwardYear(clubId, year, { awards: updatedAwards }),
+    );
+    return res(ok());
   },
 );
 
 router.delete(
   "/:awardTitle",
-  securedLegacy,
-  async ({ params, year, clubId }: ClubAwardRequest) => {
+  securedLegacy<ClubAwardRequest>,
+  async ({ params, year, clubId }, res) => {
     const awardTitle = params.awardTitle;
     const { faunaClient, q } = getFaunaClient();
+
+    if (!hasValue(awardTitle)) return res(badRequest("Missing award title"));
 
     await faunaClient.query(
       updateClubAwardYear(clubId, year, {
@@ -92,7 +93,7 @@ router.delete(
       }),
     );
 
-    return ok();
+    return res(ok());
   },
 );
 

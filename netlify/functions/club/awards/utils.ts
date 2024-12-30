@@ -1,5 +1,6 @@
 import { ExprArg, query } from "faunadb";
 
+import { hasValue } from "../../../../lib/checks/checks.js";
 import { BaseClubAwards } from "../../../../lib/types/awards";
 import {
   getClubDocument,
@@ -63,13 +64,13 @@ export interface ClubAwardRequest extends LegacyClubRequest {
   clubAwards: BaseClubAwards;
 }
 
-export const validYear: MiddlewareCallback<LegacyClubRequest> = async (
-  req: LegacyClubRequest,
-  next,
-) => {
-  if (!req.params.year) return notFound();
+export const validYear: MiddlewareCallback<
+  LegacyClubRequest,
+  ClubAwardRequest
+> = async (req, res) => {
+  if (!hasValue(req.params.year)) return res(notFound());
   const year = parseInt(req.params.year);
-  if (isNaN(year)) return badRequest();
+  if (isNaN(year)) return res(badRequest());
 
   const { faunaClient, q } = getFaunaClient();
   const clubAwards = await faunaClient.query<BaseClubAwards | null>(
@@ -84,10 +85,12 @@ export const validYear: MiddlewareCallback<LegacyClubRequest> = async (
   );
 
   if (clubAwards) {
-    req.year = year;
-    req.clubAwards = clubAwards;
-    return next();
+    return {
+      ...req,
+      year,
+      clubAwards,
+    };
   } else {
-    return notFound("Awards year not found");
+    return res(notFound("Awards year not found"));
   }
 };

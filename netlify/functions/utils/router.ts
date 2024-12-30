@@ -348,13 +348,18 @@ export class Router<T extends Request = Request> {
     let current: unknown = req;
 
     for (const callback of callbacks) {
-      const result = await callback(current, createRouterResponse);
+      try {
+        const result = await callback(current, createRouterResponse);
 
-      if (isRouterResponse(result)) {
-        return result.response;
+        if (isRouterResponse(result)) {
+          return result.response;
+        }
+
+        current = result;
+      } catch (e) {
+        console.error(e);
+        return internalServerError();
       }
-
-      current = result;
     }
     return internalServerError();
   }
