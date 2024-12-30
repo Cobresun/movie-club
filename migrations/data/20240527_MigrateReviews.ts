@@ -2,6 +2,7 @@ import { CockroachDialect } from "@cubos/kysely-cockroach";
 import { Kysely } from "kysely";
 import { Pool } from "pg";
 
+import { isDefined } from "../../lib/checks/checks.js";
 import { DB, WorkListType, WorkType } from "../../lib/types/generated/db";
 import { getFaunaClient } from "../../netlify/functions/utils/fauna";
 import { getDetailedMovie } from "../../netlify/functions/utils/tmdb";
@@ -61,7 +62,7 @@ const migrateReviews = async () => {
       .returning("id")
       .execute();
 
-    if (club.data.reviews && club.data.reviews.length > 0) {
+    if (isDefined(club.data.reviews) && club.data.reviews.length > 0) {
       for (const review of club.data.reviews) {
         console.log(`Processing review for movie ID ${review.movieId}`);
         let work = await db
@@ -100,7 +101,11 @@ const migrateReviews = async () => {
             })
             .execute();
         } catch (error) {
-          console.error(`Error inserting work_list_item for review: ${error}`);
+          if (error instanceof Error) {
+            console.error(
+              `Error inserting work_list_item for review: ${error.message}`,
+            );
+          }
           continue;
         }
 
@@ -139,4 +144,6 @@ const migrateReviews = async () => {
   }
 };
 
-migrateReviews().then(() => console.log("Reviews migration completed"));
+migrateReviews()
+  .then(() => console.log("Reviews migration completed"))
+  .catch(console.error);

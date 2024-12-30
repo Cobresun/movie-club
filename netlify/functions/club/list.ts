@@ -1,6 +1,6 @@
 import { hasValue } from "../../../lib/checks/checks.js";
 import { WorkListType } from "../../../lib/types/generated/db.js";
-import { listInsertDtoSchema } from "../../../lib/types/ListDto.js";
+import { listInsertDtoSchema } from "../../../lib/types/lists.js";
 import {
   Review,
   ReviewListItem,

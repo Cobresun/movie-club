@@ -1,3 +1,4 @@
+import { isTrue } from "../../lib/checks/checks.js";
 import { Member } from "../../lib/types/club";
 import { db } from "../../netlify/functions/utils/database";
 import { getFaunaClient } from "../../netlify/functions/utils/fauna";
@@ -36,7 +37,7 @@ const migrateUsersAndMemberships = async () => {
       .execute();
 
     // Don't migrate clubs for dev account
-    if (!user.data.devAccount) {
+    if (!isTrue(user.data.devAccount)) {
       // Assuming each user's `clubs` array contains club IDs that need to be migrated
       for (const clubId of user.data.clubs) {
         // Fetch the corresponding club's new ID from CockroachDB using the legacy_id
@@ -65,4 +66,6 @@ const migrateUsersAndMemberships = async () => {
   }
 };
 
-migrateUsersAndMemberships().then(() => console.log("Migration completed"));
+migrateUsersAndMemberships()
+  .then(() => console.log("Migration completed"))
+  .catch(console.error);
