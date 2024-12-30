@@ -1,3 +1,4 @@
+import { isTrue } from "../../../lib/checks/checks.js";
 import { db } from "../utils/database";
 
 class ClubRepository {
@@ -61,7 +62,7 @@ class ClubRepository {
   }
 
   async isUserInClub(clubId: string, email: string, isLegacy?: boolean) {
-    const clubCondition = isLegacy ? "club.legacy_id" : "club.id";
+    const clubCondition = isTrue(isLegacy) ? "club.legacy_id" : "club.id";
     return !!(await db
       .selectFrom("user")
       .where("email", "=", email)

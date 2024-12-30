@@ -1,5 +1,6 @@
 import axios, { AxiosResponse } from "axios";
 
+import { hasValue } from "../../../lib/checks/checks.js";
 import { ExternalWorkData, WorkListItem } from "../../../lib/types/lists";
 import {
   BaseMovie,
@@ -90,7 +91,7 @@ export async function getDetailedWorks<T extends WorkListItem>(
     chunks.map(async (chunk) => {
       return await Promise.all(
         chunk.map(async (work) => {
-          if (!work.externalId) {
+          if (!hasValue(work.externalId)) {
             return work;
           }
           const response = await getTMDBMovieData(parseInt(work.externalId));
