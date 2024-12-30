@@ -6,12 +6,13 @@ import {
 } from "@tanstack/vue-query";
 import axios, { AxiosError } from "axios";
 
-import { WorkListType } from "@/common/types/generated/db";
+import { WorkListType } from "../../lib/types/generated/db.js";
+import { ListInsertDto } from "../../lib/types/ListDto.js";
 import {
   DetailedReviewListItem,
   DetailedWorkListItem,
-  ListInsertDto,
-} from "@/common/types/lists";
+} from "../../lib/types/lists.js";
+
 import { useAuthStore } from "@/stores/auth";
 
 export const BASE_IMAGE_URL = "https://image.tmdb.org/t/p/w154/";

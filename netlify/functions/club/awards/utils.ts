@@ -1,5 +1,6 @@
 import { ExprArg, query } from "faunadb";
 
+import { BaseClubAwards } from "../../../../lib/types/awards";
 import {
   getClubDocument,
   getClubProperty,
@@ -9,8 +10,6 @@ import {
 import { badRequest, notFound } from "../../utils/responses";
 import { MiddlewareCallback } from "../../utils/router";
 import { LegacyClubRequest } from "../../utils/validation";
-
-import { BaseClubAwards } from "@/common/types/awards";
 
 const q = query;
 

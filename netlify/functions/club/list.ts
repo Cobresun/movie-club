@@ -1,39 +1,46 @@
+import { hasValue } from "../../../lib/checks/checks.js";
+import { WorkListType } from "../../../lib/types/generated/db.js";
+import { listInsertDtoSchema } from "../../../lib/types/ListDto.js";
+import {
+  Review,
+  ReviewListItem,
+  WorkListItem,
+} from "../../../lib/types/lists.js";
 import ListRepository, { isWorkListType } from "../repositories/ListRepository";
 import ReviewRepository from "../repositories/ReviewRepository";
-import WorkRepository, { isWorkType } from "../repositories/WorkRepository";
+import WorkRepository from "../repositories/WorkRepository";
 import { secured } from "../utils/auth";
 import { badRequest, internalServerError, ok } from "../utils/responses";
 import { Router } from "../utils/router";
 import { ClubRequest } from "../utils/validation";
 
 import { BadRequest } from "@/common/errorCodes";
-import { WorkListType } from "@/common/types/generated/db";
-import { Review, ReviewListItem, WorkListItem } from "@/common/types/lists";
 
-const router = new Router("/api/club/:clubId<\\d+>/list");
+const router = new Router<ClubRequest>("/api/club/:clubId<\\d+>/list");
 
-router.get("/:type", async ({ clubId, params }: ClubRequest) => {
-  if (!params.type) {
-    return badRequest("No type provided");
+router.get("/:type", async ({ clubId, params }, res) => {
+  if (!hasValue(params.type)) {
+    return res(badRequest("No type provided"));
   }
   const type = params.type;
   if (!isWorkListType(type)) {
-    return badRequest("Invalid type provided");
+    return res(badRequest("Invalid type provided"));
   }
 
   let workList: WorkListItem[];
   switch (type) {
     case WorkListType.watchlist:
     case WorkListType.backlog:
+    case WorkListType.award_nominations:
       workList = await getWorkList(clubId, type);
       break;
     case WorkListType.reviews:
       workList = await getReviewList(clubId);
       break;
     default:
-      return badRequest("Invalid type provided");
+      return res(badRequest("Invalid type provided"));
   }
-  return ok(JSON.stringify(workList));
+  return res(ok(JSON.stringify(workList)));
 });
 
 async function getWorkList(clubId: string, type: WorkListType) {
@@ -45,7 +52,7 @@ async function getWorkList(clubId: string, type: WorkListType) {
     createdDate: item.time_added.toISOString(),
     imageUrl: item.image_url ?? undefined,
     externalId: item.external_id ?? undefined,
-    externalData: item.overview
+    externalData: hasValue(item.overview)
       ? {
           adult: item.adult,
           backdrop_path: item.backdrop_path,
@@ -75,38 +82,35 @@ async function getWorkList(clubId: string, type: WorkListType) {
 
 async function getReviewList(clubId: string): Promise<ReviewListItem[]> {
   const reviews = await ReviewRepository.getReviewList(clubId);
-  const groupedReviews = reviews.reduce<Record<string, (typeof reviews)[0][]>>(
-    (acc, review) => {
-      const key = review.id;
-      if (!acc[key]) {
-        acc[key] = [];
-      }
-      acc[key].push(review);
-      return acc;
-    },
-    {},
-  );
+  const groupedReviews = reviews.reduce((acc, review) => {
+    const key = review.id;
+    let arr = acc.get(key);
+    if (!arr) {
+      arr = [];
+      acc.set(key, arr);
+    }
+    arr.push(review);
+    return acc;
+  }, new Map<string, (typeof reviews)[0][]>());
 
-  return Object.keys(groupedReviews)
-    .map((key) => {
-      const review = groupedReviews[key][0];
-      const userScores: Record<string, Review> = groupedReviews[key]?.reduce(
-        (acc, review) => {
-          if (review.user_id && review.score) {
-            return {
-              ...acc,
-              [review.user_id]: {
-                id: review.review_id,
-                created_date: review.time_added.toISOString(),
-                score: parseFloat(review.score),
-              },
-            };
-          } else {
-            return acc;
-          }
-        },
-        {},
-      );
+  return Array.from(groupedReviews.entries())
+    .map(([key, items]) => {
+      const review = items[0];
+
+      const userScores: Record<string, Review> = items.reduce((acc, review) => {
+        if (hasValue(review.user_id) && hasValue(review.score)) {
+          return {
+            ...acc,
+            [review.user_id]: {
+              id: review.review_id,
+              created_date: review.time_added.toISOString(),
+              score: parseFloat(review.score),
+            },
+          };
+        } else {
+          return acc;
+        }
+      }, {});
 
       let scores: Record<string, Review>;
       if (Object.keys(userScores).length === 0) {
@@ -126,7 +130,7 @@ async function getReviewList(clubId: string): Promise<ReviewListItem[]> {
         };
       }
 
-      const externalData = review.overview
+      const externalData = hasValue(review.overview)
         ? {
             adult: review.adult,
             backdrop_path: review.backdrop_path,
@@ -166,80 +170,70 @@ async function getReviewList(clubId: string): Promise<ReviewListItem[]> {
     .sort((a, b) => b.createdDate.localeCompare(a.createdDate));
 }
 
-router.post(
-  "/:type",
-  secured,
-  async ({ clubId, params, event }: ClubRequest) => {
-    if (!params.type) return badRequest("No type provided");
-    if (!event.body) return badRequest("No body provided");
-    const body = JSON.parse(event.body);
-    if (!body.type || !body.title) return badRequest("Missing required fields");
-    const type = params.type;
-    if (!isWorkListType(type)) {
-      return badRequest("Invalid list type provided");
-    }
+router.post("/:type", secured, async ({ clubId, params, event }, res) => {
+  if (!hasValue(params.type)) return res(badRequest("No type provided"));
+  if (!hasValue(event.body)) return res(badRequest("No body provided"));
+  const body = listInsertDtoSchema.safeParse(JSON.parse(event.body));
+  if (!body.success) return res(badRequest("Invalid body provided"));
 
-    if (!isWorkType(body.type)) return badRequest("Invalid work type provided");
+  const listType = params.type;
+  if (!isWorkListType(listType)) {
+    return res(badRequest("Invalid list type provided"));
+  }
 
-    let workId: string | undefined;
-    if (body.externalId) {
-      const existingWork = await WorkRepository.findByType(
-        clubId,
-        body.type,
-        body.externalId,
-      );
-      workId = existingWork?.id;
-    }
+  const { type, externalId } = body.data;
 
-    if (!workId) {
-      const newWork = await WorkRepository.insert(clubId, body);
-      if (!newWork) return internalServerError("Failed to create work");
-      workId = newWork.id;
-    }
-    const isItemInList = await ListRepository.isItemInList(
+  let workId: string | undefined;
+  if (hasValue(externalId)) {
+    const existingWork = await WorkRepository.findByType(
       clubId,
       type,
-      workId,
+      externalId,
     );
-    if (isItemInList) {
-      return badRequest(BadRequest.ItemInList);
-    }
-    await ListRepository.insertItemInList(clubId, type, workId);
-    return ok();
-  },
-);
+    workId = existingWork?.id;
+  }
 
-router.delete(
-  "/:type/:workId",
-  secured,
-  async ({ clubId, params }: ClubRequest) => {
-    if (!params.type || !params.workId) {
-      return badRequest("No type or workId provided");
+  if (!hasValue(workId)) {
+    const newWork = await WorkRepository.insert(clubId, body.data);
+    if (!newWork) return res(internalServerError("Failed to create work"));
+    workId = newWork.id;
+  }
+  const isItemInList = await ListRepository.isItemInList(
+    clubId,
+    listType,
+    workId,
+  );
+  if (isItemInList) {
+    return res(badRequest(BadRequest.ItemInList));
+  }
+  await ListRepository.insertItemInList(clubId, listType, workId);
+  return res(ok());
+});
+
+router.delete("/:type/:workId", secured, async ({ clubId, params }, res) => {
+  if (!hasValue(params.type) || !hasValue(params.workId)) {
+    return res(badRequest("No type or workId provided"));
+  }
+
+  const type = params.type;
+  if (!isWorkListType(type)) {
+    return res(badRequest("Invalid type provided"));
+  }
+  const workId = params.workId;
+  const isItemInList = await ListRepository.isItemInList(clubId, type, workId);
+  if (!isItemInList) {
+    return res(badRequest("This movie does not exist in the list"));
+  }
+  await ListRepository.deleteItemFromList(clubId, type, workId);
+  try {
+    await WorkRepository.delete(clubId, workId);
+  } catch (e) {
+    const error = e as { constraint?: string };
+    if (error?.constraint !== "fk_work_list_item_work_id") {
+      return res(internalServerError("Failed to delete work"));
     }
-    const type = params.type;
-    if (!isWorkListType(type)) {
-      return badRequest("Invalid type provided");
-    }
-    const workId = params.workId;
-    const isItemInList = await ListRepository.isItemInList(
-      clubId,
-      type,
-      workId,
-    );
-    if (!isItemInList) {
-      return badRequest("This movie does not exist in the list");
-    }
-    await ListRepository.deleteItemFromList(clubId, type, workId);
-    try {
-      await WorkRepository.delete(clubId, workId);
-    } catch (e) {
-      const error = e as { constraint?: string };
-      if (error?.constraint !== "fk_work_list_item_work_id") {
-        return internalServerError("Failed to delete work");
-      }
-    }
-    return ok();
-  },
-);
+  }
+  return res(ok());
+});
 
 export default router;

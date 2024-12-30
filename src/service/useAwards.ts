@@ -8,11 +8,11 @@ import axios, { AxiosError } from "axios";
 import { Ref } from "vue";
 
 import { useUser } from "./useUser";
+import { Award, AwardsStep, ClubAwards } from "../../lib/types/awards";
+import { DetailedReviewListItem } from "../../lib/types/lists";
+import { DetailedMovieData } from "../../lib/types/movie";
+import { Review } from "../../lib/types/reviews";
 
-import { Award, AwardsStep, ClubAwards } from "@/common/types/awards";
-import { DetailedReviewListItem } from "@/common/types/lists";
-import { DetailedMovieData } from "@/common/types/movie";
-import { Review } from "@/common/types/reviews";
 import { useAuthStore } from "@/stores/auth";
 
 export function useAwardYears(

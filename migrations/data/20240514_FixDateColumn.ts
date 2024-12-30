@@ -2,10 +2,10 @@ import { CockroachDialect } from "@cubos/kysely-cockroach";
 import { Kysely } from "kysely";
 import { Pool } from "pg";
 
+import { DB, WorkListType } from "../../lib/types/generated/db";
+import { WatchListItem as IdealWatchListItem } from "../../lib/types/watchlist";
 import { getFaunaClient } from "../../netlify/functions/utils/fauna";
 import { Document } from "../../netlify/functions/utils/types";
-import { DB, WorkListType } from "../../src/common/types/generated/db";
-import { WatchListItem as IdealWatchListItem } from "../../src/common/types/watchlist";
 
 type WatchListItem = Omit<IdealWatchListItem, "timeAdded"> & {
   timeAdded?: { date: Date };

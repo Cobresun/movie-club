@@ -1,8 +1,7 @@
+import { WorkType } from "../../../lib/types/generated/db.js";
+import { ListInsertDto } from "../../../lib/types/ListDto.js";
 import { db } from "../utils/database";
 import { getDetailedWorks } from "../utils/tmdb";
-
-import { WorkType } from "@/common/types/generated/db";
-import { ListInsertDto } from "@/common/types/lists";
 
 class WorkRepository {
   async findByType(clubId: string, type: WorkType, externalId: string) {

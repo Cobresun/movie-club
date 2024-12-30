@@ -1,9 +1,9 @@
 import { useMutation, useQueryClient } from "@tanstack/vue-query";
 
 import { useUser } from "./useUser";
+import { WorkListType } from "../../lib/types/generated/db";
+import { DetailedReviewListItem } from "../../lib/types/lists";
 
-import { WorkListType } from "@/common/types/generated/db";
-import { DetailedReviewListItem } from "@/common/types/lists";
 import { useAuthStore } from "@/stores/auth";
 
 export function useReviewWork(clubId: string) {

@@ -42,14 +42,14 @@
 import { DateTime } from "luxon";
 import { computed, ref } from "vue";
 
+import { Award, ClubAwards } from "../../../../lib/types/awards";
+import { WorkListType } from "../../../../lib/types/generated/db";
+import { MovieSearchIndex } from "../../../../lib/types/movie";
 import AddMovieButton from "../components/AddMovieButton.vue";
 import { NOMINATIONS_PER_AWARD } from "../constants";
 
 import MoviePosterCard from "@/common/components/MoviePosterCard.vue";
 import MovieSearchPrompt from "@/common/components/MovieSearchPrompt.vue";
-import { Award, ClubAwards } from "@/common/types/awards";
-import { WorkListType } from "@/common/types/generated/db";
-import { MovieSearchIndex } from "@/common/types/movie";
 import { useAddNomination, useDeleteNomination } from "@/service/useAwards";
 import { useList } from "@/service/useList";
 import { useUser } from "@/service/useUser";

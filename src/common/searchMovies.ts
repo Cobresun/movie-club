@@ -1,4 +1,4 @@
-import { DetailedWorkListItem } from "./types/lists";
+import { DetailedWorkListItem } from "../../lib/types/lists";
 
 /**
  *

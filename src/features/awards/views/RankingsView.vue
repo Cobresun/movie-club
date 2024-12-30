@@ -14,9 +14,9 @@
 <script setup lang="ts">
 import { useToast } from "vue-toastification";
 
+import { Award, ClubAwards } from "../../../../lib/types/awards";
 import AwardRanking from "../components/AwardRanking.vue";
 
-import { Award, ClubAwards } from "@/common/types/awards";
 import { useSubmitRanking } from "@/service/useAwards";
 import { useMembers } from "@/service/useClub";
 import { useUser } from "@/service/useUser";

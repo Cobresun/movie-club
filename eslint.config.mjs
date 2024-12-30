@@ -6,6 +6,7 @@ import tanstackEslint from "@tanstack/eslint-plugin-query";
 import pluginVue from "eslint-plugin-vue";
 import vueParser from "vue-eslint-parser";
 import prettierConfig from "@vue/eslint-config-prettier";
+import importPlugin from "eslint-plugin-import";
 
 /** @type {import('eslint').Linter.Config[]} */
 export default [
@@ -14,7 +15,7 @@ export default [
       "node_modules",
       ".netlify",
       "eslint.config.mjs",
-      "src/common/types/generated/",
+      "**/generated/**",
     ],
   },
   { languageOptions: { globals: { ...globals.browser, ...globals.node } } },
@@ -38,6 +39,9 @@ export default [
         sourceType: "module",
       },
     },
+    plugins: {
+      import: importPlugin,
+    },
     rules: {
       "block-scoped-var": "error",
       eqeqeq: "error",
@@ -60,6 +64,21 @@ export default [
           allowNumber: false,
         },
       ],
+      "import/order": [
+        "error",
+        {
+          "newlines-between": "always",
+          groups: [
+            ["builtin", "external"],
+            ["internal", "parent", "sibling", "index"],
+          ],
+          alphabetize: {
+            order: "asc",
+            caseInsensitive: true,
+          },
+        },
+      ],
+      "import/newline-after-import": "error",
     },
   },
 ];

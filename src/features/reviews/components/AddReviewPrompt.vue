@@ -15,10 +15,10 @@
 <script setup lang="ts">
 import { computed } from "vue";
 
+import { WorkListType, WorkType } from "../../../../lib/types/generated/db";
+import { MovieSearchIndex } from "../../../../lib/types/movie";
 import MovieSearchPrompt from "../../../common/components/MovieSearchPrompt.vue";
 
-import { WorkListType, WorkType } from "@/common/types/generated/db";
-import { MovieSearchIndex } from "@/common/types/movie";
 import { useClubId } from "@/service/useClub";
 import {
   BASE_IMAGE_URL,

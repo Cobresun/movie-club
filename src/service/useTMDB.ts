@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/vue-query";
 import axios from "axios";
 import { Ref } from "vue";
 
-import { TMDBPageResponse } from "@/common/types/movie";
+import { TMDBPageResponse } from "../../lib/types/movie";
 
 const key = import.meta.env.VITE_TMDB_API_KEY;
 

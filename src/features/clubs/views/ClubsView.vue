@@ -45,8 +45,8 @@
 <script setup lang="ts">
 import { computed } from "vue";
 
-import clubSvg from "@/assets/images/menu-images/club.svg";
 import homeCinemaSvg from "@/assets/images/home_cinema.svg";
+import clubSvg from "@/assets/images/menu-images/club.svg";
 import { useUserClubs } from "@/service/useUser";
 import { useAuthStore } from "@/stores/auth";
 

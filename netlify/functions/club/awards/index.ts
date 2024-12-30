@@ -3,13 +3,12 @@ import nominationRouter from "./nomination";
 import rankingRouter from "./ranking";
 import stepHandler from "./step";
 import { ClubAwardRequest, validYear } from "./utils";
+import { ClubAwards } from "../../../../lib/types/awards";
 import { getClubProperty, getFaunaClient } from "../../utils/fauna";
 import { ok } from "../../utils/responses";
 import { Router } from "../../utils/router";
 import { getDetailedMovie } from "../../utils/tmdb";
 import { LegacyClubRequest } from "../../utils/validation";
-
-import { ClubAwards } from "@/common/types/awards";
 
 const router = new Router("/api/club/:clubId<\\d+>/awards");
 router.use("/:year<\\d+>/category", validYear, categoryRouter);

@@ -1,6 +1,5 @@
+import { WorkListType } from "../../../lib/types/generated/db";
 import { db } from "../utils/database";
-
-import { WorkListType } from "@/common/types/generated/db";
 
 class ReviewRepository {
   async getReviewList(clubId: string) {
