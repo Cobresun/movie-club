@@ -21,3 +21,11 @@ export function hasValue(s: string | undefined | null): s is string {
 export function isString(s: unknown): s is string {
   return typeof s === "string";
 }
+
+/**
+ * Returns true if the object specified is a boolean
+ * @param b
+ */
+export function isTrue(b: boolean | null | undefined): b is true {
+  return b === true;
+}

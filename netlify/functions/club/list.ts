@@ -195,7 +195,6 @@ router.post("/:type", secured, async ({ clubId, params, event }, res) => {
 
   if (!hasValue(workId)) {
     const newWork = await WorkRepository.insert(clubId, body.data);
-    if (!newWork) return res(internalServerError("Failed to create work"));
     workId = newWork.id;
   }
   const isItemInList = await ListRepository.isItemInList(

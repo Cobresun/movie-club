@@ -1,5 +1,6 @@
 import { internalServerError, notFound } from "./responses";
 import { MiddlewareCallback, Request } from "./router";
+import { hasValue } from "../../../lib/checks/checks.js";
 import ClubRepository from "../repositories/ClubRepository";
 
 export function getErrorMessage(error: unknown) {
@@ -19,7 +20,7 @@ export const validClubId: MiddlewareCallback<Request, ClubRequest> = async (
   req,
   res,
 ) => {
-  if (!req.params.clubId) return res(notFound());
+  if (!hasValue(req.params.clubId)) return res(notFound());
   const clubId = req.params.clubId;
 
   if (await ClubRepository.exists(clubId)) {

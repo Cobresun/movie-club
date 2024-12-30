@@ -15,7 +15,7 @@
     "migrate:dev": "tsx --env-file=.env ./migrations/schemaMigrator.ts && npm run codegen",
     "migrate:down": "tsx --env-file=.env ./migrations/schemaMigrator.ts down && npm run codegen",
     "migrate:data": "tsx --env-file=.env ./migrations/dataMigrator.ts",
-    "codegen": "kysely-codegen --dialect postgres --runtime-enums --out-file src/common/types/generated/db.ts --exclude-pattern crdb_internal.*"
+    "codegen": "kysely-codegen --dialect postgres --runtime-enums --out-file lib/types/generated/db.ts --exclude-pattern crdb_internal.*"
   },
   "dependencies": {
     "@cubos/kysely-cockroach": "^1.0.0",

@@ -1,5 +1,3 @@
-// To fix some issues with definition resulting middlewares
-
 import {
   HandlerContext,
   HandlerEvent,
@@ -76,21 +74,14 @@ export interface ChainMethod<TInput extends Request> {
   (path: string): void;
 
   // Overload 1: just one item, must produce RouterResponse from TInput
-  (
-    path: string,
-    c1:
-      | UseItem<TInput, Request /* not used here */>
-      | UseItem<TInput, RouterResponse>,
-  ): void;
+  (path: string, c1: UseItem<TInput, RouterResponse>): void;
 
-  // Overload 2
   <A extends Request>(
     path: string,
     c1: UseItem<TInput, A>,
     c2: UseItem<A, RouterResponse>,
   ): void;
 
-  // Overload 3
   <A extends Request, B extends Request>(
     path: string,
     c1: UseItem<TInput, A>,
@@ -98,7 +89,6 @@ export interface ChainMethod<TInput extends Request> {
     c3: UseItem<B, RouterResponse>,
   ): void;
 
-  // Overload 4
   <A extends Request, B extends Request, C extends Request>(
     path: string,
     c1: UseItem<TInput, A>,
@@ -107,7 +97,6 @@ export interface ChainMethod<TInput extends Request> {
     c4: UseItem<C, RouterResponse>,
   ): void;
 
-  // Overload 5
   <A extends Request, B extends Request, C extends Request, D extends Request>(
     path: string,
     c1: UseItem<TInput, A>,
@@ -117,7 +106,6 @@ export interface ChainMethod<TInput extends Request> {
     c5: UseItem<D, RouterResponse>,
   ): void;
 
-  // Overload 6
   <
     A extends Request,
     B extends Request,
@@ -134,7 +122,6 @@ export interface ChainMethod<TInput extends Request> {
     c6: UseItem<E, RouterResponse>,
   ): void;
 
-  // Overload 7
   <
     A extends Request,
     B extends Request,
@@ -153,7 +140,6 @@ export interface ChainMethod<TInput extends Request> {
     c7: UseItem<F, RouterResponse>,
   ): void;
 
-  // Overload 8
   <
     A extends Request,
     B extends Request,
@@ -174,7 +160,6 @@ export interface ChainMethod<TInput extends Request> {
     c8: UseItem<G, RouterResponse>,
   ): void;
 
-  // Overload 9
   <
     A extends Request,
     B extends Request,

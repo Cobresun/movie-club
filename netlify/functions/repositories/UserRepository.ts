@@ -22,16 +22,14 @@ class UserRepository {
       .execute();
   }
 
-  async getExistingUser(username: string, email: string) {
-    return (
-      await db
-        .selectFrom("user")
-        .selectAll()
-        .where((eb) =>
-          eb.or([eb("email", "=", email), eb("username", "=", username)]),
-        )
-        .execute()
-    )[0];
+  async findExistingUser(username: string, email: string) {
+    return await db
+      .selectFrom("user")
+      .selectAll()
+      .where((eb) =>
+        eb.or([eb("email", "=", email), eb("username", "=", username)]),
+      )
+      .executeTakeFirst();
   }
 
   async add(newUser: InsertExpression<DB, "user">) {
