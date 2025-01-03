@@ -41,6 +41,6 @@ function logout() {
 
 const router = useRouter();
 function toProfile() {
-  router.push({ name: "Profile" });
+  router.push({ name: "Profile" }).catch(console.error);
 }
 </script>

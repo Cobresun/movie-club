@@ -69,6 +69,7 @@ import {
   watch,
 } from "vue";
 
+import { isTrue } from "../../../../lib/checks/checks.js";
 import { WorkListType } from "../../../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
 import { filterMovies } from "../../../common/searchMovies";
@@ -92,7 +93,7 @@ onMounted(() => {
   const savedView = localStorage.getItem("isGalleryView");
   if (savedView !== null) {
     isGalleryView.value = savedView === "true";
-  } else if (window) {
+  } else {
     const isMobile = window.matchMedia("(max-width: 768px)").matches;
     isGalleryView.value = isMobile;
   }
@@ -127,7 +128,7 @@ const searchInput = ref<HTMLInputElement | null>(null);
 const searchInputSlash = ref<HTMLParagraphElement | null>(null);
 
 const onKeyPress = (e: KeyboardEvent) => {
-  if (e.key == "/") {
+  if (e.key === "/") {
     if (searchInput.value === document.activeElement) {
       return;
     }
@@ -231,7 +232,7 @@ const columns = computed(() => [
           size = context.meta.size === "sm" ? 28 : undefined;
         }
 
-        if (context.meta?.showName) {
+        if (isTrue(context.meta?.showName)) {
           return h("div", { class: "flex items-center gap-2" }, [
             h(VAvatar, {
               src: member.image,
@@ -275,7 +276,7 @@ const columns = computed(() => [
         size = context.meta.size === "sm" ? "w-7 h-7" : "w-16";
       }
 
-      if (context.meta?.showName) {
+      if (isTrue(context.meta?.showName)) {
         return h("div", { class: "flex item-center gap-2" }, [
           h("img", { src: AverageImg, class: `${size} max-w-none` }),
           h("span", "Average"),

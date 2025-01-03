@@ -32,6 +32,8 @@
 import { computed, ref, Ref } from "vue";
 import { useToast } from "vue-toastification";
 
+import { isDefined } from "../../../../lib/checks/checks.js";
+
 import { useUser, useUpdateAvatar } from "@/service/useUser";
 
 const { data, isFetching: isUserLoading } = useUser();
@@ -43,9 +45,9 @@ const openFileSelector = () => {
 
 const { mutate, isLoading: isAvatarLoading } = useUpdateAvatar();
 const toast = useToast();
-const uploadAvatar = async (event: Event) => {
+const uploadAvatar = (event: Event) => {
   const input = event.target as HTMLInputElement;
-  if (!input.files?.length) return;
+  if (!isDefined(input.files) || input.files.length > 0) return;
 
   const file = input.files[0];
   const maxFileSize = 6 * 1024 * 1024;

@@ -27,7 +27,7 @@ export default {
     observer.observe(el);
   },
   beforeUpdate(el: HTMLImageElement) {
-    if (el.dataset.loaded !== "true" && el.src != window.location.href) {
+    if (el.dataset.loaded !== "true" && el.src !== window.location.href) {
       el.dataset.src = el.src;
       el.dataset.loaded = "false";
       el.src = "";

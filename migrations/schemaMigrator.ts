@@ -4,6 +4,8 @@ import { Kysely, Migrator, FileMigrationProvider } from "kysely";
 import * as path from "path";
 import { Pool } from "pg";
 
+import { isDefined } from "../lib/checks/checks.js";
+
 async function withMigrator(next: (migrator: Migrator) => Promise<void>) {
   const db = new Kysely<unknown>({
     dialect: new CockroachDialect({
@@ -23,7 +25,7 @@ async function withMigrator(next: (migrator: Migrator) => Promise<void>) {
   });
 
   await next(migrator);
-  db.destroy();
+  await db.destroy();
 }
 
 async function migrateToLatest(migrator: Migrator) {
@@ -37,7 +39,7 @@ async function migrateToLatest(migrator: Migrator) {
     }
   });
 
-  if (error) {
+  if (isDefined(error)) {
     console.error("failed to migrate");
     console.error(error);
     process.exit(1);
@@ -56,7 +58,7 @@ async function downgrade(migrator: Migrator) {
     }
   });
 
-  if (error) {
+  if (isDefined(error)) {
     console.error("failed to downgrade");
     console.error(error);
     process.exit(1);
@@ -64,7 +66,7 @@ async function downgrade(migrator: Migrator) {
 }
 
 if (process.argv[2] === "down") {
-  withMigrator(downgrade);
+  withMigrator(downgrade).catch(console.error);
 } else {
-  withMigrator(migrateToLatest);
+  withMigrator(migrateToLatest).catch(console.error);
 }

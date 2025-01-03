@@ -7,8 +7,8 @@
     >
       <div class="mb-4 flex gap-4">
         <img
-          v-if="posterUrl"
-          :src="posterUrl"
+          v-if="imageUrl"
+          :src="imageUrl"
           class="h-auto w-[calc(5vw)] rounded-lg"
         />
         <div class="flex flex-1 flex-col items-center justify-center">
@@ -59,44 +59,34 @@
 import { DateTime } from "luxon";
 import { computed } from "vue";
 
-interface MovieProps {
-  poster_path?: string;
-  tagline?: string;
-  overview?: string;
-  release_date?: string;
-  runtime?: number;
-  genres?: string[];
-  vote_average?: number;
-  production_companies?: string[];
-}
+import { hasElements, isDefined } from "../../../../lib/checks/checks.js";
+import { DetailedMovieData } from "../../../../lib/types/movie.js";
 
 const props = defineProps<{
   title: string;
   imageUrl?: string;
-  movie?: MovieProps;
+  movie?: DetailedMovieData;
 }>();
 
-const posterUrl = computed(() => (props.imageUrl ? props.imageUrl : null));
-
 const formattedReleaseDate = computed(() =>
-  props.movie?.release_date
+  isDefined(props.movie?.release_date)
     ? DateTime.fromISO(props.movie.release_date).toLocaleString()
-    : null,
+    : undefined,
 );
 
 const formattedGenres = computed(() =>
-  props.movie?.genres?.length ? props.movie.genres.join(", ") : null,
+  hasElements(props.movie?.genres) ? props.movie.genres.join(", ") : undefined,
 );
 
 const formattedRating = computed(() =>
-  props.movie?.vote_average
+  isDefined(props.movie?.vote_average)
     ? `${Number(props.movie.vote_average).toFixed(1)}/10`
-    : null,
+    : undefined,
 );
 
 const formattedStudios = computed(() =>
-  props.movie?.production_companies?.length
+  hasElements(props.movie?.production_companies)
     ? props.movie.production_companies.join(", ")
-    : null,
+    : undefined,
 );
 </script>

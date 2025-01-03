@@ -14,6 +14,8 @@
 import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
+import { isDefined } from "../../../../lib/checks/checks.js";
+
 import { useAwardYears } from "@/service/useAwards";
 import { useClubId } from "@/service/useClub";
 
@@ -29,10 +31,14 @@ const router = useRouter();
 
 const selectValue = computed({
   get() {
-    return route.params.year ? (route.params.year as string) : "";
+    return isDefined(route.params.year) && !Array.isArray(route.params.year)
+      ? route.params.year
+      : "";
   },
   set(value: string) {
-    router.push({ name: "AwardsYear", params: { year: value } });
+    router
+      .push({ name: "AwardsYear", params: { year: value } })
+      .catch(console.error);
   },
 });
 </script>

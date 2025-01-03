@@ -41,6 +41,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
 
+import { isDefined } from "../../../../lib/checks/checks.js";
 import { Award } from "../../../../lib/types/awards";
 import { Member } from "../../../../lib/types/club";
 
@@ -58,7 +59,7 @@ const nominations = ref(
   [...award.nominations].sort((nomA, nomB) => {
     const nomARank = nomA.ranking[user.name];
     const nomBRank = nomB.ranking[user.name];
-    if (!nomARank || !nomBRank) return 0;
+    if (!isDefined(nomARank) || !isDefined(nomBRank)) return 0;
     if (nomARank < nomBRank) return -1;
     if (nomARank > nomBRank) return 1;
     return 0;
@@ -75,8 +76,7 @@ const swapRight = (index: number) => {
 
 const getMemberImage = (name: string) => {
   const member = members.find((member) => member.name === name);
-  if (member && member.image) return member.image;
-  return undefined;
+  return member?.image;
 };
 
 const submit = () => {

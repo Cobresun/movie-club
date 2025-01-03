@@ -19,7 +19,6 @@ import { computed, toRefs } from "vue";
 import { useRouter } from "vue-router";
 
 import { AwardsStep } from "../../../../lib/types/awards";
-import { NOMINATIONS_PER_AWARD } from "../constants";
 
 import { useAwards, useUpdateStep } from "@/service/useAwards";
 import { useMembers } from "@/service/useClub";
@@ -51,7 +50,7 @@ const router = useRouter();
 
 const { data: clubAward, isLoading } = useAwards(clubId, year, (clubAward) => {
   const step = steps.find((step) => step.step === clubAward.step);
-  if (step) router.push({ name: step.routeName });
+  if (step) router.push({ name: step.routeName }).catch(console.error);
 });
 
 const nextStep = computed(() => {
@@ -67,7 +66,7 @@ const { mutate } = useUpdateStep(clubId, year);
 const updateStep = () => {
   if (nextStep.value) {
     mutate(nextStep.value.step);
-    router.push({ name: nextStep.value.routeName });
+    router.push({ name: nextStep.value.routeName }).catch(console.error);
   }
 };
 
@@ -96,6 +95,11 @@ const enableButton = computed(() => {
       return completedCategories.value;
     case AwardsStep.Ratings:
       return completedRanking.value;
+    case AwardsStep.Completed:
+    case AwardsStep.Presentation:
+    case AwardsStep.Nominations:
+    case undefined:
+      return true;
     default:
       return true;
   }

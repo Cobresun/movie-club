@@ -1,3 +1,5 @@
+export type NonEmptyArray<T> = [T, ...T[]];
+
 /**
  * Returns true if the object is not null or undefined
  * @param value
@@ -26,6 +28,16 @@ export function isString(s: unknown): s is string {
  * Returns true if the object specified is a boolean
  * @param b
  */
-export function isTrue(b: boolean | null | undefined): b is true {
+export function isTrue(b: unknown): b is true {
   return b === true;
+}
+
+/**
+ * Return true if the object specified is an array and is not empty.
+ * @param arr
+ */
+export function hasElements<T>(
+  arr: ReadonlyArray<T> | null | undefined,
+): arr is NonEmptyArray<T> {
+  return isDefined(arr) && Array.isArray(arr) && arr.length > 0;
 }

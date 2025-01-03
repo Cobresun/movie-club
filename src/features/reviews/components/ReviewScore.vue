@@ -31,6 +31,8 @@
 <script setup lang="ts">
 import { computed, nextTick, ref } from "vue";
 
+import { hasValue } from "../../../../lib/checks/checks.js";
+
 import { useClubId } from "@/service/useClub";
 import { useReviewWork, useUpdateReviewScore } from "@/service/useReviews";
 import { useUser } from "@/service/useUser";
@@ -57,7 +59,7 @@ const openScoreInput = () => {
   nextTick(() => {
     scoreInput.value?.focus();
     scoreInput.value?.select();
-  });
+  }).catch(console.error);
 };
 
 const clubId = useClubId();
@@ -66,7 +68,7 @@ const { mutate: update } = useUpdateReviewScore(clubId);
 
 const submitScore = (score: number) => {
   if (!isNaN(score) && score >= 0 && score <= 10) {
-    if (props.reviewId) {
+    if (hasValue(props.reviewId)) {
       update({ reviewId: props.reviewId, score });
     } else {
       submit({
