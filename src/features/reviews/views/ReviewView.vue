@@ -73,6 +73,7 @@ import { filterMovies } from "../../../common/searchMovies";
 import GalleryView from "../components/GalleryView.vue";
 import ReviewScore from "../components/ReviewScore.vue";
 import TableView from "../components/TableView.vue";
+import MovieTooltip from "../components/MovieTooltip.vue";
 
 import AverageImg from "@/assets/images/average.svg";
 import VAvatar from "@/common/components/VAvatar.vue";
@@ -191,14 +192,14 @@ const columns = computed(() => [
     header: () =>
       h(mdicon, {
         name: "pencil",
-        class: "cursor-pointer",
+        class: "cursor-pointer hover:text-primary transition-colors",
         onClick: () => (editingTable.value = !editingTable.value),
       }),
     cell: ({ row }) =>
       editingTable.value
         ? h(mdicon, {
             name: "delete",
-            class: "cursor-pointer",
+            class: "cursor-pointer hover:text-primary transition-colors",
             onClick: () => {
               deleteReview(row.original.id);
             },
@@ -207,6 +208,11 @@ const columns = computed(() => [
   }),
   columnHelper.accessor("title", {
     header: "Title",
+    cell: (info) => h(MovieTooltip, {
+      title: info.getValue(),
+      imageUrl: info.row.original.imageUrl,
+      movie: info.row.original.externalData
+    }),
     meta: {
       class: "font-bold",
     },
@@ -282,7 +288,9 @@ const columns = computed(() => [
       if (review === undefined) {
         return "";
       }
-      return Math.round(review * 100) / 100;
+      return h('div', {
+        class: 'font-bold text-lg text-primary'
+      }, Math.round(review * 100) / 100);
     },
     sortUndefined: "last",
   }),

@@ -44,12 +44,12 @@ describe("ReviewView", () => {
     const { user } = render(ReviewView, { props: { clubId: "1" } });
     const searchBar = await screen.findByRole("textbox");
 
-    expect(screen.getByText("12 Angry Men")).toBeInTheDocument();
-    expect(screen.getByText("The Empire Strikes Back")).toBeInTheDocument();
+    expect(screen.getAllByText("12 Angry Men")[0]).toBeInTheDocument();
+    expect(screen.getAllByText("The Empire Strikes Back")[0]).toBeInTheDocument();
 
     await user.type(searchBar, "12");
 
-    expect(screen.getByText("12 Angry Men")).toBeInTheDocument();
+    expect(screen.getAllByText("12 Angry Men")[0]).toBeInTheDocument();
     expect(
       screen.queryByText("The Empire Strikes Back"),
     ).not.toBeInTheDocument();
@@ -83,8 +83,11 @@ describe("ReviewView", () => {
     authStore.isLoggedIn = true;
 
     const row = (
-      await screen.findByRole("cell", { name: "The Empire Strikes Back" })
+      await screen.findByRole("cell", { 
+        name: (content) => content.includes("The Empire Strikes Back")
+      })
     ).closest("tr") as HTMLElement;
+    
     const addScoreButton = await within(row).findByRole("button", {
       name: "Add score",
     });

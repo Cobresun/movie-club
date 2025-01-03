@@ -40,13 +40,12 @@ const { data: watchList, isLoading: watchListLoading } = useList(
 const watchlistSearchIndex = computed(
   () =>
     watchList.value?.map(
-      (item) =>
-        item.externalData ?? {
-          title: item.title,
-          release_date: "",
-          id: parseInt(item.externalId ?? "-1"),
-          poster_path: item.imageUrl ?? "",
-        }
+      (item) => ({
+        title: item.title,
+        release_date: item.externalData?.release_date ?? "",
+        id: parseInt(item.externalId ?? "-1"),
+        poster_path: item.imageUrl ?? "",
+      })
     ) ?? []
 );
 

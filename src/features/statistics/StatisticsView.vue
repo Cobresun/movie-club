@@ -7,6 +7,38 @@
     />
     <loading-spinner v-if="loading" />
 
+    <div class="flex items-center justify-center sticky top-0 z-50 bg-background py-4">
+      <div class="w-11/12 relative flex gap-4">
+        <div class="flex-1 relative">
+          <mdicon
+            name="magnify"
+            class="absolute pl-4 top-1/2 -translate-y-1/2 transform text-slate-200"
+          />
+          <input
+            ref="searchInput"
+            v-model="searchTerm"
+            class="w-full rounded-md border-2 border-slate-600 bg-background p-2 pl-12 text-base text-white outline-none focus:border-primary"
+            placeholder="Search (e.g. 'matrix', 'genre:Action', 'year:2024', 'company:Marvel')"
+          />
+        </div>
+        <div class="relative">
+          <v-btn
+            class="ui button h-full"
+            @click="toggle"
+            @mouseenter="showTooltip = true"
+            @mouseleave="showTooltip = false"
+          >{{ normButtonText }}</v-btn>
+          <div
+            v-if="showTooltip"
+            class="absolute z-10 p-2 bg-gray-800 text-sm text-gray-300 rounded-md shadow-lg -left-64 top-12 w-72"
+          >
+            Normalizing scores adjusts each member's ratings to account for their different scoring patterns. 
+            A normalized score of 0 means average, while lower and higher values indicate scores below and above your usual rating.
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div v-if="!loading">
       <br />
       <ag-charts-vue :options="histChartOptions"></ag-charts-vue>
@@ -37,44 +69,7 @@
       <br />
       <ag-charts-vue :options="customChartOptions"></ag-charts-vue>
       <br /> -->
-
-      <v-btn
-        data-tooltip-target="tooltip-default"
-        class="ui button big"
-        @click="toggle"
-        >{{ normButtonText }}
-      </v-btn>
-      <p class="text-sm text-gray-500 mt-2 px-8">
-        Normalizing scores adjusts each member's ratings to account for their different scoring patterns. 
-        A normalized score of 0 means average, while lower and higher values indicate scores below and above your usual rating.
-      </p>
-      <!-- TODO make this tooltip work -->
-      <div
-        id="tooltip-default"
-        role="tooltip"
-        class="tooltip invisible absolute z-10 inline-block rounded-lg bg-gray-900 px-3 py-2 text-sm font-medium text-white opacity-0 shadow-sm transition-opacity duration-300 dark:bg-gray-700"
-      >
-        How many standard deviations is your score from average?
-        <div class="tooltip-arrow" data-popper-arrow></div>
-      </div>
-
-      <movie-table
-        v-if="reviews && reviews.length > 0"
-        :headers="headers"
-        :data="movieData"
-      >
-        <template
-          v-for="member in members"
-          #[normName(member.id)]
-          :key="member.name"
-        >
-          <v-avatar :src="member.image" :name="member.name" />
-        </template>
-
-        <template #[normName()]>
-          <img src="@/assets/images/average.svg" class="h-12 w-16 max-w-none" />
-        </template>
-      </movie-table>
+      <table-view :review-table="movieTable" />
     </div>
   </div>
 </template>
@@ -83,7 +78,18 @@
 import { AgHistogramSeriesTooltipRendererParams, AgBarSeriesTooltipRendererParams } from "ag-charts-community";
 import { AgChartsVue } from "ag-charts-vue3";
 import { DateTime } from "luxon";
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, h } from "vue";
+import { filterMovies } from '@/common/searchMovies';
+import VAvatar from "@/common/components/VAvatar.vue";
+import AverageImg from "@/assets/images/average.svg";
+import MovieTooltip from "@/features/reviews/components/MovieTooltip.vue";
+import {
+  createColumnHelper,
+  getCoreRowModel,
+  getSortedRowModel,
+  useVueTable,
+} from "@tanstack/vue-table";
+import TableView from "@/features/reviews/components/TableView.vue";
 
 import {
   normalizeArray,
@@ -144,12 +150,20 @@ const loading = computed(
     loadingCalculations.value,
 );
 
+const searchTerm = ref("");
+const searchInput = ref<HTMLInputElement | null>(null);
+const showTooltip = ref(false);
+
+const filteredMovieData = computed(() => {
+  return filterMovies(movieData.value, searchTerm.value);
+});
+
 const fetchMovieData = (reviews: DetailedReviewListItem[]) => {
   return reviews.map((review) => {
     if (!review.externalData) return null;
     
     return {
-      movieTitle: review.title,
+      title: review.title,
       dateWatched: DateTime.fromISO(review.createdDate).toLocaleString(),
       ...Object.keys(review.scores).reduce<Record<string, number>>(
         (acc, key) => {
@@ -159,6 +173,8 @@ const fetchMovieData = (reviews: DetailedReviewListItem[]) => {
         {},
       ),
       // Map the new external data structure
+      imageUrl: review.imageUrl,
+      createdDate: review.createdDate,
       vote_average: review.externalData.vote_average,
       revenue: review.externalData.revenue,
       budget: review.externalData.budget,
@@ -166,6 +182,7 @@ const fetchMovieData = (reviews: DetailedReviewListItem[]) => {
       genres: review.externalData.genres,
       production_companies: review.externalData.production_companies,
       production_countries: review.externalData.production_countries,
+      externalData: review.externalData,
     };
   }).filter(Boolean); // Remove any null entries
 };
@@ -182,6 +199,9 @@ const generateCustomChart = () => {
     yName: selectedChartBase.value,
     yData: selectedChartBase.value,
     movieData: movieData.value,
+    normalizeX: false,
+    normalizeY: false,
+    normalizeToggled: normalize.value
   });
 };
 const generateGenreChart = () => {
@@ -263,11 +283,40 @@ watch(selectedChartBase, generateCustomChart);
 const loadChartOptions = async () => {
   try {
     chartLoadingStates.value.histogram = true;
+    // Filter the histogram data based on the filtered movies
+    const filteredHistData = histogramData.value.map(bin => {
+      const filtered = { ...bin };
+      members.value.forEach(member => {
+        filtered[member.id] = 0;
+      });
+      return filtered;
+    });
+    const filteredHistNormData = histogramNormData.value.map(bin => {
+      const filtered = { ...bin };
+      members.value.forEach(member => {
+        filtered[member.id] = 0;
+      });
+      return filtered;
+    });
+
+    // Populate the filtered histogram data
+    filteredMovieData.value.forEach(movie => {
+      members.value.forEach(member => {
+        const score = Math.floor(movie[member.id]);
+        if (!isNaN(score)) {
+          filteredHistData[score][member.id] += 1;
+        }
+        let scoreNorm = Math.floor(movie[member.id + "Norm"] * 4 + 5);
+        scoreNorm = scoreNorm < 0 ? 0 : scoreNorm > 10 ? 10 : scoreNorm;
+        filteredHistNormData[scoreNorm][member.id] += 1;
+      });
+    });
+
     histChartOptions.value = {
       autoSize: true,
       theme: "ag-default-dark",
       title: { text: "Score Histogram" },
-      data: normalize.value ? histogramNormData.value : histogramData.value,
+      data: normalize.value ? filteredHistNormData : filteredHistData,
       series: members.value.map((member) => {
         return {
           type: "line",
@@ -320,6 +369,12 @@ const loadChartOptions = async () => {
     };
     chartLoadingStates.value.histogram = false;
     
+    // Special handling for TMDB score chart where TMDB score is available
+    const validTMDBData = filteredMovieData.value.filter(movie => 
+      movie.vote_average && movie.vote_average > 0 && 
+      movie.average && movie.average > 0
+    );
+    
     scoreChartOptions.value = loadDefaultChartSettings({
       chartTitle: "Score vs TMDB Audience Score",
       xName: "TMDB Audience Score",
@@ -329,7 +384,7 @@ const loadChartOptions = async () => {
       yData: "average",
       normalizeY: true,
       normalizeToggled: normalize.value,
-      movieData: movieData.value,
+      movieData: validTMDBData,
     });
 
     budgetChartOptions.value = loadDefaultChartSettings({
@@ -341,7 +396,7 @@ const loadChartOptions = async () => {
       yData: "average",
       normalizeY: true,
       normalizeToggled: normalize.value,
-      movieData: movieData.value,
+      movieData: filteredMovieData.value,
     });
 
     revenueChartOptions.value = loadDefaultChartSettings({
@@ -353,7 +408,7 @@ const loadChartOptions = async () => {
       yData: "average",
       normalizeY: true,
       normalizeToggled: normalize.value,
-      movieData: movieData.value,
+      movieData: filteredMovieData.value,
     });
 
     dateChartOptions.value = loadDefaultChartSettings({
@@ -365,7 +420,7 @@ const loadChartOptions = async () => {
       yData: "average",
       normalizeY: true,
       normalizeToggled: normalize.value,
-      movieData: movieData.value,
+      movieData: filteredMovieData.value,
     });
 
     genreChartOptions.value = generateGenreChart();
@@ -386,7 +441,7 @@ const calculateStatistics = () => {
 
   const memberScores: Record<string, number[]> = {};
   const tmbd_norm = normalizeArray(
-    movieData.value.map((data) => data["vote_average"]),
+    movieData.value.map((data) => parseFloat(data["vote_average"])),
   );
   for (const member of members.value) {
     memberScores[member.id] = normalizeArray(
@@ -454,7 +509,7 @@ const normName = (name = "average") => {
 
 const headers = computed(() => {
   const headers: Header[] = [
-    { value: "movieTitle", style: "font-bold", title: "Title" },
+    { value: "title", style: "font-bold", title: "Title" },
     { value: "dateWatched", title: "Date Reviewed" },
   ];
 
@@ -469,5 +524,75 @@ const headers = computed(() => {
     title: "TMDB",
   });
   return headers;
+});
+
+// Add a watch on filteredMovieData to trigger chart updates
+watch(filteredMovieData, () => {
+  if (filteredMovieData.value) {
+    loadChartOptions();
+  }
+}, { immediate: true });
+
+const columnHelper = createColumnHelper<any>();
+
+const columns = computed(() => [
+  columnHelper.accessor("title", {
+    header: "Title",
+    cell: (info) => h(MovieTooltip, {
+      title: info.getValue(),
+      imageUrl: info.row.original.imageUrl,
+      movie: info.row.original.externalData
+    }),
+    meta: {
+      class: "font-bold",
+    },
+  }),
+  columnHelper.accessor("dateWatched", {
+    header: "Date Reviewed",
+  }),
+  ...members.value.map((member) =>
+    columnHelper.accessor(normName(member.id), {
+      id: normName(member.id),
+      header: () => h(VAvatar, {
+        src: member.image,
+        name: member.name,
+      }),
+      cell: (info) => {
+        const value = info.getValue();
+        return value !== undefined ? Math.round(value * 100) / 100 : '';
+      },
+      sortUndefined: "last",
+    }),
+  ),
+  columnHelper.accessor(normName(), {
+    header: () => h("img", { 
+      src: AverageImg, 
+      class: "h-12 w-16 max-w-none" 
+    }),
+    cell: (info) => {
+      const value = info.getValue();
+      return value !== undefined ? Math.round(value * 100) / 100 : '';
+    },
+    sortUndefined: "last",
+  }),
+  columnHelper.accessor("vote_average", {
+    header: "TMDB",
+    cell: (info) => {
+      const value = info.getValue();
+      return value !== undefined ? Math.round(value * 100) / 100 : '';
+    },
+  }),
+]);
+
+const movieTable = useVueTable({
+  get columns() {
+    return columns.value;
+  },
+  get data() {
+    return filteredMovieData.value ?? [];
+  },
+  getCoreRowModel: getCoreRowModel(),
+  getSortedRowModel: getSortedRowModel(),
+  getRowId: (row) => row.title,
 });
 </script>
