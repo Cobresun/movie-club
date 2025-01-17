@@ -68,25 +68,25 @@ const props = defineProps<{
   movie?: DetailedMovieData;
 }>();
 
-const formattedReleaseDate = computed(() =>
-  isDefined(props.movie?.release_date)
-    ? DateTime.fromISO(props.movie.release_date).toLocaleString()
-    : undefined,
-);
+const formattedReleaseDate = computed(() => {
+  const releaseDate = props.movie?.release_date;
+  return isDefined(releaseDate)
+    ? DateTime.fromISO(releaseDate).toLocaleString()
+    : undefined;
+});
 
-const formattedGenres = computed(() =>
-  hasElements(props.movie?.genres) ? props.movie.genres.join(", ") : undefined,
-);
+const formattedGenres = computed(() => {
+  const genres = props.movie?.genres;
+  return hasElements(genres) ? genres.join(", ") : undefined;
+});
 
-const formattedRating = computed(() =>
-  isDefined(props.movie?.vote_average)
-    ? `${Number(props.movie.vote_average).toFixed(1)}/10`
-    : undefined,
-);
+const formattedRating = computed(() => {
+  const rating = props.movie?.vote_average;
+  return isDefined(rating) ? `${Number(rating).toFixed(1)}/10` : undefined;
+});
 
-const formattedStudios = computed(() =>
-  hasElements(props.movie?.production_companies)
-    ? props.movie.production_companies.join(", ")
-    : undefined,
-);
+const formattedStudios = computed(() => {
+  const studios = props.movie?.production_companies;
+  return hasElements(studios) ? studios.join(", ") : undefined;
+});
 </script>

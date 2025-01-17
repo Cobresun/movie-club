@@ -232,11 +232,13 @@ const generateGenreChart = () => {
   >((acc, movie) => {
     movie.genres.forEach((genre: string) => {
       if (movie.average !== 0) {
-        if (!acc[genre]) {
-          acc[genre] = { count: 0, totalScore: 0 };
+        let details = acc[genre];
+        if (!details) {
+          details = { count: 0, totalScore: 0 };
+          acc[genre] = details;
         }
-        acc[genre].count++;
-        acc[genre].totalScore += movie.average ?? 0;
+        details.count++;
+        details.totalScore += movie.average ?? 0;
       }
     });
     return acc;

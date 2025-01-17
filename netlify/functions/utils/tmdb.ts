@@ -60,7 +60,7 @@ export async function getDetailedMovie<T extends BaseMovie>(
         tagline: tmdbData.tagline,
         title: tmdbData.title,
         video: tmdbData.video,
-        vote_average: tmdbData.vote_average,
+        vote_average: parseFloat(tmdbData.vote_average),
         vote_count: tmdbData.vote_count,
       };
 
