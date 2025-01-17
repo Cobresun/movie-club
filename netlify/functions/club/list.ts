@@ -1,4 +1,4 @@
-import { hasValue } from "../../../lib/checks/checks.js";
+import { hasValue, isDefined } from "../../../lib/checks/checks.js";
 import { WorkListType } from "../../../lib/types/generated/db.js";
 import { listInsertDtoSchema } from "../../../lib/types/lists.js";
 import {
@@ -69,7 +69,9 @@ async function getWorkList(clubId: string, type: WorkListType) {
           runtime: item.runtime,
           status: item.status,
           tagline: item.tagline,
-          vote_average: item.tmdb_score,
+          vote_average: isDefined(item.tmdb_score)
+            ? parseFloat(item.tmdb_score)
+            : undefined,
           genres: item.genres?.filter(Boolean) ?? [],
           production_companies:
             item.production_companies?.filter(Boolean) ?? [],

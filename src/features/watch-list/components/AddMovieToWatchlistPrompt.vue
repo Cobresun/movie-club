@@ -16,6 +16,7 @@
 import { computed, defineEmits } from "vue";
 import { useToast } from "vue-toastification";
 
+import { isTrue } from "../../../../lib/checks/checks.js";
 import { WorkListType, WorkType } from "../../../../lib/types/generated/db";
 import { MovieSearchIndex } from "../../../../lib/types/movie";
 import { WatchListItem } from "../../../../lib/types/watchlist";
@@ -45,10 +46,12 @@ const { data: backlog, isLoading: loadingBacklog } = useList(
 );
 
 const toast = useToast();
-const selectFromSearch = async (movie: MovieSearchIndex) => {
+const selectFromSearch = (movie: MovieSearchIndex) => {
   if (
-    backlog.value?.some(
-      (item) => parseInt(item.externalId ?? "-1") === movie.id,
+    isTrue(
+      backlog.value?.some(
+        (item) => parseInt(item.externalId ?? "-1") === movie.id,
+      ),
     )
   ) {
     toast.error("That movie is already in your backlog");

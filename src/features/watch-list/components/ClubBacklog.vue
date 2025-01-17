@@ -45,6 +45,7 @@ import { computed, ref } from "vue";
 import { useToast } from "vue-toastification";
 
 import AddMovieToWatchlistPrompt from "./AddMovieToWatchlistPrompt.vue";
+import { isTrue } from "../../../../lib/checks/checks.js";
 import { WorkListType } from "../../../../lib/types/generated/db";
 import { DetailedWorkListItem } from "../../../../lib/types/lists";
 
@@ -73,7 +74,11 @@ const { mutateAsync: addToWatchlist } = useAddListItem(
 
 const toast = useToast();
 const moveBacklogItemToWatchlist = async (movie: DetailedWorkListItem) => {
-  if (watchList.value?.some((item) => item.externalId === movie.externalId)) {
+  if (
+    isTrue(
+      watchList.value?.some((item) => item.externalId === movie.externalId),
+    )
+  ) {
     toast.error("That movie is already in your watchlist");
     return;
   }

@@ -54,12 +54,12 @@
   </table>
 </template>
 
-<script setup lang="ts">
+<script setup lang="ts" generic="T extends DetailedReviewListItem">
 import { FlexRender, Table } from "@tanstack/vue-table";
 
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
 
 defineProps<{
-  reviewTable: Table<DetailedReviewListItem>;
+  reviewTable: Table<T>;
 }>();
 </script>
