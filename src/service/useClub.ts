@@ -4,15 +4,16 @@ import { computed } from "vue";
 import { useRoute } from "vue-router";
 
 import { useUserClubs } from "./useUser";
-import { BaseClub, Member } from "../../lib/types/club";
+import { hasValue, isDefined } from "../../lib/checks/checks.js";
+import { ClubPreview, Member } from "../../lib/types/club";
 
 import { useAuthStore } from "@/stores/auth";
 
 const fetchClub = async (clubId: string | number) =>
-  (await axios.get(`/api/club/${clubId}`)).data;
+  (await axios.get<ClubPreview>(`/api/club/${clubId}`)).data;
 
 export function useClub(clubId: string) {
-  return useQuery<BaseClub>({
+  return useQuery<ClubPreview>({
     queryKey: ["club", clubId],
     queryFn: async () => await fetchClub(clubId),
   });
@@ -34,20 +35,23 @@ export function useCreateClub() {
 export function useMembers(clubId: string) {
   return useQuery<Member[]>({
     queryKey: ["members", clubId],
-    queryFn: async () => (await axios.get(`/api/club/${clubId}/members`)).data,
+    queryFn: async () =>
+      (await axios.get<Member[]>(`/api/club/${clubId}/members`)).data,
   });
 }
 
 export function useClubId(): string {
   const route = useRoute();
-  if (route.params.clubId) return route.params.clubId as string;
+  if (!Array.isArray(route.params.clubId) && hasValue(route.params.clubId)) {
+    return route.params.clubId;
+  }
   throw Error("This route does not include a clubId");
 }
 
 export function useIsInClub(clubId: string) {
   const { data: clubs } = useUserClubs();
   const isUserInClub = computed(() => {
-    return !!clubs.value?.some((club) => club.clubId === clubId);
+    return isDefined(clubs.value?.some((club) => club.clubId === clubId));
   });
   return isUserInClub;
 }

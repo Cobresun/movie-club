@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory, RouteRecordRaw } from "vue-router";
 
+import { isDefined } from "../../lib/checks/checks.js";
 import ClubHomeView from "../features/clubs/views/ClubHomeView.vue";
 import ClubsView from "../features/clubs/views/ClubsView.vue";
 import NewClubView from "../features/clubs/views/NewClubView.vue";
@@ -133,7 +134,7 @@ const router = createRouter({
 });
 
 router.beforeEach((to, from) => {
-  if (!from.name) {
+  if (!isDefined(from.name)) {
     to.meta.transitionIn = "animate__animated animate__faster animate__fadeIn";
     return;
   }

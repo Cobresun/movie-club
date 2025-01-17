@@ -88,7 +88,9 @@ const reviewMovie = async (work: DetailedWorkListItem) => {
       imageUrl: work.imageUrl,
     },
     {
-      onSuccess: () => router.push({ name: "Reviews" }),
+      onSuccess: () => {
+        router.push({ name: "Reviews" }).catch(console.error);
+      },
       onError: (e) => {
         const error = e as AxiosError;
         if (error.response?.data === BadRequest.ItemInList) {

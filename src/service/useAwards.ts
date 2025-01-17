@@ -8,10 +8,10 @@ import axios, { AxiosError } from "axios";
 import { Ref } from "vue";
 
 import { useUser } from "./useUser";
+import { hasValue } from "../../lib/checks/checks.js";
 import { Award, AwardsStep, ClubAwards } from "../../lib/types/awards";
 import { DetailedReviewListItem } from "../../lib/types/lists";
 import { DetailedMovieData } from "../../lib/types/movie";
-import { Review } from "../../lib/types/reviews";
 
 import { useAuthStore } from "@/stores/auth";
 
@@ -21,7 +21,7 @@ export function useAwardYears(
   return useQuery({
     queryKey: ["awards-years", clubId],
     queryFn: async () =>
-      (await axios.get(`/api/club/${clubId}/awards/years`)).data,
+      (await axios.get<number[]>(`/api/club/${clubId}/awards/years`)).data,
   });
 }
 
@@ -33,7 +33,11 @@ export function useAwards(
   return useQuery({
     queryKey: ["awards", clubId, year],
     queryFn: async () =>
-      (await axios.get(`/api/club/${clubId.value}/awards/${year.value}`)).data,
+      (
+        await axios.get<ClubAwards>(
+          `/api/club/${clubId.value}/awards/${year.value}`,
+        )
+      ).data,
     onSuccess,
   });
 }
@@ -47,7 +51,9 @@ export function useUpdateStep(clubId: Ref<string>, year: Ref<string>) {
         step,
       }),
     onSettled: () => {
-      queryClient.invalidateQueries(["awards", clubId, year]);
+      queryClient
+        .invalidateQueries(["awards", clubId, year])
+        .catch(console.error);
     },
   });
 }
@@ -74,7 +80,9 @@ export function useAddCategory(clubId: string, year: string) {
       );
     },
     onSettled: () => {
-      queryClient.invalidateQueries(["awards", clubId, year]);
+      queryClient
+        .invalidateQueries(["awards", clubId, year])
+        .catch(console.error);
     },
   });
 }
@@ -103,7 +111,9 @@ export function useReorderCategories(clubId: string, year: string) {
       );
     },
     onSettled: () => {
-      queryClient.invalidateQueries(["awards", clubId, year]);
+      queryClient
+        .invalidateQueries(["awards", clubId, year])
+        .catch(console.error);
     },
   });
 }
@@ -134,7 +144,9 @@ export function useDeleteCategory(clubId: string, year: string) {
       );
     },
     onSettled: () => {
-      queryClient.invalidateQueries(["awards", clubId, year]);
+      queryClient
+        .invalidateQueries(["awards", clubId, year])
+        .catch(console.error);
     },
   });
 }
@@ -162,7 +174,7 @@ export function useAddNomination(clubId: string, year: string) {
         ["awards", clubId, year],
         (currentClubAwards) => {
           const name = user.value?.name;
-          if (!currentClubAwards || !name) return currentClubAwards;
+          if (!currentClubAwards || !hasValue(name)) return currentClubAwards;
           return {
             ...currentClubAwards,
             awards: currentClubAwards.awards.map((award) => {
@@ -190,7 +202,9 @@ export function useAddNomination(clubId: string, year: string) {
       );
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["awards", clubId, year] });
+      queryClient
+        .invalidateQueries({ queryKey: ["awards", clubId, year] })
+        .catch(console.error);
     },
   });
 }
@@ -242,7 +256,9 @@ export function useDeleteNomination(clubId: string, year: string) {
       );
     },
     onSettled: () => {
-      queryClient.invalidateQueries(["awards", clubId, year]);
+      queryClient
+        .invalidateQueries(["awards", clubId, year])
+        .catch(console.error);
     },
   });
 }
@@ -265,7 +281,9 @@ export function useSubmitRanking(clubId: string, year: string) {
         movies,
       }),
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["awards", clubId, year] });
+      queryClient
+        .invalidateQueries({ queryKey: ["awards", clubId, year] })
+        .catch(console.error);
     },
   });
 }

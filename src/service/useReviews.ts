@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/vue-query";
 
 import { useUser } from "./useUser";
+import { isDefined } from "../../lib/checks/checks.js";
 import { WorkListType } from "../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../lib/types/lists";
 
@@ -22,14 +23,15 @@ export function useReviewWork(clubId: string) {
       queryClient.setQueryData<DetailedReviewListItem[]>(
         ["list", clubId, WorkListType.reviews],
         (currentReviews) => {
-          if (!currentReviews || !user.value?.id) return currentReviews;
+          const userId = user.value?.id;
+          if (!currentReviews || !isDefined(userId)) return currentReviews;
           return currentReviews.map((review) =>
             review.id === workId
               ? {
                   ...review,
                   scores: {
                     ...review.scores,
-                    [user.value?.id]: {
+                    [userId]: {
                       id: "temp",
                       created_date: new Date().toISOString(),
                       score,

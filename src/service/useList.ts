@@ -7,10 +7,10 @@ import {
 import axios, { AxiosError } from "axios";
 
 import { WorkListType } from "../../lib/types/generated/db.js";
-import { ListInsertDto } from "../../lib/types/ListDto.js";
 import {
   DetailedReviewListItem,
   DetailedWorkListItem,
+  ListInsertDto,
 } from "../../lib/types/lists.js";
 
 import { useAuthStore } from "@/stores/auth";
@@ -33,7 +33,11 @@ export function useList(
   return useQuery({
     queryKey: ["list", clubId, type],
     queryFn: async () =>
-      (await axios.get(`/api/club/${clubId}/list/${type}`)).data,
+      (
+        await axios.get<DetailedWorkListItem[] | DetailedReviewListItem[]>(
+          `/api/club/${clubId}/list/${type}`,
+        )
+      ).data,
   });
 }
 
@@ -44,7 +48,6 @@ export function useAddListItem(clubId: string, type: WorkListType) {
     mutationFn: (insertDto: ListInsertDto) =>
       auth.request.post(`/api/club/${clubId}/list/${type}`, insertDto),
     onMutate: (insertDto) => {
-      if (!insertDto) return;
       queryClient.setQueryData<
         DetailedWorkListItem[] | DetailedReviewListItem[]
       >(["list", clubId, type], (currentList) => {
