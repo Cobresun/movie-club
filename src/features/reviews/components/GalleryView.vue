@@ -105,9 +105,11 @@ import {
 import { FlexRender, Row, Table } from "@tanstack/vue-table";
 import { computed } from "vue";
 
+import { isDefined } from "../../../../lib/checks/checks.js";
+import { Member } from "../../../../lib/types/club";
+import { DetailedReviewListItem } from "../../../../lib/types/lists";
+
 import MoviePosterCard from "@/common/components/MoviePosterCard.vue";
-import { Member } from "@/common/types/club";
-import { DetailedReviewListItem } from "@/common/types/lists";
 
 const props = defineProps<{
   reviewTable: Table<DetailedReviewListItem>;
@@ -136,7 +138,7 @@ const getCell = (row: Row<DetailedReviewListItem>, columnId: string) => {
 
 const reverseSort = () => {
   const currentSort = sortState.value[0];
-  if (!currentSort) {
+  if (!isDefined(currentSort)) {
     return;
   }
   props.reviewTable.setSorting([
@@ -152,7 +154,7 @@ const sortState = computed(() => props.reviewTable.getState().sorting);
 const selectedSort = computed<string | undefined>({
   get: () => sortState.value[0]?.id,
   set: (value: string | undefined) => {
-    if (!value) {
+    if (!isDefined(value)) {
       props.reviewTable.setSorting([]);
       return;
     }

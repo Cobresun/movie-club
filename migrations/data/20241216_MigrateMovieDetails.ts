@@ -1,26 +1,47 @@
+import { isDefined } from "../../lib/checks/checks.js";
+import { WorkType } from "../../lib/types/generated/db.js";
 import { db } from "../../netlify/functions/utils/database";
 import { getDetailedWorks } from "../../netlify/functions/utils/tmdb";
 
 const BATCH_SIZE = 50; // Using the same batch size as getDetailedWorks
+
+type Work = {
+  id: string;
+  title: string;
+  type: WorkType;
+  externalId: string | null;
+  createdDate: string;
+};
+
+type MovieWork = Omit<Work, "type" | "externalId"> & {
+  type: WorkType.movie;
+  externalId: string;
+};
+
+function isMovieWork(item: Work): item is MovieWork {
+  return isDefined(item.externalId) && item.type === WorkType.movie;
+}
 
 const populateMovieDetails = async () => {
   // Get all unique movies from the work table
   const movies = await db
     .selectFrom("work")
     .select(["external_id", "title", "type", "id"])
-    .where("type", "=", "movie")
+    .where("type", "=", WorkType.movie)
     .where("external_id", "is not", null)
     .distinct()
     .execute();
 
   // Convert to Work format
-  const workItems = movies.map((movie) => ({
-    id: movie.id,
-    title: movie.title,
-    type: movie.type,
-    externalId: movie.external_id!,
-    createdDate: new Date().toISOString(),
-  }));
+  const workItems = movies
+    .map((movie) => ({
+      id: movie.id,
+      title: movie.title,
+      type: movie.type,
+      externalId: movie.external_id,
+      createdDate: new Date().toISOString(),
+    }))
+    .filter(isMovieWork);
 
   console.log(`Found ${workItems.length} unique movies to process`);
   let processed = 0;
@@ -38,7 +59,7 @@ const populateMovieDetails = async () => {
       .where(
         "external_id",
         "in",
-        batch.map((m) => parseInt(m.externalId)),
+        batch.map((m) => m.externalId),
       )
       .execute();
 
@@ -62,10 +83,10 @@ const populateMovieDetails = async () => {
 
         try {
           // Insert into movie_details table and get the inserted ID
-          const [insertedMovie] = await db
+          await db
             .insertInto("movie_details")
             .values({
-              external_id: parseInt(movie.externalId),
+              external_id: movie.externalId,
               tmdb_score: movie.externalData.vote_average,
               runtime: movie.externalData.runtime,
               budget: movie.externalData.budget,
@@ -164,6 +185,6 @@ const populateMovieDetails = async () => {
   console.log(`Errors: ${errors}`);
 };
 
-populateMovieDetails().then(() =>
-  console.log("Movie details population completed"),
-);
+populateMovieDetails()
+  .then(() => console.log("Movie details population completed"))
+  .catch(console.error);

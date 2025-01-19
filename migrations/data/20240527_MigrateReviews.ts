@@ -2,14 +2,11 @@ import { CockroachDialect } from "@cubos/kysely-cockroach";
 import { Kysely } from "kysely";
 import { Pool } from "pg";
 
+import { isDefined } from "../../lib/checks/checks.js";
+import { DB, WorkListType, WorkType } from "../../lib/types/generated/db";
 import { getFaunaClient } from "../../netlify/functions/utils/fauna";
 import { getDetailedMovie } from "../../netlify/functions/utils/tmdb";
 import { Document } from "../../netlify/functions/utils/types";
-import {
-  DB,
-  WorkListType,
-  WorkType,
-} from "../../src/common/types/generated/db";
 
 type Club = {
   clubId: number;
@@ -35,8 +32,8 @@ const migrateReviews = async () => {
   const clubs = await faunaClient.query<Document<Document<Club>[]>>(
     q.Map(
       q.Paginate(q.Documents(q.Collection("clubs"))),
-      q.Lambda("clubRef", q.Get(q.Var("clubRef")))
-    )
+      q.Lambda("clubRef", q.Get(q.Var("clubRef"))),
+    ),
   );
 
   for (const club of clubs.data) {
@@ -49,7 +46,7 @@ const migrateReviews = async () => {
 
     if (!cockroachClub) {
       console.warn(
-        `Club with legacy_id ${club.data.clubId} not found in CockroachDB - skipping migration`
+        `Club with legacy_id ${club.data.clubId} not found in CockroachDB - skipping migration`,
       );
       continue;
     }
@@ -65,7 +62,7 @@ const migrateReviews = async () => {
       .returning("id")
       .execute();
 
-    if (club.data.reviews && club.data.reviews.length > 0) {
+    if (isDefined(club.data.reviews) && club.data.reviews.length > 0) {
       for (const review of club.data.reviews) {
         console.log(`Processing review for movie ID ${review.movieId}`);
         let work = await db
@@ -104,7 +101,11 @@ const migrateReviews = async () => {
             })
             .execute();
         } catch (error) {
-          console.error(`Error inserting work_list_item for review: ${error}`);
+          if (error instanceof Error) {
+            console.error(
+              `Error inserting work_list_item for review: ${error.message}`,
+            );
+          }
           continue;
         }
 
@@ -122,7 +123,7 @@ const migrateReviews = async () => {
 
           if (!user) {
             console.warn(
-              `User with username ${username} not found - skipping review score`
+              `User with username ${username} not found - skipping review score`,
             );
             continue;
           }
@@ -143,4 +144,6 @@ const migrateReviews = async () => {
   }
 };
 
-migrateReviews().then(() => console.log("Reviews migration completed"));
+migrateReviews()
+  .then(() => console.log("Reviews migration completed"))
+  .catch(console.error);

@@ -16,11 +16,12 @@
 import { computed, defineEmits } from "vue";
 import { useToast } from "vue-toastification";
 
+import { isTrue } from "../../../../lib/checks/checks.js";
+import { WorkListType, WorkType } from "../../../../lib/types/generated/db";
+import { MovieSearchIndex } from "../../../../lib/types/movie";
+import { WatchListItem } from "../../../../lib/types/watchlist";
 import MovieSearchPrompt from "../../../common/components/MovieSearchPrompt.vue";
 
-import { WorkListType, WorkType } from "@/common/types/generated/db";
-import { MovieSearchIndex } from "@/common/types/movie";
-import { WatchListItem } from "@/common/types/watchlist";
 import { useClubId } from "@/service/useClub";
 import { BASE_IMAGE_URL, useList } from "@/service/useList";
 import { useAddListItem } from "@/service/useList";
@@ -36,19 +37,21 @@ const { isLoading: loadingTrending, data: trending } = useTrending();
 
 const { isLoading: loadingAdd, mutate: addBacklogItem } = useAddListItem(
   clubId,
-  WorkListType.backlog
+  WorkListType.backlog,
 );
 
 const { data: backlog, isLoading: loadingBacklog } = useList(
   clubId,
-  WorkListType.backlog
+  WorkListType.backlog,
 );
 
 const toast = useToast();
-const selectFromSearch = async (movie: MovieSearchIndex) => {
+const selectFromSearch = (movie: MovieSearchIndex) => {
   if (
-    backlog.value?.some(
-      (item) => parseInt(item.externalId ?? "-1") === movie.id
+    isTrue(
+      backlog.value?.some(
+        (item) => parseInt(item.externalId ?? "-1") === movie.id,
+      ),
     )
   ) {
     toast.error("That movie is already in your backlog");
@@ -61,11 +64,11 @@ const selectFromSearch = async (movie: MovieSearchIndex) => {
       externalId: movie.id.toString(),
       imageUrl: `${BASE_IMAGE_URL}${movie.poster_path}`,
     },
-    { onSuccess: () => emit("close") }
+    { onSuccess: () => emit("close") },
   );
 };
 
 const loading = computed(
-  () => loadingTrending.value || loadingBacklog.value || loadingAdd.value
+  () => loadingTrending.value || loadingBacklog.value || loadingAdd.value,
 );
 </script>

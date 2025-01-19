@@ -1,6 +1,6 @@
 <template>
-  <div class="flex justify-between mb-2">
-    <h3 class="text-xl font-bold text-left">{{ award.title }}</h3>
+  <div class="mb-2 flex justify-between">
+    <h3 class="text-left text-xl font-bold">{{ award.title }}</h3>
     <v-btn @click="submit">Submit</v-btn>
   </div>
   <transition-group
@@ -14,7 +14,7 @@
       :movie-title="nomination.movieTitle"
       :movie-poster-url="nomination.posterUrl"
     >
-      <div class="flex gap-2 mb-4">
+      <div class="mb-4 flex gap-2">
         <v-avatar
           v-for="voter in nomination.nominatedBy"
           :key="voter"
@@ -41,9 +41,11 @@
 <script setup lang="ts">
 import { ref } from "vue";
 
+import { isDefined } from "../../../../lib/checks/checks.js";
+import { Award } from "../../../../lib/types/awards";
+import { Member } from "../../../../lib/types/club";
+
 import MoviePosterCard from "@/common/components/MoviePosterCard.vue";
-import { Award } from "@/common/types/awards";
-import { Member } from "@/common/types/club";
 
 const { award, members, user } = defineProps<{
   award: Award;
@@ -57,11 +59,11 @@ const nominations = ref(
   [...award.nominations].sort((nomA, nomB) => {
     const nomARank = nomA.ranking[user.name];
     const nomBRank = nomB.ranking[user.name];
-    if (!nomARank || !nomBRank) return 0;
+    if (!isDefined(nomARank) || !isDefined(nomBRank)) return 0;
     if (nomARank < nomBRank) return -1;
     if (nomARank > nomBRank) return 1;
     return 0;
-  })
+  }),
 );
 
 const swapLeft = (index: number) => swapRight(index - 1);
@@ -74,14 +76,13 @@ const swapRight = (index: number) => {
 
 const getMemberImage = (name: string) => {
   const member = members.find((member) => member.name === name);
-  if (member && member.image) return member.image;
-  return undefined;
+  return member?.image;
 };
 
 const submit = () => {
   emit(
     "submit-ranking",
-    nominations.value.map((nomination) => nomination.movieId)
+    nominations.value.map((nomination) => nomination.movieId),
   );
 };
 </script>

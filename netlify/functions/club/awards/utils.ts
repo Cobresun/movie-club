@@ -1,5 +1,7 @@
 import { ExprArg, query } from "faunadb";
 
+import { hasValue } from "../../../../lib/checks/checks.js";
+import { BaseClubAwards } from "../../../../lib/types/awards";
 import {
   getClubDocument,
   getClubProperty,
@@ -10,15 +12,13 @@ import { badRequest, notFound } from "../../utils/responses";
 import { MiddlewareCallback } from "../../utils/router";
 import { LegacyClubRequest } from "../../utils/validation";
 
-import { BaseClubAwards } from "@/common/types/awards";
-
 const q = query;
 
 export function updateAward(
   clubId: number,
   year: number,
   awardTitle: string,
-  expression: ExprArg
+  expression: ExprArg,
 ) {
   const q = query;
 
@@ -30,9 +30,9 @@ export function updateAward(
         q.If(
           q.Equals(q.Select("title", q.Var("award")), awardTitle),
           q.Merge(q.Var("award"), expression),
-          q.Var("award")
-        )
-      )
+          q.Var("award"),
+        ),
+      ),
     ),
   });
 }
@@ -40,7 +40,7 @@ export function updateAward(
 export function updateClubAwardYear(
   clubId: number,
   year: number,
-  expression: ExprArg
+  expression: ExprArg,
 ) {
   return q.Update(getClubRef(clubId), {
     data: {
@@ -51,9 +51,9 @@ export function updateClubAwardYear(
           q.If(
             q.Equals(q.Select("year", q.Var("awardYear")), year),
             q.Merge(q.Var("awardYear"), expression),
-            q.Var("awardYear")
-          )
-        )
+            q.Var("awardYear"),
+          ),
+        ),
       ),
     },
   });
@@ -64,13 +64,13 @@ export interface ClubAwardRequest extends LegacyClubRequest {
   clubAwards: BaseClubAwards;
 }
 
-export const validYear: MiddlewareCallback<LegacyClubRequest> = async (
-  req: LegacyClubRequest,
-  next
-) => {
-  if (!req.params.year) return notFound();
+export const validYear: MiddlewareCallback<
+  LegacyClubRequest,
+  ClubAwardRequest
+> = async (req, res) => {
+  if (!hasValue(req.params.year)) return res(notFound());
   const year = parseInt(req.params.year);
-  if (isNaN(year)) return badRequest();
+  if (isNaN(year)) return res(badRequest());
 
   const { faunaClient, q } = getFaunaClient();
   const clubAwards = await faunaClient.query<BaseClubAwards | null>(
@@ -78,17 +78,19 @@ export const validYear: MiddlewareCallback<LegacyClubRequest> = async (
       0,
       q.Filter(
         q.Select(["data", "clubAwards"], getClubDocument(req.clubId)),
-        q.Lambda("x", q.Equals(q.Select(["year"], q.Var("x")), year))
+        q.Lambda("x", q.Equals(q.Select(["year"], q.Var("x")), year)),
       ),
-      null
-    )
+      null,
+    ),
   );
 
   if (clubAwards) {
-    req.year = year;
-    req.clubAwards = clubAwards;
-    return next();
+    return {
+      ...req,
+      year,
+      clubAwards,
+    };
   } else {
-    return notFound("Awards year not found");
+    return res(notFound("Awards year not found"));
   }
 };

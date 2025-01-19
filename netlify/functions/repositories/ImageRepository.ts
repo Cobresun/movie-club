@@ -16,10 +16,10 @@ class ImageRepository {
             },
             (error, uploadResult) => {
               return resolve(uploadResult);
-            }
+            },
           )
           .end(file);
-      }
+      },
     );
 
     return {
@@ -28,8 +28,8 @@ class ImageRepository {
     };
   }
 
-  async destroy(id: string) {
-    return await cloudinary.uploader.destroy(id);
+  async destroy(id: string): Promise<void> {
+    await cloudinary.uploader.destroy(id);
   }
 }
 

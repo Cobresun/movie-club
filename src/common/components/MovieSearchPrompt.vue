@@ -1,11 +1,11 @@
 <template>
-  <div class="flex flex-col text-center h-full">
+  <div class="flex h-full flex-col text-center">
     <input
       v-model="searchText"
-      class="p-1 font-bold text-base text-black outline-none rounded-md border-2 border-gray-300 focus:border-primary"
+      class="rounded-md border-2 border-gray-300 p-1 text-base font-bold text-black outline-none focus:border-primary"
       placeholder="Type to filter or search"
     />
-    <div class="overflow-y-auto mt-3">
+    <div class="mt-3 overflow-y-auto">
       <p v-if="noResults">Sorry, your search did not return any results</p>
       <div v-if="filteredDefaultList.length > 0">
         <h5 class="float-left font-bold">
@@ -57,10 +57,10 @@
       </div>
       <loading-spinner
         v-if="includeSearch && loadingSearch"
-        class="self-center mt-3"
+        class="mt-3 self-center"
       />
     </div>
-    <div class="pt-2 flex justify-between mt-auto">
+    <div class="mt-auto flex justify-between pt-2">
       <v-btn @click="emit('close')"> Cancel </v-btn>
     </div>
   </div>
@@ -69,7 +69,7 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 
-import { MovieSearchIndex } from "../types/movie";
+import { MovieSearchIndex } from "../../../lib/types/movie";
 
 import { useSearch } from "@/service/useTMDB";
 
@@ -120,7 +120,7 @@ const filteredDefaultList = computed(() => {
 
 const { data: searchData, isLoading: loadingSearch } = useSearch(
   searchText,
-  includeSearch
+  includeSearch,
 );
 
 const noResults = computed(() => {

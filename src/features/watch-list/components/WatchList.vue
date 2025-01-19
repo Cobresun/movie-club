@@ -1,5 +1,5 @@
 <template>
-  <div class="flex justify-start ml-2">
+  <div class="ml-2 flex justify-start">
     <v-btn class="mr-2" @click="selectRandom()">
       Random
       <mdicon name="dice-multiple-outline" />
@@ -8,7 +8,7 @@
   <transition-group
     tag="div"
     move-class="transition ease-linear duration-300"
-    class="grid grid-cols-auto justify-items-center my-4"
+    class="my-4 grid grid-cols-auto justify-items-center"
   >
     <MoviePosterCard
       v-for="(work, index) in sortedWatchList"
@@ -43,13 +43,13 @@ import { computed } from "vue";
 import { useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
 
+import { WorkListType, WorkType } from "../../../../lib/types/generated/db";
+import { DetailedWorkListItem } from "../../../../lib/types/lists";
 import { useAnimateRandom } from "../composables/useAnimateRandom";
 
 import MoviePosterCard from "@/common/components/MoviePosterCard.vue";
 import { BadRequest } from "@/common/errorCodes";
 import { filterMovies } from "@/common/searchMovies";
-import { WorkListType, WorkType } from "@/common/types/generated/db";
-import { DetailedWorkListItem } from "@/common/types/lists";
 import { useClubId } from "@/service/useClub";
 import {
   useDeleteListItem,
@@ -70,7 +70,7 @@ const router = useRouter();
 const clubId = useClubId();
 const { mutateAsync: deleteWatchlistItem } = useDeleteListItem(
   clubId,
-  WorkListType.watchlist
+  WorkListType.watchlist,
 );
 const {
   mutateAsync: addReview,
@@ -88,14 +88,16 @@ const reviewMovie = async (work: DetailedWorkListItem) => {
       imageUrl: work.imageUrl,
     },
     {
-      onSuccess: () => router.push({ name: "Reviews" }),
+      onSuccess: () => {
+        router.push({ name: "Reviews" }).catch(console.error);
+      },
       onError: (e) => {
         const error = e as AxiosError;
         if (error.response?.data === BadRequest.ItemInList) {
           toast.error("You've already reviewed this movie");
         }
       },
-    }
+    },
   );
   await deleteWatchlistItem(work.id);
 };
@@ -117,11 +119,11 @@ const {
 
 const sortedWatchList = computed(() => {
   const nextItem = displayWatchlist.value?.find(
-    (item) => item.id === nextWorkId.value
+    (item) => item.id === nextWorkId.value,
   );
   if (nextItem && !isAnimating.value) {
     const sortedWatchList = displayWatchlist.value.filter(
-      (item) => item.id !== nextItem.id
+      (item) => item.id !== nextItem.id,
     );
     sortedWatchList.unshift(nextItem);
     return sortedWatchList;
@@ -130,13 +132,13 @@ const sortedWatchList = computed(() => {
 });
 
 const nextMovieItem = computed(() =>
-  watchList.value?.find((work) => work.id === nextWorkId.value)
+  watchList.value?.find((work) => work.id === nextWorkId.value),
 );
 
 const selectRandom = () => {
   clearSearch();
   const selectedIndex = Math.floor(
-    Math.random() * sortedWatchList.value.length
+    Math.random() * sortedWatchList.value.length,
   );
   const randomWork = sortedWatchList.value[selectedIndex];
   setNextWork(randomWork.id);

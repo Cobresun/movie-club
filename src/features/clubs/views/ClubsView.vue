@@ -1,21 +1,26 @@
 <template>
   <div>
-    <div v-if="!isLoggedIn" class="flex flex-col space-y-10 px-10 py-10 md:px-48 md:py-48 md:space-x-14 md:flex-row-reverse">
+    <div
+      v-if="!isLoggedIn"
+      class="flex flex-col space-y-10 px-10 py-10 md:flex-row-reverse md:space-x-14 md:px-48 md:py-48"
+    >
       <div class="flex-grow-0">
-        <img
-          :src="homeCinemaSvg"
-        />
+        <img :src="homeCinemaSvg" />
       </div>
 
-      <div class="flex flex-col text-left space-y-8">
-        <h1 class="text-3xl md:text-5xl font-bold leading-tight">Get your 🍿 ready for MovieClub: The Book Club for Movies</h1>
-        <h2 class="text-1xl md:text-2xl font-light">Rate movies, compare favorites, and find patterns.</h2>
+      <div class="flex flex-col space-y-8 text-left">
+        <h1 class="text-3xl font-bold leading-tight md:text-5xl">
+          Get your 🍿 ready for MovieClub: The Book Club for Movies
+        </h1>
+        <h2 class="text-1xl font-light md:text-2xl">
+          Rate movies, compare favorites, and find patterns.
+        </h2>
       </div>
     </div>
-    
+
     <div v-if="isLoggedIn">
       <loading-spinner v-if="isLoading" />
-      <div v-else class="flex justify-center pb-6 flex-col md:flex-row">
+      <div v-else class="flex flex-col justify-center pb-6 md:flex-row">
         <div v-for="club in clubs" :key="club.clubId" class="p-3">
           <router-link
             :to="{ name: 'ClubHome', params: { clubId: club.clubId } }"
@@ -40,8 +45,8 @@
 <script setup lang="ts">
 import { computed } from "vue";
 
+import homeCinemaSvg from "@/assets/images/home_cinema.svg";
 import clubSvg from "@/assets/images/menu-images/club.svg";
-import homeCinemaSvg from "@/assets/images/home_cinema.svg"
 import { useUserClubs } from "@/service/useUser";
 import { useAuthStore } from "@/stores/auth";
 

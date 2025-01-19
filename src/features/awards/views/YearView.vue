@@ -5,11 +5,12 @@
       <RouterView :club-award="clubAward" />
       <v-btn
         v-if="nextStep"
-        class="m-4 mt-8 float-right"
+        class="float-right m-4 mt-8"
         :disabled="!enableButton"
         @click="updateStep"
-        >{{ nextStep.title }}<mdicon name="chevron-right"
-      /></v-btn>
+      >
+        {{ nextStep.title }}<mdicon name="chevron-right" />
+      </v-btn>
     </div>
   </div>
 </template>
@@ -17,9 +18,8 @@
 import { computed, toRefs } from "vue";
 import { useRouter } from "vue-router";
 
-import { NOMINATIONS_PER_AWARD } from "../constants";
+import { AwardsStep } from "../../../../lib/types/awards";
 
-import { AwardsStep } from "@/common/types/awards";
 import { useAwards, useUpdateStep } from "@/service/useAwards";
 import { useMembers } from "@/service/useClub";
 
@@ -50,7 +50,7 @@ const router = useRouter();
 
 const { data: clubAward, isLoading } = useAwards(clubId, year, (clubAward) => {
   const step = steps.find((step) => step.step === clubAward.step);
-  if (step) router.push({ name: step.routeName });
+  if (step) router.push({ name: step.routeName }).catch(console.error);
 });
 
 const nextStep = computed(() => {
@@ -66,7 +66,7 @@ const { mutate } = useUpdateStep(clubId, year);
 const updateStep = () => {
   if (nextStep.value) {
     mutate(nextStep.value.step);
-    router.push({ name: nextStep.value.routeName });
+    router.push({ name: nextStep.value.routeName }).catch(console.error);
   }
 };
 
@@ -78,33 +78,14 @@ const completedCategories = computed(() => {
   return clubAward.value.awards.length > 0;
 });
 
-const completedNominations = computed(() => {
-  if (!clubAward.value) return false;
-  const nominationNumber = clubAward.value.awards.reduce(
-    (num, award) =>
-      num +
-      award.nominations.reduce(
-        (awardNum, nomination) => awardNum + nomination.nominatedBy.length,
-        0
-      ),
-    0
-  );
-  return (
-    nominationNumber >=
-    clubAward.value.awards.length *
-      NOMINATIONS_PER_AWARD *
-      filteredMembers.value.length
-  );
-});
-
 const completedRanking = computed(() => {
   if (!clubAward.value) return false;
   return clubAward.value.awards.every((award) =>
     filteredMembers.value.every((member) =>
       award.nominations.every(
-        (nomination) => nomination.ranking[member.name] !== undefined
-      )
-    )
+        (nomination) => nomination.ranking[member.name] !== undefined,
+      ),
+    ),
   );
 });
 
@@ -114,6 +95,11 @@ const enableButton = computed(() => {
       return completedCategories.value;
     case AwardsStep.Ratings:
       return completedRanking.value;
+    case AwardsStep.Completed:
+    case AwardsStep.Presentation:
+    case AwardsStep.Nominations:
+    case undefined:
+      return true;
     default:
       return true;
   }

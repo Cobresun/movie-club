@@ -1,7 +1,7 @@
 <template>
   <div class="flex justify-center">
     <div
-      class="flex md:flex-row flex-col-reverse items-center justify-between p-8 w-full max-w-5xl"
+      class="flex w-full max-w-5xl flex-col-reverse items-center justify-between p-8 md:flex-row"
     >
       <div class="text-left">
         <p class="text-lg font-semibold">Name:</p>
@@ -10,7 +10,7 @@
         <p>{{ data?.email }}</p>
       </div>
       <input ref="fileInput" type="file" hidden @change="uploadAvatar" />
-      <button class="relative group cursor-pointer" @click="openFileSelector">
+      <button class="group relative cursor-pointer" @click="openFileSelector">
         <v-avatar
           class="mb-4 md:mb-0"
           :src="data?.image"
@@ -18,7 +18,7 @@
           size="160"
         />
         <div
-          class="absolute top-0 left-0 rounded-full bg-black bg-opacity-30 w-full h-full items-center justify-center"
+          class="absolute left-0 top-0 h-full w-full items-center justify-center rounded-full bg-black bg-opacity-30"
           :class="{ flex: isLoading, 'hidden group-hover:flex': !isLoading }"
         >
           <loading-spinner v-if="isLoading" />
@@ -32,6 +32,8 @@
 import { computed, ref, Ref } from "vue";
 import { useToast } from "vue-toastification";
 
+import { isDefined } from "../../../../lib/checks/checks.js";
+
 import { useUser, useUpdateAvatar } from "@/service/useUser";
 
 const { data, isFetching: isUserLoading } = useUser();
@@ -43,9 +45,9 @@ const openFileSelector = () => {
 
 const { mutate, isLoading: isAvatarLoading } = useUpdateAvatar();
 const toast = useToast();
-const uploadAvatar = async (event: Event) => {
+const uploadAvatar = (event: Event) => {
   const input = event.target as HTMLInputElement;
-  if (!input.files?.length) return;
+  if (!isDefined(input.files) || input.files.length > 0) return;
 
   const file = input.files[0];
   const maxFileSize = 6 * 1024 * 1024;

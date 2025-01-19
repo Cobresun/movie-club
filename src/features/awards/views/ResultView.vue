@@ -1,5 +1,5 @@
 <template>
-  <h2 class="text-2xl font-bold m-4">Awards</h2>
+  <h2 class="m-4 text-2xl font-bold">Awards</h2>
   <AwardResult
     v-for="award in clubAward.awards"
     :key="award.title"
@@ -12,9 +12,9 @@
 <script setup lang="ts">
 import { ref, toRefs } from "vue";
 
+import { AwardsStep, ClubAwards } from "../../../../lib/types/awards";
 import AwardResult from "../components/AwardResult.vue";
 
-import { AwardsStep, ClubAwards } from "@/common/types/awards";
 import { useUpdateStep } from "@/service/useAwards";
 import { useMembers } from "@/service/useClub";
 
@@ -36,7 +36,7 @@ const revealHandler = (awardTitle: string) => {
   revealedAwards.value.push(awardTitle);
   if (
     clubAward.value.awards.every((award) =>
-      revealedAwards.value.some((title) => title === award.title)
+      revealedAwards.value.some((title) => title === award.title),
     )
   ) {
     mutate(AwardsStep.Completed);

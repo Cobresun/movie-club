@@ -1,9 +1,12 @@
 import { Handler, HandlerContext, HandlerEvent } from "@netlify/functions";
+import { z } from "zod";
 
 import awardsRouter from "./awards";
 import listRouter from "./list";
 import membersRouter from "./members";
 import reviewsRouter from "./reviews";
+import { hasValue } from "../../../lib/checks/checks.js";
+import { BaseClub, ClubPreview } from "../../../lib/types/club";
 import ClubRepository from "../repositories/ClubRepository";
 import WorkRepository from "../repositories/WorkRepository";
 import { loggedIn, secured } from "../utils/auth";
@@ -11,10 +14,7 @@ import { getFaunaClient } from "../utils/fauna";
 import { ok, badRequest } from "../utils/responses";
 import { Router } from "../utils/router";
 import { Document } from "../utils/types";
-import type { ClubRequest } from "../utils/validation";
 import { mapIdToLegacyId, validClubId } from "../utils/validation";
-
-import { BaseClub, ClubPreview } from "@/common/types/club";
 
 const { faunaClient, q } = getFaunaClient();
 
@@ -24,24 +24,26 @@ router.use("/:clubId<\\d+>/reviews", validClubId, reviewsRouter);
 router.use("/:clubId<\\d+>/members", validClubId, membersRouter);
 router.use("/:clubId<\\d+>/awards", validClubId, mapIdToLegacyId, awardsRouter);
 
-router.get("/:clubId<\\d+>", validClubId, async ({ clubId }: ClubRequest) => {
-  const club = await ClubRepository.getById(clubId!);
+router.get("/:clubId<\\d+>", validClubId, async ({ clubId }, res) => {
+  const club = await ClubRepository.getById(clubId);
   const result: ClubPreview = {
     clubId: club.id,
     clubName: club.name,
   };
-  return ok(JSON.stringify(result));
+  return res(ok(JSON.stringify(result)));
 });
 
-router.post("/", loggedIn, async ({ event }) => {
-  if (!event.body) return badRequest("Missing body");
-  const body = JSON.parse(event.body);
-  if (!body.name || body.name.length < 1) return badRequest("Missing name");
-  if (!body.members || !body.members.length)
-    return badRequest("Missing members");
+const clubCreateSchema = z.object({
+  name: z.string(),
+  members: z.array(z.string()),
+});
 
-  const name: string = body.name;
-  const members: string[] = body.members;
+router.post("/", loggedIn, async ({ event }, res) => {
+  if (!hasValue(event.body)) return res(badRequest("Missing body"));
+
+  const body = clubCreateSchema.safeParse(JSON.parse(event.body));
+  if (!body.success) return res(badRequest("Invalid body"));
+  const { name, members } = body.data;
 
   // Generate a random clubId
   const clubId = Math.floor(Math.random() * 100000);
@@ -68,31 +70,32 @@ router.post("/", loggedIn, async ({ event }) => {
 
   await ClubRepository.insert(name, clubId);
 
-  return ok(JSON.stringify(clubResponse.data));
+  return res(ok(JSON.stringify(clubResponse.data)));
 });
 
-router.get(
-  "/:clubId<\\d+>/nextWork",
-  validClubId,
-  async ({ clubId }: ClubRequest) => {
-    const nextWork = await WorkRepository.getNextWork(clubId);
-    return ok(JSON.stringify({ workId: nextWork?.work_id }));
-  },
-);
+router.get("/:clubId<\\d+>/nextWork", validClubId, async ({ clubId }, res) => {
+  const nextWork = await WorkRepository.getNextWork(clubId);
+  return res(ok(JSON.stringify({ workId: nextWork?.work_id })));
+});
+
+const nextWorkSchema = z.object({
+  workId: z.string(),
+});
 
 router.put(
   "/:clubId<\\d+>/nextWork",
   validClubId,
   secured,
-  async ({ event, clubId }: ClubRequest) => {
-    if (!event.body) return badRequest("Missing body");
-    const body = JSON.parse(event.body);
-    if (!body.workId) return badRequest("Missing workId");
+  async ({ event, clubId }, res) => {
+    if (!hasValue(event.body)) return res(badRequest("Missing body"));
+    const body = nextWorkSchema.safeParse(JSON.parse(event.body));
+    if (!body.success) return res(badRequest("Invalid body"));
+    const { workId } = body.data;
 
     await WorkRepository.deleteNextWork(clubId);
-    await WorkRepository.setNextWork(clubId, body.workId);
+    await WorkRepository.setNextWork(clubId, workId);
 
-    return ok();
+    return res(ok());
   },
 );
 
@@ -100,7 +103,7 @@ const handler: Handler = async (
   event: HandlerEvent,
   context: HandlerContext,
 ) => {
-  return router.route({ event, context });
+  return router.route({ event, context, params: {} });
 };
 
 export { handler };

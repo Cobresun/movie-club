@@ -1,12 +1,12 @@
 <template>
   <div class="flex flex-col items-center">
-    <h2 class="text-2xl font-bold m-4">Categories</h2>
-    <div class="w-11/12 max-w-lg flex flex-col">
+    <h2 class="m-4 text-2xl font-bold">Categories</h2>
+    <div class="flex w-11/12 max-w-lg flex-col">
       <VueDraggableNext v-model="categories">
         <div
           v-for="element in categories"
           :key="element.title"
-          class="bg-lowBackground h-12 rounded-xl mb-2 p-4 flex justify-between items-center"
+          class="mb-2 flex h-12 items-center justify-between rounded-xl bg-lowBackground p-4"
         >
           <p>{{ element.title }}</p>
           <div class="flex">
@@ -21,7 +21,7 @@
       </VueDraggableNext>
       <input
         v-model="newCategory"
-        class="h-12 pl-4 p-2 text-base outline-none rounded-xl border-2 text-white border-slate-600 focus:border-primary w-full bg-background"
+        class="h-12 w-full rounded-xl border-2 border-slate-600 bg-background p-2 pl-4 text-base text-white outline-none focus:border-primary"
         placeholder="Add category"
         @keypress.enter="addCategory"
       />
@@ -32,7 +32,8 @@
 import { ref, watch, toRefs } from "vue";
 import { VueDraggableNext } from "vue-draggable-next";
 
-import { ClubAwards } from "@/common/types/awards";
+import { ClubAwards } from "../../../../lib/types/awards";
+
 import {
   useAddCategory,
   useDeleteCategory,
@@ -56,7 +57,7 @@ const newCategory = ref("");
 
 const { mutate: addCategoryMutation } = useAddCategory(
   clubId.value,
-  year.value
+  year.value,
 );
 
 const addCategory = () => {
@@ -71,13 +72,13 @@ const addCategory = () => {
 
 const { mutate: reorderCategories } = useReorderCategories(
   clubId.value,
-  year.value
+  year.value,
 );
 
 watch(categories, () => {
   if (
     categories.value.some(
-      (category, index) => clubAward.value.awards[index] !== category
+      (category, index) => clubAward.value.awards[index] !== category,
     )
   ) {
     reorderCategories(categories.value.map((category) => category.title));

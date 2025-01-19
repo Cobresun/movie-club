@@ -1,8 +1,8 @@
+import { hasValue } from "../../../lib/checks/checks.js";
+import { WorkType } from "../../../lib/types/generated/db.js";
+import { ListInsertDto } from "../../../lib/types/lists.js";
 import { db } from "../utils/database";
 import { getDetailedWorks } from "../utils/tmdb";
-
-import { WorkType } from "@/common/types/generated/db";
-import { ListInsertDto } from "@/common/types/lists";
 
 class WorkRepository {
   async findByType(clubId: string, type: WorkType, externalId: string) {
@@ -49,27 +49,30 @@ class WorkRepository {
         (oc) =>
           oc
             .constraint("uq_club_id_type_external_id")
-            .doUpdateSet({ club_id: clubId }) // This is a no-op, but required for the query to return the id
+            .doUpdateSet({ club_id: clubId }), // This is a no-op, but required for the query to return the id
       )
       .returning("id")
-      .executeTakeFirst();
+      .executeTakeFirstOrThrow();
 
     // If it's a movie with an external ID, fetch and store its details
-    if (work.type === "movie" && work.externalId) {
-      const [movieDetails] = await getDetailedWorks([{
-        id: insertedWork!.id,
-        title: work.title,
-        type: work.type,
-        externalId: work.externalId,
-        createdDate: new Date().toISOString(),
-      }]);
+    const externalId = work.externalId;
+    if (work.type === WorkType.movie && hasValue(externalId)) {
+      const [movieDetails] = await getDetailedWorks([
+        {
+          id: insertedWork.id,
+          title: work.title,
+          type: work.type,
+          externalId: externalId,
+          createdDate: new Date().toISOString(),
+        },
+      ]);
 
       if (movieDetails?.externalData) {
         // Insert movie details
         await db
           .insertInto("movie_details")
           .values({
-            external_id: work.externalId,
+            external_id: externalId,
             tmdb_score: movieDetails.externalData.vote_average,
             runtime: movieDetails.externalData.runtime,
             budget: movieDetails.externalData.budget,
@@ -90,9 +93,7 @@ class WorkRepository {
             tagline: movieDetails.externalData.tagline,
             title: movieDetails.externalData.title,
           })
-          .onConflict((oc) => 
-            oc.column("external_id").doNothing()
-          )
+          .onConflict((oc) => oc.column("external_id").doNothing())
           .execute();
 
         // Insert genres
@@ -101,12 +102,12 @@ class WorkRepository {
             .insertInto("movie_genres")
             .values(
               movieDetails.externalData.genres.map((g) => ({
-                external_id: work.externalId!,
+                external_id: externalId,
                 genre_name: g.name,
-              }))
+              })),
             )
-            .onConflict((oc) => 
-              oc.columns(["external_id", "genre_name"]).doNothing()
+            .onConflict((oc) =>
+              oc.columns(["external_id", "genre_name"]).doNothing(),
             )
             .execute();
         }
@@ -117,14 +118,14 @@ class WorkRepository {
             .insertInto("movie_production_companies")
             .values(
               movieDetails.externalData.production_companies.map((c) => ({
-                external_id: work.externalId!,
+                external_id: externalId,
                 company_name: c.name,
                 logo_path: c.logo_path,
                 origin_country: c.origin_country,
-              }))
+              })),
             )
-            .onConflict((oc) => 
-              oc.columns(["external_id", "company_name"]).doNothing()
+            .onConflict((oc) =>
+              oc.columns(["external_id", "company_name"]).doNothing(),
             )
             .execute();
         }
@@ -135,13 +136,13 @@ class WorkRepository {
             .insertInto("movie_production_countries")
             .values(
               movieDetails.externalData.production_countries.map((c) => ({
-                external_id: work.externalId!,
+                external_id: externalId,
                 country_code: c.iso_3166_1,
                 country_name: c.name,
-              }))
+              })),
             )
-            .onConflict((oc) => 
-              oc.columns(["external_id", "country_code"]).doNothing()
+            .onConflict((oc) =>
+              oc.columns(["external_id", "country_code"]).doNothing(),
             )
             .execute();
         }

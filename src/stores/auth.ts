@@ -5,6 +5,8 @@ import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
+import { isDefined, isTrue } from "../../lib/checks/checks.js";
+
 export const useAuthStore = defineStore("auth", () => {
   const user = ref<User | null>();
   const ready = ref(false);
@@ -21,7 +23,7 @@ export const useAuthStore = defineStore("auth", () => {
     refetchInterval: 60 * 59 * 1000, // Refetch after 59mins
   });
 
-  const isLoggedIn = computed(() => !!authToken.value);
+  const isLoggedIn = computed(() => isDefined(authToken.value));
 
   const request = computed(() =>
     axios.create({ headers: { Authorization: `Bearer ${authToken.value}` } }),
@@ -57,10 +59,10 @@ export const useAuthStore = defineStore("auth", () => {
   const router = useRouter();
   const route = useRoute();
   const logout = () => {
-    if (route.meta.authRequired) {
-      router.push({ name: "Clubs" });
+    if (isTrue(route.meta.authRequired)) {
+      router.push({ name: "Clubs" }).catch(console.error);
     }
-    netlifyIdentity.logout();
+    netlifyIdentity.logout()?.catch(console.error);
   };
 
   return {

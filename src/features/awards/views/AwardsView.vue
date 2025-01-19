@@ -1,5 +1,5 @@
 <template>
-  <div class="p-2 flex justify-center">
+  <div class="flex justify-center p-2">
     <div class="w-full max-w-4xl text-center">
       <page-header has-back back-route="ClubHome" page-name="Awards" />
       <loading-spinner v-if="isLoading" />
@@ -14,6 +14,8 @@
 import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
+import { isDefined } from "../../../../lib/checks/checks.js";
+
 import { useAwardYears } from "@/service/useAwards";
 import { useClubId } from "@/service/useClub";
 
@@ -21,7 +23,7 @@ const clubId = useClubId();
 const { data: years, isLoading } = useAwardYears(clubId);
 
 const selectYears = computed(() =>
-  years.value ? years.value.map((year) => year.toString()) : []
+  years.value ? years.value.map((year) => year.toString()) : [],
 );
 
 const route = useRoute();
@@ -29,10 +31,14 @@ const router = useRouter();
 
 const selectValue = computed({
   get() {
-    return route.params.year ? (route.params.year as string) : "";
+    return isDefined(route.params.year) && !Array.isArray(route.params.year)
+      ? route.params.year
+      : "";
   },
   set(value: string) {
-    router.push({ name: "AwardsYear", params: { year: value } });
+    router
+      .push({ name: "AwardsYear", params: { year: value } })
+      .catch(console.error);
   },
 });
 </script>

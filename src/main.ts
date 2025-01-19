@@ -9,6 +9,7 @@ import Toast from "vue-toastification";
 
 import LazyLoad from "./directives/LazyLoad";
 import router from "./router";
+import { isDefined } from "../lib/checks/checks.js";
 
 import App from "@/App.vue";
 import Loading from "@/common/components/LoadingSpinner.vue";
@@ -24,7 +25,7 @@ import "./assets/styles/tailwind.css";
 import "animate.css";
 import "vue-toastification/dist/index.css";
 
-const fetchedMap = reactive(new Map());
+const fetchedMap = reactive(new Map<string, number>());
 
 const vueQueryOptions: VueQueryPluginOptions = {
   queryClientConfig: {
@@ -33,10 +34,10 @@ const vueQueryOptions: VueQueryPluginOptions = {
         refetchOnWindowFocus: false,
         refetchOnMount: (query) => {
           const refetchTimes = fetchedMap.get(query.queryHash);
-          if (refetchTimes > 1) {
+          if (isDefined(refetchTimes) && refetchTimes > 1) {
             return false;
           } else {
-            fetchedMap.set(query.queryHash, (refetchTimes || 0) + 1);
+            fetchedMap.set(query.queryHash, (refetchTimes ?? 0) + 1);
             return true;
           }
         },

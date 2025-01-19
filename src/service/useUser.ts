@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
 import { computed } from "vue";
 
-import { ClubPreview, Member } from "@/common/types/club";
+import { ClubPreview, Member } from "../../lib/types/club";
+
 import { useAuthStore } from "@/stores/auth";
 
 export function useUser() {
@@ -12,7 +13,7 @@ export function useUser() {
   return useQuery<Member>({
     queryKey: ["user", email],
     enabled: isLoggedIn,
-    queryFn: async () => (await auth.request.get(`/api/member`)).data,
+    queryFn: async () => (await auth.request.get<Member>(`/api/member`)).data,
   });
 }
 
@@ -23,7 +24,8 @@ export function useUserClubs() {
   return useQuery<ClubPreview[]>({
     queryKey: ["user", "clubs"],
     enabled: isLoggedIn,
-    queryFn: async () => (await auth.request.get("/api/member/clubs")).data,
+    queryFn: async () =>
+      (await auth.request.get<ClubPreview[]>("/api/member/clubs")).data,
   });
 }
 
@@ -38,7 +40,9 @@ export function useUpdateAvatar() {
         },
       }),
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["user", auth.user?.email] });
+      queryClient
+        .invalidateQueries({ queryKey: ["user", auth.user?.email] })
+        .catch(console.error);
     },
   });
 }

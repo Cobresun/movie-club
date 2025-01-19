@@ -1,4 +1,12 @@
-import { AgScatterSeriesTooltipRendererParams } from "ag-charts-community";
+import {
+  AgCartesianChartOptions,
+  AgScatterSeriesTooltipRendererParams,
+} from "ag-charts-community";
+
+import { isDefined } from "../../../lib/checks/checks.js";
+import { WorkType } from "../../../lib/types/generated/db.js";
+import { DetailedReviewListItem } from "../../../lib/types/lists.js";
+import { DetailedMovieData } from "../../../lib/types/movie.js";
 
 /**
  * Normalizes an array of numbers by subtracting the mean and dividing by the standard deviation.
@@ -7,9 +15,9 @@ import { AgScatterSeriesTooltipRendererParams } from "ag-charts-community";
  * @returns A normalized array of numbers.
  */
 export const normalizeArray = (array: number[]): number[] => {
-  if (!array?.length) return [];
+  if (array.length === 0) return [];
 
-  const validScores = array.filter(score => score !== undefined);
+  const validScores = array.filter((score) => score !== undefined);
   const count = validScores.length;
 
   if (count === 0) {
@@ -27,15 +35,19 @@ export const normalizeArray = (array: number[]): number[] => {
     return array.map(() => 0);
   }
 
-  return array.map(score => {
+  return array.map((score) => {
     const value = score === undefined ? mean : score;
     return parseFloat(((value - mean) / std).toFixed(2));
   });
 };
 
-export interface MovieStatistics {
+// TODO: This type should just be a Review plus computed fields. No reason to spread external data to this type
+export interface MovieStatistics extends DetailedReviewListItem {
+  id: string;
+  type: WorkType.movie;
   title: string;
-  dateWatched: string;
+  createdDate: string;
+  imageUrl: string | undefined;
   vote_average: number;
   revenue: number;
   budget: number;
@@ -47,48 +59,26 @@ export interface MovieStatistics {
   production_companies: string[];
   production_countries: string[];
   average: number;
-  averageNorm?: number;
-  vote_averageNorm?: number;
-  [key: string]: any; // For dynamic member scores
+  userScores: Record<string, number>;
+  normalized: Record<string, number>;
+  externalData: DetailedMovieData;
+  dateWatched: string;
 }
 
-export interface ChartTitle {
-  text: string;
-}
+export type NumericMovieStatisticsKeys = {
+  [K in keyof MovieStatistics]: MovieStatistics[K] extends number | undefined
+    ? K
+    : never;
+}[keyof MovieStatistics];
 
-export interface ChartAxis {
-  type: string;
-  position: string;
-  title: {
-    enabled: boolean;
-    text: string;
-  };
-}
-
-export interface ChartSeries {
-  type: string;
-  xKey: string;
-  xName: string;
-  yKey: string;
-  yName: string;
-  showInLegend: boolean;
-  tooltip: {
-    renderer: (params: any) => string;
-  };
-}
-
-export interface ChartConfig {
-  autoSize: boolean;
-  theme: string;
-  title: ChartTitle;
-  data: MovieStatistics[];
-  series: ChartSeries[];
-  axes: ChartAxis[];
-}
+export type HistogramData = {
+  bin: number;
+  [index: string]: number;
+};
 
 export const createHistogramData = (scores: number[], normalized: boolean) => {
-  if (!scores?.length) return [];
-  
+  if (scores.length === 0) return [];
+
   const bins = Array.from({ length: 11 }, (_, i) => ({
     bin: normalized ? i / 4.0 - 1.25 : i, // TODO: stop using hardcoded bin for std, this works for clubs with 4 members
     ...Object.fromEntries(scores.map((_, index) => [index, 0])),
@@ -97,7 +87,6 @@ export const createHistogramData = (scores: number[], normalized: boolean) => {
 };
 
 export const baseChartConfig = {
-  autoSize: true,
   theme: "ag-default-dark",
   axes: [
     {
@@ -113,18 +102,22 @@ export const baseChartConfig = {
   ],
 };
 
-export const loadDefaultChartSettings = (params: {
+export const loadScatterChartSettings = (params: {
   chartTitle: string;
   xName: string;
-  xData: string;
+  xData: NumericMovieStatisticsKeys;
   yName: string;
-  yData: string;
+  yData: NumericMovieStatisticsKeys;
   normalizeX: boolean;
   normalizeY: boolean;
   normalizeToggled: boolean;
   movieData: MovieStatistics[];
   chartType?: string;
-}): ChartConfig => {
+}): AgCartesianChartOptions => {
+  if (!isDefined(params.xData) || !isDefined(params.yData)) {
+    throw new Error("xData and yData must be defined");
+  }
+
   const {
     chartTitle,
     xName,
@@ -135,29 +128,41 @@ export const loadDefaultChartSettings = (params: {
     normalizeY,
     normalizeToggled,
     movieData,
-    chartType = "scatter",
   } = params;
 
-  const finalXKey = xData + (normalizeX && normalizeToggled ? "Norm" : "");
-  const finalYKey = yData + (normalizeY && normalizeToggled ? "Norm" : "");
+  const data = movieData.map((movie) => ({
+    xData:
+      normalizeX && normalizeToggled ? movie.normalized[xData] : movie[xData],
+    yData:
+      normalizeY && normalizeToggled ? movie.normalized[yData] : movie[yData],
+    title: movie.title,
+  }));
 
   return {
-    autoSize: true,
     theme: "ag-default-dark",
     title: { text: chartTitle },
-    data: movieData,
+    data: data,
     series: [
       {
-        type: chartType,
-        xKey: finalXKey,
+        type: "scatter",
+        xKey: "xData",
         xName,
-        yKey: finalYKey,
+        yKey: "yData",
         yName,
         showInLegend: false,
         tooltip: {
-          renderer: (params: AgScatterSeriesTooltipRendererParams) =>
-            `<div class="ag-chart-tooltip-title" style="background-color:${params.color}">${params.datum.title}</div>` +
-            `<div class="ag-chart-tooltip-content">${params.xName}: ${params.xValue}<br/>${params.yName}: ${params.yValue}</div>`,
+          renderer: (
+            params: AgScatterSeriesTooltipRendererParams<{
+              xData: number;
+              yData: number;
+              title: string;
+            }>,
+          ) => {
+            return (
+              `<div class="ag-chart-tooltip-title p-2" style="background-color:${params.fill}">${params.datum.title}</div>` +
+              `<div class="ag-chart-tooltip-content p-2 text-start">${xName}: ${params.datum.xData}<br/>${yName}: ${params.datum.yData}</div>`
+            );
+          },
         },
       },
     ],

@@ -75,7 +75,8 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
 
-import { Header } from "../types/common";
+import { isDefined } from "../../../lib/checks/checks.js";
+import { Header } from "../../../lib/types/common";
 
 interface Props {
   headers: Header[];
@@ -159,7 +160,7 @@ const comparator = (value: string, order: boolean) => {
 
 const sortBy = ref<Record<string, number>>({});
 const sort = (value: string) => {
-  if (!sortBy.value[value]) {
+  if (!isDefined(sortBy.value[value])) {
     sortBy.value[value] = 0;
   }
   if (sortBy.value[value] === 0) {

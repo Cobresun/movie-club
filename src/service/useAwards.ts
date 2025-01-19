@@ -8,32 +8,36 @@ import axios, { AxiosError } from "axios";
 import { Ref } from "vue";
 
 import { useUser } from "./useUser";
+import { hasValue } from "../../lib/checks/checks.js";
+import { Award, AwardsStep, ClubAwards } from "../../lib/types/awards";
+import { DetailedReviewListItem } from "../../lib/types/lists";
+import { DetailedMovieData } from "../../lib/types/movie";
 
-import { Award, AwardsStep, ClubAwards } from "@/common/types/awards";
-import { DetailedReviewListItem } from "@/common/types/lists";
-import { DetailedMovieData } from "@/common/types/movie";
-import { Review } from "@/common/types/reviews";
 import { useAuthStore } from "@/stores/auth";
 
 export function useAwardYears(
-  clubId: string
+  clubId: string,
 ): UseQueryReturnType<number[], AxiosError> {
   return useQuery({
     queryKey: ["awards-years", clubId],
     queryFn: async () =>
-      (await axios.get(`/api/club/${clubId}/awards/years`)).data,
+      (await axios.get<number[]>(`/api/club/${clubId}/awards/years`)).data,
   });
 }
 
 export function useAwards(
   clubId: Ref<string>,
   year: Ref<string>,
-  onSuccess?: (data: ClubAwards) => void
+  onSuccess?: (data: ClubAwards) => void,
 ): UseQueryReturnType<ClubAwards, AxiosError> {
   return useQuery({
     queryKey: ["awards", clubId, year],
     queryFn: async () =>
-      (await axios.get(`/api/club/${clubId.value}/awards/${year.value}`)).data,
+      (
+        await axios.get<ClubAwards>(
+          `/api/club/${clubId.value}/awards/${year.value}`,
+        )
+      ).data,
     onSuccess,
   });
 }
@@ -47,7 +51,9 @@ export function useUpdateStep(clubId: Ref<string>, year: Ref<string>) {
         step,
       }),
     onSettled: () => {
-      queryClient.invalidateQueries(["awards", clubId, year]);
+      queryClient
+        .invalidateQueries(["awards", clubId, year])
+        .catch(console.error);
     },
   });
 }
@@ -70,11 +76,13 @@ export function useAddCategory(clubId: string, year: string) {
             ...currentAwards,
             awards: [...currentAwards.awards, { title, nominations: [] }],
           };
-        }
+        },
       );
     },
     onSettled: () => {
-      queryClient.invalidateQueries(["awards", clubId, year]);
+      queryClient
+        .invalidateQueries(["awards", clubId, year])
+        .catch(console.error);
     },
   });
 }
@@ -96,14 +104,16 @@ export function useReorderCategories(clubId: string, year: string) {
           return {
             ...currentAwards,
             awards: categories.map((category) =>
-              currentAwards.awards.find((award) => award.title === category)
+              currentAwards.awards.find((award) => award.title === category),
             ) as Award[],
           };
-        }
+        },
       );
     },
     onSettled: () => {
-      queryClient.invalidateQueries(["awards", clubId, year]);
+      queryClient
+        .invalidateQueries(["awards", clubId, year])
+        .catch(console.error);
     },
   });
 }
@@ -115,8 +125,8 @@ export function useDeleteCategory(clubId: string, year: string) {
     mutationFn: (award: Award) =>
       auth.request.delete(
         `/api/club/${clubId}/awards/${year}/category/${encodeURIComponent(
-          award.title
-        )}`
+          award.title,
+        )}`,
       ),
     onMutate: async (award) => {
       await queryClient.cancelQueries(["awards", clubId, year]);
@@ -127,14 +137,16 @@ export function useDeleteCategory(clubId: string, year: string) {
           return {
             ...currentAwards,
             awards: currentAwards.awards.filter(
-              (curAward) => curAward.title !== award.title
+              (curAward) => curAward.title !== award.title,
             ),
           };
-        }
+        },
       );
     },
     onSettled: () => {
-      queryClient.invalidateQueries(["awards", clubId, year]);
+      queryClient
+        .invalidateQueries(["awards", clubId, year])
+        .catch(console.error);
     },
   });
 }
@@ -162,7 +174,7 @@ export function useAddNomination(clubId: string, year: string) {
         ["awards", clubId, year],
         (currentClubAwards) => {
           const name = user.value?.name;
-          if (!currentClubAwards || !name) return currentClubAwards;
+          if (!currentClubAwards || !hasValue(name)) return currentClubAwards;
           return {
             ...currentClubAwards,
             awards: currentClubAwards.awards.map((award) => {
@@ -186,11 +198,13 @@ export function useAddNomination(clubId: string, year: string) {
               }
             }),
           };
-        }
+        },
       );
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["awards", clubId, year] });
+      queryClient
+        .invalidateQueries({ queryKey: ["awards", clubId, year] })
+        .catch(console.error);
     },
   });
 }
@@ -206,7 +220,7 @@ export function useDeleteNomination(clubId: string, year: string) {
         `/api/club/${clubId}/awards/${year}/nomination/${input.movieId}`,
         {
           params: { awardTitle: input.awardTitle, userId: user.value?.name },
-        }
+        },
       ),
     onMutate: async (input) => {
       await queryClient.cancelQueries(["awards", clubId, year]);
@@ -224,7 +238,7 @@ export function useDeleteNomination(clubId: string, year: string) {
                     return {
                       ...nomination,
                       nominatedBy: nomination.nominatedBy.filter(
-                        (nominator) => nominator !== user.value?.name
+                        (nominator) => nominator !== user.value?.name,
                       ),
                     };
                   }
@@ -238,11 +252,13 @@ export function useDeleteNomination(clubId: string, year: string) {
           });
 
           return { ...currentAwards, awards: updatedAwards };
-        }
+        },
       );
     },
     onSettled: () => {
-      queryClient.invalidateQueries(["awards", clubId, year]);
+      queryClient
+        .invalidateQueries(["awards", clubId, year])
+        .catch(console.error);
     },
   });
 }
@@ -265,7 +281,9 @@ export function useSubmitRanking(clubId: string, year: string) {
         movies,
       }),
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["awards", clubId, year] });
+      queryClient
+        .invalidateQueries({ queryKey: ["awards", clubId, year] })
+        .catch(console.error);
     },
   });
 }

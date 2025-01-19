@@ -7,12 +7,14 @@
     />
     <loading-spinner v-if="loading" />
 
-    <div class="flex items-center justify-center sticky top-0 z-50 bg-background py-4">
-      <div class="w-11/12 relative flex gap-4">
-        <div class="flex-1 relative">
+    <div
+      class="sticky top-0 z-50 flex items-center justify-center bg-background py-4"
+    >
+      <div class="relative flex w-11/12 gap-4">
+        <div class="relative flex-1">
           <mdicon
             name="magnify"
-            class="absolute pl-4 top-1/2 -translate-y-1/2 transform text-slate-200"
+            class="absolute top-1/2 -translate-y-1/2 transform pl-4 text-slate-200"
           />
           <input
             ref="searchInput"
@@ -27,13 +29,16 @@
             @click="toggle"
             @mouseenter="showTooltip = true"
             @mouseleave="showTooltip = false"
-          >{{ normButtonText }}</v-btn>
+            >{{ normalize ? "Denormalize Scores" : "Normalize Scores" }}</v-btn
+          >
           <div
             v-if="showTooltip"
-            class="absolute z-10 p-2 bg-gray-800 text-sm text-gray-300 rounded-md shadow-lg -left-64 top-12 w-72"
+            class="absolute -left-64 top-12 z-10 w-72 rounded-md bg-gray-800 p-2 text-sm text-gray-300 shadow-lg"
           >
-            Normalizing scores adjusts each member's ratings to account for their different scoring patterns. 
-            A normalized score of 0 means average, while lower and higher values indicate scores below and above your usual rating.
+            Normalizing scores adjusts each member's ratings to account for
+            their different scoring patterns. A normalized score of 0 means
+            average, while lower and higher values indicate scores below and
+            above your usual rating.
           </div>
         </div>
       </div>
@@ -41,17 +46,17 @@
 
     <div v-if="!loading">
       <br />
-      <ag-charts-vue :options="histChartOptions"></ag-charts-vue>
+      <ag-charts :options="histChartOptions" />
       <br />
-      <ag-charts-vue :options="scoreChartOptions"></ag-charts-vue>
+      <ag-charts :options="scoreChartOptions" />
       <br />
-      <ag-charts-vue :options="budgetChartOptions"></ag-charts-vue>
+      <ag-charts :options="budgetChartOptions" />
       <br />
-      <ag-charts-vue :options="revenueChartOptions"></ag-charts-vue>
+      <ag-charts :options="revenueChartOptions" />
       <br />
-      <ag-charts-vue :options="dateChartOptions"></ag-charts-vue>
+      <ag-charts :options="dateChartOptions" />
       <br />
-      <ag-charts-vue :options="genreChartOptions"></ag-charts-vue>
+      <ag-charts :options="genreChartOptions" />
       <br />
 
       <!-- <v-select
@@ -75,31 +80,36 @@
 </template>
 
 <script setup lang="ts">
-import { AgHistogramSeriesTooltipRendererParams, AgBarSeriesTooltipRendererParams } from "ag-charts-community";
-import { AgChartsVue } from "ag-charts-vue3";
-import { DateTime } from "luxon";
-import { ref, computed, watch, h } from "vue";
-import { filterMovies } from '@/common/searchMovies';
-import VAvatar from "@/common/components/VAvatar.vue";
-import AverageImg from "@/assets/images/average.svg";
-import MovieTooltip from "@/features/reviews/components/MovieTooltip.vue";
 import {
   createColumnHelper,
   getCoreRowModel,
   getSortedRowModel,
   useVueTable,
 } from "@tanstack/vue-table";
-import TableView from "@/features/reviews/components/TableView.vue";
+import {
+  AgBarSeriesTooltipRendererParams,
+  AgLineSeriesTooltipRendererParams,
+} from "ag-charts-community";
+import { AgCharts } from "ag-charts-vue3";
+import { DateTime } from "luxon";
+import { ref, computed, watch, h } from "vue";
 
 import {
   normalizeArray,
-  loadDefaultChartSettings,
+  loadScatterChartSettings,
   createHistogramData,
+  MovieStatistics,
+  HistogramData,
 } from "./StatisticsUtils";
+import { isDefined, isString } from "../../../lib/checks/checks.js";
+import { WorkListType, WorkType } from "../../../lib/types/generated/db";
+import { DetailedReviewListItem } from "../../../lib/types/lists";
 
-import { Header } from "@/common/types/common";
-import { WorkListType } from "@/common/types/generated/db";
-import { DetailedReviewListItem } from "@/common/types/lists";
+import AverageImg from "@/assets/images/average.svg";
+import VAvatar from "@/common/components/VAvatar.vue";
+import { filterMovies } from "@/common/searchMovies";
+import MovieTooltip from "@/features/reviews/components/MovieTooltip.vue";
+import TableView from "@/features/reviews/components/TableView.vue";
 import { useMembers, useClub, useClubId } from "@/service/useClub";
 import { useList } from "@/service/useList";
 
@@ -113,21 +123,21 @@ const { isLoading: loadingMembers, data: rawMembers } = useMembers(clubId);
 const members = computed(() => rawMembers.value ?? []);
 
 const clubName = computed(() => club.value?.clubName ?? "Club");
-const normButtonText = ref("Normalize Scores");
-
 const loadingCalculations = ref(true);
 
 const normalize = ref(false);
-const movieData = ref<any[]>([]);
-const selectedChartBase = ref("average");
-const selectedChartMeasure = ref("runtime");
-const histogramData = ref<any[]>([]);
-const histogramNormData = ref<any[]>([]);
+const movieData = ref<MovieStatistics[]>([]);
+// TODO: fix custom chart
+// const selectedChartBase = ref("average");
+// const selectedChartMeasure = ref("runtime");
+const histogramData = ref<HistogramData[]>([]);
+const histogramNormData = ref<HistogramData[]>([]);
 
 const scoreChartOptions = ref({});
 const revenueChartOptions = ref({});
 const budgetChartOptions = ref({});
-const customChartOptions = ref({});
+// TODO: fix custom chart
+// const customChartOptions = ref({});
 const dateChartOptions = ref({});
 const histChartOptions = ref({});
 const genreChartOptions = ref({});
@@ -158,68 +168,85 @@ const filteredMovieData = computed(() => {
   return filterMovies(movieData.value, searchTerm.value);
 });
 
-const fetchMovieData = (reviews: DetailedReviewListItem[]) => {
-  return reviews.map((review) => {
-    if (!review.externalData) return null;
-    
-    return {
-      title: review.title,
-      dateWatched: DateTime.fromISO(review.createdDate).toLocaleString(),
-      ...Object.keys(review.scores).reduce<Record<string, number>>(
-        (acc, key) => {
-          acc[key] = review.scores[key].score ?? 0;
-          return acc;
-        },
-        {},
-      ),
-      // Map the new external data structure
-      imageUrl: review.imageUrl,
-      createdDate: review.createdDate,
-      vote_average: review.externalData.vote_average,
-      revenue: review.externalData.revenue,
-      budget: review.externalData.budget,
-      release_date: review.externalData.release_date,
-      genres: review.externalData.genres,
-      production_companies: review.externalData.production_companies,
-      production_countries: review.externalData.production_countries,
-      externalData: review.externalData,
-    };
-  }).filter(Boolean); // Remove any null entries
+const fetchMovieData = (
+  reviews: DetailedReviewListItem[],
+): MovieStatistics[] => {
+  return reviews
+    .map((review) => {
+      if (!review.externalData) return null;
+
+      return {
+        id: review.id,
+        type: WorkType.movie,
+        title: review.title,
+        dateWatched: DateTime.fromISO(review.createdDate).toLocaleString(),
+        userScores: Object.keys(review.scores).reduce<Record<string, number>>(
+          (acc, key) => {
+            acc[key] = review.scores[key].score ?? 0;
+            return acc;
+          },
+          {},
+        ),
+        scores: review.scores,
+        average: review.scores.average?.score ?? 0,
+        normalized: {},
+        // Map the new external data structure
+        imageUrl: review.imageUrl,
+        createdDate: review.createdDate,
+        vote_average: review.externalData.vote_average,
+        revenue: review.externalData.revenue,
+        budget: review.externalData.budget,
+        release_date: review.externalData.release_date,
+        genres: review.externalData.genres,
+        production_companies: review.externalData.production_companies,
+        production_countries: review.externalData.production_countries,
+        externalData: review.externalData,
+      };
+    })
+    .filter(isDefined); // Remove any null entries
 };
 
-const generateCustomChart = () => {
-  customChartOptions.value = loadDefaultChartSettings({
-    chartTitle:
-      "Custom chart: " +
-      selectedChartBase.value +
-      " vs " +
-      selectedChartMeasure.value,
-    xName: selectedChartMeasure.value,
-    xData: selectedChartMeasure.value,
-    yName: selectedChartBase.value,
-    yData: selectedChartBase.value,
-    movieData: movieData.value,
-    normalizeX: false,
-    normalizeY: false,
-    normalizeToggled: normalize.value
-  });
-};
+// TODO: fix custom chart
+// const generateCustomChart = () => {
+//   customChartOptions.value = loadScatterChartSettings({
+//     chartTitle:
+//       "Custom chart: " +
+//       selectedChartBase.value +
+//       " vs " +
+//       selectedChartMeasure.value,
+//     xName: selectedChartMeasure.value,
+//     xData: selectedChartMeasure.value,
+//     yName: selectedChartBase.value,
+//     yData: selectedChartBase.value,
+//     movieData: movieData.value,
+//     normalizeX: false,
+//     normalizeY: false,
+//     normalizeToggled: normalize.value,
+//   });
+// };
+
 const generateGenreChart = () => {
   // Aggregate scores by genre
-  const genreScores = movieData.value.reduce((acc, movie) => {
+  const genreScores = movieData.value.reduce<
+    Partial<Record<string, { count: number; totalScore: number }>>
+  >((acc, movie) => {
     movie.genres.forEach((genre: string) => {
-      if (movie.average) {
-        if (!acc[genre]) {
-          acc[genre] = { count: 0, totalScore: 0 };
+      if (movie.average !== 0) {
+        let details = acc[genre];
+        if (!details) {
+          details = { count: 0, totalScore: 0 };
+          acc[genre] = details;
         }
-        acc[genre].count++;
-        acc[genre].totalScore += movie.average ?? 0;
+        details.count++;
+        details.totalScore += movie.average ?? 0;
       }
     });
     return acc;
-  }, {} as Record<string, { count: number; totalScore: number }>);
+  }, {});
 
-  const genreData = Object.entries(genreScores as Record<string, { count: number; totalScore: number }>)
+  const genreData = Object.entries(
+    genreScores as Record<string, { count: number; totalScore: number }>,
+  )
     .map(([genre, data]) => ({
       genre,
       averageScore: (data.totalScore ?? 0) / (data.count ?? 1),
@@ -228,7 +255,6 @@ const generateGenreChart = () => {
     .sort((a, b) => b.count - a.count);
 
   return {
-    autoSize: true,
     theme: "ag-default-dark",
     title: { text: `Scores for Top 8 Genres` },
     data: genreData.slice(0, 8),
@@ -236,84 +262,82 @@ const generateGenreChart = () => {
       {
         type: "bar",
         xKey: "genre",
-        xName: "Genre", 
+        xName: "Genre",
         yKey: "averageScore",
         yName: "Average Score",
         showInLegend: false,
         tooltip: {
-          renderer: function (params: AgBarSeriesTooltipRendererParams) {
+          renderer: function (
+            params: AgBarSeriesTooltipRendererParams<{
+              genre: string;
+              averageScore: number;
+              count: number;
+            }>,
+          ) {
             return (
-              '<div class="ag-chart-tooltip-title" ' +
-              'style="background-color:' +
-              params.color +
-              '">' +
-              params.datum.genre +
-              "</div>" +
-              '<div class="ag-chart-tooltip-content">' +
-              params.xName +
-              ": " +
-              params.xValue +
+              `<div class="ag-chart-tooltip-title p-2" style="background-color:${params.fill}">${params.datum.genre}</div>` +
+              `<div class="ag-chart-tooltip-content p-2 text-start">` +
+              `${params.xName}: ${params.datum.genre}` +
+              `</br>` +
+              `${params.yName}: ${params.datum.averageScore}` +
               "</br>" +
-              params.yName +
-              ": " +
-              params.yValue +
-              "</br>" +
-              "Count: " +
-              params.datum.count +
+              `Count: ${params.datum.count}` +
               "</div>"
             );
           },
         },
       },
-    ]
+    ],
   };
 };
 
-const availableMetrics = computed(() => {
-  if (!movieData.value?.[0]) return [];
-  return Object.keys(movieData.value[0]).filter(key => 
-    typeof movieData.value[0][key] === 'number' ||
-    (typeof movieData.value[0][key] === 'string' && !isNaN(Number(movieData.value[0][key])))
-  );
-});
+// TODO: fix custom chart
+// const availableMetrics = computed(() => {
+//   if (!movieData.value?.[0]) return [];
+//   return Object.keys(movieData.value[0]).filter(
+//     (key) =>
+//       typeof movieData.value[0][key] === "number" ||
+//       (typeof movieData.value[0][key] === "string" &&
+//         !isNaN(Number(movieData.value[0][key]))),
+//   );
+// });
 
-watch(selectedChartMeasure, generateCustomChart);
-watch(selectedChartBase, generateCustomChart);
+// watch(selectedChartMeasure, generateCustomChart);
+// watch(selectedChartBase, generateCustomChart);
 
-const loadChartOptions = async () => {
+const loadChartOptions = () => {
   try {
     chartLoadingStates.value.histogram = true;
     // Filter the histogram data based on the filtered movies
-    const filteredHistData = histogramData.value.map(bin => {
+    const filteredHistData = histogramData.value.map((bin) => {
       const filtered = { ...bin };
-      members.value.forEach(member => {
+      members.value.forEach((member) => {
         filtered[member.id] = 0;
       });
       return filtered;
     });
-    const filteredHistNormData = histogramNormData.value.map(bin => {
+    const filteredHistNormData = histogramNormData.value.map((bin) => {
       const filtered = { ...bin };
-      members.value.forEach(member => {
+      members.value.forEach((member) => {
         filtered[member.id] = 0;
       });
       return filtered;
     });
 
     // Populate the filtered histogram data
-    filteredMovieData.value.forEach(movie => {
-      members.value.forEach(member => {
-        const score = Math.floor(movie[member.id]);
+    filteredMovieData.value.forEach((movie) => {
+      members.value.forEach((member) => {
+        const score = Math.floor(movie.userScores[member.id]);
         if (!isNaN(score)) {
           filteredHistData[score][member.id] += 1;
         }
-        let scoreNorm = Math.floor(movie[member.id + "Norm"] * 4 + 5);
+        let scoreNorm = Math.floor(movie.normalized[member.id] * 4 + 5);
         scoreNorm = scoreNorm < 0 ? 0 : scoreNorm > 10 ? 10 : scoreNorm;
         filteredHistNormData[scoreNorm][member.id] += 1;
       });
     });
 
     histChartOptions.value = {
-      autoSize: true,
       theme: "ag-default-dark",
       title: { text: "Score Histogram" },
       data: normalize.value ? filteredHistNormData : filteredHistData,
@@ -326,23 +350,19 @@ const loadChartOptions = async () => {
           yName: member.name,
           showInLegend: true,
           tooltip: {
-            renderer: function (params: AgHistogramSeriesTooltipRendererParams) {
+            renderer: function (
+              params: AgLineSeriesTooltipRendererParams<HistogramData>,
+            ) {
+              const name = members.value.find(
+                (member) => member.id === params.yKey,
+              )?.name;
               return (
-                '<div class="ag-chart-tooltip-title" ' +
-                'style="background-color:' +
-                params.color +
-                '">' +
-                members.value.find(member => member.id === params.yKey)?.name +
-                "</div>" +
-                '<div class="ag-chart-tooltip-content">' +
-                params.xName +
-                ": " +
-                params.xValue +
-                "</br>" +
-                params.yName +
-                ": " +
-                params.yValue +
-                "</div>"
+                `<div class="ag-chart-tooltip-title">${name}</div>` +
+                `<div class="ag-chart-tooltip-content">` +
+                `${params.xName}: ${params.datum.bin}` +
+                `</br>` +
+                `${params.yName}: ${params.datum[member.id]}` +
+                `</div>`
               );
             },
           },
@@ -368,14 +388,18 @@ const loadChartOptions = async () => {
       ],
     };
     chartLoadingStates.value.histogram = false;
-    
+
     // Special handling for TMDB score chart where TMDB score is available
-    const validTMDBData = filteredMovieData.value.filter(movie => 
-      movie.vote_average && movie.vote_average > 0 && 
-      movie.average && movie.average > 0
+    const validTMDBData = filteredMovieData.value.filter(
+      (movie) =>
+        isDefined(movie.vote_average) &&
+        !isString(movie.vote_average) &&
+        movie.vote_average > 0 &&
+        isDefined(movie.average) &&
+        movie.average > 0,
     );
-    
-    scoreChartOptions.value = loadDefaultChartSettings({
+
+    scoreChartOptions.value = loadScatterChartSettings({
       chartTitle: "Score vs TMDB Audience Score",
       xName: "TMDB Audience Score",
       xData: "vote_average",
@@ -387,7 +411,7 @@ const loadChartOptions = async () => {
       movieData: validTMDBData,
     });
 
-    budgetChartOptions.value = loadDefaultChartSettings({
+    budgetChartOptions.value = loadScatterChartSettings({
       chartTitle: "Score vs Film Budget (Millions)",
       xName: "Film Budget ($mil)",
       xData: "budgetMil",
@@ -399,7 +423,7 @@ const loadChartOptions = async () => {
       movieData: filteredMovieData.value,
     });
 
-    revenueChartOptions.value = loadDefaultChartSettings({
+    revenueChartOptions.value = loadScatterChartSettings({
       chartTitle: "Score vs Film Revenue (Millions)",
       xName: "Film Revenue ($mil)",
       xData: "revenueMil",
@@ -411,7 +435,7 @@ const loadChartOptions = async () => {
       movieData: filteredMovieData.value,
     });
 
-    dateChartOptions.value = loadDefaultChartSettings({
+    dateChartOptions.value = loadScatterChartSettings({
       chartTitle: "Score vs Release Date",
       xName: "Date",
       xData: "release_year",
@@ -425,7 +449,7 @@ const loadChartOptions = async () => {
 
     genreChartOptions.value = generateGenreChart();
   } catch (error) {
-    console.error('Error loading charts:', error);
+    console.error("Error loading charts:", error);
   }
 };
 
@@ -441,11 +465,15 @@ const calculateStatistics = () => {
 
   const memberScores: Record<string, number[]> = {};
   const tmbd_norm = normalizeArray(
-    movieData.value.map((data) => parseFloat(data["vote_average"])),
+    movieData.value.map((data) =>
+      isString(data.vote_average)
+        ? parseFloat(data.vote_average)
+        : data.vote_average,
+    ),
   );
   for (const member of members.value) {
     memberScores[member.id] = normalizeArray(
-      movieData.value.map((data) => data[member.id]),
+      movieData.value.map((data) => data.userScores[member.id]),
     );
     for (let i = 0; i <= 10; i++) {
       histogramData.value[i][member.id] = 0;
@@ -456,39 +484,44 @@ const calculateStatistics = () => {
   for (let i = 0; i < movieData.value.length; i++) {
     let avg = 0;
     for (const member of members.value) {
-      movieData.value[i][member.id + "Norm"] = memberScores[member.id][i];
+      movieData.value[i].normalized[member.id] = memberScores[member.id][i];
       avg += memberScores[member.id][i];
 
       // Histogram
-      const score = Math.floor(movieData.value[i][member.id]);
+      const score = Math.floor(movieData.value[i].userScores[member.id]);
       if (isNaN(score)) continue;
       histogramData.value[score][member.id] += 1;
       let scoreNorm = Math.floor(
-        movieData.value[i][member.id + "Norm"] * 4 + 5,
+        movieData.value[i].normalized[member.id] * 4 + 5,
       );
       scoreNorm = scoreNorm < 0 ? 0 : scoreNorm > 10 ? 10 : scoreNorm;
       histogramNormData.value[scoreNorm][member.id] += 1;
     }
     avg = avg / members.value.length;
 
-    movieData.value[i]["averageNorm"] = Math.round(avg * 100) / 100;
-    movieData.value[i]["vote_average"] = parseFloat(movieData.value[i]["vote_average"]);
-    movieData.value[i]["release_year"] = movieData.value[i]["release_date"] 
-      ? parseInt(movieData.value[i]["release_date"].substring(0, 4))
-      : null;
-    movieData.value[i]["revenueMil"] = (movieData.value[i]["revenue"] ?? 0) / 1000000;
-    movieData.value[i]["budgetMil"] = (movieData.value[i]["budget"] ?? 0) / 1000000;
-    movieData.value[i]["vote_averageNorm"] = tmbd_norm[i];
+    movieData.value[i].normalized["average"] = Math.round(avg * 100) / 100;
+    const curVoteAvg = movieData.value[i]["vote_average"];
+    movieData.value[i]["vote_average"] = isString(curVoteAvg)
+      ? parseFloat(curVoteAvg)
+      : curVoteAvg;
+    const releaseDate = movieData.value[i]["release_date"];
+    movieData.value[i]["release_year"] = isDefined(releaseDate)
+      ? parseInt(releaseDate.substring(0, 4))
+      : undefined;
+    movieData.value[i]["revenueMil"] =
+      (movieData.value[i]["revenue"] ?? 0) / 1000000;
+    movieData.value[i]["budgetMil"] =
+      (movieData.value[i]["budget"] ?? 0) / 1000000;
+    movieData.value[i].normalized["vote_average"] = tmbd_norm[i];
   }
   loadChartOptions();
-  generateCustomChart();
+  // generateCustomChart();
   loadingCalculations.value = false;
 };
 
 const setReviews = (isLoading: boolean) => {
   if (isLoading) return;
   movieData.value = fetchMovieData(reviews.value ?? []);
-  console.log(movieData.value);
   calculateStatistics();
 };
 
@@ -497,52 +530,30 @@ setReviews(loadingReviews.value);
 
 const toggle = () => {
   normalize.value = !normalize.value;
-  normButtonText.value = normalize.value
-    ? "Denormalize Scores"
-    : "Normalize Scores";
   loadChartOptions();
 };
 
-const normName = (name = "average") => {
-  return normalize.value ? name + "Norm" : name;
-};
-
-const headers = computed(() => {
-  const headers: Header[] = [
-    { value: "title", style: "font-bold", title: "Title" },
-    { value: "dateWatched", title: "Date Reviewed" },
-  ];
-
-  if (members.value && members.value.length > 0) {
-    for (const member of members.value) {
-      headers.push({ value: member.id + (normalize.value ? "Norm" : "") });
-    }
-  }
-  headers.push({ value: "average" + (normalize.value ? "Norm" : "") });
-  headers.push({
-    value: "vote_average",
-    title: "TMDB",
-  });
-  return headers;
-});
-
+// TODO: Make chart data computed so we don't need this watch
 // Add a watch on filteredMovieData to trigger chart updates
-watch(filteredMovieData, () => {
-  if (filteredMovieData.value) {
+watch(
+  filteredMovieData,
+  () => {
     loadChartOptions();
-  }
-}, { immediate: true });
+  },
+  { immediate: true },
+);
 
-const columnHelper = createColumnHelper<any>();
+const columnHelper = createColumnHelper<MovieStatistics>();
 
 const columns = computed(() => [
   columnHelper.accessor("title", {
     header: "Title",
-    cell: (info) => h(MovieTooltip, {
-      title: info.getValue(),
-      imageUrl: info.row.original.imageUrl,
-      movie: info.row.original.externalData
-    }),
+    cell: (info) =>
+      h(MovieTooltip, {
+        title: info.getValue(),
+        imageUrl: info.row.original.imageUrl,
+        movie: info.row.original.externalData,
+      }),
     meta: {
       class: "font-bold",
     },
@@ -551,37 +562,46 @@ const columns = computed(() => [
     header: "Date Reviewed",
   }),
   ...members.value.map((member) =>
-    columnHelper.accessor(normName(member.id), {
-      id: normName(member.id),
-      header: () => h(VAvatar, {
-        src: member.image,
-        name: member.name,
-      }),
-      cell: (info) => {
-        const value = info.getValue();
-        return value !== undefined ? Math.round(value * 100) / 100 : '';
+    columnHelper.accessor(
+      (row) =>
+        normalize.value ? row.normalized[member.id] : row.userScores[member.id],
+      {
+        id: `${normalize.value ? "normalized." : ""}${member.id}`,
+        header: () =>
+          h(VAvatar, {
+            src: member.image,
+            name: member.name,
+          }),
+        cell: (info) => {
+          const value = info.getValue();
+          return value !== undefined ? Math.round(value * 100) / 100 : "";
+        },
+        sortUndefined: "last",
       },
-      sortUndefined: "last",
-    }),
+    ),
   ),
-  columnHelper.accessor(normName(), {
-    header: () => h("img", { 
-      src: AverageImg, 
-      class: "h-12 w-16 max-w-none" 
-    }),
+  columnHelper.accessor(normalize.value ? "normalized.average" : "average", {
+    header: () =>
+      h("img", {
+        src: AverageImg,
+        class: "h-12 w-16 max-w-none",
+      }),
     cell: (info) => {
       const value = info.getValue();
-      return value !== undefined ? Math.round(value * 100) / 100 : '';
+      return value !== undefined ? Math.round(value * 100) / 100 : "";
     },
     sortUndefined: "last",
   }),
-  columnHelper.accessor("vote_average", {
-    header: "TMDB",
-    cell: (info) => {
-      const value = info.getValue();
-      return value !== undefined ? Math.round(value * 100) / 100 : '';
+  columnHelper.accessor(
+    normalize.value ? "normalized.vote_average" : "vote_average",
+    {
+      header: "TMDB",
+      cell: (info) => {
+        const value = info.getValue();
+        return value !== undefined ? Math.round(value * 100) / 100 : "";
+      },
     },
-  }),
+  ),
 ]);
 
 const movieTable = useVueTable({
@@ -591,8 +611,8 @@ const movieTable = useVueTable({
   get data() {
     return filteredMovieData.value ?? [];
   },
-  getCoreRowModel: getCoreRowModel(),
-  getSortedRowModel: getSortedRowModel(),
-  getRowId: (row) => row.title,
+  getCoreRowModel: getCoreRowModel<MovieStatistics>(),
+  getSortedRowModel: getSortedRowModel<MovieStatistics>(),
+  getRowId: (row) => row.id,
 });
 </script>

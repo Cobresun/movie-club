@@ -69,17 +69,18 @@ import {
   watch,
 } from "vue";
 
+import { isTrue } from "../../../../lib/checks/checks.js";
+import { WorkListType } from "../../../../lib/types/generated/db";
+import { DetailedReviewListItem } from "../../../../lib/types/lists";
 import { filterMovies } from "../../../common/searchMovies";
 import GalleryView from "../components/GalleryView.vue";
+import MovieTooltip from "../components/MovieTooltip.vue";
 import ReviewScore from "../components/ReviewScore.vue";
 import TableView from "../components/TableView.vue";
-import MovieTooltip from "../components/MovieTooltip.vue";
 
 import AverageImg from "@/assets/images/average.svg";
 import VAvatar from "@/common/components/VAvatar.vue";
 import VToggle from "@/common/components/VToggle.vue";
-import { WorkListType } from "@/common/types/generated/db";
-import { DetailedReviewListItem } from "@/common/types/lists";
 import AddReviewPrompt from "@/features/reviews/components/AddReviewPrompt.vue";
 import { useIsInClub, useMembers } from "@/service/useClub";
 import { useDeleteListItem, useList } from "@/service/useList";
@@ -92,7 +93,7 @@ onMounted(() => {
   const savedView = localStorage.getItem("isGalleryView");
   if (savedView !== null) {
     isGalleryView.value = savedView === "true";
-  } else if (window) {
+  } else {
     const isMobile = window.matchMedia("(max-width: 768px)").matches;
     isGalleryView.value = isMobile;
   }
@@ -127,7 +128,7 @@ const searchInput = ref<HTMLInputElement | null>(null);
 const searchInputSlash = ref<HTMLParagraphElement | null>(null);
 
 const onKeyPress = (e: KeyboardEvent) => {
-  if (e.key == "/") {
+  if (e.key === "/") {
     if (searchInput.value === document.activeElement) {
       return;
     }
@@ -208,11 +209,12 @@ const columns = computed(() => [
   }),
   columnHelper.accessor("title", {
     header: "Title",
-    cell: (info) => h(MovieTooltip, {
-      title: info.getValue(),
-      imageUrl: info.row.original.imageUrl,
-      movie: info.row.original.externalData
-    }),
+    cell: (info) =>
+      h(MovieTooltip, {
+        title: info.getValue(),
+        imageUrl: info.row.original.imageUrl,
+        movie: info.row.original.externalData,
+      }),
     meta: {
       class: "font-bold",
     },
@@ -230,7 +232,7 @@ const columns = computed(() => [
           size = context.meta.size === "sm" ? 28 : undefined;
         }
 
-        if (context.meta?.showName) {
+        if (isTrue(context.meta?.showName)) {
           return h("div", { class: "flex items-center gap-2" }, [
             h(VAvatar, {
               src: member.image,
@@ -274,7 +276,7 @@ const columns = computed(() => [
         size = context.meta.size === "sm" ? "w-7 h-7" : "w-16";
       }
 
-      if (context.meta?.showName) {
+      if (isTrue(context.meta?.showName)) {
         return h("div", { class: "flex item-center gap-2" }, [
           h("img", { src: AverageImg, class: `${size} max-w-none` }),
           h("span", "Average"),
@@ -288,9 +290,13 @@ const columns = computed(() => [
       if (review === undefined) {
         return "";
       }
-      return h('div', {
-        class: 'font-bold text-lg text-primary'
-      }, Math.round(review * 100) / 100);
+      return h(
+        "div",
+        {
+          class: "font-bold text-lg text-primary",
+        },
+        Math.round(review * 100) / 100,
+      );
     },
     sortUndefined: "last",
   }),

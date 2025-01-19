@@ -5,7 +5,7 @@ const migrationName = process.argv[2];
 
 if (!migrationName) {
   console.error(
-    "Missing migration name. Usage: npm run migrate:data -- 19700101_MigrateMovies"
+    "Missing migration name. Usage: npm run migrate:data -- 19700101_MigrateMovies",
   );
   process.exit(1);
 }

@@ -1,5 +1,6 @@
 import { internalServerError, notFound } from "./responses";
 import { MiddlewareCallback, Request } from "./router";
+import { hasValue } from "../../../lib/checks/checks.js";
 import ClubRepository from "../repositories/ClubRepository";
 
 export function getErrorMessage(error: unknown) {
@@ -7,34 +8,42 @@ export function getErrorMessage(error: unknown) {
   return String(error);
 }
 
-export interface ClubRequest extends Request {
+export type ClubRequest<T extends Request = Request> = T & {
   clubId: string;
-}
+};
 
-export interface LegacyClubRequest extends Request {
+export type LegacyClubRequest<T extends Request = Request> = T & {
   clubId: number;
-}
+};
 
-export const validClubId: MiddlewareCallback = async (req, next) => {
-  if (!req.params.clubId) return notFound();
+export const validClubId: MiddlewareCallback<Request, ClubRequest> = async (
+  req,
+  res,
+) => {
+  if (!hasValue(req.params.clubId)) return res(notFound());
   const clubId = req.params.clubId;
 
   if (await ClubRepository.exists(clubId)) {
-    req.clubId = clubId;
-    return next();
+    return {
+      ...req,
+      clubId,
+    };
   } else {
-    return notFound("Club not found");
+    return res(notFound("Club not found"));
   }
 };
 
-export const mapIdToLegacyId: MiddlewareCallback<ClubRequest> = async (
-  req: ClubRequest,
-  next
-) => {
-  const legacyId = await ClubRepository.getLegacyIdForId(req.clubId!);
-  if (!legacyId) {
-    return internalServerError("Invalid legacy id");
+export const mapIdToLegacyId: MiddlewareCallback<
+  ClubRequest,
+  LegacyClubRequest
+> = async (req, res) => {
+  const legacyId = await ClubRepository.getLegacyIdForId(req.clubId);
+  if (legacyId === null) {
+    return res(internalServerError("Invalid legacy id"));
   }
-  (req as unknown as LegacyClubRequest).clubId = parseInt(legacyId);
-  return next();
+
+  return {
+    ...req,
+    clubId: parseInt(legacyId, 10),
+  };
 };

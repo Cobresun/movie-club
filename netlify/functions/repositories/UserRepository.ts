@@ -1,8 +1,7 @@
 import { InsertExpression } from "kysely/dist/cjs/parser/insert-values-parser";
 
+import { DB } from "../../../lib/types/generated/db";
 import { db } from "../utils/database";
-
-import { DB } from "@/common/types/generated/db";
 
 class UserRepository {
   async getByEmail(email: string) {
@@ -10,7 +9,7 @@ class UserRepository {
       .selectFrom("user")
       .selectAll()
       .where("email", "=", email)
-      .executeTakeFirst();
+      .executeTakeFirstOrThrow();
   }
 
   async getMembersByClubId(clubId: string) {
@@ -23,16 +22,14 @@ class UserRepository {
       .execute();
   }
 
-  async getExistingUser(username: string, email: string) {
-    return (
-      await db
-        .selectFrom("user")
-        .selectAll()
-        .where((eb) =>
-          eb.or([eb("email", "=", email), eb("username", "=", username)])
-        )
-        .execute()
-    )[0];
+  async findExistingUser(username: string, email: string) {
+    return await db
+      .selectFrom("user")
+      .selectAll()
+      .where((eb) =>
+        eb.or([eb("email", "=", email), eb("username", "=", username)]),
+      )
+      .executeTakeFirst();
   }
 
   async add(newUser: InsertExpression<DB, "user">) {

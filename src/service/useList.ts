@@ -6,12 +6,13 @@ import {
 } from "@tanstack/vue-query";
 import axios, { AxiosError } from "axios";
 
-import { WorkListType } from "@/common/types/generated/db";
+import { WorkListType } from "../../lib/types/generated/db.js";
 import {
   DetailedReviewListItem,
   DetailedWorkListItem,
   ListInsertDto,
-} from "@/common/types/lists";
+} from "../../lib/types/lists.js";
+
 import { useAuthStore } from "@/stores/auth";
 
 export const BASE_IMAGE_URL = "https://image.tmdb.org/t/p/w154/";
@@ -32,7 +33,11 @@ export function useList(
   return useQuery({
     queryKey: ["list", clubId, type],
     queryFn: async () =>
-      (await axios.get(`/api/club/${clubId}/list/${type}`)).data,
+      (
+        await axios.get<DetailedWorkListItem[] | DetailedReviewListItem[]>(
+          `/api/club/${clubId}/list/${type}`,
+        )
+      ).data,
   });
 }
 
@@ -43,7 +48,6 @@ export function useAddListItem(clubId: string, type: WorkListType) {
     mutationFn: (insertDto: ListInsertDto) =>
       auth.request.post(`/api/club/${clubId}/list/${type}`, insertDto),
     onMutate: (insertDto) => {
-      if (!insertDto) return;
       queryClient.setQueryData<
         DetailedWorkListItem[] | DetailedReviewListItem[]
       >(["list", clubId, type], (currentList) => {

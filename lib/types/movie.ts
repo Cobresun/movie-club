@@ -36,7 +36,7 @@ export interface TMDBMovieData {
   tagline: string;
   title: string;
   video: boolean;
-  vote_average: number;
+  vote_average: string;
   vote_count: number;
 }
 
