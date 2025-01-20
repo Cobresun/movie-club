@@ -8,7 +8,7 @@ import axios, { AxiosError } from "axios";
 import { Ref } from "vue";
 
 import { useUser } from "./useUser";
-import { hasValue } from "../../lib/checks/checks.js";
+import { hasValue, isDefined } from "../../lib/checks/checks.js";
 import { Award, AwardsStep, ClubAwards } from "../../lib/types/awards";
 import { DetailedReviewListItem } from "../../lib/types/lists";
 import { DetailedMovieData } from "../../lib/types/movie";
@@ -162,12 +162,19 @@ export function useAddNomination(clubId: string, year: string) {
     }: {
       awardTitle: string;
       review: DetailedReviewListItem;
-    }) =>
-      auth.request.post(`/api/club/${clubId}/awards/${year}/nomination`, {
-        awardTitle,
-        movieId: review.externalId,
-        nominatedBy: user.value?.name,
-      }),
+    }) => {
+      if (!isDefined(review.externalId)) {
+        throw new Error("External ID not found");
+      }
+      return auth.request.post(
+        `/api/club/${clubId}/awards/${year}/nomination`,
+        {
+          awardTitle,
+          movieId: parseInt(review.externalId),
+          nominatedBy: user.value?.name,
+        },
+      );
+    },
     onMutate: async ({ awardTitle, review }) => {
       await queryClient.cancelQueries(["awards", clubId, year]);
       queryClient.setQueryData<ClubAwards>(
