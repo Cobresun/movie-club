@@ -8,6 +8,7 @@ import {
 } from "../../../lib/types/lists.js";
 import ListRepository, { isWorkListType } from "../repositories/ListRepository";
 import ReviewRepository from "../repositories/ReviewRepository";
+import UserRepository from "../repositories/UserRepository";
 import WorkRepository from "../repositories/WorkRepository";
 import { secured } from "../utils/auth";
 import { badRequest, internalServerError, ok } from "../utils/responses";
@@ -81,9 +82,13 @@ async function getWorkList(clubId: string, type: WorkListType) {
       : undefined,
   }));
 }
-
 async function getReviewList(clubId: string): Promise<ReviewListItem[]> {
-  const reviews = await ReviewRepository.getReviewList(clubId);
+  const [reviews, members] = await Promise.all([
+    ReviewRepository.getReviewList(clubId),
+    UserRepository.getMembersByClubId(clubId),
+  ]);
+  const memberIds = new Set(members.map((m) => m.id));
+
   const groupedReviews = reviews.reduce((acc, review) => {
     const key = review.id;
     let arr = acc.get(key);
@@ -100,7 +105,11 @@ async function getReviewList(clubId: string): Promise<ReviewListItem[]> {
       const review = items[0];
 
       const userScores: Record<string, Review> = items.reduce((acc, review) => {
-        if (hasValue(review.user_id) && hasValue(review.score)) {
+        if (
+          hasValue(review.user_id) &&
+          hasValue(review.score) &&
+          memberIds.has(review.user_id)
+        ) {
           return {
             ...acc,
             [review.user_id]: {

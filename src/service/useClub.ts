@@ -1,11 +1,12 @@
-import { useMutation, useQuery } from "@tanstack/vue-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
 import axios from "axios";
 import { computed } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 
 import { useUserClubs } from "./useUser";
-import { hasValue, isDefined } from "../../lib/checks/checks.js";
+import { hasValue } from "../../lib/checks/checks.js";
 import { ClubPreview, Member } from "../../lib/types/club";
+import { WorkListType } from "../../lib/types/generated/db";
 
 import { useAuthStore } from "@/stores/auth";
 
@@ -21,6 +22,7 @@ export function useClub(clubId: string) {
 
 export function useCreateClub() {
   const auth = useAuthStore();
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({
       clubName,
@@ -29,6 +31,9 @@ export function useCreateClub() {
       clubName: string;
       members: string[];
     }) => auth.request.post(`/api/club`, { name: clubName, members }),
+    onSuccess: () => {
+      queryClient.invalidateQueries(["clubs"]).catch(console.error);
+    },
   });
 }
 
@@ -51,7 +56,61 @@ export function useClubId(): string {
 export function useIsInClub(clubId: string) {
   const { data: clubs } = useUserClubs();
   const isUserInClub = computed(() => {
-    return isDefined(clubs.value?.some((club) => club.clubId === clubId));
+    return clubs.value?.some((club) => club.clubId === clubId) ?? false;
   });
   return isUserInClub;
+}
+
+export function useAddMembers(clubId: string) {
+  const auth = useAuthStore();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (members: string[]) =>
+      auth.request.post(`/api/club/${clubId}/members`, { members }),
+    onSuccess: () => queryClient.invalidateQueries(["members", clubId]),
+  });
+}
+
+export function useLeaveClub(clubId: string) {
+  const auth = useAuthStore();
+  const router = useRouter();
+
+  return useMutation({
+    mutationFn: () => auth.request.delete(`/api/club/${clubId}/members/self`),
+    onSuccess: () => router.push({ name: "Clubs" }),
+  });
+}
+
+export function useJoinClub(clubId: string) {
+  const auth = useAuthStore();
+  const queryClient = useQueryClient();
+  const router = useRouter();
+
+  return useMutation({
+    mutationFn: () => auth.request.get(`/api/club/${clubId}/members/join`),
+    onSuccess: () => {
+      // Invalidate relevant queries
+      queryClient.invalidateQueries(["members", clubId]).catch(console.error);
+      queryClient.invalidateQueries(["user", "clubs"]).catch(console.error);
+      router.push({ name: "Clubs" }).catch(console.error);
+    },
+  });
+}
+
+export function useRemoveMember(clubId: string) {
+  const auth = useAuthStore();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (memberId: string) =>
+      auth.request.delete(`/api/club/${clubId}/members/${memberId}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries(["members", clubId]).catch(console.error);
+      queryClient
+        .invalidateQueries({
+          queryKey: ["list", clubId, WorkListType.reviews],
+        })
+        .catch(console.error); // TODO: this isn't working and refreshing scores
+    },
+  });
 }

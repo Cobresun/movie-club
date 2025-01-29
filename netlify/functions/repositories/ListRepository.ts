@@ -146,6 +146,26 @@ class ListRepository {
       .where("type", "=", type)
       .select("id");
   }
+
+  async createListsForClub(clubId: string) {
+    const defaultTitles: Record<WorkListType, string> = {
+      backlog: "Backlog",
+      watchlist: "Watch List",
+      reviews: "Reviews",
+      award_nominations: "Award Nominations",
+    };
+
+    return await db
+      .insertInto("work_list")
+      .values(
+        Object.values(WorkListType).map((type) => ({
+          club_id: clubId,
+          type: type,
+          title: defaultTitles[type],
+        })),
+      )
+      .execute();
+  }
 }
 
 export function isWorkListType(type: string): type is WorkListType {

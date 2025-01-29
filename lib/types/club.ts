@@ -6,6 +6,7 @@ export interface Member {
   email: string;
   name: string;
   image?: string;
+  role?: string;
 }
 
 export interface ClubPreview {

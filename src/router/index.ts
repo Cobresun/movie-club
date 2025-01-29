@@ -5,6 +5,8 @@ import ClubHomeView from "../features/clubs/views/ClubHomeView.vue";
 import ClubsView from "../features/clubs/views/ClubsView.vue";
 import NewClubView from "../features/clubs/views/NewClubView.vue";
 import ReviewView from "../features/reviews/views/ReviewView.vue";
+import ClubSettingsView from "../features/settings/views/ClubSettingsView.vue";
+import JoinClubView from "../features/settings/views/JoinClubView.vue";
 import StatisticsView from "../features/statistics/StatisticsView.vue";
 import WatchListView from "../features/watch-list/views/WatchListView.vue";
 
@@ -125,6 +127,22 @@ const routes: Array<RouteRecordRaw> = [
         ],
       },
     ],
+  },
+  {
+    path: "/club/:clubId/settings",
+    name: "ClubSettings",
+    component: ClubSettingsView,
+    meta: {
+      depth: 2,
+    },
+  },
+  {
+    path: "/join-club/:clubId",
+    name: "JoinClub",
+    component: JoinClubView,
+    meta: {
+      depth: 1,
+    },
   },
 ];
 
