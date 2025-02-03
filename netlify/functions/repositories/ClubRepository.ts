@@ -48,7 +48,11 @@ class ClubRepository {
   }
 
   insert(name: string, legacy_id?: number) {
-    return db.insertInto("club").values({ name, legacy_id }).execute();
+    return db
+      .insertInto("club")
+      .values({ name, legacy_id })
+      .returning("id")
+      .executeTakeFirst();
   }
 
   getClubPreviewsByEmail(email: string) {

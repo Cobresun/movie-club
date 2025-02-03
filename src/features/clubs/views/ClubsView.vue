@@ -30,12 +30,15 @@
             </menu-card>
           </router-link>
         </div>
+      </div>
 
-        <router-link class="p-3" :to="{ name: 'NewClub' }">
-          <!-- TODO: use a different image for the create club button -->
-          <!-- <menu-card bg-color="lowBackground" :image="clubSvg">
-            Create new club
-          </menu-card> -->
+      <div class="flex justify-center">
+        <router-link
+          :to="{ name: 'NewClub' }"
+          class="mb-4 inline-flex items-center rounded-md bg-gray-600 px-4 py-2 text-white hover:bg-gray-700"
+        >
+          <mdicon name="plus" class="mr-2" />
+          Create New Club
         </router-link>
       </div>
     </div>

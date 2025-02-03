@@ -8,8 +8,11 @@ import reviewsRouter from "./reviews";
 import { hasValue } from "../../../lib/checks/checks.js";
 import { BaseClub, ClubPreview } from "../../../lib/types/club";
 import ClubRepository from "../repositories/ClubRepository";
+import ListRepository from "../repositories/ListRepository";
+import UserRepository from "../repositories/UserRepository";
 import WorkRepository from "../repositories/WorkRepository";
 import { loggedIn, secured } from "../utils/auth";
+import { db } from "../utils/database";
 import { getFaunaClient } from "../utils/fauna";
 import { ok, badRequest } from "../utils/responses";
 import { Router } from "../utils/router";
@@ -23,7 +26,6 @@ router.use("/:clubId<\\d+>/list", validClubId, listRouter);
 router.use("/:clubId<\\d+>/reviews", validClubId, reviewsRouter);
 router.use("/:clubId<\\d+>/members", validClubId, membersRouter);
 router.use("/:clubId<\\d+>/awards", validClubId, mapIdToLegacyId, awardsRouter);
-
 router.get("/:clubId<\\d+>", validClubId, async ({ clubId }, res) => {
   const club = await ClubRepository.getById(clubId);
   const result: ClubPreview = {
@@ -45,32 +47,59 @@ router.post("/", loggedIn, async ({ event }, res) => {
   if (!body.success) return res(badRequest("Invalid body"));
   const { name, members } = body.data;
 
-  // Generate a random clubId
-  const clubId = Math.floor(Math.random() * 100000);
+  const legacyClubId = Math.floor(Math.random() * 100000);
 
-  /**
-   * TODO:
-   * for member in members:
-   *  if they exist in members collection:
-   *    get their Ref
-   *  else:
-   *    make a new document in member for them
-   *    get their ref
-   **/
+  // Create Club
+  const newClub = await ClubRepository.insert(name, legacyClubId);
 
-  const clubResponse = await faunaClient.query<Document<BaseClub>>(
-    q.Create(q.Collection("clubs"), {
-      data: {
-        clubId: clubId,
-        clubName: name,
-        members: members,
-      },
-    }),
+  if (!newClub) {
+    return res(badRequest("Failed to create club in database"));
+  }
+
+  // Creat WatchList, Backlog, Reviews lists
+  await ListRepository.createListsForClub(newClub.id);
+  //return res(badRequest("Failed to create lists for club"));
+
+  // Create FaunaDB entry (temporary until migration complete)
+  try {
+    await faunaClient.query<Document<BaseClub>>(
+      q.Create(q.Collection("clubs"), {
+        data: {
+          clubId: legacyClubId,
+          clubName: name,
+          members: members,
+        },
+      }),
+    );
+  } catch (error) {
+    console.log(`Failed to create club in FaunaDB: ${String(error)}`);
+  }
+
+  // Create club_member entries for members
+  let hasErrors = false;
+  const memberPromises = members.map(async (email, index) => {
+    try {
+      const user = await UserRepository.getByEmail(email);
+      await db
+        .insertInto("club_member")
+        .values({
+          club_id: newClub.id,
+          user_id: user.id,
+          role: index === 0 ? "admin" : "member", // until better roles this makes the first member an admin
+        })
+        .execute();
+    } catch (error) {
+      hasErrors = true;
+      console.log(`Failed to add member ${email}: ${String(error)}`);
+    }
+  });
+  await Promise.all(memberPromises);
+
+  return res(
+    hasErrors
+      ? badRequest("Error creating club")
+      : ok(JSON.stringify({ clubId: newClub.id })),
   );
-
-  await ClubRepository.insert(name, clubId);
-
-  return res(ok(JSON.stringify(clubResponse.data)));
 });
 
 router.get("/:clubId<\\d+>/nextWork", validClubId, async ({ clubId }, res) => {

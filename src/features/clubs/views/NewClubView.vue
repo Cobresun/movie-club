@@ -1,45 +1,32 @@
 <template>
   <div>
     <!-- TODO: the page header component checks for a club, lets not do that here! -->
-    <page-header :has-back="false" page-name="New Club" />
-
+    <page-header
+      :has-back="false"
+      page-name="Create a Club"
+      :hide-club="true"
+    />
     <div v-if="isLoggedIn">
-      <div>
+      <div class="px-4">
         <input
           id="club-name"
           v-model="clubName"
           placeholder="Club name"
           type="text"
-          class="mb-4 w-11/12 max-w-md rounded-md border-2 border-gray-300 p-2 text-base text-black outline-none focus:border-primary"
+          class="w-11/12 max-w-md rounded-md border-2 border-gray-300 p-2 text-base text-black outline-none focus:border-primary"
+          :class="{ 'border-red-500': showErrors && !isClubNameValid }"
         />
-
-        <h2 class="m-4 text-2xl">Add Members</h2>
-        <div>
-          <!-- TODO: Align these input fields with the buttons correctly -->
-          <div v-for="(member, memberIndex) in members" :key="memberIndex">
-            <input
-              v-model="members[memberIndex]"
-              placeholder="Email address"
-              type="text"
-              class="mb-4 w-11/12 max-w-md rounded-md border-2 border-gray-300 p-2 text-base text-black outline-none focus:border-primary"
-            />
-            <v-btn
-              v-if="memberIndex > 0"
-              class="m-2 align-middle"
-              @click="members.splice(memberIndex, 1)"
-            >
-              <mdicon name="minus" />
-            </v-btn>
-          </div>
+        <div class="mb-4">
+          <span
+            v-if="showErrors && !isClubNameValid"
+            class="text-sm text-red-500"
+          >
+            Club name is required
+          </span>
         </div>
       </div>
 
-      <div class="flex justify-evenly">
-        <v-btn @click="members.push('')">
-          Add member
-          <mdicon name="plus" />
-        </v-btn>
-
+      <div class="mt-6 flex justify-evenly">
         <v-btn @click="submit()"> Create club </v-btn>
       </div>
     </div>
@@ -49,32 +36,42 @@
 
 <script setup lang="ts">
 import { ref, computed } from "vue";
+import { useRouter } from "vue-router";
 
 import { useCreateClub } from "@/service/useClub";
 import { useAuthStore } from "@/stores/auth";
 
+const router = useRouter();
 const clubName = ref("");
-const members = ref([""]);
+const showErrors = ref(false);
 
 const authStore = useAuthStore();
 const isLoggedIn = computed(() => authStore.isLoggedIn);
 
+const isClubNameValid = computed(() => clubName.value.trim().length > 0);
 const { mutate: createClub } = useCreateClub();
 
 const submit = () => {
-  // TODO: input validation
-  // TODO: show error on input fields that are invalid
-  // TODO: don't allow submitting without everything valid
+  showErrors.value = true;
 
-  if (authStore.user) {
-    // TODO: init members to start with authStore.user.email and make that input field non-editable
-    // TODO: then I won't need to check if they're in there
-    if (!members.value.includes(authStore.user.email)) {
-      members.value.push(authStore.user.email);
-    }
+  if (!isClubNameValid.value) {
+    return;
+  }
 
-    // TODO: if successful, return the user to the ClubsView
-    createClub({ clubName: clubName.value, members: members.value });
+  if (authStore.user && authStore.user?.email !== null) {
+    const validMembers = [authStore.user.email];
+
+    createClub(
+      {
+        clubName: clubName.value.trim(),
+        members: validMembers,
+      },
+      {
+        onSuccess: () => {
+          router.push({ name: "Clubs" }).catch(console.error);
+        },
+      },
+    );
   }
 };
 </script>
