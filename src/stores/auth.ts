@@ -11,6 +11,7 @@ export const useAuthStore = defineStore("auth", () => {
   const user = ref<User | null>();
   const ready = ref(false);
   const userHasValue = computed(() => !!user.value);
+  const authLoading = ref(true);
 
   const { data: authToken } = useQuery({
     queryKey: ["authToken", user],
@@ -19,11 +20,16 @@ export const useAuthStore = defineStore("auth", () => {
       user.value = netlifyIdentity.currentUser();
       return token;
     },
+    onSettled: () => {
+      authLoading.value = false;
+    },
     enabled: userHasValue,
     refetchInterval: 60 * 59 * 1000, // Refetch after 59mins
   });
 
-  const isLoggedIn = computed(() => isDefined(authToken.value));
+  const isLoggedIn = computed(
+    () => !authLoading.value && isDefined(authToken.value),
+  );
 
   const request = computed(() =>
     axios.create({ headers: { Authorization: `Bearer ${authToken.value}` } }),
@@ -74,5 +80,6 @@ export const useAuthStore = defineStore("auth", () => {
     cleanup,
     login,
     logout,
+    authLoading,
   };
 });
