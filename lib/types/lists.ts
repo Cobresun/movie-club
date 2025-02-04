@@ -40,3 +40,17 @@ export const listInsertDtoSchema = z.object({
 });
 
 export type ListInsertDto = z.infer<typeof listInsertDtoSchema>;
+
+export interface SharedReviewResponse {
+  members: {
+    id: string;
+    username: string;
+    image_url: string;
+  }[];
+  reviews: {
+    user_id: string;
+    score: number;
+    created_date: string;
+  }[];
+  work: DetailedReviewListItem;
+}
