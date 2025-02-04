@@ -32,10 +32,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, watchEffect } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
-import { useJoinClub, useClubDetails } from "@/service/useClub";
+import { useJoinClub, useClubDetails, useIsInClub } from "@/service/useClub";
 import { useAuthStore } from "@/stores/auth";
 
 const route = useRoute();
@@ -51,12 +51,24 @@ const {
   isLoading: isClubDetailsLoading,
   error: clubDetailsError,
 } = useClubDetails(inviteToken);
-
 const isLoading = computed(() => isClubDetailsLoading.value || isJoining.value);
+
+const isInClub = useIsInClub(clubDetails.value?.clubId ?? "");
 
 const handleJoinClub = () => {
   joinClub();
 };
+
+watchEffect(() => {
+  if (isInClub.value === true) {
+    router
+      .push({
+        name: "ClubHome",
+        params: { clubId: clubDetails.value?.clubId },
+      })
+      .catch(console.error);
+  }
+});
 
 const login = () => {
   router

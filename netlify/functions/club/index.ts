@@ -38,8 +38,8 @@ router.get("/:clubId<\\d+>", validClubId, async ({ clubId }, res) => {
   return res(ok(JSON.stringify(result)));
 });
 
-router.use("/members/join", joinRouter);
-router.use("/members/:token", joinRouter);
+router.use("/join", joinRouter);
+router.use("/joinInfo/:token", joinRouter);
 
 const clubCreateSchema = z.object({
   name: z.string(),

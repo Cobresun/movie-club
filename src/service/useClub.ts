@@ -88,7 +88,7 @@ export function useJoinClub(inviteToken: string) {
 
   return useMutation({
     mutationFn: () =>
-      auth.request.post(`/api/club/members/join`, {
+      auth.request.post(`/api/club/join`, {
         token: inviteToken,
         userId: auth.user?.id,
       }),
@@ -105,7 +105,7 @@ export function useClubDetails(inviteToken: string) {
     queryFn: async () => {
       try {
         const response = await axios.get<ClubPreview>(
-          `/api/club/members/${inviteToken}`,
+          `/api/club/joinInfo/${inviteToken}`,
         );
         return response.data;
       } catch (error) {

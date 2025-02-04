@@ -10,7 +10,7 @@ const joinSchema = z.object({
   token: z.string(),
 });
 
-const router = new Router("/api/club/members");
+const router = new Router("/api/club");
 
 router.post("/join", loggedIn, async (req, res) => {
   if (!hasValue(req.event.body)) {
@@ -42,7 +42,7 @@ router.post("/join", loggedIn, async (req, res) => {
   }
 });
 
-router.get("/:token", async (req, res) => {
+router.get("/joinInfo/:token", async (req, res) => {
   console.log("req.params.token", req.params.token);
   if (!hasValue(req.params.token)) {
     console.error("Missing request body");
