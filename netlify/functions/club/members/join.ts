@@ -19,7 +19,6 @@ router.post("/join", loggedIn, async (req, res) => {
   }
 
   const body = joinSchema.safeParse(JSON.parse(req.event.body));
-  console.log("body", body);
   if (!body.success) {
     console.error("Invalid request body", body.error);
     return res(badRequest("Invalid request body"));
@@ -43,7 +42,6 @@ router.post("/join", loggedIn, async (req, res) => {
 });
 
 router.get("/joinInfo/:token", async (req, res) => {
-  console.log("req.params.token", req.params.token);
   if (!hasValue(req.params.token)) {
     console.error("Missing request body");
     return res(badRequest("Missing request body"));
