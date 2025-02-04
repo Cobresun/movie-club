@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen p-6">
+  <div class="relative min-h-screen p-6 pb-24">
     <loading-spinner v-if="isLoading" />
     <div v-else-if="error" class="rounded-lg bg-red-900/50 p-4">
       <p class="text-center text-red-400">Failed to load review</p>
@@ -17,7 +17,7 @@
         <div class="relative rounded-lg bg-slate-600/60 p-8 backdrop-blur-sm">
           <div class="flex flex-col gap-8">
             <div class="flex flex-col gap-8 sm:flex-row">
-              <div class="flex w-1/3 flex-shrink-0 flex-col">
+              <div class="flex flex-shrink-0 flex-col sm:w-1/3">
                 <!-- Title and Tagline Section positioned over poster -->
                 <div class="mb-4">
                   <h1 class="mb-1 break-words text-4xl font-bold text-white">
@@ -56,12 +56,12 @@
                           <span class="text-3xl font-bold text-white">{{
                             averageScore.toFixed(1)
                           }}</span>
-                          <span class="text-lg text-gray-400"
-                            >Club Average</span
-                          >
-                          <span class="text-sm text-gray-500"
-                            >({{ data.reviews.length }} ratings)</span
-                          >
+                          <span class="text-lg text-gray-400">
+                            Club Average
+                          </span>
+                          <span class="text-sm text-gray-500">
+                            ({{ data.reviews.length }} ratings)
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -117,6 +117,30 @@
         </div>
       </div>
     </div>
+
+    <!-- Fixed Call-to-Action Banner -->
+    <div v-if="isLoggedIn">
+      <div class="h-48" />
+      <div class="fixed inset-x-0 bottom-0 bg-secondary px-6 py-8 shadow-lg">
+        <div
+          class="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 text-center sm:flex-row sm:text-left"
+        >
+          <div>
+            <h2 class="text-2xl font-bold text-white">Join the Club!</h2>
+            <p class="text-sm text-gray-200">
+              Create an account to join clubs with your friends and review your
+              favourite movies.
+            </p>
+          </div>
+          <a
+            href="/"
+            class="rounded-md bg-primary px-6 py-3 font-semibold text-white transition hover:bg-primary/80"
+          >
+            Sign Up Now
+          </a>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -128,10 +152,14 @@ import { useRoute } from "vue-router";
 import LoadingSpinner from "@/common/components/LoadingSpinner.vue";
 import VAvatar from "@/common/components/VAvatar.vue";
 import { useSharedReview } from "@/service/useList";
+import { useAuthStore } from "@/stores/auth";
 
 const route = useRoute();
 const clubId = route.params.clubId as string;
 const workId = route.params.workId as string;
+
+const authStore = useAuthStore();
+const isLoggedIn = computed(() => authStore.isLoggedIn);
 
 const { data, isLoading, error } = useSharedReview(clubId, workId);
 
