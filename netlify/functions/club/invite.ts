@@ -1,0 +1,18 @@
+import UserRepository from "../repositories/UserRepository";
+import { ok, badRequest } from "../utils/responses";
+import { Router } from "../utils/router";
+import { ClubRequest } from "../utils/validation";
+
+const router = new Router<ClubRequest>("/api/club/:clubId<\\d+>/invite");
+
+router.post("/", async ({ clubId }, res) => {
+  try {
+    const token = await UserRepository.createClubInvite(clubId);
+    return res(ok(JSON.stringify({ token })));
+  } catch (error) {
+    console.error("Error creating invite:", error);
+    return res(badRequest("Failed to create invite"));
+  }
+});
+
+export default router;

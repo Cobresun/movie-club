@@ -81,18 +81,37 @@ export function useLeaveClub(clubId: string) {
   });
 }
 
-export function useJoinClub(clubId: string) {
+export function useJoinClub(inviteToken: string) {
   const auth = useAuthStore();
   const queryClient = useQueryClient();
   const router = useRouter();
 
   return useMutation({
-    mutationFn: () => auth.request.get(`/api/club/${clubId}/members/join`),
+    mutationFn: () =>
+      auth.request.post(`/api/club/members/join`, {
+        token: inviteToken,
+        userId: auth.user?.id,
+      }),
     onSuccess: () => {
-      // Invalidate relevant queries
-      queryClient.invalidateQueries(["members", clubId]).catch(console.error);
       queryClient.invalidateQueries(["user", "clubs"]).catch(console.error);
       router.push({ name: "Clubs" }).catch(console.error);
+    },
+  });
+}
+
+export function useClubDetails(inviteToken: string) {
+  return useQuery<ClubPreview>({
+    queryKey: ["club-details", inviteToken],
+    queryFn: async () => {
+      try {
+        const response = await axios.get<ClubPreview>(
+          `/api/club/members/${inviteToken}`,
+        );
+        return response.data;
+      } catch (error) {
+        console.error("Error fetching club details:", error);
+        throw error;
+      }
     },
   });
 }
@@ -111,6 +130,18 @@ export function useRemoveMember(clubId: string) {
           queryKey: ["list", clubId, WorkListType.reviews],
         })
         .catch(console.error); // TODO: this isn't working and refreshing scores
+    },
+  });
+}
+
+export function useInviteToken(clubId: string) {
+  return useQuery({
+    queryKey: ["invite-token", clubId],
+    queryFn: async () => {
+      const response = await axios.post<{ token: string }>(
+        `/api/club/${clubId}/invite`,
+      );
+      return response.data.token;
     },
   });
 }

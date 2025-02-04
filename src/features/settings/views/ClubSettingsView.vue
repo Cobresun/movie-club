@@ -141,6 +141,7 @@ import {
   useClubId,
   useLeaveClub,
   useRemoveMember,
+  useInviteToken,
 } from "@/service/useClub";
 import { useAuthStore } from "@/stores/auth";
 
@@ -163,10 +164,11 @@ const {
 const { mutate: leaveClubMutation, isLoading: isLeaving } =
   useLeaveClub(clubId);
 const { mutate: removeMemberMutation } = useRemoveMember(clubId);
+const { data: inviteToken } = useInviteToken(clubId);
 
 const inviteLink = computed(() => {
   const baseUrl = window.location.origin;
-  return `${baseUrl}/join-club/${clubId}`;
+  return `${baseUrl}/join-club/${inviteToken.value}`;
 });
 
 const copyIcon = computed(() => (hasCopied.value ? "check" : "content-copy"));

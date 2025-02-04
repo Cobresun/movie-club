@@ -11,11 +11,16 @@ export enum WorkType {
   movie = "movie",
 }
 
-export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
-  ? ColumnType<S, I | undefined, U>
-  : ColumnType<T, T | undefined, T>;
+export type Generated<T> =
+  T extends ColumnType<infer S, infer I, infer U>
+    ? ColumnType<S, I | undefined, U>
+    : ColumnType<T, T | undefined, T>;
 
-export type Int8 = ColumnType<string, bigint | number | string, bigint | number | string>;
+export type Int8 = ColumnType<
+  string,
+  bigint | number | string,
+  bigint | number | string
+>;
 
 export type Numeric = ColumnType<string, number | string, number | string>;
 
@@ -122,6 +127,12 @@ export interface WorkListItem {
   work_id: Int8;
 }
 
+export interface ClubInvite {
+  token: string;
+  club_id: Generated<Int8>;
+  expires_at: Timestamp;
+}
+
 export interface DB {
   club: Club;
   club_member: ClubMember;
@@ -135,4 +146,5 @@ export interface DB {
   work: Work;
   work_list: WorkList;
   work_list_item: WorkListItem;
+  club_invite: ClubInvite;
 }

@@ -6,17 +6,22 @@
     >
       <h1 class="mb-4 text-2xl font-bold">Join Club</h1>
 
-      <div v-if="isLoading || !club" class="py-4">
+      <div v-if="isLoading" class="py-4">
         <loading-spinner />
       </div>
 
-      <template v-else>
+      <template v-else-if="clubDetails">
         <p class="mb-6">
-          You've been invited to join <strong>{{ club.clubName }}</strong>
+          You've been invited to join
+          <strong>{{ clubDetails.clubName }}</strong>
         </p>
 
-        <v-btn :loading="isJoining" @click="joinClub"> Join Club </v-btn>
+        <v-btn @click="handleJoinClub"> Join Club </v-btn>
       </template>
+
+      <div v-else-if="clubDetailsError" class="text-red-500">
+        The invite token is invalid or expired.
+      </div>
     </div>
 
     <div v-else class="text-center">
@@ -27,34 +32,31 @@
 </template>
 
 <script setup lang="ts">
-import { computed, watchEffect } from "vue";
+import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
-import { useClub, useJoinClub, useIsInClub } from "@/service/useClub";
+import { useJoinClub, useClubDetails } from "@/service/useClub";
 import { useAuthStore } from "@/stores/auth";
 
 const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
-const clubId = route.params.clubId as string;
-
-const { data: club, isLoading } = useClub(clubId);
-const { mutate: joinClub, isLoading: isJoining } = useJoinClub(clubId);
-const isInClub = useIsInClub(clubId);
+const inviteToken = route.params.inviteToken as string;
 
 const isLoggedIn = computed(() => authStore.isLoggedIn);
 
-// Redirect to club home if user is already a member
-watchEffect(() => {
-  if (isInClub.value === true) {
-    router
-      .push({
-        name: "ClubHome",
-        params: { clubId },
-      })
-      .catch(console.error);
-  }
-});
+const { mutate: joinClub, isLoading: isJoining } = useJoinClub(inviteToken);
+const {
+  data: clubDetails,
+  isLoading: isClubDetailsLoading,
+  error: clubDetailsError,
+} = useClubDetails(inviteToken);
+
+const isLoading = computed(() => isClubDetailsLoading.value || isJoining.value);
+
+const handleJoinClub = () => {
+  joinClub();
+};
 
 const login = () => {
   router
