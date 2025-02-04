@@ -34,7 +34,7 @@
                 <!-- Movie Poster with fixed dimensions -->
                 <div>
                   <img
-                    :src="`https://image.tmdb.org/t/p/w500/${data.work.externalData.poster_path}`"
+                    :src="`https://image.tmdb.org/t/p/w500/${data.work.externalData?.poster_path}`"
                     class="aspect-[2/3] w-full rounded-lg object-cover shadow-lg transition-transform hover:scale-105"
                   />
                 </div>
