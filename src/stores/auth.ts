@@ -27,9 +27,7 @@ export const useAuthStore = defineStore("auth", () => {
     refetchInterval: 60 * 59 * 1000, // Refetch after 59mins
   });
 
-  const isLoggedIn = computed(
-    () => !authLoading.value && isDefined(authToken.value),
-  );
+  const isLoggedIn = computed(() => isDefined(authToken.value));
 
   const request = computed(() =>
     axios.create({ headers: { Authorization: `Bearer ${authToken.value}` } }),
