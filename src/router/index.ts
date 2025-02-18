@@ -137,7 +137,7 @@ const routes: Array<RouteRecordRaw> = [
     },
   },
   {
-    path: "/join-club/:clubId",
+    path: "/join-club/:inviteToken",
     name: "JoinClub",
     component: JoinClubView,
     meta: {
