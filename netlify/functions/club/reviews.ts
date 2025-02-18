@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { hasValue, isDefined } from "../../../lib/checks/checks.js";
+import { hasValue } from "../../../lib/checks/checks.js";
 import { WorkListType } from "../../../lib/types/generated/db";
 import ListRepository from "../repositories/ListRepository";
 import ReviewRepository from "../repositories/ReviewRepository";
@@ -9,6 +9,7 @@ import { secured } from "../utils/auth";
 import { badRequest, ok } from "../utils/responses";
 import { Router } from "../utils/router";
 import { ClubRequest } from "../utils/validation";
+import { overviewToExternalData } from "../utils/workDetailsMapper";
 
 const router = new Router<ClubRequest>("/api/club/:clubId<\\d+>/reviews");
 
@@ -86,33 +87,7 @@ router.get("/:workId/shared", async ({ clubId, params }, res) => {
     type: workDetails.type,
     imageUrl: workDetails.image_url ?? undefined,
     externalId: workDetails.external_id ?? undefined,
-    externalData: hasValue(workDetails.overview)
-      ? {
-          adult: workDetails.adult,
-          backdrop_path: workDetails.backdrop_path,
-          budget: workDetails.budget,
-          homepage: workDetails.homepage,
-          imdb_id: workDetails.imdb_id,
-          original_language: workDetails.original_language,
-          original_title: workDetails.original_title,
-          overview: workDetails.overview,
-          popularity: workDetails.popularity,
-          poster_path: workDetails.poster_path,
-          release_date: workDetails.release_date?.toISOString(),
-          revenue: workDetails.revenue,
-          runtime: workDetails.runtime,
-          status: workDetails.status,
-          tagline: workDetails.tagline,
-          vote_average: isDefined(workDetails.tmdb_score)
-            ? parseFloat(workDetails.tmdb_score)
-            : undefined,
-          genres: workDetails.genres?.filter(Boolean) ?? [],
-          production_companies:
-            workDetails.production_companies?.filter(Boolean) ?? [],
-          production_countries:
-            workDetails.production_countries?.filter(Boolean) ?? [],
-        }
-      : undefined,
+    externalData: overviewToExternalData(workDetails),
   };
 
   return res(

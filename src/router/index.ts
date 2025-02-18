@@ -7,7 +7,6 @@ import {
 } from "vue-router";
 
 import { isDefined } from "../../lib/checks/checks.js";
-import { ClubPreview } from "../../lib/types/club";
 import ClubHomeView from "../features/clubs/views/ClubHomeView.vue";
 import ClubsView from "../features/clubs/views/ClubsView.vue";
 import NewClubView from "../features/clubs/views/NewClubView.vue";
@@ -34,32 +33,20 @@ const checkClubAccess = async (
   const auth = useAuthStore();
 
   // Wait for auth initialization to complete
-  while (auth.authLoading) {
-    console.log("waiting for auth to load");
+  while (auth.isInitialLoading) {
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
 
   // If not logged in, redirect to clubs
   if (!auth.isLoggedIn) {
-    console.log("redirecting to clubs");
     return next({ name: "Clubs" });
   }
 
-  const clubId = to.params.clubId;
-  try {
-    const response = await auth.request.get<ClubPreview[]>("/api/member/clubs");
-    console.log("response", response);
-    const clubs = response.data;
-    const isMember = clubs.some((club) => String(club.clubId) === clubId);
-
-    if (isMember) {
-      return next();
-    } else {
-      // Redirect to clubs if user is not a member
-      return next({ name: "Clubs" });
-    }
-  } catch (error) {
-    console.error("Error checking club access:", error);
+  const clubId = to.params.clubId as string;
+  if (auth.isClubMember(clubId)) {
+    return next();
+  } else {
+    // Redirect to clubs if user is not a member
     return next({ name: "Clubs" });
   }
 };

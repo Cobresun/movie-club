@@ -133,76 +133,13 @@ class ReviewRepository {
       .innerJoin("work", "work.id", "work_list_item.work_id")
       .where("work.id", "=", workId)
       .leftJoin("review", "review.work_id", "work.id")
-      .leftJoin(
-        "movie_details",
-        "movie_details.external_id",
-        "work.external_id",
-      )
-      .leftJoin(
-        "movie_genres",
-        "movie_genres.external_id",
-        "movie_details.external_id",
-      )
-      .leftJoin(
-        "movie_production_companies",
-        "movie_production_companies.external_id",
-        "movie_details.external_id",
-      )
-      .leftJoin(
-        "movie_production_countries",
-        "movie_production_countries.external_id",
-        "movie_details.external_id",
-      )
       .select([
         "review.id as review_id",
-        "work.id",
-        "work.title",
-        "work.type",
-        "work.image_url",
-        "work.external_id",
-        "work_list_item.time_added",
         "review.score",
         "review.user_id",
         "review.created_date",
-        "movie_details.tmdb_score",
-        "movie_details.runtime",
-        "movie_details.budget",
-        "movie_details.revenue",
-        "movie_details.release_date",
-        "movie_details.adult",
-        "movie_details.backdrop_path",
-        "movie_details.homepage",
-        "movie_details.imdb_id",
-        "movie_details.original_language",
-        "movie_details.original_title",
-        "movie_details.overview",
-        "movie_details.popularity",
-        "movie_details.poster_path",
-        "movie_details.status",
-        "movie_details.tagline",
-        db.fn
-          .agg<string[]>("array_agg", ["movie_genres.genre_name"])
-          .distinct()
-          .as("genres"),
-        db.fn
-          .agg<
-            string[]
-          >("array_agg", ["movie_production_companies.company_name"])
-          .distinct()
-          .as("production_companies"),
-        db.fn
-          .agg<
-            string[]
-          >("array_agg", ["movie_production_countries.country_name"])
-          .distinct()
-          .as("production_countries"),
       ])
-      .groupBy([
-        "review.id",
-        "work.id",
-        "work_list_item.time_added",
-        "movie_details.external_id",
-      ])
+      .groupBy(["review.id", "work.id", "work_list_item.time_added"])
       .execute();
   }
 }

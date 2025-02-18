@@ -1,4 +1,4 @@
-import { hasValue, isDefined } from "../../../lib/checks/checks.js";
+import { hasValue } from "../../../lib/checks/checks.js";
 import { WorkListType } from "../../../lib/types/generated/db.js";
 import { listInsertDtoSchema } from "../../../lib/types/lists.js";
 import {
@@ -14,6 +14,7 @@ import { secured } from "../utils/auth";
 import { badRequest, internalServerError, ok } from "../utils/responses";
 import { Router } from "../utils/router";
 import { ClubRequest } from "../utils/validation";
+import { overviewToExternalData } from "../utils/workDetailsMapper.js";
 
 import { BadRequest } from "@/common/errorCodes";
 
@@ -53,35 +54,10 @@ async function getWorkList(clubId: string, type: WorkListType) {
     createdDate: item.time_added.toISOString(),
     imageUrl: item.image_url ?? undefined,
     externalId: item.external_id ?? undefined,
-    externalData: hasValue(item.overview)
-      ? {
-          adult: item.adult,
-          backdrop_path: item.backdrop_path,
-          budget: item.budget,
-          homepage: item.homepage,
-          imdb_id: item.imdb_id,
-          original_language: item.original_language,
-          original_title: item.original_title,
-          overview: item.overview,
-          popularity: item.popularity,
-          poster_path: item.poster_path,
-          release_date: item.release_date?.toISOString(),
-          revenue: item.revenue,
-          runtime: item.runtime,
-          status: item.status,
-          tagline: item.tagline,
-          vote_average: isDefined(item.tmdb_score)
-            ? parseFloat(item.tmdb_score)
-            : undefined,
-          genres: item.genres?.filter(Boolean) ?? [],
-          production_companies:
-            item.production_companies?.filter(Boolean) ?? [],
-          production_countries:
-            item.production_countries?.filter(Boolean) ?? [],
-        }
-      : undefined,
+    externalData: overviewToExternalData(item),
   }));
 }
+
 async function getReviewList(clubId: string): Promise<ReviewListItem[]> {
   const [reviews, members] = await Promise.all([
     ReviewRepository.getReviewList(clubId),
