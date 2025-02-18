@@ -1,3 +1,5 @@
+import crypto from "crypto";
+
 import { isTrue } from "../../../lib/checks/checks.js";
 import { db } from "../utils/database";
 
@@ -141,6 +143,44 @@ class ClubRepository {
       ])
       .where("token", "=", token)
       .executeTakeFirst();
+  }
+
+  async createClubInvite(clubId: string) {
+    const now = new Date();
+
+    // Clean up expired tokens for this club
+    await db
+      .deleteFrom("club_invite")
+      .where("expires_at", "<", now)
+      .where("club_id", "=", clubId)
+      .execute();
+
+    // if there is already an invite for this club which is not expired, update the expires_at and return the token
+    const existingInvite = await db
+      .selectFrom("club_invite")
+      .select("token")
+      .where("club_id", "=", clubId)
+      .where("expires_at", ">", now)
+      .executeTakeFirst();
+
+    if (existingInvite) {
+      await db
+        .updateTable("club_invite")
+        .set({ expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000) })
+        .where("club_id", "=", clubId)
+        .execute();
+      return String(existingInvite.token);
+    }
+
+    const token = crypto.randomBytes(16).toString("hex");
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours from now
+
+    await db
+      .insertInto("club_invite")
+      .values({ token, club_id: clubId, expires_at: expiresAt })
+      .execute();
+
+    return token;
   }
 }
 
