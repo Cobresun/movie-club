@@ -6,13 +6,14 @@ import { ref, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 import { isDefined, isTrue } from "../../lib/checks/checks.js";
+import { ClubPreview } from "../../lib/types/club";
 
 export const useAuthStore = defineStore("auth", () => {
   const user = ref<User | null>();
   const ready = ref(false);
   const userHasValue = computed(() => !!user.value);
 
-  const { data: authToken } = useQuery({
+  const { data: authToken, isInitialLoading } = useQuery({
     queryKey: ["authToken", user],
     queryFn: () => {
       const token = netlifyIdentity.refresh(true);
@@ -65,6 +66,22 @@ export const useAuthStore = defineStore("auth", () => {
     netlifyIdentity.logout()?.catch(console.error);
   };
 
+  const { data: userClubs } = useQuery({
+    queryKey: ["userClubs", user],
+    queryFn: async () => {
+      const response =
+        await request.value.get<ClubPreview[]>("/api/member/clubs");
+      return response.data;
+    },
+    enabled: isLoggedIn,
+  });
+
+  const isClubMember = (clubId: string) => {
+    return (
+      userClubs.value?.some((club) => String(club.clubId) === clubId) ?? false
+    );
+  };
+
   return {
     user,
     ready,
@@ -74,5 +91,8 @@ export const useAuthStore = defineStore("auth", () => {
     cleanup,
     login,
     logout,
+    isInitialLoading,
+    userClubs,
+    isClubMember,
   };
 });

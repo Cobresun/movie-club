@@ -123,6 +123,25 @@ class ReviewRepository {
       .where("id", "=", id)
       .execute();
   }
+
+  async getReviewsByWorkId(clubId: string, workId: string) {
+    return db
+      .selectFrom("work_list")
+      .where("work_list.club_id", "=", clubId)
+      .where("work_list.type", "=", WorkListType.reviews)
+      .innerJoin("work_list_item", "work_list_item.list_id", "work_list.id")
+      .innerJoin("work", "work.id", "work_list_item.work_id")
+      .where("work.id", "=", workId)
+      .leftJoin("review", "review.work_id", "work.id")
+      .select([
+        "review.id as review_id",
+        "review.score",
+        "review.user_id",
+        "review.created_date",
+      ])
+      .groupBy(["review.id", "work.id", "work_list_item.time_added"])
+      .execute();
+  }
 }
 
 export default new ReviewRepository();

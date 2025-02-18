@@ -147,6 +147,90 @@ class ListRepository {
       .select("id");
   }
 
+  async getWorkDetails(workId: string) {
+    return await db
+      .with("genres_agg", (qb) =>
+        qb
+          .selectFrom("movie_genres")
+          .select([
+            "external_id",
+            db.fn.agg<string[]>("array_agg", ["genre_name"]).as("genres"),
+          ])
+          .groupBy("external_id"),
+      )
+      .with("companies_agg", (qb) =>
+        qb
+          .selectFrom("movie_production_companies")
+          .select([
+            "external_id",
+            db.fn
+              .agg<string[]>("array_agg", ["company_name"])
+              .as("production_companies"),
+          ])
+          .groupBy("external_id"),
+      )
+      .with("countries_agg", (qb) =>
+        qb
+          .selectFrom("movie_production_countries")
+          .select([
+            "external_id",
+            db.fn
+              .agg<string[]>("array_agg", ["country_name"])
+              .as("production_countries"),
+          ])
+          .groupBy("external_id"),
+      )
+      .selectFrom("work")
+      .where("work.id", "=", workId)
+      .leftJoin(
+        "movie_details",
+        "movie_details.external_id",
+        "work.external_id",
+      )
+      .leftJoin(
+        "genres_agg",
+        "genres_agg.external_id",
+        "movie_details.external_id",
+      )
+      .leftJoin(
+        "companies_agg",
+        "companies_agg.external_id",
+        "movie_details.external_id",
+      )
+      .leftJoin(
+        "countries_agg",
+        "countries_agg.external_id",
+        "movie_details.external_id",
+      )
+      .select([
+        "work.id",
+        "work.title",
+        "work.type",
+        "work.image_url",
+        "work.external_id",
+        "movie_details.tmdb_score",
+        "movie_details.runtime",
+        "movie_details.budget",
+        "movie_details.revenue",
+        "movie_details.release_date",
+        "movie_details.adult",
+        "movie_details.backdrop_path",
+        "movie_details.homepage",
+        "movie_details.imdb_id",
+        "movie_details.original_language",
+        "movie_details.original_title",
+        "movie_details.overview",
+        "movie_details.popularity",
+        "movie_details.poster_path",
+        "movie_details.status",
+        "movie_details.tagline",
+        "genres_agg.genres",
+        "companies_agg.production_companies",
+        "countries_agg.production_countries",
+      ])
+      .executeTakeFirst();
+  }
+
   async createListsForClub(clubId: string) {
     const defaultTitles: Record<WorkListType, string> = {
       backlog: "Backlog",

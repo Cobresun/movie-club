@@ -1,4 +1,10 @@
-import { createRouter, createWebHistory, RouteRecordRaw } from "vue-router";
+import {
+  createRouter,
+  createWebHistory,
+  RouteRecordRaw,
+  NavigationGuardNext,
+  RouteLocationNormalized,
+} from "vue-router";
 
 import { isDefined } from "../../lib/checks/checks.js";
 import ClubHomeView from "../features/clubs/views/ClubHomeView.vue";
@@ -19,6 +25,32 @@ import YearView from "@/features/awards/views/YearView.vue";
 import ProfileView from "@/features/profile/views/ProfileView.vue";
 import { useAuthStore } from "@/stores/auth";
 
+const checkClubAccess = async (
+  to: RouteLocationNormalized,
+  from: RouteLocationNormalized,
+  next: NavigationGuardNext,
+) => {
+  const auth = useAuthStore();
+
+  // Wait for auth initialization to complete
+  while (auth.isInitialLoading) {
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+
+  // If not logged in, redirect to clubs
+  if (!auth.isLoggedIn) {
+    return next({ name: "Clubs" });
+  }
+
+  const clubId = to.params.clubId as string;
+  if (auth.isClubMember(clubId)) {
+    return next();
+  } else {
+    // Redirect to clubs if user is not a member
+    return next({ name: "Clubs" });
+  }
+};
+
 const routes: Array<RouteRecordRaw> = [
   {
     path: "/",
@@ -26,6 +58,15 @@ const routes: Array<RouteRecordRaw> = [
     component: ClubsView,
     meta: {
       depth: 0,
+    },
+  },
+  {
+    path: "/share/club/:clubId/review/:workId",
+    name: "SharedReview",
+    component: () => import("../features/reviews/views/SharedReviewView.vue"),
+    meta: {
+      depth: 1,
+      noAuth: true,
     },
   },
   {
@@ -49,6 +90,7 @@ const routes: Array<RouteRecordRaw> = [
     path: "/club/:clubId",
     name: "ClubHome",
     component: ClubHomeView,
+    beforeEnter: checkClubAccess,
     meta: {
       depth: 1,
     },
@@ -59,12 +101,14 @@ const routes: Array<RouteRecordRaw> = [
     component: NewClubView,
     meta: {
       depth: 1,
+      authRequired: true,
     },
   },
   {
     path: "/club/:clubId/reviews",
     name: "Reviews",
     component: ReviewView,
+    beforeEnter: checkClubAccess,
     props: true,
     meta: {
       depth: 2,
@@ -74,6 +118,7 @@ const routes: Array<RouteRecordRaw> = [
     path: "/club/:clubId/watch-list",
     name: "WatchList",
     component: WatchListView,
+    beforeEnter: checkClubAccess,
     meta: {
       depth: 2,
     },
@@ -82,6 +127,7 @@ const routes: Array<RouteRecordRaw> = [
     path: "/club/:clubId/statistics",
     name: "Statistics",
     component: StatisticsView,
+    beforeEnter: checkClubAccess,
     meta: {
       depth: 2,
     },
@@ -90,6 +136,7 @@ const routes: Array<RouteRecordRaw> = [
     path: "/club/:clubId/awards",
     name: "Awards",
     component: AwardsView,
+    beforeEnter: checkClubAccess,
     meta: {
       depth: 2,
     },
@@ -132,8 +179,10 @@ const routes: Array<RouteRecordRaw> = [
     path: "/club/:clubId/settings",
     name: "ClubSettings",
     component: ClubSettingsView,
+    beforeEnter: checkClubAccess,
     meta: {
       depth: 2,
+      authRequired: true,
     },
   },
   {
