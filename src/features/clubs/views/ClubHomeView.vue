@@ -47,10 +47,13 @@
       class="fixed left-0 top-0 z-50 flex h-full w-full items-center justify-center bg-black bg-opacity-50"
       @click="showInviteModal = false"
     >
-      <div class="w-1/2 rounded-lg bg-background p-8" @click.stop="">
+      <div
+        class="mx-4 w-full rounded-lg bg-background p-8 md:w-1/2"
+        @click.stop=""
+      >
         <h3 class="mb-4 text-xl font-semibold">Invite Members</h3>
         <div class="space-y-3">
-          <p class="text-sm text-gray-500">
+          <p class="pb-4 text-sm text-gray-500">
             Share this link to invite people to your club
           </p>
           <div class="flex items-center gap-3">
@@ -110,19 +113,19 @@ import awardsSvg from "@/assets/images/menu-images/awards.svg";
 import reviewSvg from "@/assets/images/menu-images/review.svg";
 import statisticsSvg from "@/assets/images/menu-images/statistics.svg";
 import watchlistSvg from "@/assets/images/menu-images/watchlist.svg";
-import { useMembers, useClubId } from "@/service/useClub";
+import { useMembers, useClubId, useInviteToken } from "@/service/useClub";
 
 const clubId = useClubId();
 const { data: members, isLoading: isLoadingMembers } = useMembers(clubId);
+const { data: inviteToken } = useInviteToken(clubId);
 
-// New invite functionality
 const showInviteModal = ref(false);
 const inviteLinkInput = ref<HTMLInputElement | null>(null);
 const hasCopied = ref(false);
 
 const inviteLink = computed(() => {
   const baseUrl = window.location.origin;
-  return `${baseUrl}/join-club/${clubId}`;
+  return `${baseUrl}/join-club/${inviteToken.value}`;
 });
 
 const copyIcon = computed(() => (hasCopied.value ? "check" : "content-copy"));
@@ -135,7 +138,7 @@ const copyInviteLink = async () => {
       hasCopied.value = false;
     }, 2000);
   } catch {
-    // Fallback for browsers that don't support clipboard API
+    // Fallback for browsers that don't support the Clipboard API
     if (inviteLinkInput.value) {
       inviteLinkInput.value.select();
       document.execCommand("copy");

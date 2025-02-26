@@ -2,8 +2,10 @@ import { Handler, HandlerContext, HandlerEvent } from "@netlify/functions";
 import { z } from "zod";
 
 import awardsRouter from "./awards";
+import inviteRouter from "./invite";
 import listRouter from "./list";
 import membersRouter from "./members";
+import joinRouter from "./members/join";
 import reviewsRouter from "./reviews";
 import { hasValue } from "../../../lib/checks/checks.js";
 import { BaseClub, ClubPreview } from "../../../lib/types/club";
@@ -26,6 +28,7 @@ router.use("/:clubId<\\d+>/list", validClubId, listRouter);
 router.use("/:clubId<\\d+>/reviews", validClubId, reviewsRouter);
 router.use("/:clubId<\\d+>/members", validClubId, membersRouter);
 router.use("/:clubId<\\d+>/awards", validClubId, mapIdToLegacyId, awardsRouter);
+router.use("/:clubId<\\d+>/invite", validClubId, inviteRouter);
 router.get("/:clubId<\\d+>", validClubId, async ({ clubId }, res) => {
   const club = await ClubRepository.getById(clubId);
   const result: ClubPreview = {
@@ -34,6 +37,9 @@ router.get("/:clubId<\\d+>", validClubId, async ({ clubId }, res) => {
   };
   return res(ok(JSON.stringify(result)));
 });
+
+router.use("/join", joinRouter);
+router.use("/joinInfo/:token", joinRouter);
 
 const clubCreateSchema = z.object({
   name: z.string(),
