@@ -119,7 +119,7 @@
     </div>
 
     <!-- Fixed Call-to-Action Banner -->
-    <div v-if="isLoggedIn">
+    <div v-if="!isLoggedIn">
       <div class="h-48" />
       <div class="fixed inset-x-0 bottom-0 bg-secondary px-6 py-8 shadow-lg">
         <div
