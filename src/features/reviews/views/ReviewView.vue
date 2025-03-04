@@ -68,6 +68,7 @@ import {
   resolveComponent,
   watch,
 } from "vue";
+import { useToast } from "vue-toastification";
 
 import { isTrue } from "../../../../lib/checks/checks.js";
 import { WorkListType } from "../../../../lib/types/generated/db";
@@ -184,6 +185,8 @@ const { mutate: deleteReview } = useDeleteListItem(
 
 const mdicon = resolveComponent("mdicon");
 
+const toast = useToast();
+
 const columns = computed(() => [
   columnHelper.accessor("imageUrl", {
     header: "Poster",
@@ -205,7 +208,24 @@ const columns = computed(() => [
               deleteReview(row.original.id);
             },
           })
-        : "",
+        : h(
+            "div",
+            {
+              class:
+                "opacity-0 group-hover:opacity-100 transition-opacity duration-100",
+            },
+            [
+              h(mdicon, {
+                name: "share",
+                class: "cursor-pointer hover:text-primary transition-colors",
+                onClick: () => {
+                  const url = `${window.location.origin}/share/club/${clubId}/review/${row.original.id}`;
+                  void navigator.clipboard.writeText(url);
+                  toast.success("Share URL copied to clipboard!");
+                },
+              }),
+            ],
+          ),
   }),
   columnHelper.accessor("title", {
     header: "Title",

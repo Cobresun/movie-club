@@ -11,6 +11,7 @@ import {
   DetailedReviewListItem,
   DetailedWorkListItem,
   ListInsertDto,
+  SharedReviewResponse,
 } from "../../lib/types/lists.js";
 
 import { useAuthStore } from "@/stores/auth";
@@ -113,5 +114,20 @@ export function useSetNextWork(clubId: string) {
     },
     onSettled: () =>
       queryClient.invalidateQueries({ queryKey: ["nextWork", clubId] }),
+  });
+}
+
+export function useSharedReview(
+  clubId: string,
+  workId: string,
+): UseQueryReturnType<SharedReviewResponse, AxiosError> {
+  return useQuery({
+    queryKey: ["sharedReview", clubId, workId],
+    queryFn: async () =>
+      (
+        await axios.get<{ data: SharedReviewResponse }>(
+          `/api/club/${clubId}/reviews/${workId}/shared`,
+        )
+      ).data,
   });
 }

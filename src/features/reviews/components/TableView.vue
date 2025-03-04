@@ -37,7 +37,7 @@
       <tr
         v-for="row in reviewTable.getRowModel().rows"
         :key="row.id"
-        class="h-20 bg-lowBackground"
+        class="group h-20 bg-lowBackground"
       >
         <td
           v-for="cell in row.getVisibleCells()"

@@ -32,6 +32,12 @@ export interface Club {
   name: string;
 }
 
+export interface ClubInvite {
+  club_id: Int8;
+  expires_at: Timestamp;
+  token: string;
+}
+
 export interface ClubMember {
   club_id: Int8;
   role: string | null;
@@ -135,6 +141,7 @@ export interface ClubInvite {
 
 export interface DB {
   club: Club;
+  club_invite: ClubInvite;
   club_member: ClubMember;
   movie_details: MovieDetails;
   movie_genres: MovieGenres;

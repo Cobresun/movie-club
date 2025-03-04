@@ -9,6 +9,7 @@ import { secured } from "../utils/auth";
 import { badRequest, ok } from "../utils/responses";
 import { Router } from "../utils/router";
 import { ClubRequest } from "../utils/validation";
+import { overviewToExternalData } from "../utils/workDetailsMapper";
 
 const router = new Router<ClubRequest>("/api/club/:clubId<\\d+>/reviews");
 
@@ -63,5 +64,41 @@ router.put(
     return res(ok());
   },
 );
+
+router.get("/:workId/shared", async ({ clubId, params }, res) => {
+  if (!hasValue(params.workId)) {
+    return res(badRequest("No workId provided"));
+  }
+
+  const workId = params.workId;
+  const [reviews, members, workDetails] = await Promise.all([
+    ReviewRepository.getReviewsByWorkId(clubId, workId),
+    UserRepository.getMembersByClubId(clubId),
+    ListRepository.getWorkDetails(workId),
+  ]);
+
+  if (!workDetails) {
+    return res(badRequest("Work not found"));
+  }
+
+  const work = {
+    id: workDetails.id,
+    title: workDetails.title,
+    type: workDetails.type,
+    imageUrl: workDetails.image_url ?? undefined,
+    externalId: workDetails.external_id ?? undefined,
+    externalData: overviewToExternalData(workDetails),
+  };
+
+  return res(
+    ok(
+      JSON.stringify({
+        reviews,
+        members,
+        work,
+      }),
+    ),
+  );
+});
 
 export default router;
