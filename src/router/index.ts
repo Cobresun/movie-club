@@ -33,7 +33,7 @@ const checkClubAccess = async (
   const auth = useAuthStore();
 
   // Wait for auth initialization to complete
-  while (auth.isInitialLoading) {
+  while (auth.isInitialLoading || auth.isLoadingUserClubs) {
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
 
