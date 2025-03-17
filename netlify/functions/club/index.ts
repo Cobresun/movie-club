@@ -7,6 +7,7 @@ import listRouter from "./list";
 import membersRouter from "./members";
 import joinRouter from "./members/join";
 import reviewsRouter from "./reviews";
+import settingsRouter from "./settings";
 import { hasValue } from "../../../lib/checks/checks.js";
 import { BaseClub, ClubPreview } from "../../../lib/types/club";
 import ClubRepository from "../repositories/ClubRepository";
@@ -29,6 +30,7 @@ router.use("/:clubId<\\d+>/reviews", validClubId, reviewsRouter);
 router.use("/:clubId<\\d+>/members", validClubId, membersRouter);
 router.use("/:clubId<\\d+>/awards", validClubId, mapIdToLegacyId, awardsRouter);
 router.use("/:clubId<\\d+>/invite", validClubId, inviteRouter);
+router.use("/:clubId<\\d+>/settings", validClubId, settingsRouter);
 router.get("/:clubId<\\d+>", validClubId, async ({ clubId }, res) => {
   const club = await ClubRepository.getById(clubId);
   const result: ClubPreview = {

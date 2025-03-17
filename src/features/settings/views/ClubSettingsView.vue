@@ -3,6 +3,28 @@
     <page-header page-name="Club Settings" has-back back-route="ClubHome" />
 
     <div class="mx-auto max-w-3xl p-4">
+      <!-- Feature Settings Section -->
+      <div class="mt-8 space-y-4">
+        <h3 class="text-2xl font-semibold">Features</h3>
+        <div class="rounded-lg bg-gray-800 p-6 shadow-sm">
+          <div class="flex items-center justify-between">
+            <div>
+              <h4 class="text-lg font-medium">Blur Scores</h4>
+              <p class="text-sm text-gray-400">
+                Hide other members' scores until you submit your own
+              </p>
+            </div>
+            <v-switch
+              v-model="blurScoresEnabled"
+              color="primary"
+              class="h-[44px] min-w-[44px]"
+              @update:model-value="updateBlurScoresFeature"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- Members Section -->
       <div class="mt-8 space-y-4">
         <h3 class="text-2xl font-semibold">Members</h3>
         <loading-spinner v-if="isLoadingMembers" />
@@ -133,7 +155,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, watch } from "vue";
 import { useToast } from "vue-toastification";
 
 import {
@@ -142,6 +164,8 @@ import {
   useLeaveClub,
   useRemoveMember,
   useInviteToken,
+  useClubSettings,
+  useUpdateClubSettings,
 } from "@/service/useClub";
 import { useAuthStore } from "@/stores/auth";
 
@@ -165,6 +189,42 @@ const { mutate: leaveClubMutation, isLoading: isLeaving } =
   useLeaveClub(clubId);
 const { mutate: removeMemberMutation } = useRemoveMember(clubId);
 const { data: inviteToken } = useInviteToken(clubId);
+const { data: settings, isLoading: isLoadingSettings } =
+  useClubSettings(clubId);
+const { mutate: updateSettings } = useUpdateClubSettings(clubId);
+const blurScoresEnabled = ref(true);
+
+watch(
+  () => settings.value,
+  (newSettings) => {
+    if (newSettings && !isLoadingSettings.value) {
+      blurScoresEnabled.value = newSettings?.features?.blurScores === true;
+    }
+  },
+  { immediate: true },
+);
+
+const updateBlurScoresFeature = () => {
+  updateSettings(
+    {
+      features: {
+        blurScores: blurScoresEnabled.value,
+      },
+    },
+    {
+      onSuccess: () => {
+        toast.success("Settings updated successfully");
+      },
+      onError: () => {
+        toast.error("Failed to update settings");
+        // Revert the switch if the update failed
+        if (settings.value?.features?.blurScores !== undefined) {
+          blurScoresEnabled.value = settings.value.features.blurScores === true;
+        }
+      },
+    },
+  );
+};
 
 const inviteLink = computed(() => {
   const baseUrl = window.location.origin;

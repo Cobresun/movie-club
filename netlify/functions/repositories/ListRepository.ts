@@ -1,5 +1,6 @@
 import { ValueExpression, expressionBuilder } from "kysely";
 
+import SettingsRepository from "./SettingsRepository";
 import { DB, WorkListType } from "../../../lib/types/generated/db";
 import { db } from "../utils/database";
 
@@ -238,6 +239,8 @@ class ListRepository {
       reviews: "Reviews",
       award_nominations: "Award Nominations",
     };
+    // Create default settings
+    await SettingsRepository.createDefaultSettings(clubId);
 
     return await db
       .insertInto("work_list")

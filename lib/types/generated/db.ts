@@ -11,16 +11,23 @@ export enum WorkType {
   movie = "movie",
 }
 
-export type Generated<T> =
-  T extends ColumnType<infer S, infer I, infer U>
-    ? ColumnType<S, I | undefined, U>
-    : ColumnType<T, T | undefined, T>;
+export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
+  ? ColumnType<S, I | undefined, U>
+  : ColumnType<T, T | undefined, T>;
 
-export type Int8 = ColumnType<
-  string,
-  bigint | number | string,
-  bigint | number | string
->;
+export type Int8 = ColumnType<string, bigint | number | string, bigint | number | string>;
+
+export type Json = JsonValue;
+
+export type JsonArray = JsonValue[];
+
+export type JsonObject = {
+  [K in string]?: JsonValue;
+};
+
+export type JsonPrimitive = boolean | number | string | null;
+
+export type JsonValue = JsonArray | JsonObject | JsonPrimitive;
 
 export type Numeric = ColumnType<string, number | string, number | string>;
 
@@ -42,6 +49,12 @@ export interface ClubMember {
   club_id: Int8;
   role: string | null;
   user_id: Int8;
+}
+
+export interface ClubSettings {
+  club_id: Int8;
+  key: string;
+  value: Json;
 }
 
 export interface MovieDetails {
@@ -133,16 +146,11 @@ export interface WorkListItem {
   work_id: Int8;
 }
 
-export interface ClubInvite {
-  token: string;
-  club_id: Generated<Int8>;
-  expires_at: Timestamp;
-}
-
 export interface DB {
   club: Club;
   club_invite: ClubInvite;
   club_member: ClubMember;
+  club_settings: ClubSettings;
   movie_details: MovieDetails;
   movie_genres: MovieGenres;
   movie_production_companies: MovieProductionCompanies;
@@ -153,5 +161,4 @@ export interface DB {
   work: Work;
   work_list: WorkList;
   work_list_item: WorkListItem;
-  club_invite: ClubInvite;
 }

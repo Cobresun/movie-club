@@ -47,6 +47,11 @@
         :review-table="reviewTable"
         :delete-review="deleteReview"
         :members="members"
+        :revealed-movie-ids="revealedMovieIds"
+        :has-rated="hasUserRated"
+        :current-user-id="userId"
+        :blur-scores-enabled="blurScoresEnabled === true"
+        @toggle-reveal="toggleReveal"
       />
     </div>
   </div>
@@ -83,12 +88,21 @@ import AverageImg from "@/assets/images/average.svg";
 import VAvatar from "@/common/components/VAvatar.vue";
 import VToggle from "@/common/components/VToggle.vue";
 import AddReviewPrompt from "@/features/reviews/components/AddReviewPrompt.vue";
-import { useIsInClub, useMembers } from "@/service/useClub";
+import { useIsInClub, useMembers, useClubSettings } from "@/service/useClub";
 import { useDeleteListItem, useList } from "@/service/useList";
+import { useUser } from "@/service/useUser";
 
 const { clubId } = defineProps<{ clubId: string }>();
 
 const isGalleryView = ref(false);
+
+// Load club settings to check if blur scores is enabled
+const { data: settings, isLoading: isLoadingSettings } =
+  useClubSettings(clubId);
+const blurScoresEnabled = computed(
+  () =>
+    settings.value?.features?.blurScores === true || isLoadingSettings.value,
+);
 
 onMounted(() => {
   const savedView = localStorage.getItem("isGalleryView");
@@ -184,6 +198,45 @@ const { mutate: deleteReview } = useDeleteListItem(
 );
 
 const mdicon = resolveComponent("mdicon");
+const { data: currentUser } = useUser();
+const userId = computed(() => currentUser.value?.id);
+
+const revealedMovieIds = ref<Set<string>>(new Set());
+const hasUserRated = computed(() => {
+  if (userId.value === undefined) return () => false;
+
+  return (movieId: string) => {
+    const review = filteredReviews.value?.find(
+      (review) => review.id === movieId,
+    );
+    return Boolean(review?.scores[userId.value ?? ""]?.score !== undefined);
+  };
+});
+
+const toggleReveal = (movieId: string) => {
+  if (revealedMovieIds.value.has(movieId)) {
+    revealedMovieIds.value.delete(movieId);
+  } else {
+    revealedMovieIds.value.add(movieId);
+  }
+  revealedMovieIds.value = new Set(revealedMovieIds.value);
+};
+
+const shouldBlurScore = (rowId: string, columnId: string) => {
+  if (!blurScoresEnabled.value) {
+    return false;
+  }
+
+  if (hasUserRated.value(rowId) || revealedMovieIds.value.has(rowId)) {
+    return false;
+  }
+
+  if (columnId === `member_${userId.value}`) {
+    return false;
+  }
+
+  return columnId.startsWith("member_") || columnId === "score_average";
+};
 
 const toast = useToast();
 
@@ -212,7 +265,7 @@ const columns = computed(() => [
             "div",
             {
               class:
-                "opacity-0 group-hover:opacity-100 transition-opacity duration-100",
+                "opacity-0 group-hover:opacity-100 transition-opacity duration-100 space-x-4",
             },
             [
               h(mdicon, {
@@ -236,7 +289,7 @@ const columns = computed(() => [
         movie: info.row.original.externalData,
       }),
     meta: {
-      class: "font-bold",
+      class: "font-bold align-middle",
     },
   }),
   columnHelper.accessor("createdDate", {
@@ -277,13 +330,26 @@ const columns = computed(() => [
         if (typeof info.meta?.size === "string") {
           size = info.meta.size;
         }
-        return h(ReviewScore, {
-          workId: info.row.original.id,
-          memberId: member.id,
-          score,
-          reviewId: info.row.original.scores[member.id]?.id,
-          size,
-        });
+
+        const shouldBlur = shouldBlurScore(info.row.id, info.column.id);
+
+        return h(
+          "div",
+          {
+            class: shouldBlur ? "cursor-pointer hover:text-xl" : "",
+            onClick: shouldBlur ? () => toggleReveal(info.row.id) : undefined,
+          },
+          [
+            h(ReviewScore, {
+              workId: info.row.original.id,
+              memberId: member.id,
+              score,
+              reviewId: info.row.original.scores[member.id]?.id,
+              size,
+              class: shouldBlur ? "filter blur cursor-pointer" : "",
+            }),
+          ],
+        );
       },
       sortUndefined: "last",
     }),
@@ -310,10 +376,16 @@ const columns = computed(() => [
       if (review === undefined) {
         return "";
       }
+
+      const shouldBlur = shouldBlurScore(info.row.id, info.column.id);
+
       return h(
         "div",
         {
-          class: "font-bold text-lg text-primary",
+          class: shouldBlur
+            ? "font-bold text-lg text-primary filter blur cursor-pointer"
+            : "font-bold text-lg text-primary",
+          onClick: shouldBlur ? () => toggleReveal(info.row.id) : undefined,
         },
         Math.round(review * 100) / 100,
       );
