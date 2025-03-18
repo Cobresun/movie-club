@@ -1,11 +1,7 @@
 <template>
   <div
     class="relative mb-4 w-40 rounded"
-    :class="[
-      highlighted
-        ? 'border-4 border-highlightBackground'
-        : 'border-2 border-gray-200',
-    ]"
+    :class="[highlighted ? 'border-4 border-highlightBackground' : '']"
   >
     <button
       v-if="showDelete"
@@ -21,8 +17,8 @@
       <div class="absolute inset-0 bg-background opacity-50" />
       <loading-spinner />
     </div>
-    <div class="flex h-full flex-col bg-background">
-      <img v-lazy-load :src="moviePosterUrl" />
+    <div class="flex h-full flex-col rounded-lg bg-slate-700">
+      <img v-lazy-load :src="moviePosterUrl" class="rounded-t-lg" />
       <div class="flex h-auto flex-grow flex-col px-2 pb-2">
         <div class="my-2 flex flex-grow items-center justify-center">
           <h3 class="h-min font-semibold" style="height: min-content">
