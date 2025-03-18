@@ -12,9 +12,7 @@
             class="sticky top-0 z-10 whitespace-nowrap bg-secondary p-2 text-left first:rounded-tl-xl last:rounded-tr-xl"
             :class="[
               header.column.columnDef.meta?.class ?? '',
-              header.id === 'title'
-                ? 'shadow-title sticky left-0 z-20 max-w-[130px]'
-                : '',
+              header.id === 'title' ? 'sticky left-0 z-20 max-w-[130px]' : '',
             ]"
           >
             <div class="grid grid-cols-centerHeader items-center md:gap-x-1">
@@ -44,7 +42,7 @@
         <tr
           v-for="row in reviewTable.getRowModel().rows"
           :key="row.id"
-          class="h-20 bg-lowBackground"
+          class="group h-20 bg-lowBackground"
         >
           <td
             v-for="cell in row.getVisibleCells()"
@@ -53,7 +51,7 @@
               'p-2 first:rounded-l-xl last:rounded-r-xl',
               cell.column.columnDef.meta?.class ?? '',
               cell.column.id === 'title'
-                ? 'shadow-title sticky left-0 z-20 max-w-[185px] bg-lowBackground max-md:px-3 max-md:py-1'
+                ? 'sticky left-0 z-20 max-w-[185px] bg-lowBackground max-md:px-3 max-md:py-1'
                 : '',
             ]"
           >
@@ -77,14 +75,3 @@ defineProps<{
   reviewTable: Table<T>;
 }>();
 </script>
-
-<style scoped>
-@media (max-width: 768px) {
-  .group {
-    @apply h-12;
-  }
-  .shadow-title {
-    box-shadow: 5px 0 10px rgba(0, 0, 0, 0.15);
-  }
-}
-</style>
