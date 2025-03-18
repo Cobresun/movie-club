@@ -1,9 +1,9 @@
 <template>
-  <div class="flex transition-all duration-300">
+  <div class="flex">
     <!-- Main content that will shrink -->
     <div
       :class="[
-        'w-full transition-all duration-300',
+        'w-full transition-all delay-200 duration-100 will-change-transform',
         { 'md:pr-[35vw]': isDrawerOpen },
       ]"
       class="md:px-6"
@@ -11,7 +11,7 @@
       <div class="relative mb-4 flex w-min gap-2">
         <Listbox v-model="selectedSort">
           <ListboxButton
-            class="flex items-center whitespace-nowrap rounded-full border border-white px-4 py-1"
+            class="ml-8 flex items-center whitespace-nowrap rounded-full border border-white px-4 py-1"
             ><span>Sort By</span><mdicon name="chevron-down"
           /></ListboxButton>
           <ListboxOptions
@@ -64,7 +64,7 @@
         enter-from-class="opacity-0"
         leave-to-class="opacity-0"
         class="grid w-full justify-items-center pl-5"
-        style="grid-template-columns: repeat(auto-fill, 168px)"
+        style="grid-template-columns: repeat(auto-fill, minmax(168px, 1fr))"
       >
         <MoviePosterCard
           v-for="row in reviewTable.getRowModel().rows"
