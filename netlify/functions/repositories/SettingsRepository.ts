@@ -1,13 +1,19 @@
 import { db } from "../utils/database";
 
-interface ClubSettings {
-  features?: {
-    blurScores?: boolean;
+export interface ClubSettings {
+  features: {
+    blurScores: boolean;
   };
 }
 
+const DEFAULT_SETTINGS: ClubSettings = {
+  features: {
+    blurScores: true,
+  },
+};
+
 class SettingsRepository {
-  async getSettings(clubId: string): Promise<ClubSettings | null> {
+  async getSettings(clubId: string): Promise<ClubSettings> {
     const result = await db
       .selectFrom("club_settings")
       .select("value")
@@ -15,9 +21,17 @@ class SettingsRepository {
       .where("key", "=", "features")
       .executeTakeFirst();
 
-    return result && result.value !== null
-      ? (result.value as ClubSettings)
-      : null;
+    if (!result || result.value === null) {
+      return DEFAULT_SETTINGS;
+    }
+
+    const storedSettings = result.value as Partial<ClubSettings>;
+    return {
+      features: {
+        ...DEFAULT_SETTINGS.features,
+        ...storedSettings.features,
+      },
+    };
   }
 
   async updateSettings(
@@ -27,7 +41,7 @@ class SettingsRepository {
     const existing = await this.getSettings(clubId);
     const merged = {
       features: {
-        ...existing?.features,
+        ...existing.features,
         ...settings.features,
       },
     };
@@ -51,18 +65,12 @@ class SettingsRepository {
   }
 
   async createDefaultSettings(clubId: string): Promise<void> {
-    const defaultSettings: ClubSettings = {
-      features: {
-        blurScores: true,
-      },
-    };
-
     await db
       .insertInto("club_settings")
       .values({
         club_id: clubId,
         key: "features",
-        value: JSON.stringify(defaultSettings),
+        value: JSON.stringify(DEFAULT_SETTINGS),
       })
       .onConflict((eb) => eb.columns(["club_id", "key"]).doNothing())
       .execute();
