@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
+import type { UseQueryReturnType } from "@tanstack/vue-query";
 import axios from "axios";
 import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
@@ -54,9 +55,11 @@ export function useClubId(): string {
 }
 
 export function useIsInClub(clubId: string) {
-  const { data: clubs } = useUserClubs();
+  const { data: clubs, isLoading } = useUserClubs();
   const isUserInClub = computed(() => {
-    return clubs.value?.some((club) => club.clubId === clubId) ?? false;
+    return isLoading.value
+      ? false
+      : clubs.value?.some((club) => club.clubId === clubId) ?? false;
   });
   return isUserInClub;
 }
@@ -142,6 +145,42 @@ export function useInviteToken(clubId: string) {
         `/api/club/${clubId}/invite`,
       );
       return response.data.token;
+    },
+  });
+}
+
+interface ClubSettings {
+  features: {
+    blurScores: boolean;
+  };
+}
+
+export function useClubSettings(
+  clubId: string,
+): UseQueryReturnType<ClubSettings, unknown> {
+  const auth = useAuthStore();
+  return useQuery<ClubSettings>({
+    queryKey: ["club", clubId, "settings"],
+    queryFn: async () => {
+      const response = await auth.request.get<ClubSettings>(
+        `/api/club/${clubId}/settings`,
+      );
+      return response.data;
+    },
+  });
+}
+
+export function useUpdateClubSettings(clubId: string) {
+  const auth = useAuthStore();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (settings: Partial<ClubSettings>) =>
+      auth.request.post(`/api/club/${clubId}/settings`, settings),
+    onSuccess: () => {
+      queryClient
+        .invalidateQueries(["club", clubId, "settings"])
+        .catch(console.error);
     },
   });
 }

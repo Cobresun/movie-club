@@ -66,7 +66,7 @@ export const useAuthStore = defineStore("auth", () => {
     netlifyIdentity.logout()?.catch(console.error);
   };
 
-  const { data: userClubs } = useQuery({
+  const { data: userClubs, isLoading: isLoadingUserClubs } = useQuery({
     queryKey: ["userClubs", user],
     queryFn: async () => {
       const response =
@@ -94,5 +94,6 @@ export const useAuthStore = defineStore("auth", () => {
     isInitialLoading,
     userClubs,
     isClubMember,
+    isLoadingUserClubs,
   };
 });
