@@ -239,8 +239,6 @@ class ListRepository {
       reviews: "Reviews",
       award_nominations: "Award Nominations",
     };
-    // Create default settings
-    await SettingsRepository.createDefaultSettings(clubId);
 
     return await db
       .insertInto("work_list")
