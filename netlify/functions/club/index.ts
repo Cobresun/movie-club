@@ -12,6 +12,7 @@ import { hasValue } from "../../../lib/checks/checks.js";
 import { BaseClub, ClubPreview } from "../../../lib/types/club";
 import ClubRepository from "../repositories/ClubRepository";
 import ListRepository from "../repositories/ListRepository";
+import SettingsRepository from "../repositories/SettingsRepository";
 import UserRepository from "../repositories/UserRepository";
 import WorkRepository from "../repositories/WorkRepository";
 import { loggedIn, secured } from "../utils/auth";
@@ -66,7 +67,9 @@ router.post("/", loggedIn, async ({ event }, res) => {
 
   // Creat WatchList, Backlog, Reviews lists
   await ListRepository.createListsForClub(newClub.id);
-  //return res(badRequest("Failed to create lists for club"));
+
+  // Create default settings
+  await SettingsRepository.createDefaultSettings(newClub.id);
 
   // Create FaunaDB entry (temporary until migration complete)
   try {
