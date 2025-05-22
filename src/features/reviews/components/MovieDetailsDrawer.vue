@@ -3,6 +3,7 @@
     <!-- Movie Details Modal/Drawer -->
     <div
       v-if="movie"
+      ref="drawerRef"
       class="fixed inset-x-0 z-50 transform transition-transform duration-300 ease-in-out md:fixed md:inset-y-0 md:left-auto md:right-0 md:w-[35vw] md:max-w-full"
       :class="{
         'inset-x-0 bottom-0 translate-y-0': isOpen && !isMediumScreen,
@@ -10,6 +11,7 @@
         'md:translate-x-full': !isOpen,
         'md:translate-x-0': isOpen,
       }"
+      @click.stop
     >
       <div
         class="relative max-h-[85vh] overflow-y-auto border-white bg-background p-4 md:h-full md:max-h-full md:max-w-full md:border-l md:border-gray-700 md:shadow-xl"
@@ -157,6 +159,7 @@ import { DateTime } from "luxon";
 import { ref, onMounted, onUnmounted } from "vue";
 import { useToast } from "vue-toastification";
 
+import { isDefined } from "../../../../lib/checks/checks.js";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
 
 const props = defineProps<{
@@ -184,6 +187,14 @@ const getVisibleCells = (row: Row<DetailedReviewListItem>) => {
       return false;
     }
 
+    // Always show current user's column with "+" sign to enter score
+    if (
+      isDefined(props.currentUserId) &&
+      cell.column.id === `member_${props.currentUserId}`
+    ) {
+      return true;
+    }
+
     // Then check if the cell has a value
     const value = cell.getValue();
     return value !== undefined && value !== null && value !== "";
@@ -194,9 +205,6 @@ const getCell = (row: Row<DetailedReviewListItem>, columnId: string) => {
   return row.getVisibleCells().find((cell) => cell.column.id === columnId);
 };
 
-// Menu state
-const isMenuOpen = ref(false);
-
 // Media query for medium screens
 const isMediumScreen = ref(false);
 
@@ -205,25 +213,16 @@ const checkScreenSize = () => {
 };
 
 onMounted(() => {
-  document.addEventListener("click", closeMenuOnClickOutside);
   checkScreenSize();
   window.addEventListener("resize", checkScreenSize);
 });
 
 onUnmounted(() => {
-  document.removeEventListener("click", closeMenuOnClickOutside);
   window.removeEventListener("resize", checkScreenSize);
 });
 
-const closeMenuOnClickOutside = (event: MouseEvent) => {
-  if (isMenuOpen.value && event.target) {
-    isMenuOpen.value = false;
-  }
-};
-
 const close = () => {
   emit("update:isOpen", false);
-  isMenuOpen.value = false;
 };
 
 const formatDate = (dateString: string) => {

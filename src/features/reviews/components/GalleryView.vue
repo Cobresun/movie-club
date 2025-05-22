@@ -1,13 +1,7 @@
 <template>
-  <div class="flex">
+  <div ref="galleryContainerRef" class="flex">
     <!-- Main content that will shrink -->
-    <div
-      :class="[
-        'w-full transition-all delay-200 duration-100 will-change-transform',
-        { 'md:pr-[35vw]': isDrawerOpen },
-      ]"
-      class="md:px-6"
-    >
+    <div :class="['w-full', { 'md:pr-[35vw]': isDrawerOpen }]" class="md:px-6">
       <div class="relative mb-4 flex w-min gap-2">
         <Listbox v-model="selectedSort">
           <ListboxButton
@@ -69,8 +63,10 @@
         <MoviePosterCard
           v-for="row in reviewTable.getRowModel().rows"
           :key="row.id"
+          :data-movie-id="row.id"
           :movie-title="row.renderValue('title')"
           :movie-poster-url="row.renderValue('imageUrl')"
+          :highlighted="selectedMovieId === row.id"
           class="ease transition-all duration-500 md:cursor-pointer"
           @click="openMovieDetails(row)"
         >
@@ -125,7 +121,7 @@ import {
   ListboxOptions,
 } from "@headlessui/vue";
 import { FlexRender, Row, Table } from "@tanstack/vue-table";
-import { computed, ref } from "vue";
+import { computed, ref, onMounted, onUnmounted, nextTick } from "vue";
 
 import MovieDetailsDrawer from "./MovieDetailsDrawer.vue";
 import { isDefined } from "../../../../lib/checks/checks.js";
@@ -156,6 +152,14 @@ const getVisibleCells = (row: Row<DetailedReviewListItem>) => {
     // First filter out custom rendered columns
     if (CUSTOM_RENDERED_COLUMNS.includes(cell.column.id)) {
       return false;
+    }
+
+    // Always show current user's column with "+" sign to enter
+    if (
+      isDefined(props.currentUserId) &&
+      cell.column.id === `member_${props.currentUserId}`
+    ) {
+      return true;
     }
 
     // Check if the cell has a value to not display empty chips
@@ -205,12 +209,59 @@ const selectedSort = computed<string | undefined>({
   },
 });
 
-const selectedMovie = ref<Row<DetailedReviewListItem> | null>(null);
+const selectedMovieId = ref<string | null>(null);
 const isDrawerOpen = ref(false);
 
-const openMovieDetails = (row: Row<DetailedReviewListItem>) => {
-  selectedMovie.value = row;
-  isDrawerOpen.value = true;
+const selectedMovie = computed(() => {
+  if (selectedMovieId.value === null) return null;
+  return (
+    props.reviewTable
+      .getRowModel()
+      .rows.find((row) => row.id === selectedMovieId.value) || null
+  );
+});
+
+const openMovieDetails = async (row: Row<DetailedReviewListItem>) => {
+  if (selectedMovieId.value !== row.id) {
+    selectedMovieId.value = row.id;
+    isDrawerOpen.value = true;
+
+    await nextTick();
+    // Find the clicked movie element and scroll to center it on page
+    const clickedElement = document.querySelector(
+      `[data-movie-id="${row.id}"]`,
+    );
+
+    if (clickedElement) {
+      clickedElement.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+        inline: "center",
+      });
+    }
+  } else {
+    isDrawerOpen.value = false;
+    selectedMovieId.value = null;
+  }
+};
+
+const galleryContainerRef = ref<HTMLElement | null>(null);
+
+onMounted(() => {
+  document.addEventListener("click", handleClickOutside);
+});
+
+onUnmounted(() => {
+  document.removeEventListener("click", handleClickOutside);
+});
+
+const handleClickOutside = (event: MouseEvent) => {
+  if (isDrawerOpen.value && galleryContainerRef.value && event.target) {
+    if (!galleryContainerRef.value.contains(event.target as Node)) {
+      isDrawerOpen.value = false;
+      selectedMovieId.value = null;
+    }
+  }
 };
 
 const toggleMovieReveal = (movieId: string) => {
