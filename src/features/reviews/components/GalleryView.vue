@@ -121,7 +121,7 @@ import {
   ListboxOptions,
 } from "@headlessui/vue";
 import { FlexRender, Row, Table } from "@tanstack/vue-table";
-import { computed, ref, onMounted, onUnmounted, nextTick } from "vue";
+import { computed, ref, onMounted, onUnmounted, nextTick, watch } from "vue";
 
 import MovieDetailsDrawer from "./MovieDetailsDrawer.vue";
 import { isDefined } from "../../../../lib/checks/checks.js";
@@ -267,4 +267,26 @@ const handleClickOutside = (event: MouseEvent) => {
 const toggleMovieReveal = (movieId: string) => {
   emit("toggle-reveal", movieId);
 };
+
+watch(isDrawerOpen, async (newValue, oldValue) => {
+  // When drawer closes (transitions from true to false)
+  if (
+    oldValue === true &&
+    newValue === false &&
+    selectedMovieId.value !== null
+  ) {
+    await nextTick();
+    const selectedElement = document.querySelector(
+      `[data-movie-id="${selectedMovieId.value}"]`,
+    );
+    if (selectedElement) {
+      selectedElement.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+        inline: "center",
+      });
+    }
+    selectedMovieId.value = null;
+  }
+});
 </script>

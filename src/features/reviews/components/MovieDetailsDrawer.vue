@@ -40,7 +40,7 @@
             "
           >
             <img
-              :src="movie.renderValue('imageUrl')"
+              :src="`https://image.tmdb.org/t/p/w500/${movie.original.externalData?.poster_path}`"
               :class="
                 isMediumScreen ? 'mb-8 w-1/2 rounded-lg' : 'w-1/3 rounded-lg'
               "
