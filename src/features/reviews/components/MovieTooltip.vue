@@ -1,9 +1,10 @@
 <template>
-  <div class="group cursor-help font-bold hover:relative">
-    {{ title }}
+  <div
+    class="group/tooltip !flex cursor-help items-center justify-center font-bold hover:relative"
+  >
     <div
       v-if="movie"
-      class="absolute left-0 top-full z-50 mx-auto hidden w-[calc(100vw)] rounded-lg p-4 text-base text-slate-200 shadow-lg backdrop-blur-lg group-hover:block md:w-96"
+      class="absolute left-full top-0 z-50 mx-auto hidden w-[calc(100vw)] rounded-lg p-4 text-base text-slate-200 shadow-lg backdrop-blur-lg max-md:hidden md:w-96 md:group-hover/tooltip:block"
     >
       <div class="mb-4 flex gap-4">
         <img
@@ -17,7 +18,7 @@
           </h3>
           <p
             v-if="movie.tagline"
-            class="text-center text-sm italic text-slate-400"
+            class="text-center text-xs italic text-slate-400"
           >
             {{ movie.tagline }}
           </p>
@@ -52,6 +53,7 @@
         </div>
       </div>
     </div>
+    <div class="max-md:line-clamp-2 max-md:text-sm">{{ title }}</div>
   </div>
 </template>
 
