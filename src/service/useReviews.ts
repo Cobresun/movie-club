@@ -13,12 +13,21 @@ export function useReviewWork(clubId: string) {
   const { data: user } = useUser();
 
   return useMutation({
-    mutationFn: ({ workId, score }: { workId: string; score: number }) =>
+    mutationFn: ({
+      workId,
+      score,
+      emoji,
+    }: {
+      workId: string;
+      score: number;
+      emoji?: string;
+    }) =>
       auth.request.post(`/api/club/${clubId}/reviews`, {
         score,
         workId,
+        emoji,
       }),
-    onMutate: ({ workId, score }) => {
+    onMutate: ({ workId, score, emoji }) => {
       if (!workId) return;
       queryClient.setQueryData<DetailedReviewListItem[]>(
         ["list", clubId, WorkListType.reviews],
@@ -35,6 +44,7 @@ export function useReviewWork(clubId: string) {
                       id: "temp",
                       created_date: new Date().toISOString(),
                       score,
+                      emoji,
                     },
                   },
                 }
@@ -82,6 +92,73 @@ export function useUpdateReviewScore(clubId: string) {
           );
         },
       );
+    },
+    onSettled: () =>
+      queryClient.invalidateQueries({
+        queryKey: ["list", clubId, WorkListType.reviews],
+      }),
+  });
+}
+
+export function useUpdateReviewEmoji(clubId: string) {
+  const auth = useAuthStore();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      reviewId,
+      emoji,
+    }: {
+      reviewId: string;
+      emoji: string | null;
+    }) =>
+      auth.request.put(`/api/club/${clubId}/reviews/${reviewId}/emoji`, {
+        emoji,
+      }),
+    onMutate: async ({ reviewId, emoji }) => {
+      if (!reviewId) return;
+
+      await queryClient.cancelQueries({
+        queryKey: ["list", clubId, WorkListType.reviews],
+      });
+
+      const previousReviews = queryClient.getQueryData<
+        DetailedReviewListItem[]
+      >(["list", clubId, WorkListType.reviews]);
+
+      queryClient.setQueryData<DetailedReviewListItem[]>(
+        ["list", clubId, WorkListType.reviews],
+        (currentReviews) => {
+          if (!currentReviews) return currentReviews;
+          return currentReviews.map((review) => {
+            const userId = Object.keys(review.scores).find(
+              (key) => review.scores[key].id === reviewId,
+            );
+
+            if (userId) {
+              return {
+                ...review,
+                scores: {
+                  ...review.scores,
+                  [userId]: {
+                    ...review.scores[userId],
+                    emoji,
+                  },
+                },
+              };
+            }
+            return review;
+          });
+        },
+      );
+      return { previousReviews };
+    },
+    onError: (err, newTodo, context) => {
+      if (context?.previousReviews) {
+        queryClient.setQueryData(
+          ["list", clubId, WorkListType.reviews],
+          context.previousReviews,
+        );
+      }
     },
     onSettled: () =>
       queryClient.invalidateQueries({
