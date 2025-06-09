@@ -1,6 +1,7 @@
 import type { ColumnType } from "kysely";
 
 export enum WorkListType {
+  award_category = "award_category",
   award_nominations = "award_nominations",
   backlog = "backlog",
   reviews = "reviews",

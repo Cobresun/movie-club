@@ -234,6 +234,7 @@ class ListRepository {
 
   async createListsForClub(clubId: string) {
     const defaultTitles: Record<WorkListType, string> = {
+      award_category: "Award Category",
       backlog: "Backlog",
       watchlist: "Watch List",
       reviews: "Reviews",
