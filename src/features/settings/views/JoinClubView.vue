@@ -71,11 +71,6 @@ watchEffect(() => {
 });
 
 const login = () => {
-  router
-    .push({
-      name: "Login",
-      query: { redirect: route.fullPath },
-    })
-    .catch(console.error);
+  authStore.login();
 };
 </script>
