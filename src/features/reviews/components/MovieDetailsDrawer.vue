@@ -21,7 +21,7 @@
       <!-- Drawer handle area (mobile only) - Fixed at top -->
       <div
         v-if="!isMediumScreen"
-        class="relative flex h-6 w-full cursor-pointer items-center justify-center rounded-t-2xl bg-background"
+        class="relative flex h-8 w-full cursor-pointer items-center justify-center rounded-t-2xl bg-background"
         @touchstart="handleTouchStart"
         @touchmove="handleTouchMove"
         @touchend="handleTouchEnd"
@@ -30,8 +30,11 @@
       </div>
 
       <div
-        class="relative max-h-[85vh] overflow-y-auto border-white bg-background p-4 md:h-full md:max-h-full md:max-w-full md:border-l md:border-gray-700 md:shadow-xl"
-        :class="{ 'rounded-t-2xl': isMediumScreen, 'pt-2': !isMediumScreen }"
+        class="relative max-h-[85vh] overflow-y-auto border-white bg-background px-4 md:h-full md:max-h-full md:max-w-full md:border-l md:border-gray-700 md:shadow-xl"
+        :class="{
+          'rounded-t-2xl': isMediumScreen,
+          'pt-8': isMediumScreen,
+        }"
         @touchstart.stop
         @touchmove.stop
         @touchend.stop
@@ -45,7 +48,7 @@
           <mdicon name="close" />
         </button>
 
-        <div class="mt-4 flex-grow pt-2">
+        <div class="flex-grow">
           <!-- Movie details -->
           <div
             :class="
