@@ -1,7 +1,9 @@
 <template>
   <div
-    class="relative mb-4 w-40 rounded"
-    :class="[highlighted ? 'border-4 border-highlightBackground' : '']"
+    class="relative mb-4 w-40 rounded-lg"
+    :class="[
+      highlighted ? 'outline outline-4 outline-highlightBackground' : '',
+    ]"
   >
     <button
       v-if="showDelete"
