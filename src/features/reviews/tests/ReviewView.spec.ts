@@ -133,7 +133,7 @@ describe("ReviewView", () => {
     expect(
       screen.queryByRole("textbox", { name: "Score" }),
     ).not.toBeInTheDocument();
-    expect(within(row).getByRole("cell", { name: "10" })).toBeInTheDocument();
+    expect(within(row).getByRole("cell", { name: "10 +" })).toBeInTheDocument();
     expect(within(row).getByRole("cell", { name: "9" })).toBeInTheDocument();
   });
 });
