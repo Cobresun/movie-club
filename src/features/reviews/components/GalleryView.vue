@@ -108,6 +108,7 @@
       :has-rated="hasRated"
       :current-user-id="currentUserId"
       :blur-scores-enabled="blurScoresEnabled"
+      :should-blur-score="props.shouldBlurEmoji"
       @toggle-reveal="toggleMovieReveal"
     />
   </div>
@@ -138,6 +139,7 @@ const props = defineProps<{
   hasRated: (movieId: string) => boolean;
   currentUserId?: string;
   blurScoresEnabled: boolean;
+  shouldBlurEmoji: (rowId: string, columnId: string) => boolean;
 }>();
 
 const emit = defineEmits<{

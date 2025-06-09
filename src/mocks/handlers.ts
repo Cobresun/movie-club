@@ -20,6 +20,9 @@ export const handlers = [
   rest.get("/api/club/:id/members", (req, res, ctx) => {
     return res(ctx.status(200), ctx.json(members));
   }),
+  rest.get("/api/club/:id/settings", (req, res, ctx) => {
+    return res(ctx.status(200), ctx.json({ features: { blurScores: false } }));
+  }),
   rest.get("/api/club/:id/list/reviews", (req, res, ctx) => {
     return res(ctx.status(200), ctx.json(reviews));
   }),
@@ -27,6 +30,9 @@ export const handlers = [
     return res(ctx.status(200));
   }),
   rest.put("/api/club/:id/reviews/:reviewId", (req, res, ctx) => {
+    return res(ctx.status(200));
+  }),
+  rest.put("/api/club/:id/reviews/:reviewId/emoji", (req, res, ctx) => {
     return res(ctx.status(200));
   }),
   rest.get("/api/club/:id/list/watchlist", (req, res, ctx) => {

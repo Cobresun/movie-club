@@ -126,6 +126,50 @@
             </div>
           </div>
 
+          <!-- Emoji Reactions -->
+          <div v-if="currentUserReview" class="mt-6">
+            <h3 class="text-lg font-semibold text-white">Your Reaction</h3>
+            <div class="mt-2 flex items-center justify-center gap-2">
+              <button
+                v-for="emoji in EMOJI_OPTIONS"
+                :key="emoji"
+                class="rounded-full p-2 text-2xl transition hover:bg-gray-700"
+                :class="{
+                  'bg-primary/50': currentUserReview?.emoji === emoji,
+                }"
+                @click="
+                  currentUserReview?.emoji === emoji
+                    ? updateEmoji(null)
+                    : updateEmoji(emoji)
+                "
+              >
+                {{ emoji }}
+              </button>
+              <div ref="emojiPickerContainerRef" class="relative" @click.stop>
+                <button
+                  v-if="!isEmojiPickerOpen"
+                  class="rounded-full p-2 transition hover:bg-gray-700"
+                  @click="isEmojiPickerOpen = true"
+                >
+                  <mdicon name="plus-circle-outline" />
+                </button>
+                <div
+                  v-else
+                  class="absolute bottom-full right-0 mb-2 rounded-lg border border-gray-600 bg-background shadow-xl"
+                >
+                  <EmojiPicker
+                    :native="true"
+                    :hide-group-names="false"
+                    :hide-search="false"
+                    :disable-skin-tones="true"
+                    theme="dark"
+                    @select="onEmojiSelect"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- Movie details if available -->
           <div v-if="movie.original.externalData" class="mt-6">
             <p
@@ -172,11 +216,16 @@
 <script setup lang="ts">
 import { FlexRender, Row, Table } from "@tanstack/vue-table";
 import { DateTime } from "luxon";
-import { ref, onMounted, onUnmounted, watch } from "vue";
+import { ref, onMounted, onUnmounted, watch, computed } from "vue";
 import { useToast } from "vue-toastification";
+import EmojiPicker from "vue3-emoji-picker";
+import "vue3-emoji-picker/css";
 
 import { isDefined } from "../../../../lib/checks/checks.js";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
+
+import { useClubId } from "@/service/useClub";
+import { useUpdateReviewEmoji } from "@/service/useReviews";
 
 const props = defineProps<{
   movie: Row<DetailedReviewListItem> | null;
@@ -187,12 +236,55 @@ const props = defineProps<{
   hasRated: (movieId: string) => boolean;
   currentUserId?: string;
   blurScoresEnabled: boolean;
+  shouldBlurScore: (rowId: string, columnId: string) => boolean;
 }>();
 
 const emit = defineEmits<{
   (e: "update:isOpen", value: boolean): void;
   (e: "toggle-reveal", movieId: string): void;
 }>();
+
+const EMOJI_OPTIONS = computed(() => {
+  const baseEmojis = ["👍", "❤️", "😂", "🤔", "👎"];
+  const currentEmoji = currentUserReview.value?.emoji;
+
+  // If there's a current custom emoji, add it to options so it can be unselected
+  if (isDefined(currentEmoji) && !baseEmojis.includes(currentEmoji)) {
+    return [...baseEmojis, currentEmoji];
+  }
+
+  return baseEmojis;
+});
+
+const clubId = useClubId();
+const { mutate: updateReviewEmoji } = useUpdateReviewEmoji(clubId);
+
+const isEmojiPickerOpen = ref(false);
+const emojiPickerContainerRef = ref<HTMLElement | null>(null);
+
+const currentUserReview = computed(() => {
+  if (!props.movie || !isDefined(props.currentUserId)) return null;
+  const userScore = props.movie.original.scores[props.currentUserId];
+  if (!isDefined(userScore)) return null;
+
+  return {
+    id: userScore.id,
+    emoji: userScore.emoji ?? null,
+  };
+});
+
+const updateEmoji = (emoji: string | null) => {
+  if (!currentUserReview.value) return;
+  updateReviewEmoji({
+    reviewId: currentUserReview.value.id,
+    emoji,
+  });
+};
+
+const onEmojiSelect = (emoji: { i: string }) => {
+  updateEmoji(emoji.i);
+  isEmojiPickerOpen.value = false;
+};
 
 const CUSTOM_RENDERED_COLUMNS = ["title", "imageUrl", "createdDate"];
 
@@ -228,13 +320,25 @@ const checkScreenSize = () => {
   isMediumScreen.value = window.matchMedia("(min-width: 768px)").matches;
 };
 
+const handleClickOutsideEmojiPicker = (event: MouseEvent) => {
+  if (
+    isEmojiPickerOpen.value &&
+    emojiPickerContainerRef.value &&
+    !emojiPickerContainerRef.value.contains(event.target as Node)
+  ) {
+    isEmojiPickerOpen.value = false;
+  }
+};
+
 onMounted(() => {
   checkScreenSize();
   window.addEventListener("resize", checkScreenSize);
+  document.addEventListener("click", handleClickOutsideEmojiPicker);
 });
 
 onUnmounted(() => {
   window.removeEventListener("resize", checkScreenSize);
+  document.removeEventListener("click", handleClickOutsideEmojiPicker);
 });
 
 // Reset drag offset when drawer state changes
@@ -276,20 +380,7 @@ const toggleMovieReveal = (movieId: string) => {
 };
 
 const shouldBlurScore = (rowId: string, columnId: string) => {
-  // If blur scores setting is disabled in club settings, don't blur anything
-  if (!props.blurScoresEnabled) {
-    return false;
-  }
-
-  if (props.hasRated(rowId) || props.revealedMovieIds.has(rowId)) {
-    return false;
-  }
-
-  if (columnId === `member_${props.currentUserId}`) {
-    return false;
-  }
-
-  return columnId.startsWith("member_") || columnId === "score_average";
+  return props.shouldBlurScore(rowId, columnId);
 };
 
 // Touch handling for drag-to-close

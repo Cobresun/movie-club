@@ -92,6 +92,7 @@ async function getReviewList(clubId: string): Promise<ReviewListItem[]> {
               id: review.review_id,
               created_date: review.time_added.toISOString(),
               score: parseFloat(review.score),
+              emoji: review.emoji,
             },
           };
         } else {

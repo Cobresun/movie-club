@@ -16,6 +16,7 @@ const router = new Router<ClubRequest>("/api/club/:clubId<\\d+>/reviews");
 const addReviewSchema = z.object({
   score: z.number().min(0).max(10),
   workId: z.string(),
+  emoji: z.string().optional(),
 });
 
 router.post("/", secured, async ({ clubId, email, event }, res) => {
@@ -23,7 +24,7 @@ router.post("/", secured, async ({ clubId, email, event }, res) => {
   const body = addReviewSchema.safeParse(JSON.parse(event.body));
   if (!body.success) return res(badRequest("Invalid body"));
 
-  const { score, workId } = body.data;
+  const { score, workId, emoji } = body.data;
 
   const isItemInList = await ListRepository.isItemInList(
     clubId,
@@ -34,12 +35,16 @@ router.post("/", secured, async ({ clubId, email, event }, res) => {
     return res(badRequest("This movie does not exist in the list"));
   }
   const user = await UserRepository.getByEmail(email);
-  await ReviewRepository.insertReview(clubId, workId, user.id, score);
+  await ReviewRepository.insertReview(clubId, workId, user.id, score, emoji);
   return res(ok());
 });
 
 const updateReviewSchema = z.object({
   score: z.number().min(0).max(10),
+});
+
+const updateEmojiSchema = z.object({
+  emoji: z.string().nullable(),
 });
 
 router.put(
@@ -61,6 +66,29 @@ router.put(
       return res(badRequest("You are not allowed to edit this review"));
     }
     await ReviewRepository.updateScore(reviewId, score);
+    return res(ok());
+  },
+);
+
+router.put(
+  `/:reviewId/emoji`,
+  secured,
+  async ({ clubId, email, params, event }, res) => {
+    if (!hasValue(params.reviewId)) {
+      return res(badRequest("No reviewId provided"));
+    }
+    if (!hasValue(event.body)) return res(badRequest("No body provided"));
+    const body = updateEmojiSchema.safeParse(JSON.parse(event.body));
+    if (!body.success) return res(badRequest("Invalid body"));
+
+    const { emoji } = body.data;
+    const reviewId = params.reviewId;
+    const user = await UserRepository.getByEmail(email);
+    const review = await ReviewRepository.getById(reviewId, clubId);
+    if (review.user_id !== user.id) {
+      return res(badRequest("You are not allowed to edit this review"));
+    }
+    await ReviewRepository.updateEmoji(reviewId, emoji);
     return res(ok());
   },
 );

@@ -15,6 +15,15 @@ vi.mock("vue-router", () => ({
   })),
 }));
 
+// Mock vue3-emoji-picker to avoid IndexedDB issues in tests
+vi.mock("vue3-emoji-picker", () => ({
+  default: {
+    name: "EmojiPicker",
+    template: "<div data-testid='emoji-picker-mock'>Emoji Picker Mock</div>",
+    emits: ["select"],
+  },
+}));
+
 Object.defineProperty(window, "matchMedia", {
   writable: true,
   value: vi.fn().mockImplementation((query: string) => ({
