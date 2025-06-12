@@ -16,7 +16,6 @@
           ? `translateY(${!isOpen ? '100%' : Math.max(0, dragOffset) + 'px'})`
           : undefined,
       }"
-      @click.stop
     >
       <!-- Drawer handle area (mobile only) - Fixed at top -->
       <div
@@ -30,7 +29,7 @@
       </div>
 
       <div
-        class="relative max-h-[85vh] overflow-y-auto border-white bg-background px-4 md:h-full md:max-h-full md:max-w-full md:border-l md:border-gray-700 md:shadow-xl"
+        class="relative max-h-[85vh] overflow-y-auto overscroll-contain border-white bg-background px-4 md:h-full md:max-h-full md:max-w-full md:border-l md:border-gray-700 md:shadow-xl"
         :class="{
           'rounded-t-2xl': isMediumScreen,
           'pt-8': isMediumScreen,
@@ -104,7 +103,7 @@
             <div
               v-for="cell in getVisibleCells(movie)"
               :key="cell.id"
-              class="flex cursor-pointer items-center rounded-xl bg-lowBackground p-2"
+              class="group flex cursor-pointer items-center rounded-xl bg-lowBackground p-2 transition-colors hover:bg-lowBackground/80"
               @click="
                 shouldBlurScore(movie.id, cell.column.id) &&
                   toggleMovieReveal(movie.id)
@@ -182,7 +181,7 @@
         </div>
 
         <!-- Action buttons -->
-        <div class="mt-6 mt-auto flex w-full gap-3">
+        <div class="my-6 mt-auto flex w-full gap-3">
           <button
             class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-red-500/20 py-3 text-red-500"
             @click="

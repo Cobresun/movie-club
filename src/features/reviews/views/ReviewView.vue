@@ -502,7 +502,7 @@ const columns = computed(() => [
                       "button",
                       {
                         class:
-                          "absolute -right-5 -top-2 hidden group-hover:flex h-4 w-4 items-center justify-center rounded-full bg-primary text-xs text-white hover:bg-primary/80 transition-colors",
+                          "absolute -right-5 -top-2 hidden group-hover:flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs text-white hover:bg-primary/80 transition-all duration-200 delay-75 hover:delay-0",
                         onClick: (e: Event) => {
                           e.stopPropagation();
                           openEmojiPicker(
