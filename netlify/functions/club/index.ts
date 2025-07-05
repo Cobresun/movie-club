@@ -17,13 +17,9 @@ import UserRepository from "../repositories/UserRepository";
 import WorkRepository from "../repositories/WorkRepository";
 import { loggedIn, secured } from "../utils/auth";
 import { db } from "../utils/database";
-import { getFaunaClient } from "../utils/fauna";
 import { ok, badRequest } from "../utils/responses";
 import { Router } from "../utils/router";
-import { Document } from "../utils/types";
 import { mapIdToLegacyId, validClubId } from "../utils/validation";
-
-const { faunaClient, q } = getFaunaClient();
 
 const router = new Router("/api/club");
 router.use("/:clubId<\\d+>/list", validClubId, listRouter);
@@ -70,21 +66,6 @@ router.post("/", loggedIn, async ({ event }, res) => {
 
   // Create default settings
   await SettingsRepository.createDefaultSettings(newClub.id);
-
-  // Create FaunaDB entry (temporary until migration complete)
-  try {
-    await faunaClient.query<Document<BaseClub>>(
-      q.Create(q.Collection("clubs"), {
-        data: {
-          clubId: legacyClubId,
-          clubName: name,
-          members: members,
-        },
-      }),
-    );
-  } catch (error) {
-    console.log(`Failed to create club in FaunaDB: ${String(error)}`);
-  }
 
   // Create club_member entries for members
   let hasErrors = false;
