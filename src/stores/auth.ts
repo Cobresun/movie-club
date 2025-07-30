@@ -67,7 +67,7 @@ export const useAuthStore = defineStore("auth", () => {
   };
 
   const { data: userClubs, isLoading: isLoadingUserClubs } = useQuery({
-    queryKey: ["userClubs", user],
+    queryKey: ["user", "clubs"],
     queryFn: async () => {
       const response =
         await request.value.get<ClubPreview[]>("/api/member/clubs");
