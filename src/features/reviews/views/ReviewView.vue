@@ -15,37 +15,26 @@
     </page-header>
     <loading-spinner v-if="loading" />
     <div v-else>
-      <div
-        class="flex items-center justify-center"
-        :class="isGalleryView ? 'mb-4' : 'mb-0'"
+      <!-- Search Filter Bar -->
+      <search-filter-bar
+        :data="reviews ?? []"
+        search-placeholder="Search reviews"
+        :class-name="isGalleryView ? 'mb-4' : 'mb-0'"
+        @update:filtered-data="handleFilteredData"
+        @update:search-query="handleSearchQuery"
       >
-        <div class="relative">
-          <mdicon
-            name="magnify"
-            class="absolute left-8 top-1/2 -translate-y-1/2 transform text-slate-200"
-          />
-          <input
-            ref="searchInput"
-            v-model="searchTerm"
-            class="w-11/12 rounded-md border-2 border-slate-600 bg-background p-2 pl-12 text-base text-white outline-none focus:border-primary"
-            placeholder="Search"
-            @focusin="searchInputFocusIn"
-            @focusout="searchInputFocusOut"
-          />
-          <div
-            ref="searchInputSlash"
-            class="absolute right-8 top-1/2 -translate-y-1/2 transform rounded-md border-2 border-slate-600 px-2 py-1"
+        <template #action-button>
+          <v-btn
+            aria-label="Add review"
+            title="Add review"
+            class="flex h-11 w-11 items-center justify-center whitespace-nowrap"
+            @click="openPrompt()"
           >
-            <p name="slash" class="text-xs text-slate-200">/</p>
-          </div>
-        </div>
-        <v-btn
-          class="ml-2 flex h-11 w-11 items-center justify-center whitespace-nowrap"
-          @click="openPrompt()"
-        >
-          <mdicon name="plus" />
-        </v-btn>
-      </div>
+            <mdicon name="plus" />
+          </v-btn>
+        </template>
+      </search-filter-bar>
+
       <div v-if="showEmptyState">
         <EmptyState
           :title="hasSearchTerm ? 'No Movies Found' : 'No Reviews Yet'"
@@ -84,20 +73,12 @@ import {
   useVueTable,
 } from "@tanstack/vue-table";
 import { DateTime } from "luxon";
-import {
-  computed,
-  ref,
-  onMounted,
-  onUnmounted,
-  h,
-  resolveComponent,
-  watch,
-} from "vue";
+import { computed, ref, onMounted, h, resolveComponent, watch } from "vue";
+import { useToast } from "vue-toastification";
 
 import { hasValue, isTrue } from "../../../../lib/checks/checks.js";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
 import { useShare } from "../../../common/composables/useShare";
-import { filterMovies } from "../../../common/searchMovies";
 import GalleryView from "../components/GalleryView.vue";
 import MovieTooltip from "../components/MovieTooltip.vue";
 import ReviewScore from "../components/ReviewScore.vue";
@@ -106,6 +87,7 @@ import TableView from "../components/TableView.vue";
 import AverageImg from "@/assets/images/average.svg";
 import DeleteConfirmationModal from "@/common/components/DeleteConfirmationModal.vue";
 import EmptyState from "@/common/components/EmptyState.vue";
+import SearchFilterBar from "@/common/components/SearchFilterBar.vue";
 import VAvatar from "@/common/components/VAvatar.vue";
 import VToggle from "@/common/components/VToggle.vue";
 import AddReviewPrompt from "@/features/reviews/components/AddReviewPrompt.vue";
@@ -169,44 +151,21 @@ const confirmDelete = () => {
   }
 };
 
-const searchTerm = ref("");
-const filteredReviews = computed<DetailedReviewListItem[]>(() => {
-  return filterMovies(reviews.value ?? [], searchTerm.value);
-});
+// Filtered reviews from SearchFilterBar
+const filteredReviews = ref<DetailedReviewListItem[]>([]);
+const searchQuery = ref("");
 
-const hasSearchTerm = computed(() => searchTerm.value.trim().length > 0);
+const handleFilteredData = (data: DetailedReviewListItem[]) => {
+  filteredReviews.value = data;
+};
+const handleSearchQuery = (query: string) => {
+  searchQuery.value = query;
+};
+
+const hasSearchTerm = computed(() => searchQuery.value.trim().length > 0);
 const showEmptyState = computed(
   () => !loading.value && filteredReviews.value.length === 0,
 );
-
-const searchInput = ref<HTMLInputElement | null>(null);
-const searchInputSlash = ref<HTMLParagraphElement | null>(null);
-
-const onKeyPress = (e: KeyboardEvent) => {
-  if (e.key === "/") {
-    if (searchInput.value === document.activeElement) {
-      return;
-    }
-    e.preventDefault();
-    searchInput.value?.focus();
-  }
-};
-
-onMounted(() => {
-  window.addEventListener("keypress", onKeyPress);
-});
-
-onUnmounted(() => {
-  window.removeEventListener("keypress", onKeyPress);
-});
-
-const searchInputFocusIn = () => {
-  searchInputSlash.value?.setAttribute("hidden", "true");
-};
-
-const searchInputFocusOut = () => {
-  searchInputSlash.value?.removeAttribute("hidden");
-};
 
 const columnHelper = createColumnHelper<DetailedReviewListItem>();
 
