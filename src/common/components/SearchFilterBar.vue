@@ -6,8 +6,6 @@
   >
     <!-- Search + Filters Row -->
     <div class="flex w-full items-center justify-center gap-2">
-      <!-- Filter toggle removed: pills are shown below the search input -->
-
       <!-- Main search/value input -->
       <div class="relative order-2 w-[min(720px,90%)]">
         <mdicon
@@ -192,12 +190,6 @@ const FILTER_OPTIONS = [
     type: "number" as const,
     placeholder: "Enter minutes",
   },
-  {
-    key: "original_language",
-    label: "Original Language",
-    type: "enum" as const,
-    placeholder: "Select a language code",
-  },
 ];
 
 type FilterOption = (typeof FILTER_OPTIONS)[number];
@@ -214,20 +206,6 @@ const genreCounts = computed(() => {
   return Array.from(counts.entries()).sort((a, b) => b[1] - a[1]); // Sort by frequency (descending)
 });
 
-const languageCounts = computed(() => {
-  const counts = new Map<string, number>();
-  props.data.forEach((item) => {
-    const code = item.externalData?.original_language;
-    if (code !== null && code !== undefined && code.trim().length > 0) {
-      const currentCount = counts.get(code);
-      counts.set(code, currentCount !== undefined ? currentCount + 1 : 1);
-    }
-  });
-  return Array.from(counts.entries()).sort((a, b) => b[1] - a[1]); // Sort by frequency (descending)
-});
-
-// removed production country suggestions since the filter was removed
-
 const companyCounts = computed(() => {
   const counts = new Map<string, number>();
   props.data.forEach((item) =>
@@ -241,9 +219,6 @@ const companyCounts = computed(() => {
 
 const computedValueSuggestions = computed(() => ({
   genre: genreCounts.value.map(([genre, count]) => `${genre} (${count})`),
-  original_language: languageCounts.value.map(
-    ([language, count]) => `${language} (${count})`,
-  ),
   company: companyCounts.value.map(
     ([company, count]) => `${company} (${count})`,
   ),
