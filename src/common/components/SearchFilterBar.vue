@@ -2,49 +2,7 @@
   <div class="flex flex-col items-center justify-center" :class="className">
     <!-- Search + Filters Row -->
     <div class="flex w-full items-center justify-center gap-2">
-      <!-- Filter toggle and inline panel -->
-      <div class="relative order-1 flex items-center gap-2">
-        <v-btn
-          class="flex h-11 items-center justify-center whitespace-nowrap"
-          title="Filters"
-          @click="toggleFilterMode"
-        >
-          <mdicon :name="filterMode ? 'filter-check' : 'filter-variant'" />
-        </v-btn>
-
-        <!-- Filters label / dropdown -->
-        <div v-if="filterMode" class="relative">
-          <div
-            class="flex cursor-pointer items-center gap-2 rounded-full border border-white px-3 py-1 text-sm"
-            @click="showFilterOptions = !showFilterOptions"
-          >
-            <span class="font-semibold">Filters</span>
-            <mdicon :name="showFilterOptions ? 'chevron-up' : 'chevron-down'" />
-          </div>
-          <!-- Options popover -->
-          <div
-            v-if="showFilterOptions"
-            class="absolute z-20 mt-2 w-64 rounded-md border border-white bg-background p-2 shadow-xl"
-          >
-            <input
-              v-model="filterOptionSearch"
-              type="text"
-              placeholder="Search filters"
-              class="mb-2 w-full rounded-md border-2 border-slate-600 bg-lowBackground p-2 text-sm text-white outline-none focus:border-primary"
-            />
-            <div class="max-h-56 overflow-y-auto">
-              <div
-                v-for="opt in visibleFilterOptions"
-                :key="opt.key"
-                class="cursor-pointer rounded-md px-2 py-1 text-sm hover:bg-lowBackground"
-                @click="selectFilterOption(opt.key)"
-              >
-                {{ opt.label }}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <!-- Filter toggle removed: pills are shown below the search input -->
 
       <!-- Main search/value input -->
       <div class="relative order-2 w-[min(720px,90%)]">
@@ -137,6 +95,18 @@
       </div>
     </div>
 
+    <!-- Available filter options as pills -->
+    <div class="mt-2 flex flex-wrap justify-center gap-2">
+      <div
+        v-for="opt in availableFilterOptions"
+        :key="opt.key"
+        class="cursor-pointer rounded-full border border-white px-3 py-1 text-sm opacity-80 hover:bg-lowBackground"
+        @click="selectFilterOption(opt.key)"
+      >
+        {{ opt.label }}
+      </div>
+    </div>
+
     <!-- Applied filter pills -->
     <div
       v-if="appliedFilters.length > 0"
@@ -181,7 +151,6 @@ import {
 
 import { DetailedReviewListItem } from "../../../lib/types/lists";
 import { filterMovies } from "../searchMovies";
-import VBtn from "./VBtn.vue";
 
 // Component props
 interface Props {
@@ -205,18 +174,6 @@ const emit = defineEmits<Emits>();
 
 // Filter options configuration
 const FILTER_OPTIONS = [
-  {
-    key: "title",
-    label: "Title",
-    type: "string" as const,
-    placeholder: "Search by title",
-  },
-  {
-    key: "description",
-    label: "Description",
-    type: "string" as const,
-    placeholder: "Search description",
-  },
   {
     key: "genre",
     label: "Genre",
@@ -259,30 +216,6 @@ const FILTER_OPTIONS = [
     type: "enum" as const,
     placeholder: "Select a language code",
   },
-  {
-    key: "budget",
-    label: "Budget",
-    type: "number" as const,
-    placeholder: "Enter amount",
-  },
-  {
-    key: "revenue",
-    label: "Revenue",
-    type: "number" as const,
-    placeholder: "Enter amount",
-  },
-  {
-    key: "popularity",
-    label: "Popularity",
-    type: "number" as const,
-    placeholder: "Enter value",
-  },
-  {
-    key: "production_country",
-    label: "Production Country",
-    type: "enum" as const,
-    placeholder: "Select a country",
-  },
 ];
 
 type FilterOption = (typeof FILTER_OPTIONS)[number];
@@ -311,16 +244,7 @@ const languageCounts = computed(() => {
   return Array.from(counts.entries()).sort((a, b) => b[1] - a[1]); // Sort by frequency (descending)
 });
 
-const countryCounts = computed(() => {
-  const counts = new Map<string, number>();
-  props.data.forEach((item) =>
-    item.externalData?.production_countries?.forEach((c) => {
-      const currentCount = counts.get(c);
-      counts.set(c, currentCount !== undefined ? currentCount + 1 : 1);
-    }),
-  );
-  return Array.from(counts.entries()).sort((a, b) => b[1] - a[1]); // Sort by frequency (descending)
-});
+// removed production country suggestions since the filter was removed
 
 const companyCounts = computed(() => {
   const counts = new Map<string, number>();
@@ -338,9 +262,6 @@ const computedValueSuggestions = computed(() => ({
   original_language: languageCounts.value.map(
     ([language, count]) => `${language} (${count})`,
   ),
-  production_country: countryCounts.value.map(
-    ([country, count]) => `${country} (${count})`,
-  ),
   company: companyCounts.value.map(
     ([company, count]) => `${company} (${count})`,
   ),
@@ -349,9 +270,6 @@ const computedValueSuggestions = computed(() => ({
 // Search and Filters state
 const searchTerm = ref("");
 const filterMode = ref(false);
-const showFilterOptions = ref(false);
-const filterOptionSearch = ref("");
-
 // Applied filters pills
 type Comparator = ">" | "=" | "<";
 interface AppliedFilter {
@@ -373,13 +291,12 @@ const selectedFilter = computed<FilterOption | null>(() => {
   return FILTER_OPTIONS.find((f) => f.key === selectedFilterKey.value) ?? null;
 });
 
-const visibleFilterOptions = computed(() => {
-  const q = filterOptionSearch.value.trim().toLowerCase();
-  if (!q) return FILTER_OPTIONS;
-  return FILTER_OPTIONS.filter(
-    (o) => o.label.toLowerCase().includes(q) || o.key.toLowerCase().includes(q),
-  );
-});
+// Available filter options (not yet applied)
+const availableFilterOptions = computed(() =>
+  FILTER_OPTIONS.filter(
+    (opt) => !appliedFilters.value.some((p) => p.key === opt.key),
+  ),
+);
 
 const comparatorSymbol = computed(() => comparator.value);
 const cycleComparator = () => {
@@ -387,23 +304,11 @@ const cycleComparator = () => {
     comparator.value === ">" ? "<" : comparator.value === "<" ? "=" : ">";
 };
 
-const toggleFilterMode = () => {
-  filterMode.value = !filterMode.value;
-  if (filterMode.value) {
-    // Default to first option when activated
-    if (selectedFilterKey.value === null && FILTER_OPTIONS.length > 0) {
-      selectedFilterKey.value = FILTER_OPTIONS[0].key;
-    }
-  } else {
-    showFilterOptions.value = false;
-  }
-};
-
 const selectFilterOption = (key: string) => {
   selectedFilterKey.value = key;
   filterValueInput.value = "";
   comparator.value = ">" as Comparator;
-  showFilterOptions.value = false;
+  filterMode.value = true;
   // Focus main input for value entry
   requestAnimationFrame(() => searchInput.value?.focus());
   setTimeout(() => {
@@ -547,7 +452,6 @@ const applyActiveFilter = () => {
 const exitFilterEntryMode = () => {
   // Return to default search entry while keeping filter pills applied
   filterMode.value = false;
-  showFilterOptions.value = false;
   selectedFilterKey.value = null;
   // focus back to search
   requestAnimationFrame(() => searchInput.value?.focus());
