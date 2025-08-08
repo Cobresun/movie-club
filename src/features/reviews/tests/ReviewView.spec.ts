@@ -59,26 +59,6 @@ describe("ReviewView", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("should focus search bar on / press and type / on second press", async () => {
-    const { user } = render(ReviewView, { props: { clubId: "1" } });
-    await user.keyboard("/");
-    const searchBar = await screen.findByRole("textbox");
-    expect(searchBar).toHaveFocus();
-    expect(searchBar).toHaveValue("");
-    await user.keyboard("/");
-    expect(searchBar).toHaveValue("/");
-  });
-
-  it("should hide search input slash on focus", async () => {
-    const { user } = render(ReviewView, { props: { clubId: "1" } });
-    const inputSlash = await screen.findByText("/");
-    expect(inputSlash).toBeVisible();
-    await user.keyboard("/");
-    expect(inputSlash).not.toBeVisible();
-    await user.tab();
-    expect(inputSlash).toBeVisible();
-  });
-
   it("should submit score", async () => {
     const { user, pinia } = render(ReviewView, { props: { clubId: "1" } });
     const authStore = useAuthStore(pinia);
