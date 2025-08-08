@@ -26,14 +26,19 @@ export function filterMovies<T extends DetailedWorkListItem>(
   // Tokenize by spaces while keeping quoted values intact
   // Example: key:"The Godfather"
   const tokens =
-    searchQuery.match(/\S+:\S+|\S+:"[^"]+"|\S+/g)?.map((t) => t.trim()) ?? [];
+    searchQuery
+      .match(/\S+:"[^"]+"|[^\s:]+:[^\s]+|\S+/g)
+      ?.map((t) => t.trim()) ?? [];
 
   // Build filter map allowing operators for numeric/date: key:>10, key:<100, key:=50
   const filters = tokens
     .filter((t) => t.includes(":"))
     .reduce(
       (acc, token) => {
-        const [rawKey, rawValue] = token.split(":");
+        // Split only on the first colon to handle quoted values properly
+        const colonIndex = token.indexOf(":");
+        const rawKey = token.substring(0, colonIndex);
+        const rawValue = token.substring(colonIndex + 1);
         const key = rawKey.trim();
         const valueWithOp = rawValue.trim();
         const operatorMatch = valueWithOp.match(/^(>|<|=)/);
