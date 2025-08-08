@@ -1,5 +1,9 @@
 <template>
-  <div class="flex flex-col items-center justify-center" :class="className">
+  <div
+    ref="componentContainer"
+    class="flex flex-col items-center justify-center"
+    :class="className"
+  >
     <!-- Search + Filters Row -->
     <div class="flex w-full items-center justify-center gap-2">
       <!-- Filter toggle removed: pills are shown below the search input -->
@@ -98,42 +102,20 @@
     <!-- Available filter options as pills -->
     <div class="mt-2 flex flex-wrap justify-center gap-2">
       <div
-        v-for="opt in availableFilterOptions"
+        v-for="opt in FILTER_OPTIONS"
         :key="opt.key"
-        class="cursor-pointer rounded-full border border-white px-3 py-1 text-sm opacity-80 hover:bg-lowBackground"
+        :class="[
+          'cursor-pointer rounded-full border px-3 py-1 text-sm hover:bg-lowBackground',
+          isFilterApplied(opt.key)
+            ? 'border-primary bg-primary/20 text-white'
+            : 'border-white opacity-80',
+        ]"
         @click="selectFilterOption(opt.key)"
       >
-        {{ opt.label }}
-      </div>
-    </div>
-
-    <!-- Applied filter pills -->
-    <div
-      v-if="appliedFilters.length > 0"
-      class="mt-2 flex flex-wrap justify-center gap-2"
-    >
-      <div
-        v-for="(pill, idx) in appliedFilters"
-        :key="pill.key + idx + pill.value"
-        class="flex items-center gap-2 rounded-full border border-white px-3 py-1 text-sm"
-      >
-        <span class="opacity-80">{{ pill.label }}:</span>
-        <span v-if="pill.operator" class="opacity-80">{{ pill.operator }}</span>
-        <span class="font-semibold">{{ pill.value }}</span>
-        <button
-          class="ml-1 rounded-full hover:bg-lowBackground"
-          title="Edit"
-          @click="editPill(idx)"
-        >
-          <mdicon name="pencil" />
-        </button>
-        <button
-          class="rounded-full hover:bg-lowBackground"
-          title="Remove"
-          @click="removePill(idx)"
-        >
-          <mdicon name="close" />
-        </button>
+        <span>{{ opt.label }}</span>
+        <span v-if="isFilterApplied(opt.key)" class="ml-1 opacity-80">
+          {{ getAppliedFilterDisplay(opt.key) }}
+        </span>
       </div>
     </div>
   </div>
@@ -270,6 +252,7 @@ const computedValueSuggestions = computed(() => ({
 // Search and Filters state
 const searchTerm = ref("");
 const filterMode = ref(false);
+
 // Applied filters pills
 type Comparator = ">" | "=" | "<";
 interface AppliedFilter {
@@ -291,12 +274,17 @@ const selectedFilter = computed<FilterOption | null>(() => {
   return FILTER_OPTIONS.find((f) => f.key === selectedFilterKey.value) ?? null;
 });
 
-// Available filter options (not yet applied)
-const availableFilterOptions = computed(() =>
-  FILTER_OPTIONS.filter(
-    (opt) => !appliedFilters.value.some((p) => p.key === opt.key),
-  ),
-);
+// Helper functions for pill display
+const isFilterApplied = (key: string) => {
+  return appliedFilters.value.some((p) => p.key === key);
+};
+
+const getAppliedFilterDisplay = (key: string) => {
+  const filter = appliedFilters.value.find((p) => p.key === key);
+  if (!filter) return "";
+  const operator = filter.operator ? filter.operator : "";
+  return `${operator}${filter.value}`;
+};
 
 const comparatorSymbol = computed(() => comparator.value);
 const cycleComparator = () => {
@@ -305,21 +293,28 @@ const cycleComparator = () => {
 };
 
 const selectFilterOption = (key: string) => {
-  selectedFilterKey.value = key;
-  filterValueInput.value = "";
-  comparator.value = ">" as Comparator;
-  filterMode.value = true;
-  // Focus main input for value entry
-  requestAnimationFrame(() => searchInput.value?.focus());
-  setTimeout(() => {
-    disableValueSuggestions.value = false;
-    if (selectedFilter.value?.type === "date") {
-      const input = document.querySelector("input[type='date']");
-      if (input) {
-        (input as HTMLInputElement).showPicker?.();
+  // If filter is already applied, remove it
+  const existingIdx = appliedFilters.value.findIndex((p) => p.key === key);
+  if (existingIdx >= 0) {
+    appliedFilters.value.splice(existingIdx, 1);
+  } else {
+    // Enter edit mode for this filter
+    selectedFilterKey.value = key;
+    filterValueInput.value = "";
+    comparator.value = ">" as Comparator;
+    filterMode.value = true;
+    // Focus main input for value entry
+    requestAnimationFrame(() => searchInput.value?.focus());
+    setTimeout(() => {
+      disableValueSuggestions.value = false;
+      if (selectedFilter.value?.type === "date") {
+        const input = document.querySelector("input[type='date']");
+        if (input) {
+          (input as HTMLInputElement).showPicker?.();
+        }
       }
-    }
-  }, 10);
+    }, 10);
+  }
 };
 
 const disableValueSuggestions = ref(false);
@@ -358,7 +353,8 @@ const selectValueSuggestion = (s: string) => {
 // Compose search query from pills + free text
 const composedSearchQuery = computed(() => {
   const tokens = appliedFilters.value.map((f) => {
-    const value = f.value;
+    // Quote values that contain spaces
+    const value = f.value.includes(" ") ? `"${f.value}"` : f.value;
     const op = f.operator ? f.operator : "";
     return `${f.key}:${op}${value}`;
   });
@@ -395,6 +391,7 @@ watch(
   { immediate: true },
 );
 
+const componentContainer = ref<HTMLElement | null>(null);
 const searchInput = ref<HTMLInputElement | null>(null);
 
 // Input binding when in filter mode versus free search
@@ -447,6 +444,8 @@ const applyActiveFilter = () => {
   // Clear value for next entry
   filterValueInput.value = "";
   if (f.type === "number" || f.type === "date") comparator.value = ">";
+  // Return to search mode after applying filter
+  exitFilterEntryMode();
 };
 
 const exitFilterEntryMode = () => {
@@ -457,32 +456,21 @@ const exitFilterEntryMode = () => {
   requestAnimationFrame(() => searchInput.value?.focus());
 };
 
-const removePill = (idx: number) => {
-  appliedFilters.value.splice(idx, 1);
-};
-
-const editPill = (idx: number) => {
-  const pill = appliedFilters.value[idx];
-  // Pull back into editor
-  selectedFilterKey.value = pill.key;
-  comparator.value = pill.operator ?? ">";
-  filterValueInput.value = pill.value;
-  filterMode.value = true;
-  // Remove and focus input for editing
-  appliedFilters.value.splice(idx, 1);
-  requestAnimationFrame(() => searchInput.value?.focus());
-};
-
 const mdicon = resolveComponent("mdicon");
 
 const handleClickOutside = (event: MouseEvent) => {
-  const container = searchInput.value;
-  if (container)
-    if (!container.contains(event.target as Node)) {
-      disableValueSuggestions.value = true;
-    } else {
-      disableValueSuggestions.value = false;
+  const container = componentContainer.value;
+  const target = event.target as Node;
+
+  if (container && !container.contains(target)) {
+    disableValueSuggestions.value = true;
+    // If we're in filter mode and clicked outside, exit filter mode
+    if (filterMode.value) {
+      exitFilterEntryMode();
     }
+  } else {
+    disableValueSuggestions.value = false;
+  }
 };
 
 onMounted(() => {
