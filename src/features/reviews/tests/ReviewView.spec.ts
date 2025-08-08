@@ -23,7 +23,9 @@ describe("ReviewView", () => {
 
   it("should open and close add review prompt", async () => {
     const { user } = render(ReviewView, { props: { clubId: "1" } });
-    const openButton = await screen.findByRole("button");
+    const openButton = await screen.findByRole("button", {
+      name: "Add review",
+    });
     await user.click(openButton);
     expect(await screen.findByText("From Watch List")).toBeInTheDocument();
 
