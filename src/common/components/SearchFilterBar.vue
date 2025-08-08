@@ -98,12 +98,14 @@
     </div>
 
     <!-- Available filter options as pills -->
-    <div class="mt-2 flex flex-wrap justify-center gap-2">
+    <div
+      class="scrollbar-hide mt-2 flex w-full flex-nowrap gap-2 overflow-x-auto md:flex-wrap md:justify-center"
+    >
       <div
         v-for="opt in FILTER_OPTIONS"
         :key="opt.key"
         :class="[
-          'cursor-pointer rounded-full border px-3 py-1 text-sm hover:bg-lowBackground',
+          'shrink-0 cursor-pointer whitespace-nowrap rounded-full border px-3 py-1 text-sm hover:bg-lowBackground',
           isFilterApplied(opt.key)
             ? 'border-primary bg-primary/20 text-white'
             : 'border-white opacity-80',
@@ -456,3 +458,13 @@ onUnmounted(() => {
   document.removeEventListener("click", handleClickOutside);
 });
 </script>
+
+<style scoped>
+.scrollbar-hide {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+</style>
