@@ -128,12 +128,36 @@
 
           <!-- Movie details if available -->
           <div v-if="movie.original.externalData" class="mt-6">
-            <p
-              v-if="movie.original.externalData.overview"
-              class="mb-4 text-sm text-gray-300"
-            >
-              {{ movie.original.externalData.overview }}
-            </p>
+            <div v-if="movie.original.externalData.overview" class="mb-4">
+              <!-- Hidden element to measure full text height -->
+              <p
+                ref="fullTextRef"
+                class="invisible absolute text-sm text-gray-300"
+                style="width: calc(100% - 2rem)"
+              >
+                {{ movie.original.externalData.overview }}
+              </p>
+
+              <!-- Visible text with conditional truncation -->
+              <p
+                ref="visibleTextRef"
+                class="text-sm text-gray-300"
+                :class="{
+                  'line-clamp-3': !isDescriptionExpanded && shouldShowReadMore,
+                }"
+              >
+                {{ movie.original.externalData.overview }}
+              </p>
+
+              <!-- Read more button -->
+              <button
+                v-if="shouldShowReadMore"
+                class="mt-1 text-sm text-primary hover:underline"
+                @click="isDescriptionExpanded = !isDescriptionExpanded"
+              >
+                {{ isDescriptionExpanded ? "Show less" : "Read more" }}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -172,7 +196,7 @@
 <script setup lang="ts">
 import { FlexRender, Row, Table } from "@tanstack/vue-table";
 import { DateTime } from "luxon";
-import { ref, onMounted, onUnmounted, watch } from "vue";
+import { ref, onMounted, onUnmounted, watch, nextTick } from "vue";
 import { useToast } from "vue-toastification";
 
 import { isDefined } from "../../../../lib/checks/checks.js";
@@ -193,6 +217,12 @@ const emit = defineEmits<{
   (e: "update:isOpen", value: boolean): void;
   (e: "toggle-reveal", movieId: string): void;
 }>();
+
+// Description expansion state
+const isDescriptionExpanded = ref(false);
+const shouldShowReadMore = ref(false);
+const fullTextRef = ref<HTMLParagraphElement | null>(null);
+const visibleTextRef = ref<HTMLParagraphElement | null>(null);
 
 const CUSTOM_RENDERED_COLUMNS = ["title", "imageUrl", "createdDate"];
 
@@ -245,6 +275,47 @@ watch(
       // Reset drag offset when drawer closes
       dragOffset.value = 0;
       isDragging.value = false;
+    }
+  },
+);
+
+// Check if description text exceeds 3 lines
+const checkDescriptionHeight = async () => {
+  await nextTick();
+
+  if (!visibleTextRef.value || !fullTextRef.value) {
+    shouldShowReadMore.value = false;
+    return;
+  }
+
+  // Calculate line height from the visible element
+  const computedStyle = window.getComputedStyle(visibleTextRef.value);
+  const lineHeight = parseFloat(computedStyle.lineHeight);
+
+  // Get the full height of the text
+  const fullHeight = fullTextRef.value.scrollHeight;
+
+  // Check if full height exceeds 3 lines (with small tolerance)
+  const threeLineHeight = lineHeight * 3;
+  shouldShowReadMore.value = fullHeight > threeLineHeight + 2; // 2px tolerance
+};
+
+// Watch for movie changes and reset description state
+watch(
+  () => props.movie?.id,
+  () => {
+    isDescriptionExpanded.value = false;
+    void checkDescriptionHeight();
+  },
+  { immediate: true },
+);
+
+// Also check when drawer opens
+watch(
+  () => props.isOpen,
+  (newValue) => {
+    if (newValue) {
+      void checkDescriptionHeight();
     }
   },
 );
