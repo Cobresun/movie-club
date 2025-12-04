@@ -235,9 +235,11 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener("resize", checkScreenSize);
+  // Ensure body scroll is restored when component unmounts
+  document.body.style.overflow = "";
 });
 
-// Reset drag offset when drawer state changes
+// Reset drag offset when drawer state changes and handle body scroll lock
 watch(
   () => props.isOpen,
   (newValue) => {
@@ -245,9 +247,28 @@ watch(
       // Reset drag offset when drawer closes
       dragOffset.value = 0;
       isDragging.value = false;
+      // Unlock body scroll when drawer closes
+      document.body.style.overflow = "";
+    } else {
+      // Lock body scroll when drawer opens on mobile only
+      if (!isMediumScreen.value) {
+        document.body.style.overflow = "hidden";
+      }
     }
   },
 );
+
+// Handle body scroll lock when screen size changes
+watch(isMediumScreen, (newValue) => {
+  // If drawer is open and we resize to desktop, unlock body scroll
+  if (newValue && props.isOpen) {
+    document.body.style.overflow = "";
+  }
+  // If drawer is open and we resize to mobile, lock body scroll
+  else if (!newValue && props.isOpen) {
+    document.body.style.overflow = "hidden";
+  }
+});
 
 const close = () => {
   emit("update:isOpen", false);
