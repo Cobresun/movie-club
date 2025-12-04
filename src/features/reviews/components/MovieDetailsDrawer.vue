@@ -172,9 +172,10 @@
 <script setup lang="ts">
 import { FlexRender, Row, Table } from "@tanstack/vue-table";
 import { DateTime } from "luxon";
-import { ref, onMounted, onUnmounted, watch } from "vue";
+import { ref, onMounted, onUnmounted, watch, computed, toRef } from "vue";
 import { useToast } from "vue-toastification";
 
+import { useBodyScrollLock } from "../../../common/composables/useBodyScrollLock";
 import { isDefined } from "../../../../lib/checks/checks.js";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
 
@@ -235,11 +236,13 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener("resize", checkScreenSize);
-  // Ensure body scroll is restored when component unmounts
-  document.body.style.overflow = "";
 });
 
-// Reset drag offset when drawer state changes and handle body scroll lock
+// Use body scroll lock composable (only on mobile)
+const isMobile = computed(() => !isMediumScreen.value);
+useBodyScrollLock(toRef(props, "isOpen"), isMobile);
+
+// Reset drag offset when drawer state changes
 watch(
   () => props.isOpen,
   (newValue) => {
@@ -247,28 +250,9 @@ watch(
       // Reset drag offset when drawer closes
       dragOffset.value = 0;
       isDragging.value = false;
-      // Unlock body scroll when drawer closes
-      document.body.style.overflow = "";
-    } else {
-      // Lock body scroll when drawer opens on mobile only
-      if (!isMediumScreen.value) {
-        document.body.style.overflow = "hidden";
-      }
     }
   },
 );
-
-// Handle body scroll lock when screen size changes
-watch(isMediumScreen, (newValue) => {
-  // If drawer is open and we resize to desktop, unlock body scroll
-  if (newValue && props.isOpen) {
-    document.body.style.overflow = "";
-  }
-  // If drawer is open and we resize to mobile, lock body scroll
-  else if (!newValue && props.isOpen) {
-    document.body.style.overflow = "hidden";
-  }
-});
 
 const close = () => {
   emit("update:isOpen", false);
