@@ -143,7 +143,7 @@
                 ref="visibleTextRef"
                 class="text-sm text-gray-300"
                 :class="{
-                  'line-clamp-3': !isDescriptionExpanded && shouldShowReadMore,
+                  'line-clamp-2': !isDescriptionExpanded && shouldShowReadMore,
                 }"
               >
                 {{ movie.original.externalData.overview }}
@@ -279,7 +279,7 @@ watch(
   },
 );
 
-// Check if description text exceeds 3 lines
+// Check if description text exceeds 2 lines
 const checkDescriptionHeight = async () => {
   await nextTick();
 
@@ -295,9 +295,9 @@ const checkDescriptionHeight = async () => {
   // Get the full height of the text
   const fullHeight = fullTextRef.value.scrollHeight;
 
-  // Check if full height exceeds 3 lines (with small tolerance)
-  const threeLineHeight = lineHeight * 3;
-  shouldShowReadMore.value = fullHeight > threeLineHeight + 2; // 2px tolerance
+  // Check if full height exceeds 2 lines (with small tolerance)
+  const twoLineHeight = lineHeight * 2;
+  shouldShowReadMore.value = fullHeight > twoLineHeight + 2; // 2px tolerance
 };
 
 // Watch for movie changes and reset description state
