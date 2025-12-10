@@ -131,15 +131,14 @@
           <div class="text-left">
             <h2 class="text-lg font-bold text-white">Join the Club!</h2>
             <p class="text-xs text-gray-200">
-              Create an account to join clubs with your friends and review your
-              favourite movies.
+              Join clubs and review movies with your friends.
             </p>
           </div>
           <a
             href="/"
             class="whitespace-nowrap rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary/80"
           >
-            Sign Up Now
+            Sign Up
           </a>
         </div>
       </div>
