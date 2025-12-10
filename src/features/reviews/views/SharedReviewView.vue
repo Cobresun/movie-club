@@ -120,21 +120,24 @@
 
     <!-- Fixed Call-to-Action Banner -->
     <div v-if="!isLoggedIn">
-      <div class="h-48" />
-      <div class="fixed inset-x-0 bottom-0 bg-secondary px-6 py-8 shadow-lg">
+      <div class="h-20" />
+      <div
+        class="fixed inset-x-0 bottom-0 bg-secondary px-4 py-3 shadow-lg transition-transform duration-300"
+        :class="{ 'translate-y-full': isScrollingDown }"
+      >
         <div
-          class="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 text-center sm:flex-row sm:text-left"
+          class="mx-auto flex max-w-6xl items-center justify-between gap-4"
         >
-          <div>
-            <h2 class="text-2xl font-bold text-white">Join the Club!</h2>
-            <p class="text-sm text-gray-200">
+          <div class="text-left">
+            <h2 class="text-lg font-bold text-white">Join the Club!</h2>
+            <p class="text-xs text-gray-200">
               Create an account to join clubs with your friends and review your
               favourite movies.
             </p>
           </div>
           <a
             href="/"
-            class="rounded-md bg-primary px-6 py-3 font-semibold text-white transition hover:bg-primary/80"
+            class="whitespace-nowrap rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary/80"
           >
             Sign Up Now
           </a>
@@ -146,7 +149,7 @@
 
 <script setup lang="ts">
 import { DateTime } from "luxon";
-import { computed } from "vue";
+import { computed, ref, onMounted, onUnmounted } from "vue";
 import { useRoute } from "vue-router";
 
 import LoadingSpinner from "@/common/components/LoadingSpinner.vue";
@@ -162,6 +165,31 @@ const authStore = useAuthStore();
 const isLoggedIn = computed(() => authStore.isLoggedIn);
 
 const { data, isLoading, error } = useSharedReview(clubId, workId);
+
+// Scroll behavior for floating bar
+const isScrollingDown = ref(false);
+let lastScrollY = 0;
+
+const handleScroll = () => {
+  const currentScrollY = window.scrollY;
+
+  // Only hide if scrolling down and scrolled at least 50px
+  if (currentScrollY > lastScrollY && currentScrollY > 50) {
+    isScrollingDown.value = true;
+  } else if (currentScrollY < lastScrollY) {
+    isScrollingDown.value = false;
+  }
+
+  lastScrollY = currentScrollY;
+};
+
+onMounted(() => {
+  window.addEventListener("scroll", handleScroll, { passive: true });
+});
+
+onUnmounted(() => {
+  window.removeEventListener("scroll", handleScroll);
+});
 
 const averageScore = computed(() => {
   if (!data.value) return 0;
