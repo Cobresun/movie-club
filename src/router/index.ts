@@ -198,6 +198,10 @@ const routes: Array<RouteRecordRaw> = [
 const router = createRouter({
   routes,
   history: createWebHistory(),
+  scrollBehavior() {
+    // Always scroll to top when navigating between routes
+    return { top: 0 };
+  },
 });
 
 router.beforeEach((to, from) => {
