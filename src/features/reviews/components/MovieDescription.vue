@@ -3,7 +3,7 @@
     <!-- Visible text with conditional truncation -->
     <p
       ref="descriptionRef"
-      class="text-sm text-gray-300"
+      class="text-sm text-gray-300 transition-all duration-300 ease-in-out"
       :class="{
         'line-clamp-2': !isDescriptionExpanded,
       }"
@@ -14,7 +14,7 @@
     <!-- Read more button -->
     <button
       v-if="shouldShowReadMore"
-      class="mt-1 text-sm text-primary hover:underline"
+      class="mt-1 text-sm text-primary transition-opacity hover:underline"
       @click="isDescriptionExpanded = !isDescriptionExpanded"
     >
       {{ isDescriptionExpanded ? "Show less" : "Read more" }}

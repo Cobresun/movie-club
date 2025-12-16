@@ -171,7 +171,7 @@
 <script setup lang="ts">
 import { FlexRender, Row, Table } from "@tanstack/vue-table";
 import { DateTime } from "luxon";
-import { ref, onMounted, onUnmounted, watch } from "vue";
+import { ref, onUnmounted, watch } from "vue";
 import { useToast } from "vue-toastification";
 
 import { isDefined } from "../../../../lib/checks/checks.js";
