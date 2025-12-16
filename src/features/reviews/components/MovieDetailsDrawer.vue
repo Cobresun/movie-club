@@ -127,20 +127,15 @@
           </div>
 
           <!-- Movie details if available -->
-          <div v-if="movie.original.externalData" class="mt-6">
+          <div
+            v-if="movie.original.externalData"
+            :key="movie.id"
+            class="mt-6"
+          >
             <div v-if="movie.original.externalData.overview" class="mb-4">
-              <!-- Hidden element to measure full text height -->
-              <p
-                ref="fullTextRef"
-                class="invisible absolute text-sm text-gray-300"
-                style="width: calc(100% - 2rem)"
-              >
-                {{ movie.original.externalData.overview }}
-              </p>
-
               <!-- Visible text with conditional truncation -->
               <p
-                ref="visibleTextRef"
+                ref="descriptionRef"
                 class="text-sm text-gray-300"
                 :class="{
                   'line-clamp-2': !isDescriptionExpanded && shouldShowReadMore,
@@ -221,8 +216,7 @@ const emit = defineEmits<{
 // Description expansion state
 const isDescriptionExpanded = ref(false);
 const shouldShowReadMore = ref(false);
-const fullTextRef = ref<HTMLParagraphElement | null>(null);
-const visibleTextRef = ref<HTMLParagraphElement | null>(null);
+const descriptionRef = ref<HTMLParagraphElement | null>(null);
 
 const CUSTOM_RENDERED_COLUMNS = ["title", "imageUrl", "createdDate"];
 
@@ -279,46 +273,23 @@ watch(
   },
 );
 
-// Check if description text exceeds 2 lines
+// Check if description text exceeds 2 lines by comparing scroll vs client height
 const checkDescriptionHeight = async () => {
   await nextTick();
 
-  if (!visibleTextRef.value || !fullTextRef.value) {
+  if (!descriptionRef.value) {
     shouldShowReadMore.value = false;
     return;
   }
 
-  // Calculate line height from the visible element
-  const computedStyle = window.getComputedStyle(visibleTextRef.value);
-  const lineHeight = parseFloat(computedStyle.lineHeight);
-
-  // Get the full height of the text
-  const fullHeight = fullTextRef.value.scrollHeight;
-
-  // Check if full height exceeds 2 lines (with small tolerance)
-  const twoLineHeight = lineHeight * 2;
-  shouldShowReadMore.value = fullHeight > twoLineHeight + 2; // 2px tolerance
+  // Compare scrollHeight to clientHeight to detect overflow
+  shouldShowReadMore.value =
+    descriptionRef.value.scrollHeight > descriptionRef.value.clientHeight;
 };
 
-// Watch for movie changes and reset description state
-watch(
-  () => props.movie?.id,
-  () => {
-    isDescriptionExpanded.value = false;
-    void checkDescriptionHeight();
-  },
-  { immediate: true },
-);
-
-// Also check when drawer opens
-watch(
-  () => props.isOpen,
-  (newValue) => {
-    if (newValue) {
-      void checkDescriptionHeight();
-    }
-  },
-);
+onMounted(() => {
+  checkDescriptionHeight().catch(console.error);
+});
 
 const close = () => {
   emit("update:isOpen", false);
