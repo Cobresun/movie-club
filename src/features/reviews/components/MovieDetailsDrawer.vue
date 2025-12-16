@@ -127,32 +127,12 @@
           </div>
 
           <!-- Movie details if available -->
-          <div
-            v-if="movie.original.externalData"
-            :key="movie.id"
-            class="mt-6"
-          >
-            <div v-if="movie.original.externalData.overview" class="mb-4">
-              <!-- Visible text with conditional truncation -->
-              <p
-                ref="descriptionRef"
-                class="text-sm text-gray-300"
-                :class="{
-                  'line-clamp-2': !isDescriptionExpanded,
-                }"
-              >
-                {{ movie.original.externalData.overview }}
-              </p>
-
-              <!-- Read more button -->
-              <button
-                v-if="shouldShowReadMore"
-                class="mt-1 text-sm text-primary hover:underline"
-                @click="isDescriptionExpanded = !isDescriptionExpanded"
-              >
-                {{ isDescriptionExpanded ? "Show less" : "Read more" }}
-              </button>
-            </div>
+          <div v-if="movie.original.externalData" class="mt-6">
+            <MovieDescription
+              v-if="movie.original.externalData.overview"
+              :key="movie.id"
+              :overview="movie.original.externalData.overview"
+            />
           </div>
         </div>
 
@@ -191,11 +171,13 @@
 <script setup lang="ts">
 import { FlexRender, Row, Table } from "@tanstack/vue-table";
 import { DateTime } from "luxon";
-import { ref, onMounted, onUnmounted, watch, nextTick } from "vue";
+import { ref, onMounted, onUnmounted, watch } from "vue";
 import { useToast } from "vue-toastification";
 
 import { isDefined } from "../../../../lib/checks/checks.js";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
+
+import MovieDescription from "./MovieDescription.vue";
 
 const props = defineProps<{
   movie: Row<DetailedReviewListItem> | null;
@@ -212,11 +194,6 @@ const emit = defineEmits<{
   (e: "update:isOpen", value: boolean): void;
   (e: "toggle-reveal", movieId: string): void;
 }>();
-
-// Description expansion state
-const isDescriptionExpanded = ref(false);
-const shouldShowReadMore = ref(false);
-const descriptionRef = ref<HTMLParagraphElement | null>(null);
 
 const CUSTOM_RENDERED_COLUMNS = ["title", "imageUrl", "createdDate"];
 
@@ -272,33 +249,6 @@ watch(
     }
   },
 );
-
-// Check if description text exceeds 2 lines by comparing scroll vs client height
-const checkDescriptionHeight = async () => {
-  await nextTick();
-
-  if (!descriptionRef.value) {
-    shouldShowReadMore.value = false;
-    return;
-  }
-
-  // Compare scrollHeight to clientHeight to detect overflow
-  shouldShowReadMore.value =
-    descriptionRef.value.scrollHeight > descriptionRef.value.clientHeight;
-};
-
-// Watch for movie changes to reset expansion state
-watch(
-  () => props.movie?.id,
-  () => {
-    isDescriptionExpanded.value = false;
-  },
-);
-
-// Watch the ref to check height when it becomes available or changes
-watch(descriptionRef, () => {
-  checkDescriptionHeight().catch(console.error);
-});
 
 const close = () => {
   emit("update:isOpen", false);
