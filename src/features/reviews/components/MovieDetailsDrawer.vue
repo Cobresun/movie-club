@@ -287,7 +287,8 @@ const checkDescriptionHeight = async () => {
     descriptionRef.value.scrollHeight > descriptionRef.value.clientHeight;
 };
 
-onMounted(() => {
+// Watch the ref to check height when it becomes available or changes
+watch(descriptionRef, () => {
   checkDescriptionHeight().catch(console.error);
 });
 
