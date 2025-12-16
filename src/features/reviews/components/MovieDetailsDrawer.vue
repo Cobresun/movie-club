@@ -138,7 +138,7 @@
                 ref="descriptionRef"
                 class="text-sm text-gray-300"
                 :class="{
-                  'line-clamp-2': !isDescriptionExpanded && shouldShowReadMore,
+                  'line-clamp-2': !isDescriptionExpanded,
                 }"
               >
                 {{ movie.original.externalData.overview }}
