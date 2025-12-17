@@ -71,27 +71,20 @@
       </div>
     </div>
 
-    <div class="flex flex-col justify-center pb-6 md:flex-row">
-      <div class="p-3">
-        <router-link :to="{ name: 'Reviews' }">
-          <menu-card :image="reviewSvg"> Reviews </menu-card>
-        </router-link>
-      </div>
-      <div class="p-3">
-        <router-link :to="{ name: 'WatchList' }">
-          <menu-card :image="watchlistSvg"> Watch List </menu-card>
-        </router-link>
-      </div>
-      <div class="p-3">
-        <router-link :to="{ name: 'Statistics' }">
-          <menu-card :image="statisticsSvg"> Statistics </menu-card>
-        </router-link>
-      </div>
-      <div class="p-3">
-        <router-link :to="{ name: 'Awards' }">
-          <menu-card :image="awardsSvg"> Awards </menu-card>
-        </router-link>
-      </div>
+    <!-- Navigation cards grid -->
+    <div class="mx-auto grid max-w-5xl grid-cols-2 gap-3 px-4 pb-6 md:grid-cols-4">
+      <router-link :to="{ name: 'Reviews' }">
+        <menu-card :image="reviewSvg"> Reviews </menu-card>
+      </router-link>
+      <router-link :to="{ name: 'WatchList' }">
+        <menu-card :image="watchlistSvg"> Watch List </menu-card>
+      </router-link>
+      <router-link :to="{ name: 'Statistics' }">
+        <menu-card :image="statisticsSvg"> Statistics </menu-card>
+      </router-link>
+      <router-link :to="{ name: 'Awards' }">
+        <menu-card :image="awardsSvg"> Awards </menu-card>
+      </router-link>
     </div>
 
     <div class="flex justify-center">
