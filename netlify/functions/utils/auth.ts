@@ -1,41 +1,54 @@
 import { HandlerResponse } from "@netlify/functions";
+import { betterAuth } from "better-auth";
 
+import { dialect } from "./database.js";
 import { unauthorized } from "./responses";
 import { isRouterResponse, Request, RouterResponse } from "./router";
 import { ClubRequest, LegacyClubRequest } from "./validation";
-import { isString } from "../../../lib/checks/checks.js";
 import ClubRepository from "../repositories/ClubRepository";
+
+export const auth = betterAuth({
+  database: dialect,
+  emailAndPassword: {
+    enabled: true,
+  },
+  advanced: {
+    database: {
+      // Mixed ID types: auto-increment for user, UUIDs for session/account/verification
+      generateId: (options) => {
+        // Let database auto-generate integer IDs for user table
+        if (options.model === "user" || options.model === "users") {
+          return false; // Database handles auto-increment
+        }
+        // Generate UUIDs for other tables (session, account, verification)
+        return crypto.randomUUID();
+      },
+    },
+  },
+});
 
 export type AuthRequest<T extends Request = Request> = T & {
   email: string;
 };
 
-type UserContext = {
-  email: string;
-};
-
-function isUserContext(context: unknown): context is UserContext {
-  return (
-    typeof context === "object" &&
-    context !== null &&
-    "email" in context &&
-    isString(context.email)
-  );
-}
-
-export const loggedIn = <T extends Request>(
+export const loggedIn = async <T extends Request>(
   req: T,
   res: (data: HandlerResponse) => RouterResponse,
 ) => {
-  const user = req.context.clientContext?.user as unknown;
-  if (!isUserContext(user)) {
-    return Promise.resolve(res(unauthorized()));
+  // Get session from Better Auth using request headers
+  const session = await auth.api.getSession({
+    headers: new Headers(req.event.headers as Record<string, string>),
+  });
+
+  const email = session?.user?.email;
+  if (email === null || email === undefined) {
+    return res(unauthorized());
   }
 
-  return Promise.resolve({
+  return {
     ...req,
-    email: user.email,
-  });
+    email,
+  };
 };
 
 export const securedLegacy = async <T extends LegacyClubRequest>(

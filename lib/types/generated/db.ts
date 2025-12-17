@@ -33,6 +33,22 @@ export type Numeric = ColumnType<string, number | string, number | string>;
 
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
+export interface Account {
+  accessToken: string | null;
+  accessTokenExpiresAt: Timestamp | null;
+  accountId: string;
+  createdAt: Generated<Timestamp>;
+  id: string;
+  idToken: string | null;
+  password: string | null;
+  providerId: string;
+  refreshToken: string | null;
+  refreshTokenExpiresAt: Timestamp | null;
+  scope: string | null;
+  updatedAt: Timestamp;
+  userId: Int8;
+}
+
 export interface Club {
   id: Generated<Int8>;
   legacy_id: Int8 | null;
@@ -109,6 +125,7 @@ export interface NextWork {
 
 export interface Review {
   created_date: Generated<Timestamp>;
+  emoji: string | null;
   id: Generated<Int8>;
   list_id: Int8;
   score: Numeric;
@@ -116,12 +133,36 @@ export interface Review {
   work_id: Int8;
 }
 
+export interface Session {
+  createdAt: Generated<Timestamp>;
+  expiresAt: Timestamp;
+  id: string;
+  ipAddress: string | null;
+  token: string;
+  updatedAt: Timestamp;
+  userAgent: string | null;
+  userId: Int8;
+}
+
 export interface User {
+  createdAt: Generated<Timestamp>;
   email: string;
+  emailVerified: Generated<boolean>;
   id: Generated<Int8>;
+  image: string | null;
   image_id: string | null;
   image_url: string | null;
-  username: string;
+  name: string;
+  updatedAt: Generated<Timestamp>;
+}
+
+export interface Verification {
+  createdAt: Generated<Timestamp>;
+  expiresAt: Timestamp;
+  id: string;
+  identifier: string;
+  updatedAt: Generated<Timestamp>;
+  value: string;
 }
 
 export interface Work {
@@ -147,6 +188,7 @@ export interface WorkListItem {
 }
 
 export interface DB {
+  account: Account;
   club: Club;
   club_invite: ClubInvite;
   club_member: ClubMember;
@@ -157,7 +199,9 @@ export interface DB {
   movie_production_countries: MovieProductionCountries;
   next_work: NextWork;
   review: Review;
+  session: Session;
   user: User;
+  verification: Verification;
   work: Work;
   work_list: WorkList;
   work_list_item: WorkListItem;

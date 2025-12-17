@@ -1,6 +1,5 @@
-import { useQuery, useQueryClient } from "@tanstack/vue-query";
+import { useQuery } from "@tanstack/vue-query";
 import axios from "axios";
-import netlifyIdentity, { User } from "netlify-identity-widget";
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
@@ -8,64 +7,26 @@ import { useRoute, useRouter } from "vue-router";
 import { isDefined, isTrue } from "../../lib/checks/checks.js";
 import { ClubPreview } from "../../lib/types/club";
 
+import { authClient } from "@/lib/auth-client";
+
 export const useAuthStore = defineStore("auth", () => {
-  const user = ref<User | null>();
-  const ready = ref(false);
-  const userHasValue = computed(() => !!user.value);
+  // Use Better Auth's reactive session hook
+  const session = authClient.useSession();
 
-  const { data: authToken, isInitialLoading } = useQuery({
-    queryKey: ["authToken", user],
-    queryFn: () => {
-      const token = netlifyIdentity.refresh(true);
-      user.value = netlifyIdentity.currentUser();
-      return token;
-    },
-    enabled: userHasValue,
-    refetchInterval: 60 * 59 * 1000, // Refetch after 59mins
-  });
+  // Modal state for auth UI
+  const showAuthModal = ref(false);
 
-  const isLoggedIn = computed(() => isDefined(authToken.value));
+  // Derived state from session
+  const user = computed(() => session.value.data?.user);
+  const isLoggedIn = computed(() => isDefined(session.value.data?.session));
+  const ready = computed(() => session.value.isPending === false);
+  const isInitialLoading = computed(() => session.value.isPending === true);
 
-  const request = computed(() =>
-    axios.create({ headers: { Authorization: `Bearer ${authToken.value}` } }),
-  );
+  // Axios instance for authenticated requests
+  // Better Auth handles cookies automatically, so we don't need to manually add auth headers
+  const request = computed(() => axios.create());
 
-  netlifyIdentity.on("init", (initUser) => {
-    user.value = initUser;
-    ready.value = true;
-  });
-
-  netlifyIdentity.on("login", (loginUser) => {
-    user.value = loginUser;
-    netlifyIdentity.close();
-  });
-
-  const queryClient = useQueryClient();
-  netlifyIdentity.on("logout", () => {
-    user.value = null;
-    queryClient.removeQueries({ queryKey: ["user"] });
-  });
-
-  netlifyIdentity.init({
-    APIUrl: "https://cobresun-movie-club.netlify.app/.netlify/identity",
-  });
-
-  const cleanup = () => {
-    netlifyIdentity.off("login");
-    netlifyIdentity.off("logout");
-  };
-  const login = () => {
-    netlifyIdentity.open();
-  };
-  const router = useRouter();
-  const route = useRoute();
-  const logout = () => {
-    if (isTrue(route.meta.authRequired)) {
-      router.push({ name: "Clubs" }).catch(console.error);
-    }
-    netlifyIdentity.logout()?.catch(console.error);
-  };
-
+  // Fetch user's clubs
   const { data: userClubs, isLoading: isLoadingUserClubs } = useQuery({
     queryKey: ["user", "clubs"],
     queryFn: async () => {
@@ -82,16 +43,57 @@ export const useAuthStore = defineStore("auth", () => {
     );
   };
 
+  // Auth actions
+  const login = () => {
+    showAuthModal.value = true;
+  };
+
+  const closeAuthModal = () => {
+    showAuthModal.value = false;
+  };
+
+  const router = useRouter();
+  const route = useRoute();
+
+  const logout = async () => {
+    // Redirect to clubs page if on a protected route
+    if (isTrue(route.meta.authRequired)) {
+      router.push({ name: "Clubs" }).catch(console.error);
+    }
+
+    // Sign out using Better Auth
+    await authClient.signOut({
+      fetchOptions: {
+        onSuccess: () => {
+          // Session will automatically update via the reactive hook
+        },
+      },
+    });
+  };
+
+  const cleanup = () => {
+    // No cleanup needed with Better Auth - it handles everything internally
+  };
+
   return {
+    // Session data
     user,
     ready,
-    authToken,
-    request,
     isLoggedIn,
-    cleanup,
-    login,
-    logout,
     isInitialLoading,
+    session,
+
+    // Auth UI
+    showAuthModal,
+    login,
+    closeAuthModal,
+    logout,
+    cleanup,
+
+    // Axios (for backward compatibility)
+    request,
+
+    // User clubs
     userClubs,
     isClubMember,
     isLoadingUserClubs,
