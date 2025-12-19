@@ -5,6 +5,7 @@ import { dialect } from "./database.js";
 import { unauthorized } from "./responses";
 import { isRouterResponse, Request, RouterResponse } from "./router";
 import { ClubRequest, LegacyClubRequest } from "./validation";
+import { filterUndefinedProperties } from "../../../lib/checks/checks.js";
 import ClubRepository from "../repositories/ClubRepository";
 
 export const auth = betterAuth({
@@ -37,7 +38,7 @@ export const loggedIn = async <T extends Request>(
 ) => {
   // Get session from Better Auth using request headers
   const session = await auth.api.getSession({
-    headers: new Headers(req.event.headers as Record<string, string>),
+    headers: new Headers(filterUndefinedProperties(req.event.headers)),
   });
 
   const email = session?.user?.email;
