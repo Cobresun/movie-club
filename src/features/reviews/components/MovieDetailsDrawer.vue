@@ -128,12 +128,11 @@
 
           <!-- Movie details if available -->
           <div v-if="movie.original.externalData" class="mt-6">
-            <p
+            <MovieDescription
               v-if="movie.original.externalData.overview"
-              class="mb-4 text-sm text-gray-300"
-            >
-              {{ movie.original.externalData.overview }}
-            </p>
+              :key="movie.id"
+              :overview="movie.original.externalData.overview"
+            />
           </div>
         </div>
 
@@ -177,6 +176,8 @@ import { useToast } from "vue-toastification";
 
 import { isDefined } from "../../../../lib/checks/checks.js";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
+
+import MovieDescription from "./MovieDescription.vue";
 
 const props = defineProps<{
   movie: Row<DetailedReviewListItem> | null;
