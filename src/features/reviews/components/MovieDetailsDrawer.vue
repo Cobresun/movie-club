@@ -107,7 +107,7 @@
               class="flex cursor-pointer items-center rounded-xl bg-lowBackground p-2"
               @click="
                 shouldBlurScore(movie.id, cell.column.id) &&
-                  toggleMovieReveal(movie.id)
+                toggleMovieReveal(movie.id)
               "
             >
               <FlexRender
