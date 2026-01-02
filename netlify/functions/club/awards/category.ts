@@ -1,9 +1,9 @@
 import { z } from "zod";
 
-import { ClubAwardRequest, updateClubAwardYear } from "./utils";
-import { hasValue } from "../../../../lib/checks/checks.js";
-import { securedLegacy } from "../../utils/auth";
-import { getFaunaClient } from "../../utils/fauna";
+import { ClubAwardRequest } from "./utils";
+import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
+import AwardsRepository from "../../repositories/AwardsRepository";
+import { secured } from "../../utils/auth";
 import { badRequest, ok } from "../../utils/responses";
 import { Router } from "../../utils/router";
 
@@ -17,23 +17,17 @@ const addCategorySchema = z.object({
 
 router.post(
   "/",
-  securedLegacy<ClubAwardRequest>,
+  secured<ClubAwardRequest>,
   async ({ event, clubId, year }, res) => {
     if (!hasValue(event.body)) return res(badRequest("Missing body"));
     const body = addCategorySchema.safeParse(JSON.parse(event.body));
     if (!body.success) return res(badRequest("Invalid body"));
     const { title } = body.data;
 
-    const { faunaClient, q } = getFaunaClient();
-
-    await faunaClient.query(
-      updateClubAwardYear(clubId, year, {
-        awards: q.Append(
-          [{ title, nominations: [] }],
-          q.Select("awards", q.Var("awardYear")),
-        ),
-      }),
-    );
+    await AwardsRepository.updateByYear(clubId, year, (currentData) => ({
+      ...currentData,
+      awards: [...currentData.awards, { title, nominations: [] }],
+    }));
 
     return res(ok());
   },
@@ -45,53 +39,50 @@ const updateCategorySchema = z.object({
 
 router.put(
   "/",
-  securedLegacy<ClubAwardRequest>,
-  async ({ event, clubId, year, clubAwards }, res) => {
+  secured<ClubAwardRequest>,
+  async ({ event, clubId, year }, res) => {
     if (!hasValue(event.body)) return res(badRequest("Missing body"));
     const body = updateCategorySchema.safeParse(JSON.parse(event.body));
     if (!body.success) return res(badRequest("Invalid body"));
 
     const { categories } = body.data;
-    const { faunaClient } = getFaunaClient();
 
-    const updatedAwards = categories.map((category) =>
-      clubAwards.awards.find((award) => award.title === category),
-    );
-    if (updatedAwards.some((award) => !award)) {
-      return res(
-        badRequest(
+    await AwardsRepository.updateByYear(clubId, year, (currentData) => {
+      // Reorder awards based on the categories order
+      const updatedAwards = categories
+        .map((category) =>
+          currentData.awards.find((award) => award.title === category),
+        )
+        .filter(isDefined);
+
+      if (updatedAwards.length !== categories.length) {
+        throw new Error(
           "One or more of the category titles you provided does not exist",
-        ),
-      );
-    }
+        );
+      }
 
-    await faunaClient.query(
-      updateClubAwardYear(clubId, year, { awards: updatedAwards }),
-    );
+      return {
+        ...currentData,
+        awards: updatedAwards,
+      };
+    });
+
     return res(ok());
   },
 );
 
 router.delete(
   "/:awardTitle",
-  securedLegacy<ClubAwardRequest>,
-  async ({ params, year, clubId }, res) => {
+  secured<ClubAwardRequest>,
+  async ({ params, clubId, year }, res) => {
     const awardTitle = params.awardTitle;
-    const { faunaClient, q } = getFaunaClient();
 
     if (!hasValue(awardTitle)) return res(badRequest("Missing award title"));
 
-    await faunaClient.query(
-      updateClubAwardYear(clubId, year, {
-        awards: q.Filter(
-          q.Select("awards", q.Var("awardYear")),
-          q.Lambda(
-            "award",
-            q.Not(q.Equals(q.Select("title", q.Var("award")), awardTitle)),
-          ),
-        ),
-      }),
-    );
+    await AwardsRepository.updateByYear(clubId, year, (currentData) => ({
+      ...currentData,
+      awards: currentData.awards.filter((award) => award.title !== awardTitle),
+    }));
 
     return res(ok());
   },

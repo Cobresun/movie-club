@@ -1,9 +1,10 @@
 import { z } from "zod";
 
-import { ClubAwardRequest, updateAward } from "./utils";
+import { ClubAwardRequest } from "./utils";
 import { hasValue } from "../../../../lib/checks/checks.js";
-import { securedLegacy } from "../../utils/auth";
-import { getFaunaClient } from "../../utils/fauna";
+import { BaseAward, BaseAwardNomination } from "../../../../lib/types/awards";
+import AwardsRepository from "../../repositories/AwardsRepository";
+import { secured } from "../../utils/auth";
 import { badRequest, ok } from "../../utils/responses";
 import { Router } from "../../utils/router";
 
@@ -19,7 +20,7 @@ const addNominationSchema = z.object({
 
 router.post(
   "/",
-  securedLegacy<ClubAwardRequest>,
+  secured<ClubAwardRequest>,
   async ({ event, clubId, year }, res) => {
     if (!hasValue(event.body)) return res(badRequest("Missing body"));
     const body = addNominationSchema.safeParse(JSON.parse(event.body));
@@ -27,61 +28,48 @@ router.post(
 
     const { awardTitle, movieId, nominatedBy } = body.data;
 
-    const { faunaClient, q } = getFaunaClient();
+    await AwardsRepository.updateByYear(clubId, year, (currentData) => ({
+      ...currentData,
+      awards: currentData.awards.map((award: BaseAward) => {
+        if (award.title !== awardTitle) return award;
 
-    await faunaClient.query(
-      updateAward(
-        clubId,
-        year,
-        awardTitle,
-        q.Let(
-          {
-            nominations: q.Select("nominations", q.Var("award")),
-            existingNomination: q.Filter(
-              q.Var("nominations"),
-              q.Lambda(
-                "nomination",
-                q.Equals(q.Select("movieId", q.Var("nomination")), movieId),
-              ),
+        // Check if movie is already nominated
+        const existingNomination = award.nominations.find(
+          (n: BaseAwardNomination) => n.movieId === movieId,
+        );
+
+        if (existingNomination) {
+          // Add user to existing nomination's nominatedBy list
+          return {
+            ...award,
+            nominations: award.nominations.map((n: BaseAwardNomination) =>
+              n.movieId === movieId
+                ? { ...n, nominatedBy: [...n.nominatedBy, nominatedBy] }
+                : n,
             ),
-          },
-          q.If(
-            q.IsEmpty(q.Var("existingNomination")),
-            {
-              nominations: q.Append(
-                [{ movieId, nominatedBy: [nominatedBy], ranking: {} }],
-                q.Var("nominations"),
-              ),
-            },
-            {
-              nominations: q.Map(
-                q.Var("nominations"),
-                q.Lambda(
-                  "nomination",
-                  q.If(
-                    q.Equals(q.Select("movieId", q.Var("nomination")), movieId),
-                    q.Merge(q.Var("nomination"), {
-                      nominatedBy: q.Append(
-                        [nominatedBy],
-                        q.Select("nominatedBy", q.Var("nomination")),
-                      ),
-                    }),
-                    q.Var("nomination"),
-                  ),
-                ),
-              ),
-            },
-          ),
-        ),
-      ),
-    );
+          };
+        } else {
+          // Add new nomination
+          const newNomination: BaseAwardNomination = {
+            movieId,
+            nominatedBy: [nominatedBy],
+            ranking: {},
+          };
+          return {
+            ...award,
+            nominations: [...award.nominations, newNomination],
+          };
+        }
+      }),
+    }));
+
     return res(ok());
   },
 );
 
 router.delete(
   "/:movieId",
-  securedLegacy<ClubAwardRequest>,
+  secured<ClubAwardRequest>,
   async ({ event, params, clubId, year }, res) => {
     const awardTitle = event.queryStringParameters?.awardTitle;
     if (!hasValue(params.movieId))
@@ -94,60 +82,31 @@ router.delete(
     if (!hasValue(userId))
       return res(badRequest("Missing userId in query parameters"));
 
-    const { faunaClient, q } = getFaunaClient();
+    await AwardsRepository.updateByYear(clubId, year, (currentData) => ({
+      ...currentData,
+      awards: currentData.awards.map((award: BaseAward) => {
+        if (award.title !== awardTitle) return award;
 
-    await faunaClient.query(
-      updateAward(
-        clubId,
-        year,
-        awardTitle,
-        q.Let(
-          {
-            nominations: q.Select("nominations", q.Var("award")),
-            existingNomination: q.Filter(
-              q.Var("nominations"),
-              q.Lambda(
-                "nomination",
-                q.Equals(q.Select("movieId", q.Var("nomination")), movieId),
+        // Remove user from nomination and filter out empty nominations
+        const updatedNominations = award.nominations
+          .map((n: BaseAwardNomination) => {
+            if (n.movieId !== movieId) return n;
+            return {
+              ...n,
+              nominatedBy: n.nominatedBy.filter(
+                (user: string) => user !== userId,
               ),
-            ),
-          },
-          q.If(
-            q.Not(q.IsEmpty(q.Var("existingNomination"))),
-            {
-              nominations: q.Filter(
-                q.Map(
-                  q.Var("nominations"),
-                  q.Lambda(
-                    "nomination",
-                    q.If(
-                      q.Equals(
-                        q.Select("movieId", q.Var("nomination")),
-                        movieId,
-                      ),
-                      q.Merge(q.Var("nomination"), {
-                        nominatedBy: q.Difference(
-                          q.Select("nominatedBy", q.Var("nomination")),
-                          [userId],
-                        ),
-                      }),
-                      q.Var("nomination"),
-                    ),
-                  ),
-                ),
-                q.Lambda(
-                  "nomination",
-                  q.Not(
-                    q.IsEmpty(q.Select("nominatedBy", q.Var("nomination"))),
-                  ),
-                ),
-              ),
-            },
-            { nominations: q.Var("nominations") },
-          ),
-        ),
-      ),
-    );
+            };
+          })
+          .filter((n: BaseAwardNomination) => n.nominatedBy.length > 0);
+
+        return {
+          ...award,
+          nominations: updatedNominations,
+        };
+      }),
+    }));
+
     return res(ok());
   },
 );
