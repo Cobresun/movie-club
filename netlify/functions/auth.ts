@@ -1,13 +1,15 @@
 import { Handler, HandlerEvent } from "@netlify/functions";
 
 import { auth } from "./utils/auth";
-import { isDefined } from "../../lib/checks/checks.js";
+import { hasValue, isDefined } from "../../lib/checks/checks.js";
 
 const handler: Handler = async (event: HandlerEvent) => {
   // Construct URL from the Netlify event
   const protocol = event.headers["x-forwarded-proto"] ?? "https";
   const host = event.headers.host ?? "localhost";
-  const url = `${protocol}://${host}${event.path}`;
+  const url = `${protocol}://${host}${event.path}${
+    hasValue(event.rawQuery) ? `?${event.rawQuery}` : ""
+  }`;
 
   // Create a Web Request from the Netlify event
   const request = new Request(url, {
@@ -20,10 +22,6 @@ const handler: Handler = async (event: HandlerEvent) => {
         ? event.body
         : undefined,
   });
-
-  console.log(`Auth request`, request);
-  console.log(`body`, event.body);
-  // console.log(`body2`, await request.body?.pipeTo(new WritableStream()));
 
   // Call Better Auth handler
   const response = await auth.handler(request);

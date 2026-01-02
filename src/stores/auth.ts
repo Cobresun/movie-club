@@ -71,10 +71,6 @@ export const useAuthStore = defineStore("auth", () => {
     });
   };
 
-  const cleanup = () => {
-    // No cleanup needed with Better Auth - it handles everything internally
-  };
-
   return {
     // Session data
     user,
@@ -88,7 +84,6 @@ export const useAuthStore = defineStore("auth", () => {
     login,
     closeAuthModal,
     logout,
-    cleanup,
 
     // Axios (for backward compatibility)
     request,

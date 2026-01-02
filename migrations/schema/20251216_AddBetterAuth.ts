@@ -4,6 +4,9 @@ export async function up(db: Kysely<unknown>) {
   // Rename username column to name
   await db.schema.alterTable("user").renameColumn("username", "name").execute();
 
+  // Drop unique constraint on name
+  await db.schema.dropIndex("user_username_key").cascade().execute();
+
   // Add new columns to user table
   await db.schema
     .alterTable("user")
@@ -122,4 +125,10 @@ export async function down(db: Kysely<unknown>) {
 
   // Rename name column back to username
   await db.schema.alterTable("user").renameColumn("name", "username").execute();
+
+  // Recreate unique constraint on username
+  await db.schema
+    .alterTable("user")
+    .addUniqueConstraint("user_username_key", ["username"])
+    .execute();
 }

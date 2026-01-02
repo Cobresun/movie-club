@@ -61,6 +61,33 @@ const routes: Array<RouteRecordRaw> = [
     },
   },
   {
+    path: "/verify-email",
+    name: "VerifyEmail",
+    component: () => import("../features/auth/views/VerifyEmailView.vue"),
+    meta: {
+      depth: 1,
+      noAuth: true,
+    },
+  },
+  {
+    path: "/forgot-password",
+    name: "ForgotPassword",
+    component: () => import("../features/auth/views/ForgotPasswordView.vue"),
+    meta: {
+      depth: 1,
+      noAuth: true,
+    },
+  },
+  {
+    path: "/reset-password",
+    name: "ResetPassword",
+    component: () => import("../features/auth/views/ResetPasswordView.vue"),
+    meta: {
+      depth: 1,
+      noAuth: true,
+    },
+  },
+  {
     path: "/share/club/:clubId/review/:workId",
     name: "SharedReview",
     component: () => import("../features/reviews/views/SharedReviewView.vue"),

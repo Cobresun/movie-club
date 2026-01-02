@@ -48,7 +48,6 @@ const vueQueryOptions: VueQueryPluginOptions = {
   },
   clientPersister: (queryClient) => {
     return persistQueryClient({
-      //@ts-expect-error The types don't match because Vue doesn't have its own persistQueryClient, but it still works
       queryClient,
       persister: createSyncStoragePersister({ storage: localStorage }),
       maxAge: 1000 * 60 * 60 * 24 * 7, // One week

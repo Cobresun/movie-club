@@ -36,6 +36,14 @@
       class="mb-4 rounded bg-red-900/50 p-3 text-sm text-red-300"
     >
       {{ errorMessage }}
+      <button
+        v-if="showResendVerification"
+        type="button"
+        class="mt-2 block text-primary hover:underline"
+        @click="handleResendVerification"
+      >
+        Resend verification email
+      </button>
     </div>
 
     <!-- Form -->
@@ -86,6 +94,16 @@
           class="w-full rounded border border-gray-600 bg-gray-700 px-3 py-2 text-white placeholder-gray-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
           placeholder="Min 8 characters"
         />
+        <!-- Forgot Password Link (Sign In only) -->
+        <div v-if="!isSignUp" class="mt-1 text-right">
+          <router-link
+            to="/forgot-password"
+            class="text-sm text-primary hover:underline"
+            @click="handleClose"
+          >
+            Forgot password?
+          </router-link>
+        </div>
       </div>
 
       <!-- Submit Button -->
@@ -118,6 +136,7 @@ const password = ref("");
 const name = ref("");
 const loading = ref(false);
 const errorMessage = ref("");
+const showResendVerification = ref(false);
 
 const handleClose = () => {
   // Reset form
@@ -127,11 +146,13 @@ const handleClose = () => {
   errorMessage.value = "";
   loading.value = false;
   isSignUp.value = false;
+  showResendVerification.value = false;
   emit("close");
 };
 
 const handleSubmit = async () => {
   errorMessage.value = "";
+  showResendVerification.value = false;
   loading.value = true;
 
   try {
@@ -145,7 +166,9 @@ const handleSubmit = async () => {
         },
         {
           onSuccess: () => {
-            toast.success("Account created successfully!");
+            toast.success(
+              "Account created! Please check your email to verify your account.",
+            );
             handleClose();
           },
           onError: (ctx) => {
@@ -166,13 +189,32 @@ const handleSubmit = async () => {
             handleClose();
           },
           onError: (ctx) => {
-            errorMessage.value = ctx.error.message || "Failed to sign in";
+            // Handle email verification required error
+            if (ctx.error.status === 403) {
+              errorMessage.value =
+                "Please verify your email address before signing in. Check your inbox for a verification link.";
+              showResendVerification.value = true;
+            } else {
+              errorMessage.value = ctx.error.message || "Failed to sign in";
+            }
           },
         },
       );
     }
   } finally {
     loading.value = false;
+  }
+};
+
+const handleResendVerification = async () => {
+  try {
+    await authClient.sendVerificationEmail({
+      email: email.value,
+      callbackURL: "/",
+    });
+    toast.success("Verification email sent! Please check your inbox.");
+  } catch {
+    toast.error("Failed to send verification email. Please try again.");
   }
 };
 </script>

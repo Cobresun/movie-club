@@ -1,7 +1,9 @@
 import { HandlerResponse } from "@netlify/functions";
+import bcrypt from "bcrypt";
 import { betterAuth } from "better-auth";
 
 import { dialect } from "./database.js";
+import { sendPasswordResetEmail, sendVerificationEmail } from "./email.js";
 import { unauthorized } from "./responses";
 import { isRouterResponse, Request, RouterResponse } from "./router";
 import { ClubRequest, LegacyClubRequest } from "./validation";
@@ -12,6 +14,25 @@ export const auth = betterAuth({
   database: dialect,
   emailAndPassword: {
     enabled: true,
+    requireEmailVerification: true,
+    sendResetPassword: async ({ user, url }) => {
+      await sendPasswordResetEmail(user.email, url, user.name);
+    },
+    password: {
+      hash: async (password: string) => {
+        return await bcrypt.hash(password, 10);
+      },
+      verify: async ({ password, hash }) => {
+        return await bcrypt.compare(password, hash);
+      },
+    },
+  },
+  emailVerification: {
+    sendOnSignUp: true,
+    autoSignInAfterVerification: true,
+    sendVerificationEmail: async ({ user, url }) => {
+      await sendVerificationEmail(user.email, url, user.name);
+    },
   },
   advanced: {
     database: {
