@@ -7,9 +7,14 @@ import { sendPasswordResetEmail, sendVerificationEmail } from "./email.js";
 import { unauthorized } from "./responses";
 import { isRouterResponse, Request, RouterResponse } from "./router";
 import { ClubRequest, LegacyClubRequest } from "./validation";
-import { filterUndefinedProperties } from "../../../lib/checks/checks.js";
+import {
+  filterUndefinedProperties,
+  isDefined,
+} from "../../../lib/checks/checks.js";
 import ClubRepository from "../repositories/ClubRepository";
 
+console.log("URL: ", process.env.URL);
+console.log("DEPLOY_PRIME_URL: ", process.env.DEPLOY_PRIME_URL);
 export const auth = betterAuth({
   database: dialect,
   emailAndPassword: {
@@ -34,6 +39,9 @@ export const auth = betterAuth({
       await sendVerificationEmail(user.email, url, user.name);
     },
   },
+  trustedOrigins: [process.env.URL, process.env.DEPLOY_PRIME_URL].filter(
+    isDefined,
+  ),
   advanced: {
     database: {
       // Mixed ID types: auto-increment for user, UUIDs for session/account/verification
