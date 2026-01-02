@@ -49,6 +49,12 @@ export interface Account {
   userId: Int8;
 }
 
+export interface AwardsTemp {
+  club_id: Int8;
+  data: Json;
+  year: Int8;
+}
+
 export interface Club {
   id: Generated<Int8>;
   legacy_id: Int8 | null;
@@ -188,6 +194,7 @@ export interface WorkListItem {
 
 export interface DB {
   account: Account;
+  awards_temp: AwardsTemp;
   club: Club;
   club_invite: ClubInvite;
   club_member: ClubMember;
