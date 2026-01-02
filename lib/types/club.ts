@@ -22,8 +22,10 @@ export interface BaseClub extends ClubPreview {
   reviews: BaseReview[];
 }
 
-export interface Club
-  extends Omit<BaseClub, "reviews" | "backlog" | "watchList"> {
+export interface Club extends Omit<
+  BaseClub,
+  "reviews" | "backlog" | "watchList"
+> {
   watchList: WatchListItem[];
   backlog: WatchListItem[];
   reviews: Review[];

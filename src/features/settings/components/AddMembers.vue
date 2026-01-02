@@ -33,6 +33,8 @@
 import { ref, computed } from "vue";
 import { useToast } from "vue-toastification";
 
+import { isDefined } from "../../../../lib/checks/checks.js";
+
 import { useAddMembers } from "@/service/useClub";
 
 const props = defineProps<{
@@ -52,7 +54,7 @@ const isEmailValid = (email: string) => {
 };
 
 const hasInvalidEmails = computed(() =>
-  emails.value.some((email) => email && !isEmailValid(email)),
+  emails.value.some((email) => isDefined(email) && !isEmailValid(email)),
 );
 
 const canSubmit = computed(

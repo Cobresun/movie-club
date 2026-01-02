@@ -1,41 +1,82 @@
 import { HandlerResponse } from "@netlify/functions";
+import bcrypt from "bcrypt";
+import { betterAuth } from "better-auth";
 
+import { dialect } from "./database.js";
+import { sendPasswordResetEmail, sendVerificationEmail } from "./email.js";
 import { unauthorized } from "./responses";
 import { isRouterResponse, Request, RouterResponse } from "./router";
 import { ClubRequest, LegacyClubRequest } from "./validation";
-import { isString } from "../../../lib/checks/checks.js";
+import {
+  filterUndefinedProperties,
+  isDefined,
+} from "../../../lib/checks/checks.js";
 import ClubRepository from "../repositories/ClubRepository";
+
+export const auth = betterAuth({
+  database: dialect,
+  emailAndPassword: {
+    enabled: true,
+    requireEmailVerification: true,
+    sendResetPassword: async ({ user, url }) => {
+      await sendPasswordResetEmail(user.email, url, user.name);
+    },
+    password: {
+      hash: async (password: string) => {
+        return await bcrypt.hash(password, 10);
+      },
+      verify: async ({ password, hash }) => {
+        return await bcrypt.compare(password, hash);
+      },
+    },
+  },
+  emailVerification: {
+    sendOnSignUp: true,
+    autoSignInAfterVerification: true,
+    sendVerificationEmail: async ({ user, url }) => {
+      await sendVerificationEmail(user.email, url, user.name);
+    },
+  },
+  trustedOrigins: [process.env.URL, process.env.DEPLOY_PRIME_URL].filter(
+    isDefined,
+  ),
+  advanced: {
+    database: {
+      // Mixed ID types: auto-increment for user, UUIDs for session/account/verification
+      generateId: (options) => {
+        // Let database auto-generate integer IDs for user table
+        if (options.model === "user" || options.model === "users") {
+          return false; // Database handles auto-increment
+        }
+        // Generate UUIDs for other tables (session, account, verification)
+        return crypto.randomUUID();
+      },
+    },
+  },
+});
 
 export type AuthRequest<T extends Request = Request> = T & {
   email: string;
 };
 
-type UserContext = {
-  email: string;
-};
-
-function isUserContext(context: unknown): context is UserContext {
-  return (
-    typeof context === "object" &&
-    context !== null &&
-    "email" in context &&
-    isString(context.email)
-  );
-}
-
-export const loggedIn = <T extends Request>(
+export const loggedIn = async <T extends Request>(
   req: T,
   res: (data: HandlerResponse) => RouterResponse,
 ) => {
-  const user = req.context.clientContext?.user as unknown;
-  if (!isUserContext(user)) {
-    return Promise.resolve(res(unauthorized()));
+  // Get session from Better Auth using request headers
+  const session = await auth.api.getSession({
+    headers: new Headers(filterUndefinedProperties(req.event.headers)),
+  });
+
+  const email = session?.user?.email;
+  if (email === null || email === undefined) {
+    return res(unauthorized());
   }
 
-  return Promise.resolve({
+  return {
     ...req,
-    email: user.email,
-  });
+    email,
+  };
 };
 
 export const securedLegacy = async <T extends LegacyClubRequest>(

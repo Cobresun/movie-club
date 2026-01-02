@@ -9,7 +9,7 @@ import joinRouter from "./members/join";
 import reviewsRouter from "./reviews";
 import settingsRouter from "./settings";
 import { hasValue } from "../../../lib/checks/checks.js";
-import { BaseClub, ClubPreview } from "../../../lib/types/club";
+import { ClubPreview } from "../../../lib/types/club";
 import ClubRepository from "../repositories/ClubRepository";
 import ListRepository from "../repositories/ListRepository";
 import SettingsRepository from "../repositories/SettingsRepository";

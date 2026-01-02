@@ -18,7 +18,7 @@ router.get("/", loggedIn, async (req, res) => {
   const result: Member = {
     id: user.id,
     email: user.email,
-    name: user.username,
+    name: user.name,
     image: user.image_url ?? undefined,
   };
   return res(ok(JSON.stringify(result)));
