@@ -1,6 +1,3 @@
-import { InsertExpression } from "kysely/dist/cjs/parser/insert-values-parser";
-
-import { DB } from "../../../lib/types/generated/db";
 import { db } from "../utils/database";
 
 class UserRepository {
@@ -26,10 +23,6 @@ class UserRepository {
         "club_member.role",
       ])
       .execute();
-  }
-
-  async add(newUser: InsertExpression<DB, "user">) {
-    return await db.insertInto("user").values(newUser).execute();
   }
 
   async updateImage(userId: string, imageUrl?: string, imageId?: string) {
