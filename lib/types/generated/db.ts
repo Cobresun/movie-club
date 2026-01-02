@@ -125,7 +125,6 @@ export interface NextWork {
 
 export interface Review {
   created_date: Generated<Timestamp>;
-  emoji: string | null;
   id: Generated<Int8>;
   list_id: Int8;
   score: Numeric;

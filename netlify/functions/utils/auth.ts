@@ -13,8 +13,6 @@ import {
 } from "../../../lib/checks/checks.js";
 import ClubRepository from "../repositories/ClubRepository";
 
-console.log("URL: ", process.env.URL);
-console.log("DEPLOY_PRIME_URL: ", process.env.DEPLOY_PRIME_URL);
 export const auth = betterAuth({
   database: dialect,
   emailAndPassword: {
