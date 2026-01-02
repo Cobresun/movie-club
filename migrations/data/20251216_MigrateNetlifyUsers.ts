@@ -1,9 +1,13 @@
 import * as crypto from "crypto";
 import * as fs from "fs";
-import * as path from "path";
+import path from "path";
+import { fileURLToPath } from "url";
 
 import { hasValue } from "../../lib/checks/checks.js";
 import { db } from "../../netlify/functions/utils/database";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 interface NetlifyUser {
   id: string;
