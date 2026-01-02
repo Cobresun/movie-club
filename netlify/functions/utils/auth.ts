@@ -6,7 +6,7 @@ import { dialect } from "./database.js";
 import { sendPasswordResetEmail, sendVerificationEmail } from "./email.js";
 import { unauthorized } from "./responses";
 import { isRouterResponse, Request, RouterResponse } from "./router";
-import { ClubRequest, LegacyClubRequest } from "./validation";
+import { ClubRequest } from "./validation";
 import {
   filterUndefinedProperties,
   isDefined,
@@ -77,27 +77,6 @@ export const loggedIn = async <T extends Request>(
     ...req,
     email,
   };
-};
-
-export const securedLegacy = async <T extends LegacyClubRequest>(
-  req: T,
-  res: (data: HandlerResponse) => RouterResponse,
-): Promise<RouterResponse | T> => {
-  const loggedInResult = await loggedIn<T>(req, res);
-  if (isRouterResponse(loggedInResult)) {
-    return loggedInResult;
-  }
-  if (
-    !(await ClubRepository.isUserInClub(
-      req.clubId.toString(),
-      loggedInResult.email,
-      true,
-    ))
-  ) {
-    return res(unauthorized());
-  }
-
-  return loggedInResult;
 };
 
 export const secured = async <T extends ClubRequest>(
