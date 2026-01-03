@@ -2,10 +2,10 @@
   <div ref="galleryContainerRef" class="flex">
     <!-- Main content that will shrink -->
     <div :class="['w-full', { 'md:pr-[35vw]': isDrawerOpen }]" class="md:px-6">
-      <div class="relative mb-4 flex w-min gap-2">
+      <div class="relative mb-4 flex max-w-full flex-wrap gap-2">
         <Listbox v-model="selectedSort">
           <ListboxButton
-            class="ml-8 flex items-center whitespace-nowrap rounded-full border border-white px-4 py-1"
+            class="flex items-center whitespace-nowrap rounded-full border border-white px-4 py-1"
             ><span>Sort By</span><mdicon name="chevron-down"
           /></ListboxButton>
           <ListboxOptions
@@ -57,7 +57,7 @@
         leave-active-class="absolute hidden"
         enter-from-class="opacity-0"
         leave-to-class="opacity-0"
-        class="grid w-full justify-items-center pl-5"
+        class="grid w-full justify-items-center"
         style="grid-template-columns: repeat(auto-fill, minmax(168px, 1fr))"
       >
         <MoviePosterCard
