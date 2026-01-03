@@ -9,7 +9,7 @@ import joinRouter from "./members/join";
 import reviewsRouter from "./reviews";
 import settingsRouter from "./settings";
 import { hasValue } from "../../../lib/checks/checks.js";
-import { BaseClub, ClubPreview } from "../../../lib/types/club";
+import { ClubPreview } from "../../../lib/types/club";
 import ClubRepository from "../repositories/ClubRepository";
 import ListRepository from "../repositories/ListRepository";
 import SettingsRepository from "../repositories/SettingsRepository";
@@ -19,13 +19,13 @@ import { loggedIn, secured } from "../utils/auth";
 import { db } from "../utils/database";
 import { ok, badRequest } from "../utils/responses";
 import { Router } from "../utils/router";
-import { mapIdToLegacyId, validClubId } from "../utils/validation";
+import { validClubId } from "../utils/validation";
 
 const router = new Router("/api/club");
 router.use("/:clubId<\\d+>/list", validClubId, listRouter);
 router.use("/:clubId<\\d+>/reviews", validClubId, reviewsRouter);
 router.use("/:clubId<\\d+>/members", validClubId, membersRouter);
-router.use("/:clubId<\\d+>/awards", validClubId, mapIdToLegacyId, awardsRouter);
+router.use("/:clubId<\\d+>/awards", validClubId, awardsRouter);
 router.use("/:clubId<\\d+>/invite", validClubId, inviteRouter);
 router.use("/:clubId<\\d+>/settings", validClubId, settingsRouter);
 router.get("/:clubId<\\d+>", validClubId, async ({ clubId }, res) => {

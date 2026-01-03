@@ -1,9 +1,10 @@
 import { z } from "zod";
 
-import { ClubAwardRequest, updateAward } from "./utils";
+import { ClubAwardRequest } from "./utils";
 import { hasValue } from "../../../../lib/checks/checks.js";
-import { securedLegacy } from "../../utils/auth";
-import { getFaunaClient } from "../../utils/fauna";
+import { BaseAward, BaseAwardNomination } from "../../../../lib/types/awards";
+import AwardsRepository from "../../repositories/AwardsRepository";
+import { secured } from "../../utils/auth";
 import { badRequest, ok } from "../../utils/responses";
 import { Router } from "../../utils/router";
 
@@ -19,7 +20,7 @@ const addRankingSchema = z.object({
 
 router.post(
   "/",
-  securedLegacy<ClubAwardRequest>,
+  secured<ClubAwardRequest>,
   async ({ event, clubId, year }, res) => {
     if (!hasValue(event.body)) return res(badRequest("Missing body"));
     const body = addRankingSchema.safeParse(JSON.parse(event.body));
@@ -27,58 +28,35 @@ router.post(
 
     const { awardTitle, movies, voter } = body.data;
 
-    const moviesWithRanking = movies.map((id, index) => ({
-      id,
-      rank: index + 1,
-    }));
-
-    const { faunaClient, q } = getFaunaClient();
-
-    await faunaClient.query(
-      updateAward(
-        clubId,
-        year,
-        awardTitle,
-        q.Let(
-          {
-            movies: moviesWithRanking,
-            nominations: q.Select("nominations", q.Var("award")),
-          },
-          {
-            nominations: q.Map(
-              q.Var("nominations"),
-              q.Lambda(
-                "nomination",
-                q.Let(
-                  {
-                    rankingObj: q.Select("ranking", q.Var("nomination")),
-                    movieId: q.Select("movieId", q.Var("nomination")),
-                    rank: q.Select(
-                      [0, "rank"],
-                      q.Filter(
-                        q.Var("movies"),
-                        q.Lambda(
-                          "movie",
-                          q.Equals(
-                            q.Select("id", q.Var("movie")),
-                            q.Var("movieId"),
-                          ),
-                        ),
-                      ),
-                    ),
-                  },
-                  q.Merge(q.Var("nomination"), {
-                    ranking: q.Merge(q.Var("rankingObj"), {
-                      [voter]: q.Var("rank"),
-                    }),
-                  }),
-                ),
-              ),
-            ),
-          },
-        ),
-      ),
+    // Create a map of movieId -> rank
+    const movieRanks = new Map(
+      movies.map((movieId, index) => [movieId, index + 1]),
     );
+
+    await AwardsRepository.updateByYear(clubId, year, (currentData) => ({
+      ...currentData,
+      awards: currentData.awards.map((award: BaseAward) => {
+        if (award.title !== awardTitle) return award;
+
+        return {
+          ...award,
+          nominations: award.nominations.map(
+            (nomination: BaseAwardNomination) => {
+              const rank = movieRanks.get(nomination.movieId);
+              if (rank === undefined) return nomination;
+
+              return {
+                ...nomination,
+                ranking: {
+                  ...nomination.ranking,
+                  [voter]: rank,
+                },
+              };
+            },
+          ),
+        };
+      }),
+    }));
 
     return res(ok());
   },

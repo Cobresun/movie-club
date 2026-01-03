@@ -1,5 +1,5 @@
 import { screen, within } from "@testing-library/vue";
-import { rest } from "msw";
+import { http, HttpResponse } from "msw";
 
 import ReviewView from "../views/ReviewView.vue";
 
@@ -80,6 +80,7 @@ describe("ReviewView", () => {
   it("should submit score", async () => {
     const { user, pinia } = render(ReviewView, { props: { clubId: "1" } });
     const authStore = useAuthStore(pinia);
+    // @ts-expect-error Overwriting readonly property for testing purposes
     authStore.user = userData;
     //@ts-expect-error Forcing logged in to true for testing
     authStore.isLoggedIn = true;
@@ -124,8 +125,8 @@ describe("ReviewView", () => {
       },
     ];
     server.use(
-      rest.get("/api/club/:id/list/reviews", (req, res, ctx) => {
-        return res(ctx.status(200), ctx.json(newReviews));
+      http.get("/api/club/:id/list/reviews", () => {
+        return HttpResponse.json(newReviews);
       }),
     );
 

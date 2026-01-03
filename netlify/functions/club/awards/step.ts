@@ -1,9 +1,9 @@
 import { z } from "zod";
 
-import { ClubAwardRequest, updateClubAwardYear } from "./utils";
+import { ClubAwardRequest } from "./utils";
 import { hasValue } from "../../../../lib/checks/checks.js";
-import { securedLegacy } from "../../utils/auth";
-import { getFaunaClient } from "../../utils/fauna";
+import AwardsRepository from "../../repositories/AwardsRepository";
+import { secured } from "../../utils/auth";
 import { badRequest, ok } from "../../utils/responses";
 import { Router } from "../../utils/router";
 
@@ -17,16 +17,18 @@ const updateStepSchema = z.object({
 
 router.put(
   "/",
-  securedLegacy<ClubAwardRequest>,
+  secured<ClubAwardRequest>,
   async ({ event, clubId, year }, res) => {
     if (!hasValue(event.body)) return res(badRequest("Missing body"));
     const body = updateStepSchema.safeParse(JSON.parse(event.body));
     if (!body.success) return res(badRequest("Invalid body"));
 
     const { step } = body.data;
-    const { faunaClient } = getFaunaClient();
 
-    await faunaClient.query(updateClubAwardYear(clubId, year, { step }));
+    await AwardsRepository.updateByYear(clubId, year, (currentData) => ({
+      ...currentData,
+      step,
+    }));
 
     return res(ok());
   },
