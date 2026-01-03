@@ -171,9 +171,10 @@
 <script setup lang="ts">
 import { FlexRender, Row, Table } from "@tanstack/vue-table";
 import { DateTime } from "luxon";
-import { ref, onMounted, onUnmounted, watch } from "vue";
+import { ref, onMounted, onUnmounted, watch, computed, toRef } from "vue";
 import { useToast } from "vue-toastification";
 
+import { useBodyScrollLock } from "../../../common/composables/useBodyScrollLock";
 import { isDefined } from "../../../../lib/checks/checks.js";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
 
@@ -237,6 +238,10 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener("resize", checkScreenSize);
 });
+
+// Use body scroll lock composable (only on mobile)
+const isMobile = computed(() => !isMediumScreen.value);
+useBodyScrollLock(toRef(props, "isOpen"), isMobile);
 
 // Reset drag offset when drawer state changes
 watch(
