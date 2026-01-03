@@ -41,3 +41,16 @@ export function hasElements<T>(
 ): arr is NonEmptyArray<T> {
   return isDefined(arr) && Array.isArray(arr) && arr.length > 0;
 }
+
+export function filterUndefinedProperties(
+  obj: Record<string, string | undefined>,
+): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (const key in obj) {
+    const value = obj[key];
+    if (isDefined(value)) {
+      result[key] = value;
+    }
+  }
+  return result;
+}

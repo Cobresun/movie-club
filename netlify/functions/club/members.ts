@@ -12,7 +12,7 @@ router.get("/", async ({ clubId }, res) => {
   const response: Member[] = members.map((member) => ({
     id: member.id,
     email: member.email,
-    name: member.username,
+    name: member.name,
     image: member.image_url ?? undefined,
     role: member.role ?? undefined,
   }));

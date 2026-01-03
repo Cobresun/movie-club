@@ -1,10 +1,14 @@
 import { CockroachDialect } from "@cubos/kysely-cockroach";
 import { promises as fs } from "fs";
 import { Kysely, Migrator, FileMigrationProvider } from "kysely";
-import * as path from "path";
+import path from "path";
 import { Pool } from "pg";
+import { fileURLToPath } from "url";
 
 import { isDefined } from "../lib/checks/checks.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 async function withMigrator(next: (migrator: Migrator) => Promise<void>) {
   const db = new Kysely<unknown>({

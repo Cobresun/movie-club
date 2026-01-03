@@ -1,3 +1,4 @@
+import { isDefined } from "../../lib/checks/checks.js";
 import { DetailedWorkListItem } from "../../lib/types/lists";
 
 /**
@@ -49,25 +50,31 @@ export function filterMovies<T extends DetailedWorkListItem>(
     );
   }
   if (filters.company) {
-    filteredReviews = filteredReviews.filter((review) =>
-      review.externalData?.production_companies.some((company) =>
-        company.toLocaleLowerCase().includes(filters.company.toLowerCase()),
-      ),
+    filteredReviews = filteredReviews.filter(
+      (review) =>
+        isDefined(review.externalData) &&
+        review.externalData?.production_companies.some((company) =>
+          company.toLocaleLowerCase().includes(filters.company.toLowerCase()),
+        ),
     );
   }
   if (filters.description) {
-    filteredReviews = filteredReviews.filter((review) =>
-      review.externalData?.overview
-        .toLocaleLowerCase()
-        .includes(filters.description.toLowerCase()),
+    filteredReviews = filteredReviews.filter(
+      (review) =>
+        isDefined(review.externalData) &&
+        review.externalData?.overview
+          .toLocaleLowerCase()
+          .includes(filters.description.toLowerCase()),
     );
   }
 
   if (filters.genre) {
-    filteredReviews = filteredReviews.filter((review) =>
-      review.externalData?.genres.some((genre) =>
-        genre.toLocaleLowerCase().includes(filters.genre.toLowerCase()),
-      ),
+    filteredReviews = filteredReviews.filter(
+      (review) =>
+        isDefined(review.externalData) &&
+        review.externalData?.genres.some((genre) =>
+          genre.toLocaleLowerCase().includes(filters.genre.toLowerCase()),
+        ),
     );
   }
 
