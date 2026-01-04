@@ -10,7 +10,7 @@
         <p class="text-lg font-semibold">Email:</p>
         <p>{{ data?.email }}</p>
       </div>
-      <div class="flex flex-col items-center gap-4">
+      <div class="relative">
         <input ref="fileInput" type="file" hidden @change="uploadAvatar" />
         <button class="group relative cursor-pointer" @click="openFileSelector">
           <v-avatar
@@ -27,13 +27,14 @@
             <mdicon v-else name="pencil" size="32" />
           </div>
         </button>
-        <v-btn
+        <button
           v-if="data?.image && !isLoading"
-          variant="secondary"
+          class="absolute right-0 top-0 flex h-10 w-10 items-center justify-center rounded-full bg-red-500 text-white shadow-lg transition-colors hover:bg-red-600"
+          title="Delete photo"
           @click="handleDeleteAvatar"
         >
-          Delete Photo
-        </v-btn>
+          <mdicon name="close" size="24" />
+        </button>
       </div>
     </div>
 
