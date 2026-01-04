@@ -10,22 +10,31 @@
         <p class="text-lg font-semibold">Email:</p>
         <p>{{ data?.email }}</p>
       </div>
-      <input ref="fileInput" type="file" hidden @change="uploadAvatar" />
-      <button class="group relative cursor-pointer" @click="openFileSelector">
-        <v-avatar
-          class="mb-4 md:mb-0"
-          :src="data?.image"
-          :name="data?.name"
-          size="160"
-        />
-        <div
-          class="absolute left-0 top-0 h-full w-full items-center justify-center rounded-full bg-black bg-opacity-30"
-          :class="{ flex: isLoading, 'hidden group-hover:flex': !isLoading }"
+      <div class="flex flex-col items-center gap-4">
+        <input ref="fileInput" type="file" hidden @change="uploadAvatar" />
+        <button class="group relative cursor-pointer" @click="openFileSelector">
+          <v-avatar
+            class="mb-4 md:mb-0"
+            :src="data?.image"
+            :name="data?.name"
+            size="160"
+          />
+          <div
+            class="absolute left-0 top-0 h-full w-full items-center justify-center rounded-full bg-black bg-opacity-30"
+            :class="{ flex: isLoading, 'hidden group-hover:flex': !isLoading }"
+          >
+            <loading-spinner v-if="isLoading" />
+            <mdicon v-else name="pencil" size="32" />
+          </div>
+        </button>
+        <v-btn
+          v-if="data?.image && !isLoading"
+          variant="secondary"
+          @click="handleDeleteAvatar"
         >
-          <loading-spinner v-if="isLoading" />
-          <mdicon v-else name="pencil" size="32" />
-        </div>
-      </button>
+          Delete Photo
+        </v-btn>
+      </div>
     </div>
 
     <!-- Change Password Section -->
@@ -46,7 +55,7 @@ import { useToast } from "vue-toastification";
 import { isDefined } from "../../../../lib/checks/checks.js";
 import ChangePasswordForm from "../../auth/components/ChangePasswordForm.vue";
 
-import { useUser, useUpdateAvatar } from "@/service/useUser";
+import { useUser, useUpdateAvatar, useDeleteAvatar } from "@/service/useUser";
 
 const { data, isFetching: isUserLoading } = useUser();
 const fileInput: Ref<HTMLInputElement | null> = ref(null);
@@ -57,10 +66,11 @@ const openFileSelector = () => {
 };
 
 const { mutate, isLoading: isAvatarLoading } = useUpdateAvatar();
+const { mutate: deleteAvatar, isLoading: isDeleteLoading } = useDeleteAvatar();
 const toast = useToast();
 const uploadAvatar = (event: Event) => {
   const input = event.target as HTMLInputElement;
-  if (!isDefined(input.files) || input.files.length > 0) return;
+  if (!isDefined(input.files) || input.files.length === 0) return;
 
   const file = input.files[0];
   const maxFileSize = 6 * 1024 * 1024;
@@ -76,5 +86,11 @@ const uploadAvatar = (event: Event) => {
   mutate(formData);
 };
 
-const isLoading = computed(() => isUserLoading.value || isAvatarLoading.value);
+const handleDeleteAvatar = () => {
+  deleteAvatar();
+};
+
+const isLoading = computed(
+  () => isUserLoading.value || isAvatarLoading.value || isDeleteLoading.value,
+);
 </script>
