@@ -68,7 +68,7 @@ router.delete("/avatar", loggedIn, async (req, res) => {
     }
 
     // Clear the image URL and ID from the database
-    await UserRepository.updateImage(user.id, undefined, undefined);
+    await UserRepository.updateImage(user.id, null, null);
 
     return res(ok("Avatar deleted successfully"));
   } catch (error) {

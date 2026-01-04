@@ -25,7 +25,11 @@ class UserRepository {
       .execute();
   }
 
-  async updateImage(userId: string, imageUrl?: string, imageId?: string) {
+  async updateImage(
+    userId: string,
+    imageUrl?: string | null,
+    imageId?: string | null,
+  ) {
     return await db
       .updateTable("user")
       .set({ image_id: imageId, image_url: imageUrl })
