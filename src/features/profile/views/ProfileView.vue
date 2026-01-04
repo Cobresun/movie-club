@@ -60,7 +60,7 @@ const { mutate, isLoading: isAvatarLoading } = useUpdateAvatar();
 const toast = useToast();
 const uploadAvatar = (event: Event) => {
   const input = event.target as HTMLInputElement;
-  if (!isDefined(input.files) || input.files.length > 0) return;
+  if (!isDefined(input.files) || input.files.length === 0) return;
 
   const file = input.files[0];
   const maxFileSize = 6 * 1024 * 1024;
