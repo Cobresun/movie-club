@@ -156,7 +156,6 @@ export interface User {
   id: Generated<Int8>;
   image: string | null;
   image_id: string | null;
-  image_url: string | null;
   name: string;
   updatedAt: Generated<Timestamp>;
 }
