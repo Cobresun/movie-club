@@ -17,18 +17,7 @@
               : 'border-slate-600',
           ]"
         >
-          <img
-            v-if="member.image"
-            :src="member.image"
-            :alt="member.name"
-            class="h-6 w-6 rounded-full object-cover"
-          />
-          <div
-            v-else
-            class="flex h-6 w-6 items-center justify-center rounded-full bg-gray-500"
-          >
-            <mdicon name="account" class="h-4 w-4 text-gray-300" />
-          </div>
+          <v-avatar :src="member.image" :name="member.name" :size="24" />
           <span class="text-sm">{{ member.name }}</span>
         </div>
         <!-- Invite pill -->
