@@ -30,6 +30,27 @@
       </button>
     </div>
 
+    <!-- Google Login Button -->
+    <button
+      type="button"
+      :disabled="loading"
+      class="mb-4 flex w-full items-center justify-center gap-3 rounded border border-gray-600 bg-gray-700 px-4 py-2 font-medium text-text transition-all hover:bg-gray-600 disabled:cursor-not-allowed disabled:opacity-50"
+      @click="handleGoogleLogin"
+    >
+      <img :src="googleLogo" alt="Google" class="h-5 w-5" />
+      {{ isSignUp ? "Sign up with Google" : "Log in with Google" }}
+    </button>
+
+    <!-- Divider -->
+    <div class="relative mb-4">
+      <div class="absolute inset-0 flex items-center">
+        <div class="w-full border-t border-gray-600"></div>
+      </div>
+      <div class="relative flex justify-center text-sm">
+        <span class="bg-background px-2 text-gray-400">or</span>
+      </div>
+    </div>
+
     <!-- Error Message -->
     <div
       v-if="errorMessage"
@@ -122,6 +143,7 @@
 import { ref } from "vue";
 import { useToast } from "vue-toastification";
 
+import googleLogo from "@/assets/images/google-logo.svg";
 import { authClient } from "@/lib/auth-client";
 
 const emit = defineEmits<{
@@ -215,6 +237,21 @@ const handleResendVerification = async () => {
     toast.success("Verification email sent! Please check your inbox.");
   } catch {
     toast.error("Failed to send verification email. Please try again.");
+  }
+};
+
+const handleGoogleLogin = async () => {
+  errorMessage.value = "";
+  loading.value = true;
+
+  try {
+    await authClient.signIn.social({
+      provider: "google",
+      callbackURL: "/",
+    });
+  } catch {
+    errorMessage.value = "Failed to sign in with Google. Please try again.";
+    loading.value = false;
   }
 };
 </script>
