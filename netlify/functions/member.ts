@@ -58,6 +58,25 @@ router.post("/avatar", loggedIn, async (req, res) => {
   }
 });
 
+router.delete("/avatar", loggedIn, async (req, res) => {
+  try {
+    const user = await UserRepository.getByEmail(req.email);
+
+    // Delete the image from Cloudinary if it exists
+    if (isDefined(user.image_id)) {
+      await ImageRepository.destroy(user.image_id);
+    }
+
+    // Clear the image URL and ID from the database
+    await UserRepository.updateImage(user.id, null, null);
+
+    return res(ok("Avatar deleted successfully"));
+  } catch (error) {
+    console.error("Error deleting avatar:", error);
+    return res(badRequest("Error deleting avatar"));
+  }
+});
+
 const handler: Handler = async (
   event: HandlerEvent,
   context: HandlerContext,

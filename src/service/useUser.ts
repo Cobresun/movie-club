@@ -46,3 +46,16 @@ export function useUpdateAvatar() {
     },
   });
 }
+
+export function useDeleteAvatar() {
+  const auth = useAuthStore();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => await auth.request.delete(`/api/member/avatar`),
+    onSettled: () => {
+      queryClient
+        .invalidateQueries({ queryKey: ["user", auth.user?.email ?? ""] })
+        .catch(console.error);
+    },
+  });
+}

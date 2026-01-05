@@ -10,22 +10,32 @@
         <p class="text-lg font-semibold">Email:</p>
         <p>{{ data?.email }}</p>
       </div>
-      <input ref="fileInput" type="file" hidden @change="uploadAvatar" />
-      <button class="group relative cursor-pointer" @click="openFileSelector">
-        <v-avatar
-          class="mb-4 md:mb-0"
-          :src="data?.image"
-          :name="data?.name"
-          size="160"
-        />
-        <div
-          class="absolute left-0 top-0 h-full w-full items-center justify-center rounded-full bg-black bg-opacity-30"
-          :class="{ flex: isLoading, 'hidden group-hover:flex': !isLoading }"
+      <div class="relative">
+        <input ref="fileInput" type="file" hidden @change="uploadAvatar" />
+        <button class="group relative cursor-pointer" @click="openFileSelector">
+          <v-avatar
+            class="mb-4 md:mb-0"
+            :src="data?.image"
+            :name="data?.name"
+            size="160"
+          />
+          <div
+            class="absolute left-0 top-0 h-full w-full items-center justify-center rounded-full bg-black bg-opacity-30"
+            :class="{ flex: isLoading, 'hidden group-hover:flex': !isLoading }"
+          >
+            <loading-spinner v-if="isLoading" />
+            <mdicon v-else name="pencil" size="32" />
+          </div>
+        </button>
+        <button
+          v-if="data?.image && !isLoading"
+          class="absolute right-0 top-0 flex h-10 w-10 items-center justify-center rounded-full bg-red-500 text-white shadow-lg transition-colors hover:bg-red-600"
+          title="Delete photo"
+          @click="handleDeleteAvatar"
         >
-          <loading-spinner v-if="isLoading" />
-          <mdicon v-else name="pencil" size="32" />
-        </div>
-      </button>
+          <mdicon name="close" size="24" />
+        </button>
+      </div>
     </div>
 
     <!-- Change Password Section -->
@@ -46,7 +56,7 @@ import { useToast } from "vue-toastification";
 import { isDefined } from "../../../../lib/checks/checks.js";
 import ChangePasswordForm from "../../auth/components/ChangePasswordForm.vue";
 
-import { useUser, useUpdateAvatar } from "@/service/useUser";
+import { useUser, useUpdateAvatar, useDeleteAvatar } from "@/service/useUser";
 
 const { data, isFetching: isUserLoading } = useUser();
 const fileInput: Ref<HTMLInputElement | null> = ref(null);
@@ -57,6 +67,7 @@ const openFileSelector = () => {
 };
 
 const { mutate, isLoading: isAvatarLoading } = useUpdateAvatar();
+const { mutate: deleteAvatar, isLoading: isDeleteLoading } = useDeleteAvatar();
 const toast = useToast();
 const uploadAvatar = (event: Event) => {
   const input = event.target as HTMLInputElement;
@@ -76,5 +87,11 @@ const uploadAvatar = (event: Event) => {
   mutate(formData);
 };
 
-const isLoading = computed(() => isUserLoading.value || isAvatarLoading.value);
+const handleDeleteAvatar = () => {
+  deleteAvatar();
+};
+
+const isLoading = computed(
+  () => isUserLoading.value || isAvatarLoading.value || isDeleteLoading.value,
+);
 </script>
