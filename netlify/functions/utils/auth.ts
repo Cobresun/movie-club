@@ -54,9 +54,11 @@ export const auth = betterAuth({
       clientSecret: googleClientSecret,
     },
   },
-  trustedOrigins: [process.env.URL, process.env.DEPLOY_PRIME_URL].filter(
-    isDefined,
-  ),
+  trustedOrigins: [
+    process.env.URL,
+    process.env.DEPLOY_PRIME_URL,
+    process.env.BETTER_AUTH_URL,
+  ].filter(isDefined),
   advanced: {
     database: {
       // Mixed ID types: auto-increment for user, UUIDs for session/account/verification
