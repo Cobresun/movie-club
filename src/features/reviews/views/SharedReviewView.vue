@@ -88,7 +88,7 @@
                   <div class="flex items-center justify-between gap-4">
                     <div class="flex items-center gap-4">
                       <v-avatar
-                        :src="member.image_url"
+                        :src="member.image"
                         :name="member.name"
                         class="h-12 w-12"
                       />

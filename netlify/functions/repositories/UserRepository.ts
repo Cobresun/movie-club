@@ -19,7 +19,7 @@ class UserRepository {
         "user.id",
         "user.email",
         "user.name",
-        "user.image_url",
+        "user.image",
         "club_member.role",
       ])
       .execute();
@@ -32,7 +32,7 @@ class UserRepository {
   ) {
     return await db
       .updateTable("user")
-      .set({ image_id: imageId, image_url: imageUrl })
+      .set({ image_id: imageId, image: imageUrl })
       .where("id", "=", userId)
       .execute();
   }

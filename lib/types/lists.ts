@@ -45,7 +45,7 @@ export interface SharedReviewResponse {
   members: {
     id: string;
     name: string;
-    image_url: string;
+    image: string;
   }[];
   reviews: {
     user_id: string;
