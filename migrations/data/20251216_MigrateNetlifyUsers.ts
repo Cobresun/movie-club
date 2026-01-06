@@ -132,7 +132,6 @@ async function migrateUser(
           createdAt,
           updatedAt,
           image: null,
-          image_url: null,
           image_id: null,
         })
         .returning("id")

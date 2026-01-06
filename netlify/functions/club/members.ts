@@ -13,7 +13,7 @@ router.get("/", async ({ clubId }, res) => {
     id: member.id,
     email: member.email,
     name: member.name,
-    image: member.image_url ?? undefined,
+    image: member.image ?? undefined,
     role: member.role ?? undefined,
   }));
   return res(ok(JSON.stringify(response)));
