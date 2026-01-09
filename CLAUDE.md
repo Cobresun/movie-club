@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Movie Club is a Vue 3 web application for managing movie clubs, reviews, watchlists, and awards. It uses Netlify Functions for the backend API, CockroachDB (PostgreSQL-compatible) for data storage, and Netlify Identity for authentication.
+Movie Club is a Vue 3 web application for managing movie clubs, reviews, watchlists, and awards. It uses Netlify Functions for the backend API, CockroachDB (PostgreSQL-compatible) for data storage, and BetterAuth for authentication.
 
 ## Development Commands
 
@@ -17,10 +17,6 @@ netlify dev
 Runs the full application including Netlify functions with hot-reload. This is the primary development command.
 
 **Important Development Setup:**
-- When developing locally, if the Login button doesn't appear, run in browser console:
-  ```javascript
-  localStorage.setItem("netlifySiteURL", "https://cobresun-movie-club.netlify.app")
-  ```
 - Use the `cobresunofficial@gmail.com` account for development
 
 ### Building and Testing
@@ -75,7 +71,7 @@ The `.env` file for development is documented in the Cobresun Notion.
 - **Pinia** for state management
 - **Vue Router 4** with route-based code splitting
 - **TanStack Query (Vue Query)** for server state management with persistence
-- **Netlify Identity Widget** for authentication
+- **BetterAuth** (better-auth/vue) for authentication
 - **Tailwind CSS** for styling
 - **Vitest** for testing with jsdom environment
 - **mdi-vue** for Material Design Icons
@@ -164,12 +160,12 @@ router.get("/:clubId<\\d+>", validClubId, async ({ clubId }, res) => {
 
 ### Authentication Flow
 
-1. Netlify Identity Widget initializes on app load
-2. Auth store (Pinia) manages user state and JWT token
-3. Token auto-refreshes every 59 minutes via Vue Query
-4. Axios interceptor adds `Authorization: Bearer <token>` header
-5. Router guards check auth before accessing protected routes
-6. Backend functions use `loggedIn` or `secured` middleware to validate JWT
+1. BetterAuth client (`better-auth/vue`) initializes on app load
+2. Auth store (Pinia) manages user state and session
+3. Sessions managed via HTTP-only cookies (automatic by BetterAuth)
+4. Router guards check auth before accessing protected routes
+5. Backend functions use `loggedIn` or `secured` middleware to extract session
+6. Email verification required before first login
 
 ## Common Patterns
 
@@ -206,7 +202,8 @@ src/features/<feature-name>/
 
 - `src/main.ts` - Vue app initialization, global components, plugins
 - `src/router/index.ts` - Route definitions and navigation guards
-- `src/stores/auth.ts` - Authentication state and Netlify Identity integration
+- `src/stores/auth.ts` - Authentication state and session management
+- `src/lib/auth-client.ts` - BetterAuth client configuration
 - `netlify/functions/utils/router.ts` - Custom routing framework
 - `netlify/functions/utils/database.ts` - Database connection singleton
 - `netlify/functions/utils/auth.ts` - Auth middleware
@@ -218,6 +215,6 @@ src/features/<feature-name>/
 ## External Services
 
 - **TMDB (The Movie Database)** - Movie metadata API (see `netlify/functions/utils/tmdb.ts`)
-- **Netlify Identity** - Authentication provider
+- **BetterAuth** - Authentication library (email/password with session management)
 - **CockroachDB** - PostgreSQL-compatible distributed database
 - **Cloudinary** - Image hosting (imported but usage not shown in sampled files)
