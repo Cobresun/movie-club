@@ -33,7 +33,7 @@ export function useCreateClub() {
       members: string[];
     }) => auth.request.post(`/api/club`, { name: clubName, members }),
     onSuccess: () => {
-      queryClient.invalidateQueries(["clubs"]).catch(console.error);
+      queryClient.invalidateQueries(["user", "clubs"]).catch(console.error);
     },
   });
 }
@@ -77,10 +77,14 @@ export function useAddMembers(clubId: string) {
 export function useLeaveClub(clubId: string) {
   const auth = useAuthStore();
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: () => auth.request.delete(`/api/club/${clubId}/members/self`),
-    onSuccess: () => router.push({ name: "Clubs" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries(["user", "clubs"]).catch(console.error);
+      router.push({ name: "Clubs" }).catch(console.error);
+    },
   });
 }
 
