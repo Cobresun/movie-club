@@ -244,6 +244,21 @@ const handleGoogleLogin = async () => {
   errorMessage.value = "";
   loading.value = true;
 
+  // Set up a focus listener to detect when user returns from OAuth popup
+  const handleFocus = () => {
+    // Small delay to allow auth state to update
+    setTimeout(() => {
+      // If still not authenticated after returning to window, reset loading state
+      if (loading.value) {
+        loading.value = false;
+      }
+    }, 500);
+    window.removeEventListener("focus", handleFocus);
+  };
+
+  // Add focus listener before opening OAuth popup
+  window.addEventListener("focus", handleFocus);
+
   try {
     await authClient.signIn.social({
       provider: "google",
@@ -252,6 +267,7 @@ const handleGoogleLogin = async () => {
   } catch {
     errorMessage.value = "Failed to sign in with Google. Please try again.";
     loading.value = false;
+    window.removeEventListener("focus", handleFocus);
   }
 };
 </script>
