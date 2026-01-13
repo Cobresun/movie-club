@@ -244,30 +244,67 @@ const handleGoogleLogin = async () => {
   errorMessage.value = "";
   loading.value = true;
 
-  // Set up a focus listener to detect when user returns from OAuth popup
-  const handleFocus = () => {
-    // Small delay to allow auth state to update
-    setTimeout(() => {
-      // If still not authenticated after returning to window, reset loading state
-      if (loading.value) {
-        loading.value = false;
-      }
-    }, 500);
-    window.removeEventListener("focus", handleFocus);
+  let timeoutId: number | null = null;
+  let visibilityHandler: (() => void) | null = null;
+
+  // Cleanup function
+  const cleanup = () => {
+    if (timeoutId !== null) {
+      clearTimeout(timeoutId);
+      timeoutId = null;
+    }
+    if (visibilityHandler) {
+      document.removeEventListener("visibilitychange", visibilityHandler);
+      visibilityHandler = null;
+    }
   };
 
-  // Add focus listener before opening OAuth popup
-  window.addEventListener("focus", handleFocus);
+  // Set a timeout to reset loading state if OAuth doesn't complete
+  timeoutId = setTimeout(() => {
+    if (loading.value) {
+      loading.value = false;
+      cleanup();
+    }
+  }, 60000) as unknown as number; // 60 second timeout
+
+  // Listen for when the page becomes visible again (user returns from OAuth popup)
+  visibilityHandler = () => {
+    if (!document.hidden && loading.value) {
+      // Wait a bit for auth state to update, then check if still loading
+      setTimeout(() => {
+        if (loading.value) {
+          // User likely backed out of OAuth flow
+          loading.value = false;
+          cleanup();
+        }
+      }, 1000);
+    }
+  };
+  document.addEventListener("visibilitychange", visibilityHandler);
 
   try {
-    await authClient.signIn.social({
-      provider: "google",
-      callbackURL: "/",
-    });
+    await authClient.signIn.social(
+      {
+        provider: "google",
+        callbackURL: "/",
+      },
+      {
+        onSuccess: () => {
+          cleanup();
+          toast.success("Signed in successfully!");
+          handleClose();
+        },
+        onError: () => {
+          cleanup();
+          errorMessage.value = "Failed to sign in with Google. Please try again.";
+          loading.value = false;
+        },
+      },
+    );
   } catch {
+    cleanup();
     errorMessage.value = "Failed to sign in with Google. Please try again.";
     loading.value = false;
-    window.removeEventListener("focus", handleFocus);
   }
 };
 </script>
