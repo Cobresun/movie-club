@@ -35,6 +35,7 @@ export function useBodyScrollLock(
 
   // Watch for changes in open state
   watch(isOpen, updateBodyScroll);
+  updateBodyScroll();
 
   // Watch for changes in shouldLock condition if provided
   if (shouldLock) {
