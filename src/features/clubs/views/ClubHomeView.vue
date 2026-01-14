@@ -31,37 +31,30 @@
     </div>
 
     <!-- Invite Modal -->
-    <div
-      v-if="showInviteModal"
-      class="fixed left-0 top-0 z-50 flex h-full w-full items-center justify-center bg-black bg-opacity-50"
-      @click="showInviteModal = false"
-    >
-      <div
-        class="mx-4 w-full rounded-lg bg-background p-8 md:w-1/2"
-        @click.stop=""
-      >
-        <h3 class="mb-4 text-xl font-semibold">Invite Members</h3>
-        <div class="space-y-3">
-          <p class="pb-4 text-sm text-gray-500">
-            Share this link to invite people to your club
-          </p>
-          <div class="flex items-center gap-3">
-            <input
-              ref="inviteLinkInput"
-              :value="inviteLink"
-              readonly
-              class="w-full rounded-md border border-gray-200 bg-gray-50 p-3 text-sm text-gray-600"
-            />
-            <v-btn class="h-[44px] min-w-[44px]" @click="copyInviteLink">
-              <mdicon :name="copyIcon" />
-            </v-btn>
-          </div>
+    <v-modal v-if="showInviteModal" size="sm" @close="showInviteModal = false">
+      <h3 class="mb-4 text-xl font-semibold">Invite Members</h3>
+      <div class="space-y-3">
+        <p class="pb-4 text-sm text-gray-500">
+          Share this link to invite people to your club
+        </p>
+        <div class="flex items-center gap-3">
+          <input
+            ref="inviteLinkInput"
+            :value="inviteLink"
+            readonly
+            class="w-full rounded-md border border-gray-200 bg-gray-50 p-3 text-sm text-gray-600"
+          />
+          <v-btn class="h-[44px] min-w-[44px]" @click="copyInviteLink">
+            <mdicon :name="copyIcon" />
+          </v-btn>
         </div>
       </div>
-    </div>
+    </v-modal>
 
     <!-- Navigation cards grid -->
-    <div class="mx-auto grid max-w-5xl grid-cols-2 gap-3 px-4 pb-6 md:grid-cols-4">
+    <div
+      class="mx-auto grid max-w-5xl grid-cols-2 gap-3 px-4 pb-6 md:grid-cols-4"
+    >
       <router-link :to="{ name: 'Reviews' }">
         <menu-card :image="reviewSvg"> Reviews </menu-card>
       </router-link>

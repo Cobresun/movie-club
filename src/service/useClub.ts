@@ -59,7 +59,7 @@ export function useIsInClub(clubId: string) {
   const isUserInClub = computed(() => {
     return isLoading.value
       ? false
-      : clubs.value?.some((club) => club.clubId === clubId) ?? false;
+      : (clubs.value?.some((club) => club.clubId === clubId) ?? false);
   });
   return isUserInClub;
 }
