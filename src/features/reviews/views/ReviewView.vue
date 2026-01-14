@@ -1,6 +1,26 @@
 <template>
   <div class="p-2">
     <add-review-prompt v-if="modalOpen" @close="closePrompt" />
+    <v-modal v-if="reviewToDelete" size="sm" @close="cancelDelete">
+      <div class="flex flex-col gap-4">
+        <h2 class="text-xl font-bold">Delete Review</h2>
+        <p>Are you sure you want to delete this review? This action cannot be undone.</p>
+        <div class="flex gap-3">
+          <button
+            class="flex-1 rounded-md bg-gray-600 py-3 font-bold text-white hover:brightness-110"
+            @click="cancelDelete"
+          >
+            Cancel
+          </button>
+          <button
+            class="flex-1 rounded-md bg-red-500 py-3 font-bold text-white hover:brightness-110"
+            @click="confirmDelete"
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+    </v-modal>
     <page-header :has-back="true" back-route="ClubHome" page-name="Reviews">
       <div class="flex gap-2">
         <mdicon name="table" />
@@ -134,6 +154,17 @@ const closePrompt = () => {
   modalOpen.value = false;
 };
 
+const reviewToDelete = ref<string | null>(null);
+const cancelDelete = () => {
+  reviewToDelete.value = null;
+};
+const confirmDelete = () => {
+  if (reviewToDelete.value) {
+    deleteReview(reviewToDelete.value);
+    reviewToDelete.value = null;
+  }
+};
+
 const searchTerm = ref("");
 const filteredReviews = computed<DetailedReviewListItem[]>(() => {
   return filterMovies(reviews.value ?? [], searchTerm.value);
@@ -258,7 +289,7 @@ const columns = computed(() => [
             name: "delete",
             class: "cursor-pointer hover:text-primary transition-colors",
             onClick: () => {
-              deleteReview(row.original.id);
+              reviewToDelete.value = row.original.id;
             },
           })
         : h(

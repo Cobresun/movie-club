@@ -1,5 +1,25 @@
 <template>
   <div class="flex-grow">
+    <v-modal v-if="showDeleteConfirmation" size="sm" @close="cancelDelete">
+      <div class="flex flex-col gap-4">
+        <h2 class="text-xl font-bold">Delete Review</h2>
+        <p>Are you sure you want to delete this review? This action cannot be undone.</p>
+        <div class="flex gap-3">
+          <button
+            class="flex-1 rounded-md bg-gray-600 py-3 font-bold text-white hover:brightness-110"
+            @click="cancelDelete"
+          >
+            Cancel
+          </button>
+          <button
+            class="flex-1 rounded-md bg-red-500 py-3 font-bold text-white hover:brightness-110"
+            @click="confirmDelete"
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+    </v-modal>
     <!-- Movie details -->
     <div :class="isDesktop ? 'flex flex-col items-center' : 'flex gap-4'">
       <img
@@ -82,10 +102,7 @@
     <div class="mt-6 flex w-full gap-3">
       <button
         class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-red-500/20 py-3 text-red-500"
-        @click="
-          deleteReview(movie.original.id);
-          close();
-        "
+        @click="showDeleteConfirmation = true"
       >
         <mdicon name="delete" />
         <span>Delete</span>
@@ -104,6 +121,7 @@
 <script setup lang="ts">
 import { FlexRender, Row, Table } from "@tanstack/vue-table";
 import { DateTime } from "luxon";
+import { ref } from "vue";
 import { useToast } from "vue-toastification";
 
 import MovieDescription from "./MovieDescription.vue";
@@ -125,6 +143,16 @@ const emit = defineEmits<{
   (e: "close"): void;
   (e: "toggle-reveal", movieId: string): void;
 }>();
+
+const showDeleteConfirmation = ref(false);
+const cancelDelete = () => {
+  showDeleteConfirmation.value = false;
+};
+const confirmDelete = () => {
+  props.deleteReview(props.movie.original.id);
+  showDeleteConfirmation.value = false;
+  close();
+};
 
 const CUSTOM_RENDERED_COLUMNS = ["title", "imageUrl", "createdDate"];
 
