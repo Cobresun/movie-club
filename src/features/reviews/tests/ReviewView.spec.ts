@@ -97,7 +97,7 @@ describe("ReviewView", () => {
     expect(addScoreButton).toBeInTheDocument();
 
     await user.click(addScoreButton);
-    const scoreInput = screen.getByRole("textbox", { name: "Score" });
+    const scoreInput = screen.getByRole("spinbutton", { name: "Score" });
     expect(scoreInput).toBeInTheDocument();
     expect(scoreInput).toHaveFocus();
 
@@ -132,7 +132,7 @@ describe("ReviewView", () => {
 
     await user.keyboard("10{Enter}");
     expect(
-      screen.queryByRole("textbox", { name: "Score" }),
+      screen.queryByRole("spinbutton", { name: "Score" }),
     ).not.toBeInTheDocument();
     expect(within(row).getByRole("cell", { name: "10" })).toBeInTheDocument();
     expect(within(row).getByRole("cell", { name: "9" })).toBeInTheDocument();

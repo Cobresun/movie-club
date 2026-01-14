@@ -25,14 +25,13 @@
       ref="scoreInput"
       v-model="scoreModel"
       type="number"
-      step="0.1"
-      min="0"
-      max="10"
+      step="any"
       inputmode="decimal"
       aria-label="Score"
       class="rounded-lg border border-gray-300 bg-background text-center outline-none focus:border-primary"
       :class="{ 'w-10 p-2': size !== 'sm', 'w-8': size === 'sm' }"
-      @blur="isInputOpen = false"
+      @blur="handleBlur"
+      @keydown.enter.prevent="submitScore(parseFloat(scoreModel))"
     />
   </form>
 </template>
@@ -59,6 +58,7 @@ const isMe = computed(() => user.value?.id === props.memberId);
 const isInputOpen = ref(false);
 const scoreModel = ref("");
 const scoreInput = ref<HTMLInputElement | null>(null);
+const isSubmitting = ref(false);
 
 const openScoreInput = () => {
   if (!isMe.value) return;
@@ -76,6 +76,7 @@ const { mutate: update } = useUpdateReviewScore(clubId);
 
 const submitScore = (score: number) => {
   if (!isNaN(score) && score >= 0 && score <= 10) {
+    isSubmitting.value = true;
     if (hasValue(props.reviewId)) {
       update({ reviewId: props.reviewId, score });
     } else {
@@ -85,6 +86,16 @@ const submitScore = (score: number) => {
       });
     }
     isInputOpen.value = false;
+    isSubmitting.value = false;
   }
+};
+
+const handleBlur = () => {
+  // Delay closing to allow form submission to complete
+  setTimeout(() => {
+    if (!isSubmitting.value) {
+      isInputOpen.value = false;
+    }
+  }, 100);
 };
 </script>
