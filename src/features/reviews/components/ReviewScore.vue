@@ -27,6 +27,7 @@
       type="number"
       step="any"
       inputmode="decimal"
+      enterkeyhint="go"
       aria-label="Score"
       class="rounded-lg border border-gray-300 bg-background text-center outline-none focus:border-primary"
       :class="{ 'w-10 p-2': size !== 'sm', 'w-8': size === 'sm' }"
