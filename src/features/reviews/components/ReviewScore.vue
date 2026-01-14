@@ -18,6 +18,7 @@
     <mdicon name="plus" />
   </span>
   <form
+    ref="scoreForm"
     v-else-if="isMe && isInputOpen"
     @submit.prevent="submitScore(parseFloat(scoreModel))"
   >
@@ -32,7 +33,7 @@
       class="rounded-lg border border-gray-300 bg-background text-center outline-none focus:border-primary"
       :class="{ 'w-10 p-2': size !== 'sm', 'w-8': size === 'sm' }"
       @blur="handleBlur"
-      @keydown.enter.prevent="submitScore(parseFloat(scoreModel))"
+      @keydown.enter="handleEnter"
     />
   </form>
 </template>
@@ -59,6 +60,7 @@ const isMe = computed(() => user.value?.id === props.memberId);
 const isInputOpen = ref(false);
 const scoreModel = ref("");
 const scoreInput = ref<HTMLInputElement | null>(null);
+const scoreForm = ref<HTMLFormElement | null>(null);
 const isSubmitting = ref(false);
 
 const openScoreInput = () => {
@@ -69,6 +71,13 @@ const openScoreInput = () => {
     scoreInput.value?.focus();
     scoreInput.value?.select();
   }).catch(console.error);
+};
+
+const handleEnter = (e: KeyboardEvent) => {
+  e.preventDefault();
+  // Trigger form submission programmatically for test environments
+  // Real browsers will handle this naturally, but this ensures compatibility
+  scoreForm.value?.requestSubmit();
 };
 
 const clubId = useClubId();
