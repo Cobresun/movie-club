@@ -15,6 +15,7 @@ import App from "@/App.vue";
 import Loading from "@/common/components/LoadingSpinner.vue";
 import PageHeader from "@/common/components/PageHeader.vue";
 import VAvatar from "@/common/components/VAvatar.vue";
+import VBackdrop from "@/common/components/VBackdrop.vue";
 import VBtn from "@/common/components/VBtn.vue";
 import VModal from "@/common/components/VModal.vue";
 import VSelect from "@/common/components/VSelect.vue";
@@ -60,6 +61,7 @@ const vueQueryOptions: VueQueryPluginOptions = {
 
 createApp(App)
   .component("v-avatar", VAvatar)
+  .component("v-backdrop", VBackdrop)
   .component("v-btn", VBtn)
   .component("v-select", VSelect)
   .component("v-switch", VSwitch)
