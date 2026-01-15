@@ -2,7 +2,7 @@
   <div class="p-2">
     <add-review-prompt v-if="modalOpen" @close="closePrompt" />
     <Teleport to="body">
-      <v-modal v-if="reviewToDelete" size="sm" @close="cancelDelete">
+      <v-modal v-if="reviewToDelete" size="sm" z-index="60" @close="cancelDelete">
         <div class="flex flex-col gap-4">
           <h2 class="text-xl font-bold">Delete Review</h2>
           <p>Are you sure you want to delete this review? This action cannot be undone.</p>

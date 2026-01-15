@@ -1,7 +1,7 @@
 <template>
   <div class="flex-grow">
     <Teleport to="body">
-      <v-modal v-if="showDeleteConfirmation" size="sm" @close="cancelDelete">
+      <v-modal v-if="showDeleteConfirmation" size="sm" z-index="60" @close="cancelDelete">
         <div class="flex flex-col gap-4">
           <h2 class="text-xl font-bold">Delete Review</h2>
           <p>Are you sure you want to delete this review? This action cannot be undone.</p>

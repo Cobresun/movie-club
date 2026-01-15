@@ -3,19 +3,20 @@
     <v-bottom-sheet
       v-if="!isDesktop"
       content-class="p-8"
+      :z-index="zIndex"
       @close="emit('close')"
     >
       <slot />
     </v-bottom-sheet>
 
     <template v-if="isDesktop">
-      <v-backdrop @close="handleClose" />
+      <v-backdrop :z-index="zIndex" @close="handleClose" />
 
       <Transition name="fade" appear @after-leave="onTransitionEnd">
         <div
           v-if="isVisible"
-          class="fixed z-50 bg-background p-8"
-          :class="desktopClasses"
+          class="fixed bg-background p-8"
+          :class="[desktopClasses, zIndexClass]"
           @click.stop=""
         >
           <slot />
@@ -34,10 +35,17 @@ import { useBodyScrollLock } from "../composables/useBodyScrollLock";
 import { useIsDesktop } from "../composables/useIsDesktop.js";
 
 type ModalSize = "default" | "sm" | "lg" | "full";
+type ZIndex = "40" | "50" | "60";
 
-const props = defineProps<{
-  size?: ModalSize;
-}>();
+const props = withDefaults(
+  defineProps<{
+    size?: ModalSize;
+    zIndex?: ZIndex;
+  }>(),
+  {
+    zIndex: "50",
+  },
+);
 
 const emit = defineEmits<{
   (e: "close"): void;
@@ -68,6 +76,12 @@ const desktopClasses = computed(() => {
   const sizeClass = desktopSizeMap[props.size ?? "default"];
   return `left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-lg ${sizeClass}`;
 });
+
+const zIndexClass = computed(() =>
+  props.zIndex === "40" ? "z-40" :
+  props.zIndex === "60" ? "z-[60]" :
+  "z-50"
+);
 </script>
 
 <style scoped>
