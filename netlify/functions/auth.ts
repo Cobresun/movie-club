@@ -18,7 +18,8 @@ export default async (req: Request, context: Context): Promise<Response> => {
     method: req.method,
     headers: req.headers,
     body: req.method !== "GET" && req.method !== "HEAD" ? req.body : undefined,
-  });
+    duplex: "half",
+  } as RequestInit);
 
   return await auth.handler(correctedRequest);
 };
