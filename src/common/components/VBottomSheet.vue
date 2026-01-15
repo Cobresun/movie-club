@@ -7,10 +7,12 @@
         v-if="isVisible"
         ref="sheetRef"
         class="fixed inset-x-0 bottom-0 max-h-[90vh] w-full overflow-y-auto rounded-t-2xl bg-background"
-        :class="contentZIndexClass"
-        :class="{
-          'transition-transform duration-200 ease-in-out': !isDragging,
-        }"
+        :class="[
+          contentZIndexClass,
+          {
+            'transition-transform duration-200 ease-in-out': !isDragging,
+          },
+        ]"
         :style="sheetStyle"
         @click.stop=""
       >
