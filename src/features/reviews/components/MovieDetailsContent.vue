@@ -1,25 +1,27 @@
 <template>
   <div class="flex-grow">
-    <v-modal v-if="showDeleteConfirmation" size="sm" @close="cancelDelete">
-      <div class="flex flex-col gap-4">
-        <h2 class="text-xl font-bold">Delete Review</h2>
-        <p>Are you sure you want to delete this review? This action cannot be undone.</p>
-        <div class="flex gap-3">
-          <button
-            class="flex-1 rounded-md bg-gray-600 py-3 font-bold text-white hover:brightness-110"
-            @click="cancelDelete"
-          >
-            Cancel
-          </button>
-          <button
-            class="flex-1 rounded-md bg-red-500 py-3 font-bold text-white hover:brightness-110"
-            @click="confirmDelete"
-          >
-            Delete
-          </button>
+    <Teleport to="body">
+      <v-modal v-if="showDeleteConfirmation" size="sm" @close="cancelDelete">
+        <div class="flex flex-col gap-4">
+          <h2 class="text-xl font-bold">Delete Review</h2>
+          <p>Are you sure you want to delete this review? This action cannot be undone.</p>
+          <div class="flex gap-3">
+            <button
+              class="flex-1 rounded-md bg-gray-600 py-3 font-bold text-white hover:brightness-110"
+              @click="cancelDelete"
+            >
+              Cancel
+            </button>
+            <button
+              class="flex-1 rounded-md bg-red-500 py-3 font-bold text-white hover:brightness-110"
+              @click="confirmDelete"
+            >
+              Delete
+            </button>
+          </div>
         </div>
-      </div>
-    </v-modal>
+      </v-modal>
+    </Teleport>
     <!-- Movie details -->
     <div :class="isDesktop ? 'flex flex-col items-center' : 'flex gap-4'">
       <img
