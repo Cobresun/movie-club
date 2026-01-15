@@ -54,11 +54,30 @@ export const auth = betterAuth({
       clientSecret: googleClientSecret,
     },
   },
-  trustedOrigins: [
-    process.env.URL,
-    process.env.DEPLOY_PRIME_URL,
-    process.env.BETTER_AUTH_URL,
-  ].filter(isDefined),
+  trustedOrigins: (origin) => {
+    // Allow configured production/preview URLs
+    const configuredOrigins = [
+      process.env.URL,
+      process.env.DEPLOY_PRIME_URL,
+      process.env.BETTER_AUTH_URL,
+    ].filter(isDefined);
+
+    if (configuredOrigins.includes(origin)) {
+      return true;
+    }
+
+    // Allow localhost for development
+    if (origin.startsWith("http://localhost:")) {
+      return true;
+    }
+
+    // Allow all Netlify deploy previews and branch deploys
+    if (origin.endsWith(".netlify.app")) {
+      return true;
+    }
+
+    return false;
+  },
   advanced: {
     database: {
       // Mixed ID types: auto-increment for user, UUIDs for session/account/verification
