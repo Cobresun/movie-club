@@ -54,29 +54,29 @@ export const auth = betterAuth({
       clientSecret: googleClientSecret,
     },
   },
-  trustedOrigins: (origin) => {
-    // Allow configured production/preview URLs
+  trustedOrigins: (req) => {
+    // Extract origin from the request
+    const origin = req.headers.get("origin") || new URL(req.url).origin;
+
+    // Build array of trusted origins
     const configuredOrigins = [
       process.env.URL,
       process.env.DEPLOY_PRIME_URL,
       process.env.BETTER_AUTH_URL,
     ].filter(isDefined);
 
-    if (configuredOrigins.includes(origin)) {
-      return true;
+    // Always trust configured origins
+    const trusted = [...configuredOrigins];
+
+    // Also trust the current request origin if it's localhost or *.netlify.app
+    if (
+      origin.startsWith("http://localhost:") ||
+      origin.endsWith(".netlify.app")
+    ) {
+      trusted.push(origin);
     }
 
-    // Allow localhost for development
-    if (origin.startsWith("http://localhost:")) {
-      return true;
-    }
-
-    // Allow all Netlify deploy previews and branch deploys
-    if (origin.endsWith(".netlify.app")) {
-      return true;
-    }
-
-    return false;
+    return trusted;
   },
   advanced: {
     database: {
