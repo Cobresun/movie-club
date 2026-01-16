@@ -24,7 +24,7 @@ const googleClientSecret = ensure(
 );
 
 export const auth = betterAuth({
-  baseURL: process.env.BETTER_AUTH_URL,
+  baseURL: process.env.BETTER_AUTH_URL || process.env.DEPLOY_PRIME_URL || process.env.URL,
   database: dialect,
   emailAndPassword: {
     enabled: true,
@@ -54,30 +54,11 @@ export const auth = betterAuth({
       clientSecret: googleClientSecret,
     },
   },
-  trustedOrigins: (req) => {
-    // Extract origin from the request
-    const origin = req.headers.get("origin") || new URL(req.url).origin;
-
-    // Build array of trusted origins
-    const configuredOrigins = [
-      process.env.URL,
-      process.env.DEPLOY_PRIME_URL,
-      process.env.BETTER_AUTH_URL,
-    ].filter(isDefined);
-
-    // Always trust configured origins
-    const trusted = [...configuredOrigins];
-
-    // Also trust the current request origin if it's localhost or *.netlify.app
-    if (
-      origin.startsWith("http://localhost:") ||
-      origin.endsWith(".netlify.app")
-    ) {
-      trusted.push(origin);
-    }
-
-    return trusted;
-  },
+  trustedOrigins: [
+    process.env.URL,
+    process.env.DEPLOY_PRIME_URL,
+    process.env.BETTER_AUTH_URL,
+  ].filter(isDefined),
   advanced: {
     database: {
       // Mixed ID types: auto-increment for user, UUIDs for session/account/verification
