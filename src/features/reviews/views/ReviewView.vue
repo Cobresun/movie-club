@@ -1,28 +1,11 @@
 <template>
   <div class="p-2">
     <add-review-prompt v-if="modalOpen" @close="closePrompt" />
-    <Teleport to="body">
-      <v-modal v-if="reviewToDelete" size="sm" z-index="60" @close="cancelDelete">
-        <div class="flex flex-col gap-4">
-          <h2 class="text-xl font-bold">Delete Review</h2>
-          <p>Are you sure you want to delete this review? This action cannot be undone.</p>
-          <div class="flex gap-3">
-            <button
-              class="flex-1 rounded-md bg-gray-600 py-3 font-bold text-white hover:brightness-110"
-              @click="cancelDelete"
-            >
-              Cancel
-            </button>
-            <button
-              class="flex-1 rounded-md bg-red-500 py-3 font-bold text-white hover:brightness-110"
-              @click="confirmDelete"
-            >
-              Delete
-            </button>
-          </div>
-        </div>
-      </v-modal>
-    </Teleport>
+    <delete-confirmation-modal
+      :show="!!reviewToDelete"
+      @confirm="confirmDelete"
+      @cancel="cancelDelete"
+    />
     <page-header :has-back="true" back-route="ClubHome" page-name="Reviews">
       <div class="flex gap-2">
         <mdicon name="table" />
@@ -107,6 +90,7 @@ import ReviewScore from "../components/ReviewScore.vue";
 import TableView from "../components/TableView.vue";
 
 import AverageImg from "@/assets/images/average.svg";
+import DeleteConfirmationModal from "@/common/components/DeleteConfirmationModal.vue";
 import VAvatar from "@/common/components/VAvatar.vue";
 import VToggle from "@/common/components/VToggle.vue";
 import AddReviewPrompt from "@/features/reviews/components/AddReviewPrompt.vue";
