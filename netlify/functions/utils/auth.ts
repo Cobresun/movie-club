@@ -23,6 +23,21 @@ const googleClientSecret = ensure(
   "GOOGLE_CLIENT_SECRET is not set",
 );
 
+/**
+ * Extracts the site identifier from a Netlify URL.
+ * Example: "https://cobresun-movie-club.netlify.app" -> "cobresun-movie-club"
+ */
+function extractSiteFromUrl(url: string | undefined): string {
+  if (!url) return "";
+  try {
+    const hostname = new URL(url).hostname;
+    // Extract site identifier from 'cobresun-movie-club.netlify.app'
+    return hostname.replace(".netlify.app", "");
+  } catch {
+    return "";
+  }
+}
+
 export const auth = betterAuth({
   baseURL: process.env.BETTER_AUTH_URL || process.env.DEPLOY_PRIME_URL || process.env.URL,
   database: dialect,
@@ -54,11 +69,38 @@ export const auth = betterAuth({
       clientSecret: googleClientSecret,
     },
   },
-  trustedOrigins: [
-    process.env.URL,
-    process.env.DEPLOY_PRIME_URL,
-    process.env.BETTER_AUTH_URL,
-  ].filter(isDefined),
+  trustedOrigins: async (request) => {
+    // Handle undefined request (occurs during auth.api calls)
+    if (!request) {
+      return [process.env.URL, process.env.BETTER_AUTH_URL].filter(isDefined);
+    }
+
+    // Extract origin from request headers
+    const origin = request.headers.get("origin");
+    const referer = request.headers.get("referer");
+    const requestOrigin = origin || (referer ? new URL(referer).origin : null);
+
+    if (!requestOrigin) {
+      return [process.env.URL, process.env.BETTER_AUTH_URL].filter(isDefined);
+    }
+
+    // Build base trusted origins
+    const trusted = [
+      process.env.URL,
+      process.env.BETTER_AUTH_URL,
+    ].filter(isDefined);
+
+    // Validate against our specific site pattern
+    const siteIdentifier = extractSiteFromUrl(process.env.URL);
+    if (
+      requestOrigin.includes(`${siteIdentifier}.netlify.app`) ||
+      requestOrigin.startsWith("http://localhost:")
+    ) {
+      trusted.push(requestOrigin);
+    }
+
+    return trusted;
+  },
   advanced: {
     database: {
       // Mixed ID types: auto-increment for user, UUIDs for session/account/verification
