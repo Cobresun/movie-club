@@ -1,15 +1,18 @@
 <template>
   <div>
-    <v-backdrop z-index="40" @close="handleClose" />
+    <v-backdrop :z-index="backdropZIndex" @close="handleClose" />
 
     <Transition name="slide-up" appear @after-leave="onTransitionEnd">
       <div
         v-if="isVisible"
         ref="sheetRef"
-        class="fixed inset-x-0 bottom-0 z-50 max-h-[90vh] w-full overflow-y-auto rounded-t-2xl bg-background"
-        :class="{
-          'transition-transform duration-200 ease-in-out': !isDragging,
-        }"
+        class="fixed inset-x-0 bottom-0 max-h-[90vh] w-full overflow-y-auto rounded-t-2xl bg-background"
+        :class="[
+          contentZIndexClass,
+          {
+            'transition-transform duration-200 ease-in-out': !isDragging,
+          },
+        ]"
         :style="sheetStyle"
         @click.stop=""
       >
@@ -36,18 +39,33 @@ import { computed, ref } from "vue";
 import VBackdrop from "./VBackdrop.vue";
 import { useBodyScrollLock } from "../composables/useBodyScrollLock.js";
 
-withDefaults(
+type ZIndex = "40" | "50" | "60";
+
+const props = withDefaults(
   defineProps<{
     contentClass?: string;
+    zIndex?: ZIndex;
   }>(),
   {
     contentClass: "px-4 pb-8",
+    zIndex: "50",
   },
 );
 
 const emit = defineEmits<{
   (e: "close"): void;
 }>();
+
+const backdropZIndex = computed(() => {
+  // Backdrop should be one level lower than content
+  return props.zIndex === "60" ? "50" : props.zIndex === "50" ? "40" : "40";
+});
+
+const contentZIndexClass = computed(() =>
+  props.zIndex === "40" ? "z-40" :
+  props.zIndex === "60" ? "z-[60]" :
+  "z-50"
+);
 
 const isVisible = ref(true);
 const onTransitionEnd = () => {

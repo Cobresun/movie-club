@@ -1,6 +1,11 @@
 <template>
   <div class="p-2">
     <add-review-prompt v-if="modalOpen" @close="closePrompt" />
+    <delete-confirmation-modal
+      :show="!!reviewToDelete"
+      @confirm="confirmDelete"
+      @cancel="cancelDelete"
+    />
     <page-header :has-back="true" back-route="ClubHome" page-name="Reviews">
       <div class="flex gap-2">
         <mdicon name="table" />
@@ -85,6 +90,7 @@ import ReviewScore from "../components/ReviewScore.vue";
 import TableView from "../components/TableView.vue";
 
 import AverageImg from "@/assets/images/average.svg";
+import DeleteConfirmationModal from "@/common/components/DeleteConfirmationModal.vue";
 import VAvatar from "@/common/components/VAvatar.vue";
 import VToggle from "@/common/components/VToggle.vue";
 import AddReviewPrompt from "@/features/reviews/components/AddReviewPrompt.vue";
@@ -132,6 +138,17 @@ const openPrompt = () => {
 };
 const closePrompt = () => {
   modalOpen.value = false;
+};
+
+const reviewToDelete = ref<string | null>(null);
+const cancelDelete = () => {
+  reviewToDelete.value = null;
+};
+const confirmDelete = () => {
+  if (reviewToDelete.value) {
+    deleteReview(reviewToDelete.value);
+    reviewToDelete.value = null;
+  }
 };
 
 const searchTerm = ref("");
@@ -258,7 +275,7 @@ const columns = computed(() => [
             name: "delete",
             class: "cursor-pointer hover:text-primary transition-colors",
             onClick: () => {
-              deleteReview(row.original.id);
+              reviewToDelete.value = row.original.id;
             },
           })
         : h(
