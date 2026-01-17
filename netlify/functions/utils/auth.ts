@@ -23,27 +23,8 @@ const googleClientSecret = ensure(
   "GOOGLE_CLIENT_SECRET is not set",
 );
 
-/**
- * Extracts the Netlify site identifier from a URL.
- * Returns null if the URL is not a Netlify URL.
- * Example: "https://cobresun-movie-club.netlify.app" -> "cobresun-movie-club"
- */
-function extractNetlifySiteFromUrl(url: string | undefined): string | null {
-  if (!url) return null;
-  try {
-    const hostname = new URL(url).hostname;
-    if (!hostname.endsWith(".netlify.app")) {
-      return null; // Not a Netlify URL (custom domain)
-    }
-    // Extract 'cobresun-movie-club' from 'cobresun-movie-club.netlify.app'
-    return hostname.replace(".netlify.app", "");
-  } catch {
-    return null;
-  }
-}
-
 export const auth = betterAuth({
-  baseURL: process.env.BETTER_AUTH_URL || process.env.DEPLOY_PRIME_URL || process.env.URL,
+  baseURL: process.env.BETTER_AUTH_URL,
   database: dialect,
   emailAndPassword: {
     enabled: true,
@@ -73,51 +54,11 @@ export const auth = betterAuth({
       clientSecret: googleClientSecret,
     },
   },
-  trustedOrigins: async (request) => {
-    // Base trusted origins - ALWAYS include DEPLOY_PRIME_URL!
-    const baseOrigins = [
-      process.env.URL,
-      process.env.DEPLOY_PRIME_URL,
-      process.env.BETTER_AUTH_URL,
-    ].filter(isDefined);
-
-    // Handle undefined request (occurs during auth.api calls)
-    if (!request) {
-      return baseOrigins;
-    }
-
-    // Extract origin from request headers
-    const origin = request.headers.get("origin");
-    const referer = request.headers.get("referer");
-    const requestOrigin = origin || (referer ? new URL(referer).origin : null);
-
-    if (!requestOrigin) {
-      return baseOrigins;
-    }
-
-    // Start with base trusted origins
-    const trusted = [...baseOrigins];
-
-    // Always trust localhost for development
-    if (requestOrigin.startsWith("http://localhost:")) {
-      if (!trusted.includes(requestOrigin)) {
-        trusted.push(requestOrigin);
-      }
-      return trusted;
-    }
-
-    // Extract Netlify site identifier (if URL is a Netlify URL)
-    const siteIdentifier = extractNetlifySiteFromUrl(process.env.URL);
-
-    // If we have a site identifier, validate that the request origin matches our site
-    if (siteIdentifier && requestOrigin.includes(`${siteIdentifier}.netlify.app`)) {
-      if (!trusted.includes(requestOrigin)) {
-        trusted.push(requestOrigin);
-      }
-    }
-
-    return trusted;
-  },
+  trustedOrigins: [
+    process.env.URL,
+    process.env.DEPLOY_PRIME_URL,
+    process.env.BETTER_AUTH_URL,
+  ].filter(isDefined),
   advanced: {
     database: {
       // Mixed ID types: auto-increment for user, UUIDs for session/account/verification
