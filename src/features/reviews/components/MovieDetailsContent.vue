@@ -1,5 +1,10 @@
 <template>
   <div class="flex-grow">
+    <delete-confirmation-modal
+      :show="showDeleteConfirmation"
+      @confirm="confirmDelete"
+      @cancel="cancelDelete"
+    />
     <!-- Movie details -->
     <div :class="isDesktop ? 'flex flex-col items-center' : 'flex gap-4'">
       <img
@@ -82,10 +87,7 @@
     <div class="mt-6 flex w-full gap-3">
       <button
         class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-red-500/20 py-3 text-red-500"
-        @click="
-          deleteReview(movie.original.id);
-          close();
-        "
+        @click="showDeleteConfirmation = true"
       >
         <mdicon name="delete" />
         <span>Delete</span>
@@ -104,9 +106,11 @@
 <script setup lang="ts">
 import { FlexRender, Row, Table } from "@tanstack/vue-table";
 import { DateTime } from "luxon";
+import { ref } from "vue";
 import { useToast } from "vue-toastification";
 
 import MovieDescription from "./MovieDescription.vue";
+import DeleteConfirmationModal from "@/common/components/DeleteConfirmationModal.vue";
 import { isDefined } from "../../../../lib/checks/checks.js";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
 
@@ -125,6 +129,16 @@ const emit = defineEmits<{
   (e: "close"): void;
   (e: "toggle-reveal", movieId: string): void;
 }>();
+
+const showDeleteConfirmation = ref(false);
+const cancelDelete = () => {
+  showDeleteConfirmation.value = false;
+};
+const confirmDelete = () => {
+  props.deleteReview(props.movie.original.id);
+  showDeleteConfirmation.value = false;
+  close();
+};
 
 const CUSTOM_RENDERED_COLUMNS = ["title", "imageUrl", "createdDate"];
 
