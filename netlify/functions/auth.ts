@@ -1,23 +1,42 @@
-import type { Context } from "@netlify/functions";
+import { Handler, HandlerEvent } from "@netlify/functions";
 
 import { auth } from "./utils/auth";
+import { hasValue, isDefined } from "../../lib/checks/checks.js";
 
-export default async (req: Request, _context: Context): Promise<Response> => {
-  // The native Request.url may not reflect the actual host for deploy previews.
-  // Reconstruct the URL from headers like the legacy Handler pattern did.
-  const protocol = req.headers.get("x-forwarded-proto") ?? "https";
-  const host = req.headers.get("host") ?? new URL(req.url).host;
-  const url = new URL(req.url);
-  url.protocol = protocol + ":";
-  url.host = host;
+const handler: Handler = async (event: HandlerEvent) => {
+  // Construct URL from the Netlify event
+  const protocol = event.headers["x-forwarded-proto"] ?? "https";
+  const host = event.headers.host ?? "localhost";
+  const url = `${protocol}://${host}${event.path}${
+    hasValue(event.rawQuery) ? `?${event.rawQuery}` : ""
+  }`;
 
-  const correctedRequest = new Request(url.toString(), {
-    method: req.method,
-    headers: req.headers,
-    body: req.body,
-    // @ts-expect-error duplex is needed for streaming request bodies
-    duplex: "half",
+  // Create a Web Request from the Netlify event
+  const request = new Request(url, {
+    method: event.httpMethod,
+    headers: new Headers(event.headers as Record<string, string>),
+    body:
+      event.httpMethod !== "GET" &&
+      event.httpMethod !== "HEAD" &&
+      isDefined(event.body)
+        ? event.body
+        : undefined,
   });
 
-  return await auth.handler(correctedRequest);
+  // Call Better Auth handler
+  const response = await auth.handler(request);
+
+  // Convert Web Response to Netlify HandlerResponse
+  const responseHeaders: Record<string, string> = {};
+  response.headers.forEach((value, key) => {
+    responseHeaders[key] = value;
+  });
+
+  return {
+    statusCode: response.status,
+    headers: responseHeaders,
+    body: await response.text(),
+  };
 };
+
+export { handler };
