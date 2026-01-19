@@ -4,7 +4,7 @@
     :class="{
       'cursor-pointer': isMe,
     }"
-    @click="openScoreInput"
+    @click.stop="openScoreInput"
   >
     {{ score }}
   </span>
@@ -13,7 +13,7 @@
     role="button"
     aria-label="Add score"
     class="flex cursor-pointer justify-center"
-    @click="openScoreInput"
+    @click.stop="openScoreInput"
   >
     <mdicon name="plus" />
   </span>
