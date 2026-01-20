@@ -52,7 +52,7 @@ export function filterMovies<T extends DetailedWorkListItem>(
 
   // If there are filters, remove the filter and the value from the search query.
   if (Object.keys(filters).length > 0) {
-    searchQuery = searchQuery.replace(/(\w+:\w+\s?)/g, "");
+    searchQuery = searchQuery.replace(/(\w+:\S+\s?)/g, "");
   }
 
   // If there are filters, filter the reviews by them.
