@@ -11,13 +11,17 @@ import { DetailedWorkListItem } from "../../lib/types/lists";
  *
  * "title:jaws genre:horror"
  *
- * Year filters support comparison operators (<, >, <=, >=). For example:
+ * The "release" filter supports comparison operators (<, >, <=, >=) for movie release years:
  *
- * "year:<1950" - Movies released before 1950
- * "year:>2000" - Movies released after 2000
- * "year:<=1980" - Movies released in or before 1980
- * "year:>=2010" - Movies released in or after 2010
- * "year:2000" - Movies released exactly in 2000
+ * "release:<1950" - Movies released before 1950
+ * "release:>2000" - Movies released after 2000
+ * "release:<=1980" - Movies released in or before 1980
+ * "release:>=2010" - Movies released in or after 2010
+ * "release:2000" - Movies released exactly in 2000
+ *
+ * The "year" filter matches the year the review was added (exact match only):
+ *
+ * "year:2024" - Reviews added in 2024
  *
  * Incluidng multiple filters seperated by spaces will implicitly do an AND search between them.
  *
@@ -87,6 +91,13 @@ export function filterMovies<T extends DetailedWorkListItem>(
   }
 
   if (filters.year) {
+    filteredReviews = filteredReviews.filter(
+      (review) =>
+        new Date(review.createdDate).getFullYear() === parseInt(filters.year),
+    );
+  }
+
+  if (filters.release) {
     filteredReviews = filteredReviews.filter((review) => {
       if (
         !isDefined(review.externalData) ||
@@ -97,21 +108,21 @@ export function filterMovies<T extends DetailedWorkListItem>(
       const releaseYear = new Date(
         review.externalData.release_date,
       ).getFullYear();
-      const yearFilter = filters.year;
+      const releaseFilter = filters.release;
 
       // Check for comparison operators (<, >, <=, >=)
       // Check <= and >= first since they start with < and >
-      if (yearFilter.startsWith("<=")) {
-        return releaseYear <= parseInt(yearFilter.slice(2));
-      } else if (yearFilter.startsWith(">=")) {
-        return releaseYear >= parseInt(yearFilter.slice(2));
-      } else if (yearFilter.startsWith("<")) {
-        return releaseYear < parseInt(yearFilter.slice(1));
-      } else if (yearFilter.startsWith(">")) {
-        return releaseYear > parseInt(yearFilter.slice(1));
+      if (releaseFilter.startsWith("<=")) {
+        return releaseYear <= parseInt(releaseFilter.slice(2));
+      } else if (releaseFilter.startsWith(">=")) {
+        return releaseYear >= parseInt(releaseFilter.slice(2));
+      } else if (releaseFilter.startsWith("<")) {
+        return releaseYear < parseInt(releaseFilter.slice(1));
+      } else if (releaseFilter.startsWith(">")) {
+        return releaseYear > parseInt(releaseFilter.slice(1));
       } else {
-        // Exact match for backward compatibility
-        return releaseYear === parseInt(yearFilter);
+        // Exact match
+        return releaseYear === parseInt(releaseFilter);
       }
     });
   }
