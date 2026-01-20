@@ -224,12 +224,12 @@ router.delete("/:type/:workId", secured, async ({ clubId, params }, res) => {
   return res(ok());
 });
 
-const updateWatchedDateSchema = z.object({
-  watchedDate: z.string().datetime({ offset: true }),
+const updateAddedDateSchema = z.object({
+  addedDate: z.string().datetime({ offset: true }),
 });
 
 router.put(
-  "/:type/:workId/watched-date",
+  "/:type/:workId/added-date",
   secured,
   async ({ clubId, params, event }, res) => {
     if (!hasValue(params.type) || !hasValue(params.workId)) {
@@ -237,15 +237,15 @@ router.put(
     }
 
     const type = params.type;
-    if (!isWorkListType(type) || type !== WorkListType.reviews) {
-      return res(badRequest("Watched date can only be updated for reviews"));
+    if (!isWorkListType(type)) {
+      return res(badRequest("Invalid type provided"));
     }
 
     if (!hasValue(event.body)) {
       return res(badRequest("No body provided"));
     }
 
-    const body = updateWatchedDateSchema.safeParse(JSON.parse(event.body));
+    const body = updateAddedDateSchema.safeParse(JSON.parse(event.body));
     if (!body.success) {
       return res(badRequest("Invalid body provided"));
     }
@@ -253,18 +253,18 @@ router.put(
     const workId = params.workId;
     const isItemInList = await ListRepository.isItemInList(
       clubId,
-      WorkListType.reviews,
+      type,
       workId,
     );
     if (!isItemInList) {
-      return res(badRequest("This movie does not exist in the reviews list"));
+      return res(badRequest("This work does not exist in the list"));
     }
 
-    await ListRepository.updateWatchedDate(
+    await ListRepository.updateAddedDate(
       clubId,
-      WorkListType.reviews,
+      type,
       workId,
-      new Date(body.data.watchedDate),
+      new Date(body.data.addedDate),
     );
 
     return res(ok());

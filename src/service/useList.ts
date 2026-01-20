@@ -132,29 +132,29 @@ export function useSharedReview(
   });
 }
 
-export function useUpdateWatchedDate(clubId: string) {
+export function useUpdateAddedDate(clubId: string) {
   const auth = useAuthStore();
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: ({
       workId,
-      watchedDate,
+      addedDate,
     }: {
       workId: string;
-      watchedDate: string;
+      addedDate: string;
     }) =>
       auth.request.put(
-        `/api/club/${clubId}/list/${WorkListType.reviews}/${workId}/watched-date`,
-        { watchedDate },
+        `/api/club/${clubId}/list/${WorkListType.reviews}/${workId}/added-date`,
+        { addedDate },
       ),
-    onMutate: ({ workId, watchedDate }) => {
+    onMutate: ({ workId, addedDate }) => {
       queryClient.setQueryData<DetailedReviewListItem[]>(
         ["list", clubId, WorkListType.reviews],
         (currentList) => {
           if (!currentList) return currentList;
           return currentList.map((item) =>
-            item.id === workId ? { ...item, createdDate: watchedDate } : item,
+            item.id === workId ? { ...item, createdDate: addedDate } : item,
           );
         },
       );

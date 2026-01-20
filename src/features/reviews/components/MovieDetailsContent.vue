@@ -142,7 +142,7 @@ import { DetailedReviewListItem } from "../../../../lib/types/lists";
 
 import DeleteConfirmationModal from "@/common/components/DeleteConfirmationModal.vue";
 import { useClubId } from "@/service/useClub";
-import { useUpdateWatchedDate } from "@/service/useList";
+import { useUpdateAddedDate } from "@/service/useList";
 
 const props = defineProps<{
   movie: Row<DetailedReviewListItem>;
@@ -172,7 +172,7 @@ const confirmDelete = () => {
 
 // Date editing state
 const clubId = useClubId();
-const { mutate: updateWatchedDate } = useUpdateWatchedDate(clubId);
+const { mutate: updateAddedDate } = useUpdateAddedDate(clubId);
 const isEditingDate = ref(false);
 const editedDate = ref("");
 
@@ -194,9 +194,9 @@ const saveDateChange = () => {
       .toISO();
 
     if (isoDate !== null) {
-      updateWatchedDate({
+      updateAddedDate({
         workId: props.movie.original.id,
-        watchedDate: isoDate,
+        addedDate: isoDate,
       });
     }
   }

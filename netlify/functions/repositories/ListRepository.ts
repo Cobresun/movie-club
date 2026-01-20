@@ -251,15 +251,15 @@ class ListRepository {
       .execute();
   }
 
-  async updateWatchedDate(
+  async updateAddedDate(
     clubId: string,
     listType: WorkListType,
     workId: string,
-    watchedDate: Date,
+    addedDate: Date,
   ) {
     return db
       .updateTable("work_list_item")
-      .set("time_added", watchedDate)
+      .set("time_added", addedDate)
       .where("work_list_item.work_id", "=", workId)
       .where(
         "work_list_item.list_id",
