@@ -19,11 +19,11 @@
         <div class="mt-2 text-center text-sm text-gray-400">
           <template v-if="!isEditingDate">
             <span
-              class="cursor-pointer hover:text-primary hover:underline"
+              class="inline-flex cursor-pointer items-center gap-1 hover:text-primary hover:underline"
               @click="openDateEditor"
             >
               {{ formatDate(movie.original.createdDate) }}
-              <mdicon name="pencil" size="14" class="ml-1 inline" />
+              <mdicon name="pencil" size="14" />
             </span>
           </template>
           <template v-else>
