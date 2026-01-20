@@ -225,7 +225,7 @@ router.delete("/:type/:workId", secured, async ({ clubId, params }, res) => {
 });
 
 const updateWatchedDateSchema = z.object({
-  watchedDate: z.string().datetime(),
+  watchedDate: z.string().datetime({ offset: true }),
 });
 
 router.put(
