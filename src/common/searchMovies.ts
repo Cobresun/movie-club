@@ -88,22 +88,30 @@ export function filterMovies<T extends DetailedWorkListItem>(
 
   if (filters.year) {
     filteredReviews = filteredReviews.filter((review) => {
-      const reviewYear = new Date(review.createdDate).getFullYear();
+      if (
+        !isDefined(review.externalData) ||
+        !review.externalData.release_date
+      ) {
+        return false;
+      }
+      const releaseYear = new Date(
+        review.externalData.release_date,
+      ).getFullYear();
       const yearFilter = filters.year;
 
       // Check for comparison operators (<, >, <=, >=)
       // Check <= and >= first since they start with < and >
       if (yearFilter.startsWith("<=")) {
-        return reviewYear <= parseInt(yearFilter.slice(2));
+        return releaseYear <= parseInt(yearFilter.slice(2));
       } else if (yearFilter.startsWith(">=")) {
-        return reviewYear >= parseInt(yearFilter.slice(2));
+        return releaseYear >= parseInt(yearFilter.slice(2));
       } else if (yearFilter.startsWith("<")) {
-        return reviewYear < parseInt(yearFilter.slice(1));
+        return releaseYear < parseInt(yearFilter.slice(1));
       } else if (yearFilter.startsWith(">")) {
-        return reviewYear > parseInt(yearFilter.slice(1));
+        return releaseYear > parseInt(yearFilter.slice(1));
       } else {
         // Exact match for backward compatibility
-        return reviewYear === parseInt(yearFilter);
+        return releaseYear === parseInt(yearFilter);
       }
     });
   }
