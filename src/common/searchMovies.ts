@@ -11,6 +11,14 @@ import { DetailedWorkListItem } from "../../lib/types/lists";
  *
  * "title:jaws genre:horror"
  *
+ * Year filters support comparison operators (<, >, <=, >=). For example:
+ *
+ * "year:<1950" - Movies released before 1950
+ * "year:>2000" - Movies released after 2000
+ * "year:<=1980" - Movies released in or before 1980
+ * "year:>=2010" - Movies released in or after 2010
+ * "year:2000" - Movies released exactly in 2000
+ *
  * Incluidng multiple filters seperated by spaces will implicitly do an AND search between them.
  *
  * TODO: Add support for OR searches.
@@ -79,10 +87,25 @@ export function filterMovies<T extends DetailedWorkListItem>(
   }
 
   if (filters.year) {
-    filteredReviews = filteredReviews.filter(
-      (review) =>
-        new Date(review.createdDate).getFullYear() === parseInt(filters.year),
-    );
+    filteredReviews = filteredReviews.filter((review) => {
+      const reviewYear = new Date(review.createdDate).getFullYear();
+      const yearFilter = filters.year;
+
+      // Check for comparison operators (<, >, <=, >=)
+      // Check <= and >= first since they start with < and >
+      if (yearFilter.startsWith("<=")) {
+        return reviewYear <= parseInt(yearFilter.slice(2));
+      } else if (yearFilter.startsWith(">=")) {
+        return reviewYear >= parseInt(yearFilter.slice(2));
+      } else if (yearFilter.startsWith("<")) {
+        return reviewYear < parseInt(yearFilter.slice(1));
+      } else if (yearFilter.startsWith(">")) {
+        return reviewYear > parseInt(yearFilter.slice(1));
+      } else {
+        // Exact match for backward compatibility
+        return reviewYear === parseInt(yearFilter);
+      }
+    });
   }
 
   // Now any text after the filters is a search query. If there is a search query,
