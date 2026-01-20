@@ -11,6 +11,18 @@ import { DetailedWorkListItem } from "../../lib/types/lists";
  *
  * "title:jaws genre:horror"
  *
+ * The "release" filter supports comparison operators (<, >, <=, >=) for movie release years:
+ *
+ * "release:<1950" - Movies released before 1950
+ * "release:>2000" - Movies released after 2000
+ * "release:<=1980" - Movies released in or before 1980
+ * "release:>=2010" - Movies released in or after 2010
+ * "release:2000" - Movies released exactly in 2000
+ *
+ * The "year" filter matches the year the review was added (exact match only):
+ *
+ * "year:2024" - Reviews added in 2024
+ *
  * Incluidng multiple filters seperated by spaces will implicitly do an AND search between them.
  *
  * TODO: Add support for OR searches.
@@ -40,7 +52,7 @@ export function filterMovies<T extends DetailedWorkListItem>(
 
   // If there are filters, remove the filter and the value from the search query.
   if (Object.keys(filters).length > 0) {
-    searchQuery = searchQuery.replace(/(\w+:\w+\s?)/g, "");
+    searchQuery = searchQuery.replace(/(\w+:\S+\s?)/g, "");
   }
 
   // If there are filters, filter the reviews by them.
@@ -83,6 +95,36 @@ export function filterMovies<T extends DetailedWorkListItem>(
       (review) =>
         new Date(review.createdDate).getFullYear() === parseInt(filters.year),
     );
+  }
+
+  if (filters.release) {
+    filteredReviews = filteredReviews.filter((review) => {
+      if (
+        !isDefined(review.externalData) ||
+        !review.externalData.release_date
+      ) {
+        return false;
+      }
+      const releaseYear = new Date(
+        review.externalData.release_date,
+      ).getFullYear();
+      const releaseFilter = filters.release;
+
+      // Check for comparison operators (<, >, <=, >=)
+      // Check <= and >= first since they start with < and >
+      if (releaseFilter.startsWith("<=")) {
+        return releaseYear <= parseInt(releaseFilter.slice(2));
+      } else if (releaseFilter.startsWith(">=")) {
+        return releaseYear >= parseInt(releaseFilter.slice(2));
+      } else if (releaseFilter.startsWith("<")) {
+        return releaseYear < parseInt(releaseFilter.slice(1));
+      } else if (releaseFilter.startsWith(">")) {
+        return releaseYear > parseInt(releaseFilter.slice(1));
+      } else {
+        // Exact match
+        return releaseYear === parseInt(releaseFilter);
+      }
+    });
   }
 
   // Now any text after the filters is a search query. If there is a search query,
