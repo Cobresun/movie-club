@@ -250,6 +250,24 @@ class ListRepository {
       )
       .execute();
   }
+
+  async updateWatchedDate(
+    clubId: string,
+    listType: WorkListType,
+    workId: string,
+    watchedDate: Date,
+  ) {
+    return db
+      .updateTable("work_list_item")
+      .set("time_added", watchedDate)
+      .where("work_list_item.work_id", "=", workId)
+      .where(
+        "work_list_item.list_id",
+        "=",
+        this.listIdFromType(clubId, listType),
+      )
+      .execute();
+  }
 }
 
 export function isWorkListType(type: string): type is WorkListType {

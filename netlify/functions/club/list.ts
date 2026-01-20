@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 import { hasValue } from "../../../lib/checks/checks.js";
 import { WorkListType } from "../../../lib/types/generated/db.js";
 import { listInsertDtoSchema } from "../../../lib/types/lists.js";
@@ -221,5 +223,52 @@ router.delete("/:type/:workId", secured, async ({ clubId, params }, res) => {
   }
   return res(ok());
 });
+
+const updateWatchedDateSchema = z.object({
+  watchedDate: z.string().datetime(),
+});
+
+router.put(
+  "/:type/:workId/watched-date",
+  secured,
+  async ({ clubId, params, event }, res) => {
+    if (!hasValue(params.type) || !hasValue(params.workId)) {
+      return res(badRequest("No type or workId provided"));
+    }
+
+    const type = params.type;
+    if (!isWorkListType(type) || type !== WorkListType.reviews) {
+      return res(badRequest("Watched date can only be updated for reviews"));
+    }
+
+    if (!hasValue(event.body)) {
+      return res(badRequest("No body provided"));
+    }
+
+    const body = updateWatchedDateSchema.safeParse(JSON.parse(event.body));
+    if (!body.success) {
+      return res(badRequest("Invalid body provided"));
+    }
+
+    const workId = params.workId;
+    const isItemInList = await ListRepository.isItemInList(
+      clubId,
+      WorkListType.reviews,
+      workId,
+    );
+    if (!isItemInList) {
+      return res(badRequest("This movie does not exist in the reviews list"));
+    }
+
+    await ListRepository.updateWatchedDate(
+      clubId,
+      WorkListType.reviews,
+      workId,
+      new Date(body.data.watchedDate),
+    );
+
+    return res(ok());
+  },
+);
 
 export default router;

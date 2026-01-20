@@ -119,7 +119,6 @@ class ReviewRepository {
     return db
       .updateTable("review")
       .set("score", score)
-      .set("created_date", new Date())
       .where("id", "=", id)
       .execute();
   }

@@ -131,3 +131,37 @@ export function useSharedReview(
       ).data,
   });
 }
+
+export function useUpdateWatchedDate(clubId: string) {
+  const auth = useAuthStore();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      workId,
+      watchedDate,
+    }: {
+      workId: string;
+      watchedDate: string;
+    }) =>
+      auth.request.put(
+        `/api/club/${clubId}/list/${WorkListType.reviews}/${workId}/watched-date`,
+        { watchedDate },
+      ),
+    onMutate: ({ workId, watchedDate }) => {
+      queryClient.setQueryData<DetailedReviewListItem[]>(
+        ["list", clubId, WorkListType.reviews],
+        (currentList) => {
+          if (!currentList) return currentList;
+          return currentList.map((item) =>
+            item.id === workId ? { ...item, createdDate: watchedDate } : item,
+          );
+        },
+      );
+    },
+    onSettled: () =>
+      queryClient.invalidateQueries({
+        queryKey: ["list", clubId, WorkListType.reviews],
+      }),
+  });
+}
