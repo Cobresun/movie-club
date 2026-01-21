@@ -17,10 +17,37 @@
           {{ movie.renderValue("title") }}
         </h2>
         <div class="mt-2 text-center text-sm text-gray-400">
-          <FlexRender
-            :render="reviewTable.getColumn('createdDate')?.columnDef.cell"
-            :props="getCell(movie, 'createdDate')?.getContext()"
-          />
+          <template v-if="!isEditingDate">
+            <span
+              class="inline-flex cursor-pointer items-center gap-1 text-gray-400 hover:text-primary hover:underline"
+              @click="openDateEditor"
+            >
+              {{ formatDate(movie.original.createdDate) }}
+              <mdicon name="pencil" size="14" class="text-current" />
+            </span>
+          </template>
+          <template v-else>
+            <div class="flex items-center justify-center gap-1.5 px-2">
+              <input
+                v-model="editedDate"
+                type="date"
+                class="rounded border border-gray-600 bg-background px-1.5 py-0.5 text-xs text-white sm:px-2 sm:py-1 sm:text-sm"
+                @keypress.enter="saveDateChange"
+              />
+              <button
+                class="whitespace-nowrap rounded bg-primary px-1.5 py-0.5 text-xs text-white sm:px-2 sm:py-1 sm:text-sm"
+                @click="saveDateChange"
+              >
+                Save
+              </button>
+              <button
+                class="whitespace-nowrap rounded bg-gray-600 px-1.5 py-0.5 text-xs text-white sm:px-2 sm:py-1 sm:text-sm"
+                @click="cancelDateEdit"
+              >
+                Cancel
+              </button>
+            </div>
+          </template>
         </div>
         <div
           class="mt-4 grid grid-cols-1 gap-x-4 gap-y-2 text-sm md:grid-cols-2"
@@ -106,13 +133,16 @@
 <script setup lang="ts">
 import { FlexRender, Row, Table } from "@tanstack/vue-table";
 import { DateTime } from "luxon";
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import { useToast } from "vue-toastification";
 
 import MovieDescription from "./MovieDescription.vue";
-import DeleteConfirmationModal from "@/common/components/DeleteConfirmationModal.vue";
 import { isDefined } from "../../../../lib/checks/checks.js";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
+
+import DeleteConfirmationModal from "@/common/components/DeleteConfirmationModal.vue";
+import { useClubId } from "@/service/useClub";
+import { useUpdateAddedDate } from "@/service/useList";
 
 const props = defineProps<{
   movie: Row<DetailedReviewListItem>;
@@ -140,6 +170,43 @@ const confirmDelete = () => {
   close();
 };
 
+// Date editing state
+const clubId = useClubId();
+const { mutate: updateAddedDate } = useUpdateAddedDate(clubId);
+const isEditingDate = ref(false);
+const editedDate = ref("");
+
+const formattedDateForInput = computed(() => {
+  return DateTime.fromISO(props.movie.original.createdDate).toFormat(
+    "yyyy-MM-dd",
+  );
+});
+
+const openDateEditor = () => {
+  editedDate.value = formattedDateForInput.value;
+  isEditingDate.value = true;
+};
+
+const saveDateChange = () => {
+  if (editedDate.value !== "") {
+    const isoDate = DateTime.fromFormat(editedDate.value, "yyyy-MM-dd")
+      .startOf("day")
+      .toISO();
+
+    if (isoDate !== null) {
+      updateAddedDate({
+        workId: props.movie.original.id,
+        addedDate: isoDate,
+      });
+    }
+  }
+  isEditingDate.value = false;
+};
+
+const cancelDateEdit = () => {
+  isEditingDate.value = false;
+};
+
 const CUSTOM_RENDERED_COLUMNS = ["title", "imageUrl", "createdDate"];
 
 const getVisibleCells = (row: Row<DetailedReviewListItem>) => {
@@ -161,10 +228,6 @@ const getVisibleCells = (row: Row<DetailedReviewListItem>) => {
     const value = cell.getValue();
     return value !== undefined && value !== null && value !== "";
   });
-};
-
-const getCell = (row: Row<DetailedReviewListItem>, columnId: string) => {
-  return row.getVisibleCells().find((cell) => cell.column.id === columnId);
 };
 
 const close = () => {
