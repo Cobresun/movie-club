@@ -27,7 +27,7 @@
             </span>
           </template>
           <template v-else>
-            <div class="flex items-center justify-center gap-1.5">
+            <div class="flex items-center justify-center gap-1.5 px-2">
               <input
                 v-model="editedDate"
                 type="date"

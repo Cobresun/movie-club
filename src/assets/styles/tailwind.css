@@ -10,3 +10,15 @@ html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* Style date input calendar icon to match primary blue color */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  filter: brightness(0) saturate(100%) invert(47%) sepia(98%) saturate(1247%) hue-rotate(188deg) brightness(98%) contrast(92%);
+}
+
+/* Fallback for browsers that support accent-color */
+input[type="date"] {
+  color-scheme: dark;
+  accent-color: #2196F3;
+}
