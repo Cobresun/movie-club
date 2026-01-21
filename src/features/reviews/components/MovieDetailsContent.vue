@@ -19,29 +19,29 @@
         <div class="mt-2 text-center text-sm text-gray-400">
           <template v-if="!isEditingDate">
             <span
-              class="inline-flex cursor-pointer items-center gap-1 hover:text-primary hover:underline"
+              class="inline-flex cursor-pointer items-center gap-1 text-gray-400 hover:text-primary hover:underline"
               @click="openDateEditor"
             >
               {{ formatDate(movie.original.createdDate) }}
-              <mdicon name="pencil" size="14" />
+              <mdicon name="pencil" size="14" class="text-current" />
             </span>
           </template>
           <template v-else>
-            <div class="flex items-center justify-center gap-2">
+            <div class="flex items-center justify-center gap-1.5">
               <input
                 v-model="editedDate"
                 type="date"
-                class="rounded border border-gray-600 bg-background px-2 py-1 text-white"
+                class="rounded border border-gray-600 bg-background px-1.5 py-0.5 text-xs text-white sm:px-2 sm:py-1 sm:text-sm"
                 @keypress.enter="saveDateChange"
               />
               <button
-                class="rounded bg-primary px-2 py-1 text-sm text-white"
+                class="whitespace-nowrap rounded bg-primary px-1.5 py-0.5 text-xs text-white sm:px-2 sm:py-1 sm:text-sm"
                 @click="saveDateChange"
               >
                 Save
               </button>
               <button
-                class="rounded bg-gray-600 px-2 py-1 text-sm text-white"
+                class="whitespace-nowrap rounded bg-gray-600 px-1.5 py-0.5 text-xs text-white sm:px-2 sm:py-1 sm:text-sm"
                 @click="cancelDateEdit"
               >
                 Cancel
