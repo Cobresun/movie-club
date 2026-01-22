@@ -1,16 +1,15 @@
+import { Router } from "itty-router";
 import { z } from "zod";
 
-import { ClubAwardRequest } from "./utils";
-import { hasValue } from "../../../../lib/checks/checks.js";
+import { AwardRequest, YearRequest } from "./utils";
 import { BaseAward, BaseAwardNomination } from "../../../../lib/types/awards";
 import AwardsRepository from "../../repositories/AwardsRepository";
 import { secured } from "../../utils/auth";
 import { badRequest, ok } from "../../utils/responses";
-import { Router } from "../../utils/router";
 
-const router = new Router<ClubAwardRequest>(
-  "/api/club/:clubId<\\d+>/awards/:year<\\d+>/ranking",
-);
+const router = Router<YearRequest>({
+  base: "/api/club/:clubId/awards/:year/ranking",
+});
 
 const addRankingSchema = z.object({
   awardTitle: z.string(),
@@ -18,48 +17,46 @@ const addRankingSchema = z.object({
   voter: z.string(),
 });
 
-router.post(
-  "/",
-  secured<ClubAwardRequest>,
-  async ({ event, clubId, year }, res) => {
-    if (!hasValue(event.body)) return res(badRequest("Missing body"));
-    const body = addRankingSchema.safeParse(JSON.parse(event.body));
-    if (!body.success) return res(badRequest("Invalid body"));
+router.post("/", secured, async (req: AwardRequest) => {
+  const { clubId, year } = req;
 
-    const { awardTitle, movies, voter } = body.data;
+  const jsonBody: unknown = await req.json();
+  const body = addRankingSchema.safeParse(jsonBody);
+  if (!body.success) return badRequest("Invalid body");
 
-    // Create a map of movieId -> rank
-    const movieRanks = new Map(
-      movies.map((movieId, index) => [movieId, index + 1]),
-    );
+  const { awardTitle, movies, voter } = body.data;
 
-    await AwardsRepository.updateByYear(clubId, year, (currentData) => ({
-      ...currentData,
-      awards: currentData.awards.map((award: BaseAward) => {
-        if (award.title !== awardTitle) return award;
+  // Create a map of movieId -> rank
+  const movieRanks = new Map(
+    movies.map((movieId, index) => [movieId, index + 1]),
+  );
 
-        return {
-          ...award,
-          nominations: award.nominations.map(
-            (nomination: BaseAwardNomination) => {
-              const rank = movieRanks.get(nomination.movieId);
-              if (rank === undefined) return nomination;
+  await AwardsRepository.updateByYear(clubId, year, (currentData) => ({
+    ...currentData,
+    awards: currentData.awards.map((award: BaseAward) => {
+      if (award.title !== awardTitle) return award;
 
-              return {
-                ...nomination,
-                ranking: {
-                  ...nomination.ranking,
-                  [voter]: rank,
-                },
-              };
-            },
-          ),
-        };
-      }),
-    }));
+      return {
+        ...award,
+        nominations: award.nominations.map(
+          (nomination: BaseAwardNomination) => {
+            const rank = movieRanks.get(nomination.movieId);
+            if (rank === undefined) return nomination;
 
-    return res(ok());
-  },
-);
+            return {
+              ...nomination,
+              ranking: {
+                ...nomination.ranking,
+                [voter]: rank,
+              },
+            };
+          },
+        ),
+      };
+    }),
+  }));
+
+  return ok();
+});
 
 export default router;

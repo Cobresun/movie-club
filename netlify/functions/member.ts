@@ -1,18 +1,17 @@
-import { Handler, HandlerContext, HandlerEvent } from "@netlify/functions";
-import { parse } from "lambda-multipart-parser";
+import { Context } from "@netlify/functions";
+import { json, Router } from "itty-router";
 
 import ClubRepository from "./repositories/ClubRepository";
 import ImageRepository from "./repositories/ImageRepository";
 import UserRepository from "./repositories/UserRepository";
 import { loggedIn } from "./utils/auth";
 import { badRequest, ok } from "./utils/responses";
-import { Router } from "./utils/router";
 import { isDefined } from "../../lib/checks/checks.js";
 import { ClubPreview, Member } from "../../lib/types/club";
 
-const router = new Router("/api/member");
+const router = Router({ base: "/api/member" });
 
-router.get("/", loggedIn, async (req, res) => {
+router.get("/", loggedIn, async (req) => {
   const user = await UserRepository.getByEmail(req.email);
 
   const result: Member = {
@@ -21,67 +20,71 @@ router.get("/", loggedIn, async (req, res) => {
     name: user.name,
     image: user.image ?? undefined,
   };
-  return res(ok(JSON.stringify(result)));
+  return ok(JSON.stringify(result));
 });
 
-router.get("/clubs", loggedIn, async (req, res) => {
+router.get("/clubs", loggedIn, async (req) => {
   const clubs = await ClubRepository.getClubPreviewsByEmail(req.email);
   const result: ClubPreview[] = clubs.map((club) => ({
     clubId: club.club_id,
     clubName: club.club_name,
   }));
-  return res(ok(JSON.stringify(result)));
+  return ok(JSON.stringify(result));
 });
 
-router.post("/avatar", loggedIn, async (req, res) => {
+router.post("/avatar", loggedIn, async (req) => {
   try {
-    // Parse the multipart/form-data request
-    const parsed = await parse(req.event);
-    if (parsed.files.length === 0) return res(badRequest("No file uploaded"));
+    const formData = await req.formData();
+    const avatarFile = formData.get("avatar");
 
-    const avatarFile = parsed.files[0];
+    if (!isDefined(avatarFile) || !(avatarFile instanceof File)) {
+      return badRequest("No avatar file provided");
+    }
+
+    const buffer = Buffer.from(await avatarFile.arrayBuffer());
 
     const user = await UserRepository.getByEmail(req.email);
-    const { url, id } = await ImageRepository.upload(avatarFile.content);
+    const { url, id } = await ImageRepository.upload(buffer);
 
-    // Delete old asset
+    if (!isDefined(url) || !isDefined(id)) {
+      return badRequest("Failed to upload avatar to Cloudinary");
+    }
+
+    // Delete old asset from Cloudinary
     if (isDefined(user.image_id)) {
       await ImageRepository.destroy(user.image_id);
     }
 
-    await UserRepository.updateImage(user.id, url, id);
+    await UserRepository.updateImageId(user.id, id);
 
-    return res(ok("Avatar updated successfully"));
+    return ok(JSON.stringify({ url, imageId: id }));
   } catch (error) {
     console.error("Error updating avatar:", error);
-    return res(badRequest("Error updating avatar"));
+    return badRequest("Error updating avatar");
   }
 });
 
-router.delete("/avatar", loggedIn, async (req, res) => {
+router.delete("/avatar", loggedIn, async (req) => {
   try {
     const user = await UserRepository.getByEmail(req.email);
 
-    // Delete the image from Cloudinary if it exists
     if (isDefined(user.image_id)) {
       await ImageRepository.destroy(user.image_id);
     }
 
-    // Clear the image URL and ID from the database
-    await UserRepository.updateImage(user.id, null, null);
+    await UserRepository.updateImageId(user.id, null);
 
-    return res(ok("Avatar deleted successfully"));
+    return ok("Avatar deleted successfully");
   } catch (error) {
     console.error("Error deleting avatar:", error);
-    return res(badRequest("Error deleting avatar"));
+    return badRequest("Error deleting avatar");
   }
 });
 
-const handler: Handler = async (
-  event: HandlerEvent,
-  context: HandlerContext,
-) => {
-  return router.route({ event, context, params: {} });
+export default async (request: Request, context: Context) => {
+  return router.fetch(request, context).then(json);
 };
 
-export { handler };
+export const config = {
+  path: ["/api/member", "/api/member/*"],
+};

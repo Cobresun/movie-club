@@ -1,13 +1,13 @@
 <template>
   <h2 class="m-4 text-2xl font-bold">Rankings</h2>
-  <div v-if="!user">Please log in to rank movies!</div>
+  <div v-if="!authStore.user">Please log in to rank movies!</div>
   <AwardRanking
     v-for="award in clubAward.awards"
     v-else
     :key="award.title"
     :award="award"
     :members="members ?? []"
-    :user="user"
+    :user="authStore.user"
     @submit-ranking="(movies) => submitRanking(award, movies)"
   />
 </template>
@@ -19,7 +19,7 @@ import AwardRanking from "../components/AwardRanking.vue";
 
 import { useSubmitRanking } from "@/service/useAwards";
 import { useMembers } from "@/service/useClub";
-import { useUser } from "@/service/useUser";
+import { useAuthStore } from "@/stores/auth.js";
 
 const { clubAward, clubId, year } = defineProps<{
   clubAward: ClubAwards;
@@ -28,7 +28,7 @@ const { clubAward, clubId, year } = defineProps<{
 }>();
 
 const { data: members } = useMembers(clubId);
-const { data: user } = useUser();
+const authStore = useAuthStore();
 
 const { mutate } = useSubmitRanking(clubId, year);
 const toast = useToast();

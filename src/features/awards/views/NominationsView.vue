@@ -94,7 +94,7 @@ import MoviePosterCard from "@/common/components/MoviePosterCard.vue";
 import MovieSearchPrompt from "@/common/components/MovieSearchPrompt.vue";
 import { useAddNomination, useDeleteNomination } from "@/service/useAwards";
 import { useList } from "@/service/useList";
-import { useUser } from "@/service/useUser";
+import { useAuthStore } from "@/stores/auth.js";
 
 const { clubAward, clubId, year } = defineProps<{
   clubAward: ClubAwards;
@@ -102,14 +102,14 @@ const { clubAward, clubId, year } = defineProps<{
   year: string;
 }>();
 
-const { data: user } = useUser();
+const authStore = useAuthStore();
 
 const userOnlyAwards = computed(() => {
-  if (!user.value || !user.value.name) return [];
+  if (!authStore.user || !authStore.user.name) return [];
   return clubAward.awards.map((award) => ({
     ...award,
     nominations: award.nominations.filter((nomination) =>
-      nomination.nominatedBy.includes(user.value?.name ?? ""),
+      nomination.nominatedBy.includes(authStore.user?.name ?? ""),
     ),
   }));
 });

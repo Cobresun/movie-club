@@ -1,29 +1,28 @@
+import { RequestHandler } from "itty-router";
+
 import { hasValue } from "../../../../lib/checks/checks.js";
 import AwardsRepository from "../../repositories/AwardsRepository";
+import { AuthRequest } from "../../utils/auth";
 import { badRequest, notFound } from "../../utils/responses";
-import { MiddlewareCallback } from "../../utils/router";
 import { ClubRequest } from "../../utils/validation";
 
-export interface ClubAwardRequest extends ClubRequest {
+export type YearRequest = {
   year: number;
-}
+} & ClubRequest;
 
-export const validYear: MiddlewareCallback<
-  ClubRequest,
-  ClubAwardRequest
-> = async (req, res) => {
-  if (!hasValue(req.params.year)) return res(notFound());
+export type AwardRequest = YearRequest & AuthRequest;
+
+export const validYear: RequestHandler<YearRequest> = async (req) => {
+  if (!hasValue(req.params.year)) return notFound();
+
   const year = parseInt(req.params.year);
-  if (isNaN(year)) return res(badRequest());
+  if (isNaN(year)) return badRequest();
 
   const exists = await AwardsRepository.existsByYear(req.clubId, year);
 
-  if (exists) {
-    return {
-      ...req,
-      year,
-    };
-  } else {
-    return res(notFound("Awards year not found"));
+  if (!exists) {
+    return notFound("Awards year not found");
   }
+
+  req.year = year;
 };

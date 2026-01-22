@@ -96,7 +96,7 @@ import VToggle from "@/common/components/VToggle.vue";
 import AddReviewPrompt from "@/features/reviews/components/AddReviewPrompt.vue";
 import { useIsInClub, useMembers, useClubSettings } from "@/service/useClub";
 import { useDeleteListItem, useList } from "@/service/useList";
-import { useUser } from "@/service/useUser";
+import { useAuthStore } from "@/stores/auth.js";
 
 const { clubId } = defineProps<{ clubId: string }>();
 
@@ -215,8 +215,8 @@ const { mutate: deleteReview } = useDeleteListItem(
 );
 
 const mdicon = resolveComponent("mdicon");
-const { data: currentUser } = useUser();
-const userId = computed(() => currentUser.value?.id);
+const authStore = useAuthStore();
+const userId = computed(() => authStore.user?.id);
 
 const revealedMovieIds = ref<Set<string>>(new Set());
 const hasUserRated = computed(() => {

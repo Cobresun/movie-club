@@ -1,37 +1,34 @@
+import { Router } from "itty-router";
 import { z } from "zod";
 
-import { ClubAwardRequest } from "./utils";
-import { hasValue } from "../../../../lib/checks/checks.js";
+import { AwardRequest, YearRequest } from "./utils";
 import AwardsRepository from "../../repositories/AwardsRepository";
 import { secured } from "../../utils/auth";
 import { badRequest, ok } from "../../utils/responses";
-import { Router } from "../../utils/router";
 
-const router = new Router<ClubAwardRequest>(
-  "/api/club/:clubId<\\d+>/awards/:year<\\d+>/step",
-);
+const router = Router<YearRequest>({
+  base: "/api/club/:clubId/awards/:year/step",
+});
 
 const updateStepSchema = z.object({
   step: z.number(),
 });
 
-router.put(
-  "/",
-  secured<ClubAwardRequest>,
-  async ({ event, clubId, year }, res) => {
-    if (!hasValue(event.body)) return res(badRequest("Missing body"));
-    const body = updateStepSchema.safeParse(JSON.parse(event.body));
-    if (!body.success) return res(badRequest("Invalid body"));
+router.put("/", secured, async (req: AwardRequest) => {
+  const { clubId, year } = req;
 
-    const { step } = body.data;
+  const jsonBody: unknown = await req.json();
+  const body = updateStepSchema.safeParse(jsonBody);
+  if (!body.success) return badRequest("Invalid body");
 
-    await AwardsRepository.updateByYear(clubId, year, (currentData) => ({
-      ...currentData,
-      step,
-    }));
+  const { step } = body.data;
 
-    return res(ok());
-  },
-);
+  await AwardsRepository.updateByYear(clubId, year, (currentData) => ({
+    ...currentData,
+    step,
+  }));
+
+  return ok();
+});
 
 export default router;

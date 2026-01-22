@@ -1,5 +1,6 @@
+import { IRequestStrict, RequestHandler } from "itty-router";
+
 import { notFound } from "./responses";
-import { MiddlewareCallback, Request } from "./router";
 import { hasValue } from "../../../lib/checks/checks.js";
 import ClubRepository from "../repositories/ClubRepository";
 
@@ -8,23 +9,20 @@ export function getErrorMessage(error: unknown) {
   return String(error);
 }
 
-export type ClubRequest<T extends Request = Request> = T & {
+export type ClubRequest = {
   clubId: string;
-};
+} & IRequestStrict;
 
-export const validClubId: MiddlewareCallback<Request, ClubRequest> = async (
-  req,
-  res,
-) => {
-  if (!hasValue(req.params.clubId)) return res(notFound());
-  const clubId = req.params.clubId;
+export const validClubId: RequestHandler<ClubRequest> = async (request) => {
+  const clubId = request.params?.clubId;
 
-  if (await ClubRepository.exists(clubId)) {
-    return {
-      ...req,
-      clubId,
-    };
-  } else {
-    return res(notFound("Club not found"));
+  if (!hasValue(clubId)) {
+    return notFound();
   }
+
+  if (!(await ClubRepository.exists(clubId))) {
+    return notFound("Club not found");
+  }
+
+  request.clubId = clubId;
 };

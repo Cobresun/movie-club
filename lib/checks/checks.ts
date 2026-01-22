@@ -64,3 +64,10 @@ export function ensure<T>(
   }
   return val;
 }
+
+export function itemOrFirst<T>(arrOrItem: T | T[] | undefined): T | undefined {
+  if (Array.isArray(arrOrItem)) {
+    return arrOrItem[0];
+  }
+  return arrOrItem;
+}

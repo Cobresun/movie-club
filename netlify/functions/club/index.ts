@@ -1,4 +1,5 @@
-import { Handler, HandlerContext, HandlerEvent } from "@netlify/functions";
+import { Context } from "@netlify/functions";
+import { json, Router } from "itty-router";
 import { z } from "zod";
 
 import awardsRouter from "./awards";
@@ -8,7 +9,6 @@ import membersRouter from "./members";
 import joinRouter from "./members/join";
 import reviewsRouter from "./reviews";
 import settingsRouter from "./settings";
-import { hasValue } from "../../../lib/checks/checks.js";
 import { ClubPreview } from "../../../lib/types/club";
 import ClubRepository from "../repositories/ClubRepository";
 import ListRepository from "../repositories/ListRepository";
@@ -18,38 +18,38 @@ import WorkRepository from "../repositories/WorkRepository";
 import { loggedIn, secured } from "../utils/auth";
 import { db } from "../utils/database";
 import { ok, badRequest } from "../utils/responses";
-import { Router } from "../utils/router";
-import { validClubId } from "../utils/validation";
+import { ClubRequest, validClubId } from "../utils/validation";
 
-const router = new Router("/api/club");
-router.use("/:clubId<\\d+>/list", validClubId, listRouter);
-router.use("/:clubId<\\d+>/reviews", validClubId, reviewsRouter);
-router.use("/:clubId<\\d+>/members", validClubId, membersRouter);
-router.use("/:clubId<\\d+>/awards", validClubId, awardsRouter);
-router.use("/:clubId<\\d+>/invite", validClubId, inviteRouter);
-router.use("/:clubId<\\d+>/settings", validClubId, settingsRouter);
-router.get("/:clubId<\\d+>", validClubId, async ({ clubId }, res) => {
+const router = Router<ClubRequest>({ base: "/api/club" });
+
+router
+  .all("/:clubId/list/*", validClubId, listRouter.fetch)
+  .all("/:clubId/reviews/*", validClubId, reviewsRouter.fetch)
+  .all("/:clubId/members/*", validClubId, membersRouter.fetch)
+  .all("/:clubId/awards/*", validClubId, awardsRouter.fetch)
+  .all("/:clubId/invite/*", validClubId, inviteRouter.fetch)
+  .all("/:clubId/settings/*", validClubId, settingsRouter.fetch)
+  .all("/join", joinRouter.fetch)
+  .all("/joinInfo/:token", joinRouter.fetch);
+
+router.get("/:clubId", validClubId, async ({ clubId }) => {
   const club = await ClubRepository.getById(clubId);
   const result: ClubPreview = {
     clubId: club.id,
     clubName: club.name,
   };
-  return res(ok(JSON.stringify(result)));
+  return ok(JSON.stringify(result));
 });
-
-router.use("/join", joinRouter);
-router.use("/joinInfo/:token", joinRouter);
 
 const clubCreateSchema = z.object({
   name: z.string(),
   members: z.array(z.string()),
 });
 
-router.post("/", loggedIn, async ({ event }, res) => {
-  if (!hasValue(event.body)) return res(badRequest("Missing body"));
-
-  const body = clubCreateSchema.safeParse(JSON.parse(event.body));
-  if (!body.success) return res(badRequest("Invalid body"));
+router.post("/", loggedIn, async (req) => {
+  const jsonBody: unknown = await req.json();
+  const body = clubCreateSchema.safeParse(jsonBody);
+  if (!body.success) return badRequest("Invalid body");
   const { name, members } = body.data;
 
   const legacyClubId = Math.floor(Math.random() * 100000);
@@ -58,10 +58,10 @@ router.post("/", loggedIn, async ({ event }, res) => {
   const newClub = await ClubRepository.insert(name, legacyClubId);
 
   if (!newClub) {
-    return res(badRequest("Failed to create club in database"));
+    return badRequest("Failed to create club in database");
   }
 
-  // Creat WatchList, Backlog, Reviews lists
+  // Create WatchList, Backlog, Reviews lists
   await ListRepository.createListsForClub(newClub.id);
 
   // Create default settings
@@ -87,44 +87,38 @@ router.post("/", loggedIn, async ({ event }, res) => {
   });
   await Promise.all(memberPromises);
 
-  return res(
-    hasErrors
-      ? badRequest("Error creating club")
-      : ok(JSON.stringify({ clubId: newClub.id })),
-  );
+  return hasErrors
+    ? badRequest("Error creating club")
+    : ok(JSON.stringify({ clubId: newClub.id }));
 });
 
-router.get("/:clubId<\\d+>/nextWork", validClubId, async ({ clubId }, res) => {
+router.get("/:clubId/nextWork", validClubId, async ({ clubId }) => {
   const nextWork = await WorkRepository.getNextWork(clubId);
-  return res(ok(JSON.stringify({ workId: nextWork?.work_id })));
+  return ok(JSON.stringify({ workId: nextWork?.work_id }));
 });
 
 const nextWorkSchema = z.object({
   workId: z.string(),
 });
 
-router.put(
-  "/:clubId<\\d+>/nextWork",
-  validClubId,
-  secured,
-  async ({ event, clubId }, res) => {
-    if (!hasValue(event.body)) return res(badRequest("Missing body"));
-    const body = nextWorkSchema.safeParse(JSON.parse(event.body));
-    if (!body.success) return res(badRequest("Invalid body"));
-    const { workId } = body.data;
+router.put("/:clubId/nextWork", validClubId, secured, async (req) => {
+  const { clubId } = req;
 
-    await WorkRepository.deleteNextWork(clubId);
-    await WorkRepository.setNextWork(clubId, workId);
+  const jsonBody: unknown = await req.json();
+  const body = nextWorkSchema.safeParse(jsonBody);
+  if (!body.success) return badRequest("Invalid body");
+  const { workId } = body.data;
 
-    return res(ok());
-  },
-);
+  await WorkRepository.deleteNextWork(clubId);
+  await WorkRepository.setNextWork(clubId, workId);
 
-const handler: Handler = async (
-  event: HandlerEvent,
-  context: HandlerContext,
-) => {
-  return router.route({ event, context, params: {} });
+  return ok();
+});
+
+export default async (request: Request, context: Context) => {
+  return router.fetch(request, context).then(json);
 };
-
-export { handler };
+// Add path configuration
+export const config = {
+  path: ["/api/club", "/api/club/*"],
+};

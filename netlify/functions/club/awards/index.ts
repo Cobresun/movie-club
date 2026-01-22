@@ -1,3 +1,5 @@
+import { Router } from "itty-router";
+
 import categoryRouter from "./category";
 import nominationRouter from "./nomination";
 import rankingRouter from "./ranking";
@@ -6,24 +8,25 @@ import { validYear } from "./utils";
 import { BaseAward, ClubAwards } from "../../../../lib/types/awards";
 import AwardsRepository from "../../repositories/AwardsRepository";
 import { notFound, ok } from "../../utils/responses";
-import { Router } from "../../utils/router";
 import { getDetailedMovie } from "../../utils/tmdb";
 import { ClubRequest, validClubId } from "../../utils/validation";
 
-const router = new Router<ClubRequest>("/api/club/:clubId<\\d+>/awards");
-router.use("/:year<\\d+>/category", validYear, categoryRouter);
-router.use("/:year<\\d+>/step", validYear, stepHandler);
-router.use("/:year<\\d+>/nomination", validYear, nominationRouter);
-router.use("/:year<\\d+>/ranking", validYear, rankingRouter);
+const router = Router<ClubRequest>({ base: "/api/club/:clubId/awards" });
 
-router.get("/:year<\\d+>", validYear, async ({ clubId, year }, res) => {
+router
+  .all("/:year/category/*", validYear, categoryRouter.fetch)
+  .all("/:year/step/*", validYear, stepHandler.fetch)
+  .all("/:year/nomination/*", validYear, nominationRouter.fetch)
+  .all("/:year/ranking/*", validYear, rankingRouter.fetch);
+
+router.get("/:year", validYear, async ({ clubId, year }) => {
   const awardsData = await AwardsRepository.getByYear(clubId, year);
   if (!awardsData) {
-    return res(notFound("Awards not found"));
+    return notFound("Awards not found");
   }
 
   const retObj: ClubAwards = {
-    year,
+    year: year,
     step: awardsData.step,
     awards: await Promise.all(
       awardsData.awards.map(async (award: BaseAward) => ({
@@ -32,12 +35,12 @@ router.get("/:year<\\d+>", validYear, async ({ clubId, year }, res) => {
       })),
     ),
   };
-  return res(ok(JSON.stringify(retObj)));
+  return ok(JSON.stringify(retObj));
 });
 
-router.get("/years", validClubId, async ({ clubId }, res) => {
+router.get("/years", validClubId, async ({ clubId }) => {
   const years = await AwardsRepository.getYears(clubId);
-  return res(ok(JSON.stringify(years)));
+  return ok(JSON.stringify(years));
 });
 
 export default router;

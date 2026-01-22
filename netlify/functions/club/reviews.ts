@@ -1,3 +1,4 @@
+import { Router } from "itty-router";
 import { z } from "zod";
 
 import { hasValue } from "../../../lib/checks/checks.js";
@@ -7,21 +8,21 @@ import ReviewRepository from "../repositories/ReviewRepository";
 import UserRepository from "../repositories/UserRepository";
 import { secured } from "../utils/auth";
 import { badRequest, ok } from "../utils/responses";
-import { Router } from "../utils/router";
 import { ClubRequest } from "../utils/validation";
 import { overviewToExternalData } from "../utils/workDetailsMapper";
 
-const router = new Router<ClubRequest>("/api/club/:clubId<\\d+>/reviews");
+const router = Router<ClubRequest>({ base: "/api/club/:clubId/reviews" });
 
 const addReviewSchema = z.object({
   score: z.number().min(0).max(10),
   workId: z.string(),
 });
 
-router.post("/", secured, async ({ clubId, email, event }, res) => {
-  if (!hasValue(event.body)) return res(badRequest("No body provided"));
-  const body = addReviewSchema.safeParse(JSON.parse(event.body));
-  if (!body.success) return res(badRequest("Invalid body"));
+router.post("/", secured, async (req) => {
+  const { clubId, email } = req;
+  const jsonBody: unknown = await req.json();
+  const body = addReviewSchema.safeParse(jsonBody);
+  if (!body.success) return badRequest("Invalid body");
 
   const { score, workId } = body.data;
 
@@ -31,43 +32,42 @@ router.post("/", secured, async ({ clubId, email, event }, res) => {
     workId,
   );
   if (!isItemInList) {
-    return res(badRequest("This movie does not exist in the list"));
+    return badRequest("This movie does not exist in the list");
   }
   const user = await UserRepository.getByEmail(email);
   await ReviewRepository.insertReview(clubId, workId, user.id, score);
-  return res(ok());
+  return ok();
 });
 
 const updateReviewSchema = z.object({
   score: z.number().min(0).max(10),
 });
 
-router.put(
-  `/:reviewId`,
-  secured,
-  async ({ clubId, email, params, event }, res) => {
-    if (!hasValue(params.reviewId)) {
-      return res(badRequest("No reviewId provided"));
-    }
-    if (!hasValue(event.body)) return res(badRequest("No body provided"));
-    const body = updateReviewSchema.safeParse(JSON.parse(event.body));
-    if (!body.success) return res(badRequest("Invalid body"));
+router.put("/:reviewId", secured, async (req) => {
+  const { clubId, email, params } = req;
+  const { reviewId } = params;
 
-    const { score } = body.data;
-    const reviewId = params.reviewId;
-    const user = await UserRepository.getByEmail(email);
-    const review = await ReviewRepository.getById(reviewId, clubId);
-    if (review.user_id !== user.id) {
-      return res(badRequest("You are not allowed to edit this review"));
-    }
-    await ReviewRepository.updateScore(reviewId, score);
-    return res(ok());
-  },
-);
+  if (!hasValue(reviewId)) {
+    return badRequest("No reviewId provided");
+  }
 
-router.get("/:workId/shared", async ({ clubId, params }, res) => {
+  const jsonBody: unknown = await req.json();
+  const body = updateReviewSchema.safeParse(jsonBody);
+  if (!body.success) return badRequest("Invalid body");
+
+  const { score } = body.data;
+  const user = await UserRepository.getByEmail(email);
+  const review = await ReviewRepository.getById(reviewId, clubId);
+  if (review.user_id !== user.id) {
+    return badRequest("You are not allowed to edit this review");
+  }
+  await ReviewRepository.updateScore(reviewId, score);
+  return ok();
+});
+
+router.get("/:workId/shared", async ({ clubId, params }) => {
   if (!hasValue(params.workId)) {
-    return res(badRequest("No workId provided"));
+    return badRequest("No workId provided");
   }
 
   const workId = params.workId;
@@ -78,7 +78,7 @@ router.get("/:workId/shared", async ({ clubId, params }, res) => {
   ]);
 
   if (!workDetails) {
-    return res(badRequest("Work not found"));
+    return badRequest("Work not found");
   }
 
   const work = {
@@ -90,14 +90,12 @@ router.get("/:workId/shared", async ({ clubId, params }, res) => {
     externalData: overviewToExternalData(workDetails),
   };
 
-  return res(
-    ok(
-      JSON.stringify({
-        reviews,
-        members,
-        work,
-      }),
-    ),
+  return ok(
+    JSON.stringify({
+      reviews,
+      members,
+      work,
+    }),
   );
 });
 

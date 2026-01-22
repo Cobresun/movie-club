@@ -6,3 +6,4 @@ export const authClient = createAuthClient({
 
 // Export types for TypeScript support
 export type Session = typeof authClient.$Infer.Session;
+export type User = Session["user"];

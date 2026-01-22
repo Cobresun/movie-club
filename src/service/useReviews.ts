@@ -1,6 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/vue-query";
 
-import { useUser } from "./useUser";
 import { isDefined } from "../../lib/checks/checks.js";
 import { WorkListType } from "../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../lib/types/lists";
@@ -10,7 +9,6 @@ import { useAuthStore } from "@/stores/auth";
 export function useReviewWork(clubId: string) {
   const auth = useAuthStore();
   const queryClient = useQueryClient();
-  const { data: user } = useUser();
 
   return useMutation({
     mutationFn: ({ workId, score }: { workId: string; score: number }) =>
@@ -23,7 +21,7 @@ export function useReviewWork(clubId: string) {
       queryClient.setQueryData<DetailedReviewListItem[]>(
         ["list", clubId, WorkListType.reviews],
         (currentReviews) => {
-          const userId = user.value?.id;
+          const userId = auth.user?.id;
           if (!currentReviews || !isDefined(userId)) return currentReviews;
           return currentReviews.map((review) =>
             review.id === workId
@@ -53,7 +51,6 @@ export function useReviewWork(clubId: string) {
 export function useUpdateReviewScore(clubId: string) {
   const auth = useAuthStore();
   const queryClient = useQueryClient();
-  const { data: user } = useUser();
   return useMutation({
     mutationFn: ({ reviewId, score }: { reviewId: string; score: number }) =>
       auth.request.put(`/api/club/${clubId}/reviews/${reviewId}`, { score }),
@@ -62,7 +59,8 @@ export function useUpdateReviewScore(clubId: string) {
       queryClient.setQueryData<DetailedReviewListItem[]>(
         ["list", clubId, WorkListType.reviews],
         (currentReviews) => {
-          if (!currentReviews || !user.value) return currentReviews;
+          const user = auth.user;
+          if (!currentReviews || !user) return currentReviews;
           return currentReviews.map((review) =>
             Object.keys(review.scores).some(
               (key) => review.scores[key].id === reviewId,
@@ -71,7 +69,7 @@ export function useUpdateReviewScore(clubId: string) {
                   ...review,
                   scores: {
                     ...review.scores,
-                    [user.value.id]: {
+                    [user.id]: {
                       id: reviewId,
                       created_date: new Date().toISOString(),
                       score,

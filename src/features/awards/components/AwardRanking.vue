@@ -46,11 +46,12 @@ import { Award } from "../../../../lib/types/awards";
 import { Member } from "../../../../lib/types/club";
 
 import MoviePosterCard from "@/common/components/MoviePosterCard.vue";
+import { User } from "@/lib/auth-client.js";
 
 const { award, members, user } = defineProps<{
   award: Award;
   members: Member[];
-  user: Member;
+  user: User;
 }>();
 
 const emit = defineEmits<{ (e: "submit-ranking", ranking: number[]): void }>();

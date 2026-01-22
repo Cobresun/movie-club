@@ -7,7 +7,6 @@ import {
 import axios, { AxiosError } from "axios";
 import { Ref } from "vue";
 
-import { useUser } from "./useUser";
 import { hasValue, isDefined } from "../../lib/checks/checks.js";
 import { Award, AwardsStep, ClubAwards } from "../../lib/types/awards";
 import { DetailedReviewListItem } from "../../lib/types/lists";
@@ -152,7 +151,6 @@ export function useDeleteCategory(clubId: string, year: string) {
 }
 
 export function useAddNomination(clubId: string, year: string) {
-  const { data: user } = useUser();
   const auth = useAuthStore();
   const queryClient = useQueryClient();
   return useMutation({
@@ -171,7 +169,7 @@ export function useAddNomination(clubId: string, year: string) {
         {
           awardTitle,
           movieId: parseInt(review.externalId),
-          nominatedBy: user.value?.name,
+          nominatedBy: auth.user?.name,
         },
       );
     },
@@ -180,7 +178,7 @@ export function useAddNomination(clubId: string, year: string) {
       queryClient.setQueryData<ClubAwards>(
         ["awards", clubId, year],
         (currentClubAwards) => {
-          const name = user.value?.name;
+          const name = auth.user?.name;
           if (!currentClubAwards || !hasValue(name)) return currentClubAwards;
           return {
             ...currentClubAwards,
@@ -219,14 +217,13 @@ export function useAddNomination(clubId: string, year: string) {
 export function useDeleteNomination(clubId: string, year: string) {
   const auth = useAuthStore();
   const queryClient = useQueryClient();
-  const { data: user } = useUser();
 
   return useMutation({
     mutationFn: (input: { awardTitle: string; movieId: number }) =>
       auth.request.delete(
         `/api/club/${clubId}/awards/${year}/nomination/${input.movieId}`,
         {
-          params: { awardTitle: input.awardTitle, userId: user.value?.name },
+          params: { awardTitle: input.awardTitle, userId: auth.user?.name },
         },
       ),
     onMutate: async (input) => {
@@ -245,7 +242,7 @@ export function useDeleteNomination(clubId: string, year: string) {
                     return {
                       ...nomination,
                       nominatedBy: nomination.nominatedBy.filter(
-                        (nominator) => nominator !== user.value?.name,
+                        (nominator) => nominator !== auth.user?.name,
                       ),
                     };
                   }
@@ -272,7 +269,6 @@ export function useDeleteNomination(clubId: string, year: string) {
 
 export function useSubmitRanking(clubId: string, year: string) {
   const auth = useAuthStore();
-  const { data: user } = useUser();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({
@@ -284,7 +280,7 @@ export function useSubmitRanking(clubId: string, year: string) {
     }) =>
       auth.request.post(`/api/club/${clubId}/awards/${year}/ranking`, {
         awardTitle,
-        voter: user.value?.name,
+        voter: auth.user?.name,
         movies,
       }),
     onSettled: () => {

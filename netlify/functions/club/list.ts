@@ -1,3 +1,4 @@
+import { Router } from "itty-router";
 import { z } from "zod";
 
 import { hasValue } from "../../../lib/checks/checks.js";
@@ -14,21 +15,20 @@ import UserRepository from "../repositories/UserRepository";
 import WorkRepository from "../repositories/WorkRepository";
 import { secured } from "../utils/auth";
 import { badRequest, internalServerError, ok } from "../utils/responses";
-import { Router } from "../utils/router";
 import { ClubRequest } from "../utils/validation";
 import { overviewToExternalData } from "../utils/workDetailsMapper.js";
 
 import { BadRequest } from "@/common/errorCodes";
 
-const router = new Router<ClubRequest>("/api/club/:clubId<\\d+>/list");
+const router = Router<ClubRequest>({ base: "/api/club/:clubId/list" });
 
-router.get("/:type", async ({ clubId, params }, res) => {
+router.get("/:type", async ({ clubId, params }) => {
   if (!hasValue(params.type)) {
-    return res(badRequest("No type provided"));
+    return badRequest("No type provided");
   }
-  const type = params.type;
+  const { type } = params;
   if (!isWorkListType(type)) {
-    return res(badRequest("Invalid type provided"));
+    return badRequest("Invalid type provided");
   }
 
   let workList: WorkListItem[];
@@ -42,9 +42,9 @@ router.get("/:type", async ({ clubId, params }, res) => {
       workList = await getReviewList(clubId);
       break;
     default:
-      return res(badRequest("Invalid type provided"));
+      return badRequest("Invalid type provided");
   }
-  return res(ok(JSON.stringify(workList)));
+  return ok(JSON.stringify(workList));
 });
 
 async function getWorkList(clubId: string, type: WorkListType) {
@@ -159,15 +159,18 @@ async function getReviewList(clubId: string): Promise<ReviewListItem[]> {
     .sort((a, b) => b.createdDate.localeCompare(a.createdDate));
 }
 
-router.post("/:type", secured, async ({ clubId, params, event }, res) => {
-  if (!hasValue(params.type)) return res(badRequest("No type provided"));
-  if (!hasValue(event.body)) return res(badRequest("No body provided"));
-  const body = listInsertDtoSchema.safeParse(JSON.parse(event.body));
-  if (!body.success) return res(badRequest("Invalid body provided"));
+router.post("/:type", secured, async (req) => {
+  const { clubId } = req;
 
-  const listType = params.type;
+  if (!hasValue(req.params.type)) return badRequest("No type provided");
+
+  const jsonBody: unknown = await req.json();
+  const body = listInsertDtoSchema.safeParse(jsonBody);
+  if (!body.success) return badRequest("Invalid body provided");
+
+  const listType = req.params.type;
   if (!isWorkListType(listType)) {
-    return res(badRequest("Invalid list type provided"));
+    return badRequest("Invalid list type provided");
   }
 
   const { type, externalId } = body.data;
@@ -192,25 +195,25 @@ router.post("/:type", secured, async ({ clubId, params, event }, res) => {
     workId,
   );
   if (isItemInList) {
-    return res(badRequest(BadRequest.ItemInList));
+    return badRequest(BadRequest.ItemInList);
   }
   await ListRepository.insertItemInList(clubId, listType, workId);
-  return res(ok());
+  return ok();
 });
 
-router.delete("/:type/:workId", secured, async ({ clubId, params }, res) => {
+router.delete("/:type/:workId", secured, async ({ clubId, params }) => {
   if (!hasValue(params.type) || !hasValue(params.workId)) {
-    return res(badRequest("No type or workId provided"));
+    return badRequest("No type or workId provided");
   }
 
   const type = params.type;
   if (!isWorkListType(type)) {
-    return res(badRequest("Invalid type provided"));
+    return badRequest("Invalid type provided");
   }
   const workId = params.workId;
   const isItemInList = await ListRepository.isItemInList(clubId, type, workId);
   if (!isItemInList) {
-    return res(badRequest("This movie does not exist in the list"));
+    return badRequest("This movie does not exist in the list");
   }
   await ListRepository.deleteItemFromList(clubId, type, workId);
   try {
@@ -218,57 +221,47 @@ router.delete("/:type/:workId", secured, async ({ clubId, params }, res) => {
   } catch (e) {
     const error = e as { constraint?: string };
     if (error?.constraint !== "fk_work_list_item_work_id") {
-      return res(internalServerError("Failed to delete work"));
+      return internalServerError("Failed to delete work");
     }
   }
-  return res(ok());
+  return ok();
 });
 
 const updateAddedDateSchema = z.object({
   addedDate: z.string().datetime({ offset: true }),
 });
 
-router.put(
-  "/:type/:workId/added-date",
-  secured,
-  async ({ clubId, params, event }, res) => {
-    if (!hasValue(params.type) || !hasValue(params.workId)) {
-      return res(badRequest("No type or workId provided"));
-    }
+router.put("/:type/:workId/added-date", secured, async (req) => {
+  const { clubId, params } = req;
+  if (!hasValue(params.type) || !hasValue(params.workId)) {
+    return badRequest("No type or workId provided");
+  }
 
-    const type = params.type;
-    if (!isWorkListType(type)) {
-      return res(badRequest("Invalid type provided"));
-    }
+  const type = params.type;
+  if (!isWorkListType(type)) {
+    return badRequest("Invalid type provided");
+  }
 
-    if (!hasValue(event.body)) {
-      return res(badRequest("No body provided"));
-    }
+  const bodyJson: unknown = await req.json();
+  const body = updateAddedDateSchema.safeParse(bodyJson);
+  if (!body.success) {
+    return badRequest("Invalid body provided");
+  }
 
-    const body = updateAddedDateSchema.safeParse(JSON.parse(event.body));
-    if (!body.success) {
-      return res(badRequest("Invalid body provided"));
-    }
+  const workId = params.workId;
+  const isItemInList = await ListRepository.isItemInList(clubId, type, workId);
+  if (!isItemInList) {
+    return badRequest("This work does not exist in the list");
+  }
 
-    const workId = params.workId;
-    const isItemInList = await ListRepository.isItemInList(
-      clubId,
-      type,
-      workId,
-    );
-    if (!isItemInList) {
-      return res(badRequest("This work does not exist in the list"));
-    }
+  await ListRepository.updateAddedDate(
+    clubId,
+    type,
+    workId,
+    new Date(body.data.addedDate),
+  );
 
-    await ListRepository.updateAddedDate(
-      clubId,
-      type,
-      workId,
-      new Date(body.data.addedDate),
-    );
-
-    return res(ok());
-  },
-);
+  return ok();
+});
 
 export default router;

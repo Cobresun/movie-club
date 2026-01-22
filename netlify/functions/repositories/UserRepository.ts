@@ -37,6 +37,14 @@ class UserRepository {
       .execute();
   }
 
+  async updateImageId(userId: string, imageId: string | null) {
+    return await db
+      .updateTable("user")
+      .set({ image_id: imageId })
+      .where("id", "=", userId)
+      .execute();
+  }
+
   async addClubMember(clubId: string, email: string, role: string = "member") {
     const user = await this.getByEmail(email);
     await db

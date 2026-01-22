@@ -1,17 +1,12 @@
-import { HandlerResponse } from "@netlify/functions";
 import bcrypt from "bcrypt";
 import { betterAuth } from "better-auth";
+import { IRequestStrict, RequestHandler } from "itty-router";
 
 import { dialect } from "./database.js";
 import { sendPasswordResetEmail, sendVerificationEmail } from "./email.js";
 import { unauthorized } from "./responses";
-import { isRouterResponse, Request, RouterResponse } from "./router";
 import { ClubRequest } from "./validation";
-import {
-  ensure,
-  filterUndefinedProperties,
-  isDefined,
-} from "../../../lib/checks/checks.js";
+import { ensure, hasValue, isDefined } from "../../../lib/checks/checks.js";
 import ClubRepository from "../repositories/ClubRepository";
 
 const googleClientId = ensure(
@@ -74,42 +69,38 @@ export const auth = betterAuth({
   },
 });
 
-export type AuthRequest<T extends Request = Request> = T & {
+export type AuthRequest = {
   email: string;
-};
+} & IRequestStrict;
 
-export const loggedIn = async <T extends Request>(
-  req: T,
-  res: (data: HandlerResponse) => RouterResponse,
-) => {
+export const loggedIn: RequestHandler<AuthRequest> = async (request) => {
   // Get session from Better Auth using request headers
   const session = await auth.api.getSession({
-    headers: new Headers(filterUndefinedProperties(req.event.headers)),
+    headers: request.headers,
   });
 
   const email = session?.user?.email;
-  if (email === null || email === undefined) {
-    return res(unauthorized());
+  if (!hasValue(email)) {
+    return unauthorized();
   }
 
-  return {
-    ...req,
-    email,
-  };
+  request.email = email;
 };
 
-export const secured = async <T extends ClubRequest>(
-  req: T,
-  res: (data: HandlerResponse) => RouterResponse,
+export const secured: RequestHandler<ClubRequest & AuthRequest> = async (
+  request,
 ) => {
-  const loggedInResult = await loggedIn<T>(req, res);
-  if (isRouterResponse(loggedInResult)) {
-    return loggedInResult;
-  }
+  const session = await auth.api.getSession({
+    headers: request.headers,
+  });
 
-  if (!(await ClubRepository.isUserInClub(req.clubId, loggedInResult.email))) {
-    return res(unauthorized());
+  const email = session?.user?.email;
+  if (!hasValue(email)) {
+    return unauthorized();
   }
+  request.email = email;
 
-  return loggedInResult;
+  if (!(await ClubRepository.isUserInClub(request.clubId, email))) {
+    return unauthorized();
+  }
 };

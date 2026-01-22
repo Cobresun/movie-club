@@ -1,17 +1,18 @@
+import { Router } from "itty-router";
+
 import ClubRepository from "../repositories/ClubRepository";
 import { ok, badRequest } from "../utils/responses";
-import { Router } from "../utils/router";
 import { ClubRequest } from "../utils/validation";
 
-const router = new Router<ClubRequest>("/api/club/:clubId<\\d+>/invite");
+const router = Router<ClubRequest>({ base: "/api/club/:clubId/invite" });
 
-router.post("/", async ({ clubId }, res) => {
+router.post("/", async ({ clubId }) => {
   try {
     const token = await ClubRepository.createClubInvite(clubId);
-    return res(ok(JSON.stringify({ token })));
+    return ok(JSON.stringify({ token }));
   } catch (error) {
     console.error("Error creating invite:", error);
-    return res(badRequest("Failed to create invite"));
+    return badRequest("Failed to create invite");
   }
 });
 

@@ -1,32 +1,22 @@
-export const ok = (body?: string) => ({
-  statusCode: 200,
-  headers: {
-    "Content-Type": "application/json",
-  },
-  body,
-});
+import { error as ittyError } from "itty-router";
 
-export const badRequest = (body?: string) => ({
-  statusCode: 400,
-  body: body ?? "Bad request",
-});
+import { isDefined } from "../../../lib/checks/checks.js";
 
-export const unauthorized = (body?: string) => ({
-  statusCode: 401,
-  body: body ?? "You are not authorized to perform this action",
-});
+export const ok = (body?: string) =>
+  isDefined(body)
+    ? new Response(body, { status: 200 })
+    : new Response(null, { status: 200 });
 
-export const notFound = (body?: string) => ({
-  statusCode: 404,
-  body: body ?? "Resource not found",
-});
+export const badRequest = (message?: string) =>
+  ittyError(400, message ?? "Bad Request");
 
-export const methodNotAllowed = (body?: string) => ({
-  statusCode: 405,
-  body: body ?? "Method not allowed",
-});
+export const unauthorized = (message?: string) =>
+  ittyError(401, message ?? "Unauthorized");
 
-export const internalServerError = (body?: string) => ({
-  statusCode: 500,
-  body: body ?? "internal server error",
-});
+export const notFound = (message?: string) =>
+  ittyError(404, message ?? "Not Found");
+
+export const methodNotAllowed = () => ittyError(405, "Method Not Allowed");
+
+export const internalServerError = (message?: string) =>
+  ittyError(500, message ?? "Internal Server Error");

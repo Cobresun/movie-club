@@ -20,15 +20,13 @@
 import { computed } from "vue";
 import { useRouter } from "vue-router";
 
-import { useUser } from "@/service/useUser";
 import { useAuthStore } from "@/stores/auth";
 
 const store = useAuthStore();
-const { data: user } = useUser();
 
 const isLoggedIn = computed(() => store.isLoggedIn);
 const fullName = computed(() => store.user?.name ?? "");
-const avatarURL = computed(() => user.value?.image);
+const avatarURL = computed(() => store.user?.image);
 const authReady = computed(() => store.ready);
 
 function login() {

@@ -35,7 +35,7 @@ import { hasValue } from "../../../../lib/checks/checks.js";
 
 import { useClubId } from "@/service/useClub";
 import { useReviewWork, useUpdateReviewScore } from "@/service/useReviews";
-import { useUser } from "@/service/useUser";
+import { useAuthStore } from "@/stores/auth.js";
 
 const props = defineProps<{
   memberId: string;
@@ -45,8 +45,8 @@ const props = defineProps<{
   size?: string;
 }>();
 
-const { data: user } = useUser();
-const isMe = computed(() => user.value?.id === props.memberId);
+const authStore = useAuthStore();
+const isMe = computed(() => authStore.user?.id === props.memberId);
 
 const isInputOpen = ref(false);
 const scoreModel = ref("");
