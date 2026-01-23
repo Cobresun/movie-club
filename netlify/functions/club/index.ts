@@ -130,5 +130,5 @@ export default async (
 };
 
 export const config: Config = {
-  path: "/api/club/*",
+  path: ["/api/club", "/api/club/*"],
 };
