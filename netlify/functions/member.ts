@@ -1,18 +1,17 @@
-import { Handler, HandlerContext, HandlerEvent } from "@netlify/functions";
-import { parse } from "lambda-multipart-parser";
+import type { Config, Context } from "@netlify/functions";
 
 import ClubRepository from "./repositories/ClubRepository";
 import ImageRepository from "./repositories/ImageRepository";
 import UserRepository from "./repositories/UserRepository";
-import { loggedIn } from "./utils/auth";
-import { badRequest, ok } from "./utils/responses";
-import { Router } from "./utils/router";
+import { webLoggedIn } from "./utils/auth";
+import { badRequest, ok } from "./utils/web-responses";
+import { WebRouter } from "./utils/web-router";
 import { isDefined } from "../../lib/checks/checks.js";
 import { ClubPreview, Member } from "../../lib/types/club";
 
-const router = new Router("/api/member");
+const router = new WebRouter("/api/member");
 
-router.get("/", loggedIn, async (req, res) => {
+router.get("/", webLoggedIn, async (req, res) => {
   const user = await UserRepository.getByEmail(req.email);
 
   const result: Member = {
@@ -24,7 +23,7 @@ router.get("/", loggedIn, async (req, res) => {
   return res(ok(JSON.stringify(result)));
 });
 
-router.get("/clubs", loggedIn, async (req, res) => {
+router.get("/clubs", webLoggedIn, async (req, res) => {
   const clubs = await ClubRepository.getClubPreviewsByEmail(req.email);
   const result: ClubPreview[] = clubs.map((club) => ({
     clubId: club.club_id,
@@ -33,16 +32,17 @@ router.get("/clubs", loggedIn, async (req, res) => {
   return res(ok(JSON.stringify(result)));
 });
 
-router.post("/avatar", loggedIn, async (req, res) => {
+router.post("/avatar", webLoggedIn, async (req, res) => {
   try {
-    // Parse the multipart/form-data request
-    const parsed = await parse(req.event);
-    if (parsed.files.length === 0) return res(badRequest("No file uploaded"));
+    // Parse the multipart/form-data request using native FormData
+    const formData = await req.request.formData();
+    const avatarFile = formData.get("avatar") as File | null;
 
-    const avatarFile = parsed.files[0];
+    if (!avatarFile) return res(badRequest("No file uploaded"));
 
     const user = await UserRepository.getByEmail(req.email);
-    const { url, id } = await ImageRepository.upload(avatarFile.content);
+    const buffer = Buffer.from(await avatarFile.arrayBuffer());
+    const { url, id } = await ImageRepository.upload(buffer);
 
     // Delete old asset
     if (isDefined(user.image_id)) {
@@ -58,7 +58,7 @@ router.post("/avatar", loggedIn, async (req, res) => {
   }
 });
 
-router.delete("/avatar", loggedIn, async (req, res) => {
+router.delete("/avatar", webLoggedIn, async (req, res) => {
   try {
     const user = await UserRepository.getByEmail(req.email);
 
@@ -77,11 +77,13 @@ router.delete("/avatar", loggedIn, async (req, res) => {
   }
 });
 
-const handler: Handler = async (
-  event: HandlerEvent,
-  context: HandlerContext,
-) => {
-  return router.route({ event, context, params: {} });
+export default async (
+  request: Request,
+  context: Context,
+): Promise<Response> => {
+  return router.route({ request, context, params: {} });
 };
 
-export { handler };
+export const config: Config = {
+  path: "/api/member/*",
+};

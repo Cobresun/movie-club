@@ -1,9 +1,9 @@
 import ClubRepository from "../repositories/ClubRepository";
-import { ok, badRequest } from "../utils/responses";
-import { Router } from "../utils/router";
-import { ClubRequest } from "../utils/validation";
+import { ok, badRequest } from "../utils/web-responses";
+import { WebRouter } from "../utils/web-router";
+import { WebClubRequest } from "../utils/web-validation";
 
-const router = new Router<ClubRequest>("/api/club/:clubId<\\d+>/invite");
+const router = new WebRouter<WebClubRequest>("/api/club/:clubId<\\d+>/invite");
 
 router.post("/", async ({ clubId }, res) => {
   try {

@@ -1,4 +1,4 @@
-import { Handler, HandlerContext, HandlerEvent } from "@netlify/functions";
+import type { Config, Context } from "@netlify/functions";
 import { z } from "zod";
 
 import awardsRouter from "./awards";
@@ -15,13 +15,13 @@ import ListRepository from "../repositories/ListRepository";
 import SettingsRepository from "../repositories/SettingsRepository";
 import UserRepository from "../repositories/UserRepository";
 import WorkRepository from "../repositories/WorkRepository";
-import { loggedIn, secured } from "../utils/auth";
+import { webLoggedIn, webSecured } from "../utils/auth";
 import { db } from "../utils/database";
-import { ok, badRequest } from "../utils/responses";
-import { Router } from "../utils/router";
-import { validClubId } from "../utils/validation";
+import { ok, badRequest } from "../utils/web-responses";
+import { WebRouter } from "../utils/web-router";
+import { validClubId } from "../utils/web-validation";
 
-const router = new Router("/api/club");
+const router = new WebRouter("/api/club");
 router.use("/:clubId<\\d+>/list", validClubId, listRouter);
 router.use("/:clubId<\\d+>/reviews", validClubId, reviewsRouter);
 router.use("/:clubId<\\d+>/members", validClubId, membersRouter);
@@ -45,10 +45,11 @@ const clubCreateSchema = z.object({
   members: z.array(z.string()),
 });
 
-router.post("/", loggedIn, async ({ event }, res) => {
-  if (!hasValue(event.body)) return res(badRequest("Missing body"));
+router.post("/", webLoggedIn, async ({ request }, res) => {
+  const text = await request.text();
+  if (!hasValue(text)) return res(badRequest("Missing body"));
 
-  const body = clubCreateSchema.safeParse(JSON.parse(event.body));
+  const body = clubCreateSchema.safeParse(JSON.parse(text));
   if (!body.success) return res(badRequest("Invalid body"));
   const { name, members } = body.data;
 
@@ -106,10 +107,11 @@ const nextWorkSchema = z.object({
 router.put(
   "/:clubId<\\d+>/nextWork",
   validClubId,
-  secured,
-  async ({ event, clubId }, res) => {
-    if (!hasValue(event.body)) return res(badRequest("Missing body"));
-    const body = nextWorkSchema.safeParse(JSON.parse(event.body));
+  webSecured,
+  async ({ request, clubId }, res) => {
+    const text = await request.text();
+    if (!hasValue(text)) return res(badRequest("Missing body"));
+    const body = nextWorkSchema.safeParse(JSON.parse(text));
     if (!body.success) return res(badRequest("Invalid body"));
     const { workId } = body.data;
 
@@ -120,11 +122,13 @@ router.put(
   },
 );
 
-const handler: Handler = async (
-  event: HandlerEvent,
-  context: HandlerContext,
-) => {
-  return router.route({ event, context, params: {} });
+export default async (
+  request: Request,
+  context: Context,
+): Promise<Response> => {
+  return router.route({ request, context, params: {} });
 };
 
-export { handler };
+export const config: Config = {
+  path: "/api/club/*",
+};

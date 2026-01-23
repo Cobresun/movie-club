@@ -1,14 +1,14 @@
 import { z } from "zod";
 
-import { ClubAwardRequest } from "./utils";
+import { WebClubAwardRequest } from "./utils";
 import { hasValue } from "../../../../lib/checks/checks.js";
 import { BaseAward, BaseAwardNomination } from "../../../../lib/types/awards";
 import AwardsRepository from "../../repositories/AwardsRepository";
-import { secured } from "../../utils/auth";
-import { badRequest, ok } from "../../utils/responses";
-import { Router } from "../../utils/router";
+import { webSecured } from "../../utils/auth";
+import { badRequest, ok } from "../../utils/web-responses";
+import { WebRouter } from "../../utils/web-router";
 
-const router = new Router<ClubAwardRequest>(
+const router = new WebRouter<WebClubAwardRequest>(
   "/api/club/:clubId<\\d+>/awards/:year<\\d+>/nomination",
 );
 
@@ -20,10 +20,11 @@ const addNominationSchema = z.object({
 
 router.post(
   "/",
-  secured<ClubAwardRequest>,
-  async ({ event, clubId, year }, res) => {
-    if (!hasValue(event.body)) return res(badRequest("Missing body"));
-    const body = addNominationSchema.safeParse(JSON.parse(event.body));
+  webSecured<WebClubAwardRequest>,
+  async ({ request, clubId, year }, res) => {
+    const text = await request.text();
+    if (!hasValue(text)) return res(badRequest("Missing body"));
+    const body = addNominationSchema.safeParse(JSON.parse(text));
     if (!body.success) return res(badRequest("Invalid body"));
 
     const { awardTitle, movieId, nominatedBy } = body.data;
@@ -69,13 +70,14 @@ router.post(
 
 router.delete(
   "/:movieId",
-  secured<ClubAwardRequest>,
-  async ({ event, params, clubId, year }, res) => {
-    const awardTitle = event.queryStringParameters?.awardTitle;
+  webSecured<WebClubAwardRequest>,
+  async ({ request, params, clubId, year }, res) => {
+    const url = new URL(request.url);
+    const awardTitle = url.searchParams.get("awardTitle");
     if (!hasValue(params.movieId))
       return res(badRequest("Missing movieId in path parameters"));
     const movieId = parseInt(params.movieId);
-    const userId = event.queryStringParameters?.userId;
+    const userId = url.searchParams.get("userId");
 
     if (!hasValue(awardTitle))
       return res(badRequest("Missing award title in query parameters"));

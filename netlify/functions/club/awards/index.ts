@@ -5,12 +5,12 @@ import stepHandler from "./step";
 import { validYear } from "./utils";
 import { BaseAward, ClubAwards } from "../../../../lib/types/awards";
 import AwardsRepository from "../../repositories/AwardsRepository";
-import { notFound, ok } from "../../utils/responses";
-import { Router } from "../../utils/router";
 import { getDetailedMovie } from "../../utils/tmdb";
-import { ClubRequest, validClubId } from "../../utils/validation";
+import { notFound, ok } from "../../utils/web-responses";
+import { WebRouter } from "../../utils/web-router";
+import { WebClubRequest, validClubId } from "../../utils/web-validation";
 
-const router = new Router<ClubRequest>("/api/club/:clubId<\\d+>/awards");
+const router = new WebRouter<WebClubRequest>("/api/club/:clubId<\\d+>/awards");
 router.use("/:year<\\d+>/category", validYear, categoryRouter);
 router.use("/:year<\\d+>/step", validYear, stepHandler);
 router.use("/:year<\\d+>/nomination", validYear, nominationRouter);

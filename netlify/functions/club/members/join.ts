@@ -2,23 +2,24 @@ import { z } from "zod";
 
 import { hasValue } from "../../../../lib/checks/checks.js";
 import ClubRepository from "../../repositories/ClubRepository";
-import { loggedIn } from "../../utils/auth";
-import { badRequest, ok } from "../../utils/responses";
-import { Router } from "../../utils/router";
+import { webLoggedIn } from "../../utils/auth";
+import { badRequest, ok } from "../../utils/web-responses";
+import { WebRouter } from "../../utils/web-router";
 
 const joinSchema = z.object({
   token: z.string(),
 });
 
-const router = new Router("/api/club");
+const router = new WebRouter("/api/club");
 
-router.post("/join", loggedIn, async (req, res) => {
-  if (!hasValue(req.event.body)) {
+router.post("/join", webLoggedIn, async (req, res) => {
+  const text = await req.request.text();
+  if (!hasValue(text)) {
     console.error("Missing request body");
     return res(badRequest("Missing request body"));
   }
 
-  const body = joinSchema.safeParse(JSON.parse(req.event.body));
+  const body = joinSchema.safeParse(JSON.parse(text));
   if (!body.success) {
     console.error("Invalid request body", body.error);
     return res(badRequest("Invalid request body"));

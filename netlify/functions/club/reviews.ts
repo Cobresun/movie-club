@@ -5,22 +5,23 @@ import { WorkListType } from "../../../lib/types/generated/db";
 import ListRepository from "../repositories/ListRepository";
 import ReviewRepository from "../repositories/ReviewRepository";
 import UserRepository from "../repositories/UserRepository";
-import { secured } from "../utils/auth";
-import { badRequest, ok } from "../utils/responses";
-import { Router } from "../utils/router";
-import { ClubRequest } from "../utils/validation";
+import { webSecured } from "../utils/auth";
+import { badRequest, ok } from "../utils/web-responses";
+import { WebRouter } from "../utils/web-router";
+import { WebClubRequest } from "../utils/web-validation";
 import { overviewToExternalData } from "../utils/workDetailsMapper";
 
-const router = new Router<ClubRequest>("/api/club/:clubId<\\d+>/reviews");
+const router = new WebRouter<WebClubRequest>("/api/club/:clubId<\\d+>/reviews");
 
 const addReviewSchema = z.object({
   score: z.number().min(0).max(10),
   workId: z.string(),
 });
 
-router.post("/", secured, async ({ clubId, email, event }, res) => {
-  if (!hasValue(event.body)) return res(badRequest("No body provided"));
-  const body = addReviewSchema.safeParse(JSON.parse(event.body));
+router.post("/", webSecured, async ({ clubId, email, request }, res) => {
+  const text = await request.text();
+  if (!hasValue(text)) return res(badRequest("No body provided"));
+  const body = addReviewSchema.safeParse(JSON.parse(text));
   if (!body.success) return res(badRequest("Invalid body"));
 
   const { score, workId } = body.data;
@@ -44,13 +45,14 @@ const updateReviewSchema = z.object({
 
 router.put(
   `/:reviewId`,
-  secured,
-  async ({ clubId, email, params, event }, res) => {
+  webSecured,
+  async ({ clubId, email, params, request }, res) => {
     if (!hasValue(params.reviewId)) {
       return res(badRequest("No reviewId provided"));
     }
-    if (!hasValue(event.body)) return res(badRequest("No body provided"));
-    const body = updateReviewSchema.safeParse(JSON.parse(event.body));
+    const text = await request.text();
+    if (!hasValue(text)) return res(badRequest("No body provided"));
+    const body = updateReviewSchema.safeParse(JSON.parse(text));
     if (!body.success) return res(badRequest("Invalid body"));
 
     const { score } = body.data;

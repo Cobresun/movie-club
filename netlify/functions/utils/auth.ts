@@ -1,17 +1,12 @@
-import { HandlerResponse } from "@netlify/functions";
 import bcrypt from "bcrypt";
 import { betterAuth } from "better-auth";
 
 import { dialect } from "./database.js";
 import { sendPasswordResetEmail, sendVerificationEmail } from "./email.js";
-import { unauthorized } from "./responses";
-import { isRouterResponse, Request, RouterResponse } from "./router";
-import { ClubRequest } from "./validation";
-import {
-  ensure,
-  filterUndefinedProperties,
-  isDefined,
-} from "../../../lib/checks/checks.js";
+import { unauthorized } from "./web-responses";
+import { isRouterResponse, RouterResponse, WebRequest } from "./web-router";
+import { WebClubRequest } from "./web-validation";
+import { ensure, isDefined } from "../../../lib/checks/checks.js";
 import ClubRepository from "../repositories/ClubRepository";
 
 const googleClientId = ensure(
@@ -74,17 +69,17 @@ export const auth = betterAuth({
   },
 });
 
-export type AuthRequest<T extends Request = Request> = T & {
+export type AuthRequest<T extends WebRequest = WebRequest> = T & {
   email: string;
 };
 
-export const loggedIn = async <T extends Request>(
+export const webLoggedIn = async <T extends WebRequest>(
   req: T,
-  res: (data: HandlerResponse) => RouterResponse,
+  res: (data: Response) => RouterResponse,
 ) => {
-  // Get session from Better Auth using request headers
+  // Get session from Better Auth using request headers (already a Headers object)
   const session = await auth.api.getSession({
-    headers: new Headers(filterUndefinedProperties(req.event.headers)),
+    headers: req.request.headers,
   });
 
   const email = session?.user?.email;
@@ -98,11 +93,11 @@ export const loggedIn = async <T extends Request>(
   };
 };
 
-export const secured = async <T extends ClubRequest>(
+export const webSecured = async <T extends WebClubRequest>(
   req: T,
-  res: (data: HandlerResponse) => RouterResponse,
+  res: (data: Response) => RouterResponse,
 ) => {
-  const loggedInResult = await loggedIn<T>(req, res);
+  const loggedInResult = await webLoggedIn<T>(req, res);
   if (isRouterResponse(loggedInResult)) {
     return loggedInResult;
   }

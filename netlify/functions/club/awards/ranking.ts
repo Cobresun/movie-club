@@ -1,14 +1,14 @@
 import { z } from "zod";
 
-import { ClubAwardRequest } from "./utils";
+import { WebClubAwardRequest } from "./utils";
 import { hasValue } from "../../../../lib/checks/checks.js";
 import { BaseAward, BaseAwardNomination } from "../../../../lib/types/awards";
 import AwardsRepository from "../../repositories/AwardsRepository";
-import { secured } from "../../utils/auth";
-import { badRequest, ok } from "../../utils/responses";
-import { Router } from "../../utils/router";
+import { webSecured } from "../../utils/auth";
+import { badRequest, ok } from "../../utils/web-responses";
+import { WebRouter } from "../../utils/web-router";
 
-const router = new Router<ClubAwardRequest>(
+const router = new WebRouter<WebClubAwardRequest>(
   "/api/club/:clubId<\\d+>/awards/:year<\\d+>/ranking",
 );
 
@@ -20,10 +20,11 @@ const addRankingSchema = z.object({
 
 router.post(
   "/",
-  secured<ClubAwardRequest>,
-  async ({ event, clubId, year }, res) => {
-    if (!hasValue(event.body)) return res(badRequest("Missing body"));
-    const body = addRankingSchema.safeParse(JSON.parse(event.body));
+  webSecured<WebClubAwardRequest>,
+  async ({ request, clubId, year }, res) => {
+    const text = await request.text();
+    if (!hasValue(text)) return res(badRequest("Missing body"));
+    const body = addRankingSchema.safeParse(JSON.parse(text));
     if (!body.success) return res(badRequest("Invalid body"));
 
     const { awardTitle, movies, voter } = body.data;

@@ -12,15 +12,15 @@ import ListRepository, { isWorkListType } from "../repositories/ListRepository";
 import ReviewRepository from "../repositories/ReviewRepository";
 import UserRepository from "../repositories/UserRepository";
 import WorkRepository from "../repositories/WorkRepository";
-import { secured } from "../utils/auth";
-import { badRequest, internalServerError, ok } from "../utils/responses";
-import { Router } from "../utils/router";
-import { ClubRequest } from "../utils/validation";
+import { webSecured } from "../utils/auth";
+import { badRequest, internalServerError, ok } from "../utils/web-responses";
+import { WebRouter } from "../utils/web-router";
+import { WebClubRequest } from "../utils/web-validation";
 import { overviewToExternalData } from "../utils/workDetailsMapper.js";
 
 import { BadRequest } from "@/common/errorCodes";
 
-const router = new Router<ClubRequest>("/api/club/:clubId<\\d+>/list");
+const router = new WebRouter<WebClubRequest>("/api/club/:clubId<\\d+>/list");
 
 router.get("/:type", async ({ clubId, params }, res) => {
   if (!hasValue(params.type)) {
@@ -159,10 +159,11 @@ async function getReviewList(clubId: string): Promise<ReviewListItem[]> {
     .sort((a, b) => b.createdDate.localeCompare(a.createdDate));
 }
 
-router.post("/:type", secured, async ({ clubId, params, event }, res) => {
+router.post("/:type", webSecured, async ({ clubId, params, request }, res) => {
   if (!hasValue(params.type)) return res(badRequest("No type provided"));
-  if (!hasValue(event.body)) return res(badRequest("No body provided"));
-  const body = listInsertDtoSchema.safeParse(JSON.parse(event.body));
+  const text = await request.text();
+  if (!hasValue(text)) return res(badRequest("No body provided"));
+  const body = listInsertDtoSchema.safeParse(JSON.parse(text));
   if (!body.success) return res(badRequest("Invalid body provided"));
 
   const listType = params.type;
@@ -198,7 +199,7 @@ router.post("/:type", secured, async ({ clubId, params, event }, res) => {
   return res(ok());
 });
 
-router.delete("/:type/:workId", secured, async ({ clubId, params }, res) => {
+router.delete("/:type/:workId", webSecured, async ({ clubId, params }, res) => {
   if (!hasValue(params.type) || !hasValue(params.workId)) {
     return res(badRequest("No type or workId provided"));
   }
@@ -230,8 +231,8 @@ const updateAddedDateSchema = z.object({
 
 router.put(
   "/:type/:workId/added-date",
-  secured,
-  async ({ clubId, params, event }, res) => {
+  webSecured,
+  async ({ clubId, params, request }, res) => {
     if (!hasValue(params.type) || !hasValue(params.workId)) {
       return res(badRequest("No type or workId provided"));
     }
@@ -241,11 +242,12 @@ router.put(
       return res(badRequest("Invalid type provided"));
     }
 
-    if (!hasValue(event.body)) {
+    const text = await request.text();
+    if (!hasValue(text)) {
       return res(badRequest("No body provided"));
     }
 
-    const body = updateAddedDateSchema.safeParse(JSON.parse(event.body));
+    const body = updateAddedDateSchema.safeParse(JSON.parse(text));
     if (!body.success) {
       return res(badRequest("Invalid body provided"));
     }

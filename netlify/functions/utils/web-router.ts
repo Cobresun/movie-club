@@ -1,23 +1,21 @@
-import {
-  HandlerContext,
-  HandlerEvent,
-  HandlerResponse,
-} from "@netlify/functions";
+import type { Context } from "@netlify/functions";
 import { Path } from "path-parser";
 
-import { internalServerError, methodNotAllowed, notFound } from "./responses";
 import { StringRecord } from "./types";
+import {
+  internalServerError,
+  methodNotAllowed,
+  notFound,
+} from "./web-responses";
 
 const RouterResponseSym = Symbol();
 
 export type RouterResponse = {
   type: typeof RouterResponseSym;
-  response: HandlerResponse;
+  response: Response;
 };
 
-export function createRouterResponse(
-  response: HandlerResponse,
-): RouterResponse {
+export function createRouterResponse(response: Response): RouterResponse {
   return {
     type: RouterResponseSym,
     response,
@@ -35,17 +33,17 @@ export function isRouterResponse(
   );
 }
 
-export interface Request {
-  event: HandlerEvent;
-  context: HandlerContext;
+export interface WebRequest {
+  request: Request;
+  context: Context;
   params: StringRecord;
 }
 
-export function isRequest(req: unknown): req is Request {
+export function isWebRequest(req: unknown): req is WebRequest {
   return (
     typeof req === "object" &&
     req !== null &&
-    "event" in req &&
+    "request" in req &&
     "context" in req &&
     "params" in req
   );
@@ -53,15 +51,15 @@ export function isRequest(req: unknown): req is Request {
 
 export type MiddlewareCallback<T, R> = (
   req: T,
-  res: (data: HandlerResponse) => RouterResponse,
+  res: (data: Response) => RouterResponse,
 ) => Promise<RouterResponse | R>;
 
 /**
- * A single chain “item” can be either a middleware or a Router.
+ * A single chain "item" can be either a middleware or a WebRouter.
  */
-export type UseItem<In extends Request, Out> =
+export type UseItem<In extends WebRequest, Out> =
   | MiddlewareCallback<In, Out>
-  | Router<In>;
+  | WebRouter<In>;
 
 /**
  * The signature of the chaining function, enumerating multiple overloads
@@ -69,27 +67,27 @@ export type UseItem<In extends Request, Out> =
  *
  * Each overload ensures the final item returns a RouterResponse.
  */
-export interface ChainMethod<TInput extends Request> {
+export interface ChainMethod<TInput extends WebRequest> {
   // Overload 0: no middlewares
   (path: string): void;
 
   // Overload 1: just one item, must produce RouterResponse from TInput
   (path: string, c1: UseItem<TInput, RouterResponse>): void;
 
-  <A extends Request>(
+  <A extends WebRequest>(
     path: string,
     c1: UseItem<TInput, A>,
     c2: UseItem<A, RouterResponse>,
   ): void;
 
-  <A extends Request, B extends Request>(
+  <A extends WebRequest, B extends WebRequest>(
     path: string,
     c1: UseItem<TInput, A>,
     c2: UseItem<A, B>,
     c3: UseItem<B, RouterResponse>,
   ): void;
 
-  <A extends Request, B extends Request, C extends Request>(
+  <A extends WebRequest, B extends WebRequest, C extends WebRequest>(
     path: string,
     c1: UseItem<TInput, A>,
     c2: UseItem<A, B>,
@@ -97,7 +95,12 @@ export interface ChainMethod<TInput extends Request> {
     c4: UseItem<C, RouterResponse>,
   ): void;
 
-  <A extends Request, B extends Request, C extends Request, D extends Request>(
+  <
+    A extends WebRequest,
+    B extends WebRequest,
+    C extends WebRequest,
+    D extends WebRequest,
+  >(
     path: string,
     c1: UseItem<TInput, A>,
     c2: UseItem<A, B>,
@@ -107,11 +110,11 @@ export interface ChainMethod<TInput extends Request> {
   ): void;
 
   <
-    A extends Request,
-    B extends Request,
-    C extends Request,
-    D extends Request,
-    E extends Request,
+    A extends WebRequest,
+    B extends WebRequest,
+    C extends WebRequest,
+    D extends WebRequest,
+    E extends WebRequest,
   >(
     path: string,
     c1: UseItem<TInput, A>,
@@ -123,12 +126,12 @@ export interface ChainMethod<TInput extends Request> {
   ): void;
 
   <
-    A extends Request,
-    B extends Request,
-    C extends Request,
-    D extends Request,
-    E extends Request,
-    F extends Request,
+    A extends WebRequest,
+    B extends WebRequest,
+    C extends WebRequest,
+    D extends WebRequest,
+    E extends WebRequest,
+    F extends WebRequest,
   >(
     path: string,
     c1: UseItem<TInput, A>,
@@ -141,13 +144,13 @@ export interface ChainMethod<TInput extends Request> {
   ): void;
 
   <
-    A extends Request,
-    B extends Request,
-    C extends Request,
-    D extends Request,
-    E extends Request,
-    F extends Request,
-    G extends Request,
+    A extends WebRequest,
+    B extends WebRequest,
+    C extends WebRequest,
+    D extends WebRequest,
+    E extends WebRequest,
+    F extends WebRequest,
+    G extends WebRequest,
   >(
     path: string,
     c1: UseItem<TInput, A>,
@@ -161,14 +164,14 @@ export interface ChainMethod<TInput extends Request> {
   ): void;
 
   <
-    A extends Request,
-    B extends Request,
-    C extends Request,
-    D extends Request,
-    E extends Request,
-    F extends Request,
-    G extends Request,
-    H extends Request,
+    A extends WebRequest,
+    B extends WebRequest,
+    C extends WebRequest,
+    D extends WebRequest,
+    E extends WebRequest,
+    F extends WebRequest,
+    G extends WebRequest,
+    H extends WebRequest,
   >(
     path: string,
     c1: UseItem<TInput, A>,
@@ -184,15 +187,15 @@ export interface ChainMethod<TInput extends Request> {
 
   // Fallback for 10+ items in chain:
   <
-    A extends Request,
-    B extends Request,
-    C extends Request,
-    D extends Request,
-    E extends Request,
-    F extends Request,
-    G extends Request,
-    H extends Request,
-    I extends Request,
+    A extends WebRequest,
+    B extends WebRequest,
+    C extends WebRequest,
+    D extends WebRequest,
+    E extends WebRequest,
+    F extends WebRequest,
+    G extends WebRequest,
+    H extends WebRequest,
+    I extends WebRequest,
   >(
     path: string,
     c1: UseItem<TInput, A>,
@@ -222,15 +225,16 @@ enum HTTPMethod {
   DELETE = "DELETE",
 }
 
-function wrapRouterAsMiddleware<In extends Request>(
-  router: Router<In>,
+function wrapRouterAsMiddleware<In extends WebRequest>(
+  router: WebRouter<In>,
 ): MiddlewareCallback<In, RouterResponse> {
   return async (req, res) => {
-    const hr = await router.route(req);
-    return res(hr); // Convert the HandlerResponse to RouterResponse
+    const response = await router.route(req);
+    return res(response);
   };
 }
-export class Router<T extends Request = Request> {
+
+export class WebRouter<T extends WebRequest = WebRequest> {
   private subRoutes: Route[];
   private routes: Record<HTTPMethod, Route[]>;
   private baseUrl: string;
@@ -261,7 +265,7 @@ export class Router<T extends Request = Request> {
     this.use = ((path: string, ...items: Array<UseItem<any, unknown>>) => {
       const callbacks: MiddlewareCallback<unknown, unknown>[] = items.map(
         (item) =>
-          item instanceof Router ? wrapRouterAsMiddleware(item) : item,
+          item instanceof WebRouter ? wrapRouterAsMiddleware(item) : item,
       );
       this.subRoutes.push({
         path: this.getPath(path),
@@ -275,7 +279,7 @@ export class Router<T extends Request = Request> {
     return ((path: string, ...items: Array<UseItem<any, unknown>>) => {
       const callbacks: MiddlewareCallback<unknown, unknown>[] = items.map(
         (item) =>
-          item instanceof Router ? wrapRouterAsMiddleware(item) : item,
+          item instanceof WebRouter ? wrapRouterAsMiddleware(item) : item,
       );
       this.routes[method].push({
         path: this.getPath(path),
@@ -288,8 +292,9 @@ export class Router<T extends Request = Request> {
     return new Path<StringRecord>(`${this.baseUrl}${pathStr}`);
   }
 
-  async route(req: T): Promise<HandlerResponse> {
-    const path = req.event.path;
+  async route(req: T): Promise<Response> {
+    const url = new URL(req.request.url);
+    const path = url.pathname;
 
     // 1) Try sub-routes
     for (const subRoute of this.subRoutes) {
@@ -300,7 +305,7 @@ export class Router<T extends Request = Request> {
     }
 
     // 2) Try main routes for the actual HTTP method
-    const httpMethod = req.event.httpMethod as HTTPMethod;
+    const httpMethod = req.request.method as HTTPMethod;
     for (const route of this.routes[httpMethod]) {
       const pathTest = route.path.test(path);
       if (pathTest) {
@@ -329,7 +334,7 @@ export class Router<T extends Request = Request> {
   private async dispatch(
     req: T,
     callbacks: ReadonlyArray<MiddlewareCallback<unknown, unknown>>,
-  ): Promise<HandlerResponse> {
+  ): Promise<Response> {
     let current: unknown = req;
 
     for (const callback of callbacks) {

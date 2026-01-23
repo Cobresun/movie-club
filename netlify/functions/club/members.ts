@@ -1,11 +1,11 @@
 import { Member } from "../../../lib/types/club";
 import UserRepository from "../repositories/UserRepository";
-import { secured, loggedIn } from "../utils/auth";
-import { ok, badRequest } from "../utils/responses";
-import { Router } from "../utils/router";
-import { ClubRequest } from "../utils/validation";
+import { webSecured, webLoggedIn } from "../utils/auth";
+import { ok, badRequest } from "../utils/web-responses";
+import { WebRouter } from "../utils/web-router";
+import { WebClubRequest } from "../utils/web-validation";
 
-const router = new Router<ClubRequest>("/api/club/:clubId<\\d+>/members");
+const router = new WebRouter<WebClubRequest>("/api/club/:clubId<\\d+>/members");
 
 router.get("/", async ({ clubId }, res) => {
   const members = await UserRepository.getMembersByClubId(clubId);
@@ -19,7 +19,7 @@ router.get("/", async ({ clubId }, res) => {
   return res(ok(JSON.stringify(response)));
 });
 
-router.delete("/self", secured, async ({ clubId, email }, res) => {
+router.delete("/self", webSecured, async ({ clubId, email }, res) => {
   const user = await UserRepository.getByEmail(email);
   if (!user?.id) return res(badRequest("User not found"));
 
@@ -27,7 +27,7 @@ router.delete("/self", secured, async ({ clubId, email }, res) => {
   return res(ok());
 });
 
-router.get("/join", loggedIn, async (req, res) => {
+router.get("/join", webLoggedIn, async (req, res) => {
   try {
     await UserRepository.addClubMember(req.params?.clubId ?? "", req.email);
     return res(ok());
@@ -36,7 +36,7 @@ router.get("/join", loggedIn, async (req, res) => {
   }
 });
 
-router.delete("/:memberId", secured, async ({ clubId, params }, res) => {
+router.delete("/:memberId", webSecured, async ({ clubId, params }, res) => {
   try {
     if (params.memberId === undefined || params.memberId === "")
       return res(badRequest("Missing memberId"));

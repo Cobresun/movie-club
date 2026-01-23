@@ -1,13 +1,13 @@
 import { z } from "zod";
 
-import { ClubAwardRequest } from "./utils";
+import { WebClubAwardRequest } from "./utils";
 import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import AwardsRepository from "../../repositories/AwardsRepository";
-import { secured } from "../../utils/auth";
-import { badRequest, ok } from "../../utils/responses";
-import { Router } from "../../utils/router";
+import { webSecured } from "../../utils/auth";
+import { badRequest, ok } from "../../utils/web-responses";
+import { WebRouter } from "../../utils/web-router";
 
-const router = new Router<ClubAwardRequest>(
+const router = new WebRouter<WebClubAwardRequest>(
   "/api/club/:clubId<\\d+>/awards/:year<\\d+>/category",
 );
 
@@ -17,10 +17,11 @@ const addCategorySchema = z.object({
 
 router.post(
   "/",
-  secured<ClubAwardRequest>,
-  async ({ event, clubId, year }, res) => {
-    if (!hasValue(event.body)) return res(badRequest("Missing body"));
-    const body = addCategorySchema.safeParse(JSON.parse(event.body));
+  webSecured<WebClubAwardRequest>,
+  async ({ request, clubId, year }, res) => {
+    const text = await request.text();
+    if (!hasValue(text)) return res(badRequest("Missing body"));
+    const body = addCategorySchema.safeParse(JSON.parse(text));
     if (!body.success) return res(badRequest("Invalid body"));
     const { title } = body.data;
 
@@ -39,10 +40,11 @@ const updateCategorySchema = z.object({
 
 router.put(
   "/",
-  secured<ClubAwardRequest>,
-  async ({ event, clubId, year }, res) => {
-    if (!hasValue(event.body)) return res(badRequest("Missing body"));
-    const body = updateCategorySchema.safeParse(JSON.parse(event.body));
+  webSecured<WebClubAwardRequest>,
+  async ({ request, clubId, year }, res) => {
+    const text = await request.text();
+    if (!hasValue(text)) return res(badRequest("Missing body"));
+    const body = updateCategorySchema.safeParse(JSON.parse(text));
     if (!body.success) return res(badRequest("Invalid body"));
 
     const { categories } = body.data;
@@ -73,7 +75,7 @@ router.put(
 
 router.delete(
   "/:awardTitle",
-  secured<ClubAwardRequest>,
+  webSecured<WebClubAwardRequest>,
   async ({ params, clubId, year }, res) => {
     const awardTitle = params.awardTitle;
 

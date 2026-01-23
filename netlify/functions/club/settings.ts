@@ -1,16 +1,17 @@
 import { z } from "zod";
 
-import { hasValue } from "../../../lib/checks/checks.js";
 import SettingsRepository from "../repositories/SettingsRepository.js";
 import { ClubSettings } from "../repositories/SettingsRepository.js";
-import { secured } from "../utils/auth";
-import { badRequest, ok } from "../utils/responses";
-import { Router } from "../utils/router";
-import { ClubRequest } from "../utils/validation";
+import { webSecured } from "../utils/auth";
+import { badRequest, ok } from "../utils/web-responses";
+import { WebRouter } from "../utils/web-router";
+import { WebClubRequest } from "../utils/web-validation";
 
-const router = new Router<ClubRequest>("/api/club/:clubId<\\d+>/settings");
+const router = new WebRouter<WebClubRequest>(
+  "/api/club/:clubId<\\d+>/settings",
+);
 
-router.get("/", secured, async ({ clubId }, res) => {
+router.get("/", webSecured, async ({ clubId }, res) => {
   const settings = await SettingsRepository.getSettings(clubId);
   return res(ok(JSON.stringify(settings)));
 });
@@ -24,10 +25,11 @@ const updateSettingsSchema = z.object({
     .optional(),
 });
 
-router.post("/", secured, async ({ clubId, event }, res) => {
-  if (!hasValue(event.body)) return res(badRequest("No body provided"));
+router.post("/", webSecured, async ({ clubId, request }, res) => {
+  const text = await request.text();
+  if (!text) return res(badRequest("No body provided"));
 
-  const body = updateSettingsSchema.safeParse(JSON.parse(event.body));
+  const body = updateSettingsSchema.safeParse(JSON.parse(text));
   if (!body.success) return res(badRequest("Invalid body"));
 
   const settings = await SettingsRepository.updateSettings(
