@@ -1,6 +1,7 @@
 <template>
   <div class="flex h-full flex-col text-center">
     <input
+      ref="searchInput"
       v-model="searchText"
       class="rounded-md border-2 border-gray-300 p-1 text-base font-bold text-black outline-none focus:border-primary"
       placeholder="Type to filter or search"
@@ -67,7 +68,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
 
 import { MovieSearchIndex } from "../../../lib/types/movie";
 
@@ -111,7 +112,12 @@ const getReleaseYear = (date: string) => {
   }
 };
 
+const searchInput = ref<HTMLInputElement | null>(null);
 const searchText = ref("");
+
+onMounted(() => {
+  searchInput.value?.focus();
+});
 
 const filteredDefaultList = computed(() => {
   const lower = searchText.value.toLowerCase();
