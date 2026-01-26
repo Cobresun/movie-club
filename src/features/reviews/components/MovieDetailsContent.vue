@@ -134,13 +134,13 @@
 import { FlexRender, Row, Table } from "@tanstack/vue-table";
 import { DateTime } from "luxon";
 import { computed, ref } from "vue";
-import { useToast } from "vue-toastification";
 
 import MovieDescription from "./MovieDescription.vue";
 import { isDefined } from "../../../../lib/checks/checks.js";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
 
 import DeleteConfirmationModal from "@/common/components/DeleteConfirmationModal.vue";
+import { useShare } from "@/common/composables/useShare";
 import { useClubId } from "@/service/useClub";
 import { useUpdateAddedDate } from "@/service/useList";
 
@@ -238,8 +238,8 @@ const formatDate = (dateString: string) => {
   return DateTime.fromISO(dateString).toLocaleString(DateTime.DATE_MED);
 };
 
-// Helper functions for the three-dot menu
-const toast = useToast();
+// Share functionality
+const { share } = useShare();
 
 const shareReview = (id: string) => {
   // Extract clubId from the current URL path
@@ -248,8 +248,13 @@ const shareReview = (id: string) => {
   const clubId = pathParts[clubIdIndex];
 
   const url = `${window.location.origin}/share/club/${clubId}/review/${id}`;
-  navigator.clipboard.writeText(url).catch(console.error);
-  toast.success("Share URL copied to clipboard!");
+  const title = String(props.movie.renderValue("title"));
+
+  void share({
+    url,
+    title: `${title} - Movie Club Review`,
+    text: `Check out our review of ${title}`,
+  });
 };
 
 const toggleMovieReveal = (movieId: string) => {

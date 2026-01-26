@@ -78,11 +78,11 @@ import {
   resolveComponent,
   watch,
 } from "vue";
-import { useToast } from "vue-toastification";
 
 import { isTrue } from "../../../../lib/checks/checks.js";
 import { WorkListType } from "../../../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
+import { useShare } from "../../../common/composables/useShare";
 import { filterMovies } from "../../../common/searchMovies";
 import GalleryView from "../components/GalleryView.vue";
 import MovieTooltip from "../components/MovieTooltip.vue";
@@ -255,7 +255,7 @@ const shouldBlurScore = (rowId: string, columnId: string) => {
   return columnId.startsWith("member_") || columnId === "score_average";
 };
 
-const toast = useToast();
+const { share } = useShare();
 
 const columns = computed(() => [
   columnHelper.accessor("imageUrl", {
@@ -290,8 +290,12 @@ const columns = computed(() => [
                 class: "cursor-pointer hover:text-primary transition-colors",
                 onClick: () => {
                   const url = `${window.location.origin}/share/club/${clubId}/review/${row.original.id}`;
-                  void navigator.clipboard.writeText(url);
-                  toast.success("Share URL copied to clipboard!");
+                  const title = row.original.title;
+                  void share({
+                    url,
+                    title: `${title} - Movie Club Review`,
+                    text: `Check out our review of ${title}`,
+                  });
                 },
               }),
             ],
