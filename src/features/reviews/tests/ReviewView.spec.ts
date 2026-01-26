@@ -23,6 +23,10 @@ describe("ReviewView", () => {
 
   it("should open and close add review prompt", async () => {
     const { user } = render(ReviewView, { props: { clubId: "1" } });
+    // Switch to table view first (gallery view has multiple buttons)
+    const viewSwitch = screen.getByRole("switch");
+    await user.click(viewSwitch);
+
     const openButton = await screen.findByRole("button");
     await user.click(openButton);
     expect(await screen.findByText("From Watch List")).toBeInTheDocument();
