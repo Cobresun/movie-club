@@ -100,7 +100,7 @@ import { useUser } from "@/service/useUser";
 
 const { clubId } = defineProps<{ clubId: string }>();
 
-const isGalleryView = ref(false);
+const isGalleryView = ref(true);
 
 // Load club settings to check if blur scores is enabled
 const { data: settings, isLoading: isLoadingSettings } =
@@ -114,9 +114,6 @@ onMounted(() => {
   const savedView = localStorage.getItem("isGalleryView");
   if (savedView !== null) {
     isGalleryView.value = savedView === "true";
-  } else {
-    const isMobile = window.matchMedia("(max-width: 768px)").matches;
-    isGalleryView.value = isMobile;
   }
 });
 
