@@ -27,7 +27,7 @@
       </div>
 
       <div class="mt-6 flex justify-evenly">
-        <v-btn @click="submit()"> Create club </v-btn>
+        <v-btn :disabled="isCreating" @click="submit()"> Create club </v-btn>
       </div>
     </div>
     <div v-else>Must be logged in to create a new club!</div>
@@ -49,12 +49,12 @@ const authStore = useAuthStore();
 const isLoggedIn = computed(() => authStore.isLoggedIn);
 
 const isClubNameValid = computed(() => clubName.value.trim().length > 0);
-const { mutate: createClub } = useCreateClub();
+const { mutate: createClub, isPending: isCreating } = useCreateClub();
 
 const submit = () => {
   showErrors.value = true;
 
-  if (!isClubNameValid.value) {
+  if (!isClubNameValid.value || isCreating.value) {
     return;
   }
 
