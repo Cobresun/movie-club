@@ -72,10 +72,7 @@ import { ref, computed, onMounted } from "vue";
 
 import { MovieSearchIndex } from "../../../lib/types/movie";
 
-import { useIsDesktop } from "@/common/composables/useIsDesktop";
 import { useSearch } from "@/service/useTMDB";
-
-const isDesktop = useIsDesktop();
 
 const {
   defaultList,
@@ -119,9 +116,7 @@ const searchInput = ref<HTMLInputElement | null>(null);
 const searchText = ref("");
 
 onMounted(() => {
-  if (isDesktop.value) {
-    searchInput.value?.focus();
-  }
+  searchInput.value?.focus();
 });
 
 const filteredDefaultList = computed(() => {

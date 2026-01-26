@@ -6,7 +6,7 @@
       <div
         v-if="isVisible"
         ref="sheetRef"
-        class="fixed inset-x-0 bottom-0 max-h-[90vh] w-full overflow-y-auto rounded-t-2xl bg-background"
+        class="fixed inset-x-0 bottom-0 w-full overflow-y-auto rounded-t-2xl bg-background"
         :class="[
           contentZIndexClass,
           {
@@ -38,6 +38,7 @@ import { computed, ref } from "vue";
 
 import VBackdrop from "./VBackdrop.vue";
 import { useBodyScrollLock } from "../composables/useBodyScrollLock.js";
+import { useVisualViewport } from "../composables/useVisualViewport.js";
 
 type ZIndex = "40" | "50" | "60";
 
@@ -73,6 +74,17 @@ const onTransitionEnd = () => {
 };
 
 useBodyScrollLock(isVisible);
+
+const { viewportHeight } = useVisualViewport();
+
+const maxHeightStyle = computed(() => {
+  if (viewportHeight.value !== null) {
+    // Use 90% of the visual viewport height (accounts for keyboard)
+    return `${viewportHeight.value * 0.9}px`;
+  }
+  // Fallback to 90vh when visualViewport is not available
+  return "90vh";
+});
 
 const handleClose = (immediate = false) => {
   if (immediate) {
@@ -144,12 +156,15 @@ const handleTouchEnd = (event: TouchEvent) => {
 };
 
 const sheetStyle = computed(() => {
+  const style: Record<string, string> = {
+    maxHeight: maxHeightStyle.value,
+  };
+
   if (isDragging.value || dragOffset.value > 0) {
-    return {
-      transform: `translateY(${Math.max(0, dragOffset.value)}px)`,
-    };
+    style.transform = `translateY(${Math.max(0, dragOffset.value)}px)`;
   }
-  return {};
+
+  return style;
 });
 </script>
 
