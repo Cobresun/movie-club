@@ -173,7 +173,7 @@ export default async (request: Request) => {
       description,
       image: ogImageUrl,
       url: request.url,
-      siteName: data.clubName,
+      siteName: "Movie Club",
     });
 
     console.log(
