@@ -46,18 +46,35 @@
           <mdicon name="plus" />
         </v-btn>
       </div>
-      <table-view v-if="!isGalleryView" :review-table="reviewTable" />
-      <gallery-view
-        v-else
-        :review-table="reviewTable"
-        :delete-review="deleteReview"
-        :members="members"
-        :revealed-movie-ids="revealedMovieIds"
-        :has-rated="hasUserRated"
-        :current-user-id="userId"
-        :blur-scores-enabled="blurScoresEnabled === true"
-        @toggle-reveal="toggleReveal"
-      />
+      <div v-if="showEmptyState">
+        <EmptyState
+          :icon="hasSearchTerm ? 'magnify-close' : 'movie-star-outline'"
+          :title="hasSearchTerm ? 'No Movies Found' : 'No Reviews Yet'"
+          :description="
+            hasSearchTerm
+              ? 'Try adjusting your search or filters. You can search by title, genre, company, or release year'
+              : 'Start building your club\'s movie collection by adding your first review'
+          "
+          :action-label="hasSearchTerm ? undefined : 'Add Review'"
+          :action-icon="hasSearchTerm ? undefined : 'plus'"
+          :variant="hasSearchTerm ? 'search' : 'default'"
+          @action="openPrompt"
+        />
+      </div>
+      <template v-else>
+        <table-view v-if="!isGalleryView" :review-table="reviewTable" />
+        <gallery-view
+          v-else
+          :review-table="reviewTable"
+          :delete-review="deleteReview"
+          :members="members"
+          :revealed-movie-ids="revealedMovieIds"
+          :has-rated="hasUserRated"
+          :current-user-id="userId"
+          :blur-scores-enabled="blurScoresEnabled === true"
+          @toggle-reveal="toggleReveal"
+        />
+      </template>
     </div>
   </div>
 </template>
@@ -91,6 +108,7 @@ import TableView from "../components/TableView.vue";
 
 import AverageImg from "@/assets/images/average.svg";
 import DeleteConfirmationModal from "@/common/components/DeleteConfirmationModal.vue";
+import EmptyState from "@/common/components/EmptyState.vue";
 import VAvatar from "@/common/components/VAvatar.vue";
 import VToggle from "@/common/components/VToggle.vue";
 import AddReviewPrompt from "@/features/reviews/components/AddReviewPrompt.vue";
@@ -163,6 +181,12 @@ const searchTerm = ref("");
 const filteredReviews = computed<DetailedReviewListItem[]>(() => {
   return filterMovies(reviews.value ?? [], searchTerm.value);
 });
+
+const hasReviews = computed(() => (reviews.value?.length ?? 0) > 0);
+const hasSearchTerm = computed(() => searchTerm.value.trim().length > 0);
+const showEmptyState = computed(() =>
+  !loading.value && filteredReviews.value.length === 0
+);
 
 const searchInput = ref<HTMLInputElement | null>(null);
 const searchInputSlash = ref<HTMLParagraphElement | null>(null);
