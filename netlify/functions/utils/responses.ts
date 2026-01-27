@@ -6,6 +6,24 @@ export const ok = (body?: string) => ({
   body,
 });
 
+export const svg = (body: string, cacheControl?: string) => ({
+  statusCode: 200,
+  headers: {
+    "Content-Type": "image/svg+xml",
+    "Cache-Control": cacheControl ?? "public, max-age=31536000, immutable",
+  },
+  body,
+});
+
+export const redirect = (location: string, cacheControl?: string) => ({
+  statusCode: 302,
+  headers: {
+    Location: location,
+    "Cache-Control": cacheControl ?? "public, max-age=86400",
+  },
+  body: "",
+});
+
 export const badRequest = (body?: string) => ({
   statusCode: 400,
   body: body ?? "Bad request",

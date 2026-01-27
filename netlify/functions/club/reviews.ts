@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { hasValue } from "../../../lib/checks/checks.js";
 import { WorkListType } from "../../../lib/types/generated/db";
+import ClubRepository from "../repositories/ClubRepository";
 import ListRepository from "../repositories/ListRepository";
 import ReviewRepository from "../repositories/ReviewRepository";
 import UserRepository from "../repositories/UserRepository";
@@ -71,10 +72,11 @@ router.get("/:workId/shared", async ({ clubId, params }, res) => {
   }
 
   const workId = params.workId;
-  const [reviews, members, workDetails] = await Promise.all([
+  const [reviews, members, workDetails, club] = await Promise.all([
     ReviewRepository.getReviewsByWorkId(clubId, workId),
     UserRepository.getMembersByClubId(clubId),
     ListRepository.getWorkDetails(workId),
+    ClubRepository.getById(clubId),
   ]);
 
   if (!workDetails) {
@@ -96,6 +98,7 @@ router.get("/:workId/shared", async ({ clubId, params }, res) => {
         reviews,
         members,
         work,
+        clubName: club?.name ?? "Movie Club",
       }),
     ),
   );
