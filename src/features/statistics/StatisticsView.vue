@@ -8,6 +8,7 @@
     <loading-spinner v-if="loading" />
 
     <div
+      v-if="hasMovieData || hasSearchTerm"
       class="sticky top-0 z-50 flex items-center justify-center bg-background py-4"
     >
       <div class="relative flex w-11/12 gap-4">
@@ -44,7 +45,20 @@
       </div>
     </div>
 
-    <div v-if="!loading">
+    <EmptyState
+      v-if="showEmptyState"
+      :title="hasSearchTerm ? 'No Movies Found' : 'No Statistics Yet'"
+      :description="
+        hasSearchTerm
+          ? 'Try adjusting your search. You can search by title, genre, company, or release year'
+          : 'Add reviews to start seeing statistics and insights about your club\'s movie ratings'
+      "
+      :action-label="hasSearchTerm ? 'Clear Search' : 'Go to Reviews'"
+      :action-icon="hasSearchTerm ? undefined : 'arrow-right'"
+      @action="handleEmptyStateAction"
+    />
+
+    <div v-else-if="!loading">
       <br />
       <ag-charts :options="histChartOptions" />
       <br />
@@ -93,6 +107,7 @@ import {
 import { AgCharts } from "ag-charts-vue3";
 import { DateTime } from "luxon";
 import { ref, computed, watch, h } from "vue";
+import { useRouter } from "vue-router";
 
 import {
   normalizeArray,
@@ -113,6 +128,7 @@ import TableView from "@/features/reviews/components/TableView.vue";
 import { useMembers, useClub, useClubId } from "@/service/useClub";
 import { useList } from "@/service/useList";
 
+const router = useRouter();
 const clubId = useClubId();
 const { isLoading: loadingClub, data: club } = useClub(clubId);
 const { isLoading: loadingReviews, data: reviews } = useList(
@@ -164,9 +180,28 @@ const searchTerm = ref("");
 const searchInput = ref<HTMLInputElement | null>(null);
 const showTooltip = ref(false);
 
+const hasSearchTerm = computed(() => searchTerm.value.trim().length > 0);
+const hasMovieData = computed(() => movieData.value.length > 0);
+
+const goToReviews = () => {
+  router.push({ name: "Reviews", params: { clubId } });
+};
+
+const handleEmptyStateAction = () => {
+  if (hasSearchTerm.value) {
+    searchTerm.value = "";
+  } else {
+    goToReviews();
+  }
+};
+
 const filteredMovieData = computed(() => {
   return filterMovies(movieData.value, searchTerm.value);
 });
+
+const showEmptyState = computed(
+  () => !loading.value && filteredMovieData.value.length === 0,
+);
 
 const fetchMovieData = (
   reviews: DetailedReviewListItem[],
