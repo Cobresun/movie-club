@@ -1,7 +1,6 @@
 <template>
   <EmptyState
     v-if="showEmptyState"
-    :icon="hasSearchTerm ? 'magnify-close' : 'playlist-star'"
     :title="hasSearchTerm ? 'No Movies Found' : 'Your Watch List is Empty'"
     :description="
       hasSearchTerm
@@ -9,7 +8,6 @@
         : 'Add movies you\'re planning to watch with your club'
     "
     :action-label="hasSearchTerm ? 'Clear Search' : undefined"
-    :variant="hasSearchTerm ? 'search' : 'default'"
     @action="clearSearch"
   />
   <template v-else>

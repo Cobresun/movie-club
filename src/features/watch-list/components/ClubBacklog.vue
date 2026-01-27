@@ -14,7 +14,6 @@
 
   <EmptyState
     v-if="showEmptyState"
-    :icon="hasSearchTerm ? 'magnify-close' : 'archive-outline'"
     :title="hasSearchTerm ? 'No Movies Found' : 'Your Backlog is Empty'"
     :description="
       hasSearchTerm
@@ -22,7 +21,6 @@
         : 'Add movies to your backlog to keep track of future watch list candidates'
     "
     :action-label="hasSearchTerm ? 'Clear Search' : undefined"
-    :variant="hasSearchTerm ? 'search' : 'default'"
     @action="clearSearch"
   />
   <transition-group

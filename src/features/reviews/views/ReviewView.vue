@@ -48,7 +48,6 @@
       </div>
       <div v-if="showEmptyState">
         <EmptyState
-          :icon="hasSearchTerm ? 'magnify-close' : 'movie-star-outline'"
           :title="hasSearchTerm ? 'No Movies Found' : 'No Reviews Yet'"
           :description="
             hasSearchTerm
@@ -57,7 +56,6 @@
           "
           :action-label="hasSearchTerm ? undefined : 'Add Review'"
           :action-icon="hasSearchTerm ? undefined : 'plus'"
-          :variant="hasSearchTerm ? 'search' : 'default'"
           @action="openPrompt"
         />
       </div>
