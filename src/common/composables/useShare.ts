@@ -7,6 +7,22 @@ interface ShareOptions {
 }
 
 /**
+ * Detects if the current device is a mobile device.
+ * Checks user agent for mobile device indicators.
+ */
+const isMobileDevice = (): boolean => {
+  if (typeof navigator === "undefined") return false;
+
+  const ua = navigator.userAgent;
+
+  // Check for mobile device indicators in user agent
+  const mobileRegex =
+    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
+
+  return mobileRegex.test(ua);
+};
+
+/**
  * Composable for sharing content using the native Web Share API when available,
  * with fallback to clipboard copy.
  */
@@ -14,7 +30,14 @@ export function useShare() {
   const toast = useToast();
 
   const canUseNativeShare = () => {
-    return typeof navigator !== "undefined" && "share" in navigator;
+    if (typeof navigator === "undefined") return false;
+
+    // Only use native share on mobile devices
+    if (!isMobileDevice()) {
+      return false;
+    }
+
+    return "share" in navigator;
   };
 
   const share = async ({ url, title, text }: ShareOptions): Promise<void> => {
