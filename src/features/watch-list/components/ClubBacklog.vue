@@ -12,7 +12,19 @@
     </v-btn>
   </div>
 
+  <EmptyState
+    v-if="showEmptyState"
+    :title="hasSearchTerm ? 'No Movies Found' : 'Your Backlog is Empty'"
+    :description="
+      hasSearchTerm
+        ? 'Try a different search term'
+        : 'Add movies to your backlog to keep track of future watch list candidates'
+    "
+    :action-label="hasSearchTerm ? 'Clear Search' : undefined"
+    @action="clearSearch"
+  />
   <transition-group
+    v-else
     tag="div"
     move-class="transition ease-in-out duration-300"
     leave-active-class="absolute hidden"
@@ -49,6 +61,7 @@ import { isTrue } from "../../../../lib/checks/checks.js";
 import { WorkListType } from "../../../../lib/types/generated/db";
 import { DetailedWorkListItem } from "../../../../lib/types/lists";
 
+import EmptyState from "@/common/components/EmptyState.vue";
 import MoviePosterCard from "@/common/components/MoviePosterCard.vue";
 import { filterMovies } from "@/common/searchMovies";
 import { useClubId } from "@/service/useClub";
@@ -89,6 +102,10 @@ const moveBacklogItemToWatchlist = async (movie: DetailedWorkListItem) => {
 const filteredBacklog = computed(() => {
   return filterMovies(backlog.value ?? [], searchTerm);
 });
+
+const hasBacklog = computed(() => (backlog.value?.length ?? 0) > 0);
+const hasSearchTerm = computed(() => searchTerm.trim().length > 0);
+const showEmptyState = computed(() => sortedBacklog.value.length === 0);
 
 const modalOpen = ref(false);
 const openPrompt = () => {

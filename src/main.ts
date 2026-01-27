@@ -12,6 +12,7 @@ import router from "./router";
 import { isDefined } from "../lib/checks/checks.js";
 
 import App from "@/App.vue";
+import EmptyState from "@/common/components/EmptyState.vue";
 import Loading from "@/common/components/LoadingSpinner.vue";
 import PageHeader from "@/common/components/PageHeader.vue";
 import VAvatar from "@/common/components/VAvatar.vue";
@@ -70,6 +71,7 @@ createApp(App)
   .component("menu-card", MenuCard)
   .component("v-modal", VModal)
   .component("page-header", PageHeader)
+  .component("empty-state", EmptyState)
   .directive("lazy-load", LazyLoad)
   .use(mdiVue, {
     icons: mdijs,
