@@ -1,9 +1,8 @@
 import { Handler, HandlerContext, HandlerEvent } from "@netlify/functions";
-import axios from "axios";
 
+import SharedReviewService from "./services/SharedReviewService";
 import { badRequest, redirect, svg } from "./utils/responses";
 import { Router } from "./utils/router";
-import { SharedReviewResponse } from "../../lib/types/lists";
 
 const router = new Router("/api/og-image");
 
@@ -15,15 +14,14 @@ router.get("/", async ({ event }, res) => {
       return res(badRequest("Missing required parameters: clubId and workId"));
     }
 
-    // Fetch review data
-    const apiUrl = `${process.env.URL ?? "http://localhost:8888"}/api/club/${clubId}/reviews/${workId}/shared`;
+    // Fetch review data using the shared service
+    const reviewData = await SharedReviewService.getSharedReviewData(
+      clubId,
+      workId,
+    );
 
-    let reviewData: SharedReviewResponse;
-    try {
-      const response = await axios.get<SharedReviewResponse>(apiUrl);
-      reviewData = response.data;
-    } catch (error) {
-      console.error("Failed to fetch review data:", error);
+    if (!reviewData) {
+      console.error("Failed to fetch review data: work not found");
       return res(generateFallbackSVG("Movie Review", "N/A", 0));
     }
 
