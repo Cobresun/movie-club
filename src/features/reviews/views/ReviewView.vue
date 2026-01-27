@@ -105,7 +105,7 @@ import { useUser } from "@/service/useUser";
 
 const { clubId } = defineProps<{ clubId: string }>();
 
-const isGalleryView = ref(false);
+const isGalleryView = ref(true);
 
 // Load club data for share functionality
 const { data: club } = useClub(clubId);
@@ -122,9 +122,6 @@ onMounted(() => {
   const savedView = localStorage.getItem("isGalleryView");
   if (savedView !== null) {
     isGalleryView.value = savedView === "true";
-  } else {
-    const isMobile = window.matchMedia("(max-width: 768px)").matches;
-    isGalleryView.value = isMobile;
   }
 });
 
