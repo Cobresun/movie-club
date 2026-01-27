@@ -1,18 +1,33 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width,initial-scale=1.0">
-    <link rel="icon" href="/favicon.ico">
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <link rel="icon" href="/favicon.ico" />
     <title>Movie Club</title>
+
+    <!-- Default Open Graph Meta Tags (overridden by edge function for shared reviews) -->
+    <meta
+      property="og:title"
+      content="Movie Club - Review movies with your friends"
+    />
+    <meta
+      property="og:description"
+      content="Join clubs and review movies with your friends. Track ratings, manage watchlists, and discover great films together."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Movie Club" />
+    <meta name="twitter:card" content="summary" />
   </head>
-  <body class="bg-background text-text text-center">
+  <body class="bg-background text-center text-text">
     <noscript>
-      <strong>We're sorry but Movie Club doesn't work properly without JavaScript enabled. Please enable it to continue.</strong>
+      <strong
+        >We're sorry but Movie Club doesn't work properly without JavaScript
+        enabled. Please enable it to continue.</strong
+      >
     </noscript>
     <div id="app"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>
-  
 </html>

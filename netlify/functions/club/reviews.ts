@@ -5,11 +5,11 @@ import { WorkListType } from "../../../lib/types/generated/db";
 import ListRepository from "../repositories/ListRepository";
 import ReviewRepository from "../repositories/ReviewRepository";
 import UserRepository from "../repositories/UserRepository";
+import SharedReviewService from "../services/SharedReviewService";
 import { secured } from "../utils/auth";
 import { badRequest, ok } from "../utils/responses";
 import { Router } from "../utils/router";
 import { ClubRequest } from "../utils/validation";
-import { overviewToExternalData } from "../utils/workDetailsMapper";
 
 const router = new Router<ClubRequest>("/api/club/:clubId<\\d+>/reviews");
 
@@ -71,34 +71,16 @@ router.get("/:workId/shared", async ({ clubId, params }, res) => {
   }
 
   const workId = params.workId;
-  const [reviews, members, workDetails] = await Promise.all([
-    ReviewRepository.getReviewsByWorkId(clubId, workId),
-    UserRepository.getMembersByClubId(clubId),
-    ListRepository.getWorkDetails(workId),
-  ]);
+  const sharedReviewData = await SharedReviewService.getSharedReviewData(
+    clubId,
+    workId,
+  );
 
-  if (!workDetails) {
+  if (!sharedReviewData) {
     return res(badRequest("Work not found"));
   }
 
-  const work = {
-    id: workDetails.id,
-    title: workDetails.title,
-    type: workDetails.type,
-    imageUrl: workDetails.image_url ?? undefined,
-    externalId: workDetails.external_id ?? undefined,
-    externalData: overviewToExternalData(workDetails),
-  };
-
-  return res(
-    ok(
-      JSON.stringify({
-        reviews,
-        members,
-        work,
-      }),
-    ),
-  );
+  return res(ok(JSON.stringify(sharedReviewData)));
 });
 
 export default router;
