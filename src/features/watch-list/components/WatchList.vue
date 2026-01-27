@@ -1,4 +1,5 @@
 <template>
+  <add-movie-to-watchlist-modal v-if="modalOpen" @close="closePrompt" />
   <EmptyState
     v-if="showEmptyState"
     :title="hasSearchTerm ? 'No Movies Found' : 'Your Watch List is Empty'"
@@ -7,12 +8,16 @@
         ? 'Try a different search term'
         : 'Add movies you\'re planning to watch with your club'
     "
-    :action-label="hasSearchTerm ? 'Clear Search' : undefined"
-    @action="clearSearch"
+    :action-label="hasSearchTerm ? 'Clear Search' : 'Add Movie'"
+    @action="hasSearchTerm ? clearSearch() : openPrompt()"
   />
   <template v-else>
-    <div class="ml-2 flex justify-start">
-      <v-btn class="mr-2" @click="selectRandom()">
+    <div class="ml-2 flex justify-start gap-2">
+      <v-btn @click="openPrompt">
+        Add Movie
+        <mdicon name="plus" />
+      </v-btn>
+      <v-btn @click="selectRandom()">
         Random
         <mdicon name="dice-multiple-outline" />
       </v-btn>
@@ -52,10 +57,11 @@
 </template>
 <script setup lang="ts">
 import { AxiosError } from "axios";
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import { useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
 
+import AddMovieToWatchlistModal from "./AddMovieToWatchlistModal.vue";
 import { WorkListType, WorkType } from "../../../../lib/types/generated/db";
 import { DetailedWorkListItem } from "../../../../lib/types/lists";
 import { useAnimateRandom } from "../composables/useAnimateRandom";
@@ -126,6 +132,14 @@ const filteredWatchList = computed(() => {
 const hasWatchList = computed(() => (watchList.value?.length ?? 0) > 0);
 const hasSearchTerm = computed(() => searchTerm.trim().length > 0);
 const showEmptyState = computed(() => sortedWatchList.value.length === 0);
+
+const modalOpen = ref(false);
+const openPrompt = () => {
+  modalOpen.value = true;
+};
+const closePrompt = () => {
+  modalOpen.value = false;
+};
 
 const { mutate: setNextWork } = useSetNextWork(clubId);
 
