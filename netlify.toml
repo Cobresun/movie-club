@@ -1,3 +1,7 @@
+[[edge_functions]]
+  path = "/share/club/:clubId/review/:workId"
+  function = "shared-review"
+
 [[redirects]]
     from = "/api/*"
     to = "/.netlify/functions/:splat"
