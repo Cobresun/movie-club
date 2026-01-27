@@ -141,7 +141,7 @@ import { DetailedReviewListItem } from "../../../../lib/types/lists";
 
 import DeleteConfirmationModal from "@/common/components/DeleteConfirmationModal.vue";
 import { useShare } from "@/common/composables/useShare";
-import { useClubId } from "@/service/useClub";
+import { useClub, useClubId } from "@/service/useClub";
 import { useUpdateAddedDate } from "@/service/useList";
 
 const props = defineProps<{
@@ -172,6 +172,7 @@ const confirmDelete = () => {
 
 // Date editing state
 const clubId = useClubId();
+const { data: club } = useClub(clubId);
 const { mutate: updateAddedDate } = useUpdateAddedDate(clubId);
 const isEditingDate = ref(false);
 const editedDate = ref("");
@@ -242,18 +243,14 @@ const formatDate = (dateString: string) => {
 const { share } = useShare();
 
 const shareReview = (id: string) => {
-  // Extract clubId from the current URL path
-  const pathParts = window.location.pathname.split("/");
-  const clubIdIndex = pathParts.indexOf("club") + 1;
-  const clubId = pathParts[clubIdIndex];
-
   const url = `${window.location.origin}/share/club/${clubId}/review/${id}`;
   const title = String(props.movie.renderValue("title"));
+  const clubName = club.value?.clubName ?? "Movie Club";
 
   void share({
     url,
-    title: `${title} - Movie Club Review`,
-    text: `Check out our review of ${title}`,
+    title: `${title} - ${clubName} Review`,
+    text: `${clubName}'s review of ${title}`,
   });
 };
 

@@ -94,13 +94,21 @@ import DeleteConfirmationModal from "@/common/components/DeleteConfirmationModal
 import VAvatar from "@/common/components/VAvatar.vue";
 import VToggle from "@/common/components/VToggle.vue";
 import AddReviewPrompt from "@/features/reviews/components/AddReviewPrompt.vue";
-import { useIsInClub, useMembers, useClubSettings } from "@/service/useClub";
+import {
+  useClub,
+  useIsInClub,
+  useMembers,
+  useClubSettings,
+} from "@/service/useClub";
 import { useDeleteListItem, useList } from "@/service/useList";
 import { useUser } from "@/service/useUser";
 
 const { clubId } = defineProps<{ clubId: string }>();
 
 const isGalleryView = ref(false);
+
+// Load club data for share functionality
+const { data: club } = useClub(clubId);
 
 // Load club settings to check if blur scores is enabled
 const { data: settings, isLoading: isLoadingSettings } =
@@ -291,10 +299,11 @@ const columns = computed(() => [
                 onClick: () => {
                   const url = `${window.location.origin}/share/club/${clubId}/review/${row.original.id}`;
                   const title = row.original.title;
+                  const clubName = club.value?.clubName ?? "Movie Club";
                   void share({
                     url,
-                    title: `${title} - Movie Club Review`,
-                    text: `Check out our review of ${title}`,
+                    title: `${title} - ${clubName} Review`,
+                    text: `${clubName}'s review of ${title}`,
                   });
                 },
               }),
