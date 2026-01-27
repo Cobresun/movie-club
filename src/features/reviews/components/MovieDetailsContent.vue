@@ -134,14 +134,14 @@
 import { FlexRender, Row, Table } from "@tanstack/vue-table";
 import { DateTime } from "luxon";
 import { computed, ref } from "vue";
-import { useToast } from "vue-toastification";
 
 import MovieDescription from "./MovieDescription.vue";
 import { isDefined } from "../../../../lib/checks/checks.js";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
 
 import DeleteConfirmationModal from "@/common/components/DeleteConfirmationModal.vue";
-import { useClubId } from "@/service/useClub";
+import { useShare } from "@/common/composables/useShare";
+import { useClub, useClubId } from "@/service/useClub";
 import { useUpdateAddedDate } from "@/service/useList";
 
 const props = defineProps<{
@@ -172,6 +172,7 @@ const confirmDelete = () => {
 
 // Date editing state
 const clubId = useClubId();
+const { data: club } = useClub(clubId);
 const { mutate: updateAddedDate } = useUpdateAddedDate(clubId);
 const isEditingDate = ref(false);
 const editedDate = ref("");
@@ -238,18 +239,19 @@ const formatDate = (dateString: string) => {
   return DateTime.fromISO(dateString).toLocaleString(DateTime.DATE_MED);
 };
 
-// Helper functions for the three-dot menu
-const toast = useToast();
+// Share functionality
+const { share } = useShare();
 
 const shareReview = (id: string) => {
-  // Extract clubId from the current URL path
-  const pathParts = window.location.pathname.split("/");
-  const clubIdIndex = pathParts.indexOf("club") + 1;
-  const clubId = pathParts[clubIdIndex];
-
   const url = `${window.location.origin}/share/club/${clubId}/review/${id}`;
-  navigator.clipboard.writeText(url).catch(console.error);
-  toast.success("Share URL copied to clipboard!");
+  const title = String(props.movie.renderValue("title"));
+  const clubName = club.value?.clubName ?? "Movie Club";
+
+  void share({
+    url,
+    title: `${title} - ${clubName} Review`,
+    text: `${clubName}'s review of ${title}`,
+  });
 };
 
 const toggleMovieReveal = (movieId: string) => {

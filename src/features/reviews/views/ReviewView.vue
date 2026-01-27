@@ -78,11 +78,11 @@ import {
   resolveComponent,
   watch,
 } from "vue";
-import { useToast } from "vue-toastification";
 
 import { isTrue } from "../../../../lib/checks/checks.js";
 import { WorkListType } from "../../../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
+import { useShare } from "../../../common/composables/useShare";
 import { filterMovies } from "../../../common/searchMovies";
 import GalleryView from "../components/GalleryView.vue";
 import MovieTooltip from "../components/MovieTooltip.vue";
@@ -94,13 +94,21 @@ import DeleteConfirmationModal from "@/common/components/DeleteConfirmationModal
 import VAvatar from "@/common/components/VAvatar.vue";
 import VToggle from "@/common/components/VToggle.vue";
 import AddReviewPrompt from "@/features/reviews/components/AddReviewPrompt.vue";
-import { useIsInClub, useMembers, useClubSettings } from "@/service/useClub";
+import {
+  useClub,
+  useIsInClub,
+  useMembers,
+  useClubSettings,
+} from "@/service/useClub";
 import { useDeleteListItem, useList } from "@/service/useList";
 import { useUser } from "@/service/useUser";
 
 const { clubId } = defineProps<{ clubId: string }>();
 
 const isGalleryView = ref(true);
+
+// Load club data for share functionality
+const { data: club } = useClub(clubId);
 
 // Load club settings to check if blur scores is enabled
 const { data: settings, isLoading: isLoadingSettings } =
@@ -252,7 +260,7 @@ const shouldBlurScore = (rowId: string, columnId: string) => {
   return columnId.startsWith("member_") || columnId === "score_average";
 };
 
-const toast = useToast();
+const { share } = useShare();
 
 const columns = computed(() => [
   columnHelper.accessor("imageUrl", {
@@ -287,8 +295,13 @@ const columns = computed(() => [
                 class: "cursor-pointer hover:text-primary transition-colors",
                 onClick: () => {
                   const url = `${window.location.origin}/share/club/${clubId}/review/${row.original.id}`;
-                  void navigator.clipboard.writeText(url);
-                  toast.success("Share URL copied to clipboard!");
+                  const title = row.original.title;
+                  const clubName = club.value?.clubName ?? "Movie Club";
+                  void share({
+                    url,
+                    title: `${title} - ${clubName} Review`,
+                    text: `${clubName}'s review of ${title}`,
+                  });
                 },
               }),
             ],
