@@ -53,4 +53,5 @@ export interface SharedReviewResponse {
     created_date: string;
   }[];
   work: DetailedReviewListItem;
+  clubName: string;
 }
