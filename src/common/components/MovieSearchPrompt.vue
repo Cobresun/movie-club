@@ -124,14 +124,18 @@ const { data: searchData, isLoading: loadingSearch } = useSearch(
 );
 
 const noResults = computed(() => {
+  // Don't show "no results" if the user hasn't typed anything
+  const hasSearched = searchText.value.trim().length > 0;
+
   if (includeSearch) {
     return (
+      hasSearched &&
       !loadingSearch.value &&
       filteredDefaultList.value.length === 0 &&
       searchData.value?.results.length === 0
     );
   } else {
-    return filteredDefaultList.value.length === 0;
+    return hasSearched && filteredDefaultList.value.length === 0;
   }
 });
 
