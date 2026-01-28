@@ -1,5 +1,9 @@
 <template>
-  <add-movie-to-watchlist-modal v-if="modalOpen" @close="closePrompt" />
+  <add-movie-to-list-modal
+    v-if="modalOpen"
+    :list-type="WorkListType.watchlist"
+    @close="closePrompt"
+  />
   <EmptyState
     v-if="showEmptyState"
     :title="hasSearchTerm ? 'No Movies Found' : 'Your Watch List is Empty'"
@@ -61,7 +65,7 @@ import { computed, ref } from "vue";
 import { useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
 
-import AddMovieToWatchlistModal from "./AddMovieToWatchlistModal.vue";
+import AddMovieToListModal from "./AddMovieToListModal.vue";
 import { WorkListType, WorkType } from "../../../../lib/types/generated/db";
 import { DetailedWorkListItem } from "../../../../lib/types/lists";
 import { useAnimateRandom } from "../composables/useAnimateRandom";
