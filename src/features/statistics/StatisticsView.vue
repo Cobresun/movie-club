@@ -485,6 +485,12 @@ const loadChartOptions = () => {
 };
 
 const calculateStatistics = () => {
+  // Early return for empty data
+  if (movieData.value.length === 0) {
+    loadingCalculations.value = false;
+    return;
+  }
+
   histogramData.value = createHistogramData(
     movieData.value.map((data) => data.average),
     false,
