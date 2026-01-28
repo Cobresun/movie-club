@@ -28,23 +28,16 @@ import { useAddListItem } from "@/service/useList";
 import { useTrending } from "@/service/useTMDB";
 
 const { listType } = defineProps<{
-  listType: WorkListType;
+  listType: WorkListType.backlog | WorkListType.watchlist;
 }>();
 
 const emit = defineEmits<{
   (e: "close", item?: WatchListItem): void;
 }>();
 
-const listLabel = computed(() => {
-  switch (listType) {
-    case WorkListType.watchlist:
-      return "watch list";
-    case WorkListType.backlog:
-      return "backlog";
-    default:
-      return "list";
-  }
-});
+const listLabel = computed(() =>
+  listType === WorkListType.watchlist ? "watch list" : "backlog",
+);
 
 const clubId = useClubId();
 
