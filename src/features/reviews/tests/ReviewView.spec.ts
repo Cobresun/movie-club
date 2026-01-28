@@ -27,7 +27,11 @@ describe("ReviewView", () => {
     const viewSwitch = screen.getByRole("switch");
     await user.click(viewSwitch);
 
-    const openButton = await screen.findByRole("button");
+    // Find the add button by looking for the button with the plus icon
+    const addButtons = await screen.findAllByRole("button");
+    const openButton = addButtons.find((btn) =>
+      btn.querySelector(".mdi-plus"),
+    ) as HTMLElement;
     await user.click(openButton);
     expect(await screen.findByText("From Watch List")).toBeInTheDocument();
 

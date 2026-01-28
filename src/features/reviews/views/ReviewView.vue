@@ -6,6 +6,17 @@
       @confirm="confirmDelete"
       @cancel="cancelDelete"
     />
+    <v-modal v-if="filterPanelOpen" size="sm" @close="closeFilterPanel">
+      <ReviewFilterPanel
+        :filters="filters"
+        :available-genres="availableGenres"
+        :available-companies="availableCompanies"
+        :available-review-years="availableReviewYears"
+        @close="closeFilterPanel"
+        @apply="applyFilters"
+        @clear="clearAllFilters"
+      />
+    </v-modal>
     <page-header :has-back="true" back-route="ClubHome" page-name="Reviews">
       <div class="flex gap-2">
         <mdicon name="table" />
@@ -15,47 +26,42 @@
     </page-header>
     <loading-spinner v-if="loading" />
     <div v-else>
-      <div
-        class="flex items-center justify-center"
-        :class="isGalleryView ? 'mb-4' : 'mb-0'"
-      >
-        <div class="relative">
-          <mdicon
-            name="magnify"
-            class="absolute left-8 top-1/2 -translate-y-1/2 transform text-slate-200"
-          />
-          <input
-            ref="searchInput"
-            v-model="searchTerm"
-            class="w-11/12 rounded-md border-2 border-slate-600 bg-background p-2 pl-12 text-base text-white outline-none focus:border-primary"
-            placeholder="Search"
-            @focusin="searchInputFocusIn"
-            @focusout="searchInputFocusOut"
-          />
-          <div
-            ref="searchInputSlash"
-            class="absolute right-8 top-1/2 -translate-y-1/2 transform rounded-md border-2 border-slate-600 px-2 py-1"
-          >
-            <p name="slash" class="text-xs text-slate-200">/</p>
-          </div>
-        </div>
-        <v-btn
-          class="ml-2 flex h-11 w-11 items-center justify-center whitespace-nowrap"
-          @click="openPrompt()"
+      <div :class="isGalleryView ? 'mb-4' : 'mb-0'">
+        <ReviewFilterBar
+          ref="filterBarRef"
+          v-model:search-text="searchTerm"
+          :filter-count="activeFilterCount"
+          :filter-chips="activeFilterChips"
+          @toggle-panel="toggleFilterPanel"
+          @remove-filter="clearFilter"
+          @clear-all="clearAllFilters"
         >
-          <mdicon name="plus" />
-        </v-btn>
+          <template #actions>
+            <v-btn
+              class="flex h-11 w-11 items-center justify-center whitespace-nowrap"
+              @click="openPrompt()"
+            >
+              <mdicon name="plus" />
+            </v-btn>
+          </template>
+        </ReviewFilterBar>
       </div>
       <div v-if="showEmptyState">
         <EmptyState
-          :title="hasSearchTerm ? 'No Movies Found' : 'No Reviews Yet'"
+          :title="
+            hasSearchTerm || hasActiveFilters
+              ? 'No Movies Found'
+              : 'No Reviews Yet'
+          "
           :description="
-            hasSearchTerm
-              ? 'Try adjusting your search or filters. You can search by title, genre, company, or release year'
+            hasSearchTerm || hasActiveFilters
+              ? 'Try adjusting your search or filters'
               : 'Start building your club\'s movie collection by adding your first review'
           "
-          :action-label="hasSearchTerm ? undefined : 'Add Review'"
-          :action-icon="hasSearchTerm ? undefined : 'plus'"
+          :action-label="
+            hasSearchTerm || hasActiveFilters ? undefined : 'Add Review'
+          "
+          :action-icon="hasSearchTerm || hasActiveFilters ? undefined : 'plus'"
           @action="openPrompt"
         />
       </div>
@@ -97,10 +103,13 @@ import {
 import { isTrue } from "../../../../lib/checks/checks.js";
 import { WorkListType } from "../../../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
+import { useReviewFilters } from "../../../common/composables/useReviewFilters";
 import { useShare } from "../../../common/composables/useShare";
-import { filterMovies } from "../../../common/searchMovies";
+import { filterReviewsByFilters } from "../../../common/searchMovies";
 import GalleryView from "../components/GalleryView.vue";
 import MovieTooltip from "../components/MovieTooltip.vue";
+import ReviewFilterBar from "../components/ReviewFilterBar.vue";
+import ReviewFilterPanel from "../components/ReviewFilterPanel.vue";
 import ReviewScore from "../components/ReviewScore.vue";
 import TableView from "../components/TableView.vue";
 
@@ -172,27 +181,71 @@ const confirmDelete = () => {
   }
 };
 
+// Filter state
+const {
+  filters,
+  activeFilterCount,
+  activeFilterChips,
+  clearFilter,
+  clearAllFilters,
+  applyFilters,
+} = useReviewFilters();
+
 const searchTerm = ref("");
 const filteredReviews = computed<DetailedReviewListItem[]>(() => {
-  return filterMovies(reviews.value ?? [], searchTerm.value);
+  return filterReviewsByFilters(reviews.value ?? [], filters, searchTerm.value);
 });
 
-const hasReviews = computed(() => (reviews.value?.length ?? 0) > 0);
+// Extract available filter options from reviews data
+const availableGenres = computed(() => {
+  const genres = new Set<string>();
+  reviews.value?.forEach((r) =>
+    r.externalData?.genres.forEach((g) => genres.add(g)),
+  );
+  return Array.from(genres).sort();
+});
+
+const availableCompanies = computed(() => {
+  const companies = new Set<string>();
+  reviews.value?.forEach((r) =>
+    r.externalData?.production_companies.forEach((c) => companies.add(c)),
+  );
+  return Array.from(companies).sort();
+});
+
+const availableReviewYears = computed(() => {
+  const years = new Set<number>();
+  reviews.value?.forEach((r) =>
+    years.add(new Date(r.createdDate).getFullYear()),
+  );
+  return Array.from(years).sort((a, b) => b - a);
+});
+
 const hasSearchTerm = computed(() => searchTerm.value.trim().length > 0);
+const hasActiveFilters = computed(() => activeFilterCount.value > 0);
 const showEmptyState = computed(
   () => !loading.value && filteredReviews.value.length === 0,
 );
 
-const searchInput = ref<HTMLInputElement | null>(null);
-const searchInputSlash = ref<HTMLParagraphElement | null>(null);
+// Filter panel state
+const filterPanelOpen = ref(false);
+const toggleFilterPanel = () => {
+  filterPanelOpen.value = !filterPanelOpen.value;
+};
+const closeFilterPanel = () => {
+  filterPanelOpen.value = false;
+};
+
+// Search input keyboard shortcut
+const filterBarRef = ref<{ focus: () => void } | null>(null);
 
 const onKeyPress = (e: KeyboardEvent) => {
   if (e.key === "/") {
-    if (searchInput.value === document.activeElement) {
+    if (document.activeElement?.tagName === "INPUT") {
       return;
     }
     e.preventDefault();
-    searchInput.value?.focus();
+    filterBarRef.value?.focus();
   }
 };
 
@@ -203,14 +256,6 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener("keypress", onKeyPress);
 });
-
-const searchInputFocusIn = () => {
-  searchInputSlash.value?.setAttribute("hidden", "true");
-};
-
-const searchInputFocusOut = () => {
-  searchInputSlash.value?.removeAttribute("hidden");
-};
 
 const columnHelper = createColumnHelper<DetailedReviewListItem>();
 

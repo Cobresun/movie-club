@@ -1,3 +1,4 @@
+import { ReviewFilters } from "./composables/useReviewFilters";
 import { isDefined } from "../../lib/checks/checks.js";
 import { DetailedWorkListItem } from "../../lib/types/lists";
 
@@ -135,6 +136,95 @@ export function filterMovies<T extends DetailedWorkListItem>(
 
       return title.toLowerCase().includes(searchQuery.toLowerCase());
     });
+  }
+
+  return filteredReviews;
+}
+
+/**
+ * Filters reviews using a structured filter object instead of a text query.
+ * Supports filtering by genres, companies, release year range, and reviewed-in year.
+ * Also accepts an optional title search string for combining with filters.
+ */
+export function filterReviewsByFilters<T extends DetailedWorkListItem>(
+  works: T[],
+  filters: ReviewFilters,
+  titleSearch?: string,
+): T[] {
+  let filteredReviews = [...works];
+
+  // Filter by genres (multi-select, case-insensitive match)
+  if (filters.genres.length > 0) {
+    filteredReviews = filteredReviews.filter(
+      (review) =>
+        isDefined(review.externalData) &&
+        review.externalData.genres.some((genre) =>
+          filters.genres.some(
+            (filterGenre) => genre.toLowerCase() === filterGenre.toLowerCase(),
+          ),
+        ),
+    );
+  }
+
+  // Filter by companies (multi-select, case-insensitive match)
+  if (filters.companies.length > 0) {
+    filteredReviews = filteredReviews.filter(
+      (review) =>
+        isDefined(review.externalData) &&
+        review.externalData.production_companies.some((company) =>
+          filters.companies.some(
+            (filterCompany) =>
+              company.toLowerCase() === filterCompany.toLowerCase(),
+          ),
+        ),
+    );
+  }
+
+  // Filter by release year range
+  if (
+    filters.releaseYearRange.start !== undefined ||
+    filters.releaseYearRange.end !== undefined
+  ) {
+    filteredReviews = filteredReviews.filter((review) => {
+      if (
+        !isDefined(review.externalData) ||
+        !review.externalData.release_date
+      ) {
+        return false;
+      }
+      const releaseYear = new Date(
+        review.externalData.release_date,
+      ).getFullYear();
+
+      if (
+        filters.releaseYearRange.start !== undefined &&
+        releaseYear < filters.releaseYearRange.start
+      ) {
+        return false;
+      }
+      if (
+        filters.releaseYearRange.end !== undefined &&
+        releaseYear > filters.releaseYearRange.end
+      ) {
+        return false;
+      }
+      return true;
+    });
+  }
+
+  // Filter by reviewed-in year
+  if (filters.reviewedInYear !== undefined) {
+    filteredReviews = filteredReviews.filter(
+      (review) =>
+        new Date(review.createdDate).getFullYear() === filters.reviewedInYear,
+    );
+  }
+
+  // Apply title search if provided
+  if (titleSearch !== undefined && titleSearch.trim() !== "") {
+    filteredReviews = filteredReviews.filter((review) =>
+      review.title.toLowerCase().includes(titleSearch.toLowerCase()),
+    );
   }
 
   return filteredReviews;
