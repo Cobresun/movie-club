@@ -25,9 +25,7 @@ const emit = defineEmits<{
 }>();
 
 const zIndexClass =
-  props.zIndex === "40" ? "z-40" :
-  props.zIndex === "60" ? "z-[60]" :
-  "z-50";
+  props.zIndex === "40" ? "z-40" : props.zIndex === "60" ? "z-[60]" : "z-50";
 
 const handleClose = () => {
   emit("close");

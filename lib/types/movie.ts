@@ -111,3 +111,21 @@ export interface TMDBConfig {
   };
   change_keys: string[];
 }
+
+export interface TMDBGenreListResponse {
+  genres: TMDBGenre[];
+}
+
+export interface TMDBCompanySearchResult {
+  id: number;
+  logo_path: string | null;
+  name: string;
+  origin_country: string;
+}
+
+export interface TMDBCompanySearchResponse {
+  page: number;
+  results: TMDBCompanySearchResult[];
+  total_pages: number;
+  total_results: number;
+}

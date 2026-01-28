@@ -1,19 +1,52 @@
 <template>
   <div class="flex h-full flex-col text-center">
-    <input
-      v-model="searchText"
-      class="rounded-md border-2 border-gray-300 p-1 text-base font-bold text-black outline-none focus:border-primary"
-      placeholder="Type to filter or search"
+    <MovieFilterBar
+      :search-text="searchText"
+      :filter-count="activeFilterCount"
+      :filter-chips="activeFilterChips"
+      @update:search-text="searchText = $event"
+      @toggle-panel="showFilterPanel = !showFilterPanel"
+      @remove-filter="clearFilter($event as keyof MovieFilters)"
+      @clear-all="clearAllFilters"
     />
+
+    <!-- Filter Panel (mobile: bottom sheet, desktop: dropdown) -->
+    <VBottomSheet
+      v-if="showFilterPanel && isMobile"
+      content-class="px-4 pb-8"
+      @close="showFilterPanel = false"
+    >
+      <FilterPanel
+        :filters="filters"
+        @close="showFilterPanel = false"
+        @apply="applyFilters"
+        @clear="clearAllFilters"
+      />
+    </VBottomSheet>
+
+    <div
+      v-if="showFilterPanel && !isMobile"
+      class="relative z-20 mt-2 rounded-lg border border-gray-600 bg-gray-800 p-4 shadow-lg"
+    >
+      <FilterPanel
+        :filters="filters"
+        @close="showFilterPanel = false"
+        @apply="applyFilters"
+        @clear="clearAllFilters"
+      />
+    </div>
+
     <div class="mt-3 overflow-y-auto">
       <p v-if="noResults">Sorry, your search did not return any results</p>
-      <div v-if="filteredDefaultList.length > 0">
+
+      <!-- Default List (watch list or trending) - shown when no filters active -->
+      <div v-if="!hasActiveFilters && filteredDefaultList.length > 0">
         <h5 class="float-left font-bold">
           {{ defaultListTitle }}
         </h5>
         <movie-table
           :data="filteredDefaultList"
-          :headers="defaultListHeaders"
+          :headers="tableHeaders"
           :header="false"
           :selectable="true"
           @click-row="selectFromDefaultList"
@@ -29,17 +62,23 @@
           </template>
         </movie-table>
       </div>
-      <div
-        v-if="
-          includeSearch &&
-          searchData?.results.length &&
-          searchData.results.length > 0
-        "
-      >
-        <h5 class="float-left font-bold">Search</h5>
+
+      <!-- Discover Results (shown when filters are active) -->
+      <div v-if="hasActiveFilters">
+        <h5 class="float-left font-bold">
+          Discover Results
+          <span
+            v-if="discoverData?.total_results"
+            class="font-normal text-gray-400"
+          >
+            ({{ discoverData.total_results }} movies)
+          </span>
+        </h5>
+        <loading-spinner v-if="loadingDiscover" class="mt-3 self-center" />
         <movie-table
-          :data="searchData.results"
-          :headers="searchHeaders"
+          v-else-if="filteredDiscoverResults.length > 0"
+          :data="filteredDiscoverResults"
+          :headers="tableHeaders"
           :header="false"
           :selectable="true"
           @click-row="selectFromSearch"
@@ -55,11 +94,42 @@
           </template>
         </movie-table>
       </div>
+
+      <!-- Search Results (shown when typing without filters) -->
+      <div
+        v-if="
+          !hasActiveFilters &&
+          includeSearch &&
+          searchData?.results.length &&
+          searchData.results.length > 0
+        "
+      >
+        <h5 class="float-left font-bold">Search</h5>
+        <movie-table
+          :data="searchData.results"
+          :headers="tableHeaders"
+          :header="false"
+          :selectable="true"
+          @click-row="selectFromSearch"
+        >
+          <template #item-title="{ item, head }">
+            <p>
+              <b>{{ item[head.value] }}</b
+              ><i> ({{ getReleaseYear(item.release_date) }})</i>
+            </p>
+          </template>
+          <template #item-add>
+            <mdicon name="plus" />
+          </template>
+        </movie-table>
+      </div>
+
       <loading-spinner
-        v-if="includeSearch && loadingSearch"
+        v-if="includeSearch && !hasActiveFilters && loadingSearch"
         class="mt-3 self-center"
       />
     </div>
+
     <div class="mt-auto flex justify-between pt-2">
       <v-btn @click="emit('close')"> Cancel </v-btn>
     </div>
@@ -67,11 +137,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, onMounted, onUnmounted } from "vue";
 
+import FilterPanel from "./FilterPanel.vue";
+import MovieFilterBar from "./MovieFilterBar.vue";
+import VBottomSheet from "./VBottomSheet.vue";
 import { MovieSearchIndex } from "../../../lib/types/movie";
+import { MovieFilters, useMovieFilters } from "../composables/useMovieFilters";
 
-import { useSearch } from "@/service/useTMDB";
+import { useDiscover, useSearch } from "@/service/useTMDB";
 
 const {
   defaultList,
@@ -89,14 +163,7 @@ const emit = defineEmits<{
   (e: "close"): void;
 }>();
 
-const defaultListHeaders = [
-  {
-    value: "title",
-    style: "text-left pl-4",
-  },
-];
-
-const searchHeaders = [
+const tableHeaders = [
   {
     value: "title",
     style: "text-left pl-4",
@@ -112,7 +179,39 @@ const getReleaseYear = (date: string) => {
 };
 
 const searchText = ref("");
+const showFilterPanel = ref(false);
 
+// Responsive detection
+const isMobile = ref(false);
+const checkMobile = () => {
+  isMobile.value = window.innerWidth < 640; // sm breakpoint
+};
+
+onMounted(() => {
+  checkMobile();
+  window.addEventListener("resize", checkMobile);
+});
+
+onUnmounted(() => {
+  window.removeEventListener("resize", checkMobile);
+});
+
+// Filter state
+const {
+  filters,
+  hasActiveFilters,
+  activeFilterCount,
+  activeFilterChips,
+  clearFilter,
+  clearAllFilters,
+  filtersToDiscoverParams,
+} = useMovieFilters();
+
+const applyFilters = (newFilters: MovieFilters) => {
+  Object.assign(filters, newFilters);
+};
+
+// Text search (used when no filters active)
 const filteredDefaultList = computed(() => {
   const lower = searchText.value.toLowerCase();
   return defaultList.filter((item) => item.title.toLowerCase().includes(lower));
@@ -123,9 +222,32 @@ const { data: searchData, isLoading: loadingSearch } = useSearch(
   includeSearch,
 );
 
+// Discover API (used when filters are active)
+const discoverParams = computed(() => filtersToDiscoverParams());
+const discoverEnabled = computed(() => hasActiveFilters.value);
+
+const { data: discoverData, isLoading: loadingDiscover } = useDiscover(
+  discoverParams,
+  discoverEnabled,
+);
+
+// Filter discover results by text search (client-side)
+const filteredDiscoverResults = computed(() => {
+  if (!discoverData.value?.results) return [];
+  if (!searchText.value.trim()) return discoverData.value.results;
+
+  const lower = searchText.value.toLowerCase();
+  return discoverData.value.results.filter((movie) =>
+    movie.title.toLowerCase().includes(lower),
+  );
+});
+
 const noResults = computed(() => {
-  // Don't show "no results" if the user hasn't typed anything
   const hasSearched = searchText.value.trim().length > 0;
+
+  if (hasActiveFilters.value) {
+    return !loadingDiscover.value && filteredDiscoverResults.value.length === 0;
+  }
 
   if (includeSearch) {
     return (
