@@ -10,7 +10,7 @@
       <loading-spinner v-if="isLoading" />
 
       <div v-if="!isLoading">
-        <div class="flex items-center justify-center" :class="'mb-0'">
+        <div class="mb-2 flex items-center justify-center">
           <div class="relative">
             <mdicon
               name="magnify"
