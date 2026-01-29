@@ -26,16 +26,20 @@
         <mdicon name="dice-multiple-outline" />
       </v-btn>
     </div>
-    <transition-group
+    <VueDraggableNext
+      v-model="draggableList"
       tag="div"
-      move-class="transition ease-linear duration-300"
       class="my-4 grid grid-cols-auto justify-items-center"
+      :delay="150"
+      :delay-on-touch-only="true"
+      :animation="200"
+      @end="onDragEnd"
     >
       <MoviePosterCard
-        v-for="(work, index) in sortedWatchList"
+        v-for="(work, index) in draggableList"
         :key="work.id"
         :class="[index == 0 ? 'z-0' : 'z-10']"
-        class="bg-background"
+        class="cursor-grab bg-background active:cursor-grabbing"
         :movie-title="work.title"
         :movie-poster-url="work.imageUrl ?? ''"
         :highlighted="!isAnimating && work.id == nextWorkId"
@@ -56,12 +60,13 @@
           </v-btn>
         </div>
       </MoviePosterCard>
-    </transition-group>
+    </VueDraggableNext>
   </template>
 </template>
 <script setup lang="ts">
 import { AxiosError } from "axios";
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
+import { VueDraggableNext } from "vue-draggable-next";
 import { useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
 
@@ -80,6 +85,7 @@ import {
   useList,
   useNextWork,
   useSetNextWork,
+  useReorderList,
   OPTIMISTIC_WORK_ID,
   useAddListItem,
 } from "@/service/useList";
@@ -146,6 +152,7 @@ const closePrompt = () => {
 };
 
 const { mutate: setNextWork } = useSetNextWork(clubId);
+const { mutate: reorderList } = useReorderList(clubId, WorkListType.watchlist);
 
 const {
   isAnimating,
@@ -166,6 +173,20 @@ const sortedWatchList = computed(() => {
   }
   return displayWatchlist.value;
 });
+
+const draggableList = ref<DetailedWorkListItem[]>([]);
+watch(
+  sortedWatchList,
+  (newList) => {
+    draggableList.value = [...newList];
+  },
+  { immediate: true },
+);
+
+const onDragEnd = () => {
+  const workIds = draggableList.value.map((item) => item.id);
+  reorderList(workIds);
+};
 
 const nextMovieItem = computed(() =>
   watchList.value?.find((work) => work.id === nextWorkId.value),

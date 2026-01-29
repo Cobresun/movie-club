@@ -89,6 +89,7 @@ class ListRepository {
         "companies_agg.production_companies",
         "countries_agg.production_countries",
       ])
+      .orderBy("work_list_item.position", "asc")
       .execute();
   }
 
@@ -110,11 +111,20 @@ class ListRepository {
     listType: WorkListType,
     workId: string,
   ) {
+    const listId = this.listIdFromType(clubId, listType);
+    const maxResult = await db
+      .selectFrom("work_list_item")
+      .where("list_id", "=", listId)
+      .select(db.fn.max("position").as("max_position"))
+      .executeTakeFirst();
+    const nextPosition = (maxResult?.max_position ?? 0) + 1;
+
     return db
       .insertInto("work_list_item")
       .values({
-        list_id: this.listIdFromType(clubId, listType),
+        list_id: listId,
         work_id: workId,
+        position: nextPosition,
       })
       .execute();
   }
@@ -249,6 +259,20 @@ class ListRepository {
         })),
       )
       .execute();
+  }
+
+  async reorderList(clubId: string, listType: WorkListType, workIds: string[]) {
+    const listId = this.listIdFromType(clubId, listType);
+    await db.transaction().execute(async (trx) => {
+      for (let i = 0; i < workIds.length; i++) {
+        await trx
+          .updateTable("work_list_item")
+          .set("position", i + 1)
+          .where("work_id", "=", workIds[i])
+          .where("list_id", "=", listId)
+          .execute();
+      }
+    });
   }
 
   async updateAddedDate(

@@ -27,20 +27,21 @@
     :action-label="hasSearchTerm ? 'Clear Search' : undefined"
     @action="clearSearch"
   />
-  <transition-group
-    v-else
+  <VueDraggableNext
+    v-if="!showEmptyState"
+    v-model="draggableList"
     tag="div"
-    move-class="transition ease-in-out duration-300"
-    leave-active-class="absolute hidden"
-    enter-from-class="opacity-0"
-    leave-to-class="opacity-0"
     class="my-4 grid grid-cols-auto justify-items-center"
+    :delay="150"
+    :delay-on-touch-only="true"
+    :animation="200"
+    @end="onDragEnd"
   >
     <MoviePosterCard
-      v-for="(movie, index) in sortedBacklog"
+      v-for="(movie, index) in draggableList"
       :key="movie.id"
       :class="[index == 0 ? 'z-0' : 'z-10']"
-      class="bg-background"
+      class="cursor-grab bg-background active:cursor-grabbing"
       :movie-title="movie.title"
       :movie-poster-url="movie.imageUrl ?? ''"
       :highlighted="movie === selectedMovie"
@@ -54,10 +55,11 @@
         <mdicon name="arrow-collapse-up" />
       </v-btn>
     </MoviePosterCard>
-  </transition-group>
+  </VueDraggableNext>
 </template>
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
+import { VueDraggableNext } from "vue-draggable-next";
 import { useToast } from "vue-toastification";
 
 import AddMovieToListModal from "./AddMovieToListModal.vue";
@@ -69,7 +71,12 @@ import EmptyState from "@/common/components/EmptyState.vue";
 import MoviePosterCard from "@/common/components/MoviePosterCard.vue";
 import { filterMovies } from "@/common/searchMovies";
 import { useClubId } from "@/service/useClub";
-import { useAddListItem, useDeleteListItem, useList } from "@/service/useList";
+import {
+  useAddListItem,
+  useDeleteListItem,
+  useList,
+  useReorderList,
+} from "@/service/useList";
 
 const { searchTerm, clearSearch } = defineProps<{
   searchTerm: string;
@@ -103,6 +110,8 @@ const moveBacklogItemToWatchlist = async (movie: DetailedWorkListItem) => {
   await deleteBacklogItem(movie.id);
 };
 
+const { mutate: reorderList } = useReorderList(clubId, WorkListType.backlog);
+
 const filteredBacklog = computed(() => {
   return filterMovies(backlog.value ?? [], searchTerm);
 });
@@ -131,6 +140,20 @@ const sortedBacklog = computed(() => {
     ...filteredBacklog.value.slice(0, selectedIndex),
   ];
 });
+
+const draggableList = ref<DetailedWorkListItem[]>([]);
+watch(
+  sortedBacklog,
+  (newList) => {
+    draggableList.value = [...newList];
+  },
+  { immediate: true },
+);
+
+const onDragEnd = () => {
+  const workIds = draggableList.value.map((item) => item.id);
+  reorderList(workIds);
+};
 
 const selectRandom = () => {
   if (!backlog.value) return;

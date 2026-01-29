@@ -93,6 +93,44 @@ export function useDeleteListItem(clubId: string, type: WorkListType) {
   });
 }
 
+export function useReorderList(
+  clubId: string,
+  type: WorkListType.watchlist | WorkListType.backlog,
+) {
+  const auth = useAuthStore();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (workIds: string[]) =>
+      auth.request.put(`/api/club/${clubId}/list/${type}/reorder`, { workIds }),
+    onMutate: async (workIds) => {
+      await queryClient.cancelQueries({ queryKey: ["list", clubId, type] });
+      const previousList = queryClient.getQueryData<DetailedWorkListItem[]>([
+        "list",
+        clubId,
+        type,
+      ]);
+      queryClient.setQueryData<DetailedWorkListItem[]>(
+        ["list", clubId, type],
+        (currentList) => {
+          if (!currentList) return currentList;
+          const itemMap = new Map(currentList.map((item) => [item.id, item]));
+          return workIds
+            .map((id) => itemMap.get(id))
+            .filter((item): item is DetailedWorkListItem => !!item);
+        },
+      );
+      return { previousList };
+    },
+    onError: (_err, _workIds, context) => {
+      if (context?.previousList) {
+        queryClient.setQueryData(["list", clubId, type], context.previousList);
+      }
+    },
+    onSettled: () =>
+      queryClient.invalidateQueries({ queryKey: ["list", clubId, type] }),
+  });
+}
+
 export function useNextWork(clubId: string) {
   return useQuery({
     queryKey: ["nextWork", clubId],

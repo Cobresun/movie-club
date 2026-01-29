@@ -159,6 +159,36 @@ async function getReviewList(clubId: string): Promise<ReviewListItem[]> {
     .sort((a, b) => b.createdDate.localeCompare(a.createdDate));
 }
 
+const reorderSchema = z.object({
+  workIds: z.array(z.string()).min(1),
+});
+
+router.put(
+  "/:type/reorder",
+  secured,
+  async ({ clubId, params, event }, res) => {
+    if (!hasValue(params.type)) return res(badRequest("No type provided"));
+    const type = params.type;
+    if (!isWorkListType(type)) {
+      return res(badRequest("Invalid type provided"));
+    }
+    if (
+      type !== (WorkListType.watchlist as WorkListType) &&
+      type !== (WorkListType.backlog as WorkListType)
+    ) {
+      return res(
+        badRequest("Reordering is only supported for watchlist and backlog"),
+      );
+    }
+    if (!hasValue(event.body)) return res(badRequest("No body provided"));
+    const body = reorderSchema.safeParse(JSON.parse(event.body));
+    if (!body.success) return res(badRequest("Invalid body provided"));
+
+    await ListRepository.reorderList(clubId, type, body.data.workIds);
+    return res(ok());
+  },
+);
+
 router.post("/:type", secured, async ({ clubId, params, event }, res) => {
   if (!hasValue(params.type)) return res(badRequest("No type provided"));
   if (!hasValue(event.body)) return res(badRequest("No body provided"));
