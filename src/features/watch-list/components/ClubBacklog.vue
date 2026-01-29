@@ -1,5 +1,9 @@
 <template>
-  <add-movie-to-watchlist-prompt v-if="modalOpen" @close="closePrompt" />
+  <add-movie-to-list-modal
+    v-if="modalOpen"
+    :list-type="WorkListType.backlog"
+    @close="closePrompt"
+  />
   <h1 class="m-4 text-2xl font-bold">Backlog</h1>
   <div class="ml-2 flex items-start gap-2">
     <v-btn @click="openPrompt">
@@ -56,7 +60,7 @@
 import { computed, ref } from "vue";
 import { useToast } from "vue-toastification";
 
-import AddMovieToWatchlistPrompt from "./AddMovieToWatchlistPrompt.vue";
+import AddMovieToListModal from "./AddMovieToListModal.vue";
 import { isTrue } from "../../../../lib/checks/checks.js";
 import { WorkListType } from "../../../../lib/types/generated/db";
 import { DetailedWorkListItem } from "../../../../lib/types/lists";
