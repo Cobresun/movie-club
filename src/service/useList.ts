@@ -154,6 +154,22 @@ export function useSetNextWork(clubId: string) {
   });
 }
 
+export function useClearNextWork(clubId: string) {
+  const auth = useAuthStore();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => auth.request.delete(`/api/club/${clubId}/nextWork`),
+    onMutate: () => {
+      queryClient.setQueryData<string | undefined>(
+        ["nextWork", clubId],
+        () => undefined,
+      );
+    },
+    onSettled: () =>
+      queryClient.invalidateQueries({ queryKey: ["nextWork", clubId] }),
+  });
+}
+
 export function useSharedReview(
   clubId: string,
   workId: string,

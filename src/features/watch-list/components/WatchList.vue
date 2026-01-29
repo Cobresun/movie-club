@@ -66,8 +66,20 @@
           <v-btn class="flex justify-center" @click="reviewMovie(work)">
             <mdicon name="check" />
           </v-btn>
-          <v-btn class="flex justify-center" @click="setNextWork(work.id)">
-            <mdicon name="arrow-collapse-up" />
+
+          <v-btn
+            class="flex justify-center"
+            @click="
+              work.id === nextWorkId ? clearNextWork() : setNextWork(work.id)
+            "
+          >
+            <mdicon
+              :name="
+                work.id === nextWorkId
+                  ? 'arrow-collapse-down'
+                  : 'arrow-collapse-up'
+              "
+            />
           </v-btn>
         </div>
       </MoviePosterCard>
@@ -92,6 +104,7 @@ import { BadRequest } from "@/common/errorCodes";
 import { filterMovies } from "@/common/searchMovies";
 import { useClubId } from "@/service/useClub";
 import {
+  useClearNextWork,
   useDeleteListItem,
   useList,
   useNextWork,
@@ -163,6 +176,7 @@ const closePrompt = () => {
 
 const { mutate: setNextWork } = useSetNextWork(clubId);
 const { mutate: reorderList } = useReorderList(clubId, WorkListType.watchlist);
+const { mutate: clearNextWork } = useClearNextWork(clubId);
 
 const randomPickerOpen = ref(false);
 
