@@ -117,7 +117,7 @@ class ListRepository {
       .where("list_id", "=", listId)
       .select(db.fn.max("position").as("max_position"))
       .executeTakeFirst();
-    const nextPosition = (maxResult?.max_position ?? 0) + 1;
+    const nextPosition = Number(maxResult?.max_position ?? 0) + 1;
 
     return db
       .insertInto("work_list_item")
