@@ -12,6 +12,7 @@ interface SpawnOptions {
   sourceDb: string;
   targetDb: string;
   metadata?: string;
+  replace?: boolean;
 }
 
 interface DbMetadata {
@@ -178,7 +179,12 @@ async function addDatabaseMetadata(
  * Main spawn function
  */
 async function spawnDatabase(options: SpawnOptions): Promise<string> {
-  const { sourceDb, targetDb, metadata: metadataArg } = options;
+  const {
+    sourceDb,
+    targetDb,
+    metadata: metadataArg,
+    replace = false,
+  } = options;
 
   validateDatabaseName(targetDb);
 
@@ -195,10 +201,18 @@ async function spawnDatabase(options: SpawnOptions): Promise<string> {
 
   try {
     // Check if target already exists
-    if (await databaseExists(adminPool, targetDb)) {
-      throw new Error(
-        `Database ${targetDb} already exists. Please choose a different name or clean it up first.`,
-      );
+    const exists = await databaseExists(adminPool, targetDb);
+
+    if (exists) {
+      if (replace) {
+        console.log(`Database ${targetDb} exists. Replacing...`);
+        await adminPool.query(`DROP DATABASE ${targetDb}`);
+        console.log(`✓ Dropped existing database: ${targetDb}`);
+      } else {
+        throw new Error(
+          `Database ${targetDb} already exists. Please choose a different name or clean it up first.`,
+        );
+      }
     }
 
     // Build S3 URI
@@ -323,12 +337,13 @@ async function main() {
     console.log("\nExamples:");
     console.log("  npm run db:spawn my_feature");
     console.log(
-      "\nFor Netlify/CI use: tsx scripts/db-spawn.ts <source> <target> [--metadata='{json}']",
+      "\nFor Netlify/CI use: tsx scripts/db-spawn.ts <source> <target> [--metadata='{json}'] [--replace]",
     );
     process.exit(1);
   }
 
   const metadataArg = args.find((arg) => arg.startsWith("--metadata="));
+  const replaceFlag = args.includes("--replace");
 
   let sourceDb: string;
   let targetDb: string;
@@ -356,6 +371,7 @@ async function main() {
       sourceDb,
       targetDb,
       metadata,
+      replace: replaceFlag,
     });
 
     // Only update .env in developer mode (not CI)

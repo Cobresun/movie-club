@@ -153,12 +153,17 @@ npm run db:snapshot
 
 When you open a PR that changes schema migration files:
 
-1. **Netlify build plugin detects migrations** via git diff
-2. **Finds latest snapshot** in S3
-3. **Restores snapshot** to create preview database `pr_{number}`
-4. **Runs migrations** against preview database
+1. **Netlify build plugin detects migrations** via git diff against main branch
+2. **Calculates migration hash** (SHA256 of all migration file contents)
+3. **Checks cache and database state**:
+   - If database doesn't exist → Create new database from S3 snapshot
+   - If migrations changed (hash mismatch) → Drop and rebuild database
+   - If migrations unchanged (hash match) → Reuse existing database (fast!)
+4. **Runs migrations** against the database (new or rebuilt)
 5. **Deploy uses isolated database** - no conflicts!
 6. **Auto-cleanup** when PR closes/merges
+
+**Performance optimization:** On subsequent pushes to the same PR, if you haven't modified migration files, the plugin will skip database recreation and reuse the existing preview database. This significantly speeds up deploy preview builds.
 
 **No PostgreSQL tools installation needed!** Uses CockroachDB's native BACKUP/RESTORE.
 
@@ -288,11 +293,28 @@ Location: `netlify/plugins/preview-database/`
 
 Hooks:
 
-- **onPreBuild**: Detect migrations, spawn database from snapshot
+- **onPreBuild**:
+  - Detect migrations via git diff against main
+  - Calculate hash of all migration files (SHA256)
+  - Compare with cached hash from previous build
+  - Check if preview database exists
+  - Decision matrix:
+    - No database → Create from snapshot
+    - Database exists + hash unchanged → Reuse (skip rebuild)
+    - Database exists + hash changed → Drop and rebuild
+  - Cache hash for next build
 - **onSuccess**: Log database info
 - **onError**: Optional cleanup on failure
 
 Detection: `git diff --name-only origin/main...HEAD | grep "^migrations/schema/"`
+
+**Caching Strategy:**
+
+- Uses Netlify build cache with PR-scoped keys
+- `pr-{REVIEW_ID}-migration-hash` stores the SHA256 hash of migration files
+- `preview-database-name` stores the database name for cleanup
+- Cache persists across builds for the same PR
+- Cache cleared when PR is closed/merged
 
 ### Environment Variables
 
@@ -349,12 +371,39 @@ npm run db:snapshot
 
 ### "Database already exists"
 
-Another PR or developer is using that name. For PRs, close and reopen. For dev:
+**Problem:** Another PR or developer is using that name.
+
+**Solutions:**
+
+For PRs:
+
+- The build plugin should handle this automatically now by reusing the existing database if migrations haven't changed
+- If you see this error, the plugin may have an issue - check build logs
+
+For dev:
 
 ```bash
 npm run db:cleanup old-feature-name
 npm run db:spawn new-feature-name
 ```
+
+### "Migrations unchanged but database was rebuilt"
+
+**Problem:** Cache was cleared or corrupted.
+
+**Solution:** This is safe - the plugin will rebuild the database. Subsequent pushes will use the cached hash and skip rebuilds.
+
+### "Preview database not being reused on re-push"
+
+**Problem:** Even though migrations haven't changed, database is being rebuilt.
+
+**Possible causes:**
+
+1. Migration files were actually modified (check git diff)
+2. Netlify build cache was cleared (happens occasionally)
+3. First build for this PR (no cache exists yet)
+
+**Solution:** Check build logs for hash comparison output. If cache is cleared, it will rebuild once then cache the new hash.
 
 ### "AWS credentials not set"
 
@@ -431,6 +480,12 @@ A: Yes, except tables with `exclude_data_from_backup` parameter set.
 
 **Q: Can I automate snapshot creation?**
 A: Yes, add a scheduled job (cron, GitHub Actions, etc.) to run `npm run db:snapshot`.
+
+**Q: Why is my preview database being rebuilt on every push?**
+A: If you're modifying migration files on each push, the hash will change and trigger a rebuild. If migrations haven't changed, check build logs - the database should be reused. Cache issues may cause occasional rebuilds, but subsequent builds will work correctly.
+
+**Q: How does the hash-based detection work?**
+A: The plugin calculates a SHA256 hash of all migration file contents in `migrations/schema/`. If any file is added, removed, or modified, the hash changes and triggers a rebuild. If files are identical, the hash matches and the existing database is reused.
 
 ## Next Steps
 

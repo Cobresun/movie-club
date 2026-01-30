@@ -1,5 +1,10 @@
 import { execSync } from "child_process";
+import { createHash } from "crypto";
+import { readdirSync, readFileSync, existsSync } from "fs";
 import path from "path";
+import pg from "pg";
+
+const { Pool } = pg;
 
 /**
  * @typedef {Object} PluginInputs
@@ -36,6 +41,100 @@ import path from "path";
  */
 function hasValue(s) {
   return typeof s === "string" && s.length > 0;
+}
+
+/**
+ * Calculates SHA256 hash of all migration files
+ * @returns {string} Hash of all migration file contents
+ */
+function calculateMigrationHash() {
+  const migrationsDir = path.join(process.cwd(), "migrations", "schema");
+
+  if (!existsSync(migrationsDir)) {
+    return "no-migrations";
+  }
+
+  try {
+    // Read all migration files, sorted alphabetically for consistency
+    const files = readdirSync(migrationsDir)
+      .filter((f) => f.endsWith(".ts"))
+      .sort();
+
+    if (files.length === 0) {
+      return "no-migrations";
+    }
+
+    // Concatenate all file contents
+    const contents = files
+      .map((file) => {
+        const filePath = path.join(migrationsDir, file);
+        return readFileSync(filePath, "utf-8");
+      })
+      .join("\n");
+
+    // Calculate hash
+    const hash = createHash("sha256").update(contents).digest("hex");
+    return hash;
+  } catch (error) {
+    console.warn("Warning: Could not calculate migration hash:", error.message);
+    // Return a timestamp-based hash to force rebuild on error
+    return `error-${Date.now()}`;
+  }
+}
+
+/**
+ * Checks if a database exists
+ * @param {string} dbName
+ * @returns {Promise<boolean>}
+ */
+async function checkDatabaseExists(dbName) {
+  const databaseUrl = process.env.DATABASE_URL;
+  if (!hasValue(databaseUrl)) {
+    throw new Error("DATABASE_URL environment variable is not set");
+  }
+
+  // Parse connection string and connect to defaultdb to check for database
+  const url = new URL(databaseUrl);
+  url.pathname = "/defaultdb";
+  const adminConnString = url.toString();
+
+  const pool = new Pool({ connectionString: adminConnString });
+
+  try {
+    const result = await pool.query(
+      "SELECT 1 FROM pg_database WHERE datname = $1",
+      [dbName],
+    );
+    return result.rowCount !== null && result.rowCount > 0;
+  } finally {
+    await pool.end();
+  }
+}
+
+/**
+ * Drops a database if it exists
+ * @param {string} dbName
+ * @returns {Promise<void>}
+ */
+async function dropDatabase(dbName) {
+  const databaseUrl = process.env.DATABASE_URL;
+  if (!hasValue(databaseUrl)) {
+    throw new Error("DATABASE_URL environment variable is not set");
+  }
+
+  const url = new URL(databaseUrl);
+  url.pathname = "/defaultdb";
+  const adminConnString = url.toString();
+
+  const pool = new Pool({ connectionString: adminConnString });
+
+  try {
+    console.log(`🗑️  Dropping existing database ${dbName}...`);
+    await pool.query(`DROP DATABASE IF EXISTS ${dbName}`);
+    console.log(`✓ Database dropped: ${dbName}`);
+  } finally {
+    await pool.end();
+  }
 }
 
 /**
@@ -107,50 +206,117 @@ const onPreBuild = async ({ utils, inputs }) => {
 
     console.log("✓ Schema migrations detected!");
 
-    console.log(`🗄️  Creating preview database for PR #${REVIEW_ID}...\n`);
+    // Calculate hash of current migration files
+    console.log("\n📊 Calculating migration hash...");
+    const currentHash = calculateMigrationHash();
+    console.log(`✓ Migration hash: ${currentHash.substring(0, 12)}...`);
 
-    const sourceDb = hasValue(inputs.sourceDatabase)
-      ? inputs.sourceDatabase
-      : "dev";
+    // Restore cached hash from previous build
+    const cacheKey = `pr-${REVIEW_ID}-migration-hash`;
+    const cachedHash = await utils.cache.restore([cacheKey]);
+
+    if (hasValue(cachedHash)) {
+      console.log(`✓ Found cached hash: ${cachedHash.substring(0, 12)}...`);
+    } else {
+      console.log("ℹ️  No cached hash found (first build for this PR)");
+    }
+
     const targetDb = `pr_${REVIEW_ID}`;
 
-    // Create metadata for the preview database
-    const metadata = JSON.stringify({
-      created_at: new Date().toISOString(),
-      pr_number: parseInt(REVIEW_ID, 10),
-      branch: BRANCH ?? "unknown",
-      created_by: "netlify-bot",
-    });
+    // Check if preview database already exists
+    const dbExists = await checkDatabaseExists(targetDb);
 
-    // Run db-spawn script (uses BACKUP/RESTORE from S3 snapshot)
-    const scriptPath = path.join(process.cwd(), "scripts", "db-spawn.ts");
-    const cmd = `npx tsx ${scriptPath} ${sourceDb} ${targetDb} --metadata='${metadata}'`;
-
-    console.log(`Running: ${cmd}\n`);
-
-    const output = execSync(cmd, {
-      encoding: "utf-8",
-      stdio: "pipe",
-      env: { ...process.env, CI: "true" },
-    });
-
-    console.log(output);
-
-    // Extract the new DATABASE_URL from output
-    const match = /DATABASE_URL=(.+)/.exec(output);
-    if (match && match[1]) {
-      const newDatabaseUrl = match[1].trim();
-
-      // Set the DATABASE_URL for the build
-      process.env.DATABASE_URL = newDatabaseUrl;
-
-      console.log(`\n✓ Preview database created: ${targetDb}`);
-      console.log("✓ DATABASE_URL updated for this build\n");
-
-      // Store database name for cleanup
-      await utils.cache.save(targetDb, ["preview-database-name"]);
+    if (dbExists) {
+      console.log(`✓ Database ${targetDb} exists`);
     } else {
-      throw new Error("Failed to extract DATABASE_URL from db-spawn output");
+      console.log(`ℹ️  Database ${targetDb} does not exist yet`);
+    }
+
+    // Decision matrix for database operations
+    let shouldRebuild = false;
+
+    if (!dbExists) {
+      // Database doesn't exist - need to create it
+      console.log("\n→ Creating new preview database...\n");
+      shouldRebuild = true;
+    } else if (cachedHash !== currentHash) {
+      // Database exists but migrations changed - need to rebuild
+      console.log("\n⚠️  Migrations have changed since last build!");
+      console.log("→ Rebuilding preview database...\n");
+      shouldRebuild = true;
+
+      // Drop existing database before rebuilding
+      await dropDatabase(targetDb);
+    } else {
+      // Database exists and migrations unchanged - reuse it
+      console.log("\n✓ Migrations unchanged since last build");
+      console.log(`✓ Reusing existing database: ${targetDb}`);
+      console.log("→ Skipping database rebuild\n");
+
+      // Set DATABASE_URL to point to existing database
+      const databaseUrl = process.env.DATABASE_URL;
+      if (hasValue(databaseUrl)) {
+        const url = new URL(databaseUrl);
+        url.pathname = `/${targetDb}`;
+        process.env.DATABASE_URL = url.toString();
+        console.log(
+          "✓ DATABASE_URL updated to use existing preview database\n",
+        );
+      }
+
+      // Save database name and hash for next build
+      await utils.cache.save(targetDb, ["preview-database-name"]);
+      await utils.cache.save(currentHash, [cacheKey]);
+      return;
+    }
+
+    // If we get here, we need to rebuild the database
+    if (shouldRebuild) {
+      console.log(`🗄️  Creating preview database for PR #${REVIEW_ID}...\n`);
+
+      const sourceDb = hasValue(inputs.sourceDatabase)
+        ? inputs.sourceDatabase
+        : "dev";
+
+      // Create metadata for the preview database
+      const metadata = JSON.stringify({
+        created_at: new Date().toISOString(),
+        pr_number: parseInt(REVIEW_ID, 10),
+        branch: BRANCH ?? "unknown",
+        created_by: "netlify-bot",
+      });
+
+      // Run db-spawn script (uses BACKUP/RESTORE from S3 snapshot)
+      const scriptPath = path.join(process.cwd(), "scripts", "db-spawn.ts");
+      const cmd = `npx tsx ${scriptPath} ${sourceDb} ${targetDb} --metadata='${metadata}'`;
+
+      console.log(`Running: ${cmd}\n`);
+
+      const output = execSync(cmd, {
+        encoding: "utf-8",
+        stdio: "pipe",
+        env: { ...process.env, CI: "true" },
+      });
+
+      console.log(output);
+
+      // Extract the new DATABASE_URL from output
+      const match = /DATABASE_URL=(.+)/.exec(output);
+      if (match && match[1]) {
+        const newDatabaseUrl = match[1].trim();
+
+        // Set the DATABASE_URL for the build
+        process.env.DATABASE_URL = newDatabaseUrl;
+
+        console.log(`\n✓ Preview database created: ${targetDb}`);
+        console.log("✓ DATABASE_URL updated for this build\n");
+
+        // Store database name and hash for next build
+        await utils.cache.save(targetDb, ["preview-database-name"]);
+        await utils.cache.save(currentHash, [cacheKey]);
+      } else {
+        throw new Error("Failed to extract DATABASE_URL from db-spawn output");
+      }
     }
   } catch (error) {
     // If database creation fails, fail the build
