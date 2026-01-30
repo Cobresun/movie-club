@@ -1,3 +1,6 @@
+[[plugins]]
+  package = "./netlify/plugins/preview-database"
+
 [[edge_functions]]
   path = "/share/club/:clubId/review/:workId"
   function = "shared-review"
