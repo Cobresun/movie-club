@@ -303,7 +303,7 @@ Hooks:
     - Database exists + hash unchanged → Reuse (skip rebuild)
     - Database exists + hash changed → Drop and rebuild
   - Set `DATABASE_URL` environment variable for build process
-  - Write `DATABASE_URL` to `.env` file for Netlify Functions runtime
+  - Set `DATABASE_URL` in `netlifyConfig.build.environment` for Netlify Functions runtime
   - Cache hash for next build
 - **onSuccess**: Log database info
 - **onError**: Optional cleanup on failure
@@ -320,10 +320,10 @@ Detection: `git diff --name-only origin/main...HEAD | grep "^migrations/schema/"
 
 **Runtime Environment Variables:**
 
-- The plugin writes `DATABASE_URL` to a `.env` file during the build
-- Netlify automatically injects `.env` variables into Netlify Functions at runtime
-- This ensures your functions connect to the correct preview database
-- The `.env` file is generated during each build and is not committed to git
+- The plugin sets `DATABASE_URL` in `netlifyConfig.build.environment` during the build
+- This is the Netlify Build Plugin API's official way to set environment variables
+- The environment variables are automatically available to Netlify Functions at runtime
+- This ensures your functions connect to the correct preview database without requiring Netlify UI configuration
 
 ### Environment Variables
 
