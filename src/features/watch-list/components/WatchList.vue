@@ -28,18 +28,26 @@
     </div>
     <VueDraggableNext
       v-model="draggableList"
-      tag="div"
+      tag="transition-group"
+      :component-data="{
+        moveClass: 'transition ease-linear duration-300',
+      }"
       class="my-4 grid grid-cols-auto justify-items-center"
       :delay="150"
       :delay-on-touch-only="true"
       :animation="200"
+      filter=".no-drag"
+      :prevent-on-filter="true"
       @end="onDragEnd"
     >
       <MoviePosterCard
         v-for="(work, index) in draggableList"
         :key="work.id"
-        :class="[index == 0 ? 'z-0' : 'z-10']"
-        class="cursor-grab bg-background active:cursor-grabbing"
+        :class="[
+          index == 0 ? 'no-drag z-0' : 'z-10',
+          index != 0 ? 'cursor-grab active:cursor-grabbing' : '',
+        ]"
+        class="bg-background"
         :movie-title="work.title"
         :movie-poster-url="work.imageUrl ?? ''"
         :highlighted="!isAnimating && work.id == nextWorkId"

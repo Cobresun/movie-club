@@ -30,18 +30,32 @@
   <VueDraggableNext
     v-if="!showEmptyState"
     v-model="draggableList"
-    tag="div"
+    tag="transition-group"
+    :component-data="{
+      moveClass: 'transition ease-in-out duration-300',
+    }"
     class="my-4 grid grid-cols-auto justify-items-center"
     :delay="150"
     :delay-on-touch-only="true"
     :animation="200"
+    filter=".no-drag"
+    :prevent-on-filter="true"
     @end="onDragEnd"
   >
     <MoviePosterCard
       v-for="(movie, index) in draggableList"
       :key="movie.id"
-      :class="[index == 0 ? 'z-0' : 'z-10']"
-      class="cursor-grab bg-background active:cursor-grabbing"
+      :class="[
+        index == 0 && selectedMovie
+          ? 'no-drag z-0'
+          : index == 0
+            ? 'z-0'
+            : 'z-10',
+        index != 0 || !selectedMovie
+          ? 'cursor-grab active:cursor-grabbing'
+          : '',
+      ]"
+      class="bg-background"
       :movie-title="movie.title"
       :movie-poster-url="movie.imageUrl ?? ''"
       :highlighted="movie === selectedMovie"

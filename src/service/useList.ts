@@ -6,6 +6,7 @@ import {
 } from "@tanstack/vue-query";
 import axios, { AxiosError } from "axios";
 
+import { isDefined } from "../../lib/checks/checks.js";
 import { WorkListType } from "../../lib/types/generated/db.js";
 import {
   DetailedReviewListItem,
@@ -114,9 +115,7 @@ export function useReorderList(
         (currentList) => {
           if (!currentList) return currentList;
           const itemMap = new Map(currentList.map((item) => [item.id, item]));
-          return workIds
-            .map((id) => itemMap.get(id))
-            .filter((item): item is DetailedWorkListItem => !!item);
+          return workIds.map((id) => itemMap.get(id)).filter(isDefined);
         },
       );
       return { previousList };

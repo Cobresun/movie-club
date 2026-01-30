@@ -1,4 +1,4 @@
-import { ValueExpression, expressionBuilder } from "kysely";
+import { ValueExpression, expressionBuilder, sql } from "kysely";
 
 import { DB, WorkListType } from "../../../lib/types/generated/db";
 import { db } from "../utils/database";
@@ -263,16 +263,29 @@ class ListRepository {
 
   async reorderList(clubId: string, listType: WorkListType, workIds: string[]) {
     const listId = this.listIdFromType(clubId, listType);
-    await db.transaction().execute(async (trx) => {
-      for (let i = 0; i < workIds.length; i++) {
-        await trx
-          .updateTable("work_list_item")
-          .set("position", i + 1)
-          .where("work_id", "=", workIds[i])
-          .where("list_id", "=", listId)
-          .execute();
-      }
-    });
+
+    const countResult = await db
+      .selectFrom("work_list_item")
+      .where("list_id", "=", listId)
+      .select(db.fn.countAll().as("count"))
+      .executeTakeFirstOrThrow();
+
+    if (Number(countResult.count) !== workIds.length) {
+      throw new Error(
+        `Reorder mismatch: expected ${countResult.count} items but received ${workIds.length}`,
+      );
+    }
+
+    const whenClauses = workIds.map((id, i) => sql`WHEN ${id} THEN ${i + 1}`);
+
+    await db
+      .updateTable("work_list_item")
+      .set({
+        position: sql`CASE work_id ${sql.join(whenClauses, sql` `)} END`,
+      })
+      .where("list_id", "=", listId)
+      .where("work_id", "in", workIds)
+      .execute();
   }
 
   async updateAddedDate(
