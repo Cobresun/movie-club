@@ -4,6 +4,12 @@
     :list-type="WorkListType.watchlist"
     @close="closePrompt"
   />
+  <RandomPickerModal
+    v-if="randomPickerOpen"
+    :items="filteredWatchList"
+    @close="randomPickerOpen = false"
+    @selected="onRandomSelected"
+  />
   <EmptyState
     v-if="showEmptyState"
     :title="hasSearchTerm ? 'No Movies Found' : 'Your Watch List is Empty'"
@@ -26,19 +32,29 @@
         <mdicon name="dice-multiple-outline" />
       </v-btn>
     </div>
-    <transition-group
+    <VueDraggableNext
+      v-model="draggableList"
       tag="div"
-      move-class="transition ease-linear duration-300"
       class="my-4 grid grid-cols-auto justify-items-center"
+      :delay="150"
+      :delay-on-touch-only="true"
+      :animation="200"
+      filter=".no-drag"
+      :prevent-on-filter="true"
+      :move="onMove"
+      @end="onDragEnd"
     >
       <MoviePosterCard
-        v-for="(work, index) in sortedWatchList"
+        v-for="work in draggableList"
         :key="work.id"
-        :class="[index == 0 ? 'z-0' : 'z-10']"
+        :class="[
+          work.id === nextWorkId ? 'no-drag z-0' : 'z-10',
+          work.id !== nextWorkId ? 'cursor-grab active:cursor-grabbing' : '',
+        ]"
         class="bg-background"
         :movie-title="work.title"
         :movie-poster-url="work.imageUrl ?? ''"
-        :highlighted="!isAnimating && work.id == nextWorkId"
+        :highlighted="work.id == nextWorkId"
         :loading="
           work.id === OPTIMISTIC_WORK_ID ||
           (loadingAddReview && reviewedWork?.toString() === work.externalId)
@@ -50,25 +66,25 @@
           <v-btn class="flex justify-center" @click="reviewMovie(work)">
             <mdicon name="check" />
           </v-btn>
-
           <v-btn class="flex justify-center" @click="setNextWork(work.id)">
             <mdicon name="arrow-collapse-up" />
           </v-btn>
         </div>
       </MoviePosterCard>
-    </transition-group>
+    </VueDraggableNext>
   </template>
 </template>
 <script setup lang="ts">
 import { AxiosError } from "axios";
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
+import { VueDraggableNext } from "vue-draggable-next";
 import { useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
 
 import AddMovieToListModal from "./AddMovieToListModal.vue";
+import RandomPickerModal from "./RandomPickerModal.vue";
 import { WorkListType, WorkType } from "../../../../lib/types/generated/db";
 import { DetailedWorkListItem } from "../../../../lib/types/lists";
-import { useAnimateRandom } from "../composables/useAnimateRandom";
 
 import EmptyState from "@/common/components/EmptyState.vue";
 import MoviePosterCard from "@/common/components/MoviePosterCard.vue";
@@ -80,6 +96,7 @@ import {
   useList,
   useNextWork,
   useSetNextWork,
+  useReorderList,
   OPTIMISTIC_WORK_ID,
   useAddListItem,
 } from "@/service/useList";
@@ -133,7 +150,6 @@ const filteredWatchList = computed(() => {
   return filterMovies(watchList.value ?? [], searchTerm);
 });
 
-const hasWatchList = computed(() => (watchList.value?.length ?? 0) > 0);
 const hasSearchTerm = computed(() => searchTerm.trim().length > 0);
 const showEmptyState = computed(() => sortedWatchList.value.length === 0);
 
@@ -146,38 +162,67 @@ const closePrompt = () => {
 };
 
 const { mutate: setNextWork } = useSetNextWork(clubId);
+const { mutate: reorderList } = useReorderList(clubId, WorkListType.watchlist);
 
-const {
-  isAnimating,
-  animate,
-  list: displayWatchlist,
-} = useAnimateRandom<DetailedWorkListItem>(filteredWatchList);
+const randomPickerOpen = ref(false);
 
 const sortedWatchList = computed(() => {
-  const nextItem = displayWatchlist.value?.find(
-    (item) => item.id === nextWorkId.value,
-  );
-  if (nextItem && !isAnimating.value) {
-    const sortedWatchList = displayWatchlist.value.filter(
-      (item) => item.id !== nextItem.id,
-    );
-    sortedWatchList.unshift(nextItem);
-    return sortedWatchList;
+  const list = filteredWatchList.value;
+  const nextItem = list.find((item) => item.id === nextWorkId.value);
+  if (nextItem) {
+    const rest = list.filter((item) => item.id !== nextItem.id);
+    rest.unshift(nextItem);
+    return rest;
   }
-  return displayWatchlist.value;
+  return list;
 });
 
-const nextMovieItem = computed(() =>
-  watchList.value?.find((work) => work.id === nextWorkId.value),
+const draggableList = ref<DetailedWorkListItem[]>([]);
+watch(
+  sortedWatchList,
+  (newList) => {
+    draggableList.value = [...newList];
+  },
+  { immediate: true },
 );
+
+const onMove = (evt: { relatedContext: { index: number } }) => {
+  if (nextWorkId.value && evt.relatedContext.index === 0) return false;
+  return true;
+};
+
+const onDragEnd = () => {
+  // Safety: ensure next watch item stays at index 0
+  if (nextWorkId.value) {
+    const nextIndex = draggableList.value.findIndex(
+      (item) => item.id === nextWorkId.value,
+    );
+    if (nextIndex > 0) {
+      const [nextItem] = draggableList.value.splice(nextIndex, 1);
+      draggableList.value.unshift(nextItem);
+    }
+  }
+  const workIds = draggableList.value.map((item) => item.id);
+  reorderList(workIds);
+};
 
 const selectRandom = () => {
   clearSearch();
-  const selectedIndex = Math.floor(
-    Math.random() * sortedWatchList.value.length,
-  );
-  const randomWork = sortedWatchList.value[selectedIndex];
-  setNextWork(randomWork.id);
-  animate(nextMovieItem);
+  if (filteredWatchList.value.length <= 1) {
+    const single = filteredWatchList.value[0];
+    if (single) setNextWork(single.id);
+    return;
+  }
+  randomPickerOpen.value = true;
+};
+
+const onRandomSelected = (item: DetailedWorkListItem) => {
+  const newOrder = [
+    item,
+    ...sortedWatchList.value.filter((w) => w.id !== item.id),
+  ];
+  setNextWork(item.id);
+  reorderList(newOrder.map((w) => w.id));
+  randomPickerOpen.value = false;
 };
 </script>
