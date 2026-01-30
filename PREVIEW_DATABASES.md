@@ -302,6 +302,8 @@ Hooks:
     - No database → Create from snapshot
     - Database exists + hash unchanged → Reuse (skip rebuild)
     - Database exists + hash changed → Drop and rebuild
+  - Set `DATABASE_URL` environment variable for build process
+  - Write `DATABASE_URL` to `.env` file for Netlify Functions runtime
   - Cache hash for next build
 - **onSuccess**: Log database info
 - **onError**: Optional cleanup on failure
@@ -315,6 +317,13 @@ Detection: `git diff --name-only origin/main...HEAD | grep "^migrations/schema/"
 - `preview-database-name` stores the database name for cleanup
 - Cache persists across builds for the same PR
 - Cache cleared when PR is closed/merged
+
+**Runtime Environment Variables:**
+
+- The plugin writes `DATABASE_URL` to a `.env` file during the build
+- Netlify automatically injects `.env` variables into Netlify Functions at runtime
+- This ensures your functions connect to the correct preview database
+- The `.env` file is generated during each build and is not committed to git
 
 ### Environment Variables
 
