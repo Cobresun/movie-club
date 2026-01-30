@@ -188,6 +188,7 @@ watch(
 
 const onMove = (evt: { relatedContext: { index: number } }) => {
   if (nextWorkId.value && evt.relatedContext.index === 0) return false;
+  return true;
 };
 
 const onDragEnd = () => {
