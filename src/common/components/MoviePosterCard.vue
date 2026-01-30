@@ -2,7 +2,7 @@
   <div
     class="relative mb-4 w-40 rounded-lg"
     :class="[
-      highlighted ? 'outline outline-4 outline-highlightBackground' : '',
+      highlighted ? 'ring-4 ring-highlightBackground' : 'ring-4 ring-transparent',
     ]"
   >
     <button
