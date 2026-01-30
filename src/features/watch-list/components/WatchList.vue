@@ -28,11 +28,15 @@
     </div>
     <VueDraggableNext
       v-model="draggableList"
-      tag="transition-group"
+      component="TransitionGroup"
       :component-data="{
-        moveClass: 'transition ease-linear duration-300',
-        tag: 'div',
-        class: 'my-4 grid grid-cols-auto justify-items-center',
+        props: {
+          moveClass: 'transition ease-linear duration-300',
+          tag: 'div',
+        },
+        attrs: {
+          class: 'my-4 grid grid-cols-auto justify-items-center',
+        },
       }"
       :delay="150"
       :delay-on-touch-only="true"
