@@ -55,7 +55,7 @@
       <MoviePosterCard
         v-for="work in draggableList"
         :key="work.id"
-        :class="work.id === nextWorkId ? 'no-drag z-0' : 'z-10'"
+        :class="work.id === nextWorkId ? 'no-drag' : ''"
         :show-drag-handle="reorderMode && work.id !== nextWorkId"
         class="bg-background"
         :movie-title="work.title"
