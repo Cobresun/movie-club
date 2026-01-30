@@ -71,8 +71,8 @@
         v-for="(work, index) in draggableList"
         :key="work.id"
         :class="[
-          index == 0 ? 'no-drag z-0' : 'z-10',
-          index != 0 ? 'cursor-grab active:cursor-grabbing' : '',
+          index == 0 && nextWorkId ? 'no-drag z-0' : 'z-10',
+          !(index == 0 && nextWorkId) ? 'cursor-grab active:cursor-grabbing' : '',
         ]"
         class="bg-background"
         :movie-title="work.title"
@@ -218,7 +218,7 @@ watch(
 );
 
 const onMove = (evt: { relatedContext: { index: number } }) => {
-  if (evt.relatedContext.index === 0) return false;
+  if (nextWorkId.value && evt.relatedContext.index === 0) return false;
 };
 
 const onDragEnd = () => {
