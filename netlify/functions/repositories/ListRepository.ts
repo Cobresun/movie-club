@@ -115,16 +115,15 @@ class ListRepository {
     const maxResult = await db
       .selectFrom("work_list_item")
       .where("list_id", "=", listId)
-      .select(db.fn.max("position").as("max_position"))
-      .executeTakeFirst();
-    const nextPosition = Number(maxResult?.max_position ?? 0) + 1;
+      .select(sql<number>`COALESCE(MAX(position), 0) + 1`.as("next_position"))
+      .executeTakeFirstOrThrow();
 
     return db
       .insertInto("work_list_item")
       .values({
         list_id: listId,
         work_id: workId,
-        position: nextPosition,
+        position: maxResult.next_position,
       })
       .execute();
   }
@@ -261,22 +260,36 @@ class ListRepository {
       .execute();
   }
 
+  // The frontend may send a subset of IDs (e.g. the user filtered/searched the
+  // list and is reordering only the visible subset). This method assigns the
+  // reordered items to the same position slots they previously occupied, so
+  // non-reordered items keep their positions.
   async reorderList(clubId: string, listType: WorkListType, workIds: string[]) {
     const listId = this.listIdFromType(clubId, listType);
 
-    const countResult = await db
+    // Fetch current positions of the items being reordered
+    const currentPositions = await db
       .selectFrom("work_list_item")
       .where("list_id", "=", listId)
-      .select(db.fn.countAll().as("count"))
-      .executeTakeFirstOrThrow();
+      .where("work_id", "in", workIds)
+      .select(["work_id", "position"])
+      .execute();
 
-    if (Number(countResult.count) !== workIds.length) {
-      throw new Error(
-        `Reorder mismatch: expected ${countResult.count} items but received ${workIds.length}`,
-      );
-    }
+    // Guard against stale/invalid IDs that no longer exist in the DB
+    const foundIds = new Set(currentPositions.map((row) => row.work_id));
+    const validWorkIds = workIds.filter((id) => foundIds.has(id));
 
-    const whenClauses = workIds.map((id, i) => sql`WHEN ${id} THEN ${i + 1}`);
+    if (validWorkIds.length === 0) return;
+
+    // Get the position slots these items currently occupy, sorted ascending
+    const slots = currentPositions
+      .map((row) => Number(row.position))
+      .sort((a, b) => a - b);
+
+    // Assign the sorted slots to the new order of validWorkIds
+    const whenClauses = validWorkIds.map(
+      (id, i) => sql`WHEN ${id} THEN ${slots[i]}`,
+    );
 
     await db
       .updateTable("work_list_item")
@@ -284,7 +297,7 @@ class ListRepository {
         position: sql`CASE work_id ${sql.join(whenClauses, sql` `)} END`,
       })
       .where("list_id", "=", listId)
-      .where("work_id", "in", workIds)
+      .where("work_id", "in", validWorkIds)
       .execute();
   }
 

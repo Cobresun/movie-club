@@ -45,7 +45,7 @@
       @end="onDragEnd"
     >
       <MoviePosterCard
-        v-for="(work, index) in draggableList"
+        v-for="work in draggableList"
         :key="work.id"
         :class="[
           work.id === nextWorkId ? 'no-drag z-0' : 'z-10',
@@ -150,7 +150,6 @@ const filteredWatchList = computed(() => {
   return filterMovies(watchList.value ?? [], searchTerm);
 });
 
-const hasWatchList = computed(() => (watchList.value?.length ?? 0) > 0);
 const hasSearchTerm = computed(() => searchTerm.trim().length > 0);
 const showEmptyState = computed(() => sortedWatchList.value.length === 0);
 

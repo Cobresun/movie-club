@@ -181,7 +181,13 @@ router.put(
       );
     }
     if (!hasValue(event.body)) return res(badRequest("No body provided"));
-    const body = reorderSchema.safeParse(JSON.parse(event.body));
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(event.body);
+    } catch {
+      return res(badRequest("Invalid JSON"));
+    }
+    const body = reorderSchema.safeParse(parsed);
     if (!body.success) return res(badRequest("Invalid body provided"));
 
     await ListRepository.reorderList(clubId, type, body.data.workIds);
