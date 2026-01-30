@@ -4,6 +4,12 @@
     :list-type="WorkListType.watchlist"
     @close="closePrompt"
   />
+  <RandomPickerModal
+    v-if="randomPickerOpen"
+    :watch-list="filteredWatchList"
+    @close="randomPickerOpen = false"
+    @selected="onRandomSelected"
+  />
   <EmptyState
     v-if="showEmptyState"
     :title="hasSearchTerm ? 'No Movies Found' : 'Your Watch List is Empty'"
@@ -26,36 +32,7 @@
         <mdicon name="dice-multiple-outline" />
       </v-btn>
     </div>
-    <TransitionGroup
-      v-if="isAnimating"
-      move-class="transition ease-linear duration-300"
-      tag="div"
-      class="my-4 grid grid-cols-auto justify-items-center"
-    >
-      <MoviePosterCard
-        v-for="(work, index) in sortedWatchList"
-        :key="work.id"
-        :class="[index == 0 ? 'z-0' : 'z-10']"
-        class="bg-background"
-        :movie-title="work.title"
-        :movie-poster-url="work.imageUrl ?? ''"
-        :highlighted="false"
-        :loading="false"
-        :show-delete="work.id !== OPTIMISTIC_WORK_ID"
-        @delete="() => deleteWatchlistItem(work.id)"
-      >
-        <div class="grid grid-cols-2 gap-2 pointer-events-none opacity-50">
-          <v-btn class="flex justify-center">
-            <mdicon name="check" />
-          </v-btn>
-          <v-btn class="flex justify-center">
-            <mdicon name="arrow-collapse-up" />
-          </v-btn>
-        </div>
-      </MoviePosterCard>
-    </TransitionGroup>
     <VueDraggableNext
-      v-else
       v-model="draggableList"
       tag="div"
       class="my-4 grid grid-cols-auto justify-items-center"
@@ -71,8 +48,8 @@
         v-for="(work, index) in draggableList"
         :key="work.id"
         :class="[
-          index == 0 && nextWorkId ? 'no-drag z-0' : 'z-10',
-          !(index == 0 && nextWorkId) ? 'cursor-grab active:cursor-grabbing' : '',
+          work.id === nextWorkId ? 'no-drag z-0' : 'z-10',
+          work.id !== nextWorkId ? 'cursor-grab active:cursor-grabbing' : '',
         ]"
         class="bg-background"
         :movie-title="work.title"
@@ -105,9 +82,9 @@ import { useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
 
 import AddMovieToListModal from "./AddMovieToListModal.vue";
+import RandomPickerModal from "./RandomPickerModal.vue";
 import { WorkListType, WorkType } from "../../../../lib/types/generated/db";
 import { DetailedWorkListItem } from "../../../../lib/types/lists";
-import { useAnimateRandom } from "../composables/useAnimateRandom";
 
 import EmptyState from "@/common/components/EmptyState.vue";
 import MoviePosterCard from "@/common/components/MoviePosterCard.vue";
@@ -188,24 +165,17 @@ const closePrompt = () => {
 const { mutate: setNextWork } = useSetNextWork(clubId);
 const { mutate: reorderList } = useReorderList(clubId, WorkListType.watchlist);
 
-const {
-  isAnimating,
-  animate,
-  list: displayWatchlist,
-} = useAnimateRandom<DetailedWorkListItem>(filteredWatchList);
+const randomPickerOpen = ref(false);
 
 const sortedWatchList = computed(() => {
-  const nextItem = displayWatchlist.value?.find(
-    (item) => item.id === nextWorkId.value,
-  );
-  if (nextItem && !isAnimating.value) {
-    const sortedWatchList = displayWatchlist.value.filter(
-      (item) => item.id !== nextItem.id,
-    );
-    sortedWatchList.unshift(nextItem);
-    return sortedWatchList;
+  const list = filteredWatchList.value;
+  const nextItem = list.find((item) => item.id === nextWorkId.value);
+  if (nextItem) {
+    const rest = list.filter((item) => item.id !== nextItem.id);
+    rest.unshift(nextItem);
+    return rest;
   }
-  return displayWatchlist.value;
+  return list;
 });
 
 const draggableList = ref<DetailedWorkListItem[]>([]);
@@ -236,17 +206,23 @@ const onDragEnd = () => {
   reorderList(workIds);
 };
 
-const nextMovieItem = computed(() =>
-  watchList.value?.find((work) => work.id === nextWorkId.value),
-);
-
 const selectRandom = () => {
   clearSearch();
-  const selectedIndex = Math.floor(
-    Math.random() * sortedWatchList.value.length,
-  );
-  const randomWork = sortedWatchList.value[selectedIndex];
-  setNextWork(randomWork.id);
-  animate(nextMovieItem);
+  if (filteredWatchList.value.length <= 1) {
+    const single = filteredWatchList.value[0];
+    if (single) setNextWork(single.id);
+    return;
+  }
+  randomPickerOpen.value = true;
+};
+
+const onRandomSelected = (item: DetailedWorkListItem) => {
+  const newOrder = [
+    item,
+    ...sortedWatchList.value.filter((w) => w.id !== item.id),
+  ];
+  setNextWork(item.id);
+  reorderList(newOrder.map((w) => w.id));
+  randomPickerOpen.value = false;
 };
 </script>
