@@ -17,7 +17,7 @@
       Add Movie
       <mdicon name="plus" />
     </v-btn>
-    <v-btn @click="selectRandom">
+    <v-btn v-if="filteredBacklog.length > 1" @click="selectRandom">
       Random
       <mdicon name="dice-multiple-outline" />
     </v-btn>
@@ -159,12 +159,7 @@ const onDragEnd = () => {
 };
 
 const selectRandom = () => {
-  if (!backlog.value || backlog.value.length === 0) return;
   clearSearch();
-  if (backlog.value.length === 1) {
-    moveBacklogItemToWatchlist(backlog.value[0]);
-    return;
-  }
   randomPickerOpen.value = true;
 };
 
