@@ -27,7 +27,7 @@
         Add Movie
         <mdicon name="plus" />
       </v-btn>
-      <v-btn @click="selectRandom()">
+      <v-btn v-if="filteredWatchList.length > 1" @click="selectRandom()">
         Random
         <mdicon name="dice-multiple-outline" />
       </v-btn>
@@ -208,11 +208,6 @@ const onDragEnd = () => {
 
 const selectRandom = () => {
   clearSearch();
-  if (filteredWatchList.value.length <= 1) {
-    const single = filteredWatchList.value[0];
-    if (single) setNextWork(single.id);
-    return;
-  }
   randomPickerOpen.value = true;
 };
 
