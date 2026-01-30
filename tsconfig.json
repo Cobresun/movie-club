@@ -23,10 +23,12 @@
     "src/**/*.tsx",
     "src/**/*.vue",
     "netlify/**/*.ts",
+    "netlify/**/*.js",
     "netlify/**/*.d.ts",
     "migrations/**/*.ts",
     "migrations/**/*.d.ts",
-    "lib/**/*.ts"
+    "lib/**/*.ts",
+    "scripts/**/*.ts"
   ],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

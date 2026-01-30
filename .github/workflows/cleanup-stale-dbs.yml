@@ -1,0 +1,54 @@
+name: Cleanup Stale Preview Databases
+
+on:
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: "0 2 * * *"
+  workflow_dispatch: # Allow manual triggers
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Cleanup stale databases
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          echo "🧹 Cleaning up preview databases older than 7 days..."
+          npx tsx scripts/db-cleanup.ts --older-than 7 --force --dry-run
+
+          echo ""
+          echo "Running actual cleanup..."
+          npx tsx scripts/db-cleanup.ts --older-than 7 --force
+
+      - name: List remaining databases
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          echo ""
+          echo "📊 Remaining databases:"
+          npx tsx scripts/db-list.ts
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "❌ Cleanup failed! Check the logs above for details."
+          exit 1
