@@ -33,8 +33,9 @@
     tag="transition-group"
     :component-data="{
       moveClass: 'transition ease-in-out duration-300',
+      tag: 'div',
+      class: 'my-4 grid grid-cols-auto justify-items-center',
     }"
-    class="my-4 grid grid-cols-auto justify-items-center"
     :delay="150"
     :delay-on-touch-only="true"
     :animation="200"
