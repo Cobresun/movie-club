@@ -26,24 +26,44 @@
         <mdicon name="dice-multiple-outline" />
       </v-btn>
     </div>
+    <TransitionGroup
+      v-if="isAnimating"
+      move-class="transition ease-linear duration-300"
+      tag="div"
+      class="my-4 grid grid-cols-auto justify-items-center"
+    >
+      <MoviePosterCard
+        v-for="(work, index) in sortedWatchList"
+        :key="work.id"
+        :class="[index == 0 ? 'z-0' : 'z-10']"
+        class="bg-background"
+        :movie-title="work.title"
+        :movie-poster-url="work.imageUrl ?? ''"
+        :highlighted="false"
+        :loading="false"
+        :show-delete="work.id !== OPTIMISTIC_WORK_ID"
+        @delete="() => deleteWatchlistItem(work.id)"
+      >
+        <div class="grid grid-cols-2 gap-2 pointer-events-none opacity-50">
+          <v-btn class="flex justify-center">
+            <mdicon name="check" />
+          </v-btn>
+          <v-btn class="flex justify-center">
+            <mdicon name="arrow-collapse-up" />
+          </v-btn>
+        </div>
+      </MoviePosterCard>
+    </TransitionGroup>
     <VueDraggableNext
+      v-else
       v-model="draggableList"
-      component="TransitionGroup"
-      :component-data="{
-        props: {
-          moveClass: 'transition ease-linear duration-300',
-          tag: 'div',
-        },
-        attrs: {
-          class: 'my-4 grid grid-cols-auto justify-items-center',
-        },
-      }"
+      tag="div"
+      class="my-4 grid grid-cols-auto justify-items-center"
       :delay="150"
       :delay-on-touch-only="true"
       :animation="200"
       filter=".no-drag"
       :prevent-on-filter="true"
-      :disabled="isAnimating"
       :move="onMove"
       @end="onDragEnd"
     >
@@ -52,12 +72,12 @@
         :key="work.id"
         :class="[
           index == 0 ? 'no-drag z-0' : 'z-10',
-          index != 0 && !isAnimating ? 'cursor-grab active:cursor-grabbing' : '',
+          index != 0 ? 'cursor-grab active:cursor-grabbing' : '',
         ]"
         class="bg-background"
         :movie-title="work.title"
         :movie-poster-url="work.imageUrl ?? ''"
-        :highlighted="!isAnimating && work.id == nextWorkId"
+        :highlighted="work.id == nextWorkId"
         :loading="
           work.id === OPTIMISTIC_WORK_ID ||
           (loadingAddReview && reviewedWork?.toString() === work.externalId)
@@ -65,11 +85,10 @@
         :show-delete="work.id !== OPTIMISTIC_WORK_ID"
         @delete="() => deleteWatchlistItem(work.id)"
       >
-        <div class="grid grid-cols-2 gap-2" :class="{ 'pointer-events-none opacity-50': isAnimating }">
+        <div class="grid grid-cols-2 gap-2">
           <v-btn class="flex justify-center" @click="reviewMovie(work)">
             <mdicon name="check" />
           </v-btn>
-
           <v-btn class="flex justify-center" @click="setNextWork(work.id)">
             <mdicon name="arrow-collapse-up" />
           </v-btn>
