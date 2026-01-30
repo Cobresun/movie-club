@@ -26,7 +26,26 @@
         <mdicon name="dice-multiple-outline" />
       </v-btn>
     </div>
+    <TransitionGroup
+      v-if="isAnimating"
+      move-class="transition ease-linear duration-300"
+      tag="div"
+      class="my-4 grid grid-cols-auto justify-items-center"
+    >
+      <MoviePosterCard
+        v-for="(work, index) in sortedWatchList"
+        :key="work.id"
+        :class="[index == 0 ? 'z-0' : 'z-10']"
+        class="bg-background"
+        :movie-title="work.title"
+        :movie-poster-url="work.imageUrl ?? ''"
+        :highlighted="false"
+        :loading="false"
+        :show-delete="false"
+      />
+    </TransitionGroup>
     <VueDraggableNext
+      v-else
       v-model="draggableList"
       component="TransitionGroup"
       :component-data="{
