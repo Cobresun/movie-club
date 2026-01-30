@@ -6,7 +6,7 @@
   />
   <RandomPickerModal
     v-if="randomPickerOpen"
-    :watch-list="filteredWatchList"
+    :items="filteredWatchList"
     @close="randomPickerOpen = false"
     @selected="onRandomSelected"
   />

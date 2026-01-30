@@ -4,6 +4,13 @@
     :list-type="WorkListType.backlog"
     @close="closePrompt"
   />
+  <RandomPickerModal
+    v-if="randomPickerOpen"
+    :items="filteredBacklog"
+    confirm-label="Add to Watch List"
+    @close="randomPickerOpen = false"
+    @selected="onRandomSelected"
+  />
   <h1 class="m-4 text-2xl font-bold">Backlog</h1>
   <div class="ml-2 flex items-start gap-2">
     <v-btn @click="openPrompt">
@@ -43,28 +50,15 @@
     :delay="150"
     :delay-on-touch-only="true"
     :animation="200"
-    filter=".no-drag"
-    :prevent-on-filter="true"
-    :move="onMove"
     @end="onDragEnd"
   >
     <MoviePosterCard
-      v-for="(movie, index) in draggableList"
+      v-for="movie in draggableList"
       :key="movie.id"
-      :class="[
-        index == 0 && selectedMovie
-          ? 'no-drag z-0'
-          : index == 0
-            ? 'z-0'
-            : 'z-10',
-        index != 0 || !selectedMovie
-          ? 'cursor-grab active:cursor-grabbing'
-          : '',
-      ]"
-      class="bg-background"
+      class="z-10 cursor-grab bg-background active:cursor-grabbing"
       :movie-title="movie.title"
       :movie-poster-url="movie.imageUrl ?? ''"
-      :highlighted="movie === selectedMovie"
+      :highlighted="false"
       show-delete
       @delete="() => deleteBacklogItem(movie.id)"
     >
@@ -83,6 +77,7 @@ import { VueDraggableNext } from "vue-draggable-next";
 import { useToast } from "vue-toastification";
 
 import AddMovieToListModal from "./AddMovieToListModal.vue";
+import RandomPickerModal from "./RandomPickerModal.vue";
 import { isTrue } from "../../../../lib/checks/checks.js";
 import { WorkListType } from "../../../../lib/types/generated/db";
 import { DetailedWorkListItem } from "../../../../lib/types/lists";
@@ -136,9 +131,8 @@ const filteredBacklog = computed(() => {
   return filterMovies(backlog.value ?? [], searchTerm);
 });
 
-const hasBacklog = computed(() => (backlog.value?.length ?? 0) > 0);
 const hasSearchTerm = computed(() => searchTerm.trim().length > 0);
-const showEmptyState = computed(() => sortedBacklog.value.length === 0);
+const showEmptyState = computed(() => filteredBacklog.value.length === 0);
 
 const modalOpen = ref(false);
 const openPrompt = () => {
@@ -148,52 +142,34 @@ const closePrompt = () => {
   modalOpen.value = false;
 };
 
-const selectedMovie = ref<DetailedWorkListItem>();
-
-const sortedBacklog = computed(() => {
-  const selectedIndex = filteredBacklog.value.findIndex(
-    (item) => item === selectedMovie.value,
-  );
-  if (selectedIndex === -1) return filteredBacklog.value;
-  return [
-    ...filteredBacklog.value.slice(selectedIndex),
-    ...filteredBacklog.value.slice(0, selectedIndex),
-  ];
-});
+const randomPickerOpen = ref(false);
 
 const draggableList = ref<DetailedWorkListItem[]>([]);
 watch(
-  sortedBacklog,
+  filteredBacklog,
   (newList) => {
     draggableList.value = [...newList];
   },
   { immediate: true },
 );
 
-const onMove = (evt: { relatedContext: { index: number } }) => {
-  if (selectedMovie.value && evt.relatedContext.index === 0) return false;
-};
-
 const onDragEnd = () => {
-  // Safety: ensure selected movie stays at index 0 when it exists
-  if (selectedMovie.value) {
-    const selectedIndex = draggableList.value.findIndex(
-      (item) => item === selectedMovie.value,
-    );
-    if (selectedIndex > 0) {
-      const [selected] = draggableList.value.splice(selectedIndex, 1);
-      draggableList.value.unshift(selected);
-    }
-  }
   const workIds = draggableList.value.map((item) => item.id);
   reorderList(workIds);
 };
 
 const selectRandom = () => {
-  if (!backlog.value) return;
+  if (!backlog.value || backlog.value.length === 0) return;
   clearSearch();
-  const selectedIndex = Math.floor(Math.random() * backlog.value?.length);
-  const randomMovie = backlog.value[selectedIndex];
-  selectedMovie.value = randomMovie;
+  if (backlog.value.length === 1) {
+    moveBacklogItemToWatchlist(backlog.value[0]);
+    return;
+  }
+  randomPickerOpen.value = true;
+};
+
+const onRandomSelected = (item: DetailedWorkListItem) => {
+  moveBacklogItemToWatchlist(item);
+  randomPickerOpen.value = false;
 };
 </script>
