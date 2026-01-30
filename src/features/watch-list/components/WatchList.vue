@@ -43,6 +43,7 @@
       :animation="200"
       filter=".no-drag"
       :prevent-on-filter="true"
+      :move="onMove"
       @end="onDragEnd"
     >
       <MoviePosterCard
@@ -196,7 +197,21 @@ watch(
   { immediate: true },
 );
 
+const onMove = (evt: { relatedContext: { index: number } }) => {
+  if (evt.relatedContext.index === 0) return false;
+};
+
 const onDragEnd = () => {
+  // Safety: ensure next watch item stays at index 0
+  if (nextWorkId.value) {
+    const nextIndex = draggableList.value.findIndex(
+      (item) => item.id === nextWorkId.value,
+    );
+    if (nextIndex > 0) {
+      const [nextItem] = draggableList.value.splice(nextIndex, 1);
+      draggableList.value.unshift(nextItem);
+    }
+  }
   const workIds = draggableList.value.map((item) => item.id);
   reorderList(workIds);
 };
