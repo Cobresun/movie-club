@@ -120,6 +120,16 @@ router.put(
   },
 );
 
+router.delete(
+  "/:clubId<\\d+>/nextWork",
+  validClubId,
+  secured,
+  async ({ clubId }, res) => {
+    await WorkRepository.deleteNextWork(clubId);
+    return res(ok());
+  },
+);
+
 const handler: Handler = async (
   event: HandlerEvent,
   context: HandlerContext,
