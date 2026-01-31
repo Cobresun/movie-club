@@ -88,9 +88,22 @@ export function useDeleteListItem(clubId: string, type: WorkListType) {
           return currentList.filter((item) => item.id !== workId);
         },
       );
+      if (type === WorkListType.watchlist) {
+        const nextWorkId = queryClient.getQueryData<string>([
+          "nextWork",
+          clubId,
+        ]);
+        if (nextWorkId === workId) {
+          queryClient.setQueryData(["nextWork", clubId], undefined);
+        }
+      }
     },
-    onSettled: () =>
-      queryClient.invalidateQueries({ queryKey: ["list", clubId, type] }),
+    onSettled: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["list", clubId, type] });
+      if (type === WorkListType.watchlist) {
+        await queryClient.invalidateQueries({ queryKey: ["nextWork", clubId] });
+      }
+    },
   });
 }
 

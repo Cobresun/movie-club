@@ -48,7 +48,7 @@
         v-for="work in draggableList"
         :key="work.id"
         :class="[
-          work.id === nextWorkId ? 'no-drag z-0' : 'z-10',
+          work.id === nextWorkId ? 'no-drag' : '',
           work.id !== nextWorkId ? 'cursor-grab active:cursor-grabbing' : '',
         ]"
         class="bg-background"
