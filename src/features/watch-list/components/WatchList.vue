@@ -157,12 +157,7 @@ const reviewMovie = async (work: DetailedWorkListItem) => {
 };
 
 const { data: watchList } = useList(clubId, WorkListType.watchlist);
-const { data: rawNextWorkId } = useNextWork(clubId);
-const nextWorkId = computed(() =>
-  rawNextWorkId.value !== undefined && rawNextWorkId.value !== null
-    ? String(rawNextWorkId.value)
-    : undefined,
-);
+const { data: nextWorkId } = useNextWork(clubId);
 
 const filteredWatchList = computed(() => {
   return filterMovies(watchList.value ?? [], searchTerm);

@@ -160,10 +160,7 @@ export function useClearNextWork(clubId: string) {
   return useMutation({
     mutationFn: () => auth.request.delete(`/api/club/${clubId}/nextWork`),
     onMutate: () => {
-      queryClient.setQueryData<string | undefined>(
-        ["nextWork", clubId],
-        () => undefined,
-      );
+      queryClient.setQueryData<string | null>(["nextWork", clubId], null);
     },
     onSettled: () =>
       queryClient.invalidateQueries({ queryKey: ["nextWork", clubId] }),
