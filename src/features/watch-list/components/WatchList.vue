@@ -54,7 +54,7 @@
         class="bg-background"
         :movie-title="work.title"
         :movie-poster-url="work.imageUrl ?? ''"
-        :highlighted="work.id == nextWorkId"
+        :highlighted="work.id === nextWorkId"
         :loading="
           work.id === OPTIMISTIC_WORK_ID ||
           (loadingAddReview && reviewedWork?.toString() === work.externalId)
@@ -157,7 +157,12 @@ const reviewMovie = async (work: DetailedWorkListItem) => {
 };
 
 const { data: watchList } = useList(clubId, WorkListType.watchlist);
-const { data: nextWorkId } = useNextWork(clubId);
+const { data: rawNextWorkId } = useNextWork(clubId);
+const nextWorkId = computed(() =>
+  rawNextWorkId.value !== undefined && rawNextWorkId.value !== null
+    ? String(rawNextWorkId.value)
+    : undefined,
+);
 
 const filteredWatchList = computed(() => {
   return filterMovies(watchList.value ?? [], searchTerm);
