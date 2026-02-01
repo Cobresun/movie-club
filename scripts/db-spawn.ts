@@ -188,9 +188,11 @@ async function spawnDatabase(options: SpawnOptions): Promise<string> {
 
   validateDatabaseName(targetDb);
 
-  const databaseUrl = process.env.DATABASE_URL;
+  const databaseUrl = process.env.DATABASE_URL_ROOT ?? process.env.DATABASE_URL;
   if (!hasValue(databaseUrl)) {
-    throw new Error("DATABASE_URL environment variable is not set");
+    throw new Error(
+      "DATABASE_URL_ROOT or DATABASE_URL environment variable is not set",
+    );
   }
 
   const connParams = parseConnectionString(databaseUrl);

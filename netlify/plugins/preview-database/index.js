@@ -1,6 +1,6 @@
 import { execSync } from "child_process";
 import { createHash } from "crypto";
-import { readdirSync, readFileSync, existsSync } from "fs";
+import { readdirSync, readFileSync, existsSync, writeFileSync } from "fs";
 import path from "path";
 import pg from "pg";
 
@@ -95,9 +95,9 @@ function calculateMigrationHash() {
  * @returns {Promise<boolean>}
  */
 async function checkDatabaseExists(dbName) {
-  const databaseUrl = process.env.DATABASE_URL;
+  const databaseUrl = process.env.DATABASE_URL_ROOT;
   if (!hasValue(databaseUrl)) {
-    throw new Error("DATABASE_URL environment variable is not set");
+    throw new Error("DATABASE_URL_ROOT environment variable is not set");
   }
 
   // Parse connection string and connect to defaultdb to check for database
@@ -124,9 +124,9 @@ async function checkDatabaseExists(dbName) {
  * @returns {Promise<void>}
  */
 async function dropDatabase(dbName) {
-  const databaseUrl = process.env.DATABASE_URL;
+  const databaseUrl = process.env.DATABASE_URL_ROOT;
   if (!hasValue(databaseUrl)) {
-    throw new Error("DATABASE_URL environment variable is not set");
+    throw new Error("DATABASE_URL_ROOT environment variable is not set");
   }
 
   const url = new URL(databaseUrl);
@@ -145,20 +145,23 @@ async function dropDatabase(dbName) {
 }
 
 /**
- * Sets DATABASE_URL in Netlify build configuration so Functions can access it at runtime
- * @param {NetlifyConfig} netlifyConfig - The Netlify configuration object
+ * Writes DATABASE_URL to .env file at project root for Netlify Functions runtime
  * @param {string} databaseUrl - The database connection string
  * @returns {void}
  */
-function setDatabaseUrlInConfig(netlifyConfig, databaseUrl) {
+function writeDatabaseUrlToEnvFile(databaseUrl) {
   try {
-    // Set DATABASE_URL in the build environment
-    netlifyConfig.build.environment.DATABASE_URL = databaseUrl;
+    const envFilePath = path.join(process.cwd(), ".env");
 
-    console.log("✓ Set DATABASE_URL in Netlify config for Functions runtime");
+    // Create a simple .env file with just DATABASE_URL
+    const envContent = `DATABASE_URL=${databaseUrl}\n`;
+
+    writeFileSync(envFilePath, envContent, "utf-8");
+
+    console.log("✓ Wrote DATABASE_URL to .env file for Functions runtime");
   } catch (error) {
     console.warn(
-      "Warning: Could not set DATABASE_URL in Netlify config:",
+      "Warning: Could not write DATABASE_URL to .env file:",
       error.message,
     );
     console.warn(
@@ -207,7 +210,7 @@ function checkForMigrations() {
  * @param {PluginContext} context
  * @returns {Promise<void>}
  */
-const onPreBuild = async ({ utils, inputs, netlifyConfig }) => {
+const onPreBuild = async ({ utils, inputs }) => {
   const { CONTEXT, REVIEW_ID, BRANCH } = process.env;
 
   // Only run for deploy previews
@@ -231,6 +234,24 @@ const onPreBuild = async ({ utils, inputs, netlifyConfig }) => {
 
     if (!hasMigrations) {
       console.log("✓ No schema migrations detected, using dev database");
+
+      // Write dev database URL to .env for Functions runtime
+      const databaseUrl = process.env.DATABASE_URL_ROOT;
+      if (hasValue(databaseUrl)) {
+        const sourceDb = hasValue(inputs.sourceDatabase)
+          ? inputs.sourceDatabase
+          : "dev";
+
+        const url = new URL(databaseUrl);
+        url.pathname = `/${sourceDb}`;
+        const devDatabaseUrl = url.toString();
+
+        process.env.DATABASE_URL = devDatabaseUrl;
+        writeDatabaseUrlToEnvFile(devDatabaseUrl);
+
+        console.log(`✓ Using ${sourceDb} database for this deploy preview\n`);
+      }
+
       return;
     }
 
@@ -284,7 +305,7 @@ const onPreBuild = async ({ utils, inputs, netlifyConfig }) => {
       console.log("→ Skipping database rebuild\n");
 
       // Set DATABASE_URL to point to existing database
-      const databaseUrl = process.env.DATABASE_URL;
+      const databaseUrl = process.env.DATABASE_URL_ROOT;
       if (hasValue(databaseUrl)) {
         const url = new URL(databaseUrl);
         url.pathname = `/${targetDb}`;
@@ -295,8 +316,8 @@ const onPreBuild = async ({ utils, inputs, netlifyConfig }) => {
           "✓ DATABASE_URL updated to use existing preview database\n",
         );
 
-        // Set DATABASE_URL in Netlify config so Functions can access it
-        setDatabaseUrlInConfig(netlifyConfig, newDatabaseUrl);
+        // Write DATABASE_URL to .env file so Functions can access it
+        writeDatabaseUrlToEnvFile(newDatabaseUrl);
       }
 
       // Save database name and hash for next build
@@ -346,8 +367,8 @@ const onPreBuild = async ({ utils, inputs, netlifyConfig }) => {
         console.log(`\n✓ Preview database created: ${targetDb}`);
         console.log("✓ DATABASE_URL updated for this build\n");
 
-        // Set DATABASE_URL in Netlify config so Functions can access it at runtime
-        setDatabaseUrlInConfig(netlifyConfig, newDatabaseUrl);
+        // Write DATABASE_URL to .env file so Functions can access it at runtime
+        writeDatabaseUrlToEnvFile(newDatabaseUrl);
 
         // Store database name and hash for next build
         await utils.cache.save(targetDb, ["preview-database-name"]);
