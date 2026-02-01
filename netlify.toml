@@ -1,6 +1,10 @@
 [[plugins]]
   package = "./netlify/plugins/preview-database"
 
+[functions]
+  # Include database-config.json in function bundles
+  included_files = ["netlify/functions/utils/database-config.json"]
+
 [[edge_functions]]
   path = "/share/club/:clubId/review/:workId"
   function = "shared-review"
