@@ -4,6 +4,7 @@ import { auth } from "./utils/auth";
 import { hasValue, isDefined } from "../../lib/checks/checks.js";
 
 const handler: Handler = async (event: HandlerEvent) => {
+  console.log("DATABASE_URL:", process.env.DATABASE_URL);
   // Construct URL from the Netlify event
   const protocol = event.headers["x-forwarded-proto"] ?? "https";
   const host = event.headers.host ?? "localhost";

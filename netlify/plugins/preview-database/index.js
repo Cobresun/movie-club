@@ -265,6 +265,8 @@ const onPreBuild = async ({ utils, inputs }) => {
     // Restore cached hash from previous build
     const cacheKey = `pr-${REVIEW_ID}-migration-hash`;
     const cachedHash = await utils.cache.restore([cacheKey]);
+    console.log("Cached hash:", cachedHash);
+    console.log("Current hash:", currentHash);
 
     if (hasValue(cachedHash)) {
       console.log(`✓ Found cached hash: ${cachedHash.substring(0, 12)}...`);
