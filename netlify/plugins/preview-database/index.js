@@ -1,6 +1,12 @@
 import { execSync } from "child_process";
 import { createHash } from "crypto";
-import { readdirSync, readFileSync, existsSync, writeFileSync } from "fs";
+import {
+  readdirSync,
+  readFileSync,
+  existsSync,
+  writeFileSync,
+  mkdirSync,
+} from "fs";
 import path from "path";
 import pg from "pg";
 
@@ -171,6 +177,51 @@ function writeDatabaseUrlToEnvFile(databaseUrl) {
 }
 
 /**
+ * Saves migration hash to a file for Netlify cache
+ * @param {string} hash - The migration hash to save
+ * @param {string} reviewId - The PR review ID
+ * @returns {string} Path to the hash file
+ */
+function saveHashToFile(hash, reviewId) {
+  const cacheDir = path.join(process.cwd(), ".netlify-cache");
+  const hashFile = path.join(cacheDir, `pr-${reviewId}-hash.txt`);
+
+  // Create directory if needed
+  if (!existsSync(cacheDir)) {
+    mkdirSync(cacheDir, { recursive: true });
+  }
+
+  // Write hash to file
+  writeFileSync(hashFile, hash, "utf-8");
+
+  return hashFile;
+}
+
+/**
+ * Restores migration hash from cached file
+ * @param {string} reviewId - The PR review ID
+ * @returns {string | null} The cached hash, or null if not found
+ */
+function restoreHashFromFile(reviewId) {
+  const hashFile = path.join(
+    process.cwd(),
+    ".netlify-cache",
+    `pr-${reviewId}-hash.txt`,
+  );
+
+  if (existsSync(hashFile)) {
+    try {
+      return readFileSync(hashFile, "utf-8").trim();
+    } catch (error) {
+      console.warn("Warning: Could not read cached hash file:", error.message);
+      return null;
+    }
+  }
+
+  return null;
+}
+
+/**
  * Checks if there are migration files changed in this PR
  * @returns {boolean}
  */
@@ -262,11 +313,15 @@ const onPreBuild = async ({ utils, inputs }) => {
     const currentHash = calculateMigrationHash();
     console.log(`✓ Migration hash: ${currentHash.substring(0, 12)}...`);
 
-    // Restore cached hash from previous build
-    const cacheKey = `pr-${REVIEW_ID}-migration-hash`;
-    const cachedHash = await utils.cache.restore([cacheKey]);
-    console.log("Cached hash:", cachedHash);
-    console.log("Current hash:", currentHash);
+    // Save hash to file for caching
+    const hashFile = saveHashToFile(currentHash, REVIEW_ID);
+
+    // Try to restore cached hash from previous build
+    const restoredFile = await utils.cache.restore(hashFile);
+    const cachedHash =
+      restoredFile !== false && restoredFile !== null
+        ? restoreHashFromFile(REVIEW_ID)
+        : null;
 
     if (hasValue(cachedHash)) {
       console.log(`✓ Found cached hash: ${cachedHash.substring(0, 12)}...`);
@@ -324,7 +379,7 @@ const onPreBuild = async ({ utils, inputs }) => {
 
       // Save database name and hash for next build
       await utils.cache.save(targetDb, ["preview-database-name"]);
-      await utils.cache.save(currentHash, [cacheKey]);
+      await utils.cache.save(hashFile);
       return;
     }
 
@@ -374,7 +429,7 @@ const onPreBuild = async ({ utils, inputs }) => {
 
         // Store database name and hash for next build
         await utils.cache.save(targetDb, ["preview-database-name"]);
-        await utils.cache.save(currentHash, [cacheKey]);
+        await utils.cache.save(hashFile);
       } else {
         throw new Error("Failed to extract DATABASE_URL from db-spawn output");
       }
