@@ -27,6 +27,9 @@ pnpm-debug.log*
 .netlify
 .netlify-cache
 
+# Generated config files
+netlify/functions/utils/database-config.json
+
 # Test coverage
 src/coverage
 

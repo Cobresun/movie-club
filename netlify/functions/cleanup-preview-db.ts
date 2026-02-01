@@ -45,9 +45,9 @@ async function dropPreviewDatabase(dbName: string): Promise<void> {
     );
   }
 
-  const databaseUrl = process.env.DATABASE_URL;
+  const databaseUrl = process.env.DATABASE_URL_ROOT;
   if (!hasValue(databaseUrl)) {
-    throw new Error("DATABASE_URL environment variable is not set");
+    throw new Error("DATABASE_URL_ROOT environment variable is not set");
   }
 
   const pool = new Pool({ connectionString: databaseUrl });

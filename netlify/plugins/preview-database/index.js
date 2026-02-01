@@ -151,23 +151,37 @@ async function dropDatabase(dbName) {
 }
 
 /**
- * Writes DATABASE_URL to .env file at project root for Netlify Functions runtime
+ * Writes DATABASE_URL to database-config.json for Netlify Functions to read at runtime
  * @param {string} databaseUrl - The database connection string
  * @returns {void}
  */
-function writeDatabaseUrlToEnvFile(databaseUrl) {
+function writeDatabaseUrlToConfig(databaseUrl) {
   try {
-    const envFilePath = path.join(process.cwd(), ".env");
+    const configFilePath = path.join(
+      process.cwd(),
+      "netlify",
+      "functions",
+      "utils",
+      "database-config.json",
+    );
 
-    // Create a simple .env file with just DATABASE_URL
-    const envContent = `DATABASE_URL=${databaseUrl}\n`;
+    // Create JSON config file with DATABASE_URL
+    const configContent = JSON.stringify(
+      {
+        DATABASE_URL: databaseUrl,
+      },
+      null,
+      2,
+    );
 
-    writeFileSync(envFilePath, envContent, "utf-8");
+    writeFileSync(configFilePath, configContent, "utf-8");
 
-    console.log("✓ Wrote DATABASE_URL to .env file for Functions runtime");
+    console.log(
+      "✓ Wrote DATABASE_URL to database-config.json for Functions runtime",
+    );
   } catch (error) {
     console.warn(
-      "Warning: Could not write DATABASE_URL to .env file:",
+      "Warning: Could not write DATABASE_URL to config file:",
       error.message,
     );
     console.warn(
@@ -298,7 +312,7 @@ const onPreBuild = async ({ utils, inputs }) => {
         const devDatabaseUrl = url.toString();
 
         process.env.DATABASE_URL = devDatabaseUrl;
-        writeDatabaseUrlToEnvFile(devDatabaseUrl);
+        writeDatabaseUrlToConfig(devDatabaseUrl);
 
         console.log(`✓ Using ${sourceDb} database for this deploy preview\n`);
       }
@@ -373,8 +387,8 @@ const onPreBuild = async ({ utils, inputs }) => {
           "✓ DATABASE_URL updated to use existing preview database\n",
         );
 
-        // Write DATABASE_URL to .env file so Functions can access it
-        writeDatabaseUrlToEnvFile(newDatabaseUrl);
+        // Write DATABASE_URL to config file so Functions can access it
+        writeDatabaseUrlToConfig(newDatabaseUrl);
       }
 
       // Save database name and hash for next build
@@ -424,8 +438,8 @@ const onPreBuild = async ({ utils, inputs }) => {
         console.log(`\n✓ Preview database created: ${targetDb}`);
         console.log("✓ DATABASE_URL updated for this build\n");
 
-        // Write DATABASE_URL to .env file so Functions can access it at runtime
-        writeDatabaseUrlToEnvFile(newDatabaseUrl);
+        // Write DATABASE_URL to config file so Functions can access it at runtime
+        writeDatabaseUrlToConfig(newDatabaseUrl);
 
         // Store database name and hash for next build
         await utils.cache.save(targetDb, ["preview-database-name"]);

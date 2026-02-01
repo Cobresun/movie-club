@@ -1,10 +1,11 @@
 import { Handler, HandlerEvent } from "@netlify/functions";
 
 import { auth } from "./utils/auth";
+import { getDbUrl } from "./utils/database";
 import { hasValue, isDefined } from "../../lib/checks/checks.js";
 
 const handler: Handler = async (event: HandlerEvent) => {
-  console.log("DATABASE_URL:", process.env.DATABASE_URL);
+  console.log("DATABASE_URL:", getDbUrl());
   // Construct URL from the Netlify event
   const protocol = event.headers["x-forwarded-proto"] ?? "https";
   const host = event.headers.host ?? "localhost";
