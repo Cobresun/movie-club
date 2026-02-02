@@ -3,5 +3,5 @@ export async function up() {
 }
 
 export async function down() {
-  // Dummy down migration
+  // Dummy down migration .
 }

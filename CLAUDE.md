@@ -6,6 +6,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Movie Club is a Vue 3 web application for managing movie clubs, reviews, watchlists, and awards. It uses Netlify Functions for the backend API, CockroachDB (PostgreSQL-compatible) for data storage, and BetterAuth for authentication.
 
+## IMPORTANT: Code Quality Checklist
+
+**ALWAYS run these commands before completing any task:**
+
+1. **Type checking:** `npm run type-check` - Ensure no TypeScript errors
+2. **Linting:** `npm run lint` - Fix all ESLint errors and warnings
+3. **Testing (if applicable):** `npm test` - Verify tests pass
+
+**DO NOT skip these steps.** The linter catches common issues that type-checking misses.
+
 ## Development Commands
 
 ### Running the Application

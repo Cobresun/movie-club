@@ -1,9 +1,15 @@
 [[plugins]]
   package = "./netlify/plugins/preview-database"
 
+[[plugins]]
+  package = "./netlify/plugins/auth-config"
+
 [functions]
-  # Include database-config.json in function bundles
-  included_files = ["netlify/functions/utils/database-config.json"]
+  # Include config files in function bundles
+  included_files = [
+    "netlify/functions/utils/database-config.json",
+    "netlify/functions/utils/auth-config.json"
+  ]
 
 [[edge_functions]]
   path = "/share/club/:clubId/review/:workId"

@@ -16,38 +16,20 @@ const configFileSchema = z.object({
  * @returns {string | undefined} The database connection string
  */
 export function getDbUrl(): string | undefined {
-  console.log("=== DATABASE CONFIG DEBUG ===");
-  console.log("__dirname:", __dirname);
-  console.log("process.cwd():", process.cwd());
+  try {
+    // In deployed functions, check for database-config.json in utils directory
+    const configPath = path.resolve(__dirname, "./utils/database-config.json");
 
-  const pathsToTry = [
-    path.resolve(__dirname, "./database-config.json"),
-    path.resolve(__dirname, "./utils/database-config.json"),
-    path.resolve(__dirname, "../utils/database-config.json"),
-    path.resolve(process.cwd(), "netlify/functions/utils/database-config.json"),
-  ];
-
-  for (const configPath of pathsToTry) {
-    console.log("Trying config path:", configPath);
     if (existsSync(configPath)) {
-      try {
-        console.log("✓ File exists at:", configPath);
-        const configText = readFileSync(configPath, "utf8");
-        const config = configFileSchema.parse(JSON.parse(configText));
-        console.log("✓ Config file parsed successfully");
-        console.log("=== END DATABASE CONFIG DEBUG ===");
-        return config.DATABASE_URL;
-      } catch (err) {
-        console.log("Error reading config from", configPath, ":", err);
-      }
+      const configText = readFileSync(configPath, "utf8");
+      const config = configFileSchema.parse(JSON.parse(configText));
+      return config.DATABASE_URL;
     }
+  } catch (err) {
+    console.warn("Error reading database config file:", err);
   }
 
-  console.log(
-    "Config file not found at any path, falling back to process.env.DATABASE_URL",
-  );
-  console.log("process.env.DATABASE_URL:", process.env.DATABASE_URL);
-  console.log("=== END DATABASE CONFIG DEBUG ===");
+  // Fallback to environment variable for local development
   return process.env.DATABASE_URL;
 }
 

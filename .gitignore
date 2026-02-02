@@ -29,6 +29,7 @@ pnpm-debug.log*
 
 # Generated config files
 netlify/functions/utils/database-config.json
+netlify/functions/utils/auth-config.json
 
 # Test coverage
 src/coverage
