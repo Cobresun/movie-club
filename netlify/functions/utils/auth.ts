@@ -26,31 +26,23 @@ const googleClientSecret = ensure(
   "GOOGLE_CLIENT_SECRET is not set",
 );
 
-/**
- * Gets trusted origins for BetterAuth from config file (deployed) or env vars (local dev)
- * @returns {string[]} Array of trusted origin URLs
- */
+const authConfigSchema = z.object({
+  trustedOrigins: z.array(z.string()),
+});
+
 function getTrustedOrigins(): string[] {
-  const configPath = path.join(__dirname, "auth-config.json");
+  const configPath = path.join(__dirname, "./utils/auth-config.json");
 
   try {
     if (existsSync(configPath)) {
       const fileContents = readFileSync(configPath, "utf-8");
-      const parsed: unknown = JSON.parse(fileContents);
-
-      // Validate with Zod schema
-      const authConfigSchema = z.object({
-        trustedOrigins: z.array(z.string()),
-      });
-
-      const validated = authConfigSchema.parse(parsed);
-      return validated.trustedOrigins;
+      const parsed = authConfigSchema.parse(JSON.parse(fileContents));
+      return parsed.trustedOrigins;
     }
   } catch {
     // Silent fallback to env vars for local development
   }
 
-  // Fallback for local development (when auth-config.json doesn't exist)
   return [
     process.env.URL,
     process.env.DEPLOY_PRIME_URL,

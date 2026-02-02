@@ -2,13 +2,10 @@
 
 import { readFileSync, writeFileSync } from "fs";
 import { join } from "path";
-import { Pool } from "pg";
 import * as readline from "readline/promises";
 
-import { listDatabases } from "./db-list.js";
 import { hasValue } from "../lib/checks/checks.js";
-
-const PROTECTED_DATABASES = ["dev", "prod", "defaultdb", "postgres", "system"];
+import DatabaseCleanupRepository from "../netlify/functions/repositories/DatabaseCleanupRepository.js";
 
 interface CleanupOptions {
   databaseName?: string;
@@ -34,157 +31,90 @@ async function confirm(question: string): Promise<boolean> {
 }
 
 /**
- * Validates that a database can be safely deleted
- */
-function canDeleteDatabase(dbName: string): boolean {
-  if (PROTECTED_DATABASES.includes(dbName)) {
-    return false;
-  }
-
-  // Additional safety: don't delete databases without prefix
-  if (
-    !dbName.startsWith("pr_") &&
-    !dbName.startsWith("dev_") &&
-    dbName !== "dev"
-  ) {
-    console.warn(
-      `⚠️  Warning: Database ${dbName} doesn't match expected naming pattern`,
-    );
-    return false;
-  }
-
-  return true;
-}
-
-/**
- * Drops a database
- */
-async function dropDatabase(
-  pool: Pool,
-  dbName: string,
-  dryRun: boolean = false,
-): Promise<void> {
-  if (!canDeleteDatabase(dbName)) {
-    throw new Error(
-      `Cannot delete protected database: ${dbName}. Protected databases: ${PROTECTED_DATABASES.join(", ")}`,
-    );
-  }
-
-  if (dryRun) {
-    console.log(`[DRY RUN] Would drop database: ${dbName}`);
-    return;
-  }
-
-  console.log(`Dropping database: ${dbName}...`);
-
-  // Note: CockroachDB doesn't support pg_terminate_backend()
-  // We'll try to drop directly and handle any active connection errors
-  try {
-    // Drop the database
-    await pool.query(`DROP DATABASE IF EXISTS ${dbName}`);
-    console.log(`✓ Dropped database: ${dbName}`);
-  } catch (error) {
-    const errorMessage = (error as Error).message;
-    if (errorMessage.includes("cannot drop the currently open database")) {
-      throw new Error(
-        `Cannot drop database ${dbName}: it's currently in use. Close all connections and try again.`,
-      );
-    }
-    throw error;
-  }
-}
-
-/**
  * Cleans up databases based on options
  */
 async function cleanupDatabases(options: CleanupOptions): Promise<void> {
-  const databaseUrl = process.env.DATABASE_URL;
-  if (!hasValue(databaseUrl)) {
-    throw new Error("DATABASE_URL environment variable is not set");
+  const databases = await DatabaseCleanupRepository.listDatabases();
+  let toDelete: typeof databases = [];
+
+  // Filter databases based on options
+  if (hasValue(options.databaseName)) {
+    // Clean up specific database
+    const db = databases.find((d) => d.name === options.databaseName);
+    if (db === undefined) {
+      throw new Error(`Database not found: ${options.databaseName}`);
+    }
+    toDelete = [db];
+  } else if (hasValue(options.pattern)) {
+    // Clean up by pattern
+    const regex = new RegExp(options.pattern);
+    toDelete = databases.filter((db) => regex.test(db.name));
+  } else if (typeof options.olderThanDays === "number") {
+    // Clean up by age - use the repository method
+    toDelete = await DatabaseCleanupRepository.listDatabasesOlderThan(
+      options.olderThanDays,
+    );
+  } else {
+    throw new Error("Must specify --name, --pattern, or --older-than option");
   }
 
-  const pool = new Pool({ connectionString: databaseUrl });
+  // Filter out protected databases (for pattern and name-based cleanup)
+  toDelete = toDelete.filter((db) =>
+    DatabaseCleanupRepository.canDeleteDatabase(db.name),
+  );
 
-  try {
-    const databases = await listDatabases();
-    let toDelete: typeof databases = [];
+  if (toDelete.length === 0) {
+    console.log("No databases to clean up.");
+    return;
+  }
 
-    // Filter databases based on options
-    if (hasValue(options.databaseName)) {
-      // Clean up specific database
-      const db = databases.find((d) => d.name === options.databaseName);
-      if (db === undefined) {
-        throw new Error(`Database not found: ${options.databaseName}`);
-      }
-      toDelete = [db];
-    } else if (hasValue(options.pattern)) {
-      // Clean up by pattern
-      const regex = new RegExp(options.pattern);
-      toDelete = databases.filter((db) => regex.test(db.name));
-    } else if (typeof options.olderThanDays === "number") {
-      // Clean up by age
-      const cutoffDate = new Date();
-      cutoffDate.setDate(cutoffDate.getDate() - options.olderThanDays);
+  // Display what will be deleted
+  console.log("\nDatabases to be deleted:");
+  console.log("─".repeat(80));
+  toDelete.forEach((db) => {
+    const createdAt = db.metadata?.created_at;
+    const age = hasValue(createdAt)
+      ? ` (created ${new Date(createdAt).toLocaleDateString()})`
+      : "";
+    console.log(`  • ${db.name}${age}`);
+  });
+  console.log("─".repeat(80));
+  console.log(`Total: ${toDelete.length} database(s)\n`);
 
-      toDelete = databases.filter((db) => {
-        const createdAt = db.metadata?.created_at;
-        if (!hasValue(createdAt)) return false;
+  if (options.dryRun === true) {
+    console.log("[DRY RUN] No databases were actually deleted.");
+    return;
+  }
 
-        const createdDate = new Date(createdAt);
-        return createdDate < cutoffDate;
-      });
-    } else {
-      throw new Error("Must specify --name, --pattern, or --older-than option");
-    }
+  // Confirm deletion unless --force
+  if (options.force !== true) {
+    const confirmed = await confirm(
+      "\n⚠️  Are you sure you want to delete these databases? This cannot be undone!",
+    );
 
-    // Filter out protected databases
-    toDelete = toDelete.filter((db) => canDeleteDatabase(db.name));
-
-    if (toDelete.length === 0) {
-      console.log("No databases to clean up.");
+    if (!confirmed) {
+      console.log("Cleanup cancelled.");
       return;
     }
+  }
 
-    // Display what will be deleted
-    console.log("\nDatabases to be deleted:");
-    console.log("─".repeat(80));
-    toDelete.forEach((db) => {
-      const createdAt = db.metadata?.created_at;
-      const age = hasValue(createdAt)
-        ? ` (created ${new Date(createdAt).toLocaleDateString()})`
-        : "";
-      console.log(`  • ${db.name}${age}`);
-    });
-    console.log("─".repeat(80));
-    console.log(`Total: ${toDelete.length} database(s)\n`);
-
-    if (options.dryRun === true) {
-      console.log("[DRY RUN] No databases were actually deleted.");
-      return;
-    }
-
-    // Confirm deletion unless --force
-    if (options.force !== true) {
-      const confirmed = await confirm(
-        "\n⚠️  Are you sure you want to delete these databases? This cannot be undone!",
+  // Delete databases
+  console.log("\nDeleting databases...\n");
+  let deletedCount = 0;
+  for (const db of toDelete) {
+    try {
+      await DatabaseCleanupRepository.dropDatabase(db.name);
+      deletedCount++;
+    } catch (error) {
+      console.error(
+        `Failed to drop database ${db.name}:`,
+        (error as Error).message,
       );
-
-      if (!confirmed) {
-        console.log("Cleanup cancelled.");
-        return;
-      }
+      // Continue with other databases
     }
-
-    // Delete databases
-    console.log("\nDeleting databases...\n");
-    for (const db of toDelete) {
-      await dropDatabase(pool, db.name, options.dryRun);
-    }
-
-    console.log(`\n✓ Successfully deleted ${toDelete.length} database(s)`);
-  } finally {
-    await pool.end();
   }
+
+  console.log(`\n✓ Successfully deleted ${deletedCount} database(s)`);
 }
 
 /**
@@ -312,4 +242,4 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   void main();
 }
 
-export { cleanupDatabases, dropDatabase };
+export { cleanupDatabases };

@@ -10,10 +10,6 @@ function hasValue(s) {
   return typeof s === "string" && s.length > 0;
 }
 
-/**
- * Writes trusted origins to auth-config.json for Netlify Functions to read at runtime
- * @returns {void}
- */
 function writeAuthConfigToFile() {
   const configFilePath = path.join(
     process.cwd(),
@@ -23,18 +19,18 @@ function writeAuthConfigToFile() {
     "auth-config.json",
   );
 
-  // Collect all auth-related environment variables
-  const origins = [
-    process.env.URL,
-    process.env.DEPLOY_PRIME_URL,
-    process.env.DEPLOY_URL,
-    process.env.BETTER_AUTH_URL,
-  ].filter(hasValue);
+  const origins = new Set(
+    [
+      process.env.URL,
+      process.env.DEPLOY_PRIME_URL,
+      process.env.DEPLOY_URL,
+      process.env.BETTER_AUTH_URL,
+    ].filter(hasValue),
+  );
 
-  // Create JSON config file with trustedOrigins array
   const configContent = JSON.stringify(
     {
-      trustedOrigins: origins,
+      trustedOrigins: Array.from(origins),
     },
     null,
     2,
@@ -43,12 +39,9 @@ function writeAuthConfigToFile() {
   writeFileSync(configFilePath, configContent, "utf-8");
 }
 
-/**
- * Runs on every build (all contexts: production, deploy-preview, branch-deploy)
- * @returns {Promise<void>}
- */
 const onPreBuild = () => {
   try {
+    console.log("Writing auth config file with trusted origins...");
     writeAuthConfigToFile();
   } catch (error) {
     console.warn("Warning: Could not write auth config file:", error.message);

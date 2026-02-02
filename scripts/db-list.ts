@@ -1,5 +1,3 @@
-#!/usr/bin/env tsx
-
 import { Pool } from "pg";
 
 import { hasValue } from "../lib/checks/checks.js";
@@ -7,7 +5,6 @@ import { hasValue } from "../lib/checks/checks.js";
 interface DatabaseInfo {
   name: string;
   owner: string;
-  size: string;
   metadata?: {
     created_at?: string;
     created_by?: string;
@@ -18,9 +15,6 @@ interface DatabaseInfo {
 
 const PROTECTED_DATABASES = ["defaultdb", "postgres", "system"];
 
-/**
- * Formats a date string to be human-readable
- */
 function formatDate(dateString: string): string {
   const date = new Date(dateString);
   const now = new Date();
@@ -34,9 +28,6 @@ function formatDate(dateString: string): string {
   return date.toLocaleDateString();
 }
 
-/**
- * Lists all databases with their metadata
- */
 async function listDatabases(): Promise<DatabaseInfo[]> {
   const databaseUrl = process.env.DATABASE_URL;
   if (!hasValue(databaseUrl)) {
@@ -46,8 +37,6 @@ async function listDatabases(): Promise<DatabaseInfo[]> {
   const pool = new Pool({ connectionString: databaseUrl });
 
   try {
-    // Query for all databases with their metadata
-    // Note: CockroachDB Serverless doesn't support pg_database_size for individual databases
     const result = await pool.query<{
       datname: string;
       pg_get_userbyid: string;
@@ -81,7 +70,6 @@ async function listDatabases(): Promise<DatabaseInfo[]> {
       return {
         name: row.datname,
         owner: row.pg_get_userbyid,
-        size: "N/A", // CockroachDB Serverless doesn't expose individual DB sizes
         metadata,
       };
     });
