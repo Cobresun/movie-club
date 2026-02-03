@@ -31,6 +31,13 @@
         Random
         <mdicon name="dice-multiple-outline" />
       </v-btn>
+      <v-btn
+        :class="reorderMode ? 'ring-2 ring-highlightBackground' : ''"
+        @click="reorderMode = !reorderMode"
+      >
+        Reorder
+        <mdicon name="swap-vertical" />
+      </v-btn>
     </div>
     <VueDraggableNext
       v-model="draggableList"
@@ -39,6 +46,8 @@
       :delay="150"
       :delay-on-touch-only="true"
       :animation="200"
+      :disabled="!reorderMode"
+      handle=".drag-handle"
       filter=".no-drag"
       :prevent-on-filter="true"
       :move="onMove"
@@ -47,10 +56,8 @@
       <MoviePosterCard
         v-for="work in draggableList"
         :key="work.id"
-        :class="[
-          work.id === nextWorkId ? 'no-drag z-0' : 'z-10',
-          work.id !== nextWorkId ? 'cursor-grab active:cursor-grabbing' : '',
-        ]"
+        :class="work.id === nextWorkId ? 'no-drag z-0' : 'z-10'"
+        :show-drag-handle="reorderMode && work.id !== nextWorkId"
         class="bg-background"
         :movie-title="work.title"
         :movie-poster-url="work.imageUrl ?? ''"
@@ -164,6 +171,7 @@ const closePrompt = () => {
 const { mutate: setNextWork } = useSetNextWork(clubId);
 const { mutate: reorderList } = useReorderList(clubId, WorkListType.watchlist);
 
+const reorderMode = ref(false);
 const randomPickerOpen = ref(false);
 
 const sortedWatchList = computed(() => {

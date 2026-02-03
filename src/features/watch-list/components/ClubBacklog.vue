@@ -21,6 +21,13 @@
       Random
       <mdicon name="dice-multiple-outline" />
     </v-btn>
+    <v-btn
+      :class="reorderMode ? 'ring-2 ring-highlightBackground' : ''"
+      @click="reorderMode = !reorderMode"
+    >
+      Reorder
+      <mdicon name="swap-vertical" />
+    </v-btn>
   </div>
 
   <EmptyState
@@ -50,12 +57,15 @@
     :delay="150"
     :delay-on-touch-only="true"
     :animation="200"
+    :disabled="!reorderMode"
+    handle=".drag-handle"
     @end="onDragEnd"
   >
     <MoviePosterCard
       v-for="movie in draggableList"
       :key="movie.id"
-      class="z-10 cursor-grab bg-background active:cursor-grabbing"
+      class="z-10 bg-background"
+      :show-drag-handle="reorderMode"
       :movie-title="movie.title"
       :movie-poster-url="movie.imageUrl ?? ''"
       :highlighted="false"
@@ -142,6 +152,7 @@ const closePrompt = () => {
   modalOpen.value = false;
 };
 
+const reorderMode = ref(false);
 const randomPickerOpen = ref(false);
 
 const draggableList = ref<DetailedWorkListItem[]>([]);
