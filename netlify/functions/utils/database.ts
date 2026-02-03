@@ -18,10 +18,6 @@ export function getDbUrl(): string | undefined {
     if (existsSync(configPath)) {
       const configText = readFileSync(configPath, "utf8");
       const config = configFileSchema.parse(JSON.parse(configText));
-      console.log(
-        "Using DATABASE_URL from database-config.json",
-        config.DATABASE_URL,
-      );
       return config.DATABASE_URL;
     }
   } catch {
@@ -31,7 +27,6 @@ export function getDbUrl(): string | undefined {
   return process.env.DATABASE_URL;
 }
 
-console.log("Using DATABASE_URL:", getDbUrl());
 export const pool = new Pool({
   connectionString: getDbUrl(),
 });

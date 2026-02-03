@@ -298,7 +298,11 @@ const onPreBuild = async ({ utils, inputs }) => {
     const currentHash = calculateMigrationHash();
     console.log(`✓ Migration hash: ${currentHash.substring(0, 12)}...`);
 
-    const hashFile = saveHashToFile(currentHash, REVIEW_ID);
+    const hashFile = path.join(
+      process.cwd(),
+      ".netlify-cache",
+      `pr-${REVIEW_ID}-hash.txt`,
+    );
 
     const restoredFile = await utils.cache.restore(hashFile);
     const cachedHash =
@@ -353,6 +357,9 @@ const onPreBuild = async ({ utils, inputs }) => {
       }
 
       await utils.cache.save(targetDb, ["preview-database-name"]);
+
+      // Save current hash to file before caching it
+      saveHashToFile(currentHash, REVIEW_ID);
       await utils.cache.save(hashFile);
       return;
     }
@@ -392,6 +399,9 @@ const onPreBuild = async ({ utils, inputs }) => {
         writeDatabaseUrlToConfig(newDatabaseUrl);
 
         await utils.cache.save(targetDb, ["preview-database-name"]);
+
+        // Save current hash to file before caching it
+        saveHashToFile(currentHash, REVIEW_ID);
         await utils.cache.save(hashFile);
       } else {
         throw new Error("Failed to extract DATABASE_URL from db-spawn output");
