@@ -37,20 +37,16 @@ async function cleanupDatabases(options: CleanupOptions): Promise<void> {
   const databases = await DatabaseCleanupRepository.listDatabases();
   let toDelete: typeof databases = [];
 
-  // Filter databases based on options
   if (hasValue(options.databaseName)) {
-    // Clean up specific database
     const db = databases.find((d) => d.name === options.databaseName);
     if (db === undefined) {
       throw new Error(`Database not found: ${options.databaseName}`);
     }
     toDelete = [db];
   } else if (hasValue(options.pattern)) {
-    // Clean up by pattern
     const regex = new RegExp(options.pattern);
     toDelete = databases.filter((db) => regex.test(db.name));
   } else if (typeof options.olderThanDays === "number") {
-    // Clean up by age - use the repository method
     toDelete = await DatabaseCleanupRepository.listDatabasesOlderThan(
       options.olderThanDays,
     );
@@ -58,7 +54,6 @@ async function cleanupDatabases(options: CleanupOptions): Promise<void> {
     throw new Error("Must specify --name, --pattern, or --older-than option");
   }
 
-  // Filter out protected databases (for pattern and name-based cleanup)
   toDelete = toDelete.filter((db) =>
     DatabaseCleanupRepository.canDeleteDatabase(db.name),
   );
@@ -68,7 +63,6 @@ async function cleanupDatabases(options: CleanupOptions): Promise<void> {
     return;
   }
 
-  // Display what will be deleted
   console.log("\nDatabases to be deleted:");
   console.log("─".repeat(80));
   toDelete.forEach((db) => {
@@ -86,7 +80,6 @@ async function cleanupDatabases(options: CleanupOptions): Promise<void> {
     return;
   }
 
-  // Confirm deletion unless --force
   if (options.force !== true) {
     const confirmed = await confirm(
       "\n⚠️  Are you sure you want to delete these databases? This cannot be undone!",
@@ -98,7 +91,6 @@ async function cleanupDatabases(options: CleanupOptions): Promise<void> {
     }
   }
 
-  // Delete databases
   console.log("\nDeleting databases...\n");
   let deletedCount = 0;
   for (const db of toDelete) {
@@ -110,7 +102,6 @@ async function cleanupDatabases(options: CleanupOptions): Promise<void> {
         `Failed to drop database ${db.name}:`,
         (error as Error).message,
       );
-      // Continue with other databases
     }
   }
 
@@ -129,7 +120,6 @@ function restoreEnvToDev(): void {
 
     const updatedLines = lines.map((line: string) => {
       if (line.startsWith("DATABASE_URL=")) {
-        // Extract connection string and replace database name with 'dev'
         const match = line.match(/^DATABASE_URL=(.+)$/);
         if (match) {
           const url = match[1];
@@ -179,7 +169,6 @@ async function main() {
     dryRun: args.includes("--dry-run"),
   };
 
-  // Parse options
   const patternIndex = args.indexOf("--pattern");
   if (patternIndex !== -1 && args[patternIndex + 1]) {
     options.pattern = args[patternIndex + 1];
@@ -194,7 +183,6 @@ async function main() {
     }
   }
 
-  // If first arg doesn't start with --, treat it as database name
   if (args.length > 0 && !args[0].startsWith("--")) {
     const featureName = args[0];
 
@@ -202,10 +190,9 @@ async function main() {
     // For simplicity, just use the provided name
     options.databaseName = featureName.startsWith("dev_")
       ? featureName
-      : featureName; // User can provide full name or we use as-is
+      : featureName;
   }
 
-  // Handle --restore-env flag
   if (args.includes("--restore-env")) {
     restoreEnvToDev();
     return;
@@ -214,7 +201,6 @@ async function main() {
   try {
     await cleanupDatabases(options);
 
-    // Offer to restore .env if deleting a personal dev database
     const dbName = options.databaseName;
     if (
       hasValue(dbName) &&
@@ -237,7 +223,6 @@ async function main() {
   }
 }
 
-// Run if called directly
 if (import.meta.url === `file://${process.argv[1]}`) {
   void main();
 }

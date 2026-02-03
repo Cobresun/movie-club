@@ -33,15 +33,6 @@ const { Pool } = pg;
  */
 
 /**
- * @typedef {Object} NetlifyGitUtils
- * @property {(pattern: string) => { modified: string[], created: string[], deleted: string[], edited: string[] }} fileMatch
- * @property {string[]} modifiedFiles
- * @property {string[]} createdFiles
- * @property {string[]} deletedFiles
- * @property {Object[]} commits
- */
-
-/**
  * @typedef {Object} NetlifyBuildUtils
  * @property {(message: string) => void} failBuild
  */
@@ -50,7 +41,6 @@ const { Pool } = pg;
  * @typedef {Object} NetlifyPluginUtils
  * @property {NetlifyCacheUtils} cache
  * @property {NetlifyBuildUtils} build
- * @property {NetlifyGitUtils} git
  */
 
 /**
@@ -227,14 +217,30 @@ function restoreHashFromFile(reviewId) {
 
 /**
  * Checks if there are migration files changed in this PR
- * @param {NetlifyGitUtils} git - Netlify git utility
  * @returns {boolean}
  */
-function checkForMigrations(git) {
+function checkForMigrations() {
   try {
-    // Use Netlify's git utility to check for migration file changes
-    const migrationFiles = git.fileMatch("migrations/schema/**/*.ts");
-    const hasChanges = migrationFiles.edited.length > 0;
+    // Use git command to check for migration file changes since main branch
+    const output = execSync("git diff --name-only origin/main...HEAD", {
+      encoding: "utf-8",
+      stdio: "pipe",
+    });
+
+    const changedFiles = output.split("\n").filter((line) => line.trim());
+    const migrationFiles = changedFiles.filter(
+      (file) => file.startsWith("migrations/schema/") && file.endsWith(".ts"),
+    );
+
+    const hasChanges = migrationFiles.length > 0;
+
+    if (hasChanges) {
+      console.log(
+        `  Found ${migrationFiles.length} changed migration file(s):`,
+      );
+      migrationFiles.forEach((file) => console.log(`    - ${file}`));
+    }
+
     return hasChanges;
   } catch (error) {
     console.warn(
@@ -268,7 +274,7 @@ const onPreBuild = async ({ utils, inputs }) => {
   console.log("\n🔍 Checking for schema migrations...");
 
   try {
-    const hasMigrations = checkForMigrations(utils.git);
+    const hasMigrations = checkForMigrations();
 
     if (!hasMigrations) {
       console.log("✓ No schema migrations detected, using dev database");

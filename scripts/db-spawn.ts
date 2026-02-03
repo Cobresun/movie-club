@@ -101,20 +101,14 @@ async function databaseExists(pool: Pool, dbName: string): Promise<boolean> {
  * Builds S3 URI with AWS credentials from environment variables
  */
 function buildS3Uri(bucket: string): string {
-  const accessKey = process.env.AWS_ACCESS_KEY_COCKROACH_BACKUP;
-  const secretKey = process.env.AWS_SECRET_ACCESS_KEY_COCKROACH_BACKUP;
-
-  if (!hasValue(accessKey)) {
-    throw new Error(
-      "AWS_ACCESS_KEY_COCKROACH_BACKUP environment variable is not set",
-    );
-  }
-
-  if (!hasValue(secretKey)) {
-    throw new Error(
-      "AWS_SECRET_ACCESS_KEY_COCKROACH_BACKUP environment variable is not set",
-    );
-  }
+  const accessKey = ensure(
+    process.env.AWS_ACCESS_KEY_COCKROACH_BACKUP,
+    "AWS_ACCESS_KEY_COCKROACH_BACKUP is not set",
+  );
+  const secretKey = ensure(
+    process.env.AWS_SECRET_ACCESS_KEY_COCKROACH_BACKUP,
+    "AWS_SECRET_ACCESS_KEY_COCKROACH_BACKUP is not set",
+  );
 
   const encodedSecret = encodeURIComponent(secretKey);
   return `s3://${bucket}?AWS_ACCESS_KEY_ID=${accessKey}&AWS_SECRET_ACCESS_KEY=${encodedSecret}`;
@@ -197,12 +191,10 @@ async function spawnDatabase(options: SpawnOptions): Promise<string> {
 
   const connParams = parseConnectionString(databaseUrl);
 
-  // Create admin connection pool (connects to defaultdb)
   const adminConnString = buildConnectionString(connParams, "defaultdb");
   const adminPool = new Pool({ connectionString: adminConnString });
 
   try {
-    // Check if target already exists
     const exists = await databaseExists(adminPool, targetDb);
 
     if (exists) {
@@ -217,10 +209,8 @@ async function spawnDatabase(options: SpawnOptions): Promise<string> {
       }
     }
 
-    // Build S3 URI
     const s3Uri = buildS3Uri(S3_BUCKET);
 
-    // Find latest snapshot
     const latestSnapshot = await findLatestSnapshot(adminPool, s3Uri);
     if (!hasValue(latestSnapshot)) {
       throw new Error(
@@ -229,7 +219,6 @@ async function spawnDatabase(options: SpawnOptions): Promise<string> {
       );
     }
 
-    // Restore from snapshot with new database name
     await restoreFromSnapshot(
       adminPool,
       sourceDb,
@@ -238,7 +227,6 @@ async function spawnDatabase(options: SpawnOptions): Promise<string> {
       latestSnapshot,
     );
 
-    // Add metadata comment
     const metadata: DbMetadata = {
       created_at: new Date().toISOString(),
       created_by: getUsername(),
@@ -255,7 +243,6 @@ async function spawnDatabase(options: SpawnOptions): Promise<string> {
 
     await addDatabaseMetadata(adminPool, targetDb, metadata);
 
-    // Build the new connection string
     const newConnString = buildConnectionString(connParams, targetDb);
 
     console.log("\n✓ Database spawn complete!");

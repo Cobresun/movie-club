@@ -2,29 +2,26 @@
 
 import { Pool } from "pg";
 
-import { hasValue } from "../lib/checks/checks.js";
+import { ensure, hasValue } from "../lib/checks/checks.js";
 
-const S3_BUCKET = "movie-club-crdb-dev-exports";
+const S3_BUCKET = ensure(
+  process.env.COCKROACH_BACKUP_BUCKET_NAME,
+  "COCKROACH_BACKUP_BUCKET_NAME is not set",
+);
 const MAX_SNAPSHOTS = 5;
 
 /**
  * Builds S3 URI with AWS credentials from environment variables
  */
 function buildS3Uri(bucket: string): string {
-  const accessKey = process.env.AWS_ACCESS_KEY_COCKROACH_BACKUP;
-  const secretKey = process.env.AWS_SECRET_ACCESS_KEY_COCKROACH_BACKUP;
-
-  if (!hasValue(accessKey)) {
-    throw new Error(
-      "AWS_ACCESS_KEY_COCKROACH_BACKUP environment variable is not set",
-    );
-  }
-
-  if (!hasValue(secretKey)) {
-    throw new Error(
-      "AWS_SECRET_ACCESS_KEY_COCKROACH_BACKUP environment variable is not set",
-    );
-  }
+  const accessKey = ensure(
+    process.env.AWS_ACCESS_KEY_COCKROACH_BACKUP,
+    "AWS_ACCESS_KEY_COCKROACH_BACKUP is not set",
+  );
+  const secretKey = ensure(
+    process.env.AWS_SECRET_ACCESS_KEY_COCKROACH_BACKUP,
+    "AWS_SECRET_ACCESS_KEY_COCKROACH_BACKUP is not set",
+  );
 
   const encodedSecret = encodeURIComponent(secretKey);
   return `s3://${bucket}?AWS_ACCESS_KEY_ID=${accessKey}&AWS_SECRET_ACCESS_KEY=${encodedSecret}`;
@@ -40,8 +37,7 @@ async function listSnapshots(pool: Pool, s3Uri: string): Promise<string[]> {
     );
     return result.rows.map((row) => row.path);
   } catch (error) {
-    // If no backups exist yet, SHOW BACKUPS might error
-    if ((error as Error).message.includes("no backup")) {
+    if (error instanceof Error && error.message.includes("no backup")) {
       return [];
     }
     throw error;
@@ -64,7 +60,6 @@ async function createSnapshot(
     AS OF SYSTEM TIME '-10s'
   `);
 
-  // Get the newly created snapshot path
   const snapshots = await listSnapshots(pool, s3Uri);
   const latestSnapshot = snapshots[snapshots.length - 1];
 
@@ -92,10 +87,8 @@ async function snapshotDatabase(dbName: string): Promise<void> {
     console.log(`\n📸 Snapshotting database: ${dbName}`);
     console.log(`S3 bucket: ${S3_BUCKET}\n`);
 
-    // Create snapshot
     await createSnapshot(pool, dbName, s3Uri);
 
-    // Show current snapshots
     const snapshots = await listSnapshots(pool, s3Uri);
     console.log(`\nCurrent snapshots (${snapshots.length}):`);
     snapshots.forEach((s) => console.log(`  - ${s}`));

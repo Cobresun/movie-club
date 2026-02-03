@@ -1,3 +1,5 @@
+#!/usr/bin/env tsx
+
 import { Pool } from "pg";
 
 import { hasValue } from "../lib/checks/checks.js";
