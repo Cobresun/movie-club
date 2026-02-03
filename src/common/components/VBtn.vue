@@ -9,7 +9,7 @@
     :disabled="disabled"
     @click="emit('click')"
   >
-    <div class="mx-2 my-1 flex">
+    <div class="mx-2 my-1 flex items-center justify-center">
       <slot />
     </div>
   </button>
