@@ -174,7 +174,7 @@ const selectRandom = () => {
 };
 
 const onRandomSelected = (item: DetailedWorkListItem) => {
-  moveBacklogItemToWatchlist(item);
+  void moveBacklogItemToWatchlist(item);
   randomPickerOpen.value = false;
 };
 </script>

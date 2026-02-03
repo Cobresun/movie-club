@@ -6,13 +6,13 @@ const CYCLE_COUNT = 20;
 const REVEAL_PAUSE_MS = 1500;
 
 function vibrate(pattern: number | number[]) {
-  if (typeof navigator !== "undefined" && navigator.vibrate) {
+  if (typeof navigator !== "undefined" && "vibrate" in navigator) {
     navigator.vibrate(pattern);
   }
 }
 
 export function useRandomPicker<T>(items: Ref<T[]>) {
-  const currentItem = ref<T>() as Ref<T | undefined>;
+  const currentItem = ref<T | undefined>();
   const isRevealed = ref(false);
 
   function pick(): Promise<T> {
