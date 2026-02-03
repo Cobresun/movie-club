@@ -53,7 +53,7 @@
 
     <!-- Navigation cards grid -->
     <div
-      class="mx-auto grid max-w-5xl grid-cols-2 gap-3 px-4 pb-6 md:grid-cols-4"
+      class="mx-auto flex max-w-5xl flex-wrap justify-center gap-3 px-4 pb-6"
     >
       <router-link :to="{ name: 'Reviews' }">
         <menu-card :image="reviewSvg"> Reviews </menu-card>

@@ -27,6 +27,9 @@
               <p class="mt-1 text-left text-sm text-gray-400">
                 Enable the awards feature for this club
               </p>
+              <p class="mt-1 text-left text-sm text-yellow-500">
+                This feature is experimental and may change in the future.
+              </p>
             </div>
             <v-switch
               v-model="awardsEnabled"
