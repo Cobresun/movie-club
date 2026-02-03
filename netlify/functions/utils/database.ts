@@ -27,6 +27,7 @@ export function getDbUrl(): string | undefined {
   return process.env.DATABASE_URL;
 }
 
+console.log("Using DATABASE_URL:", getDbUrl());
 export const pool = new Pool({
   connectionString: getDbUrl(),
 });
