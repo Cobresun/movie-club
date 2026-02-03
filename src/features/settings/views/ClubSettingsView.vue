@@ -21,6 +21,20 @@
               @update:model-value="updateBlurScoresFeature"
             />
           </div>
+          <div class="mt-3 flex items-center justify-between gap-4">
+            <div class="flex-1 text-left">
+              <h4 class="text-left font-medium">Awards</h4>
+              <p class="mt-1 text-left text-sm text-gray-400">
+                Enable the awards feature for this club
+              </p>
+            </div>
+            <v-switch
+              v-model="awardsEnabled"
+              color="primary"
+              class="ml-5 flex-shrink-0"
+              @update:model-value="updateAwardsFeature"
+            />
+          </div>
         </div>
       </div>
 
@@ -206,16 +220,39 @@ const { data: settings, isLoading: isLoadingSettings } =
   useClubSettings(clubId);
 const { mutate: updateSettings } = useUpdateClubSettings(clubId);
 const blurScoresEnabled = ref(true);
+const awardsEnabled = ref(false);
 
 watch(
   () => settings.value,
   (newSettings) => {
     if (newSettings && !isLoadingSettings.value) {
       blurScoresEnabled.value = newSettings?.features?.blurScores === true;
+      awardsEnabled.value = newSettings?.features?.awards === true;
     }
   },
   { immediate: true },
 );
+
+const updateAwardsFeature = () => {
+  updateSettings(
+    {
+      features: {
+        awards: awardsEnabled.value,
+      },
+    },
+    {
+      onSuccess: () => {
+        toast.success("Settings updated successfully");
+      },
+      onError: () => {
+        toast.error("Failed to update settings");
+        if (settings.value?.features?.awards !== undefined) {
+          awardsEnabled.value = settings.value.features.awards === true;
+        }
+      },
+    },
+  );
+};
 
 const updateBlurScoresFeature = () => {
   updateSettings(

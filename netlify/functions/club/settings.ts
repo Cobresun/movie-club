@@ -19,6 +19,7 @@ const updateSettingsSchema = z.object({
   features: z
     .object({
       blurScores: z.boolean(),
+      awards: z.boolean(),
     })
     .partial()
     .optional(),

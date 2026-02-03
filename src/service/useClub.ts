@@ -156,7 +156,12 @@ export function useInviteToken(clubId: string) {
 interface ClubSettings {
   features: {
     blurScores: boolean;
+    awards: boolean;
   };
+}
+
+interface ClubSettingsUpdate {
+  features?: Partial<ClubSettings["features"]>;
 }
 
 export function useClubSettings(
@@ -179,7 +184,7 @@ export function useUpdateClubSettings(clubId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (settings: Partial<ClubSettings>) =>
+    mutationFn: (settings: ClubSettingsUpdate) =>
       auth.request.post(`/api/club/${clubId}/settings`, settings),
     onSuccess: () => {
       queryClient
