@@ -27,9 +27,16 @@
         Add Movie
         <mdicon name="plus" />
       </v-btn>
-      <v-btn @click="selectRandom()">
+      <v-btn v-if="filteredWatchList.length > 1" @click="selectRandom()">
         Random
         <mdicon name="dice-multiple-outline" />
+      </v-btn>
+      <v-btn
+        :class="reorderMode ? 'ring-2 ring-highlightBackground' : ''"
+        @click="reorderMode = !reorderMode"
+      >
+        Reorder
+        <mdicon name="swap-vertical" />
       </v-btn>
     </div>
     <VueDraggableNext
@@ -39,6 +46,7 @@
       :delay="150"
       :delay-on-touch-only="true"
       :animation="200"
+      handle=".drag-handle"
       filter=".no-drag"
       :prevent-on-filter="true"
       :move="onMove"
@@ -47,10 +55,8 @@
       <MoviePosterCard
         v-for="work in draggableList"
         :key="work.id"
-        :class="[
-          work.id === nextWorkId ? 'no-drag z-0' : 'z-10',
-          work.id !== nextWorkId ? 'cursor-grab active:cursor-grabbing' : '',
-        ]"
+        :class="work.id === nextWorkId ? 'no-drag z-0' : 'z-10'"
+        :show-drag-handle="reorderMode && work.id !== nextWorkId"
         class="bg-background"
         :movie-title="work.title"
         :movie-poster-url="work.imageUrl ?? ''"
@@ -164,6 +170,7 @@ const closePrompt = () => {
 const { mutate: setNextWork } = useSetNextWork(clubId);
 const { mutate: reorderList } = useReorderList(clubId, WorkListType.watchlist);
 
+const reorderMode = ref(false);
 const randomPickerOpen = ref(false);
 
 const sortedWatchList = computed(() => {
@@ -208,11 +215,6 @@ const onDragEnd = () => {
 
 const selectRandom = () => {
   clearSearch();
-  if (filteredWatchList.value.length <= 1) {
-    const single = filteredWatchList.value[0];
-    if (single) setNextWork(single.id);
-    return;
-  }
   randomPickerOpen.value = true;
 };
 

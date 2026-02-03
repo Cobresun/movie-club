@@ -17,9 +17,16 @@
       Add Movie
       <mdicon name="plus" />
     </v-btn>
-    <v-btn @click="selectRandom">
+    <v-btn v-if="filteredBacklog.length > 1" @click="selectRandom">
       Random
       <mdicon name="dice-multiple-outline" />
+    </v-btn>
+    <v-btn
+      :class="reorderMode ? 'ring-2 ring-highlightBackground' : ''"
+      @click="reorderMode = !reorderMode"
+    >
+      Reorder
+      <mdicon name="swap-vertical" />
     </v-btn>
   </div>
 
@@ -50,12 +57,14 @@
     :delay="150"
     :delay-on-touch-only="true"
     :animation="200"
+    handle=".drag-handle"
     @end="onDragEnd"
   >
     <MoviePosterCard
       v-for="movie in draggableList"
       :key="movie.id"
-      class="z-10 cursor-grab bg-background active:cursor-grabbing"
+      class="z-10 bg-background"
+      :show-drag-handle="reorderMode"
       :movie-title="movie.title"
       :movie-poster-url="movie.imageUrl ?? ''"
       :highlighted="false"
@@ -142,6 +151,7 @@ const closePrompt = () => {
   modalOpen.value = false;
 };
 
+const reorderMode = ref(false);
 const randomPickerOpen = ref(false);
 
 const draggableList = ref<DetailedWorkListItem[]>([]);
@@ -159,12 +169,7 @@ const onDragEnd = () => {
 };
 
 const selectRandom = () => {
-  if (!backlog.value || backlog.value.length === 0) return;
   clearSearch();
-  if (backlog.value.length === 1) {
-    moveBacklogItemToWatchlist(backlog.value[0]);
-    return;
-  }
   randomPickerOpen.value = true;
 };
 
