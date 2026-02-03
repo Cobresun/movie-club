@@ -31,7 +31,7 @@ const authConfigSchema = z.object({
 });
 
 function getTrustedOrigins(): string[] {
-  const configPath = path.join(__dirname, "./utils/auth-config.json");
+  const configPath = path.resolve("./auth-config.json");
 
   try {
     if (existsSync(configPath)) {

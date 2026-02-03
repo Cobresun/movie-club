@@ -7,8 +7,8 @@
 [functions]
   # Include config files in function bundles
   included_files = [
-    "netlify/functions/utils/database-config.json",
-    "netlify/functions/utils/auth-config.json"
+    "database-config.json",
+    "auth-config.json"
   ]
 
 [[edge_functions]]

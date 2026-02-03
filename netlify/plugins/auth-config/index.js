@@ -11,13 +11,7 @@ function hasValue(s) {
 }
 
 function writeAuthConfigToFile() {
-  const configFilePath = path.join(
-    process.cwd(),
-    "netlify",
-    "functions",
-    "utils",
-    "auth-config.json",
-  );
+  const configFilePath = path.join(process.cwd(), "auth-config.json");
 
   const origins = new Set(
     [

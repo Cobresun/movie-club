@@ -139,13 +139,7 @@ async function dropDatabase(dbName) {
  */
 function writeDatabaseUrlToConfig(databaseUrl) {
   try {
-    const configFilePath = path.join(
-      process.cwd(),
-      "netlify",
-      "functions",
-      "utils",
-      "database-config.json",
-    );
+    const configFilePath = path.join(process.cwd(), "database-config.json");
 
     // Create JSON config file with DATABASE_URL
     const configContent = JSON.stringify(
