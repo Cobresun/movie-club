@@ -46,7 +46,6 @@
       :delay="150"
       :delay-on-touch-only="true"
       :animation="200"
-      :disabled="!reorderMode"
       handle=".drag-handle"
       filter=".no-drag"
       :prevent-on-filter="true"
