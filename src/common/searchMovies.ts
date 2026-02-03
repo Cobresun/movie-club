@@ -1,3 +1,4 @@
+import { isDefined } from "../../lib/checks/checks.js";
 import { DetailedWorkListItem } from "../../lib/types/lists";
 
 /**
@@ -9,6 +10,18 @@ import { DetailedWorkListItem } from "../../lib/types/lists";
  * You can apply filters on the searchQuery with text:value. For example, to filter by title and genre, you can use:
  *
  * "title:jaws genre:horror"
+ *
+ * The "release" filter supports comparison operators (<, >, <=, >=) for movie release years:
+ *
+ * "release:<1950" - Movies released before 1950
+ * "release:>2000" - Movies released after 2000
+ * "release:<=1980" - Movies released in or before 1980
+ * "release:>=2010" - Movies released in or after 2010
+ * "release:2000" - Movies released exactly in 2000
+ *
+ * The "year" filter matches the year the review was added (exact match only):
+ *
+ * "year:2024" - Reviews added in 2024
  *
  * Incluidng multiple filters seperated by spaces will implicitly do an AND search between them.
  *
@@ -107,16 +120,35 @@ export function filterMovies<T extends DetailedWorkListItem>(
   // Apply filters
   if (filters.title?.value) {
     filteredReviews = filteredReviews.filter((review) =>
-      includesCaseInsensitive(review.title, filters.title.value),
+      review.title.toLowerCase().includes(filters.title.value.toLowerCase()),
+    );
+  }
+  if (filters.company?.value) {
+    filteredReviews = filteredReviews.filter(
+      (review) =>
+        isDefined(review.externalData) &&
+        review.externalData?.production_companies.some((company) =>
+          company.toLocaleLowerCase().includes(filters.company.value.toLowerCase()),
+        ),
+    );
+  }
+  if (filters.description?.value) {
+    filteredReviews = filteredReviews.filter(
+      (review) =>
+        isDefined(review.externalData) &&
+        review.externalData?.overview
+          .toLocaleLowerCase()
+          .includes(filters.description.value.toLowerCase()),
     );
   }
 
-  if (filters.description?.value) {
-    filteredReviews = filteredReviews.filter((review) =>
-      includesCaseInsensitive(
-        review.externalData?.overview,
-        filters.description.value,
-      ),
+  if (filters.genre?.value) {
+    filteredReviews = filteredReviews.filter(
+      (review) =>
+        isDefined(review.externalData) &&
+        review.externalData?.genres.some((genre) =>
+          genre.toLocaleLowerCase().includes(filters.genre.value.toLowerCase()),
+        ),
     );
   }
 

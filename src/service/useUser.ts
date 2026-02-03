@@ -7,7 +7,7 @@ import { useAuthStore } from "@/stores/auth";
 
 export function useUser() {
   const auth = useAuthStore();
-  const email = computed(() => auth.user?.email);
+  const email = computed(() => auth.user?.email ?? "");
   const isLoggedIn = computed(() => auth.isLoggedIn);
 
   return useQuery<Member>({
@@ -41,7 +41,20 @@ export function useUpdateAvatar() {
       }),
     onSettled: () => {
       queryClient
-        .invalidateQueries({ queryKey: ["user", auth.user?.email] })
+        .invalidateQueries({ queryKey: ["user", auth.user?.email ?? ""] })
+        .catch(console.error);
+    },
+  });
+}
+
+export function useDeleteAvatar() {
+  const auth = useAuthStore();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => await auth.request.delete(`/api/member/avatar`),
+    onSettled: () => {
+      queryClient
+        .invalidateQueries({ queryKey: ["user", auth.user?.email ?? ""] })
         .catch(console.error);
     },
   });

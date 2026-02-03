@@ -1,6 +1,11 @@
 <template>
   <div class="p-2">
     <add-review-prompt v-if="modalOpen" @close="closePrompt" />
+    <delete-confirmation-modal
+      :show="!!reviewToDelete"
+      @confirm="confirmDelete"
+      @cancel="cancelDelete"
+    />
     <page-header :has-back="true" back-route="ClubHome" page-name="Reviews">
       <div class="flex gap-2">
         <mdicon name="table" />
@@ -28,19 +33,33 @@
           </v-btn>
         </template>
       </search-filter-bar>
-
-      <table-view v-if="!isGalleryView" :review-table="reviewTable" />
-      <gallery-view
-        v-else
-        :review-table="reviewTable"
-        :delete-review="deleteReview"
-        :members="members"
-        :revealed-movie-ids="revealedMovieIds"
-        :has-rated="hasUserRated"
-        :current-user-id="userId"
-        :blur-scores-enabled="blurScoresEnabled === true"
-        @toggle-reveal="toggleReveal"
-      />
+      <div v-if="showEmptyState">
+        <EmptyState
+          :title="hasSearchTerm ? 'No Movies Found' : 'No Reviews Yet'"
+          :description="
+            hasSearchTerm
+              ? 'Try adjusting your search or filters. You can search by title, genre, company, or release year'
+              : 'Start building your club\'s movie collection by adding your first review'
+          "
+          :action-label="hasSearchTerm ? undefined : 'Add Review'"
+          :action-icon="hasSearchTerm ? undefined : 'plus'"
+          @action="openPrompt"
+        />
+      </div>
+      <template v-else>
+        <table-view v-if="!isGalleryView" :review-table="reviewTable" />
+        <gallery-view
+          v-else
+          :review-table="reviewTable"
+          :delete-review="deleteReview"
+          :members="members"
+          :revealed-movie-ids="revealedMovieIds"
+          :has-rated="hasUserRated"
+          :current-user-id="userId"
+          :blur-scores-enabled="blurScoresEnabled === true"
+          @toggle-reveal="toggleReveal"
+        />
+      </template>
     </div>
   </div>
 </template>
@@ -52,12 +71,21 @@ import {
   useVueTable,
 } from "@tanstack/vue-table";
 import { DateTime } from "luxon";
-import { computed, ref, onMounted, h, resolveComponent, watch } from "vue";
-import { useToast } from "vue-toastification";
+import {
+  computed,
+  ref,
+  onMounted,
+  onUnmounted,
+  h,
+  resolveComponent,
+  watch,
+} from "vue";
 
 import { isTrue } from "../../../../lib/checks/checks.js";
 import { WorkListType } from "../../../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
+import { useShare } from "../../../common/composables/useShare";
+import { filterMovies } from "../../../common/searchMovies";
 import GalleryView from "../components/GalleryView.vue";
 import MovieTooltip from "../components/MovieTooltip.vue";
 import ReviewScore from "../components/ReviewScore.vue";
@@ -65,16 +93,26 @@ import TableView from "../components/TableView.vue";
 
 import AverageImg from "@/assets/images/average.svg";
 import SearchFilterBar from "@/common/components/SearchFilterBar.vue";
+import DeleteConfirmationModal from "@/common/components/DeleteConfirmationModal.vue";
+import EmptyState from "@/common/components/EmptyState.vue";
 import VAvatar from "@/common/components/VAvatar.vue";
 import VToggle from "@/common/components/VToggle.vue";
 import AddReviewPrompt from "@/features/reviews/components/AddReviewPrompt.vue";
-import { useIsInClub, useMembers, useClubSettings } from "@/service/useClub";
+import {
+  useClub,
+  useIsInClub,
+  useMembers,
+  useClubSettings,
+} from "@/service/useClub";
 import { useDeleteListItem, useList } from "@/service/useList";
 import { useUser } from "@/service/useUser";
 
 const { clubId } = defineProps<{ clubId: string }>();
 
-const isGalleryView = ref(false);
+const isGalleryView = ref(true);
+
+// Load club data for share functionality
+const { data: club } = useClub(clubId);
 
 // Load club settings to check if blur scores is enabled
 const { data: settings, isLoading: isLoadingSettings } =
@@ -88,9 +126,6 @@ onMounted(() => {
   const savedView = localStorage.getItem("isGalleryView");
   if (savedView !== null) {
     isGalleryView.value = savedView === "true";
-  } else {
-    const isMobile = window.matchMedia("(max-width: 768px)").matches;
-    isGalleryView.value = isMobile;
   }
 });
 
@@ -119,6 +154,56 @@ const filteredReviews = ref<DetailedReviewListItem[]>([]);
 
 const handleFilteredData = (data: DetailedReviewListItem[]) => {
   filteredReviews.value = data;
+};
+const reviewToDelete = ref<string | null>(null);
+const cancelDelete = () => {
+  reviewToDelete.value = null;
+};
+const confirmDelete = () => {
+  if (reviewToDelete.value) {
+    deleteReview(reviewToDelete.value);
+    reviewToDelete.value = null;
+  }
+};
+
+const searchTerm = ref("");
+// const filteredReviews = computed<DetailedReviewListItem[]>(() => {
+//   return filterMovies(reviews.value ?? [], searchTerm.value);
+// });
+
+const hasReviews = computed(() => (reviews.value?.length ?? 0) > 0);
+const hasSearchTerm = computed(() => searchTerm.value.trim().length > 0);
+const showEmptyState = computed(() =>
+  !loading.value && filteredReviews.value.length === 0
+);
+
+const searchInput = ref<HTMLInputElement | null>(null);
+const searchInputSlash = ref<HTMLParagraphElement | null>(null);
+
+const onKeyPress = (e: KeyboardEvent) => {
+  if (e.key === "/") {
+    if (searchInput.value === document.activeElement) {
+      return;
+    }
+    e.preventDefault();
+    searchInput.value?.focus();
+  }
+};
+
+onMounted(() => {
+  window.addEventListener("keypress", onKeyPress);
+});
+
+onUnmounted(() => {
+  window.removeEventListener("keypress", onKeyPress);
+});
+
+const searchInputFocusIn = () => {
+  searchInputSlash.value?.setAttribute("hidden", "true");
+};
+
+const searchInputFocusOut = () => {
+  searchInputSlash.value?.removeAttribute("hidden");
 };
 
 const columnHelper = createColumnHelper<DetailedReviewListItem>();
@@ -191,7 +276,7 @@ const shouldBlurScore = (rowId: string, columnId: string) => {
   return columnId.startsWith("member_") || columnId === "score_average";
 };
 
-const toast = useToast();
+const { share } = useShare();
 
 const columns = computed(() => [
   columnHelper.accessor("imageUrl", {
@@ -211,7 +296,7 @@ const columns = computed(() => [
             name: "delete",
             class: "cursor-pointer hover:text-primary transition-colors",
             onClick: () => {
-              deleteReview(row.original.id);
+              reviewToDelete.value = row.original.id;
             },
           })
         : h(
@@ -226,8 +311,13 @@ const columns = computed(() => [
                 class: "cursor-pointer hover:text-primary transition-colors",
                 onClick: () => {
                   const url = `${window.location.origin}/share/club/${clubId}/review/${row.original.id}`;
-                  void navigator.clipboard.writeText(url);
-                  toast.success("Share URL copied to clipboard!");
+                  const title = row.original.title;
+                  const clubName = club.value?.clubName ?? "Movie Club";
+                  void share({
+                    url,
+                    title: `${title} - ${clubName} Review`,
+                    text: `${clubName}'s review of ${title}`,
+                  });
                 },
               }),
             ],

@@ -22,8 +22,8 @@
     "src/**/*.d.ts",
     "src/**/*.tsx",
     "src/**/*.vue",
-    "netlify/functions/**/*.ts",
-    "netlify/functions/**/*.d.ts",
+    "netlify/**/*.ts",
+    "netlify/**/*.d.ts",
     "migrations/**/*.ts",
     "migrations/**/*.d.ts",
     "lib/**/*.ts"

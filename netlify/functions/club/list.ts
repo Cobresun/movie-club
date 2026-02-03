@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 import { hasValue } from "../../../lib/checks/checks.js";
 import { WorkListType } from "../../../lib/types/generated/db.js";
 import { listInsertDtoSchema } from "../../../lib/types/lists.js";
@@ -157,6 +159,42 @@ async function getReviewList(clubId: string): Promise<ReviewListItem[]> {
     .sort((a, b) => b.createdDate.localeCompare(a.createdDate));
 }
 
+const reorderSchema = z.object({
+  workIds: z.array(z.string()).min(1),
+});
+
+router.put(
+  "/:type/reorder",
+  secured,
+  async ({ clubId, params, event }, res) => {
+    if (!hasValue(params.type)) return res(badRequest("No type provided"));
+    const type = params.type;
+    if (!isWorkListType(type)) {
+      return res(badRequest("Invalid type provided"));
+    }
+    if (
+      type !== (WorkListType.watchlist as WorkListType) &&
+      type !== (WorkListType.backlog as WorkListType)
+    ) {
+      return res(
+        badRequest("Reordering is only supported for watchlist and backlog"),
+      );
+    }
+    if (!hasValue(event.body)) return res(badRequest("No body provided"));
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(event.body);
+    } catch {
+      return res(badRequest("Invalid JSON"));
+    }
+    const body = reorderSchema.safeParse(parsed);
+    if (!body.success) return res(badRequest("Invalid body provided"));
+
+    await ListRepository.reorderList(clubId, type, body.data.workIds);
+    return res(ok());
+  },
+);
+
 router.post("/:type", secured, async ({ clubId, params, event }, res) => {
   if (!hasValue(params.type)) return res(badRequest("No type provided"));
   if (!hasValue(event.body)) return res(badRequest("No body provided"));
@@ -221,5 +259,52 @@ router.delete("/:type/:workId", secured, async ({ clubId, params }, res) => {
   }
   return res(ok());
 });
+
+const updateAddedDateSchema = z.object({
+  addedDate: z.string().datetime({ offset: true }),
+});
+
+router.put(
+  "/:type/:workId/added-date",
+  secured,
+  async ({ clubId, params, event }, res) => {
+    if (!hasValue(params.type) || !hasValue(params.workId)) {
+      return res(badRequest("No type or workId provided"));
+    }
+
+    const type = params.type;
+    if (!isWorkListType(type)) {
+      return res(badRequest("Invalid type provided"));
+    }
+
+    if (!hasValue(event.body)) {
+      return res(badRequest("No body provided"));
+    }
+
+    const body = updateAddedDateSchema.safeParse(JSON.parse(event.body));
+    if (!body.success) {
+      return res(badRequest("Invalid body provided"));
+    }
+
+    const workId = params.workId;
+    const isItemInList = await ListRepository.isItemInList(
+      clubId,
+      type,
+      workId,
+    );
+    if (!isItemInList) {
+      return res(badRequest("This work does not exist in the list"));
+    }
+
+    await ListRepository.updateAddedDate(
+      clubId,
+      type,
+      workId,
+      new Date(body.data.addedDate),
+    );
+
+    return res(ok());
+  },
+);
 
 export default router;

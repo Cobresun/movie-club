@@ -13,7 +13,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, defineEmits } from "vue";
+import { computed } from "vue";
 import { useToast } from "vue-toastification";
 
 import { isTrue } from "../../../../lib/checks/checks.js";
@@ -27,37 +27,42 @@ import { BASE_IMAGE_URL, useList } from "@/service/useList";
 import { useAddListItem } from "@/service/useList";
 import { useTrending } from "@/service/useTMDB";
 
+const { listType } = defineProps<{
+  listType: WorkListType.backlog | WorkListType.watchlist;
+}>();
+
 const emit = defineEmits<{
   (e: "close", item?: WatchListItem): void;
 }>();
+
+const listLabel = computed(() =>
+  listType === WorkListType.watchlist ? "watch list" : "backlog",
+);
 
 const clubId = useClubId();
 
 const { isLoading: loadingTrending, data: trending } = useTrending();
 
-const { isLoading: loadingAdd, mutate: addBacklogItem } = useAddListItem(
+const { isLoading: loadingAdd, mutate: addListItem } = useAddListItem(
   clubId,
-  WorkListType.backlog,
+  listType,
 );
 
-const { data: backlog, isLoading: loadingBacklog } = useList(
-  clubId,
-  WorkListType.backlog,
-);
+const { data: list, isLoading: loadingList } = useList(clubId, listType);
 
 const toast = useToast();
 const selectFromSearch = (movie: MovieSearchIndex) => {
   if (
     isTrue(
-      backlog.value?.some(
+      list.value?.some(
         (item) => parseInt(item.externalId ?? "-1") === movie.id,
       ),
     )
   ) {
-    toast.error("That movie is already in your backlog");
+    toast.error(`That movie is already in your ${listLabel.value}`);
     return;
   }
-  addBacklogItem(
+  addListItem(
     {
       type: WorkType.movie,
       title: movie.title,
@@ -69,6 +74,6 @@ const selectFromSearch = (movie: MovieSearchIndex) => {
 };
 
 const loading = computed(
-  () => loadingTrending.value || loadingBacklog.value || loadingAdd.value,
+  () => loadingTrending.value || loadingList.value || loadingAdd.value,
 );
 </script>

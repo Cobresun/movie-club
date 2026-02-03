@@ -1,5 +1,5 @@
 import { screen, within } from "@testing-library/vue";
-import { rest } from "msw";
+import { http, HttpResponse } from "msw";
 
 import ReviewView from "../views/ReviewView.vue";
 
@@ -23,9 +23,11 @@ describe("ReviewView", () => {
 
   it("should open and close add review prompt", async () => {
     const { user } = render(ReviewView, { props: { clubId: "1" } });
-    const openButton = await screen.findByRole("button", {
-      name: "Add review",
-    });
+    // Switch to table view first (gallery view has multiple buttons)
+    const viewSwitch = screen.getByRole("switch");
+    await user.click(viewSwitch);
+
+    const openButton = await screen.findByRole("button");
     await user.click(openButton);
     expect(await screen.findByText("From Watch List")).toBeInTheDocument();
 
@@ -34,12 +36,13 @@ describe("ReviewView", () => {
     expect(screen.queryByText("From Watch List")).not.toBeInTheDocument();
   });
 
-  it("should switch between table and gallery view", async () => {
+  it("should switch between gallery and table view", async () => {
     const { user } = render(ReviewView, { props: { clubId: "1" } });
     const viewSwitch = screen.getByRole("switch");
-    expect(await screen.findByRole("table")).toBeInTheDocument();
-    await user.click(viewSwitch);
+    // Gallery view is the default, so table should not be present initially
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    await user.click(viewSwitch);
+    expect(await screen.findByRole("table")).toBeInTheDocument();
   });
 
   it("should filter reviews when using search bar", async () => {
@@ -62,9 +65,14 @@ describe("ReviewView", () => {
   it("should submit score", async () => {
     const { user, pinia } = render(ReviewView, { props: { clubId: "1" } });
     const authStore = useAuthStore(pinia);
+    // @ts-expect-error Overwriting readonly property for testing purposes
     authStore.user = userData;
     //@ts-expect-error Forcing logged in to true for testing
     authStore.isLoggedIn = true;
+
+    // Switch to table view (gallery view is the default)
+    const viewSwitch = screen.getByRole("switch");
+    await user.click(viewSwitch);
 
     const row = (
       await screen.findByRole("cell", {
@@ -106,8 +114,8 @@ describe("ReviewView", () => {
       },
     ];
     server.use(
-      rest.get("/api/club/:id/list/reviews", (req, res, ctx) => {
-        return res(ctx.status(200), ctx.json(newReviews));
+      http.get("/api/club/:id/list/reviews", () => {
+        return HttpResponse.json(newReviews);
       }),
     );
 

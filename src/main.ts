@@ -12,9 +12,11 @@ import router from "./router";
 import { isDefined } from "../lib/checks/checks.js";
 
 import App from "@/App.vue";
+import EmptyState from "@/common/components/EmptyState.vue";
 import Loading from "@/common/components/LoadingSpinner.vue";
 import PageHeader from "@/common/components/PageHeader.vue";
 import VAvatar from "@/common/components/VAvatar.vue";
+import VBackdrop from "@/common/components/VBackdrop.vue";
 import VBtn from "@/common/components/VBtn.vue";
 import VModal from "@/common/components/VModal.vue";
 import VSelect from "@/common/components/VSelect.vue";
@@ -48,7 +50,6 @@ const vueQueryOptions: VueQueryPluginOptions = {
   },
   clientPersister: (queryClient) => {
     return persistQueryClient({
-      //@ts-expect-error The types don't match because Vue doesn't have its own persistQueryClient, but it still works
       queryClient,
       persister: createSyncStoragePersister({ storage: localStorage }),
       maxAge: 1000 * 60 * 60 * 24 * 7, // One week
@@ -61,6 +62,7 @@ const vueQueryOptions: VueQueryPluginOptions = {
 
 createApp(App)
   .component("v-avatar", VAvatar)
+  .component("v-backdrop", VBackdrop)
   .component("v-btn", VBtn)
   .component("v-select", VSelect)
   .component("v-switch", VSwitch)
@@ -69,6 +71,7 @@ createApp(App)
   .component("menu-card", MenuCard)
   .component("v-modal", VModal)
   .component("page-header", PageHeader)
+  .component("empty-state", EmptyState)
   .directive("lazy-load", LazyLoad)
   .use(mdiVue, {
     icons: mdijs,

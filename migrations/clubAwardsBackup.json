@@ -1,0 +1,4664 @@
+{
+  "clubAwards": [
+    {
+      "year": 2024,
+      "step": 4,
+      "awards": [
+        {
+          "title": "How Convenient Award",
+          "nominations": [
+            {
+              "movieId": 285,
+              "nominatedBy": ["wes", "sunny"],
+              "ranking": {
+                "cole": 4,
+                "brian": 2,
+                "sunny": 1,
+                "wes": 1
+              }
+            },
+            {
+              "movieId": 675353,
+              "nominatedBy": ["cole"],
+              "ranking": {
+                "cole": 3,
+                "brian": 3,
+                "sunny": 4,
+                "wes": 2
+              }
+            },
+            {
+              "movieId": 558449,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "cole": 5,
+                "brian": 1,
+                "sunny": 3,
+                "wes": 4
+              }
+            },
+            {
+              "movieId": 150540,
+              "nominatedBy": ["cole"],
+              "ranking": {
+                "cole": 1,
+                "brian": 5,
+                "sunny": 5,
+                "wes": 5
+              }
+            },
+            {
+              "movieId": 2978,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "cole": 2,
+                "brian": 4,
+                "sunny": 2,
+                "wes": 3
+              }
+            }
+          ]
+        },
+        {
+          "title": "Good on paper, bad on screen",
+          "nominations": [
+            {
+              "movieId": 426,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "cole": 4,
+                "brian": 4,
+                "wes": 1,
+                "sunny": 4
+              }
+            },
+            {
+              "movieId": 2978,
+              "nominatedBy": ["cole", "sunny"],
+              "ranking": {
+                "cole": 1,
+                "brian": 2,
+                "wes": 3,
+                "sunny": 2
+              }
+            },
+            {
+              "movieId": 560016,
+              "nominatedBy": ["brian", "cole"],
+              "ranking": {
+                "cole": 2,
+                "brian": 1,
+                "wes": 2,
+                "sunny": 1
+              }
+            },
+            {
+              "movieId": 673593,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "cole": 3,
+                "brian": 3,
+                "wes": 4,
+                "sunny": 3
+              }
+            }
+          ]
+        },
+        {
+          "title": "I Fell Asleep",
+          "nominations": [
+            {
+              "movieId": 429,
+              "nominatedBy": ["sunny", "cole"],
+              "ranking": {
+                "brian": 3,
+                "cole": 1,
+                "wes": 1,
+                "sunny": 1
+              }
+            },
+            {
+              "movieId": 599,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "brian": 2,
+                "cole": 5,
+                "wes": 2,
+                "sunny": 3
+              }
+            },
+            {
+              "movieId": 87827,
+              "nominatedBy": ["cole"],
+              "ranking": {
+                "brian": 4,
+                "cole": 3,
+                "wes": 5,
+                "sunny": 5
+              }
+            },
+            {
+              "movieId": 508883,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "brian": 1,
+                "cole": 2,
+                "wes": 4,
+                "sunny": 2
+              }
+            },
+            {
+              "movieId": 675353,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "brian": 5,
+                "cole": 4,
+                "wes": 3,
+                "sunny": 4
+              }
+            }
+          ]
+        },
+        {
+          "title": "ELA Teacher's Choice Award",
+          "nominations": [
+            {
+              "movieId": 87827,
+              "nominatedBy": ["wes", "sunny"],
+              "ranking": {
+                "cole": 1,
+                "wes": 1,
+                "brian": 2,
+                "sunny": 2
+              }
+            },
+            {
+              "movieId": 792307,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "cole": 3,
+                "wes": 3,
+                "brian": 3,
+                "sunny": 3
+              }
+            },
+            {
+              "movieId": 426,
+              "nominatedBy": ["cole"],
+              "ranking": {
+                "cole": 4,
+                "wes": 4,
+                "brian": 5,
+                "sunny": 4
+              }
+            },
+            {
+              "movieId": 207,
+              "nominatedBy": ["brian", "cole", "sunny"],
+              "ranking": {
+                "cole": 2,
+                "wes": 2,
+                "brian": 1,
+                "sunny": 1
+              }
+            },
+            {
+              "movieId": 329865,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "cole": 5,
+                "wes": 5,
+                "brian": 4,
+                "sunny": 5
+              }
+            }
+          ]
+        },
+        {
+          "title": "Most Forgettable",
+          "nominations": [
+            {
+              "movieId": 2978,
+              "nominatedBy": ["wes", "brian"],
+              "ranking": {
+                "wes": 3,
+                "cole": 2,
+                "brian": 1,
+                "sunny": 1
+              }
+            },
+            {
+              "movieId": 560016,
+              "nominatedBy": ["cole"],
+              "ranking": {
+                "wes": 4,
+                "cole": 4,
+                "brian": 6,
+                "sunny": 2
+              }
+            },
+            {
+              "movieId": 2976,
+              "nominatedBy": ["cole"],
+              "ranking": {
+                "wes": 5,
+                "cole": 1,
+                "brian": 3,
+                "sunny": 3
+              }
+            },
+            {
+              "movieId": 58,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "wes": 6,
+                "cole": 6,
+                "brian": 4,
+                "sunny": 4
+              }
+            },
+            {
+              "movieId": 429,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "wes": 1,
+                "cole": 5,
+                "brian": 5,
+                "sunny": 5
+              }
+            },
+            {
+              "movieId": 508883,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "wes": 2,
+                "cole": 3,
+                "brian": 2,
+                "sunny": 6
+              }
+            }
+          ]
+        },
+        {
+          "title": "Funniest Movie",
+          "nominations": [
+            {
+              "movieId": 64688,
+              "nominatedBy": ["wes", "cole", "sunny", "brian"],
+              "ranking": {
+                "wes": 1,
+                "sunny": 1,
+                "brian": 1,
+                "cole": 1
+              }
+            },
+            {
+              "movieId": 607,
+              "nominatedBy": ["cole"],
+              "ranking": {
+                "wes": 4,
+                "sunny": 2,
+                "brian": 4,
+                "cole": 2
+              }
+            },
+            {
+              "movieId": 746036,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "wes": 2,
+                "sunny": 3,
+                "brian": 2,
+                "cole": 3
+              }
+            },
+            {
+              "movieId": 293660,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "wes": 3,
+                "sunny": 4,
+                "brian": 3,
+                "cole": 4
+              }
+            }
+          ]
+        },
+        {
+          "title": "Best Popcorn Flick",
+          "nominations": [
+            {
+              "movieId": 155,
+              "nominatedBy": ["wes", "cole", "brian"],
+              "ranking": {
+                "wes": 3,
+                "cole": 1,
+                "brian": 1,
+                "sunny": 2
+              }
+            },
+            {
+              "movieId": 533535,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "wes": 4,
+                "cole": 5,
+                "brian": 5,
+                "sunny": 5
+              }
+            },
+            {
+              "movieId": 746036,
+              "nominatedBy": ["cole"],
+              "ranking": {
+                "wes": 2,
+                "cole": 4,
+                "brian": 4,
+                "sunny": 3
+              }
+            },
+            {
+              "movieId": 22,
+              "nominatedBy": ["brian", "sunny"],
+              "ranking": {
+                "wes": 1,
+                "cole": 3,
+                "brian": 2,
+                "sunny": 1
+              }
+            },
+            {
+              "movieId": 98,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "wes": 5,
+                "cole": 2,
+                "brian": 3,
+                "sunny": 4
+              }
+            }
+          ]
+        },
+        {
+          "title": "Best Kids Movie",
+          "nominations": [
+            {
+              "movieId": 150540,
+              "nominatedBy": ["wes", "brian", "sunny"],
+              "ranking": {
+                "wes": 1,
+                "brian": 1,
+                "cole": 2,
+                "sunny": 1
+              }
+            },
+            {
+              "movieId": 939243,
+              "nominatedBy": ["cole"],
+              "ranking": {
+                "wes": 3,
+                "brian": 3,
+                "cole": 3,
+                "sunny": 3
+              }
+            },
+            {
+              "movieId": 508442,
+              "nominatedBy": ["cole", "sunny", "brian"],
+              "ranking": {
+                "wes": 2,
+                "brian": 2,
+                "cole": 1,
+                "sunny": 2
+              }
+            }
+          ]
+        },
+        {
+          "title": "Best Visuals",
+          "nominations": [
+            {
+              "movieId": 792307,
+              "nominatedBy": ["wes", "brian"],
+              "ranking": {
+                "brian": 1,
+                "sunny": 1,
+                "cole": 2,
+                "wes": 2
+              }
+            },
+            {
+              "movieId": 508883,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "brian": 6,
+                "sunny": 6,
+                "cole": 6,
+                "wes": 5
+              }
+            },
+            {
+              "movieId": 693134,
+              "nominatedBy": ["cole", "sunny"],
+              "ranking": {
+                "brian": 3,
+                "sunny": 3,
+                "cole": 1,
+                "wes": 3
+              }
+            },
+            {
+              "movieId": 58,
+              "nominatedBy": ["cole"],
+              "ranking": {
+                "brian": 4,
+                "sunny": 5,
+                "cole": 3,
+                "wes": 4
+              }
+            },
+            {
+              "movieId": 87827,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "brian": 2,
+                "sunny": 2,
+                "cole": 5,
+                "wes": 6
+              }
+            },
+            {
+              "movieId": 8392,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "brian": 5,
+                "sunny": 4,
+                "cole": 4,
+                "wes": 1
+              }
+            }
+          ]
+        },
+        {
+          "title": "Best Original Score/Sound",
+          "nominations": [
+            {
+              "movieId": 22,
+              "nominatedBy": ["wes", "cole", "sunny", "brian"],
+              "ranking": {
+                "wes": 1,
+                "brian": 1,
+                "cole": 1,
+                "sunny": 1
+              }
+            },
+            {
+              "movieId": 354912,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "wes": 4,
+                "brian": 5,
+                "cole": 4,
+                "sunny": 5
+              }
+            },
+            {
+              "movieId": 155,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "wes": 5,
+                "brian": 3,
+                "cole": 5,
+                "sunny": 4
+              }
+            },
+            {
+              "movieId": 429,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "wes": 3,
+                "brian": 2,
+                "cole": 2,
+                "sunny": 2
+              }
+            },
+            {
+              "movieId": 568124,
+              "nominatedBy": ["cole"],
+              "ranking": {
+                "wes": 2,
+                "brian": 4,
+                "cole": 3,
+                "sunny": 3
+              }
+            }
+          ]
+        },
+        {
+          "title": "Best Worldbuilding",
+          "nominations": [
+            {
+              "movieId": 693134,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "wes": 3,
+                "cole": 4,
+                "sunny": 4,
+                "brian": 5
+              }
+            },
+            {
+              "movieId": 329865,
+              "nominatedBy": ["cole"],
+              "ranking": {
+                "wes": 5,
+                "cole": 3,
+                "sunny": 5,
+                "brian": 2
+              }
+            },
+            {
+              "movieId": 98,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "wes": 4,
+                "cole": 2,
+                "sunny": 3,
+                "brian": 3
+              }
+            },
+            {
+              "movieId": 8392,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "wes": 2,
+                "cole": 5,
+                "sunny": 2,
+                "brian": 4
+              }
+            },
+            {
+              "movieId": 22,
+              "nominatedBy": ["cole", "sunny", "wes"],
+              "ranking": {
+                "wes": 1,
+                "cole": 1,
+                "sunny": 1,
+                "brian": 1
+              }
+            }
+          ]
+        },
+        {
+          "title": "Best Screenplay/Story",
+          "nominations": [
+            {
+              "movieId": 329865,
+              "nominatedBy": ["wes", "brian"],
+              "ranking": {
+                "cole": 3,
+                "brian": 2,
+                "sunny": 3,
+                "wes": 1
+              }
+            },
+            {
+              "movieId": 77,
+              "nominatedBy": ["cole", "sunny"],
+              "ranking": {
+                "cole": 1,
+                "brian": 3,
+                "sunny": 1,
+                "wes": 3
+              }
+            },
+            {
+              "movieId": 666277,
+              "nominatedBy": ["cole", "brian"],
+              "ranking": {
+                "cole": 2,
+                "brian": 1,
+                "sunny": 4,
+                "wes": 2
+              }
+            },
+            {
+              "movieId": 10625,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "cole": 4,
+                "brian": 4,
+                "sunny": 2,
+                "wes": 4
+              }
+            }
+          ]
+        },
+        {
+          "title": "Best 2024 Picture",
+          "nominations": [
+            {
+              "movieId": 693134,
+              "nominatedBy": ["cole", "sunny", "wes"],
+              "ranking": {
+                "wes": 3,
+                "brian": 2,
+                "cole": 1,
+                "sunny": 1
+              }
+            },
+            {
+              "movieId": 558449,
+              "nominatedBy": ["cole"],
+              "ranking": {
+                "wes": 4,
+                "brian": 4,
+                "cole": 2,
+                "sunny": 4
+              }
+            },
+            {
+              "movieId": 746036,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "wes": 2,
+                "brian": 1,
+                "cole": 3,
+                "sunny": 3
+              }
+            },
+            {
+              "movieId": 1022789,
+              "nominatedBy": ["brian", "sunny", "wes"],
+              "ranking": {
+                "wes": 1,
+                "brian": 3,
+                "cole": 4,
+                "sunny": 2
+              }
+            }
+          ]
+        },
+        {
+          "title": "WORST Movie",
+          "nominations": [
+            {
+              "movieId": 675353,
+              "nominatedBy": ["wes", "cole"],
+              "ranking": {
+                "cole": 2,
+                "wes": 1,
+                "brian": 2,
+                "sunny": 2
+              }
+            },
+            {
+              "movieId": 673593,
+              "nominatedBy": ["cole", "brian", "sunny"],
+              "ranking": {
+                "cole": 1,
+                "wes": 2,
+                "brian": 1,
+                "sunny": 1
+              }
+            },
+            {
+              "movieId": 508883,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "cole": 3,
+                "wes": 3,
+                "brian": 3,
+                "sunny": 3
+              }
+            }
+          ]
+        },
+        {
+          "title": "Best Picture",
+          "nominations": [
+            {
+              "movieId": 150540,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "wes": 2,
+                "cole": 7,
+                "brian": 3,
+                "sunny": 3
+              }
+            },
+            {
+              "movieId": 329865,
+              "nominatedBy": ["wes", "brian"],
+              "ranking": {
+                "wes": 1,
+                "cole": 5,
+                "brian": 2,
+                "sunny": 5
+              }
+            },
+            {
+              "movieId": 693134,
+              "nominatedBy": ["cole"],
+              "ranking": {
+                "wes": 5,
+                "cole": 2,
+                "brian": 6,
+                "sunny": 4
+              }
+            },
+            {
+              "movieId": 807,
+              "nominatedBy": ["cole"],
+              "ranking": {
+                "wes": 4,
+                "cole": 1,
+                "brian": 5,
+                "sunny": 6
+              }
+            },
+            {
+              "movieId": 77,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "wes": 6,
+                "cole": 3,
+                "brian": 4,
+                "sunny": 2
+              }
+            },
+            {
+              "movieId": 666277,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "wes": 3,
+                "cole": 4,
+                "brian": 1,
+                "sunny": 7
+              }
+            },
+            {
+              "movieId": 792307,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "wes": 7,
+                "cole": 6,
+                "brian": 7,
+                "sunny": 1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "year": 2023,
+      "step": 4,
+      "awards": [
+        {
+          "title": "Worst MCU Movie",
+          "nominations": [
+            {
+              "movieId": 609681,
+              "nominatedBy": ["brian", "cole", "sunny", "wes"],
+              "ranking": {
+                "brian": 2,
+                "cole": 2,
+                "sunny": 1,
+                "wes": 2
+              }
+            },
+            {
+              "movieId": 640146,
+              "nominatedBy": ["brian", "cole", "sunny", "wes"],
+              "ranking": {
+                "brian": 1,
+                "cole": 1,
+                "sunny": 2,
+                "wes": 1
+              }
+            }
+          ]
+        },
+        {
+          "title": "How Convenient Award",
+          "nominations": [
+            {
+              "movieId": 458156,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "wes": 2,
+                "cole": 4,
+                "brian": 1,
+                "sunny": 3
+              }
+            },
+            {
+              "movieId": 335977,
+              "nominatedBy": ["brian", "wes"],
+              "ranking": {
+                "wes": 1,
+                "cole": 3,
+                "brian": 4,
+                "sunny": 2
+              }
+            },
+            {
+              "movieId": 603692,
+              "nominatedBy": ["cole", "wes"],
+              "ranking": {
+                "wes": 4,
+                "cole": 6,
+                "brian": 6,
+                "sunny": 6
+              }
+            },
+            {
+              "movieId": 502356,
+              "nominatedBy": ["cole"],
+              "ranking": {
+                "wes": 5,
+                "cole": 2,
+                "brian": 3,
+                "sunny": 5
+              }
+            },
+            {
+              "movieId": 776305,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "wes": 3,
+                "cole": 1,
+                "brian": 2,
+                "sunny": 1
+              }
+            },
+            {
+              "movieId": 609681,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "wes": 6,
+                "cole": 5,
+                "brian": 5,
+                "sunny": 4
+              }
+            }
+          ]
+        },
+        {
+          "title": "Good on paper, bad on screen",
+          "nominations": [
+            {
+              "movieId": 850,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "brian": 3,
+                "wes": 5,
+                "sunny": 5,
+                "cole": 4
+              }
+            },
+            {
+              "movieId": 753342,
+              "nominatedBy": ["brian", "cole", "sunny", "wes"],
+              "ranking": {
+                "brian": 1,
+                "wes": 1,
+                "sunny": 1,
+                "cole": 1
+              }
+            },
+            {
+              "movieId": 747188,
+              "nominatedBy": ["cole"],
+              "ranking": {
+                "brian": 5,
+                "wes": 4,
+                "sunny": 4,
+                "cole": 2
+              }
+            },
+            {
+              "movieId": 1172674,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "brian": 2,
+                "wes": 2,
+                "sunny": 2,
+                "cole": 3
+              }
+            },
+            {
+              "movieId": 335984,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "brian": 4,
+                "wes": 3,
+                "sunny": 3,
+                "cole": 5
+              }
+            }
+          ]
+        },
+        {
+          "title": "I Fell Asleep",
+          "nominations": [
+            {
+              "movieId": 76600,
+              "nominatedBy": ["brian", "cole", "sunny"],
+              "ranking": {
+                "sunny": 1,
+                "wes": 2,
+                "cole": 1,
+                "brian": 1
+              }
+            },
+            {
+              "movieId": 128,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "sunny": 5,
+                "wes": 5,
+                "cole": 3,
+                "brian": 2
+              }
+            },
+            {
+              "movieId": 335984,
+              "nominatedBy": ["cole", "sunny"],
+              "ranking": {
+                "sunny": 2,
+                "wes": 4,
+                "cole": 2,
+                "brian": 3
+              }
+            },
+            {
+              "movieId": 4348,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "sunny": 4,
+                "wes": 3,
+                "cole": 4,
+                "brian": 5
+              }
+            },
+            {
+              "movieId": 753342,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "sunny": 3,
+                "wes": 1,
+                "cole": 5,
+                "brian": 4
+              }
+            }
+          ]
+        },
+        {
+          "title": "ELA Teacher's Choice Award",
+          "nominations": [
+            {
+              "movieId": 4348,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "brian": 3,
+                "wes": 3,
+                "cole": 5,
+                "sunny": 3
+              }
+            },
+            {
+              "movieId": 6977,
+              "nominatedBy": ["cole", "sunny", "wes"],
+              "ranking": {
+                "brian": 2,
+                "wes": 1,
+                "cole": 1,
+                "sunny": 1
+              }
+            },
+            {
+              "movieId": 593643,
+              "nominatedBy": ["cole"],
+              "ranking": {
+                "brian": 4,
+                "wes": 5,
+                "cole": 2,
+                "sunny": 4
+              }
+            },
+            {
+              "movieId": 235,
+              "nominatedBy": ["brian", "wes"],
+              "ranking": {
+                "brian": 1,
+                "wes": 2,
+                "cole": 3,
+                "sunny": 2
+              }
+            },
+            {
+              "movieId": 680,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "brian": 5,
+                "wes": 4,
+                "cole": 4,
+                "sunny": 5
+              }
+            }
+          ]
+        },
+        {
+          "title": "Most Forgettable",
+          "nominations": [
+            {
+              "movieId": 128,
+              "nominatedBy": ["cole"],
+              "ranking": {
+                "brian": 2,
+                "cole": 1,
+                "wes": 3,
+                "sunny": 5
+              }
+            },
+            {
+              "movieId": 872,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "brian": 1,
+                "cole": 5,
+                "wes": 2,
+                "sunny": 7
+              }
+            },
+            {
+              "movieId": 335977,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "brian": 3,
+                "cole": 2,
+                "wes": 5,
+                "sunny": 6
+              }
+            },
+            {
+              "movieId": 76600,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "brian": 6,
+                "cole": 4,
+                "wes": 4,
+                "sunny": 1
+              }
+            },
+            {
+              "movieId": 1172675,
+              "nominatedBy": ["cole"],
+              "ranking": {
+                "brian": 4,
+                "cole": 3,
+                "wes": 7,
+                "sunny": 8
+              }
+            },
+            {
+              "movieId": 4348,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "brian": 7,
+                "cole": 6,
+                "wes": 1,
+                "sunny": 2
+              }
+            },
+            {
+              "movieId": 335984,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "brian": 5,
+                "cole": 7,
+                "wes": 8,
+                "sunny": 4
+              }
+            },
+            {
+              "movieId": 502356,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "brian": 8,
+                "cole": 8,
+                "wes": 6,
+                "sunny": 3
+              }
+            }
+          ]
+        },
+        {
+          "title": "Funniest Movie",
+          "nominations": [
+            {
+              "movieId": 8363,
+              "nominatedBy": ["brian", "cole", "sunny"],
+              "ranking": {
+                "wes": 3,
+                "brian": 1,
+                "cole": 2,
+                "sunny": 1
+              }
+            },
+            {
+              "movieId": 813,
+              "nominatedBy": ["brian", "cole", "sunny", "wes"],
+              "ranking": {
+                "wes": 1,
+                "brian": 2,
+                "cole": 1,
+                "sunny": 2
+              }
+            },
+            {
+              "movieId": 346698,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "wes": 2,
+                "brian": 3,
+                "cole": 3,
+                "sunny": 3
+              }
+            }
+          ]
+        },
+        {
+          "title": "Best Popcord Flick",
+          "nominations": [
+            {
+              "movieId": 161,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "brian": 1,
+                "cole": 2,
+                "wes": 4,
+                "sunny": 2
+              }
+            },
+            {
+              "movieId": 324857,
+              "nominatedBy": ["brian", "cole"],
+              "ranking": {
+                "brian": 2,
+                "cole": 3,
+                "wes": 1,
+                "sunny": 4
+              }
+            },
+            {
+              "movieId": 245891,
+              "nominatedBy": ["cole", "wes"],
+              "ranking": {
+                "brian": 4,
+                "cole": 1,
+                "wes": 2,
+                "sunny": 3
+              }
+            },
+            {
+              "movieId": 8363,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "brian": 3,
+                "cole": 4,
+                "wes": 6,
+                "sunny": 1
+              }
+            },
+            {
+              "movieId": 68718,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "brian": 5,
+                "cole": 5,
+                "wes": 5,
+                "sunny": 5
+              }
+            },
+            {
+              "movieId": 609681,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "brian": 6,
+                "cole": 6,
+                "wes": 3,
+                "sunny": 6
+              }
+            }
+          ]
+        },
+        {
+          "title": "Best Kids Movie",
+          "nominations": [
+            {
+              "movieId": 346648,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "brian": 1,
+                "cole": 4,
+                "sunny": 5,
+                "wes": 5
+              }
+            },
+            {
+              "movieId": 116149,
+              "nominatedBy": ["cole", "brian"],
+              "ranking": {
+                "brian": 2,
+                "cole": 1,
+                "sunny": 4,
+                "wes": 2
+              }
+            },
+            {
+              "movieId": 10315,
+              "nominatedBy": ["cole", "sunny"],
+              "ranking": {
+                "brian": 5,
+                "cole": 2,
+                "sunny": 1,
+                "wes": 4
+              }
+            },
+            {
+              "movieId": 787699,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "brian": 3,
+                "cole": 5,
+                "sunny": 2,
+                "wes": 1
+              }
+            },
+            {
+              "movieId": 850,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "brian": 4,
+                "cole": 3,
+                "sunny": 3,
+                "wes": 3
+              }
+            },
+            {
+              "movieId": 324857,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "brian": 6,
+                "cole": 6,
+                "sunny": 6,
+                "wes": 6
+              }
+            }
+          ]
+        },
+        {
+          "title": "Best Visuals",
+          "nominations": [
+            {
+              "movieId": 120467,
+              "nominatedBy": ["brian", "cole"],
+              "ranking": {
+                "cole": 1,
+                "brian": 1,
+                "wes": 2,
+                "sunny": 1
+              }
+            },
+            {
+              "movieId": 569094,
+              "nominatedBy": ["brian", "cole", "sunny", "wes"],
+              "ranking": {
+                "cole": 2,
+                "brian": 2,
+                "wes": 1,
+                "sunny": 2
+              }
+            },
+            {
+              "movieId": 923939,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "cole": 3,
+                "brian": 3,
+                "wes": 3,
+                "sunny": 3
+              }
+            }
+          ]
+        },
+        {
+          "title": "Best Original Score/Sound",
+          "nominations": [
+            {
+              "movieId": 324857,
+              "nominatedBy": ["brian", "wes"],
+              "ranking": {
+                "brian": 1,
+                "cole": 2,
+                "wes": 3,
+                "sunny": 1
+              }
+            },
+            {
+              "movieId": 346698,
+              "nominatedBy": ["cole"],
+              "ranking": {
+                "brian": 2,
+                "cole": 1,
+                "wes": 2,
+                "sunny": 2
+              }
+            },
+            {
+              "movieId": 787699,
+              "nominatedBy": ["cole", "brian", "sunny"],
+              "ranking": {
+                "brian": 3,
+                "cole": 3,
+                "wes": 4,
+                "sunny": 3
+              }
+            },
+            {
+              "movieId": 872,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "brian": 4,
+                "cole": 4,
+                "wes": 5,
+                "sunny": 4
+              }
+            },
+            {
+              "movieId": 776305,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "brian": 5,
+                "cole": 5,
+                "wes": 1,
+                "sunny": 5
+              }
+            }
+          ]
+        },
+        {
+          "title": "Best Worldbuilding",
+          "nominations": [
+            {
+              "movieId": 324857,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "wes": 4,
+                "sunny": 5,
+                "brian": 4,
+                "cole": 4
+              }
+            },
+            {
+              "movieId": 245891,
+              "nominatedBy": ["brian", "wes"],
+              "ranking": {
+                "wes": 1,
+                "sunny": 4,
+                "brian": 2,
+                "cole": 2
+              }
+            },
+            {
+              "movieId": 78,
+              "nominatedBy": ["cole", "sunny"],
+              "ranking": {
+                "wes": 2,
+                "sunny": 1,
+                "brian": 1,
+                "cole": 1
+              }
+            },
+            {
+              "movieId": 493529,
+              "nominatedBy": ["cole", "wes"],
+              "ranking": {
+                "wes": 3,
+                "sunny": 2,
+                "brian": 3,
+                "cole": 3
+              }
+            },
+            {
+              "movieId": 68718,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "wes": 5,
+                "sunny": 3,
+                "brian": 5,
+                "cole": 5
+              }
+            }
+          ]
+        },
+        {
+          "title": "Best Screenplay/Story",
+          "nominations": [
+            {
+              "movieId": 242582,
+              "nominatedBy": ["brian", "cole"],
+              "ranking": {
+                "brian": 1,
+                "cole": 1,
+                "wes": 4,
+                "sunny": 2
+              }
+            },
+            {
+              "movieId": 593643,
+              "nominatedBy": ["cole"],
+              "ranking": {
+                "brian": 5,
+                "cole": 3,
+                "wes": 6,
+                "sunny": 5
+              }
+            },
+            {
+              "movieId": 872585,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "brian": 4,
+                "cole": 6,
+                "wes": 1,
+                "sunny": 6
+              }
+            },
+            {
+              "movieId": 6977,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "brian": 3,
+                "cole": 2,
+                "wes": 2,
+                "sunny": 1
+              }
+            },
+            {
+              "movieId": 680,
+              "nominatedBy": ["sunny", "wes"],
+              "ranking": {
+                "brian": 2,
+                "cole": 4,
+                "wes": 3,
+                "sunny": 4
+              }
+            },
+            {
+              "movieId": 120467,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "brian": 6,
+                "cole": 5,
+                "wes": 5,
+                "sunny": 3
+              }
+            }
+          ]
+        },
+        {
+          "title": "Best 2023 Picture",
+          "nominations": [
+            {
+              "movieId": 872585,
+              "nominatedBy": ["brian", "cole", "wes"],
+              "ranking": {
+                "brian": 1,
+                "cole": 1,
+                "sunny": 2,
+                "wes": 1
+              }
+            },
+            {
+              "movieId": 569094,
+              "nominatedBy": ["brian", "cole", "sunny"],
+              "ranking": {
+                "brian": 2,
+                "cole": 2,
+                "sunny": 1,
+                "wes": 2
+              }
+            },
+            {
+              "movieId": 447365,
+              "nominatedBy": ["sunny", "wes"],
+              "ranking": {
+                "brian": 3,
+                "cole": 3,
+                "sunny": 3,
+                "wes": 3
+              }
+            }
+          ]
+        },
+        {
+          "title": "WORST Movie",
+          "nominations": [
+            {
+              "movieId": 776305,
+              "nominatedBy": ["brian", "cole"],
+              "ranking": {
+                "cole": 1,
+                "brian": 1,
+                "wes": 4,
+                "sunny": 2
+              }
+            },
+            {
+              "movieId": 753342,
+              "nominatedBy": ["brian", "sunny", "wes"],
+              "ranking": {
+                "cole": 4,
+                "brian": 3,
+                "wes": 3,
+                "sunny": 3
+              }
+            },
+            {
+              "movieId": 76600,
+              "nominatedBy": ["cole", "sunny"],
+              "ranking": {
+                "cole": 2,
+                "brian": 2,
+                "wes": 2,
+                "sunny": 1
+              }
+            },
+            {
+              "movieId": 1268,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "cole": 3,
+                "brian": 4,
+                "wes": 1,
+                "sunny": 4
+              }
+            }
+          ]
+        },
+        {
+          "title": "Best Picture",
+          "nominations": [
+            {
+              "movieId": 242582,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "cole": 2,
+                "brian": 2,
+                "sunny": 3,
+                "wes": 3
+              }
+            },
+            {
+              "movieId": 680,
+              "nominatedBy": ["brian", "cole"],
+              "ranking": {
+                "cole": 1,
+                "brian": 1,
+                "sunny": 1,
+                "wes": 5
+              }
+            },
+            {
+              "movieId": 68718,
+              "nominatedBy": ["cole", "sunny", "wes"],
+              "ranking": {
+                "cole": 3,
+                "brian": 5,
+                "sunny": 2,
+                "wes": 2
+              }
+            },
+            {
+              "movieId": 569094,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "cole": 5,
+                "brian": 4,
+                "sunny": 4,
+                "wes": 4
+              }
+            },
+            {
+              "movieId": 872585,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "cole": 4,
+                "brian": 3,
+                "sunny": 5,
+                "wes": 1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "year": 2022,
+      "step": 4,
+      "awards": [
+        {
+          "title": "Best MCU Movie",
+          "nominations": [
+            {
+              "movieId": 505642,
+              "nominatedBy": ["wes", "cole", "brian", "sunny"],
+              "ranking": {
+                "wes": 1,
+                "brian": 2,
+                "sunny": 1,
+                "cole": 1
+              }
+            },
+            {
+              "movieId": 453395,
+              "nominatedBy": ["wes", "brian", "sunny"],
+              "ranking": {
+                "wes": 2,
+                "brian": 1,
+                "sunny": 2,
+                "cole": 2
+              }
+            },
+            {
+              "movieId": 616037,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "wes": 3,
+                "brian": 3,
+                "sunny": 3,
+                "cole": 3
+              }
+            }
+          ]
+        },
+        {
+          "title": "WORST MCU Movie",
+          "nominations": [
+            {
+              "movieId": 616037,
+              "nominatedBy": ["wes", "cole", "brian", "sunny"],
+              "ranking": {
+                "wes": 1,
+                "brian": 1,
+                "cole": 1,
+                "sunny": 1
+              }
+            },
+            {
+              "movieId": 453395,
+              "nominatedBy": ["cole", "brian", "sunny"],
+              "ranking": {
+                "wes": 2,
+                "brian": 3,
+                "cole": 2,
+                "sunny": 2
+              }
+            },
+            {
+              "movieId": 505642,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "wes": 3,
+                "brian": 2,
+                "cole": 3,
+                "sunny": 3
+              }
+            }
+          ]
+        },
+        {
+          "title": "Deus Ex Machina Award",
+          "nominations": [
+            {
+              "movieId": 348350,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "wes": 6,
+                "brian": 5,
+                "cole": 6,
+                "sunny": 2
+              }
+            },
+            {
+              "movieId": 616037,
+              "nominatedBy": ["wes", "brian"],
+              "ranking": {
+                "wes": 1,
+                "brian": 1,
+                "cole": 3,
+                "sunny": 1
+              }
+            },
+            {
+              "movieId": 671,
+              "nominatedBy": ["cole"],
+              "ranking": {
+                "wes": 4,
+                "brian": 7,
+                "cole": 7,
+                "sunny": 6
+              }
+            },
+            {
+              "movieId": 181812,
+              "nominatedBy": ["cole"],
+              "ranking": {
+                "wes": 3,
+                "brian": 4,
+                "cole": 1,
+                "sunny": 7
+              }
+            },
+            {
+              "movieId": 672,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "wes": 2,
+                "brian": 6,
+                "cole": 2,
+                "sunny": 4
+              }
+            },
+            {
+              "movieId": 453395,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "wes": 7,
+                "brian": 3,
+                "cole": 5,
+                "sunny": 5
+              }
+            },
+            {
+              "movieId": 19995,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "wes": 5,
+                "brian": 2,
+                "cole": 4,
+                "sunny": 3
+              }
+            }
+          ]
+        },
+        {
+          "title": "Most Plot Armour",
+          "nominations": [
+            {
+              "movieId": 12445,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "wes": 5,
+                "cole": 3,
+                "brian": 5,
+                "sunny": 5
+              }
+            },
+            {
+              "movieId": 140607,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "wes": 2,
+                "cole": 4,
+                "brian": 2,
+                "sunny": 3
+              }
+            },
+            {
+              "movieId": 1893,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "wes": 4,
+                "cole": 5,
+                "brian": 1,
+                "sunny": 4
+              }
+            },
+            {
+              "movieId": 348350,
+              "nominatedBy": ["wes", "cole", "sunny"],
+              "ranking": {
+                "wes": 1,
+                "cole": 1,
+                "brian": 4,
+                "sunny": 1
+              }
+            },
+            {
+              "movieId": 616037,
+              "nominatedBy": ["cole", "sunny"],
+              "ranking": {
+                "wes": 3,
+                "cole": 2,
+                "brian": 3,
+                "sunny": 2
+              }
+            }
+          ]
+        },
+        {
+          "title": "I Fell Asleep",
+          "nominations": [
+            {
+              "movieId": 770,
+              "nominatedBy": ["wes", "sunny"],
+              "ranking": {
+                "wes": 2,
+                "cole": 6,
+                "brian": 5,
+                "sunny": 3
+              }
+            },
+            {
+              "movieId": 947,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "wes": 3,
+                "cole": 7,
+                "brian": 8,
+                "sunny": 7
+              }
+            },
+            {
+              "movieId": 12444,
+              "nominatedBy": ["wes", "cole"],
+              "ranking": {
+                "wes": 1,
+                "cole": 2,
+                "brian": 7,
+                "sunny": 2
+              }
+            },
+            {
+              "movieId": 19995,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "wes": 5,
+                "cole": 5,
+                "brian": 1,
+                "sunny": 5
+              }
+            },
+            {
+              "movieId": 149871,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "wes": 8,
+                "cole": 1,
+                "brian": 3,
+                "sunny": 8
+              }
+            },
+            {
+              "movieId": 28257,
+              "nominatedBy": ["cole"],
+              "ranking": {
+                "wes": 4,
+                "cole": 3,
+                "brian": 4,
+                "sunny": 6
+              }
+            },
+            {
+              "movieId": 651,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "wes": 6,
+                "cole": 4,
+                "brian": 6,
+                "sunny": 1
+              }
+            },
+            {
+              "movieId": 1893,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "wes": 7,
+                "cole": 8,
+                "brian": 2,
+                "sunny": 4
+              }
+            }
+          ]
+        },
+        {
+          "title": "Funniest Movie",
+          "nominations": [
+            {
+              "movieId": 1542,
+              "nominatedBy": ["wes", "brian", "cole"],
+              "ranking": {
+                "wes": 3,
+                "cole": 2,
+                "sunny": 3,
+                "brian": 2
+              }
+            },
+            {
+              "movieId": 545611,
+              "nominatedBy": ["wes", "cole"],
+              "ranking": {
+                "wes": 1,
+                "cole": 3,
+                "sunny": 2,
+                "brian": 3
+              }
+            },
+            {
+              "movieId": 4638,
+              "nominatedBy": ["brian", "cole", "sunny"],
+              "ranking": {
+                "wes": 2,
+                "cole": 1,
+                "sunny": 1,
+                "brian": 1
+              }
+            },
+            {
+              "movieId": 661374,
+              "nominatedBy": ["brian", "sunny"],
+              "ranking": {
+                "wes": 4,
+                "cole": 5,
+                "sunny": 4,
+                "brian": 4
+              }
+            },
+            {
+              "movieId": 7453,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "wes": 5,
+                "cole": 4,
+                "sunny": 5,
+                "brian": 5
+              }
+            }
+          ]
+        },
+        {
+          "title": "Best Popcorn Flick",
+          "nominations": [
+            {
+              "movieId": 361743,
+              "nominatedBy": ["wes", "brian"],
+              "ranking": {
+                "wes": 2,
+                "cole": 2,
+                "sunny": 1,
+                "brian": 1
+              }
+            },
+            {
+              "movieId": 330459,
+              "nominatedBy": ["wes", "brian", "cole"],
+              "ranking": {
+                "wes": 1,
+                "cole": 1,
+                "sunny": 5,
+                "brian": 2
+              }
+            },
+            {
+              "movieId": 12445,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "wes": 3,
+                "cole": 7,
+                "sunny": 7,
+                "brian": 6
+              }
+            },
+            {
+              "movieId": 578,
+              "nominatedBy": ["cole"],
+              "ranking": {
+                "wes": 6,
+                "cole": 3,
+                "sunny": 3,
+                "brian": 4
+              }
+            },
+            {
+              "movieId": 4638,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "wes": 4,
+                "cole": 4,
+                "sunny": 2,
+                "brian": 8
+              }
+            },
+            {
+              "movieId": 545611,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "wes": 7,
+                "cole": 6,
+                "sunny": 4,
+                "brian": 5
+              }
+            },
+            {
+              "movieId": 11,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "wes": 5,
+                "cole": 5,
+                "sunny": 8,
+                "brian": 3
+              }
+            },
+            {
+              "movieId": 661374,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "wes": 8,
+                "cole": 8,
+                "sunny": 6,
+                "brian": 7
+              }
+            }
+          ]
+        },
+        {
+          "title": "ELA Teacher's Choice Award",
+          "nominations": [
+            {
+              "movieId": 185,
+              "nominatedBy": ["wes", "cole", "sunny"],
+              "ranking": {
+                "brian": 5,
+                "wes": 1,
+                "sunny": 2,
+                "cole": 1
+              }
+            },
+            {
+              "movieId": 4922,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "brian": 6,
+                "wes": 4,
+                "sunny": 7,
+                "cole": 6
+              }
+            },
+            {
+              "movieId": 947,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "brian": 1,
+                "wes": 6,
+                "sunny": 3,
+                "cole": 4
+              }
+            },
+            {
+              "movieId": 694,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "brian": 4,
+                "wes": 5,
+                "sunny": 4,
+                "cole": 3
+              }
+            },
+            {
+              "movieId": 489,
+              "nominatedBy": ["brian", "sunny"],
+              "ranking": {
+                "brian": 2,
+                "wes": 2,
+                "sunny": 1,
+                "cole": 2
+              }
+            },
+            {
+              "movieId": 762504,
+              "nominatedBy": ["cole"],
+              "ranking": {
+                "brian": 3,
+                "wes": 3,
+                "sunny": 5,
+                "cole": 5
+              }
+            },
+            {
+              "movieId": 149871,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "brian": 7,
+                "wes": 7,
+                "sunny": 6,
+                "cole": 7
+              }
+            }
+          ]
+        },
+        {
+          "title": "Best Visual Effects",
+          "nominations": [
+            {
+              "movieId": 19995,
+              "nominatedBy": ["wes", "cole", "sunny"],
+              "ranking": {
+                "brian": 4,
+                "cole": 3,
+                "wes": 4,
+                "sunny": 4
+              }
+            },
+            {
+              "movieId": 149871,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "brian": 5,
+                "cole": 5,
+                "wes": 2,
+                "sunny": 2
+              }
+            },
+            {
+              "movieId": 545611,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "brian": 3,
+                "cole": 4,
+                "wes": 5,
+                "sunny": 5
+              }
+            },
+            {
+              "movieId": 453395,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "brian": 2,
+                "cole": 2,
+                "wes": 3,
+                "sunny": 3
+              }
+            },
+            {
+              "movieId": 181808,
+              "nominatedBy": ["cole"],
+              "ranking": {
+                "brian": 1,
+                "cole": 1,
+                "wes": 1,
+                "sunny": 1
+              }
+            }
+          ]
+        },
+        {
+          "title": "Best Cinematography",
+          "nominations": [
+            {
+              "movieId": 578,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "brian": 6,
+                "sunny": 4,
+                "cole": 2,
+                "wes": 4
+              }
+            },
+            {
+              "movieId": 762504,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "brian": 5,
+                "sunny": 2,
+                "cole": 3,
+                "wes": 1
+              }
+            },
+            {
+              "movieId": 947,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "brian": 4,
+                "sunny": 6,
+                "cole": 6,
+                "wes": 7
+              }
+            },
+            {
+              "movieId": 361743,
+              "nominatedBy": ["brian", "cole"],
+              "ranking": {
+                "brian": 1,
+                "sunny": 3,
+                "cole": 1,
+                "wes": 2
+              }
+            },
+            {
+              "movieId": 414906,
+              "nominatedBy": ["brian", "cole"],
+              "ranking": {
+                "brian": 2,
+                "sunny": 7,
+                "cole": 5,
+                "wes": 5
+              }
+            },
+            {
+              "movieId": 348,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "brian": 7,
+                "sunny": 8,
+                "cole": 7,
+                "wes": 8
+              }
+            },
+            {
+              "movieId": 545611,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "brian": 3,
+                "sunny": 1,
+                "cole": 4,
+                "wes": 3
+              }
+            },
+            {
+              "movieId": 185,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "brian": 8,
+                "sunny": 5,
+                "cole": 8,
+                "wes": 6
+              }
+            }
+          ]
+        },
+        {
+          "title": "Best Original Score/Sound",
+          "nominations": [
+            {
+              "movieId": 11,
+              "nominatedBy": ["wes", "cole"],
+              "ranking": {
+                "brian": 1,
+                "wes": 3,
+                "cole": 1,
+                "sunny": 1
+              }
+            },
+            {
+              "movieId": 578,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "brian": 6,
+                "wes": 1,
+                "cole": 4,
+                "sunny": 3
+              }
+            },
+            {
+              "movieId": 661374,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "brian": 8,
+                "wes": 4,
+                "cole": 7,
+                "sunny": 7
+              }
+            },
+            {
+              "movieId": 671,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "brian": 2,
+                "wes": 5,
+                "cole": 3,
+                "sunny": 4
+              }
+            },
+            {
+              "movieId": 361743,
+              "nominatedBy": ["brian", "cole"],
+              "ranking": {
+                "brian": 3,
+                "wes": 2,
+                "cole": 2,
+                "sunny": 2
+              }
+            },
+            {
+              "movieId": 414906,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "brian": 4,
+                "wes": 7,
+                "cole": 6,
+                "sunny": 6
+              }
+            },
+            {
+              "movieId": 181812,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "brian": 7,
+                "wes": 8,
+                "cole": 8,
+                "sunny": 8
+              }
+            },
+            {
+              "movieId": 829,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "brian": 5,
+                "wes": 6,
+                "cole": 5,
+                "sunny": 5
+              }
+            }
+          ]
+        },
+        {
+          "title": "Best Worldbuilding",
+          "nominations": [
+            {
+              "movieId": 330459,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "brian": 4,
+                "cole": 4,
+                "sunny": 4,
+                "wes": 1
+              }
+            },
+            {
+              "movieId": 671,
+              "nominatedBy": ["wes", "brian", "cole"],
+              "ranking": {
+                "brian": 1,
+                "cole": 2,
+                "sunny": 2,
+                "wes": 4
+              }
+            },
+            {
+              "movieId": 414906,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "brian": 2,
+                "cole": 3,
+                "sunny": 3,
+                "wes": 3
+              }
+            },
+            {
+              "movieId": 12444,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "brian": 6,
+                "cole": 6,
+                "sunny": 6,
+                "wes": 5
+              }
+            },
+            {
+              "movieId": 140607,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "brian": 5,
+                "cole": 5,
+                "sunny": 5,
+                "wes": 6
+              }
+            },
+            {
+              "movieId": 11,
+              "nominatedBy": ["cole"],
+              "ranking": {
+                "brian": 3,
+                "cole": 1,
+                "sunny": 1,
+                "wes": 2
+              }
+            }
+          ]
+        },
+        {
+          "title": "Best Screenplay/Story",
+          "nominations": [
+            {
+              "movieId": 545611,
+              "nominatedBy": ["wes", "sunny"],
+              "ranking": {
+                "brian": 4,
+                "wes": 2,
+                "sunny": 2,
+                "cole": 5
+              }
+            },
+            {
+              "movieId": 661374,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "brian": 7,
+                "wes": 4,
+                "sunny": 8,
+                "cole": 8
+              }
+            },
+            {
+              "movieId": 489,
+              "nominatedBy": ["wes", "sunny"],
+              "ranking": {
+                "brian": 1,
+                "wes": 1,
+                "sunny": 1,
+                "cole": 1
+              }
+            },
+            {
+              "movieId": 361743,
+              "nominatedBy": ["brian", "cole"],
+              "ranking": {
+                "brian": 3,
+                "wes": 5,
+                "sunny": 7,
+                "cole": 3
+              }
+            },
+            {
+              "movieId": 947,
+              "nominatedBy": ["brian", "cole"],
+              "ranking": {
+                "brian": 2,
+                "wes": 6,
+                "sunny": 4,
+                "cole": 2
+              }
+            },
+            {
+              "movieId": 4638,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "brian": 5,
+                "wes": 8,
+                "sunny": 3,
+                "cole": 6
+              }
+            },
+            {
+              "movieId": 185,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "brian": 8,
+                "wes": 7,
+                "sunny": 6,
+                "cole": 7
+              }
+            },
+            {
+              "movieId": 578,
+              "nominatedBy": ["cole"],
+              "ranking": {
+                "brian": 6,
+                "wes": 3,
+                "sunny": 5,
+                "cole": 4
+              }
+            }
+          ]
+        },
+        {
+          "title": "WORST Movie",
+          "nominations": [
+            {
+              "movieId": 651,
+              "nominatedBy": ["wes", "brian", "sunny", "cole", "cole"],
+              "ranking": {
+                "brian": 1,
+                "cole": 1,
+                "wes": 1,
+                "sunny": 1
+              }
+            },
+            {
+              "movieId": 185,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "brian": 2,
+                "cole": 7,
+                "wes": 2,
+                "sunny": 7
+              }
+            },
+            {
+              "movieId": 616037,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "brian": 3,
+                "cole": 2,
+                "wes": 3,
+                "sunny": 2
+              }
+            },
+            {
+              "movieId": 1893,
+              "nominatedBy": ["brian", "cole"],
+              "ranking": {
+                "brian": 4,
+                "cole": 3,
+                "wes": 5,
+                "sunny": 5
+              }
+            },
+            {
+              "movieId": 453395,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "brian": 7,
+                "cole": 6,
+                "wes": 7,
+                "sunny": 3
+              }
+            },
+            {
+              "movieId": 767,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "brian": 6,
+                "cole": 4,
+                "wes": 4,
+                "sunny": 6
+              }
+            },
+            {
+              "movieId": 28257,
+              "nominatedBy": ["cole"],
+              "ranking": {
+                "brian": 5,
+                "cole": 5,
+                "wes": 6,
+                "sunny": 4
+              }
+            }
+          ]
+        },
+        {
+          "title": "Best Picture",
+          "nominations": [
+            {
+              "movieId": 545611,
+              "nominatedBy": ["wes", "sunny"],
+              "ranking": {
+                "brian": 5,
+                "wes": 1,
+                "cole": 5,
+                "sunny": 2
+              }
+            },
+            {
+              "movieId": 661374,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "brian": 6,
+                "wes": 5,
+                "cole": 6,
+                "sunny": 6
+              }
+            },
+            {
+              "movieId": 361743,
+              "nominatedBy": ["brian", "sunny", "cole"],
+              "ranking": {
+                "brian": 2,
+                "wes": 2,
+                "cole": 2,
+                "sunny": 4
+              }
+            },
+            {
+              "movieId": 947,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "brian": 3,
+                "wes": 6,
+                "cole": 4,
+                "sunny": 3
+              }
+            },
+            {
+              "movieId": 489,
+              "nominatedBy": ["sunny", "brian", "cole"],
+              "ranking": {
+                "brian": 1,
+                "wes": 4,
+                "cole": 1,
+                "sunny": 1
+              }
+            },
+            {
+              "movieId": 829,
+              "nominatedBy": ["cole"],
+              "ranking": {
+                "brian": 4,
+                "wes": 3,
+                "cole": 3,
+                "sunny": 5
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "year": 2021,
+      "step": 4,
+      "awards": [
+        {
+          "title": "Deus Ex Machina",
+          "nominations": [
+            {
+              "movieId": 497698,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "brian": 3,
+                "cole": 5,
+                "sunny": 1,
+                "wes": 1
+              }
+            },
+            {
+              "movieId": 747,
+              "nominatedBy": ["cole"],
+              "ranking": {
+                "brian": 4,
+                "cole": 3,
+                "sunny": 2,
+                "wes": 3
+              }
+            },
+            {
+              "movieId": 329,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "brian": 5,
+                "cole": 2,
+                "sunny": 3,
+                "wes": 5
+              }
+            },
+            {
+              "movieId": 217,
+              "nominatedBy": ["sunny", "cole"],
+              "ranking": {
+                "brian": 2,
+                "cole": 1,
+                "sunny": 4,
+                "wes": 2
+              }
+            },
+            {
+              "movieId": 157336,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "brian": 1,
+                "cole": 4,
+                "sunny": 5,
+                "wes": 4
+              }
+            }
+          ]
+        },
+        {
+          "title": "I Fell Asleep",
+          "nominations": [
+            {
+              "movieId": 559907,
+              "nominatedBy": ["wes", "sunny", "cole", "brian"],
+              "ranking": {
+                "brian": 1,
+                "sunny": 1,
+                "wes": 1,
+                "cole": 1
+              }
+            },
+            {
+              "movieId": 62,
+              "nominatedBy": ["cole", "wes"],
+              "ranking": {
+                "brian": 2,
+                "sunny": 2,
+                "wes": 3,
+                "cole": 2
+              }
+            },
+            {
+              "movieId": 242,
+              "nominatedBy": ["cole", "sunny"],
+              "ranking": {
+                "brian": 3,
+                "sunny": 3,
+                "wes": 2,
+                "cole": 3
+              }
+            },
+            {
+              "movieId": 438631,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "brian": 5,
+                "sunny": 4,
+                "wes": 5,
+                "cole": 5
+              }
+            },
+            {
+              "movieId": 15,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "brian": 4,
+                "sunny": 5,
+                "wes": 4,
+                "cole": 4
+              }
+            }
+          ]
+        },
+        {
+          "title": "Hottest Take",
+          "nominations": [
+            {
+              "movieId": 11631,
+              "nominatedBy": ["sunny", "cole", "brian", "wes"],
+              "ranking": {
+                "brian": 4,
+                "wes": 4,
+                "cole": 1,
+                "sunny": 2
+              }
+            },
+            {
+              "movieId": 165,
+              "nominatedBy": ["cole"],
+              "ranking": {
+                "brian": 1,
+                "wes": 1,
+                "cole": 3,
+                "sunny": 3
+              }
+            },
+            {
+              "movieId": 473033,
+              "nominatedBy": ["cole", "brian"],
+              "ranking": {
+                "brian": 2,
+                "wes": 3,
+                "cole": 2,
+                "sunny": 1
+              }
+            },
+            {
+              "movieId": 62,
+              "nominatedBy": ["sunny", "wes"],
+              "ranking": {
+                "brian": 3,
+                "wes": 2,
+                "cole": 4,
+                "sunny": 4
+              }
+            }
+          ]
+        },
+        {
+          "title": "Best MCU Movie",
+          "nominations": [
+            {
+              "movieId": 634649,
+              "nominatedBy": ["wes", "cole", "sunny", "brian"],
+              "ranking": {
+                "brian": 1,
+                "cole": 1,
+                "sunny": 1,
+                "wes": 1
+              }
+            },
+            {
+              "movieId": 566525,
+              "nominatedBy": ["wes", "cole", "sunny", "brian"],
+              "ranking": {
+                "brian": 2,
+                "cole": 2,
+                "sunny": 2,
+                "wes": 2
+              }
+            },
+            {
+              "movieId": 497698,
+              "nominatedBy": ["cole"],
+              "ranking": {
+                "brian": 3,
+                "cole": 3,
+                "sunny": 3,
+                "wes": 3
+              }
+            }
+          ]
+        },
+        {
+          "title": "Best Worldbuilding",
+          "nominations": [
+            {
+              "movieId": 157336,
+              "nominatedBy": ["wes", "cole"],
+              "ranking": {
+                "brian": 1,
+                "wes": 2,
+                "cole": 4,
+                "sunny": 3
+              }
+            },
+            {
+              "movieId": 646380,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "brian": 8,
+                "wes": 7,
+                "cole": 7,
+                "sunny": 7
+              }
+            },
+            {
+              "movieId": 438631,
+              "nominatedBy": ["wes", "cole", "sunny"],
+              "ranking": {
+                "brian": 2,
+                "wes": 1,
+                "cole": 1,
+                "sunny": 1
+              }
+            },
+            {
+              "movieId": 329,
+              "nominatedBy": ["cole"],
+              "ranking": {
+                "brian": 5,
+                "wes": 5,
+                "cole": 5,
+                "sunny": 5
+              }
+            },
+            {
+              "movieId": 105,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "brian": 3,
+                "wes": 3,
+                "cole": 3,
+                "sunny": 2
+              }
+            },
+            {
+              "movieId": 238,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "brian": 6,
+                "wes": 6,
+                "cole": 8,
+                "sunny": 6
+              }
+            },
+            {
+              "movieId": 37165,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "brian": 4,
+                "wes": 4,
+                "cole": 6,
+                "sunny": 8
+              }
+            },
+            {
+              "movieId": 542178,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "brian": 7,
+                "wes": 8,
+                "cole": 2,
+                "sunny": 4
+              }
+            }
+          ]
+        },
+        {
+          "title": "Funniest Movie",
+          "nominations": [
+            {
+              "movieId": 634649,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "brian": 5,
+                "wes": 1,
+                "cole": 7,
+                "sunny": 6
+              }
+            },
+            {
+              "movieId": 788,
+              "nominatedBy": ["wes", "sunny"],
+              "ranking": {
+                "brian": 7,
+                "wes": 3,
+                "cole": 6,
+                "sunny": 5
+              }
+            },
+            {
+              "movieId": 105,
+              "nominatedBy": ["cole"],
+              "ranking": {
+                "brian": 4,
+                "wes": 7,
+                "cole": 3,
+                "sunny": 4
+              }
+            },
+            {
+              "movieId": 115,
+              "nominatedBy": ["cole", "sunny", "brian"],
+              "ranking": {
+                "brian": 1,
+                "wes": 4,
+                "cole": 1,
+                "sunny": 1
+              }
+            },
+            {
+              "movieId": 137,
+              "nominatedBy": ["cole", "brian"],
+              "ranking": {
+                "brian": 2,
+                "wes": 2,
+                "cole": 2,
+                "sunny": 2
+              }
+            },
+            {
+              "movieId": 747,
+              "nominatedBy": ["sunny", "brian"],
+              "ranking": {
+                "brian": 3,
+                "wes": 5,
+                "cole": 5,
+                "sunny": 3
+              }
+            },
+            {
+              "movieId": 8491,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "brian": 6,
+                "wes": 6,
+                "cole": 4,
+                "sunny": 7
+              }
+            }
+          ]
+        },
+        {
+          "title": "Best Original Score/Sound",
+          "nominations": [
+            {
+              "movieId": 313369,
+              "nominatedBy": ["sunny", "wes", "cole", "brian"],
+              "ranking": {
+                "brian": 1,
+                "cole": 1,
+                "wes": 1,
+                "sunny": 1
+              }
+            },
+            {
+              "movieId": 157336,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "brian": 4,
+                "cole": 5,
+                "wes": 5,
+                "sunny": 2
+              }
+            },
+            {
+              "movieId": 11631,
+              "nominatedBy": ["wes", "brian"],
+              "ranking": {
+                "brian": 2,
+                "cole": 4,
+                "wes": 4,
+                "sunny": 5
+              }
+            },
+            {
+              "movieId": 337374,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "brian": 7,
+                "cole": 7,
+                "wes": 3,
+                "sunny": 7
+              }
+            },
+            {
+              "movieId": 329,
+              "nominatedBy": ["cole"],
+              "ranking": {
+                "brian": 3,
+                "cole": 3,
+                "wes": 2,
+                "sunny": 3
+              }
+            },
+            {
+              "movieId": 244786,
+              "nominatedBy": ["cole", "sunny"],
+              "ranking": {
+                "brian": 6,
+                "cole": 2,
+                "wes": 6,
+                "sunny": 4
+              }
+            },
+            {
+              "movieId": 37799,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "brian": 5,
+                "cole": 6,
+                "wes": 7,
+                "sunny": 6
+              }
+            }
+          ]
+        },
+        {
+          "title": "Best Popcorn Flick",
+          "nominations": [
+            {
+              "movieId": 634649,
+              "nominatedBy": ["wes", "brian"],
+              "ranking": {
+                "brian": 4,
+                "wes": 3,
+                "cole": 7,
+                "sunny": 6
+              }
+            },
+            {
+              "movieId": 370172,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "brian": 8,
+                "wes": 5,
+                "cole": 8,
+                "sunny": 8
+              }
+            },
+            {
+              "movieId": 85,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "brian": 2,
+                "wes": 4,
+                "cole": 2,
+                "sunny": 2
+              }
+            },
+            {
+              "movieId": 562,
+              "nominatedBy": ["cole", "sunny", "brian"],
+              "ranking": {
+                "brian": 1,
+                "wes": 1,
+                "cole": 1,
+                "sunny": 1
+              }
+            },
+            {
+              "movieId": 550988,
+              "nominatedBy": ["cole", "sunny"],
+              "ranking": {
+                "brian": 5,
+                "wes": 2,
+                "cole": 5,
+                "sunny": 3
+              }
+            },
+            {
+              "movieId": 8491,
+              "nominatedBy": ["cole"],
+              "ranking": {
+                "brian": 7,
+                "wes": 6,
+                "cole": 4,
+                "sunny": 5
+              }
+            },
+            {
+              "movieId": 9377,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "brian": 3,
+                "wes": 7,
+                "cole": 3,
+                "sunny": 4
+              }
+            },
+            {
+              "movieId": 11631,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "brian": 6,
+                "wes": 8,
+                "cole": 6,
+                "sunny": 7
+              }
+            }
+          ]
+        },
+        {
+          "title": "Best Visual Effects",
+          "nominations": [
+            {
+              "movieId": 129,
+              "nominatedBy": ["wes", "cole", "sunny", "brian"],
+              "ranking": {
+                "brian": 1,
+                "cole": 4,
+                "wes": 3,
+                "sunny": 1
+              }
+            },
+            {
+              "movieId": 438631,
+              "nominatedBy": ["cole"],
+              "ranking": {
+                "brian": 5,
+                "cole": 2,
+                "wes": 4,
+                "sunny": 2
+              }
+            },
+            {
+              "movieId": 329,
+              "nominatedBy": ["cole"],
+              "ranking": {
+                "brian": 3,
+                "cole": 1,
+                "wes": 2,
+                "sunny": 3
+              }
+            },
+            {
+              "movieId": 157336,
+              "nominatedBy": ["sunny", "wes", "brian"],
+              "ranking": {
+                "brian": 2,
+                "cole": 3,
+                "wes": 1,
+                "sunny": 4
+              }
+            },
+            {
+              "movieId": 524434,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "brian": 6,
+                "cole": 5,
+                "wes": 5,
+                "sunny": 5
+              }
+            },
+            {
+              "movieId": 62,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "brian": 4,
+                "cole": 6,
+                "wes": 6,
+                "sunny": 6
+              }
+            }
+          ]
+        },
+        {
+          "title": "Best Cinematography",
+          "nominations": [
+            {
+              "movieId": 313369,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "brian": 1,
+                "wes": 1,
+                "sunny": 2,
+                "cole": 5
+              }
+            },
+            {
+              "movieId": 389,
+              "nominatedBy": ["wes", "wes"],
+              "ranking": {
+                "brian": 7,
+                "wes": 7,
+                "sunny": 7,
+                "cole": 7
+              }
+            },
+            {
+              "movieId": 542178,
+              "nominatedBy": ["cole", "sunny", "brian"],
+              "ranking": {
+                "brian": 2,
+                "wes": 2,
+                "sunny": 1,
+                "cole": 1
+              }
+            },
+            {
+              "movieId": 374720,
+              "nominatedBy": ["cole", "sunny"],
+              "ranking": {
+                "brian": 4,
+                "wes": 3,
+                "sunny": 4,
+                "cole": 4
+              }
+            },
+            {
+              "movieId": 473033,
+              "nominatedBy": ["cole"],
+              "ranking": {
+                "brian": 6,
+                "wes": 6,
+                "sunny": 3,
+                "cole": 3
+              }
+            },
+            {
+              "movieId": 438631,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "brian": 3,
+                "wes": 4,
+                "sunny": 5,
+                "cole": 2
+              }
+            },
+            {
+              "movieId": 37799,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "brian": 5,
+                "wes": 5,
+                "sunny": 6,
+                "cole": 6
+              }
+            }
+          ]
+        },
+        {
+          "title": "ELA Teacher's Choice",
+          "nominations": [
+            {
+              "movieId": 559907,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "brian": 7,
+                "cole": 7,
+                "wes": 1,
+                "sunny": 6
+              }
+            },
+            {
+              "movieId": 496243,
+              "nominatedBy": ["wes", "brian"],
+              "ranking": {
+                "brian": 1,
+                "cole": 1,
+                "wes": 2,
+                "sunny": 1
+              }
+            },
+            {
+              "movieId": 278,
+              "nominatedBy": ["sunny", "cole"],
+              "ranking": {
+                "brian": 6,
+                "cole": 5,
+                "wes": 6,
+                "sunny": 3
+              }
+            },
+            {
+              "movieId": 15,
+              "nominatedBy": ["cole"],
+              "ranking": {
+                "brian": 8,
+                "cole": 6,
+                "wes": 7,
+                "sunny": 7
+              }
+            },
+            {
+              "movieId": 550,
+              "nominatedBy": ["cole", "brian"],
+              "ranking": {
+                "brian": 4,
+                "cole": 2,
+                "wes": 5,
+                "sunny": 2
+              }
+            },
+            {
+              "movieId": 389,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "brian": 2,
+                "cole": 3,
+                "wes": 3,
+                "sunny": 5
+              }
+            },
+            {
+              "movieId": 238,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "brian": 3,
+                "cole": 8,
+                "wes": 8,
+                "sunny": 8
+              }
+            },
+            {
+              "movieId": 1359,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "brian": 5,
+                "cole": 4,
+                "wes": 4,
+                "sunny": 4
+              }
+            }
+          ]
+        },
+        {
+          "title": "Best Screenplay/Story",
+          "nominations": [
+            {
+              "movieId": 389,
+              "nominatedBy": ["cole"],
+              "ranking": {
+                "brian": 1,
+                "sunny": 2,
+                "cole": 1,
+                "wes": 1
+              }
+            },
+            {
+              "movieId": 137,
+              "nominatedBy": ["cole"],
+              "ranking": {
+                "brian": 5,
+                "sunny": 5,
+                "cole": 5,
+                "wes": 4
+              }
+            },
+            {
+              "movieId": 1124,
+              "nominatedBy": ["cole"],
+              "ranking": {
+                "brian": 7,
+                "sunny": 7,
+                "cole": 2,
+                "wes": 6
+              }
+            },
+            {
+              "movieId": 542178,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "brian": 11,
+                "sunny": 8,
+                "cole": 11,
+                "wes": 11
+              }
+            },
+            {
+              "movieId": 550,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "brian": 9,
+                "sunny": 4,
+                "cole": 6,
+                "wes": 9
+              }
+            },
+            {
+              "movieId": 496243,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "brian": 4,
+                "sunny": 1,
+                "cole": 3,
+                "wes": 2
+              }
+            },
+            {
+              "movieId": 238,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "brian": 2,
+                "sunny": 11,
+                "cole": 8,
+                "wes": 10
+              }
+            },
+            {
+              "movieId": 264644,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "brian": 10,
+                "sunny": 9,
+                "cole": 10,
+                "wes": 8
+              }
+            },
+            {
+              "movieId": 278,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "brian": 8,
+                "sunny": 3,
+                "cole": 4,
+                "wes": 7
+              }
+            },
+            {
+              "movieId": 37165,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "brian": 6,
+                "sunny": 6,
+                "cole": 9,
+                "wes": 3
+              }
+            },
+            {
+              "movieId": 37799,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "brian": 3,
+                "sunny": 10,
+                "cole": 7,
+                "wes": 5
+              }
+            }
+          ]
+        },
+        {
+          "title": "Worst Movie",
+          "nominations": [
+            {
+              "movieId": 11631,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "brian": 7,
+                "wes": 4,
+                "sunny": 5,
+                "cole": 5
+              }
+            },
+            {
+              "movieId": 9647,
+              "nominatedBy": ["wes", "brian"],
+              "ranking": {
+                "brian": 1,
+                "wes": 1,
+                "sunny": 4,
+                "cole": 6
+              }
+            },
+            {
+              "movieId": 542178,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "brian": 6,
+                "wes": 7,
+                "sunny": 7,
+                "cole": 7
+              }
+            },
+            {
+              "movieId": 559907,
+              "nominatedBy": ["wes", "sunny"],
+              "ranking": {
+                "brian": 2,
+                "wes": 2,
+                "sunny": 1,
+                "cole": 2
+              }
+            },
+            {
+              "movieId": 337374,
+              "nominatedBy": ["cole"],
+              "ranking": {
+                "brian": 3,
+                "wes": 6,
+                "sunny": 2,
+                "cole": 1
+              }
+            },
+            {
+              "movieId": 524434,
+              "nominatedBy": ["cole"],
+              "ranking": {
+                "brian": 5,
+                "wes": 5,
+                "sunny": 3,
+                "cole": 3
+              }
+            },
+            {
+              "movieId": 217,
+              "nominatedBy": ["cole"],
+              "ranking": {
+                "brian": 4,
+                "wes": 3,
+                "sunny": 6,
+                "cole": 4
+              }
+            }
+          ]
+        },
+        {
+          "title": "Best Picture",
+          "nominations": [
+            {
+              "movieId": 496243,
+              "nominatedBy": ["sunny", "wes", "cole"],
+              "ranking": {
+                "brian": 3,
+                "wes": 2,
+                "sunny": 1,
+                "cole": 1
+              }
+            },
+            {
+              "movieId": 389,
+              "nominatedBy": ["wes", "sunny", "brian"],
+              "ranking": {
+                "brian": 2,
+                "wes": 1,
+                "sunny": 2,
+                "cole": 2
+              }
+            },
+            {
+              "movieId": 137,
+              "nominatedBy": ["cole"],
+              "ranking": {
+                "brian": 5,
+                "wes": 7,
+                "sunny": 5,
+                "cole": 4
+              }
+            },
+            {
+              "movieId": 278,
+              "nominatedBy": ["cole"],
+              "ranking": {
+                "brian": 6,
+                "wes": 4,
+                "sunny": 3,
+                "cole": 3
+              }
+            },
+            {
+              "movieId": 634649,
+              "nominatedBy": ["sunny", "wes"],
+              "ranking": {
+                "brian": 7,
+                "wes": 6,
+                "sunny": 6,
+                "cole": 7
+              }
+            },
+            {
+              "movieId": 313369,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "brian": 1,
+                "wes": 3,
+                "sunny": 4,
+                "cole": 6
+              }
+            },
+            {
+              "movieId": 37799,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "brian": 4,
+                "wes": 5,
+                "sunny": 7,
+                "cole": 5
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "year": 2020,
+      "step": 4,
+      "awards": [
+        {
+          "title": "Deus Ex Machina Award",
+          "nominations": [
+            {
+              "movieId": 99861,
+              "nominatedBy": ["cole"],
+              "ranking": {
+                "brian": 4,
+                "sunny": 3,
+                "wes": 6,
+                "cole": 4
+              }
+            },
+            {
+              "movieId": 299536,
+              "nominatedBy": ["cole"],
+              "ranking": {
+                "brian": 3,
+                "sunny": 4,
+                "wes": 2,
+                "cole": 2
+              }
+            },
+            {
+              "movieId": 299537,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "brian": 1,
+                "sunny": 2,
+                "wes": 4,
+                "cole": 3
+              }
+            },
+            {
+              "movieId": 76338,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "brian": 2,
+                "sunny": 5,
+                "wes": 5,
+                "cole": 6
+              }
+            },
+            {
+              "movieId": 299534,
+              "nominatedBy": ["sunny", "wes"],
+              "ranking": {
+                "brian": 5,
+                "sunny": 1,
+                "wes": 1,
+                "cole": 1
+              }
+            },
+            {
+              "movieId": 122,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "brian": 6,
+                "sunny": 6,
+                "wes": 3,
+                "cole": 5
+              }
+            }
+          ]
+        },
+        {
+          "title": "Most Plot Armour",
+          "nominations": [
+            {
+              "movieId": 299536,
+              "nominatedBy": ["cole"],
+              "ranking": {
+                "wes": 2,
+                "cole": 1,
+                "brian": 1,
+                "sunny": 1
+              }
+            },
+            {
+              "movieId": 100402,
+              "nominatedBy": ["cole"],
+              "ranking": {
+                "wes": 3,
+                "cole": 2,
+                "brian": 2,
+                "sunny": 2
+              }
+            },
+            {
+              "movieId": 271110,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "wes": 1,
+                "cole": 3,
+                "brian": 3,
+                "sunny": 3
+              }
+            },
+            {
+              "movieId": 603,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "wes": 5,
+                "cole": 5,
+                "brian": 4,
+                "sunny": 4
+              }
+            },
+            {
+              "movieId": 284053,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "wes": 6,
+                "cole": 6,
+                "brian": 5,
+                "sunny": 5
+              }
+            },
+            {
+              "movieId": 68721,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "wes": 4,
+                "cole": 4,
+                "brian": 6,
+                "sunny": 6
+              }
+            }
+          ]
+        },
+        {
+          "title": "I Fell Asleep",
+          "nominations": [
+            {
+              "movieId": 762,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "brian": 3,
+                "wes": 6,
+                "cole": 3,
+                "sunny": 6
+              }
+            },
+            {
+              "movieId": 76338,
+              "nominatedBy": ["brian", "cole"],
+              "ranking": {
+                "brian": 1,
+                "wes": 1,
+                "cole": 1,
+                "sunny": 1
+              }
+            },
+            {
+              "movieId": 1724,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "brian": 2,
+                "wes": 2,
+                "cole": 5,
+                "sunny": 4
+              }
+            },
+            {
+              "movieId": 121,
+              "nominatedBy": ["cole", "wes"],
+              "ranking": {
+                "brian": 4,
+                "wes": 3,
+                "cole": 2,
+                "sunny": 2
+              }
+            },
+            {
+              "movieId": 152601,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "brian": 5,
+                "wes": 4,
+                "cole": 4,
+                "sunny": 3
+              }
+            },
+            {
+              "movieId": 120,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "brian": 6,
+                "wes": 5,
+                "cole": 6,
+                "sunny": 5
+              }
+            }
+          ]
+        },
+        {
+          "title": "Hottest Take",
+          "nominations": [
+            {
+              "movieId": 603,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "sunny": 2,
+                "wes": 2,
+                "cole": 4,
+                "brian": 2
+              }
+            },
+            {
+              "movieId": 99861,
+              "nominatedBy": ["cole", "sunny"],
+              "ranking": {
+                "sunny": 3,
+                "wes": 3,
+                "cole": 1,
+                "brian": 3
+              }
+            },
+            {
+              "movieId": 100402,
+              "nominatedBy": ["cole"],
+              "ranking": {
+                "sunny": 4,
+                "wes": 4,
+                "cole": 3,
+                "brian": 4
+              }
+            },
+            {
+              "movieId": 762,
+              "nominatedBy": ["sunny", "wes"],
+              "ranking": {
+                "sunny": 1,
+                "wes": 1,
+                "cole": 2,
+                "brian": 1
+              }
+            }
+          ]
+        },
+        {
+          "title": "Best Popcorn Flick",
+          "nominations": [
+            {
+              "movieId": 299534,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "brian": 3,
+                "cole": 7,
+                "wes": 7,
+                "sunny": 5
+              }
+            },
+            {
+              "movieId": 24428,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "brian": 1,
+                "cole": 4,
+                "wes": 5,
+                "sunny": 4
+              }
+            },
+            {
+              "movieId": 299536,
+              "nominatedBy": ["brian", "wes"],
+              "ranking": {
+                "brian": 2,
+                "cole": 8,
+                "wes": 4,
+                "sunny": 6
+              }
+            },
+            {
+              "movieId": 603,
+              "nominatedBy": ["cole"],
+              "ranking": {
+                "brian": 6,
+                "cole": 3,
+                "wes": 9,
+                "sunny": 7
+              }
+            },
+            {
+              "movieId": 118340,
+              "nominatedBy": ["cole"],
+              "ranking": {
+                "brian": 4,
+                "cole": 1,
+                "wes": 2,
+                "sunny": 2
+              }
+            },
+            {
+              "movieId": 106646,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "brian": 8,
+                "cole": 5,
+                "wes": 10,
+                "sunny": 3
+              }
+            },
+            {
+              "movieId": 429617,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "brian": 5,
+                "cole": 2,
+                "wes": 1,
+                "sunny": 1
+              }
+            },
+            {
+              "movieId": 508965,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "brian": 9,
+                "cole": 9,
+                "wes": 6,
+                "sunny": 8
+              }
+            },
+            {
+              "movieId": 446021,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "brian": 7,
+                "cole": 10,
+                "wes": 8,
+                "sunny": 9
+              }
+            },
+            {
+              "movieId": 762,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "brian": 10,
+                "cole": 6,
+                "wes": 3,
+                "sunny": 10
+              }
+            }
+          ]
+        },
+        {
+          "title": "Funniest Movie",
+          "nominations": [
+            {
+              "movieId": 546554,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "brian": 1,
+                "cole": 2,
+                "sunny": 1,
+                "wes": 1
+              }
+            },
+            {
+              "movieId": 2609,
+              "nominatedBy": ["brian", "cole"],
+              "ranking": {
+                "brian": 2,
+                "cole": 1,
+                "sunny": 5,
+                "wes": 4
+              }
+            },
+            {
+              "movieId": 102899,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "brian": 3,
+                "cole": 6,
+                "sunny": 6,
+                "wes": 2
+              }
+            },
+            {
+              "movieId": 284053,
+              "nominatedBy": ["cole", "wes"],
+              "ranking": {
+                "brian": 6,
+                "cole": 4,
+                "sunny": 4,
+                "wes": 3
+              }
+            },
+            {
+              "movieId": 106646,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "brian": 4,
+                "cole": 3,
+                "sunny": 3,
+                "wes": 5
+              }
+            },
+            {
+              "movieId": 315635,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "brian": 5,
+                "cole": 5,
+                "sunny": 2,
+                "wes": 6
+              }
+            }
+          ]
+        },
+        {
+          "title": "ELA Teacher's Choice Award",
+          "nominations": [
+            {
+              "movieId": 13,
+              "nominatedBy": ["brian", "cole", "sunny"],
+              "ranking": {
+                "brian": 2,
+                "cole": 2,
+                "sunny": 3,
+                "wes": 3
+              }
+            },
+            {
+              "movieId": 152601,
+              "nominatedBy": ["brian", "cole", "wes"],
+              "ranking": {
+                "brian": 1,
+                "cole": 1,
+                "sunny": 1,
+                "wes": 1
+              }
+            },
+            {
+              "movieId": 603,
+              "nominatedBy": ["brian", "wes"],
+              "ranking": {
+                "brian": 3,
+                "cole": 3,
+                "sunny": 2,
+                "wes": 2
+              }
+            },
+            {
+              "movieId": 762,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "brian": 4,
+                "cole": 4,
+                "sunny": 4,
+                "wes": 5
+              }
+            },
+            {
+              "movieId": 546554,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "brian": 5,
+                "cole": 5,
+                "sunny": 5,
+                "wes": 4
+              }
+            }
+          ]
+        },
+        {
+          "title": "Best Visual Effects",
+          "nominations": [
+            {
+              "movieId": 152601,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "cole": 6,
+                "brian": 6,
+                "sunny": 6,
+                "wes": 6
+              }
+            },
+            {
+              "movieId": 508965,
+              "nominatedBy": ["brian", "sunny", "wes"],
+              "ranking": {
+                "cole": 1,
+                "brian": 1,
+                "sunny": 1,
+                "wes": 2
+              }
+            },
+            {
+              "movieId": 299534,
+              "nominatedBy": ["cole", "sunny", "wes"],
+              "ranking": {
+                "cole": 2,
+                "brian": 3,
+                "sunny": 2,
+                "wes": 1
+              }
+            },
+            {
+              "movieId": 283995,
+              "nominatedBy": ["cole"],
+              "ranking": {
+                "cole": 3,
+                "brian": 5,
+                "sunny": 4,
+                "wes": 4
+              }
+            },
+            {
+              "movieId": 284053,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "cole": 4,
+                "brian": 4,
+                "sunny": 3,
+                "wes": 3
+              }
+            },
+            {
+              "movieId": 603,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "cole": 5,
+                "brian": 2,
+                "sunny": 5,
+                "wes": 5
+              }
+            }
+          ]
+        },
+        {
+          "title": "Best Cinematography",
+          "nominations": [
+            {
+              "movieId": 546554,
+              "nominatedBy": ["brian", "sunny", "wes"],
+              "ranking": {
+                "brian": 1,
+                "wes": 1,
+                "sunny": 3,
+                "cole": 2
+              }
+            },
+            {
+              "movieId": 152601,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "brian": 2,
+                "wes": 4,
+                "sunny": 2,
+                "cole": 3
+              }
+            },
+            {
+              "movieId": 446021,
+              "nominatedBy": ["cole", "wes"],
+              "ranking": {
+                "brian": 4,
+                "wes": 2,
+                "sunny": 1,
+                "cole": 1
+              }
+            },
+            {
+              "movieId": 122,
+              "nominatedBy": ["cole", "wes"],
+              "ranking": {
+                "brian": 3,
+                "wes": 3,
+                "sunny": 4,
+                "cole": 4
+              }
+            },
+            {
+              "movieId": 429617,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "brian": 5,
+                "wes": 5,
+                "sunny": 5,
+                "cole": 5
+              }
+            }
+          ]
+        },
+        {
+          "title": "Best Original Score/Sound",
+          "nominations": [
+            {
+              "movieId": 122,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "brian": 6,
+                "wes": 8,
+                "sunny": 5,
+                "cole": 7
+              }
+            },
+            {
+              "movieId": 546554,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "brian": 4,
+                "wes": 3,
+                "sunny": 4,
+                "cole": 3
+              }
+            },
+            {
+              "movieId": 24428,
+              "nominatedBy": ["brian", "cole", "sunny"],
+              "ranking": {
+                "brian": 2,
+                "wes": 2,
+                "sunny": 2,
+                "cole": 1
+              }
+            },
+            {
+              "movieId": 120,
+              "nominatedBy": ["cole", "wes", "sunny"],
+              "ranking": {
+                "brian": 1,
+                "wes": 4,
+                "sunny": 6,
+                "cole": 5
+              }
+            },
+            {
+              "movieId": 446021,
+              "nominatedBy": ["cole"],
+              "ranking": {
+                "brian": 7,
+                "wes": 7,
+                "sunny": 7,
+                "cole": 4
+              }
+            },
+            {
+              "movieId": 299534,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "brian": 5,
+                "wes": 6,
+                "sunny": 8,
+                "cole": 8
+              }
+            },
+            {
+              "movieId": 762,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "brian": 8,
+                "wes": 1,
+                "sunny": 1,
+                "cole": 6
+              }
+            },
+            {
+              "movieId": 118340,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "brian": 3,
+                "wes": 5,
+                "sunny": 3,
+                "cole": 2
+              }
+            }
+          ]
+        },
+        {
+          "title": "Best Worldbuilding",
+          "nominations": [
+            {
+              "movieId": 120,
+              "nominatedBy": ["brian", "cole", "sunny", "wes"],
+              "ranking": {
+                "brian": 1,
+                "wes": 1,
+                "sunny": 1,
+                "cole": 1
+              }
+            },
+            {
+              "movieId": 152601,
+              "nominatedBy": ["cole", "wes"],
+              "ranking": {
+                "brian": 3,
+                "wes": 2,
+                "sunny": 2,
+                "cole": 2
+              }
+            },
+            {
+              "movieId": 603,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "brian": 2,
+                "wes": 3,
+                "sunny": 3,
+                "cole": 3
+              }
+            },
+            {
+              "movieId": 13,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "brian": 4,
+                "wes": 4,
+                "sunny": 4,
+                "cole": 4
+              }
+            }
+          ]
+        },
+        {
+          "title": "Worst MCU Movie",
+          "nominations": [
+            {
+              "movieId": 76338,
+              "nominatedBy": ["brian", "cole", "sunny", "wes"],
+              "ranking": {
+                "wes": 1,
+                "brian": 1,
+                "cole": 2,
+                "sunny": 2
+              }
+            },
+            {
+              "movieId": 1724,
+              "nominatedBy": ["brian", "cole", "wes"],
+              "ranking": {
+                "wes": 2,
+                "brian": 2,
+                "cole": 1,
+                "sunny": 1
+              }
+            },
+            {
+              "movieId": 99861,
+              "nominatedBy": ["sunny", "wes"],
+              "ranking": {
+                "wes": 3,
+                "brian": 3,
+                "cole": 3,
+                "sunny": 3
+              }
+            }
+          ]
+        },
+        {
+          "title": "Best MCU Movie",
+          "nominations": [
+            {
+              "movieId": 299534,
+              "nominatedBy": ["brian", "wes"],
+              "ranking": {
+                "brian": 1,
+                "wes": 2,
+                "cole": 6,
+                "sunny": 5
+              }
+            },
+            {
+              "movieId": 429617,
+              "nominatedBy": ["brian", "cole", "sunny"],
+              "ranking": {
+                "brian": 2,
+                "wes": 1,
+                "cole": 1,
+                "sunny": 1
+              }
+            },
+            {
+              "movieId": 100402,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "brian": 6,
+                "wes": 7,
+                "cole": 7,
+                "sunny": 7
+              }
+            },
+            {
+              "movieId": 284054,
+              "nominatedBy": ["cole", "wes"],
+              "ranking": {
+                "brian": 5,
+                "wes": 4,
+                "cole": 2,
+                "sunny": 4
+              }
+            },
+            {
+              "movieId": 24428,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "brian": 4,
+                "wes": 6,
+                "cole": 4,
+                "sunny": 3
+              }
+            },
+            {
+              "movieId": 315635,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "brian": 3,
+                "wes": 3,
+                "cole": 3,
+                "sunny": 2
+              }
+            },
+            {
+              "movieId": 299536,
+              "nominatedBy": ["wes"],
+              "ranking": {
+                "brian": 7,
+                "wes": 5,
+                "cole": 5,
+                "sunny": 6
+              }
+            }
+          ]
+        },
+        {
+          "title": "Best Screenplay/Story",
+          "nominations": [
+            {
+              "movieId": 546554,
+              "nominatedBy": ["brian", "cole", "sunny", "wes"],
+              "ranking": {
+                "wes": 1,
+                "brian": 1,
+                "cole": 1,
+                "sunny": 1
+              }
+            },
+            {
+              "movieId": 152601,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "wes": 2,
+                "brian": 3,
+                "cole": 4,
+                "sunny": 4
+              }
+            },
+            {
+              "movieId": 13,
+              "nominatedBy": ["brian", "sunny", "wes"],
+              "ranking": {
+                "wes": 3,
+                "brian": 2,
+                "cole": 3,
+                "sunny": 2
+              }
+            },
+            {
+              "movieId": 2609,
+              "nominatedBy": ["cole"],
+              "ranking": {
+                "wes": 4,
+                "brian": 4,
+                "cole": 2,
+                "sunny": 5
+              }
+            },
+            {
+              "movieId": 284054,
+              "nominatedBy": ["cole"],
+              "ranking": {
+                "wes": 5,
+                "brian": 6,
+                "cole": 6,
+                "sunny": 6
+              }
+            },
+            {
+              "movieId": 508965,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "wes": 6,
+                "brian": 5,
+                "cole": 5,
+                "sunny": 3
+              }
+            }
+          ]
+        },
+        {
+          "title": "Worst Movie",
+          "nominations": [
+            {
+              "movieId": 76338,
+              "nominatedBy": ["brian", "cole"],
+              "ranking": {
+                "brian": 1,
+                "wes": 2,
+                "sunny": 2,
+                "cole": 2
+              }
+            },
+            {
+              "movieId": 1724,
+              "nominatedBy": ["brian", "cole", "sunny", "wes"],
+              "ranking": {
+                "brian": 2,
+                "wes": 1,
+                "sunny": 1,
+                "cole": 1
+              }
+            },
+            {
+              "movieId": 762,
+              "nominatedBy": ["brian", "cole"],
+              "ranking": {
+                "brian": 3,
+                "wes": 3,
+                "sunny": 4,
+                "cole": 3
+              }
+            },
+            {
+              "movieId": 152601,
+              "nominatedBy": ["sunny"],
+              "ranking": {
+                "brian": 4,
+                "wes": 4,
+                "sunny": 3,
+                "cole": 4
+              }
+            }
+          ]
+        },
+        {
+          "title": "Best Picture",
+          "nominations": [
+            {
+              "movieId": 546554,
+              "nominatedBy": ["brian", "sunny", "cole", "wes"],
+              "ranking": {
+                "brian": 1,
+                "wes": 1,
+                "cole": 1,
+                "sunny": 1
+              }
+            },
+            {
+              "movieId": 122,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "brian": 3,
+                "wes": 4,
+                "cole": 3,
+                "sunny": 4
+              }
+            },
+            {
+              "movieId": 299534,
+              "nominatedBy": ["brian"],
+              "ranking": {
+                "brian": 2,
+                "wes": 3,
+                "cole": 4,
+                "sunny": 3
+              }
+            },
+            {
+              "movieId": 13,
+              "nominatedBy": ["sunny", "cole"],
+              "ranking": {
+                "brian": 4,
+                "wes": 2,
+                "cole": 2,
+                "sunny": 2
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -3,24 +3,30 @@ import nominationRouter from "./nomination";
 import rankingRouter from "./ranking";
 import stepHandler from "./step";
 import { validYear } from "./utils";
-import { ClubAwards } from "../../../../lib/types/awards";
-import { getClubProperty, getFaunaClient } from "../../utils/fauna";
-import { ok } from "../../utils/responses";
+import { BaseAward, ClubAwards } from "../../../../lib/types/awards";
+import AwardsRepository from "../../repositories/AwardsRepository";
+import { notFound, ok } from "../../utils/responses";
 import { Router } from "../../utils/router";
 import { getDetailedMovie } from "../../utils/tmdb";
-import { LegacyClubRequest } from "../../utils/validation";
+import { ClubRequest, validClubId } from "../../utils/validation";
 
-const router = new Router<LegacyClubRequest>("/api/club/:clubId<\\d+>/awards");
+const router = new Router<ClubRequest>("/api/club/:clubId<\\d+>/awards");
 router.use("/:year<\\d+>/category", validYear, categoryRouter);
 router.use("/:year<\\d+>/step", validYear, stepHandler);
 router.use("/:year<\\d+>/nomination", validYear, nominationRouter);
 router.use("/:year<\\d+>/ranking", validYear, rankingRouter);
 
-router.get("/:year<\\d+>", validYear, async ({ clubAwards }, res) => {
+router.get("/:year<\\d+>", validYear, async ({ clubId, year }, res) => {
+  const awardsData = await AwardsRepository.getByYear(clubId, year);
+  if (!awardsData) {
+    return res(notFound("Awards not found"));
+  }
+
   const retObj: ClubAwards = {
-    ...clubAwards,
+    year,
+    step: awardsData.step,
     awards: await Promise.all(
-      clubAwards.awards.map(async (award) => ({
+      awardsData.awards.map(async (award: BaseAward) => ({
         ...award,
         nominations: await getDetailedMovie(award.nominations),
       })),
@@ -29,16 +35,8 @@ router.get("/:year<\\d+>", validYear, async ({ clubAwards }, res) => {
   return res(ok(JSON.stringify(retObj)));
 });
 
-router.get("/years", async ({ clubId }, res) => {
-  const { faunaClient, q } = getFaunaClient();
-
-  const years = await faunaClient.query(
-    q.Map(
-      getClubProperty(clubId, "clubAwards"),
-      q.Lambda("x", q.Select("year", q.Var("x"))),
-    ),
-  );
-
+router.get("/years", validClubId, async ({ clubId }, res) => {
+  const years = await AwardsRepository.getYears(clubId);
   return res(ok(JSON.stringify(years)));
 });
 

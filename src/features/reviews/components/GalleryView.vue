@@ -1,11 +1,14 @@
 <template>
   <div ref="galleryContainerRef" class="flex">
     <!-- Main content that will shrink -->
-    <div :class="['w-full', { 'md:pr-[35vw]': isDrawerOpen }]" class="md:px-6">
-      <div class="relative mb-4 flex w-min gap-2">
+    <div
+      :class="['w-full', { 'md:pr-[35vw]': isDefined(selectedMovie) }]"
+      class="md:px-6"
+    >
+      <div class="relative mb-4 flex max-w-full flex-wrap gap-2">
         <Listbox v-model="selectedSort">
           <ListboxButton
-            class="ml-8 flex items-center whitespace-nowrap rounded-full border border-white px-4 py-1"
+            class="flex items-center whitespace-nowrap rounded-full border border-white px-4 py-1"
             ><span>Sort By</span><mdicon name="chevron-down"
           /></ListboxButton>
           <ListboxOptions
@@ -57,7 +60,7 @@
         leave-active-class="absolute hidden"
         enter-from-class="opacity-0"
         leave-to-class="opacity-0"
-        class="grid w-full justify-items-center pl-5"
+        class="grid w-full justify-items-center"
         style="grid-template-columns: repeat(auto-fill, minmax(168px, 1fr))"
       >
         <MoviePosterCard
@@ -100,7 +103,8 @@
 
     <!-- Movie Details Drawer -->
     <MovieDetailsDrawer
-      v-model:is-open="isDrawerOpen"
+      v-if="selectedMovie"
+      :key="selectedMovie.id"
       :movie="selectedMovie"
       :review-table="reviewTable"
       :delete-review="deleteReview"
@@ -109,6 +113,7 @@
       :current-user-id="currentUserId"
       :blur-scores-enabled="blurScoresEnabled"
       @toggle-reveal="toggleMovieReveal"
+      @close="selectedMovieId = undefined"
     />
   </div>
 </template>
@@ -121,7 +126,7 @@ import {
   ListboxOptions,
 } from "@headlessui/vue";
 import { FlexRender, Row, Table } from "@tanstack/vue-table";
-import { computed, ref, onMounted, onUnmounted, nextTick, watch } from "vue";
+import { computed, ref, nextTick, watch } from "vue";
 
 import MovieDetailsDrawer from "./MovieDetailsDrawer.vue";
 import { isDefined } from "../../../../lib/checks/checks.js";
@@ -209,22 +214,18 @@ const selectedSort = computed<string | undefined>({
   },
 });
 
-const selectedMovieId = ref<string | null>(null);
-const isDrawerOpen = ref(false);
+const selectedMovieId = ref<string | undefined>(undefined);
 
 const selectedMovie = computed(() => {
-  if (selectedMovieId.value === null) return null;
-  return (
-    props.reviewTable
-      .getRowModel()
-      .rows.find((row) => row.id === selectedMovieId.value) || null
-  );
+  if (selectedMovieId.value === undefined) return undefined;
+  return props.reviewTable
+    .getRowModel()
+    .rows.find((row) => row.id === selectedMovieId.value);
 });
 
 const openMovieDetails = async (row: Row<DetailedReviewListItem>) => {
   if (selectedMovieId.value !== row.id) {
     selectedMovieId.value = row.id;
-    isDrawerOpen.value = true;
 
     await nextTick();
     // Find the clicked movie element and scroll to center it on page
@@ -238,28 +239,8 @@ const openMovieDetails = async (row: Row<DetailedReviewListItem>) => {
         block: "center",
         inline: "center",
       });
-    }
-  } else {
-    isDrawerOpen.value = false;
-    selectedMovieId.value = null;
-  }
-};
-
-const galleryContainerRef = ref<HTMLElement | null>(null);
-
-onMounted(() => {
-  document.addEventListener("click", handleClickOutside);
-});
-
-onUnmounted(() => {
-  document.removeEventListener("click", handleClickOutside);
-});
-
-const handleClickOutside = (event: MouseEvent) => {
-  if (isDrawerOpen.value && galleryContainerRef.value && event.target) {
-    if (!galleryContainerRef.value.contains(event.target as Node)) {
-      isDrawerOpen.value = false;
-      selectedMovieId.value = null;
+    } else {
+      selectedMovieId.value = undefined;
     }
   }
 };
@@ -268,16 +249,12 @@ const toggleMovieReveal = (movieId: string) => {
   emit("toggle-reveal", movieId);
 };
 
-watch(isDrawerOpen, async (newValue, oldValue) => {
+watch(selectedMovieId, async (newValue, oldValue) => {
   // When drawer closes (transitions from true to false)
-  if (
-    oldValue === true &&
-    newValue === false &&
-    selectedMovieId.value !== null
-  ) {
+  if (isDefined(oldValue) && !isDefined(newValue)) {
     await nextTick();
     const selectedElement = document.querySelector(
-      `[data-movie-id="${selectedMovieId.value}"]`,
+      `[data-movie-id="${oldValue}"]`,
     );
     if (selectedElement) {
       selectedElement.scrollIntoView({
@@ -286,7 +263,6 @@ watch(isDrawerOpen, async (newValue, oldValue) => {
         inline: "center",
       });
     }
-    selectedMovieId.value = null;
   }
 });
 </script>

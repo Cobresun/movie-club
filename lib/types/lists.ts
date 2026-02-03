@@ -44,8 +44,8 @@ export type ListInsertDto = z.infer<typeof listInsertDtoSchema>;
 export interface SharedReviewResponse {
   members: {
     id: string;
-    username: string;
-    image_url: string;
+    name: string;
+    image: string;
   }[];
   reviews: {
     user_id: string;
@@ -53,4 +53,5 @@ export interface SharedReviewResponse {
     created_date: string;
   }[];
   work: DetailedReviewListItem;
+  clubName: string;
 }
