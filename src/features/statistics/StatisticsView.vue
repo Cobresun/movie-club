@@ -305,8 +305,9 @@ const generateGenreChart = () => {
               count: number;
             }>,
           ) {
+            const fillColor = typeof params.fill === "string" ? params.fill : "";
             return (
-              `<div class="ag-chart-tooltip-title p-2" style="background-color:${params.fill}">${params.datum.genre}</div>` +
+              `<div class="ag-chart-tooltip-title p-2" style="background-color:${fillColor}">${params.datum.genre}</div>` +
               `<div class="ag-chart-tooltip-content p-2 text-start">` +
               `${params.xName}: ${params.datum.genre}` +
               `</br>` +
