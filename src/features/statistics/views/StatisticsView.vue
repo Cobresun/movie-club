@@ -56,7 +56,7 @@ import {
   useVueTable,
 } from "@tanstack/vue-table";
 import { AgCharts } from "ag-charts-vue3";
-import { ref, computed, watch, h } from "vue";
+import { computed, h } from "vue";
 import { useRouter } from "vue-router";
 
 import {
@@ -99,40 +99,37 @@ const navigateToReviews = () => {
   router.push({ name: "Reviews" }).catch(console.error);
 };
 
-const scoreChartOptions = ref({});
-const revenueChartOptions = ref({});
-const budgetChartOptions = ref({});
-const dateChartOptions = ref({});
-const histChartOptions = ref({});
-const genreChartOptions = ref({});
+const histChartOptions = computed(() =>
+  createHistogramOptions({
+    filteredMovieData: filteredMovieData.value,
+    histogramData: histogramData.value,
+    histogramNormData: histogramNormData.value,
+    members: members.value,
+    normalize: normalize.value,
+  }),
+);
 
-const loadChartOptions = () => {
-  try {
-    const scatterParams = {
-      filteredMovieData: filteredMovieData.value,
-      clubName: clubName.value,
-      normalize: normalize.value,
-    };
+const scatterParams = computed(() => ({
+  filteredMovieData: filteredMovieData.value,
+  clubName: clubName.value,
+  normalize: normalize.value,
+}));
 
-    histChartOptions.value = createHistogramOptions({
-      filteredMovieData: filteredMovieData.value,
-      histogramData: histogramData.value,
-      histogramNormData: histogramNormData.value,
-      members: members.value,
-      normalize: normalize.value,
-    });
+const scoreChartOptions = computed(() =>
+  createScoreVsTMDBOptions(scatterParams.value),
+);
 
-    scoreChartOptions.value = createScoreVsTMDBOptions(scatterParams);
-    budgetChartOptions.value = createBudgetOptions(scatterParams);
-    revenueChartOptions.value = createRevenueOptions(scatterParams);
-    dateChartOptions.value = createDateOptions(scatterParams);
-    genreChartOptions.value = createGenreOptions(movieData.value);
-  } catch (error) {
-    console.error("Error loading charts:", error);
-  }
-};
+const budgetChartOptions = computed(() =>
+  createBudgetOptions(scatterParams.value),
+);
 
-watch([filteredMovieData, normalize], loadChartOptions, { immediate: true });
+const revenueChartOptions = computed(() =>
+  createRevenueOptions(scatterParams.value),
+);
+
+const dateChartOptions = computed(() => createDateOptions(scatterParams.value));
+
+const genreChartOptions = computed(() => createGenreOptions(movieData.value));
 
 const columnHelper = createColumnHelper<MovieStatistics>();
 
