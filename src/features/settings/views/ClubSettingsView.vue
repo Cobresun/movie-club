@@ -15,7 +15,7 @@
               </p>
             </div>
             <v-switch
-              v-model="blurScoresEnabled"
+              :model-value="blurScoresEnabled"
               color="primary"
               class="ml-5 flex-shrink-0"
               @update:model-value="updateBlurScoresFeature"
@@ -32,7 +32,7 @@
               </p>
             </div>
             <v-switch
-              v-model="awardsEnabled"
+              :model-value="awardsEnabled"
               color="primary"
               class="ml-5 flex-shrink-0"
               @update:model-value="updateAwardsFeature"
@@ -185,7 +185,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from "vue";
+import { ref, computed } from "vue";
 import { useToast } from "vue-toastification";
 
 import {
@@ -219,62 +219,29 @@ const { mutate: leaveClubMutation, isLoading: isLeaving } =
   useLeaveClub(clubId);
 const { mutate: removeMemberMutation } = useRemoveMember(clubId);
 const { data: inviteToken } = useInviteToken(clubId);
-const { data: settings, isLoading: isLoadingSettings } =
-  useClubSettings(clubId);
+const { data: settings } = useClubSettings(clubId);
 const { mutate: updateSettings } = useUpdateClubSettings(clubId);
-const blurScoresEnabled = ref(true);
-const awardsEnabled = ref(false);
-
-watch(
-  () => settings.value,
-  (newSettings) => {
-    if (newSettings && !isLoadingSettings.value) {
-      blurScoresEnabled.value = newSettings?.features?.blurScores === true;
-      awardsEnabled.value = newSettings?.features?.awards === true;
-    }
-  },
-  { immediate: true },
+const blurScoresEnabled = computed(
+  () => settings.value?.features?.blurScores === true,
 );
+const awardsEnabled = computed(() => settings.value?.features?.awards === true);
 
-const updateAwardsFeature = () => {
+const updateAwardsFeature = (value: boolean) => {
   updateSettings(
+    { features: { awards: value } },
     {
-      features: {
-        awards: awardsEnabled.value,
-      },
-    },
-    {
-      onSuccess: () => {
-        toast.success("Settings updated successfully");
-      },
-      onError: () => {
-        toast.error("Failed to update settings");
-        if (settings.value?.features?.awards !== undefined) {
-          awardsEnabled.value = settings.value.features.awards === true;
-        }
-      },
+      onSuccess: () => toast.success("Settings updated successfully"),
+      onError: () => toast.error("Failed to update settings"),
     },
   );
 };
 
-const updateBlurScoresFeature = () => {
+const updateBlurScoresFeature = (value: boolean) => {
   updateSettings(
+    { features: { blurScores: value } },
     {
-      features: {
-        blurScores: blurScoresEnabled.value,
-      },
-    },
-    {
-      onSuccess: () => {
-        toast.success("Settings updated successfully");
-      },
-      onError: () => {
-        toast.error("Failed to update settings");
-        // Revert the switch if the update failed
-        if (settings.value?.features?.blurScores !== undefined) {
-          blurScoresEnabled.value = settings.value.features.blurScores === true;
-        }
-      },
+      onSuccess: () => toast.success("Settings updated successfully"),
+      onError: () => toast.error("Failed to update settings"),
     },
   );
 };
