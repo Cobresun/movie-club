@@ -158,8 +158,9 @@ export const loadScatterChartSettings = (params: {
               title: string;
             }>,
           ) => {
+            const fillColor = typeof params.fill === "string" ? params.fill : "";
             return (
-              `<div class="ag-chart-tooltip-title p-2" style="background-color:${params.fill}">${params.datum.title}</div>` +
+              `<div class="ag-chart-tooltip-title p-2" style="background-color:${fillColor}">${params.datum.title}</div>` +
               `<div class="ag-chart-tooltip-content p-2 text-start">${xName}: ${params.datum.xData}<br/>${yName}: ${params.datum.yData}</div>`
             );
           },

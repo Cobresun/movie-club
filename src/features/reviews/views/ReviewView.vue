@@ -94,7 +94,7 @@ import {
   watch,
 } from "vue";
 
-import { isTrue } from "../../../../lib/checks/checks.js";
+import { hasValue, isTrue } from "../../../../lib/checks/checks.js";
 import { WorkListType } from "../../../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
 import { useShare } from "../../../common/composables/useShare";
@@ -166,7 +166,7 @@ const cancelDelete = () => {
   reviewToDelete.value = null;
 };
 const confirmDelete = () => {
-  if (reviewToDelete.value) {
+  if (hasValue(reviewToDelete.value)) {
     deleteReview(reviewToDelete.value);
     reviewToDelete.value = null;
   }
@@ -177,7 +177,6 @@ const filteredReviews = computed<DetailedReviewListItem[]>(() => {
   return filterMovies(reviews.value ?? [], searchTerm.value);
 });
 
-const hasReviews = computed(() => (reviews.value?.length ?? 0) > 0);
 const hasSearchTerm = computed(() => searchTerm.value.trim().length > 0);
 const showEmptyState = computed(() =>
   !loading.value && filteredReviews.value.length === 0

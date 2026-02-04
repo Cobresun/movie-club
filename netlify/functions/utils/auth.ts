@@ -1,6 +1,9 @@
 import { HandlerResponse } from "@netlify/functions";
 import bcrypt from "bcrypt";
 import { betterAuth } from "better-auth";
+import { existsSync, readFileSync } from "fs";
+import path from "path";
+import { z } from "zod";
 
 import { dialect } from "./database.js";
 import { sendPasswordResetEmail, sendVerificationEmail } from "./email.js";
@@ -22,6 +25,30 @@ const googleClientSecret = ensure(
   process.env.GOOGLE_CLIENT_SECRET,
   "GOOGLE_CLIENT_SECRET is not set",
 );
+
+const authConfigSchema = z.object({
+  trustedOrigins: z.array(z.string()),
+});
+
+function getTrustedOrigins(): string[] {
+  const configPath = path.resolve("./auth-config.json");
+
+  try {
+    if (existsSync(configPath)) {
+      const fileContents = readFileSync(configPath, "utf-8");
+      const parsed = authConfigSchema.parse(JSON.parse(fileContents));
+      return parsed.trustedOrigins;
+    }
+  } catch {
+    // Silent fallback to env vars for local development
+  }
+
+  return [
+    process.env.URL,
+    process.env.DEPLOY_PRIME_URL,
+    process.env.BETTER_AUTH_URL,
+  ].filter(isDefined);
+}
 
 export const auth = betterAuth({
   baseURL: process.env.BETTER_AUTH_URL,
@@ -54,11 +81,7 @@ export const auth = betterAuth({
       clientSecret: googleClientSecret,
     },
   },
-  trustedOrigins: [
-    process.env.URL,
-    process.env.DEPLOY_PRIME_URL,
-    process.env.BETTER_AUTH_URL,
-  ].filter(isDefined),
+  trustedOrigins: getTrustedOrigins(),
   advanced: {
     database: {
       // Mixed ID types: auto-increment for user, UUIDs for session/account/verification

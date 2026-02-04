@@ -23,6 +23,7 @@
 <script setup lang="ts">
 import { onMounted, ref, toRef } from "vue";
 
+import { hasValue } from "../../../../lib/checks/checks.js";
 import { DetailedWorkListItem } from "../../../../lib/types/lists";
 import { useRandomPicker } from "../composables/useRandomPicker";
 
@@ -52,7 +53,7 @@ const onConfirm = () => {
 
 onMounted(async () => {
   const result = await pick();
-  if (props.confirmLabel) {
+  if (hasValue(props.confirmLabel)) {
     winner.value = result;
   } else {
     emit("selected", result);
