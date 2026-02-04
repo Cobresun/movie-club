@@ -1,5 +1,5 @@
 import { notFound } from "./responses";
-import { MiddlewareCallback, Request } from "./router";
+import { MiddlewareCallback, FnRequest } from "./router";
 import { hasValue } from "../../../lib/checks/checks.js";
 import ClubRepository from "../repositories/ClubRepository";
 
@@ -8,11 +8,11 @@ export function getErrorMessage(error: unknown) {
   return String(error);
 }
 
-export type ClubRequest<T extends Request = Request> = T & {
+export type ClubRequest<T extends FnRequest = FnRequest> = T & {
   clubId: string;
 };
 
-export const validClubId: MiddlewareCallback<Request, ClubRequest> = async (
+export const validClubId: MiddlewareCallback<FnRequest, ClubRequest> = async (
   req,
   res,
 ) => {

@@ -1,5 +1,4 @@
-import { Handler, HandlerContext, HandlerEvent } from "@netlify/functions";
-import { parse } from "lambda-multipart-parser";
+import type { Config } from "@netlify/functions";
 
 import ClubRepository from "./repositories/ClubRepository";
 import ImageRepository from "./repositories/ImageRepository";
@@ -35,14 +34,21 @@ router.get("/clubs", loggedIn, async (req, res) => {
 
 router.post("/avatar", loggedIn, async (req, res) => {
   try {
-    // Parse the multipart/form-data request
-    const parsed = await parse(req.event);
-    if (parsed.files.length === 0) return res(badRequest("No file uploaded"));
+    // Parse the multipart/form-data request using web standard FormData
+    const formData = await req.request.formData();
+    const files: File[] = [];
+    formData.forEach((value) => {
+      if (value instanceof File) {
+        files.push(value);
+      }
+    });
+    if (files.length === 0) return res(badRequest("No file uploaded"));
 
-    const avatarFile = parsed.files[0];
+    const avatarFile = files[0];
+    const buffer = Buffer.from(await avatarFile.arrayBuffer());
 
     const user = await UserRepository.getByEmail(req.email);
-    const { url, id } = await ImageRepository.upload(avatarFile.content);
+    const { url, id } = await ImageRepository.upload(buffer);
 
     // Delete old asset
     if (isDefined(user.image_id)) {
@@ -77,11 +83,18 @@ router.delete("/avatar", loggedIn, async (req, res) => {
   }
 });
 
-const handler: Handler = async (
-  event: HandlerEvent,
-  context: HandlerContext,
-) => {
-  return router.route({ event, context, params: {} });
+export default async (request: Request) => {
+  const url = new URL(request.url);
+  return router.route({
+    request,
+    path: url.pathname,
+    method: request.method,
+    headers: request.headers,
+    query: url.searchParams,
+    params: {},
+  });
 };
 
-export { handler };
+export const config: Config = {
+  path: "/api/member/*",
+};
