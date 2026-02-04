@@ -156,7 +156,12 @@ export function useInviteToken(clubId: string) {
 interface ClubSettings {
   features: {
     blurScores: boolean;
+    awards: boolean;
   };
+}
+
+interface ClubSettingsUpdate {
+  features?: Partial<ClubSettings["features"]>;
 }
 
 export function useClubSettings(
@@ -179,9 +184,38 @@ export function useUpdateClubSettings(clubId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (settings: Partial<ClubSettings>) =>
-      auth.request.post(`/api/club/${clubId}/settings`, settings),
-    onSuccess: () => {
+    mutationFn: (newSettings: ClubSettingsUpdate) =>
+      auth.request.post(`/api/club/${clubId}/settings`, newSettings),
+    onMutate: async (newSettings: ClubSettingsUpdate) => {
+      await queryClient.cancelQueries(["club", clubId, "settings"]);
+
+      const previousSettings = queryClient.getQueryData<ClubSettings>([
+        "club",
+        clubId,
+        "settings",
+      ]);
+
+      if (previousSettings) {
+        queryClient.setQueryData<ClubSettings>(["club", clubId, "settings"], {
+          ...previousSettings,
+          features: {
+            ...previousSettings.features,
+            ...newSettings.features,
+          },
+        });
+      }
+
+      return { previousSettings };
+    },
+    onError: (_error, _variables, context) => {
+      if (context?.previousSettings) {
+        queryClient.setQueryData(
+          ["club", clubId, "settings"],
+          context.previousSettings,
+        );
+      }
+    },
+    onSettled: () => {
       queryClient
         .invalidateQueries(["club", clubId, "settings"])
         .catch(console.error);

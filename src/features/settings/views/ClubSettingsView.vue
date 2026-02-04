@@ -15,10 +15,27 @@
               </p>
             </div>
             <v-switch
-              v-model="blurScoresEnabled"
+              :model-value="blurScoresEnabled"
               color="primary"
               class="ml-5 flex-shrink-0"
               @update:model-value="updateBlurScoresFeature"
+            />
+          </div>
+          <div class="mt-3 flex items-center justify-between gap-4">
+            <div class="flex-1 text-left">
+              <h4 class="text-left font-medium">Awards</h4>
+              <p class="mt-1 text-left text-sm text-gray-400">
+                Enable the awards feature for this club
+              </p>
+              <p class="mt-1 text-left text-sm text-yellow-500">
+                This feature is experimental and may change in the future.
+              </p>
+            </div>
+            <v-switch
+              :model-value="awardsEnabled"
+              color="primary"
+              class="ml-5 flex-shrink-0"
+              @update:model-value="updateAwardsFeature"
             />
           </div>
         </div>
@@ -168,7 +185,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from "vue";
+import { ref, computed } from "vue";
 import { useToast } from "vue-toastification";
 
 import {
@@ -202,39 +219,29 @@ const { mutate: leaveClubMutation, isLoading: isLeaving } =
   useLeaveClub(clubId);
 const { mutate: removeMemberMutation } = useRemoveMember(clubId);
 const { data: inviteToken } = useInviteToken(clubId);
-const { data: settings, isLoading: isLoadingSettings } =
-  useClubSettings(clubId);
+const { data: settings } = useClubSettings(clubId);
 const { mutate: updateSettings } = useUpdateClubSettings(clubId);
-const blurScoresEnabled = ref(true);
-
-watch(
-  () => settings.value,
-  (newSettings) => {
-    if (newSettings && !isLoadingSettings.value) {
-      blurScoresEnabled.value = newSettings?.features?.blurScores === true;
-    }
-  },
-  { immediate: true },
+const blurScoresEnabled = computed(
+  () => settings.value?.features?.blurScores === true,
 );
+const awardsEnabled = computed(() => settings.value?.features?.awards === true);
 
-const updateBlurScoresFeature = () => {
+const updateAwardsFeature = (value: boolean) => {
   updateSettings(
+    { features: { awards: value } },
     {
-      features: {
-        blurScores: blurScoresEnabled.value,
-      },
+      onSuccess: () => toast.success("Settings updated successfully"),
+      onError: () => toast.error("Failed to update settings"),
     },
+  );
+};
+
+const updateBlurScoresFeature = (value: boolean) => {
+  updateSettings(
+    { features: { blurScores: value } },
     {
-      onSuccess: () => {
-        toast.success("Settings updated successfully");
-      },
-      onError: () => {
-        toast.error("Failed to update settings");
-        // Revert the switch if the update failed
-        if (settings.value?.features?.blurScores !== undefined) {
-          blurScoresEnabled.value = settings.value.features.blurScores === true;
-        }
-      },
+      onSuccess: () => toast.success("Settings updated successfully"),
+      onError: () => toast.error("Failed to update settings"),
     },
   );
 };

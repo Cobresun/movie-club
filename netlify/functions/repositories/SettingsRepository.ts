@@ -3,12 +3,14 @@ import { db } from "../utils/database";
 export interface ClubSettings {
   features: {
     blurScores: boolean;
+    awards: boolean;
   };
 }
 
 const DEFAULT_SETTINGS: ClubSettings = {
   features: {
     blurScores: true,
+    awards: false,
   },
 };
 

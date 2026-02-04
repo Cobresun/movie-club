@@ -53,7 +53,7 @@
 
     <!-- Navigation cards grid -->
     <div
-      class="mx-auto grid max-w-5xl grid-cols-2 gap-3 px-4 pb-6 md:grid-cols-4"
+      class="mx-auto flex max-w-5xl flex-wrap justify-center gap-3 px-4 pb-6"
     >
       <router-link :to="{ name: 'Reviews' }">
         <menu-card :image="reviewSvg"> Reviews </menu-card>
@@ -64,7 +64,7 @@
       <router-link :to="{ name: 'Statistics' }">
         <menu-card :image="statisticsSvg"> Statistics </menu-card>
       </router-link>
-      <router-link :to="{ name: 'Awards' }">
+      <router-link v-if="settings?.features?.awards" :to="{ name: 'Awards' }">
         <menu-card :image="awardsSvg"> Awards </menu-card>
       </router-link>
     </div>
@@ -88,11 +88,17 @@ import awardsSvg from "@/assets/images/menu-images/awards.svg";
 import reviewSvg from "@/assets/images/menu-images/review.svg";
 import statisticsSvg from "@/assets/images/menu-images/statistics.svg";
 import watchlistSvg from "@/assets/images/menu-images/watchlist.svg";
-import { useMembers, useClubId, useInviteToken } from "@/service/useClub";
+import {
+  useMembers,
+  useClubId,
+  useInviteToken,
+  useClubSettings,
+} from "@/service/useClub";
 
 const clubId = useClubId();
 const { data: members, isLoading: isLoadingMembers } = useMembers(clubId);
 const { data: inviteToken } = useInviteToken(clubId);
+const { data: settings } = useClubSettings(clubId);
 
 const showInviteModal = ref(false);
 const inviteLinkInput = ref<HTMLInputElement | null>(null);
