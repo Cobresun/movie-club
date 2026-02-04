@@ -187,7 +187,7 @@ export interface WorkList {
 
 export interface WorkListItem {
   list_id: Int8;
-  position: Generated<number>;
+  position: Generated<Int8>;
   time_added: Generated<Timestamp>;
   work_id: Int8;
 }

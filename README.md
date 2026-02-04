@@ -56,7 +56,9 @@ npm run test:watch
 npm run coverage
 ```
 
-## Database Migrations
+## Database Management
+
+### Database Migrations
 
 To manage database migrations, the following NPM scripts are used:
 
@@ -95,3 +97,94 @@ Migration scripts should be placed in the `migrations/schema` directory and name
   ```
 
 For development migrations, ensure you have the `.env` file set up with the necessary environment variables. The `.env` file details can be found in the Cobresun Notion.
+
+### Managing Personal Development Databases
+
+To avoid migration conflicts when working on features with database schema changes, you can create and manage your own isolated development databases.
+
+#### Prerequisites
+
+- AWS S3 credentials set in your `.env` file:
+  ```
+  AWS_ACCESS_KEY_COCKROACH_BACKUP=your_access_key
+  AWS_SECRET_ACCESS_KEY_COCKROACH_BACKUP=your_secret_key
+  ```
+
+#### Creating Your Own Database
+
+When working on a feature that requires database migrations:
+
+```bash
+# Spawn a new database from the latest snapshot
+npm run db:spawn my-feature-name
+```
+
+This creates a database named `dev_{your_username}_my-feature-name` and optionally updates your `.env` file to point to it.
+
+#### Development Workflow
+
+**Option 1: Use shared dev database (no migrations)**
+
+```bash
+# Just work normally with the shared dev database
+npm run dev
+```
+
+**Option 2: Use personal database (with migrations)**
+
+```bash
+# 1. Create your own database from the latest snapshot
+npm run db:spawn my-feature
+
+# 2. Update .env when prompted (or manually set DATABASE_URL)
+
+# 3. Run your migrations
+npm run migrate:dev
+
+# 4. Develop normally
+npm run dev
+
+# 5. When done, clean up your database
+npm run db:cleanup my-feature
+```
+
+#### Managing Databases
+
+- **List all databases:**
+
+  ```bash
+  npm run db:list
+  ```
+
+- **Clean up your database:**
+
+  ```bash
+  npm run db:cleanup my-feature-name
+  ```
+
+- **Clean up old databases:**
+
+  ```bash
+  npm run db:cleanup --older-than 7  # Removes databases older than 7 days
+  ```
+
+- **Restore .env to use shared dev database:**
+  ```bash
+  npm run db:cleanup --restore-env
+  ```
+
+#### Creating Database Snapshots (Maintainers)
+
+Snapshots are used as the base for spawning new databases. Maintainers should create new snapshots periodically:
+
+```bash
+# Create a snapshot of the dev database
+npm run db:snapshot
+
+# Or snapshot a specific database
+npm run db:snapshot prod
+```
+
+#### Deploy Preview Databases
+
+When you open a PR that modifies database migrations, a preview database is automatically created for your deploy preview. This prevents conflicts with other developers' work. The preview database is automatically cleaned up when the PR is closed or merged.

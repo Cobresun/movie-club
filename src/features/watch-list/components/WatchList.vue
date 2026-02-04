@@ -101,6 +101,7 @@ import { useToast } from "vue-toastification";
 
 import AddMovieToListModal from "./AddMovieToListModal.vue";
 import RandomPickerModal from "./RandomPickerModal.vue";
+import { hasValue } from "../../../../lib/checks/checks.js";
 import { WorkListType, WorkType } from "../../../../lib/types/generated/db";
 import { DetailedWorkListItem } from "../../../../lib/types/lists";
 
@@ -208,13 +209,13 @@ watch(
 );
 
 const onMove = (evt: { relatedContext: { index: number } }) => {
-  if (nextWorkId.value && evt.relatedContext.index === 0) return false;
+  if (hasValue(nextWorkId.value) && evt.relatedContext.index === 0) return false;
   return true;
 };
 
 const onDragEnd = () => {
   // Safety: ensure next watch item stays at index 0
-  if (nextWorkId.value) {
+  if (hasValue(nextWorkId.value)) {
     const nextIndex = draggableList.value.findIndex(
       (item) => item.id === nextWorkId.value,
     );
