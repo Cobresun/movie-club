@@ -25,10 +25,11 @@ const updateSettingsSchema = z.object({
     .optional(),
 });
 
-router.post("/", secured, async ({ clubId, event }, res) => {
-  if (!hasValue(event.body)) return res(badRequest("No body provided"));
+router.post("/", secured, async ({ clubId, request }, res) => {
+  const rawBody = await request.text();
+  if (!hasValue(rawBody)) return res(badRequest("No body provided"));
 
-  const body = updateSettingsSchema.safeParse(JSON.parse(event.body));
+  const body = updateSettingsSchema.safeParse(JSON.parse(rawBody));
   if (!body.success) return res(badRequest("Invalid body"));
 
   const settings = await SettingsRepository.updateSettings(
