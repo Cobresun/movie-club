@@ -96,5 +96,5 @@ export default async (request: Request) => {
 };
 
 export const config: Config = {
-  path: "/api/member/*",
+  path: ["/api/member", "/api/member/*"],
 };
