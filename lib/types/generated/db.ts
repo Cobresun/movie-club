@@ -102,6 +102,12 @@ export interface MovieDetails {
   updated_date: Generated<Timestamp>;
 }
 
+export interface MovieDirectors {
+  director_name: string;
+  external_id: string;
+  rowid: Generated<Int8>;
+}
+
 export interface MovieGenres {
   external_id: string;
   genre_name: string;
@@ -113,12 +119,6 @@ export interface MovieProductionCompanies {
   external_id: string;
   logo_path: string | null;
   origin_country: string | null;
-  rowid: Generated<Int8>;
-}
-
-export interface MovieDirectors {
-  director_name: string;
-  external_id: string;
   rowid: Generated<Int8>;
 }
 
