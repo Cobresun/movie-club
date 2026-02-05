@@ -66,6 +66,10 @@
             <span class="text-gray-400">Genres: </span>
             <span>{{ movie.original.externalData.genres.join(", ") }}</span>
           </div>
+          <div v-if="movie.original.externalData?.directors?.length">
+            <span class="text-gray-400">Director: </span>
+            <span>{{ movie.original.externalData.directors.join(", ") }}</span>
+          </div>
           <div v-if="movie.original.externalData?.vote_average">
             <span class="text-gray-400">TMDB Rating: </span>
             <span>{{ movie.original.externalData.vote_average }}/10</span>

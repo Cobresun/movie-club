@@ -116,6 +116,12 @@ export interface MovieProductionCompanies {
   rowid: Generated<Int8>;
 }
 
+export interface MovieDirectors {
+  director_name: string;
+  external_id: string;
+  rowid: Generated<Int8>;
+}
+
 export interface MovieProductionCountries {
   country_code: string;
   country_name: string;
@@ -200,6 +206,7 @@ export interface DB {
   club_member: ClubMember;
   club_settings: ClubSettings;
   movie_details: MovieDetails;
+  movie_directors: MovieDirectors;
   movie_genres: MovieGenres;
   movie_production_companies: MovieProductionCompanies;
   movie_production_countries: MovieProductionCountries;

@@ -28,6 +28,7 @@ export function overviewToExternalData(
       ? parseFloat(workDetails.tmdb_score)
       : undefined,
     genres: workDetails.genres?.filter(Boolean) ?? [],
+    directors: workDetails.directors?.filter(Boolean) ?? [],
     production_companies:
       workDetails.production_companies?.filter(Boolean) ?? [],
     production_countries:
