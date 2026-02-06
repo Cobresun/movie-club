@@ -146,6 +146,25 @@ class WorkRepository {
             )
             .execute();
         }
+
+        // Insert directors
+        const directors = (movieDetails.externalData.credits?.crew ?? [])
+          .filter((c) => c.job === "Director")
+          .map((c) => c.name);
+        if (directors.length > 0) {
+          await db
+            .insertInto("movie_directors")
+            .values(
+              directors.map((name) => ({
+                external_id: externalId,
+                director_name: name,
+              })),
+            )
+            .onConflict((oc) =>
+              oc.columns(["external_id", "director_name"]).doNothing(),
+            )
+            .execute();
+        }
       }
     }
 

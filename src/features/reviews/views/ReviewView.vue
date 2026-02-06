@@ -51,7 +51,7 @@
           :title="hasSearchTerm ? 'No Movies Found' : 'No Reviews Yet'"
           :description="
             hasSearchTerm
-              ? 'Try adjusting your search or filters. You can search by title, genre, company, or release year'
+              ? 'Try adjusting your search or filters. You can search by title, genre, company, director, or release year'
               : 'Start building your club\'s movie collection by adding your first review'
           "
           :action-label="hasSearchTerm ? undefined : 'Add Review'"

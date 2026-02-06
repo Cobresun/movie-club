@@ -47,6 +47,10 @@
           <span class="text-slate-400">Rating: </span>
           <span class="text-slate-200">{{ formattedRating }}</span>
         </div>
+        <div v-if="formattedDirectors">
+          <span class="text-slate-400">Director: </span>
+          <span class="text-slate-200">{{ formattedDirectors }}</span>
+        </div>
         <div v-if="formattedStudios" class="col-span-1">
           <span class="text-slate-400">Studios: </span>
           <span class="text-slate-200">{{ formattedStudios }}</span>
@@ -85,6 +89,11 @@ const formattedGenres = computed(() => {
 const formattedRating = computed(() => {
   const rating = props.movie?.vote_average;
   return isDefined(rating) ? `${Number(rating).toFixed(1)}/10` : undefined;
+});
+
+const formattedDirectors = computed(() => {
+  const directors = props.movie?.directors;
+  return hasElements(directors) ? directors.join(", ") : undefined;
 });
 
 const formattedStudios = computed(() => {

@@ -90,6 +90,16 @@ export function filterMovies<T extends DetailedWorkListItem>(
     );
   }
 
+  if (filters.director) {
+    filteredReviews = filteredReviews.filter(
+      (review) =>
+        isDefined(review.externalData) &&
+        review.externalData?.directors.some((director) =>
+          director.toLocaleLowerCase().includes(filters.director.toLowerCase()),
+        ),
+    );
+  }
+
   if (filters.year) {
     filteredReviews = filteredReviews.filter(
       (review) =>

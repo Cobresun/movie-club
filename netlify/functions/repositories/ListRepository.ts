@@ -37,6 +37,15 @@ class ListRepository {
           ])
           .groupBy("external_id"),
       )
+      .with("directors_agg", (qb) =>
+        qb
+          .selectFrom("movie_directors")
+          .select([
+            "external_id",
+            db.fn.agg<string[]>("array_agg", ["director_name"]).as("directors"),
+          ])
+          .groupBy("external_id"),
+      )
       .selectFrom("work_list")
       .where("work_list.club_id", "=", clubId)
       .where("work_list.type", "=", type)
@@ -60,6 +69,11 @@ class ListRepository {
       .leftJoin(
         "countries_agg",
         "countries_agg.external_id",
+        "movie_details.external_id",
+      )
+      .leftJoin(
+        "directors_agg",
+        "directors_agg.external_id",
         "movie_details.external_id",
       )
       .select([
@@ -88,6 +102,7 @@ class ListRepository {
         "genres_agg.genres",
         "companies_agg.production_companies",
         "countries_agg.production_countries",
+        "directors_agg.directors",
       ])
       .orderBy("work_list_item.position", "asc")
       .execute();
@@ -189,6 +204,15 @@ class ListRepository {
           ])
           .groupBy("external_id"),
       )
+      .with("directors_agg", (qb) =>
+        qb
+          .selectFrom("movie_directors")
+          .select([
+            "external_id",
+            db.fn.agg<string[]>("array_agg", ["director_name"]).as("directors"),
+          ])
+          .groupBy("external_id"),
+      )
       .selectFrom("work")
       .where("work.id", "=", workId)
       .leftJoin(
@@ -209,6 +233,11 @@ class ListRepository {
       .leftJoin(
         "countries_agg",
         "countries_agg.external_id",
+        "movie_details.external_id",
+      )
+      .leftJoin(
+        "directors_agg",
+        "directors_agg.external_id",
         "movie_details.external_id",
       )
       .select([
@@ -236,6 +265,7 @@ class ListRepository {
         "genres_agg.genres",
         "companies_agg.production_companies",
         "countries_agg.production_countries",
+        "directors_agg.directors",
       ])
       .executeTakeFirst();
   }

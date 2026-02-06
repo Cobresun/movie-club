@@ -138,6 +138,7 @@ async function getReviewList(clubId: string): Promise<ReviewListItem[]> {
             tagline: review.tagline,
             vote_average: review.tmdb_score,
             genres: review.genres?.filter(Boolean) ?? [],
+            directors: review.directors?.filter(Boolean) ?? [],
             production_companies:
               review.production_companies?.filter(Boolean) ?? [],
             production_countries:
