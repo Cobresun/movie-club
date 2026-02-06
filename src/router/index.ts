@@ -13,7 +13,7 @@ import NewClubView from "../features/clubs/views/NewClubView.vue";
 import ReviewView from "../features/reviews/views/ReviewView.vue";
 import ClubSettingsView from "../features/settings/views/ClubSettingsView.vue";
 import JoinClubView from "../features/settings/views/JoinClubView.vue";
-import StatisticsView from "../features/statistics/StatisticsView.vue";
+import StatisticsView from "../features/statistics/views/StatisticsView.vue";
 import WatchListView from "../features/watch-list/views/WatchListView.vue";
 
 import AwardsView from "@/features/awards/views/AwardsView.vue";

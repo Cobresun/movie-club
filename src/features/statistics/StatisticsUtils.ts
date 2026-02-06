@@ -86,22 +86,6 @@ export const createHistogramData = (scores: number[], normalized: boolean) => {
   return bins;
 };
 
-export const baseChartConfig = {
-  theme: "ag-default-dark",
-  axes: [
-    {
-      type: "number",
-      position: "bottom",
-      title: { enabled: true },
-    },
-    {
-      type: "number",
-      position: "left",
-      title: { enabled: true },
-    },
-  ],
-};
-
 export const loadScatterChartSettings = (params: {
   chartTitle: string;
   xName: string;
