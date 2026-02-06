@@ -19,7 +19,7 @@ import { WorkListType, WorkType } from "../../../../lib/types/generated/db";
 import { MovieSearchIndex } from "../../../../lib/types/movie";
 import MovieSearchPrompt from "../../../common/components/MovieSearchPrompt.vue";
 
-import { useClubId } from "@/service/useClub";
+import { useClubSlug } from "@/service/useClub";
 import {
   BASE_IMAGE_URL,
   useAddListItem,
@@ -31,7 +31,7 @@ const emit = defineEmits<{
   (e: "close"): void;
 }>();
 
-const clubId = useClubId();
+const clubId = useClubSlug();
 const { data: watchList, isLoading: watchListLoading } = useList(
   clubId,
   WorkListType.watchlist,

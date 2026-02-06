@@ -59,6 +59,8 @@ export interface Club {
   id: Generated<Int8>;
   legacy_id: Int8 | null;
   name: string;
+  slug: string;
+  slug_updated_at: Timestamp | null;
 }
 
 export interface ClubInvite {

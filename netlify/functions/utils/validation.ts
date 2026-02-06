@@ -10,21 +10,37 @@ export function getErrorMessage(error: unknown) {
 
 export type ClubRequest<T extends Request = Request> = T & {
   clubId: string;
+  clubSlug: string;
 };
 
-export const validClubId: MiddlewareCallback<Request, ClubRequest> = async (
-  req,
-  res,
-) => {
-  if (!hasValue(req.params.clubId)) return res(notFound());
-  const clubId = req.params.clubId;
+/**
+ * Middleware that accepts both numeric club IDs and slugs
+ * If a numeric ID is provided, it redirects to the slug URL
+ */
+export const validClubIdOrSlug: MiddlewareCallback<
+  Request,
+  ClubRequest
+> = async (req, res) => {
+  const identifier = req.params.clubIdentifier;
 
-  if (await ClubRepository.exists(clubId)) {
-    return {
-      ...req,
-      clubId,
-    };
-  } else {
+  if (!hasValue(identifier)) {
+    return res(notFound());
+  }
+
+  // Look up club by ID or slug
+  const club = await ClubRepository.getByIdOrSlug(identifier);
+
+  if (!club) {
     return res(notFound("Club not found"));
   }
+
+  const clubId = String(club.id);
+  const clubSlug = club.slug;
+
+  // Otherwise, continue with the request
+  return {
+    ...req,
+    clubId,
+    clubSlug,
+  };
 };

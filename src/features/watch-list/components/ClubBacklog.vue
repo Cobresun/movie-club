@@ -94,7 +94,7 @@ import { DetailedWorkListItem } from "../../../../lib/types/lists";
 import EmptyState from "@/common/components/EmptyState.vue";
 import MoviePosterCard from "@/common/components/MoviePosterCard.vue";
 import { filterMovies } from "@/common/searchMovies";
-import { useClubId } from "@/service/useClub";
+import { useClubSlug } from "@/service/useClub";
 import {
   useAddListItem,
   useDeleteListItem,
@@ -107,16 +107,16 @@ const { searchTerm, clearSearch } = defineProps<{
   clearSearch: () => void;
 }>();
 
-const clubId = useClubId();
-const { data: watchList } = useList(clubId, WorkListType.watchlist);
-const { data: backlog } = useList(clubId, WorkListType.backlog);
+const clubSlug = useClubSlug();
+const { data: watchList } = useList(clubSlug, WorkListType.watchlist);
+const { data: backlog } = useList(clubSlug, WorkListType.backlog);
 
 const { mutateAsync: deleteBacklogItem } = useDeleteListItem(
-  clubId,
+  clubSlug,
   WorkListType.backlog,
 );
 const { mutateAsync: addToWatchlist } = useAddListItem(
-  clubId,
+  clubSlug,
   WorkListType.watchlist,
 );
 
@@ -134,7 +134,7 @@ const moveBacklogItemToWatchlist = async (movie: DetailedWorkListItem) => {
   await deleteBacklogItem(movie.id);
 };
 
-const { mutate: reorderList } = useReorderList(clubId, WorkListType.backlog);
+const { mutate: reorderList } = useReorderList(clubSlug, WorkListType.backlog);
 
 const filteredBacklog = computed(() => {
   return filterMovies(backlog.value ?? [], searchTerm);

@@ -22,7 +22,7 @@ import { MovieSearchIndex } from "../../../../lib/types/movie";
 import { WatchListItem } from "../../../../lib/types/watchlist";
 import MovieSearchPrompt from "../../../common/components/MovieSearchPrompt.vue";
 
-import { useClubId } from "@/service/useClub";
+import { useClubSlug } from "@/service/useClub";
 import { BASE_IMAGE_URL, useList } from "@/service/useList";
 import { useAddListItem } from "@/service/useList";
 import { useTrending } from "@/service/useTMDB";
@@ -39,16 +39,16 @@ const listLabel = computed(() =>
   listType === WorkListType.watchlist ? "watch list" : "backlog",
 );
 
-const clubId = useClubId();
+const clubSlug = useClubSlug();
 
 const { isLoading: loadingTrending, data: trending } = useTrending();
 
-const { isLoading: loadingAdd, mutate: addListItem } = useAddListItem(
-  clubId,
+const { isPending: loadingAdd, mutate: addListItem } = useAddListItem(
+  clubSlug,
   listType,
 );
 
-const { data: list, isLoading: loadingList } = useList(clubId, listType);
+const { data: list, isLoading: loadingList } = useList(clubSlug, listType);
 
 const toast = useToast();
 const selectFromSearch = (movie: MovieSearchIndex) => {

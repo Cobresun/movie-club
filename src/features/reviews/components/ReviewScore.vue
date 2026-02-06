@@ -33,7 +33,7 @@ import { computed, nextTick, ref } from "vue";
 
 import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
 
-import { useClubId } from "@/service/useClub";
+import { useClubSlug } from "@/service/useClub";
 import { useReviewWork, useUpdateReviewScore } from "@/service/useReviews";
 import { useUser } from "@/service/useUser";
 
@@ -62,7 +62,7 @@ const openScoreInput = () => {
   }).catch(console.error);
 };
 
-const clubId = useClubId();
+const clubId = useClubSlug();
 const { mutate: submit } = useReviewWork(clubId);
 const { mutate: update } = useUpdateReviewScore(clubId);
 

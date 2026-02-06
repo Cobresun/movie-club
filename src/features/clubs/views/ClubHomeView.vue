@@ -90,12 +90,12 @@ import statisticsSvg from "@/assets/images/menu-images/statistics.svg";
 import watchlistSvg from "@/assets/images/menu-images/watchlist.svg";
 import {
   useMembers,
-  useClubId,
+  useClubSlug,
   useInviteToken,
   useClubSettings,
 } from "@/service/useClub";
 
-const clubId = useClubId();
+const clubId = useClubSlug();
 const { data: members, isLoading: isLoadingMembers } = useMembers(clubId);
 const { data: inviteToken } = useInviteToken(clubId);
 const { data: settings } = useClubSettings(clubId);

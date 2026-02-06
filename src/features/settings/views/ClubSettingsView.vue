@@ -74,6 +74,47 @@
         </div>
       </div>
 
+      <!-- Club URL Slug Section -->
+      <div class="mt-8 space-y-4">
+        <h3 class="text-xl font-semibold">Club URL</h3>
+        <div class="rounded-lg bg-gray-800 p-4">
+          <div class="space-y-3">
+            <div class="flex-1 text-left">
+              <h4 class="font-medium">Custom URL Slug</h4>
+              <p class="mt-1 text-sm text-gray-400">
+                Your club's URL: {{ clubUrl }}
+              </p>
+            </div>
+
+            <div class="flex gap-2">
+              <input
+                v-model="newSlug"
+                placeholder="Enter new slug"
+                class="flex-1 rounded border p-3 text-sm"
+                :class="
+                  slugError
+                    ? 'border-red-500 bg-gray-700'
+                    : 'border-gray-600 bg-gray-700'
+                "
+              />
+              <v-btn
+                :disabled="!canSaveSlug"
+                :loading="isUpdatingSlug"
+                class="bg-blue-600 hover:bg-blue-700"
+                @click="saveSlug"
+              >
+                Save
+              </v-btn>
+            </div>
+
+            <p v-if="slugError" class="text-sm text-red-400">{{ slugError }}</p>
+            <p class="text-xs text-gray-500">
+              3-50 characters, lowercase letters, numbers, and hyphens only
+            </p>
+          </div>
+        </div>
+      </div>
+
       <!-- Members Section -->
       <div class="mt-8 space-y-4">
         <h3 class="text-xl font-semibold">Members</h3>
@@ -218,6 +259,7 @@
 </template>
 
 <script setup lang="ts">
+import type { AxiosError } from "axios";
 import { ref, computed } from "vue";
 import { useToast } from "vue-toastification";
 
@@ -225,13 +267,14 @@ import { hasValue } from "../../../../lib/checks/checks.js";
 
 import {
   useMembers,
-  useClubId,
+  useClubSlug,
   useLeaveClub,
   useRemoveMember,
   useInviteToken,
   useClubSettings,
   useUpdateClubSettings,
   useClub,
+  useUpdateClubSlug,
   useUpdateClubName,
 } from "@/service/useClub";
 import { useAuthStore } from "@/stores/auth";
@@ -240,11 +283,13 @@ const toast = useToast();
 const auth = useAuthStore();
 const showLeaveConfirm = ref(false);
 const showRemoveConfirm = ref(false);
-const clubId = useClubId();
+const clubId = useClubSlug();
 const inviteLinkInput = ref<HTMLInputElement | null>(null);
 const hasCopied = ref(false);
 const memberToRemove = ref<{ id: string; name: string } | null>(null);
 const isRemoving = ref(false);
+const newSlug = ref("");
+const slugError = ref("");
 
 const currentUserEmail = computed(() => auth.user?.email);
 const { data: club } = useClub(clubId);
@@ -253,7 +298,7 @@ const {
   isLoading: isLoadingMembers,
   refetch: refetchMembers,
 } = useMembers(clubId);
-const { mutate: leaveClubMutation, isLoading: isLeaving } =
+const { mutate: leaveClubMutation, isPending: isLeaving } =
   useLeaveClub(clubId);
 const { mutate: removeMemberMutation } = useRemoveMember(clubId);
 const { data: inviteToken } = useInviteToken(clubId);
@@ -271,6 +316,8 @@ const hasNameChanged = computed(() => {
   );
 });
 
+const { mutate: updateSlugMutation, isPending: isUpdatingSlug } =
+  useUpdateClubSlug(clubId);
 const blurScoresEnabled = computed(
   () => settings.value?.features?.blurScores === true,
 );
@@ -285,6 +332,57 @@ const saveClubName = () => {
     },
     onError: () => {
       toast.error("Failed to update club name");
+    },
+  });
+};
+
+// Slug management
+const currentSlug = computed(() => club.value?.slug ?? "");
+
+const clubUrl = computed(() => {
+  const baseUrl = window.location.origin;
+  return `${baseUrl}/club/${currentSlug.value}`;
+});
+
+const validateSlugFormat = (slug: string): string | null => {
+  if (slug.length < 3 || slug.length > 50) {
+    return "Slug must be 3-50 characters";
+  }
+  if (!/^[a-z0-9-]+$/.test(slug)) {
+    return "Only lowercase letters, numbers, and hyphens allowed";
+  }
+  if (/^[0-9]+$/.test(slug)) {
+    return "Slug cannot be all numbers";
+  }
+  return null;
+};
+
+const canSaveSlug = computed(() => {
+  if (!newSlug.value || isUpdatingSlug.value) return false;
+  if (newSlug.value === currentSlug.value) return false;
+  return validateSlugFormat(newSlug.value) === null;
+});
+
+const saveSlug = () => {
+  slugError.value = "";
+
+  const validationError = validateSlugFormat(newSlug.value);
+  if (validationError !== null) {
+    slugError.value = validationError;
+    return;
+  }
+
+  updateSlugMutation(newSlug.value, {
+    onSuccess: () => {
+      toast.success("Club URL updated successfully");
+      slugError.value = "";
+    },
+    onError: (error: unknown) => {
+      const axiosError = error as AxiosError<{ error?: string }>;
+      const errorMessage =
+        axiosError.response?.data?.error ?? "Failed to update slug";
+      slugError.value = errorMessage;
+      toast.error(errorMessage);
     },
   });
 };

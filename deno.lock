@@ -41,7 +41,7 @@
         "npm:autoprefixer@^10.4.23",
         "npm:axios@^1.13.2",
         "npm:bcrypt@6",
-        "npm:better-auth@^1.4.7",
+        "npm:better-auth@^1.4.18",
         "npm:cloudinary@^2.8.0",
         "npm:eslint-config-prettier@^9.1.2",
         "npm:eslint-plugin-import@^2.32.0",

@@ -15,6 +15,7 @@ export interface Member extends User {
 export interface ClubPreview {
   clubId: string;
   clubName: string;
+  slug: string;
 }
 
 export interface BaseClub extends ClubPreview {

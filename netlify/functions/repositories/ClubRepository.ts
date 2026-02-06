@@ -1,7 +1,13 @@
 import crypto from "crypto";
 
-import { isTrue } from "../../../lib/checks/checks.js";
+import { isTrue, isDefined } from "../../../lib/checks/checks.js";
 import { db } from "../utils/database";
+import {
+  generateSlugFromName,
+  generateUniqueSlug,
+  isNumericId,
+  SLUG_UPDATE_COOLDOWN_DAYS,
+} from "../utils/slug";
 
 interface JoinClubResult {
   success: boolean;
@@ -10,23 +16,44 @@ interface JoinClubResult {
 
 class ClubRepository {
   async getById(clubId: string) {
-    const club = (
-      await db
-        .selectFrom("club")
-        .selectAll()
-        .where("id", "=", clubId.toString())
-        .execute()
-    )[0];
+    return db
+      .selectFrom("club")
+      .selectAll()
+      .where("id", "=", clubId.toString())
+      .executeTakeFirst();
+  }
+
+  async getBySlug(slug: string) {
+    const club = await db
+      .selectFrom("club")
+      .selectAll()
+      .where("slug", "=", slug)
+      .executeTakeFirst();
 
     return club;
   }
 
-  async exists(clubId: string) {
-    const results = await db
-      .selectFrom("club")
-      .select("id")
-      .where("id", "=", clubId.toString())
-      .execute();
+  async getByIdOrSlug(identifier: string) {
+    // If identifier is numeric, try ID lookup first
+    if (isNumericId(identifier)) {
+      const club = await this.getById(identifier);
+      if (isDefined(club)) {
+        return club;
+      }
+    }
+
+    // Otherwise, treat as slug
+    return await this.getBySlug(identifier);
+  }
+
+  async slugExists(slug: string, excludeClubId?: string) {
+    let query = db.selectFrom("club").select("id").where("slug", "=", slug);
+
+    if (isDefined(excludeClubId)) {
+      query = query.where("id", "!=", excludeClubId);
+    }
+
+    const results = await query.execute();
     return results.length > 0;
   }
 
@@ -54,11 +81,19 @@ class ClubRepository {
     ).map((row) => row.id);
   }
 
-  insert(name: string, legacy_id?: number) {
+  async insert(name: string, legacy_id?: number) {
+    // Generate a unique slug from the club name
+    let slug = generateSlugFromName(name);
+
+    // Check if slug already exists, generate unique one if needed
+    while (await this.slugExists(slug)) {
+      slug = generateUniqueSlug(slug);
+    }
+
     return db
       .insertInto("club")
-      .values({ name, legacy_id })
-      .returning("id")
+      .values({ name, legacy_id, slug, slug_updated_at: new Date() })
+      .returning(["id", "slug"])
       .executeTakeFirst();
   }
 
@@ -76,7 +111,7 @@ class ClubRepository {
       .where("user.id", "=", userId)
       .innerJoin("club_member", "club_member.user_id", "user.id")
       .innerJoin("club", "club.id", "club_member.club_id")
-      .select(["club.id as club_id", "club.name as club_name"])
+      .select(["club.id as club_id", "club.name as club_name", "club.slug"])
       .execute();
   }
 
@@ -178,6 +213,43 @@ class ClubRepository {
       .execute();
 
     return token;
+  }
+
+  async updateSlug(clubId: string, newSlug: string) {
+    await db
+      .updateTable("club")
+      .set({ slug: newSlug, slug_updated_at: new Date() })
+      .where("id", "=", clubId)
+      .execute();
+  }
+
+  async canUpdateSlug(clubId: string): Promise<boolean> {
+    const club = await this.getById(clubId);
+    if (!isDefined(club) || !isDefined(club.slug_updated_at)) {
+      return true; // No previous update, can update
+    }
+
+    const lastUpdate = new Date(String(club.slug_updated_at));
+    const cooldownEnd = new Date(
+      lastUpdate.getTime() + SLUG_UPDATE_COOLDOWN_DAYS * 24 * 60 * 60 * 1000,
+    );
+    return new Date() >= cooldownEnd;
+  }
+
+  async getDaysUntilSlugUpdate(clubId: string): Promise<number> {
+    const club = await this.getById(clubId);
+    if (!isDefined(club) || !isDefined(club.slug_updated_at)) {
+      return 0;
+    }
+
+    const lastUpdate = new Date(String(club.slug_updated_at));
+    const cooldownEnd = new Date(
+      lastUpdate.getTime() + SLUG_UPDATE_COOLDOWN_DAYS * 24 * 60 * 60 * 1000,
+    );
+    const daysRemaining = Math.ceil(
+      (cooldownEnd.getTime() - new Date().getTime()) / (24 * 60 * 60 * 1000),
+    );
+    return Math.max(0, daysRemaining);
   }
 }
 

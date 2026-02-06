@@ -10,7 +10,7 @@ import { badRequest, ok } from "../utils/responses";
 import { Router } from "../utils/router";
 import { ClubRequest } from "../utils/validation";
 
-const router = new Router<ClubRequest>("/api/club/:clubId<\\d+>/reviews");
+const router = new Router<ClubRequest>("/api/club/:clubIdentifier/reviews");
 
 const addReviewSchema = z.object({
   score: z.number().min(0).max(10),

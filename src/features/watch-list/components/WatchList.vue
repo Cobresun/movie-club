@@ -109,7 +109,7 @@ import EmptyState from "@/common/components/EmptyState.vue";
 import MoviePosterCard from "@/common/components/MoviePosterCard.vue";
 import { BadRequest } from "@/common/errorCodes";
 import { filterMovies } from "@/common/searchMovies";
-import { useClubId } from "@/service/useClub";
+import { useClubSlug } from "@/service/useClub";
 import {
   useClearNextWork,
   useDeleteListItem,
@@ -128,16 +128,16 @@ const { searchTerm, clearSearch } = defineProps<{
 
 const router = useRouter();
 
-const clubId = useClubId();
+const clubSlug = useClubSlug();
 const { mutateAsync: deleteWatchlistItem } = useDeleteListItem(
-  clubId,
+  clubSlug,
   WorkListType.watchlist,
 );
 const {
   mutateAsync: addReview,
-  isLoading: loadingAddReview,
+  isPending: loadingAddReview,
   variables: reviewedWork,
-} = useAddListItem(clubId, WorkListType.reviews);
+} = useAddListItem(clubSlug, WorkListType.reviews);
 
 const toast = useToast();
 const reviewMovie = async (work: DetailedWorkListItem) => {
@@ -163,8 +163,8 @@ const reviewMovie = async (work: DetailedWorkListItem) => {
   await deleteWatchlistItem(work.id);
 };
 
-const { data: watchList } = useList(clubId, WorkListType.watchlist);
-const { data: nextWorkId } = useNextWork(clubId);
+const { data: watchList } = useList(clubSlug, WorkListType.watchlist);
+const { data: nextWorkId } = useNextWork(clubSlug);
 
 const filteredWatchList = computed(() => {
   return filterMovies(watchList.value ?? [], searchTerm);
@@ -181,9 +181,12 @@ const closePrompt = () => {
   modalOpen.value = false;
 };
 
-const { mutate: setNextWork } = useSetNextWork(clubId);
-const { mutate: reorderList } = useReorderList(clubId, WorkListType.watchlist);
-const { mutate: clearNextWork } = useClearNextWork(clubId);
+const { mutate: setNextWork } = useSetNextWork(clubSlug);
+const { mutate: reorderList } = useReorderList(
+  clubSlug,
+  WorkListType.watchlist,
+);
+const { mutate: clearNextWork } = useClearNextWork(clubSlug);
 
 const reorderMode = ref(false);
 const randomPickerOpen = ref(false);

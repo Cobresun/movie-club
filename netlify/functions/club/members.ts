@@ -6,7 +6,7 @@ import { ok, badRequest } from "../utils/responses";
 import { Router } from "../utils/router";
 import { ClubRequest, validClubId } from "../utils/validation";
 
-const router = new Router<ClubRequest>("/api/club/:clubId<\\d+>/members");
+const router = new Router<ClubRequest>("/api/club/:clubIdentifier/members");
 
 router.get("/", async ({ clubId }, res) => {
   const members = await UserRepository.getMembersByClubId(clubId);

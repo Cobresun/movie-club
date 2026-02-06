@@ -42,8 +42,8 @@ const checkClubAccess = async (
 
   await auth.waitForClubsReady();
 
-  const clubId = to.params.clubId as string;
-  if (auth.isClubMember(clubId)) {
+  const clubSlug = to.params.clubSlug as string;
+  if (auth.isClubMember(clubSlug)) {
     return next();
   } else {
     // User is not a member of this club
@@ -88,7 +88,7 @@ const routes: Array<RouteRecordRaw> = [
     },
   },
   {
-    path: "/share/club/:clubId/review/:workId",
+    path: "/share/club/:clubSlug/review/:workId",
     name: "SharedReview",
     component: () => import("../features/reviews/views/SharedReviewView.vue"),
     meta: {
@@ -125,7 +125,7 @@ const routes: Array<RouteRecordRaw> = [
     },
   },
   {
-    path: "/club/:clubId",
+    path: "/club/:clubSlug",
     component: ClubRouterView,
     beforeEnter: checkClubAccess,
     props: true,

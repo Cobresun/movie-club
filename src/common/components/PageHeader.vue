@@ -15,7 +15,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { useClub, useClubId } from "@/service/useClub";
+import { useClub, useClubSlug } from "@/service/useClub";
 
 const props = defineProps<{
   hasBack: boolean;
@@ -27,6 +27,6 @@ const props = defineProps<{
 const { hideClub = false } = props;
 
 // Only fetch club data if not hiding club
-const clubId = hideClub ? "" : useClubId();
+const clubId = hideClub ? "" : useClubSlug();
 const { data: club } = hideClub ? { data: undefined } : useClub(clubId);
 </script>

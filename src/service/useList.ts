@@ -21,38 +21,38 @@ export const BASE_IMAGE_URL = "https://image.tmdb.org/t/p/w154/";
 export const OPTIMISTIC_WORK_ID = "temp";
 
 export function useList(
-  clubId: string,
+  clubIdentifier: string,
   type: WorkListType.reviews,
 ): UseQueryReturnType<DetailedReviewListItem[], AxiosError>;
 export function useList(
-  clubId: string,
+  clubIdentifier: string,
   type: WorkListType.backlog | WorkListType.watchlist,
 ): UseQueryReturnType<DetailedWorkListItem[], AxiosError>;
 export function useList(
-  clubId: string,
+  clubIdentifier: string,
   type: WorkListType,
 ): UseQueryReturnType<DetailedWorkListItem[], AxiosError> {
   return useQuery({
-    queryKey: ["list", clubId, type],
+    queryKey: ["list", clubIdentifier, type],
     queryFn: async () =>
       (
         await axios.get<DetailedWorkListItem[] | DetailedReviewListItem[]>(
-          `/api/club/${clubId}/list/${type}`,
+          `/api/club/${clubIdentifier}/list/${type}`,
         )
       ).data,
   });
 }
 
-export function useAddListItem(clubId: string, type: WorkListType) {
+export function useAddListItem(clubIdentifier: string, type: WorkListType) {
   const auth = useAuthStore();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (insertDto: ListInsertDto) =>
-      auth.request.post(`/api/club/${clubId}/list/${type}`, insertDto),
+      auth.request.post(`/api/club/${clubIdentifier}/list/${type}`, insertDto),
     onMutate: (insertDto) => {
       queryClient.setQueryData<
         DetailedWorkListItem[] | DetailedReviewListItem[]
-      >(["list", clubId, type], (currentList) => {
+      >(["list", clubIdentifier, type], (currentList) => {
         if (!currentList) return currentList;
         return [
           ...currentList,
@@ -69,20 +69,22 @@ export function useAddListItem(clubId: string, type: WorkListType) {
       });
     },
     onSettled: () =>
-      queryClient.invalidateQueries({ queryKey: ["list", clubId, type] }),
+      queryClient.invalidateQueries({
+        queryKey: ["list", clubIdentifier, type],
+      }),
   });
 }
 
-export function useDeleteListItem(clubId: string, type: WorkListType) {
+export function useDeleteListItem(clubIdentifier: string, type: WorkListType) {
   const auth = useAuthStore();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (workId: string) =>
-      auth.request.delete(`/api/club/${clubId}/list/${type}/${workId}`),
+      auth.request.delete(`/api/club/${clubIdentifier}/list/${type}/${workId}`),
     onMutate: (workId) => {
       if (!workId) return;
       queryClient.setQueryData<DetailedWorkListItem[]>(
-        ["list", clubId, type],
+        ["list", clubIdentifier, type],
         (currentList) => {
           if (!currentList) return currentList;
           return currentList.filter((item) => item.id !== workId);
@@ -90,28 +92,34 @@ export function useDeleteListItem(clubId: string, type: WorkListType) {
       );
     },
     onSettled: () =>
-      queryClient.invalidateQueries({ queryKey: ["list", clubId, type] }),
+      queryClient.invalidateQueries({
+        queryKey: ["list", clubIdentifier, type],
+      }),
   });
 }
 
 export function useReorderList(
-  clubId: string,
+  clubIdentifier: string,
   type: WorkListType.watchlist | WorkListType.backlog,
 ) {
   const auth = useAuthStore();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (workIds: string[]) =>
-      auth.request.put(`/api/club/${clubId}/list/${type}/reorder`, { workIds }),
+      auth.request.put(`/api/club/${clubIdentifier}/list/${type}/reorder`, {
+        workIds,
+      }),
     onMutate: async (workIds) => {
-      await queryClient.cancelQueries({ queryKey: ["list", clubId, type] });
+      await queryClient.cancelQueries({
+        queryKey: ["list", clubIdentifier, type],
+      });
       const previousList = queryClient.getQueryData<DetailedWorkListItem[]>([
         "list",
-        clubId,
+        clubIdentifier,
         type,
       ]);
       queryClient.setQueryData<DetailedWorkListItem[]>(
-        ["list", clubId, type],
+        ["list", clubIdentifier, type],
         (currentList) => {
           if (!currentList) return currentList;
           const itemMap = new Map(currentList.map((item) => [item.id, item]));
@@ -122,70 +130,82 @@ export function useReorderList(
     },
     onError: (_err, _workIds, context) => {
       if (context?.previousList) {
-        queryClient.setQueryData(["list", clubId, type], context.previousList);
+        queryClient.setQueryData(
+          ["list", clubIdentifier, type],
+          context.previousList,
+        );
       }
     },
     onSettled: () =>
-      queryClient.invalidateQueries({ queryKey: ["list", clubId, type] }),
+      queryClient.invalidateQueries({
+        queryKey: ["list", clubIdentifier, type],
+      }),
   });
 }
 
-export function useNextWork(clubId: string) {
+export function useNextWork(clubIdentifier: string) {
   return useQuery({
-    queryKey: ["nextWork", clubId],
+    queryKey: ["nextWork", clubIdentifier],
     queryFn: async () => {
       const response = await axios.get<{ workId?: string }>(
-        `/api/club/${clubId}/nextWork`,
+        `/api/club/${clubIdentifier}/nextWork`,
       );
       return response.data.workId ?? null;
     },
   });
 }
 
-export function useSetNextWork(clubId: string) {
+export function useSetNextWork(clubIdentifier: string) {
   const auth = useAuthStore();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (workId: string) =>
-      auth.request.put(`/api/club/${clubId}/nextWork`, { workId }),
+      auth.request.put(`/api/club/${clubIdentifier}/nextWork`, { workId }),
     onMutate: (workId) => {
       if (!workId) return;
-      queryClient.setQueryData<string>(["nextWork", clubId], () => workId);
+      queryClient.setQueryData<string>(
+        ["nextWork", clubIdentifier],
+        () => workId,
+      );
     },
     onSettled: () =>
-      queryClient.invalidateQueries({ queryKey: ["nextWork", clubId] }),
+      queryClient.invalidateQueries({ queryKey: ["nextWork", clubIdentifier] }),
   });
 }
 
-export function useClearNextWork(clubId: string) {
+export function useClearNextWork(clubIdentifier: string) {
   const auth = useAuthStore();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: () => auth.request.delete(`/api/club/${clubId}/nextWork`),
+    mutationFn: () =>
+      auth.request.delete(`/api/club/${clubIdentifier}/nextWork`),
     onMutate: () => {
-      queryClient.setQueryData<string | null>(["nextWork", clubId], null);
+      queryClient.setQueryData<string | null>(
+        ["nextWork", clubIdentifier],
+        null,
+      );
     },
     onSettled: () =>
-      queryClient.invalidateQueries({ queryKey: ["nextWork", clubId] }),
+      queryClient.invalidateQueries({ queryKey: ["nextWork", clubIdentifier] }),
   });
 }
 
 export function useSharedReview(
-  clubId: string,
+  clubIdentifier: string,
   workId: string,
 ): UseQueryReturnType<SharedReviewResponse, AxiosError> {
   return useQuery({
-    queryKey: ["sharedReview", clubId, workId],
+    queryKey: ["sharedReview", clubIdentifier, workId],
     queryFn: async () =>
       (
         await axios.get<{ data: SharedReviewResponse }>(
-          `/api/club/${clubId}/reviews/${workId}/shared`,
+          `/api/club/${clubIdentifier}/reviews/${workId}/shared`,
         )
       ).data,
   });
 }
 
-export function useUpdateAddedDate(clubId: string) {
+export function useUpdateAddedDate(clubIdentifier: string) {
   const auth = useAuthStore();
   const queryClient = useQueryClient();
 
@@ -198,12 +218,12 @@ export function useUpdateAddedDate(clubId: string) {
       addedDate: string;
     }) =>
       auth.request.put(
-        `/api/club/${clubId}/list/${WorkListType.reviews}/${workId}/added-date`,
+        `/api/club/${clubIdentifier}/list/${WorkListType.reviews}/${workId}/added-date`,
         { addedDate },
       ),
     onMutate: ({ workId, addedDate }) => {
       queryClient.setQueryData<DetailedReviewListItem[]>(
-        ["list", clubId, WorkListType.reviews],
+        ["list", clubIdentifier, WorkListType.reviews],
         (currentList) => {
           if (!currentList) return currentList;
           return currentList.map((item) =>
@@ -214,7 +234,7 @@ export function useUpdateAddedDate(clubId: string) {
     },
     onSettled: () =>
       queryClient.invalidateQueries({
-        queryKey: ["list", clubId, WorkListType.reviews],
+        queryKey: ["list", clubIdentifier, WorkListType.reviews],
       }),
   });
 }

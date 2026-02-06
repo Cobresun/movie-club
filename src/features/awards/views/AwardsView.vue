@@ -17,9 +17,9 @@ import { useRoute, useRouter } from "vue-router";
 import { isDefined } from "../../../../lib/checks/checks.js";
 
 import { useAwardYears } from "@/service/useAwards";
-import { useClubId } from "@/service/useClub";
+import { useClubSlug } from "@/service/useClub";
 
-const clubId = useClubId();
+const clubId = useClubSlug();
 const { data: years, isLoading } = useAwardYears(clubId);
 
 const selectYears = computed(() =>
