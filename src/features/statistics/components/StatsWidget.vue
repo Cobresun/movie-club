@@ -12,7 +12,11 @@
     >
       <mdicon name="clock-outline" class="mb-2 text-primary" :size="20" />
       <p class="text-3xl font-bold text-white">{{ formattedTime }}</p>
-      <p class="text-xs tracking-wide text-slate-400">watch time</p>
+      <p class="text-xs tracking-wide text-slate-400">
+        watch time<template v-if="totalDays > 0">
+          ({{ totalDays }} {{ totalDays === 1 ? "day" : "days" }})</template
+        >
+      </p>
     </div>
   </div>
 </template>
@@ -25,9 +29,14 @@ const props = defineProps<{
   totalRuntimeMinutes: number;
 }>();
 
+const totalHours = computed(() => Math.floor(props.totalRuntimeMinutes / 60));
+
 const formattedTime = computed(() => {
-  const hours = Math.floor(props.totalRuntimeMinutes / 60);
   const minutes = props.totalRuntimeMinutes % 60;
-  return `${hours}h ${minutes}m`;
+  return `${totalHours.value}h ${minutes}m`;
 });
+
+const totalDays = computed(() =>
+  totalHours.value > 24 ? Math.round(totalHours.value / 24) : 0,
+);
 </script>
