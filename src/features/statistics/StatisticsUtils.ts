@@ -86,6 +86,51 @@ export const createHistogramData = (scores: number[], normalized: boolean) => {
   return bins;
 };
 
+export interface GenreStats {
+  genre: string;
+  averageScore: number;
+  count: number;
+}
+
+const MIN_GENRE_COUNT = 2;
+
+export function computeGenreStats(movieData: MovieStatistics[]): {
+  mostLoved: GenreStats[];
+  leastLoved: GenreStats[];
+} {
+  const genreScores: Record<string, { count: number; totalScore: number }> = {};
+
+  for (const movie of movieData) {
+    if (movie.average === 0) continue;
+    for (const genre of movie.genres) {
+      const existing = genreScores[genre];
+      if (isDefined(existing)) {
+        existing.count++;
+        existing.totalScore += movie.average;
+      } else {
+        genreScores[genre] = { count: 1, totalScore: movie.average };
+      }
+    }
+  }
+
+  const allGenres = Object.entries(genreScores)
+    .filter(([, data]) => data.count >= MIN_GENRE_COUNT)
+    .map(([genre, data]) => ({
+      genre,
+      averageScore: Math.round((data.totalScore / data.count) * 100) / 100,
+      count: data.count,
+    }));
+
+  const sorted = [...allGenres].sort((a, b) => b.averageScore - a.averageScore);
+
+  return {
+    mostLoved: sorted.slice(0, 3),
+    leastLoved: sorted
+      .slice(-3)
+      .sort((a, b) => a.averageScore - b.averageScore),
+  };
+}
+
 export const loadScatterChartSettings = (params: {
   chartTitle: string;
   xName: string;

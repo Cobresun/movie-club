@@ -42,6 +42,11 @@
       <br />
       <ag-charts :options="genreChartOptions" />
       <br />
+      <GenreStatsWidget
+        :most-loved="genreStats.mostLoved"
+        :least-loved="genreStats.leastLoved"
+      />
+      <br />
 
       <table-view :review-table="movieTable" />
     </div>
@@ -67,9 +72,10 @@ import {
   createDateOptions,
   createGenreOptions,
 } from "../chartOptions";
+import GenreStatsWidget from "../components/GenreStatsWidget.vue";
 import StatisticsSearchBar from "../components/StatisticsSearchBar.vue";
 import { useStatisticsData } from "../composables/useStatisticsData";
-import { MovieStatistics } from "../StatisticsUtils";
+import { computeGenreStats, MovieStatistics } from "../StatisticsUtils";
 
 import AverageImg from "@/assets/images/average.svg";
 import EmptyState from "@/common/components/EmptyState.vue";
@@ -130,6 +136,8 @@ const revenueChartOptions = computed(() =>
 const dateChartOptions = computed(() => createDateOptions(scatterParams.value));
 
 const genreChartOptions = computed(() => createGenreOptions(movieData.value));
+
+const genreStats = computed(() => computeGenreStats(movieData.value));
 
 const columnHelper = createColumnHelper<MovieStatistics>();
 
