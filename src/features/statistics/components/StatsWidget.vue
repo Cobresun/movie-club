@@ -1,30 +1,18 @@
 <template>
-  <div class="mx-auto flex w-11/12 gap-4 pt-4">
+  <div class="mx-auto flex w-11/12 gap-3 pt-4">
     <div
-      class="flex flex-1 items-center gap-4 rounded-xl border border-slate-700 bg-lowBackground px-6 py-5"
+      class="flex flex-1 flex-col items-center rounded-xl border border-slate-700 bg-lowBackground py-5"
     >
-      <div
-        class="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary/20"
-      >
-        <mdicon name="filmstrip" class="text-primary" :size="22" />
-      </div>
-      <div>
-        <p class="text-sm text-slate-400">Movies Watched</p>
-        <p class="text-2xl font-semibold text-white">{{ totalMovies }}</p>
-      </div>
+      <mdicon name="filmstrip" class="mb-2 text-primary" :size="20" />
+      <p class="text-3xl font-bold text-white">{{ totalMovies }}</p>
+      <p class="text-xs tracking-wide text-slate-400">movies watched</p>
     </div>
     <div
-      class="flex flex-1 items-center gap-4 rounded-xl border border-slate-700 bg-lowBackground px-6 py-5"
+      class="flex flex-1 flex-col items-center rounded-xl border border-slate-700 bg-lowBackground py-5"
     >
-      <div
-        class="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary/20"
-      >
-        <mdicon name="clock-outline" class="text-primary" :size="22" />
-      </div>
-      <div>
-        <p class="text-sm text-slate-400">Total Watch Time</p>
-        <p class="text-2xl font-semibold text-white">{{ formattedTime }}</p>
-      </div>
+      <mdicon name="clock-outline" class="mb-2 text-primary" :size="20" />
+      <p class="text-3xl font-bold text-white">{{ formattedTime }}</p>
+      <p class="text-xs tracking-wide text-slate-400">watch time</p>
     </div>
   </div>
 </template>
