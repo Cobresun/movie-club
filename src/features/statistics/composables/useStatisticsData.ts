@@ -66,7 +66,7 @@ export function useStatisticsData() {
 
   const totalRuntimeMinutes = computed(() =>
     (movieData.value ?? []).reduce(
-      (sum, movie) => sum + (movie.externalData?.runtime ?? 0),
+      (sum, movie) => sum + (Number(movie.externalData?.runtime) || 0),
       0,
     ),
   );

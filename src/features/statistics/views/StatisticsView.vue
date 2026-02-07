@@ -7,17 +7,17 @@
     />
     <loading-spinner v-if="loading" />
 
-    <StatsWidget
-      v-if="!loading && hasReviews"
-      :total-movies="totalMovies"
-      :total-runtime-minutes="totalRuntimeMinutes"
-    />
-
     <StatisticsSearchBar
       v-if="!loading && hasReviews"
       v-model="searchTerm"
       :normalize="normalize"
       @toggle="toggleNormalize"
+    />
+
+    <StatsWidget
+      v-if="!loading && hasReviews"
+      :total-movies="totalMovies"
+      :total-runtime-minutes="totalRuntimeMinutes"
     />
 
     <div v-if="showEmptyState">
