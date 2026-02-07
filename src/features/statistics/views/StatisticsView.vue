@@ -7,6 +7,12 @@
     />
     <loading-spinner v-if="loading" />
 
+    <StatsWidget
+      v-if="!loading && hasReviews"
+      :total-movies="totalMovies"
+      :total-runtime-minutes="totalRuntimeMinutes"
+    />
+
     <StatisticsSearchBar
       v-if="!loading && hasReviews"
       v-model="searchTerm"
@@ -68,6 +74,7 @@ import {
   createGenreOptions,
 } from "../chartOptions";
 import StatisticsSearchBar from "../components/StatisticsSearchBar.vue";
+import StatsWidget from "../components/StatsWidget.vue";
 import { useStatisticsData } from "../composables/useStatisticsData";
 import { MovieStatistics } from "../StatisticsUtils";
 
@@ -87,6 +94,8 @@ const {
   histogramNormData,
   searchTerm,
   normalize,
+  totalMovies,
+  totalRuntimeMinutes,
   hasReviews,
   hasSearchTerm,
   showEmptyState,

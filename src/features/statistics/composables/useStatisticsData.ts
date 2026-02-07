@@ -62,7 +62,16 @@ export function useStatisticsData() {
     return filterMovies(movieData.value, searchTerm.value);
   });
 
-  const hasReviews = computed(() => (movieData.value?.length ?? 0) > 0);
+  const totalMovies = computed(() => movieData.value?.length ?? 0);
+
+  const totalRuntimeMinutes = computed(() =>
+    (movieData.value ?? []).reduce(
+      (sum, movie) => sum + (movie.externalData?.runtime ?? 0),
+      0,
+    ),
+  );
+
+  const hasReviews = computed(() => totalMovies.value > 0);
   const hasSearchTerm = computed(() => searchTerm.value.trim().length > 0);
   const showEmptyState = computed(
     () => !loading.value && filteredMovieData.value.length === 0,
@@ -82,6 +91,8 @@ export function useStatisticsData() {
     histogramNormData,
     searchTerm,
     normalize,
+    totalMovies,
+    totalRuntimeMinutes,
     hasReviews,
     hasSearchTerm,
     showEmptyState,
