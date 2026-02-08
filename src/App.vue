@@ -1,7 +1,18 @@
 <template>
   <div>
     <nav-bar />
-    <router-view v-slot="{ Component, route }">
+    <div
+      v-if="
+        authStore.isInitialLoading ||
+        (authStore.isLoggedIn && authStore.isLoadingUserClubs)
+      "
+      class="absolute w-full"
+    >
+      <div class="flex justify-center pt-20">
+        <loading-spinner />
+      </div>
+    </div>
+    <router-view v-else v-slot="{ Component, route }">
       <component :is="Component" v-if="isSafari" class="absolute w-full" />
       <transition
         v-else
