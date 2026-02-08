@@ -6,6 +6,7 @@ import {
   RouteLocationNormalized,
 } from "vue-router";
 
+import ClubRouterView from "./ClubRouterView.vue";
 import { isDefined } from "../../lib/checks/checks.js";
 import ClubHomeView from "../features/clubs/views/ClubHomeView.vue";
 import ClubsView from "../features/clubs/views/ClubsView.vue";
@@ -31,23 +32,22 @@ const checkClubAccess = async (
   next: NavigationGuardNext,
 ) => {
   const auth = useAuthStore();
-
-  // Wait for auth initialization to complete
-  while (auth.isInitialLoading || auth.isLoadingUserClubs) {
-    await new Promise((resolve) => setTimeout(resolve, 100));
-  }
-
-  // If not logged in, redirect to clubs
+  await auth.waitForAuthReady();
   if (!auth.isLoggedIn) {
-    return next({ name: "Clubs" });
+    return next({
+      name: "ClubNotFound",
+      query: { redirect: to.fullPath },
+    });
   }
+
+  await auth.waitForClubsReady();
 
   const clubId = to.params.clubId as string;
   if (auth.isClubMember(clubId)) {
     return next();
   } else {
-    // Redirect to clubs if user is not a member
-    return next({ name: "Clubs" });
+    // User is not a member of this club
+    return next({ name: "ClubNotFound" });
   }
 };
 
@@ -100,8 +100,10 @@ const routes: Array<RouteRecordRaw> = [
     path: "/profile",
     name: "Profile",
     component: ProfileView,
-    beforeEnter: (to, from, next) => {
+    beforeEnter: async (to, from, next) => {
       const auth = useAuthStore();
+
+      await auth.waitForAuthReady();
       if (!auth.isLoggedIn) {
         next({ name: "Clubs" });
       } else {
@@ -114,15 +116,6 @@ const routes: Array<RouteRecordRaw> = [
     },
   },
   {
-    path: "/club/:clubId",
-    name: "ClubHome",
-    component: ClubHomeView,
-    beforeEnter: checkClubAccess,
-    meta: {
-      depth: 1,
-    },
-  },
-  {
     path: "/newClub",
     name: "NewClub",
     component: NewClubView,
@@ -132,85 +125,105 @@ const routes: Array<RouteRecordRaw> = [
     },
   },
   {
-    path: "/club/:clubId/reviews",
-    name: "Reviews",
-    component: ReviewView,
+    path: "/club/:clubId",
+    component: ClubRouterView,
     beforeEnter: checkClubAccess,
     props: true,
     meta: {
-      depth: 2,
-    },
-  },
-  {
-    path: "/club/:clubId/watch-list",
-    name: "WatchList",
-    component: WatchListView,
-    beforeEnter: checkClubAccess,
-    meta: {
-      depth: 2,
-    },
-  },
-  {
-    path: "/club/:clubId/statistics",
-    name: "Statistics",
-    component: StatisticsView,
-    beforeEnter: checkClubAccess,
-    meta: {
-      depth: 2,
-    },
-  },
-  {
-    path: "/club/:clubId/awards",
-    name: "Awards",
-    component: AwardsView,
-    beforeEnter: checkClubAccess,
-    meta: {
-      depth: 2,
+      depth: 1,
+      authRequired: true,
     },
     children: [
       {
-        path: ":year",
-        name: "AwardsYear",
-        component: YearView,
+        path: "",
+        name: "ClubHome",
+        component: ClubHomeView,
         props: true,
+        meta: {
+          depth: 1,
+        },
+      },
+      {
+        path: "reviews",
+        name: "Reviews",
+        component: ReviewView,
+        props: true,
+        meta: {
+          depth: 2,
+        },
+      },
+      {
+        path: "watch-list",
+        name: "WatchList",
+        component: WatchListView,
+        props: true,
+        meta: {
+          depth: 2,
+        },
+      },
+      {
+        path: "statistics",
+        name: "Statistics",
+        component: StatisticsView,
+        props: true,
+        meta: {
+          depth: 2,
+        },
+      },
+      {
+        path: "awards",
+        name: "Awards",
+        component: AwardsView,
+        props: true,
+        meta: {
+          depth: 2,
+        },
         children: [
           {
-            path: "categories",
-            name: "AwardsCategories",
+            path: ":year",
+            name: "AwardsYear",
+            component: YearView,
             props: true,
-            component: CategoriesView,
-          },
-          {
-            path: "nominations",
-            name: "AwardsNominations",
-            props: true,
-            component: NominationsView,
-          },
-          {
-            path: "rankings",
-            name: "AwardsRankings",
-            props: true,
-            component: RankingsView,
-          },
-          {
-            path: "results",
-            name: "AwardsResults",
-            props: true,
-            component: ResultView,
+            children: [
+              {
+                path: "categories",
+                name: "AwardsCategories",
+                props: true,
+                component: CategoriesView,
+              },
+              {
+                path: "nominations",
+                name: "AwardsNominations",
+                props: true,
+                component: NominationsView,
+              },
+              {
+                path: "rankings",
+                name: "AwardsRankings",
+                props: true,
+                component: RankingsView,
+              },
+              {
+                path: "results",
+                name: "AwardsResults",
+                props: true,
+                component: ResultView,
+              },
+            ],
           },
         ],
       },
+      {
+        path: "settings",
+        name: "ClubSettings",
+        component: ClubSettingsView,
+        props: true,
+        meta: {
+          depth: 2,
+          authRequired: true,
+        },
+      },
     ],
-  },
-  {
-    path: "/club/:clubId/settings",
-    name: "ClubSettings",
-    component: ClubSettingsView,
-    beforeEnter: checkClubAccess,
-    meta: {
-      depth: 2,
-      authRequired: true,
-    },
   },
   {
     path: "/join-club/:inviteToken",
@@ -218,6 +231,24 @@ const routes: Array<RouteRecordRaw> = [
     component: JoinClubView,
     meta: {
       depth: 1,
+    },
+  },
+  {
+    path: "/club-not-found",
+    name: "ClubNotFound",
+    component: () => import("../common/views/ClubNotFoundView.vue"),
+    meta: {
+      depth: 1,
+      noAuth: true,
+    },
+  },
+  {
+    path: "/:pathMatch(.*)*",
+    name: "NotFound",
+    component: () => import("../common/views/NotFoundView.vue"),
+    meta: {
+      depth: 0,
+      noAuth: true,
     },
   },
 ];
