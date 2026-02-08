@@ -15,16 +15,31 @@
           This club doesn't exist or you don't have access. You'll need an
           invitation to join a private club.
         </p>
-        <v-btn class="mt-4" @click="goHome">Browse Your Clubs</v-btn>
+
+        <v-btn v-if="!isLoggedIn" class="mt-4" @click="handleLogin">
+          Login
+        </v-btn>
+
+        <v-btn v-else class="mt-4" @click="goHome"> Browse Your Clubs </v-btn>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { computed } from "vue";
 import { useRouter } from "vue-router";
 
+import { useAuthStore } from "@/stores/auth";
+
 const router = useRouter();
+const authStore = useAuthStore();
+
+const isLoggedIn = computed(() => authStore.isLoggedIn);
+
+const handleLogin = () => {
+  authStore.login();
+};
 
 const goHome = () => {
   router.push({ name: "Clubs" }).catch(console.error);

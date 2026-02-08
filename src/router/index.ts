@@ -34,7 +34,10 @@ const checkClubAccess = async (
   const auth = useAuthStore();
   await auth.waitForAuthReady();
   if (!auth.isLoggedIn) {
-    return next({ name: "Clubs" });
+    return next({
+      name: "ClubNotFound",
+      query: { redirect: to.fullPath },
+    });
   }
 
   await auth.waitForClubsReady();

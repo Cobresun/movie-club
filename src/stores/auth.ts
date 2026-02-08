@@ -45,12 +45,12 @@ export const useAuthStore = defineStore("auth", () => {
 
   // Helper to wait for auth and clubs to be ready
   const waitForAuthReady = async () => {
-    if (session.value.isPending) {
+    if (session.value.isRefetching || session.value.isPending) {
       await new Promise<void>((resolve) => {
         const unwatch = watch(
-          () => session.value.isPending,
-          (isPending: boolean) => {
-            if (!isPending) {
+          () => [session.value.isPending, session.value.isRefetching],
+          ([isPending, isRefetching]) => {
+            if (!isPending && !isRefetching) {
               unwatch();
               resolve();
             }

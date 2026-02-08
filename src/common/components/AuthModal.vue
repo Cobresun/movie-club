@@ -141,7 +141,10 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
+import { useRoute } from "vue-router";
 import { useToast } from "vue-toastification";
+
+import { isString } from "../../../lib/checks/checks.js";
 
 import googleLogo from "@/assets/images/google-logo.svg";
 import { authClient } from "@/lib/auth-client";
@@ -151,6 +154,7 @@ const emit = defineEmits<{
 }>();
 
 const toast = useToast();
+const route = useRoute();
 
 const isSignUp = ref(false);
 const email = ref("");
@@ -170,6 +174,15 @@ const handleClose = () => {
   isSignUp.value = false;
   showResendVerification.value = false;
   emit("close");
+};
+
+const getRedirectUrl = (): string | undefined => {
+  const redirectParam = route.query.redirect;
+  console.log("Redirect param:", redirectParam);
+  if (isString(redirectParam)) {
+    return redirectParam;
+  }
+  return undefined;
 };
 
 const handleSubmit = async () => {
@@ -204,6 +217,7 @@ const handleSubmit = async () => {
         {
           email: email.value,
           password: password.value,
+          callbackURL: getRedirectUrl(),
         },
         {
           onSuccess: () => {
@@ -245,9 +259,11 @@ const handleGoogleLogin = async () => {
   loading.value = true;
 
   try {
+    const callbackURL = getRedirectUrl() ?? "/";
+
     await authClient.signIn.social({
       provider: "google",
-      callbackURL: "/",
+      callbackURL,
     });
   } catch {
     errorMessage.value = "Failed to sign in with Google. Please try again.";
