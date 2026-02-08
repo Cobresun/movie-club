@@ -178,7 +178,6 @@ const handleClose = () => {
 
 const getRedirectUrl = (): string | undefined => {
   const redirectParam = route.query.redirect;
-  console.log("Redirect param:", redirectParam);
   if (isString(redirectParam)) {
     return redirectParam;
   }
