@@ -38,8 +38,6 @@
       <br />
       <ag-charts :options="histChartOptions" />
       <br />
-      <ag-charts :options="genreChartOptions" />
-      <br />
       <GenreStatsWidget
         :most-loved="genreStats.mostLoved"
         :least-loved="genreStats.leastLoved"
@@ -62,7 +60,7 @@ import { AgCharts } from "ag-charts-vue3";
 import { computed, h } from "vue";
 import { useRouter } from "vue-router";
 
-import { createHistogramOptions, createGenreOptions } from "../chartOptions";
+import { createHistogramOptions } from "../chartOptions";
 import GenreStatsWidget from "../components/GenreStatsWidget.vue";
 import StatisticsSearchBar from "../components/StatisticsSearchBar.vue";
 import StatsWidget from "../components/StatsWidget.vue";
@@ -107,8 +105,6 @@ const histChartOptions = computed(() =>
     normalize: normalize.value,
   }),
 );
-
-const genreChartOptions = computed(() => createGenreOptions(movieData.value));
 
 const genreStats = computed(() => computeGenreStats(movieData.value));
 
