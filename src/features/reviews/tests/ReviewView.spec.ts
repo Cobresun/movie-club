@@ -17,12 +17,12 @@ describe("ReviewView", () => {
     localStorage.clear();
   });
   it("should render searchbox", async () => {
-    render(ReviewView, { props: { clubId: "1" } });
+    render(ReviewView, { props: { clubSlug: "1" } });
     expect(await screen.findByRole("textbox")).toBeInTheDocument();
   });
 
   it("should open and close add review prompt", async () => {
-    const { user } = render(ReviewView, { props: { clubId: "1" } });
+    const { user } = render(ReviewView, { props: { clubSlug: "1" } });
     // Switch to table view first (gallery view has multiple buttons)
     const viewSwitch = screen.getByRole("switch");
     await user.click(viewSwitch);
@@ -37,7 +37,7 @@ describe("ReviewView", () => {
   });
 
   it("should switch between gallery and table view", async () => {
-    const { user } = render(ReviewView, { props: { clubId: "1" } });
+    const { user } = render(ReviewView, { props: { clubSlug: "1" } });
     const viewSwitch = screen.getByRole("switch");
     // Gallery view is the default, so table should not be present initially
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
@@ -46,7 +46,7 @@ describe("ReviewView", () => {
   });
 
   it("should filter reviews when using search bar", async () => {
-    const { user } = render(ReviewView, { props: { clubId: "1" } });
+    const { user } = render(ReviewView, { props: { clubSlug: "1" } });
     const searchBar = await screen.findByRole("textbox");
 
     expect(screen.getAllByText("12 Angry Men")[0]).toBeInTheDocument();
@@ -63,7 +63,7 @@ describe("ReviewView", () => {
   });
 
   it("should focus search bar on / press and type / on second press", async () => {
-    const { user } = render(ReviewView, { props: { clubId: "1" } });
+    const { user } = render(ReviewView, { props: { clubSlug: "1" } });
     await user.keyboard("/");
     const searchBar = await screen.findByRole("textbox");
     expect(searchBar).toHaveFocus();
@@ -73,7 +73,7 @@ describe("ReviewView", () => {
   });
 
   it("should hide search input slash on focus", async () => {
-    const { user } = render(ReviewView, { props: { clubId: "1" } });
+    const { user } = render(ReviewView, { props: { clubSlug: "1" } });
     const inputSlash = await screen.findByText("/");
     expect(inputSlash).toBeVisible();
     await user.keyboard("/");
@@ -83,7 +83,9 @@ describe("ReviewView", () => {
   });
 
   it("should submit score", async () => {
-    const { user, pinia } = render(ReviewView, { props: { clubId: "1" } });
+    const { user, pinia } = render(ReviewView, {
+      props: { clubSlug: "test-club" },
+    });
     const authStore = useAuthStore(pinia);
     // @ts-expect-error Overwriting readonly property for testing purposes
     authStore.user = {
@@ -142,7 +144,7 @@ describe("ReviewView", () => {
       },
     ];
     server.use(
-      http.get("/api/club/:id/list/reviews", () => {
+      http.get("/api/club/:clubSlug/list/reviews", () => {
         return HttpResponse.json(newReviews);
       }),
     );

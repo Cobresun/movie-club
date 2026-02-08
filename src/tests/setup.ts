@@ -7,7 +7,7 @@ import { server } from "@/mocks/server";
 vi.mock("vue-router", () => ({
   useRoute: vi.fn(() => ({
     params: {
-      clubId: "1",
+      clubSlug: "test-club",
     },
   })),
   useRouter: vi.fn(() => ({
