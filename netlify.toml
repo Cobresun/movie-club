@@ -12,7 +12,7 @@
   ]
 
 [[edge_functions]]
-  path = "/share/club/:clubId/review/:workId"
+  path = "/share/club/:clubSlug/review/:workId"
   function = "shared-review"
 
 [[redirects]]

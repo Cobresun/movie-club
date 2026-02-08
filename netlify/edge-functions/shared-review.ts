@@ -49,7 +49,7 @@ function generateOGImageUrl(
 ): string {
   // Use the OG image generation function
   // This will redirect to TMDB poster or generate SVG
-  return `${origin}/api/og-image?clubId=${clubIdentifier}&workId=${workId}`;
+  return `${origin}/api/og-image?clubIdentifier=${clubIdentifier}&workId=${workId}`;
 }
 
 function generateHTML(params: {

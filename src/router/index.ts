@@ -51,6 +51,49 @@ const checkClubAccess = async (
   }
 };
 
+/**
+ * Combined guard that first redirects numeric IDs to slugs,
+ * then checks club access
+ */
+const clubGuard = async (
+  to: RouteLocationNormalized,
+  from: RouteLocationNormalized,
+  next: NavigationGuardNext,
+) => {
+  const auth = useAuthStore();
+  const clubSlug = to.params.clubSlug as string;
+
+  // First, check if we need to redirect numeric ID to slug
+  if (clubSlug && /^\d+$/.test(clubSlug)) {
+    // Wait for clubs to be ready
+    await auth.waitForAuthReady();
+    await auth.waitForClubsReady();
+
+    // Look up the club by numeric ID in user's clubs
+    const club = auth.userClubs?.find((c) => c.clubId === clubSlug);
+
+    if (club) {
+      // Replace the numeric ID with the slug in the full path
+      const newPath = to.path.replace(
+        `/club/${clubSlug}`,
+        `/club/${club.slug}`,
+      );
+
+      // Redirect to slug-based URL, replacing history entry
+      return next({
+        path: newPath,
+        query: to.query, // Preserve query params
+        hash: to.hash, // Preserve hash
+        replace: true, // Don't add to history
+      });
+    }
+    // If club not found, continue to access check which will show ClubNotFound
+  }
+
+  // No redirect needed, proceed to access check
+  return checkClubAccess(to, from, next);
+};
+
 const routes: Array<RouteRecordRaw> = [
   {
     path: "/",
@@ -127,7 +170,7 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: "/club/:clubSlug",
     component: ClubRouterView,
-    beforeEnter: checkClubAccess,
+    beforeEnter: clubGuard,
     props: true,
     meta: {
       depth: 1,

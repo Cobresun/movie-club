@@ -1,18 +1,30 @@
 import { Handler, HandlerContext, HandlerEvent } from "@netlify/functions";
 
+import ClubRepository from "./repositories/ClubRepository";
 import SharedReviewService from "./services/SharedReviewService";
-import { badRequest, redirect, svg } from "./utils/responses";
+import { badRequest, notFound, redirect, svg } from "./utils/responses";
 import { Router } from "./utils/router";
+import { isDefined } from "../../lib/checks/checks.js";
 
 const router = new Router("/api/og-image");
 
 router.get("/", async ({ event }, res) => {
   try {
-    const { clubId, workId } = event.queryStringParameters ?? {};
+    const { clubIdentifier, workId } = event.queryStringParameters ?? {};
 
-    if (clubId === undefined || workId === undefined) {
-      return res(badRequest("Missing required parameters: clubId and workId"));
+    if (clubIdentifier === undefined || workId === undefined) {
+      return res(
+        badRequest("Missing required parameters: clubIdentifier and workId"),
+      );
     }
+
+    // Resolve club identifier (slug or ID) to numeric club ID
+    const club = await ClubRepository.getByIdOrSlug(clubIdentifier);
+    if (!isDefined(club)) {
+      return res(notFound("Club not found"));
+    }
+
+    const clubId = String(club.id);
 
     // Fetch review data using the shared service
     const reviewData = await SharedReviewService.getSharedReviewData(
