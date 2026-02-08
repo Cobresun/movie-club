@@ -17,15 +17,13 @@ import { useList } from "@/service/useList";
 
 export function useStatisticsData() {
   const clubId = useClubId();
-  const { isLoading: loadingClub, data: club } = useClub(clubId);
+  const { isLoading: loadingClub } = useClub(clubId);
   const { isLoading: loadingReviews, data: reviews } = useList(
     clubId,
     WorkListType.reviews,
   );
   const { isLoading: loadingMembers, data: rawMembers } = useMembers(clubId);
   const members = computed(() => rawMembers.value ?? []);
-
-  const clubName = computed(() => club.value?.clubName ?? "Club");
 
   const normalize = ref(false);
   const searchTerm = ref("");
@@ -86,7 +84,6 @@ export function useStatisticsData() {
     movieData,
     filteredMovieData,
     members,
-    clubName,
     histogramData,
     histogramNormData,
     searchTerm,

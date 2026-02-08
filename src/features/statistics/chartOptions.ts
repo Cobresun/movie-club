@@ -4,12 +4,7 @@ import {
   AgLineSeriesTooltipRendererParams,
 } from "ag-charts-community";
 
-import {
-  HistogramData,
-  loadScatterChartSettings,
-  MovieStatistics,
-} from "./StatisticsUtils";
-import { isDefined, isString } from "../../../lib/checks/checks.js";
+import { HistogramData, MovieStatistics } from "./StatisticsUtils";
 import { Member } from "../../../lib/types/club";
 
 export interface HistogramChartParams {
@@ -17,12 +12,6 @@ export interface HistogramChartParams {
   histogramData: HistogramData[];
   histogramNormData: HistogramData[];
   members: Member[];
-  normalize: boolean;
-}
-
-export interface ScatterChartParams {
-  filteredMovieData: MovieStatistics[];
-  clubName: string;
   normalize: boolean;
 }
 
@@ -114,81 +103,6 @@ export function createHistogramOptions(
       },
     ],
   };
-}
-
-export function createScoreVsTMDBOptions(
-  params: ScatterChartParams,
-): AgCartesianChartOptions {
-  const { filteredMovieData, clubName, normalize } = params;
-
-  const validTMDBData = filteredMovieData.filter(
-    (movie) =>
-      isDefined(movie.vote_average) &&
-      !isString(movie.vote_average) &&
-      movie.vote_average > 0 &&
-      isDefined(movie.average) &&
-      movie.average > 0,
-  );
-
-  return loadScatterChartSettings({
-    chartTitle: "Score vs TMDB Audience Score",
-    xName: "TMDB Audience Score",
-    xData: "vote_average",
-    normalizeX: true,
-    yName: clubName + " Score",
-    yData: "average",
-    normalizeY: true,
-    normalizeToggled: normalize,
-    movieData: validTMDBData,
-  });
-}
-
-export function createBudgetOptions(
-  params: ScatterChartParams,
-): AgCartesianChartOptions {
-  return loadScatterChartSettings({
-    chartTitle: "Score vs Film Budget (Millions)",
-    xName: "Film Budget ($mil)",
-    xData: "budgetMil",
-    normalizeX: false,
-    yName: params.clubName + " Score",
-    yData: "average",
-    normalizeY: true,
-    normalizeToggled: params.normalize,
-    movieData: params.filteredMovieData,
-  });
-}
-
-export function createRevenueOptions(
-  params: ScatterChartParams,
-): AgCartesianChartOptions {
-  return loadScatterChartSettings({
-    chartTitle: "Score vs Film Revenue (Millions)",
-    xName: "Film Revenue ($mil)",
-    xData: "revenueMil",
-    normalizeX: false,
-    yName: params.clubName + " Score",
-    yData: "average",
-    normalizeY: true,
-    normalizeToggled: params.normalize,
-    movieData: params.filteredMovieData,
-  });
-}
-
-export function createDateOptions(
-  params: ScatterChartParams,
-): AgCartesianChartOptions {
-  return loadScatterChartSettings({
-    chartTitle: "Score vs Release Date",
-    xName: "Date",
-    xData: "release_year",
-    normalizeX: false,
-    yName: params.clubName + " Score",
-    yData: "average",
-    normalizeY: true,
-    normalizeToggled: params.normalize,
-    movieData: params.filteredMovieData,
-  });
 }
 
 export function createGenreOptions(

@@ -1,8 +1,3 @@
-import {
-  AgCartesianChartOptions,
-  AgScatterSeriesTooltipRendererParams,
-} from "ag-charts-community";
-
 import { isDefined } from "../../../lib/checks/checks.js";
 import { WorkType } from "../../../lib/types/generated/db.js";
 import { DetailedReviewListItem } from "../../../lib/types/lists.js";
@@ -65,12 +60,6 @@ export interface MovieStatistics extends DetailedReviewListItem {
   dateWatched: string;
 }
 
-export type NumericMovieStatisticsKeys = {
-  [K in keyof MovieStatistics]: MovieStatistics[K] extends number | undefined
-    ? K
-    : never;
-}[keyof MovieStatistics];
-
 export type HistogramData = {
   bin: number;
   [index: string]: number;
@@ -130,83 +119,3 @@ export function computeGenreStats(movieData: MovieStatistics[]): {
       .sort((a, b) => a.averageScore - b.averageScore),
   };
 }
-
-export const loadScatterChartSettings = (params: {
-  chartTitle: string;
-  xName: string;
-  xData: NumericMovieStatisticsKeys;
-  yName: string;
-  yData: NumericMovieStatisticsKeys;
-  normalizeX: boolean;
-  normalizeY: boolean;
-  normalizeToggled: boolean;
-  movieData: MovieStatistics[];
-  chartType?: string;
-}): AgCartesianChartOptions => {
-  if (!isDefined(params.xData) || !isDefined(params.yData)) {
-    throw new Error("xData and yData must be defined");
-  }
-
-  const {
-    chartTitle,
-    xName,
-    xData,
-    yName,
-    yData,
-    normalizeX,
-    normalizeY,
-    normalizeToggled,
-    movieData,
-  } = params;
-
-  const data = movieData.map((movie) => ({
-    xData:
-      normalizeX && normalizeToggled ? movie.normalized[xData] : movie[xData],
-    yData:
-      normalizeY && normalizeToggled ? movie.normalized[yData] : movie[yData],
-    title: movie.title,
-  }));
-
-  return {
-    theme: "ag-default-dark",
-    title: { text: chartTitle },
-    data: data,
-    series: [
-      {
-        type: "scatter",
-        xKey: "xData",
-        xName,
-        yKey: "yData",
-        yName,
-        showInLegend: false,
-        tooltip: {
-          renderer: (
-            params: AgScatterSeriesTooltipRendererParams<{
-              xData: number;
-              yData: number;
-              title: string;
-            }>,
-          ) => {
-            const fillColor = typeof params.fill === "string" ? params.fill : "";
-            return (
-              `<div class="ag-chart-tooltip-title p-2" style="background-color:${fillColor}">${params.datum.title}</div>` +
-              `<div class="ag-chart-tooltip-content p-2 text-start">${xName}: ${params.datum.xData}<br/>${yName}: ${params.datum.yData}</div>`
-            );
-          },
-        },
-      },
-    ],
-    axes: [
-      {
-        type: "number",
-        position: "bottom",
-        title: { enabled: true, text: xName },
-      },
-      {
-        type: "number",
-        position: "left",
-        title: { enabled: true, text: yName },
-      },
-    ],
-  };
-};

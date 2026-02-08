@@ -38,14 +38,6 @@
       <br />
       <ag-charts :options="histChartOptions" />
       <br />
-      <ag-charts :options="scoreChartOptions" />
-      <br />
-      <ag-charts :options="budgetChartOptions" />
-      <br />
-      <ag-charts :options="revenueChartOptions" />
-      <br />
-      <ag-charts :options="dateChartOptions" />
-      <br />
       <ag-charts :options="genreChartOptions" />
       <br />
       <GenreStatsWidget
@@ -70,14 +62,7 @@ import { AgCharts } from "ag-charts-vue3";
 import { computed, h } from "vue";
 import { useRouter } from "vue-router";
 
-import {
-  createHistogramOptions,
-  createScoreVsTMDBOptions,
-  createBudgetOptions,
-  createRevenueOptions,
-  createDateOptions,
-  createGenreOptions,
-} from "../chartOptions";
+import { createHistogramOptions, createGenreOptions } from "../chartOptions";
 import GenreStatsWidget from "../components/GenreStatsWidget.vue";
 import StatisticsSearchBar from "../components/StatisticsSearchBar.vue";
 import StatsWidget from "../components/StatsWidget.vue";
@@ -95,7 +80,6 @@ const {
   movieData,
   filteredMovieData,
   members,
-  clubName,
   histogramData,
   histogramNormData,
   searchTerm,
@@ -123,26 +107,6 @@ const histChartOptions = computed(() =>
     normalize: normalize.value,
   }),
 );
-
-const scatterParams = computed(() => ({
-  filteredMovieData: filteredMovieData.value,
-  clubName: clubName.value,
-  normalize: normalize.value,
-}));
-
-const scoreChartOptions = computed(() =>
-  createScoreVsTMDBOptions(scatterParams.value),
-);
-
-const budgetChartOptions = computed(() =>
-  createBudgetOptions(scatterParams.value),
-);
-
-const revenueChartOptions = computed(() =>
-  createRevenueOptions(scatterParams.value),
-);
-
-const dateChartOptions = computed(() => createDateOptions(scatterParams.value));
 
 const genreChartOptions = computed(() => createGenreOptions(movieData.value));
 
