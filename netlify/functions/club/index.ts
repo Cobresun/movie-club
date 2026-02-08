@@ -38,6 +38,9 @@ router.get(
       clubId: club.id,
       clubName: club.name,
       slug: clubSlug,
+      slugUpdatedAt: club.slug_updated_at
+        ? String(club.slug_updated_at)
+        : undefined,
     };
     return res(ok(JSON.stringify(result)));
   },

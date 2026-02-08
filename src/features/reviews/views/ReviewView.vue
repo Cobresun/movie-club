@@ -1,5 +1,5 @@
 <template>
-  <div class="p-2">
+  <div class="p-2 text-center">
     <add-review-prompt v-if="modalOpen" @close="closePrompt" />
     <delete-confirmation-modal
       :show="!!reviewToDelete"

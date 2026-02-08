@@ -41,9 +41,9 @@
         <h3 class="text-xl font-semibold">Features</h3>
         <div class="rounded-lg bg-gray-800 p-4">
           <div class="flex items-center justify-between gap-4">
-            <div class="flex-1 text-left">
-              <h4 class="text-left font-medium">Blur Scores</h4>
-              <p class="mt-1 text-left text-sm text-gray-400">
+            <div class="flex-1">
+              <h4 class="font-medium">Blur Scores</h4>
+              <p class="mt-1 text-sm text-gray-400">
                 Hide other members' scores until you submit your own
               </p>
             </div>
@@ -55,12 +55,12 @@
             />
           </div>
           <div class="mt-3 flex items-center justify-between gap-4">
-            <div class="flex-1 text-left">
-              <h4 class="text-left font-medium">Awards</h4>
-              <p class="mt-1 text-left text-sm text-gray-400">
+            <div class="flex-1">
+              <h4 class="font-medium">Awards</h4>
+              <p class="mt-1 text-sm text-gray-400">
                 Enable the awards feature for this club
               </p>
-              <p class="mt-1 text-left text-sm text-yellow-500">
+              <p class="mt-1 text-sm text-yellow-500">
                 This feature is experimental and may change in the future.
               </p>
             </div>
@@ -74,42 +74,77 @@
         </div>
       </div>
 
-      <!-- Club URL Slug Section -->
+      <!-- Club URL Section -->
       <div class="mt-8 space-y-4">
         <h3 class="text-xl font-semibold">Club URL</h3>
         <div class="rounded-lg bg-gray-800 p-4">
           <div class="space-y-3">
-            <div class="flex-1 text-left">
-              <h4 class="font-medium">Custom URL Slug</h4>
-              <p class="mt-1 text-sm text-gray-400">
-                Your club's URL: {{ clubUrl }}
+            <div class="flex-1">
+              <h4 class="font-medium">Custom URL</h4>
+              <p class="mt-2 flex items-center gap-1 text-xs text-gray-400">
+                <mdicon
+                  name="information-outline"
+                  class="text-blue-400"
+                  size="14"
+                />
+                <span>URLs can be changed once every 30 days</span>
               </p>
             </div>
 
-            <div class="flex gap-2">
-              <input
-                v-model="newSlug"
-                placeholder="Enter new slug"
-                class="flex-1 rounded border p-3 text-sm"
-                :class="
-                  slugError
-                    ? 'border-red-500 bg-gray-700'
-                    : 'border-gray-600 bg-gray-700'
-                "
-              />
-              <v-btn
-                :disabled="!canSaveSlug"
-                :loading="isUpdatingSlug"
-                class="bg-blue-600 hover:bg-blue-700"
-                @click="saveSlug"
-              >
-                Save
-              </v-btn>
+            <!-- Cooldown Warning Box (only shown during cooldown) -->
+            <div
+              v-if="isInCooldownPeriod"
+              class="rounded-md border border-yellow-500/30 bg-yellow-500/10 p-3"
+            >
+              <div class="flex gap-2">
+                <mdicon name="clock-alert-outline" class="text-yellow-500" />
+                <div class="flex-1 text-sm text-yellow-200">
+                  <p class="font-medium">
+                    Next change available in {{ daysUntilNextChange }} days
+                  </p>
+                  <p class="mt-1 text-xs text-yellow-300">
+                    Last changed {{ daysAgoText }}
+                  </p>
+                </div>
+              </div>
             </div>
 
-            <p v-if="slugError" class="text-sm text-red-400">{{ slugError }}</p>
-            <p class="text-xs text-gray-500">
-              3-50 characters, lowercase letters, numbers, and hyphens only
+            <div class="flex flex-col gap-2 sm:flex-row">
+              <span class="text-sm text-gray-400 sm:pt-3">{{ urlPrefix }}</span>
+              <div class="flex flex-1 flex-col gap-2">
+                <div class="flex gap-2">
+                  <input
+                    v-model="newSlug"
+                    placeholder="your-club-name"
+                    :readonly="isInCooldownPeriod"
+                    class="flex-1 rounded border p-3 text-sm outline-none"
+                    :class="
+                      slugError
+                        ? 'border-red-500 bg-gray-700'
+                        : isInCooldownPeriod
+                          ? 'cursor-not-allowed border-gray-600 bg-gray-800 text-gray-500'
+                          : 'border-gray-600 bg-gray-700'
+                    "
+                    @input="slugError = ''"
+                  />
+                  <v-btn
+                    :disabled="!canSaveSlug"
+                    :loading="isUpdatingSlug"
+                    class="bg-blue-600 enabled:hover:bg-blue-700"
+                    @click="saveSlug"
+                  >
+                    Save
+                  </v-btn>
+                </div>
+                <p v-if="slugError" class="text-xs text-red-400">
+                  {{ slugError }}
+                </p>
+              </div>
+            </div>
+
+            <p class="text-xs text-gray-400">
+              3-50 characters, lowercase letters, numbers, and hyphens only.
+              Cannot be all numbers.
             </p>
           </div>
         </div>
@@ -132,7 +167,7 @@
                 :alt="member.name"
                 class="h-10 w-10 rounded-full object-cover"
               />
-              <div class="min-w-0 flex-1 text-left">
+              <div class="min-w-0 flex-1">
                 <div class="truncate font-medium text-white">
                   {{ member.name }}
                 </div>
@@ -260,10 +295,9 @@
 
 <script setup lang="ts">
 import type { AxiosError } from "axios";
-import { ref, computed } from "vue";
+import { ref, computed, watch } from "vue";
 import { useToast } from "vue-toastification";
-
-import { hasValue } from "../../../../lib/checks/checks.js";
+import { hasValue, isDefined } from "../../../../lib/checks/checks";
 
 import {
   useMembers,
@@ -336,23 +370,74 @@ const saveClubName = () => {
   });
 };
 
-// Slug management
+// URL management
 const currentSlug = computed(() => club.value?.slug ?? "");
+const slugUpdatedAt = computed(() => club.value?.slugUpdatedAt);
 
-const clubUrl = computed(() => {
+// Initialize newSlug with current slug when club data loads
+watch(
+  currentSlug,
+  (slug) => {
+    if (slug && !newSlug.value) {
+      newSlug.value = slug;
+    }
+  },
+  { immediate: true },
+);
+
+const urlPrefix = computed(() => {
   const baseUrl = window.location.origin;
-  return `${baseUrl}/club/${currentSlug.value}`;
+  return `${baseUrl}/club/`;
+});
+
+// Calculate cooldown information
+const COOLDOWN_DAYS = 30;
+
+const isInCooldownPeriod = computed(() => {
+  if (!isDefined(slugUpdatedAt.value)) return false;
+
+  const lastUpdate = new Date(slugUpdatedAt.value);
+  const cooldownEnd = new Date(
+    lastUpdate.getTime() + COOLDOWN_DAYS * 24 * 60 * 60 * 1000,
+  );
+  return new Date() < cooldownEnd;
+});
+
+const daysUntilNextChange = computed(() => {
+  if (!isDefined(slugUpdatedAt.value)) return 0;
+
+  const lastUpdate = new Date(slugUpdatedAt.value);
+  const cooldownEnd = new Date(
+    lastUpdate.getTime() + COOLDOWN_DAYS * 24 * 60 * 60 * 1000,
+  );
+  const daysRemaining = Math.ceil(
+    (cooldownEnd.getTime() - new Date().getTime()) / (24 * 60 * 60 * 1000),
+  );
+  return Math.max(0, daysRemaining);
+});
+
+const daysAgoText = computed(() => {
+  if (!isDefined(slugUpdatedAt.value)) return "never";
+
+  const lastUpdate = new Date(slugUpdatedAt.value);
+  const daysAgo = Math.floor(
+    (new Date().getTime() - lastUpdate.getTime()) / (24 * 60 * 60 * 1000),
+  );
+
+  if (daysAgo === 0) return "today";
+  if (daysAgo === 1) return "yesterday";
+  return `${daysAgo} days ago`;
 });
 
 const validateSlugFormat = (slug: string): string | null => {
   if (slug.length < 3 || slug.length > 50) {
-    return "Slug must be 3-50 characters";
+    return "URL must be 3-50 characters";
   }
   if (!/^[a-z0-9-]+$/.test(slug)) {
     return "Only lowercase letters, numbers, and hyphens allowed";
   }
   if (/^[0-9]+$/.test(slug)) {
-    return "Slug cannot be all numbers";
+    return "URL cannot be all numbers";
   }
   return null;
 };
@@ -360,6 +445,7 @@ const validateSlugFormat = (slug: string): string | null => {
 const canSaveSlug = computed(() => {
   if (!newSlug.value || isUpdatingSlug.value) return false;
   if (newSlug.value === currentSlug.value) return false;
+  if (isInCooldownPeriod.value) return false;
   return validateSlugFormat(newSlug.value) === null;
 });
 
@@ -380,7 +466,7 @@ const saveSlug = () => {
     onError: (error: unknown) => {
       const axiosError = error as AxiosError<{ error?: string }>;
       const errorMessage =
-        axiosError.response?.data?.error ?? "Failed to update slug";
+        axiosError.response?.data?.error ?? "Failed to update URL";
       slugError.value = errorMessage;
       toast.error(errorMessage);
     },

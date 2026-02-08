@@ -16,6 +16,7 @@ export interface ClubPreview {
   clubId: string;
   clubName: string;
   slug: string;
+  slugUpdatedAt: string | undefined;
 }
 
 export interface BaseClub extends ClubPreview {

@@ -3,7 +3,7 @@
     <page-header :has-back="false" page-name="" />
 
     <!-- Members section -->
-    <div class="mx-auto max-w-3xl p-4">
+    <div class="mx-auto max-w-3xl p-4 text-center">
       <loading-spinner v-if="isLoadingMembers" />
       <div v-else class="flex flex-wrap justify-center gap-2">
         <!-- Member pills -->

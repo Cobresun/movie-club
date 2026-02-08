@@ -1,9 +1,9 @@
 export const ok = (body?: string) => ({
   statusCode: 200,
+  body,
   headers: {
     "Content-Type": "application/json",
   },
-  body,
 });
 
 export const svg = (body: string, cacheControl?: string) => ({
@@ -26,25 +26,42 @@ export const redirect = (location: string, cacheControl?: string) => ({
 
 export const badRequest = (body?: string) => ({
   statusCode: 400,
-  body: body ?? "Bad request",
+  body: JSON.stringify({ error: body ?? "Bad request" }),
+  headers: {
+    "Content-Type": "application/json",
+  },
 });
 
 export const unauthorized = (body?: string) => ({
   statusCode: 401,
-  body: body ?? "You are not authorized to perform this action",
+  body: JSON.stringify({
+    error: body ?? "You are not authorized to perform this action",
+  }),
+  headers: {
+    "Content-Type": "application/json",
+  },
 });
 
 export const notFound = (body?: string) => ({
   statusCode: 404,
-  body: body ?? "Resource not found",
+  body: JSON.stringify({ error: body ?? "Resource not found" }),
+  headers: {
+    "Content-Type": "application/json",
+  },
 });
 
 export const methodNotAllowed = (body?: string) => ({
   statusCode: 405,
-  body: body ?? "Method not allowed",
+  body: JSON.stringify({ error: body ?? "Method not allowed" }),
+  headers: {
+    "Content-Type": "application/json",
+  },
 });
 
 export const internalServerError = (body?: string) => ({
   statusCode: 500,
-  body: body ?? "internal server error",
+  body: JSON.stringify({ error: body ?? "internal server error" }),
+  headers: {
+    "Content-Type": "application/json",
+  },
 });

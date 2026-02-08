@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="text-center">
     <page-header :has-back="true" back-route="ClubHome" page-name="Statistics">
       <div v-if="!loading && hasReviews" class="flex gap-2">
         <mdicon name="view-dashboard" />

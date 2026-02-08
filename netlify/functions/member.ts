@@ -27,6 +27,9 @@ router.get("/clubs", loggedIn, async (req, res) => {
     clubId: club.club_id,
     clubName: club.club_name,
     slug: club.slug,
+    slugUpdatedAt: club.slug_updated_at
+      ? String(club.slug_updated_at)
+      : undefined,
   }));
   return res(ok(JSON.stringify(result)));
 });

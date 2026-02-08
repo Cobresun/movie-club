@@ -112,7 +112,12 @@ class ClubRepository {
       .where("user.id", "=", userId)
       .innerJoin("club_member", "club_member.user_id", "user.id")
       .innerJoin("club", "club.id", "club_member.club_id")
-      .select(["club.id as club_id", "club.name as club_name", "club.slug"])
+      .select([
+        "club.id as club_id",
+        "club.name as club_name",
+        "club.slug",
+        "club.slug_updated_at",
+      ])
       .execute();
   }
 
