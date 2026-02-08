@@ -91,10 +91,11 @@ export async function up(db: Kysely<unknown>) {
   }
 
   // Step 6: Update each club with its generated slug
+  // Note: We don't set slug_updated_at here so users can change their slug immediately
   for (const [clubId, slug] of clubSlugs.entries()) {
     await typedDb
       .updateTable("club")
-      .set({ slug, slug_updated_at: new Date() })
+      .set({ slug })
       .where("id", "=", clubId)
       .execute();
   }

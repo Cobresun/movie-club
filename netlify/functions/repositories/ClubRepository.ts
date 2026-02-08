@@ -90,9 +90,10 @@ class ClubRepository {
       slug = generateUniqueSlug(slug);
     }
 
+    // Don't set slug_updated_at on creation so users can change slug immediately
     return db
       .insertInto("club")
-      .values({ name, legacy_id, slug, slug_updated_at: new Date() })
+      .values({ name, legacy_id, slug })
       .returning(["id", "slug"])
       .executeTakeFirst();
   }
