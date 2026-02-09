@@ -1,60 +1,100 @@
 <template>
   <div>
-    <page-header
-      :has-back="true"
-      back-route="ClubHome"
-      page-name="Statistics"
-    />
+    <page-header :has-back="true" back-route="ClubHome" page-name="Statistics">
+      <div v-if="!loading && hasReviews" class="flex gap-2">
+        <mdicon name="view-dashboard" />
+        <VToggle v-model="showScoresView" />
+        <mdicon name="table" />
+      </div>
+    </page-header>
     <loading-spinner v-if="loading" />
 
-    <StatisticsSearchBar
-      v-if="!loading && hasReviews"
-      v-model="searchTerm"
-      :normalize="normalize"
-      @toggle="toggleNormalize"
-    />
-
-    <StatsWidget
-      v-if="!loading && hasReviews"
-      :total-movies="totalMovies"
-      :total-runtime-minutes="totalRuntimeMinutes"
-    />
-
-    <div v-if="showEmptyState">
+    <div v-if="!loading && !hasReviews">
       <EmptyState
-        :title="hasSearchTerm ? 'No Movies Found' : 'No Statistics Yet'"
-        :description="
-          hasSearchTerm
-            ? 'Try adjusting your search or filters. You can search by title, genre, company, or release year'
-            : 'Statistics will appear once your club has reviewed some movies. Get started by adding your first review!'
-        "
-        :action-label="hasSearchTerm ? undefined : 'Go to Reviews'"
-        :action-icon="hasSearchTerm ? undefined : 'arrow-right'"
+        title="No Statistics Yet"
+        description="Statistics will appear once your club has reviewed some movies. Get started by adding your first review!"
+        action-label="Go to Reviews"
+        action-icon="arrow-right"
         @action="navigateToReviews"
       />
     </div>
 
-    <div v-else-if="!loading">
-      <br />
-      <ag-charts :options="histChartOptions" />
-      <br />
-      <GenreStatsWidget
-        :most-loved="genreStats.mostLoved"
-        :least-loved="genreStats.leastLoved"
-      />
-      <br />
-      <ReviewerLeaderboardWidget :leaderboard="memberLeaderboard" />
-      <br />
-      <TasteSimilarityWidget
-        :most-similar="tasteSimilarity.mostSimilar"
-        :least-similar="tasteSimilarity.leastSimilar"
-      />
-      <br />
+    <div v-else-if="!loading && hasReviews">
+      <!-- Insights view -->
+      <template v-if="!showScoresView">
+        <StatsWidget
+          :total-movies="totalMovies"
+          :total-runtime-minutes="totalRuntimeMinutes"
+        />
+        <br />
+        <ScoreDistributionWidget :options="histChartOptions" />
+        <br />
+        <GenreStatsWidget
+          :most-loved="genreStats.mostLoved"
+          :least-loved="genreStats.leastLoved"
+        />
+        <br />
+        <ReviewerLeaderboardWidget :leaderboard="memberLeaderboard" />
+        <br />
+        <TasteSimilarityWidget
+          :most-similar="tasteSimilarity.mostSimilar"
+          :least-similar="tasteSimilarity.leastSimilar"
+        />
+        <br />
+        <DirectorsLeaderboard :movie-data="movieData" />
+      </template>
 
-      <DirectorsLeaderboard :movie-data="filteredMovieData" />
-      <br />
+      <!-- Scores view -->
+      <template v-else>
+        <StatisticsSearchBar v-model="searchTerm" />
 
-      <table-view :review-table="movieTable" />
+        <div class="mb-4 flex flex-wrap items-center gap-4 px-2">
+          <div class="flex items-center gap-2">
+            <v-switch
+              :model-value="showScoreContext"
+              color="primary"
+              @update:model-value="toggleScoreContext"
+            />
+            <span class="text-sm text-gray-300">Show Score Context</span>
+          </div>
+          <div
+            v-if="showScoreContext"
+            class="flex items-center gap-2 text-xs text-gray-400"
+          >
+            <span>Below their usual</span>
+            <div class="flex h-5 overflow-hidden rounded">
+              <div
+                class="w-6"
+                :style="{ background: 'rgba(239, 68, 68, 0.45)' }"
+              ></div>
+              <div
+                class="w-6"
+                :style="{ background: 'rgba(239, 68, 68, 0.22)' }"
+              ></div>
+              <div
+                class="w-6 border border-gray-600"
+                :style="{ background: 'transparent' }"
+              ></div>
+              <div
+                class="w-6"
+                :style="{ background: 'rgba(34, 197, 94, 0.22)' }"
+              ></div>
+              <div
+                class="w-6"
+                :style="{ background: 'rgba(34, 197, 94, 0.45)' }"
+              ></div>
+            </div>
+            <span>Above their usual</span>
+          </div>
+        </div>
+
+        <EmptyState
+          v-if="hasSearchTerm && filteredMovieData.length === 0"
+          title="No Movies Found"
+          description="Try adjusting your search or filters. You can search by title, genre, company, or release year"
+        />
+        <table-view v-else :review-table="movieTable" />
+      </template>
     </div>
   </div>
 </template>
@@ -66,13 +106,13 @@ import {
   getSortedRowModel,
   useVueTable,
 } from "@tanstack/vue-table";
-import { AgCharts } from "ag-charts-vue3";
-import { computed, h } from "vue";
+import { computed, h, ref } from "vue";
 import { useRouter } from "vue-router";
 
 import { createHistogramOptions } from "../chartOptions";
 import DirectorsLeaderboard from "../components/DirectorsLeaderboard.vue";
 import GenreStatsWidget from "../components/GenreStatsWidget.vue";
+import ScoreDistributionWidget from "../components/ScoreDistributionWidget.vue";
 import ReviewerLeaderboardWidget from "../components/ReviewerLeaderboardWidget.vue";
 import StatisticsSearchBar from "../components/StatisticsSearchBar.vue";
 import StatsWidget from "../components/StatsWidget.vue";
@@ -82,12 +122,14 @@ import {
   computeGenreStats,
   computeMemberLeaderboard,
   computeTasteSimilarity,
+  getScoreContextColor,
   MovieStatistics,
 } from "../StatisticsUtils";
 
 import AverageImg from "@/assets/images/average.svg";
 import EmptyState from "@/common/components/EmptyState.vue";
 import VAvatar from "@/common/components/VAvatar.vue";
+import VToggle from "@/common/components/VToggle.vue";
 import MovieTooltip from "@/features/reviews/components/MovieTooltip.vue";
 import TableView from "@/features/reviews/components/TableView.vue";
 
@@ -97,16 +139,16 @@ const {
   filteredMovieData,
   members,
   histogramData,
-  histogramNormData,
   searchTerm,
-  normalize,
+  showScoreContext,
   totalMovies,
   totalRuntimeMinutes,
   hasReviews,
   hasSearchTerm,
-  showEmptyState,
-  toggleNormalize,
+  toggleScoreContext,
 } = useStatisticsData();
+
+const showScoresView = ref(false);
 
 const router = useRouter();
 
@@ -118,9 +160,7 @@ const histChartOptions = computed(() =>
   createHistogramOptions({
     filteredMovieData: filteredMovieData.value,
     histogramData: histogramData.value,
-    histogramNormData: histogramNormData.value,
     members: members.value,
-    normalize: normalize.value,
   }),
 );
 
@@ -153,25 +193,35 @@ const columns = computed(() => [
     header: "Date Reviewed",
   }),
   ...members.value.map((member) =>
-    columnHelper.accessor(
-      (row) =>
-        normalize.value ? row.normalized[member.id] : row.userScores[member.id],
-      {
-        id: `${normalize.value ? "normalized." : ""}${member.id}`,
-        header: () =>
-          h(VAvatar, {
-            src: member.image,
-            name: member.name,
-          }),
-        cell: (info) => {
-          const value = info.getValue();
-          return value !== undefined ? Math.round(value * 100) / 100 : "";
-        },
-        sortUndefined: "last",
+    columnHelper.accessor((row) => row.userScores[member.id], {
+      id: member.id,
+      header: () =>
+        h(VAvatar, {
+          src: member.image,
+          name: member.name,
+        }),
+      cell: (info) => {
+        const value = info.getValue();
+        if (value === undefined) return "";
+        const display = Math.round(value * 100) / 100;
+
+        if (!showScoreContext.value) return String(display);
+
+        const zScore = info.row.original.normalized[member.id];
+        const bgColor = getScoreContextColor(zScore);
+        return h(
+          "div",
+          {
+            class: "rounded-md px-2 py-1 text-center",
+            style: { backgroundColor: bgColor },
+          },
+          String(display),
+        );
       },
-    ),
+      sortUndefined: "last",
+    }),
   ),
-  columnHelper.accessor(normalize.value ? "normalized.average" : "average", {
+  columnHelper.accessor("average", {
     header: () =>
       h("img", {
         src: AverageImg,
@@ -183,16 +233,13 @@ const columns = computed(() => [
     },
     sortUndefined: "last",
   }),
-  columnHelper.accessor(
-    normalize.value ? "normalized.vote_average" : "vote_average",
-    {
-      header: "TMDB",
-      cell: (info) => {
-        const value = info.getValue();
-        return value !== undefined ? Math.round(value * 100) / 100 : "";
-      },
+  columnHelper.accessor("vote_average", {
+    header: "TMDB",
+    cell: (info) => {
+      const value = info.getValue();
+      return value !== undefined ? Math.round(value * 100) / 100 : "";
     },
-  ),
+  }),
 ]);
 
 const movieTable = useVueTable({

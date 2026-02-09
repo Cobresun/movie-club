@@ -66,15 +66,36 @@ export type HistogramData = {
   [index: string]: number;
 };
 
-export const createHistogramData = (scores: number[], normalized: boolean) => {
+export const createHistogramData = (scores: number[]) => {
   if (scores.length === 0) return [];
 
   const bins = Array.from({ length: 11 }, (_, i) => ({
-    bin: normalized ? i / 4.0 - 1.25 : i, // TODO: stop using hardcoded bin for std, this works for clubs with 4 members
+    bin: i,
     ...Object.fromEntries(scores.map((_, index) => [index, 0])),
   }));
   return bins;
 };
+
+/**
+ * Maps a z-score to a background color for the score context heat map.
+ * Positive z-scores (above member's average) → green.
+ * Negative z-scores (below member's average) → red.
+ * Near zero → transparent.
+ */
+export function getScoreContextColor(zScore: number | undefined): string {
+  if (zScore === undefined || isNaN(zScore)) return "transparent";
+
+  const deadZone = 0.1;
+  if (Math.abs(zScore) < deadZone) return "transparent";
+
+  const maxOpacity = 0.45;
+  const opacity = Math.min(Math.abs(zScore) / 2.0, 1.0) * maxOpacity;
+
+  if (zScore > 0) {
+    return `rgba(34, 197, 94, ${opacity.toFixed(2)})`;
+  }
+  return `rgba(239, 68, 68, ${opacity.toFixed(2)})`;
+}
 
 export interface GenreStats {
   genre: string;
