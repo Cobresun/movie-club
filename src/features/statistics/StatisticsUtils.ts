@@ -1,4 +1,5 @@
 import { isDefined } from "../../../lib/checks/checks.js";
+import { Member } from "../../../lib/types/club.js";
 import { WorkType } from "../../../lib/types/generated/db.js";
 import { DetailedReviewListItem } from "../../../lib/types/lists.js";
 import { DetailedMovieData } from "../../../lib/types/movie.js";
@@ -118,4 +119,42 @@ export function computeGenreStats(movieData: MovieStatistics[]): {
       .slice(-3)
       .sort((a, b) => a.averageScore - b.averageScore),
   };
+}
+
+export interface MemberLeaderboardEntry {
+  member: Member;
+  averageScore: number;
+  reviewCount: number;
+  title?: string;
+}
+
+export function computeMemberLeaderboard(
+  movieData: MovieStatistics[],
+  members: Member[],
+): MemberLeaderboardEntry[] {
+  const entries: MemberLeaderboardEntry[] = members.map((member) => {
+    const scores = movieData
+      .map((movie) => movie.userScores[member.id])
+      .filter((score) => isDefined(score) && !isNaN(score));
+
+    const averageScore =
+      scores.length > 0
+        ? Math.round(
+            (scores.reduce((a, b) => a + b, 0) / scores.length) * 100,
+          ) / 100
+        : 0;
+
+    return { member, averageScore, reviewCount: scores.length };
+  });
+
+  const ranked = entries
+    .filter((e) => e.reviewCount > 0)
+    .sort((a, b) => b.averageScore - a.averageScore);
+
+  if (ranked.length > 0) {
+    ranked[0].title = "The Softie";
+    ranked[ranked.length - 1].title = "The Hater";
+  }
+
+  return ranked;
 }
