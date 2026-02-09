@@ -2,7 +2,7 @@
   <div class="mx-auto w-11/12 max-w-2xl">
     <div class="rounded-xl border border-slate-700/50 bg-lowBackground/60 p-6">
       <h3 class="mb-5 text-center text-lg font-semibold text-white">
-        Top Directors
+        Most Watched Directors
       </h3>
 
       <div class="space-y-3">
