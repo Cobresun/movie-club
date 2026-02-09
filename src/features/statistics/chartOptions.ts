@@ -1,6 +1,6 @@
 import {
+  AgBarSeriesTooltipRendererParams,
   AgCartesianChartOptions,
-  AgLineSeriesTooltipRendererParams,
 } from "ag-charts-community";
 
 import { HistogramData, MovieStatistics } from "./StatisticsUtils";
@@ -36,11 +36,14 @@ export function createHistogramOptions(
 
   return {
     theme: "ag-default-dark",
-    title: { text: "Score Histogram" },
+    background: { visible: false },
     data: filteredHistData,
     series: members.map((member) => {
       return {
-        type: "line" as const,
+        type: "bar" as const,
+        direction: "vertical" as const,
+        grouped: true,
+        cornerRadius: 2,
         xKey: "bin",
         xName: "Score",
         yKey: member.id,
@@ -48,7 +51,7 @@ export function createHistogramOptions(
         showInLegend: true,
         tooltip: {
           renderer: function (
-            params: AgLineSeriesTooltipRendererParams<HistogramData>,
+            params: AgBarSeriesTooltipRendererParams<HistogramData>,
           ) {
             const name = members.find((m) => m.id === params.yKey)?.name;
             return (
@@ -65,7 +68,7 @@ export function createHistogramOptions(
     }),
     axes: [
       {
-        type: "number",
+        type: "category",
         position: "bottom",
         title: {
           enabled: true,
@@ -77,7 +80,7 @@ export function createHistogramOptions(
         position: "left",
         title: {
           enabled: true,
-          text: "Frequency of Score",
+          text: "Frequency",
         },
       },
     ],

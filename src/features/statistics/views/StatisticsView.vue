@@ -27,7 +27,7 @@
           :total-runtime-minutes="totalRuntimeMinutes"
         />
         <br />
-        <ag-charts :options="histChartOptions" />
+        <ScoreDistributionWidget :options="histChartOptions" />
         <br />
         <GenreStatsWidget
           :most-loved="genreStats.mostLoved"
@@ -106,13 +106,13 @@ import {
   getSortedRowModel,
   useVueTable,
 } from "@tanstack/vue-table";
-import { AgCharts } from "ag-charts-vue3";
 import { computed, h, ref } from "vue";
 import { useRouter } from "vue-router";
 
 import { createHistogramOptions } from "../chartOptions";
 import DirectorsLeaderboard from "../components/DirectorsLeaderboard.vue";
 import GenreStatsWidget from "../components/GenreStatsWidget.vue";
+import ScoreDistributionWidget from "../components/ScoreDistributionWidget.vue";
 import ReviewerLeaderboardWidget from "../components/ReviewerLeaderboardWidget.vue";
 import StatisticsSearchBar from "../components/StatisticsSearchBar.vue";
 import StatsWidget from "../components/StatsWidget.vue";
