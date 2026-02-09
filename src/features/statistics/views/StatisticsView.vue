@@ -43,6 +43,8 @@
         :least-loved="genreStats.leastLoved"
       />
       <br />
+      <ReviewerLeaderboardWidget :leaderboard="memberLeaderboard" />
+      <br />
 
       <DirectorsLeaderboard :movie-data="filteredMovieData" />
       <br />
@@ -66,10 +68,15 @@ import { useRouter } from "vue-router";
 import { createHistogramOptions } from "../chartOptions";
 import DirectorsLeaderboard from "../components/DirectorsLeaderboard.vue";
 import GenreStatsWidget from "../components/GenreStatsWidget.vue";
+import ReviewerLeaderboardWidget from "../components/ReviewerLeaderboardWidget.vue";
 import StatisticsSearchBar from "../components/StatisticsSearchBar.vue";
 import StatsWidget from "../components/StatsWidget.vue";
 import { useStatisticsData } from "../composables/useStatisticsData";
-import { computeGenreStats, MovieStatistics } from "../StatisticsUtils";
+import {
+  computeGenreStats,
+  computeMemberLeaderboard,
+  MovieStatistics,
+} from "../StatisticsUtils";
 
 import AverageImg from "@/assets/images/average.svg";
 import EmptyState from "@/common/components/EmptyState.vue";
@@ -111,6 +118,10 @@ const histChartOptions = computed(() =>
 );
 
 const genreStats = computed(() => computeGenreStats(movieData.value));
+
+const memberLeaderboard = computed(() =>
+  computeMemberLeaderboard(movieData.value, members.value),
+);
 
 const columnHelper = createColumnHelper<MovieStatistics>();
 
