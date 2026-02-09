@@ -1,15 +1,9 @@
 import {
-  AgBarSeriesTooltipRendererParams,
   AgCartesianChartOptions,
   AgLineSeriesTooltipRendererParams,
 } from "ag-charts-community";
 
-import {
-  HistogramData,
-  loadScatterChartSettings,
-  MovieStatistics,
-} from "./StatisticsUtils";
-import { isDefined, isString } from "../../../lib/checks/checks.js";
+import { HistogramData, MovieStatistics } from "./StatisticsUtils";
 import { Member } from "../../../lib/types/club";
 
 export interface HistogramChartParams {
@@ -17,12 +11,6 @@ export interface HistogramChartParams {
   histogramData: HistogramData[];
   histogramNormData: HistogramData[];
   members: Member[];
-  normalize: boolean;
-}
-
-export interface ScatterChartParams {
-  filteredMovieData: MovieStatistics[];
-  clubName: string;
   normalize: boolean;
 }
 
@@ -110,149 +98,6 @@ export function createHistogramOptions(
         title: {
           enabled: true,
           text: "Frequency of Score",
-        },
-      },
-    ],
-  };
-}
-
-export function createScoreVsTMDBOptions(
-  params: ScatterChartParams,
-): AgCartesianChartOptions {
-  const { filteredMovieData, clubName, normalize } = params;
-
-  const validTMDBData = filteredMovieData.filter(
-    (movie) =>
-      isDefined(movie.vote_average) &&
-      !isString(movie.vote_average) &&
-      movie.vote_average > 0 &&
-      isDefined(movie.average) &&
-      movie.average > 0,
-  );
-
-  return loadScatterChartSettings({
-    chartTitle: "Score vs TMDB Audience Score",
-    xName: "TMDB Audience Score",
-    xData: "vote_average",
-    normalizeX: true,
-    yName: clubName + " Score",
-    yData: "average",
-    normalizeY: true,
-    normalizeToggled: normalize,
-    movieData: validTMDBData,
-  });
-}
-
-export function createBudgetOptions(
-  params: ScatterChartParams,
-): AgCartesianChartOptions {
-  return loadScatterChartSettings({
-    chartTitle: "Score vs Film Budget (Millions)",
-    xName: "Film Budget ($mil)",
-    xData: "budgetMil",
-    normalizeX: false,
-    yName: params.clubName + " Score",
-    yData: "average",
-    normalizeY: true,
-    normalizeToggled: params.normalize,
-    movieData: params.filteredMovieData,
-  });
-}
-
-export function createRevenueOptions(
-  params: ScatterChartParams,
-): AgCartesianChartOptions {
-  return loadScatterChartSettings({
-    chartTitle: "Score vs Film Revenue (Millions)",
-    xName: "Film Revenue ($mil)",
-    xData: "revenueMil",
-    normalizeX: false,
-    yName: params.clubName + " Score",
-    yData: "average",
-    normalizeY: true,
-    normalizeToggled: params.normalize,
-    movieData: params.filteredMovieData,
-  });
-}
-
-export function createDateOptions(
-  params: ScatterChartParams,
-): AgCartesianChartOptions {
-  return loadScatterChartSettings({
-    chartTitle: "Score vs Release Date",
-    xName: "Date",
-    xData: "release_year",
-    normalizeX: false,
-    yName: params.clubName + " Score",
-    yData: "average",
-    normalizeY: true,
-    normalizeToggled: params.normalize,
-    movieData: params.filteredMovieData,
-  });
-}
-
-export function createGenreOptions(
-  movieData: MovieStatistics[],
-): AgCartesianChartOptions {
-  // Aggregate scores by genre
-  const genreScores = movieData.reduce<
-    Partial<Record<string, { count: number; totalScore: number }>>
-  >((acc, movie) => {
-    movie.genres.forEach((genre: string) => {
-      if (movie.average !== 0) {
-        let details = acc[genre];
-        if (!details) {
-          details = { count: 0, totalScore: 0 };
-          acc[genre] = details;
-        }
-        details.count++;
-        details.totalScore += movie.average ?? 0;
-      }
-    });
-    return acc;
-  }, {});
-
-  const genreData = Object.entries(
-    genreScores as Record<string, { count: number; totalScore: number }>,
-  )
-    .map(([genre, data]) => ({
-      genre,
-      averageScore: (data.totalScore ?? 0) / (data.count ?? 1),
-      count: data.count ?? 0,
-    }))
-    .sort((a, b) => b.count - a.count);
-
-  return {
-    theme: "ag-default-dark",
-    title: { text: `Scores for Top 8 Genres` },
-    data: genreData.slice(0, 8),
-    series: [
-      {
-        type: "bar",
-        xKey: "genre",
-        xName: "Genre",
-        yKey: "averageScore",
-        yName: "Average Score",
-        showInLegend: false,
-        tooltip: {
-          renderer: function (
-            params: AgBarSeriesTooltipRendererParams<{
-              genre: string;
-              averageScore: number;
-              count: number;
-            }>,
-          ) {
-            return (
-              `<div class="ag-chart-tooltip-title p-2" style="background-color:${String(params.fill)}">${params.datum.genre}</div>` +
-              `<div class="ag-chart-tooltip-content p-2 text-start">` +
-              `${params.xName}: ${params.datum.genre}` +
-              `</br>` +
-              `${params.yName}: ${params.datum.averageScore}` +
-              "</br>" +
-              `Count: ${params.datum.count}` +
-              "</div>"
-            );
-          },
         },
       },
     ],
