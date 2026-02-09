@@ -1,17 +1,13 @@
 <template>
   <div>
-    <page-header
-      :has-back="true"
-      back-route="ClubHome"
-      page-name="Statistics"
-    />
+    <page-header :has-back="true" back-route="ClubHome" page-name="Statistics">
+      <div v-if="!loading && hasReviews" class="flex gap-2">
+        <mdicon name="view-dashboard" />
+        <VToggle v-model="showScoresView" />
+        <mdicon name="table" />
+      </div>
+    </page-header>
     <loading-spinner v-if="loading" />
-
-    <StatsWidget
-      v-if="!loading && hasReviews"
-      :total-movies="totalMovies"
-      :total-runtime-minutes="totalRuntimeMinutes"
-    />
 
     <div v-if="!loading && !hasReviews">
       <EmptyState
@@ -24,73 +20,81 @@
     </div>
 
     <div v-else-if="!loading && hasReviews">
-      <br />
-      <ag-charts :options="histChartOptions" />
-      <br />
-      <GenreStatsWidget
-        :most-loved="genreStats.mostLoved"
-        :least-loved="genreStats.leastLoved"
-      />
-      <br />
-      <ReviewerLeaderboardWidget :leaderboard="memberLeaderboard" />
-      <br />
-      <TasteSimilarityWidget
-        :most-similar="tasteSimilarity.mostSimilar"
-        :least-similar="tasteSimilarity.leastSimilar"
-      />
-      <br />
+      <!-- Insights view -->
+      <template v-if="!showScoresView">
+        <StatsWidget
+          :total-movies="totalMovies"
+          :total-runtime-minutes="totalRuntimeMinutes"
+        />
+        <br />
+        <ag-charts :options="histChartOptions" />
+        <br />
+        <GenreStatsWidget
+          :most-loved="genreStats.mostLoved"
+          :least-loved="genreStats.leastLoved"
+        />
+        <br />
+        <ReviewerLeaderboardWidget :leaderboard="memberLeaderboard" />
+        <br />
+        <TasteSimilarityWidget
+          :most-similar="tasteSimilarity.mostSimilar"
+          :least-similar="tasteSimilarity.leastSimilar"
+        />
+        <br />
+        <DirectorsLeaderboard :movie-data="movieData" />
+      </template>
 
-      <DirectorsLeaderboard :movie-data="filteredMovieData" />
-      <br />
+      <!-- Scores view -->
+      <template v-else>
+        <StatisticsSearchBar v-model="searchTerm" />
 
-      <StatisticsSearchBar v-model="searchTerm" />
-
-      <div class="mb-4 flex flex-wrap items-center gap-4 px-2">
-        <div class="flex items-center gap-2">
-          <v-switch
-            :model-value="showScoreContext"
-            color="primary"
-            @update:model-value="toggleScoreContext"
-          />
-          <span class="text-sm text-gray-300">Show Score Context</span>
-        </div>
-        <div
-          v-if="showScoreContext"
-          class="flex items-center gap-2 text-xs text-gray-400"
-        >
-          <span>Below their usual</span>
-          <div class="flex h-5 overflow-hidden rounded">
-            <div
-              class="w-6"
-              :style="{ background: 'rgba(239, 68, 68, 0.45)' }"
-            ></div>
-            <div
-              class="w-6"
-              :style="{ background: 'rgba(239, 68, 68, 0.22)' }"
-            ></div>
-            <div
-              class="w-6 border border-gray-600"
-              :style="{ background: 'transparent' }"
-            ></div>
-            <div
-              class="w-6"
-              :style="{ background: 'rgba(34, 197, 94, 0.22)' }"
-            ></div>
-            <div
-              class="w-6"
-              :style="{ background: 'rgba(34, 197, 94, 0.45)' }"
-            ></div>
+        <div class="mb-4 flex flex-wrap items-center gap-4 px-2">
+          <div class="flex items-center gap-2">
+            <v-switch
+              :model-value="showScoreContext"
+              color="primary"
+              @update:model-value="toggleScoreContext"
+            />
+            <span class="text-sm text-gray-300">Show Score Context</span>
           </div>
-          <span>Above their usual</span>
+          <div
+            v-if="showScoreContext"
+            class="flex items-center gap-2 text-xs text-gray-400"
+          >
+            <span>Below their usual</span>
+            <div class="flex h-5 overflow-hidden rounded">
+              <div
+                class="w-6"
+                :style="{ background: 'rgba(239, 68, 68, 0.45)' }"
+              ></div>
+              <div
+                class="w-6"
+                :style="{ background: 'rgba(239, 68, 68, 0.22)' }"
+              ></div>
+              <div
+                class="w-6 border border-gray-600"
+                :style="{ background: 'transparent' }"
+              ></div>
+              <div
+                class="w-6"
+                :style="{ background: 'rgba(34, 197, 94, 0.22)' }"
+              ></div>
+              <div
+                class="w-6"
+                :style="{ background: 'rgba(34, 197, 94, 0.45)' }"
+              ></div>
+            </div>
+            <span>Above their usual</span>
+          </div>
         </div>
-      </div>
 
-      <EmptyState
-        v-if="hasSearchTerm && filteredMovieData.length === 0"
-        title="No Movies Found"
-        description="Try adjusting your search or filters. You can search by title, genre, company, or release year"
-      />
-      <table-view v-else :review-table="movieTable" />
+        <EmptyState
+          v-if="hasSearchTerm && filteredMovieData.length === 0"
+          title="No Movies Found"
+          description="Try adjusting your search or filters. You can search by title, genre, company, or release year"
+        />
+        <table-view v-else :review-table="movieTable" />
+      </template>
     </div>
   </div>
 </template>
@@ -103,7 +107,7 @@ import {
   useVueTable,
 } from "@tanstack/vue-table";
 import { AgCharts } from "ag-charts-vue3";
-import { computed, h } from "vue";
+import { computed, h, ref } from "vue";
 import { useRouter } from "vue-router";
 
 import { createHistogramOptions } from "../chartOptions";
@@ -125,6 +129,7 @@ import {
 import AverageImg from "@/assets/images/average.svg";
 import EmptyState from "@/common/components/EmptyState.vue";
 import VAvatar from "@/common/components/VAvatar.vue";
+import VToggle from "@/common/components/VToggle.vue";
 import MovieTooltip from "@/features/reviews/components/MovieTooltip.vue";
 import TableView from "@/features/reviews/components/TableView.vue";
 
@@ -142,6 +147,8 @@ const {
   hasSearchTerm,
   toggleScoreContext,
 } = useStatisticsData();
+
+const showScoresView = ref(false);
 
 const router = useRouter();
 
