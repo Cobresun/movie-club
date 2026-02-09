@@ -35,10 +35,6 @@
             </div>
           </div>
           <div class="flex items-center gap-4 text-sm">
-            <span class="text-slate-400">
-              {{ entry.reviewCount }}
-              {{ entry.reviewCount === 1 ? "review" : "reviews" }}
-            </span>
             <span
               class="min-w-[3.5rem] rounded px-2 py-1 text-center font-semibold"
               :class="scoreBadgeClass(index)"
