@@ -4,10 +4,7 @@
     class="mx-auto grid w-11/12 grid-cols-1 gap-6 md:grid-cols-2"
   >
     <div v-if="mostSimilar" class="rounded-lg bg-lowBackground p-5">
-      <h3 class="mb-1 text-lg font-bold text-white">Most Similar Taste</h3>
-      <p class="mb-4 text-sm text-slate-400">
-        Based on {{ mostSimilar.sharedCount }} movies reviewed in common
-      </p>
+      <h3 class="mb-4 text-lg font-bold text-white">Most Similar Taste</h3>
 
       <div class="mb-4 flex items-center justify-center gap-3">
         <div class="flex flex-col items-center">
@@ -72,10 +69,7 @@
     </div>
 
     <div v-if="leastSimilar" class="rounded-lg bg-lowBackground p-5">
-      <h3 class="mb-1 text-lg font-bold text-white">Least Similar Taste</h3>
-      <p class="mb-4 text-sm text-slate-400">
-        Based on {{ leastSimilar.sharedCount }} movies reviewed in common
-      </p>
+      <h3 class="mb-4 text-lg font-bold text-white">Least Similar Taste</h3>
 
       <div class="mb-4 flex items-center justify-center gap-3">
         <div class="flex flex-col items-center">
