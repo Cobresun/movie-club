@@ -25,7 +25,7 @@ export function useStatisticsData() {
   const { isLoading: loadingMembers, data: rawMembers } = useMembers(clubId);
   const members = computed(() => rawMembers.value ?? []);
 
-  const normalize = ref(false);
+  const showScoreContext = ref(false);
   const searchTerm = ref("");
 
   const loading = computed(
@@ -35,16 +35,15 @@ export function useStatisticsData() {
   const processedData = computed<{
     movieData: MovieStatistics[];
     histogramData: HistogramData[];
-    histogramNormData: HistogramData[];
   }>(() => {
     const rawReviews = reviews.value;
     if (!rawReviews || rawReviews.length === 0) {
-      return { movieData: [], histogramData: [], histogramNormData: [] };
+      return { movieData: [], histogramData: [] };
     }
 
     const movies = mapReviewsToMovies(rawReviews);
     if (movies.length === 0) {
-      return { movieData: [], histogramData: [], histogramNormData: [] };
+      return { movieData: [], histogramData: [] };
     }
 
     return enrichWithStatistics(movies, members.value);
@@ -52,9 +51,6 @@ export function useStatisticsData() {
 
   const movieData = computed(() => processedData.value.movieData);
   const histogramData = computed(() => processedData.value.histogramData);
-  const histogramNormData = computed(
-    () => processedData.value.histogramNormData,
-  );
 
   const filteredMovieData = computed(() => {
     return filterMovies(movieData.value, searchTerm.value);
@@ -75,8 +71,8 @@ export function useStatisticsData() {
     () => !loading.value && filteredMovieData.value.length === 0,
   );
 
-  const toggleNormalize = () => {
-    normalize.value = !normalize.value;
+  const toggleScoreContext = () => {
+    showScoreContext.value = !showScoreContext.value;
   };
 
   return {
@@ -85,15 +81,14 @@ export function useStatisticsData() {
     filteredMovieData,
     members,
     histogramData,
-    histogramNormData,
     searchTerm,
-    normalize,
+    showScoreContext,
     totalMovies,
     totalRuntimeMinutes,
     hasReviews,
     hasSearchTerm,
     showEmptyState,
-    toggleNormalize,
+    toggleScoreContext,
   };
 }
 
@@ -140,25 +135,12 @@ function enrichWithStatistics(
 ): {
   movieData: MovieStatistics[];
   histogramData: HistogramData[];
-  histogramNormData: HistogramData[];
 } {
   const histogram: HistogramData[] = createHistogramData(
     movies.map((data) => data.average),
-    false,
-  );
-  const histogramNorm: HistogramData[] = createHistogramData(
-    movies.map((data) => data.average),
-    true,
   );
 
   const memberScores: Record<string, number[]> = {};
-  const tmdbNorm = normalizeArray(
-    movies.map((data) =>
-      isString(data.vote_average)
-        ? parseFloat(data.vote_average as unknown as string)
-        : data.vote_average,
-    ),
-  );
 
   for (const member of memberList) {
     memberScores[member.id] = normalizeArray(
@@ -166,30 +148,20 @@ function enrichWithStatistics(
     );
     for (let i = 0; i <= 10; i++) {
       histogram[i][member.id] = 0;
-      histogramNorm[i][member.id] = 0;
     }
   }
 
   const enrichedMovies = movies.map((movie, i) => {
     const normalized: Record<string, number> = {};
-    let avg = 0;
 
     for (const member of memberList) {
       normalized[member.id] = memberScores[member.id][i];
-      avg += memberScores[member.id][i];
 
       const score = Math.floor(movie.userScores[member.id]);
       if (!isNaN(score)) {
         histogram[score][member.id] += 1;
       }
-      let scoreNorm = Math.floor(normalized[member.id] * 4 + 5);
-      scoreNorm = scoreNorm < 0 ? 0 : scoreNorm > 10 ? 10 : scoreNorm;
-      histogramNorm[scoreNorm][member.id] += 1;
     }
-
-    avg = avg / memberList.length;
-    normalized["average"] = Math.round(avg * 100) / 100;
-    normalized["vote_average"] = tmdbNorm[i];
 
     const curVoteAvg = movie.vote_average;
     const releaseDate = movie.release_date;
@@ -211,6 +183,5 @@ function enrichWithStatistics(
   return {
     movieData: enrichedMovies,
     histogramData: histogram,
-    histogramNormData: histogramNorm,
   };
 }
