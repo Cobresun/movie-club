@@ -7,29 +7,23 @@
     />
     <loading-spinner v-if="loading" />
 
-    <StatisticsSearchBar v-if="!loading && hasReviews" v-model="searchTerm" />
-
     <StatsWidget
       v-if="!loading && hasReviews"
       :total-movies="totalMovies"
       :total-runtime-minutes="totalRuntimeMinutes"
     />
 
-    <div v-if="showEmptyState">
+    <div v-if="!loading && !hasReviews">
       <EmptyState
-        :title="hasSearchTerm ? 'No Movies Found' : 'No Statistics Yet'"
-        :description="
-          hasSearchTerm
-            ? 'Try adjusting your search or filters. You can search by title, genre, company, or release year'
-            : 'Statistics will appear once your club has reviewed some movies. Get started by adding your first review!'
-        "
-        :action-label="hasSearchTerm ? undefined : 'Go to Reviews'"
-        :action-icon="hasSearchTerm ? undefined : 'arrow-right'"
+        title="No Statistics Yet"
+        description="Statistics will appear once your club has reviewed some movies. Get started by adding your first review!"
+        action-label="Go to Reviews"
+        action-icon="arrow-right"
         @action="navigateToReviews"
       />
     </div>
 
-    <div v-else-if="!loading">
+    <div v-else-if="!loading && hasReviews">
       <br />
       <ag-charts :options="histChartOptions" />
       <br />
@@ -48,6 +42,8 @@
 
       <DirectorsLeaderboard :movie-data="filteredMovieData" />
       <br />
+
+      <StatisticsSearchBar v-model="searchTerm" />
 
       <div class="mb-4 flex flex-wrap items-center gap-4 px-2">
         <div class="flex items-center gap-2">
@@ -89,7 +85,12 @@
         </div>
       </div>
 
-      <table-view :review-table="movieTable" />
+      <EmptyState
+        v-if="hasSearchTerm && filteredMovieData.length === 0"
+        title="No Movies Found"
+        description="Try adjusting your search or filters. You can search by title, genre, company, or release year"
+      />
+      <table-view v-else :review-table="movieTable" />
     </div>
   </div>
 </template>
@@ -139,7 +140,6 @@ const {
   totalRuntimeMinutes,
   hasReviews,
   hasSearchTerm,
-  showEmptyState,
   toggleScoreContext,
 } = useStatisticsData();
 

@@ -1,7 +1,5 @@
 <template>
-  <div
-    class="sticky top-0 z-50 flex items-center justify-center bg-background py-4"
-  >
+  <div class="flex items-center justify-center py-4">
     <div class="relative w-11/12">
       <mdicon
         name="magnify"
