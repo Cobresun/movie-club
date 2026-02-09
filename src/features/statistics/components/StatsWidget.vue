@@ -24,15 +24,25 @@
 <script setup lang="ts">
 import { computed } from "vue";
 
+import type { MovieData } from "../types";
+
 const props = defineProps<{
-  totalMovies: number;
-  totalRuntimeMinutes: number;
+  movieData: MovieData[];
 }>();
 
-const totalHours = computed(() => Math.floor(props.totalRuntimeMinutes / 60));
+const totalMovies = computed(() => props.movieData.length);
+
+const totalRuntimeMinutes = computed(() =>
+  props.movieData.reduce((sum, movie) => {
+    const runtime = Number(movie.externalData?.runtime);
+    return sum + (isNaN(runtime) ? 0 : runtime);
+  }, 0),
+);
+
+const totalHours = computed(() => Math.floor(totalRuntimeMinutes.value / 60));
 
 const formattedTime = computed(() => {
-  const minutes = props.totalRuntimeMinutes % 60;
+  const minutes = totalRuntimeMinutes.value % 60;
   return `${totalHours.value}h ${minutes}m`;
 });
 
