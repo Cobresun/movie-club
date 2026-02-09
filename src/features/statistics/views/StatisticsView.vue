@@ -109,8 +109,8 @@ import { useRouter } from "vue-router";
 import { createHistogramOptions } from "../chartOptions";
 import DirectorsLeaderboard from "../components/DirectorsLeaderboard.vue";
 import GenreStatsWidget from "../components/GenreStatsWidget.vue";
-import ScoreDistributionWidget from "../components/ScoreDistributionWidget.vue";
 import ReviewerLeaderboardWidget from "../components/ReviewerLeaderboardWidget.vue";
+import ScoreDistributionWidget from "../components/ScoreDistributionWidget.vue";
 import StatisticsSearchBar from "../components/StatisticsSearchBar.vue";
 import StatsWidget from "../components/StatsWidget.vue";
 import TasteSimilarityWidget from "../components/TasteSimilarityWidget.vue";
@@ -167,7 +167,6 @@ const memberLeaderboard = computed(() =>
 const tasteSimilarity = computed(() =>
   computeTasteSimilarity(movieData.value, members.value),
 );
-
 
 const columnHelper = createColumnHelper<MovieStatistics>();
 

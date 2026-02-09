@@ -13,7 +13,7 @@
         "
         @click="selectedMemberId = undefined"
       >
-        Everyone
+        All
       </button>
       <button
         v-for="member in members"
