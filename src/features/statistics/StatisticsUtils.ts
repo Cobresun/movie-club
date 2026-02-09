@@ -128,6 +128,114 @@ export interface MemberLeaderboardEntry {
   title?: string;
 }
 
+export interface MovieAgreement {
+  title: string;
+  imageUrl: string | undefined;
+  scoreA: number;
+  scoreB: number;
+  difference: number;
+}
+
+export interface MemberPairSimilarity {
+  memberA: Member;
+  memberB: Member;
+  similarityPercent: number;
+  avgDifference: number;
+  sharedCount: number;
+  bestAgreements: MovieAgreement[];
+  worstAgreements: MovieAgreement[];
+}
+
+const MIN_SHARED_REVIEWS = 3;
+
+export function computeTasteSimilarity(
+  movieData: MovieStatistics[],
+  members: Member[],
+): {
+  mostSimilar: MemberPairSimilarity | null;
+  leastSimilar: MemberPairSimilarity | null;
+} {
+  if (members.length < 2) {
+    return { mostSimilar: null, leastSimilar: null };
+  }
+
+  const pairs: MemberPairSimilarity[] = [];
+
+  for (let i = 0; i < members.length; i++) {
+    for (let j = i + 1; j < members.length; j++) {
+      const memberA = members[i];
+      const memberB = members[j];
+
+      const sharedMovies: {
+        title: string;
+        imageUrl: string | undefined;
+        scoreA: number;
+        scoreB: number;
+      }[] = [];
+
+      for (const movie of movieData) {
+        const scoreA = movie.userScores[memberA.id];
+        const scoreB = movie.userScores[memberB.id];
+        if (
+          isDefined(scoreA) &&
+          !isNaN(scoreA) &&
+          isDefined(scoreB) &&
+          !isNaN(scoreB)
+        ) {
+          sharedMovies.push({
+            title: movie.title,
+            imageUrl: movie.imageUrl,
+            scoreA,
+            scoreB,
+          });
+        }
+      }
+
+      if (sharedMovies.length < MIN_SHARED_REVIEWS) continue;
+
+      const totalDiff = sharedMovies.reduce(
+        (sum, m) => sum + Math.abs(m.scoreA - m.scoreB),
+        0,
+      );
+      const avgDifference =
+        Math.round((totalDiff / sharedMovies.length) * 100) / 100;
+      const similarityPercent =
+        Math.round((1 - avgDifference / 10) * 10000) / 100;
+
+      const withDiffs = sharedMovies.map((m) => ({
+        ...m,
+        difference: Math.abs(m.scoreA - m.scoreB),
+      }));
+      const sorted = [...withDiffs].sort((a, b) => a.difference - b.difference);
+
+      pairs.push({
+        memberA,
+        memberB,
+        similarityPercent,
+        avgDifference,
+        sharedCount: sharedMovies.length,
+        bestAgreements: sorted.slice(0, 3),
+        worstAgreements: sorted
+          .slice(-3)
+          .sort((a, b) => b.difference - a.difference),
+      });
+    }
+  }
+
+  if (pairs.length === 0) {
+    return { mostSimilar: null, leastSimilar: null };
+  }
+
+  const sortedPairs = [...pairs].sort(
+    (a, b) => b.similarityPercent - a.similarityPercent,
+  );
+
+  return {
+    mostSimilar: sortedPairs[0],
+    leastSimilar: sortedPairs[sortedPairs.length - 1],
+  };
+}
+
 export function computeMemberLeaderboard(
   movieData: MovieStatistics[],
   members: Member[],

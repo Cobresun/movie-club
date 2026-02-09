@@ -45,6 +45,11 @@
       <br />
       <ReviewerLeaderboardWidget :leaderboard="memberLeaderboard" />
       <br />
+      <TasteSimilarityWidget
+        :most-similar="tasteSimilarity.mostSimilar"
+        :least-similar="tasteSimilarity.leastSimilar"
+      />
+      <br />
 
       <DirectorsLeaderboard :movie-data="filteredMovieData" />
       <br />
@@ -71,10 +76,12 @@ import GenreStatsWidget from "../components/GenreStatsWidget.vue";
 import ReviewerLeaderboardWidget from "../components/ReviewerLeaderboardWidget.vue";
 import StatisticsSearchBar from "../components/StatisticsSearchBar.vue";
 import StatsWidget from "../components/StatsWidget.vue";
+import TasteSimilarityWidget from "../components/TasteSimilarityWidget.vue";
 import { useStatisticsData } from "../composables/useStatisticsData";
 import {
   computeGenreStats,
   computeMemberLeaderboard,
+  computeTasteSimilarity,
   MovieStatistics,
 } from "../StatisticsUtils";
 
@@ -121,6 +128,10 @@ const genreStats = computed(() => computeGenreStats(movieData.value));
 
 const memberLeaderboard = computed(() =>
   computeMemberLeaderboard(movieData.value, members.value),
+);
+
+const tasteSimilarity = computed(() =>
+  computeTasteSimilarity(movieData.value, members.value),
 );
 
 const columnHelper = createColumnHelper<MovieStatistics>();
