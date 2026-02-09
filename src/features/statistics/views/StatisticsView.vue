@@ -46,6 +46,9 @@
       <ReviewerLeaderboardWidget :leaderboard="memberLeaderboard" />
       <br />
 
+      <DirectorsLeaderboard :movie-data="filteredMovieData" />
+      <br />
+
       <table-view :review-table="movieTable" />
     </div>
   </div>
@@ -63,6 +66,7 @@ import { computed, h } from "vue";
 import { useRouter } from "vue-router";
 
 import { createHistogramOptions } from "../chartOptions";
+import DirectorsLeaderboard from "../components/DirectorsLeaderboard.vue";
 import GenreStatsWidget from "../components/GenreStatsWidget.vue";
 import ReviewerLeaderboardWidget from "../components/ReviewerLeaderboardWidget.vue";
 import StatisticsSearchBar from "../components/StatisticsSearchBar.vue";
