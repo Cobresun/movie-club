@@ -29,10 +29,7 @@
         <br />
         <ScoreDistributionWidget :options="histChartOptions" />
         <br />
-        <GenreStatsWidget
-          :most-loved="genreStats.mostLoved"
-          :least-loved="genreStats.leastLoved"
-        />
+        <GenreStatsWidget :members="members" :movie-data="movieData" />
         <br />
         <ReviewerLeaderboardWidget :leaderboard="memberLeaderboard" />
         <br />
@@ -119,7 +116,6 @@ import StatsWidget from "../components/StatsWidget.vue";
 import TasteSimilarityWidget from "../components/TasteSimilarityWidget.vue";
 import { useStatisticsData } from "../composables/useStatisticsData";
 import {
-  computeGenreStats,
   computeMemberLeaderboard,
   computeTasteSimilarity,
   getScoreContextColor,
@@ -164,8 +160,6 @@ const histChartOptions = computed(() =>
   }),
 );
 
-const genreStats = computed(() => computeGenreStats(movieData.value));
-
 const memberLeaderboard = computed(() =>
   computeMemberLeaderboard(movieData.value, members.value),
 );
@@ -173,6 +167,7 @@ const memberLeaderboard = computed(() =>
 const tasteSimilarity = computed(() =>
   computeTasteSimilarity(movieData.value, members.value),
 );
+
 
 const columnHelper = createColumnHelper<MovieStatistics>();
 
