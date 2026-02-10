@@ -96,9 +96,9 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 
+import WidgetShell from "./WidgetShell.vue";
 import { isDefined } from "../../../../lib/checks/checks.js";
 import { type Member } from "../../../../lib/types/club.js";
-import WidgetShell from "./WidgetShell.vue";
 import { computeGenreStats } from "../statsComputers";
 import type { MovieData } from "../types";
 

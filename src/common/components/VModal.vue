@@ -43,6 +43,7 @@ const props = withDefaults(
     zIndex?: ZIndex;
   }>(),
   {
+    size: "default",
     zIndex: "50",
   },
 );
@@ -78,9 +79,7 @@ const desktopClasses = computed(() => {
 });
 
 const zIndexClass = computed(() =>
-  props.zIndex === "40" ? "z-40" :
-  props.zIndex === "60" ? "z-[60]" :
-  "z-50"
+  props.zIndex === "40" ? "z-40" : props.zIndex === "60" ? "z-[60]" : "z-50",
 );
 </script>
 

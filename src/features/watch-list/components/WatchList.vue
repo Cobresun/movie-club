@@ -209,7 +209,8 @@ watch(
 );
 
 const onMove = (evt: { relatedContext: { index: number } }) => {
-  if (hasValue(nextWorkId.value) && evt.relatedContext.index === 0) return false;
+  if (hasValue(nextWorkId.value) && evt.relatedContext.index === 0)
+    return false;
   return true;
 };
 
