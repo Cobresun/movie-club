@@ -23,7 +23,6 @@ const RESERVED_SLUGS = [
 export const SLUG_MIN_LENGTH = 3;
 export const SLUG_MAX_LENGTH = 50;
 export const SLUG_PATTERN = /^[a-z0-9][a-z0-9-]{1,48}[a-z0-9]$/;
-export const SLUG_UPDATE_COOLDOWN_DAYS = 30;
 
 /**
  * Generate a URL-friendly slug from a club name
@@ -78,27 +77,16 @@ export function isReservedSlug(slug: string): boolean {
 }
 
 /**
- * Check if a string looks like a numeric ID
- */
-export function isNumericId(identifier: string): boolean {
-  return /^\d+$/.test(identifier);
-}
-
-/**
  * Validate a slug for use in club creation/update
  * Returns error message if invalid, undefined if valid
  */
 export function validateSlug(slug: string): string | undefined {
   if (!validateSlugFormat(slug)) {
-    return `Slug must be ${SLUG_MIN_LENGTH}-${SLUG_MAX_LENGTH} characters, contain only lowercase letters, numbers, and hyphens, and not start or end with a hyphen`;
+    return `URL must be ${SLUG_MIN_LENGTH}-${SLUG_MAX_LENGTH} characters, contain only lowercase letters, numbers, and hyphens, and not start or end with a hyphen`;
   }
 
   if (isReservedSlug(slug)) {
-    return `The slug "${slug}" is reserved and cannot be used`;
-  }
-
-  if (isNumericId(slug)) {
-    return "Slug cannot be all numbers (conflicts with numeric club IDs)";
+    return `The URL "/${slug}" is reserved and cannot be used`;
   }
 
   return undefined;

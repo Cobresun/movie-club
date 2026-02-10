@@ -83,30 +83,15 @@
               <h4 class="font-medium">Custom URL</h4>
               <p class="mt-2 flex items-center gap-1 text-xs text-gray-400">
                 <mdicon
-                  name="information-outline"
-                  class="text-blue-400"
+                  name="alert-outline"
+                  class="text-yellow-400"
                   size="14"
                 />
-                <span>URLs can be changed once every 30 days</span>
+                <span
+                  >Warning: Changing the URL will break existing links to your
+                  club</span
+                >
               </p>
-            </div>
-
-            <!-- Cooldown Warning Box (only shown during cooldown) -->
-            <div
-              v-if="isInCooldownPeriod"
-              class="rounded-md border border-yellow-500/30 bg-yellow-500/10 p-3"
-            >
-              <div class="flex gap-2">
-                <mdicon name="clock-alert-outline" class="text-yellow-500" />
-                <div class="flex-1 text-sm text-yellow-200">
-                  <p class="font-medium">
-                    Next change available in {{ daysUntilNextChange }} days
-                  </p>
-                  <p class="mt-1 text-xs text-yellow-300">
-                    Last changed {{ daysAgoText }}
-                  </p>
-                </div>
-              </div>
             </div>
 
             <div class="flex flex-col gap-2 sm:flex-row">
@@ -116,14 +101,11 @@
                   <input
                     v-model="newSlug"
                     placeholder="your-club-name"
-                    :readonly="isInCooldownPeriod"
                     class="flex-1 rounded border p-3 text-sm outline-none"
                     :class="
                       slugError
                         ? 'border-red-500 bg-gray-700'
-                        : isInCooldownPeriod
-                          ? 'cursor-not-allowed border-gray-600 bg-gray-800 text-gray-500'
-                          : 'border-gray-600 bg-gray-700'
+                        : 'border-gray-600 bg-gray-700'
                     "
                     @input="slugError = ''"
                   />
@@ -297,7 +279,7 @@
 import type { AxiosError } from "axios";
 import { ref, computed, watch } from "vue";
 import { useToast } from "vue-toastification";
-import { hasValue, isDefined } from "../../../../lib/checks/checks";
+import { hasValue } from "../../../../lib/checks/checks";
 
 import {
   useMembers,
@@ -372,7 +354,6 @@ const saveClubName = () => {
 
 // URL management
 const currentSlug = computed(() => club.value?.slug ?? "");
-const slugUpdatedAt = computed(() => club.value?.slugUpdatedAt);
 
 // Initialize newSlug with current slug when club data loads
 watch(
@@ -388,45 +369,6 @@ watch(
 const urlPrefix = computed(() => {
   const baseUrl = window.location.origin;
   return `${baseUrl}/club/`;
-});
-
-// Calculate cooldown information
-const COOLDOWN_DAYS = 30;
-
-const isInCooldownPeriod = computed(() => {
-  if (!isDefined(slugUpdatedAt.value)) return false;
-
-  const lastUpdate = new Date(slugUpdatedAt.value);
-  const cooldownEnd = new Date(
-    lastUpdate.getTime() + COOLDOWN_DAYS * 24 * 60 * 60 * 1000,
-  );
-  return new Date() < cooldownEnd;
-});
-
-const daysUntilNextChange = computed(() => {
-  if (!isDefined(slugUpdatedAt.value)) return 0;
-
-  const lastUpdate = new Date(slugUpdatedAt.value);
-  const cooldownEnd = new Date(
-    lastUpdate.getTime() + COOLDOWN_DAYS * 24 * 60 * 60 * 1000,
-  );
-  const daysRemaining = Math.ceil(
-    (cooldownEnd.getTime() - new Date().getTime()) / (24 * 60 * 60 * 1000),
-  );
-  return Math.max(0, daysRemaining);
-});
-
-const daysAgoText = computed(() => {
-  if (!isDefined(slugUpdatedAt.value)) return "never";
-
-  const lastUpdate = new Date(slugUpdatedAt.value);
-  const daysAgo = Math.floor(
-    (new Date().getTime() - lastUpdate.getTime()) / (24 * 60 * 60 * 1000),
-  );
-
-  if (daysAgo === 0) return "today";
-  if (daysAgo === 1) return "yesterday";
-  return `${daysAgo} days ago`;
 });
 
 const validateSlugFormat = (slug: string): string | null => {
@@ -445,7 +387,6 @@ const validateSlugFormat = (slug: string): string | null => {
 const canSaveSlug = computed(() => {
   if (!newSlug.value || isUpdatingSlug.value) return false;
   if (newSlug.value === currentSlug.value) return false;
-  if (isInCooldownPeriod.value) return false;
   return validateSlugFormat(newSlug.value) === null;
 });
 

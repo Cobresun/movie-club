@@ -2,11 +2,7 @@ import crypto from "crypto";
 
 import { isTrue, isDefined } from "../../../lib/checks/checks.js";
 import { db } from "../utils/database";
-import {
-  generateSlugFromName,
-  generateUniqueSlug,
-  SLUG_UPDATE_COOLDOWN_DAYS,
-} from "../utils/slug";
+import { generateSlugFromName, generateUniqueSlug } from "../utils/slug";
 
 interface JoinClubResult {
   success: boolean;
@@ -213,35 +209,6 @@ class ClubRepository {
       .set({ slug: newSlug, slug_updated_at: new Date() })
       .where("id", "=", clubId)
       .execute();
-  }
-
-  async canUpdateSlug(clubId: string): Promise<boolean> {
-    const club = await this.getById(clubId);
-    if (!isDefined(club) || !isDefined(club.slug_updated_at)) {
-      return true; // No previous update, can update
-    }
-
-    const lastUpdate = new Date(String(club.slug_updated_at));
-    const cooldownEnd = new Date(
-      lastUpdate.getTime() + SLUG_UPDATE_COOLDOWN_DAYS * 24 * 60 * 60 * 1000,
-    );
-    return new Date() >= cooldownEnd;
-  }
-
-  async getDaysUntilSlugUpdate(clubId: string): Promise<number> {
-    const club = await this.getById(clubId);
-    if (!isDefined(club) || !isDefined(club.slug_updated_at)) {
-      return 0;
-    }
-
-    const lastUpdate = new Date(String(club.slug_updated_at));
-    const cooldownEnd = new Date(
-      lastUpdate.getTime() + SLUG_UPDATE_COOLDOWN_DAYS * 24 * 60 * 60 * 1000,
-    );
-    const daysRemaining = Math.ceil(
-      (cooldownEnd.getTime() - new Date().getTime()) / (24 * 60 * 60 * 1000),
-    );
-    return Math.max(0, daysRemaining);
   }
 }
 

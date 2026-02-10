@@ -179,17 +179,7 @@ router.put(
 
     const slugTaken = await ClubRepository.slugExists(newSlug, clubId);
     if (slugTaken) {
-      return res(badRequest("This slug is already in use by another club"));
-    }
-
-    const canUpdate = await ClubRepository.canUpdateSlug(clubId);
-    if (!canUpdate) {
-      const daysRemaining = await ClubRepository.getDaysUntilSlugUpdate(clubId);
-      return res(
-        badRequest(
-          `You can only change your club slug once every 30 days. Please wait ${daysRemaining} more day(s).`,
-        ),
-      );
+      return res(badRequest("This url is already in use by another club"));
     }
 
     await ClubRepository.updateSlug(clubId, newSlug);
