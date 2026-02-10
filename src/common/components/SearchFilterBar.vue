@@ -232,6 +232,12 @@ const FILTER_OPTIONS = [
     placeholder: "Select a company",
   },
   {
+    key: "director",
+    label: "Director",
+    type: "enum" as const,
+    placeholder: "Select a director",
+  },
+  {
     key: "review_date",
     label: "Review Date",
     type: "date" as const,
@@ -276,10 +282,24 @@ const companyCounts = computed(() => {
   return Array.from(counts.entries()).sort((a, b) => b[1] - a[1]); // Sort by frequency (descending)
 });
 
+const directorCounts = computed(() => {
+  const counts = new Map<string, number>();
+  props.data.forEach((item) =>
+    (item.externalData?.directors as string[] | undefined)?.forEach((d) => {
+      const currentCount = counts.get(d);
+      counts.set(d, currentCount !== undefined ? currentCount + 1 : 1);
+    }),
+  );
+  return Array.from(counts.entries()).sort((a, b) => b[1] - a[1]); // Sort by frequency (descending)
+});
+
 const computedValueSuggestions = computed(() => ({
   genre: genreCounts.value.map(([genre, count]) => `${genre} (${count})`),
   company: companyCounts.value.map(
     ([company, count]) => `${company} (${count})`,
+  ),
+  director: directorCounts.value.map(
+    ([director, count]) => `${director} (${count})`,
   ),
 }));
 
