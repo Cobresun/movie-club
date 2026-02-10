@@ -32,11 +32,11 @@
     </div>
 
     <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
-      <div
+      <WidgetShell
         v-if="genreStats.mostLoved.length > 0"
-        class="rounded-lg bg-lowBackground p-5"
+        title="Most Loved Genres"
+        outer-class="w-full"
       >
-        <h3 class="mb-4 text-lg font-bold text-white">Most Loved Genres</h3>
         <ul class="space-y-3">
           <li
             v-for="(genre, index) in genreStats.mostLoved"
@@ -59,13 +59,13 @@
             </div>
           </li>
         </ul>
-      </div>
+      </WidgetShell>
 
-      <div
+      <WidgetShell
         v-if="genreStats.leastLoved.length > 0"
-        class="rounded-lg bg-lowBackground p-5"
+        title="Least Loved Genres"
+        outer-class="w-full"
       >
-        <h3 class="mb-4 text-lg font-bold text-white">Least Loved Genres</h3>
         <ul class="space-y-3">
           <li
             v-for="(genre, index) in genreStats.leastLoved"
@@ -88,7 +88,7 @@
             </div>
           </li>
         </ul>
-      </div>
+      </WidgetShell>
     </div>
   </div>
 </template>
@@ -98,13 +98,15 @@ import { computed, ref } from "vue";
 
 import { isDefined } from "../../../../lib/checks/checks.js";
 import { type Member } from "../../../../lib/types/club.js";
-import { computeGenreStats, type MovieStatistics } from "../StatisticsUtils";
+import WidgetShell from "./WidgetShell.vue";
+import { computeGenreStats } from "../statsComputers";
+import type { MovieData } from "../types";
 
 import VAvatar from "@/common/components/VAvatar.vue";
 
 const props = defineProps<{
   members: Member[];
-  movieData: MovieStatistics[];
+  movieData: MovieData[];
 }>();
 
 const selectedMemberId = ref<string | undefined>(undefined);

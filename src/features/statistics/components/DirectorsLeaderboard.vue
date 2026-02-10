@@ -1,134 +1,90 @@
 <template>
-  <div class="mx-auto w-11/12 max-w-2xl">
-    <div class="rounded-xl border border-slate-700/50 bg-lowBackground/60 p-6">
-      <h3 class="mb-5 text-center text-lg font-semibold text-white">
-        Most Watched Directors
-      </h3>
+  <WidgetShell
+    outer-class="max-w-2xl"
+    inner-class="rounded-xl border border-slate-700/50 bg-lowBackground/60 p-6"
+  >
+    <h3 class="mb-5 text-center text-lg font-semibold text-white">
+      Most Watched Directors
+    </h3>
 
-      <div class="space-y-3">
-        <div
-          v-for="(director, index) in topDirectors"
-          :key="director.name"
-          class="group relative overflow-hidden rounded-lg border border-slate-700/30 bg-background/50 px-4 py-3 transition-colors hover:border-slate-600/50 hover:bg-background/80"
-        >
-          <div class="flex items-center gap-4">
-            <div
-              class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold"
-              :class="rankClass(index)"
-            >
-              {{ index + 1 }}
-            </div>
-
-            <div class="min-w-0 flex-1">
-              <div class="flex items-center justify-between gap-2">
-                <span class="truncate font-medium text-white">
-                  {{ director.name }}
-                </span>
-                <div class="flex shrink-0 items-center gap-3">
-                  <span class="text-xs text-slate-400">
-                    {{ director.movieCount }}
-                    {{ director.movieCount === 1 ? "film" : "films" }}
-                  </span>
-                  <span
-                    class="min-w-[2.5rem] text-right text-sm font-semibold"
-                    :class="scoreColor(director.averageScore)"
-                  >
-                    {{ director.averageScore.toFixed(1) }}
-                  </span>
-                </div>
-              </div>
-
-              <div
-                class="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-700/50"
-              >
-                <div
-                  class="h-full rounded-full transition-all duration-500"
-                  :class="barColor(director.averageScore)"
-                  :style="{ width: barWidth(director.averageScore) + '%' }"
-                />
-              </div>
-            </div>
+    <div class="space-y-3">
+      <div
+        v-for="(director, index) in topDirectors"
+        :key="director.name"
+        class="group relative overflow-hidden rounded-lg border border-slate-700/30 bg-background/50 px-4 py-3 transition-colors hover:border-slate-600/50 hover:bg-background/80"
+      >
+        <div class="flex items-center gap-4">
+          <div
+            class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold"
+            :class="rankClass(index)"
+          >
+            {{ index + 1 }}
           </div>
 
-          <div class="mt-2 flex flex-wrap gap-1 pl-12">
-            <span
-              v-for="movie in director.movies"
-              :key="movie"
-              class="inline-block max-w-[10rem] truncate rounded bg-slate-700/40 px-1.5 py-0.5 text-[0.65rem] text-slate-400"
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center justify-between gap-2">
+              <span class="truncate font-medium text-white">
+                {{ director.name }}
+              </span>
+              <div class="flex shrink-0 items-center gap-3">
+                <span class="text-xs text-slate-400">
+                  {{ director.movieCount }}
+                  {{ director.movieCount === 1 ? "film" : "films" }}
+                </span>
+                <span
+                  class="min-w-[2.5rem] text-right text-sm font-semibold"
+                  :class="scoreColor(director.averageScore)"
+                >
+                  {{ director.averageScore.toFixed(1) }}
+                </span>
+              </div>
+            </div>
+
+            <div
+              class="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-700/50"
             >
-              {{ movie }}
-            </span>
+              <div
+                class="h-full rounded-full transition-all duration-500"
+                :class="barColor(director.averageScore)"
+                :style="{ width: barWidth(director.averageScore) + '%' }"
+              />
+            </div>
           </div>
         </div>
-      </div>
 
-      <p
-        v-if="topDirectors.length === 0"
-        class="py-4 text-center text-sm text-slate-500"
-      >
-        No director data available yet.
-      </p>
+        <div class="mt-2 flex flex-wrap gap-1 pl-12">
+          <span
+            v-for="movie in director.movies"
+            :key="movie"
+            class="inline-block max-w-[10rem] truncate rounded bg-slate-700/40 px-1.5 py-0.5 text-[0.65rem] text-slate-400"
+          >
+            {{ movie }}
+          </span>
+        </div>
+      </div>
     </div>
-  </div>
+
+    <p
+      v-if="topDirectors.length === 0"
+      class="py-4 text-center text-sm text-slate-500"
+    >
+      No director data available yet.
+    </p>
+  </WidgetShell>
 </template>
 
 <script setup lang="ts">
 import { computed } from "vue";
 
-import { hasElements } from "../../../../lib/checks/checks.js";
-import { MovieStatistics } from "../StatisticsUtils";
+import WidgetShell from "./WidgetShell.vue";
+import { computeTopDirectors } from "../statsComputers";
+import type { MovieData } from "../types";
 
 const props = defineProps<{
-  movieData: MovieStatistics[];
+  movieData: MovieData[];
 }>();
 
-interface DirectorStats {
-  name: string;
-  movieCount: number;
-  averageScore: number;
-  movies: string[];
-}
-
-const topDirectors = computed<DirectorStats[]>(() => {
-  const directorMap = new Map<
-    string,
-    { totalScore: number; count: number; movies: string[] }
-  >();
-
-  for (const movie of props.movieData) {
-    const directors = movie.externalData?.directors;
-    if (!hasElements(directors)) continue;
-    if (movie.average === 0) continue;
-
-    for (const director of directors) {
-      const existing = directorMap.get(director);
-      if (existing) {
-        existing.totalScore += movie.average;
-        existing.count += 1;
-        existing.movies.push(movie.title);
-      } else {
-        directorMap.set(director, {
-          totalScore: movie.average,
-          count: 1,
-          movies: [movie.title],
-        });
-      }
-    }
-  }
-
-  return Array.from(directorMap.entries())
-    .map(([name, data]) => ({
-      name,
-      movieCount: data.count,
-      averageScore: data.totalScore / data.count,
-      movies: data.movies,
-    }))
-    .sort((a, b) => {
-      const countDiff = b.movieCount - a.movieCount;
-      return countDiff !== 0 ? countDiff : b.averageScore - a.averageScore;
-    })
-    .slice(0, 5);
-});
+const topDirectors = computed(() => computeTopDirectors(props.movieData));
 
 function rankClass(index: number): string {
   switch (index) {

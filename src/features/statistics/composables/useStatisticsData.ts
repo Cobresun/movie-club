@@ -4,12 +4,8 @@ import { ref, computed } from "vue";
 import { isDefined, isString } from "../../../../lib/checks/checks.js";
 import { WorkListType, WorkType } from "../../../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
-import {
-  normalizeArray,
-  createHistogramData,
-  MovieStatistics,
-  HistogramData,
-} from "../StatisticsUtils";
+import { normalizeArray, createHistogramData } from "../scoring";
+import type { MovieData, HistogramData } from "../types";
 
 import { filterMovies } from "@/common/searchMovies";
 import { useMembers, useClub, useClubId } from "@/service/useClub";
@@ -33,7 +29,7 @@ export function useStatisticsData() {
   );
 
   const processedData = computed<{
-    movieData: MovieStatistics[];
+    movieData: MovieData[];
     histogramData: HistogramData[];
   }>(() => {
     const rawReviews = reviews.value;
@@ -56,20 +52,8 @@ export function useStatisticsData() {
     return filterMovies(movieData.value, searchTerm.value);
   });
 
-  const totalMovies = computed(() => movieData.value?.length ?? 0);
-
-  const totalRuntimeMinutes = computed(() =>
-    (movieData.value ?? []).reduce(
-      (sum, movie) => sum + (Number(movie.externalData?.runtime) || 0),
-      0,
-    ),
-  );
-
-  const hasReviews = computed(() => totalMovies.value > 0);
+  const hasReviews = computed(() => movieData.value.length > 0);
   const hasSearchTerm = computed(() => searchTerm.value.trim().length > 0);
-  const showEmptyState = computed(
-    () => !loading.value && filteredMovieData.value.length === 0,
-  );
 
   const toggleScoreContext = () => {
     showScoreContext.value = !showScoreContext.value;
@@ -83,18 +67,13 @@ export function useStatisticsData() {
     histogramData,
     searchTerm,
     showScoreContext,
-    totalMovies,
-    totalRuntimeMinutes,
     hasReviews,
     hasSearchTerm,
-    showEmptyState,
     toggleScoreContext,
   };
 }
 
-function mapReviewsToMovies(
-  reviews: DetailedReviewListItem[],
-): MovieStatistics[] {
+function mapReviewsToMovies(reviews: DetailedReviewListItem[]): MovieData[] {
   return reviews
     .map((review) => {
       if (!review.externalData) return null;
@@ -116,10 +95,6 @@ function mapReviewsToMovies(
         normalized: {} as Record<string, number>,
         imageUrl: review.imageUrl,
         createdDate: review.createdDate,
-        vote_average: review.externalData.vote_average,
-        revenue: review.externalData.revenue,
-        budget: review.externalData.budget,
-        release_date: review.externalData.release_date,
         genres: review.externalData.genres,
         production_companies: review.externalData.production_companies,
         production_countries: review.externalData.production_countries,
@@ -130,10 +105,10 @@ function mapReviewsToMovies(
 }
 
 function enrichWithStatistics(
-  movies: MovieStatistics[],
+  movies: MovieData[],
   memberList: { id: string }[],
 ): {
-  movieData: MovieStatistics[];
+  movieData: MovieData[];
   histogramData: HistogramData[];
 } {
   const histogram: HistogramData[] = createHistogramData(
@@ -163,20 +138,17 @@ function enrichWithStatistics(
       }
     }
 
-    const curVoteAvg = movie.vote_average;
-    const releaseDate = movie.release_date;
+    const curVoteAvg = movie.externalData.vote_average;
 
     return {
       ...movie,
       normalized,
-      vote_average: isString(curVoteAvg)
-        ? parseFloat(curVoteAvg as unknown as string)
-        : curVoteAvg,
-      release_year: isDefined(releaseDate)
-        ? parseInt(releaseDate.substring(0, 4))
-        : undefined,
-      revenueMil: (movie.revenue ?? 0) / 1000000,
-      budgetMil: (movie.budget ?? 0) / 1000000,
+      externalData: {
+        ...movie.externalData,
+        vote_average: isString(curVoteAvg)
+          ? parseFloat(curVoteAvg as unknown as string)
+          : curVoteAvg,
+      },
     };
   });
 

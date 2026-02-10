@@ -1,17 +1,29 @@
 <template>
-  <div class="mx-auto w-11/12">
-    <div class="rounded-lg bg-lowBackground p-5">
-      <h3 class="mb-4 text-lg font-bold text-white">Score Distribution</h3>
-      <ag-charts :options="options" />
-    </div>
-  </div>
+  <WidgetShell title="Score Distribution">
+    <ag-charts :options="chartOptions" />
+  </WidgetShell>
 </template>
 
 <script setup lang="ts">
-import type { AgCartesianChartOptions } from "ag-charts-community";
 import { AgCharts } from "ag-charts-vue3";
+import { computed } from "vue";
 
-defineProps<{
-  options: AgCartesianChartOptions;
+import WidgetShell from "./WidgetShell.vue";
+import { Member } from "../../../../lib/types/club";
+import { createHistogramOptions } from "../scoring";
+import type { HistogramData, MovieData } from "../types";
+
+const props = defineProps<{
+  movieData: MovieData[];
+  members: Member[];
+  histogramData: HistogramData[];
 }>();
+
+const chartOptions = computed(() =>
+  createHistogramOptions({
+    filteredMovieData: props.movieData,
+    histogramData: props.histogramData,
+    members: props.members,
+  }),
+);
 </script>
