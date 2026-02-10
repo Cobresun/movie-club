@@ -6,89 +6,20 @@
   >
     <!-- Search + Filters Row -->
     <div class="flex w-full items-center justify-center gap-2">
-      <!-- Main search/value input -->
+      <!-- Main search input (free text only) -->
       <div class="relative order-2 w-[min(720px,90%)]">
         <mdicon
           name="magnify"
           class="absolute left-3 top-1/2 -translate-y-1/2 transform text-slate-200"
         />
 
-        <!-- Operator toggle when numeric/date -->
-        <div
-          v-if="
-            filterMode &&
-            selectedFilter &&
-            (selectedFilter.type === 'number' || selectedFilter.type === 'date')
-          "
-          class="absolute right-20 top-1/2 -translate-y-1/2 transform"
-        >
-          <button
-            class="rounded-md border border-slate-600 bg-lowBackground/60 px-2 py-0.5 text-xs hover:bg-lowBackground"
-            :aria-label="'Comparator: ' + comparatorSymbol"
-            :title="'Comparator: ' + comparatorSymbol"
-            @click="cycleComparator"
-          >
-            {{ comparatorSymbol }}
-          </button>
-        </div>
-
-        <!-- Date picker if date -->
         <input
-          v-if="filterMode && selectedFilter?.type === 'date'"
           ref="searchInput"
-          v-model="filterValueInput"
-          type="date"
+          v-model="searchTerm"
+          type="text"
           class="w-full rounded-md border-2 border-slate-600 bg-background p-2 pl-10 text-base text-white outline-none focus:border-primary"
-          placeholder="Search"
-          @keydown.enter.prevent="applyActiveFilter"
+          :placeholder="searchPlaceholder"
         />
-
-        <!-- Text/number input -->
-        <input
-          v-else
-          ref="searchInput"
-          v-model="activeInput"
-          :type="
-            filterMode && selectedFilter?.type === 'number' ? 'number' : 'text'
-          "
-          :class="
-            filterMode && selectedFilter
-              ? 'w-full rounded-md border-2 border-slate-600 bg-background p-2 pl-10 pr-8 text-base text-white outline-none focus:border-primary'
-              : 'w-full rounded-md border-2 border-slate-600 bg-background p-2 pl-10 text-base text-white outline-none focus:border-primary'
-          "
-          :placeholder="
-            filterMode && selectedFilter
-              ? selectedFilter.placeholder
-              : searchPlaceholder
-          "
-          @keydown.enter.prevent="onEnter"
-        />
-
-        <!-- Apply filter button (only show when in filter mode) -->
-        <button
-          v-if="filterMode && selectedFilter"
-          class="absolute right-2 top-1/2 -translate-y-1/2 transform rounded-md bg-primary px-2 py-1 text-xs font-medium text-white hover:bg-primary/80 disabled:opacity-50"
-          :disabled="!filterValueInput || filterValueInput.length === 0"
-          title="Apply filter"
-          @click="applyActiveFilter"
-        >
-          Apply
-        </button>
-
-        <!-- Suggestions dropdown for enumerable fields -->
-        <div
-          v-if="showValueSuggestions && filteredValueSuggestions.length > 0"
-          class="absolute z-20 mt-2 max-h-60 w-full overflow-y-auto rounded-md border border-white bg-background p-1 shadow-xl"
-        >
-          <div
-            v-for="s in filteredValueSuggestions"
-            :key="s"
-            class="cursor-pointer rounded-md px-2 py-1 text-sm hover:bg-lowBackground"
-            @click="selectValueSuggestion(s)"
-          >
-            {{ s }}
-          </div>
-        </div>
       </div>
 
       <!-- Action button slot -->
@@ -99,13 +30,15 @@
 
     <!-- Available filter options as pills -->
     <div
-      class="scrollbar-hide mt-2 flex w-full flex-nowrap gap-2 overflow-x-auto md:flex-wrap md:justify-center"
+      class="scrollbar-hide relative mt-2 flex w-full flex-nowrap gap-2 overflow-x-auto md:flex-wrap md:justify-center"
     >
       <div
         v-for="opt in FILTER_OPTIONS"
         :key="opt.key"
+        :ref="(el) => setPillRef(el as HTMLElement, opt.key)"
+        :data-pill-key="opt.key"
         :class="[
-          'shrink-0 cursor-pointer whitespace-nowrap rounded-full border px-3 py-1 text-sm hover:bg-lowBackground',
+          'relative shrink-0 cursor-pointer whitespace-nowrap rounded-full border px-3 py-1 text-sm hover:bg-lowBackground',
           isFilterApplied(opt.key)
             ? 'border-primary bg-primary/20 text-white'
             : 'border-white opacity-80',
@@ -118,6 +51,130 @@
         </span>
       </div>
     </div>
+
+    <!-- Popover for filter input (teleported to avoid overflow clipping) -->
+    <Teleport to="body">
+      <div
+        v-if="selectedPillKey && selectedFilter && popoverPosition"
+        ref="popoverRef"
+        :style="{
+          position: 'fixed',
+          left: `${popoverPosition.left}px`,
+          top: `${popoverPosition.top}px`,
+          zIndex: 9999,
+        }"
+        class="min-w-[280px] rounded-lg border border-slate-600 bg-background p-4 shadow-2xl"
+        @click.stop
+      >
+        <div class="flex flex-col gap-3">
+          <!-- Date picker -->
+          <div
+            v-if="selectedFilter.type === 'date'"
+            class="flex flex-col gap-2"
+          >
+            <label class="text-xs text-slate-400">{{
+              selectedFilter.label
+            }}</label>
+            <input
+              ref="popoverInput"
+              v-model="filterValueInput"
+              type="date"
+              class="rounded-md border border-slate-600 bg-lowBackground p-2 text-sm text-white outline-none focus:border-primary"
+            />
+          </div>
+
+          <!-- Number input -->
+          <div
+            v-else-if="selectedFilter.type === 'number'"
+            class="flex flex-col gap-2"
+          >
+            <label class="text-xs text-slate-400">{{
+              selectedFilter.label
+            }}</label>
+            <input
+              ref="popoverInput"
+              v-model="filterValueInput"
+              type="number"
+              class="rounded-md border border-slate-600 bg-lowBackground p-2 text-sm text-white outline-none focus:border-primary"
+              :placeholder="selectedFilter.placeholder"
+            />
+          </div>
+
+          <!-- Enum with suggestions -->
+          <div
+            v-else-if="selectedFilter.type === 'enum'"
+            class="flex flex-col gap-2"
+          >
+            <label class="text-xs text-slate-400">{{
+              selectedFilter.label
+            }}</label>
+            <input
+              ref="popoverInput"
+              v-model="filterValueInput"
+              type="text"
+              class="rounded-md border border-slate-600 bg-lowBackground p-2 text-sm text-white outline-none focus:border-primary"
+              :placeholder="selectedFilter.placeholder"
+            />
+            <!-- Suggestions list -->
+            <div
+              v-if="filteredValueSuggestions.length > 0"
+              class="max-h-48 overflow-y-auto rounded-md border border-slate-700 bg-lowBackground"
+            >
+              <div
+                v-for="s in filteredValueSuggestions"
+                :key="s"
+                class="cursor-pointer px-3 py-2 text-sm hover:bg-background"
+                @click="selectValueSuggestion(s)"
+              >
+                {{ s }}
+              </div>
+            </div>
+          </div>
+
+          <!-- Comparator buttons for number/date -->
+          <div
+            v-if="
+              selectedFilter.type === 'number' || selectedFilter.type === 'date'
+            "
+            class="flex gap-1"
+          >
+            <button
+              v-for="op in ['>', '=', '<']"
+              :key="op"
+              :class="[
+                'flex-1 rounded-md border px-3 py-1 text-sm transition-colors',
+                comparator === op
+                  ? 'border-primary bg-primary/20 text-white'
+                  : 'border-slate-600 bg-lowBackground/60 text-slate-400 hover:border-slate-500 hover:text-white',
+              ]"
+              @click="comparator = op as Comparator"
+            >
+              {{ op }}
+            </button>
+          </div>
+
+          <!-- Action buttons -->
+          <div class="flex gap-2">
+            <button
+              class="flex-1 rounded-md bg-primary px-3 py-2 text-sm font-medium text-white hover:bg-primary/80 disabled:opacity-50"
+              :disabled="
+                !filterValueInput ||
+                String(filterValueInput).trim().length === 0
+              "
+              @click="applyActiveFilter"
+            >
+              Apply
+            </button>
+            <button
+              class="rounded-md border border-slate-600 bg-lowBackground/60 px-3 py-2 text-sm text-slate-400 hover:bg-lowBackground hover:text-white"
+              @click="closePopover"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -228,7 +285,6 @@ const computedValueSuggestions = computed(() => ({
 
 // Search and Filters state
 const searchTerm = ref("");
-const filterMode = ref(false);
 
 // Applied filters pills
 type Comparator = ">" | "=" | "<";
@@ -241,14 +297,14 @@ interface AppliedFilter {
 }
 const appliedFilters = ref<AppliedFilter[]>([]);
 
-// Selected filter to input value
-const selectedFilterKey = ref<string | null>(null);
+// Popover state for filter input
+const selectedPillKey = ref<string | null>(null);
 const filterValueInput = ref("");
 const comparator = ref<Comparator>(">");
 
 const selectedFilter = computed<FilterOption | null>(() => {
-  if (selectedFilterKey.value === null) return null;
-  return FILTER_OPTIONS.find((f) => f.key === selectedFilterKey.value) ?? null;
+  if (selectedPillKey.value === null) return null;
+  return FILTER_OPTIONS.find((f) => f.key === selectedPillKey.value) ?? null;
 });
 
 // Helper functions for pill display
@@ -263,47 +319,50 @@ const getAppliedFilterDisplay = (key: string) => {
   return `${operator}${filter.value}`;
 };
 
-const comparatorSymbol = computed(() => comparator.value);
-const cycleComparator = () => {
-  comparator.value =
-    comparator.value === ">" ? "<" : comparator.value === "<" ? "=" : ">";
-};
-
 const selectFilterOption = (key: string) => {
   // If filter is already applied, remove it
   const existingIdx = appliedFilters.value.findIndex((p) => p.key === key);
   if (existingIdx >= 0) {
     appliedFilters.value.splice(existingIdx, 1);
+    selectedPillKey.value = null;
+    popoverPosition.value = null;
   } else {
-    // Enter edit mode for this filter
-    selectedFilterKey.value = key;
+    // Open popover for this filter
+    selectedPillKey.value = key;
     filterValueInput.value = "";
-    comparator.value = ">" as Comparator;
-    filterMode.value = true;
-    // Focus main input for value entry
-    requestAnimationFrame(() => searchInput.value?.focus());
-    setTimeout(() => {
-      disableValueSuggestions.value = false;
-      if (selectedFilter.value?.type === "date") {
-        const input = document.querySelector("input[type='date']");
-        if (input) {
-          (input as HTMLInputElement).showPicker?.();
-        }
+    comparator.value = ">";
+
+    // Calculate and set popover position
+    popoverPosition.value = calculatePopoverPosition(key);
+
+    // Focus input in popover
+    requestAnimationFrame(() => {
+      const input = popoverInput.value;
+      if (!input) return;
+
+      const inputElement: HTMLInputElement | undefined = Array.isArray(input)
+        ? (input[0] ?? undefined)
+        : input;
+      if (inputElement === undefined) return;
+
+      inputElement.focus();
+      // Auto-open date picker
+      if (
+        selectedFilter.value?.type === "date" &&
+        typeof inputElement.showPicker === "function"
+      ) {
+        setTimeout(() => {
+          inputElement.showPicker();
+        }, 100);
       }
-    }, 10);
+    });
   }
 };
 
-const disableValueSuggestions = ref(false);
-const showValueSuggestions = computed(() => {
-  const f = selectedFilter.value;
-  if (!filterMode.value || !f) return false;
-  return f.type === "enum" && !disableValueSuggestions.value;
-});
-
 const valueSuggestions = computed(() => {
   const key = selectedFilter.value?.key;
-  if (key === null || key === undefined || key.trim().length === 0) return [];
+  if (key === null || key === undefined) return [];
+  if (key.trim().length === 0) return [];
   const suggestions =
     computedValueSuggestions.value[
       key as keyof typeof computedValueSuggestions.value
@@ -323,15 +382,14 @@ const selectValueSuggestion = (s: string) => {
   const value = s.replace(/ \(\d+\)$/, "");
   filterValueInput.value = value;
   applyActiveFilter();
-  // After selecting an enum value, return to default search mode
-  exitFilterEntryMode();
 };
 
 // Compose search query from pills + free text
 const composedSearchQuery = computed(() => {
   const tokens = appliedFilters.value.map((f) => {
-    // Quote values that contain spaces
-    const value = f.value.includes(" ") ? `"${f.value}"` : f.value;
+    // Convert value to string and quote if it contains spaces
+    const valueStr = String(f.value);
+    const value = valueStr.includes(" ") ? `"${valueStr}"` : valueStr;
     const op = f.operator ? f.operator : "";
     return `${f.key}:${op}${value}`;
   });
@@ -370,34 +428,60 @@ watch(
 
 const componentContainer = ref<HTMLElement | null>(null);
 const searchInput = ref<HTMLInputElement | null>(null);
+const popoverInput = ref<HTMLInputElement | HTMLInputElement[] | null>(null);
+const popoverRef = ref<HTMLElement | null>(null);
+const pillRefs = new Map<string, HTMLElement>();
 
-// Input binding when in filter mode versus free search
-const activeInput = computed({
-  get() {
-    return filterMode.value && selectedFilter.value
-      ? filterValueInput.value
-      : searchTerm.value;
-  },
-  set(v: string) {
-    if (filterMode.value && selectedFilter.value) {
-      filterValueInput.value = v;
-    } else {
-      searchTerm.value = v;
-    }
-  },
-});
-
-const onEnter = () => {
-  if (filterMode.value && selectedFilter.value) {
-    applyActiveFilter();
-    exitFilterEntryMode();
+const setPillRef = (el: HTMLElement | null, key: string) => {
+  if (el) {
+    pillRefs.set(key, el);
+  } else {
+    pillRefs.delete(key);
   }
+};
+
+interface PopoverPosition {
+  left: number;
+  top: number;
+}
+const popoverPosition = ref<PopoverPosition | null>(null);
+
+const calculatePopoverPosition = (key: string) => {
+  const pillElement = pillRefs.get(key);
+  if (!pillElement) return null;
+
+  const rect = pillElement.getBoundingClientRect();
+  const popoverWidth = 280; // min-w-[280px]
+
+  // Position below the pill
+  let left = rect.left;
+  let top = rect.bottom + 8; // 8px gap (mt-2)
+
+  // Ensure popover doesn't go off-screen to the right
+  if (left + popoverWidth > window.innerWidth) {
+    left = window.innerWidth - popoverWidth - 16; // 16px margin
+  }
+
+  // Ensure popover doesn't go off-screen to the left
+  if (left < 16) {
+    left = 16;
+  }
+
+  // Check if there's enough space below, otherwise position above
+  const popoverEstimatedHeight = 250;
+  if (top + popoverEstimatedHeight > window.innerHeight) {
+    top = rect.top - popoverEstimatedHeight - 8;
+  }
+
+  return { left, top };
 };
 
 const applyActiveFilter = () => {
   const f = selectedFilter.value;
   const v = filterValueInput.value;
-  if (!f || v.length === 0) return;
+  // Convert to string and check if empty
+  const valueStr = String(v).trim();
+  if (!f || valueStr.length === 0) return;
 
   const newPill: AppliedFilter = {
     key: f.key,
@@ -405,7 +489,7 @@ const applyActiveFilter = () => {
     type: f.type,
     operator:
       f.type === "number" || f.type === "date" ? comparator.value : undefined,
-    value: v,
+    value: valueStr,
   };
 
   // Replace existing pill with same key, otherwise add
@@ -418,44 +502,54 @@ const applyActiveFilter = () => {
     appliedFilters.value.push(newPill);
   }
 
-  // Clear value for next entry
-  filterValueInput.value = "";
-  if (f.type === "number" || f.type === "date") comparator.value = ">";
-  // Return to search mode after applying filter
-  exitFilterEntryMode();
+  // Close popover
+  closePopover();
 };
 
-const exitFilterEntryMode = () => {
-  // Return to default search entry while keeping filter pills applied
-  filterMode.value = false;
-  selectedFilterKey.value = null;
-  // focus back to search
-  requestAnimationFrame(() => searchInput.value?.focus());
+const closePopover = () => {
+  selectedPillKey.value = null;
+  filterValueInput.value = "";
+  comparator.value = ">";
+  popoverPosition.value = null;
 };
 
 const mdicon = resolveComponent("mdicon");
 
 const handleClickOutside = (event: MouseEvent) => {
   const container = componentContainer.value;
+  const popover = popoverRef.value;
   const target = event.target as Node;
 
-  if (container && !container.contains(target)) {
-    disableValueSuggestions.value = true;
-    // If we're in filter mode and clicked outside, exit filter mode
-    if (filterMode.value) {
-      exitFilterEntryMode();
+  // Check if click is outside both the main container and the popover
+  if (
+    container &&
+    !container.contains(target) &&
+    popover &&
+    !popover.contains(target)
+  ) {
+    // Close popover when clicking outside
+    if (selectedPillKey.value !== null) {
+      closePopover();
     }
-  } else {
-    disableValueSuggestions.value = false;
+  }
+};
+
+const updatePopoverPosition = () => {
+  if (selectedPillKey.value !== null) {
+    popoverPosition.value = calculatePopoverPosition(selectedPillKey.value);
   }
 };
 
 onMounted(() => {
   document.addEventListener("click", handleClickOutside);
+  window.addEventListener("scroll", updatePopoverPosition, true);
+  window.addEventListener("resize", updatePopoverPosition);
 });
 
 onUnmounted(() => {
   document.removeEventListener("click", handleClickOutside);
+  window.removeEventListener("scroll", updatePopoverPosition, true);
+  window.removeEventListener("resize", updatePopoverPosition);
 });
 </script>
 
