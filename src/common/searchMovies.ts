@@ -1,4 +1,3 @@
-import { isDefined } from "../../lib/checks/checks.js";
 import { DetailedWorkListItem } from "../../lib/types/lists";
 
 /**
@@ -70,8 +69,6 @@ export function filterMovies<T extends DetailedWorkListItem>(
     freeText = searchQuery.freeText;
   }
 
-  console.log(filters);
-
   // Helpers
   const satisfiesComparator = (
     lhs: number,
@@ -117,37 +114,16 @@ export function filterMovies<T extends DetailedWorkListItem>(
   // Apply filters
   if (filters.title?.value) {
     filteredReviews = filteredReviews.filter((review) =>
-      review.title.toLowerCase().includes(filters.title.value.toLowerCase()),
-    );
-  }
-  if (filters.company?.value) {
-    filteredReviews = filteredReviews.filter(
-      (review) =>
-        isDefined(review.externalData) &&
-        review.externalData?.production_companies.some((company) =>
-          company
-            .toLocaleLowerCase()
-            .includes(filters.company.value.toLowerCase()),
-        ),
-    );
-  }
-  if (filters.description?.value) {
-    filteredReviews = filteredReviews.filter(
-      (review) =>
-        isDefined(review.externalData) &&
-        review.externalData?.overview
-          .toLocaleLowerCase()
-          .includes(filters.description.value.toLowerCase()),
+      includesCaseInsensitive(review.title, filters.title.value),
     );
   }
 
-  if (filters.genre?.value) {
-    filteredReviews = filteredReviews.filter(
-      (review) =>
-        isDefined(review.externalData) &&
-        review.externalData?.genres.some((genre) =>
-          genre.toLocaleLowerCase().includes(filters.genre.value.toLowerCase()),
-        ),
+  if (filters.description?.value) {
+    filteredReviews = filteredReviews.filter((review) =>
+      includesCaseInsensitive(
+        review.externalData?.overview,
+        filters.description.value,
+      ),
     );
   }
 
@@ -194,18 +170,18 @@ export function filterMovies<T extends DetailedWorkListItem>(
     );
   }
 
-  if (filters.production_country?.value) {
-    filteredReviews = filteredReviews.filter((review) =>
-      (review.externalData?.production_countries ?? []).some((c) =>
-        includesCaseInsensitive(c, filters.production_country.value),
-      ),
-    );
-  }
-
   if (filters.company?.value) {
     filteredReviews = filteredReviews.filter((review) =>
       (review.externalData?.production_companies ?? []).some((company) =>
         includesCaseInsensitive(company, filters.company.value),
+      ),
+    );
+  }
+
+  if (filters.production_country?.value) {
+    filteredReviews = filteredReviews.filter((review) =>
+      (review.externalData?.production_countries ?? []).some((c) =>
+        includesCaseInsensitive(c, filters.production_country.value),
       ),
     );
   }
