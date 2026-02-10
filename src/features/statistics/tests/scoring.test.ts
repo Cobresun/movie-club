@@ -15,10 +15,8 @@ describe("normalizeArray", () => {
     expect(normalizeArray([5, 5, 5, 5])).toEqual([0, 0, 0, 0]);
   });
 
-  it("returns NaN for single element (variance divides by count-1=0)", () => {
-    const result = normalizeArray([7]);
-    expect(result).toHaveLength(1);
-    expect(result[0]).toBeNaN();
+  it("returns zero for single element", () => {
+    expect(normalizeArray([7])).toEqual([0]);
   });
 
   it("normalizes correctly with known values", () => {

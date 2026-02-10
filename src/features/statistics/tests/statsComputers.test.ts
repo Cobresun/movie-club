@@ -231,14 +231,12 @@ describe("computeMemberLeaderboard", () => {
     expect(result[result.length - 1].title).toBe("The Hater");
   });
 
-  it("single member gets 'The Hater' (last assignment wins)", () => {
+  it("single member gets no title", () => {
     const members = [makeMember({ id: "m1" })];
     const movies = [makeMovie({ userScores: { m1: 7 } })];
     const result = computeMemberLeaderboard(movies, members);
     expect(result).toHaveLength(1);
-    // When there's only 1 member, ranked[0] === ranked[ranked.length-1],
-    // so "The Hater" overwrites "The Softie"
-    expect(result[0].title).toBe("The Hater");
+    expect(result[0].title).toBeUndefined();
   });
 
   it("filters out members with no reviews", () => {

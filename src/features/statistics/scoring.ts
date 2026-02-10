@@ -16,7 +16,7 @@ export const normalizeArray = (array: number[]): number[] => {
   const validScores = array.filter((score) => score !== undefined);
   const count = validScores.length;
 
-  if (count === 0) {
+  if (count <= 1) {
     return array.map(() => 0);
   }
 

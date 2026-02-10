@@ -104,7 +104,7 @@ export function computeMemberLeaderboard(
     .filter((e) => e.reviewCount > 0)
     .sort((a, b) => b.averageScore - a.averageScore);
 
-  if (ranked.length > 0) {
+  if (ranked.length > 1) {
     ranked[0].title = "The Softie";
     ranked[ranked.length - 1].title = "The Hater";
   }
