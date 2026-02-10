@@ -1,3 +1,8 @@
+import {
+  HandlerContext,
+  HandlerEvent,
+  HandlerResponse,
+} from "@netlify/functions";
 import { Path } from "path-parser";
 
 import { internalServerError, methodNotAllowed, notFound } from "./responses";
@@ -7,10 +12,12 @@ const RouterResponseSym = Symbol();
 
 export type RouterResponse = {
   type: typeof RouterResponseSym;
-  response: Response;
+  response: HandlerResponse;
 };
 
-export function createRouterResponse(response: Response): RouterResponse {
+export function createRouterResponse(
+  response: HandlerResponse,
+): RouterResponse {
   return {
     type: RouterResponseSym,
     response,
@@ -28,34 +35,31 @@ export function isRouterResponse(
   );
 }
 
-export interface FnRequest {
-  request: globalThis.Request;
-  path: string;
-  method: string;
-  headers: Headers;
-  query: URLSearchParams;
+export interface Request {
+  event: HandlerEvent;
+  context: HandlerContext;
   params: StringRecord;
 }
 
-export function isFnRequest(req: unknown): req is FnRequest {
+export function isRequest(req: unknown): req is Request {
   return (
     typeof req === "object" &&
     req !== null &&
-    "request" in req &&
-    "path" in req &&
+    "event" in req &&
+    "context" in req &&
     "params" in req
   );
 }
 
 export type MiddlewareCallback<T, R> = (
   req: T,
-  res: (data: Response) => RouterResponse,
+  res: (data: HandlerResponse) => RouterResponse,
 ) => Promise<RouterResponse | R>;
 
 /**
- * A single chain "item" can be either a middleware or a Router.
+ * A single chain “item” can be either a middleware or a Router.
  */
-export type UseItem<In extends FnRequest, Out> =
+export type UseItem<In extends Request, Out> =
   | MiddlewareCallback<In, Out>
   | Router<In>;
 
@@ -65,27 +69,27 @@ export type UseItem<In extends FnRequest, Out> =
  *
  * Each overload ensures the final item returns a RouterResponse.
  */
-export interface ChainMethod<TInput extends FnRequest> {
+export interface ChainMethod<TInput extends Request> {
   // Overload 0: no middlewares
   (path: string): void;
 
   // Overload 1: just one item, must produce RouterResponse from TInput
   (path: string, c1: UseItem<TInput, RouterResponse>): void;
 
-  <A extends FnRequest>(
+  <A extends Request>(
     path: string,
     c1: UseItem<TInput, A>,
     c2: UseItem<A, RouterResponse>,
   ): void;
 
-  <A extends FnRequest, B extends FnRequest>(
+  <A extends Request, B extends Request>(
     path: string,
     c1: UseItem<TInput, A>,
     c2: UseItem<A, B>,
     c3: UseItem<B, RouterResponse>,
   ): void;
 
-  <A extends FnRequest, B extends FnRequest, C extends FnRequest>(
+  <A extends Request, B extends Request, C extends Request>(
     path: string,
     c1: UseItem<TInput, A>,
     c2: UseItem<A, B>,
@@ -93,12 +97,7 @@ export interface ChainMethod<TInput extends FnRequest> {
     c4: UseItem<C, RouterResponse>,
   ): void;
 
-  <
-    A extends FnRequest,
-    B extends FnRequest,
-    C extends FnRequest,
-    D extends FnRequest,
-  >(
+  <A extends Request, B extends Request, C extends Request, D extends Request>(
     path: string,
     c1: UseItem<TInput, A>,
     c2: UseItem<A, B>,
@@ -108,11 +107,11 @@ export interface ChainMethod<TInput extends FnRequest> {
   ): void;
 
   <
-    A extends FnRequest,
-    B extends FnRequest,
-    C extends FnRequest,
-    D extends FnRequest,
-    E extends FnRequest,
+    A extends Request,
+    B extends Request,
+    C extends Request,
+    D extends Request,
+    E extends Request,
   >(
     path: string,
     c1: UseItem<TInput, A>,
@@ -124,12 +123,12 @@ export interface ChainMethod<TInput extends FnRequest> {
   ): void;
 
   <
-    A extends FnRequest,
-    B extends FnRequest,
-    C extends FnRequest,
-    D extends FnRequest,
-    E extends FnRequest,
-    F extends FnRequest,
+    A extends Request,
+    B extends Request,
+    C extends Request,
+    D extends Request,
+    E extends Request,
+    F extends Request,
   >(
     path: string,
     c1: UseItem<TInput, A>,
@@ -142,13 +141,13 @@ export interface ChainMethod<TInput extends FnRequest> {
   ): void;
 
   <
-    A extends FnRequest,
-    B extends FnRequest,
-    C extends FnRequest,
-    D extends FnRequest,
-    E extends FnRequest,
-    F extends FnRequest,
-    G extends FnRequest,
+    A extends Request,
+    B extends Request,
+    C extends Request,
+    D extends Request,
+    E extends Request,
+    F extends Request,
+    G extends Request,
   >(
     path: string,
     c1: UseItem<TInput, A>,
@@ -162,14 +161,14 @@ export interface ChainMethod<TInput extends FnRequest> {
   ): void;
 
   <
-    A extends FnRequest,
-    B extends FnRequest,
-    C extends FnRequest,
-    D extends FnRequest,
-    E extends FnRequest,
-    F extends FnRequest,
-    G extends FnRequest,
-    H extends FnRequest,
+    A extends Request,
+    B extends Request,
+    C extends Request,
+    D extends Request,
+    E extends Request,
+    F extends Request,
+    G extends Request,
+    H extends Request,
   >(
     path: string,
     c1: UseItem<TInput, A>,
@@ -185,15 +184,15 @@ export interface ChainMethod<TInput extends FnRequest> {
 
   // Fallback for 10+ items in chain:
   <
-    A extends FnRequest,
-    B extends FnRequest,
-    C extends FnRequest,
-    D extends FnRequest,
-    E extends FnRequest,
-    F extends FnRequest,
-    G extends FnRequest,
-    H extends FnRequest,
-    I extends FnRequest,
+    A extends Request,
+    B extends Request,
+    C extends Request,
+    D extends Request,
+    E extends Request,
+    F extends Request,
+    G extends Request,
+    H extends Request,
+    I extends Request,
   >(
     path: string,
     c1: UseItem<TInput, A>,
@@ -223,15 +222,15 @@ enum HTTPMethod {
   DELETE = "DELETE",
 }
 
-function wrapRouterAsMiddleware<In extends FnRequest>(
+function wrapRouterAsMiddleware<In extends Request>(
   router: Router<In>,
 ): MiddlewareCallback<In, RouterResponse> {
   return async (req, res) => {
-    const response = await router.route(req);
-    return res(response);
+    const hr = await router.route(req);
+    return res(hr); // Convert the HandlerResponse to RouterResponse
   };
 }
-export class Router<T extends FnRequest = FnRequest> {
+export class Router<T extends Request = Request> {
   private subRoutes: Route[];
   private routes: Record<HTTPMethod, Route[]>;
   private baseUrl: string;
@@ -289,8 +288,8 @@ export class Router<T extends FnRequest = FnRequest> {
     return new Path<StringRecord>(`${this.baseUrl}${pathStr}`);
   }
 
-  async route(req: T): Promise<Response> {
-    const path = req.path;
+  async route(req: T): Promise<HandlerResponse> {
+    const path = req.event.path;
 
     // 1) Try sub-routes
     for (const subRoute of this.subRoutes) {
@@ -301,7 +300,7 @@ export class Router<T extends FnRequest = FnRequest> {
     }
 
     // 2) Try main routes for the actual HTTP method
-    const httpMethod = req.method as HTTPMethod;
+    const httpMethod = req.event.httpMethod as HTTPMethod;
     for (const route of this.routes[httpMethod]) {
       const pathTest = route.path.test(path);
       if (pathTest) {
@@ -330,7 +329,7 @@ export class Router<T extends FnRequest = FnRequest> {
   private async dispatch(
     req: T,
     callbacks: ReadonlyArray<MiddlewareCallback<unknown, unknown>>,
-  ): Promise<Response> {
+  ): Promise<HandlerResponse> {
     let current: unknown = req;
 
     for (const callback of callbacks) {
