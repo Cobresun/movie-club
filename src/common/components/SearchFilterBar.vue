@@ -404,7 +404,21 @@ const selectValueSuggestion = (s: string) => {
   applyActiveFilter();
 };
 
-// Compose search query from pills + free text
+// Build filters object from pills
+const filtersObject = computed(() => {
+  return appliedFilters.value.reduce(
+    (acc, f) => {
+      acc[f.key] = {
+        operator: f.operator,
+        value: f.value,
+      };
+      return acc;
+    },
+    {} as Record<string, { operator?: Comparator; value: string }>,
+  );
+});
+
+// Compose search query from pills + free text (for display/emit purposes)
 const composedSearchQuery = computed(() => {
   const tokens = appliedFilters.value.map((f) => {
     // Convert value to string and quote if it contains spaces
@@ -421,7 +435,10 @@ const composedSearchQuery = computed(() => {
 
 // Apply filtering internally and emit results
 const filteredData = computed(() => {
-  return filterMovies(props.data, composedSearchQuery.value);
+  return filterMovies(props.data, {
+    filters: filtersObject.value,
+    freeText: searchTerm.value.trim(),
+  });
 });
 
 // Watch for changes and emit to parent

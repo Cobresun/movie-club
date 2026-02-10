@@ -4,10 +4,12 @@ import { DetailedWorkListItem } from "../../lib/types/lists";
 /**
  *
  * @param works
- * @param searchQuery
+ * @param searchQuery - Can be either a search query string (legacy) or an object with filters and freeText
  * @returns reviews filtered by searchQuery.
  *
- * You can apply filters on the searchQuery with text:value. For example, to filter by title and genre, you can use:
+ * The searchQuery can be passed as an object with:
+ * - filters: Record of filter key to {operator?, value}
+ * - freeText: Free text search string (searches titles)
  *
  * "title:jaws genre:horror"
  *
@@ -32,50 +34,61 @@ import { DetailedWorkListItem } from "../../lib/types/lists";
  */
 export function filterMovies<T extends DetailedWorkListItem>(
   works: T[],
-  searchQuery: string,
+  searchQuery:
+    | string
+    | {
+        filters: Record<string, { operator?: ">" | "<" | "="; value: string }>;
+        freeText: string;
+      },
 ): T[] {
   let filteredReviews = [...works];
 
-  // Tokenize by spaces while keeping quoted values intact
-  // Example: key:"The Godfather"
-  const tokens =
-    searchQuery
-      .match(/\S+:"[^"]+"|[^\s:]+:[^\s]+|\S+/g)
-      ?.map((t) => t.trim()) ?? [];
+  let filters: Record<string, { operator?: ">" | "<" | "="; value: string }>;
+  let freeText: string;
 
-  // Build filter map allowing operators for numeric/date: key:>10, key:<100, key:=50
-  const filters = tokens
-    .filter((t) => t.includes(":"))
-    .reduce(
-      (acc, token) => {
-        // Split only on the first colon to handle quoted values properly
-        const colonIndex = token.indexOf(":");
-        const rawKey = token.substring(0, colonIndex);
-        const rawValue = token.substring(colonIndex + 1);
-        const key = rawKey.trim();
-        const valueWithOp = rawValue.trim();
-        const operatorMatch = valueWithOp.match(/^(>|<|=)/);
-        const operator = operatorMatch
-          ? (operatorMatch[0] as ">" | "<" | "=")
-          : undefined;
-        const valueRaw = operator ? valueWithOp.slice(1) : valueWithOp;
-        const unquoted =
-          valueRaw.startsWith('"') && valueRaw.endsWith('"')
-            ? valueRaw.slice(1, -1)
-            : valueRaw;
-        acc[key] = { operator, value: unquoted };
-        return acc;
-      },
-      {} as Record<string, { operator?: ">" | "<" | "="; value: string }>,
-    );
+  // Handle both string (legacy) and object inputs
+  if (typeof searchQuery === "string") {
+    // Legacy: Parse key:value syntax from string
+    const tokens =
+      searchQuery
+        .match(/\S+:"[^"]+"|[^\s:]+:[^\s]+|\S+/g)
+        ?.map((t) => t.trim()) ?? [];
+
+    filters = tokens
+      .filter((t) => t.includes(":"))
+      .reduce(
+        (acc, token) => {
+          const colonIndex = token.indexOf(":");
+          const rawKey = token.substring(0, colonIndex);
+          const rawValue = token.substring(colonIndex + 1);
+          const key = rawKey.trim();
+          const valueWithOp = rawValue.trim();
+          const operatorMatch = valueWithOp.match(/^(>|<|=)/);
+          const operator = operatorMatch
+            ? (operatorMatch[0] as ">" | "<" | "=")
+            : undefined;
+          const valueRaw = operator ? valueWithOp.slice(1) : valueWithOp;
+          const unquoted =
+            valueRaw.startsWith('"') && valueRaw.endsWith('"')
+              ? valueRaw.slice(1, -1)
+              : valueRaw;
+          acc[key] = { operator, value: unquoted };
+          return acc;
+        },
+        {} as Record<string, { operator?: ">" | "<" | "="; value: string }>,
+      );
+
+    freeText = tokens
+      .filter((t) => !t.includes(":"))
+      .join(" ")
+      .trim();
+  } else {
+    // New: Use provided filters and freeText
+    filters = searchQuery.filters;
+    freeText = searchQuery.freeText;
+  }
 
   console.log(filters);
-
-  // Remove filter tokens from free text search
-  const freeText = tokens
-    .filter((t) => !t.includes(":"))
-    .join(" ")
-    .trim();
 
   // Helpers
   const satisfiesComparator = (
