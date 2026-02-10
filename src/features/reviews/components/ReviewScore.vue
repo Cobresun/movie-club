@@ -1,6 +1,6 @@
 <template>
   <span
-    v-if="score && !isInputOpen"
+    v-if="isDefined(score) && !isInputOpen"
     :class="{
       'cursor-pointer': isMe,
     }"
@@ -31,7 +31,7 @@
 <script setup lang="ts">
 import { computed, nextTick, ref } from "vue";
 
-import { hasValue } from "../../../../lib/checks/checks.js";
+import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
 
 import { useClubId } from "@/service/useClub";
 import { useReviewWork, useUpdateReviewScore } from "@/service/useReviews";
