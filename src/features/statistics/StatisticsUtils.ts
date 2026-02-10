@@ -105,21 +105,27 @@ export interface GenreStats {
 
 const MIN_GENRE_COUNT = 2;
 
-export function computeGenreStats(movieData: MovieStatistics[]): {
+export function computeGenreStats(
+  movieData: MovieStatistics[],
+  memberId?: string,
+): {
   mostLoved: GenreStats[];
   leastLoved: GenreStats[];
 } {
   const genreScores: Record<string, { count: number; totalScore: number }> = {};
 
   for (const movie of movieData) {
-    if (movie.average === 0) continue;
+    const score = isDefined(memberId)
+      ? movie.userScores[memberId]
+      : movie.average;
+    if (!isDefined(score) || score === 0) continue;
     for (const genre of movie.genres) {
       const existing = genreScores[genre];
       if (isDefined(existing)) {
         existing.count++;
-        existing.totalScore += movie.average;
+        existing.totalScore += score;
       } else {
-        genreScores[genre] = { count: 1, totalScore: movie.average };
+        genreScores[genre] = { count: 1, totalScore: score };
       }
     }
   }

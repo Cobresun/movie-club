@@ -29,10 +29,7 @@
         <br />
         <ScoreDistributionWidget :options="histChartOptions" />
         <br />
-        <GenreStatsWidget
-          :most-loved="genreStats.mostLoved"
-          :least-loved="genreStats.leastLoved"
-        />
+        <GenreStatsWidget :members="members" :movie-data="movieData" />
         <br />
         <ReviewerLeaderboardWidget :leaderboard="memberLeaderboard" />
         <br />
@@ -112,14 +109,13 @@ import { useRouter } from "vue-router";
 import { createHistogramOptions } from "../chartOptions";
 import DirectorsLeaderboard from "../components/DirectorsLeaderboard.vue";
 import GenreStatsWidget from "../components/GenreStatsWidget.vue";
-import ScoreDistributionWidget from "../components/ScoreDistributionWidget.vue";
 import ReviewerLeaderboardWidget from "../components/ReviewerLeaderboardWidget.vue";
+import ScoreDistributionWidget from "../components/ScoreDistributionWidget.vue";
 import StatisticsSearchBar from "../components/StatisticsSearchBar.vue";
 import StatsWidget from "../components/StatsWidget.vue";
 import TasteSimilarityWidget from "../components/TasteSimilarityWidget.vue";
 import { useStatisticsData } from "../composables/useStatisticsData";
 import {
-  computeGenreStats,
   computeMemberLeaderboard,
   computeTasteSimilarity,
   getScoreContextColor,
@@ -163,8 +159,6 @@ const histChartOptions = computed(() =>
     members: members.value,
   }),
 );
-
-const genreStats = computed(() => computeGenreStats(movieData.value));
 
 const memberLeaderboard = computed(() =>
   computeMemberLeaderboard(movieData.value, members.value),
