@@ -5,7 +5,6 @@ import { db } from "../utils/database";
 import {
   generateSlugFromName,
   generateUniqueSlug,
-  isNumericId,
   SLUG_UPDATE_COOLDOWN_DAYS,
 } from "../utils/slug";
 
@@ -31,19 +30,6 @@ class ClubRepository {
       .executeTakeFirst();
 
     return club;
-  }
-
-  async getByIdOrSlug(identifier: string) {
-    // If identifier is numeric, try ID lookup first
-    if (isNumericId(identifier)) {
-      const club = await this.getById(identifier);
-      if (isDefined(club)) {
-        return club;
-      }
-    }
-
-    // Otherwise, treat as slug
-    return await this.getBySlug(identifier);
   }
 
   async slugExists(slug: string, excludeClubId?: string) {

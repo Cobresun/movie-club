@@ -4,22 +4,22 @@ import ClubRepository from "./repositories/ClubRepository";
 import SharedReviewService from "./services/SharedReviewService";
 import { badRequest, notFound, redirect, svg } from "./utils/responses";
 import { Router } from "./utils/router";
-import { isDefined } from "../../lib/checks/checks.js";
+import { hasValue, isDefined } from "../../lib/checks/checks.js";
 
 const router = new Router("/api/og-image");
 
 router.get("/", async ({ event }, res) => {
   try {
-    const { clubIdentifier, workId } = event.queryStringParameters ?? {};
+    const { clubSlug, workId } = event.queryStringParameters ?? {};
 
-    if (clubIdentifier === undefined || workId === undefined) {
+    if (!hasValue(clubSlug) || !hasValue(workId)) {
       return res(
-        badRequest("Missing required parameters: clubIdentifier and workId"),
+        badRequest("Missing required parameters: clubSlug and workId"),
       );
     }
 
-    // Resolve club identifier (slug or ID) to numeric club ID
-    const club = await ClubRepository.getByIdOrSlug(clubIdentifier);
+    // Resolve club slug to numeric club ID
+    const club = await ClubRepository.getBySlug(clubSlug);
     if (!isDefined(club)) {
       return res(notFound("Club not found"));
     }

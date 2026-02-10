@@ -16,13 +16,12 @@ import { DetailedMovieData } from "../../lib/types/movie";
 import { useAuthStore } from "@/stores/auth";
 
 export function useAwardYears(
-  clubIdentifier: string,
+  clubSlug: string,
 ): UseQueryReturnType<number[], AxiosError> {
   return useQuery({
-    queryKey: ["awards-years", clubIdentifier],
+    queryKey: ["awards-years", clubSlug],
     queryFn: async () =>
-      (await axios.get<number[]>(`/api/club/${clubIdentifier}/awards/years`))
-        .data,
+      (await axios.get<number[]>(`/api/club/${clubSlug}/awards/years`)).data,
   });
 }
 
@@ -59,18 +58,18 @@ export function useUpdateStep(clubId: Ref<string>, year: Ref<string>) {
   });
 }
 
-export function useAddCategory(clubIdentifier: string, year: string) {
+export function useAddCategory(clubSlug: string, year: string) {
   const auth = useAuthStore();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (title: string) =>
-      auth.request.post(`/api/club/${clubIdentifier}/awards/${year}/category`, {
+      auth.request.post(`/api/club/${clubSlug}/awards/${year}/category`, {
         title,
       }),
     onMutate: async (title) => {
-      await queryClient.cancelQueries(["awards", clubIdentifier, year]);
+      await queryClient.cancelQueries(["awards", clubSlug, year]);
       queryClient.setQueryData<ClubAwards>(
-        ["awards", clubIdentifier, year],
+        ["awards", clubSlug, year],
         (currentAwards) => {
           if (!currentAwards) return currentAwards;
           return {
@@ -82,24 +81,24 @@ export function useAddCategory(clubIdentifier: string, year: string) {
     },
     onSettled: () => {
       queryClient
-        .invalidateQueries(["awards", clubIdentifier, year])
+        .invalidateQueries(["awards", clubSlug, year])
         .catch(console.error);
     },
   });
 }
 
-export function useReorderCategories(clubIdentifier: string, year: string) {
+export function useReorderCategories(clubSlug: string, year: string) {
   const auth = useAuthStore();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (categories: string[]) =>
-      auth.request.put(`/api/club/${clubIdentifier}/awards/${year}/category`, {
+      auth.request.put(`/api/club/${clubSlug}/awards/${year}/category`, {
         categories,
       }),
     onMutate: async (categories) => {
-      await queryClient.cancelQueries(["awards", clubIdentifier, year]);
+      await queryClient.cancelQueries(["awards", clubSlug, year]);
       queryClient.setQueryData<ClubAwards>(
-        ["awards", clubIdentifier, year],
+        ["awards", clubSlug, year],
         (currentAwards) => {
           if (!currentAwards) return currentAwards;
           return {
@@ -113,26 +112,26 @@ export function useReorderCategories(clubIdentifier: string, year: string) {
     },
     onSettled: () => {
       queryClient
-        .invalidateQueries(["awards", clubIdentifier, year])
+        .invalidateQueries(["awards", clubSlug, year])
         .catch(console.error);
     },
   });
 }
 
-export function useDeleteCategory(clubIdentifier: string, year: string) {
+export function useDeleteCategory(clubSlug: string, year: string) {
   const auth = useAuthStore();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (award: Award) =>
       auth.request.delete(
-        `/api/club/${clubIdentifier}/awards/${year}/category/${encodeURIComponent(
+        `/api/club/${clubSlug}/awards/${year}/category/${encodeURIComponent(
           award.title,
         )}`,
       ),
     onMutate: async (award) => {
-      await queryClient.cancelQueries(["awards", clubIdentifier, year]);
+      await queryClient.cancelQueries(["awards", clubSlug, year]);
       queryClient.setQueryData<ClubAwards>(
-        ["awards", clubIdentifier, year],
+        ["awards", clubSlug, year],
         (currentAwards) => {
           if (!currentAwards) return currentAwards;
           return {
@@ -146,13 +145,13 @@ export function useDeleteCategory(clubIdentifier: string, year: string) {
     },
     onSettled: () => {
       queryClient
-        .invalidateQueries(["awards", clubIdentifier, year])
+        .invalidateQueries(["awards", clubSlug, year])
         .catch(console.error);
     },
   });
 }
 
-export function useAddNomination(clubIdentifier: string, year: string) {
+export function useAddNomination(clubSlug: string, year: string) {
   const user = useUser();
   const auth = useAuthStore();
   const queryClient = useQueryClient();
@@ -168,7 +167,7 @@ export function useAddNomination(clubIdentifier: string, year: string) {
         throw new Error("External ID not found");
       }
       return auth.request.post(
-        `/api/club/${clubIdentifier}/awards/${year}/nomination`,
+        `/api/club/${clubSlug}/awards/${year}/nomination`,
         {
           awardTitle,
           movieId: parseInt(review.externalId),
@@ -177,9 +176,9 @@ export function useAddNomination(clubIdentifier: string, year: string) {
       );
     },
     onMutate: async ({ awardTitle, review }) => {
-      await queryClient.cancelQueries(["awards", clubIdentifier, year]);
+      await queryClient.cancelQueries(["awards", clubSlug, year]);
       queryClient.setQueryData<ClubAwards>(
-        ["awards", clubIdentifier, year],
+        ["awards", clubSlug, year],
         (currentClubAwards) => {
           const name = user.value?.name;
           if (!currentClubAwards || !hasValue(name)) return currentClubAwards;
@@ -211,13 +210,13 @@ export function useAddNomination(clubIdentifier: string, year: string) {
     },
     onSettled: () => {
       queryClient
-        .invalidateQueries({ queryKey: ["awards", clubIdentifier, year] })
+        .invalidateQueries({ queryKey: ["awards", clubSlug, year] })
         .catch(console.error);
     },
   });
 }
 
-export function useDeleteNomination(clubIdentifier: string, year: string) {
+export function useDeleteNomination(clubSlug: string, year: string) {
   const auth = useAuthStore();
   const queryClient = useQueryClient();
   const user = useUser();
@@ -225,16 +224,16 @@ export function useDeleteNomination(clubIdentifier: string, year: string) {
   return useMutation({
     mutationFn: (input: { awardTitle: string; movieId: number }) =>
       auth.request.delete(
-        `/api/club/${clubIdentifier}/awards/${year}/nomination/${input.movieId}`,
+        `/api/club/${clubSlug}/awards/${year}/nomination/${input.movieId}`,
         {
           params: { awardTitle: input.awardTitle, userId: user.value?.name },
         },
       ),
     onMutate: async (input) => {
-      await queryClient.cancelQueries(["awards", clubIdentifier, year]);
+      await queryClient.cancelQueries(["awards", clubSlug, year]);
 
       queryClient.setQueryData(
-        ["awards", clubIdentifier, year],
+        ["awards", clubSlug, year],
         (currentAwards: ClubAwards | undefined) => {
           if (!currentAwards) return currentAwards;
 
@@ -265,13 +264,13 @@ export function useDeleteNomination(clubIdentifier: string, year: string) {
     },
     onSettled: () => {
       queryClient
-        .invalidateQueries(["awards", clubIdentifier, year])
+        .invalidateQueries(["awards", clubSlug, year])
         .catch(console.error);
     },
   });
 }
 
-export function useSubmitRanking(clubIdentifier: string, year: string) {
+export function useSubmitRanking(clubSlug: string, year: string) {
   const auth = useAuthStore();
   const user = useUser();
   const queryClient = useQueryClient();
@@ -283,14 +282,14 @@ export function useSubmitRanking(clubIdentifier: string, year: string) {
       awardTitle: string;
       movies: number[];
     }) =>
-      auth.request.post(`/api/club/${clubIdentifier}/awards/${year}/ranking`, {
+      auth.request.post(`/api/club/${clubSlug}/awards/${year}/ranking`, {
         awardTitle,
         voter: user.value?.name,
         movies,
       }),
     onSettled: () => {
       queryClient
-        .invalidateQueries({ queryKey: ["awards", clubIdentifier, year] })
+        .invalidateQueries({ queryKey: ["awards", clubSlug, year] })
         .catch(console.error);
     },
   });

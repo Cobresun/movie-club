@@ -14,21 +14,20 @@ export type ClubRequest<T extends Request = Request> = T & {
 };
 
 /**
- * Middleware that accepts both numeric club IDs and slugs
- * If a numeric ID is provided, it redirects to the slug URL
+ * Middleware that validates club slug and adds club data to request context
  */
-export const validClubIdOrSlug: MiddlewareCallback<
-  Request,
-  ClubRequest
-> = async (req, res) => {
-  const identifier = req.params.clubIdentifier;
+export const validClubSlug: MiddlewareCallback<Request, ClubRequest> = async (
+  req,
+  res,
+) => {
+  const slug = req.params.clubSlug;
 
-  if (!hasValue(identifier)) {
+  if (!hasValue(slug)) {
     return res(notFound());
   }
 
-  // Look up club by ID or slug
-  const club = await ClubRepository.getByIdOrSlug(identifier);
+  // Look up club by slug
+  const club = await ClubRepository.getBySlug(slug);
 
   if (!club) {
     return res(notFound("Club not found"));
@@ -37,7 +36,6 @@ export const validClubIdOrSlug: MiddlewareCallback<
   const clubId = String(club.id);
   const clubSlug = club.slug;
 
-  // Otherwise, continue with the request
   return {
     ...req,
     clubId,

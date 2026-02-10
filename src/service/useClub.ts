@@ -11,13 +11,13 @@ import { WorkListType } from "../../lib/types/generated/db";
 
 import { useAuthStore } from "@/stores/auth";
 
-const fetchClub = async (clubIdentifier: string) =>
-  (await axios.get<ClubPreview>(`/api/club/${clubIdentifier}`)).data;
+const fetchClub = async (clubSlug: string) =>
+  (await axios.get<ClubPreview>(`/api/club/${clubSlug}`)).data;
 
-export function useClub(clubIdentifier: string) {
+export function useClub(clubSlug: string) {
   return useQuery<ClubPreview>({
-    queryKey: ["club", clubIdentifier],
-    queryFn: async () => await fetchClub(clubIdentifier),
+    queryKey: ["club", clubSlug],
+    queryFn: async () => await fetchClub(clubSlug),
   });
 }
 
@@ -38,11 +38,11 @@ export function useCreateClub() {
   });
 }
 
-export function useMembers(clubIdentifier: string) {
+export function useMembers(clubSlug: string) {
   return useQuery<Member[]>({
-    queryKey: ["members", clubIdentifier],
+    queryKey: ["members", clubSlug],
     queryFn: async () =>
-      (await axios.get<Member[]>(`/api/club/${clubIdentifier}/members`)).data,
+      (await axios.get<Member[]>(`/api/club/${clubSlug}/members`)).data,
   });
 }
 
@@ -67,24 +67,23 @@ export function useIsInClub(clubSlug: string) {
   return isUserInClub;
 }
 
-export function useAddMembers(clubIdentifier: string) {
+export function useAddMembers(clubSlug: string) {
   const auth = useAuthStore();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (members: string[]) =>
-      auth.request.post(`/api/club/${clubIdentifier}/members`, { members }),
-    onSuccess: () => queryClient.invalidateQueries(["members", clubIdentifier]),
+      auth.request.post(`/api/club/${clubSlug}/members`, { members }),
+    onSuccess: () => queryClient.invalidateQueries(["members", clubSlug]),
   });
 }
 
-export function useLeaveClub(clubIdentifier: string) {
+export function useLeaveClub(clubSlug: string) {
   const auth = useAuthStore();
   const router = useRouter();
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: () =>
-      auth.request.delete(`/api/club/${clubIdentifier}/members/self`),
+    mutationFn: () => auth.request.delete(`/api/club/${clubSlug}/members/self`),
     onSuccess: () => {
       queryClient.invalidateQueries(["user", "clubs"]).catch(console.error);
       router.push({ name: "Clubs" }).catch(console.error);
@@ -127,32 +126,30 @@ export function useClubDetails(inviteToken: string) {
   });
 }
 
-export function useRemoveMember(clubIdentifier: string) {
+export function useRemoveMember(clubSlug: string) {
   const auth = useAuthStore();
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (memberId: string) =>
-      auth.request.delete(`/api/club/${clubIdentifier}/members/${memberId}`),
+      auth.request.delete(`/api/club/${clubSlug}/members/${memberId}`),
     onSuccess: () => {
-      queryClient
-        .invalidateQueries(["members", clubIdentifier])
-        .catch(console.error);
+      queryClient.invalidateQueries(["members", clubSlug]).catch(console.error);
       queryClient
         .invalidateQueries({
-          queryKey: ["list", clubIdentifier, WorkListType.reviews],
+          queryKey: ["list", clubSlug, WorkListType.reviews],
         })
         .catch(console.error); // TODO: this isn't working and refreshing scores
     },
   });
 }
 
-export function useInviteToken(clubIdentifier: string) {
+export function useInviteToken(clubSlug: string) {
   return useQuery({
-    queryKey: ["invite-token", clubIdentifier],
+    queryKey: ["invite-token", clubSlug],
     queryFn: async () => {
       const response = await axios.post<{ token: string }>(
-        `/api/club/${clubIdentifier}/invite`,
+        `/api/club/${clubSlug}/invite`,
       );
       return response.data.token;
     },
@@ -171,47 +168,44 @@ interface ClubSettingsUpdate {
 }
 
 export function useClubSettings(
-  clubIdentifier: string,
+  clubSlug: string,
 ): UseQueryReturnType<ClubSettings, unknown> {
   const auth = useAuthStore();
   return useQuery<ClubSettings>({
-    queryKey: ["club", clubIdentifier, "settings"],
+    queryKey: ["club", clubSlug, "settings"],
     queryFn: async () => {
       const response = await auth.request.get<ClubSettings>(
-        `/api/club/${clubIdentifier}/settings`,
+        `/api/club/${clubSlug}/settings`,
       );
       return response.data;
     },
   });
 }
 
-export function useUpdateClubSettings(clubIdentifier: string) {
+export function useUpdateClubSettings(clubSlug: string) {
   const auth = useAuthStore();
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (newSettings: ClubSettingsUpdate) =>
-      auth.request.post(`/api/club/${clubIdentifier}/settings`, newSettings),
+      auth.request.post(`/api/club/${clubSlug}/settings`, newSettings),
     onMutate: async (newSettings: ClubSettingsUpdate) => {
-      await queryClient.cancelQueries(["club", clubIdentifier, "settings"]);
+      await queryClient.cancelQueries(["club", clubSlug, "settings"]);
 
       const previousSettings = queryClient.getQueryData<ClubSettings>([
         "club",
-        clubIdentifier,
+        clubSlug,
         "settings",
       ]);
 
       if (previousSettings) {
-        queryClient.setQueryData<ClubSettings>(
-          ["club", clubIdentifier, "settings"],
-          {
-            ...previousSettings,
-            features: {
-              ...previousSettings.features,
-              ...newSettings.features,
-            },
+        queryClient.setQueryData<ClubSettings>(["club", clubSlug, "settings"], {
+          ...previousSettings,
+          features: {
+            ...previousSettings.features,
+            ...newSettings.features,
           },
-        );
+        });
       }
 
       return { previousSettings };
@@ -219,27 +213,27 @@ export function useUpdateClubSettings(clubIdentifier: string) {
     onError: (_error, _variables, context) => {
       if (context?.previousSettings) {
         queryClient.setQueryData(
-          ["club", clubIdentifier, "settings"],
+          ["club", clubSlug, "settings"],
           context.previousSettings,
         );
       }
     },
     onSettled: () => {
       queryClient
-        .invalidateQueries(["club", clubIdentifier, "settings"])
+        .invalidateQueries(["club", clubSlug, "settings"])
         .catch(console.error);
     },
   });
 }
 
-export function useUpdateClubSlug(clubIdentifier: string) {
+export function useUpdateClubSlug(clubSlug: string) {
   const auth = useAuthStore();
   const queryClient = useQueryClient();
   const router = useRouter();
 
   return useMutation({
     mutationFn: (newSlug: string) =>
-      auth.request.put<{ slug: string }>(`/api/club/${clubIdentifier}/slug`, {
+      auth.request.put<{ slug: string }>(`/api/club/${clubSlug}/slug`, {
         slug: newSlug,
       }),
     onSuccess: (response) => {

@@ -10,7 +10,7 @@ import { Router } from "../../utils/router";
 import { getDetailedMovie } from "../../utils/tmdb";
 import { ClubRequest } from "../../utils/validation";
 
-const router = new Router<ClubRequest>("/api/club/:clubIdentifier/awards");
+const router = new Router<ClubRequest>("/api/club/:clubSlug/awards");
 router.use("/:year<\\d+>/category", validYear, categoryRouter);
 router.use("/:year<\\d+>/step", validYear, stepHandler);
 router.use("/:year<\\d+>/nomination", validYear, nominationRouter);

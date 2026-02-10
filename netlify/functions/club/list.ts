@@ -20,7 +20,7 @@ import { overviewToExternalData } from "../utils/workDetailsMapper.js";
 
 import { BadRequest } from "@/common/errorCodes";
 
-const router = new Router<ClubRequest>("/api/club/:clubIdentifier/list");
+const router = new Router<ClubRequest>("/api/club/:clubSlug/list");
 
 router.get("/:type", async ({ clubId, params }, res) => {
   if (!hasValue(params.type)) {

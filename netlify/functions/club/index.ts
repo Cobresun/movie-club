@@ -20,31 +20,27 @@ import { db } from "../utils/database";
 import { ok, badRequest } from "../utils/responses";
 import { Router } from "../utils/router";
 import { validateSlug } from "../utils/slug";
-import { validClubIdOrSlug } from "../utils/validation";
+import { validClubSlug } from "../utils/validation";
 
 const router = new Router("/api/club");
-router.use("/:clubIdentifier/list", validClubIdOrSlug, listRouter);
-router.use("/:clubIdentifier/reviews", validClubIdOrSlug, reviewsRouter);
-router.use("/:clubIdentifier/members", validClubIdOrSlug, membersRouter);
-router.use("/:clubIdentifier/awards", validClubIdOrSlug, awardsRouter);
-router.use("/:clubIdentifier/invite", validClubIdOrSlug, inviteRouter);
-router.use("/:clubIdentifier/settings", validClubIdOrSlug, settingsRouter);
-router.get(
-  "/:clubIdentifier",
-  validClubIdOrSlug,
-  async ({ clubId, clubSlug }, res) => {
-    const club = ensure(await ClubRepository.getById(clubId));
-    const result: ClubPreview = {
-      clubId: club.id,
-      clubName: club.name,
-      slug: clubSlug,
-      slugUpdatedAt: club.slug_updated_at
-        ? String(club.slug_updated_at)
-        : undefined,
-    };
-    return res(ok(JSON.stringify(result)));
-  },
-);
+router.use("/:clubSlug/list", validClubSlug, listRouter);
+router.use("/:clubSlug/reviews", validClubSlug, reviewsRouter);
+router.use("/:clubSlug/members", validClubSlug, membersRouter);
+router.use("/:clubSlug/awards", validClubSlug, awardsRouter);
+router.use("/:clubSlug/invite", validClubSlug, inviteRouter);
+router.use("/:clubSlug/settings", validClubSlug, settingsRouter);
+router.get("/:clubSlug", validClubSlug, async ({ clubId }, res) => {
+  const club = ensure(await ClubRepository.getById(clubId));
+  const result: ClubPreview = {
+    clubId: club.id,
+    clubName: club.name,
+    slug: club.slug,
+    slugUpdatedAt: club.slug_updated_at
+      ? String(club.slug_updated_at)
+      : undefined,
+  };
+  return res(ok(JSON.stringify(result)));
+});
 
 const clubNameUpdateSchema = z.object({
   name: z.string().min(1).max(100),
@@ -124,22 +120,18 @@ router.post("/", loggedIn, async ({ event }, res) => {
   );
 });
 
-router.get(
-  "/:clubIdentifier/nextWork",
-  validClubIdOrSlug,
-  async ({ clubId }, res) => {
-    const nextWork = await WorkRepository.getNextWork(clubId);
-    return res(ok(JSON.stringify({ workId: nextWork?.work_id })));
-  },
-);
+router.get("/:clubSlug/nextWork", validClubSlug, async ({ clubId }, res) => {
+  const nextWork = await WorkRepository.getNextWork(clubId);
+  return res(ok(JSON.stringify({ workId: nextWork?.work_id })));
+});
 
 const nextWorkSchema = z.object({
   workId: z.string(),
 });
 
 router.put(
-  "/:clubIdentifier/nextWork",
-  validClubIdOrSlug,
+  "/:clubSlug/nextWork",
+  validClubSlug,
   secured,
   async ({ event, clubId }, res) => {
     if (!hasValue(event.body)) return res(badRequest("Missing body"));
@@ -155,8 +147,8 @@ router.put(
 );
 
 router.delete(
-  "/:clubIdentifier/nextWork",
-  validClubIdOrSlug,
+  "/:clubSlug/nextWork",
+  validClubSlug,
   secured,
   async ({ clubId }, res) => {
     await WorkRepository.deleteNextWork(clubId);
@@ -169,8 +161,8 @@ const updateSlugSchema = z.object({
 });
 
 router.put(
-  "/:clubIdentifier/slug",
-  validClubIdOrSlug,
+  "/:clubSlug/slug",
+  validClubSlug,
   secured,
   async ({ clubId, event }, res) => {
     if (!hasValue(event.body)) return res(badRequest("Missing body"));

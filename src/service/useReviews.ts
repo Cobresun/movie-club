@@ -7,21 +7,21 @@ import { DetailedReviewListItem } from "../../lib/types/lists";
 
 import { useAuthStore } from "@/stores/auth";
 
-export function useReviewWork(clubIdentifier: string) {
+export function useReviewWork(clubSlug: string) {
   const auth = useAuthStore();
   const queryClient = useQueryClient();
   const user = useUser();
 
   return useMutation({
     mutationFn: ({ workId, score }: { workId: string; score: number }) =>
-      auth.request.post(`/api/club/${clubIdentifier}/reviews`, {
+      auth.request.post(`/api/club/${clubSlug}/reviews`, {
         score,
         workId,
       }),
     onMutate: ({ workId, score }) => {
       if (!workId) return;
       queryClient.setQueryData<DetailedReviewListItem[]>(
-        ["list", clubIdentifier, WorkListType.reviews],
+        ["list", clubSlug, WorkListType.reviews],
         (currentReviews) => {
           const userId = user.value?.id;
           if (!currentReviews || !isDefined(userId)) return currentReviews;
@@ -45,25 +45,25 @@ export function useReviewWork(clubIdentifier: string) {
     },
     onSettled: () =>
       queryClient.invalidateQueries({
-        queryKey: ["list", clubIdentifier, WorkListType.reviews],
+        queryKey: ["list", clubSlug, WorkListType.reviews],
       }),
   });
 }
 
-export function useUpdateReviewScore(clubIdentifier: string) {
+export function useUpdateReviewScore(clubSlug: string) {
   const auth = useAuthStore();
   const queryClient = useQueryClient();
   const user = useUser();
   return useMutation({
     mutationFn: ({ reviewId, score }: { reviewId: string; score: number }) =>
-      auth.request.put(`/api/club/${clubIdentifier}/reviews/${reviewId}`, {
+      auth.request.put(`/api/club/${clubSlug}/reviews/${reviewId}`, {
         score,
       }),
     onMutate: ({ reviewId, score }) => {
       if (!reviewId) return;
       const currentUser = user.value;
       queryClient.setQueryData<DetailedReviewListItem[]>(
-        ["list", clubIdentifier, WorkListType.reviews],
+        ["list", clubSlug, WorkListType.reviews],
         (currentReviews) => {
           if (!currentReviews || !currentUser) return currentReviews;
           return currentReviews.map((review) =>
@@ -88,7 +88,7 @@ export function useUpdateReviewScore(clubIdentifier: string) {
     },
     onSettled: () =>
       queryClient.invalidateQueries({
-        queryKey: ["list", clubIdentifier, WorkListType.reviews],
+        queryKey: ["list", clubSlug, WorkListType.reviews],
       }),
   });
 }

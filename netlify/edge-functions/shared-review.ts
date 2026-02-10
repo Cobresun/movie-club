@@ -44,12 +44,12 @@ function isCrawler(userAgent: string): boolean {
 
 function generateOGImageUrl(
   origin: string,
-  clubIdentifier: string,
+  clubSlug: string,
   workId: string,
 ): string {
   // Use the OG image generation function
   // This will redirect to TMDB poster or generate SVG
-  return `${origin}/api/og-image?clubIdentifier=${clubIdentifier}&workId=${workId}`;
+  return `${origin}/api/og-image?clubSlug=${clubSlug}&workId=${workId}`;
 }
 
 function generateHTML(params: {
@@ -123,7 +123,7 @@ export default async (request: Request) => {
     return; // Pass through to normal SPA
   }
 
-  // Extract clubIdentifier (slug or ID) and workId from URL
+  // Extract clubSlug and workId from URL
   const url = new URL(request.url);
   const pathMatch = url.pathname.match(/\/share\/club\/([^/]+)\/review\/(\d+)/);
 
@@ -131,11 +131,11 @@ export default async (request: Request) => {
     return; // Not a matching route
   }
 
-  const [, clubIdentifier, workId] = pathMatch;
+  const [, clubSlug, workId] = pathMatch;
 
   try {
-    // Fetch review data from the existing API (supports both slug and numeric ID)
-    const apiUrl = `${url.origin}/api/club/${clubIdentifier}/reviews/${workId}/shared`;
+    // Fetch review data from the existing API
+    const apiUrl = `${url.origin}/api/club/${clubSlug}/reviews/${workId}/shared`;
     console.log(`[Edge Function] Fetching data from: ${apiUrl}`);
 
     const response = await fetch(apiUrl);
@@ -159,7 +159,7 @@ export default async (request: Request) => {
         : "N/A";
 
     // Generate OG image URL
-    const ogImageUrl = generateOGImageUrl(url.origin, clubIdentifier, workId);
+    const ogImageUrl = generateOGImageUrl(url.origin, clubSlug, workId);
 
     // Construct title and description
     const title = `${data.work.title} - ${data.clubName} Review`;

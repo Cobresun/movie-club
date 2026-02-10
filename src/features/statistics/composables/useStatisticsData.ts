@@ -8,7 +8,7 @@ import { normalizeArray, createHistogramData } from "../scoring";
 import type { MovieData, HistogramData } from "../types";
 
 import { filterMovies } from "@/common/searchMovies";
-import { useMembers, useClub, useClubSlug } from "@/service/useClub";
+import { useMembers, useClubSlug } from "@/service/useClub";
 import { useList } from "@/service/useList";
 
 export function useStatisticsData() {
