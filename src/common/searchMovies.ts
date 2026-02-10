@@ -178,13 +178,12 @@ export function filterMovies<T extends DetailedWorkListItem>(
   }
 
   if (filters.director?.value) {
-    filteredReviews = filteredReviews.filter(
-      (review) =>
-        isDefined(review.externalData) &&
-        review.externalData?.directors.some((director) =>
-          director.toLocaleLowerCase().includes(filters.director.toLowerCase()),
-        ),
-    );
+    filteredReviews = filteredReviews.filter((review) => {
+      const directors = (review.externalData?.directors as string[] | undefined) ?? [];
+      return directors.some((director: string) =>
+        includesCaseInsensitive(director, filters.director.value),
+      );
+    });
   }
 
   if (filters.year?.value) {
