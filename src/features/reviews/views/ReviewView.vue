@@ -21,6 +21,7 @@
         search-placeholder="Search reviews"
         :class-name="isGalleryView ? 'mb-4' : 'mb-0'"
         @update:filtered-data="handleFilteredData"
+        @update:has-active-filters="handleActiveFiltersChange"
       >
         <template #action-button>
           <v-btn
@@ -75,7 +76,6 @@ import {
   computed,
   ref,
   onMounted,
-  onUnmounted,
   h,
   resolveComponent,
   watch,
@@ -151,10 +151,16 @@ const closePrompt = () => {
 
 // Filtered reviews from SearchFilterBar
 const filteredReviews = ref<DetailedReviewListItem[]>([]);
+const hasActiveFilters = ref(false);
 
 const handleFilteredData = (data: DetailedReviewListItem[]) => {
   filteredReviews.value = data;
 };
+
+const handleActiveFiltersChange = (value: boolean) => {
+  hasActiveFilters.value = value;
+};
+
 const reviewToDelete = ref<string | null>(null);
 const cancelDelete = () => {
   reviewToDelete.value = null;
@@ -166,40 +172,10 @@ const confirmDelete = () => {
   }
 };
 
-const searchTerm = ref("");
-const hasSearchTerm = computed(() => searchTerm.value.trim().length > 0);
+const hasSearchTerm = computed(() => hasActiveFilters.value);
 const showEmptyState = computed(() =>
   !loading.value && filteredReviews.value.length === 0
 );
-
-const searchInput = ref<HTMLInputElement | null>(null);
-const searchInputSlash = ref<HTMLParagraphElement | null>(null);
-
-const onKeyPress = (e: KeyboardEvent) => {
-  if (e.key === "/") {
-    if (searchInput.value === document.activeElement) {
-      return;
-    }
-    e.preventDefault();
-    searchInput.value?.focus();
-  }
-};
-
-onMounted(() => {
-  window.addEventListener("keypress", onKeyPress);
-});
-
-onUnmounted(() => {
-  window.removeEventListener("keypress", onKeyPress);
-});
-
-const searchInputFocusIn = () => {
-  searchInputSlash.value?.setAttribute("hidden", "true");
-};
-
-const searchInputFocusOut = () => {
-  searchInputSlash.value?.removeAttribute("hidden");
-};
 
 const columnHelper = createColumnHelper<DetailedReviewListItem>();
 

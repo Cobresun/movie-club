@@ -205,8 +205,8 @@ const props = withDefaults(defineProps<Props>(), {
 
 // Component events
 interface Emits {
-  (e: "update:searchQuery", value: string): void;
   (e: "update:filteredData", value: DetailedReviewListItem[]): void;
+  (e: "update:hasActiveFilters", value: boolean): void;
 }
 
 const emit = defineEmits<Emits>();
@@ -418,19 +418,9 @@ const filtersObject = computed(() => {
   );
 });
 
-// Compose search query from pills + free text (for display/emit purposes)
-const composedSearchQuery = computed(() => {
-  const tokens = appliedFilters.value.map((f) => {
-    // Convert value to string and quote if it contains spaces
-    const valueStr = String(f.value);
-    const value = valueStr.includes(" ") ? `"${valueStr}"` : valueStr;
-    const op = f.operator ? f.operator : "";
-    return `${f.key}:${op}${value}`;
-  });
-  const free = searchTerm.value.trim();
-  const hasTokens = tokens.length > 0;
-  const hasFreeText = free.length > 0;
-  return `${tokens.join(" ")}${hasTokens && hasFreeText ? " " : ""}${free}`.trim();
+// Check if any filters or search are active
+const hasActiveFilters = computed(() => {
+  return appliedFilters.value.length > 0 || searchTerm.value.trim().length > 0;
 });
 
 // Apply filtering internally and emit results
@@ -442,10 +432,6 @@ const filteredData = computed(() => {
 });
 
 // Watch for changes and emit to parent
-watch(composedSearchQuery, (newQuery) => {
-  emit("update:searchQuery", newQuery);
-});
-
 watch(
   filteredData,
   (newData) => {
@@ -454,11 +440,10 @@ watch(
   { immediate: true },
 );
 
-// Also emit initial filtered data when data prop changes
 watch(
-  () => props.data,
-  () => {
-    emit("update:filteredData", filteredData.value);
+  hasActiveFilters,
+  (value) => {
+    emit("update:hasActiveFilters", value);
   },
   { immediate: true },
 );
