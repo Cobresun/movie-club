@@ -34,6 +34,12 @@ export interface GenreWatchCount {
   count: number;
 }
 
+export interface DecadeStats {
+  decade: string;
+  averageScore: number;
+  count: number;
+}
+
 export interface MemberLeaderboardEntry {
   member: { id: string; name: string; image?: string; role?: string };
   averageScore: number;
