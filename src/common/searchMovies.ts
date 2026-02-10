@@ -115,7 +115,7 @@ export function filterMovies<T extends DetailedWorkListItem>(
   };
 
   const includesCaseInsensitive = (haystack?: string, needle?: string) => {
-    return haystack?.toLowerCase().includes(needle?.toLowerCase() ?? "");
+    return haystack?.toLowerCase().includes(needle?.toLowerCase() ?? "") ?? false;
   };
   // Apply filters
   if (filters.title?.value) {
@@ -174,7 +174,10 @@ export function filterMovies<T extends DetailedWorkListItem>(
         review.externalData?.original_language,
         filters.original_language.value,
       ),
-  if (filters.director) {
+    );
+  }
+
+  if (filters.director?.value) {
     filteredReviews = filteredReviews.filter(
       (review) =>
         isDefined(review.externalData) &&
@@ -184,10 +187,10 @@ export function filterMovies<T extends DetailedWorkListItem>(
     );
   }
 
-  if (filters.year) {
+  if (filters.year?.value) {
     filteredReviews = filteredReviews.filter(
       (review) =>
-        new Date(review.createdDate).getFullYear() === parseInt(filters.year),
+        new Date(review.createdDate).getFullYear() === parseInt(filters.year.value),
     );
   }
 
