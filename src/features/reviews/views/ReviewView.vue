@@ -21,7 +21,7 @@
         search-placeholder="Search reviews"
         :class-name="isGalleryView ? 'mb-4' : 'mb-0'"
         @update:filtered-data="handleFilteredData"
-        @update:search-query="handleSearchQuery"
+        @update:has-active-filters="handleActiveFiltersChange"
       >
         <template #action-button>
           <v-btn
@@ -74,7 +74,6 @@ import {
 } from "@tanstack/vue-table";
 import { DateTime } from "luxon";
 import { computed, ref, onMounted, h, resolveComponent, watch } from "vue";
-import { useToast } from "vue-toastification";
 
 import { hasValue, isTrue } from "../../../../lib/checks/checks.js";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
@@ -140,6 +139,18 @@ const closePrompt = () => {
   modalOpen.value = false;
 };
 
+// Filtered reviews from SearchFilterBar
+const filteredReviews = ref<DetailedReviewListItem[]>([]);
+const hasActiveFilters = ref(false);
+
+const handleFilteredData = (data: DetailedReviewListItem[]) => {
+  filteredReviews.value = data;
+};
+
+const handleActiveFiltersChange = (value: boolean) => {
+  hasActiveFilters.value = value;
+};
+
 const reviewToDelete = ref<string | null>(null);
 const cancelDelete = () => {
   reviewToDelete.value = null;
@@ -151,18 +162,7 @@ const confirmDelete = () => {
   }
 };
 
-// Filtered reviews from SearchFilterBar
-const filteredReviews = ref<DetailedReviewListItem[]>([]);
-const searchQuery = ref("");
-
-const handleFilteredData = (data: DetailedReviewListItem[]) => {
-  filteredReviews.value = data;
-};
-const handleSearchQuery = (query: string) => {
-  searchQuery.value = query;
-};
-
-const hasSearchTerm = computed(() => searchQuery.value.trim().length > 0);
+const hasSearchTerm = computed(() => hasActiveFilters.value);
 const showEmptyState = computed(
   () => !loading.value && filteredReviews.value.length === 0,
 );
