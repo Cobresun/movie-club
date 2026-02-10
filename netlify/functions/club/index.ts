@@ -1,4 +1,4 @@
-import type { Config } from "@netlify/functions";
+import { Handler, HandlerContext, HandlerEvent } from "@netlify/functions";
 import { z } from "zod";
 
 import awardsRouter from "./awards";
@@ -45,11 +45,10 @@ const clubCreateSchema = z.object({
   members: z.array(z.string()),
 });
 
-router.post("/", loggedIn, async ({ request }, res) => {
-  const rawBody = await request.text();
-  if (!hasValue(rawBody)) return res(badRequest("Missing body"));
+router.post("/", loggedIn, async ({ event }, res) => {
+  if (!hasValue(event.body)) return res(badRequest("Missing body"));
 
-  const body = clubCreateSchema.safeParse(JSON.parse(rawBody));
+  const body = clubCreateSchema.safeParse(JSON.parse(event.body));
   if (!body.success) return res(badRequest("Invalid body"));
   const { name, members } = body.data;
 
@@ -108,10 +107,9 @@ router.put(
   "/:clubId<\\d+>/nextWork",
   validClubId,
   secured,
-  async ({ request, clubId }, res) => {
-    const rawBody = await request.text();
-    if (!hasValue(rawBody)) return res(badRequest("Missing body"));
-    const body = nextWorkSchema.safeParse(JSON.parse(rawBody));
+  async ({ event, clubId }, res) => {
+    if (!hasValue(event.body)) return res(badRequest("Missing body"));
+    const body = nextWorkSchema.safeParse(JSON.parse(event.body));
     if (!body.success) return res(badRequest("Invalid body"));
     const { workId } = body.data;
 
@@ -132,18 +130,11 @@ router.delete(
   },
 );
 
-export default async (request: Request) => {
-  const url = new URL(request.url);
-  return router.route({
-    request,
-    path: url.pathname,
-    method: request.method,
-    headers: request.headers,
-    query: url.searchParams,
-    params: {},
-  });
+const handler: Handler = async (
+  event: HandlerEvent,
+  context: HandlerContext,
+) => {
+  return router.route({ event, context, params: {} });
 };
 
-export const config: Config = {
-  path: ["/api/club", "/api/club/*"],
-};
+export { handler };

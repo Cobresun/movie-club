@@ -18,10 +18,9 @@ const updateStepSchema = z.object({
 router.put(
   "/",
   secured<ClubAwardRequest>,
-  async ({ request, clubId, year }, res) => {
-    const rawBody = await request.text();
-    if (!hasValue(rawBody)) return res(badRequest("Missing body"));
-    const body = updateStepSchema.safeParse(JSON.parse(rawBody));
+  async ({ event, clubId, year }, res) => {
+    if (!hasValue(event.body)) return res(badRequest("Missing body"));
+    const body = updateStepSchema.safeParse(JSON.parse(event.body));
     if (!body.success) return res(badRequest("Invalid body"));
 
     const { step } = body.data;

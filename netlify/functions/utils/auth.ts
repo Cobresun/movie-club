@@ -1,3 +1,4 @@
+import { HandlerResponse } from "@netlify/functions";
 import bcrypt from "bcrypt";
 import { betterAuth } from "better-auth";
 import { existsSync, readFileSync } from "fs";
@@ -7,9 +8,13 @@ import { z } from "zod";
 import { dialect } from "./database.js";
 import { sendPasswordResetEmail, sendVerificationEmail } from "./email.js";
 import { unauthorized } from "./responses";
-import { isRouterResponse, FnRequest, RouterResponse } from "./router";
+import { isRouterResponse, Request, RouterResponse } from "./router";
 import { ClubRequest } from "./validation";
-import { ensure, isDefined } from "../../../lib/checks/checks.js";
+import {
+  ensure,
+  filterUndefinedProperties,
+  isDefined,
+} from "../../../lib/checks/checks.js";
 import ClubRepository from "../repositories/ClubRepository";
 
 const googleClientId = ensure(
@@ -92,17 +97,17 @@ export const auth = betterAuth({
   },
 });
 
-export type AuthRequest<T extends FnRequest = FnRequest> = T & {
+export type AuthRequest<T extends Request = Request> = T & {
   email: string;
 };
 
-export const loggedIn = async <T extends FnRequest>(
+export const loggedIn = async <T extends Request>(
   req: T,
-  res: (data: Response) => RouterResponse,
+  res: (data: HandlerResponse) => RouterResponse,
 ) => {
   // Get session from Better Auth using request headers
   const session = await auth.api.getSession({
-    headers: req.headers,
+    headers: new Headers(filterUndefinedProperties(req.event.headers)),
   });
 
   const email = session?.user?.email;
@@ -118,7 +123,7 @@ export const loggedIn = async <T extends FnRequest>(
 
 export const secured = async <T extends ClubRequest>(
   req: T,
-  res: (data: Response) => RouterResponse,
+  res: (data: HandlerResponse) => RouterResponse,
 ) => {
   const loggedInResult = await loggedIn<T>(req, res);
   if (isRouterResponse(loggedInResult)) {

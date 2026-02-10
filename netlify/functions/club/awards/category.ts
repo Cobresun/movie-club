@@ -18,10 +18,9 @@ const addCategorySchema = z.object({
 router.post(
   "/",
   secured<ClubAwardRequest>,
-  async ({ request, clubId, year }, res) => {
-    const rawBody = await request.text();
-    if (!hasValue(rawBody)) return res(badRequest("Missing body"));
-    const body = addCategorySchema.safeParse(JSON.parse(rawBody));
+  async ({ event, clubId, year }, res) => {
+    if (!hasValue(event.body)) return res(badRequest("Missing body"));
+    const body = addCategorySchema.safeParse(JSON.parse(event.body));
     if (!body.success) return res(badRequest("Invalid body"));
     const { title } = body.data;
 
@@ -41,10 +40,9 @@ const updateCategorySchema = z.object({
 router.put(
   "/",
   secured<ClubAwardRequest>,
-  async ({ request, clubId, year }, res) => {
-    const rawBody = await request.text();
-    if (!hasValue(rawBody)) return res(badRequest("Missing body"));
-    const body = updateCategorySchema.safeParse(JSON.parse(rawBody));
+  async ({ event, clubId, year }, res) => {
+    if (!hasValue(event.body)) return res(badRequest("Missing body"));
+    const body = updateCategorySchema.safeParse(JSON.parse(event.body));
     if (!body.success) return res(badRequest("Invalid body"));
 
     const { categories } = body.data;

@@ -18,10 +18,9 @@ const addReviewSchema = z.object({
   workId: z.string(),
 });
 
-router.post("/", secured, async ({ clubId, email, request }, res) => {
-  const rawBody = await request.text();
-  if (!hasValue(rawBody)) return res(badRequest("No body provided"));
-  const body = addReviewSchema.safeParse(JSON.parse(rawBody));
+router.post("/", secured, async ({ clubId, email, event }, res) => {
+  if (!hasValue(event.body)) return res(badRequest("No body provided"));
+  const body = addReviewSchema.safeParse(JSON.parse(event.body));
   if (!body.success) return res(badRequest("Invalid body"));
 
   const { score, workId } = body.data;
@@ -46,13 +45,12 @@ const updateReviewSchema = z.object({
 router.put(
   `/:reviewId`,
   secured,
-  async ({ clubId, email, params, request }, res) => {
+  async ({ clubId, email, params, event }, res) => {
     if (!hasValue(params.reviewId)) {
       return res(badRequest("No reviewId provided"));
     }
-    const rawBody = await request.text();
-    if (!hasValue(rawBody)) return res(badRequest("No body provided"));
-    const body = updateReviewSchema.safeParse(JSON.parse(rawBody));
+    if (!hasValue(event.body)) return res(badRequest("No body provided"));
+    const body = updateReviewSchema.safeParse(JSON.parse(event.body));
     if (!body.success) return res(badRequest("Invalid body"));
 
     const { score } = body.data;
