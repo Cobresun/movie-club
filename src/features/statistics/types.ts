@@ -49,6 +49,14 @@ export interface MovieAgreement {
   difference: number;
 }
 
+export interface TmdbDeviationEntry {
+  title: string;
+  imageUrl: string | undefined;
+  clubScore: number;
+  tmdbScore: number;
+  deviation: number;
+}
+
 export interface MemberPairSimilarity {
   memberA: { id: string; name: string; image?: string };
   memberB: { id: string; name: string; image?: string };

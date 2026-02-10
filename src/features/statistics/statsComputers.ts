@@ -4,6 +4,7 @@ import type {
   MemberLeaderboardEntry,
   MemberPairSimilarity,
   MovieData,
+  TmdbDeviationEntry,
 } from "./types";
 import { isDefined, hasElements } from "../../../lib/checks/checks.js";
 import { Member } from "../../../lib/types/club.js";
@@ -242,4 +243,37 @@ export function computeTopDirectors(movieData: MovieData[]): DirectorStats[] {
       return countDiff !== 0 ? countDiff : b.averageScore - a.averageScore;
     })
     .slice(0, 5);
+}
+
+export function computeTmdbDeviation(movieData: MovieData[]): {
+  clubRatedHigher: TmdbDeviationEntry[];
+  clubRatedLower: TmdbDeviationEntry[];
+} {
+  const entries: TmdbDeviationEntry[] = [];
+
+  for (const movie of movieData) {
+    if (movie.average === 0) continue;
+    const tmdbScore = movie.externalData?.vote_average;
+    if (!isDefined(tmdbScore) || tmdbScore === 0) continue;
+
+    const deviation = Math.round((movie.average - tmdbScore) * 100) / 100;
+
+    entries.push({
+      title: movie.title,
+      imageUrl: movie.imageUrl,
+      clubScore: Math.round(movie.average * 100) / 100,
+      tmdbScore: Math.round(tmdbScore * 100) / 100,
+      deviation,
+    });
+  }
+
+  const sorted = [...entries].sort((a, b) => b.deviation - a.deviation);
+
+  return {
+    clubRatedHigher: sorted.slice(0, 5).filter((e) => e.deviation > 0),
+    clubRatedLower: sorted
+      .slice(-5)
+      .filter((e) => e.deviation < 0)
+      .sort((a, b) => a.deviation - b.deviation),
+  };
 }
