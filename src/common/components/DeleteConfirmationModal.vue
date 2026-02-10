@@ -32,7 +32,8 @@ withDefaults(
   }>(),
   {
     title: "Delete Review",
-    message: "Are you sure you want to delete this review? This action cannot be undone.",
+    message:
+      "Are you sure you want to delete this review? This action cannot be undone.",
   },
 );
 

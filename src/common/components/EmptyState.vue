@@ -15,14 +15,11 @@ const emit = defineEmits<{
 
 <template>
   <div
-    class="flex flex-col items-center justify-center text-center py-16 px-8 md:py-24 transition-opacity duration-300 ease-in-out"
+    class="flex flex-col items-center justify-center px-8 py-16 text-center transition-opacity duration-300 ease-in-out md:py-24"
   >
-    <h2 class="text-2xl font-bold text-white mb-3">{{ title }}</h2>
-    <p class="text-base text-gray-400 mb-6 max-w-md">{{ description }}</p>
-    <v-btn
-      v-if="actionLabel"
-      @click="emit('action')"
-    >
+    <h2 class="mb-3 text-2xl font-bold text-white">{{ title }}</h2>
+    <p class="mb-6 max-w-md text-base text-gray-400">{{ description }}</p>
+    <v-btn v-if="actionLabel" @click="emit('action')">
       {{ actionLabel }}
       <mdicon v-if="actionIcon" :name="actionIcon" />
     </v-btn>
