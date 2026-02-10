@@ -13,13 +13,12 @@ const joinSchema = z.object({
 const router = new Router("/api/club");
 
 router.post("/join", loggedIn, async (req, res) => {
-  const rawBody = await req.request.text();
-  if (!hasValue(rawBody)) {
+  if (!hasValue(req.event.body)) {
     console.error("Missing request body");
     return res(badRequest("Missing request body"));
   }
 
-  const body = joinSchema.safeParse(JSON.parse(rawBody));
+  const body = joinSchema.safeParse(JSON.parse(req.event.body));
   if (!body.success) {
     console.error("Invalid request body", body.error);
     return res(badRequest("Invalid request body"));

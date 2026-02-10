@@ -21,10 +21,9 @@ const addNominationSchema = z.object({
 router.post(
   "/",
   secured<ClubAwardRequest>,
-  async ({ request, clubId, year }, res) => {
-    const rawBody = await request.text();
-    if (!hasValue(rawBody)) return res(badRequest("Missing body"));
-    const body = addNominationSchema.safeParse(JSON.parse(rawBody));
+  async ({ event, clubId, year }, res) => {
+    if (!hasValue(event.body)) return res(badRequest("Missing body"));
+    const body = addNominationSchema.safeParse(JSON.parse(event.body));
     if (!body.success) return res(badRequest("Invalid body"));
 
     const { awardTitle, movieId, nominatedBy } = body.data;
@@ -71,12 +70,12 @@ router.post(
 router.delete(
   "/:movieId",
   secured<ClubAwardRequest>,
-  async ({ query, params, clubId, year }, res) => {
-    const awardTitle = query.get("awardTitle") ?? undefined;
+  async ({ event, params, clubId, year }, res) => {
+    const awardTitle = event.queryStringParameters?.awardTitle;
     if (!hasValue(params.movieId))
       return res(badRequest("Missing movieId in path parameters"));
     const movieId = parseInt(params.movieId);
-    const userId = query.get("userId") ?? undefined;
+    const userId = event.queryStringParameters?.userId;
 
     if (!hasValue(awardTitle))
       return res(badRequest("Missing award title in query parameters"));

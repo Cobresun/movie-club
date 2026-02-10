@@ -167,7 +167,7 @@ const reorderSchema = z.object({
 router.put(
   "/:type/reorder",
   secured,
-  async ({ clubId, params, request }, res) => {
+  async ({ clubId, params, event }, res) => {
     if (!hasValue(params.type)) return res(badRequest("No type provided"));
     const type = params.type;
     if (!isWorkListType(type)) {
@@ -181,11 +181,10 @@ router.put(
         badRequest("Reordering is only supported for watchlist and backlog"),
       );
     }
-    const rawBody = await request.text();
-    if (!hasValue(rawBody)) return res(badRequest("No body provided"));
+    if (!hasValue(event.body)) return res(badRequest("No body provided"));
     let parsed: unknown;
     try {
-      parsed = JSON.parse(rawBody);
+      parsed = JSON.parse(event.body);
     } catch {
       return res(badRequest("Invalid JSON"));
     }
@@ -197,11 +196,10 @@ router.put(
   },
 );
 
-router.post("/:type", secured, async ({ clubId, params, request }, res) => {
+router.post("/:type", secured, async ({ clubId, params, event }, res) => {
   if (!hasValue(params.type)) return res(badRequest("No type provided"));
-  const rawBody = await request.text();
-  if (!hasValue(rawBody)) return res(badRequest("No body provided"));
-  const body = listInsertDtoSchema.safeParse(JSON.parse(rawBody));
+  if (!hasValue(event.body)) return res(badRequest("No body provided"));
+  const body = listInsertDtoSchema.safeParse(JSON.parse(event.body));
   if (!body.success) return res(badRequest("Invalid body provided"));
 
   const listType = params.type;
@@ -270,7 +268,7 @@ const updateAddedDateSchema = z.object({
 router.put(
   "/:type/:workId/added-date",
   secured,
-  async ({ clubId, params, request }, res) => {
+  async ({ clubId, params, event }, res) => {
     if (!hasValue(params.type) || !hasValue(params.workId)) {
       return res(badRequest("No type or workId provided"));
     }
@@ -280,12 +278,11 @@ router.put(
       return res(badRequest("Invalid type provided"));
     }
 
-    const rawBody = await request.text();
-    if (!hasValue(rawBody)) {
+    if (!hasValue(event.body)) {
       return res(badRequest("No body provided"));
     }
 
-    const body = updateAddedDateSchema.safeParse(JSON.parse(rawBody));
+    const body = updateAddedDateSchema.safeParse(JSON.parse(event.body));
     if (!body.success) {
       return res(badRequest("Invalid body provided"));
     }

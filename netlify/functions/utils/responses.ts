@@ -1,40 +1,50 @@
-export const ok = (body?: string) =>
-  new Response(body ?? null, {
-    status: 200,
-    headers: { "Content-Type": "application/json" },
-  });
+export const ok = (body?: string) => ({
+  statusCode: 200,
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body,
+});
 
-export const svg = (body: string, cacheControl?: string) =>
-  new Response(body, {
-    status: 200,
-    headers: {
-      "Content-Type": "image/svg+xml",
-      "Cache-Control": cacheControl ?? "public, max-age=31536000, immutable",
-    },
-  });
+export const svg = (body: string, cacheControl?: string) => ({
+  statusCode: 200,
+  headers: {
+    "Content-Type": "image/svg+xml",
+    "Cache-Control": cacheControl ?? "public, max-age=31536000, immutable",
+  },
+  body,
+});
 
-export const redirect = (location: string, cacheControl?: string) =>
-  new Response(null, {
-    status: 302,
-    headers: {
-      Location: location,
-      "Cache-Control": cacheControl ?? "public, max-age=86400",
-    },
-  });
+export const redirect = (location: string, cacheControl?: string) => ({
+  statusCode: 302,
+  headers: {
+    Location: location,
+    "Cache-Control": cacheControl ?? "public, max-age=86400",
+  },
+  body: "",
+});
 
-export const badRequest = (body?: string) =>
-  new Response(body ?? "Bad request", { status: 400 });
+export const badRequest = (body?: string) => ({
+  statusCode: 400,
+  body: body ?? "Bad request",
+});
 
-export const unauthorized = (body?: string) =>
-  new Response(body ?? "You are not authorized to perform this action", {
-    status: 401,
-  });
+export const unauthorized = (body?: string) => ({
+  statusCode: 401,
+  body: body ?? "You are not authorized to perform this action",
+});
 
-export const notFound = (body?: string) =>
-  new Response(body ?? "Resource not found", { status: 404 });
+export const notFound = (body?: string) => ({
+  statusCode: 404,
+  body: body ?? "Resource not found",
+});
 
-export const methodNotAllowed = (body?: string) =>
-  new Response(body ?? "Method not allowed", { status: 405 });
+export const methodNotAllowed = (body?: string) => ({
+  statusCode: 405,
+  body: body ?? "Method not allowed",
+});
 
-export const internalServerError = (body?: string) =>
-  new Response(body ?? "internal server error", { status: 500 });
+export const internalServerError = (body?: string) => ({
+  statusCode: 500,
+  body: body ?? "internal server error",
+});
