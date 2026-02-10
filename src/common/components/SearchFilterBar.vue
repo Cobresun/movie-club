@@ -339,6 +339,12 @@ const getAppliedFilterDisplay = (key: string) => {
   return `${operator}${filter.value}`;
 };
 
+const getPopoverInputElement = () => {
+  const input = popoverInput.value;
+  if (!input) return null;
+  return Array.isArray(input) ? (input[0] ?? null) : input;
+};
+
 const selectFilterOption = (key: string) => {
   // If filter is already applied, remove it
   const existingIdx = appliedFilters.value.findIndex((p) => p.key === key);
@@ -357,13 +363,8 @@ const selectFilterOption = (key: string) => {
 
     // Focus input in popover
     requestAnimationFrame(() => {
-      const input = popoverInput.value;
-      if (!input) return;
-
-      const inputElement: HTMLInputElement | undefined = Array.isArray(input)
-        ? (input[0] ?? undefined)
-        : input;
-      if (inputElement === undefined) return;
+      const inputElement = getPopoverInputElement();
+      if (!inputElement) return;
 
       inputElement.focus();
       // Auto-open date picker
@@ -380,14 +381,13 @@ const selectFilterOption = (key: string) => {
 };
 
 const valueSuggestions = computed(() => {
-  const key = selectedFilter.value?.key;
-  if (key === null || key === undefined) return [];
+  const key = selectedFilter.value?.key ?? "";
   if (key.trim().length === 0) return [];
-  const suggestions =
+  return (
     computedValueSuggestions.value[
       key as keyof typeof computedValueSuggestions.value
-    ];
-  return suggestions ?? [];
+    ] ?? []
+  );
 });
 
 const filteredValueSuggestions = computed(() => {
