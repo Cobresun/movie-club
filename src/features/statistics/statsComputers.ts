@@ -1,11 +1,16 @@
 import type {
+  DecadeStats,
   GenreStats,
   GenreWatchCount,
   MemberLeaderboardEntry,
   MemberPairSimilarity,
   MovieData,
 } from "./types";
-import { isDefined, hasElements } from "../../../lib/checks/checks.js";
+import {
+  hasValue,
+  isDefined,
+  hasElements,
+} from "../../../lib/checks/checks.js";
 import { Member } from "../../../lib/types/club.js";
 
 const MIN_GENRE_COUNT = 2;
@@ -242,4 +247,42 @@ export function computeTopDirectors(movieData: MovieData[]): DirectorStats[] {
       return countDiff !== 0 ? countDiff : b.averageScore - a.averageScore;
     })
     .slice(0, 5);
+}
+
+export function computeDecadeStats(
+  movieData: MovieData[],
+  memberId?: string,
+): DecadeStats[] {
+  const decadeScores: Record<string, { count: number; totalScore: number }> =
+    {};
+
+  for (const movie of movieData) {
+    const score = isDefined(memberId)
+      ? movie.userScores[memberId]
+      : movie.average;
+    if (!isDefined(score) || score === 0) continue;
+
+    const releaseDate = movie.externalData?.release_date;
+    if (!hasValue(releaseDate)) continue;
+
+    const year = parseInt(releaseDate.substring(0, 4), 10);
+    if (isNaN(year)) continue;
+
+    const decade = `${Math.floor(year / 10) * 10}s`;
+    const existing = decadeScores[decade];
+    if (isDefined(existing)) {
+      existing.count++;
+      existing.totalScore += score;
+    } else {
+      decadeScores[decade] = { count: 1, totalScore: score };
+    }
+  }
+
+  return Object.entries(decadeScores)
+    .map(([decade, data]) => ({
+      decade,
+      averageScore: Math.round((data.totalScore / data.count) * 100) / 100,
+      count: data.count,
+    }))
+    .sort((a, b) => a.decade.localeCompare(b.decade));
 }

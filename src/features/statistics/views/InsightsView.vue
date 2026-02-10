@@ -8,6 +8,7 @@
     />
     <GenreStatsWidget :movie-data="movieData" :members="members" />
     <GenreWatchCountWidget :movie-data="movieData" />
+    <DecadeStatsWidget :movie-data="movieData" :members="members" />
     <ReviewerLeaderboardWidget :movie-data="movieData" :members="members" />
     <TasteSimilarityWidget :movie-data="movieData" :members="members" />
     <DirectorsLeaderboard :movie-data="movieData" />
@@ -16,6 +17,7 @@
 
 <script setup lang="ts">
 import { Member } from "../../../../lib/types/club";
+import DecadeStatsWidget from "../components/DecadeStatsWidget.vue";
 import DirectorsLeaderboard from "../components/DirectorsLeaderboard.vue";
 import GenreStatsWidget from "../components/GenreStatsWidget.vue";
 import GenreWatchCountWidget from "../components/GenreWatchCountWidget.vue";
