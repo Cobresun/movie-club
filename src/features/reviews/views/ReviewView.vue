@@ -167,10 +167,6 @@ const confirmDelete = () => {
 };
 
 const searchTerm = ref("");
-// const filteredReviews = computed<DetailedReviewListItem[]>(() => {
-//   return filterMovies(reviews.value ?? [], searchTerm.value);
-// });
-
 const hasSearchTerm = computed(() => searchTerm.value.trim().length > 0);
 const showEmptyState = computed(() =>
   !loading.value && filteredReviews.value.length === 0
