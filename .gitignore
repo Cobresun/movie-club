@@ -25,6 +25,11 @@ pnpm-debug.log*
 
 # Local Netlify folder
 .netlify
+.netlify-cache
+
+# Generated config files
+netlify/functions/utils/database-config.json
+netlify/functions/utils/auth-config.json
 
 # Test coverage
 src/coverage

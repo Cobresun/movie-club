@@ -13,10 +13,22 @@ export interface TMDBGenre {
   name: string;
 }
 
+export interface TMDBCrewMember {
+  id: number;
+  name: string;
+  job: string;
+  department: string;
+}
+
+export interface TMDBCredits {
+  crew: TMDBCrewMember[];
+}
+
 export interface TMDBMovieData {
   adult: boolean;
   backdrop_path: string;
   budget: number;
+  credits?: TMDBCredits;
   genres: TMDBGenre[];
   homepage: string;
   id: number;
@@ -44,6 +56,7 @@ export interface DetailedMovieData {
   adult: boolean;
   backdrop_path: string;
   budget: number;
+  directors: string[];
   genres: string[];
   homepage: string;
   id: number;

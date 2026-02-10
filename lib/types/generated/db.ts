@@ -102,6 +102,12 @@ export interface MovieDetails {
   updated_date: Generated<Timestamp>;
 }
 
+export interface MovieDirectors {
+  director_name: string;
+  external_id: string;
+  rowid: Generated<Int8>;
+}
+
 export interface MovieGenres {
   external_id: string;
   genre_name: string;
@@ -187,7 +193,7 @@ export interface WorkList {
 
 export interface WorkListItem {
   list_id: Int8;
-  position: Generated<number>;
+  position: Generated<Int8>;
   time_added: Generated<Timestamp>;
   work_id: Int8;
 }
@@ -200,6 +206,7 @@ export interface DB {
   club_member: ClubMember;
   club_settings: ClubSettings;
   movie_details: MovieDetails;
+  movie_directors: MovieDirectors;
   movie_genres: MovieGenres;
   movie_production_companies: MovieProductionCompanies;
   movie_production_countries: MovieProductionCountries;

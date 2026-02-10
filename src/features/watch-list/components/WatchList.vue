@@ -31,6 +31,13 @@
         Random
         <mdicon name="dice-multiple-outline" />
       </v-btn>
+      <v-btn
+        :class="reorderMode ? 'ring-2 ring-highlightBackground' : ''"
+        @click="reorderMode = !reorderMode"
+      >
+        Reorder
+        <mdicon name="swap-vertical" />
+      </v-btn>
     </div>
     <VueDraggableNext
       v-model="draggableList"
@@ -39,22 +46,21 @@
       :delay="150"
       :delay-on-touch-only="true"
       :animation="200"
+      handle=".drag-handle"
       filter=".no-drag"
-      :prevent-on-filter="true"
+      :prevent-on-filter="false"
       :move="onMove"
       @end="onDragEnd"
     >
       <MoviePosterCard
         v-for="work in draggableList"
         :key="work.id"
-        :class="[
-          work.id === nextWorkId ? 'no-drag z-0' : 'z-10',
-          work.id !== nextWorkId ? 'cursor-grab active:cursor-grabbing' : '',
-        ]"
+        :class="work.id === nextWorkId ? 'no-drag z-0' : 'z-10'"
+        :show-drag-handle="reorderMode && work.id !== nextWorkId"
         class="bg-background"
         :movie-title="work.title"
         :movie-poster-url="work.imageUrl ?? ''"
-        :highlighted="work.id == nextWorkId"
+        :highlighted="work.id === nextWorkId"
         :loading="
           work.id === OPTIMISTIC_WORK_ID ||
           (loadingAddReview && reviewedWork?.toString() === work.externalId)
@@ -66,8 +72,20 @@
           <v-btn class="flex justify-center" @click="reviewMovie(work)">
             <mdicon name="check" />
           </v-btn>
-          <v-btn class="flex justify-center" @click="setNextWork(work.id)">
-            <mdicon name="arrow-collapse-up" />
+
+          <v-btn
+            class="flex justify-center"
+            @click="
+              work.id === nextWorkId ? clearNextWork() : setNextWork(work.id)
+            "
+          >
+            <mdicon
+              :name="
+                work.id === nextWorkId
+                  ? 'arrow-collapse-down'
+                  : 'arrow-collapse-up'
+              "
+            />
           </v-btn>
         </div>
       </MoviePosterCard>
@@ -83,6 +101,7 @@ import { useToast } from "vue-toastification";
 
 import AddMovieToListModal from "./AddMovieToListModal.vue";
 import RandomPickerModal from "./RandomPickerModal.vue";
+import { hasValue } from "../../../../lib/checks/checks.js";
 import { WorkListType, WorkType } from "../../../../lib/types/generated/db";
 import { DetailedWorkListItem } from "../../../../lib/types/lists";
 
@@ -92,6 +111,7 @@ import { BadRequest } from "@/common/errorCodes";
 import { filterMovies } from "@/common/searchMovies";
 import { useClubId } from "@/service/useClub";
 import {
+  useClearNextWork,
   useDeleteListItem,
   useList,
   useNextWork,
@@ -163,7 +183,9 @@ const closePrompt = () => {
 
 const { mutate: setNextWork } = useSetNextWork(clubId);
 const { mutate: reorderList } = useReorderList(clubId, WorkListType.watchlist);
+const { mutate: clearNextWork } = useClearNextWork(clubId);
 
+const reorderMode = ref(false);
 const randomPickerOpen = ref(false);
 
 const sortedWatchList = computed(() => {
@@ -187,13 +209,13 @@ watch(
 );
 
 const onMove = (evt: { relatedContext: { index: number } }) => {
-  if (nextWorkId.value && evt.relatedContext.index === 0) return false;
+  if (hasValue(nextWorkId.value) && evt.relatedContext.index === 0) return false;
   return true;
 };
 
 const onDragEnd = () => {
   // Safety: ensure next watch item stays at index 0
-  if (nextWorkId.value) {
+  if (hasValue(nextWorkId.value)) {
     const nextIndex = draggableList.value.findIndex(
       (item) => item.id === nextWorkId.value,
     );

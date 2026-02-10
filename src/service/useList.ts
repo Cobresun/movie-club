@@ -133,9 +133,12 @@ export function useReorderList(
 export function useNextWork(clubId: string) {
   return useQuery({
     queryKey: ["nextWork", clubId],
-    queryFn: async () =>
-      (await axios.get<{ workId?: string }>(`/api/club/${clubId}/nextWork`))
-        .data.workId,
+    queryFn: async () => {
+      const response = await axios.get<{ workId?: string }>(
+        `/api/club/${clubId}/nextWork`,
+      );
+      return response.data.workId ?? null;
+    },
   });
 }
 
@@ -148,6 +151,19 @@ export function useSetNextWork(clubId: string) {
     onMutate: (workId) => {
       if (!workId) return;
       queryClient.setQueryData<string>(["nextWork", clubId], () => workId);
+    },
+    onSettled: () =>
+      queryClient.invalidateQueries({ queryKey: ["nextWork", clubId] }),
+  });
+}
+
+export function useClearNextWork(clubId: string) {
+  const auth = useAuthStore();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => auth.request.delete(`/api/club/${clubId}/nextWork`),
+    onMutate: () => {
+      queryClient.setQueryData<string | null>(["nextWork", clubId], null);
     },
     onSettled: () =>
       queryClient.invalidateQueries({ queryKey: ["nextWork", clubId] }),

@@ -1,0 +1,6 @@
+name: netlify-plugin-preview-database
+inputs:
+  - name: sourceDatabase
+    required: false
+    description: Source database to restore from (default is 'dev')
+    default: "dev"

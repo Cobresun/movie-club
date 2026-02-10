@@ -10,10 +10,17 @@ import {
   TMDBMovieData,
 } from "../../../lib/types/movie";
 
-async function makeTMDBApiCall<T>(path: string) {
+async function makeTMDBApiCall<T>(
+  path: string,
+  params?: Record<string, string>,
+) {
   const tmdbApiKey = process.env.TMDB_API_KEY;
+  const searchParams = new URLSearchParams({
+    api_key: tmdbApiKey ?? "",
+    ...params,
+  });
   return axios.get<T>(
-    `https://api.themoviedb.org/3${path}?api_key=${tmdbApiKey}`,
+    `https://api.themoviedb.org/3${path}?${searchParams.toString()}`,
   );
 }
 
@@ -24,7 +31,9 @@ async function getTMDBConfig() {
 export async function getTMDBMovieData(
   movieId: number,
 ): Promise<AxiosResponse<TMDBMovieData>> {
-  return makeTMDBApiCall<TMDBMovieData>(`/movie/${movieId}`);
+  return makeTMDBApiCall<TMDBMovieData>(`/movie/${movieId}`, {
+    append_to_response: "credits",
+  });
 }
 
 export async function getDetailedMovie<T extends BaseMovie>(
@@ -41,6 +50,9 @@ export async function getDetailedMovie<T extends BaseMovie>(
         adult: tmdbData.adult,
         backdrop_path: tmdbData.backdrop_path,
         budget: tmdbData.budget,
+        directors: (tmdbData.credits?.crew ?? [])
+          .filter((c) => c.job === "Director")
+          .map((c) => c.name),
         genres: tmdbData.genres.map((g) => g.name),
         homepage: tmdbData.homepage,
         id: tmdbData.id,

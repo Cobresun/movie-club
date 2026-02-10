@@ -38,7 +38,7 @@
           :title="hasSearchTerm ? 'No Movies Found' : 'No Reviews Yet'"
           :description="
             hasSearchTerm
-              ? 'Try adjusting your search or filters. You can search by title, genre, company, or release year'
+              ? 'Try adjusting your search or filters. You can search by title, genre, company, director, or release year'
               : 'Start building your club\'s movie collection by adding your first review'
           "
           :action-label="hasSearchTerm ? undefined : 'Add Review'"
@@ -81,7 +81,7 @@ import {
   watch,
 } from "vue";
 
-import { isTrue } from "../../../../lib/checks/checks.js";
+import { hasValue, isTrue } from "../../../../lib/checks/checks.js";
 import { WorkListType } from "../../../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
 import { useShare } from "../../../common/composables/useShare";
@@ -160,7 +160,7 @@ const cancelDelete = () => {
   reviewToDelete.value = null;
 };
 const confirmDelete = () => {
-  if (reviewToDelete.value) {
+  if (hasValue(reviewToDelete.value)) {
     deleteReview(reviewToDelete.value);
     reviewToDelete.value = null;
   }
@@ -171,7 +171,6 @@ const searchTerm = ref("");
 //   return filterMovies(reviews.value ?? [], searchTerm.value);
 // });
 
-const hasReviews = computed(() => (reviews.value?.length ?? 0) > 0);
 const hasSearchTerm = computed(() => searchTerm.value.trim().length > 0);
 const showEmptyState = computed(() =>
   !loading.value && filteredReviews.value.length === 0

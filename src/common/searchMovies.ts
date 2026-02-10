@@ -174,6 +174,20 @@ export function filterMovies<T extends DetailedWorkListItem>(
         review.externalData?.original_language,
         filters.original_language.value,
       ),
+  if (filters.director) {
+    filteredReviews = filteredReviews.filter(
+      (review) =>
+        isDefined(review.externalData) &&
+        review.externalData?.directors.some((director) =>
+          director.toLocaleLowerCase().includes(filters.director.toLowerCase()),
+        ),
+    );
+  }
+
+  if (filters.year) {
+    filteredReviews = filteredReviews.filter(
+      (review) =>
+        new Date(review.createdDate).getFullYear() === parseInt(filters.year),
     );
   }
 

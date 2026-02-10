@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/vue-query";
 import axios from "axios";
 import { defineStore } from "pinia";
-import { ref, computed } from "vue";
+import { ref, computed, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 import { isDefined, isTrue } from "../../lib/checks/checks.js";
@@ -41,6 +41,41 @@ export const useAuthStore = defineStore("auth", () => {
     return (
       userClubs.value?.some((club) => String(club.clubId) === clubId) ?? false
     );
+  };
+
+  // Helper to wait for auth and clubs to be ready
+  const waitForAuthReady = async () => {
+    if (session.value.isRefetching || session.value.isPending) {
+      await new Promise<void>((resolve) => {
+        const unwatch = watch(
+          () => [session.value.isPending, session.value.isRefetching],
+          ([isPending, isRefetching]) => {
+            if (!isPending && !isRefetching) {
+              unwatch();
+              resolve();
+            }
+          },
+          { immediate: true },
+        );
+      });
+    }
+  };
+
+  const waitForClubsReady = async () => {
+    if (isLoggedIn.value && isLoadingUserClubs.value) {
+      await new Promise<void>((resolve) => {
+        const unwatch = watch(
+          () => isLoadingUserClubs.value,
+          (loading: boolean) => {
+            if (!loading) {
+              unwatch();
+              resolve();
+            }
+          },
+          { immediate: true },
+        );
+      });
+    }
   };
 
   // Auth actions
@@ -92,5 +127,9 @@ export const useAuthStore = defineStore("auth", () => {
     userClubs,
     isClubMember,
     isLoadingUserClubs,
+
+    // Helper methods for router guards
+    waitForAuthReady,
+    waitForClubsReady,
   };
 });
