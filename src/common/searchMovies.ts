@@ -4,78 +4,73 @@ import { DetailedWorkListItem } from "../../lib/types/lists";
 /**
  *
  * @param works
- * @param searchQuery
+ * @param searchQuery - Can be either a search query string (legacy) or an object with filters and freeText
  * @returns reviews filtered by searchQuery.
  *
- * You can apply filters on the searchQuery with text:value. For example, to filter by title and genre, you can use:
+ * The searchQuery can be passed as an object with:
+ * - filters: Record of filter key to {operator?, value}
+ * - freeText: Free text search string (searches titles)
  *
- * "title:jaws genre:horror"
- *
- * The "release" filter supports comparison operators (<, >, <=, >=) for movie release years:
- *
- * "release:<1950" - Movies released before 1950
- * "release:>2000" - Movies released after 2000
- * "release:<=1980" - Movies released in or before 1980
- * "release:>=2010" - Movies released in or after 2010
- * "release:2000" - Movies released exactly in 2000
- *
- * The "year" filter matches the year the review was added (exact match only):
- *
- * "year:2024" - Reviews added in 2024
- *
- * Incluidng multiple filters seperated by spaces will implicitly do an AND search between them.
- *
- * TODO: Add support for OR searches.
- * TODO: Create a new vue component for the search bar that highlights filters different colors.
- * TODO: Make the watchlist and backlog use DetailedMovie[] so they can use the same search function and bar.
+ * Or as a legacy string with key:value syntax for backwards compatibility.
  *
  */
 export function filterMovies<T extends DetailedWorkListItem>(
   works: T[],
-  searchQuery: string,
+  searchQuery:
+    | string
+    | {
+        filters: Record<string, { operator?: ">" | "<" | "="; value: string }>;
+        freeText: string;
+      },
 ): T[] {
   let filteredReviews = [...works];
 
-  // Tokenize by spaces while keeping quoted values intact
-  // Example: key:"The Godfather"
-  const tokens =
-    searchQuery
-      .match(/\S+:"[^"]+"|[^\s:]+:[^\s]+|\S+/g)
-      ?.map((t) => t.trim()) ?? [];
+  let filters: Record<string, { operator?: ">" | "<" | "="; value: string }>;
+  let freeText: string;
 
-  // Build filter map allowing operators for numeric/date: key:>10, key:<100, key:=50
-  const filters = tokens
-    .filter((t) => t.includes(":"))
-    .reduce(
-      (acc, token) => {
-        // Split only on the first colon to handle quoted values properly
-        const colonIndex = token.indexOf(":");
-        const rawKey = token.substring(0, colonIndex);
-        const rawValue = token.substring(colonIndex + 1);
-        const key = rawKey.trim();
-        const valueWithOp = rawValue.trim();
-        const operatorMatch = valueWithOp.match(/^(>|<|=)/);
-        const operator = operatorMatch
-          ? (operatorMatch[0] as ">" | "<" | "=")
-          : undefined;
-        const valueRaw = operator ? valueWithOp.slice(1) : valueWithOp;
-        const unquoted =
-          valueRaw.startsWith('"') && valueRaw.endsWith('"')
-            ? valueRaw.slice(1, -1)
-            : valueRaw;
-        acc[key] = { operator, value: unquoted };
-        return acc;
-      },
-      {} as Record<string, { operator?: ">" | "<" | "="; value: string }>,
-    );
+  // Handle both string (legacy) and object inputs
+  if (typeof searchQuery === "string") {
+    // Legacy: Parse key:value syntax from string
+    const tokens =
+      searchQuery
+        .match(/\S+:"[^"]+"|[^\s:]+:[^\s]+|\S+/g)
+        ?.map((t) => t.trim()) ?? [];
+
+    filters = tokens
+      .filter((t) => t.includes(":"))
+      .reduce(
+        (acc, token) => {
+          const colonIndex = token.indexOf(":");
+          const rawKey = token.substring(0, colonIndex);
+          const rawValue = token.substring(colonIndex + 1);
+          const key = rawKey.trim();
+          const valueWithOp = rawValue.trim();
+          const operatorMatch = valueWithOp.match(/^(>|<|=)/);
+          const operator = operatorMatch
+            ? (operatorMatch[0] as ">" | "<" | "=")
+            : undefined;
+          const valueRaw = operator ? valueWithOp.slice(1) : valueWithOp;
+          const unquoted =
+            valueRaw.startsWith('"') && valueRaw.endsWith('"')
+              ? valueRaw.slice(1, -1)
+              : valueRaw;
+          acc[key] = { operator, value: unquoted };
+          return acc;
+        },
+        {} as Record<string, { operator?: ">" | "<" | "="; value: string }>,
+      );
+
+    freeText = tokens
+      .filter((t) => !t.includes(":"))
+      .join(" ")
+      .trim();
+  } else {
+    // New: Use provided filters and freeText
+    filters = searchQuery.filters;
+    freeText = searchQuery.freeText;
+  }
 
   console.log(filters);
-
-  // Remove filter tokens from free text search
-  const freeText = tokens
-    .filter((t) => !t.includes(":"))
-    .join(" ")
-    .trim();
 
   // Helpers
   const satisfiesComparator = (
@@ -115,7 +110,9 @@ export function filterMovies<T extends DetailedWorkListItem>(
   };
 
   const includesCaseInsensitive = (haystack?: string, needle?: string) => {
-    return haystack?.toLowerCase().includes(needle?.toLowerCase() ?? "") ?? false;
+    return (
+      haystack?.toLowerCase().includes(needle?.toLowerCase() ?? "") ?? false
+    );
   };
   // Apply filters
   if (filters.title?.value) {
@@ -128,7 +125,9 @@ export function filterMovies<T extends DetailedWorkListItem>(
       (review) =>
         isDefined(review.externalData) &&
         review.externalData?.production_companies.some((company) =>
-          company.toLocaleLowerCase().includes(filters.company.value.toLowerCase()),
+          company
+            .toLocaleLowerCase()
+            .includes(filters.company.value.toLowerCase()),
         ),
     );
   }
@@ -179,7 +178,8 @@ export function filterMovies<T extends DetailedWorkListItem>(
 
   if (filters.director?.value) {
     filteredReviews = filteredReviews.filter((review) => {
-      const directors = (review.externalData?.directors as string[] | undefined) ?? [];
+      const directors =
+        (review.externalData?.directors as string[] | undefined) ?? [];
       return directors.some((director: string) =>
         includesCaseInsensitive(director, filters.director.value),
       );
@@ -189,7 +189,8 @@ export function filterMovies<T extends DetailedWorkListItem>(
   if (filters.year?.value) {
     filteredReviews = filteredReviews.filter(
       (review) =>
-        new Date(review.createdDate).getFullYear() === parseInt(filters.year.value),
+        new Date(review.createdDate).getFullYear() ===
+        parseInt(filters.year.value),
     );
   }
 
