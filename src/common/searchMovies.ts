@@ -1,4 +1,3 @@
-import { isDefined } from "../../lib/checks/checks.js";
 import { DetailedWorkListItem } from "../../lib/types/lists";
 
 /**
@@ -87,8 +86,6 @@ export function filterMovies<T extends DetailedWorkListItem>(
     filters = searchQuery.filters;
     freeText = searchQuery.freeText;
   }
-
-  console.log(filters);
 
   // Helpers
   const satisfiesComparator = (
@@ -191,18 +188,18 @@ export function filterMovies<T extends DetailedWorkListItem>(
     );
   }
 
-  if (filters.production_country?.value) {
-    filteredReviews = filteredReviews.filter((review) =>
-      (review.externalData?.production_countries ?? []).some((c) =>
-        includesCaseInsensitive(c, filters.production_country.value),
-      ),
-    );
-  }
-
   if (filters.company?.value) {
     filteredReviews = filteredReviews.filter((review) =>
       (review.externalData?.production_companies ?? []).some((company) =>
         includesCaseInsensitive(company, filters.company.value),
+      ),
+    );
+  }
+
+  if (filters.production_country?.value) {
+    filteredReviews = filteredReviews.filter((review) =>
+      (review.externalData?.production_countries ?? []).some((c) =>
+        includesCaseInsensitive(c, filters.production_country.value),
       ),
     );
   }
