@@ -222,3 +222,17 @@ export function useUpdateClubSettings(clubId: string) {
     },
   });
 }
+
+export function useUpdateClubName(clubId: string) {
+  const auth = useAuthStore();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (name: string) =>
+      auth.request.put(`/api/club/${clubId}/name`, { name }),
+    onSuccess: () => {
+      queryClient.invalidateQueries(["club", clubId]).catch(console.error);
+      queryClient.invalidateQueries(["user", "clubs"]).catch(console.error);
+    },
+  });
+}

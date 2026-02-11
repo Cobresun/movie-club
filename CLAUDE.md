@@ -367,6 +367,41 @@ if (typeof myString === "string" && myString.length > 0) {
 - Use `hasElements()` for **array checks**
 - Use `ensure()` when you want to **throw on null/undefined** (guard clauses)
 
+### Avoid `watch()` - Prefer Keyed Components
+
+**Using `watch()` on query values is often a code smell.** Instead of watching reactive data and running side effects, prefer creating higher-order components that pass data down as props and use the `:key` attribute to force re-renders when data changes.
+
+**❌ AVOID: Using watch for query data**
+
+```typescript
+const { data: club } = useClub(clubId);
+
+watch(club, (newClub) => {
+  // Side effect when club changes
+  updateSomething(newClub);
+});
+```
+
+**✅ PREFERRED: Keyed components that re-render**
+
+```vue
+<template>
+  <ClubDetails v-if="club" :key="club?.id" :club="club" />
+</template>
+```
+
+When the `club` data changes, Vue will destroy and recreate the entire `ClubDetails` component, giving it a clean state. This approach:
+
+- Makes data flow explicit and unidirectional
+- Avoids timing issues with watchers
+- Reduces bugs from stale closures
+- Makes components easier to reason about
+
+**When `watch()` is acceptable:**
+
+- Syncing with external systems (localStorage, browser APIs)
+- Triggering animations or side effects that are truly reactive in nature
+
 ## Common Patterns
 
 ### Feature Module Structure
