@@ -46,8 +46,7 @@ describe("normalizeArray", () => {
   });
 
   it("substitutes mean for undefined values", () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- testing undefined handling
-    const input = [2, undefined as any, 6];
+    const input: number[] = [2, undefined as unknown as number, 6];
     const result = normalizeArray(input);
     // mean of valid scores [2, 6] = 4, std from [2,6]: variance=(4+4)/1=8, std=2.83
     // undefined → replaced with mean (4), z-score = 0
@@ -108,8 +107,8 @@ describe("getScoreContextColor", () => {
     const extractOpacity = (color: string) =>
       parseFloat(color.split(",")[3].replace(")", "").trim());
 
-    const lowOpacity = extractOpacity(getScoreContextColor(0.5)!);
-    const highOpacity = extractOpacity(getScoreContextColor(1.5)!);
+    const lowOpacity = extractOpacity(getScoreContextColor(0.5));
+    const highOpacity = extractOpacity(getScoreContextColor(1.5));
     expect(highOpacity).toBeGreaterThan(lowOpacity);
   });
 

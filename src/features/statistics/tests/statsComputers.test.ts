@@ -1,6 +1,7 @@
+import { ensure } from "../../../../lib/checks/checks.js";
+import type { Member } from "../../../../lib/types/club";
 import { WorkType } from "../../../../lib/types/generated/db";
 import type { DetailedMovieData } from "../../../../lib/types/movie";
-import type { Member } from "../../../../lib/types/club";
 import {
   computeGenreStats,
   computeMemberLeaderboard,
@@ -286,10 +287,7 @@ describe("computeTasteSimilarity", () => {
   });
 
   it("returns nulls when no pair shares 3+ reviews", () => {
-    const members = [
-      makeMember({ id: "m1" }),
-      makeMember({ id: "m2" }),
-    ];
+    const members = [makeMember({ id: "m1" }), makeMember({ id: "m2" })];
     const movies = [
       makeMovie({ userScores: { m1: 7, m2: 8 } }),
       makeMovie({ userScores: { m1: 6, m2: 5 } }),
@@ -310,16 +308,13 @@ describe("computeTasteSimilarity", () => {
       makeMovie({ userScores: { m1: 9, m2: 9 } }),
     ];
     const result = computeTasteSimilarity(movies, members);
-    expect(result.mostSimilar).not.toBeNull();
-    expect(result.mostSimilar!.similarityPercent).toBe(100);
-    expect(result.mostSimilar!.avgDifference).toBe(0);
+    const mostSimilar = ensure(result.mostSimilar);
+    expect(mostSimilar.similarityPercent).toBe(100);
+    expect(mostSimilar.avgDifference).toBe(0);
   });
 
   it("calculates similarity correctly for different scores", () => {
-    const members = [
-      makeMember({ id: "m1" }),
-      makeMember({ id: "m2" }),
-    ];
+    const members = [makeMember({ id: "m1" }), makeMember({ id: "m2" })];
     // Differences: 2, 2, 2 → avg diff = 2 → similarity = (1 - 2/10) * 100 = 80%
     const movies = [
       makeMovie({ userScores: { m1: 8, m2: 6 } }),
@@ -327,8 +322,9 @@ describe("computeTasteSimilarity", () => {
       makeMovie({ userScores: { m1: 9, m2: 7 } }),
     ];
     const result = computeTasteSimilarity(movies, members);
-    expect(result.mostSimilar!.similarityPercent).toBe(80);
-    expect(result.mostSimilar!.avgDifference).toBe(2);
+    const mostSimilar = ensure(result.mostSimilar);
+    expect(mostSimilar.similarityPercent).toBe(80);
+    expect(mostSimilar.avgDifference).toBe(2);
   });
 
   it("identifies most and least similar pairs among 3+ members", () => {
@@ -344,30 +340,26 @@ describe("computeTasteSimilarity", () => {
       makeMovie({ userScores: { m1: 6, m2: 6, m3: 1 } }),
     ];
     const result = computeTasteSimilarity(movies, members);
-    expect(result.mostSimilar!.memberA.name).toBe("A");
-    expect(result.mostSimilar!.memberB.name).toBe("B");
-    expect(result.mostSimilar!.similarityPercent).toBe(100);
+    const mostSimilar = ensure(result.mostSimilar);
+    const leastSimilar = ensure(result.leastSimilar);
+    expect(mostSimilar.memberA.name).toBe("A");
+    expect(mostSimilar.memberB.name).toBe("B");
+    expect(mostSimilar.similarityPercent).toBe(100);
 
     // Least similar should be one of the pairs involving C
-    const leastNames = [
-      result.leastSimilar!.memberA.name,
-      result.leastSimilar!.memberB.name,
-    ];
+    const leastNames = [leastSimilar.memberA.name, leastSimilar.memberB.name];
     expect(leastNames).toContain("C");
   });
 
   it("returns best and worst agreements sorted correctly", () => {
-    const members = [
-      makeMember({ id: "m1" }),
-      makeMember({ id: "m2" }),
-    ];
+    const members = [makeMember({ id: "m1" }), makeMember({ id: "m2" })];
     const movies = [
       makeMovie({ title: "Close", userScores: { m1: 7, m2: 7 } }),
       makeMovie({ title: "Medium", userScores: { m1: 5, m2: 8 } }),
       makeMovie({ title: "Far", userScores: { m1: 1, m2: 9 } }),
     ];
     const result = computeTasteSimilarity(movies, members);
-    const pair = result.mostSimilar!;
+    const pair = ensure(result.mostSimilar);
 
     // Best agreements: smallest difference first
     expect(pair.bestAgreements[0].title).toBe("Close");
@@ -379,10 +371,7 @@ describe("computeTasteSimilarity", () => {
   });
 
   it("skips members with NaN or undefined scores for shared count", () => {
-    const members = [
-      makeMember({ id: "m1" }),
-      makeMember({ id: "m2" }),
-    ];
+    const members = [makeMember({ id: "m1" }), makeMember({ id: "m2" })];
     const movies = [
       makeMovie({ userScores: { m1: 7, m2: 7 } }),
       makeMovie({ userScores: { m1: 5, m2: NaN } }),
@@ -390,26 +379,21 @@ describe("computeTasteSimilarity", () => {
       makeMovie({ userScores: { m1: 9, m2: 4 } }),
     ];
     const result = computeTasteSimilarity(movies, members);
-    expect(result.mostSimilar!.sharedCount).toBe(3);
+    expect(ensure(result.mostSimilar).sharedCount).toBe(3);
   });
 
   it("with only 2 members, mostSimilar and leastSimilar are the same pair", () => {
-    const members = [
-      makeMember({ id: "m1" }),
-      makeMember({ id: "m2" }),
-    ];
+    const members = [makeMember({ id: "m1" }), makeMember({ id: "m2" })];
     const movies = [
       makeMovie({ userScores: { m1: 7, m2: 5 } }),
       makeMovie({ userScores: { m1: 8, m2: 6 } }),
       makeMovie({ userScores: { m1: 6, m2: 4 } }),
     ];
     const result = computeTasteSimilarity(movies, members);
-    expect(result.mostSimilar!.memberA.id).toBe(
-      result.leastSimilar!.memberA.id,
-    );
-    expect(result.mostSimilar!.memberB.id).toBe(
-      result.leastSimilar!.memberB.id,
-    );
+    const mostSimilar = ensure(result.mostSimilar);
+    const leastSimilar = ensure(result.leastSimilar);
+    expect(mostSimilar.memberA.id).toBe(leastSimilar.memberA.id);
+    expect(mostSimilar.memberB.id).toBe(leastSimilar.memberB.id);
   });
 });
 
@@ -530,8 +514,8 @@ describe("computeTopDirectors", () => {
       }),
     ];
     const result = computeTopDirectors(movies);
-    const x = result.find((d) => d.name === "X")!;
-    const y = result.find((d) => d.name === "Y")!;
+    const x = ensure(result.find((d) => d.name === "X"));
+    const y = ensure(result.find((d) => d.name === "Y"));
     expect(x.movieCount).toBe(2);
     expect(x.averageScore).toBe(7);
     expect(y.movieCount).toBe(1);

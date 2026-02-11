@@ -1,6 +1,6 @@
 import { WorkType } from "../../../lib/types/generated/db";
-import type { DetailedMovieData } from "../../../lib/types/movie";
 import type { DetailedWorkListItem } from "../../../lib/types/lists";
+import type { DetailedMovieData } from "../../../lib/types/movie";
 import { filterMovies } from "../searchMovies";
 
 function makeExternalData(
