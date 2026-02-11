@@ -9,6 +9,14 @@ class UserRepository {
       .executeTakeFirstOrThrow();
   }
 
+  async getUserById(userId: string) {
+    return await db
+      .selectFrom("user")
+      .selectAll()
+      .where("id", "=", userId)
+      .executeTakeFirstOrThrow();
+  }
+
   async getMembersByClubId(clubId: string) {
     return await db
       .selectFrom("club")
@@ -56,6 +64,21 @@ class UserRepository {
       })
       .execute();
     return user;
+  }
+
+  async addClubMemberByUserId(
+    clubId: string,
+    userId: string,
+    role: string = "member",
+  ) {
+    await db
+      .insertInto("club_member")
+      .values({
+        club_id: clubId,
+        user_id: userId,
+        role: role,
+      })
+      .execute();
   }
 
   async addClubMembers(

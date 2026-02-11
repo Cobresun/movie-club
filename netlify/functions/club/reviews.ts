@@ -4,7 +4,6 @@ import { hasValue } from "../../../lib/checks/checks.js";
 import { WorkListType } from "../../../lib/types/generated/db";
 import ListRepository from "../repositories/ListRepository";
 import ReviewRepository from "../repositories/ReviewRepository";
-import UserRepository from "../repositories/UserRepository";
 import SharedReviewService from "../services/SharedReviewService";
 import { secured } from "../utils/auth";
 import { badRequest, ok } from "../utils/responses";
@@ -18,7 +17,7 @@ const addReviewSchema = z.object({
   workId: z.string(),
 });
 
-router.post("/", secured, async ({ clubId, email, event }, res) => {
+router.post("/", secured, async ({ clubId, userId, event }, res) => {
   if (!hasValue(event.body)) return res(badRequest("No body provided"));
   const body = addReviewSchema.safeParse(JSON.parse(event.body));
   if (!body.success) return res(badRequest("Invalid body"));
@@ -33,8 +32,7 @@ router.post("/", secured, async ({ clubId, email, event }, res) => {
   if (!isItemInList) {
     return res(badRequest("This movie does not exist in the list"));
   }
-  const user = await UserRepository.getByEmail(email);
-  await ReviewRepository.insertReview(clubId, workId, user.id, score);
+  await ReviewRepository.insertReview(clubId, workId, userId, score);
   return res(ok());
 });
 
@@ -45,7 +43,7 @@ const updateReviewSchema = z.object({
 router.put(
   `/:reviewId`,
   secured,
-  async ({ clubId, email, params, event }, res) => {
+  async ({ clubId, userId, params, event }, res) => {
     if (!hasValue(params.reviewId)) {
       return res(badRequest("No reviewId provided"));
     }
@@ -55,9 +53,8 @@ router.put(
 
     const { score } = body.data;
     const reviewId = params.reviewId;
-    const user = await UserRepository.getByEmail(email);
     const review = await ReviewRepository.getById(reviewId, clubId);
-    if (review.user_id !== user.id) {
+    if (review.user_id !== userId) {
       return res(badRequest("You are not allowed to edit this review"));
     }
     await ReviewRepository.updateScore(reviewId, score);

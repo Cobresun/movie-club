@@ -13,6 +13,7 @@ import { ClubRequest } from "./validation";
 import {
   ensure,
   filterUndefinedProperties,
+  hasValue,
   isDefined,
 } from "../../../lib/checks/checks.js";
 import ClubRepository from "../repositories/ClubRepository";
@@ -98,7 +99,7 @@ export const auth = betterAuth({
 });
 
 export type AuthRequest<T extends Request = Request> = T & {
-  email: string;
+  userId: string;
 };
 
 export const loggedIn = async <T extends Request>(
@@ -110,14 +111,14 @@ export const loggedIn = async <T extends Request>(
     headers: new Headers(filterUndefinedProperties(req.event.headers)),
   });
 
-  const email = session?.user?.email;
-  if (email === null || email === undefined) {
+  const userId = session?.user?.id;
+  if (!hasValue(userId)) {
     return res(unauthorized());
   }
 
   return {
     ...req,
-    email,
+    userId,
   };
 };
 
@@ -130,7 +131,7 @@ export const secured = async <T extends ClubRequest>(
     return loggedInResult;
   }
 
-  if (!(await ClubRepository.isUserInClub(req.clubId, loggedInResult.email))) {
+  if (!(await ClubRepository.isUserInClub(req.clubId, loggedInResult.userId))) {
     return res(unauthorized());
   }
 

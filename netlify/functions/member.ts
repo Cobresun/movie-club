@@ -22,7 +22,7 @@ const updateNameSchema = z.object({
 });
 
 router.get("/clubs", loggedIn, async (req, res) => {
-  const clubs = await ClubRepository.getClubPreviewsByEmail(req.email);
+  const clubs = await ClubRepository.getClubPreviewsByUserId(req.userId);
   const result: ClubPreview[] = clubs.map((club) => ({
     clubId: club.club_id,
     clubName: club.club_name,
@@ -38,7 +38,7 @@ router.post("/avatar", loggedIn, async (req, res) => {
 
     const avatarFile = parsed.files[0];
 
-    const user = await UserRepository.getByEmail(req.email);
+    const user = await UserRepository.getUserById(req.userId);
     const { url, id } = await ImageRepository.upload(avatarFile.content);
 
     // Delete old asset
@@ -46,7 +46,7 @@ router.post("/avatar", loggedIn, async (req, res) => {
       await ImageRepository.destroy(user.image_id);
     }
 
-    await UserRepository.updateImage(user.id, url, id);
+    await UserRepository.updateImage(req.userId, url, id);
 
     return res(ok("Avatar updated successfully"));
   } catch (error) {
@@ -57,7 +57,7 @@ router.post("/avatar", loggedIn, async (req, res) => {
 
 router.delete("/avatar", loggedIn, async (req, res) => {
   try {
-    const user = await UserRepository.getByEmail(req.email);
+    const user = await UserRepository.getUserById(req.userId);
 
     // Delete the image from Cloudinary if it exists
     if (isDefined(user.image_id)) {
@@ -65,7 +65,7 @@ router.delete("/avatar", loggedIn, async (req, res) => {
     }
 
     // Clear the image URL and ID from the database
-    await UserRepository.updateImage(user.id, null, null);
+    await UserRepository.updateImage(req.userId, null, null);
 
     return res(ok("Avatar deleted successfully"));
   } catch (error) {
@@ -82,9 +82,8 @@ router.put("/name", loggedIn, async (req, res) => {
   }
 
   const { name } = parsed.data;
-  const user = await UserRepository.getByEmail(req.email);
 
-  await UserRepository.updateName(user.id, name);
+  await UserRepository.updateName(req.userId, name);
 
   return res(ok("Name updated successfully"));
 });
