@@ -62,6 +62,14 @@ class ClubRepository {
       .executeTakeFirst();
   }
 
+  updateName(clubId: string, name: string) {
+    return db
+      .updateTable("club")
+      .set({ name })
+      .where("id", "=", clubId)
+      .executeTakeFirst();
+  }
+
   getClubPreviewsByEmail(email: string) {
     return db
       .selectFrom("user")

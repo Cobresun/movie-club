@@ -37,6 +37,27 @@ router.get("/:clubId<\\d+>", validClubId, async ({ clubId }, res) => {
   return res(ok(JSON.stringify(result)));
 });
 
+const clubNameUpdateSchema = z.object({
+  name: z.string().min(1).max(100),
+});
+
+router.put(
+  "/:clubId<\\d+>/name",
+  validClubId,
+  secured,
+  async ({ event, clubId }, res) => {
+    if (!hasValue(event.body)) return res(badRequest("Missing body"));
+
+    const body = clubNameUpdateSchema.safeParse(JSON.parse(event.body));
+    if (!body.success) return res(badRequest("Invalid body"));
+
+    const { name } = body.data;
+    await ClubRepository.updateName(clubId, name);
+
+    return res(ok());
+  },
+);
+
 router.use("/join", joinRouter);
 router.use("/joinInfo/:token", joinRouter);
 

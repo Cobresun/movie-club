@@ -3,6 +3,39 @@
     <page-header page-name="Club Settings" has-back back-route="ClubHome" />
 
     <div class="mx-auto max-w-3xl px-4 pb-6">
+      <!-- Club Name Section -->
+      <div class="mt-6 space-y-4">
+        <h3 class="text-xl font-semibold">Club Name</h3>
+        <div class="rounded-lg bg-gray-800 p-4">
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-end">
+            <div class="flex-1">
+              <label
+                for="club-name"
+                class="mb-2 block text-sm font-medium text-gray-300"
+              >
+                Name
+              </label>
+              <input
+                id="club-name"
+                v-model="editedClubName"
+                type="text"
+                maxlength="100"
+                class="w-full rounded border border-gray-600 bg-gray-700 p-3 text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                :disabled="isSavingName"
+              />
+            </div>
+            <v-btn
+              class="h-12 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 sm:w-auto"
+              :loading="isSavingName"
+              :disabled="!hasNameChanged || isSavingName"
+              @click="saveClubName"
+            >
+              Save
+            </v-btn>
+          </div>
+        </div>
+      </div>
+
       <!-- Feature Settings Section -->
       <div class="mt-6 space-y-4">
         <h3 class="text-xl font-semibold">Features</h3>
@@ -196,8 +229,11 @@ import {
   useInviteToken,
   useClubSettings,
   useUpdateClubSettings,
+  useClub,
+  useUpdateClubName,
 } from "@/service/useClub";
 import { useAuthStore } from "@/stores/auth";
+import { hasValue } from "../../../../lib/checks/checks.js";
 
 const toast = useToast();
 const auth = useAuthStore();
@@ -210,6 +246,7 @@ const memberToRemove = ref<{ id: string; name: string } | null>(null);
 const isRemoving = ref(false);
 
 const currentUserEmail = computed(() => auth.user?.email);
+const { data: club } = useClub(clubId);
 const {
   data: members,
   isLoading: isLoadingMembers,
@@ -221,10 +258,35 @@ const { mutate: removeMemberMutation } = useRemoveMember(clubId);
 const { data: inviteToken } = useInviteToken(clubId);
 const { data: settings } = useClubSettings(clubId);
 const { mutate: updateSettings } = useUpdateClubSettings(clubId);
+const { mutate: updateClubName, isPending: isSavingName } =
+  useUpdateClubName(clubId);
+
+const editedClubName = ref(club.value?.clubName ?? "");
+
+const hasNameChanged = computed(() => {
+  return (
+    hasValue(editedClubName.value) &&
+    editedClubName.value !== club.value?.clubName
+  );
+});
+
 const blurScoresEnabled = computed(
   () => settings.value?.features?.blurScores === true,
 );
 const awardsEnabled = computed(() => settings.value?.features?.awards === true);
+
+const saveClubName = () => {
+  if (!hasNameChanged.value) return;
+
+  updateClubName(editedClubName.value.trim(), {
+    onSuccess: () => {
+      toast.success("Club name updated successfully");
+    },
+    onError: () => {
+      toast.error("Failed to update club name");
+    },
+  });
+};
 
 const updateAwardsFeature = (value: boolean) => {
   updateSettings(
