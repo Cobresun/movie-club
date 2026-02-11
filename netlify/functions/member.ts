@@ -1,5 +1,6 @@
 import { Handler, HandlerContext, HandlerEvent } from "@netlify/functions";
 import { parse } from "lambda-multipart-parser";
+import { z } from "zod";
 
 import ClubRepository from "./repositories/ClubRepository";
 import ImageRepository from "./repositories/ImageRepository";
@@ -8,24 +9,20 @@ import { loggedIn } from "./utils/auth";
 import { badRequest, ok } from "./utils/responses";
 import { Router } from "./utils/router";
 import { isDefined } from "../../lib/checks/checks.js";
-import { ClubPreview, Member } from "../../lib/types/club";
+import { ClubPreview } from "../../lib/types/club";
 
 const router = new Router("/api/member");
 
-router.get("/", loggedIn, async (req, res) => {
-  const user = await UserRepository.getByEmail(req.email);
-
-  const result: Member = {
-    id: user.id,
-    email: user.email,
-    name: user.name,
-    image: user.image ?? undefined,
-  };
-  return res(ok(JSON.stringify(result)));
+const updateNameSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, "Name cannot be empty")
+    .max(100, "Name is too long"),
 });
 
 router.get("/clubs", loggedIn, async (req, res) => {
-  const clubs = await ClubRepository.getClubPreviewsByEmail(req.email);
+  const clubs = await ClubRepository.getClubPreviewsByUserId(req.userId);
   const result: ClubPreview[] = clubs.map((club) => ({
     clubId: club.club_id,
     clubName: club.club_name,
@@ -41,7 +38,7 @@ router.post("/avatar", loggedIn, async (req, res) => {
 
     const avatarFile = parsed.files[0];
 
-    const user = await UserRepository.getByEmail(req.email);
+    const user = await UserRepository.getUserById(req.userId);
     const { url, id } = await ImageRepository.upload(avatarFile.content);
 
     // Delete old asset
@@ -49,7 +46,7 @@ router.post("/avatar", loggedIn, async (req, res) => {
       await ImageRepository.destroy(user.image_id);
     }
 
-    await UserRepository.updateImage(user.id, url, id);
+    await UserRepository.updateImage(req.userId, url, id);
 
     return res(ok("Avatar updated successfully"));
   } catch (error) {
@@ -60,7 +57,7 @@ router.post("/avatar", loggedIn, async (req, res) => {
 
 router.delete("/avatar", loggedIn, async (req, res) => {
   try {
-    const user = await UserRepository.getByEmail(req.email);
+    const user = await UserRepository.getUserById(req.userId);
 
     // Delete the image from Cloudinary if it exists
     if (isDefined(user.image_id)) {
@@ -68,13 +65,27 @@ router.delete("/avatar", loggedIn, async (req, res) => {
     }
 
     // Clear the image URL and ID from the database
-    await UserRepository.updateImage(user.id, null, null);
+    await UserRepository.updateImage(req.userId, null, null);
 
     return res(ok("Avatar deleted successfully"));
   } catch (error) {
     console.error("Error deleting avatar:", error);
     return res(badRequest("Error deleting avatar"));
   }
+});
+
+router.put("/name", loggedIn, async (req, res) => {
+  const parsed = updateNameSchema.safeParse(JSON.parse(req.event.body ?? "{}"));
+
+  if (!parsed.success) {
+    return res(badRequest(parsed.error.errors[0]?.message ?? "Invalid name"));
+  }
+
+  const { name } = parsed.data;
+
+  await UserRepository.updateName(req.userId, name);
+
+  return res(ok("Name updated successfully"));
 });
 
 const handler: Handler = async (

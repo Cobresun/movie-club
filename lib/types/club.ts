@@ -1,11 +1,14 @@
 import { BaseReview, Review } from "./reviews";
 import { BaseWatchListItem, WatchListItem } from "./watchlist";
 
-export interface Member {
+export interface User {
   id: string;
   email: string;
   name: string;
   image?: string;
+}
+
+export interface Member extends User {
   role?: string;
 }
 

@@ -70,21 +70,21 @@ class ClubRepository {
       .executeTakeFirst();
   }
 
-  getClubPreviewsByEmail(email: string) {
+  getClubPreviewsByUserId(userId: string) {
     return db
       .selectFrom("user")
-      .where("email", "=", email)
+      .where("user.id", "=", userId)
       .innerJoin("club_member", "club_member.user_id", "user.id")
       .innerJoin("club", "club.id", "club_member.club_id")
       .select(["club.id as club_id", "club.name as club_name"])
       .execute();
   }
 
-  async isUserInClub(clubId: string, email: string, isLegacy?: boolean) {
+  async isUserInClub(clubId: string, userId: string, isLegacy?: boolean) {
     const clubCondition = isTrue(isLegacy) ? "club.legacy_id" : "club.id";
     return !!(await db
       .selectFrom("user")
-      .where("email", "=", email)
+      .where("user.id", "=", userId)
       .innerJoin("club_member", "club_member.user_id", "user.id")
       .innerJoin("club", "club.id", "club_member.club_id")
       .where(clubCondition, "=", clubId)
@@ -94,7 +94,7 @@ class ClubRepository {
 
   async joinClubWithInvite(
     token: string,
-    email: string,
+    userId: string,
   ): Promise<JoinClubResult> {
     // Query invite using the provided token
     const invite = await db
@@ -116,23 +116,12 @@ class ClubRepository {
       return { success: false, error: "Invite token expired" };
     }
 
-    // Get the user ID from email
-    const user = await db
-      .selectFrom("user")
-      .select("id")
-      .where("email", "=", email)
-      .executeTakeFirst();
-
-    if (!user) {
-      return { success: false, error: "User not found" };
-    }
-
     // Add the user as a club member
     await db
       .insertInto("club_member")
       .values({
         club_id: invite.club_id,
-        user_id: user.id,
+        user_id: userId,
         role: "member",
       })
       .execute();

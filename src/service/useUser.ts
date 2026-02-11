@@ -1,19 +1,24 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
+import { useMutation, useQuery } from "@tanstack/vue-query";
 import { computed } from "vue";
 
-import { ClubPreview, Member } from "../../lib/types/club";
+import { ClubPreview, User } from "../../lib/types/club";
 
 import { useAuthStore } from "@/stores/auth";
 
 export function useUser() {
   const auth = useAuthStore();
-  const email = computed(() => auth.user?.email ?? "");
-  const isLoggedIn = computed(() => auth.isLoggedIn);
 
-  return useQuery<Member>({
-    queryKey: ["user", email],
-    enabled: isLoggedIn,
-    queryFn: async () => (await auth.request.get<Member>(`/api/member`)).data,
+  // Return session user data directly
+  return computed<User | undefined>(() => {
+    const user = auth.user;
+    if (!user) return undefined;
+
+    return {
+      id: String(user.id),
+      email: user.email,
+      name: user.name,
+      image: user.image ?? undefined,
+    };
   });
 }
 
@@ -31,7 +36,6 @@ export function useUserClubs() {
 
 export function useUpdateAvatar() {
   const auth = useAuthStore();
-  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (formData: FormData) =>
       await auth.request.post(`/api/member/avatar`, formData, {
@@ -40,22 +44,31 @@ export function useUpdateAvatar() {
         },
       }),
     onSettled: () => {
-      queryClient
-        .invalidateQueries({ queryKey: ["user", auth.user?.email ?? ""] })
-        .catch(console.error);
+      // Refresh session to get updated user data
+      auth.refreshSession().catch(console.error);
     },
   });
 }
 
 export function useDeleteAvatar() {
   const auth = useAuthStore();
-  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async () => await auth.request.delete(`/api/member/avatar`),
     onSettled: () => {
-      queryClient
-        .invalidateQueries({ queryKey: ["user", auth.user?.email ?? ""] })
-        .catch(console.error);
+      // Refresh session to get updated user data
+      auth.refreshSession().catch(console.error);
+    },
+  });
+}
+
+export function useUpdateName() {
+  const auth = useAuthStore();
+  return useMutation({
+    mutationFn: async (name: string) =>
+      await auth.request.put(`/api/member/name`, { name }),
+    onSettled: () => {
+      // Refresh session to get updated user data
+      auth.refreshSession().catch(console.error);
     },
   });
 }

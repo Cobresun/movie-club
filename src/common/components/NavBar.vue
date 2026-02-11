@@ -24,7 +24,7 @@ import { useUser } from "@/service/useUser";
 import { useAuthStore } from "@/stores/auth";
 
 const store = useAuthStore();
-const { data: user } = useUser();
+const user = useUser();
 
 const isLoggedIn = computed(() => store.isLoggedIn);
 const fullName = computed(() => store.user?.name ?? "");

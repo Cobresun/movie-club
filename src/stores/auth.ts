@@ -106,6 +106,10 @@ export const useAuthStore = defineStore("auth", () => {
     });
   };
 
+  const refreshSession = async () => {
+    await session.value.refetch();
+  };
+
   return {
     // Session data
     user,
@@ -119,6 +123,7 @@ export const useAuthStore = defineStore("auth", () => {
     login,
     closeAuthModal,
     logout,
+    refreshSession,
 
     // Axios (for backward compatibility)
     request,

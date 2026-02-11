@@ -3,7 +3,7 @@ import { http, HttpResponse } from "msw";
 
 import ReviewView from "../views/ReviewView.vue";
 
-import userData from "@/mocks/data/netlifyUser.json";
+import memberData from "@/mocks/data/member.json";
 import reviews from "@/mocks/data/reviews.json";
 import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
 import { server } from "@/mocks/server";
@@ -86,7 +86,15 @@ describe("ReviewView", () => {
     const { user, pinia } = render(ReviewView, { props: { clubId: "1" } });
     const authStore = useAuthStore(pinia);
     // @ts-expect-error Overwriting readonly property for testing purposes
-    authStore.user = userData;
+    authStore.user = {
+      id: memberData.id,
+      email: memberData.email,
+      name: memberData.name,
+      image: memberData.image,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      emailVerified: true,
+    };
     //@ts-expect-error Forcing logged in to true for testing
     authStore.isLoggedIn = true;
 

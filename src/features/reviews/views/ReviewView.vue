@@ -241,7 +241,7 @@ const { mutate: deleteReview } = useDeleteListItem(
 );
 
 const mdicon = resolveComponent("mdicon");
-const { data: currentUser } = useUser();
+const currentUser = useUser();
 const userId = computed(() => currentUser.value?.id);
 
 const revealedMovieIds = ref<Set<string>>(new Set());

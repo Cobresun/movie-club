@@ -152,7 +152,7 @@ export function useDeleteCategory(clubId: string, year: string) {
 }
 
 export function useAddNomination(clubId: string, year: string) {
-  const { data: user } = useUser();
+  const user = useUser();
   const auth = useAuthStore();
   const queryClient = useQueryClient();
   return useMutation({
@@ -219,7 +219,7 @@ export function useAddNomination(clubId: string, year: string) {
 export function useDeleteNomination(clubId: string, year: string) {
   const auth = useAuthStore();
   const queryClient = useQueryClient();
-  const { data: user } = useUser();
+  const user = useUser();
 
   return useMutation({
     mutationFn: (input: { awardTitle: string; movieId: number }) =>
@@ -272,7 +272,7 @@ export function useDeleteNomination(clubId: string, year: string) {
 
 export function useSubmitRanking(clubId: string, year: string) {
   const auth = useAuthStore();
-  const { data: user } = useUser();
+  const user = useUser();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({
