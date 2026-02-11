@@ -221,6 +221,8 @@
 import { ref, computed } from "vue";
 import { useToast } from "vue-toastification";
 
+import { hasValue } from "../../../../lib/checks/checks.js";
+
 import {
   useMembers,
   useClubId,
@@ -233,7 +235,6 @@ import {
   useUpdateClubName,
 } from "@/service/useClub";
 import { useAuthStore } from "@/stores/auth";
-import { hasValue } from "../../../../lib/checks/checks.js";
 
 const toast = useToast();
 const auth = useAuthStore();
