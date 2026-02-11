@@ -45,7 +45,7 @@ const props = defineProps<{
   size?: string;
 }>();
 
-const { data: user } = useUser();
+const user = useUser();
 const isMe = computed(() => user.value?.id === props.memberId);
 
 const isInputOpen = ref(false);

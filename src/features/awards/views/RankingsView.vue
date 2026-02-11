@@ -28,7 +28,7 @@ const { clubAward, clubId, year } = defineProps<{
 }>();
 
 const { data: members } = useMembers(clubId);
-const { data: user } = useUser();
+const user = useUser();
 
 const { mutate } = useSubmitRanking(clubId, year);
 const toast = useToast();

@@ -37,6 +37,14 @@ class UserRepository {
       .execute();
   }
 
+  async updateName(userId: string, name: string) {
+    return await db
+      .updateTable("user")
+      .set({ name })
+      .where("id", "=", userId)
+      .execute();
+  }
+
   async addClubMember(clubId: string, email: string, role: string = "member") {
     const user = await this.getByEmail(email);
     await db

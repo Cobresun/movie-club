@@ -1,5 +1,6 @@
 import { Handler, HandlerContext, HandlerEvent } from "@netlify/functions";
 import { parse } from "lambda-multipart-parser";
+import { z } from "zod";
 
 import ClubRepository from "./repositories/ClubRepository";
 import ImageRepository from "./repositories/ImageRepository";
@@ -8,20 +9,16 @@ import { loggedIn } from "./utils/auth";
 import { badRequest, ok } from "./utils/responses";
 import { Router } from "./utils/router";
 import { isDefined } from "../../lib/checks/checks.js";
-import { ClubPreview, Member } from "../../lib/types/club";
+import { ClubPreview } from "../../lib/types/club";
 
 const router = new Router("/api/member");
 
-router.get("/", loggedIn, async (req, res) => {
-  const user = await UserRepository.getByEmail(req.email);
-
-  const result: Member = {
-    id: user.id,
-    email: user.email,
-    name: user.name,
-    image: user.image ?? undefined,
-  };
-  return res(ok(JSON.stringify(result)));
+const updateNameSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, "Name cannot be empty")
+    .max(100, "Name is too long"),
 });
 
 router.get("/clubs", loggedIn, async (req, res) => {
@@ -75,6 +72,21 @@ router.delete("/avatar", loggedIn, async (req, res) => {
     console.error("Error deleting avatar:", error);
     return res(badRequest("Error deleting avatar"));
   }
+});
+
+router.put("/name", loggedIn, async (req, res) => {
+  const parsed = updateNameSchema.safeParse(JSON.parse(req.event.body ?? "{}"));
+
+  if (!parsed.success) {
+    return res(badRequest(parsed.error.errors[0]?.message ?? "Invalid name"));
+  }
+
+  const { name } = parsed.data;
+  const user = await UserRepository.getByEmail(req.email);
+
+  await UserRepository.updateName(user.id, name);
+
+  return res(ok("Name updated successfully"));
 });
 
 const handler: Handler = async (

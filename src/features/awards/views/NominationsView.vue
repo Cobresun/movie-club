@@ -102,7 +102,7 @@ const { clubAward, clubId, year } = defineProps<{
   year: string;
 }>();
 
-const { data: user } = useUser();
+const user = useUser();
 
 const userOnlyAwards = computed(() => {
   if (!user.value || !user.value.name) return [];
