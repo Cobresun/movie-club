@@ -47,8 +47,8 @@ const clubNameUpdateSchema = z.object({
 });
 
 router.put(
-  "/:clubId<\\d+>/name",
-  validClubId,
+  "/:clubSlug/name",
+  validClubSlug,
   secured,
   async ({ event, clubId }, res) => {
     if (!hasValue(event.body)) return res(badRequest("Missing body"));
