@@ -29,6 +29,11 @@ export interface GenreStats {
   count: number;
 }
 
+export interface GenreWatchCount {
+  genre: string;
+  count: number;
+}
+
 export interface MemberLeaderboardEntry {
   member: { id: string; name: string; image?: string; role?: string };
   averageScore: number;
