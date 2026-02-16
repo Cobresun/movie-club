@@ -1,8 +1,17 @@
 <template>
   <div v-if="tasteSimilarity.mostSimilar || tasteSimilarity.leastSimilar">
-    <div class="mx-auto mb-4 flex w-11/12 items-center gap-2">
-      <v-switch v-model="useNormalized" color="primary" />
-      <span class="text-sm text-gray-300">Normalized Scores</span>
+    <div class="mx-auto mb-4 flex w-11/12 flex-col gap-1">
+      <div class="flex items-center gap-2">
+        <v-switch v-model="useNormalized" color="primary" />
+        <span class="text-sm text-gray-300">Normalized Scores</span>
+      </div>
+      <p class="text-xs text-slate-500">
+        {{
+          useNormalized
+            ? "Comparing relative taste — ignores whether someone rates high or low overall"
+            : "Comparing raw scores directly"
+        }}
+      </p>
     </div>
     <div class="mx-auto grid w-11/12 grid-cols-1 gap-6 md:grid-cols-2">
       <WidgetShell
