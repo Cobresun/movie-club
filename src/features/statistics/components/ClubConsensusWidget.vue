@@ -18,24 +18,11 @@
               class="h-16 w-11 shrink-0 rounded object-cover"
             />
             <div class="min-w-0 flex-1">
-              <div class="flex items-start justify-between gap-2">
-                <span
-                  class="text-sm font-medium text-white"
-                  :title="movie.title"
-                  >{{ movie.title }}</span
-                >
-                <span class="shrink-0 text-sm font-semibold text-green-400">
-                  {{ movie.average.toFixed(1) }}
-                </span>
-              </div>
-              <div
-                class="mt-1 rounded bg-green-900/20 px-2 py-1 text-xs text-slate-400"
+              <span
+                class="text-sm font-medium text-white"
+                :title="movie.title"
+                >{{ movie.title }}</span
               >
-                Std dev:
-                <span class="font-semibold text-green-300">{{
-                  movie.stdDev.toFixed(2)
-                }}</span>
-              </div>
               <div class="mt-2 flex flex-wrap gap-1">
                 <span
                   v-for="s in movie.scores"
@@ -44,6 +31,12 @@
                 >
                   {{ firstName(s.name) }}: {{ s.score }}
                 </span>
+              </div>
+              <div class="mt-2 text-xs text-slate-400">
+                Average:
+                <span class="font-semibold text-green-400">{{
+                  movie.average.toFixed(1)
+                }}</span>
               </div>
             </div>
           </div>
@@ -66,24 +59,11 @@
               class="h-16 w-11 shrink-0 rounded object-cover"
             />
             <div class="min-w-0 flex-1">
-              <div class="flex items-start justify-between gap-2">
-                <span
-                  class="text-sm font-medium text-white"
-                  :title="movie.title"
-                  >{{ movie.title }}</span
-                >
-                <span class="shrink-0 text-sm font-semibold text-red-400">
-                  {{ movie.average.toFixed(1) }}
-                </span>
-              </div>
-              <div
-                class="mt-1 rounded bg-red-900/20 px-2 py-1 text-xs text-slate-400"
+              <span
+                class="text-sm font-medium text-white"
+                :title="movie.title"
+                >{{ movie.title }}</span
               >
-                Std dev:
-                <span class="font-semibold text-red-300">{{
-                  movie.stdDev.toFixed(2)
-                }}</span>
-              </div>
               <div class="mt-2 flex flex-wrap gap-1">
                 <span
                   v-for="s in movie.scores"
@@ -92,6 +72,12 @@
                 >
                   {{ firstName(s.name) }}: {{ s.score }}
                 </span>
+              </div>
+              <div class="mt-2 text-xs text-slate-400">
+                Average:
+                <span class="font-semibold text-red-400">{{
+                  movie.average.toFixed(1)
+                }}</span>
               </div>
             </div>
           </div>
