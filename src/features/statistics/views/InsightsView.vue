@@ -11,6 +11,7 @@
     <ReviewerLeaderboardWidget :movie-data="movieData" :members="members" />
     <TasteSimilarityWidget :movie-data="movieData" :members="members" />
     <DirectorsLeaderboard :movie-data="movieData" />
+    <TmdbDeviationWidget :movie-data="movieData" />
   </div>
 </template>
 
@@ -23,6 +24,7 @@ import ReviewerLeaderboardWidget from "../components/ReviewerLeaderboardWidget.v
 import ScoreDistributionWidget from "../components/ScoreDistributionWidget.vue";
 import StatsWidget from "../components/StatsWidget.vue";
 import TasteSimilarityWidget from "../components/TasteSimilarityWidget.vue";
+import TmdbDeviationWidget from "../components/TmdbDeviationWidget.vue";
 import type { HistogramData, MovieData } from "../types";
 
 defineProps<{
