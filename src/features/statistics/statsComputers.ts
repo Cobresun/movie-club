@@ -108,10 +108,13 @@ export function computeMemberLeaderboard(
 }
 
 const MIN_SHARED_REVIEWS = 3;
+const MAX_RAW_SCORE_DIFF = 10;
+const MAX_NORMALIZED_DIFF = 4;
 
 export function computeTasteSimilarity(
   movieData: MovieData[],
   members: Member[],
+  useNormalized = false,
 ): {
   mostSimilar: MemberPairSimilarity | null;
   leastSimilar: MemberPairSimilarity | null;
@@ -120,6 +123,7 @@ export function computeTasteSimilarity(
     return { mostSimilar: null, leastSimilar: null };
   }
 
+  const maxDiff = useNormalized ? MAX_NORMALIZED_DIFF : MAX_RAW_SCORE_DIFF;
   const pairs: MemberPairSimilarity[] = [];
 
   for (let i = 0; i < members.length; i++) {
@@ -135,8 +139,9 @@ export function computeTasteSimilarity(
       }[] = [];
 
       for (const movie of movieData) {
-        const scoreA = movie.userScores[memberA.id];
-        const scoreB = movie.userScores[memberB.id];
+        const scores = useNormalized ? movie.normalized : movie.userScores;
+        const scoreA = scores[memberA.id];
+        const scoreB = scores[memberB.id];
         if (
           isDefined(scoreA) &&
           !isNaN(scoreA) &&
@@ -160,8 +165,10 @@ export function computeTasteSimilarity(
       );
       const avgDifference =
         Math.round((totalDiff / sharedMovies.length) * 100) / 100;
-      const similarityPercent =
-        Math.round((1 - avgDifference / 10) * 10000) / 100;
+      const similarityPercent = Math.max(
+        0,
+        Math.round((1 - avgDifference / maxDiff) * 10000) / 100,
+      );
 
       const withDiffs = sharedMovies.map((m) => ({
         ...m,
