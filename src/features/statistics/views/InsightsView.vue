@@ -7,6 +7,7 @@
       :histogram-data="histogramData"
     />
     <GenreStatsWidget :movie-data="movieData" :members="members" />
+    <GenreWatchCountWidget :movie-data="movieData" />
     <ReviewerLeaderboardWidget :movie-data="movieData" :members="members" />
     <TasteSimilarityWidget :movie-data="movieData" :members="members" />
     <DirectorsLeaderboard :movie-data="movieData" />
@@ -17,6 +18,7 @@
 import { Member } from "../../../../lib/types/club";
 import DirectorsLeaderboard from "../components/DirectorsLeaderboard.vue";
 import GenreStatsWidget from "../components/GenreStatsWidget.vue";
+import GenreWatchCountWidget from "../components/GenreWatchCountWidget.vue";
 import ReviewerLeaderboardWidget from "../components/ReviewerLeaderboardWidget.vue";
 import ScoreDistributionWidget from "../components/ScoreDistributionWidget.vue";
 import StatsWidget from "../components/StatsWidget.vue";

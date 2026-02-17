@@ -1,5 +1,6 @@
 import type {
   GenreStats,
+  GenreWatchCount,
   MemberLeaderboardEntry,
   MemberPairSimilarity,
   MovieData,
@@ -49,6 +50,28 @@ export function computeGenreStats(
     leastLoved: sorted
       .slice(-3)
       .sort((a, b) => a.averageScore - b.averageScore),
+  };
+}
+
+export function computeGenreWatchCounts(movieData: MovieData[]): {
+  mostWatched: GenreWatchCount[];
+  leastWatched: GenreWatchCount[];
+} {
+  const genreCounts: Record<string, number> = {};
+
+  for (const movie of movieData) {
+    for (const genre of movie.genres) {
+      genreCounts[genre] = (genreCounts[genre] ?? 0) + 1;
+    }
+  }
+
+  const sorted = Object.entries(genreCounts)
+    .map(([genre, count]) => ({ genre, count }))
+    .sort((a, b) => b.count - a.count);
+
+  return {
+    mostWatched: sorted.slice(0, 5),
+    leastWatched: sorted.slice(-5).sort((a, b) => a.count - b.count),
   };
 }
 
