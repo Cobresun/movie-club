@@ -8,7 +8,7 @@ Movie Club is a Vue 3 web application for managing movie clubs, reviews, watchli
 
 ## Code Quality
 
-Code quality checks (`npm run type-check` and `npm run lint`) run automatically via Claude Code hooks after every file edit. Run `npm test` manually when changes affect tested code.
+Code quality checks run automatically via Claude Code hooks after every file edit: Prettier auto-formats the edited file first, then `npm run type-check` and `npm run lint` validate the result. This means Prettier formatting issues are fixed in place and will never reach the lint step. Run `npm test` manually when changes affect tested code.
 
 ## Claude Code Skills
 

@@ -23,7 +23,10 @@
             ?
           </div>
           <div class="min-w-0 flex-1">
-            <p class="w-fit max-w-full truncate text-sm font-medium text-white" :title="movie.title">
+            <p
+              class="w-fit max-w-full truncate text-sm font-medium text-white"
+              :title="movie.title"
+            >
               {{ movie.title }}
             </p>
             <div class="mt-1 flex flex-wrap gap-1">
@@ -36,7 +39,9 @@
               </span>
             </div>
           </div>
-          <span class="shrink-0 rounded-full bg-green-900/30 px-2.5 py-1 text-sm font-bold text-green-400">
+          <span
+            class="shrink-0 rounded-full bg-green-900/30 px-2.5 py-1 text-sm font-bold text-green-400"
+          >
             {{ movie.average.toFixed(1) }}
           </span>
         </div>
@@ -63,7 +68,10 @@
             ?
           </div>
           <div class="min-w-0 flex-1">
-            <p class="w-fit max-w-full truncate text-sm font-medium text-white" :title="movie.title">
+            <p
+              class="w-fit max-w-full truncate text-sm font-medium text-white"
+              :title="movie.title"
+            >
               {{ movie.title }}
             </p>
             <div class="mt-1 flex flex-wrap gap-1">
@@ -76,7 +84,9 @@
               </span>
             </div>
           </div>
-          <span class="shrink-0 rounded-full bg-red-900/30 px-2.5 py-1 text-sm font-bold text-red-400">
+          <span
+            class="shrink-0 rounded-full bg-red-900/30 px-2.5 py-1 text-sm font-bold text-red-400"
+          >
             {{ movie.average.toFixed(1) }}
           </span>
         </div>
