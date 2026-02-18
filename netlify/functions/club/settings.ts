@@ -8,7 +8,7 @@ import { badRequest, ok } from "../utils/responses";
 import { Router } from "../utils/router";
 import { ClubRequest } from "../utils/validation";
 
-const router = new Router<ClubRequest>("/api/club/:clubId<\\d+>/settings");
+const router = new Router<ClubRequest>("/api/club/:clubSlug/settings");
 
 router.get("/", secured, async ({ clubId }, res) => {
   const settings = await SettingsRepository.getSettings(clubId);

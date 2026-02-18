@@ -37,10 +37,8 @@ export const useAuthStore = defineStore("auth", () => {
     enabled: isLoggedIn,
   });
 
-  const isClubMember = (clubId: string) => {
-    return (
-      userClubs.value?.some((club) => String(club.clubId) === clubId) ?? false
-    );
+  const isClubMember = (clubSlug: string) => {
+    return userClubs.value?.some((club) => club.slug === clubSlug) ?? false;
   };
 
   // Helper to wait for auth and clubs to be ready

@@ -3,7 +3,7 @@
     <page-header :has-back="false" page-name="" />
 
     <!-- Members section -->
-    <div class="mx-auto max-w-3xl p-4">
+    <div class="mx-auto max-w-3xl p-4 text-center">
       <loading-spinner v-if="isLoadingMembers" />
       <div v-else class="flex flex-wrap justify-center gap-2">
         <!-- Member pills -->
@@ -90,12 +90,12 @@ import statisticsSvg from "@/assets/images/menu-images/statistics.svg";
 import watchlistSvg from "@/assets/images/menu-images/watchlist.svg";
 import {
   useMembers,
-  useClubId,
+  useClubSlug,
   useInviteToken,
   useClubSettings,
 } from "@/service/useClub";
 
-const clubId = useClubId();
+const clubId = useClubSlug();
 const { data: members, isLoading: isLoadingMembers } = useMembers(clubId);
 const { data: inviteToken } = useInviteToken(clubId);
 const { data: settings } = useClubSettings(clubId);

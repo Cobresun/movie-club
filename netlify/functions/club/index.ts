@@ -8,7 +8,7 @@ import membersRouter from "./members";
 import joinRouter from "./members/join";
 import reviewsRouter from "./reviews";
 import settingsRouter from "./settings";
-import { hasValue } from "../../../lib/checks/checks.js";
+import { ensure, hasValue } from "../../../lib/checks/checks.js";
 import { ClubPreview } from "../../../lib/types/club";
 import ClubRepository from "../repositories/ClubRepository";
 import ListRepository from "../repositories/ListRepository";
@@ -19,20 +19,25 @@ import { loggedIn, secured } from "../utils/auth";
 import { db } from "../utils/database";
 import { ok, badRequest } from "../utils/responses";
 import { Router } from "../utils/router";
-import { validClubId } from "../utils/validation";
+import { validateSlug } from "../utils/slug";
+import { validClubSlug } from "../utils/validation";
 
 const router = new Router("/api/club");
-router.use("/:clubId<\\d+>/list", validClubId, listRouter);
-router.use("/:clubId<\\d+>/reviews", validClubId, reviewsRouter);
-router.use("/:clubId<\\d+>/members", validClubId, membersRouter);
-router.use("/:clubId<\\d+>/awards", validClubId, awardsRouter);
-router.use("/:clubId<\\d+>/invite", validClubId, inviteRouter);
-router.use("/:clubId<\\d+>/settings", validClubId, settingsRouter);
-router.get("/:clubId<\\d+>", validClubId, async ({ clubId }, res) => {
-  const club = await ClubRepository.getById(clubId);
+router.use("/:clubSlug/list", validClubSlug, listRouter);
+router.use("/:clubSlug/reviews", validClubSlug, reviewsRouter);
+router.use("/:clubSlug/members", validClubSlug, membersRouter);
+router.use("/:clubSlug/awards", validClubSlug, awardsRouter);
+router.use("/:clubSlug/invite", validClubSlug, inviteRouter);
+router.use("/:clubSlug/settings", validClubSlug, settingsRouter);
+router.get("/:clubSlug", validClubSlug, async ({ clubId }, res) => {
+  const club = ensure(await ClubRepository.getById(clubId));
   const result: ClubPreview = {
     clubId: club.id,
     clubName: club.name,
+    slug: club.slug,
+    slugUpdatedAt: club.slug_updated_at
+      ? String(club.slug_updated_at)
+      : undefined,
   };
   return res(ok(JSON.stringify(result)));
 });
@@ -42,8 +47,8 @@ const clubNameUpdateSchema = z.object({
 });
 
 router.put(
-  "/:clubId<\\d+>/name",
-  validClubId,
+  "/:clubSlug/name",
+  validClubSlug,
   secured,
   async ({ event, clubId }, res) => {
     if (!hasValue(event.body)) return res(badRequest("Missing body"));
@@ -111,11 +116,11 @@ router.post("/", loggedIn, async ({ event }, res) => {
   return res(
     hasErrors
       ? badRequest("Error creating club")
-      : ok(JSON.stringify({ clubId: newClub.id })),
+      : ok(JSON.stringify({ clubId: newClub.id, slug: String(newClub.slug) })),
   );
 });
 
-router.get("/:clubId<\\d+>/nextWork", validClubId, async ({ clubId }, res) => {
+router.get("/:clubSlug/nextWork", validClubSlug, async ({ clubId }, res) => {
   const nextWork = await WorkRepository.getNextWork(clubId);
   return res(ok(JSON.stringify({ workId: nextWork?.work_id })));
 });
@@ -125,8 +130,8 @@ const nextWorkSchema = z.object({
 });
 
 router.put(
-  "/:clubId<\\d+>/nextWork",
-  validClubId,
+  "/:clubSlug/nextWork",
+  validClubSlug,
   secured,
   async ({ event, clubId }, res) => {
     if (!hasValue(event.body)) return res(badRequest("Missing body"));
@@ -142,12 +147,44 @@ router.put(
 );
 
 router.delete(
-  "/:clubId<\\d+>/nextWork",
-  validClubId,
+  "/:clubSlug/nextWork",
+  validClubSlug,
   secured,
   async ({ clubId }, res) => {
     await WorkRepository.deleteNextWork(clubId);
     return res(ok());
+  },
+);
+
+const updateSlugSchema = z.object({
+  slug: z.string(),
+});
+
+router.put(
+  "/:clubSlug/slug",
+  validClubSlug,
+  secured,
+  async ({ clubId, event }, res) => {
+    if (!hasValue(event.body)) return res(badRequest("Missing body"));
+
+    const body = updateSlugSchema.safeParse(JSON.parse(event.body));
+    if (!body.success) return res(badRequest("Invalid body"));
+
+    const { slug: newSlug } = body.data;
+
+    const validationError = validateSlug(newSlug);
+    if (hasValue(validationError)) {
+      return res(badRequest(validationError));
+    }
+
+    const slugTaken = await ClubRepository.slugExists(newSlug, clubId);
+    if (slugTaken) {
+      return res(badRequest("This url is already in use by another club"));
+    }
+
+    await ClubRepository.updateSlug(clubId, newSlug);
+
+    return res(ok(JSON.stringify({ slug: newSlug })));
   },
 );
 

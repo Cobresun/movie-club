@@ -10,21 +10,35 @@ export function getErrorMessage(error: unknown) {
 
 export type ClubRequest<T extends Request = Request> = T & {
   clubId: string;
+  clubSlug: string;
 };
 
-export const validClubId: MiddlewareCallback<Request, ClubRequest> = async (
+/**
+ * Middleware that validates club slug and adds club data to request context
+ */
+export const validClubSlug: MiddlewareCallback<Request, ClubRequest> = async (
   req,
   res,
 ) => {
-  if (!hasValue(req.params.clubId)) return res(notFound());
-  const clubId = req.params.clubId;
+  const slug = req.params.clubSlug;
 
-  if (await ClubRepository.exists(clubId)) {
-    return {
-      ...req,
-      clubId,
-    };
-  } else {
+  if (!hasValue(slug)) {
+    return res(notFound());
+  }
+
+  // Look up club by slug
+  const club = await ClubRepository.getBySlug(slug);
+
+  if (!club) {
     return res(notFound("Club not found"));
   }
+
+  const clubId = String(club.id);
+  const clubSlug = club.slug;
+
+  return {
+    ...req,
+    clubId,
+    clubSlug,
+  };
 };

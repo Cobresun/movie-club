@@ -7,7 +7,7 @@
       :hide-club="true"
     />
     <div v-if="isLoggedIn">
-      <div class="px-4">
+      <div class="px-4 text-center">
         <input
           id="club-name"
           v-model="clubName"

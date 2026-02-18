@@ -8,9 +8,9 @@ import AwardsRepository from "../../repositories/AwardsRepository";
 import { notFound, ok } from "../../utils/responses";
 import { Router } from "../../utils/router";
 import { getDetailedMovie } from "../../utils/tmdb";
-import { ClubRequest, validClubId } from "../../utils/validation";
+import { ClubRequest } from "../../utils/validation";
 
-const router = new Router<ClubRequest>("/api/club/:clubId<\\d+>/awards");
+const router = new Router<ClubRequest>("/api/club/:clubSlug/awards");
 router.use("/:year<\\d+>/category", validYear, categoryRouter);
 router.use("/:year<\\d+>/step", validYear, stepHandler);
 router.use("/:year<\\d+>/nomination", validYear, nominationRouter);
@@ -35,7 +35,7 @@ router.get("/:year<\\d+>", validYear, async ({ clubId, year }, res) => {
   return res(ok(JSON.stringify(retObj)));
 });
 
-router.get("/years", validClubId, async ({ clubId }, res) => {
+router.get("/years", async ({ clubId }, res) => {
   const years = await AwardsRepository.getYears(clubId);
   return res(ok(JSON.stringify(years)));
 });

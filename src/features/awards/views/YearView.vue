@@ -23,8 +23,8 @@ import { AwardsStep } from "../../../../lib/types/awards";
 import { useAwards, useUpdateStep } from "@/service/useAwards";
 import { useMembers } from "@/service/useClub";
 
-const props = defineProps<{ clubId: string; year: string }>();
-const { clubId, year } = toRefs(props);
+const props = defineProps<{ clubSlug: string; year: string }>();
+const { clubSlug, year } = toRefs(props);
 
 const steps = [
   {
@@ -48,10 +48,14 @@ const steps = [
 
 const router = useRouter();
 
-const { data: clubAward, isLoading } = useAwards(clubId, year, (clubAward) => {
-  const step = steps.find((step) => step.step === clubAward.step);
-  if (step) router.push({ name: step.routeName }).catch(console.error);
-});
+const { data: clubAward, isLoading } = useAwards(
+  clubSlug,
+  year,
+  (clubAward) => {
+    const step = steps.find((step) => step.step === clubAward.step);
+    if (step) router.push({ name: step.routeName }).catch(console.error);
+  },
+);
 
 const nextStep = computed(() => {
   const index = steps.findIndex((step) => step.step === clubAward.value?.step);
@@ -62,7 +66,7 @@ const nextStep = computed(() => {
   }
 });
 
-const { mutate } = useUpdateStep(clubId, year);
+const { mutate } = useUpdateStep(clubSlug, year);
 const updateStep = () => {
   if (nextStep.value) {
     mutate(nextStep.value.step);
@@ -70,7 +74,7 @@ const updateStep = () => {
   }
 };
 
-const { data: members } = useMembers(clubId.value);
+const { data: members } = useMembers(clubSlug.value);
 const filteredMembers = computed(() => members.value ?? []);
 
 const completedCategories = computed(() => {

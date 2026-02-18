@@ -23,7 +23,7 @@
       <div v-else class="flex flex-col justify-center pb-6 md:flex-row">
         <div v-for="club in clubs" :key="club.clubId" class="p-3">
           <router-link
-            :to="{ name: 'ClubHome', params: { clubId: club.clubId } }"
+            :to="{ name: 'ClubHome', params: { clubSlug: club.slug } }"
           >
             <menu-card bg-color="lowBackground" :image="clubSvg">
               {{ club.clubName }}

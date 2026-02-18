@@ -8,25 +8,22 @@ import { normalizeArray, createHistogramData } from "../scoring";
 import type { MovieData, HistogramData } from "../types";
 
 import { filterMovies } from "@/common/searchMovies";
-import { useMembers, useClub, useClubId } from "@/service/useClub";
+import { useMembers, useClubSlug } from "@/service/useClub";
 import { useList } from "@/service/useList";
 
 export function useStatisticsData() {
-  const clubId = useClubId();
-  const { isLoading: loadingClub } = useClub(clubId);
+  const clubSlug = useClubSlug();
   const { isLoading: loadingReviews, data: reviews } = useList(
-    clubId,
+    clubSlug,
     WorkListType.reviews,
   );
-  const { isLoading: loadingMembers, data: rawMembers } = useMembers(clubId);
+  const { isLoading: loadingMembers, data: rawMembers } = useMembers(clubSlug);
   const members = computed(() => rawMembers.value ?? []);
 
   const showScoreContext = ref(false);
   const searchTerm = ref("");
 
-  const loading = computed(
-    () => loadingReviews.value || loadingMembers.value || loadingClub.value,
-  );
+  const loading = computed(() => loadingReviews.value || loadingMembers.value);
 
   const processedData = computed<{
     movieData: MovieData[];

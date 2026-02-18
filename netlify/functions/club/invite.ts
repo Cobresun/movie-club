@@ -3,7 +3,7 @@ import { ok, badRequest } from "../utils/responses";
 import { Router } from "../utils/router";
 import { ClubRequest } from "../utils/validation";
 
-const router = new Router<ClubRequest>("/api/club/:clubId<\\d+>/invite");
+const router = new Router<ClubRequest>("/api/club/:clubSlug/invite");
 
 router.post("/", async ({ clubId }, res) => {
   try {

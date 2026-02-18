@@ -1,5 +1,5 @@
 <template>
-  <div class="p-2">
+  <div class="p-2 text-center">
     <add-review-prompt v-if="modalOpen" @close="closePrompt" />
     <delete-confirmation-modal
       :show="!!reviewToDelete"
@@ -119,16 +119,16 @@ import {
 import { useDeleteListItem, useList } from "@/service/useList";
 import { useUser } from "@/service/useUser";
 
-const { clubId } = defineProps<{ clubId: string }>();
+const { clubSlug } = defineProps<{ clubSlug: string }>();
 
 const isGalleryView = ref(true);
 
 // Load club data for share functionality
-const { data: club } = useClub(clubId);
+const { data: club } = useClub(clubSlug);
 
 // Load club settings to check if blur scores is enabled
 const { data: settings, isLoading: isLoadingSettings } =
-  useClubSettings(clubId);
+  useClubSettings(clubSlug);
 const blurScoresEnabled = computed(
   () =>
     settings.value?.features?.blurScores === true || isLoadingSettings.value,
@@ -146,10 +146,11 @@ watch(isGalleryView, (newVal) => {
 });
 
 const { isLoading: loadingReviews, data: reviews } = useList(
-  clubId,
+  clubSlug,
   WorkListType.reviews,
 );
-const { isLoading: loadingMembers, data: membersResponse } = useMembers(clubId);
+const { isLoading: loadingMembers, data: membersResponse } =
+  useMembers(clubSlug);
 
 const loading = computed(() => loadingReviews.value || loadingMembers.value);
 
@@ -214,7 +215,7 @@ const searchInputFocusOut = () => {
 const columnHelper = createColumnHelper<DetailedReviewListItem>();
 
 const members = computed(() => membersResponse.value ?? []);
-const isUserInClub = useIsInClub(clubId);
+const isUserInClub = useIsInClub(clubSlug);
 
 const commonColumnVisibility = computed(() => ({
   edit: isUserInClub.value,
@@ -236,7 +237,7 @@ const galleryColumnVisibility = {
 const editingTable = ref(false);
 
 const { mutate: deleteReview } = useDeleteListItem(
-  clubId,
+  clubSlug,
   WorkListType.reviews,
 );
 
@@ -315,7 +316,7 @@ const columns = computed(() => [
                 name: "share",
                 class: "cursor-pointer hover:text-primary transition-colors",
                 onClick: () => {
-                  const url = `${window.location.origin}/share/club/${clubId}/review/${row.original.id}`;
+                  const url = `${window.location.origin}/share/club/${clubSlug}/review/${row.original.id}`;
                   const title = row.original.title;
                   const clubName = club.value?.clubName ?? "Movie Club";
                   void share({

@@ -145,7 +145,7 @@ import { DetailedReviewListItem } from "../../../../lib/types/lists";
 
 import DeleteConfirmationModal from "@/common/components/DeleteConfirmationModal.vue";
 import { useShare } from "@/common/composables/useShare";
-import { useClub, useClubId } from "@/service/useClub";
+import { useClub, useClubSlug } from "@/service/useClub";
 import { useUpdateAddedDate } from "@/service/useList";
 
 const props = defineProps<{
@@ -175,7 +175,7 @@ const confirmDelete = () => {
 };
 
 // Date editing state
-const clubId = useClubId();
+const clubId = useClubSlug();
 const { data: club } = useClub(clubId);
 const { mutate: updateAddedDate } = useUpdateAddedDate(clubId);
 const isEditingDate = ref(false);

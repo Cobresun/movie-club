@@ -1,7 +1,8 @@
 import crypto from "crypto";
 
-import { isTrue } from "../../../lib/checks/checks.js";
+import { isTrue, isDefined } from "../../../lib/checks/checks.js";
 import { db } from "../utils/database";
+import { generateSlugFromName, generateUniqueSlug } from "../utils/slug";
 
 interface JoinClubResult {
   success: boolean;
@@ -10,23 +11,31 @@ interface JoinClubResult {
 
 class ClubRepository {
   async getById(clubId: string) {
-    const club = (
-      await db
-        .selectFrom("club")
-        .selectAll()
-        .where("id", "=", clubId.toString())
-        .execute()
-    )[0];
+    return db
+      .selectFrom("club")
+      .selectAll()
+      .where("id", "=", clubId.toString())
+      .executeTakeFirst();
+  }
+
+  async getBySlug(slug: string) {
+    const club = await db
+      .selectFrom("club")
+      .selectAll()
+      .where("slug", "=", slug)
+      .executeTakeFirst();
 
     return club;
   }
 
-  async exists(clubId: string) {
-    const results = await db
-      .selectFrom("club")
-      .select("id")
-      .where("id", "=", clubId.toString())
-      .execute();
+  async slugExists(slug: string, excludeClubId?: string) {
+    let query = db.selectFrom("club").select("id").where("slug", "=", slug);
+
+    if (isDefined(excludeClubId)) {
+      query = query.where("id", "!=", excludeClubId);
+    }
+
+    const results = await query.execute();
     return results.length > 0;
   }
 
@@ -54,11 +63,20 @@ class ClubRepository {
     ).map((row) => row.id);
   }
 
-  insert(name: string, legacy_id?: number) {
+  async insert(name: string, legacy_id?: number) {
+    // Generate a unique slug from the club name
+    let slug = generateSlugFromName(name);
+
+    // Check if slug already exists, generate unique one if needed
+    while (await this.slugExists(slug)) {
+      slug = generateUniqueSlug(slug);
+    }
+
+    // Don't set slug_updated_at on creation so users can change slug immediately
     return db
       .insertInto("club")
-      .values({ name, legacy_id })
-      .returning("id")
+      .values({ name, legacy_id, slug })
+      .returning(["id", "slug"])
       .executeTakeFirst();
   }
 
@@ -76,7 +94,12 @@ class ClubRepository {
       .where("user.id", "=", userId)
       .innerJoin("club_member", "club_member.user_id", "user.id")
       .innerJoin("club", "club.id", "club_member.club_id")
-      .select(["club.id as club_id", "club.name as club_name"])
+      .select([
+        "club.id as club_id",
+        "club.name as club_name",
+        "club.slug",
+        "club.slug_updated_at",
+      ])
       .execute();
   }
 
@@ -178,6 +201,14 @@ class ClubRepository {
       .execute();
 
     return token;
+  }
+
+  async updateSlug(clubId: string, newSlug: string) {
+    await db
+      .updateTable("club")
+      .set({ slug: newSlug, slug_updated_at: new Date() })
+      .where("id", "=", clubId)
+      .execute();
   }
 }
 

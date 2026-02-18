@@ -155,13 +155,13 @@ import { useSharedReview } from "@/service/useList";
 import { useAuthStore } from "@/stores/auth";
 
 const route = useRoute();
-const clubId = route.params.clubId as string;
+const clubSlug = route.params.clubSlug as string;
 const workId = route.params.workId as string;
 
 const authStore = useAuthStore();
 const isLoggedIn = computed(() => authStore.isLoggedIn);
 
-const { data, isLoading, error } = useSharedReview(clubId, workId);
+const { data, isLoading, error } = useSharedReview(clubSlug, workId);
 
 // Scroll behavior for floating bar
 const isScrollingDown = ref(false);
