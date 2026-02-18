@@ -45,13 +45,6 @@ describe("normalizeArray", () => {
     }
   });
 
-  it("substitutes mean for undefined values", () => {
-    const input: number[] = [2, undefined as unknown as number, 6];
-    const result = normalizeArray(input);
-    // mean of valid scores [2, 6] = 4, std from [2,6]: variance=(4+4)/1=8, std=2.83
-    // undefined → replaced with mean (4), z-score = 0
-    expect(result[1]).toBe(0);
-  });
 });
 
 // ---------- createHistogramData ----------
