@@ -3,7 +3,7 @@ import type {
   AgCartesianChartOptions,
 } from "ag-charts-community";
 
-import type { HistogramData, MovieData } from "./types";
+import type { DecadeStats, HistogramData, MovieData } from "./types";
 import { Member } from "../../../lib/types/club";
 
 /**
@@ -143,6 +143,57 @@ export function createHistogramOptions(
         title: {
           enabled: true,
           text: "Frequency",
+        },
+      },
+    ],
+  };
+}
+
+export function createDecadeChartOptions(
+  decadeStats: DecadeStats[],
+): AgCartesianChartOptions {
+  return {
+    theme: "ag-default-dark",
+    background: { visible: false },
+    data: decadeStats,
+    series: [
+      {
+        type: "bar" as const,
+        direction: "vertical" as const,
+        xKey: "decade",
+        xName: "Decade",
+        yKey: "averageScore",
+        yName: "Avg Score",
+        cornerRadius: 4,
+        tooltip: {
+          renderer: function (
+            params: AgBarSeriesTooltipRendererParams<DecadeStats>,
+          ) {
+            return (
+              `<div class="ag-chart-tooltip-title">${params.datum.decade}</div>` +
+              `<div class="ag-chart-tooltip-content">` +
+              `Avg Score: ${params.datum.averageScore}` +
+              `<br/>` +
+              `Movies: ${params.datum.count}` +
+              `</div>`
+            );
+          },
+        },
+      },
+    ],
+    axes: [
+      {
+        type: "category",
+        position: "bottom",
+      },
+      {
+        type: "number",
+        position: "left",
+        min: 0,
+        max: 10,
+        title: {
+          enabled: true,
+          text: "Average Score",
         },
       },
     ],
