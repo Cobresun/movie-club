@@ -10,6 +10,15 @@ Movie Club is a Vue 3 web application for managing movie clubs, reviews, watchli
 
 Code quality checks (`npm run type-check` and `npm run lint`) run automatically via Claude Code hooks after every file edit. Run `npm test` manually when changes affect tested code.
 
+## Claude Code Skills
+
+Skills in `.claude/skills/` provide domain-specific guidance for Claude Code sessions. Available skills:
+
+- **better-auth-best-practices** — BetterAuth integration guide with config options, session management, plugins, and common gotchas. Automatically consulted when working on authentication features.
+- **vue-best-practices** — Vue 3 Composition API guide covering reactivity, SFC structure, component data flow, composables, and performance. Automatically consulted when working on Vue components.
+- **tanstack-query-vue** — TanStack Query v4 patterns for data fetching, caching, mutations, and optimistic updates. Automatically consulted when working on service composables or server state.
+- **kysely** — Kysely v0.27 query builder patterns with CockroachDB dialect. Automatically consulted when working on database queries, repositories, or migrations.
+
 ## Development Commands
 
 ### Running the Application
@@ -28,9 +37,9 @@ Runs the full application including Netlify functions with hot-reload. This is t
 ### Building and Testing
 
 ```bash
-npm run build          # Type-check, run tests, migrate DB, then build for production
+npm run build          # Migrate, type-check, lint, test, then build for production
 npm run type-check     # Run TypeScript type checking without emitting files
-npm run lint           # Lint src, migrations, netlify/functions, and lib directories
+npm run lint           # Lint src, migrations, netlify/functions, lib, and scripts directories
 npm test               # Run tests once
 npm run test:watch     # Run tests in watch mode
 npm run coverage       # Run tests with coverage report
@@ -104,7 +113,6 @@ npm run db:cleanup --older-than 7  # Clean up databases older than 7 days
 - Need a clean database state from a known snapshot
 - Deploy previews with migrations (automated by Netlify plugin)
 
-See `PREVIEW_DATABASES.md` for complete documentation.
 
 ## Architecture
 
@@ -149,7 +157,7 @@ See `PREVIEW_DATABASES.md` for complete documentation.
 - **Headless UI** for accessible UI primitives
 
 **Global Components:**
-Registered in `src/main.ts`: `v-avatar`, `v-btn`, `v-select`, `v-switch`, `loading-spinner`, `movie-table`, `menu-card`, `v-modal`, `page-header`
+Registered in `src/main.ts`: `v-avatar`, `v-backdrop`, `v-btn`, `v-select`, `v-switch`, `loading-spinner`, `movie-table`, `menu-card`, `v-modal`, `page-header`, `empty-state`
 
 **Custom Directives:**
 
@@ -167,12 +175,6 @@ Registered in `src/main.ts`: `v-avatar`, `v-btn`, `v-select`, `v-switch`, `loadi
 - Routes with `noAuth: true` meta are accessible without authentication
 - Routes with `authRequired: true` meta redirect to Clubs page if not logged in
 
-**Query Caching:**
-
-- Vue Query persists to localStorage with 1-week cache time
-- Custom refetch logic limits remounts to avoid excessive refetching
-- User query data is never persisted (excluded via `shouldDehydrateQuery`)
-
 ### Service Layer
 
 Located in `src/service/`, these composables provide TanStack Query hooks for data fetching:
@@ -184,27 +186,7 @@ Located in `src/service/`, these composables provide TanStack Query hooks for da
 - `useUser.ts` - User profile and clubs
 - `useTMDB.ts` - TMDB movie search integration
 
-**Example Pattern:**
-
-```typescript
-export function useClub(clubId: string) {
-  return useQuery<ClubPreview>({
-    queryKey: ["club", clubId],
-    queryFn: async () => await fetchClub(clubId),
-  });
-}
-
-export function useCreateClub() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ clubName, members }) =>
-      axios.post(`/api/club`, { name: clubName, members }),
-    onSuccess: () => {
-      queryClient.invalidateQueries(["user", "clubs"]);
-    },
-  });
-}
-```
+See `tanstack-query-vue` skill for query key conventions, mutation patterns, caching config, and optimistic update strategies.
 
 ### Backend Architecture (Netlify Functions)
 
@@ -212,7 +194,7 @@ export function useCreateClub() {
 Located in `netlify/functions/utils/router.ts`. A type-safe Express-like router implementation that supports:
 
 - Middleware chaining with type transformations
-- Path parameter extraction using `path-parser` (e.g., `/:clubId<\\d+>`)
+- Path parameter extraction using `path-parser` (e.g., `/:clubSlug`)
 - Method routing (GET, POST, PUT, DELETE)
 - Sub-routers with the `use()` method
 - Automatic 404 and 405 responses
@@ -221,24 +203,27 @@ Located in `netlify/functions/utils/router.ts`. A type-safe Express-like router 
 
 ```typescript
 const router = new Router("/api/club");
-router.use("/:clubId<\\d+>/list", validClubId, listRouter);
-router.get("/:clubId<\\d+>", validClubId, async ({ clubId }, res) => {
-  const club = await ClubRepository.getById(clubId);
+router.use("/:clubSlug/list", validClubSlug, listRouter);
+router.get("/:clubSlug", validClubSlug, async ({ clubSlug }, res) => {
+  const club = await ClubRepository.getBySlug(clubSlug);
   return res(ok(JSON.stringify(result)));
 });
 ```
 
 **API Structure:**
 
+- `/api/og-image` - Open Graph image generation for shared reviews
 - `/api/auth/*` - BetterAuth endpoints (handled automatically)
 - `/api/club/*` - All club-related endpoints
-  - `/:clubId/list` - Watchlist/backlog management
-  - `/:clubId/reviews` - Movie reviews
-  - `/:clubId/members` - Club membership
-  - `/:clubId/awards` - Awards system (categories, nominations, rankings)
-  - `/:clubId/invite` - Invite token management
-  - `/:clubId/settings` - Club settings
-  - `/:clubId/nextWork` - Current movie being watched
+  - `/:clubSlug/list` - Watchlist/backlog management
+  - `/:clubSlug/reviews` - Movie reviews
+  - `/:clubSlug/members` - Club membership
+  - `/:clubSlug/awards` - Awards system (categories, nominations, rankings)
+  - `/:clubSlug/invite` - Invite token management
+  - `/:clubSlug/settings` - Club settings
+  - `/:clubSlug/nextWork` - Current movie being watched
+  - `/:clubSlug/name` - Update club name (PUT)
+  - `/:clubSlug/slug` - Update club slug (PUT)
   - `/join` - Join club via invite
   - `/joinInfo/:token` - Get club info from invite token
 - `/api/member/*` - User-specific endpoints
@@ -247,10 +232,10 @@ router.get("/:clubId<\\d+>", validClubId, async ({ clubId }, res) => {
 **Key Backend Patterns:**
 
 - Repository pattern for data access (e.g., `ClubRepository`, `UserRepository`, `WorkRepository`)
-- Middleware for authentication (`loggedIn`, `secured`) and validation (`validClubId`)
+- Middleware for authentication (`loggedIn`, `secured`) and validation (`validClubSlug`)
 - Zod schemas for request body validation
 - Kysely for type-safe database queries
-- Response helpers from `utils/responses.ts` (`ok`, `badRequest`, `unauthorized`, `notFound`)
+- Response helpers from `utils/responses.ts` (`ok`, `badRequest`, `unauthorized`, `notFound`, `svg`, `redirect`)
 
 **Repository Classes:**
 Located in `netlify/functions/repositories/`:
@@ -263,27 +248,21 @@ Located in `netlify/functions/repositories/`:
 - `AwardsRepository` - Awards system data
 - `SettingsRepository` - Club settings storage
 - `ImageRepository` - Cloudinary image management
+- `DatabaseCleanupRepository` - Preview database lifecycle management
 
 ### Database Architecture
 
-**ORM:** Kysely with CockroachDB dialect (PostgreSQL-compatible)
+**ORM:** Kysely with CockroachDB dialect (PostgreSQL-compatible). See `kysely` skill for query patterns, migration syntax, and type helpers.
 
-**Connection:**
+**Key Files:**
 
-- Singleton instance in `netlify/functions/utils/database.ts`
-- Connection string from `process.env.DATABASE_URL`
-- Uses `@cubos/kysely-cockroach` for CockroachDB dialect
-
-**Generated Types:**
-
-- `lib/types/generated/db.ts` - Auto-generated by kysely-codegen
-- Contains table interfaces, enums, and type helpers
-- **Enums:** `WorkListType` (reviews, watchlist, backlog, award_nominations), `WorkType` (movie)
-- **Key type helpers:** `Generated<T>`, `Int8`, `Timestamp`, `Json`
+- Connection: `netlify/functions/utils/database.ts` (singleton `Kysely<DB>` instance)
+- Generated types: `lib/types/generated/db.ts` (run `npm run codegen` after schema changes)
+- Migrations: `migrations/schema/` (naming: `YYYYMMDD_Description.ts`)
 
 **Key Tables:**
 
-- `club` - Movie clubs (id, name, legacy_id)
+- `club` - Movie clubs (id, name, slug, legacy_id)
 - `club_member` - Club membership with roles (club_id, user_id, role)
 - `club_invite` - Invite tokens with expiration
 - `club_settings` - Key-value settings storage (JSON values)
@@ -295,34 +274,18 @@ Located in `netlify/functions/repositories/`:
 - `work_list` - Generic list for reviews, watchlist, backlog, awards
 - `review` - Movie reviews with scores
 - `awards_temp` - Temporary awards data storage (JSON)
+- `movie_directors` - Movie-to-director junction table
 - Various movie metadata junction tables (genres, production companies, countries)
-
-**Migration System:**
-
-- Uses Kysely Migrator
-- Schema migrations in `migrations/schema/`
-- Data migrations in `migrations/data/`
-- Each migration exports `up()` and optionally `down()` functions
-- Naming convention: `<YYYYMMDD>_<Description>.ts`
+- **Enums:** `WorkListType` (reviews, watchlist, backlog, award_nominations), `WorkType` (movie)
 
 ### Authentication Flow
 
-1. BetterAuth client (`better-auth/vue`) initializes on app load
-2. Auth store (Pinia) manages user state via `authClient.useSession()` reactive hook
-3. Sessions managed via HTTP-only cookies (automatic by BetterAuth)
-4. Supports email/password authentication with email verification
-5. Supports Google OAuth login
-6. Router guards check auth before accessing protected routes
-7. Backend functions use `loggedIn` or `secured` middleware to extract session from headers
+Auth store (Pinia) manages user state via `authClient.useSession()`. Router guards check auth before accessing protected routes. Backend uses `loggedIn` (any authenticated user) and `secured` (authenticated + club member) middleware. See `better-auth-best-practices` skill for general BetterAuth patterns.
 
 **Auth Configuration:**
 
-- Frontend: `src/lib/auth-client.ts` - Creates BetterAuth Vue client
-- Backend: `netlify/functions/utils/auth.ts` - BetterAuth server config with:
-  - Email/password with bcrypt hashing
-  - Google OAuth provider
-  - Resend for transactional emails
-  - Mixed ID generation (auto-increment for users, UUIDs for sessions)
+- Frontend: `src/lib/auth-client.ts` — BetterAuth Vue client
+- Backend: `netlify/functions/utils/auth.ts` — BetterAuth server config (bcrypt hashing, Google OAuth, Resend emails, mixed ID generation: auto-increment for users, UUIDs for sessions)
 
 ## Code Quality & Utilities
 
@@ -374,7 +337,7 @@ if (typeof myString === "string" && myString.length > 0) {
 **❌ AVOID: Using watch for query data**
 
 ```typescript
-const { data: club } = useClub(clubId);
+const { data: club } = useClub(clubSlug);
 
 watch(club, (newClub) => {
   // Side effect when club changes
@@ -419,7 +382,7 @@ src/features/<feature-name>/
 
 1. Create handler in appropriate `netlify/functions/` directory
 2. Use the custom Router class for routing
-3. Add middleware for validation (`validClubId`) and auth (`loggedIn`, `secured`)
+3. Add middleware for validation (`validClubSlug`) and auth (`loggedIn`, `secured`)
 4. Use Zod schemas for request body validation
 5. Use Kysely with generated types for database queries
 6. Return responses using utility functions from `utils/responses.ts`
@@ -468,17 +431,23 @@ src/features/<feature-name>/
 - `netlify/functions/utils/auth.ts` - Auth configuration and middleware
 - `netlify/functions/utils/responses.ts` - HTTP response helpers
 - `netlify/functions/utils/validation.ts` - Request validation middleware
+- `netlify/functions/utils/slug.ts` - Slug generation and validation
+- `netlify/functions/utils/email.ts` - Resend email templates
+- `netlify/functions/utils/workDetailsMapper.ts` - Work-to-external-data mapper
+- `netlify/functions/og-image.ts` - Open Graph image generation
+- `netlify/functions/scheduled-db-cleanup.ts` - Scheduled daily cleanup of stale preview databases
+- `netlify/functions/services/SharedReviewService.ts` - Shared review data service
 
 **Shared:**
 
 - `lib/types/generated/db.ts` - Auto-generated database types
-- `lib/types/*.ts` - Shared type definitions (club, movie, reviews, awards, etc.)
+- `lib/types/*.ts` - Shared type definitions (club, movie, reviews, awards, lists, common, watchlist, etc.)
 - `lib/checks/checks.ts` - Utility functions (isDefined, hasValue, ensure, etc.)
 
 **Configuration:**
 
 - `vite.config.ts` - Vite and Vitest configuration
-- `netlify.toml` - Netlify redirects (API proxy and SPA fallback)
+- `netlify.toml` - Netlify config: redirects, custom plugins (preview-database, auth-config), edge functions (shared-review)
 - `package.json` - Dependencies and scripts
 - `tailwind.config.js` - Tailwind CSS configuration
 
