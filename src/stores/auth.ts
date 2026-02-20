@@ -104,9 +104,8 @@ export const useAuthStore = defineStore("auth", () => {
     });
   };
 
-  const refreshSession = () => {
-    authClient.$store.notify("$sessionSignal");
-    return Promise.resolve();
+  const refreshSession = async () => {
+    await session.value.refetch();
   };
 
   return {

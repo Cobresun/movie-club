@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -c \"import sys,json,subprocess; d=json.load(sys.stdin); f=d.get('tool_input',{}).get('file_path',''); f and subprocess.run(['npx','prettier','--write',f])\" 2>/dev/null || true"
+            "command": "node -e \"const f=JSON.parse(require('fs').readFileSync(0,'utf8')).tool_input?.file_path;if(f)require('child_process').execSync('npx prettier --write '+JSON.stringify(f),{stdio:'inherit'})\" 2>/dev/null || true"
           },
           {
             "type": "command",

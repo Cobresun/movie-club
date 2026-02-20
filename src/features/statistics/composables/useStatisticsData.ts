@@ -80,13 +80,12 @@ function mapReviewsToMovies(reviews: DetailedReviewListItem[]): MovieData[] {
         type: WorkType.movie,
         title: review.title,
         dateWatched: DateTime.fromISO(review.createdDate).toLocaleString(),
-        userScores: Object.keys(review.scores).reduce<Record<string, number>>(
-          (acc, key) => {
+        userScores: Object.keys(review.scores)
+          .filter((key) => key !== "average")
+          .reduce<Record<string, number>>((acc, key) => {
             acc[key] = review.scores[key].score ?? 0;
             return acc;
-          },
-          {},
-        ),
+          }, {}),
         scores: review.scores,
         average: review.scores.average?.score ?? 0,
         normalized: {} as Record<string, number>,
