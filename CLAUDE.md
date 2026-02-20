@@ -330,6 +330,17 @@ if (typeof myString === "string" && myString.length > 0) {
 - Use `hasElements()` for **array checks**
 - Use `ensure()` when you want to **throw on null/undefined** (guard clauses)
 
+### Avoid `as` Type Casting
+
+Never use `as` casts (especially `as unknown as T`) in tests or production code. These silence TypeScript without providing type safety and can mask real bugs. If a test requires casting to simulate an invalid state, that is a sign the test should be removed — our type system prevents that state from occurring.
+
+**❌ AVOID:**
+```ts
+const input = [2, undefined as unknown as number, 6]; // masks a type violation
+```
+
+**✅ PREFERRED:** Only test states that TypeScript types actually permit.
+
 ### Avoid `watch()` - Prefer Keyed Components
 
 **Using `watch()` on query values is often a code smell.** Instead of watching reactive data and running side effects, prefer creating higher-order components that pass data down as props and use the `:key` attribute to force re-renders when data changes.
