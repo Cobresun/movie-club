@@ -8,22 +8,20 @@ import { Member } from "../../../lib/types/club";
 
 /**
  * Normalizes an array of numbers by subtracting the mean and dividing by the standard deviation.
- * Replaces undefined values with the mean.
  */
 export const normalizeArray = (array: number[]): number[] => {
   if (array.length === 0) return [];
 
-  const validScores = array.filter((score) => score !== undefined);
-  const count = validScores.length;
+  const count = array.length;
 
-  if (count === 0) {
+  if (count <= 1) {
     return array.map(() => 0);
   }
 
-  const sum = validScores.reduce((acc, score) => acc + score, 0);
+  const sum = array.reduce((acc, score) => acc + score, 0);
   const mean = sum / count;
   const variance =
-    validScores.reduce((acc, score) => acc + Math.pow(score - mean, 2), 0) /
+    array.reduce((acc, score) => acc + Math.pow(score - mean, 2), 0) /
     (count - 1);
   const std = Math.sqrt(variance);
 
@@ -32,8 +30,7 @@ export const normalizeArray = (array: number[]): number[] => {
   }
 
   return array.map((score) => {
-    const value = score === undefined ? mean : score;
-    return parseFloat(((value - mean) / std).toFixed(2));
+    return parseFloat(((score - mean) / std).toFixed(2));
   });
 };
 
