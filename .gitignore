@@ -34,4 +34,7 @@ netlify/functions/utils/auth-config.json
 # Test coverage
 src/coverage
 
+# Playwright CLI skill snapshots
+.playwright-cli/
+
 migrations/users.json
