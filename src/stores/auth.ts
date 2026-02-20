@@ -105,6 +105,7 @@ export const useAuthStore = defineStore("auth", () => {
   };
 
   const refreshSession = async () => {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
     await session.value.refetch();
   };
 

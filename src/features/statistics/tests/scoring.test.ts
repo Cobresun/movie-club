@@ -44,7 +44,6 @@ describe("normalizeArray", () => {
       }
     }
   });
-
 });
 
 // ---------- createHistogramData ----------
