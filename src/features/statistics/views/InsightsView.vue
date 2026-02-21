@@ -11,6 +11,7 @@
     <DecadeStatsWidget :movie-data="movieData" :members="members" />
     <ReviewerLeaderboardWidget :movie-data="movieData" :members="members" />
     <TasteSimilarityWidget :movie-data="movieData" :members="members" />
+    <ClubConsensusWidget :movie-data="movieData" :members="members" />
     <DirectorsLeaderboard :movie-data="movieData" />
     <TmdbDeviationWidget :movie-data="movieData" />
   </div>
@@ -18,6 +19,7 @@
 
 <script setup lang="ts">
 import { Member } from "../../../../lib/types/club";
+import ClubConsensusWidget from "../components/ClubConsensusWidget.vue";
 import DecadeStatsWidget from "../components/DecadeStatsWidget.vue";
 import DirectorsLeaderboard from "../components/DirectorsLeaderboard.vue";
 import GenreStatsWidget from "../components/GenreStatsWidget.vue";

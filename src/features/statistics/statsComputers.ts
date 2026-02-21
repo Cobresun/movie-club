@@ -1,4 +1,5 @@
 import type {
+  ClubConsensusEntry,
   DecadeStats,
   GenreStats,
   GenreWatchCount,
@@ -206,6 +207,56 @@ export function computeTasteSimilarity(
   return {
     mostSimilar: sortedPairs[0],
     leastSimilar: sortedPairs[sortedPairs.length - 1],
+  };
+}
+
+const MIN_SCORES_FOR_CONSENSUS = 2;
+
+export function computeClubConsensus(
+  movieData: MovieData[],
+  members: Member[],
+): {
+  mostAgreed: ClubConsensusEntry[];
+  mostDivisive: ClubConsensusEntry[];
+} {
+  const memberMap = new Map(members.map((m) => [m.id, m.name]));
+
+  const entries: ClubConsensusEntry[] = [];
+
+  for (const movie of movieData) {
+    const scoreEntries: { name: string; score: number }[] = [];
+    for (const [memberId, score] of Object.entries(movie.userScores)) {
+      if (!isNaN(score)) {
+        scoreEntries.push({
+          name: memberMap.get(memberId) ?? memberId,
+          score,
+        });
+      }
+    }
+
+    if (scoreEntries.length < MIN_SCORES_FOR_CONSENSUS) continue;
+
+    const mean =
+      scoreEntries.reduce((sum, s) => sum + s.score, 0) / scoreEntries.length;
+    const variance =
+      scoreEntries.reduce((sum, s) => sum + (s.score - mean) ** 2, 0) /
+      scoreEntries.length;
+    const stdDev = Math.round(Math.sqrt(variance) * 100) / 100;
+
+    entries.push({
+      title: movie.title,
+      imageUrl: movie.imageUrl,
+      average: movie.average,
+      stdDev,
+      scores: scoreEntries.sort((a, b) => b.score - a.score),
+    });
+  }
+
+  const sorted = [...entries].sort((a, b) => a.stdDev - b.stdDev);
+
+  return {
+    mostAgreed: sorted.slice(0, 3),
+    mostDivisive: sorted.slice(-3).sort((a, b) => b.stdDev - a.stdDev),
   };
 }
 
