@@ -5,16 +5,11 @@ import { z } from "zod";
 
 import { hasValue } from "../../../lib/checks/checks.js";
 
-// PostgreSQL system catalog types
-// Based on: https://www.postgresql.org/docs/current/catalog-pg-database.html
-interface PgDatabase {
-  datname: string; // Database name
-  datdba: number; // Owner OID (use with pg_get_userbyid)
-  oid: number; // Database OID (use with obj_description)
-}
-
-interface SystemCatalogDB {
-  pg_database: PgDatabase;
+// CockroachDB SHOW DATABASES WITH COMMENT result type
+interface ShowDatabaseRow {
+  database_name: string;
+  owner: string;
+  comment: string | null;
 }
 
 interface DatabaseMetadata {
@@ -25,7 +20,7 @@ interface DatabaseMetadata {
 }
 
 // Zod schema for validating metadata from database comments
-// Keep this for runtime validation since it's arbitrary JSON from obj_description
+// Keep this for runtime validation since it's arbitrary JSON from COMMENT ON DATABASE
 const DatabaseMetadataSchema = z
   .object({
     created_at: z.string().optional(),
@@ -81,7 +76,7 @@ function buildConnectionString(
 }
 
 /**
- * Gets the root database connection URL (pointing to defaultdb for system catalog queries)
+ * Gets the root database connection URL (pointing to defaultdb for administrative queries)
  */
 function getRootDbUrl(): string | undefined {
   const baseUrl = process.env.DATABASE_URL_ROOT;
@@ -101,7 +96,7 @@ export const rootDialect = new CockroachDialect({
   pool: rootPool,
 });
 
-export const rootDb = new Kysely<SystemCatalogDB>({
+export const rootDb = new Kysely({
   dialect: rootDialect,
 });
 
@@ -110,34 +105,33 @@ class DatabaseCleanupRepository {
    * Lists all databases with their metadata
    */
   async listDatabases(): Promise<DatabaseInfo[]> {
-    const databases = await rootDb
-      .selectFrom("pg_database")
-      .select([
-        "datname",
-        "oid",
-        sql<string>`pg_get_userbyid(datdba)`.as("owner"),
-        sql<string | null>`obj_description(oid, 'pg_database')`.as(
-          "description",
-        ),
-      ])
-      .where("datname", "not in", PROTECTED_DATABASES)
-      .where("datname", "not like", "crdb_%")
-      .orderBy("datname")
-      .execute();
+    // Use CockroachDB's native SHOW DATABASES WITH COMMENT command
+    const result =
+      await sql<ShowDatabaseRow>`SHOW DATABASES WITH COMMENT`.execute(rootDb);
+
+    // Filter out protected databases and CockroachDB internal databases
+    const databases = result.rows.filter(
+      (row) =>
+        !PROTECTED_DATABASES.includes(row.database_name) &&
+        !row.database_name.startsWith("crdb_"),
+    );
+
+    // Sort by name
+    databases.sort((a, b) => a.database_name.localeCompare(b.database_name));
 
     return databases.map((db) => {
       let metadata: DatabaseMetadata | undefined;
 
-      if (hasValue(db.description)) {
+      if (hasValue(db.comment)) {
         try {
-          metadata = DatabaseMetadataSchema.parse(JSON.parse(db.description));
+          metadata = DatabaseMetadataSchema.parse(JSON.parse(db.comment));
         } catch {
           metadata = undefined;
         }
       }
 
       return {
-        name: db.datname,
+        name: db.database_name,
         owner: db.owner,
         metadata,
       };
