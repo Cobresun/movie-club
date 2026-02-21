@@ -2,6 +2,7 @@ import { hasValue } from "../../../lib/checks/checks.js";
 import { WorkType } from "../../../lib/types/generated/db.js";
 import { ListInsertDto } from "../../../lib/types/lists.js";
 import { db } from "../utils/database";
+import { insertMovieDetails } from "../utils/movieDetailsUpdater";
 import { getDetailedWorks } from "../utils/tmdb";
 
 class WorkRepository {
@@ -68,103 +69,7 @@ class WorkRepository {
       ]);
 
       if (movieDetails?.externalData) {
-        // Insert movie details
-        await db
-          .insertInto("movie_details")
-          .values({
-            external_id: externalId,
-            tmdb_score: movieDetails.externalData.vote_average,
-            runtime: movieDetails.externalData.runtime,
-            budget: movieDetails.externalData.budget,
-            revenue: movieDetails.externalData.revenue,
-            release_date: movieDetails.externalData.release_date
-              ? new Date(movieDetails.externalData.release_date)
-              : null,
-            adult: movieDetails.externalData.adult,
-            backdrop_path: movieDetails.externalData.backdrop_path,
-            homepage: movieDetails.externalData.homepage,
-            imdb_id: movieDetails.externalData.imdb_id,
-            original_language: movieDetails.externalData.original_language,
-            original_title: movieDetails.externalData.original_title,
-            overview: movieDetails.externalData.overview,
-            popularity: movieDetails.externalData.popularity,
-            poster_path: movieDetails.externalData.poster_path,
-            status: movieDetails.externalData.status,
-            tagline: movieDetails.externalData.tagline,
-            title: movieDetails.externalData.title,
-          })
-          .onConflict((oc) => oc.column("external_id").doNothing())
-          .execute();
-
-        // Insert genres
-        if (movieDetails.externalData.genres.length > 0) {
-          await db
-            .insertInto("movie_genres")
-            .values(
-              movieDetails.externalData.genres.map((g) => ({
-                external_id: externalId,
-                genre_name: g.name,
-              })),
-            )
-            .onConflict((oc) =>
-              oc.columns(["external_id", "genre_name"]).doNothing(),
-            )
-            .execute();
-        }
-
-        // Insert production companies
-        if (movieDetails.externalData.production_companies.length > 0) {
-          await db
-            .insertInto("movie_production_companies")
-            .values(
-              movieDetails.externalData.production_companies.map((c) => ({
-                external_id: externalId,
-                company_name: c.name,
-                logo_path: c.logo_path,
-                origin_country: c.origin_country,
-              })),
-            )
-            .onConflict((oc) =>
-              oc.columns(["external_id", "company_name"]).doNothing(),
-            )
-            .execute();
-        }
-
-        // Insert production countries
-        if (movieDetails.externalData.production_countries.length > 0) {
-          await db
-            .insertInto("movie_production_countries")
-            .values(
-              movieDetails.externalData.production_countries.map((c) => ({
-                external_id: externalId,
-                country_code: c.iso_3166_1,
-                country_name: c.name,
-              })),
-            )
-            .onConflict((oc) =>
-              oc.columns(["external_id", "country_code"]).doNothing(),
-            )
-            .execute();
-        }
-
-        // Insert directors
-        const directors = (movieDetails.externalData.credits?.crew ?? [])
-          .filter((c) => c.job === "Director")
-          .map((c) => c.name);
-        if (directors.length > 0) {
-          await db
-            .insertInto("movie_directors")
-            .values(
-              directors.map((name) => ({
-                external_id: externalId,
-                director_name: name,
-              })),
-            )
-            .onConflict((oc) =>
-              oc.columns(["external_id", "director_name"]).doNothing(),
-            )
-            .execute();
-        }
+        await insertMovieDetails(externalId, movieDetails.externalData, db);
       }
     }
 
