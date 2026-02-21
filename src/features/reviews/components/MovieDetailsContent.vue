@@ -70,7 +70,13 @@
             <span class="text-gray-400">Director: </span>
             <span>{{ movie.original.externalData.directors.join(", ") }}</span>
           </div>
-          <div v-if="movie.original.externalData?.vote_average">
+          <div
+            v-if="movie.original.externalData?.vote_average"
+            :class="{
+              'cursor-pointer select-none blur filter': shouldBlurTmdbScore,
+            }"
+            @click="shouldBlurTmdbScore && toggleMovieReveal(movie.id)"
+          >
             <span class="text-gray-400">TMDB Rating: </span>
             <span>{{ movie.original.externalData.vote_average }}/10</span>
           </div>
@@ -278,4 +284,17 @@ const shouldBlurScore = (rowId: string, columnId: string) => {
 
   return columnId.startsWith("member_") || columnId === "score_average";
 };
+
+const shouldBlurTmdbScore = computed(() => {
+  if (!props.blurScoresEnabled) {
+    return false;
+  }
+  if (
+    props.hasRated(props.movie.id) ||
+    props.revealedMovieIds.has(props.movie.id)
+  ) {
+    return false;
+  }
+  return true;
+});
 </script>
