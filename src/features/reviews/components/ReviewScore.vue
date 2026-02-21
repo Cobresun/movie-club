@@ -17,16 +17,21 @@
   >
     <mdicon name="plus" />
   </span>
-  <input
+  <form
     v-else-if="isMe && isInputOpen"
-    ref="scoreInput"
-    v-model="scoreModel"
-    aria-label="Score"
-    class="rounded-lg border border-gray-300 bg-background text-center outline-none focus:border-primary"
-    :class="{ 'w-10 p-2': size !== 'sm', 'w-8': size === 'sm' }"
-    @blur="handleBlur"
-    @keypress.enter="handleKeyEnter"
-  />
+    @submit.prevent="handleFormSubmit"
+  >
+    <input
+      ref="scoreInput"
+      v-model="scoreModel"
+      inputmode="decimal"
+      aria-label="Score"
+      class="rounded-lg border border-gray-300 bg-background text-center outline-none focus:border-primary"
+      :class="{ 'w-10 p-2': size !== 'sm', 'w-8': size === 'sm' }"
+      @blur="isInputOpen = false"
+    />
+    <button type="submit" class="sr-only" tabindex="-1" />
+  </form>
 </template>
 <script setup lang="ts">
 import { computed, nextTick, ref } from "vue";
@@ -80,24 +85,7 @@ const submitScore = (score: number) => {
   }
 };
 
-// Track whether Enter was pressed so we don't double-submit on the blur
-// event that fires when the input is removed from the DOM after Enter.
-const submittedViaKeyboard = ref(false);
-
-const handleKeyEnter = () => {
-  submittedViaKeyboard.value = true;
+const handleFormSubmit = () => {
   submitScore(parseFloat(scoreModel.value));
-};
-
-// On iOS, tapping "Done" on the keyboard only fires a blur event, not a
-// keypress event, so we also attempt to submit here. The submittedViaKeyboard
-// flag prevents a double submission when Enter is used on desktop/physical
-// keyboards (which removes the input from the DOM and triggers blur).
-const handleBlur = () => {
-  if (!submittedViaKeyboard.value) {
-    submitScore(parseFloat(scoreModel.value));
-  }
-  submittedViaKeyboard.value = false;
-  isInputOpen.value = false;
 };
 </script>
