@@ -17,10 +17,7 @@
   >
     <mdicon name="plus" />
   </span>
-  <form
-    v-else-if="isMe && isInputOpen"
-    @submit.prevent="handleFormSubmit"
-  >
+  <form v-else-if="isMe && isInputOpen" @submit.prevent="handleFormSubmit">
     <input
       ref="scoreInput"
       v-model="scoreModel"
