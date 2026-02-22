@@ -88,7 +88,8 @@ export function computeMemberLeaderboard(
   const entries: MemberLeaderboardEntry[] = members.map((member) => {
     const scores = movieData
       .map((movie) => movie.userScores[member.id])
-      .filter((score) => isDefined(score) && !isNaN(score));
+      .filter(isDefined)
+      .filter((score) => !isNaN(score));
 
     const averageScore =
       scores.length > 0
