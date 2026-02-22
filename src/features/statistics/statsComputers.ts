@@ -29,7 +29,7 @@ export function computeGenreStats(
     const score = isDefined(memberId)
       ? movie.userScores[memberId]
       : movie.average;
-    if (!isDefined(score) || score === 0) continue;
+    if (!isDefined(score)) continue;
     for (const genre of movie.genres) {
       const existing = genreScores[genre];
       if (isDefined(existing)) {
@@ -225,8 +225,6 @@ export function computeTopDirectors(movieData: MovieData[]): DirectorStats[] {
   for (const movie of movieData) {
     const directors = movie.externalData?.directors;
     if (!hasElements(directors)) continue;
-    if (movie.average === 0) continue;
-
     for (const director of directors) {
       const existing = directorMap.get(director);
       if (existing) {
@@ -264,7 +262,6 @@ export function computeTmdbDeviation(movieData: MovieData[]): {
   const entries: TmdbDeviationEntry[] = [];
 
   for (const movie of movieData) {
-    if (movie.average === 0) continue;
     const tmdbScore = movie.externalData?.vote_average;
     if (!isDefined(tmdbScore) || tmdbScore === 0) continue;
 
@@ -301,7 +298,7 @@ export function computeDecadeStats(
     const score = isDefined(memberId)
       ? movie.userScores[memberId]
       : movie.average;
-    if (!isDefined(score) || score === 0) continue;
+    if (!isDefined(score)) continue;
 
     const releaseDate = movie.externalData?.release_date;
     if (!hasValue(releaseDate)) continue;

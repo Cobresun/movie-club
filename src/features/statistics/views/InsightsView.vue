@@ -9,8 +9,16 @@
     <GenreStatsWidget :movie-data="movieData" :members="members" />
     <GenreWatchCountWidget :movie-data="movieData" />
     <DecadeStatsWidget :movie-data="movieData" :members="members" />
-    <ReviewerLeaderboardWidget :movie-data="movieData" :members="members" />
-    <TasteSimilarityWidget :movie-data="movieData" :members="members" />
+    <ReviewerLeaderboardWidget
+      v-if="members.length > 1"
+      :movie-data="movieData"
+      :members="members"
+    />
+    <TasteSimilarityWidget
+      v-if="members.length > 2"
+      :movie-data="movieData"
+      :members="members"
+    />
     <DirectorsLeaderboard :movie-data="movieData" />
     <TmdbDeviationWidget :movie-data="movieData" />
   </div>
