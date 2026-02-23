@@ -38,11 +38,35 @@ describe("normalizeArray", () => {
   it("rounds to 2 decimal places", () => {
     const result = normalizeArray([1, 2, 3, 4, 5]);
     for (const val of result) {
+      if (val === undefined) continue;
       const decimals = val.toString().split(".")[1];
       if (decimals) {
         expect(decimals.length).toBeLessThanOrEqual(2);
       }
     }
+  });
+
+  it("preserves undefined positions in output", () => {
+    const result = normalizeArray([2, undefined, 6]);
+    expect(result[0]).toBeDefined();
+    expect(result[1]).toBeUndefined();
+    expect(result[2]).toBeDefined();
+  });
+
+  it("computes normalization only from defined values", () => {
+    // [2, undefined, 6] → defined=[2,6], mean=4, std=√((4+4)/1)=√8≈2.83
+    // z(2)=(2-4)/2.83≈-0.71, z(6)=(6-4)/2.83≈0.71
+    const result = normalizeArray([2, undefined, 6]);
+    expect(result[0]).toBeLessThan(0);
+    expect(result[1]).toBeUndefined();
+    expect(result[2]).toBeGreaterThan(0);
+  });
+
+  it("returns 0 for single defined value among undefineds", () => {
+    const result = normalizeArray([undefined, 5, undefined]);
+    expect(result[0]).toBeUndefined();
+    expect(result[1]).toBe(0);
+    expect(result[2]).toBeUndefined();
   });
 });
 

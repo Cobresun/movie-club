@@ -11,8 +11,8 @@ export interface MovieData {
   production_companies: string[];
   production_countries: string[];
   average: number;
-  userScores: Record<string, number>;
-  normalized: Record<string, number>;
+  userScores: Record<string, number | undefined>;
+  normalized: Record<string, number | undefined>;
   scores: Record<string, { id: string; created_date: string; score: number }>;
   externalData: DetailedMovieData;
   dateWatched: string;

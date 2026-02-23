@@ -146,15 +146,30 @@ describe("computeGenreStats", () => {
     expect(withAverage.mostLoved[0].averageScore).toBe(5);
   });
 
-  it("skips movies with score 0", () => {
+  it("includes movies with legitimate score of 0", () => {
     const movies = [
       makeMovie({ genres: ["Horror"], average: 0 }),
       makeMovie({ genres: ["Horror"], average: 8 }),
       makeMovie({ genres: ["Horror"], average: 6 }),
     ];
     const result = computeGenreStats(movies);
-    expect(result.mostLoved[0].averageScore).toBe(7);
+    expect(result.mostLoved[0].count).toBe(3);
+    expect(result.mostLoved[0].averageScore).toBeCloseTo(4.67, 2);
+  });
+
+  it("skips movies with undefined score", () => {
+    const movies = [
+      makeMovie({ genres: ["Horror"], average: 8, userScores: { m1: 8 } }),
+      makeMovie({
+        genres: ["Horror"],
+        average: 6,
+        userScores: { m1: undefined },
+      }),
+      makeMovie({ genres: ["Horror"], average: 4, userScores: { m1: 4 } }),
+    ];
+    const result = computeGenreStats(movies, "m1");
     expect(result.mostLoved[0].count).toBe(2);
+    expect(result.mostLoved[0].averageScore).toBe(6);
   });
 
   it("skips movies with undefined member score when filtering by member", () => {
@@ -249,6 +264,25 @@ describe("computeMemberLeaderboard", () => {
     const result = computeMemberLeaderboard(movies, members);
     expect(result).toHaveLength(1);
     expect(result[0].member.name).toBe("Active");
+  });
+
+  it("handles partial reviews (member missing scores on some movies)", () => {
+    const members = [
+      makeMember({ id: "m1", name: "Alice" }),
+      makeMember({ id: "m2", name: "Bob" }),
+    ];
+    const movies = [
+      makeMovie({ userScores: { m1: 8, m2: 6 } }),
+      makeMovie({ userScores: { m1: 10, m2: undefined } }),
+      makeMovie({ userScores: { m1: undefined, m2: 4 } }),
+    ];
+    const result = computeMemberLeaderboard(movies, members);
+    const alice = ensure(result.find((e) => e.member.name === "Alice"));
+    const bob = ensure(result.find((e) => e.member.name === "Bob"));
+    expect(alice.reviewCount).toBe(2);
+    expect(alice.averageScore).toBe(9);
+    expect(bob.reviewCount).toBe(2);
+    expect(bob.averageScore).toBe(5);
   });
 
   it("filters out NaN scores", () => {
@@ -382,6 +416,18 @@ describe("computeTasteSimilarity", () => {
     expect(ensure(result.mostSimilar).sharedCount).toBe(3);
   });
 
+  it("excludes members with undefined scores from shared count", () => {
+    const members = [makeMember({ id: "m1" }), makeMember({ id: "m2" })];
+    const movies = [
+      makeMovie({ userScores: { m1: 7, m2: 7 } }),
+      makeMovie({ userScores: { m1: 5, m2: undefined } }),
+      makeMovie({ userScores: { m1: 8, m2: 6 } }),
+      makeMovie({ userScores: { m1: 9, m2: 4 } }),
+    ];
+    const result = computeTasteSimilarity(movies, members);
+    expect(ensure(result.mostSimilar).sharedCount).toBe(3);
+  });
+
   it("with only 2 members, mostSimilar and leastSimilar are the same pair", () => {
     const members = [makeMember({ id: "m1" }), makeMember({ id: "m2" })];
     const movies = [
@@ -404,14 +450,17 @@ describe("computeTopDirectors", () => {
     expect(computeTopDirectors([])).toEqual([]);
   });
 
-  it("skips movies with average 0", () => {
+  it("includes movies with average 0 (legitimate score)", () => {
     const movies = [
       makeMovie({
         average: 0,
         externalData: makeExternalData({ directors: ["Spielberg"] }),
       }),
     ];
-    expect(computeTopDirectors(movies)).toEqual([]);
+    const result = computeTopDirectors(movies);
+    expect(result).toHaveLength(1);
+    expect(result[0].name).toBe("Spielberg");
+    expect(result[0].averageScore).toBe(0);
   });
 
   it("skips movies with no directors", () => {
