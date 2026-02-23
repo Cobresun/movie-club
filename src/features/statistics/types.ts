@@ -63,6 +63,14 @@ export interface TmdbDeviationEntry {
   deviation: number;
 }
 
+export interface ClubConsensusEntry {
+  title: string;
+  imageUrl: string | undefined;
+  average: number;
+  stdDev: number;
+  scores: { name: string; score: number }[];
+}
+
 export interface MemberPairSimilarity {
   memberA: { id: string; name: string; image?: string };
   memberB: { id: string; name: string; image?: string };
