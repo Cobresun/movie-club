@@ -40,38 +40,40 @@ async function listDatabases(): Promise<DatabaseInfo[]> {
 
   try {
     const result = await pool.query<{
-      datname: string;
-      pg_get_userbyid: string;
-      description: string | null;
+      database_name: string;
+      owner: string;
+      comment: string | null;
     }>(
       `
-      SELECT 
-        d.datname,
-        pg_get_userbyid(d.datdba) as owner,
-        obj_description(d.oid, 'pg_database') as description
-      FROM pg_database d
-      WHERE d.datname NOT IN (${PROTECTED_DATABASES.map((_, i) => `$${i + 1}`).join(", ")})
-        AND d.datname NOT LIKE 'crdb_%'
-      ORDER BY d.datname
+      SHOW DATABASES WITH COMMENT
     `,
-      PROTECTED_DATABASES,
     );
 
-    return result.rows.map((row) => {
+    // Filter out protected databases and CockroachDB internal databases
+    const filteredRows = result.rows.filter(
+      (row) =>
+        !PROTECTED_DATABASES.includes(row.database_name) &&
+        !row.database_name.startsWith("crdb_"),
+    );
+
+    // Sort by name
+    filteredRows.sort((a, b) => a.database_name.localeCompare(b.database_name));
+
+    return filteredRows.map((row) => {
       let metadata: DatabaseInfo["metadata"];
 
-      const description = row.description;
-      if (hasValue(description)) {
+      const comment = row.comment;
+      if (hasValue(comment)) {
         try {
-          metadata = JSON.parse(description) as DatabaseInfo["metadata"];
+          metadata = JSON.parse(comment) as DatabaseInfo["metadata"];
         } catch {
           // Not JSON, ignore
         }
       }
 
       return {
-        name: row.datname,
-        owner: row.pg_get_userbyid,
+        name: row.database_name,
+        owner: row.owner,
         metadata,
       };
     });
