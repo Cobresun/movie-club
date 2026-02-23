@@ -4,32 +4,38 @@ import type {
 } from "ag-charts-community";
 
 import type { DecadeStats, HistogramData, MovieData } from "./types";
+import { isDefined } from "../../../lib/checks/checks.js";
 import { Member } from "../../../lib/types/club";
 
 /**
- * Normalizes an array of numbers by subtracting the mean and dividing by the standard deviation.
+ * Normalizes an array of numbers (with possible undefined gaps) by subtracting
+ * the mean and dividing by the standard deviation. Undefined positions are
+ * preserved in the output.
  */
-export const normalizeArray = (array: number[]): number[] => {
+export const normalizeArray = (
+  array: (number | undefined)[],
+): (number | undefined)[] => {
   if (array.length === 0) return [];
 
-  const count = array.length;
+  const defined = array.filter(isDefined);
 
-  if (count <= 1) {
-    return array.map(() => 0);
+  if (defined.length <= 1) {
+    return array.map((v) => (isDefined(v) ? 0 : undefined));
   }
 
-  const sum = array.reduce((acc, score) => acc + score, 0);
-  const mean = sum / count;
+  const sum = defined.reduce((acc, score) => acc + score, 0);
+  const mean = sum / defined.length;
   const variance =
-    array.reduce((acc, score) => acc + Math.pow(score - mean, 2), 0) /
-    (count - 1);
+    defined.reduce((acc, score) => acc + Math.pow(score - mean, 2), 0) /
+    (defined.length - 1);
   const std = Math.sqrt(variance);
 
   if (std === 0) {
-    return array.map(() => 0);
+    return array.map((v) => (isDefined(v) ? 0 : undefined));
   }
 
   return array.map((score) => {
+    if (!isDefined(score)) return undefined;
     return parseFloat(((score - mean) / std).toFixed(2));
   });
 };
@@ -86,7 +92,9 @@ export function createHistogramOptions(
 
   filteredMovieData.forEach((movie) => {
     members.forEach((member) => {
-      const score = Math.floor(movie.userScores[member.id]);
+      const rawScore = movie.userScores[member.id];
+      if (!isDefined(rawScore)) return;
+      const score = Math.floor(rawScore);
       if (!isNaN(score)) {
         filteredHistData[score][member.id] += 1;
       }
