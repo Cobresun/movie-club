@@ -1,6 +1,7 @@
 import { HandlerResponse } from "@netlify/functions";
 import bcrypt from "bcrypt";
 import { betterAuth } from "better-auth";
+import { oAuthProxy } from "better-auth/plugins";
 import { existsSync, readFileSync } from "fs";
 import path from "path";
 import { z } from "zod";
@@ -54,6 +55,12 @@ function getTrustedOrigins(): string[] {
 export const auth = betterAuth({
   baseURL: process.env.BETTER_AUTH_URL,
   database: dialect,
+  plugins: [
+    oAuthProxy({
+      // productionURL defaults to BETTER_AUTH_URL env var
+      // currentURL auto-detected from Netlify env (URL, DEPLOY_PRIME_URL)
+    }),
+  ],
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: true,
@@ -80,6 +87,7 @@ export const auth = betterAuth({
     google: {
       clientId: googleClientId,
       clientSecret: googleClientSecret,
+      redirectURI: `${process.env.BETTER_AUTH_URL}/api/auth/callback/google`,
     },
   },
   trustedOrigins: getTrustedOrigins(),
