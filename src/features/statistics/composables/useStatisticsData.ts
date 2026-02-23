@@ -80,13 +80,14 @@ function mapReviewsToMovies(reviews: DetailedReviewListItem[]): MovieData[] {
         type: WorkType.movie,
         title: review.title,
         dateWatched: DateTime.fromISO(review.createdDate).toLocaleString(),
-        userScores: Object.keys(review.scores).reduce<Record<string, number>>(
-          (acc, key) => {
-            acc[key] = review.scores[key].score ?? 0;
-            return acc;
-          },
-          {},
-        ),
+        userScores: Object.keys(review.scores).reduce<
+          Record<string, number | undefined>
+        >((acc, key) => {
+          if (key !== "average" && isDefined(review.scores[key].score)) {
+            acc[key] = review.scores[key].score;
+          }
+          return acc;
+        }, {}),
         scores: review.scores,
         average: review.scores.average?.score ?? 0,
         normalized: {} as Record<string, number>,
@@ -98,7 +99,8 @@ function mapReviewsToMovies(reviews: DetailedReviewListItem[]): MovieData[] {
         externalData: review.externalData,
       };
     })
-    .filter(isDefined);
+    .filter(isDefined)
+    .filter((movie) => Object.keys(movie.userScores).length > 0);
 }
 
 function enrichWithStatistics(
@@ -112,7 +114,7 @@ function enrichWithStatistics(
     movies.map((data) => data.average),
   );
 
-  const memberScores: Record<string, number[]> = {};
+  const memberScores: Record<string, (number | undefined)[]> = {};
 
   for (const member of memberList) {
     memberScores[member.id] = normalizeArray(
@@ -124,14 +126,20 @@ function enrichWithStatistics(
   }
 
   const enrichedMovies = movies.map((movie, i) => {
-    const normalized: Record<string, number> = {};
+    const normalized: Record<string, number | undefined> = {};
 
     for (const member of memberList) {
-      normalized[member.id] = memberScores[member.id][i];
+      const normVal = memberScores[member.id][i];
+      if (isDefined(normVal)) {
+        normalized[member.id] = normVal;
+      }
 
-      const score = Math.floor(movie.userScores[member.id]);
-      if (!isNaN(score)) {
-        histogram[score][member.id] += 1;
+      const rawScore = movie.userScores[member.id];
+      if (isDefined(rawScore)) {
+        const score = Math.floor(rawScore);
+        if (!isNaN(score)) {
+          histogram[score][member.id] += 1;
+        }
       }
     }
 
