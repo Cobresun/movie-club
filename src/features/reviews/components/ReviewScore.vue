@@ -17,16 +17,18 @@
   >
     <mdicon name="plus" />
   </span>
-  <input
-    v-else-if="isMe && isInputOpen"
-    ref="scoreInput"
-    v-model="scoreModel"
-    aria-label="Score"
-    class="rounded-lg border border-gray-300 bg-background text-center outline-none focus:border-primary"
-    :class="{ 'w-10 p-2': size !== 'sm', 'w-8': size === 'sm' }"
-    @blur="isInputOpen = false"
-    @keypress.enter="submitScore(parseFloat(scoreModel))"
-  />
+  <form v-else-if="isMe && isInputOpen" @submit.prevent="handleFormSubmit">
+    <input
+      ref="scoreInput"
+      v-model="scoreModel"
+      inputmode="decimal"
+      aria-label="Score"
+      class="rounded-lg border border-gray-300 bg-background text-center outline-none focus:border-primary"
+      :class="{ 'w-10 p-2': size !== 'sm', 'w-8': size === 'sm' }"
+      @blur="isInputOpen = false"
+    />
+    <button type="submit" class="sr-only" tabindex="-1" />
+  </form>
 </template>
 <script setup lang="ts">
 import { computed, nextTick, ref } from "vue";
@@ -78,5 +80,9 @@ const submitScore = (score: number) => {
     }
     isInputOpen.value = false;
   }
+};
+
+const handleFormSubmit = () => {
+  submitScore(parseFloat(scoreModel.value));
 };
 </script>
