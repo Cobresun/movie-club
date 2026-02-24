@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap");
 @tailwind base;
 
 @tailwind components;
@@ -6,7 +6,7 @@
 @tailwind utilities;
 
 html {
-  font-family: 'Poppins', sans-serif;
+  font-family: "Poppins", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -14,11 +14,12 @@ html {
 /* Style date input calendar icon to match primary blue color */
 input[type="date"]::-webkit-calendar-picker-indicator {
   cursor: pointer;
-  filter: brightness(0) saturate(100%) invert(47%) sepia(98%) saturate(1247%) hue-rotate(188deg) brightness(98%) contrast(92%);
+  filter: brightness(0) saturate(100%) invert(47%) sepia(98%) saturate(1247%)
+    hue-rotate(188deg) brightness(98%) contrast(92%);
 }
 
 /* Fallback for browsers that support accent-color */
 input[type="date"] {
   color-scheme: dark;
-  accent-color: #2196F3;
+  accent-color: #2196f3;
 }

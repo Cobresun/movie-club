@@ -1,0 +1,9 @@
+# Generated files
+lib/types/generated/db.ts
+
+# Build output
+dist/
+node_modules/
+
+# Coverage
+coverage/
