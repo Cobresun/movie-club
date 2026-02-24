@@ -34,7 +34,7 @@
     "@tanstack/vue-table": "^8.21.3",
     "ag-charts-vue3": "^11.3.2",
     "animate.css": "^4.1.1",
-    "axios": "^1.13.2",
+    "axios": "^1.13.5",
     "bcrypt": "^6.0.0",
     "better-auth": "^1.4.18",
     "cloudinary": "^2.8.0",
