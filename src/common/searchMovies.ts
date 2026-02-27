@@ -101,7 +101,7 @@ export function filterMovies<T extends DetailedWorkListItem>(
       (review) =>
         isDefined(review.externalData) &&
         review.externalData?.actors.some((actor) =>
-          actor.toLocaleLowerCase().includes(filters.actor.toLowerCase()),
+          actor.toLocaleLowerCase().includes(filters.actor.toLocaleLowerCase()),
         ),
     );
   }
