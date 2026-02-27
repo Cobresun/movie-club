@@ -81,6 +81,13 @@ export interface ClubSettings {
   value: Json;
 }
 
+export interface MovieActors {
+  actor_name: string;
+  cast_order: Int8;
+  external_id: string;
+  rowid: Generated<Int8>;
+}
+
 export interface MovieDetails {
   adult: boolean | null;
   backdrop_path: string | null;
@@ -102,13 +109,6 @@ export interface MovieDetails {
   title: string | null;
   tmdb_score: Numeric | null;
   updated_date: Generated<Timestamp>;
-}
-
-export interface MovieActors {
-  actor_name: string;
-  cast_order: number;
-  external_id: string;
-  rowid: Generated<Int8>;
 }
 
 export interface MovieDirectors {
