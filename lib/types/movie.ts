@@ -13,6 +13,13 @@ export interface TMDBGenre {
   name: string;
 }
 
+export interface TMDBCastMember {
+  id: number;
+  name: string;
+  character: string;
+  order: number;
+}
+
 export interface TMDBCrewMember {
   id: number;
   name: string;
@@ -21,6 +28,7 @@ export interface TMDBCrewMember {
 }
 
 export interface TMDBCredits {
+  cast: TMDBCastMember[];
   crew: TMDBCrewMember[];
 }
 
@@ -56,6 +64,7 @@ export interface DetailedMovieData {
   adult: boolean;
   backdrop_path: string;
   budget: number;
+  actors: string[];
   directors: string[];
   genres: string[];
   homepage: string;

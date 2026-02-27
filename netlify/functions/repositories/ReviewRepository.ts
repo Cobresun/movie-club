@@ -1,9 +1,62 @@
+import { sql } from "kysely";
+
 import { WorkListType } from "../../../lib/types/generated/db";
 import { db } from "../utils/database";
 
 class ReviewRepository {
   async getReviewList(clubId: string) {
     return db
+      .with("genres_agg", (qb) =>
+        qb
+          .selectFrom("movie_genres")
+          .select([
+            "external_id",
+            db.fn.agg<string[]>("array_agg", ["genre_name"]).as("genres"),
+          ])
+          .groupBy("external_id"),
+      )
+      .with("companies_agg", (qb) =>
+        qb
+          .selectFrom("movie_production_companies")
+          .select([
+            "external_id",
+            db.fn
+              .agg<string[]>("array_agg", ["company_name"])
+              .as("production_companies"),
+          ])
+          .groupBy("external_id"),
+      )
+      .with("countries_agg", (qb) =>
+        qb
+          .selectFrom("movie_production_countries")
+          .select([
+            "external_id",
+            db.fn
+              .agg<string[]>("array_agg", ["country_name"])
+              .as("production_countries"),
+          ])
+          .groupBy("external_id"),
+      )
+      .with("directors_agg", (qb) =>
+        qb
+          .selectFrom("movie_directors")
+          .select([
+            "external_id",
+            db.fn.agg<string[]>("array_agg", ["director_name"]).as("directors"),
+          ])
+          .groupBy("external_id"),
+      )
+      .with("actors_agg", (qb) =>
+        qb
+          .selectFrom("movie_actors")
+          .select([
+            "external_id",
+            sql<string[]>`array_agg(actor_name ORDER BY cast_order)`.as(
+              "actors",
+            ),
+          ])
+          .groupBy("external_id"),
+      )
       .selectFrom("work_list")
       .where("work_list.club_id", "=", clubId)
       .where("work_list.type", "=", WorkListType.reviews)
@@ -16,23 +69,28 @@ class ReviewRepository {
         "work.external_id",
       )
       .leftJoin(
-        "movie_genres",
-        "movie_genres.external_id",
+        "genres_agg",
+        "genres_agg.external_id",
         "movie_details.external_id",
       )
       .leftJoin(
-        "movie_production_companies",
-        "movie_production_companies.external_id",
+        "companies_agg",
+        "companies_agg.external_id",
         "movie_details.external_id",
       )
       .leftJoin(
-        "movie_production_countries",
-        "movie_production_countries.external_id",
+        "countries_agg",
+        "countries_agg.external_id",
         "movie_details.external_id",
       )
       .leftJoin(
-        "movie_directors",
-        "movie_directors.external_id",
+        "directors_agg",
+        "directors_agg.external_id",
+        "movie_details.external_id",
+      )
+      .leftJoin(
+        "actors_agg",
+        "actors_agg.external_id",
         "movie_details.external_id",
       )
       .select([
@@ -61,32 +119,22 @@ class ReviewRepository {
         "movie_details.poster_path",
         "movie_details.status",
         "movie_details.tagline",
-        db.fn
-          .agg<string[]>("array_agg", ["movie_genres.genre_name"])
-          .distinct()
-          .as("genres"),
-        db.fn
-          .agg<
-            string[]
-          >("array_agg", ["movie_production_companies.company_name"])
-          .distinct()
-          .as("production_companies"),
-        db.fn
-          .agg<
-            string[]
-          >("array_agg", ["movie_production_countries.country_name"])
-          .distinct()
-          .as("production_countries"),
-        db.fn
-          .agg<string[]>("array_agg", ["movie_directors.director_name"])
-          .distinct()
-          .as("directors"),
+        "genres_agg.genres",
+        "companies_agg.production_companies",
+        "countries_agg.production_countries",
+        "directors_agg.directors",
+        "actors_agg.actors",
       ])
       .groupBy([
         "review.id",
         "work.id",
         "work_list_item.time_added",
         "movie_details.external_id",
+        "genres_agg.genres",
+        "companies_agg.production_companies",
+        "countries_agg.production_countries",
+        "directors_agg.directors",
+        "actors_agg.actors",
       ])
       .execute();
   }

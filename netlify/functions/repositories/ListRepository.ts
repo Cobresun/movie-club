@@ -46,6 +46,17 @@ class ListRepository {
           ])
           .groupBy("external_id"),
       )
+      .with("actors_agg", (qb) =>
+        qb
+          .selectFrom("movie_actors")
+          .select([
+            "external_id",
+            sql<string[]>`array_agg(actor_name ORDER BY cast_order)`.as(
+              "actors",
+            ),
+          ])
+          .groupBy("external_id"),
+      )
       .selectFrom("work_list")
       .where("work_list.club_id", "=", clubId)
       .where("work_list.type", "=", type)
@@ -76,6 +87,11 @@ class ListRepository {
         "directors_agg.external_id",
         "movie_details.external_id",
       )
+      .leftJoin(
+        "actors_agg",
+        "actors_agg.external_id",
+        "movie_details.external_id",
+      )
       .select([
         "work.id",
         "work.title",
@@ -103,6 +119,7 @@ class ListRepository {
         "companies_agg.production_companies",
         "countries_agg.production_countries",
         "directors_agg.directors",
+        "actors_agg.actors",
       ])
       .orderBy("work_list_item.position", "asc")
       .execute();
@@ -213,6 +230,17 @@ class ListRepository {
           ])
           .groupBy("external_id"),
       )
+      .with("actors_agg", (qb) =>
+        qb
+          .selectFrom("movie_actors")
+          .select([
+            "external_id",
+            sql<string[]>`array_agg(actor_name ORDER BY cast_order)`.as(
+              "actors",
+            ),
+          ])
+          .groupBy("external_id"),
+      )
       .selectFrom("work")
       .where("work.id", "=", workId)
       .leftJoin(
@@ -238,6 +266,11 @@ class ListRepository {
       .leftJoin(
         "directors_agg",
         "directors_agg.external_id",
+        "movie_details.external_id",
+      )
+      .leftJoin(
+        "actors_agg",
+        "actors_agg.external_id",
         "movie_details.external_id",
       )
       .select([
@@ -266,6 +299,7 @@ class ListRepository {
         "companies_agg.production_companies",
         "countries_agg.production_countries",
         "directors_agg.directors",
+        "actors_agg.actors",
       ])
       .executeTakeFirst();
   }

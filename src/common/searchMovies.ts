@@ -39,20 +39,16 @@ export function filterMovies<T extends DetailedWorkListItem>(
   // If the search query has text followed by a colon, extract that out into a map
   // of filters. Otherwise, just return an empty map. Type the map as a Record
   // so that TypeScript knows the keys are strings and the values are strings.
-  const filters = searchQuery.includes(":")
-    ? searchQuery.split(" ").reduce(
-        (acc, filter) => {
-          const [key, value] = filter.split(":");
-          acc[key] = value;
-          return acc;
-        },
-        {} as Record<string, string>,
-      )
-    : {};
+  const filters: Record<string, string> = {};
+  const filterRegex = /(\w+):(?:"([^"]*)"|(\S+))/g;
+  let match;
+  while ((match = filterRegex.exec(searchQuery)) !== null) {
+    filters[match[1]] = match[2] ?? match[3];
+  }
 
   // If there are filters, remove the filter and the value from the search query.
   if (Object.keys(filters).length > 0) {
-    searchQuery = searchQuery.replace(/(\w+:\S+\s?)/g, "");
+    searchQuery = searchQuery.replace(/\w+:(?:"[^"]*"|\S+)\s?/g, "");
   }
 
   // If there are filters, filter the reviews by them.
@@ -96,6 +92,16 @@ export function filterMovies<T extends DetailedWorkListItem>(
         isDefined(review.externalData) &&
         review.externalData?.directors.some((director) =>
           director.toLocaleLowerCase().includes(filters.director.toLowerCase()),
+        ),
+    );
+  }
+
+  if (filters.actor) {
+    filteredReviews = filteredReviews.filter(
+      (review) =>
+        isDefined(review.externalData) &&
+        review.externalData?.actors.some((actor) =>
+          actor.toLocaleLowerCase().includes(filters.actor.toLocaleLowerCase()),
         ),
     );
   }
