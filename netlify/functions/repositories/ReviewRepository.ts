@@ -35,6 +35,11 @@ class ReviewRepository {
         "movie_directors.external_id",
         "movie_details.external_id",
       )
+      .leftJoin(
+        "movie_actors",
+        "movie_actors.external_id",
+        "movie_details.external_id",
+      )
       .select([
         "review.id as review_id",
         "work.id",
@@ -81,6 +86,10 @@ class ReviewRepository {
           .agg<string[]>("array_agg", ["movie_directors.director_name"])
           .distinct()
           .as("directors"),
+        db.fn
+          .agg<string[]>("array_agg", ["movie_actors.actor_name"])
+          .distinct()
+          .as("actors"),
       ])
       .groupBy([
         "review.id",

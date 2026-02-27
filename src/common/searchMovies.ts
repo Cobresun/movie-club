@@ -100,6 +100,16 @@ export function filterMovies<T extends DetailedWorkListItem>(
     );
   }
 
+  if (filters.actor) {
+    filteredReviews = filteredReviews.filter(
+      (review) =>
+        isDefined(review.externalData) &&
+        review.externalData?.actors.some((actor) =>
+          actor.toLocaleLowerCase().includes(filters.actor.toLowerCase()),
+        ),
+    );
+  }
+
   if (filters.year) {
     filteredReviews = filteredReviews.filter(
       (review) =>

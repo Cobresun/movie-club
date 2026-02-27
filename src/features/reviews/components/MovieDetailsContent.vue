@@ -71,6 +71,22 @@
             <span>{{ movie.original.externalData.directors.join(", ") }}</span>
           </div>
           <div
+            v-if="movie.original.externalData?.actors?.length"
+            class="col-span-full"
+          >
+            <span class="text-gray-400">Cast: </span>
+            <span>{{ displayedActors.join(", ") }}</span>
+            <button
+              v-if="hasMoreActors"
+              class="ml-1 text-xs text-primary"
+              @click="showAllActors = !showAllActors"
+            >
+              {{
+                showAllActors ? "Show less" : `+${remainingActorsCount} more`
+              }}
+            </button>
+          </div>
+          <div
             v-if="movie.original.externalData?.vote_average"
             :class="{
               'cursor-pointer select-none blur filter': shouldBlurTmdbScore,
@@ -170,6 +186,8 @@ const emit = defineEmits<{
   (e: "toggle-reveal", movieId: string): void;
 }>();
 
+const VISIBLE_ACTORS_COUNT = 5;
+const showAllActors = ref(false);
 const showDeleteConfirmation = ref(false);
 const cancelDelete = () => {
   showDeleteConfirmation.value = false;
@@ -186,6 +204,21 @@ const { data: club } = useClub(clubId);
 const { mutate: updateAddedDate } = useUpdateAddedDate(clubId);
 const isEditingDate = ref(false);
 const editedDate = ref("");
+
+const allActors = computed(
+  () => props.movie.original.externalData?.actors ?? [],
+);
+const displayedActors = computed(() =>
+  showAllActors.value
+    ? allActors.value
+    : allActors.value.slice(0, VISIBLE_ACTORS_COUNT),
+);
+const hasMoreActors = computed(
+  () => allActors.value.length > VISIBLE_ACTORS_COUNT,
+);
+const remainingActorsCount = computed(
+  () => allActors.value.length - VISIBLE_ACTORS_COUNT,
+);
 
 const formattedDateForInput = computed(() => {
   return DateTime.fromISO(props.movie.original.createdDate).toFormat(

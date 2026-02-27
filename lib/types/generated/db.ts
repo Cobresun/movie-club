@@ -104,6 +104,13 @@ export interface MovieDetails {
   updated_date: Generated<Timestamp>;
 }
 
+export interface MovieActors {
+  actor_name: string;
+  cast_order: number;
+  external_id: string;
+  rowid: Generated<Int8>;
+}
+
 export interface MovieDirectors {
   director_name: string;
   external_id: string;
@@ -207,6 +214,7 @@ export interface DB {
   club_invite: ClubInvite;
   club_member: ClubMember;
   club_settings: ClubSettings;
+  movie_actors: MovieActors;
   movie_details: MovieDetails;
   movie_directors: MovieDirectors;
   movie_genres: MovieGenres;

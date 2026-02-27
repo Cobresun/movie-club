@@ -9,6 +9,7 @@ export function overviewToExternalData(
   }
 
   return {
+    actors: workDetails.actors?.filter(Boolean) ?? [],
     adult: workDetails.adult,
     backdrop_path: workDetails.backdrop_path,
     budget: workDetails.budget,
