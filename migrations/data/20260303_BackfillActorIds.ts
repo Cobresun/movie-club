@@ -29,8 +29,9 @@ async function fetchActors(
     .map((c) => ({ id: c.id, name: c.name, order: c.order }));
 }
 
-const backfillMovieActors = async () => {
+const backfillActorIds = async () => {
   // Get all movie_details entries that don't have corresponding movie_actors rows
+  // (after truncation from the schema migration, this will be all movies)
   const movies = await db
     .selectFrom("movie_details")
     .leftJoin(
@@ -105,6 +106,6 @@ const backfillMovieActors = async () => {
   console.log(`Errors: ${errors}`);
 };
 
-backfillMovieActors()
-  .then(() => console.log("Movie actors backfill completed"))
+backfillActorIds()
+  .then(() => console.log("Actor ID backfill completed"))
   .catch(console.error);

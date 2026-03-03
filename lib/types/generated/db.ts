@@ -82,6 +82,7 @@ export interface ClubSettings {
 }
 
 export interface MovieActors {
+  actor_id: Int8;
   actor_name: string;
   cast_order: Int8;
   external_id: string;

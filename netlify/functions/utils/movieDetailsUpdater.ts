@@ -118,11 +118,12 @@ export async function insertMovieDetails(
       .values(
         actors.map((c) => ({
           external_id: externalId,
+          actor_id: c.id,
           actor_name: c.name,
           cast_order: c.order,
         })),
       )
-      .onConflict((oc) => oc.columns(["external_id", "actor_name"]).doNothing())
+      .onConflict((oc) => oc.columns(["external_id", "actor_id"]).doNothing())
       .execute();
   }
 }
@@ -220,6 +221,7 @@ export async function updateMovieDetails(
       .values(
         actors.map((c) => ({
           external_id: externalId,
+          actor_id: c.id,
           actor_name: c.name,
           cast_order: c.order,
         })),
