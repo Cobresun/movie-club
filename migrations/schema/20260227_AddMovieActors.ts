@@ -7,8 +7,9 @@ export async function up(db: Kysely<unknown>) {
       col.references("movie_details.external_id").onDelete("cascade").notNull(),
     )
     .addColumn("actor_name", "varchar(255)", (col) => col.notNull())
+    .addColumn("actor_id", "int8", (col) => col.notNull())
     .addColumn("cast_order", "integer", (col) => col.notNull())
-    .addUniqueConstraint("movie_actors_unique", ["external_id", "actor_name"])
+    .addUniqueConstraint("movie_actors_unique", ["external_id", "actor_id"])
     .execute();
 
   await db.schema

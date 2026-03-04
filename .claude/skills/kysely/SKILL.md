@@ -259,3 +259,4 @@ npm run codegen        # Regenerate TypeScript types from schema
 4. **Migration types:** Use `Kysely<unknown>` in migration functions, not `Kysely<DB>` — the schema may not match during migration.
 5. **Named constraints:** Always name constraints (`pk_`, `fk_`, `uq_`, `idx_` prefixes) for debugging and `ON CONFLICT` references.
 6. **Aggregate + GROUP BY:** When using multiple aggregates, prefer CTEs (`.with()`) over complex GROUP BY to avoid CockroachDB limitations.
+7. **Condense undeployed migrations:** If a PR has multiple schema migrations touching the same table and none have been deployed to production, merge them into a single migration. This avoids unnecessary intermediate states and reduces deployment failure points. Pair data migrations with the same date prefix as their schema migration.
