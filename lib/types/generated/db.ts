@@ -81,6 +81,14 @@ export interface ClubSettings {
   value: Json;
 }
 
+export interface MovieActors {
+  actor_id: Int8;
+  actor_name: string;
+  cast_order: Int8;
+  external_id: string;
+  rowid: Generated<Int8>;
+}
+
 export interface MovieDetails {
   adult: boolean | null;
   backdrop_path: string | null;
@@ -207,6 +215,7 @@ export interface DB {
   club_invite: ClubInvite;
   club_member: ClubMember;
   club_settings: ClubSettings;
+  movie_actors: MovieActors;
   movie_details: MovieDetails;
   movie_directors: MovieDirectors;
   movie_genres: MovieGenres;

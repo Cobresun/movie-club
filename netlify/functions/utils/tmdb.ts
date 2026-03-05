@@ -47,6 +47,9 @@ export async function getDetailedMovie<T extends BaseMovie>(
 
       // Transform TMDBMovieData into DetailedMovieData
       const movieData: DetailedMovieData = {
+        actors: (tmdbData.credits?.cast ?? [])
+          .sort((a, b) => a.order - b.order)
+          .map((c) => c.name),
         adult: tmdbData.adult,
         backdrop_path: tmdbData.backdrop_path,
         budget: tmdbData.budget,
