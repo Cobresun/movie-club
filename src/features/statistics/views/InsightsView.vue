@@ -19,7 +19,7 @@
       :movie-data="movieData"
       :members="members"
     />
-    <DirectorsLeaderboard :movie-data="movieData" />
+    <LeaderboardsWidget :movie-data="movieData" />
     <TmdbDeviationWidget :movie-data="movieData" />
   </div>
 </template>
@@ -27,9 +27,9 @@
 <script setup lang="ts">
 import { Member } from "../../../../lib/types/club";
 import DecadeStatsWidget from "../components/DecadeStatsWidget.vue";
-import DirectorsLeaderboard from "../components/DirectorsLeaderboard.vue";
 import GenreStatsWidget from "../components/GenreStatsWidget.vue";
 import GenreWatchCountWidget from "../components/GenreWatchCountWidget.vue";
+import LeaderboardsWidget from "../components/LeaderboardsWidget.vue";
 import ReviewerLeaderboardWidget from "../components/ReviewerLeaderboardWidget.vue";
 import ScoreDistributionWidget from "../components/ScoreDistributionWidget.vue";
 import StatsWidget from "../components/StatsWidget.vue";
