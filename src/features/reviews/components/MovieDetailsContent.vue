@@ -290,17 +290,14 @@
             <span class="text-gray-400">TMDB Rating: </span>
             <span>{{ movie.original.externalData.vote_average }}/10</span>
           </div>
+          <MovieDescription
+            v-if="movie.original.externalData?.overview"
+            :key="movie.id"
+            :overview="movie.original.externalData.overview"
+            class="mt-2"
+          />
         </DisclosurePanel>
       </Disclosure>
-
-      <!-- Movie description -->
-      <div v-if="movie.original.externalData" class="mt-4">
-        <MovieDescription
-          v-if="movie.original.externalData.overview"
-          :key="movie.id"
-          :overview="movie.original.externalData.overview"
-        />
-      </div>
 
       <!-- Action buttons -->
       <div class="mt-6 flex w-full gap-3">
