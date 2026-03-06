@@ -5,53 +5,247 @@
       @confirm="confirmDelete"
       @cancel="cancelDelete"
     />
-    <!-- Movie details -->
-    <div :class="isDesktop ? 'flex flex-col items-center' : 'flex gap-4'">
-      <img
-        :src="`https://image.tmdb.org/t/p/w500/${movie.original.externalData?.poster_path}`"
-        :class="isDesktop ? 'mb-8 w-1/2 rounded-lg' : 'w-1/3 rounded-lg'"
-        alt="Movie poster"
-      />
-      <div class="flex w-full flex-col items-center">
-        <h2 class="text-center text-xl font-bold">
-          {{ movie.renderValue("title") }}
-        </h2>
-        <div class="mt-2 text-center text-sm text-gray-400">
-          <template v-if="!isEditingDate">
-            <span
-              class="inline-flex cursor-pointer items-center gap-1 text-gray-400 hover:text-primary hover:underline"
-              @click="openDateEditor"
+
+    <!-- Desktop layout -->
+    <template v-if="isDesktop">
+      <div class="flex flex-col items-center">
+        <img
+          :src="`https://image.tmdb.org/t/p/w500/${movie.original.externalData?.poster_path}`"
+          class="mb-8 w-1/2 rounded-lg"
+          alt="Movie poster"
+        />
+        <div class="flex w-full flex-col items-center">
+          <h2 class="text-center text-xl font-bold">
+            {{ movie.renderValue("title") }}
+          </h2>
+          <div class="mt-2 text-center text-sm text-gray-400">
+            <template v-if="!isEditingDate">
+              <span
+                class="inline-flex cursor-pointer items-center gap-1 text-gray-400 hover:text-primary hover:underline"
+                @click="openDateEditor"
+              >
+                {{ formatDate(movie.original.createdDate) }}
+                <mdicon name="pencil" size="14" class="text-current" />
+              </span>
+            </template>
+            <template v-else>
+              <div class="flex items-center justify-center gap-1.5 px-2">
+                <input
+                  v-model="editedDate"
+                  type="date"
+                  class="rounded border border-gray-600 bg-background px-1.5 py-0.5 text-xs text-white sm:px-2 sm:py-1 sm:text-sm"
+                  @keypress.enter="saveDateChange"
+                />
+                <button
+                  class="whitespace-nowrap rounded bg-primary px-1.5 py-0.5 text-xs text-white sm:px-2 sm:py-1 sm:text-sm"
+                  @click="saveDateChange"
+                >
+                  Save
+                </button>
+                <button
+                  class="whitespace-nowrap rounded bg-gray-600 px-1.5 py-0.5 text-xs text-white sm:px-2 sm:py-1 sm:text-sm"
+                  @click="cancelDateEdit"
+                >
+                  Cancel
+                </button>
+              </div>
+            </template>
+          </div>
+          <div
+            class="mt-4 grid grid-cols-1 gap-x-4 gap-y-2 text-sm md:grid-cols-2"
+          >
+            <div v-if="movie.original.externalData?.release_date">
+              <span class="text-gray-400">Release Date: </span>
+              <span>{{
+                formatDate(movie.original.externalData.release_date)
+              }}</span>
+            </div>
+            <div v-if="movie.original.externalData?.runtime">
+              <span class="text-gray-400">Runtime: </span>
+              <span>{{ movie.original.externalData.runtime }} minutes</span>
+            </div>
+            <div v-if="movie.original.externalData?.genres?.length">
+              <span class="text-gray-400">Genres: </span>
+              <span>{{ movie.original.externalData.genres.join(", ") }}</span>
+            </div>
+            <div v-if="movie.original.externalData?.directors?.length">
+              <span class="text-gray-400">Director: </span>
+              <span>{{
+                movie.original.externalData.directors.join(", ")
+              }}</span>
+            </div>
+            <div
+              v-if="movie.original.externalData?.actors?.length"
+              class="col-span-full"
             >
-              {{ formatDate(movie.original.createdDate) }}
-              <mdicon name="pencil" size="14" class="text-current" />
-            </span>
-          </template>
-          <template v-else>
-            <div class="flex items-center justify-center gap-1.5 px-2">
-              <input
-                v-model="editedDate"
-                type="date"
-                class="rounded border border-gray-600 bg-background px-1.5 py-0.5 text-xs text-white sm:px-2 sm:py-1 sm:text-sm"
-                @keypress.enter="saveDateChange"
-              />
+              <span class="text-gray-400">Cast: </span>
+              <span>{{ displayedActors.join(", ") }}</span>
               <button
-                class="whitespace-nowrap rounded bg-primary px-1.5 py-0.5 text-xs text-white sm:px-2 sm:py-1 sm:text-sm"
-                @click="saveDateChange"
+                v-if="hasMoreActors"
+                class="ml-1 text-xs text-primary"
+                @click="showAllActors = !showAllActors"
               >
-                Save
-              </button>
-              <button
-                class="whitespace-nowrap rounded bg-gray-600 px-1.5 py-0.5 text-xs text-white sm:px-2 sm:py-1 sm:text-sm"
-                @click="cancelDateEdit"
-              >
-                Cancel
+                {{
+                  showAllActors ? "Show less" : `+${remainingActorsCount} more`
+                }}
               </button>
             </div>
-          </template>
+            <div
+              v-if="movie.original.externalData?.vote_average"
+              :class="{
+                'cursor-pointer select-none blur filter': shouldBlurTmdbScore,
+              }"
+              @click="shouldBlurTmdbScore && toggleMovieReveal(movie.id)"
+            >
+              <span class="text-gray-400">TMDB Rating: </span>
+              <span>{{ movie.original.externalData.vote_average }}/10</span>
+            </div>
+          </div>
         </div>
+      </div>
+
+      <div class="mt-6 grid grid-cols-2 gap-4">
         <div
-          class="mt-4 grid grid-cols-1 gap-x-4 gap-y-2 text-sm md:grid-cols-2"
+          v-for="cell in getVisibleCells(movie)"
+          :key="cell.id"
+          class="flex cursor-pointer items-center rounded-xl bg-lowBackground p-2"
+          @click="
+            shouldBlurScore(movie.id, cell.column.id) &&
+            toggleMovieReveal(movie.id)
+          "
         >
+          <FlexRender
+            :render="cell.column.columnDef.header"
+            :props="cell.getContext()"
+          />
+          <div class="ml-2 flex-grow">
+            <FlexRender
+              :render="cell.column.columnDef.cell"
+              :props="cell.getContext()"
+              :class="{
+                'blur filter': shouldBlurScore(movie.id, cell.column.id),
+              }"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div v-if="movie.original.externalData" class="mt-6">
+        <MovieDescription
+          v-if="movie.original.externalData.overview"
+          :key="movie.id"
+          :overview="movie.original.externalData.overview"
+        />
+      </div>
+
+      <div class="mt-6 flex w-full gap-3">
+        <button
+          class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-red-500/20 py-3 text-red-500"
+          @click="showDeleteConfirmation = true"
+        >
+          <mdicon name="delete" />
+          <span>Delete</span>
+        </button>
+        <button
+          class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary/20 py-3 text-primary"
+          @click="shareReview(movie.original.id)"
+        >
+          <mdicon name="share" />
+          <span>Share</span>
+        </button>
+      </div>
+    </template>
+
+    <!-- Mobile layout -->
+    <template v-else>
+      <!-- Compact header: poster + title + date -->
+      <div class="flex gap-4">
+        <img
+          :src="`https://image.tmdb.org/t/p/w500/${movie.original.externalData?.poster_path}`"
+          class="w-20 flex-shrink-0 rounded-lg object-cover"
+          :style="{ aspectRatio: '2/3' }"
+          alt="Movie poster"
+        />
+        <div class="flex flex-col justify-center">
+          <h2 class="text-xl font-bold">
+            {{ movie.renderValue("title") }}
+          </h2>
+          <div class="mt-1 text-sm text-gray-400">
+            <template v-if="!isEditingDate">
+              <span
+                class="inline-flex cursor-pointer items-center gap-1 text-gray-400 hover:text-primary hover:underline"
+                @click="openDateEditor"
+              >
+                {{ formatDate(movie.original.createdDate) }}
+                <mdicon name="pencil" size="14" class="text-current" />
+              </span>
+            </template>
+            <template v-else>
+              <div class="flex items-center gap-1.5">
+                <input
+                  v-model="editedDate"
+                  type="date"
+                  class="rounded border border-gray-600 bg-background px-1.5 py-0.5 text-xs text-white"
+                  @keypress.enter="saveDateChange"
+                />
+                <button
+                  class="whitespace-nowrap rounded bg-primary px-1.5 py-0.5 text-xs text-white"
+                  @click="saveDateChange"
+                >
+                  Save
+                </button>
+                <button
+                  class="whitespace-nowrap rounded bg-gray-600 px-1.5 py-0.5 text-xs text-white"
+                  @click="cancelDateEdit"
+                >
+                  Cancel
+                </button>
+              </div>
+            </template>
+          </div>
+        </div>
+      </div>
+
+      <!-- Scores grid (prioritized on mobile) -->
+      <div class="mt-4 grid grid-cols-2 gap-4">
+        <div
+          v-for="cell in getVisibleCells(movie)"
+          :key="cell.id"
+          class="flex cursor-pointer items-center rounded-xl bg-lowBackground p-2"
+          @click="
+            shouldBlurScore(movie.id, cell.column.id) &&
+            toggleMovieReveal(movie.id)
+          "
+        >
+          <FlexRender
+            :render="cell.column.columnDef.header"
+            :props="cell.getContext()"
+          />
+          <div class="ml-2 flex-grow">
+            <FlexRender
+              :render="cell.column.columnDef.cell"
+              :props="cell.getContext()"
+              :class="{
+                'blur filter': shouldBlurScore(movie.id, cell.column.id),
+              }"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- Collapsible metadata -->
+      <Disclosure v-slot="{ open }">
+        <DisclosureButton
+          class="mt-4 flex w-full items-center justify-between rounded-lg bg-lowBackground px-4 py-2.5 text-sm font-medium text-gray-300"
+        >
+          <span>Movie Details</span>
+          <mdicon
+            name="chevron-down"
+            :class="open ? 'rotate-180 transform' : ''"
+            class="transition-transform duration-200"
+          />
+        </DisclosureButton>
+        <DisclosurePanel class="mt-2 grid grid-cols-1 gap-y-2 px-1 text-sm">
           <div v-if="movie.original.externalData?.release_date">
             <span class="text-gray-400">Release Date: </span>
             <span>{{
@@ -96,67 +290,41 @@
             <span class="text-gray-400">TMDB Rating: </span>
             <span>{{ movie.original.externalData.vote_average }}/10</span>
           </div>
-        </div>
-      </div>
-    </div>
+        </DisclosurePanel>
+      </Disclosure>
 
-    <!-- Ratings and other information -->
-    <div class="mt-6 grid grid-cols-2 gap-4">
-      <div
-        v-for="cell in getVisibleCells(movie)"
-        :key="cell.id"
-        class="flex cursor-pointer items-center rounded-xl bg-lowBackground p-2"
-        @click="
-          shouldBlurScore(movie.id, cell.column.id) &&
-          toggleMovieReveal(movie.id)
-        "
-      >
-        <FlexRender
-          :render="cell.column.columnDef.header"
-          :props="cell.getContext()"
+      <!-- Movie description -->
+      <div v-if="movie.original.externalData" class="mt-4">
+        <MovieDescription
+          v-if="movie.original.externalData.overview"
+          :key="movie.id"
+          :overview="movie.original.externalData.overview"
         />
-        <div class="ml-2 flex-grow">
-          <FlexRender
-            :render="cell.column.columnDef.cell"
-            :props="cell.getContext()"
-            :class="{
-              'blur filter': shouldBlurScore(movie.id, cell.column.id),
-            }"
-          />
-        </div>
       </div>
-    </div>
 
-    <!-- Movie details if available -->
-    <div v-if="movie.original.externalData" class="mt-6">
-      <MovieDescription
-        v-if="movie.original.externalData.overview"
-        :key="movie.id"
-        :overview="movie.original.externalData.overview"
-      />
-    </div>
-
-    <!-- Action buttons -->
-    <div class="mt-6 flex w-full gap-3">
-      <button
-        class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-red-500/20 py-3 text-red-500"
-        @click="showDeleteConfirmation = true"
-      >
-        <mdicon name="delete" />
-        <span>Delete</span>
-      </button>
-      <button
-        class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary/20 py-3 text-primary"
-        @click="shareReview(movie.original.id)"
-      >
-        <mdicon name="share" />
-        <span>Share</span>
-      </button>
-    </div>
+      <!-- Action buttons -->
+      <div class="mt-6 flex w-full gap-3">
+        <button
+          class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-red-500/20 py-3 text-red-500"
+          @click="showDeleteConfirmation = true"
+        >
+          <mdicon name="delete" />
+          <span>Delete</span>
+        </button>
+        <button
+          class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary/20 py-3 text-primary"
+          @click="shareReview(movie.original.id)"
+        >
+          <mdicon name="share" />
+          <span>Share</span>
+        </button>
+      </div>
+    </template>
   </div>
 </template>
 
 <script setup lang="ts">
+import { Disclosure, DisclosureButton, DisclosurePanel } from "@headlessui/vue";
 import { FlexRender, Row, Table } from "@tanstack/vue-table";
 import { DateTime } from "luxon";
 import { computed, ref } from "vue";
