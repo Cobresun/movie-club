@@ -327,7 +327,7 @@ import { DateTime } from "luxon";
 import { computed, ref } from "vue";
 
 import MovieDescription from "./MovieDescription.vue";
-import { isDefined } from "../../../../lib/checks/checks.js";
+import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
 
 import DeleteConfirmationModal from "@/common/components/DeleteConfirmationModal.vue";
@@ -397,7 +397,7 @@ const openDateEditor = () => {
 };
 
 const saveDateChange = () => {
-  if (editedDate.value !== "") {
+  if (hasValue(editedDate.value)) {
     const isoDate = DateTime.fromFormat(editedDate.value, "yyyy-MM-dd")
       .startOf("day")
       .toISO();
