@@ -210,30 +210,33 @@ export function computeTasteSimilarity(
   };
 }
 
-export interface DirectorStats {
+export interface PersonStats {
   name: string;
   movieCount: number;
   averageScore: number;
   movies: string[];
 }
 
-export function computeTopDirectors(movieData: MovieData[]): DirectorStats[] {
-  const directorMap = new Map<
+function computeTopPeople(
+  movieData: MovieData[],
+  getPeople: (movie: MovieData) => readonly string[] | undefined,
+): PersonStats[] {
+  const peopleMap = new Map<
     string,
     { totalScore: number; count: number; movies: string[] }
   >();
 
   for (const movie of movieData) {
-    const directors = movie.externalData?.directors;
-    if (!hasElements(directors)) continue;
-    for (const director of directors) {
-      const existing = directorMap.get(director);
+    const people = getPeople(movie);
+    if (!hasElements(people)) continue;
+    for (const person of people) {
+      const existing = peopleMap.get(person);
       if (existing) {
         existing.totalScore += movie.average;
         existing.count += 1;
         existing.movies.push(movie.title);
       } else {
-        directorMap.set(director, {
+        peopleMap.set(person, {
           totalScore: movie.average,
           count: 1,
           movies: [movie.title],
@@ -242,7 +245,7 @@ export function computeTopDirectors(movieData: MovieData[]): DirectorStats[] {
     }
   }
 
-  return Array.from(directorMap.entries())
+  return Array.from(peopleMap.entries())
     .map(([name, data]) => ({
       name,
       movieCount: data.count,
@@ -254,6 +257,14 @@ export function computeTopDirectors(movieData: MovieData[]): DirectorStats[] {
       return countDiff !== 0 ? countDiff : b.averageScore - a.averageScore;
     })
     .slice(0, 5);
+}
+
+export function computeTopDirectors(movieData: MovieData[]): PersonStats[] {
+  return computeTopPeople(movieData, (m) => m.externalData?.directors);
+}
+
+export function computeTopActors(movieData: MovieData[]): PersonStats[] {
+  return computeTopPeople(movieData, (m) => m.externalData?.actors);
 }
 
 export function computeTmdbDeviation(movieData: MovieData[]): {

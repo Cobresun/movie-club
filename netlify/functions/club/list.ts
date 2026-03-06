@@ -121,6 +121,7 @@ async function getReviewList(clubId: string): Promise<ReviewListItem[]> {
 
       const externalData = hasValue(review.overview)
         ? {
+            actors: review.actors?.filter(Boolean) ?? [],
             adult: review.adult,
             backdrop_path: review.backdrop_path,
             budget: review.budget,

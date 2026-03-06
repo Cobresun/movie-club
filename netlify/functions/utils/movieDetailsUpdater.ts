@@ -107,6 +107,25 @@ export async function insertMovieDetails(
       )
       .execute();
   }
+
+  // Insert actors
+  const actors = (tmdbData.credits?.cast ?? []).sort(
+    (a, b) => a.order - b.order,
+  );
+  if (actors.length > 0) {
+    await dbOrTrx
+      .insertInto("movie_actors")
+      .values(
+        actors.map((c) => ({
+          external_id: externalId,
+          actor_id: c.id,
+          actor_name: c.name,
+          cast_order: c.order,
+        })),
+      )
+      .onConflict((oc) => oc.columns(["external_id", "actor_id"]).doNothing())
+      .execute();
+  }
 }
 
 /**
@@ -182,6 +201,29 @@ export async function updateMovieDetails(
         directors.map((name) => ({
           external_id: externalId,
           director_name: name,
+        })),
+      )
+      .execute();
+  }
+
+  // Update actors - delete old and insert new
+  await dbOrTrx
+    .deleteFrom("movie_actors")
+    .where("external_id", "=", externalId)
+    .execute();
+
+  const actors = (tmdbData.credits?.cast ?? []).sort(
+    (a, b) => a.order - b.order,
+  );
+  if (actors.length > 0) {
+    await dbOrTrx
+      .insertInto("movie_actors")
+      .values(
+        actors.map((c) => ({
+          external_id: externalId,
+          actor_id: c.id,
+          actor_name: c.name,
+          cast_order: c.order,
         })),
       )
       .execute();
