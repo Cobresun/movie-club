@@ -5,6 +5,7 @@ import type {
   MemberLeaderboardEntry,
   MemberPairSimilarity,
   MovieData,
+  ScoreTrendPoint,
   TmdbDeviationEntry,
 } from "./types";
 import {
@@ -297,6 +298,57 @@ export function computeTmdbDeviation(movieData: MovieData[]): {
       .filter((e) => e.deviation < 0)
       .sort((a, b) => a.deviation - b.deviation),
   };
+}
+
+export function computeScoreTrend(
+  movieData: MovieData[],
+  members: Member[],
+): Map<string, ScoreTrendPoint[]> {
+  const result = new Map<string, ScoreTrendPoint[]>();
+
+  for (const member of members) {
+    const reviews: { date: Date; title: string; score: number }[] = [];
+
+    for (const movie of movieData) {
+      const entry = movie.scores[member.id];
+      if (!isDefined(entry) || !hasValue(entry.created_date)) continue;
+
+      const date = new Date(entry.created_date);
+      if (isNaN(date.getTime())) continue;
+
+      reviews.push({ date, title: movie.title, score: entry.score });
+    }
+
+    if (reviews.length === 0) continue;
+
+    reviews.sort((a, b) => a.date.getTime() - b.date.getTime());
+
+    // Scale window to 20% of the member's reviews so the trend stays readable.
+    // A fixed window over-smooths long-running clubs, making all lines converge.
+    const windowSize = Math.max(
+      5,
+      Math.min(30, Math.round(reviews.length * 0.2)),
+    );
+
+    const points: ScoreTrendPoint[] = [];
+    for (let index = windowSize - 1; index < reviews.length; index++) {
+      const review = reviews[index];
+      const windowStart = index - windowSize + 1;
+      const window = reviews.slice(windowStart, index + 1);
+      const avg = window.reduce((sum, r) => sum + r.score, 0) / window.length;
+
+      points.push({
+        date: review.date,
+        movieTitle: review.title,
+        actualScore: review.score,
+        rollingAverage: Math.round(avg * 100) / 100,
+      });
+    }
+
+    result.set(member.id, points);
+  }
+
+  return result;
 }
 
 export function computeDecadeStats(
