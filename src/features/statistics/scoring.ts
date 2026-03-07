@@ -1,9 +1,15 @@
 import type {
   AgBarSeriesTooltipRendererParams,
   AgCartesianChartOptions,
+  AgLineSeriesTooltipRendererParams,
 } from "ag-charts-community";
 
-import type { DecadeStats, HistogramData, MovieData } from "./types";
+import type {
+  DecadeStats,
+  HistogramData,
+  MovieData,
+  ScoreTrendPoint,
+} from "./types";
 import { isDefined } from "../../../lib/checks/checks.js";
 import { Member } from "../../../lib/types/club";
 
@@ -202,5 +208,89 @@ export function createDecadeChartOptions(
         },
       },
     ],
+  };
+}
+
+const TREND_COLORS = [
+  "#2196F3",
+  "#4CAF50",
+  "#FF9800",
+  "#E91E63",
+  "#9C27B0",
+  "#00BCD4",
+  "#FF5722",
+  "#8BC34A",
+];
+
+export function createScoreTrendChartOptions(
+  trendData: Map<string, ScoreTrendPoint[]>,
+  members: Member[],
+): AgCartesianChartOptions {
+  const allAverages = [...trendData.values()].flatMap((points) =>
+    points.map((p) => p.rollingAverage),
+  );
+  const dataMin = allAverages.length > 0 ? Math.min(...allAverages) : 0;
+  const yMin = Math.max(0, Math.floor(dataMin) - 1);
+
+  const series = members
+    .filter((member) => trendData.has(member.id))
+    .map((member, index) => ({
+      type: "line" as const,
+      data: trendData.get(member.id),
+      xKey: "date",
+      xName: "Date",
+      yKey: "rollingAverage",
+      yName: member.name,
+      strokeWidth: 2.5,
+      stroke: TREND_COLORS[index % TREND_COLORS.length],
+      marker: {
+        size: 4,
+        fill: TREND_COLORS[index % TREND_COLORS.length],
+      },
+      interpolation: { type: "smooth" as const },
+      tooltip: {
+        renderer: function (
+          params: AgLineSeriesTooltipRendererParams<ScoreTrendPoint>,
+        ) {
+          const color = TREND_COLORS[index % TREND_COLORS.length];
+          return (
+            `<div class="ag-chart-tooltip-title" style="background-color: ${color}">${member.name}</div>` +
+            `<div class="ag-chart-tooltip-content">` +
+            `${params.datum.movieTitle}` +
+            `<br/>Score: ${params.datum.actualScore}` +
+            `<br/>Rolling Avg: ${params.datum.rollingAverage}` +
+            `</div>`
+          );
+        },
+      },
+    }));
+
+  return {
+    theme: "ag-default-dark",
+    background: { visible: false },
+    series,
+    axes: [
+      {
+        type: "time",
+        position: "bottom",
+        label: {
+          format: "%b %Y",
+        },
+      },
+      {
+        type: "number",
+        position: "left",
+        nice: false,
+        min: yMin,
+        max: 10,
+        title: {
+          enabled: true,
+          text: "Rolling Avg Score",
+        },
+      },
+    ],
+    legend: {
+      position: "bottom",
+    },
   };
 }
