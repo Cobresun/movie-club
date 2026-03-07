@@ -227,7 +227,7 @@ export function computeClubConsensus(
   for (const movie of movieData) {
     const scoreEntries: { name: string; score: number }[] = [];
     for (const [memberId, score] of Object.entries(movie.userScores)) {
-      if (!isNaN(score)) {
+      if (isDefined(score) && !isNaN(score)) {
         scoreEntries.push({
           name: memberMap.get(memberId) ?? memberId,
           score,
