@@ -7,7 +7,8 @@ import {
 } from "vue-router";
 
 import ClubRouterView from "./ClubRouterView.vue";
-import { isDefined } from "../../lib/checks/checks.js";
+import { hasElements, hasValue, isDefined } from "../../lib/checks/checks.js";
+import { LAST_CLUB_SLUG_KEY } from "../common/constants/localStorage";
 import ClubHomeView from "../features/clubs/views/ClubHomeView.vue";
 import ClubsView from "../features/clubs/views/ClubsView.vue";
 import NewClubView from "../features/clubs/views/NewClubView.vue";
@@ -99,6 +100,30 @@ const routes: Array<RouteRecordRaw> = [
     path: "/",
     name: "Clubs",
     component: ClubsView,
+    beforeEnter: async () => {
+      const auth = useAuthStore();
+      await auth.waitForAuthReady();
+      if (!auth.isLoggedIn) return;
+
+      await auth.waitForClubsReady();
+      const clubs = auth.userClubs;
+
+      if (!hasElements(clubs)) {
+        return { name: "NewClub", replace: true };
+      }
+
+      const lastSlug = localStorage.getItem(LAST_CLUB_SLUG_KEY);
+      const slug =
+        hasValue(lastSlug) && clubs.some((c) => c.slug === lastSlug)
+          ? lastSlug
+          : clubs[0].slug;
+
+      return {
+        name: "ClubHome",
+        params: { clubSlug: slug },
+        replace: true,
+      };
+    },
     meta: {
       depth: 0,
     },

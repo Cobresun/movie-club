@@ -8,6 +8,7 @@ import { useUserClubs } from "./useUser";
 import { hasValue } from "../../lib/checks/checks.js";
 import { ClubPreview, Member } from "../../lib/types/club";
 import { WorkListType } from "../../lib/types/generated/db";
+import { LAST_CLUB_SLUG_KEY } from "../common/constants/localStorage";
 
 import { useAuthStore } from "@/stores/auth";
 
@@ -23,7 +24,6 @@ export function useClub(clubSlug: string) {
 
 export function useCreateClub() {
   const auth = useAuthStore();
-  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({
       clubName,
@@ -31,10 +31,11 @@ export function useCreateClub() {
     }: {
       clubName: string;
       members: string[];
-    }) => auth.request.post(`/api/club`, { name: clubName, members }),
-    onSuccess: () => {
-      queryClient.invalidateQueries(["user", "clubs"]).catch(console.error);
-    },
+    }) =>
+      auth.request.post<{ clubId: string; slug: string }>(`/api/club`, {
+        name: clubName,
+        members,
+      }),
   });
 }
 
@@ -84,8 +85,13 @@ export function useLeaveClub(clubSlug: string) {
 
   return useMutation({
     mutationFn: () => auth.request.delete(`/api/club/${clubSlug}/members/self`),
-    onSuccess: () => {
-      queryClient.invalidateQueries(["user", "clubs"]).catch(console.error);
+    onSuccess: async () => {
+      await queryClient.invalidateQueries(["user", "clubs"]);
+      // Clear lastClubSlug so the Clubs guard doesn't redirect back to the left club
+      const lastSlug = localStorage.getItem(LAST_CLUB_SLUG_KEY);
+      if (lastSlug === clubSlug) {
+        localStorage.removeItem(LAST_CLUB_SLUG_KEY);
+      }
       router.push({ name: "Clubs" }).catch(console.error);
     },
   });
@@ -102,8 +108,8 @@ export function useJoinClub(inviteToken: string) {
         token: inviteToken,
         userId: auth.user?.id,
       }),
-    onSuccess: () => {
-      queryClient.invalidateQueries(["user", "clubs"]).catch(console.error);
+    onSuccess: async () => {
+      await queryClient.invalidateQueries(["user", "clubs"]);
       router.push({ name: "Clubs" }).catch(console.error);
     },
   });
