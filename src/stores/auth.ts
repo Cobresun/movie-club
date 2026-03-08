@@ -6,10 +6,7 @@ import { useRoute, useRouter } from "vue-router";
 
 import { isDefined, isTrue } from "../../lib/checks/checks.js";
 import { ClubPreview } from "../../lib/types/club";
-import {
-  LAST_CLUB_SLUG_KEY,
-  resolveDefaultClubSlug,
-} from "../common/constants/localStorage";
+import { resolveDefaultClubSlug } from "../common/constants/localStorage";
 
 function watchUntil<T>(
   source: WatchSource<T>,
