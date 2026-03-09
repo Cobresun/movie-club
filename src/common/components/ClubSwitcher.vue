@@ -2,12 +2,16 @@
   <div class="relative">
     <button
       class="flex items-center gap-1 rounded-lg px-2 py-1 text-sm font-medium text-white hover:bg-white/10"
+      :aria-label="`Switch club. Current: ${activeClubName}`"
       @click="toggle"
     >
-      <span class="max-w-[150px] truncate md:max-w-[250px]">
+      <!-- Mobile: icon only -->
+      <mdicon class="md:hidden" name="swap-horizontal" :size="20" />
+      <!-- Desktop: text + chevron -->
+      <span class="hidden max-w-[250px] truncate md:inline">
         {{ activeClubName }}
       </span>
-      <mdicon name="chevron-down" :size="18" />
+      <mdicon class="hidden md:inline-block" name="chevron-down" :size="18" />
     </button>
 
     <!-- Desktop dropdown -->
