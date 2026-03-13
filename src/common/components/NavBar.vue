@@ -1,8 +1,11 @@
 <template>
   <div class="flex items-center justify-between p-4">
-    <router-link to="/">
-      <h3 class="text-2xl font-bold text-highlight">MovieClub</h3>
-    </router-link>
+    <div class="flex items-center gap-2">
+      <router-link :to="logoDestination">
+        <h3 class="text-2xl font-bold text-highlight">MovieClub</h3>
+      </router-link>
+      <ClubSwitcher v-if="isLoggedIn && hasClubContext" />
+    </div>
     <div v-if="authReady" class="flex items-center">
       <v-avatar
         v-if="isLoggedIn"
@@ -18,18 +21,37 @@
 </template>
 <script setup lang="ts">
 import { computed } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
+
+import ClubSwitcher from "./ClubSwitcher.vue";
+import { hasValue } from "../../../lib/checks/checks.js";
 
 import { useUser } from "@/service/useUser";
 import { useAuthStore } from "@/stores/auth";
 
 const store = useAuthStore();
 const user = useUser();
+const route = useRoute();
 
 const isLoggedIn = computed(() => store.isLoggedIn);
 const fullName = computed(() => store.user?.name ?? "");
 const avatarURL = computed(() => user.value?.image);
 const authReady = computed(() => store.ready);
+
+const currentSlug = computed(() => {
+  const slug = route.params.clubSlug;
+  return Array.isArray(slug) ? slug[0] : slug;
+});
+
+const hasClubContext = computed(() => hasValue(currentSlug.value));
+
+const logoDestination = computed(() => {
+  const slug = currentSlug.value;
+  if (hasValue(slug)) {
+    return { name: "ClubHome", params: { clubSlug: slug } };
+  }
+  return "/";
+});
 
 function login() {
   store.login();

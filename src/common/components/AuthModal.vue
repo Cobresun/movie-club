@@ -148,6 +148,7 @@ import { isString } from "../../../lib/checks/checks.js";
 
 import googleLogo from "@/assets/images/google-logo.svg";
 import { authClient } from "@/lib/auth-client";
+import { useAuthStore } from "@/stores/auth";
 
 const emit = defineEmits<{
   (e: "close"): void;
@@ -155,6 +156,7 @@ const emit = defineEmits<{
 
 const toast = useToast();
 const route = useRoute();
+const authStore = useAuthStore();
 
 const isSignUp = ref(false);
 const email = ref("");
@@ -222,6 +224,7 @@ const handleSubmit = async () => {
           onSuccess: () => {
             toast.success("Signed in successfully!");
             handleClose();
+            void authStore.navigateToDefaultClub();
           },
           onError: (ctx) => {
             // Handle email verification required error
