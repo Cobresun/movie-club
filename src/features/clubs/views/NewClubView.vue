@@ -35,16 +35,14 @@
 </template>
 
 <script setup lang="ts">
-import { useQueryClient } from "@tanstack/vue-query";
 import { ref, computed } from "vue";
 import { useRouter } from "vue-router";
 
-import { LAST_CLUB_SLUG_KEY } from "@/common/constants/localStorage";
+import { setLastClubSlug } from "@/common/composables/useLastClubSlug";
 import { useCreateClub } from "@/service/useClub";
 import { useAuthStore } from "@/stores/auth";
 
 const router = useRouter();
-const queryClient = useQueryClient();
 const clubName = ref("");
 const showErrors = ref(false);
 
@@ -70,8 +68,7 @@ const submit = async () => {
         members: validMembers,
       });
       const { slug } = response.data;
-      localStorage.setItem(LAST_CLUB_SLUG_KEY, slug);
-      await queryClient.invalidateQueries(["user", "clubs"]);
+      setLastClubSlug(slug);
       router
         .push({ name: "ClubHome", params: { clubSlug: slug } })
         .catch(console.error);

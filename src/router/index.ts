@@ -7,10 +7,10 @@ import {
 } from "vue-router";
 
 import ClubRouterView from "./ClubRouterView.vue";
-import { hasElements, hasValue, isDefined } from "../../lib/checks/checks.js";
-import { LAST_CLUB_SLUG_KEY } from "../common/constants/localStorage";
+import { hasElements, isDefined } from "../../lib/checks/checks.js";
+import { resolveDefaultClubSlug } from "../common/composables/useLastClubSlug";
 import ClubHomeView from "../features/clubs/views/ClubHomeView.vue";
-import ClubsView from "../features/clubs/views/ClubsView.vue";
+import HomeView from "../features/clubs/views/HomeView.vue";
 import NewClubView from "../features/clubs/views/NewClubView.vue";
 import ReviewView from "../features/reviews/views/ReviewView.vue";
 import ClubSettingsView from "../features/settings/views/ClubSettingsView.vue";
@@ -99,7 +99,7 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: "/",
     name: "Clubs",
-    component: ClubsView,
+    component: HomeView,
     beforeEnter: async () => {
       const auth = useAuthStore();
       await auth.waitForAuthReady();
@@ -112,11 +112,10 @@ const routes: Array<RouteRecordRaw> = [
         return { name: "NewClub", replace: true };
       }
 
-      const lastSlug = localStorage.getItem(LAST_CLUB_SLUG_KEY);
-      const slug =
-        hasValue(lastSlug) && clubs.some((c) => c.slug === lastSlug)
-          ? lastSlug
-          : clubs[0].slug;
+      const slug = resolveDefaultClubSlug(clubs);
+      if (!isDefined(slug)) {
+        return { name: "NewClub", replace: true };
+      }
 
       return {
         name: "ClubHome",
@@ -331,8 +330,9 @@ const router = createRouter({
 });
 
 router.beforeEach((to, from) => {
+  const fadeIn = "animate__animated animate__faster animate__fadeIn";
   if (!isDefined(from.name)) {
-    to.meta.transitionIn = "animate__animated animate__faster animate__fadeIn";
+    to.meta.transitionIn = fadeIn;
     return;
   }
   const slideInRight =
@@ -342,10 +342,15 @@ router.beforeEach((to, from) => {
     "animate__animated animate__faster animate__slideOutRight";
   const slideOutLeft =
     "animate__animated animate__faster animate__slideOutLeft";
-  to.meta.transitionIn =
-    to.meta.depth > from.meta.depth ? slideInRight : slideInLeft;
-  to.meta.transitionOut =
-    to.meta.depth > from.meta.depth ? slideOutLeft : slideOutRight;
+  if (to.meta.depth === from.meta.depth) {
+    to.meta.transitionIn = fadeIn;
+    to.meta.transitionOut = undefined;
+  } else {
+    to.meta.transitionIn =
+      to.meta.depth > from.meta.depth ? slideInRight : slideInLeft;
+    to.meta.transitionOut =
+      to.meta.depth > from.meta.depth ? slideOutLeft : slideOutRight;
+  }
 });
 
 export default router;

@@ -1,30 +1,13 @@
 import { useQuery } from "@tanstack/vue-query";
 import axios from "axios";
 import { defineStore } from "pinia";
-import { ref, computed, watch, WatchSource } from "vue";
+import { ref, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 import { isDefined, isTrue } from "../../lib/checks/checks.js";
 import { ClubPreview } from "../../lib/types/club";
-import { resolveDefaultClubSlug } from "../common/constants/localStorage";
-
-function watchUntil<T>(
-  source: WatchSource<T>,
-  predicate: (value: T) => boolean,
-): Promise<void> {
-  return new Promise<void>((resolve) => {
-    const unwatch = watch(
-      source,
-      (value) => {
-        if (predicate(value)) {
-          unwatch();
-          resolve();
-        }
-      },
-      { immediate: true },
-    );
-  });
-}
+import { resolveDefaultClubSlug } from "../common/composables/useLastClubSlug";
+import { watchUntil } from "../common/composables/watchUntil";
 
 import { authClient } from "@/lib/auth-client";
 

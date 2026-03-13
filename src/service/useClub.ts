@@ -8,7 +8,10 @@ import { useUserClubs } from "./useUser";
 import { hasValue } from "../../lib/checks/checks.js";
 import { ClubPreview, Member } from "../../lib/types/club";
 import { WorkListType } from "../../lib/types/generated/db";
-import { LAST_CLUB_SLUG_KEY } from "../common/constants/localStorage";
+import {
+  clearLastClubSlug,
+  getLastClubSlug,
+} from "../common/composables/useLastClubSlug";
 
 import { useAuthStore } from "@/stores/auth";
 
@@ -24,6 +27,7 @@ export function useClub(clubSlug: string) {
 
 export function useCreateClub() {
   const auth = useAuthStore();
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({
       clubName,
@@ -36,6 +40,9 @@ export function useCreateClub() {
         name: clubName,
         members,
       }),
+    onSuccess: () => {
+      queryClient.invalidateQueries(["user", "clubs"]).catch(console.error);
+    },
   });
 }
 
@@ -88,9 +95,8 @@ export function useLeaveClub(clubSlug: string) {
     onSuccess: async () => {
       await queryClient.invalidateQueries(["user", "clubs"]);
       // Clear lastClubSlug so the Clubs guard doesn't redirect back to the left club
-      const lastSlug = localStorage.getItem(LAST_CLUB_SLUG_KEY);
-      if (lastSlug === clubSlug) {
-        localStorage.removeItem(LAST_CLUB_SLUG_KEY);
+      if (getLastClubSlug() === clubSlug) {
+        clearLastClubSlug();
       }
       router.push({ name: "Clubs" }).catch(console.error);
     },
