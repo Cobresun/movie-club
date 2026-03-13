@@ -38,6 +38,7 @@
 import { ref, computed } from "vue";
 import { useRouter } from "vue-router";
 
+import { setLastClubSlug } from "@/common/composables/useLastClubSlug";
 import { useCreateClub } from "@/service/useClub";
 import { useAuthStore } from "@/stores/auth";
 
@@ -49,9 +50,9 @@ const authStore = useAuthStore();
 const isLoggedIn = computed(() => authStore.isLoggedIn);
 
 const isClubNameValid = computed(() => clubName.value.trim().length > 0);
-const { mutate: createClub, isPending: isCreating } = useCreateClub();
+const { mutateAsync: createClub, isPending: isCreating } = useCreateClub();
 
-const submit = () => {
+const submit = async () => {
   showErrors.value = true;
 
   if (!isClubNameValid.value || isCreating.value) {
@@ -61,17 +62,19 @@ const submit = () => {
   if (authStore.user && authStore.user?.email !== null) {
     const validMembers = [authStore.user.email];
 
-    createClub(
-      {
+    try {
+      const response = await createClub({
         clubName: clubName.value.trim(),
         members: validMembers,
-      },
-      {
-        onSuccess: () => {
-          router.push({ name: "Clubs" }).catch(console.error);
-        },
-      },
-    );
+      });
+      const { slug } = response.data;
+      setLastClubSlug(slug);
+      router
+        .push({ name: "ClubHome", params: { clubSlug: slug } })
+        .catch(console.error);
+    } catch (error) {
+      console.error("Failed to create club:", error);
+    }
   }
 };
 </script>

@@ -8,6 +8,10 @@ import { useUserClubs } from "./useUser";
 import { hasValue } from "../../lib/checks/checks.js";
 import { ClubPreview, Member } from "../../lib/types/club";
 import { WorkListType } from "../../lib/types/generated/db";
+import {
+  clearLastClubSlug,
+  getLastClubSlug,
+} from "../common/composables/useLastClubSlug";
 
 import { useAuthStore } from "@/stores/auth";
 
@@ -31,7 +35,11 @@ export function useCreateClub() {
     }: {
       clubName: string;
       members: string[];
-    }) => auth.request.post(`/api/club`, { name: clubName, members }),
+    }) =>
+      auth.request.post<{ clubId: string; slug: string }>(`/api/club`, {
+        name: clubName,
+        members,
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries(["user", "clubs"]).catch(console.error);
     },
@@ -84,8 +92,12 @@ export function useLeaveClub(clubSlug: string) {
 
   return useMutation({
     mutationFn: () => auth.request.delete(`/api/club/${clubSlug}/members/self`),
-    onSuccess: () => {
-      queryClient.invalidateQueries(["user", "clubs"]).catch(console.error);
+    onSuccess: async () => {
+      await queryClient.invalidateQueries(["user", "clubs"]);
+      // Clear lastClubSlug so the Clubs guard doesn't redirect back to the left club
+      if (getLastClubSlug() === clubSlug) {
+        clearLastClubSlug();
+      }
       router.push({ name: "Clubs" }).catch(console.error);
     },
   });
@@ -102,8 +114,8 @@ export function useJoinClub(inviteToken: string) {
         token: inviteToken,
         userId: auth.user?.id,
       }),
-    onSuccess: () => {
-      queryClient.invalidateQueries(["user", "clubs"]).catch(console.error);
+    onSuccess: async () => {
+      await queryClient.invalidateQueries(["user", "clubs"]);
       router.push({ name: "Clubs" }).catch(console.error);
     },
   });

@@ -1,11 +1,13 @@
 import { useQuery } from "@tanstack/vue-query";
 import axios from "axios";
 import { defineStore } from "pinia";
-import { ref, computed, watch } from "vue";
+import { ref, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 import { isDefined, isTrue } from "../../lib/checks/checks.js";
 import { ClubPreview } from "../../lib/types/club";
+import { resolveDefaultClubSlug } from "../common/composables/useLastClubSlug";
+import { watchUntil } from "../common/composables/watchUntil";
 
 import { authClient } from "@/lib/auth-client";
 
@@ -44,35 +46,19 @@ export const useAuthStore = defineStore("auth", () => {
   // Helper to wait for auth and clubs to be ready
   const waitForAuthReady = async () => {
     if (session.value.isRefetching || session.value.isPending) {
-      await new Promise<void>((resolve) => {
-        const unwatch = watch(
-          () => [session.value.isPending, session.value.isRefetching],
-          ([isPending, isRefetching]) => {
-            if (!isPending && !isRefetching) {
-              unwatch();
-              resolve();
-            }
-          },
-          { immediate: true },
-        );
-      });
+      await watchUntil(
+        () => [session.value.isPending, session.value.isRefetching],
+        ([isPending, isRefetching]) => !isPending && !isRefetching,
+      );
     }
   };
 
   const waitForClubsReady = async () => {
     if (isLoggedIn.value && isLoadingUserClubs.value) {
-      await new Promise<void>((resolve) => {
-        const unwatch = watch(
-          () => isLoadingUserClubs.value,
-          (loading: boolean) => {
-            if (!loading) {
-              unwatch();
-              resolve();
-            }
-          },
-          { immediate: true },
-        );
-      });
+      await watchUntil(
+        () => isLoadingUserClubs.value,
+        (loading) => !loading,
+      );
     }
   };
 
@@ -89,12 +75,8 @@ export const useAuthStore = defineStore("auth", () => {
   const route = useRoute();
 
   const logout = async () => {
-    // Redirect to clubs page if on a protected route
-    if (isTrue(route.meta.authRequired)) {
-      router.push({ name: "Clubs" }).catch(console.error);
-    }
-
-    // Sign out using Better Auth
+    // Sign out first, then navigate — if we navigate before signing out,
+    // the router guard still sees isLoggedIn=true and redirects back to the club
     await authClient.signOut({
       fetchOptions: {
         onSuccess: () => {
@@ -102,10 +84,39 @@ export const useAuthStore = defineStore("auth", () => {
         },
       },
     });
+
+    // Wait for BetterAuth's reactive session to clear
+    // (internally uses setTimeout + refetch after signOut)
+    if (isLoggedIn.value) {
+      await watchUntil(isLoggedIn, (loggedIn) => !loggedIn);
+    }
+
+    if (isTrue(route.meta.authRequired)) {
+      router.push({ name: "Clubs" }).catch(console.error);
+    }
   };
 
   const refreshSession = async () => {
     await session.value.refetch();
+  };
+
+  const navigateToDefaultClub = async () => {
+    // Wait for BetterAuth's session to reflect the login —
+    // onSuccess fires before the reactive session updates
+    if (!isLoggedIn.value) {
+      await watchUntil(isLoggedIn, (loggedIn) => loggedIn);
+    }
+
+    await waitForClubsReady();
+
+    const slug = resolveDefaultClubSlug(userClubs.value);
+    if (isDefined(slug)) {
+      router
+        .push({ name: "ClubHome", params: { clubSlug: slug } })
+        .catch(console.error);
+    } else {
+      router.push({ name: "NewClub" }).catch(console.error);
+    }
   };
 
   return {
@@ -134,5 +145,6 @@ export const useAuthStore = defineStore("auth", () => {
     // Helper methods for router guards
     waitForAuthReady,
     waitForClubsReady,
+    navigateToDefaultClub,
   };
 });
