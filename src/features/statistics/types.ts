@@ -71,6 +71,13 @@ export interface ClubConsensusEntry {
   scores: { name: string; score: number }[];
 }
 
+export interface ScoreTrendPoint {
+  date: Date;
+  movieTitle: string;
+  actualScore: number;
+  rollingAverage: number;
+}
+
 export interface MemberPairSimilarity {
   memberA: { id: string; name: string; image?: string };
   memberB: { id: string; name: string; image?: string };
