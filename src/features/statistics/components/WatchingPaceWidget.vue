@@ -141,7 +141,7 @@ const availableYears = computed(() => getAvailableYears(props.movieData));
 
 const colorLevels = [0, 1, 2, 3];
 
-const COLORS = ["#2d3748", "#1e3a5f", "#1565c0", "#2196F3"] as const;
+const COLORS = ["#1a1e2a", "#0e4880", "#1976d2", "#42a5f5"] as const;
 
 function cellColor(count: number): string {
   if (count === 0) return COLORS[0];
