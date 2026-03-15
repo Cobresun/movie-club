@@ -722,6 +722,26 @@ describe("computeGuiltyPleasures", () => {
     expect(result[1].movies).toHaveLength(1);
   });
 
+  it("limits each member to top 5 movies", () => {
+    const members = [
+      makeMember({ id: "m1", name: "Alice" }),
+      makeMember({ id: "m2", name: "Bob" }),
+    ];
+    const movies = Array.from({ length: 7 }, (_, i) =>
+      makeMovie({
+        id: `movie-${i}`,
+        title: `Movie ${i}`,
+        average: 4,
+        userScores: { m1: 7 + i * 0.1, m2: 1 },
+      }),
+    );
+    const result = computeGuiltyPleasures(movies, members);
+    expect(result).toHaveLength(1);
+    expect(result[0].movies).toHaveLength(5);
+    // Should keep the top 5 by difference (highest scores first)
+    expect(result[0].movies[0].title).toBe("Movie 6");
+  });
+
   it("includes movie at exactly 2 point threshold", () => {
     const members = [
       makeMember({ id: "m1", name: "Alice" }),

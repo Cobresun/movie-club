@@ -405,6 +405,7 @@ export function computeScoreTrend(
 
 const MIN_SCORES_FOR_GUILTY_PLEASURE = 2;
 const GUILTY_PLEASURE_THRESHOLD = 2;
+const MAX_GUILTY_PLEASURES_PER_MEMBER = 5;
 
 export function computeGuiltyPleasures(
   movieData: MovieData[],
@@ -465,7 +466,7 @@ export function computeGuiltyPleasures(
     movies.sort((a, b) => b.difference - a.difference);
     entries.push({
       member: { id: member.id, name: member.name, image: member.image },
-      movies,
+      movies: movies.slice(0, MAX_GUILTY_PLEASURES_PER_MEMBER),
     });
   }
 
