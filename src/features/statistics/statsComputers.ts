@@ -263,36 +263,50 @@ export function computeClubConsensus(
   };
 }
 
+const TMDB_PROFILE_BASE_URL = "https://image.tmdb.org/t/p/w185";
+
 export interface PersonStats {
   name: string;
   movieCount: number;
   averageScore: number;
   movies: string[];
+  profileImageUrl?: string;
 }
 
 function computeTopPeople(
   movieData: MovieData[],
-  getPeople: (movie: MovieData) => readonly string[] | undefined,
+  getPeople: (
+    movie: MovieData,
+  ) => readonly { name: string; profilePath: string | null }[] | undefined,
 ): PersonStats[] {
   const peopleMap = new Map<
     string,
-    { totalScore: number; count: number; movies: string[] }
+    {
+      totalScore: number;
+      count: number;
+      movies: string[];
+      profilePath: string | null;
+    }
   >();
 
   for (const movie of movieData) {
     const people = getPeople(movie);
     if (!hasElements(people)) continue;
     for (const person of people) {
-      const existing = peopleMap.get(person);
+      const existing = peopleMap.get(person.name);
       if (existing) {
         existing.totalScore += movie.average;
         existing.count += 1;
         existing.movies.push(movie.title);
+        if (existing.profilePath === null && person.profilePath !== null) {
+          existing.profilePath = person.profilePath;
+        }
       } else {
-        peopleMap.set(person, {
+        peopleMap.set(person.name, {
           totalScore: movie.average,
           count: 1,
           movies: [movie.title],
+          profilePath: person.profilePath,
         });
       }
     }
@@ -304,6 +318,9 @@ function computeTopPeople(
       movieCount: data.count,
       averageScore: data.totalScore / data.count,
       movies: data.movies,
+      profileImageUrl: isDefined(data.profilePath)
+        ? `${TMDB_PROFILE_BASE_URL}${data.profilePath}`
+        : undefined,
     }))
     .sort((a, b) => {
       const countDiff = b.movieCount - a.movieCount;
