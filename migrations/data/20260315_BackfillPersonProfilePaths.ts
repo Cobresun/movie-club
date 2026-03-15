@@ -64,7 +64,7 @@ const backfillPersonProfilePaths = async () => {
             .updateTable("movie_actors")
             .set({ profile_path: castMember.profile_path })
             .where("external_id", "=", movie.external_id)
-            .where("actor_id", "=", castMember.id)
+            .where("actor_id", "=", String(castMember.id))
             .execute();
         }
 

@@ -11,6 +11,10 @@ import {
 } from "../statsComputers";
 import type { MovieData } from "../types";
 
+function p(name: string): { name: string; profilePath: string | null } {
+  return { name, profilePath: null };
+}
+
 function makeExternalData(
   overrides: Partial<DetailedMovieData> = {},
 ): DetailedMovieData {
@@ -456,7 +460,7 @@ describe("computeTopDirectors", () => {
     const movies = [
       makeMovie({
         average: 0,
-        externalData: makeExternalData({ directors: ["Spielberg"] }),
+        externalData: makeExternalData({ directors: [p("Spielberg")] }),
       }),
     ];
     const result = computeTopDirectors(movies);
@@ -480,12 +484,12 @@ describe("computeTopDirectors", () => {
       makeMovie({
         title: "Movie A",
         average: 8,
-        externalData: makeExternalData({ directors: ["Nolan"] }),
+        externalData: makeExternalData({ directors: [p("Nolan")] }),
       }),
       makeMovie({
         title: "Movie B",
         average: 6,
-        externalData: makeExternalData({ directors: ["Nolan"] }),
+        externalData: makeExternalData({ directors: [p("Nolan")] }),
       }),
     ];
     const result = computeTopDirectors(movies);
@@ -501,11 +505,11 @@ describe("computeTopDirectors", () => {
     const movies = directors.flatMap((dir) => [
       makeMovie({
         average: 7,
-        externalData: makeExternalData({ directors: [dir] }),
+        externalData: makeExternalData({ directors: [p(dir)] }),
       }),
       makeMovie({
         average: 7,
-        externalData: makeExternalData({ directors: [dir] }),
+        externalData: makeExternalData({ directors: [p(dir)] }),
       }),
     ]);
     expect(computeTopDirectors(movies)).toHaveLength(5);
@@ -516,33 +520,33 @@ describe("computeTopDirectors", () => {
       // Director A: 3 movies, avg 5
       makeMovie({
         average: 5,
-        externalData: makeExternalData({ directors: ["A"] }),
+        externalData: makeExternalData({ directors: [p("A")] }),
       }),
       makeMovie({
         average: 5,
-        externalData: makeExternalData({ directors: ["A"] }),
+        externalData: makeExternalData({ directors: [p("A")] }),
       }),
       makeMovie({
         average: 5,
-        externalData: makeExternalData({ directors: ["A"] }),
+        externalData: makeExternalData({ directors: [p("A")] }),
       }),
       // Director B: 2 movies, avg 9
       makeMovie({
         average: 9,
-        externalData: makeExternalData({ directors: ["B"] }),
+        externalData: makeExternalData({ directors: [p("B")] }),
       }),
       makeMovie({
         average: 9,
-        externalData: makeExternalData({ directors: ["B"] }),
+        externalData: makeExternalData({ directors: [p("B")] }),
       }),
       // Director C: 2 movies, avg 7
       makeMovie({
         average: 7,
-        externalData: makeExternalData({ directors: ["C"] }),
+        externalData: makeExternalData({ directors: [p("C")] }),
       }),
       makeMovie({
         average: 7,
-        externalData: makeExternalData({ directors: ["C"] }),
+        externalData: makeExternalData({ directors: [p("C")] }),
       }),
     ];
     const result = computeTopDirectors(movies);
@@ -556,12 +560,12 @@ describe("computeTopDirectors", () => {
       makeMovie({
         title: "Collab",
         average: 8,
-        externalData: makeExternalData({ directors: ["X", "Y"] }),
+        externalData: makeExternalData({ directors: [p("X"), p("Y")] }),
       }),
       makeMovie({
         title: "Solo X",
         average: 6,
-        externalData: makeExternalData({ directors: ["X"] }),
+        externalData: makeExternalData({ directors: [p("X")] }),
       }),
     ];
     const result = computeTopDirectors(movies);
