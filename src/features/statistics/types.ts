@@ -91,6 +91,20 @@ export interface GuiltyPleasureEntry {
   movies: GuiltyPleasureMovie[];
 }
 
+export interface HeatmapDay {
+  date: string;
+  count: number;
+  movies: string[];
+}
+
+export interface WatchingPaceStats {
+  days: HeatmapDay[];
+  totalMovies: number;
+  avgPerMonth: number;
+  longestStreak: number;
+  longestDrySpell: number;
+}
+
 export interface MemberPairSimilarity {
   memberA: { id: string; name: string; image?: string };
   memberB: { id: string; name: string; image?: string };

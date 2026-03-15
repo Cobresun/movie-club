@@ -1,6 +1,7 @@
 <template>
   <div class="space-y-6 pb-6">
     <StatsWidget :movie-data="movieData" />
+    <WatchingPaceWidget :movie-data="movieData" />
     <ScoreDistributionWidget
       :movie-data="movieData"
       :members="members"
@@ -45,6 +46,7 @@ import ScoreTrendWidget from "../components/ScoreTrendWidget.vue";
 import StatsWidget from "../components/StatsWidget.vue";
 import TasteSimilarityWidget from "../components/TasteSimilarityWidget.vue";
 import TmdbDeviationWidget from "../components/TmdbDeviationWidget.vue";
+import WatchingPaceWidget from "../components/WatchingPaceWidget.vue";
 import type { HistogramData, MovieData } from "../types";
 
 defineProps<{

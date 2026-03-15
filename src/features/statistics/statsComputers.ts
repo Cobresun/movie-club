@@ -4,11 +4,13 @@ import type {
   GenreStats,
   GenreWatchCount,
   GuiltyPleasureEntry,
+  HeatmapDay,
   MemberLeaderboardEntry,
   MemberPairSimilarity,
   MovieData,
   ScoreTrendPoint,
   TmdbDeviationEntry,
+  WatchingPaceStats,
 } from "./types";
 import {
   hasValue,
@@ -509,4 +511,73 @@ export function computeDecadeStats(
       count: data.count,
     }))
     .sort((a, b) => a.decade.localeCompare(b.decade));
+}
+
+function toDateKey(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+export function computeWatchingPace(
+  movieData: MovieData[],
+  now: Date = new Date(),
+): WatchingPaceStats {
+  const moviesByDate = new Map<string, string[]>();
+
+  for (const movie of movieData) {
+    if (!hasValue(movie.createdDate)) continue;
+    const date = new Date(movie.createdDate);
+    if (isNaN(date.getTime())) continue;
+    const key = toDateKey(date);
+    const existing = moviesByDate.get(key);
+    if (isDefined(existing)) {
+      existing.push(movie.title);
+    } else {
+      moviesByDate.set(key, [movie.title]);
+    }
+  }
+
+  const totalDays = 364;
+  const start = new Date(now);
+  start.setDate(start.getDate() - totalDays);
+
+  const days: HeatmapDay[] = [];
+  let totalMovies = 0;
+  let longestStreak = 0;
+  let longestDrySpell = 0;
+  let currentStreak = 0;
+  let currentDrySpell = 0;
+
+  for (let i = 0; i <= totalDays; i++) {
+    const current = new Date(start);
+    current.setDate(start.getDate() + i);
+    const key = toDateKey(current);
+    const movies = moviesByDate.get(key) ?? [];
+    const count = movies.length;
+
+    days.push({ date: key, count, movies });
+    totalMovies += count;
+
+    if (count > 0) {
+      currentStreak += 1;
+      longestStreak = Math.max(longestStreak, currentStreak);
+      currentDrySpell = 0;
+    } else {
+      currentDrySpell += 1;
+      longestDrySpell = Math.max(longestDrySpell, currentDrySpell);
+      currentStreak = 0;
+    }
+  }
+
+  const avgPerMonth = Math.round((totalMovies / 12) * 10) / 10;
+
+  return {
+    days,
+    totalMovies,
+    avgPerMonth,
+    longestStreak,
+    longestDrySpell,
+  };
 }

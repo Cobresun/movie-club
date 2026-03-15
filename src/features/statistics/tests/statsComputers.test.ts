@@ -8,6 +8,7 @@ import {
   computeMemberLeaderboard,
   computeTasteSimilarity,
   computeTopDirectors,
+  computeWatchingPace,
 } from "../statsComputers";
 import type { MovieData } from "../types";
 
@@ -757,5 +758,112 @@ describe("computeGuiltyPleasures", () => {
     const result = computeGuiltyPleasures(movies, members);
     expect(result).toHaveLength(1);
     expect(result[0].movies[0].difference).toBe(2);
+  });
+});
+
+// ---------- computeWatchingPace ----------
+
+describe("computeWatchingPace", () => {
+  const now = new Date("2024-06-15T12:00:00.000Z");
+
+  it("returns zeros for empty movie list", () => {
+    const result = computeWatchingPace([], now);
+    expect(result.totalMovies).toBe(0);
+    expect(result.avgPerMonth).toBe(0);
+    expect(result.longestStreak).toBe(0);
+    expect(result.longestDrySpell).toBe(365);
+    expect(result.days).toHaveLength(365);
+    expect(result.days.every((d) => d.count === 0)).toBe(true);
+  });
+
+  it("counts a single movie within the window", () => {
+    const movies = [
+      makeMovie({
+        title: "Recent",
+        createdDate: "2024-06-01T10:00:00.000Z",
+      }),
+    ];
+    const result = computeWatchingPace(movies, now);
+    expect(result.totalMovies).toBe(1);
+    expect(result.longestStreak).toBe(1);
+    const day = result.days.find((d) => d.date === "2024-06-01");
+    expect(day).toBeDefined();
+    expect(day?.count).toBe(1);
+    expect(day?.movies).toEqual(["Recent"]);
+  });
+
+  it("aggregates multiple movies on the same day", () => {
+    const movies = [
+      makeMovie({
+        title: "Movie A",
+        createdDate: "2024-03-10T08:00:00.000Z",
+      }),
+      makeMovie({
+        title: "Movie B",
+        createdDate: "2024-03-10T20:00:00.000Z",
+      }),
+    ];
+    const result = computeWatchingPace(movies, now);
+    const day = result.days.find((d) => d.date === "2024-03-10");
+    expect(day?.count).toBe(2);
+    expect(day?.movies).toEqual(["Movie A", "Movie B"]);
+  });
+
+  it("calculates streak for consecutive days", () => {
+    const movies = [
+      makeMovie({ createdDate: "2024-05-01T00:00:00.000Z" }),
+      makeMovie({ createdDate: "2024-05-02T00:00:00.000Z" }),
+      makeMovie({ createdDate: "2024-05-03T00:00:00.000Z" }),
+    ];
+    const result = computeWatchingPace(movies, now);
+    expect(result.longestStreak).toBe(3);
+  });
+
+  it("calculates dry spell between movies", () => {
+    const movies = [
+      makeMovie({ createdDate: "2024-06-01T00:00:00.000Z" }),
+      makeMovie({ createdDate: "2024-06-11T00:00:00.000Z" }),
+    ];
+    const result = computeWatchingPace(movies, now);
+    expect(result.longestDrySpell).toBeGreaterThanOrEqual(9);
+  });
+
+  it("excludes movies outside the 12-month window", () => {
+    const movies = [
+      makeMovie({
+        title: "Old",
+        createdDate: "2023-01-01T00:00:00.000Z",
+      }),
+      makeMovie({
+        title: "Recent",
+        createdDate: "2024-06-10T00:00:00.000Z",
+      }),
+    ];
+    const result = computeWatchingPace(movies, now);
+    expect(result.totalMovies).toBe(1);
+  });
+
+  it("calculates avgPerMonth correctly", () => {
+    const movies = Array.from({ length: 24 }, (_, i) =>
+      makeMovie({
+        createdDate: `2024-${String(Math.floor(i / 4) + 1).padStart(2, "0")}-${String((i % 28) + 1).padStart(2, "0")}T00:00:00.000Z`,
+      }),
+    );
+    const result = computeWatchingPace(movies, now);
+    expect(result.avgPerMonth).toBe(
+      Math.round((result.totalMovies / 12) * 10) / 10,
+    );
+  });
+
+  it("skips movies with invalid createdDate", () => {
+    const movies = [
+      makeMovie({ title: "Bad Date", createdDate: "not-a-date" }),
+      makeMovie({
+        title: "Good",
+        createdDate: "2024-06-01T00:00:00.000Z",
+      }),
+    ];
+    const result = computeWatchingPace(movies, now);
+    expect(result.totalMovies).toBe(1);
   });
 });
