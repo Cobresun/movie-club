@@ -413,7 +413,13 @@ export function computeGuiltyPleasures(
   const memberMap = new Map(members.map((m) => [m.id, m]));
   const memberMovies = new Map<
     string,
-    { title: string; imageUrl: string | undefined; memberScore: number; clubAverage: number; difference: number }[]
+    {
+      title: string;
+      imageUrl: string | undefined;
+      memberScore: number;
+      clubAverage: number;
+      difference: number;
+    }[]
   >();
 
   for (const movie of movieData) {
@@ -433,8 +439,7 @@ export function computeGuiltyPleasures(
     if (outliers.length !== 1) continue;
 
     const outlier = outliers[0];
-    const difference =
-      Math.round((outlier.score - movie.average) * 100) / 100;
+    const difference = Math.round((outlier.score - movie.average) * 100) / 100;
 
     const existing = memberMovies.get(outlier.memberId);
     const entry = {
