@@ -78,6 +78,19 @@ export interface ScoreTrendPoint {
   rollingAverage: number;
 }
 
+export interface GuiltyPleasureMovie {
+  title: string;
+  imageUrl: string | undefined;
+  memberScore: number;
+  clubAverage: number;
+  difference: number;
+}
+
+export interface GuiltyPleasureEntry {
+  member: { id: string; name: string; image?: string };
+  movies: GuiltyPleasureMovie[];
+}
+
 export interface MemberPairSimilarity {
   memberA: { id: string; name: string; image?: string };
   memberB: { id: string; name: string; image?: string };

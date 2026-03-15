@@ -21,6 +21,11 @@
       :members="members"
     />
     <ClubConsensusWidget :movie-data="movieData" :members="members" />
+    <GuiltyPleasuresWidget
+      v-if="members.length > 1"
+      :movie-data="movieData"
+      :members="members"
+    />
     <LeaderboardsWidget :movie-data="movieData" />
     <TmdbDeviationWidget :movie-data="movieData" />
   </div>
@@ -31,6 +36,7 @@ import { Member } from "../../../../lib/types/club";
 import ClubConsensusWidget from "../components/ClubConsensusWidget.vue";
 import DecadeStatsWidget from "../components/DecadeStatsWidget.vue";
 import GenreStatsWidget from "../components/GenreStatsWidget.vue";
+import GuiltyPleasuresWidget from "../components/GuiltyPleasuresWidget.vue";
 import GenreWatchCountWidget from "../components/GenreWatchCountWidget.vue";
 import LeaderboardsWidget from "../components/LeaderboardsWidget.vue";
 import ReviewerLeaderboardWidget from "../components/ReviewerLeaderboardWidget.vue";
