@@ -1,8 +1,31 @@
 <template>
   <WidgetShell title="Watching Pace">
-    <p class="mb-4 text-sm text-slate-400">
-      Movie reviews over the last 12 months
-    </p>
+    <div class="mb-4 flex flex-wrap items-center gap-2">
+      <button
+        class="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-all"
+        :class="
+          !isDefined(selectedYear)
+            ? 'bg-primary text-white shadow-md shadow-primary/25'
+            : 'bg-lowBackground text-gray-400 hover:bg-gray-600 hover:text-white'
+        "
+        @click="selectedYear = undefined"
+      >
+        Last 12 months
+      </button>
+      <button
+        v-for="year in availableYears"
+        :key="year"
+        class="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-all"
+        :class="
+          selectedYear === year
+            ? 'bg-primary text-white shadow-md shadow-primary/25'
+            : 'bg-lowBackground text-gray-400 hover:bg-gray-600 hover:text-white'
+        "
+        @click="selectedYear = year"
+      >
+        {{ year }}
+      </button>
+    </div>
 
     <div class="overflow-x-auto">
       <div class="flex gap-[3px]">
@@ -68,7 +91,7 @@
     <div class="mt-5 grid grid-cols-2 gap-4 md:grid-cols-4">
       <div class="text-center">
         <p class="text-2xl font-bold text-white">{{ paceStats.totalMovies }}</p>
-        <p class="text-xs text-slate-400">movies (12 mo)</p>
+        <p class="text-xs text-slate-400">movies</p>
       </div>
       <div class="text-center">
         <p class="text-2xl font-bold text-white">{{ paceStats.avgPerMonth }}</p>
@@ -101,15 +124,20 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive } from "vue";
+import { computed, reactive, ref } from "vue";
 
 import WidgetShell from "./WidgetShell.vue";
-import { computeWatchingPace } from "../statsComputers";
+import { isDefined } from "../../../../lib/checks/checks.js";
+import { computeWatchingPace, getAvailableYears } from "../statsComputers";
 import type { HeatmapDay, MovieData } from "../types";
 
 const props = defineProps<{
   movieData: MovieData[];
 }>();
+
+const selectedYear = ref<number | undefined>(undefined);
+
+const availableYears = computed(() => getAvailableYears(props.movieData));
 
 const colorLevels = [0, 1, 2, 3];
 
@@ -122,7 +150,9 @@ function cellColor(count: number): string {
   return COLORS[3];
 }
 
-const paceStats = computed(() => computeWatchingPace(props.movieData));
+const paceStats = computed(() =>
+  computeWatchingPace(props.movieData, undefined, selectedYear.value),
+);
 
 const weeks = computed(() => {
   const days = paceStats.value.days;

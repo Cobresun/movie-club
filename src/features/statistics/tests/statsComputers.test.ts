@@ -9,6 +9,7 @@ import {
   computeTasteSimilarity,
   computeTopDirectors,
   computeWatchingPace,
+  getAvailableYears,
 } from "../statsComputers";
 import type { MovieData } from "../types";
 
@@ -865,5 +866,71 @@ describe("computeWatchingPace", () => {
     ];
     const result = computeWatchingPace(movies, now);
     expect(result.totalMovies).toBe(1);
+  });
+
+  it("covers full calendar year when year param is provided", () => {
+    const movies = [
+      makeMovie({
+        title: "Jan Movie",
+        createdDate: "2023-01-15T00:00:00.000Z",
+      }),
+      makeMovie({
+        title: "Dec Movie",
+        createdDate: "2023-12-20T00:00:00.000Z",
+      }),
+    ];
+    const result = computeWatchingPace(movies, now, 2023);
+    expect(result.days[0].date).toBe("2023-01-01");
+    expect(result.days[result.days.length - 1].date).toBe("2023-12-31");
+    expect(result.totalMovies).toBe(2);
+    expect(result.days).toHaveLength(365);
+  });
+
+  it("handles leap year when year param is provided", () => {
+    const result = computeWatchingPace([], now, 2024);
+    expect(result.days).toHaveLength(366);
+    expect(result.days[0].date).toBe("2024-01-01");
+    expect(result.days[result.days.length - 1].date).toBe("2024-12-31");
+  });
+
+  it("only counts movies within the selected year", () => {
+    const movies = [
+      makeMovie({
+        title: "In Year",
+        createdDate: "2023-06-01T00:00:00.000Z",
+      }),
+      makeMovie({
+        title: "Out of Year",
+        createdDate: "2024-06-01T00:00:00.000Z",
+      }),
+    ];
+    const result = computeWatchingPace(movies, now, 2023);
+    expect(result.totalMovies).toBe(1);
+  });
+});
+
+// ---------- getAvailableYears ----------
+
+describe("getAvailableYears", () => {
+  it("returns empty array for no movies", () => {
+    expect(getAvailableYears([])).toEqual([]);
+  });
+
+  it("returns distinct years sorted descending", () => {
+    const movies = [
+      makeMovie({ createdDate: "2022-05-01T00:00:00.000Z" }),
+      makeMovie({ createdDate: "2024-01-01T00:00:00.000Z" }),
+      makeMovie({ createdDate: "2023-03-15T00:00:00.000Z" }),
+      makeMovie({ createdDate: "2024-06-01T00:00:00.000Z" }),
+    ];
+    expect(getAvailableYears(movies)).toEqual([2024, 2023, 2022]);
+  });
+
+  it("skips movies with invalid dates", () => {
+    const movies = [
+      makeMovie({ createdDate: "not-a-date" }),
+      makeMovie({ createdDate: "2023-01-01T00:00:00.000Z" }),
+    ];
+    expect(getAvailableYears(movies)).toEqual([2023]);
   });
 });

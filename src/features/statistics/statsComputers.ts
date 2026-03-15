@@ -520,9 +520,21 @@ function toDateKey(date: Date): string {
   return `${y}-${m}-${d}`;
 }
 
+export function getAvailableYears(movieData: MovieData[]): number[] {
+  const years = new Set<number>();
+  for (const movie of movieData) {
+    if (!hasValue(movie.createdDate)) continue;
+    const date = new Date(movie.createdDate);
+    if (isNaN(date.getTime())) continue;
+    years.add(date.getFullYear());
+  }
+  return [...years].sort((a, b) => b - a);
+}
+
 export function computeWatchingPace(
   movieData: MovieData[],
   now: Date = new Date(),
+  year?: number,
 ): WatchingPaceStats {
   const moviesByDate = new Map<string, string[]>();
 
@@ -539,9 +551,19 @@ export function computeWatchingPace(
     }
   }
 
-  const totalDays = 364;
-  const start = new Date(now);
-  start.setDate(start.getDate() - totalDays);
+  let start: Date;
+  let totalDayCount: number;
+
+  if (isDefined(year)) {
+    start = new Date(year, 0, 1);
+    const end = new Date(year, 11, 31);
+    totalDayCount =
+      Math.round((end.getTime() - start.getTime()) / 86400000) + 1;
+  } else {
+    totalDayCount = 365;
+    start = new Date(now);
+    start.setDate(start.getDate() - (totalDayCount - 1));
+  }
 
   const days: HeatmapDay[] = [];
   let totalMovies = 0;
@@ -550,7 +572,7 @@ export function computeWatchingPace(
   let currentStreak = 0;
   let currentDrySpell = 0;
 
-  for (let i = 0; i <= totalDays; i++) {
+  for (let i = 0; i < totalDayCount; i++) {
     const current = new Date(start);
     current.setDate(start.getDate() + i);
     const key = toDateKey(current);
