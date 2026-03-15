@@ -71,7 +71,7 @@
             <div v-if="movie.original.externalData?.directors?.length">
               <span class="text-gray-400">Director: </span>
               <span>{{
-                movie.original.externalData.directors.join(", ")
+                movie.original.externalData.directors.map((d) => d.name).join(", ")
               }}</span>
             </div>
             <div
@@ -371,7 +371,7 @@ const isEditingDate = ref(false);
 const editedDate = ref("");
 
 const allActors = computed(
-  () => props.movie.original.externalData?.actors ?? [],
+  () => (props.movie.original.externalData?.actors ?? []).map((a) => a.name),
 );
 const displayedActors = computed(() =>
   showAllActors.value

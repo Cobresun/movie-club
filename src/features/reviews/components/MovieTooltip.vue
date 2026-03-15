@@ -93,7 +93,9 @@ const formattedRating = computed(() => {
 
 const formattedDirectors = computed(() => {
   const directors = props.movie?.directors;
-  return hasElements(directors) ? directors.join(", ") : undefined;
+  return hasElements(directors)
+    ? directors.map((d) => d.name).join(", ")
+    : undefined;
 });
 
 const formattedStudios = computed(() => {

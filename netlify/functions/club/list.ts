@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { hasValue } from "../../../lib/checks/checks.js";
+import { hasValue, isDefined } from "../../../lib/checks/checks.js";
 import { WorkListType } from "../../../lib/types/generated/db.js";
 import { listInsertDtoSchema } from "../../../lib/types/lists.js";
 import {
@@ -121,7 +121,7 @@ async function getReviewList(clubId: string): Promise<ReviewListItem[]> {
 
       const externalData = hasValue(review.overview)
         ? {
-            actors: review.actors?.filter(Boolean) ?? [],
+            actors: review.actors?.filter(isDefined) ?? [],
             adult: review.adult,
             backdrop_path: review.backdrop_path,
             budget: review.budget,
@@ -139,7 +139,7 @@ async function getReviewList(clubId: string): Promise<ReviewListItem[]> {
             tagline: review.tagline,
             vote_average: review.tmdb_score,
             genres: review.genres?.filter(Boolean) ?? [],
-            directors: review.directors?.filter(Boolean) ?? [],
+            directors: review.directors?.filter(isDefined) ?? [],
             production_companies:
               review.production_companies?.filter(Boolean) ?? [],
             production_countries:
