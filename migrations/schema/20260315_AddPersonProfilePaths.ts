@@ -84,41 +84,94 @@ export async function up(db: Kysely<unknown>) {
     for (let i = 0; i < movies.length; i += BATCH_SIZE) {
       const batch = movies.slice(i, i + BATCH_SIZE);
 
-      for (const movie of batch) {
-        try {
-          const credits = await fetchCredits(movie.external_id);
+      // Fetch all credits in parallel (TMDB allows 40 req/10s)
+      const results = await Promise.allSettled(
+        batch.map((movie) =>
+          fetchCredits(movie.external_id).then((credits) => ({
+            movie,
+            credits,
+          })),
+        ),
+      );
 
-          // Update actors with profile_path
-          for (const castMember of credits.cast) {
-            await sql`
-              UPDATE movie_actors
-              SET profile_path = ${castMember.profile_path}
-              WHERE external_id = ${movie.external_id}
-                AND actor_id = ${String(castMember.id)}
-            `.execute(backfillDb);
-          }
+      const actorUpdates: {
+        externalId: string;
+        actorId: number;
+        profilePath: string | null;
+      }[] = [];
+      const directorUpdates: {
+        externalId: string;
+        directorName: string;
+        directorId: number;
+        profilePath: string | null;
+      }[] = [];
 
-          // Update directors with director_id and profile_path
-          const directors = credits.crew.filter((c) => c.job === "Director");
-          for (const director of directors) {
-            await sql`
-              UPDATE movie_directors
-              SET director_id = ${director.id}, profile_path = ${director.profile_path}
-              WHERE external_id = ${movie.external_id}
-                AND director_name = ${director.name}
-            `.execute(backfillDb);
-          }
-
-          processed++;
-          console.log(`Processed: ${movie.title ?? movie.external_id}`);
-        } catch (error) {
+      for (const result of results) {
+        if (result.status === "rejected") {
           const message =
-            error instanceof Error ? error.message : String(error);
-          console.error(
-            `Error processing ${movie.title ?? movie.external_id}: ${message}`,
-          );
+            result.reason instanceof Error
+              ? result.reason.message
+              : String(result.reason);
+          console.error(`Error fetching credits: ${message}`);
           errors++;
+          continue;
         }
+
+        const { movie, credits } = result.value;
+
+        for (const castMember of credits.cast) {
+          actorUpdates.push({
+            externalId: movie.external_id,
+            actorId: castMember.id,
+            profilePath: castMember.profile_path,
+          });
+        }
+
+        const directors = credits.crew.filter((c) => c.job === "Director");
+        for (const director of directors) {
+          directorUpdates.push({
+            externalId: movie.external_id,
+            directorName: director.name,
+            directorId: director.id,
+            profilePath: director.profile_path,
+          });
+        }
+
+        processed++;
+        console.log(`Processed: ${movie.title ?? movie.external_id}`);
+      }
+
+      // Bulk UPDATE actors
+      if (actorUpdates.length > 0) {
+        const values = sql.join(
+          actorUpdates.map(
+            (u) => sql`(${u.externalId}, ${u.actorId}::INT8, ${u.profilePath})`,
+          ),
+        );
+        await sql`
+          UPDATE movie_actors AS ma
+          SET profile_path = v.profile_path
+          FROM (VALUES ${values}) AS v(external_id, actor_id, profile_path)
+          WHERE ma.external_id = v.external_id
+            AND ma.actor_id = v.actor_id
+        `.execute(backfillDb);
+      }
+
+      // Bulk UPDATE directors
+      if (directorUpdates.length > 0) {
+        const values = sql.join(
+          directorUpdates.map(
+            (u) =>
+              sql`(${u.externalId}, ${u.directorName}, ${u.directorId}::INT8, ${u.profilePath})`,
+          ),
+        );
+        await sql`
+          UPDATE movie_directors AS md
+          SET director_id = v.director_id, profile_path = v.profile_path
+          FROM (VALUES ${values}) AS v(external_id, director_name, director_id, profile_path)
+          WHERE md.external_id = v.external_id
+            AND md.director_name = v.director_name
+        `.execute(backfillDb);
       }
 
       // Delay between batches to respect TMDB rate limits
