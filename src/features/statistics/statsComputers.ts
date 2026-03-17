@@ -3,6 +3,7 @@ import type {
   DecadeStats,
   GenreStats,
   GenreWatchCount,
+  GuiltyPleasureEntry,
   MemberLeaderboardEntry,
   MemberPairSimilarity,
   MovieData,
@@ -400,6 +401,76 @@ export function computeScoreTrend(
   }
 
   return result;
+}
+
+const MIN_SCORES_FOR_GUILTY_PLEASURE = 2;
+const GUILTY_PLEASURE_THRESHOLD = 2;
+const MAX_GUILTY_PLEASURES_PER_MEMBER = 5;
+
+export function computeGuiltyPleasures(
+  movieData: MovieData[],
+  members: Member[],
+): GuiltyPleasureEntry[] {
+  const memberMap = new Map(members.map((m) => [m.id, m]));
+  const memberMovies = new Map<
+    string,
+    {
+      title: string;
+      imageUrl: string | undefined;
+      memberScore: number;
+      clubAverage: number;
+      difference: number;
+    }[]
+  >();
+
+  for (const movie of movieData) {
+    const validScores: { memberId: string; score: number }[] = [];
+    for (const [memberId, score] of Object.entries(movie.userScores)) {
+      if (isDefined(score) && !isNaN(score) && memberMap.has(memberId)) {
+        validScores.push({ memberId, score });
+      }
+    }
+
+    if (validScores.length < MIN_SCORES_FOR_GUILTY_PLEASURE) continue;
+
+    const outliers = validScores.filter(
+      (s) => s.score - movie.average >= GUILTY_PLEASURE_THRESHOLD,
+    );
+
+    if (outliers.length !== 1) continue;
+
+    const outlier = outliers[0];
+    const difference = Math.round((outlier.score - movie.average) * 100) / 100;
+
+    const existing = memberMovies.get(outlier.memberId);
+    const entry = {
+      title: movie.title,
+      imageUrl: movie.imageUrl,
+      memberScore: outlier.score,
+      clubAverage: Math.round(movie.average * 100) / 100,
+      difference,
+    };
+
+    if (isDefined(existing)) {
+      existing.push(entry);
+    } else {
+      memberMovies.set(outlier.memberId, [entry]);
+    }
+  }
+
+  const entries: GuiltyPleasureEntry[] = [];
+  for (const [memberId, movies] of memberMovies) {
+    const member = memberMap.get(memberId);
+    if (!isDefined(member)) continue;
+
+    movies.sort((a, b) => b.difference - a.difference);
+    entries.push({
+      member: { id: member.id, name: member.name, image: member.image },
+      movies: movies.slice(0, MAX_GUILTY_PLEASURES_PER_MEMBER),
+    });
+  }
+
+  return entries.sort((a, b) => b.movies.length - a.movies.length);
 }
 
 export function computeDecadeStats(
