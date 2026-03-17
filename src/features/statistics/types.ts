@@ -103,6 +103,7 @@ export interface WatchingPaceStats {
   avgPerMonth: number;
   longestStreak: number;
   longestDrySpell: number;
+  totalWatchTimeMinutes: number;
 }
 
 export interface MemberPairSimilarity {

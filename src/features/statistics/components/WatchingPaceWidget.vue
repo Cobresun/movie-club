@@ -27,7 +27,7 @@
       </button>
     </div>
 
-    <div class="overflow-x-auto">
+    <div class="flex justify-center overflow-x-auto">
       <div class="flex gap-[3px]">
         <div
           class="flex shrink-0 flex-col gap-[3px] pr-1 text-[10px] text-slate-500"
@@ -88,7 +88,7 @@
       <span>More</span>
     </div>
 
-    <div class="mt-5 grid grid-cols-2 gap-4 md:grid-cols-4">
+    <div class="mt-5 grid grid-cols-2 gap-4 md:grid-cols-5">
       <div class="text-center">
         <p class="text-2xl font-bold text-white">{{ paceStats.totalMovies }}</p>
         <p class="text-xs text-slate-400">movies</p>
@@ -98,14 +98,18 @@
         <p class="text-xs text-slate-400">per month</p>
       </div>
       <div class="text-center">
+        <p class="text-2xl font-bold text-white">{{ formattedWatchTime }}</p>
+        <p class="text-xs text-slate-400">watch time</p>
+      </div>
+      <div class="text-center">
         <p class="text-2xl font-bold text-white">
-          {{ paceStats.longestStreak }}d
+          {{ paceStats.longestStreak }}w
         </p>
         <p class="text-xs text-slate-400">longest streak</p>
       </div>
       <div class="text-center">
         <p class="text-2xl font-bold text-white">
-          {{ paceStats.longestDrySpell }}d
+          {{ paceStats.longestDrySpell }}w
         </p>
         <p class="text-xs text-slate-400">longest dry spell</p>
       </div>
@@ -153,6 +157,11 @@ function cellColor(count: number): string {
 const paceStats = computed(() =>
   computeWatchingPace(props.movieData, undefined, selectedYear.value),
 );
+
+const formattedWatchTime = computed(() => {
+  const hours = Math.round(paceStats.value.totalWatchTimeMinutes / 60);
+  return `${String(hours)}h`;
+});
 
 const weeks = computed(() => {
   const days = paceStats.value.days;

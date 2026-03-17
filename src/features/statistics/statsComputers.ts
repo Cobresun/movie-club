@@ -565,12 +565,21 @@ export function computeWatchingPace(
     start.setDate(start.getDate() - (totalDayCount - 1));
   }
 
+  const runtimeByDate = new Map<string, number>();
+  for (const movie of movieData) {
+    if (!hasValue(movie.createdDate)) continue;
+    const date = new Date(movie.createdDate);
+    if (isNaN(date.getTime())) continue;
+    const key = toDateKey(date);
+    const runtime = movie.externalData.runtime;
+    if (isDefined(runtime) && runtime > 0) {
+      runtimeByDate.set(key, (runtimeByDate.get(key) ?? 0) + runtime);
+    }
+  }
+
   const days: HeatmapDay[] = [];
   let totalMovies = 0;
-  let longestStreak = 0;
-  let longestDrySpell = 0;
-  let currentStreak = 0;
-  let currentDrySpell = 0;
+  let totalWatchTimeMinutes = 0;
 
   for (let i = 0; i < totalDayCount; i++) {
     const current = new Date(start);
@@ -581,8 +590,20 @@ export function computeWatchingPace(
 
     days.push({ date: key, count, movies });
     totalMovies += count;
+    totalWatchTimeMinutes += runtimeByDate.get(key) ?? 0;
+  }
 
-    if (count > 0) {
+  // Compute streaks and dry spells in weeks
+  let longestStreak = 0;
+  let longestDrySpell = 0;
+  let currentStreak = 0;
+  let currentDrySpell = 0;
+
+  for (let i = 0; i < days.length; i += 7) {
+    const weekDays = days.slice(i, i + 7);
+    const weekHasMovie = weekDays.some((d) => d.count > 0);
+
+    if (weekHasMovie) {
       currentStreak += 1;
       longestStreak = Math.max(longestStreak, currentStreak);
       currentDrySpell = 0;
@@ -601,5 +622,6 @@ export function computeWatchingPace(
     avgPerMonth,
     longestStreak,
     longestDrySpell,
+    totalWatchTimeMinutes,
   };
 }
