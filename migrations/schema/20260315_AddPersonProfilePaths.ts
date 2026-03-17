@@ -145,7 +145,8 @@ export async function up(db: Kysely<unknown>) {
       if (actorUpdates.length > 0) {
         const values = sql.join(
           actorUpdates.map(
-            (u) => sql`(${u.externalId}, ${u.actorId}::INT8, ${u.profilePath})`,
+            (u) =>
+              sql`(${u.externalId}::VARCHAR, ${u.actorId}::INT8, ${u.profilePath}::VARCHAR)`,
           ),
         );
         await sql`
@@ -162,7 +163,7 @@ export async function up(db: Kysely<unknown>) {
         const values = sql.join(
           directorUpdates.map(
             (u) =>
-              sql`(${u.externalId}, ${u.directorName}, ${u.directorId}::INT8, ${u.profilePath})`,
+              sql`(${u.externalId}::VARCHAR, ${u.directorName}::VARCHAR, ${u.directorId}::INT8, ${u.profilePath}::VARCHAR)`,
           ),
         );
         await sql`
