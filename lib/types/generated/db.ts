@@ -86,6 +86,7 @@ export interface MovieActors {
   actor_name: string;
   cast_order: Int8;
   external_id: string;
+  profile_path: string | null;
   rowid: Generated<Int8>;
 }
 
@@ -113,8 +114,10 @@ export interface MovieDetails {
 }
 
 export interface MovieDirectors {
+  director_id: Int8 | null;
   director_name: string;
   external_id: string;
+  profile_path: string | null;
   rowid: Generated<Int8>;
 }
 

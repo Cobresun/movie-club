@@ -18,6 +18,7 @@ export interface TMDBCastMember {
   name: string;
   character: string;
   order: number;
+  profile_path: string | null;
 }
 
 export interface TMDBCrewMember {
@@ -25,6 +26,7 @@ export interface TMDBCrewMember {
   name: string;
   job: string;
   department: string;
+  profile_path: string | null;
 }
 
 export interface TMDBCredits {
@@ -64,8 +66,8 @@ export interface DetailedMovieData {
   adult: boolean;
   backdrop_path: string;
   budget: number;
-  actors: string[];
-  directors: string[];
+  actors: { name: string; profilePath: string | null }[];
+  directors: { name: string; profilePath: string | null }[];
   genres: string[];
   homepage: string;
   id: number;
