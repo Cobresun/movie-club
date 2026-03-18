@@ -42,7 +42,11 @@ class ReviewRepository {
           .selectFrom("movie_directors")
           .select([
             "external_id",
-            db.fn.agg<string[]>("array_agg", ["director_name"]).as("directors"),
+            sql<
+              { name: string; profilePath: string | null }[]
+            >`json_agg(json_build_object('name', director_name, 'profilePath', profile_path))`.as(
+              "directors",
+            ),
           ])
           .groupBy("external_id"),
       )
@@ -51,7 +55,9 @@ class ReviewRepository {
           .selectFrom("movie_actors")
           .select([
             "external_id",
-            sql<string[]>`array_agg(actor_name ORDER BY cast_order)`.as(
+            sql<
+              { name: string; profilePath: string | null }[]
+            >`json_agg(json_build_object('name', actor_name, 'profilePath', profile_path) ORDER BY cast_order)`.as(
               "actors",
             ),
           ])

@@ -18,11 +18,28 @@
         @keydown.enter="toggle(index)"
         @keydown.space.prevent="toggle(index)"
       >
-        <div
-          class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold"
-          :class="rankClass(index)"
-        >
-          {{ index + 1 }}
+        <div class="relative h-10 w-10 shrink-0">
+          <img
+            v-if="entry.profileImageUrl"
+            v-lazy-load
+            :src="entry.profileImageUrl"
+            :alt="entry.name"
+            class="h-10 w-10 rounded-full object-cover"
+          />
+          <div
+            v-else
+            class="flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold"
+            :class="rankClass(index)"
+          >
+            {{ index + 1 }}
+          </div>
+          <div
+            v-if="entry.profileImageUrl"
+            class="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full text-[0.6rem] font-bold"
+            :class="rankClass(index)"
+          >
+            {{ index + 1 }}
+          </div>
         </div>
 
         <div class="min-w-0 flex-1">
@@ -61,7 +78,7 @@
         </div>
       </div>
 
-      <div v-if="expanded.has(index)" class="mt-2 flex flex-wrap gap-1 pl-12">
+      <div v-if="expanded.has(index)" class="mt-2 flex flex-wrap gap-1 pl-14">
         <span
           v-for="movie in entry.movies"
           :key="movie"

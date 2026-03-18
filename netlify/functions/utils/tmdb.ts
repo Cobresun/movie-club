@@ -49,13 +49,13 @@ export async function getDetailedMovie<T extends BaseMovie>(
       const movieData: DetailedMovieData = {
         actors: (tmdbData.credits?.cast ?? [])
           .sort((a, b) => a.order - b.order)
-          .map((c) => c.name),
+          .map((c) => ({ name: c.name, profilePath: c.profile_path ?? null })),
         adult: tmdbData.adult,
         backdrop_path: tmdbData.backdrop_path,
         budget: tmdbData.budget,
         directors: (tmdbData.credits?.crew ?? [])
           .filter((c) => c.job === "Director")
-          .map((c) => c.name),
+          .map((c) => ({ name: c.name, profilePath: c.profile_path ?? null })),
         genres: tmdbData.genres.map((g) => g.name),
         homepage: tmdbData.homepage,
         id: tmdbData.id,

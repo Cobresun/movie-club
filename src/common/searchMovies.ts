@@ -91,7 +91,9 @@ export function filterMovies<T extends DetailedWorkListItem>(
       (review) =>
         isDefined(review.externalData) &&
         review.externalData?.directors.some((director) =>
-          director.toLocaleLowerCase().includes(filters.director.toLowerCase()),
+          director.name
+            .toLocaleLowerCase()
+            .includes(filters.director.toLowerCase()),
         ),
     );
   }
@@ -101,7 +103,9 @@ export function filterMovies<T extends DetailedWorkListItem>(
       (review) =>
         isDefined(review.externalData) &&
         review.externalData?.actors.some((actor) =>
-          actor.toLocaleLowerCase().includes(filters.actor.toLocaleLowerCase()),
+          actor.name
+            .toLocaleLowerCase()
+            .includes(filters.actor.toLocaleLowerCase()),
         ),
     );
   }

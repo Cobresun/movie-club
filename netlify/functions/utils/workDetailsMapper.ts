@@ -9,7 +9,7 @@ export function overviewToExternalData(
   }
 
   return {
-    actors: workDetails.actors?.filter(Boolean) ?? [],
+    actors: workDetails.actors?.filter(isDefined) ?? [],
     adult: workDetails.adult,
     backdrop_path: workDetails.backdrop_path,
     budget: workDetails.budget,
@@ -29,7 +29,7 @@ export function overviewToExternalData(
       ? parseFloat(workDetails.tmdb_score)
       : undefined,
     genres: workDetails.genres?.filter(Boolean) ?? [],
-    directors: workDetails.directors?.filter(Boolean) ?? [],
+    directors: workDetails.directors?.filter(isDefined) ?? [],
     production_companies:
       workDetails.production_companies?.filter(Boolean) ?? [],
     production_countries:

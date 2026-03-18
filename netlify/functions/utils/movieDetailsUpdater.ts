@@ -90,16 +90,18 @@ export async function insertMovieDetails(
   }
 
   // Insert directors
-  const directors = (tmdbData.credits?.crew ?? [])
-    .filter((c) => c.job === "Director")
-    .map((c) => c.name);
+  const directors = (tmdbData.credits?.crew ?? []).filter(
+    (c) => c.job === "Director",
+  );
   if (directors.length > 0) {
     await dbOrTrx
       .insertInto("movie_directors")
       .values(
-        directors.map((name) => ({
+        directors.map((c) => ({
           external_id: externalId,
-          director_name: name,
+          director_name: c.name,
+          director_id: c.id,
+          profile_path: c.profile_path,
         })),
       )
       .onConflict((oc) =>
@@ -121,6 +123,7 @@ export async function insertMovieDetails(
           actor_id: c.id,
           actor_name: c.name,
           cast_order: c.order,
+          profile_path: c.profile_path,
         })),
       )
       .onConflict((oc) => oc.columns(["external_id", "actor_id"]).doNothing())
@@ -190,17 +193,19 @@ export async function updateMovieDetails(
     .where("external_id", "=", externalId)
     .execute();
 
-  const directors = (tmdbData.credits?.crew ?? [])
-    .filter((c) => c.job === "Director")
-    .map((c) => c.name);
+  const directors = (tmdbData.credits?.crew ?? []).filter(
+    (c) => c.job === "Director",
+  );
 
   if (directors.length > 0) {
     await dbOrTrx
       .insertInto("movie_directors")
       .values(
-        directors.map((name) => ({
+        directors.map((c) => ({
           external_id: externalId,
-          director_name: name,
+          director_name: c.name,
+          director_id: c.id,
+          profile_path: c.profile_path,
         })),
       )
       .execute();
@@ -224,6 +229,7 @@ export async function updateMovieDetails(
           actor_id: c.id,
           actor_name: c.name,
           cast_order: c.order,
+          profile_path: c.profile_path,
         })),
       )
       .execute();
