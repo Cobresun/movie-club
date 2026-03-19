@@ -12,7 +12,9 @@ export function overviewToExternalData(
     actors: workDetails.actors?.filter(isDefined) ?? [],
     adult: workDetails.adult,
     backdrop_path: workDetails.backdrop_path,
-    budget: workDetails.budget,
+    budget: isDefined(workDetails.budget)
+      ? Number(workDetails.budget)
+      : undefined,
     homepage: workDetails.homepage,
     imdb_id: workDetails.imdb_id,
     original_language: workDetails.original_language,
@@ -21,8 +23,12 @@ export function overviewToExternalData(
     popularity: workDetails.popularity,
     poster_path: workDetails.poster_path,
     release_date: workDetails.release_date?.toISOString(),
-    revenue: workDetails.revenue,
-    runtime: workDetails.runtime,
+    revenue: isDefined(workDetails.revenue)
+      ? Number(workDetails.revenue)
+      : undefined,
+    runtime: isDefined(workDetails.runtime)
+      ? Number(workDetails.runtime)
+      : undefined,
     status: workDetails.status,
     tagline: workDetails.tagline,
     vote_average: isDefined(workDetails.tmdb_score)

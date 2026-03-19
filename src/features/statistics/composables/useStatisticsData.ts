@@ -144,6 +144,9 @@ function enrichWithStatistics(
     }
 
     const curVoteAvg = movie.externalData.vote_average;
+    const curRuntime = movie.externalData.runtime;
+    const curBudget = movie.externalData.budget;
+    const curRevenue = movie.externalData.revenue;
 
     return {
       ...movie,
@@ -153,6 +156,15 @@ function enrichWithStatistics(
         vote_average: isString(curVoteAvg)
           ? parseFloat(curVoteAvg as unknown as string)
           : curVoteAvg,
+        runtime: isString(curRuntime as unknown)
+          ? parseInt(String(curRuntime), 10)
+          : curRuntime,
+        budget: isString(curBudget as unknown)
+          ? Number(curBudget)
+          : curBudget,
+        revenue: isString(curRevenue as unknown)
+          ? Number(curRevenue)
+          : curRevenue,
       },
     };
   });

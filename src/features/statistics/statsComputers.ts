@@ -588,8 +588,8 @@ export function computeWatchingPace(
     const date = new Date(movie.createdDate);
     if (isNaN(date.getTime())) continue;
     const key = toDateKey(date);
-    const runtime = movie.externalData.runtime;
-    if (isDefined(runtime) && runtime > 0) {
+    const runtime = Number(movie.externalData.runtime);
+    if (!isNaN(runtime) && runtime > 0) {
       runtimeByDate.set(key, (runtimeByDate.get(key) ?? 0) + runtime);
     }
   }
