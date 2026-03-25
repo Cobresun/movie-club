@@ -26,6 +26,11 @@
       :movie-data="movieData"
       :members="members"
     />
+    <ClubCurmudgeonsWidget
+      v-if="members.length > 1"
+      :movie-data="movieData"
+      :members="members"
+    />
     <LeaderboardsWidget :movie-data="movieData" />
     <TmdbDeviationWidget :movie-data="movieData" />
   </div>
@@ -34,6 +39,7 @@
 <script setup lang="ts">
 import { Member } from "../../../../lib/types/club";
 import ClubConsensusWidget from "../components/ClubConsensusWidget.vue";
+import ClubCurmudgeonsWidget from "../components/ClubCurmudgeonsWidget.vue";
 import DecadeStatsWidget from "../components/DecadeStatsWidget.vue";
 import GenreStatsWidget from "../components/GenreStatsWidget.vue";
 import GenreWatchCountWidget from "../components/GenreWatchCountWidget.vue";

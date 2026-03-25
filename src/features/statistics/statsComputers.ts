@@ -1,5 +1,6 @@
 import type {
   ClubConsensusEntry,
+  ClubCurmudgeonEntry,
   DecadeStats,
   GenreStats,
   GenreWatchCount,
@@ -484,6 +485,76 @@ export function computeGuiltyPleasures(
     entries.push({
       member: { id: member.id, name: member.name, image: member.image },
       movies: movies.slice(0, MAX_GUILTY_PLEASURES_PER_MEMBER),
+    });
+  }
+
+  return entries.sort((a, b) => b.movies.length - a.movies.length);
+}
+
+const MIN_SCORES_FOR_CURMUDGEON = 2;
+const CURMUDGEON_THRESHOLD = 2;
+const MAX_CURMUDGEON_MOVIES_PER_MEMBER = 5;
+
+export function computeClubCurmudgeons(
+  movieData: MovieData[],
+  members: Member[],
+): ClubCurmudgeonEntry[] {
+  const memberMap = new Map(members.map((m) => [m.id, m]));
+  const memberMovies = new Map<
+    string,
+    {
+      title: string;
+      imageUrl: string | undefined;
+      memberScore: number;
+      clubAverage: number;
+      difference: number;
+    }[]
+  >();
+
+  for (const movie of movieData) {
+    const validScores: { memberId: string; score: number }[] = [];
+    for (const [memberId, score] of Object.entries(movie.userScores)) {
+      if (isDefined(score) && !isNaN(score) && memberMap.has(memberId)) {
+        validScores.push({ memberId, score });
+      }
+    }
+
+    if (validScores.length < MIN_SCORES_FOR_CURMUDGEON) continue;
+
+    const outliers = validScores.filter(
+      (s) => movie.average - s.score >= CURMUDGEON_THRESHOLD,
+    );
+
+    if (outliers.length !== 1) continue;
+
+    const outlier = outliers[0];
+    const difference = Math.round((outlier.score - movie.average) * 100) / 100;
+
+    const existing = memberMovies.get(outlier.memberId);
+    const entry = {
+      title: movie.title,
+      imageUrl: movie.imageUrl,
+      memberScore: outlier.score,
+      clubAverage: Math.round(movie.average * 100) / 100,
+      difference,
+    };
+
+    if (isDefined(existing)) {
+      existing.push(entry);
+    } else {
+      memberMovies.set(outlier.memberId, [entry]);
+    }
+  }
+
+  const entries: ClubCurmudgeonEntry[] = [];
+  for (const [memberId, movies] of memberMovies) {
+    const member = memberMap.get(memberId);
+    if (!isDefined(member)) continue;
+
+    movies.sort((a, b) => a.difference - b.difference);
+    entries.push({
+      member: { id: member.id, name: member.name, image: member.image },
+      movies: movies.slice(0, MAX_CURMUDGEON_MOVIES_PER_MEMBER),
     });
   }
 
