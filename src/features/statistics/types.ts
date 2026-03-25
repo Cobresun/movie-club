@@ -91,6 +91,19 @@ export interface GuiltyPleasureEntry {
   movies: GuiltyPleasureMovie[];
 }
 
+export interface ClubCurmudgeonMovie {
+  title: string;
+  imageUrl: string | undefined;
+  memberScore: number;
+  clubAverage: number;
+  difference: number;
+}
+
+export interface ClubCurmudgeonEntry {
+  member: { id: string; name: string; image?: string };
+  movies: ClubCurmudgeonMovie[];
+}
+
 export interface MemberPairSimilarity {
   memberA: { id: string; name: string; image?: string };
   memberB: { id: string; name: string; image?: string };
