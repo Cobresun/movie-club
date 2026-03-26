@@ -4,11 +4,12 @@
       deviation.clubRatedHigher.length > 0 ||
       deviation.clubRatedLower.length > 0
     "
-    class="mx-auto grid w-11/12 grid-cols-1 gap-6 md:grid-cols-2"
+    class="grid grid-cols-1 gap-4 sm:grid-cols-2"
   >
     <WidgetShell
       v-if="deviation.clubRatedHigher.length > 0"
       title="Club Rated Higher"
+      icon="trending-up"
       outer-class="w-full"
     >
       <div class="space-y-2">
@@ -56,6 +57,7 @@
     <WidgetShell
       v-if="deviation.clubRatedLower.length > 0"
       title="Club Rated Lower"
+      icon="trending-down"
       outer-class="w-full"
     >
       <div class="space-y-2">

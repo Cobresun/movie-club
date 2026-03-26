@@ -1,74 +1,69 @@
 <template>
-  <div v-if="watchCounts.mostWatched.length > 0" class="mx-auto w-11/12">
-    <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
-      <WidgetShell title="Most Watched Genres" outer-class="w-full">
-        <ul class="space-y-3">
-          <li
-            v-for="(genre, index) in watchCounts.mostWatched"
-            :key="genre.genre"
-            class="flex items-center justify-between"
-          >
+  <div v-if="watchCounts.mostWatched.length > 0" class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+    <WidgetShell title="Most Watched Genres" icon="eye" outer-class="w-full">
+      <ul class="space-y-3">
+        <li
+          v-for="(genre, index) in watchCounts.mostWatched"
+          :key="genre.genre"
+        >
+          <div class="mb-1.5 flex items-center justify-between">
             <div class="flex items-center gap-3">
-              <span class="text-2xl font-bold text-green-400">
-                {{ index + 1 }}
-              </span>
-              <div class="flex flex-col">
-                <span class="text-white">{{ genre.genre }}</span>
-                <div
-                  class="mt-1 h-1.5 w-24 overflow-hidden rounded-full bg-gray-700"
-                >
-                  <div
-                    class="h-full rounded-full bg-green-400"
-                    :style="{ width: barWidth(genre.count) }"
-                  />
-                </div>
+              <div class="h-5 w-1 shrink-0 rounded-full bg-green-400" />
+              <div>
+                <span class="text-sm text-white">{{ genre.genre }}</span>
+                <span class="ml-2 text-xs text-slate-500">#{{ index + 1 }}</span>
               </div>
             </div>
             <span
-              class="min-w-[3rem] rounded bg-green-900/50 px-2 py-1 text-center text-sm font-semibold text-green-300"
+              class="min-w-[3rem] rounded bg-green-900/50 px-2 py-0.5 text-center text-xs font-semibold text-green-300"
             >
               {{ genre.count }}
             </span>
-          </li>
-        </ul>
-      </WidgetShell>
+          </div>
+          <div class="h-1 w-full overflow-hidden rounded-full bg-slate-700/50">
+            <div
+              class="h-full rounded-full bg-green-400/60"
+              :style="{ width: barWidth(genre.count) }"
+            />
+          </div>
+        </li>
+      </ul>
+    </WidgetShell>
 
-      <WidgetShell
-        v-if="watchCounts.leastWatched.length > 0"
-        title="Least Watched Genres"
-        outer-class="w-full"
-      >
-        <ul class="space-y-3">
-          <li
-            v-for="(genre, index) in watchCounts.leastWatched"
-            :key="genre.genre"
-            class="flex items-center justify-between"
-          >
+    <WidgetShell
+      v-if="watchCounts.leastWatched.length > 0"
+      title="Least Watched Genres"
+      icon="eye-off"
+      outer-class="w-full"
+    >
+      <ul class="space-y-3">
+        <li
+          v-for="(genre, index) in watchCounts.leastWatched"
+          :key="genre.genre"
+        >
+          <div class="mb-1.5 flex items-center justify-between">
             <div class="flex items-center gap-3">
-              <span class="text-2xl font-bold text-red-400">
-                {{ index + 1 }}
-              </span>
-              <div class="flex flex-col">
-                <span class="text-white">{{ genre.genre }}</span>
-                <div
-                  class="mt-1 h-1.5 w-24 overflow-hidden rounded-full bg-gray-700"
-                >
-                  <div
-                    class="h-full rounded-full bg-red-400"
-                    :style="{ width: barWidth(genre.count) }"
-                  />
-                </div>
+              <div class="h-5 w-1 shrink-0 rounded-full bg-red-400" />
+              <div>
+                <span class="text-sm text-white">{{ genre.genre }}</span>
+                <span class="ml-2 text-xs text-slate-500">#{{ index + 1 }}</span>
               </div>
             </div>
             <span
-              class="min-w-[3rem] rounded bg-red-900/50 px-2 py-1 text-center text-sm font-semibold text-red-300"
+              class="min-w-[3rem] rounded bg-red-900/50 px-2 py-0.5 text-center text-xs font-semibold text-red-300"
             >
               {{ genre.count }}
             </span>
-          </li>
-        </ul>
-      </WidgetShell>
-    </div>
+          </div>
+          <div class="h-1 w-full overflow-hidden rounded-full bg-slate-700/50">
+            <div
+              class="h-full rounded-full bg-red-400/60"
+              :style="{ width: barWidth(genre.count) }"
+            />
+          </div>
+        </li>
+      </ul>
+    </WidgetShell>
   </div>
 </template>
 

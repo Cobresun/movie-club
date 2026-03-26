@@ -1,25 +1,26 @@
 <template>
   <div v-if="tasteSimilarity.mostSimilar || tasteSimilarity.leastSimilar">
-    <div class="mx-auto mb-4 flex w-11/12 flex-col gap-1">
-      <div class="flex items-center gap-2">
-        <v-switch v-model="useNormalized" color="primary" />
+    <div class="mb-3 flex items-center gap-2">
+      <v-switch v-model="useNormalized" color="primary" />
+      <div>
         <span class="text-sm text-gray-300">Normalized Scores</span>
+        <p class="text-xs text-slate-500">
+          {{
+            useNormalized
+              ? "Comparing relative taste — ignores whether someone rates high or low overall"
+              : "Comparing raw scores directly"
+          }}
+        </p>
       </div>
-      <p class="text-xs text-slate-500">
-        {{
-          useNormalized
-            ? "Comparing relative taste — ignores whether someone rates high or low overall"
-            : "Comparing raw scores directly"
-        }}
-      </p>
     </div>
-    <div class="mx-auto grid w-11/12 grid-cols-1 gap-6 md:grid-cols-2">
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
       <WidgetShell
         v-if="tasteSimilarity.mostSimilar"
         title="Most Similar Taste"
+        icon="hand-heart"
         outer-class="w-full"
       >
-        <div class="mb-4 flex items-center justify-center gap-3">
+        <div class="mb-4 flex items-center justify-center gap-4">
           <div class="flex flex-col items-center">
             <v-avatar
               :src="tasteSimilarity.mostSimilar.memberA.image"
@@ -30,8 +31,8 @@
               firstName(tasteSimilarity.mostSimilar.memberA.name)
             }}</span>
           </div>
-          <div class="flex flex-col items-center px-3">
-            <span class="text-2xl font-bold text-green-400"
+          <div class="flex flex-col items-center px-2">
+            <span class="text-4xl font-black text-green-400"
               >{{ tasteSimilarity.mostSimilar.similarityPercent }}%</span
             >
             <span class="text-xs text-slate-400">similar</span>
@@ -84,9 +85,10 @@
       <WidgetShell
         v-if="tasteSimilarity.leastSimilar"
         title="Least Similar Taste"
+        icon="compare"
         outer-class="w-full"
       >
-        <div class="mb-4 flex items-center justify-center gap-3">
+        <div class="mb-4 flex items-center justify-center gap-4">
           <div class="flex flex-col items-center">
             <v-avatar
               :src="tasteSimilarity.leastSimilar.memberA.image"
@@ -97,8 +99,8 @@
               firstName(tasteSimilarity.leastSimilar.memberA.name)
             }}</span>
           </div>
-          <div class="flex flex-col items-center px-3">
-            <span class="text-2xl font-bold text-red-400"
+          <div class="flex flex-col items-center px-2">
+            <span class="text-4xl font-black text-red-400"
               >{{ tasteSimilarity.leastSimilar.similarityPercent }}%</span
             >
             <span class="text-xs text-slate-400">similar</span>

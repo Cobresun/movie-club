@@ -1,15 +1,14 @@
 <template>
   <div
     v-if="genreStats.mostLoved.length > 0 || genreStats.leastLoved.length > 0"
-    class="mx-auto w-11/12"
   >
-    <div class="mb-4 flex flex-wrap items-center gap-2">
+    <div class="mb-3 flex flex-wrap items-center gap-2">
       <button
         class="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-all"
         :class="
           !isDefined(selectedMemberId)
             ? 'bg-primary text-white shadow-md shadow-primary/25'
-            : 'bg-lowBackground text-gray-400 hover:bg-gray-600 hover:text-white'
+            : 'bg-slate-700/50 text-slate-300 hover:bg-slate-600'
         "
         @click="selectedMemberId = undefined"
       >
@@ -22,7 +21,7 @@
         :class="
           selectedMemberId === member.id
             ? 'bg-primary text-white shadow-md shadow-primary/25'
-            : 'bg-lowBackground text-gray-400 hover:bg-gray-600 hover:text-white'
+            : 'bg-slate-700/50 text-slate-300 hover:bg-slate-600'
         "
         @click="selectedMemberId = member.id"
       >
@@ -31,31 +30,40 @@
       </button>
     </div>
 
-    <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
       <WidgetShell
         v-if="genreStats.mostLoved.length > 0"
         title="Most Loved Genres"
+        icon="heart"
         outer-class="w-full"
       >
         <ul class="space-y-3">
           <li
             v-for="(genre, index) in genreStats.mostLoved"
             :key="genre.genre"
-            class="flex items-center justify-between"
           >
-            <div class="flex items-center gap-3">
-              <span class="text-2xl font-bold text-green-400">
-                {{ index + 1 }}
-              </span>
-              <span class="text-white">{{ genre.genre }}</span>
+            <div class="mb-1.5 flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <div class="h-5 w-1 shrink-0 rounded-full bg-green-400" />
+                <div>
+                  <span class="text-sm text-white">{{ genre.genre }}</span>
+                  <span class="ml-2 text-xs text-slate-500">#{{ index + 1 }}</span>
+                </div>
+              </div>
+              <div class="flex items-center gap-2 text-sm">
+                <span class="text-xs text-slate-400">{{ genre.count }} films</span>
+                <span
+                  class="min-w-[3rem] rounded bg-green-900/50 px-2 py-0.5 text-center text-xs font-semibold text-green-300"
+                >
+                  {{ genre.averageScore }}
+                </span>
+              </div>
             </div>
-            <div class="flex items-center gap-3 text-sm">
-              <span class="text-gray-400">{{ genre.count }} movies</span>
-              <span
-                class="min-w-[3rem] rounded bg-green-900/50 px-2 py-1 text-center font-semibold text-green-300"
-              >
-                {{ genre.averageScore }}
-              </span>
+            <div class="h-1 w-full overflow-hidden rounded-full bg-slate-700/50">
+              <div
+                class="h-full rounded-full bg-green-400/60"
+                :style="{ width: scoreBarWidth(genre.averageScore) + '%' }"
+              />
             </div>
           </li>
         </ul>
@@ -64,27 +72,36 @@
       <WidgetShell
         v-if="genreStats.leastLoved.length > 0"
         title="Least Loved Genres"
+        icon="heart-broken"
         outer-class="w-full"
       >
         <ul class="space-y-3">
           <li
             v-for="(genre, index) in genreStats.leastLoved"
             :key="genre.genre"
-            class="flex items-center justify-between"
           >
-            <div class="flex items-center gap-3">
-              <span class="text-2xl font-bold text-red-400">
-                {{ index + 1 }}
-              </span>
-              <span class="text-white">{{ genre.genre }}</span>
+            <div class="mb-1.5 flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <div class="h-5 w-1 shrink-0 rounded-full bg-red-400" />
+                <div>
+                  <span class="text-sm text-white">{{ genre.genre }}</span>
+                  <span class="ml-2 text-xs text-slate-500">#{{ index + 1 }}</span>
+                </div>
+              </div>
+              <div class="flex items-center gap-2 text-sm">
+                <span class="text-xs text-slate-400">{{ genre.count }} films</span>
+                <span
+                  class="min-w-[3rem] rounded bg-red-900/50 px-2 py-0.5 text-center text-xs font-semibold text-red-300"
+                >
+                  {{ genre.averageScore }}
+                </span>
+              </div>
             </div>
-            <div class="flex items-center gap-3 text-sm">
-              <span class="text-gray-400">{{ genre.count }} movies</span>
-              <span
-                class="min-w-[3rem] rounded bg-red-900/50 px-2 py-1 text-center font-semibold text-red-300"
-              >
-                {{ genre.averageScore }}
-              </span>
+            <div class="h-1 w-full overflow-hidden rounded-full bg-slate-700/50">
+              <div
+                class="h-full rounded-full bg-red-400/60"
+                :style="{ width: scoreBarWidth(genre.averageScore) + '%' }"
+              />
             </div>
           </li>
         </ul>
@@ -114,4 +131,8 @@ const selectedMemberId = ref<string | undefined>(undefined);
 const genreStats = computed(() =>
   computeGenreStats(props.movieData, selectedMemberId.value),
 );
+
+function scoreBarWidth(score: number): number {
+  return Math.round((score / 10) * 100);
+}
 </script>

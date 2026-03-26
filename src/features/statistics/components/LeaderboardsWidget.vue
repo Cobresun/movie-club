@@ -1,9 +1,6 @@
 <template>
-  <div class="mx-auto grid w-11/12 grid-cols-1 gap-6 md:grid-cols-2">
-    <WidgetShell
-      outer-class="w-full"
-      inner-class="rounded-xl border border-slate-700/50 bg-lowBackground/60 p-6"
-    >
+  <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+    <WidgetShell outer-class="w-full">
       <PersonLeaderboard
         title="Most Watched Directors"
         :entries="topDirectors"
@@ -11,10 +8,7 @@
       />
     </WidgetShell>
 
-    <WidgetShell
-      outer-class="w-full"
-      inner-class="rounded-xl border border-slate-700/50 bg-lowBackground/60 p-6"
-    >
+    <WidgetShell outer-class="w-full">
       <PersonLeaderboard
         title="Most Watched Actors"
         :entries="topActors"
