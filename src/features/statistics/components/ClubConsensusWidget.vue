@@ -1,9 +1,9 @@
 <template>
   <div
     v-if="consensus.mostAgreed.length > 0"
-    class="mx-auto grid w-11/12 grid-cols-1 gap-6 md:grid-cols-2"
+    class="grid grid-cols-1 gap-4 sm:grid-cols-2"
   >
-    <WidgetShell title="Most Agreed Upon" outer-class="w-full">
+    <WidgetShell title="Most Agreed Upon" icon="check-circle" outer-class="w-full">
       <div class="space-y-2">
         <div
           v-for="movie in consensus.mostAgreed"
@@ -48,7 +48,7 @@
       </div>
     </WidgetShell>
 
-    <WidgetShell title="Most Divisive" outer-class="w-full">
+    <WidgetShell title="Most Divisive" icon="scale-unbalanced" outer-class="w-full">
       <div class="space-y-2">
         <div
           v-for="movie in consensus.mostDivisive"

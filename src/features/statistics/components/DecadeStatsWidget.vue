@@ -1,12 +1,12 @@
 <template>
-  <WidgetShell v-if="decadeStats.length > 0" title="Scores by Decade">
+  <WidgetShell v-if="decadeStats.length > 0" title="Scores by Decade" icon="calendar-decade">
     <div class="mb-4 flex flex-wrap items-center gap-2">
       <button
         class="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-all"
         :class="
           !isDefined(selectedMemberId)
             ? 'bg-primary text-white shadow-md shadow-primary/25'
-            : 'bg-lowBackground text-gray-400 hover:bg-gray-600 hover:text-white'
+            : 'bg-slate-700/50 text-slate-300 hover:bg-slate-600'
         "
         @click="selectedMemberId = undefined"
       >
@@ -19,7 +19,7 @@
         :class="
           selectedMemberId === member.id
             ? 'bg-primary text-white shadow-md shadow-primary/25'
-            : 'bg-lowBackground text-gray-400 hover:bg-gray-600 hover:text-white'
+            : 'bg-slate-700/50 text-slate-300 hover:bg-slate-600'
         "
         @click="selectedMemberId = member.id"
       >
