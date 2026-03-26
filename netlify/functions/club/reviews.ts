@@ -3,6 +3,7 @@ import { z } from "zod";
 import { hasValue } from "../../../lib/checks/checks.js";
 import { WorkListType } from "../../../lib/types/generated/db";
 import ListRepository from "../repositories/ListRepository";
+import ReviewCommentRepository from "../repositories/ReviewCommentRepository";
 import ReviewRepository from "../repositories/ReviewRepository";
 import SharedReviewService from "../services/SharedReviewService";
 import { secured } from "../utils/auth";
@@ -58,6 +59,56 @@ router.put(
       return res(badRequest("You are not allowed to edit this review"));
     }
     await ReviewRepository.updateScore(reviewId, score);
+    return res(ok());
+  },
+);
+
+// Comment endpoints
+
+const addCommentSchema = z.object({
+  content: z.string().min(1).max(2000),
+});
+
+router.get("/:workId/comments", secured, async ({ clubId, params }, res) => {
+  if (!hasValue(params.workId)) {
+    return res(badRequest("No workId provided"));
+  }
+  const comments = await ReviewCommentRepository.getByWorkAndClub(
+    params.workId,
+    clubId,
+  );
+  return res(ok(JSON.stringify(comments)));
+});
+
+router.post(
+  "/:workId/comments",
+  secured,
+  async ({ clubId, userId, params, event }, res) => {
+    if (!hasValue(params.workId)) {
+      return res(badRequest("No workId provided"));
+    }
+    if (!hasValue(event.body)) return res(badRequest("No body provided"));
+    const body = addCommentSchema.safeParse(JSON.parse(event.body));
+    if (!body.success) return res(badRequest("Invalid body"));
+
+    await ReviewCommentRepository.insert(
+      params.workId,
+      clubId,
+      userId,
+      body.data.content,
+    );
+    return res(ok());
+  },
+);
+
+router.delete(
+  "/:workId/comments/:commentId",
+  secured,
+  async ({ userId, params }, res) => {
+    if (!hasValue(params.workId) || !hasValue(params.commentId)) {
+      return res(badRequest("Missing parameters"));
+    }
+    await ReviewCommentRepository.deleteById(params.commentId, userId);
     return res(ok());
   },
 );
