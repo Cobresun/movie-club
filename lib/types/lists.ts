@@ -32,6 +32,16 @@ export type DetailedWorkListItem<T = DetailedMovieData> = WorkListItem &
 export type DetailedReviewListItem<T = DetailedMovieData> = ReviewListItem &
   ExternalWorkData<T>;
 
+export interface ReviewCommentDto {
+  id: string;
+  workId: string;
+  userId: string;
+  userName: string;
+  userImage?: string;
+  content: string;
+  createdDate: string;
+}
+
 export const listInsertDtoSchema = z.object({
   type: z.nativeEnum(WorkType),
   title: z.string(),
