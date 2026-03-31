@@ -3,11 +3,11 @@ import { z } from "zod";
 import { hasValue } from "../../../lib/checks/checks.js";
 import { WorkListType } from "../../../lib/types/generated/db";
 import ListRepository from "../repositories/ListRepository";
-import ReviewCommentRepository from "../repositories/ReviewCommentRepository";
 import ReviewRepository from "../repositories/ReviewRepository";
+import WorkCommentRepository from "../repositories/WorkCommentRepository";
 import SharedReviewService from "../services/SharedReviewService";
 import { secured } from "../utils/auth";
-import { badRequest, ok } from "../utils/responses";
+import { badRequest, ok, unauthorized } from "../utils/responses";
 import { Router } from "../utils/router";
 import { ClubRequest } from "../utils/validation";
 
@@ -74,7 +74,7 @@ router.get("/:workId/comments", secured, async ({ clubId, params }, res) => {
   if (!hasValue(params.workId)) {
     return res(badRequest("No workId provided"));
   }
-  const comments = await ReviewCommentRepository.getByWorkAndClub(
+  const comments = await WorkCommentRepository.getByWorkAndClub(
     params.workId,
     clubId,
   );
@@ -92,7 +92,7 @@ router.post(
     const body = addCommentSchema.safeParse(JSON.parse(event.body));
     if (!body.success) return res(badRequest("Invalid body"));
 
-    await ReviewCommentRepository.insert(
+    await WorkCommentRepository.insert(
       params.workId,
       clubId,
       userId,
@@ -119,7 +119,7 @@ router.put(
     const body = updateCommentSchema.safeParse(JSON.parse(event.body));
     if (!body.success) return res(badRequest("Invalid body"));
 
-    await ReviewCommentRepository.updateContent(
+    await WorkCommentRepository.updateContent(
       params.commentId,
       userId,
       body.data.content,
@@ -136,7 +136,14 @@ router.delete(
     if (!hasValue(params.workId) || !hasValue(params.commentId)) {
       return res(badRequest("Missing parameters"));
     }
-    await ReviewCommentRepository.deleteById(params.commentId, userId);
+    const comment = await WorkCommentRepository.getById(params.commentId);
+    if (!comment) {
+      return res(badRequest("Comment not found"));
+    }
+    if (comment.user_id !== userId) {
+      return res(unauthorized("You can only delete your own comments"));
+    }
+    await WorkCommentRepository.deleteById(params.commentId);
     return res(ok());
   },
 );

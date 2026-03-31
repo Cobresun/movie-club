@@ -3,10 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
 import { useUser } from "./useUser";
 import { isDefined } from "../../lib/checks/checks.js";
 import { WorkListType } from "../../lib/types/generated/db";
-import {
-  DetailedReviewListItem,
-  ReviewCommentDto,
-} from "../../lib/types/lists";
+import { DetailedReviewListItem, WorkCommentDto } from "../../lib/types/lists";
 
 import { useAuthStore } from "@/stores/auth";
 
@@ -98,10 +95,10 @@ export function useUpdateReviewScore(clubSlug: string) {
 
 export function useReviewComments(clubSlug: string, workId: string) {
   const auth = useAuthStore();
-  return useQuery<ReviewCommentDto[]>({
+  return useQuery<WorkCommentDto[]>({
     queryKey: ["comments", clubSlug, workId],
     queryFn: async () => {
-      const response = await auth.request.get<ReviewCommentDto[]>(
+      const response = await auth.request.get<WorkCommentDto[]>(
         `/api/club/${clubSlug}/reviews/${workId}/comments`,
       );
       return response.data;
@@ -123,7 +120,7 @@ export function useAddReviewComment(clubSlug: string, workId: string) {
     onMutate: ({ content, spoiler }) => {
       const currentUser = user.value;
       if (!isDefined(currentUser)) return;
-      queryClient.setQueryData<ReviewCommentDto[]>(
+      queryClient.setQueryData<WorkCommentDto[]>(
         ["comments", clubSlug, workId],
         (current) => [
           ...(current ?? []),
@@ -166,7 +163,7 @@ export function useEditReviewComment(clubSlug: string, workId: string) {
         { content, spoiler },
       ),
     onMutate: ({ commentId, content, spoiler }) => {
-      queryClient.setQueryData<ReviewCommentDto[]>(
+      queryClient.setQueryData<WorkCommentDto[]>(
         ["comments", clubSlug, workId],
         (current) =>
           current?.map((comment) =>
@@ -197,7 +194,7 @@ export function useDeleteReviewComment(clubSlug: string, workId: string) {
         `/api/club/${clubSlug}/reviews/${workId}/comments/${commentId}`,
       ),
     onMutate: (commentId: string) => {
-      queryClient.setQueryData<ReviewCommentDto[]>(
+      queryClient.setQueryData<WorkCommentDto[]>(
         ["comments", clubSlug, workId],
         (current) =>
           current?.filter((comment) => comment.id !== commentId) ?? [],

@@ -2,7 +2,7 @@ import { Kysely } from "kysely";
 
 export async function up(db: Kysely<unknown>) {
   await db.schema
-    .createTable("review_comment")
+    .createTable("work_comment")
     .addColumn("id", "serial", (col) => col.primaryKey())
     .addColumn("work_id", "int8", (col) => col.notNull())
     .addColumn("club_id", "int8", (col) => col.notNull())
@@ -13,14 +13,14 @@ export async function up(db: Kysely<unknown>) {
       col.notNull().defaultTo("now()"),
     )
     .addForeignKeyConstraint(
-      "fk_review_comment_club_id",
+      "fk_work_comment_club_id",
       ["club_id"],
       "club",
       ["id"],
       (cb) => cb.onDelete("cascade"),
     )
     .addForeignKeyConstraint(
-      "fk_review_comment_user_id",
+      "fk_work_comment_user_id",
       ["user_id"],
       "user",
       ["id"],
@@ -30,5 +30,5 @@ export async function up(db: Kysely<unknown>) {
 }
 
 export async function down(db: Kysely<unknown>) {
-  await db.schema.dropTable("review_comment").execute();
+  await db.schema.dropTable("work_comment").execute();
 }

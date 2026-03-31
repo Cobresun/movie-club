@@ -1,27 +1,27 @@
-import { ReviewCommentDto } from "../../../lib/types/lists";
+import { WorkCommentDto } from "../../../lib/types/lists";
 import { db } from "../utils/database";
 
-class ReviewCommentRepository {
+class WorkCommentRepository {
   async getByWorkAndClub(
     workId: string,
     clubId: string,
-  ): Promise<ReviewCommentDto[]> {
+  ): Promise<WorkCommentDto[]> {
     const rows = await db
-      .selectFrom("review_comment")
-      .innerJoin("user", "user.id", "review_comment.user_id")
-      .where("review_comment.work_id", "=", workId)
-      .where("review_comment.club_id", "=", clubId)
+      .selectFrom("work_comment")
+      .innerJoin("user", "user.id", "work_comment.user_id")
+      .where("work_comment.work_id", "=", workId)
+      .where("work_comment.club_id", "=", clubId)
       .select([
-        "review_comment.id",
-        "review_comment.work_id",
-        "review_comment.user_id",
+        "work_comment.id",
+        "work_comment.work_id",
+        "work_comment.user_id",
         "user.name as user_name",
         "user.image as user_image",
-        "review_comment.content",
-        "review_comment.created_date",
-        "review_comment.spoiler",
+        "work_comment.content",
+        "work_comment.created_date",
+        "work_comment.spoiler",
       ])
-      .orderBy("review_comment.created_date", "asc")
+      .orderBy("work_comment.created_date", "asc")
       .execute();
 
     return rows.map((row) => ({
@@ -44,7 +44,7 @@ class ReviewCommentRepository {
     spoiler: boolean,
   ) {
     return db
-      .insertInto("review_comment")
+      .insertInto("work_comment")
       .values({
         work_id: workId,
         club_id: clubId,
@@ -62,7 +62,7 @@ class ReviewCommentRepository {
     spoiler?: boolean,
   ) {
     let query = db
-      .updateTable("review_comment")
+      .updateTable("work_comment")
       .set("content", content)
       .where("id", "=", commentId)
       .where("user_id", "=", userId);
@@ -72,13 +72,17 @@ class ReviewCommentRepository {
     return query.execute();
   }
 
-  async deleteById(commentId: string, userId: string) {
+  async getById(commentId: string) {
     return db
-      .deleteFrom("review_comment")
+      .selectFrom("work_comment")
+      .select(["id", "user_id"])
       .where("id", "=", commentId)
-      .where("user_id", "=", userId)
-      .execute();
+      .executeTakeFirst();
+  }
+
+  async deleteById(commentId: string) {
+    return db.deleteFrom("work_comment").where("id", "=", commentId).execute();
   }
 }
 
-export default new ReviewCommentRepository();
+export default new WorkCommentRepository();

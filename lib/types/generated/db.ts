@@ -157,7 +157,7 @@ export interface Review {
   work_id: Int8;
 }
 
-export interface ReviewComment {
+export interface WorkComment {
   club_id: Int8;
   content: string;
   created_date: Generated<Timestamp>;
@@ -236,7 +236,7 @@ export interface DB {
   movie_production_countries: MovieProductionCountries;
   next_work: NextWork;
   review: Review;
-  review_comment: ReviewComment;
+  work_comment: WorkComment;
   session: Session;
   user: User;
   verification: Verification;

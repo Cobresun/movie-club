@@ -32,7 +32,7 @@ export type DetailedWorkListItem<T = DetailedMovieData> = WorkListItem &
 export type DetailedReviewListItem<T = DetailedMovieData> = ReviewListItem &
   ExternalWorkData<T>;
 
-export interface ReviewCommentDto {
+export interface WorkCommentDto {
   id: string;
   workId: string;
   userId: string;
