@@ -126,7 +126,7 @@
       <textarea
         v-model="newComment"
         :maxlength="MAX_LENGTH"
-        placeholder="Write your review\u2026"
+        placeholder="Write your review…"
         class="w-full resize-none rounded-lg border border-gray-600 bg-lowBackground px-3 py-2 text-left text-sm text-white placeholder-gray-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
         rows="3"
       />
