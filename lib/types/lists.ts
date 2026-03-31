@@ -40,6 +40,7 @@ export interface ReviewCommentDto {
   userImage?: string;
   content: string;
   createdDate: string;
+  spoiler: boolean;
 }
 
 export const listInsertDtoSchema = z.object({

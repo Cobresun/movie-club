@@ -67,6 +67,7 @@ router.put(
 
 const addCommentSchema = z.object({
   content: z.string().min(1).max(2000),
+  spoiler: z.boolean().optional().default(false),
 });
 
 router.get("/:workId/comments", secured, async ({ clubId, params }, res) => {
@@ -96,6 +97,33 @@ router.post(
       clubId,
       userId,
       body.data.content,
+      body.data.spoiler,
+    );
+    return res(ok());
+  },
+);
+
+const updateCommentSchema = z.object({
+  content: z.string().min(1).max(2000),
+  spoiler: z.boolean().optional(),
+});
+
+router.put(
+  "/:workId/comments/:commentId",
+  secured,
+  async ({ userId, params, event }, res) => {
+    if (!hasValue(params.workId) || !hasValue(params.commentId)) {
+      return res(badRequest("Missing parameters"));
+    }
+    if (!hasValue(event.body)) return res(badRequest("No body provided"));
+    const body = updateCommentSchema.safeParse(JSON.parse(event.body));
+    if (!body.success) return res(badRequest("Invalid body"));
+
+    await ReviewCommentRepository.updateContent(
+      params.commentId,
+      userId,
+      body.data.content,
+      body.data.spoiler,
     );
     return res(ok());
   },

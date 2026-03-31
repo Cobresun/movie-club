@@ -8,6 +8,7 @@ export async function up(db: Kysely<unknown>) {
     .addColumn("club_id", "int8", (col) => col.notNull())
     .addColumn("user_id", "int8", (col) => col.notNull())
     .addColumn("content", "text", (col) => col.notNull())
+    .addColumn("spoiler", "boolean", (col) => col.notNull().defaultTo(false))
     .addColumn("created_date", "timestamptz", (col) =>
       col.notNull().defaultTo("now()"),
     )

@@ -19,6 +19,7 @@ class ReviewCommentRepository {
         "user.image as user_image",
         "review_comment.content",
         "review_comment.created_date",
+        "review_comment.spoiler",
       ])
       .orderBy("review_comment.created_date", "asc")
       .execute();
@@ -31,6 +32,7 @@ class ReviewCommentRepository {
       userImage: row.user_image ?? undefined,
       content: row.content,
       createdDate: new Date(String(row.created_date)).toISOString(),
+      spoiler: row.spoiler,
     }));
   }
 
@@ -39,6 +41,7 @@ class ReviewCommentRepository {
     clubId: string,
     userId: string,
     content: string,
+    spoiler: boolean,
   ) {
     return db
       .insertInto("review_comment")
@@ -47,8 +50,26 @@ class ReviewCommentRepository {
         club_id: clubId,
         user_id: userId,
         content,
+        spoiler,
       })
       .execute();
+  }
+
+  async updateContent(
+    commentId: string,
+    userId: string,
+    content: string,
+    spoiler?: boolean,
+  ) {
+    let query = db
+      .updateTable("review_comment")
+      .set("content", content)
+      .where("id", "=", commentId)
+      .where("user_id", "=", userId);
+    if (spoiler !== undefined) {
+      query = query.set("spoiler", spoiler);
+    }
+    return query.execute();
   }
 
   async deleteById(commentId: string, userId: string) {

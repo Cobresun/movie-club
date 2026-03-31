@@ -162,6 +162,7 @@ export interface ReviewComment {
   content: string;
   created_date: Generated<Timestamp>;
   id: Generated<Int8>;
+  spoiler: Generated<boolean>;
   user_id: Int8;
   work_id: Int8;
 }

@@ -115,11 +115,12 @@ export function useAddReviewComment(clubSlug: string, workId: string) {
   const user = useUser();
 
   return useMutation({
-    mutationFn: (content: string) =>
+    mutationFn: ({ content, spoiler }: { content: string; spoiler: boolean }) =>
       auth.request.post(`/api/club/${clubSlug}/reviews/${workId}/comments`, {
         content,
+        spoiler,
       }),
-    onMutate: (content: string) => {
+    onMutate: ({ content, spoiler }) => {
       const currentUser = user.value;
       if (!isDefined(currentUser)) return;
       queryClient.setQueryData<ReviewCommentDto[]>(
@@ -134,8 +135,49 @@ export function useAddReviewComment(clubSlug: string, workId: string) {
             userImage: currentUser.image ?? undefined,
             content,
             createdDate: new Date().toISOString(),
+            spoiler,
           },
         ],
+      );
+    },
+    onSettled: () =>
+      queryClient.invalidateQueries({
+        queryKey: ["comments", clubSlug, workId],
+      }),
+  });
+}
+
+export function useEditReviewComment(clubSlug: string, workId: string) {
+  const auth = useAuthStore();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      commentId,
+      content,
+      spoiler,
+    }: {
+      commentId: string;
+      content: string;
+      spoiler?: boolean;
+    }) =>
+      auth.request.put(
+        `/api/club/${clubSlug}/reviews/${workId}/comments/${commentId}`,
+        { content, spoiler },
+      ),
+    onMutate: ({ commentId, content, spoiler }) => {
+      queryClient.setQueryData<ReviewCommentDto[]>(
+        ["comments", clubSlug, workId],
+        (current) =>
+          current?.map((comment) =>
+            comment.id === commentId
+              ? {
+                  ...comment,
+                  content,
+                  spoiler: spoiler ?? comment.spoiler,
+                }
+              : comment,
+          ) ?? [],
       );
     },
     onSettled: () =>

@@ -24,18 +24,73 @@
             }}</span>
             <span>&middot;</span>
             <span>{{ formatRelativeTime(comment.createdDate) }}</span>
+            <span v-if="comment.spoiler" class="text-yellow-500">
+              &middot; Spoiler
+            </span>
           </div>
-          <button
-            v-if="comment.userId === currentUserId"
-            class="text-gray-500 hover:text-red-400"
-            @click="deleteComment(comment.id)"
-          >
-            <mdicon name="delete-outline" :size="14" />
-          </button>
+          <template v-if="comment.userId === currentUserId">
+            <button
+              class="text-gray-500 hover:text-primary"
+              @click="startEditing(comment)"
+            >
+              <mdicon name="pencil-outline" :size="14" />
+            </button>
+            <button
+              class="text-gray-500 hover:text-red-400"
+              @click="deleteComment(comment.id)"
+            >
+              <mdicon name="delete-outline" :size="14" />
+            </button>
+          </template>
         </div>
-        <p class="mt-2 whitespace-pre-wrap text-sm text-gray-200">
-          {{ comment.content }}
-        </p>
+
+        <!-- Editing mode -->
+        <div v-if="editingCommentId === comment.id" class="mt-2">
+          <textarea
+            v-model="editContent"
+            class="w-full resize-none rounded-lg border border-gray-600 bg-background px-3 py-2 text-sm text-white placeholder-gray-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            rows="3"
+          />
+          <div class="mt-2 flex items-center justify-between">
+            <label class="flex items-center gap-1.5 text-xs text-gray-400">
+              <input
+                v-model="editSpoiler"
+                type="checkbox"
+                class="accent-primary"
+              />
+              Spoiler
+            </label>
+            <div class="flex gap-2">
+              <button
+                class="rounded bg-gray-600 px-3 py-1 text-xs text-white"
+                @click="cancelEditing"
+              >
+                Cancel
+              </button>
+              <button
+                class="rounded bg-primary px-3 py-1 text-xs text-white"
+                :disabled="!hasValue(editContent.trim())"
+                @click="saveEdit(comment.id)"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Display mode -->
+        <div v-else class="mt-2">
+          <p
+            v-if="comment.spoiler && !revealedSpoilers.has(comment.id)"
+            class="cursor-pointer select-none whitespace-pre-wrap text-sm text-gray-200 blur-sm transition-all"
+            @click="revealedSpoilers.add(comment.id)"
+          >
+            {{ comment.content }}
+          </p>
+          <p v-else class="whitespace-pre-wrap text-sm text-gray-200">
+            {{ comment.content }}
+          </p>
+        </div>
       </div>
     </div>
 
@@ -43,30 +98,37 @@
       No written reviews yet. Be the first to share your thoughts!
     </p>
 
-    <div class="flex items-end gap-2">
+    <div>
       <textarea
         v-model="newComment"
         placeholder="Write your review..."
-        class="flex-1 resize-none rounded-lg border border-gray-600 bg-lowBackground px-3 py-2 text-sm text-white placeholder-gray-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+        class="w-full resize-none rounded-lg border border-gray-600 bg-lowBackground px-3 py-2 text-sm text-white placeholder-gray-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
         rows="3"
-        @keydown.enter.exact.prevent="sendComment"
       />
-      <v-btn :disabled="!hasValue(newComment.trim())" @click="sendComment">
-        <mdicon name="send" :size="18" />
-      </v-btn>
+      <div class="mt-2 flex items-center justify-between">
+        <label class="flex items-center gap-1.5 text-xs text-gray-400">
+          <input v-model="newSpoiler" type="checkbox" class="accent-primary" />
+          Spoiler
+        </label>
+        <v-btn :disabled="!hasValue(newComment.trim())" @click="sendComment">
+          <mdicon name="send" :size="18" />
+        </v-btn>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { DateTime } from "luxon";
-import { nextTick, ref } from "vue";
+import { nextTick, reactive, ref } from "vue";
 
 import { hasElements, hasValue } from "../../../../lib/checks/checks.js";
+import { ReviewCommentDto } from "../../../../lib/types/lists";
 
 import {
   useAddReviewComment,
   useDeleteReviewComment,
+  useEditReviewComment,
   useReviewComments,
 } from "@/service/useReviews";
 import { useUser } from "@/service/useUser";
@@ -84,28 +146,62 @@ const { mutate: addComment } = useAddReviewComment(
   props.clubSlug,
   props.workId,
 );
+const { mutate: editComment } = useEditReviewComment(
+  props.clubSlug,
+  props.workId,
+);
 const { mutate: removeComment } = useDeleteReviewComment(
   props.clubSlug,
   props.workId,
 );
 
 const newComment = ref("");
+const newSpoiler = ref(false);
 const commentsContainer = ref<HTMLDivElement | null>(null);
+
+const editingCommentId = ref<string | null>(null);
+const editContent = ref("");
+const editSpoiler = ref(false);
+
+const revealedSpoilers = reactive(new Set<string>());
 
 const sendComment = () => {
   const content = newComment.value.trim();
   if (!hasValue(content)) return;
-  addComment(content, {
-    onSettled: () => {
-      nextTick(() => {
-        if (commentsContainer.value !== null) {
-          commentsContainer.value.scrollTop =
-            commentsContainer.value.scrollHeight;
-        }
-      }).catch(console.error);
+  addComment(
+    { content, spoiler: newSpoiler.value },
+    {
+      onSettled: () => {
+        nextTick(() => {
+          if (commentsContainer.value !== null) {
+            commentsContainer.value.scrollTop =
+              commentsContainer.value.scrollHeight;
+          }
+        }).catch(console.error);
+      },
     },
-  });
+  );
   newComment.value = "";
+  newSpoiler.value = false;
+};
+
+const startEditing = (comment: ReviewCommentDto) => {
+  editingCommentId.value = comment.id;
+  editContent.value = comment.content;
+  editSpoiler.value = comment.spoiler;
+};
+
+const cancelEditing = () => {
+  editingCommentId.value = null;
+  editContent.value = "";
+  editSpoiler.value = false;
+};
+
+const saveEdit = (commentId: string) => {
+  const content = editContent.value.trim();
+  if (!hasValue(content)) return;
+  editComment({ commentId, content, spoiler: editSpoiler.value });
+  cancelEditing();
 };
 
 const deleteComment = (commentId: string) => {
