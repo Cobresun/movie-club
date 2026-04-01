@@ -140,6 +140,8 @@
         />
       </div>
 
+      <ReviewChat :work-id="movie.original.id" :club-slug="clubId" />
+
       <div class="mt-6 flex w-full gap-3">
         <button
           class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-red-500/20 py-3 text-red-500"
@@ -301,6 +303,8 @@
         </DisclosurePanel>
       </Disclosure>
 
+      <ReviewChat :work-id="movie.original.id" :club-slug="clubId" />
+
       <!-- Action buttons -->
       <div class="mt-6 flex w-full gap-3">
         <button
@@ -329,6 +333,7 @@ import { DateTime } from "luxon";
 import { computed, ref } from "vue";
 
 import MovieDescription from "./MovieDescription.vue";
+import ReviewChat from "./ReviewChat.vue";
 import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
 

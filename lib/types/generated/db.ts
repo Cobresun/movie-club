@@ -157,6 +157,16 @@ export interface Review {
   work_id: Int8;
 }
 
+export interface WorkComment {
+  club_id: Int8;
+  content: string;
+  created_date: Generated<Timestamp>;
+  id: Generated<Int8>;
+  spoiler: Generated<boolean>;
+  user_id: Int8;
+  work_id: Int8;
+}
+
 export interface Session {
   createdAt: Generated<Timestamp>;
   expiresAt: Timestamp;
@@ -226,6 +236,7 @@ export interface DB {
   movie_production_countries: MovieProductionCountries;
   next_work: NextWork;
   review: Review;
+  work_comment: WorkComment;
   session: Session;
   user: User;
   verification: Verification;

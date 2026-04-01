@@ -4,9 +4,10 @@ import { hasValue } from "../../../lib/checks/checks.js";
 import { WorkListType } from "../../../lib/types/generated/db";
 import ListRepository from "../repositories/ListRepository";
 import ReviewRepository from "../repositories/ReviewRepository";
+import WorkCommentRepository from "../repositories/WorkCommentRepository";
 import SharedReviewService from "../services/SharedReviewService";
 import { secured } from "../utils/auth";
-import { badRequest, ok } from "../utils/responses";
+import { badRequest, ok, unauthorized } from "../utils/responses";
 import { Router } from "../utils/router";
 import { ClubRequest } from "../utils/validation";
 
@@ -58,6 +59,99 @@ router.put(
       return res(badRequest("You are not allowed to edit this review"));
     }
     await ReviewRepository.updateScore(reviewId, score);
+    return res(ok());
+  },
+);
+
+// Comment endpoints
+
+const addCommentSchema = z.object({
+  content: z.string().min(1).max(2000),
+  spoiler: z.boolean().optional().default(false),
+});
+
+router.get("/:workId/comments", secured, async ({ clubId, params }, res) => {
+  if (!hasValue(params.workId)) {
+    return res(badRequest("No workId provided"));
+  }
+  const comments = await WorkCommentRepository.getByWorkAndClub(
+    params.workId,
+    clubId,
+  );
+  return res(ok(JSON.stringify(comments)));
+});
+
+router.post(
+  "/:workId/comments",
+  secured,
+  async ({ clubId, userId, params, event }, res) => {
+    if (!hasValue(params.workId)) {
+      return res(badRequest("No workId provided"));
+    }
+    if (!hasValue(event.body)) return res(badRequest("No body provided"));
+    const body = addCommentSchema.safeParse(JSON.parse(event.body));
+    if (!body.success) return res(badRequest("Invalid body"));
+
+    await WorkCommentRepository.insert(
+      params.workId,
+      clubId,
+      userId,
+      body.data.content,
+      body.data.spoiler,
+    );
+    return res(ok());
+  },
+);
+
+const updateCommentSchema = z.object({
+  content: z.string().min(1).max(2000),
+  spoiler: z.boolean().optional(),
+});
+
+router.put(
+  "/:workId/comments/:commentId",
+  secured,
+  async ({ userId, params, event }, res) => {
+    if (!hasValue(params.workId) || !hasValue(params.commentId)) {
+      return res(badRequest("Missing parameters"));
+    }
+    if (!hasValue(event.body)) return res(badRequest("No body provided"));
+    const body = updateCommentSchema.safeParse(JSON.parse(event.body));
+    if (!body.success) return res(badRequest("Invalid body"));
+
+    const comment = await WorkCommentRepository.getById(params.commentId);
+    if (!comment) {
+      return res(badRequest("Comment not found"));
+    }
+    if (comment.user_id !== userId) {
+      return res(unauthorized("You can only edit your own comments"));
+    }
+
+    await WorkCommentRepository.updateContent(
+      params.commentId,
+      userId,
+      body.data.content,
+      body.data.spoiler,
+    );
+    return res(ok());
+  },
+);
+
+router.delete(
+  "/:workId/comments/:commentId",
+  secured,
+  async ({ userId, params }, res) => {
+    if (!hasValue(params.workId) || !hasValue(params.commentId)) {
+      return res(badRequest("Missing parameters"));
+    }
+    const comment = await WorkCommentRepository.getById(params.commentId);
+    if (!comment) {
+      return res(badRequest("Comment not found"));
+    }
+    if (comment.user_id !== userId) {
+      return res(unauthorized("You can only delete your own comments"));
+    }
+    await WorkCommentRepository.deleteById(params.commentId);
     return res(ok());
   },
 );
