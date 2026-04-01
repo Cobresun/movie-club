@@ -105,7 +105,11 @@
         <!-- Display mode -->
         <div v-else class="mt-2">
           <p
-            v-if="comment.spoiler && !revealedSpoilers.has(comment.id)"
+            v-if="
+              comment.spoiler &&
+              comment.userId !== currentUserId &&
+              !revealedSpoilers.has(comment.id)
+            "
             class="cursor-pointer select-none whitespace-pre-wrap text-left text-sm text-gray-200 blur-sm transition-all"
             @click="revealedSpoilers.add(comment.id)"
           >
