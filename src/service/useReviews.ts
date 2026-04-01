@@ -1,9 +1,9 @@
-import { useMutation, useQueryClient } from "@tanstack/vue-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
 
 import { useUser } from "./useUser";
 import { isDefined } from "../../lib/checks/checks.js";
 import { WorkListType } from "../../lib/types/generated/db";
-import { DetailedReviewListItem } from "../../lib/types/lists";
+import { DetailedReviewListItem, WorkCommentDto } from "../../lib/types/lists";
 
 import { useAuthStore } from "@/stores/auth";
 
@@ -89,6 +89,120 @@ export function useUpdateReviewScore(clubSlug: string) {
     onSettled: () =>
       queryClient.invalidateQueries({
         queryKey: ["list", clubSlug, WorkListType.reviews],
+      }),
+  });
+}
+
+export function useReviewComments(clubSlug: string, workId: string) {
+  const auth = useAuthStore();
+  return useQuery<WorkCommentDto[]>({
+    queryKey: ["comments", clubSlug, workId],
+    queryFn: async () => {
+      const response = await auth.request.get<WorkCommentDto[]>(
+        `/api/club/${clubSlug}/reviews/${workId}/comments`,
+      );
+      return response.data;
+    },
+  });
+}
+
+export function useAddReviewComment(clubSlug: string, workId: string) {
+  const auth = useAuthStore();
+  const queryClient = useQueryClient();
+  const user = useUser();
+
+  return useMutation({
+    mutationFn: ({ content, spoiler }: { content: string; spoiler: boolean }) =>
+      auth.request.post(`/api/club/${clubSlug}/reviews/${workId}/comments`, {
+        content,
+        spoiler,
+      }),
+    onMutate: ({ content, spoiler }) => {
+      const currentUser = user.value;
+      if (!isDefined(currentUser)) return;
+      queryClient.setQueryData<WorkCommentDto[]>(
+        ["comments", clubSlug, workId],
+        (current) => [
+          ...(current ?? []),
+          {
+            id: `temp-${Date.now()}`,
+            workId,
+            userId: currentUser.id,
+            userName: currentUser.name,
+            userImage: currentUser.image ?? undefined,
+            content,
+            createdDate: new Date().toISOString(),
+            spoiler,
+          },
+        ],
+      );
+    },
+    onSettled: () =>
+      queryClient.invalidateQueries({
+        queryKey: ["comments", clubSlug, workId],
+      }),
+  });
+}
+
+export function useEditReviewComment(clubSlug: string, workId: string) {
+  const auth = useAuthStore();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      commentId,
+      content,
+      spoiler,
+    }: {
+      commentId: string;
+      content: string;
+      spoiler?: boolean;
+    }) =>
+      auth.request.put(
+        `/api/club/${clubSlug}/reviews/${workId}/comments/${commentId}`,
+        { content, spoiler },
+      ),
+    onMutate: ({ commentId, content, spoiler }) => {
+      queryClient.setQueryData<WorkCommentDto[]>(
+        ["comments", clubSlug, workId],
+        (current) =>
+          current?.map((comment) =>
+            comment.id === commentId
+              ? {
+                  ...comment,
+                  content,
+                  spoiler: spoiler ?? comment.spoiler,
+                }
+              : comment,
+          ) ?? [],
+      );
+    },
+    onSettled: () =>
+      queryClient.invalidateQueries({
+        queryKey: ["comments", clubSlug, workId],
+      }),
+  });
+}
+
+export function useDeleteReviewComment(clubSlug: string, workId: string) {
+  const auth = useAuthStore();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (commentId: string) =>
+      auth.request.delete(
+        `/api/club/${clubSlug}/reviews/${workId}/comments/${commentId}`,
+      ),
+    onMutate: (commentId: string) => {
+      queryClient.setQueryData<WorkCommentDto[]>(
+        ["comments", clubSlug, workId],
+        (current) =>
+          current?.filter((comment) => comment.id !== commentId) ?? [],
+      );
+    },
+    onSettled: () =>
+      queryClient.invalidateQueries({
+        queryKey: ["comments", clubSlug, workId],
       }),
   });
 }
