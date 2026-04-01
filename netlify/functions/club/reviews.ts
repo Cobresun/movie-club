@@ -119,6 +119,14 @@ router.put(
     const body = updateCommentSchema.safeParse(JSON.parse(event.body));
     if (!body.success) return res(badRequest("Invalid body"));
 
+    const comment = await WorkCommentRepository.getById(params.commentId);
+    if (!comment) {
+      return res(badRequest("Comment not found"));
+    }
+    if (comment.user_id !== userId) {
+      return res(unauthorized("You can only edit your own comments"));
+    }
+
     await WorkCommentRepository.updateContent(
       params.commentId,
       userId,
