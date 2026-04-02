@@ -116,6 +116,12 @@
           </div>
         </div>
       </div>
+
+      <!-- Comments Section -->
+      <SharedReviewComments
+        v-if="hasElements(data.comments)"
+        :comments="data.comments"
+      />
     </div>
 
     <!-- Fixed Call-to-Action Banner -->
@@ -149,8 +155,11 @@ import { DateTime } from "luxon";
 import { computed, ref, onMounted, onUnmounted } from "vue";
 import { useRoute } from "vue-router";
 
+import { hasElements } from "../../../../lib/checks/checks.js";
+
 import LoadingSpinner from "@/common/components/LoadingSpinner.vue";
 import VAvatar from "@/common/components/VAvatar.vue";
+import SharedReviewComments from "@/features/reviews/components/SharedReviewComments.vue";
 import { useSharedReview } from "@/service/useList";
 import { useAuthStore } from "@/stores/auth";
 
