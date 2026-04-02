@@ -266,7 +266,11 @@
           </div>
           <div v-if="movie.original.externalData?.directors?.length">
             <span class="text-gray-400">Director: </span>
-            <span>{{ movie.original.externalData.directors.join(", ") }}</span>
+            <span>{{
+              movie.original.externalData.directors
+                .map((d) => d.name)
+                .join(", ")
+            }}</span>
           </div>
           <div
             v-if="movie.original.externalData?.actors?.length"
