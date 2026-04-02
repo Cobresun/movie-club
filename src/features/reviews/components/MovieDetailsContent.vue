@@ -54,44 +54,13 @@
           <div
             class="mt-4 grid grid-cols-1 gap-x-4 gap-y-2 text-sm md:grid-cols-2"
           >
-            <div v-if="movie.original.externalData?.release_date">
-              <span class="text-gray-400">Release Date: </span>
-              <span>{{
-                formatDate(movie.original.externalData.release_date)
-              }}</span>
-            </div>
-            <div v-if="movie.original.externalData?.runtime">
-              <span class="text-gray-400">Runtime: </span>
-              <span>{{ movie.original.externalData.runtime }} minutes</span>
-            </div>
-            <div v-if="movie.original.externalData?.genres?.length">
-              <span class="text-gray-400">Genres: </span>
-              <span>{{ movie.original.externalData.genres.join(", ") }}</span>
-            </div>
-            <div v-if="movie.original.externalData?.directors?.length">
-              <span class="text-gray-400">Director: </span>
-              <span>{{
-                movie.original.externalData.directors
-                  .map((d) => d.name)
-                  .join(", ")
-              }}</span>
-            </div>
-            <div
-              v-if="movie.original.externalData?.actors?.length"
-              class="col-span-full"
-            >
-              <span class="text-gray-400">Cast: </span>
-              <span>{{ displayedActors.join(", ") }}</span>
-              <button
-                v-if="hasMoreActors"
-                class="ml-1 text-xs text-primary"
-                @click="showAllActors = !showAllActors"
-              >
-                {{
-                  showAllActors ? "Show less" : `+${remainingActorsCount} more`
-                }}
-              </button>
-            </div>
+            <MovieMetadataGrid
+              :release-date="movie.original.externalData?.release_date"
+              :runtime="movie.original.externalData?.runtime"
+              :genres="movie.original.externalData?.genres"
+              :directors="movie.original.externalData?.directors"
+              :actors="movie.original.externalData?.actors"
+            />
             <div
               v-if="movie.original.externalData?.vote_average"
               :class="{
@@ -250,44 +219,13 @@
           />
         </DisclosureButton>
         <DisclosurePanel class="mt-2 grid grid-cols-1 gap-y-2 px-1 text-sm">
-          <div v-if="movie.original.externalData?.release_date">
-            <span class="text-gray-400">Release Date: </span>
-            <span>{{
-              formatDate(movie.original.externalData.release_date)
-            }}</span>
-          </div>
-          <div v-if="movie.original.externalData?.runtime">
-            <span class="text-gray-400">Runtime: </span>
-            <span>{{ movie.original.externalData.runtime }} minutes</span>
-          </div>
-          <div v-if="movie.original.externalData?.genres?.length">
-            <span class="text-gray-400">Genres: </span>
-            <span>{{ movie.original.externalData.genres.join(", ") }}</span>
-          </div>
-          <div v-if="movie.original.externalData?.directors?.length">
-            <span class="text-gray-400">Director: </span>
-            <span>{{
-              movie.original.externalData.directors
-                .map((d) => d.name)
-                .join(", ")
-            }}</span>
-          </div>
-          <div
-            v-if="movie.original.externalData?.actors?.length"
-            class="col-span-full"
-          >
-            <span class="text-gray-400">Cast: </span>
-            <span>{{ displayedActors.join(", ") }}</span>
-            <button
-              v-if="hasMoreActors"
-              class="ml-1 text-xs text-primary"
-              @click="showAllActors = !showAllActors"
-            >
-              {{
-                showAllActors ? "Show less" : `+${remainingActorsCount} more`
-              }}
-            </button>
-          </div>
+          <MovieMetadataGrid
+            :release-date="movie.original.externalData?.release_date"
+            :runtime="movie.original.externalData?.runtime"
+            :genres="movie.original.externalData?.genres"
+            :directors="movie.original.externalData?.directors"
+            :actors="movie.original.externalData?.actors"
+          />
           <div
             v-if="movie.original.externalData?.vote_average"
             :class="{
@@ -336,12 +274,13 @@ import { FlexRender, Row, Table } from "@tanstack/vue-table";
 import { DateTime } from "luxon";
 import { computed, ref } from "vue";
 
-import MovieDescription from "./MovieDescription.vue";
 import ReviewChat from "./ReviewChat.vue";
 import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
 
 import DeleteConfirmationModal from "@/common/components/DeleteConfirmationModal.vue";
+import MovieDescription from "@/common/components/MovieDescription.vue";
+import MovieMetadataGrid from "@/common/components/MovieMetadataGrid.vue";
 import { useShare } from "@/common/composables/useShare";
 import { useClub, useClubSlug } from "@/service/useClub";
 import { useUpdateAddedDate } from "@/service/useList";
@@ -362,8 +301,6 @@ const emit = defineEmits<{
   (e: "toggle-reveal", movieId: string): void;
 }>();
 
-const VISIBLE_ACTORS_COUNT = 5;
-const showAllActors = ref(false);
 const showDeleteConfirmation = ref(false);
 const cancelDelete = () => {
   showDeleteConfirmation.value = false;
@@ -380,21 +317,6 @@ const { data: club } = useClub(clubId);
 const { mutate: updateAddedDate } = useUpdateAddedDate(clubId);
 const isEditingDate = ref(false);
 const editedDate = ref("");
-
-const allActors = computed(() =>
-  (props.movie.original.externalData?.actors ?? []).map((a) => a.name),
-);
-const displayedActors = computed(() =>
-  showAllActors.value
-    ? allActors.value
-    : allActors.value.slice(0, VISIBLE_ACTORS_COUNT),
-);
-const hasMoreActors = computed(
-  () => allActors.value.length > VISIBLE_ACTORS_COUNT,
-);
-const remainingActorsCount = computed(
-  () => allActors.value.length - VISIBLE_ACTORS_COUNT,
-);
 
 const formattedDateForInput = computed(() => {
   return DateTime.fromISO(props.movie.original.createdDate).toFormat(
