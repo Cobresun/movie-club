@@ -2,6 +2,7 @@ import ClubRepository from "../repositories/ClubRepository";
 import ListRepository from "../repositories/ListRepository";
 import ReviewRepository from "../repositories/ReviewRepository";
 import UserRepository from "../repositories/UserRepository";
+import WorkCommentRepository from "../repositories/WorkCommentRepository";
 import { overviewToExternalData } from "../utils/workDetailsMapper";
 
 class SharedReviewService {
@@ -17,11 +18,12 @@ class SharedReviewService {
    * @returns Shared review data if work exists, null otherwise
    */
   async getSharedReviewData(clubId: string, workId: string) {
-    const [reviews, members, workDetails, club] = await Promise.all([
+    const [reviews, members, workDetails, club, comments] = await Promise.all([
       ReviewRepository.getReviewsByWorkId(clubId, workId),
       UserRepository.getMembersByClubId(clubId),
       ListRepository.getWorkDetails(workId),
       ClubRepository.getById(clubId),
+      WorkCommentRepository.getByWorkAndClub(workId, clubId),
     ]);
 
     if (!workDetails) {
@@ -40,6 +42,7 @@ class SharedReviewService {
     return {
       reviews,
       members,
+      comments,
       work,
       clubName: club?.name ?? "Movie Club",
     };
