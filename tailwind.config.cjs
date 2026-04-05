@@ -12,7 +12,7 @@ module.exports = {
         text: "#FFFFFF",
       },
       gridTemplateColumns: {
-        auto: "repeat( auto-fill, minmax(168px, 1fr) )",
+        auto: "repeat( auto-fill, minmax(136px, 1fr) )",
         centerHeader: "1fr auto 1fr",
         leftHeader: "auto 1fr",
       },
