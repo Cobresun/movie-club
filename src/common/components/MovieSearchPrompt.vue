@@ -11,7 +11,10 @@
         <h5 class="text-left font-bold">
           {{ defaultListTitle }}
         </h5>
-        <div class="mt-2 grid grid-cols-auto justify-items-center">
+        <div
+          class="mt-2 grid justify-items-center"
+          style="grid-template-columns: repeat(auto-fill, minmax(136px, 1fr))"
+        >
           <MovieSearchCard
             v-for="item in filteredDefaultList"
             :key="item.id"
@@ -35,7 +38,10 @@
         "
       >
         <h5 class="text-left font-bold">Search</h5>
-        <div class="mt-2 grid grid-cols-auto justify-items-center">
+        <div
+          class="mt-2 grid justify-items-center"
+          style="grid-template-columns: repeat(auto-fill, minmax(136px, 1fr))"
+        >
           <MovieSearchCard
             v-for="item in searchData.results"
             :key="item.id"
