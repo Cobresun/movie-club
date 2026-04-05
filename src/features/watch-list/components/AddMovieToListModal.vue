@@ -24,7 +24,6 @@
         :on-load-more="() => fetchNextPage()"
         :loading-more="isFetchingNextPage"
         :has-more="hasNextPage === true"
-        @close="$emit('close')"
         @select-from-default="selectFromSearch"
         @select-from-search="selectFromSearch"
       />

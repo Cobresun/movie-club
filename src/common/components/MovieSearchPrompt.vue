@@ -51,9 +51,6 @@
         class="mt-3 self-center"
       />
     </div>
-    <div class="mt-auto flex justify-between pt-2">
-      <v-btn @click="emit('close')"> Cancel </v-btn>
-    </div>
   </div>
 </template>
 
@@ -86,7 +83,6 @@ const {
 const emit = defineEmits<{
   (e: "select-from-default", movie: MovieSearchIndex): void;
   (e: "select-from-search", movie: MovieSearchIndex): void;
-  (e: "close"): void;
 }>();
 
 const getPosterUrl = (posterPath: string): string => {

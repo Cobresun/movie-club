@@ -8,7 +8,6 @@
           :default-list-title="`${year} Reviews`"
           :include-search="false"
           @select-from-default="addNomination"
-          @close="closePrompt"
         />
       </div>
     </div>

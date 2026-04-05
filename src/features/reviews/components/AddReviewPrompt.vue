@@ -5,7 +5,6 @@
       v-else
       default-list-title="From Watch List"
       :default-list="watchlistSearchIndex"
-      @close="emit('close')"
       @select-from-default="selectFromWatchList"
       @select-from-search="selectFromSearch"
     />
