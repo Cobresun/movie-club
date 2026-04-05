@@ -1,6 +1,6 @@
 <template>
   <button
-    class="mb-4 w-40 rounded-lg text-left transition-all duration-100 hover:ring-2 hover:ring-primary"
+    class="mb-4 w-32 rounded-lg text-left transition-all duration-100 hover:ring-2 hover:ring-primary"
     @click="emit('select')"
   >
     <div class="flex h-full flex-col rounded-lg bg-slate-700">
