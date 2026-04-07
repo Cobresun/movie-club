@@ -27,7 +27,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 
 import VBackdrop from "./VBackdrop.vue";
 import VBottomSheet from "./VBottomSheet.vue";
@@ -63,6 +63,18 @@ const handleClose = () => {
 const onTransitionEnd = () => {
   emit("close");
 };
+
+const onEscapeKey = (e: KeyboardEvent) => {
+  if (e.key !== "Escape") return;
+  if (isDesktop.value) {
+    handleClose();
+  } else {
+    emit("close");
+  }
+};
+
+onMounted(() => document.addEventListener("keydown", onEscapeKey));
+onUnmounted(() => document.removeEventListener("keydown", onEscapeKey));
 
 useBodyScrollLock(isVisible, isDesktop);
 
