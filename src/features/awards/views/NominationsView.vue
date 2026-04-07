@@ -85,7 +85,6 @@ import { DateTime } from "luxon";
 import { computed, ref } from "vue";
 
 import { Award, ClubAwards } from "../../../../lib/types/awards";
-import { WorkListType } from "../../../../lib/types/generated/db";
 import { MovieSearchIndex } from "../../../../lib/types/movie";
 import AddMovieButton from "../components/AddMovieButton.vue";
 import { NOMINATIONS_PER_AWARD } from "../constants";
@@ -93,7 +92,7 @@ import { NOMINATIONS_PER_AWARD } from "../constants";
 import MoviePosterCard from "@/common/components/MoviePosterCard.vue";
 import MovieSearchPrompt from "@/common/components/MovieSearchPrompt.vue";
 import { useAddNomination, useDeleteNomination } from "@/service/useAwards";
-import { useList } from "@/service/useList";
+import { useReviewsList } from "@/service/useList";
 import { useUser } from "@/service/useUser";
 
 const { clubAward, clubId, year } = defineProps<{
@@ -137,7 +136,7 @@ const closePrompt = () => {
   currentAward.value = undefined;
 };
 
-const { data: reviews } = useList(clubId, WorkListType.reviews);
+const { data: reviews } = useReviewsList(clubId);
 const reviewsForYear = computed(() => {
   if (!reviews.value) return [];
   return reviews.value

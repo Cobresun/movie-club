@@ -32,7 +32,12 @@ export const handlers = [
   http.put("/api/club/:id/reviews/:reviewId", () => {
     return new HttpResponse(null, { status: 200 });
   }),
-  http.get("/api/club/:id/list/watchlist", () => {
+  http.get("/api/club/:id/list", () => {
+    return HttpResponse.json([
+      { id: "1", title: "Watch List", systemType: null, itemCount: 1 },
+    ]);
+  }),
+  http.get("/api/club/:id/list/1", () => {
     return HttpResponse.json(watchlist);
   }),
   http.get(`https://api.themoviedb.org/3/search/movie`, () => {

@@ -3,10 +3,10 @@
     <loading-spinner v-if="loading" class="self-center" />
     <movie-search-prompt
       v-else
-      default-list-title="From Watch List"
-      :default-list="watchlistSearchIndex"
+      default-list-title="From your lists"
+      :default-list="combinedListSearchIndex"
       @close="emit('close')"
-      @select-from-default="selectFromWatchList"
+      @select-from-default="selectFromDefault"
       @select-from-search="selectFromSearch"
     />
   </v-modal>
@@ -15,16 +15,16 @@
 <script setup lang="ts">
 import { computed } from "vue";
 
-import { WorkListType, WorkType } from "../../../../lib/types/generated/db";
+import { WorkType } from "../../../../lib/types/generated/db";
 import { MovieSearchIndex } from "../../../../lib/types/movie";
 import MovieSearchPrompt from "../../../common/components/MovieSearchPrompt.vue";
 
 import { useClubSlug } from "@/service/useClub";
 import {
   BASE_IMAGE_URL,
-  useAddListItem,
-  useDeleteListItem,
-  useList,
+  useAddToReviewsList,
+  useAllUserListItems,
+  useQueueReview,
 } from "@/service/useList";
 
 const emit = defineEmits<{
@@ -32,14 +32,13 @@ const emit = defineEmits<{
 }>();
 
 const clubId = useClubSlug();
-const { data: watchList, isLoading: watchListLoading } = useList(
-  clubId,
-  WorkListType.watchlist,
-);
 
-const watchlistSearchIndex = computed(
+const { data: listItems, isLoading: listsLoading } =
+  useAllUserListItems(clubId);
+
+const combinedListSearchIndex = computed(
   () =>
-    watchList.value?.map((item) => ({
+    listItems.value?.map((item) => ({
       title: item.title,
       release_date: item.externalData?.release_date ?? "",
       id: parseInt(item.externalId ?? "-1"),
@@ -47,32 +46,24 @@ const watchlistSearchIndex = computed(
     })) ?? [],
 );
 
-const { mutateAsync: deleteWatchlistItem, isLoading: deleteLoading } =
-  useDeleteListItem(clubId, WorkListType.watchlist);
-const { mutateAsync: addReview, isLoading: reviewLoading } = useAddListItem(
-  clubId,
-  WorkListType.reviews,
-);
+const { mutateAsync: queueReview, isLoading: queueLoading } =
+  useQueueReview(clubId);
+const { mutateAsync: addFromSearch, isLoading: addLoading } =
+  useAddToReviewsList(clubId);
 
-const selectFromWatchList = async (movie: MovieSearchIndex) => {
-  const watchlistItem = watchList.value?.find(
+const selectFromDefault = async (movie: MovieSearchIndex) => {
+  const sourceItem = listItems.value?.find(
     (item) => item.externalId === movie.id.toString(),
   );
-  if (!watchlistItem) return;
-  await addReview(
-    {
-      type: WorkType.movie,
-      title: movie.title,
-      externalId: movie.id.toString(),
-      imageUrl: movie.poster_path,
-    },
+  if (!sourceItem) return;
+  await queueReview(
+    { workId: sourceItem.id, sourceListId: sourceItem.sourceListId },
     { onSuccess: () => emit("close") },
   );
-  await deleteWatchlistItem(watchlistItem.id);
 };
 
 const selectFromSearch = async (movie: MovieSearchIndex) => {
-  await addReview(
+  await addFromSearch(
     {
       type: WorkType.movie,
       title: movie.title,
@@ -84,6 +75,6 @@ const selectFromSearch = async (movie: MovieSearchIndex) => {
 };
 
 const loading = computed(
-  () => watchListLoading.value || deleteLoading.value || reviewLoading.value,
+  () => listsLoading.value || queueLoading.value || addLoading.value,
 );
 </script>

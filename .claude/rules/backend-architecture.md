@@ -23,10 +23,27 @@ router.get("/:clubSlug", validClubSlug, async ({ clubSlug }, res) => {
 - `/api/og-image` - Open Graph image generation for shared reviews
 - `/api/auth/*` - BetterAuth endpoints (handled automatically)
 - `/api/club/*` - All club-related endpoints
-  - `/:clubSlug/list` - Watchlist/backlog management
-    - `PUT /:type/reorder` - Reorder list items
-    - `PUT /:type/:workId/added-date` - Update item added date
+  - `/:clubSlug/list` - Arbitrary user-defined lists per club. List IDs are
+    UUIDs; the legacy `watchlist` / `backlog` enum was removed in
+    `20260407_ArbitraryClubLists`. System lists (`reviews`,
+    `award_nominations`) are filtered out by default and only returned when
+    `?includeSystem=true`.
+    - `GET /` - List a club's user lists with item counts
+    - `POST /` - Create a new list (`{ title }`)
+    - `GET /reviews` - Special-case rich shape for the reviews system list
+    - `GET /:listId` - Items on a single list
+    - `PUT /:listId` - Rename a list (rejected for system lists)
+    - `DELETE /:listId` - Delete a list (rejected for system lists)
+    - `POST /:listId/items` - Add a work to a list
+    - `DELETE /:listId/items/:workId` - Remove a work from a list
+    - `PUT /:listId/reorder` - Reorder list items
+    - `PUT /:listId/items/:workId/added-date` - Update item added date
+    - `POST /:listId/items/:workId/move` - Move a work to another user list
   - `/:clubSlug/reviews` - Movie reviews
+    - `POST /` - Score a movie (optionally moves from a `sourceListId`)
+    - `POST /:workId/queue` - Add a work to the reviews list without scoring
+      (optionally moves from a `sourceListId`)
+    - `DELETE /:workId` - Remove a work from the reviews list
     - `GET /:workId/shared` - Shared review data for external sharing
     - `GET /:workId/comments` - Get comments for a work
     - `POST /:workId/comments` - Add comment to a work
@@ -50,7 +67,7 @@ router.get("/:clubSlug", validClubSlug, async ({ clubSlug }, res) => {
 ## Key Backend Patterns
 
 - Repository pattern for data access (e.g., `ClubRepository`, `UserRepository`, `WorkRepository`)
-- Middleware for authentication (`loggedIn`, `secured`) and validation (`validClubSlug`)
+- Middleware for authentication (`loggedIn`, `secured`) and validation (`validClubSlug`, `validListId` — the latter loads a list by `:listId`, asserts it belongs to the resolved club, and exposes `listSystemType` so handlers can gate operations on system lists)
 - Zod schemas for request body validation
 - Kysely for type-safe database queries
 - Response helpers from `utils/responses.ts` (`ok`, `badRequest`, `unauthorized`, `notFound`, `svg`, `redirect`)
@@ -62,7 +79,7 @@ Located in `netlify/functions/repositories/`:
 - `ClubRepository` - Club CRUD, membership checks, invites
 - `UserRepository` - User lookup and management
 - `WorkRepository` - Movie/work management
-- `ListRepository` - List operations (reviews, watchlist, backlog)
+- `ListRepository` - List CRUD and item operations; system lists (reviews, award_nominations) distinguished by `system_type` and looked up via `getReviewsListId` / `getAwardNominationsListId`. `moveItem` is transactional with `ON CONFLICT DO NOTHING` so review-from-list and move-between-lists share the same code path.
 - `ReviewRepository` - Review data access
 - `AwardsRepository` - Awards system data
 - `SettingsRepository` - Club settings storage
