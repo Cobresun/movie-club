@@ -90,7 +90,11 @@ const authStore = useAuthStore();
 const isLoggedIn = computed(() => authStore.isLoggedIn);
 
 const { data: club } = useClub(clubSlug);
-const { data: watchList, isLoading, error } = useList(clubSlug, WorkListType.watchlist);
+const {
+  data: watchList,
+  isLoading,
+  error,
+} = useList(clubSlug, WorkListType.watchlist);
 const { data: nextWorkId } = useNextWork(clubSlug);
 
 const sortedWatchList = computed(() => {
