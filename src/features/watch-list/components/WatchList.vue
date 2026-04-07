@@ -22,7 +22,7 @@
     @action="hasSearchTerm ? clearSearch() : openPrompt()"
   />
   <template v-else>
-    <div class="ml-2 flex justify-start gap-2">
+    <div class="ml-2 flex flex-wrap justify-start gap-2">
       <v-btn @click="openPrompt">
         Add Movie
         <mdicon name="plus" />
