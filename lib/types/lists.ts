@@ -63,6 +63,7 @@ export interface SharedReviewResponse {
     score: number;
     created_date: string;
   }[];
+  comments: WorkCommentDto[];
   work: DetailedReviewListItem;
   clubName: string;
 }
