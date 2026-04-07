@@ -164,6 +164,16 @@ const routes: Array<RouteRecordRaw> = [
     },
   },
   {
+    path: "/share/club/:clubSlug/watchlist",
+    name: "SharedWatchlist",
+    component: () =>
+      import("../features/watch-list/views/SharedWatchlistView.vue"),
+    meta: {
+      depth: 1,
+      noAuth: true,
+    },
+  },
+  {
     path: "/profile",
     name: "Profile",
     component: ProfileView,

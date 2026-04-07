@@ -38,6 +38,10 @@
         Reorder
         <mdicon name="swap-vertical" />
       </v-btn>
+      <v-btn @click="shareWatchlist">
+        Share
+        <mdicon name="share-variant" />
+      </v-btn>
     </div>
     <VueDraggableNext
       v-model="draggableList"
@@ -245,5 +249,11 @@ const onRandomSelected = (item: DetailedWorkListItem) => {
   setNextWork(item.id);
   reorderList(newOrder.map((w) => w.id));
   randomPickerOpen.value = false;
+};
+
+const shareWatchlist = async () => {
+  const url = `${window.location.origin}/share/club/${clubSlug}/watchlist`;
+  await navigator.clipboard.writeText(url);
+  toast.success("Watchlist link copied to clipboard!");
 };
 </script>
