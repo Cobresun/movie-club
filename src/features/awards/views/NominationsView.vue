@@ -1,5 +1,5 @@
 <template>
-  <v-modal v-if="currentAward" @close="closePrompt">
+  <v-modal v-if="currentAward" size="lg" @close="closePrompt">
     <div class="flex h-full flex-col">
       <h3 class="mb-2 text-left text-xl font-bold">{{ currentAward.title }}</h3>
       <div class="flex-grow overflow-auto">
@@ -8,7 +8,6 @@
           :default-list-title="`${year} Reviews`"
           :include-search="false"
           @select-from-default="addNomination"
-          @close="closePrompt"
         />
       </div>
     </div>
