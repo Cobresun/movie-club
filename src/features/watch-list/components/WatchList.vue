@@ -21,87 +21,105 @@
     :action-label="hasSearchTerm ? 'Clear Search' : 'Add Movie'"
     @action="hasSearchTerm ? clearSearch() : openPrompt()"
   />
-  <template v-else>
-    <div class="ml-2 flex justify-start gap-2">
-      <v-btn @click="openPrompt">
-        Add Movie
-        <mdicon name="plus" />
-      </v-btn>
-      <v-btn v-if="filteredWatchList.length > 1" @click="selectRandom()">
-        Random
-        <mdicon name="dice-multiple-outline" />
-      </v-btn>
-      <v-btn
-        :class="reorderMode ? 'ring-2 ring-highlightBackground' : ''"
-        @click="reorderMode = !reorderMode"
+  <div v-else class="flex">
+    <div :class="['w-full', { 'md:pr-[35vw]': isDefined(selectedMovie) }]">
+      <div class="ml-2 flex justify-start gap-2">
+        <v-btn @click="openPrompt">
+          Add Movie
+          <mdicon name="plus" />
+        </v-btn>
+        <v-btn v-if="filteredWatchList.length > 1" @click="selectRandom()">
+          Random
+          <mdicon name="dice-multiple-outline" />
+        </v-btn>
+        <v-btn
+          :class="reorderMode ? 'ring-2 ring-highlightBackground' : ''"
+          @click="reorderMode = !reorderMode"
+        >
+          Reorder
+          <mdicon name="swap-vertical" />
+        </v-btn>
+      </div>
+      <VueDraggableNext
+        v-model="draggableList"
+        tag="div"
+        class="my-4 grid grid-cols-auto justify-items-center"
+        :delay="150"
+        :delay-on-touch-only="true"
+        :animation="200"
+        handle=".drag-handle"
+        filter=".no-drag"
+        :prevent-on-filter="false"
+        :move="onMove"
+        @end="onDragEnd"
       >
-        Reorder
-        <mdicon name="swap-vertical" />
-      </v-btn>
-    </div>
-    <VueDraggableNext
-      v-model="draggableList"
-      tag="div"
-      class="my-4 grid grid-cols-auto justify-items-center"
-      :delay="150"
-      :delay-on-touch-only="true"
-      :animation="200"
-      handle=".drag-handle"
-      filter=".no-drag"
-      :prevent-on-filter="false"
-      :move="onMove"
-      @end="onDragEnd"
-    >
-      <MoviePosterCard
-        v-for="work in draggableList"
-        :key="work.id"
-        :class="work.id === nextWorkId ? 'no-drag z-0' : 'z-10'"
-        :show-drag-handle="reorderMode && work.id !== nextWorkId"
-        class="bg-background"
-        :movie-title="work.title"
-        :movie-poster-url="work.imageUrl ?? ''"
-        :highlighted="work.id === nextWorkId"
-        :loading="
-          work.id === OPTIMISTIC_WORK_ID ||
-          (loadingAddReview && reviewedWork?.toString() === work.externalId)
-        "
-        :show-delete="work.id !== OPTIMISTIC_WORK_ID"
-        @delete="() => deleteWatchlistItem(work.id)"
-      >
-        <div class="grid grid-cols-2 gap-2">
-          <v-btn class="flex justify-center" @click="reviewMovie(work)">
-            <mdicon name="check" />
-          </v-btn>
+        <MoviePosterCard
+          v-for="work in draggableList"
+          :key="work.id"
+          :data-movie-id="work.id"
+          :class="work.id === nextWorkId ? 'no-drag z-0' : 'z-10'"
+          :show-drag-handle="reorderMode && work.id !== nextWorkId"
+          class="bg-background md:cursor-pointer"
+          :movie-title="work.title"
+          :movie-poster-url="work.imageUrl ?? ''"
+          :highlighted="work.id === nextWorkId || selectedMovieId === work.id"
+          :loading="
+            work.id === OPTIMISTIC_WORK_ID ||
+            (loadingAddReview && reviewedWork?.toString() === work.externalId)
+          "
+          :show-delete="work.id !== OPTIMISTIC_WORK_ID"
+          @click="openMovieDetails(work.id)"
+          @delete="() => deleteWatchlistItem(work.id)"
+        >
+          <div class="grid grid-cols-2 gap-2">
+            <v-btn class="flex justify-center" @click.stop="reviewMovie(work)">
+              <mdicon name="check" />
+            </v-btn>
 
-          <v-btn
-            class="flex justify-center"
-            @click="
-              work.id === nextWorkId ? clearNextWork() : setNextWork(work.id)
-            "
-          >
-            <mdicon
-              :name="
-                work.id === nextWorkId
-                  ? 'arrow-collapse-down'
-                  : 'arrow-collapse-up'
+            <v-btn
+              class="flex justify-center"
+              @click.stop="
+                work.id === nextWorkId ? clearNextWork() : setNextWork(work.id)
               "
-            />
-          </v-btn>
-        </div>
-      </MoviePosterCard>
-    </VueDraggableNext>
-  </template>
+            >
+              <mdicon
+                :name="
+                  work.id === nextWorkId
+                    ? 'arrow-collapse-down'
+                    : 'arrow-collapse-up'
+                "
+              />
+            </v-btn>
+          </div>
+        </MoviePosterCard>
+      </VueDraggableNext>
+    </div>
+
+    <!-- Movie Details Drawer -->
+    <WatchlistDetailsDrawer
+      v-if="selectedMovie"
+      :key="selectedMovie.id"
+      :movie="selectedMovie"
+      :is-next-work="selectedMovie.id === nextWorkId"
+      @close="selectedMovieId = undefined"
+      @review="reviewSelectedMovie"
+      @set-next-work="setNextWork(selectedMovie.id)"
+      @clear-next-work="clearNextWork()"
+      @delete="deleteSelectedMovie"
+    />
+  </div>
 </template>
 <script setup lang="ts">
 import { AxiosError } from "axios";
-import { computed, ref, watch } from "vue";
+import { computed, nextTick, ref, watch } from "vue";
 import { VueDraggableNext } from "vue-draggable-next";
 import { useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
 
 import AddMovieToListModal from "./AddMovieToListModal.vue";
 import RandomPickerModal from "./RandomPickerModal.vue";
-import { hasValue } from "../../../../lib/checks/checks.js";
+import WatchlistDetailsDrawer from "./WatchlistDetailsDrawer.vue";
+import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import { WorkListType, WorkType } from "../../../../lib/types/generated/db";
 import { DetailedWorkListItem } from "../../../../lib/types/lists";
 
@@ -245,5 +263,47 @@ const onRandomSelected = (item: DetailedWorkListItem) => {
   setNextWork(item.id);
   reorderList(newOrder.map((w) => w.id));
   randomPickerOpen.value = false;
+};
+
+// Movie details drawer
+const selectedMovieId = ref<string | undefined>(undefined);
+
+const selectedMovie = computed(() => {
+  if (!isDefined(selectedMovieId.value)) return undefined;
+  return draggableList.value.find((w) => w.id === selectedMovieId.value);
+});
+
+const openMovieDetails = async (movieId: string) => {
+  if (selectedMovieId.value !== movieId) {
+    selectedMovieId.value = movieId;
+
+    await nextTick();
+    const clickedElement = document.querySelector(
+      `[data-movie-id="${movieId}"]`,
+    );
+    if (clickedElement) {
+      clickedElement.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+        inline: "center",
+      });
+    }
+  }
+};
+
+const reviewSelectedMovie = () => {
+  const movie = selectedMovie.value;
+  if (isDefined(movie)) {
+    selectedMovieId.value = undefined;
+    void reviewMovie(movie);
+  }
+};
+
+const deleteSelectedMovie = async () => {
+  const movie = selectedMovie.value;
+  if (isDefined(movie)) {
+    selectedMovieId.value = undefined;
+    await deleteWatchlistItem(movie.id);
+  }
 };
 </script>

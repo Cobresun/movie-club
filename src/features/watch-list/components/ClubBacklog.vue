@@ -12,82 +12,99 @@
     @selected="onRandomSelected"
   />
   <h1 class="m-4 text-2xl font-bold">Backlog</h1>
-  <div class="ml-2 flex items-start gap-2">
-    <v-btn @click="openPrompt">
-      Add Movie
-      <mdicon name="plus" />
-    </v-btn>
-    <v-btn v-if="filteredBacklog.length > 1" @click="selectRandom">
-      Random
-      <mdicon name="dice-multiple-outline" />
-    </v-btn>
-    <v-btn
-      :class="reorderMode ? 'ring-2 ring-highlightBackground' : ''"
-      @click="reorderMode = !reorderMode"
-    >
-      Reorder
-      <mdicon name="swap-vertical" />
-    </v-btn>
-  </div>
+  <div class="flex">
+    <div :class="['w-full', { 'md:pr-[35vw]': isDefined(selectedMovie) }]">
+      <div class="ml-2 flex items-start gap-2">
+        <v-btn @click="openPrompt">
+          Add Movie
+          <mdicon name="plus" />
+        </v-btn>
+        <v-btn v-if="filteredBacklog.length > 1" @click="selectRandom">
+          Random
+          <mdicon name="dice-multiple-outline" />
+        </v-btn>
+        <v-btn
+          :class="reorderMode ? 'ring-2 ring-highlightBackground' : ''"
+          @click="reorderMode = !reorderMode"
+        >
+          Reorder
+          <mdicon name="swap-vertical" />
+        </v-btn>
+      </div>
 
-  <EmptyState
-    v-if="showEmptyState"
-    :title="hasSearchTerm ? 'No Movies Found' : 'Your Backlog is Empty'"
-    :description="
-      hasSearchTerm
-        ? 'Try a different search term'
-        : 'Add movies to your backlog to keep track of future watch list candidates'
-    "
-    :action-label="hasSearchTerm ? 'Clear Search' : undefined"
-    @action="clearSearch"
-  />
-  <VueDraggableNext
-    v-if="!showEmptyState"
-    v-model="draggableList"
-    component="TransitionGroup"
-    :component-data="{
-      props: {
-        moveClass: 'transition ease-in-out duration-300',
-        tag: 'div',
-      },
-      attrs: {
-        class: 'my-4 grid grid-cols-auto justify-items-center',
-      },
-    }"
-    :delay="150"
-    :delay-on-touch-only="true"
-    :animation="200"
-    handle=".drag-handle"
-    @end="onDragEnd"
-  >
-    <MoviePosterCard
-      v-for="movie in draggableList"
-      :key="movie.id"
-      class="z-10 bg-background"
-      :show-drag-handle="reorderMode"
-      :movie-title="movie.title"
-      :movie-poster-url="movie.imageUrl ?? ''"
-      :highlighted="false"
-      show-delete
-      @delete="() => deleteBacklogItem(movie.id)"
-    >
-      <v-btn
-        class="flex justify-center"
-        @click="() => moveBacklogItemToWatchlist(movie)"
+      <EmptyState
+        v-if="showEmptyState"
+        :title="hasSearchTerm ? 'No Movies Found' : 'Your Backlog is Empty'"
+        :description="
+          hasSearchTerm
+            ? 'Try a different search term'
+            : 'Add movies to your backlog to keep track of future watch list candidates'
+        "
+        :action-label="hasSearchTerm ? 'Clear Search' : undefined"
+        @action="clearSearch"
+      />
+      <VueDraggableNext
+        v-if="!showEmptyState"
+        v-model="draggableList"
+        component="TransitionGroup"
+        :component-data="{
+          props: {
+            moveClass: 'transition ease-in-out duration-300',
+            tag: 'div',
+          },
+          attrs: {
+            class: 'my-4 grid grid-cols-auto justify-items-center',
+          },
+        }"
+        :delay="150"
+        :delay-on-touch-only="true"
+        :animation="200"
+        handle=".drag-handle"
+        @end="onDragEnd"
       >
-        <mdicon name="arrow-collapse-up" />
-      </v-btn>
-    </MoviePosterCard>
-  </VueDraggableNext>
+        <MoviePosterCard
+          v-for="movie in draggableList"
+          :key="movie.id"
+          :data-movie-id="movie.id"
+          class="z-10 bg-background md:cursor-pointer"
+          :show-drag-handle="reorderMode"
+          :movie-title="movie.title"
+          :movie-poster-url="movie.imageUrl ?? ''"
+          :highlighted="selectedMovieId === movie.id"
+          show-delete
+          @click="openMovieDetails(movie.id)"
+          @delete="() => deleteBacklogItem(movie.id)"
+        >
+          <v-btn
+            class="flex justify-center"
+            @click.stop="() => moveBacklogItemToWatchlist(movie)"
+          >
+            <mdicon name="arrow-collapse-up" />
+          </v-btn>
+        </MoviePosterCard>
+      </VueDraggableNext>
+    </div>
+
+    <!-- Movie Details Drawer -->
+    <BacklogDetailsDrawer
+      v-if="selectedMovie"
+      :key="selectedMovie.id"
+      :movie="selectedMovie"
+      @close="selectedMovieId = undefined"
+      @move-to-watchlist="moveSelectedToWatchlist"
+      @delete="deleteSelectedMovie"
+    />
+  </div>
 </template>
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed, nextTick, ref, watch } from "vue";
 import { VueDraggableNext } from "vue-draggable-next";
 import { useToast } from "vue-toastification";
 
 import AddMovieToListModal from "./AddMovieToListModal.vue";
+import BacklogDetailsDrawer from "./BacklogDetailsDrawer.vue";
 import RandomPickerModal from "./RandomPickerModal.vue";
-import { isTrue } from "../../../../lib/checks/checks.js";
+import { isDefined, isTrue } from "../../../../lib/checks/checks.js";
 import { WorkListType } from "../../../../lib/types/generated/db";
 import { DetailedWorkListItem } from "../../../../lib/types/lists";
 
@@ -176,5 +193,47 @@ const selectRandom = () => {
 const onRandomSelected = (item: DetailedWorkListItem) => {
   void moveBacklogItemToWatchlist(item);
   randomPickerOpen.value = false;
+};
+
+// Movie details drawer
+const selectedMovieId = ref<string | undefined>(undefined);
+
+const selectedMovie = computed(() => {
+  if (!isDefined(selectedMovieId.value)) return undefined;
+  return draggableList.value.find((w) => w.id === selectedMovieId.value);
+});
+
+const openMovieDetails = async (movieId: string) => {
+  if (selectedMovieId.value !== movieId) {
+    selectedMovieId.value = movieId;
+
+    await nextTick();
+    const clickedElement = document.querySelector(
+      `[data-movie-id="${movieId}"]`,
+    );
+    if (clickedElement) {
+      clickedElement.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+        inline: "center",
+      });
+    }
+  }
+};
+
+const moveSelectedToWatchlist = () => {
+  const movie = selectedMovie.value;
+  if (isDefined(movie)) {
+    selectedMovieId.value = undefined;
+    void moveBacklogItemToWatchlist(movie);
+  }
+};
+
+const deleteSelectedMovie = async () => {
+  const movie = selectedMovie.value;
+  if (isDefined(movie)) {
+    selectedMovieId.value = undefined;
+    await deleteBacklogItem(movie.id);
+  }
 };
 </script>
