@@ -31,8 +31,8 @@ describe("ReviewView", () => {
     await user.click(openButton);
     expect(await screen.findByText("From Watch List")).toBeInTheDocument();
 
-    const cancelButton = screen.getByRole("button", { name: "Cancel" });
-    await user.click(cancelButton);
+    const backdrop = document.querySelector(".fixed.inset-0") as HTMLElement;
+    await user.click(backdrop);
     expect(screen.queryByText("From Watch List")).not.toBeInTheDocument();
   });
 
