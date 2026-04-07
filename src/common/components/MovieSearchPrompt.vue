@@ -64,7 +64,7 @@
 import { ref, computed } from "vue";
 
 import MovieSearchCard from "./MovieSearchCard.vue";
-import { isDefined } from "../../../lib/checks/checks";
+import { hasValue, isDefined } from "../../../lib/checks/checks";
 import { MovieSearchIndex } from "../../../lib/types/movie";
 
 import { BASE_IMAGE_URL } from "@/service/useList";
@@ -92,13 +92,13 @@ const emit = defineEmits<{
 }>();
 
 const getPosterUrl = (posterPath: string): string => {
-  if (!posterPath) return "";
+  if (!hasValue(posterPath)) return "";
   if (posterPath.startsWith("http")) return posterPath;
   return `${BASE_IMAGE_URL}${posterPath}`;
 };
 
 const getReleaseYear = (date: string) => {
-  if (date !== undefined && date.length > 4) {
+  if (hasValue(date) && date.length > 4) {
     return date.substring(0, 4);
   } else {
     return "";
