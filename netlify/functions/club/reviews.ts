@@ -1,7 +1,6 @@
 import { z } from "zod";
 
 import { hasValue } from "../../../lib/checks/checks.js";
-import { WorkListType } from "../../../lib/types/generated/db";
 import ListRepository from "../repositories/ListRepository";
 import ReviewRepository from "../repositories/ReviewRepository";
 import WorkCommentRepository from "../repositories/WorkCommentRepository";
@@ -16,6 +15,50 @@ const router = new Router<ClubRequest>("/api/club/:clubSlug/reviews");
 const addReviewSchema = z.object({
   score: z.number().min(0).max(10),
   workId: z.string(),
+  // Optional: when reviewing a movie that's currently on a user list,
+  // the frontend passes the source list ID so the backend can move the
+  // item into the reviews list atomically (matching the prior
+  // "review from watchlist" behavior, but generalized to any list).
+  sourceListId: z.string().optional(),
+});
+
+const queueSchema = z.object({
+  sourceListId: z.string().optional(),
+});
+
+// Add a work to the reviews list without creating a score yet. Used by the
+// "add review" prompt to push a movie from any user list (or a search) into
+// the reviews queue.
+router.post(
+  "/:workId/queue",
+  secured,
+  async ({ clubId, params, event }, res) => {
+    if (!hasValue(params.workId)) return res(badRequest("No workId provided"));
+    if (!hasValue(event.body)) return res(badRequest("No body provided"));
+    const body = queueSchema.safeParse(JSON.parse(event.body));
+    if (!body.success) return res(badRequest("Invalid body"));
+
+    const workId = params.workId;
+    const reviewsListId = await ListRepository.getReviewsListId(clubId);
+    const { sourceListId } = body.data;
+
+    if (hasValue(sourceListId) && sourceListId !== reviewsListId) {
+      await ListRepository.moveItem(sourceListId, reviewsListId, workId);
+    } else {
+      const exists = await ListRepository.isItemInList(reviewsListId, workId);
+      if (!exists) {
+        await ListRepository.insertItemInList(reviewsListId, workId);
+      }
+    }
+    return res(ok());
+  },
+);
+
+router.delete("/:workId", secured, async ({ clubId, params }, res) => {
+  if (!hasValue(params.workId)) return res(badRequest("No workId provided"));
+  const reviewsListId = await ListRepository.getReviewsListId(clubId);
+  await ListRepository.deleteItemFromList(reviewsListId, params.workId);
+  return res(ok());
 });
 
 router.post("/", secured, async ({ clubId, userId, event }, res) => {
@@ -23,16 +66,23 @@ router.post("/", secured, async ({ clubId, userId, event }, res) => {
   const body = addReviewSchema.safeParse(JSON.parse(event.body));
   if (!body.success) return res(badRequest("Invalid body"));
 
-  const { score, workId } = body.data;
+  const { score, workId, sourceListId } = body.data;
 
-  const isItemInList = await ListRepository.isItemInList(
-    clubId,
-    WorkListType.reviews,
-    workId,
-  );
-  if (!isItemInList) {
-    return res(badRequest("This movie does not exist in the list"));
+  const reviewsListId = await ListRepository.getReviewsListId(clubId);
+
+  if (hasValue(sourceListId) && sourceListId !== reviewsListId) {
+    // Move from the source user list into the reviews system list.
+    // moveItem handles "already on reviews" via ON CONFLICT DO NOTHING.
+    await ListRepository.moveItem(sourceListId, reviewsListId, workId);
+  } else {
+    // No source list (e.g. user searched for a fresh movie). Add it
+    // directly to the reviews list if not already there.
+    const exists = await ListRepository.isItemInList(reviewsListId, workId);
+    if (!exists) {
+      await ListRepository.insertItemInList(reviewsListId, workId);
+    }
   }
+
   await ReviewRepository.insertReview(clubId, workId, userId, score);
   return res(ok());
 });
