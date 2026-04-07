@@ -2,21 +2,18 @@ import { DateTime } from "luxon";
 import { ref, computed } from "vue";
 
 import { isDefined, isString } from "../../../../lib/checks/checks.js";
-import { WorkListType, WorkType } from "../../../../lib/types/generated/db";
+import { WorkType } from "../../../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
 import { normalizeArray, createHistogramData } from "../scoring";
 import type { MovieData, HistogramData } from "../types";
 
 import { filterMovies } from "@/common/searchMovies";
 import { useMembers, useClubSlug } from "@/service/useClub";
-import { useList } from "@/service/useList";
+import { useReviewsList } from "@/service/useList";
 
 export function useStatisticsData() {
   const clubSlug = useClubSlug();
-  const { isLoading: loadingReviews, data: reviews } = useList(
-    clubSlug,
-    WorkListType.reviews,
-  );
+  const { isLoading: loadingReviews, data: reviews } = useReviewsList(clubSlug);
   const { isLoading: loadingMembers, data: rawMembers } = useMembers(clubSlug);
   const members = computed(() => rawMembers.value ?? []);
 
