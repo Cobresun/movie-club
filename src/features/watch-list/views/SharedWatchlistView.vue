@@ -22,11 +22,7 @@
         v-else
         class="grid grid-cols-2 justify-items-center gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
       >
-        <div
-          v-for="(item, index) in sortedWatchList"
-          :key="item.id"
-          class="relative"
-        >
+        <div v-for="item in sortedWatchList" :key="item.id" class="relative">
           <div
             v-if="item.id === nextWorkId"
             class="absolute -top-3 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-full bg-highlightBackground px-3 py-0.5 text-xs font-semibold text-white shadow"
@@ -37,9 +33,7 @@
             :movie-title="item.title"
             :movie-poster-url="item.imageUrl ?? ''"
             :highlighted="item.id === nextWorkId"
-          >
-            <p class="text-center text-xs text-gray-400">#{{ index + 1 }}</p>
-          </MoviePosterCard>
+          />
         </div>
       </div>
     </div>
