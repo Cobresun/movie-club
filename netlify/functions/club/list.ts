@@ -1,55 +1,115 @@
 import { z } from "zod";
 
 import { hasValue, isDefined } from "../../../lib/checks/checks.js";
-import { WorkListType } from "../../../lib/types/generated/db.js";
-import { listInsertDtoSchema } from "../../../lib/types/lists.js";
+import { WorkListSystemType } from "../../../lib/types/generated/db.js";
 import {
   Review,
   ReviewListItem,
   WorkListItem,
 } from "../../../lib/types/lists.js";
-import ListRepository, { isWorkListType } from "../repositories/ListRepository";
+import { listInsertDtoSchema } from "../../../lib/types/lists.js";
+import ListRepository from "../repositories/ListRepository";
 import ReviewRepository from "../repositories/ReviewRepository";
 import UserRepository from "../repositories/UserRepository";
 import WorkRepository from "../repositories/WorkRepository";
 import { secured } from "../utils/auth";
 import { badRequest, internalServerError, ok } from "../utils/responses";
 import { Router } from "../utils/router";
-import { ClubRequest } from "../utils/validation";
+import { ClubRequest, securedList, validListId } from "../utils/validation";
 import { overviewToExternalData } from "../utils/workDetailsMapper.js";
 
 import { BadRequest } from "@/common/errorCodes";
 
 const router = new Router<ClubRequest>("/api/club/:clubSlug/list");
 
-router.get("/:type", async ({ clubId, params }, res) => {
-  if (!hasValue(params.type)) {
-    return res(badRequest("No type provided"));
-  }
-  const type = params.type;
-  if (!isWorkListType(type)) {
-    return res(badRequest("Invalid type provided"));
-  }
+// ---------------------------------------------------------------------------
+// System list: reviews
+//
+// Reviews are kept as a dedicated path because the response shape is richer
+// (per-user scores, average) than a regular list and the frontend has a
+// dedicated query for it. Internally it resolves the system list ID via
+// system_type.
+// ---------------------------------------------------------------------------
 
-  let workList: WorkListItem[];
-  switch (type) {
-    case WorkListType.watchlist:
-    case WorkListType.backlog:
-    case WorkListType.award_nominations:
-      workList = await getWorkList(clubId, type);
-      break;
-    case WorkListType.reviews:
-      workList = await getReviewList(clubId);
-      break;
-    default:
-      return res(badRequest("Invalid type provided"));
-  }
+router.get("/reviews", async ({ clubId }, res) => {
+  const workList = await getReviewList(clubId);
   return res(ok(JSON.stringify(workList)));
 });
 
-async function getWorkList(clubId: string, type: WorkListType) {
-  const list = await ListRepository.getListByType(clubId, type);
-  return list.map((item) => ({
+// ---------------------------------------------------------------------------
+// User lists collection
+// ---------------------------------------------------------------------------
+
+router.get("/", async ({ clubId, event }, res) => {
+  const includeSystem = event.queryStringParameters?.includeSystem === "true";
+  const lists = await ListRepository.getListsForClub(clubId, { includeSystem });
+  return res(
+    ok(
+      JSON.stringify(
+        lists.map((row) => ({
+          id: String(row.id),
+          title: row.title,
+          systemType: row.system_type,
+          itemCount: Number(row.item_count),
+        })),
+      ),
+    ),
+  );
+});
+
+const createListSchema = z.object({
+  title: z.string().min(1).max(100),
+});
+
+const reorderListsSchema = z.object({
+  listIds: z.array(z.string()).min(1),
+});
+
+router.put("/reorder", secured, async ({ clubId, event }, res) => {
+  if (!hasValue(event.body)) return res(badRequest("No body provided"));
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(event.body);
+  } catch {
+    return res(badRequest("Invalid JSON"));
+  }
+  const body = reorderListsSchema.safeParse(parsed);
+  if (!body.success) return res(badRequest("Invalid body provided"));
+
+  await ListRepository.reorderLists(clubId, body.data.listIds);
+  return res(ok());
+});
+
+router.post("/", secured, async ({ clubId, event }, res) => {
+  if (!hasValue(event.body)) return res(badRequest("No body provided"));
+  const body = createListSchema.safeParse(JSON.parse(event.body));
+  if (!body.success) return res(badRequest("Invalid body provided"));
+
+  const created = await ListRepository.createList(clubId, body.data.title);
+  return res(
+    ok(
+      JSON.stringify({
+        id: String(created.id),
+        title: created.title,
+        systemType: created.system_type,
+        itemCount: 0,
+      }),
+    ),
+  );
+});
+
+// ---------------------------------------------------------------------------
+// Single list (operations on :listId)
+//
+// Each route runs validListId to load the list and verify it belongs to the
+// resolved club, then secured for write operations. Routes are declared on
+// the main router (rather than a sub-router) so the chain inference can
+// thread ListRequest through validListId -> secured -> handler.
+// ---------------------------------------------------------------------------
+
+router.get("/:listId", validListId, async ({ listId }, res) => {
+  const items = await ListRepository.getListItems(listId);
+  const mapped: WorkListItem[] = items.map((item) => ({
     id: item.id,
     title: item.title,
     type: item.type,
@@ -58,7 +118,202 @@ async function getWorkList(clubId: string, type: WorkListType) {
     externalId: item.external_id ?? undefined,
     externalData: overviewToExternalData(item),
   }));
-}
+  return res(ok(JSON.stringify(mapped)));
+});
+
+const renameSchema = z.object({
+  title: z.string().min(1).max(100),
+});
+
+router.put(
+  "/:listId",
+  validListId,
+  securedList,
+  async ({ listId, listSystemType, event }, res) => {
+    if (listSystemType !== null) {
+      return res(badRequest("Cannot rename a system list"));
+    }
+    if (!hasValue(event.body)) return res(badRequest("No body provided"));
+    const body = renameSchema.safeParse(JSON.parse(event.body));
+    if (!body.success) return res(badRequest("Invalid body provided"));
+
+    await ListRepository.renameList(listId, body.data.title);
+    return res(ok());
+  },
+);
+
+router.delete(
+  "/:listId",
+  validListId,
+  securedList,
+  async ({ listId, listSystemType }, res) => {
+    if (listSystemType !== null) {
+      return res(badRequest("Cannot delete a system list"));
+    }
+    await ListRepository.deleteList(listId);
+    return res(ok());
+  },
+);
+
+// -- items on a single list --
+
+router.post(
+  "/:listId/items",
+  validListId,
+  securedList,
+  async ({ listId, clubId, event }, res) => {
+    if (!hasValue(event.body)) return res(badRequest("No body provided"));
+    const body = listInsertDtoSchema.safeParse(JSON.parse(event.body));
+    if (!body.success) return res(badRequest("Invalid body provided"));
+
+    const { type, externalId } = body.data;
+    let workId: string | undefined;
+    if (hasValue(externalId)) {
+      const existingWork = await WorkRepository.findByType(
+        clubId,
+        type,
+        externalId,
+      );
+      workId = existingWork?.id;
+    }
+    if (!hasValue(workId)) {
+      const newWork = await WorkRepository.insert(clubId, body.data);
+      workId = newWork.id;
+    }
+
+    const exists = await ListRepository.isItemInList(listId, workId);
+    if (exists) {
+      return res(badRequest(BadRequest.ItemInList));
+    }
+    await ListRepository.insertItemInList(listId, workId);
+    return res(ok());
+  },
+);
+
+router.delete(
+  "/:listId/items/:workId",
+  validListId,
+  securedList,
+  async ({ listId, clubId, params }, res) => {
+    if (!hasValue(params.workId)) {
+      return res(badRequest("No workId provided"));
+    }
+    const workId = params.workId;
+    const exists = await ListRepository.isItemInList(listId, workId);
+    if (!exists) {
+      return res(badRequest("This movie does not exist in the list"));
+    }
+    await ListRepository.deleteItemFromList(listId, workId);
+    try {
+      await WorkRepository.delete(clubId, workId);
+    } catch (e) {
+      const error = e as { constraint?: string };
+      if (error?.constraint !== "fk_work_list_item_work_id") {
+        return res(internalServerError("Failed to delete work"));
+      }
+    }
+    return res(ok());
+  },
+);
+
+const reorderSchema = z.object({
+  workIds: z.array(z.string()).min(1),
+});
+
+router.put(
+  "/:listId/reorder",
+  validListId,
+  securedList,
+  async ({ listId, event }, res) => {
+    if (!hasValue(event.body)) return res(badRequest("No body provided"));
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(event.body);
+    } catch {
+      return res(badRequest("Invalid JSON"));
+    }
+    const body = reorderSchema.safeParse(parsed);
+    if (!body.success) return res(badRequest("Invalid body provided"));
+
+    await ListRepository.reorderList(listId, body.data.workIds);
+    return res(ok());
+  },
+);
+
+const updateAddedDateSchema = z.object({
+  addedDate: z.string().datetime({ offset: true }),
+});
+
+router.put(
+  "/:listId/items/:workId/added-date",
+  validListId,
+  securedList,
+  async ({ listId, params, event }, res) => {
+    if (!hasValue(params.workId)) {
+      return res(badRequest("No workId provided"));
+    }
+    if (!hasValue(event.body)) return res(badRequest("No body provided"));
+    const body = updateAddedDateSchema.safeParse(JSON.parse(event.body));
+    if (!body.success) return res(badRequest("Invalid body provided"));
+
+    const workId = params.workId;
+    const exists = await ListRepository.isItemInList(listId, workId);
+    if (!exists) {
+      return res(badRequest("This work does not exist in the list"));
+    }
+    await ListRepository.updateAddedDate(
+      listId,
+      workId,
+      new Date(body.data.addedDate),
+    );
+    return res(ok());
+  },
+);
+
+const moveSchema = z.object({
+  destinationListId: z.string(),
+});
+
+router.post(
+  "/:listId/items/:workId/move",
+  validListId,
+  securedList,
+  async ({ listId, clubId, params, event }, res) => {
+    if (!hasValue(params.workId)) {
+      return res(badRequest("No workId provided"));
+    }
+    if (!hasValue(event.body)) return res(badRequest("No body provided"));
+    const body = moveSchema.safeParse(JSON.parse(event.body));
+    if (!body.success) return res(badRequest("Invalid body provided"));
+
+    const destination = await ListRepository.getListById(
+      body.data.destinationListId,
+    );
+    if (!destination || String(destination.club_id) !== clubId) {
+      return res(badRequest("Destination list not found"));
+    }
+    // Allow moves into the `reviews` system list (this is how the per-item
+    // review button works). Block `award_nominations` — those go through
+    // the awards UI and have their own workflow.
+    if (
+      destination.system_type !== null &&
+      destination.system_type !== WorkListSystemType.reviews
+    ) {
+      return res(badRequest("Cannot move items into this system list"));
+    }
+
+    await ListRepository.moveItem(
+      listId,
+      String(destination.id),
+      params.workId,
+    );
+    return res(ok());
+  },
+);
+
+// ---------------------------------------------------------------------------
+// Internal helpers
+// ---------------------------------------------------------------------------
 
 async function getReviewList(clubId: string): Promise<ReviewListItem[]> {
   const [reviews, members] = await Promise.all([
@@ -160,153 +415,5 @@ async function getReviewList(clubId: string): Promise<ReviewListItem[]> {
     })
     .sort((a, b) => b.createdDate.localeCompare(a.createdDate));
 }
-
-const reorderSchema = z.object({
-  workIds: z.array(z.string()).min(1),
-});
-
-router.put(
-  "/:type/reorder",
-  secured,
-  async ({ clubId, params, event }, res) => {
-    if (!hasValue(params.type)) return res(badRequest("No type provided"));
-    const type = params.type;
-    if (!isWorkListType(type)) {
-      return res(badRequest("Invalid type provided"));
-    }
-    if (
-      type !== (WorkListType.watchlist as WorkListType) &&
-      type !== (WorkListType.backlog as WorkListType)
-    ) {
-      return res(
-        badRequest("Reordering is only supported for watchlist and backlog"),
-      );
-    }
-    if (!hasValue(event.body)) return res(badRequest("No body provided"));
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(event.body);
-    } catch {
-      return res(badRequest("Invalid JSON"));
-    }
-    const body = reorderSchema.safeParse(parsed);
-    if (!body.success) return res(badRequest("Invalid body provided"));
-
-    await ListRepository.reorderList(clubId, type, body.data.workIds);
-    return res(ok());
-  },
-);
-
-router.post("/:type", secured, async ({ clubId, params, event }, res) => {
-  if (!hasValue(params.type)) return res(badRequest("No type provided"));
-  if (!hasValue(event.body)) return res(badRequest("No body provided"));
-  const body = listInsertDtoSchema.safeParse(JSON.parse(event.body));
-  if (!body.success) return res(badRequest("Invalid body provided"));
-
-  const listType = params.type;
-  if (!isWorkListType(listType)) {
-    return res(badRequest("Invalid list type provided"));
-  }
-
-  const { type, externalId } = body.data;
-
-  let workId: string | undefined;
-  if (hasValue(externalId)) {
-    const existingWork = await WorkRepository.findByType(
-      clubId,
-      type,
-      externalId,
-    );
-    workId = existingWork?.id;
-  }
-
-  if (!hasValue(workId)) {
-    const newWork = await WorkRepository.insert(clubId, body.data);
-    workId = newWork.id;
-  }
-  const isItemInList = await ListRepository.isItemInList(
-    clubId,
-    listType,
-    workId,
-  );
-  if (isItemInList) {
-    return res(badRequest(BadRequest.ItemInList));
-  }
-  await ListRepository.insertItemInList(clubId, listType, workId);
-  return res(ok());
-});
-
-router.delete("/:type/:workId", secured, async ({ clubId, params }, res) => {
-  if (!hasValue(params.type) || !hasValue(params.workId)) {
-    return res(badRequest("No type or workId provided"));
-  }
-
-  const type = params.type;
-  if (!isWorkListType(type)) {
-    return res(badRequest("Invalid type provided"));
-  }
-  const workId = params.workId;
-  const isItemInList = await ListRepository.isItemInList(clubId, type, workId);
-  if (!isItemInList) {
-    return res(badRequest("This movie does not exist in the list"));
-  }
-  await ListRepository.deleteItemFromList(clubId, type, workId);
-  try {
-    await WorkRepository.delete(clubId, workId);
-  } catch (e) {
-    const error = e as { constraint?: string };
-    if (error?.constraint !== "fk_work_list_item_work_id") {
-      return res(internalServerError("Failed to delete work"));
-    }
-  }
-  return res(ok());
-});
-
-const updateAddedDateSchema = z.object({
-  addedDate: z.string().datetime({ offset: true }),
-});
-
-router.put(
-  "/:type/:workId/added-date",
-  secured,
-  async ({ clubId, params, event }, res) => {
-    if (!hasValue(params.type) || !hasValue(params.workId)) {
-      return res(badRequest("No type or workId provided"));
-    }
-
-    const type = params.type;
-    if (!isWorkListType(type)) {
-      return res(badRequest("Invalid type provided"));
-    }
-
-    if (!hasValue(event.body)) {
-      return res(badRequest("No body provided"));
-    }
-
-    const body = updateAddedDateSchema.safeParse(JSON.parse(event.body));
-    if (!body.success) {
-      return res(badRequest("Invalid body provided"));
-    }
-
-    const workId = params.workId;
-    const isItemInList = await ListRepository.isItemInList(
-      clubId,
-      type,
-      workId,
-    );
-    if (!isItemInList) {
-      return res(badRequest("This work does not exist in the list"));
-    }
-
-    await ListRepository.updateAddedDate(
-      clubId,
-      type,
-      workId,
-      new Date(body.data.addedDate),
-    );
-
-    return res(ok());
-  },
-);
 
 export default router;
