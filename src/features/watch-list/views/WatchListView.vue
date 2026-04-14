@@ -2,20 +2,13 @@
 import { computed, shallowRef } from "vue";
 
 import { hasElements } from "../../../../lib/checks/checks";
-import { WorkType } from "../../../../lib/types/generated/db";
-import { MovieSearchIndex } from "../../../../lib/types/movie";
 import ListItems from "../components/ListItems.vue";
 import ManageListsModal from "../components/ManageListsModal.vue";
 import { useCollapsedLists } from "../composables/useCollapsedLists";
 
-import MovieSearchPrompt from "@/common/components/MovieSearchPrompt.vue";
+import AddMovieModal from "../components/AddMovieModal.vue";
 import { useClubSlug } from "@/service/useClub";
-import {
-  BASE_IMAGE_URL,
-  ClubListSummary,
-  useAddListItem,
-  useClubLists,
-} from "@/service/useList";
+import { ClubListSummary, useClubLists } from "@/service/useList";
 
 const clubSlug = useClubSlug();
 const { data: lists, isLoading } = useClubLists(clubSlug, {
@@ -46,29 +39,17 @@ const addingToListId = shallowRef<string | null>(null);
 const startAdd = (listId: string) => {
   addingToListId.value = listId;
 };
-// The add mutation is bound to whichever list the user opened the modal on.
-// Using a computed keeps it reactive if the user opens a different list's
-// modal on the same page without a remount.
-const addItemMutation = computed(() =>
-  useAddListItem(clubSlug, addingToListId.value ?? ""),
-);
-const onAddMovie = (movie: MovieSearchIndex) => {
-  if (addingToListId.value === null) return;
-  addItemMutation.value.mutate({
-    type: WorkType.movie,
-    title: movie.title,
-    externalId: movie.id.toString(),
-    imageUrl: `${BASE_IMAGE_URL}${movie.poster_path}`,
-  });
-  addingToListId.value = null;
-};
 </script>
 
 <template>
   <div class="p-2 text-center">
-    <page-header :has-back="true" back-route="ClubHome" page-name="Lists" />
+    <page-header
+      :has-back="true"
+      back-route="ClubHome"
+      page-name="Watchlists"
+    />
     <loading-spinner v-if="isLoading" />
-    <div v-else-if="hasElements(lists)">
+    <template v-else-if="hasElements(userLists)">
       <div class="mb-4 flex flex-wrap items-center justify-center gap-2">
         <v-btn @click="managingLists = true">
           <mdicon name="cog" :size="16" class="mr-1" />
@@ -113,20 +94,21 @@ const onAddMovie = (movie: MovieSearchIndex) => {
           </div>
         </section>
       </div>
-    </div>
+    </template>
 
     <empty-state
-      v-else-if="!isLoading"
-      header="No lists yet"
-      message="Create your first list to get started."
+      v-else
+      title="No lists yet"
+      description="Create your first list to get started."
+      action-label="Create list"
+      @action="managingLists = true"
     />
 
     <v-modal v-if="addingToListId !== null" @close="addingToListId = null">
-      <movie-search-prompt
-        :default-list="[]"
-        default-list-title=""
+      <AddMovieModal
+        :key="addingToListId"
+        :list-id="addingToListId"
         @close="addingToListId = null"
-        @select-from-search="onAddMovie"
       />
     </v-modal>
 

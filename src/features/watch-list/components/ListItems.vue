@@ -1,91 +1,106 @@
 <template>
   <div>
+    <RandomPickerModal
+      v-if="randomPickerOpen"
+      :items="draggableItems"
+      :other-lists="otherLists"
+      @close="randomPickerOpen = false"
+      @make-next="onMakeNext"
+      @move-to-list="onMoveToList"
+    />
     <div v-if="isLoading" class="flex justify-center"><loading-spinner /></div>
     <empty-state
       v-else-if="!items || items.length === 0"
       header="Empty list"
       message="Add movies to this list to see them here."
     />
-    <VueDraggableNext
-      v-else
-      v-model="draggableItems"
-      tag="div"
-      class="my-4 grid grid-cols-auto justify-items-center gap-4"
-      :delay="150"
-      :delay-on-touch-only="true"
-      :animation="200"
-      handle=".drag-handle"
-      filter=".no-drag"
-      :prevent-on-filter="true"
-      :move="onDragMove"
-      @end="onDragEnd"
-    >
-      <div
-        v-for="item in draggableItems"
-        :key="item.id"
-        class="relative"
-        :class="{ 'no-drag': item.id === nextWorkId }"
-      >
-        <MoviePosterCard
-          :movie-title="item.title"
-          :movie-poster-url="item.imageUrl ?? ''"
-          :loading="false"
-          :show-delete="true"
-          :show-drag-handle="item.id !== nextWorkId"
-          :highlighted="item.id === nextWorkId"
-          @delete="onDelete(item.id)"
-        >
-          <div class="mt-2 flex flex-col gap-2">
-            <div class="grid grid-cols-2 gap-2">
-              <v-btn
-                v-if="canReview && listId !== reviewsListId"
-                class="flex justify-center"
-                :title="'Move to reviews'"
-                @click="onReview(item.id)"
-              >
-                <mdicon name="check" />
-              </v-btn>
-              <v-btn
-                class="flex justify-center"
-                :class="{
-                  'col-span-2': !(canReview && listId !== reviewsListId),
-                }"
-                :title="
-                  item.id === nextWorkId
-                    ? 'Clear next watch'
-                    : 'Set as next watch'
-                "
-                @click="
-                  item.id === nextWorkId
-                    ? clearNextWork()
-                    : onSetNextWatch(item.id)
-                "
-              >
-                <mdicon
-                  :name="
-                    item.id === nextWorkId
-                      ? 'arrow-collapse-down'
-                      : 'arrow-collapse-up'
-                  "
-                />
-              </v-btn>
-            </div>
-            <select
-              v-if="otherLists.length > 0"
-              class="w-full rounded-md bg-slate-800 px-2 py-1 text-sm text-white"
-              @change="
-                (e) => onMove(item.id, (e.target as HTMLSelectElement).value)
-              "
-            >
-              <option value="">Move to…</option>
-              <option v-for="l in otherLists" :key="l.id" :value="l.id">
-                {{ l.title }}
-              </option>
-            </select>
-          </div>
-        </MoviePosterCard>
+    <template v-else>
+      <div v-if="draggableItems.length > 1" class="mt-2 flex justify-end">
+        <v-btn @click="randomPickerOpen = true">
+          Random
+          <mdicon name="dice-multiple-outline" />
+        </v-btn>
       </div>
-    </VueDraggableNext>
+      <VueDraggableNext
+        v-model="draggableItems"
+        tag="div"
+        class="my-4 grid grid-cols-auto justify-items-center gap-4"
+        :delay="150"
+        :delay-on-touch-only="true"
+        :animation="200"
+        handle=".drag-handle"
+        filter=".no-drag"
+        :prevent-on-filter="true"
+        :move="onDragMove"
+        @end="onDragEnd"
+      >
+        <div
+          v-for="item in draggableItems"
+          :key="item.id"
+          class="relative"
+          :class="{ 'no-drag': item.id === nextWorkId }"
+        >
+          <MoviePosterCard
+            :movie-title="item.title"
+            :movie-poster-url="item.imageUrl ?? ''"
+            :loading="false"
+            :show-delete="true"
+            :show-drag-handle="item.id !== nextWorkId"
+            :highlighted="item.id === nextWorkId"
+            @delete="onDelete(item.id)"
+          >
+            <div class="mt-2 flex flex-col gap-2">
+              <div class="grid grid-cols-2 gap-2">
+                <v-btn
+                  v-if="canReview && listId !== reviewsListId"
+                  class="flex justify-center"
+                  :title="'Move to reviews'"
+                  @click="onReview(item.id)"
+                >
+                  <mdicon name="check" />
+                </v-btn>
+                <v-btn
+                  class="flex justify-center"
+                  :class="{
+                    'col-span-2': !(canReview && listId !== reviewsListId),
+                  }"
+                  :title="
+                    item.id === nextWorkId
+                      ? 'Clear next watch'
+                      : 'Set as next watch'
+                  "
+                  @click="
+                    item.id === nextWorkId
+                      ? clearNextWork()
+                      : onSetNextWatch(item.id)
+                  "
+                >
+                  <mdicon
+                    :name="
+                      item.id === nextWorkId
+                        ? 'arrow-collapse-down'
+                        : 'arrow-collapse-up'
+                    "
+                  />
+                </v-btn>
+              </div>
+              <select
+                v-if="otherLists.length > 0"
+                class="w-full rounded-md bg-slate-800 px-2 py-1 text-sm text-white"
+                @change="
+                  (e) => onMove(item.id, (e.target as HTMLSelectElement).value)
+                "
+              >
+                <option value="">Move to…</option>
+                <option v-for="l in otherLists" :key="l.id" :value="l.id">
+                  {{ l.title }}
+                </option>
+              </select>
+            </div>
+          </MoviePosterCard>
+        </div>
+      </VueDraggableNext>
+    </template>
   </div>
 </template>
 
@@ -94,6 +109,7 @@ import { computed, ref, toRefs, watch } from "vue";
 import { VueDraggableNext } from "vue-draggable-next";
 import { useRouter } from "vue-router";
 
+import RandomPickerModal from "./RandomPickerModal.vue";
 import { hasValue } from "../../../../lib/checks/checks";
 import { DetailedWorkListItem } from "../../../../lib/types/lists";
 
@@ -168,6 +184,24 @@ const onMove = (workId: string, destinationListId: string) => {
     destinationListId,
     workId,
   });
+};
+
+const randomPickerOpen = ref(false);
+
+const onMakeNext = (item: DetailedWorkListItem) => {
+  onSetNextWatch(item.id);
+  randomPickerOpen.value = false;
+};
+
+const onMoveToList = ({
+  item,
+  listId,
+}: {
+  item: DetailedWorkListItem;
+  listId: string;
+}) => {
+  onMove(item.id, listId);
+  randomPickerOpen.value = false;
 };
 
 const onReview = (workId: string) => {
