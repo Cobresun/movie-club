@@ -17,11 +17,11 @@
     <div v-else>
       <!-- Search Filter Bar -->
       <search-filter-bar
+        v-model:filtered-data="filteredReviews"
+        v-model:has-active-filters="hasActiveFilters"
         :data="reviews ?? []"
         search-placeholder="Search reviews"
         :class-name="isGalleryView ? 'mb-4' : 'mb-0'"
-        @update:filtered-data="handleFilteredData"
-        @update:has-active-filters="handleActiveFiltersChange"
       >
         <template #action-button>
           <v-btn
@@ -142,14 +142,6 @@ const closePrompt = () => {
 // Filtered reviews from SearchFilterBar
 const filteredReviews = ref<DetailedReviewListItem[]>([]);
 const hasActiveFilters = ref(false);
-
-const handleFilteredData = (data: DetailedReviewListItem[]) => {
-  filteredReviews.value = data;
-};
-
-const handleActiveFiltersChange = (value: boolean) => {
-  hasActiveFilters.value = value;
-};
 
 const reviewToDelete = ref<string | null>(null);
 const cancelDelete = () => {

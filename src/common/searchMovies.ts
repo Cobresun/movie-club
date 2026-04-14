@@ -153,13 +153,11 @@ export function filterMovies<T extends DetailedWorkListItem>(
   }
 
   if (filters.director?.value) {
-    filteredReviews = filteredReviews.filter((review) => {
-      const directors =
-        (review.externalData?.directors as string[] | undefined) ?? [];
-      return directors.some((director: string) =>
-        includesCaseInsensitive(director, filters.director.value),
-      );
-    });
+    filteredReviews = filteredReviews.filter((review) =>
+      (review.externalData?.directors ?? []).some((director) =>
+        includesCaseInsensitive(director.name, filters.director.value),
+      ),
+    );
   }
 
   if (filters.year?.value) {
