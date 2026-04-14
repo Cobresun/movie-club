@@ -81,8 +81,8 @@ export function useRenameList(clubSlug: string) {
     mutationFn: ({ listId, title }: { listId: string; title: string }) =>
       auth.request.put(`/api/club/${clubSlug}/list/${listId}`, { title }),
     onMutate: ({ listId, title }) => {
-      queryClient.setQueryData<ClubListSummary[]>(
-        clubListsKey(clubSlug),
+      queryClient.setQueriesData<ClubListSummary[]>(
+        { queryKey: clubListsKey(clubSlug) },
         (current) =>
           current?.map((l) => (l.id === listId ? { ...l, title } : l)),
       );

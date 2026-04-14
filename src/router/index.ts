@@ -231,7 +231,7 @@ const routes: Array<RouteRecordRaw> = [
       },
       {
         path: "lists",
-        name: "Lists",
+        name: "Watchlists",
         component: WatchListView,
         props: true,
         meta: {
@@ -240,7 +240,7 @@ const routes: Array<RouteRecordRaw> = [
       },
       {
         path: "watch-list",
-        redirect: { name: "Lists" },
+        redirect: { name: "Watchlists" },
       },
       {
         path: "statistics",
