@@ -27,7 +27,9 @@ describe("ReviewView", () => {
     const viewSwitch = screen.getByRole("switch");
     await user.click(viewSwitch);
 
-    const openButton = await screen.findByRole("button");
+    const openButton = await screen.findByRole("button", {
+      name: "Add review",
+    });
     await user.click(openButton);
     expect(await screen.findByText("From your lists")).toBeInTheDocument();
 
