@@ -2,11 +2,11 @@
 import { computed, shallowRef } from "vue";
 
 import { hasElements } from "../../../../lib/checks/checks";
+import AddMovieModal from "../components/AddMovieModal.vue";
 import ListItems from "../components/ListItems.vue";
 import ManageListsModal from "../components/ManageListsModal.vue";
 import { useCollapsedLists } from "../composables/useCollapsedLists";
 
-import AddMovieModal from "../components/AddMovieModal.vue";
 import { useClubSlug } from "@/service/useClub";
 import { ClubListSummary, useClubLists } from "@/service/useList";
 
