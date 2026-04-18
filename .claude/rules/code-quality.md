@@ -37,6 +37,23 @@ if (typeof myString === "string" && myString.length > 0) {}
 - `hasElements()` for **array checks**
 - `ensure()` when you want to **throw on null/undefined** (guard clauses)
 
+## Import Order
+
+`eslint-plugin-import` is configured in `eslint.config.mjs` with two declared groups (`builtin+external` and `internal+parent+sibling+index`), but because no path resolver is wired up, `@/*` alias imports are not classified as `internal` and end up in their own de-facto third group. In practice, `<script setup>` imports should form three blocks separated by single blank lines, alphabetized case-insensitively within each:
+
+```ts
+import { computed, shallowRef } from "vue";            // 1. external
+
+import { hasElements } from "../../../../lib/checks/checks";  // 2. relative parent/sibling
+import AddMovieModal from "../components/AddMovieModal.vue";
+import ListItems from "../components/ListItems.vue";
+
+import { useClubSlug } from "@/service/useClub";       // 3. @/ alias
+import { useClubLists } from "@/service/useList";
+```
+
+Blank lines within a group trigger `no empty line within import group`; missing blank lines between groups trigger `at least one empty line between import groups`. When adding a new import, slot it into the correct block in alphabetical position — do not append to the end. `npx eslint <file> --fix` handles this mechanically.
+
 ## Avoid `as` Type Casting
 
 Never use `as` casts (especially `as unknown as T`) in tests or production code. These silence TypeScript without providing type safety and can mask real bugs. If a test requires casting to simulate an invalid state, that is a sign the test should be removed — our type system prevents that state from occurring.

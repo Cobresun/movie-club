@@ -58,8 +58,8 @@
       <router-link :to="{ name: 'Reviews' }">
         <menu-card :image="reviewSvg"> Reviews </menu-card>
       </router-link>
-      <router-link :to="{ name: 'WatchList' }">
-        <menu-card :image="watchlistSvg"> Watch List </menu-card>
+      <router-link :to="{ name: 'Watchlists' }">
+        <menu-card :image="watchlistSvg"> Watchlists </menu-card>
       </router-link>
       <router-link :to="{ name: 'Statistics' }">
         <menu-card :image="statisticsSvg"> Statistics </menu-card>

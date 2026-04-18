@@ -1,10 +1,8 @@
 import type { ColumnType } from "kysely";
 
-export enum WorkListType {
+export enum WorkListSystemType {
   award_nominations = "award_nominations",
-  backlog = "backlog",
   reviews = "reviews",
-  watchlist = "watchlist",
 }
 
 export enum WorkType {
@@ -157,16 +155,6 @@ export interface Review {
   work_id: Int8;
 }
 
-export interface WorkComment {
-  club_id: Int8;
-  content: string;
-  created_date: Generated<Timestamp>;
-  id: Generated<Int8>;
-  spoiler: Generated<boolean>;
-  user_id: Int8;
-  work_id: Int8;
-}
-
 export interface Session {
   createdAt: Generated<Timestamp>;
   expiresAt: Timestamp;
@@ -207,11 +195,22 @@ export interface Work {
   type: WorkType;
 }
 
+export interface WorkComment {
+  club_id: Int8;
+  content: string;
+  created_date: Generated<Timestamp>;
+  id: Generated<Int8>;
+  spoiler: Generated<boolean>;
+  user_id: Int8;
+  work_id: Int8;
+}
+
 export interface WorkList {
   club_id: Int8;
   id: Generated<Int8>;
-  title: string | null;
-  type: WorkListType;
+  position: Generated<Int8>;
+  system_type: WorkListSystemType | null;
+  title: string;
 }
 
 export interface WorkListItem {
@@ -236,11 +235,11 @@ export interface DB {
   movie_production_countries: MovieProductionCountries;
   next_work: NextWork;
   review: Review;
-  work_comment: WorkComment;
   session: Session;
   user: User;
   verification: Verification;
   work: Work;
+  work_comment: WorkComment;
   work_list: WorkList;
   work_list_item: WorkListItem;
 }
