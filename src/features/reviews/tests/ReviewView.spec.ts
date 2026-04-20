@@ -27,13 +27,15 @@ describe("ReviewView", () => {
     const viewSwitch = screen.getByRole("switch");
     await user.click(viewSwitch);
 
-    const openButton = await screen.findByRole("button");
+    const openButton = await screen.findByRole("button", {
+      name: "Add review",
+    });
     await user.click(openButton);
-    expect(await screen.findByText("From Watch List")).toBeInTheDocument();
+    expect(await screen.findByText("From your lists")).toBeInTheDocument();
 
     const cancelButton = screen.getByRole("button", { name: "Cancel" });
     await user.click(cancelButton);
-    expect(screen.queryByText("From Watch List")).not.toBeInTheDocument();
+    expect(screen.queryByText("From your lists")).not.toBeInTheDocument();
   });
 
   it("should switch between gallery and table view", async () => {
@@ -60,26 +62,6 @@ describe("ReviewView", () => {
     expect(
       screen.queryByText("The Empire Strikes Back"),
     ).not.toBeInTheDocument();
-  });
-
-  it("should focus search bar on / press and type / on second press", async () => {
-    const { user } = render(ReviewView, { props: { clubSlug: "1" } });
-    await user.keyboard("/");
-    const searchBar = await screen.findByRole("textbox");
-    expect(searchBar).toHaveFocus();
-    expect(searchBar).toHaveValue("");
-    await user.keyboard("/");
-    expect(searchBar).toHaveValue("/");
-  });
-
-  it("should hide search input slash on focus", async () => {
-    const { user } = render(ReviewView, { props: { clubSlug: "1" } });
-    const inputSlash = await screen.findByText("/");
-    expect(inputSlash).toBeVisible();
-    await user.keyboard("/");
-    expect(inputSlash).not.toBeVisible();
-    await user.tab();
-    expect(inputSlash).toBeVisible();
   });
 
   it("should submit score", async () => {

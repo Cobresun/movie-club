@@ -69,7 +69,7 @@ Located in `src/service/`, these composables provide TanStack Query hooks for da
 
 - `useClub.ts` - Club CRUD, membership, invites, settings
 - `useReviews.ts` - Review management and scoring
-- `useList.ts` - Watchlist/backlog operations
+- `useList.ts` - Arbitrary user-list CRUD (`useClubLists`, `useList(slug, listIdRef)`, `useCreateList`, `useRenameList`, `useDeleteList`, `useAddListItem`, `useDeleteListItem`, `useReorderList`, `useMoveListItem`) plus reviews-list helpers (`useReviewsList`, `useDeleteReview`, `useAddToReviewsList`, `useQueueReview`, `useUpdateReviewAddedDate`, `useAllUserListItems`). `useList` accepts a `MaybeRef<string>` so the active list ID can be reactive.
 - `useAwards.ts` - Awards system data
 - `useUser.ts` - User profile and clubs
 - `useTMDB.ts` - TMDB movie search integration

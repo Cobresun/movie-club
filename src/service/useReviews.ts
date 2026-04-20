@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
 
+import { reviewsListKey } from "./useList";
 import { useUser } from "./useUser";
 import { isDefined } from "../../lib/checks/checks.js";
-import { WorkListType } from "../../lib/types/generated/db";
 import { DetailedReviewListItem, WorkCommentDto } from "../../lib/types/lists";
 
 import { useAuthStore } from "@/stores/auth";
@@ -13,15 +13,24 @@ export function useReviewWork(clubSlug: string) {
   const user = useUser();
 
   return useMutation({
-    mutationFn: ({ workId, score }: { workId: string; score: number }) =>
+    mutationFn: ({
+      workId,
+      score,
+      sourceListId,
+    }: {
+      workId: string;
+      score: number;
+      sourceListId?: string;
+    }) =>
       auth.request.post(`/api/club/${clubSlug}/reviews`, {
         score,
         workId,
+        sourceListId,
       }),
     onMutate: ({ workId, score }) => {
       if (!workId) return;
       queryClient.setQueryData<DetailedReviewListItem[]>(
-        ["list", clubSlug, WorkListType.reviews],
+        reviewsListKey(clubSlug),
         (currentReviews) => {
           const userId = user.value?.id;
           if (!currentReviews || !isDefined(userId)) return currentReviews;
@@ -45,7 +54,7 @@ export function useReviewWork(clubSlug: string) {
     },
     onSettled: () =>
       queryClient.invalidateQueries({
-        queryKey: ["list", clubSlug, WorkListType.reviews],
+        queryKey: reviewsListKey(clubSlug),
       }),
   });
 }
@@ -63,7 +72,7 @@ export function useUpdateReviewScore(clubSlug: string) {
       if (!reviewId) return;
       const currentUser = user.value;
       queryClient.setQueryData<DetailedReviewListItem[]>(
-        ["list", clubSlug, WorkListType.reviews],
+        reviewsListKey(clubSlug),
         (currentReviews) => {
           if (!currentReviews || !currentUser) return currentReviews;
           return currentReviews.map((review) =>
@@ -88,7 +97,7 @@ export function useUpdateReviewScore(clubSlug: string) {
     },
     onSettled: () =>
       queryClient.invalidateQueries({
-        queryKey: ["list", clubSlug, WorkListType.reviews],
+        queryKey: reviewsListKey(clubSlug),
       }),
   });
 }
