@@ -1,88 +1,121 @@
-<template>
-  <div class="p-2 text-center">
-    <div>
-      <page-header
-        :has-back="true"
-        back-route="ClubHome"
-        page-name="Watch List"
-      />
-
-      <loading-spinner v-if="isLoading" />
-
-      <div v-if="!isLoading">
-        <div class="mb-2 flex items-center justify-center">
-          <div class="relative">
-            <mdicon
-              name="magnify"
-              class="absolute left-8 top-1/2 -translate-y-1/2 transform text-slate-200"
-            />
-            <input
-              ref="searchInput"
-              v-model="searchTerm"
-              class="w-11/12 rounded-md border-2 border-slate-600 bg-background p-2 pl-12 text-base text-white outline-none focus:border-primary"
-              placeholder="Search"
-              @focusin="searchInputFocusIn"
-              @focusout="searchInputFocusOut"
-            />
-            <div
-              ref="searchInputSlash"
-              class="absolute right-8 top-1/2 -translate-y-1/2 transform rounded-md border-2 border-slate-600 px-2 py-1"
-            >
-              <p name="slash" class="text-xs text-slate-200">/</p>
-            </div>
-          </div>
-        </div>
-        <WatchList :search-term="searchTerm" :clear-search="clearSearch" />
-        <ClubBacklog :search-term="searchTerm" :clear-search="clearSearch" />
-      </div>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from "vue";
+import { computed, shallowRef } from "vue";
 
-import { WorkListType } from "../../../../lib/types/generated/db";
-import ClubBacklog from "../components/ClubBacklog.vue";
-import WatchList from "../components/WatchList.vue";
+import { hasElements } from "../../../../lib/checks/checks";
+import AddMovieModal from "../components/AddMovieModal.vue";
+import ListItems from "../components/ListItems.vue";
+import ManageListsModal from "../components/ManageListsModal.vue";
+import { useCollapsedLists } from "../composables/useCollapsedLists";
 
 import { useClubSlug } from "@/service/useClub";
-import { useList } from "@/service/useList";
-
-const searchInput = ref<HTMLInputElement | null>(null);
-const searchInputSlash = ref<HTMLParagraphElement | null>(null);
+import { ClubListSummary, useClubLists } from "@/service/useList";
 
 const clubSlug = useClubSlug();
-const { isLoading } = useList(clubSlug, WorkListType.watchlist);
-
-const searchTerm = ref("");
-const clearSearch = () => {
-  searchTerm.value = "";
-};
-
-onMounted(() => {
-  window.addEventListener("keypress", onKeyPress);
+const { data: lists, isLoading } = useClubLists(clubSlug, {
+  includeSystem: true,
 });
 
-onUnmounted(() => {
-  window.removeEventListener("keypress", onKeyPress);
-});
+// Only user lists show in the UI; the reviews list is resolved separately so
+// the per-item "Review" button knows its destination.
+const userLists = computed<ClubListSummary[]>(() =>
+  (lists.value ?? []).filter((l) => l.systemType === null),
+);
+const reviewsListId = computed<string | null>(
+  () => lists.value?.find((l) => l.systemType === "reviews")?.id ?? null,
+);
 
-const onKeyPress = (e: KeyboardEvent) => {
-  if (e.key === "/") {
-    if (searchInput.value === document.activeElement) {
-      return;
-    }
-    e.preventDefault();
-    searchInput.value?.focus();
-  }
-};
+const otherLists = (listId: string) =>
+  userLists.value
+    .filter((l) => l.id !== listId)
+    .map((l) => ({ id: l.id, title: l.title }));
 
-const searchInputFocusIn = () => {
-  searchInputSlash.value?.setAttribute("hidden", "true");
-};
+const { isCollapsed, toggle } = useCollapsedLists(clubSlug);
 
-const searchInputFocusOut = () => {
-  searchInputSlash.value?.removeAttribute("hidden");
+// -- manage lists modal --
+const managingLists = shallowRef(false);
+
+// -- add movie (to a specific list) --
+const addingToListId = shallowRef<string | null>(null);
+const startAdd = (listId: string) => {
+  addingToListId.value = listId;
 };
 </script>
+
+<template>
+  <div class="p-2 text-center">
+    <page-header
+      :has-back="true"
+      back-route="ClubHome"
+      page-name="Watchlists"
+    />
+    <loading-spinner v-if="isLoading" />
+    <template v-else-if="hasElements(userLists)">
+      <div class="mb-4 flex flex-wrap items-center justify-center gap-2">
+        <v-btn @click="managingLists = true">
+          <mdicon name="cog" :size="16" class="mr-1" />
+          Manage lists
+        </v-btn>
+      </div>
+
+      <div class="flex flex-col gap-6">
+        <section
+          v-for="list in userLists"
+          :key="list.id"
+          class="rounded-lg border border-slate-700 bg-slate-900/40 p-3"
+        >
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex min-w-0 items-center gap-2">
+              <button
+                class="text-slate-200 hover:text-primary"
+                :aria-label="
+                  isCollapsed(list.id) ? 'Expand list' : 'Collapse list'
+                "
+                @click="toggle(list.id)"
+              >
+                {{ isCollapsed(list.id) ? "▶" : "▼" }}
+              </button>
+              <h2 class="truncate text-lg font-semibold text-white">
+                {{ list.title }}
+              </h2>
+              <span class="text-sm text-slate-400">
+                ({{ list.itemCount }})
+              </span>
+            </div>
+            <v-btn @click="startAdd(list.id)">+ Add</v-btn>
+          </div>
+
+          <div v-show="!isCollapsed(list.id)">
+            <ListItems
+              :club-slug="clubSlug"
+              :list-id="list.id"
+              :other-lists="otherLists(list.id)"
+              :reviews-list-id="reviewsListId"
+            />
+          </div>
+        </section>
+      </div>
+    </template>
+
+    <empty-state
+      v-else
+      title="No lists yet"
+      description="Create your first list to get started."
+      action-label="Create list"
+      @action="managingLists = true"
+    />
+
+    <v-modal v-if="addingToListId !== null" @close="addingToListId = null">
+      <AddMovieModal
+        :key="addingToListId"
+        :list-id="addingToListId"
+        @close="addingToListId = null"
+      />
+    </v-modal>
+
+    <ManageListsModal
+      :show="managingLists"
+      :club-slug="clubSlug"
+      @close="managingLists = false"
+    />
+  </div>
+</template>

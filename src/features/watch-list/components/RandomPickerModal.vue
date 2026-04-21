@@ -12,9 +12,21 @@
           :show-delete="false"
         />
       </div>
-      <div v-if="confirmLabel" class="flex gap-3">
-        <v-btn :disabled="!winner" @click="onConfirm">{{ confirmLabel }}</v-btn>
-        <v-btn :disabled="!winner" @click="emit('close')">Never Mind</v-btn>
+      <div v-if="winner" class="flex flex-col items-center gap-3">
+        <div class="flex gap-3">
+          <v-btn @click="onMakeNext">Make up next</v-btn>
+          <v-btn @click="emit('close')">Never Mind</v-btn>
+        </div>
+        <select
+          v-if="otherLists && otherLists.length > 0"
+          class="w-full rounded-md bg-slate-800 px-2 py-1 text-sm text-white"
+          @change="(e) => onMoveToList((e.target as HTMLSelectElement).value)"
+        >
+          <option value="">Move to…</option>
+          <option v-for="l in otherLists" :key="l.id" :value="l.id">
+            {{ l.title }}
+          </option>
+        </select>
       </div>
     </div>
   </v-modal>
@@ -23,7 +35,6 @@
 <script setup lang="ts">
 import { onMounted, ref, toRef } from "vue";
 
-import { hasValue } from "../../../../lib/checks/checks.js";
 import { DetailedWorkListItem } from "../../../../lib/types/lists";
 import { useRandomPicker } from "../composables/useRandomPicker";
 
@@ -31,12 +42,16 @@ import MoviePosterCard from "@/common/components/MoviePosterCard.vue";
 
 const props = defineProps<{
   items: DetailedWorkListItem[];
-  confirmLabel?: string;
+  otherLists?: { id: string; title: string }[];
 }>();
 
 const emit = defineEmits<{
   (e: "close"): void;
-  (e: "selected", item: DetailedWorkListItem): void;
+  (e: "makeNext", item: DetailedWorkListItem): void;
+  (
+    e: "moveToList",
+    payload: { item: DetailedWorkListItem; listId: string },
+  ): void;
 }>();
 
 const { currentItem, isRevealed, pick } = useRandomPicker(
@@ -45,18 +60,21 @@ const { currentItem, isRevealed, pick } = useRandomPicker(
 
 const winner = ref<DetailedWorkListItem>();
 
-const onConfirm = () => {
+const onMakeNext = () => {
   if (winner.value) {
-    emit("selected", winner.value);
+    emit("makeNext", winner.value);
+    emit("close");
+  }
+};
+
+const onMoveToList = (listId: string) => {
+  if (listId !== "" && winner.value) {
+    emit("moveToList", { item: winner.value, listId });
+    emit("close");
   }
 };
 
 onMounted(async () => {
-  const result = await pick();
-  if (hasValue(props.confirmLabel)) {
-    winner.value = result;
-  } else {
-    emit("selected", result);
-  }
+  winner.value = await pick();
 });
 </script>
