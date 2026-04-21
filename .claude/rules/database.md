@@ -39,6 +39,8 @@ paths:
 
 Always validate schema migrations against a **freshly spawned dev database**, never against your personal `.env`-pointed DB.
 
+**Why this matters — blast radius of shared `dev`.** The Netlify `preview-database` plugin (`netlify/plugins/preview-database/index.js`) points every PR that *does not* change migrations straight at shared `dev`. So if you run `migrate:dev` with `.env` still pointing at `postgresql://.../dev`, you rewrite the schema underneath every other open PR's deploy preview at once — their code still expects the old schema and their previews 500 until the migration is reverted on shared `dev` and the previews are rebuilt. The spawn-first rule isn't about cleanliness; it's the only thing that keeps this blast radius from firing.
+
 ```bash
 # 1. Spawn a fresh DB from the latest snapshot. Names must use only
 #    lowercase letters, numbers, and underscores — hyphens are rejected.
