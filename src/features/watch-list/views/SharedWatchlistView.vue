@@ -18,10 +18,7 @@
         description="This club hasn't added any movies to their watch list yet."
       />
 
-      <div
-        v-else
-        class="grid grid-cols-2 justify-items-center gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
-      >
+      <div v-else class="grid grid-cols-auto justify-items-center">
         <div v-for="item in sortedWatchList" :key="item.id" class="relative">
           <div
             v-if="item.id === nextWorkId"
