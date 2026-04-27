@@ -104,7 +104,11 @@ const startAdd = (listId: string) => {
       @action="managingLists = true"
     />
 
-    <v-modal v-if="addingToListId !== null" @close="addingToListId = null">
+    <v-modal
+      v-if="addingToListId !== null"
+      size="lg"
+      @close="addingToListId = null"
+    >
       <AddMovieModal
         :key="addingToListId"
         :list-id="addingToListId"
