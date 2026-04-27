@@ -1,11 +1,10 @@
 <template>
-  <v-modal @close="emit('close')">
+  <v-modal size="lg" @close="emit('close')">
     <loading-spinner v-if="loading" class="self-center" />
     <movie-search-prompt
       v-else
       default-list-title="From Watch List"
       :default-list="watchlistSearchIndex"
-      @close="emit('close')"
       @select-from-default="selectFromWatchList"
       @select-from-search="selectFromSearch"
     />

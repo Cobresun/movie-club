@@ -8,26 +8,27 @@
     <div class="mt-3 overflow-y-auto">
       <p v-if="noResults">Sorry, your search did not return any results</p>
       <div v-if="filteredDefaultList.length > 0">
-        <h5 class="float-left font-bold">
+        <h5 class="text-left font-bold">
           {{ defaultListTitle }}
         </h5>
-        <movie-table
-          :data="filteredDefaultList"
-          :headers="defaultListHeaders"
-          :header="false"
-          :selectable="true"
-          @click-row="selectFromDefaultList"
+        <div
+          class="mt-2 grid justify-items-center"
+          style="grid-template-columns: repeat(auto-fill, minmax(136px, 1fr))"
         >
-          <template #item-title="{ item, head }">
-            <p>
-              <b>{{ item[head.value] }}</b
-              ><i> ({{ getReleaseYear(item.release_date) }})</i>
-            </p>
-          </template>
-          <template #item-add>
-            <mdicon name="plus" />
-          </template>
-        </movie-table>
+          <MovieSearchCard
+            v-for="item in filteredDefaultList"
+            :key="item.id"
+            :title="item.title"
+            :year="getReleaseYear(item.release_date)"
+            :poster-url="getPosterUrl(item.poster_path)"
+            @select="selectFromDefaultList(item)"
+          />
+        </div>
+        <div v-if="showLoadMore" class="mt-3 flex justify-center">
+          <v-btn :disabled="loadingMore" @click="onLoadMore?.()">
+            {{ loadingMore ? "Loading..." : "Load More" }}
+          </v-btn>
+        </div>
       </div>
       <div
         v-if="
@@ -36,32 +37,25 @@
           searchData.results.length > 0
         "
       >
-        <h5 class="float-left font-bold">Search</h5>
-        <movie-table
-          :data="searchData.results"
-          :headers="searchHeaders"
-          :header="false"
-          :selectable="true"
-          @click-row="selectFromSearch"
+        <h5 class="text-left font-bold">Search</h5>
+        <div
+          class="mt-2 grid justify-items-center"
+          style="grid-template-columns: repeat(auto-fill, minmax(136px, 1fr))"
         >
-          <template #item-title="{ item, head }">
-            <p>
-              <b>{{ item[head.value] }}</b
-              ><i> ({{ getReleaseYear(item.release_date) }})</i>
-            </p>
-          </template>
-          <template #item-add>
-            <mdicon name="plus" />
-          </template>
-        </movie-table>
+          <MovieSearchCard
+            v-for="item in searchData.results"
+            :key="item.id"
+            :title="item.title"
+            :year="getReleaseYear(item.release_date)"
+            :poster-url="getPosterUrl(item.poster_path)"
+            @select="selectFromSearch(item)"
+          />
+        </div>
       </div>
       <loading-spinner
         v-if="includeSearch && loadingSearch"
         class="mt-3 self-center"
       />
-    </div>
-    <div class="mt-auto flex justify-between pt-2">
-      <v-btn @click="emit('close')"> Cancel </v-btn>
     </div>
   </div>
 </template>
@@ -69,42 +63,42 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 
+import MovieSearchCard from "./MovieSearchCard.vue";
+import { hasValue, isDefined } from "../../../lib/checks/checks";
 import { MovieSearchIndex } from "../../../lib/types/movie";
 
+import { BASE_IMAGE_URL } from "@/service/useList";
 import { useSearch } from "@/service/useTMDB";
 
 const {
   defaultList,
   defaultListTitle,
   includeSearch = true,
+  onLoadMore,
+  loadingMore = false,
+  hasMore = false,
 } = defineProps<{
   defaultList: MovieSearchIndex[];
   defaultListTitle: string;
   includeSearch?: boolean;
+  onLoadMore?: () => void;
+  loadingMore?: boolean;
+  hasMore?: boolean;
 }>();
 
 const emit = defineEmits<{
   (e: "select-from-default", movie: MovieSearchIndex): void;
   (e: "select-from-search", movie: MovieSearchIndex): void;
-  (e: "close"): void;
 }>();
 
-const defaultListHeaders = [
-  {
-    value: "title",
-    style: "text-left pl-4",
-  },
-];
-
-const searchHeaders = [
-  {
-    value: "title",
-    style: "text-left pl-4",
-  },
-];
+const getPosterUrl = (posterPath: string): string => {
+  if (!hasValue(posterPath)) return "";
+  if (posterPath.startsWith("http")) return posterPath;
+  return `${BASE_IMAGE_URL}${posterPath}`;
+};
 
 const getReleaseYear = (date: string) => {
-  if (date !== undefined && date.length > 4) {
+  if (hasValue(date) && date.length > 4) {
     return date.substring(0, 4);
   } else {
     return "";
@@ -122,6 +116,11 @@ const { data: searchData, isLoading: loadingSearch } = useSearch(
   searchText,
   includeSearch,
 );
+
+const showLoadMore = computed(() => {
+  const hasNoSearchText = searchText.value.trim().length === 0;
+  return isDefined(onLoadMore) && hasMore && hasNoSearchText;
+});
 
 const noResults = computed(() => {
   // Don't show "no results" if the user hasn't typed anything
