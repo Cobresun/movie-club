@@ -43,38 +43,10 @@
           :overview="movie.externalData.overview"
         />
       </div>
-
-      <!-- Action buttons -->
-      <div class="mt-6 flex w-full gap-3">
-        <button
-          class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary/20 py-3 text-primary"
-          @click="emit('review')"
-        >
-          <mdicon name="check" />
-          <span>Reviewed</span>
-        </button>
-        <button
-          class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary/20 py-3 text-primary"
-          @click="toggleNextWork"
-        >
-          <mdicon
-            :name="isNextWork ? 'arrow-collapse-down' : 'arrow-collapse-up'"
-          />
-          <span>{{ isNextWork ? "Unpin" : "Up Next" }}</span>
-        </button>
-        <button
-          class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-red-500/20 py-3 text-red-500"
-          @click="showDeleteConfirmation = true"
-        >
-          <mdicon name="delete" />
-          <span>Delete</span>
-        </button>
-      </div>
     </template>
 
     <!-- Mobile layout -->
     <template v-else>
-      <!-- Compact header: poster + title + date -->
       <div class="flex gap-4">
         <img
           :src="`https://image.tmdb.org/t/p/w500/${movie.externalData?.poster_path}`"
@@ -92,7 +64,6 @@
         </div>
       </div>
 
-      <!-- Collapsible metadata -->
       <Disclosure v-slot="{ open }">
         <DisclosureButton
           class="mt-4 flex w-full items-center justify-between rounded-lg bg-lowBackground px-4 py-2.5 text-sm font-medium text-gray-300"
@@ -121,34 +92,46 @@
           />
         </DisclosurePanel>
       </Disclosure>
-
-      <!-- Action buttons -->
-      <div class="mt-6 flex w-full gap-3">
-        <button
-          class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary/20 py-3 text-primary"
-          @click="emit('review')"
-        >
-          <mdicon name="check" />
-          <span>Reviewed</span>
-        </button>
-        <button
-          class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary/20 py-3 text-primary"
-          @click="toggleNextWork"
-        >
-          <mdicon
-            :name="isNextWork ? 'arrow-collapse-down' : 'arrow-collapse-up'"
-          />
-          <span>{{ isNextWork ? "Unpin" : "Up Next" }}</span>
-        </button>
-        <button
-          class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-red-500/20 py-3 text-red-500"
-          @click="showDeleteConfirmation = true"
-        >
-          <mdicon name="delete" />
-          <span>Delete</span>
-        </button>
-      </div>
     </template>
+
+    <!-- Action buttons -->
+    <div class="mt-6 flex w-full flex-wrap gap-3">
+      <button
+        v-if="canReview"
+        class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary/20 py-3 text-primary"
+        @click="emit('review')"
+      >
+        <mdicon name="check" />
+        <span>Reviewed</span>
+      </button>
+      <button
+        class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary/20 py-3 text-primary"
+        @click="toggleNextWork"
+      >
+        <mdicon
+          :name="isNextWork ? 'arrow-collapse-down' : 'arrow-collapse-up'"
+        />
+        <span>{{ isNextWork ? "Unpin" : "Up Next" }}</span>
+      </button>
+      <button
+        class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-red-500/20 py-3 text-red-500"
+        @click="showDeleteConfirmation = true"
+      >
+        <mdicon name="delete" />
+        <span>Delete</span>
+      </button>
+    </div>
+
+    <select
+      v-if="otherLists.length > 0"
+      class="mt-3 w-full rounded-md bg-slate-800 px-2 py-2 text-sm text-white"
+      @change="onMoveSelect"
+    >
+      <option value="">Move to…</option>
+      <option v-for="l in otherLists" :key="l.id" :value="l.id">
+        {{ l.title }}
+      </option>
+    </select>
   </div>
 </template>
 
@@ -163,10 +146,12 @@ import DeleteConfirmationModal from "@/common/components/DeleteConfirmationModal
 import MovieDescription from "@/common/components/MovieDescription.vue";
 import MovieMetadataGrid from "@/common/components/MovieMetadataGrid.vue";
 
-const { movie, isNextWork, isDesktop } = defineProps<{
+const { isNextWork } = defineProps<{
   movie: DetailedWorkListItem;
   isNextWork: boolean;
   isDesktop: boolean;
+  canReview: boolean;
+  otherLists: { id: string; title: string }[];
 }>();
 
 const emit = defineEmits<{
@@ -175,6 +160,7 @@ const emit = defineEmits<{
   (e: "set-next-work"): void;
   (e: "clear-next-work"): void;
   (e: "delete"): void;
+  (e: "move-to-list", listId: string): void;
 }>();
 
 const showDeleteConfirmation = ref(false);
@@ -190,6 +176,13 @@ const toggleNextWork = () => {
   } else {
     emit("set-next-work");
   }
+};
+
+const onMoveSelect = (e: Event) => {
+  const target = e.target as HTMLSelectElement;
+  if (target.value === "") return;
+  emit("move-to-list", target.value);
+  target.value = "";
 };
 
 const formatDate = (dateString: string) => {

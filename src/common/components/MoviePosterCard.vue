@@ -30,6 +30,8 @@
         v-lazy-load
         :src="moviePosterUrl"
         class="aspect-[2/3] w-full rounded-t-lg object-cover"
+        :class="{ 'cursor-pointer': selectable }"
+        @click="selectable ? emit('select') : undefined"
       />
       <div class="flex h-auto flex-grow flex-col px-2 pb-2">
         <div class="my-2 flex flex-grow items-center justify-center">
@@ -50,6 +52,7 @@ const {
   highlighted = false,
   showDelete = false,
   showDragHandle = false,
+  selectable = false,
 } = defineProps<{
   movieTitle: string;
   moviePosterUrl: string;
@@ -57,7 +60,11 @@ const {
   showDelete?: boolean;
   showDragHandle?: boolean;
   loading?: boolean;
+  selectable?: boolean;
 }>();
 
-const emit = defineEmits<{ (e: "delete"): void }>();
+const emit = defineEmits<{
+  (e: "delete"): void;
+  (e: "select"): void;
+}>();
 </script>
