@@ -23,7 +23,7 @@
   />
   <div v-else class="flex">
     <div :class="['w-full', { 'md:pr-[35vw]': isDefined(selectedMovie) }]">
-      <div class="ml-2 flex justify-start gap-2">
+      <div class="ml-2 flex flex-wrap justify-start gap-2">
         <v-btn @click="openPrompt">
           Add Movie
           <mdicon name="plus" />
@@ -38,6 +38,10 @@
         >
           Reorder
           <mdicon name="swap-vertical" />
+        </v-btn>
+        <v-btn @click="shareWatchlist">
+          Share
+          <mdicon name="share-variant" />
         </v-btn>
       </div>
       <VueDraggableNext
@@ -305,5 +309,11 @@ const deleteSelectedMovie = async () => {
     selectedMovieId.value = undefined;
     await deleteWatchlistItem(movie.id);
   }
+};
+
+const shareWatchlist = async () => {
+  const url = `${window.location.origin}/share/club/${clubSlug}/watchlist`;
+  await navigator.clipboard.writeText(url);
+  toast.success("Watchlist link copied to clipboard!");
 };
 </script>
