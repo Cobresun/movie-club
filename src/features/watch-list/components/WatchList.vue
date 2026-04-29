@@ -71,9 +71,7 @@
             work.id === OPTIMISTIC_WORK_ID ||
             (loadingAddReview && reviewedWork?.toString() === work.externalId)
           "
-          :show-delete="work.id !== OPTIMISTIC_WORK_ID"
           @click="openMovieDetails(work.id)"
-          @delete="() => deleteWatchlistItem(work.id)"
         >
           <div class="grid grid-cols-2 gap-2">
             <v-btn class="flex justify-center" @click.stop="reviewMovie(work)">
