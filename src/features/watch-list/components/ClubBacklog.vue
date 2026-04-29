@@ -71,9 +71,7 @@
           :movie-title="movie.title"
           :movie-poster-url="movie.imageUrl ?? ''"
           :highlighted="selectedMovieId === movie.id"
-          show-delete
           @click="openMovieDetails(movie.id)"
-          @delete="() => deleteBacklogItem(movie.id)"
         >
           <v-btn
             class="flex justify-center"
