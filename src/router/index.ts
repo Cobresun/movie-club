@@ -164,10 +164,9 @@ const routes: Array<RouteRecordRaw> = [
     },
   },
   {
-    path: "/share/club/:clubSlug/watchlist",
-    name: "SharedWatchlist",
-    component: () =>
-      import("../features/watch-list/views/SharedWatchlistView.vue"),
+    path: "/share/club/:clubSlug/list/:listId",
+    name: "SharedList",
+    component: () => import("../features/watch-list/views/SharedListView.vue"),
     meta: {
       depth: 1,
       noAuth: true,

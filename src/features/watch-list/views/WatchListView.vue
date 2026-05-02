@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, shallowRef } from "vue";
+import { useToast } from "vue-toastification";
 
 import { hasElements } from "../../../../lib/checks/checks";
 import AddMovieModal from "../components/AddMovieModal.vue";
@@ -38,6 +39,13 @@ const managingLists = shallowRef(false);
 const addingToListId = shallowRef<string | null>(null);
 const startAdd = (listId: string) => {
   addingToListId.value = listId;
+};
+
+const toast = useToast();
+const shareList = async (listId: string) => {
+  const url = `${window.location.origin}/share/club/${clubSlug}/list/${listId}`;
+  await navigator.clipboard.writeText(url);
+  toast.success("List link copied to clipboard!");
 };
 </script>
 
@@ -81,7 +89,16 @@ const startAdd = (listId: string) => {
                 ({{ list.itemCount }})
               </span>
             </div>
-            <v-btn @click="startAdd(list.id)">+ Add</v-btn>
+            <div class="flex flex-shrink-0 items-center gap-2">
+              <v-btn
+                title="Share list"
+                aria-label="Share list"
+                @click="shareList(list.id)"
+              >
+                <mdicon name="share-variant" :size="16" />
+              </v-btn>
+              <v-btn @click="startAdd(list.id)">+ Add</v-btn>
+            </div>
           </div>
 
           <div v-show="!isCollapsed(list.id)">
