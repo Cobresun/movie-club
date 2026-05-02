@@ -45,11 +45,9 @@
               :movie-title="item.title"
               :movie-poster-url="item.imageUrl ?? ''"
               :loading="false"
-              :show-delete="true"
               :show-drag-handle="item.id !== nextWorkId"
               :highlighted="item.id === nextWorkId"
               selectable
-              @delete="onDelete(item.id)"
               @select="selectedItemId = item.id"
             >
               <div class="mt-2 flex flex-col gap-2">
