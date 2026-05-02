@@ -4,10 +4,10 @@ import axios from "axios";
 import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
+import { reviewsListKey } from "./useList";
 import { useUserClubs } from "./useUser";
 import { hasValue } from "../../lib/checks/checks.js";
 import { ClubPreview, Member } from "../../lib/types/club";
-import { WorkListType } from "../../lib/types/generated/db";
 import {
   clearLastClubSlug,
   getLastClubSlug,
@@ -149,7 +149,7 @@ export function useRemoveMember(clubSlug: string) {
       queryClient.invalidateQueries(["members", clubSlug]).catch(console.error);
       queryClient
         .invalidateQueries({
-          queryKey: ["list", clubSlug, WorkListType.reviews],
+          queryKey: reviewsListKey(clubSlug),
         })
         .catch(console.error); // TODO: this isn't working and refreshing scores
     },
