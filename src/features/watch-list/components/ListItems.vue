@@ -16,12 +16,6 @@
     />
     <template v-else>
       <div :class="['w-full', { 'md:pr-[35vw]': isDefined(selectedItem) }]">
-        <div v-if="draggableItems.length > 1" class="mt-2 flex justify-end">
-          <v-btn @click="randomPickerOpen = true">
-            Random
-            <mdicon name="dice-multiple-outline" />
-          </v-btn>
-        </div>
         <VueDraggableNext
           v-model="draggableItems"
           tag="div"
@@ -85,19 +79,6 @@
                     />
                   </v-btn>
                 </div>
-                <select
-                  v-if="otherLists.length > 0"
-                  class="w-full rounded-md bg-slate-800 px-2 py-1 text-sm text-white"
-                  @change="
-                    (e) =>
-                      onMove(item.id, (e.target as HTMLSelectElement).value)
-                  "
-                >
-                  <option value="">Move to…</option>
-                  <option v-for="l in otherLists" :key="l.id" :value="l.id">
-                    {{ l.title }}
-                  </option>
-                </select>
               </div>
             </MoviePosterCard>
           </div>
@@ -152,7 +133,10 @@ const props = defineProps<{
   listId: string;
   otherLists: { id: string; title: string }[];
   reviewsListId: string | null;
+  randomPickerOpen?: boolean;
 }>();
+
+const emit = defineEmits<{ "update:randomPickerOpen": [value: boolean] }>();
 
 const { listId } = toRefs(props);
 const { data: items, isLoading } = useList(props.clubSlug, listId);
@@ -209,7 +193,10 @@ const onMove = (workId: string, destinationListId: string) => {
   });
 };
 
-const randomPickerOpen = ref(false);
+const randomPickerOpen = computed({
+  get: () => props.randomPickerOpen ?? false,
+  set: (val) => emit("update:randomPickerOpen", val),
+});
 
 const selectedItemId = ref<string | null>(null);
 const selectedItem = computed(() =>

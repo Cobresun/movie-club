@@ -37,6 +37,7 @@ const managingLists = shallowRef(false);
 
 // -- add movie (to a specific list) --
 const addingToListId = shallowRef<string | null>(null);
+const randomOpenListId = shallowRef<string | null>(null);
 const startAdd = (listId: string) => {
   addingToListId.value = listId;
 };
@@ -91,13 +92,27 @@ const shareList = async (listId: string) => {
             </div>
             <div class="flex flex-shrink-0 items-center gap-2">
               <v-btn
+                v-if="list.itemCount > 1"
+                title="Random pick"
+                aria-label="Random pick"
+                @click="randomOpenListId = list.id"
+              >
+                <mdicon name="dice-multiple-outline" :size="16" />
+              </v-btn>
+              <v-btn
                 title="Share list"
                 aria-label="Share list"
                 @click="shareList(list.id)"
               >
                 <mdicon name="share-variant" :size="16" />
               </v-btn>
-              <v-btn @click="startAdd(list.id)">+ Add</v-btn>
+              <v-btn
+                title="Add to list"
+                aria-label="Add to list"
+                @click="startAdd(list.id)"
+              >
+                <mdicon name="plus" :size="16" />
+              </v-btn>
             </div>
           </div>
 
@@ -107,6 +122,12 @@ const shareList = async (listId: string) => {
               :list-id="list.id"
               :other-lists="otherLists(list.id)"
               :reviews-list-id="reviewsListId"
+              :random-picker-open="randomOpenListId === list.id"
+              @update:random-picker-open="
+                (v) => {
+                  if (!v) randomOpenListId = null;
+                }
+              "
             />
           </div>
         </section>
