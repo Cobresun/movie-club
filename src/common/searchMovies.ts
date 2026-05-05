@@ -1,6 +1,7 @@
 import { DetailedWorkListItem } from "../../lib/types/lists";
 
 /**
+ * Filters movie/review rows by structured filters and optional title text.
  *
  * @param works
  * @param searchQuery - Can be either a search query string (legacy) or an object with filters and freeText
@@ -30,6 +31,8 @@ import { DetailedWorkListItem } from "../../lib/types/lists";
  * TODO: Create a new vue component for the search bar that highlights filters different colors.
  * TODO: Make user lists use DetailedMovie[] so they can use the same search function and bar.
  *
+ * **String form:** `key:value` tokens plus remaining tokens as title search — kept for
+ * programmatic use, pasted queries, and tests; not required for in-app search bars.
  */
 export function filterMovies<T extends DetailedWorkListItem>(
   works: T[],

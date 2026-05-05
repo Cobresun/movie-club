@@ -170,7 +170,7 @@
   </div>
 </template>
 
-<script setup lang="ts">
+<script setup lang="ts" generic="T extends DetailedWorkListItem">
 import {
   Popover,
   PopoverButton,
@@ -186,30 +186,32 @@ import {
   watchEffect,
 } from "vue";
 
-import { DetailedReviewListItem } from "../../../lib/types/lists";
+import type { DetailedWorkListItem } from "../../../lib/types/lists";
 import { filterMovies } from "../searchMovies";
 
 // Component props
 interface Props {
-  data: DetailedReviewListItem[];
+  data: T[];
   searchPlaceholder?: string;
   className?: string;
+  excludeFilterKeys?: string[];
 }
 
 const props = withDefaults(defineProps<Props>(), {
   searchPlaceholder: "Search",
   className: "mb-4",
+  excludeFilterKeys: () => [],
 });
 
-const filteredData = defineModel<DetailedReviewListItem[]>("filteredData", {
+const filteredData = defineModel<T[]>("filteredData", {
   required: true,
 });
 const hasActiveFilters = defineModel<boolean>("hasActiveFilters", {
   required: true,
 });
 
-// Filter options configuration
-const FILTER_OPTIONS = [
+// Filter options configuration (all available options; filtered by excludeFilterKeys prop)
+const ALL_FILTER_OPTIONS = [
   {
     key: "genre",
     label: "Genre",
@@ -254,7 +256,11 @@ const FILTER_OPTIONS = [
   },
 ];
 
-type FilterOption = (typeof FILTER_OPTIONS)[number];
+type FilterOption = (typeof ALL_FILTER_OPTIONS)[number];
+
+const FILTER_OPTIONS = computed(() =>
+  ALL_FILTER_OPTIONS.filter((o) => !props.excludeFilterKeys.includes(o.key)),
+);
 
 // Value suggestions derived from current data with frequency counts
 const genreCounts = computed(() => {
