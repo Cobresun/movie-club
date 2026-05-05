@@ -1,4 +1,5 @@
 import { ref, watch } from "vue";
+import { z } from "zod";
 
 /**
  * Tracks which lists the user has collapsed on a given club's lists page.
@@ -12,10 +13,8 @@ export function useCollapsedLists(clubSlug: string) {
     try {
       const raw = localStorage.getItem(storageKey);
       if (raw === null) return new Set<string>();
-      const parsed: unknown = JSON.parse(raw);
-      if (!Array.isArray(parsed)) return new Set<string>();
-      const strings = parsed.filter((v): v is string => typeof v === "string");
-      return new Set<string>(strings);
+      const result = z.array(z.string()).safeParse(JSON.parse(raw));
+      return result.success ? new Set(result.data) : new Set<string>();
     } catch {
       return new Set<string>();
     }

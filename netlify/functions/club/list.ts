@@ -15,7 +15,7 @@ import WorkRepository from "../repositories/WorkRepository";
 import { secured } from "../utils/auth";
 import { badRequest, internalServerError, ok } from "../utils/responses";
 import { Router } from "../utils/router";
-import { ClubRequest, securedList, validListId } from "../utils/validation";
+import { ClubRequest, ListRequest, validListId } from "../utils/validation";
 import { overviewToExternalData } from "../utils/workDetailsMapper.js";
 
 import { BadRequest } from "@/common/errorCodes";
@@ -40,9 +40,8 @@ router.get("/reviews", async ({ clubId }, res) => {
 // User lists collection
 // ---------------------------------------------------------------------------
 
-router.get("/", async ({ clubId, event }, res) => {
-  const includeSystem = event.queryStringParameters?.includeSystem === "true";
-  const lists = await ListRepository.getListsForClub(clubId, { includeSystem });
+router.get("/", async ({ clubId }, res) => {
+  const lists = await ListRepository.getListsForClub(clubId);
   return res(
     ok(
       JSON.stringify(
@@ -55,6 +54,11 @@ router.get("/", async ({ clubId, event }, res) => {
       ),
     ),
   );
+});
+
+router.get("/reviews-id", secured, async ({ clubId }, res) => {
+  const id = await ListRepository.getReviewsListId(clubId);
+  return res(ok(JSON.stringify({ id })));
 });
 
 const createListSchema = z.object({
@@ -128,7 +132,7 @@ const renameSchema = z.object({
 router.put(
   "/:listId",
   validListId,
-  securedList,
+  secured<ListRequest>,
   async ({ listId, listSystemType, event }, res) => {
     if (listSystemType !== null) {
       return res(badRequest("Cannot rename a system list"));
@@ -145,7 +149,7 @@ router.put(
 router.delete(
   "/:listId",
   validListId,
-  securedList,
+  secured<ListRequest>,
   async ({ listId, listSystemType }, res) => {
     if (listSystemType !== null) {
       return res(badRequest("Cannot delete a system list"));
@@ -160,7 +164,7 @@ router.delete(
 router.post(
   "/:listId/items",
   validListId,
-  securedList,
+  secured<ListRequest>,
   async ({ listId, clubId, event }, res) => {
     if (!hasValue(event.body)) return res(badRequest("No body provided"));
     const body = listInsertDtoSchema.safeParse(JSON.parse(event.body));
@@ -193,7 +197,7 @@ router.post(
 router.delete(
   "/:listId/items/:workId",
   validListId,
-  securedList,
+  secured<ListRequest>,
   async ({ listId, clubId, params }, res) => {
     if (!hasValue(params.workId)) {
       return res(badRequest("No workId provided"));
@@ -223,7 +227,7 @@ const reorderSchema = z.object({
 router.put(
   "/:listId/reorder",
   validListId,
-  securedList,
+  secured<ListRequest>,
   async ({ listId, event }, res) => {
     if (!hasValue(event.body)) return res(badRequest("No body provided"));
     let parsed: unknown;
@@ -247,7 +251,7 @@ const updateAddedDateSchema = z.object({
 router.put(
   "/:listId/items/:workId/added-date",
   validListId,
-  securedList,
+  secured<ListRequest>,
   async ({ listId, params, event }, res) => {
     if (!hasValue(params.workId)) {
       return res(badRequest("No workId provided"));
@@ -277,7 +281,7 @@ const moveSchema = z.object({
 router.post(
   "/:listId/items/:workId/move",
   validListId,
-  securedList,
+  secured<ListRequest>,
   async ({ listId, clubId, params, event }, res) => {
     if (!hasValue(params.workId)) {
       return res(badRequest("No workId provided"));
@@ -288,8 +292,9 @@ router.post(
 
     const destination = await ListRepository.getListById(
       body.data.destinationListId,
+      clubId,
     );
-    if (!destination || String(destination.club_id) !== clubId) {
+    if (!destination) {
       return res(badRequest("Destination list not found"));
     }
     // Allow moves into the `reviews` system list (this is how the per-item

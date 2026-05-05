@@ -7,7 +7,7 @@ import {
 import axios, { AxiosError } from "axios";
 import { computed, unref, type MaybeRef } from "vue";
 
-import { isDefined } from "../../lib/checks/checks.js";
+import { hasValue, isDefined } from "../../lib/checks/checks.js";
 import {
   DetailedReviewListItem,
   DetailedWorkListItem,
@@ -39,23 +39,28 @@ export const reviewsListKey = (clubSlug: string) =>
 export interface ClubListSummary {
   id: string;
   title: string;
-  systemType: "reviews" | "award_nominations" | null;
+  systemType: "reviews" | null;
   itemCount: number;
 }
 
 export function useClubLists(
   clubSlug: string,
-  options: { includeSystem?: boolean } = {},
 ): UseQueryReturnType<ClubListSummary[], AxiosError> {
-  const includeSystem = options.includeSystem === true;
   return useQuery({
-    queryKey: [...clubListsKey(clubSlug), { includeSystem }] as const,
+    queryKey: clubListsKey(clubSlug),
     queryFn: async () =>
-      (
-        await axios.get<ClubListSummary[]>(`/api/club/${clubSlug}/list`, {
-          params: includeSystem ? { includeSystem: "true" } : undefined,
-        })
-      ).data,
+      (await axios.get<ClubListSummary[]>(`/api/club/${clubSlug}/list`)).data,
+  });
+}
+
+export function useReviewsListId(
+  clubSlug: string,
+): UseQueryReturnType<string, AxiosError> {
+  return useQuery({
+    queryKey: ["reviewsListId", clubSlug] as const,
+    queryFn: async () =>
+      (await axios.get<{ id: string }>(`/api/club/${clubSlug}/list/reviews-id`))
+        .data.id,
   });
 }
 
@@ -106,17 +111,7 @@ export function useReorderClubLists(clubSlug: string) {
       for (const [key, data] of snapshots) {
         if (!data) continue;
         const byId = new Map(data.map((l) => [l.id, l]));
-        const reordered: ClubListSummary[] = [];
-        for (const id of listIds) {
-          const l = byId.get(id);
-          if (l) reordered.push(l);
-        }
-        // Append any lists missing from the payload (e.g. a hidden system
-        // list that the frontend didn't include in the drag) so we don't
-        // lose rows from the cache.
-        for (const l of data) {
-          if (!listIds.includes(l.id)) reordered.push(l);
-        }
+        const reordered = listIds.map((id) => byId.get(id)).filter(isDefined);
         queryClient.setQueryData(key, reordered);
       }
       return { snapshots };
@@ -182,15 +177,11 @@ export function useUpdateReviewAddedDate(clubSlug: string) {
       workId: string;
       addedDate: string;
     }) => {
-      const lists = (
-        await axios.get<ClubListSummary[]>(`/api/club/${clubSlug}/list`, {
-          params: { includeSystem: "true" },
-        })
+      const { id: reviewsListId } = (
+        await axios.get<{ id: string }>(`/api/club/${clubSlug}/list/reviews-id`)
       ).data;
-      const reviewsList = lists.find((l) => l.systemType === "reviews");
-      if (!reviewsList) throw new Error("Reviews list not found");
       return auth.request.put(
-        `/api/club/${clubSlug}/list/${reviewsList.id}/items/${workId}/added-date`,
+        `/api/club/${clubSlug}/list/${reviewsListId}/items/${workId}/added-date`,
         { addedDate },
       );
     },
@@ -245,16 +236,23 @@ export function useQueueReview(clubSlug: string) {
   const auth = useAuthStore();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({
+    mutationFn: async ({
       workId,
       sourceListId,
     }: {
       workId: string;
       sourceListId?: string;
-    }) =>
-      auth.request.post(`/api/club/${clubSlug}/reviews/${workId}/queue`, {
-        sourceListId,
-      }),
+    }) => {
+      if (!hasValue(sourceListId)) return;
+      const { id: reviewsListId } = (
+        await axios.get<{ id: string }>(`/api/club/${clubSlug}/list/reviews-id`)
+      ).data;
+      if (sourceListId === reviewsListId) return;
+      return auth.request.post(
+        `/api/club/${clubSlug}/list/${sourceListId}/items/${workId}/move`,
+        { destinationListId: reviewsListId },
+      );
+    },
     onSettled: async () => {
       await queryClient.invalidateQueries({
         queryKey: reviewsListKey(clubSlug),
@@ -272,15 +270,11 @@ export function useAddToReviewsList(clubSlug: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (insertDto: ListInsertDto) => {
-      const lists = (
-        await axios.get<ClubListSummary[]>(`/api/club/${clubSlug}/list`, {
-          params: { includeSystem: "true" },
-        })
+      const { id: reviewsListId } = (
+        await axios.get<{ id: string }>(`/api/club/${clubSlug}/list/reviews-id`)
       ).data;
-      const reviewsList = lists.find((l) => l.systemType === "reviews");
-      if (!reviewsList) throw new Error("Reviews list not found");
       return auth.request.post(
-        `/api/club/${clubSlug}/list/${reviewsList.id}/items`,
+        `/api/club/${clubSlug}/list/${reviewsListId}/items`,
         insertDto,
       );
     },
@@ -293,8 +287,14 @@ export function useDeleteReview(clubSlug: string) {
   const auth = useAuthStore();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (workId: string) =>
-      auth.request.delete(`/api/club/${clubSlug}/reviews/${workId}`),
+    mutationFn: async (workId: string) => {
+      const { id: reviewsListId } = (
+        await axios.get<{ id: string }>(`/api/club/${clubSlug}/list/reviews-id`)
+      ).data;
+      return auth.request.delete(
+        `/api/club/${clubSlug}/list/${reviewsListId}/items/${workId}`,
+      );
+    },
     onMutate: (workId) => {
       queryClient.setQueryData<DetailedReviewListItem[]>(
         reviewsListKey(clubSlug),

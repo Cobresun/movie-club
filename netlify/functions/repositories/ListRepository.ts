@@ -37,11 +37,12 @@ class ListRepository {
     return query.execute();
   }
 
-  async getListById(listId: string) {
+  async getListById(listId: string, clubId: string) {
     return db
       .selectFrom("work_list")
       .selectAll()
       .where("id", "=", listId)
+      .where("club_id", "=", clubId)
       .executeTakeFirst();
   }
 
@@ -73,10 +74,12 @@ class ListRepository {
 
   async deleteList(listId: string) {
     // The fk_work_list_item_list_id constraint cascades work_list_item rows.
-    // The route layer must guard against deleting system lists (especially
-    // `reviews`, which is referenced by the `review` table FK and would
-    // otherwise leave reviews orphaned).
-    return db.deleteFrom("work_list").where("id", "=", listId).execute();
+    // system_type IS NULL ensures system lists (reviews, etc.) are never deleted.
+    return db
+      .deleteFrom("work_list")
+      .where("id", "=", listId)
+      .where("system_type", "is", null)
+      .execute();
   }
 
   /**
@@ -93,11 +96,6 @@ class ListRepository {
           club_id: clubId,
           title: "Reviews",
           system_type: WorkListSystemType.reviews,
-        },
-        {
-          club_id: clubId,
-          title: "Award Nominations",
-          system_type: WorkListSystemType.award_nominations,
         },
       ])
       .execute();
@@ -117,10 +115,6 @@ class ListRepository {
 
   async getReviewsListId(clubId: string) {
     return this.getSystemListId(clubId, WorkListSystemType.reviews);
-  }
-
-  async getAwardNominationsListId(clubId: string) {
-    return this.getSystemListId(clubId, WorkListSystemType.award_nominations);
   }
 
   // -- List item operations (now keyed by listId) -----------------------
@@ -331,17 +325,25 @@ class ListRepository {
     if (listIds.length === 0) return;
 
     return db.transaction().execute(async (trx) => {
-      // Verify every id belongs to this club — prevents a malicious caller
-      // from reordering another club's lists.
+      // Fetch ALL user lists for this club to verify ownership and completeness.
       const owned = await trx
         .selectFrom("work_list")
         .select("id")
         .where("club_id", "=", clubId)
-        .where("id", "in", listIds)
+        .where("system_type", "is", null)
         .execute();
 
       const ownedIds = new Set(owned.map((r) => String(r.id)));
       const valid = listIds.filter((id) => ownedIds.has(id));
+
+      // Payload must include every user list — partial reorders are rejected.
+      // Use Set to detect duplicates: ["a","a"] with owned ["a","b"] would
+      // pass a plain length check but miss "b".
+      if (new Set(valid).size !== owned.length) {
+        throw new Error(
+          "Reorder payload must include all user lists for the club",
+        );
+      }
       if (valid.length === 0) return;
 
       const whenClauses = valid.map((id, i) => sql`WHEN ${id} THEN ${i}`);

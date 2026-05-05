@@ -56,7 +56,7 @@ const clubSlug = route.params.clubSlug as string;
 const listId = route.params.listId as string;
 
 const { data: club } = useClub(clubSlug);
-const { data: lists } = useClubLists(clubSlug, { includeSystem: true });
+const { data: lists } = useClubLists(clubSlug);
 const { data: items, isLoading, error } = useList(clubSlug, listId);
 const { data: nextWorkId } = useNextWork(clubSlug);
 

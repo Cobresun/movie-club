@@ -1,82 +1,3 @@
-<script setup lang="ts">
-import { ref, shallowRef, watch } from "vue";
-import { VueDraggableNext } from "vue-draggable-next";
-
-import DeleteConfirmationModal from "@/common/components/DeleteConfirmationModal.vue";
-import {
-  ClubListSummary,
-  useClubLists,
-  useCreateList,
-  useDeleteList,
-  useRenameList,
-  useReorderClubLists,
-} from "@/service/useList";
-
-const props = defineProps<{
-  show: boolean;
-  clubSlug: string;
-}>();
-
-const emit = defineEmits<{
-  (e: "close"): void;
-}>();
-
-const { data: lists } = useClubLists(props.clubSlug, { includeSystem: false });
-
-// Local mirror for VueDraggableNext — it needs to own the array to mutate it.
-const draggableLists = ref<ClubListSummary[]>([]);
-watch(
-  () => lists.value ?? [],
-  (next) => {
-    draggableLists.value = [...next];
-  },
-  { immediate: true },
-);
-
-// -- reorder --
-const { mutate: reorderClubLists } = useReorderClubLists(props.clubSlug);
-const onListsReordered = () => {
-  reorderClubLists(draggableLists.value.map((l) => l.id));
-};
-
-// -- create --
-const newListTitle = shallowRef("");
-const { mutate: createList } = useCreateList(props.clubSlug);
-const confirmCreateList = () => {
-  const title = newListTitle.value.trim();
-  if (title === "") return;
-  createList(title);
-  newListTitle.value = "";
-};
-
-// -- rename --
-const renamingListId = shallowRef<string | null>(null);
-const renameTitle = shallowRef("");
-const { mutate: renameList } = useRenameList(props.clubSlug);
-const startRename = (list: ClubListSummary) => {
-  renamingListId.value = list.id;
-  renameTitle.value = list.title;
-};
-const confirmRename = (listId: string) => {
-  const title = renameTitle.value.trim();
-  if (title === "") return;
-  renameList({ listId, title });
-  renamingListId.value = null;
-};
-const cancelRename = () => {
-  renamingListId.value = null;
-};
-
-// -- delete --
-const deletingListId = shallowRef<string | null>(null);
-const { mutate: deleteList } = useDeleteList(props.clubSlug);
-const confirmDeleteList = () => {
-  if (deletingListId.value === null) return;
-  deleteList(deletingListId.value);
-  deletingListId.value = null;
-};
-</script>
-
 <template>
   <v-modal v-if="show" size="default" z-index="50" @close="emit('close')">
     <div class="flex flex-col gap-4">
@@ -169,3 +90,82 @@ const confirmDeleteList = () => {
     @confirm="confirmDeleteList"
   />
 </template>
+
+<script setup lang="ts">
+import { ref, shallowRef, watch } from "vue";
+import { VueDraggableNext } from "vue-draggable-next";
+
+import DeleteConfirmationModal from "@/common/components/DeleteConfirmationModal.vue";
+import {
+  ClubListSummary,
+  useClubLists,
+  useCreateList,
+  useDeleteList,
+  useRenameList,
+  useReorderClubLists,
+} from "@/service/useList";
+
+const props = defineProps<{
+  show: boolean;
+  clubSlug: string;
+}>();
+
+const emit = defineEmits<{
+  (e: "close"): void;
+}>();
+
+const { data: lists } = useClubLists(props.clubSlug);
+
+// Local mirror for VueDraggableNext — it needs to own the array to mutate it.
+const draggableLists = ref<ClubListSummary[]>([]);
+watch(
+  () => lists.value ?? [],
+  (next) => {
+    draggableLists.value = [...next];
+  },
+  { immediate: true },
+);
+
+// -- reorder --
+const { mutate: reorderClubLists } = useReorderClubLists(props.clubSlug);
+const onListsReordered = () => {
+  reorderClubLists(draggableLists.value.map((l) => l.id));
+};
+
+// -- create --
+const newListTitle = shallowRef("");
+const { mutate: createList } = useCreateList(props.clubSlug);
+const confirmCreateList = () => {
+  const title = newListTitle.value.trim();
+  if (title === "") return;
+  createList(title);
+  newListTitle.value = "";
+};
+
+// -- rename --
+const renamingListId = shallowRef<string | null>(null);
+const renameTitle = shallowRef("");
+const { mutate: renameList } = useRenameList(props.clubSlug);
+const startRename = (list: ClubListSummary) => {
+  renamingListId.value = list.id;
+  renameTitle.value = list.title;
+};
+const confirmRename = (listId: string) => {
+  const title = renameTitle.value.trim();
+  if (title === "") return;
+  renameList({ listId, title });
+  renamingListId.value = null;
+};
+const cancelRename = () => {
+  renamingListId.value = null;
+};
+
+// -- delete --
+const deletingListId = shallowRef<string | null>(null);
+const { mutate: deleteList } = useDeleteList(props.clubSlug);
+const confirmDeleteList = () => {
+  if (deletingListId.value === null) return;
+  deleteList(deletingListId.value);
+  deletingListId.value = null;
+};
+</script>

@@ -28,7 +28,8 @@ router.get("/:clubSlug", validClubSlug, async ({ clubSlug }, res) => {
     `20260407_ArbitraryClubLists`. System lists (`reviews`,
     `award_nominations`) are filtered out by default and only returned when
     `?includeSystem=true`.
-    - `GET /` - List a club's user lists with item counts
+    - `GET /` - List a club's user lists with item counts (system lists excluded)
+    - `GET /reviews-id` - Return the reviews system list ID (`{ id: string }`)
     - `POST /` - Create a new list (`{ title }`)
     - `GET /reviews` - Special-case rich shape for the reviews system list
     - `GET /:listId` - Items on a single list

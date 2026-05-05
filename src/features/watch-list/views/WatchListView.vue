@@ -9,20 +9,19 @@ import ManageListsModal from "../components/ManageListsModal.vue";
 import { useCollapsedLists } from "../composables/useCollapsedLists";
 
 import { useClubSlug } from "@/service/useClub";
-import { ClubListSummary, useClubLists } from "@/service/useList";
+import {
+  ClubListSummary,
+  useClubLists,
+  useReviewsListId,
+} from "@/service/useList";
 
 const clubSlug = useClubSlug();
-const { data: lists, isLoading } = useClubLists(clubSlug, {
-  includeSystem: true,
-});
+const { data: lists, isLoading } = useClubLists(clubSlug);
+const { data: reviewsListIdData } = useReviewsListId(clubSlug);
 
-// Only user lists show in the UI; the reviews list is resolved separately so
-// the per-item "Review" button knows its destination.
-const userLists = computed<ClubListSummary[]>(() =>
-  (lists.value ?? []).filter((l) => l.systemType === null),
-);
+const userLists = computed<ClubListSummary[]>(() => lists.value ?? []);
 const reviewsListId = computed<string | null>(
-  () => lists.value?.find((l) => l.systemType === "reviews")?.id ?? null,
+  () => reviewsListIdData.value ?? null,
 );
 
 const otherLists = (listId: string) =>
@@ -74,15 +73,19 @@ const shareList = async (listId: string) => {
         >
           <div class="flex items-center justify-between gap-2">
             <div class="flex min-w-0 items-center gap-2">
-              <button
-                class="text-slate-200 hover:text-primary"
+              <v-btn
                 :aria-label="
                   isCollapsed(list.id) ? 'Expand list' : 'Collapse list'
                 "
                 @click="toggle(list.id)"
               >
-                {{ isCollapsed(list.id) ? "▶" : "▼" }}
-              </button>
+                <mdicon
+                  :name="
+                    isCollapsed(list.id) ? 'chevron-right' : 'chevron-down'
+                  "
+                  :size="16"
+                />
+              </v-btn>
               <h2 class="truncate text-lg font-semibold text-white">
                 {{ list.title }}
               </h2>

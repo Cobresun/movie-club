@@ -19,7 +19,7 @@ export async function up(db: Kysely<unknown>) {
   // 1. New enum for system list identification.
   await db.schema
     .createType("work_list_system_type")
-    .asEnum(["reviews", "award_nominations"])
+    .asEnum(["reviews"])
     .execute();
 
   // 2. Add the new column (nullable for now so we can backfill).
@@ -29,16 +29,17 @@ export async function up(db: Kysely<unknown>) {
     .execute();
 
   // 3. Backfill system_type from the old `type` enum.
-  await sql`
-    UPDATE work_list
-    SET system_type = 'reviews'
-    WHERE type = 'reviews'
-  `.execute(db);
-  await sql`
-    UPDATE work_list
-    SET system_type = 'award_nominations'
-    WHERE type = 'award_nominations'
-  `.execute(db);
+  interface MigrationWorkListTable {
+    id: string;
+    system_type: "reviews" | null;
+    type: string;
+  }
+  const typedDb = db.withTables<{ work_list: MigrationWorkListTable }>();
+  await typedDb
+    .updateTable("work_list")
+    .set({ system_type: "reviews" })
+    .where("type", "=", "reviews")
+    .execute();
 
   // 4. Backfill missing titles using the historical default-title map so
   //    we can flip `title` to NOT NULL.

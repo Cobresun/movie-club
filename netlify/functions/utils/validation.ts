@@ -1,7 +1,7 @@
-import { AuthRequest, secured } from "./auth";
 import { notFound } from "./responses";
 import { MiddlewareCallback, Request } from "./router";
 import { hasValue } from "../../../lib/checks/checks.js";
+import { WorkListSystemType } from "../../../lib/types/generated/db.js";
 import ClubRepository from "../repositories/ClubRepository";
 import ListRepository from "../repositories/ListRepository";
 
@@ -17,7 +17,7 @@ export type ClubRequest<T extends Request = Request> = T & {
 
 export type ListRequest<T extends ClubRequest = ClubRequest> = T & {
   listId: string;
-  listSystemType: "reviews" | "award_nominations" | null;
+  listSystemType: WorkListSystemType | null;
 };
 
 /**
@@ -65,8 +65,8 @@ export const validListId: MiddlewareCallback<ClubRequest, ListRequest> = async (
   if (!hasValue(listId)) {
     return res(notFound("List not found"));
   }
-  const list = await ListRepository.getListById(listId);
-  if (!list || String(list.club_id) !== req.clubId) {
+  const list = await ListRepository.getListById(listId, req.clubId);
+  if (!list) {
     return res(notFound("List not found"));
   }
   return {
@@ -75,15 +75,3 @@ export const validListId: MiddlewareCallback<ClubRequest, ListRequest> = async (
     listSystemType: list.system_type,
   };
 };
-
-/**
- * Non-generic alias of `secured` typed for ListRequest. The Router's chain
- * inference fails to instantiate `secured`'s `T extends ClubRequest` generic
- * to ListRequest when chained after validListId — it widens to ClubRequest
- * and the handler loses access to listId/listSystemType. This wrapper pins
- * T=ListRequest so the chain types resolve cleanly.
- */
-export const securedList: MiddlewareCallback<
-  ListRequest,
-  AuthRequest<ListRequest>
-> = (req, res) => secured(req, res);
