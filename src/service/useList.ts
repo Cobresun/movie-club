@@ -98,8 +98,7 @@ export function useCreateList(clubSlug: string) {
     onSuccess: (newList) => {
       queryClient.setQueryData<ClubListSummary[]>(
         clubListsKey(clubSlug),
-        (current) =>
-          current?.map((l) => (l.id === TEMP_LIST_ID ? newList : l)),
+        (current) => current?.map((l) => (l.id === TEMP_LIST_ID ? newList : l)),
       );
     },
     onSettled: () =>

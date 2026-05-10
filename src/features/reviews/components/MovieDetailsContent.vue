@@ -336,7 +336,7 @@ const saveDateChange = () => {
       .startOf("day")
       .toISO();
 
-    if (isoDate !== null && reviewsListId.value) {
+    if (isoDate !== null && hasValue(reviewsListId.value)) {
       updateAddedDate({
         listId: reviewsListId.value,
         workId: props.movie.original.id,
