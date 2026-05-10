@@ -15,6 +15,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 
+import { hasValue } from "../../../../lib/checks/checks";
 import { WorkType } from "../../../../lib/types/generated/db";
 import { MovieSearchIndex } from "../../../../lib/types/movie";
 import MovieSearchPrompt from "../../../common/components/MovieSearchPrompt.vue";
@@ -57,7 +58,7 @@ const selectFromDefault = async (movie: MovieSearchIndex) => {
   const sourceItem = listItems.value?.find(
     (item) => item.externalId === movie.id.toString(),
   );
-  if (!sourceItem || !reviewsListId.value) return;
+  if (!sourceItem || !hasValue(reviewsListId.value)) return;
   await queueReview(
     {
       workId: sourceItem.id,
@@ -69,7 +70,7 @@ const selectFromDefault = async (movie: MovieSearchIndex) => {
 };
 
 const selectFromSearch = async (movie: MovieSearchIndex) => {
-  if (!reviewsListId.value) return;
+  if (!hasValue(reviewsListId.value)) return;
   await addFromSearch(
     {
       insertDto: {
