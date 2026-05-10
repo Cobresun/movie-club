@@ -239,7 +239,7 @@ const editingTable = ref(false);
 const { data: reviewsListId } = useReviewsListId(clubSlug);
 const { mutate: deleteReviewMutation } = useDeleteReview(clubSlug);
 const deleteReview = (workId: string) => {
-  if (!reviewsListId.value) return;
+  if (!hasValue(reviewsListId.value)) return;
   deleteReviewMutation({ workId, reviewsListId: reviewsListId.value });
 };
 

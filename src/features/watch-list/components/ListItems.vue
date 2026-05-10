@@ -161,10 +161,8 @@ watch(
   [items, () => props.filterText],
   ([next, filter]) => {
     const all = next ? [...next] : [];
-    draggableItems.value = filter
-      ? all.filter((i) =>
-          i.title.toLowerCase().includes(filter.toLowerCase()),
-        )
+    draggableItems.value = hasValue(filter)
+      ? all.filter((i) => i.title.toLowerCase().includes(filter.toLowerCase()))
       : all;
   },
   { immediate: true },
