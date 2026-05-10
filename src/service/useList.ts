@@ -64,6 +64,8 @@ export function useReviewsListId(
   });
 }
 
+const TEMP_LIST_ID = "temp-list";
+
 export function useCreateList(clubSlug: string) {
   const auth = useAuthStore();
   const queryClient = useQueryClient();
@@ -74,6 +76,32 @@ export function useCreateList(clubSlug: string) {
           title,
         })
       ).data,
+    onMutate: async (title) => {
+      await queryClient.cancelQueries({ queryKey: clubListsKey(clubSlug) });
+      const previous = queryClient.getQueryData<ClubListSummary[]>(
+        clubListsKey(clubSlug),
+      );
+      queryClient.setQueryData<ClubListSummary[]>(
+        clubListsKey(clubSlug),
+        (current) => [
+          ...(current ?? []),
+          { id: TEMP_LIST_ID, title, systemType: null, itemCount: 0 },
+        ],
+      );
+      return { previous };
+    },
+    onError: (_err, _title, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(clubListsKey(clubSlug), context.previous);
+      }
+    },
+    onSuccess: (newList) => {
+      queryClient.setQueryData<ClubListSummary[]>(
+        clubListsKey(clubSlug),
+        (current) =>
+          current?.map((l) => (l.id === TEMP_LIST_ID ? newList : l)),
+      );
+    },
     onSettled: () =>
       queryClient.invalidateQueries({ queryKey: clubListsKey(clubSlug) }),
   });
@@ -166,39 +194,6 @@ export function useList(
   });
 }
 
-export function useUpdateReviewAddedDate(clubSlug: string) {
-  const auth = useAuthStore();
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async ({
-      workId,
-      addedDate,
-    }: {
-      workId: string;
-      addedDate: string;
-    }) => {
-      const { id: reviewsListId } = (
-        await axios.get<{ id: string }>(`/api/club/${clubSlug}/list/reviews-id`)
-      ).data;
-      return auth.request.put(
-        `/api/club/${clubSlug}/list/${reviewsListId}/items/${workId}/added-date`,
-        { addedDate },
-      );
-    },
-    onMutate: ({ workId, addedDate }) => {
-      queryClient.setQueryData<DetailedReviewListItem[]>(
-        reviewsListKey(clubSlug),
-        (currentList) =>
-          currentList?.map((item) =>
-            item.id === workId ? { ...item, createdDate: addedDate } : item,
-          ),
-      );
-    },
-    onSettled: () =>
-      queryClient.invalidateQueries({ queryKey: reviewsListKey(clubSlug) }),
-  });
-}
-
 export interface UserListItemWithSource extends DetailedWorkListItem {
   sourceListId: string;
   sourceListTitle: string;
@@ -239,14 +234,13 @@ export function useQueueReview(clubSlug: string) {
     mutationFn: async ({
       workId,
       sourceListId,
+      reviewsListId,
     }: {
       workId: string;
       sourceListId?: string;
+      reviewsListId: string;
     }) => {
       if (!hasValue(sourceListId)) return;
-      const { id: reviewsListId } = (
-        await axios.get<{ id: string }>(`/api/club/${clubSlug}/list/reviews-id`)
-      ).data;
       if (sourceListId === reviewsListId) return;
       return auth.request.post(
         `/api/club/${clubSlug}/list/${sourceListId}/items/${workId}/move`,
@@ -269,15 +263,17 @@ export function useAddToReviewsList(clubSlug: string) {
   const auth = useAuthStore();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (insertDto: ListInsertDto) => {
-      const { id: reviewsListId } = (
-        await axios.get<{ id: string }>(`/api/club/${clubSlug}/list/reviews-id`)
-      ).data;
-      return auth.request.post(
+    mutationFn: async ({
+      insertDto,
+      reviewsListId,
+    }: {
+      insertDto: ListInsertDto;
+      reviewsListId: string;
+    }) =>
+      auth.request.post(
         `/api/club/${clubSlug}/list/${reviewsListId}/items`,
         insertDto,
-      );
-    },
+      ),
     onSettled: () =>
       queryClient.invalidateQueries({ queryKey: reviewsListKey(clubSlug) }),
   });
@@ -287,15 +283,17 @@ export function useDeleteReview(clubSlug: string) {
   const auth = useAuthStore();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (workId: string) => {
-      const { id: reviewsListId } = (
-        await axios.get<{ id: string }>(`/api/club/${clubSlug}/list/reviews-id`)
-      ).data;
-      return auth.request.delete(
+    mutationFn: async ({
+      workId,
+      reviewsListId,
+    }: {
+      workId: string;
+      reviewsListId: string;
+    }) =>
+      auth.request.delete(
         `/api/club/${clubSlug}/list/${reviewsListId}/items/${workId}`,
-      );
-    },
-    onMutate: (workId) => {
+      ),
+    onMutate: ({ workId }) => {
       queryClient.setQueryData<DetailedReviewListItem[]>(
         reviewsListKey(clubSlug),
         (current) => current?.filter((item) => item.id !== workId),
@@ -440,11 +438,21 @@ export function useMoveListItem(clubSlug: string) {
         `/api/club/${clubSlug}/list/${sourceListId}/items/${workId}/move`,
         { destinationListId },
       ),
-    onMutate: ({ sourceListId, workId }) => {
+    onMutate: ({ sourceListId, destinationListId, workId }) => {
+      const sourceItems = queryClient.getQueryData<DetailedWorkListItem[]>(
+        listKey(clubSlug, sourceListId),
+      );
+      const movingItem = sourceItems?.find((item) => item.id === workId);
       queryClient.setQueryData<DetailedWorkListItem[]>(
         listKey(clubSlug, sourceListId),
         (current) => current?.filter((item) => item.id !== workId),
       );
+      if (movingItem) {
+        queryClient.setQueryData<DetailedWorkListItem[]>(
+          listKey(clubSlug, destinationListId),
+          (current) => (current ? [...current, movingItem] : [movingItem]),
+        );
+      }
     },
     onSettled: async (_data, _err, vars) => {
       await queryClient.invalidateQueries({

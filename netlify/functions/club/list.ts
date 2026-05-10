@@ -1,7 +1,6 @@
 import { z } from "zod";
 
 import { hasValue, isDefined } from "../../../lib/checks/checks.js";
-import { WorkListSystemType } from "../../../lib/types/generated/db.js";
 import {
   Review,
   ReviewListItem,
@@ -296,15 +295,6 @@ router.post(
     );
     if (!destination) {
       return res(badRequest("Destination list not found"));
-    }
-    // Allow moves into the `reviews` system list (this is how the per-item
-    // review button works). Block `award_nominations` — those go through
-    // the awards UI and have their own workflow.
-    if (
-      destination.system_type !== null &&
-      destination.system_type !== WorkListSystemType.reviews
-    ) {
-      return res(badRequest("Cannot move items into this system list"));
     }
 
     await ListRepository.moveItem(

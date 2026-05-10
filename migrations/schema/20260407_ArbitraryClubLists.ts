@@ -2,7 +2,7 @@ import { Kysely, sql } from "kysely";
 
 // Moves clubs from the rigid (watchlist | backlog | reviews | award_nominations)
 // list model to a model where each club can have an arbitrary number of
-// user-defined lists, plus optional "system" lists (reviews, award_nominations)
+// user-defined lists, plus optional "system" lists (reviews)
 // distinguished by a new `system_type` column.
 //
 // The previous `type` column conflated identity (this is THE watchlist) with
@@ -31,8 +31,11 @@ export async function up(db: Kysely<unknown>) {
   // 3. Backfill system_type from the old `type` enum.
   interface MigrationWorkListTable {
     id: string;
+    club_id: string;
     system_type: "reviews" | null;
     type: string;
+    title: string | null;
+    position: number;
   }
   const typedDb = db.withTables<{ work_list: MigrationWorkListTable }>();
   await typedDb
@@ -43,16 +46,18 @@ export async function up(db: Kysely<unknown>) {
 
   // 4. Backfill missing titles using the historical default-title map so
   //    we can flip `title` to NOT NULL.
-  await sql`
-    UPDATE work_list
-    SET title = CASE type
-      WHEN 'watchlist' THEN 'Watch List'
-      WHEN 'backlog' THEN 'Backlog'
-      WHEN 'reviews' THEN 'Reviews'
-      WHEN 'award_nominations' THEN 'Award Nominations'
-    END
-    WHERE title IS NULL
-  `.execute(db);
+  await typedDb
+    .updateTable("work_list")
+    .set({
+      title: sql<string>`CASE type
+        WHEN 'watchlist' THEN 'Watch List'
+        WHEN 'backlog' THEN 'Backlog'
+        WHEN 'reviews' THEN 'Reviews'
+        WHEN 'award_nominations' THEN 'Award Nominations'
+      END`,
+    })
+    .where("title", "is", null)
+    .execute();
 
   await db.schema
     .alterTable("work_list")
@@ -69,24 +74,35 @@ export async function up(db: Kysely<unknown>) {
     .addColumn("position", "integer", (col) => col.notNull().defaultTo(0))
     .execute();
 
-  await sql`UPDATE work_list SET position = 0 WHERE type = 'watchlist'`.execute(
-    db,
-  );
-  await sql`UPDATE work_list SET position = 1 WHERE type = 'backlog'`.execute(
-    db,
-  );
-  await sql`
-    WITH ranked AS (
-      SELECT id,
-             ROW_NUMBER() OVER (PARTITION BY club_id ORDER BY id) + 1 AS rn
-      FROM work_list
-      WHERE type NOT IN ('watchlist', 'backlog')
+  await typedDb
+    .updateTable("work_list")
+    .set({ position: 0 })
+    .where("type", "=", "watchlist")
+    .execute();
+
+  await typedDb
+    .updateTable("work_list")
+    .set({ position: 1 })
+    .where("type", "=", "backlog")
+    .execute();
+
+  await typedDb
+    .with("ranked", (qb) =>
+      qb
+        .selectFrom("work_list")
+        .select([
+          "id",
+          sql<number>`ROW_NUMBER() OVER (PARTITION BY club_id ORDER BY id) + 1`.as(
+            "rn",
+          ),
+        ])
+        .where("type", "not in", ["watchlist", "backlog"]),
     )
-    UPDATE work_list AS w
-    SET position = r.rn
-    FROM ranked AS r
-    WHERE w.id = r.id
-  `.execute(db);
+    .updateTable("work_list")
+    .from("ranked")
+    .set({ position: sql<number>`ranked.rn` })
+    .whereRef("work_list.id", "=", "ranked.id")
+    .execute();
 
   // 5. Drop the unique(club_id, type) constraint — clubs may now have
   //    many user lists. CockroachDB stores unique constraints as unique
@@ -134,31 +150,47 @@ export async function down(db: Kysely<unknown>) {
     .addColumn("type", sql`work_list_type`)
     .execute();
 
-  // Reviews and award_nominations rows can be restored exactly.
-  await sql`
-    UPDATE work_list SET type = 'reviews' WHERE system_type = 'reviews'
-  `.execute(db);
-  await sql`
-    UPDATE work_list SET type = 'award_nominations' WHERE system_type = 'award_nominations'
-  `.execute(db);
+  interface RollbackWorkListTable {
+    id: string;
+    club_id: string;
+    system_type: "reviews" | null;
+    type: "backlog" | "watchlist" | "reviews" | "award_nominations" | null;
+  }
+  const typedDb = db.withTables<{ work_list: RollbackWorkListTable }>();
+
+  // Restore the reviews system list type.
+  await typedDb
+    .updateTable("work_list")
+    .set({ type: "reviews" })
+    .where("system_type", "=", "reviews")
+    .execute();
 
   // For non-system lists, keep at most one per club, mapped to 'watchlist'.
   // Any extras are deleted (their items cascade away). This is a destructive
   // rollback by necessity.
-  await sql`
-    WITH ranked AS (
-      SELECT id,
-             ROW_NUMBER() OVER (PARTITION BY club_id ORDER BY id) AS rn
-      FROM work_list
-      WHERE system_type IS NULL
+  await typedDb
+    .with("ranked", (qb) =>
+      qb
+        .selectFrom("work_list")
+        .select([
+          "id",
+          sql<number>`ROW_NUMBER() OVER (PARTITION BY club_id ORDER BY id)`.as(
+            "rn",
+          ),
+        ])
+        .where("system_type", "is", null),
     )
-    DELETE FROM work_list
-    WHERE id IN (SELECT id FROM ranked WHERE rn > 1)
-  `.execute(db);
+    .deleteFrom("work_list")
+    .where("id", "in", (qb) =>
+      qb.selectFrom("ranked").select("id").where("rn", ">", 1),
+    )
+    .execute();
 
-  await sql`
-    UPDATE work_list SET type = 'watchlist' WHERE system_type IS NULL
-  `.execute(db);
+  await typedDb
+    .updateTable("work_list")
+    .set({ type: "watchlist" })
+    .where("system_type", "is", null)
+    .execute();
 
   await db.schema
     .alterTable("work_list")

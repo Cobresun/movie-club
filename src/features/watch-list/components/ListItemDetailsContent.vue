@@ -124,7 +124,7 @@
 
     <select
       v-if="otherLists.length > 0"
-      class="mt-3 w-full rounded-md bg-slate-800 px-2 py-2 text-sm text-white"
+      class="mt-3 w-full cursor-pointer rounded-md bg-slate-800 px-2 py-2 text-sm text-white"
       @change="onMoveSelect"
     >
       <option value="">Move to…</option>

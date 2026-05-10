@@ -6,14 +6,12 @@ import { db } from "../utils/database";
 class ListRepository {
   // -- List CRUD --------------------------------------------------------
 
-  async getListsForClub(
-    clubId: string,
-    options: { includeSystem?: boolean } = {},
-  ) {
-    let query = db
+  async getListsForClub(clubId: string) {
+    return db
       .selectFrom("work_list")
       .leftJoin("work_list_item", "work_list_item.list_id", "work_list.id")
       .where("work_list.club_id", "=", clubId)
+      .where("work_list.system_type", "is", null)
       .select([
         "work_list.id",
         "work_list.title",
@@ -28,13 +26,8 @@ class ListRepository {
         "work_list.position",
       ])
       .orderBy("work_list.position", "asc")
-      .orderBy("work_list.id", "asc");
-
-    if (options.includeSystem !== true) {
-      query = query.where("work_list.system_type", "is", null);
-    }
-
-    return query.execute();
+      .orderBy("work_list.id", "asc")
+      .execute();
   }
 
   async getListById(listId: string, clubId: string) {

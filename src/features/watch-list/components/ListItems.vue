@@ -42,7 +42,7 @@
               :show-drag-handle="item.id !== nextWorkId"
               :highlighted="item.id === nextWorkId"
               selectable
-              @select="selectedItemId = item.id"
+              @select="emit('select', item.id)"
             >
               <div class="mt-2 flex flex-col gap-2">
                 <div class="grid grid-cols-2 gap-2">
@@ -90,16 +90,16 @@
         :is-next-work="selectedItem.id === nextWorkId"
         :can-review="canReview && listId !== reviewsListId"
         :other-lists="otherLists"
-        @close="selectedItemId = null"
+        @close="emit('deselect')"
         @review="
           onReview(selectedItem.id);
-          selectedItemId = null;
+          emit('deselect');
         "
         @set-next-work="onSetNextWatch(selectedItem.id)"
         @clear-next-work="clearNextWork()"
         @delete="
           onDelete(selectedItem.id);
-          selectedItemId = null;
+          emit('deselect');
         "
         @move-to-list="(destId) => onMoveFromDrawer(destId)"
       />
@@ -134,9 +134,15 @@ const props = defineProps<{
   otherLists: { id: string; title: string }[];
   reviewsListId: string | null;
   randomPickerOpen?: boolean;
+  selectedItemId: string | null;
+  filterText?: string;
 }>();
 
-const emit = defineEmits<{ "update:randomPickerOpen": [value: boolean] }>();
+const emit = defineEmits<{
+  "update:randomPickerOpen": [value: boolean];
+  select: [workId: string];
+  deselect: [];
+}>();
 
 const { listId } = toRefs(props);
 const { data: items, isLoading } = useList(props.clubSlug, listId);
@@ -149,11 +155,17 @@ const { mutate: clearNextWork } = useClearNextWork(props.clubSlug);
 const { mutate: reorderList } = useReorderList(props.clubSlug, props.listId);
 
 // Local mirror for VueDraggableNext — it needs to own the array to mutate it.
+// Also applies text filter (partial reorders on a filtered set are handled correctly by the server).
 const draggableItems = ref<DetailedWorkListItem[]>([]);
 watch(
-  items,
-  (next) => {
-    draggableItems.value = next ? [...next] : [];
+  [items, () => props.filterText],
+  ([next, filter]) => {
+    const all = next ? [...next] : [];
+    draggableItems.value = filter
+      ? all.filter((i) =>
+          i.title.toLowerCase().includes(filter.toLowerCase()),
+        )
+      : all;
   },
   { immediate: true },
 );
@@ -198,17 +210,16 @@ const randomPickerOpen = computed({
   set: (val) => emit("update:randomPickerOpen", val),
 });
 
-const selectedItemId = ref<string | null>(null);
 const selectedItem = computed(() =>
-  selectedItemId.value === null
+  props.selectedItemId === null
     ? undefined
-    : draggableItems.value.find((i) => i.id === selectedItemId.value),
+    : draggableItems.value.find((i) => i.id === props.selectedItemId),
 );
 
 const onMoveFromDrawer = (destinationListId: string) => {
   if (selectedItem.value === undefined) return;
   onMove(selectedItem.value.id, destinationListId);
-  selectedItemId.value = null;
+  emit("deselect");
 };
 
 const onMakeNext = (item: DetailedWorkListItem) => {

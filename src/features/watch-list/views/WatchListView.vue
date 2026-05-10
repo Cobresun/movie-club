@@ -31,8 +31,16 @@ const otherLists = (listId: string) =>
 
 const { isCollapsed, toggle } = useCollapsedLists(clubSlug);
 
+// -- single selected item across all lists --
+const selectedInfo = shallowRef<{ listId: string; workId: string } | null>(
+  null,
+);
+
 // -- manage lists modal --
 const managingLists = shallowRef(false);
+
+// -- search --
+const searchText = shallowRef("");
 
 // -- add movie (to a specific list) --
 const addingToListId = shallowRef<string | null>(null);
@@ -59,6 +67,18 @@ const shareList = async (listId: string) => {
     <loading-spinner v-if="isLoading" />
     <template v-else-if="hasElements(userLists)">
       <div class="mb-4 flex flex-wrap items-center justify-center gap-2">
+        <div class="relative w-full max-w-sm">
+          <mdicon
+            name="magnify"
+            class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+            :size="18"
+          />
+          <input
+            v-model="searchText"
+            class="w-full rounded-md border border-slate-600 bg-background py-2 pl-9 pr-3 text-sm text-white outline-none focus:border-primary"
+            placeholder="Search movies…"
+          />
+        </div>
         <v-btn @click="managingLists = true">
           <mdicon name="cog" :size="16" class="mr-1" />
           Manage lists
@@ -126,11 +146,17 @@ const shareList = async (listId: string) => {
               :other-lists="otherLists(list.id)"
               :reviews-list-id="reviewsListId"
               :random-picker-open="randomOpenListId === list.id"
+              :selected-item-id="
+                selectedInfo?.listId === list.id ? selectedInfo.workId : null
+              "
+              :filter-text="searchText"
               @update:random-picker-open="
                 (v) => {
                   if (!v) randomOpenListId = null;
                 }
               "
+              @select="(workId) => (selectedInfo = { listId: list.id, workId })"
+              @deselect="selectedInfo = null"
             />
           </div>
         </section>

@@ -25,9 +25,8 @@ router.get("/:clubSlug", validClubSlug, async ({ clubSlug }, res) => {
 - `/api/club/*` - All club-related endpoints
   - `/:clubSlug/list` - Arbitrary user-defined lists per club. List IDs are
     UUIDs; the legacy `watchlist` / `backlog` enum was removed in
-    `20260407_ArbitraryClubLists`. System lists (`reviews`,
-    `award_nominations`) are filtered out by default and only returned when
-    `?includeSystem=true`.
+    `20260407_ArbitraryClubLists`. System lists (`reviews`) are always
+    filtered out from the collection endpoint.
     - `GET /` - List a club's user lists with item counts (system lists excluded)
     - `GET /reviews-id` - Return the reviews system list ID (`{ id: string }`)
     - `POST /` - Create a new list (`{ title }`)
@@ -39,11 +38,9 @@ router.get("/:clubSlug", validClubSlug, async ({ clubSlug }, res) => {
     - `DELETE /:listId/items/:workId` - Remove a work from a list
     - `PUT /:listId/reorder` - Reorder list items
     - `PUT /:listId/items/:workId/added-date` - Update item added date
-    - `POST /:listId/items/:workId/move` - Move a work to another user list
+    - `POST /:listId/items/:workId/move` - Move a work to another list
   - `/:clubSlug/reviews` - Movie reviews
-    - `POST /` - Score a movie (optionally moves from a `sourceListId`)
-    - `POST /:workId/queue` - Add a work to the reviews list without scoring
-      (optionally moves from a `sourceListId`)
+    - `POST /` - Score a movie (`{ workId, score }`)
     - `DELETE /:workId` - Remove a work from the reviews list
     - `GET /:workId/shared` - Shared review data for external sharing
     - `GET /:workId/comments` - Get comments for a work
@@ -80,7 +77,7 @@ Located in `netlify/functions/repositories/`:
 - `ClubRepository` - Club CRUD, membership checks, invites
 - `UserRepository` - User lookup and management
 - `WorkRepository` - Movie/work management
-- `ListRepository` - List CRUD and item operations; system lists (reviews, award_nominations) distinguished by `system_type` and looked up via `getReviewsListId` / `getAwardNominationsListId`. `moveItem` is transactional with `ON CONFLICT DO NOTHING` so review-from-list and move-between-lists share the same code path.
+- `ListRepository` - List CRUD and item operations; the reviews system list is distinguished by `system_type = 'reviews'` and looked up via `getReviewsListId`. `moveItem` is transactional with `ON CONFLICT DO NOTHING` so moving items into the reviews list and moving between user lists share the same code path.
 - `ReviewRepository` - Review data access
 - `AwardsRepository` - Awards system data
 - `SettingsRepository` - Club settings storage

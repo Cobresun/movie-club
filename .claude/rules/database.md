@@ -26,14 +26,14 @@ paths:
 - `session` - User sessions (BetterAuth managed)
 - `verification` - Email verification tokens (BetterAuth managed)
 - `movie_details` - Cached movie metadata from TMDB
-- `work_list` - Generic list table. Each club has one or more user-defined lists (free-form titles, `system_type IS NULL`) plus optional system lists (`system_type = 'reviews' | 'award_nominations'`). A partial unique index `uq_work_list_club_system_type` enforces at most one of each system list per club. The legacy `type` enum was removed in `20260407_ArbitraryClubLists`.
+- `work_list` - Generic list table. Each club has one or more user-defined lists (free-form titles, `system_type IS NULL`) plus optional system lists (`system_type = 'reviews'`). A partial unique index `uq_work_list_club_system_type` enforces at most one of each system list per club. The legacy `type` enum was removed in `20260407_ArbitraryClubLists`.
 - `work_comment` - Comments on movie works (club_id, content, spoiler, user_id, work_id)
 - `review` - Movie reviews with scores
 - `awards_temp` - Temporary awards data storage (JSON)
 - `movie_directors` - Movie-to-director junction table
 - Various movie metadata junction tables (genres, production companies, countries)
 
-**Enums:** `WorkListSystemType` (reviews, award_nominations), `WorkType` (movie)
+**Enums:** `WorkListSystemType` (reviews), `WorkType` (movie)
 
 ## Migration Workflow
 

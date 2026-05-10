@@ -115,7 +115,11 @@ import {
   useMembers,
   useClubSettings,
 } from "@/service/useClub";
-import { useDeleteReview, useReviewsList } from "@/service/useList";
+import {
+  useDeleteReview,
+  useReviewsList,
+  useReviewsListId,
+} from "@/service/useList";
 import { useUser } from "@/service/useUser";
 
 const { clubSlug } = defineProps<{ clubSlug: string }>();
@@ -232,7 +236,12 @@ const galleryColumnVisibility = {
 
 const editingTable = ref(false);
 
-const { mutate: deleteReview } = useDeleteReview(clubSlug);
+const { data: reviewsListId } = useReviewsListId(clubSlug);
+const { mutate: deleteReviewMutation } = useDeleteReview(clubSlug);
+const deleteReview = (workId: string) => {
+  if (!reviewsListId.value) return;
+  deleteReviewMutation({ workId, reviewsListId: reviewsListId.value });
+};
 
 const mdicon = resolveComponent("mdicon");
 const currentUser = useUser();

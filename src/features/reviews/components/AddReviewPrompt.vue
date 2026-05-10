@@ -25,6 +25,7 @@ import {
   useAddToReviewsList,
   useAllUserListItems,
   useQueueReview,
+  useReviewsListId,
 } from "@/service/useList";
 
 const emit = defineEmits<{
@@ -35,6 +36,7 @@ const clubId = useClubSlug();
 
 const { data: listItems, isLoading: listsLoading } =
   useAllUserListItems(clubId);
+const { data: reviewsListId } = useReviewsListId(clubId);
 
 const combinedListSearchIndex = computed(
   () =>
@@ -55,20 +57,28 @@ const selectFromDefault = async (movie: MovieSearchIndex) => {
   const sourceItem = listItems.value?.find(
     (item) => item.externalId === movie.id.toString(),
   );
-  if (!sourceItem) return;
+  if (!sourceItem || !reviewsListId.value) return;
   await queueReview(
-    { workId: sourceItem.id, sourceListId: sourceItem.sourceListId },
+    {
+      workId: sourceItem.id,
+      sourceListId: sourceItem.sourceListId,
+      reviewsListId: reviewsListId.value,
+    },
     { onSuccess: () => emit("close") },
   );
 };
 
 const selectFromSearch = async (movie: MovieSearchIndex) => {
+  if (!reviewsListId.value) return;
   await addFromSearch(
     {
-      type: WorkType.movie,
-      title: movie.title,
-      externalId: movie.id.toString(),
-      imageUrl: `${BASE_IMAGE_URL}${movie.poster_path}`,
+      insertDto: {
+        type: WorkType.movie,
+        title: movie.title,
+        externalId: movie.id.toString(),
+        imageUrl: `${BASE_IMAGE_URL}${movie.poster_path}`,
+      },
+      reviewsListId: reviewsListId.value,
     },
     { onSuccess: () => emit("close") },
   );
