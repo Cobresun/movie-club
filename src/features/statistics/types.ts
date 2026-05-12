@@ -40,6 +40,14 @@ export interface DecadeStats {
   count: number;
 }
 
+export interface TopMovieEntry {
+  id: string;
+  title: string;
+  imageUrl: string | undefined;
+  average: number;
+  reviewCount: number;
+}
+
 export interface MemberLeaderboardEntry {
   member: { id: string; name: string; image?: string; role?: string };
   averageScore: number;

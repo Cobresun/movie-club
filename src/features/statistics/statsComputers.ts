@@ -10,6 +10,7 @@ import type {
   MovieData,
   ScoreTrendPoint,
   TmdbDeviationEntry,
+  TopMovieEntry,
 } from "./types";
 import {
   hasValue,
@@ -262,6 +263,26 @@ export function computeClubConsensus(
     mostAgreed: sorted.slice(0, 3),
     mostDivisive: sorted.slice(-3).sort((a, b) => b.stdDev - a.stdDev),
   };
+}
+
+const TOP_MOVIES_LIMIT = 5;
+
+export function computeTopMovies(movieData: MovieData[]): TopMovieEntry[] {
+  const entries: TopMovieEntry[] = movieData.map((movie) => ({
+    id: movie.id,
+    title: movie.title,
+    imageUrl: movie.imageUrl,
+    average: movie.average,
+    reviewCount: Object.values(movie.userScores).filter(isDefined).length,
+  }));
+
+  return entries
+    .sort((a, b) => {
+      if (b.average !== a.average) return b.average - a.average;
+      if (b.reviewCount !== a.reviewCount) return b.reviewCount - a.reviewCount;
+      return a.title.localeCompare(b.title);
+    })
+    .slice(0, TOP_MOVIES_LIMIT);
 }
 
 const TMDB_PROFILE_BASE_URL = "https://image.tmdb.org/t/p/w185";
