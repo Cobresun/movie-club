@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, shallowRef } from "vue";
+import { computed, onMounted, onUnmounted, ref, shallowRef } from "vue";
 import { useToast } from "vue-toastification";
 
 import { hasElements } from "../../../../lib/checks/checks";
@@ -39,15 +39,39 @@ const selectedInfo = shallowRef<{ listId: string; workId: string } | null>(
 // -- manage lists modal --
 const managingLists = shallowRef(false);
 
-// -- search --
-const searchText = shallowRef("");
-
 // -- add movie (to a specific list) --
 const addingToListId = shallowRef<string | null>(null);
 const randomOpenListId = shallowRef<string | null>(null);
 const startAdd = (listId: string) => {
   addingToListId.value = listId;
 };
+
+// -- search --
+const searchTerm = ref("");
+const searchInput = ref<HTMLInputElement | null>(null);
+const searchInputSlash = ref<HTMLElement | null>(null);
+
+const searchInputFocusIn = () => {
+  if (searchInputSlash.value) searchInputSlash.value.style.display = "none";
+};
+const searchInputFocusOut = () => {
+  if (searchInputSlash.value) searchInputSlash.value.style.display = "";
+};
+
+const onKeyPress = (e: KeyboardEvent) => {
+  if (e.key === "/") {
+    if (searchInput.value === document.activeElement) return;
+    e.preventDefault();
+    searchInput.value?.focus();
+  }
+};
+
+onMounted(() => {
+  window.addEventListener("keypress", onKeyPress);
+});
+onUnmounted(() => {
+  window.removeEventListener("keypress", onKeyPress);
+});
 
 const toast = useToast();
 const shareList = async (listId: string) => {
@@ -67,17 +91,25 @@ const shareList = async (listId: string) => {
     <loading-spinner v-if="isLoading" />
     <template v-else-if="hasElements(userLists)">
       <div class="mb-4 flex flex-wrap items-center justify-center gap-2">
-        <div class="relative w-full max-w-sm">
+        <div class="relative">
           <mdicon
             name="magnify"
-            class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-            :size="18"
+            class="absolute left-8 top-1/2 -translate-y-1/2 transform text-slate-200"
           />
           <input
-            v-model="searchText"
-            class="w-full rounded-md border border-slate-600 bg-background py-2 pl-9 pr-3 text-sm text-white outline-none focus:border-primary"
-            placeholder="Search movies…"
+            ref="searchInput"
+            v-model="searchTerm"
+            class="w-11/12 rounded-md border-2 border-slate-600 bg-background p-2 pl-12 text-base text-white outline-none focus:border-primary"
+            placeholder="Search"
+            @focusin="searchInputFocusIn"
+            @focusout="searchInputFocusOut"
           />
+          <div
+            ref="searchInputSlash"
+            class="absolute right-8 top-1/2 -translate-y-1/2 transform rounded-md border-2 border-slate-600 px-2 py-1"
+          >
+            <p class="text-xs text-slate-200">/</p>
+          </div>
         </div>
         <v-btn @click="managingLists = true">
           <mdicon name="cog" :size="16" class="mr-1" />
@@ -149,7 +181,7 @@ const shareList = async (listId: string) => {
               :selected-item-id="
                 selectedInfo?.listId === list.id ? selectedInfo.workId : null
               "
-              :filter-text="searchText"
+              :filter-text="searchTerm"
               @update:random-picker-open="
                 (v) => {
                   if (!v) randomOpenListId = null;

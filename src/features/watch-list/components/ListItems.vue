@@ -118,6 +118,7 @@ import { hasValue, isDefined } from "../../../../lib/checks/checks";
 import { DetailedWorkListItem } from "../../../../lib/types/lists";
 
 import MoviePosterCard from "@/common/components/MoviePosterCard.vue";
+import { filterMovies } from "@/common/searchMovies";
 import {
   useClearNextWork,
   useDeleteListItem,
@@ -161,9 +162,7 @@ watch(
   [items, () => props.filterText],
   ([next, filter]) => {
     const all = next ? [...next] : [];
-    draggableItems.value = hasValue(filter)
-      ? all.filter((i) => i.title.toLowerCase().includes(filter.toLowerCase()))
-      : all;
+    draggableItems.value = hasValue(filter) ? filterMovies(all, filter) : all;
   },
   { immediate: true },
 );
