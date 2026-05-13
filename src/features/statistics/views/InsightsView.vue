@@ -1,6 +1,6 @@
 <template>
   <div class="space-y-6 pb-6">
-    <TopMoviesPodiumWidget :movie-data="movieData" />
+    <TopMoviesPodiumWidget :movie-data="movieData" :members="members" />
     <StatsWidget :movie-data="movieData" />
     <ScoreDistributionWidget
       :movie-data="movieData"

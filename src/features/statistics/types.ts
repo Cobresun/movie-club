@@ -46,6 +46,7 @@ export interface TopMovieEntry {
   imageUrl: string | undefined;
   average: number;
   reviewCount: number;
+  rank: number;
 }
 
 export interface MemberLeaderboardEntry {

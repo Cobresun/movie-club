@@ -1,112 +1,163 @@
 <template>
-  <WidgetShell
-    v-if="topMovies.length > 0"
-    title="Top 5 Movies"
-    outer-class="w-full"
-    inner-class="rounded-xl border border-slate-700/50 bg-lowBackground/60 p-6"
-  >
-    <div class="flex items-end justify-center gap-3 sm:gap-6">
-      <div
-        v-for="position in podiumPositions"
-        :key="position.rank"
-        class="flex w-1/4 max-w-[10rem] flex-col items-center"
+  <WidgetShell v-if="movieData.length > 0" title="Top 5 Movies">
+    <div
+      v-if="members.length > 1"
+      class="mb-4 flex flex-wrap items-center gap-2"
+    >
+      <button
+        class="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-all"
+        :class="
+          !isDefined(selectedMemberId)
+            ? 'bg-primary text-white shadow-md shadow-primary/25'
+            : 'bg-lowBackground text-gray-400 hover:bg-gray-600 hover:text-white'
+        "
+        @click="selectedMemberId = undefined"
       >
-        <div class="mb-1 text-3xl leading-none sm:text-4xl">
-          {{ position.medal }}
-        </div>
-        <img
-          v-if="position.movie.imageUrl"
-          v-lazy-load
-          :src="position.movie.imageUrl"
-          :alt="position.movie.title"
-          class="mb-2 h-24 w-16 rounded object-cover shadow-lg sm:h-28 sm:w-20"
-        />
-        <div
-          v-else
-          class="mb-2 flex h-24 w-16 items-center justify-center rounded bg-slate-700/60 text-xl font-bold text-slate-300 shadow-lg sm:h-28 sm:w-20"
-        >
-          {{ position.movie.title.charAt(0) }}
-        </div>
-        <p
-          class="mb-1 line-clamp-2 w-full text-center text-xs font-semibold text-white sm:text-sm"
-          :title="position.movie.title"
-        >
-          {{ position.movie.title }}
-        </p>
-        <span
-          class="mb-2 text-sm font-bold sm:text-base"
-          :class="scoreColor(position.movie.average)"
-        >
-          {{ position.movie.average.toFixed(1) }}
-        </span>
-        <div
-          class="flex w-full items-start justify-center rounded-t-md border-x border-t pt-2 text-lg font-bold sm:text-xl"
-          :class="[position.standClass, position.standHeight]"
-        >
-          {{ position.rank }}
-        </div>
-      </div>
+        All
+      </button>
+      <button
+        v-for="member in members"
+        :key="member.id"
+        class="inline-flex items-center gap-1.5 rounded-full py-1 pl-1 pr-3 text-sm font-medium transition-all"
+        :class="
+          selectedMemberId === member.id
+            ? 'bg-primary text-white shadow-md shadow-primary/25'
+            : 'bg-lowBackground text-gray-400 hover:bg-gray-600 hover:text-white'
+        "
+        @click="selectedMemberId = member.id"
+      >
+        <v-avatar :src="member.image" :name="member.name" :size="24" />
+        {{ member.name }}
+      </button>
     </div>
 
-    <div
-      v-if="runnersUp.length > 0"
-      class="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2"
+    <p
+      v-if="topMovies.length === 0"
+      class="py-6 text-center text-sm text-slate-500"
     >
-      <div
-        v-for="movie in runnersUp"
-        :key="movie.entry.id"
-        class="flex items-center gap-3 rounded-lg border border-slate-700/30 bg-background/50 px-3 py-2.5"
-      >
-        <span class="w-6 shrink-0 text-center text-sm font-bold text-slate-400">
-          #{{ movie.rank }}
-        </span>
-        <img
-          v-if="movie.entry.imageUrl"
-          v-lazy-load
-          :src="movie.entry.imageUrl"
-          :alt="movie.entry.title"
-          class="h-14 w-10 shrink-0 rounded object-cover"
-        />
+      No scored movies for this selection yet.
+    </p>
+
+    <template v-else>
+      <div class="flex items-end justify-center gap-3 sm:gap-6">
         <div
-          v-else
-          class="flex h-14 w-10 shrink-0 items-center justify-center rounded bg-slate-700/60 text-sm font-bold text-slate-400"
+          v-for="stand in podiumStands"
+          :key="stand.rank"
+          class="flex w-1/4 max-w-[10rem] flex-col items-center"
         >
-          {{ movie.entry.title.charAt(0) }}
+          <div class="mb-1 text-3xl leading-none sm:text-4xl">
+            {{ stand.medal }}
+          </div>
+          <div
+            v-for="movie in stand.movies"
+            :key="movie.id"
+            class="mb-2 flex w-full flex-col items-center"
+          >
+            <img
+              v-if="movie.imageUrl"
+              v-lazy-load
+              :src="movie.imageUrl"
+              :alt="movie.title"
+              class="mb-2 h-24 w-16 rounded object-cover shadow-lg sm:h-28 sm:w-20"
+            />
+            <div
+              v-else
+              class="mb-2 flex h-24 w-16 items-center justify-center rounded bg-slate-700/60 text-xl font-bold text-slate-300 shadow-lg sm:h-28 sm:w-20"
+            >
+              {{ movie.title.charAt(0) }}
+            </div>
+            <p
+              class="mb-1 line-clamp-2 w-full text-center text-xs font-semibold text-white sm:text-sm"
+              :title="movie.title"
+            >
+              {{ movie.title }}
+            </p>
+            <span
+              class="text-sm font-bold sm:text-base"
+              :class="scoreColor(movie.average)"
+            >
+              {{ movie.average.toFixed(1) }}
+            </span>
+          </div>
+          <div
+            class="flex w-full items-start justify-center rounded-t-md border-x border-t pt-2 text-lg font-bold sm:text-xl"
+            :class="[stand.standClass, stand.standHeight]"
+          >
+            {{ stand.rank }}
+          </div>
         </div>
-        <p
-          class="min-w-0 flex-1 truncate text-sm font-medium text-white"
-          :title="movie.entry.title"
-        >
-          {{ movie.entry.title }}
-        </p>
-        <span
-          class="shrink-0 text-sm font-semibold"
-          :class="scoreColor(movie.entry.average)"
-        >
-          {{ movie.entry.average.toFixed(1) }}
-        </span>
       </div>
-    </div>
+
+      <div
+        v-if="runnersUp.length > 0"
+        class="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2"
+      >
+        <div
+          v-for="movie in runnersUp"
+          :key="movie.id"
+          class="flex items-center gap-3 rounded-lg border border-slate-700/30 bg-background/50 px-3 py-2.5"
+        >
+          <span
+            class="w-8 shrink-0 text-center text-sm font-bold text-slate-400"
+          >
+            #{{ movie.rank }}
+          </span>
+          <img
+            v-if="movie.imageUrl"
+            v-lazy-load
+            :src="movie.imageUrl"
+            :alt="movie.title"
+            class="h-14 w-10 shrink-0 rounded object-cover"
+          />
+          <div
+            v-else
+            class="flex h-14 w-10 shrink-0 items-center justify-center rounded bg-slate-700/60 text-sm font-bold text-slate-400"
+          >
+            {{ movie.title.charAt(0) }}
+          </div>
+          <p
+            class="min-w-0 flex-1 truncate text-sm font-medium text-white"
+            :title="movie.title"
+          >
+            {{ movie.title }}
+          </p>
+          <span
+            class="shrink-0 text-sm font-semibold"
+            :class="scoreColor(movie.average)"
+          >
+            {{ movie.average.toFixed(1) }}
+          </span>
+        </div>
+      </div>
+    </template>
   </WidgetShell>
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref } from "vue";
 
 import WidgetShell from "./WidgetShell.vue";
 import { isDefined } from "../../../../lib/checks/checks";
+import { type Member } from "../../../../lib/types/club";
 import { computeTopMovies } from "../statsComputers";
 import type { MovieData, TopMovieEntry } from "../types";
 
+import VAvatar from "@/common/components/VAvatar.vue";
+
 const props = defineProps<{
   movieData: MovieData[];
+  members: Member[];
 }>();
 
-const topMovies = computed(() => computeTopMovies(props.movieData));
+const selectedMemberId = ref<string | undefined>(undefined);
 
-interface PodiumPosition {
+const topMovies = computed(() =>
+  computeTopMovies(props.movieData, selectedMemberId.value),
+);
+
+interface PodiumStand {
   rank: number;
-  movie: TopMovieEntry;
+  movies: TopMovieEntry[];
   medal: string;
   standClass: string;
   standHeight: string;
@@ -138,19 +189,16 @@ const PODIUM_LAYOUT: ReadonlyArray<{
   },
 ];
 
-const podiumPositions = computed<PodiumPosition[]>(() => {
+const podiumStands = computed<PodiumStand[]>(() => {
   return PODIUM_LAYOUT.flatMap((layout) => {
-    const movie = topMovies.value[layout.rank - 1];
-    if (!isDefined(movie)) return [];
-    return [{ ...layout, movie }];
+    const movies = topMovies.value.filter((m) => m.rank === layout.rank);
+    if (movies.length === 0) return [];
+    return [{ ...layout, movies }];
   });
 });
 
 const runnersUp = computed(() =>
-  topMovies.value.slice(3).map((entry, idx) => ({
-    rank: idx + 4,
-    entry,
-  })),
+  topMovies.value.filter((movie) => movie.rank > 3),
 );
 
 function scoreColor(score: number): string {

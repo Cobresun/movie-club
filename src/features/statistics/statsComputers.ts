@@ -267,22 +267,44 @@ export function computeClubConsensus(
 
 const TOP_MOVIES_LIMIT = 5;
 
-export function computeTopMovies(movieData: MovieData[]): TopMovieEntry[] {
-  const entries: TopMovieEntry[] = movieData.map((movie) => ({
-    id: movie.id,
-    title: movie.title,
-    imageUrl: movie.imageUrl,
-    average: movie.average,
-    reviewCount: Object.values(movie.userScores).filter(isDefined).length,
-  }));
+export function computeTopMovies(
+  movieData: MovieData[],
+  memberId?: string,
+): TopMovieEntry[] {
+  const scored: Omit<TopMovieEntry, "rank">[] = [];
+  for (const movie of movieData) {
+    const score = isDefined(memberId)
+      ? movie.userScores[memberId]
+      : movie.average;
+    if (!isDefined(score)) continue;
+    scored.push({
+      id: movie.id,
+      title: movie.title,
+      imageUrl: movie.imageUrl,
+      average: score,
+      reviewCount: Object.values(movie.userScores).filter(isDefined).length,
+    });
+  }
 
-  return entries
-    .sort((a, b) => {
-      if (b.average !== a.average) return b.average - a.average;
-      if (b.reviewCount !== a.reviewCount) return b.reviewCount - a.reviewCount;
-      return a.title.localeCompare(b.title);
-    })
-    .slice(0, TOP_MOVIES_LIMIT);
+  scored.sort((a, b) => {
+    if (b.average !== a.average) return b.average - a.average;
+    return a.title.localeCompare(b.title);
+  });
+
+  const ranked: TopMovieEntry[] = [];
+  let currentRank = 0;
+  let previousScore: number | null = null;
+  for (let i = 0; i < scored.length; i++) {
+    const entry = scored[i];
+    if (previousScore === null || entry.average < previousScore) {
+      currentRank = i + 1;
+    }
+    if (currentRank > TOP_MOVIES_LIMIT) break;
+    ranked.push({ ...entry, rank: currentRank });
+    previousScore = entry.average;
+  }
+
+  return ranked.slice(0, TOP_MOVIES_LIMIT);
 }
 
 const TMDB_PROFILE_BASE_URL = "https://image.tmdb.org/t/p/w185";
