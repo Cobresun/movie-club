@@ -27,7 +27,7 @@ import { DetailedWorkListItem } from "../../lib/types/lists";
  *
  * TODO: Add support for OR searches.
  * TODO: Create a new vue component for the search bar that highlights filters different colors.
- * TODO: Make the watchlist and backlog use DetailedMovie[] so they can use the same search function and bar.
+ * TODO: Make user lists use DetailedMovie[] so they can use the same search function and bar.
  *
  */
 export function filterMovies<T extends DetailedWorkListItem>(

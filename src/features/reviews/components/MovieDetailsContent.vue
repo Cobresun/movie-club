@@ -283,7 +283,7 @@ import MovieDescription from "@/common/components/MovieDescription.vue";
 import MovieMetadataGrid from "@/common/components/MovieMetadataGrid.vue";
 import { useShare } from "@/common/composables/useShare";
 import { useClub, useClubSlug } from "@/service/useClub";
-import { useUpdateAddedDate } from "@/service/useList";
+import { useReviewsListId, useUpdateAddedDate } from "@/service/useList";
 
 const props = defineProps<{
   movie: Row<DetailedReviewListItem>;
@@ -314,6 +314,7 @@ const confirmDelete = () => {
 // Date editing state
 const clubId = useClubSlug();
 const { data: club } = useClub(clubId);
+const { data: reviewsListId } = useReviewsListId(clubId);
 const { mutate: updateAddedDate } = useUpdateAddedDate(clubId);
 const isEditingDate = ref(false);
 const editedDate = ref("");
@@ -335,8 +336,9 @@ const saveDateChange = () => {
       .startOf("day")
       .toISO();
 
-    if (isoDate !== null) {
+    if (isoDate !== null && hasValue(reviewsListId.value)) {
       updateAddedDate({
+        listId: reviewsListId.value,
         workId: props.movie.original.id,
         addedDate: isoDate,
       });

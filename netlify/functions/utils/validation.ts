@@ -1,7 +1,9 @@
 import { notFound } from "./responses";
 import { MiddlewareCallback, Request } from "./router";
 import { hasValue } from "../../../lib/checks/checks.js";
+import { WorkListSystemType } from "../../../lib/types/generated/db.js";
 import ClubRepository from "../repositories/ClubRepository";
+import ListRepository from "../repositories/ListRepository";
 
 export function getErrorMessage(error: unknown) {
   if (error instanceof Error) return error.message;
@@ -11,6 +13,11 @@ export function getErrorMessage(error: unknown) {
 export type ClubRequest<T extends Request = Request> = T & {
   clubId: string;
   clubSlug: string;
+};
+
+export type ListRequest<T extends ClubRequest = ClubRequest> = T & {
+  listId: string;
+  listSystemType: WorkListSystemType | null;
 };
 
 /**
@@ -40,5 +47,31 @@ export const validClubSlug: MiddlewareCallback<Request, ClubRequest> = async (
     ...req,
     clubId,
     clubSlug,
+  };
+};
+
+/**
+ * Middleware that resolves a `:listId` path param, asserts the list belongs
+ * to the resolved club, and exposes the list's `system_type` so handlers can
+ * gate operations on system lists (e.g. preventing rename/delete of `reviews`
+ * or `award_nominations`). Without this guard, the new ID-keyed list routes
+ * would be a horizontal-access vector since list IDs are just integers.
+ */
+export const validListId: MiddlewareCallback<ClubRequest, ListRequest> = async (
+  req,
+  res,
+) => {
+  const listId = req.params.listId;
+  if (!hasValue(listId)) {
+    return res(notFound("List not found"));
+  }
+  const list = await ListRepository.getListById(listId, req.clubId);
+  if (!list) {
+    return res(notFound("List not found"));
+  }
+  return {
+    ...req,
+    listId: String(list.id),
+    listSystemType: list.system_type,
   };
 };

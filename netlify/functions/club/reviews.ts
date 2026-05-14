@@ -1,7 +1,6 @@
 import { z } from "zod";
 
 import { hasValue } from "../../../lib/checks/checks.js";
-import { WorkListType } from "../../../lib/types/generated/db";
 import ListRepository from "../repositories/ListRepository";
 import ReviewRepository from "../repositories/ReviewRepository";
 import WorkCommentRepository from "../repositories/WorkCommentRepository";
@@ -25,14 +24,12 @@ router.post("/", secured, async ({ clubId, userId, event }, res) => {
 
   const { score, workId } = body.data;
 
-  const isItemInList = await ListRepository.isItemInList(
-    clubId,
-    WorkListType.reviews,
-    workId,
-  );
-  if (!isItemInList) {
+  const reviewsListId = await ListRepository.getReviewsListId(clubId);
+  const exists = await ListRepository.isItemInList(reviewsListId, workId);
+  if (!exists) {
     return res(badRequest("This movie does not exist in the list"));
   }
+
   await ReviewRepository.insertReview(clubId, workId, userId, score);
   return res(ok());
 });

@@ -31,6 +31,9 @@ pnpm-debug.log*
 netlify/functions/utils/database-config.json
 netlify/functions/utils/auth-config.json
 
+# TypeScript build info
+*.tsbuildinfo
+
 # Test coverage
 src/coverage
 

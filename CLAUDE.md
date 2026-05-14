@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Movie Club is a Vue 3 web application for managing movie clubs, reviews, watchlists, and awards. It uses Netlify Functions for the backend API, CockroachDB (PostgreSQL-compatible) for data storage, and BetterAuth for authentication.
+Movie Club is a Vue 3 web application for managing movie clubs, reviews, custom lists, and awards. It uses Netlify Functions for the backend API, CockroachDB (PostgreSQL-compatible) for data storage, and BetterAuth for authentication.
 
 ## Code Quality
 
@@ -77,9 +77,9 @@ The project uses CockroachDB's BACKUP/RESTORE with S3 to create isolated databas
 ```bash
 npm run db:snapshot         # Create backup snapshot of dev database to S3
 npm run db:snapshot prod    # Snapshot production database
-npm run db:spawn my-feature # Create personal dev database from latest snapshot
+npm run db:spawn my_feature # Create personal dev database from latest snapshot (use underscores, not hyphens)
 npm run db:list             # List all databases with metadata
-npm run db:cleanup my-feature       # Delete personal database when done
+npm run db:cleanup my_feature       # Delete personal database when done
 npm run db:cleanup --older-than 7   # Clean up databases older than 7 days
 ```
 
@@ -110,7 +110,7 @@ src/features/<feature-name>/
 
 1. Create handler in appropriate `netlify/functions/` directory
 2. Use the custom Router class for routing
-3. Add middleware for validation (`validClubSlug`) and auth (`loggedIn`, `secured`)
+3. Add middleware for validation (`validClubSlug`, `validListId` for list-scoped routes) and auth (`loggedIn`, `secured`)
 4. Use Zod schemas for request body validation
 5. Use Kysely with generated types for database queries
 6. Return responses using utility functions from `utils/responses.ts`

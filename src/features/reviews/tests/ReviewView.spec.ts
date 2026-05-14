@@ -29,10 +29,10 @@ describe("ReviewView", () => {
 
     const openButton = await screen.findByRole("button");
     await user.click(openButton);
-    expect(await screen.findByText("From Watch List")).toBeInTheDocument();
+    expect(await screen.findByText("From your lists")).toBeInTheDocument();
 
     await user.keyboard("{Escape}");
-    expect(screen.queryByText("From Watch List")).not.toBeInTheDocument();
+    expect(screen.queryByText("From your lists")).not.toBeInTheDocument();
   });
 
   it("should switch between gallery and table view", async () => {
