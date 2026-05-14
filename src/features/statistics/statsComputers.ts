@@ -9,6 +9,7 @@ import type {
   MemberPairSimilarity,
   MovieData,
   ScoreTrendPoint,
+  ScoreVariancePoint,
   TmdbDeviationEntry,
 } from "./types";
 import {
@@ -419,6 +420,61 @@ export function computeScoreTrend(
   }
 
   return result;
+}
+
+const MIN_SCORES_FOR_VARIANCE = 2;
+
+export function computeScoreVariance(
+  movieData: MovieData[],
+): ScoreVariancePoint[] {
+  const perMovie: { date: Date; title: string; stdDev: number }[] = [];
+
+  for (const movie of movieData) {
+    const scores: number[] = [];
+    for (const score of Object.values(movie.userScores)) {
+      if (isDefined(score) && !isNaN(score)) scores.push(score);
+    }
+
+    if (scores.length < MIN_SCORES_FOR_VARIANCE) continue;
+    if (!hasValue(movie.createdDate)) continue;
+
+    const date = new Date(movie.createdDate);
+    if (isNaN(date.getTime())) continue;
+
+    const mean = scores.reduce((sum, s) => sum + s, 0) / scores.length;
+    const variance =
+      scores.reduce((sum, s) => sum + (s - mean) ** 2, 0) / scores.length;
+    const stdDev = Math.sqrt(variance);
+
+    perMovie.push({ date, title: movie.title, stdDev });
+  }
+
+  if (perMovie.length === 0) return [];
+
+  perMovie.sort((a, b) => a.date.getTime() - b.date.getTime());
+
+  // Mirror computeScoreTrend's adaptive window: 20% of the data, clamped to
+  // 5..30, so the line stays readable for both new and long-running clubs.
+  const windowSize = Math.max(
+    5,
+    Math.min(30, Math.round(perMovie.length * 0.2)),
+  );
+
+  const points: ScoreVariancePoint[] = [];
+  for (let index = windowSize - 1; index < perMovie.length; index++) {
+    const entry = perMovie[index];
+    const window = perMovie.slice(index - windowSize + 1, index + 1);
+    const avg = window.reduce((sum, m) => sum + m.stdDev, 0) / window.length;
+
+    points.push({
+      date: entry.date,
+      movieTitle: entry.title,
+      movieStdDev: Math.round(entry.stdDev * 100) / 100,
+      rollingStdDev: Math.round(avg * 100) / 100,
+    });
+  }
+
+  return points;
 }
 
 const MIN_SCORES_FOR_GUILTY_PLEASURE = 2;
