@@ -95,7 +95,6 @@ import {
 } from "vue";
 
 import { hasValue, isTrue } from "../../../../lib/checks/checks.js";
-import { WorkListType } from "../../../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
 import { useShare } from "../../../common/composables/useShare";
 import { filterMovies } from "../../../common/searchMovies";
@@ -116,7 +115,11 @@ import {
   useMembers,
   useClubSettings,
 } from "@/service/useClub";
-import { useDeleteListItem, useList } from "@/service/useList";
+import {
+  useDeleteReview,
+  useReviewsList,
+  useReviewsListId,
+} from "@/service/useList";
 import { useUser } from "@/service/useUser";
 
 const { clubSlug } = defineProps<{ clubSlug: string }>();
@@ -145,10 +148,7 @@ watch(isGalleryView, (newVal) => {
   localStorage.setItem("isGalleryView", newVal.toString());
 });
 
-const { isLoading: loadingReviews, data: reviews } = useList(
-  clubSlug,
-  WorkListType.reviews,
-);
+const { isLoading: loadingReviews, data: reviews } = useReviewsList(clubSlug);
 const { isLoading: loadingMembers, data: membersResponse } =
   useMembers(clubSlug);
 
@@ -236,10 +236,12 @@ const galleryColumnVisibility = {
 
 const editingTable = ref(false);
 
-const { mutate: deleteReview } = useDeleteListItem(
-  clubSlug,
-  WorkListType.reviews,
-);
+const { data: reviewsListId } = useReviewsListId(clubSlug);
+const { mutate: deleteReviewMutation } = useDeleteReview(clubSlug);
+const deleteReview = (workId: string) => {
+  if (!hasValue(reviewsListId.value)) return;
+  deleteReviewMutation({ workId, reviewsListId: reviewsListId.value });
+};
 
 const mdicon = resolveComponent("mdicon");
 const currentUser = useUser();
