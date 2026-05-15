@@ -9,6 +9,7 @@ import type {
   HistogramData,
   MovieData,
   ScoreTrendPoint,
+  ScoreVariancePoint,
 } from "./types";
 import { isDefined } from "../../../lib/checks/checks.js";
 import { Member } from "../../../lib/types/club";
@@ -208,6 +209,69 @@ export function createDecadeChartOptions(
         },
       },
     ],
+  };
+}
+
+export function createScoreVarianceChartOptions(
+  variancePoints: ScoreVariancePoint[],
+): AgCartesianChartOptions {
+  const stroke = "#A78BFA";
+
+  return {
+    theme: "ag-default-dark",
+    background: { visible: false },
+    data: variancePoints,
+    series: [
+      {
+        type: "line" as const,
+        xKey: "date",
+        xName: "Date",
+        yKey: "rollingStdDev",
+        yName: "Score Spread",
+        strokeWidth: 2.5,
+        stroke,
+        marker: {
+          size: 4,
+          fill: stroke,
+        },
+        interpolation: { type: "smooth" as const },
+        tooltip: {
+          renderer: function (
+            params: AgLineSeriesTooltipRendererParams<ScoreVariancePoint>,
+          ) {
+            return (
+              `<div class="ag-chart-tooltip-title" style="background-color: ${stroke}">${params.datum.movieTitle}</div>` +
+              `<div class="ag-chart-tooltip-content">` +
+              `Movie spread: ${params.datum.movieStdDev.toFixed(2)}` +
+              `<br/>Rolling spread: ${params.datum.rollingStdDev.toFixed(2)}` +
+              `</div>`
+            );
+          },
+        },
+      },
+    ],
+    axes: [
+      {
+        type: "time",
+        position: "bottom",
+        label: {
+          format: "%b %Y",
+        },
+      },
+      {
+        type: "number",
+        position: "left",
+        min: 0,
+        nice: true,
+        title: {
+          enabled: true,
+          text: "Score Spread (std dev)",
+        },
+      },
+    ],
+    legend: {
+      enabled: false,
+    },
   };
 }
 
