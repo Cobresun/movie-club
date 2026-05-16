@@ -87,6 +87,13 @@ export interface ScoreTrendPoint {
   rollingAverage: number;
 }
 
+export interface ScoreVariancePoint {
+  date: Date;
+  movieTitle: string;
+  movieStdDev: number;
+  rollingStdDev: number;
+}
+
 export interface GuiltyPleasureMovie {
   title: string;
   imageUrl: string | undefined;

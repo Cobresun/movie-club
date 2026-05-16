@@ -60,7 +60,7 @@
         leave-active-class="absolute hidden"
         enter-from-class="opacity-0"
         leave-to-class="opacity-0"
-        class="grid w-full justify-items-center"
+        class="grid w-full justify-items-center gap-4"
         style="grid-template-columns: repeat(auto-fill, minmax(168px, 1fr))"
       >
         <MoviePosterCard

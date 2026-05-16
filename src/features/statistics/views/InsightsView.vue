@@ -8,6 +8,7 @@
       :histogram-data="histogramData"
     />
     <ScoreTrendWidget :movie-data="movieData" :members="members" />
+    <ScoreVarianceWidget :movie-data="movieData" />
     <GenreStatsWidget :movie-data="movieData" :members="members" />
     <GenreWatchCountWidget :movie-data="movieData" />
     <DecadeStatsWidget :movie-data="movieData" :members="members" />
@@ -49,6 +50,7 @@ import LeaderboardsWidget from "../components/LeaderboardsWidget.vue";
 import ReviewerLeaderboardWidget from "../components/ReviewerLeaderboardWidget.vue";
 import ScoreDistributionWidget from "../components/ScoreDistributionWidget.vue";
 import ScoreTrendWidget from "../components/ScoreTrendWidget.vue";
+import ScoreVarianceWidget from "../components/ScoreVarianceWidget.vue";
 import StatsWidget from "../components/StatsWidget.vue";
 import TasteSimilarityWidget from "../components/TasteSimilarityWidget.vue";
 import TmdbDeviationWidget from "../components/TmdbDeviationWidget.vue";
