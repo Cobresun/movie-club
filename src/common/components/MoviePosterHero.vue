@@ -9,11 +9,11 @@
         decoding="async"
         loading="eager"
         class="h-full w-full object-cover transition-opacity duration-500"
-        :class="backdropLoaded ? 'opacity-60' : 'opacity-0'"
+        :class="backdropLoaded ? 'opacity-100' : 'opacity-0'"
         @load="backdropLoaded = true"
       />
       <div
-        class="absolute inset-0 bg-gradient-to-b from-black/30 via-background/40 to-background"
+        class="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background"
       ></div>
     </div>
 
@@ -34,8 +34,8 @@
   </div>
 
   <!-- Mobile hero: shorter backdrop, compact poster + title row sits on it -->
-  <div v-else class="-mx-4 mb-4">
-    <div class="relative h-28 overflow-hidden bg-lowBackground">
+  <div v-else class="-mx-4 -mt-8 mb-4">
+    <div class="relative h-44 overflow-hidden bg-lowBackground">
       <img
         v-if="hasBackdrop"
         :src="`https://image.tmdb.org/t/p/w780/${backdropPath}`"
@@ -51,7 +51,7 @@
       ></div>
     </div>
 
-    <div class="relative -mt-14 flex items-end gap-3 px-4">
+    <div class="relative -mt-20 flex items-end gap-3 px-4">
       <div class="w-20 flex-shrink-0 shadow-lg">
         <PosterImage :poster-path="posterPath" />
       </div>

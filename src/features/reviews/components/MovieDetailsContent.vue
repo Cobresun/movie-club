@@ -60,21 +60,48 @@
         />
         <div
           v-if="movie.original.externalData?.vote_average"
-          :class="{ 'select-none blur filter': shouldBlurTmdbScore }"
+          class="flex items-center gap-2"
+          :class="{
+            'cursor-pointer hover:opacity-80': shouldBlurTmdbScore,
+          }"
+          @click="revealTmdb"
         >
           <span class="text-gray-400">TMDB Rating: </span>
-          <span>{{ movie.original.externalData.vote_average }}/10</span>
+          <span
+            class="transition-[filter] duration-500 ease-out"
+            :class="
+              shouldBlurTmdbScore ? 'select-none blur' : 'select-auto blur-none'
+            "
+            >{{ movie.original.externalData.vote_average }}/10</span
+          >
+          <mdicon
+            v-if="shouldBlurTmdbScore"
+            name="eye-outline"
+            size="14"
+            class="text-gray-400"
+          />
         </div>
       </div>
 
-      <div v-if="showRevealPill" class="mt-6 flex justify-center">
-        <button
-          class="flex items-center gap-2 rounded-full bg-lowBackground px-4 py-1.5 text-sm text-gray-300 transition hover:brightness-110"
-          @click="toggleMovieReveal(movie.id)"
-        >
-          <mdicon name="eye-outline" size="16" />
-          <span>Reveal club scores</span>
-        </button>
+      <div
+        :inert="!showRevealPill"
+        :aria-hidden="!showRevealPill || undefined"
+        class="overflow-hidden transition-all duration-300 ease-out"
+        :style="{
+          maxHeight: showRevealPill ? '4rem' : '0px',
+          marginTop: showRevealPill ? '1.5rem' : '0px',
+          opacity: showRevealPill ? 1 : 0,
+        }"
+      >
+        <div class="flex justify-center">
+          <button
+            class="flex items-center gap-2 rounded-full bg-lowBackground px-4 py-1.5 text-sm text-gray-300 transition hover:brightness-110"
+            @click="toggleMovieReveal(movie.id)"
+          >
+            <mdicon name="eye-outline" size="16" />
+            <span>Reveal club scores</span>
+          </button>
+        </div>
       </div>
 
       <div class="mt-4 grid grid-cols-2 gap-4">
@@ -87,13 +114,15 @@
             :render="cell.column.columnDef.header"
             :props="cell.getContext()"
           />
-          <div class="ml-2 flex-grow">
+          <div
+            class="ml-2 flex-grow transition-[filter] duration-500 ease-out"
+            :class="
+              shouldBlurScore(movie.id, cell.column.id) ? 'blur' : 'blur-none'
+            "
+          >
             <FlexRender
               :render="cell.column.columnDef.cell"
               :props="cell.getContext()"
-              :class="{
-                'blur filter': shouldBlurScore(movie.id, cell.column.id),
-              }"
             />
           </div>
         </div>
@@ -175,14 +204,25 @@
         </template>
       </MoviePosterHero>
 
-      <div v-if="showRevealPill" class="mt-2 flex justify-center">
-        <button
-          class="flex items-center gap-2 rounded-full bg-lowBackground px-4 py-1.5 text-sm text-gray-300 transition hover:brightness-110"
-          @click="toggleMovieReveal(movie.id)"
-        >
-          <mdicon name="eye-outline" size="16" />
-          <span>Reveal club scores</span>
-        </button>
+      <div
+        :inert="!showRevealPill"
+        :aria-hidden="!showRevealPill || undefined"
+        class="overflow-hidden transition-all duration-300 ease-out"
+        :style="{
+          maxHeight: showRevealPill ? '4rem' : '0px',
+          marginTop: showRevealPill ? '0.5rem' : '0px',
+          opacity: showRevealPill ? 1 : 0,
+        }"
+      >
+        <div class="flex justify-center">
+          <button
+            class="flex items-center gap-2 rounded-full bg-lowBackground px-4 py-1.5 text-sm text-gray-300 transition hover:brightness-110"
+            @click="toggleMovieReveal(movie.id)"
+          >
+            <mdicon name="eye-outline" size="16" />
+            <span>Reveal club scores</span>
+          </button>
+        </div>
       </div>
 
       <!-- Scores grid (prioritized on mobile) -->
@@ -196,13 +236,15 @@
             :render="cell.column.columnDef.header"
             :props="cell.getContext()"
           />
-          <div class="ml-2 flex-grow">
+          <div
+            class="ml-2 flex-grow transition-[filter] duration-500 ease-out"
+            :class="
+              shouldBlurScore(movie.id, cell.column.id) ? 'blur' : 'blur-none'
+            "
+          >
             <FlexRender
               :render="cell.column.columnDef.cell"
               :props="cell.getContext()"
-              :class="{
-                'blur filter': shouldBlurScore(movie.id, cell.column.id),
-              }"
             />
           </div>
         </div>
@@ -230,10 +272,22 @@
           />
           <div
             v-if="movie.original.externalData?.vote_average"
-            :class="{ 'select-none blur filter': shouldBlurTmdbScore }"
+            class="flex items-center gap-2"
+            :class="{
+              'cursor-pointer hover:opacity-80': shouldBlurTmdbScore,
+            }"
+            @click="revealTmdb"
           >
             <span class="text-gray-400">TMDB Rating: </span>
-            <span>{{ movie.original.externalData.vote_average }}/10</span>
+            <span :class="{ 'select-none blur filter': shouldBlurTmdbScore }"
+              >{{ movie.original.externalData.vote_average }}/10</span
+            >
+            <mdicon
+              v-if="shouldBlurTmdbScore"
+              name="eye-outline"
+              size="14"
+              class="text-gray-400"
+            />
           </div>
           <MovieDescription
             v-if="movie.original.externalData?.overview"
@@ -431,17 +485,12 @@ const shouldBlurScore = (rowId: string, columnId: string) => {
   return columnId.startsWith("member_") || columnId === "score_average";
 };
 
-const shouldBlurTmdbScore = computed(() => {
-  if (!props.blurScoresEnabled) {
-    return false;
-  }
-  if (
-    props.hasRated(props.movie.id) ||
-    props.revealedMovieIds.has(props.movie.id)
-  ) {
-    return false;
-  }
-  return true;
+const hasClubScoresToReveal = computed(() => {
+  return getVisibleCells(props.movie).some((cell) => {
+    const colId = cell.column.id;
+    if (colId === `member_${props.currentUserId}`) return false;
+    return colId.startsWith("member_") || colId === "score_average";
+  });
 });
 
 const showRevealPill = computed(() => {
@@ -451,6 +500,20 @@ const showRevealPill = computed(() => {
     props.revealedMovieIds.has(props.movie.id)
   )
     return false;
+  return hasClubScoresToReveal.value;
+});
+
+const tmdbRevealed = ref(false);
+
+const shouldBlurTmdbScore = computed(() => {
+  if (!props.blurScoresEnabled) return false;
+  if (props.hasRated(props.movie.id) || tmdbRevealed.value) return false;
   return true;
 });
+
+const revealTmdb = () => {
+  if (shouldBlurTmdbScore.value) {
+    tmdbRevealed.value = true;
+  }
+};
 </script>

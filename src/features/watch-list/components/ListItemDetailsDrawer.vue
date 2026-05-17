@@ -1,22 +1,20 @@
 <template>
   <div>
     <!-- Mobile Bottom Sheet -->
-    <v-bottom-sheet v-if="!isDesktop" @close="close">
-      <div class="flex-grow px-4 pb-8">
-        <ListItemDetailsContent
-          :movie="movie"
-          :is-next-work="isNextWork"
-          :is-desktop="isDesktop"
-          :can-review="canReview"
-          :other-lists="otherLists"
-          @close="close"
-          @review="emit('review')"
-          @set-next-work="emit('set-next-work')"
-          @clear-next-work="emit('clear-next-work')"
-          @delete="emit('delete')"
-          @move-to-list="(id) => emit('move-to-list', id)"
-        />
-      </div>
+    <v-bottom-sheet v-if="!isDesktop" transparent-handle @close="close">
+      <ListItemDetailsContent
+        :movie="movie"
+        :is-next-work="isNextWork"
+        :is-desktop="isDesktop"
+        :can-review="canReview"
+        :other-lists="otherLists"
+        @close="close"
+        @review="emit('review')"
+        @set-next-work="emit('set-next-work')"
+        @clear-next-work="emit('clear-next-work')"
+        @delete="emit('delete')"
+        @move-to-list="(id) => emit('move-to-list', id)"
+      />
     </v-bottom-sheet>
 
     <!-- Desktop Drawer (side panel) -->
