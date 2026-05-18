@@ -151,7 +151,7 @@ export function useRemoveMember(clubSlug: string) {
         .invalidateQueries({
           queryKey: reviewsListKey(clubSlug),
         })
-        .catch(console.error); // TODO: this isn't working and refreshing scores
+        .catch(console.error);
     },
   });
 }
