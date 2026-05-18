@@ -25,7 +25,7 @@
           :animation="200"
           handle=".drag-handle"
           filter=".no-drag"
-          :prevent-on-filter="true"
+          :prevent-on-filter="false"
           :move="onDragMove"
           @end="onDragEnd"
         >
