@@ -121,7 +121,7 @@ const shareList = async (listId: string) => {
         <section
           v-for="list in userLists"
           :key="list.id"
-          class="rounded-lg border border-slate-700 bg-slate-900/40 p-3"
+          class="rounded-lg border border-slate-700 bg-slate-900/40 p-2 sm:p-3"
         >
           <div class="flex items-center justify-between gap-2">
             <div class="flex min-w-0 items-center gap-2">
