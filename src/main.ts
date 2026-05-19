@@ -36,6 +36,9 @@ const vueQueryOptions: VueQueryPluginOptions = {
       queries: {
         refetchOnWindowFocus: false,
         refetchOnMount: (query) => {
+          if (query.state.isInvalidated) {
+            return true;
+          }
           const refetchTimes = fetchedMap.get(query.queryHash);
           if (isDefined(refetchTimes) && refetchTimes > 1) {
             return false;
