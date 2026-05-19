@@ -19,31 +19,20 @@
     </v-bottom-sheet>
 
     <!-- Desktop Drawer (side panel) -->
-    <div
-      v-if="isDesktop"
-      class="fixed inset-y-0 right-0 z-50 w-[35vw] max-w-full transform bg-background md:border-l md:border-gray-700 md:shadow-xl"
-      @click.stop
-    >
-      <div class="relative h-full overflow-y-auto px-4 pt-8">
-        <!-- Close button (desktop only) -->
-        <button class="absolute right-4 top-4 z-10" @click="close">
-          <mdicon name="close" />
-        </button>
-
-        <MovieDetailsContent
-          :movie="movie"
-          :review-table="reviewTable"
-          :delete-review="deleteReview"
-          :revealed-movie-ids="revealedMovieIds"
-          :has-rated="hasRated"
-          :current-user-id="currentUserId"
-          :blur-scores-enabled="blurScoresEnabled"
-          :is-desktop="isDesktop"
-          @close="close"
-          @toggle-reveal="toggleMovieReveal"
-        />
-      </div>
-    </div>
+    <VSideDrawer v-if="isDesktop" @close="close">
+      <MovieDetailsContent
+        :movie="movie"
+        :review-table="reviewTable"
+        :delete-review="deleteReview"
+        :revealed-movie-ids="revealedMovieIds"
+        :has-rated="hasRated"
+        :current-user-id="currentUserId"
+        :blur-scores-enabled="blurScoresEnabled"
+        :is-desktop="isDesktop"
+        @close="close"
+        @toggle-reveal="toggleMovieReveal"
+      />
+    </VSideDrawer>
   </div>
 </template>
 
@@ -54,6 +43,7 @@ import MovieDetailsContent from "./MovieDetailsContent.vue";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
 import VBottomSheet from "../../../common/components/VBottomSheet.vue";
 
+import VSideDrawer from "@/common/components/VSideDrawer.vue";
 import { useIsDesktop } from "@/common/composables/useIsDesktop.js";
 
 defineProps<{

@@ -1,10 +1,6 @@
 <template>
   <div ref="galleryContainerRef" class="flex">
-    <!-- Main content that will shrink -->
-    <div
-      :class="['w-full', { 'md:pr-[35vw]': isDefined(selectedMovie) }]"
-      class="md:px-6"
-    >
+    <div class="w-full md:px-6">
       <div class="relative mb-4 flex max-w-full flex-wrap gap-2">
         <Listbox v-model="selectedSort">
           <ListboxButton
@@ -237,7 +233,6 @@ const openMovieDetails = async (row: Row<DetailedReviewListItem>) => {
       clickedElement.scrollIntoView({
         behavior: "smooth",
         block: "center",
-        inline: "center",
       });
     } else {
       selectedMovieId.value = undefined;
@@ -260,7 +255,6 @@ watch(selectedMovieId, async (newValue, oldValue) => {
       selectedElement.scrollIntoView({
         behavior: "smooth",
         block: "center",
-        inline: "center",
       });
     }
   }
