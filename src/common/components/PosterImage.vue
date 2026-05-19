@@ -1,8 +1,7 @@
 <template>
   <div
-    class="overflow-hidden rounded-lg bg-lowBackground"
+    class="aspect-[2/3] overflow-hidden rounded-lg bg-lowBackground"
     :class="{ 'animate-pulse': !loaded && hasPoster }"
-    style="aspect-ratio: 2 / 3"
   >
     <img
       v-if="hasPoster"
