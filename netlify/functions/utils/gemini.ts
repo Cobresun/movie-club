@@ -26,9 +26,13 @@ export async function generateDiscussionQuestions(
   }
 
   const filmLabel = hasValue(releaseYear) ? `${title} (${releaseYear})` : title;
-  const prompt = `Generate 3 to 5 short, punchy discussion prompts for a movie club rewatching "${filmLabel}". Every prompt must be specific to THIS film — naming its actual characters, scenes, lines, or moments — never a generic question that could apply to any movie. Lean playful and casual; avoid academic, literary, or essay-style framing.
+  const prompt = `Generate 3 to 5 discussion prompts for a movie club rewatching "${filmLabel}". Every prompt must be specific to THIS film — naming its actual characters, scenes, lines, or moments — never a generic question that could apply to any movie.
 
-Each prompt should be a single short phrase, ideally under 8 words. The goal is to spark fun debate or disagreement among friends, not deep analysis.`;
+Match the tone to the film itself: a horror film should produce darker prompts, a comedy lighter, a drama more serious. Do not impose a single tone across every movie.
+
+Order the prompts by depth: the first should be casual and easy to answer — a low-stakes entry point. Each subsequent prompt should be more thought-provoking than the last, with the final one being substantial — a real book-club-worthy question, adapted for film.
+
+Whenever the film supports it, frame prompts as debates: questions with defensible answers on more than one side, designed to spark disagreement among friends rather than consensus. Decide the right length for each prompt yourself based on what the question needs.`;
 
   const response = await axios.post<GeminiResponse>(
     `${GEMINI_ENDPOINT}?key=${apiKey}`,
