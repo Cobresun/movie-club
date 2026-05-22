@@ -26,7 +26,9 @@ export async function generateDiscussionQuestions(
   }
 
   const filmLabel = hasValue(releaseYear) ? `${title} (${releaseYear})` : title;
-  const prompt = `Generate 3 to 5 thought-provoking discussion questions for a movie club discussing the film "${filmLabel}". The questions should encourage interpretation, debate, and personal reflection rather than plot recall. Avoid yes/no questions.`;
+  const prompt = `Generate 3 to 5 short, punchy discussion prompts for a movie club rewatching "${filmLabel}". Every prompt must be specific to THIS film — naming its actual characters, scenes, lines, or moments — never a generic question that could apply to any movie. Lean playful and casual; avoid academic, literary, or essay-style framing.
+
+Each prompt should be a single short phrase, ideally under 8 words. The goal is to spark fun debate or disagreement among friends, not deep analysis.`;
 
   const response = await axios.post<GeminiResponse>(
     `${GEMINI_ENDPOINT}?key=${apiKey}`,

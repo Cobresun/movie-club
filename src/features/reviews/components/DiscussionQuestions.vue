@@ -10,7 +10,10 @@
           <mdicon name="creation" size="18" class="text-purple-300" />
           <span class="font-semibold">Discussion questions</span>
         </div>
-        <ol class="flex flex-col gap-2">
+        <ol
+          class="flex flex-col gap-2 transition-opacity"
+          :class="{ 'opacity-50': isLoading }"
+        >
           <li
             v-for="(question, index) in questions"
             :key="index"
@@ -20,13 +23,22 @@
             <span>{{ question }}</span>
           </li>
         </ol>
+        <p v-if="isError" class="mt-3 text-xs text-red-400">
+          Couldn't regenerate. Showing the previous questions.
+        </p>
         <div class="mt-3 flex justify-end">
           <button
-            class="text-xs text-gray-400 underline-offset-2 hover:text-gray-200 hover:underline"
+            class="flex items-center gap-1.5 text-xs text-gray-400 underline-offset-2 hover:text-gray-200 hover:underline disabled:cursor-not-allowed disabled:opacity-50"
             :disabled="isLoading"
             @click="regenerate"
           >
-            Regenerate
+            <mdicon
+              v-if="isLoading"
+              name="loading"
+              size="14"
+              class="animate-spin"
+            />
+            <span>{{ isLoading ? "Regenerating…" : "Regenerate" }}</span>
           </button>
         </div>
       </div>
