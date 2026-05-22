@@ -3,9 +3,11 @@ import { z } from "zod";
 import { hasValue } from "../../../lib/checks/checks.js";
 import ListRepository from "../repositories/ListRepository";
 import ReviewRepository from "../repositories/ReviewRepository";
+import SettingsRepository from "../repositories/SettingsRepository";
 import WorkCommentRepository from "../repositories/WorkCommentRepository";
 import SharedReviewService from "../services/SharedReviewService";
 import { secured } from "../utils/auth";
+import { generateDiscussionQuestions } from "../utils/gemini";
 import { badRequest, ok, unauthorized } from "../utils/responses";
 import { Router } from "../utils/router";
 import { ClubRequest } from "../utils/validation";
@@ -150,6 +152,39 @@ router.delete(
     }
     await WorkCommentRepository.deleteById(params.commentId);
     return res(ok());
+  },
+);
+
+const discussionQuestionsSchema = z.object({
+  title: z.string().min(1).max(300),
+  releaseYear: z
+    .string()
+    .regex(/^\d{4}$/)
+    .optional(),
+});
+
+router.post(
+  "/:workId/discussion-questions",
+  secured,
+  async ({ clubId, params, event }, res) => {
+    if (!hasValue(params.workId)) {
+      return res(badRequest("No workId provided"));
+    }
+
+    const settings = await SettingsRepository.getSettings(clubId);
+    if (settings.features.discussionQuestions !== true) {
+      return res(badRequest("Feature not enabled"));
+    }
+
+    if (!hasValue(event.body)) return res(badRequest("No body provided"));
+    const body = discussionQuestionsSchema.safeParse(JSON.parse(event.body));
+    if (!body.success) return res(badRequest("Invalid body"));
+
+    const questions = await generateDiscussionQuestions(
+      body.data.title,
+      body.data.releaseYear,
+    );
+    return res(ok(JSON.stringify({ questions })));
   },
 );
 

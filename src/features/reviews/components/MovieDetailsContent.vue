@@ -143,6 +143,14 @@
 
       <ReviewChat :work-id="movie.original.id" :club-slug="clubId" />
 
+      <DiscussionQuestions
+        v-if="discussionQuestionsEnabled"
+        :club-slug="clubId"
+        :work-id="movie.original.id"
+        :title="movieTitle"
+        :release-year="movieReleaseYear"
+      />
+
       <div
         class="sticky bottom-0 -mx-4 mt-6 border-t border-gray-700/60 bg-background px-4 pb-2 pt-3"
       >
@@ -310,6 +318,14 @@
 
       <ReviewChat :work-id="movie.original.id" :club-slug="clubId" />
 
+      <DiscussionQuestions
+        v-if="discussionQuestionsEnabled"
+        :club-slug="clubId"
+        :work-id="movie.original.id"
+        :title="movieTitle"
+        :release-year="movieReleaseYear"
+      />
+
       <!-- Sticky action footer -->
       <div
         class="sticky bottom-0 -mx-4 mt-6 border-t border-gray-700/60 bg-background px-4 pb-2 pt-3"
@@ -341,6 +357,7 @@ import { FlexRender, Row, Table } from "@tanstack/vue-table";
 import { DateTime } from "luxon";
 import { computed, ref } from "vue";
 
+import DiscussionQuestions from "./DiscussionQuestions.vue";
 import ReviewChat from "./ReviewChat.vue";
 import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
@@ -351,7 +368,7 @@ import MovieDescription from "@/common/components/MovieDescription.vue";
 import MovieMetadataGrid from "@/common/components/MovieMetadataGrid.vue";
 import MoviePosterHero from "@/common/components/MoviePosterHero.vue";
 import { useShare } from "@/common/composables/useShare";
-import { useClub, useClubSlug } from "@/service/useClub";
+import { useClub, useClubSettings, useClubSlug } from "@/service/useClub";
 import { useReviewsListId, useUpdateAddedDate } from "@/service/useList";
 
 const props = defineProps<{
@@ -383,10 +400,20 @@ const confirmDelete = () => {
 // Date editing state
 const clubId = useClubSlug();
 const { data: club } = useClub(clubId);
+const { data: clubSettings } = useClubSettings(clubId);
 const { data: reviewsListId } = useReviewsListId(clubId);
 const { mutate: updateAddedDate } = useUpdateAddedDate(clubId);
 const isEditingDate = ref(false);
 const editedDate = ref("");
+
+const discussionQuestionsEnabled = computed(
+  () => clubSettings.value?.features?.discussionQuestions === true,
+);
+const movieTitle = computed(() => String(props.movie.renderValue("title")));
+const movieReleaseYear = computed(() => {
+  const releaseDate = props.movie.original.externalData?.release_date;
+  return hasValue(releaseDate) ? releaseDate.slice(0, 4) : undefined;
+});
 
 const formattedDateForInput = computed(() => {
   return DateTime.fromISO(props.movie.original.createdDate).toFormat(
@@ -419,8 +446,6 @@ const saveDateChange = () => {
 const cancelDateEdit = () => {
   isEditingDate.value = false;
 };
-
-const movieTitle = computed(() => String(props.movie.renderValue("title")));
 
 const releaseYear = computed(() => {
   const releaseDate = props.movie.original.externalData?.release_date;

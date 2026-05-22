@@ -3,6 +3,7 @@
     <!-- Mobile Bottom Sheet -->
     <v-bottom-sheet v-if="!isDesktop" transparent-handle @close="close">
       <MovieDetailsContent
+        :key="movie.id"
         :movie="movie"
         :review-table="reviewTable"
         :delete-review="deleteReview"
@@ -19,6 +20,7 @@
     <!-- Desktop Drawer (side panel) -->
     <VSideDrawer v-if="isDesktop" @close="close">
       <MovieDetailsContent
+        :key="movie.id"
         :movie="movie"
         :review-table="reviewTable"
         :delete-review="deleteReview"
