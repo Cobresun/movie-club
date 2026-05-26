@@ -43,6 +43,24 @@
         </div>
       </div>
 
+      <div
+        v-else-if="isUnrecognized"
+        key="unrecognized"
+        class="flex flex-col gap-2"
+      >
+        <p class="text-sm text-red-400">
+          We couldn't recognize "{{ title }}", so we couldn't generate
+          discussion questions for it.
+        </p>
+        <button
+          class="ai-shimmer-button flex items-center justify-center gap-2 rounded-lg py-3 text-sm font-semibold text-white"
+          disabled
+        >
+          <mdicon name="creation" />
+          <span>Generate discussion questions</span>
+        </button>
+      </div>
+
       <div v-else-if="isError" key="error" class="flex flex-col gap-2">
         <p class="text-sm text-red-400">
           Couldn't generate questions. Please try again.
@@ -95,6 +113,12 @@ const { data, isFetching, isError, refetch } = useDiscussionQuestions(
 
 const questions = computed(() => data.value ?? []);
 const hasQuestions = computed(() => questions.value.length > 0);
+// A defined-but-empty result means the request succeeded but the model didn't
+// recognize the film (the query is disabled until refetch, so `data` is
+// undefined until a fetch completes).
+const isUnrecognized = computed(
+  () => data.value !== undefined && questions.value.length === 0,
+);
 const isLoading = computed(() => isFetching.value);
 
 const regenerate = () => {

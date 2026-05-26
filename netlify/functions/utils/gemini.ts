@@ -3,11 +3,11 @@ import { z } from "zod";
 
 import { hasValue } from "../../../lib/checks/checks.js";
 
-const GEMINI_MODEL = "gemini-3.1-flash-lite";
+const GEMINI_MODEL = "gemini-3.5-flash";
 const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
 const questionsSchema = z.object({
-  questions: z.array(z.string().min(1)).min(3).max(5),
+  questions: z.array(z.string().min(1)).max(5),
 });
 
 interface GeminiResponse {
@@ -28,11 +28,11 @@ export async function generateDiscussionQuestions(
   const filmLabel = hasValue(releaseYear) ? `${title} (${releaseYear})` : title;
   const prompt = `Generate 3 to 5 discussion prompts for a movie club rewatching "${filmLabel}". Every prompt must be specific to THIS film — naming its actual characters, scenes, lines, or moments — never a generic question that could apply to any movie.
 
-Match the tone to the film itself: a horror film should produce darker prompts, a comedy lighter, a drama more serious. Do not impose a single tone across every movie.
-
 Order the prompts by depth: the first should be casual and easy to answer — a low-stakes entry point. Each subsequent prompt should be more thought-provoking than the last, with the final one being substantial — a real book-club-worthy question, adapted for film.
 
-Whenever the film supports it, frame prompts as debates: questions with defensible answers on more than one side, designed to spark disagreement among friends rather than consensus. Decide the right length for each prompt yourself based on what the question needs.`;
+Whenever the film supports it, frame prompts as debates: questions with defensible answers on more than one side, designed to spark disagreement among friends rather than consensus. Keep each prompt succinct — one clear, concise question with no preamble.
+
+If you do not recognize this film or cannot confirm it is a real movie, return 0 questions.`;
 
   const response = await axios.post<GeminiResponse>(
     `${GEMINI_ENDPOINT}?key=${apiKey}`,
@@ -47,7 +47,6 @@ Whenever the film supports it, frame prompts as debates: questions with defensib
             questions: {
               type: "array",
               items: { type: "string" },
-              minItems: 3,
               maxItems: 5,
             },
           },
