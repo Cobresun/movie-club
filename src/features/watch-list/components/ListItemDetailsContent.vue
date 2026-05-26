@@ -6,145 +6,113 @@
       @cancel="showDeleteConfirmation = false"
     />
 
-    <!-- Desktop layout -->
-    <template v-if="isDesktop">
-      <div class="flex flex-col items-center">
-        <PosterImage
-          :poster-path="movie.externalData?.poster_path"
-          class="mb-8 w-1/2"
-        />
-        <div class="flex w-full flex-col items-center">
-          <h2 class="text-center text-xl font-bold">
-            {{ movie.title }}
-          </h2>
-          <div class="mt-2 text-center text-sm text-gray-400">
-            {{ formatDate(movie.createdDate) }}
-          </div>
-          <div
-            class="mt-4 grid grid-cols-1 gap-x-4 gap-y-2 text-sm md:grid-cols-2"
-          >
-            <MovieMetadataGrid
-              :release-date="movie.externalData?.release_date"
-              :runtime="movie.externalData?.runtime"
-              :genres="movie.externalData?.genres"
-              :directors="movie.externalData?.directors"
-              :actors="movie.externalData?.actors"
-              :vote-average="movie.externalData?.vote_average"
-            />
-          </div>
-        </div>
-      </div>
+    <MoviePosterHero
+      :poster-path="movie.externalData?.poster_path"
+      :backdrop-path="movie.externalData?.backdrop_path"
+      :title="movie.title"
+      :year="releaseYear"
+      :date-label="formatDate(movie.createdDate)"
+      :is-desktop="isDesktop"
+    />
 
-      <div v-if="movie.externalData" class="mt-6">
-        <MovieDescription
-          v-if="movie.externalData.overview"
-          :key="movie.id"
-          :overview="movie.externalData.overview"
-        />
-      </div>
-    </template>
-
-    <!-- Mobile layout -->
-    <template v-else>
-      <div class="flex gap-4">
-        <PosterImage
-          :poster-path="movie.externalData?.poster_path"
-          class="w-20 flex-shrink-0"
-        />
-        <div class="flex flex-col justify-center">
-          <h2 class="text-xl font-bold">
-            {{ movie.title }}
-          </h2>
-          <div class="mt-1 text-sm text-gray-400">
-            {{ formatDate(movie.createdDate) }}
-          </div>
-        </div>
-      </div>
-
-      <Disclosure v-slot="{ open }">
-        <DisclosureButton
-          class="mt-4 flex w-full items-center justify-between rounded-lg bg-lowBackground px-4 py-2.5 text-sm font-medium text-gray-300"
-        >
-          <span>Movie Details</span>
-          <mdicon
-            name="chevron-down"
-            :class="open ? 'rotate-180 transform' : ''"
-            class="transition-transform duration-200"
-          />
-        </DisclosureButton>
-        <DisclosurePanel class="mt-2 grid grid-cols-1 gap-y-2 px-1 text-sm">
-          <MovieMetadataGrid
-            :release-date="movie.externalData?.release_date"
-            :runtime="movie.externalData?.runtime"
-            :genres="movie.externalData?.genres"
-            :directors="movie.externalData?.directors"
-            :actors="movie.externalData?.actors"
-            :vote-average="movie.externalData?.vote_average"
-          />
-          <MovieDescription
-            v-if="movie.externalData?.overview"
-            :key="movie.id"
-            :overview="movie.externalData.overview"
-            class="mt-2"
-          />
-        </DisclosurePanel>
-      </Disclosure>
-    </template>
-
-    <!-- Action buttons -->
-    <div class="mt-6 flex w-full flex-wrap gap-3">
-      <button
-        v-if="canReview"
-        class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary/20 py-3 text-primary"
-        @click="emit('review')"
-      >
-        <mdicon name="check" />
-        <span>Reviewed</span>
-      </button>
-      <button
-        class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary/20 py-3 text-primary"
-        @click="toggleNextWork"
-      >
-        <mdicon
-          :name="isNextWork ? 'arrow-collapse-down' : 'arrow-collapse-up'"
-        />
-        <span>{{ isNextWork ? "Unpin" : "Up Next" }}</span>
-      </button>
-      <button
-        class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-red-500/20 py-3 text-red-500"
-        @click="showDeleteConfirmation = true"
-      >
-        <mdicon name="delete" />
-        <span>Delete</span>
-      </button>
+    <div class="grid grid-cols-1 gap-y-2 text-sm md:grid-cols-2 md:gap-x-4">
+      <MovieMetadataGrid
+        :release-date="movie.externalData?.release_date"
+        :runtime="movie.externalData?.runtime"
+        :genres="movie.externalData?.genres"
+        :directors="movie.externalData?.directors"
+        :actors="movie.externalData?.actors"
+        :vote-average="movie.externalData?.vote_average"
+      />
     </div>
 
-    <select
-      v-if="otherLists.length > 0"
-      class="mt-3 w-full cursor-pointer rounded-md bg-slate-800 px-2 py-2 text-sm text-white"
-      @change="onMoveSelect"
+    <div v-if="movie.externalData?.overview" class="mt-4">
+      <MovieDescription
+        :key="movie.id"
+        :overview="movie.externalData.overview"
+      />
+    </div>
+
+    <!-- Sticky action footer -->
+    <div
+      class="sticky bottom-0 -mx-4 mt-6 space-y-2 border-t border-gray-700/60 bg-background px-4 pb-2 pt-3"
     >
-      <option value="">Move to…</option>
-      <option v-for="l in otherLists" :key="l.id" :value="l.id">
-        {{ l.title }}
-      </option>
-    </select>
+      <div class="flex w-full flex-wrap gap-3">
+        <button
+          v-if="canReview"
+          class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary/20 py-3 text-primary"
+          @click="emit('review')"
+        >
+          <mdicon name="check" />
+          <span>Reviewed</span>
+        </button>
+        <button
+          class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary/20 py-3 text-primary"
+          @click="toggleNextWork"
+        >
+          <mdicon
+            :name="isNextWork ? 'arrow-collapse-down' : 'arrow-collapse-up'"
+          />
+          <span>{{ isNextWork ? "Unpin" : "Up Next" }}</span>
+        </button>
+        <button
+          class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-red-500/20 py-3 text-red-500"
+          @click="showDeleteConfirmation = true"
+        >
+          <mdicon name="delete" />
+          <span>Delete</span>
+        </button>
+      </div>
+
+      <Listbox
+        v-if="otherLists.length > 0"
+        v-model="moveToValue"
+        @update:model-value="onMoveSelect"
+      >
+        <div class="relative">
+          <ListboxButton
+            class="flex w-full items-center justify-between rounded-lg bg-lowBackground px-4 py-2.5 text-sm text-gray-300"
+          >
+            <span>Move to…</span>
+            <mdicon name="chevron-down" />
+          </ListboxButton>
+          <ListboxOptions
+            class="absolute bottom-full left-0 z-10 mb-1 w-full rounded-lg border border-gray-700 bg-background py-1 shadow-lg focus:outline-none"
+          >
+            <ListboxOption
+              v-for="list in otherLists"
+              :key="list.id"
+              :value="list.id"
+              class="cursor-pointer px-4 py-2 text-sm hover:bg-lowBackground"
+            >
+              {{ list.title }}
+            </ListboxOption>
+          </ListboxOptions>
+        </div>
+      </Listbox>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { Disclosure, DisclosureButton, DisclosurePanel } from "@headlessui/vue";
+import {
+  Listbox,
+  ListboxButton,
+  ListboxOption,
+  ListboxOptions,
+} from "@headlessui/vue";
 import { DateTime } from "luxon";
-import { ref } from "vue";
+import { computed, nextTick, ref } from "vue";
 
+import { hasValue } from "../../../../lib/checks/checks.js";
 import { DetailedWorkListItem } from "../../../../lib/types/lists";
 
 import DeleteConfirmationModal from "@/common/components/DeleteConfirmationModal.vue";
 import MovieDescription from "@/common/components/MovieDescription.vue";
 import MovieMetadataGrid from "@/common/components/MovieMetadataGrid.vue";
-import PosterImage from "@/common/components/PosterImage.vue";
+import MoviePosterHero from "@/common/components/MoviePosterHero.vue";
 
-const { isNextWork } = defineProps<{
+const props = defineProps<{
   movie: DetailedWorkListItem;
   isNextWork: boolean;
   isDesktop: boolean;
@@ -169,21 +137,30 @@ const confirmDelete = () => {
 };
 
 const toggleNextWork = () => {
-  if (isNextWork) {
+  if (props.isNextWork) {
     emit("clear-next-work");
   } else {
     emit("set-next-work");
   }
 };
 
-const onMoveSelect = (e: Event) => {
-  const target = e.target as HTMLSelectElement;
-  if (target.value === "") return;
-  emit("move-to-list", target.value);
-  target.value = "";
+const moveToValue = ref<string | null>(null);
+const onMoveSelect = async (value: string | null) => {
+  if (hasValue(value)) {
+    emit("move-to-list", value);
+  }
+  await nextTick();
+  moveToValue.value = null;
 };
 
 const formatDate = (dateString: string) => {
   return DateTime.fromISO(dateString).toLocaleString(DateTime.DATE_MED);
 };
+
+const releaseYear = computed(() => {
+  const releaseDate = props.movie.externalData?.release_date;
+  if (!hasValue(releaseDate)) return undefined;
+  const year = DateTime.fromISO(releaseDate).year;
+  return Number.isNaN(year) ? undefined : year;
+});
 </script>
