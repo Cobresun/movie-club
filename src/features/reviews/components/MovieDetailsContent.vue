@@ -81,6 +81,7 @@
             class="text-gray-400"
           />
         </div>
+        <LetterboxdLink :tmdb-id="movie.original.externalId" />
       </div>
 
       <div
@@ -289,6 +290,7 @@
               class="text-gray-400"
             />
           </div>
+          <LetterboxdLink :tmdb-id="movie.original.externalId" />
           <MovieDescription
             v-if="movie.original.externalData?.overview"
             :key="movie.id"
@@ -336,6 +338,7 @@ import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
 
 import DeleteConfirmationModal from "@/common/components/DeleteConfirmationModal.vue";
+import LetterboxdLink from "@/common/components/LetterboxdLink.vue";
 import MovieDescription from "@/common/components/MovieDescription.vue";
 import MovieMetadataGrid from "@/common/components/MovieMetadataGrid.vue";
 import MoviePosterHero from "@/common/components/MoviePosterHero.vue";
