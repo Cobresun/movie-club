@@ -15,7 +15,7 @@
       message="Add movies to this list to see them here."
     />
     <template v-else>
-      <div :class="['w-full', { 'md:pr-[35vw]': isDefined(selectedItem) }]">
+      <div class="w-full">
         <VueDraggableNext
           v-model="draggableItems"
           tag="div"
@@ -25,7 +25,7 @@
           :animation="200"
           handle=".drag-handle"
           filter=".no-drag"
-          :prevent-on-filter="true"
+          :prevent-on-filter="false"
           :move="onDragMove"
           @end="onDragEnd"
         >

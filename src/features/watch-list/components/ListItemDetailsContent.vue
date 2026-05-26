@@ -9,10 +9,9 @@
     <!-- Desktop layout -->
     <template v-if="isDesktop">
       <div class="flex flex-col items-center">
-        <img
-          :src="`https://image.tmdb.org/t/p/w500/${movie.externalData?.poster_path}`"
-          class="mb-8 w-1/2 rounded-lg"
-          alt="Movie poster"
+        <PosterImage
+          :poster-path="movie.externalData?.poster_path"
+          class="mb-8 w-1/2"
         />
         <div class="flex w-full flex-col items-center">
           <h2 class="text-center text-xl font-bold">
@@ -48,11 +47,9 @@
     <!-- Mobile layout -->
     <template v-else>
       <div class="flex gap-4">
-        <img
-          :src="`https://image.tmdb.org/t/p/w500/${movie.externalData?.poster_path}`"
-          class="w-20 flex-shrink-0 rounded-lg object-cover"
-          :style="{ aspectRatio: '2/3' }"
-          alt="Movie poster"
+        <PosterImage
+          :poster-path="movie.externalData?.poster_path"
+          class="w-20 flex-shrink-0"
         />
         <div class="flex flex-col justify-center">
           <h2 class="text-xl font-bold">
@@ -145,6 +142,7 @@ import { DetailedWorkListItem } from "../../../../lib/types/lists";
 import DeleteConfirmationModal from "@/common/components/DeleteConfirmationModal.vue";
 import MovieDescription from "@/common/components/MovieDescription.vue";
 import MovieMetadataGrid from "@/common/components/MovieMetadataGrid.vue";
+import PosterImage from "@/common/components/PosterImage.vue";
 
 const { isNextWork } = defineProps<{
   movie: DetailedWorkListItem;

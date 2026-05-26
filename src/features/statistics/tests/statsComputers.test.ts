@@ -6,6 +6,7 @@ import {
   computeGenreStats,
   computeGuiltyPleasures,
   computeMemberLeaderboard,
+  computeScoreVariance,
   computeTasteSimilarity,
   computeTopDirectors,
 } from "../statsComputers";
@@ -761,5 +762,106 @@ describe("computeGuiltyPleasures", () => {
     const result = computeGuiltyPleasures(movies, members);
     expect(result).toHaveLength(1);
     expect(result[0].movies[0].difference).toBe(2);
+  });
+});
+
+// ---------- computeScoreVariance ----------
+
+describe("computeScoreVariance", () => {
+  function makeReviewedMovie(
+    index: number,
+    scores: Record<string, number>,
+    title = `Movie ${index}`,
+  ): MovieData {
+    const day = String(index).padStart(2, "0");
+    return makeMovie({
+      id: String(index),
+      title,
+      createdDate: `2024-01-${day}T00:00:00.000Z`,
+      userScores: scores,
+    });
+  }
+
+  it("returns empty array for empty movie list", () => {
+    expect(computeScoreVariance([])).toEqual([]);
+  });
+
+  it("returns empty array when no movie has at least 2 scores", () => {
+    const movies = [
+      makeReviewedMovie(1, { m1: 8 }),
+      makeReviewedMovie(2, { m1: 6 }),
+      makeReviewedMovie(3, { m1: 7 }),
+      makeReviewedMovie(4, { m1: 9 }),
+      makeReviewedMovie(5, { m1: 5 }),
+    ];
+    expect(computeScoreVariance(movies)).toEqual([]);
+  });
+
+  it("skips movies missing createdDate or with invalid date", () => {
+    const movies = [
+      makeReviewedMovie(1, { m1: 8, m2: 6 }),
+      makeMovie({
+        id: "bad",
+        createdDate: "",
+        userScores: { m1: 7, m2: 7 },
+      }),
+      makeMovie({
+        id: "bad2",
+        createdDate: "not a date",
+        userScores: { m1: 7, m2: 7 },
+      }),
+    ];
+    // Only one valid movie => below the 5-point minimum window, so no points
+    expect(computeScoreVariance(movies)).toEqual([]);
+  });
+
+  it("produces a rolling spread that drops when members agree more", () => {
+    // First 5 movies: wide spread (8 vs 2). Last 5: tight spread (7 vs 7).
+    const movies = [
+      ...Array.from({ length: 5 }, (_, i) =>
+        makeReviewedMovie(i + 1, { m1: 8, m2: 2 }),
+      ),
+      ...Array.from({ length: 5 }, (_, i) =>
+        makeReviewedMovie(i + 6, { m1: 7, m2: 7 }),
+      ),
+    ];
+
+    const points = computeScoreVariance(movies);
+
+    expect(points.length).toBeGreaterThan(0);
+    const first = points[0];
+    const last = points[points.length - 1];
+    // Population std dev for {8,2} is 3; for {7,7} is 0.
+    expect(first.rollingStdDev).toBeGreaterThan(last.rollingStdDev);
+    expect(last.rollingStdDev).toBe(0);
+  });
+
+  it("computes per-movie spread as population std dev", () => {
+    const movies = Array.from({ length: 5 }, (_, i) =>
+      makeReviewedMovie(i + 1, { m1: 8, m2: 2 }),
+    );
+    const points = computeScoreVariance(movies);
+    const first = ensure(points[0]);
+    expect(first.movieStdDev).toBe(3);
+    expect(first.rollingStdDev).toBe(3);
+  });
+
+  it("orders points chronologically regardless of input order", () => {
+    const movies = [
+      makeReviewedMovie(5, { m1: 8, m2: 2 }, "E"),
+      makeReviewedMovie(1, { m1: 6, m2: 4 }, "A"),
+      makeReviewedMovie(3, { m1: 7, m2: 7 }, "C"),
+      makeReviewedMovie(2, { m1: 9, m2: 5 }, "B"),
+      makeReviewedMovie(4, { m1: 6, m2: 6 }, "D"),
+    ];
+
+    const points = computeScoreVariance(movies);
+    expect(points).toHaveLength(1);
+    expect(points[0].movieTitle).toBe("E");
+    for (let i = 1; i < points.length; i++) {
+      expect(points[i].date.getTime()).toBeGreaterThanOrEqual(
+        points[i - 1].date.getTime(),
+      );
+    }
   });
 });
