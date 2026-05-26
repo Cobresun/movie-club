@@ -1,5 +1,5 @@
 <template>
-  <div class="flex-grow">
+  <div class="flex-grow text-left">
     <delete-confirmation-modal
       :show="showDeleteConfirmation"
       @confirm="confirmDelete"

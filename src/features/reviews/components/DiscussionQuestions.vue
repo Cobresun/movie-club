@@ -1,5 +1,5 @@
 <template>
-  <div class="mt-6">
+  <div class="mt-6 w-full text-left">
     <Transition name="fade" mode="out-in">
       <div
         v-if="hasQuestions"
