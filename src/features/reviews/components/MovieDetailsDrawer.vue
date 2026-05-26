@@ -1,21 +1,19 @@
 <template>
   <div>
     <!-- Mobile Bottom Sheet -->
-    <v-bottom-sheet v-if="!isDesktop" @close="close">
-      <div class="flex-grow px-4 pb-8">
-        <MovieDetailsContent
-          :movie="movie"
-          :review-table="reviewTable"
-          :delete-review="deleteReview"
-          :revealed-movie-ids="revealedMovieIds"
-          :has-rated="hasRated"
-          :current-user-id="currentUserId"
-          :blur-scores-enabled="blurScoresEnabled"
-          :is-desktop="isDesktop"
-          @close="close"
-          @toggle-reveal="toggleMovieReveal"
-        />
-      </div>
+    <v-bottom-sheet v-if="!isDesktop" transparent-handle @close="close">
+      <MovieDetailsContent
+        :movie="movie"
+        :review-table="reviewTable"
+        :delete-review="deleteReview"
+        :revealed-movie-ids="revealedMovieIds"
+        :has-rated="hasRated"
+        :current-user-id="currentUserId"
+        :blur-scores-enabled="blurScoresEnabled"
+        :is-desktop="isDesktop"
+        @close="close"
+        @toggle-reveal="toggleMovieReveal"
+      />
     </v-bottom-sheet>
 
     <!-- Desktop Drawer (side panel) -->
