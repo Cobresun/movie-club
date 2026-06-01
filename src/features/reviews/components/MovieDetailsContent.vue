@@ -145,7 +145,7 @@
         />
       </div>
 
-      <ReviewChat :work-id="movie.original.id" :club-slug="clubId" />
+      <CommentThread :work-id="movie.original.id" :club-slug="clubId" />
 
       <DiscussionQuestions
         v-if="discussionQuestionsEnabled"
@@ -319,7 +319,7 @@
         </DisclosurePanel>
       </Disclosure>
 
-      <ReviewChat :work-id="movie.original.id" :club-slug="clubId" />
+      <CommentThread :work-id="movie.original.id" :club-slug="clubId" />
 
       <DiscussionQuestions
         v-if="discussionQuestionsEnabled"
@@ -359,10 +359,10 @@ import { DateTime } from "luxon";
 import { computed, ref } from "vue";
 
 import DiscussionQuestions from "./DiscussionQuestions.vue";
-import ReviewChat from "./ReviewChat.vue";
 import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
 
+import CommentThread from "@/common/components/CommentThread.vue";
 import DeleteConfirmationModal from "@/common/components/DeleteConfirmationModal.vue";
 import ExternalLink from "@/common/components/ExternalLink.vue";
 import MovieDescription from "@/common/components/MovieDescription.vue";

@@ -1,6 +1,6 @@
 <template>
   <div class="mt-6">
-    <h3 class="mb-3 text-sm font-medium text-gray-400">Reviews</h3>
+    <h3 class="mb-3 text-sm font-medium text-gray-400">Comments</h3>
 
     <delete-confirmation-modal
       :show="showDeleteConfirmation"
@@ -123,14 +123,14 @@
     </div>
 
     <p v-else class="mb-4 text-sm text-gray-500">
-      No written reviews yet. Be the first to share your thoughts!
+      No comments yet. Be the first to share your thoughts!
     </p>
 
     <div>
       <textarea
         v-model="newComment"
         :maxlength="MAX_LENGTH"
-        placeholder="Write your review…"
+        placeholder="Write a comment…"
         class="w-full resize-none rounded-lg border border-gray-600 bg-lowBackground px-3 py-2 text-left text-sm text-white placeholder-gray-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
         rows="3"
       />
@@ -172,8 +172,8 @@
 import { DateTime } from "luxon";
 import { nextTick, reactive, ref } from "vue";
 
-import { hasElements, hasValue } from "../../../../lib/checks/checks.js";
-import { WorkCommentDto } from "../../../../lib/types/lists";
+import { hasElements, hasValue } from "../../../lib/checks/checks.js";
+import { WorkCommentDto } from "../../../lib/types/lists";
 
 import DeleteConfirmationModal from "@/common/components/DeleteConfirmationModal.vue";
 import {

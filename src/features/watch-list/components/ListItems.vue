@@ -87,6 +87,7 @@
       <ListItemDetailsDrawer
         v-if="isDefined(selectedItem)"
         :movie="selectedItem"
+        :club-slug="props.clubSlug"
         :is-next-work="selectedItem.id === nextWorkId"
         :can-review="canReview && listId !== reviewsListId"
         :other-lists="otherLists"

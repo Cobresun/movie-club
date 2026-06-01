@@ -34,6 +34,8 @@
       />
     </div>
 
+    <CommentThread :work-id="movie.id" :club-slug="clubSlug" />
+
     <!-- Sticky action footer -->
     <div
       class="sticky bottom-0 -mx-4 mt-6 space-y-2 border-t border-gray-700/60 bg-background px-4 pb-2 pt-3"
@@ -108,6 +110,7 @@ import { computed, nextTick, ref } from "vue";
 import { hasValue } from "../../../../lib/checks/checks.js";
 import { DetailedWorkListItem } from "../../../../lib/types/lists";
 
+import CommentThread from "@/common/components/CommentThread.vue";
 import DeleteConfirmationModal from "@/common/components/DeleteConfirmationModal.vue";
 import MovieDescription from "@/common/components/MovieDescription.vue";
 import MovieMetadataGrid from "@/common/components/MovieMetadataGrid.vue";
@@ -116,6 +119,7 @@ import WatchProviders from "@/common/components/WatchProviders.vue";
 
 const props = defineProps<{
   movie: DetailedWorkListItem;
+  clubSlug: string;
   isNextWork: boolean;
   isDesktop: boolean;
   canReview: boolean;
