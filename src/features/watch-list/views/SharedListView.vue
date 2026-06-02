@@ -1,19 +1,19 @@
 <template>
-  <div class="relative min-h-screen p-6 pb-24">
-    <loading-spinner v-if="isLoading" />
-    <div v-else-if="error" class="rounded-lg bg-red-900/50 p-4">
-      <p class="text-center text-red-400">Failed to load list</p>
-    </div>
-    <div v-else class="mx-auto max-w-6xl space-y-6">
-      <div class="text-center">
-        <h1 class="text-3xl font-bold text-white">
-          {{ club?.clubName ?? clubSlug }}
-        </h1>
-        <p class="mt-1 text-gray-400">{{ listTitle }}</p>
+  <div class="relative min-h-screen pb-24">
+    <SharedPageHeader
+      :club-name="club?.clubName ?? clubSlug"
+      :members="members"
+      :subtitle="listTitle"
+    />
+
+    <div class="mx-auto max-w-6xl space-y-6 px-6 pt-6">
+      <loading-spinner v-if="isLoading" />
+      <div v-else-if="error" class="rounded-lg bg-red-900/50 p-4">
+        <p class="text-center text-red-400">Failed to load list</p>
       </div>
 
       <EmptyState
-        v-if="!hasElements(sortedItems)"
+        v-else-if="!hasElements(sortedItems)"
         title="List is Empty"
         description="This list has no movies yet."
       />
@@ -48,7 +48,8 @@ import { hasElements } from "../../../../lib/checks/checks.js";
 import EmptyState from "@/common/components/EmptyState.vue";
 import MoviePosterCard from "@/common/components/MoviePosterCard.vue";
 import SharedPageCtaBanner from "@/common/components/SharedPageCtaBanner.vue";
-import { useClub } from "@/service/useClub";
+import SharedPageHeader from "@/common/components/SharedPageHeader.vue";
+import { useClub, useMembers } from "@/service/useClub";
 import { useClubLists, useList, useNextWork } from "@/service/useList";
 
 const route = useRoute();
@@ -56,6 +57,8 @@ const clubSlug = route.params.clubSlug as string;
 const listId = route.params.listId as string;
 
 const { data: club } = useClub(clubSlug);
+const { data: rawMembers } = useMembers(clubSlug);
+const members = computed(() => rawMembers.value ?? []);
 const { data: lists } = useClubLists(clubSlug);
 const { data: items, isLoading, error } = useList(clubSlug, listId);
 const { data: nextWorkId } = useNextWork(clubSlug);
