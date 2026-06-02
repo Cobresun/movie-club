@@ -17,7 +17,8 @@
         @click.stop=""
       >
         <div
-          class="sticky top-0 z-10 flex h-8 w-full cursor-pointer items-center justify-center bg-background"
+          class="sticky top-0 z-10 flex h-8 w-full cursor-pointer items-center justify-center"
+          :class="{ 'bg-background': !transparentHandle }"
           @touchstart="handleTouchStart"
           @touchmove="handleTouchMove"
           @touchend="handleTouchEnd"
@@ -45,10 +46,12 @@ const props = withDefaults(
   defineProps<{
     contentClass?: string;
     zIndex?: ZIndex;
+    transparentHandle?: boolean;
   }>(),
   {
     contentClass: "px-4 pb-8",
     zIndex: "50",
+    transparentHandle: false,
   },
 );
 
