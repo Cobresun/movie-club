@@ -118,7 +118,6 @@ import { hasValue, isDefined } from "../../../../lib/checks/checks";
 import { DetailedWorkListItem } from "../../../../lib/types/lists";
 
 import MoviePosterCard from "@/common/components/MoviePosterCard.vue";
-import { filterMovies } from "@/common/searchMovies";
 import {
   useClearNextWork,
   useDeleteListItem,
@@ -136,7 +135,7 @@ const props = defineProps<{
   reviewsListId: string | null;
   randomPickerOpen?: boolean;
   selectedItemId: string | null;
-  filterText?: string;
+  visibleIds?: Set<string> | null;
 }>();
 
 const emit = defineEmits<{
@@ -156,13 +155,17 @@ const { mutate: clearNextWork } = useClearNextWork(props.clubSlug);
 const { mutate: reorderList } = useReorderList(props.clubSlug, props.listId);
 
 // Local mirror for VueDraggableNext — it needs to own the array to mutate it.
-// Also applies text filter (partial reorders on a filtered set are handled correctly by the server).
+// When filters are active, visibleIds is the set of matching work ids (computed
+// across all lists by the shared SearchFilterBar); null means show everything.
+// Partial reorders on a filtered set are handled correctly by the server.
 const draggableItems = ref<DetailedWorkListItem[]>([]);
 watch(
-  [items, () => props.filterText],
-  ([next, filter]) => {
+  [items, () => props.visibleIds],
+  ([next, visibleIds]) => {
     const all = next ? [...next] : [];
-    draggableItems.value = hasValue(filter) ? filterMovies(all, filter) : all;
+    draggableItems.value = visibleIds
+      ? all.filter((i) => visibleIds.has(i.id))
+      : all;
   },
   { immediate: true },
 );

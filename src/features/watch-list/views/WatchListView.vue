@@ -1,16 +1,19 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, shallowRef } from "vue";
+import { computed, ref, shallowRef } from "vue";
 import { useToast } from "vue-toastification";
 
 import { hasElements } from "../../../../lib/checks/checks";
+import { DetailedWorkListItem } from "../../../../lib/types/lists";
 import AddMovieModal from "../components/AddMovieModal.vue";
 import ListItems from "../components/ListItems.vue";
 import ManageListsModal from "../components/ManageListsModal.vue";
 import { useCollapsedLists } from "../composables/useCollapsedLists";
 
+import SearchFilterBar from "@/common/components/SearchFilterBar.vue";
 import { useClubSlug } from "@/service/useClub";
 import {
   ClubListSummary,
+  useAllUserListItems,
   useClubLists,
   useReviewsListId,
 } from "@/service/useList";
@@ -46,32 +49,23 @@ const startAdd = (listId: string) => {
   addingToListId.value = listId;
 };
 
-// -- search --
-const searchTerm = ref("");
-const searchInput = ref<HTMLInputElement | null>(null);
-const searchInputSlash = ref<HTMLElement | null>(null);
+// -- search & filters --
+// Aggregate items across every list so the shared SearchFilterBar can build its
+// filter suggestions and decide which works match. Score-based filters don't
+// apply to watchlist items, so they're excluded.
+const { data: allItems } = useAllUserListItems(clubSlug);
+const searchData = computed<DetailedWorkListItem[]>(() => allItems.value ?? []);
+const excludedFilterKeys = ["average_score", "review_date"];
 
-const searchInputFocusIn = () => {
-  if (searchInputSlash.value) searchInputSlash.value.style.display = "none";
-};
-const searchInputFocusOut = () => {
-  if (searchInputSlash.value) searchInputSlash.value.style.display = "";
-};
+const filteredItems = ref<DetailedWorkListItem[]>([]);
+const hasActiveFilters = ref(false);
 
-const onKeyPress = (e: KeyboardEvent) => {
-  if (e.key === "/") {
-    if (searchInput.value === document.activeElement) return;
-    e.preventDefault();
-    searchInput.value?.focus();
-  }
-};
-
-onMounted(() => {
-  window.addEventListener("keypress", onKeyPress);
-});
-onUnmounted(() => {
-  window.removeEventListener("keypress", onKeyPress);
-});
+// When filters are active, pass the matching work ids down to each list; null
+// tells a list to show all of its items (avoids hiding everything before the
+// SearchFilterBar has synced its first result).
+const visibleIds = computed(() =>
+  hasActiveFilters.value ? new Set(filteredItems.value.map((i) => i.id)) : null,
+);
 
 const toast = useToast();
 const shareList = async (listId: string) => {
@@ -90,32 +84,20 @@ const shareList = async (listId: string) => {
     />
     <loading-spinner v-if="isLoading" />
     <template v-else-if="hasElements(userLists)">
-      <div class="mb-4 flex flex-wrap items-center justify-center gap-2">
-        <div class="relative">
-          <mdicon
-            name="magnify"
-            class="absolute left-8 top-1/2 -translate-y-1/2 transform text-slate-200"
-          />
-          <input
-            ref="searchInput"
-            v-model="searchTerm"
-            class="w-11/12 rounded-md border-2 border-slate-600 bg-background p-2 pl-12 text-base text-white outline-none focus:border-primary"
-            placeholder="Search"
-            @focusin="searchInputFocusIn"
-            @focusout="searchInputFocusOut"
-          />
-          <div
-            ref="searchInputSlash"
-            class="absolute right-8 top-1/2 -translate-y-1/2 transform rounded-md border-2 border-slate-600 px-2 py-1"
-          >
-            <p class="text-xs text-slate-200">/</p>
-          </div>
-        </div>
-        <v-btn @click="managingLists = true">
-          <mdicon name="cog" :size="16" class="mr-1" />
-          Manage lists
-        </v-btn>
-      </div>
+      <search-filter-bar
+        v-model:filtered-data="filteredItems"
+        v-model:has-active-filters="hasActiveFilters"
+        :data="searchData"
+        search-placeholder="Search watchlists"
+        :exclude-filter-keys="excludedFilterKeys"
+      >
+        <template #action-button>
+          <v-btn @click="managingLists = true">
+            <mdicon name="cog" :size="16" class="mr-1" />
+            Manage lists
+          </v-btn>
+        </template>
+      </search-filter-bar>
 
       <div class="flex flex-col gap-6">
         <section
@@ -181,7 +163,7 @@ const shareList = async (listId: string) => {
               :selected-item-id="
                 selectedInfo?.listId === list.id ? selectedInfo.workId : null
               "
-              :filter-text="searchTerm"
+              :visible-ids="visibleIds"
               @update:random-picker-open="
                 (v) => {
                   if (!v) randomOpenListId = null;
