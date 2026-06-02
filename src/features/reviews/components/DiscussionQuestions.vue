@@ -49,8 +49,8 @@
         class="flex flex-col gap-2"
       >
         <p class="text-sm text-red-400">
-          We couldn't recognize "{{ title }}", so we couldn't generate
-          discussion questions for it.
+          We couldn't recognize this movie, so we couldn't generate discussion
+          questions for it.
         </p>
         <button
           class="ai-shimmer-button flex items-center justify-center gap-2 rounded-lg py-3 text-sm font-semibold text-white"
@@ -100,15 +100,11 @@ import { useDiscussionQuestions } from "@/service/useDiscussionQuestions";
 const props = defineProps<{
   clubSlug: string;
   workId: string;
-  title: string;
-  releaseYear?: string;
 }>();
 
 const { data, isFetching, isError, refetch } = useDiscussionQuestions(
   props.clubSlug,
   props.workId,
-  props.title,
-  props.releaseYear,
 );
 
 const questions = computed(() => data.value ?? []);

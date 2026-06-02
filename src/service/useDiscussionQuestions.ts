@@ -6,19 +6,13 @@ interface DiscussionQuestionsResponse {
   questions: string[];
 }
 
-export function useDiscussionQuestions(
-  clubSlug: string,
-  workId: string,
-  title: string,
-  releaseYear?: string,
-) {
+export function useDiscussionQuestions(clubSlug: string, workId: string) {
   const auth = useAuthStore();
   return useQuery<string[]>({
-    queryKey: ["discussion-questions", clubSlug, workId, title, releaseYear],
+    queryKey: ["discussion-questions", clubSlug, workId],
     queryFn: async () => {
       const response = await auth.request.post<DiscussionQuestionsResponse>(
         `/api/club/${clubSlug}/reviews/${workId}/discussion-questions`,
-        { title, releaseYear },
       );
       return response.data.questions;
     },

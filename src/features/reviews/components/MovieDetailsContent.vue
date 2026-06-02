@@ -147,8 +147,6 @@
         v-if="discussionQuestionsEnabled"
         :club-slug="clubId"
         :work-id="movie.original.id"
-        :title="movieTitle"
-        :release-year="movieReleaseYear"
       />
 
       <div
@@ -322,8 +320,6 @@
         v-if="discussionQuestionsEnabled"
         :club-slug="clubId"
         :work-id="movie.original.id"
-        :title="movieTitle"
-        :release-year="movieReleaseYear"
       />
 
       <!-- Sticky action footer -->
@@ -410,10 +406,6 @@ const discussionQuestionsEnabled = computed(
   () => clubSettings.value?.features?.discussionQuestions === true,
 );
 const movieTitle = computed(() => String(props.movie.renderValue("title")));
-const movieReleaseYear = computed(() => {
-  const releaseDate = props.movie.original.externalData?.release_date;
-  return hasValue(releaseDate) ? releaseDate.slice(0, 4) : undefined;
-});
 
 const formattedDateForInput = computed(() => {
   return DateTime.fromISO(props.movie.original.createdDate).toFormat(
