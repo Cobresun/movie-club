@@ -1,5 +1,5 @@
 import { DateTime } from "luxon";
-import { ref, computed } from "vue";
+import { computed } from "vue";
 
 import { isDefined, isString } from "../../../../lib/checks/checks.js";
 import { WorkType } from "../../../../lib/types/generated/db";
@@ -15,8 +15,6 @@ export function useStatisticsData() {
   const { isLoading: loadingReviews, data: reviews } = useReviewsList(clubSlug);
   const { isLoading: loadingMembers, data: rawMembers } = useMembers(clubSlug);
   const members = computed(() => rawMembers.value ?? []);
-
-  const showScoreContext = ref(false);
 
   const loading = computed(() => loadingReviews.value || loadingMembers.value);
 
@@ -42,18 +40,12 @@ export function useStatisticsData() {
 
   const hasReviews = computed(() => movieData.value.length > 0);
 
-  const toggleScoreContext = () => {
-    showScoreContext.value = !showScoreContext.value;
-  };
-
   return {
     loading,
     movieData,
     members,
     histogramData,
-    showScoreContext,
     hasReviews,
-    toggleScoreContext,
   };
 }
 

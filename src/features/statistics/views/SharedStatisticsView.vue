@@ -59,30 +59,12 @@
         description="Statistics will appear once this club has reviewed some movies."
       />
 
-      <div v-else>
-        <div class="mb-4 flex items-center justify-center gap-2">
-          <mdicon name="view-dashboard" />
-          <VToggle v-model="showScoresView" />
-          <mdicon name="table" />
-        </div>
-
-        <InsightsView
-          v-if="!showScoresView"
-          :movie-data="movieData"
-          :members="members"
-          :histogram-data="histogramData"
-        />
-        <ScoresView
-          v-else
-          :filtered-movie-data="filteredMovieData"
-          :members="members"
-          :search-term="searchTerm"
-          :show-score-context="showScoreContext"
-          :has-search-term="hasSearchTerm"
-          @update:search-term="searchTerm = $event"
-          @update:show-score-context="toggleScoreContext"
-        />
-      </div>
+      <InsightsView
+        v-else
+        :movie-data="movieData"
+        :members="members"
+        :histogram-data="histogramData"
+      />
     </div>
 
     <SharedPageCtaBanner />
@@ -90,16 +72,14 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed } from "vue";
 import { useRoute } from "vue-router";
 
 import InsightsView from "./InsightsView.vue";
-import ScoresView from "./ScoresView.vue";
 import { useStatisticsData } from "../composables/useStatisticsData";
 
 import EmptyState from "@/common/components/EmptyState.vue";
 import SharedPageCtaBanner from "@/common/components/SharedPageCtaBanner.vue";
-import VToggle from "@/common/components/VToggle.vue";
 import { useClub } from "@/service/useClub";
 
 const route = useRoute();
@@ -107,20 +87,8 @@ const clubSlug = route.params.clubSlug as string;
 
 const { data: club } = useClub(clubSlug);
 
-const {
-  loading,
-  movieData,
-  filteredMovieData,
-  members,
-  histogramData,
-  searchTerm,
-  showScoreContext,
-  hasReviews,
-  hasSearchTerm,
-  toggleScoreContext,
-} = useStatisticsData();
-
-const showScoresView = ref(false);
+const { loading, movieData, members, histogramData, hasReviews } =
+  useStatisticsData();
 
 const MAX_VISIBLE_MEMBERS = 6;
 const visibleMembers = computed(() =>
