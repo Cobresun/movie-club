@@ -161,6 +161,16 @@ const routes: Array<RouteRecordRaw> = [
     },
   },
   {
+    path: "/share/club/:clubSlug/statistics",
+    name: "SharedStatistics",
+    component: () =>
+      import("../features/statistics/views/SharedStatisticsView.vue"),
+    meta: {
+      depth: 1,
+      noAuth: true,
+    },
+  },
+  {
     path: "/profile",
     name: "Profile",
     component: () => import("../features/profile/views/ProfileView.vue"),

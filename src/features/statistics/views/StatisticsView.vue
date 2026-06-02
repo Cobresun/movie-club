@@ -1,10 +1,17 @@
 <template>
   <div class="text-center">
     <page-header :has-back="true" back-route="ClubHome" page-name="Statistics">
-      <div v-if="!loading && hasReviews" class="flex gap-2">
+      <div v-if="!loading && hasReviews" class="flex items-center gap-2">
         <mdicon name="view-dashboard" />
         <VToggle v-model="showScoresView" />
         <mdicon name="table" />
+        <button
+          class="ml-2 text-white transition hover:text-primary"
+          title="Share statistics"
+          @click="shareStats"
+        >
+          <mdicon name="share-variant" />
+        </button>
       </div>
     </page-header>
     <loading-spinner v-if="loading" />
@@ -47,6 +54,8 @@ import { useStatisticsData } from "../composables/useStatisticsData";
 
 import EmptyState from "@/common/components/EmptyState.vue";
 import VToggle from "@/common/components/VToggle.vue";
+import { useShare } from "@/common/composables/useShare";
+import { useClubSlug } from "@/service/useClub";
 
 const {
   loading,
@@ -64,5 +73,15 @@ const router = useRouter();
 
 const navigateToReviews = () => {
   router.push({ name: "Reviews" }).catch(console.error);
+};
+
+const { share } = useShare();
+const clubSlug = useClubSlug();
+
+const shareStats = () => {
+  share({
+    url: `${window.location.origin}/share/club/${clubSlug}/statistics`,
+    title: "Movie Club Statistics",
+  }).catch(console.error);
 };
 </script>
