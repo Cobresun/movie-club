@@ -91,6 +91,27 @@ export interface DetailedMovieData {
   vote_count: number;
 }
 
+export interface TMDBWatchProvider {
+  provider_id: number;
+  provider_name: string;
+  logo_path: string;
+  display_priority: number;
+}
+
+export interface TMDBWatchProviderRegion {
+  link: string;
+  flatrate?: TMDBWatchProvider[];
+  free?: TMDBWatchProvider[];
+  ads?: TMDBWatchProvider[];
+  rent?: TMDBWatchProvider[];
+  buy?: TMDBWatchProvider[];
+}
+
+export interface TMDBWatchProvidersResponse {
+  id: number;
+  results: Record<string, TMDBWatchProviderRegion | undefined>;
+}
+
 export interface MovieSearchIndex {
   title: string;
   release_date: string;

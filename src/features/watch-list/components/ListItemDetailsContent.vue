@@ -24,6 +24,7 @@
         :actors="movie.externalData?.actors"
         :vote-average="movie.externalData?.vote_average"
       />
+      <WatchProviders :external-id="movie.externalId" class="md:col-span-2" />
     </div>
 
     <div v-if="movie.externalData?.overview" class="mt-4">
@@ -111,6 +112,7 @@ import DeleteConfirmationModal from "@/common/components/DeleteConfirmationModal
 import MovieDescription from "@/common/components/MovieDescription.vue";
 import MovieMetadataGrid from "@/common/components/MovieMetadataGrid.vue";
 import MoviePosterHero from "@/common/components/MoviePosterHero.vue";
+import WatchProviders from "@/common/components/WatchProviders.vue";
 
 const props = defineProps<{
   movie: DetailedWorkListItem;
