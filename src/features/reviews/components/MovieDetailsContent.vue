@@ -81,6 +81,11 @@
             class="text-gray-400"
           />
         </div>
+        <div class="flex flex-wrap items-center gap-x-4 gap-y-1 md:col-span-2">
+          <ExternalLink label="Letterboxd" :href="letterboxdUrl" />
+          <ExternalLink label="IMDb" :href="imdbUrl" />
+          <ExternalLink label="Rotten Tomatoes" :href="rottenTomatoesUrl" />
+        </div>
       </div>
 
       <div
@@ -289,6 +294,11 @@
               class="text-gray-400"
             />
           </div>
+          <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
+            <ExternalLink label="Letterboxd" :href="letterboxdUrl" />
+            <ExternalLink label="IMDb" :href="imdbUrl" />
+            <ExternalLink label="Rotten Tomatoes" :href="rottenTomatoesUrl" />
+          </div>
           <MovieDescription
             v-if="movie.original.externalData?.overview"
             :key="movie.id"
@@ -336,6 +346,7 @@ import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
 
 import DeleteConfirmationModal from "@/common/components/DeleteConfirmationModal.vue";
+import ExternalLink from "@/common/components/ExternalLink.vue";
 import MovieDescription from "@/common/components/MovieDescription.vue";
 import MovieMetadataGrid from "@/common/components/MovieMetadataGrid.vue";
 import MoviePosterHero from "@/common/components/MoviePosterHero.vue";
@@ -416,6 +427,24 @@ const releaseYear = computed(() => {
   if (!hasValue(releaseDate)) return undefined;
   const year = DateTime.fromISO(releaseDate).year;
   return Number.isNaN(year) ? undefined : year;
+});
+
+const letterboxdUrl = computed(() =>
+  hasValue(props.movie.original.externalId)
+    ? `https://letterboxd.com/tmdb/${props.movie.original.externalId}/`
+    : undefined,
+);
+
+const imdbUrl = computed(() => {
+  const imdbId = props.movie.original.externalData?.imdb_id;
+  return hasValue(imdbId) ? `https://www.imdb.com/title/${imdbId}/` : undefined;
+});
+
+const rottenTomatoesUrl = computed(() => {
+  const title = props.movie.original.title;
+  return hasValue(title)
+    ? `https://www.rottentomatoes.com/search?search=${encodeURIComponent(title)}`
+    : undefined;
 });
 
 const CUSTOM_RENDERED_COLUMNS = ["title", "imageUrl", "createdDate"];
