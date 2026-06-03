@@ -71,6 +71,24 @@
               @update:model-value="updateAwardsFeature"
             />
           </div>
+          <div class="mt-3 flex items-center justify-between gap-4">
+            <div class="flex-1">
+              <h4 class="font-medium">AI Discussion Questions</h4>
+              <p class="mt-1 text-sm text-gray-400">
+                Add an AI-powered button to each review that generates
+                discussion questions to spark conversation
+              </p>
+              <p class="mt-1 text-sm text-yellow-500">
+                This feature is experimental and may change in the future.
+              </p>
+            </div>
+            <v-switch
+              :model-value="discussionQuestionsEnabled"
+              color="primary"
+              class="ml-5 flex-shrink-0"
+              @update:model-value="updateDiscussionQuestionsFeature"
+            />
+          </div>
         </div>
       </div>
 
@@ -339,6 +357,9 @@ const blurScoresEnabled = computed(
   () => settings.value?.features?.blurScores === true,
 );
 const awardsEnabled = computed(() => settings.value?.features?.awards === true);
+const discussionQuestionsEnabled = computed(
+  () => settings.value?.features?.discussionQuestions === true,
+);
 
 const saveClubName = () => {
   if (!hasNameChanged.value) return;
@@ -428,6 +449,16 @@ const updateAwardsFeature = (value: boolean) => {
 const updateBlurScoresFeature = (value: boolean) => {
   updateSettings(
     { features: { blurScores: value } },
+    {
+      onSuccess: () => toast.success("Settings updated successfully"),
+      onError: () => toast.error("Failed to update settings"),
+    },
+  );
+};
+
+const updateDiscussionQuestionsFeature = (value: boolean) => {
+  updateSettings(
+    { features: { discussionQuestions: value } },
     {
       onSuccess: () => toast.success("Settings updated successfully"),
       onError: () => toast.error("Failed to update settings"),

@@ -172,6 +172,7 @@ interface ClubSettings {
   features: {
     blurScores: boolean;
     awards: boolean;
+    discussionQuestions: boolean;
   };
 }
 
