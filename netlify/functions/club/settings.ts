@@ -20,6 +20,7 @@ const updateSettingsSchema = z.object({
     .object({
       blurScores: z.boolean(),
       awards: z.boolean(),
+      discussionQuestions: z.boolean(),
     })
     .partial()
     .optional(),

@@ -76,6 +76,20 @@ class WorkRepository {
     return insertedWork;
   }
 
+  async getDiscussionContext(clubId: string, workId: string) {
+    return db
+      .selectFrom("work")
+      .leftJoin(
+        "movie_details",
+        "movie_details.external_id",
+        "work.external_id",
+      )
+      .where("work.id", "=", workId)
+      .where("work.club_id", "=", clubId)
+      .select(["work.title", "movie_details.release_date"])
+      .executeTakeFirst();
+  }
+
   async delete(clubId: string, workId: string) {
     return db
       .deleteFrom("work")
