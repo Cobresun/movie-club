@@ -3,92 +3,40 @@ import { DetailedWorkListItem } from "../../lib/types/lists";
 /**
  * Filters movie/review rows by structured filters and optional title text.
  *
- * @param works
- * @param searchQuery - Can be either a search query string (legacy) or an object with filters and freeText
- * @returns reviews filtered by searchQuery.
+ * @param works - The rows to filter.
+ * @param searchQuery - An object with:
+ *   - `filters`: Record of filter key to `{ operator?, value }`
+ *   - `freeText`: Free text that searches titles
+ * @returns works filtered by searchQuery.
  *
- * The searchQuery can be passed as an object with:
- * - filters: Record of filter key to {operator?, value}
- * - freeText: Free text search string (searches titles)
+ * Supported filter keys include `title`, `description`, `genre`, `spoken_language`,
+ * `original_language`, `director`, `company`, `production_country`, `year`,
+ * `review_date`, `release_date`, and the numeric keys `runtime`, `budget`,
+ * `revenue`, `popularity`, `vote_count`, `average_score`.
  *
- * "title:jaws genre:horror"
+ * Numeric and date filters support comparison operators `>`, `<`, and `=`
+ * (defaulting to `=` when no operator is given). For example a `release_date`
+ * filter of `{ operator: "<", value: "1950" }` matches movies released before 1950,
+ * and `{ value: "2000" }` matches movies released exactly in 2000.
  *
- * The "release" filter supports comparison operators (<, >, <=, >=) for movie release years:
+ * The `year` filter matches the year the review was added (exact match only).
  *
- * "release:<1950" - Movies released before 1950
- * "release:>2000" - Movies released after 2000
- * "release:<=1980" - Movies released in or before 1980
- * "release:>=2010" - Movies released in or after 2010
- * "release:2000" - Movies released exactly in 2000
- *
- * The "year" filter matches the year the review was added (exact match only):
- *
- * "year:2024" - Reviews added in 2024
- *
- * Incluidng multiple filters seperated by spaces will implicitly do an AND search between them.
+ * Multiple filters implicitly AND together.
  *
  * TODO: Add support for OR searches.
  * TODO: Create a new vue component for the search bar that highlights filters different colors.
  * TODO: Make user lists use DetailedMovie[] so they can use the same search function and bar.
- *
- * **String form:** `key:value` tokens plus remaining tokens as title search — kept for
- * programmatic use, pasted queries, and tests; not required for in-app search bars.
  */
 export function filterMovies<T extends DetailedWorkListItem>(
   works: T[],
-  searchQuery:
-    | string
-    | {
-        filters: Record<string, { operator?: ">" | "<" | "="; value: string }>;
-        freeText: string;
-      },
+  searchQuery: {
+    filters: Record<string, { operator?: ">" | "<" | "="; value: string }>;
+    freeText: string;
+  },
 ): T[] {
   let filteredReviews = [...works];
 
-  let filters: Record<string, { operator?: ">" | "<" | "="; value: string }>;
-  let freeText: string;
-
-  // Handle both string (legacy) and object inputs
-  if (typeof searchQuery === "string") {
-    // Legacy: Parse key:value syntax from string
-    const tokens =
-      searchQuery
-        .match(/\S+:"[^"]+"|[^\s:]+:[^\s]+|\S+/g)
-        ?.map((t) => t.trim()) ?? [];
-
-    filters = tokens
-      .filter((t) => t.includes(":"))
-      .reduce(
-        (acc, token) => {
-          const colonIndex = token.indexOf(":");
-          const rawKey = token.substring(0, colonIndex);
-          const rawValue = token.substring(colonIndex + 1);
-          const key = rawKey.trim();
-          const valueWithOp = rawValue.trim();
-          const operatorMatch = valueWithOp.match(/^(>|<|=)/);
-          const operator = operatorMatch
-            ? (operatorMatch[0] as ">" | "<" | "=")
-            : undefined;
-          const valueRaw = operator ? valueWithOp.slice(1) : valueWithOp;
-          const unquoted =
-            valueRaw.startsWith('"') && valueRaw.endsWith('"')
-              ? valueRaw.slice(1, -1)
-              : valueRaw;
-          acc[key] = { operator, value: unquoted };
-          return acc;
-        },
-        {} as Record<string, { operator?: ">" | "<" | "="; value: string }>,
-      );
-
-    freeText = tokens
-      .filter((t) => !t.includes(":"))
-      .join(" ")
-      .trim();
-  } else {
-    // New: Use provided filters and freeText
-    filters = searchQuery.filters;
-    freeText = searchQuery.freeText;
-  }
+  const { filters, freeText } = searchQuery;
 
   // Helpers
   const satisfiesComparator = (
@@ -240,9 +188,7 @@ export function filterMovies<T extends DetailedWorkListItem>(
     { key: "vote_count", token: "vote_count" },
   ];
   for (const f of numericFilters) {
-    const token = (
-      filters as Record<string, { operator?: ">" | "<" | "="; value: string }>
-    )[f.token];
+    const token = filters[f.token];
     if (token?.value) {
       const rhs = parseFloat(token.value);
       filteredReviews = filteredReviews.filter((review) => {
