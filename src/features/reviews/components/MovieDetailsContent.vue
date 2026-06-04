@@ -1,5 +1,5 @@
 <template>
-  <div class="flex-grow">
+  <div class="flex-grow text-left">
     <delete-confirmation-modal
       :show="showDeleteConfirmation"
       @confirm="confirmDelete"
@@ -81,6 +81,11 @@
             class="text-gray-400"
           />
         </div>
+        <div class="flex flex-wrap items-center gap-x-4 gap-y-1 md:col-span-2">
+          <ExternalLink label="Letterboxd" :href="letterboxdUrl" />
+          <ExternalLink label="IMDb" :href="imdbUrl" />
+          <ExternalLink label="Rotten Tomatoes" :href="rottenTomatoesUrl" />
+        </div>
       </div>
 
       <div
@@ -137,6 +142,12 @@
       </div>
 
       <ReviewChat :work-id="movie.original.id" :club-slug="clubId" />
+
+      <DiscussionQuestions
+        v-if="discussionQuestionsEnabled"
+        :club-slug="clubId"
+        :work-id="movie.original.id"
+      />
 
       <div
         class="sticky bottom-0 -mx-4 mt-6 border-t border-gray-700/60 bg-background px-4 pb-2 pt-3"
@@ -289,6 +300,11 @@
               class="text-gray-400"
             />
           </div>
+          <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
+            <ExternalLink label="Letterboxd" :href="letterboxdUrl" />
+            <ExternalLink label="IMDb" :href="imdbUrl" />
+            <ExternalLink label="Rotten Tomatoes" :href="rottenTomatoesUrl" />
+          </div>
           <MovieDescription
             v-if="movie.original.externalData?.overview"
             :key="movie.id"
@@ -299,6 +315,12 @@
       </Disclosure>
 
       <ReviewChat :work-id="movie.original.id" :club-slug="clubId" />
+
+      <DiscussionQuestions
+        v-if="discussionQuestionsEnabled"
+        :club-slug="clubId"
+        :work-id="movie.original.id"
+      />
 
       <!-- Sticky action footer -->
       <div
@@ -331,16 +353,18 @@ import { FlexRender, Row, Table } from "@tanstack/vue-table";
 import { DateTime } from "luxon";
 import { computed, ref } from "vue";
 
+import DiscussionQuestions from "./DiscussionQuestions.vue";
 import ReviewChat from "./ReviewChat.vue";
 import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
 
 import DeleteConfirmationModal from "@/common/components/DeleteConfirmationModal.vue";
+import ExternalLink from "@/common/components/ExternalLink.vue";
 import MovieDescription from "@/common/components/MovieDescription.vue";
 import MovieMetadataGrid from "@/common/components/MovieMetadataGrid.vue";
 import MoviePosterHero from "@/common/components/MoviePosterHero.vue";
 import { useShare } from "@/common/composables/useShare";
-import { useClub, useClubSlug } from "@/service/useClub";
+import { useClub, useClubSettings, useClubSlug } from "@/service/useClub";
 import { useReviewsListId, useUpdateAddedDate } from "@/service/useList";
 
 const props = defineProps<{
@@ -372,10 +396,16 @@ const confirmDelete = () => {
 // Date editing state
 const clubId = useClubSlug();
 const { data: club } = useClub(clubId);
+const { data: clubSettings } = useClubSettings(clubId);
 const { data: reviewsListId } = useReviewsListId(clubId);
 const { mutate: updateAddedDate } = useUpdateAddedDate(clubId);
 const isEditingDate = ref(false);
 const editedDate = ref("");
+
+const discussionQuestionsEnabled = computed(
+  () => clubSettings.value?.features?.discussionQuestions === true,
+);
+const movieTitle = computed(() => String(props.movie.renderValue("title")));
 
 const formattedDateForInput = computed(() => {
   return DateTime.fromISO(props.movie.original.createdDate).toFormat(
@@ -409,13 +439,29 @@ const cancelDateEdit = () => {
   isEditingDate.value = false;
 };
 
-const movieTitle = computed(() => String(props.movie.renderValue("title")));
-
 const releaseYear = computed(() => {
   const releaseDate = props.movie.original.externalData?.release_date;
   if (!hasValue(releaseDate)) return undefined;
   const year = DateTime.fromISO(releaseDate).year;
   return Number.isNaN(year) ? undefined : year;
+});
+
+const letterboxdUrl = computed(() =>
+  hasValue(props.movie.original.externalId)
+    ? `https://letterboxd.com/tmdb/${props.movie.original.externalId}/`
+    : undefined,
+);
+
+const imdbUrl = computed(() => {
+  const imdbId = props.movie.original.externalData?.imdb_id;
+  return hasValue(imdbId) ? `https://www.imdb.com/title/${imdbId}/` : undefined;
+});
+
+const rottenTomatoesUrl = computed(() => {
+  const title = props.movie.original.title;
+  return hasValue(title)
+    ? `https://www.rottentomatoes.com/search?search=${encodeURIComponent(title)}`
+    : undefined;
 });
 
 const CUSTOM_RENDERED_COLUMNS = ["title", "imageUrl", "createdDate"];
