@@ -11,20 +11,8 @@ import { hasElements, isDefined } from "../../lib/checks/checks.js";
 import { resolveDefaultClubSlug } from "../common/composables/useLastClubSlug";
 import ClubHomeView from "../features/clubs/views/ClubHomeView.vue";
 import HomeView from "../features/clubs/views/HomeView.vue";
-import NewClubView from "../features/clubs/views/NewClubView.vue";
 import ReviewView from "../features/reviews/views/ReviewView.vue";
-import ClubSettingsView from "../features/settings/views/ClubSettingsView.vue";
-import JoinClubView from "../features/settings/views/JoinClubView.vue";
-import StatisticsView from "../features/statistics/views/StatisticsView.vue";
-import WatchListView from "../features/watch-list/views/WatchListView.vue";
 
-import AwardsView from "@/features/awards/views/AwardsView.vue";
-import CategoriesView from "@/features/awards/views/CategoriesView.vue";
-import NominationsView from "@/features/awards/views/NominationsView.vue";
-import RankingsView from "@/features/awards/views/RankingsView.vue";
-import ResultView from "@/features/awards/views/ResultView.vue";
-import YearView from "@/features/awards/views/YearView.vue";
-import ProfileView from "@/features/profile/views/ProfileView.vue";
 import { useAuthStore } from "@/stores/auth";
 
 const checkClubAccess = async (
@@ -175,7 +163,7 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: "/profile",
     name: "Profile",
-    component: ProfileView,
+    component: () => import("../features/profile/views/ProfileView.vue"),
     beforeEnter: async (to, from, next) => {
       const auth = useAuthStore();
 
@@ -194,7 +182,7 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: "/newClub",
     name: "NewClub",
-    component: NewClubView,
+    component: () => import("../features/clubs/views/NewClubView.vue"),
     meta: {
       depth: 1,
       authRequired: true,
@@ -231,7 +219,8 @@ const routes: Array<RouteRecordRaw> = [
       {
         path: "lists",
         name: "Watchlists",
-        component: WatchListView,
+        component: () =>
+          import("../features/watch-list/views/WatchListView.vue"),
         props: true,
         meta: {
           depth: 2,
@@ -244,7 +233,8 @@ const routes: Array<RouteRecordRaw> = [
       {
         path: "statistics",
         name: "Statistics",
-        component: StatisticsView,
+        component: () =>
+          import("../features/statistics/views/StatisticsView.vue"),
         props: true,
         meta: {
           depth: 2,
@@ -253,7 +243,7 @@ const routes: Array<RouteRecordRaw> = [
       {
         path: "awards",
         name: "Awards",
-        component: AwardsView,
+        component: () => import("../features/awards/views/AwardsView.vue"),
         props: true,
         meta: {
           depth: 2,
@@ -262,32 +252,36 @@ const routes: Array<RouteRecordRaw> = [
           {
             path: ":year",
             name: "AwardsYear",
-            component: YearView,
+            component: () => import("../features/awards/views/YearView.vue"),
             props: true,
             children: [
               {
                 path: "categories",
                 name: "AwardsCategories",
                 props: true,
-                component: CategoriesView,
+                component: () =>
+                  import("../features/awards/views/CategoriesView.vue"),
               },
               {
                 path: "nominations",
                 name: "AwardsNominations",
                 props: true,
-                component: NominationsView,
+                component: () =>
+                  import("../features/awards/views/NominationsView.vue"),
               },
               {
                 path: "rankings",
                 name: "AwardsRankings",
                 props: true,
-                component: RankingsView,
+                component: () =>
+                  import("../features/awards/views/RankingsView.vue"),
               },
               {
                 path: "results",
                 name: "AwardsResults",
                 props: true,
-                component: ResultView,
+                component: () =>
+                  import("../features/awards/views/ResultView.vue"),
               },
             ],
           },
@@ -296,7 +290,8 @@ const routes: Array<RouteRecordRaw> = [
       {
         path: "settings",
         name: "ClubSettings",
-        component: ClubSettingsView,
+        component: () =>
+          import("../features/settings/views/ClubSettingsView.vue"),
         props: true,
         meta: {
           depth: 2,
@@ -308,7 +303,7 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: "/join-club/:inviteToken",
     name: "JoinClub",
-    component: JoinClubView,
+    component: () => import("../features/settings/views/JoinClubView.vue"),
     meta: {
       depth: 1,
     },
