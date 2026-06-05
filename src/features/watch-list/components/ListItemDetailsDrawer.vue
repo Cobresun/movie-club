@@ -1,7 +1,13 @@
 <template>
   <div>
     <!-- Mobile Bottom Sheet -->
-    <v-bottom-sheet v-if="!isDesktop" transparent-handle @close="close">
+    <v-bottom-sheet
+      v-if="!isDesktop"
+      transparent-handle
+      :detents="['half', 'full']"
+      initial-detent="half"
+      @close="close"
+    >
       <ListItemDetailsContent
         :movie="movie"
         :is-next-work="isNextWork"

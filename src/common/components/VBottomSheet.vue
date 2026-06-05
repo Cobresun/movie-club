@@ -1,44 +1,85 @@
 <template>
-  <div>
-    <v-backdrop :z-index="backdropZIndex" @close="handleClose" />
+  <Teleport to="body">
+    <v-backdrop
+      :z-index="backdropZIndex"
+      :opacity="backdropOpacity"
+      @close="requestClose"
+    />
 
-    <Transition name="slide-up" appear @after-leave="onTransitionEnd">
+    <div
+      ref="hostRef"
+      class="sheet-host fixed inset-0 overflow-y-scroll overscroll-contain"
+      :class="[
+        contentZIndexClass,
+        snapEnabled ? 'snap-y snap-mandatory' : 'snap-none',
+      ]"
+      role="dialog"
+      aria-modal="true"
+      :aria-label="ariaLabel"
+      tabindex="-1"
+    >
+      <!--
+        Transparent runway above the panel. It is the scrim region (the backdrop
+        shows through it), it dismisses on tap, and it hosts the zero-height snap
+        markers whose offsets define the rest positions:
+          top: 0        -> dismissed (panel below the fold)
+          top: halfTop  -> half revealed
+          top: fullTop  -> fully revealed
+      -->
+      <div class="relative h-full w-full" @click="requestClose">
+        <div class="absolute inset-x-0 top-0 h-0 snap-start"></div>
+        <div
+          v-if="hasHalfDetent"
+          class="absolute inset-x-0 h-0 snap-start"
+          :style="{ top: `${halfTop}px` }"
+        ></div>
+        <div
+          class="absolute inset-x-0 h-0 snap-start"
+          :style="{ top: `${fullTop}px` }"
+        ></div>
+      </div>
+
+      <!-- The visible sheet panel. -->
       <div
-        v-if="isVisible"
-        ref="sheetRef"
-        class="fixed inset-x-0 bottom-0 max-h-[90vh] w-full overflow-y-auto rounded-t-2xl bg-background"
-        :class="[
-          contentZIndexClass,
-          {
-            'transition-transform duration-200 ease-in-out': !isDragging,
-          },
-        ]"
-        :style="sheetStyle"
-        @click.stop=""
+        class="relative flex max-h-[90%] w-full flex-col rounded-t-2xl bg-background"
       >
         <div
-          class="sticky top-0 z-10 flex h-8 w-full cursor-pointer items-center justify-center"
+          class="flex h-8 w-full shrink-0 cursor-grab items-center justify-center"
           :class="{ 'bg-background': !transparentHandle }"
-          @touchstart="handleTouchStart"
-          @touchmove="handleTouchMove"
-          @touchend="handleTouchEnd"
         >
           <div class="h-1.5 w-12 rounded-full bg-gray-400"></div>
         </div>
 
-        <div :class="contentClass">
+        <!--
+          expand-to-scroll: content only scrolls at the full detent, so a
+          swipe-up at the half detent unambiguously expands the sheet rather than
+          scrolling content (and mandatory snap never fights a mid-content rest).
+        -->
+        <div
+          class="min-h-0 flex-1"
+          :class="[
+            contentClass,
+            atFull ? 'overflow-y-auto' : 'overflow-hidden',
+          ]"
+        >
           <slot />
         </div>
       </div>
-    </Transition>
-  </div>
+    </div>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 
 import VBackdrop from "./VBackdrop.vue";
 import { useBodyScrollLock } from "../composables/useBodyScrollLock.js";
+import {
+  useBottomSheetSnap,
+  type Detent,
+  type SnapState,
+} from "../composables/useBottomSheetSnap.js";
+import { useFocusTrap } from "../composables/useFocusTrap.js";
 
 type ZIndex = "40" | "50" | "60";
 
@@ -47,126 +88,83 @@ const props = withDefaults(
     contentClass?: string;
     zIndex?: ZIndex;
     transparentHandle?: boolean;
+    /** Enabled rest positions. Defaults to a single open ("full") state. */
+    detents?: Detent[];
+    /** Which detent to open at. */
+    initialDetent?: Detent;
+    /** Accessible name for the dialog. */
+    ariaLabel?: string;
   }>(),
   {
     contentClass: "px-4 pb-8",
     zIndex: "50",
     transparentHandle: false,
+    detents: () => ["full"],
+    initialDetent: "full",
+    ariaLabel: undefined,
   },
 );
 
 const emit = defineEmits<{
   (e: "close"): void;
+  (e: "snap-change", state: SnapState): void;
 }>();
 
-const backdropZIndex = computed(() => {
-  // Backdrop should be one level lower than content
-  return props.zIndex === "60" ? "50" : props.zIndex === "50" ? "40" : "40";
-});
+const backdropZIndex = computed<ZIndex>(() =>
+  props.zIndex === "60" ? "50" : "40",
+);
 
 const contentZIndexClass = computed(() =>
   props.zIndex === "40" ? "z-40" : props.zIndex === "60" ? "z-[60]" : "z-50",
 );
 
-const isVisible = ref(true);
-const onTransitionEnd = () => {
-  emit("close");
-};
+const hasHalfDetent = computed(() => props.detents.includes("half"));
 
-useBodyScrollLock(isVisible);
+const hostRef = ref<HTMLElement | null>(null);
 
-const handleClose = (immediate = false) => {
-  if (immediate) {
-    emit("close");
-  } else {
-    isVisible.value = false;
-  }
-};
+// Stays true for the component's lifetime; the parent's v-if mounts/unmounts us,
+// so locking on mount and releasing on unmount is exactly the desired behavior.
+const isActive = ref(true);
+useBodyScrollLock(isActive);
+useFocusTrap(hostRef, isActive);
 
-const touchStartY = ref<number | null>(null);
-const touchStartTime = ref<number | null>(null);
-const dragOffset = ref(0);
-const isDragging = ref(false);
-
-const handleTouchStart = (event: TouchEvent) => {
-  event.preventDefault();
-  event.stopPropagation();
-
-  if (event.touches.length === 1) {
-    touchStartY.value = event.touches[0].clientY;
-    touchStartTime.value = Date.now();
-    isDragging.value = true;
-    dragOffset.value = 0;
-  }
-};
-
-const handleTouchMove = (event: TouchEvent) => {
-  event.preventDefault();
-  event.stopPropagation();
-
-  if (touchStartY.value !== null && event.touches.length === 1) {
-    const currentY = event.touches[0].clientY;
-    const deltaY = currentY - touchStartY.value;
-    if (deltaY > 0) {
-      dragOffset.value = deltaY * 0.8;
-    } else {
-      dragOffset.value = 0;
-    }
-  }
-};
-
-const handleTouchEnd = (event: TouchEvent) => {
-  event.preventDefault();
-  event.stopPropagation();
-
-  if (
-    touchStartY.value !== null &&
-    touchStartTime.value !== null &&
-    event.changedTouches.length === 1
-  ) {
-    const touchEndY = event.changedTouches[0].clientY;
-    const touchEndTime = Date.now();
-    const deltaY = touchEndY - touchStartY.value;
-    const deltaTime = touchEndTime - touchStartTime.value;
-    const velocity = deltaY / deltaTime;
-
-    const shouldClose = deltaY > 100 || (deltaY > 50 && velocity > 0.3);
-
-    if (shouldClose) {
-      handleClose(true);
-    } else {
-      dragOffset.value = 0;
-    }
-  }
-
-  isDragging.value = false;
-  touchStartY.value = null;
-  touchStartTime.value = null;
-};
-
-const sheetStyle = computed(() => {
-  if (isDragging.value || dragOffset.value > 0) {
-    return {
-      transform: `translateY(${Math.max(0, dragOffset.value)}px)`,
-    };
-  }
-  return {};
+const {
+  snapEnabled,
+  backdropOpacity,
+  atFull,
+  halfTop,
+  fullTop,
+  open,
+  requestClose,
+} = useBottomSheetSnap({
+  host: hostRef,
+  detents: () => props.detents,
+  initialDetent: () => props.initialDetent,
+  onClose: () => emit("close"),
+  onSnapChange: (state) => emit("snap-change", state),
 });
+
+const onKeydown = (event: KeyboardEvent) => {
+  if (event.key === "Escape") requestClose();
+};
+
+onMounted(() => {
+  open();
+  document.addEventListener("keydown", onKeydown);
+});
+
+onUnmounted(() => document.removeEventListener("keydown", onKeydown));
 </script>
 
 <style scoped>
-.slide-up-enter-active,
-.slide-up-leave-active {
-  transition: transform 200ms ease-in-out;
+/* Hide the host's scrollbar — the scroll position is an interaction mechanism,
+   not something the user should see a track for. */
+.sheet-host {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
-.slide-up-enter-from,
-.slide-up-leave-to {
-  transform: translateY(100%);
-}
-
-.slide-up-enter-to,
-.slide-up-leave-from {
-  transform: translateY(0);
+.sheet-host::-webkit-scrollbar {
+  display: none;
 }
 </style>
