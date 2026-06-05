@@ -29,6 +29,7 @@
       class="scrollbar-hide relative mt-2 flex w-full flex-nowrap gap-2 overflow-x-auto md:flex-wrap md:justify-center"
     >
       <template v-for="opt in FILTER_OPTIONS" :key="opt.key">
+        <!-- Applied filter pill (clickable to remove) -->
         <button
           v-if="isFilterApplied(opt.key)"
           type="button"
@@ -44,13 +45,18 @@
           </span>
         </button>
 
-        <Popover v-else v-slot="{ close }" class="relative shrink-0">
+        <!-- Desktop: anchored popover tooltip near the pill -->
+        <Popover
+          v-else-if="isDesktop"
+          v-slot="{ close }"
+          class="relative shrink-0"
+        >
           <PopoverButton
             :class="[
               'relative shrink-0 cursor-pointer whitespace-nowrap rounded-full border px-3 py-1 text-sm hover:bg-lowBackground',
               'border-white opacity-80',
             ]"
-            @click="prepareFilterPopover(opt, $event)"
+            @click="prepareFilterPopover($event)"
           >
             <span>{{ opt.label }}</span>
           </PopoverButton>
@@ -63,110 +69,48 @@
               class="fixed min-w-[280px] rounded-lg border border-slate-600 bg-background p-4 shadow-2xl"
               :style="teleportedPanelStyle"
             >
-              <div class="flex flex-col gap-3">
-                <!-- Date picker -->
-                <div v-if="opt.type === 'date'" class="flex flex-col gap-2">
-                  <label class="text-xs text-slate-400">{{ opt.label }}</label>
-                  <input
-                    :ref="bindPopoverInput"
-                    v-model="filterValueInput"
-                    type="date"
-                    class="rounded-md border border-slate-600 bg-lowBackground p-2 text-sm text-white outline-none focus:border-primary"
-                  />
-                </div>
-
-                <!-- Number input -->
-                <div
-                  v-else-if="opt.type === 'number'"
-                  class="flex flex-col gap-2"
-                >
-                  <label class="text-xs text-slate-400">{{ opt.label }}</label>
-                  <input
-                    :ref="bindPopoverInput"
-                    v-model="filterValueInput"
-                    type="number"
-                    class="rounded-md border border-slate-600 bg-lowBackground p-2 text-sm text-white outline-none focus:border-primary"
-                    :placeholder="opt.placeholder"
-                  />
-                </div>
-
-                <!-- Enum with suggestions -->
-                <div
-                  v-else-if="opt.type === 'enum'"
-                  class="flex flex-col gap-2"
-                >
-                  <label class="text-xs text-slate-400">{{ opt.label }}</label>
-                  <input
-                    :ref="bindPopoverInput"
-                    v-model="filterValueInput"
-                    type="text"
-                    class="rounded-md border border-slate-600 bg-lowBackground p-2 text-sm text-white outline-none focus:border-primary"
-                    :placeholder="opt.placeholder"
-                  />
-                  <!-- Suggestions list -->
-                  <div
-                    v-if="getFilteredValueSuggestions(opt.key).length > 0"
-                    class="max-h-48 overflow-y-auto rounded-md border border-slate-700 bg-lowBackground"
-                  >
-                    <div
-                      v-for="s in getFilteredValueSuggestions(opt.key)"
-                      :key="s"
-                      class="cursor-pointer px-3 py-2 text-sm hover:bg-background"
-                      @click="selectValueSuggestion(s, opt, close)"
-                    >
-                      {{ s }}
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Comparator buttons for number/date -->
-                <div
-                  v-if="opt.type === 'number' || opt.type === 'date'"
-                  class="flex gap-1"
-                >
-                  <button
-                    v-for="op in ['>', '=', '<']"
-                    :key="op"
-                    type="button"
-                    :class="[
-                      'flex-1 rounded-md border px-3 py-1 text-sm transition-colors',
-                      comparator === op
-                        ? 'border-primary bg-primary/20 text-white'
-                        : 'border-slate-600 bg-lowBackground/60 text-slate-400 hover:border-slate-500 hover:text-white',
-                    ]"
-                    @click="comparator = op as Comparator"
-                  >
-                    {{ op }}
-                  </button>
-                </div>
-
-                <!-- Action buttons -->
-                <div class="flex gap-2">
-                  <button
-                    type="button"
-                    class="flex-1 rounded-md bg-primary px-3 py-2 text-sm font-medium text-white hover:bg-primary/80 disabled:opacity-50"
-                    :disabled="
-                      !filterValueInput ||
-                      String(filterValueInput).trim().length === 0
-                    "
-                    @click="applyActiveFilter(opt, close)"
-                  >
-                    Apply
-                  </button>
-                  <button
-                    type="button"
-                    class="rounded-md border border-slate-600 bg-lowBackground/60 px-3 py-2 text-sm text-slate-400 hover:bg-lowBackground hover:text-white"
-                    @click="closeFilterPopover(close)"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
+              <FilterPanelContent
+                :opt="opt"
+                :value-suggestions="suggestionsFor(opt.key)"
+                @apply="
+                  (value, operator) => {
+                    applyFilter(opt, value, operator);
+                    close();
+                  }
+                "
+                @cancel="close()"
+              />
             </PopoverPanel>
           </Teleport>
         </Popover>
+
+        <!-- Mobile: pill opens a bottom sheet instead of the desktop tooltip -->
+        <button
+          v-else
+          type="button"
+          :class="[
+            'relative shrink-0 cursor-pointer whitespace-nowrap rounded-full border px-3 py-1 text-sm hover:bg-lowBackground',
+            'border-white opacity-80',
+          ]"
+          @click="activeMobileFilter = opt"
+        >
+          <span>{{ opt.label }}</span>
+        </button>
       </template>
     </PopoverGroup>
+
+    <!-- Mobile filter bottom sheet (replaces the desktop tooltip on < 768px) -->
+    <v-bottom-sheet
+      v-if="!isDesktop && activeMobileFilter"
+      @close="activeMobileFilter = null"
+    >
+      <FilterPanelContent
+        :opt="activeMobileFilter"
+        :value-suggestions="suggestionsFor(activeMobileFilter.key)"
+        @apply="applyMobileFilter"
+        @cancel="activeMobileFilter = null"
+      />
+    </v-bottom-sheet>
   </div>
 </template>
 
@@ -177,18 +121,16 @@ import {
   PopoverGroup,
   PopoverPanel,
 } from "@headlessui/vue";
-import {
-  computed,
-  nextTick,
-  onMounted,
-  onUnmounted,
-  ref,
-  watchEffect,
-} from "vue";
+import { computed, onMounted, onUnmounted, ref, watchEffect } from "vue";
 
+import { hasValue } from "../../../lib/checks/checks";
 import type { DetailedWorkListItem } from "../../../lib/types/lists";
+import { useIsDesktop } from "../composables/useIsDesktop.js";
 import { filterWorks } from "../filterWorks";
 import { asMovie } from "../workDisplay";
+import FilterPanelContent from "./FilterPanelContent.vue";
+import type { Comparator, FilterOption } from "./filterTypes";
+import VBottomSheet from "./VBottomSheet.vue";
 
 // Component props
 interface Props {
@@ -257,8 +199,6 @@ const ALL_FILTER_OPTIONS = [
   },
 ];
 
-type FilterOption = (typeof ALL_FILTER_OPTIONS)[number];
-
 const FILTER_OPTIONS = computed(() =>
   ALL_FILTER_OPTIONS.filter((o) => !props.excludeFilterKeys.includes(o.key)),
 );
@@ -298,7 +238,7 @@ const directorCounts = computed(() => {
   return Array.from(counts.entries()).sort((a, b) => b[1] - a[1]); // Sort by frequency (descending)
 });
 
-const computedValueSuggestions = computed(() => ({
+const computedValueSuggestions = computed<Record<string, string[]>>(() => ({
   genre: genreCounts.value.map(([genre, count]) => `${genre} (${count})`),
   company: companyCounts.value.map(
     ([company, count]) => `${company} (${count})`,
@@ -312,7 +252,6 @@ const computedValueSuggestions = computed(() => ({
 const searchTerm = ref("");
 
 // Applied filters pills
-type Comparator = ">" | "=" | "<";
 interface AppliedFilter {
   key: string;
   label: string;
@@ -322,10 +261,9 @@ interface AppliedFilter {
 }
 const appliedFilters = ref<AppliedFilter[]>([]);
 
-// Popover form state (one filter panel open at a time via PopoverGroup)
-const filterValueInput = ref("");
-const comparator = ref<Comparator>(">");
-const popoverInput = ref<HTMLInputElement | null>(null);
+// Viewport: desktop shows the anchored popover, mobile opens a bottom sheet.
+const isDesktop = useIsDesktop();
+const activeMobileFilter = ref<FilterOption | null>(null);
 
 /** Anchor for the teleported panel (viewport / fixed positioning). */
 const teleportedPanelAnchor = ref<HTMLElement | null>(null);
@@ -371,10 +309,6 @@ function syncTeleportedPanelPosition() {
   updateTeleportedPanelStyle();
 }
 
-function bindPopoverInput(el: unknown) {
-  popoverInput.value = el instanceof HTMLInputElement ? el : null;
-}
-
 // Helper functions for pill display
 const isFilterApplied = (key: string) => {
   return appliedFilters.value.some((p) => p.key === key);
@@ -394,58 +328,16 @@ function removeAppliedFilter(key: string) {
   }
 }
 
-function prepareFilterPopover(opt: FilterOption, event: Event) {
-  filterValueInput.value = "";
-  comparator.value = ">";
-
+// Desktop only: position the teleported panel before it opens. The form's own
+// focus/showPicker handling lives in FilterPanelContent's onMounted.
+function prepareFilterPopover(event: Event) {
   const btn = event.currentTarget;
   teleportedPanelAnchor.value = btn instanceof HTMLElement ? btn : null;
   updateTeleportedPanelStyle();
-
-  // Wait for PopoverPanel to mount (button click opens on same tick).
-  void nextTick(() => {
-    void nextTick(() => {
-      requestAnimationFrame(() => {
-        const inputElement = popoverInput.value;
-        if (!inputElement) return;
-
-        inputElement.focus();
-        if (
-          opt.type === "date" &&
-          typeof inputElement.showPicker === "function"
-        ) {
-          setTimeout(() => {
-            inputElement.showPicker();
-          }, 100);
-        }
-      });
-    });
-  });
 }
 
-function getFilteredValueSuggestions(optKey: string) {
-  const q = filterValueInput.value.trim().toLowerCase();
-  const list =
-    computedValueSuggestions.value[
-      optKey as keyof typeof computedValueSuggestions.value
-    ] ?? [];
-  if (!q) return list.slice(0, 20);
-  return list.filter((v) => v.toLowerCase().includes(q)).slice(0, 20);
-}
-
-function closeFilterPopover(close: () => void) {
-  teleportedPanelAnchor.value = null;
-  close();
-}
-
-function selectValueSuggestion(
-  suggestion: string,
-  opt: FilterOption,
-  close: () => void,
-) {
-  const value = suggestion.replace(/ \(\d+\)$/, "");
-  filterValueInput.value = value;
-  applyActiveFilter(opt, close);
+function suggestionsFor(key: string): string[] {
+  return computedValueSuggestions.value[key] ?? [];
 }
 
 // Build filters object from pills
@@ -480,19 +372,15 @@ watchEffect(() => {
   hasActiveFilters.value = derivedHasActiveFilters.value;
 });
 
-function applyActiveFilter(opt: FilterOption, close: () => void) {
-  const v = filterValueInput.value;
-  const valueStr = String(v).trim();
-  if (valueStr.length === 0) return;
+function applyFilter(opt: FilterOption, value: string, operator?: Comparator) {
+  const valueStr = value.trim();
+  if (!hasValue(valueStr)) return;
 
   const newPill: AppliedFilter = {
     key: opt.key,
     label: opt.label,
     type: opt.type,
-    operator:
-      opt.type === "number" || opt.type === "date"
-        ? comparator.value
-        : undefined,
+    operator,
     value: valueStr,
   };
 
@@ -504,11 +392,14 @@ function applyActiveFilter(opt: FilterOption, close: () => void) {
   } else {
     appliedFilters.value.push(newPill);
   }
+}
 
-  filterValueInput.value = "";
-  comparator.value = ">";
-  teleportedPanelAnchor.value = null;
-  close();
+// Bottom-sheet apply: reads the active option, then closes the sheet.
+function applyMobileFilter(value: string, operator?: Comparator) {
+  const opt = activeMobileFilter.value;
+  if (!opt) return;
+  applyFilter(opt, value, operator);
+  activeMobileFilter.value = null;
 }
 
 onMounted(() => {
