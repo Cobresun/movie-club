@@ -243,6 +243,7 @@ export interface WorkList {
 }
 
 export interface WorkListItem {
+  added_by_user_id: Int8 | null;
   list_id: Int8;
   position: Generated<Int8>;
   time_added: Generated<Timestamp>;

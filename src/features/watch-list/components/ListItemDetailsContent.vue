@@ -15,6 +15,21 @@
       :is-desktop="isDesktop"
     />
 
+    <div
+      v-if="isDefined(addedByMember)"
+      class="mb-4 flex items-center gap-2 text-sm text-slate-400"
+    >
+      <VAvatar
+        :src="addedByMember.image"
+        :name="addedByMember.name"
+        :size="24"
+      />
+      <span>
+        Added by {{ addedByMember.name }} on
+        {{ formatDate(movie.createdDate) }}
+      </span>
+    </div>
+
     <div class="grid grid-cols-1 gap-y-2 text-sm md:grid-cols-2 md:gap-x-4">
       <MovieMetadataGrid
         v-if="movieData"
@@ -115,13 +130,15 @@ import {
 import { DateTime } from "luxon";
 import { computed, nextTick, ref } from "vue";
 
-import { hasValue } from "../../../../lib/checks/checks.js";
+import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
+import { Member } from "../../../../lib/types/club";
 import { DetailedWorkListItem } from "../../../../lib/types/lists";
 
 import BookMetadataGrid from "@/common/components/BookMetadataGrid.vue";
 import CommentThread from "@/common/components/CommentThread.vue";
 import DeleteConfirmationModal from "@/common/components/DeleteConfirmationModal.vue";
 import MovieMetadataGrid from "@/common/components/MovieMetadataGrid.vue";
+import VAvatar from "@/common/components/VAvatar.vue";
 import WatchProviders from "@/common/components/WatchProviders.vue";
 import WorkDescription from "@/common/components/WorkDescription.vue";
 import WorkPosterHero from "@/common/components/WorkPosterHero.vue";
@@ -139,6 +156,7 @@ const props = defineProps<{
   isDesktop: boolean;
   canReview: boolean;
   otherLists: { id: string; title: string }[];
+  addedByMember?: Member;
 }>();
 
 const emit = defineEmits<{

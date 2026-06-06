@@ -125,6 +125,7 @@ router.get("/:listId", validListId, async ({ listId }, res) => {
       createdDate: item.time_added.toISOString(),
       imageUrl: item.image_url ?? undefined,
       externalId: item.external_id ?? undefined,
+      addedBy: item.added_by_user_id ?? undefined,
       externalData: hasValue(item.external_id)
         ? externalData.get(item.external_id)
         : undefined,
@@ -173,7 +174,7 @@ router.post(
   "/:listId/items",
   validListId,
   secured<ListRequest>,
-  async ({ listId, clubId, event }, res) => {
+  async ({ listId, clubId, userId, event }, res) => {
     if (!hasValue(event.body)) return res(badRequest("No body provided"));
     const body = listInsertDtoSchema.safeParse(JSON.parse(event.body));
     if (!body.success) return res(badRequest("Invalid body provided"));
@@ -197,7 +198,7 @@ router.post(
     if (exists) {
       return res(badRequest(BadRequest.ItemInList));
     }
-    await ListRepository.insertItemInList(listId, workId);
+    await ListRepository.insertItemInList(listId, workId, userId);
     return res(ok());
   },
 );

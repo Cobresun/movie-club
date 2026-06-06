@@ -9,6 +9,7 @@
         :is-desktop="isDesktop"
         :can-review="canReview"
         :other-lists="otherLists"
+        :added-by-member="addedByMember"
         @close="close"
         @review="emit('review')"
         @set-next-work="emit('set-next-work')"
@@ -27,6 +28,7 @@
         :is-desktop="isDesktop"
         :can-review="canReview"
         :other-lists="otherLists"
+        :added-by-member="addedByMember"
         @close="close"
         @review="emit('review')"
         @set-next-work="emit('set-next-work')"
@@ -40,6 +42,7 @@
 
 <script setup lang="ts">
 import ListItemDetailsContent from "./ListItemDetailsContent.vue";
+import { Member } from "../../../../lib/types/club";
 import { DetailedWorkListItem } from "../../../../lib/types/lists";
 
 import VBottomSheet from "@/common/components/VBottomSheet.vue";
@@ -52,6 +55,7 @@ defineProps<{
   isNextWork: boolean;
   canReview: boolean;
   otherLists: { id: string; title: string }[];
+  addedByMember?: Member;
 }>();
 
 const emit = defineEmits<{
