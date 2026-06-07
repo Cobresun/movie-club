@@ -54,7 +54,7 @@
                 ? 'sticky left-0 z-20 max-w-[185px] bg-lowBackground max-md:px-3 max-md:py-1'
                 : '',
               isScoreColumn(cell.column.id)
-                ? 'group/score rounded-lg transition-all duration-200 hover:scale-[1.03] hover:bg-slate-600/50'
+                ? 'group/score transition-colors duration-200 hover:bg-slate-600/40'
                 : '',
             ]"
           >
