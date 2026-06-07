@@ -113,7 +113,7 @@
         <div
           v-for="cell in getVisibleCells(movie)"
           :key="cell.id"
-          class="flex items-center rounded-xl bg-lowBackground p-2"
+          class="group/score flex items-center rounded-xl bg-lowBackground p-2 transition-all duration-200 hover:scale-[1.03] hover:bg-slate-600"
         >
           <FlexRender
             :render="cell.column.columnDef.header"
@@ -132,12 +132,6 @@
           </div>
         </div>
       </div>
-
-      <ReviewEmojiReactions
-        :club-slug="clubId"
-        :review-id="currentUserReview?.id"
-        :emoji="currentUserReview?.emoji"
-      />
 
       <div v-if="movie.original.externalData" class="mt-6">
         <MovieDescription
@@ -247,7 +241,7 @@
         <div
           v-for="cell in getVisibleCells(movie)"
           :key="cell.id"
-          class="flex items-center rounded-xl bg-lowBackground p-2"
+          class="group/score flex items-center rounded-xl bg-lowBackground p-2 transition-all duration-200 hover:scale-[1.03] hover:bg-slate-600"
         >
           <FlexRender
             :render="cell.column.columnDef.header"
@@ -266,12 +260,6 @@
           </div>
         </div>
       </div>
-
-      <ReviewEmojiReactions
-        :club-slug="clubId"
-        :review-id="currentUserReview?.id"
-        :emoji="currentUserReview?.emoji"
-      />
 
       <!-- Collapsible metadata -->
       <Disclosure v-slot="{ open }">
@@ -367,7 +355,6 @@ import { computed, ref } from "vue";
 
 import DiscussionQuestions from "./DiscussionQuestions.vue";
 import ReviewChat from "./ReviewChat.vue";
-import ReviewEmojiReactions from "./ReviewEmojiReactions.vue";
 import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
 
@@ -418,16 +405,6 @@ const editedDate = ref("");
 const discussionQuestionsEnabled = computed(
   () => clubSettings.value?.features?.discussionQuestions === true,
 );
-
-const currentUserReview = computed(() => {
-  if (!isDefined(props.currentUserId)) return null;
-  const userScore = props.movie.original.scores[props.currentUserId];
-  if (!isDefined(userScore)) return null;
-  return {
-    id: userScore.id,
-    emoji: userScore.emoji ?? null,
-  };
-});
 
 const movieTitle = computed(() => String(props.movie.renderValue("title")));
 

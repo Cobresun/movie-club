@@ -79,7 +79,7 @@
             <div
               v-for="cell in getVisibleCells(row)"
               :key="cell.id"
-              class="group flex items-center rounded-3xl bg-slate-600 p-1 transition-colors hover:bg-slate-500"
+              class="group/score flex items-center rounded-3xl bg-slate-600 p-1.5 transition-all duration-200 hover:scale-[1.03] hover:bg-slate-500"
             >
               <FlexRender
                 :render="cell.column.columnDef.header"
