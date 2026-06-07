@@ -57,7 +57,7 @@ class WorkRepository {
 
     // If it's a movie with an external ID, fetch and store its details
     const externalId = work.externalId;
-    if (work.type === WorkType.movie && hasValue(externalId)) {
+    if (work.type === WorkType.MOVIE && hasValue(externalId)) {
       const [movieDetails] = await getDetailedWorks([
         {
           id: insertedWork.id,

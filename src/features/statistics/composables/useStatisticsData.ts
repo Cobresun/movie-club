@@ -64,7 +64,7 @@ function mapReviewsToMovies(reviews: DetailedReviewListItem[]): MovieData[] {
 
       return {
         id: review.id,
-        type: WorkType.movie,
+        type: WorkType.MOVIE,
         title: review.title,
         dateWatched: DateTime.fromISO(review.createdDate).toLocaleString(),
         userScores: Object.keys(review.scores).reduce<

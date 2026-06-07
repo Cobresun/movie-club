@@ -88,7 +88,7 @@ class ListRepository {
         {
           club_id: clubId,
           title: "Reviews",
-          system_type: WorkListSystemType.reviews,
+          system_type: WorkListSystemType.REVIEWS,
         },
       ])
       .execute();
@@ -107,7 +107,7 @@ class ListRepository {
   }
 
   async getReviewsListId(clubId: string) {
-    return this.getSystemListId(clubId, WorkListSystemType.reviews);
+    return this.getSystemListId(clubId, WorkListSystemType.REVIEWS);
   }
 
   // -- List item operations (now keyed by listId) -----------------------

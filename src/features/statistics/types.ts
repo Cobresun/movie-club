@@ -3,7 +3,7 @@ import { DetailedMovieData } from "../../../lib/types/movie";
 
 export interface MovieData {
   id: string;
-  type: WorkType.movie;
+  type: WorkType.MOVIE;
   title: string;
   createdDate: string;
   imageUrl: string | undefined;

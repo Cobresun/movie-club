@@ -51,7 +51,7 @@ const collectionResults = computed<MovieSearchIndex[]>(() => {
 
 const onSelectMovie = (movie: MovieSearchIndex) => {
   mutate({
-    type: WorkType.movie,
+    type: WorkType.MOVIE,
     title: movie.title,
     externalId: movie.id.toString(),
     imageUrl: `${BASE_IMAGE_URL}${movie.poster_path}`,

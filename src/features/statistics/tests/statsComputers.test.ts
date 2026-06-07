@@ -53,7 +53,7 @@ function makeExternalData(
 function makeMovie(overrides: Partial<MovieData> = {}): MovieData {
   return {
     id: "1",
-    type: WorkType.movie,
+    type: WorkType.MOVIE,
     title: "Test Movie",
     createdDate: "2024-01-01T00:00:00.000Z",
     imageUrl: undefined,
