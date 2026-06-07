@@ -82,6 +82,7 @@ import {
 } from "@tanstack/vue-table";
 import { DateTime } from "luxon";
 import { computed, ref, onMounted, h, resolveComponent, watch } from "vue";
+
 import { hasValue, isTrue, isDefined } from "../../../../lib/checks/checks.js";
 import { DetailedReviewListItem, Review } from "../../../../lib/types/lists";
 import { useShare } from "../../../common/composables/useShare";
