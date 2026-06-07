@@ -63,6 +63,27 @@
         />
       </template>
     </div>
+
+    <!-- Emoji Picker Overlay -->
+    <div
+      v-if="isEmojiPickerOpen"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+      @click="closeEmojiPicker"
+    >
+      <div
+        class="rounded-lg border border-gray-600 bg-background shadow-xl"
+        @click.stop
+      >
+        <EmojiPicker
+          :native="true"
+          :hide-group-names="false"
+          :hide-search="false"
+          :disable-skin-tones="true"
+          theme="dark"
+          @select="onEmojiSelect"
+        />
+      </div>
+    </div>
   </div>
 </template>
 <script setup lang="ts">
@@ -74,9 +95,11 @@ import {
 } from "@tanstack/vue-table";
 import { DateTime } from "luxon";
 import { computed, ref, onMounted, h, resolveComponent, watch } from "vue";
+import EmojiPicker from "vue3-emoji-picker";
+import "vue3-emoji-picker/css";
 
-import { hasValue, isTrue } from "../../../../lib/checks/checks.js";
-import { DetailedReviewListItem } from "../../../../lib/types/lists";
+import { hasValue, isTrue, isDefined } from "../../../../lib/checks/checks.js";
+import { DetailedReviewListItem, Review } from "../../../../lib/types/lists";
 import { useShare } from "../../../common/composables/useShare";
 import GalleryView from "../components/GalleryView.vue";
 import MovieTooltip from "../components/MovieTooltip.vue";
@@ -101,11 +124,16 @@ import {
   useReviewsList,
   useReviewsListId,
 } from "@/service/useList";
+import { useUpdateReviewEmoji } from "@/service/useReviews";
 import { useUser } from "@/service/useUser";
 
 const { clubSlug } = defineProps<{ clubSlug: string }>();
 
 const isGalleryView = ref(true);
+const isEmojiPickerOpen = ref(false);
+const currentReviewId = ref<string | null>(null);
+const longPressTimer = ref<number | null>(null);
+const isLongPress = ref(false);
 
 // Load club data for share functionality
 const { data: club } = useClub(clubSlug);
@@ -193,6 +221,7 @@ const deleteReview = (workId: string) => {
   if (!hasValue(reviewsListId.value)) return;
   deleteReviewMutation({ workId, reviewsListId: reviewsListId.value });
 };
+const { mutate: updateReviewEmoji } = useUpdateReviewEmoji(clubSlug);
 
 const mdicon = resolveComponent("mdicon");
 const currentUser = useUser();
@@ -236,6 +265,61 @@ const shouldBlurScore = (rowId: string, columnId: string) => {
 };
 
 const { share } = useShare();
+
+const getUserEmoji = (
+  scores: Record<string, Review>,
+  columnId: string,
+): string | null => {
+  const colUserId = columnId.replace("member_", "");
+  const userReview = scores[colUserId];
+  return userReview?.emoji ?? null;
+};
+
+const openEmojiPicker = (reviewId: string | undefined) => {
+  if (isDefined(reviewId)) {
+    currentReviewId.value = reviewId;
+    isEmojiPickerOpen.value = true;
+  }
+};
+
+const closeEmojiPicker = () => {
+  isEmojiPickerOpen.value = false;
+  currentReviewId.value = null;
+};
+
+const handleTouchStart = (reviewId: string | undefined) => {
+  if (!isDefined(reviewId)) return;
+
+  isLongPress.value = false;
+  longPressTimer.value = window.setTimeout(() => {
+    isLongPress.value = true;
+    openEmojiPicker(reviewId);
+  }, 500);
+};
+
+const handleTouchEnd = () => {
+  if (isDefined(longPressTimer.value)) {
+    clearTimeout(longPressTimer.value);
+    longPressTimer.value = null;
+  }
+};
+
+const handleTouchMove = () => {
+  if (isDefined(longPressTimer.value)) {
+    clearTimeout(longPressTimer.value);
+    longPressTimer.value = null;
+  }
+};
+
+const onEmojiSelect = (emoji: { i: string }) => {
+  if (isDefined(currentReviewId.value)) {
+    updateReviewEmoji({
+      reviewId: currentReviewId.value,
+      emoji: emoji.i,
+    });
+  }
+  closeEmojiPicker();
+};
 
 const columns = computed(() => [
   columnHelper.accessor("imageUrl", {
@@ -334,6 +418,10 @@ const columns = computed(() => [
         }
 
         const shouldBlur = shouldBlurScore(info.row.id, info.column.id);
+        const userEmoji = getUserEmoji(
+          info.row.original.scores,
+          info.column.id,
+        );
 
         return h(
           "div",
@@ -342,14 +430,90 @@ const columns = computed(() => [
             onClick: shouldBlur ? () => toggleReveal(info.row.id) : undefined,
           },
           [
-            h(ReviewScore, {
-              workId: info.row.original.id,
-              memberId: member.id,
-              score,
-              reviewId: info.row.original.scores[member.id]?.id,
-              size,
-              class: shouldBlur ? "filter blur cursor-pointer" : "",
-            }),
+            // ReviewScore wrapper with relative positioning for emoji badge
+            h(
+              "div",
+              {
+                class: "relative inline-block group",
+                onTouchstart:
+                  info.column.id === `member_${userId.value}` &&
+                  info.row.original.scores[member.id]?.id &&
+                  !shouldBlur
+                    ? () =>
+                        handleTouchStart(
+                          info.row.original.scores[member.id]?.id,
+                        )
+                    : undefined,
+                onTouchend:
+                  info.column.id === `member_${userId.value}` &&
+                  info.row.original.scores[member.id]?.id &&
+                  !shouldBlur
+                    ? handleTouchEnd
+                    : undefined,
+                onTouchmove:
+                  info.column.id === `member_${userId.value}` &&
+                  info.row.original.scores[member.id]?.id &&
+                  !shouldBlur
+                    ? handleTouchMove
+                    : undefined,
+              },
+              [
+                h(ReviewScore, {
+                  workId: info.row.original.id,
+                  memberId: member.id,
+                  score,
+                  reviewId: info.row.original.scores[member.id]?.id,
+                  size,
+                  class: shouldBlur ? "filter blur cursor-pointer" : "",
+                }),
+                // Floating emoji badge
+                isDefined(userEmoji) && !shouldBlur
+                  ? h(
+                      "div",
+                      {
+                        class:
+                          "absolute -right-5 -top-2 flex h-5 w-5 items-center justify-center rounded-full text-lg cursor-pointer hover:bg-slate-700 transition-colors",
+                        onClick: (e: Event) => {
+                          e.stopPropagation();
+                          // Only remove emoji on regular tap, not on long press
+                          if (
+                            !isLongPress.value &&
+                            info.row.original.scores[member.id]?.id
+                          ) {
+                            updateReviewEmoji({
+                              reviewId: info.row.original.scores[member.id].id,
+                              emoji: null,
+                            });
+                          }
+                          // Reset long press flag
+                          isLongPress.value = false;
+                        },
+                      },
+                      userEmoji,
+                    )
+                  : null,
+                // Hover plus button for adding emoji (only when no emoji exists)
+                info.column.id === `member_${userId.value}` &&
+                info.row.original.scores[member.id]?.id &&
+                !shouldBlur &&
+                !isDefined(userEmoji)
+                  ? h(
+                      "button",
+                      {
+                        class:
+                          "absolute -right-5 -top-2 hidden group-hover:flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs text-white hover:bg-primary/80 transition-all duration-200 delay-75 hover:delay-0",
+                        onClick: (e: Event) => {
+                          e.stopPropagation();
+                          openEmojiPicker(
+                            info.row.original.scores[member.id]?.id,
+                          );
+                        },
+                      },
+                      "+",
+                    )
+                  : null,
+              ].filter(Boolean),
+            ),
           ],
         );
       },

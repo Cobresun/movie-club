@@ -74,6 +74,7 @@
         "npm:vue-router@^4.6.4",
         "npm:vue-toastification@^2.0.0-rc.5",
         "npm:vue-tsc@^3.1.8",
+        "npm:vue3-emoji-picker@^1.1.8",
         "npm:vue@^3.3.4",
         "npm:zod@^3.25.76"
       ]
