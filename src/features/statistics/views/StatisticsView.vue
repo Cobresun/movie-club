@@ -28,12 +28,9 @@
       />
       <ScoresView
         v-else
-        :filtered-movie-data="filteredMovieData"
+        :movie-data="movieData"
         :members="members"
-        :search-term="searchTerm"
         :show-score-context="showScoreContext"
-        :has-search-term="hasSearchTerm"
-        @update:search-term="searchTerm = $event"
         @update:show-score-context="toggleScoreContext"
       />
     </div>
@@ -54,13 +51,10 @@ import VToggle from "@/common/components/VToggle.vue";
 const {
   loading,
   movieData,
-  filteredMovieData,
   members,
   histogramData,
-  searchTerm,
   showScoreContext,
   hasReviews,
-  hasSearchTerm,
   toggleScoreContext,
 } = useStatisticsData();
 
