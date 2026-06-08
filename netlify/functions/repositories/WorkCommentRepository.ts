@@ -1,5 +1,5 @@
-import { WorkCommentDto } from "../../../lib/types/lists";
-import { db } from "../utils/database";
+import { WorkCommentDto } from "../../../lib/types/lists.js";
+import { db } from "../utils/database.js";
 
 class WorkCommentRepository {
   async getByWorkAndClub(

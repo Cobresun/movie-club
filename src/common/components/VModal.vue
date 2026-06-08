@@ -31,7 +31,7 @@ import { computed, onMounted, onUnmounted, ref } from "vue";
 
 import VBackdrop from "./VBackdrop.vue";
 import VBottomSheet from "./VBottomSheet.vue";
-import { useBodyScrollLock } from "../composables/useBodyScrollLock";
+import { useBodyScrollLock } from "../composables/useBodyScrollLock.js";
 import { useIsDesktop } from "../composables/useIsDesktop.js";
 
 type ModalSize = "default" | "sm" | "lg" | "full";

@@ -2,12 +2,12 @@
 import { computed, ref, shallowRef } from "vue";
 import { useToast } from "vue-toastification";
 
-import { hasElements } from "../../../../lib/checks/checks";
-import { DetailedWorkListItem } from "../../../../lib/types/lists";
+import { hasElements } from "../../../../lib/checks/checks.js";
+import { DetailedWorkListItem } from "../../../../lib/types/lists.js";
 import AddMovieModal from "../components/AddMovieModal.vue";
 import ListItems from "../components/ListItems.vue";
 import ManageListsModal from "../components/ManageListsModal.vue";
-import { useCollapsedLists } from "../composables/useCollapsedLists";
+import { useCollapsedLists } from "../composables/useCollapsedLists.js";
 
 import SearchFilterBar from "@/common/components/SearchFilterBar.vue";
 import { useClubSlug } from "@/service/useClub";

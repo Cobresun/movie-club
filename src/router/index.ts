@@ -8,7 +8,7 @@ import {
 
 import ClubRouterView from "./ClubRouterView.vue";
 import { hasElements, isDefined } from "../../lib/checks/checks.js";
-import { resolveDefaultClubSlug } from "../common/composables/useLastClubSlug";
+import { resolveDefaultClubSlug } from "../common/composables/useLastClubSlug.js";
 import ClubHomeView from "../features/clubs/views/ClubHomeView.vue";
 import HomeView from "../features/clubs/views/HomeView.vue";
 import ReviewView from "../features/reviews/views/ReviewView.vue";

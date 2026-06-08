@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 
-import { isDefined } from "../../../../lib/checks/checks";
-import { WorkType } from "../../../../lib/types/generated/db";
-import { MovieSearchIndex } from "../../../../lib/types/movie";
+import { isDefined } from "../../../../lib/checks/checks.js";
+import { WorkType } from "../../../../lib/types/generated/db.js";
+import { MovieSearchIndex } from "../../../../lib/types/movie.js";
 
 import MovieSearchPrompt from "@/common/components/MovieSearchPrompt.vue";
 import { useClubSlug } from "@/service/useClub";

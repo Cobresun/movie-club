@@ -6,9 +6,9 @@ import {
 } from "@tanstack/vue-table";
 import { computed, h, Ref } from "vue";
 
-import { Member } from "../../../../lib/types/club";
-import { getScoreContextColor } from "../scoring";
-import type { MovieData } from "../types";
+import { Member } from "../../../../lib/types/club.js";
+import { getScoreContextColor } from "../scoring.js";
+import type { MovieData } from "../types.js";
 
 import AverageImg from "@/assets/images/average.svg";
 import VAvatar from "@/common/components/VAvatar.vue";

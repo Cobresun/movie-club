@@ -1,7 +1,7 @@
 import { isDefined } from "../../lib/checks/checks.js";
 import { WorkType } from "../../lib/types/generated/db.js";
-import { db } from "../../netlify/functions/utils/database";
-import { getDetailedWorks } from "../../netlify/functions/utils/tmdb";
+import { db } from "../../netlify/functions/utils/database.js";
+import { getDetailedWorks } from "../../netlify/functions/utils/tmdb.js";
 
 const BATCH_SIZE = 50; // Using the same batch size as getDetailedWorks
 

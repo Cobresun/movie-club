@@ -2,10 +2,10 @@ import { DateTime } from "luxon";
 import { ref, computed } from "vue";
 
 import { isDefined, isString } from "../../../../lib/checks/checks.js";
-import { WorkType } from "../../../../lib/types/generated/db";
-import { DetailedReviewListItem } from "../../../../lib/types/lists";
-import { normalizeArray, createHistogramData } from "../scoring";
-import type { MovieData, HistogramData } from "../types";
+import { WorkType } from "../../../../lib/types/generated/db.js";
+import { DetailedReviewListItem } from "../../../../lib/types/lists.js";
+import { normalizeArray, createHistogramData } from "../scoring.js";
+import type { MovieData, HistogramData } from "../types.js";
 
 import { useMembers, useClubSlug } from "@/service/useClub";
 import { useReviewsList } from "@/service/useList";

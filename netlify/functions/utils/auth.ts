@@ -8,16 +8,16 @@ import { z } from "zod";
 
 import { dialect } from "./database.js";
 import { sendPasswordResetEmail, sendVerificationEmail } from "./email.js";
-import { unauthorized } from "./responses";
-import { isRouterResponse, Request, RouterResponse } from "./router";
-import { ClubRequest } from "./validation";
+import { unauthorized } from "./responses.js";
+import { isRouterResponse, Request, RouterResponse } from "./router.js";
+import { ClubRequest } from "./validation.js";
 import {
   ensure,
   filterUndefinedProperties,
   hasValue,
   isDefined,
 } from "../../../lib/checks/checks.js";
-import ClubRepository from "../repositories/ClubRepository";
+import ClubRepository from "../repositories/ClubRepository.js";
 
 const googleClientId = ensure(
   process.env.GOOGLE_CLIENT_ID,

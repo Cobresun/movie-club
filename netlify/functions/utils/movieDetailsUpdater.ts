@@ -1,7 +1,7 @@
 import { Kysely, Transaction } from "kysely";
 
-import { DB } from "../../../lib/types/generated/db";
-import { TMDBMovieData } from "../../../lib/types/movie";
+import { DB } from "../../../lib/types/generated/db.js";
+import { TMDBMovieData } from "../../../lib/types/movie.js";
 
 /**
  * Insert movie details and related data into the database

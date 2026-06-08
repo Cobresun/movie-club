@@ -12,9 +12,9 @@ import { AgCharts } from "ag-charts-vue3";
 import { computed } from "vue";
 
 import WidgetShell from "./WidgetShell.vue";
-import { createScoreVarianceChartOptions } from "../scoring";
-import { computeScoreVariance } from "../statsComputers";
-import type { MovieData } from "../types";
+import { createScoreVarianceChartOptions } from "../scoring.js";
+import { computeScoreVariance } from "../statsComputers.js";
+import type { MovieData } from "../types.js";
 
 const props = defineProps<{
   movieData: MovieData[];

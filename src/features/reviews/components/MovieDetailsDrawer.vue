@@ -40,7 +40,7 @@
 import { Row, Table } from "@tanstack/vue-table";
 
 import MovieDetailsContent from "./MovieDetailsContent.vue";
-import { DetailedReviewListItem } from "../../../../lib/types/lists";
+import { DetailedReviewListItem } from "../../../../lib/types/lists.js";
 import VBottomSheet from "../../../common/components/VBottomSheet.vue";
 
 import VSideDrawer from "@/common/components/VSideDrawer.vue";

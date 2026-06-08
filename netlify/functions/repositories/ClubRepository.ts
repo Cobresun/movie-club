@@ -1,8 +1,8 @@
 import crypto from "crypto";
 
 import { isTrue, isDefined } from "../../../lib/checks/checks.js";
-import { db } from "../utils/database";
-import { generateSlugFromName, generateUniqueSlug } from "../utils/slug";
+import { db } from "../utils/database.js";
+import { generateSlugFromName, generateUniqueSlug } from "../utils/slug.js";
 
 interface JoinClubResult {
   success: boolean;

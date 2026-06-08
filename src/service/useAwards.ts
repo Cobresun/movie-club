@@ -7,11 +7,11 @@ import {
 import axios, { AxiosError } from "axios";
 import { Ref } from "vue";
 
-import { useUser } from "./useUser";
+import { useUser } from "./useUser.js";
 import { hasValue, isDefined } from "../../lib/checks/checks.js";
-import { Award, AwardsStep, ClubAwards } from "../../lib/types/awards";
-import { DetailedReviewListItem } from "../../lib/types/lists";
-import { DetailedMovieData } from "../../lib/types/movie";
+import { Award, AwardsStep, ClubAwards } from "../../lib/types/awards.js";
+import { DetailedReviewListItem } from "../../lib/types/lists.js";
+import { DetailedMovieData } from "../../lib/types/movie.js";
 
 import { useAuthStore } from "@/stores/auth";
 

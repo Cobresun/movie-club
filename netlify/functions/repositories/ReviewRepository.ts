@@ -1,7 +1,7 @@
 import { sql } from "kysely";
 
-import { WorkListSystemType } from "../../../lib/types/generated/db";
-import { db } from "../utils/database";
+import { WorkListSystemType } from "../../../lib/types/generated/db.js";
+import { db } from "../utils/database.js";
 
 class ReviewRepository {
   async getReviewList(clubId: string) {

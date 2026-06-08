@@ -11,9 +11,9 @@ import { computed } from "vue";
 
 import WidgetShell from "./WidgetShell.vue";
 import { type Member } from "../../../../lib/types/club.js";
-import { createScoreTrendChartOptions } from "../scoring";
-import { computeScoreTrend } from "../statsComputers";
-import type { MovieData } from "../types";
+import { createScoreTrendChartOptions } from "../scoring.js";
+import { computeScoreTrend } from "../statsComputers.js";
+import type { MovieData } from "../types.js";
 
 const props = defineProps<{
   movieData: MovieData[];

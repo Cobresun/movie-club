@@ -99,9 +99,9 @@
 import { computed } from "vue";
 
 import WidgetShell from "./WidgetShell.vue";
-import { Member } from "../../../../lib/types/club";
-import { computeClubConsensus } from "../statsComputers";
-import type { MovieData } from "../types";
+import { Member } from "../../../../lib/types/club.js";
+import { computeClubConsensus } from "../statsComputers.js";
+import type { MovieData } from "../types.js";
 
 const props = defineProps<{
   movieData: MovieData[];

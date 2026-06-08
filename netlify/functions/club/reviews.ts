@@ -1,17 +1,17 @@
 import { z } from "zod";
 
 import { hasValue } from "../../../lib/checks/checks.js";
-import ListRepository from "../repositories/ListRepository";
-import ReviewRepository from "../repositories/ReviewRepository";
-import SettingsRepository from "../repositories/SettingsRepository";
-import WorkCommentRepository from "../repositories/WorkCommentRepository";
-import WorkRepository from "../repositories/WorkRepository";
-import SharedReviewService from "../services/SharedReviewService";
-import { secured } from "../utils/auth";
-import { generateDiscussionQuestions } from "../utils/gemini";
-import { badRequest, ok, unauthorized } from "../utils/responses";
-import { Router } from "../utils/router";
-import { ClubRequest } from "../utils/validation";
+import ListRepository from "../repositories/ListRepository.js";
+import ReviewRepository from "../repositories/ReviewRepository.js";
+import SettingsRepository from "../repositories/SettingsRepository.js";
+import WorkCommentRepository from "../repositories/WorkCommentRepository.js";
+import WorkRepository from "../repositories/WorkRepository.js";
+import SharedReviewService from "../services/SharedReviewService.js";
+import { secured } from "../utils/auth.js";
+import { generateDiscussionQuestions } from "../utils/gemini.js";
+import { badRequest, ok, unauthorized } from "../utils/responses.js";
+import { Router } from "../utils/router.js";
+import { ClubRequest } from "../utils/validation.js";
 
 const router = new Router<ClubRequest>("/api/club/:clubSlug/reviews");
 

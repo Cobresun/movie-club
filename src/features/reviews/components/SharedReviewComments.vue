@@ -41,7 +41,7 @@
 import { DateTime } from "luxon";
 import { reactive } from "vue";
 
-import { WorkCommentDto } from "../../../../lib/types/lists";
+import { WorkCommentDto } from "../../../../lib/types/lists.js";
 
 import VAvatar from "@/common/components/VAvatar.vue";
 

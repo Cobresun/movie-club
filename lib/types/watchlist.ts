@@ -1,5 +1,5 @@
-import { DateObject } from "./common";
-import { BaseMovie, DetailedMovie } from "./movie";
+import { DateObject } from "./common.js";
+import { BaseMovie, DetailedMovie } from "./movie.js";
 
 export interface BaseWatchListItem extends BaseMovie {
   timeAdded: DateObject;

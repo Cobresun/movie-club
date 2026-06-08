@@ -1,5 +1,5 @@
 import { hasElements, hasValue } from "../../../lib/checks/checks.js";
-import { ClubPreview } from "../../../lib/types/club";
+import { ClubPreview } from "../../../lib/types/club.js";
 
 const LAST_CLUB_SLUG_KEY = "lastClubSlug";
 

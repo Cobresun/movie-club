@@ -11,7 +11,7 @@ import type {
   ScoreTrendPoint,
   ScoreVariancePoint,
   TmdbDeviationEntry,
-} from "./types";
+} from "./types.js";
 import {
   hasValue,
   isDefined,

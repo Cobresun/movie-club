@@ -35,8 +35,8 @@
 <script setup lang="ts">
 import { onMounted, ref, toRef } from "vue";
 
-import { DetailedWorkListItem } from "../../../../lib/types/lists";
-import { useRandomPicker } from "../composables/useRandomPicker";
+import { DetailedWorkListItem } from "../../../../lib/types/lists.js";
+import { useRandomPicker } from "../composables/useRandomPicker.js";
 
 import MoviePosterCard from "@/common/components/MoviePosterCard.vue";
 

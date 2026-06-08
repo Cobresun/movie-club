@@ -1,8 +1,8 @@
 import { hasValue } from "../../../../lib/checks/checks.js";
-import AwardsRepository from "../../repositories/AwardsRepository";
-import { badRequest, notFound } from "../../utils/responses";
-import { MiddlewareCallback } from "../../utils/router";
-import { ClubRequest } from "../../utils/validation";
+import AwardsRepository from "../../repositories/AwardsRepository.js";
+import { badRequest, notFound } from "../../utils/responses.js";
+import { MiddlewareCallback } from "../../utils/router.js";
+import { ClubRequest } from "../../utils/validation.js";
 
 export interface ClubAwardRequest extends ClubRequest {
   year: number;

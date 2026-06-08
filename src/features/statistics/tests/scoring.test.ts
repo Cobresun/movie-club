@@ -2,7 +2,7 @@ import {
   normalizeArray,
   createHistogramData,
   getScoreContextColor,
-} from "../scoring";
+} from "../scoring.js";
 
 // ---------- normalizeArray ----------
 

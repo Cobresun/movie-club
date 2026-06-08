@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom";
 import PiniaStoreHelper from "./PiniaStoreHelper.test.vue";
-import { render } from "./utils";
+import { render } from "./utils.js";
 
 import { server } from "@/mocks/server";
 

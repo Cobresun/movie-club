@@ -1,7 +1,7 @@
 import { z } from "zod";
 
-import { WorkType } from "./generated/db";
-import { DetailedMovieData } from "./movie";
+import { WorkType } from "./generated/db.js";
+import { DetailedMovieData } from "./movie.js";
 
 export interface WorkListItem {
   id: string;

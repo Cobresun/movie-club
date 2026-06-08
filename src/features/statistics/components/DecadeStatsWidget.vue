@@ -39,9 +39,9 @@ import { computed, ref } from "vue";
 import WidgetShell from "./WidgetShell.vue";
 import { isDefined } from "../../../../lib/checks/checks.js";
 import { type Member } from "../../../../lib/types/club.js";
-import { createDecadeChartOptions } from "../scoring";
-import { computeDecadeStats } from "../statsComputers";
-import type { MovieData } from "../types";
+import { createDecadeChartOptions } from "../scoring.js";
+import { computeDecadeStats } from "../statsComputers.js";
+import type { MovieData } from "../types.js";
 
 import VAvatar from "@/common/components/VAvatar.vue";
 

@@ -24,7 +24,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 
-import type { MovieData } from "../types";
+import type { MovieData } from "../types.js";
 
 const props = defineProps<{
   movieData: MovieData[];

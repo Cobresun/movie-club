@@ -1,14 +1,14 @@
 import axios, { AxiosResponse } from "axios";
 
 import { hasValue } from "../../../lib/checks/checks.js";
-import { ExternalWorkData, WorkListItem } from "../../../lib/types/lists";
+import { ExternalWorkData, WorkListItem } from "../../../lib/types/lists.js";
 import {
   BaseMovie,
   DetailedMovie,
   DetailedMovieData,
   TMDBConfig,
   TMDBMovieData,
-} from "../../../lib/types/movie";
+} from "../../../lib/types/movie.js";
 
 async function makeTMDBApiCall<T>(
   path: string,

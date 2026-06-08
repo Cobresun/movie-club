@@ -60,9 +60,10 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 
-import { Member } from "../../../../lib/types/club";
-import { useScoresTable } from "../composables/useScoresTable";
-import type { MovieData } from "../types";
+import { Member } from "../../../../lib/types/club.js";
+import StatisticsSearchBar from "../components/StatisticsSearchBar.vue";
+import { useScoresTable } from "../composables/useScoresTable.js";
+import type { MovieData } from "../types.js";
 
 import EmptyState from "@/common/components/EmptyState.vue";
 import SearchFilterBar from "@/common/components/SearchFilterBar.vue";

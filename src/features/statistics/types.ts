@@ -1,5 +1,5 @@
-import { WorkType } from "../../../lib/types/generated/db";
-import { DetailedMovieData } from "../../../lib/types/movie";
+import { WorkType } from "../../../lib/types/generated/db.js";
+import { DetailedMovieData } from "../../../lib/types/movie.js";
 
 export interface MovieData {
   id: string;

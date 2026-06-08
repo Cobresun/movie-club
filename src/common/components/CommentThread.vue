@@ -173,7 +173,7 @@ import { DateTime } from "luxon";
 import { nextTick, reactive, ref } from "vue";
 
 import { hasElements, hasValue } from "../../../lib/checks/checks.js";
-import { WorkCommentDto } from "../../../lib/types/lists";
+import { WorkCommentDto } from "../../../lib/types/lists.js";
 
 import DeleteConfirmationModal from "@/common/components/DeleteConfirmationModal.vue";
 import {

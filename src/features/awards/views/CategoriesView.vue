@@ -32,7 +32,7 @@
 import { ref, watch, toRefs } from "vue";
 import { VueDraggableNext } from "vue-draggable-next";
 
-import { ClubAwards } from "../../../../lib/types/awards";
+import { ClubAwards } from "../../../../lib/types/awards.js";
 
 import {
   useAddCategory,

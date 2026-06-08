@@ -1,9 +1,9 @@
-import { notFound } from "./responses";
-import { MiddlewareCallback, Request } from "./router";
+import { notFound } from "./responses.js";
+import { MiddlewareCallback, Request } from "./router.js";
 import { hasValue } from "../../../lib/checks/checks.js";
 import { WorkListSystemType } from "../../../lib/types/generated/db.js";
-import ClubRepository from "../repositories/ClubRepository";
-import ListRepository from "../repositories/ListRepository";
+import ClubRepository from "../repositories/ClubRepository.js";
+import ListRepository from "../repositories/ListRepository.js";
 
 export function getErrorMessage(error: unknown) {
   if (error instanceof Error) return error.message;

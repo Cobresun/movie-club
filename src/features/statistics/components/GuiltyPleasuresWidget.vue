@@ -74,9 +74,9 @@ import { computed, ref, watch } from "vue";
 
 import WidgetShell from "./WidgetShell.vue";
 import { isDefined } from "../../../../lib/checks/checks.js";
-import { Member } from "../../../../lib/types/club";
-import { computeGuiltyPleasures } from "../statsComputers";
-import type { MovieData } from "../types";
+import { Member } from "../../../../lib/types/club.js";
+import { computeGuiltyPleasures } from "../statsComputers.js";
+import type { MovieData } from "../types.js";
 
 import VAvatar from "@/common/components/VAvatar.vue";
 

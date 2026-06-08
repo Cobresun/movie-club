@@ -76,8 +76,8 @@
 import { computed } from "vue";
 
 import WidgetShell from "./WidgetShell.vue";
-import { computeGenreWatchCounts } from "../statsComputers";
-import type { MovieData } from "../types";
+import { computeGenreWatchCounts } from "../statsComputers.js";
+import type { MovieData } from "../types.js";
 
 const props = defineProps<{
   movieData: MovieData[];

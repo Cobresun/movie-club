@@ -36,8 +36,8 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 
-import { Award, AwardsStep } from "../../../../lib/types/awards";
-import { Member } from "../../../../lib/types/club";
+import { Award, AwardsStep } from "../../../../lib/types/awards.js";
+import { Member } from "../../../../lib/types/club.js";
 
 import MoviePosterCard from "@/common/components/MoviePosterCard.vue";
 

@@ -43,7 +43,7 @@ import { useRouter } from "vue-router";
 
 import InsightsView from "./InsightsView.vue";
 import ScoresView from "./ScoresView.vue";
-import { useStatisticsData } from "../composables/useStatisticsData";
+import { useStatisticsData } from "../composables/useStatisticsData.js";
 
 import EmptyState from "@/common/components/EmptyState.vue";
 import VToggle from "@/common/components/VToggle.vue";

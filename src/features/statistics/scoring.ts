@@ -10,9 +10,9 @@ import type {
   MovieData,
   ScoreTrendPoint,
   ScoreVariancePoint,
-} from "./types";
+} from "./types.js";
 import { isDefined } from "../../../lib/checks/checks.js";
-import { Member } from "../../../lib/types/club";
+import { Member } from "../../../lib/types/club.js";
 
 /**
  * Normalizes an array of numbers (with possible undefined gaps) by subtracting

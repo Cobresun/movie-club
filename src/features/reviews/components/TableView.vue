@@ -69,7 +69,7 @@
 <script setup lang="ts" generic="T extends DetailedReviewListItem">
 import { FlexRender, Table } from "@tanstack/vue-table";
 
-import { DetailedReviewListItem } from "../../../../lib/types/lists";
+import { DetailedReviewListItem } from "../../../../lib/types/lists.js";
 
 defineProps<{
   reviewTable: Table<T>;

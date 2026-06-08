@@ -1,6 +1,6 @@
 import { Handler, HandlerEvent } from "@netlify/functions";
 
-import { auth } from "./utils/auth";
+import { auth } from "./utils/auth.js";
 import { hasValue, isDefined } from "../../lib/checks/checks.js";
 
 const handler: Handler = async (event: HandlerEvent) => {

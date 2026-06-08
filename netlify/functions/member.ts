@@ -2,14 +2,14 @@ import { Handler, HandlerContext, HandlerEvent } from "@netlify/functions";
 import { parse } from "lambda-multipart-parser";
 import { z } from "zod";
 
-import ClubRepository from "./repositories/ClubRepository";
-import ImageRepository from "./repositories/ImageRepository";
-import UserRepository from "./repositories/UserRepository";
-import { loggedIn } from "./utils/auth";
-import { badRequest, ok } from "./utils/responses";
-import { Router } from "./utils/router";
+import ClubRepository from "./repositories/ClubRepository.js";
+import ImageRepository from "./repositories/ImageRepository.js";
+import UserRepository from "./repositories/UserRepository.js";
+import { loggedIn } from "./utils/auth.js";
+import { badRequest, ok } from "./utils/responses.js";
+import { Router } from "./utils/router.js";
 import { isDefined } from "../../lib/checks/checks.js";
-import { ClubPreview } from "../../lib/types/club";
+import { ClubPreview } from "../../lib/types/club.js";
 
 const router = new Router("/api/member");
 

@@ -126,8 +126,8 @@ import { computed, ref, nextTick, watch } from "vue";
 
 import MovieDetailsDrawer from "./MovieDetailsDrawer.vue";
 import { isDefined } from "../../../../lib/checks/checks.js";
-import { Member } from "../../../../lib/types/club";
-import { DetailedReviewListItem } from "../../../../lib/types/lists";
+import { Member } from "../../../../lib/types/club.js";
+import { DetailedReviewListItem } from "../../../../lib/types/lists.js";
 
 import MoviePosterCard from "@/common/components/MoviePosterCard.vue";
 

@@ -83,10 +83,10 @@
 import { DateTime } from "luxon";
 import { computed, ref } from "vue";
 
-import { Award, ClubAwards } from "../../../../lib/types/awards";
-import { MovieSearchIndex } from "../../../../lib/types/movie";
+import { Award, ClubAwards } from "../../../../lib/types/awards.js";
+import { MovieSearchIndex } from "../../../../lib/types/movie.js";
 import AddMovieButton from "../components/AddMovieButton.vue";
-import { NOMINATIONS_PER_AWARD } from "../constants";
+import { NOMINATIONS_PER_AWARD } from "../constants.js";
 
 import MoviePosterCard from "@/common/components/MoviePosterCard.vue";
 import MovieSearchPrompt from "@/common/components/MovieSearchPrompt.vue";

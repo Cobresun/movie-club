@@ -4,7 +4,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 
 import { hasValue } from "../../lib/checks/checks.js";
-import { db } from "../../netlify/functions/utils/database";
+import { db } from "../../netlify/functions/utils/database.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

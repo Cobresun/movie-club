@@ -1,9 +1,9 @@
-import ClubRepository from "../repositories/ClubRepository";
-import ListRepository from "../repositories/ListRepository";
-import ReviewRepository from "../repositories/ReviewRepository";
-import UserRepository from "../repositories/UserRepository";
-import WorkCommentRepository from "../repositories/WorkCommentRepository";
-import { overviewToExternalData } from "../utils/workDetailsMapper";
+import ClubRepository from "../repositories/ClubRepository.js";
+import ListRepository from "../repositories/ListRepository.js";
+import ReviewRepository from "../repositories/ReviewRepository.js";
+import UserRepository from "../repositories/UserRepository.js";
+import WorkCommentRepository from "../repositories/WorkCommentRepository.js";
+import { overviewToExternalData } from "../utils/workDetailsMapper.js";
 
 class SharedReviewService {
   /**

@@ -42,8 +42,8 @@
 import { ref } from "vue";
 
 import { isDefined } from "../../../../lib/checks/checks.js";
-import { Award } from "../../../../lib/types/awards";
-import { Member } from "../../../../lib/types/club";
+import { Award } from "../../../../lib/types/awards.js";
+import { Member } from "../../../../lib/types/club.js";
 
 import MoviePosterCard from "@/common/components/MoviePosterCard.vue";
 

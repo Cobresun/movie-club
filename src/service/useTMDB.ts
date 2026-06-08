@@ -6,7 +6,7 @@ import { hasValue } from "../../lib/checks/checks.js";
 import {
   TMDBPageResponse,
   TMDBWatchProvidersResponse,
-} from "../../lib/types/movie";
+} from "../../lib/types/movie.js";
 
 const key = import.meta.env.VITE_TMDB_API_KEY;
 

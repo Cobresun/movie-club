@@ -108,7 +108,7 @@ import { DateTime } from "luxon";
 import { computed, nextTick, ref } from "vue";
 
 import { hasValue } from "../../../../lib/checks/checks.js";
-import { DetailedWorkListItem } from "../../../../lib/types/lists";
+import { DetailedWorkListItem } from "../../../../lib/types/lists.js";
 
 import CommentThread from "@/common/components/CommentThread.vue";
 import DeleteConfirmationModal from "@/common/components/DeleteConfirmationModal.vue";

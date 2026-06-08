@@ -101,7 +101,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
 
-import type { PersonStats } from "../statsComputers";
+import type { PersonStats } from "../statsComputers.js";
 
 defineProps<{
   title: string;

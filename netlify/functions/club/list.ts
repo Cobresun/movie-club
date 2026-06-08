@@ -7,14 +7,14 @@ import {
   WorkListItem,
 } from "../../../lib/types/lists.js";
 import { listInsertDtoSchema } from "../../../lib/types/lists.js";
-import ListRepository from "../repositories/ListRepository";
-import ReviewRepository from "../repositories/ReviewRepository";
-import UserRepository from "../repositories/UserRepository";
-import WorkRepository from "../repositories/WorkRepository";
-import { secured } from "../utils/auth";
-import { badRequest, internalServerError, ok } from "../utils/responses";
-import { Router } from "../utils/router";
-import { ClubRequest, ListRequest, validListId } from "../utils/validation";
+import ListRepository from "../repositories/ListRepository.js";
+import ReviewRepository from "../repositories/ReviewRepository.js";
+import UserRepository from "../repositories/UserRepository.js";
+import WorkRepository from "../repositories/WorkRepository.js";
+import { secured } from "../utils/auth.js";
+import { badRequest, internalServerError, ok } from "../utils/responses.js";
+import { Router } from "../utils/router.js";
+import { ClubRequest, ListRequest, validListId } from "../utils/validation.js";
 import { overviewToExternalData } from "../utils/workDetailsMapper.js";
 
 import { BadRequest } from "@/common/errorCodes";

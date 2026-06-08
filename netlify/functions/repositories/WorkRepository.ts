@@ -1,9 +1,9 @@
 import { hasValue } from "../../../lib/checks/checks.js";
 import { WorkType } from "../../../lib/types/generated/db.js";
 import { ListInsertDto } from "../../../lib/types/lists.js";
-import { db } from "../utils/database";
-import { insertMovieDetails } from "../utils/movieDetailsUpdater";
-import { getDetailedWorks } from "../utils/tmdb";
+import { db } from "../utils/database.js";
+import { insertMovieDetails } from "../utils/movieDetailsUpdater.js";
+import { getDetailedWorks } from "../utils/tmdb.js";
 
 class WorkRepository {
   async findByType(clubId: string, type: WorkType, externalId: string) {
