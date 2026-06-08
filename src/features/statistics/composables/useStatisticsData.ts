@@ -7,7 +7,6 @@ import { DetailedReviewListItem } from "../../../../lib/types/lists";
 import { normalizeArray, createHistogramData } from "../scoring";
 import type { MovieData, HistogramData } from "../types";
 
-import { filterMovies } from "@/common/searchMovies";
 import { useMembers, useClubSlug } from "@/service/useClub";
 import { useReviewsList } from "@/service/useList";
 
@@ -18,7 +17,6 @@ export function useStatisticsData() {
   const members = computed(() => rawMembers.value ?? []);
 
   const showScoreContext = ref(false);
-  const searchTerm = ref("");
 
   const loading = computed(() => loadingReviews.value || loadingMembers.value);
 
@@ -42,12 +40,7 @@ export function useStatisticsData() {
   const movieData = computed(() => processedData.value.movieData);
   const histogramData = computed(() => processedData.value.histogramData);
 
-  const filteredMovieData = computed(() => {
-    return filterMovies(movieData.value, searchTerm.value);
-  });
-
   const hasReviews = computed(() => movieData.value.length > 0);
-  const hasSearchTerm = computed(() => searchTerm.value.trim().length > 0);
 
   const toggleScoreContext = () => {
     showScoreContext.value = !showScoreContext.value;
@@ -56,13 +49,10 @@ export function useStatisticsData() {
   return {
     loading,
     movieData,
-    filteredMovieData,
     members,
     histogramData,
-    searchTerm,
     showScoreContext,
     hasReviews,
-    hasSearchTerm,
     toggleScoreContext,
   };
 }
