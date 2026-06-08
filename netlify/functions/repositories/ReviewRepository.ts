@@ -1,7 +1,7 @@
 import { sql } from "kysely";
 
-import { WorkListSystemType } from "../../../lib/types/generated/db";
-import { db } from "../utils/database";
+import { WorkListSystemType } from "../../../lib/types/generated/db.js";
+import { db } from "../utils/database.js";
 
 class ReviewRepository {
   async getReviewList(clubId: string) {
@@ -65,7 +65,7 @@ class ReviewRepository {
       )
       .selectFrom("work_list")
       .where("work_list.club_id", "=", clubId)
-      .where("work_list.system_type", "=", WorkListSystemType.reviews)
+      .where("work_list.system_type", "=", WorkListSystemType.REVIEWS)
       .innerJoin("work_list_item", "work_list_item.list_id", "work_list.id")
       .innerJoin("work", "work.id", "work_list_item.work_id")
       .leftJoin("review", "review.work_id", "work.id")
@@ -155,7 +155,7 @@ class ReviewRepository {
       .selectFrom("work_list")
       .select("id")
       .where("club_id", "=", clubId)
-      .where("system_type", "=", WorkListSystemType.reviews)
+      .where("system_type", "=", WorkListSystemType.REVIEWS)
       .executeTakeFirstOrThrow();
     return db
       .insertInto("review")
@@ -191,7 +191,7 @@ class ReviewRepository {
     return db
       .selectFrom("work_list")
       .where("work_list.club_id", "=", clubId)
-      .where("work_list.system_type", "=", WorkListSystemType.reviews)
+      .where("work_list.system_type", "=", WorkListSystemType.REVIEWS)
       .innerJoin("work_list_item", "work_list_item.list_id", "work_list.id")
       .innerJoin("work", "work.id", "work_list_item.work_id")
       .where("work.id", "=", workId)

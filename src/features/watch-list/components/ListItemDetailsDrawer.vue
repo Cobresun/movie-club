@@ -40,7 +40,7 @@
 
 <script setup lang="ts">
 import ListItemDetailsContent from "./ListItemDetailsContent.vue";
-import { DetailedWorkListItem } from "../../../../lib/types/lists";
+import { DetailedWorkListItem } from "../../../../lib/types/lists.js";
 
 import VBottomSheet from "@/common/components/VBottomSheet.vue";
 import VSideDrawer from "@/common/components/VSideDrawer.vue";

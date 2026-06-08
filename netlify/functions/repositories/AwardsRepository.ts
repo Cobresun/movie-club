@@ -1,7 +1,7 @@
 import { sql } from "kysely";
 
-import { AwardsData, awardsDataSchema } from "../../../lib/types/awards";
-import { db } from "../utils/database";
+import { AwardsData, awardsDataSchema } from "../../../lib/types/awards.js";
+import { db } from "../utils/database.js";
 
 class AwardsRepository {
   /**

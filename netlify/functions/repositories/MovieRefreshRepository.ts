@@ -1,6 +1,6 @@
-import { TMDBMovieData } from "../../../lib/types/movie";
-import { db } from "../utils/database";
-import { updateMovieDetails } from "../utils/movieDetailsUpdater";
+import { TMDBMovieData } from "../../../lib/types/movie.js";
+import { db } from "../utils/database.js";
+import { updateMovieDetails } from "../utils/movieDetailsUpdater.js";
 
 class MovieRefreshRepository {
   /**

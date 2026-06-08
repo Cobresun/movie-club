@@ -1,7 +1,7 @@
 import { ensure } from "../../../../lib/checks/checks.js";
-import type { Member } from "../../../../lib/types/club";
-import { WorkType } from "../../../../lib/types/generated/db";
-import type { DetailedMovieData } from "../../../../lib/types/movie";
+import type { Member } from "../../../../lib/types/club.js";
+import { WorkType } from "../../../../lib/types/generated/db.js";
+import type { DetailedMovieData } from "../../../../lib/types/movie.js";
 import {
   computeGenreStats,
   computeGuiltyPleasures,
@@ -9,8 +9,8 @@ import {
   computeScoreVariance,
   computeTasteSimilarity,
   computeTopDirectors,
-} from "../statsComputers";
-import type { MovieData } from "../types";
+} from "../statsComputers.js";
+import type { MovieData } from "../types.js";
 
 function p(name: string): { name: string; profilePath: string | null } {
   return { name, profilePath: null };
@@ -53,7 +53,7 @@ function makeExternalData(
 function makeMovie(overrides: Partial<MovieData> = {}): MovieData {
   return {
     id: "1",
-    type: WorkType.movie,
+    type: WorkType.MOVIE,
     title: "Test Movie",
     createdDate: "2024-01-01T00:00:00.000Z",
     imageUrl: undefined,

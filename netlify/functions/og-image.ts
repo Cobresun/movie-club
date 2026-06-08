@@ -1,9 +1,9 @@
 import { Handler, HandlerContext, HandlerEvent } from "@netlify/functions";
 
-import ClubRepository from "./repositories/ClubRepository";
-import SharedReviewService from "./services/SharedReviewService";
-import { badRequest, notFound, redirect, svg } from "./utils/responses";
-import { Router } from "./utils/router";
+import ClubRepository from "./repositories/ClubRepository.js";
+import SharedReviewService from "./services/SharedReviewService.js";
+import { badRequest, notFound, redirect, svg } from "./utils/responses.js";
+import { Router } from "./utils/router.js";
 import { hasValue, isDefined } from "../../lib/checks/checks.js";
 
 const router = new Router("/api/og-image");

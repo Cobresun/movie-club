@@ -6,9 +6,9 @@ import { createPinia } from "pinia";
 import { createApp, reactive } from "vue";
 import Toast from "vue-toastification";
 
-import LazyLoad from "./directives/LazyLoad";
-import { icons } from "./icons";
-import router from "./router";
+import LazyLoad from "./directives/LazyLoad.js";
+import { icons } from "./icons.js";
+import router from "./router.js";
 import { isDefined } from "../lib/checks/checks.js";
 
 import App from "@/App.vue";

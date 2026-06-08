@@ -38,7 +38,7 @@
 </template>
 
 <script setup lang="ts">
-import { Member } from "../../../../lib/types/club";
+import { Member } from "../../../../lib/types/club.js";
 import ClubConsensusWidget from "../components/ClubConsensusWidget.vue";
 import ClubCurmudgeonsWidget from "../components/ClubCurmudgeonsWidget.vue";
 import DecadeStatsWidget from "../components/DecadeStatsWidget.vue";
@@ -53,7 +53,7 @@ import ScoreVarianceWidget from "../components/ScoreVarianceWidget.vue";
 import StatsWidget from "../components/StatsWidget.vue";
 import TasteSimilarityWidget from "../components/TasteSimilarityWidget.vue";
 import TmdbDeviationWidget from "../components/TmdbDeviationWidget.vue";
-import type { HistogramData, MovieData } from "../types";
+import type { HistogramData, MovieData } from "../types.js";
 
 defineProps<{
   movieData: MovieData[];

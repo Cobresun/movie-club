@@ -4,14 +4,14 @@ import axios from "axios";
 import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
-import { reviewsListKey } from "./useList";
-import { useUserClubs } from "./useUser";
+import { reviewsListKey } from "./useList.js";
+import { useUserClubs } from "./useUser.js";
 import { hasValue } from "../../lib/checks/checks.js";
-import { ClubPreview, Member } from "../../lib/types/club";
+import { ClubPreview, Member } from "../../lib/types/club.js";
 import {
   clearLastClubSlug,
   getLastClubSlug,
-} from "../common/composables/useLastClubSlug";
+} from "../common/composables/useLastClubSlug.js";
 
 import { useAuthStore } from "@/stores/auth";
 

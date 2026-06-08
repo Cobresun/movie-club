@@ -1,11 +1,11 @@
 import { z } from "zod";
 
-import { ClubAwardRequest } from "./utils";
+import { ClubAwardRequest } from "./utils.js";
 import { hasValue } from "../../../../lib/checks/checks.js";
-import AwardsRepository from "../../repositories/AwardsRepository";
-import { secured } from "../../utils/auth";
-import { badRequest, ok } from "../../utils/responses";
-import { Router } from "../../utils/router";
+import AwardsRepository from "../../repositories/AwardsRepository.js";
+import { secured } from "../../utils/auth.js";
+import { badRequest, ok } from "../../utils/responses.js";
+import { Router } from "../../utils/router.js";
 
 const router = new Router<ClubAwardRequest>(
   "/api/club/:clubId<\\d+>/awards/:year<\\d+>/step",

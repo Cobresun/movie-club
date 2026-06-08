@@ -3,10 +3,10 @@ import { z } from "zod";
 import { hasValue } from "../../../lib/checks/checks.js";
 import SettingsRepository from "../repositories/SettingsRepository.js";
 import { ClubSettings } from "../repositories/SettingsRepository.js";
-import { secured } from "../utils/auth";
-import { badRequest, ok } from "../utils/responses";
-import { Router } from "../utils/router";
-import { ClubRequest } from "../utils/validation";
+import { secured } from "../utils/auth.js";
+import { badRequest, ok } from "../utils/responses.js";
+import { Router } from "../utils/router.js";
+import { ClubRequest } from "../utils/validation.js";
 
 const router = new Router<ClubRequest>("/api/club/:clubSlug/settings");
 

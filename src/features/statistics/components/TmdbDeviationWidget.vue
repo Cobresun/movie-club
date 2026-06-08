@@ -106,8 +106,8 @@
 import { computed } from "vue";
 
 import WidgetShell from "./WidgetShell.vue";
-import { computeTmdbDeviation } from "../statsComputers";
-import type { MovieData } from "../types";
+import { computeTmdbDeviation } from "../statsComputers.js";
+import type { MovieData } from "../types.js";
 
 const props = defineProps<{
   movieData: MovieData[];

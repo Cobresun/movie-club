@@ -360,7 +360,7 @@ import { computed, ref } from "vue";
 
 import DiscussionQuestions from "./DiscussionQuestions.vue";
 import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
-import { DetailedReviewListItem } from "../../../../lib/types/lists";
+import { DetailedReviewListItem } from "../../../../lib/types/lists.js";
 
 import CommentThread from "@/common/components/CommentThread.vue";
 import DeleteConfirmationModal from "@/common/components/DeleteConfirmationModal.vue";

@@ -76,7 +76,7 @@
 import { ref, computed, watch } from "vue";
 
 import { isDefined } from "../../../lib/checks/checks.js";
-import { Header } from "../../../lib/types/common";
+import { Header } from "../../../lib/types/common.js";
 
 interface Props {
   headers: Header[];

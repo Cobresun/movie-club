@@ -1,10 +1,10 @@
 import { z } from "zod";
 
 import { hasValue } from "../../../../lib/checks/checks.js";
-import ClubRepository from "../../repositories/ClubRepository";
-import { loggedIn } from "../../utils/auth";
-import { badRequest, ok } from "../../utils/responses";
-import { Router } from "../../utils/router";
+import ClubRepository from "../../repositories/ClubRepository.js";
+import { loggedIn } from "../../utils/auth.js";
+import { badRequest, ok } from "../../utils/responses.js";
+import { Router } from "../../utils/router.js";
 
 const joinSchema = z.object({
   token: z.string(),

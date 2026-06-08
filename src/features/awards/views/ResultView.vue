@@ -12,7 +12,7 @@
 <script setup lang="ts">
 import { ref, toRefs } from "vue";
 
-import { AwardsStep, ClubAwards } from "../../../../lib/types/awards";
+import { AwardsStep, ClubAwards } from "../../../../lib/types/awards.js";
 import AwardResult from "../components/AwardResult.vue";
 
 import { useUpdateStep } from "@/service/useAwards";

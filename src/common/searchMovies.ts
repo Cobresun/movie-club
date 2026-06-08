@@ -1,4 +1,5 @@
-import { DetailedWorkListItem } from "../../lib/types/lists";
+import { isDefined } from "../../lib/checks/checks.js";
+import { DetailedWorkListItem } from "../../lib/types/lists.js";
 
 /**
  * Filters movie/review rows by structured filters and optional title text.

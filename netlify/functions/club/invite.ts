@@ -1,7 +1,7 @@
-import ClubRepository from "../repositories/ClubRepository";
-import { ok, badRequest } from "../utils/responses";
-import { Router } from "../utils/router";
-import { ClubRequest } from "../utils/validation";
+import ClubRepository from "../repositories/ClubRepository.js";
+import { ok, badRequest } from "../utils/responses.js";
+import { Router } from "../utils/router.js";
+import { ClubRequest } from "../utils/validation.js";
 
 const router = new Router<ClubRequest>("/api/club/:clubSlug/invite");
 

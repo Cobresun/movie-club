@@ -1,5 +1,5 @@
-import { BaseReview, Review } from "./reviews";
-import { BaseWatchListItem, WatchListItem } from "./watchlist";
+import { BaseReview, Review } from "./reviews.js";
+import { BaseWatchListItem, WatchListItem } from "./watchlist.js";
 
 export interface User {
   id: string;

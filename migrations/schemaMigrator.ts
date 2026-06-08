@@ -1,6 +1,7 @@
 import { CockroachDialect } from "@cubos/kysely-cockroach";
 import { promises as fs } from "fs";
-import { Kysely, Migrator, FileMigrationProvider } from "kysely";
+import { Kysely } from "kysely";
+import { Migrator, FileMigrationProvider } from "kysely/migration";
 import path from "path";
 import { Pool } from "pg";
 import { fileURLToPath } from "url";

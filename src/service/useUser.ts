@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from "@tanstack/vue-query";
 import { computed } from "vue";
 
-import { ClubPreview, User } from "../../lib/types/club";
+import { ClubPreview, User } from "../../lib/types/club.js";
 
 import { useAuthStore } from "@/stores/auth";
 

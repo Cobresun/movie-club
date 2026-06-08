@@ -64,8 +64,8 @@
 import { ref, computed } from "vue";
 
 import MovieSearchCard from "./MovieSearchCard.vue";
-import { hasValue, isDefined } from "../../../lib/checks/checks";
-import { MovieSearchIndex } from "../../../lib/types/movie";
+import { hasValue, isDefined } from "../../../lib/checks/checks.js";
+import { MovieSearchIndex } from "../../../lib/types/movie.js";
 
 import { BASE_IMAGE_URL } from "@/service/useList";
 import { useSearch } from "@/service/useTMDB";

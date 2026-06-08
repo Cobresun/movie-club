@@ -5,8 +5,8 @@ import {
 } from "@netlify/functions";
 import { Path } from "path-parser";
 
-import { internalServerError, methodNotAllowed, notFound } from "./responses";
-import { StringRecord } from "./types";
+import { internalServerError, methodNotAllowed, notFound } from "./responses.js";
+import { StringRecord } from "./types.js";
 
 const RouterResponseSym = Symbol();
 

@@ -1,5 +1,5 @@
 import { isDefined, hasValue } from "../../../lib/checks/checks.js";
-import ListRepository from "../repositories/ListRepository";
+import ListRepository from "../repositories/ListRepository.js";
 
 export function overviewToExternalData(
   workDetails: Awaited<ReturnType<typeof ListRepository.getWorkDetails>>,

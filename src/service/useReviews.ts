@@ -1,9 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
 
-import { reviewsListKey } from "./useList";
-import { useUser } from "./useUser";
+import { reviewsListKey } from "./useList.js";
+import { useUser } from "./useUser.js";
 import { isDefined } from "../../lib/checks/checks.js";
-import { DetailedReviewListItem, WorkCommentDto } from "../../lib/types/lists";
+import { DetailedReviewListItem, WorkCommentDto } from "../../lib/types/lists.js";
 
 import { useAuthStore } from "@/stores/auth";
 

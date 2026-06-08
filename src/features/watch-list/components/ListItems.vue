@@ -115,8 +115,8 @@ import { useRouter } from "vue-router";
 
 import ListItemDetailsDrawer from "./ListItemDetailsDrawer.vue";
 import RandomPickerModal from "./RandomPickerModal.vue";
-import { hasValue, isDefined } from "../../../../lib/checks/checks";
-import { DetailedWorkListItem } from "../../../../lib/types/lists";
+import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
+import { DetailedWorkListItem } from "../../../../lib/types/lists.js";
 
 import MoviePosterCard from "@/common/components/MoviePosterCard.vue";
 import {

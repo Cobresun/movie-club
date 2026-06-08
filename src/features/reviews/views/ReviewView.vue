@@ -76,8 +76,9 @@ import { DateTime } from "luxon";
 import { computed, ref, onMounted, h, resolveComponent, watch } from "vue";
 
 import { hasValue, isTrue } from "../../../../lib/checks/checks.js";
-import { DetailedReviewListItem } from "../../../../lib/types/lists";
-import { useShare } from "../../../common/composables/useShare";
+import { DetailedReviewListItem } from "../../../../lib/types/lists.js";
+import { useShare } from "../../../common/composables/useShare.js";
+import { filterMovies } from "../../../common/searchMovies.js";
 import GalleryView from "../components/GalleryView.vue";
 import MovieTooltip from "../components/MovieTooltip.vue";
 import ReviewScore from "../components/ReviewScore.vue";

@@ -15,9 +15,9 @@
 <script setup lang="ts">
 import { computed } from "vue";
 
-import { hasValue } from "../../../../lib/checks/checks";
-import { WorkType } from "../../../../lib/types/generated/db";
-import { MovieSearchIndex } from "../../../../lib/types/movie";
+import { hasValue } from "../../../../lib/checks/checks.js";
+import { WorkType } from "../../../../lib/types/generated/db.js";
+import { MovieSearchIndex } from "../../../../lib/types/movie.js";
 import MovieSearchPrompt from "../../../common/components/MovieSearchPrompt.vue";
 
 import { useClubSlug } from "@/service/useClub";
@@ -74,7 +74,7 @@ const selectFromSearch = async (movie: MovieSearchIndex) => {
   await addFromSearch(
     {
       insertDto: {
-        type: WorkType.movie,
+        type: WorkType.MOVIE,
         title: movie.title,
         externalId: movie.id.toString(),
         imageUrl: `${BASE_IMAGE_URL}${movie.poster_path}`,

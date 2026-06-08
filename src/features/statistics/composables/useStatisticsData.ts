@@ -2,10 +2,10 @@ import { DateTime } from "luxon";
 import { ref, computed } from "vue";
 
 import { isDefined, isString } from "../../../../lib/checks/checks.js";
-import { WorkType } from "../../../../lib/types/generated/db";
-import { DetailedReviewListItem } from "../../../../lib/types/lists";
-import { normalizeArray, createHistogramData } from "../scoring";
-import type { MovieData, HistogramData } from "../types";
+import { WorkType } from "../../../../lib/types/generated/db.js";
+import { DetailedReviewListItem } from "../../../../lib/types/lists.js";
+import { normalizeArray, createHistogramData } from "../scoring.js";
+import type { MovieData, HistogramData } from "../types.js";
 
 import { useMembers, useClubSlug } from "@/service/useClub";
 import { useReviewsList } from "@/service/useList";
@@ -64,7 +64,7 @@ function mapReviewsToMovies(reviews: DetailedReviewListItem[]): MovieData[] {
 
       return {
         id: review.id,
-        type: WorkType.movie,
+        type: WorkType.MOVIE,
         title: review.title,
         dateWatched: DateTime.fromISO(review.createdDate).toLocaleString(),
         userScores: Object.keys(review.scores).reduce<

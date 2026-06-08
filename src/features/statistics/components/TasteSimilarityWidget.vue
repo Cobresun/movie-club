@@ -155,9 +155,9 @@
 import { computed, ref } from "vue";
 
 import WidgetShell from "./WidgetShell.vue";
-import { Member } from "../../../../lib/types/club";
-import { computeTasteSimilarity } from "../statsComputers";
-import type { MovieData } from "../types";
+import { Member } from "../../../../lib/types/club.js";
+import { computeTasteSimilarity } from "../statsComputers.js";
+import type { MovieData } from "../types.js";
 
 const props = defineProps<{
   movieData: MovieData[];

@@ -18,7 +18,7 @@
 import { computed, toRefs } from "vue";
 import { useRouter } from "vue-router";
 
-import { AwardsStep } from "../../../../lib/types/awards";
+import { AwardsStep } from "../../../../lib/types/awards.js";
 
 import { useAwards, useUpdateStep } from "@/service/useAwards";
 import { useMembers } from "@/service/useClub";

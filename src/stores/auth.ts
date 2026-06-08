@@ -5,9 +5,9 @@ import { ref, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 import { isDefined, isTrue } from "../../lib/checks/checks.js";
-import { ClubPreview } from "../../lib/types/club";
-import { resolveDefaultClubSlug } from "../common/composables/useLastClubSlug";
-import { watchUntil } from "../common/composables/watchUntil";
+import { ClubPreview } from "../../lib/types/club.js";
+import { resolveDefaultClubSlug } from "../common/composables/useLastClubSlug.js";
+import { watchUntil } from "../common/composables/watchUntil.js";
 
 import { authClient } from "@/lib/auth-client";
 

@@ -1,14 +1,14 @@
-import categoryRouter from "./category";
-import nominationRouter from "./nomination";
-import rankingRouter from "./ranking";
-import stepHandler from "./step";
-import { validYear } from "./utils";
-import { BaseAward, ClubAwards } from "../../../../lib/types/awards";
-import AwardsRepository from "../../repositories/AwardsRepository";
-import { notFound, ok } from "../../utils/responses";
-import { Router } from "../../utils/router";
-import { getDetailedMovie } from "../../utils/tmdb";
-import { ClubRequest } from "../../utils/validation";
+import categoryRouter from "./category.js";
+import nominationRouter from "./nomination.js";
+import rankingRouter from "./ranking.js";
+import stepHandler from "./step.js";
+import { validYear } from "./utils.js";
+import { BaseAward, ClubAwards } from "../../../../lib/types/awards.js";
+import AwardsRepository from "../../repositories/AwardsRepository.js";
+import { notFound, ok } from "../../utils/responses.js";
+import { Router } from "../../utils/router.js";
+import { getDetailedMovie } from "../../utils/tmdb.js";
+import { ClubRequest } from "../../utils/validation.js";
 
 const router = new Router<ClubRequest>("/api/club/:clubSlug/awards");
 router.use("/:year<\\d+>/category", validYear, categoryRouter);

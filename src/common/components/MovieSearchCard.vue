@@ -31,7 +31,7 @@
 </template>
 
 <script setup lang="ts">
-import { hasValue } from "../../../lib/checks/checks";
+import { hasValue } from "../../../lib/checks/checks.js";
 
 defineProps<{
   title: string;

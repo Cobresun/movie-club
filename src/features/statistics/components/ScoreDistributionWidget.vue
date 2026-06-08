@@ -9,9 +9,9 @@ import { AgCharts } from "ag-charts-vue3";
 import { computed } from "vue";
 
 import WidgetShell from "./WidgetShell.vue";
-import { Member } from "../../../../lib/types/club";
-import { createHistogramOptions } from "../scoring";
-import type { HistogramData, MovieData } from "../types";
+import { Member } from "../../../../lib/types/club.js";
+import { createHistogramOptions } from "../scoring.js";
+import type { HistogramData, MovieData } from "../types.js";
 
 const props = defineProps<{
   movieData: MovieData[];

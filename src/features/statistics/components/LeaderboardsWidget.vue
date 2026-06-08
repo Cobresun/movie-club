@@ -29,8 +29,8 @@ import { computed } from "vue";
 
 import PersonLeaderboard from "./PersonLeaderboard.vue";
 import WidgetShell from "./WidgetShell.vue";
-import { computeTopActors, computeTopDirectors } from "../statsComputers";
-import type { MovieData } from "../types";
+import { computeTopActors, computeTopDirectors } from "../statsComputers.js";
+import type { MovieData } from "../types.js";
 
 const props = defineProps<{
   movieData: MovieData[];

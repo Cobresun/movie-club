@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { DetailedMovie } from "./movie";
+import { DetailedMovie } from "./movie.js";
 
 export enum AwardsStep {
   CategorySelect,

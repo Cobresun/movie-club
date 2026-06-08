@@ -1,10 +1,10 @@
 import { hasValue } from "../../../lib/checks/checks.js";
-import { Member } from "../../../lib/types/club";
-import UserRepository from "../repositories/UserRepository";
-import { secured, loggedIn } from "../utils/auth";
-import { ok, badRequest } from "../utils/responses";
-import { Router } from "../utils/router";
-import { ClubRequest, validClubSlug } from "../utils/validation";
+import { Member } from "../../../lib/types/club.js";
+import UserRepository from "../repositories/UserRepository.js";
+import { secured, loggedIn } from "../utils/auth.js";
+import { ok, badRequest } from "../utils/responses.js";
+import { Router } from "../utils/router.js";
+import { ClubRequest, validClubSlug } from "../utils/validation.js";
 
 const router = new Router<ClubRequest>("/api/club/:clubSlug/members");
 

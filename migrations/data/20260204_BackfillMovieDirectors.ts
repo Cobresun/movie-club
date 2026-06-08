@@ -1,6 +1,6 @@
 import axios from "axios";
 
-import { db } from "../../netlify/functions/utils/database";
+import { db } from "../../netlify/functions/utils/database.js";
 
 interface TMDBCrewMember {
   id: number;
