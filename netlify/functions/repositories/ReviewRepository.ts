@@ -109,6 +109,7 @@ class ReviewRepository {
         "work_list_item.time_added",
         "review.score",
         "review.user_id",
+        "review.emoji",
         "movie_details.tmdb_score",
         "movie_details.runtime",
         "movie_details.budget",
@@ -150,6 +151,7 @@ class ReviewRepository {
     workId: string,
     userId: string,
     score: number,
+    emoji?: string | null,
   ) {
     const listId = await db
       .selectFrom("work_list")
@@ -164,6 +166,7 @@ class ReviewRepository {
         work_id: workId,
         user_id: userId,
         score,
+        emoji,
       })
       .execute();
   }
@@ -187,6 +190,15 @@ class ReviewRepository {
       .execute();
   }
 
+  async updateEmoji(id: string, emoji: string | null) {
+    return db
+      .updateTable("review")
+      .set("emoji", emoji)
+      .set("created_date", new Date())
+      .where("id", "=", id)
+      .execute();
+  }
+
   async getReviewsByWorkId(clubId: string, workId: string) {
     return db
       .selectFrom("work_list")
@@ -201,6 +213,7 @@ class ReviewRepository {
         "review.score",
         "review.user_id",
         "review.created_date",
+        "review.emoji",
       ])
       .groupBy(["review.id", "work.id", "work_list_item.time_added"])
       .execute();

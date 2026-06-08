@@ -111,6 +111,15 @@
                           </div>
                         </div>
                       </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <span
+                        v-if="isDefined(getEmojiForMember(member.id))"
+                        class="text-2xl leading-none"
+                        :aria-label="`${member.name}'s reaction`"
+                      >
+                        {{ getEmojiForMember(member.id) }}
+                      </span>
                       <div class="flex items-baseline gap-2">
                         <div class="text-2xl font-bold text-primary">
                           {{ getScoreForMember(member.id) ?? "-" }}
@@ -142,7 +151,7 @@ import { DateTime } from "luxon";
 import { computed } from "vue";
 import { useRoute } from "vue-router";
 
-import { hasElements } from "../../../../lib/checks/checks.js";
+import { hasElements, isDefined } from "../../../../lib/checks/checks.js";
 
 import LoadingSpinner from "@/common/components/LoadingSpinner.vue";
 import SharedPageCtaBanner from "@/common/components/SharedPageCtaBanner.vue";
@@ -166,16 +175,21 @@ const averageScore = computed(() => {
   return scores.reduce((a, b) => a + b, 0) / scores.length;
 });
 
-const getScoreForMember = (memberId: string): number | undefined => {
+const getReviewForMember = (memberId: string) => {
   if (!data.value) return undefined;
-  const review = data.value.reviews.find((r) => r.user_id === memberId);
-  return review?.score;
+  return data.value.reviews.find((r) => r.user_id === memberId);
+};
+
+const getScoreForMember = (memberId: string): number | undefined => {
+  return getReviewForMember(memberId)?.score;
+};
+
+const getEmojiForMember = (memberId: string): string | null | undefined => {
+  return getReviewForMember(memberId)?.emoji;
 };
 
 const getReviewTimeForMember = (memberId: string): string | undefined => {
-  if (!data.value) return undefined;
-  const review = data.value.reviews.find((r) => r.user_id === memberId);
-  return review?.created_date;
+  return getReviewForMember(memberId)?.created_date;
 };
 
 const formatReviewTime = (time?: string) => {

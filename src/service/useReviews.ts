@@ -17,17 +17,20 @@ export function useReviewWork(clubSlug: string) {
       workId,
       score,
       sourceListId,
+      emoji,
     }: {
       workId: string;
       score: number;
       sourceListId?: string;
+      emoji?: string;
     }) =>
       auth.request.post(`/api/club/${clubSlug}/reviews`, {
         score,
         workId,
         sourceListId,
+        emoji,
       }),
-    onMutate: ({ workId, score }) => {
+    onMutate: ({ workId, score, emoji }) => {
       if (!workId) return;
       queryClient.setQueryData<DetailedReviewListItem[]>(
         reviewsListKey(clubSlug),
@@ -44,6 +47,7 @@ export function useReviewWork(clubSlug: string) {
                       id: "temp",
                       created_date: new Date().toISOString(),
                       score,
+                      emoji,
                     },
                   },
                 }
@@ -84,6 +88,7 @@ export function useUpdateReviewScore(clubSlug: string) {
                   scores: {
                     ...review.scores,
                     [currentUser.id]: {
+                      ...review.scores[currentUser.id],
                       id: reviewId,
                       created_date: new Date().toISOString(),
                       score,
@@ -212,6 +217,73 @@ export function useDeleteReviewComment(clubSlug: string, workId: string) {
     onSettled: () =>
       queryClient.invalidateQueries({
         queryKey: ["comments", clubSlug, workId],
+      }),
+  });
+}
+
+export function useUpdateReviewEmoji(clubSlug: string) {
+  const auth = useAuthStore();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      reviewId,
+      emoji,
+    }: {
+      reviewId: string;
+      emoji: string | null;
+    }) =>
+      auth.request.put(`/api/club/${clubSlug}/reviews/${reviewId}/emoji`, {
+        emoji,
+      }),
+    onMutate: async ({ reviewId, emoji }) => {
+      if (!reviewId) return;
+
+      await queryClient.cancelQueries({
+        queryKey: reviewsListKey(clubSlug),
+      });
+
+      const previousReviews = queryClient.getQueryData<
+        DetailedReviewListItem[]
+      >(reviewsListKey(clubSlug));
+
+      queryClient.setQueryData<DetailedReviewListItem[]>(
+        reviewsListKey(clubSlug),
+        (currentReviews) => {
+          if (!currentReviews) return currentReviews;
+          return currentReviews.map((review) => {
+            const userId = Object.keys(review.scores).find(
+              (key) => review.scores[key].id === reviewId,
+            );
+
+            if (isDefined(userId)) {
+              return {
+                ...review,
+                scores: {
+                  ...review.scores,
+                  [userId]: {
+                    ...review.scores[userId],
+                    emoji,
+                  },
+                },
+              };
+            }
+            return review;
+          });
+        },
+      );
+      return { previousReviews };
+    },
+    onError: (_err, _variables, context) => {
+      if (context?.previousReviews) {
+        queryClient.setQueryData(
+          reviewsListKey(clubSlug),
+          context.previousReviews,
+        );
+      }
+    },
+    onSettled: () =>
+      queryClient.invalidateQueries({
+        queryKey: reviewsListKey(clubSlug),
       }),
   });
 }

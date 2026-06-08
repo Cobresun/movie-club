@@ -63,6 +63,14 @@
         />
       </template>
     </div>
+
+    <EmojiPickerOverlay
+      :open="isEmojiPickerOpen"
+      :current-emoji="currentReviewEmoji"
+      @close="closeEmojiPicker"
+      @select="onEmojiSelect"
+      @clear="onEmojiClear"
+    />
   </div>
 </template>
 <script setup lang="ts">
@@ -75,8 +83,8 @@ import {
 import { DateTime } from "luxon";
 import { computed, ref, onMounted, h, resolveComponent, watch } from "vue";
 
-import { hasValue, isTrue } from "../../../../lib/checks/checks.js";
-import { DetailedReviewListItem } from "../../../../lib/types/lists";
+import { hasValue, isTrue, isDefined } from "../../../../lib/checks/checks.js";
+import { DetailedReviewListItem, Review } from "../../../../lib/types/lists";
 import { useShare } from "../../../common/composables/useShare";
 import GalleryView from "../components/GalleryView.vue";
 import MovieTooltip from "../components/MovieTooltip.vue";
@@ -90,6 +98,7 @@ import SearchFilterBar from "@/common/components/SearchFilterBar.vue";
 import VAvatar from "@/common/components/VAvatar.vue";
 import VToggle from "@/common/components/VToggle.vue";
 import AddReviewPrompt from "@/features/reviews/components/AddReviewPrompt.vue";
+import EmojiPickerOverlay from "@/features/reviews/components/EmojiPickerOverlay.vue";
 import {
   useClub,
   useIsInClub,
@@ -101,11 +110,16 @@ import {
   useReviewsList,
   useReviewsListId,
 } from "@/service/useList";
+import { useUpdateReviewEmoji } from "@/service/useReviews";
 import { useUser } from "@/service/useUser";
 
 const { clubSlug } = defineProps<{ clubSlug: string }>();
 
 const isGalleryView = ref(true);
+const isEmojiPickerOpen = ref(false);
+const currentReviewId = ref<string | null>(null);
+const currentReviewEmoji = ref<string | null>(null);
+const longPressTimer = ref<number | null>(null);
 
 // Load club data for share functionality
 const { data: club } = useClub(clubSlug);
@@ -193,6 +207,7 @@ const deleteReview = (workId: string) => {
   if (!hasValue(reviewsListId.value)) return;
   deleteReviewMutation({ workId, reviewsListId: reviewsListId.value });
 };
+const { mutate: updateReviewEmoji } = useUpdateReviewEmoji(clubSlug);
 
 const mdicon = resolveComponent("mdicon");
 const currentUser = useUser();
@@ -236,6 +251,80 @@ const shouldBlurScore = (rowId: string, columnId: string) => {
 };
 
 const { share } = useShare();
+
+const getUserEmoji = (
+  scores: Record<string, Review>,
+  columnId: string,
+): string | null => {
+  const colUserId = columnId.replace("member_", "");
+  const userReview = scores[colUserId];
+  return userReview?.emoji ?? null;
+};
+
+const openEmojiPicker = (
+  reviewId: string | undefined,
+  emoji?: string | null,
+) => {
+  if (isDefined(reviewId)) {
+    currentReviewId.value = reviewId;
+    currentReviewEmoji.value = emoji ?? null;
+    isEmojiPickerOpen.value = true;
+  }
+};
+
+const closeEmojiPicker = () => {
+  isEmojiPickerOpen.value = false;
+  currentReviewId.value = null;
+  currentReviewEmoji.value = null;
+};
+
+const clearLongPressTimer = () => {
+  if (isDefined(longPressTimer.value)) {
+    clearTimeout(longPressTimer.value);
+    longPressTimer.value = null;
+  }
+};
+
+const handleTouchStart = (
+  reviewId: string | undefined,
+  emoji?: string | null,
+) => {
+  if (!isDefined(reviewId)) return;
+
+  clearLongPressTimer();
+  longPressTimer.value = window.setTimeout(() => {
+    longPressTimer.value = null;
+    openEmojiPicker(reviewId, emoji);
+  }, 500);
+};
+
+const handleTouchEnd = () => {
+  clearLongPressTimer();
+};
+
+const handleTouchMove = () => {
+  clearLongPressTimer();
+};
+
+const onEmojiSelect = (emoji: string) => {
+  if (isDefined(currentReviewId.value)) {
+    updateReviewEmoji({
+      reviewId: currentReviewId.value,
+      emoji,
+    });
+  }
+  closeEmojiPicker();
+};
+
+const onEmojiClear = () => {
+  if (isDefined(currentReviewId.value)) {
+    updateReviewEmoji({
+      reviewId: currentReviewId.value,
+      emoji: null,
+    });
+  }
+  closeEmojiPicker();
+};
 
 const columns = computed(() => [
   columnHelper.accessor("imageUrl", {
@@ -334,6 +423,12 @@ const columns = computed(() => [
         }
 
         const shouldBlur = shouldBlurScore(info.row.id, info.column.id);
+        const userEmoji = getUserEmoji(
+          info.row.original.scores,
+          info.column.id,
+        );
+        const reviewId = info.row.original.scores[member.id]?.id;
+        const isOwnColumn = info.column.id === `member_${userId.value}`;
 
         return h(
           "div",
@@ -342,14 +437,92 @@ const columns = computed(() => [
             onClick: shouldBlur ? () => toggleReveal(info.row.id) : undefined,
           },
           [
-            h(ReviewScore, {
-              workId: info.row.original.id,
-              memberId: member.id,
-              score,
-              reviewId: info.row.original.scores[member.id]?.id,
-              size,
-              class: shouldBlur ? "filter blur cursor-pointer" : "",
-            }),
+            // ReviewScore wrapper with relative positioning for emoji badge
+            h(
+              "div",
+              {
+                class:
+                  "relative inline-block transition-transform duration-200 group-hover/score:scale-105",
+                onTouchstart:
+                  info.column.id === `member_${userId.value}` &&
+                  info.row.original.scores[member.id]?.id &&
+                  !shouldBlur
+                    ? () =>
+                        handleTouchStart(
+                          info.row.original.scores[member.id]?.id,
+                          userEmoji,
+                        )
+                    : undefined,
+                onTouchend:
+                  info.column.id === `member_${userId.value}` &&
+                  info.row.original.scores[member.id]?.id &&
+                  !shouldBlur
+                    ? handleTouchEnd
+                    : undefined,
+                onTouchmove:
+                  info.column.id === `member_${userId.value}` &&
+                  info.row.original.scores[member.id]?.id &&
+                  !shouldBlur
+                    ? handleTouchMove
+                    : undefined,
+              },
+              [
+                h(ReviewScore, {
+                  workId: info.row.original.id,
+                  memberId: member.id,
+                  score,
+                  reviewId: info.row.original.scores[member.id]?.id,
+                  size,
+                  class: shouldBlur ? "filter blur cursor-pointer" : "",
+                }),
+                // Floating emoji badge
+                isDefined(userEmoji) && !shouldBlur
+                  ? h(
+                      "div",
+                      {
+                        class: [
+                          "absolute -right-5 -top-3 text-lg leading-none transition-transform duration-200 group-hover/score:scale-110",
+                          isOwnColumn && isDefined(reviewId)
+                            ? "cursor-pointer"
+                            : "",
+                        ],
+                        "aria-label":
+                          isOwnColumn && isDefined(reviewId)
+                            ? "Change reaction"
+                            : undefined,
+                        onClick:
+                          isOwnColumn && isDefined(reviewId)
+                            ? (e: Event) => {
+                                e.stopPropagation();
+                                openEmojiPicker(reviewId, userEmoji);
+                              }
+                            : undefined,
+                      },
+                      userEmoji,
+                    )
+                  : null,
+                // Hover button for adding emoji (only when no emoji exists)
+                isOwnColumn &&
+                isDefined(reviewId) &&
+                !shouldBlur &&
+                !isDefined(userEmoji)
+                  ? h(
+                      "button",
+                      {
+                        type: "button",
+                        "aria-label": "Add reaction",
+                        class:
+                          "absolute -right-6 -top-2.5 flex h-6 w-6 scale-75 items-center justify-center rounded-full bg-primary text-white opacity-0 shadow-sm transition-all duration-200 hover:scale-110 hover:bg-primary/80 focus-visible:scale-100 focus-visible:opacity-100 group-hover/score:scale-100 group-hover/score:opacity-100",
+                        onClick: (e: Event) => {
+                          e.stopPropagation();
+                          openEmojiPicker(reviewId);
+                        },
+                      },
+                      [h(mdicon, { name: "emoticon-happy-outline", size: 14 })],
+                    )
+                  : null,
+              ].filter(Boolean),
+            ),
           ],
         );
       },

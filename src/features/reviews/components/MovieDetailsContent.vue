@@ -117,7 +117,7 @@
         <div
           v-for="cell in getVisibleCells(movie)"
           :key="cell.id"
-          class="flex items-center rounded-xl bg-lowBackground p-2"
+          class="group/score flex items-center rounded-xl bg-lowBackground p-2 transition-all duration-200 hover:scale-[1.03] hover:bg-slate-600"
         >
           <FlexRender
             :render="cell.column.columnDef.header"
@@ -245,7 +245,7 @@
         <div
           v-for="cell in getVisibleCells(movie)"
           :key="cell.id"
-          class="flex items-center rounded-xl bg-lowBackground p-2"
+          class="group/score flex items-center rounded-xl bg-lowBackground p-2 transition-all duration-200 hover:scale-[1.03] hover:bg-slate-600"
         >
           <FlexRender
             :render="cell.column.columnDef.header"
@@ -411,6 +411,7 @@ const editedDate = ref("");
 const discussionQuestionsEnabled = computed(
   () => clubSettings.value?.features?.discussionQuestions === true,
 );
+
 const movieTitle = computed(() => String(props.movie.renderValue("title")));
 
 const formattedDateForInput = computed(() => {

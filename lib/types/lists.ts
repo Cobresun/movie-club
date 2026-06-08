@@ -20,6 +20,7 @@ export interface Review {
   id: string;
   created_date: string;
   score: number;
+  emoji?: string | null;
 }
 
 export interface ExternalWorkData<T> {
@@ -62,6 +63,7 @@ export interface SharedReviewResponse {
     user_id: string;
     score: number;
     created_date: string;
+    emoji?: string | null;
   }[];
   comments: WorkCommentDto[];
   work: DetailedReviewListItem;
