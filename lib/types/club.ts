@@ -1,5 +1,4 @@
-import { BaseReview, Review } from "./reviews";
-import { BaseWatchListItem, WatchListItem } from "./watchlist";
+import { ClubType } from "./generated/db";
 
 export interface User {
   id: string;
@@ -17,21 +16,5 @@ export interface ClubPreview {
   clubName: string;
   slug: string;
   slugUpdatedAt: string | undefined;
-}
-
-export interface BaseClub extends ClubPreview {
-  members: Member[];
-  nextMovieId?: number;
-  watchList: BaseWatchListItem[];
-  backlog: WatchListItem[];
-  reviews: BaseReview[];
-}
-
-export interface Club extends Omit<
-  BaseClub,
-  "reviews" | "backlog" | "watchList"
-> {
-  watchList: WatchListItem[];
-  backlog: WatchListItem[];
-  reviews: Review[];
+  type: ClubType;
 }

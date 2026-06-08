@@ -15,13 +15,14 @@
           class="mt-2 grid justify-items-center"
           style="grid-template-columns: repeat(auto-fill, minmax(136px, 1fr))"
         >
-          <MovieSearchCard
+          <WorkSearchCard
             v-for="item in filteredDefaultList"
-            :key="item.id"
+            :key="item.externalId"
             :title="item.title"
-            :year="getReleaseYear(item.release_date)"
-            :poster-url="getPosterUrl(item.poster_path)"
-            @select="selectFromDefaultList(item)"
+            :subtitle="item.subtitle"
+            :poster-url="item.imageUrl"
+            :fallback-icon="fallbackIcon"
+            @select="emit('select-from-default', item)"
           />
         </div>
         <div v-if="showLoadMore" class="mt-3 flex justify-center">
@@ -30,25 +31,20 @@
           </v-btn>
         </div>
       </div>
-      <div
-        v-if="
-          includeSearch &&
-          searchData?.results.length &&
-          searchData.results.length > 0
-        "
-      >
+      <div v-if="includeSearch && searchResults.length > 0">
         <h5 class="text-left font-bold">Search</h5>
         <div
           class="mt-2 grid justify-items-center"
           style="grid-template-columns: repeat(auto-fill, minmax(136px, 1fr))"
         >
-          <MovieSearchCard
-            v-for="item in searchData.results"
-            :key="item.id"
+          <WorkSearchCard
+            v-for="item in searchResults"
+            :key="item.externalId"
             :title="item.title"
-            :year="getReleaseYear(item.release_date)"
-            :poster-url="getPosterUrl(item.poster_path)"
-            @select="selectFromSearch(item)"
+            :subtitle="item.subtitle"
+            :poster-url="item.imageUrl"
+            :fallback-icon="fallbackIcon"
+            @select="emit('select-from-search', item)"
           />
         </div>
       </div>
@@ -56,6 +52,13 @@
         v-if="includeSearch && loadingSearch"
         class="mt-3 self-center"
       />
+      <div
+        v-if="showHint"
+        class="mt-10 flex flex-col items-center gap-2 text-gray-400"
+      >
+        <mdicon :name="fallbackIcon" :size="48" class="opacity-50" />
+        <p>{{ hintMessage }}</p>
+      </div>
     </div>
   </div>
 </template>
@@ -63,14 +66,15 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 
-import MovieSearchCard from "./MovieSearchCard.vue";
-import { hasValue, isDefined } from "../../../lib/checks/checks";
-import { MovieSearchIndex } from "../../../lib/types/movie";
+import WorkSearchCard from "./WorkSearchCard.vue";
+import { isDefined } from "../../../lib/checks/checks";
+import { ClubType } from "../../../lib/types/generated/db";
 
-import { BASE_IMAGE_URL } from "@/service/useList";
-import { useSearch } from "@/service/useTMDB";
+import { clubTypeConfig } from "@/common/clubType";
+import { useMediaSearch, WorkSearchResult } from "@/service/useMediaSearch";
 
 const {
+  clubType,
   defaultList,
   defaultListTitle,
   includeSearch = true,
@@ -78,7 +82,8 @@ const {
   loadingMore = false,
   hasMore = false,
 } = defineProps<{
-  defaultList: MovieSearchIndex[];
+  clubType: ClubType;
+  defaultList: WorkSearchResult[];
   defaultListTitle: string;
   includeSearch?: boolean;
   onLoadMore?: () => void;
@@ -87,35 +92,27 @@ const {
 }>();
 
 const emit = defineEmits<{
-  (e: "select-from-default", movie: MovieSearchIndex): void;
-  (e: "select-from-search", movie: MovieSearchIndex): void;
+  (e: "select-from-default", work: WorkSearchResult): void;
+  (e: "select-from-search", work: WorkSearchResult): void;
 }>();
 
-const getPosterUrl = (posterPath: string): string => {
-  if (!hasValue(posterPath)) return "";
-  if (posterPath.startsWith("http")) return posterPath;
-  return `${BASE_IMAGE_URL}${posterPath}`;
-};
-
-const getReleaseYear = (date: string) => {
-  if (hasValue(date) && date.length > 4) {
-    return date.substring(0, 4);
-  } else {
-    return "";
-  }
-};
-
 const searchText = ref("");
+
+const config = computed(() => clubTypeConfig(clubType));
+const fallbackIcon = computed(() => config.value.icon);
 
 const filteredDefaultList = computed(() => {
   const lower = searchText.value.toLowerCase();
   return defaultList.filter((item) => item.title.toLowerCase().includes(lower));
 });
 
-const { data: searchData, isLoading: loadingSearch } = useSearch(
+const { data: searchData, isLoading: loadingSearch } = useMediaSearch(
+  clubType,
   searchText,
   includeSearch,
 );
+
+const searchResults = computed(() => searchData.value ?? []);
 
 const showLoadMore = computed(() => {
   const hasNoSearchText = searchText.value.trim().length === 0;
@@ -123,7 +120,6 @@ const showLoadMore = computed(() => {
 });
 
 const noResults = computed(() => {
-  // Don't show "no results" if the user hasn't typed anything
   const hasSearched = searchText.value.trim().length > 0;
 
   if (includeSearch) {
@@ -131,18 +127,21 @@ const noResults = computed(() => {
       hasSearched &&
       !loadingSearch.value &&
       filteredDefaultList.value.length === 0 &&
-      searchData.value?.results.length === 0
+      searchResults.value.length === 0
     );
   } else {
     return hasSearched && filteredDefaultList.value.length === 0;
   }
 });
 
-const selectFromDefaultList = (movie: MovieSearchIndex) => {
-  emit("select-from-default", movie);
-};
+// Hint shown when nothing is on screen yet (no default items, nothing typed).
+const showHint = computed(
+  () =>
+    !loadingSearch.value &&
+    searchText.value.trim().length === 0 &&
+    filteredDefaultList.value.length === 0 &&
+    searchResults.value.length === 0,
+);
 
-const selectFromSearch = (movie: MovieSearchIndex) => {
-  emit("select-from-search", movie);
-};
+const hintMessage = computed(() => config.value.searchHint);
 </script>

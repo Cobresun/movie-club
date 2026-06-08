@@ -3,7 +3,8 @@
     <div class="flex h-full flex-col">
       <h3 class="mb-2 text-left text-xl font-bold">{{ currentAward.title }}</h3>
       <div class="flex-grow overflow-auto">
-        <MovieSearchPrompt
+        <WorkSearchPrompt
+          :club-type="ClubType.movie"
           :default-list="reviewsForYear"
           :default-list-title="`${year} Reviews`"
           :include-search="false"
@@ -17,11 +18,11 @@
     <div v-for="award in userOnlyAwards" :key="award.title">
       <h3 class="mb-2 text-left text-xl font-bold">{{ award.title }}</h3>
       <div class="grid grid-cols-auto">
-        <MoviePosterCard
+        <WorkPosterCard
           v-for="nomination in award.nominations"
           :key="nomination.movieId"
-          :movie-title="nomination.movieTitle"
-          :movie-poster-url="nomination.posterUrl"
+          :title="nomination.movieTitle"
+          :poster-url="nomination.posterUrl"
           show-delete
           @delete="
             deleteNomination({
@@ -29,7 +30,7 @@
               movieId: nomination.movieId,
             })
           "
-        ></MoviePosterCard>
+        ></WorkPosterCard>
         <AddMovieButton
           v-for="index in getAddButtonNumber(award)"
           :key="index"
@@ -84,14 +85,16 @@ import { DateTime } from "luxon";
 import { computed, ref } from "vue";
 
 import { Award, ClubAwards } from "../../../../lib/types/awards";
-import { MovieSearchIndex } from "../../../../lib/types/movie";
+import { ClubType } from "../../../../lib/types/generated/db";
 import AddMovieButton from "../components/AddMovieButton.vue";
 import { NOMINATIONS_PER_AWARD } from "../constants";
 
-import MoviePosterCard from "@/common/components/MoviePosterCard.vue";
-import MovieSearchPrompt from "@/common/components/MovieSearchPrompt.vue";
+import WorkPosterCard from "@/common/components/WorkPosterCard.vue";
+import WorkSearchPrompt from "@/common/components/WorkSearchPrompt.vue";
+import { workSubtitle } from "@/common/workDisplay";
 import { useAddNomination, useDeleteNomination } from "@/service/useAwards";
 import { useReviewsList } from "@/service/useList";
+import { WorkSearchResult } from "@/service/useMediaSearch";
 import { useUser } from "@/service/useUser";
 
 const { clubAward, clubId, year } = defineProps<{
@@ -142,19 +145,19 @@ const reviewsForYear = computed(() => {
     .filter(
       (review) => DateTime.fromISO(review.createdDate).year === parseInt(year),
     )
-    .map((review) => ({
+    .map<WorkSearchResult>((review) => ({
+      externalId: review.externalId ?? "",
       title: review.title,
-      release_date: review.externalData?.release_date ?? "",
-      id: parseInt(review.externalId ?? "0"),
-      poster_path: review.externalData?.poster_path ?? "",
+      subtitle: workSubtitle(review.externalData),
+      imageUrl: review.imageUrl,
     }));
 });
 
 const { mutate } = useAddNomination(clubId, year);
 
-const addNomination = (movie: MovieSearchIndex) => {
+const addNomination = (work: WorkSearchResult) => {
   const review = reviews.value?.find(
-    (review) => parseInt(review.externalId ?? "0") === movie.id,
+    (review) => (review.externalId ?? "") === work.externalId,
   );
   if (!currentAward.value || !review) return;
   mutate({ awardTitle: currentAward.value.title, review });

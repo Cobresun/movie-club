@@ -10,11 +10,11 @@
     enter-to-class="h-96"
   >
     <div v-if="showResult" class="grid grid-cols-auto">
-      <MoviePosterCard
+      <WorkPosterCard
         v-for="nomination in nominationsWithScore"
         :key="nomination.movieId"
-        :movie-title="nomination.movieTitle"
-        :movie-poster-url="nomination.posterUrl"
+        :title="nomination.movieTitle"
+        :poster-url="nomination.posterUrl"
         :highlighted="nomination.score === maxScore"
       >
         <div class="grid grid-cols-2 gap-2">
@@ -29,7 +29,7 @@
             </div>
           </div>
         </div>
-      </MoviePosterCard>
+      </WorkPosterCard>
     </div></transition-group
   >
 </template>
@@ -39,7 +39,7 @@ import { computed, ref } from "vue";
 import { Award, AwardsStep } from "../../../../lib/types/awards";
 import { Member } from "../../../../lib/types/club";
 
-import MoviePosterCard from "@/common/components/MoviePosterCard.vue";
+import WorkPosterCard from "@/common/components/WorkPosterCard.vue";
 
 const { award, members, step } = defineProps<{
   award: Award;

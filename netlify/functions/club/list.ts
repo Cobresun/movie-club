@@ -1,10 +1,11 @@
 import { z } from "zod";
 
-import { hasValue, isDefined } from "../../../lib/checks/checks.js";
+import { hasValue } from "../../../lib/checks/checks.js";
 import {
+  DetailedReviewListItem,
+  DetailedWorkData,
+  DetailedWorkListItem,
   Review,
-  ReviewListItem,
-  WorkListItem,
 } from "../../../lib/types/lists.js";
 import { listInsertDtoSchema } from "../../../lib/types/lists.js";
 import ListRepository from "../repositories/ListRepository";
@@ -12,10 +13,10 @@ import ReviewRepository from "../repositories/ReviewRepository";
 import UserRepository from "../repositories/UserRepository";
 import WorkRepository from "../repositories/WorkRepository";
 import { secured } from "../utils/auth";
+import { getExternalDataForWorks } from "../utils/providers";
 import { badRequest, internalServerError, ok } from "../utils/responses";
 import { Router } from "../utils/router";
 import { ClubRequest, ListRequest, validListId } from "../utils/validation";
-import { overviewToExternalData } from "../utils/workDetailsMapper.js";
 
 import { BadRequest } from "@/common/errorCodes";
 
@@ -112,15 +113,23 @@ router.post("/", secured, async ({ clubId, event }, res) => {
 
 router.get("/:listId", validListId, async ({ listId }, res) => {
   const items = await ListRepository.getListItems(listId);
-  const mapped: WorkListItem[] = items.map((item) => ({
-    id: item.id,
-    title: item.title,
-    type: item.type,
-    createdDate: item.time_added.toISOString(),
-    imageUrl: item.image_url ?? undefined,
-    externalId: item.external_id ?? undefined,
-    externalData: overviewToExternalData(item),
-  }));
+  const externalData = await getExternalDataForWorks(
+    items.map((item) => ({ externalId: item.external_id, type: item.type })),
+  );
+
+  const mapped: DetailedWorkListItem<DetailedWorkData>[] = items.map(
+    (item) => ({
+      id: item.id,
+      title: item.title,
+      type: item.type,
+      createdDate: item.time_added.toISOString(),
+      imageUrl: item.image_url ?? undefined,
+      externalId: item.external_id ?? undefined,
+      externalData: hasValue(item.external_id)
+        ? externalData.get(item.external_id)
+        : undefined,
+    }),
+  );
   return res(ok(JSON.stringify(mapped)));
 });
 
@@ -310,12 +319,21 @@ router.post(
 // Internal helpers
 // ---------------------------------------------------------------------------
 
-async function getReviewList(clubId: string): Promise<ReviewListItem[]> {
+async function getReviewList(
+  clubId: string,
+): Promise<DetailedReviewListItem<DetailedWorkData>[]> {
   const [reviews, members] = await Promise.all([
     ReviewRepository.getReviewList(clubId),
     UserRepository.getMembersByClubId(clubId),
   ]);
   const memberIds = new Set(members.map((m) => m.id));
+
+  const externalData = await getExternalDataForWorks(
+    reviews.map((review) => ({
+      externalId: review.external_id,
+      type: review.type,
+    })),
+  );
 
   const groupedReviews = reviews.reduce((acc, review) => {
     const key = review.id;
@@ -369,34 +387,6 @@ async function getReviewList(clubId: string): Promise<ReviewListItem[]> {
         };
       }
 
-      const externalData = hasValue(review.overview)
-        ? {
-            actors: review.actors?.filter(isDefined) ?? [],
-            adult: review.adult,
-            backdrop_path: review.backdrop_path,
-            budget: review.budget,
-            homepage: review.homepage,
-            imdb_id: review.imdb_id,
-            original_language: review.original_language,
-            original_title: review.original_title,
-            overview: review.overview,
-            popularity: review.popularity,
-            poster_path: review.poster_path,
-            release_date: review.release_date?.toISOString(),
-            revenue: review.revenue,
-            runtime: review.runtime,
-            status: review.status,
-            tagline: review.tagline,
-            vote_average: review.tmdb_score,
-            genres: review.genres?.filter(Boolean) ?? [],
-            directors: review.directors?.filter(isDefined) ?? [],
-            production_companies:
-              review.production_companies?.filter(Boolean) ?? [],
-            production_countries:
-              review.production_countries?.filter(Boolean) ?? [],
-          }
-        : undefined;
-
       return {
         id: key,
         title: review.title,
@@ -405,7 +395,9 @@ async function getReviewList(clubId: string): Promise<ReviewListItem[]> {
         imageUrl: review.image_url ?? undefined,
         externalId: review.external_id ?? undefined,
         scores,
-        externalData,
+        externalData: hasValue(review.external_id)
+          ? externalData.get(review.external_id)
+          : undefined,
       };
     })
     .sort((a, b) => b.createdDate.localeCompare(a.createdDate));

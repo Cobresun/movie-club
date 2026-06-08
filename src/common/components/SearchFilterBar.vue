@@ -187,7 +187,8 @@ import {
 } from "vue";
 
 import type { DetailedWorkListItem } from "../../../lib/types/lists";
-import { filterMovies } from "../searchMovies";
+import { filterWorks } from "../filterWorks";
+import { asMovie } from "../workDisplay";
 
 // Component props
 interface Props {
@@ -266,7 +267,7 @@ const FILTER_OPTIONS = computed(() =>
 const genreCounts = computed(() => {
   const counts = new Map<string, number>();
   props.data.forEach((item) =>
-    item.externalData?.genres?.forEach((g) => {
+    asMovie(item.externalData)?.genres?.forEach((g) => {
       const currentCount = counts.get(g);
       counts.set(g, currentCount !== undefined ? currentCount + 1 : 1);
     }),
@@ -277,7 +278,7 @@ const genreCounts = computed(() => {
 const companyCounts = computed(() => {
   const counts = new Map<string, number>();
   props.data.forEach((item) =>
-    item.externalData?.production_companies?.forEach((c) => {
+    asMovie(item.externalData)?.production_companies?.forEach((c) => {
       const currentCount = counts.get(c);
       counts.set(c, currentCount !== undefined ? currentCount + 1 : 1);
     }),
@@ -288,7 +289,7 @@ const companyCounts = computed(() => {
 const directorCounts = computed(() => {
   const counts = new Map<string, number>();
   props.data.forEach((item) =>
-    item.externalData?.directors?.forEach((d) => {
+    asMovie(item.externalData)?.directors?.forEach((d) => {
       const name = d.name;
       const currentCount = counts.get(name);
       counts.set(name, currentCount !== undefined ? currentCount + 1 : 1);
@@ -468,7 +469,7 @@ const derivedHasActiveFilters = computed(() => {
 
 // Apply filtering internally and sync to parent via v-model
 const derivedFiltered = computed(() => {
-  return filterMovies(props.data, {
+  return filterWorks(props.data, {
     filters: filtersObject.value,
     freeText: searchTerm.value.trim(),
   });

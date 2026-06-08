@@ -19,7 +19,7 @@
 
     <div class="relative -mt-20 flex flex-col items-center px-4">
       <div class="w-2/5 max-w-[180px] shadow-2xl">
-        <PosterImage :poster-path="posterPath" />
+        <PosterImage :image-url="posterUrl" />
       </div>
       <h2 class="mt-3 text-center text-xl font-bold">
         {{ title
@@ -53,7 +53,7 @@
 
     <div class="relative -mt-20 flex items-end gap-3 px-4">
       <div class="w-20 flex-shrink-0 shadow-lg">
-        <PosterImage :poster-path="posterPath" />
+        <PosterImage :image-url="posterUrl" />
       </div>
       <div class="flex min-w-0 flex-col pb-1">
         <h2 class="text-xl font-bold leading-tight">
@@ -79,7 +79,7 @@ import PosterImage from "@/common/components/PosterImage.vue";
 
 const props = withDefaults(
   defineProps<{
-    posterPath?: string | null;
+    posterUrl?: string | null;
     backdropPath?: string | null;
     title: string;
     year?: string | number;
@@ -87,7 +87,7 @@ const props = withDefaults(
     isDesktop: boolean;
   }>(),
   {
-    posterPath: null,
+    posterUrl: null,
     backdropPath: null,
     year: undefined,
     dateLabel: "",

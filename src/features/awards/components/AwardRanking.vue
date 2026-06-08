@@ -8,11 +8,11 @@
     move-class="transition ease-linear duration-300"
     class="grid grid-cols-auto"
   >
-    <MoviePosterCard
+    <WorkPosterCard
       v-for="(nomination, index) in nominations"
       :key="nomination.movieId"
-      :movie-title="nomination.movieTitle"
-      :movie-poster-url="nomination.posterUrl"
+      :title="nomination.movieTitle"
+      :poster-url="nomination.posterUrl"
     >
       <div class="mb-4 flex gap-2">
         <v-avatar
@@ -35,7 +35,7 @@
           <mdicon name="chevron-right" />
         </v-btn>
       </div>
-    </MoviePosterCard>
+    </WorkPosterCard>
   </transition-group>
 </template>
 <script setup lang="ts">
@@ -45,7 +45,7 @@ import { isDefined } from "../../../../lib/checks/checks.js";
 import { Award } from "../../../../lib/types/awards";
 import { Member } from "../../../../lib/types/club";
 
-import MoviePosterCard from "@/common/components/MoviePosterCard.vue";
+import WorkPosterCard from "@/common/components/WorkPosterCard.vue";
 
 const { award, members, user } = defineProps<{
   award: Award;

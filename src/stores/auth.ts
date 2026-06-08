@@ -29,7 +29,12 @@ export const useAuthStore = defineStore("auth", () => {
   const request = computed(() => axios.create());
 
   // Fetch user's clubs
-  const { data: userClubs, isLoading: isLoadingUserClubs } = useQuery({
+  const {
+    data: userClubs,
+    isLoading: isLoadingUserClubs,
+    isFetching: isFetchingUserClubs,
+    refetch: refetchUserClubs,
+  } = useQuery({
     queryKey: ["user", "clubs"],
     queryFn: async () => {
       const response =
@@ -43,6 +48,14 @@ export const useAuthStore = defineStore("auth", () => {
     return userClubs.value?.some((club) => club.slug === clubSlug) ?? false;
   };
 
+  // Force a fresh fetch of the user's clubs and wait for it. Used as a safety
+  // net by the route guard: waitForClubsReady awaits any in-flight refetch, but
+  // if a create/join invalidation hasn't been picked up yet this guarantees a
+  // fresh membership list before we declare a club inaccessible.
+  const refreshClubs = async () => {
+    await refetchUserClubs();
+  };
+
   // Helper to wait for auth and clubs to be ready
   const waitForAuthReady = async () => {
     if (session.value.isRefetching || session.value.isPending) {
@@ -53,11 +66,16 @@ export const useAuthStore = defineStore("auth", () => {
     }
   };
 
+  // Resolve once the clubs query is neither loading its first page nor
+  // refetching. Waiting on isFetching (not just isLoading) means a refetch
+  // triggered by creating or joining a club is awaited here, so route guards
+  // see the fresh membership list rather than a stale cache.
   const waitForClubsReady = async () => {
-    if (isLoggedIn.value && isLoadingUserClubs.value) {
+    if (!isLoggedIn.value) return;
+    if (isLoadingUserClubs.value || isFetchingUserClubs.value) {
       await watchUntil(
-        () => isLoadingUserClubs.value,
-        (loading) => !loading,
+        () => [isLoadingUserClubs.value, isFetchingUserClubs.value],
+        ([loading, fetching]) => !loading && !fetching,
       );
     }
   };
@@ -141,6 +159,7 @@ export const useAuthStore = defineStore("auth", () => {
     userClubs,
     isClubMember,
     isLoadingUserClubs,
+    refreshClubs,
 
     // Helper methods for router guards
     waitForAuthReady,

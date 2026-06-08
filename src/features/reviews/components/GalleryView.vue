@@ -59,12 +59,12 @@
         class="grid w-full justify-items-center gap-4"
         style="grid-template-columns: repeat(auto-fill, minmax(168px, 1fr))"
       >
-        <MoviePosterCard
+        <WorkPosterCard
           v-for="row in reviewTable.getRowModel().rows"
           :key="row.id"
           :data-movie-id="row.id"
-          :movie-title="row.renderValue('title')"
-          :movie-poster-url="row.renderValue('imageUrl')"
+          :title="row.renderValue('title')"
+          :poster-url="row.renderValue('imageUrl')"
           :highlighted="selectedMovieId === row.id"
           class="ease transition-all duration-100 md:cursor-pointer"
           @click="openMovieDetails(row)"
@@ -93,12 +93,12 @@
               </div>
             </div>
           </div>
-        </MoviePosterCard>
+        </WorkPosterCard>
       </transition-group>
     </div>
 
     <!-- Movie Details Drawer -->
-    <MovieDetailsDrawer
+    <WorkDetailsDrawer
       v-if="selectedMovie"
       :key="selectedMovie.id"
       :movie="selectedMovie"
@@ -124,12 +124,12 @@ import {
 import { FlexRender, Row, Table } from "@tanstack/vue-table";
 import { computed, ref, nextTick, watch } from "vue";
 
-import MovieDetailsDrawer from "./MovieDetailsDrawer.vue";
+import WorkDetailsDrawer from "./WorkDetailsDrawer.vue";
 import { isDefined } from "../../../../lib/checks/checks.js";
 import { Member } from "../../../../lib/types/club";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
 
-import MoviePosterCard from "@/common/components/MoviePosterCard.vue";
+import WorkPosterCard from "@/common/components/WorkPosterCard.vue";
 
 const props = defineProps<{
   reviewTable: Table<DetailedReviewListItem>;

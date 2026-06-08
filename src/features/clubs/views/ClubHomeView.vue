@@ -59,12 +59,15 @@
         <menu-card :image="reviewSvg"> Reviews </menu-card>
       </router-link>
       <router-link :to="{ name: 'Watchlists' }">
-        <menu-card :image="watchlistSvg"> Watchlists </menu-card>
+        <menu-card :image="watchlistSvg"> Lists </menu-card>
       </router-link>
-      <router-link :to="{ name: 'Statistics' }">
+      <router-link v-if="isMovieClub" :to="{ name: 'Statistics' }">
         <menu-card :image="statisticsSvg"> Statistics </menu-card>
       </router-link>
-      <router-link v-if="settings?.features?.awards" :to="{ name: 'Awards' }">
+      <router-link
+        v-if="isMovieClub && settings?.features?.awards"
+        :to="{ name: 'Awards' }"
+      >
         <menu-card :image="awardsSvg"> Awards </menu-card>
       </router-link>
     </div>
@@ -84,12 +87,14 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 
+import { ClubType } from "@/../lib/types/generated/db";
 import awardsSvg from "@/assets/images/menu-images/awards.svg";
 import reviewSvg from "@/assets/images/menu-images/review.svg";
 import statisticsSvg from "@/assets/images/menu-images/statistics.svg";
 import watchlistSvg from "@/assets/images/menu-images/watchlist.svg";
 import {
   useMembers,
+  useClub,
   useClubSlug,
   useInviteToken,
   useClubSettings,
@@ -97,8 +102,12 @@ import {
 
 const clubId = useClubSlug();
 const { data: members, isLoading: isLoadingMembers } = useMembers(clubId);
+const { data: club } = useClub(clubId);
 const { data: inviteToken } = useInviteToken(clubId);
 const { data: settings } = useClubSettings(clubId);
+
+// Awards & Statistics are movie-only for now; hide them for book clubs.
+const isMovieClub = computed(() => club.value?.type === ClubType.movie);
 
 const showInviteModal = ref(false);
 const inviteLinkInput = ref<HTMLInputElement | null>(null);

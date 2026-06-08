@@ -3,6 +3,8 @@ import { DetailedMovieData } from "../../../lib/types/movie";
 
 export interface MovieData {
   id: string;
+  // Statistics are movie-only; the mapper filters to movie works via isMovieData
+  // before constructing this, so the type is always the movie literal.
   type: WorkType.movie;
   title: string;
   createdDate: string;

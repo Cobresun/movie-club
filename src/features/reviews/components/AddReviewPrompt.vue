@@ -1,8 +1,9 @@
 <template>
   <v-modal size="lg" @close="emit('close')">
     <loading-spinner v-if="loading" class="self-center" />
-    <movie-search-prompt
+    <WorkSearchPrompt
       v-else
+      :club-type="clubType"
       default-list-title="From your lists"
       :default-list="combinedListSearchIndex"
       @close="emit('close')"
@@ -16,36 +17,39 @@
 import { computed } from "vue";
 
 import { hasValue } from "../../../../lib/checks/checks";
-import { WorkType } from "../../../../lib/types/generated/db";
-import { MovieSearchIndex } from "../../../../lib/types/movie";
-import MovieSearchPrompt from "../../../common/components/MovieSearchPrompt.vue";
+import { ClubType } from "../../../../lib/types/generated/db";
+import WorkSearchPrompt from "../../../common/components/WorkSearchPrompt.vue";
 
-import { useClubSlug } from "@/service/useClub";
+import { workTypeForClub } from "@/common/clubType";
+import { workSubtitle } from "@/common/workDisplay";
+import { useClub, useClubSlug } from "@/service/useClub";
 import {
-  BASE_IMAGE_URL,
   useAddToReviewsList,
   useAllUserListItems,
   useQueueReview,
   useReviewsListId,
 } from "@/service/useList";
+import { WorkSearchResult } from "@/service/useMediaSearch";
 
 const emit = defineEmits<{
   (e: "close"): void;
 }>();
 
 const clubId = useClubSlug();
+const { data: club } = useClub(clubId);
+const clubType = computed(() => club.value?.type ?? ClubType.movie);
 
 const { data: listItems, isLoading: listsLoading } =
   useAllUserListItems(clubId);
 const { data: reviewsListId } = useReviewsListId(clubId);
 
-const combinedListSearchIndex = computed(
+const combinedListSearchIndex = computed<WorkSearchResult[]>(
   () =>
     listItems.value?.map((item) => ({
+      externalId: item.externalId ?? "",
       title: item.title,
-      release_date: item.externalData?.release_date ?? "",
-      id: parseInt(item.externalId ?? "-1"),
-      poster_path: item.imageUrl ?? "",
+      subtitle: workSubtitle(item.externalData),
+      imageUrl: item.imageUrl,
     })) ?? [],
 );
 
@@ -54,9 +58,9 @@ const { mutateAsync: queueReview, isLoading: queueLoading } =
 const { mutateAsync: addFromSearch, isLoading: addLoading } =
   useAddToReviewsList(clubId);
 
-const selectFromDefault = async (movie: MovieSearchIndex) => {
+const selectFromDefault = async (work: WorkSearchResult) => {
   const sourceItem = listItems.value?.find(
-    (item) => item.externalId === movie.id.toString(),
+    (item) => item.externalId === work.externalId,
   );
   if (!sourceItem || !hasValue(reviewsListId.value)) return;
   await queueReview(
@@ -69,15 +73,15 @@ const selectFromDefault = async (movie: MovieSearchIndex) => {
   );
 };
 
-const selectFromSearch = async (movie: MovieSearchIndex) => {
+const selectFromSearch = async (work: WorkSearchResult) => {
   if (!hasValue(reviewsListId.value)) return;
   await addFromSearch(
     {
       insertDto: {
-        type: WorkType.movie,
-        title: movie.title,
-        externalId: movie.id.toString(),
-        imageUrl: `${BASE_IMAGE_URL}${movie.poster_path}`,
+        type: workTypeForClub(clubType.value),
+        title: work.title,
+        externalId: work.externalId,
+        imageUrl: work.imageUrl,
       },
       reviewsListId: reviewsListId.value,
     },
@@ -86,6 +90,7 @@ const selectFromSearch = async (movie: MovieSearchIndex) => {
 };
 
 const loading = computed(
-  () => listsLoading.value || queueLoading.value || addLoading.value,
+  () =>
+    listsLoading.value || queueLoading.value || addLoading.value || !club.value,
 );
 </script>

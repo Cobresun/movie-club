@@ -15,7 +15,7 @@
       <EmptyState
         v-else-if="!hasElements(sortedItems)"
         title="List is Empty"
-        description="This list has no movies yet."
+        description="This list is empty."
       />
 
       <div v-else class="grid grid-cols-auto justify-items-center">
@@ -24,11 +24,11 @@
             v-if="item.id === nextWorkId"
             class="absolute -top-3 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-full bg-highlightBackground px-3 py-0.5 text-xs font-semibold text-white shadow"
           >
-            Next Watch
+            Next Up
           </div>
-          <MoviePosterCard
-            :movie-title="item.title"
-            :movie-poster-url="item.imageUrl ?? ''"
+          <WorkPosterCard
+            :title="item.title"
+            :poster-url="item.imageUrl ?? ''"
             :highlighted="item.id === nextWorkId"
           />
         </div>
@@ -46,9 +46,9 @@ import { useRoute } from "vue-router";
 import { hasElements } from "../../../../lib/checks/checks.js";
 
 import EmptyState from "@/common/components/EmptyState.vue";
-import MoviePosterCard from "@/common/components/MoviePosterCard.vue";
 import SharedPageCtaBanner from "@/common/components/SharedPageCtaBanner.vue";
 import SharedPageHeader from "@/common/components/SharedPageHeader.vue";
+import WorkPosterCard from "@/common/components/WorkPosterCard.vue";
 import { useClub, useMembers } from "@/service/useClub";
 import { useClubLists, useList, useNextWork } from "@/service/useList";
 

@@ -1,7 +1,10 @@
 import { DetailedWorkListItem } from "../../lib/types/lists";
+import { DetailedMovieData } from "../../lib/types/movie";
+
+import { asBook, asMovie } from "@/common/workDisplay";
 
 /**
- * Filters movie/review rows by structured filters and optional title text.
+ * Filters work/review rows by structured filters and optional title text.
  *
  * @param works - The rows to filter.
  * @param searchQuery - An object with:
@@ -9,25 +12,24 @@ import { DetailedWorkListItem } from "../../lib/types/lists";
  *   - `freeText`: Free text that searches titles
  * @returns works filtered by searchQuery.
  *
- * Supported filter keys include `title`, `description`, `genre`, `spoken_language`,
- * `original_language`, `director`, `company`, `production_country`, `year`,
- * `review_date`, `release_date`, and the numeric keys `runtime`, `budget`,
- * `revenue`, `popularity`, `vote_count`, `average_score`.
+ * Supported movie filter keys: `title`, `description`, `genre`,
+ * `spoken_language`, `original_language`, `director`, `company`,
+ * `production_country`, `year`, `review_date`, `release_date`, and the numeric
+ * keys `runtime`, `budget`, `revenue`, `popularity`, `vote_count`,
+ * `average_score`. Book filter keys: `author`, `subject` (and `description`,
+ * which reads a book's description). Movie-only fields are read through
+ * `asMovie` / book-only fields through `asBook`, so the same function filters
+ * either media type.
  *
  * Numeric and date filters support comparison operators `>`, `<`, and `=`
- * (defaulting to `=` when no operator is given). For example a `release_date`
- * filter of `{ operator: "<", value: "1950" }` matches movies released before 1950,
- * and `{ value: "2000" }` matches movies released exactly in 2000.
- *
- * The `year` filter matches the year the review was added (exact match only).
- *
- * Multiple filters implicitly AND together.
+ * (defaulting to `=` when no operator is given). The `year` filter matches the
+ * year the review was added (exact match only). Multiple filters implicitly AND
+ * together.
  *
  * TODO: Add support for OR searches.
- * TODO: Create a new vue component for the search bar that highlights filters different colors.
- * TODO: Make user lists use DetailedMovie[] so they can use the same search function and bar.
+ * TODO: Surface book filter keys (author/subject) in SearchFilterBar for book clubs.
  */
-export function filterMovies<T extends DetailedWorkListItem>(
+export function filterWorks<T extends DetailedWorkListItem>(
   works: T[],
   searchQuery: {
     filters: Record<string, { operator?: ">" | "<" | "="; value: string }>;
@@ -80,6 +82,7 @@ export function filterMovies<T extends DetailedWorkListItem>(
       haystack?.toLowerCase().includes(needle?.toLowerCase() ?? "") ?? false
     );
   };
+
   // Apply filters
   if (filters.title?.value) {
     filteredReviews = filteredReviews.filter((review) =>
@@ -90,7 +93,8 @@ export function filterMovies<T extends DetailedWorkListItem>(
   if (filters.description?.value) {
     filteredReviews = filteredReviews.filter((review) =>
       includesCaseInsensitive(
-        review.externalData?.overview,
+        asMovie(review.externalData)?.overview ??
+          asBook(review.externalData)?.description,
         filters.description.value,
       ),
     );
@@ -98,7 +102,7 @@ export function filterMovies<T extends DetailedWorkListItem>(
 
   if (filters.genre?.value) {
     filteredReviews = filteredReviews.filter((review) =>
-      (review.externalData?.genres ?? []).some((g) =>
+      (asMovie(review.externalData)?.genres ?? []).some((g) =>
         includesCaseInsensitive(g, filters.genre.value),
       ),
     );
@@ -106,7 +110,7 @@ export function filterMovies<T extends DetailedWorkListItem>(
 
   if (filters.spoken_language?.value) {
     filteredReviews = filteredReviews.filter((review) =>
-      (review.externalData?.spoken_languages ?? []).some((l) =>
+      (asMovie(review.externalData)?.spoken_languages ?? []).some((l) =>
         includesCaseInsensitive(l, filters.spoken_language.value),
       ),
     );
@@ -115,7 +119,7 @@ export function filterMovies<T extends DetailedWorkListItem>(
   if (filters.original_language?.value) {
     filteredReviews = filteredReviews.filter((review) =>
       includesCaseInsensitive(
-        review.externalData?.original_language,
+        asMovie(review.externalData)?.original_language,
         filters.original_language.value,
       ),
     );
@@ -123,8 +127,25 @@ export function filterMovies<T extends DetailedWorkListItem>(
 
   if (filters.director?.value) {
     filteredReviews = filteredReviews.filter((review) =>
-      (review.externalData?.directors ?? []).some((director) =>
+      (asMovie(review.externalData)?.directors ?? []).some((director) =>
         includesCaseInsensitive(director.name, filters.director.value),
+      ),
+    );
+  }
+
+  // Book-specific filters
+  if (filters.author?.value) {
+    filteredReviews = filteredReviews.filter((review) =>
+      (asBook(review.externalData)?.authors ?? []).some((author) =>
+        includesCaseInsensitive(author, filters.author.value),
+      ),
+    );
+  }
+
+  if (filters.subject?.value) {
+    filteredReviews = filteredReviews.filter((review) =>
+      (asBook(review.externalData)?.subjects ?? []).some((subject) =>
+        includesCaseInsensitive(subject, filters.subject.value),
       ),
     );
   }
@@ -139,15 +160,15 @@ export function filterMovies<T extends DetailedWorkListItem>(
 
   if (filters.company?.value) {
     filteredReviews = filteredReviews.filter((review) =>
-      (review.externalData?.production_companies ?? []).some((company) =>
-        includesCaseInsensitive(company, filters.company.value),
+      (asMovie(review.externalData)?.production_companies ?? []).some(
+        (company) => includesCaseInsensitive(company, filters.company.value),
       ),
     );
   }
 
   if (filters.production_country?.value) {
     filteredReviews = filteredReviews.filter((review) =>
-      (review.externalData?.production_countries ?? []).some((c) =>
+      (asMovie(review.externalData)?.production_countries ?? []).some((c) =>
         includesCaseInsensitive(c, filters.production_country.value),
       ),
     );
@@ -170,15 +191,16 @@ export function filterMovies<T extends DetailedWorkListItem>(
     const releaseValue = filters.release_date.value;
     filteredReviews = filteredReviews.filter((review) =>
       satisfiesDateComparator(
-        review.externalData?.release_date ?? "",
+        asMovie(review.externalData)?.release_date ?? "",
         filters.release_date.operator ?? "=",
         releaseValue,
       ),
     );
   }
+
   // Numeric comparators
   const numericFilters: Array<{
-    key: keyof NonNullable<T["externalData"]>;
+    key: keyof DetailedMovieData;
     token: string;
   }> = [
     { key: "runtime", token: "runtime" },
@@ -192,10 +214,8 @@ export function filterMovies<T extends DetailedWorkListItem>(
     if (token?.value) {
       const rhs = parseFloat(token.value);
       filteredReviews = filteredReviews.filter((review) => {
-        const rawValue =
-          review.externalData && f.key in review.externalData
-            ? review.externalData[f.key as keyof typeof review.externalData]
-            : undefined;
+        const movie = asMovie(review.externalData);
+        const rawValue = movie ? movie[f.key] : undefined;
         // Convert string values to numbers safely
         const lhs =
           typeof rawValue === "string"
@@ -224,10 +244,9 @@ export function filterMovies<T extends DetailedWorkListItem>(
 
   // Free text at end defaults to title search
   if (freeText) {
-    filteredReviews = filteredReviews.filter((review) => {
-      const { title } = review;
-      return includesCaseInsensitive(title, freeText);
-    });
+    filteredReviews = filteredReviews.filter((review) =>
+      includesCaseInsensitive(review.title, freeText),
+    );
   }
 
   return filteredReviews;

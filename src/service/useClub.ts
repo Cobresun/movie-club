@@ -8,6 +8,7 @@ import { reviewsListKey } from "./useList";
 import { useUserClubs } from "./useUser";
 import { hasValue } from "../../lib/checks/checks.js";
 import { ClubPreview, Member } from "../../lib/types/club";
+import { ClubType } from "../../lib/types/generated/db";
 import {
   clearLastClubSlug,
   getLastClubSlug,
@@ -32,13 +33,16 @@ export function useCreateClub() {
     mutationFn: ({
       clubName,
       members,
+      type,
     }: {
       clubName: string;
       members: string[];
+      type: ClubType;
     }) =>
       auth.request.post<{ clubId: string; slug: string }>(`/api/club`, {
         name: clubName,
         members,
+        type,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries(["user", "clubs"]).catch(console.error);

@@ -2,7 +2,7 @@
   <div>
     <!-- Mobile Bottom Sheet -->
     <v-bottom-sheet v-if="!isDesktop" transparent-handle @close="close">
-      <MovieDetailsContent
+      <WorkDetailsContent
         :key="movie.id"
         :movie="movie"
         :review-table="reviewTable"
@@ -19,7 +19,7 @@
 
     <!-- Desktop Drawer (side panel) -->
     <VSideDrawer v-if="isDesktop" @close="close">
-      <MovieDetailsContent
+      <WorkDetailsContent
         :key="movie.id"
         :movie="movie"
         :review-table="reviewTable"
@@ -39,7 +39,7 @@
 <script setup lang="ts">
 import { Row, Table } from "@tanstack/vue-table";
 
-import MovieDetailsContent from "./MovieDetailsContent.vue";
+import WorkDetailsContent from "./WorkDetailsContent.vue";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
 import VBottomSheet from "../../../common/components/VBottomSheet.vue";
 
