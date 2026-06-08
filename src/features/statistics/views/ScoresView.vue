@@ -1,6 +1,12 @@
 <template>
   <div>
-    <StatisticsSearchBar v-model="searchTerm" />
+    <search-filter-bar
+      v-model:filtered-data="filteredMovieData"
+      v-model:has-active-filters="hasActiveFilters"
+      :data="movieData"
+      search-placeholder="Search movies"
+      class-name="py-4"
+    />
 
     <div class="mb-4 flex flex-wrap items-center gap-4 px-2">
       <div class="flex items-center gap-2">
@@ -43,42 +49,34 @@
     </div>
 
     <EmptyState
-      v-if="hasSearchTerm && filteredMovieData.length === 0"
+      v-if="hasActiveFilters && filteredMovieData.length === 0"
       title="No Movies Found"
-      description="Try adjusting your search or filters. You can search by title, genre, company, or release year"
+      description="Try adjusting your search or filters. You can search by title, genre, company, director, or release year"
     />
     <table-view v-else :review-table="table" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref } from "vue";
 
 import { Member } from "../../../../lib/types/club";
-import StatisticsSearchBar from "../components/StatisticsSearchBar.vue";
 import { useScoresTable } from "../composables/useScoresTable";
 import type { MovieData } from "../types";
 
 import EmptyState from "@/common/components/EmptyState.vue";
+import SearchFilterBar from "@/common/components/SearchFilterBar.vue";
 import TableView from "@/features/reviews/components/TableView.vue";
 
 const props = defineProps<{
-  filteredMovieData: MovieData[];
+  movieData: MovieData[];
   members: Member[];
-  searchTerm: string;
   showScoreContext: boolean;
-  hasSearchTerm: boolean;
 }>();
 
 const emit = defineEmits<{
-  "update:searchTerm": [value: string];
   "update:showScoreContext": [];
 }>();
-
-const searchTerm = computed({
-  get: () => props.searchTerm,
-  set: (val: string) => emit("update:searchTerm", val),
-});
 
 const showScoreContext = computed(() => props.showScoreContext);
 
@@ -86,7 +84,9 @@ const toggleScoreContext = () => {
   emit("update:showScoreContext");
 };
 
-const filteredMovieData = computed(() => props.filteredMovieData);
+const filteredMovieData = ref<MovieData[]>([]);
+const hasActiveFilters = ref(false);
+
 const members = computed(() => props.members);
 
 const { table } = useScoresTable(filteredMovieData, members, showScoreContext);
