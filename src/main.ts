@@ -1,4 +1,3 @@
-import * as mdijs from "@mdi/js";
 import { persistQueryClient } from "@tanstack/query-persist-client-core";
 import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
 import { VueQueryPlugin, VueQueryPluginOptions } from "@tanstack/vue-query";
@@ -8,6 +7,7 @@ import { createApp, reactive } from "vue";
 import Toast from "vue-toastification";
 
 import LazyLoad from "./directives/LazyLoad";
+import { icons } from "./icons";
 import router from "./router";
 import { isDefined } from "../lib/checks/checks.js";
 
@@ -77,7 +77,7 @@ createApp(App)
   .component("empty-state", EmptyState)
   .directive("lazy-load", LazyLoad)
   .use(mdiVue, {
-    icons: mdijs,
+    icons,
   })
   .use(Toast, {
     position: "bottom-center",

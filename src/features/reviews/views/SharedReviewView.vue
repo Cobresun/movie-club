@@ -1,105 +1,114 @@
 <template>
-  <div class="relative min-h-screen p-6 pb-24">
-    <loading-spinner v-if="isLoading" />
-    <div v-else-if="error" class="rounded-lg bg-red-900/50 p-4">
-      <p class="text-center text-red-400">Failed to load review</p>
-    </div>
-    <div v-else-if="data" class="mx-auto max-w-6xl space-y-8">
-      <!-- Work Details Section -->
-      <div v-if="data.work" class="relative overflow-hidden rounded-lg">
-        <!-- Backdrop Image -->
-        <div
-          v-if="data.work.externalData?.backdrop_path"
-          class="absolute inset-0 opacity-60"
-          :style="`background-image: url(https://image.tmdb.org/t/p/original${data.work.externalData.backdrop_path}); background-size: cover; background-position: center; filter: blur(8px);`"
-        />
+  <div class="relative min-h-screen pb-24">
+    <SharedPageHeader
+      :club-name="club?.clubName ?? clubSlug"
+      :members="data?.members ?? []"
+    />
 
-        <div class="relative rounded-lg bg-slate-600/60 p-8 backdrop-blur-sm">
-          <div class="flex flex-col gap-8">
-            <div class="flex flex-col gap-8 sm:flex-row">
-              <div class="flex flex-shrink-0 flex-col sm:w-1/3">
-                <!-- Title and Tagline Section positioned over poster -->
-                <div class="mb-4">
-                  <h1 class="mb-1 break-words text-4xl font-bold text-white">
-                    {{ data.work.title }}
-                  </h1>
-                  <p
-                    v-if="data.work.externalData?.tagline"
-                    class="text-lg italic text-gray-300"
-                  >
-                    "{{ data.work.externalData.tagline }}"
-                  </p>
+    <div class="px-6 pt-6">
+      <loading-spinner v-if="isLoading" />
+      <div v-else-if="error" class="rounded-lg bg-red-900/50 p-4">
+        <p class="text-center text-red-400">Failed to load review</p>
+      </div>
+      <div v-else-if="data" class="mx-auto max-w-6xl space-y-8">
+        <!-- Work Details Section -->
+        <div v-if="data.work" class="relative overflow-hidden rounded-lg">
+          <!-- Backdrop Image -->
+          <div
+            v-if="data.work.externalData?.backdrop_path"
+            class="absolute inset-0 opacity-60"
+            :style="`background-image: url(https://image.tmdb.org/t/p/w1280${data.work.externalData.backdrop_path}); background-size: cover; background-position: center; filter: blur(8px);`"
+          />
+
+          <div class="relative rounded-lg bg-slate-600/60 p-8 backdrop-blur-sm">
+            <div class="flex flex-col gap-8">
+              <div class="flex flex-col gap-8 sm:flex-row">
+                <div class="flex flex-shrink-0 flex-col sm:w-1/3">
+                  <!-- Title and Tagline Section positioned over poster -->
+                  <div class="mb-4">
+                    <h1 class="mb-1 break-words text-4xl font-bold text-white">
+                      {{ data.work.title }}
+                    </h1>
+                    <p
+                      v-if="data.work.externalData?.tagline"
+                      class="text-lg italic text-gray-300"
+                    >
+                      "{{ data.work.externalData.tagline }}"
+                    </p>
+                  </div>
+
+                  <!-- Movie Poster with fixed dimensions -->
+                  <div>
+                    <img
+                      :src="`https://image.tmdb.org/t/p/w500/${data.work.externalData?.poster_path}`"
+                      class="aspect-[2/3] w-full rounded-lg object-cover shadow-lg transition-transform"
+                    />
+                  </div>
                 </div>
 
-                <!-- Movie Poster with fixed dimensions -->
-                <div>
-                  <img
-                    :src="`https://image.tmdb.org/t/p/w500/${data.work.externalData?.poster_path}`"
-                    class="aspect-[2/3] w-full rounded-lg object-cover shadow-lg transition-transform"
-                  />
-                </div>
-              </div>
-
-              <!-- Reviews Section -->
-              <div class="flex-1 space-y-4 self-center">
-                <!-- Ratings Box -->
-                <div
-                  class="mt-6 w-full rounded-lg bg-slate-800 p-6 shadow-inner"
-                >
+                <!-- Reviews Section -->
+                <div class="flex-1 space-y-4 self-center">
+                  <!-- Ratings Box -->
                   <div
-                    class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+                    class="mt-6 w-full rounded-lg bg-slate-800 p-6 shadow-inner"
                   >
-                    <div class="flex items-center gap-3">
-                      <mdicon name="star" class="h-8 w-8 text-yellow-500" />
-                      <div>
-                        <div class="flex flex-wrap items-baseline gap-2">
-                          <span class="text-3xl font-bold text-white">{{
-                            averageScore.toFixed(1)
-                          }}</span>
-                          <span class="text-lg text-gray-400">
-                            Club Average
-                          </span>
-                          <span class="text-sm text-gray-500">
-                            ({{ data.reviews.length }} ratings)
-                          </span>
+                    <div
+                      class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div class="flex items-center gap-3">
+                        <mdicon name="star" class="h-8 w-8 text-yellow-500" />
+                        <div>
+                          <div class="flex flex-wrap items-baseline gap-2">
+                            <span class="text-3xl font-bold text-white">{{
+                              averageScore.toFixed(1)
+                            }}</span>
+                            <span class="text-lg text-gray-400">
+                              Club Average
+                            </span>
+                            <span class="text-sm text-gray-500">
+                              ({{ data.reviews.length }} ratings)
+                            </span>
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div
-                      v-if="data.work.externalData?.vote_average"
-                      class="flex items-center gap-3 sm:border-l sm:border-gray-700 sm:pl-4"
-                    >
-                      <mdicon name="movie" class="h-8 w-8 text-blue-400" />
-                      <div class="flex flex-wrap items-baseline gap-2">
-                        <span class="text-3xl font-bold text-white">
-                          {{ data.work.externalData.vote_average.toFixed(1) }}
-                        </span>
-                        <span class="text-lg text-gray-400">TMDB Score</span>
+                      <div
+                        v-if="data.work.externalData?.vote_average"
+                        class="flex items-center gap-3 sm:border-l sm:border-gray-700 sm:pl-4"
+                      >
+                        <mdicon name="movie" class="h-8 w-8 text-blue-400" />
+                        <div class="flex flex-wrap items-baseline gap-2">
+                          <span class="text-3xl font-bold text-white">
+                            {{ data.work.externalData.vote_average.toFixed(1) }}
+                          </span>
+                          <span class="text-lg text-gray-400">TMDB Score</span>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-                <div
-                  v-for="member in data.members"
-                  :key="member.id"
-                  class="rounded-lg bg-slate-800 p-4 shadow-inner"
-                >
-                  <div class="flex items-center justify-between gap-4">
-                    <div class="flex items-center gap-4">
-                      <v-avatar
-                        :src="member.image"
-                        :name="member.name"
-                        class="h-12 w-12"
-                      />
-                      <div>
-                        <div class="font-medium text-white">
-                          {{ member.name }}
-                        </div>
-                        <div class="text-sm text-gray-400">
-                          {{
-                            formatReviewTime(getReviewTimeForMember(member.id))
-                          }}
+                  <div
+                    v-for="member in data.members"
+                    :key="member.id"
+                    class="rounded-lg bg-slate-800 p-4 shadow-inner"
+                  >
+                    <div class="flex items-center justify-between gap-4">
+                      <div class="flex items-center gap-4">
+                        <v-avatar
+                          :src="member.image"
+                          :name="member.name"
+                          class="h-12 w-12"
+                        />
+                        <div>
+                          <div class="font-medium text-white">
+                            {{ member.name }}
+                          </div>
+                          <div class="text-sm text-gray-400">
+                            {{
+                              formatReviewTime(
+                                getReviewTimeForMember(member.id),
+                              )
+                            }}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -124,13 +133,13 @@
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- Comments Section -->
-      <SharedReviewComments
-        v-if="hasElements(data.comments)"
-        :comments="data.comments"
-      />
+        <!-- Comments Section -->
+        <SharedReviewComments
+          v-if="hasElements(data.comments)"
+          :comments="data.comments"
+        />
+      </div>
     </div>
 
     <SharedPageCtaBanner />
@@ -146,14 +155,17 @@ import { hasElements, isDefined } from "../../../../lib/checks/checks.js";
 
 import LoadingSpinner from "@/common/components/LoadingSpinner.vue";
 import SharedPageCtaBanner from "@/common/components/SharedPageCtaBanner.vue";
+import SharedPageHeader from "@/common/components/SharedPageHeader.vue";
 import VAvatar from "@/common/components/VAvatar.vue";
 import SharedReviewComments from "@/features/reviews/components/SharedReviewComments.vue";
+import { useClub } from "@/service/useClub";
 import { useSharedReview } from "@/service/useList";
 
 const route = useRoute();
 const clubSlug = route.params.clubSlug as string;
 const workId = route.params.workId as string;
 
+const { data: club } = useClub(clubSlug);
 const { data, isLoading, error } = useSharedReview(clubSlug, workId);
 
 const averageScore = computed(() => {

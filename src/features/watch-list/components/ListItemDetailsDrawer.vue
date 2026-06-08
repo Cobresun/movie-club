@@ -4,6 +4,7 @@
     <v-bottom-sheet v-if="!isDesktop" transparent-handle @close="close">
       <ListItemDetailsContent
         :movie="movie"
+        :club-slug="clubSlug"
         :is-next-work="isNextWork"
         :is-desktop="isDesktop"
         :can-review="canReview"
@@ -21,6 +22,7 @@
     <VSideDrawer v-if="isDesktop" @close="close">
       <ListItemDetailsContent
         :movie="movie"
+        :club-slug="clubSlug"
         :is-next-work="isNextWork"
         :is-desktop="isDesktop"
         :can-review="canReview"
@@ -46,6 +48,7 @@ import { useIsDesktop } from "@/common/composables/useIsDesktop.js";
 
 defineProps<{
   movie: DetailedWorkListItem;
+  clubSlug: string;
   isNextWork: boolean;
   canReview: boolean;
   otherLists: { id: string; title: string }[];

@@ -24,6 +24,7 @@
         :actors="movie.externalData?.actors"
         :vote-average="movie.externalData?.vote_average"
       />
+      <WatchProviders :external-id="movie.externalId" class="md:col-span-2" />
     </div>
 
     <div v-if="movie.externalData?.overview" class="mt-4">
@@ -32,6 +33,8 @@
         :overview="movie.externalData.overview"
       />
     </div>
+
+    <CommentThread :work-id="movie.id" :club-slug="clubSlug" />
 
     <!-- Sticky action footer -->
     <div
@@ -107,13 +110,16 @@ import { computed, nextTick, ref } from "vue";
 import { hasValue } from "../../../../lib/checks/checks.js";
 import { DetailedWorkListItem } from "../../../../lib/types/lists";
 
+import CommentThread from "@/common/components/CommentThread.vue";
 import DeleteConfirmationModal from "@/common/components/DeleteConfirmationModal.vue";
 import MovieDescription from "@/common/components/MovieDescription.vue";
 import MovieMetadataGrid from "@/common/components/MovieMetadataGrid.vue";
 import MoviePosterHero from "@/common/components/MoviePosterHero.vue";
+import WatchProviders from "@/common/components/WatchProviders.vue";
 
 const props = defineProps<{
   movie: DetailedWorkListItem;
+  clubSlug: string;
   isNextWork: boolean;
   isDesktop: boolean;
   canReview: boolean;
