@@ -6,11 +6,30 @@
     <meta name="viewport" content="width=device-width,initial-scale=1.0" />
     <link rel="icon" href="/favicon.ico" />
 
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Paint the themed background immediately, before the CSS bundle loads, so
+         this dark-themed app never flashes white on a cold load. Tailwind's
+         Preflight (which resets the body margin) ships in the bundle, so we also
+         zero the margin here to avoid a white frame in the meantime. -->
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: #222831;
+        color: #fff;
+      }
+    </style>
+
+    <!-- Self-hosted Poppins (see src/assets/styles/fonts.css). Preload the body
+         weight so it downloads in parallel with the JS bundle instead of waiting
+         on a cross-origin stylesheet round-trip. crossorigin is required even
+         though the file is same-origin: fonts are fetched in CORS mode, so
+         without it the browser would download this file twice. -->
     <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+      rel="preload"
+      href="/fonts/poppins-400-latin.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
     />
 
     <title>Movie Club</title>

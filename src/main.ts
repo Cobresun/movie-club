@@ -24,6 +24,7 @@ import VSwitch from "@/common/components/VSwitch.vue";
 import VTable from "@/common/components/VTable.vue";
 import MenuCard from "@/features/clubs/components/MenuCard.vue";
 
+import "./assets/styles/fonts.css";
 import "./assets/styles/tailwind.css";
 import "animate.css";
 import "vue-toastification/dist/index.css";
