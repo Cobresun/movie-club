@@ -86,6 +86,10 @@
           <ExternalLink label="IMDb" :href="imdbUrl" />
           <ExternalLink label="Rotten Tomatoes" :href="rottenTomatoesUrl" />
         </div>
+        <WatchProviders
+          :external-id="movie.original.externalId"
+          class="md:col-span-2"
+        />
       </div>
 
       <div
@@ -305,6 +309,7 @@
             <ExternalLink label="IMDb" :href="imdbUrl" />
             <ExternalLink label="Rotten Tomatoes" :href="rottenTomatoesUrl" />
           </div>
+          <WatchProviders :external-id="movie.original.externalId" />
           <MovieDescription
             v-if="movie.original.externalData?.overview"
             :key="movie.id"
@@ -363,6 +368,7 @@ import ExternalLink from "@/common/components/ExternalLink.vue";
 import MovieDescription from "@/common/components/MovieDescription.vue";
 import MovieMetadataGrid from "@/common/components/MovieMetadataGrid.vue";
 import MoviePosterHero from "@/common/components/MoviePosterHero.vue";
+import WatchProviders from "@/common/components/WatchProviders.vue";
 import { useShare } from "@/common/composables/useShare";
 import { useClub, useClubSettings, useClubSlug } from "@/service/useClub";
 import { useReviewsListId, useUpdateAddedDate } from "@/service/useList";
