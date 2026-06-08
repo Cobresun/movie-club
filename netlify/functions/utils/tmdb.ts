@@ -24,8 +24,25 @@ async function makeTMDBApiCall<T>(
   );
 }
 
+// The TMDB /configuration response (image base URLs, available sizes) is
+// effectively static, so we memoize it at module scope. Netlify keeps function
+// containers warm between invocations, which means the awards endpoint — which
+// calls getDetailedMovie() once per award category — fetches /configuration at
+// most once per container instead of once per category. We cache the promise
+// (not just the value) to also dedupe concurrent calls, and reset it on failure
+// so a transient error doesn't poison the cache.
+let tmdbConfigPromise: Promise<AxiosResponse<TMDBConfig>> | undefined;
+
 async function getTMDBConfig() {
-  return makeTMDBApiCall<TMDBConfig>("/configuration");
+  if (!tmdbConfigPromise) {
+    tmdbConfigPromise = makeTMDBApiCall<TMDBConfig>("/configuration").catch(
+      (error) => {
+        tmdbConfigPromise = undefined;
+        throw error;
+      },
+    );
+  }
+  return tmdbConfigPromise;
 }
 
 export async function getTMDBMovieData(

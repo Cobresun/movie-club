@@ -11,7 +11,7 @@
         <div
           v-if="data.work.externalData?.backdrop_path"
           class="absolute inset-0 opacity-60"
-          :style="`background-image: url(https://image.tmdb.org/t/p/original${data.work.externalData.backdrop_path}); background-size: cover; background-position: center; filter: blur(8px);`"
+          :style="`background-image: url(https://image.tmdb.org/t/p/w1280${data.work.externalData.backdrop_path}); background-size: cover; background-position: center; filter: blur(8px);`"
         />
 
         <div class="relative rounded-lg bg-slate-600/60 p-8 backdrop-blur-sm">
