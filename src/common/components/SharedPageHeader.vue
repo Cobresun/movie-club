@@ -1,7 +1,5 @@
 <template>
-  <header
-    class="bg-gradient-to-b from-transparent via-secondary/40 to-transparent px-6 pb-10 pt-6"
-  >
+  <header class="px-6 pb-10 pt-6">
     <div class="mx-auto max-w-6xl">
       <a
         href="/"
