@@ -30,14 +30,48 @@ export default defineConfig({
   },
   test: {
     globals: true,
-    environment: "jsdom",
-    setupFiles: "tests/setup.ts",
-    root: "src/",
     coverage: {
       all: true,
       provider: "istanbul",
       reporter: ["text", "json", "html"],
-      exclude: ["**/mocks/**", "**/tests/**"],
+      include: ["src/**", "lib/**", "netlify/functions/**"],
+      exclude: [
+        "**/mocks/**",
+        "**/tests/**",
+        "**/*.d.ts",
+        "**/*.test.ts",
+        "**/*.spec.ts",
+        "lib/types/generated/**",
+        "src/main.ts",
+        // Bootstrap/config modules that only wire up external services at
+        // import time; nothing to unit test without a live DB or env secrets.
+        "netlify/functions/utils/database.ts",
+        "netlify/functions/utils/auth.ts",
+      ],
     },
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: "client",
+          globals: true,
+          environment: "jsdom",
+          setupFiles: "src/tests/setup.ts",
+          include: ["src/**/*.{test,spec}.ts"],
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: "server",
+          globals: true,
+          environment: "node",
+          include: [
+            "lib/**/*.{test,spec}.ts",
+            "netlify/functions/**/*.{test,spec}.ts",
+          ],
+        },
+      },
+    ],
   },
 });

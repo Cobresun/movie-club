@@ -23,6 +23,9 @@ export const handlers = [
   http.get("/api/club/:id/settings", () => {
     return HttpResponse.json({});
   }),
+  http.get("/api/club/:id/list/reviews-id", () => {
+    return HttpResponse.json({ id: "reviews" });
+  }),
   http.get("/api/club/:id/list/reviews", () => {
     return HttpResponse.json(reviews);
   }),

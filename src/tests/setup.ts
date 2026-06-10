@@ -11,7 +11,8 @@ vi.mock("vue-router", () => ({
     },
   })),
   useRouter: vi.fn(() => ({
-    push: vi.fn(),
+    // Real router.push returns a Promise; code under test may chain .catch()
+    push: vi.fn(() => Promise.resolve()),
   })),
 }));
 
@@ -28,7 +29,7 @@ Object.defineProperty(window, "matchMedia", {
 });
 
 beforeAll(() => {
-  server.listen();
+  server.listen({ onUnhandledRequest: "error" });
 });
 
 beforeEach(() => {
