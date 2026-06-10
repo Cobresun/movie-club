@@ -39,6 +39,8 @@ paths:
 
 Always validate schema migrations against a **freshly spawned dev database**, never against your personal `.env`-pointed DB.
 
+**Guard rail:** `schemaMigrator.ts` refuses to apply migrations against the shared `dev` database (`DATABASE_URL` path `/dev`) when `migrations/schema/` contains files not on `origin/main` — including uncommitted ones. It fails open if git is unavailable, does not apply to `migrate:down` (the cleanup path), and can be bypassed deliberately with `FORCE_DEV_MIGRATE=1`. If it false-positives on a freshly merged migration, run `git fetch` to update `origin/main`.
+
 **Why this matters — blast radius of shared `dev`.** The Netlify `preview-database` plugin (`netlify/plugins/preview-database/index.js`) points every PR that *does not* change migrations straight at shared `dev`. So if you run `migrate:dev` with `.env` still pointing at `postgresql://.../dev`, you rewrite the schema underneath every other open PR's deploy preview at once — their code still expects the old schema and their previews 500 until the migration is reverted on shared `dev` and the previews are rebuilt. The spawn-first rule isn't about cleanliness; it's the only thing that keeps this blast radius from firing.
 
 ```bash
