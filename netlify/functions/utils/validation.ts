@@ -1,7 +1,10 @@
 import { notFound } from "./responses";
 import { MiddlewareCallback, Request } from "./router";
 import { hasValue } from "../../../lib/checks/checks.js";
-import { WorkListSystemType } from "../../../lib/types/generated/db.js";
+import {
+  ClubType,
+  WorkListSystemType,
+} from "../../../lib/types/generated/db.js";
 import ClubRepository from "../repositories/ClubRepository";
 import ListRepository from "../repositories/ListRepository";
 
@@ -13,6 +16,7 @@ export function getErrorMessage(error: unknown) {
 export type ClubRequest<T extends Request = Request> = T & {
   clubId: string;
   clubSlug: string;
+  clubType: ClubType;
 };
 
 export type ListRequest<T extends ClubRequest = ClubRequest> = T & {
@@ -47,6 +51,7 @@ export const validClubSlug: MiddlewareCallback<Request, ClubRequest> = async (
     ...req,
     clubId,
     clubSlug,
+    clubType: club.type,
   };
 };
 

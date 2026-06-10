@@ -2,8 +2,7 @@ import { hasValue } from "../../../lib/checks/checks.js";
 import { WorkType } from "../../../lib/types/generated/db.js";
 import { ListInsertDto } from "../../../lib/types/lists.js";
 import { db } from "../utils/database";
-import { insertMovieDetails } from "../utils/movieDetailsUpdater";
-import { getDetailedWorks } from "../utils/tmdb";
+import { getProvider } from "../utils/providers";
 
 class WorkRepository {
   async findByType(clubId: string, type: WorkType, externalId: string) {
@@ -55,21 +54,17 @@ class WorkRepository {
       .returning("id")
       .executeTakeFirstOrThrow();
 
-    // If it's a movie with an external ID, fetch and store its details
+    // Fetch and cache external metadata via the work's provider. Caching is
+    // best-effort: a provider/API outage must not fail the add — the scheduled
+    // refresh (movies) or a later add fills the details in.
     const externalId = work.externalId;
-    if (work.type === WorkType.movie && hasValue(externalId)) {
-      const [movieDetails] = await getDetailedWorks([
-        {
-          id: insertedWork.id,
-          title: work.title,
-          type: work.type,
-          externalId: externalId,
-          createdDate: new Date().toISOString(),
-        },
-      ]);
-
-      if (movieDetails?.externalData) {
-        await insertMovieDetails(externalId, movieDetails.externalData, db);
+    if (hasValue(externalId)) {
+      try {
+        await getProvider(work.type).fetchAndCacheDetails(externalId);
+      } catch (error) {
+        console.error(
+          `Failed to cache ${work.type} details for ${externalId}: ${String(error)}`,
+        );
       }
     }
 

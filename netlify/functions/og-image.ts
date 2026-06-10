@@ -47,11 +47,12 @@ router.get("/", async ({ event }, res) => {
         : "N/A";
     const reviewCount = reviewData.reviews.length;
 
-    const posterPath = reviewData.work.externalData?.poster_path;
+    // Use the work's stored image URL (TMDB poster for movies, OpenLibrary
+    // cover for books) so OG images are generic across club types.
+    const imageUrl = reviewData.work.imageUrl;
 
-    if (posterPath !== undefined) {
-      const tmdbPosterUrl = `https://image.tmdb.org/t/p/w500${posterPath}`;
-      return res(redirect(tmdbPosterUrl));
+    if (imageUrl !== undefined) {
+      return res(redirect(imageUrl));
     }
 
     return res(generateFallbackSVG(movieTitle, avgScore, reviewCount));

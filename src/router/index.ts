@@ -8,6 +8,7 @@ import {
 
 import ClubRouterView from "./ClubRouterView.vue";
 import { hasElements, isDefined } from "../../lib/checks/checks.js";
+import { ClubType } from "../../lib/types/generated/db";
 import { resolveDefaultClubSlug } from "../common/composables/useLastClubSlug";
 import ClubHomeView from "../features/clubs/views/ClubHomeView.vue";
 import HomeView from "../features/clubs/views/HomeView.vue";
@@ -29,15 +30,26 @@ const checkClubAccess = async (
     });
   }
 
+  // waitForClubsReady waits out any in-flight refetch (e.g. the one triggered
+  // by creating or joining a club), so the membership check below usually sees
+  // the fresh list rather than a stale cache.
   await auth.waitForClubsReady();
 
   const clubSlug = to.params.clubSlug as string;
   if (auth.isClubMember(clubSlug)) {
     return next();
-  } else {
-    // User is not a member of this club
-    return next({ name: "ClubNotFound" });
   }
+
+  // Safety net: if the create/join invalidation hadn't started its refetch when
+  // waitForClubsReady checked, the cache may still be stale. Force one refresh
+  // and re-check before declaring the club inaccessible.
+  await auth.refreshClubs();
+  if (auth.isClubMember(clubSlug)) {
+    return next();
+  }
+
+  // User is genuinely not a member of this club
+  return next({ name: "ClubNotFound" });
 };
 
 /**
@@ -81,6 +93,27 @@ const clubGuard = async (
 
   // No redirect needed, proceed to access check
   return checkClubAccess(to, from, next);
+};
+
+/**
+ * Guard for movie-only features (Statistics, Awards). Book clubs are redirected
+ * to their club home, mirroring the nav which hides these entries for them.
+ */
+const movieClubOnly = async (
+  to: RouteLocationNormalized,
+  from: RouteLocationNormalized,
+  next: NavigationGuardNext,
+) => {
+  const auth = useAuthStore();
+  await auth.waitForAuthReady();
+  await auth.waitForClubsReady();
+
+  const clubSlug = to.params.clubSlug as string;
+  const club = auth.userClubs?.find((c) => c.slug === clubSlug);
+  if (club && club.type !== ClubType.movie) {
+    return next({ name: "ClubHome", params: { clubSlug } });
+  }
+  return next();
 };
 
 const routes: Array<RouteRecordRaw> = [
@@ -245,6 +278,7 @@ const routes: Array<RouteRecordRaw> = [
         name: "Statistics",
         component: () =>
           import("../features/statistics/views/StatisticsView.vue"),
+        beforeEnter: movieClubOnly,
         props: true,
         meta: {
           depth: 2,
@@ -254,6 +288,7 @@ const routes: Array<RouteRecordRaw> = [
         path: "awards",
         name: "Awards",
         component: () => import("../features/awards/views/AwardsView.vue"),
+        beforeEnter: movieClubOnly,
         props: true,
         meta: {
           depth: 2,

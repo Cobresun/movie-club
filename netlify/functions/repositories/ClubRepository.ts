@@ -1,6 +1,7 @@
 import crypto from "crypto";
 
 import { isTrue, isDefined } from "../../../lib/checks/checks.js";
+import { ClubType } from "../../../lib/types/generated/db.js";
 import { db } from "../utils/database";
 import { generateSlugFromName, generateUniqueSlug } from "../utils/slug";
 
@@ -63,7 +64,7 @@ class ClubRepository {
     ).map((row) => row.id);
   }
 
-  async insert(name: string, legacy_id?: number) {
+  async insert(name: string, type: ClubType, legacy_id?: number) {
     // Generate a unique slug from the club name
     let slug = generateSlugFromName(name);
 
@@ -75,7 +76,7 @@ class ClubRepository {
     // Don't set slug_updated_at on creation so users can change slug immediately
     return db
       .insertInto("club")
-      .values({ name, legacy_id, slug })
+      .values({ name, type, legacy_id, slug })
       .returning(["id", "slug"])
       .executeTakeFirst();
   }
@@ -99,6 +100,7 @@ class ClubRepository {
         "club.name as club_name",
         "club.slug",
         "club.slug_updated_at",
+        "club.type",
       ])
       .execute();
   }

@@ -1,11 +1,11 @@
 <template>
   <div
     class="aspect-[2/3] overflow-hidden rounded-lg bg-lowBackground"
-    :class="{ 'animate-pulse': !loaded && hasPoster }"
+    :class="{ 'animate-pulse': !loaded && hasImage }"
   >
     <img
-      v-if="hasPoster"
-      :src="`https://image.tmdb.org/t/p/w500/${posterPath}`"
+      v-if="hasImage"
+      :src="imageUrl ?? ''"
       :alt="alt"
       decoding="async"
       loading="eager"
@@ -21,11 +21,13 @@ import { computed, ref } from "vue";
 
 import { hasValue } from "../../../lib/checks/checks.js";
 
+// `imageUrl` is the work's stored cover/poster URL (already fully-qualified for
+// both OpenLibrary covers and movie posters resolved via `workPosterUrl`).
 const props = withDefaults(
-  defineProps<{ posterPath?: string | null; alt?: string }>(),
-  { posterPath: null, alt: "Movie poster" },
+  defineProps<{ imageUrl?: string | null; alt?: string }>(),
+  { imageUrl: null, alt: "Poster" },
 );
 
 const loaded = ref(false);
-const hasPoster = computed(() => hasValue(props.posterPath));
+const hasImage = computed(() => hasValue(props.imageUrl));
 </script>

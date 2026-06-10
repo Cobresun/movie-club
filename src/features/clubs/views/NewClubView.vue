@@ -24,6 +24,26 @@
             Club name is required
           </span>
         </div>
+
+        <p class="mb-2 text-sm text-gray-500">What will this club review?</p>
+        <div class="mb-4 flex justify-center gap-3">
+          <button
+            v-for="option in clubTypeOptions"
+            :key="option.value"
+            type="button"
+            class="flex w-28 flex-col items-center gap-1 rounded-md border-2 p-3 text-base transition-colors"
+            :class="
+              clubType === option.value
+                ? 'border-primary bg-primary/10 text-primary'
+                : 'border-gray-300 text-gray-600 hover:border-gray-400'
+            "
+            :aria-pressed="clubType === option.value"
+            @click="clubType = option.value"
+          >
+            <span class="text-2xl">{{ option.icon }}</span>
+            <span>{{ option.label }}</span>
+          </button>
+        </div>
       </div>
 
       <div class="mt-6 flex justify-evenly">
@@ -38,13 +58,20 @@
 import { ref, computed } from "vue";
 import { useRouter } from "vue-router";
 
+import { ClubType } from "@/../lib/types/generated/db";
 import { setLastClubSlug } from "@/common/composables/useLastClubSlug";
 import { useCreateClub } from "@/service/useClub";
 import { useAuthStore } from "@/stores/auth";
 
 const router = useRouter();
 const clubName = ref("");
+const clubType = ref<ClubType>(ClubType.movie);
 const showErrors = ref(false);
+
+const clubTypeOptions: { value: ClubType; label: string; icon: string }[] = [
+  { value: ClubType.movie, label: "Movies", icon: "🎬" },
+  { value: ClubType.book, label: "Books", icon: "📚" },
+];
 
 const authStore = useAuthStore();
 const isLoggedIn = computed(() => authStore.isLoggedIn);
@@ -66,6 +93,7 @@ const submit = async () => {
       const response = await createClub({
         clubName: clubName.value.trim(),
         members: validMembers,
+        type: clubType.value,
       });
       const { slug } = response.data;
       setLastClubSlug(slug);

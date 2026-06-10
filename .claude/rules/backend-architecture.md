@@ -83,13 +83,16 @@ Located in `netlify/functions/repositories/`:
 - `SettingsRepository` - Club settings storage
 - `ImageRepository` - Cloudinary image management
 - `DatabaseCleanupRepository` - Preview database lifecycle management
-- `MovieRefreshRepository` - Movie data refresh operations
 - `WorkCommentRepository` - Work comment CRUD
+
+Stale-metadata refresh is not a repository: each `MediaProvider`
+(`netlify/functions/utils/providers/`) implements `refreshStaleDetails(limit)`
+for its own source (TMDB, OpenLibrary), and the scheduled refresh sweeps them.
 
 ## Scheduled Functions
 
 - `netlify/functions/scheduled-db-cleanup.ts` - Daily cleanup of stale preview databases
-- `netlify/functions/scheduled-movie-refresh.ts` - Scheduled movie data refresh
+- `netlify/functions/scheduled-work-refresh.ts` - Daily refresh of stale cached work metadata across all media providers (movies, books)
 
 ## Edge Functions
 

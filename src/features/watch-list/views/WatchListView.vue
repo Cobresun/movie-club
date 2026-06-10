@@ -4,7 +4,7 @@ import { useToast } from "vue-toastification";
 
 import { hasElements } from "../../../../lib/checks/checks";
 import { DetailedWorkListItem } from "../../../../lib/types/lists";
-import AddMovieModal from "../components/AddMovieModal.vue";
+import AddWorkModal from "../components/AddWorkModal.vue";
 import ListItems from "../components/ListItems.vue";
 import ManageListsModal from "../components/ManageListsModal.vue";
 import { useCollapsedLists } from "../composables/useCollapsedLists";
@@ -77,11 +77,7 @@ const shareList = async (listId: string) => {
 
 <template>
   <div class="p-2 text-center">
-    <page-header
-      :has-back="true"
-      back-route="ClubHome"
-      page-name="Watchlists"
-    />
+    <page-header :has-back="true" back-route="ClubHome" page-name="Lists" />
     <loading-spinner v-if="isLoading" />
     <template v-else-if="hasElements(userLists)">
       <search-filter-bar
@@ -190,7 +186,7 @@ const shareList = async (listId: string) => {
       size="lg"
       @close="addingToListId = null"
     >
-      <AddMovieModal
+      <AddWorkModal
         :key="addingToListId"
         :list-id="addingToListId"
         @close="addingToListId = null"
