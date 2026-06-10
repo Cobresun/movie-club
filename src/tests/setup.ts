@@ -10,7 +10,8 @@ vi.mock("vue-router", () => ({
     },
   })),
   useRouter: vi.fn(() => ({
-    push: vi.fn(),
+    // Real router.push returns a Promise; code under test may chain .catch()
+    push: vi.fn(() => Promise.resolve()),
     // `useBackButtonClose` registers a navigation guard; return an unregister fn.
     beforeEach: vi.fn(() => vi.fn()),
   })),
@@ -29,7 +30,7 @@ Object.defineProperty(window, "matchMedia", {
 });
 
 beforeAll(() => {
-  server.listen();
+  server.listen({ onUnhandledRequest: "error" });
 });
 
 beforeEach(() => {
