@@ -8,11 +8,11 @@
 
     <!-- Desktop layout -->
     <template v-if="isDesktop">
-      <MoviePosterHero
-        :poster-path="movie.original.externalData?.poster_path"
-        :backdrop-path="movie.original.externalData?.backdrop_path"
+      <WorkPosterHero
+        :poster-url="posterUrl"
+        :backdrop-path="movieData?.backdrop_path"
         :title="movieTitle"
-        :year="releaseYear"
+        :year="displayYear"
         :is-desktop="isDesktop"
       >
         <template #date>
@@ -48,18 +48,26 @@
             </div>
           </template>
         </template>
-      </MoviePosterHero>
+      </WorkPosterHero>
 
       <div class="grid grid-cols-1 gap-x-4 gap-y-2 text-sm md:grid-cols-2">
         <MovieMetadataGrid
-          :release-date="movie.original.externalData?.release_date"
-          :runtime="movie.original.externalData?.runtime"
-          :genres="movie.original.externalData?.genres"
-          :directors="movie.original.externalData?.directors"
-          :actors="movie.original.externalData?.actors"
+          v-if="movieData"
+          :release-date="movieData.release_date"
+          :runtime="movieData.runtime"
+          :genres="movieData.genres"
+          :directors="movieData.directors"
+          :actors="movieData.actors"
+        />
+        <BookMetadataGrid
+          v-else-if="bookData"
+          :authors="bookData.authors"
+          :first-publish-year="bookData.firstPublishYear"
+          :number-of-pages="bookData.numberOfPages"
+          :subjects="bookData.subjects"
         />
         <div
-          v-if="movie.original.externalData?.vote_average"
+          v-if="movieData?.vote_average"
           class="flex items-center gap-2"
           :class="{
             'cursor-pointer hover:opacity-80': shouldBlurTmdbScore,
@@ -72,7 +80,7 @@
             :class="
               shouldBlurTmdbScore ? 'select-none blur' : 'select-auto blur-none'
             "
-            >{{ movie.original.externalData.vote_average }}/10</span
+            >{{ movieData?.vote_average }}/10</span
           >
           <mdicon
             v-if="shouldBlurTmdbScore"
@@ -81,12 +89,16 @@
             class="text-gray-400"
           />
         </div>
-        <div class="flex flex-wrap items-center gap-x-4 gap-y-1 md:col-span-2">
+        <div
+          v-if="movieData"
+          class="flex flex-wrap items-center gap-x-4 gap-y-1 md:col-span-2"
+        >
           <ExternalLink label="Letterboxd" :href="letterboxdUrl" />
           <ExternalLink label="IMDb" :href="imdbUrl" />
           <ExternalLink label="Rotten Tomatoes" :href="rottenTomatoesUrl" />
         </div>
         <WatchProviders
+          v-if="movieData"
           :external-id="movie.original.externalId"
           class="md:col-span-2"
         />
@@ -137,11 +149,10 @@
         </div>
       </div>
 
-      <div v-if="movie.original.externalData" class="mt-6">
-        <MovieDescription
-          v-if="movie.original.externalData.overview"
+      <div v-if="movieData?.overview || bookData?.description" class="mt-6">
+        <WorkDescription
           :key="movie.id"
-          :overview="movie.original.externalData.overview"
+          :overview="movieData?.overview ?? bookData?.description ?? ''"
         />
       </div>
 
@@ -177,11 +188,11 @@
 
     <!-- Mobile layout -->
     <template v-else>
-      <MoviePosterHero
-        :poster-path="movie.original.externalData?.poster_path"
-        :backdrop-path="movie.original.externalData?.backdrop_path"
+      <WorkPosterHero
+        :poster-url="posterUrl"
+        :backdrop-path="movieData?.backdrop_path"
         :title="movieTitle"
-        :year="releaseYear"
+        :year="displayYear"
         :is-desktop="isDesktop"
       >
         <template #date>
@@ -217,7 +228,7 @@
             </div>
           </template>
         </template>
-      </MoviePosterHero>
+      </WorkPosterHero>
 
       <div
         :inert="!showRevealPill"
@@ -270,7 +281,7 @@
         <DisclosureButton
           class="mt-4 flex w-full items-center justify-between rounded-lg bg-lowBackground px-4 py-2.5 text-sm font-medium text-gray-300"
         >
-          <span>Movie Details</span>
+          <span>Details</span>
           <mdicon
             name="chevron-down"
             :class="open ? 'rotate-180 transform' : ''"
@@ -279,14 +290,22 @@
         </DisclosureButton>
         <DisclosurePanel class="mt-2 grid grid-cols-1 gap-y-2 px-1 text-sm">
           <MovieMetadataGrid
-            :release-date="movie.original.externalData?.release_date"
-            :runtime="movie.original.externalData?.runtime"
-            :genres="movie.original.externalData?.genres"
-            :directors="movie.original.externalData?.directors"
-            :actors="movie.original.externalData?.actors"
+            v-if="movieData"
+            :release-date="movieData.release_date"
+            :runtime="movieData.runtime"
+            :genres="movieData.genres"
+            :directors="movieData.directors"
+            :actors="movieData.actors"
+          />
+          <BookMetadataGrid
+            v-else-if="bookData"
+            :authors="bookData.authors"
+            :first-publish-year="bookData.firstPublishYear"
+            :number-of-pages="bookData.numberOfPages"
+            :subjects="bookData.subjects"
           />
           <div
-            v-if="movie.original.externalData?.vote_average"
+            v-if="movieData?.vote_average"
             class="flex items-center gap-2"
             :class="{
               'cursor-pointer hover:opacity-80': shouldBlurTmdbScore,
@@ -295,7 +314,7 @@
           >
             <span class="text-gray-400">TMDB Rating: </span>
             <span :class="{ 'select-none blur filter': shouldBlurTmdbScore }"
-              >{{ movie.original.externalData.vote_average }}/10</span
+              >{{ movieData?.vote_average }}/10</span
             >
             <mdicon
               v-if="shouldBlurTmdbScore"
@@ -304,16 +323,22 @@
               class="text-gray-400"
             />
           </div>
-          <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
+          <div
+            v-if="movieData"
+            class="flex flex-wrap items-center gap-x-4 gap-y-1"
+          >
             <ExternalLink label="Letterboxd" :href="letterboxdUrl" />
             <ExternalLink label="IMDb" :href="imdbUrl" />
             <ExternalLink label="Rotten Tomatoes" :href="rottenTomatoesUrl" />
           </div>
-          <WatchProviders :external-id="movie.original.externalId" />
-          <MovieDescription
-            v-if="movie.original.externalData?.overview"
+          <WatchProviders
+            v-if="movieData"
+            :external-id="movie.original.externalId"
+          />
+          <WorkDescription
+            v-if="movieData?.overview || bookData?.description"
             :key="movie.id"
-            :overview="movie.original.externalData.overview"
+            :overview="movieData?.overview ?? bookData?.description ?? ''"
             class="mt-2"
           />
         </DisclosurePanel>
@@ -362,14 +387,21 @@ import DiscussionQuestions from "./DiscussionQuestions.vue";
 import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
 
+import BookMetadataGrid from "@/common/components/BookMetadataGrid.vue";
 import CommentThread from "@/common/components/CommentThread.vue";
 import DeleteConfirmationModal from "@/common/components/DeleteConfirmationModal.vue";
 import ExternalLink from "@/common/components/ExternalLink.vue";
-import MovieDescription from "@/common/components/MovieDescription.vue";
 import MovieMetadataGrid from "@/common/components/MovieMetadataGrid.vue";
-import MoviePosterHero from "@/common/components/MoviePosterHero.vue";
 import WatchProviders from "@/common/components/WatchProviders.vue";
+import WorkDescription from "@/common/components/WorkDescription.vue";
+import WorkPosterHero from "@/common/components/WorkPosterHero.vue";
 import { useShare } from "@/common/composables/useShare";
+import {
+  asBook,
+  asMovie,
+  workPosterUrl,
+  workSubtitle,
+} from "@/common/workDisplay";
 import { useClub, useClubSettings, useClubSlug } from "@/service/useClub";
 import { useReviewsListId, useUpdateAddedDate } from "@/service/useList";
 
@@ -445,12 +477,19 @@ const cancelDateEdit = () => {
   isEditingDate.value = false;
 };
 
-const releaseYear = computed(() => {
-  const releaseDate = props.movie.original.externalData?.release_date;
-  if (!hasValue(releaseDate)) return undefined;
-  const year = DateTime.fromISO(releaseDate).year;
-  return Number.isNaN(year) ? undefined : year;
-});
+const movieData = computed(() => asMovie(props.movie.original.externalData));
+const bookData = computed(() => asBook(props.movie.original.externalData));
+const posterUrl = computed(() =>
+  workPosterUrl(
+    props.movie.original.externalData,
+    props.movie.original.imageUrl,
+  ),
+);
+
+// Release year (movies) or first-published year (books), via the shared helper.
+const displayYear = computed(() =>
+  workSubtitle(props.movie.original.externalData),
+);
 
 const letterboxdUrl = computed(() =>
   hasValue(props.movie.original.externalId)
@@ -459,7 +498,7 @@ const letterboxdUrl = computed(() =>
 );
 
 const imdbUrl = computed(() => {
-  const imdbId = props.movie.original.externalData?.imdb_id;
+  const imdbId = asMovie(props.movie.original.externalData)?.imdb_id;
   return hasValue(imdbId) ? `https://www.imdb.com/title/${imdbId}/` : undefined;
 });
 

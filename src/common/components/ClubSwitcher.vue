@@ -37,6 +37,12 @@
               <span :class="{ 'ml-6': club.slug !== currentSlug }">
                 {{ club.clubName }}
               </span>
+              <mdicon
+                :name="clubTypeIcon(club.type)"
+                :size="14"
+                class="ml-auto opacity-60"
+                :title="clubTypeLabel(club.type)"
+              />
             </button>
           </MenuItem>
         </div>
@@ -83,6 +89,12 @@
               <span :class="{ 'ml-6': club.slug !== currentSlug }">
                 {{ club.clubName }}
               </span>
+              <mdicon
+                :name="clubTypeIcon(club.type)"
+                :size="16"
+                class="ml-auto opacity-60"
+                :title="clubTypeLabel(club.type)"
+              />
             </button>
           </li>
         </ul>
@@ -108,6 +120,7 @@ import { useRoute, useRouter } from "vue-router";
 import VBottomSheet from "./VBottomSheet.vue";
 import { hasValue } from "../../../lib/checks/checks.js";
 
+import { clubTypeIcon, clubTypeLabel } from "@/common/clubType";
 import { useIsDesktop } from "@/common/composables/useIsDesktop";
 import { setLastClubSlug } from "@/common/composables/useLastClubSlug";
 import { useAuthStore } from "@/stores/auth";

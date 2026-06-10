@@ -37,7 +37,7 @@
 
       <div v-if="showEmptyState">
         <EmptyState
-          :title="hasSearchTerm ? 'No Movies Found' : 'No Reviews Yet'"
+          :title="hasSearchTerm ? 'No Results Found' : 'No Reviews Yet'"
           :description="
             hasSearchTerm
               ? 'Try adjusting your search or filters. You can search by title, genre, company, director, or release year'
@@ -89,6 +89,7 @@ import EmptyState from "@/common/components/EmptyState.vue";
 import SearchFilterBar from "@/common/components/SearchFilterBar.vue";
 import VAvatar from "@/common/components/VAvatar.vue";
 import VToggle from "@/common/components/VToggle.vue";
+import { asMovie } from "@/common/workDisplay";
 import AddReviewPrompt from "@/features/reviews/components/AddReviewPrompt.vue";
 import {
   useClub,
@@ -288,7 +289,7 @@ const columns = computed(() => [
       h(MovieTooltip, {
         title: info.getValue(),
         imageUrl: info.row.original.imageUrl,
-        movie: info.row.original.externalData,
+        movie: asMovie(info.row.original.externalData),
       }),
     meta: {
       class: "font-bold align-middle",

@@ -14,7 +14,7 @@
         v-else
         class="flex h-56 items-center justify-center rounded-t-lg bg-slate-600"
       >
-        <mdicon name="movie-outline" :size="48" class="text-slate-400" />
+        <mdicon :name="fallbackIcon" :size="48" class="text-slate-400" />
       </div>
       <div
         class="flex flex-grow flex-col items-center justify-center px-2 py-2"
@@ -22,8 +22,8 @@
         <h3 class="text-center font-semibold" style="height: min-content">
           {{ title }}
         </h3>
-        <p v-if="hasValue(year)" class="text-sm italic text-gray-400">
-          {{ year }}
+        <p v-if="hasValue(subtitle)" class="text-sm italic text-gray-400">
+          {{ subtitle }}
         </p>
       </div>
     </div>
@@ -33,10 +33,11 @@
 <script setup lang="ts">
 import { hasValue } from "../../../lib/checks/checks";
 
-defineProps<{
+const { fallbackIcon = "image-outline" } = defineProps<{
   title: string;
-  year: string;
-  posterUrl: string;
+  subtitle?: string;
+  posterUrl?: string;
+  fallbackIcon?: string;
 }>();
 
 const emit = defineEmits<{

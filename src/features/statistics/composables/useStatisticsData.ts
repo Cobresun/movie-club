@@ -1,12 +1,13 @@
 import { DateTime } from "luxon";
 import { computed } from "vue";
 
-import { isDefined, isString } from "../../../../lib/checks/checks.js";
+import { isDefined } from "../../../../lib/checks/checks.js";
 import { WorkType } from "../../../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
 import { normalizeArray, createHistogramData } from "../scoring";
 import type { MovieData, HistogramData } from "../types";
 
+import { isMovieData } from "@/common/workDisplay";
 import { useMembers, useClubSlug } from "@/service/useClub";
 import { useReviewsList } from "@/service/useList";
 
@@ -51,8 +52,10 @@ export function useStatisticsData() {
 
 function mapReviewsToMovies(reviews: DetailedReviewListItem[]): MovieData[] {
   return reviews
-    .map((review) => {
-      if (!review.externalData) return null;
+    .map((review): MovieData | null => {
+      // Statistics are movie-only; skip anything without movie metadata.
+      const externalData = review.externalData;
+      if (!isMovieData(externalData)) return null;
 
       return {
         id: review.id,
@@ -72,10 +75,10 @@ function mapReviewsToMovies(reviews: DetailedReviewListItem[]): MovieData[] {
         normalized: {} as Record<string, number>,
         imageUrl: review.imageUrl,
         createdDate: review.createdDate,
-        genres: review.externalData.genres,
-        production_companies: review.externalData.production_companies,
-        production_countries: review.externalData.production_countries,
-        externalData: review.externalData,
+        genres: externalData.genres,
+        production_companies: externalData.production_companies,
+        production_countries: externalData.production_countries,
+        externalData,
       };
     })
     .filter(isDefined)
@@ -122,17 +125,9 @@ function enrichWithStatistics(
       }
     }
 
-    const curVoteAvg = movie.externalData.vote_average;
-
     return {
       ...movie,
       normalized,
-      externalData: {
-        ...movie.externalData,
-        vote_average: isString(curVoteAvg)
-          ? parseFloat(curVoteAvg as unknown as string)
-          : curVoteAvg,
-      },
     };
   });
 

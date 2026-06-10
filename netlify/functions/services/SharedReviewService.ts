@@ -1,9 +1,10 @@
+import { hasValue } from "../../../lib/checks/checks.js";
 import ClubRepository from "../repositories/ClubRepository";
 import ListRepository from "../repositories/ListRepository";
 import ReviewRepository from "../repositories/ReviewRepository";
 import UserRepository from "../repositories/UserRepository";
 import WorkCommentRepository from "../repositories/WorkCommentRepository";
-import { overviewToExternalData } from "../utils/workDetailsMapper";
+import { getExternalDataForWorks } from "../utils/providers";
 
 class SharedReviewService {
   /**
@@ -26,9 +27,17 @@ class SharedReviewService {
       WorkCommentRepository.getByWorkAndClub(workId, clubId),
     ]);
 
-    if (!workDetails) {
+    if (!workDetails || !club) {
       return null;
     }
+
+    const externalData = hasValue(workDetails.external_id)
+      ? (
+          await getExternalDataForWorks([
+            { externalId: workDetails.external_id, type: workDetails.type },
+          ])
+        ).get(workDetails.external_id)
+      : undefined;
 
     const work = {
       id: workDetails.id,
@@ -36,7 +45,7 @@ class SharedReviewService {
       type: workDetails.type,
       imageUrl: workDetails.image_url ?? undefined,
       externalId: workDetails.external_id ?? undefined,
-      externalData: overviewToExternalData(workDetails),
+      externalData,
     };
 
     return {
@@ -44,7 +53,7 @@ class SharedReviewService {
       members,
       comments,
       work,
-      clubName: club?.name ?? "Movie Club",
+      clubName: club.name ?? "Movie Club",
     };
   }
 }

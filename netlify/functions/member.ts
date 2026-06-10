@@ -30,6 +30,7 @@ router.get("/clubs", loggedIn, async (req, res) => {
     slugUpdatedAt: club.slug_updated_at
       ? String(club.slug_updated_at)
       : undefined,
+    type: club.type,
   }));
   return res(ok(JSON.stringify(result)));
 });

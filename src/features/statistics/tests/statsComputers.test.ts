@@ -20,6 +20,7 @@ function makeExternalData(
   overrides: Partial<DetailedMovieData> = {},
 ): DetailedMovieData {
   return {
+    kind: "movie",
     actors: [],
     adult: false,
     backdrop_path: "",

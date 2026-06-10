@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { CLUB_TYPE_CONFIG } from "./common/clubType";
 import { icons } from "./icons";
 
 // Raw source of every .vue file in the app (Vite glob, eager raw import).
@@ -84,5 +85,24 @@ describe("mdi icon registration", () => {
   it("found a meaningful number of icon references", () => {
     // Guards against the scan silently matching nothing (e.g. a regex regression).
     expect(usedBy.size).toBeGreaterThan(20);
+  });
+
+  // Icon names that reach a template only through a function/computed (e.g.
+  // `:name="clubTypeIcon(club.type)"`) are invisible to the static scan above.
+  // CLUB_TYPE_CONFIG is the registry feeding those dynamic names, so assert its
+  // icons are registered here — this is the guard that catches a new club type
+  // (or a renamed icon) before it renders mdi-vue's mdiAlert fallback.
+  it("registers every CLUB_TYPE_CONFIG icon", () => {
+    const missing = Object.values(CLUB_TYPE_CONFIG)
+      .filter((config) => !registered.has(toKey(config.icon)))
+      .map(
+        (config) =>
+          `${config.icon} (${toKey(config.icon)}) for ClubType "${config.clubType}"`,
+      );
+
+    expect(
+      missing,
+      `Unregistered club-type icons — add their mdiPascalCase export to src/icons.ts:\n${missing.join("\n")}`,
+    ).toEqual([]);
   });
 });

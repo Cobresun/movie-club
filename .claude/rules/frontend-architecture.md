@@ -51,6 +51,17 @@ Registered in `src/main.ts`: `v-avatar`, `v-backdrop`, `v-btn`, `v-select`, `v-s
 
 - `v-lazy-load` - Intersection Observer-based lazy loading for images
 
+## Icons (mdi-vue)
+
+Icons are referenced by kebab-case name (`<mdicon name="movie-open-outline">`), but **only the icons explicitly registered in `src/icons.ts` exist** — that file imports a curated set of `mdiPascalCase` paths from `@mdi/js` so the bundler can tree-shake the other ~7,000 icons out of the bundle. An unregistered name does not error; mdi-vue silently renders an `mdiAlert` triangle.
+
+**When you add or change an icon name, register the matching `mdiPascalCase` export in `src/icons.ts` (import + the `icons` object, alphabetized).**
+
+`icons.test.ts` enforces this in CI, but its scan is **static** — it only sees literal names in `.vue` templates (`name="..."` and ternary literals). Icon names produced by a function/computed are invisible to it and are the classic source of a runtime triangle:
+
+- Names from the `CLUB_TYPE_CONFIG` registry (`src/common/clubType.ts`), e.g. `:name="clubTypeIcon(club.type)"` — covered by a dedicated registry test in `icons.test.ts`. Adding a new club type means adding its `icon` there **and** registering that icon in `src/icons.ts`.
+- Any other computed/ref name (e.g. `copyIcon`, default `fallback-icon` props) — not covered by any test, so register those by hand.
+
 ## Path Alias
 
 - `@/*` maps to `src/*`

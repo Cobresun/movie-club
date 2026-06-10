@@ -13,11 +13,11 @@
       <div v-else-if="data" class="mx-auto max-w-6xl space-y-8">
         <!-- Work Details Section -->
         <div v-if="data.work" class="relative overflow-hidden rounded-lg">
-          <!-- Backdrop Image -->
+          <!-- Backdrop Image (movies only) -->
           <div
-            v-if="data.work.externalData?.backdrop_path"
+            v-if="movieData?.backdrop_path"
             class="absolute inset-0 opacity-60"
-            :style="`background-image: url(https://image.tmdb.org/t/p/w1280${data.work.externalData.backdrop_path}); background-size: cover; background-position: center; filter: blur(8px);`"
+            :style="`background-image: url(https://image.tmdb.org/t/p/w1280${movieData.backdrop_path}); background-size: cover; background-position: center; filter: blur(8px);`"
           />
 
           <div class="relative rounded-lg bg-slate-600/60 p-8 backdrop-blur-sm">
@@ -30,17 +30,17 @@
                       {{ data.work.title }}
                     </h1>
                     <p
-                      v-if="data.work.externalData?.tagline"
+                      v-if="movieData?.tagline"
                       class="text-lg italic text-gray-300"
                     >
-                      "{{ data.work.externalData.tagline }}"
+                      "{{ movieData.tagline }}"
                     </p>
                   </div>
 
-                  <!-- Movie Poster with fixed dimensions -->
+                  <!-- Cover / poster with fixed dimensions -->
                   <div>
                     <img
-                      :src="`https://image.tmdb.org/t/p/w500/${data.work.externalData?.poster_path}`"
+                      :src="posterSrc"
                       class="aspect-[2/3] w-full rounded-lg object-cover shadow-lg transition-transform"
                     />
                   </div>
@@ -73,13 +73,13 @@
                       </div>
 
                       <div
-                        v-if="data.work.externalData?.vote_average"
+                        v-if="movieData?.vote_average"
                         class="flex items-center gap-3 sm:border-l sm:border-gray-700 sm:pl-4"
                       >
                         <mdicon name="movie" class="h-8 w-8 text-blue-400" />
                         <div class="flex flex-wrap items-baseline gap-2">
                           <span class="text-3xl font-bold text-white">
-                            {{ data.work.externalData.vote_average.toFixed(1) }}
+                            {{ movieData.vote_average.toFixed(1) }}
                           </span>
                           <span class="text-lg text-gray-400">TMDB Score</span>
                         </div>
@@ -148,6 +148,7 @@ import LoadingSpinner from "@/common/components/LoadingSpinner.vue";
 import SharedPageCtaBanner from "@/common/components/SharedPageCtaBanner.vue";
 import SharedPageHeader from "@/common/components/SharedPageHeader.vue";
 import VAvatar from "@/common/components/VAvatar.vue";
+import { asMovie, workPosterUrl } from "@/common/workDisplay";
 import SharedReviewComments from "@/features/reviews/components/SharedReviewComments.vue";
 import { useClub } from "@/service/useClub";
 import { useSharedReview } from "@/service/useList";
@@ -158,6 +159,13 @@ const workId = route.params.workId as string;
 
 const { data: club } = useClub(clubSlug);
 const { data, isLoading, error } = useSharedReview(clubSlug, workId);
+
+const movieData = computed(() => asMovie(data.value?.work.externalData));
+const posterSrc = computed(
+  () =>
+    workPosterUrl(data.value?.work.externalData, data.value?.work.imageUrl) ??
+    "",
+);
 
 const averageScore = computed(() => {
   if (!data.value) return 0;

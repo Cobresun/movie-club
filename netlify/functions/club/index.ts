@@ -10,6 +10,7 @@ import reviewsRouter from "./reviews";
 import settingsRouter from "./settings";
 import { ensure, hasValue } from "../../../lib/checks/checks.js";
 import { ClubPreview } from "../../../lib/types/club";
+import { ClubType } from "../../../lib/types/generated/db.js";
 import ClubRepository from "../repositories/ClubRepository";
 import ListRepository from "../repositories/ListRepository";
 import SettingsRepository from "../repositories/SettingsRepository";
@@ -38,6 +39,7 @@ router.get("/:clubSlug", validClubSlug, async ({ clubId }, res) => {
     slugUpdatedAt: club.slug_updated_at
       ? String(club.slug_updated_at)
       : undefined,
+    type: club.type,
   };
   return res(ok(JSON.stringify(result)));
 });
@@ -69,6 +71,7 @@ router.use("/joinInfo/:token", joinRouter);
 const clubCreateSchema = z.object({
   name: z.string(),
   members: z.array(z.string()),
+  type: z.nativeEnum(ClubType).default(ClubType.movie),
 });
 
 router.post("/", loggedIn, async ({ event }, res) => {
@@ -76,19 +79,19 @@ router.post("/", loggedIn, async ({ event }, res) => {
 
   const body = clubCreateSchema.safeParse(JSON.parse(event.body));
   if (!body.success) return res(badRequest("Invalid body"));
-  const { name, members } = body.data;
+  const { name, members, type } = body.data;
 
   const legacyClubId = Math.floor(Math.random() * 100000);
 
   // Create Club
-  const newClub = await ClubRepository.insert(name, legacyClubId);
+  const newClub = await ClubRepository.insert(name, type, legacyClubId);
 
   if (!newClub) {
     return res(badRequest("Failed to create club in database"));
   }
 
-  // Creat WatchList, Backlog, Reviews lists
-  await ListRepository.createListsForClub(newClub.id);
+  // Create the default user list (named per media type) + Reviews system list
+  await ListRepository.createListsForClub(newClub.id, type);
 
   // Create default settings
   await SettingsRepository.createDefaultSettings(newClub.id);

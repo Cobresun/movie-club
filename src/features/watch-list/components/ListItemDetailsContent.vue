@@ -6,32 +6,40 @@
       @cancel="showDeleteConfirmation = false"
     />
 
-    <MoviePosterHero
-      :poster-path="movie.externalData?.poster_path"
-      :backdrop-path="movie.externalData?.backdrop_path"
+    <WorkPosterHero
+      :poster-url="posterUrl"
+      :backdrop-path="movieData?.backdrop_path"
       :title="movie.title"
-      :year="releaseYear"
+      :year="displayYear"
       :date-label="formatDate(movie.createdDate)"
       :is-desktop="isDesktop"
     />
 
     <div class="grid grid-cols-1 gap-y-2 text-sm md:grid-cols-2 md:gap-x-4">
       <MovieMetadataGrid
-        :release-date="movie.externalData?.release_date"
-        :runtime="movie.externalData?.runtime"
-        :genres="movie.externalData?.genres"
-        :directors="movie.externalData?.directors"
-        :actors="movie.externalData?.actors"
-        :vote-average="movie.externalData?.vote_average"
+        v-if="movieData"
+        :release-date="movieData.release_date"
+        :runtime="movieData.runtime"
+        :genres="movieData.genres"
+        :directors="movieData.directors"
+        :actors="movieData.actors"
+        :vote-average="movieData.vote_average"
+      />
+      <BookMetadataGrid
+        v-else-if="bookData"
+        :authors="bookData.authors"
+        :first-publish-year="bookData.firstPublishYear"
+        :number-of-pages="bookData.numberOfPages"
+        :subjects="bookData.subjects"
       />
       <WatchProviders :external-id="movie.externalId" class="md:col-span-2" />
     </div>
 
-    <div v-if="movie.externalData?.overview" class="mt-4">
-      <MovieDescription
-        :key="movie.id"
-        :overview="movie.externalData.overview"
-      />
+    <div v-if="movieData?.overview" class="mt-4">
+      <WorkDescription :key="movie.id" :overview="movieData.overview" />
+    </div>
+    <div v-else-if="bookData?.description" class="mt-4">
+      <WorkDescription :key="movie.id" :overview="bookData.description" />
     </div>
 
     <CommentThread :work-id="movie.id" :club-slug="clubSlug" />
@@ -110,12 +118,19 @@ import { computed, nextTick, ref } from "vue";
 import { hasValue } from "../../../../lib/checks/checks.js";
 import { DetailedWorkListItem } from "../../../../lib/types/lists";
 
+import BookMetadataGrid from "@/common/components/BookMetadataGrid.vue";
 import CommentThread from "@/common/components/CommentThread.vue";
 import DeleteConfirmationModal from "@/common/components/DeleteConfirmationModal.vue";
-import MovieDescription from "@/common/components/MovieDescription.vue";
 import MovieMetadataGrid from "@/common/components/MovieMetadataGrid.vue";
-import MoviePosterHero from "@/common/components/MoviePosterHero.vue";
 import WatchProviders from "@/common/components/WatchProviders.vue";
+import WorkDescription from "@/common/components/WorkDescription.vue";
+import WorkPosterHero from "@/common/components/WorkPosterHero.vue";
+import {
+  asBook,
+  asMovie,
+  workPosterUrl,
+  workSubtitle,
+} from "@/common/workDisplay";
 
 const props = defineProps<{
   movie: DetailedWorkListItem;
@@ -163,10 +178,15 @@ const formatDate = (dateString: string) => {
   return DateTime.fromISO(dateString).toLocaleString(DateTime.DATE_MED);
 };
 
-const releaseYear = computed(() => {
-  const releaseDate = props.movie.externalData?.release_date;
-  if (!hasValue(releaseDate)) return undefined;
-  const year = DateTime.fromISO(releaseDate).year;
-  return Number.isNaN(year) ? undefined : year;
-});
+const movieData = computed(() => asMovie(props.movie.externalData));
+const bookData = computed(() => asBook(props.movie.externalData));
+
+// Cover/poster and year are sourced per media type; workPosterUrl prefers the
+// movie's TMDB poster and falls back to the work's stored imageUrl (book cover).
+const posterUrl = computed(() =>
+  workPosterUrl(props.movie.externalData, props.movie.imageUrl),
+);
+
+// Release year (movies) or first-published year (books), via the shared helper.
+const displayYear = computed(() => workSubtitle(props.movie.externalData));
 </script>

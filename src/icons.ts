@@ -7,6 +7,7 @@ import {
   mdiArrowLeft,
   mdiArrowRight,
   mdiArrowUpDropCircle,
+  mdiBookOpenPageVariantOutline,
   mdiCheck,
   mdiChevronDown,
   mdiChevronLeft,
@@ -26,12 +27,14 @@ import {
   mdiEyeOutline,
   mdiFilmstrip,
   mdiImageMultiple,
+  mdiImageOutline,
   mdiLoading,
   mdiMagnify,
   mdiMenu,
   mdiMenuDown,
   mdiMinus,
   mdiMovie,
+  mdiMovieOpenOutline,
   mdiMovieOutline,
   mdiOpenInNew,
   mdiPencil,
@@ -63,8 +66,12 @@ import {
  * the matching `mdiPascalCase` export here. `icons.test.ts` scans every .vue
  * template and fails if a referenced icon is missing, so a forgotten icon is
  * caught in CI rather than silently rendering mdi-vue's mdiAlert fallback.
- * (Names referenced only through a computed/ref — e.g. `copyIcon` — can't be
- * detected statically, so those must be added by hand.)
+ *
+ * Beware names that reach a template only through a function/computed (e.g.
+ * `:name="clubTypeIcon(club.type)"` or `copyIcon`): the static scan can't see
+ * them, so a missing one renders the triangle fallback at runtime instead of
+ * failing CI. Icons sourced from CLUB_TYPE_CONFIG are guarded by a dedicated
+ * test, but any other dynamic icon name must be registered here by hand.
  */
 export const icons = {
   mdiAlertCircle,
@@ -75,6 +82,7 @@ export const icons = {
   mdiArrowLeft,
   mdiArrowRight,
   mdiArrowUpDropCircle,
+  mdiBookOpenPageVariantOutline,
   mdiCheck,
   mdiChevronDown,
   mdiChevronLeft,
@@ -94,12 +102,14 @@ export const icons = {
   mdiEyeOutline,
   mdiFilmstrip,
   mdiImageMultiple,
+  mdiImageOutline,
   mdiLoading,
   mdiMagnify,
   mdiMenu,
   mdiMenuDown,
   mdiMinus,
   mdiMovie,
+  mdiMovieOpenOutline,
   mdiMovieOutline,
   mdiOpenInNew,
   mdiPencil,

@@ -1,11 +1,16 @@
 import type { ColumnType } from "kysely";
 
+export enum ClubType {
+  book = "book",
+  movie = "movie",
+}
+
 export enum WorkListSystemType {
-  award_nominations = "award_nominations",
   reviews = "reviews",
 }
 
 export enum WorkType {
+  book = "book",
   movie = "movie",
 }
 
@@ -53,12 +58,36 @@ export interface AwardsTemp {
   year: Int8;
 }
 
+export interface BookAuthors {
+  author_name: string;
+  external_id: string;
+  rowid: Generated<Int8>;
+}
+
+export interface BookDetails {
+  cover_url: string | null;
+  description: string | null;
+  external_id: string;
+  first_publish_year: Int8 | null;
+  id: Generated<Int8>;
+  number_of_pages: Int8 | null;
+  title: string | null;
+  updated_date: Generated<Timestamp>;
+}
+
+export interface BookSubjects {
+  external_id: string;
+  rowid: Generated<Int8>;
+  subject: string;
+}
+
 export interface Club {
   id: Generated<Int8>;
   legacy_id: Int8 | null;
   name: string;
   slug: string;
   slug_updated_at: Timestamp | null;
+  type: Generated<ClubType>;
 }
 
 export interface ClubInvite {
@@ -223,6 +252,9 @@ export interface WorkListItem {
 export interface DB {
   account: Account;
   awards_temp: AwardsTemp;
+  book_authors: BookAuthors;
+  book_details: BookDetails;
+  book_subjects: BookSubjects;
   club: Club;
   club_invite: ClubInvite;
   club_member: ClubMember;

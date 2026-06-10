@@ -1,7 +1,15 @@
 import { z } from "zod";
 
+import { DetailedBookData } from "./book";
 import { WorkType } from "./generated/db";
 import { DetailedMovieData } from "./movie";
+
+/**
+ * Discriminated union of all media metadata shapes. Discriminate on `.kind`
+ * (or on the sibling `WorkListItem.type`). Add a member here when introducing
+ * a new club type.
+ */
+export type DetailedWorkData = DetailedMovieData | DetailedBookData;
 
 export interface WorkListItem {
   id: string;
@@ -26,11 +34,13 @@ export interface ExternalWorkData<T> {
   externalData?: T;
 }
 
-export type DetailedWorkListItem<T = DetailedMovieData> = WorkListItem &
-  ExternalWorkData<T>;
+export type DetailedWorkListItem<
+  T extends DetailedWorkData = DetailedWorkData,
+> = WorkListItem & ExternalWorkData<T>;
 
-export type DetailedReviewListItem<T = DetailedMovieData> = ReviewListItem &
-  ExternalWorkData<T>;
+export type DetailedReviewListItem<
+  T extends DetailedWorkData = DetailedWorkData,
+> = ReviewListItem & ExternalWorkData<T>;
 
 export interface WorkCommentDto {
   id: string;

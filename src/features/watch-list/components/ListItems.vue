@@ -12,7 +12,7 @@
     <empty-state
       v-else-if="!items || items.length === 0"
       header="Empty list"
-      message="Add movies to this list to see them here."
+      message="Add items to this list to see them here."
     />
     <template v-else>
       <div class="w-full">
@@ -35,13 +35,13 @@
             class="relative"
             :class="{ 'no-drag': item.id === nextWorkId }"
           >
-            <MoviePosterCard
-              :movie-title="item.title"
-              :movie-poster-url="item.imageUrl ?? ''"
-              :loading="false"
-              :show-drag-handle="item.id !== nextWorkId"
+            <WorkPosterCard
+              :title="item.title"
+              :poster-url="item.imageUrl ?? ''"
+              :loading="isPending(item.id)"
+              :show-drag-handle="item.id !== nextWorkId && !isPending(item.id)"
               :highlighted="item.id === nextWorkId"
-              selectable
+              :selectable="!isPending(item.id)"
               @select="emit('select', item.id)"
             >
               <div class="mt-2 flex flex-col gap-2">
@@ -49,6 +49,7 @@
                   <v-btn
                     v-if="canReview && listId !== reviewsListId"
                     class="flex justify-center"
+                    :disabled="isPending(item.id)"
                     :title="'Move to reviews'"
                     @click="onReview(item.id)"
                   >
@@ -59,10 +60,11 @@
                     :class="{
                       'col-span-2': !(canReview && listId !== reviewsListId),
                     }"
+                    :disabled="isPending(item.id)"
                     :title="
                       item.id === nextWorkId
-                        ? 'Clear next watch'
-                        : 'Set as next watch'
+                        ? 'Clear next up'
+                        : 'Set as next up'
                     "
                     @click="
                       item.id === nextWorkId
@@ -80,7 +82,7 @@
                   </v-btn>
                 </div>
               </div>
-            </MoviePosterCard>
+            </WorkPosterCard>
           </div>
         </VueDraggableNext>
       </div>
@@ -118,8 +120,9 @@ import RandomPickerModal from "./RandomPickerModal.vue";
 import { hasValue, isDefined } from "../../../../lib/checks/checks";
 import { DetailedWorkListItem } from "../../../../lib/types/lists";
 
-import MoviePosterCard from "@/common/components/MoviePosterCard.vue";
+import WorkPosterCard from "@/common/components/WorkPosterCard.vue";
 import {
+  OPTIMISTIC_WORK_ID,
   useClearNextWork,
   useDeleteListItem,
   useList,
@@ -128,6 +131,10 @@ import {
   useReorderList,
   useSetNextWork,
 } from "@/service/useList";
+
+// A freshly-added item is optimistic until the add settles and the list
+// refetches with its real id; acting on it would send "temp" as a work id.
+const isPending = (workId: string) => workId === OPTIMISTIC_WORK_ID;
 
 const props = defineProps<{
   clubSlug: string;
@@ -176,6 +183,7 @@ const { mutate: moveItem } = useMoveListItem(props.clubSlug);
 const router = useRouter();
 
 const onSetNextWatch = (workId: string) => {
+  if (isPending(workId)) return;
   setNextWork(workId);
   const newOrder = [
     workId,
@@ -194,11 +202,12 @@ const onDragEnd = () => {
 };
 
 const onDelete = (workId: string) => {
+  if (isPending(workId)) return;
   deleteItem(workId);
 };
 
 const onMove = (workId: string, destinationListId: string) => {
-  if (destinationListId === "") return;
+  if (destinationListId === "" || isPending(workId)) return;
   moveItem({
     sourceListId: props.listId,
     destinationListId,
@@ -240,7 +249,7 @@ const onMoveToList = ({
 };
 
 const onReview = (workId: string) => {
-  if (props.reviewsListId === null) return;
+  if (props.reviewsListId === null || isPending(workId)) return;
   moveItem(
     {
       sourceListId: props.listId,

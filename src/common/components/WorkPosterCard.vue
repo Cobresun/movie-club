@@ -28,7 +28,7 @@
     <div class="flex h-full flex-col rounded-lg bg-slate-700">
       <img
         v-lazy-load
-        :src="moviePosterUrl"
+        :src="posterUrl"
         class="aspect-[2/3] w-full rounded-t-lg object-cover"
         :class="{ 'cursor-pointer': selectable }"
         @click="selectable ? emit('select') : undefined"
@@ -36,7 +36,7 @@
       <div class="flex h-auto flex-grow flex-col px-2 pb-2">
         <div class="my-2 flex flex-grow items-center justify-center">
           <h3 class="h-min font-semibold" style="height: min-content">
-            {{ movieTitle }}
+            {{ title }}
           </h3>
         </div>
         <slot />
@@ -47,15 +47,15 @@
 
 <script setup lang="ts">
 const {
-  movieTitle,
-  moviePosterUrl,
+  title,
+  posterUrl,
   highlighted = false,
   showDelete = false,
   showDragHandle = false,
   selectable = false,
 } = defineProps<{
-  movieTitle: string;
-  moviePosterUrl: string;
+  title: string;
+  posterUrl: string;
   highlighted?: boolean;
   showDelete?: boolean;
   showDragHandle?: boolean;

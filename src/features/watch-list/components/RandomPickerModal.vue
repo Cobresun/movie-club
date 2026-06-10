@@ -3,10 +3,10 @@
     <div class="flex flex-col items-center gap-4">
       <h2 class="text-xl font-bold">Picking a random movie...</h2>
       <div class="flex justify-center">
-        <MoviePosterCard
+        <WorkPosterCard
           v-if="currentItem"
-          :movie-title="currentItem.title"
-          :movie-poster-url="currentItem.imageUrl ?? ''"
+          :title="currentItem.title"
+          :poster-url="currentItem.imageUrl ?? ''"
           :highlighted="isRevealed"
           :loading="false"
           :show-delete="false"
@@ -38,7 +38,7 @@ import { onMounted, ref, toRef } from "vue";
 import { DetailedWorkListItem } from "../../../../lib/types/lists";
 import { useRandomPicker } from "../composables/useRandomPicker";
 
-import MoviePosterCard from "@/common/components/MoviePosterCard.vue";
+import WorkPosterCard from "@/common/components/WorkPosterCard.vue";
 
 const props = defineProps<{
   items: DetailedWorkListItem[];
