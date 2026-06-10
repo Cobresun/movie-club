@@ -1,3 +1,4 @@
+import { DetailedBookData } from "../../lib/types/book";
 import { DetailedWorkListItem } from "../../lib/types/lists";
 import { DetailedMovieData } from "../../lib/types/movie";
 
@@ -16,10 +17,10 @@ import { asBook, asMovie } from "@/common/workDisplay";
  * `spoken_language`, `original_language`, `director`, `company`,
  * `production_country`, `year`, `review_date`, `release_date`, and the numeric
  * keys `runtime`, `budget`, `revenue`, `popularity`, `vote_count`,
- * `average_score`. Book filter keys: `author`, `subject` (and `description`,
- * which reads a book's description). Movie-only fields are read through
- * `asMovie` / book-only fields through `asBook`, so the same function filters
- * either media type.
+ * `average_score`. Book filter keys: `author`, `subject`, the numeric keys
+ * `first_publish_year`, `pages`, and `description` (which reads a book's
+ * description). Movie-only fields are read through `asMovie` / book-only fields
+ * through `asBook`, so the same function filters either media type.
  *
  * Numeric and date filters support comparison operators `>`, `<`, and `=`
  * (defaulting to `=` when no operator is given). The `year` filter matches the
@@ -27,7 +28,6 @@ import { asBook, asMovie } from "@/common/workDisplay";
  * together.
  *
  * TODO: Add support for OR searches.
- * TODO: Surface book filter keys (author/subject) in SearchFilterBar for book clubs.
  */
 export function filterWorks<T extends DetailedWorkListItem>(
   works: T[],
@@ -221,6 +221,27 @@ export function filterWorks<T extends DetailedWorkListItem>(
           typeof rawValue === "string"
             ? parseFloat(rawValue)
             : Number(rawValue ?? NaN);
+        return satisfiesComparator(lhs, token.operator ?? "=", rhs);
+      });
+    }
+  }
+
+  // Book numeric comparators
+  const bookNumericFilters: Array<{
+    key: keyof DetailedBookData;
+    token: string;
+  }> = [
+    { key: "firstPublishYear", token: "first_publish_year" },
+    { key: "numberOfPages", token: "pages" },
+  ];
+  for (const f of bookNumericFilters) {
+    const token = filters[f.token];
+    if (token?.value) {
+      const rhs = parseFloat(token.value);
+      filteredReviews = filteredReviews.filter((review) => {
+        const book = asBook(review.externalData);
+        const rawValue = book ? book[f.key] : undefined;
+        const lhs = Number(rawValue ?? NaN);
         return satisfiesComparator(lhs, token.operator ?? "=", rhs);
       });
     }

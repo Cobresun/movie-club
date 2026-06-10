@@ -3,6 +3,7 @@ import { computed, ref, shallowRef } from "vue";
 import { useToast } from "vue-toastification";
 
 import { hasElements } from "../../../../lib/checks/checks";
+import { ClubType } from "../../../../lib/types/generated/db";
 import { DetailedWorkListItem } from "../../../../lib/types/lists";
 import AddWorkModal from "../components/AddWorkModal.vue";
 import ListItems from "../components/ListItems.vue";
@@ -10,7 +11,7 @@ import ManageListsModal from "../components/ManageListsModal.vue";
 import { useCollapsedLists } from "../composables/useCollapsedLists";
 
 import SearchFilterBar from "@/common/components/SearchFilterBar.vue";
-import { useClubSlug, useMembers } from "@/service/useClub";
+import { useClub, useClubSlug, useMembers } from "@/service/useClub";
 import {
   ClubListSummary,
   useAllUserListItems,
@@ -19,6 +20,8 @@ import {
 } from "@/service/useList";
 
 const clubSlug = useClubSlug();
+const { data: club } = useClub(clubSlug);
+const clubType = computed(() => club.value?.type ?? ClubType.movie);
 const { data: lists, isLoading } = useClubLists(clubSlug);
 const { data: reviewsListIdData } = useReviewsListId(clubSlug);
 const { data: membersData } = useMembers(clubSlug);
@@ -86,6 +89,7 @@ const shareList = async (listId: string) => {
         v-model:filtered-data="filteredItems"
         v-model:has-active-filters="hasActiveFilters"
         :data="searchData"
+        :club-type="clubType"
         search-placeholder="Search watchlists"
         :exclude-filter-keys="excludedFilterKeys"
       >
