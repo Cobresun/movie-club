@@ -118,7 +118,10 @@ describe("generateDiscussionQuestions", () => {
   });
 
   it("throws when GEMINI_API_KEY is not set", async () => {
-    vi.unstubAllEnvs();
+    // Force the key empty rather than calling vi.unstubAllEnvs(), which would
+    // restore the ambient environment — unset locally but populated on CI
+    // (Netlify injects the real secret), making the test non-deterministic.
+    vi.stubEnv("GEMINI_API_KEY", "");
     const { generateDiscussionQuestions } = await importGemini();
 
     await expect(generateDiscussionQuestions("Inception")).rejects.toThrow(

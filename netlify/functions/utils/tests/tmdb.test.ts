@@ -193,7 +193,10 @@ describe("getTMDBMovieData", () => {
   });
 
   it("uses an empty string for api_key when TMDB_API_KEY is not set", async () => {
-    vi.unstubAllEnvs();
+    // Force the key empty rather than vi.unstubAllEnvs(), which restores the
+    // ambient env — unset locally but populated on CI (Netlify injects the
+    // real secret) — making the assertion non-deterministic.
+    vi.stubEnv("TMDB_API_KEY", "");
     const { getTMDBMovieData } = await importTmdb();
     axiosGetMock.mockResolvedValueOnce({
       data: makeTMDBMovieData(),
