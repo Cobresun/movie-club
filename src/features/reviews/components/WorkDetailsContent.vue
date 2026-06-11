@@ -67,7 +67,7 @@
         />
         <CastList
           v-if="movieData"
-          :actors="movieData.actors"
+          :actors="movieData?.actors"
           class="md:col-span-2"
         />
         <div
@@ -280,7 +280,7 @@
         </div>
       </div>
 
-      <CastList :actors="movie.original.externalData?.actors" class="mt-4" />
+      <CastList :actors="movieData?.actors" class="mt-4" />
 
       <!-- Collapsible metadata -->
       <Disclosure v-slot="{ open }">

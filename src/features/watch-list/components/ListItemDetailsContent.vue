@@ -31,7 +31,7 @@
         :number-of-pages="bookData.numberOfPages"
         :subjects="bookData.subjects"
       />
-      <CastList :actors="movie.externalData?.actors" class="md:col-span-2" />
+      <CastList :actors="movieData?.actors" class="md:col-span-2" />
       <WatchProviders :external-id="movie.externalId" class="md:col-span-2" />
     </div>
 
