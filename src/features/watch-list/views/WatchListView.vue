@@ -10,7 +10,7 @@ import ManageListsModal from "../components/ManageListsModal.vue";
 import { useCollapsedLists } from "../composables/useCollapsedLists";
 
 import SearchFilterBar from "@/common/components/SearchFilterBar.vue";
-import { useClubSlug } from "@/service/useClub";
+import { useClubSlug, useMembers } from "@/service/useClub";
 import {
   ClubListSummary,
   useAllUserListItems,
@@ -21,8 +21,10 @@ import {
 const clubSlug = useClubSlug();
 const { data: lists, isLoading } = useClubLists(clubSlug);
 const { data: reviewsListIdData } = useReviewsListId(clubSlug);
+const { data: membersData } = useMembers(clubSlug);
 
 const userLists = computed<ClubListSummary[]>(() => lists.value ?? []);
+const members = computed(() => membersData.value ?? []);
 const reviewsListId = computed<string | null>(
   () => reviewsListIdData.value ?? null,
 );
@@ -154,6 +156,7 @@ const shareList = async (listId: string) => {
               :club-slug="clubSlug"
               :list-id="list.id"
               :other-lists="otherLists(list.id)"
+              :members="members"
               :reviews-list-id="reviewsListId"
               :random-picker-open="randomOpenListId === list.id"
               :selected-item-id="

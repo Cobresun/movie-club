@@ -18,6 +18,7 @@ export interface WorkListItem {
   createdDate: string;
   externalId?: string;
   imageUrl?: string;
+  addedBy?: string;
 }
 
 export interface ReviewListItem extends WorkListItem {

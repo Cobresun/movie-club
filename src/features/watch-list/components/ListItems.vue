@@ -45,6 +45,18 @@
               @select="emit('select', item.id)"
             >
               <div class="mt-2 flex flex-col gap-2">
+                <div
+                  v-if="isDefined(adderFor(item))"
+                  class="flex items-center justify-center gap-1.5 text-xs text-slate-400"
+                  :title="`Added by ${adderFor(item)?.name}`"
+                >
+                  <VAvatar
+                    :src="adderFor(item)?.image"
+                    :name="adderFor(item)?.name ?? ''"
+                    :size="18"
+                  />
+                  <span class="truncate">{{ adderFor(item)?.name }}</span>
+                </div>
                 <div class="grid grid-cols-2 gap-2">
                   <v-btn
                     v-if="canReview && listId !== reviewsListId"
@@ -93,6 +105,7 @@
         :is-next-work="selectedItem.id === nextWorkId"
         :can-review="canReview && listId !== reviewsListId"
         :other-lists="otherLists"
+        :added-by-member="adderFor(selectedItem)"
         @close="emit('deselect')"
         @review="
           onReview(selectedItem.id);
@@ -118,8 +131,10 @@ import { useRouter } from "vue-router";
 import ListItemDetailsDrawer from "./ListItemDetailsDrawer.vue";
 import RandomPickerModal from "./RandomPickerModal.vue";
 import { hasValue, isDefined } from "../../../../lib/checks/checks";
+import { Member } from "../../../../lib/types/club";
 import { DetailedWorkListItem } from "../../../../lib/types/lists";
 
+import VAvatar from "@/common/components/VAvatar.vue";
 import WorkPosterCard from "@/common/components/WorkPosterCard.vue";
 import {
   OPTIMISTIC_WORK_ID,
@@ -140,6 +155,7 @@ const props = defineProps<{
   clubSlug: string;
   listId: string;
   otherLists: { id: string; title: string }[];
+  members: Member[];
   reviewsListId: string | null;
   randomPickerOpen?: boolean;
   selectedItemId: string | null;
@@ -156,6 +172,10 @@ const { listId } = toRefs(props);
 const { data: items, isLoading } = useList(props.clubSlug, listId);
 
 const canReview = computed(() => hasValue(props.reviewsListId));
+
+const memberById = computed(() => new Map(props.members.map((m) => [m.id, m])));
+const adderFor = (item: DetailedWorkListItem) =>
+  hasValue(item.addedBy) ? memberById.value.get(item.addedBy) : undefined;
 
 const { data: nextWorkId } = useNextWork(props.clubSlug);
 const { mutate: setNextWork } = useSetNextWork(props.clubSlug);

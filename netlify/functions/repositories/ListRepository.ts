@@ -129,6 +129,7 @@ class ListRepository {
         "work.image_url",
         "work.external_id",
         "work_list_item.time_added",
+        "work_list_item.added_by_user_id",
       ])
       .orderBy("work_list_item.position", "asc")
       .execute();
@@ -143,7 +144,7 @@ class ListRepository {
       .executeTakeFirst());
   }
 
-  async insertItemInList(listId: string, workId: string) {
+  async insertItemInList(listId: string, workId: string, userId: string) {
     const maxResult = await db
       .selectFrom("work_list_item")
       .where("list_id", "=", listId)
@@ -156,6 +157,7 @@ class ListRepository {
         list_id: listId,
         work_id: workId,
         position: maxResult.next_position,
+        added_by_user_id: userId,
       })
       .execute();
   }
@@ -180,11 +182,21 @@ class ListRepository {
     workId: string,
   ) {
     return db.transaction().execute(async (trx) => {
-      const max = await trx
-        .selectFrom("work_list_item")
-        .where("list_id", "=", destinationListId)
-        .select(sql<number>`COALESCE(MAX(position), 0) + 1`.as("next_position"))
-        .executeTakeFirstOrThrow();
+      const [max, source] = await Promise.all([
+        trx
+          .selectFrom("work_list_item")
+          .where("list_id", "=", destinationListId)
+          .select(
+            sql<number>`COALESCE(MAX(position), 0) + 1`.as("next_position"),
+          )
+          .executeTakeFirstOrThrow(),
+        trx
+          .selectFrom("work_list_item")
+          .where("list_id", "=", sourceListId)
+          .where("work_id", "=", workId)
+          .select("added_by_user_id")
+          .executeTakeFirst(),
+      ]);
 
       await trx
         .insertInto("work_list_item")
@@ -192,6 +204,7 @@ class ListRepository {
           list_id: destinationListId,
           work_id: workId,
           position: max.next_position,
+          added_by_user_id: source?.added_by_user_id ?? null,
         })
         .onConflict((oc) => oc.columns(["list_id", "work_id"]).doNothing())
         .execute();
