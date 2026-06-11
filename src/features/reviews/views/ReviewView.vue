@@ -165,12 +165,12 @@ const showEmptyState = computed(
   () => !loading.value && filteredReviews.value.length === 0,
 );
 
-const isBookClub = computed(() => club.value?.type === ClubType.book);
-const searchEmptyDescription = computed(() =>
-  isBookClub.value
-    ? "Try adjusting your search or filters. You can search by title, author, subject, or published year"
-    : "Try adjusting your search or filters. You can search by title, genre, company, director, or release year",
-);
+const searchEmptyDescription = computed(() => {
+  const fields = clubTypeConfig(
+    club.value?.type ?? ClubType.movie,
+  ).searchableFieldsHint;
+  return `Try adjusting your search or filters. You can search by ${fields}`;
+});
 const noReviewsDescription = computed(() => {
   const noun = clubTypeConfig(club.value?.type ?? ClubType.movie).noun;
   return `Start building your club's ${noun} collection by adding your first review`;

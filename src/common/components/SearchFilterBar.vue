@@ -298,10 +298,14 @@ const derivedHasActiveFilters = computed(() => {
 
 // Apply filtering internally and sync to parent via v-model
 const derivedFiltered = computed(() => {
-  return filterWorks(props.data, {
-    filters: filtersObject.value,
-    freeText: searchTerm.value.trim(),
-  });
+  return filterWorks(
+    props.data,
+    {
+      filters: filtersObject.value,
+      freeText: searchTerm.value.trim(),
+    },
+    props.clubType,
+  );
 });
 
 watchEffect(() => {

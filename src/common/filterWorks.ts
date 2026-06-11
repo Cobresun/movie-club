@@ -1,30 +1,26 @@
-import { DetailedBookData } from "../../lib/types/book";
-import { DetailedWorkListItem } from "../../lib/types/lists";
-import { DetailedMovieData } from "../../lib/types/movie";
-
-import { asBook, asMovie } from "@/common/workDisplay";
+import { hasValue } from "@/../lib/checks/checks";
+import { ClubType } from "@/../lib/types/generated/db";
+import { DetailedWorkListItem } from "@/../lib/types/lists";
+import { clubTypeConfig } from "@/common/clubType";
+import { FilterQuery, includesCaseInsensitive } from "@/common/filterMatchers";
 
 /**
- * Filters work/review rows by structured filters and optional title text.
+ * Filters work/review rows down to those matching every applied structured
+ * filter plus the optional free-text title search.
+ *
+ * Which filters exist — and how each one matches — is defined entirely by the
+ * club type's `filterOptions` registry (see `clubType.ts`). This function is
+ * media-agnostic: it walks that registry and delegates to each applied
+ * option's `matches` predicate, so it never grows a branch when a new club
+ * type or field is added.
  *
  * @param works - The rows to filter.
- * @param searchQuery - An object with:
- *   - `filters`: Record of filter key to `{ operator?, value }`
- *   - `freeText`: Free text that searches titles
- * @returns works filtered by searchQuery.
+ * @param searchQuery.filters - Map of filter key to `{ operator?, value }`.
+ * @param searchQuery.freeText - Free text matched against the row title.
+ * @param clubType - Selects which `filterOptions` apply.
  *
- * Supported movie filter keys: `title`, `description`, `genre`,
- * `spoken_language`, `original_language`, `director`, `company`,
- * `production_country`, `year`, `review_date`, `release_date`, and the numeric
- * keys `runtime`, `budget`, `revenue`, `popularity`, `vote_count`,
- * `average_score`. Book filter keys: `author`, `subject`, the numeric keys
- * `first_publish_year`, `pages`, and `description` (which reads a book's
- * description). Movie-only fields are read through `asMovie` / book-only fields
- * through `asBook`, so the same function filters either media type.
- *
- * Numeric and date filters support comparison operators `>`, `<`, and `=`
- * (defaulting to `=` when no operator is given). The `year` filter matches the
- * year the review was added (exact match only). Multiple filters implicitly AND
+ * Numeric and date filters honour the comparison operators `>`, `<`, and `=`
+ * (defaulting to `=` when none is given). Multiple filters implicitly AND
  * together.
  *
  * TODO: Add support for OR searches.
@@ -32,243 +28,25 @@ import { asBook, asMovie } from "@/common/workDisplay";
 export function filterWorks<T extends DetailedWorkListItem>(
   works: T[],
   searchQuery: {
-    filters: Record<string, { operator?: ">" | "<" | "="; value: string }>;
+    filters: Record<string, FilterQuery>;
     freeText: string;
   },
+  clubType: ClubType,
 ): T[] {
-  let filteredReviews = [...works];
-
   const { filters, freeText } = searchQuery;
+  let result = [...works];
 
-  // Helpers
-  const satisfiesComparator = (
-    lhs: number,
-    op: ">" | "<" | "=",
-    rhs: number,
-  ): boolean => {
-    if (!isFinite(lhs) || !isFinite(rhs)) return false;
-    switch (op) {
-      case ">":
-        return lhs > rhs;
-      case "<":
-        return lhs < rhs;
-      case "=":
-      default:
-        return lhs === rhs;
-    }
-  };
+  for (const option of clubTypeConfig(clubType).filterOptions) {
+    const query = filters[option.key];
+    if (query === undefined || !hasValue(query.value)) continue;
+    result = result.filter((work) => option.matches(work, query));
+  }
 
-  const satisfiesDateComparator = (
-    lhsDate: string | Date,
-    op: ">" | "<" | "=",
-    rhsDate: string | Date,
-  ): boolean => {
-    const lhs = new Date(lhsDate);
-    const rhs = new Date(rhsDate);
-    if (lhs.getTime() === 0 || rhs.getTime() === 0) return false;
-    switch (op) {
-      case ">":
-        return lhs > rhs;
-      case "<":
-        return lhs < rhs;
-      case "=":
-      default:
-        return lhs.getTime() === rhs.getTime();
-    }
-  };
-
-  const includesCaseInsensitive = (haystack?: string, needle?: string) => {
-    return (
-      haystack?.toLowerCase().includes(needle?.toLowerCase() ?? "") ?? false
-    );
-  };
-
-  // Apply filters
-  if (filters.title?.value) {
-    filteredReviews = filteredReviews.filter((review) =>
-      includesCaseInsensitive(review.title, filters.title.value),
+  if (hasValue(freeText)) {
+    result = result.filter((work) =>
+      includesCaseInsensitive(work.title, freeText),
     );
   }
 
-  if (filters.description?.value) {
-    filteredReviews = filteredReviews.filter((review) =>
-      includesCaseInsensitive(
-        asMovie(review.externalData)?.overview ??
-          asBook(review.externalData)?.description,
-        filters.description.value,
-      ),
-    );
-  }
-
-  if (filters.genre?.value) {
-    filteredReviews = filteredReviews.filter((review) =>
-      (asMovie(review.externalData)?.genres ?? []).some((g) =>
-        includesCaseInsensitive(g, filters.genre.value),
-      ),
-    );
-  }
-
-  if (filters.spoken_language?.value) {
-    filteredReviews = filteredReviews.filter((review) =>
-      (asMovie(review.externalData)?.spoken_languages ?? []).some((l) =>
-        includesCaseInsensitive(l, filters.spoken_language.value),
-      ),
-    );
-  }
-
-  if (filters.original_language?.value) {
-    filteredReviews = filteredReviews.filter((review) =>
-      includesCaseInsensitive(
-        asMovie(review.externalData)?.original_language,
-        filters.original_language.value,
-      ),
-    );
-  }
-
-  if (filters.director?.value) {
-    filteredReviews = filteredReviews.filter((review) =>
-      (asMovie(review.externalData)?.directors ?? []).some((director) =>
-        includesCaseInsensitive(director.name, filters.director.value),
-      ),
-    );
-  }
-
-  // Book-specific filters
-  if (filters.author?.value) {
-    filteredReviews = filteredReviews.filter((review) =>
-      (asBook(review.externalData)?.authors ?? []).some((author) =>
-        includesCaseInsensitive(author, filters.author.value),
-      ),
-    );
-  }
-
-  if (filters.subject?.value) {
-    filteredReviews = filteredReviews.filter((review) =>
-      (asBook(review.externalData)?.subjects ?? []).some((subject) =>
-        includesCaseInsensitive(subject, filters.subject.value),
-      ),
-    );
-  }
-
-  if (filters.year?.value) {
-    filteredReviews = filteredReviews.filter(
-      (review) =>
-        new Date(review.createdDate).getFullYear() ===
-        parseInt(filters.year.value),
-    );
-  }
-
-  if (filters.company?.value) {
-    filteredReviews = filteredReviews.filter((review) =>
-      (asMovie(review.externalData)?.production_companies ?? []).some(
-        (company) => includesCaseInsensitive(company, filters.company.value),
-      ),
-    );
-  }
-
-  if (filters.production_country?.value) {
-    filteredReviews = filteredReviews.filter((review) =>
-      (asMovie(review.externalData)?.production_countries ?? []).some((c) =>
-        includesCaseInsensitive(c, filters.production_country.value),
-      ),
-    );
-  }
-
-  // Review Date
-  if (filters.review_date?.value) {
-    const reviewValue = filters.review_date.value;
-    filteredReviews = filteredReviews.filter((review) =>
-      satisfiesDateComparator(
-        review.createdDate,
-        filters.review_date.operator ?? "=",
-        reviewValue,
-      ),
-    );
-  }
-
-  // Release date
-  if (filters.release_date?.value) {
-    const releaseValue = filters.release_date.value;
-    filteredReviews = filteredReviews.filter((review) =>
-      satisfiesDateComparator(
-        asMovie(review.externalData)?.release_date ?? "",
-        filters.release_date.operator ?? "=",
-        releaseValue,
-      ),
-    );
-  }
-
-  // Numeric comparators
-  const numericFilters: Array<{
-    key: keyof DetailedMovieData;
-    token: string;
-  }> = [
-    { key: "runtime", token: "runtime" },
-    { key: "budget", token: "budget" },
-    { key: "revenue", token: "revenue" },
-    { key: "popularity", token: "popularity" },
-    { key: "vote_count", token: "vote_count" },
-  ];
-  for (const f of numericFilters) {
-    const token = filters[f.token];
-    if (token?.value) {
-      const rhs = parseFloat(token.value);
-      filteredReviews = filteredReviews.filter((review) => {
-        const movie = asMovie(review.externalData);
-        const rawValue = movie ? movie[f.key] : undefined;
-        // Convert string values to numbers safely
-        const lhs =
-          typeof rawValue === "string"
-            ? parseFloat(rawValue)
-            : Number(rawValue ?? NaN);
-        return satisfiesComparator(lhs, token.operator ?? "=", rhs);
-      });
-    }
-  }
-
-  // Book numeric comparators
-  const bookNumericFilters: Array<{
-    key: keyof DetailedBookData;
-    token: string;
-  }> = [
-    { key: "firstPublishYear", token: "first_publish_year" },
-    { key: "numberOfPages", token: "pages" },
-  ];
-  for (const f of bookNumericFilters) {
-    const token = filters[f.token];
-    if (token?.value) {
-      const rhs = parseFloat(token.value);
-      filteredReviews = filteredReviews.filter((review) => {
-        const book = asBook(review.externalData);
-        const rawValue = book ? book[f.key] : undefined;
-        const lhs = Number(rawValue ?? NaN);
-        return satisfiesComparator(lhs, token.operator ?? "=", rhs);
-      });
-    }
-  }
-
-  // Average score comparator (from scores.average.score)
-  if (filters.average_score?.value) {
-    const rhs = parseFloat(filters.average_score.value);
-    filteredReviews = filteredReviews.filter((review) => {
-      const avg = (
-        review as unknown as { scores?: Record<string, { score: number }> }
-      ).scores?.average?.score;
-      const lhs = Number(avg ?? NaN);
-      return satisfiesComparator(
-        lhs,
-        filters.average_score.operator ?? "=",
-        rhs,
-      );
-    });
-  }
-
-  // Free text at end defaults to title search
-  if (freeText) {
-    filteredReviews = filteredReviews.filter((review) =>
-      includesCaseInsensitive(review.title, freeText),
-    );
-  }
-
-  return filteredReviews;
+  return result;
 }
