@@ -17,7 +17,7 @@ import VTable from "@/common/components/VTable.vue";
 import LazyLoad from "@/directives/LazyLoad";
 import Reveal from "@/directives/Reveal";
 
-export const render = (component: unknown, options: Partial<RenderOptions> = {}) => {
+export const render = <C>(component: C, options: Partial<RenderOptions<C>> = {}) => {
   const user = userEvent.setup();
   const pinia = createTestingPinia();
   testingLibraryRender(PiniaStoreHelperTest, {
