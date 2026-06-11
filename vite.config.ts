@@ -30,6 +30,11 @@ export default defineConfig({
   },
   test: {
     globals: true,
+    // Restore every spy/mock to its original implementation after each test so
+    // mock state never leaks between tests (a vi.spyOn or mockResolvedValue set
+    // in one test cannot silently change the next). Inherited by both projects
+    // via `extends: true`.
+    restoreMocks: true,
     coverage: {
       all: true,
       provider: "istanbul",
