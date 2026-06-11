@@ -34,7 +34,20 @@ export default defineConfig({
       all: true,
       provider: "istanbul",
       reporter: ["text", "json", "html"],
-      include: ["src/**", "lib/**", "netlify/functions/**"],
+      // Regression guards set just below levels achieved by the 2026-06 test
+      // suite overhaul (45% stmts / 37% branch / 38% func / 46% lines).
+      // Raise these as coverage grows; never lower them to merge.
+      thresholds: {
+        statements: 44,
+        branches: 35,
+        functions: 36,
+        lines: 44,
+      },
+      include: [
+        "src/**/*.{ts,vue}",
+        "lib/**/*.ts",
+        "netlify/functions/**/*.ts",
+      ],
       exclude: [
         "**/mocks/**",
         "**/tests/**",
