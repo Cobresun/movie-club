@@ -107,7 +107,12 @@ function num(value: string | null): number | undefined {
   return isDefined(value) ? Number(value) : undefined;
 }
 
-function toMovieDataSummary(row: MovieSummaryRow): MovieDataSummary {
+/**
+ * Maps a raw `movie_details` aggregate row to the public {@link MovieDataSummary}
+ * shape: nullable Int8/decimal columns become `number | undefined`, dates become
+ * ISO strings, and aggregate arrays default to `[]`. Exported for unit testing.
+ */
+export function toMovieDataSummary(row: MovieSummaryRow): MovieDataSummary {
   return {
     kind: "movie",
     castNames: row.cast_names?.filter(Boolean) ?? [],

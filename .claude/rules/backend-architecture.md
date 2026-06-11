@@ -121,7 +121,7 @@ Backend uses `loggedIn` (any authenticated user) and `secured` (authenticated + 
 - `netlify/functions/utils/validation.ts` - Request validation middleware
 - `netlify/functions/utils/slug.ts` - Slug generation and validation
 - `netlify/functions/utils/email.ts` - Resend email templates
-- `netlify/functions/utils/workDetailsMapper.ts` - Work-to-external-data mapper
+- `netlify/functions/utils/providers/` - Media providers (movie/book) that fetch, cache, and map external metadata to `DetailedWorkData`
 - `netlify/functions/utils/movieDetailsUpdater.ts` - Movie details update utility
 - `netlify/functions/og-image.ts` - Open Graph image generation
 - `netlify/functions/services/SharedReviewService.ts` - Shared review data service

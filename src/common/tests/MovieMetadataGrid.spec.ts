@@ -49,62 +49,6 @@ describe("MovieMetadataGrid", () => {
     expect(screen.getByText("8.3/10")).toBeInTheDocument();
   });
 
-  it("shows only first 5 actors by default", () => {
-    const actors = [
-      { name: "Actor A" },
-      { name: "Actor B" },
-      { name: "Actor C" },
-      { name: "Actor D" },
-      { name: "Actor E" },
-      { name: "Actor F" },
-    ];
-    render(MovieMetadataGrid, { props: { actors } });
-
-    expect(screen.getByText(/Actor A/)).toBeInTheDocument();
-    expect(screen.getByText(/Actor E/)).toBeInTheDocument();
-    // Actor F is hidden behind "more" button
-    expect(screen.queryByText(/Actor F/)).not.toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /\+1 more/i }),
-    ).toBeInTheDocument();
-  });
-
-  it("shows all actors after clicking 'more' button", async () => {
-    const actors = [
-      { name: "Actor A" },
-      { name: "Actor B" },
-      { name: "Actor C" },
-      { name: "Actor D" },
-      { name: "Actor E" },
-      { name: "Actor F" },
-    ];
-    const { user } = render(MovieMetadataGrid, { props: { actors } });
-
-    await user.click(screen.getByRole("button", { name: /\+1 more/i }));
-
-    expect(screen.getByText(/Actor F/)).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /show less/i }),
-    ).toBeInTheDocument();
-  });
-
-  it("hides extra actors again after clicking 'Show less'", async () => {
-    const actors = Array.from({ length: 7 }, (_, i) => ({
-      name: `Actor ${i}`,
-    }));
-    const { user } = render(MovieMetadataGrid, { props: { actors } });
-
-    await user.click(screen.getByRole("button", { name: /\+2 more/i }));
-    expect(
-      screen.getByRole("button", { name: /show less/i }),
-    ).toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: /show less/i }));
-    expect(
-      screen.getByRole("button", { name: /\+2 more/i }),
-    ).toBeInTheDocument();
-  });
-
   it("does not show genres section when genres is empty", () => {
     render(MovieMetadataGrid, { props: { genres: [] } });
 

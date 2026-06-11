@@ -12,7 +12,7 @@ import { DeleteResult, InsertResult, UpdateResult } from "kysely";
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
 import { assertResponse, makeEvent, parseBody, stubContext } from "./helpers";
-import { WorkType } from "../../../lib/types/generated/db";
+import { ClubType, WorkType } from "../../../lib/types/generated/db";
 import { handler } from "../club/index";
 import ClubRepository from "../repositories/ClubRepository";
 import ListRepository from "../repositories/ListRepository";
@@ -145,6 +145,7 @@ const mockClub = {
   id: CLUB_ID,
   name: "My Club",
   slug: CLUB_SLUG,
+  type: ClubType.movie,
   legacy_id: null,
   slug_updated_at: null,
 };

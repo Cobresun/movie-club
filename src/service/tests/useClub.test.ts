@@ -15,6 +15,7 @@ import {
   useUpdateClubSettings,
 } from "../useClub";
 
+import { ClubType } from "@/../lib/types/generated/db";
 import { server } from "@/mocks/server";
 import { render } from "@/tests/utils";
 
@@ -165,7 +166,11 @@ describe("useCreateClub", () => {
       setup() {
         const { mutate, isSuccess } = useCreateClub();
         const submit = () =>
-          mutate({ clubName: "New Club", members: ["alice@test.com"] });
+          mutate({
+            clubName: "New Club",
+            members: ["alice@test.com"],
+            type: ClubType.movie,
+          });
         return { submit, isSuccess };
       },
       template: `<button @click="submit">{{ isSuccess ? 'done' : 'create' }}</button>`,
@@ -177,6 +182,7 @@ describe("useCreateClub", () => {
     expect(capturedBody).toEqual({
       name: "New Club",
       members: ["alice@test.com"],
+      type: ClubType.movie,
     });
   });
 });

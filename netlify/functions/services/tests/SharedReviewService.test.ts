@@ -1,17 +1,18 @@
 /**
  * Tests for netlify/functions/services/SharedReviewService.ts
  *
- * All repository modules and workDetailsMapper are mocked.
+ * All repository modules and the providers registry are mocked.
  */
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
-import { WorkType } from "../../../../lib/types/generated/db";
+import { ClubType, WorkType } from "../../../../lib/types/generated/db";
+import { DetailedWorkData } from "../../../../lib/types/lists";
 import ClubRepository from "../../repositories/ClubRepository";
 import ListRepository from "../../repositories/ListRepository";
 import ReviewRepository from "../../repositories/ReviewRepository";
 import UserRepository from "../../repositories/UserRepository";
 import WorkCommentRepository from "../../repositories/WorkCommentRepository";
-import { overviewToExternalData } from "../../utils/workDetailsMapper";
+import { getExternalDataForWorks } from "../../utils/providers";
 import SharedReviewService from "../SharedReviewService";
 
 // ─── Mock: database ───────────────────────────────────────────────────────────
@@ -54,9 +55,9 @@ vi.mock("../../repositories/WorkCommentRepository", () => ({
   },
 }));
 
-// ─── Mock: workDetailsMapper ──────────────────────────────────────────────────
-vi.mock("../../utils/workDetailsMapper", () => ({
-  overviewToExternalData: vi.fn(),
+// ─── Mock: providers registry ─────────────────────────────────────────────────
+vi.mock("../../utils/providers", () => ({
+  getExternalDataForWorks: vi.fn(),
 }));
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
@@ -65,6 +66,7 @@ const mockClub = {
   id: "1",
   name: "Film Club",
   slug: "film-club",
+  type: ClubType.movie,
   legacy_id: null,
   slug_updated_at: null,
 };
@@ -144,25 +146,26 @@ const mockComments = [
   },
 ];
 
-// Full shape of overviewToExternalData's return value — the mocked function
-// must return a complete record to satisfy its signature.
-const mockExternalData = {
+// The enriched metadata the providers registry resolves for this work. Typed as
+// DetailedWorkData so `new Map([...])` infers the value type the service expects.
+const mockExternalData: DetailedWorkData = {
+  kind: "movie",
   actors: [],
-  adult: null,
-  backdrop_path: null,
-  budget: null,
-  homepage: null,
-  imdb_id: null,
-  original_language: null,
-  original_title: null,
+  adult: undefined,
+  backdrop_path: undefined,
+  budget: undefined,
+  homepage: undefined,
+  imdb_id: undefined,
+  original_language: undefined,
+  original_title: undefined,
   overview: "A thief enters dreams.",
-  popularity: null,
-  poster_path: null,
+  popularity: undefined,
+  poster_path: undefined,
   release_date: undefined,
-  revenue: null,
-  runtime: null,
-  status: null,
-  tagline: null,
+  revenue: undefined,
+  runtime: undefined,
+  status: undefined,
+  tagline: undefined,
   vote_average: undefined,
   genres: ["Action"],
   directors: [],
@@ -202,7 +205,9 @@ describe("SharedReviewService.getSharedReviewData", () => {
     vi.mocked(WorkCommentRepository.getByWorkAndClub).mockResolvedValue(
       mockComments,
     );
-    vi.mocked(overviewToExternalData).mockReturnValue(mockExternalData);
+    vi.mocked(getExternalDataForWorks).mockResolvedValue(
+      new Map([["27205", mockExternalData]]),
+    );
 
     const result = await SharedReviewService.getSharedReviewData(
       "club-1",
@@ -221,7 +226,9 @@ describe("SharedReviewService.getSharedReviewData", () => {
     vi.mocked(ListRepository.getWorkDetails).mockResolvedValue(mockWorkDetails);
     vi.mocked(ClubRepository.getById).mockResolvedValue(mockClub);
     vi.mocked(WorkCommentRepository.getByWorkAndClub).mockResolvedValue([]);
-    vi.mocked(overviewToExternalData).mockReturnValue(mockExternalData);
+    vi.mocked(getExternalDataForWorks).mockResolvedValue(
+      new Map([["27205", mockExternalData]]),
+    );
 
     const result = await SharedReviewService.getSharedReviewData(
       "club-1",
@@ -244,7 +251,7 @@ describe("SharedReviewService.getSharedReviewData", () => {
     });
     vi.mocked(ClubRepository.getById).mockResolvedValue(mockClub);
     vi.mocked(WorkCommentRepository.getByWorkAndClub).mockResolvedValue([]);
-    vi.mocked(overviewToExternalData).mockReturnValue(undefined);
+    vi.mocked(getExternalDataForWorks).mockResolvedValue(new Map());
 
     const result = await SharedReviewService.getSharedReviewData(
       "club-1",
@@ -263,7 +270,7 @@ describe("SharedReviewService.getSharedReviewData", () => {
     });
     vi.mocked(ClubRepository.getById).mockResolvedValue(mockClub);
     vi.mocked(WorkCommentRepository.getByWorkAndClub).mockResolvedValue([]);
-    vi.mocked(overviewToExternalData).mockReturnValue(undefined);
+    vi.mocked(getExternalDataForWorks).mockResolvedValue(new Map());
 
     const result = await SharedReviewService.getSharedReviewData(
       "club-1",
@@ -282,7 +289,7 @@ describe("SharedReviewService.getSharedReviewData", () => {
     });
     vi.mocked(ClubRepository.getById).mockResolvedValue(mockClub);
     vi.mocked(WorkCommentRepository.getByWorkAndClub).mockResolvedValue([]);
-    vi.mocked(overviewToExternalData).mockReturnValue(undefined);
+    vi.mocked(getExternalDataForWorks).mockResolvedValue(new Map());
 
     const result = await SharedReviewService.getSharedReviewData(
       "club-1",
@@ -292,20 +299,20 @@ describe("SharedReviewService.getSharedReviewData", () => {
     expect(result?.work.externalId).toBeUndefined();
   });
 
-  it("clubName falls back to 'Movie Club' when club is not found", async () => {
+  it("returns null when the club is not found", async () => {
     vi.mocked(ReviewRepository.getReviewsByWorkId).mockResolvedValue([]);
     vi.mocked(UserRepository.getMembersByClubId).mockResolvedValue([]);
     vi.mocked(ListRepository.getWorkDetails).mockResolvedValue(mockWorkDetails);
     vi.mocked(ClubRepository.getById).mockResolvedValue(undefined);
     vi.mocked(WorkCommentRepository.getByWorkAndClub).mockResolvedValue([]);
-    vi.mocked(overviewToExternalData).mockReturnValue(undefined);
+    vi.mocked(getExternalDataForWorks).mockResolvedValue(new Map());
 
     const result = await SharedReviewService.getSharedReviewData(
       "club-1",
       "work-1",
     );
 
-    expect(result?.clubName).toBe("Movie Club");
+    expect(result).toBeNull();
   });
 
   it("clubName is club name when club is found", async () => {
@@ -314,7 +321,7 @@ describe("SharedReviewService.getSharedReviewData", () => {
     vi.mocked(ListRepository.getWorkDetails).mockResolvedValue(mockWorkDetails);
     vi.mocked(ClubRepository.getById).mockResolvedValue(mockClub);
     vi.mocked(WorkCommentRepository.getByWorkAndClub).mockResolvedValue([]);
-    vi.mocked(overviewToExternalData).mockReturnValue(undefined);
+    vi.mocked(getExternalDataForWorks).mockResolvedValue(new Map());
 
     const result = await SharedReviewService.getSharedReviewData(
       "club-1",
@@ -330,7 +337,7 @@ describe("SharedReviewService.getSharedReviewData", () => {
     vi.mocked(ListRepository.getWorkDetails).mockResolvedValue(mockWorkDetails);
     vi.mocked(ClubRepository.getById).mockResolvedValue(mockClub);
     vi.mocked(WorkCommentRepository.getByWorkAndClub).mockResolvedValue([]);
-    vi.mocked(overviewToExternalData).mockReturnValue(undefined);
+    vi.mocked(getExternalDataForWorks).mockResolvedValue(new Map());
 
     await SharedReviewService.getSharedReviewData("club-42", "work-99");
 
@@ -347,16 +354,18 @@ describe("SharedReviewService.getSharedReviewData", () => {
     );
   });
 
-  it("calls overviewToExternalData with the workDetails row", async () => {
+  it("calls getExternalDataForWorks with the work's external id and type", async () => {
     vi.mocked(ReviewRepository.getReviewsByWorkId).mockResolvedValue([]);
     vi.mocked(UserRepository.getMembersByClubId).mockResolvedValue([]);
     vi.mocked(ListRepository.getWorkDetails).mockResolvedValue(mockWorkDetails);
     vi.mocked(ClubRepository.getById).mockResolvedValue(mockClub);
     vi.mocked(WorkCommentRepository.getByWorkAndClub).mockResolvedValue([]);
-    vi.mocked(overviewToExternalData).mockReturnValue(undefined);
+    vi.mocked(getExternalDataForWorks).mockResolvedValue(new Map());
 
     await SharedReviewService.getSharedReviewData("club-1", "work-1");
 
-    expect(overviewToExternalData).toHaveBeenCalledWith(mockWorkDetails);
+    expect(getExternalDataForWorks).toHaveBeenCalledWith([
+      { externalId: "27205", type: WorkType.movie },
+    ]);
   });
 });
