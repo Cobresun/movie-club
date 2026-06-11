@@ -124,17 +124,19 @@ import {
 import { computed, onMounted, onUnmounted, ref, watchEffect } from "vue";
 
 import { hasValue } from "../../../lib/checks/checks";
+import { ClubType } from "../../../lib/types/generated/db";
 import type { DetailedWorkListItem } from "../../../lib/types/lists";
+import { clubTypeConfig, type FilterOption } from "../clubType";
 import { useIsDesktop } from "../composables/useIsDesktop.js";
 import { filterWorks } from "../filterWorks";
-import { asMovie } from "../workDisplay";
 import FilterPanelContent from "./FilterPanelContent.vue";
-import type { Comparator, FilterOption } from "./filterTypes";
+import type { Comparator } from "./filterTypes";
 import VBottomSheet from "./VBottomSheet.vue";
 
 // Component props
 interface Props {
   data: T[];
+  clubType: ClubType;
   searchPlaceholder?: string;
   className?: string;
   excludeFilterKeys?: string[];
@@ -153,100 +155,35 @@ const hasActiveFilters = defineModel<boolean>("hasActiveFilters", {
   required: true,
 });
 
-// Filter options configuration (all available options; filtered by excludeFilterKeys prop)
-const ALL_FILTER_OPTIONS = [
-  {
-    key: "genre",
-    label: "Genre",
-    type: "enum" as const,
-    placeholder: "Select a genre",
-  },
-  {
-    key: "average_score",
-    label: "Average Score",
-    type: "number" as const,
-    placeholder: "Enter score",
-  },
-  {
-    key: "company",
-    label: "Production Company",
-    type: "enum" as const,
-    placeholder: "Select a company",
-  },
-  {
-    key: "director",
-    label: "Director",
-    type: "enum" as const,
-    placeholder: "Select a director",
-  },
-  {
-    key: "review_date",
-    label: "Review Date",
-    type: "date" as const,
-    placeholder: "Enter a year",
-  },
-  {
-    key: "release_date",
-    label: "Release Date",
-    type: "date" as const,
-    placeholder: "Enter a year",
-  },
-  {
-    key: "runtime",
-    label: "Runtime (min)",
-    type: "number" as const,
-    placeholder: "Enter minutes",
-  },
-];
-
+// Filter options come from the club-type registry (movie/book have different
+// fields); excludeFilterKeys lets a view drop options that don't apply (e.g.
+// score-based filters on the watchlist).
 const FILTER_OPTIONS = computed(() =>
-  ALL_FILTER_OPTIONS.filter((o) => !props.excludeFilterKeys.includes(o.key)),
+  clubTypeConfig(props.clubType).filterOptions.filter(
+    (o) => !props.excludeFilterKeys.includes(o.key),
+  ),
 );
 
-// Value suggestions derived from current data with frequency counts
-const genreCounts = computed(() => {
-  const counts = new Map<string, number>();
-  props.data.forEach((item) =>
-    asMovie(item.externalData)?.genres?.forEach((g) => {
-      const currentCount = counts.get(g);
-      counts.set(g, currentCount !== undefined ? currentCount + 1 : 1);
-    }),
-  );
-  return Array.from(counts.entries()).sort((a, b) => b[1] - a[1]); // Sort by frequency (descending)
+// Frequency-ranked value suggestions for each enum filter, derived from the
+// current data via the option's `suggestions` selector. Keyed by filter key.
+const computedValueSuggestions = computed<Record<string, string[]>>(() => {
+  const result: Record<string, string[]> = {};
+  for (const opt of FILTER_OPTIONS.value) {
+    if (opt.suggestions === undefined) continue;
+    const select = opt.suggestions;
+    const counts = new Map<string, number>();
+    props.data.forEach((item) =>
+      select(item.externalData).forEach((value) => {
+        const currentCount = counts.get(value);
+        counts.set(value, currentCount !== undefined ? currentCount + 1 : 1);
+      }),
+    );
+    result[opt.key] = Array.from(counts.entries())
+      .sort((a, b) => b[1] - a[1]) // Sort by frequency (descending)
+      .map(([value, count]) => `${value} (${count})`);
+  }
+  return result;
 });
-
-const companyCounts = computed(() => {
-  const counts = new Map<string, number>();
-  props.data.forEach((item) =>
-    asMovie(item.externalData)?.production_companies?.forEach((c) => {
-      const currentCount = counts.get(c);
-      counts.set(c, currentCount !== undefined ? currentCount + 1 : 1);
-    }),
-  );
-  return Array.from(counts.entries()).sort((a, b) => b[1] - a[1]); // Sort by frequency (descending)
-});
-
-const directorCounts = computed(() => {
-  const counts = new Map<string, number>();
-  props.data.forEach((item) =>
-    asMovie(item.externalData)?.directors?.forEach((d) => {
-      const name = d.name;
-      const currentCount = counts.get(name);
-      counts.set(name, currentCount !== undefined ? currentCount + 1 : 1);
-    }),
-  );
-  return Array.from(counts.entries()).sort((a, b) => b[1] - a[1]); // Sort by frequency (descending)
-});
-
-const computedValueSuggestions = computed<Record<string, string[]>>(() => ({
-  genre: genreCounts.value.map(([genre, count]) => `${genre} (${count})`),
-  company: companyCounts.value.map(
-    ([company, count]) => `${company} (${count})`,
-  ),
-  director: directorCounts.value.map(
-    ([director, count]) => `${director} (${count})`,
-  ),
-}));
 
 // Search and Filters state
 const searchTerm = ref("");
@@ -361,10 +298,14 @@ const derivedHasActiveFilters = computed(() => {
 
 // Apply filtering internally and sync to parent via v-model
 const derivedFiltered = computed(() => {
-  return filterWorks(props.data, {
-    filters: filtersObject.value,
-    freeText: searchTerm.value.trim(),
-  });
+  return filterWorks(
+    props.data,
+    {
+      filters: filtersObject.value,
+      freeText: searchTerm.value.trim(),
+    },
+    props.clubType,
+  );
 });
 
 watchEffect(() => {

@@ -20,6 +20,7 @@
         v-model:filtered-data="filteredReviews"
         v-model:has-active-filters="hasActiveFilters"
         :data="reviews ?? []"
+        :club-type="club?.type ?? ClubType.movie"
         search-placeholder="Search reviews"
         :class-name="isGalleryView ? 'mb-4' : 'mb-0'"
       >
@@ -39,9 +40,7 @@
         <EmptyState
           :title="hasSearchTerm ? 'No Results Found' : 'No Reviews Yet'"
           :description="
-            hasSearchTerm
-              ? 'Try adjusting your search or filters. You can search by title, genre, company, director, or release year'
-              : 'Start building your club\'s movie collection by adding your first review'
+            hasSearchTerm ? searchEmptyDescription : noReviewsDescription
           "
           :action-label="hasSearchTerm ? undefined : 'Add Review'"
           :action-icon="hasSearchTerm ? undefined : 'plus'"
@@ -76,6 +75,7 @@ import { DateTime } from "luxon";
 import { computed, ref, onMounted, h, resolveComponent, watch } from "vue";
 
 import { hasValue, isTrue } from "../../../../lib/checks/checks.js";
+import { ClubType } from "../../../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
 import { useShare } from "../../../common/composables/useShare";
 import GalleryView from "../components/GalleryView.vue";
@@ -84,6 +84,7 @@ import ReviewScore from "../components/ReviewScore.vue";
 import TableView from "../components/TableView.vue";
 
 import AverageImg from "@/assets/images/average.svg";
+import { clubTypeConfig } from "@/common/clubType";
 import DeleteConfirmationModal from "@/common/components/DeleteConfirmationModal.vue";
 import EmptyState from "@/common/components/EmptyState.vue";
 import SearchFilterBar from "@/common/components/SearchFilterBar.vue";
@@ -163,6 +164,17 @@ const hasSearchTerm = computed(() => hasActiveFilters.value);
 const showEmptyState = computed(
   () => !loading.value && filteredReviews.value.length === 0,
 );
+
+const searchEmptyDescription = computed(() => {
+  const fields = clubTypeConfig(
+    club.value?.type ?? ClubType.movie,
+  ).searchableFieldsHint;
+  return `Try adjusting your search or filters. You can search by ${fields}`;
+});
+const noReviewsDescription = computed(() => {
+  const noun = clubTypeConfig(club.value?.type ?? ClubType.movie).noun;
+  return `Start building your club's ${noun} collection by adding your first review`;
+});
 
 const columnHelper = createColumnHelper<DetailedReviewListItem>();
 
