@@ -19,6 +19,7 @@ import { vi, describe, it, expect, beforeEach } from "vitest";
 
 import { assertResponse, makeEvent, parseBody, stubContext } from "./helpers";
 import { AwardsData, AwardsStep } from "../../../lib/types/awards";
+import { ClubType } from "../../../lib/types/generated/db";
 import { handler } from "../club/index";
 import AwardsRepository from "../repositories/AwardsRepository";
 import ClubRepository from "../repositories/ClubRepository";
@@ -173,6 +174,7 @@ const mockClub = {
   id: "1",
   name: "Test Club",
   slug: "1",
+  type: ClubType.movie,
   legacy_id: null,
   slug_updated_at: null,
 };

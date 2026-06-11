@@ -226,6 +226,7 @@ function makeMovieData(overrides: Partial<MovieData> = {}): MovieData {
     normalized: {},
     scores: {},
     externalData: {
+      kind: "movie",
       actors: [],
       adult: false,
       backdrop_path: "",

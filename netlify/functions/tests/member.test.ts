@@ -10,6 +10,7 @@ import { vi, describe, it, expect, beforeEach } from "vitest";
 
 import { handler } from "../member";
 import { assertResponse, makeEvent, parseBody, stubContext } from "./helpers";
+import { ClubType } from "../../../lib/types/generated/db";
 import ClubRepository from "../repositories/ClubRepository";
 import ImageRepository from "../repositories/ImageRepository";
 import UserRepository from "../repositories/UserRepository";
@@ -89,6 +90,7 @@ describe("GET /api/member/clubs", () => {
         club_id: "club-1",
         club_name: "Test Club",
         slug: "test-club",
+        type: ClubType.movie,
         slug_updated_at: null,
       },
     ]);

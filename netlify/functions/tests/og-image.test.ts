@@ -8,7 +8,7 @@
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
 import { assertResponse, makeEvent, stubContext } from "./helpers";
-import { WorkType } from "../../../lib/types/generated/db";
+import { ClubType, WorkType } from "../../../lib/types/generated/db";
 import { handler } from "../og-image";
 import ClubRepository from "../repositories/ClubRepository";
 import SharedReviewService from "../services/SharedReviewService";
@@ -55,48 +55,22 @@ const mockClub = {
   id: "1",
   name: "Test Club",
   slug: "test-club",
+  type: ClubType.movie,
   legacy_id: null,
   slug_updated_at: null,
 };
 
-// Full shape of overviewToExternalData's return value — the mocked
-// SharedReviewService must resolve with a complete record.
-function makeExternalData(posterPath: string) {
-  return {
-    actors: [],
-    adult: null,
-    backdrop_path: null,
-    budget: null,
-    homepage: null,
-    imdb_id: null,
-    original_language: null,
-    original_title: null,
-    overview: "A thief who steals corporate secrets.",
-    popularity: null,
-    poster_path: posterPath,
-    release_date: undefined,
-    revenue: null,
-    runtime: null,
-    status: null,
-    tagline: null,
-    vote_average: undefined,
-    genres: [],
-    directors: [],
-    production_companies: [],
-    production_countries: [],
-  };
-}
-
-function makeReviewData(posterPath: string | undefined) {
+// The og-image handler redirects to the work's stored image URL (a TMDB poster
+// for movies, an OpenLibrary cover for books); externalData is not consulted.
+function makeReviewData(imageUrl: string | undefined) {
   return {
     work: {
       id: "work-1",
       title: "Inception",
       type: WorkType.movie,
-      imageUrl: undefined,
+      imageUrl,
       externalId: undefined,
-      externalData:
-        posterPath !== undefined ? makeExternalData(posterPath) : undefined,
+      externalData: undefined,
     },
     reviews: [
       {
@@ -125,10 +99,10 @@ beforeEach(() => {
 // ─── GET /api/og-image ────────────────────────────────────────────────────────
 
 describe("GET /api/og-image", () => {
-  it("redirects to TMDB poster URL when poster_path is available", async () => {
+  it("redirects to the work's stored image URL when present", async () => {
     vi.mocked(ClubRepository.getBySlug).mockResolvedValue(mockClub);
     vi.mocked(SharedReviewService.getSharedReviewData).mockResolvedValue(
-      makeReviewData("/poster.jpg"),
+      makeReviewData("https://image.tmdb.org/t/p/w500/poster.jpg"),
     );
 
     const event = makeEvent({
@@ -145,7 +119,7 @@ describe("GET /api/og-image", () => {
     );
   });
 
-  it("returns SVG fallback when poster_path is undefined", async () => {
+  it("returns SVG fallback when imageUrl is undefined", async () => {
     vi.mocked(ClubRepository.getBySlug).mockResolvedValue(mockClub);
     vi.mocked(SharedReviewService.getSharedReviewData).mockResolvedValue(
       makeReviewData(undefined),

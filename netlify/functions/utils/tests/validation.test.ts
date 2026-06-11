@@ -1,7 +1,10 @@
 import { HandlerContext, HandlerEvent } from "@netlify/functions";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { WorkListSystemType } from "../../../../lib/types/generated/db";
+import {
+  ClubType,
+  WorkListSystemType,
+} from "../../../../lib/types/generated/db";
 import ClubRepository from "../../repositories/ClubRepository";
 import ListRepository from "../../repositories/ListRepository";
 import { Request } from "../router";
@@ -78,6 +81,7 @@ function makeClubRequest(
     params: extraParams,
     clubId,
     clubSlug,
+    clubType: ClubType.movie,
   };
 }
 
@@ -129,6 +133,7 @@ describe("validClubSlug", () => {
       id: "42",
       slug: "my-club",
       name: "My Club",
+      type: ClubType.movie,
       legacy_id: null,
       slug_updated_at: null,
     });
