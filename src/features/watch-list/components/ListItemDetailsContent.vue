@@ -22,7 +22,6 @@
         :runtime="movieData.runtime"
         :genres="movieData.genres"
         :directors="movieData.directors"
-        :actors="movieData.actors"
         :vote-average="movieData.vote_average"
       />
       <BookMetadataGrid
@@ -32,6 +31,7 @@
         :number-of-pages="bookData.numberOfPages"
         :subjects="bookData.subjects"
       />
+      <CastList :actors="movieData?.actors" class="md:col-span-2" />
       <WatchProviders :external-id="movie.externalId" class="md:col-span-2" />
     </div>
 
@@ -119,6 +119,7 @@ import { hasValue } from "../../../../lib/checks/checks.js";
 import { DetailedWorkListItem } from "../../../../lib/types/lists";
 
 import BookMetadataGrid from "@/common/components/BookMetadataGrid.vue";
+import CastList from "@/common/components/CastList.vue";
 import CommentThread from "@/common/components/CommentThread.vue";
 import DeleteConfirmationModal from "@/common/components/DeleteConfirmationModal.vue";
 import MovieMetadataGrid from "@/common/components/MovieMetadataGrid.vue";

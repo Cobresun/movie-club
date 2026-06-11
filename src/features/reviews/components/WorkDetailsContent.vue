@@ -57,7 +57,6 @@
           :runtime="movieData.runtime"
           :genres="movieData.genres"
           :directors="movieData.directors"
-          :actors="movieData.actors"
         />
         <BookMetadataGrid
           v-else-if="bookData"
@@ -65,6 +64,11 @@
           :first-publish-year="bookData.firstPublishYear"
           :number-of-pages="bookData.numberOfPages"
           :subjects="bookData.subjects"
+        />
+        <CastList
+          v-if="movieData"
+          :actors="movieData?.actors"
+          class="md:col-span-2"
         />
         <div
           v-if="movieData?.vote_average"
@@ -276,6 +280,8 @@
         </div>
       </div>
 
+      <CastList :actors="movieData?.actors" class="mt-4" />
+
       <!-- Collapsible metadata -->
       <Disclosure v-slot="{ open }">
         <DisclosureButton
@@ -295,7 +301,6 @@
             :runtime="movieData.runtime"
             :genres="movieData.genres"
             :directors="movieData.directors"
-            :actors="movieData.actors"
           />
           <BookMetadataGrid
             v-else-if="bookData"
@@ -388,6 +393,7 @@ import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
 
 import BookMetadataGrid from "@/common/components/BookMetadataGrid.vue";
+import CastList from "@/common/components/CastList.vue";
 import CommentThread from "@/common/components/CommentThread.vue";
 import DeleteConfirmationModal from "@/common/components/DeleteConfirmationModal.vue";
 import ExternalLink from "@/common/components/ExternalLink.vue";
