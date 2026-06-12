@@ -359,9 +359,7 @@ describe("getDetailedMovie", () => {
     const input = { movieId: 27205, customField: "kept" };
     const result = await getDetailedMovie([input]);
 
-    expect(
-      (result[0] as typeof input & { movieTitle: string }).customField,
-    ).toBe("kept");
+    expect(result[0]).toMatchObject({ customField: "kept" });
   });
 
   it("handles movies with no credits gracefully", async () => {

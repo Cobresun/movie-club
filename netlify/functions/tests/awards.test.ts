@@ -482,9 +482,7 @@ describe("POST /api/club/:clubSlug/awards/:year/nomination", () => {
       | undefined;
     vi.mocked(AwardsRepository.updateByYear).mockImplementationOnce(
       async (_clubId, _year, updater) => {
-        capturedUpdater = updater as (
-          data: typeof baseAwardsData,
-        ) => typeof baseAwardsData;
+        capturedUpdater = updater;
       },
     );
 
@@ -516,9 +514,7 @@ describe("POST /api/club/:clubSlug/awards/:year/nomination", () => {
       | undefined;
     vi.mocked(AwardsRepository.updateByYear).mockImplementationOnce(
       async (_clubId, _year, updater) => {
-        capturedUpdater = updater as (
-          data: typeof baseAwardsData,
-        ) => typeof baseAwardsData;
+        capturedUpdater = updater;
       },
     );
 
@@ -601,9 +597,7 @@ describe("DELETE /api/club/:clubSlug/awards/:year/nomination/:movieId", () => {
       | undefined;
     vi.mocked(AwardsRepository.updateByYear).mockImplementationOnce(
       async (_clubId, _year, updater) => {
-        capturedUpdater = updater as (
-          data: typeof baseAwardsData,
-        ) => typeof baseAwardsData;
+        capturedUpdater = updater;
       },
     );
 
@@ -687,9 +681,7 @@ describe("POST /api/club/:clubSlug/awards/:year/ranking", () => {
       | undefined;
     vi.mocked(AwardsRepository.updateByYear).mockImplementationOnce(
       async (_clubId, _year, updater) => {
-        capturedUpdater = updater as (
-          data: typeof baseAwardsData,
-        ) => typeof baseAwardsData;
+        capturedUpdater = updater;
       },
     );
 
@@ -772,9 +764,7 @@ describe("PUT /api/club/:clubSlug/awards/:year/step", () => {
       | undefined;
     vi.mocked(AwardsRepository.updateByYear).mockImplementationOnce(
       async (_clubId, _year, updater) => {
-        capturedUpdater = updater as (
-          data: typeof baseAwardsData,
-        ) => typeof baseAwardsData;
+        capturedUpdater = updater;
       },
     );
 
