@@ -2,63 +2,56 @@
  * Tests for netlify/functions/utils/movieDetailsUpdater.ts
  *
  * insertMovieDetails and updateMovieDetails accept a Kysely db/transaction
- * object. We construct a minimal fluent-builder stub without real DB access.
+ * object. We drive them against a real `Kysely<DB>` backed by Kysely's
+ * `DummyDriver`, so queries compile (and `.execute()` resolves) without ever
+ * touching a database. A `log` hook records each compiled query, letting the
+ * tests assert on the actual SQL that would run:
  *
- * The tests assert:
  *  - the correct tables are written to
- *  - onConflict handling is wired up for insert paths
  *  - delete-then-insert strategy is used for update paths
  *  - optional arrays (genres, companies, etc.) are skipped when empty
+ *  - production_companies are de-duplicated by name on update
  */
-import { describe, expect, it, vi } from "vitest";
+import {
+  CompiledQuery,
+  DummyDriver,
+  Kysely,
+  PostgresAdapter,
+  PostgresIntrospector,
+  PostgresQueryCompiler,
+} from "kysely";
+import { describe, expect, it } from "vitest";
 
+import { DB } from "../../../../lib/types/generated/db";
 import { TMDBMovieData } from "../../../../lib/types/movie";
 import { insertMovieDetails, updateMovieDetails } from "../movieDetailsUpdater";
 
-// ─── Fluent builder stub ──────────────────────────────────────────────────────
-// Each table operation returns an object whose methods all return `this`, with
-// `execute` resolving to []. We track every `insertInto`, `updateTable`, and
-// `deleteFrom` call so tests can assert on them.
+// ─── Real Kysely over a no-op driver ─────────────────────────────────────────
+// DummyDriver compiles and "executes" queries without a connection; the `log`
+// hook collects every compiled query in execution order.
 
-function makeDbStub() {
-  const insertedInto: string[] = [];
-  const updatedTables: string[] = [];
-  const deletedFrom: string[] = [];
+function makeDb() {
+  const queries: CompiledQuery[] = [];
+  const db = new Kysely<DB>({
+    dialect: {
+      createAdapter: () => new PostgresAdapter(),
+      createDriver: () => new DummyDriver(),
+      createIntrospector: (database) => new PostgresIntrospector(database),
+      createQueryCompiler: () => new PostgresQueryCompiler(),
+    },
+    log: (event) => {
+      if (event.level === "query") queries.push(event.query);
+    },
+  });
 
-  const builder = {
-    values: vi.fn().mockReturnThis(),
-    set: vi.fn().mockReturnThis(),
-    where: vi.fn().mockReturnThis(),
-    onConflict: vi.fn((cb: (oc: unknown) => unknown) => {
-      cb({
-        column: vi.fn().mockReturnThis(),
-        columns: vi.fn().mockReturnThis(),
-        doNothing: vi.fn().mockReturnThis(),
-      });
-      return builder;
-    }),
-    execute: vi.fn().mockResolvedValue([]),
-  };
+  const didInsert = (table: keyof DB) =>
+    queries.some((q) => q.sql.includes(`insert into "${table}"`));
+  const didUpdate = (table: keyof DB) =>
+    queries.some((q) => q.sql.includes(`update "${table}"`));
+  const didDelete = (table: keyof DB) =>
+    queries.some((q) => q.sql.includes(`delete from "${table}"`));
 
-  const db = {
-    insertInto: vi.fn((table: string) => {
-      insertedInto.push(table);
-      return builder;
-    }),
-    updateTable: vi.fn((table: string) => {
-      updatedTables.push(table);
-      return builder;
-    }),
-    deleteFrom: vi.fn((table: string) => {
-      deletedFrom.push(table);
-      return builder;
-    }),
-    _insertedInto: insertedInto,
-    _updatedTables: updatedTables,
-    _deletedFrom: deletedFrom,
-  };
-
-  return db;
+  return { db, queries, didInsert, didUpdate, didDelete };
 }
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
@@ -136,67 +129,63 @@ function makeTMDBData(overrides: Partial<TMDBMovieData> = {}): TMDBMovieData {
 
 describe("insertMovieDetails", () => {
   it("inserts into movie_details", async () => {
-    const db = makeDbStub();
-    await insertMovieDetails("27205", makeTMDBData(), db as never);
-    expect(db._insertedInto).toContain("movie_details");
+    const { db, didInsert } = makeDb();
+    await insertMovieDetails("27205", makeTMDBData(), db);
+    expect(didInsert("movie_details")).toBe(true);
   });
 
   it("inserts genres when genres array is non-empty", async () => {
-    const db = makeDbStub();
-    await insertMovieDetails("27205", makeTMDBData(), db as never);
-    expect(db._insertedInto).toContain("movie_genres");
+    const { db, didInsert } = makeDb();
+    await insertMovieDetails("27205", makeTMDBData(), db);
+    expect(didInsert("movie_genres")).toBe(true);
   });
 
   it("skips genres insert when genres array is empty", async () => {
-    const db = makeDbStub();
-    await insertMovieDetails(
-      "27205",
-      makeTMDBData({ genres: [] }),
-      db as never,
-    );
-    expect(db._insertedInto).not.toContain("movie_genres");
+    const { db, didInsert } = makeDb();
+    await insertMovieDetails("27205", makeTMDBData({ genres: [] }), db);
+    expect(didInsert("movie_genres")).toBe(false);
   });
 
   it("inserts production_companies when non-empty", async () => {
-    const db = makeDbStub();
-    await insertMovieDetails("27205", makeTMDBData(), db as never);
-    expect(db._insertedInto).toContain("movie_production_companies");
+    const { db, didInsert } = makeDb();
+    await insertMovieDetails("27205", makeTMDBData(), db);
+    expect(didInsert("movie_production_companies")).toBe(true);
   });
 
   it("skips production_companies insert when empty", async () => {
-    const db = makeDbStub();
+    const { db, didInsert } = makeDb();
     await insertMovieDetails(
       "27205",
       makeTMDBData({ production_companies: [] }),
-      db as never,
+      db,
     );
-    expect(db._insertedInto).not.toContain("movie_production_companies");
+    expect(didInsert("movie_production_companies")).toBe(false);
   });
 
   it("inserts production_countries when non-empty", async () => {
-    const db = makeDbStub();
-    await insertMovieDetails("27205", makeTMDBData(), db as never);
-    expect(db._insertedInto).toContain("movie_production_countries");
+    const { db, didInsert } = makeDb();
+    await insertMovieDetails("27205", makeTMDBData(), db);
+    expect(didInsert("movie_production_countries")).toBe(true);
   });
 
   it("skips production_countries insert when empty", async () => {
-    const db = makeDbStub();
+    const { db, didInsert } = makeDb();
     await insertMovieDetails(
       "27205",
       makeTMDBData({ production_countries: [] }),
-      db as never,
+      db,
     );
-    expect(db._insertedInto).not.toContain("movie_production_countries");
+    expect(didInsert("movie_production_countries")).toBe(false);
   });
 
   it("inserts directors filtering crew by job=Director", async () => {
-    const db = makeDbStub();
-    await insertMovieDetails("27205", makeTMDBData(), db as never);
-    expect(db._insertedInto).toContain("movie_directors");
+    const { db, didInsert } = makeDb();
+    await insertMovieDetails("27205", makeTMDBData(), db);
+    expect(didInsert("movie_directors")).toBe(true);
   });
 
   it("skips directors insert when no crew with job Director", async () => {
-    const db = makeDbStub();
+    const { db, didInsert } = makeDb();
     const dataNoDirector = makeTMDBData({
       credits: {
         cast: [],
@@ -211,32 +200,28 @@ describe("insertMovieDetails", () => {
         ],
       },
     });
-    await insertMovieDetails("27205", dataNoDirector, db as never);
-    expect(db._insertedInto).not.toContain("movie_directors");
+    await insertMovieDetails("27205", dataNoDirector, db);
+    expect(didInsert("movie_directors")).toBe(false);
   });
 
   it("inserts actors when cast is non-empty", async () => {
-    const db = makeDbStub();
-    await insertMovieDetails("27205", makeTMDBData(), db as never);
-    expect(db._insertedInto).toContain("movie_actors");
+    const { db, didInsert } = makeDb();
+    await insertMovieDetails("27205", makeTMDBData(), db);
+    expect(didInsert("movie_actors")).toBe(true);
   });
 
   it("skips actors insert when cast is empty", async () => {
-    const db = makeDbStub();
+    const { db, didInsert } = makeDb();
     const dataNoActors = makeTMDBData({ credits: { cast: [], crew: [] } });
-    await insertMovieDetails("27205", dataNoActors, db as never);
-    expect(db._insertedInto).not.toContain("movie_actors");
+    await insertMovieDetails("27205", dataNoActors, db);
+    expect(didInsert("movie_actors")).toBe(false);
   });
 
   it("handles missing credits gracefully (no actors/directors insert)", async () => {
-    const db = makeDbStub();
-    await insertMovieDetails(
-      "27205",
-      makeTMDBData({ credits: undefined }),
-      db as never,
-    );
-    expect(db._insertedInto).not.toContain("movie_actors");
-    expect(db._insertedInto).not.toContain("movie_directors");
+    const { db, didInsert } = makeDb();
+    await insertMovieDetails("27205", makeTMDBData({ credits: undefined }), db);
+    expect(didInsert("movie_actors")).toBe(false);
+    expect(didInsert("movie_directors")).toBe(false);
   });
 });
 
@@ -244,103 +229,112 @@ describe("insertMovieDetails", () => {
 
 describe("updateMovieDetails", () => {
   it("updates movie_details table", async () => {
-    const db = makeDbStub();
-    await updateMovieDetails("27205", makeTMDBData(), db as never);
-    expect(db._updatedTables).toContain("movie_details");
+    const { db, didUpdate } = makeDb();
+    await updateMovieDetails("27205", makeTMDBData(), db);
+    expect(didUpdate("movie_details")).toBe(true);
   });
 
   it("deletes and re-inserts genres", async () => {
-    const db = makeDbStub();
-    await updateMovieDetails("27205", makeTMDBData(), db as never);
-    expect(db._deletedFrom).toContain("movie_genres");
-    expect(db._insertedInto).toContain("movie_genres");
+    const { db, didInsert, didDelete } = makeDb();
+    await updateMovieDetails("27205", makeTMDBData(), db);
+    expect(didDelete("movie_genres")).toBe(true);
+    expect(didInsert("movie_genres")).toBe(true);
+  });
+
+  it("deletes the old genres before re-inserting", async () => {
+    const { db, queries } = makeDb();
+    await updateMovieDetails("27205", makeTMDBData(), db);
+    const deleteIndex = queries.findIndex((q) =>
+      q.sql.includes(`delete from "movie_genres"`),
+    );
+    const insertIndex = queries.findIndex((q) =>
+      q.sql.includes(`insert into "movie_genres"`),
+    );
+    expect(deleteIndex).toBeGreaterThanOrEqual(0);
+    expect(insertIndex).toBeGreaterThan(deleteIndex);
   });
 
   it("deletes genres but skips re-insert when genres array is empty", async () => {
-    const db = makeDbStub();
-    await updateMovieDetails(
-      "27205",
-      makeTMDBData({ genres: [] }),
-      db as never,
-    );
-    expect(db._deletedFrom).toContain("movie_genres");
-    expect(db._insertedInto).not.toContain("movie_genres");
+    const { db, didInsert, didDelete } = makeDb();
+    await updateMovieDetails("27205", makeTMDBData({ genres: [] }), db);
+    expect(didDelete("movie_genres")).toBe(true);
+    expect(didInsert("movie_genres")).toBe(false);
   });
 
   it("deletes and re-inserts directors", async () => {
-    const db = makeDbStub();
-    await updateMovieDetails("27205", makeTMDBData(), db as never);
-    expect(db._deletedFrom).toContain("movie_directors");
-    expect(db._insertedInto).toContain("movie_directors");
+    const { db, didInsert, didDelete } = makeDb();
+    await updateMovieDetails("27205", makeTMDBData(), db);
+    expect(didDelete("movie_directors")).toBe(true);
+    expect(didInsert("movie_directors")).toBe(true);
   });
 
   it("deletes directors but skips re-insert when no directors in crew", async () => {
-    const db = makeDbStub();
+    const { db, didInsert, didDelete } = makeDb();
     await updateMovieDetails(
       "27205",
       makeTMDBData({ credits: { cast: [], crew: [] } }),
-      db as never,
+      db,
     );
-    expect(db._deletedFrom).toContain("movie_directors");
-    expect(db._insertedInto).not.toContain("movie_directors");
+    expect(didDelete("movie_directors")).toBe(true);
+    expect(didInsert("movie_directors")).toBe(false);
   });
 
   it("deletes and re-inserts actors", async () => {
-    const db = makeDbStub();
-    await updateMovieDetails("27205", makeTMDBData(), db as never);
-    expect(db._deletedFrom).toContain("movie_actors");
-    expect(db._insertedInto).toContain("movie_actors");
+    const { db, didInsert, didDelete } = makeDb();
+    await updateMovieDetails("27205", makeTMDBData(), db);
+    expect(didDelete("movie_actors")).toBe(true);
+    expect(didInsert("movie_actors")).toBe(true);
   });
 
   it("deletes actors but skips re-insert when cast is empty", async () => {
-    const db = makeDbStub();
+    const { db, didInsert, didDelete } = makeDb();
     await updateMovieDetails(
       "27205",
       makeTMDBData({ credits: { cast: [], crew: [] } }),
-      db as never,
+      db,
     );
-    expect(db._deletedFrom).toContain("movie_actors");
-    expect(db._insertedInto).not.toContain("movie_actors");
+    expect(didDelete("movie_actors")).toBe(true);
+    expect(didInsert("movie_actors")).toBe(false);
   });
 
   it("deletes and re-inserts production_companies", async () => {
-    const db = makeDbStub();
-    await updateMovieDetails("27205", makeTMDBData(), db as never);
-    expect(db._deletedFrom).toContain("movie_production_companies");
-    expect(db._insertedInto).toContain("movie_production_companies");
+    const { db, didInsert, didDelete } = makeDb();
+    await updateMovieDetails("27205", makeTMDBData(), db);
+    expect(didDelete("movie_production_companies")).toBe(true);
+    expect(didInsert("movie_production_companies")).toBe(true);
   });
 
   it("deletes production_companies but skips re-insert when empty", async () => {
-    const db = makeDbStub();
+    const { db, didInsert, didDelete } = makeDb();
     await updateMovieDetails(
       "27205",
       makeTMDBData({ production_companies: [] }),
-      db as never,
+      db,
     );
-    expect(db._deletedFrom).toContain("movie_production_companies");
-    expect(db._insertedInto).not.toContain("movie_production_companies");
+    expect(didDelete("movie_production_companies")).toBe(true);
+    expect(didInsert("movie_production_companies")).toBe(false);
   });
 
   it("deletes and re-inserts production_countries", async () => {
-    const db = makeDbStub();
-    await updateMovieDetails("27205", makeTMDBData(), db as never);
-    expect(db._deletedFrom).toContain("movie_production_countries");
-    expect(db._insertedInto).toContain("movie_production_countries");
+    const { db, didInsert, didDelete } = makeDb();
+    await updateMovieDetails("27205", makeTMDBData(), db);
+    expect(didDelete("movie_production_countries")).toBe(true);
+    expect(didInsert("movie_production_countries")).toBe(true);
   });
 
   it("deletes production_countries but skips re-insert when empty", async () => {
-    const db = makeDbStub();
+    const { db, didInsert, didDelete } = makeDb();
     await updateMovieDetails(
       "27205",
       makeTMDBData({ production_countries: [] }),
-      db as never,
+      db,
     );
-    expect(db._deletedFrom).toContain("movie_production_countries");
-    expect(db._insertedInto).not.toContain("movie_production_countries");
+    expect(didDelete("movie_production_countries")).toBe(true);
+    expect(didInsert("movie_production_countries")).toBe(false);
   });
 
   it("deduplicates production_companies by name", async () => {
-    const db = makeDbStub();
+    const { db, queries } = makeDb();
     const dupData = makeTMDBData({
       production_companies: [
         { id: 1, name: "WB", logo_path: "/wb1.png", origin_country: "US" },
@@ -353,16 +347,16 @@ describe("updateMovieDetails", () => {
         },
       ],
     });
-    await updateMovieDetails("27205", dupData, db as never);
-    // values() was called for movie_production_companies; check its argument
-    const insertCalls = db.insertInto.mock.calls.filter(
-      (c) => c[0] === "movie_production_companies",
+    await updateMovieDetails("27205", dupData, db);
+
+    const companiesInsert = queries.find((q) =>
+      q.sql.includes(`insert into "movie_production_companies"`),
     );
-    expect(insertCalls.length).toBeGreaterThan(0);
-    // builder.values should have been called with 2 unique companies
-    const valuesCalls = db._insertedInto.filter(
-      (t) => t === "movie_production_companies",
+    expect(companiesInsert).toBeDefined();
+    // Two unique companies => "WB" is bound exactly once (not twice).
+    expect(companiesInsert?.parameters.filter((p) => p === "WB")).toHaveLength(
+      1,
     );
-    expect(valuesCalls.length).toBe(1);
+    expect(companiesInsert?.parameters).toContain("Universal");
   });
 });
