@@ -1,5 +1,6 @@
 import { sql } from "kysely";
 
+import { isDefined } from "../../../lib/checks/checks";
 import { ClubType, WorkListSystemType } from "../../../lib/types/generated/db";
 import { db } from "../utils/database";
 
@@ -175,6 +176,10 @@ class ListRepository {
    * UI and by the review flow (which moves from any source list into the
    * `reviews` system list). The destination insert is a no-op if the work is
    * already on the target list, so a movie can safely be on multiple lists.
+   *
+   * The original "added by" user and "time added" are carried forward to the
+   * destination so attribution survives a move rather than resetting to the
+   * mover and the current time.
    */
   async moveItem(
     sourceListId: string,
@@ -194,7 +199,7 @@ class ListRepository {
           .selectFrom("work_list_item")
           .where("list_id", "=", sourceListId)
           .where("work_id", "=", workId)
-          .select("added_by_user_id")
+          .select(["added_by_user_id", "time_added"])
           .executeTakeFirst(),
       ]);
 
@@ -205,6 +210,9 @@ class ListRepository {
           work_id: workId,
           position: max.next_position,
           added_by_user_id: source?.added_by_user_id ?? null,
+          ...(isDefined(source?.time_added)
+            ? { time_added: source.time_added }
+            : {}),
         })
         .onConflict((oc) => oc.columns(["list_id", "work_id"]).doNothing())
         .execute();
