@@ -37,7 +37,7 @@ function movieItem(
     createdDate: "2026-01-01",
     externalData: {
       kind: "movie",
-      actors: [],
+      actors: data.actors ?? [],
       directors: [],
       genres: data.genres ?? [],
       production_companies: data.production_companies ?? [],
@@ -205,6 +205,98 @@ describe("filterWorks enum and free-text filters", () => {
         filterWorks(books, { filters: {}, freeText: "tolkien" }, ClubType.book),
       ),
     ).toEqual(["tolkien"]);
+  });
+});
+
+describe("filterWorks movie actor filter", () => {
+  const movies = [
+    movieItem("forrest", {
+      title: "Forrest Gump",
+      genres: ["Drama"],
+      actors: [
+        { name: "Tom Hanks", profilePath: null },
+        { name: "Robin Wright", profilePath: "/rw.jpg" },
+      ],
+    }),
+    movieItem("matrix", {
+      title: "The Matrix",
+      genres: ["Action"],
+      actors: [
+        { name: "Keanu Reeves", profilePath: "/kr.jpg" },
+        { name: "Laurence Fishburne", profilePath: null },
+      ],
+    }),
+    movieItem("silent", { title: "Silent Film", actors: [] }),
+  ];
+
+  it("matches movies where an actor name contains the value", () => {
+    expect(
+      ids(
+        filterWorks(
+          movies,
+          { filters: { actor: { value: "Tom Hanks" } }, freeText: "" },
+          ClubType.movie,
+        ),
+      ),
+    ).toEqual(["forrest"]);
+  });
+
+  it("is case-insensitive and matches partial names", () => {
+    expect(
+      ids(
+        filterWorks(
+          movies,
+          { filters: { actor: { value: "hanks" } }, freeText: "" },
+          ClubType.movie,
+        ),
+      ),
+    ).toEqual(["forrest"]);
+  });
+
+  it("excludes movies with no matching actor", () => {
+    expect(
+      ids(
+        filterWorks(
+          movies,
+          { filters: { actor: { value: "Meryl Streep" } }, freeText: "" },
+          ClubType.movie,
+        ),
+      ),
+    ).toEqual([]);
+  });
+
+  it("ANDs the actor filter with other filters", () => {
+    expect(
+      ids(
+        filterWorks(
+          movies,
+          {
+            filters: {
+              actor: { value: "hanks" },
+              genre: { value: "Drama" },
+            },
+            freeText: "",
+          },
+          ClubType.movie,
+        ),
+      ),
+    ).toEqual(["forrest"]);
+
+    expect(
+      ids(
+        filterWorks(
+          movies,
+          {
+            filters: {
+              actor: { value: "Tom Hanks" },
+              genre: { value: "Action" },
+            },
+            freeText: "",
+          },
+          ClubType.movie,
+        ),
+      ),
+    ).toEqual([]);
   });
 });
 
