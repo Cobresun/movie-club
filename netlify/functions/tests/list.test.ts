@@ -510,6 +510,7 @@ describe("POST /api/club/:clubSlug/list/:listId/items", () => {
     expect(ListRepository.insertItemInList).toHaveBeenCalledWith(
       LIST_ID,
       "work-new",
+      "user-1",
     );
   });
 
@@ -541,6 +542,7 @@ describe("POST /api/club/:clubSlug/list/:listId/items", () => {
     expect(ListRepository.insertItemInList).toHaveBeenCalledWith(
       LIST_ID,
       "work-existing",
+      "user-1",
     );
   });
 

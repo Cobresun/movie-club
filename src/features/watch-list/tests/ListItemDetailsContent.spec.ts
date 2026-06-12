@@ -1,6 +1,7 @@
 import { screen } from "@testing-library/vue";
 import { http, HttpResponse } from "msw";
 
+import { Member } from "../../../../lib/types/club";
 import { WorkType } from "../../../../lib/types/generated/db";
 import { DetailedWorkListItem } from "../../../../lib/types/lists";
 import ListItemDetailsContent from "../components/ListItemDetailsContent.vue";
@@ -55,6 +56,28 @@ describe("ListItemDetailsContent", () => {
     render(ListItemDetailsContent, { props: baseProps });
 
     expect(await screen.findByText("Inception")).toBeInTheDocument();
+  });
+
+  it("shows who added the item when addedByMember is provided", async () => {
+    const adder: Member = {
+      id: "user-1",
+      email: "alice@example.com",
+      name: "Alice",
+      image: "https://test.com/alice.jpg",
+    };
+
+    render(ListItemDetailsContent, {
+      props: { ...baseProps, addedByMember: adder },
+    });
+
+    expect(await screen.findByText(/Added by Alice on/)).toBeInTheDocument();
+  });
+
+  it("omits the attribution line when no addedByMember is provided", async () => {
+    render(ListItemDetailsContent, { props: baseProps });
+
+    await screen.findByText("Inception");
+    expect(screen.queryByText(/Added by/)).not.toBeInTheDocument();
   });
 
   it("emits set-next-work from the 'Up Next' action", async () => {
