@@ -11,12 +11,17 @@ import Toast from "vue-toastification";
 
 import PiniaStoreHelperTest from "./PiniaStoreHelper.test.vue";
 
+import MenuCard from "@/features/clubs/components/MenuCard.vue";
+
 import EmptyState from "@/common/components/EmptyState.vue";
 import LoadingSpinner from "@/common/components/LoadingSpinner.vue";
 import PageHeader from "@/common/components/PageHeader.vue";
 import VAvatar from "@/common/components/VAvatar.vue";
+import VBackdrop from "@/common/components/VBackdrop.vue";
 import VBtn from "@/common/components/VBtn.vue";
 import VModal from "@/common/components/VModal.vue";
+import VSelect from "@/common/components/VSelect.vue";
+import VSwitch from "@/common/components/VSwitch.vue";
 import VTable from "@/common/components/VTable.vue";
 import LazyLoad from "@/directives/LazyLoad";
 
@@ -35,10 +40,16 @@ export const render = <C>(
       global: {
         ...options.global,
         components: {
+          // Mirror the global components registered in src/main.ts so view
+          // tests render real markup instead of unresolved custom elements.
           "v-avatar": VAvatar,
+          "v-backdrop": VBackdrop,
           "v-btn": VBtn,
+          "v-select": VSelect,
+          "v-switch": VSwitch,
           "empty-state": EmptyState,
           "loading-spinner": LoadingSpinner,
+          "menu-card": MenuCard,
           "movie-table": VTable,
           "v-modal": VModal,
           "page-header": PageHeader,
