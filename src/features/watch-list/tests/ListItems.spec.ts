@@ -14,6 +14,7 @@ const defaultProps = {
   clubSlug: "test-club",
   listId: "1",
   otherLists: [],
+  members: [],
   reviewsListId: null,
   selectedItemId: null,
 };
