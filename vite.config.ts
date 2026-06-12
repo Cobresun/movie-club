@@ -39,14 +39,15 @@ export default defineConfig({
       all: true,
       provider: "istanbul",
       reporter: ["text", "json", "html"],
-      // Regression guards set just below levels achieved by the 2026-06 test
-      // suite overhaul (45% stmts / 37% branch / 38% func / 46% lines).
+      // Regression guards set just below the levels achieved by the test
+      // suite (50% stmts / 41% branch / 43% func / 50% lines after the
+      // profile/settings/watch-list/awards/reviews follow-up coverage).
       // Raise these as coverage grows; never lower them to merge.
       thresholds: {
-        statements: 44,
-        branches: 35,
-        functions: 36,
-        lines: 44,
+        statements: 49,
+        branches: 40,
+        functions: 42,
+        lines: 49,
       },
       include: [
         "src/**/*.{ts,vue}",
