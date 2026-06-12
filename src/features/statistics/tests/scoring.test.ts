@@ -41,6 +41,8 @@ type TooltipRendererParams = {
   xKey: string;
   yKey: string;
   seriesId: string;
+  xName?: string;
+  yName?: string;
 };
 
 function isTooltipRenderer(
@@ -49,7 +51,11 @@ function isTooltipRenderer(
   return typeof v === "function";
 }
 
-function renderTooltip(series: Record<string, unknown>, datum: unknown) {
+function renderTooltip(
+  series: Record<string, unknown>,
+  datum: unknown,
+  overrides: Partial<TooltipRendererParams> = {},
+) {
   const renderer = asRecord(series.tooltip).renderer;
   if (!isTooltipRenderer(renderer)) {
     throw new Error("expected a tooltip renderer function");
@@ -60,6 +66,7 @@ function renderTooltip(series: Record<string, unknown>, datum: unknown) {
     xKey: "",
     yKey: "",
     seriesId: "",
+    ...overrides,
   });
   if (typeof html !== "string") {
     throw new Error("expected tooltip renderer to return a string");
@@ -294,7 +301,7 @@ describe("createHistogramOptions", () => {
       histogramData: histData,
       members,
     });
-    const data = options.data as { bin: number; m1: number }[];
+    const data = asRecordArray(options.data);
     expect(data[8].m1).toBe(2);
     expect(data[5].m1).toBe(1);
   });
@@ -308,8 +315,11 @@ describe("createHistogramOptions", () => {
       histogramData: histData,
       members,
     });
-    const data = options.data as { bin: number; m1: number }[];
-    const totalCount = data.reduce((sum, bin) => sum + (bin.m1 ?? 0), 0);
+    const data = asRecordArray(options.data);
+    const totalCount = data.reduce(
+      (sum, bin) => sum + (typeof bin.m1 === "number" ? bin.m1 : 0),
+      0,
+    );
     expect(totalCount).toBe(0);
   });
 
@@ -320,15 +330,11 @@ describe("createHistogramOptions", () => {
       histogramData: createHistogramData([5]),
       members,
     });
-    const series = options.series as {
-      tooltip: { renderer: (p: unknown) => string };
-    }[];
-    const result = series[0].tooltip.renderer({
-      yKey: "m1",
-      xName: "Score",
-      yName: "Alice",
-      datum: { bin: 7, m1: 3 },
-    });
+    const result = renderTooltip(
+      asRecordArray(options.series)[0],
+      { bin: 7, m1: 3 },
+      { yKey: "m1", xName: "Score", yName: "Alice" },
+    );
     expect(result).toContain("Alice");
     expect(result).toContain("Score");
   });
@@ -339,7 +345,7 @@ describe("createHistogramOptions", () => {
       histogramData: createHistogramData([]),
       members: [],
     });
-    const axes = options.axes as { type: string }[];
+    const axes = asRecordArray(options.axes);
     expect(axes).toHaveLength(2);
     expect(axes[0].type).toBe("category");
     expect(axes[1].type).toBe("number");

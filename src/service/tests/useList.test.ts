@@ -442,13 +442,12 @@ describe("useReorderList", () => {
 
 describe("useMoveListItem", () => {
   it("POSTs move to /api/club/:id/list/:sourceListId/items/:workId/move", async () => {
-    let capturedDestination = "";
+    let capturedBody: unknown = null;
     server.use(
       http.post(
         "/api/club/:id/list/:listId/items/:workId/move",
         async ({ request }) => {
-          const body = (await request.json()) as { destinationListId: string };
-          capturedDestination = body.destinationListId;
+          capturedBody = await request.json();
           return new HttpResponse(null, { status: 200 });
         },
       ),
@@ -470,7 +469,7 @@ describe("useMoveListItem", () => {
     const { getByRole, findByText } = render(Harness);
     getByRole("button").click();
     await findByText("done");
-    expect(capturedDestination).toBe("list-dst");
+    expect(capturedBody).toMatchObject({ destinationListId: "list-dst" });
   });
 });
 

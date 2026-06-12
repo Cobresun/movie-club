@@ -23,6 +23,7 @@ vi.mock("../repositories/DatabaseCleanupRepository", () => ({
 
 import DatabaseCleanupRepository from "../repositories/DatabaseCleanupRepository";
 import handler from "../scheduled-db-cleanup";
+import { parseBody } from "./helpers";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -50,12 +51,12 @@ describe("scheduled-db-cleanup handler", () => {
     const response = await handler(req);
 
     expect(response.status).toBe(200);
-    const body = (await response.json()) as {
+    const body = parseBody<{
       success: boolean;
       count: number;
       deleted: string[];
       next_run: string;
-    };
+    }>(await response.text());
     expect(body.success).toBe(true);
     expect(body.count).toBe(2);
     expect(body.deleted).toEqual(["pr_123", "dev_old_feature"]);
@@ -86,7 +87,9 @@ describe("scheduled-db-cleanup handler", () => {
     const response = await handler(req);
 
     expect(response.status).toBe(200);
-    const body = (await response.json()) as { success: boolean; count: number };
+    const body = parseBody<{ success: boolean; count: number }>(
+      await response.text(),
+    );
     expect(body.success).toBe(true);
     expect(body.count).toBe(0);
   });
@@ -96,7 +99,7 @@ describe("scheduled-db-cleanup handler", () => {
     const response = await handler(req);
 
     expect(response.status).toBe(500);
-    const body = (await response.json()) as { success: boolean };
+    const body = parseBody<{ success: boolean }>(await response.text());
     expect(body.success).toBe(false);
   });
 
@@ -109,10 +112,9 @@ describe("scheduled-db-cleanup handler", () => {
     const response = await handler(req);
 
     expect(response.status).toBe(500);
-    const body = (await response.json()) as {
-      success: boolean;
-      error: string;
-    };
+    const body = parseBody<{ success: boolean; error: string }>(
+      await response.text(),
+    );
     expect(body.success).toBe(false);
     expect(body.error).toContain("Connection refused");
   });
