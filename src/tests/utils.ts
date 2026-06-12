@@ -8,6 +8,8 @@ import { TransitionGroup } from "vue";
 import Toast from "vue-toastification";
 
 import PiniaStoreHelperTest from "./PiniaStoreHelper.test.vue";
+
+import EmptyState from "@/common/components/EmptyState.vue";
 import LoadingSpinner from "@/common/components/LoadingSpinner.vue";
 import PageHeader from "@/common/components/PageHeader.vue";
 import VAvatar from "@/common/components/VAvatar.vue";
@@ -31,19 +33,31 @@ export const render = <C>(component: C, options: Partial<RenderOptions<C>> = {})
         components: {
           "v-avatar": VAvatar,
           "v-btn": VBtn,
+          "empty-state": EmptyState,
           "loading-spinner": LoadingSpinner,
           "movie-table": VTable,
           "v-modal": VModal,
           "page-header": PageHeader,
           DraggableTransitionGroup: TransitionGroup,
+          ...options.global?.components,
         },
-        plugins: [VueQueryPlugin, pinia, [mdiVue, { icons: mdijs }], Toast],
+        plugins: [
+          // Disable query retries so error-path tests surface the error state
+          // immediately instead of racing the default 3× exponential backoff.
+          [
+            VueQueryPlugin,
+            { queryClientConfig: { defaultOptions: { queries: { retry: false } } } },
+          ],
+          pinia,
+          [mdiVue, { icons: mdijs }],
+          Toast,
+        ],
         directives: { "lazy-load": LazyLoad, reveal: Reveal },
         stubs: {
           "router-link": true,
           "router-view": true,
           ...(Array.isArray(options.global?.stubs)
-            ? Object.fromEntries(options.global.stubs.map((s) => [s, true]))
+            ? Object.fromEntries(options.global.stubs.map((s: string) => [s, true]))
             : options.global?.stubs),
         },
       },

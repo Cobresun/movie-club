@@ -2,6 +2,7 @@ import { TestingPinia } from "@pinia/testing";
 import { screen, within } from "@testing-library/vue";
 import { http, HttpResponse } from "msw";
 
+import { ensure } from "../../../../lib/checks/checks";
 import ReviewView from "../views/ReviewView.vue";
 import memberData from "@/mocks/data/member.json";
 import reviews from "@/mocks/data/reviews.json";
@@ -149,11 +150,13 @@ describe("ReviewView", () => {
     const viewSwitch = screen.getByRole("switch");
     await user.click(viewSwitch);
 
-    const row = (
-      await screen.findByRole("cell", {
-        name: (content) => content.includes("The Empire Strikes Back"),
-      })
-    ).closest("tr") as HTMLElement;
+    const row = ensure(
+      (
+        await screen.findByRole("cell", {
+          name: (content) => content.includes("The Empire Strikes Back"),
+        })
+      ).closest("tr"),
+    );
 
     const addScoreButton = await within(row).findByRole("button", {
       name: "Add score",

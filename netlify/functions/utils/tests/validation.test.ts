@@ -1,4 +1,8 @@
-import { HandlerContext, HandlerEvent } from "@netlify/functions";
+import {
+  HandlerContext,
+  HandlerEvent,
+  HandlerResponse,
+} from "@netlify/functions";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -7,7 +11,7 @@ import {
 } from "../../../../lib/types/generated/db";
 import ClubRepository from "../../repositories/ClubRepository";
 import ListRepository from "../../repositories/ListRepository";
-import { Request } from "../router";
+import { createRouterResponse, Request, RouterResponse } from "../router";
 import { ClubRequest, validClubSlug, validListId } from "../validation";
 
 // Vitest hoists vi.mock above all imports, so the database and repositories
@@ -87,12 +91,10 @@ function makeClubRequest(
 
 // Typed res helper that records what was passed
 function makeRes() {
-  const calls: { statusCode: number }[] = [];
-  const res = (data: { statusCode: number }) => {
+  const calls: HandlerResponse[] = [];
+  const res = (data: HandlerResponse): RouterResponse => {
     calls.push(data);
-    return { type: Symbol(), response: data } as unknown as ReturnType<
-      Parameters<typeof validClubSlug>[1]
-    >;
+    return createRouterResponse(data);
   };
   return { res, calls };
 }
