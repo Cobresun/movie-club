@@ -76,7 +76,7 @@ describe("ClubHomeView", () => {
     );
     expect(plusPill).toBeInTheDocument();
     if (plusPill) {
-      await user.click(plusPill as HTMLElement);
+      await user.click(plusPill);
     }
 
     expect(await screen.findByText("Invite Members")).toBeInTheDocument();
@@ -91,7 +91,7 @@ describe("ClubHomeView", () => {
     const plusPill = container.querySelector(
       ".rounded-full.border-2.border-slate-600.bg-gray-500",
     );
-    if (plusPill) await user.click(plusPill as HTMLElement);
+    if (plusPill) await user.click(plusPill);
 
     const input = await screen.findByDisplayValue(
       /join-club\/test-invite-token-123/,

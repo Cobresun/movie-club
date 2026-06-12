@@ -27,9 +27,10 @@ import handler from "../scheduled-db-cleanup";
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function makeRequest(body: unknown): Request {
-  return {
-    json: () => Promise.resolve(body),
-  } as unknown as Request;
+  return new Request("http://localhost/scheduled-db-cleanup", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
 }
 
 beforeEach(() => {

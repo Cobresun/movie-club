@@ -1,4 +1,5 @@
 import type { Member } from "../../../../lib/types/club";
+import { WorkType } from "../../../../lib/types/generated/db";
 import {
   normalizeArray,
   createHistogramData,
@@ -214,7 +215,7 @@ function makeMember(id: string, name: string): Member {
 function makeMovieData(overrides: Partial<MovieData> = {}): MovieData {
   return {
     id: "1",
-    type: "movie" as MovieData["type"],
+    type: WorkType.movie,
     title: "Test Movie",
     createdDate: "2024-01-01T00:00:00.000Z",
     imageUrl: undefined,

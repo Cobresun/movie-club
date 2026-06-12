@@ -252,10 +252,7 @@ describe("CommentThread", () => {
 
     await screen.findByText("Edit me");
 
-    const editBtn = document.querySelectorAll(
-      "button[class*='text-gray-500']",
-    )[0] as HTMLElement;
-    await user.click(editBtn);
+    await user.click(screen.getByRole("button", { name: "Edit comment" }));
 
     // Edit textarea should appear with current content
     const editTextarea = document.querySelectorAll("textarea")[0];
@@ -282,10 +279,7 @@ describe("CommentThread", () => {
     const { user } = renderAsCurrentUser();
     await screen.findByText("Cancel this");
 
-    const editBtn = document.querySelectorAll(
-      "button[class*='text-gray-500']",
-    )[0] as HTMLElement;
-    await user.click(editBtn);
+    await user.click(screen.getByRole("button", { name: "Edit comment" }));
 
     await user.click(screen.getByRole("button", { name: /cancel/i }));
 
@@ -312,10 +306,7 @@ describe("CommentThread", () => {
     const { user } = renderAsCurrentUser();
     await screen.findByText("Delete me");
 
-    const deleteBtn = document.querySelectorAll(
-      "button[class*='text-gray-500']",
-    )[1] as HTMLElement;
-    await user.click(deleteBtn);
+    await user.click(screen.getByRole("button", { name: "Delete comment" }));
 
     expect(await screen.findByText("Delete Comment")).toBeInTheDocument();
   });
