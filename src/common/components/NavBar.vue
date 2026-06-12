@@ -43,11 +43,17 @@ const currentSlug = computed(() => {
   return Array.isArray(slug) ? slug[0] : slug;
 });
 
-const hasClubContext = computed(() => hasValue(currentSlug.value));
+// A clubSlug in the route (e.g. on a /share/... page) only counts as club
+// context when the user is actually a member of that club; visitors should
+// be sent to the root instead of a club they can't access.
+const hasClubContext = computed(() => {
+  const slug = currentSlug.value;
+  return hasValue(slug) && store.isClubMember(slug);
+});
 
 const logoDestination = computed(() => {
   const slug = currentSlug.value;
-  if (hasValue(slug)) {
+  if (hasValue(slug) && store.isClubMember(slug)) {
     return { name: "ClubHome", params: { clubSlug: slug } };
   }
   return "/";
