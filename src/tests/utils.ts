@@ -11,8 +11,6 @@ import Toast from "vue-toastification";
 
 import PiniaStoreHelperTest from "./PiniaStoreHelper.test.vue";
 
-import MenuCard from "@/features/clubs/components/MenuCard.vue";
-
 import EmptyState from "@/common/components/EmptyState.vue";
 import LoadingSpinner from "@/common/components/LoadingSpinner.vue";
 import PageHeader from "@/common/components/PageHeader.vue";
@@ -24,6 +22,7 @@ import VSelect from "@/common/components/VSelect.vue";
 import VSwitch from "@/common/components/VSwitch.vue";
 import VTable from "@/common/components/VTable.vue";
 import LazyLoad from "@/directives/LazyLoad";
+import MenuCard from "@/features/clubs/components/MenuCard.vue";
 
 export const render = <C>(
   component: C,
