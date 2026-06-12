@@ -207,7 +207,8 @@ export const CLUB_TYPE_CONFIG: Record<ClubType, ClubTypeConfig> = {
     label: "Movie club",
     noun: "movie",
     searchHint: "Search for a movie to add.",
-    searchableFieldsHint: "title, genre, company, director, or release year",
+    searchableFieldsHint:
+      "title, genre, company, director, actor, or release year",
     filterOptions: [
       enumOption(
         "genre",
@@ -227,6 +228,12 @@ export const CLUB_TYPE_CONFIG: Record<ClubType, ClubTypeConfig> = {
         "Director",
         "Select a director",
         (data) => asMovie(data)?.directors?.map((d) => d.name) ?? [],
+      ),
+      enumOption(
+        "actor",
+        "Actor",
+        "Select an actor",
+        (data) => asMovie(data)?.actors?.map((a) => a.name) ?? [],
       ),
       reviewDateOption,
       dateOption(
