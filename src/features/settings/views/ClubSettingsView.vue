@@ -42,20 +42,6 @@
         <div class="rounded-lg bg-gray-800 p-4">
           <div class="flex items-center justify-between gap-4">
             <div class="flex-1">
-              <h4 class="font-medium">Blur Scores</h4>
-              <p class="mt-1 text-sm text-gray-400">
-                Hide other members' scores until you submit your own
-              </p>
-            </div>
-            <v-switch
-              :model-value="blurScoresEnabled"
-              color="primary"
-              class="ml-5 flex-shrink-0"
-              @update:model-value="updateBlurScoresFeature"
-            />
-          </div>
-          <div class="mt-3 flex items-center justify-between gap-4">
-            <div class="flex-1">
               <h4 class="font-medium">Awards</h4>
               <p class="mt-1 text-sm text-gray-400">
                 Enable the awards feature for this club
@@ -353,9 +339,6 @@ const hasNameChanged = computed(() => {
 
 const { mutate: updateSlugMutation, isPending: isUpdatingSlug } =
   useUpdateClubSlug(clubId);
-const blurScoresEnabled = computed(
-  () => settings.value?.features?.blurScores === true,
-);
 const awardsEnabled = computed(() => settings.value?.features?.awards === true);
 const discussionQuestionsEnabled = computed(
   () => settings.value?.features?.discussionQuestions === true,
@@ -439,16 +422,6 @@ const saveSlug = () => {
 const updateAwardsFeature = (value: boolean) => {
   updateSettings(
     { features: { awards: value } },
-    {
-      onSuccess: () => toast.success("Settings updated successfully"),
-      onError: () => toast.error("Failed to update settings"),
-    },
-  );
-};
-
-const updateBlurScoresFeature = (value: boolean) => {
-  updateSettings(
-    { features: { blurScores: value } },
     {
       onSuccess: () => toast.success("Settings updated successfully"),
       onError: () => toast.error("Failed to update settings"),

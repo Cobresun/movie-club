@@ -10,7 +10,6 @@
         :revealed-movie-ids="revealedMovieIds"
         :has-rated="hasRated"
         :current-user-id="currentUserId"
-        :blur-scores-enabled="blurScoresEnabled"
         :is-desktop="isDesktop"
         @close="close"
         @toggle-reveal="toggleMovieReveal"
@@ -27,7 +26,6 @@
         :revealed-movie-ids="revealedMovieIds"
         :has-rated="hasRated"
         :current-user-id="currentUserId"
-        :blur-scores-enabled="blurScoresEnabled"
         :is-desktop="isDesktop"
         @close="close"
         @toggle-reveal="toggleMovieReveal"
@@ -53,7 +51,6 @@ defineProps<{
   revealedMovieIds: Set<string>;
   hasRated: (movieId: string) => boolean;
   currentUserId?: string;
-  blurScoresEnabled: boolean;
 }>();
 
 const emit = defineEmits<{

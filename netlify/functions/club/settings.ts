@@ -18,7 +18,6 @@ router.get("/", secured, async ({ clubId }, res) => {
 const updateSettingsSchema = z.object({
   features: z
     .object({
-      blurScores: z.boolean(),
       awards: z.boolean(),
       discussionQuestions: z.boolean(),
     })

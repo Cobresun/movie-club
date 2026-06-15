@@ -57,7 +57,6 @@
           :revealed-movie-ids="revealedMovieIds"
           :has-rated="hasUserRated"
           :current-user-id="userId"
-          :blur-scores-enabled="blurScoresEnabled === true"
           @toggle-reveal="toggleReveal"
         />
       </template>
@@ -92,12 +91,7 @@ import VAvatar from "@/common/components/VAvatar.vue";
 import VToggle from "@/common/components/VToggle.vue";
 import { asMovie } from "@/common/workDisplay";
 import AddReviewPrompt from "@/features/reviews/components/AddReviewPrompt.vue";
-import {
-  useClub,
-  useIsInClub,
-  useMembers,
-  useClubSettings,
-} from "@/service/useClub";
+import { useClub, useIsInClub, useMembers } from "@/service/useClub";
 import {
   useDeleteReview,
   useReviewsList,
@@ -111,14 +105,6 @@ const isGalleryView = ref(true);
 
 // Load club data for share functionality
 const { data: club } = useClub(clubSlug);
-
-// Load club settings to check if blur scores is enabled
-const { data: settings, isLoading: isLoadingSettings } =
-  useClubSettings(clubSlug);
-const blurScoresEnabled = computed(
-  () =>
-    settings.value?.features?.blurScores === true || isLoadingSettings.value,
-);
 
 onMounted(() => {
   const savedView = localStorage.getItem("isGalleryView");
@@ -233,10 +219,6 @@ const toggleReveal = (movieId: string) => {
 };
 
 const shouldBlurScore = (rowId: string, columnId: string) => {
-  if (!blurScoresEnabled.value) {
-    return false;
-  }
-
   if (hasUserRated.value(rowId) || revealedMovieIds.value.has(rowId)) {
     return false;
   }

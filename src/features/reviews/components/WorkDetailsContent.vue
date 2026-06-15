@@ -418,7 +418,6 @@ const props = defineProps<{
   revealedMovieIds: Set<string>;
   hasRated: (movieId: string) => boolean;
   currentUserId?: string;
-  blurScoresEnabled: boolean;
   isDesktop: boolean;
 }>();
 
@@ -566,11 +565,6 @@ const toggleMovieReveal = (movieId: string) => {
 };
 
 const shouldBlurScore = (rowId: string, columnId: string) => {
-  // If blur scores setting is disabled in club settings, don't blur anything
-  if (!props.blurScoresEnabled) {
-    return false;
-  }
-
   if (props.hasRated(rowId) || props.revealedMovieIds.has(rowId)) {
     return false;
   }
@@ -591,7 +585,6 @@ const hasClubScoresToReveal = computed(() => {
 });
 
 const showRevealPill = computed(() => {
-  if (!props.blurScoresEnabled) return false;
   if (
     props.hasRated(props.movie.id) ||
     props.revealedMovieIds.has(props.movie.id)
@@ -603,7 +596,6 @@ const showRevealPill = computed(() => {
 const tmdbRevealed = ref(false);
 
 const shouldBlurTmdbScore = computed(() => {
-  if (!props.blurScoresEnabled) return false;
   if (props.hasRated(props.movie.id) || tmdbRevealed.value) return false;
   return true;
 });
