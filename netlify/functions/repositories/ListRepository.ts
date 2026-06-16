@@ -180,6 +180,11 @@ class ListRepository {
    * The original "added by" user and "time added" are carried forward to the
    * destination so attribution survives a move rather than resetting to the
    * mover and the current time.
+   *
+   * Exception: the reviews system list reuses `time_added` as the "date
+   * reviewed", so a move into reviews must stamp the current time (the column
+   * default) rather than carry the source list's added-date forward, which
+   * would back-date the review.
    */
   async moveItem(
     sourceListId: string,
@@ -187,7 +192,7 @@ class ListRepository {
     workId: string,
   ) {
     return db.transaction().execute(async (trx) => {
-      const [max, source] = await Promise.all([
+      const [max, source, destination] = await Promise.all([
         trx
           .selectFrom("work_list_item")
           .where("list_id", "=", destinationListId)
@@ -201,7 +206,15 @@ class ListRepository {
           .where("work_id", "=", workId)
           .select(["added_by_user_id", "time_added"])
           .executeTakeFirst(),
+        trx
+          .selectFrom("work_list")
+          .where("id", "=", destinationListId)
+          .select("system_type")
+          .executeTakeFirst(),
       ]);
+
+      const isMoveIntoReviews =
+        destination?.system_type === WorkListSystemType.reviews;
 
       await trx
         .insertInto("work_list_item")
@@ -210,7 +223,7 @@ class ListRepository {
           work_id: workId,
           position: max.next_position,
           added_by_user_id: source?.added_by_user_id ?? null,
-          ...(isDefined(source?.time_added)
+          ...(isDefined(source?.time_added) && !isMoveIntoReviews
             ? { time_added: source.time_added }
             : {}),
         })
