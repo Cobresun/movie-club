@@ -6,7 +6,7 @@
       <div
         v-if="isVisible"
         ref="sheetRef"
-        class="fixed inset-x-0 bottom-0 max-h-[90vh] w-full overflow-y-auto rounded-t-2xl bg-background"
+        class="sheet fixed inset-x-0 bottom-0 w-full overflow-y-auto rounded-t-2xl bg-background"
         :class="[
           contentZIndexClass,
           {
@@ -38,6 +38,7 @@
 import { computed, ref } from "vue";
 
 import VBackdrop from "./VBackdrop.vue";
+import { useBackButtonClose } from "../composables/useBackButtonClose.js";
 import { useBodyScrollLock } from "../composables/useBodyScrollLock.js";
 
 type ZIndex = "40" | "50" | "60";
@@ -82,6 +83,9 @@ const handleClose = (immediate = false) => {
     isVisible.value = false;
   }
 };
+
+// Dismiss the sheet when the browser back button (or back gesture) is pressed.
+useBackButtonClose(() => handleClose());
 
 const touchStartY = ref<number | null>(null);
 const touchStartTime = ref<number | null>(null);
@@ -155,6 +159,16 @@ const sheetStyle = computed(() => {
 </script>
 
 <style scoped>
+.sheet {
+  /* Cap the sheet height so the grabber stays on screen. `dvh` tracks the
+     *visible* viewport, which matters on mobile browsers (notably Chrome/Safari
+     on iOS) where the address bar shrinks the visible area: plain `vh` resolves
+     to the larger toolbar-hidden viewport, pushing the grabber off the top of
+     the screen. `vh` is kept as a fallback for browsers without `dvh`. */
+  max-height: 90vh;
+  max-height: 90dvh;
+}
+
 .slide-up-enter-active,
 .slide-up-leave-active {
   transition: transform 200ms ease-in-out;
