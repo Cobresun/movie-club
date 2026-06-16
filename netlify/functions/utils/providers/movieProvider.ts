@@ -66,8 +66,12 @@ function detailsQuery(externalIds: string[]) {
         .select([
           "external_id",
           sql<
-            { name: string; profilePath: string | null }[]
-          >`json_agg(json_build_object('name', actor_name, 'profilePath', profile_path) ORDER BY cast_order)`.as(
+            {
+              name: string;
+              character: string | null;
+              profilePath: string | null;
+            }[]
+          >`json_agg(json_build_object('name', actor_name, 'character', character_name, 'profilePath', profile_path) ORDER BY cast_order)`.as(
             "actors",
           ),
         ])
