@@ -146,7 +146,7 @@ const emit = defineEmits<{
 }>();
 
 const CUSTOM_RENDERED_COLUMNS = ["title", "imageUrl", "createdDate"];
-const NON_SORTABLE_COLUMNS = ["imageUrl"];
+const NON_SORTABLE_COLUMNS = ["imageUrl", "title"];
 
 const getVisibleCells = (row: Row<DetailedReviewListItem>) => {
   return row.getVisibleCells().filter((cell) => {
