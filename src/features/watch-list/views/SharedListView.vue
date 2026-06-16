@@ -18,7 +18,7 @@
         description="This list is empty."
       />
 
-      <div v-else class="grid grid-cols-auto justify-items-center">
+      <div v-else class="grid grid-cols-auto justify-items-center gap-4">
         <div v-for="item in sortedItems" :key="item.id" class="relative">
           <div
             v-if="item.id === nextWorkId"
