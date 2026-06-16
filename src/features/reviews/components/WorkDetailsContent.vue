@@ -166,6 +166,7 @@
         v-if="discussionQuestionsEnabled"
         :club-slug="clubId"
         :work-id="movie.original.id"
+        :media-noun="mediaNoun"
       />
 
       <div
@@ -355,6 +356,7 @@
         v-if="discussionQuestionsEnabled"
         :club-slug="clubId"
         :work-id="movie.original.id"
+        :media-noun="mediaNoun"
       />
 
       <!-- Sticky action footer -->
@@ -485,6 +487,11 @@ const cancelDateEdit = () => {
 
 const movieData = computed(() => asMovie(props.movie.original.externalData));
 const bookData = computed(() => asBook(props.movie.original.externalData));
+// Drives book/movie wording in child components (e.g. the discussion-questions
+// "couldn't recognize this ___" message). Mirrors the movieData/bookData split.
+const mediaNoun = computed<"movie" | "book">(() =>
+  isDefined(bookData.value) ? "book" : "movie",
+);
 const posterUrl = computed(() =>
   workPosterUrl(
     props.movie.original.externalData,

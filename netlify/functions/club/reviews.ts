@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { hasValue } from "../../../lib/checks/checks.js";
+import { WorkType } from "../../../lib/types/generated/db.js";
 import ListRepository from "../repositories/ListRepository";
 import ReviewRepository from "../repositories/ReviewRepository";
 import SettingsRepository from "../repositories/SettingsRepository";
@@ -8,7 +9,7 @@ import WorkCommentRepository from "../repositories/WorkCommentRepository";
 import WorkRepository from "../repositories/WorkRepository";
 import SharedReviewService from "../services/SharedReviewService";
 import { secured } from "../utils/auth";
-import { generateDiscussionQuestions } from "../utils/gemini";
+import { DiscussionWork, generateDiscussionQuestions } from "../utils/gemini";
 import { badRequest, ok, unauthorized } from "../utils/responses";
 import { Router } from "../utils/router";
 import { ClubRequest } from "../utils/validation";
@@ -169,8 +170,8 @@ router.post(
       return res(badRequest("Feature not enabled"));
     }
 
-    // Resolve the movie's title/year server-side from the workId so the prompt
-    // can't be poisoned by client-supplied input.
+    // Resolve the work's title/metadata server-side from the workId so the
+    // prompt can't be poisoned by client-supplied input.
     const work = await WorkRepository.getDiscussionContext(
       clubId,
       params.workId,
@@ -179,11 +180,21 @@ router.post(
       return res(badRequest("Work not found"));
     }
 
-    const releaseYear = work.release_date?.getFullYear().toString();
-    const questions = await generateDiscussionQuestions(
-      work.title,
-      releaseYear,
-    );
+    const discussionWork: DiscussionWork =
+      work.type === WorkType.book
+        ? {
+            type: "book",
+            title: work.title,
+            authors: work.authors ?? undefined,
+            firstPublishYear: work.first_publish_year ?? undefined,
+          }
+        : {
+            type: "movie",
+            title: work.title,
+            releaseYear: work.release_date?.getFullYear().toString(),
+          };
+
+    const questions = await generateDiscussionQuestions(discussionWork);
     return res(ok(JSON.stringify({ questions })));
   },
 );

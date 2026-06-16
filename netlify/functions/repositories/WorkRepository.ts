@@ -72,16 +72,36 @@ class WorkRepository {
   }
 
   async getDiscussionContext(clubId: string, workId: string) {
+    // A work is either a movie or a book, so only one detail join matches.
+    // External-id namespaces differ (TMDB ids vs OpenLibrary keys), so the
+    // two detail tables can't cross-match; `work.type` disambiguates anyway.
     return db
+      .with("authors_agg", (qb) =>
+        qb
+          .selectFrom("book_authors")
+          .select([
+            "external_id",
+            db.fn.agg<string[]>("array_agg", ["author_name"]).as("authors"),
+          ])
+          .groupBy("external_id"),
+      )
       .selectFrom("work")
       .leftJoin(
         "movie_details",
         "movie_details.external_id",
         "work.external_id",
       )
+      .leftJoin("book_details", "book_details.external_id", "work.external_id")
+      .leftJoin("authors_agg", "authors_agg.external_id", "work.external_id")
       .where("work.id", "=", workId)
       .where("work.club_id", "=", clubId)
-      .select(["work.title", "movie_details.release_date"])
+      .select([
+        "work.title",
+        "work.type",
+        "movie_details.release_date",
+        "book_details.first_publish_year",
+        "authors_agg.authors",
+      ])
       .executeTakeFirst();
   }
 
