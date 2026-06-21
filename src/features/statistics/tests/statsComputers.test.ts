@@ -5,6 +5,7 @@ import type { DetailedMovieData } from "../../../../lib/types/movie";
 import {
   computeGenreStats,
   computeGuiltyPleasures,
+  computeHighestRatedByYear,
   computeMemberLeaderboard,
   computeScoreVariance,
   computeTasteSimilarity,
@@ -864,5 +865,81 @@ describe("computeScoreVariance", () => {
         points[i - 1].date.getTime(),
       );
     }
+  });
+});
+
+// ---------- computeHighestRatedByYear ----------
+
+describe("computeHighestRatedByYear", () => {
+  it("returns an empty array for an empty movie list", () => {
+    expect(computeHighestRatedByYear([])).toEqual([]);
+  });
+
+  it("picks the highest-rated movie for each watched year", () => {
+    const movies = [
+      makeMovie({
+        title: "2023 Low",
+        average: 5,
+        createdDate: "2023-03-01T00:00:00.000Z",
+      }),
+      makeMovie({
+        title: "2023 High",
+        average: 9,
+        createdDate: "2023-08-01T00:00:00.000Z",
+      }),
+      makeMovie({
+        title: "2024 Only",
+        average: 6,
+        createdDate: "2024-01-15T00:00:00.000Z",
+      }),
+    ];
+
+    const result = computeHighestRatedByYear(movies);
+
+    expect(result).toHaveLength(2);
+    expect(result[0]).toMatchObject({
+      year: 2024,
+      title: "2024 Only",
+      average: 6,
+      movieCount: 1,
+    });
+    expect(result[1]).toMatchObject({
+      year: 2023,
+      title: "2023 High",
+      average: 9,
+      movieCount: 2,
+    });
+  });
+
+  it("sorts results by year descending", () => {
+    const movies = [
+      makeMovie({ createdDate: "2021-01-01T00:00:00.000Z" }),
+      makeMovie({ createdDate: "2025-01-01T00:00:00.000Z" }),
+      makeMovie({ createdDate: "2023-01-01T00:00:00.000Z" }),
+    ];
+
+    const years = computeHighestRatedByYear(movies).map((e) => e.year);
+
+    expect(years).toEqual([2025, 2023, 2021]);
+  });
+
+  it("skips movies with an invalid watched date", () => {
+    const movies = [
+      makeMovie({ title: "Valid", createdDate: "2024-01-01T00:00:00.000Z" }),
+      makeMovie({ title: "Invalid", createdDate: "not-a-date" }),
+    ];
+
+    const result = computeHighestRatedByYear(movies);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].title).toBe("Valid");
+  });
+
+  it("rounds the average to two decimals", () => {
+    const movies = [
+      makeMovie({ average: 8.126, createdDate: "2024-01-01T00:00:00.000Z" }),
+    ];
+
+    expect(computeHighestRatedByYear(movies)[0].average).toBe(8.13);
   });
 });
