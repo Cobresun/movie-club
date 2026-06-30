@@ -26,7 +26,7 @@
     <!-- Available filter options as pills -->
     <PopoverGroup
       as="div"
-      class="scrollbar-hide relative mt-2 flex w-full flex-nowrap gap-2 overflow-x-auto md:flex-wrap md:justify-center"
+      class="relative mt-2 flex w-full flex-wrap justify-center gap-2"
     >
       <template v-for="opt in FILTER_OPTIONS" :key="opt.key">
         <!-- Applied filter pill (clickable to remove) -->
@@ -353,13 +353,3 @@ onUnmounted(() => {
   window.removeEventListener("resize", syncTeleportedPanelPosition);
 });
 </script>
-
-<style scoped>
-.scrollbar-hide {
-  -ms-overflow-style: none; /* IE and Edge */
-  scrollbar-width: none; /* Firefox */
-}
-.scrollbar-hide::-webkit-scrollbar {
-  display: none; /* Chrome, Safari, Opera */
-}
-</style>
