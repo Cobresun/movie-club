@@ -11,6 +11,7 @@
     <GenreStatsWidget :movie-data="movieData" :members="members" />
     <GenreWatchCountWidget :movie-data="movieData" />
     <DecadeStatsWidget :movie-data="movieData" :members="members" />
+    <HighestRatedByYearWidget :movie-data="movieData" />
     <ReviewerLeaderboardWidget
       v-if="members.length > 1"
       :movie-data="movieData"
@@ -45,6 +46,7 @@ import DecadeStatsWidget from "../components/DecadeStatsWidget.vue";
 import GenreStatsWidget from "../components/GenreStatsWidget.vue";
 import GenreWatchCountWidget from "../components/GenreWatchCountWidget.vue";
 import GuiltyPleasuresWidget from "../components/GuiltyPleasuresWidget.vue";
+import HighestRatedByYearWidget from "../components/HighestRatedByYearWidget.vue";
 import LeaderboardsWidget from "../components/LeaderboardsWidget.vue";
 import ReviewerLeaderboardWidget from "../components/ReviewerLeaderboardWidget.vue";
 import ScoreDistributionWidget from "../components/ScoreDistributionWidget.vue";
