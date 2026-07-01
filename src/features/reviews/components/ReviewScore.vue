@@ -21,11 +21,16 @@
     v-else-if="isMe && isInputOpen"
     ref="scoreInput"
     v-model="scoreModel"
+    type="number"
+    inputmode="decimal"
+    min="0"
+    max="10"
+    step="any"
     aria-label="Score"
     class="rounded-lg border border-gray-300 bg-background text-center outline-none focus:border-primary"
     :class="{ 'w-10 p-2': size !== 'sm', 'w-8': size === 'sm' }"
-    @blur="isInputOpen = false"
-    @keypress.enter="submitScore(parseFloat(scoreModel))"
+    @blur="submitScore(parseFloat(scoreModel))"
+    @keydown.enter="scoreInput?.blur()"
   />
 </template>
 <script setup lang="ts">
@@ -67,7 +72,7 @@ const { mutate: submit } = useReviewWork(clubId);
 const { mutate: update } = useUpdateReviewScore(clubId);
 
 const submitScore = (score: number) => {
-  if (!isNaN(score) && score >= 0 && score <= 10) {
+  if (!isNaN(score) && score >= 0 && score <= 10 && score !== props.score) {
     if (hasValue(props.reviewId)) {
       update({ reviewId: props.reviewId, score });
     } else {
@@ -76,7 +81,7 @@ const submitScore = (score: number) => {
         score,
       });
     }
-    isInputOpen.value = false;
   }
+  isInputOpen.value = false;
 };
 </script>
