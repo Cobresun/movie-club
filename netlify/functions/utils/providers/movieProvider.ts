@@ -135,7 +135,12 @@ function num(value: string | null): number | undefined {
   return isDefined(value) ? Number(value) : undefined;
 }
 
-function toDetailedMovieData(row: MovieDetailRow): DetailedMovieData {
+/**
+ * Maps a raw `movie_details` aggregate row to the public {@link DetailedMovieData}
+ * shape: nullable Int8/decimal columns become `number | undefined`, dates become
+ * ISO strings, and aggregate arrays default to `[]`. Exported for unit testing.
+ */
+export function toDetailedMovieData(row: MovieDetailRow): DetailedMovieData {
   return {
     kind: "movie",
     actors: row.actors?.filter(isDefined) ?? [],

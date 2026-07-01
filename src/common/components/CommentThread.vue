@@ -38,12 +38,14 @@
           </div>
           <template v-if="comment.userId === currentUserId">
             <button
+              aria-label="Edit comment"
               class="text-gray-500 hover:text-primary"
               @click="startEditing(comment)"
             >
               <mdicon name="pencil-outline" :size="14" />
             </button>
             <button
+              aria-label="Delete comment"
               class="text-gray-500 hover:text-red-400"
               @click="promptDelete(comment.id)"
             >
@@ -156,6 +158,7 @@
           </span>
         </div>
         <v-btn
+          aria-label="Send comment"
           :disabled="
             !hasValue(newComment.trim()) || newComment.length > MAX_LENGTH
           "

@@ -1,4 +1,5 @@
 {
   "clubId": 1,
-  "clubName": "Test club"
+  "clubName": "Test club",
+  "type": "movie"
 }
