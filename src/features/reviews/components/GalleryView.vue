@@ -107,7 +107,6 @@
       :revealed-movie-ids="revealedMovieIds"
       :has-rated="hasRated"
       :current-user-id="currentUserId"
-      :blur-scores-enabled="blurScoresEnabled"
       @toggle-reveal="toggleMovieReveal"
       @close="selectedMovieId = undefined"
     />
@@ -138,7 +137,6 @@ const props = defineProps<{
   revealedMovieIds: Set<string>;
   hasRated: (movieId: string) => boolean;
   currentUserId?: string;
-  blurScoresEnabled: boolean;
 }>();
 
 const emit = defineEmits<{
