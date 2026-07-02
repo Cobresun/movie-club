@@ -1,5 +1,7 @@
 import axios from "axios";
-import { Kysely, sql } from "kysely";
+import { AliasedRawBuilder, Kysely, sql } from "kysely";
+
+import { hasElements } from "../../lib/checks/checks";
 
 interface TMDBCastMember {
   id: number;
@@ -24,25 +26,81 @@ async function fetchCredits(externalId: string): Promise<TMDBCreditsResponse> {
   return response.data;
 }
 
-interface MovieRow {
-  external_id: string;
-  title: string | null;
+// Minimal shapes of the columns this migration touches, for db.withTables().
+// The generated DB types can't be used here because they describe the
+// post-migration schema.
+type MigrationTables = {
+  movie_details: {
+    external_id: string;
+    title: string | null;
+  };
+  movie_actors: {
+    external_id: string;
+    actor_id: string;
+    character_name: string | null;
+  };
+};
+
+interface ActorCharacterUpdate {
+  externalId: string;
+  actorId: number;
+  character: string;
+}
+
+/**
+ * Builds a `(VALUES ...) AS v(external_id, actor_id, character_name)` table
+ * for the bulk update below. Kysely has no builder for VALUES lists, so the
+ * row constructors stay raw SQL (the explicit casts let CockroachDB type the
+ * placeholders); the UPDATE itself is composed with the query builder.
+ */
+function characterValues(
+  updates: ActorCharacterUpdate[],
+): AliasedRawBuilder<MigrationTables["movie_actors"], "v"> {
+  const rows = sql.join(
+    updates.map(
+      (u) =>
+        sql`(${u.externalId}::VARCHAR, ${u.actorId}::INT8, ${u.character}::VARCHAR)`,
+    ),
+  );
+  return sql<MigrationTables["movie_actors"]>`(VALUES ${rows})`.as<"v">(
+    sql`v(external_id, actor_id, character_name)`,
+  );
+}
+
+// CockroachDB DDL isn't transactional, so a failure during the backfill below
+// leaves the column in place; guard the ALTERs to keep up()/down() re-runnable
+// (Kysely's alterTable has no ifNotExists()).
+async function characterNameColumnExists(
+  db: Kysely<unknown>,
+): Promise<boolean> {
+  const tables = await db.introspection.getTables();
+  return (
+    tables
+      .find((table) => table.name === "movie_actors")
+      ?.columns.some((column) => column.name === "character_name") ?? false
+  );
 }
 
 export async function up(db: Kysely<unknown>) {
-  await sql`ALTER TABLE movie_actors ADD COLUMN IF NOT EXISTS character_name VARCHAR`.execute(
-    db,
-  );
+  if (!(await characterNameColumnExists(db))) {
+    await db.schema
+      .alterTable("movie_actors")
+      .addColumn("character_name", "varchar")
+      .execute();
+  }
+
+  const typedDb = db.withTables<MigrationTables>();
 
   // Backfill character names for movies whose actor rows predate this column.
   // Mirrors 20260315_AddPersonProfilePaths.ts: batch TMDB credits requests
   // (40 req/10s limit) and bulk-UPDATE on the (external_id, actor_id) key.
-  const { rows: movies } = await sql<MovieRow>`
-      SELECT DISTINCT md.external_id, md.title
-      FROM movie_details md
-      INNER JOIN movie_actors ma ON ma.external_id = md.external_id
-      WHERE ma.character_name IS NULL
-    `.execute(db);
+  const movies = await typedDb
+    .selectFrom("movie_details as md")
+    .innerJoin("movie_actors as ma", "ma.external_id", "md.external_id")
+    .where("ma.character_name", "is", null)
+    .select(["md.external_id", "md.title"])
+    .distinct()
+    .execute();
 
   console.log(`Found ${movies.length} movies needing character name backfill`);
   let processed = 0;
@@ -61,11 +119,7 @@ export async function up(db: Kysely<unknown>) {
       ),
     );
 
-    const actorUpdates: {
-      externalId: string;
-      actorId: number;
-      character: string;
-    }[] = [];
+    const actorUpdates: ActorCharacterUpdate[] = [];
 
     for (const result of results) {
       if (result.status === "rejected") {
@@ -93,20 +147,14 @@ export async function up(db: Kysely<unknown>) {
     }
 
     // Bulk UPDATE actors
-    if (actorUpdates.length > 0) {
-      const values = sql.join(
-        actorUpdates.map(
-          (u) =>
-            sql`(${u.externalId}::VARCHAR, ${u.actorId}::INT8, ${u.character}::VARCHAR)`,
-        ),
-      );
-      await sql`
-          UPDATE movie_actors AS ma
-          SET character_name = v.character_name
-          FROM (VALUES ${values}) AS v(external_id, actor_id, character_name)
-          WHERE ma.external_id = v.external_id
-            AND ma.actor_id = v.actor_id
-        `.execute(db);
+    if (hasElements(actorUpdates)) {
+      await typedDb
+        .updateTable("movie_actors as ma")
+        .from(characterValues(actorUpdates))
+        .set((eb) => ({ character_name: eb.ref("v.character_name") }))
+        .whereRef("ma.external_id", "=", "v.external_id")
+        .whereRef("ma.actor_id", "=", "v.actor_id")
+        .execute();
     }
 
     // Delay between batches to respect TMDB rate limits
@@ -126,7 +174,10 @@ export async function up(db: Kysely<unknown>) {
 }
 
 export async function down(db: Kysely<unknown>) {
-  await sql`ALTER TABLE movie_actors DROP COLUMN IF EXISTS character_name`.execute(
-    db,
-  );
+  if (await characterNameColumnExists(db)) {
+    await db.schema
+      .alterTable("movie_actors")
+      .dropColumn("character_name")
+      .execute();
+  }
 }

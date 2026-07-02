@@ -1,4 +1,4 @@
-import { sql } from "kysely";
+import { jsonBuildObject } from "kysely/helpers/postgres";
 
 import { isDefined, hasValue } from "../../../../lib/checks/checks.js";
 import { WorkType } from "../../../../lib/types/generated/db";
@@ -50,30 +50,34 @@ function detailsQuery(externalIds: string[]) {
     .with("directors_agg", (qb) =>
       qb
         .selectFrom("movie_directors")
-        .select([
+        .select((eb) => [
           "external_id",
-          sql<
-            { name: string; profilePath: string | null }[]
-          >`json_agg(json_build_object('name', director_name, 'profilePath', profile_path))`.as(
-            "directors",
-          ),
+          eb.fn
+            .jsonAgg(
+              jsonBuildObject({
+                name: eb.ref("director_name"),
+                profilePath: eb.ref("profile_path"),
+              }),
+            )
+            .as("directors"),
         ])
         .groupBy("external_id"),
     )
     .with("actors_agg", (qb) =>
       qb
         .selectFrom("movie_actors")
-        .select([
+        .select((eb) => [
           "external_id",
-          sql<
-            {
-              name: string;
-              character: string | null;
-              profilePath: string | null;
-            }[]
-          >`json_agg(json_build_object('name', actor_name, 'character', character_name, 'profilePath', profile_path) ORDER BY cast_order)`.as(
-            "actors",
-          ),
+          eb.fn
+            .jsonAgg(
+              jsonBuildObject({
+                name: eb.ref("actor_name"),
+                character: eb.ref("character_name"),
+                profilePath: eb.ref("profile_path"),
+              }),
+            )
+            .orderBy("cast_order")
+            .as("actors"),
         ])
         .groupBy("external_id"),
     )
