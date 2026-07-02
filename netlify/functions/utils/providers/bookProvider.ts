@@ -1,4 +1,8 @@
-import { isDefined, hasValue } from "../../../../lib/checks/checks.js";
+import {
+  hasElements,
+  isDefined,
+  hasValue,
+} from "../../../../lib/checks/checks.js";
 import { DetailedBookData } from "../../../../lib/types/book";
 import { WorkType } from "../../../../lib/types/generated/db";
 import { DetailedWorkData } from "../../../../lib/types/lists";
@@ -208,6 +212,40 @@ class BookProvider implements MediaProvider {
       map.set(row.external_id, data);
     }
     return map;
+  }
+
+  async getDiscussionPrompt(work: {
+    title: string;
+    externalId: string | null;
+  }): Promise<string> {
+    let authors: string[] = [];
+    let firstPublishYear: string | undefined;
+    if (hasValue(work.externalId)) {
+      const details = await db
+        .selectFrom("book_details")
+        .where("external_id", "=", work.externalId)
+        .select("first_publish_year")
+        .executeTakeFirst();
+      firstPublishYear = details?.first_publish_year ?? undefined;
+
+      const authorRows = await db
+        .selectFrom("book_authors")
+        .where("external_id", "=", work.externalId)
+        .select("author_name")
+        .execute();
+      authors = authorRows.map((row) => row.author_name);
+    }
+    const byline = hasElements(authors) ? ` by ${authors.join(" and ")}` : "";
+    const yearSuffix = hasValue(firstPublishYear)
+      ? ` (${firstPublishYear})`
+      : "";
+    return `Generate 3 to 5 discussion prompts for a book club discussing "${work.title}"${byline}${yearSuffix}. Every prompt must be specific to THIS book — naming its actual characters, plot points, themes, or passages — never a generic question that could apply to any book.
+
+Order the prompts by depth: the first should be casual and easy to answer — a low-stakes entry point. Each subsequent prompt should be more thought-provoking than the last, with the final one being substantial — a real book-club-worthy question.
+
+Whenever the book supports it, frame prompts as debates: questions with defensible answers on more than one side, designed to spark disagreement among friends rather than consensus. Keep each prompt succinct — one clear, concise question with no preamble.
+
+If you do not recognize this book or cannot confirm it is a real book, return 0 questions.`;
   }
 
   async refreshStaleDetails(limit: number): Promise<RefreshResult> {
