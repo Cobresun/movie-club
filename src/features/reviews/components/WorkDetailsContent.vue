@@ -2,6 +2,8 @@
   <div class="flex-grow text-left">
     <delete-confirmation-modal
       :show="showDeleteConfirmation"
+      title="Delete Review"
+      message="Are you sure you want to delete this review? This action cannot be undone."
       @confirm="confirmDelete"
       @cancel="cancelDelete"
     />
