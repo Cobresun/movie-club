@@ -7,6 +7,7 @@ import { render } from "@/tests/utils";
 const makeActors = (count: number) =>
   Array.from({ length: count }, (_, i) => ({
     name: `Actor ${i + 1}`,
+    character: `Character ${i + 1}`,
     profilePath: `/actor-${i + 1}.jpg`,
   }));
 
@@ -16,6 +17,9 @@ describe("CastList", () => {
 
     expect(screen.getByText("Actor 1")).toBeInTheDocument();
     expect(screen.getByText("Actor 4")).toBeInTheDocument();
+    // The character each actor plays is shown alongside their name.
+    expect(screen.getByText("Character 1")).toBeInTheDocument();
+    expect(screen.getByText("Character 4")).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: /See all/ }),
     ).not.toBeInTheDocument();

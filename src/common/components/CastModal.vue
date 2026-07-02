@@ -22,6 +22,12 @@
               <span class="line-clamp-2 text-xs text-gray-300">
                 {{ actor.name }}
               </span>
+              <span
+                v-if="hasValue(actor.character)"
+                class="line-clamp-2 text-[0.7rem] text-gray-500"
+              >
+                {{ actor.character }}
+              </span>
             </li>
           </ul>
         </div>
@@ -32,9 +38,14 @@
 
 <script setup lang="ts">
 import CastAvatar from "./CastAvatar.vue";
+import { hasValue } from "../../../lib/checks/checks";
 
 defineProps<{
-  actors: { name: string; profilePath: string | null }[];
+  actors: {
+    name: string;
+    character: string | null;
+    profilePath: string | null;
+  }[];
 }>();
 
 const emit = defineEmits<{

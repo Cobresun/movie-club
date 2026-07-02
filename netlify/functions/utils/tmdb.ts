@@ -67,7 +67,11 @@ export async function getDetailedMovie<T extends BaseMovie>(
         kind: "movie",
         actors: (tmdbData.credits?.cast ?? [])
           .sort((a, b) => a.order - b.order)
-          .map((c) => ({ name: c.name, profilePath: c.profile_path ?? null })),
+          .map((c) => ({
+            name: c.name,
+            character: c.character,
+            profilePath: c.profile_path ?? null,
+          })),
         adult: tmdbData.adult,
         backdrop_path: tmdbData.backdrop_path,
         budget: tmdbData.budget,
