@@ -22,7 +22,7 @@ import { computed, ref } from "vue";
 import { hasValue } from "../../../lib/checks/checks.js";
 
 // `imageUrl` is the work's stored cover/poster URL (already fully-qualified for
-// both OpenLibrary covers and movie posters resolved via `workPosterUrl`).
+// both Google Books covers and movie posters resolved via `workPosterUrl`).
 const props = withDefaults(
   defineProps<{ imageUrl?: string | null; alt?: string }>(),
   { imageUrl: null, alt: "Poster" },

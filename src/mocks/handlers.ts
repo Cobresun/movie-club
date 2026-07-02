@@ -1,6 +1,7 @@
 import { http, HttpResponse } from "msw";
 
 import club from "./data/club.json";
+import googleBooksSearch from "./data/googleBooksSearch.json";
 import member from "./data/member.json";
 import members from "./data/members.json";
 import reviews from "./data/reviews.json";
@@ -42,5 +43,11 @@ export const handlers = [
   }),
   http.get(`https://api.themoviedb.org/3/search/movie`, () => {
     return HttpResponse.json(TMDBSearch);
+  }),
+  http.get(`https://www.googleapis.com/books/v1/volumes`, () => {
+    return HttpResponse.json(googleBooksSearch);
+  }),
+  http.get(`https://www.googleapis.com/books/v1/volumes/:volumeId`, () => {
+    return HttpResponse.json(googleBooksSearch.items[0]);
   }),
 ];

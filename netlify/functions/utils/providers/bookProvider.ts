@@ -1,33 +1,36 @@
+import { sql } from "kysely";
+
 import {
   hasElements,
   isDefined,
   hasValue,
 } from "../../../../lib/checks/checks.js";
+import {
+  bestCoverUrl,
+  parsePublishedYear,
+  splitCategories,
+  stripHtml,
+} from "../../../../lib/googleBooks";
 import { DetailedBookData } from "../../../../lib/types/book";
 import { WorkType } from "../../../../lib/types/generated/db";
 import { DetailedWorkData } from "../../../../lib/types/lists";
 import { db } from "../database";
-import {
-  coverUrlFromId,
-  getOpenLibraryAuthorName,
-  getOpenLibraryEditions,
-  getOpenLibraryWork,
-} from "./openLibrary";
+import { getGoogleBooksVolume } from "./googleBooks";
 import { MediaProvider, RefreshResult } from "./types";
 
-/** Pull the first 4-digit year out of an OpenLibrary date string. */
-function parseYear(date: string | undefined): number | undefined {
-  if (!hasValue(date)) return undefined;
-  const match = /\d{4}/.exec(date);
-  return match ? Number(match[0]) : undefined;
-}
+/**
+ * Matches legacy OpenLibrary work keys (e.g. "OL45804W") that the
+ * books-to-Google data migration could not re-match. Google Books volume ids
+ * never fit this shape, so it cleanly separates migrated from unmigrated rows.
+ */
+export const OPEN_LIBRARY_ID_PATTERN = "^OL[0-9]+[WM]$";
 
 /** Coerce a nullable Int8 column (string | null) to number | undefined. */
 function num(value: string | null): number | undefined {
   return isDefined(value) ? Number(value) : undefined;
 }
 
-/** Parsed OpenLibrary metadata for one work, ready to persist. */
+/** Parsed Google Books metadata for one work, ready to persist. */
 interface BookData {
   title: string | undefined;
   description: string | undefined;
@@ -39,63 +42,30 @@ interface BookData {
 }
 
 /**
- * Fetch and normalize OpenLibrary metadata for a work. Shared by the on-add
- * cache path and the refresh cron so both produce identical shapes.
+ * Fetch and normalize Google Books metadata for a work. Shared by the on-add
+ * cache path, the refresh cron, and the books-to-Google data migration so all
+ * produce identical shapes.
  */
-async function fetchBookData(externalId: string): Promise<BookData> {
-  const work = await getOpenLibraryWork(externalId);
+export async function fetchBookData(externalId: string): Promise<BookData> {
+  const volume = await getGoogleBooksVolume(externalId);
+  const info = volume.volumeInfo;
 
-  const description =
-    typeof work.description === "string"
-      ? work.description
-      : work.description?.value;
-
-  const coverId = work.covers?.find((id) => id > 0);
-  const coverUrl = isDefined(coverId) ? coverUrlFromId(coverId) : undefined;
-
-  const authorKeys = (work.authors ?? [])
-    .map((a) => a.author?.key)
-    .filter(hasValue);
-  const authorNames = (
-    await Promise.all(
-      authorKeys.map((key) =>
-        getOpenLibraryAuthorName(key).catch(() => undefined),
-      ),
-    )
-  ).filter(hasValue);
-
-  const subjects = (work.subjects ?? []).slice(0, 25);
-
-  // The work doc rarely carries a publish date or page count; derive both
-  // from editions (earliest year, and that edition's page count).
-  let firstPublishYear = parseYear(work.first_publish_date);
-  let numberOfPages: number | undefined;
-  try {
-    const editions = await getOpenLibraryEditions(externalId);
-    for (const edition of editions) {
-      const year = parseYear(edition.publish_date);
-      if (year !== undefined && (firstPublishYear ?? Infinity) > year) {
-        firstPublishYear = year;
-        numberOfPages = edition.number_of_pages ?? numberOfPages;
-      }
-    }
-    if (numberOfPages === undefined) {
-      numberOfPages = editions.find(
-        (e) => e.number_of_pages !== undefined,
-      )?.number_of_pages;
-    }
-  } catch {
-    // Editions are best-effort enrichment; ignore failures.
-  }
+  // Google keeps subtitles separate; OpenLibrary folded them into the title,
+  // so joining preserves the display format users already have.
+  const title = hasValue(info?.subtitle)
+    ? `${info.title}: ${info.subtitle}`
+    : info?.title;
 
   return {
-    title: work.title,
-    description,
-    firstPublishYear,
-    numberOfPages,
-    coverUrl,
-    authorNames,
-    subjects,
+    title,
+    description: hasValue(info?.description)
+      ? stripHtml(info.description)
+      : undefined,
+    firstPublishYear: parsePublishedYear(info?.publishedDate),
+    numberOfPages: info?.pageCount,
+    coverUrl: bestCoverUrl(info?.imageLinks),
+    authorNames: info?.authors ?? [],
+    subjects: splitCategories(info?.categories ?? []).slice(0, 25),
   };
 }
 
@@ -249,9 +219,12 @@ If you do not recognize this book or cannot confirm it is a real book, return 0 
   }
 
   async refreshStaleDetails(limit: number): Promise<RefreshResult> {
+    // Skip legacy OpenLibrary ids (data-migration misses): they would 404
+    // against Google Books and eat the daily batch forever.
     const stale = await db
       .selectFrom("book_details")
       .select("external_id")
+      .where(sql<boolean>`external_id !~ ${OPEN_LIBRARY_ID_PATTERN}`)
       .orderBy("updated_date", "asc")
       .limit(limit)
       .execute();

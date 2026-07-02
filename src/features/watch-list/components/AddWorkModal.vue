@@ -9,8 +9,9 @@ import WorkSearchPrompt from "@/common/components/WorkSearchPrompt.vue";
 import { useClub, useClubSlug } from "@/service/useClub";
 import { BASE_IMAGE_URL, useAddListItem } from "@/service/useList";
 import {
-  BookTrendingPeriod,
-  useBookTrending,
+  BOOK_BROWSE_SUBJECTS,
+  BookBrowseSubject,
+  useBookBrowse,
   WorkSearchResult,
 } from "@/service/useMediaSearch";
 import { TMDBCollection, useInfiniteCollection } from "@/service/useTMDB";
@@ -59,18 +60,16 @@ const movieResults = computed<WorkSearchResult[]>(() => {
   );
 });
 
-// -- Book clubs: OpenLibrary trending --
-const bookTabs: { key: BookTrendingPeriod; label: string }[] = [
-  { key: "weekly", label: "Trending" },
-];
-const activeBookPeriod = ref<BookTrendingPeriod>("weekly");
+// -- Book clubs: Google Books subject browse --
+const bookTabs = BOOK_BROWSE_SUBJECTS;
+const activeBookSubject = ref<BookBrowseSubject>("fiction");
 const activeBookTabLabel = computed(
   () =>
-    bookTabs.find((t) => t.key === activeBookPeriod.value)?.label ?? "Trending",
+    bookTabs.find((t) => t.key === activeBookSubject.value)?.label ?? "Fiction",
 );
-const { data: bookTrending } = useBookTrending(activeBookPeriod);
+const { data: bookBrowse } = useBookBrowse(activeBookSubject);
 const bookResults = computed<WorkSearchResult[]>(() =>
-  isMovieClub.value ? [] : (bookTrending.value ?? []),
+  isMovieClub.value ? [] : (bookBrowse.value ?? []),
 );
 
 // -- Shared --
@@ -117,11 +116,11 @@ const onSelectWork = (work: WorkSearchResult) => {
           :key="tab.key"
           class="shrink-0 rounded-full px-3 py-1 text-sm font-medium transition-colors"
           :class="
-            activeBookPeriod === tab.key
+            activeBookSubject === tab.key
               ? 'bg-primary text-white'
               : 'bg-slate-700 text-gray-300 hover:bg-slate-600'
           "
-          @click="activeBookPeriod = tab.key"
+          @click="activeBookSubject = tab.key"
         >
           {{ tab.label }}
         </button>

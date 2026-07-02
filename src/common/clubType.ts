@@ -1,8 +1,10 @@
 import axios from "axios";
 
+import { hasValue } from "@/../lib/checks/checks";
+import { secureImageUrl, sortVolumesByPopularity } from "@/../lib/googleBooks";
 import {
-  OpenLibrarySearchDoc,
-  OpenLibrarySearchResponse,
+  GoogleBooksSearchResponse,
+  GoogleBooksVolume,
 } from "@/../lib/types/book";
 import { ClubType, WorkType } from "@/../lib/types/generated/db";
 import { DetailedWorkData, DetailedWorkListItem } from "@/../lib/types/lists";
@@ -18,10 +20,12 @@ import { asBook, asMovie } from "@/common/workDisplay";
 
 const TMDB_KEY = import.meta.env.VITE_TMDB_API_KEY;
 const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w154";
+const GOOGLE_BOOKS_KEY = import.meta.env.VITE_GOOGLE_BOOKS_API_KEY;
+export const GOOGLE_BOOKS_BASE_URL = "https://www.googleapis.com/books/v1";
 
 /**
  * A media-agnostic search result. `externalId` is the provider's stable
- * identifier (TMDB movie id or OpenLibrary Work key) and `imageUrl` is a
+ * identifier (TMDB movie id or Google Books volume id) and `imageUrl` is a
  * fully-qualified poster/cover URL — both ready to drop into a ListInsertDto.
  */
 export interface WorkSearchResult {
@@ -49,31 +53,54 @@ async function searchMovies(
   }));
 }
 
-/** Map an OpenLibrary work doc (search or trending) to a WorkSearchResult. */
-export function bookDocToResult(doc: OpenLibrarySearchDoc): WorkSearchResult {
+/** Map a Google Books volume (search or browse) to a WorkSearchResult. */
+export function volumeToResult(volume: GoogleBooksVolume): WorkSearchResult {
+  const info = volume.volumeInfo;
+  const thumbnail =
+    info?.imageLinks?.thumbnail ?? info?.imageLinks?.smallThumbnail;
   return {
-    externalId: doc.key.replace("/works/", ""),
-    title: doc.title,
+    externalId: volume.id,
+    title: info?.title ?? "Untitled",
     subtitle:
-      [doc.author_name?.[0], doc.first_publish_year]
-        .filter((part) => part !== undefined && part !== "")
+      [info?.authors?.[0], info?.publishedDate?.slice(0, 4)]
+        .filter(hasValue)
         .join(" · ") || undefined,
-    imageUrl:
-      doc.cover_i !== undefined
-        ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg`
-        : undefined,
+    imageUrl: hasValue(thumbnail) ? secureImageUrl(thumbnail) : undefined,
   };
+}
+
+/**
+ * Query Google Books volumes and map to WorkSearchResults. `sortVolumes` runs
+ * on the raw volumes, before mapping discards fields like `ratingsCount`.
+ */
+export async function fetchBookVolumes(
+  params: Record<string, string>,
+  signal?: AbortSignal,
+  sortVolumes?: (volumes: GoogleBooksVolume[]) => GoogleBooksVolume[],
+): Promise<WorkSearchResult[]> {
+  const searchParams = new URLSearchParams({
+    printType: "books",
+    // Keyless requests work at low rate limits; an empty key param is a 400.
+    ...(hasValue(GOOGLE_BOOKS_KEY) ? { key: GOOGLE_BOOKS_KEY } : {}),
+    ...params,
+  });
+  const { data } = await axios.get<GoogleBooksSearchResponse>(
+    `${GOOGLE_BOOKS_BASE_URL}/volumes?${searchParams.toString()}`,
+    { signal },
+  );
+  const volumes = data.items ?? [];
+  return (sortVolumes ? sortVolumes(volumes) : volumes).map(volumeToResult);
 }
 
 async function searchBooks(
   query: string,
   signal?: AbortSignal,
 ): Promise<WorkSearchResult[]> {
-  const { data } = await axios.get<OpenLibrarySearchResponse>(
-    `https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=20&fields=key,title,author_name,first_publish_year,cover_i`,
-    { signal },
+  return fetchBookVolumes(
+    { q: query, maxResults: "20" },
+    signal,
+    sortVolumesByPopularity,
   );
-  return data.docs.map(bookDocToResult);
 }
 
 /**

@@ -1,5 +1,5 @@
 /**
- * Book metadata, sourced from OpenLibrary. The `kind` discriminant mirrors
+ * Book metadata, sourced from Google Books. The `kind` discriminant mirrors
  * `DetailedMovieData.kind` so `DetailedWorkData` is a proper discriminated
  * union and UI components can narrow on `externalData.kind`.
  */
@@ -14,49 +14,45 @@ export interface DetailedBookData {
   coverUrl?: string;
 }
 
-// --- OpenLibrary API response shapes ---------------------------------------
+// --- Google Books API response shapes ---------------------------------------
 
-/** A single result from https://openlibrary.org/search.json */
-export interface OpenLibrarySearchDoc {
-  key: string; // e.g. "/works/OL45804W"
-  title: string;
-  author_name?: string[];
-  first_publish_year?: number;
-  cover_i?: number;
-  number_of_pages_median?: number;
-  subject?: string[];
+/** Cover images for a volume. URLs are http:// and may carry `edge=curl`. */
+export interface GoogleBooksImageLinks {
+  smallThumbnail?: string;
+  thumbnail?: string;
+  small?: string;
+  medium?: string;
+  large?: string;
+  extraLarge?: string;
 }
 
-export interface OpenLibrarySearchResponse {
-  numFound: number;
-  docs: OpenLibrarySearchDoc[];
-}
-
-/** Response from https://openlibrary.org/trending/{period}.json */
-export interface OpenLibraryTrendingResponse {
-  works: OpenLibrarySearchDoc[];
-}
-
-/** A work document from https://openlibrary.org/works/{OLID}.json */
-export interface OpenLibraryWork {
+export interface GoogleBooksVolumeInfo {
   title?: string;
-  description?: string | { value: string };
-  subjects?: string[];
-  covers?: number[];
-  first_publish_date?: string;
-  authors?: { author: { key: string } }[];
+  subtitle?: string;
+  authors?: string[];
+  /** May contain HTML markup (`<p>`, `<br>`, `<b>`, …). */
+  description?: string;
+  /** "YYYY" | "YYYY-MM" | "YYYY-MM-DD" */
+  publishedDate?: string;
+  pageCount?: number;
+  /** BISAC category paths, e.g. "Fiction / Thrillers / Suspense". */
+  categories?: string[];
+  /** Mean user rating (1–5). Absent on most volumes. */
+  averageRating?: number;
+  /** Number of user ratings — the closest thing the API has to popularity. */
+  ratingsCount?: number;
+  imageLinks?: GoogleBooksImageLinks;
+  industryIdentifiers?: { type: string; identifier: string }[];
 }
 
-export interface OpenLibraryAuthor {
-  name?: string;
+/** A volume from https://www.googleapis.com/books/v1/volumes */
+export interface GoogleBooksVolume {
+  id: string;
+  volumeInfo?: GoogleBooksVolumeInfo;
 }
 
-/** An edition from https://openlibrary.org/works/{OLID}/editions.json */
-export interface OpenLibraryEdition {
-  publish_date?: string;
-  number_of_pages?: number;
-}
-
-export interface OpenLibraryEditionsResponse {
-  entries: OpenLibraryEdition[];
+/** Response from /volumes search. `items` is absent (not []) on no results. */
+export interface GoogleBooksSearchResponse {
+  totalItems: number;
+  items?: GoogleBooksVolume[];
 }

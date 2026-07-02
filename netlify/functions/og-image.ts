@@ -47,7 +47,7 @@ router.get("/", async ({ event }, res) => {
         : "N/A";
     const reviewCount = reviewData.reviews.length;
 
-    // Use the work's stored image URL (TMDB poster for movies, OpenLibrary
+    // Use the work's stored image URL (TMDB poster for movies, Google Books
     // cover for books) so OG images are generic across club types.
     const imageUrl = reviewData.work.imageUrl;
 

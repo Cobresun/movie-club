@@ -1,29 +1,48 @@
 import { useQuery } from "@tanstack/vue-query";
-import axios from "axios";
 import { Ref } from "vue";
 
-import { OpenLibraryTrendingResponse } from "@/../lib/types/book";
+import { hasValue } from "@/../lib/checks/checks";
 import { ClubType } from "@/../lib/types/generated/db";
 import {
-  bookDocToResult,
   clubTypeConfig,
+  fetchBookVolumes,
   WorkSearchResult,
 } from "@/common/clubType";
 
 export type { WorkSearchResult } from "@/common/clubType";
 
-export type BookTrendingPeriod = "daily" | "weekly" | "yearly";
+/**
+ * Curated browse tabs for book clubs — the book-club analog of TMDB
+ * collections. Google Books has no trending endpoint, so each tab is a
+ * newest-first subject query.
+ */
+export const BOOK_BROWSE_SUBJECTS = [
+  { key: "fiction", label: "Fiction" },
+  { key: "mystery", label: "Mystery" },
+  { key: "science fiction", label: "Sci-Fi" },
+  { key: "biography", label: "Biography" },
+  { key: "history", label: "History" },
+] as const;
 
-/** Trending books from OpenLibrary — the book-club analog of TMDB collections. */
-export function useBookTrending(period: Ref<BookTrendingPeriod>) {
+export type BookBrowseSubject = (typeof BOOK_BROWSE_SUBJECTS)[number]["key"];
+
+/** Newest Google Books volumes for a browse subject. */
+export function useBookBrowse(subject: Ref<BookBrowseSubject>) {
   return useQuery<WorkSearchResult[]>({
-    queryKey: ["book-trending", period],
+    queryKey: ["book-browse", subject],
     queryFn: async ({ signal }) => {
-      const { data } = await axios.get<OpenLibraryTrendingResponse>(
-        `https://openlibrary.org/trending/${period.value}.json?limit=24`,
-        { signal },
+      const results = await fetchBookVolumes(
+        {
+          q: `subject:"${subject.value}"`,
+          orderBy: "newest",
+          maxResults: "24",
+          langRestrict: "en",
+        },
+        signal,
       );
-      return data.works.map(bookDocToResult);
+      // newest-first surfaces many coverless volumes; a coverless grid looks
+      // broken, so only show results with an image.
+      return results.filter((result) => hasValue(result.imageUrl));
     },
   });
 }
