@@ -168,6 +168,7 @@
         v-if="discussionQuestionsEnabled"
         :club-slug="clubId"
         :work-id="movie.original.id"
+        :media-noun="mediaNoun"
       />
 
       <div
@@ -357,6 +358,7 @@
         v-if="discussionQuestionsEnabled"
         :club-slug="clubId"
         :work-id="movie.original.id"
+        :media-noun="mediaNoun"
       />
 
       <!-- Sticky action footer -->
@@ -392,8 +394,10 @@ import { computed, ref } from "vue";
 
 import DiscussionQuestions from "./DiscussionQuestions.vue";
 import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
+import { ClubType } from "../../../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
 
+import { clubTypeConfig } from "@/common/clubType";
 import BookMetadataGrid from "@/common/components/BookMetadataGrid.vue";
 import CastList from "@/common/components/CastList.vue";
 import CommentThread from "@/common/components/CommentThread.vue";
@@ -486,6 +490,11 @@ const cancelDateEdit = () => {
 
 const movieData = computed(() => asMovie(props.movie.original.externalData));
 const bookData = computed(() => asBook(props.movie.original.externalData));
+// Drives book/movie wording in child components (e.g. the discussion-questions
+// "couldn't recognize this ___" message).
+const mediaNoun = computed(
+  () => clubTypeConfig(club.value?.type ?? ClubType.movie).noun,
+);
 const posterUrl = computed(() =>
   workPosterUrl(
     props.movie.original.externalData,

@@ -71,17 +71,12 @@ class WorkRepository {
     return insertedWork;
   }
 
-  async getDiscussionContext(clubId: string, workId: string) {
+  async getById(clubId: string, workId: string) {
     return db
       .selectFrom("work")
-      .leftJoin(
-        "movie_details",
-        "movie_details.external_id",
-        "work.external_id",
-      )
-      .where("work.id", "=", workId)
-      .where("work.club_id", "=", clubId)
-      .select(["work.title", "movie_details.release_date"])
+      .where("id", "=", workId)
+      .where("club_id", "=", clubId)
+      .select(["title", "type", "external_id"])
       .executeTakeFirst();
   }
 
