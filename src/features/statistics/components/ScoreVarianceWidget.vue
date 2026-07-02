@@ -14,13 +14,13 @@ import { computed } from "vue";
 import WidgetShell from "./WidgetShell.vue";
 import { createScoreVarianceChartOptions } from "../scoring";
 import { computeScoreVariance } from "../statsComputers";
-import type { MovieData } from "../types";
+import type { WorkStatsData } from "../types";
 
 const props = defineProps<{
-  movieData: MovieData[];
+  workData: WorkStatsData[];
 }>();
 
-const variancePoints = computed(() => computeScoreVariance(props.movieData));
+const variancePoints = computed(() => computeScoreVariance(props.workData));
 
 const hasVarianceData = computed(() => variancePoints.value.length > 0);
 

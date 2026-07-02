@@ -11,17 +11,17 @@ import { computed } from "vue";
 import WidgetShell from "./WidgetShell.vue";
 import { Member } from "../../../../lib/types/club";
 import { createHistogramOptions } from "../scoring";
-import type { HistogramData, MovieData } from "../types";
+import type { HistogramData, WorkStatsData } from "../types";
 
 const props = defineProps<{
-  movieData: MovieData[];
+  workData: WorkStatsData[];
   members: Member[];
   histogramData: HistogramData[];
 }>();
 
 const chartOptions = computed(() =>
   createHistogramOptions({
-    filteredMovieData: props.movieData,
+    filteredWorkData: props.workData,
     histogramData: props.histogramData,
     members: props.members,
   }),

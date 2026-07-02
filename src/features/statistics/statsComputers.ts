@@ -12,6 +12,7 @@ import type {
   ScoreTrendPoint,
   ScoreVariancePoint,
   TmdbDeviationEntry,
+  WorkStatsData,
 } from "./types";
 import {
   hasValue,
@@ -88,12 +89,12 @@ export function computeGenreWatchCounts(movieData: MovieData[]): {
 }
 
 export function computeMemberLeaderboard(
-  movieData: MovieData[],
+  workData: WorkStatsData[],
   members: Member[],
 ): MemberLeaderboardEntry[] {
   const entries: MemberLeaderboardEntry[] = members.map((member) => {
-    const scores = movieData
-      .map((movie) => movie.userScores[member.id])
+    const scores = workData
+      .map((work) => work.userScores[member.id])
       .filter(isDefined)
       .filter((score) => !isNaN(score));
 
@@ -124,7 +125,7 @@ const MAX_RAW_SCORE_DIFF = 10;
 const MAX_NORMALIZED_DIFF = 4;
 
 export function computeTasteSimilarity(
-  movieData: MovieData[],
+  workData: WorkStatsData[],
   members: Member[],
   useNormalized = false,
 ): {
@@ -150,7 +151,7 @@ export function computeTasteSimilarity(
         scoreB: number;
       }[] = [];
 
-      for (const movie of movieData) {
+      for (const movie of workData) {
         const scores = useNormalized ? movie.normalized : movie.userScores;
         const scoreA = scores[memberA.id];
         const scoreB = scores[memberB.id];
@@ -219,7 +220,7 @@ export function computeTasteSimilarity(
 const MIN_SCORES_FOR_CONSENSUS = 2;
 
 export function computeClubConsensus(
-  movieData: MovieData[],
+  workData: WorkStatsData[],
   members: Member[],
 ): {
   mostAgreed: ClubConsensusEntry[];
@@ -229,7 +230,7 @@ export function computeClubConsensus(
 
   const entries: ClubConsensusEntry[] = [];
 
-  for (const movie of movieData) {
+  for (const movie of workData) {
     const scoreEntries: { name: string; score: number }[] = [];
     for (const [memberId, score] of Object.entries(movie.userScores)) {
       if (isDefined(score) && !isNaN(score)) {
@@ -373,7 +374,7 @@ export function computeTmdbDeviation(movieData: MovieData[]): {
 }
 
 export function computeScoreTrend(
-  movieData: MovieData[],
+  workData: WorkStatsData[],
   members: Member[],
 ): Map<string, ScoreTrendPoint[]> {
   const result = new Map<string, ScoreTrendPoint[]>();
@@ -381,7 +382,7 @@ export function computeScoreTrend(
   for (const member of members) {
     const reviews: { date: Date; title: string; score: number }[] = [];
 
-    for (const movie of movieData) {
+    for (const movie of workData) {
       const entry = movie.scores[member.id];
       if (!isDefined(entry) || !hasValue(entry.created_date)) continue;
 
@@ -426,11 +427,11 @@ export function computeScoreTrend(
 const MIN_SCORES_FOR_VARIANCE = 2;
 
 export function computeScoreVariance(
-  movieData: MovieData[],
+  workData: WorkStatsData[],
 ): ScoreVariancePoint[] {
   const perMovie: { date: Date; title: string; stdDev: number }[] = [];
 
-  for (const movie of movieData) {
+  for (const movie of workData) {
     const scores: number[] = [];
     for (const score of Object.values(movie.userScores)) {
       if (isDefined(score) && !isNaN(score)) scores.push(score);
@@ -483,7 +484,7 @@ const GUILTY_PLEASURE_THRESHOLD = 2;
 const MAX_GUILTY_PLEASURES_PER_MEMBER = 5;
 
 export function computeGuiltyPleasures(
-  movieData: MovieData[],
+  workData: WorkStatsData[],
   members: Member[],
 ): GuiltyPleasureEntry[] {
   const memberMap = new Map(members.map((m) => [m.id, m]));
@@ -498,7 +499,7 @@ export function computeGuiltyPleasures(
     }[]
   >();
 
-  for (const movie of movieData) {
+  for (const movie of workData) {
     const validScores: { memberId: string; score: number }[] = [];
     for (const [memberId, score] of Object.entries(movie.userScores)) {
       if (isDefined(score) && !isNaN(score) && memberMap.has(memberId)) {
@@ -553,7 +554,7 @@ const CURMUDGEON_THRESHOLD = 2;
 const MAX_CURMUDGEON_MOVIES_PER_MEMBER = 5;
 
 export function computeClubCurmudgeons(
-  movieData: MovieData[],
+  workData: WorkStatsData[],
   members: Member[],
 ): ClubCurmudgeonEntry[] {
   const memberMap = new Map(members.map((m) => [m.id, m]));
@@ -568,7 +569,7 @@ export function computeClubCurmudgeons(
     }[]
   >();
 
-  for (const movie of movieData) {
+  for (const movie of workData) {
     const validScores: { memberId: string; score: number }[] = [];
     for (const [memberId, score] of Object.entries(movie.userScores)) {
       if (isDefined(score) && !isNaN(score) && memberMap.has(memberId)) {

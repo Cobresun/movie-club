@@ -1,23 +1,43 @@
+import { DetailedBookData } from "../../../lib/types/book";
 import { WorkType } from "../../../lib/types/generated/db";
 import { DetailedMovieData } from "../../../lib/types/movie";
 
-export interface MovieData {
+/**
+ * Score and review metadata shared by every reviewed work, regardless of
+ * media type. Score-based widgets and computers should depend on this (via
+ * WorkStatsData) so they work for any club type.
+ */
+interface WorkStatsBase {
   id: string;
-  // Statistics are movie-only; the mapper filters to movie works via isMovieData
-  // before constructing this, so the type is always the movie literal.
-  type: WorkType.movie;
   title: string;
   createdDate: string;
   imageUrl: string | undefined;
-  genres: string[];
-  production_companies: string[];
-  production_countries: string[];
   average: number;
   userScores: Record<string, number | undefined>;
   normalized: Record<string, number | undefined>;
   scores: Record<string, { id: string; created_date: string; score: number }>;
-  externalData: DetailedMovieData;
   dateWatched: string;
+}
+
+export interface MovieData extends WorkStatsBase {
+  type: WorkType.movie;
+  genres: string[];
+  production_companies: string[];
+  production_countries: string[];
+  externalData: DetailedMovieData;
+}
+
+export interface BookData extends WorkStatsBase {
+  type: WorkType.book;
+  // Optional: book stats are score-only in Phase 1, so a book review without
+  // OpenLibrary metadata still counts toward statistics.
+  externalData?: DetailedBookData;
+}
+
+export type WorkStatsData = MovieData | BookData;
+
+export function isMovieStats(work: WorkStatsData): work is MovieData {
+  return work.type === WorkType.movie;
 }
 
 export type HistogramData = {

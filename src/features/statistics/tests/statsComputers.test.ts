@@ -11,7 +11,7 @@ import {
   computeTasteSimilarity,
   computeTopDirectors,
 } from "../statsComputers";
-import type { MovieData } from "../types";
+import type { BookData, MovieData } from "../types";
 
 function p(name: string): { name: string; profilePath: string | null } {
   return { name, profilePath: null };
@@ -67,6 +67,24 @@ function makeMovie(overrides: Partial<MovieData> = {}): MovieData {
     normalized: {},
     scores: {},
     externalData: makeExternalData(),
+    dateWatched: "1/1/2024",
+    ...overrides,
+  };
+}
+
+// No externalData by default: book statistics are score-only, so a book
+// review without OpenLibrary metadata still counts.
+function makeBook(overrides: Partial<BookData> = {}): BookData {
+  return {
+    id: "b1",
+    type: WorkType.book,
+    title: "Test Book",
+    createdDate: "2024-01-01T00:00:00.000Z",
+    imageUrl: undefined,
+    average: 7,
+    userScores: {},
+    normalized: {},
+    scores: {},
     dateWatched: "1/1/2024",
     ...overrides,
   };
@@ -941,5 +959,61 @@ describe("computeHighestRatedByYear", () => {
     ];
 
     expect(computeHighestRatedByYear(movies)[0].average).toBe(8.13);
+  });
+});
+
+describe("score-based computers with book data", () => {
+  it("computeMemberLeaderboard ranks members from book reviews", () => {
+    const books = [
+      makeBook({ id: "b1", userScores: { m1: 9, m2: 5 } }),
+      makeBook({ id: "b2", userScores: { m1: 7, m2: 3 } }),
+    ];
+    const members = [
+      makeMember({ id: "m1", name: "Alice" }),
+      makeMember({ id: "m2", name: "Bob" }),
+    ];
+
+    const leaderboard = computeMemberLeaderboard(books, members);
+
+    expect(leaderboard).toHaveLength(2);
+    expect(leaderboard[0].member.id).toBe("m1");
+    expect(leaderboard[0].averageScore).toBe(8);
+    expect(leaderboard[0].title).toBe("The Softie");
+    expect(leaderboard[1].averageScore).toBe(4);
+    expect(leaderboard[1].title).toBe("The Hater");
+  });
+
+  it("computeGuiltyPleasures works for books without external metadata", () => {
+    const books = [
+      makeBook({
+        id: "b1",
+        title: "Divisive Book",
+        average: 5,
+        userScores: { m1: 8, m2: 4, m3: 3 },
+      }),
+    ];
+    const members = [
+      makeMember({ id: "m1", name: "Alice" }),
+      makeMember({ id: "m2", name: "Bob" }),
+      makeMember({ id: "m3", name: "Cleo" }),
+    ];
+
+    const entries = computeGuiltyPleasures(books, members);
+
+    expect(entries).toHaveLength(1);
+    expect(entries[0].member.id).toBe("m1");
+    expect(entries[0].movies[0].title).toBe("Divisive Book");
+  });
+
+  it("computeTasteSimilarity compares members across book reviews", () => {
+    const books = Array.from({ length: 3 }, (_, i) =>
+      makeBook({ id: `b${i}`, userScores: { m1: 7, m2: 7 } }),
+    );
+    const members = [makeMember({ id: "m1" }), makeMember({ id: "m2" })];
+
+    const { mostSimilar } = computeTasteSimilarity(books, members);
+
+    expect(mostSimilar?.similarityPercent).toBe(100);
+    expect(mostSimilar?.sharedCount).toBe(3);
   });
 });

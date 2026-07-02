@@ -1,45 +1,54 @@
 <template>
   <div class="space-y-6 pb-6">
-    <StatsWidget :movie-data="movieData" />
+    <StatsWidget :work-data="workData" :club-type="clubType" />
     <ScoreDistributionWidget
-      :movie-data="movieData"
+      :work-data="workData"
       :members="members"
       :histogram-data="histogramData"
     />
-    <ScoreTrendWidget :movie-data="movieData" :members="members" />
-    <ScoreVarianceWidget :movie-data="movieData" />
-    <GenreStatsWidget :movie-data="movieData" :members="members" />
-    <GenreWatchCountWidget :movie-data="movieData" />
-    <DecadeStatsWidget :movie-data="movieData" :members="members" />
-    <HighestRatedByYearWidget :movie-data="movieData" />
+    <ScoreTrendWidget :work-data="workData" :members="members" />
+    <ScoreVarianceWidget :work-data="workData" />
+    <template v-if="isMovieClub">
+      <GenreStatsWidget :movie-data="movieData" :members="members" />
+      <GenreWatchCountWidget :movie-data="movieData" />
+      <DecadeStatsWidget :movie-data="movieData" :members="members" />
+      <HighestRatedByYearWidget :movie-data="movieData" />
+    </template>
     <ReviewerLeaderboardWidget
       v-if="members.length > 1"
-      :movie-data="movieData"
+      :work-data="workData"
       :members="members"
     />
     <TasteSimilarityWidget
       v-if="members.length > 2"
-      :movie-data="movieData"
+      :work-data="workData"
       :members="members"
     />
-    <ClubConsensusWidget :movie-data="movieData" :members="members" />
+    <ClubConsensusWidget :work-data="workData" :members="members" />
     <GuiltyPleasuresWidget
       v-if="members.length > 1"
-      :movie-data="movieData"
+      :work-data="workData"
       :members="members"
+      :club-type="clubType"
     />
     <ClubCurmudgeonsWidget
       v-if="members.length > 1"
-      :movie-data="movieData"
+      :work-data="workData"
       :members="members"
+      :club-type="clubType"
     />
-    <LeaderboardsWidget :movie-data="movieData" />
-    <TmdbDeviationWidget :movie-data="movieData" />
+    <template v-if="isMovieClub">
+      <LeaderboardsWidget :movie-data="movieData" />
+      <TmdbDeviationWidget :movie-data="movieData" />
+    </template>
   </div>
 </template>
 
 <script setup lang="ts">
+import { computed } from "vue";
+
 import { Member } from "../../../../lib/types/club";
+import { ClubType } from "../../../../lib/types/generated/db";
 import ClubConsensusWidget from "../components/ClubConsensusWidget.vue";
 import ClubCurmudgeonsWidget from "../components/ClubCurmudgeonsWidget.vue";
 import DecadeStatsWidget from "../components/DecadeStatsWidget.vue";
@@ -55,11 +64,18 @@ import ScoreVarianceWidget from "../components/ScoreVarianceWidget.vue";
 import StatsWidget from "../components/StatsWidget.vue";
 import TasteSimilarityWidget from "../components/TasteSimilarityWidget.vue";
 import TmdbDeviationWidget from "../components/TmdbDeviationWidget.vue";
-import type { HistogramData, MovieData } from "../types";
+import { isMovieStats, type HistogramData, type WorkStatsData } from "../types";
 
-defineProps<{
-  movieData: MovieData[];
+const props = defineProps<{
+  workData: WorkStatsData[];
   members: Member[];
   histogramData: HistogramData[];
+  clubType: ClubType;
 }>();
+
+const isMovieClub = computed(() => props.clubType === ClubType.movie);
+
+// Movie-only widgets read movie metadata (genres, release dates, TMDB
+// scores), so they get the narrowed slice and only render for movie clubs.
+const movieData = computed(() => props.workData.filter(isMovieStats));
 </script>

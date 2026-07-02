@@ -96,8 +96,8 @@ const clubGuard = async (
 };
 
 /**
- * Guard for movie-only features (Statistics, Awards). Book clubs are redirected
- * to their club home, mirroring the nav which hides these entries for them.
+ * Guard for movie-only features (Awards). Book clubs are redirected to their
+ * club home, mirroring the nav which hides these entries for them.
  */
 const movieClubOnly = async (
   to: RouteLocationNormalized,
@@ -278,7 +278,6 @@ const routes: Array<RouteRecordRaw> = [
         name: "Statistics",
         component: () =>
           import("../features/statistics/views/StatisticsView.vue"),
-        beforeEnter: movieClubOnly,
         props: true,
         meta: {
           depth: 2,

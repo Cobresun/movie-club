@@ -44,15 +44,15 @@ import { computed } from "vue";
 import WidgetShell from "./WidgetShell.vue";
 import { Member } from "../../../../lib/types/club";
 import { computeMemberLeaderboard } from "../statsComputers";
-import type { MovieData } from "../types";
+import type { WorkStatsData } from "../types";
 
 const props = defineProps<{
-  movieData: MovieData[];
+  workData: WorkStatsData[];
   members: Member[];
 }>();
 
 const leaderboard = computed(() =>
-  computeMemberLeaderboard(props.movieData, props.members),
+  computeMemberLeaderboard(props.workData, props.members),
 );
 
 function titleBadgeClass(title: string): string {
