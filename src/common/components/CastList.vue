@@ -25,6 +25,12 @@
         <span class="line-clamp-2 text-xs leading-tight text-gray-300">
           {{ actor.name }}
         </span>
+        <span
+          v-if="hasValue(actor.character)"
+          class="line-clamp-2 text-[0.65rem] leading-tight text-gray-500"
+        >
+          {{ actor.character }}
+        </span>
       </li>
 
       <li
@@ -50,10 +56,14 @@ import { computed, ref } from "vue";
 
 import CastAvatar from "./CastAvatar.vue";
 import CastModal from "./CastModal.vue";
-import { hasElements } from "../../../lib/checks/checks";
+import { hasElements, hasValue } from "../../../lib/checks/checks";
 
 const props = defineProps<{
-  actors?: { name: string; profilePath: string | null }[];
+  actors?: {
+    name: string;
+    character: string | null;
+    profilePath: string | null;
+  }[];
 }>();
 
 const VISIBLE_ACTORS_COUNT = 5;

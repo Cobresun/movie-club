@@ -66,7 +66,11 @@ export interface DetailedMovieData {
   kind: "movie";
   // Aggregated relations: the mapper always defaults these to [], so they are
   // never absent.
-  actors: { name: string; profilePath: string | null }[];
+  actors: {
+    name: string;
+    character: string | null;
+    profilePath: string | null;
+  }[];
   directors: { name: string; profilePath: string | null }[];
   genres: string[];
   production_companies: string[];

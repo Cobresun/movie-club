@@ -214,16 +214,24 @@ describe("filterWorks movie actor filter", () => {
       title: "Forrest Gump",
       genres: ["Drama"],
       actors: [
-        { name: "Tom Hanks", profilePath: null },
-        { name: "Robin Wright", profilePath: "/rw.jpg" },
+        { name: "Tom Hanks", character: "Forrest Gump", profilePath: null },
+        {
+          name: "Robin Wright",
+          character: "Jenny Curran",
+          profilePath: "/rw.jpg",
+        },
       ],
     }),
     movieItem("matrix", {
       title: "The Matrix",
       genres: ["Action"],
       actors: [
-        { name: "Keanu Reeves", profilePath: "/kr.jpg" },
-        { name: "Laurence Fishburne", profilePath: null },
+        { name: "Keanu Reeves", character: "Neo", profilePath: "/kr.jpg" },
+        {
+          name: "Laurence Fishburne",
+          character: "Morpheus",
+          profilePath: null,
+        },
       ],
     }),
     movieItem("silent", { title: "Silent Film", actors: [] }),
