@@ -392,8 +392,10 @@ import { computed, ref } from "vue";
 
 import DiscussionQuestions from "./DiscussionQuestions.vue";
 import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
+import { ClubType } from "../../../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
 
+import { clubTypeConfig } from "@/common/clubType";
 import BookMetadataGrid from "@/common/components/BookMetadataGrid.vue";
 import CastList from "@/common/components/CastList.vue";
 import CommentThread from "@/common/components/CommentThread.vue";
@@ -488,9 +490,9 @@ const cancelDateEdit = () => {
 const movieData = computed(() => asMovie(props.movie.original.externalData));
 const bookData = computed(() => asBook(props.movie.original.externalData));
 // Drives book/movie wording in child components (e.g. the discussion-questions
-// "couldn't recognize this ___" message). Mirrors the movieData/bookData split.
-const mediaNoun = computed<"movie" | "book">(() =>
-  isDefined(bookData.value) ? "book" : "movie",
+// "couldn't recognize this ___" message).
+const mediaNoun = computed(
+  () => clubTypeConfig(club.value?.type ?? ClubType.movie).noun,
 );
 const posterUrl = computed(() =>
   workPosterUrl(

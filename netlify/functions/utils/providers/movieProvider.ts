@@ -185,6 +185,31 @@ class MovieProvider implements MediaProvider {
     return map;
   }
 
+  async getDiscussionPrompt(work: {
+    title: string;
+    externalId: string | null;
+  }): Promise<string> {
+    let releaseYear: string | undefined;
+    if (hasValue(work.externalId)) {
+      const details = await db
+        .selectFrom("movie_details")
+        .where("external_id", "=", work.externalId)
+        .select("release_date")
+        .executeTakeFirst();
+      releaseYear = details?.release_date?.getFullYear().toString();
+    }
+    const label = hasValue(releaseYear)
+      ? `${work.title} (${releaseYear})`
+      : work.title;
+    return `Generate 3 to 5 discussion prompts for a movie club rewatching "${label}". Every prompt must be specific to THIS film — naming its actual characters, scenes, lines, or moments — never a generic question that could apply to any movie.
+
+Order the prompts by depth: the first should be casual and easy to answer — a low-stakes entry point. Each subsequent prompt should be more thought-provoking than the last, with the final one being substantial — a real book-club-worthy question, adapted for film.
+
+Whenever the film supports it, frame prompts as debates: questions with defensible answers on more than one side, designed to spark disagreement among friends rather than consensus. Keep each prompt succinct — one clear, concise question with no preamble.
+
+If you do not recognize this film or cannot confirm it is a real movie, return 0 questions.`;
+  }
+
   async refreshStaleDetails(limit: number): Promise<RefreshResult> {
     const stale = await db
       .selectFrom("movie_details")

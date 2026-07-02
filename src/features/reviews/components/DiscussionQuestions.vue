@@ -100,7 +100,8 @@ import { useDiscussionQuestions } from "@/service/useDiscussionQuestions";
 const props = defineProps<{
   clubSlug: string;
   workId: string;
-  mediaNoun: "movie" | "book";
+  /** Singular media noun from the club-type registry ("movie", "book"). */
+  mediaNoun: string;
 }>();
 
 const { data, isFetching, isError, refetch } = useDiscussionQuestions(

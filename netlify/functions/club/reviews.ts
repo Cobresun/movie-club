@@ -1,7 +1,6 @@
 import { z } from "zod";
 
 import { hasValue } from "../../../lib/checks/checks.js";
-import { WorkType } from "../../../lib/types/generated/db.js";
 import ListRepository from "../repositories/ListRepository";
 import ReviewRepository from "../repositories/ReviewRepository";
 import SettingsRepository from "../repositories/SettingsRepository";
@@ -9,7 +8,8 @@ import WorkCommentRepository from "../repositories/WorkCommentRepository";
 import WorkRepository from "../repositories/WorkRepository";
 import SharedReviewService from "../services/SharedReviewService";
 import { secured } from "../utils/auth";
-import { DiscussionWork, generateDiscussionQuestions } from "../utils/gemini";
+import { generateJson } from "../utils/gemini";
+import { getProvider } from "../utils/providers";
 import { badRequest, ok, unauthorized } from "../utils/responses";
 import { Router } from "../utils/router";
 import { ClubRequest } from "../utils/validation";
@@ -157,6 +157,10 @@ router.delete(
   },
 );
 
+const discussionQuestionsSchema = z.object({
+  questions: z.array(z.string().min(1)).max(5),
+});
+
 router.post(
   "/:workId/discussion-questions",
   secured,
@@ -170,31 +174,35 @@ router.post(
       return res(badRequest("Feature not enabled"));
     }
 
-    // Resolve the work's title/metadata server-side from the workId so the
-    // prompt can't be poisoned by client-supplied input.
-    const work = await WorkRepository.getDiscussionContext(
-      clubId,
-      params.workId,
-    );
+    // Resolve the work server-side from the workId so the prompt can't be
+    // poisoned by client-supplied input. The work's provider owns the
+    // type-specific metadata lookup and prompt wording.
+    const work = await WorkRepository.getById(clubId, params.workId);
     if (!work) {
       return res(badRequest("Work not found"));
     }
 
-    const discussionWork: DiscussionWork =
-      work.type === WorkType.book
-        ? {
-            type: "book",
-            title: work.title,
-            authors: work.authors ?? undefined,
-            firstPublishYear: work.first_publish_year ?? undefined,
-          }
-        : {
-            type: "movie",
-            title: work.title,
-            releaseYear: work.release_date?.getFullYear().toString(),
-          };
+    const prompt = await getProvider(work.type).getDiscussionPrompt({
+      title: work.title,
+      externalId: work.external_id,
+    });
 
-    const questions = await generateDiscussionQuestions(discussionWork);
+    const { questions } = await generateJson({
+      prompt,
+      schema: discussionQuestionsSchema,
+      responseSchema: {
+        type: "object",
+        properties: {
+          questions: {
+            type: "array",
+            items: { type: "string" },
+            maxItems: 5,
+          },
+        },
+        required: ["questions"],
+      },
+      temperature: 0.9,
+    });
     return res(ok(JSON.stringify({ questions })));
   },
 );

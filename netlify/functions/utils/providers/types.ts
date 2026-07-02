@@ -43,4 +43,15 @@ export interface MediaProvider {
    * collected rather than thrown so one bad id doesn't abort the batch.
    */
   refreshStaleDetails: (limit: number) => Promise<RefreshResult>;
+
+  /**
+   * Build the LLM prompt asking for discussion questions about one work,
+   * enriched with this provider's cached metadata (release year, authors, …).
+   * Callers pass the work's own row values, so the prompt is always built from
+   * server-resolved data — never from client input.
+   */
+  getDiscussionPrompt: (work: {
+    title: string;
+    externalId: string | null;
+  }) => Promise<string>;
 }
