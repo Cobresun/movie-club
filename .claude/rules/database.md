@@ -43,6 +43,8 @@ Always validate schema migrations against a **freshly spawned dev database**, ne
 
 **Why this matters — blast radius of shared `dev`.** The Netlify `preview-database` plugin (`netlify/plugins/preview-database/index.js`) points every PR that *does not* change migrations straight at shared `dev`. So if you run `migrate:dev` with `.env` still pointing at `postgresql://.../dev`, you rewrite the schema underneath every other open PR's deploy preview at once — their code still expects the old schema and their previews 500 until the migration is reverted on shared `dev` and the previews are rebuilt. The spawn-first rule isn't about cleanliness; it's the only thing that keeps this blast radius from firing.
 
+**After a migration merges, shared `dev` syncs automatically.** The `preview-database` plugin's `onSuccess` hook runs the schema migrator against shared `dev` on every *production* deploy (i.e. every merge to `main`), so `dev` tracks `main` without anyone running `migrate:dev` by hand. This closes the old gap where a merged migration reached prod but not `dev`, leaving every non-migration preview 500ing on the new column. The sync is non-fatal (a failure warns but does not fail the deploy) and a no-op when `dev` is already current. You should therefore only need to run `npm run migrate:dev` against shared `dev` yourself as a **fallback** — when the deploy hook failed, or to apply a migration before it has merged (which the guard rail blocks unless it is already on `origin/main`).
+
 ```bash
 # 1. Spawn a fresh DB from the latest snapshot. Names must use only
 #    lowercase letters, numbers, and underscores — hyphens are rejected.
