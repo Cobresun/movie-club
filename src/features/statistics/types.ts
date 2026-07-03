@@ -73,6 +73,14 @@ export interface ClubConsensusEntry {
   scores: { name: string; score: number }[];
 }
 
+export interface HighestRatedByYearEntry {
+  year: number;
+  title: string;
+  imageUrl: string | undefined;
+  average: number;
+  movieCount: number;
+}
+
 export interface ScoreTrendPoint {
   date: Date;
   movieTitle: string;

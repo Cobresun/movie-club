@@ -5,6 +5,7 @@ import type {
   GenreStats,
   GenreWatchCount,
   GuiltyPleasureEntry,
+  HighestRatedByYearEntry,
   MemberLeaderboardEntry,
   MemberPairSimilarity,
   MovieData,
@@ -653,4 +654,45 @@ export function computeDecadeStats(
       count: data.count,
     }))
     .sort((a, b) => a.decade.localeCompare(b.decade));
+}
+
+export function computeHighestRatedByYear(
+  movieData: MovieData[],
+): HighestRatedByYearEntry[] {
+  const yearGroups = new Map<
+    number,
+    { best: MovieData | null; count: number }
+  >();
+
+  for (const movie of movieData) {
+    if (!hasValue(movie.createdDate)) continue;
+
+    const watchedDate = new Date(movie.createdDate);
+    if (isNaN(watchedDate.getTime())) continue;
+
+    const year = watchedDate.getFullYear();
+    const group = yearGroups.get(year);
+    if (isDefined(group)) {
+      group.count++;
+      if (!isDefined(group.best) || movie.average > group.best.average) {
+        group.best = movie;
+      }
+    } else {
+      yearGroups.set(year, { best: movie, count: 1 });
+    }
+  }
+
+  const entries: HighestRatedByYearEntry[] = [];
+  for (const [year, group] of yearGroups) {
+    if (!isDefined(group.best)) continue;
+    entries.push({
+      year,
+      title: group.best.title,
+      imageUrl: group.best.imageUrl,
+      average: Math.round(group.best.average * 100) / 100,
+      movieCount: group.count,
+    });
+  }
+
+  return entries.sort((a, b) => b.year - a.year);
 }
