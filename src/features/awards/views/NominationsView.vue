@@ -97,20 +97,20 @@ import { useReviewsList } from "@/service/useList";
 import { WorkSearchResult } from "@/service/useMediaSearch";
 import { useUser } from "@/service/useUser";
 
-const { clubAward, clubId, year } = defineProps<{
+const { clubAward, clubSlug, year } = defineProps<{
   clubAward: ClubAwards;
-  clubId: string;
+  clubSlug: string;
   year: string;
 }>();
 
 const user = useUser();
 
 const userOnlyAwards = computed(() => {
-  if (!user.value || !user.value.name) return [];
+  if (!user.value || !user.value.id) return [];
   return clubAward.awards.map((award) => ({
     ...award,
     nominations: award.nominations.filter((nomination) =>
-      nomination.nominatedBy.includes(user.value?.name ?? ""),
+      nomination.nominatedBy.includes(user.value?.id ?? ""),
     ),
   }));
 });
@@ -138,7 +138,7 @@ const closePrompt = () => {
   currentAward.value = undefined;
 };
 
-const { data: reviews } = useReviewsList(clubId);
+const { data: reviews } = useReviewsList(clubSlug);
 const reviewsForYear = computed(() => {
   if (!reviews.value) return [];
   return reviews.value
@@ -153,7 +153,7 @@ const reviewsForYear = computed(() => {
     }));
 });
 
-const { mutate } = useAddNomination(clubId, year);
+const { mutate } = useAddNomination(clubSlug, year);
 
 const addNomination = (work: WorkSearchResult) => {
   const review = reviews.value?.find(
@@ -164,5 +164,5 @@ const addNomination = (work: WorkSearchResult) => {
   closePrompt();
 };
 
-const { mutate: deleteNomination } = useDeleteNomination(clubId, year);
+const { mutate: deleteNomination } = useDeleteNomination(clubSlug, year);
 </script>

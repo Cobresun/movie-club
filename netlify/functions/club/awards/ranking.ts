@@ -15,6 +15,7 @@ const router = new Router<ClubAwardRequest>(
 const addRankingSchema = z.object({
   awardTitle: z.string(),
   movies: z.array(z.number()),
+  // Stable user ID (not display name) so renames don't orphan the ranking.
   voter: z.string(),
 });
 

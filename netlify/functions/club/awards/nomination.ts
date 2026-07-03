@@ -15,6 +15,7 @@ const router = new Router<ClubAwardRequest>(
 const addNominationSchema = z.object({
   awardTitle: z.string(),
   movieId: z.number(),
+  // Stable user ID (not display name) so renames don't orphan the nomination.
   nominatedBy: z.string(),
 });
 

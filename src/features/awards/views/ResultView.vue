@@ -20,17 +20,17 @@ import { useMembers } from "@/service/useClub";
 
 const props = defineProps<{
   clubAward: ClubAwards;
-  clubId: string;
+  clubSlug: string;
   year: string;
 }>();
 
-const { clubAward, clubId, year } = toRefs(props);
+const { clubAward, clubSlug, year } = toRefs(props);
 
-const { data: members } = useMembers(clubId.value);
+const { data: members } = useMembers(clubSlug.value);
 
 const revealedAwards = ref<string[]>([]);
 
-const { mutate } = useUpdateStep(clubId, year);
+const { mutate } = useUpdateStep(clubSlug, year);
 
 const revealHandler = (awardTitle: string) => {
   revealedAwards.value.push(awardTitle);

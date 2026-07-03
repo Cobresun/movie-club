@@ -21,16 +21,16 @@ import { useSubmitRanking } from "@/service/useAwards";
 import { useMembers } from "@/service/useClub";
 import { useUser } from "@/service/useUser";
 
-const { clubAward, clubId, year } = defineProps<{
+const { clubAward, clubSlug, year } = defineProps<{
   clubAward: ClubAwards;
-  clubId: string;
+  clubSlug: string;
   year: string;
 }>();
 
-const { data: members } = useMembers(clubId);
+const { data: members } = useMembers(clubSlug);
 const user = useUser();
 
-const { mutate } = useSubmitRanking(clubId, year);
+const { mutate } = useSubmitRanking(clubSlug, year);
 const toast = useToast();
 
 const submitRanking = (award: Award, movies: number[]) => {

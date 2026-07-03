@@ -42,11 +42,11 @@ import {
 
 const props = defineProps<{
   clubAward: ClubAwards;
-  clubId: string;
+  clubSlug: string;
   year: string;
 }>();
 
-const { clubAward, clubId, year } = toRefs(props);
+const { clubAward, clubSlug, year } = toRefs(props);
 
 const categories = ref(clubAward.value.awards);
 watch(clubAward, () => {
@@ -56,7 +56,7 @@ watch(clubAward, () => {
 const newCategory = ref("");
 
 const { mutate: addCategoryMutation } = useAddCategory(
-  clubId.value,
+  clubSlug.value,
   year.value,
 );
 
@@ -71,7 +71,7 @@ const addCategory = () => {
 };
 
 const { mutate: reorderCategories } = useReorderCategories(
-  clubId.value,
+  clubSlug.value,
   year.value,
 );
 
@@ -85,5 +85,8 @@ watch(categories, () => {
   }
 });
 
-const { mutate: deleteCategory } = useDeleteCategory(clubId.value, year.value);
+const { mutate: deleteCategory } = useDeleteCategory(
+  clubSlug.value,
+  year.value,
+);
 </script>

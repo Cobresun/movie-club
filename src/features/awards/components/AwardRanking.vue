@@ -16,11 +16,11 @@
     >
       <div class="mb-4 flex gap-2">
         <v-avatar
-          v-for="voter in nomination.nominatedBy"
-          :key="voter"
+          v-for="voterId in nomination.nominatedBy"
+          :key="voterId"
           :size="32"
-          :name="voter"
-          :src="getMemberImage(voter)"
+          :name="getMemberName(voterId)"
+          :src="getMemberImage(voterId)"
         />
       </div>
       <div class="flex justify-between">
@@ -57,8 +57,8 @@ const emit = defineEmits<{ (e: "submit-ranking", ranking: number[]): void }>();
 
 const nominations = ref(
   [...award.nominations].sort((nomA, nomB) => {
-    const nomARank = nomA.ranking[user.name];
-    const nomBRank = nomB.ranking[user.name];
+    const nomARank = nomA.ranking[user.id];
+    const nomBRank = nomB.ranking[user.id];
     if (!isDefined(nomARank) || !isDefined(nomBRank)) return 0;
     if (nomARank < nomBRank) return -1;
     if (nomARank > nomBRank) return 1;
@@ -74,10 +74,12 @@ const swapRight = (index: number) => {
   nominations.value = arr;
 };
 
-const getMemberImage = (name: string) => {
-  const member = members.find((member) => member.name === name);
-  return member?.image;
-};
+const getMemberById = (id: string) =>
+  members.find((member) => member.id === id);
+
+const getMemberName = (id: string) => getMemberById(id)?.name ?? id;
+
+const getMemberImage = (id: string) => getMemberById(id)?.image;
 
 const submit = () => {
   emit(
