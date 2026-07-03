@@ -414,4 +414,84 @@ const onPreBuild = async ({ utils, inputs }) => {
   }
 };
 
-export { onPreBuild };
+/**
+ * After a successful production deploy, advance the shared `dev` database to
+ * the latest schema.
+ *
+ * The production build already migrates the *production* database (via
+ * `npm run migrate`), and migration-carrying deploy previews migrate their own
+ * spawned `pr_<id>` database. But nothing keeps shared `dev` — the database
+ * every *non-migration* deploy preview (and local development) points at — in
+ * sync with `main`. Without this hook `dev` silently falls a migration behind
+ * on every merge until someone runs `migrate:dev` by hand, and until they do,
+ * every non-migration preview 500s on the newly-required column.
+ *
+ * This is deliberately non-fatal: production is already migrated by the build
+ * step, so a failure here must not fail an otherwise-successful deploy. A stale
+ * `dev` only affects preview/local environments and is recoverable with
+ * `npm run migrate:dev`. We therefore log loudly and return rather than
+ * `failBuild`. The migrator itself is safe to run on every production deploy:
+ * when `dev` is already current it is a no-op, and its built-in guard only
+ * blocks migrations that are not on `origin/main` (never the case on a `main`
+ * build).
+ *
+ * @param {PluginContext} context
+ * @returns {void}
+ */
+const onSuccess = ({ inputs }) => {
+  const { CONTEXT } = process.env;
+
+  if (CONTEXT !== "production") {
+    return;
+  }
+
+  const rootUrl = process.env.DATABASE_URL_ROOT;
+  if (!hasValue(rootUrl)) {
+    console.warn(
+      "Warning: DATABASE_URL_ROOT not set; skipping shared dev migration sync",
+    );
+    return;
+  }
+
+  const sourceDb = hasValue(inputs.sourceDatabase)
+    ? inputs.sourceDatabase
+    : "dev";
+
+  const url = new URL(rootUrl);
+  url.pathname = `/${sourceDb}`;
+  const devDatabaseUrl = url.toString();
+
+  console.log(
+    `\n🔄 Syncing schema migrations to shared ${sourceDb} database...`,
+  );
+
+  try {
+    const scriptPath = path.join(
+      process.cwd(),
+      "migrations",
+      "schemaMigrator.ts",
+    );
+
+    // Stream the migrator's output straight to the build log so its progress
+    // (and any failure detail) is visible without re-capturing it here.
+    execSync(`npx tsx ${scriptPath}`, {
+      stdio: "inherit",
+      env: { ...process.env, DATABASE_URL: devDatabaseUrl },
+    });
+
+    console.log(`✓ Shared ${sourceDb} database is up to date\n`);
+  } catch (error) {
+    // Non-fatal: production is already migrated by the build step, so a failure
+    // here must not fail the deploy. A stale `dev` only affects preview/local
+    // environments and is recoverable with `npm run migrate:dev`.
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(
+      `⚠️  Failed to sync migrations to the shared ${sourceDb} database: ${message}`,
+    );
+    console.warn(
+      "   Production is unaffected. Run `npm run migrate:dev` to sync manually.",
+    );
+  }
+};
+
+export { onPreBuild, onSuccess };
