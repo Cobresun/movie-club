@@ -5,7 +5,7 @@ import { isDefined } from "../../../../lib/checks/checks.js";
 import { WorkType } from "../../../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
 import { normalizeArray, createHistogramData } from "../scoring";
-import type { WorkStatsData, HistogramData } from "../types";
+import type { WorkStatsBase, WorkStatsData, HistogramData } from "../types";
 
 import { asBook, isMovieData } from "@/common/workDisplay";
 import { useMembers, useClubSlug } from "@/service/useClub";
@@ -50,50 +50,63 @@ export function useStatisticsData() {
   };
 }
 
+/**
+ * Builds the club-type-specific WorkStatsData for one review, or `null` to drop
+ * it. Keyed by WorkType so a new club type only adds an entry here rather than
+ * growing another `if (review.type === ...)` branch — the same registry pattern
+ * as CLUB_TYPE_CONFIG, kept feature-local because it depends on statistics types.
+ */
+const WORK_STATS_BUILDERS: Record<
+  WorkType,
+  (base: WorkStatsBase, review: DetailedReviewListItem) => WorkStatsData | null
+> = {
+  [WorkType.book]: (base, review) => ({
+    // Book stats are score-only, so a book still counts without metadata.
+    ...base,
+    type: WorkType.book,
+    externalData: asBook(review.externalData),
+  }),
+  [WorkType.movie]: (base, review) => {
+    // Movie stats read external metadata; skip works without it.
+    const externalData = review.externalData;
+    if (!isMovieData(externalData)) return null;
+    return {
+      ...base,
+      type: WorkType.movie,
+      genres: externalData.genres,
+      production_companies: externalData.production_companies,
+      production_countries: externalData.production_countries,
+      externalData,
+    };
+  },
+};
+
+function statsBase(review: DetailedReviewListItem): WorkStatsBase {
+  return {
+    id: review.id,
+    title: review.title,
+    dateWatched: DateTime.fromISO(review.createdDate).toLocaleString(),
+    userScores: Object.keys(review.scores).reduce<
+      Record<string, number | undefined>
+    >((acc, key) => {
+      if (key !== "average" && isDefined(review.scores[key].score)) {
+        acc[key] = review.scores[key].score;
+      }
+      return acc;
+    }, {}),
+    scores: review.scores,
+    average: review.scores.average?.score ?? 0,
+    normalized: {},
+    imageUrl: review.imageUrl,
+    createdDate: review.createdDate,
+  };
+}
+
 function mapReviewsToWorks(reviews: DetailedReviewListItem[]): WorkStatsData[] {
   return reviews
-    .map((review): WorkStatsData | null => {
-      const base = {
-        id: review.id,
-        title: review.title,
-        dateWatched: DateTime.fromISO(review.createdDate).toLocaleString(),
-        userScores: Object.keys(review.scores).reduce<
-          Record<string, number | undefined>
-        >((acc, key) => {
-          if (key !== "average" && isDefined(review.scores[key].score)) {
-            acc[key] = review.scores[key].score;
-          }
-          return acc;
-        }, {}),
-        scores: review.scores,
-        average: review.scores.average?.score ?? 0,
-        normalized: {},
-        imageUrl: review.imageUrl,
-        createdDate: review.createdDate,
-      };
-
-      if (review.type === WorkType.book) {
-        // Book stats are score-only, so a book still counts without metadata.
-        return {
-          ...base,
-          type: WorkType.book,
-          externalData: asBook(review.externalData),
-        };
-      }
-
-      // Movie stats read external metadata; skip works without it.
-      const externalData = review.externalData;
-      if (!isMovieData(externalData)) return null;
-
-      return {
-        ...base,
-        type: WorkType.movie,
-        genres: externalData.genres,
-        production_companies: externalData.production_companies,
-        production_countries: externalData.production_countries,
-        externalData,
-      };
-    })
+    .map((review) =>
+      WORK_STATS_BUILDERS[review.type](statsBase(review), review),
+    )
     .filter(isDefined)
     .filter((work) => Object.keys(work.userScores).length > 0);
 }

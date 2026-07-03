@@ -7,7 +7,7 @@ import { DetailedMovieData } from "../../../lib/types/movie";
  * media type. Score-based widgets and computers should depend on this (via
  * WorkStatsData) so they work for any club type.
  */
-interface WorkStatsBase {
+export interface WorkStatsBase {
   id: string;
   title: string;
   createdDate: string;

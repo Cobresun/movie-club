@@ -28,6 +28,8 @@ import { computed } from "vue";
 import { ClubType } from "../../../../lib/types/generated/db";
 import { isMovieStats, type WorkStatsData } from "../types";
 
+import { clubTypeStats } from "@/common/clubType";
+
 const props = defineProps<{
   workData: WorkStatsData[];
   clubType: ClubType;
@@ -35,15 +37,13 @@ const props = defineProps<{
 
 const isMovieClub = computed(() => props.clubType === ClubType.movie);
 
+const stats = computed(() => clubTypeStats(props.clubType));
+
 const totalWorks = computed(() => props.workData.length);
 
-const countLabel = computed(() =>
-  isMovieClub.value ? "movies watched" : "books read",
-);
+const countLabel = computed(() => stats.value.countLabel);
 
-const countIcon = computed(() =>
-  isMovieClub.value ? "filmstrip" : "book-open-page-variant-outline",
-);
+const countIcon = computed(() => stats.value.countIcon);
 
 const totalRuntimeMinutes = computed(() =>
   props.workData.filter(isMovieStats).reduce((sum, movie) => {

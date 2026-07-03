@@ -80,6 +80,7 @@ import { ClubType } from "../../../../lib/types/generated/db";
 import { computeClubCurmudgeons } from "../statsComputers";
 import type { WorkStatsData } from "../types";
 
+import { clubTypeStats } from "@/common/clubType";
 import VAvatar from "@/common/components/VAvatar.vue";
 
 const props = defineProps<{
@@ -88,9 +89,7 @@ const props = defineProps<{
   clubType: ClubType;
 }>();
 
-const workNoun = computed(() =>
-  props.clubType === ClubType.book ? "Books" : "Movies",
-);
+const workNoun = computed(() => clubTypeStats(props.clubType).pluralNoun);
 
 const curmudgeons = computed(() =>
   computeClubCurmudgeons(props.workData, props.members),
