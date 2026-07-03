@@ -27,7 +27,7 @@
     max="10"
     step="any"
     aria-label="Score"
-    class="rounded-lg border border-gray-300 bg-background text-center outline-none focus:border-primary"
+    class="rounded-lg border border-gray-300 bg-background text-center outline-none [appearance:textfield] focus:border-primary [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
     :class="{ 'w-10 p-2': size !== 'sm', 'w-8': size === 'sm' }"
     @blur="submitScore(parseFloat(scoreModel))"
     @keydown.enter="scoreInput?.blur()"
