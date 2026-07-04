@@ -12,26 +12,33 @@
     v-else-if="isMe && !isInputOpen"
     role="button"
     aria-label="Add score"
-    class="flex cursor-pointer justify-center"
+    class="flex cursor-pointer items-center justify-center gap-0.5"
     @click.stop="openScoreInput"
   >
     <mdicon name="plus" />
+    <span class="text-xs text-gray-400">/10</span>
   </span>
-  <input
+  <span
     v-else-if="isMe && isInputOpen"
-    ref="scoreInput"
-    v-model="scoreModel"
-    type="number"
-    inputmode="decimal"
-    min="0"
-    max="10"
-    step="any"
-    aria-label="Score"
-    class="rounded-lg border border-gray-300 bg-background text-center outline-none [appearance:textfield] focus:border-primary [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-    :class="{ 'w-10 p-2': size !== 'sm', 'w-8': size === 'sm' }"
-    @blur="submitScore(parseFloat(scoreModel))"
-    @keydown.enter="scoreInput?.blur()"
-  />
+    class="inline-flex items-center gap-0.5"
+  >
+    <input
+      ref="scoreInput"
+      v-model="scoreModel"
+      type="number"
+      inputmode="decimal"
+      min="0"
+      max="10"
+      step="any"
+      placeholder="8.5"
+      aria-label="Score"
+      class="rounded-lg border border-gray-300 bg-background text-center outline-none [appearance:textfield] focus:border-primary [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+      :class="{ 'w-10 p-2': size !== 'sm', 'w-8': size === 'sm' }"
+      @blur="submitScore(parseFloat(scoreModel))"
+      @keydown.enter="scoreInput?.blur()"
+    />
+    <span class="text-xs text-gray-400">/10</span>
+  </span>
 </template>
 <script setup lang="ts">
 import { computed, nextTick, ref } from "vue";
