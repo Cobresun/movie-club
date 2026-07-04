@@ -20,7 +20,7 @@
   </span>
   <span
     v-else-if="isMe && isInputOpen"
-    class="inline-flex items-center gap-0.5"
+    class="flex items-center justify-center gap-0.5"
   >
     <input
       ref="scoreInput"
@@ -42,7 +42,9 @@
       @keydown.enter="scoreInput?.blur()"
       @animationend="drawAttention = false"
     />
-    <span class="text-xs text-gray-400">/10</span>
+    <Transition name="score-suffix">
+      <span v-if="!drawAttention" class="text-xs text-gray-400">/10</span>
+    </Transition>
   </span>
 </template>
 <script setup lang="ts">
@@ -168,9 +170,25 @@ const submitScore = (score: number) => {
   animation: score-pop 0.45s ease-in-out;
 }
 
+/* Reveal the "/10" suffix once the input has popped in. */
+.score-suffix-enter-active {
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+
+.score-suffix-enter-from {
+  opacity: 0;
+  transform: scale(0.6);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-score-pop {
     animation: none;
+  }
+
+  .score-suffix-enter-active {
+    transition: none;
   }
 }
 </style>
