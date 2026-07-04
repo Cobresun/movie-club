@@ -90,3 +90,45 @@ When `club` data changes, Vue destroys and recreates `ClubDetails` with clean st
 
 - Syncing with external systems (localStorage, browser APIs)
 - Triggering animations or side effects that are truly reactive in nature
+
+## Club-Type Variation: Registry over Conditionals
+
+Anything that varies by club type — copy, icons, labels, behavior, per-type data
+construction — must be driven by a registry, never an inline `clubType === ...`
+(or `review.type === ...`) branch. Adding a new club type should mean adding one
+registry entry, not hunting down conditionals scattered across widgets and views.
+
+```ts
+// AVOID: inline enum ternary, one per component
+const countLabel = computed(() =>
+  props.clubType === ClubType.movie ? "movies watched" : "books read",
+);
+
+// PREFERRED: read it from the registry
+const stats = computed(() => clubTypeStats(props.clubType));
+const countLabel = computed(() => stats.value.countLabel);
+```
+
+Which registry depends on what the value depends on — there are two tiers:
+
+1. **Cross-feature display/behavior → shared `CLUB_TYPE_CONFIG`** in
+   `src/common/clubType.ts` (a `Record<ClubType, ClubTypeConfig>`). Add a field
+   (or a sub-block like `stats`) and read it via a helper such as
+   `clubTypeConfig(type)` / `clubTypeStats(type)`. Components take `clubType` as a
+   prop and look it up.
+
+2. **Feature-specific logic that depends on the feature's own types → a
+   feature-local `Record<Enum, ...>`**, NOT `src/common`. Putting it in
+   `clubType.ts` would make the shared service import feature types (e.g.
+   statistics' `WorkStatsData`), inverting the `common → feature` dependency.
+   Mirror the same pattern locally instead — e.g. `WORK_STATS_BUILDERS:
+   Record<WorkType, (base, review) => WorkStatsData | null>` in
+   `useStatisticsData.ts` replaces an inline `if (review.type === ...)`.
+
+Typing the registry as `Record<Enum, ...>` gives exhaustiveness: a new club/work
+type won't compile until every registry has an entry for it.
+
+**Gotcha:** icons pulled from a registry reach templates through a computed, so
+they're invisible to `icons.test.ts`'s static scan. When you add an icon field to
+`CLUB_TYPE_CONFIG`, extend that test's registry check to cover it (see
+`frontend-architecture.md` → Icons).
