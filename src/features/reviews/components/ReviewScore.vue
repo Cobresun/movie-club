@@ -41,7 +41,14 @@
   </span>
 </template>
 <script setup lang="ts">
-import { computed, inject, nextTick, onMounted, ref } from "vue";
+import {
+  computed,
+  inject,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+} from "vue";
 
 import { hasValue, isDefined, isTrue } from "../../../../lib/checks/checks.js";
 import { RequestScoreEntryKey } from "../scoreEntry";
@@ -92,9 +99,21 @@ const openScoreInput = () => {
   }).catch(console.error);
 };
 
+// Let the drawer / bottom-sheet slide-in animation (200ms sheet, 280ms drawer)
+// finish before opening and focusing the input, so it doesn't pop and scroll
+// into view mid-transition.
+const AUTOFOCUS_DELAY_MS = 300;
+let autoFocusTimer: ReturnType<typeof setTimeout> | undefined;
+
 onMounted(() => {
   if (isTrue(props.autoFocus) && isMe.value) {
-    openScoreInput();
+    autoFocusTimer = setTimeout(openScoreInput, AUTOFOCUS_DELAY_MS);
+  }
+});
+
+onBeforeUnmount(() => {
+  if (isDefined(autoFocusTimer)) {
+    clearTimeout(autoFocusTimer);
   }
 });
 
