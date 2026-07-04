@@ -671,7 +671,10 @@ export function computeHighestRatedByYear(
     const watchedDate = new Date(movie.createdDate);
     if (isNaN(watchedDate.getTime())) continue;
 
-    const year = watchedDate.getFullYear();
+    // createdDate is a UTC ISO timestamp; read the year in UTC so grouping is
+    // timezone-independent (getFullYear() rolls a `...T00:00:00Z` date back a
+    // year west of UTC). Matches the string-based year parsing in the decade stats.
+    const year = watchedDate.getUTCFullYear();
     const group = yearGroups.get(year);
     if (isDefined(group)) {
       group.count++;
