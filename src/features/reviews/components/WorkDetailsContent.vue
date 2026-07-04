@@ -149,7 +149,7 @@
           >
             <FlexRender
               :render="cell.column.columnDef.cell"
-              :props="cell.getContext()"
+              :props="scoreCellProps(cell)"
             />
           </div>
         </div>
@@ -277,7 +277,7 @@
           >
             <FlexRender
               :render="cell.column.columnDef.cell"
-              :props="cell.getContext()"
+              :props="scoreCellProps(cell)"
             />
           </div>
         </div>
@@ -388,12 +388,12 @@
 
 <script setup lang="ts">
 import { Disclosure, DisclosureButton, DisclosurePanel } from "@headlessui/vue";
-import { FlexRender, Row, Table } from "@tanstack/vue-table";
+import { Cell, FlexRender, Row, Table } from "@tanstack/vue-table";
 import { DateTime } from "luxon";
 import { computed, ref } from "vue";
 
 import DiscussionQuestions from "./DiscussionQuestions.vue";
-import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
+import { hasValue, isDefined, isTrue } from "../../../../lib/checks/checks.js";
 import { ClubType } from "../../../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
 
@@ -425,6 +425,7 @@ const props = defineProps<{
   hasRated: (movieId: string) => boolean;
   currentUserId?: string;
   isDesktop: boolean;
+  focusScoreEntry?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -547,6 +548,21 @@ const getVisibleCells = (row: Row<DetailedReviewListItem>) => {
     return value !== undefined && value !== null && value !== "";
   });
 };
+
+const currentUserColumnId = computed(() =>
+  isDefined(props.currentUserId) ? `member_${props.currentUserId}` : undefined,
+);
+
+// When the drawer was opened via a poster's score chip, tag the current user's
+// score cell so its ReviewScore opens and focuses the input on mount.
+const scoreCellProps = (cell: Cell<DetailedReviewListItem, unknown>) => ({
+  ...cell.getContext(),
+  meta: {
+    autoFocusScore:
+      isTrue(props.focusScoreEntry) &&
+      cell.column.id === currentUserColumnId.value,
+  },
+});
 
 const close = () => {
   emit("close");

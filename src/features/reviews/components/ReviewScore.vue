@@ -4,7 +4,7 @@
     :class="{
       'cursor-pointer': isMe,
     }"
-    @click.stop="openScoreInput"
+    @click.stop="handleScoreClick"
   >
     {{ score }}
   </span>
@@ -13,10 +13,10 @@
     role="button"
     aria-label="Add score"
     class="flex cursor-pointer items-center justify-center gap-0.5"
-    @click.stop="openScoreInput"
+    @click.stop="handleScoreClick"
   >
     <mdicon name="plus" />
-    <span class="text-xs text-gray-400">/10</span>
+    <span v-if="openInDrawer !== true" class="text-xs text-gray-400">/10</span>
   </span>
   <span
     v-else-if="isMe && isInputOpen"
@@ -41,9 +41,10 @@
   </span>
 </template>
 <script setup lang="ts">
-import { computed, nextTick, ref } from "vue";
+import { computed, inject, nextTick, onMounted, ref } from "vue";
 
-import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
+import { hasValue, isDefined, isTrue } from "../../../../lib/checks/checks.js";
+import { RequestScoreEntryKey } from "../scoreEntry";
 
 import { useClubSlug } from "@/service/useClub";
 import { useReviewWork, useUpdateReviewScore } from "@/service/useReviews";
@@ -55,6 +56,12 @@ const props = defineProps<{
   score?: number;
   reviewId?: string;
   size?: string;
+  // When true (poster chips in the gallery), clicking defers score entry to the
+  // details drawer instead of opening a cramped inline input on the poster.
+  openInDrawer?: boolean;
+  // When true (the current user's field inside the drawer), open the input and
+  // focus it as soon as the drawer mounts.
+  autoFocus?: boolean;
 }>();
 
 const user = useUser();
@@ -63,6 +70,17 @@ const isMe = computed(() => user.value?.id === props.memberId);
 const isInputOpen = ref(false);
 const scoreModel = ref("");
 const scoreInput = ref<HTMLInputElement | null>(null);
+
+const requestScoreEntry = inject(RequestScoreEntryKey, undefined);
+
+const handleScoreClick = () => {
+  if (!isMe.value) return;
+  if (isTrue(props.openInDrawer) && isDefined(requestScoreEntry)) {
+    requestScoreEntry(props.workId);
+    return;
+  }
+  openScoreInput();
+};
 
 const openScoreInput = () => {
   if (!isMe.value) return;
@@ -73,6 +91,12 @@ const openScoreInput = () => {
     scoreInput.value?.select();
   }).catch(console.error);
 };
+
+onMounted(() => {
+  if (isTrue(props.autoFocus) && isMe.value) {
+    openScoreInput();
+  }
+});
 
 const clubId = useClubSlug();
 const { mutate: submit } = useReviewWork(clubId);
