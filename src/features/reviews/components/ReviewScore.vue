@@ -42,9 +42,11 @@
       @keydown.enter="scoreInput?.blur()"
       @animationend="drawAttention = false"
     />
-    <Transition name="score-suffix">
-      <span v-if="!drawAttention" class="text-xs text-gray-400">/10</span>
-    </Transition>
+    <span
+      class="text-xs text-gray-400 transition-opacity duration-200 motion-reduce:transition-none"
+      :class="drawAttention ? 'opacity-0' : 'opacity-100'"
+      >/10</span
+    >
   </span>
 </template>
 <script setup lang="ts">
@@ -170,25 +172,9 @@ const submitScore = (score: number) => {
   animation: score-pop 0.45s ease-in-out;
 }
 
-/* Reveal the "/10" suffix once the input has popped in. */
-.score-suffix-enter-active {
-  transition:
-    opacity 0.2s ease,
-    transform 0.2s ease;
-}
-
-.score-suffix-enter-from {
-  opacity: 0;
-  transform: scale(0.6);
-}
-
 @media (prefers-reduced-motion: reduce) {
   .animate-score-pop {
     animation: none;
-  }
-
-  .score-suffix-enter-active {
-    transition: none;
   }
 }
 </style>
