@@ -33,9 +33,14 @@
       placeholder="8.5"
       aria-label="Score"
       class="rounded-lg border border-gray-300 bg-background text-center outline-none [appearance:textfield] focus:border-primary [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-      :class="{ 'w-10 p-2': size !== 'sm', 'w-8': size === 'sm' }"
+      :class="{
+        'w-10 p-2': size !== 'sm',
+        'w-8': size === 'sm',
+        'animate-score-pop': drawAttention,
+      }"
       @blur="submitScore(parseFloat(scoreModel))"
       @keydown.enter="scoreInput?.blur()"
+      @animationend="drawAttention = false"
     />
     <span class="text-xs text-gray-400">/10</span>
   </span>
@@ -77,6 +82,9 @@ const isMe = computed(() => user.value?.id === props.memberId);
 const isInputOpen = ref(false);
 const scoreModel = ref("");
 const scoreInput = ref<HTMLInputElement | null>(null);
+// Plays a one-shot bounce on the input to draw the eye when it's opened for the
+// user (rather than by their own tap), e.g. auto-focused inside the drawer.
+const drawAttention = ref(false);
 
 const requestScoreEntry = inject(RequestScoreEntryKey, undefined);
 
@@ -89,8 +97,9 @@ const handleScoreClick = () => {
   openScoreInput();
 };
 
-const openScoreInput = () => {
+const openScoreInput = ({ animate = false }: { animate?: boolean } = {}) => {
   if (!isMe.value) return;
+  drawAttention.value = animate;
   isInputOpen.value = true;
   scoreModel.value = props.score?.toString() ?? "";
   nextTick(() => {
@@ -107,7 +116,10 @@ let autoFocusTimer: ReturnType<typeof setTimeout> | undefined;
 
 onMounted(() => {
   if (isTrue(props.autoFocus) && isMe.value) {
-    autoFocusTimer = setTimeout(openScoreInput, AUTOFOCUS_DELAY_MS);
+    autoFocusTimer = setTimeout(
+      () => openScoreInput({ animate: true }),
+      AUTOFOCUS_DELAY_MS,
+    );
   }
 });
 
@@ -135,3 +147,30 @@ const submitScore = (score: number) => {
   isInputOpen.value = false;
 };
 </script>
+
+<style scoped>
+@keyframes score-pop {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.18);
+  }
+  70% {
+    transform: scale(0.96);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-score-pop {
+  animation: score-pop 0.45s ease-in-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-score-pop {
+    animation: none;
+  }
+}
+</style>
