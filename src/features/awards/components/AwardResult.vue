@@ -6,7 +6,7 @@
   <transition-group
     tag="div"
     enter-from-class="h-0"
-    enter-active-class="transition-[height] ease-linear duration-500 overflow-hidden"
+    enter-active-class="transition-[height] ease-standard duration-500 overflow-hidden"
     enter-to-class="h-96"
   >
     <div v-if="showResult" class="grid grid-cols-auto">

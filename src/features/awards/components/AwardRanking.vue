@@ -5,7 +5,7 @@
   </div>
   <transition-group
     tag="div"
-    move-class="transition ease-linear duration-300"
+    move-class="transition duration-slow ease-emphasized"
     class="grid grid-cols-auto"
   >
     <WorkPosterCard

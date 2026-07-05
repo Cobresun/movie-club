@@ -61,7 +61,7 @@ onBeforeUnmount(() => {
 <style scoped>
 .slide-in-right-enter-active,
 .slide-in-right-leave-active {
-  transition: transform 280ms cubic-bezier(0.32, 0.72, 0, 1);
+  transition: transform var(--motion-slow) var(--ease-emphasized);
 }
 
 .slide-in-right-enter-from,

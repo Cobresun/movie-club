@@ -4,6 +4,77 @@
 
 @tailwind utilities;
 
+/* Motion tokens — the single source of truth for animation timing.
+   Exposed as Tailwind utilities (duration-fast, ease-standard, ...) via
+   tailwind.config.cjs, and consumed directly in SFC <style> via var(). */
+:root {
+  --motion-fast: 150ms; /* micro-interactions: press, hover, inline swaps */
+  --motion-base: 200ms; /* fades: backdrops, modals, list enter/leave */
+  --motion-slow: 300ms; /* spatial overlays: drawers, sheets, reveals */
+  --motion-page: 350ms; /* route transitions */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-emphasized: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* Reduced-motion layer: durations collapse to near-zero rather than
+   `animation: none` so transitions still COMPLETE — overlay dismissal
+   (VModal/VBottomSheet/VSideDrawer) relies on @after-leave firing. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Route transitions: iOS-style parallax push/pop — the incoming-from-the-right
+   page always renders on top while the underlying page moves 30% and dims.
+
+   The direction lives in a `data-route-transition` attribute on <html> (set in
+   router/index.ts beforeEach) rather than in the <transition> name: a leaving
+   element keeps the transition props captured when it was RENDERED, so a
+   dynamic :name can never change the exit animation of the page it removes.
+   Attribute selectors are resolved live, so both pages always agree on the
+   direction. No attribute value ("none") means no transition rules match and
+   Vue ends the transition immediately. */
+html[data-route-transition="fade"] .route-enter-active {
+  transition: opacity var(--motion-base) var(--ease-standard);
+}
+html[data-route-transition="fade"] .route-leave-active {
+  display: none;
+}
+html[data-route-transition="fade"] .route-enter-from {
+  opacity: 0;
+}
+
+html[data-route-transition="push"] .route-enter-active,
+html[data-route-transition="push"] .route-leave-active,
+html[data-route-transition="pop"] .route-enter-active,
+html[data-route-transition="pop"] .route-leave-active {
+  transition:
+    transform var(--motion-page) var(--ease-emphasized),
+    opacity var(--motion-page) var(--ease-emphasized);
+}
+html[data-route-transition="push"] .route-leave-active,
+html[data-route-transition="pop"] .route-enter-active {
+  z-index: -1;
+}
+html[data-route-transition="push"] .route-enter-from {
+  transform: translateX(100%);
+}
+html[data-route-transition="push"] .route-leave-to,
+html[data-route-transition="pop"] .route-enter-from {
+  transform: translateX(-30%);
+  opacity: 0.4;
+}
+html[data-route-transition="pop"] .route-leave-to {
+  transform: translateX(100%);
+}
+
 html {
   font-family: "Poppins", sans-serif;
   -webkit-font-smoothing: antialiased;

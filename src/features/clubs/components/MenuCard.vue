@@ -1,6 +1,6 @@
 <template>
   <button
-    class="w-full rounded-xl p-2 text-base tracking-wide duration-150 hover:brightness-105 active:brightness-110 md:p-3 md:text-xl"
+    class="w-full rounded-xl p-2 text-base tracking-wide duration-fast ease-standard hover:brightness-105 active:brightness-110 md:p-3 md:text-xl"
     :class="`bg-${bgColor}`"
     @click="emit('click')"
   >

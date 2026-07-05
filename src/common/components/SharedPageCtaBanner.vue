@@ -2,7 +2,7 @@
   <div v-if="!isLoggedIn">
     <div class="h-20" />
     <div
-      class="fixed inset-x-0 bottom-0 px-4 pb-4 transition-transform duration-300"
+      class="fixed inset-x-0 bottom-0 px-4 pb-4 transition-transform duration-slow ease-emphasized"
       :class="{ 'translate-y-[150%]': isScrollingDown }"
     >
       <div

@@ -372,9 +372,11 @@ const routes: Array<RouteRecordRaw> = [
   },
 ];
 
+const routerHistory = createWebHistory();
+
 const router = createRouter({
   routes,
-  history: createWebHistory(),
+  history: routerHistory,
   scrollBehavior(to, from) {
     // Overlays like the bottom sheet / details drawer push a synthetic history
     // entry (see useBackButtonClose) that keeps the same URL, then pop it on
@@ -388,28 +390,39 @@ const router = createRouter({
   },
 });
 
+const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+
+const historyPosition = () => {
+  const position: unknown = routerHistory.state.position;
+  return typeof position === "number" ? position : undefined;
+};
+
+// Safari plays its own native snapshot animation for the back/forward swipe
+// gesture, so replaying ours doubles it. Traversals are detected by history
+// position rather than a popstate listener: the browser has already moved to
+// the target entry when guards run, whereas a push updates history only after
+// navigation is confirmed — so a position change here means back/forward.
+let lastPosition = historyPosition();
+
 router.beforeEach((to, from) => {
-  const fadeIn = "animate__animated animate__faster animate__fadeIn";
-  if (!isDefined(from.name)) {
-    to.meta.transitionIn = fadeIn;
-    return;
+  const isTraversal = historyPosition() !== lastPosition;
+  let direction = "none";
+  if (isDefined(from.name) && !(isSafari && isTraversal)) {
+    if (to.meta.depth === from.meta.depth) {
+      direction = "fade";
+    } else {
+      direction = to.meta.depth > from.meta.depth ? "push" : "pop";
+    }
   }
-  const slideInRight =
-    "animate__animated animate__faster animate__slideInRight";
-  const slideInLeft = "animate__animated animate__faster animate__slideInLeft";
-  const slideOutRight =
-    "animate__animated animate__faster animate__slideOutRight";
-  const slideOutLeft =
-    "animate__animated animate__faster animate__slideOutLeft";
-  if (to.meta.depth === from.meta.depth) {
-    to.meta.transitionIn = fadeIn;
-    to.meta.transitionOut = undefined;
-  } else {
-    to.meta.transitionIn =
-      to.meta.depth > from.meta.depth ? slideInRight : slideInLeft;
-    to.meta.transitionOut =
-      to.meta.depth > from.meta.depth ? slideOutLeft : slideOutRight;
-  }
+  // Drives the html[data-route-transition="..."] CSS in tailwind.css. The
+  // direction must live outside the <transition> props because a leaving page
+  // keeps the props captured when it rendered (a dynamic :name can't change
+  // the exit animation), while attribute selectors resolve live.
+  document.documentElement.dataset.routeTransition = direction;
+});
+
+router.afterEach(() => {
+  lastPosition = historyPosition();
 });
 
 export default router;

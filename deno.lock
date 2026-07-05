@@ -37,7 +37,6 @@
         "npm:@vue/eslint-config-prettier@^10.2.0",
         "npm:@vue/eslint-config-typescript@^14.6.0",
         "npm:ag-charts-vue3@^11.3.2",
-        "npm:animate.css@^4.1.1",
         "npm:autoprefixer@^10.4.23",
         "npm:axios@^1.16.0",
         "npm:bcrypt@6",

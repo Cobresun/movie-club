@@ -259,7 +259,7 @@ const columns = computed(() => [
             "div",
             {
               class:
-                "opacity-0 group-hover:opacity-100 transition-opacity duration-100 space-x-4",
+                "opacity-0 group-hover:opacity-100 transition-opacity duration-fast ease-standard space-x-4",
             },
             [
               h(mdicon, {

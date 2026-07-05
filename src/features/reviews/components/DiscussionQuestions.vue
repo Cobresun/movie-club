@@ -136,7 +136,7 @@ const regenerate = () => {
   background: #222831; /* theme background */
   z-index: 0;
   isolation: isolate;
-  transition: filter 0.2s ease;
+  transition: filter var(--motion-base) var(--ease-standard);
 }
 
 .ai-shimmer-button::before {
@@ -180,15 +180,9 @@ const regenerate = () => {
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .ai-shimmer-button::before {
-    animation: none;
-  }
-}
-
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity 0.25s ease;
+  transition: opacity var(--motion-base) var(--ease-standard);
 }
 .fade-enter-from,
 .fade-leave-to {

@@ -1,6 +1,6 @@
 <template>
   <button
-    class="rounded-md text-center text-base font-bold tracking-wide text-text filter duration-150"
+    class="rounded-md text-center text-base font-bold tracking-wide text-text filter duration-fast ease-standard"
     :class="{
       'bg-gray-600': disabled,
       'cursor-pointer bg-primary hover:brightness-110 active:brightness-105':
