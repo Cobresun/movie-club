@@ -1,63 +1,65 @@
 <template>
-  <span
-    v-if="isDefined(score) && !isInputOpen"
-    :class="{
-      'cursor-pointer': isMe,
-    }"
-    @click.stop="handleScoreClick"
-  >
-    {{ score }}
-  </span>
-  <span
-    v-else-if="isMe && !isInputOpen"
-    role="button"
-    aria-label="Add score"
-    class="flex cursor-pointer items-center justify-center gap-0.5"
-    @click.stop="handleScoreClick"
-  >
-    <mdicon name="plus" />
-    <span v-if="openInDrawer !== true" class="text-xs text-gray-400">/10</span>
-  </span>
-  <span
-    v-else-if="isMe && isInputOpen"
-    class="flex items-center justify-center gap-0.5"
-  >
-    <input
-      ref="scoreInput"
-      v-model="scoreModel"
-      type="number"
-      inputmode="decimal"
-      min="0"
-      max="10"
-      step="any"
-      placeholder="8.5"
-      aria-label="Score"
-      class="rounded-lg border border-gray-300 bg-background text-center outline-none [appearance:textfield] focus:border-primary [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-      :class="{
-        'w-10 p-2': size !== 'sm',
-        'w-8': size === 'sm',
-        'animate-score-pop': drawAttention,
-      }"
-      @blur="submitScore(parseFloat(scoreModel))"
-      @keydown.enter="scoreInput?.blur()"
-      @animationend="drawAttention = false"
-    />
-    <span
-      class="text-xs text-gray-400 transition-opacity duration-200 motion-reduce:transition-none"
-      :class="drawAttention ? 'opacity-0' : 'opacity-100'"
-      >/10</span
-    >
+  <span class="inline-flex justify-center">
+    <Transition name="score-swap" mode="out-in" @after-enter="onAfterEnter">
+      <span
+        v-if="isDefined(score) && !isInputOpen"
+        key="score"
+        :class="{
+          'cursor-pointer': isMe,
+        }"
+        @click.stop="handleScoreClick"
+      >
+        {{ score }}
+      </span>
+      <span
+        v-else-if="isMe && !isInputOpen"
+        key="add"
+        role="button"
+        aria-label="Add score"
+        class="flex cursor-pointer items-center justify-center gap-0.5"
+        @click.stop="handleScoreClick"
+      >
+        <mdicon name="plus" />
+        <span v-if="openInDrawer !== true" class="text-xs text-gray-400"
+          >/10</span
+        >
+      </span>
+      <span
+        v-else-if="isMe && isInputOpen"
+        key="input"
+        class="flex items-center justify-center gap-0.5"
+      >
+        <input
+          ref="scoreInput"
+          v-model="scoreModel"
+          type="number"
+          inputmode="decimal"
+          min="0"
+          max="10"
+          step="any"
+          placeholder="8.5"
+          aria-label="Score"
+          class="rounded-lg border border-gray-300 bg-background text-center outline-none [appearance:textfield] focus:border-primary [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+          :class="{
+            'w-10 p-2': size !== 'sm',
+            'w-8': size === 'sm',
+            'animate-score-pop': drawAttention,
+          }"
+          @blur="submitScore(parseFloat(scoreModel))"
+          @keydown.enter="scoreInput?.blur()"
+          @animationend="drawAttention = false"
+        />
+        <span
+          class="text-xs text-gray-400 transition-opacity duration-200 motion-reduce:transition-none"
+          :class="drawAttention ? 'opacity-0' : 'opacity-100'"
+          >/10</span
+        >
+      </span>
+    </Transition>
   </span>
 </template>
 <script setup lang="ts">
-import {
-  computed,
-  inject,
-  nextTick,
-  onBeforeUnmount,
-  onMounted,
-  ref,
-} from "vue";
+import { computed, inject, onBeforeUnmount, onMounted, ref } from "vue";
 
 import { hasValue, isDefined, isTrue } from "../../../../lib/checks/checks.js";
 import { RequestScoreEntryKey } from "../scoreEntry";
@@ -106,10 +108,13 @@ const openScoreInput = ({ animate = false }: { animate?: boolean } = {}) => {
   drawAttention.value = animate;
   isInputOpen.value = true;
   scoreModel.value = props.score?.toString() ?? "";
-  nextTick(() => {
-    scoreInput.value?.focus();
-    scoreInput.value?.select();
-  }).catch(console.error);
+};
+
+// With mode="out-in" the input is only inserted after the old element has
+// finished leaving, so focus must wait for after-enter (nextTick is too early).
+const onAfterEnter = () => {
+  scoreInput.value?.focus();
+  scoreInput.value?.select();
 };
 
 // Let the drawer / bottom-sheet slide-in animation (200ms sheet, 280ms drawer)
@@ -176,5 +181,18 @@ const submitScore = (score: number) => {
   .animate-score-pop {
     animation: none;
   }
+}
+
+.score-swap-enter-active,
+.score-swap-leave-active {
+  transition:
+    opacity var(--motion-fast) var(--ease-standard),
+    transform var(--motion-fast) var(--ease-standard);
+}
+
+.score-swap-enter-from,
+.score-swap-leave-to {
+  opacity: 0;
+  transform: scale(0.8);
 }
 </style>

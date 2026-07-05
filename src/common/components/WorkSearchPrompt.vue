@@ -11,20 +11,24 @@
         <h5 class="text-left font-bold">
           {{ defaultListTitle }}
         </h5>
-        <div
+        <TransitionGroup
+          tag="div"
+          name="result"
+          appear
           class="mt-2 grid justify-items-center"
           style="grid-template-columns: repeat(auto-fill, minmax(136px, 1fr))"
         >
           <WorkSearchCard
-            v-for="item in filteredDefaultList"
+            v-for="(item, index) in filteredDefaultList"
             :key="item.externalId"
+            :style="{ '--stagger': Math.min(index, 8) }"
             :title="item.title"
             :subtitle="item.subtitle"
             :poster-url="item.imageUrl"
             :fallback-icon="fallbackIcon"
             @select="emit('select-from-default', item)"
           />
-        </div>
+        </TransitionGroup>
         <div v-if="showLoadMore" class="mt-3 flex justify-center">
           <v-btn :disabled="loadingMore" @click="onLoadMore?.()">
             {{ loadingMore ? "Loading..." : "Load More" }}
@@ -33,20 +37,24 @@
       </div>
       <div v-if="includeSearch && searchResults.length > 0">
         <h5 class="text-left font-bold">Search</h5>
-        <div
+        <TransitionGroup
+          tag="div"
+          name="result"
+          appear
           class="mt-2 grid justify-items-center"
           style="grid-template-columns: repeat(auto-fill, minmax(136px, 1fr))"
         >
           <WorkSearchCard
-            v-for="item in searchResults"
+            v-for="(item, index) in searchResults"
             :key="item.externalId"
+            :style="{ '--stagger': Math.min(index, 8) }"
             :title="item.title"
             :subtitle="item.subtitle"
             :poster-url="item.imageUrl"
             :fallback-icon="fallbackIcon"
             @select="emit('select-from-search', item)"
           />
-        </div>
+        </TransitionGroup>
       </div>
       <loading-spinner
         v-if="includeSearch && loadingSearch"
@@ -145,3 +153,28 @@ const showHint = computed(
 
 const hintMessage = computed(() => config.value.searchHint);
 </script>
+
+<style scoped>
+.result-enter-active {
+  transition:
+    opacity var(--motion-base) var(--ease-standard),
+    transform var(--motion-base) var(--ease-standard);
+  /* Capped stagger (set inline per card): at most 8 * 25ms of added delay. */
+  transition-delay: calc(var(--stagger, 0) * 25ms);
+}
+
+.result-enter-from {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+/* Removal is instant on purpose: while the user types, stale cards must
+   clear immediately instead of lagging behind the filter. */
+.result-leave-active {
+  display: none;
+}
+
+.result-move {
+  transition: transform var(--motion-base) var(--ease-emphasized);
+}
+</style>

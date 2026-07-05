@@ -1,4 +1,4 @@
-import { screen, within } from "@testing-library/vue";
+import { screen, waitFor, within } from "@testing-library/vue";
 import { http, HttpResponse } from "msw";
 
 import ReviewView from "../views/ReviewView.vue";
@@ -66,6 +66,9 @@ describe("ReviewView", () => {
   it("should submit score", async () => {
     const { user, pinia } = render(ReviewView, {
       props: { clubSlug: "test-club" },
+      // Test Utils stubs <Transition> by default, which would swallow the
+      // after-enter hook that focuses the score input.
+      global: { stubs: { transition: false } },
     });
     const authStore = useAuthStore(pinia);
     // @ts-expect-error Overwriting readonly property for testing purposes
@@ -97,9 +100,12 @@ describe("ReviewView", () => {
     expect(addScoreButton).toBeInTheDocument();
 
     await user.click(addScoreButton);
-    const scoreInput = screen.getByRole("spinbutton", { name: "Score" });
-    expect(scoreInput).toBeInTheDocument();
-    expect(scoreInput).toHaveFocus();
+    // The input mounts after the out-in swap and receives focus on the
+    // transition's after-enter hook, both a few frames after the click.
+    const scoreInput = await screen.findByRole("spinbutton", {
+      name: "Score",
+    });
+    await waitFor(() => expect(scoreInput).toHaveFocus());
 
     const newReviews = [
       reviews[0],
@@ -131,9 +137,12 @@ describe("ReviewView", () => {
     );
 
     await user.keyboard("10{Enter}");
-    expect(
-      screen.queryByRole("spinbutton", { name: "Score" }),
-    ).not.toBeInTheDocument();
+    // The input leaves through the score-swap transition, so wait for it.
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("spinbutton", { name: "Score" }),
+      ).not.toBeInTheDocument(),
+    );
     expect(within(row).getByRole("cell", { name: "10" })).toBeInTheDocument();
     expect(within(row).getByRole("cell", { name: "9" })).toBeInTheDocument();
   });
