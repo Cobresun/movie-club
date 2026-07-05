@@ -57,7 +57,7 @@
           <textarea
             v-model="editContent"
             :maxlength="MAX_LENGTH"
-            class="w-full resize-none rounded-lg border border-gray-600 bg-background px-3 py-2 text-left text-sm text-white placeholder-gray-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            class="w-full resize-none rounded-lg border border-gray-600 bg-background px-3 py-2 text-left text-base text-white placeholder-gray-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary md:text-sm"
             rows="3"
           />
           <div class="mt-2 flex items-center justify-between">
@@ -131,7 +131,7 @@
         v-model="newComment"
         :maxlength="MAX_LENGTH"
         placeholder="Write a comment…"
-        class="w-full resize-none rounded-lg border border-gray-600 bg-lowBackground px-3 py-2 text-left text-sm text-white placeholder-gray-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+        class="w-full resize-none rounded-lg border border-gray-600 bg-lowBackground px-3 py-2 text-left text-base text-white placeholder-gray-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary md:text-sm"
         rows="3"
       />
       <div class="mt-2 flex items-center justify-between">
