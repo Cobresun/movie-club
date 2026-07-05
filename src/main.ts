@@ -3,10 +3,11 @@ import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persist
 import { VueQueryPlugin, VueQueryPluginOptions } from "@tanstack/vue-query";
 import mdiVue from "mdi-vue/v3";
 import { createPinia } from "pinia";
-import { createApp, reactive } from "vue";
+import { createApp, reactive, TransitionGroup } from "vue";
 import Toast from "vue-toastification";
 
 import LazyLoad from "./directives/LazyLoad";
+import Reveal from "./directives/Reveal";
 import { icons } from "./icons";
 import router from "./router";
 import { isDefined } from "../lib/checks/checks.js";
@@ -74,7 +75,11 @@ createApp(App)
   .component("v-modal", VModal)
   .component("page-header", PageHeader)
   .component("empty-state", EmptyState)
+  // Registered by name so VueDraggableNext's `component` prop can resolve it
+  // and render the TransitionGroup as its own root element (see ListItems).
+  .component("DraggableTransitionGroup", TransitionGroup)
   .directive("lazy-load", LazyLoad)
+  .directive("reveal", Reveal)
   .use(mdiVue, {
     icons,
   })

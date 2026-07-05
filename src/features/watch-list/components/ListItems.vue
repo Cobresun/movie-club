@@ -16,10 +16,21 @@
     />
     <template v-else>
       <div class="w-full">
+        <!-- The TransitionGroup IS the draggable's root element (via the
+             component prop — a NESTED transition-group breaks the library's
+             child-index math): SortableJS owns drag-move animation, the
+             TransitionGroup owns enter/leave and the FLIP reflow on
+             add/remove. componentData replaces $attrs on the rendered
+             element, so the grid classes live there. -->
         <VueDraggableNext
           v-model="draggableItems"
-          tag="div"
-          class="my-4 grid grid-cols-auto justify-items-center gap-4"
+          component="DraggableTransitionGroup"
+          :component-data="{
+            props: { tag: 'div', name: 'list-item' },
+            attrs: {
+              class: 'my-4 grid grid-cols-auto justify-items-center gap-4',
+            },
+          }"
           :delay="150"
           :delay-on-touch-only="true"
           :animation="200"
@@ -284,3 +295,30 @@ const onReview = (workId: string) => {
   );
 };
 </script>
+
+<style scoped>
+.list-item-enter-active {
+  transition:
+    opacity var(--motion-base) var(--ease-standard),
+    transform var(--motion-base) var(--ease-emphasized);
+}
+
+/* Leaving cards pop out of the grid flow so the remaining cards FLIP into
+   their new positions via the -move transition. */
+.list-item-leave-active {
+  position: absolute;
+  transition:
+    opacity var(--motion-base) var(--ease-standard),
+    transform var(--motion-base) var(--ease-standard);
+}
+
+.list-item-enter-from,
+.list-item-leave-to {
+  opacity: 0;
+  transform: scale(0.9);
+}
+
+.list-item-move {
+  transition: transform var(--motion-slow) var(--ease-emphasized);
+}
+</style>

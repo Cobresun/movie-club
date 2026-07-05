@@ -12,53 +12,62 @@
         <mdicon name="chevron-down" :size="18" />
       </MenuButton>
 
-      <MenuItems
-        class="absolute left-0 top-full z-50 mt-1 min-w-[200px] rounded-lg bg-lowBackground shadow-lg"
+      <transition
+        enter-active-class="transition duration-fast ease-standard"
+        enter-from-class="-translate-y-1 scale-95 opacity-0"
+        leave-active-class="transition duration-fast ease-standard"
+        leave-to-class="-translate-y-1 scale-95 opacity-0"
       >
-        <div class="py-1">
-          <MenuItem
-            v-for="club in clubs"
-            :key="club.clubId"
-            v-slot="{ active }"
-          >
-            <button
-              class="flex w-full items-center gap-2 px-4 py-2 text-sm"
-              :class="[
-                club.slug === currentSlug ? 'text-highlight' : 'text-white/80',
-                active ? 'bg-white/10' : '',
-              ]"
-              @click="selectClub(club.slug)"
+        <MenuItems
+          class="absolute left-0 top-full z-50 mt-1 min-w-[200px] origin-top-left rounded-lg bg-lowBackground shadow-lg"
+        >
+          <div class="py-1">
+            <MenuItem
+              v-for="club in clubs"
+              :key="club.clubId"
+              v-slot="{ active }"
             >
-              <mdicon
-                v-if="club.slug === currentSlug"
-                name="check"
-                :size="16"
-              />
-              <span :class="{ 'ml-6': club.slug !== currentSlug }">
-                {{ club.clubName }}
-              </span>
-              <mdicon
-                :name="clubTypeIcon(club.type)"
-                :size="14"
-                class="ml-auto opacity-60"
-                :title="clubTypeLabel(club.type)"
-              />
-            </button>
-          </MenuItem>
-        </div>
-        <div class="border-t border-white/10">
-          <MenuItem v-slot="{ active }">
-            <button
-              class="flex w-full items-center gap-2 px-4 py-2 text-sm text-white/80"
-              :class="active ? 'bg-white/10' : ''"
-              @click="createNewClub"
-            >
-              <mdicon name="plus" :size="16" />
-              Create New Club
-            </button>
-          </MenuItem>
-        </div>
-      </MenuItems>
+              <button
+                class="flex w-full items-center gap-2 px-4 py-2 text-sm"
+                :class="[
+                  club.slug === currentSlug
+                    ? 'text-highlight'
+                    : 'text-white/80',
+                  active ? 'bg-white/10' : '',
+                ]"
+                @click="selectClub(club.slug)"
+              >
+                <mdicon
+                  v-if="club.slug === currentSlug"
+                  name="check"
+                  :size="16"
+                />
+                <span :class="{ 'ml-6': club.slug !== currentSlug }">
+                  {{ club.clubName }}
+                </span>
+                <mdicon
+                  :name="clubTypeIcon(club.type)"
+                  :size="14"
+                  class="ml-auto opacity-60"
+                  :title="clubTypeLabel(club.type)"
+                />
+              </button>
+            </MenuItem>
+          </div>
+          <div class="border-t border-white/10">
+            <MenuItem v-slot="{ active }">
+              <button
+                class="flex w-full items-center gap-2 px-4 py-2 text-sm text-white/80"
+                :class="active ? 'bg-white/10' : ''"
+                @click="createNewClub"
+              >
+                <mdicon name="plus" :size="16" />
+                Create New Club
+              </button>
+            </MenuItem>
+          </div>
+        </MenuItems>
+      </transition>
     </Menu>
 
     <!-- Mobile: custom button + bottom sheet -->

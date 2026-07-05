@@ -7,6 +7,7 @@ import {
   render as testingLibraryRender,
 } from "@testing-library/vue";
 import mdiVue from "mdi-vue/v3";
+import { TransitionGroup } from "vue";
 import Toast from "vue-toastification";
 
 import PiniaStoreHelperTest from "./PiniaStoreHelper.test.vue";
@@ -18,6 +19,7 @@ import VBtn from "@/common/components/VBtn.vue";
 import VModal from "@/common/components/VModal.vue";
 import VTable from "@/common/components/VTable.vue";
 import LazyLoad from "@/directives/LazyLoad";
+import Reveal from "@/directives/Reveal";
 
 export const render = (
   component: unknown,
@@ -40,9 +42,10 @@ export const render = (
           "movie-table": VTable,
           "v-modal": VModal,
           "page-header": PageHeader,
+          DraggableTransitionGroup: TransitionGroup,
         },
         plugins: [VueQueryPlugin, pinia, [mdiVue, { icons: mdijs }], Toast],
-        directives: { "lazy-load": LazyLoad },
+        directives: { "lazy-load": LazyLoad, reveal: Reveal },
         stubs: {
           "router-link": true,
           "router-view": true,

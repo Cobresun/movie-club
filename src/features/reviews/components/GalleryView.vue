@@ -51,11 +51,12 @@
         </div>
       </div>
 
+      <!-- Removal stays instant (absolute hidden) so filtering never lags;
+           the named transition adds enter and FLIP-move animation on top. -->
       <transition-group
         tag="div"
+        name="gallery"
         leave-active-class="absolute hidden"
-        enter-from-class="opacity-0"
-        leave-to-class="opacity-0"
         class="grid w-full justify-items-center gap-4"
         style="grid-template-columns: repeat(auto-fill, minmax(168px, 1fr))"
       >
@@ -280,3 +281,22 @@ watch(selectedMovieId, async (newValue, oldValue) => {
   }
 });
 </script>
+
+<style scoped>
+/* Scoped selectors ([data-v-...]) out-specify the card's own transition-all
+   utility, so enter/move timing wins over the hover transition. */
+.gallery-enter-active {
+  transition:
+    opacity var(--motion-base) var(--ease-standard),
+    transform var(--motion-base) var(--ease-standard);
+}
+
+.gallery-enter-from {
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+.gallery-move {
+  transition: transform var(--motion-slow) var(--ease-emphasized);
+}
+</style>

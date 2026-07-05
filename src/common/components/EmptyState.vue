@@ -15,7 +15,7 @@ const emit = defineEmits<{
 
 <template>
   <div
-    class="flex flex-col items-center justify-center px-8 py-16 text-center transition-opacity duration-slow ease-standard md:py-24"
+    class="animate-fade-up flex flex-col items-center justify-center px-8 py-16 text-center md:py-24"
   >
     <h2 class="mb-3 text-2xl font-bold text-white">{{ title }}</h2>
     <p class="mb-6 max-w-md text-base text-gray-400">{{ description }}</p>
