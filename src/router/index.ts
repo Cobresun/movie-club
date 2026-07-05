@@ -376,8 +376,15 @@ const routes: Array<RouteRecordRaw> = [
 const router = createRouter({
   routes,
   history: createWebHistory(),
-  scrollBehavior() {
-    // Always scroll to top when navigating between routes
+  scrollBehavior(to, from) {
+    // Overlays like the bottom sheet / details drawer push a synthetic history
+    // entry (see useBackButtonClose) that keeps the same URL, then pop it on
+    // close. vue-router still runs scrollBehavior for that popstate; returning
+    // { top: 0 } there yanks the underlying list to the top. Only reset scroll
+    // when the path actually changes (i.e. navigating between routes).
+    if (to.path === from.path) {
+      return false;
+    }
     return { top: 0 };
   },
 });
