@@ -81,4 +81,16 @@ export default [
       "import/newline-after-import": "error",
     },
   },
+  {
+    // Test-file overrides: these rules false-positive on idiomatic Vitest
+    // patterns — `expect(Repo.method)` trips unbound-method, inline harness
+    // components trip one-component-per-file, and async mocks matching
+    // Promise-returning production signatures trip require-await.
+    files: ["**/*.test.ts", "**/*.spec.ts"],
+    rules: {
+      "@typescript-eslint/unbound-method": "off",
+      "@typescript-eslint/require-await": "off",
+      "vue/one-component-per-file": "off",
+    },
+  },
 ];

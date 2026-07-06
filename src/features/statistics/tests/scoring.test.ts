@@ -1,8 +1,78 @@
+import type { Member } from "../../../../lib/types/club";
+import { WorkType } from "../../../../lib/types/generated/db";
 import {
   normalizeArray,
   createHistogramData,
   getScoreContextColor,
+  createHistogramOptions,
+  createDecadeChartOptions,
+  createScoreVarianceChartOptions,
+  createScoreTrendChartOptions,
 } from "../scoring";
+import type {
+  DecadeStats,
+  MovieData,
+  ScoreTrendPoint,
+  ScoreVariancePoint,
+} from "../types";
+
+// ---------- chart-option access helpers ----------
+// ag-charts option types are wide unions that cannot be narrowed structurally,
+// so these runtime predicates (in the style of lib/checks) replace `as` casts.
+
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null;
+}
+
+function asRecord(v: unknown): Record<string, unknown> {
+  if (!isRecord(v)) throw new Error("expected an object");
+  return v;
+}
+
+function asRecordArray(v: unknown): Record<string, unknown>[] {
+  if (!Array.isArray(v)) throw new Error("expected an array");
+  const items: unknown[] = v;
+  return items.map(asRecord);
+}
+
+type TooltipRendererParams = {
+  datum: unknown;
+  itemId: string;
+  xKey: string;
+  yKey: string;
+  seriesId: string;
+  xName?: string;
+  yName?: string;
+};
+
+function isTooltipRenderer(
+  v: unknown,
+): v is (p: TooltipRendererParams) => unknown {
+  return typeof v === "function";
+}
+
+function renderTooltip(
+  series: Record<string, unknown>,
+  datum: unknown,
+  overrides: Partial<TooltipRendererParams> = {},
+) {
+  const renderer = asRecord(series.tooltip).renderer;
+  if (!isTooltipRenderer(renderer)) {
+    throw new Error("expected a tooltip renderer function");
+  }
+  const html = renderer({
+    datum,
+    itemId: "",
+    xKey: "",
+    yKey: "",
+    seriesId: "",
+    ...overrides,
+  });
+  if (typeof html !== "string") {
+    throw new Error("expected tooltip renderer to return a string");
+  }
+  return html;
+}
 
 // ---------- normalizeArray ----------
 
@@ -140,5 +210,346 @@ describe("getScoreContextColor", () => {
 
   it("boundary: z-score of exactly -0.1 is not transparent", () => {
     expect(getScoreContextColor(-0.1)).not.toBe("transparent");
+  });
+});
+
+// ---------- createHistogramOptions ----------
+
+function makeMember(id: string, name: string): Member {
+  return { id, name, email: `${id}@test.com`, image: "" };
+}
+
+function makeMovieData(overrides: Partial<MovieData> = {}): MovieData {
+  return {
+    id: "1",
+    type: WorkType.movie,
+    title: "Test Movie",
+    createdDate: "2024-01-01T00:00:00.000Z",
+    imageUrl: undefined,
+    genres: [],
+    production_companies: [],
+    production_countries: [],
+    average: 7,
+    userScores: {},
+    normalized: {},
+    scores: {},
+    externalData: {
+      kind: "movie",
+      actors: [],
+      adult: false,
+      backdrop_path: "",
+      budget: 0,
+      directors: [],
+      genres: [],
+      homepage: "",
+      id: 1,
+      imdb_id: "",
+      original_language: "en",
+      original_title: "",
+      overview: "",
+      popularity: 0,
+      poster_path: "",
+      production_companies: [],
+      production_countries: [],
+      release_date: "2024-01-01",
+      revenue: 0,
+      runtime: 120,
+      spoken_languages: [],
+      status: "Released",
+      tagline: "",
+      title: "",
+      video: false,
+      vote_average: 7,
+      vote_count: 100,
+    },
+    dateWatched: "1/1/2024",
+    ...overrides,
+  };
+}
+
+describe("createHistogramOptions", () => {
+  it("returns options with theme and background", () => {
+    const options = createHistogramOptions({
+      filteredMovieData: [],
+      histogramData: createHistogramData([]),
+      members: [],
+    });
+    expect(options.theme).toBe("ag-default-dark");
+    expect(options.background).toEqual({ visible: false });
+  });
+
+  it("creates one series per member", () => {
+    const members = [makeMember("m1", "Alice"), makeMember("m2", "Bob")];
+    const options = createHistogramOptions({
+      filteredMovieData: [],
+      histogramData: createHistogramData([5, 7]),
+      members,
+    });
+    expect(options.series).toHaveLength(2);
+  });
+
+  it("counts scores into correct bins for each member", () => {
+    const members = [makeMember("m1", "Alice")];
+    const movies = [
+      makeMovieData({ userScores: { m1: 8 } }),
+      makeMovieData({ id: "2", userScores: { m1: 8 } }),
+      makeMovieData({ id: "3", userScores: { m1: 5 } }),
+    ];
+    const histData = createHistogramData([5]);
+    const options = createHistogramOptions({
+      filteredMovieData: movies,
+      histogramData: histData,
+      members,
+    });
+    const data = asRecordArray(options.data);
+    expect(data[8].m1).toBe(2);
+    expect(data[5].m1).toBe(1);
+  });
+
+  it("skips members with undefined scores", () => {
+    const members = [makeMember("m1", "Alice")];
+    const movies = [makeMovieData({ userScores: { m1: undefined } })];
+    const histData = createHistogramData([5]);
+    const options = createHistogramOptions({
+      filteredMovieData: movies,
+      histogramData: histData,
+      members,
+    });
+    const data = asRecordArray(options.data);
+    const totalCount = data.reduce(
+      (sum, bin) => sum + (typeof bin.m1 === "number" ? bin.m1 : 0),
+      0,
+    );
+    expect(totalCount).toBe(0);
+  });
+
+  it("tooltip renderer returns html string", () => {
+    const members = [makeMember("m1", "Alice")];
+    const options = createHistogramOptions({
+      filteredMovieData: [],
+      histogramData: createHistogramData([5]),
+      members,
+    });
+    const result = renderTooltip(
+      asRecordArray(options.series)[0],
+      { bin: 7, m1: 3 },
+      { yKey: "m1", xName: "Score", yName: "Alice" },
+    );
+    expect(result).toContain("Alice");
+    expect(result).toContain("Score");
+  });
+
+  it("has two axes (category and number)", () => {
+    const options = createHistogramOptions({
+      filteredMovieData: [],
+      histogramData: createHistogramData([]),
+      members: [],
+    });
+    const axes = asRecordArray(options.axes);
+    expect(axes).toHaveLength(2);
+    expect(axes[0].type).toBe("category");
+    expect(axes[1].type).toBe("number");
+  });
+});
+
+// ---------- createDecadeChartOptions ----------
+
+describe("createDecadeChartOptions", () => {
+  const sampleDecades: DecadeStats[] = [
+    { decade: "1990s", averageScore: 8, count: 5 },
+    { decade: "2000s", averageScore: 7, count: 3 },
+  ];
+
+  it("returns options with theme and background", () => {
+    const options = createDecadeChartOptions(sampleDecades);
+    expect(options.theme).toBe("ag-default-dark");
+    expect(options.background).toEqual({ visible: false });
+  });
+
+  it("uses the provided data", () => {
+    const options = createDecadeChartOptions(sampleDecades);
+    expect(options.data).toEqual(sampleDecades);
+  });
+
+  it("has one bar series", () => {
+    const options = createDecadeChartOptions(sampleDecades);
+    const series = asRecordArray(options.series);
+    expect(series).toHaveLength(1);
+    expect(series[0].type).toBe("bar");
+    expect(series[0].yKey).toBe("averageScore");
+  });
+
+  it("tooltip renderer returns html with decade and score", () => {
+    const options = createDecadeChartOptions(sampleDecades);
+    const html = renderTooltip(
+      asRecordArray(options.series)[0],
+      sampleDecades[0],
+    );
+    expect(html).toContain("1990s");
+    expect(html).toContain("Avg Score: 8");
+    expect(html).toContain("Movies: 5");
+  });
+
+  it("has two axes (category and number with max 10)", () => {
+    const options = createDecadeChartOptions(sampleDecades);
+    const axes = asRecordArray(options.axes);
+    expect(axes).toHaveLength(2);
+    expect(axes[1].max).toBe(10);
+  });
+});
+
+// ---------- createScoreVarianceChartOptions ----------
+
+describe("createScoreVarianceChartOptions", () => {
+  const samplePoints: ScoreVariancePoint[] = [
+    {
+      date: new Date("2024-01-01"),
+      movieTitle: "Movie A",
+      movieStdDev: 2.5,
+      rollingStdDev: 2.1,
+    },
+  ];
+
+  it("returns options with theme and background", () => {
+    const options = createScoreVarianceChartOptions(samplePoints);
+    expect(options.theme).toBe("ag-default-dark");
+    expect(options.background).toEqual({ visible: false });
+  });
+
+  it("uses the provided data", () => {
+    const options = createScoreVarianceChartOptions(samplePoints);
+    expect(options.data).toEqual(samplePoints);
+  });
+
+  it("has one line series for rollingStdDev", () => {
+    const options = createScoreVarianceChartOptions(samplePoints);
+    const series = asRecordArray(options.series);
+    expect(series).toHaveLength(1);
+    expect(series[0].type).toBe("line");
+    expect(series[0].yKey).toBe("rollingStdDev");
+  });
+
+  it("tooltip renderer returns html with movie title and spreads", () => {
+    const options = createScoreVarianceChartOptions(samplePoints);
+    const html = renderTooltip(
+      asRecordArray(options.series)[0],
+      samplePoints[0],
+    );
+    expect(html).toContain("Movie A");
+    expect(html).toContain("2.50");
+    expect(html).toContain("2.10");
+  });
+
+  it("legend is disabled", () => {
+    const options = createScoreVarianceChartOptions(samplePoints);
+    expect(asRecord(options.legend).enabled).toBe(false);
+  });
+
+  it("handles empty data array", () => {
+    const options = createScoreVarianceChartOptions([]);
+    expect(options.data).toEqual([]);
+  });
+});
+
+// ---------- createScoreTrendChartOptions ----------
+
+describe("createScoreTrendChartOptions", () => {
+  function makeTrendPoint(
+    overrides: Partial<ScoreTrendPoint> = {},
+  ): ScoreTrendPoint {
+    return {
+      date: new Date("2024-06-01"),
+      movieTitle: "Test Movie",
+      actualScore: 8,
+      rollingAverage: 7.5,
+      ...overrides,
+    };
+  }
+
+  it("returns options with theme and background", () => {
+    const trendData = new Map<string, ScoreTrendPoint[]>();
+    const options = createScoreTrendChartOptions(trendData, []);
+    expect(options.theme).toBe("ag-default-dark");
+    expect(options.background).toEqual({ visible: false });
+  });
+
+  it("creates one series per member with data", () => {
+    const members = [makeMember("m1", "Alice"), makeMember("m2", "Bob")];
+    const trendData = new Map<string, ScoreTrendPoint[]>([
+      ["m1", [makeTrendPoint()]],
+      ["m2", [makeTrendPoint({ movieTitle: "Other" })]],
+    ]);
+    const options = createScoreTrendChartOptions(trendData, members);
+    const series = asRecordArray(options.series);
+    expect(series).toHaveLength(2);
+    expect(series.map((s) => s.yName)).toEqual(["Alice", "Bob"]);
+  });
+
+  it("excludes members with no trend data", () => {
+    const members = [makeMember("m1", "Alice"), makeMember("m2", "Bob")];
+    const trendData = new Map<string, ScoreTrendPoint[]>([
+      ["m1", [makeTrendPoint()]],
+    ]);
+    const options = createScoreTrendChartOptions(trendData, members);
+    const series = asRecordArray(options.series);
+    expect(series).toHaveLength(1);
+    expect(series[0].yName).toBe("Alice");
+  });
+
+  it("yMin is 0 when no data", () => {
+    const options = createScoreTrendChartOptions(new Map(), []);
+    const axes = asRecordArray(options.axes);
+    expect(axes[1].min).toBe(0);
+  });
+
+  it("yMin is at least 0 even for very low scores", () => {
+    const members = [makeMember("m1", "Alice")];
+    const trendData = new Map<string, ScoreTrendPoint[]>([
+      ["m1", [makeTrendPoint({ rollingAverage: 0.5 })]],
+    ]);
+    const options = createScoreTrendChartOptions(trendData, members);
+    const axes = asRecordArray(options.axes);
+    const yMin = axes[1].min;
+    if (typeof yMin !== "number") {
+      throw new Error("expected a numeric y-axis min");
+    }
+    expect(yMin).toBeGreaterThanOrEqual(0);
+  });
+
+  it("tooltip renderer returns html with member name, movie title and scores", () => {
+    const members = [makeMember("m1", "Alice")];
+    const point = makeTrendPoint({
+      movieTitle: "Inception",
+      actualScore: 9,
+      rollingAverage: 8.5,
+    });
+    const trendData = new Map<string, ScoreTrendPoint[]>([["m1", [point]]]);
+    const options = createScoreTrendChartOptions(trendData, members);
+    const html = renderTooltip(asRecordArray(options.series)[0], point);
+    expect(html).toContain("Alice");
+    expect(html).toContain("Inception");
+    expect(html).toContain("9");
+    expect(html).toContain("8.5");
+  });
+
+  it("legend is at bottom", () => {
+    const options = createScoreTrendChartOptions(new Map(), []);
+    expect(asRecord(options.legend).position).toBe("bottom");
+  });
+
+  it("wraps color index for more than 8 members", () => {
+    const members = Array.from({ length: 9 }, (_, i) =>
+      makeMember(`m${i}`, `Member${i}`),
+    );
+    const trendData = new Map(members.map((m) => [m.id, [makeTrendPoint()]]));
+    // should not throw — color index wraps with modulo
+    expect(() =>
+      createScoreTrendChartOptions(trendData, members),
+    ).not.toThrow();
+    const options = createScoreTrendChartOptions(trendData, members);
+    const series = asRecordArray(options.series);
+    expect(series).toHaveLength(9);
+    // 9th member (index 8) wraps to index 0 color
+    expect(series[8].stroke).toBe(series[0].stroke);
   });
 });
