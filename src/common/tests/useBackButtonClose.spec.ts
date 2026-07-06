@@ -1,5 +1,6 @@
 import { render } from "@testing-library/vue";
 import { defineComponent, h } from "vue";
+import { useRouter } from "vue-router";
 
 import { useBackButtonClose } from "../composables/useBackButtonClose";
 
@@ -12,6 +13,22 @@ const Harness = (onDismiss: () => void) =>
       return () => h("div");
     },
   });
+
+// setup.ts mocks vue-router globally, so build a real router (which runs real
+// navigation guards) and point the mocked `useRouter` at it for a given test.
+const makeRealRouter = async () => {
+  const { createMemoryHistory, createRouter } =
+    await vi.importActual<typeof import("vue-router")>("vue-router");
+  const router = createRouter({
+    history: createMemoryHistory(),
+    routes: [
+      { path: "/", component: { template: "<div />" } },
+      { path: "/other", component: { template: "<div />" } },
+    ],
+  });
+  await router.push("/");
+  return router;
+};
 
 describe("useBackButtonClose", () => {
   // Mock the History API so tests never trigger real jsdom navigation (which
@@ -78,5 +95,19 @@ describe("useBackButtonClose", () => {
     window.dispatchEvent(new PopStateEvent("popstate"));
 
     expect(onDismiss).not.toHaveBeenCalled();
+  });
+
+  it("does not pop history on unmount when the app navigated while open", async () => {
+    const router = await makeRealRouter();
+    vi.mocked(useRouter).mockReturnValue(router);
+
+    const view = render(Harness(vi.fn()));
+
+    // Navigating away (e.g. the club switcher routing to the chosen club)
+    // pushes a real entry above our synthetic one; popping ours would undo it.
+    await router.push("/other");
+    view.unmount();
+
+    expect(back).not.toHaveBeenCalled();
   });
 });
