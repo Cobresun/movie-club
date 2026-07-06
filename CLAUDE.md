@@ -133,6 +133,7 @@ src/features/<feature-name>/
 ## External Services
 
 - **TMDB** — Movie metadata API (`netlify/functions/utils/tmdb.ts`)
+- **Google Books** — Book metadata API (`netlify/functions/utils/providers/googleBooks.ts`)
 - **BetterAuth** — Authentication (email/password + Google OAuth)
 - **CockroachDB** — PostgreSQL-compatible distributed database
 - **Cloudinary** — Image hosting for profile photos
@@ -149,6 +150,7 @@ Required environment variables (documented in Cobresun Notion):
 - `RESEND_API_KEY` - Resend email API key
 - `CLOUDINARY_URL` - Cloudinary configuration URL
 - `TMDB_API_KEY` - TMDB API key for movie data
+- `GOOGLE_BOOKS_API_KEY` / `VITE_GOOGLE_BOOKS_API_KEY` - Google Books API key for book metadata (backend) and book search/browse (frontend); one Google Cloud key can back both
 - `GEMINI_API_KEY` - Google AI Studio key used by the experimental "discussion questions" feature (calls the `gemini-3.5-flash` model). **This is a Netlify-console-only secret and is NOT synced to your local `.env`.** To exercise the feature locally, generate your own key at https://aistudio.google.com/apikey and add `GEMINI_API_KEY=<your-key>` to `.env`. Deploys read the value from the Netlify console.
 
 Netlify provides automatically: `URL` (production), `DEPLOY_PRIME_URL` (deploy preview)

@@ -8,6 +8,7 @@ declare module "*.vue" {
 }
 
 interface ImportMetaEnv {
+  VITE_GOOGLE_BOOKS_API_KEY: string;
   VITE_TMDB_API_KEY: string;
 }
 

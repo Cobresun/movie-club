@@ -10,7 +10,7 @@ export interface RefreshResult {
 
 /**
  * A MediaProvider owns everything specific to one kind of work: where its
- * metadata comes from (TMDB, OpenLibrary, …) and how that cached metadata is
+ * metadata comes from (TMDB, Google Books, …) and how that cached metadata is
  * read back as the unified {@link DetailedWorkData} shape.
  *
  * Adding a new club type = implement one provider + register it in `index.ts`.

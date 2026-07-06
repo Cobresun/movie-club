@@ -13,7 +13,7 @@ const BATCH_SIZE = 50;
 /**
  * Scheduled function to refresh stale cached work metadata from external
  * sources. Runs daily and sweeps every registered media provider (TMDB movies,
- * OpenLibrary books, …), refreshing the oldest BATCH_SIZE works of each.
+ * Google Books books, …), refreshing the oldest BATCH_SIZE works of each.
  */
 export default async (req: Request) => {
   try {

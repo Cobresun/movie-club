@@ -1,0 +1,35 @@
+{
+  "totalItems": 2,
+  "items": [
+    {
+      "id": "zyTCAlFPjgYC",
+      "volumeInfo": {
+        "title": "The Great Gatsby",
+        "authors": ["F. Scott Fitzgerald"],
+        "description": "<p>A classic novel of the Jazz Age.</p>",
+        "publishedDate": "1925-04-10",
+        "pageCount": 180,
+        "categories": ["Fiction / Classics"],
+        "imageLinks": {
+          "smallThumbnail": "http://books.google.com/books/content?id=zyTCAlFPjgYC&printsec=frontcover&img=1&zoom=5&edge=curl",
+          "thumbnail": "http://books.google.com/books/content?id=zyTCAlFPjgYC&printsec=frontcover&img=1&zoom=1&edge=curl"
+        },
+        "ratingsCount": 5230
+      }
+    },
+    {
+      "id": "PGR2AwAAQBAJ",
+      "volumeInfo": {
+        "title": "To Kill a Mockingbird",
+        "authors": ["Harper Lee"],
+        "publishedDate": "1960",
+        "pageCount": 281,
+        "categories": ["Fiction / Legal"],
+        "imageLinks": {
+          "thumbnail": "http://books.google.com/books/content?id=PGR2AwAAQBAJ&printsec=frontcover&img=1&zoom=1"
+        },
+        "ratingsCount": 361
+      }
+    }
+  ]
+}

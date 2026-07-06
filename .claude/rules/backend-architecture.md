@@ -87,7 +87,7 @@ Located in `netlify/functions/repositories/`:
 
 Stale-metadata refresh is not a repository: each `MediaProvider`
 (`netlify/functions/utils/providers/`) implements `refreshStaleDetails(limit)`
-for its own source (TMDB, OpenLibrary), and the scheduled refresh sweeps them.
+for its own source (TMDB, Google Books), and the scheduled refresh sweeps them.
 
 ## Scheduled Functions
 
