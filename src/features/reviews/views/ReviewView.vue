@@ -330,6 +330,9 @@ const columns = computed(() => [
           size = info.meta.size;
         }
 
+        const openInDrawer = info.meta?.openInDrawer === true;
+        const autoFocus = info.meta?.autoFocusScore === true;
+
         const shouldBlur = shouldBlurScore(info.row.id, info.column.id);
 
         return h(
@@ -345,6 +348,8 @@ const columns = computed(() => [
               score,
               reviewId: info.row.original.scores[member.id]?.id,
               size,
+              openInDrawer,
+              autoFocus,
               class: shouldBlur ? "filter blur cursor-pointer" : "",
             }),
           ],

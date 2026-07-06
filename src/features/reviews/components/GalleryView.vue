@@ -88,7 +88,10 @@
               <div class="flex-grow text-sm">
                 <FlexRender
                   :render="cell.column.columnDef.cell"
-                  :props="{ ...cell.getContext(), meta: { size: 'sm' } }"
+                  :props="{
+                    ...cell.getContext(),
+                    meta: { size: 'sm', openInDrawer: true },
+                  }"
                 />
               </div>
             </div>
@@ -107,6 +110,7 @@
       :revealed-movie-ids="revealedMovieIds"
       :has-rated="hasRated"
       :current-user-id="currentUserId"
+      :focus-score-entry="focusScoreEntry"
       @toggle-reveal="toggleMovieReveal"
       @close="selectedMovieId = undefined"
     />
@@ -121,12 +125,13 @@ import {
   ListboxOptions,
 } from "@headlessui/vue";
 import { FlexRender, Row, Table } from "@tanstack/vue-table";
-import { computed, ref, nextTick, watch } from "vue";
+import { computed, provide, ref, nextTick, watch } from "vue";
 
 import WorkDetailsDrawer from "./WorkDetailsDrawer.vue";
 import { isDefined } from "../../../../lib/checks/checks.js";
 import { Member } from "../../../../lib/types/club";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
+import { RequestScoreEntryKey } from "../scoreEntry";
 
 import WorkPosterCard from "@/common/components/WorkPosterCard.vue";
 
@@ -209,6 +214,9 @@ const selectedSort = computed<string | undefined>({
 });
 
 const selectedMovieId = ref<string | undefined>(undefined);
+// When the drawer is opened by tapping a poster's score chip, focus its score
+// entry field. Reset for ordinary opens so we don't steal focus unexpectedly.
+const focusScoreEntry = ref(false);
 
 const selectedMovie = computed(() => {
   if (selectedMovieId.value === undefined) return undefined;
@@ -217,8 +225,12 @@ const selectedMovie = computed(() => {
     .rows.find((row) => row.id === selectedMovieId.value);
 });
 
-const openMovieDetails = async (row: Row<DetailedReviewListItem>) => {
+const openMovieDetails = async (
+  row: Row<DetailedReviewListItem>,
+  { focusScore = false }: { focusScore?: boolean } = {},
+) => {
   if (selectedMovieId.value !== row.id) {
+    focusScoreEntry.value = focusScore;
     selectedMovieId.value = row.id;
 
     await nextTick();
@@ -237,6 +249,16 @@ const openMovieDetails = async (row: Row<DetailedReviewListItem>) => {
     }
   }
 };
+
+// Poster-chip score affordances defer entry to the drawer instead of opening an
+// inline input on the cramped poster. Open the movie's drawer with its score
+// field focused.
+provide(RequestScoreEntryKey, (workId: string) => {
+  const row = props.reviewTable.getRowModel().rows.find((r) => r.id === workId);
+  if (isDefined(row)) {
+    void openMovieDetails(row, { focusScore: true });
+  }
+});
 
 const toggleMovieReveal = (movieId: string) => {
   emit("toggle-reveal", movieId);
