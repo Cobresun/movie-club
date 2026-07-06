@@ -12,6 +12,8 @@ vi.mock("vue-router", () => ({
   })),
   useRouter: vi.fn(() => ({
     push: vi.fn(),
+    // `useBackButtonClose` registers a navigation guard; return an unregister fn.
+    beforeEach: vi.fn(() => vi.fn()),
   })),
 }));
 

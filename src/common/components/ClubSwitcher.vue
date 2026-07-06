@@ -147,17 +147,27 @@ const activeClubName = computed(() => {
   return "Select Club";
 });
 
+// Close the mobile sheet only *after* the navigation resolves. Closing it first
+// unmounts the sheet, and `useBackButtonClose` would then pop its synthetic
+// history entry — cancelling the navigation we just started (mobile club
+// switch would silently do nothing). See useBackButtonClose for details.
 const selectClub = (slug: string) => {
-  isMobileOpen.value = false;
   setLastClubSlug(slug);
   router
     .push({ name: "ClubHome", params: { clubSlug: slug } })
+    .then(() => {
+      isMobileOpen.value = false;
+    })
     .catch(console.error);
 };
 
 const createNewClub = () => {
-  isMobileOpen.value = false;
-  router.push({ name: "NewClub" }).catch(console.error);
+  router
+    .push({ name: "NewClub" })
+    .then(() => {
+      isMobileOpen.value = false;
+    })
+    .catch(console.error);
 };
 
 onMounted(() => {
