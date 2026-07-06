@@ -1,7 +1,8 @@
 <template>
   <WidgetShell v-if="guiltyPleasures.length > 0" title="Guilty Pleasures">
     <p class="mb-4 text-sm text-slate-400">
-      Movies where only one member loved it (2+ points above club average)
+      {{ workNoun }} where only one member loved it (2+ points above club
+      average)
     </p>
 
     <div class="mb-4 flex flex-wrap items-center gap-2">
@@ -75,18 +76,23 @@ import { computed, ref, watch } from "vue";
 import WidgetShell from "./WidgetShell.vue";
 import { isDefined } from "../../../../lib/checks/checks.js";
 import { Member } from "../../../../lib/types/club";
+import { ClubType } from "../../../../lib/types/generated/db";
 import { computeGuiltyPleasures } from "../statsComputers";
-import type { MovieData } from "../types";
+import type { WorkStatsData } from "../types";
 
+import { clubTypeStats } from "@/common/clubType";
 import VAvatar from "@/common/components/VAvatar.vue";
 
 const props = defineProps<{
-  movieData: MovieData[];
+  workData: WorkStatsData[];
   members: Member[];
+  clubType: ClubType;
 }>();
 
+const workNoun = computed(() => clubTypeStats(props.clubType).pluralNoun);
+
 const guiltyPleasures = computed(() =>
-  computeGuiltyPleasures(props.movieData, props.members),
+  computeGuiltyPleasures(props.workData, props.members),
 );
 
 const selectedMemberId = ref<string | undefined>(

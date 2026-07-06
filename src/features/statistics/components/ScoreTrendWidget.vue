@@ -13,15 +13,15 @@ import WidgetShell from "./WidgetShell.vue";
 import { type Member } from "../../../../lib/types/club.js";
 import { createScoreTrendChartOptions } from "../scoring";
 import { computeScoreTrend } from "../statsComputers";
-import type { MovieData } from "../types";
+import type { WorkStatsData } from "../types";
 
 const props = defineProps<{
-  movieData: MovieData[];
+  workData: WorkStatsData[];
   members: Member[];
 }>();
 
 const trendData = computed(() =>
-  computeScoreTrend(props.movieData, props.members),
+  computeScoreTrend(props.workData, props.members),
 );
 
 const hasTrendData = computed(() => trendData.value.size > 0);

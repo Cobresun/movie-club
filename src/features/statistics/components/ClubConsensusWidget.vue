@@ -101,15 +101,15 @@ import { computed } from "vue";
 import WidgetShell from "./WidgetShell.vue";
 import { Member } from "../../../../lib/types/club";
 import { computeClubConsensus } from "../statsComputers";
-import type { MovieData } from "../types";
+import type { WorkStatsData } from "../types";
 
 const props = defineProps<{
-  movieData: MovieData[];
+  workData: WorkStatsData[];
   members: Member[];
 }>();
 
 const consensus = computed(() =>
-  computeClubConsensus(props.movieData, props.members),
+  computeClubConsensus(props.workData, props.members),
 );
 
 function firstName(name: string): string {

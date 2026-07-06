@@ -61,7 +61,7 @@
       <router-link :to="{ name: 'Watchlists' }">
         <menu-card :image="watchlistSvg"> Lists </menu-card>
       </router-link>
-      <router-link v-if="isMovieClub" :to="{ name: 'Statistics' }">
+      <router-link :to="{ name: 'Statistics' }">
         <menu-card :image="statisticsSvg"> Statistics </menu-card>
       </router-link>
       <router-link
@@ -106,7 +106,7 @@ const { data: club } = useClub(clubId);
 const { data: inviteToken } = useInviteToken(clubId);
 const { data: settings } = useClubSettings(clubId);
 
-// Awards & Statistics are movie-only for now; hide them for book clubs.
+// Awards are movie-only for now; hide them for book clubs.
 const isMovieClub = computed(() => club.value?.type === ClubType.movie);
 
 const showInviteModal = ref(false);

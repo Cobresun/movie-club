@@ -123,6 +123,25 @@ export interface ClubTypeConfig {
     query: string,
     signal?: AbortSignal,
   ) => Promise<WorkSearchResult[]>;
+  /** Copy and icons for the statistics feature. */
+  readonly stats: StatsConfig;
+}
+
+/**
+ * Everything the statistics widgets need to render club-type-specific copy and
+ * icons. Lives on the registry so a widget reads `config.stats.countLabel`
+ * instead of branching on `clubType === ClubType.movie` — a new club type only
+ * has to fill this in.
+ */
+export interface StatsConfig {
+  /** Capitalized plural noun for widget headers ("Movies", "Books"). */
+  readonly pluralNoun: string;
+  /** Label under the total-count stat ("movies watched", "books read"). */
+  readonly countLabel: string;
+  /** Icon for the total-count stat (may differ from the club icon). */
+  readonly countIcon: string;
+  /** Title used when sharing the statistics page. */
+  readonly shareTitle: string;
 }
 
 // --- FilterOption builders --------------------------------------------------
@@ -250,6 +269,12 @@ export const CLUB_TYPE_CONFIG: Record<ClubType, ClubTypeConfig> = {
       ),
     ],
     search: searchMovies,
+    stats: {
+      pluralNoun: "Movies",
+      countLabel: "movies watched",
+      countIcon: "filmstrip",
+      shareTitle: "Movie Club Statistics",
+    },
   },
   [ClubType.book]: {
     clubType: ClubType.book,
@@ -288,6 +313,12 @@ export const CLUB_TYPE_CONFIG: Record<ClubType, ClubTypeConfig> = {
       ),
     ],
     search: searchBooks,
+    stats: {
+      pluralNoun: "Books",
+      countLabel: "books read",
+      countIcon: "book-open-page-variant-outline",
+      shareTitle: "Book Club Statistics",
+    },
   },
 };
 
@@ -308,4 +339,9 @@ export function clubTypeIcon(type: ClubType): string {
 /** Human label for a club's media type (e.g. for tooltips/aria). */
 export function clubTypeLabel(type: ClubType): string {
   return clubTypeConfig(type).label;
+}
+
+/** Statistics-feature copy and icons for a club's media type. */
+export function clubTypeStats(type: ClubType): StatsConfig {
+  return clubTypeConfig(type).stats;
 }

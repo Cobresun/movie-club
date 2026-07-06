@@ -3,11 +3,12 @@
     <div
       class="flex flex-1 flex-col items-center rounded-xl border border-slate-700 bg-lowBackground py-5"
     >
-      <mdicon name="filmstrip" class="mb-2 text-primary" :size="20" />
-      <p class="text-3xl font-bold text-white">{{ totalMovies }}</p>
-      <p class="text-xs tracking-wide text-slate-400">movies watched</p>
+      <mdicon :name="countIcon" class="mb-2 text-primary" :size="20" />
+      <p class="text-3xl font-bold text-white">{{ totalWorks }}</p>
+      <p class="text-xs tracking-wide text-slate-400">{{ countLabel }}</p>
     </div>
     <div
+      v-if="isMovieClub"
       class="flex flex-1 flex-col items-center rounded-xl border border-slate-700 bg-lowBackground py-5"
     >
       <mdicon name="clock-outline" class="mb-2 text-primary" :size="20" />
@@ -24,17 +25,29 @@
 <script setup lang="ts">
 import { computed } from "vue";
 
-import type { MovieData } from "../types";
+import { ClubType } from "../../../../lib/types/generated/db";
+import { isMovieStats, type WorkStatsData } from "../types";
+
+import { clubTypeStats } from "@/common/clubType";
 
 const props = defineProps<{
-  movieData: MovieData[];
+  workData: WorkStatsData[];
+  clubType: ClubType;
 }>();
 
-const totalMovies = computed(() => props.movieData.length);
+const isMovieClub = computed(() => props.clubType === ClubType.movie);
+
+const stats = computed(() => clubTypeStats(props.clubType));
+
+const totalWorks = computed(() => props.workData.length);
+
+const countLabel = computed(() => stats.value.countLabel);
+
+const countIcon = computed(() => stats.value.countIcon);
 
 const totalRuntimeMinutes = computed(() =>
-  props.movieData.reduce((sum, movie) => {
-    const runtime = Number(movie.externalData?.runtime);
+  props.workData.filter(isMovieStats).reduce((sum, movie) => {
+    const runtime = Number(movie.externalData.runtime);
     return sum + (isNaN(runtime) ? 0 : runtime);
   }, 0),
 );

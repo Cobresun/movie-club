@@ -7,9 +7,9 @@ import type {
 import type {
   DecadeStats,
   HistogramData,
-  MovieData,
   ScoreTrendPoint,
   ScoreVariancePoint,
+  WorkStatsData,
 } from "./types";
 import { isDefined } from "../../../lib/checks/checks.js";
 import { Member } from "../../../lib/types/club";
@@ -79,7 +79,7 @@ export function getScoreContextColor(zScore: number | undefined): string {
 }
 
 export interface HistogramChartParams {
-  filteredMovieData: MovieData[];
+  filteredWorkData: WorkStatsData[];
   histogramData: HistogramData[];
   members: Member[];
 }
@@ -87,7 +87,7 @@ export interface HistogramChartParams {
 export function createHistogramOptions(
   params: HistogramChartParams,
 ): AgCartesianChartOptions {
-  const { filteredMovieData, histogramData, members } = params;
+  const { filteredWorkData, histogramData, members } = params;
 
   const filteredHistData = histogramData.map((bin) => {
     const filtered = { ...bin };
@@ -97,7 +97,7 @@ export function createHistogramOptions(
     return filtered;
   });
 
-  filteredMovieData.forEach((movie) => {
+  filteredWorkData.forEach((movie) => {
     members.forEach((member) => {
       const rawScore = movie.userScores[member.id];
       if (!isDefined(rawScore)) return;
