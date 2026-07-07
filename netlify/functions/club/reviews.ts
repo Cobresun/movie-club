@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { hasValue, isDefined } from "../../../lib/checks/checks.js";
+import { hasValue } from "../../../lib/checks/checks.js";
 import { ReviewScores } from "../../../lib/types/lists";
 import ListRepository from "../repositories/ListRepository";
 import ReviewRepository from "../repositories/ReviewRepository";
@@ -13,6 +13,7 @@ import { secured } from "../utils/auth";
 import { generateJson } from "../utils/gemini";
 import { getProvider } from "../utils/providers";
 import { badRequest, ok, unauthorized } from "../utils/responses";
+import { buildReviewScores } from "../utils/reviewScores";
 import { Router } from "../utils/router";
 import { ClubRequest } from "../utils/validation";
 
@@ -221,9 +222,9 @@ router.get("/:workId/scores", secured, async ({ clubId, params }, res) => {
   return res(ok(JSON.stringify(scores)));
 });
 
-// Mirrors the per-work grouping in `club/list.ts` getReviewList, scoped to a
-// single work. Filters to current members so a departed member's stale score
-// doesn't reappear, and appends the average.
+// Loads the raw per-work review rows plus the current member set and hands them
+// to the shared `buildReviewScores` helper (the same map `club/list.ts` builds
+// per work), scoped to a single work.
 async function buildWorkScores(
   clubId: string,
   workId: string,
@@ -234,35 +235,7 @@ async function buildWorkScores(
   ]);
   const memberIds = new Set(members.map((member) => member.id));
 
-  const userScores = reviews.reduce<ReviewScores>((acc, review) => {
-    if (
-      hasValue(review.user_id) &&
-      hasValue(review.review_id) &&
-      hasValue(review.score) &&
-      isDefined(review.created_date) &&
-      memberIds.has(review.user_id)
-    ) {
-      acc[review.user_id] = {
-        id: review.review_id,
-        created_date: review.created_date.toISOString(),
-        score: parseFloat(review.score),
-      };
-    }
-    return acc;
-  }, {});
-
-  const entries = Object.values(userScores);
-  if (entries.length === 0) return {};
-
-  return {
-    ...userScores,
-    average: {
-      id: "average",
-      created_date: new Date().toISOString(),
-      score:
-        entries.reduce((sum, review) => sum + review.score, 0) / entries.length,
-    },
-  };
+  return buildReviewScores(reviews, memberIds);
 }
 
 router.get("/:workId/shared", async ({ clubId, params }, res) => {
