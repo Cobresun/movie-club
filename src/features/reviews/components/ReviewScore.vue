@@ -140,7 +140,7 @@ const { mutate: update } = useUpdateReviewScore(clubId);
 const submitScore = (score: number) => {
   if (!isNaN(score) && score >= 0 && score <= 10 && score !== props.score) {
     if (hasValue(props.reviewId)) {
-      update({ reviewId: props.reviewId, score });
+      update({ reviewId: props.reviewId, workId: props.workId, score });
     } else {
       submit({
         workId: props.workId,

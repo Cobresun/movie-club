@@ -1,9 +1,11 @@
 import { z } from "zod";
 
-import { hasValue } from "../../../lib/checks/checks.js";
+import { hasValue, isDefined } from "../../../lib/checks/checks.js";
+import { ReviewScores } from "../../../lib/types/lists";
 import ListRepository from "../repositories/ListRepository";
 import ReviewRepository from "../repositories/ReviewRepository";
 import SettingsRepository from "../repositories/SettingsRepository";
+import UserRepository from "../repositories/UserRepository";
 import WorkCommentRepository from "../repositories/WorkCommentRepository";
 import WorkRepository from "../repositories/WorkRepository";
 import SharedReviewService from "../services/SharedReviewService";
@@ -206,6 +208,62 @@ router.post(
     return res(ok(JSON.stringify({ questions })));
   },
 );
+
+// Lightweight per-work scores endpoint. Returns only the `scores` map (one entry
+// per member plus a synthetic `average`) for a single work, so clients can poll
+// it cheaply to pick up other members' scores during a synchronized scoring
+// session without refetching the whole reviews list (posters, metadata, etc.).
+router.get("/:workId/scores", secured, async ({ clubId, params }, res) => {
+  if (!hasValue(params.workId)) {
+    return res(badRequest("No workId provided"));
+  }
+  const scores = await buildWorkScores(clubId, params.workId);
+  return res(ok(JSON.stringify(scores)));
+});
+
+// Mirrors the per-work grouping in `club/list.ts` getReviewList, scoped to a
+// single work. Filters to current members so a departed member's stale score
+// doesn't reappear, and appends the average.
+async function buildWorkScores(
+  clubId: string,
+  workId: string,
+): Promise<ReviewScores> {
+  const [reviews, members] = await Promise.all([
+    ReviewRepository.getReviewsByWorkId(clubId, workId),
+    UserRepository.getMembersByClubId(clubId),
+  ]);
+  const memberIds = new Set(members.map((member) => member.id));
+
+  const userScores = reviews.reduce<ReviewScores>((acc, review) => {
+    if (
+      hasValue(review.user_id) &&
+      hasValue(review.review_id) &&
+      hasValue(review.score) &&
+      isDefined(review.created_date) &&
+      memberIds.has(review.user_id)
+    ) {
+      acc[review.user_id] = {
+        id: review.review_id,
+        created_date: review.created_date.toISOString(),
+        score: parseFloat(review.score),
+      };
+    }
+    return acc;
+  }, {});
+
+  const entries = Object.values(userScores);
+  if (entries.length === 0) return {};
+
+  return {
+    ...userScores,
+    average: {
+      id: "average",
+      created_date: new Date().toISOString(),
+      score:
+        entries.reduce((sum, review) => sum + review.score, 0) / entries.length,
+    },
+  };
+}
 
 router.get("/:workId/shared", async ({ clubId, params }, res) => {
   if (!hasValue(params.workId)) {
