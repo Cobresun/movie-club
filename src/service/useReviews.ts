@@ -9,6 +9,7 @@ import { AxiosInstance } from "axios";
 import { reviewsListKey } from "./useList";
 import { useUser } from "./useUser";
 import { isDefined } from "../../lib/checks/checks.js";
+import { Member } from "../../lib/types/club";
 import {
   DetailedReviewListItem,
   ReviewScores,
@@ -51,6 +52,19 @@ function startScorePoll(
             item.id === workId ? { ...item, scores: data } : item,
           ),
       );
+
+      // Stop early once every current member has a score — there's nothing left
+      // to wait for. (`data` also carries a synthetic `average` key, which we
+      // ignore by checking each member id directly.)
+      const members = queryClient.getQueryData<Member[]>(["members", clubSlug]);
+      if (
+        isDefined(members) &&
+        members.length > 0 &&
+        members.every((member) => isDefined(data[member.id]))
+      ) {
+        activeScorePolls.delete(pollKey);
+        return;
+      }
     } catch {
       // Transient failure — keep polling; a later tick may succeed.
     }
