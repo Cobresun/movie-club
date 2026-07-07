@@ -1,18 +1,5 @@
 <template>
   <div v-if="tasteSimilarity.mostSimilar || tasteSimilarity.leastSimilar">
-    <div class="mx-auto mb-4 flex w-11/12 flex-col gap-1">
-      <div class="flex items-center gap-2">
-        <v-switch v-model="useNormalized" color="primary" />
-        <span class="text-sm text-gray-300">Normalized Scores</span>
-      </div>
-      <p class="text-xs text-slate-500">
-        {{
-          useNormalized
-            ? "Comparing relative taste — ignores whether someone rates high or low overall"
-            : "Comparing raw scores directly"
-        }}
-      </p>
-    </div>
     <div class="mx-auto grid w-11/12 grid-cols-1 gap-6 md:grid-cols-2">
       <WidgetShell
         v-if="tasteSimilarity.mostSimilar"
@@ -55,7 +42,7 @@
           <span class="font-semibold text-green-300">{{
             tasteSimilarity.mostSimilar.avgDifference
           }}</span>
-          {{ useNormalized ? "σ" : "points" }}
+          points
         </div>
 
         <div v-if="tasteSimilarity.mostSimilar.bestAgreements.length > 0">
@@ -122,7 +109,7 @@
           <span class="font-semibold text-red-300">{{
             tasteSimilarity.leastSimilar.avgDifference
           }}</span>
-          {{ useNormalized ? "σ" : "points" }}
+          points
         </div>
 
         <div v-if="tasteSimilarity.leastSimilar.worstAgreements.length > 0">
@@ -152,7 +139,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed } from "vue";
 
 import WidgetShell from "./WidgetShell.vue";
 import { Member } from "../../../../lib/types/club";
@@ -164,10 +151,8 @@ const props = defineProps<{
   members: Member[];
 }>();
 
-const useNormalized = ref(false);
-
 const tasteSimilarity = computed(() =>
-  computeTasteSimilarity(props.workData, props.members, useNormalized.value),
+  computeTasteSimilarity(props.workData, props.members),
 );
 
 function firstName(name: string): string {

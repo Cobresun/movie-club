@@ -14,7 +14,6 @@ export interface WorkStatsBase {
   imageUrl: string | undefined;
   average: number;
   userScores: Record<string, number | undefined>;
-  normalized: Record<string, number | undefined>;
   scores: Record<string, { id: string; created_date: string; score: number }>;
   dateWatched: string;
 }
