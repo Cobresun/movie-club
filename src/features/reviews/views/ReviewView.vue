@@ -8,6 +8,14 @@
       @confirm="confirmDelete"
       @cancel="cancelDelete"
     />
+    <score-assist-modal
+      v-if="isDefined(scoreAssistTarget)"
+      :key="scoreAssistTarget.id"
+      :target="scoreAssistTarget"
+      :candidates="scoreAssistCandidates"
+      :club-type="club?.type ?? ClubType.movie"
+      @close="scoreAssistWorkId = undefined"
+    />
     <page-header :has-back="true" back-route="ClubHome" page-name="Reviews">
       <div class="flex gap-2">
         <mdicon name="table" />
@@ -73,16 +81,30 @@ import {
   useVueTable,
 } from "@tanstack/vue-table";
 import { DateTime } from "luxon";
-import { computed, ref, onMounted, h, resolveComponent, watch } from "vue";
+import {
+  computed,
+  ref,
+  onMounted,
+  h,
+  provide,
+  resolveComponent,
+  watch,
+} from "vue";
 
-import { hasValue, isTrue } from "../../../../lib/checks/checks.js";
+import { hasValue, isDefined, isTrue } from "../../../../lib/checks/checks.js";
 import { ClubType } from "../../../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
 import { useShare } from "../../../common/composables/useShare";
 import GalleryView from "../components/GalleryView.vue";
 import MovieTooltip from "../components/MovieTooltip.vue";
 import ReviewScore from "../components/ReviewScore.vue";
+import ScoreAssistModal from "../components/ScoreAssistModal.vue";
 import TableView from "../components/TableView.vue";
+import {
+  buildCandidatePool,
+  isScoreAssistEligible,
+} from "../composables/scoreAssistLogic";
+import { ScoreAssistKey } from "../scoreAssist";
 
 import AverageImg from "@/assets/images/average.svg";
 import { clubTypeConfig } from "@/common/clubType";
@@ -198,6 +220,25 @@ const deleteReview = (workId: string) => {
 const mdicon = resolveComponent("mdicon");
 const currentUser = useUser();
 const userId = computed(() => currentUser.value?.id);
+
+// Score Assist: one modal instance lives here; scattered score-entry
+// affordances open it (and gate their trigger) through the provided key.
+const scoreAssistWorkId = ref<string>();
+const scoreAssistTarget = computed(() =>
+  reviews.value?.find((review) => review.id === scoreAssistWorkId.value),
+);
+const scoreAssistCandidates = computed(() => {
+  const target = scoreAssistTarget.value;
+  if (!isDefined(target) || !hasValue(userId.value)) return [];
+  return buildCandidatePool(reviews.value ?? [], userId.value, target.id);
+});
+provide(ScoreAssistKey, {
+  isEligible: (workId: string) =>
+    isScoreAssistEligible(reviews.value, userId.value, workId),
+  open: (workId: string) => {
+    scoreAssistWorkId.value = workId;
+  },
+});
 
 const revealedMovieIds = ref<Set<string>>(new Set());
 const hasUserRated = computed(() => {

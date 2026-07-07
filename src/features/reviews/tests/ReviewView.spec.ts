@@ -1,3 +1,4 @@
+import { TestingPinia } from "@pinia/testing";
 import { screen, waitFor, within } from "@testing-library/vue";
 import { http, HttpResponse } from "msw";
 
@@ -11,6 +12,44 @@ import { useAuthStore } from "@/stores/auth";
 import { render } from "@/tests/utils";
 
 mockIntersectionObserver();
+
+function logIn(pinia: TestingPinia) {
+  const authStore = useAuthStore(pinia);
+  // @ts-expect-error Overwriting readonly property for testing purposes
+  authStore.user = {
+    id: memberData.id,
+    email: memberData.email,
+    name: memberData.name,
+    image: memberData.image,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    emailVerified: true,
+  };
+  // @ts-expect-error Forcing logged in to true for testing
+  authStore.isLoggedIn = true;
+}
+
+/** A work the mock user (member "2") has scored, for score-assist fixtures. */
+function scoredReview(id: string, score: number) {
+  return {
+    id,
+    title: `Movie ${id}`,
+    createdDate: "2024-05-28T04:46:37.751Z",
+    type: "movie",
+    scores: {
+      "2": {
+        id: `review-${id}`,
+        created_date: "2024-05-28T04:46:37.751Z",
+        score,
+      },
+      average: {
+        id: "average",
+        created_date: "2024-05-28T04:46:37.751Z",
+        score,
+      },
+    },
+  };
+}
 
 describe("ReviewView", () => {
   afterEach(() => {
@@ -145,5 +184,61 @@ describe("ReviewView", () => {
     );
     expect(within(row).getByRole("cell", { name: "10" })).toBeInTheDocument();
     expect(within(row).getByRole("cell", { name: "9" })).toBeInTheDocument();
+  });
+
+  it("hides the score-assist trigger while the user has fewer than five scored works", async () => {
+    // Default fixture: member "2" has scored only one work.
+    const { user, pinia } = render(ReviewView, {
+      props: { clubSlug: "test-club" },
+    });
+    logIn(pinia);
+
+    await user.click(screen.getByRole("switch"));
+    await user.click(await screen.findByRole("button", { name: "Add score" }));
+
+    expect(
+      screen.getByRole("spinbutton", { name: "Score" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Help me pick a score" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("opens score assist from the inline score input once the user has five scored works", async () => {
+    const scored = [2, 3, 4, 5, 6, 7].map((n) => scoredReview(`m${n}`, n));
+    const unscored = {
+      id: "t1",
+      title: "Unscored Movie",
+      createdDate: "2024-05-28T04:46:37.751Z",
+      type: "movie",
+      scores: {},
+    };
+    server.use(
+      http.get("/api/club/:clubSlug/list/reviews", () =>
+        HttpResponse.json([...scored, unscored]),
+      ),
+    );
+
+    const { user, pinia } = render(ReviewView, {
+      props: { clubSlug: "test-club" },
+    });
+    logIn(pinia);
+
+    await user.click(screen.getByRole("switch"));
+    // The only "Add score" affordance belongs to the unscored work.
+    await user.click(await screen.findByRole("button", { name: "Add score" }));
+
+    const trigger = await screen.findByRole("button", {
+      name: "Help me pick a score",
+    });
+    await user.click(trigger);
+
+    expect(
+      await screen.findByText("Which movie did you like more?"),
+    ).toBeInTheDocument();
+    // The inline input closed without submitting a score.
+    expect(
+      screen.queryByRole("spinbutton", { name: "Score" }),
+    ).not.toBeInTheDocument();
   });
 });

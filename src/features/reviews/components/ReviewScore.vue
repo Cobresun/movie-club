@@ -54,6 +54,17 @@
           :class="drawAttention ? 'opacity-0' : 'opacity-100'"
           >/10</span
         >
+        <button
+          v-if="showScoreAssistTrigger"
+          type="button"
+          aria-label="Help me pick a score"
+          title="Not sure? Compare against ones you've rated"
+          class="ml-0.5 text-gray-400 transition-colors hover:text-primary"
+          @mousedown.prevent
+          @click.stop="openScoreAssist"
+        >
+          <mdicon name="scale-balance" size="18" />
+        </button>
       </span>
     </Transition>
   </span>
@@ -62,6 +73,7 @@
 import { computed, inject, onBeforeUnmount, onMounted, ref } from "vue";
 
 import { hasValue, isDefined, isTrue } from "../../../../lib/checks/checks.js";
+import { ScoreAssistKey } from "../scoreAssist";
 import { RequestScoreEntryKey } from "../scoreEntry";
 
 import { useClubSlug } from "@/service/useClub";
@@ -93,6 +105,23 @@ const scoreInput = ref<HTMLInputElement | null>(null);
 const drawAttention = ref(false);
 
 const requestScoreEntry = inject(RequestScoreEntryKey, undefined);
+
+const scoreAssist = inject(ScoreAssistKey, undefined);
+const showScoreAssistTrigger = computed(
+  () =>
+    isDefined(scoreAssist) &&
+    props.size !== "sm" &&
+    scoreAssist.isEligible(props.workId),
+);
+// The input commits on blur, and blur can fire twice on the way here: once if
+// the trigger click moves focus (prevented via @mousedown.prevent), and once
+// more in Chrome when closing the input removes the focused element from the
+// DOM. Clearing the model first makes any such submit a NaN no-op.
+const openScoreAssist = () => {
+  scoreModel.value = "";
+  isInputOpen.value = false;
+  scoreAssist?.open(props.workId);
+};
 
 const handleScoreClick = () => {
   if (!isMe.value) return;

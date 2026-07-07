@@ -155,6 +155,16 @@
         </div>
       </div>
 
+      <div v-if="showScoreAssist" class="mt-3 flex justify-center">
+        <button
+          class="flex items-center gap-2 rounded-full bg-lowBackground px-4 py-1.5 text-sm text-gray-300 transition hover:brightness-110"
+          @click="scoreAssist?.open(movie.original.id)"
+        >
+          <mdicon name="scale-balance" size="16" />
+          <span>Not sure? Compare {{ mediaNoun }}s you've rated</span>
+        </button>
+      </div>
+
       <div v-if="movieData?.overview || bookData?.description" class="mt-6">
         <WorkDescription
           :key="movie.id"
@@ -283,6 +293,16 @@
         </div>
       </div>
 
+      <div v-if="showScoreAssist" class="mt-3 flex justify-center">
+        <button
+          class="flex items-center gap-2 rounded-full bg-lowBackground px-4 py-1.5 text-sm text-gray-300 transition hover:brightness-110"
+          @click="scoreAssist?.open(movie.original.id)"
+        >
+          <mdicon name="scale-balance" size="16" />
+          <span>Not sure? Compare {{ mediaNoun }}s you've rated</span>
+        </button>
+      </div>
+
       <CastList :actors="movieData?.actors" class="mt-4" />
 
       <!-- Collapsible metadata -->
@@ -390,12 +410,13 @@
 import { Disclosure, DisclosureButton, DisclosurePanel } from "@headlessui/vue";
 import { Cell, FlexRender, Row, Table } from "@tanstack/vue-table";
 import { DateTime } from "luxon";
-import { computed, ref } from "vue";
+import { computed, inject, ref } from "vue";
 
 import DiscussionQuestions from "./DiscussionQuestions.vue";
 import { hasValue, isDefined, isTrue } from "../../../../lib/checks/checks.js";
 import { ClubType } from "../../../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
+import { ScoreAssistKey } from "../scoreAssist";
 
 import { clubTypeConfig } from "@/common/clubType";
 import BookMetadataGrid from "@/common/components/BookMetadataGrid.vue";
@@ -619,6 +640,16 @@ const showRevealPill = computed(() => {
     return false;
   return hasClubScoresToReveal.value;
 });
+
+// Score Assist entry point: shown while the current user hasn't scored this
+// work yet (the "unsure" moment) and has enough other scored works to compare.
+const scoreAssist = inject(ScoreAssistKey, undefined);
+const showScoreAssist = computed(
+  () =>
+    isDefined(scoreAssist) &&
+    !props.hasRated(props.movie.id) &&
+    scoreAssist.isEligible(props.movie.original.id),
+);
 
 const tmdbRevealed = ref(false);
 
