@@ -186,6 +186,34 @@ export function useUpdateReviewScore(clubSlug: string) {
   });
 }
 
+/**
+ * Create-or-update a score in one call: picks the right mutation based on
+ * whether the user already has a review for the work. Collapses the identical
+ * `reviewId ? update : create` branch that ReviewScore, ScoreEntryPanel, and
+ * ScoreAssistModal all otherwise repeat. Callers are responsible for validating
+ * the score (see `isValidScore` in scoreScale.ts) before calling.
+ */
+export function useSubmitScore(clubSlug: string) {
+  const { mutate: create } = useReviewWork(clubSlug);
+  const { mutate: update } = useUpdateReviewScore(clubSlug);
+
+  return ({
+    workId,
+    reviewId,
+    score,
+  }: {
+    workId: string;
+    reviewId?: string;
+    score: number;
+  }) => {
+    if (isDefined(reviewId) && reviewId !== "") {
+      update({ reviewId, workId, score });
+    } else {
+      create({ workId, score });
+    }
+  };
+}
+
 export function useReviewComments(clubSlug: string, workId: string) {
   const auth = useAuthStore();
   return useQuery<WorkCommentDto[]>({

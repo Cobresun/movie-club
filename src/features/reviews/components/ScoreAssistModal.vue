@@ -62,8 +62,8 @@
             v-model="scoreModel"
             type="number"
             inputmode="decimal"
-            min="0"
-            max="10"
+            :min="SCORE_MIN"
+            :max="SCORE_MAX"
             step="any"
             aria-label="Score"
             class="w-24 rounded-lg border border-gray-300 bg-background p-2 text-center text-3xl font-bold outline-none [appearance:textfield] focus:border-primary [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
@@ -88,17 +88,18 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 
-import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
+import { isDefined } from "../../../../lib/checks/checks.js";
 import { ClubType } from "../../../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
 import { ScoredCandidate } from "../composables/scoreAssistLogic";
 import { useScoreAssist } from "../composables/useScoreAssist";
+import { formatScore, isValidScore, SCORE_MAX, SCORE_MIN } from "../scoreScale";
 
 import { clubTypeConfig } from "@/common/clubType";
 import WorkPosterCard from "@/common/components/WorkPosterCard.vue";
 import { workPosterUrl } from "@/common/workDisplay";
 import { useClubSlug } from "@/service/useClub";
-import { useReviewWork, useUpdateReviewScore } from "@/service/useReviews";
+import { useSubmitScore } from "@/service/useReviews";
 import { useUser } from "@/service/useUser";
 
 const props = defineProps<{
@@ -128,9 +129,7 @@ const pivotPosterUrl = computed(() =>
 );
 
 // Reference scores are shown as the user entered them (only the suggestion is
-// rounded to halves), trimmed like ReviewView's table cells.
-const formatScore = (score: number) => String(Math.round(score * 100) / 100);
-
+// rounded to halves); `formatScore` (scoreScale) trims them like the table cells.
 const contextLine = computed(() => {
   const current = result.value;
   if (!isDefined(current)) return "";
@@ -183,20 +182,15 @@ const startOver = () => {
 
 const clubSlug = useClubSlug();
 const user = useUser();
-const { mutate: submit } = useReviewWork(clubSlug);
-const { mutate: update } = useUpdateReviewScore(clubSlug);
+const submitScore = useSubmitScore(clubSlug);
 
 const save = () => {
   const score = Number.parseFloat(scoreModel.value);
-  if (Number.isNaN(score) || score < 0 || score > 10) return;
+  if (!isValidScore(score)) return;
   const reviewId = isDefined(user.value)
     ? props.target.scores[user.value.id]?.id
     : undefined;
-  if (hasValue(reviewId)) {
-    update({ reviewId, score });
-  } else {
-    submit({ workId: props.target.id, score });
-  }
+  submitScore({ workId: props.target.id, reviewId, score });
   emit("close");
 };
 </script>

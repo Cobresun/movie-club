@@ -155,14 +155,15 @@
         </div>
       </div>
 
-      <div v-if="showScoreAssist" class="mt-3 flex justify-center">
-        <button
-          class="flex items-center gap-2 rounded-full bg-lowBackground px-4 py-1.5 text-sm text-gray-300 transition hover:brightness-110"
-          @click="scoreAssist?.open(movie.original.id)"
-        >
-          <mdicon name="scale-balance" size="16" />
-          <span>Not sure? Compare {{ mediaNoun }}s you've rated</span>
-        </button>
+      <div v-if="isDefined(currentUserId)" class="mt-4 flex justify-center">
+        <ScoreEntryPanel
+          :key="movie.original.id"
+          :work-id="movie.original.id"
+          :score="myReview?.score"
+          :review-id="myReview?.id"
+          :autofocus="isTrue(focusScoreEntry)"
+          :autofocus-delay="300"
+        />
       </div>
 
       <div v-if="movieData?.overview || bookData?.description" class="mt-6">
@@ -293,14 +294,15 @@
         </div>
       </div>
 
-      <div v-if="showScoreAssist" class="mt-3 flex justify-center">
-        <button
-          class="flex items-center gap-2 rounded-full bg-lowBackground px-4 py-1.5 text-sm text-gray-300 transition hover:brightness-110"
-          @click="scoreAssist?.open(movie.original.id)"
-        >
-          <mdicon name="scale-balance" size="16" />
-          <span>Not sure? Compare {{ mediaNoun }}s you've rated</span>
-        </button>
+      <div v-if="isDefined(currentUserId)" class="mt-4 flex justify-center">
+        <ScoreEntryPanel
+          :key="movie.original.id"
+          :work-id="movie.original.id"
+          :score="myReview?.score"
+          :review-id="myReview?.id"
+          :autofocus="isTrue(focusScoreEntry)"
+          :autofocus-delay="300"
+        />
       </div>
 
       <CastList :actors="movieData?.actors" class="mt-4" />
@@ -410,13 +412,13 @@
 import { Disclosure, DisclosureButton, DisclosurePanel } from "@headlessui/vue";
 import { Cell, FlexRender, Row, Table } from "@tanstack/vue-table";
 import { DateTime } from "luxon";
-import { computed, inject, ref } from "vue";
+import { computed, ref } from "vue";
 
 import DiscussionQuestions from "./DiscussionQuestions.vue";
+import ScoreEntryPanel from "./ScoreEntryPanel.vue";
 import { hasValue, isDefined, isTrue } from "../../../../lib/checks/checks.js";
 import { ClubType } from "../../../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
-import { ScoreAssistKey } from "../scoreAssist";
 
 import { clubTypeConfig } from "@/common/clubType";
 import BookMetadataGrid from "@/common/components/BookMetadataGrid.vue";
@@ -570,20 +572,22 @@ const getVisibleCells = (row: Row<DetailedReviewListItem>) => {
   });
 };
 
-const currentUserColumnId = computed(() =>
-  isDefined(props.currentUserId) ? `member_${props.currentUserId}` : undefined,
-);
-
-// When the drawer was opened via a poster's score chip, tag the current user's
-// score cell so its ReviewScore opens and focuses the input on mount.
+// The drawer's member grid is display-only — the current user enters/edits
+// their own score through the dedicated ScoreEntryPanel below it.
 const scoreCellProps = (cell: Cell<DetailedReviewListItem, unknown>) => ({
   ...cell.getContext(),
   meta: {
-    autoFocusScore:
-      isTrue(props.focusScoreEntry) &&
-      cell.column.id === currentUserColumnId.value,
+    editable: false,
   },
 });
+
+// The current user's own review for this work, if any — prefills the panel and
+// tells it whether to create (POST) or update (PUT).
+const myReview = computed(() =>
+  isDefined(props.currentUserId)
+    ? props.movie.original.scores[props.currentUserId]
+    : undefined,
+);
 
 const close = () => {
   emit("close");
@@ -640,16 +644,6 @@ const showRevealPill = computed(() => {
     return false;
   return hasClubScoresToReveal.value;
 });
-
-// Score Assist entry point: shown while the current user hasn't scored this
-// work yet (the "unsure" moment) and has enough other scored works to compare.
-const scoreAssist = inject(ScoreAssistKey, undefined);
-const showScoreAssist = computed(
-  () =>
-    isDefined(scoreAssist) &&
-    !props.hasRated(props.movie.id) &&
-    scoreAssist.isEligible(props.movie.original.id),
-);
 
 const tmdbRevealed = ref(false);
 

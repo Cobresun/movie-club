@@ -372,7 +372,9 @@ const columns = computed(() => [
         }
 
         const openInDrawer = info.meta?.openInDrawer === true;
-        const autoFocus = info.meta?.autoFocusScore === true;
+        // Read-only inside the drawer (entry there flows through its dedicated
+        // ScoreEntryPanel); editable everywhere else.
+        const editable = info.meta?.editable !== false;
 
         const shouldBlur = shouldBlurScore(info.row.id, info.column.id);
 
@@ -390,7 +392,7 @@ const columns = computed(() => [
               reviewId: info.row.original.scores[member.id]?.id,
               size,
               openInDrawer,
-              autoFocus,
+              editable,
               class: shouldBlur ? "filter blur cursor-pointer" : "",
             }),
           ],

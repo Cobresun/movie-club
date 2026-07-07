@@ -18,11 +18,30 @@ import { useRouter } from "vue-router";
  * ours with `history.back()` would then traverse back over that real entry and
  * cancel the navigation, so in that case we leave history untouched.
  *
+ * ## Stacked overlays
+ *
+ * When one overlay opens on top of another (e.g. the Score Assist modal over
+ * the work-details bottom sheet), both push a synthetic entry. If the top one
+ * closes via a *non-back* action, its cleanup `history.back()` pops its own
+ * entry — but that `popstate` is also heard by the lower overlay's still-live
+ * listener, which would otherwise mistake it for a user back press and dismiss
+ * itself too. To prevent that, a closing overlay whose pop will land on a lower
+ * overlay flags the resulting `popstate` as synthetic so the lower overlay
+ * swallows exactly that one event and stays open. (Coordinates the common
+ * two-overlay case; deeper stacks are not exercised in this app.)
+ *
  * @param onDismiss - Called when the back button should close the overlay.
  *
  * @example
  * useBackButtonClose(() => handleClose());
  */
+
+// Overlays currently holding a synthetic history entry with a live listener.
+let mountedOverlays = 0;
+// Synthetic cleanup pops (from a higher overlay closing) that the next popstate
+// handler should ignore rather than treat as a user back press.
+let syntheticPopsToIgnore = 0;
+
 export function useBackButtonClose(onDismiss: () => void) {
   // Whether our extra history entry is still on the stack and needs cleanup.
   let pushed = false;
@@ -36,9 +55,16 @@ export function useBackButtonClose(onDismiss: () => void) {
   let removeGuard: (() => void) | undefined;
 
   const onPopState = () => {
+    // A synthetic pop from a higher overlay's cleanup, not a user back press —
+    // swallow it and leave this overlay (and its entry) in place.
+    if (syntheticPopsToIgnore > 0) {
+      syntheticPopsToIgnore--;
+      return;
+    }
     // The browser has already popped our entry, so don't pop it again on
     // unmount — just dismiss the overlay.
     pushed = false;
+    mountedOverlays--;
     onDismiss();
   };
 
@@ -47,6 +73,7 @@ export function useBackButtonClose(onDismiss: () => void) {
     // and omit the URL so the address bar (and current route) stay put.
     window.history.pushState({ ...window.history.state, vOverlay: true }, "");
     pushed = true;
+    mountedOverlays++;
     window.addEventListener("popstate", onPopState);
     // Flag any navigation that happens while the overlay is open. Callers that
     // navigate from an in-overlay action are expected to close the overlay only
@@ -60,11 +87,17 @@ export function useBackButtonClose(onDismiss: () => void) {
   onUnmounted(() => {
     window.removeEventListener("popstate", onPopState);
     removeGuard?.();
-    if (pushed && !navigated) {
-      pushed = false;
-      // Remove the entry we added so the back button isn't consumed by it after
-      // the overlay has already been dismissed some other way.
-      window.history.back();
+    if (!pushed) return;
+    pushed = false;
+    mountedOverlays--;
+    if (navigated) return;
+    // If a lower overlay is still mounted, our history.back() will reach its
+    // listener as a popstate it must not treat as a dismissal.
+    if (mountedOverlays > 0) {
+      syntheticPopsToIgnore++;
     }
+    // Remove the entry we added so the back button isn't consumed by it after
+    // the overlay has already been dismissed some other way.
+    window.history.back();
   });
 }
