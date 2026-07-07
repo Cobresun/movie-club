@@ -1,11 +1,68 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
+import {
+  QueryClient,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/vue-query";
+import { AxiosInstance } from "axios";
 
 import { reviewsListKey } from "./useList";
 import { useUser } from "./useUser";
 import { isDefined } from "../../lib/checks/checks.js";
-import { DetailedReviewListItem, WorkCommentDto } from "../../lib/types/lists";
+import {
+  DetailedReviewListItem,
+  ReviewScores,
+  WorkCommentDto,
+} from "../../lib/types/lists";
 
 import { useAuthStore } from "@/stores/auth";
+
+const SCORE_POLL_ATTEMPTS = 10;
+const SCORE_POLL_INTERVAL_MS = 500;
+
+// After a member submits/edits their own score we briefly poll the lightweight
+// per-work scores endpoint so everyone else's scores (submitted around the same
+// time in a synchronized session) stream in without a manual refresh. Keyed by
+// `${clubSlug}:${workId}` with a monotonic token so re-submitting the same work
+// supersedes the previous loop instead of stacking a second one.
+const activeScorePolls = new Map<string, number>();
+
+function startScorePoll(
+  request: AxiosInstance,
+  queryClient: QueryClient,
+  clubSlug: string,
+  workId: string,
+) {
+  const pollKey = `${clubSlug}:${workId}`;
+  const token = (activeScorePolls.get(pollKey) ?? 0) + 1;
+  activeScorePolls.set(pollKey, token);
+
+  const tick = async (attempt: number) => {
+    if (activeScorePolls.get(pollKey) !== token) return;
+    try {
+      const { data } = await request.get<ReviewScores>(
+        `/api/club/${clubSlug}/reviews/${workId}/scores`,
+      );
+      if (activeScorePolls.get(pollKey) !== token) return;
+      queryClient.setQueryData<DetailedReviewListItem[]>(
+        reviewsListKey(clubSlug),
+        (current) =>
+          current?.map((item) =>
+            item.id === workId ? { ...item, scores: data } : item,
+          ),
+      );
+    } catch {
+      // Transient failure — keep polling; a later tick may succeed.
+    }
+    if (attempt + 1 < SCORE_POLL_ATTEMPTS) {
+      setTimeout(() => void tick(attempt + 1), SCORE_POLL_INTERVAL_MS);
+    } else if (activeScorePolls.get(pollKey) === token) {
+      activeScorePolls.delete(pollKey);
+    }
+  };
+
+  setTimeout(() => void tick(0), SCORE_POLL_INTERVAL_MS);
+}
 
 export function useReviewWork(clubSlug: string) {
   const auth = useAuthStore();
@@ -52,6 +109,8 @@ export function useReviewWork(clubSlug: string) {
         },
       );
     },
+    onSuccess: (_data, { workId }) =>
+      startScorePoll(auth.request, queryClient, clubSlug, workId),
     onSettled: () =>
       queryClient.invalidateQueries({
         queryKey: reviewsListKey(clubSlug),
@@ -64,7 +123,16 @@ export function useUpdateReviewScore(clubSlug: string) {
   const queryClient = useQueryClient();
   const user = useUser();
   return useMutation({
-    mutationFn: ({ reviewId, score }: { reviewId: string; score: number }) =>
+    // `workId` isn't part of the PUT body — it's carried through so `onSuccess`
+    // can poll the per-work scores endpoint after an edit.
+    mutationFn: ({
+      reviewId,
+      score,
+    }: {
+      reviewId: string;
+      workId: string;
+      score: number;
+    }) =>
       auth.request.put(`/api/club/${clubSlug}/reviews/${reviewId}`, {
         score,
       }),
@@ -95,6 +163,8 @@ export function useUpdateReviewScore(clubSlug: string) {
         },
       );
     },
+    onSuccess: (_data, { workId }) =>
+      startScorePoll(auth.request, queryClient, clubSlug, workId),
     onSettled: () =>
       queryClient.invalidateQueries({
         queryKey: reviewsListKey(clubSlug),

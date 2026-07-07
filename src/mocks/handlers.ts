@@ -33,6 +33,9 @@ export const handlers = [
   http.put("/api/club/:id/reviews/:reviewId", () => {
     return new HttpResponse(null, { status: 200 });
   }),
+  http.get("/api/club/:id/reviews/:workId/scores", () => {
+    return HttpResponse.json(reviews[0]?.scores ?? {});
+  }),
   http.get("/api/club/:id/list", () => {
     return HttpResponse.json([
       { id: "1", title: "Watch List", systemType: null, itemCount: 1 },
