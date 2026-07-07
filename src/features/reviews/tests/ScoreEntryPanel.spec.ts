@@ -79,6 +79,21 @@ describe("ScoreEntryPanel", () => {
     await waitFor(() => expect(put).toEqual({ score: 7 }));
   });
 
+  it("re-seeds the field when the score prop changes out from under it", async () => {
+    // Mirrors returning from Score Assist: the saved suggestion flows in as a new
+    // `score` prop, and the (mount-seeded) field must follow it rather than keep
+    // the pre-assist value.
+    const rendered = render(ScoreEntryPanel, {
+      props: { workId: "target", reviewId: "rev1", score: 6 },
+    });
+
+    const input = screen.getByRole("spinbutton", { name: "Score" });
+    expect(input).toHaveValue(6);
+
+    await rendered.rerender({ workId: "target", reviewId: "rev1", score: 8 });
+    expect(input).toHaveValue(8);
+  });
+
   it("opens Score Assist from the labeled button when eligible", async () => {
     const open = vi.fn();
     const { user } = render(ScoreEntryPanel, {

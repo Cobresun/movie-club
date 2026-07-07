@@ -46,6 +46,7 @@ import {
   onBeforeUnmount,
   onMounted,
   ref,
+  watch,
 } from "vue";
 
 import { isDefined, isTrue } from "../../../../lib/checks/checks.js";
@@ -80,6 +81,20 @@ const noun = computed(
 
 const scoreModel = ref(props.score?.toString() ?? "");
 const scoreInput = ref<HTMLInputElement | null>(null);
+
+// Re-seed the field when the score changes out from under us — e.g. after Score
+// Assist saves a suggestion and the drawer reappears. `scoreModel` is seeded
+// from `props.score` only at mount, so this keeps it in sync without re-keying
+// the panel (a remount would re-run onMounted and wrongly re-fire autofocus).
+// The drawer has no second writer of the current user's score, so replacing the
+// draft on every change is always correct and never discards real in-progress
+// typing.
+watch(
+  () => props.score,
+  (score) => {
+    scoreModel.value = score?.toString() ?? "";
+  },
+);
 
 const canSave = computed(() =>
   isValidScore(Number.parseFloat(scoreModel.value)),
