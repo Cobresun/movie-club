@@ -109,6 +109,7 @@ export function createHistogramOptions(
 
 export function createDecadeChartOptions(
   decadeStats: DecadeStats[],
+  countLabel = "Movies",
 ): AgCartesianChartOptions {
   return {
     theme: "ag-default-dark",
@@ -132,7 +133,7 @@ export function createDecadeChartOptions(
               `<div class="ag-chart-tooltip-content">` +
               `Avg Score: ${params.datum.averageScore}` +
               `<br/>` +
-              `Movies: ${params.datum.count}` +
+              `${countLabel}: ${params.datum.count}` +
               `</div>`
             );
           },

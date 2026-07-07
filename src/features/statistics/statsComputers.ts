@@ -1,4 +1,5 @@
 import type {
+  BookData,
   ClubConsensusEntry,
   ClubCurmudgeonEntry,
   DecadeStats,
@@ -11,6 +12,8 @@ import type {
   MovieData,
   ScoreTrendPoint,
   ScoreVariancePoint,
+  SubjectReadCount,
+  SubjectScoreStats,
   TmdbDeviationEntry,
   WorkStatsData,
 } from "./types";
@@ -23,6 +26,39 @@ import { Member } from "../../../lib/types/club.js";
 
 const MIN_GENRE_COUNT = 2;
 
+/**
+ * Tallies score sum + count per category label (genre, subject, …) across works,
+ * using each work's member score when `memberId` is set or the club average
+ * otherwise. Shared by the movie genre and book subject computers so both apply
+ * the same "skip works without a score" rule.
+ */
+function accumulateCategoryScores<T extends WorkStatsData>(
+  works: T[],
+  getCategories: (work: T) => readonly string[],
+  memberId?: string,
+): Record<string, { count: number; totalScore: number }> {
+  const categoryScores: Record<string, { count: number; totalScore: number }> =
+    {};
+
+  for (const work of works) {
+    const score = isDefined(memberId)
+      ? work.userScores[memberId]
+      : work.average;
+    if (!isDefined(score)) continue;
+    for (const category of getCategories(work)) {
+      const existing = categoryScores[category];
+      if (isDefined(existing)) {
+        existing.count++;
+        existing.totalScore += score;
+      } else {
+        categoryScores[category] = { count: 1, totalScore: score };
+      }
+    }
+  }
+
+  return categoryScores;
+}
+
 export function computeGenreStats(
   movieData: MovieData[],
   memberId?: string,
@@ -30,23 +66,11 @@ export function computeGenreStats(
   mostLoved: GenreStats[];
   leastLoved: GenreStats[];
 } {
-  const genreScores: Record<string, { count: number; totalScore: number }> = {};
-
-  for (const movie of movieData) {
-    const score = isDefined(memberId)
-      ? movie.userScores[memberId]
-      : movie.average;
-    if (!isDefined(score)) continue;
-    for (const genre of movie.genres) {
-      const existing = genreScores[genre];
-      if (isDefined(existing)) {
-        existing.count++;
-        existing.totalScore += score;
-      } else {
-        genreScores[genre] = { count: 1, totalScore: score };
-      }
-    }
-  }
+  const genreScores = accumulateCategoryScores(
+    movieData,
+    (movie) => movie.genres,
+    memberId,
+  );
 
   const allGenres = Object.entries(genreScores)
     .filter(([, data]) => data.count >= MIN_GENRE_COUNT)
@@ -64,6 +88,55 @@ export function computeGenreStats(
       .slice(-3)
       .sort((a, b) => a.averageScore - b.averageScore),
   };
+}
+
+// Subjects are noisier and higher-cardinality than movie genres (a book can
+// carry a dozen), so require a couple of reads before a subject counts and cap
+// the widget to the top handful.
+const MIN_SUBJECT_COUNT = 2;
+const MAX_SUBJECTS = 5;
+
+/** Average club/member score per book subject, top {@link MAX_SUBJECTS} by score. */
+export function computeSubjectStats(
+  bookData: BookData[],
+  memberId?: string,
+): SubjectScoreStats[] {
+  const subjectScores = accumulateCategoryScores(
+    bookData,
+    (book) => book.externalData?.subjects ?? [],
+    memberId,
+  );
+
+  return Object.entries(subjectScores)
+    .filter(([, data]) => data.count >= MIN_SUBJECT_COUNT)
+    .map(([subject, data]) => ({
+      subject,
+      averageScore: Math.round((data.totalScore / data.count) * 100) / 100,
+      count: data.count,
+    }))
+    .sort((a, b) => {
+      const scoreDiff = b.averageScore - a.averageScore;
+      return scoreDiff !== 0 ? scoreDiff : b.count - a.count;
+    })
+    .slice(0, MAX_SUBJECTS);
+}
+
+/** Read counts per book subject, top {@link MAX_SUBJECTS} by count. */
+export function computeSubjectReadCounts(
+  bookData: BookData[],
+): SubjectReadCount[] {
+  const counts: Record<string, number> = {};
+
+  for (const book of bookData) {
+    for (const subject of book.externalData?.subjects ?? []) {
+      counts[subject] = (counts[subject] ?? 0) + 1;
+    }
+  }
+
+  return Object.entries(counts)
+    .map(([subject, count]) => ({ subject, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, MAX_SUBJECTS);
 }
 
 export function computeGenreWatchCounts(movieData: MovieData[]): {
@@ -268,46 +341,54 @@ const TMDB_PROFILE_BASE_URL = "https://image.tmdb.org/t/p/w185";
 
 export interface PersonStats {
   name: string;
-  movieCount: number;
+  workCount: number;
   averageScore: number;
-  movies: string[];
+  works: string[];
   profileImageUrl?: string;
 }
 
-function computeTopPeople(
-  movieData: MovieData[],
-  getPeople: (
-    movie: MovieData,
-  ) => readonly { name: string; profilePath: string | null }[] | undefined,
+/** A person credited on a work, with an already-resolved avatar URL (movies
+ * carry a TMDB profile image; book authors have none). */
+interface CreditedPerson {
+  name: string;
+  profileImageUrl: string | undefined;
+}
+
+function computeTopPeople<T extends WorkStatsData>(
+  workData: T[],
+  getPeople: (work: T) => readonly CreditedPerson[] | undefined,
 ): PersonStats[] {
   const peopleMap = new Map<
     string,
     {
       totalScore: number;
       count: number;
-      movies: string[];
-      profilePath: string | null;
+      works: string[];
+      profileImageUrl: string | undefined;
     }
   >();
 
-  for (const movie of movieData) {
-    const people = getPeople(movie);
+  for (const work of workData) {
+    const people = getPeople(work);
     if (!hasElements(people)) continue;
     for (const person of people) {
       const existing = peopleMap.get(person.name);
       if (existing) {
-        existing.totalScore += movie.average;
+        existing.totalScore += work.average;
         existing.count += 1;
-        existing.movies.push(movie.title);
-        if (existing.profilePath === null && person.profilePath !== null) {
-          existing.profilePath = person.profilePath;
+        existing.works.push(work.title);
+        if (
+          !isDefined(existing.profileImageUrl) &&
+          isDefined(person.profileImageUrl)
+        ) {
+          existing.profileImageUrl = person.profileImageUrl;
         }
       } else {
         peopleMap.set(person.name, {
-          totalScore: movie.average,
+          totalScore: work.average,
           count: 1,
-          movies: [movie.title],
-          profilePath: person.profilePath,
+          works: [work.title],
+          profileImageUrl: person.profileImageUrl,
         });
       }
     }
@@ -316,26 +397,51 @@ function computeTopPeople(
   return Array.from(peopleMap.entries())
     .map(([name, data]) => ({
       name,
-      movieCount: data.count,
+      workCount: data.count,
       averageScore: data.totalScore / data.count,
-      movies: data.movies,
-      profileImageUrl: isDefined(data.profilePath)
-        ? `${TMDB_PROFILE_BASE_URL}${data.profilePath}`
-        : undefined,
+      works: data.works,
+      profileImageUrl: data.profileImageUrl,
     }))
     .sort((a, b) => {
-      const countDiff = b.movieCount - a.movieCount;
+      const countDiff = b.workCount - a.workCount;
       return countDiff !== 0 ? countDiff : b.averageScore - a.averageScore;
     })
     .slice(0, 5);
 }
 
+function tmdbProfileImageUrl(profilePath: string | null): string | undefined {
+  return isDefined(profilePath)
+    ? `${TMDB_PROFILE_BASE_URL}${profilePath}`
+    : undefined;
+}
+
 export function computeTopDirectors(movieData: MovieData[]): PersonStats[] {
-  return computeTopPeople(movieData, (m) => m.externalData?.directors);
+  return computeTopPeople(movieData, (m) =>
+    m.externalData.directors.map((d) => ({
+      name: d.name,
+      profileImageUrl: tmdbProfileImageUrl(d.profilePath),
+    })),
+  );
 }
 
 export function computeTopActors(movieData: MovieData[]): PersonStats[] {
-  return computeTopPeople(movieData, (m) => m.externalData?.actors);
+  return computeTopPeople(movieData, (m) =>
+    m.externalData.actors.map((a) => ({
+      name: a.name,
+      profileImageUrl: tmdbProfileImageUrl(a.profilePath),
+    })),
+  );
+}
+
+/** Most-read authors leaderboard. Authors are plain strings from Google Books,
+ * so there is no avatar to show. */
+export function computeTopAuthors(bookData: BookData[]): PersonStats[] {
+  return computeTopPeople(bookData, (book) =>
+    book.externalData?.authors.map((name) => ({
+      name,
+      profileImageUrl: undefined,
+    })),
+  );
 }
 
 export function computeTmdbDeviation(movieData: MovieData[]): {
@@ -634,6 +740,44 @@ export function computeDecadeStats(
 
     const year = parseInt(releaseDate.substring(0, 4), 10);
     if (isNaN(year)) continue;
+
+    const decade = `${Math.floor(year / 10) * 10}s`;
+    const existing = decadeScores[decade];
+    if (isDefined(existing)) {
+      existing.count++;
+      existing.totalScore += score;
+    } else {
+      decadeScores[decade] = { count: 1, totalScore: score };
+    }
+  }
+
+  return Object.entries(decadeScores)
+    .map(([decade, data]) => ({
+      decade,
+      averageScore: Math.round((data.totalScore / data.count) * 100) / 100,
+      count: data.count,
+    }))
+    .sort((a, b) => a.decade.localeCompare(b.decade));
+}
+
+/** Average score grouped by a book's publication decade (from
+ * `firstPublishYear`). Mirrors {@link computeDecadeStats}, which reads a movie's
+ * `release_date` string instead. */
+export function computePublishDecadeStats(
+  bookData: BookData[],
+  memberId?: string,
+): DecadeStats[] {
+  const decadeScores: Record<string, { count: number; totalScore: number }> =
+    {};
+
+  for (const book of bookData) {
+    const score = isDefined(memberId)
+      ? book.userScores[memberId]
+      : book.average;
+    if (!isDefined(score)) continue;
+
+    const year = book.externalData?.firstPublishYear;
+    if (!isDefined(year) || isNaN(year)) continue;
 
     const decade = `${Math.floor(year / 10) * 10}s`;
     const existing = decadeScores[decade];

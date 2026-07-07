@@ -49,8 +49,8 @@
             </span>
             <div class="flex shrink-0 items-center gap-3">
               <span class="text-xs text-slate-400">
-                {{ entry.movieCount }}
-                {{ entry.movieCount === 1 ? "film" : "films" }}
+                {{ entry.workCount }}
+                {{ entry.workCount === 1 ? itemNoun : `${itemNoun}s` }}
               </span>
               <span
                 class="min-w-[2.5rem] text-right text-sm font-semibold"
@@ -80,11 +80,11 @@
 
       <div v-if="expanded.has(index)" class="mt-2 flex flex-wrap gap-1 pl-14">
         <span
-          v-for="movie in entry.movies"
-          :key="movie"
+          v-for="work in entry.works"
+          :key="work"
           class="inline-block max-w-[10rem] truncate rounded bg-slate-700/40 px-1.5 py-0.5 text-[0.65rem] text-slate-400"
         >
-          {{ movie }}
+          {{ work }}
         </span>
       </div>
     </div>
@@ -103,11 +103,16 @@ import { ref } from "vue";
 
 import type { PersonStats } from "../statsComputers";
 
-defineProps<{
-  title: string;
-  entries: PersonStats[];
-  emptyMessage: string;
-}>();
+withDefaults(
+  defineProps<{
+    title: string;
+    entries: PersonStats[];
+    emptyMessage: string;
+    /** Singular noun for the per-person count ("film", "book"). */
+    itemNoun?: string;
+  }>(),
+  { itemNoun: "film" },
+);
 
 const expanded = ref(new Set<number>());
 
