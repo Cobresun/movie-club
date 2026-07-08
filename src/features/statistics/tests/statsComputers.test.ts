@@ -1,4 +1,5 @@
 import { ensure } from "../../../../lib/checks/checks.js";
+import type { DetailedBookData } from "../../../../lib/types/book";
 import type { Member } from "../../../../lib/types/club";
 import { WorkType } from "../../../../lib/types/generated/db";
 import type { DetailedMovieData } from "../../../../lib/types/movie";
@@ -7,8 +8,12 @@ import {
   computeGuiltyPleasures,
   computeHighestRatedByYear,
   computeMemberLeaderboard,
+  computePublishDecadeStats,
   computeScoreVariance,
+  computeSubjectReadCounts,
+  computeSubjectStats,
   computeTasteSimilarity,
+  computeTopAuthors,
   computeTopDirectors,
 } from "../statsComputers";
 import type { BookData, MovieData } from "../types";
@@ -71,8 +76,20 @@ function makeMovie(overrides: Partial<MovieData> = {}): MovieData {
   };
 }
 
+function makeBookData(
+  overrides: Partial<DetailedBookData> = {},
+): DetailedBookData {
+  return {
+    kind: "book",
+    title: "Test Book",
+    authors: [],
+    subjects: [],
+    ...overrides,
+  };
+}
+
 // No externalData by default: book statistics are score-only, so a book
-// review without OpenLibrary metadata still counts.
+// review without Google Books metadata still counts.
 function makeBook(overrides: Partial<BookData> = {}): BookData {
   return {
     id: "b1",
@@ -514,9 +531,9 @@ describe("computeTopDirectors", () => {
     const result = computeTopDirectors(movies);
     expect(result).toHaveLength(1);
     expect(result[0].name).toBe("Nolan");
-    expect(result[0].movieCount).toBe(2);
+    expect(result[0].workCount).toBe(2);
     expect(result[0].averageScore).toBe(7);
-    expect(result[0].movies).toEqual(["Movie A", "Movie B"]);
+    expect(result[0].works).toEqual(["Movie A", "Movie B"]);
   });
 
   it("returns max 5 directors", () => {
@@ -590,9 +607,9 @@ describe("computeTopDirectors", () => {
     const result = computeTopDirectors(movies);
     const x = ensure(result.find((d) => d.name === "X"));
     const y = ensure(result.find((d) => d.name === "Y"));
-    expect(x.movieCount).toBe(2);
+    expect(x.workCount).toBe(2);
     expect(x.averageScore).toBe(7);
-    expect(y.movieCount).toBe(1);
+    expect(y.workCount).toBe(1);
     expect(y.averageScore).toBe(8);
   });
 });
@@ -1013,5 +1030,239 @@ describe("score-based computers with book data", () => {
 
     expect(mostSimilar?.similarityPercent).toBe(100);
     expect(mostSimilar?.sharedCount).toBe(3);
+  });
+});
+
+// ---------- computeTopAuthors ----------
+
+describe("computeTopAuthors", () => {
+  it("returns empty for an empty book list", () => {
+    expect(computeTopAuthors([])).toEqual([]);
+  });
+
+  it("skips books without external metadata", () => {
+    const books = [makeBook({ average: 8 })];
+    expect(computeTopAuthors(books)).toEqual([]);
+  });
+
+  it("accumulates books per author with no avatar", () => {
+    const books = [
+      makeBook({
+        title: "Book A",
+        average: 8,
+        externalData: makeBookData({ authors: ["Le Guin"] }),
+      }),
+      makeBook({
+        title: "Book B",
+        average: 6,
+        externalData: makeBookData({ authors: ["Le Guin"] }),
+      }),
+    ];
+    const result = computeTopAuthors(books);
+    expect(result).toHaveLength(1);
+    expect(result[0].name).toBe("Le Guin");
+    expect(result[0].workCount).toBe(2);
+    expect(result[0].averageScore).toBe(7);
+    expect(result[0].works).toEqual(["Book A", "Book B"]);
+    expect(result[0].profileImageUrl).toBeUndefined();
+  });
+
+  it("handles books with multiple authors", () => {
+    const books = [
+      makeBook({
+        title: "Collab",
+        average: 8,
+        externalData: makeBookData({ authors: ["Gaiman", "Pratchett"] }),
+      }),
+      makeBook({
+        title: "Solo",
+        average: 6,
+        externalData: makeBookData({ authors: ["Gaiman"] }),
+      }),
+    ];
+    const result = computeTopAuthors(books);
+    const gaiman = ensure(result.find((a) => a.name === "Gaiman"));
+    const pratchett = ensure(result.find((a) => a.name === "Pratchett"));
+    expect(gaiman.workCount).toBe(2);
+    expect(gaiman.averageScore).toBe(7);
+    expect(pratchett.workCount).toBe(1);
+  });
+
+  it("returns at most 5 authors", () => {
+    const authors = ["A", "B", "C", "D", "E", "F", "G"];
+    const books = authors.flatMap((author) => [
+      makeBook({
+        average: 7,
+        externalData: makeBookData({ authors: [author] }),
+      }),
+      makeBook({
+        average: 7,
+        externalData: makeBookData({ authors: [author] }),
+      }),
+    ]);
+    expect(computeTopAuthors(books)).toHaveLength(5);
+  });
+});
+
+// ---------- computeSubjectStats / computeSubjectReadCounts ----------
+
+describe("computeSubjectStats", () => {
+  it("returns empty for an empty book list", () => {
+    expect(computeSubjectStats([])).toEqual([]);
+  });
+
+  it("excludes subjects read fewer than twice", () => {
+    const books = [
+      makeBook({
+        average: 9,
+        externalData: makeBookData({ subjects: ["Fantasy"] }),
+      }),
+      makeBook({
+        average: 5,
+        externalData: makeBookData({ subjects: ["History"] }),
+      }),
+    ];
+    expect(computeSubjectStats(books)).toEqual([]);
+  });
+
+  it("averages scores for subjects read at least twice", () => {
+    const books = [
+      makeBook({
+        average: 8,
+        externalData: makeBookData({ subjects: ["Fantasy"] }),
+      }),
+      makeBook({
+        average: 6,
+        externalData: makeBookData({ subjects: ["Fantasy"] }),
+      }),
+    ];
+    const result = computeSubjectStats(books);
+    expect(result).toHaveLength(1);
+    expect(result[0].subject).toBe("Fantasy");
+    expect(result[0].averageScore).toBe(7);
+    expect(result[0].count).toBe(2);
+  });
+
+  it("uses member-specific scores when a memberId is provided", () => {
+    const books = [
+      makeBook({
+        average: 5,
+        userScores: { m1: 9, m2: 1 },
+        externalData: makeBookData({ subjects: ["Sci-Fi"] }),
+      }),
+      makeBook({
+        average: 5,
+        userScores: { m1: 7, m2: 3 },
+        externalData: makeBookData({ subjects: ["Sci-Fi"] }),
+      }),
+    ];
+    expect(computeSubjectStats(books, "m1")[0].averageScore).toBe(8);
+    expect(computeSubjectStats(books)[0].averageScore).toBe(5);
+  });
+
+  it("caps the result at the top 5 subjects by score", () => {
+    const subjects = ["A", "B", "C", "D", "E", "F"];
+    const books = subjects.flatMap((subject, i) => [
+      makeBook({
+        average: i + 1,
+        externalData: makeBookData({ subjects: [subject] }),
+      }),
+      makeBook({
+        average: i + 1,
+        externalData: makeBookData({ subjects: [subject] }),
+      }),
+    ]);
+    const result = computeSubjectStats(books);
+    expect(result).toHaveLength(5);
+    expect(result[0].subject).toBe("F");
+    expect(result.map((s) => s.subject)).not.toContain("A");
+  });
+});
+
+describe("computeSubjectReadCounts", () => {
+  it("returns empty for an empty book list", () => {
+    expect(computeSubjectReadCounts([])).toEqual([]);
+  });
+
+  it("counts every subject occurrence, ranked by count", () => {
+    const books = [
+      makeBook({
+        externalData: makeBookData({ subjects: ["Fantasy", "Epic"] }),
+      }),
+      makeBook({ externalData: makeBookData({ subjects: ["Fantasy"] }) }),
+      makeBook({ externalData: makeBookData({ subjects: ["Epic"] }) }),
+      makeBook({ externalData: makeBookData({ subjects: ["Fantasy"] }) }),
+    ];
+    const result = computeSubjectReadCounts(books);
+    expect(result[0]).toEqual({ subject: "Fantasy", count: 3 });
+    expect(result[1]).toEqual({ subject: "Epic", count: 2 });
+  });
+
+  it("caps the result at the top 5 subjects by count", () => {
+    const subjects = ["A", "B", "C", "D", "E", "F"];
+    const books = subjects.flatMap((subject, i) =>
+      Array.from({ length: i + 1 }, () =>
+        makeBook({ externalData: makeBookData({ subjects: [subject] }) }),
+      ),
+    );
+    const result = computeSubjectReadCounts(books);
+    expect(result).toHaveLength(5);
+    expect(result[0].subject).toBe("F");
+    expect(result.map((s) => s.subject)).not.toContain("A");
+  });
+});
+
+// ---------- computePublishDecadeStats ----------
+
+describe("computePublishDecadeStats", () => {
+  it("returns empty for an empty book list", () => {
+    expect(computePublishDecadeStats([])).toEqual([]);
+  });
+
+  it("skips books without a first-publish year", () => {
+    const books = [
+      makeBook({ average: 8, externalData: makeBookData() }),
+      makeBook({ average: 6 }),
+    ];
+    expect(computePublishDecadeStats(books)).toEqual([]);
+  });
+
+  it("groups books into decades by publish year, sorted ascending", () => {
+    const books = [
+      makeBook({
+        average: 8,
+        externalData: makeBookData({ firstPublishYear: 1998 }),
+      }),
+      makeBook({
+        average: 6,
+        externalData: makeBookData({ firstPublishYear: 1995 }),
+      }),
+      makeBook({
+        average: 9,
+        externalData: makeBookData({ firstPublishYear: 2003 }),
+      }),
+    ];
+    const result = computePublishDecadeStats(books);
+    expect(result).toEqual([
+      { decade: "1990s", averageScore: 7, count: 2 },
+      { decade: "2000s", averageScore: 9, count: 1 },
+    ]);
+  });
+
+  it("uses member-specific scores when a memberId is provided", () => {
+    const books = [
+      makeBook({
+        average: 5,
+        userScores: { m1: 9 },
+        externalData: makeBookData({ firstPublishYear: 1980 }),
+      }),
+      makeBook({
+        average: 5,
+        userScores: { m1: 7 },
+        externalData: makeBookData({ firstPublishYear: 1985 }),
+      }),
+    ];
+    expect(computePublishDecadeStats(books, "m1")[0].averageScore).toBe(8);
+    expect(computePublishDecadeStats(books)[0].averageScore).toBe(5);
   });
 });

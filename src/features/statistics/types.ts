@@ -39,6 +39,10 @@ export function isMovieStats(work: WorkStatsData): work is MovieData {
   return work.type === WorkType.movie;
 }
 
+export function isBookStats(work: WorkStatsData): work is BookData {
+  return work.type === WorkType.book;
+}
+
 export type HistogramData = {
   bin: number;
   [index: string]: number;
@@ -58,6 +62,17 @@ export interface GenreWatchCount {
 export interface DecadeStats {
   decade: string;
   averageScore: number;
+  count: number;
+}
+
+export interface SubjectScoreStats {
+  subject: string;
+  averageScore: number;
+  count: number;
+}
+
+export interface SubjectReadCount {
+  subject: string;
   count: number;
 }
 
