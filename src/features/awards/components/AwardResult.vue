@@ -9,7 +9,10 @@
     enter-active-class="transition-[height] ease-linear duration-500 overflow-hidden"
     enter-to-class="h-96"
   >
-    <div v-if="showResult" class="grid grid-cols-auto">
+    <div
+      v-if="showResult"
+      class="grid grid-cols-auto justify-items-center gap-4"
+    >
       <WorkPosterCard
         v-for="nomination in nominationsWithScore"
         :key="nomination.movieId"
@@ -20,12 +23,12 @@
         <div class="grid grid-cols-2 gap-2">
           <div
             v-for="member in members"
-            :key="member.name"
+            :key="member.id"
             class="flex items-center rounded-3xl bg-lowBackground"
           >
             <v-avatar :size="32" :name="member.name" :src="member.image" />
             <div class="flex-grow text-sm">
-              {{ nomination.ranking[member.name] }}
+              {{ nomination.ranking[member.id] }}
             </div>
           </div>
         </div>

@@ -171,7 +171,8 @@ export function useAddNomination(clubSlug: string, year: string) {
         {
           awardTitle,
           movieId: parseInt(review.externalId),
-          nominatedBy: user.value?.name,
+          // Key by stable user ID so renames don't orphan the entry.
+          nominatedBy: user.value?.id,
         },
       );
     },
@@ -180,8 +181,8 @@ export function useAddNomination(clubSlug: string, year: string) {
       queryClient.setQueryData<ClubAwards>(
         ["awards", clubSlug, year],
         (currentClubAwards) => {
-          const name = user.value?.name;
-          if (!currentClubAwards || !hasValue(name)) return currentClubAwards;
+          const userId = user.value?.id;
+          if (!currentClubAwards || !hasValue(userId)) return currentClubAwards;
           return {
             ...currentClubAwards,
             awards: currentClubAwards.awards.map((award) => {
@@ -195,7 +196,7 @@ export function useAddNomination(clubSlug: string, year: string) {
                       movieTitle: review.title,
                       posterUrl: review.imageUrl ?? "",
                       movieData: review.externalData as DetailedMovieData,
-                      nominatedBy: [name],
+                      nominatedBy: [userId],
                       ranking: {},
                     },
                   ],
@@ -226,7 +227,7 @@ export function useDeleteNomination(clubSlug: string, year: string) {
       auth.request.delete(
         `/api/club/${clubSlug}/awards/${year}/nomination/${input.movieId}`,
         {
-          params: { awardTitle: input.awardTitle, userId: user.value?.name },
+          params: { awardTitle: input.awardTitle, userId: user.value?.id },
         },
       ),
     onMutate: async (input) => {
@@ -245,7 +246,7 @@ export function useDeleteNomination(clubSlug: string, year: string) {
                     return {
                       ...nomination,
                       nominatedBy: nomination.nominatedBy.filter(
-                        (nominator) => nominator !== user.value?.name,
+                        (nominator) => nominator !== user.value?.id,
                       ),
                     };
                   }
@@ -284,7 +285,8 @@ export function useSubmitRanking(clubSlug: string, year: string) {
     }) =>
       auth.request.post(`/api/club/${clubSlug}/awards/${year}/ranking`, {
         awardTitle,
-        voter: user.value?.name,
+        // Key by stable user ID so renames don't orphan the ranking.
+        voter: user.value?.id,
         movies,
       }),
     onSettled: () => {

@@ -87,7 +87,7 @@ const completedRanking = computed(() => {
   return clubAward.value.awards.every((award) =>
     filteredMembers.value.every((member) =>
       award.nominations.every(
-        (nomination) => nomination.ranking[member.name] !== undefined,
+        (nomination) => nomination.ranking[member.id] !== undefined,
       ),
     ),
   );
