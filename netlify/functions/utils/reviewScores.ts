@@ -1,10 +1,9 @@
 import { hasValue, isDefined } from "../../../lib/checks/checks.js";
 import { ReviewScores } from "../../../lib/types/lists.js";
 
-// A single review row, normalized across the different queries that surface
-// scores. `getReviewList` and `getReviewsByWorkId` name their date columns
-// differently (`time_added` vs `created_date`), so callers map their rows into
-// this shape before handing them off.
+// A single review row, as surfaced by the queries that feed the scores map
+// (`getReviewList` and `getReviewsByWorkId`). Both select these columns
+// directly, so callers hand their rows off without any remapping.
 export interface ScoreEntry {
   user_id: string | null;
   review_id: string | null;

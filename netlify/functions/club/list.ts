@@ -351,17 +351,7 @@ async function getReviewList(
     .map(([key, items]) => {
       const review = items[0];
 
-      // `getReviewList` surfaces the list-add timestamp as `time_added`, so map
-      // it onto the `created_date` field the shared helper expects.
-      const scores = buildReviewScores(
-        items.map((item) => ({
-          user_id: item.user_id,
-          review_id: item.review_id,
-          score: item.score,
-          created_date: item.time_added,
-        })),
-        memberIds,
-      );
+      const scores = buildReviewScores(items, memberIds);
 
       return {
         id: key,
