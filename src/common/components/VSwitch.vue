@@ -5,7 +5,7 @@
     @click="!disabled && emit('update:model-value', !modelValue)"
   >
     <div
-      class="relative h-[22px] w-11 rounded-full py-0.5 pl-1 transition-colors duration-200"
+      class="relative h-[22px] w-11 rounded-full py-0.5 pl-1 transition-colors duration-base ease-standard"
       :class="{
         'bg-gray-600': !modelValue,
         'bg-primary': modelValue && color === 'primary',
@@ -13,7 +13,7 @@
       }"
     >
       <div
-        class="h-[18px] w-[18px] transform rounded-full bg-white shadow transition-transform duration-200"
+        class="h-[18px] w-[18px] transform rounded-full bg-white shadow transition-transform duration-base ease-standard"
         :class="{ 'translate-x-full': modelValue }"
       ></div>
     </div>

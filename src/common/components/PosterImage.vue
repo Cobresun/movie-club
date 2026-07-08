@@ -9,7 +9,7 @@
       :alt="alt"
       decoding="async"
       loading="eager"
-      class="h-full w-full object-cover transition-opacity duration-300"
+      class="h-full w-full object-cover transition-opacity duration-slow ease-standard"
       :class="loaded ? 'opacity-100' : 'opacity-0'"
       @load="loaded = true"
     />

@@ -22,6 +22,16 @@ module.exports = {
       fontFamily: {
         default: "'Poppins', sans-serif",
       },
+      transitionDuration: {
+        fast: "var(--motion-fast)",
+        base: "var(--motion-base)",
+        slow: "var(--motion-slow)",
+        page: "var(--motion-page)",
+      },
+      transitionTimingFunction: {
+        standard: "var(--ease-standard)",
+        emphasized: "var(--ease-emphasized)",
+      },
     },
   },
   plugins: [],

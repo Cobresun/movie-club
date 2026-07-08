@@ -82,7 +82,7 @@
         >
           <span class="text-gray-400">TMDB Rating: </span>
           <span
-            class="transition-[filter] duration-500 ease-out"
+            class="transition-[filter] duration-500 ease-standard"
             :class="
               shouldBlurTmdbScore ? 'select-none blur' : 'select-auto blur-none'
             "
@@ -113,7 +113,7 @@
       <div
         :inert="!showRevealPill"
         :aria-hidden="!showRevealPill || undefined"
-        class="overflow-hidden transition-all duration-300 ease-out"
+        class="overflow-hidden transition-all duration-slow ease-standard"
         :style="{
           maxHeight: showRevealPill ? '4rem' : '0px',
           marginTop: showRevealPill ? '1.5rem' : '0px',
@@ -142,7 +142,7 @@
             :props="cell.getContext()"
           />
           <div
-            class="ml-2 flex-grow transition-[filter] duration-500 ease-out"
+            class="ml-2 flex-grow transition-[filter] duration-500 ease-standard"
             :class="
               shouldBlurScore(movie.id, cell.column.id) ? 'blur' : 'blur-none'
             "
@@ -240,7 +240,7 @@
       <div
         :inert="!showRevealPill"
         :aria-hidden="!showRevealPill || undefined"
-        class="overflow-hidden transition-all duration-300 ease-out"
+        class="overflow-hidden transition-all duration-slow ease-standard"
         :style="{
           maxHeight: showRevealPill ? '4rem' : '0px',
           marginTop: showRevealPill ? '0.5rem' : '0px',
@@ -270,7 +270,7 @@
             :props="cell.getContext()"
           />
           <div
-            class="ml-2 flex-grow transition-[filter] duration-500 ease-out"
+            class="ml-2 flex-grow transition-[filter] duration-500 ease-standard"
             :class="
               shouldBlurScore(movie.id, cell.column.id) ? 'blur' : 'blur-none'
             "
@@ -294,7 +294,7 @@
           <mdicon
             name="chevron-down"
             :class="open ? 'rotate-180 transform' : ''"
-            class="transition-transform duration-200"
+            class="transition-transform duration-base ease-standard"
           />
         </DisclosureButton>
         <DisclosurePanel class="mt-2 grid grid-cols-1 gap-y-2 px-1 text-sm">

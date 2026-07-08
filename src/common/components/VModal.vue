@@ -98,7 +98,7 @@ const zIndexClass = computed(() =>
 <style scoped>
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity 200ms ease-in-out;
+  transition: opacity var(--motion-base) var(--ease-standard);
 }
 
 .fade-enter-from,

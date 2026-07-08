@@ -33,7 +33,6 @@
     "@tanstack/vue-query": "^4.41.0",
     "@tanstack/vue-table": "^8.21.3",
     "ag-charts-vue3": "^11.3.2",
-    "animate.css": "^4.1.1",
     "axios": "^1.16.0",
     "bcrypt": "^6.0.0",
     "better-auth": "^1.6.11",

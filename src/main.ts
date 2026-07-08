@@ -25,7 +25,6 @@ import VTable from "@/common/components/VTable.vue";
 import MenuCard from "@/features/clubs/components/MenuCard.vue";
 
 import "./assets/styles/tailwind.css";
-import "animate.css";
 import "vue-toastification/dist/index.css";
 
 const fetchedMap = reactive(new Map<string, number>());
@@ -83,6 +82,8 @@ createApp(App)
     position: "bottom-center",
     hideProgressBar: true,
     bodyClassName: "font-default",
+    transition: "Vue-Toastification__fade",
+    timeout: 3000,
   })
   .use(VueQueryPlugin, vueQueryOptions)
   .use(createPinia())

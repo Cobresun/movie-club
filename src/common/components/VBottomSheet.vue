@@ -10,7 +10,7 @@
         :class="[
           contentZIndexClass,
           {
-            'transition-transform duration-200 ease-in-out': !isDragging,
+            'transition-transform duration-slow ease-emphasized': !isDragging,
           },
         ]"
         :style="sheetStyle"
@@ -171,7 +171,7 @@ const sheetStyle = computed(() => {
 
 .slide-up-enter-active,
 .slide-up-leave-active {
-  transition: transform 200ms ease-in-out;
+  transition: transform var(--motion-slow) var(--ease-emphasized);
 }
 
 .slide-up-enter-from,

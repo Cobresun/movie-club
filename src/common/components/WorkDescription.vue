@@ -3,7 +3,7 @@
     <!-- Visible text with conditional truncation -->
     <p
       ref="descriptionRef"
-      class="text-sm text-gray-300 transition-all duration-300 ease-in-out"
+      class="text-sm text-gray-300 transition-all duration-slow ease-standard"
       :class="{
         'line-clamp-2': !isDescriptionExpanded,
       }"

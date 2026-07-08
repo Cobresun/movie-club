@@ -9,7 +9,7 @@
       :src="src"
       :alt="name"
       decoding="async"
-      class="h-full w-full rounded-full object-cover transition-opacity duration-300"
+      class="h-full w-full rounded-full object-cover transition-opacity duration-slow ease-standard"
       :class="loaded ? 'opacity-100' : 'opacity-0'"
       @load="loaded = true"
       @error="errored = true"

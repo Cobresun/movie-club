@@ -66,7 +66,7 @@
           :title="row.renderValue('title')"
           :poster-url="row.renderValue('imageUrl')"
           :highlighted="selectedMovieId === row.id"
-          class="ease transition-all duration-100 md:cursor-pointer"
+          class="transition-all duration-fast ease-standard md:cursor-pointer"
           @click="openMovieDetails(row)"
         >
           <div class="mb-2 text-sm text-gray-400">
