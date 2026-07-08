@@ -22,6 +22,7 @@ class ReviewRepository {
         "work_list_item.time_added",
         "review.score",
         "review.user_id",
+        "review.created_date",
       ])
       .execute();
   }
