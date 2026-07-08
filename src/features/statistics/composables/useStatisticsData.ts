@@ -4,7 +4,7 @@ import { computed } from "vue";
 import { isDefined } from "../../../../lib/checks/checks.js";
 import { WorkType } from "../../../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
-import { normalizeArray, createHistogramData } from "../scoring";
+import { createHistogramData } from "../scoring";
 import type { WorkStatsBase, WorkStatsData, HistogramData } from "../types";
 
 import { asBook, isMovieData } from "@/common/workDisplay";
@@ -96,7 +96,6 @@ function statsBase(review: DetailedReviewListItem): WorkStatsBase {
     }, {}),
     scores: review.scores,
     average: review.scores.average?.score ?? 0,
-    normalized: {},
     imageUrl: review.imageUrl,
     createdDate: review.createdDate,
   };
@@ -122,26 +121,14 @@ function enrichWithStatistics(
     works.map((data) => data.average),
   );
 
-  const memberScores: Record<string, (number | undefined)[]> = {};
-
   for (const member of memberList) {
-    memberScores[member.id] = normalizeArray(
-      works.map((data) => data.userScores[member.id]),
-    );
     for (let i = 0; i <= 10; i++) {
       histogram[i][member.id] = 0;
     }
   }
 
-  const enrichedWorks = works.map((work, i) => {
-    const normalized: Record<string, number | undefined> = {};
-
+  for (const work of works) {
     for (const member of memberList) {
-      const normVal = memberScores[member.id][i];
-      if (isDefined(normVal)) {
-        normalized[member.id] = normVal;
-      }
-
       const rawScore = work.userScores[member.id];
       if (isDefined(rawScore)) {
         const score = Math.floor(rawScore);
@@ -150,15 +137,10 @@ function enrichWithStatistics(
         }
       }
     }
-
-    return {
-      ...work,
-      normalized,
-    };
-  });
+  }
 
   return {
-    workData: enrichedWorks,
+    workData: works,
     histogramData: histogram,
   };
 }
