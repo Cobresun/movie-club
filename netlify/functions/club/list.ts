@@ -5,7 +5,6 @@ import {
   DetailedReviewListItem,
   DetailedWorkData,
   DetailedWorkListItem,
-  Review,
 } from "../../../lib/types/lists.js";
 import { listInsertDtoSchema } from "../../../lib/types/lists.js";
 import ListRepository from "../repositories/ListRepository";
@@ -15,6 +14,7 @@ import WorkRepository from "../repositories/WorkRepository";
 import { secured } from "../utils/auth";
 import { getExternalDataForWorks } from "../utils/providers";
 import { badRequest, internalServerError, ok } from "../utils/responses";
+import { buildReviewScores } from "../utils/reviewScores";
 import { Router } from "../utils/router";
 import { ClubRequest, ListRequest, validListId } from "../utils/validation";
 
@@ -351,42 +351,7 @@ async function getReviewList(
     .map(([key, items]) => {
       const review = items[0];
 
-      const userScores: Record<string, Review> = items.reduce((acc, review) => {
-        if (
-          hasValue(review.user_id) &&
-          hasValue(review.score) &&
-          memberIds.has(review.user_id)
-        ) {
-          return {
-            ...acc,
-            [review.user_id]: {
-              id: review.review_id,
-              created_date: review.time_added.toISOString(),
-              score: parseFloat(review.score),
-            },
-          };
-        } else {
-          return acc;
-        }
-      }, {});
-
-      let scores: Record<string, Review>;
-      if (Object.keys(userScores).length === 0) {
-        scores = {};
-      } else {
-        scores = {
-          ...userScores,
-          average: {
-            id: "average",
-            created_date: new Date().toISOString(),
-            score:
-              Object.values(userScores).reduce(
-                (acc, review) => acc + review.score,
-                0,
-              ) / Object.keys(userScores).length,
-          },
-        };
-      }
+      const scores = buildReviewScores(items, memberIds);
 
       return {
         id: key,
