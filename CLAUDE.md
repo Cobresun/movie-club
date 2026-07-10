@@ -10,16 +10,6 @@ Movie Club is a Vue 3 web application for managing movie clubs, reviews, custom 
 
 Code quality checks (`npm run type-check` and `npm run lint`) run automatically via Claude Code hooks after every file edit. Run `npm test` manually when changes affect tested code.
 
-## Claude Code Skills
-
-Skills in `.claude/skills/` provide domain-specific guidance for Claude Code sessions. Available skills:
-
-- **better-auth-best-practices** — BetterAuth integration guide with config options, session management, plugins, and common gotchas. Automatically consulted when working on authentication features.
-- **vue-best-practices** — Vue 3 Composition API guide covering reactivity, SFC structure, component data flow, composables, and performance. Automatically consulted when working on Vue components.
-- **tanstack-query-vue** — TanStack Query v4 patterns for data fetching, caching, mutations, and optimistic updates. Automatically consulted when working on service composables or server state.
-- **kysely** — Kysely v0.27 query builder patterns with CockroachDB dialect. Automatically consulted when working on database queries, repositories, or migrations.
-- **playwright-cli** — Browser automation for web testing, form filling, screenshots, and data extraction.
-
 ## Development Commands
 
 ### Running the Application
@@ -94,17 +84,6 @@ Snapshots are stored in `s3://movie-club-crdb-dev-exports`. The spawn command cr
 - **No `watch()`:** Prefer keyed components over `watch()` for query data. See `.claude/rules/code-quality.md` for rationale and exceptions.
 
 ## Common Patterns
-
-### Feature Module Structure
-
-```
-src/features/<feature-name>/
-  ├── views/            # Page-level components (routed)
-  ├── components/       # Feature-specific components
-  ├── composables/      # Vue composables (if needed)
-  ├── tests/            # Feature tests (if any)
-  └── constants.ts      # Feature constants (if needed)
-```
 
 ### Adding a New API Endpoint
 
