@@ -1,9 +1,11 @@
 import { z } from "zod";
 
 import { hasValue } from "../../../lib/checks/checks.js";
+import { ReviewScores } from "../../../lib/types/lists";
 import ListRepository from "../repositories/ListRepository";
 import ReviewRepository from "../repositories/ReviewRepository";
 import SettingsRepository from "../repositories/SettingsRepository";
+import UserRepository from "../repositories/UserRepository";
 import WorkCommentRepository from "../repositories/WorkCommentRepository";
 import WorkRepository from "../repositories/WorkRepository";
 import SharedReviewService from "../services/SharedReviewService";
@@ -11,6 +13,7 @@ import { secured } from "../utils/auth";
 import { generateJson } from "../utils/gemini";
 import { getProvider } from "../utils/providers";
 import { badRequest, ok, unauthorized } from "../utils/responses";
+import { buildReviewScores } from "../utils/reviewScores";
 import { Router } from "../utils/router";
 import { ClubRequest } from "../utils/validation";
 
@@ -206,6 +209,34 @@ router.post(
     return res(ok(JSON.stringify({ questions })));
   },
 );
+
+// Lightweight per-work scores endpoint. Returns only the `scores` map (one entry
+// per member plus a synthetic `average`) for a single work, so clients can poll
+// it cheaply to pick up other members' scores during a synchronized scoring
+// session without refetching the whole reviews list (posters, metadata, etc.).
+router.get("/:workId/scores", secured, async ({ clubId, params }, res) => {
+  if (!hasValue(params.workId)) {
+    return res(badRequest("No workId provided"));
+  }
+  const scores = await buildWorkScores(clubId, params.workId);
+  return res(ok(JSON.stringify(scores)));
+});
+
+// Loads the raw per-work review rows plus the current member set and hands them
+// to the shared `buildReviewScores` helper (the same map `club/list.ts` builds
+// per work), scoped to a single work.
+async function buildWorkScores(
+  clubId: string,
+  workId: string,
+): Promise<ReviewScores> {
+  const [reviews, members] = await Promise.all([
+    ReviewRepository.getReviewsByWorkId(clubId, workId),
+    UserRepository.getMembersByClubId(clubId),
+  ]);
+  const memberIds = new Set(members.map((member) => member.id));
+
+  return buildReviewScores(reviews, memberIds);
+}
 
 router.get("/:workId/shared", async ({ clubId, params }, res) => {
   if (!hasValue(params.workId)) {

@@ -22,8 +22,15 @@ export interface WorkListItem {
 }
 
 export interface ReviewListItem extends WorkListItem {
-  scores: Record<string, Review>;
+  scores: ReviewScores;
 }
+
+/**
+ * Per-user scores for a single work, keyed by user id. Includes a synthetic
+ * `"average"` entry. Returned as-is by the lightweight per-work scores endpoint
+ * (`GET /api/club/:clubSlug/reviews/:workId/scores`).
+ */
+export type ReviewScores = Record<string, Review>;
 
 export interface Review {
   id: string;
