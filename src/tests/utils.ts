@@ -43,7 +43,11 @@ export const render = (
         },
         plugins: [VueQueryPlugin, pinia, [mdiVue, { icons: mdijs }], Toast],
         directives: { "lazy-load": LazyLoad },
-        stubs: ["router-link", "router-view"],
+        stubs: {
+          "router-link": true,
+          "router-view": true,
+          ...options.global?.stubs,
+        },
       },
     }),
     user,
