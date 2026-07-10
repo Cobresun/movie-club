@@ -6,8 +6,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "npm run format",
-            "timeout": 30000
+            "command": "f=$(jq -r '.tool_input.file_path // empty'); if [ -n \"$f\" ]; then npx prettier --write --ignore-unknown \"$f\"; fi",
+            "timeout": 15000
           }
         ]
       }
@@ -17,8 +17,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "npm run type-check && npm run lint",
-            "timeout": 180000
+            "command": "npm run type-check && files=$(git diff --name-only --diff-filter=d HEAD | grep -E '\\.(vue|ts|mjs|cjs|js)$' || true); if [ -n \"$files\" ]; then echo \"$files\" | xargs npx eslint --max-warnings 0; fi",
+            "timeout": 60000
           }
         ]
       }
