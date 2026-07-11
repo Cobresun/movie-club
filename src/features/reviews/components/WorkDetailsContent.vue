@@ -1,5 +1,5 @@
 <template>
-  <div class="flex-grow text-left">
+  <div class="relative flex-grow text-left">
     <delete-confirmation-modal
       :show="showDeleteConfirmation"
       title="Delete Review"
@@ -7,6 +7,15 @@
       @confirm="confirmDelete"
       @cancel="cancelDelete"
     />
+
+    <button
+      type="button"
+      aria-label="Share review"
+      class="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm transition hover:bg-black/60"
+      @click="shareReview(movie.original.id)"
+    >
+      <mdicon name="share" size="18" />
+    </button>
 
     <!-- Desktop layout -->
     <template v-if="isDesktop">
@@ -155,7 +164,11 @@
         </div>
       </div>
 
-      <div v-if="isDefined(currentUserId)" class="mt-4 flex justify-center">
+      <div
+        v-if="isDefined(currentUserId)"
+        ref="scoreEntrySection"
+        class="mt-4 flex justify-center"
+      >
         <ScoreEntryPanel
           :key="movie.original.id"
           :work-id="movie.original.id"
@@ -181,27 +194,6 @@
         :work-id="movie.original.id"
         :media-noun="mediaNoun"
       />
-
-      <div
-        class="sticky bottom-0 -mx-4 mt-6 border-t border-gray-700/60 bg-background px-4 pb-2 pt-3"
-      >
-        <div class="flex w-full gap-3">
-          <button
-            class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-red-500/20 py-3 text-red-500"
-            @click="showDeleteConfirmation = true"
-          >
-            <mdicon name="delete" />
-            <span>Delete</span>
-          </button>
-          <button
-            class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary/20 py-3 text-primary"
-            @click="shareReview(movie.original.id)"
-          >
-            <mdicon name="share" />
-            <span>Share</span>
-          </button>
-        </div>
-      </div>
     </template>
 
     <!-- Mobile layout -->
@@ -294,7 +286,11 @@
         </div>
       </div>
 
-      <div v-if="isDefined(currentUserId)" class="mt-4 flex justify-center">
+      <div
+        v-if="isDefined(currentUserId)"
+        ref="scoreEntrySection"
+        class="mt-4 flex justify-center"
+      >
         <ScoreEntryPanel
           :key="movie.original.id"
           :work-id="movie.original.id"
@@ -382,29 +378,54 @@
         :work-id="movie.original.id"
         :media-noun="mediaNoun"
       />
+    </template>
 
-      <!-- Sticky action footer -->
+    <!-- Delete is deliberately tucked at the end of the content: it's a rare,
+         destructive action and doesn't warrant sticky-footer prominence. -->
+    <button
+      type="button"
+      class="mx-auto mt-8 flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm text-red-400/80 transition hover:bg-red-500/10 hover:text-red-400"
+      @click="showDeleteConfirmation = true"
+    >
+      <mdicon name="delete" size="16" />
+      <span>Delete review</span>
+    </button>
+
+    <!-- Sticky score CTA: only appears once the inline score dial has scrolled
+         out of view, so the drawer's primary action is always one tap away. -->
+    <Transition name="score-cta">
       <div
-        class="sticky bottom-0 -mx-4 mt-6 border-t border-gray-700/60 bg-background px-4 pb-2 pt-3"
+        v-if="showScoreCta"
+        class="sticky bottom-0 -mx-4 mt-4 border-t border-gray-700/60 bg-background px-4 pb-2 pt-3"
       >
-        <div class="flex w-full gap-3">
+        <div
+          v-if="hasValue(myScoreLabel)"
+          class="flex items-center justify-between"
+        >
+          <div class="flex items-baseline gap-2">
+            <span class="text-sm text-gray-400">Your score</span>
+            <span class="text-lg font-bold">{{ myScoreLabel }}</span>
+          </div>
           <button
-            class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-red-500/20 py-3 text-red-500"
-            @click="showDeleteConfirmation = true"
+            type="button"
+            class="flex items-center gap-1.5 rounded-lg bg-primary/20 px-4 py-2 text-sm font-medium text-primary transition hover:brightness-110"
+            @click="jumpToScoreEntry"
           >
-            <mdicon name="delete" />
-            <span>Delete</span>
-          </button>
-          <button
-            class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary/20 py-3 text-primary"
-            @click="shareReview(movie.original.id)"
-          >
-            <mdicon name="share" />
-            <span>Share</span>
+            <mdicon name="pencil" size="16" />
+            <span>Edit score</span>
           </button>
         </div>
+        <button
+          v-else
+          type="button"
+          class="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-3 font-bold tracking-wide text-text transition hover:brightness-110 active:scale-[0.98]"
+          @click="jumpToScoreEntry"
+        >
+          <mdicon name="star" size="20" />
+          <span>Rate this {{ mediaNoun }}</span>
+        </button>
       </div>
-    </template>
+    </Transition>
   </div>
 </template>
 
@@ -412,13 +433,14 @@
 import { Disclosure, DisclosureButton, DisclosurePanel } from "@headlessui/vue";
 import { Cell, FlexRender, Row, Table } from "@tanstack/vue-table";
 import { DateTime } from "luxon";
-import { computed, ref } from "vue";
+import { computed, onBeforeUnmount, ref, watch } from "vue";
 
 import DiscussionQuestions from "./DiscussionQuestions.vue";
 import ScoreEntryPanel from "./ScoreEntryPanel.vue";
 import { hasValue, isDefined, isTrue } from "../../../../lib/checks/checks.js";
 import { ClubType } from "../../../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
+import { formatScore } from "../scoreScale";
 
 import { clubTypeConfig } from "@/common/clubType";
 import BookMetadataGrid from "@/common/components/BookMetadataGrid.vue";
@@ -589,6 +611,52 @@ const myReview = computed(() =>
     : undefined,
 );
 
+// Rated-state label for the sticky CTA; undefined until the user has scored.
+const myScoreLabel = computed(() =>
+  isDefined(myReview.value) ? formatScore(myReview.value.score) : undefined,
+);
+
+// The sticky CTA mirrors the inline ScoreEntryPanel's visibility: hidden while
+// the dial itself is on screen, shown once it scrolls away.
+const scoreEntrySection = ref<HTMLElement | null>(null);
+const scorePanelInView = ref(true);
+
+let scorePanelObserver: IntersectionObserver | undefined;
+
+// watch() is the sanctioned exception here: syncing a template ref with a
+// browser API (IntersectionObserver).
+watch(
+  scoreEntrySection,
+  (el) => {
+    scorePanelObserver?.disconnect();
+    if (!isDefined(el)) {
+      scorePanelInView.value = true;
+      return;
+    }
+    scorePanelObserver = new IntersectionObserver((entries) => {
+      const entry = entries.at(-1);
+      if (isDefined(entry)) {
+        scorePanelInView.value = entry.isIntersecting;
+      }
+    });
+    scorePanelObserver.observe(el);
+  },
+  { flush: "post" },
+);
+
+onBeforeUnmount(() => scorePanelObserver?.disconnect());
+
+const showScoreCta = computed(
+  () => isDefined(props.currentUserId) && !scorePanelInView.value,
+);
+
+const jumpToScoreEntry = () => {
+  scoreEntrySection.value?.scrollIntoView({
+    behavior: "smooth",
+    block: "center",
+  });
+};
+
 const close = () => {
   emit("close");
 };
@@ -658,3 +726,18 @@ const revealTmdb = () => {
   }
 };
 </script>
+
+<style scoped>
+.score-cta-enter-active,
+.score-cta-leave-active {
+  transition:
+    transform var(--motion-base) var(--ease-standard),
+    opacity var(--motion-base) var(--ease-standard);
+}
+
+.score-cta-enter-from,
+.score-cta-leave-to {
+  opacity: 0;
+  transform: translateY(100%);
+}
+</style>
