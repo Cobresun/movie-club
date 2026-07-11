@@ -90,6 +90,8 @@ import {
 } from "../scoreDialGeometry";
 import { isValidScore, SCORE_MAX, SCORE_MIN, SCORE_STEP } from "../scoreScale";
 
+import { hapticTick } from "@/common/haptics";
+
 // The draft score stays a string so the input round-trips partial typing
 // ("8.", "") and preserves the exact decimals the user entered; the arc only
 // reacts once the string parses to a valid score.
@@ -162,15 +164,25 @@ const scoreAtPointer = (event: PointerEvent): number | undefined => {
   );
 };
 
+// Last detent the drag ticked at, so crossing each 0.5 step buzzes once like
+// a physical dial. Seeded from the current score on pointerdown so grabbing
+// the handle where it already sits stays silent.
+let lastDetent: number | undefined;
+
 const applyPointer = (event: PointerEvent) => {
   const score = scoreAtPointer(event);
   if (!isDefined(score)) return;
+  if (score !== lastDetent) {
+    lastDetent = score;
+    hapticTick();
+  }
   model.value = score.toFixed(1);
 };
 
 const onPointerDown = (event: PointerEvent) => {
   event.preventDefault();
   isDragging.value = true;
+  lastDetent = hasScore.value ? parsedScore.value : undefined;
   dialSvg.value?.setPointerCapture(event.pointerId);
   applyPointer(event);
 };
