@@ -10,7 +10,7 @@
     </v-bottom-sheet>
 
     <template v-if="isDesktop">
-      <v-backdrop :z-index="zIndex" @close="handleClose" />
+      <v-backdrop :z-index="zIndex" :visible="isVisible" @close="handleClose" />
 
       <Transition name="fade" appear @after-leave="onTransitionEnd">
         <div
@@ -98,11 +98,20 @@ const zIndexClass = computed(() =>
 <style scoped>
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity var(--motion-base) var(--ease-standard);
+  transition:
+    opacity var(--motion-base) var(--ease-standard),
+    transform var(--motion-base) var(--ease-standard);
 }
 
+/* Centered modals appear FROM slightly small rather than a flat fade — nothing
+   in the real world blinks into existence. The translate mirrors the box's
+   Tailwind centering (-translate-x/y-1/2); an inline scale keyframe replaces
+   the whole `transform`, so it must re-state the translate or the modal jumps
+   off-center mid-transition. transform-origin: center (default) is correct for
+   a centered surface. */
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+  transform: translate(-50%, -50%) scale(0.96);
 }
 </style>

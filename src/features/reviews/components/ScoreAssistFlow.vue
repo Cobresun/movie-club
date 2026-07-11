@@ -135,8 +135,8 @@ const answer = (choice: ComparisonAnswer) => {
 .pivot-swap-enter-active,
 .pivot-swap-leave-active {
   transition:
-    opacity 150ms ease,
-    transform 150ms ease;
+    opacity var(--motion-fast) var(--ease-standard),
+    transform var(--motion-fast) var(--ease-standard);
 }
 
 .pivot-swap-enter-from {

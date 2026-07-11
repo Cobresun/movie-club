@@ -1,6 +1,10 @@
 <template>
   <div>
-    <v-backdrop :z-index="backdropZIndex" @close="handleClose" />
+    <v-backdrop
+      :z-index="backdropZIndex"
+      :visible="isVisible"
+      @close="handleClose"
+    />
 
     <Transition name="slide-up" appear @after-leave="onTransitionEnd">
       <div
@@ -69,6 +73,8 @@ const contentZIndexClass = computed(() =>
   props.zIndex === "40" ? "z-40" : props.zIndex === "60" ? "z-[60]" : "z-50",
 );
 
+const sheetRef = ref<HTMLElement | null>(null);
+
 const isVisible = ref(true);
 const onTransitionEnd = () => {
   emit("close");
@@ -76,12 +82,11 @@ const onTransitionEnd = () => {
 
 useBodyScrollLock(isVisible);
 
-const handleClose = (immediate = false) => {
-  if (immediate) {
-    emit("close");
-  } else {
-    isVisible.value = false;
-  }
+// Always animate out: flip isVisible so the slide-down (and backdrop fade)
+// play, then @after-leave emits close. Drag-dismiss drives the slide itself
+// (see handleTouchEnd) but shares this same isVisible → @after-leave exit.
+const handleClose = () => {
+  isVisible.value = false;
 };
 
 // Dismiss the sheet when the browser back button (or back gesture) is pressed.
@@ -137,10 +142,19 @@ const handleTouchEnd = (event: TouchEvent) => {
     const shouldClose = deltaY > 100 || (deltaY > 50 && velocity > 0.3);
 
     if (shouldClose) {
-      handleClose(true);
-    } else {
-      dragOffset.value = 0;
+      // Continue the gesture instead of teleporting the sheet away: re-enable
+      // the transition and push the offset to the sheet's full height so it
+      // slides the rest of the way down from wherever the finger released.
+      // Flipping isVisible fades the backdrop in step and lets the normal
+      // @after-leave path emit close once the slide settles.
+      isDragging.value = false;
+      dragOffset.value = sheetRef.value?.offsetHeight ?? window.innerHeight;
+      isVisible.value = false;
+      touchStartY.value = null;
+      touchStartTime.value = null;
+      return;
     }
+    dragOffset.value = 0;
   }
 
   isDragging.value = false;
