@@ -88,7 +88,13 @@ import {
   scoreFromPoint,
   scoreToFraction,
 } from "../scoreDialGeometry";
-import { isValidScore, SCORE_MAX, SCORE_MIN, SCORE_STEP } from "../scoreScale";
+import {
+  formatScore,
+  isValidScore,
+  SCORE_MAX,
+  SCORE_MIN,
+  SCORE_STEP,
+} from "../scoreScale";
 
 import { hapticTick } from "@/common/haptics";
 
@@ -164,9 +170,9 @@ const scoreAtPointer = (event: PointerEvent): number | undefined => {
   );
 };
 
-// Last detent the drag ticked at, so crossing each 0.5 step buzzes once like
-// a physical dial. Seeded from the current score on pointerdown so grabbing
-// the handle where it already sits stays silent.
+// Last detent the drag ticked at, so crossing each SCORE_STEP buzzes once
+// like a physical dial. Seeded from the current score on pointerdown so
+// grabbing the handle where it already sits stays silent.
 let lastDetent: number | undefined;
 
 const applyPointer = (event: PointerEvent) => {
@@ -176,7 +182,9 @@ const applyPointer = (event: PointerEvent) => {
     lastDetent = score;
     hapticTick();
   }
-  model.value = score.toFixed(1);
+  // formatScore keeps quarter steps exact ("8.25") where toFixed(1) would
+  // round them to a value off the snap grid.
+  model.value = formatScore(score);
 };
 
 const onPointerDown = (event: PointerEvent) => {

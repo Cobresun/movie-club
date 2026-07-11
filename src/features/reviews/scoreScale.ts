@@ -6,7 +6,7 @@
  */
 export const SCORE_MIN = 0;
 export const SCORE_MAX = 10;
-export const SCORE_STEP = 0.5;
+export const SCORE_STEP = 0.25;
 
 export const clampScore = (score: number): number =>
   Math.min(SCORE_MAX, Math.max(SCORE_MIN, score));

@@ -367,31 +367,15 @@
       v-if="isDefined(currentUserId)"
       class="sticky bottom-0 -mx-4 mt-4 border-t border-gray-700/60 bg-background px-4 pb-2 pt-3"
     >
-      <div
-        v-if="hasValue(myScoreLabel)"
-        class="flex items-center justify-between"
-      >
-        <div class="flex items-baseline gap-2">
-          <span class="text-sm text-gray-400">Your score</span>
-          <span class="text-lg font-bold">{{ myScoreLabel }}</span>
-        </div>
-        <button
-          type="button"
-          class="flex items-center gap-1.5 rounded-lg bg-primary/20 px-4 py-2 text-sm font-medium text-primary transition hover:brightness-110"
-          @click="showScoreEntry = true"
-        >
-          <mdicon name="pencil" size="16" />
-          <span>Edit score</span>
-        </button>
-      </div>
       <button
-        v-else
         type="button"
         class="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-3 font-bold tracking-wide text-text transition hover:brightness-110 active:scale-[0.98]"
         @click="showScoreEntry = true"
       >
-        <mdicon name="star" size="20" />
-        <span>Rate this {{ mediaNoun }}</span>
+        <mdicon :name="isDefined(myReview) ? 'pencil' : 'star'" size="20" />
+        <span>{{
+          isDefined(myReview) ? "Edit score" : `Rate this ${mediaNoun}`
+        }}</span>
       </button>
     </div>
 
@@ -417,7 +401,6 @@ import ScoreEntryModal from "./ScoreEntryModal.vue";
 import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import { ClubType } from "../../../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
-import { formatScore } from "../scoreScale";
 
 import { clubTypeConfig } from "@/common/clubType";
 import BookMetadataGrid from "@/common/components/BookMetadataGrid.vue";
@@ -579,11 +562,6 @@ const myReview = computed(() =>
   isDefined(props.currentUserId)
     ? props.movie.original.scores[props.currentUserId]
     : undefined,
-);
-
-// Rated-state label for the sticky CTA; undefined until the user has scored.
-const myScoreLabel = computed(() =>
-  isDefined(myReview.value) ? formatScore(myReview.value.score) : undefined,
 );
 
 // Score entry lives in its own overlay (ScoreEntryModal), opened from the

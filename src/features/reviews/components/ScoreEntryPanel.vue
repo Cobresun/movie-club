@@ -4,8 +4,6 @@
          precise decimals typed by hand. Drag and type share `scoreModel`. -->
     <ScoreDial ref="scoreDial" v-model="scoreModel" @save="save" />
 
-    <v-btn :disabled="!canSave" @click="save">Save score</v-btn>
-
     <button
       v-if="showAssist"
       type="button"
@@ -13,8 +11,10 @@
       @click="openAssist"
     >
       <mdicon name="scale-balance" size="16" />
-      <span>Not sure? Compare {{ noun }}s you've rated</span>
+      <span>Compare {{ noun }}s you've rated</span>
     </button>
+
+    <v-btn class="w-full" :disabled="!canSave" @click="save">Save score</v-btn>
   </div>
 </template>
 

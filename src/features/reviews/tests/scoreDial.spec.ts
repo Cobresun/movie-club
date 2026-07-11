@@ -46,10 +46,10 @@ describe("score dial geometry", () => {
     expect(right.y).toBeCloseTo(DIAL_CENTER_Y);
   });
 
-  it("maps pointer angles back to scores snapped to half steps", () => {
+  it("maps pointer angles back to scores snapped to quarter steps", () => {
     expect(scoreFromPoint(DIAL_CENTER_X, DIAL_CENTER_Y - DIAL_RADIUS)).toBe(5);
 
-    // A point at the angle for 7.1 snaps to the nearest half step.
+    // A point at the angle for 7.1 snaps to the nearest quarter step.
     const angle = Math.PI * (1 - 0.71);
     expect(
       scoreFromPoint(

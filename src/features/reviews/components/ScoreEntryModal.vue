@@ -12,13 +12,22 @@
         @assist="mode = 'assist'"
       />
     </template>
-    <ScoreAssistFlow
-      v-else
-      :target="target"
-      :candidates="candidates"
-      :club-type="clubType"
-      @close="emit('close')"
-    />
+    <template v-else>
+      <button
+        type="button"
+        class="-ml-2 -mt-2 mb-2 flex items-center gap-1 text-sm text-gray-400 transition hover:text-gray-200"
+        @click="mode = 'entry'"
+      >
+        <mdicon name="arrow-left" size="18" />
+        <span>Back</span>
+      </button>
+      <ScoreAssistFlow
+        :target="target"
+        :candidates="candidates"
+        :club-type="clubType"
+        @close="emit('close')"
+      />
+    </template>
   </v-modal>
 </template>
 
