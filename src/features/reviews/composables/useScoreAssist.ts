@@ -24,9 +24,6 @@ export function useScoreAssist(
   const answer = (choice: ComparisonAnswer) => {
     session.value = answerComparison(session.value, choice);
   };
-  const restart = () => {
-    session.value = startSession(target, candidates);
-  };
 
   const pivot = computed(() => session.value.pivot);
   const result = computed(() => session.value.result);
@@ -35,5 +32,5 @@ export function useScoreAssist(
       `Comparison ${session.value.comparisons + 1} of up to ${MAX_COMPARISONS}`,
   );
 
-  return { session, pivot, result, answer, restart, progressLabel };
+  return { session, pivot, result, answer, progressLabel };
 }

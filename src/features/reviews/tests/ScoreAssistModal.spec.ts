@@ -1,6 +1,7 @@
 import { TestingPinia } from "@pinia/testing";
 import { screen, waitFor } from "@testing-library/vue";
 import { http, HttpResponse } from "msw";
+import { vi } from "vitest";
 
 import { ClubType, WorkType } from "../../../../lib/types/generated/db";
 import { DetailedReviewListItem, Review } from "../../../../lib/types/lists";
@@ -14,6 +15,18 @@ import { useAuthStore } from "@/stores/auth";
 import { render } from "@/tests/utils";
 
 mockIntersectionObserver();
+
+// VTU stubs transitions process-wide in jsdom, so vue-toastification's
+// transition-group container never renders toast content into the DOM;
+// spy on useToast instead while keeping the plugin's default export intact.
+const toastSuccess = vi.fn();
+vi.mock("vue-toastification", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("vue-toastification")>();
+  return {
+    ...actual,
+    useToast: () => ({ success: toastSuccess }),
+  };
+});
 
 function makeTarget(
   scores: Record<string, Review> = {},
@@ -59,7 +72,21 @@ describe("ScoreAssistModal", () => {
     expect(
       screen.getByText("Which movie did you like more?"),
     ).toBeInTheDocument();
+    expect(screen.getByText("Tap the one you liked more")).toBeInTheDocument();
     expect(screen.getByText("Comparison 1 of up to 5")).toBeInTheDocument();
+  });
+
+  it("answers through the poster buttons, with no separate choice buttons", () => {
+    render(ScoreAssistModal, {
+      props: { target: makeTarget(), candidates, clubType: ClubType.movie },
+    });
+    expect(
+      screen.getByRole("button", { name: "I liked Target Movie more" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "I liked Movie 4 more" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("This one")).not.toBeInTheDocument();
   });
 
   it("uses the book noun for book clubs", () => {
@@ -71,12 +98,23 @@ describe("ScoreAssistModal", () => {
     ).toBeInTheDocument();
   });
 
-  it("converges to an editable suggestion after repeated comparisons", async () => {
-    const { user } = render(ScoreAssistModal, {
+  it("saves the converged suggestion automatically, with a toast", async () => {
+    let postedBody: unknown;
+    server.use(
+      http.post("/api/club/test-club/reviews", async ({ request }) => {
+        postedBody = await request.json();
+        return HttpResponse.json({});
+      }),
+    );
+
+    const rendered = render(ScoreAssistModal, {
       props: { target: makeTarget(), candidates, clubType: ClubType.movie },
     });
+    const { user, pinia } = rendered;
+    logIn(pinia);
 
-    // Beat Movie 4, then Movie 5 (the top): aboveAll -> 5 + 0.5.
+    // Beat Movie 4, then Movie 5 (the top): aboveAll -> 5 + 0.5, saved
+    // immediately — there is no confirmation screen.
     await user.click(
       screen.getByRole("button", { name: "I liked Target Movie more" }),
     );
@@ -84,27 +122,16 @@ describe("ScoreAssistModal", () => {
       screen.getByRole("button", { name: "I liked Target Movie more" }),
     );
 
-    const input = screen.getByRole("spinbutton", { name: "Score" });
-    expect(input).toHaveValue(5.5);
-    expect(
-      screen.getByText(/Higher than Movie 5 \(5\) — your top-rated movie/),
-    ).toBeInTheDocument();
+    await waitFor(() =>
+      expect(postedBody).toEqual({ workId: "target", score: 5.5 }),
+    );
+    expect(rendered.emitted().close).toHaveLength(1);
+    expect(toastSuccess).toHaveBeenCalledWith(
+      "We picked 5.5/10 for Target Movie",
+    );
   });
 
-  it("jumps straight to the pivot's score on 'too close to call'", async () => {
-    const { user } = render(ScoreAssistModal, {
-      props: { target: makeTarget(), candidates, clubType: ClubType.movie },
-    });
-
-    await user.click(screen.getByRole("button", { name: "Too close to call" }));
-
-    expect(screen.getByRole("spinbutton", { name: "Score" })).toHaveValue(4);
-    expect(
-      screen.getByText(/About the same as Movie 4 \(4\)/),
-    ).toBeInTheDocument();
-  });
-
-  it("saves a new score with POST, honoring the user's edits", async () => {
+  it("saves the pivot's score straight away on 'too close to call'", async () => {
     let postedBody: unknown;
     server.use(
       http.post("/api/club/test-club/reviews", async ({ request }) => {
@@ -120,13 +147,9 @@ describe("ScoreAssistModal", () => {
     logIn(pinia);
 
     await user.click(screen.getByRole("button", { name: "Too close to call" }));
-    const input = screen.getByRole("spinbutton", { name: "Score" });
-    await user.clear(input);
-    await user.type(input, "7.5");
-    await user.click(screen.getByRole("button", { name: "Save score" }));
 
     await waitFor(() =>
-      expect(postedBody).toEqual({ workId: "target", score: 7.5 }),
+      expect(postedBody).toEqual({ workId: "target", score: 4 }),
     );
     expect(rendered.emitted().close).toHaveLength(1);
   });
@@ -157,24 +180,8 @@ describe("ScoreAssistModal", () => {
     logIn(pinia);
 
     await user.click(screen.getByRole("button", { name: "Too close to call" }));
-    await user.click(screen.getByRole("button", { name: "Save score" }));
 
     await waitFor(() => expect(putBody).toEqual({ score: 4 }));
     expect(rendered.emitted().close).toHaveLength(1);
-  });
-
-  it("starts over with a fresh comparison", async () => {
-    const { user } = render(ScoreAssistModal, {
-      props: { target: makeTarget(), candidates, clubType: ClubType.movie },
-    });
-
-    await user.click(screen.getByRole("button", { name: "Too close to call" }));
-    expect(screen.getByRole("spinbutton", { name: "Score" })).toHaveValue(4);
-
-    await user.click(screen.getByRole("button", { name: "Start over" }));
-    expect(
-      screen.getByText("Which movie did you like more?"),
-    ).toBeInTheDocument();
-    expect(screen.getByText("Comparison 1 of up to 5")).toBeInTheDocument();
   });
 });

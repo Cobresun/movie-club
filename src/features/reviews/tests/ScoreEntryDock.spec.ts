@@ -147,9 +147,9 @@ describe("ScoreEntryDock", () => {
     ).toBeInTheDocument();
     expect(screen.queryByRole("spinbutton")).not.toBeInTheDocument();
 
-    // Finishing the flow collapses the whole dock back to the CTA.
+    // Finishing the flow saves immediately and collapses the whole dock back
+    // to the CTA.
     await user.click(screen.getByRole("button", { name: "Too close to call" }));
-    await user.click(screen.getByRole("button", { name: "Save score" }));
     await waitFor(() =>
       expect(
         screen.getByRole("button", { name: /Rate this movie/ }),

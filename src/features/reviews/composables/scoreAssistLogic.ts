@@ -35,7 +35,7 @@ export interface ScoreAssistResult {
   /** Rounded to the nearest 0.5 and clamped to 0-10. */
   suggestedScore: number;
   kind: "converged" | "matched" | "aboveAll" | "belowAll";
-  /** Bracketing works, for the result screen's context copy. */
+  /** Bracketing works that contextualize how the suggestion was derived. */
   lowerWork?: ScoredCandidate;
   upperWork?: ScoredCandidate;
   /** The work the user called "about the same" (kind === "matched"). */

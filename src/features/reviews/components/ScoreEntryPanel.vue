@@ -14,7 +14,22 @@
       <span>Compare {{ noun }}s you've rated</span>
     </button>
 
-    <v-btn class="w-full" :disabled="!canSave" @click="save">Save score</v-btn>
+    <!-- Styled to mirror the drawer's "Rate this ..." CTA (rounded-lg, py-3)
+         so the footer button keeps one consistent size/shape across the
+         collapsed and expanded states. -->
+    <button
+      type="button"
+      :disabled="!canSave"
+      class="w-full rounded-lg py-3 text-center font-bold tracking-wide text-text transition duration-fast ease-standard"
+      :class="
+        canSave
+          ? 'bg-primary hover:brightness-110 active:scale-[0.98]'
+          : 'bg-gray-600'
+      "
+      @click="save"
+    >
+      Save score
+    </button>
   </div>
 </template>
 

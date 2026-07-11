@@ -47,7 +47,7 @@ describe("ScoreEntryPanel", () => {
     expect(screen.getByText("Meh")).toBeInTheDocument();
   });
 
-  it("clamps typed scores above the max and explains the clamp", async () => {
+  it("clamps typed scores above the max, explains it, and shakes the input", async () => {
     const { user } = render(ScoreEntryPanel, { props: { workId: "target" } });
 
     const input = screen.getByRole("spinbutton", { name: "Score" });
@@ -55,6 +55,17 @@ describe("ScoreEntryPanel", () => {
 
     expect(input).toHaveValue(10);
     expect(screen.getByText("Max is 10 — set to 10.0")).toBeInTheDocument();
+    expect(input).toHaveClass("score-shake");
+  });
+
+  it("truncates typing beyond two decimals and shakes the input", async () => {
+    const { user } = render(ScoreEntryPanel, { props: { workId: "target" } });
+
+    const input = screen.getByRole("spinbutton", { name: "Score" });
+    await user.type(input, "8.555");
+
+    expect(input).toHaveValue(8.55);
+    expect(input).toHaveClass("score-shake");
   });
 
   it("creates a new score via POST and emits submit", async () => {

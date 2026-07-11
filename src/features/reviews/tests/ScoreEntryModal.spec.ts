@@ -127,9 +127,9 @@ describe("ScoreEntryModal", () => {
       screen.queryByRole("button", { name: "Save score" }),
     ).not.toBeInTheDocument();
 
-    // Finishing the flow closes the whole modal, not just the assist layer.
+    // Finishing the flow saves immediately and closes the whole modal, not
+    // just the assist layer.
     await user.click(screen.getByRole("button", { name: "Too close to call" }));
-    await user.click(screen.getByRole("button", { name: "Save score" }));
     await waitFor(() => expect(rendered.emitted().close).toHaveLength(1));
   });
 });
