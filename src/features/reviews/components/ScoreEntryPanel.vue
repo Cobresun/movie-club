@@ -1,28 +1,8 @@
 <template>
   <div class="flex flex-col items-center gap-3">
-    <!--
-      Slider slot (deferred): a 0-10 `<input type="range">` snapping to
-      SCORE_STEP will live here, bound to the same `scoreModel` as the field
-      below so drag and type stay in sync. Scaffolded intentionally — the scale
-      constants and layout are ready; only the control itself is pending.
-    -->
-
-    <div class="flex items-end justify-center gap-1">
-      <input
-        ref="scoreInput"
-        v-model="scoreModel"
-        type="number"
-        inputmode="decimal"
-        :min="SCORE_MIN"
-        :max="SCORE_MAX"
-        step="any"
-        placeholder="8.5"
-        aria-label="Score"
-        class="w-24 rounded-lg border border-gray-300 bg-background p-2 text-center text-2xl font-bold outline-none [appearance:textfield] focus:border-primary [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-        @keydown.enter="save"
-      />
-      <span class="pb-2 text-sm text-gray-400">/{{ SCORE_MAX }}</span>
-    </div>
+    <!-- Arc-gauge slider snapping to SCORE_STEP; its center input still takes
+         precise decimals typed by hand. Drag and type share `scoreModel`. -->
+    <ScoreDial ref="scoreDial" v-model="scoreModel" @save="save" />
 
     <v-btn :disabled="!canSave" @click="save">Save score</v-btn>
 
@@ -52,7 +32,8 @@ import {
 import { isDefined, isTrue } from "../../../../lib/checks/checks.js";
 import { ClubType } from "../../../../lib/types/generated/db";
 import { ScoreAssistKey } from "../scoreAssist";
-import { clampScore, isValidScore, SCORE_MAX, SCORE_MIN } from "../scoreScale";
+import { clampScore, isValidScore } from "../scoreScale";
+import ScoreDial from "./ScoreDial.vue";
 
 import { clubTypeConfig } from "@/common/clubType";
 import { useClub, useClubSlug } from "@/service/useClub";
@@ -80,7 +61,14 @@ const noun = computed(
 );
 
 const scoreModel = ref(props.score?.toString() ?? "");
-const scoreInput = ref<HTMLInputElement | null>(null);
+
+// Typed by the dial's exposed surface rather than InstanceType<typeof ScoreDial>:
+// ESLint's type-aware program cannot resolve .vue module types, so the latter
+// collapses to `any` under lint even though vue-tsc resolves it fine.
+interface ScoreDialExposed {
+  focusInput: () => void;
+}
+const scoreDial = ref<ScoreDialExposed | null>(null);
 
 // Re-seed the field when the score changes out from under us — e.g. after Score
 // Assist saves a suggestion and the drawer reappears. `scoreModel` is seeded
@@ -110,7 +98,9 @@ const submitScore = useSubmitScore(clubSlug);
 const save = () => {
   const score = Number.parseFloat(scoreModel.value);
   if (!isValidScore(score)) return;
-  const clamped = clampScore(score);
+  // Typed input allows arbitrary decimals; persist at most two, matching the
+  // precision every score display rounds to (formatScore).
+  const clamped = clampScore(Math.round(score * 100) / 100);
   if (clamped !== props.score) {
     submitScore({
       workId: props.workId,
@@ -132,8 +122,7 @@ onMounted(() => {
   if (!isTrue(props.autofocus)) return;
   const focus = () =>
     nextTick(() => {
-      scoreInput.value?.focus();
-      scoreInput.value?.select();
+      scoreDial.value?.focusInput();
     }).catch(console.error);
   const delay = props.autofocusDelay ?? 0;
   if (delay > 0) {

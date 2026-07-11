@@ -27,13 +27,32 @@ describe("ScoreEntryPanel", () => {
     expect(
       screen.getByRole("spinbutton", { name: "Score" }),
     ).toBeInTheDocument();
-    expect(screen.getByText("/10")).toBeInTheDocument();
 
     const save = screen.getByRole("button", { name: "Save score" });
     expect(save).toBeDisabled();
 
     await user.type(screen.getByRole("spinbutton", { name: "Score" }), "8.5");
     expect(save).toBeEnabled();
+    expect(screen.getByText("Great")).toBeInTheDocument();
+  });
+
+  it("shows the verdict band for a prefilled score", () => {
+    render(ScoreEntryPanel, {
+      props: { workId: "target", reviewId: "rev1", score: 4.4 },
+    });
+
+    expect(screen.getByRole("spinbutton", { name: "Score" })).toHaveValue(4.4);
+    expect(screen.getByText("Meh")).toBeInTheDocument();
+  });
+
+  it("clamps typed scores above the max and explains the clamp", async () => {
+    const { user } = render(ScoreEntryPanel, { props: { workId: "target" } });
+
+    const input = screen.getByRole("spinbutton", { name: "Score" });
+    await user.type(input, "12");
+
+    expect(input).toHaveValue(10);
+    expect(screen.getByText("Max is 10 — set to 10.0")).toBeInTheDocument();
   });
 
   it("creates a new score via POST and emits submit", async () => {
