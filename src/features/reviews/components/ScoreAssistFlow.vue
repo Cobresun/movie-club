@@ -101,9 +101,10 @@ import { useSubmitScore } from "@/service/useReviews";
 import { useUser } from "@/service/useUser";
 
 // Content-only: the comparison flow with no overlay of its own, so hosts can
-// swap it into whatever surface is already open (ScoreEntryModal replaces its
-// dial with this; ScoreAssistModal wraps it in a fresh v-modal) instead of
-// stacking a second modal/sheet on top.
+// swap it into whatever surface is already open (ScoreEntryModal and the
+// drawer's ScoreEntryDock replace their dial with this; ScoreAssistModal
+// wraps it in a fresh v-modal) instead of stacking a second modal/sheet on
+// top.
 const props = defineProps<{
   target: DetailedReviewListItem;
   candidates: ScoredCandidate[];

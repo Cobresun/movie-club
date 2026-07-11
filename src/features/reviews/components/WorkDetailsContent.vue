@@ -361,13 +361,21 @@
       <span>Delete review</span>
     </button>
 
-    <!-- Sticky score CTA: the drawer's primary action, always one tap away. It
-         opens score entry in its own overlay rather than an inline panel. -->
+    <!-- Sticky score footer: the drawer's primary action, always one tap away.
+         On desktop the entry panel grows out of this footer (ScoreEntryDock);
+         on mobile the CTA opens score entry in its own overlay. -->
     <div
       v-if="isDefined(currentUserId)"
       class="sticky bottom-0 -mx-4 mt-4 border-t border-gray-700/60 bg-background px-4 pb-2 pt-3"
     >
+      <ScoreEntryDock
+        v-if="isDesktop"
+        :target="movie.original"
+        :score="myReview?.score"
+        :review-id="myReview?.id"
+      />
       <button
+        v-else
         type="button"
         class="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-3 font-bold tracking-wide text-text transition hover:brightness-110 active:scale-[0.98]"
         @click="showScoreEntry = true"
@@ -397,6 +405,7 @@ import { DateTime } from "luxon";
 import { computed, ref } from "vue";
 
 import DiscussionQuestions from "./DiscussionQuestions.vue";
+import ScoreEntryDock from "./ScoreEntryDock.vue";
 import ScoreEntryModal from "./ScoreEntryModal.vue";
 import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import { ClubType } from "../../../../lib/types/generated/db";
@@ -564,8 +573,8 @@ const myReview = computed(() =>
     : undefined,
 );
 
-// Score entry lives in its own overlay (ScoreEntryModal), opened from the
-// sticky CTA.
+// Mobile-only: score entry lives in its own overlay (ScoreEntryModal), opened
+// from the sticky CTA. Desktop entry is inline via ScoreEntryDock instead.
 const showScoreEntry = ref(false);
 
 const close = () => {

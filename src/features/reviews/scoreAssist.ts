@@ -5,8 +5,9 @@ import type { InjectionKey } from "vue";
  * by ReviewView (which hosts the standalone ScoreAssistModal instance) so
  * score-entry affordances can gate their trigger on `isEligible` without
  * prop-drilling, and non-overlay hosts (the table popover) can open the
- * modal. Hosts that are already an overlay (ScoreEntryModal) swap
- * ScoreAssistFlow into themselves instead of calling `open`.
+ * modal. Hosts with a score surface of their own (ScoreEntryModal, the
+ * drawer's ScoreEntryDock) swap ScoreAssistFlow into themselves instead of
+ * calling `open`.
  */
 export interface ScoreAssist {
   /** True when the current user has scored enough works besides this one. */

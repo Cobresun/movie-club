@@ -44,8 +44,9 @@ const props = defineProps<{
   score?: number;
   reviewId?: string;
   // When true, focus (and scroll to) the field once mounted. The table popover
-  // uses this immediately; the drawer sets `autofocusDelay` so focus waits for
-  // the slide-in to finish rather than scrolling mid-transition.
+  // uses this immediately; the drawer's ScoreEntryDock sets `autofocusDelay`
+  // so focus waits for its expansion to finish rather than scrolling
+  // mid-transition.
   autofocus?: boolean;
   autofocusDelay?: number;
 }>();
