@@ -68,6 +68,10 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: "submit"): void;
+  // Emitted only when the save actually persists a new/changed score (not when
+  // the user re-confirms their existing value). Lets the host animate the
+  // freshly-saved score; "submit" still fires unconditionally to close the panel.
+  (e: "saved"): void;
   // The user tapped "Not sure?". The panel only gates the button (via the
   // injected eligibility check); the host decides how to present the assist
   // flow — an already-open overlay swaps ScoreAssistFlow into itself, while
@@ -128,6 +132,7 @@ const save = () => {
       reviewId: props.reviewId,
       score: clamped,
     });
+    emit("saved");
   }
   emit("submit");
 };

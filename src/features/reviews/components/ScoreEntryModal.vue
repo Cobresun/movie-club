@@ -9,6 +9,7 @@
         :score="score"
         :review-id="reviewId"
         @submit="emit('close')"
+        @saved="emit('saved')"
         @assist="mode = 'assist'"
       />
     </template>
@@ -25,6 +26,7 @@
         :target="target"
         :candidates="candidates"
         :club-type="clubType"
+        @saved="emit('saved')"
         @close="emit('close')"
       />
     </template>
@@ -53,6 +55,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: "close"): void;
+  (e: "saved"): void;
 }>();
 
 const mode = ref<"entry" | "assist">("entry");

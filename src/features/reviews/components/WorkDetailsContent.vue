@@ -145,6 +145,7 @@
           v-for="cell in getVisibleCells(movie)"
           :key="cell.id"
           class="flex items-center rounded-xl bg-lowBackground p-2"
+          :class="{ 'score-just-saved': isJustSavedCell(cell) }"
         >
           <FlexRender
             :render="cell.column.columnDef.header"
@@ -252,6 +253,7 @@
           v-for="cell in getVisibleCells(movie)"
           :key="cell.id"
           class="flex items-center rounded-xl bg-lowBackground p-2"
+          :class="{ 'score-just-saved': isJustSavedCell(cell) }"
         >
           <FlexRender
             :render="cell.column.columnDef.header"
@@ -373,6 +375,7 @@
         :target="movie.original"
         :score="myReview?.score"
         :review-id="myReview?.id"
+        @saved="onScoreSaved"
       />
       <button
         v-else
@@ -394,6 +397,7 @@
       :score="myReview?.score"
       :review-id="myReview?.id"
       @close="showScoreEntry = false"
+      @saved="onScoreSaved"
     />
   </div>
 </template>
@@ -402,7 +406,7 @@
 import { Disclosure, DisclosureButton, DisclosurePanel } from "@headlessui/vue";
 import { Cell, FlexRender, Row, Table } from "@tanstack/vue-table";
 import { DateTime } from "luxon";
-import { computed, ref } from "vue";
+import { computed, nextTick, onBeforeUnmount, ref } from "vue";
 
 import DiscussionQuestions from "./DiscussionQuestions.vue";
 import ScoreEntryDock from "./ScoreEntryDock.vue";
@@ -577,6 +581,39 @@ const myReview = computed(() =>
 // from the sticky CTA. Desktop entry is inline via ScoreEntryDock instead.
 const showScoreEntry = ref(false);
 
+// Whimsical fanfare: once the current user persists a score (via the dial or
+// the comparison flow), the drawer returns to the member grid and we pop their
+// tile so the just-saved number is impossible to miss. Toggling the flag
+// off→on across a tick restarts the CSS animation on repeat saves. The tile
+// renders synchronously thanks to the optimistic mutation, so the class is
+// present on its first paint. Reduced-motion neutralizes the pop globally
+// (near-zero animation-duration in tailwind.css).
+const SCORE_POP_MS = 700;
+const justSaved = ref(false);
+let justSavedTimer: ReturnType<typeof setTimeout> | undefined;
+
+const onScoreSaved = () => {
+  justSaved.value = false;
+  void nextTick(() => {
+    justSaved.value = true;
+    if (isDefined(justSavedTimer)) clearTimeout(justSavedTimer);
+    justSavedTimer = setTimeout(() => {
+      justSaved.value = false;
+    }, SCORE_POP_MS);
+  });
+};
+
+onBeforeUnmount(() => {
+  if (isDefined(justSavedTimer)) clearTimeout(justSavedTimer);
+});
+
+// Only the current user's own tile celebrates — identified by the `member_<id>`
+// column id the reviews table builds per member.
+const isJustSavedCell = (cell: Cell<DetailedReviewListItem, unknown>) =>
+  justSaved.value &&
+  isDefined(props.currentUserId) &&
+  cell.column.id === `member_${props.currentUserId}`;
+
 const close = () => {
   emit("close");
 };
@@ -646,3 +683,36 @@ const revealTmdb = () => {
   }
 };
 </script>
+
+<style scoped>
+/* Celebratory pop for the score the current user just saved: a springy
+   overshoot with a playful wobble, haloed by a fading primary-blue ring.
+   z-index lifts it above the neighbouring tiles while it scales up. */
+@keyframes score-pop {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(33, 150, 243, 0);
+  }
+  25% {
+    transform: scale(1.12) rotate(-2.5deg);
+    box-shadow: 0 0 0 5px rgba(33, 150, 243, 0.35);
+  }
+  50% {
+    transform: scale(0.97) rotate(2deg);
+  }
+  70% {
+    transform: scale(1.05) rotate(-1deg);
+    box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.15);
+  }
+  100% {
+    transform: scale(1) rotate(0);
+    box-shadow: 0 0 0 0 rgba(33, 150, 243, 0);
+  }
+}
+
+.score-just-saved {
+  position: relative;
+  z-index: 10;
+  animation: score-pop 700ms var(--ease-emphasized);
+}
+</style>

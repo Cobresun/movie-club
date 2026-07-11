@@ -63,6 +63,7 @@
                 :autofocus="openCount > 0"
                 :autofocus-delay="AUTOFOCUS_DELAY_MS"
                 @submit="collapse"
+                @saved="emit('saved')"
                 @assist="mode = 'assist'"
               />
               <ScoreAssistFlow
@@ -70,6 +71,7 @@
                 :target="target"
                 :candidates="candidates"
                 :club-type="clubType"
+                @saved="emit('saved')"
                 @close="collapse"
               />
             </Transition>
@@ -126,6 +128,11 @@ const props = defineProps<{
   target: DetailedReviewListItem;
   score?: number;
   reviewId?: string;
+}>();
+
+// Bubbles up when a score is persisted so the drawer can animate the tile.
+const emit = defineEmits<{
+  (e: "saved"): void;
 }>();
 
 // Focus waits out the footer's grid-rows expansion (--motion-slow, 300ms) so

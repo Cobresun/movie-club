@@ -78,6 +78,10 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
+  // Fired the moment a suggestion is persisted, so the host can celebrate the
+  // freshly-saved score. Separate from "close" (which also tears the flow
+  // down) because non-drawer hosts ignore the fanfare.
+  (e: "saved"): void;
   (e: "close"): void;
 }>();
 
@@ -121,7 +125,8 @@ const answer = (choice: ComparisonAnswer) => {
     ? props.target.scores[user.value.id]?.id
     : undefined;
   submitScore({ workId: props.target.id, reviewId, score });
-  toast.success(`We picked ${formatScore(score)}/10 for ${props.target.title}`);
+  toast.success(`We picked ${formatScore(score)}/10`);
+  emit("saved");
   emit("close");
 };
 </script>

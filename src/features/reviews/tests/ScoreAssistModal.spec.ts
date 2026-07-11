@@ -126,9 +126,7 @@ describe("ScoreAssistModal", () => {
       expect(postedBody).toEqual({ workId: "target", score: 5.5 }),
     );
     expect(rendered.emitted().close).toHaveLength(1);
-    expect(toastSuccess).toHaveBeenCalledWith(
-      "We picked 5.5/10 for Target Movie",
-    );
+    expect(toastSuccess).toHaveBeenCalledWith("We picked 5.5/10");
   });
 
   it("saves the pivot's score straight away on 'too close to call'", async () => {
