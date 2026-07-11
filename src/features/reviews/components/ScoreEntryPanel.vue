@@ -52,6 +52,11 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: "submit"): void;
+  // The user tapped "Not sure?". The panel only gates the button (via the
+  // injected eligibility check); the host decides how to present the assist
+  // flow — an already-open overlay swaps ScoreAssistFlow into itself, while
+  // non-overlay hosts open the standalone ScoreAssistModal.
+  (e: "assist"): void;
 }>();
 
 const clubSlug = useClubSlug();
@@ -112,8 +117,7 @@ const save = () => {
 };
 
 const openAssist = () => {
-  scoreAssist?.open(props.workId);
-  emit("submit");
+  emit("assist");
 };
 
 let autofocusTimer: ReturnType<typeof setTimeout> | undefined;

@@ -371,9 +371,8 @@ const columns = computed(() => [
           size = info.meta.size;
         }
 
-        const openInDrawer = info.meta?.openInDrawer === true;
-        // Read-only inside the drawer (entry there flows through its dedicated
-        // ScoreEntryPanel); editable everywhere else.
+        // Read-only in the gallery cards and the details drawer (entry there
+        // flows through the drawer's score CTA); editable in the table.
         const editable = info.meta?.editable !== false;
 
         const shouldBlur = shouldBlurScore(info.row.id, info.column.id);
@@ -391,7 +390,6 @@ const columns = computed(() => [
               score,
               reviewId: info.row.original.scores[member.id]?.id,
               size,
-              openInDrawer,
               editable,
               class: shouldBlur ? "filter blur cursor-pointer" : "",
             }),

@@ -1,0 +1,65 @@
+<template>
+  <v-modal size="sm" z-index="60" @close="emit('close')">
+    <!-- One overlay, swappable content: "Not sure?" replaces the dial with the
+         assist flow in place rather than opening a second modal/sheet on top. -->
+    <template v-if="mode === 'entry'">
+      <h2 class="mb-4 text-center text-xl font-bold">{{ target.title }}</h2>
+      <ScoreEntryPanel
+        :work-id="target.id"
+        :score="score"
+        :review-id="reviewId"
+        @submit="emit('close')"
+        @assist="mode = 'assist'"
+      />
+    </template>
+    <ScoreAssistFlow
+      v-else
+      :target="target"
+      :candidates="candidates"
+      :club-type="clubType"
+      @close="emit('close')"
+    />
+  </v-modal>
+</template>
+
+<script setup lang="ts">
+import { computed, ref } from "vue";
+
+import ScoreAssistFlow from "./ScoreAssistFlow.vue";
+import ScoreEntryPanel from "./ScoreEntryPanel.vue";
+import { hasValue } from "../../../../lib/checks/checks.js";
+import { ClubType } from "../../../../lib/types/generated/db";
+import { DetailedReviewListItem } from "../../../../lib/types/lists";
+import { buildCandidatePool } from "../composables/scoreAssistLogic";
+
+import { useClub, useClubSlug } from "@/service/useClub";
+import { useReviewsList } from "@/service/useList";
+import { useUser } from "@/service/useUser";
+
+const props = defineProps<{
+  target: DetailedReviewListItem;
+  score?: number;
+  reviewId?: string;
+}>();
+
+const emit = defineEmits<{
+  (e: "close"): void;
+}>();
+
+const mode = ref<"entry" | "assist">("entry");
+
+// Assist inputs are derived here (from the cached reviews query) rather than
+// prop-drilled through the drawer, so any surface can host this modal with
+// just the target work.
+const clubSlug = useClubSlug();
+const { data: club } = useClub(clubSlug);
+const { data: reviews } = useReviewsList(clubSlug);
+const user = useUser();
+
+const clubType = computed(() => club.value?.type ?? ClubType.movie);
+const candidates = computed(() =>
+  hasValue(user.value?.id)
+    ? buildCandidatePool(reviews.value ?? [], user.value.id, props.target.id)
+    : [],
+);
+</script>

@@ -2,10 +2,11 @@ import type { InjectionKey } from "vue";
 
 /**
  * Score Assist: the "not sure what to score this?" comparison flow. Provided
- * by ReviewView (which hosts the single ScoreAssistModal instance) so the
- * scattered score-entry affordances - table cells, the details drawer - can
- * gate their trigger on `isEligible` and open the modal without prop-drilling,
- * mirroring the RequestScoreEntry pattern in scoreEntry.ts.
+ * by ReviewView (which hosts the standalone ScoreAssistModal instance) so
+ * score-entry affordances can gate their trigger on `isEligible` without
+ * prop-drilling, and non-overlay hosts (the table popover) can open the
+ * modal. Hosts that are already an overlay (ScoreEntryModal) swap
+ * ScoreAssistFlow into themselves instead of calling `open`.
  */
 export interface ScoreAssist {
   /** True when the current user has scored enough works besides this one. */

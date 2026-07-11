@@ -31,26 +31,14 @@
           :review-id="reviewId"
           autofocus
           @submit="close()"
+          @assist="openAssist(close)"
         />
       </PopoverPanel>
     </Teleport>
   </Popover>
 
-  <!-- Small poster chips (gallery): defer to the roomier details drawer instead
-       of opening a cramped popover on the poster. -->
-  <span
-    v-else-if="deferToDrawer"
-    role="button"
-    :aria-label="isDefined(score) ? 'Edit score' : 'Add score'"
-    class="flex cursor-pointer items-center justify-center gap-0.5"
-    @click.stop="requestScoreEntry?.(workId)"
-  >
-    <template v-if="isDefined(score)">{{ score }}</template>
-    <mdicon v-else name="plus" />
-  </span>
-
-  <!-- Read-only: other members' scores, and every cell inside the drawer table
-       (entry there happens through the dedicated ScoreEntryPanel). -->
+  <!-- Read-only: other members' scores, and every cell in the gallery cards and
+       the drawer grid — entry there happens through the drawer's score CTA. -->
   <span v-else-if="isDefined(score)">{{ score }}</span>
 </template>
 
@@ -59,7 +47,7 @@ import { Popover, PopoverButton, PopoverPanel } from "@headlessui/vue";
 import { computed, inject } from "vue";
 
 import { isDefined } from "../../../../lib/checks/checks.js";
-import { RequestScoreEntryKey } from "../scoreEntry";
+import { ScoreAssistKey } from "../scoreAssist";
 import ScoreEntryPanel from "./ScoreEntryPanel.vue";
 
 import { useAnchoredPanel } from "@/common/composables/useAnchoredPanel";
@@ -71,26 +59,23 @@ const props = defineProps<{
   score?: number;
   reviewId?: string;
   size?: string;
-  // When true (poster chips in the gallery), clicking defers score entry to the
-  // details drawer instead of opening a cramped inline popover on the poster.
-  openInDrawer?: boolean;
-  // When false (the drawer's member table), render read-only even for the
-  // current user — entry there flows through the drawer's ScoreEntryPanel.
+  // When false (gallery cards, the drawer's member grid), render read-only even
+  // for the current user — entry there flows through the drawer's score CTA.
   editable?: boolean;
 }>();
 
 const user = useUser();
 const isMe = computed(() => user.value?.id === props.memberId);
-const isEditable = computed(() => props.editable !== false);
 
-const canEditInline = computed(
-  () => isMe.value && isEditable.value && props.openInDrawer !== true,
-);
-const deferToDrawer = computed(
-  () => isMe.value && isEditable.value && props.openInDrawer === true,
-);
+const canEditInline = computed(() => isMe.value && props.editable !== false);
 
-const requestScoreEntry = inject(RequestScoreEntryKey, undefined);
+// A popover isn't an overlay that can swap its content, so the assist flow
+// opens in the standalone ScoreAssistModal hosted by ReviewView.
+const scoreAssist = inject(ScoreAssistKey, undefined);
+const openAssist = (close: () => void) => {
+  scoreAssist?.open(props.workId);
+  close();
+};
 
 const { style: panelStyle, reposition } = useAnchoredPanel({ width: 256 });
 

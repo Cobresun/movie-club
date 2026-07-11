@@ -12,10 +12,12 @@ import { render } from "@/tests/utils";
 mockIntersectionObserver();
 
 /** Provide a Score Assist stub so the assist button's gating can be exercised. */
-function withAssist(isEligible: boolean, open = vi.fn()) {
+function withAssist(isEligible: boolean) {
   return {
     global: {
-      provide: { [ScoreAssistKey]: { isEligible: () => isEligible, open } },
+      provide: {
+        [ScoreAssistKey]: { isEligible: () => isEligible, open: vi.fn() },
+      },
     },
   };
 }
@@ -113,18 +115,20 @@ describe("ScoreEntryPanel", () => {
     expect(input).toHaveValue(8);
   });
 
-  it("opens Score Assist from the labeled button when eligible", async () => {
-    const open = vi.fn();
-    const { user } = render(ScoreEntryPanel, {
+  it("emits assist from the labeled button when eligible", async () => {
+    // The panel doesn't open the flow itself: the host decides whether to swap
+    // its own overlay content or open the standalone modal.
+    const rendered = render(ScoreEntryPanel, {
       props: { workId: "target" },
-      ...withAssist(true, open),
+      ...withAssist(true),
     });
+    const { user } = rendered;
 
     const assist = await screen.findByRole("button", {
       name: /Compare .* you've rated/,
     });
     await user.click(assist);
-    expect(open).toHaveBeenCalledWith("target");
+    expect(rendered.emitted().assist).toHaveLength(1);
   });
 
   it("hides the assist button when the user is not eligible", () => {

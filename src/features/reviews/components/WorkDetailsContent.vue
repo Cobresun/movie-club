@@ -164,21 +164,6 @@
         </div>
       </div>
 
-      <div
-        v-if="isDefined(currentUserId)"
-        ref="scoreEntrySection"
-        class="mt-4 flex justify-center"
-      >
-        <ScoreEntryPanel
-          :key="movie.original.id"
-          :work-id="movie.original.id"
-          :score="myReview?.score"
-          :review-id="myReview?.id"
-          :autofocus="isTrue(focusScoreEntry)"
-          :autofocus-delay="300"
-        />
-      </div>
-
       <div v-if="movieData?.overview || bookData?.description" class="mt-6">
         <WorkDescription
           :key="movie.id"
@@ -286,21 +271,6 @@
         </div>
       </div>
 
-      <div
-        v-if="isDefined(currentUserId)"
-        ref="scoreEntrySection"
-        class="mt-4 flex justify-center"
-      >
-        <ScoreEntryPanel
-          :key="movie.original.id"
-          :work-id="movie.original.id"
-          :score="myReview?.score"
-          :review-id="myReview?.id"
-          :autofocus="isTrue(focusScoreEntry)"
-          :autofocus-delay="300"
-        />
-      </div>
-
       <CastList :actors="movieData?.actors" class="mt-4" />
 
       <!-- Collapsible metadata -->
@@ -391,41 +361,48 @@
       <span>Delete review</span>
     </button>
 
-    <!-- Sticky score CTA: only appears once the inline score dial has scrolled
-         out of view, so the drawer's primary action is always one tap away. -->
-    <Transition name="score-cta">
+    <!-- Sticky score CTA: the drawer's primary action, always one tap away. It
+         opens score entry in its own overlay rather than an inline panel. -->
+    <div
+      v-if="isDefined(currentUserId)"
+      class="sticky bottom-0 -mx-4 mt-4 border-t border-gray-700/60 bg-background px-4 pb-2 pt-3"
+    >
       <div
-        v-if="showScoreCta"
-        class="sticky bottom-0 -mx-4 mt-4 border-t border-gray-700/60 bg-background px-4 pb-2 pt-3"
+        v-if="hasValue(myScoreLabel)"
+        class="flex items-center justify-between"
       >
-        <div
-          v-if="hasValue(myScoreLabel)"
-          class="flex items-center justify-between"
-        >
-          <div class="flex items-baseline gap-2">
-            <span class="text-sm text-gray-400">Your score</span>
-            <span class="text-lg font-bold">{{ myScoreLabel }}</span>
-          </div>
-          <button
-            type="button"
-            class="flex items-center gap-1.5 rounded-lg bg-primary/20 px-4 py-2 text-sm font-medium text-primary transition hover:brightness-110"
-            @click="jumpToScoreEntry"
-          >
-            <mdicon name="pencil" size="16" />
-            <span>Edit score</span>
-          </button>
+        <div class="flex items-baseline gap-2">
+          <span class="text-sm text-gray-400">Your score</span>
+          <span class="text-lg font-bold">{{ myScoreLabel }}</span>
         </div>
         <button
-          v-else
           type="button"
-          class="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-3 font-bold tracking-wide text-text transition hover:brightness-110 active:scale-[0.98]"
-          @click="jumpToScoreEntry"
+          class="flex items-center gap-1.5 rounded-lg bg-primary/20 px-4 py-2 text-sm font-medium text-primary transition hover:brightness-110"
+          @click="showScoreEntry = true"
         >
-          <mdicon name="star" size="20" />
-          <span>Rate this {{ mediaNoun }}</span>
+          <mdicon name="pencil" size="16" />
+          <span>Edit score</span>
         </button>
       </div>
-    </Transition>
+      <button
+        v-else
+        type="button"
+        class="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-3 font-bold tracking-wide text-text transition hover:brightness-110 active:scale-[0.98]"
+        @click="showScoreEntry = true"
+      >
+        <mdicon name="star" size="20" />
+        <span>Rate this {{ mediaNoun }}</span>
+      </button>
+    </div>
+
+    <ScoreEntryModal
+      v-if="showScoreEntry"
+      :key="movie.original.id"
+      :target="movie.original"
+      :score="myReview?.score"
+      :review-id="myReview?.id"
+      @close="showScoreEntry = false"
+    />
   </div>
 </template>
 
@@ -433,11 +410,11 @@
 import { Disclosure, DisclosureButton, DisclosurePanel } from "@headlessui/vue";
 import { Cell, FlexRender, Row, Table } from "@tanstack/vue-table";
 import { DateTime } from "luxon";
-import { computed, onBeforeUnmount, ref, watch } from "vue";
+import { computed, ref } from "vue";
 
 import DiscussionQuestions from "./DiscussionQuestions.vue";
-import ScoreEntryPanel from "./ScoreEntryPanel.vue";
-import { hasValue, isDefined, isTrue } from "../../../../lib/checks/checks.js";
+import ScoreEntryModal from "./ScoreEntryModal.vue";
+import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import { ClubType } from "../../../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
 import { formatScore } from "../scoreScale";
@@ -470,7 +447,6 @@ const props = defineProps<{
   hasRated: (movieId: string) => boolean;
   currentUserId?: string;
   isDesktop: boolean;
-  focusScoreEntry?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -580,15 +556,9 @@ const getVisibleCells = (row: Row<DetailedReviewListItem>) => {
       return false;
     }
 
-    // Always show current user's column with "+" sign to enter score
-    if (
-      isDefined(props.currentUserId) &&
-      cell.column.id === `member_${props.currentUserId}`
-    ) {
-      return true;
-    }
-
-    // Then check if the cell has a value
+    // Then check if the cell has a value. The current user's own pill is no
+    // exception: it only appears once they have scored (entry happens through
+    // the sticky CTA, not the grid).
     const value = cell.getValue();
     return value !== undefined && value !== null && value !== "";
   });
@@ -616,46 +586,9 @@ const myScoreLabel = computed(() =>
   isDefined(myReview.value) ? formatScore(myReview.value.score) : undefined,
 );
 
-// The sticky CTA mirrors the inline ScoreEntryPanel's visibility: hidden while
-// the dial itself is on screen, shown once it scrolls away.
-const scoreEntrySection = ref<HTMLElement | null>(null);
-const scorePanelInView = ref(true);
-
-let scorePanelObserver: IntersectionObserver | undefined;
-
-// watch() is the sanctioned exception here: syncing a template ref with a
-// browser API (IntersectionObserver).
-watch(
-  scoreEntrySection,
-  (el) => {
-    scorePanelObserver?.disconnect();
-    if (!isDefined(el)) {
-      scorePanelInView.value = true;
-      return;
-    }
-    scorePanelObserver = new IntersectionObserver((entries) => {
-      const entry = entries.at(-1);
-      if (isDefined(entry)) {
-        scorePanelInView.value = entry.isIntersecting;
-      }
-    });
-    scorePanelObserver.observe(el);
-  },
-  { flush: "post" },
-);
-
-onBeforeUnmount(() => scorePanelObserver?.disconnect());
-
-const showScoreCta = computed(
-  () => isDefined(props.currentUserId) && !scorePanelInView.value,
-);
-
-const jumpToScoreEntry = () => {
-  scoreEntrySection.value?.scrollIntoView({
-    behavior: "smooth",
-    block: "center",
-  });
-};
+// Score entry lives in its own overlay (ScoreEntryModal), opened from the
+// sticky CTA.
+const showScoreEntry = ref(false);
 
 const close = () => {
   emit("close");
@@ -726,18 +659,3 @@ const revealTmdb = () => {
   }
 };
 </script>
-
-<style scoped>
-.score-cta-enter-active,
-.score-cta-leave-active {
-  transition:
-    transform var(--motion-base) var(--ease-standard),
-    opacity var(--motion-base) var(--ease-standard);
-}
-
-.score-cta-enter-from,
-.score-cta-leave-to {
-  opacity: 0;
-  transform: translateY(100%);
-}
-</style>
