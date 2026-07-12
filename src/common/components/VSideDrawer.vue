@@ -1,10 +1,6 @@
 <template>
   <div>
-    <v-backdrop
-      :z-index="backdropZIndex"
-      :visible="isVisible"
-      @close="handleClose"
-    />
+    <v-backdrop :z-index="backdropZIndex" @close="handleClose" />
 
     <Transition name="slide-in-right" appear @after-leave="onTransitionEnd">
       <div

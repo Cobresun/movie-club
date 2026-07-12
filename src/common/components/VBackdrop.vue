@@ -1,7 +1,6 @@
 <template>
   <Transition name="fade" appear>
     <div
-      v-if="visible"
       class="fixed inset-0 touch-none overscroll-none bg-black bg-opacity-50"
       :class="zIndexClass"
       @click="handleClose"
@@ -15,15 +14,9 @@
 const props = withDefaults(
   defineProps<{
     zIndex?: "40" | "50" | "60";
-    // Drives the scrim's own enter/leave. Overlays bind their `isVisible` here
-    // so the backdrop fades OUT in step with the overlay's exit — without a
-    // v-if the Transition only ever runs `appear`, and the scrim would blink
-    // out when the parent unmounts instead of fading.
-    visible?: boolean;
   }>(),
   {
     zIndex: "50",
-    visible: true,
   },
 );
 
