@@ -221,7 +221,7 @@
         <template v-if="isDefined(myReview)" #secondary-action>
           <button
             type="button"
-            class="flex shrink-0 items-center justify-center gap-2 rounded-lg bg-lowBackground px-4 py-3 font-bold tracking-wide text-gray-200 transition hover:brightness-110 active:scale-[0.98]"
+            class="flex shrink-0 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 font-bold tracking-wide text-text transition hover:brightness-110 active:scale-[0.98]"
             @click="shareReview(movie.original.id)"
           >
             <mdicon name="share" size="20" />
@@ -230,9 +230,16 @@
         </template>
       </ScoreEntryDock>
       <div v-else class="flex items-center gap-2">
+        <!-- Secondary (muted) once a score exists, because Share becomes the
+             primary action beside it; still primary while unrated. -->
         <button
           type="button"
-          class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary py-3 font-bold tracking-wide text-text transition hover:brightness-110 active:scale-[0.98]"
+          class="flex flex-1 items-center justify-center gap-2 rounded-lg py-3 font-bold tracking-wide transition hover:brightness-110 active:scale-[0.98]"
+          :class="
+            isDefined(myReview)
+              ? 'bg-lowBackground text-gray-200'
+              : 'bg-primary text-text'
+          "
           @click="showScoreEntry = true"
         >
           <mdicon :name="isDefined(myReview) ? 'pencil' : 'star'" size="20" />
@@ -243,7 +250,7 @@
         <button
           v-if="isDefined(myReview)"
           type="button"
-          class="flex shrink-0 items-center justify-center gap-2 rounded-lg bg-lowBackground px-4 py-3 font-bold tracking-wide text-gray-200 transition hover:brightness-110 active:scale-[0.98]"
+          class="flex shrink-0 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 font-bold tracking-wide text-text transition hover:brightness-110 active:scale-[0.98]"
           @click="shareReview(movie.original.id)"
         >
           <mdicon name="share" size="20" />
