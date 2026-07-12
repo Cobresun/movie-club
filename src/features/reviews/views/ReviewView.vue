@@ -346,13 +346,13 @@ const columns = computed(() => [
         }
 
         if (isTrue(context.meta?.showName)) {
-          return h("div", { class: "flex items-center gap-2" }, [
+          return h("div", { class: "flex min-w-0 items-center gap-2" }, [
             h(VAvatar, {
               src: member.image,
               name: member.name,
               size,
             }),
-            h("span", member.name),
+            h("span", { class: "truncate" }, member.name),
           ]);
         } else {
           return h(VAvatar, {
@@ -408,9 +408,9 @@ const columns = computed(() => [
       }
 
       if (isTrue(context.meta?.showName)) {
-        return h("div", { class: "flex item-center gap-2" }, [
+        return h("div", { class: "flex min-w-0 items-center gap-2" }, [
           h("img", { src: AverageImg, class: `${size} max-w-none` }),
-          h("span", "Average"),
+          h("span", { class: "truncate" }, "Average"),
         ]);
       } else {
         return h("img", { src: AverageImg, class: `${size} max-w-none` });

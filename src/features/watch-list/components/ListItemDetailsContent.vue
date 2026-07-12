@@ -11,51 +11,58 @@
       :backdrop-path="movieData?.backdrop_path"
       :title="movie.title"
       :year="displayYear"
-      :date-label="formatDate(movie.createdDate)"
       :is-desktop="isDesktop"
-    />
-
-    <div
-      v-if="isDefined(addedByMember)"
-      class="mb-4 flex items-center gap-2 text-sm text-slate-400"
     >
-      <VAvatar
-        :src="addedByMember.image"
-        :name="addedByMember.name"
-        :size="24"
-      />
-      <span>
-        Added by {{ addedByMember.name }} on
-        {{ formatDate(movie.createdDate) }}
-      </span>
-    </div>
+      <template v-if="hasValue(metaLine)" #meta>{{ metaLine }}</template>
+      <template #date>
+        <span
+          v-if="isDefined(addedByMember)"
+          class="inline-flex items-center gap-2"
+        >
+          <VAvatar
+            :src="addedByMember.image"
+            :name="addedByMember.name"
+            :size="20"
+          />
+          <span>
+            Added by {{ addedByMember.name }} on
+            {{ formatDate(movie.createdDate) }}
+          </span>
+        </span>
+        <template v-else>Added {{ formatDate(movie.createdDate) }}</template>
+      </template>
+    </WorkPosterHero>
 
-    <div class="grid grid-cols-1 gap-y-2 text-sm md:grid-cols-2 md:gap-x-4">
-      <MovieMetadataGrid
+    <!-- Synopsis -->
+    <section v-if="hasValue(overview)" class="mt-5">
+      <SectionHeader title="Synopsis" />
+      <WorkDescription :key="movie.id" :overview="overview" />
+    </section>
+
+    <CastList :actors="movieData?.actors" class="mt-6" />
+
+    <!-- Details: factual metadata and availability -->
+    <section v-if="movieData || bookData" class="mt-6">
+      <SectionHeader title="Details" />
+      <div class="grid grid-cols-2 gap-x-4 gap-y-3">
+        <MovieMetadataGrid
+          v-if="movieData"
+          :release-date="movieData.release_date"
+          :directors="movieData.directors"
+          :vote-average="movieData.vote_average"
+        />
+        <BookMetadataGrid
+          v-else-if="bookData"
+          :first-publish-year="bookData.firstPublishYear"
+          :subjects="bookData.subjects"
+        />
+      </div>
+      <WatchProviders
         v-if="movieData"
-        :release-date="movieData.release_date"
-        :runtime="movieData.runtime"
-        :genres="movieData.genres"
-        :directors="movieData.directors"
-        :vote-average="movieData.vote_average"
+        :external-id="movie.externalId"
+        class="mt-4"
       />
-      <BookMetadataGrid
-        v-else-if="bookData"
-        :authors="bookData.authors"
-        :first-publish-year="bookData.firstPublishYear"
-        :number-of-pages="bookData.numberOfPages"
-        :subjects="bookData.subjects"
-      />
-      <CastList :actors="movieData?.actors" class="md:col-span-2" />
-      <WatchProviders :external-id="movie.externalId" class="md:col-span-2" />
-    </div>
-
-    <div v-if="movieData?.overview" class="mt-4">
-      <WorkDescription :key="movie.id" :overview="movieData.overview" />
-    </div>
-    <div v-else-if="bookData?.description" class="mt-4">
-      <WorkDescription :key="movie.id" :overview="bookData.description" />
-    </div>
+    </section>
 
     <CommentThread :work-id="movie.id" :club-slug="clubSlug" />
 
@@ -139,6 +146,7 @@ import CastList from "@/common/components/CastList.vue";
 import CommentThread from "@/common/components/CommentThread.vue";
 import DeleteConfirmationModal from "@/common/components/DeleteConfirmationModal.vue";
 import MovieMetadataGrid from "@/common/components/MovieMetadataGrid.vue";
+import SectionHeader from "@/common/components/SectionHeader.vue";
 import VAvatar from "@/common/components/VAvatar.vue";
 import WatchProviders from "@/common/components/WatchProviders.vue";
 import WorkDescription from "@/common/components/WorkDescription.vue";
@@ -146,6 +154,7 @@ import WorkPosterHero from "@/common/components/WorkPosterHero.vue";
 import {
   asBook,
   asMovie,
+  workMetaLine,
   workPosterUrl,
   workSubtitle,
 } from "@/common/workDisplay";
@@ -208,4 +217,13 @@ const posterUrl = computed(() =>
 
 // Release year (movies) or first-published year (books), via the shared helper.
 const displayYear = computed(() => workSubtitle(props.movie.externalData));
+
+// "2h 35m · Adventure, Science Fiction" (movies) / "Frank Herbert · 412 pages"
+// (books), shown in the hero under the title. Runtime and genres live here, so
+// the Details section below only carries what the hero doesn't.
+const metaLine = computed(() => workMetaLine(props.movie.externalData));
+
+const overview = computed(
+  () => movieData.value?.overview ?? bookData.value?.description,
+);
 </script>

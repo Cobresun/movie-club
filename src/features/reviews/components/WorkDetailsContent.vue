@@ -17,302 +17,155 @@
       <mdicon name="share" size="18" />
     </button>
 
-    <!-- Desktop layout -->
-    <template v-if="isDesktop">
-      <WorkPosterHero
-        :poster-url="posterUrl"
-        :backdrop-path="movieData?.backdrop_path"
-        :title="movieTitle"
-        :year="displayYear"
-        :is-desktop="isDesktop"
-      >
-        <template #date>
-          <template v-if="!isEditingDate">
-            <span
-              class="inline-flex cursor-pointer items-center gap-1 hover:text-primary hover:underline"
-              @click="openDateEditor"
-            >
-              {{ formatDate(movie.original.createdDate) }}
-              <mdicon name="pencil" size="14" class="text-current" />
-            </span>
-          </template>
-          <template v-else>
-            <div class="flex items-center justify-center gap-1.5 px-2">
-              <input
-                v-model="editedDate"
-                type="date"
-                class="rounded border border-gray-600 bg-background px-1.5 py-0.5 text-xs text-white sm:px-2 sm:py-1 sm:text-sm"
-                @keypress.enter="saveDateChange"
-              />
-              <button
-                class="whitespace-nowrap rounded bg-primary px-1.5 py-0.5 text-xs text-white sm:px-2 sm:py-1 sm:text-sm"
-                @click="saveDateChange"
-              >
-                Save
-              </button>
-              <button
-                class="whitespace-nowrap rounded bg-gray-600 px-1.5 py-0.5 text-xs text-white sm:px-2 sm:py-1 sm:text-sm"
-                @click="cancelDateEdit"
-              >
-                Cancel
-              </button>
-            </div>
-          </template>
+    <!-- One layout for both breakpoints: the desktop side drawer is roughly
+         phone-width, so only the hero scale and the score-entry footer differ. -->
+    <WorkPosterHero
+      :poster-url="posterUrl"
+      :backdrop-path="movieData?.backdrop_path"
+      :title="movieTitle"
+      :year="displayYear"
+      :is-desktop="isDesktop"
+    >
+      <template v-if="hasValue(metaLine)" #meta>{{ metaLine }}</template>
+      <template #date>
+        <template v-if="!isEditingDate">
+          <span
+            class="inline-flex cursor-pointer items-center gap-1 hover:text-primary hover:underline"
+            @click="openDateEditor"
+          >
+            Reviewed {{ formatDate(movie.original.createdDate) }}
+            <mdicon name="pencil" size="14" class="text-current" />
+          </span>
         </template>
-      </WorkPosterHero>
+        <template v-else>
+          <div class="flex items-center gap-1.5">
+            <input
+              v-model="editedDate"
+              type="date"
+              class="rounded border border-gray-600 bg-background px-1.5 py-0.5 text-xs text-white"
+              @keypress.enter="saveDateChange"
+            />
+            <button
+              class="whitespace-nowrap rounded bg-primary px-1.5 py-0.5 text-xs text-white"
+              @click="saveDateChange"
+            >
+              Save
+            </button>
+            <button
+              class="whitespace-nowrap rounded bg-gray-600 px-1.5 py-0.5 text-xs text-white"
+              @click="cancelDateEdit"
+            >
+              Cancel
+            </button>
+          </div>
+        </template>
+      </template>
+    </WorkPosterHero>
 
-      <div class="grid grid-cols-1 gap-x-4 gap-y-2 text-sm md:grid-cols-2">
+    <!-- Club scores: the drawer's centerpiece, so it leads -->
+    <section class="mt-5">
+      <SectionHeader title="Club scores" />
+
+      <div
+        :inert="!showRevealPill"
+        :aria-hidden="!showRevealPill || undefined"
+        class="overflow-hidden transition-all duration-slow ease-standard"
+        :style="{
+          maxHeight: showRevealPill ? '4rem' : '0px',
+          marginBottom: showRevealPill ? '0.75rem' : '0px',
+          opacity: showRevealPill ? 1 : 0,
+        }"
+      >
+        <div class="flex justify-center">
+          <button
+            class="flex items-center gap-2 rounded-full bg-lowBackground px-4 py-1.5 text-sm text-gray-300 transition hover:brightness-110"
+            @click="toggleMovieReveal(movie.id)"
+          >
+            <mdicon name="eye-outline" size="16" />
+            <span>Reveal club scores</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div
+          v-for="cell in getVisibleCells(movie)"
+          :key="cell.id"
+          class="flex items-center gap-2.5 rounded-xl px-3 py-2.5"
+          :class="[
+            isAverageCell(cell)
+              ? 'col-span-2 bg-primary/10 ring-1 ring-primary/25'
+              : 'bg-lowBackground',
+            { 'score-just-saved': isJustSavedCell(cell) },
+          ]"
+        >
+          <div class="min-w-0 flex-1">
+            <FlexRender
+              :render="cell.column.columnDef.header"
+              :props="headerCellProps(cell)"
+            />
+          </div>
+          <div
+            class="shrink-0 text-base font-semibold transition-[filter] duration-500 ease-standard"
+            :class="
+              shouldBlurScore(movie.id, cell.column.id) ? 'blur' : 'blur-none'
+            "
+          >
+            <FlexRender
+              :render="cell.column.columnDef.cell"
+              :props="scoreCellProps(cell)"
+            />
+          </div>
+        </div>
+      </div>
+      <p
+        v-if="getVisibleCells(movie).length === 0"
+        class="text-sm text-gray-500"
+      >
+        No scores yet — be the first to rate it.
+      </p>
+    </section>
+
+    <!-- Synopsis -->
+    <section v-if="hasValue(overview)" class="mt-6">
+      <SectionHeader title="Synopsis" />
+      <WorkDescription :key="movie.id" :overview="overview" />
+    </section>
+
+    <CastList v-if="movieData" :actors="movieData.actors" class="mt-6" />
+
+    <!-- Details: factual metadata, external ratings and links -->
+    <section v-if="hasDetails" class="mt-6">
+      <SectionHeader title="Details" />
+      <div class="grid grid-cols-2 gap-x-4 gap-y-3">
         <MovieMetadataGrid
           v-if="movieData"
           :release-date="movieData.release_date"
-          :runtime="movieData.runtime"
-          :genres="movieData.genres"
           :directors="movieData.directors"
         />
         <BookMetadataGrid
           v-else-if="bookData"
-          :authors="bookData.authors"
           :first-publish-year="bookData.firstPublishYear"
-          :number-of-pages="bookData.numberOfPages"
           :subjects="bookData.subjects"
         />
-        <CastList
-          v-if="movieData"
-          :actors="movieData?.actors"
-          class="md:col-span-2"
-        />
         <div
-          v-if="movieData?.vote_average"
-          class="flex items-center gap-2"
-          :class="{
-            'cursor-pointer hover:opacity-80': shouldBlurTmdbScore,
-          }"
+          v-if="isDefined(tmdbScore)"
+          :class="{ 'cursor-pointer hover:opacity-80': shouldBlurTmdbScore }"
           @click="revealTmdb"
         >
-          <span class="text-gray-400">TMDB Rating: </span>
           <span
-            class="transition-[filter] duration-500 ease-standard"
-            :class="
-              shouldBlurTmdbScore ? 'select-none blur' : 'select-auto blur-none'
-            "
-            >{{ movieData?.vote_average }}/10</span
+            class="block text-xs font-medium uppercase tracking-wide text-gray-500"
+            >TMDB rating</span
           >
-          <mdicon
-            v-if="shouldBlurTmdbScore"
-            name="eye-outline"
-            size="14"
-            class="text-gray-400"
-          />
-        </div>
-        <div
-          v-if="movieData"
-          class="flex flex-wrap items-center gap-x-4 gap-y-1 md:col-span-2"
-        >
-          <ExternalLink label="Letterboxd" :href="letterboxdUrl" />
-          <ExternalLink label="IMDb" :href="imdbUrl" />
-          <ExternalLink label="Rotten Tomatoes" :href="rottenTomatoesUrl" />
-        </div>
-        <WatchProviders
-          v-if="movieData"
-          :external-id="movie.original.externalId"
-          class="md:col-span-2"
-        />
-      </div>
-
-      <div
-        :inert="!showRevealPill"
-        :aria-hidden="!showRevealPill || undefined"
-        class="overflow-hidden transition-all duration-slow ease-standard"
-        :style="{
-          maxHeight: showRevealPill ? '4rem' : '0px',
-          marginTop: showRevealPill ? '1.5rem' : '0px',
-          opacity: showRevealPill ? 1 : 0,
-        }"
-      >
-        <div class="flex justify-center">
-          <button
-            class="flex items-center gap-2 rounded-full bg-lowBackground px-4 py-1.5 text-sm text-gray-300 transition hover:brightness-110"
-            @click="toggleMovieReveal(movie.id)"
-          >
-            <mdicon name="eye-outline" size="16" />
-            <span>Reveal club scores</span>
-          </button>
-        </div>
-      </div>
-
-      <div class="mt-4 grid grid-cols-2 gap-4">
-        <div
-          v-for="cell in getVisibleCells(movie)"
-          :key="cell.id"
-          class="flex items-center rounded-xl bg-lowBackground p-2"
-          :class="{ 'score-just-saved': isJustSavedCell(cell) }"
-        >
-          <FlexRender
-            :render="cell.column.columnDef.header"
-            :props="cell.getContext()"
-          />
-          <div
-            class="ml-2 flex-grow transition-[filter] duration-500 ease-standard"
-            :class="
-              shouldBlurScore(movie.id, cell.column.id) ? 'blur' : 'blur-none'
-            "
-          >
-            <FlexRender
-              :render="cell.column.columnDef.cell"
-              :props="scoreCellProps(cell)"
-            />
-          </div>
-        </div>
-      </div>
-
-      <div v-if="movieData?.overview || bookData?.description" class="mt-6">
-        <WorkDescription
-          :key="movie.id"
-          :overview="movieData?.overview ?? bookData?.description ?? ''"
-        />
-      </div>
-
-      <CommentThread :work-id="movie.original.id" :club-slug="clubId" />
-
-      <DiscussionQuestions
-        v-if="discussionQuestionsEnabled"
-        :club-slug="clubId"
-        :work-id="movie.original.id"
-        :media-noun="mediaNoun"
-      />
-    </template>
-
-    <!-- Mobile layout -->
-    <template v-else>
-      <WorkPosterHero
-        :poster-url="posterUrl"
-        :backdrop-path="movieData?.backdrop_path"
-        :title="movieTitle"
-        :year="displayYear"
-        :is-desktop="isDesktop"
-      >
-        <template #date>
-          <template v-if="!isEditingDate">
+          <span class="inline-flex items-center gap-1.5 text-sm text-gray-200">
             <span
-              class="inline-flex cursor-pointer items-center gap-1 hover:text-primary hover:underline"
-              @click="openDateEditor"
-            >
-              {{ formatDate(movie.original.createdDate) }}
-              <mdicon name="pencil" size="14" class="text-current" />
-            </span>
-          </template>
-          <template v-else>
-            <div class="flex items-center gap-1.5">
-              <input
-                v-model="editedDate"
-                type="date"
-                class="rounded border border-gray-600 bg-background px-1.5 py-0.5 text-xs text-white"
-                @keypress.enter="saveDateChange"
-              />
-              <button
-                class="whitespace-nowrap rounded bg-primary px-1.5 py-0.5 text-xs text-white"
-                @click="saveDateChange"
-              >
-                Save
-              </button>
-              <button
-                class="whitespace-nowrap rounded bg-gray-600 px-1.5 py-0.5 text-xs text-white"
-                @click="cancelDateEdit"
-              >
-                Cancel
-              </button>
-            </div>
-          </template>
-        </template>
-      </WorkPosterHero>
-
-      <div
-        :inert="!showRevealPill"
-        :aria-hidden="!showRevealPill || undefined"
-        class="overflow-hidden transition-all duration-slow ease-standard"
-        :style="{
-          maxHeight: showRevealPill ? '4rem' : '0px',
-          marginTop: showRevealPill ? '0.5rem' : '0px',
-          opacity: showRevealPill ? 1 : 0,
-        }"
-      >
-        <div class="flex justify-center">
-          <button
-            class="flex items-center gap-2 rounded-full bg-lowBackground px-4 py-1.5 text-sm text-gray-300 transition hover:brightness-110"
-            @click="toggleMovieReveal(movie.id)"
-          >
-            <mdicon name="eye-outline" size="16" />
-            <span>Reveal club scores</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- Scores grid (prioritized on mobile) -->
-      <div class="mt-3 grid grid-cols-2 gap-4">
-        <div
-          v-for="cell in getVisibleCells(movie)"
-          :key="cell.id"
-          class="flex items-center rounded-xl bg-lowBackground p-2"
-          :class="{ 'score-just-saved': isJustSavedCell(cell) }"
-        >
-          <FlexRender
-            :render="cell.column.columnDef.header"
-            :props="cell.getContext()"
-          />
-          <div
-            class="ml-2 flex-grow transition-[filter] duration-500 ease-standard"
-            :class="
-              shouldBlurScore(movie.id, cell.column.id) ? 'blur' : 'blur-none'
-            "
-          >
-            <FlexRender
-              :render="cell.column.columnDef.cell"
-              :props="scoreCellProps(cell)"
-            />
-          </div>
-        </div>
-      </div>
-
-      <CastList :actors="movieData?.actors" class="mt-4" />
-
-      <!-- Collapsible metadata -->
-      <Disclosure v-slot="{ open }">
-        <DisclosureButton
-          class="mt-4 flex w-full items-center justify-between rounded-lg bg-lowBackground px-4 py-2.5 text-sm font-medium text-gray-300"
-        >
-          <span>Details</span>
-          <mdicon
-            name="chevron-down"
-            :class="open ? 'rotate-180 transform' : ''"
-            class="transition-transform duration-base ease-standard"
-          />
-        </DisclosureButton>
-        <DisclosurePanel class="mt-2 grid grid-cols-1 gap-y-2 px-1 text-sm">
-          <MovieMetadataGrid
-            v-if="movieData"
-            :release-date="movieData.release_date"
-            :runtime="movieData.runtime"
-            :genres="movieData.genres"
-            :directors="movieData.directors"
-          />
-          <BookMetadataGrid
-            v-else-if="bookData"
-            :authors="bookData.authors"
-            :first-publish-year="bookData.firstPublishYear"
-            :number-of-pages="bookData.numberOfPages"
-            :subjects="bookData.subjects"
-          />
-          <div
-            v-if="movieData?.vote_average"
-            class="flex items-center gap-2"
-            :class="{
-              'cursor-pointer hover:opacity-80': shouldBlurTmdbScore,
-            }"
-            @click="revealTmdb"
-          >
-            <span class="text-gray-400">TMDB Rating: </span>
-            <span :class="{ 'select-none blur filter': shouldBlurTmdbScore }"
-              >{{ movieData?.vote_average }}/10</span
+              class="transition-[filter] duration-500 ease-standard"
+              :class="
+                shouldBlurTmdbScore
+                  ? 'select-none blur'
+                  : 'select-auto blur-none'
+              "
+              >{{ tmdbScore }}<span class="text-gray-500">/10</span></span
             >
             <mdicon
               v-if="shouldBlurTmdbScore"
@@ -320,37 +173,31 @@
               size="14"
               class="text-gray-400"
             />
-          </div>
-          <div
-            v-if="movieData"
-            class="flex flex-wrap items-center gap-x-4 gap-y-1"
-          >
-            <ExternalLink label="Letterboxd" :href="letterboxdUrl" />
-            <ExternalLink label="IMDb" :href="imdbUrl" />
-            <ExternalLink label="Rotten Tomatoes" :href="rottenTomatoesUrl" />
-          </div>
-          <WatchProviders
-            v-if="movieData"
-            :external-id="movie.original.externalId"
-          />
-          <WorkDescription
-            v-if="movieData?.overview || bookData?.description"
-            :key="movie.id"
-            :overview="movieData?.overview ?? bookData?.description ?? ''"
-            class="mt-2"
-          />
-        </DisclosurePanel>
-      </Disclosure>
+          </span>
+        </div>
+      </div>
 
-      <CommentThread :work-id="movie.original.id" :club-slug="clubId" />
+      <div v-if="movieData" class="mt-4 flex flex-wrap gap-2">
+        <ExternalLink label="Letterboxd" :href="letterboxdUrl" />
+        <ExternalLink label="IMDb" :href="imdbUrl" />
+        <ExternalLink label="Rotten Tomatoes" :href="rottenTomatoesUrl" />
+      </div>
 
-      <DiscussionQuestions
-        v-if="discussionQuestionsEnabled"
-        :club-slug="clubId"
-        :work-id="movie.original.id"
-        :media-noun="mediaNoun"
+      <WatchProviders
+        v-if="movieData"
+        :external-id="movie.original.externalId"
+        class="mt-4"
       />
-    </template>
+    </section>
+
+    <CommentThread :work-id="movie.original.id" :club-slug="clubId" />
+
+    <DiscussionQuestions
+      v-if="discussionQuestionsEnabled"
+      :club-slug="clubId"
+      :work-id="movie.original.id"
+      :media-noun="mediaNoun"
+    />
 
     <!-- Delete is deliberately tucked at the end of the content: it's a rare,
          destructive action and doesn't warrant sticky-footer prominence. -->
@@ -403,7 +250,6 @@
 </template>
 
 <script setup lang="ts">
-import { Disclosure, DisclosureButton, DisclosurePanel } from "@headlessui/vue";
 import { Cell, FlexRender, Row, Table } from "@tanstack/vue-table";
 import { DateTime } from "luxon";
 import { computed, nextTick, onBeforeUnmount, ref } from "vue";
@@ -422,6 +268,7 @@ import CommentThread from "@/common/components/CommentThread.vue";
 import DeleteConfirmationModal from "@/common/components/DeleteConfirmationModal.vue";
 import ExternalLink from "@/common/components/ExternalLink.vue";
 import MovieMetadataGrid from "@/common/components/MovieMetadataGrid.vue";
+import SectionHeader from "@/common/components/SectionHeader.vue";
 import WatchProviders from "@/common/components/WatchProviders.vue";
 import WorkDescription from "@/common/components/WorkDescription.vue";
 import WorkPosterHero from "@/common/components/WorkPosterHero.vue";
@@ -429,6 +276,7 @@ import { useShare } from "@/common/composables/useShare";
 import {
   asBook,
   asMovie,
+  workMetaLine,
   workPosterUrl,
   workSubtitle,
 } from "@/common/workDisplay";
@@ -525,6 +373,35 @@ const displayYear = computed(() =>
   workSubtitle(props.movie.original.externalData),
 );
 
+// "2h 35m · Adventure, Science Fiction" (movies) / "Frank Herbert · 412 pages"
+// (books), shown in the hero under the title. Runtime and genres live here, so
+// the Details section below only carries what the hero doesn't.
+const metaLine = computed(() =>
+  workMetaLine(props.movie.original.externalData),
+);
+
+const overview = computed(
+  () => movieData.value?.overview ?? bookData.value?.description,
+);
+
+// TMDB publishes ratings with three decimals (7.783); one is plenty here.
+const tmdbScore = computed(() =>
+  movieData.value?.vote_average === undefined
+    ? undefined
+    : Math.round(movieData.value.vote_average * 10) / 10,
+);
+
+// Movies always have external links (Rotten Tomatoes is a title search);
+// books only warrant the section when they have any facts to show.
+const hasDetails = computed(() => {
+  if (isDefined(movieData.value)) return true;
+  const book = bookData.value;
+  return (
+    isDefined(book) &&
+    (book.firstPublishYear !== undefined || book.subjects.length > 0)
+  );
+});
+
 const letterboxdUrl = computed(() =>
   hasValue(props.movie.original.externalId)
     ? `https://letterboxd.com/tmdb/${props.movie.original.externalId}/`
@@ -559,6 +436,21 @@ const getVisibleCells = (row: Row<DetailedReviewListItem>) => {
     return value !== undefined && value !== null && value !== "";
   });
 };
+
+// The average gets a full-width, primary-tinted tile so the club's verdict
+// stands out from the individual member scores.
+const isAverageCell = (cell: Cell<DetailedReviewListItem, unknown>) =>
+  cell.column.id === "score_average";
+
+// Tile headers show avatar + name (sm size) so members are identifiable
+// without hovering; the same meta convention GalleryView uses.
+const headerCellProps = (cell: Cell<DetailedReviewListItem, unknown>) => ({
+  ...cell.getContext(),
+  meta: {
+    showName: true,
+    size: "sm",
+  },
+});
 
 // The drawer's member grid is display-only — the current user enters/edits
 // their own score through the dedicated ScoreEntryPanel below it.

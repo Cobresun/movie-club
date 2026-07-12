@@ -42,8 +42,9 @@ describe("CastList", () => {
 
     await user.click(screen.getByRole("button", { name: "See all (7)" }));
 
+    // level 2 = the modal's title; the section's own "Cast" label is an h3.
     expect(
-      await screen.findByRole("heading", { name: "Cast" }),
+      await screen.findByRole("heading", { name: "Cast", level: 2 }),
     ).toBeInTheDocument();
     expect(screen.getByText("Actor 6")).toBeInTheDocument();
     expect(screen.getByText("Actor 7")).toBeInTheDocument();

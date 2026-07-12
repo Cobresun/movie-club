@@ -5,7 +5,10 @@
     are no providers the element is display:none, so it adds no grid gap.
   -->
   <div v-show="hasElements(providers)" class="flex flex-col gap-1.5">
-    <span class="text-gray-400">Where to watch</span>
+    <span
+      class="block text-xs font-medium uppercase tracking-wide text-gray-500"
+      >Where to watch</span
+    >
     <a
       v-if="hasValue(justWatchLink)"
       :href="justWatchLink"

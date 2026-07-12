@@ -1,7 +1,13 @@
 <template>
-  <!-- Desktop hero: full-bleed backdrop banner, poster + title overlap from below -->
-  <div v-if="isDesktop" class="-mx-4 -mt-8 mb-6">
-    <div class="relative h-44 overflow-hidden bg-lowBackground">
+  <!-- One layout for both drawers: the desktop side drawer is roughly
+       phone-width (~35vw), so the poster-left row works at every size — only
+       the poster/backdrop scale up slightly on desktop. The negative margins
+       bleed the backdrop to the drawer edges (both containers pad px-4 pt-8). -->
+  <div class="-mx-4 -mt-8 mb-5">
+    <div
+      class="relative overflow-hidden bg-lowBackground"
+      :class="isDesktop ? 'h-52' : 'h-44'"
+    >
       <img
         v-if="hasBackdrop"
         :src="`https://image.tmdb.org/t/p/w780/${backdropPath}`"
@@ -9,59 +15,35 @@
         decoding="async"
         loading="eager"
         class="h-full w-full object-cover transition-opacity duration-500"
-        :class="backdropLoaded ? 'opacity-100' : 'opacity-0'"
+        :class="backdropLoaded ? 'opacity-60' : 'opacity-0'"
         @load="backdropLoaded = true"
       />
       <div
-        class="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background"
+        class="absolute inset-0 bg-gradient-to-b from-black/30 via-background/40 to-background"
       ></div>
     </div>
 
-    <div class="relative -mt-20 flex flex-col items-center px-4">
-      <div class="w-2/5 max-w-[180px] shadow-2xl">
+    <div class="relative -mt-20 flex items-end gap-4 px-4">
+      <div
+        class="flex-shrink-0 overflow-hidden rounded-lg shadow-xl ring-1 ring-white/10"
+        :class="isDesktop ? 'w-28' : 'w-24'"
+      >
         <PosterImage :image-url="posterUrl" />
       </div>
-      <h2 class="mt-3 text-center text-xl font-bold">
-        {{ title
-        }}<span v-if="year" class="font-normal text-gray-300">
-          ({{ year }})</span
+      <div class="flex min-w-0 flex-col pb-0.5">
+        <h2
+          class="font-bold leading-tight"
+          :class="isDesktop ? 'text-2xl' : 'text-xl'"
         >
-      </h2>
-      <div class="mt-1 text-center text-sm text-gray-400">
-        <slot name="date">{{ dateLabel }}</slot>
-      </div>
-    </div>
-  </div>
-
-  <!-- Mobile hero: shorter backdrop, compact poster + title row sits on it -->
-  <div v-else class="-mx-4 -mt-8 mb-4">
-    <div class="relative h-44 overflow-hidden bg-lowBackground">
-      <img
-        v-if="hasBackdrop"
-        :src="`https://image.tmdb.org/t/p/w780/${backdropPath}`"
-        alt=""
-        decoding="async"
-        loading="eager"
-        class="h-full w-full object-cover transition-opacity duration-500"
-        :class="backdropLoaded ? 'opacity-50' : 'opacity-0'"
-        @load="backdropLoaded = true"
-      />
-      <div
-        class="absolute inset-0 bg-gradient-to-b from-black/20 via-background/40 to-background"
-      ></div>
-    </div>
-
-    <div class="relative -mt-20 flex items-end gap-3 px-4">
-      <div class="w-20 flex-shrink-0 shadow-lg">
-        <PosterImage :image-url="posterUrl" />
-      </div>
-      <div class="flex min-w-0 flex-col pb-1">
-        <h2 class="text-xl font-bold leading-tight">
           {{ title
-          }}<span v-if="year" class="font-normal text-gray-300">
+          }}<span v-if="year" class="font-normal text-gray-400">
             ({{ year }})</span
           >
         </h2>
+        <!-- Media facts: runtime · genres for movies, authors · pages for books -->
+        <div v-if="$slots.meta" class="mt-1 text-sm leading-snug text-gray-300">
+          <slot name="meta" />
+        </div>
         <div class="mt-1 text-sm text-gray-400">
           <slot name="date">{{ dateLabel }}</slot>
         </div>

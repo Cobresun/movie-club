@@ -1,6 +1,6 @@
 <template>
   <div class="mt-6">
-    <h3 class="mb-3 text-sm font-medium text-gray-400">Comments</h3>
+    <SectionHeader title="Comments" />
 
     <delete-confirmation-modal
       :show="showDeleteConfirmation"
@@ -176,6 +176,7 @@ import { hasElements, hasValue } from "../../../lib/checks/checks.js";
 import { WorkCommentDto } from "../../../lib/types/lists";
 
 import DeleteConfirmationModal from "@/common/components/DeleteConfirmationModal.vue";
+import SectionHeader from "@/common/components/SectionHeader.vue";
 import {
   useAddReviewComment,
   useDeleteReviewComment,

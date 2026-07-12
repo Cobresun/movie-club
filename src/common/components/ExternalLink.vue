@@ -4,10 +4,10 @@
     :href="href"
     target="_blank"
     rel="noopener noreferrer"
-    class="flex items-center gap-2 text-primary hover:underline"
+    class="inline-flex items-center gap-1.5 rounded-full bg-lowBackground px-3 py-1.5 text-sm text-gray-200 transition hover:text-primary"
   >
     <span>{{ label }}</span>
-    <mdicon name="open-in-new" size="14" />
+    <mdicon name="open-in-new" size="13" class="text-gray-400" />
   </a>
 </template>
 
