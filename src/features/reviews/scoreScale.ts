@@ -17,3 +17,53 @@ export const isValidScore = (score: number): boolean =>
 /** Trim floating-point noise for display, matching ReviewView's table cells. */
 export const formatScore = (score: number): string =>
   String(Math.round(score * 100) / 100);
+
+export interface ScoreInputSanitization {
+  /** The corrected string to write back to the model and the DOM. */
+  value: string;
+  /** True when the raw text was altered — the caller shakes the field. */
+  corrected: boolean;
+  /** Set when the value was pulled to a bound, so the caller can explain it. */
+  clampedTo?: "min" | "max";
+}
+
+/**
+ * Normalize what a `<input type="number">` hands us into a legal score string.
+ * A number input happily keeps otherwise-nonsense text in its `value` — leading
+ * zeros ("00", "08", "007"), a third decimal digit, or an out-of-range number —
+ * because each is still a valid float literal. This is the single guard every
+ * score-entry surface runs typed input through so those never survive.
+ *
+ * Order matters: strip leading zeros first so "007.555" collapses to "7.55"
+ * rather than tripping over its own zeros. Partial states the user is still
+ * typing ("", "8.", "0.") pass through untouched.
+ */
+export const sanitizeScoreInput = (raw: string): ScoreInputSanitization => {
+  let value = raw;
+  let corrected = false;
+
+  // A leading zero before another digit is never how you type a 0-10 score.
+  // Preserve a lone "0" and the "0" in "0.5"; drop the rest ("00" -> "0").
+  const withoutLeadingZeros = value.replace(/^(-?)0+(\d)/, "$1$2");
+  if (withoutLeadingZeros !== value) {
+    value = withoutLeadingZeros;
+    corrected = true;
+  }
+
+  // Keep at most two decimals — the precision every score display rounds to.
+  const excessDecimals = /^(-?\d*\.\d{2})\d/.exec(value);
+  if (excessDecimals !== null) {
+    value = excessDecimals[1];
+    corrected = true;
+  }
+
+  const parsed = Number.parseFloat(value);
+  if (Number.isNaN(parsed)) return { value, corrected };
+  if (parsed > SCORE_MAX) {
+    return { value: String(SCORE_MAX), corrected: true, clampedTo: "max" };
+  }
+  if (parsed < SCORE_MIN) {
+    return { value: String(SCORE_MIN), corrected: true, clampedTo: "min" };
+  }
+  return { value, corrected };
+};

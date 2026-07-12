@@ -91,6 +91,7 @@ import {
 import {
   formatScore,
   isValidScore,
+  sanitizeScoreInput,
   SCORE_MAX,
   SCORE_MIN,
   SCORE_STEP,
@@ -150,33 +151,22 @@ const shakeInput = () => {
 // v-model owns echoing typed text back to the DOM (its directive skips the
 // write while the input is focused, which keeps partial states like "8."
 // alive — a number input's value setter would sanitize them to ""). This
-// handler only intervenes when the typed value leaves the scale (clamp) or
-// grows a third decimal (truncate): it rewrites both the model and the DOM
-// directly, since Vue won't re-patch when two inputs in a row correct to the
-// same model value (e.g. "12" then "120").
+// handler only intervenes when sanitizeScoreInput reports a correction (leading
+// zeros, a third decimal, or an out-of-range value): it rewrites both the model
+// and the DOM directly, since Vue won't re-patch when two inputs in a row
+// correct to the same model value (e.g. "12" then "120").
 const onInput = (event: Event) => {
   const target = event.target;
   if (!(target instanceof HTMLInputElement)) return;
-  let value = target.value;
-  const excessDecimals = /^(-?\d*\.\d{2})\d/.exec(value);
-  if (excessDecimals !== null) {
-    value = excessDecimals[1];
-    model.value = value;
-    target.value = value;
-    shakeInput();
-  }
-  const typed = Number.parseFloat(value);
-  if (Number.isNaN(typed)) return;
-  if (typed > SCORE_MAX) {
-    model.value = String(SCORE_MAX);
-    target.value = String(SCORE_MAX);
+  const { value, corrected, clampedTo } = sanitizeScoreInput(target.value);
+  if (!corrected) return;
+  model.value = value;
+  target.value = value;
+  shakeInput();
+  if (clampedTo === "max") {
     showClampNotice(`Max is ${SCORE_MAX} — set to ${SCORE_MAX.toFixed(1)}`);
-    shakeInput();
-  } else if (typed < SCORE_MIN) {
-    model.value = String(SCORE_MIN);
-    target.value = String(SCORE_MIN);
+  } else if (clampedTo === "min") {
     showClampNotice(`Min is ${SCORE_MIN} — set to ${SCORE_MIN.toFixed(1)}`);
-    shakeInput();
   }
 };
 

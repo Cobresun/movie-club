@@ -7,6 +7,7 @@ import {
   scoreFromPoint,
   scoreToFraction,
 } from "../scoreDialGeometry";
+import { sanitizeScoreInput } from "../scoreScale";
 
 describe("scoreBand", () => {
   it.each<[number, string]>([
@@ -68,5 +69,56 @@ describe("score dial geometry", () => {
     expect(scoreFromPoint(DIAL_CENTER_X + 50, DIAL_CENTER_Y + 30)).toBe(10);
     expect(scoreFromPoint(DIAL_CENTER_X - DIAL_RADIUS, DIAL_CENTER_Y)).toBe(0);
     expect(scoreFromPoint(DIAL_CENTER_X + DIAL_RADIUS, DIAL_CENTER_Y)).toBe(10);
+  });
+});
+
+describe("sanitizeScoreInput", () => {
+  it("leaves legal input untouched", () => {
+    for (const value of ["", "0", "0.5", "8", "8.5", "8.25", "10", "8."]) {
+      expect(sanitizeScoreInput(value)).toEqual({ value, corrected: false });
+    }
+  });
+
+  it("strips leading zeros a number input keeps in its value", () => {
+    // The reported bug: "00" reads as an in-range 0 and used to slip through.
+    expect(sanitizeScoreInput("00")).toEqual({ value: "0", corrected: true });
+    expect(sanitizeScoreInput("000")).toEqual({ value: "0", corrected: true });
+    expect(sanitizeScoreInput("08")).toEqual({ value: "8", corrected: true });
+    expect(sanitizeScoreInput("007")).toEqual({ value: "7", corrected: true });
+    expect(sanitizeScoreInput("00.5")).toEqual({
+      value: "0.5",
+      corrected: true,
+    });
+  });
+
+  it("caps a third decimal, matching the two-decimal display precision", () => {
+    expect(sanitizeScoreInput("8.555")).toEqual({
+      value: "8.55",
+      corrected: true,
+    });
+    // Leading zeros are stripped before decimals are counted.
+    expect(sanitizeScoreInput("007.555")).toEqual({
+      value: "7.55",
+      corrected: true,
+    });
+  });
+
+  it("clamps out-of-range values to the nearest bound", () => {
+    expect(sanitizeScoreInput("12")).toEqual({
+      value: "10",
+      corrected: true,
+      clampedTo: "max",
+    });
+    expect(sanitizeScoreInput("-5")).toEqual({
+      value: "0",
+      corrected: true,
+      clampedTo: "min",
+    });
+    // Leading-zero strip runs first, then the clamp sees the real magnitude.
+    expect(sanitizeScoreInput("-05")).toEqual({
+      value: "0",
+      corrected: true,
+      clampedTo: "min",
+    });
   });
 });
