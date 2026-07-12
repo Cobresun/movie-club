@@ -4,9 +4,19 @@ import type {
   AgLineSeriesTooltipRendererParams,
 } from "ag-charts-community";
 
+import {
+  axisLabelFontSize,
+  baseChartOptions,
+  baseLegendOptions,
+  CHART_SURFACE,
+  CLUB_SERIES_COLOR,
+  memberSeriesColor,
+} from "./chartPalette";
 import type {
+  CumulativeCountPoint,
   DecadeStats,
   HistogramData,
+  MonthlyActivityPoint,
   ScoreTrendPoint,
   ScoreVariancePoint,
   WorkStatsData,
@@ -28,12 +38,13 @@ export interface HistogramChartParams {
   filteredWorkData: WorkStatsData[];
   histogramData: HistogramData[];
   members: Member[];
+  compact: boolean;
 }
 
 export function createHistogramOptions(
   params: HistogramChartParams,
 ): AgCartesianChartOptions {
-  const { filteredWorkData, histogramData, members } = params;
+  const { filteredWorkData, histogramData, members, compact } = params;
 
   const filteredHistData = histogramData.map((bin) => {
     const filtered = { ...bin };
@@ -55,27 +66,31 @@ export function createHistogramOptions(
   });
 
   return {
-    theme: "ag-default-dark",
-    background: { visible: false },
+    ...baseChartOptions(compact),
     data: filteredHistData,
-    series: members.map((member) => {
+    // Stacked (not grouped) bars: one readable column per score bin however
+    // many members the club has — grouped slivers were unreadable on phones.
+    series: members.map((member, index) => {
+      const fill = memberSeriesColor(index);
       return {
         type: "bar" as const,
         direction: "vertical" as const,
-        grouped: true,
-        cornerRadius: 2,
+        stacked: true,
         xKey: "bin",
         xName: "Score",
         yKey: member.id,
         yName: member.name,
+        fill,
+        // Surface-colored seam keeps touching stack segments separable.
+        stroke: CHART_SURFACE,
+        strokeWidth: 1,
         showInLegend: true,
         tooltip: {
           renderer: function (
             params: AgBarSeriesTooltipRendererParams<HistogramData>,
           ) {
-            const name = members.find((m) => m.id === params.yKey)?.name;
             return (
-              `<div class="ag-chart-tooltip-title">${name}</div>` +
+              `<div class="ag-chart-tooltip-title" style="background-color: ${fill}">${member.name}</div>` +
               `<div class="ag-chart-tooltip-content">` +
               `${params.xName}: ${params.datum.bin}` +
               `</br>` +
@@ -90,30 +105,27 @@ export function createHistogramOptions(
       {
         type: "category",
         position: "bottom",
-        title: {
-          enabled: true,
-          text: "Score",
-        },
+        label: { fontSize: axisLabelFontSize(compact) },
+        title: { enabled: !compact, text: "Score" },
       },
       {
         type: "number",
         position: "left",
-        title: {
-          enabled: true,
-          text: "Frequency",
-        },
+        label: { fontSize: axisLabelFontSize(compact) },
+        title: { enabled: !compact, text: "Reviews" },
       },
     ],
+    legend: baseLegendOptions(compact),
   };
 }
 
 export function createDecadeChartOptions(
   decadeStats: DecadeStats[],
   countLabel = "Movies",
+  compact = false,
 ): AgCartesianChartOptions {
   return {
-    theme: "ag-default-dark",
-    background: { visible: false },
+    ...baseChartOptions(compact),
     data: decadeStats,
     series: [
       {
@@ -123,13 +135,14 @@ export function createDecadeChartOptions(
         xName: "Decade",
         yKey: "averageScore",
         yName: "Avg Score",
+        fill: CLUB_SERIES_COLOR,
         cornerRadius: 4,
         tooltip: {
           renderer: function (
             params: AgBarSeriesTooltipRendererParams<DecadeStats>,
           ) {
             return (
-              `<div class="ag-chart-tooltip-title">${params.datum.decade}</div>` +
+              `<div class="ag-chart-tooltip-title" style="background-color: ${CLUB_SERIES_COLOR}">${params.datum.decade}</div>` +
               `<div class="ag-chart-tooltip-content">` +
               `Avg Score: ${params.datum.averageScore}` +
               `<br/>` +
@@ -144,29 +157,29 @@ export function createDecadeChartOptions(
       {
         type: "category",
         position: "bottom",
+        label: { fontSize: axisLabelFontSize(compact) },
       },
       {
         type: "number",
         position: "left",
         min: 0,
         max: 10,
-        title: {
-          enabled: true,
-          text: "Average Score",
-        },
+        label: { fontSize: axisLabelFontSize(compact) },
+        title: { enabled: !compact, text: "Average Score" },
       },
     ],
+    legend: { enabled: false },
   };
 }
 
 export function createScoreVarianceChartOptions(
   variancePoints: ScoreVariancePoint[],
+  compact = false,
 ): AgCartesianChartOptions {
-  const stroke = "#A78BFA";
+  const stroke = CLUB_SERIES_COLOR;
 
   return {
-    theme: "ag-default-dark",
-    background: { visible: false },
+    ...baseChartOptions(compact),
     data: variancePoints,
     series: [
       {
@@ -203,6 +216,7 @@ export function createScoreVarianceChartOptions(
         position: "bottom",
         label: {
           format: "%b %Y",
+          fontSize: axisLabelFontSize(compact),
         },
       },
       {
@@ -210,10 +224,8 @@ export function createScoreVarianceChartOptions(
         position: "left",
         min: 0,
         nice: true,
-        title: {
-          enabled: true,
-          text: "Score Spread (std dev)",
-        },
+        label: { fontSize: axisLabelFontSize(compact) },
+        title: { enabled: !compact, text: "Score Spread (std dev)" },
       },
     ],
     legend: {
@@ -222,20 +234,10 @@ export function createScoreVarianceChartOptions(
   };
 }
 
-const TREND_COLORS = [
-  "#2196F3",
-  "#4CAF50",
-  "#FF9800",
-  "#E91E63",
-  "#9C27B0",
-  "#00BCD4",
-  "#FF5722",
-  "#8BC34A",
-];
-
 export function createScoreTrendChartOptions(
   trendData: Map<string, ScoreTrendPoint[]>,
   members: Member[],
+  compact = false,
 ): AgCartesianChartOptions {
   const allAverages = [...trendData.values()].flatMap((points) =>
     points.map((p) => p.rollingAverage),
@@ -243,9 +245,15 @@ export function createScoreTrendChartOptions(
   const dataMin = allAverages.length > 0 ? Math.min(...allAverages) : 0;
   const yMin = Math.max(0, Math.floor(dataMin) - 1);
 
+  // Color by position in the full member list (not the filtered one) so each
+  // member wears the same color here as in the distribution chart.
   const series = members
-    .filter((member) => trendData.has(member.id))
-    .map((member, index) => ({
+    .map((member, memberIndex) => ({
+      member,
+      color: memberSeriesColor(memberIndex),
+    }))
+    .filter(({ member }) => trendData.has(member.id))
+    .map(({ member, color }) => ({
       type: "line" as const,
       data: trendData.get(member.id),
       xKey: "date",
@@ -253,17 +261,16 @@ export function createScoreTrendChartOptions(
       yKey: "rollingAverage",
       yName: member.name,
       strokeWidth: 2.5,
-      stroke: TREND_COLORS[index % TREND_COLORS.length],
+      stroke: color,
       marker: {
         size: 4,
-        fill: TREND_COLORS[index % TREND_COLORS.length],
+        fill: color,
       },
       interpolation: { type: "smooth" as const },
       tooltip: {
         renderer: function (
           params: AgLineSeriesTooltipRendererParams<ScoreTrendPoint>,
         ) {
-          const color = TREND_COLORS[index % TREND_COLORS.length];
           return (
             `<div class="ag-chart-tooltip-title" style="background-color: ${color}">${member.name}</div>` +
             `<div class="ag-chart-tooltip-content">` +
@@ -277,8 +284,7 @@ export function createScoreTrendChartOptions(
     }));
 
   return {
-    theme: "ag-default-dark",
-    background: { visible: false },
+    ...baseChartOptions(compact),
     series,
     axes: [
       {
@@ -286,6 +292,7 @@ export function createScoreTrendChartOptions(
         position: "bottom",
         label: {
           format: "%b %Y",
+          fontSize: axisLabelFontSize(compact),
         },
       },
       {
@@ -294,14 +301,118 @@ export function createScoreTrendChartOptions(
         nice: false,
         min: yMin,
         max: 10,
-        title: {
-          enabled: true,
-          text: "Rolling Avg Score",
+        label: { fontSize: axisLabelFontSize(compact) },
+        title: { enabled: !compact, text: "Rolling Avg Score" },
+      },
+    ],
+    legend: baseLegendOptions(compact),
+  };
+}
+
+export function createMonthlyActivityChartOptions(
+  points: MonthlyActivityPoint[],
+  countLabel: string,
+  compact = false,
+): AgCartesianChartOptions {
+  return {
+    ...baseChartOptions(compact),
+    data: points,
+    series: [
+      {
+        type: "bar" as const,
+        direction: "vertical" as const,
+        xKey: "month",
+        xName: "Month",
+        yKey: "count",
+        yName: countLabel,
+        fill: CLUB_SERIES_COLOR,
+        cornerRadius: 2,
+        tooltip: {
+          renderer: function (
+            params: AgBarSeriesTooltipRendererParams<MonthlyActivityPoint>,
+          ) {
+            return (
+              `<div class="ag-chart-tooltip-title" style="background-color: ${CLUB_SERIES_COLOR}">${params.datum.label}</div>` +
+              `<div class="ag-chart-tooltip-content">` +
+              `${countLabel}: ${params.datum.count}` +
+              `</div>`
+            );
+          },
         },
       },
     ],
-    legend: {
-      position: "bottom",
-    },
+    axes: [
+      {
+        type: "time",
+        position: "bottom",
+        nice: false,
+        label: {
+          format: "%b %Y",
+          fontSize: axisLabelFontSize(compact),
+        },
+      },
+      {
+        type: "number",
+        position: "left",
+        label: { fontSize: axisLabelFontSize(compact) },
+        title: { enabled: !compact, text: countLabel },
+      },
+    ],
+    legend: { enabled: false },
+  };
+}
+
+export function createCumulativeCountChartOptions(
+  points: CumulativeCountPoint[],
+  countLabel: string,
+  compact = false,
+): AgCartesianChartOptions {
+  const stroke = CLUB_SERIES_COLOR;
+
+  return {
+    ...baseChartOptions(compact),
+    data: points,
+    series: [
+      {
+        type: "line" as const,
+        xKey: "date",
+        xName: "Date",
+        yKey: "total",
+        yName: countLabel,
+        strokeWidth: 2.5,
+        stroke,
+        marker: { size: 4, fill: stroke },
+        tooltip: {
+          renderer: function (
+            params: AgLineSeriesTooltipRendererParams<CumulativeCountPoint>,
+          ) {
+            return (
+              `<div class="ag-chart-tooltip-title" style="background-color: ${stroke}">${params.datum.title}</div>` +
+              `<div class="ag-chart-tooltip-content">` +
+              `${countLabel}: ${params.datum.total}` +
+              `</div>`
+            );
+          },
+        },
+      },
+    ],
+    axes: [
+      {
+        type: "time",
+        position: "bottom",
+        label: {
+          format: "%b %Y",
+          fontSize: axisLabelFontSize(compact),
+        },
+      },
+      {
+        type: "number",
+        position: "left",
+        min: 0,
+        label: { fontSize: axisLabelFontSize(compact) },
+        title: { enabled: !compact, text: countLabel },
+      },
+    ],
+    legend: { enabled: false },
   };
 }

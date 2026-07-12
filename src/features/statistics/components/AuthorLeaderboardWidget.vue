@@ -1,17 +1,15 @@
 <template>
-  <div class="mx-auto w-11/12">
-    <WidgetShell
-      outer-class="w-full"
-      inner-class="rounded-xl border border-slate-700/50 bg-lowBackground/60 p-6"
-    >
-      <PersonLeaderboard
-        title="Most Read Authors"
-        :entries="topAuthors"
-        item-noun="book"
-        empty-message="No author data available yet."
-      />
-    </WidgetShell>
-  </div>
+  <WidgetShell
+    v-if="topAuthors.length > 0"
+    title="Most Read Authors"
+    subtitle="Ranked by appearances in your club's reviews"
+  >
+    <PersonLeaderboard
+      :entries="topAuthors"
+      item-noun="book"
+      empty-message="No author data available yet."
+    />
+  </WidgetShell>
 </template>
 
 <script setup lang="ts">

@@ -2,6 +2,8 @@ import type {
   BookData,
   ClubConsensusEntry,
   ClubCurmudgeonEntry,
+  ClubRecords,
+  CumulativeCountPoint,
   DecadeStats,
   GenreStats,
   GenreWatchCount,
@@ -9,6 +11,7 @@ import type {
   HighestRatedByYearEntry,
   MemberLeaderboardEntry,
   MemberPairSimilarity,
+  MonthlyActivityPoint,
   MovieData,
   ScoreTrendPoint,
   ScoreVariancePoint,
@@ -799,14 +802,14 @@ export function computePublishDecadeStats(
 }
 
 export function computeHighestRatedByYear(
-  movieData: MovieData[],
+  workData: WorkStatsData[],
 ): HighestRatedByYearEntry[] {
   const yearGroups = new Map<
     number,
-    { best: MovieData | null; count: number }
+    { best: WorkStatsData | null; count: number }
   >();
 
-  for (const movie of movieData) {
+  for (const movie of workData) {
     if (!hasValue(movie.createdDate)) continue;
 
     const watchedDate = new Date(movie.createdDate);
@@ -835,9 +838,133 @@ export function computeHighestRatedByYear(
       title: group.best.title,
       imageUrl: group.best.imageUrl,
       average: Math.round(group.best.average * 100) / 100,
-      movieCount: group.count,
+      workCount: group.count,
     });
   }
 
   return entries.sort((a, b) => b.year - a.year);
+}
+
+/** Parse a work's review timestamp, or null if missing/invalid. */
+function reviewDate(work: WorkStatsData): Date | null {
+  if (!hasValue(work.createdDate)) return null;
+  const date = new Date(work.createdDate);
+  return isNaN(date.getTime()) ? null : date;
+}
+
+const MONTH_LABEL_FORMAT: Intl.DateTimeFormatOptions = {
+  month: "short",
+  year: "numeric",
+  timeZone: "UTC",
+};
+
+/**
+ * Reviews per calendar month (UTC), with zero-count months filled in between
+ * the club's first and last review so pace gaps are visible in the chart.
+ */
+export function computeMonthlyActivity(
+  workData: WorkStatsData[],
+): MonthlyActivityPoint[] {
+  const counts = new Map<number, number>();
+
+  for (const work of workData) {
+    const date = reviewDate(work);
+    if (!isDefined(date)) continue;
+    const monthStart = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1);
+    counts.set(monthStart, (counts.get(monthStart) ?? 0) + 1);
+  }
+
+  if (counts.size === 0) return [];
+
+  const monthStarts = [...counts.keys()];
+  const first = new Date(Math.min(...monthStarts));
+  const last = new Date(Math.max(...monthStarts));
+
+  const points: MonthlyActivityPoint[] = [];
+  const cursor = new Date(first);
+  while (cursor.getTime() <= last.getTime()) {
+    const month = new Date(cursor);
+    points.push({
+      month,
+      label: month.toLocaleString("en-US", MONTH_LABEL_FORMAT),
+      count: counts.get(month.getTime()) ?? 0,
+    });
+    cursor.setUTCMonth(cursor.getUTCMonth() + 1);
+  }
+
+  return points;
+}
+
+/** Running total of works reviewed, in review order. */
+export function computeCumulativeCounts(
+  workData: WorkStatsData[],
+): CumulativeCountPoint[] {
+  const dated: { date: Date; title: string }[] = [];
+
+  for (const work of workData) {
+    const date = reviewDate(work);
+    if (!isDefined(date)) continue;
+    dated.push({ date, title: work.title });
+  }
+
+  dated.sort((a, b) => a.date.getTime() - b.date.getTime());
+
+  return dated.map((entry, index) => ({
+    date: entry.date,
+    title: entry.title,
+    total: index + 1,
+  }));
+}
+
+// Records need some history to mean anything: a "highest rated" among one
+// work is just that work, and a spread needs at least two scorers.
+const MIN_WORKS_FOR_RECORDS = 2;
+const MIN_SCORES_FOR_DIVISIVE_RECORD = 2;
+
+/** All-time club records: best, worst, and widest-spread work. */
+export function computeClubRecords(workData: WorkStatsData[]): ClubRecords {
+  if (workData.length < MIN_WORKS_FOR_RECORDS) {
+    return { highest: null, lowest: null, mostDivisive: null };
+  }
+
+  const byAverage = [...workData].sort((a, b) => b.average - a.average);
+  const best = byAverage[0];
+  const worst = byAverage[byAverage.length - 1];
+
+  let mostDivisive: ClubRecords["mostDivisive"] = null;
+  let widestSpread = -1;
+  for (const work of workData) {
+    const scores = Object.values(work.userScores).filter(
+      (score): score is number => isDefined(score) && !isNaN(score),
+    );
+    if (scores.length < MIN_SCORES_FOR_DIVISIVE_RECORD) continue;
+
+    const mean = scores.reduce((sum, s) => sum + s, 0) / scores.length;
+    const variance =
+      scores.reduce((sum, s) => sum + (s - mean) ** 2, 0) / scores.length;
+    const stdDev = Math.sqrt(variance);
+
+    if (stdDev > widestSpread) {
+      widestSpread = stdDev;
+      mostDivisive = {
+        title: work.title,
+        imageUrl: work.imageUrl,
+        value: Math.round(stdDev * 100) / 100,
+      };
+    }
+  }
+
+  return {
+    highest: {
+      title: best.title,
+      imageUrl: best.imageUrl,
+      value: Math.round(best.average * 100) / 100,
+    },
+    lowest: {
+      title: worst.title,
+      imageUrl: worst.imageUrl,
+      value: Math.round(worst.average * 100) / 100,
+    },
+    mostDivisive,
+  };
 }

@@ -112,7 +112,37 @@ export interface HighestRatedByYearEntry {
   title: string;
   imageUrl: string | undefined;
   average: number;
-  movieCount: number;
+  workCount: number;
+}
+
+export interface MonthlyActivityPoint {
+  /** First day of the month (UTC) — plotted on a time axis. */
+  month: Date;
+  /** Preformatted "Mar 2024" for tooltips. */
+  label: string;
+  count: number;
+}
+
+export interface CumulativeCountPoint {
+  date: Date;
+  /** Title of the work reviewed at this point, for tooltips. */
+  title: string;
+  /** Works reviewed up to and including this one. */
+  total: number;
+}
+
+export interface ClubRecordEntry {
+  title: string;
+  imageUrl: string | undefined;
+  /** The record's headline number (average score, or score spread). */
+  value: number;
+}
+
+export interface ClubRecords {
+  highest: ClubRecordEntry | null;
+  lowest: ClubRecordEntry | null;
+  /** Work with the widest member score spread (std dev as `value`). */
+  mostDivisive: ClubRecordEntry | null;
 }
 
 export interface ScoreTrendPoint {
