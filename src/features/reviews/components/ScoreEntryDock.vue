@@ -91,18 +91,23 @@
         class="overflow-hidden transition-opacity duration-base ease-standard"
         :class="expanded ? 'opacity-0' : 'opacity-100'"
       >
-        <button
-          ref="ctaButton"
-          type="button"
-          :aria-expanded="expanded"
-          class="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-3 font-bold tracking-wide text-text transition hover:brightness-110 active:scale-[0.98]"
-          @click="expand"
-        >
-          <mdicon :name="isDefined(reviewId) ? 'pencil' : 'star'" size="20" />
-          <span>{{
-            isDefined(reviewId) ? "Edit score" : `Rate this ${noun}`
-          }}</span>
-        </button>
+        <!-- The CTA shares its row with an optional secondary action (e.g.
+             Share), so both collapse together when the panel expands. -->
+        <div class="flex items-center gap-2">
+          <button
+            ref="ctaButton"
+            type="button"
+            :aria-expanded="expanded"
+            class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary py-3 font-bold tracking-wide text-text transition hover:brightness-110 active:scale-[0.98]"
+            @click="expand"
+          >
+            <mdicon :name="isDefined(reviewId) ? 'pencil' : 'star'" size="20" />
+            <span>{{
+              isDefined(reviewId) ? "Edit score" : `Rate this ${noun}`
+            }}</span>
+          </button>
+          <slot name="secondary-action" />
+        </div>
       </div>
     </div>
   </div>

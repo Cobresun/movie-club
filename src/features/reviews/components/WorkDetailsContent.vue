@@ -8,15 +8,6 @@
       @cancel="cancelDelete"
     />
 
-    <button
-      type="button"
-      aria-label="Share review"
-      class="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm transition hover:bg-black/60"
-      @click="shareReview(movie.original.id)"
-    >
-      <mdicon name="share" size="18" />
-    </button>
-
     <!-- One layout for both breakpoints: the desktop side drawer is roughly
          phone-width, so only the hero scale and the score-entry footer differ. -->
     <WorkPosterHero
@@ -223,18 +214,42 @@
         :score="myReview?.score"
         :review-id="myReview?.id"
         @saved="onScoreSaved"
-      />
-      <button
-        v-else
-        type="button"
-        class="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-3 font-bold tracking-wide text-text transition hover:brightness-110 active:scale-[0.98]"
-        @click="showScoreEntry = true"
       >
-        <mdicon :name="isDefined(myReview) ? 'pencil' : 'star'" size="20" />
-        <span>{{
-          isDefined(myReview) ? "Edit score" : `Rate this ${mediaNoun}`
-        }}</span>
-      </button>
+        <!-- Share graduates to a primary action beside "Edit score" once the
+             user has a score to share. It lives in the dock's CTA row so it
+             collapses in step when the score panel expands. -->
+        <template v-if="isDefined(myReview)" #secondary-action>
+          <button
+            type="button"
+            class="flex shrink-0 items-center justify-center gap-2 rounded-lg bg-lowBackground px-4 py-3 font-bold tracking-wide text-gray-200 transition hover:brightness-110 active:scale-[0.98]"
+            @click="shareReview(movie.original.id)"
+          >
+            <mdicon name="share" size="20" />
+            <span>Share</span>
+          </button>
+        </template>
+      </ScoreEntryDock>
+      <div v-else class="flex items-center gap-2">
+        <button
+          type="button"
+          class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary py-3 font-bold tracking-wide text-text transition hover:brightness-110 active:scale-[0.98]"
+          @click="showScoreEntry = true"
+        >
+          <mdicon :name="isDefined(myReview) ? 'pencil' : 'star'" size="20" />
+          <span>{{
+            isDefined(myReview) ? "Edit score" : `Rate this ${mediaNoun}`
+          }}</span>
+        </button>
+        <button
+          v-if="isDefined(myReview)"
+          type="button"
+          class="flex shrink-0 items-center justify-center gap-2 rounded-lg bg-lowBackground px-4 py-3 font-bold tracking-wide text-gray-200 transition hover:brightness-110 active:scale-[0.98]"
+          @click="shareReview(movie.original.id)"
+        >
+          <mdicon name="share" size="20" />
+          <span>Share</span>
+        </button>
+      </div>
     </div>
 
     <ScoreEntryModal
