@@ -376,12 +376,17 @@ const columns = computed(() => [
         const editable = info.meta?.editable !== false;
 
         const shouldBlur = shouldBlurScore(info.row.id, info.column.id);
+        // Gallery poster cards blur unrated scores but must not reveal them on
+        // click — reveal there flows through the details drawer's own pill.
+        const revealOnClick = shouldBlur && info.meta?.revealable !== false;
 
         return h(
           "div",
           {
-            class: shouldBlur ? "cursor-pointer hover:text-xl" : "",
-            onClick: shouldBlur ? () => toggleReveal(info.row.id) : undefined,
+            class: revealOnClick ? "cursor-pointer hover:text-xl" : "",
+            onClick: revealOnClick
+              ? () => toggleReveal(info.row.id)
+              : undefined,
           },
           [
             h(ReviewScore, {
@@ -391,7 +396,11 @@ const columns = computed(() => [
               reviewId: info.row.original.scores[member.id]?.id,
               size,
               editable,
-              class: shouldBlur ? "filter blur cursor-pointer" : "",
+              class: shouldBlur
+                ? revealOnClick
+                  ? "filter blur cursor-pointer"
+                  : "filter blur"
+                : "",
             }),
           ],
         );
@@ -423,14 +432,17 @@ const columns = computed(() => [
       }
 
       const shouldBlur = shouldBlurScore(info.row.id, info.column.id);
+      const revealOnClick = shouldBlur && info.meta?.revealable !== false;
 
       return h(
         "div",
         {
           class: shouldBlur
-            ? "font-bold text-lg text-primary filter blur cursor-pointer"
+            ? revealOnClick
+              ? "font-bold text-lg text-primary filter blur cursor-pointer"
+              : "font-bold text-lg text-primary filter blur"
             : "font-bold text-lg text-primary",
-          onClick: shouldBlur ? () => toggleReveal(info.row.id) : undefined,
+          onClick: revealOnClick ? () => toggleReveal(info.row.id) : undefined,
         },
         Math.round(review * 100) / 100,
       );

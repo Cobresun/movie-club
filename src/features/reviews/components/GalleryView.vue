@@ -91,7 +91,7 @@
                   :render="cell.column.columnDef.cell"
                   :props="{
                     ...cell.getContext(),
-                    meta: { size: 'sm', editable: false },
+                    meta: { size: 'sm', editable: false, revealable: false },
                   }"
                 />
               </div>
