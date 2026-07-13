@@ -75,6 +75,31 @@ html[data-route-transition="pop"] .route-leave-to {
   transform: translateX(100%);
 }
 
+/* Scroll-reveal (v-reveal directive, src/directives/Reveal.ts). */
+.reveal-init {
+  opacity: 0;
+  transform: translateY(16px);
+  transition:
+    opacity var(--motion-slow) var(--ease-standard),
+    transform var(--motion-slow) var(--ease-emphasized);
+}
+.reveal-init.reveal-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* One-shot mount animation for content that always renders fresh
+   (empty states); `both` keeps the pre-animation frame hidden. */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+.animate-fade-up {
+  animation: fade-up var(--motion-slow) var(--ease-standard) both;
+}
+
 html {
   font-family: "Poppins", sans-serif;
   -webkit-font-smoothing: antialiased;
