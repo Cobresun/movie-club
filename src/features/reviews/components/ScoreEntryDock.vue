@@ -60,6 +60,7 @@
                 :work-id="target.id"
                 :score="score"
                 :review-id="reviewId"
+                :draft-score="suggestedScore"
                 :autofocus="openCount > 0"
                 :autofocus-delay="AUTOFOCUS_DELAY_MS"
                 @submit="collapse"
@@ -71,8 +72,7 @@
                 :target="target"
                 :candidates="candidates"
                 :club-type="clubType"
-                @saved="emit('saved')"
-                @close="collapse"
+                @suggest="applySuggestion"
               />
             </Transition>
           </AnimatedHeight>
@@ -160,8 +160,17 @@ const openCount = ref(0);
 
 const ctaButton = ref<HTMLButtonElement | null>(null);
 
+// The assist flow doesn't save; it hands its suggestion back so the panel
+// swaps back to the dial pre-filled, leaving the actual save to the user.
+const suggestedScore = ref<number>();
+const applySuggestion = (score: number) => {
+  suggestedScore.value = score;
+  mode.value = "entry";
+};
+
 const expand = () => {
   mode.value = "entry";
+  suggestedScore.value = undefined;
   openCount.value++;
   expanded.value = true;
 };

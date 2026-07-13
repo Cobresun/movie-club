@@ -58,6 +58,10 @@ const props = defineProps<{
   workId: string;
   score?: number;
   reviewId?: string;
+  // Pre-fills the input with a not-yet-saved value (Score Assist's suggestion)
+  // without touching `score`, which stays the persisted value — so saving the
+  // draft still counts as a change and actually submits.
+  draftScore?: number;
   // When true, focus (and scroll to) the field once mounted. The table popover
   // uses this immediately; the drawer's ScoreEntryDock sets `autofocusDelay`
   // so focus waits for its expansion to finish rather than scrolling
@@ -85,7 +89,9 @@ const noun = computed(
   () => clubTypeConfig(club.value?.type ?? ClubType.movie).noun,
 );
 
-const scoreModel = ref(props.score?.toString() ?? "");
+const scoreModel = ref(
+  props.draftScore?.toString() ?? props.score?.toString() ?? "",
+);
 
 // Typed by the dial's exposed surface rather than InstanceType<typeof ScoreDial>:
 // ESLint's type-aware program cannot resolve .vue module types, so the latter
@@ -95,13 +101,12 @@ interface ScoreDialExposed {
 }
 const scoreDial = ref<ScoreDialExposed | null>(null);
 
-// Re-seed the field when the score changes out from under us — e.g. after Score
-// Assist saves a suggestion and the drawer reappears. `scoreModel` is seeded
-// from `props.score` only at mount, so this keeps it in sync without re-keying
-// the panel (a remount would re-run onMounted and wrongly re-fire autofocus).
-// The drawer has no second writer of the current user's score, so replacing the
-// draft on every change is always correct and never discards real in-progress
-// typing.
+// Re-seed the field when the persisted score changes out from under us (e.g.
+// a save landing while the drawer reappears). `scoreModel` is seeded only at
+// mount, so this keeps it in sync without re-keying the panel (a remount would
+// re-run onMounted and wrongly re-fire autofocus). The drawer has no second
+// writer of the current user's score, so replacing the draft on every change
+// is always correct and never discards real in-progress typing.
 watch(
   () => props.score,
   (score) => {

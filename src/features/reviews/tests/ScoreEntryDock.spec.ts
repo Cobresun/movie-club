@@ -120,14 +120,18 @@ describe("ScoreEntryDock", () => {
     ).toBeInTheDocument();
   });
 
-  it("swaps to the assist flow in place and collapses when it finishes", async () => {
+  it("swaps to the assist flow in place and prefills the dial with its suggestion", async () => {
+    let posted: unknown;
     server.use(
       http.get("/api/club/:clubSlug/list/reviews", () =>
         HttpResponse.json(
           [2, 3, 4, 5, 6, 7].map((n) => scoredReview(`m${n}`, n)),
         ),
       ),
-      http.post("/api/club/test-club/reviews", () => HttpResponse.json({})),
+      http.post("/api/club/test-club/reviews", async ({ request }) => {
+        posted = await request.json();
+        return HttpResponse.json({});
+      }),
     );
 
     const { user, pinia } = render(ScoreEntryDock, {
@@ -147,9 +151,18 @@ describe("ScoreEntryDock", () => {
     ).toBeInTheDocument();
     expect(screen.queryByRole("spinbutton")).not.toBeInTheDocument();
 
-    // Finishing the flow saves immediately and collapses the whole dock back
-    // to the CTA.
+    // Finishing the flow swaps back to the dial pre-filled with the
+    // suggestion (the first pivot's score, 5) — nothing is saved yet.
     await user.click(screen.getByRole("button", { name: "Too close to call" }));
+    expect(
+      await screen.findByRole("spinbutton", { name: "Score" }),
+    ).toHaveValue(5);
+    expect(posted).toBeUndefined();
+
+    // Saving is still the user's call; it persists and collapses the dock
+    // back to the CTA.
+    await user.click(screen.getByRole("button", { name: "Save score" }));
+    await waitFor(() => expect(posted).toEqual({ workId: "target", score: 5 }));
     await waitFor(() =>
       expect(
         screen.getByRole("button", { name: /Rate this movie/ }),

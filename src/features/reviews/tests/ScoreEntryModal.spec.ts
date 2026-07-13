@@ -98,13 +98,17 @@ describe("ScoreEntryModal", () => {
   });
 
   it("swaps to the assist flow in place instead of stacking a second overlay", async () => {
+    let posted: unknown;
     server.use(
       http.get("/api/club/:clubSlug/list/reviews", () =>
         HttpResponse.json(
           [2, 3, 4, 5, 6, 7].map((n) => scoredReview(`m${n}`, n)),
         ),
       ),
-      http.post("/api/club/test-club/reviews", () => HttpResponse.json({})),
+      http.post("/api/club/test-club/reviews", async ({ request }) => {
+        posted = await request.json();
+        return HttpResponse.json({});
+      }),
     );
 
     const rendered = render(ScoreEntryModal, {
@@ -127,9 +131,18 @@ describe("ScoreEntryModal", () => {
       screen.queryByRole("button", { name: "Save score" }),
     ).not.toBeInTheDocument();
 
-    // Finishing the flow saves immediately and closes the whole modal, not
-    // just the assist layer.
+    // Finishing the flow swaps back to the dial pre-filled with the
+    // suggestion (the first pivot's score, 5); the modal stays open and
+    // nothing is saved until the user says so.
     await user.click(screen.getByRole("button", { name: "Too close to call" }));
-    await waitFor(() => expect(rendered.emitted().close).toHaveLength(1));
+    expect(
+      await screen.findByRole("spinbutton", { name: "Score" }),
+    ).toHaveValue(5);
+    expect(posted).toBeUndefined();
+    expect(rendered.emitted().close).toBeUndefined();
+
+    await user.click(screen.getByRole("button", { name: "Save score" }));
+    await waitFor(() => expect(posted).toEqual({ workId: "target", score: 5 }));
+    expect(rendered.emitted().close).toHaveLength(1);
   });
 });

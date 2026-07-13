@@ -98,7 +98,7 @@ describe("ScoreAssistModal", () => {
     ).toBeInTheDocument();
   });
 
-  it("saves the converged suggestion automatically, with a toast", async () => {
+  it("prefills the entry panel with the converged suggestion, with a toast", async () => {
     let postedBody: unknown;
     server.use(
       http.post("/api/club/test-club/reviews", async ({ request }) => {
@@ -113,23 +113,32 @@ describe("ScoreAssistModal", () => {
     const { user, pinia } = rendered;
     logIn(pinia);
 
-    // Beat Movie 4, then Movie 5 (the top): aboveAll -> 5 + 0.5, saved
-    // immediately — there is no confirmation screen.
+    // Beat Movie 4, then Movie 5 (the top): aboveAll -> 5 + 0.5. The
+    // suggestion lands in the dial, not the database — saving is the user's
+    // call.
     await user.click(
       screen.getByRole("button", { name: "I liked Target Movie more" }),
     );
     await user.click(
       screen.getByRole("button", { name: "I liked Target Movie more" }),
     );
+
+    expect(toastSuccess).toHaveBeenCalledWith("We picked 5.5/10");
+    expect(
+      await screen.findByRole("spinbutton", { name: "Score" }),
+    ).toHaveValue(5.5);
+    expect(postedBody).toBeUndefined();
+    expect(rendered.emitted().close).toBeUndefined();
+
+    await user.click(screen.getByRole("button", { name: "Save score" }));
 
     await waitFor(() =>
       expect(postedBody).toEqual({ workId: "target", score: 5.5 }),
     );
     expect(rendered.emitted().close).toHaveLength(1);
-    expect(toastSuccess).toHaveBeenCalledWith("We picked 5.5/10");
   });
 
-  it("saves the pivot's score straight away on 'too close to call'", async () => {
+  it("prefills the pivot's score on 'too close to call'", async () => {
     let postedBody: unknown;
     server.use(
       http.post("/api/club/test-club/reviews", async ({ request }) => {
@@ -146,13 +155,20 @@ describe("ScoreAssistModal", () => {
 
     await user.click(screen.getByRole("button", { name: "Too close to call" }));
 
+    expect(
+      await screen.findByRole("spinbutton", { name: "Score" }),
+    ).toHaveValue(4);
+    expect(postedBody).toBeUndefined();
+
+    await user.click(screen.getByRole("button", { name: "Save score" }));
+
     await waitFor(() =>
       expect(postedBody).toEqual({ workId: "target", score: 4 }),
     );
     expect(rendered.emitted().close).toHaveLength(1);
   });
 
-  it("updates an existing review with PUT", async () => {
+  it("updates an existing review with PUT when the suggestion is saved", async () => {
     let putBody: unknown;
     server.use(
       http.put(
@@ -178,6 +194,7 @@ describe("ScoreAssistModal", () => {
     logIn(pinia);
 
     await user.click(screen.getByRole("button", { name: "Too close to call" }));
+    await user.click(await screen.findByRole("button", { name: "Save score" }));
 
     await waitFor(() => expect(putBody).toEqual({ score: 4 }));
     expect(rendered.emitted().close).toHaveLength(1);

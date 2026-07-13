@@ -62,9 +62,6 @@ import { formatScore } from "../scoreScale";
 import { clubTypeConfig } from "@/common/clubType";
 import WorkPosterCard from "@/common/components/WorkPosterCard.vue";
 import { workPosterUrl } from "@/common/workDisplay";
-import { useClubSlug } from "@/service/useClub";
-import { useSubmitScore } from "@/service/useReviews";
-import { useUser } from "@/service/useUser";
 
 // Content-only: the comparison flow with no overlay of its own, so hosts can
 // swap it into whatever surface is already open (ScoreEntryModal and the
@@ -78,11 +75,10 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  // Fired the moment a suggestion is persisted, so the host can celebrate the
-  // freshly-saved score. Separate from "close" (which also tears the flow
-  // down) because non-drawer hosts ignore the fanfare.
-  (e: "saved"): void;
-  (e: "close"): void;
+  // Fired the moment the session converges on a suggestion. Nothing is
+  // persisted here: the host pre-fills its score input with the value and
+  // leaves saving to the user.
+  (e: "suggest", score: number): void;
 }>();
 
 const {
@@ -108,26 +104,18 @@ const pivotPosterUrl = computed(() =>
     : "",
 );
 
-const clubSlug = useClubSlug();
-const user = useUser();
-const submitScore = useSubmitScore(clubSlug);
 const toast = useToast();
 
-// No result screen: the moment the session converges, save the suggestion and
-// close, announcing the picked score in a toast instead of asking the user to
-// confirm it.
+// No result screen: the moment the session converges, announce the picked
+// score in a toast and hand it to the host, which pre-fills its score input
+// so the user can save it (or tweak it first) themselves.
 const answer = (choice: ComparisonAnswer) => {
   answerSession(choice);
   const outcome = result.value;
   if (!isDefined(outcome)) return;
   const score = outcome.suggestedScore;
-  const reviewId = isDefined(user.value)
-    ? props.target.scores[user.value.id]?.id
-    : undefined;
-  submitScore({ workId: props.target.id, reviewId, score });
   toast.success(`We picked ${formatScore(score)}/10`);
-  emit("saved");
-  emit("close");
+  emit("suggest", score);
 };
 </script>
 

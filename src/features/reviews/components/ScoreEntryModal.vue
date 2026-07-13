@@ -8,6 +8,7 @@
         :work-id="target.id"
         :score="score"
         :review-id="reviewId"
+        :draft-score="suggestedScore"
         @submit="emit('close')"
         @saved="emit('saved')"
         @assist="mode = 'assist'"
@@ -26,8 +27,7 @@
         :target="target"
         :candidates="candidates"
         :club-type="clubType"
-        @saved="emit('saved')"
-        @close="emit('close')"
+        @suggest="applySuggestion"
       />
     </template>
   </v-modal>
@@ -59,6 +59,14 @@ const emit = defineEmits<{
 }>();
 
 const mode = ref<"entry" | "assist">("entry");
+
+// The assist flow doesn't save; it hands its suggestion back so the dial is
+// pre-filled and the user decides whether to hit "Save score".
+const suggestedScore = ref<number>();
+const applySuggestion = (score: number) => {
+  suggestedScore.value = score;
+  mode.value = "entry";
+};
 
 // Assist inputs are derived here (from the cached reviews query) rather than
 // prop-drilled through the drawer, so any surface can host this modal with
