@@ -27,7 +27,7 @@
     <h2 class="mb-8 mt-16 text-center text-2xl font-bold md:text-3xl">
       Everything your club needs
     </h2>
-    <div class="mx-auto grid max-w-5xl gap-6 sm:grid-cols-2 lg:grid-cols-4">
+    <div class="mx-auto grid max-w-4xl gap-6 md:grid-cols-3">
       <LandingFeatureCard
         v-for="feature in features"
         :key="feature.title"
@@ -54,7 +54,6 @@
 import LandingFeatureCard from "../components/LandingFeatureCard.vue";
 
 import homeCinemaSvg from "@/assets/images/home_cinema.svg";
-import awardsSvg from "@/assets/images/menu-images/awards.svg";
 import reviewSvg from "@/assets/images/menu-images/review.svg";
 import statisticsSvg from "@/assets/images/menu-images/statistics.svg";
 import watchlistSvg from "@/assets/images/menu-images/watchlist.svg";
@@ -84,12 +83,6 @@ const features: FeatureHighlight[] = [
     title: "Statistics",
     description:
       "Charts reveal your club's patterns — top genres, toughest critics, and taste twins.",
-  },
-  {
-    image: awardsSvg,
-    title: "Awards",
-    description:
-      "Host your own annual awards with categories, nominations, and ranked voting.",
   },
 ];
 
