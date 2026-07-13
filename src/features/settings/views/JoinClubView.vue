@@ -35,6 +35,9 @@
 import { computed, watchEffect } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
+import { hasValue } from "../../../../lib/checks/checks.js";
+
+import { setLastClubSlug } from "@/common/composables/useLastClubSlug";
 import { useJoinClub, useClubDetails, useIsInClub } from "@/service/useClub";
 import { useAuthStore } from "@/stores/auth";
 
@@ -53,18 +56,24 @@ const {
 } = useClubDetails(inviteToken);
 const isLoading = computed(() => isClubDetailsLoading.value || isJoining.value);
 
-const isInClub = useIsInClub(clubDetails.value?.clubId ?? "");
+const clubSlug = computed(() => clubDetails.value?.slug ?? "");
+const isInClub = useIsInClub(clubSlug);
 
 const handleJoinClub = () => {
   joinClub();
 };
 
+// Redirects to the club once the user is a member — either immediately for
+// users who were already members, or after the join mutation refreshes the
+// membership list. `replace` keeps the invite page out of history so the back
+// button doesn't bounce the user through the redirect again.
 watchEffect(() => {
-  if (isInClub.value === true) {
+  if (isInClub.value === true && hasValue(clubSlug.value)) {
+    setLastClubSlug(clubSlug.value);
     router
-      .push({
+      .replace({
         name: "ClubHome",
-        params: { clubId: clubDetails.value?.clubId },
+        params: { clubSlug: clubSlug.value },
       })
       .catch(console.error);
   }
