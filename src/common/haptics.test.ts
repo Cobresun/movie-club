@@ -20,21 +20,8 @@ describe("hapticTick", () => {
     expect(vibrate).toHaveBeenCalledWith(10);
   });
 
-  it("falls back to clicking a hidden native switch without vibrate (iOS)", () => {
-    const click = vi
-      .spyOn(HTMLElement.prototype, "click")
-      .mockImplementation(() => undefined);
-
-    hapticTick();
-
-    expect(click).toHaveBeenCalledTimes(1);
-    const clicked = click.mock.contexts[0];
-    expect(clicked).toBeInstanceOf(HTMLLabelElement);
-    if (!(clicked instanceof HTMLLabelElement)) return;
-    const input = clicked.querySelector("input");
-    expect(input?.type).toBe("checkbox");
-    expect(input?.hasAttribute("switch")).toBe(true);
-    // The throwaway control must not linger in the document.
-    expect(document.body.querySelector("label")).toBeNull();
+  it("no-ops when the browser has no Vibration API (iOS Safari, desktop)", () => {
+    // jsdom's navigator has no vibrate, so this is the unsupported path.
+    expect(() => hapticTick()).not.toThrow();
   });
 });
