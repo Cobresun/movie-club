@@ -1,54 +1,72 @@
 <template>
   <div ref="galleryContainerRef" class="flex">
     <div class="w-full md:px-6">
-      <div class="relative mb-4 flex max-w-full flex-wrap gap-2">
+      <div class="relative mb-4 flex max-w-full flex-wrap items-center gap-2">
         <Listbox v-model="selectedSort">
-          <ListboxButton
-            class="flex items-center whitespace-nowrap rounded-full border border-white px-4 py-1"
-            ><span>Sort By</span><mdicon name="chevron-down"
-          /></ListboxButton>
-          <ListboxOptions
-            class="absolute z-10 rounded-md border border-white bg-background"
-          >
-            <ListboxOption
-              v-for="header in getSortableColumns()"
-              :key="header.id"
-              :value="header.id"
-              class="min-w-32 cursor-pointer px-2 py-1 text-left hover:bg-lowBackground"
+          <div class="relative">
+            <ListboxButton
+              class="flex items-center gap-1 whitespace-nowrap rounded-full border border-white px-4 py-1"
             >
-              <FlexRender
-                :render="header.column.columnDef.header"
-                :props="{
-                  ...header.getContext(),
-                  meta: { size: 'sm', showName: true },
-                }"
-              />
-            </ListboxOption>
-          </ListboxOptions>
+              <span>{{ activeSortOption ? "Sorted by" : "Sort by" }}</span>
+              <span v-if="activeSortOption" class="font-semibold">{{
+                activeSortOption.label
+              }}</span>
+              <mdicon name="chevron-down" />
+            </ListboxButton>
+            <ListboxOptions
+              class="absolute z-10 mt-1 max-h-80 overflow-auto rounded-md border border-white bg-background py-1"
+            >
+              <p class="px-3 py-1 text-left text-sm text-gray-400">
+                Sort reviews by
+              </p>
+              <ListboxOption
+                v-for="option in sortOptions"
+                v-slot="{ selected }"
+                :key="option.id"
+                :value="option.id"
+              >
+                <div
+                  class="flex min-w-52 cursor-pointer items-center gap-2 px-3 py-2 text-left hover:bg-lowBackground"
+                >
+                  <VAvatar
+                    v-if="option.type === 'member'"
+                    :src="option.image"
+                    :name="option.name"
+                    :size="24"
+                  />
+                  <img
+                    v-else-if="option.type === 'average'"
+                    :src="AverageImg"
+                    class="h-6 w-6 max-w-none"
+                  />
+                  <mdicon v-else name="clock-outline" class="w-6" />
+                  <span class="flex-grow">{{ option.label }}</span>
+                  <mdicon v-if="selected" name="check" class="text-primary" />
+                </div>
+              </ListboxOption>
+            </ListboxOptions>
+          </div>
         </Listbox>
 
-        <div
-          v-if="sortState[0]"
-          class="flex items-center whitespace-nowrap rounded-full border border-white px-4 py-1"
+        <button
+          v-if="activeSortOption"
+          type="button"
+          class="flex items-center gap-2 whitespace-nowrap rounded-full border border-white px-4 py-1 hover:bg-lowBackground"
+          :title="`Currently ${directionLabel.toLowerCase()}. Click to reverse.`"
+          @click="reverseSort"
         >
-          <FlexRender
-            :render="reviewTable.getColumn(sortState[0].id)?.columnDef.header"
-            :props="{ meta: { showName: true, size: 'sm' } }"
-          />
-          <mdicon
-            :name="sortState[0].desc ? 'chevron-down' : 'chevron-up'"
-            class="ml-2 cursor-pointer"
-            @click="reverseSort"
-          />
-        </div>
-        <div
-          v-if="sortState[0]"
-          class="flex cursor-pointer items-center whitespace-nowrap rounded-full border border-white px-4 py-1"
+          <mdicon :name="sortState[0]?.desc ? 'chevron-down' : 'chevron-up'" />
+          <span>{{ directionLabel }}</span>
+        </button>
+        <button
+          v-if="activeSortOption"
+          type="button"
+          class="flex cursor-pointer items-center gap-1 whitespace-nowrap rounded-full border border-white px-4 py-1 hover:bg-lowBackground"
           @click="selectedSort = undefined"
         >
           Clear
           <mdicon name="close" />
-        </div>
+        </button>
       </div>
 
       <!-- Removal stays instant (absolute hidden) so filtering never lags;
@@ -134,6 +152,8 @@ import { Member } from "../../../../lib/types/club";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
 import { RequestScoreEntryKey } from "../scoreEntry";
 
+import AverageImg from "@/assets/images/average.svg";
+import VAvatar from "@/common/components/VAvatar.vue";
 import WorkPosterCard from "@/common/components/WorkPosterCard.vue";
 
 const props = defineProps<{
@@ -178,6 +198,52 @@ const getSortableColumns = () => {
     return !NON_SORTABLE_COLUMNS.includes(header.id);
   });
 };
+
+// The raw column headers are avatars and images, so "sort by <avatar>" reads as
+// meaningless to users. Map each sortable column to a plain-language descriptor
+// ("Sarah's rating", "Average rating", "Date reviewed") the dropdown can spell
+// out instead.
+type SortOption =
+  | { id: string; type: "member"; label: string; name: string; image?: string }
+  | { id: string; type: "average"; label: string }
+  | { id: string; type: "date"; label: string };
+
+const sortOptions = computed<SortOption[]>(() =>
+  getSortableColumns()
+    .filter((header) => header.column.getCanSort())
+    .map((header) => {
+      const id = header.id;
+      const member = props.members.find((m) => `member_${m.id}` === id);
+      if (isDefined(member)) {
+        return {
+          id,
+          type: "member",
+          label: `${member.name}'s rating`,
+          name: member.name,
+          image: member.image,
+        };
+      }
+      if (id === "score_average") {
+        return { id, type: "average", label: "Average rating" };
+      }
+      return { id, type: "date", label: "Date reviewed" };
+    }),
+);
+
+const activeSortOption = computed(() =>
+  sortOptions.value.find((option) => option.id === sortState.value[0]?.id),
+);
+
+// Direction words depend on what's being sorted: dates read newest/oldest,
+// ratings read highest/lowest. A bare up/down chevron didn't convey either.
+const directionLabel = computed(() => {
+  const sort = sortState.value[0];
+  if (!isDefined(sort)) return "";
+  if (activeSortOption.value?.type === "date") {
+    return sort.desc ? "Newest first" : "Oldest first";
+  }
+  return sort.desc ? "Highest first" : "Lowest first";
+});
 
 const getCell = (row: Row<DetailedReviewListItem>, columnId: string) => {
   return row.getVisibleCells().find((cell) => cell.column.id === columnId);

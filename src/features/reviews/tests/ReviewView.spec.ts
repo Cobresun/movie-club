@@ -46,6 +46,46 @@ describe("ReviewView", () => {
     expect(await screen.findByRole("table")).toBeInTheDocument();
   });
 
+  it("should show human-readable sort options in the gallery sort menu", async () => {
+    const { user } = render(ReviewView, { props: { clubSlug: "1" } });
+
+    // Gallery view is the default; open the "Sort by" menu.
+    const sortButton = await screen.findByRole("button", { name: /sort by/i });
+    await user.click(sortButton);
+
+    // Members are spelled out as "<name>'s rating" instead of a bare avatar,
+    // and the aggregate/date columns get plain-language labels too.
+    expect(
+      await screen.findByRole("option", { name: /dev's rating/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("option", { name: /average rating/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("option", { name: /date reviewed/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("should describe the sort direction in words once a sort is chosen", async () => {
+    const { user } = render(ReviewView, { props: { clubSlug: "1" } });
+
+    const sortButton = await screen.findByRole("button", { name: /sort by/i });
+    await user.click(sortButton);
+
+    await user.click(
+      await screen.findByRole("option", { name: /average rating/i }),
+    );
+
+    // Direction reads as words rather than a bare chevron, and reverses on click.
+    const directionButton = await screen.findByRole("button", {
+      name: /highest first/i,
+    });
+    await user.click(directionButton);
+    expect(
+      await screen.findByRole("button", { name: /lowest first/i }),
+    ).toBeInTheDocument();
+  });
+
   it("should filter reviews when using search bar", async () => {
     const { user } = render(ReviewView, { props: { clubSlug: "1" } });
     const searchBar = await screen.findByRole("textbox");
