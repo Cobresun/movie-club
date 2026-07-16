@@ -106,14 +106,23 @@ class ClubRepository {
   }
 
   async isUserInClub(clubId: string, userId: string, isLegacy?: boolean) {
-    const clubCondition = isTrue(isLegacy) ? "club.legacy_id" : "club.id";
+    // Legacy ids live on the club table, so that variant still needs the
+    // join; the hot path (real club id, checked by `secured` on every write)
+    // is a single index lookup on club_member.
+    if (isTrue(isLegacy)) {
+      return !!(await db
+        .selectFrom("club_member")
+        .innerJoin("club", "club.id", "club_member.club_id")
+        .where("club_member.user_id", "=", userId)
+        .where("club.legacy_id", "=", clubId)
+        .select("club_member.user_id")
+        .executeTakeFirst());
+    }
     return !!(await db
-      .selectFrom("user")
-      .where("user.id", "=", userId)
-      .innerJoin("club_member", "club_member.user_id", "user.id")
-      .innerJoin("club", "club.id", "club_member.club_id")
-      .where(clubCondition, "=", clubId)
-      .select("user.id")
+      .selectFrom("club_member")
+      .where("club_member.user_id", "=", userId)
+      .where("club_member.club_id", "=", clubId)
+      .select("club_member.user_id")
       .executeTakeFirst());
   }
 

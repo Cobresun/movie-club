@@ -62,15 +62,25 @@ export interface TMDBMovieData {
   vote_count: number;
 }
 
-export interface DetailedMovieData {
+export interface MovieCastMember {
+  name: string;
+  character: string | null;
+  profilePath: string | null;
+}
+
+/**
+ * The list-payload shape of movie metadata: everything except `actors`.
+ * Full cast lists dominate bulk payloads (~80% of the reviews response), so
+ * list/review endpoints ship this summary and the cast is fetched on demand
+ * per work (detail drawer) or in bulk (statistics leaderboards).
+ */
+export interface MovieDataSummary {
   kind: "movie";
   // Aggregated relations: the mapper always defaults these to [], so they are
   // never absent.
-  actors: {
-    name: string;
-    character: string | null;
-    profilePath: string | null;
-  }[];
+  /** Billed-order actor names only — enough for the `actor:` search filter.
+   * Character names and profile photos ride the full shape. */
+  castNames: string[];
   directors: { name: string; profilePath: string | null }[];
   genres: string[];
   production_companies: string[];
@@ -101,6 +111,13 @@ export interface DetailedMovieData {
   video?: boolean;
   vote_average?: number;
   vote_count?: number;
+}
+
+/** Full movie metadata: the summary plus the complete cast list. Served by
+ * the per-work details endpoint and the shared-review page, never by bulk
+ * list endpoints. */
+export interface DetailedMovieData extends MovieDataSummary {
+  actors: MovieCastMember[];
 }
 
 export interface TMDBWatchProvider {

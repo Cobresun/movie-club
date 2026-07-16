@@ -13,7 +13,8 @@ import {
 } from "../../../../lib/googleBooks";
 import { DetailedBookData } from "../../../../lib/types/book";
 import { WorkType } from "../../../../lib/types/generated/db";
-import { DetailedWorkData } from "../../../../lib/types/lists";
+import { DetailedWorkData, WorkDataSummary } from "../../../../lib/types/lists";
+import { MovieCastMember } from "../../../../lib/types/movie";
 import { db } from "../database";
 import { getGoogleBooksVolume } from "./googleBooks";
 import { MediaProvider, RefreshResult } from "./types";
@@ -117,6 +118,15 @@ class BookProvider implements MediaProvider {
   readonly type = WorkType.book;
 
   async fetchAndCacheDetails(externalId: string): Promise<void> {
+    // Skip the Google Books round trip when details are already cached — the
+    // scheduled refresh keeps them fresh (mirrors the movie provider).
+    const cached = await db
+      .selectFrom("book_details")
+      .select("external_id")
+      .where("external_id", "=", externalId)
+      .executeTakeFirst();
+    if (isDefined(cached)) return;
+
     const data = await fetchBookData(externalId);
 
     await db
@@ -182,6 +192,19 @@ class BookProvider implements MediaProvider {
       map.set(row.external_id, data);
     }
     return map;
+  }
+
+  // Book metadata is small enough that the summary IS the full shape.
+  async getExternalDataSummary(
+    externalIds: string[],
+  ): Promise<Map<string, WorkDataSummary>> {
+    return this.getExternalData(externalIds);
+  }
+
+  // Books have no cast; the statistics equivalent (authors) already ships in
+  // the summary payload.
+  getCast(): Promise<Map<string, MovieCastMember[]>> {
+    return Promise.resolve(new Map<string, MovieCastMember[]>());
   }
 
   async getDiscussionPrompt(work: {

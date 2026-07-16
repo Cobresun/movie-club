@@ -26,6 +26,7 @@ import {
   hasElements,
 } from "../../../lib/checks/checks.js";
 import { Member } from "../../../lib/types/club.js";
+import { MovieCastMember } from "../../../lib/types/movie.js";
 
 const MIN_GENRE_COUNT = 2;
 
@@ -427,12 +428,23 @@ export function computeTopDirectors(movieData: MovieData[]): PersonStats[] {
   );
 }
 
-export function computeTopActors(movieData: MovieData[]): PersonStats[] {
+/**
+ * Top-actors leaderboard. Cast lists are not part of the bulk reviews payload,
+ * so the caller supplies them separately (from the `/reviews/cast` endpoint),
+ * keyed by external id.
+ */
+export function computeTopActors(
+  movieData: MovieData[],
+  castByExternalId: Record<string, MovieCastMember[]> | undefined,
+): PersonStats[] {
+  if (!isDefined(castByExternalId)) return [];
   return computeTopPeople(movieData, (m) =>
-    m.externalData.actors.map((a) => ({
-      name: a.name,
-      profileImageUrl: tmdbProfileImageUrl(a.profilePath),
-    })),
+    (isDefined(m.externalId) ? castByExternalId[m.externalId] : undefined)?.map(
+      (a) => ({
+        name: a.name,
+        profileImageUrl: tmdbProfileImageUrl(a.profilePath),
+      }),
+    ),
   );
 }
 

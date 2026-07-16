@@ -5,16 +5,6 @@ import { db } from "../utils/database";
 import { getProvider } from "../utils/providers";
 
 class WorkRepository {
-  async findByType(clubId: string, type: WorkType, externalId: string) {
-    return db
-      .selectFrom("work")
-      .where("club_id", "=", clubId)
-      .where("external_id", "=", externalId)
-      .where("type", "=", type)
-      .select(["id"])
-      .executeTakeFirst();
-  }
-
   async getNextWork(clubId: string) {
     return db
       .selectFrom("next_work")

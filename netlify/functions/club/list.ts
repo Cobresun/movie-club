@@ -3,8 +3,8 @@ import { z } from "zod";
 import { hasValue } from "../../../lib/checks/checks.js";
 import {
   DetailedReviewListItem,
-  DetailedWorkData,
   DetailedWorkListItem,
+  WorkDataSummary,
 } from "../../../lib/types/lists.js";
 import { listInsertDtoSchema } from "../../../lib/types/lists.js";
 import ListRepository from "../repositories/ListRepository";
@@ -12,7 +12,7 @@ import ReviewRepository from "../repositories/ReviewRepository";
 import UserRepository from "../repositories/UserRepository";
 import WorkRepository from "../repositories/WorkRepository";
 import { secured } from "../utils/auth";
-import { getExternalDataForWorks } from "../utils/providers";
+import { getExternalSummariesForWorks } from "../utils/providers";
 import { badRequest, internalServerError, ok } from "../utils/responses";
 import { buildReviewScores } from "../utils/reviewScores";
 import { Router } from "../utils/router";
@@ -111,26 +111,30 @@ router.post("/", secured, async ({ clubId, event }, res) => {
 // thread ListRequest through validListId -> secured -> handler.
 // ---------------------------------------------------------------------------
 
-router.get("/:listId", validListId, async ({ listId }, res) => {
-  const items = await ListRepository.getListItems(listId);
-  const externalData = await getExternalDataForWorks(
+// All items across the club's user lists in one request, tagged with their
+// source list. Replaces the frontend's one-request-per-list fan-out (each of
+// which paid its own function invocation + middleware queries).
+router.get("/all-items", async ({ clubId }, res) => {
+  const items = await ListRepository.getAllUserListItems(clubId);
+  const externalData = await getExternalSummariesForWorks(
     items.map((item) => ({ externalId: item.external_id, type: item.type })),
   );
 
-  const mapped: DetailedWorkListItem<DetailedWorkData>[] = items.map(
-    (item) => ({
-      id: item.id,
-      title: item.title,
-      type: item.type,
-      createdDate: item.time_added.toISOString(),
-      imageUrl: item.image_url ?? undefined,
-      externalId: item.external_id ?? undefined,
-      addedBy: item.added_by_user_id ?? undefined,
-      externalData: hasValue(item.external_id)
-        ? externalData.get(item.external_id)
-        : undefined,
-    }),
+  const mapped = items.map((item) => ({
+    ...toDetailedListItem(item, externalData),
+    sourceListId: String(item.list_id),
+    sourceListTitle: item.list_title,
+  }));
+  return res(ok(JSON.stringify(mapped)));
+});
+
+router.get("/:listId", validListId, async ({ listId }, res) => {
+  const items = await ListRepository.getListItems(listId);
+  const externalData = await getExternalSummariesForWorks(
+    items.map((item) => ({ externalId: item.external_id, type: item.type })),
   );
+
+  const mapped = items.map((item) => toDetailedListItem(item, externalData));
   return res(ok(JSON.stringify(mapped)));
 });
 
@@ -179,26 +183,21 @@ router.post(
     const body = listInsertDtoSchema.safeParse(JSON.parse(event.body));
     if (!body.success) return res(badRequest("Invalid body provided"));
 
-    const { type, externalId } = body.data;
-    let workId: string | undefined;
-    if (hasValue(externalId)) {
-      const existingWork = await WorkRepository.findByType(
-        clubId,
-        type,
-        externalId,
-      );
-      workId = existingWork?.id;
-    }
-    if (!hasValue(workId)) {
-      const newWork = await WorkRepository.insert(clubId, body.data);
-      workId = newWork.id;
-    }
+    // insert() upserts on (club_id, type, external_id) and always returns the
+    // id, so no lookup-then-insert dance is needed. Its metadata fetch is a
+    // no-op when details are already cached.
+    const work = await WorkRepository.insert(clubId, body.data);
 
-    const exists = await ListRepository.isItemInList(listId, workId);
-    if (exists) {
+    // Single INSERT ... SELECT computes the position and detects "already in
+    // list" via the (list_id, work_id) unique constraint in one round trip.
+    const inserted = await ListRepository.insertItemInList(
+      listId,
+      work.id,
+      userId,
+    );
+    if (!inserted) {
       return res(badRequest(BadRequest.ItemInList));
     }
-    await ListRepository.insertItemInList(listId, workId, userId);
     return res(ok());
   },
 );
@@ -299,19 +298,17 @@ router.post(
     const body = moveSchema.safeParse(JSON.parse(event.body));
     if (!body.success) return res(badRequest("Invalid body provided"));
 
-    const destination = await ListRepository.getListById(
+    // Destination ownership is validated inside the move transaction (the
+    // destination row is fetched there anyway), saving a separate round trip.
+    const moved = await ListRepository.moveItem(
+      listId,
       body.data.destinationListId,
+      params.workId,
       clubId,
     );
-    if (!destination) {
+    if (!moved) {
       return res(badRequest("Destination list not found"));
     }
-
-    await ListRepository.moveItem(
-      listId,
-      String(destination.id),
-      params.workId,
-    );
     return res(ok());
   },
 );
@@ -320,16 +317,44 @@ router.post(
 // Internal helpers
 // ---------------------------------------------------------------------------
 
+/** Map a joined work + list-item row to the API list-item shape, attaching
+ * its external metadata summary. */
+function toDetailedListItem(
+  item: {
+    id: string;
+    title: string;
+    type: DetailedWorkListItem["type"];
+    time_added: Date;
+    image_url: string | null;
+    external_id: string | null;
+    added_by_user_id: string | null;
+  },
+  externalData: Map<string, WorkDataSummary>,
+): DetailedWorkListItem {
+  return {
+    id: item.id,
+    title: item.title,
+    type: item.type,
+    createdDate: item.time_added.toISOString(),
+    imageUrl: item.image_url ?? undefined,
+    externalId: item.external_id ?? undefined,
+    addedBy: item.added_by_user_id ?? undefined,
+    externalData: hasValue(item.external_id)
+      ? externalData.get(item.external_id)
+      : undefined,
+  };
+}
+
 async function getReviewList(
   clubId: string,
-): Promise<DetailedReviewListItem<DetailedWorkData>[]> {
+): Promise<DetailedReviewListItem[]> {
   const [reviews, members] = await Promise.all([
     ReviewRepository.getReviewList(clubId),
     UserRepository.getMembersByClubId(clubId),
   ]);
   const memberIds = new Set(members.map((m) => m.id));
 
-  const externalData = await getExternalDataForWorks(
+  const externalData = await getExternalSummariesForWorks(
     reviews.map((review) => ({
       externalId: review.external_id,
       type: review.type,

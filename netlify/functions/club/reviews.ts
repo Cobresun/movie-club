@@ -19,6 +19,36 @@ import { ClubRequest } from "../utils/validation";
 
 const router = new Router<ClubRequest>("/api/club/:clubSlug/reviews");
 
+// Cast lists for every reviewed work, keyed by external id. The bulk reviews
+// payload deliberately omits casts (they dominated its size); the statistics
+// leaderboards fetch this endpoint instead, only when that page is open.
+router.get("/cast", async ({ clubId }, res) => {
+  const reviewsListId = await ListRepository.getReviewsListId(clubId);
+  const items = await ListRepository.getListItems(reviewsListId);
+
+  const castByType = await Promise.all(
+    [...new Set(items.map((item) => item.type))].map((type) =>
+      getProvider(type).getCast(
+        items
+          .filter((item) => item.type === type)
+          .map((item) => item.external_id)
+          .filter(hasValue),
+      ),
+    ),
+  );
+
+  const result: Record<
+    string,
+    { name: string; character: string | null; profilePath: string | null }[]
+  > = {};
+  for (const map of castByType) {
+    for (const [externalId, cast] of map) {
+      result[externalId] = cast;
+    }
+  }
+  return res(ok(JSON.stringify(result)));
+});
+
 const addReviewSchema = z.object({
   score: z.number().min(0).max(10),
   workId: z.string(),

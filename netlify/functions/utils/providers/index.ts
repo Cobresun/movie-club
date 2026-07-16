@@ -3,7 +3,7 @@ import movieProvider from "./movieProvider";
 import { MediaProvider } from "./types";
 import { hasValue } from "../../../../lib/checks/checks.js";
 import { WorkType } from "../../../../lib/types/generated/db";
-import { DetailedWorkData } from "../../../../lib/types/lists";
+import { DetailedWorkData, WorkDataSummary } from "../../../../lib/types/lists";
 
 /**
  * The provider registry. To support a new club type: add the enum value
@@ -37,6 +37,28 @@ export function allProviders(): MediaProvider[] {
 export async function getExternalDataForWorks(
   works: { externalId: string | null | undefined; type: WorkType }[],
 ): Promise<Map<string, DetailedWorkData>> {
+  return dispatchByType(works, (type, ids) =>
+    getProvider(type).getExternalData(ids),
+  );
+}
+
+/**
+ * Summary-shaped variant of {@link getExternalDataForWorks} for bulk list and
+ * review payloads: omits heavyweight fields (movie cast lists) so response
+ * size stays proportional to the number of works, not their cast sizes.
+ */
+export async function getExternalSummariesForWorks(
+  works: { externalId: string | null | undefined; type: WorkType }[],
+): Promise<Map<string, WorkDataSummary>> {
+  return dispatchByType(works, (type, ids) =>
+    getProvider(type).getExternalDataSummary(ids),
+  );
+}
+
+async function dispatchByType<T>(
+  works: { externalId: string | null | undefined; type: WorkType }[],
+  fetch: (type: WorkType, externalIds: string[]) => Promise<Map<string, T>>,
+): Promise<Map<string, T>> {
   const idsByType = new Map<WorkType, string[]>();
   for (const work of works) {
     if (!hasValue(work.externalId)) continue;
@@ -45,10 +67,10 @@ export async function getExternalDataForWorks(
     idsByType.set(work.type, ids);
   }
 
-  const merged = new Map<string, DetailedWorkData>();
+  const merged = new Map<string, T>();
   await Promise.all(
     Array.from(idsByType, async ([type, ids]) => {
-      const data = await getProvider(type).getExternalData(ids);
+      const data = await fetch(type, ids);
       for (const [externalId, value] of data) merged.set(externalId, value);
     }),
   );

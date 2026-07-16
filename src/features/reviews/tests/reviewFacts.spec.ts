@@ -25,9 +25,11 @@ function movieData(
     releaseDate?: string;
   } = {},
 ): DetailedMovieData {
+  const actorNames = opts.actors ?? [];
   return {
     kind: "movie",
-    actors: (opts.actors ?? []).map((name) => ({
+    castNames: actorNames,
+    actors: actorNames.map((name) => ({
       name,
       character: null,
       profilePath: null,

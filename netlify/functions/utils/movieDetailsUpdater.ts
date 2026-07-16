@@ -40,96 +40,110 @@ export async function insertMovieDetails(
     .onConflict((oc) => oc.column("external_id").doNothing())
     .execute();
 
-  // Insert genres
+  const junctionInserts: Promise<unknown>[] = [];
+
+  // The junction inserts are independent of each other, so they run
+  // concurrently — this path sits inside the synchronous add-work request,
+  // where each sequential round trip is user-visible latency.
   if (tmdbData.genres.length > 0) {
-    await dbOrTrx
-      .insertInto("movie_genres")
-      .values(
-        tmdbData.genres.map((g) => ({
-          external_id: externalId,
-          genre_name: g.name,
-        })),
-      )
-      .onConflict((oc) => oc.columns(["external_id", "genre_name"]).doNothing())
-      .execute();
+    junctionInserts.push(
+      dbOrTrx
+        .insertInto("movie_genres")
+        .values(
+          tmdbData.genres.map((g) => ({
+            external_id: externalId,
+            genre_name: g.name,
+          })),
+        )
+        .onConflict((oc) =>
+          oc.columns(["external_id", "genre_name"]).doNothing(),
+        )
+        .execute(),
+    );
   }
 
-  // Insert production companies
   if (tmdbData.production_companies.length > 0) {
-    await dbOrTrx
-      .insertInto("movie_production_companies")
-      .values(
-        tmdbData.production_companies.map((c) => ({
-          external_id: externalId,
-          company_name: c.name,
-          logo_path: c.logo_path,
-          origin_country: c.origin_country,
-        })),
-      )
-      .onConflict((oc) =>
-        oc.columns(["external_id", "company_name"]).doNothing(),
-      )
-      .execute();
+    junctionInserts.push(
+      dbOrTrx
+        .insertInto("movie_production_companies")
+        .values(
+          tmdbData.production_companies.map((c) => ({
+            external_id: externalId,
+            company_name: c.name,
+            logo_path: c.logo_path,
+            origin_country: c.origin_country,
+          })),
+        )
+        .onConflict((oc) =>
+          oc.columns(["external_id", "company_name"]).doNothing(),
+        )
+        .execute(),
+    );
   }
 
-  // Insert production countries
   if (tmdbData.production_countries.length > 0) {
-    await dbOrTrx
-      .insertInto("movie_production_countries")
-      .values(
-        tmdbData.production_countries.map((c) => ({
-          external_id: externalId,
-          country_code: c.iso_3166_1,
-          country_name: c.name,
-        })),
-      )
-      .onConflict((oc) =>
-        oc.columns(["external_id", "country_code"]).doNothing(),
-      )
-      .execute();
+    junctionInserts.push(
+      dbOrTrx
+        .insertInto("movie_production_countries")
+        .values(
+          tmdbData.production_countries.map((c) => ({
+            external_id: externalId,
+            country_code: c.iso_3166_1,
+            country_name: c.name,
+          })),
+        )
+        .onConflict((oc) =>
+          oc.columns(["external_id", "country_code"]).doNothing(),
+        )
+        .execute(),
+    );
   }
 
-  // Insert directors
   const directors = (tmdbData.credits?.crew ?? []).filter(
     (c) => c.job === "Director",
   );
   if (directors.length > 0) {
-    await dbOrTrx
-      .insertInto("movie_directors")
-      .values(
-        directors.map((c) => ({
-          external_id: externalId,
-          director_name: c.name,
-          director_id: c.id,
-          profile_path: c.profile_path,
-        })),
-      )
-      .onConflict((oc) =>
-        oc.columns(["external_id", "director_name"]).doNothing(),
-      )
-      .execute();
+    junctionInserts.push(
+      dbOrTrx
+        .insertInto("movie_directors")
+        .values(
+          directors.map((c) => ({
+            external_id: externalId,
+            director_name: c.name,
+            director_id: c.id,
+            profile_path: c.profile_path,
+          })),
+        )
+        .onConflict((oc) =>
+          oc.columns(["external_id", "director_name"]).doNothing(),
+        )
+        .execute(),
+    );
   }
 
-  // Insert actors
   const actors = (tmdbData.credits?.cast ?? []).sort(
     (a, b) => a.order - b.order,
   );
   if (actors.length > 0) {
-    await dbOrTrx
-      .insertInto("movie_actors")
-      .values(
-        actors.map((c) => ({
-          external_id: externalId,
-          actor_id: c.id,
-          actor_name: c.name,
-          character_name: c.character,
-          cast_order: c.order,
-          profile_path: c.profile_path,
-        })),
-      )
-      .onConflict((oc) => oc.columns(["external_id", "actor_id"]).doNothing())
-      .execute();
+    junctionInserts.push(
+      dbOrTrx
+        .insertInto("movie_actors")
+        .values(
+          actors.map((c) => ({
+            external_id: externalId,
+            actor_id: c.id,
+            actor_name: c.name,
+            character_name: c.character,
+            cast_order: c.order,
+            profile_path: c.profile_path,
+          })),
+        )
+        .onConflict((oc) => oc.columns(["external_id", "actor_id"]).doNothing())
+        .execute(),
+    );
   }
+
+  await Promise.all(junctionInserts);
 }
 
 /**

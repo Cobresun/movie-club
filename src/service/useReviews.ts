@@ -1,10 +1,11 @@
 import {
   QueryClient,
+  UseQueryReturnType,
   useMutation,
   useQuery,
   useQueryClient,
 } from "@tanstack/vue-query";
-import { AxiosInstance } from "axios";
+import axios, { AxiosError, AxiosInstance } from "axios";
 
 import { reviewsListKey } from "./useList";
 import { useUser } from "./useUser";
@@ -15,8 +16,28 @@ import {
   ReviewScores,
   WorkCommentDto,
 } from "../../lib/types/lists";
+import { MovieCastMember } from "../../lib/types/movie";
 
 import { useAuthStore } from "@/stores/auth";
+
+/**
+ * Cast lists for every reviewed work, keyed by external id. The bulk reviews
+ * payload deliberately omits casts; the statistics leaderboards join against
+ * this map instead, and only fetch it while the statistics page is open.
+ */
+export function useReviewsCast(
+  clubSlug: string,
+): UseQueryReturnType<Record<string, MovieCastMember[]>, AxiosError> {
+  return useQuery({
+    queryKey: ["reviewsCast", clubSlug] as const,
+    queryFn: async () =>
+      (
+        await axios.get<Record<string, MovieCastMember[]>>(
+          `/api/club/${clubSlug}/reviews/cast`,
+        )
+      ).data,
+  });
+}
 
 const SCORE_POLL_ATTEMPTS = 10;
 const SCORE_POLL_INTERVAL_MS = 500;

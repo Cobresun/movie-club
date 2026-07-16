@@ -66,12 +66,12 @@ import { DateTime } from "luxon";
 import { computed } from "vue";
 
 import { hasElements, isDefined } from "../../../../lib/checks/checks.js";
-import { DetailedMovieData } from "../../../../lib/types/movie.js";
+import { MovieDataSummary } from "../../../../lib/types/movie.js";
 
 const props = defineProps<{
   title: string;
   imageUrl?: string;
-  movie?: DetailedMovieData;
+  movie?: MovieDataSummary;
 }>();
 
 const formattedReleaseDate = computed(() => {

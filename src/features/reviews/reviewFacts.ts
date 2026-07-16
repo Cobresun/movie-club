@@ -355,15 +355,12 @@ const actorMilestone: FactGenerator = (ctx) => {
   const movie = asMovie(ctx.target.externalData);
   if (!isDefined(movie)) return undefined;
   let best: { name: string; count: number } | undefined;
-  for (const actor of movie.actors) {
+  for (const name of movie.castNames) {
     const count = ctx.worksThrough.filter(
-      (work) =>
-        asMovie(work.externalData)?.actors.some(
-          (a) => a.name === actor.name,
-        ) === true,
+      (work) => asMovie(work.externalData)?.castNames.includes(name) === true,
     ).length;
     if (isActorMilestone(count) && (!isDefined(best) || count > best.count)) {
-      best = { name: actor.name, count };
+      best = { name, count };
     }
   }
   if (!isDefined(best)) return undefined;

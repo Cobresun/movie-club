@@ -91,6 +91,17 @@ export const auth = betterAuth({
     },
   },
   trustedOrigins: getTrustedOrigins(),
+  session: {
+    // Cache the session in a short-lived signed cookie so getSession() —
+    // which runs on every secured request — usually skips its database
+    // round trip. Sign-out still clears the cookie immediately; the tradeoff
+    // is that a server-side session revocation can take up to maxAge to be
+    // seen, which is acceptable at 5 minutes.
+    cookieCache: {
+      enabled: true,
+      maxAge: 5 * 60,
+    },
+  },
   advanced: {
     database: {
       // Mixed ID types: auto-increment for user, UUIDs for session/account/verification

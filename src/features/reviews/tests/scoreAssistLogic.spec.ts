@@ -26,6 +26,7 @@ function movieData(
   return {
     kind: "movie",
     actors: [],
+    castNames: [],
     directors: (opts.directors ?? []).map((name) => ({
       name,
       profilePath: null,

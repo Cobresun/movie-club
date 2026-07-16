@@ -1,6 +1,6 @@
 import { DetailedBookData } from "../../../lib/types/book";
 import { WorkType } from "../../../lib/types/generated/db";
-import { DetailedMovieData } from "../../../lib/types/movie";
+import { MovieDataSummary } from "../../../lib/types/movie";
 
 /**
  * Score and review metadata shared by every reviewed work, regardless of
@@ -11,6 +11,8 @@ export interface WorkStatsBase {
   id: string;
   title: string;
   createdDate: string;
+  /** Provider id of the work — the join key for the bulk cast endpoint. */
+  externalId: string | undefined;
   imageUrl: string | undefined;
   average: number;
   userScores: Record<string, number | undefined>;
@@ -23,7 +25,7 @@ export interface MovieData extends WorkStatsBase {
   genres: string[];
   production_companies: string[];
   production_countries: string[];
-  externalData: DetailedMovieData;
+  externalData: MovieDataSummary;
 }
 
 export interface BookData extends WorkStatsBase {

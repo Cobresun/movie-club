@@ -1,16 +1,16 @@
+import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
 import { persistQueryClient } from "@tanstack/query-persist-client-core";
-import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
 import { VueQueryPlugin, VueQueryPluginOptions } from "@tanstack/vue-query";
+import { del, get, set } from "idb-keyval";
 import mdiVue from "mdi-vue/v3";
 import { createPinia } from "pinia";
-import { createApp, reactive, TransitionGroup } from "vue";
+import { createApp, TransitionGroup } from "vue";
 import Toast from "vue-toastification";
 
 import LazyLoad from "./directives/LazyLoad";
 import Reveal from "./directives/Reveal";
 import { icons } from "./icons";
 import router from "./router";
-import { isDefined } from "../lib/checks/checks.js";
 
 import App from "@/App.vue";
 import EmptyState from "@/common/components/EmptyState.vue";
@@ -28,25 +28,15 @@ import MenuCard from "@/features/clubs/components/MenuCard.vue";
 import "./assets/styles/tailwind.css";
 import "vue-toastification/dist/index.css";
 
-const fetchedMap = reactive(new Map<string, number>());
-
 const vueQueryOptions: VueQueryPluginOptions = {
   queryClientConfig: {
     defaultOptions: {
       queries: {
         refetchOnWindowFocus: false,
-        refetchOnMount: (query) => {
-          if (query.state.isInvalidated) {
-            return true;
-          }
-          const refetchTimes = fetchedMap.get(query.queryHash);
-          if (isDefined(refetchTimes) && refetchTimes > 1) {
-            return false;
-          } else {
-            fetchedMap.set(query.queryHash, (refetchTimes ?? 0) + 1);
-            return true;
-          }
-        },
+        // Serve cached data without a network refetch for a minute; mutations
+        // invalidate their keys explicitly, so navigating between pages stays
+        // instant instead of re-firing every query on each mount.
+        staleTime: 1000 * 60,
         cacheTime: 1000 * 60 * 60 * 24 * 7, // One week,
       },
     },
@@ -54,7 +44,16 @@ const vueQueryOptions: VueQueryPluginOptions = {
   clientPersister: (queryClient) => {
     return persistQueryClient({
       queryClient,
-      persister: createSyncStoragePersister({ storage: localStorage }),
+      // IndexedDB rather than localStorage: no ~5MB quota (which a large
+      // club's cached lists could exceed, silently disabling persistence)
+      // and no synchronous main-thread JSON serialization on every change.
+      persister: createAsyncStoragePersister({
+        storage: {
+          getItem: async (key: string) => (await get<string>(key)) ?? null,
+          setItem: (key: string, value: string) => set(key, value),
+          removeItem: (key: string) => del(key),
+        },
+      }),
       maxAge: 1000 * 60 * 60 * 24 * 7, // One week
       dehydrateOptions: {
         shouldDehydrateQuery: (query) => query.queryKey[0] !== "user",

@@ -10,6 +10,7 @@ import { computed, unref, type MaybeRef } from "vue";
 import { hasValue, isDefined } from "../../lib/checks/checks.js";
 import {
   DetailedReviewListItem,
+  DetailedWorkData,
   DetailedWorkListItem,
   ListInsertDto,
   SharedReviewResponse,
@@ -31,6 +32,9 @@ export const listKey = (clubSlug: string, listId: string) =>
 
 export const reviewsListKey = (clubSlug: string) =>
   ["list", clubSlug, "reviews"] as const;
+
+export const workDetailsKey = (clubSlug: string, workId: string) =>
+  ["workDetails", clubSlug, workId] as const;
 
 // ---------------------------------------------------------------------------
 // Club lists collection (the user lists shown in the list switcher)
@@ -203,26 +207,37 @@ export function useAllUserListItems(
 ): UseQueryReturnType<UserListItemWithSource[], AxiosError> {
   return useQuery({
     queryKey: ["lists", clubSlug, "all-items"] as const,
-    queryFn: async () => {
-      const lists = (
-        await axios.get<ClubListSummary[]>(`/api/club/${clubSlug}/list`)
-      ).data;
-      const perList = await Promise.all(
-        lists.map(async (list) => {
-          const items = (
-            await axios.get<DetailedWorkListItem[]>(
-              `/api/club/${clubSlug}/list/${list.id}`,
-            )
-          ).data;
-          return items.map<UserListItemWithSource>((item) => ({
-            ...item,
-            sourceListId: list.id,
-            sourceListTitle: list.title,
-          }));
-        }),
-      );
-      return perList.flat();
-    },
+    queryFn: async () =>
+      (
+        await axios.get<UserListItemWithSource[]>(
+          `/api/club/${clubSlug}/list/all-items`,
+        )
+      ).data,
+  });
+}
+
+/**
+ * Full external metadata (including the cast list) for one work. Bulk list
+ * payloads carry only summaries, so detail drawers fetch this on demand.
+ */
+export function useWorkDetails(
+  clubSlug: string,
+  workId: MaybeRef<string>,
+): UseQueryReturnType<DetailedWorkData | null, AxiosError> {
+  const workIdRef = computed(() => unref(workId));
+  return useQuery({
+    queryKey: computed(() => workDetailsKey(clubSlug, workIdRef.value)),
+    queryFn: async () =>
+      (
+        await axios.get<DetailedWorkData | null>(
+          `/api/club/${clubSlug}/work/${workIdRef.value}/details`,
+        )
+      ).data,
+    // Cast/crew of a released work is effectively immutable; cache it for the
+    // session so reopening a drawer doesn't refetch.
+    staleTime: Infinity,
+    enabled: () =>
+      workIdRef.value !== "" && workIdRef.value !== OPTIMISTIC_WORK_ID,
   });
 }
 
@@ -246,14 +261,35 @@ export function useQueueReview(clubSlug: string) {
         { destinationListId: reviewsListId },
       );
     },
-    onSettled: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: reviewsListKey(clubSlug),
-      });
-      await queryClient.invalidateQueries({ queryKey: clubListsKey(clubSlug) });
-      await queryClient.invalidateQueries({
-        queryKey: ["lists", clubSlug, "all-items"],
-      });
+    // Optimistically remove the work from its source list so the UI reacts
+    // immediately; the reviews page picks it up via invalidation.
+    onMutate: ({ workId, sourceListId }) => {
+      if (!hasValue(sourceListId)) return;
+      queryClient.setQueryData<DetailedWorkListItem[]>(
+        listKey(clubSlug, sourceListId),
+        (current) => current?.filter((item) => item.id !== workId),
+      );
+      queryClient.setQueryData<UserListItemWithSource[]>(
+        ["lists", clubSlug, "all-items"],
+        (current) => current?.filter((item) => item.id !== workId),
+      );
+    },
+    onSettled: async (_data, _err, vars) => {
+      const invalidations = [
+        queryClient.invalidateQueries({ queryKey: reviewsListKey(clubSlug) }),
+        queryClient.invalidateQueries({ queryKey: clubListsKey(clubSlug) }),
+        queryClient.invalidateQueries({
+          queryKey: ["lists", clubSlug, "all-items"],
+        }),
+      ];
+      if (hasValue(vars.sourceListId)) {
+        invalidations.push(
+          queryClient.invalidateQueries({
+            queryKey: listKey(clubSlug, vars.sourceListId),
+          }),
+        );
+      }
+      await Promise.all(invalidations);
     },
   });
 }
@@ -346,12 +382,10 @@ export function useAddListItem(clubSlug: string, listId: string) {
       );
     },
     onSettled: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: listKey(clubSlug, listId),
-      });
-      await queryClient.invalidateQueries({
-        queryKey: clubListsKey(clubSlug),
-      });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: listKey(clubSlug, listId) }),
+        queryClient.invalidateQueries({ queryKey: clubListsKey(clubSlug) }),
+      ]);
     },
   });
 }
@@ -372,12 +406,10 @@ export function useDeleteListItem(clubSlug: string, listId: string) {
       );
     },
     onSettled: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: listKey(clubSlug, listId),
-      });
-      await queryClient.invalidateQueries({
-        queryKey: clubListsKey(clubSlug),
-      });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: listKey(clubSlug, listId) }),
+        queryClient.invalidateQueries({ queryKey: clubListsKey(clubSlug) }),
+      ]);
     },
   });
 }
@@ -454,21 +486,19 @@ export function useMoveListItem(clubSlug: string) {
       }
     },
     onSettled: async (_data, _err, vars) => {
-      await queryClient.invalidateQueries({
-        queryKey: listKey(clubSlug, vars.sourceListId),
-      });
-      await queryClient.invalidateQueries({
-        queryKey: listKey(clubSlug, vars.destinationListId),
-      });
-      await queryClient.invalidateQueries({
-        queryKey: clubListsKey(clubSlug),
-      });
-      // The reviews page uses a separate cached shape keyed by reviewsListKey;
-      // invalidate it so moving an item into the reviews system list makes
-      // the review appear there.
-      await queryClient.invalidateQueries({
-        queryKey: reviewsListKey(clubSlug),
-      });
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: listKey(clubSlug, vars.sourceListId),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: listKey(clubSlug, vars.destinationListId),
+        }),
+        queryClient.invalidateQueries({ queryKey: clubListsKey(clubSlug) }),
+        // The reviews page uses a separate cached shape keyed by
+        // reviewsListKey; invalidate it so moving an item into the reviews
+        // system list makes the review appear there.
+        queryClient.invalidateQueries({ queryKey: reviewsListKey(clubSlug) }),
+      ]);
     },
   });
 }

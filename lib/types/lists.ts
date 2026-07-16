@@ -2,7 +2,7 @@ import { z } from "zod";
 
 import { DetailedBookData } from "./book";
 import { WorkType } from "./generated/db";
-import { DetailedMovieData } from "./movie";
+import { DetailedMovieData, MovieDataSummary } from "./movie";
 
 /**
  * Discriminated union of all media metadata shapes. Discriminate on `.kind`
@@ -10,6 +10,14 @@ import { DetailedMovieData } from "./movie";
  * a new club type.
  */
 export type DetailedWorkData = DetailedMovieData | DetailedBookData;
+
+/**
+ * The bulk-payload variant of {@link DetailedWorkData}: each member may omit
+ * its heavyweight fields (currently just the movie cast list). List and
+ * reviews endpoints return this; the per-work details endpoint returns the
+ * full shape. Book metadata is small enough to double as its own summary.
+ */
+export type WorkDataSummary = MovieDataSummary | DetailedBookData;
 
 export interface WorkListItem {
   id: string;
@@ -42,12 +50,11 @@ export interface ExternalWorkData<T> {
   externalData?: T;
 }
 
-export type DetailedWorkListItem<
-  T extends DetailedWorkData = DetailedWorkData,
-> = WorkListItem & ExternalWorkData<T>;
+export type DetailedWorkListItem<T extends WorkDataSummary = WorkDataSummary> =
+  WorkListItem & ExternalWorkData<T>;
 
 export type DetailedReviewListItem<
-  T extends DetailedWorkData = DetailedWorkData,
+  T extends WorkDataSummary = WorkDataSummary,
 > = ReviewListItem & ExternalWorkData<T>;
 
 export interface WorkCommentDto {
@@ -82,6 +89,8 @@ export interface SharedReviewResponse {
     created_date: string;
   }[];
   comments: WorkCommentDto[];
-  work: DetailedReviewListItem;
+  // The shared-review page is a single work, so it keeps the full metadata
+  // shape (including cast) rather than the bulk summary.
+  work: DetailedReviewListItem<DetailedWorkData>;
   clubName: string;
 }

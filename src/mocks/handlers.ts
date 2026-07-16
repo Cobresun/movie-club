@@ -41,8 +41,25 @@ export const handlers = [
       { id: "1", title: "Watch List", systemType: null, itemCount: 1 },
     ]);
   }),
+  // Registered before /list/:listId semantics apply client-side: MSW matches
+  // in array order, mirroring the backend's literal-before-param routing.
+  http.get("/api/club/:id/list/all-items", () => {
+    return HttpResponse.json(
+      watchlist.map((item) => ({
+        ...item,
+        sourceListId: "1",
+        sourceListTitle: "Watch List",
+      })),
+    );
+  }),
   http.get("/api/club/:id/list/1", () => {
     return HttpResponse.json(watchlist);
+  }),
+  http.get("/api/club/:id/work/:workId/details", () => {
+    return HttpResponse.json(null);
+  }),
+  http.get("/api/club/:id/reviews/cast", () => {
+    return HttpResponse.json({});
   }),
   http.get(`https://api.themoviedb.org/3/search/movie`, () => {
     return HttpResponse.json(TMDBSearch);

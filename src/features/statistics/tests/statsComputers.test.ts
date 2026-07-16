@@ -31,6 +31,7 @@ function makeExternalData(
   return {
     kind: "movie",
     actors: [],
+    castNames: [],
     adult: false,
     backdrop_path: "",
     budget: 0,
@@ -66,6 +67,7 @@ function makeMovie(overrides: Partial<MovieData> = {}): MovieData {
     type: WorkType.movie,
     title: "Test Movie",
     createdDate: "2024-01-01T00:00:00.000Z",
+    externalId: undefined,
     imageUrl: undefined,
     genres: [],
     production_companies: [],
@@ -99,6 +101,7 @@ function makeBook(overrides: Partial<BookData> = {}): BookData {
     type: WorkType.book,
     title: "Test Book",
     createdDate: "2024-01-01T00:00:00.000Z",
+    externalId: undefined,
     imageUrl: undefined,
     average: 7,
     userScores: {},
