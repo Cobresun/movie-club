@@ -1,3 +1,19 @@
+[build]
+  # Deploy-only work. Quality gates (type-check, lint, test) run in GitHub
+  # Actions (.github/workflows/ci.yml) so they don't burn Netlify build minutes.
+  # `migrate` keeps the target DB (prod on production, the spawned/dev DB on
+  # previews) in sync and regenerates lib/types/generated/db.ts; the git diff
+  # then fails the build if the committed types don't match the migrated schema
+  # (GitHub Actions type-checks against the committed file, so a stale db.ts
+  # would otherwise slip through). `vite build` produces the site.
+  command = "npm run migrate && (git diff --exit-code -- lib/types/generated || (echo 'Generated DB types are stale: run npm run codegen and commit lib/types/generated/db.ts' && exit 1)) && vite build"
+
+  # Skip a preview rebuild when a push changes only non-deployed files (docs,
+  # Claude config). Exit 0 = Netlify cancels the build; a non-empty diff of
+  # everything-else exits non-zero and the build proceeds. Errors (e.g. missing
+  # CACHED_COMMIT_REF on a first build) are treated as "build" by Netlify.
+  ignore = "git diff --quiet ${CACHED_COMMIT_REF} ${COMMIT_REF} -- . ':(exclude)*.md' ':(exclude).claude/'"
+
 [[plugins]]
   package = "./netlify/plugins/preview-database"
 

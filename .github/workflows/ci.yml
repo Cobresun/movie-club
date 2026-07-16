@@ -1,0 +1,29 @@
+name: CI
+
+# Runs the repository quality gates (type-check, lint, test) that used to live
+# inside the Netlify build command. Moving them here keeps them off Netlify's
+# 300-min/month build budget — this is a public repo, so Actions minutes are
+# free. Netlify now only migrates the DB and builds the site.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# A newer push to the same branch cancels the in-flight run instead of stacking.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run type-check
+      - run: npm run lint
+      - run: npm test
