@@ -8,7 +8,7 @@ import { AxiosInstance } from "axios";
 
 import { reviewsListKey } from "./useList";
 import { useUser } from "./useUser";
-import { isDefined } from "../../lib/checks/checks.js";
+import { hasValue, isDefined } from "../../lib/checks/checks.js";
 import { Member } from "../../lib/types/club";
 import {
   DetailedReviewListItem,
@@ -206,7 +206,7 @@ export function useSubmitScore(clubSlug: string) {
     reviewId?: string;
     score: number;
   }) => {
-    if (isDefined(reviewId) && reviewId !== "") {
+    if (hasValue(reviewId)) {
       update({ reviewId, workId, score });
     } else {
       create({ workId, score });

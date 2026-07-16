@@ -26,7 +26,9 @@
         stroke-linecap="round"
         pathLength="1"
         :stroke-dasharray="`${fraction} 1`"
-        :class="isDragging ? undefined : arcTransition"
+        :class="
+          isDragging ? undefined : 'transition-all duration-fast ease-standard'
+        "
       />
       <circle
         :cx="handle.x"
@@ -34,7 +36,9 @@
         r="11"
         fill="#fff"
         class="cursor-grab drop-shadow"
-        :class="isDragging ? undefined : arcTransition"
+        :class="
+          isDragging ? undefined : 'transition-all duration-fast ease-standard'
+        "
       />
     </svg>
 
@@ -107,8 +111,6 @@ const model = defineModel<string>({ required: true });
 const emit = defineEmits<{
   (e: "save"): void;
 }>();
-
-const arcTransition = "transition-all duration-fast ease-standard";
 
 const dialSvg = ref<SVGSVGElement | null>(null);
 const scoreInput = ref<HTMLInputElement | null>(null);

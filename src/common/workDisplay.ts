@@ -55,54 +55,10 @@ export function workPosterUrl(
   return fallbackImageUrl ?? undefined;
 }
 
-/** A short, media-appropriate subtitle (release year for movies, first
- * published year for books) for search cards and list rows. */
-export function workSubtitle(
-  data: DetailedWorkData | undefined,
-): string | undefined {
-  const movie = asMovie(data);
-  if (movie?.release_date !== undefined && movie.release_date.length >= 4) {
-    return movie.release_date.slice(0, 4);
-  }
-  const book = asBook(data);
-  return book?.firstPublishYear !== undefined
-    ? String(book.firstPublishYear)
-    : undefined;
-}
-
 /** "155" minutes → "2h 35m" (or "45m" under an hour). */
 export function formatRuntime(minutes: number): string {
   const hours = Math.floor(minutes / 60);
   const rest = minutes % 60;
   if (hours === 0) return `${rest}m`;
   return rest === 0 ? `${hours}h` : `${hours}h ${rest}m`;
-}
-
-/**
- * A one-line, media-appropriate summary shown under the title in the details
- * drawers: "2h 35m · Adventure, Science Fiction" for movies, "Frank Herbert ·
- * 412 pages" for books. Undefined when there is nothing to show.
- */
-export function workMetaLine(
-  data: DetailedWorkData | undefined,
-): string | undefined {
-  const parts: string[] = [];
-  const movie = asMovie(data);
-  const book = asBook(data);
-  if (movie !== undefined) {
-    if (movie.runtime !== undefined && movie.runtime > 0) {
-      parts.push(formatRuntime(movie.runtime));
-    }
-    if (movie.genres !== undefined && movie.genres.length > 0) {
-      parts.push(movie.genres.join(", "));
-    }
-  } else if (book !== undefined) {
-    if (book.authors.length > 0) {
-      parts.push(book.authors.join(", "));
-    }
-    if (book.numberOfPages !== undefined && book.numberOfPages > 0) {
-      parts.push(`${book.numberOfPages} pages`);
-    }
-  }
-  return parts.length > 0 ? parts.join(" · ") : undefined;
 }

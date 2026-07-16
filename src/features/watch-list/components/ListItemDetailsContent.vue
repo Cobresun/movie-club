@@ -141,6 +141,7 @@ import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import { Member } from "../../../../lib/types/club";
 import { DetailedWorkListItem } from "../../../../lib/types/lists";
 
+import { workMetaLine, workOverview, workSubtitle } from "@/common/clubType";
 import BookMetadataGrid from "@/common/components/BookMetadataGrid.vue";
 import CastList from "@/common/components/CastList.vue";
 import CommentThread from "@/common/components/CommentThread.vue";
@@ -151,13 +152,7 @@ import VAvatar from "@/common/components/VAvatar.vue";
 import WatchProviders from "@/common/components/WatchProviders.vue";
 import WorkDescription from "@/common/components/WorkDescription.vue";
 import WorkPosterHero from "@/common/components/WorkPosterHero.vue";
-import {
-  asBook,
-  asMovie,
-  workMetaLine,
-  workPosterUrl,
-  workSubtitle,
-} from "@/common/workDisplay";
+import { asBook, asMovie, workPosterUrl } from "@/common/workDisplay";
 
 const props = defineProps<{
   movie: DetailedWorkListItem;
@@ -223,7 +218,5 @@ const displayYear = computed(() => workSubtitle(props.movie.externalData));
 // the Details section below only carries what the hero doesn't.
 const metaLine = computed(() => workMetaLine(props.movie.externalData));
 
-const overview = computed(
-  () => movieData.value?.overview ?? bookData.value?.description,
-);
+const overview = computed(() => workOverview(props.movie.externalData));
 </script>

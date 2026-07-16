@@ -283,7 +283,12 @@ import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import { ClubType } from "../../../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
 
-import { clubTypeConfig } from "@/common/clubType";
+import {
+  clubTypeConfig,
+  workMetaLine,
+  workOverview,
+  workSubtitle,
+} from "@/common/clubType";
 import BookMetadataGrid from "@/common/components/BookMetadataGrid.vue";
 import CastList from "@/common/components/CastList.vue";
 import CommentThread from "@/common/components/CommentThread.vue";
@@ -295,13 +300,7 @@ import WatchProviders from "@/common/components/WatchProviders.vue";
 import WorkDescription from "@/common/components/WorkDescription.vue";
 import WorkPosterHero from "@/common/components/WorkPosterHero.vue";
 import { useShare } from "@/common/composables/useShare";
-import {
-  asBook,
-  asMovie,
-  workMetaLine,
-  workPosterUrl,
-  workSubtitle,
-} from "@/common/workDisplay";
+import { asBook, asMovie, workPosterUrl } from "@/common/workDisplay";
 import { useClub, useClubSettings, useClubSlug } from "@/service/useClub";
 import { useReviewsListId, useUpdateAddedDate } from "@/service/useList";
 
@@ -402,8 +401,8 @@ const metaLine = computed(() =>
   workMetaLine(props.movie.original.externalData),
 );
 
-const overview = computed(
-  () => movieData.value?.overview ?? bookData.value?.description,
+const overview = computed(() =>
+  workOverview(props.movie.original.externalData),
 );
 
 // TMDB publishes ratings with three decimals (7.783); one is plenty here.

@@ -1,6 +1,6 @@
 import axios from "axios";
 
-import { hasValue } from "@/../lib/checks/checks";
+import { hasValue, isDefined } from "@/../lib/checks/checks";
 import { secureImageUrl, sortVolumesByPopularity } from "@/../lib/googleBooks";
 import {
   GoogleBooksSearchResponse,
@@ -16,7 +16,7 @@ import {
   reviewAverageScore,
   type WorkMatcher,
 } from "@/common/filterMatchers";
-import { asBook, asMovie } from "@/common/workDisplay";
+import { asBook, asMovie, formatRuntime } from "@/common/workDisplay";
 
 const TMDB_KEY = import.meta.env.VITE_TMDB_API_KEY;
 const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w154";
@@ -152,6 +152,30 @@ export interface ClubTypeConfig {
   ) => Promise<WorkSearchResult[]>;
   /** Copy and icons for the statistics feature. */
   readonly stats: StatsConfig;
+  /** Per-type extraction of the strings shown in the details drawers. */
+  readonly display: WorkDisplay;
+  /**
+   * How alike two works of this club's type are, for Score Assist's pivot
+   * selection. Missing or mismatched-kind metadata scores 0.
+   */
+  readonly similarity: (
+    target: DetailedWorkData | undefined,
+    candidate: DetailedWorkData | undefined,
+  ) => number;
+}
+
+/**
+ * The media-appropriate display strings a details drawer renders for one work.
+ * Each field owns its own `asMovie`/`asBook` narrowing so the shared helpers
+ * ({@link workSubtitle} etc.) dispatch on the work's kind instead of branching.
+ */
+export interface WorkDisplay {
+  /** Short subtitle: release year (movies) / first-published year (books). */
+  readonly subtitle: (data: DetailedWorkData | undefined) => string | undefined;
+  /** One-line hero meta: "2h 35m · Adventure" / "Frank Herbert · 412 pages". */
+  readonly metaLine: (data: DetailedWorkData | undefined) => string | undefined;
+  /** Long-form blurb: the TMDB overview / the book description. */
+  readonly overview: (data: DetailedWorkData | undefined) => string | undefined;
 }
 
 /**
@@ -239,6 +263,86 @@ const reviewDateOption = dateOption(
   (work) => work.createdDate,
 );
 
+// --- Per-type display extraction --------------------------------------------
+
+const movieDisplay: WorkDisplay = {
+  subtitle: (data) => {
+    const movie = asMovie(data);
+    return movie?.release_date !== undefined && movie.release_date.length >= 4
+      ? movie.release_date.slice(0, 4)
+      : undefined;
+  },
+  metaLine: (data) => {
+    const movie = asMovie(data);
+    if (movie === undefined) return undefined;
+    const parts: string[] = [];
+    if (movie.runtime !== undefined && movie.runtime > 0) {
+      parts.push(formatRuntime(movie.runtime));
+    }
+    if (movie.genres !== undefined && movie.genres.length > 0) {
+      parts.push(movie.genres.join(", "));
+    }
+    return parts.length > 0 ? parts.join(" · ") : undefined;
+  },
+  overview: (data) => asMovie(data)?.overview,
+};
+
+const bookDisplay: WorkDisplay = {
+  subtitle: (data) => {
+    const book = asBook(data);
+    return book?.firstPublishYear !== undefined
+      ? String(book.firstPublishYear)
+      : undefined;
+  },
+  metaLine: (data) => {
+    const book = asBook(data);
+    if (book === undefined) return undefined;
+    const parts: string[] = [];
+    if (book.authors.length > 0) parts.push(book.authors.join(", "));
+    if (book.numberOfPages !== undefined && book.numberOfPages > 0) {
+      parts.push(`${book.numberOfPages} pages`);
+    }
+    return parts.length > 0 ? parts.join(" · ") : undefined;
+  },
+  overview: (data) => asBook(data)?.description,
+};
+
+// --- Per-type similarity (Score Assist pivot selection) ---------------------
+// How strongly a shared primary credit (director / author) counts towards
+// similarity, relative to a shared category (genre / subject).
+const PRIMARY_CREDIT_WEIGHT = 3;
+const CATEGORY_WEIGHT = 1;
+
+// Case-insensitive: Google Books subjects vary in casing between volumes.
+function sharedCount(a: readonly string[], b: readonly string[]): number {
+  const normalized = new Set(a.map((value) => value.toLowerCase()));
+  return b.filter((value) => normalized.has(value.toLowerCase())).length;
+}
+
+const movieSimilarity: ClubTypeConfig["similarity"] = (target, candidate) => {
+  const a = asMovie(target);
+  const b = asMovie(candidate);
+  if (a === undefined || b === undefined) return 0;
+  return (
+    sharedCount(
+      a.directors.map((director) => director.name),
+      b.directors.map((director) => director.name),
+    ) *
+      PRIMARY_CREDIT_WEIGHT +
+    sharedCount(a.genres, b.genres) * CATEGORY_WEIGHT
+  );
+};
+
+const bookSimilarity: ClubTypeConfig["similarity"] = (target, candidate) => {
+  const a = asBook(target);
+  const b = asBook(candidate);
+  if (a === undefined || b === undefined) return 0;
+  return (
+    sharedCount(a.authors, b.authors) * PRIMARY_CREDIT_WEIGHT +
+    sharedCount(a.subjects, b.subjects) * CATEGORY_WEIGHT
+  );
+};
+
 /**
  * Everything that varies by a club's media type, in one place. To add a third
  * club type: add the enum value (migration + codegen) and one entry here — copy,
@@ -302,6 +406,8 @@ export const CLUB_TYPE_CONFIG: Record<ClubType, ClubTypeConfig> = {
       countIcon: "filmstrip",
       shareTitle: "Movie Club Statistics",
     },
+    display: movieDisplay,
+    similarity: movieSimilarity,
   },
   [ClubType.book]: {
     clubType: ClubType.book,
@@ -346,6 +452,8 @@ export const CLUB_TYPE_CONFIG: Record<ClubType, ClubTypeConfig> = {
       countIcon: "book-open-page-variant-outline",
       shareTitle: "Book Club Statistics",
     },
+    display: bookDisplay,
+    similarity: bookSimilarity,
   },
 };
 
@@ -371,4 +479,68 @@ export function clubTypeLabel(type: ClubType): string {
 /** Statistics-feature copy and icons for a club's media type. */
 export function clubTypeStats(type: ClubType): StatsConfig {
   return clubTypeConfig(type).stats;
+}
+
+// A work self-identifies its media type via `externalData.kind`, so display
+// helpers can route to the right registry entry without their callers knowing
+// the club type. Both maps are exhaustive (a new type won't compile until added).
+const CLUB_TYPE_BY_KIND: Record<DetailedWorkData["kind"], ClubType> = {
+  movie: ClubType.movie,
+  book: ClubType.book,
+};
+
+const CLUB_TYPE_BY_WORK_TYPE: Record<WorkType, ClubType> = {
+  [WorkType.movie]: ClubType.movie,
+  [WorkType.book]: ClubType.book,
+};
+
+function workDisplay(
+  data: DetailedWorkData | undefined,
+): WorkDisplay | undefined {
+  if (data === undefined) return undefined;
+  // Legacy/partially-cached works can arrive without a `kind` discriminant, so
+  // guard the lookup rather than assume it resolves (returns undefined copy,
+  // matching the pre-registry asMovie/asBook fallthrough).
+  const type = CLUB_TYPE_BY_KIND[data.kind];
+  return isDefined(type) ? clubTypeConfig(type).display : undefined;
+}
+
+/** A short, media-appropriate subtitle (release/first-published year). */
+export function workSubtitle(
+  data: DetailedWorkData | undefined,
+): string | undefined {
+  return workDisplay(data)?.subtitle(data);
+}
+
+/**
+ * A one-line, media-appropriate summary for the details drawers: "2h 35m ·
+ * Adventure, Science Fiction" (movies) / "Frank Herbert · 412 pages" (books).
+ */
+export function workMetaLine(
+  data: DetailedWorkData | undefined,
+): string | undefined {
+  return workDisplay(data)?.metaLine(data);
+}
+
+/** The long-form blurb (TMDB overview / book description). */
+export function workOverview(
+  data: DetailedWorkData | undefined,
+): string | undefined {
+  return workDisplay(data)?.overview(data);
+}
+
+/**
+ * How alike two works are, for preferring familiar comparison points while
+ * Score Assist binary-searches a score. Missing or mismatched-kind metadata
+ * scores 0, so pivot selection degrades gracefully to score-midpoint distance.
+ */
+export function workSimilarity(
+  type: WorkType,
+  target: DetailedWorkData | undefined,
+  candidate: DetailedWorkData | undefined,
+): number {
+  return clubTypeConfig(CLUB_TYPE_BY_WORK_TYPE[type]).similarity(
+    target,
+    candidate,
+  );
 }

@@ -1,10 +1,11 @@
-import { workSimilarity } from "./scoreAssistSimilarity";
 import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import { WorkType } from "../../../../lib/types/generated/db";
 import {
   DetailedReviewListItem,
   DetailedWorkData,
 } from "../../../../lib/types/lists";
+
+import { workSimilarity } from "@/common/clubType";
 
 /**
  * Score Assist: converge on a 0-10 score suggestion for a target work by

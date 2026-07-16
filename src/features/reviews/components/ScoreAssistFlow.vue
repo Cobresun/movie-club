@@ -8,7 +8,7 @@
       <div class="flex justify-center gap-4">
         <button
           type="button"
-          :class="posterButtonClass"
+          class="w-40 rounded-lg transition duration-fast ease-standard hover:scale-[1.03] hover:ring-4 hover:ring-primary focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary active:scale-[0.98]"
           :aria-label="`I liked ${target.title} more`"
           @click="answer('more')"
         >
@@ -18,7 +18,7 @@
           <button
             :key="pivot.workId"
             type="button"
-            :class="posterButtonClass"
+            class="w-40 rounded-lg transition duration-fast ease-standard hover:scale-[1.03] hover:ring-4 hover:ring-primary focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary active:scale-[0.98]"
             :aria-label="`I liked ${pivot.title} more`"
             @click="answer('less')"
           >
@@ -89,11 +89,6 @@ const {
 } = useScoreAssist(props.target, props.candidates);
 
 const noun = computed(() => clubTypeConfig(props.clubType).noun);
-
-// The whole card is the answer button; hover/focus affordances (ring + lift)
-// signal that the posters themselves are what you tap.
-const posterButtonClass =
-  "w-40 rounded-lg transition duration-fast ease-standard hover:scale-[1.03] hover:ring-4 hover:ring-primary focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary active:scale-[0.98]";
 
 const targetPosterUrl = computed(
   () => workPosterUrl(props.target.externalData, props.target.imageUrl) ?? "",

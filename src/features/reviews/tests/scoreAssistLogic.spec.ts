@@ -14,7 +14,8 @@ import {
   ScoredCandidate,
   startSession,
 } from "../composables/scoreAssistLogic";
-import { workSimilarity } from "../composables/scoreAssistSimilarity";
+
+import { workSimilarity } from "@/common/clubType";
 
 const USER_ID = "user-1";
 const OTHER_USER_ID = "user-2";
