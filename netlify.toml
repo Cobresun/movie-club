@@ -1,3 +1,16 @@
+[build]
+  # Deploy-only work. Quality gates (type-check, lint, test) run in GitHub
+  # Actions (.github/workflows/ci.yml) so they don't burn Netlify build minutes.
+  # `migrate` keeps the target DB (prod on production, the spawned/dev DB on
+  # previews) in sync; `vite build` produces the site.
+  command = "npm run migrate && vite build"
+
+  # Skip a preview rebuild when a push changes only non-deployed files (docs,
+  # Claude config). Exit 0 = Netlify cancels the build; a non-empty diff of
+  # everything-else exits non-zero and the build proceeds. Errors (e.g. missing
+  # CACHED_COMMIT_REF on a first build) are treated as "build" by Netlify.
+  ignore = "git diff --quiet ${CACHED_COMMIT_REF} ${COMMIT_REF} -- . ':(exclude)*.md' ':(exclude).claude/'"
+
 [[plugins]]
   package = "./netlify/plugins/preview-database"
 
