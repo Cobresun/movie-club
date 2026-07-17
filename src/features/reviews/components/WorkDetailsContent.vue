@@ -117,6 +117,23 @@
       </p>
     </section>
 
+    <!-- Spotlight fact: unlocks once every member has scored. Sits between the
+         verdict (scores) and the reference material (synopsis/details), with a
+         share shortcut since a completed review is the natural share moment.
+         Computed off the opening frame (see factReady), so it fades in after
+         the drawer has painted. -->
+    <Transition
+      enter-active-class="transition duration-slow ease-standard"
+      enter-from-class="-translate-y-1 opacity-0"
+    >
+      <ReviewFactCard
+        v-if="isDefined(reviewFact)"
+        :fact="reviewFact"
+        class="mt-4"
+        @share="shareReview(movie.original.id)"
+      />
+    </Transition>
+
     <!-- Synopsis -->
     <section v-if="hasValue(overview)" class="mt-6">
       <SectionHeader title="Synopsis" />
@@ -274,14 +291,16 @@
 <script setup lang="ts">
 import { Cell, FlexRender, Row, Table } from "@tanstack/vue-table";
 import { DateTime } from "luxon";
-import { computed, nextTick, onBeforeUnmount, ref } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 
 import DiscussionQuestions from "./DiscussionQuestions.vue";
+import ReviewFactCard from "./ReviewFactCard.vue";
 import ScoreEntryDock from "./ScoreEntryDock.vue";
 import ScoreEntryModal from "./ScoreEntryModal.vue";
 import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import { ClubType } from "../../../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
+import { computeReviewFact } from "../reviewFacts";
 
 import {
   clubTypeConfig,
@@ -301,8 +320,17 @@ import WorkDescription from "@/common/components/WorkDescription.vue";
 import WorkPosterHero from "@/common/components/WorkPosterHero.vue";
 import { useShare } from "@/common/composables/useShare";
 import { asBook, asMovie, workPosterUrl } from "@/common/workDisplay";
-import { useClub, useClubSettings, useClubSlug } from "@/service/useClub";
-import { useReviewsListId, useUpdateAddedDate } from "@/service/useList";
+import {
+  useClub,
+  useClubSettings,
+  useClubSlug,
+  useMembers,
+} from "@/service/useClub";
+import {
+  useReviewsList,
+  useReviewsListId,
+  useUpdateAddedDate,
+} from "@/service/useList";
 
 const props = defineProps<{
   movie: Row<DetailedReviewListItem>;
@@ -312,6 +340,8 @@ const props = defineProps<{
   hasRated: (movieId: string) => boolean;
   currentUserId?: string;
   isDesktop: boolean;
+  /** True once the host drawer/sheet has started its dismiss animation. */
+  dismissing?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -374,6 +404,56 @@ const saveDateChange = () => {
 const cancelDateEdit = () => {
   isEditingDate.value = false;
 };
+
+// The spotlight fact compares this review against the club's whole history,
+// so it reads the full reviews list (already in the query cache — ReviewView
+// fetched it to build the table) plus the member roster for the
+// "everyone has scored" gate.
+//
+// That scan (every work's full cast list, for actor milestones) is too heavy
+// for the drawer's opening frame, so the computed stays null until the browser
+// goes idle after mount — the drawer paints and slides in immediately, then
+// the fact card transitions in. The component is keyed by movie.id, so the
+// gate re-arms on every open/work switch.
+//
+// The dismiss animation needs the same protection: the drawer stays mounted
+// until its leave transition finishes, so a still-pending idle callback (or
+// its timeout) can land mid-close — the `dismissing` guard skips the scan
+// then, since a fact appearing in a closing drawer helps no one.
+const { data: allReviews } = useReviewsList(clubId);
+const { data: allMembers } = useMembers(clubId);
+const factReady = ref(false);
+let cancelFactIdle: (() => void) | undefined;
+onMounted(() => {
+  const armFact = () => {
+    if (props.dismissing !== true) {
+      factReady.value = true;
+    }
+  };
+  if (typeof window.requestIdleCallback === "function") {
+    const handle = window.requestIdleCallback(
+      armFact,
+      // Cap the wait so the fact still appears promptly on busy pages.
+      { timeout: 1000 },
+    );
+    cancelFactIdle = () => window.cancelIdleCallback(handle);
+  } else {
+    // Safari/jsdom: no requestIdleCallback; a short delay clears the drawer's
+    // open animation instead.
+    const handle = setTimeout(armFact, 300);
+    cancelFactIdle = () => clearTimeout(handle);
+  }
+});
+onBeforeUnmount(() => cancelFactIdle?.());
+const reviewFact = computed(() =>
+  factReady.value && isDefined(allReviews.value) && isDefined(allMembers.value)
+    ? computeReviewFact(
+        allReviews.value,
+        allMembers.value,
+        props.movie.original.id,
+      )
+    : null,
+);
 
 const movieData = computed(() => asMovie(props.movie.original.externalData));
 const bookData = computed(() => asBook(props.movie.original.externalData));

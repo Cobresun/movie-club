@@ -27,7 +27,10 @@
         </div>
 
         <div :class="contentClass">
-          <slot />
+          <!-- `closing` flips as soon as dismissal starts (the sheet stays
+               mounted while the leave transition plays), so slot content can
+               cancel deferred work instead of janking the slide-out. -->
+          <slot :closing="!isVisible" />
         </div>
       </div>
     </Transition>
