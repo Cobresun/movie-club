@@ -1,15 +1,14 @@
 <template>
   <section v-if="hasElements(allActors)">
-    <div class="mb-3 flex items-center justify-between">
-      <span class="text-gray-400">Cast</span>
+    <SectionHeader title="Cast">
       <button
         v-if="hasMore"
-        class="text-sm text-primary hover:underline"
+        class="text-xs text-primary hover:underline"
         @click="showAll = true"
       >
         See all ({{ allActors.length }})
       </button>
-    </div>
+    </SectionHeader>
 
     <ul class="flex gap-4 overflow-x-auto pb-1">
       <li
@@ -56,6 +55,7 @@ import { computed, ref } from "vue";
 
 import CastAvatar from "./CastAvatar.vue";
 import CastModal from "./CastModal.vue";
+import SectionHeader from "./SectionHeader.vue";
 import { hasElements, hasValue } from "../../../lib/checks/checks";
 
 const props = defineProps<{

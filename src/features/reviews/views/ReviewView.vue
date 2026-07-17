@@ -8,6 +8,14 @@
       @confirm="confirmDelete"
       @cancel="cancelDelete"
     />
+    <score-assist-modal
+      v-if="isDefined(scoreAssistTarget)"
+      :key="scoreAssistTarget.id"
+      :target="scoreAssistTarget"
+      :candidates="scoreAssistCandidates"
+      :club-type="club?.type ?? ClubType.movie"
+      @close="scoreAssistWorkId = undefined"
+    />
     <page-header :has-back="true" back-route="ClubHome" page-name="Reviews">
       <div class="flex gap-2">
         <mdicon name="table" />
@@ -73,16 +81,30 @@ import {
   useVueTable,
 } from "@tanstack/vue-table";
 import { DateTime } from "luxon";
-import { computed, ref, onMounted, h, resolveComponent, watch } from "vue";
+import {
+  computed,
+  ref,
+  onMounted,
+  h,
+  provide,
+  resolveComponent,
+  watch,
+} from "vue";
 
-import { hasValue, isTrue } from "../../../../lib/checks/checks.js";
+import { hasValue, isDefined, isTrue } from "../../../../lib/checks/checks.js";
 import { ClubType } from "../../../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
 import { useShare } from "../../../common/composables/useShare";
 import GalleryView from "../components/GalleryView.vue";
 import MovieTooltip from "../components/MovieTooltip.vue";
 import ReviewScore from "../components/ReviewScore.vue";
+import ScoreAssistModal from "../components/ScoreAssistModal.vue";
 import TableView from "../components/TableView.vue";
+import {
+  buildCandidatePool,
+  isScoreAssistEligible,
+} from "../composables/scoreAssistLogic";
+import { ScoreAssistKey } from "../scoreAssist";
 
 import AverageImg from "@/assets/images/average.svg";
 import { clubTypeConfig } from "@/common/clubType";
@@ -199,6 +221,25 @@ const mdicon = resolveComponent("mdicon");
 const currentUser = useUser();
 const userId = computed(() => currentUser.value?.id);
 
+// Score Assist: one modal instance lives here; scattered score-entry
+// affordances open it (and gate their trigger) through the provided key.
+const scoreAssistWorkId = ref<string>();
+const scoreAssistTarget = computed(() =>
+  reviews.value?.find((review) => review.id === scoreAssistWorkId.value),
+);
+const scoreAssistCandidates = computed(() => {
+  const target = scoreAssistTarget.value;
+  if (!isDefined(target) || !hasValue(userId.value)) return [];
+  return buildCandidatePool(reviews.value ?? [], userId.value, target.id);
+});
+provide(ScoreAssistKey, {
+  isEligible: (workId: string) =>
+    isScoreAssistEligible(reviews.value, userId.value, workId),
+  open: (workId: string) => {
+    scoreAssistWorkId.value = workId;
+  },
+});
+
 const revealedMovieIds = ref<Set<string>>(new Set());
 const hasUserRated = computed(() => {
   if (userId.value === undefined) return () => false;
@@ -305,13 +346,13 @@ const columns = computed(() => [
         }
 
         if (isTrue(context.meta?.showName)) {
-          return h("div", { class: "flex items-center gap-2" }, [
+          return h("div", { class: "flex min-w-0 items-center gap-2" }, [
             h(VAvatar, {
               src: member.image,
               name: member.name,
               size,
             }),
-            h("span", member.name),
+            h("span", { class: "truncate" }, member.name),
           ]);
         } else {
           return h(VAvatar, {
@@ -330,16 +371,22 @@ const columns = computed(() => [
           size = info.meta.size;
         }
 
-        const openInDrawer = info.meta?.openInDrawer === true;
-        const autoFocus = info.meta?.autoFocusScore === true;
+        // Read-only in the gallery cards and the details drawer (entry there
+        // flows through the drawer's score CTA); editable in the table.
+        const editable = info.meta?.editable !== false;
 
         const shouldBlur = shouldBlurScore(info.row.id, info.column.id);
+        // Gallery poster cards blur unrated scores but must not reveal them on
+        // click — reveal there flows through the details drawer's own pill.
+        const revealOnClick = shouldBlur && info.meta?.revealable !== false;
 
         return h(
           "div",
           {
-            class: shouldBlur ? "cursor-pointer hover:text-xl" : "",
-            onClick: shouldBlur ? () => toggleReveal(info.row.id) : undefined,
+            class: revealOnClick ? "cursor-pointer hover:text-xl" : "",
+            onClick: revealOnClick
+              ? () => toggleReveal(info.row.id)
+              : undefined,
           },
           [
             h(ReviewScore, {
@@ -348,9 +395,12 @@ const columns = computed(() => [
               score,
               reviewId: info.row.original.scores[member.id]?.id,
               size,
-              openInDrawer,
-              autoFocus,
-              class: shouldBlur ? "filter blur cursor-pointer" : "",
+              editable,
+              class: shouldBlur
+                ? revealOnClick
+                  ? "filter blur cursor-pointer"
+                  : "filter blur"
+                : "",
             }),
           ],
         );
@@ -367,9 +417,9 @@ const columns = computed(() => [
       }
 
       if (isTrue(context.meta?.showName)) {
-        return h("div", { class: "flex item-center gap-2" }, [
+        return h("div", { class: "flex min-w-0 items-center gap-2" }, [
           h("img", { src: AverageImg, class: `${size} max-w-none` }),
-          h("span", "Average"),
+          h("span", { class: "truncate" }, "Average"),
         ]);
       } else {
         return h("img", { src: AverageImg, class: `${size} max-w-none` });
@@ -382,14 +432,17 @@ const columns = computed(() => [
       }
 
       const shouldBlur = shouldBlurScore(info.row.id, info.column.id);
+      const revealOnClick = shouldBlur && info.meta?.revealable !== false;
 
       return h(
         "div",
         {
           class: shouldBlur
-            ? "font-bold text-lg text-primary filter blur cursor-pointer"
+            ? revealOnClick
+              ? "font-bold text-lg text-primary filter blur cursor-pointer"
+              : "font-bold text-lg text-primary filter blur"
             : "font-bold text-lg text-primary",
-          onClick: shouldBlur ? () => toggleReveal(info.row.id) : undefined,
+          onClick: revealOnClick ? () => toggleReveal(info.row.id) : undefined,
         },
         Math.round(review * 100) / 100,
       );

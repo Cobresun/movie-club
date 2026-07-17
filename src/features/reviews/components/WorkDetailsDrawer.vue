@@ -11,7 +11,6 @@
         :has-rated="hasRated"
         :current-user-id="currentUserId"
         :is-desktop="isDesktop"
-        :focus-score-entry="focusScoreEntry"
         @close="close"
         @toggle-reveal="toggleMovieReveal"
       />
@@ -28,7 +27,6 @@
         :has-rated="hasRated"
         :current-user-id="currentUserId"
         :is-desktop="isDesktop"
-        :focus-score-entry="focusScoreEntry"
         @close="close"
         @toggle-reveal="toggleMovieReveal"
       />
@@ -53,7 +51,6 @@ defineProps<{
   revealedMovieIds: Set<string>;
   hasRated: (movieId: string) => boolean;
   currentUserId?: string;
-  focusScoreEntry?: boolean;
 }>();
 
 const emit = defineEmits<{

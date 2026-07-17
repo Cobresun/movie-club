@@ -1,71 +1,56 @@
 <template>
-  <span class="inline-flex justify-center">
-    <Transition name="score-swap" mode="out-in" @after-enter="onAfterEnter">
-      <span
-        v-if="isDefined(score) && !isInputOpen"
-        key="score"
-        :class="{
-          'cursor-pointer': isMe,
-        }"
-        @click.stop="handleScoreClick"
-      >
-        {{ score }}
-      </span>
-      <span
-        v-else-if="isMe && !isInputOpen"
-        key="add"
-        role="button"
-        aria-label="Add score"
-        class="flex cursor-pointer items-center justify-center gap-0.5"
-        @click.stop="handleScoreClick"
-      >
+  <!-- Editable inline (reviews table): the score / "+" is a popover trigger that
+       opens the shared score-entry panel. -->
+  <Popover
+    v-if="canEditInline"
+    v-slot="{ close }"
+    as="span"
+    class="inline-flex"
+  >
+    <PopoverButton
+      :aria-label="isDefined(score) ? 'Edit score' : 'Add score'"
+      class="flex cursor-pointer items-center justify-center gap-0.5 outline-none"
+      @click="onTriggerClick"
+    >
+      <template v-if="isDefined(score)">{{ score }}</template>
+      <template v-else>
         <mdicon name="plus" />
-        <span v-if="openInDrawer !== true" class="text-xs text-gray-400"
-          >/10</span
-        >
-      </span>
-      <span
-        v-else-if="isMe && isInputOpen"
-        key="input"
-        class="flex items-center justify-center gap-0.5"
+        <span class="text-xs text-gray-400">/10</span>
+      </template>
+    </PopoverButton>
+
+    <Teleport to="body">
+      <PopoverPanel
+        :focus="true"
+        class="fixed w-64 rounded-xl border border-slate-600 bg-background p-4 shadow-2xl"
+        :style="panelStyle"
       >
-        <input
-          ref="scoreInput"
-          v-model="scoreModel"
-          type="number"
-          inputmode="decimal"
-          min="0"
-          max="10"
-          step="any"
-          placeholder="8.5"
-          aria-label="Score"
-          class="rounded-lg border border-gray-300 bg-background text-center outline-none [appearance:textfield] focus:border-primary [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-          :class="{
-            'w-10 p-2': size !== 'sm',
-            'w-8': size === 'sm',
-            'animate-score-pop': drawAttention,
-          }"
-          @blur="submitScore(parseFloat(scoreModel))"
-          @keydown.enter="scoreInput?.blur()"
-          @animationend="drawAttention = false"
+        <ScoreEntryPanel
+          :work-id="workId"
+          :score="score"
+          :review-id="reviewId"
+          autofocus
+          @submit="close()"
+          @assist="openAssist(close)"
         />
-        <span
-          class="text-xs text-gray-400 transition-opacity duration-200 motion-reduce:transition-none"
-          :class="drawAttention ? 'opacity-0' : 'opacity-100'"
-          >/10</span
-        >
-      </span>
-    </Transition>
-  </span>
+      </PopoverPanel>
+    </Teleport>
+  </Popover>
+
+  <!-- Read-only: other members' scores, and every cell in the gallery cards and
+       the drawer grid — entry there happens through the drawer's score CTA. -->
+  <span v-else-if="isDefined(score)">{{ score }}</span>
 </template>
+
 <script setup lang="ts">
-import { computed, inject, onBeforeUnmount, onMounted, ref } from "vue";
+import { Popover, PopoverButton, PopoverPanel } from "@headlessui/vue";
+import { computed, inject } from "vue";
 
-import { hasValue, isDefined, isTrue } from "../../../../lib/checks/checks.js";
-import { RequestScoreEntryKey } from "../scoreEntry";
+import { isDefined } from "../../../../lib/checks/checks.js";
+import { ScoreAssistKey } from "../scoreAssist";
+import ScoreEntryPanel from "./ScoreEntryPanel.vue";
 
-import { useClubSlug } from "@/service/useClub";
-import { useReviewWork, useUpdateReviewScore } from "@/service/useReviews";
+import { useAnchoredPanel } from "@/common/composables/useAnchoredPanel";
 import { useUser } from "@/service/useUser";
 
 const props = defineProps<{
@@ -74,125 +59,30 @@ const props = defineProps<{
   score?: number;
   reviewId?: string;
   size?: string;
-  // When true (poster chips in the gallery), clicking defers score entry to the
-  // details drawer instead of opening a cramped inline input on the poster.
-  openInDrawer?: boolean;
-  // When true (the current user's field inside the drawer), open the input and
-  // focus it as soon as the drawer mounts.
-  autoFocus?: boolean;
+  // When false (gallery cards, the drawer's member grid), render read-only even
+  // for the current user — entry there flows through the drawer's score CTA.
+  editable?: boolean;
 }>();
 
 const user = useUser();
 const isMe = computed(() => user.value?.id === props.memberId);
 
-const isInputOpen = ref(false);
-const scoreModel = ref("");
-const scoreInput = ref<HTMLInputElement | null>(null);
-// Plays a one-shot bounce on the input to draw the eye when it's opened for the
-// user (rather than by their own tap), e.g. auto-focused inside the drawer.
-const drawAttention = ref(false);
+const canEditInline = computed(() => isMe.value && props.editable !== false);
 
-const requestScoreEntry = inject(RequestScoreEntryKey, undefined);
-
-const handleScoreClick = () => {
-  if (!isMe.value) return;
-  if (isTrue(props.openInDrawer) && isDefined(requestScoreEntry)) {
-    requestScoreEntry(props.workId);
-    return;
-  }
-  openScoreInput();
+// A popover isn't an overlay that can swap its content, so the assist flow
+// opens in the standalone ScoreAssistModal hosted by ReviewView.
+const scoreAssist = inject(ScoreAssistKey, undefined);
+const openAssist = (close: () => void) => {
+  scoreAssist?.open(props.workId);
+  close();
 };
 
-const openScoreInput = ({ animate = false }: { animate?: boolean } = {}) => {
-  if (!isMe.value) return;
-  drawAttention.value = animate;
-  isInputOpen.value = true;
-  scoreModel.value = props.score?.toString() ?? "";
-};
+const { style: panelStyle, reposition } = useAnchoredPanel({ width: 256 });
 
-// With mode="out-in" the input is only inserted after the old element has
-// finished leaving, so focus must wait for after-enter (nextTick is too early).
-const onAfterEnter = () => {
-  scoreInput.value?.focus();
-  scoreInput.value?.select();
-};
-
-// Let the drawer / bottom-sheet slide-in animation (200ms sheet, 280ms drawer)
-// finish before opening and focusing the input, so it doesn't pop and scroll
-// into view mid-transition.
-const AUTOFOCUS_DELAY_MS = 300;
-let autoFocusTimer: ReturnType<typeof setTimeout> | undefined;
-
-onMounted(() => {
-  if (isTrue(props.autoFocus) && isMe.value) {
-    autoFocusTimer = setTimeout(
-      () => openScoreInput({ animate: true }),
-      AUTOFOCUS_DELAY_MS,
-    );
+const onTriggerClick = (event: MouseEvent) => {
+  const button = event.currentTarget;
+  if (button instanceof HTMLElement) {
+    reposition(button);
   }
-});
-
-onBeforeUnmount(() => {
-  if (isDefined(autoFocusTimer)) {
-    clearTimeout(autoFocusTimer);
-  }
-});
-
-const clubId = useClubSlug();
-const { mutate: submit } = useReviewWork(clubId);
-const { mutate: update } = useUpdateReviewScore(clubId);
-
-const submitScore = (score: number) => {
-  if (!isNaN(score) && score >= 0 && score <= 10 && score !== props.score) {
-    if (hasValue(props.reviewId)) {
-      update({ reviewId: props.reviewId, workId: props.workId, score });
-    } else {
-      submit({
-        workId: props.workId,
-        score,
-      });
-    }
-  }
-  isInputOpen.value = false;
 };
 </script>
-
-<style scoped>
-@keyframes score-pop {
-  0% {
-    transform: scale(1);
-  }
-  35% {
-    transform: scale(1.18);
-  }
-  70% {
-    transform: scale(0.96);
-  }
-  100% {
-    transform: scale(1);
-  }
-}
-
-.animate-score-pop {
-  animation: score-pop 0.45s ease-in-out;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .animate-score-pop {
-    animation: none;
-  }
-}
-
-.score-swap-enter-active,
-.score-swap-leave-active {
-  transition:
-    opacity var(--motion-fast) var(--ease-standard),
-    transform var(--motion-fast) var(--ease-standard);
-}
-
-.score-swap-enter-from,
-.score-swap-leave-to {
-  opacity: 0;
-  transform: scale(0.8);
-}
-</style>

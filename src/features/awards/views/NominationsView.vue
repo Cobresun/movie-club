@@ -89,9 +89,9 @@ import { ClubType } from "../../../../lib/types/generated/db";
 import AddMovieButton from "../components/AddMovieButton.vue";
 import { NOMINATIONS_PER_AWARD } from "../constants";
 
+import { workSubtitle } from "@/common/clubType";
 import WorkPosterCard from "@/common/components/WorkPosterCard.vue";
 import WorkSearchPrompt from "@/common/components/WorkSearchPrompt.vue";
-import { workSubtitle } from "@/common/workDisplay";
 import { useAddNomination, useDeleteNomination } from "@/service/useAwards";
 import { useReviewsList } from "@/service/useList";
 import { WorkSearchResult } from "@/service/useMediaSearch";

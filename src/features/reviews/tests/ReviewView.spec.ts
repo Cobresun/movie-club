@@ -1,4 +1,5 @@
-import { screen, waitFor, within } from "@testing-library/vue";
+import { TestingPinia } from "@pinia/testing";
+import { screen, within } from "@testing-library/vue";
 import { http, HttpResponse } from "msw";
 
 import ReviewView from "../views/ReviewView.vue";
@@ -11,6 +12,44 @@ import { useAuthStore } from "@/stores/auth";
 import { render } from "@/tests/utils";
 
 mockIntersectionObserver();
+
+function logIn(pinia: TestingPinia) {
+  const authStore = useAuthStore(pinia);
+  // @ts-expect-error Overwriting readonly property for testing purposes
+  authStore.user = {
+    id: memberData.id,
+    email: memberData.email,
+    name: memberData.name,
+    image: memberData.image,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    emailVerified: true,
+  };
+  // @ts-expect-error Forcing logged in to true for testing
+  authStore.isLoggedIn = true;
+}
+
+/** A work the mock user (member "2") has scored, for score-assist fixtures. */
+function scoredReview(id: string, score: number) {
+  return {
+    id,
+    title: `Movie ${id}`,
+    createdDate: "2024-05-28T04:46:37.751Z",
+    type: "movie",
+    scores: {
+      "2": {
+        id: `review-${id}`,
+        created_date: "2024-05-28T04:46:37.751Z",
+        score,
+      },
+      average: {
+        id: "average",
+        created_date: "2024-05-28T04:46:37.751Z",
+        score,
+      },
+    },
+  };
+}
 
 describe("ReviewView", () => {
   afterEach(() => {
@@ -66,9 +105,6 @@ describe("ReviewView", () => {
   it("should submit score", async () => {
     const { user, pinia } = render(ReviewView, {
       props: { clubSlug: "test-club" },
-      // Test Utils stubs <Transition> by default, which would swallow the
-      // after-enter hook that focuses the score input.
-      global: { stubs: { transition: false } },
     });
     const authStore = useAuthStore(pinia);
     // @ts-expect-error Overwriting readonly property for testing purposes
@@ -100,12 +136,9 @@ describe("ReviewView", () => {
     expect(addScoreButton).toBeInTheDocument();
 
     await user.click(addScoreButton);
-    // The input mounts after the out-in swap and receives focus on the
-    // transition's after-enter hook, both a few frames after the click.
-    const scoreInput = await screen.findByRole("spinbutton", {
-      name: "Score",
-    });
-    await waitFor(() => expect(scoreInput).toHaveFocus());
+    const scoreInput = await screen.findByRole("spinbutton", { name: "Score" });
+    expect(scoreInput).toBeInTheDocument();
+    expect(scoreInput).toHaveFocus();
 
     const newReviews = [
       reviews[0],
@@ -136,14 +169,69 @@ describe("ReviewView", () => {
       }),
     );
 
-    await user.keyboard("10{Enter}");
-    // The input leaves through the score-swap transition, so wait for it.
-    await waitFor(() =>
-      expect(
-        screen.queryByRole("spinbutton", { name: "Score" }),
-      ).not.toBeInTheDocument(),
-    );
+    await user.type(scoreInput, "10");
+    await user.click(screen.getByRole("button", { name: "Save score" }));
+    expect(
+      screen.queryByRole("spinbutton", { name: "Score" }),
+    ).not.toBeInTheDocument();
     expect(within(row).getByRole("cell", { name: "10" })).toBeInTheDocument();
     expect(within(row).getByRole("cell", { name: "9" })).toBeInTheDocument();
+  });
+
+  it("hides the score-assist button while the user has fewer than five scored works", async () => {
+    // Default fixture: member "2" has scored only one work.
+    const { user, pinia } = render(ReviewView, {
+      props: { clubSlug: "test-club" },
+    });
+    logIn(pinia);
+
+    await user.click(screen.getByRole("switch"));
+    await user.click(await screen.findByRole("button", { name: "Add score" }));
+
+    // The entry panel opens, but the assist button is absent (not eligible).
+    expect(
+      await screen.findByRole("spinbutton", { name: "Score" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /Compare .* you've rated/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("opens score assist from the entry panel once the user has five scored works", async () => {
+    const scored = [2, 3, 4, 5, 6, 7].map((n) => scoredReview(`m${n}`, n));
+    const unscored = {
+      id: "t1",
+      title: "Unscored Movie",
+      createdDate: "2024-05-28T04:46:37.751Z",
+      type: "movie",
+      scores: {},
+    };
+    server.use(
+      http.get("/api/club/:clubSlug/list/reviews", () =>
+        HttpResponse.json([...scored, unscored]),
+      ),
+    );
+
+    const { user, pinia } = render(ReviewView, {
+      props: { clubSlug: "test-club" },
+    });
+    logIn(pinia);
+
+    await user.click(screen.getByRole("switch"));
+    // The only "Add score" affordance belongs to the unscored work.
+    await user.click(await screen.findByRole("button", { name: "Add score" }));
+
+    const trigger = await screen.findByRole("button", {
+      name: /Compare .* you've rated/,
+    });
+    await user.click(trigger);
+
+    expect(
+      await screen.findByText("Which movie did you like more?"),
+    ).toBeInTheDocument();
+    // The entry popover closed when the modal opened.
+    expect(
+      screen.queryByRole("spinbutton", { name: "Score" }),
+    ).not.toBeInTheDocument();
   });
 });

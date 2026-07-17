@@ -97,6 +97,41 @@ describe("useBackButtonClose", () => {
     expect(onDismiss).not.toHaveBeenCalled();
   });
 
+  it("dismisses only the topmost overlay on a real back press", () => {
+    const dismissLower = vi.fn();
+    const dismissUpper = vi.fn();
+    render(Harness(dismissLower)); // lower overlay (e.g. the details drawer)
+    render(Harness(dismissUpper)); // higher overlay (e.g. the score sheet)
+
+    // Back peels one layer at a time: first press closes only the top sheet...
+    window.dispatchEvent(new PopStateEvent("popstate"));
+    expect(dismissUpper).toHaveBeenCalledTimes(1);
+    expect(dismissLower).not.toHaveBeenCalled();
+
+    // ...and the next press reaches the drawer beneath it.
+    window.dispatchEvent(new PopStateEvent("popstate"));
+    expect(dismissLower).toHaveBeenCalledTimes(1);
+    expect(dismissUpper).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps a lower overlay open when a higher overlay closes via cleanup", () => {
+    const dismissLower = vi.fn();
+    render(Harness(dismissLower)); // lower overlay (e.g. the details drawer)
+    const upper = render(Harness(vi.fn())); // higher overlay (e.g. a modal)
+
+    // The modal closes via a non-back action (Save), popping its own entry.
+    upper.unmount();
+    expect(back).toHaveBeenCalledTimes(1);
+
+    // That synthetic popstate must NOT dismiss the drawer beneath it.
+    window.dispatchEvent(new PopStateEvent("popstate"));
+    expect(dismissLower).not.toHaveBeenCalled();
+
+    // A subsequent real back press still dismisses the drawer.
+    window.dispatchEvent(new PopStateEvent("popstate"));
+    expect(dismissLower).toHaveBeenCalledTimes(1);
+  });
+
   it("does not pop history on unmount when the app navigated while open", async () => {
     const router = await makeRealRouter();
     vi.mocked(useRouter).mockReturnValue(router);

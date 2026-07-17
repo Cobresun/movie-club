@@ -18,12 +18,38 @@ import { useRouter } from "vue-router";
  * ours with `history.back()` would then traverse back over that real entry and
  * cancel the navigation, so in that case we leave history untouched.
  *
+ * ## Stacked overlays
+ *
+ * When one overlay opens on top of another (e.g. the score-entry sheet over
+ * the work-details bottom sheet), both push a synthetic entry, and every
+ * overlay's listener hears every `popstate`. Two coordination rules keep that
+ * sane:
+ *
+ * - A *real* back press pops only the topmost overlay's entry, so only the
+ *   overlay on top of the stack dismisses itself; lower overlays ignore the
+ *   event — back peels one layer at a time.
+ * - If the top overlay closes via a *non-back* action, its cleanup
+ *   `history.back()` pop is flagged as synthetic so the lower overlay swallows
+ *   exactly that one event and stays open.
+ *
+ * (Coordinates the common two-overlay case; deeper stacks are not exercised
+ * in this app.)
+ *
  * @param onDismiss - Called when the back button should close the overlay.
  *
  * @example
  * useBackButtonClose(() => handleClose());
  */
+
+// Overlays currently holding a synthetic history entry with a live listener,
+// in mount order — last entry is the topmost overlay.
+const overlayStack: symbol[] = [];
+// Synthetic cleanup pops (from a higher overlay closing) that the next popstate
+// handler should ignore rather than treat as a user back press.
+let syntheticPopsToIgnore = 0;
+
 export function useBackButtonClose(onDismiss: () => void) {
+  const overlayToken = Symbol("overlay");
   // Whether our extra history entry is still on the stack and needs cleanup.
   let pushed = false;
   // Set once a route navigation starts while the overlay is open. Popping our
@@ -35,10 +61,25 @@ export function useBackButtonClose(onDismiss: () => void) {
   const router = useRouter();
   let removeGuard: (() => void) | undefined;
 
+  const leaveStack = () => {
+    const index = overlayStack.indexOf(overlayToken);
+    if (index !== -1) overlayStack.splice(index, 1);
+  };
+
   const onPopState = () => {
+    // A synthetic pop from a higher overlay's cleanup, not a user back press —
+    // swallow it and leave this overlay (and its entry) in place.
+    if (syntheticPopsToIgnore > 0) {
+      syntheticPopsToIgnore--;
+      return;
+    }
+    // A real back press pops the topmost overlay's entry. If that isn't us,
+    // leave the dismissal to the overlay above — our entry is still intact.
+    if (overlayStack[overlayStack.length - 1] !== overlayToken) return;
     // The browser has already popped our entry, so don't pop it again on
     // unmount — just dismiss the overlay.
     pushed = false;
+    leaveStack();
     onDismiss();
   };
 
@@ -47,6 +88,7 @@ export function useBackButtonClose(onDismiss: () => void) {
     // and omit the URL so the address bar (and current route) stay put.
     window.history.pushState({ ...window.history.state, vOverlay: true }, "");
     pushed = true;
+    overlayStack.push(overlayToken);
     window.addEventListener("popstate", onPopState);
     // Flag any navigation that happens while the overlay is open. Callers that
     // navigate from an in-overlay action are expected to close the overlay only
@@ -60,11 +102,17 @@ export function useBackButtonClose(onDismiss: () => void) {
   onUnmounted(() => {
     window.removeEventListener("popstate", onPopState);
     removeGuard?.();
-    if (pushed && !navigated) {
-      pushed = false;
-      // Remove the entry we added so the back button isn't consumed by it after
-      // the overlay has already been dismissed some other way.
-      window.history.back();
+    if (!pushed) return;
+    pushed = false;
+    leaveStack();
+    if (navigated) return;
+    // If a lower overlay is still mounted, our history.back() will reach its
+    // listener as a popstate it must not treat as a dismissal.
+    if (overlayStack.length > 0) {
+      syntheticPopsToIgnore++;
     }
+    // Remove the entry we added so the back button isn't consumed by it after
+    // the overlay has already been dismissed some other way.
+    window.history.back();
   });
 }

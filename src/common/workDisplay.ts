@@ -55,17 +55,10 @@ export function workPosterUrl(
   return fallbackImageUrl ?? undefined;
 }
 
-/** A short, media-appropriate subtitle (release year for movies, first
- * published year for books) for search cards and list rows. */
-export function workSubtitle(
-  data: DetailedWorkData | undefined,
-): string | undefined {
-  const movie = asMovie(data);
-  if (movie?.release_date !== undefined && movie.release_date.length >= 4) {
-    return movie.release_date.slice(0, 4);
-  }
-  const book = asBook(data);
-  return book?.firstPublishYear !== undefined
-    ? String(book.firstPublishYear)
-    : undefined;
+/** "155" minutes → "2h 35m" (or "45m" under an hour). */
+export function formatRuntime(minutes: number): string {
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  if (hours === 0) return `${rest}m`;
+  return rest === 0 ? `${hours}h` : `${hours}h ${rest}m`;
 }

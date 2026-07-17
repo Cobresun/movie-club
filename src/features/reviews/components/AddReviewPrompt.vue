@@ -20,8 +20,7 @@ import { hasValue } from "../../../../lib/checks/checks";
 import { ClubType } from "../../../../lib/types/generated/db";
 import WorkSearchPrompt from "../../../common/components/WorkSearchPrompt.vue";
 
-import { workTypeForClub } from "@/common/clubType";
-import { workSubtitle } from "@/common/workDisplay";
+import { workSubtitle, workTypeForClub } from "@/common/clubType";
 import { useClub, useClubSlug } from "@/service/useClub";
 import {
   useAddToReviewsList,
