@@ -141,10 +141,10 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
 
-import { isString } from "../../../lib/checks/checks.js";
+import { hasValue, isString } from "../../../lib/checks/checks.js";
 
 import googleLogo from "@/assets/images/google-logo.svg";
 import { authClient } from "@/lib/auth-client";
@@ -156,6 +156,7 @@ const emit = defineEmits<{
 
 const toast = useToast();
 const route = useRoute();
+const router = useRouter();
 const authStore = useAuthStore();
 
 const isSignUp = ref(false);
@@ -183,7 +184,27 @@ const getRedirectUrl = (): string | undefined => {
   if (isString(redirectParam)) {
     return redirectParam;
   }
+  // A club invite page is itself the destination to return to: users often
+  // authenticate mid-flow there, and losing the page loses the invite.
+  if (route.name === "JoinClub") {
+    return route.fullPath;
+  }
   return undefined;
+};
+
+// After an SPA (non-OAuth) auth success: return to the redirect target if
+// there is one, otherwise fall back to the user's default club. When the
+// target is the page we're already on (e.g. the invite page), stay put — the
+// view reacts to the session change on its own.
+const navigateAfterAuth = () => {
+  const redirect = getRedirectUrl();
+  if (hasValue(redirect)) {
+    if (redirect !== route.fullPath) {
+      router.push(redirect).catch(console.error);
+    }
+  } else {
+    void authStore.navigateToDefaultClub();
+  }
 };
 
 const handleSubmit = async () => {
@@ -194,11 +215,15 @@ const handleSubmit = async () => {
   try {
     if (isSignUp.value) {
       // Sign Up
+      // callbackURL is baked into the verification email link, so after
+      // verifying (which auto-signs-in) the user lands back where they
+      // started — e.g. the club invite page instead of the app root.
       await authClient.signUp.email(
         {
           email: email.value,
           password: password.value,
           name: name.value,
+          callbackURL: getRedirectUrl(),
         },
         {
           onSuccess: () => {
@@ -214,17 +239,19 @@ const handleSubmit = async () => {
       );
     } else {
       // Sign In
+      // No callbackURL here: Better Auth would hard-redirect to it, racing
+      // the SPA navigation below. navigateAfterAuth handles the redirect
+      // target (or default club) via the router instead.
       await authClient.signIn.email(
         {
           email: email.value,
           password: password.value,
-          callbackURL: getRedirectUrl(),
         },
         {
           onSuccess: () => {
             toast.success("Signed in successfully!");
             handleClose();
-            void authStore.navigateToDefaultClub();
+            navigateAfterAuth();
           },
           onError: (ctx) => {
             // Handle email verification required error
@@ -248,7 +275,7 @@ const handleResendVerification = async () => {
   try {
     await authClient.sendVerificationEmail({
       email: email.value,
-      callbackURL: "/",
+      callbackURL: getRedirectUrl() ?? "/",
     });
     toast.success("Verification email sent! Please check your inbox.");
   } catch {

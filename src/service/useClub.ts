@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
 import type { UseQueryReturnType } from "@tanstack/vue-query";
 import axios from "axios";
-import { computed } from "vue";
+import { computed, unref } from "vue";
+import type { MaybeRef } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 import { reviewsListKey } from "./useList";
@@ -69,12 +70,13 @@ export function useClubSlug(): string {
   throw Error("This route does not include a clubSlug");
 }
 
-export function useIsInClub(clubSlug: string) {
+export function useIsInClub(clubSlug: MaybeRef<string>) {
   const { data: clubs, isLoading } = useUserClubs();
   const isUserInClub = computed(() => {
+    const slug = unref(clubSlug);
     return isLoading.value
       ? false
-      : (clubs.value?.some((club) => club.slug === clubSlug) ?? false);
+      : (clubs.value?.some((club) => club.slug === slug) ?? false);
   });
   return isUserInClub;
 }
@@ -110,7 +112,6 @@ export function useLeaveClub(clubSlug: string) {
 export function useJoinClub(inviteToken: string) {
   const auth = useAuthStore();
   const queryClient = useQueryClient();
-  const router = useRouter();
 
   return useMutation({
     mutationFn: () =>
@@ -118,9 +119,10 @@ export function useJoinClub(inviteToken: string) {
         token: inviteToken,
         userId: auth.user?.id,
       }),
+    // Navigation to the joined club is handled by JoinClubView, which reacts
+    // to the refreshed membership list once this invalidation resolves.
     onSuccess: async () => {
       await queryClient.invalidateQueries(["user", "clubs"]);
-      router.push({ name: "Clubs" }).catch(console.error);
     },
   });
 }
