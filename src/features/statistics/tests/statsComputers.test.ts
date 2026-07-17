@@ -4,10 +4,13 @@ import type { Member } from "../../../../lib/types/club";
 import { WorkType } from "../../../../lib/types/generated/db";
 import type { DetailedMovieData } from "../../../../lib/types/movie";
 import {
+  computeClubRecords,
+  computeCumulativeCounts,
   computeGenreStats,
   computeGuiltyPleasures,
   computeHighestRatedByYear,
   computeMemberLeaderboard,
+  computeMonthlyActivity,
   computePublishDecadeStats,
   computeScoreVariance,
   computeSubjectReadCounts,
@@ -934,13 +937,13 @@ describe("computeHighestRatedByYear", () => {
       year: 2024,
       title: "2024 Only",
       average: 6,
-      movieCount: 1,
+      workCount: 1,
     });
     expect(result[1]).toMatchObject({
       year: 2023,
       title: "2023 High",
       average: 9,
-      movieCount: 2,
+      workCount: 2,
     });
   });
 
@@ -1264,5 +1267,114 @@ describe("computePublishDecadeStats", () => {
     ];
     expect(computePublishDecadeStats(books, "m1")[0].averageScore).toBe(8);
     expect(computePublishDecadeStats(books)[0].averageScore).toBe(5);
+  });
+});
+
+// ---------- computeClubRecords ----------
+
+describe("computeClubRecords", () => {
+  it("returns no records for fewer than two works", () => {
+    expect(computeClubRecords([makeMovie()])).toEqual({
+      highest: null,
+      lowest: null,
+      mostDivisive: null,
+    });
+  });
+
+  it("finds the highest and lowest rated works", () => {
+    const movies = [
+      makeMovie({ title: "Best", average: 9.25 }),
+      makeMovie({ title: "Middle", average: 6 }),
+      makeMovie({ title: "Worst", average: 2.5 }),
+    ];
+
+    const records = computeClubRecords(movies);
+
+    expect(records.highest).toMatchObject({ title: "Best", value: 9.25 });
+    expect(records.lowest).toMatchObject({ title: "Worst", value: 2.5 });
+  });
+
+  it("finds the work with the widest score spread", () => {
+    const movies = [
+      makeMovie({ title: "Agreed", userScores: { m1: 7, m2: 7 } }),
+      makeMovie({ title: "Split", userScores: { m1: 2, m2: 10 } }),
+    ];
+
+    const records = computeClubRecords(movies);
+
+    expect(records.mostDivisive).toMatchObject({ title: "Split", value: 4 });
+  });
+
+  it("ignores single-scorer works for the divisive record", () => {
+    const movies = [
+      makeMovie({ title: "Solo", userScores: { m1: 10 } }),
+      makeMovie({ title: "Duo", userScores: { m1: 6, m2: 7 } }),
+    ];
+
+    expect(computeClubRecords(movies).mostDivisive).toMatchObject({
+      title: "Duo",
+    });
+  });
+});
+
+// ---------- computeMonthlyActivity ----------
+
+describe("computeMonthlyActivity", () => {
+  it("returns an empty array for no works", () => {
+    expect(computeMonthlyActivity([])).toEqual([]);
+  });
+
+  it("counts reviews per month and fills gap months with zero", () => {
+    const movies = [
+      makeMovie({ createdDate: "2024-01-05T00:00:00.000Z" }),
+      makeMovie({ createdDate: "2024-01-20T00:00:00.000Z" }),
+      makeMovie({ createdDate: "2024-03-10T00:00:00.000Z" }),
+    ];
+
+    const points = computeMonthlyActivity(movies);
+
+    expect(points).toHaveLength(3);
+    expect(points.map((p) => p.count)).toEqual([2, 0, 1]);
+    expect(points[0].label).toBe("Jan 2024");
+    expect(points[1].label).toBe("Feb 2024");
+    expect(points[2].label).toBe("Mar 2024");
+  });
+
+  it("skips works with invalid dates", () => {
+    const movies = [
+      makeMovie({ createdDate: "2024-01-05T00:00:00.000Z" }),
+      makeMovie({ createdDate: "not-a-date" }),
+    ];
+
+    const points = computeMonthlyActivity(movies);
+
+    expect(points).toHaveLength(1);
+    expect(points[0].count).toBe(1);
+  });
+});
+
+// ---------- computeCumulativeCounts ----------
+
+describe("computeCumulativeCounts", () => {
+  it("returns a running total in review-date order", () => {
+    const movies = [
+      makeMovie({ title: "Second", createdDate: "2024-02-01T00:00:00.000Z" }),
+      makeMovie({ title: "First", createdDate: "2024-01-01T00:00:00.000Z" }),
+      makeMovie({ title: "Third", createdDate: "2024-03-01T00:00:00.000Z" }),
+    ];
+
+    const points = computeCumulativeCounts(movies);
+
+    expect(points.map((p) => p.title)).toEqual(["First", "Second", "Third"]);
+    expect(points.map((p) => p.total)).toEqual([1, 2, 3]);
+  });
+
+  it("skips works with invalid dates", () => {
+    const movies = [
+      makeMovie({ createdDate: "not-a-date" }),
+      makeMovie({ createdDate: "2024-01-01T00:00:00.000Z" }),
+    ];
+
+    expect(computeCumulativeCounts(movies)).toHaveLength(1);
   });
 });

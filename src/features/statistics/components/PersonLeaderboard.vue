@@ -1,5 +1,8 @@
 <template>
-  <h3 class="mb-5 text-center text-lg font-semibold text-white">
+  <h3
+    v-if="hasValue(title)"
+    class="mb-5 text-center text-lg font-semibold text-white"
+  >
     {{ title }}
   </h3>
 
@@ -101,17 +104,19 @@
 <script setup lang="ts">
 import { ref } from "vue";
 
+import { hasValue } from "../../../../lib/checks/checks.js";
 import type { PersonStats } from "../statsComputers";
 
 withDefaults(
   defineProps<{
-    title: string;
+    /** Optional heading — omit when the surrounding card already has one. */
+    title?: string;
     entries: PersonStats[];
     emptyMessage: string;
     /** Singular noun for the per-person count ("film", "book"). */
     itemNoun?: string;
   }>(),
-  { itemNoun: "film" },
+  { title: undefined, itemNoun: "film" },
 );
 
 const expanded = ref(new Set<number>());
@@ -142,13 +147,13 @@ function rankClass(index: number): string {
 function scoreColor(score: number): string {
   if (score >= 7.5) return "text-emerald-400";
   if (score >= 5) return "text-primary";
-  return "text-orange-400";
+  return "text-rose-400";
 }
 
 function barColor(score: number): string {
   if (score >= 7.5) return "bg-emerald-500/70";
   if (score >= 5) return "bg-primary/70";
-  return "bg-orange-500/70";
+  return "bg-rose-500/70";
 }
 
 function barWidth(score: number): number {
