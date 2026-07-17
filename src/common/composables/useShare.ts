@@ -23,6 +23,21 @@ const isMobileDevice = (): boolean => {
 };
 
 /**
+ * Detects iOS devices (iPhone/iPad/iPod), including iPadOS reporting a
+ * Mac user agent.
+ */
+const isIosDevice = (): boolean => {
+  if (typeof navigator === "undefined") return false;
+
+  return (
+    /iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+    (navigator.userAgent.includes("Mac") &&
+      typeof document !== "undefined" &&
+      "ontouchend" in document)
+  );
+};
+
+/**
  * Composable for sharing content using the native Web Share API when available,
  * with fallback to clipboard copy.
  */
@@ -46,7 +61,10 @@ export function useShare() {
         await navigator.share({
           url,
           title,
-          text,
+          // WebKit quirk: when both `text` and `url` are passed on iOS, the
+          // share sheet's "Copy" action copies only the text and drops the
+          // URL, so omit the text there to keep the link copyable.
+          text: isIosDevice() ? undefined : text,
         });
         // User completed or cancelled share - no toast needed for native share
       } catch (error) {
