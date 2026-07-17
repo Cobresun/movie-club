@@ -177,9 +177,9 @@ const { data, isLoading, error } = useSharedReview(clubSlug, workId);
 // sees in its review drawer.
 const { data: allReviews } = useReviewsList(clubSlug);
 const reviewFact = computed(() =>
-  isDefined(allReviews.value) && isDefined(data.value)
-    ? computeReviewFact(allReviews.value, data.value.members, workId)
-    : null,
+  isDefined(allReviews.value)
+    ? computeReviewFact(allReviews.value, workId)
+    : undefined,
 );
 
 const { share } = useShare();

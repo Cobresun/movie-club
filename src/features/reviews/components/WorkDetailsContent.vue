@@ -320,12 +320,7 @@ import WorkDescription from "@/common/components/WorkDescription.vue";
 import WorkPosterHero from "@/common/components/WorkPosterHero.vue";
 import { useShare } from "@/common/composables/useShare";
 import { asBook, asMovie, workPosterUrl } from "@/common/workDisplay";
-import {
-  useClub,
-  useClubSettings,
-  useClubSlug,
-  useMembers,
-} from "@/service/useClub";
+import { useClub, useClubSettings, useClubSlug } from "@/service/useClub";
 import {
   useReviewsList,
   useReviewsListId,
@@ -407,13 +402,12 @@ const cancelDateEdit = () => {
 
 // The spotlight fact compares this review against the club's whole history,
 // so it reads the full reviews list (already in the query cache — ReviewView
-// fetched it to build the table) plus the member roster for the
-// "everyone has scored" gate.
+// fetched it to build the table).
 //
 // That scan (every work's full cast list, for actor milestones) is too heavy
-// for the drawer's opening frame, so the computed stays null until the browser
-// goes idle after mount — the drawer paints and slides in immediately, then
-// the fact card transitions in. The component is keyed by movie.id, so the
+// for the drawer's opening frame, so the computed stays undefined until the
+// browser goes idle after mount — the drawer paints and slides in immediately,
+// then the fact card transitions in. The component is keyed by movie.id, so the
 // gate re-arms on every open/work switch.
 //
 // The dismiss animation needs the same protection: the drawer stays mounted
@@ -421,7 +415,6 @@ const cancelDateEdit = () => {
 // its timeout) can land mid-close — the `dismissing` guard skips the scan
 // then, since a fact appearing in a closing drawer helps no one.
 const { data: allReviews } = useReviewsList(clubId);
-const { data: allMembers } = useMembers(clubId);
 const factReady = ref(false);
 let cancelFactIdle: (() => void) | undefined;
 onMounted(() => {
@@ -446,13 +439,9 @@ onMounted(() => {
 });
 onBeforeUnmount(() => cancelFactIdle?.());
 const reviewFact = computed(() =>
-  factReady.value && isDefined(allReviews.value) && isDefined(allMembers.value)
-    ? computeReviewFact(
-        allReviews.value,
-        allMembers.value,
-        props.movie.original.id,
-      )
-    : null,
+  factReady.value && isDefined(allReviews.value)
+    ? computeReviewFact(allReviews.value, props.movie.original.id)
+    : undefined,
 );
 
 const movieData = computed(() => asMovie(props.movie.original.externalData));
