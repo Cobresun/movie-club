@@ -126,14 +126,13 @@ export function useReviewWork(clubSlug: string) {
     },
     onSuccess: (_data, { workId }) =>
       startScorePoll(auth.request, queryClient, clubSlug, workId),
-    onSettled: () => {
-      queryClient.invalidateQueries({
-        queryKey: reviewsListKey(clubSlug),
-      });
-      // Club review rows surface read-through in the personal diary — the
-      // same row, not a copy — so a club-side write must refresh it too.
-      queryClient.invalidateQueries({ queryKey: myReviewsKey });
-    },
+    // Club review rows surface read-through in the personal diary — the
+    // same row, not a copy — so a club-side write must refresh it too.
+    onSettled: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: reviewsListKey(clubSlug) }),
+        queryClient.invalidateQueries({ queryKey: myReviewsKey }),
+      ]),
   });
 }
 
@@ -184,14 +183,13 @@ export function useUpdateReviewScore(clubSlug: string) {
     },
     onSuccess: (_data, { workId }) =>
       startScorePoll(auth.request, queryClient, clubSlug, workId),
-    onSettled: () => {
-      queryClient.invalidateQueries({
-        queryKey: reviewsListKey(clubSlug),
-      });
-      // Club review rows surface read-through in the personal diary — the
-      // same row, not a copy — so a club-side write must refresh it too.
-      queryClient.invalidateQueries({ queryKey: myReviewsKey });
-    },
+    // Club review rows surface read-through in the personal diary — the
+    // same row, not a copy — so a club-side write must refresh it too.
+    onSettled: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: reviewsListKey(clubSlug) }),
+        queryClient.invalidateQueries({ queryKey: myReviewsKey }),
+      ]),
   });
 }
 

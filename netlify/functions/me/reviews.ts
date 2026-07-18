@@ -8,6 +8,7 @@ import ListRepository from "../repositories/ListRepository";
 import ReviewRepository from "../repositories/ReviewRepository";
 import WorkRepository, { isWorkType } from "../repositories/WorkRepository";
 import { AuthRequest } from "../utils/auth";
+import { getExternalDataForWorks } from "../utils/providers";
 import { badRequest, notFound, ok } from "../utils/responses";
 import { Router } from "../utils/router";
 
@@ -115,6 +116,26 @@ router.get("/for-work", async ({ userId, event }, res) => {
     externalId,
   );
   return res(ok(JSON.stringify(mapForWorkRows(rows))));
+});
+
+// Cached external metadata (TMDB / Google Books) for one work, used by the
+// library timeline drawer to render the same rich sections as the club reviews
+// drawer. This is public work metadata keyed by external id — no ownership gate
+// beyond the loggedIn mount — so it mirrors what the club list endpoint already
+// exposes. Returns `null` when the provider has nothing cached for the id.
+router.get("/work-details", async ({ event }, res) => {
+  const type = event.queryStringParameters?.type;
+  const externalId = event.queryStringParameters?.externalId;
+
+  if (!hasValue(type) || !isWorkType(type)) {
+    return res(badRequest("Invalid or missing type"));
+  }
+  if (!hasValue(externalId)) {
+    return res(badRequest("Missing externalId"));
+  }
+
+  const externalData = await getExternalDataForWorks([{ type, externalId }]);
+  return res(ok(JSON.stringify(externalData.get(externalId) ?? null)));
 });
 
 export default router;

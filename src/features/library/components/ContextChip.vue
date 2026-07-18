@@ -2,9 +2,7 @@
   <span
     class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium"
     :class="
-      isSolo
-        ? 'bg-highlightBackground text-highlight'
-        : 'bg-slate-700 text-gray-300'
+      isSolo ? 'bg-primary/20 text-highlight' : 'bg-slate-700 text-gray-300'
     "
   >
     <mdicon v-if="isSolo" :name="soloIcon" :size="12" />

@@ -3,7 +3,7 @@
     <div class="flex h-full flex-col gap-4 text-left">
       <!-- Search step: pick the work (create flow only) -->
       <template v-if="step === 'search'">
-        <h2 class="text-center text-xl font-bold">Log a watch</h2>
+        <h2 class="text-center text-xl font-bold">{{ logging.logAction }}</h2>
         <div class="flex justify-center gap-2">
           <button
             v-for="type in workTypes"
@@ -21,6 +21,7 @@
           </button>
         </div>
         <WorkSearchPrompt
+          :key="selectedWorkType"
           class="min-h-0 flex-1"
           :club-type="selectedClubType"
           :default-list="[]"
@@ -53,7 +54,7 @@
         </div>
 
         <label class="flex flex-col gap-1 text-sm text-gray-300">
-          Watched date
+          {{ logging.dateLabel }}
           <input
             v-model="watchedDate"
             type="date"
@@ -63,7 +64,7 @@
 
         <label class="flex items-center gap-2 text-sm text-gray-300">
           <input v-model="rewatch" type="checkbox" />
-          This was a rewatch
+          {{ logging.repeatLabel }}
         </label>
 
         <label class="flex flex-col gap-1 text-sm text-gray-300">
@@ -77,7 +78,7 @@
         </label>
 
         <v-btn class="self-center" @click="submit">
-          {{ isEdit ? "Save changes" : "Log watch" }}
+          {{ isEdit ? "Save changes" : logging.logButton }}
         </v-btn>
       </template>
     </div>
@@ -97,6 +98,7 @@ import {
   clubTypeForWork,
   workTypeIcon,
   workTypeLabel,
+  workTypeLogging,
 } from "@/common/clubType";
 import WorkSearchPrompt from "@/common/components/WorkSearchPrompt.vue";
 import { useEditSoloReview, useLogWatch } from "@/service/useLibrary";
@@ -123,6 +125,14 @@ const selectedClubType = computed(() =>
   clubTypeForWork(selectedWorkType.value),
 );
 
+// One source for every media-specific label. On the search step no work is
+// picked yet, so it follows the selected media pill live; on the details step it
+// locks to the chosen (or edited) work's type. Movies read "Log a watch",
+// "Watched date", "rewatch"; books read "Log a read", "Date read", "reread".
+const logging = computed(() =>
+  workTypeLogging(selectedWork.value?.type ?? selectedWorkType.value),
+);
+
 const selectedWork = ref<LogWatchWork | undefined>(
   isDefined(editEntry)
     ? {
@@ -143,7 +153,21 @@ const scoreModel = ref(
   isDefined(editEntry?.score) ? String(editEntry.score) : "",
 );
 const unrated = ref(isDefined(editEntry) && editEntry.score === null);
-const watchedDate = ref(editEntry?.watchedDate ?? "");
+
+// Local (not UTC) date, since "what day did I watch this" is a wall-clock
+// question — toISOString() would shift the day for evening logs west of UTC.
+const todayLocalISO = () => {
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${now.getFullYear()}-${month}-${day}`;
+};
+
+// New logs default to today; edits show exactly what was stored (an edit of an
+// event without a watched date must not silently gain one).
+const watchedDate = ref(
+  isDefined(editEntry) ? (editEntry.watchedDate ?? "") : todayLocalISO(),
+);
 const rewatch = ref(editEntry?.rewatch ?? false);
 const text = ref(editEntry?.text ?? "");
 

@@ -48,6 +48,9 @@ export const handlers = [
   http.get("/api/me/reviews/for-work", () => {
     return HttpResponse.json([]);
   }),
+  http.get("/api/me/reviews/work-details", () => {
+    return HttpResponse.json(null);
+  }),
   http.get("/api/me/reviews", () => {
     return HttpResponse.json(meReviews);
   }),
@@ -63,6 +66,15 @@ export const handlers = [
   http.get(`https://api.themoviedb.org/3/search/movie`, () => {
     return HttpResponse.json(TMDBSearch);
   }),
+  // No region providers by default: keeps the "Where to watch" section hidden
+  // and, crucially, stops the drawer's WatchProviders from opening a real TMDB
+  // socket in jsdom (an unmocked request there crashes the worker on teardown).
+  http.get(
+    `https://api.themoviedb.org/3/movie/:externalId/watch/providers`,
+    () => {
+      return HttpResponse.json({ id: 0, results: {} });
+    },
+  ),
   http.get(`https://www.googleapis.com/books/v1/volumes`, () => {
     return HttpResponse.json(googleBooksSearch);
   }),

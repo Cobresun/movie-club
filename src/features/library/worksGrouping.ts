@@ -3,8 +3,8 @@ import { WorkType } from "../../../lib/types/generated/db";
 import type { DiaryEntry } from "../../../lib/types/me";
 
 /**
- * A work in the library's Works view — the derived rollup of every diary event
- * for one work. "Your score" is the latest event's score (never stored).
+ * A work in the library gallery — the derived rollup of every diary event for
+ * one work. "Your score" is the latest event's score (never stored).
  */
 export interface LibraryWork {
   /** Stable grouping key: `type:externalId` (falls back to the work id). */
@@ -15,14 +15,15 @@ export interface LibraryWork {
   imageUrl: string | null;
   /** Latest event's score, or null when the latest event was unrated. */
   latestScore: number | null;
-  /** How many diary events reference this work (rewatches included). */
-  eventCount: number;
+  /** Every diary event for this work, newest-first (rewatches included). */
+  entries: DiaryEntry[];
 }
 
 /**
  * Group a diary stream into works by (type, externalId), client-side — there is
  * no /api/me/works endpoint in M1. Entries arrive newest-first, so the first
- * event seen for a work is its latest, and its score is the derived rollup.
+ * event seen for a work is its latest, and insertion order doubles as the
+ * gallery sort: works ordered by date of last review, descending.
  */
 export function groupWorks(entries: DiaryEntry[]): LibraryWork[] {
   const groups = new Map<string, LibraryWork>();
@@ -31,7 +32,7 @@ export function groupWorks(entries: DiaryEntry[]): LibraryWork[] {
     const key = `${work.type}:${work.externalId ?? work.id}`;
     const existing = groups.get(key);
     if (isDefined(existing)) {
-      existing.eventCount += 1;
+      existing.entries.push(entry);
       continue;
     }
     groups.set(key, {
@@ -41,7 +42,7 @@ export function groupWorks(entries: DiaryEntry[]): LibraryWork[] {
       externalId: work.externalId,
       imageUrl: work.imageUrl,
       latestScore: entry.score,
-      eventCount: 1,
+      entries: [entry],
     });
   }
   return [...groups.values()];

@@ -10,7 +10,7 @@
         <mdicon name="bookshelf" :size="24" class="shrink-0 text-highlight" />
         <div class="flex-1 text-sm text-gray-300">
           Your library shows every review you've written — across My Library and
-          all your clubs — as one diary. Log solo watches here too; no club
+          all your clubs — in one place. Log solo watches here too; no club
           required.
         </div>
         <button
@@ -26,45 +26,55 @@
       <EmptyLibraryState v-else-if="isEmpty" />
 
       <template v-else>
+        <div class="mb-4 flex justify-center">
+          <v-btn @click="openNew">
+            <mdicon name="plus" :size="18" />
+            Log a review
+          </v-btn>
+        </div>
+
         <TypeFilterPills class="mb-4" />
 
-        <nav class="mb-4 flex justify-center gap-2 border-b border-white/10">
-          <router-link
-            :to="{ name: 'MyLibrary' }"
-            class="px-4 py-2 text-sm font-medium text-gray-400"
-            active-class="border-b-2 border-primary text-white"
-            exact-active-class="border-b-2 border-primary text-white"
-          >
-            Diary
-          </router-link>
-          <router-link
-            :to="{ name: 'MyLibraryWorks' }"
-            class="px-4 py-2 text-sm font-medium text-gray-400"
-            active-class="border-b-2 border-primary text-white"
-          >
-            Works
-          </router-link>
-        </nav>
-
-        <router-view v-slot="{ Component }">
-          <transition name="fade" mode="out-in">
-            <component :is="Component" />
-          </transition>
-        </router-view>
+        <p v-if="works.length === 0" class="text-center text-gray-400">
+          No works match this filter.
+        </p>
+        <WorksGrid v-else :works="works" @select="selectedKey = $event.key" />
       </template>
+
+      <WorkTimelineDrawer
+        v-if="isDefined(selectedWork)"
+        :key="selectedWork.key"
+        :work="selectedWork"
+        @close="selectedKey = null"
+        @edit="onEdit"
+        @delete="onDelete"
+      />
+
+      <LogWatchModal
+        v-if="showLog"
+        :key="modalKey"
+        :edit-entry="editingEntry"
+        @close="closeLog"
+      />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref } from "vue";
 
-import { hasElements } from "../../../../lib/checks/checks";
+import { hasElements, isDefined } from "../../../../lib/checks/checks";
+import type { DiaryEntry } from "../../../../lib/types/me";
 import EmptyLibraryState from "../components/EmptyLibraryState.vue";
+import LogWatchModal from "../components/LogWatchModal.vue";
 import TypeFilterPills from "../components/TypeFilterPills.vue";
+import WorksGrid from "../components/WorksGrid.vue";
+import WorkTimelineDrawer from "../components/WorkTimelineDrawer.vue";
+import { useFilteredDiary } from "../composables/useFilteredDiary";
 import { useSoloExplainer } from "../composables/useSoloExplainer";
+import { groupWorks } from "../worksGrouping";
 
-import { useMyReviews } from "@/service/useLibrary";
+import { useDeleteSoloReview, useMyReviews } from "@/service/useLibrary";
 import { useAuthStore } from "@/stores/auth";
 
 const authStore = useAuthStore();
@@ -79,16 +89,44 @@ const { seen, dismiss } = useSoloExplainer();
 // users with no clubs see the empty-state cards instead.
 const hasClubs = computed(() => hasElements(authStore.userClubs));
 const showExplainer = computed(() => !seen.value && hasClubs.value);
+
+const { entries } = useFilteredDiary();
+const works = computed(() => groupWorks(entries.value));
+
+// The gallery keys the drawer by grouping key (not object identity) so the
+// timeline stays live through optimistic cache updates: edits and deletes
+// re-derive `works`, and the drawer re-renders from the fresh group.
+const selectedKey = ref<string | null>(null);
+const selectedWork = computed(() =>
+  works.value.find((work) => work.key === selectedKey.value),
+);
+
+const showLog = ref(false);
+const editingEntry = ref<DiaryEntry | undefined>(undefined);
+// Re-key the modal per target so it re-seeds its form from the right event
+// (new log vs editing a specific solo event) instead of reusing stale state.
+const modalKey = computed(() => editingEntry.value?.reviewId ?? "new");
+
+const openNew = () => {
+  editingEntry.value = undefined;
+  showLog.value = true;
+};
+
+// The edit modal replaces the drawer rather than stacking on top of it — both
+// overlays live at the same z tier, so layering them would fight.
+const onEdit = (entry: DiaryEntry) => {
+  selectedKey.value = null;
+  editingEntry.value = entry;
+  showLog.value = true;
+};
+
+const closeLog = () => {
+  showLog.value = false;
+  editingEntry.value = undefined;
+};
+
+const { mutate: deleteReview } = useDeleteSoloReview();
+const onDelete = (entry: DiaryEntry) => {
+  deleteReview(entry.reviewId);
+};
 </script>
-
-<style scoped>
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity var(--motion-base) var(--ease-standard);
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
-</style>

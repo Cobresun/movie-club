@@ -299,12 +299,13 @@ export function useDeleteReview(clubSlug: string) {
         (current) => current?.filter((item) => item.id !== workId),
       );
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: reviewsListKey(clubSlug) });
-      // Deleting a club review also removes that event from the diary's
-      // read-through stream.
-      queryClient.invalidateQueries({ queryKey: myReviewsKey });
-    },
+    // Deleting a club review also removes that event from the diary's
+    // read-through stream.
+    onSettled: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: reviewsListKey(clubSlug) }),
+        queryClient.invalidateQueries({ queryKey: myReviewsKey }),
+      ]),
   });
 }
 

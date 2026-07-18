@@ -6,7 +6,9 @@ import {
 } from "@tanstack/vue-query";
 import { AxiosError } from "axios";
 
+import { hasValue } from "../../lib/checks/checks";
 import { WorkType } from "../../lib/types/generated/db";
+import { DetailedWorkData } from "../../lib/types/lists";
 import {
   DiaryEntry,
   EditSoloReviewRequest,
@@ -28,6 +30,9 @@ export const myReviewsKey = ["me", "reviews"] as const;
 export const myReviewsForWorkKey = (type: WorkType, externalId: string) =>
   ["me", "reviews", "for-work", type, externalId] as const;
 
+export const myWorkDetailsKey = (type: WorkType, externalId: string) =>
+  ["me", "work-details", type, externalId] as const;
+
 // ---------------------------------------------------------------------------
 // Diary stream
 // ---------------------------------------------------------------------------
@@ -39,6 +44,31 @@ export function useMyReviews(): UseQueryReturnType<DiaryEntry[], AxiosError> {
     queryKey: myReviewsKey,
     queryFn: async () =>
       (await auth.request.get<DiaryEntry[]>("/api/me/reviews")).data,
+  });
+}
+
+/**
+ * Cached external metadata (TMDB / Google Books) for one work, so the library
+ * timeline drawer can render the same rich sections as the club reviews drawer.
+ * Only enabled for works with an external id — manual logs (no externalId) have
+ * no provider metadata, so the drawer falls back to the timeline alone.
+ * Resolves to `null` when the provider has nothing cached for the id.
+ */
+export function useMyWorkDetails(
+  type: WorkType,
+  externalId: string | null,
+): UseQueryReturnType<DetailedWorkData | null, AxiosError> {
+  const auth = useAuthStore();
+  return useQuery({
+    queryKey: myWorkDetailsKey(type, externalId ?? ""),
+    enabled: hasValue(externalId),
+    queryFn: async () =>
+      (
+        await auth.request.get<DetailedWorkData | null>(
+          "/api/me/reviews/work-details",
+          { params: { type, externalId } },
+        )
+      ).data,
   });
 }
 

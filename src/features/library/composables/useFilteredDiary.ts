@@ -9,7 +9,7 @@ import { useMyReviews } from "@/service/useLibrary";
 /**
  * The diary stream narrowed by the ?type= query param (All / Movies / Books).
  * Reading the filter from the route keeps it shareable and avoids a watch or
- * shared filter state — the Diary and Works views both derive from this.
+ * shared filter state — the library gallery derives its works from this.
  */
 export function useFilteredDiary() {
   const route = useRoute();

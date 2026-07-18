@@ -11,7 +11,6 @@ import { isDefined } from "../../lib/checks/checks.js";
 import { ClubType } from "../../lib/types/generated/db";
 import ClubHomeView from "../features/clubs/views/ClubHomeView.vue";
 import HomeView from "../features/clubs/views/HomeView.vue";
-import DiaryView from "../features/library/views/DiaryView.vue";
 import LibraryView from "../features/library/views/LibraryView.vue";
 import ReviewView from "../features/reviews/views/ReviewView.vue";
 
@@ -352,30 +351,13 @@ const routes: Array<RouteRecordRaw> = [
   },
   {
     path: "/me",
+    name: "MyLibrary",
     component: LibraryView,
     beforeEnter: soloGuard,
     meta: {
       depth: 1,
       authRequired: true,
     },
-    children: [
-      {
-        path: "",
-        name: "MyLibrary",
-        component: DiaryView,
-        meta: {
-          depth: 1,
-        },
-      },
-      {
-        path: "works",
-        name: "MyLibraryWorks",
-        component: () => import("../features/library/views/WorksView.vue"),
-        meta: {
-          depth: 1,
-        },
-      },
-    ],
   },
   {
     path: "/join-club/:inviteToken",

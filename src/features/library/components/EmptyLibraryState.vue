@@ -5,10 +5,10 @@
         class="flex flex-col items-center gap-2 rounded-lg bg-lowBackground p-6 text-center transition hover:brightness-110"
         @click="showLog = true"
       >
-        <mdicon name="movie-open-outline" :size="40" class="text-highlight" />
-        <h3 class="text-lg font-bold text-white">Track your first movie</h3>
+        <mdicon name="bookshelf" :size="40" class="text-highlight" />
+        <h3 class="text-lg font-bold text-white">Track your first work</h3>
         <p class="text-sm text-gray-400">
-          Log a watch to start your library — no club required.
+          Log a review to start your library — no club required.
         </p>
       </button>
 
