@@ -180,8 +180,13 @@ export interface Review {
   created_date: Generated<Timestamp>;
   id: Generated<Int8>;
   list_id: Int8;
-  score: Numeric;
+  rewatch: Generated<boolean>;
+  score: Numeric | null;
+  source: string | null;
+  source_ref: string | null;
+  text: string | null;
   user_id: Int8;
+  watched_date: Timestamp | null;
   work_id: Int8;
 }
 
@@ -217,12 +222,13 @@ export interface Verification {
 }
 
 export interface Work {
-  club_id: Int8;
+  club_id: Int8 | null;
   external_id: string | null;
   id: Generated<Int8>;
   image_url: string | null;
   title: string;
   type: WorkType;
+  user_id: Int8 | null;
 }
 
 export interface WorkComment {
@@ -236,11 +242,12 @@ export interface WorkComment {
 }
 
 export interface WorkList {
-  club_id: Int8;
+  club_id: Int8 | null;
   id: Generated<Int8>;
   position: Generated<Int8>;
   system_type: WorkListSystemType | null;
   title: string;
+  user_id: Int8 | null;
 }
 
 export interface WorkListItem {
