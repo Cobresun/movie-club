@@ -466,6 +466,16 @@ export function workTypeForClub(type: ClubType): WorkType {
   return clubTypeConfig(type).workType;
 }
 
+/**
+ * The club type whose media matches a work type — inverse of
+ * {@link workTypeForClub}. Lets work-type-dispatched surfaces (e.g. the solo
+ * library reusing the club search prompt) resolve a ClubType without an inline
+ * `type === "movie"`.
+ */
+export function clubTypeForWork(type: WorkType): ClubType {
+  return CLUB_TYPE_BY_WORK_TYPE[type];
+}
+
 /** Material Design Icon name representing a club's media type. */
 export function clubTypeIcon(type: ClubType): string {
   return clubTypeConfig(type).icon;
@@ -479,6 +489,25 @@ export function clubTypeLabel(type: ClubType): string {
 /** Statistics-feature copy and icons for a club's media type. */
 export function clubTypeStats(type: ClubType): StatsConfig {
   return clubTypeConfig(type).stats;
+}
+
+/**
+ * Material Design Icon name for a work type. Delegates through the club-type
+ * registry (a work type maps 1:1 to a club type), so surfaces that dispatch by
+ * WorkType — like the solo library's type filter — never branch on
+ * `type === "movie"`.
+ */
+export function workTypeIcon(type: WorkType): string {
+  return clubTypeConfig(CLUB_TYPE_BY_WORK_TYPE[type]).icon;
+}
+
+/**
+ * Short plural display label for a work type ("Movies", "Books"), e.g. for the
+ * solo library's All / Movies / Books filter pills. Delegates through the
+ * club-type registry to avoid inline work-type conditionals.
+ */
+export function workTypeLabel(type: WorkType): string {
+  return clubTypeConfig(CLUB_TYPE_BY_WORK_TYPE[type]).stats.pluralNoun;
 }
 
 // A work self-identifies its media type via `externalData.kind`, so display

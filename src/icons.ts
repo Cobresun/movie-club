@@ -1,4 +1,6 @@
 import {
+  mdiAccountGroupOutline,
+  mdiAccountMultiplePlus,
   mdiAlertCircle,
   mdiAlertOutline,
   mdiArrowCollapseDown,
@@ -8,6 +10,7 @@ import {
   mdiArrowRight,
   mdiArrowUpDropCircle,
   mdiBookOpenPageVariantOutline,
+  mdiBookshelf,
   mdiCheck,
   mdiChevronDown,
   mdiChevronLeft,
@@ -41,6 +44,7 @@ import {
   mdiPencil,
   mdiPencilOutline,
   mdiPlus,
+  mdiRepeat,
   mdiScaleBalance,
   mdiSeatOutline,
   mdiSend,
@@ -76,6 +80,8 @@ import {
  * test, but any other dynamic icon name must be registered here by hand.
  */
 export const icons = {
+  mdiAccountGroupOutline,
+  mdiAccountMultiplePlus,
   mdiAlertCircle,
   mdiAlertOutline,
   mdiArrowCollapseDown,
@@ -85,6 +91,7 @@ export const icons = {
   mdiArrowRight,
   mdiArrowUpDropCircle,
   mdiBookOpenPageVariantOutline,
+  mdiBookshelf,
   mdiCheck,
   mdiChevronDown,
   mdiChevronLeft,
@@ -118,6 +125,7 @@ export const icons = {
   mdiPencil,
   mdiPencilOutline,
   mdiPlus,
+  mdiRepeat,
   mdiScaleBalance,
   mdiSeatOutline,
   mdiSend,
