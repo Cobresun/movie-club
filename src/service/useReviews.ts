@@ -6,6 +6,7 @@ import {
 } from "@tanstack/vue-query";
 import { AxiosInstance } from "axios";
 
+import { myReviewsKey } from "./useLibrary";
 import { reviewsListKey } from "./useList";
 import { useUser } from "./useUser";
 import { hasValue, isDefined } from "../../lib/checks/checks.js";
@@ -125,10 +126,14 @@ export function useReviewWork(clubSlug: string) {
     },
     onSuccess: (_data, { workId }) =>
       startScorePoll(auth.request, queryClient, clubSlug, workId),
-    onSettled: () =>
+    onSettled: () => {
       queryClient.invalidateQueries({
         queryKey: reviewsListKey(clubSlug),
-      }),
+      });
+      // Club review rows surface read-through in the personal diary — the
+      // same row, not a copy — so a club-side write must refresh it too.
+      queryClient.invalidateQueries({ queryKey: myReviewsKey });
+    },
   });
 }
 
@@ -179,10 +184,14 @@ export function useUpdateReviewScore(clubSlug: string) {
     },
     onSuccess: (_data, { workId }) =>
       startScorePoll(auth.request, queryClient, clubSlug, workId),
-    onSettled: () =>
+    onSettled: () => {
       queryClient.invalidateQueries({
         queryKey: reviewsListKey(clubSlug),
-      }),
+      });
+      // Club review rows surface read-through in the personal diary — the
+      // same row, not a copy — so a club-side write must refresh it too.
+      queryClient.invalidateQueries({ queryKey: myReviewsKey });
+    },
   });
 }
 

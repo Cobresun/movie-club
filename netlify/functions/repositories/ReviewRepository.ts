@@ -70,9 +70,13 @@ class ReviewRepository {
   }
 
   async getById(id: string, clubId: string) {
+    // selectAll("review"), not selectAll(): the joined work_list shares column
+    // names with review (id, and user_id since Solo Spaces) and a bare
+    // selectAll() lets work_list's NULL user_id shadow review.user_id in the
+    // flattened row, breaking the ownership check in the PUT handler.
     return db
       .selectFrom("review")
-      .selectAll()
+      .selectAll("review")
       .innerJoin("work_list", "work_list.id", "review.list_id")
       .where("work_list.club_id", "=", clubId)
       .where("review.id", "=", id)

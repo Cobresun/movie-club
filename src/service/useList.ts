@@ -7,6 +7,7 @@ import {
 import axios, { AxiosError } from "axios";
 import { computed, unref, type MaybeRef } from "vue";
 
+import { myReviewsKey } from "./useLibrary";
 import { hasValue, isDefined } from "../../lib/checks/checks.js";
 import {
   DetailedReviewListItem,
@@ -298,8 +299,12 @@ export function useDeleteReview(clubSlug: string) {
         (current) => current?.filter((item) => item.id !== workId),
       );
     },
-    onSettled: () =>
-      queryClient.invalidateQueries({ queryKey: reviewsListKey(clubSlug) }),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: reviewsListKey(clubSlug) });
+      // Deleting a club review also removes that event from the diary's
+      // read-through stream.
+      queryClient.invalidateQueries({ queryKey: myReviewsKey });
+    },
   });
 }
 
