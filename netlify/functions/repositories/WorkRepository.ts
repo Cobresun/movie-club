@@ -3,12 +3,23 @@ import { WorkType } from "../../../lib/types/generated/db.js";
 import { ListInsertDto } from "../../../lib/types/lists.js";
 import { db } from "../utils/database";
 import { getProvider } from "../utils/providers";
+import { Scope } from "../utils/scope";
 
 class WorkRepository {
   async findByType(clubId: string, type: WorkType, externalId: string) {
     return db
       .selectFrom("work")
       .where("club_id", "=", clubId)
+      .where("external_id", "=", externalId)
+      .where("type", "=", type)
+      .select(["id"])
+      .executeTakeFirst();
+  }
+
+  async findByTypeForUser(userId: string, type: WorkType, externalId: string) {
+    return db
+      .selectFrom("work")
+      .where("user_id", "=", userId)
       .where("external_id", "=", externalId)
       .where("type", "=", type)
       .select(["id"])
@@ -35,21 +46,41 @@ class WorkRepository {
   }
 
   async insert(clubId: string, work: ListInsertDto) {
-    // First insert the work
+    return this.insertWork({ kind: "club", clubId }, work);
+  }
+
+  async insertForUser(userId: string, work: ListInsertDto) {
+    return this.insertWork({ kind: "user", userId }, work);
+  }
+
+  private async insertWork(scope: Scope, work: ListInsertDto) {
+    const base = {
+      title: work.title,
+      type: work.type,
+      external_id: work.externalId,
+      image_url: work.imageUrl,
+    };
+
+    // Upsert keyed by the scope's ownership column. The doUpdateSet is a no-op
+    // that only exists so the query returns the id of the (possibly
+    // pre-existing) row. Club rows conflict on the named constraint; user rows
+    // conflict on the partial unique index over (user_id, type, external_id).
     const insertedWork = await db
       .insertInto("work")
-      .values({
-        club_id: clubId,
-        title: work.title,
-        type: work.type,
-        external_id: work.externalId,
-        image_url: work.imageUrl,
-      })
-      .onConflict(
-        (oc) =>
-          oc
-            .constraint("uq_club_id_type_external_id")
-            .doUpdateSet({ club_id: clubId }), // This is a no-op, but required for the query to return the id
+      .values(
+        scope.kind === "club"
+          ? { ...base, club_id: scope.clubId }
+          : { ...base, user_id: scope.userId },
+      )
+      .onConflict((oc) =>
+        scope.kind === "club"
+          ? oc
+              .constraint("uq_club_id_type_external_id")
+              .doUpdateSet({ club_id: scope.clubId })
+          : oc
+              .columns(["user_id", "type", "external_id"])
+              .where("user_id", "is not", null)
+              .doUpdateSet({ user_id: scope.userId }),
       )
       .returning("id")
       .executeTakeFirstOrThrow();
@@ -77,6 +108,15 @@ class WorkRepository {
       .where("id", "=", workId)
       .where("club_id", "=", clubId)
       .select(["title", "type", "external_id"])
+      .executeTakeFirst();
+  }
+
+  async getByIdForUser(userId: string, workId: string) {
+    return db
+      .selectFrom("work")
+      .where("id", "=", workId)
+      .where("user_id", "=", userId)
+      .select(["id", "title", "type", "external_id", "image_url"])
       .executeTakeFirst();
   }
 
