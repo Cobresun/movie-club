@@ -4,10 +4,10 @@
     <Menu v-if="isDesktop" as="div">
       <MenuButton
         class="flex items-center gap-1 rounded-lg px-2 py-1 text-sm font-medium text-white hover:bg-white/10"
-        :aria-label="`Switch club. Current: ${activeClubName}`"
+        :aria-label="`Switch space. Current: ${activeLabel}`"
       >
         <span class="max-w-[250px] truncate">
-          {{ activeClubName }}
+          {{ activeLabel }}
         </span>
         <mdicon name="chevron-down" :size="18" />
       </MenuButton>
@@ -22,6 +22,29 @@
           class="absolute left-0 top-full z-50 mt-1 min-w-[200px] origin-top-left rounded-lg bg-lowBackground shadow-lg"
         >
           <div class="py-1">
+            <MenuItem v-slot="{ active }">
+              <button
+                class="flex w-full items-center gap-2 px-4 py-2 text-sm"
+                :class="[
+                  isLibraryActive ? 'text-highlight' : 'text-white/80',
+                  active ? 'bg-white/10' : '',
+                ]"
+                @click="selectLibrary"
+              >
+                <mdicon v-if="isLibraryActive" name="check" :size="16" />
+                <span :class="{ 'ml-6': !isLibraryActive }">
+                  {{ USER_SCOPE.label }}
+                </span>
+                <mdicon
+                  :name="USER_SCOPE.icon"
+                  :size="14"
+                  class="ml-auto opacity-60"
+                  :title="USER_SCOPE.label"
+                />
+              </button>
+            </MenuItem>
+          </div>
+          <div v-if="clubs.length > 0" class="border-t border-white/10 py-1">
             <MenuItem
               v-for="club in clubs"
               :key="club.clubId"
@@ -74,7 +97,7 @@
     <template v-else>
       <button
         class="flex items-center gap-1 rounded-lg px-2 py-1 text-sm font-medium text-white hover:bg-white/10"
-        :aria-label="`Switch club. Current: ${activeClubName}`"
+        :aria-label="`Switch space. Current: ${activeLabel}`"
         @click="isMobileOpen = true"
       >
         <mdicon name="swap-horizontal" :size="20" />
@@ -82,6 +105,26 @@
 
       <VBottomSheet v-if="isMobileOpen" @close="isMobileOpen = false">
         <ul class="py-1">
+          <li>
+            <button
+              class="flex w-full items-center gap-2 px-4 py-3 text-sm hover:bg-white/10"
+              :class="isLibraryActive ? 'text-highlight' : 'text-white/80'"
+              @click="selectLibrary"
+            >
+              <mdicon v-if="isLibraryActive" name="check" :size="16" />
+              <span :class="{ 'ml-6': !isLibraryActive }">
+                {{ USER_SCOPE.label }}
+              </span>
+              <mdicon
+                :name="USER_SCOPE.icon"
+                :size="16"
+                class="ml-auto opacity-60"
+                :title="USER_SCOPE.label"
+              />
+            </button>
+          </li>
+        </ul>
+        <ul v-if="clubs.length > 0" class="border-t border-white/10 py-1">
           <li v-for="club in clubs" :key="club.clubId">
             <button
               class="flex w-full items-center gap-2 px-4 py-3 text-sm hover:bg-white/10"
@@ -132,6 +175,7 @@ import { hasValue } from "../../../lib/checks/checks.js";
 import { clubTypeIcon, clubTypeLabel } from "@/common/clubType";
 import { useIsDesktop } from "@/common/composables/useIsDesktop";
 import { setLastClubSlug } from "@/common/composables/useLastClubSlug";
+import { USER_SCOPE } from "@/common/scope";
 import { useAuthStore } from "@/stores/auth";
 
 const authStore = useAuthStore();
@@ -147,23 +191,43 @@ const currentSlug = computed(() => {
   return Array.isArray(slug) ? slug[0] : slug;
 });
 
-const activeClubName = computed(() => {
+// True whenever the user is anywhere in the /me library tree (Diary or Works).
+const isLibraryActive = computed(() => {
+  const path = route.path;
+  return hasValue(path) && (path === "/me" || path.startsWith("/me/"));
+});
+
+// "My Library" when in the library; otherwise the current club; defaulting to
+// "My Library" when neither applies (e.g. a public/share page).
+const activeLabel = computed(() => {
+  if (isLibraryActive.value) return USER_SCOPE.label;
   const slug = currentSlug.value;
   if (hasValue(slug)) {
     const club = clubs.value.find((c) => c.slug === slug);
     if (club) return club.clubName;
   }
-  return "Select Club";
+  return USER_SCOPE.label;
 });
 
 // Close the mobile sheet only *after* the navigation resolves. Closing it first
 // unmounts the sheet, and `useBackButtonClose` would then pop its synthetic
-// history entry — cancelling the navigation we just started (mobile club
-// switch would silently do nothing). See useBackButtonClose for details.
+// history entry — cancelling the navigation we just started (mobile switch
+// would silently do nothing). See useBackButtonClose for details.
 const selectClub = (slug: string) => {
   setLastClubSlug(slug);
   router
     .push({ name: "ClubHome", params: { clubSlug: slug } })
+    .then(() => {
+      isMobileOpen.value = false;
+    })
+    .catch(console.error);
+};
+
+// Same post-navigation close ordering as selectClub (the history-entry race is
+// identical for the pinned "My Library" entry).
+const selectLibrary = () => {
+  router
+    .push({ name: "MyLibrary" })
     .then(() => {
       isMobileOpen.value = false;
     })

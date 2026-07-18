@@ -6,7 +6,6 @@ import { useRoute, useRouter } from "vue-router";
 
 import { isDefined, isTrue } from "../../lib/checks/checks.js";
 import { ClubPreview } from "../../lib/types/club";
-import { resolveDefaultClubSlug } from "../common/composables/useLastClubSlug";
 import { watchUntil } from "../common/composables/watchUntil";
 
 import { authClient } from "@/lib/auth-client";
@@ -125,16 +124,9 @@ export const useAuthStore = defineStore("auth", () => {
       await watchUntil(isLoggedIn, (loggedIn) => loggedIn);
     }
 
-    await waitForClubsReady();
-
-    const slug = resolveDefaultClubSlug(userClubs.value);
-    if (isDefined(slug)) {
-      router
-        .push({ name: "ClubHome", params: { clubSlug: slug } })
-        .catch(console.error);
-    } else {
-      router.push({ name: "NewClub" }).catch(console.error);
-    }
+    // Post-login everyone lands on their personal library (Solo Spaces). The
+    // name is kept for its callers; the destination is no longer a club.
+    router.push({ name: "MyLibrary" }).catch(console.error);
   };
 
   return {

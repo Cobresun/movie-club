@@ -2,7 +2,7 @@ import { screen } from "@testing-library/vue";
 import type { Router } from "vue-router";
 import { useRouter } from "vue-router";
 
-import ClubSwitcher from "../components/ClubSwitcher.vue";
+import SpaceSwitcher from "../components/SpaceSwitcher.vue";
 
 import { ClubType } from "@/../lib/types/generated/db";
 import { render } from "@/tests/utils";
@@ -47,6 +47,7 @@ const makeRealRouter = async () => {
         name: "ClubHome",
         component: { template: "<div />" },
       },
+      { path: "/me", name: "MyLibrary", component: { template: "<div />" } },
       { path: "/new", name: "NewClub", component: { template: "<div />" } },
     ],
   });
@@ -54,7 +55,7 @@ const makeRealRouter = async () => {
   return router;
 };
 
-describe("ClubSwitcher (mobile)", () => {
+describe("SpaceSwitcher (mobile)", () => {
   let back: ReturnType<typeof vi.spyOn>;
   let router: Router;
 
@@ -73,16 +74,29 @@ describe("ClubSwitcher (mobile)", () => {
   });
 
   it("switches to the chosen club without the navigation being undone", async () => {
-    const { user } = render(ClubSwitcher);
+    const { user } = render(SpaceSwitcher);
 
     // Open the bottom sheet, then pick the other club.
-    await user.click(screen.getByRole("button", { name: /Switch club/ }));
+    await user.click(screen.getByRole("button", { name: /Switch space/ }));
     await user.click(screen.getByRole("button", { name: /Other Club/ }));
 
     // The route actually changed to the selected club...
     expect(router.currentRoute.value.params.clubSlug).toBe("other-club");
     // ...and the overlay's history cleanup did not pop the entry we just added,
     // which would have cancelled the switch (the original mobile bug).
+    expect(back).not.toHaveBeenCalled();
+  });
+
+  it("navigates to the pinned My Library entry without the navigation being undone", async () => {
+    const { user } = render(SpaceSwitcher);
+
+    await user.click(screen.getByRole("button", { name: /Switch space/ }));
+    await user.click(screen.getByRole("button", { name: /My Library/ }));
+
+    // The pinned entry navigates to the user library, and the sheet's history
+    // cleanup did not pop the entry we just pushed (the same mobile race the
+    // club switch guards against).
+    expect(router.currentRoute.value.name).toBe("MyLibrary");
     expect(back).not.toHaveBeenCalled();
   });
 });

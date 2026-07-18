@@ -4,6 +4,7 @@ import club from "./data/club.json";
 import googleBooksSearch from "./data/googleBooksSearch.json";
 import member from "./data/member.json";
 import members from "./data/members.json";
+import meReviews from "./data/meReviews.json";
 import reviews from "./data/reviews.json";
 import TMDBSearch from "./data/TMDBSearch.json";
 import watchlist from "./data/watchlist.json";
@@ -43,6 +44,21 @@ export const handlers = [
   }),
   http.get("/api/club/:id/list/1", () => {
     return HttpResponse.json(watchlist);
+  }),
+  http.get("/api/me/reviews/for-work", () => {
+    return HttpResponse.json([]);
+  }),
+  http.get("/api/me/reviews", () => {
+    return HttpResponse.json(meReviews);
+  }),
+  http.post("/api/me/reviews", () => {
+    return HttpResponse.json({ reviewId: "new-review" });
+  }),
+  http.put("/api/me/reviews/:reviewId", () => {
+    return new HttpResponse(null, { status: 200 });
+  }),
+  http.delete("/api/me/reviews/:reviewId", () => {
+    return new HttpResponse(null, { status: 200 });
   }),
   http.get(`https://api.themoviedb.org/3/search/movie`, () => {
     return HttpResponse.json(TMDBSearch);
