@@ -7,11 +7,12 @@ import {
 } from "vue-router";
 
 import ClubRouterView from "./ClubRouterView.vue";
-import { hasElements, isDefined } from "../../lib/checks/checks.js";
+import { isDefined } from "../../lib/checks/checks.js";
 import { ClubType } from "../../lib/types/generated/db";
-import { resolveDefaultClubSlug } from "../common/composables/useLastClubSlug";
 import ClubHomeView from "../features/clubs/views/ClubHomeView.vue";
 import HomeView from "../features/clubs/views/HomeView.vue";
+import DiaryView from "../features/library/views/DiaryView.vue";
+import LibraryView from "../features/library/views/LibraryView.vue";
 import ReviewView from "../features/reviews/views/ReviewView.vue";
 
 import { useAuthStore } from "@/stores/auth";
@@ -116,6 +117,25 @@ const movieClubOnly = async (
   return next();
 };
 
+/**
+ * Guard for the user-scoped "My Library" tree. Unlike club routes there is no
+ * membership to check — the scope is always the session user — so we only wait
+ * for auth and require a login (sending guests to the marketing landing with a
+ * redirect back). No clubs wait: the library renders without any club.
+ */
+const soloGuard = async (
+  to: RouteLocationNormalized,
+  from: RouteLocationNormalized,
+  next: NavigationGuardNext,
+) => {
+  const auth = useAuthStore();
+  await auth.waitForAuthReady();
+  if (!auth.isLoggedIn) {
+    return next({ name: "Clubs", query: { redirect: to.fullPath } });
+  }
+  return next();
+};
+
 const routes: Array<RouteRecordRaw> = [
   {
     path: "/",
@@ -124,25 +144,11 @@ const routes: Array<RouteRecordRaw> = [
     beforeEnter: async () => {
       const auth = useAuthStore();
       await auth.waitForAuthReady();
+      // Everyone lands on their personal library once logged in; the
+      // logged-out marketing HomeView is unchanged. The NewClub funnel moved
+      // into the library's empty state rather than being the forced landing.
       if (!auth.isLoggedIn) return;
-
-      await auth.waitForClubsReady();
-      const clubs = auth.userClubs;
-
-      if (!hasElements(clubs)) {
-        return { name: "NewClub", replace: true };
-      }
-
-      const slug = resolveDefaultClubSlug(clubs);
-      if (!isDefined(slug)) {
-        return { name: "NewClub", replace: true };
-      }
-
-      return {
-        name: "ClubHome",
-        params: { clubSlug: slug },
-        replace: true,
-      };
+      return { name: "MyLibrary", replace: true };
     },
     meta: {
       depth: 0,
@@ -340,6 +346,33 @@ const routes: Array<RouteRecordRaw> = [
         meta: {
           depth: 2,
           authRequired: true,
+        },
+      },
+    ],
+  },
+  {
+    path: "/me",
+    component: LibraryView,
+    beforeEnter: soloGuard,
+    meta: {
+      depth: 1,
+      authRequired: true,
+    },
+    children: [
+      {
+        path: "",
+        name: "MyLibrary",
+        component: DiaryView,
+        meta: {
+          depth: 1,
+        },
+      },
+      {
+        path: "works",
+        name: "MyLibraryWorks",
+        component: () => import("../features/library/views/WorksView.vue"),
+        meta: {
+          depth: 1,
         },
       },
     ],
