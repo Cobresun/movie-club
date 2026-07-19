@@ -5,7 +5,7 @@ import {
   WorkDataSummary,
 } from "../../../../lib/types/lists";
 
-import { workSimilarity } from "@/common/clubType";
+import { makeWorkSimilarity, WorkSimilarityScorer } from "@/common/clubType";
 
 /**
  * Score Assist: converge on a 0-10 score suggestion for a target work by
@@ -46,6 +46,11 @@ export interface ScoreAssistResult {
 export interface ScoreAssistSession {
   readonly targetType: WorkType;
   readonly targetData?: WorkDataSummary;
+  /**
+   * Similarity scorer, IDF-calibrated to this session's candidate pool once at
+   * startSession and reused for every pivot comparison.
+   */
+  readonly similarity: WorkSimilarityScorer;
   /** Sorted ascending by score (title tie-break). */
   readonly candidates: readonly ScoredCandidate[];
   /**
@@ -109,12 +114,17 @@ export function startSession(
   target: DetailedReviewListItem,
   candidates: readonly ScoredCandidate[],
 ): ScoreAssistSession {
+  const sorted = [...candidates].sort((a, b) =>
+    a.score !== b.score ? a.score - b.score : a.title.localeCompare(b.title),
+  );
   const session: ScoreAssistSession = {
     targetType: target.type,
     targetData: target.externalData,
-    candidates: [...candidates].sort((a, b) =>
-      a.score !== b.score ? a.score - b.score : a.title.localeCompare(b.title),
+    similarity: makeWorkSimilarity(
+      target.type,
+      sorted.map((candidate) => candidate.externalData),
     ),
+    candidates: sorted,
     lo: 0,
     hi: 10,
     askedWorkIds: [],
@@ -193,12 +203,23 @@ function eligiblePivots(session: ScoreAssistSession): ScoredCandidate[] {
   });
 }
 
+// Pivot scoring weights. Similarity (in [0,1]) leads, so a clearly more familiar
+// comparison still wins. The positional term is a bounded nudge: it only decides
+// between candidates of comparable similarity, keeping the pivot near the centre
+// of the window so the binary search stays balanced instead of drifting to a
+// marginally-more-similar edge candidate. Within that term, closeness to the
+// bracket's score midpoint dominates and rank centrality only breaks its ties -
+// preserving the original ordering when no metadata is available.
+const POSITION_WEIGHT = 0.3;
+const RANK_TIEBREAK_WEIGHT = 0.01;
+
 /**
- * Pick the next comparison work: from the rank-middle third of the eligible
+ * Pick the next comparison work from the rank-middle third of the eligible
  * candidates (rank, not score-midpoint, so clumped scores still halve the
- * search space), prefer the work most similar to the target, then the one
- * closest to the bracket's score midpoint, then the most central rank.
- * Deterministic on purpose - tests can assert exact pivots.
+ * search space). Each candidate is scored as similarity + a bounded positional
+ * term (score-midpoint closeness, rank centrality as a tiebreak); the highest
+ * wins, exact ties breaking to the lowest index. Deterministic on purpose -
+ * tests can assert exact pivots.
  */
 function selectPivot(session: ScoreAssistSession): ScoredCandidate | undefined {
   const eligible = eligiblePivots(session);
@@ -208,28 +229,40 @@ function selectPivot(session: ScoreAssistSession): ScoredCandidate | undefined {
   const scoreMidpoint = (session.lo + session.hi) / 2;
   const windowMiddle = (start + end - 1) / 2;
 
+  // Normalise the two positional distances against the window's own spread so
+  // each lands in [0,1]. A zero spread (single item, or every score equal) makes
+  // that term uniform rather than dividing by zero.
+  let maxScoreDistance = 0;
+  let maxRankDistance = 0;
+  for (let i = start; i < end; i++) {
+    maxScoreDistance = Math.max(
+      maxScoreDistance,
+      Math.abs(eligible[i].score - scoreMidpoint),
+    );
+    maxRankDistance = Math.max(maxRankDistance, Math.abs(i - windowMiddle));
+  }
+
   let best: ScoredCandidate | undefined;
-  let bestRank: [number, number, number] = [-Infinity, -Infinity, -Infinity];
+  let bestScore = -Infinity;
   for (let i = start; i < end; i++) {
     const candidate = eligible[i];
-    const rank: [number, number, number] = [
-      workSimilarity(
-        session.targetType,
-        session.targetData,
-        candidate.externalData,
-      ),
-      -Math.abs(candidate.score - scoreMidpoint),
-      -Math.abs(i - windowMiddle),
-    ];
-    if (
-      !isDefined(best) ||
-      rank[0] > bestRank[0] ||
-      (rank[0] === bestRank[0] &&
-        (rank[1] > bestRank[1] ||
-          (rank[1] === bestRank[1] && rank[2] > bestRank[2])))
-    ) {
+    const similarity = session.similarity(
+      session.targetData,
+      candidate.externalData,
+    );
+    const scoreProximity =
+      maxScoreDistance === 0
+        ? 1
+        : 1 - Math.abs(candidate.score - scoreMidpoint) / maxScoreDistance;
+    const rankCentrality =
+      maxRankDistance === 0
+        ? 1
+        : 1 - Math.abs(i - windowMiddle) / maxRankDistance;
+    const positional = scoreProximity + RANK_TIEBREAK_WEIGHT * rankCentrality;
+    const combined = similarity + POSITION_WEIGHT * positional;
+    if (combined > bestScore) {
       best = candidate;
-      bestRank = rank;
+      bestScore = combined;
     }
   }
   return best;

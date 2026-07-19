@@ -155,13 +155,14 @@ export interface ClubTypeConfig {
   /** Per-type extraction of the strings shown in the details drawers. */
   readonly display: WorkDisplay;
   /**
-   * How alike two works of this club's type are, for Score Assist's pivot
-   * selection. Missing or mismatched-kind metadata scores 0.
+   * Build a similarity scorer for Score Assist's pivot selection, calibrated to
+   * a candidate pool (its tag frequencies weight the overlaps). The returned
+   * scorer maps a (target, candidate) pair to [0,1]; missing or mismatched-kind
+   * metadata scores 0.
    */
-  readonly similarity: (
-    target: WorkDataSummary | undefined,
-    candidate: WorkDataSummary | undefined,
-  ) => number;
+  readonly makeSimilarity: (
+    corpus: readonly (WorkDataSummary | undefined)[],
+  ) => WorkSimilarityScorer;
 }
 
 /**
@@ -308,39 +309,183 @@ const bookDisplay: WorkDisplay = {
 };
 
 // --- Per-type similarity (Score Assist pivot selection) ---------------------
-// How strongly a shared primary credit (director / author) counts towards
-// similarity, relative to a shared category (genre / subject).
-const PRIMARY_CREDIT_WEIGHT = 3;
-const CATEGORY_WEIGHT = 1;
+// Score Assist ranks comparison candidates by how "alike" they feel to the work
+// being reviewed, so the user compares familiar things. A scorer returns a value
+// in [0,1] (0 = nothing in common, 1 = identical on every measured axis): a
+// weighted average of per-field overlaps. Per-field weights encode that a shared
+// director/author counts far more than a shared genre/subject. Set overlaps use
+// a weighted Jaccard (intersection over union, so a work with many tags isn't
+// spuriously "similar" to everything), with each tag's weight coming from its
+// inverse document frequency in the club's own catalogue — sharing a rare genre
+// counts for more than sharing a ubiquitous one ("Drama"). Era/length signals
+// decay continuously with distance rather than snapping at a bucket boundary.
 
-// Case-insensitive: Google Books subjects vary in casing between volumes.
-function sharedCount(a: readonly string[], b: readonly string[]): number {
-  const normalized = new Set(a.map((value) => value.toLowerCase()));
-  return b.filter((value) => normalized.has(value.toLowerCase())).length;
+/** A comparison scorer specialised to one candidate pool (see makeSimilarity). */
+export type WorkSimilarityScorer = (
+  target: WorkDataSummary | undefined,
+  candidate: WorkDataSummary | undefined,
+) => number;
+
+const lower = (value: string): string => value.toLowerCase();
+
+const sum = (values: readonly number[]): number =>
+  values.reduce((total, value) => total + value, 0);
+
+/** Years of separation at which the release/publish-era signal halves. */
+const ERA_HALF_LIFE_YEARS = 15;
+/** Page-count difference at which the book-length signal halves. */
+const PAGE_HALF_LIFE = 300;
+
+// Movie field weights: a shared director dominates, cast/studio/genre are
+// secondary, era/language are gentle nudges. Books mirror the shape.
+const MOVIE_FIELD_WEIGHTS = {
+  director: 5,
+  cast: 2,
+  company: 1.5,
+  genre: 2,
+  era: 1,
+  language: 0.5,
+} as const;
+const BOOK_FIELD_WEIGHTS = {
+  author: 5,
+  subject: 2.5,
+  era: 1,
+  length: 0.5,
+} as const;
+
+/**
+ * Build an inverse-document-frequency lookup for one tag field over a catalogue.
+ * Smoothed so an empty corpus (or a tag no work has) weighs 1 — i.e. the scorer
+ * degrades to a plain Jaccard — while rarer tags weigh above 1.
+ */
+function buildIdf(
+  corpus: readonly (WorkDataSummary | undefined)[],
+  extract: (data: WorkDataSummary | undefined) => readonly string[],
+): (tag: string) => number {
+  const documentFrequency = new Map<string, number>();
+  for (const data of corpus) {
+    for (const tag of new Set(extract(data).map(lower))) {
+      documentFrequency.set(tag, (documentFrequency.get(tag) ?? 0) + 1);
+    }
+  }
+  const total = corpus.length;
+  return (tag) =>
+    Math.log((total + 1) / ((documentFrequency.get(lower(tag)) ?? 0) + 1)) + 1;
 }
 
-const movieSimilarity: ClubTypeConfig["similarity"] = (target, candidate) => {
-  const a = asMovie(target);
-  const b = asMovie(candidate);
-  if (a === undefined || b === undefined) return 0;
-  return (
-    sharedCount(
-      a.directors.map((director) => director.name),
-      b.directors.map((director) => director.name),
-    ) *
-      PRIMARY_CREDIT_WEIGHT +
-    sharedCount(a.genres, b.genres) * CATEGORY_WEIGHT
+/**
+ * IDF-weighted Jaccard overlap of two tag sets, in [0,1]. Returns 0 when either
+ * side is empty — two works that both list no genres share no signal, they are
+ * not "identical".
+ */
+function weightedJaccard(
+  a: readonly string[],
+  b: readonly string[],
+  idf: (tag: string) => number,
+): number {
+  const setA = new Set(a.map(lower));
+  const setB = new Set(b.map(lower));
+  if (setA.size === 0 || setB.size === 0) return 0;
+  let intersection = 0;
+  let union = 0;
+  for (const tag of new Set([...setA, ...setB])) {
+    const weight = idf(tag);
+    union += weight;
+    if (setA.has(tag) && setB.has(tag)) intersection += weight;
+  }
+  return union === 0 ? 0 : intersection / union;
+}
+
+/** Exponential closeness in [0,1]: 1 when equal, 0.5 at one half-life apart. */
+function proximityDecay(
+  a: number | undefined,
+  b: number | undefined,
+  halfLife: number,
+): number {
+  if (!isDefined(a) || !isDefined(b)) return 0;
+  return Math.exp((-Math.abs(a - b) * Math.LN2) / halfLife);
+}
+
+function names(people: readonly { name: string }[]): string[] {
+  return people.map((person) => person.name);
+}
+
+function releaseYear(data: { release_date?: string }): number | undefined {
+  const year = hasValue(data.release_date)
+    ? Number.parseInt(data.release_date.slice(0, 4), 10)
+    : Number.NaN;
+  return Number.isFinite(year) ? year : undefined;
+}
+
+const makeMovieSimilarity = (
+  corpus: readonly (WorkDataSummary | undefined)[],
+): WorkSimilarityScorer => {
+  const directorIdf = buildIdf(corpus, (d) =>
+    names(asMovie(d)?.directors ?? []),
   );
+  // Bulk payloads carry cast names only (castNames); full actor objects live in
+  // the per-work detail payload and aren't available for pivot scoring.
+  const castIdf = buildIdf(corpus, (d) => asMovie(d)?.castNames ?? []);
+  const companyIdf = buildIdf(
+    corpus,
+    (d) => asMovie(d)?.production_companies ?? [],
+  );
+  const genreIdf = buildIdf(corpus, (d) => asMovie(d)?.genres ?? []);
+  const totalWeight = sum(Object.values(MOVIE_FIELD_WEIGHTS));
+
+  return (target, candidate) => {
+    const a = asMovie(target);
+    const b = asMovie(candidate);
+    if (a === undefined || b === undefined) return 0;
+    const sameLanguage =
+      hasValue(a.original_language) &&
+      a.original_language === b.original_language;
+    const weighted =
+      MOVIE_FIELD_WEIGHTS.director *
+        weightedJaccard(names(a.directors), names(b.directors), directorIdf) +
+      MOVIE_FIELD_WEIGHTS.cast *
+        weightedJaccard(a.castNames, b.castNames, castIdf) +
+      MOVIE_FIELD_WEIGHTS.company *
+        weightedJaccard(
+          a.production_companies,
+          b.production_companies,
+          companyIdf,
+        ) +
+      MOVIE_FIELD_WEIGHTS.genre *
+        weightedJaccard(a.genres, b.genres, genreIdf) +
+      MOVIE_FIELD_WEIGHTS.era *
+        proximityDecay(releaseYear(a), releaseYear(b), ERA_HALF_LIFE_YEARS) +
+      MOVIE_FIELD_WEIGHTS.language * (sameLanguage ? 1 : 0);
+    return weighted / totalWeight;
+  };
 };
 
-const bookSimilarity: ClubTypeConfig["similarity"] = (target, candidate) => {
-  const a = asBook(target);
-  const b = asBook(candidate);
-  if (a === undefined || b === undefined) return 0;
-  return (
-    sharedCount(a.authors, b.authors) * PRIMARY_CREDIT_WEIGHT +
-    sharedCount(a.subjects, b.subjects) * CATEGORY_WEIGHT
-  );
+const makeBookSimilarity = (
+  corpus: readonly (WorkDataSummary | undefined)[],
+): WorkSimilarityScorer => {
+  const authorIdf = buildIdf(corpus, (d) => asBook(d)?.authors ?? []);
+  const subjectIdf = buildIdf(corpus, (d) => asBook(d)?.subjects ?? []);
+  const totalWeight = sum(Object.values(BOOK_FIELD_WEIGHTS));
+
+  return (target, candidate) => {
+    const a = asBook(target);
+    const b = asBook(candidate);
+    if (a === undefined || b === undefined) return 0;
+    const weighted =
+      BOOK_FIELD_WEIGHTS.author *
+        weightedJaccard(a.authors, b.authors, authorIdf) +
+      BOOK_FIELD_WEIGHTS.subject *
+        weightedJaccard(a.subjects, b.subjects, subjectIdf) +
+      BOOK_FIELD_WEIGHTS.era *
+        proximityDecay(
+          a.firstPublishYear,
+          b.firstPublishYear,
+          ERA_HALF_LIFE_YEARS,
+        ) +
+      BOOK_FIELD_WEIGHTS.length *
+        proximityDecay(a.numberOfPages, b.numberOfPages, PAGE_HALF_LIFE);
+    return weighted / totalWeight;
+  };
 };
 
 /**
@@ -409,7 +554,7 @@ export const CLUB_TYPE_CONFIG: Record<ClubType, ClubTypeConfig> = {
       shareTitle: "Movie Club Statistics",
     },
     display: movieDisplay,
-    similarity: movieSimilarity,
+    makeSimilarity: makeMovieSimilarity,
   },
   [ClubType.book]: {
     clubType: ClubType.book,
@@ -455,7 +600,7 @@ export const CLUB_TYPE_CONFIG: Record<ClubType, ClubTypeConfig> = {
       shareTitle: "Book Club Statistics",
     },
     display: bookDisplay,
-    similarity: bookSimilarity,
+    makeSimilarity: makeBookSimilarity,
   },
 };
 
@@ -532,17 +677,26 @@ export function workOverview(
 }
 
 /**
- * How alike two works are, for preferring familiar comparison points while
- * Score Assist binary-searches a score. Missing or mismatched-kind metadata
- * scores 0, so pivot selection degrades gracefully to score-midpoint distance.
+ * Build a similarity scorer for a work type, calibrated to a candidate pool so
+ * tag overlaps are IDF-weighted against that catalogue. Score Assist builds one
+ * scorer per session and reuses it across every pivot comparison.
+ */
+export function makeWorkSimilarity(
+  type: WorkType,
+  corpus: readonly (WorkDataSummary | undefined)[],
+): WorkSimilarityScorer {
+  return clubTypeConfig(CLUB_TYPE_BY_WORK_TYPE[type]).makeSimilarity(corpus);
+}
+
+/**
+ * A single similarity comparison with no catalogue context (every tag weighs
+ * equally). Convenience for one-off callers and tests; Score Assist itself uses
+ * {@link makeWorkSimilarity} so overlaps are IDF-weighted by the club's works.
  */
 export function workSimilarity(
   type: WorkType,
   target: WorkDataSummary | undefined,
   candidate: WorkDataSummary | undefined,
 ): number {
-  return clubTypeConfig(CLUB_TYPE_BY_WORK_TYPE[type]).similarity(
-    target,
-    candidate,
-  );
+  return makeWorkSimilarity(type, [])(target, candidate);
 }
