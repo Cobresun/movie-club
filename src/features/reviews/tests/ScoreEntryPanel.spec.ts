@@ -136,7 +136,7 @@ describe("ScoreEntryPanel", () => {
     const { user } = rendered;
 
     const assist = await screen.findByRole("button", {
-      name: /Compare .* you've rated/,
+      name: /Compare to decide/,
     });
     await user.click(assist);
     expect(rendered.emitted().assist).toHaveLength(1);
@@ -149,7 +149,7 @@ describe("ScoreEntryPanel", () => {
     });
 
     expect(
-      screen.queryByRole("button", { name: /Compare .* you've rated/ }),
+      screen.queryByRole("button", { name: /Compare to decide/ }),
     ).not.toBeInTheDocument();
   });
 });
