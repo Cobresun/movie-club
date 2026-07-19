@@ -2,34 +2,40 @@
   <div>
     <!-- Mobile Bottom Sheet -->
     <v-bottom-sheet v-if="!isDesktop" transparent-handle @close="close">
-      <WorkDetailsContent
-        :key="movie.id"
-        :movie="movie"
-        :review-table="reviewTable"
-        :delete-review="deleteReview"
-        :revealed-movie-ids="revealedMovieIds"
-        :has-rated="hasRated"
-        :current-user-id="currentUserId"
-        :is-desktop="isDesktop"
-        @close="close"
-        @toggle-reveal="toggleMovieReveal"
-      />
+      <template #default="{ closing }">
+        <WorkDetailsContent
+          :key="movie.id"
+          :movie="movie"
+          :review-table="reviewTable"
+          :delete-review="deleteReview"
+          :revealed-movie-ids="revealedMovieIds"
+          :has-rated="hasRated"
+          :current-user-id="currentUserId"
+          :is-desktop="isDesktop"
+          :dismissing="closing"
+          @close="close"
+          @toggle-reveal="toggleMovieReveal"
+        />
+      </template>
     </v-bottom-sheet>
 
     <!-- Desktop Drawer (side panel) -->
     <VSideDrawer v-if="isDesktop" @close="close">
-      <WorkDetailsContent
-        :key="movie.id"
-        :movie="movie"
-        :review-table="reviewTable"
-        :delete-review="deleteReview"
-        :revealed-movie-ids="revealedMovieIds"
-        :has-rated="hasRated"
-        :current-user-id="currentUserId"
-        :is-desktop="isDesktop"
-        @close="close"
-        @toggle-reveal="toggleMovieReveal"
-      />
+      <template #default="{ closing }">
+        <WorkDetailsContent
+          :key="movie.id"
+          :movie="movie"
+          :review-table="reviewTable"
+          :delete-review="deleteReview"
+          :revealed-movie-ids="revealedMovieIds"
+          :has-rated="hasRated"
+          :current-user-id="currentUserId"
+          :is-desktop="isDesktop"
+          :dismissing="closing"
+          @close="close"
+          @toggle-reveal="toggleMovieReveal"
+        />
+      </template>
     </VSideDrawer>
   </div>
 </template>

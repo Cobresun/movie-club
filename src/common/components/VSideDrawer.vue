@@ -9,7 +9,10 @@
         @click.stop
       >
         <div class="relative h-full overflow-y-auto px-4 pt-8">
-          <slot />
+          <!-- `closing` flips as soon as dismissal starts (the drawer stays
+               mounted while the leave transition plays), so slot content can
+               cancel deferred work instead of janking the slide-out. -->
+          <slot :closing="!isVisible" />
         </div>
       </div>
     </Transition>

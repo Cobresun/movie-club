@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { CLUB_TYPE_CONFIG } from "./common/clubType";
+import { FACT_ICONS } from "./features/reviews/reviewFacts";
 import { icons } from "./icons";
 
 // Raw source of every .vue file in the app (Vite glob, eager raw import).
@@ -109,6 +110,21 @@ describe("mdi icon registration", () => {
     expect(
       missing,
       `Unregistered club-type icons — add their mdiPascalCase export to src/icons.ts:\n${missing.join("\n")}`,
+    ).toEqual([]);
+  });
+
+  // Review-fact icons reach ReviewFactCard through `:name="fact.icon"`, so the
+  // static scan can't see them either. FACT_ICONS is their registry.
+  it("registers every FACT_ICONS icon", () => {
+    const missing = Object.entries(FACT_ICONS)
+      .filter(([, icon]) => !registered.has(toKey(icon)))
+      .map(
+        ([kind, icon]) => `${icon} (${toKey(icon)}) for fact kind "${kind}"`,
+      );
+
+    expect(
+      missing,
+      `Unregistered review-fact icons — add their mdiPascalCase export to src/icons.ts:\n${missing.join("\n")}`,
     ).toEqual([]);
   });
 });

@@ -86,6 +86,15 @@
                       </div>
                     </div>
                   </div>
+
+                  <!-- Same spotlight fact the club sees in the review drawer;
+                       the share button re-shares this page's own link. -->
+                  <ReviewFactCard
+                    v-if="isDefined(reviewFact)"
+                    :fact="reviewFact"
+                    @share="sharePage"
+                  />
+
                   <div
                     v-for="member in data.members"
                     :key="member.id"
@@ -142,16 +151,19 @@ import { DateTime } from "luxon";
 import { computed } from "vue";
 import { useRoute } from "vue-router";
 
-import { hasElements } from "../../../../lib/checks/checks.js";
+import { hasElements, isDefined } from "../../../../lib/checks/checks.js";
+import ReviewFactCard from "../components/ReviewFactCard.vue";
+import { computeReviewFact } from "../reviewFacts";
 
 import LoadingSpinner from "@/common/components/LoadingSpinner.vue";
 import SharedPageCtaBanner from "@/common/components/SharedPageCtaBanner.vue";
 import SharedPageHeader from "@/common/components/SharedPageHeader.vue";
 import VAvatar from "@/common/components/VAvatar.vue";
+import { useShare } from "@/common/composables/useShare";
 import { asMovie, workPosterUrl } from "@/common/workDisplay";
 import SharedReviewComments from "@/features/reviews/components/SharedReviewComments.vue";
 import { useClub } from "@/service/useClub";
-import { useSharedReview } from "@/service/useList";
+import { useReviewsList, useSharedReview } from "@/service/useList";
 
 const route = useRoute();
 const clubSlug = route.params.clubSlug as string;
@@ -159,6 +171,27 @@ const workId = route.params.workId as string;
 
 const { data: club } = useClub(clubSlug);
 const { data, isLoading, error } = useSharedReview(clubSlug, workId);
+
+// The reviews-list endpoint is public (it also powers the shared statistics
+// page), so this anonymous page can compute the same spotlight fact the club
+// sees in its review drawer.
+const { data: allReviews } = useReviewsList(clubSlug);
+const reviewFact = computed(() =>
+  isDefined(allReviews.value)
+    ? computeReviewFact(allReviews.value, workId)
+    : undefined,
+);
+
+const { share } = useShare();
+const sharePage = () => {
+  const title = data.value?.work.title ?? "Review";
+  const clubName = data.value?.clubName ?? club.value?.clubName ?? "Movie Club";
+  void share({
+    url: `${window.location.origin}/share/club/${clubSlug}/review/${workId}`,
+    title: `${title} - ${clubName} Review`,
+    text: `${clubName}'s review of ${title}`,
+  });
+};
 
 const movieData = computed(() => asMovie(data.value?.work.externalData));
 const posterSrc = computed(
