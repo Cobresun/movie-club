@@ -1,0 +1,58 @@
+[
+  {
+    "watchId": "watch-1",
+    "work": {
+      "id": "w1",
+      "title": "Inception",
+      "type": "movie",
+      "externalId": "27205",
+      "imageUrl": "https://image.tmdb.org/t/p/w154/inception.jpg"
+    },
+    "score": 9,
+    "watchedDate": "2026-07-10",
+    "createdDate": "2026-07-10T12:00:00.000Z",
+    "rewatch": true,
+    "text": "Even better on a rewatch.",
+    "clubReviews": []
+  },
+  {
+    "watchId": "watch-2",
+    "work": {
+      "id": "w2",
+      "title": "12 Angry Men",
+      "type": "movie",
+      "externalId": "389",
+      "imageUrl": "https://image.tmdb.org/t/p/w154/12angrymen.jpg"
+    },
+    "score": 8,
+    "watchedDate": null,
+    "createdDate": "2026-06-01T12:00:00.000Z",
+    "rewatch": false,
+    "text": null,
+    "clubReviews": [
+      {
+        "reviewId": "club-review-1",
+        "clubId": "1",
+        "clubName": "Test Club",
+        "clubSlug": "test-club",
+        "createdDate": "2026-06-01T12:00:00.000Z"
+      }
+    ]
+  },
+  {
+    "watchId": "watch-3",
+    "work": {
+      "id": "w3",
+      "title": "Dune",
+      "type": "book",
+      "externalId": "b-dune",
+      "imageUrl": null
+    },
+    "score": null,
+    "watchedDate": null,
+    "createdDate": "2026-05-01T12:00:00.000Z",
+    "rewatch": false,
+    "text": null,
+    "clubReviews": []
+  }
+]

@@ -117,69 +117,12 @@
       </p>
     </section>
 
-    <!-- Synopsis -->
-    <section v-if="hasValue(overview)" class="mt-6">
-      <SectionHeader title="Synopsis" />
-      <WorkDescription :key="movie.id" :overview="overview" />
-    </section>
-
-    <CastList v-if="movieData" :actors="movieData.actors" class="mt-6" />
-
-    <!-- Details: factual metadata, external ratings and links -->
-    <section v-if="hasDetails" class="mt-6">
-      <SectionHeader title="Details" />
-      <div class="grid grid-cols-2 gap-x-4 gap-y-3">
-        <MovieMetadataGrid
-          v-if="movieData"
-          :release-date="movieData.release_date"
-          :directors="movieData.directors"
-        />
-        <BookMetadataGrid
-          v-else-if="bookData"
-          :first-publish-year="bookData.firstPublishYear"
-          :subjects="bookData.subjects"
-        />
-        <div
-          v-if="isDefined(tmdbScore)"
-          :class="{ 'cursor-pointer hover:opacity-80': shouldBlurTmdbScore }"
-          @click="revealTmdb"
-        >
-          <span
-            class="block text-xs font-medium uppercase tracking-wide text-gray-500"
-            >TMDB rating</span
-          >
-          <span class="inline-flex items-center gap-1.5 text-sm text-gray-200">
-            <span
-              class="transition-[filter] duration-500 ease-standard"
-              :class="
-                shouldBlurTmdbScore
-                  ? 'select-none blur'
-                  : 'select-auto blur-none'
-              "
-              >{{ tmdbScore }}<span class="text-gray-500">/10</span></span
-            >
-            <mdicon
-              v-if="shouldBlurTmdbScore"
-              name="eye-outline"
-              size="14"
-              class="text-gray-400"
-            />
-          </span>
-        </div>
-      </div>
-
-      <div v-if="movieData" class="mt-4 flex flex-wrap gap-2">
-        <ExternalLink label="Letterboxd" :href="letterboxdUrl" />
-        <ExternalLink label="IMDb" :href="imdbUrl" />
-        <ExternalLink label="Rotten Tomatoes" :href="rottenTomatoesUrl" />
-      </div>
-
-      <WatchProviders
-        v-if="movieData"
-        :external-id="movie.original.externalId"
-        class="mt-4"
-      />
-    </section>
+    <WorkMetadataSections
+      :external-data="movie.original.externalData"
+      :external-id="movie.original.externalId"
+      :title="movie.original.title"
+      :tmdb-blurred="shouldBlurTmdbScore"
+    />
 
     <CommentThread :work-id="movie.original.id" :club-slug="clubId" />
 
@@ -283,24 +226,14 @@ import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import { ClubType } from "../../../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
 
-import {
-  clubTypeConfig,
-  workMetaLine,
-  workOverview,
-  workSubtitle,
-} from "@/common/clubType";
-import BookMetadataGrid from "@/common/components/BookMetadataGrid.vue";
-import CastList from "@/common/components/CastList.vue";
+import { clubTypeConfig, workMetaLine, workSubtitle } from "@/common/clubType";
 import CommentThread from "@/common/components/CommentThread.vue";
 import DeleteConfirmationModal from "@/common/components/DeleteConfirmationModal.vue";
-import ExternalLink from "@/common/components/ExternalLink.vue";
-import MovieMetadataGrid from "@/common/components/MovieMetadataGrid.vue";
 import SectionHeader from "@/common/components/SectionHeader.vue";
-import WatchProviders from "@/common/components/WatchProviders.vue";
-import WorkDescription from "@/common/components/WorkDescription.vue";
+import WorkMetadataSections from "@/common/components/WorkMetadataSections.vue";
 import WorkPosterHero from "@/common/components/WorkPosterHero.vue";
 import { useShare } from "@/common/composables/useShare";
-import { asBook, asMovie, workPosterUrl } from "@/common/workDisplay";
+import { asMovie, workPosterUrl } from "@/common/workDisplay";
 import { useClub, useClubSettings, useClubSlug } from "@/service/useClub";
 import { useReviewsListId, useUpdateAddedDate } from "@/service/useList";
 
@@ -375,8 +308,9 @@ const cancelDateEdit = () => {
   isEditingDate.value = false;
 };
 
+// Still needed for the poster hero's backdrop; the rest of the movie/book
+// metadata is rendered by WorkMetadataSections off `externalData`.
 const movieData = computed(() => asMovie(props.movie.original.externalData));
-const bookData = computed(() => asBook(props.movie.original.externalData));
 // Drives book/movie wording in child components (e.g. the discussion-questions
 // "couldn't recognize this ___" message).
 const mediaNoun = computed(
@@ -400,46 +334,6 @@ const displayYear = computed(() =>
 const metaLine = computed(() =>
   workMetaLine(props.movie.original.externalData),
 );
-
-const overview = computed(() =>
-  workOverview(props.movie.original.externalData),
-);
-
-// TMDB publishes ratings with three decimals (7.783); one is plenty here.
-const tmdbScore = computed(() =>
-  movieData.value?.vote_average === undefined
-    ? undefined
-    : Math.round(movieData.value.vote_average * 10) / 10,
-);
-
-// Movies always have external links (Rotten Tomatoes is a title search);
-// books only warrant the section when they have any facts to show.
-const hasDetails = computed(() => {
-  if (isDefined(movieData.value)) return true;
-  const book = bookData.value;
-  return (
-    isDefined(book) &&
-    (book.firstPublishYear !== undefined || book.subjects.length > 0)
-  );
-});
-
-const letterboxdUrl = computed(() =>
-  hasValue(props.movie.original.externalId)
-    ? `https://letterboxd.com/tmdb/${props.movie.original.externalId}/`
-    : undefined,
-);
-
-const imdbUrl = computed(() => {
-  const imdbId = asMovie(props.movie.original.externalData)?.imdb_id;
-  return hasValue(imdbId) ? `https://www.imdb.com/title/${imdbId}/` : undefined;
-});
-
-const rottenTomatoesUrl = computed(() => {
-  const title = props.movie.original.title;
-  return hasValue(title)
-    ? `https://www.rottentomatoes.com/search?search=${encodeURIComponent(title)}`
-    : undefined;
-});
 
 const CUSTOM_RENDERED_COLUMNS = ["title", "imageUrl", "createdDate"];
 
@@ -583,18 +477,9 @@ const showRevealPill = computed(() => {
   return hasClubScoresToReveal.value;
 });
 
-const tmdbRevealed = ref(false);
-
-const shouldBlurTmdbScore = computed(() => {
-  if (props.hasRated(props.movie.id) || tmdbRevealed.value) return false;
-  return true;
-});
-
-const revealTmdb = () => {
-  if (shouldBlurTmdbScore.value) {
-    tmdbRevealed.value = true;
-  }
-};
+// Blur the TMDB score until the current user has rated, so it can't anchor
+// their own score. WorkMetadataSections owns the click-to-reveal from here.
+const shouldBlurTmdbScore = computed(() => !props.hasRated(props.movie.id));
 </script>
 
 <style scoped>

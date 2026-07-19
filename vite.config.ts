@@ -29,15 +29,35 @@ export default defineConfig({
     },
   },
   test: {
-    globals: true,
-    environment: "jsdom",
-    setupFiles: "tests/setup.ts",
-    root: "src/",
     coverage: {
       all: true,
       provider: "istanbul",
       reporter: ["text", "json", "html"],
       exclude: ["**/mocks/**", "**/tests/**"],
     },
+    // Two projects: the frontend suite (jsdom, src-rooted) and a lightweight
+    // node suite for backend pure-function unit tests (e.g. me/diaryMapping).
+    // Backend tests colocate under netlify/functions/**/tests/.
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: "client",
+          globals: true,
+          environment: "jsdom",
+          setupFiles: "tests/setup.ts",
+          root: "src/",
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: "server",
+          globals: true,
+          environment: "node",
+          include: ["netlify/**/*.spec.ts"],
+        },
+      },
+    ],
   },
 });

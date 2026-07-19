@@ -4,7 +4,7 @@
       <router-link :to="logoDestination">
         <h3 class="text-2xl font-bold text-highlight">MovieClub</h3>
       </router-link>
-      <ClubSwitcher v-if="isLoggedIn && hasClubContext" />
+      <SpaceSwitcher v-if="isLoggedIn" />
     </div>
     <div v-if="authReady" class="flex items-center">
       <v-avatar
@@ -23,7 +23,7 @@
 import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
-import ClubSwitcher from "./ClubSwitcher.vue";
+import SpaceSwitcher from "./SpaceSwitcher.vue";
 import { hasValue } from "../../../lib/checks/checks.js";
 
 import { useUser } from "@/service/useUser";
@@ -41,14 +41,6 @@ const authReady = computed(() => store.ready);
 const currentSlug = computed(() => {
   const slug = route.params.clubSlug;
   return Array.isArray(slug) ? slug[0] : slug;
-});
-
-// A clubSlug in the route (e.g. on a /share/... page) only counts as club
-// context when the user is actually a member of that club; visitors should
-// be sent to the root instead of a club they can't access.
-const hasClubContext = computed(() => {
-  const slug = currentSlug.value;
-  return hasValue(slug) && store.isClubMember(slug);
 });
 
 const logoDestination = computed(() => {

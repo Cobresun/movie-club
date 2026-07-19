@@ -6,6 +6,7 @@ import {
 } from "@tanstack/vue-query";
 import { AxiosInstance } from "axios";
 
+import { myWatchesKey } from "./useLibrary";
 import { reviewsListKey } from "./useList";
 import { useUser } from "./useUser";
 import { hasValue, isDefined } from "../../lib/checks/checks.js";
@@ -125,10 +126,13 @@ export function useReviewWork(clubSlug: string) {
     },
     onSuccess: (_data, { workId }) =>
       startScorePoll(auth.request, queryClient, clubSlug, workId),
+    // Club review rows surface read-through in the personal diary — the
+    // same row, not a copy — so a club-side write must refresh it too.
     onSettled: () =>
-      queryClient.invalidateQueries({
-        queryKey: reviewsListKey(clubSlug),
-      }),
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: reviewsListKey(clubSlug) }),
+        queryClient.invalidateQueries({ queryKey: myWatchesKey }),
+      ]),
   });
 }
 
@@ -179,10 +183,13 @@ export function useUpdateReviewScore(clubSlug: string) {
     },
     onSuccess: (_data, { workId }) =>
       startScorePoll(auth.request, queryClient, clubSlug, workId),
+    // Club review rows surface read-through in the personal diary — the
+    // same row, not a copy — so a club-side write must refresh it too.
     onSettled: () =>
-      queryClient.invalidateQueries({
-        queryKey: reviewsListKey(clubSlug),
-      }),
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: reviewsListKey(clubSlug) }),
+        queryClient.invalidateQueries({ queryKey: myWatchesKey }),
+      ]),
   });
 }
 

@@ -152,6 +152,8 @@ export interface ClubTypeConfig {
   ) => Promise<WorkSearchResult[]>;
   /** Copy and icons for the statistics feature. */
   readonly stats: StatsConfig;
+  /** Copy for the solo library's log-a-watch flow. */
+  readonly logging: LoggingConfig;
   /** Per-type extraction of the strings shown in the details drawers. */
   readonly display: WorkDisplay;
   /**
@@ -193,6 +195,25 @@ export interface StatsConfig {
   readonly countIcon: string;
   /** Title used when sharing the statistics page. */
   readonly shareTitle: string;
+}
+
+/**
+ * Media-appropriate copy for the solo library's "log a watch" flow, which lets a
+ * user log either a movie or a book from the same modal. Reading these off the
+ * registry lets the shared modal render "Log a read" / "Date read" / "This was a
+ * reread" for books without an inline `workType === movie` branch.
+ */
+export interface LoggingConfig {
+  /** Modal step-1 heading + entry CTA, keyed to the media: "Log a watch". */
+  readonly logAction: string;
+  /** Details-step submit button: "Log watch" / "Log read". */
+  readonly logButton: string;
+  /** Date field label: "Watched date" / "Date read". */
+  readonly dateLabel: string;
+  /** Repeat-consumption checkbox label: "This was a rewatch" / "…reread". */
+  readonly repeatLabel: string;
+  /** Repeat badge tooltip/aria on a timeline entry: "Rewatch" / "Reread". */
+  readonly repeatBadge: string;
 }
 
 // --- FilterOption builders --------------------------------------------------
@@ -406,6 +427,13 @@ export const CLUB_TYPE_CONFIG: Record<ClubType, ClubTypeConfig> = {
       countIcon: "filmstrip",
       shareTitle: "Movie Club Statistics",
     },
+    logging: {
+      logAction: "Log a watch",
+      logButton: "Log watch",
+      dateLabel: "Watched date",
+      repeatLabel: "This was a rewatch",
+      repeatBadge: "Rewatch",
+    },
     display: movieDisplay,
     similarity: movieSimilarity,
   },
@@ -452,6 +480,13 @@ export const CLUB_TYPE_CONFIG: Record<ClubType, ClubTypeConfig> = {
       countIcon: "book-open-page-variant-outline",
       shareTitle: "Book Club Statistics",
     },
+    logging: {
+      logAction: "Log a read",
+      logButton: "Log read",
+      dateLabel: "Date read",
+      repeatLabel: "This was a reread",
+      repeatBadge: "Reread",
+    },
     display: bookDisplay,
     similarity: bookSimilarity,
   },
@@ -464,6 +499,16 @@ export function clubTypeConfig(type: ClubType): ClubTypeConfig {
 /** A club's media type maps 1:1 to the work type its works use. */
 export function workTypeForClub(type: ClubType): WorkType {
   return clubTypeConfig(type).workType;
+}
+
+/**
+ * The club type whose media matches a work type — inverse of
+ * {@link workTypeForClub}. Lets work-type-dispatched surfaces (e.g. the solo
+ * library reusing the club search prompt) resolve a ClubType without an inline
+ * `type === "movie"`.
+ */
+export function clubTypeForWork(type: WorkType): ClubType {
+  return CLUB_TYPE_BY_WORK_TYPE[type];
 }
 
 /** Material Design Icon name representing a club's media type. */
@@ -479,6 +524,35 @@ export function clubTypeLabel(type: ClubType): string {
 /** Statistics-feature copy and icons for a club's media type. */
 export function clubTypeStats(type: ClubType): StatsConfig {
   return clubTypeConfig(type).stats;
+}
+
+/**
+ * Material Design Icon name for a work type. Delegates through the club-type
+ * registry (a work type maps 1:1 to a club type), so surfaces that dispatch by
+ * WorkType — like the solo library's type filter — never branch on
+ * `type === "movie"`.
+ */
+export function workTypeIcon(type: WorkType): string {
+  return clubTypeConfig(CLUB_TYPE_BY_WORK_TYPE[type]).icon;
+}
+
+/**
+ * Short plural display label for a work type ("Movies", "Books"), e.g. for the
+ * solo library's All / Movies / Books filter pills. Delegates through the
+ * club-type registry to avoid inline work-type conditionals.
+ */
+export function workTypeLabel(type: WorkType): string {
+  return clubTypeConfig(CLUB_TYPE_BY_WORK_TYPE[type]).stats.pluralNoun;
+}
+
+/**
+ * Media-appropriate copy for the solo library's log flow ("Log a watch" vs "Log
+ * a read", "Watched date" vs "Date read", …). Delegates through the club-type
+ * registry so the log modal and timeline, which dispatch by WorkType, never
+ * branch on `type === "movie"`.
+ */
+export function workTypeLogging(type: WorkType): LoggingConfig {
+  return clubTypeConfig(CLUB_TYPE_BY_WORK_TYPE[type]).logging;
 }
 
 // A work self-identifies its media type via `externalData.kind`, so display

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { CLUB_TYPE_CONFIG } from "./common/clubType";
+import { USER_SCOPE } from "./common/scope";
 import { icons } from "./icons";
 
 // Raw source of every .vue file in the app (Vite glob, eager raw import).
@@ -109,6 +110,25 @@ describe("mdi icon registration", () => {
     expect(
       missing,
       `Unregistered club-type icons — add their mdiPascalCase export to src/icons.ts:\n${missing.join("\n")}`,
+    ).toEqual([]);
+  });
+
+  // The scope registry (USER_SCOPE) feeds icon names to templates through
+  // computeds/props too (the space switcher's pinned entry, the diary's solo
+  // context chip), so the static scan can't see them. Mirror the CLUB_TYPE
+  // guard above for every scope config.
+  it("registers every scope-registry icon", () => {
+    const scopes = [USER_SCOPE];
+    const missing = scopes
+      .filter((scope) => !registered.has(toKey(scope.icon)))
+      .map(
+        (scope) =>
+          `${scope.icon} (${toKey(scope.icon)}) for scope "${scope.kind}"`,
+      );
+
+    expect(
+      missing,
+      `Unregistered scope icons — add their mdiPascalCase export to src/icons.ts:\n${missing.join("\n")}`,
     ).toEqual([]);
   });
 });
