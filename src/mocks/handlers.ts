@@ -41,11 +41,20 @@ export const handlers = [
       { id: "1", title: "Watch List", systemType: null, itemCount: 1 },
     ]);
   }),
+  http.get("/api/club/:id/list/reviews-id", () => {
+    return HttpResponse.json({ id: "reviews-list" });
+  }),
   http.get("/api/club/:id/list/1", () => {
     return HttpResponse.json(watchlist);
   }),
+  http.post("/api/club/:id/list/:listId/items", () => {
+    return new HttpResponse(null, { status: 200 });
+  }),
   http.get(`https://api.themoviedb.org/3/search/movie`, () => {
     return HttpResponse.json(TMDBSearch);
+  }),
+  http.get(`https://api.themoviedb.org/3/find/:imdbId`, () => {
+    return HttpResponse.json({ movie_results: [] });
   }),
   http.get(`https://www.googleapis.com/books/v1/volumes`, () => {
     return HttpResponse.json(googleBooksSearch);

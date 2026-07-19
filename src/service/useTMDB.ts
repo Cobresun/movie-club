@@ -4,6 +4,7 @@ import { computed, Ref } from "vue";
 
 import { hasValue } from "../../lib/checks/checks.js";
 import {
+  TMDBFindResponse,
   TMDBPageResponse,
   TMDBWatchProvidersResponse,
 } from "../../lib/types/movie";
@@ -53,6 +54,24 @@ export function useInfiniteCollection(collection: Ref<TMDBCollection>) {
       ).data,
     getNextPageParam: (lastPage) =>
       lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined,
+  });
+}
+
+/**
+ * Resolve an IMDb title id (e.g. "tt1375666") to its TMDB movie. Used by the
+ * /add deep link, where the IMDb id is the only exact identifier available.
+ */
+export function useFindByImdbId(imdbId: Ref<string | undefined>) {
+  return useQuery<TMDBFindResponse>({
+    queryKey: ["tmdb", "find", imdbId],
+    enabled: computed(() => hasValue(imdbId.value)),
+    queryFn: async ({ signal }) =>
+      (
+        await axios.get<TMDBFindResponse>(
+          `https://api.themoviedb.org/3/find/${imdbId.value}?api_key=${key}&external_source=imdb_id&language=en-US`,
+          { signal },
+        )
+      ).data,
   });
 }
 

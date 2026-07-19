@@ -1,0 +1,15 @@
+// ==UserScript==
+// @name         Movie Club — Add from Google
+// @namespace    https://cobresun-movie-club.netlify.app
+// @version      0.1.0
+// @description  Adds a "View in MovieClub" button to Google's movie knowledge panel.
+// @match        https://www.google.com/search*
+// @match        https://www.google.ca/search*
+// @match        https://www.google.co.uk/search*
+// @match        https://www.google.com.au/search*
+// @match        https://www.google.de/search*
+// @match        https://www.google.fr/search*
+// @match        https://www.google.co.in/search*
+// @grant        none
+// @run-at       document-idle
+// ==/UserScript==

@@ -144,7 +144,7 @@ import { ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
 
-import { hasValue, isString } from "../../../lib/checks/checks.js";
+import { hasValue, isString, isTrue } from "../../../lib/checks/checks.js";
 
 import googleLogo from "@/assets/images/google-logo.svg";
 import { authClient } from "@/lib/auth-client";
@@ -184,9 +184,10 @@ const getRedirectUrl = (): string | undefined => {
   if (isString(redirectParam)) {
     return redirectParam;
   }
-  // A club invite page is itself the destination to return to: users often
-  // authenticate mid-flow there, and losing the page loses the invite.
-  if (route.name === "JoinClub") {
+  // A page marked returnHereAfterAuth is itself the destination to return to:
+  // users authenticate mid-flow there (club invites, /add deep links), and
+  // losing the page loses the flow.
+  if (isTrue(route.meta.returnHereAfterAuth)) {
     return route.fullPath;
   }
   return undefined;

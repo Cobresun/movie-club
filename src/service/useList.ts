@@ -356,6 +356,41 @@ export function useAddListItem(clubSlug: string, listId: string) {
   });
 }
 
+/**
+ * Add a work to a list chosen at mutate time. Unlike {@link useAddListItem},
+ * the destination is part of the variables, for flows where the user picks the
+ * list after the composable is set up (e.g. the /add deep-link landing page).
+ */
+export function useAddToList(clubSlug: string) {
+  const auth = useAuthStore();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      listId,
+      insertDto,
+    }: {
+      listId: string;
+      insertDto: ListInsertDto;
+    }) =>
+      auth.request.post(
+        `/api/club/${clubSlug}/list/${listId}/items`,
+        insertDto,
+      ),
+    onSettled: async (_data, _error, vars) => {
+      await queryClient.invalidateQueries({
+        queryKey: listKey(clubSlug, vars.listId),
+      });
+      await queryClient.invalidateQueries({
+        queryKey: reviewsListKey(clubSlug),
+      });
+      await queryClient.invalidateQueries({ queryKey: clubListsKey(clubSlug) });
+      await queryClient.invalidateQueries({
+        queryKey: ["lists", clubSlug, "all-items"],
+      });
+    },
+  });
+}
+
 export function useDeleteListItem(clubSlug: string, listId: string) {
   const auth = useAuthStore();
   const queryClient = useQueryClient();
