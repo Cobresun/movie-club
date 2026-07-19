@@ -350,6 +350,19 @@ const routes: Array<RouteRecordRaw> = [
     component: () => import("../features/settings/views/JoinClubView.vue"),
     meta: {
       depth: 1,
+      returnHereAfterAuth: true,
+    },
+  },
+  {
+    // Deep-link-only landing page (not in any nav): external entry points —
+    // the browser extension, share sheets — send users here with a movie in
+    // the query string. See parseAddLinkQuery for the URL contract.
+    path: "/add",
+    name: "AddWork",
+    component: () => import("../features/add/views/AddView.vue"),
+    meta: {
+      depth: 1,
+      returnHereAfterAuth: true,
     },
   },
   {

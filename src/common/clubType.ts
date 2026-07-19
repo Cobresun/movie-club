@@ -1,6 +1,6 @@
 import axios from "axios";
 
-import { hasValue, isDefined } from "@/../lib/checks/checks";
+import { ensure, hasValue, isDefined } from "@/../lib/checks/checks";
 import { secureImageUrl, sortVolumesByPopularity } from "@/../lib/googleBooks";
 import {
   GoogleBooksSearchResponse,
@@ -8,7 +8,7 @@ import {
 } from "@/../lib/types/book";
 import { ClubType, WorkType } from "@/../lib/types/generated/db";
 import { DetailedWorkData, DetailedWorkListItem } from "@/../lib/types/lists";
-import { TMDBPageResponse } from "@/../lib/types/movie";
+import { TMDBMovieData, TMDBPageResponse } from "@/../lib/types/movie";
 import {
   dateMatcher,
   enumMatcher,
@@ -35,6 +35,18 @@ export interface WorkSearchResult {
   imageUrl?: string;
 }
 
+/** Map a TMDB movie (search or find result) to a WorkSearchResult. */
+export function movieToSearchResult(movie: TMDBMovieData): WorkSearchResult {
+  return {
+    externalId: String(movie.id),
+    title: movie.title,
+    subtitle: movie.release_date ? movie.release_date.slice(0, 4) : undefined,
+    imageUrl: movie.poster_path
+      ? `${TMDB_IMAGE_BASE}${movie.poster_path}`
+      : undefined,
+  };
+}
+
 async function searchMovies(
   query: string,
   signal?: AbortSignal,
@@ -43,14 +55,7 @@ async function searchMovies(
     `https://api.themoviedb.org/3/search/movie?api_key=${TMDB_KEY}&query=${encodeURIComponent(query)}&language=en-US&include_adult=false`,
     { signal },
   );
-  return data.results.map((movie) => ({
-    externalId: String(movie.id),
-    title: movie.title,
-    subtitle: movie.release_date ? movie.release_date.slice(0, 4) : undefined,
-    imageUrl: movie.poster_path
-      ? `${TMDB_IMAGE_BASE}${movie.poster_path}`
-      : undefined,
-  }));
+  return data.results.map(movieToSearchResult);
 }
 
 /** Map a Google Books volume (search or browse) to a WorkSearchResult. */
@@ -464,6 +469,17 @@ export function clubTypeConfig(type: ClubType): ClubTypeConfig {
 /** A club's media type maps 1:1 to the work type its works use. */
 export function workTypeForClub(type: ClubType): WorkType {
   return clubTypeConfig(type).workType;
+}
+
+/**
+ * Registry entry for the club type whose works use the given work type — the
+ * inverse of {@link workTypeForClub} (the mapping is 1:1).
+ */
+export function clubTypeConfigForWorkType(type: WorkType): ClubTypeConfig {
+  return ensure(
+    Object.values(CLUB_TYPE_CONFIG).find((config) => config.workType === type),
+    `No club type config for work type ${type}`,
+  );
 }
 
 /** Material Design Icon name representing a club's media type. */

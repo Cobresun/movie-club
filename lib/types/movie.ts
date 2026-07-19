@@ -156,6 +156,11 @@ export interface TMDBPageResponse {
   total_results: number;
 }
 
+/** Response of TMDB `/find/{external_id}?external_source=imdb_id`. */
+export interface TMDBFindResponse {
+  movie_results: TMDBMovieData[];
+}
+
 export interface TMDBConfig {
   images: {
     base_url: string;

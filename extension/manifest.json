@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "Movie Club — Add from Google",
+  "version": "0.1.0",
+  "description": "Adds a \"View in MovieClub\" button to Google's movie knowledge panel.",
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.google.com/search*",
+        "https://www.google.ca/search*",
+        "https://www.google.co.uk/search*",
+        "https://www.google.com.au/search*",
+        "https://www.google.de/search*",
+        "https://www.google.fr/search*",
+        "https://www.google.co.in/search*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
