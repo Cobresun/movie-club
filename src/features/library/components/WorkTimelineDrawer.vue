@@ -5,8 +5,8 @@
       <WorkTimelineContent
         :work="work"
         :is-desktop="isDesktop"
-        @edit="(entry) => emit('edit', entry)"
-        @delete="(entry) => emit('delete', entry)"
+        @edit="(watch) => emit('edit', watch)"
+        @delete="(watch) => emit('delete', watch)"
       />
     </v-bottom-sheet>
 
@@ -15,8 +15,8 @@
       <WorkTimelineContent
         :work="work"
         :is-desktop="isDesktop"
-        @edit="(entry) => emit('edit', entry)"
-        @delete="(entry) => emit('delete', entry)"
+        @edit="(watch) => emit('edit', watch)"
+        @delete="(watch) => emit('delete', watch)"
       />
     </VSideDrawer>
   </div>
@@ -24,7 +24,7 @@
 
 <script setup lang="ts">
 import WorkTimelineContent from "./WorkTimelineContent.vue";
-import type { DiaryEntry } from "../../../../lib/types/me";
+import type { DiaryWatch } from "../../../../lib/types/me";
 import type { LibraryWork } from "../worksGrouping";
 
 import VBottomSheet from "@/common/components/VBottomSheet.vue";
@@ -35,8 +35,8 @@ defineProps<{ work: LibraryWork }>();
 
 const emit = defineEmits<{
   (e: "close"): void;
-  (e: "edit", entry: DiaryEntry): void;
-  (e: "delete", entry: DiaryEntry): void;
+  (e: "edit", watch: DiaryWatch): void;
+  (e: "delete", watch: DiaryWatch): void;
 }>();
 
 const isDesktop = useIsDesktop();

@@ -53,7 +53,7 @@
       <LogWatchModal
         v-if="showLog"
         :key="modalKey"
-        :edit-entry="editingEntry"
+        :edit-watch="editingWatch"
         @close="closeLog"
       />
     </div>
@@ -64,7 +64,7 @@
 import { computed, ref } from "vue";
 
 import { hasElements, isDefined } from "../../../../lib/checks/checks";
-import type { DiaryEntry } from "../../../../lib/types/me";
+import type { DiaryWatch } from "../../../../lib/types/me";
 import EmptyLibraryState from "../components/EmptyLibraryState.vue";
 import LogWatchModal from "../components/LogWatchModal.vue";
 import TypeFilterPills from "../components/TypeFilterPills.vue";
@@ -74,11 +74,11 @@ import { useFilteredDiary } from "../composables/useFilteredDiary";
 import { useSoloExplainer } from "../composables/useSoloExplainer";
 import { groupWorks } from "../worksGrouping";
 
-import { useDeleteSoloReview, useMyReviews } from "@/service/useLibrary";
+import { useDeleteWatch, useMyWatches } from "@/service/useLibrary";
 import { useAuthStore } from "@/stores/auth";
 
 const authStore = useAuthStore();
-const { data, isLoading } = useMyReviews();
+const { data, isLoading } = useMyWatches();
 
 const isEmpty = computed(
   () => !isLoading.value && (data.value?.length ?? 0) === 0,
@@ -90,8 +90,8 @@ const { seen, dismiss } = useSoloExplainer();
 const hasClubs = computed(() => hasElements(authStore.userClubs));
 const showExplainer = computed(() => !seen.value && hasClubs.value);
 
-const { entries } = useFilteredDiary();
-const works = computed(() => groupWorks(entries.value));
+const { watches } = useFilteredDiary();
+const works = computed(() => groupWorks(watches.value));
 
 // The gallery keys the drawer by grouping key (not object identity) so the
 // timeline stays live through optimistic cache updates: edits and deletes
@@ -102,31 +102,31 @@ const selectedWork = computed(() =>
 );
 
 const showLog = ref(false);
-const editingEntry = ref<DiaryEntry | undefined>(undefined);
-// Re-key the modal per target so it re-seeds its form from the right event
-// (new log vs editing a specific solo event) instead of reusing stale state.
-const modalKey = computed(() => editingEntry.value?.reviewId ?? "new");
+const editingWatch = ref<DiaryWatch | undefined>(undefined);
+// Re-key the modal per target so it re-seeds its form from the right watch
+// (new log vs editing a specific watch) instead of reusing stale state.
+const modalKey = computed(() => editingWatch.value?.watchId ?? "new");
 
 const openNew = () => {
-  editingEntry.value = undefined;
+  editingWatch.value = undefined;
   showLog.value = true;
 };
 
 // The edit modal replaces the drawer rather than stacking on top of it — both
 // overlays live at the same z tier, so layering them would fight.
-const onEdit = (entry: DiaryEntry) => {
+const onEdit = (watch: DiaryWatch) => {
   selectedKey.value = null;
-  editingEntry.value = entry;
+  editingWatch.value = watch;
   showLog.value = true;
 };
 
 const closeLog = () => {
   showLog.value = false;
-  editingEntry.value = undefined;
+  editingWatch.value = undefined;
 };
 
-const { mutate: deleteReview } = useDeleteSoloReview();
-const onDelete = (entry: DiaryEntry) => {
-  deleteReview(entry.reviewId);
+const { mutate: deleteWatch } = useDeleteWatch();
+const onDelete = (watch: DiaryWatch) => {
+  deleteWatch(watch.watchId);
 };
 </script>

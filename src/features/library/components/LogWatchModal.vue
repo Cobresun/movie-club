@@ -90,7 +90,7 @@ import { computed, ref } from "vue";
 
 import { hasValue, isDefined } from "../../../../lib/checks/checks";
 import { WorkType } from "../../../../lib/types/generated/db";
-import type { DiaryEntry } from "../../../../lib/types/me";
+import type { DiaryWatch } from "../../../../lib/types/me";
 import ScoreDial from "../../reviews/components/ScoreDial.vue";
 import { clampScore, isValidScore } from "../../reviews/scoreScale";
 
@@ -101,7 +101,7 @@ import {
   workTypeLogging,
 } from "@/common/clubType";
 import WorkSearchPrompt from "@/common/components/WorkSearchPrompt.vue";
-import { useEditSoloReview, useLogWatch } from "@/service/useLibrary";
+import { useEditWatch, useLogWatch } from "@/service/useLibrary";
 import { WorkSearchResult } from "@/service/useMediaSearch";
 
 interface LogWatchWork {
@@ -112,15 +112,15 @@ interface LogWatchWork {
 }
 
 // When editing, the modal opens straight to the details form pre-filled from
-// the existing solo event; when logging fresh it starts on the search step.
-const { editEntry } = defineProps<{ editEntry?: DiaryEntry }>();
+// the existing watch; when logging fresh it starts on the search step.
+const { editWatch } = defineProps<{ editWatch?: DiaryWatch }>();
 
 const emit = defineEmits<{ (e: "close"): void }>();
 
-const isEdit = isDefined(editEntry);
+const isEdit = isDefined(editWatch);
 const workTypes = [WorkType.movie, WorkType.book];
 
-const selectedWorkType = ref<WorkType>(editEntry?.work.type ?? WorkType.movie);
+const selectedWorkType = ref<WorkType>(editWatch?.work.type ?? WorkType.movie);
 const selectedClubType = computed(() =>
   clubTypeForWork(selectedWorkType.value),
 );
@@ -134,12 +134,12 @@ const logging = computed(() =>
 );
 
 const selectedWork = ref<LogWatchWork | undefined>(
-  isDefined(editEntry)
+  isDefined(editWatch)
     ? {
-        type: editEntry.work.type,
-        title: editEntry.work.title,
-        externalId: editEntry.work.externalId ?? undefined,
-        imageUrl: editEntry.work.imageUrl ?? undefined,
+        type: editWatch.work.type,
+        title: editWatch.work.title,
+        externalId: editWatch.work.externalId ?? undefined,
+        imageUrl: editWatch.work.imageUrl ?? undefined,
       }
     : undefined,
 );
@@ -148,11 +148,11 @@ const step = ref<"search" | "details">(isEdit ? "details" : "search");
 
 // The dial's draft stays a string; empty means no score typed. The explicit
 // "unrated" toggle is the deliberate no-score state (a real feature), seeded on
-// for an edit of an event that was already unrated.
+// for an edit of a watch that was already unrated.
 const scoreModel = ref(
-  isDefined(editEntry?.score) ? String(editEntry.score) : "",
+  isDefined(editWatch?.score) ? String(editWatch.score) : "",
 );
-const unrated = ref(isDefined(editEntry) && editEntry.score === null);
+const unrated = ref(isDefined(editWatch) && editWatch.score === null);
 
 // Local (not UTC) date, since "what day did I watch this" is a wall-clock
 // question — toISOString() would shift the day for evening logs west of UTC.
@@ -163,13 +163,13 @@ const todayLocalISO = () => {
   return `${now.getFullYear()}-${month}-${day}`;
 };
 
-// New logs default to today; edits show exactly what was stored (an edit of an
-// event without a watched date must not silently gain one).
+// New logs default to today; edits show exactly what was stored (an edit of a
+// watch without a watched date must not silently gain one).
 const watchedDate = ref(
-  isDefined(editEntry) ? (editEntry.watchedDate ?? "") : todayLocalISO(),
+  isDefined(editWatch) ? (editWatch.watchedDate ?? "") : todayLocalISO(),
 );
-const rewatch = ref(editEntry?.rewatch ?? false);
-const text = ref(editEntry?.text ?? "");
+const rewatch = ref(editWatch?.rewatch ?? false);
+const text = ref(editWatch?.text ?? "");
 
 const onSelectWork = (work: WorkSearchResult) => {
   selectedWork.value = {
@@ -190,16 +190,16 @@ const resolvedScore = (): number | null => {
 };
 
 const { mutate: logWatch } = useLogWatch();
-const { mutate: editReview } = useEditSoloReview();
+const { mutate: editWatchMutate } = useEditWatch();
 
 const submit = () => {
   const work = selectedWork.value;
   if (!isDefined(work)) return;
   const score = resolvedScore();
 
-  if (isDefined(editEntry)) {
-    editReview({
-      reviewId: editEntry.reviewId,
+  if (isDefined(editWatch)) {
+    editWatchMutate({
+      watchId: editWatch.watchId,
       patch: {
         score,
         watchedDate: hasValue(watchedDate.value) ? watchedDate.value : null,

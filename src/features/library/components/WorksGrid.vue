@@ -15,8 +15,8 @@
           <span class="text-sm font-bold tabular-nums">
             {{ isDefined(work.latestScore) ? work.latestScore : "–" }}
           </span>
-          <span v-if="work.entries.length > 1" class="text-xs text-gray-400">
-            {{ work.entries.length }} logs
+          <span v-if="work.watches.length > 1" class="text-xs text-gray-400">
+            {{ work.watches.length }} logs
           </span>
         </div>
       </WorkPosterCard>

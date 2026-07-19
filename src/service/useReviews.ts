@@ -6,7 +6,7 @@ import {
 } from "@tanstack/vue-query";
 import { AxiosInstance } from "axios";
 
-import { myReviewsKey } from "./useLibrary";
+import { myWatchesKey } from "./useLibrary";
 import { reviewsListKey } from "./useList";
 import { useUser } from "./useUser";
 import { hasValue, isDefined } from "../../lib/checks/checks.js";
@@ -131,7 +131,7 @@ export function useReviewWork(clubSlug: string) {
     onSettled: () =>
       Promise.all([
         queryClient.invalidateQueries({ queryKey: reviewsListKey(clubSlug) }),
-        queryClient.invalidateQueries({ queryKey: myReviewsKey }),
+        queryClient.invalidateQueries({ queryKey: myWatchesKey }),
       ]),
   });
 }
@@ -188,7 +188,7 @@ export function useUpdateReviewScore(clubSlug: string) {
     onSettled: () =>
       Promise.all([
         queryClient.invalidateQueries({ queryKey: reviewsListKey(clubSlug) }),
-        queryClient.invalidateQueries({ queryKey: myReviewsKey }),
+        queryClient.invalidateQueries({ queryKey: myWatchesKey }),
       ]),
   });
 }

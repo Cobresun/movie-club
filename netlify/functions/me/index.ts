@@ -1,11 +1,11 @@
 import { Handler, HandlerContext, HandlerEvent } from "@netlify/functions";
 
-import reviewsRouter from "./reviews";
+import watchesRouter from "./watches";
 import { loggedIn } from "../utils/auth";
 import { Router } from "../utils/router";
 
 const router = new Router("/api/me");
-router.use("/reviews", loggedIn, reviewsRouter);
+router.use("/watches", loggedIn, watchesRouter);
 
 const handler: Handler = async (
   event: HandlerEvent,

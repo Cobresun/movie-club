@@ -4,7 +4,7 @@ import club from "./data/club.json";
 import googleBooksSearch from "./data/googleBooksSearch.json";
 import member from "./data/member.json";
 import members from "./data/members.json";
-import meReviews from "./data/meReviews.json";
+import meWatches from "./data/meWatches.json";
 import reviews from "./data/reviews.json";
 import TMDBSearch from "./data/TMDBSearch.json";
 import watchlist from "./data/watchlist.json";
@@ -45,22 +45,22 @@ export const handlers = [
   http.get("/api/club/:id/list/1", () => {
     return HttpResponse.json(watchlist);
   }),
-  http.get("/api/me/reviews/for-work", () => {
+  http.get("/api/me/watches/for-work", () => {
     return HttpResponse.json([]);
   }),
-  http.get("/api/me/reviews/work-details", () => {
+  http.get("/api/me/watches/work-details", () => {
     return HttpResponse.json(null);
   }),
-  http.get("/api/me/reviews", () => {
-    return HttpResponse.json(meReviews);
+  http.get("/api/me/watches", () => {
+    return HttpResponse.json(meWatches);
   }),
-  http.post("/api/me/reviews", () => {
-    return HttpResponse.json({ reviewId: "new-review" });
+  http.post("/api/me/watches", () => {
+    return HttpResponse.json({ watchId: "new-watch" });
   }),
-  http.put("/api/me/reviews/:reviewId", () => {
+  http.put("/api/me/watches/:watchId", () => {
     return new HttpResponse(null, { status: 200 });
   }),
-  http.delete("/api/me/reviews/:reviewId", () => {
+  http.delete("/api/me/watches/:watchId", () => {
     return new HttpResponse(null, { status: 200 });
   }),
   http.get(`https://api.themoviedb.org/3/search/movie`, () => {

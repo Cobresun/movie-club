@@ -1,11 +1,12 @@
 import { z } from "zod";
 
-import { hasValue } from "../../../lib/checks/checks.js";
+import { hasValue, isDefined } from "../../../lib/checks/checks.js";
 import { ReviewScores } from "../../../lib/types/lists";
 import ListRepository from "../repositories/ListRepository";
 import ReviewRepository from "../repositories/ReviewRepository";
 import SettingsRepository from "../repositories/SettingsRepository";
 import UserRepository from "../repositories/UserRepository";
+import WatchRepository from "../repositories/WatchRepository";
 import WorkCommentRepository from "../repositories/WorkCommentRepository";
 import WorkRepository from "../repositories/WorkRepository";
 import SharedReviewService from "../services/SharedReviewService";
@@ -37,7 +38,26 @@ router.post("/", secured, async ({ clubId, userId, event }, res) => {
     return res(badRequest("This movie does not exist in the list"));
   }
 
-  await ReviewRepository.insertReview(clubId, workId, userId, score);
+  // A club review is an event on the user's watch of this work: resolve the
+  // club's work row to the user's solo copy, then attach to their latest
+  // watch (updating its canonical score) or implicitly create one.
+  const clubWork = await WorkRepository.getById(clubId, workId);
+  if (!isDefined(clubWork)) {
+    return res(badRequest("Work not found"));
+  }
+  const soloWork = await WorkRepository.ensureForUser(userId, {
+    type: clubWork.type,
+    title: clubWork.title,
+    externalId: clubWork.external_id ?? undefined,
+    imageUrl: clubWork.image_url ?? undefined,
+  });
+  const watchId = await WatchRepository.attachForClubReview(
+    userId,
+    soloWork.id,
+    score,
+  );
+
+  await ReviewRepository.insertReview(clubId, workId, userId, watchId);
   return res(ok());
 });
 
@@ -62,7 +82,10 @@ router.put(
     if (review.user_id !== userId) {
       return res(badRequest("You are not allowed to edit this review"));
     }
-    await ReviewRepository.updateScore(reviewId, score);
+    // The score lives on the parent watch — updating it there is what makes
+    // the new value show up in every club and the library at once.
+    await WatchRepository.updateScore(review.watch_id, score);
+    await ReviewRepository.touchCreatedDate(reviewId);
     return res(ok());
   },
 );

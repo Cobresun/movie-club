@@ -7,7 +7,7 @@ import {
 import axios, { AxiosError } from "axios";
 import { computed, unref, type MaybeRef } from "vue";
 
-import { myReviewsKey } from "./useLibrary";
+import { myWatchesKey } from "./useLibrary";
 import { hasValue, isDefined } from "../../lib/checks/checks.js";
 import {
   DetailedReviewListItem,
@@ -304,7 +304,7 @@ export function useDeleteReview(clubSlug: string) {
     onSettled: () =>
       Promise.all([
         queryClient.invalidateQueries({ queryKey: reviewsListKey(clubSlug) }),
-        queryClient.invalidateQueries({ queryKey: myReviewsKey }),
+        queryClient.invalidateQueries({ queryKey: myWatchesKey }),
       ]),
   });
 }

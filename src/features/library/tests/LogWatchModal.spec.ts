@@ -32,9 +32,9 @@ describe("LogWatchModal", () => {
 
     let posted: unknown;
     server.use(
-      http.post("/api/me/reviews", async ({ request }) => {
+      http.post("/api/me/watches", async ({ request }) => {
         posted = await request.json();
-        return HttpResponse.json({ reviewId: "new-review" });
+        return HttpResponse.json({ watchId: "new-watch" });
       }),
     );
 
@@ -69,9 +69,9 @@ describe("LogWatchModal", () => {
     // Gatsby, To Kill a Mockingbird).
     let posted: unknown;
     server.use(
-      http.post("/api/me/reviews", async ({ request }) => {
+      http.post("/api/me/watches", async ({ request }) => {
         posted = await request.json();
-        return HttpResponse.json({ reviewId: "new-review" });
+        return HttpResponse.json({ watchId: "new-watch" });
       }),
     );
 

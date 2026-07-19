@@ -17,11 +17,11 @@
       <SectionHeader title="Your timeline" />
       <ul class="ml-1.5 border-l border-white/10">
         <WorkTimelineEntry
-          v-for="entry in work.entries"
-          :key="entry.reviewId"
-          :entry="entry"
-          @edit="emit('edit', entry)"
-          @delete="emit('delete', entry)"
+          v-for="watch in work.watches"
+          :key="watch.watchId"
+          :watch="watch"
+          @edit="emit('edit', watch)"
+          @delete="emit('delete', watch)"
         />
       </ul>
     </section>
@@ -39,7 +39,7 @@ import { computed } from "vue";
 
 import WorkTimelineEntry from "./WorkTimelineEntry.vue";
 import { hasValue } from "../../../../lib/checks/checks";
-import type { DiaryEntry } from "../../../../lib/types/me";
+import type { DiaryWatch } from "../../../../lib/types/me";
 import type { LibraryWork } from "../worksGrouping";
 
 import { workMetaLine, workSubtitle } from "@/common/clubType";
@@ -52,8 +52,8 @@ import { useMyWorkDetails } from "@/service/useLibrary";
 const props = defineProps<{ work: LibraryWork; isDesktop: boolean }>();
 
 const emit = defineEmits<{
-  (e: "edit", entry: DiaryEntry): void;
-  (e: "delete", entry: DiaryEntry): void;
+  (e: "edit", watch: DiaryWatch): void;
+  (e: "delete", watch: DiaryWatch): void;
 }>();
 
 // Rich metadata isn't carried on the diary stream, so fetch it per work when the
@@ -74,7 +74,7 @@ const displayYear = computed(() =>
 const metaLine = computed(() => workMetaLine(externalData.value ?? undefined));
 
 const logCountLabel = computed(() => {
-  const count = props.work.entries.length;
+  const count = props.work.watches.length;
   return `${count} ${count === 1 ? "log" : "logs"}`;
 });
 </script>

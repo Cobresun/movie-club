@@ -1,19 +1,22 @@
-import { isDefined, ensure } from "../../../lib/checks/checks.js";
+import { isDefined } from "../../../lib/checks/checks.js";
 import { WorkType } from "../../../lib/types/generated/db";
-import { DiaryEntry, ForWorkEvent } from "../../../lib/types/me";
+import {
+  DiaryWatch,
+  ForWorkWatch,
+  WatchClubReview,
+} from "../../../lib/types/me";
 
 /**
- * Shape of one aggregated row from `ReviewRepository.getMyReviewStream` /
- * `getEventsForWork`. Kept explicit (not inferred) so `mapDiaryRows` is a pure,
- * DB-free unit-test seam — the row is the boundary between Kysely and the DTO.
+ * Shape of one row from `WatchRepository.getMyWatches` / `getWatchesForWork`.
+ * Kept explicit (not inferred) so `mapDiaryRows` is a pure, DB-free unit-test
+ * seam — the row is the boundary between Kysely and the DTO.
  *
  * Scalars mirror what Kysely returns for the underlying columns: `score` is a
  * `Numeric` (string), the date columns come back as `Date` (accepting `string`
- * too for hand-written test rows), and the club columns are nullable via the
- * left join.
+ * too for hand-written test rows).
  */
-export interface DiaryStreamRow {
-  review_id: string;
+export interface WatchStreamRow {
+  watch_id: string;
   score: string | null;
   watched_date: Date | string | null;
   created_date: Date | string;
@@ -24,10 +27,19 @@ export interface DiaryStreamRow {
   work_type: WorkType;
   work_external_id: string | null;
   work_image_url: string | null;
-  list_user_id: string | null;
-  club_id: string | null;
-  club_name: string | null;
-  club_slug: string | null;
+}
+
+/**
+ * One club review event from `WatchRepository.getClubReviewsForWatchIds`,
+ * nested under its parent watch by `watch_id`.
+ */
+export interface ClubReviewRow {
+  review_id: string;
+  watch_id: string;
+  created_date: Date | string;
+  club_id: string;
+  club_name: string;
+  club_slug: string;
 }
 
 /** "YYYY-MM-DD" for a date column value, or null. */
@@ -42,20 +54,30 @@ function toIsoString(value: Date | string): string {
   return typeof value === "string" ? value : value.toISOString();
 }
 
-function mapRow(row: DiaryStreamRow): DiaryEntry {
-  // Solo events live on the user's own list (list_user_id set); every other
-  // row is a club review row surfaced read-through.
-  const context: DiaryEntry["context"] = isDefined(row.list_user_id)
-    ? { kind: "solo" }
-    : {
-        kind: "club",
-        clubId: ensure(row.club_id),
-        clubName: ensure(row.club_name),
-        clubSlug: ensure(row.club_slug),
-      };
+function groupClubReviews(
+  clubReviewRows: ClubReviewRow[],
+): Map<string, WatchClubReview[]> {
+  const byWatch = new Map<string, WatchClubReview[]>();
+  for (const row of clubReviewRows) {
+    const list = byWatch.get(row.watch_id) ?? [];
+    list.push({
+      reviewId: row.review_id,
+      clubId: row.club_id,
+      clubName: row.club_name,
+      clubSlug: row.club_slug,
+      createdDate: toIsoString(row.created_date),
+    });
+    byWatch.set(row.watch_id, list);
+  }
+  return byWatch;
+}
 
+function mapRow(
+  row: WatchStreamRow,
+  clubReviews: Map<string, WatchClubReview[]>,
+): DiaryWatch {
   return {
-    reviewId: row.review_id,
+    watchId: row.watch_id,
     work: {
       id: row.work_id,
       title: row.work_title,
@@ -68,27 +90,34 @@ function mapRow(row: DiaryStreamRow): DiaryEntry {
     createdDate: toIsoString(row.created_date),
     rewatch: row.rewatch,
     text: row.text,
-    context,
+    clubReviews: clubReviews.get(row.watch_id) ?? [],
   };
 }
 
-/** Pure row → DTO mapping for `GET /api/me/reviews`. */
-export function mapDiaryRows(rows: DiaryStreamRow[]): DiaryEntry[] {
-  return rows.map(mapRow);
+/**
+ * Pure rows → DTO mapping for `GET /api/me/watches`. Club review rows arrive
+ * oldest-first from the repository and nest under their parent watch.
+ */
+export function mapDiaryRows(
+  watchRows: WatchStreamRow[],
+  clubReviewRows: ClubReviewRow[],
+): DiaryWatch[] {
+  const clubReviews = groupClubReviews(clubReviewRows);
+  return watchRows.map((row) => mapRow(row, clubReviews));
 }
 
-/** Same rows, minus the (known) work, for `GET /api/me/reviews/for-work`. */
-export function mapForWorkRows(rows: DiaryStreamRow[]): ForWorkEvent[] {
-  return rows.map((row) => {
-    const entry = mapRow(row);
-    return {
-      reviewId: entry.reviewId,
-      score: entry.score,
-      watchedDate: entry.watchedDate,
-      createdDate: entry.createdDate,
-      rewatch: entry.rewatch,
-      text: entry.text,
-      context: entry.context,
-    };
-  });
+/** Same rows, minus the (known) work, for `GET /api/me/watches/for-work`. */
+export function mapForWorkRows(
+  watchRows: WatchStreamRow[],
+  clubReviewRows: ClubReviewRow[],
+): ForWorkWatch[] {
+  return mapDiaryRows(watchRows, clubReviewRows).map((watch) => ({
+    watchId: watch.watchId,
+    score: watch.score,
+    watchedDate: watch.watchedDate,
+    createdDate: watch.createdDate,
+    rewatch: watch.rewatch,
+    text: watch.text,
+    clubReviews: watch.clubReviews,
+  }));
 }

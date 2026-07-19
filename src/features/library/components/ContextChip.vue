@@ -14,18 +14,19 @@
 <script setup lang="ts">
 import { computed } from "vue";
 
-import type { DiaryContext } from "../../../../lib/types/me";
+import { hasValue } from "../../../../lib/checks/checks";
 
 import { USER_SCOPE } from "@/common/scope";
 
-const { context } = defineProps<{ context: DiaryContext }>();
+// No club name = the solo library chip. Solo vs club is a scope dimension, not
+// a club-type one: the solo side reads its label/icon from the USER_SCOPE
+// registry, the club side from the given club name. There is no registry to
+// route this through.
+const { clubName } = defineProps<{ clubName?: string }>();
 
-// Solo vs club is a scope dimension, not a club-type one: the solo side reads
-// its label/icon from the USER_SCOPE registry, the club side from the row's
-// own context. There is no registry to route this through.
-const isSolo = computed(() => context.kind === "solo");
+const isSolo = computed(() => !hasValue(clubName));
 const soloIcon = USER_SCOPE.icon;
 const label = computed(() =>
-  context.kind === "solo" ? USER_SCOPE.label : context.clubName,
+  hasValue(clubName) ? clubName : USER_SCOPE.label,
 );
 </script>

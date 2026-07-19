@@ -9,9 +9,8 @@
       <div class="flex min-w-0 flex-1 flex-col gap-1">
         <div class="flex flex-wrap items-center gap-2">
           <span class="text-sm text-gray-300">{{ displayDate }}</span>
-          <ContextChip :context="entry.context" />
           <mdicon
-            v-if="entry.rewatch"
+            v-if="watch.rewatch"
             name="repeat"
             :size="16"
             class="shrink-0 text-gray-400"
@@ -19,9 +18,33 @@
             :aria-label="repeatBadge"
           />
         </div>
-        <p v-if="hasValue(entry.text)" class="text-sm text-gray-400">
-          {{ entry.text }}
+        <p v-if="hasValue(watch.text)" class="text-sm text-gray-400">
+          {{ watch.text }}
         </p>
+
+        <!-- Club reviews of this same watch: the physical viewing happened
+             once, then was reviewed in each club — all showing the watch's
+             one canonical score, so the sub-lines carry no score of their
+             own. -->
+        <ul
+          v-if="watch.clubReviews.length > 0"
+          class="mt-1 flex flex-col gap-1.5"
+        >
+          <li
+            v-for="review in watch.clubReviews"
+            :key="review.reviewId"
+            class="flex flex-wrap items-center gap-2 text-sm text-gray-400"
+          >
+            <ContextChip :club-name="review.clubName" />
+            <span>Reviewed {{ review.createdDate.slice(0, 10) }}</span>
+            <router-link
+              :to="{ name: 'Reviews', params: { clubSlug: review.clubSlug } }"
+              class="text-xs text-highlight hover:underline"
+            >
+              View in {{ review.clubName }}
+            </router-link>
+          </li>
+        </ul>
       </div>
 
       <div class="flex shrink-0 flex-col items-end gap-1">
@@ -29,29 +52,25 @@
           {{ scoreDisplay
           }}<span v-if="isRated" class="text-xs text-gray-500">/10</span>
         </span>
-        <div v-if="isSolo" class="flex gap-1">
+        <div class="flex gap-1">
           <button
             class="text-gray-400 hover:text-white"
-            aria-label="Edit event"
+            aria-label="Edit log"
             @click="emit('edit')"
           >
             <mdicon name="pencil" :size="18" />
           </button>
+          <!-- A watch with club reviews attached can't be deleted (it would
+               orphan club history), so the affordance is hidden. -->
           <button
+            v-if="watch.clubReviews.length === 0"
             class="text-gray-400 hover:text-white"
-            aria-label="Delete event"
+            aria-label="Delete log"
             @click="emit('delete')"
           >
             <mdicon name="delete-outline" :size="18" />
           </button>
         </div>
-        <router-link
-          v-else-if="isDefined(clubTarget)"
-          :to="clubTarget"
-          class="text-xs text-highlight hover:underline"
-        >
-          Edit in {{ clubName }}
-        </router-link>
       </div>
     </div>
   </li>
@@ -59,20 +78,19 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import type { RouteLocationRaw } from "vue-router";
 
 import ContextChip from "./ContextChip.vue";
 import { hasValue, isDefined } from "../../../../lib/checks/checks";
-import type { DiaryEntry } from "../../../../lib/types/me";
+import type { DiaryWatch } from "../../../../lib/types/me";
 
 import { workTypeLogging } from "@/common/clubType";
 
-const { entry } = defineProps<{ entry: DiaryEntry }>();
+const { watch } = defineProps<{ watch: DiaryWatch }>();
 
 // "Rewatch" for movies, "Reread" for books — the repeat badge shows on book
 // timelines too, so read the label off the registry instead of hard-coding it.
 const repeatBadge = computed(
-  () => workTypeLogging(entry.work.type).repeatBadge,
+  () => workTypeLogging(watch.work.type).repeatBadge,
 );
 
 const emit = defineEmits<{
@@ -80,29 +98,15 @@ const emit = defineEmits<{
   (e: "delete"): void;
 }>();
 
-const isSolo = computed(() => entry.context.kind === "solo");
-const isRated = computed(() => isDefined(entry.score));
+const isRated = computed(() => isDefined(watch.score));
 // score 0 is a real rating, so gate on isDefined (not truthiness); null → "–".
 const scoreDisplay = computed(() =>
-  isDefined(entry.score) ? entry.score : "–",
+  isDefined(watch.score) ? watch.score : "–",
 );
 
-// Every timeline point needs a date; events logged without a watched date fall
-// back to the day they were logged (the same date the API sorts them by).
+// Every timeline point needs a date; watches logged without a watched date
+// fall back to the day they were logged (the same date the API sorts them by).
 const displayDate = computed(
-  () => entry.watchedDate ?? entry.createdDate.slice(0, 10),
+  () => watch.watchedDate ?? watch.createdDate.slice(0, 10),
 );
-
-// Club events are read-only here: deep-link to the club's Reviews page rather
-// than editing the shared row inline.
-const clubContext = computed(() =>
-  entry.context.kind === "club" ? entry.context : undefined,
-);
-const clubName = computed(() => clubContext.value?.clubName ?? "");
-const clubTarget = computed<RouteLocationRaw | undefined>(() => {
-  const ctx = clubContext.value;
-  return isDefined(ctx)
-    ? { name: "Reviews", params: { clubSlug: ctx.clubSlug } }
-    : undefined;
-});
 </script>

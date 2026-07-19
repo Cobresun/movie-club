@@ -1,6 +1,6 @@
 [
   {
-    "reviewId": "solo-1",
+    "watchId": "watch-1",
     "work": {
       "id": "w1",
       "title": "Inception",
@@ -13,10 +13,10 @@
     "createdDate": "2026-07-10T12:00:00.000Z",
     "rewatch": true,
     "text": "Even better on a rewatch.",
-    "context": { "kind": "solo" }
+    "clubReviews": []
   },
   {
-    "reviewId": "club-1",
+    "watchId": "watch-2",
     "work": {
       "id": "w2",
       "title": "12 Angry Men",
@@ -29,15 +29,18 @@
     "createdDate": "2026-06-01T12:00:00.000Z",
     "rewatch": false,
     "text": null,
-    "context": {
-      "kind": "club",
-      "clubId": "1",
-      "clubName": "Test Club",
-      "clubSlug": "test-club"
-    }
+    "clubReviews": [
+      {
+        "reviewId": "club-review-1",
+        "clubId": "1",
+        "clubName": "Test Club",
+        "clubSlug": "test-club",
+        "createdDate": "2026-06-01T12:00:00.000Z"
+      }
+    ]
   },
   {
-    "reviewId": "solo-2",
+    "watchId": "watch-3",
     "work": {
       "id": "w3",
       "title": "Dune",
@@ -50,6 +53,6 @@
     "createdDate": "2026-05-01T12:00:00.000Z",
     "rewatch": false,
     "text": null,
-    "context": { "kind": "solo" }
+    "clubReviews": []
   }
 ]

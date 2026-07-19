@@ -4,15 +4,14 @@ import { mapDiaryRows, mapForWorkRows } from "./diaryMapping";
 import { hasValue } from "../../../lib/checks/checks.js";
 import { listInsertDtoSchema } from "../../../lib/types/lists";
 import { LogWatchResponse } from "../../../lib/types/me";
-import ListRepository from "../repositories/ListRepository";
-import ReviewRepository from "../repositories/ReviewRepository";
+import WatchRepository from "../repositories/WatchRepository";
 import WorkRepository, { isWorkType } from "../repositories/WorkRepository";
 import { AuthRequest } from "../utils/auth";
 import { getExternalDataForWorks } from "../utils/providers";
 import { badRequest, notFound, ok } from "../utils/responses";
 import { Router } from "../utils/router";
 
-const router = new Router<AuthRequest>("/api/me/reviews");
+const router = new Router<AuthRequest>("/api/me/watches");
 
 const logWatchSchema = z.object({
   work: listInsertDtoSchema,
@@ -22,7 +21,7 @@ const logWatchSchema = z.object({
   text: z.string().max(4000).optional(),
 });
 
-const editSoloReviewSchema = z.object({
+const editWatchSchema = z.object({
   score: z.number().min(0).max(10).nullable().optional(),
   watchedDate: z.string().date().nullable().optional(),
   rewatch: z.boolean().optional(),
@@ -30,8 +29,11 @@ const editSoloReviewSchema = z.object({
 });
 
 router.get("/", async ({ userId }, res) => {
-  const rows = await ReviewRepository.getMyReviewStream(userId);
-  return res(ok(JSON.stringify(mapDiaryRows(rows))));
+  const watches = await WatchRepository.getMyWatches(userId);
+  const clubReviews = await WatchRepository.getClubReviewsForWatchIds(
+    watches.map((watch) => watch.watch_id),
+  );
+  return res(ok(JSON.stringify(mapDiaryRows(watches, clubReviews))));
 });
 
 router.post("/", async ({ userId, event }, res) => {
@@ -41,61 +43,58 @@ router.post("/", async ({ userId, event }, res) => {
 
   const { work, score, watchedDate, rewatch, text } = body.data;
 
-  // Order matters: the composite FK fk_review_work_list_item_id requires the
-  // work_list_item row to exist before the review, so provision list → work →
-  // list item → review, in that sequence.
-  const listId = await ListRepository.getOrCreateSoloReviewsListId(userId);
   const insertedWork = await WorkRepository.insertForUser(userId, work);
-  const workId = insertedWork.id;
-
-  const alreadyInList = await ListRepository.isItemInList(listId, workId);
-  if (!alreadyInList) {
-    await ListRepository.insertItemInList(listId, workId, userId);
-  }
-
-  const review = await ReviewRepository.insertSoloReview({
-    listId,
-    workId,
+  const watch = await WatchRepository.insertWatch({
     userId,
+    workId: insertedWork.id,
     score: score ?? null,
     watchedDate: watchedDate ?? null,
     rewatch,
     text: text ?? null,
   });
 
-  const response: LogWatchResponse = { reviewId: review.id };
+  const response: LogWatchResponse = { watchId: watch.id };
   return res(ok(JSON.stringify(response)));
 });
 
-router.put("/:reviewId", async ({ userId, params, event }, res) => {
-  if (!hasValue(params.reviewId)) {
-    return res(badRequest("No reviewId provided"));
+router.put("/:watchId", async ({ userId, params, event }, res) => {
+  if (!hasValue(params.watchId)) {
+    return res(badRequest("No watchId provided"));
   }
-  const reviewId = params.reviewId;
+  const watchId = params.watchId;
 
-  // Gate on solo ownership. Absent covers both "not yours" and "club event"
-  // (club rows join through work_list.club_id, not user_id).
-  const existing = await ReviewRepository.getSoloById(reviewId, userId);
-  if (!hasValue(existing?.id)) return res(notFound("Review not found"));
+  const existing = await WatchRepository.getByIdForUser(watchId, userId);
+  if (!hasValue(existing?.id)) return res(notFound("Watch not found"));
 
   if (!hasValue(event.body)) return res(badRequest("No body provided"));
-  const body = editSoloReviewSchema.safeParse(JSON.parse(event.body));
+  const body = editWatchSchema.safeParse(JSON.parse(event.body));
   if (!body.success) return res(badRequest("Invalid body"));
 
-  await ReviewRepository.updateSoloEvent(reviewId, body.data);
+  // Score edits here propagate everywhere by construction: the watch row is
+  // the single score every attached club review reads through.
+  await WatchRepository.updateWatch(watchId, body.data);
   return res(ok());
 });
 
-router.delete("/:reviewId", async ({ userId, params }, res) => {
-  if (!hasValue(params.reviewId)) {
-    return res(badRequest("No reviewId provided"));
+router.delete("/:watchId", async ({ userId, params }, res) => {
+  if (!hasValue(params.watchId)) {
+    return res(badRequest("No watchId provided"));
   }
-  const reviewId = params.reviewId;
+  const watchId = params.watchId;
 
-  const existing = await ReviewRepository.getSoloById(reviewId, userId);
-  if (!hasValue(existing?.id)) return res(notFound("Review not found"));
+  const existing = await WatchRepository.getByIdForUser(watchId, userId);
+  if (!hasValue(existing?.id)) return res(notFound("Watch not found"));
 
-  await ReviewRepository.deleteSoloReview(reviewId);
+  // The FK is RESTRICT — deleting a watch with club reviews attached would
+  // orphan club history. Surface a real message instead of a constraint error.
+  const clubReviewCount = await WatchRepository.clubReviewCount(watchId);
+  if (clubReviewCount > 0) {
+    return res(
+      badRequest("This watch has club reviews attached and can't be deleted"),
+    );
+  }
+
+  await WatchRepository.deleteWatch(watchId);
   return res(ok());
 });
 
@@ -110,12 +109,15 @@ router.get("/for-work", async ({ userId, event }, res) => {
     return res(badRequest("Missing externalId"));
   }
 
-  const rows = await ReviewRepository.getEventsForWork(
+  const watches = await WatchRepository.getWatchesForWork(
     userId,
     type,
     externalId,
   );
-  return res(ok(JSON.stringify(mapForWorkRows(rows))));
+  const clubReviews = await WatchRepository.getClubReviewsForWatchIds(
+    watches.map((watch) => watch.watch_id),
+  );
+  return res(ok(JSON.stringify(mapForWorkRows(watches, clubReviews))));
 });
 
 // Cached external metadata (TMDB / Google Books) for one work, used by the

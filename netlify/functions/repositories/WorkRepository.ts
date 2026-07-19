@@ -1,4 +1,4 @@
-import { hasValue } from "../../../lib/checks/checks.js";
+import { hasValue, isDefined } from "../../../lib/checks/checks.js";
 import { WorkType } from "../../../lib/types/generated/db.js";
 import { ListInsertDto } from "../../../lib/types/lists.js";
 import { db } from "../utils/database";
@@ -53,7 +53,51 @@ class WorkRepository {
     return this.insertWork({ kind: "user", userId }, work);
   }
 
+  /**
+   * Upsert the user's solo copy of a work WITHOUT the external-metadata fetch.
+   * Used by the club review path, where the club's own add already cached the
+   * provider details for the same external id.
+   *
+   * Manual works (no external id) have no cross-club identity, so the upsert's
+   * conflict target can't dedupe them (NULLs are distinct) — (type, title)
+   * stands in as the identity, matching the migration backfill.
+   */
+  async ensureForUser(userId: string, work: ListInsertDto) {
+    if (!hasValue(work.externalId)) {
+      const existing = await db
+        .selectFrom("work")
+        .where("user_id", "=", userId)
+        .where("type", "=", work.type)
+        .where("title", "=", work.title)
+        .where("external_id", "is", null)
+        .select("id")
+        .executeTakeFirst();
+      if (isDefined(existing)) return existing;
+    }
+    return this.upsertWork({ kind: "user", userId }, work);
+  }
+
   private async insertWork(scope: Scope, work: ListInsertDto) {
+    const insertedWork = await this.upsertWork(scope, work);
+
+    // Fetch and cache external metadata via the work's provider. Caching is
+    // best-effort: a provider/API outage must not fail the add — the scheduled
+    // refresh (movies) or a later add fills the details in.
+    const externalId = work.externalId;
+    if (hasValue(externalId)) {
+      try {
+        await getProvider(work.type).fetchAndCacheDetails(externalId);
+      } catch (error) {
+        console.error(
+          `Failed to cache ${work.type} details for ${externalId}: ${String(error)}`,
+        );
+      }
+    }
+
+    return insertedWork;
+  }
+
+  private async upsertWork(scope: Scope, work: ListInsertDto) {
     const base = {
       title: work.title,
       type: work.type,
@@ -85,20 +129,6 @@ class WorkRepository {
       .returning("id")
       .executeTakeFirstOrThrow();
 
-    // Fetch and cache external metadata via the work's provider. Caching is
-    // best-effort: a provider/API outage must not fail the add — the scheduled
-    // refresh (movies) or a later add fills the details in.
-    const externalId = work.externalId;
-    if (hasValue(externalId)) {
-      try {
-        await getProvider(work.type).fetchAndCacheDetails(externalId);
-      } catch (error) {
-        console.error(
-          `Failed to cache ${work.type} details for ${externalId}: ${String(error)}`,
-        );
-      }
-    }
-
     return insertedWork;
   }
 
@@ -107,7 +137,7 @@ class WorkRepository {
       .selectFrom("work")
       .where("id", "=", workId)
       .where("club_id", "=", clubId)
-      .select(["title", "type", "external_id"])
+      .select(["title", "type", "external_id", "image_url"])
       .executeTakeFirst();
   }
 

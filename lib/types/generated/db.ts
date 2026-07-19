@@ -180,13 +180,8 @@ export interface Review {
   created_date: Generated<Timestamp>;
   id: Generated<Int8>;
   list_id: Int8;
-  rewatch: Generated<boolean>;
-  score: Numeric | null;
-  source: string | null;
-  source_ref: string | null;
-  text: string | null;
   user_id: Int8;
-  watched_date: Timestamp | null;
+  watch_id: Int8;
   work_id: Int8;
 }
 
@@ -219,6 +214,19 @@ export interface Verification {
   identifier: string;
   updatedAt: Generated<Timestamp>;
   value: string;
+}
+
+export interface Watch {
+  created_date: Generated<Timestamp>;
+  id: Generated<Int8>;
+  rewatch: Generated<boolean>;
+  score: Numeric | null;
+  source: string | null;
+  source_ref: string | null;
+  text: string | null;
+  user_id: Int8;
+  watched_date: Timestamp | null;
+  work_id: Int8;
 }
 
 export interface Work {
@@ -279,6 +287,7 @@ export interface DB {
   session: Session;
   user: User;
   verification: Verification;
+  watch: Watch;
   work: Work;
   work_comment: WorkComment;
   work_list: WorkList;

@@ -5,7 +5,7 @@ import LibraryView from "../views/LibraryView.vue";
 import { groupWorks } from "../worksGrouping";
 
 import { WorkType } from "@/../lib/types/generated/db";
-import type { DiaryEntry } from "@/../lib/types/me";
+import type { DiaryWatch } from "@/../lib/types/me";
 import type { DetailedMovieData } from "@/../lib/types/movie";
 import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
 import { server } from "@/mocks/server";
@@ -30,8 +30,11 @@ vi.mock("vue-router", () => ({
   useRouter: () => ({ push, beforeEach: vi.fn(() => vi.fn()) }),
 }));
 
-/** Two events for the same work, newest first — the latest carries score 7. */
-function twoEventsForOneWork(): DiaryEntry[] {
+/**
+ * Two watches of the same work, newest first — the latest carries score 7 and
+ * two club reviews of that same viewing (which share the watch's score).
+ */
+function twoWatchesForOneWork(): DiaryWatch[] {
   const work = {
     id: "w1",
     title: "Inception",
@@ -41,36 +44,51 @@ function twoEventsForOneWork(): DiaryEntry[] {
   };
   return [
     {
-      reviewId: "e2",
+      watchId: "watch-2",
       work,
       score: 7,
       watchedDate: "2026-07-10",
       createdDate: "2026-07-10T12:00:00.000Z",
       rewatch: true,
       text: null,
-      context: { kind: "solo" },
+      clubReviews: [
+        {
+          reviewId: "r1",
+          clubId: "1",
+          clubName: "Test Club",
+          clubSlug: "test-club",
+          createdDate: "2026-07-11T12:00:00.000Z",
+        },
+        {
+          reviewId: "r2",
+          clubId: "2",
+          clubName: "Second Club",
+          clubSlug: "second-club",
+          createdDate: "2026-07-12T12:00:00.000Z",
+        },
+      ],
     },
     {
-      reviewId: "e1",
+      watchId: "watch-1",
       work,
       score: 9,
       watchedDate: "2026-01-01",
       createdDate: "2026-01-01T12:00:00.000Z",
       rewatch: false,
       text: "First watch — instant favourite.",
-      context: { kind: "solo" },
+      clubReviews: [],
     },
   ];
 }
 
 describe("groupWorks", () => {
-  it("collapses events for one work, keeps the latest score, entries newest-first", () => {
-    const works = groupWorks(twoEventsForOneWork());
+  it("collapses watches for one work, keeps the latest score, watches newest-first", () => {
+    const works = groupWorks(twoWatchesForOneWork());
     expect(works).toHaveLength(1);
     expect(works[0].latestScore).toBe(7);
-    expect(works[0].entries.map((entry) => entry.reviewId)).toEqual([
-      "e2",
-      "e1",
+    expect(works[0].watches.map((watch) => watch.watchId)).toEqual([
+      "watch-2",
+      "watch-1",
     ]);
   });
 });
@@ -81,7 +99,7 @@ describe("LibraryView", () => {
   });
 
   it("shows the gallery of works with each latest score", async () => {
-    // Default meReviews mock: three works across solo + club contexts.
+    // Default meWatches mock: three works, one with a club review attached.
     render(LibraryView);
 
     expect(await screen.findByText("Inception")).toBeInTheDocument();
@@ -101,10 +119,10 @@ describe("LibraryView", () => {
     expect(screen.queryByText("Dune")).not.toBeInTheDocument();
   });
 
-  it("opens a timeline of every event for a clicked work", async () => {
+  it("opens a timeline of every watch with its club reviews nested", async () => {
     server.use(
-      http.get("/api/me/reviews", () =>
-        HttpResponse.json(twoEventsForOneWork()),
+      http.get("/api/me/watches", () =>
+        HttpResponse.json(twoWatchesForOneWork()),
       ),
     );
 
@@ -119,7 +137,7 @@ describe("LibraryView", () => {
       screen.getByRole("button", { name: "View history for Inception" }),
     );
 
-    // The drawer's timeline lists both events with their dates and scores
+    // The drawer's timeline lists both watches with their dates and scores
     // ("7" now appears twice: on the card and in the timeline).
     expect(await screen.findByText("2026-07-10")).toBeInTheDocument();
     expect(screen.getByText("2026-01-01")).toBeInTheDocument();
@@ -129,8 +147,17 @@ describe("LibraryView", () => {
     expect(
       screen.getByText("First watch — instant favourite."),
     ).toBeInTheDocument();
-    // Solo events are editable in place.
-    expect(screen.getAllByLabelText("Edit event")).toHaveLength(2);
+
+    // The latest watch's club reviews nest under it — one canonical score for
+    // the watch, so the sub-lines carry only the club chip + review date.
+    expect(screen.getByText("Reviewed 2026-07-11")).toBeInTheDocument();
+    expect(screen.getByText("Reviewed 2026-07-12")).toBeInTheDocument();
+    expect(screen.getByText("Test Club")).toBeInTheDocument();
+    expect(screen.getByText("Second Club")).toBeInTheDocument();
+
+    // Every watch is editable; only the club-review-free one is deletable.
+    expect(screen.getAllByLabelText("Edit log")).toHaveLength(2);
+    expect(screen.getAllByLabelText("Delete log")).toHaveLength(1);
   });
 
   it("renders the work's rich metadata in the timeline drawer", async () => {
@@ -151,10 +178,10 @@ describe("LibraryView", () => {
     };
 
     server.use(
-      http.get("/api/me/reviews", () =>
-        HttpResponse.json(twoEventsForOneWork()),
+      http.get("/api/me/watches", () =>
+        HttpResponse.json(twoWatchesForOneWork()),
       ),
-      http.get("/api/me/reviews/work-details", () =>
+      http.get("/api/me/watches/work-details", () =>
         HttpResponse.json(movieData),
       ),
     );

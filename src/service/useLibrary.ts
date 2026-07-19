@@ -10,9 +10,9 @@ import { hasValue } from "../../lib/checks/checks";
 import { WorkType } from "../../lib/types/generated/db";
 import { DetailedWorkData } from "../../lib/types/lists";
 import {
-  DiaryEntry,
-  EditSoloReviewRequest,
-  ForWorkEvent,
+  DiaryWatch,
+  EditWatchRequest,
+  ForWorkWatch,
   LogWatchRequest,
   LogWatchResponse,
 } from "../../lib/types/me.js";
@@ -22,13 +22,13 @@ import { useAuthStore } from "@/stores/auth";
 // ---------------------------------------------------------------------------
 // Query keys — namespaced under ["me", ...] so they never collide with the
 // club-scoped families (["club", ...], ["list", ...]). Invalidating the
-// myReviewsKey prefix also matches every for-work key beneath it.
+// myWatchesKey prefix also matches every for-work key beneath it.
 // ---------------------------------------------------------------------------
 
-export const myReviewsKey = ["me", "reviews"] as const;
+export const myWatchesKey = ["me", "watches"] as const;
 
-export const myReviewsForWorkKey = (type: WorkType, externalId: string) =>
-  ["me", "reviews", "for-work", type, externalId] as const;
+export const myWatchesForWorkKey = (type: WorkType, externalId: string) =>
+  ["me", "watches", "for-work", type, externalId] as const;
 
 export const myWorkDetailsKey = (type: WorkType, externalId: string) =>
   ["me", "work-details", type, externalId] as const;
@@ -37,13 +37,16 @@ export const myWorkDetailsKey = (type: WorkType, externalId: string) =>
 // Diary stream
 // ---------------------------------------------------------------------------
 
-/** The user's full diary: every review event across solo + all their clubs. */
-export function useMyReviews(): UseQueryReturnType<DiaryEntry[], AxiosError> {
+/**
+ * The user's full diary: every watch, with its attached club review events
+ * nested. The watch owns the canonical score; club events carry none.
+ */
+export function useMyWatches(): UseQueryReturnType<DiaryWatch[], AxiosError> {
   const auth = useAuthStore();
   return useQuery({
-    queryKey: myReviewsKey,
+    queryKey: myWatchesKey,
     queryFn: async () =>
-      (await auth.request.get<DiaryEntry[]>("/api/me/reviews")).data,
+      (await auth.request.get<DiaryWatch[]>("/api/me/watches")).data,
   });
 }
 
@@ -65,7 +68,7 @@ export function useMyWorkDetails(
     queryFn: async () =>
       (
         await auth.request.get<DetailedWorkData | null>(
-          "/api/me/reviews/work-details",
+          "/api/me/watches/work-details",
           { params: { type, externalId } },
         )
       ).data,
@@ -73,19 +76,19 @@ export function useMyWorkDetails(
 }
 
 /**
- * Prior events for one work across contexts (foundation for M2's
+ * Prior watches of one work across contexts (foundation for M2's
  * previous-scores prompt).
  */
-export function useMyReviewsForWork(
+export function useMyWatchesForWork(
   type: WorkType,
   externalId: string,
-): UseQueryReturnType<ForWorkEvent[], AxiosError> {
+): UseQueryReturnType<ForWorkWatch[], AxiosError> {
   const auth = useAuthStore();
   return useQuery({
-    queryKey: myReviewsForWorkKey(type, externalId),
+    queryKey: myWatchesForWorkKey(type, externalId),
     queryFn: async () =>
       (
-        await auth.request.get<ForWorkEvent[]>("/api/me/reviews/for-work", {
+        await auth.request.get<ForWorkWatch[]>("/api/me/watches/for-work", {
           params: { type, externalId },
         })
       ).data,
@@ -97,92 +100,101 @@ export function useMyReviewsForWork(
 // ---------------------------------------------------------------------------
 
 /**
- * Log a watch (create a solo review event). Invalidates only the me-scoped
- * keys — a solo log alters no club row, and cross-context poster score is a
- * later milestone concern. Invalidating the myReviewsKey prefix also refreshes
- * any for-work query for the logged work.
+ * Log a watch. Invalidates only the me-scoped keys — a solo log alters no club
+ * row. Invalidating the myWatchesKey prefix also refreshes any for-work query
+ * for the logged work.
  */
 export function useLogWatch() {
   const auth = useAuthStore();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (body: LogWatchRequest) =>
-      (await auth.request.post<LogWatchResponse>("/api/me/reviews", body)).data,
-    onSettled: () => queryClient.invalidateQueries({ queryKey: myReviewsKey }),
+      (await auth.request.post<LogWatchResponse>("/api/me/watches", body)).data,
+    onSettled: () => queryClient.invalidateQueries({ queryKey: myWatchesKey }),
   });
 }
 
 /**
- * Patch-merge a solo event into the cached diary. Undefined patch fields mean
+ * Patch-merge a watch edit into the cached diary. Undefined patch fields mean
  * "leave unchanged"; `null` is a real cleared value (e.g. removing a score or
  * watched date), so fields compare against `undefined` explicitly rather than
  * through isDefined (which also rejects null).
  */
-function applyPatch(
-  entry: DiaryEntry,
-  patch: EditSoloReviewRequest,
-): DiaryEntry {
+function applyPatch(watch: DiaryWatch, patch: EditWatchRequest): DiaryWatch {
   return {
-    ...entry,
-    score: patch.score !== undefined ? patch.score : entry.score,
+    ...watch,
+    score: patch.score !== undefined ? patch.score : watch.score,
     watchedDate:
-      patch.watchedDate !== undefined ? patch.watchedDate : entry.watchedDate,
-    rewatch: patch.rewatch !== undefined ? patch.rewatch : entry.rewatch,
-    text: patch.text !== undefined ? patch.text : entry.text,
+      patch.watchedDate !== undefined ? patch.watchedDate : watch.watchedDate,
+    rewatch: patch.rewatch !== undefined ? patch.rewatch : watch.rewatch,
+    text: patch.text !== undefined ? patch.text : watch.text,
   };
 }
 
-/** Edit a solo review event (patch semantics). Optimistic, with rollback. */
-export function useEditSoloReview() {
+/**
+ * Edit a watch (patch semantics). Optimistic, with rollback. A score edit here
+ * is the canonical score every attached club review reads, so club-scoped
+ * caches are invalidated wholesale too.
+ */
+export function useEditWatch() {
   const auth = useAuthStore();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({
-      reviewId,
+      watchId,
       patch,
     }: {
-      reviewId: string;
-      patch: EditSoloReviewRequest;
-    }) => auth.request.put(`/api/me/reviews/${reviewId}`, patch),
-    onMutate: async ({ reviewId, patch }) => {
-      await queryClient.cancelQueries({ queryKey: myReviewsKey });
-      const previous = queryClient.getQueryData<DiaryEntry[]>(myReviewsKey);
-      queryClient.setQueryData<DiaryEntry[]>(myReviewsKey, (current) =>
-        current?.map((entry) =>
-          entry.reviewId === reviewId ? applyPatch(entry, patch) : entry,
+      watchId: string;
+      patch: EditWatchRequest;
+    }) => auth.request.put(`/api/me/watches/${watchId}`, patch),
+    onMutate: async ({ watchId, patch }) => {
+      await queryClient.cancelQueries({ queryKey: myWatchesKey });
+      const previous = queryClient.getQueryData<DiaryWatch[]>(myWatchesKey);
+      queryClient.setQueryData<DiaryWatch[]>(myWatchesKey, (current) =>
+        current?.map((watch) =>
+          watch.watchId === watchId ? applyPatch(watch, patch) : watch,
         ),
       );
       return { previous };
     },
     onError: (_err, _vars, context) => {
       if (context?.previous) {
-        queryClient.setQueryData(myReviewsKey, context.previous);
+        queryClient.setQueryData(myWatchesKey, context.previous);
       }
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: myReviewsKey }),
+    onSettled: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: myWatchesKey }),
+        // The edited score surfaces in every club that reviewed this watch.
+        queryClient.invalidateQueries({ queryKey: ["list"] }),
+      ]),
   });
 }
 
-/** Delete a solo review event. Optimistic removal, with rollback. */
-export function useDeleteSoloReview() {
+/**
+ * Delete a watch. Optimistic removal, with rollback. The backend rejects
+ * deleting a watch with club reviews attached — the UI hides the affordance,
+ * and a rejected race rolls back here.
+ */
+export function useDeleteWatch() {
   const auth = useAuthStore();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (reviewId: string) =>
-      auth.request.delete(`/api/me/reviews/${reviewId}`),
-    onMutate: async (reviewId) => {
-      await queryClient.cancelQueries({ queryKey: myReviewsKey });
-      const previous = queryClient.getQueryData<DiaryEntry[]>(myReviewsKey);
-      queryClient.setQueryData<DiaryEntry[]>(myReviewsKey, (current) =>
-        current?.filter((entry) => entry.reviewId !== reviewId),
+    mutationFn: (watchId: string) =>
+      auth.request.delete(`/api/me/watches/${watchId}`),
+    onMutate: async (watchId) => {
+      await queryClient.cancelQueries({ queryKey: myWatchesKey });
+      const previous = queryClient.getQueryData<DiaryWatch[]>(myWatchesKey);
+      queryClient.setQueryData<DiaryWatch[]>(myWatchesKey, (current) =>
+        current?.filter((watch) => watch.watchId !== watchId),
       );
       return { previous };
     },
-    onError: (_err, _reviewId, context) => {
+    onError: (_err, _watchId, context) => {
       if (context?.previous) {
-        queryClient.setQueryData(myReviewsKey, context.previous);
+        queryClient.setQueryData(myWatchesKey, context.previous);
       }
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: myReviewsKey }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: myWatchesKey }),
   });
 }

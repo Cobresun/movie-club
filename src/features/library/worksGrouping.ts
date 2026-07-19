@@ -1,10 +1,10 @@
 import { isDefined } from "../../../lib/checks/checks";
 import { WorkType } from "../../../lib/types/generated/db";
-import type { DiaryEntry } from "../../../lib/types/me";
+import type { DiaryWatch } from "../../../lib/types/me";
 
 /**
- * A work in the library gallery — the derived rollup of every diary event for
- * one work. "Your score" is the latest event's score (never stored).
+ * A work in the library gallery — the derived rollup of every watch of one
+ * work. "Your score" is the latest watch's canonical score (never stored).
  */
 export interface LibraryWork {
   /** Stable grouping key: `type:externalId` (falls back to the work id). */
@@ -13,26 +13,26 @@ export interface LibraryWork {
   type: WorkType;
   externalId: string | null;
   imageUrl: string | null;
-  /** Latest event's score, or null when the latest event was unrated. */
+  /** Latest watch's score, or null when the latest watch is unrated. */
   latestScore: number | null;
-  /** Every diary event for this work, newest-first (rewatches included). */
-  entries: DiaryEntry[];
+  /** Every watch of this work, newest-first (rewatches included). */
+  watches: DiaryWatch[];
 }
 
 /**
- * Group a diary stream into works by (type, externalId), client-side — there is
- * no /api/me/works endpoint in M1. Entries arrive newest-first, so the first
- * event seen for a work is its latest, and insertion order doubles as the
- * gallery sort: works ordered by date of last review, descending.
+ * Group the diary stream into works by (type, externalId), client-side — there
+ * is no /api/me/works endpoint in M1. Watches arrive newest-first, so the first
+ * watch seen for a work is its latest, and insertion order doubles as the
+ * gallery sort: works ordered by date of last watch, descending.
  */
-export function groupWorks(entries: DiaryEntry[]): LibraryWork[] {
+export function groupWorks(watches: DiaryWatch[]): LibraryWork[] {
   const groups = new Map<string, LibraryWork>();
-  for (const entry of entries) {
-    const { work } = entry;
+  for (const watch of watches) {
+    const { work } = watch;
     const key = `${work.type}:${work.externalId ?? work.id}`;
     const existing = groups.get(key);
     if (isDefined(existing)) {
-      existing.entries.push(entry);
+      existing.watches.push(watch);
       continue;
     }
     groups.set(key, {
@@ -41,8 +41,8 @@ export function groupWorks(entries: DiaryEntry[]): LibraryWork[] {
       type: work.type,
       externalId: work.externalId,
       imageUrl: work.imageUrl,
-      latestScore: entry.score,
-      entries: [entry],
+      latestScore: watch.score,
+      watches: [watch],
     });
   }
   return [...groups.values()];

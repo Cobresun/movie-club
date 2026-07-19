@@ -113,41 +113,6 @@ class ListRepository {
     return this.getSystemListId(clubId, WorkListSystemType.reviews);
   }
 
-  /**
-   * Lazily provisions the solo "Reviews" system list for a user. The list is
-   * created on first log-a-watch, never by migration. Race-safe: concurrent
-   * first writes both reach the insert, one wins on the partial unique index
-   * `uq_work_list_user_system_type`, the loser's onConflict is a no-op, and both
-   * re-select the same row.
-   */
-  async getOrCreateSoloReviewsListId(userId: string): Promise<string> {
-    const existing = await db
-      .selectFrom("work_list")
-      .select("id")
-      .where("user_id", "=", userId)
-      .where("system_type", "=", WorkListSystemType.reviews)
-      .executeTakeFirst();
-    if (isDefined(existing)) return existing.id;
-
-    await db
-      .insertInto("work_list")
-      .values({
-        user_id: userId,
-        title: "Reviews",
-        system_type: WorkListSystemType.reviews,
-      })
-      .onConflict((oc) => oc.doNothing())
-      .execute();
-
-    const row = await db
-      .selectFrom("work_list")
-      .select("id")
-      .where("user_id", "=", userId)
-      .where("system_type", "=", WorkListSystemType.reviews)
-      .executeTakeFirstOrThrow();
-    return row.id;
-  }
-
   // -- List item operations (now keyed by listId) -----------------------
 
   // Returns media-agnostic work + list-item columns. Type-specific metadata
