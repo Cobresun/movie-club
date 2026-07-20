@@ -350,6 +350,12 @@ export function useReviewsList(
           `/api/club/${clubSlug}/list/reviews`,
         )
       ).data,
+    // Scores are collaborative: everyone's ratings live in this payload, so it
+    // must revalidate on every mount (including a hard refresh) rather than
+    // inherit the global 60s staleTime. Cached data still paints instantly; the
+    // refetch runs in the background so refreshing always reflects others'
+    // latest scores instead of a stale snapshot.
+    staleTime: 0,
   });
 }
 

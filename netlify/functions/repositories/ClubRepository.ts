@@ -1,6 +1,6 @@
 import crypto from "crypto";
 
-import { isTrue, isDefined } from "../../../lib/checks/checks.js";
+import { isDefined } from "../../../lib/checks/checks.js";
 import { ClubType } from "../../../lib/types/generated/db.js";
 import { db } from "../utils/database";
 import { generateSlugFromName, generateUniqueSlug } from "../utils/slug";
@@ -105,19 +105,9 @@ class ClubRepository {
       .execute();
   }
 
-  async isUserInClub(clubId: string, userId: string, isLegacy?: boolean) {
-    // Legacy ids live on the club table, so that variant still needs the
-    // join; the hot path (real club id, checked by `secured` on every write)
-    // is a single index lookup on club_member.
-    if (isTrue(isLegacy)) {
-      return !!(await db
-        .selectFrom("club_member")
-        .innerJoin("club", "club.id", "club_member.club_id")
-        .where("club_member.user_id", "=", userId)
-        .where("club.legacy_id", "=", clubId)
-        .select("club_member.user_id")
-        .executeTakeFirst());
-    }
+  async isUserInClub(clubId: string, userId: string) {
+    // `secured` resolves the real club id before this runs, so membership is a
+    // single index lookup on club_member (no legacy_id join path anymore).
     return !!(await db
       .selectFrom("club_member")
       .where("club_member.user_id", "=", userId)
