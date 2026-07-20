@@ -40,31 +40,7 @@ class ClubRepository {
     return results.length > 0;
   }
 
-  async getLegacyIdForId(clubId: string) {
-    return (
-      await db
-        .selectFrom("club")
-        .select("legacy_id")
-        .where("id", "=", clubId.toString())
-        .execute()
-    )[0].legacy_id;
-  }
-
-  async mapLegacyIds(legacyIds: number[]) {
-    return (
-      await db
-        .selectFrom("club")
-        .select("id")
-        .where(
-          "legacy_id",
-          "in",
-          legacyIds.map((id) => id.toString()),
-        )
-        .execute()
-    ).map((row) => row.id);
-  }
-
-  async insert(name: string, type: ClubType, legacy_id?: number) {
+  async insert(name: string, type: ClubType) {
     // Generate a unique slug from the club name
     let slug = generateSlugFromName(name);
 
@@ -76,7 +52,7 @@ class ClubRepository {
     // Don't set slug_updated_at on creation so users can change slug immediately
     return db
       .insertInto("club")
-      .values({ name, type, legacy_id, slug })
+      .values({ name, type, slug })
       .returning(["id", "slug"])
       .executeTakeFirst();
   }
