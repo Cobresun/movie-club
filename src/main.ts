@@ -4,13 +4,14 @@ import { VueQueryPlugin, VueQueryPluginOptions } from "@tanstack/vue-query";
 import { del, get, set } from "idb-keyval";
 import mdiVue from "mdi-vue/v3";
 import { createPinia } from "pinia";
-import { createApp, TransitionGroup } from "vue";
+import { createApp, reactive, TransitionGroup } from "vue";
 import Toast from "vue-toastification";
 
 import LazyLoad from "./directives/LazyLoad";
 import Reveal from "./directives/Reveal";
 import { icons } from "./icons";
 import router from "./router";
+import { isDefined } from "../lib/checks/checks.js";
 
 import App from "@/App.vue";
 import EmptyState from "@/common/components/EmptyState.vue";
@@ -28,15 +29,33 @@ import MenuCard from "@/features/clubs/components/MenuCard.vue";
 import "./assets/styles/tailwind.css";
 import "vue-toastification/dist/index.css";
 
+// Tracks how many times each query has fetched during *this* page session.
+// It lives in memory and is empty on every load, which is the whole point:
+// combined with the persister below it gives stale-while-revalidate on a hard
+// refresh. The persister rehydrates cached data (instant paint), the empty map
+// forces a background revalidate on the first mount(s), and repeat navigation
+// within the session stays quiet. A fixed staleTime can't do this — it can't
+// tell "remounted during the session" from "reloaded the page" — so collaborative
+// data (scores, lists, awards, comments) would otherwise go stale across refreshes.
+const fetchedMap = reactive(new Map<string, number>());
+
 const vueQueryOptions: VueQueryPluginOptions = {
   queryClientConfig: {
     defaultOptions: {
       queries: {
         refetchOnWindowFocus: false,
-        // Serve cached data without a network refetch for a minute; mutations
-        // invalidate their keys explicitly, so navigating between pages stays
-        // instant instead of re-firing every query on each mount.
-        staleTime: 1000 * 60,
+        refetchOnMount: (query) => {
+          if (query.state.isInvalidated) {
+            return true;
+          }
+          const refetchTimes = fetchedMap.get(query.queryHash);
+          if (isDefined(refetchTimes) && refetchTimes > 1) {
+            return false;
+          } else {
+            fetchedMap.set(query.queryHash, (refetchTimes ?? 0) + 1);
+            return true;
+          }
+        },
         cacheTime: 1000 * 60 * 60 * 24 * 7, // One week,
       },
     },
