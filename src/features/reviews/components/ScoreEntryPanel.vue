@@ -4,14 +4,19 @@
          precise decimals typed by hand. Drag and type share `scoreModel`. -->
     <ScoreDial ref="scoreDial" v-model="scoreModel" @save="save" />
 
+    <!-- Blue-tinted ghost pill (the codebase's "highlighted/tappable" accent):
+         reads as a smart-assist CTA that hooks the "what number do I give?"
+         hesitation, while staying subordinate to the solid-primary "Save score"
+         block below. Copy names the payoff (decide) so the button's purpose is
+         obvious. -->
     <button
       v-if="showAssist"
       type="button"
-      class="flex items-center gap-2 rounded-full bg-lowBackground px-4 py-1.5 text-sm text-gray-300 transition hover:brightness-110"
+      class="flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary ring-1 ring-inset ring-primary/20 transition duration-fast ease-standard hover:bg-primary/20 active:scale-[0.98]"
       @click="openAssist"
     >
-      <mdicon name="scale-balance" size="16" />
-      <span>Compare {{ noun }}s you've rated</span>
+      <mdicon name="creation" size="16" />
+      <span>Not sure? Compare to decide</span>
     </button>
 
     <!-- Styled to mirror the drawer's "Rate this ..." CTA (rounded-lg, py-3)
@@ -45,13 +50,11 @@ import {
 } from "vue";
 
 import { isDefined, isTrue } from "../../../../lib/checks/checks.js";
-import { ClubType } from "../../../../lib/types/generated/db";
 import { ScoreAssistKey } from "../scoreAssist";
 import { clampScore, isValidScore } from "../scoreScale";
 import ScoreDial from "./ScoreDial.vue";
 
-import { clubTypeConfig } from "@/common/clubType";
-import { useClub, useClubSlug } from "@/service/useClub";
+import { useClubSlug } from "@/service/useClub";
 import { useSubmitScore } from "@/service/useReviews";
 
 const props = defineProps<{
@@ -84,10 +87,6 @@ const emit = defineEmits<{
 }>();
 
 const clubSlug = useClubSlug();
-const { data: club } = useClub(clubSlug);
-const noun = computed(
-  () => clubTypeConfig(club.value?.type ?? ClubType.movie).noun,
-);
 
 const scoreModel = ref(
   props.draftScore?.toString() ?? props.score?.toString() ?? "",

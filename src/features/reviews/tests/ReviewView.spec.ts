@@ -233,7 +233,7 @@ describe("ReviewView", () => {
       await screen.findByRole("spinbutton", { name: "Score" }),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: /Compare .* you've rated/ }),
+      screen.queryByRole("button", { name: /Compare to decide/ }),
     ).not.toBeInTheDocument();
   });
 
@@ -262,7 +262,7 @@ describe("ReviewView", () => {
     await user.click(await screen.findByRole("button", { name: "Add score" }));
 
     const trigger = await screen.findByRole("button", {
-      name: /Compare .* you've rated/,
+      name: /Compare to decide/,
     });
     await user.click(trigger);
 

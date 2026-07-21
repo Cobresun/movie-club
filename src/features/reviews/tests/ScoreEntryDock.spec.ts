@@ -142,7 +142,7 @@ describe("ScoreEntryDock", () => {
 
     await user.click(screen.getByRole("button", { name: /Rate this movie/ }));
     await user.click(
-      await screen.findByRole("button", { name: /Compare .* you've rated/ }),
+      await screen.findByRole("button", { name: /Compare to decide/ }),
     );
 
     // The dial gave way to the comparison flow inside the same panel.
