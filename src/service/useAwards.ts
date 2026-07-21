@@ -1,27 +1,18 @@
-import {
-  useMutation,
-  useQuery,
-  useQueryClient,
-  UseQueryReturnType,
-} from "@tanstack/vue-query";
+import { useMutation, useQuery, useQueryClient, UseQueryReturnType } from "@tanstack/vue-query";
 import axios, { AxiosError } from "axios";
 import { Ref } from "vue";
 
-import { useUser } from "./useUser";
 import { hasValue, isDefined } from "../../lib/checks/checks.js";
 import { Award, AwardsStep, ClubAwards } from "../../lib/types/awards";
 import { DetailedReviewListItem } from "../../lib/types/lists";
 import { DetailedMovieData } from "../../lib/types/movie";
-
+import { useUser } from "./useUser";
 import { useAuthStore } from "@/stores/auth";
 
-export function useAwardYears(
-  clubSlug: string,
-): UseQueryReturnType<number[], AxiosError> {
+export function useAwardYears(clubSlug: string): UseQueryReturnType<number[], AxiosError> {
   return useQuery({
     queryKey: ["awards-years", clubSlug],
-    queryFn: async () =>
-      (await axios.get<number[]>(`/api/club/${clubSlug}/awards/years`)).data,
+    queryFn: async () => (await axios.get<number[]>(`/api/club/${clubSlug}/awards/years`)).data,
   });
 }
 
@@ -33,11 +24,7 @@ export function useAwards(
   return useQuery({
     queryKey: ["awards", clubId, year],
     queryFn: async () =>
-      (
-        await axios.get<ClubAwards>(
-          `/api/club/${clubId.value}/awards/${year.value}`,
-        )
-      ).data,
+      (await axios.get<ClubAwards>(`/api/club/${clubId.value}/awards/${year.value}`)).data,
     onSuccess,
   });
 }
@@ -51,9 +38,7 @@ export function useUpdateStep(clubId: Ref<string>, year: Ref<string>) {
         step,
       }),
     onSettled: () => {
-      queryClient
-        .invalidateQueries(["awards", clubId, year])
-        .catch(console.error);
+      queryClient.invalidateQueries(["awards", clubId, year]).catch(console.error);
     },
   });
 }
@@ -68,21 +53,16 @@ export function useAddCategory(clubSlug: string, year: string) {
       }),
     onMutate: async (title) => {
       await queryClient.cancelQueries(["awards", clubSlug, year]);
-      queryClient.setQueryData<ClubAwards>(
-        ["awards", clubSlug, year],
-        (currentAwards) => {
-          if (!currentAwards) return currentAwards;
-          return {
-            ...currentAwards,
-            awards: [...currentAwards.awards, { title, nominations: [] }],
-          };
-        },
-      );
+      queryClient.setQueryData<ClubAwards>(["awards", clubSlug, year], (currentAwards) => {
+        if (!currentAwards) return currentAwards;
+        return {
+          ...currentAwards,
+          awards: [...currentAwards.awards, { title, nominations: [] }],
+        };
+      });
     },
     onSettled: () => {
-      queryClient
-        .invalidateQueries(["awards", clubSlug, year])
-        .catch(console.error);
+      queryClient.invalidateQueries(["awards", clubSlug, year]).catch(console.error);
     },
   });
 }
@@ -97,23 +77,18 @@ export function useReorderCategories(clubSlug: string, year: string) {
       }),
     onMutate: async (categories) => {
       await queryClient.cancelQueries(["awards", clubSlug, year]);
-      queryClient.setQueryData<ClubAwards>(
-        ["awards", clubSlug, year],
-        (currentAwards) => {
-          if (!currentAwards) return currentAwards;
-          return {
-            ...currentAwards,
-            awards: categories.map((category) =>
-              currentAwards.awards.find((award) => award.title === category),
-            ) as Award[],
-          };
-        },
-      );
+      queryClient.setQueryData<ClubAwards>(["awards", clubSlug, year], (currentAwards) => {
+        if (!currentAwards) return currentAwards;
+        return {
+          ...currentAwards,
+          awards: categories.map((category) =>
+            currentAwards.awards.find((award) => award.title === category),
+          ) as Award[],
+        };
+      });
     },
     onSettled: () => {
-      queryClient
-        .invalidateQueries(["awards", clubSlug, year])
-        .catch(console.error);
+      queryClient.invalidateQueries(["awards", clubSlug, year]).catch(console.error);
     },
   });
 }
@@ -124,29 +99,20 @@ export function useDeleteCategory(clubSlug: string, year: string) {
   return useMutation({
     mutationFn: (award: Award) =>
       auth.request.delete(
-        `/api/club/${clubSlug}/awards/${year}/category/${encodeURIComponent(
-          award.title,
-        )}`,
+        `/api/club/${clubSlug}/awards/${year}/category/${encodeURIComponent(award.title)}`,
       ),
     onMutate: async (award) => {
       await queryClient.cancelQueries(["awards", clubSlug, year]);
-      queryClient.setQueryData<ClubAwards>(
-        ["awards", clubSlug, year],
-        (currentAwards) => {
-          if (!currentAwards) return currentAwards;
-          return {
-            ...currentAwards,
-            awards: currentAwards.awards.filter(
-              (curAward) => curAward.title !== award.title,
-            ),
-          };
-        },
-      );
+      queryClient.setQueryData<ClubAwards>(["awards", clubSlug, year], (currentAwards) => {
+        if (!currentAwards) return currentAwards;
+        return {
+          ...currentAwards,
+          awards: currentAwards.awards.filter((curAward) => curAward.title !== award.title),
+        };
+      });
     },
     onSettled: () => {
-      queryClient
-        .invalidateQueries(["awards", clubSlug, year])
-        .catch(console.error);
+      queryClient.invalidateQueries(["awards", clubSlug, year]).catch(console.error);
     },
   });
 }
@@ -166,53 +132,45 @@ export function useAddNomination(clubSlug: string, year: string) {
       if (!isDefined(review.externalId)) {
         throw new Error("External ID not found");
       }
-      return auth.request.post(
-        `/api/club/${clubSlug}/awards/${year}/nomination`,
-        {
-          awardTitle,
-          movieId: parseInt(review.externalId),
-          // Key by stable user ID so renames don't orphan the entry.
-          nominatedBy: user.value?.id,
-        },
-      );
+      return auth.request.post(`/api/club/${clubSlug}/awards/${year}/nomination`, {
+        awardTitle,
+        movieId: parseInt(review.externalId),
+        // Key by stable user ID so renames don't orphan the entry.
+        nominatedBy: user.value?.id,
+      });
     },
     onMutate: async ({ awardTitle, review }) => {
       await queryClient.cancelQueries(["awards", clubSlug, year]);
-      queryClient.setQueryData<ClubAwards>(
-        ["awards", clubSlug, year],
-        (currentClubAwards) => {
-          const userId = user.value?.id;
-          if (!currentClubAwards || !hasValue(userId)) return currentClubAwards;
-          return {
-            ...currentClubAwards,
-            awards: currentClubAwards.awards.map((award) => {
-              if (award.title === awardTitle) {
-                return {
-                  ...award,
-                  nominations: [
-                    ...award.nominations,
-                    {
-                      movieId: parseInt(review.externalId ?? "0"),
-                      movieTitle: review.title,
-                      posterUrl: review.imageUrl ?? "",
-                      movieData: review.externalData as DetailedMovieData,
-                      nominatedBy: [userId],
-                      ranking: {},
-                    },
-                  ],
-                };
-              } else {
-                return award;
-              }
-            }),
-          };
-        },
-      );
+      queryClient.setQueryData<ClubAwards>(["awards", clubSlug, year], (currentClubAwards) => {
+        const userId = user.value?.id;
+        if (!currentClubAwards || !hasValue(userId)) return currentClubAwards;
+        return {
+          ...currentClubAwards,
+          awards: currentClubAwards.awards.map((award) => {
+            if (award.title === awardTitle) {
+              return {
+                ...award,
+                nominations: [
+                  ...award.nominations,
+                  {
+                    movieId: parseInt(review.externalId ?? "0"),
+                    movieTitle: review.title,
+                    posterUrl: review.imageUrl ?? "",
+                    movieData: review.externalData as DetailedMovieData,
+                    nominatedBy: [userId],
+                    ranking: {},
+                  },
+                ],
+              };
+            } else {
+              return award;
+            }
+          }),
+        };
+      });
     },
     onSettled: () => {
-      queryClient
-        .invalidateQueries({ queryKey: ["awards", clubSlug, year] })
-        .catch(console.error);
+      queryClient.invalidateQueries({ queryKey: ["awards", clubSlug, year] }).catch(console.error);
     },
   });
 }
@@ -224,12 +182,9 @@ export function useDeleteNomination(clubSlug: string, year: string) {
 
   return useMutation({
     mutationFn: (input: { awardTitle: string; movieId: number }) =>
-      auth.request.delete(
-        `/api/club/${clubSlug}/awards/${year}/nomination/${input.movieId}`,
-        {
-          params: { awardTitle: input.awardTitle, userId: user.value?.id },
-        },
-      ),
+      auth.request.delete(`/api/club/${clubSlug}/awards/${year}/nomination/${input.movieId}`, {
+        params: { awardTitle: input.awardTitle, userId: user.value?.id },
+      }),
     onMutate: async (input) => {
       await queryClient.cancelQueries(["awards", clubSlug, year]);
 
@@ -264,9 +219,7 @@ export function useDeleteNomination(clubSlug: string, year: string) {
       );
     },
     onSettled: () => {
-      queryClient
-        .invalidateQueries(["awards", clubSlug, year])
-        .catch(console.error);
+      queryClient.invalidateQueries(["awards", clubSlug, year]).catch(console.error);
     },
   });
 }
@@ -276,13 +229,7 @@ export function useSubmitRanking(clubSlug: string, year: string) {
   const user = useUser();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({
-      awardTitle,
-      movies,
-    }: {
-      awardTitle: string;
-      movies: number[];
-    }) =>
+    mutationFn: ({ awardTitle, movies }: { awardTitle: string; movies: number[] }) =>
       auth.request.post(`/api/club/${clubSlug}/awards/${year}/ranking`, {
         awardTitle,
         // Key by stable user ID so renames don't orphan the ranking.
@@ -290,9 +237,7 @@ export function useSubmitRanking(clubSlug: string, year: string) {
         movies,
       }),
     onSettled: () => {
-      queryClient
-        .invalidateQueries({ queryKey: ["awards", clubSlug, year] })
-        .catch(console.error);
+      queryClient.invalidateQueries({ queryKey: ["awards", clubSlug, year] }).catch(console.error);
     },
   });
 }

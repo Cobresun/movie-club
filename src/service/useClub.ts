@@ -5,16 +5,12 @@ import { computed, unref } from "vue";
 import type { MaybeRef } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
-import { reviewsListKey } from "./useList";
-import { useUserClubs } from "./useUser";
 import { hasValue } from "../../lib/checks/checks.js";
 import { ClubPreview, Member } from "../../lib/types/club";
 import { ClubType } from "../../lib/types/generated/db";
-import {
-  clearLastClubSlug,
-  getLastClubSlug,
-} from "../common/composables/useLastClubSlug";
-
+import { clearLastClubSlug, getLastClubSlug } from "../common/composables/useLastClubSlug";
+import { reviewsListKey } from "./useList";
+import { useUserClubs } from "./useUser";
 import { useAuthStore } from "@/stores/auth";
 
 const fetchClub = async (clubSlug: string) =>
@@ -54,17 +50,13 @@ export function useCreateClub() {
 export function useMembers(clubSlug: string) {
   return useQuery<Member[]>({
     queryKey: ["members", clubSlug],
-    queryFn: async () =>
-      (await axios.get<Member[]>(`/api/club/${clubSlug}/members`)).data,
+    queryFn: async () => (await axios.get<Member[]>(`/api/club/${clubSlug}/members`)).data,
   });
 }
 
 export function useClubSlug(): string {
   const route = useRoute();
-  if (
-    !Array.isArray(route.params.clubSlug) &&
-    hasValue(route.params.clubSlug)
-  ) {
+  if (!Array.isArray(route.params.clubSlug) && hasValue(route.params.clubSlug)) {
     return route.params.clubSlug;
   }
   throw Error("This route does not include a clubSlug");
@@ -74,9 +66,7 @@ export function useIsInClub(clubSlug: MaybeRef<string>) {
   const { data: clubs, isLoading } = useUserClubs();
   const isUserInClub = computed(() => {
     const slug = unref(clubSlug);
-    return isLoading.value
-      ? false
-      : (clubs.value?.some((club) => club.slug === slug) ?? false);
+    return isLoading.value ? false : (clubs.value?.some((club) => club.slug === slug) ?? false);
   });
   return isUserInClub;
 }
@@ -132,9 +122,7 @@ export function useClubDetails(inviteToken: string) {
     queryKey: ["club-details", inviteToken],
     queryFn: async () => {
       try {
-        const response = await axios.get<ClubPreview>(
-          `/api/club/joinInfo/${inviteToken}`,
-        );
+        const response = await axios.get<ClubPreview>(`/api/club/joinInfo/${inviteToken}`);
         return response.data;
       } catch (error) {
         console.error("Error fetching club details:", error);
@@ -166,9 +154,7 @@ export function useInviteToken(clubSlug: string) {
   return useQuery({
     queryKey: ["invite-token", clubSlug],
     queryFn: async () => {
-      const response = await axios.post<{ token: string }>(
-        `/api/club/${clubSlug}/invite`,
-      );
+      const response = await axios.post<{ token: string }>(`/api/club/${clubSlug}/invite`);
       return response.data.token;
     },
   });
@@ -185,16 +171,12 @@ interface ClubSettingsUpdate {
   features?: Partial<ClubSettings["features"]>;
 }
 
-export function useClubSettings(
-  clubSlug: string,
-): UseQueryReturnType<ClubSettings, unknown> {
+export function useClubSettings(clubSlug: string): UseQueryReturnType<ClubSettings, unknown> {
   const auth = useAuthStore();
   return useQuery<ClubSettings>({
     queryKey: ["club", clubSlug, "settings"],
     queryFn: async () => {
-      const response = await auth.request.get<ClubSettings>(
-        `/api/club/${clubSlug}/settings`,
-      );
+      const response = await auth.request.get<ClubSettings>(`/api/club/${clubSlug}/settings`);
       return response.data;
     },
   });
@@ -230,16 +212,11 @@ export function useUpdateClubSettings(clubSlug: string) {
     },
     onError: (_error, _variables, context) => {
       if (context?.previousSettings) {
-        queryClient.setQueryData(
-          ["club", clubSlug, "settings"],
-          context.previousSettings,
-        );
+        queryClient.setQueryData(["club", clubSlug, "settings"], context.previousSettings);
       }
     },
     onSettled: () => {
-      queryClient
-        .invalidateQueries(["club", clubSlug, "settings"])
-        .catch(console.error);
+      queryClient.invalidateQueries(["club", clubSlug, "settings"]).catch(console.error);
     },
   });
 }
@@ -277,8 +254,7 @@ export function useUpdateClubName(clubId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (name: string) =>
-      auth.request.put(`/api/club/${clubId}/name`, { name }),
+    mutationFn: (name: string) => auth.request.put(`/api/club/${clubId}/name`, { name }),
     onSuccess: () => {
       queryClient.invalidateQueries(["club", clubId]).catch(console.error);
       queryClient.invalidateQueries(["user", "clubs"]).catch(console.error);

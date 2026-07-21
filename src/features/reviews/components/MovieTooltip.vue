@@ -1,33 +1,21 @@
 <template>
-  <div
-    class="group/tooltip !flex cursor-help items-center justify-center font-bold hover:relative"
-  >
+  <div class="group/tooltip !flex cursor-help items-center justify-center font-bold hover:relative">
     <div
       v-if="movie"
       class="absolute left-full top-0 z-50 mx-auto hidden w-[calc(100vw)] rounded-lg p-4 text-base text-slate-200 shadow-lg backdrop-blur-lg max-md:hidden md:w-96 md:group-hover/tooltip:block"
     >
       <div class="mb-4 flex gap-4">
-        <img
-          v-if="imageUrl"
-          :src="imageUrl"
-          class="h-auto w-[calc(5vw)] rounded-lg"
-        />
+        <img v-if="imageUrl" :src="imageUrl" class="h-auto w-[calc(5vw)] rounded-lg" />
         <div class="flex flex-1 flex-col items-center justify-center">
           <h3 class="mb-1 text-center text-lg font-bold text-white">
             {{ title }}
           </h3>
-          <p
-            v-if="movie.tagline"
-            class="text-center text-xs italic text-slate-400"
-          >
+          <p v-if="movie.tagline" class="text-center text-xs italic text-slate-400">
             {{ movie.tagline }}
           </p>
         </div>
       </div>
-      <p
-        v-if="movie.overview"
-        class="mb-4 text-left text-sm leading-relaxed text-slate-300"
-      >
+      <p v-if="movie.overview" class="mb-4 text-left text-sm leading-relaxed text-slate-300">
         {{ movie.overview }}
       </p>
       <div class="grid grid-cols-1 gap-x-4 gap-y-3 text-left text-sm">
@@ -76,9 +64,7 @@ const props = defineProps<{
 
 const formattedReleaseDate = computed(() => {
   const releaseDate = props.movie?.release_date;
-  return isDefined(releaseDate)
-    ? DateTime.fromISO(releaseDate).toLocaleString()
-    : undefined;
+  return isDefined(releaseDate) ? DateTime.fromISO(releaseDate).toLocaleString() : undefined;
 });
 
 const formattedGenres = computed(() => {
@@ -93,9 +79,7 @@ const formattedRating = computed(() => {
 
 const formattedDirectors = computed(() => {
   const directors = props.movie?.directors;
-  return hasElements(directors)
-    ? directors.map((d) => d.name).join(", ")
-    : undefined;
+  return hasElements(directors) ? directors.map((d) => d.name).join(", ") : undefined;
 });
 
 const formattedStudios = computed(() => {

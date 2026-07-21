@@ -8,22 +8,18 @@
       <SegmentedToggle v-model="mode" :options="modeOptions" />
     </template>
 
-    <PersonLeaderboard
-      :entries="activeEntries"
-      :empty-message="`No ${mode} data available yet.`"
-    />
+    <PersonLeaderboard :entries="activeEntries" :empty-message="`No ${mode} data available yet.`" />
   </WidgetShell>
 </template>
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
 
+import { computeTopActors, computeTopDirectors } from "../statsComputers";
+import type { MovieData } from "../types";
 import PersonLeaderboard from "./PersonLeaderboard.vue";
 import SegmentedToggle from "./SegmentedToggle.vue";
 import WidgetShell from "./WidgetShell.vue";
-import { computeTopActors, computeTopDirectors } from "../statsComputers";
-import type { MovieData } from "../types";
-
 import { useClubSlug } from "@/service/useClub";
 import { useReviewsCast } from "@/service/useReviews";
 
@@ -39,9 +35,7 @@ const clubSlug = useClubSlug();
 const { data: reviewsCast } = useReviewsCast(clubSlug);
 
 const topDirectors = computed(() => computeTopDirectors(props.movieData));
-const topActors = computed(() =>
-  computeTopActors(props.movieData, reviewsCast.value),
-);
+const topActors = computed(() => computeTopActors(props.movieData, reviewsCast.value));
 
 const modeOptions = computed(() => {
   const options: { value: Mode; label: string }[] = [];

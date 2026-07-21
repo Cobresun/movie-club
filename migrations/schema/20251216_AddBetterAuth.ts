@@ -10,16 +10,10 @@ export async function up(db: Kysely<unknown>) {
   // Add new columns to user table
   await db.schema
     .alterTable("user")
-    .addColumn("emailVerified", "boolean", (col) =>
-      col.notNull().defaultTo(false),
-    )
+    .addColumn("emailVerified", "boolean", (col) => col.notNull().defaultTo(false))
     .addColumn("image", "text")
-    .addColumn("createdAt", "timestamptz", (col) =>
-      col.notNull().defaultTo("now()"),
-    )
-    .addColumn("updatedAt", "timestamptz", (col) =>
-      col.notNull().defaultTo("now()"),
-    )
+    .addColumn("createdAt", "timestamptz", (col) => col.notNull().defaultTo("now()"))
+    .addColumn("updatedAt", "timestamptz", (col) => col.notNull().defaultTo("now()"))
     .execute();
 
   // Create session table
@@ -28,28 +22,18 @@ export async function up(db: Kysely<unknown>) {
     .addColumn("id", "text", (col) => col.primaryKey())
     .addColumn("expiresAt", "timestamptz", (col) => col.notNull())
     .addColumn("token", "text", (col) => col.notNull().unique())
-    .addColumn("createdAt", "timestamptz", (col) =>
-      col.notNull().defaultTo("now()"),
-    )
+    .addColumn("createdAt", "timestamptz", (col) => col.notNull().defaultTo("now()"))
     .addColumn("updatedAt", "timestamptz", (col) => col.notNull())
     .addColumn("ipAddress", "text")
     .addColumn("userAgent", "text")
     .addColumn("userId", "int8", (col) => col.notNull())
-    .addForeignKeyConstraint(
-      "fk_session_user_id",
-      ["userId"],
-      "user",
-      ["id"],
-      (cb) => cb.onDelete("cascade"),
+    .addForeignKeyConstraint("fk_session_user_id", ["userId"], "user", ["id"], (cb) =>
+      cb.onDelete("cascade"),
     )
     .execute();
 
   // Create session index
-  await db.schema
-    .createIndex("session_userId_idx")
-    .on("session")
-    .column("userId")
-    .execute();
+  await db.schema.createIndex("session_userId_idx").on("session").column("userId").execute();
 
   // Create account table
   await db.schema
@@ -65,25 +49,15 @@ export async function up(db: Kysely<unknown>) {
     .addColumn("refreshTokenExpiresAt", "timestamptz")
     .addColumn("scope", "text")
     .addColumn("password", "text")
-    .addColumn("createdAt", "timestamptz", (col) =>
-      col.notNull().defaultTo("now()"),
-    )
+    .addColumn("createdAt", "timestamptz", (col) => col.notNull().defaultTo("now()"))
     .addColumn("updatedAt", "timestamptz", (col) => col.notNull())
-    .addForeignKeyConstraint(
-      "fk_account_user_id",
-      ["userId"],
-      "user",
-      ["id"],
-      (cb) => cb.onDelete("cascade"),
+    .addForeignKeyConstraint("fk_account_user_id", ["userId"], "user", ["id"], (cb) =>
+      cb.onDelete("cascade"),
     )
     .execute();
 
   // Create account index
-  await db.schema
-    .createIndex("account_userId_idx")
-    .on("account")
-    .column("userId")
-    .execute();
+  await db.schema.createIndex("account_userId_idx").on("account").column("userId").execute();
 
   // Create verification table
   await db.schema
@@ -92,12 +66,8 @@ export async function up(db: Kysely<unknown>) {
     .addColumn("identifier", "text", (col) => col.notNull())
     .addColumn("value", "text", (col) => col.notNull())
     .addColumn("expiresAt", "timestamptz", (col) => col.notNull())
-    .addColumn("createdAt", "timestamptz", (col) =>
-      col.notNull().defaultTo("now()"),
-    )
-    .addColumn("updatedAt", "timestamptz", (col) =>
-      col.notNull().defaultTo("now()"),
-    )
+    .addColumn("createdAt", "timestamptz", (col) => col.notNull().defaultTo("now()"))
+    .addColumn("updatedAt", "timestamptz", (col) => col.notNull().defaultTo("now()"))
     .execute();
 
   // Create verification index

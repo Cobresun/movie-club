@@ -1,9 +1,5 @@
 <template>
-  <WidgetShell
-    v-if="hasData"
-    :title="config.title"
-    :subtitle="config.subtitle(workNoun)"
-  >
+  <WidgetShell v-if="hasData" :title="config.title" :subtitle="config.subtitle(workNoun)">
     <template #controls>
       <SegmentedToggle v-model="mode" :options="modeOptions" />
     </template>
@@ -34,21 +30,13 @@
           ?
         </div>
         <div class="min-w-0 flex-1 text-left">
-          <p
-            class="w-fit max-w-full truncate text-sm font-medium text-white"
-            :title="work.title"
-          >
+          <p class="w-fit max-w-full truncate text-sm font-medium text-white" :title="work.title">
             {{ work.title }}
           </p>
-          <p class="text-xs text-slate-400">
-            Club avg: {{ work.clubAverage.toFixed(1) }}
-          </p>
+          <p class="text-xs text-slate-400">Club avg: {{ work.clubAverage.toFixed(1) }}</p>
         </div>
         <div class="shrink-0 text-right">
-          <span
-            class="rounded-full px-2.5 py-1 text-sm font-bold"
-            :class="config.scoreChipClass"
-          >
+          <span class="rounded-full px-2.5 py-1 text-sm font-bold" :class="config.scoreChipClass">
             {{ work.memberScore.toFixed(1) }}
           </span>
           <p class="mt-0.5 text-xs" :class="config.deltaClass">
@@ -63,17 +51,13 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 
+import { Member } from "../../../../lib/types/club";
+import { ClubType } from "../../../../lib/types/generated/db";
+import { computeClubCurmudgeons, computeGuiltyPleasures } from "../statsComputers";
+import type { WorkStatsData } from "../types";
 import MemberFilterChips from "./MemberFilterChips.vue";
 import SegmentedToggle from "./SegmentedToggle.vue";
 import WidgetShell from "./WidgetShell.vue";
-import { Member } from "../../../../lib/types/club";
-import { ClubType } from "../../../../lib/types/generated/db";
-import {
-  computeClubCurmudgeons,
-  computeGuiltyPleasures,
-} from "../statsComputers";
-import type { WorkStatsData } from "../types";
-
 import { clubTypeStats } from "@/common/clubType";
 
 type Mode = "guilty" | "curmudgeon";
@@ -118,12 +102,8 @@ const props = defineProps<{
 
 const workNoun = computed(() => clubTypeStats(props.clubType).pluralNoun);
 
-const guiltyEntries = computed(() =>
-  computeGuiltyPleasures(props.workData, props.members),
-);
-const curmudgeonEntries = computed(() =>
-  computeClubCurmudgeons(props.workData, props.members),
-);
+const guiltyEntries = computed(() => computeGuiltyPleasures(props.workData, props.members));
+const curmudgeonEntries = computed(() => computeClubCurmudgeons(props.workData, props.members));
 
 const modeOptions = computed(() => {
   const options: { value: Mode; label: string }[] = [];

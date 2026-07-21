@@ -15,38 +15,20 @@
       ref="commentsContainer"
       class="mb-4 max-h-80 space-y-3 overflow-y-auto"
     >
-      <div
-        v-for="comment in comments"
-        :key="comment.id"
-        class="rounded-lg bg-lowBackground p-3"
-      >
+      <div v-for="comment in comments" :key="comment.id" class="rounded-lg bg-lowBackground p-3">
         <div class="flex items-center gap-2">
-          <v-avatar
-            :name="comment.userName"
-            :src="comment.userImage"
-            :size="28"
-          />
+          <v-avatar :name="comment.userName" :src="comment.userImage" :size="28" />
           <div class="flex flex-1 items-center gap-1 text-xs text-gray-400">
-            <span class="font-medium text-gray-300">{{
-              comment.userName
-            }}</span>
+            <span class="font-medium text-gray-300">{{ comment.userName }}</span>
             <span>&middot;</span>
             <span>{{ formatRelativeTime(comment.createdDate) }}</span>
-            <span v-if="comment.spoiler" class="text-yellow-500">
-              &middot; Spoiler
-            </span>
+            <span v-if="comment.spoiler" class="text-yellow-500"> &middot; Spoiler </span>
           </div>
           <template v-if="comment.userId === currentUserId">
-            <button
-              class="text-gray-500 hover:text-primary"
-              @click="startEditing(comment)"
-            >
+            <button class="text-gray-500 hover:text-primary" @click="startEditing(comment)">
               <mdicon name="pencil-outline" :size="14" />
             </button>
-            <button
-              class="text-gray-500 hover:text-red-400"
-              @click="promptDelete(comment.id)"
-            >
+            <button class="text-gray-500 hover:text-red-400" @click="promptDelete(comment.id)">
               <mdicon name="delete-outline" :size="14" />
             </button>
           </template>
@@ -63,20 +45,12 @@
           <div class="mt-2 flex items-center justify-between">
             <div class="flex items-center gap-3">
               <label class="flex items-center gap-1.5 text-xs text-gray-400">
-                <input
-                  v-model="editSpoiler"
-                  type="checkbox"
-                  class="accent-primary"
-                />
+                <input v-model="editSpoiler" type="checkbox" class="accent-primary" />
                 Spoiler
               </label>
               <span
                 class="text-xs"
-                :class="
-                  editContent.length > MAX_LENGTH * 0.9
-                    ? 'text-red-400'
-                    : 'text-gray-500'
-                "
+                :class="editContent.length > MAX_LENGTH * 0.9 ? 'text-red-400' : 'text-gray-500'"
               >
                 {{ editContent.length }}/{{ MAX_LENGTH }}
               </span>
@@ -90,10 +64,7 @@
               </button>
               <button
                 class="rounded bg-primary px-3 py-1 text-xs text-white"
-                :disabled="
-                  !hasValue(editContent.trim()) ||
-                  editContent.length > MAX_LENGTH
-                "
+                :disabled="!hasValue(editContent.trim()) || editContent.length > MAX_LENGTH"
                 @click="saveEdit(comment.id)"
               >
                 Save
@@ -137,28 +108,18 @@
       <div class="mt-2 flex items-center justify-between">
         <div class="flex items-center gap-3">
           <label class="flex items-center gap-1.5 text-xs text-gray-400">
-            <input
-              v-model="newSpoiler"
-              type="checkbox"
-              class="accent-primary"
-            />
+            <input v-model="newSpoiler" type="checkbox" class="accent-primary" />
             Spoiler
           </label>
           <span
             class="text-xs"
-            :class="
-              newComment.length > MAX_LENGTH * 0.9
-                ? 'text-red-400'
-                : 'text-gray-500'
-            "
+            :class="newComment.length > MAX_LENGTH * 0.9 ? 'text-red-400' : 'text-gray-500'"
           >
             {{ newComment.length }}/{{ MAX_LENGTH }}
           </span>
         </div>
         <v-btn
-          :disabled="
-            !hasValue(newComment.trim()) || newComment.length > MAX_LENGTH
-          "
+          :disabled="!hasValue(newComment.trim()) || newComment.length > MAX_LENGTH"
           @click="sendComment"
         >
           <mdicon name="send" :size="18" />
@@ -174,7 +135,6 @@ import { nextTick, reactive, ref } from "vue";
 
 import { hasElements, hasValue } from "../../../lib/checks/checks.js";
 import { WorkCommentDto } from "../../../lib/types/lists";
-
 import DeleteConfirmationModal from "@/common/components/DeleteConfirmationModal.vue";
 import SectionHeader from "@/common/components/SectionHeader.vue";
 import {
@@ -196,18 +156,9 @@ const user = useUser();
 const currentUserId = ref(user.value?.id);
 
 const { data: comments } = useReviewComments(props.clubSlug, props.workId);
-const { mutate: addComment } = useAddReviewComment(
-  props.clubSlug,
-  props.workId,
-);
-const { mutate: editComment } = useEditReviewComment(
-  props.clubSlug,
-  props.workId,
-);
-const { mutate: removeComment } = useDeleteReviewComment(
-  props.clubSlug,
-  props.workId,
-);
+const { mutate: addComment } = useAddReviewComment(props.clubSlug, props.workId);
+const { mutate: editComment } = useEditReviewComment(props.clubSlug, props.workId);
+const { mutate: removeComment } = useDeleteReviewComment(props.clubSlug, props.workId);
 
 const newComment = ref("");
 const newSpoiler = ref(false);
@@ -231,8 +182,7 @@ const sendComment = () => {
       onSettled: () => {
         nextTick(() => {
           if (commentsContainer.value !== null) {
-            commentsContainer.value.scrollTop =
-              commentsContainer.value.scrollHeight;
+            commentsContainer.value.scrollTop = commentsContainer.value.scrollHeight;
           }
         }).catch(console.error);
       },

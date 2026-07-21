@@ -1,10 +1,6 @@
 <template>
   <WidgetShell v-if="hasData" title="Through the Years" :subtitle="subtitle">
-    <MemberFilterChips
-      v-model="selectedMemberId"
-      :members="members"
-      class="mb-4"
-    />
+    <MemberFilterChips v-model="selectedMemberId" :members="members" class="mb-4" />
     <ag-charts :options="decadeChartOptions" />
   </WidgetShell>
 </template>
@@ -13,22 +9,13 @@
 import { AgCharts } from "ag-charts-vue3";
 import { computed, ref } from "vue";
 
-import MemberFilterChips from "./MemberFilterChips.vue";
-import WidgetShell from "./WidgetShell.vue";
 import { type Member } from "../../../../lib/types/club.js";
 import { ClubType } from "../../../../lib/types/generated/db";
 import { createDecadeChartOptions } from "../scoring";
-import {
-  computeDecadeStats,
-  computePublishDecadeStats,
-} from "../statsComputers";
-import {
-  isBookStats,
-  isMovieStats,
-  type DecadeStats,
-  type WorkStatsData,
-} from "../types";
-
+import { computeDecadeStats, computePublishDecadeStats } from "../statsComputers";
+import { isBookStats, isMovieStats, type DecadeStats, type WorkStatsData } from "../types";
+import MemberFilterChips from "./MemberFilterChips.vue";
+import WidgetShell from "./WidgetShell.vue";
 import { clubTypeStats } from "@/common/clubType";
 import { useIsDesktop } from "@/common/composables/useIsDesktop";
 
@@ -49,13 +36,11 @@ const ERA_CONFIG: Record<
   }
 > = {
   [ClubType.movie]: {
-    decades: (works, memberId) =>
-      computeDecadeStats(works.filter(isMovieStats), memberId),
+    decades: (works, memberId) => computeDecadeStats(works.filter(isMovieStats), memberId),
     subtitle: "Average score by release decade",
   },
   [ClubType.book]: {
-    decades: (works, memberId) =>
-      computePublishDecadeStats(works.filter(isBookStats), memberId),
+    decades: (works, memberId) => computePublishDecadeStats(works.filter(isBookStats), memberId),
     subtitle: "Average score by publication decade",
   },
 };
@@ -74,9 +59,7 @@ const selectedMemberId = ref<string | undefined>(undefined);
 const eraConfig = computed(() => ERA_CONFIG[props.clubType]);
 const pluralNoun = computed(() => clubTypeStats(props.clubType).pluralNoun);
 
-const decadeStats = computed(() =>
-  eraConfig.value.decades(props.workData, selectedMemberId.value),
-);
+const decadeStats = computed(() => eraConfig.value.decades(props.workData, selectedMemberId.value));
 
 const hasData = computed(() => decadeStats.value.length > 0);
 

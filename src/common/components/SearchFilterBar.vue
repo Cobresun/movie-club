@@ -46,11 +46,7 @@
         </button>
 
         <!-- Desktop: anchored popover tooltip near the pill -->
-        <Popover
-          v-else-if="isDesktop"
-          v-slot="{ close }"
-          class="relative shrink-0"
-        >
+        <Popover v-else-if="isDesktop" v-slot="{ close }" class="relative shrink-0">
           <PopoverButton
             :class="[
               'relative shrink-0 cursor-pointer whitespace-nowrap rounded-full border px-3 py-1 text-sm hover:bg-lowBackground',
@@ -100,10 +96,7 @@
     </PopoverGroup>
 
     <!-- Mobile filter bottom sheet (replaces the desktop tooltip on < 768px) -->
-    <v-bottom-sheet
-      v-if="!isDesktop && activeMobileFilter"
-      @close="activeMobileFilter = null"
-    >
+    <v-bottom-sheet v-if="!isDesktop && activeMobileFilter" @close="activeMobileFilter = null">
       <FilterPanelContent
         :opt="activeMobileFilter"
         :value-suggestions="suggestionsFor(activeMobileFilter.key)"
@@ -115,12 +108,7 @@
 </template>
 
 <script setup lang="ts" generic="T extends DetailedWorkListItem">
-import {
-  Popover,
-  PopoverButton,
-  PopoverGroup,
-  PopoverPanel,
-} from "@headlessui/vue";
+import { Popover, PopoverButton, PopoverGroup, PopoverPanel } from "@headlessui/vue";
 import { computed, onMounted, onUnmounted, ref, watchEffect } from "vue";
 
 import { hasValue } from "../../../lib/checks/checks";
@@ -325,9 +313,7 @@ function applyFilter(opt: FilterOption, value: string, operator?: Comparator) {
     value: valueStr,
   };
 
-  const existingIdx = appliedFilters.value.findIndex(
-    (p) => p.key === newPill.key,
-  );
+  const existingIdx = appliedFilters.value.findIndex((p) => p.key === newPill.key);
   if (existingIdx >= 0) {
     appliedFilters.value.splice(existingIdx, 1, newPill);
   } else {

@@ -37,17 +37,15 @@
 import { computed } from "vue";
 import { useRouter } from "vue-router";
 
-import InsightsView from "./InsightsView.vue";
 import { isDefined } from "../../../../lib/checks/checks.js";
 import { useStatisticsData } from "../composables/useStatisticsData";
-
+import InsightsView from "./InsightsView.vue";
 import { clubTypeConfig, clubTypeStats } from "@/common/clubType";
 import EmptyState from "@/common/components/EmptyState.vue";
 import { useShare } from "@/common/composables/useShare";
 import { useClub, useClubSlug } from "@/service/useClub";
 
-const { loading, workData, members, histogramData, hasReviews } =
-  useStatisticsData();
+const { loading, workData, members, histogramData, hasReviews } = useStatisticsData();
 
 const clubSlug = useClubSlug();
 const { data: club } = useClub(clubSlug);
@@ -71,9 +69,7 @@ const { share } = useShare();
 const shareStats = () => {
   share({
     url: `${window.location.origin}/share/club/${clubSlug}/statistics`,
-    title: isDefined(clubType.value)
-      ? clubTypeStats(clubType.value).shareTitle
-      : "Statistics",
+    title: isDefined(clubType.value) ? clubTypeStats(clubType.value).shareTitle : "Statistics",
   }).catch(console.error);
 };
 </script>

@@ -50,12 +50,11 @@ export interface ExternalWorkData<T> {
   externalData?: T;
 }
 
-export type DetailedWorkListItem<T extends WorkDataSummary = WorkDataSummary> =
-  WorkListItem & ExternalWorkData<T>;
+export type DetailedWorkListItem<T extends WorkDataSummary = WorkDataSummary> = WorkListItem &
+  ExternalWorkData<T>;
 
-export type DetailedReviewListItem<
-  T extends WorkDataSummary = WorkDataSummary,
-> = ReviewListItem & ExternalWorkData<T>;
+export type DetailedReviewListItem<T extends WorkDataSummary = WorkDataSummary> = ReviewListItem &
+  ExternalWorkData<T>;
 
 export interface WorkCommentDto {
   id: string;

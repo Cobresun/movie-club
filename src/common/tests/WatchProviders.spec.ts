@@ -2,7 +2,6 @@ import { screen } from "@testing-library/vue";
 import { http, HttpResponse } from "msw";
 
 import WatchProviders from "../components/WatchProviders.vue";
-
 import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
 import { server } from "@/mocks/server";
 import { render } from "@/tests/utils";
@@ -18,9 +17,8 @@ const setLocale = (language: string) => {
 
 const mockProviders = (results: Record<string, unknown>) => {
   server.use(
-    http.get(
-      "https://api.themoviedb.org/3/movie/:movieId/watch/providers",
-      () => HttpResponse.json({ id: 27205, results }),
+    http.get("https://api.themoviedb.org/3/movie/:movieId/watch/providers", () =>
+      HttpResponse.json({ id: 27205, results }),
     ),
   );
 };
@@ -77,10 +75,7 @@ describe("WatchProviders", () => {
     expect(screen.queryByTitle("Freevee")).not.toBeInTheDocument();
 
     const link = screen.getByRole("link");
-    expect(link).toHaveAttribute(
-      "href",
-      "https://www.themoviedb.org/movie/27205/watch?locale=US",
-    );
+    expect(link).toHaveAttribute("href", "https://www.themoviedb.org/movie/27205/watch?locale=US");
     expect(link).toHaveAttribute("target", "_blank");
     expect(screen.getByText("Powered by JustWatch")).toBeVisible();
   });

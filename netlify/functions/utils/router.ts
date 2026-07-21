@@ -1,8 +1,4 @@
-import {
-  HandlerContext,
-  HandlerEvent,
-  HandlerResponse,
-} from "@netlify/functions";
+import { HandlerContext, HandlerEvent, HandlerResponse } from "@netlify/functions";
 import { Path } from "path-parser";
 
 import { internalServerError, methodNotAllowed, notFound } from "./responses";
@@ -15,18 +11,14 @@ export type RouterResponse = {
   response: HandlerResponse;
 };
 
-export function createRouterResponse(
-  response: HandlerResponse,
-): RouterResponse {
+export function createRouterResponse(response: HandlerResponse): RouterResponse {
   return {
     type: RouterResponseSym,
     response,
   };
 }
 
-export function isRouterResponse(
-  response: unknown,
-): response is RouterResponse {
+export function isRouterResponse(response: unknown): response is RouterResponse {
   return (
     typeof response === "object" &&
     response !== null &&
@@ -43,11 +35,7 @@ export interface Request {
 
 export function isRequest(req: unknown): req is Request {
   return (
-    typeof req === "object" &&
-    req !== null &&
-    "event" in req &&
-    "context" in req &&
-    "params" in req
+    typeof req === "object" && req !== null && "event" in req && "context" in req && "params" in req
   );
 }
 
@@ -59,9 +47,7 @@ export type MiddlewareCallback<T, R> = (
 /**
  * A single chain “item” can be either a middleware or a Router.
  */
-export type UseItem<In extends Request, Out> =
-  | MiddlewareCallback<In, Out>
-  | Router<In>;
+export type UseItem<In extends Request, Out> = MiddlewareCallback<In, Out> | Router<In>;
 
 /**
  * The signature of the chaining function, enumerating multiple overloads
@@ -76,11 +62,7 @@ export interface ChainMethod<TInput extends Request> {
   // Overload 1: just one item, must produce RouterResponse from TInput
   (path: string, c1: UseItem<TInput, RouterResponse>): void;
 
-  <A extends Request>(
-    path: string,
-    c1: UseItem<TInput, A>,
-    c2: UseItem<A, RouterResponse>,
-  ): void;
+  <A extends Request>(path: string, c1: UseItem<TInput, A>, c2: UseItem<A, RouterResponse>): void;
 
   <A extends Request, B extends Request>(
     path: string,
@@ -106,13 +88,7 @@ export interface ChainMethod<TInput extends Request> {
     c5: UseItem<D, RouterResponse>,
   ): void;
 
-  <
-    A extends Request,
-    B extends Request,
-    C extends Request,
-    D extends Request,
-    E extends Request,
-  >(
+  <A extends Request, B extends Request, C extends Request, D extends Request, E extends Request>(
     path: string,
     c1: UseItem<TInput, A>,
     c2: UseItem<A, B>,
@@ -259,9 +235,8 @@ export class Router<T extends Request = Request> {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- type checking is done on setting up chain
     this.use = ((path: string, ...items: Array<UseItem<any, unknown>>) => {
-      const callbacks: MiddlewareCallback<unknown, unknown>[] = items.map(
-        (item) =>
-          item instanceof Router ? wrapRouterAsMiddleware(item) : item,
+      const callbacks: MiddlewareCallback<unknown, unknown>[] = items.map((item) =>
+        item instanceof Router ? wrapRouterAsMiddleware(item) : item,
       );
       this.subRoutes.push({
         path: this.getPath(path),
@@ -273,9 +248,8 @@ export class Router<T extends Request = Request> {
   private createChainMethod(method: HTTPMethod): ChainMethod<T> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- type checking is done on setting up chain
     return ((path: string, ...items: Array<UseItem<any, unknown>>) => {
-      const callbacks: MiddlewareCallback<unknown, unknown>[] = items.map(
-        (item) =>
-          item instanceof Router ? wrapRouterAsMiddleware(item) : item,
+      const callbacks: MiddlewareCallback<unknown, unknown>[] = items.map((item) =>
+        item instanceof Router ? wrapRouterAsMiddleware(item) : item,
       );
       this.routes[method].push({
         path: this.getPath(path),

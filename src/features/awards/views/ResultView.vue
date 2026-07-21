@@ -14,7 +14,6 @@ import { ref, toRefs } from "vue";
 
 import { AwardsStep, ClubAwards } from "../../../../lib/types/awards";
 import AwardResult from "../components/AwardResult.vue";
-
 import { useUpdateStep } from "@/service/useAwards";
 import { useMembers } from "@/service/useClub";
 

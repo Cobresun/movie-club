@@ -47,16 +47,12 @@ async function cleanupDatabases(options: CleanupOptions): Promise<void> {
     const regex = new RegExp(options.pattern);
     toDelete = databases.filter((db) => regex.test(db.name));
   } else if (typeof options.olderThanDays === "number") {
-    toDelete = await DatabaseCleanupRepository.listDatabasesOlderThan(
-      options.olderThanDays,
-    );
+    toDelete = await DatabaseCleanupRepository.listDatabasesOlderThan(options.olderThanDays);
   } else {
     throw new Error("Must specify --name, --pattern, or --older-than option");
   }
 
-  toDelete = toDelete.filter((db) =>
-    DatabaseCleanupRepository.canDeleteDatabase(db.name),
-  );
+  toDelete = toDelete.filter((db) => DatabaseCleanupRepository.canDeleteDatabase(db.name));
 
   if (toDelete.length === 0) {
     console.log("No databases to clean up.");
@@ -67,9 +63,7 @@ async function cleanupDatabases(options: CleanupOptions): Promise<void> {
   console.log("─".repeat(80));
   toDelete.forEach((db) => {
     const createdAt = db.metadata?.created_at;
-    const age = hasValue(createdAt)
-      ? ` (created ${new Date(createdAt).toLocaleDateString()})`
-      : "";
+    const age = hasValue(createdAt) ? ` (created ${new Date(createdAt).toLocaleDateString()})` : "";
     console.log(`  • ${db.name}${age}`);
   });
   console.log("─".repeat(80));
@@ -98,10 +92,7 @@ async function cleanupDatabases(options: CleanupOptions): Promise<void> {
       await DatabaseCleanupRepository.dropDatabase(db.name);
       deletedCount++;
     } catch (error) {
-      console.error(
-        `Failed to drop database ${db.name}:`,
-        (error as Error).message,
-      );
+      console.error(`Failed to drop database ${db.name}:`, (error as Error).message);
     }
   }
 
@@ -133,9 +124,7 @@ function restoreEnvToDev(): void {
     writeFileSync(envPath, updatedLines.join("\n"));
     console.log("✓ Restored .env to use dev database");
   } catch {
-    console.warn(
-      "Warning: Could not update .env file. Please update DATABASE_URL manually.",
-    );
+    console.warn("Warning: Could not update .env file. Please update DATABASE_URL manually.");
   }
 }
 
@@ -152,9 +141,7 @@ async function main() {
     console.log("  --pattern <regex>      Delete databases matching pattern");
     console.log("  --older-than <days>    Delete databases older than X days");
     console.log("  --force                Skip confirmation prompt");
-    console.log(
-      "  --dry-run              Show what would be deleted without deleting",
-    );
+    console.log("  --dry-run              Show what would be deleted without deleting");
     console.log("  --restore-env          Restore .env to use dev database");
     console.log("\nExamples:");
     console.log("  npm run db:cleanup my-feature");
@@ -188,9 +175,7 @@ async function main() {
 
     // Try to match dev_{username}_{feature} pattern
     // For simplicity, just use the provided name
-    options.databaseName = featureName.startsWith("dev_")
-      ? featureName
-      : featureName;
+    options.databaseName = featureName.startsWith("dev_") ? featureName : featureName;
   }
 
   if (args.includes("--restore-env")) {
@@ -209,9 +194,7 @@ async function main() {
       process.env.CI !== "true"
     ) {
       console.log();
-      const shouldRestore = await confirm(
-        "Restore your .env to use the main dev database?",
-      );
+      const shouldRestore = await confirm("Restore your .env to use the main dev database?");
 
       if (shouldRestore) {
         restoreEnvToDev();

@@ -33,11 +33,7 @@ const backfillMovieActors = async () => {
   // Get all movie_details entries that don't have corresponding movie_actors rows
   const movies = await db
     .selectFrom("movie_details")
-    .leftJoin(
-      "movie_actors",
-      "movie_actors.external_id",
-      "movie_details.external_id",
-    )
+    .leftJoin("movie_actors", "movie_actors.external_id", "movie_details.external_id")
     .where("movie_actors.actor_name", "is", null)
     .select(["movie_details.external_id", "movie_details.title"])
     .execute();
@@ -65,25 +61,16 @@ const backfillMovieActors = async () => {
                 cast_order: actor.order,
               })),
             )
-            .onConflict((oc) =>
-              oc.columns(["external_id", "actor_id"]).doNothing(),
-            )
+            .onConflict((oc) => oc.columns(["external_id", "actor_id"]).doNothing())
             .execute();
           processed++;
-          console.log(
-            `Processed: ${movie.title ?? movie.external_id} — ${actors.length} actors`,
-          );
+          console.log(`Processed: ${movie.title ?? movie.external_id} — ${actors.length} actors`);
         } else {
           skipped++;
-          console.log(
-            `Skipped (no actors found): ${movie.title ?? movie.external_id}`,
-          );
+          console.log(`Skipped (no actors found): ${movie.title ?? movie.external_id}`);
         }
       } catch (error) {
-        console.error(
-          `Error processing ${movie.title ?? movie.external_id}:`,
-          error,
-        );
+        console.error(`Error processing ${movie.title ?? movie.external_id}:`, error);
         errors++;
       }
     }
@@ -93,9 +80,7 @@ const backfillMovieActors = async () => {
       await new Promise((resolve) => setTimeout(resolve, BATCH_DELAY_MS));
     }
 
-    console.log(
-      `Progress: ${Math.min(i + BATCH_SIZE, movies.length)}/${movies.length}`,
-    );
+    console.log(`Progress: ${Math.min(i + BATCH_SIZE, movies.length)}/${movies.length}`);
   }
 
   console.log("\n=== Backfill Summary ===");

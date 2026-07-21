@@ -1,5 +1,6 @@
 import { computed, shallowRef } from "vue";
 
+import { DetailedReviewListItem } from "../../../../lib/types/lists";
 import {
   answerComparison,
   ComparisonAnswer,
@@ -7,7 +8,6 @@ import {
   ScoredCandidate,
   startSession,
 } from "./scoreAssistLogic";
-import { DetailedReviewListItem } from "../../../../lib/types/lists";
 
 /**
  * Reactive shell around the pure session logic in scoreAssistLogic.ts. Takes
@@ -28,8 +28,7 @@ export function useScoreAssist(
   const pivot = computed(() => session.value.pivot);
   const result = computed(() => session.value.result);
   const progressLabel = computed(
-    () =>
-      `Comparison ${session.value.comparisons + 1} of up to ${MAX_COMPARISONS}`,
+    () => `Comparison ${session.value.comparisons + 1} of up to ${MAX_COMPARISONS}`,
   );
 
   return { session, pivot, result, answer, progressLabel };

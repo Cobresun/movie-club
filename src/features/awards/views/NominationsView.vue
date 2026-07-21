@@ -88,7 +88,6 @@ import { Award, ClubAwards } from "../../../../lib/types/awards";
 import { ClubType } from "../../../../lib/types/generated/db";
 import AddMovieButton from "../components/AddMovieButton.vue";
 import { NOMINATIONS_PER_AWARD } from "../constants";
-
 import { workSubtitle } from "@/common/clubType";
 import WorkPosterCard from "@/common/components/WorkPosterCard.vue";
 import WorkSearchPrompt from "@/common/components/WorkSearchPrompt.vue";
@@ -118,8 +117,7 @@ const userOnlyAwards = computed(() => {
 const totalCategories = computed(() => clubAward.awards.length);
 
 const completedCategoriesCount = computed(() => {
-  return userOnlyAwards.value.filter((award) => award.nominations.length > 0)
-    .length;
+  return userOnlyAwards.value.filter((award) => award.nominations.length > 0).length;
 });
 
 const progressPercentage = computed(() => {
@@ -127,8 +125,7 @@ const progressPercentage = computed(() => {
   return (completedCategoriesCount.value / totalCategories.value) * 100;
 });
 
-const getAddButtonNumber = (award: Award) =>
-  NOMINATIONS_PER_AWARD - award.nominations.length;
+const getAddButtonNumber = (award: Award) => NOMINATIONS_PER_AWARD - award.nominations.length;
 
 const currentAward = ref<Award | undefined>();
 const openPrompt = (award: Award) => {
@@ -142,9 +139,7 @@ const { data: reviews } = useReviewsList(clubSlug);
 const reviewsForYear = computed(() => {
   if (!reviews.value) return [];
   return reviews.value
-    .filter(
-      (review) => DateTime.fromISO(review.createdDate).year === parseInt(year),
-    )
+    .filter((review) => DateTime.fromISO(review.createdDate).year === parseInt(year))
     .map<WorkSearchResult>((review) => ({
       externalId: review.externalId ?? "",
       title: review.title,
@@ -156,9 +151,7 @@ const reviewsForYear = computed(() => {
 const { mutate } = useAddNomination(clubSlug, year);
 
 const addNomination = (work: WorkSearchResult) => {
-  const review = reviews.value?.find(
-    (review) => (review.externalId ?? "") === work.externalId,
-  );
+  const review = reviews.value?.find((review) => (review.externalId ?? "") === work.externalId);
   if (!currentAward.value || !review) return;
   mutate({ awardTitle: currentAward.value.title, review });
   closePrompt();

@@ -9,10 +9,7 @@
         <div class="rounded-lg bg-gray-800 p-4">
           <div class="flex flex-col gap-3 sm:flex-row sm:items-end">
             <div class="flex-1">
-              <label
-                for="club-name"
-                class="mb-2 block text-sm font-medium text-gray-300"
-              >
+              <label for="club-name" class="mb-2 block text-sm font-medium text-gray-300">
                 Name
               </label>
               <input
@@ -43,9 +40,7 @@
           <div class="flex items-center justify-between gap-4">
             <div class="flex-1">
               <h4 class="font-medium">Awards</h4>
-              <p class="mt-1 text-sm text-gray-400">
-                Enable the awards feature for this club
-              </p>
+              <p class="mt-1 text-sm text-gray-400">Enable the awards feature for this club</p>
               <p class="mt-1 text-sm text-yellow-500">
                 This feature is experimental and may change in the future.
               </p>
@@ -61,8 +56,8 @@
             <div class="flex-1">
               <h4 class="font-medium">AI Discussion Questions</h4>
               <p class="mt-1 text-sm text-gray-400">
-                Add an AI-powered button to each review that generates
-                discussion questions to spark conversation
+                Add an AI-powered button to each review that generates discussion questions to spark
+                conversation
               </p>
               <p class="mt-1 text-sm text-yellow-500">
                 This feature is experimental and may change in the future.
@@ -86,15 +81,8 @@
             <div class="flex-1">
               <h4 class="font-medium">Custom URL</h4>
               <p class="mt-2 flex items-center gap-1 text-xs text-gray-400">
-                <mdicon
-                  name="alert-outline"
-                  class="text-yellow-400"
-                  size="14"
-                />
-                <span
-                  >Warning: Changing the URL will break existing links to your
-                  club</span
-                >
+                <mdicon name="alert-outline" class="text-yellow-400" size="14" />
+                <span>Warning: Changing the URL will break existing links to your club</span>
               </p>
             </div>
 
@@ -107,9 +95,7 @@
                     placeholder="your-club-name"
                     class="flex-1 rounded border p-3 text-sm outline-none"
                     :class="
-                      slugError
-                        ? 'border-red-500 bg-gray-700'
-                        : 'border-gray-600 bg-gray-700'
+                      slugError ? 'border-red-500 bg-gray-700' : 'border-gray-600 bg-gray-700'
                     "
                     @input="slugError = ''"
                   />
@@ -129,8 +115,7 @@
             </div>
 
             <p class="text-xs text-gray-400">
-              3-50 characters, lowercase letters, numbers, and hyphens only.
-              Cannot be all numbers.
+              3-50 characters, lowercase letters, numbers, and hyphens only. Cannot be all numbers.
             </p>
           </div>
         </div>
@@ -188,16 +173,11 @@
                 readonly
                 class="flex-1 rounded border border-gray-600 bg-gray-700 p-3 text-sm text-gray-200"
               />
-              <v-btn
-                class="h-12 w-12 bg-blue-600 hover:bg-blue-700"
-                @click="copyInviteLink"
-              >
+              <v-btn class="h-12 w-12 bg-blue-600 hover:bg-blue-700" @click="copyInviteLink">
                 <mdicon :name="copyIcon" />
               </v-btn>
             </div>
-            <p class="text-sm text-gray-400">
-              Share this link to invite people to your club
-            </p>
+            <p class="text-sm text-gray-400">Share this link to invite people to your club</p>
           </div>
         </div>
       </div>
@@ -223,14 +203,10 @@
       <div class="w-full max-w-sm rounded-lg bg-gray-800 p-6" @click.stop="">
         <h3 class="mb-4 text-xl font-semibold">Leave Club?</h3>
         <p class="mb-6 text-gray-300">
-          Are you sure you want to leave this club? This action cannot be
-          undone.
+          Are you sure you want to leave this club? This action cannot be undone.
         </p>
         <div class="flex gap-3">
-          <v-btn
-            class="flex-1 bg-gray-600 hover:bg-gray-700"
-            @click="showLeaveConfirm = false"
-          >
+          <v-btn class="flex-1 bg-gray-600 hover:bg-gray-700" @click="showLeaveConfirm = false">
             Cancel
           </v-btn>
           <v-btn
@@ -252,17 +228,10 @@
       @click="showRemoveConfirm = false"
     >
       <div class="w-full max-w-sm rounded-lg bg-gray-800 p-6" @click.stop="">
-        <h3 class="mb-4 text-xl font-semibold">
-          Remove {{ memberToRemove?.name }}?
-        </h3>
-        <p class="mb-6 text-gray-300">
-          Are you sure you want to remove this member from the club?
-        </p>
+        <h3 class="mb-4 text-xl font-semibold">Remove {{ memberToRemove?.name }}?</h3>
+        <p class="mb-6 text-gray-300">Are you sure you want to remove this member from the club?</p>
         <div class="flex gap-3">
-          <v-btn
-            class="flex-1 bg-gray-600 hover:bg-gray-700"
-            @click="showRemoveConfirm = false"
-          >
+          <v-btn class="flex-1 bg-gray-600 hover:bg-gray-700" @click="showRemoveConfirm = false">
             Cancel
           </v-btn>
           <v-btn
@@ -285,7 +254,6 @@ import { ref, computed, watch } from "vue";
 import { useToast } from "vue-toastification";
 
 import { hasValue } from "../../../../lib/checks/checks";
-
 import {
   useMembers,
   useClubSlug,
@@ -314,31 +282,21 @@ const slugError = ref("");
 
 const currentUserEmail = computed(() => auth.user?.email);
 const { data: club } = useClub(clubId);
-const {
-  data: members,
-  isLoading: isLoadingMembers,
-  refetch: refetchMembers,
-} = useMembers(clubId);
-const { mutate: leaveClubMutation, isPending: isLeaving } =
-  useLeaveClub(clubId);
+const { data: members, isLoading: isLoadingMembers, refetch: refetchMembers } = useMembers(clubId);
+const { mutate: leaveClubMutation, isPending: isLeaving } = useLeaveClub(clubId);
 const { mutate: removeMemberMutation } = useRemoveMember(clubId);
 const { data: inviteToken } = useInviteToken(clubId);
 const { data: settings } = useClubSettings(clubId);
 const { mutate: updateSettings } = useUpdateClubSettings(clubId);
-const { mutate: updateClubName, isPending: isSavingName } =
-  useUpdateClubName(clubId);
+const { mutate: updateClubName, isPending: isSavingName } = useUpdateClubName(clubId);
 
 const editedClubName = ref(club.value?.clubName ?? "");
 
 const hasNameChanged = computed(() => {
-  return (
-    hasValue(editedClubName.value) &&
-    editedClubName.value !== club.value?.clubName
-  );
+  return hasValue(editedClubName.value) && editedClubName.value !== club.value?.clubName;
 });
 
-const { mutate: updateSlugMutation, isPending: isUpdatingSlug } =
-  useUpdateClubSlug(clubId);
+const { mutate: updateSlugMutation, isPending: isUpdatingSlug } = useUpdateClubSlug(clubId);
 const awardsEnabled = computed(() => settings.value?.features?.awards === true);
 const discussionQuestionsEnabled = computed(
   () => settings.value?.features?.discussionQuestions === true,
@@ -411,8 +369,7 @@ const saveSlug = () => {
     },
     onError: (error: unknown) => {
       const axiosError = error as AxiosError<{ error?: string }>;
-      const errorMessage =
-        axiosError.response?.data?.error ?? "Failed to update URL";
+      const errorMessage = axiosError.response?.data?.error ?? "Failed to update URL";
       slugError.value = errorMessage;
       toast.error(errorMessage);
     },

@@ -11,8 +11,6 @@
 import { AgCharts } from "ag-charts-vue3";
 import { computed, ref } from "vue";
 
-import SegmentedToggle from "./SegmentedToggle.vue";
-import WidgetShell from "./WidgetShell.vue";
 import { Member } from "../../../../lib/types/club";
 import {
   createHistogramOptions,
@@ -21,7 +19,8 @@ import {
 } from "../scoring";
 import { computeScoreTrend, computeScoreVariance } from "../statsComputers";
 import type { HistogramData, WorkStatsData } from "../types";
-
+import SegmentedToggle from "./SegmentedToggle.vue";
+import WidgetShell from "./WidgetShell.vue";
 import { useIsDesktop } from "@/common/composables/useIsDesktop";
 
 type Mode = "distribution" | "trend" | "spread";
@@ -35,9 +34,7 @@ const props = defineProps<{
 const isDesktop = useIsDesktop();
 const compact = computed(() => !isDesktop.value);
 
-const trendData = computed(() =>
-  computeScoreTrend(props.workData, props.members),
-);
+const trendData = computed(() => computeScoreTrend(props.workData, props.members));
 const variancePoints = computed(() => computeScoreVariance(props.workData));
 
 const modeOptions = computed(() => {
@@ -76,11 +73,7 @@ const subtitle = computed(() => SUBTITLES[mode.value]);
 
 const chartOptions = computed(() => {
   if (mode.value === "trend") {
-    return createScoreTrendChartOptions(
-      trendData.value,
-      props.members,
-      compact.value,
-    );
+    return createScoreTrendChartOptions(trendData.value, props.members, compact.value);
   }
   if (mode.value === "spread") {
     return createScoreVarianceChartOptions(variancePoints.value, compact.value);

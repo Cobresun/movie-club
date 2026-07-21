@@ -38,16 +38,10 @@ interface MovieRow {
 }
 
 export async function up(db: Kysely<unknown>) {
-  await sql`ALTER TABLE movie_actors ADD COLUMN IF NOT EXISTS profile_path VARCHAR`.execute(
-    db,
-  );
+  await sql`ALTER TABLE movie_actors ADD COLUMN IF NOT EXISTS profile_path VARCHAR`.execute(db);
 
-  await sql`ALTER TABLE movie_directors ADD COLUMN IF NOT EXISTS director_id INT8`.execute(
-    db,
-  );
-  await sql`ALTER TABLE movie_directors ADD COLUMN IF NOT EXISTS profile_path VARCHAR`.execute(
-    db,
-  );
+  await sql`ALTER TABLE movie_directors ADD COLUMN IF NOT EXISTS director_id INT8`.execute(db);
+  await sql`ALTER TABLE movie_directors ADD COLUMN IF NOT EXISTS profile_path VARCHAR`.execute(db);
 
   const { rows: movies } = await sql<MovieRow>`
       SELECT DISTINCT md.external_id, md.title
@@ -88,9 +82,7 @@ export async function up(db: Kysely<unknown>) {
     for (const result of results) {
       if (result.status === "rejected") {
         const message =
-          result.reason instanceof Error
-            ? result.reason.message
-            : String(result.reason);
+          result.reason instanceof Error ? result.reason.message : String(result.reason);
         console.error(`Error fetching credits: ${message}`);
         errors++;
         continue;
@@ -124,8 +116,7 @@ export async function up(db: Kysely<unknown>) {
     if (actorUpdates.length > 0) {
       const values = sql.join(
         actorUpdates.map(
-          (u) =>
-            sql`(${u.externalId}::VARCHAR, ${u.actorId}::INT8, ${u.profilePath}::VARCHAR)`,
+          (u) => sql`(${u.externalId}::VARCHAR, ${u.actorId}::INT8, ${u.profilePath}::VARCHAR)`,
         ),
       );
       await sql`
@@ -159,9 +150,7 @@ export async function up(db: Kysely<unknown>) {
       await new Promise((resolve) => setTimeout(resolve, BATCH_DELAY_MS));
     }
 
-    console.log(
-      `Progress: ${Math.min(i + BATCH_SIZE, movies.length)}/${movies.length}`,
-    );
+    console.log(`Progress: ${Math.min(i + BATCH_SIZE, movies.length)}/${movies.length}`);
   }
 
   console.log("\n=== Backfill Summary ===");
@@ -171,13 +160,7 @@ export async function up(db: Kysely<unknown>) {
 }
 
 export async function down(db: Kysely<unknown>) {
-  await sql`ALTER TABLE movie_directors DROP COLUMN IF EXISTS profile_path`.execute(
-    db,
-  );
-  await sql`ALTER TABLE movie_directors DROP COLUMN IF EXISTS director_id`.execute(
-    db,
-  );
-  await sql`ALTER TABLE movie_actors DROP COLUMN IF EXISTS profile_path`.execute(
-    db,
-  );
+  await sql`ALTER TABLE movie_directors DROP COLUMN IF EXISTS profile_path`.execute(db);
+  await sql`ALTER TABLE movie_directors DROP COLUMN IF EXISTS director_id`.execute(db);
+  await sql`ALTER TABLE movie_actors DROP COLUMN IF EXISTS profile_path`.execute(db);
 }

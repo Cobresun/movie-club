@@ -1,7 +1,7 @@
 import { Handler, HandlerEvent } from "@netlify/functions";
 
-import { auth } from "./utils/auth";
 import { hasValue, isDefined } from "../../lib/checks/checks.js";
+import { auth } from "./utils/auth";
 
 const handler: Handler = async (event: HandlerEvent) => {
   // Construct URL from the Netlify event
@@ -16,9 +16,7 @@ const handler: Handler = async (event: HandlerEvent) => {
     method: event.httpMethod,
     headers: new Headers(event.headers as Record<string, string>),
     body:
-      event.httpMethod !== "GET" &&
-      event.httpMethod !== "HEAD" &&
-      isDefined(event.body)
+      event.httpMethod !== "GET" && event.httpMethod !== "HEAD" && isDefined(event.body)
         ? event.body
         : undefined,
   });
@@ -42,9 +40,7 @@ const handler: Handler = async (event: HandlerEvent) => {
   return {
     statusCode: response.status,
     headers: responseHeaders,
-    ...(setCookies.length > 0
-      ? { multiValueHeaders: { "Set-Cookie": setCookies } }
-      : {}),
+    ...(setCookies.length > 0 ? { multiValueHeaders: { "Set-Cookie": setCookies } } : {}),
     body: await response.text(),
   };
 };

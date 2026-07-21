@@ -1,8 +1,5 @@
 <template>
-  <h3
-    v-if="hasValue(title)"
-    class="mb-5 text-center text-lg font-semibold text-white"
-  >
+  <h3 v-if="hasValue(title)" class="mb-5 text-center text-lg font-semibold text-white">
     {{ title }}
   </h3>
 
@@ -69,9 +66,7 @@
             </div>
           </div>
 
-          <div
-            class="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-700/50"
-          >
+          <div class="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-700/50">
             <div
               class="h-full rounded-full transition-all duration-500"
               :class="barColor(entry.averageScore)"
@@ -93,10 +88,7 @@
     </div>
   </div>
 
-  <p
-    v-if="entries.length === 0"
-    class="py-4 text-center text-sm text-slate-500"
-  >
+  <p v-if="entries.length === 0" class="py-4 text-center text-sm text-slate-500">
     {{ emptyMessage }}
   </p>
 </template>

@@ -22,7 +22,5 @@ export function resolveDefaultClubSlug(
   if (!hasElements(clubs)) return null;
 
   const lastSlug = getLastClubSlug();
-  return hasValue(lastSlug) && clubs.some((c) => c.slug === lastSlug)
-    ? lastSlug
-    : clubs[0].slug;
+  return hasValue(lastSlug) && clubs.some((c) => c.slug === lastSlug) ? lastSlug : clubs[0].slug;
 }

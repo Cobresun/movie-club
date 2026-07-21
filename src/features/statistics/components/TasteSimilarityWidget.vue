@@ -7,14 +7,8 @@
     <div v-if="activePair" class="text-left">
       <div class="mb-4 flex items-center justify-center gap-3">
         <div class="flex flex-col items-center">
-          <v-avatar
-            :src="activePair.memberA.image"
-            :name="activePair.memberA.name"
-            :size="48"
-          />
-          <span class="mt-1 text-xs text-slate-300">{{
-            firstName(activePair.memberA.name)
-          }}</span>
+          <v-avatar :src="activePair.memberA.image" :name="activePair.memberA.name" :size="48" />
+          <span class="mt-1 text-xs text-slate-300">{{ firstName(activePair.memberA.name) }}</span>
         </div>
         <div class="flex flex-col items-center px-3">
           <span class="text-2xl font-bold" :class="accentTextClass"
@@ -23,14 +17,8 @@
           <span class="text-xs text-slate-400">similar</span>
         </div>
         <div class="flex flex-col items-center">
-          <v-avatar
-            :src="activePair.memberB.image"
-            :name="activePair.memberB.name"
-            :size="48"
-          />
-          <span class="mt-1 text-xs text-slate-300">{{
-            firstName(activePair.memberB.name)
-          }}</span>
+          <v-avatar :src="activePair.memberB.image" :name="activePair.memberB.name" :size="48" />
+          <span class="mt-1 text-xs text-slate-300">{{ firstName(activePair.memberB.name) }}</span>
         </div>
       </div>
 
@@ -39,16 +27,12 @@
         :class="mode === 'most' ? 'bg-emerald-900/20' : 'bg-rose-900/20'"
       >
         Average score difference:
-        <span class="font-semibold" :class="accentTextClass">{{
-          activePair.avgDifference
-        }}</span>
+        <span class="font-semibold" :class="accentTextClass">{{ activePair.avgDifference }}</span>
         points across {{ activePair.sharedCount }} shared reviews
       </div>
 
       <div v-if="highlightMovies.length > 0">
-        <p
-          class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400"
-        >
+        <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
           {{ mode === "most" ? "Top agreements" : "Biggest disagreements" }}
         </p>
         <ul class="space-y-1">
@@ -57,9 +41,7 @@
             :key="movie.title"
             class="flex items-center justify-between text-sm"
           >
-            <span class="truncate text-slate-300" :title="movie.title">{{
-              movie.title
-            }}</span>
+            <span class="truncate text-slate-300" :title="movie.title">{{ movie.title }}</span>
             <span class="ml-2 shrink-0 text-xs text-slate-400">
               {{ movie.scoreA }} vs {{ movie.scoreB }}
             </span>
@@ -73,13 +55,12 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 
-import SegmentedToggle from "./SegmentedToggle.vue";
-import WidgetShell from "./WidgetShell.vue";
 import { isDefined } from "../../../../lib/checks/checks.js";
 import { Member } from "../../../../lib/types/club";
 import { computeTasteSimilarity } from "../statsComputers";
 import type { WorkStatsData } from "../types";
-
+import SegmentedToggle from "./SegmentedToggle.vue";
+import WidgetShell from "./WidgetShell.vue";
 import VAvatar from "@/common/components/VAvatar.vue";
 
 type Mode = "most" | "least";
@@ -89,9 +70,7 @@ const props = defineProps<{
   members: Member[];
 }>();
 
-const tasteSimilarity = computed(() =>
-  computeTasteSimilarity(props.workData, props.members),
-);
+const tasteSimilarity = computed(() => computeTasteSimilarity(props.workData, props.members));
 
 const modeOptions = computed(() => {
   const options: { value: Mode; label: string }[] = [];
@@ -120,16 +99,12 @@ const mode = computed<Mode>({
 });
 
 const activePair = computed(() =>
-  mode.value === "most"
-    ? tasteSimilarity.value.mostSimilar
-    : tasteSimilarity.value.leastSimilar,
+  mode.value === "most" ? tasteSimilarity.value.mostSimilar : tasteSimilarity.value.leastSimilar,
 );
 
 const highlightMovies = computed(() => {
   if (!isDefined(activePair.value)) return [];
-  return mode.value === "most"
-    ? activePair.value.bestAgreements
-    : activePair.value.worstAgreements;
+  return mode.value === "most" ? activePair.value.bestAgreements : activePair.value.worstAgreements;
 });
 
 const accentTextClass = computed(() =>

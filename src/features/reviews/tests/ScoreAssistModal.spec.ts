@@ -7,7 +7,6 @@ import { ClubType, WorkType } from "../../../../lib/types/generated/db";
 import { DetailedReviewListItem, Review } from "../../../../lib/types/lists";
 import ScoreAssistModal from "../components/ScoreAssistModal.vue";
 import { ScoredCandidate } from "../composables/scoreAssistLogic";
-
 import memberData from "@/mocks/data/member.json";
 import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
 import { server } from "@/mocks/server";
@@ -28,9 +27,7 @@ vi.mock("vue-toastification", async (importOriginal) => {
   };
 });
 
-function makeTarget(
-  scores: Record<string, Review> = {},
-): DetailedReviewListItem {
+function makeTarget(scores: Record<string, Review> = {}): DetailedReviewListItem {
   return {
     id: "target",
     type: WorkType.movie,
@@ -69,9 +66,7 @@ describe("ScoreAssistModal", () => {
     render(ScoreAssistModal, {
       props: { target: makeTarget(), candidates, clubType: ClubType.movie },
     });
-    expect(
-      screen.getByText("Which movie did you like more?"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Which movie did you like more?")).toBeInTheDocument();
     expect(screen.getByText("Tap the one you liked more")).toBeInTheDocument();
     expect(screen.getByText("Comparison 1 of up to 5")).toBeInTheDocument();
   });
@@ -80,12 +75,8 @@ describe("ScoreAssistModal", () => {
     render(ScoreAssistModal, {
       props: { target: makeTarget(), candidates, clubType: ClubType.movie },
     });
-    expect(
-      screen.getByRole("button", { name: "I liked Target Movie more" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "I liked Movie 4 more" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "I liked Target Movie more" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "I liked Movie 4 more" })).toBeInTheDocument();
     expect(screen.queryByText("This one")).not.toBeInTheDocument();
   });
 
@@ -93,9 +84,7 @@ describe("ScoreAssistModal", () => {
     render(ScoreAssistModal, {
       props: { target: makeTarget(), candidates, clubType: ClubType.book },
     });
-    expect(
-      screen.getByText("Which book did you like more?"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Which book did you like more?")).toBeInTheDocument();
   });
 
   it("prefills the entry panel with the converged suggestion, with a toast", async () => {
@@ -116,25 +105,17 @@ describe("ScoreAssistModal", () => {
     // Beat Movie 4, then Movie 5 (the top): aboveAll -> 5 + 0.5. The
     // suggestion lands in the dial, not the database — saving is the user's
     // call.
-    await user.click(
-      screen.getByRole("button", { name: "I liked Target Movie more" }),
-    );
-    await user.click(
-      screen.getByRole("button", { name: "I liked Target Movie more" }),
-    );
+    await user.click(screen.getByRole("button", { name: "I liked Target Movie more" }));
+    await user.click(screen.getByRole("button", { name: "I liked Target Movie more" }));
 
     expect(toastSuccess).toHaveBeenCalledWith("We picked 5.5/10");
-    expect(
-      await screen.findByRole("spinbutton", { name: "Score" }),
-    ).toHaveValue(5.5);
+    expect(await screen.findByRole("spinbutton", { name: "Score" })).toHaveValue(5.5);
     expect(postedBody).toBeUndefined();
     expect(rendered.emitted().close).toBeUndefined();
 
     await user.click(screen.getByRole("button", { name: "Save score" }));
 
-    await waitFor(() =>
-      expect(postedBody).toEqual({ workId: "target", score: 5.5 }),
-    );
+    await waitFor(() => expect(postedBody).toEqual({ workId: "target", score: 5.5 }));
     expect(rendered.emitted().close).toHaveLength(1);
   });
 
@@ -155,29 +136,22 @@ describe("ScoreAssistModal", () => {
 
     await user.click(screen.getByRole("button", { name: "Too close to call" }));
 
-    expect(
-      await screen.findByRole("spinbutton", { name: "Score" }),
-    ).toHaveValue(4);
+    expect(await screen.findByRole("spinbutton", { name: "Score" })).toHaveValue(4);
     expect(postedBody).toBeUndefined();
 
     await user.click(screen.getByRole("button", { name: "Save score" }));
 
-    await waitFor(() =>
-      expect(postedBody).toEqual({ workId: "target", score: 4 }),
-    );
+    await waitFor(() => expect(postedBody).toEqual({ workId: "target", score: 4 }));
     expect(rendered.emitted().close).toHaveLength(1);
   });
 
   it("updates an existing review with PUT when the suggestion is saved", async () => {
     let putBody: unknown;
     server.use(
-      http.put(
-        "/api/club/test-club/reviews/review-target",
-        async ({ request }) => {
-          putBody = await request.json();
-          return HttpResponse.json({});
-        },
-      ),
+      http.put("/api/club/test-club/reviews/review-target", async ({ request }) => {
+        putBody = await request.json();
+        return HttpResponse.json({});
+      }),
     );
 
     const target = makeTarget({

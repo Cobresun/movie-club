@@ -3,7 +3,6 @@ import type { Router } from "vue-router";
 import { useRouter } from "vue-router";
 
 import ClubSwitcher from "../components/ClubSwitcher.vue";
-
 import { ClubType } from "@/../lib/types/generated/db";
 import { render } from "@/tests/utils";
 

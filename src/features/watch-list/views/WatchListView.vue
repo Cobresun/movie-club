@@ -9,7 +9,6 @@ import AddWorkModal from "../components/AddWorkModal.vue";
 import ListItems from "../components/ListItems.vue";
 import ManageListsModal from "../components/ManageListsModal.vue";
 import { useCollapsedLists } from "../composables/useCollapsedLists";
-
 import SearchFilterBar from "@/common/components/SearchFilterBar.vue";
 import { useClub, useClubSlug, useMembers } from "@/service/useClub";
 import {
@@ -28,21 +27,15 @@ const { data: membersData } = useMembers(clubSlug);
 
 const userLists = computed<ClubListSummary[]>(() => lists.value ?? []);
 const members = computed(() => membersData.value ?? []);
-const reviewsListId = computed<string | null>(
-  () => reviewsListIdData.value ?? null,
-);
+const reviewsListId = computed<string | null>(() => reviewsListIdData.value ?? null);
 
 const otherLists = (listId: string) =>
-  userLists.value
-    .filter((l) => l.id !== listId)
-    .map((l) => ({ id: l.id, title: l.title }));
+  userLists.value.filter((l) => l.id !== listId).map((l) => ({ id: l.id, title: l.title }));
 
 const { isCollapsed, toggle } = useCollapsedLists(clubSlug);
 
 // -- single selected item across all lists --
-const selectedInfo = shallowRef<{ listId: string; workId: string } | null>(
-  null,
-);
+const selectedInfo = shallowRef<{ listId: string; workId: string } | null>(null);
 
 // -- manage lists modal --
 const managingLists = shallowRef(false);
@@ -110,24 +103,18 @@ const shareList = async (listId: string) => {
           <div class="flex items-center justify-between gap-2">
             <div class="flex min-w-0 items-center gap-2">
               <v-btn
-                :aria-label="
-                  isCollapsed(list.id) ? 'Expand list' : 'Collapse list'
-                "
+                :aria-label="isCollapsed(list.id) ? 'Expand list' : 'Collapse list'"
                 @click="toggle(list.id)"
               >
                 <mdicon
-                  :name="
-                    isCollapsed(list.id) ? 'chevron-right' : 'chevron-down'
-                  "
+                  :name="isCollapsed(list.id) ? 'chevron-right' : 'chevron-down'"
                   :size="16"
                 />
               </v-btn>
               <h2 class="truncate text-lg font-semibold text-white">
                 {{ list.title }}
               </h2>
-              <span class="text-sm text-slate-400">
-                ({{ list.itemCount }})
-              </span>
+              <span class="text-sm text-slate-400"> ({{ list.itemCount }}) </span>
             </div>
             <div class="flex flex-shrink-0 items-center gap-2">
               <v-btn
@@ -138,18 +125,10 @@ const shareList = async (listId: string) => {
               >
                 <mdicon name="dice-multiple-outline" :size="16" />
               </v-btn>
-              <v-btn
-                title="Share list"
-                aria-label="Share list"
-                @click="shareList(list.id)"
-              >
+              <v-btn title="Share list" aria-label="Share list" @click="shareList(list.id)">
                 <mdicon name="share-variant" :size="16" />
               </v-btn>
-              <v-btn
-                title="Add to list"
-                aria-label="Add to list"
-                @click="startAdd(list.id)"
-              >
+              <v-btn title="Add to list" aria-label="Add to list" @click="startAdd(list.id)">
                 <mdicon name="plus" :size="16" />
               </v-btn>
             </div>
@@ -163,9 +142,7 @@ const shareList = async (listId: string) => {
               :members="members"
               :reviews-list-id="reviewsListId"
               :random-picker-open="randomOpenListId === list.id"
-              :selected-item-id="
-                selectedInfo?.listId === list.id ? selectedInfo.workId : null
-              "
+              :selected-item-id="selectedInfo?.listId === list.id ? selectedInfo.workId : null"
               :visible-ids="visibleIds"
               @update:random-picker-open="
                 (v) => {
@@ -188,11 +165,7 @@ const shareList = async (listId: string) => {
       @action="managingLists = true"
     />
 
-    <v-modal
-      v-if="addingToListId !== null"
-      size="lg"
-      @close="addingToListId = null"
-    >
+    <v-modal v-if="addingToListId !== null" size="lg" @close="addingToListId = null">
       <AddWorkModal
         :key="addingToListId"
         :list-id="addingToListId"
@@ -200,10 +173,6 @@ const shareList = async (listId: string) => {
       />
     </v-modal>
 
-    <ManageListsModal
-      :show="managingLists"
-      :club-slug="clubSlug"
-      @close="managingLists = false"
-    />
+    <ManageListsModal :show="managingLists" :club-slug="clubSlug" @close="managingLists = false" />
   </div>
 </template>

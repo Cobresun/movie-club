@@ -23,10 +23,7 @@
              autofocus re-fires and a previous session's assist progress is
              discarded. Capped height keeps the assist flow usable on short
              viewports by scrolling inside the panel. -->
-        <div
-          :key="openCount"
-          class="max-h-[min(60vh,34rem)] overflow-y-auto pt-1"
-        >
+        <div :key="openCount" class="max-h-[min(60vh,34rem)] overflow-y-auto pt-1">
           <div class="mb-3 flex items-center justify-between gap-2">
             <button
               v-if="mode === 'assist'"
@@ -102,17 +99,11 @@
             type="button"
             :aria-expanded="expanded"
             class="flex flex-1 items-center justify-center gap-2 rounded-lg py-3 font-bold tracking-wide transition hover:brightness-110 active:scale-[0.98]"
-            :class="
-              isDefined(reviewId)
-                ? 'bg-lowBackground text-gray-200'
-                : 'bg-primary text-text'
-            "
+            :class="isDefined(reviewId) ? 'bg-lowBackground text-gray-200' : 'bg-primary text-text'"
             @click="expand"
           >
             <mdicon :name="isDefined(reviewId) ? 'pencil' : 'star'" size="20" />
-            <span>{{
-              isDefined(reviewId) ? "Edit score" : `Rate this ${noun}`
-            }}</span>
+            <span>{{ isDefined(reviewId) ? "Edit score" : `Rate this ${noun}` }}</span>
           </button>
           <slot name="secondary-action" />
         </div>
@@ -124,13 +115,12 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 
-import ScoreAssistFlow from "./ScoreAssistFlow.vue";
-import ScoreEntryPanel from "./ScoreEntryPanel.vue";
 import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import { ClubType } from "../../../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
 import { buildCandidatePool } from "../composables/scoreAssistLogic";
-
+import ScoreAssistFlow from "./ScoreAssistFlow.vue";
+import ScoreEntryPanel from "./ScoreEntryPanel.vue";
 import { clubTypeConfig } from "@/common/clubType";
 import AnimatedHeight from "@/common/components/AnimatedHeight.vue";
 import { useClub, useClubSlug } from "@/service/useClub";
@@ -194,9 +184,7 @@ const onKeydownCapture = (event: KeyboardEvent) => {
 };
 
 onMounted(() => window.addEventListener("keydown", onKeydownCapture, true));
-onBeforeUnmount(() =>
-  window.removeEventListener("keydown", onKeydownCapture, true),
-);
+onBeforeUnmount(() => window.removeEventListener("keydown", onKeydownCapture, true));
 
 // Assist inputs are derived here (from the cached reviews query) rather than
 // prop-drilled, mirroring ScoreEntryModal, so the drawer only hands the dock

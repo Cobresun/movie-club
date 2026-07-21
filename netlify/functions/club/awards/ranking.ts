@@ -1,16 +1,14 @@
 import { z } from "zod";
 
-import { ClubAwardRequest } from "./utils";
 import { hasValue } from "../../../../lib/checks/checks.js";
 import { BaseAward, BaseAwardNomination } from "../../../../lib/types/awards";
 import AwardsRepository from "../../repositories/AwardsRepository";
 import { secured } from "../../utils/auth";
 import { badRequest, ok } from "../../utils/responses";
 import { Router } from "../../utils/router";
+import { ClubAwardRequest } from "./utils";
 
-const router = new Router<ClubAwardRequest>(
-  "/api/club/:clubId<\\d+>/awards/:year<\\d+>/ranking",
-);
+const router = new Router<ClubAwardRequest>("/api/club/:clubId<\\d+>/awards/:year<\\d+>/ranking");
 
 const addRankingSchema = z.object({
   awardTitle: z.string(),
@@ -19,48 +17,40 @@ const addRankingSchema = z.object({
   voter: z.string(),
 });
 
-router.post(
-  "/",
-  secured<ClubAwardRequest>,
-  async ({ event, clubId, year }, res) => {
-    if (!hasValue(event.body)) return res(badRequest("Missing body"));
-    const body = addRankingSchema.safeParse(JSON.parse(event.body));
-    if (!body.success) return res(badRequest("Invalid body"));
+router.post("/", secured<ClubAwardRequest>, async ({ event, clubId, year }, res) => {
+  if (!hasValue(event.body)) return res(badRequest("Missing body"));
+  const body = addRankingSchema.safeParse(JSON.parse(event.body));
+  if (!body.success) return res(badRequest("Invalid body"));
 
-    const { awardTitle, movies, voter } = body.data;
+  const { awardTitle, movies, voter } = body.data;
 
-    // Create a map of movieId -> rank
-    const movieRanks = new Map(
-      movies.map((movieId, index) => [movieId, index + 1]),
-    );
+  // Create a map of movieId -> rank
+  const movieRanks = new Map(movies.map((movieId, index) => [movieId, index + 1]));
 
-    await AwardsRepository.updateByYear(clubId, year, (currentData) => ({
-      ...currentData,
-      awards: currentData.awards.map((award: BaseAward) => {
-        if (award.title !== awardTitle) return award;
+  await AwardsRepository.updateByYear(clubId, year, (currentData) => ({
+    ...currentData,
+    awards: currentData.awards.map((award: BaseAward) => {
+      if (award.title !== awardTitle) return award;
 
-        return {
-          ...award,
-          nominations: award.nominations.map(
-            (nomination: BaseAwardNomination) => {
-              const rank = movieRanks.get(nomination.movieId);
-              if (rank === undefined) return nomination;
+      return {
+        ...award,
+        nominations: award.nominations.map((nomination: BaseAwardNomination) => {
+          const rank = movieRanks.get(nomination.movieId);
+          if (rank === undefined) return nomination;
 
-              return {
-                ...nomination,
-                ranking: {
-                  ...nomination.ranking,
-                  [voter]: rank,
-                },
-              };
+          return {
+            ...nomination,
+            ranking: {
+              ...nomination.ranking,
+              [voter]: rank,
             },
-          ),
-        };
-      }),
-    }));
+          };
+        }),
+      };
+    }),
+  }));
 
-    return res(ok());
-  },
-);
+  return res(ok());
+});
 
 export default router;

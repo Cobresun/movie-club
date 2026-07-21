@@ -24,10 +24,7 @@
         </div>
 
         <div class="min-w-0 flex-1 text-left">
-          <p
-            class="truncate text-sm font-medium text-white"
-            :title="entry.title"
-          >
+          <p class="truncate text-sm font-medium text-white" :title="entry.title">
             {{ entry.title }}
           </p>
           <div class="flex items-center gap-2 text-xs text-slate-400">
@@ -55,10 +52,10 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 
-import SegmentedToggle from "./SegmentedToggle.vue";
-import WidgetShell from "./WidgetShell.vue";
 import { computeTmdbDeviation } from "../statsComputers";
 import type { MovieData } from "../types";
+import SegmentedToggle from "./SegmentedToggle.vue";
+import WidgetShell from "./WidgetShell.vue";
 
 type Mode = "higher" | "lower";
 
@@ -95,9 +92,7 @@ const mode = computed<Mode>({
 });
 
 const activeEntries = computed(() =>
-  mode.value === "higher"
-    ? deviation.value.clubRatedHigher
-    : deviation.value.clubRatedLower,
+  mode.value === "higher" ? deviation.value.clubRatedHigher : deviation.value.clubRatedLower,
 );
 
 const subtitle = computed(() =>

@@ -14,8 +14,7 @@ export const DIAL_RADIUS = 84;
 export const DIAL_TRACK_PATH = `M ${DIAL_CENTER_X - DIAL_RADIUS} ${DIAL_CENTER_Y} A ${DIAL_RADIUS} ${DIAL_RADIUS} 0 0 1 ${DIAL_CENTER_X + DIAL_RADIUS} ${DIAL_CENTER_Y}`;
 
 /** 0 at the left end of the arc, 1 at the right end. */
-export const scoreToFraction = (score: number): number =>
-  clampScore(score) / SCORE_MAX;
+export const scoreToFraction = (score: number): number => clampScore(score) / SCORE_MAX;
 
 /** ViewBox coordinates of the handle for a given fraction along the arc. */
 export const handlePosition = (fraction: number): { x: number; y: number } => {
@@ -37,7 +36,5 @@ export const scoreFromPoint = (x: number, y: number): number => {
   const dy = DIAL_CENTER_Y - y;
   if (dy <= 0) return dx < 0 ? 0 : SCORE_MAX;
   const fraction = 1 - Math.atan2(dy, dx) / Math.PI;
-  return clampScore(
-    Math.round((fraction * SCORE_MAX) / SCORE_STEP) * SCORE_STEP,
-  );
+  return clampScore(Math.round((fraction * SCORE_MAX) / SCORE_STEP) * SCORE_STEP);
 };

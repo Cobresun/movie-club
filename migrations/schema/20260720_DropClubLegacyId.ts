@@ -14,8 +14,5 @@ export async function down(db: Kysely<unknown>) {
   // Re-add the column in its original shape (nullable integer, no index).
   // The historical values were random throwaways, so there is nothing to
   // restore — new rows simply get NULL.
-  await db.schema
-    .alterTable("club")
-    .addColumn("legacy_id", "integer")
-    .execute();
+  await db.schema.alterTable("club").addColumn("legacy_id", "integer").execute();
 }

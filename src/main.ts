@@ -7,12 +7,11 @@ import { createPinia } from "pinia";
 import { createApp, reactive, TransitionGroup } from "vue";
 import Toast from "vue-toastification";
 
+import { isDefined } from "../lib/checks/checks.js";
 import LazyLoad from "./directives/LazyLoad";
 import Reveal from "./directives/Reveal";
 import { icons } from "./icons";
 import router from "./router";
-import { isDefined } from "../lib/checks/checks.js";
-
 import App from "@/App.vue";
 import EmptyState from "@/common/components/EmptyState.vue";
 import Loading from "@/common/components/LoadingSpinner.vue";

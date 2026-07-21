@@ -37,9 +37,7 @@ describe("useBackButtonClose", () => {
   let back: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
-    pushState = vi
-      .spyOn(window.history, "pushState")
-      .mockImplementation(() => {});
+    pushState = vi.spyOn(window.history, "pushState").mockImplementation(() => {});
     back = vi.spyOn(window.history, "back").mockImplementation(() => {});
   });
 
@@ -53,10 +51,7 @@ describe("useBackButtonClose", () => {
     expect(pushState).toHaveBeenCalledTimes(1);
     // Pushed with our overlay marker and an empty title, and no URL argument so
     // the address bar / current route is left untouched.
-    expect(pushState).toHaveBeenCalledWith(
-      expect.objectContaining({ vOverlay: true }),
-      "",
-    );
+    expect(pushState).toHaveBeenCalledWith(expect.objectContaining({ vOverlay: true }), "");
   });
 
   it("calls onDismiss when the back button (popstate) fires", () => {

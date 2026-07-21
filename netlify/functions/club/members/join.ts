@@ -25,10 +25,7 @@ router.post("/join", loggedIn, async (req, res) => {
   }
 
   try {
-    const result = await ClubRepository.joinClubWithInvite(
-      body.data.token,
-      req.userId,
-    );
+    const result = await ClubRepository.joinClubWithInvite(body.data.token, req.userId);
 
     if (!result.success) {
       return res(badRequest(result.error));

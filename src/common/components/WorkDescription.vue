@@ -44,8 +44,7 @@ const checkDescriptionHeight = async () => {
   }
 
   // Compare scrollHeight to clientHeight to detect overflow
-  shouldShowReadMore.value =
-    descriptionRef.value.scrollHeight > descriptionRef.value.clientHeight;
+  shouldShowReadMore.value = descriptionRef.value.scrollHeight > descriptionRef.value.clientHeight;
 };
 
 onMounted(() => {

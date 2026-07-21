@@ -1,7 +1,6 @@
 import { screen } from "@testing-library/vue";
 
 import CastAvatar from "../components/CastAvatar.vue";
-
 import { render } from "@/tests/utils";
 
 describe("CastAvatar", () => {
@@ -11,10 +10,7 @@ describe("CastAvatar", () => {
     });
 
     const img = screen.getByRole("img", { name: "Al Pacino" });
-    expect(img).toHaveAttribute(
-      "src",
-      "https://image.tmdb.org/t/p/w185/photo.jpg",
-    );
+    expect(img).toHaveAttribute("src", "https://image.tmdb.org/t/p/w185/photo.jpg");
     // Starts transparent and fades in on @load, so there is no abrupt pop-in.
     expect(img).toHaveClass("opacity-0");
   });

@@ -19,16 +19,10 @@
           ?
         </div>
         <div class="min-w-0 flex-1">
-          <p
-            class="text-xs font-semibold uppercase tracking-wide"
-            :class="tile.labelClass"
-          >
+          <p class="text-xs font-semibold uppercase tracking-wide" :class="tile.labelClass">
             {{ tile.label }}
           </p>
-          <p
-            class="mt-0.5 truncate text-sm font-medium text-white"
-            :title="tile.entry.title"
-          >
+          <p class="mt-0.5 truncate text-sm font-medium text-white" :title="tile.entry.title">
             {{ tile.entry.title }}
           </p>
           <span
@@ -46,10 +40,10 @@
 <script setup lang="ts">
 import { computed } from "vue";
 
-import WidgetShell from "./WidgetShell.vue";
 import { isDefined } from "../../../../lib/checks/checks.js";
 import { computeClubRecords } from "../statsComputers";
 import type { ClubRecordEntry, WorkStatsData } from "../types";
+import WidgetShell from "./WidgetShell.vue";
 
 const props = defineProps<{
   workData: WorkStatsData[];

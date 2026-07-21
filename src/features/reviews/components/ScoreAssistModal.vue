@@ -26,13 +26,12 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 
-import ScoreAssistFlow from "./ScoreAssistFlow.vue";
-import ScoreEntryPanel from "./ScoreEntryPanel.vue";
 import { isDefined } from "../../../../lib/checks/checks.js";
 import { ClubType } from "../../../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
 import { ScoredCandidate } from "../composables/scoreAssistLogic";
-
+import ScoreAssistFlow from "./ScoreAssistFlow.vue";
+import ScoreEntryPanel from "./ScoreEntryPanel.vue";
 import { useUser } from "@/service/useUser";
 
 // Standalone overlay for hosts that have no open surface of their own (the

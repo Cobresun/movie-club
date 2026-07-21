@@ -6,7 +6,6 @@ import { WorkType } from "../../../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
 import { createHistogramData } from "../scoring";
 import type { WorkStatsBase, WorkStatsData, HistogramData } from "../types";
-
 import { asBook, isMovieData } from "@/common/workDisplay";
 import { useMembers, useClubSlug } from "@/service/useClub";
 import { useReviewsList } from "@/service/useList";
@@ -87,14 +86,15 @@ function statsBase(review: DetailedReviewListItem): WorkStatsBase {
     title: review.title,
     externalId: review.externalId,
     dateWatched: DateTime.fromISO(review.createdDate).toLocaleString(),
-    userScores: Object.keys(review.scores).reduce<
-      Record<string, number | undefined>
-    >((acc, key) => {
-      if (key !== "average" && isDefined(review.scores[key].score)) {
-        acc[key] = review.scores[key].score;
-      }
-      return acc;
-    }, {}),
+    userScores: Object.keys(review.scores).reduce<Record<string, number | undefined>>(
+      (acc, key) => {
+        if (key !== "average" && isDefined(review.scores[key].score)) {
+          acc[key] = review.scores[key].score;
+        }
+        return acc;
+      },
+      {},
+    ),
     scores: review.scores,
     average: review.scores.average?.score ?? 0,
     imageUrl: review.imageUrl,
@@ -104,9 +104,7 @@ function statsBase(review: DetailedReviewListItem): WorkStatsBase {
 
 function mapReviewsToWorks(reviews: DetailedReviewListItem[]): WorkStatsData[] {
   return reviews
-    .map((review) =>
-      WORK_STATS_BUILDERS[review.type](statsBase(review), review),
-    )
+    .map((review) => WORK_STATS_BUILDERS[review.type](statsBase(review), review))
     .filter(isDefined)
     .filter((work) => Object.keys(work.userScores).length > 0);
 }
@@ -118,9 +116,7 @@ function enrichWithStatistics(
   workData: WorkStatsData[];
   histogramData: HistogramData[];
 } {
-  const histogram: HistogramData[] = createHistogramData(
-    works.map((data) => data.average),
-  );
+  const histogram: HistogramData[] = createHistogramData(works.map((data) => data.average));
 
   for (const member of memberList) {
     for (let i = 0; i <= 10; i++) {

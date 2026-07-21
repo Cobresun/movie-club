@@ -1,3 +1,6 @@
+import { hasValue, isDefined, hasElements } from "../../../lib/checks/checks.js";
+import { Member } from "../../../lib/types/club.js";
+import { MovieCastMember } from "../../../lib/types/movie.js";
 import type {
   BookData,
   ClubConsensusEntry,
@@ -20,13 +23,6 @@ import type {
   TmdbDeviationEntry,
   WorkStatsData,
 } from "./types";
-import {
-  hasValue,
-  isDefined,
-  hasElements,
-} from "../../../lib/checks/checks.js";
-import { Member } from "../../../lib/types/club.js";
-import { MovieCastMember } from "../../../lib/types/movie.js";
 
 const MIN_GENRE_COUNT = 2;
 
@@ -41,13 +37,10 @@ function accumulateCategoryScores<T extends WorkStatsData>(
   getCategories: (work: T) => readonly string[],
   memberId?: string,
 ): Record<string, { count: number; totalScore: number }> {
-  const categoryScores: Record<string, { count: number; totalScore: number }> =
-    {};
+  const categoryScores: Record<string, { count: number; totalScore: number }> = {};
 
   for (const work of works) {
-    const score = isDefined(memberId)
-      ? work.userScores[memberId]
-      : work.average;
+    const score = isDefined(memberId) ? work.userScores[memberId] : work.average;
     if (!isDefined(score)) continue;
     for (const category of getCategories(work)) {
       const existing = categoryScores[category];
@@ -70,11 +63,7 @@ export function computeGenreStats(
   mostLoved: GenreStats[];
   leastLoved: GenreStats[];
 } {
-  const genreScores = accumulateCategoryScores(
-    movieData,
-    (movie) => movie.genres,
-    memberId,
-  );
+  const genreScores = accumulateCategoryScores(movieData, (movie) => movie.genres, memberId);
 
   const allGenres = Object.entries(genreScores)
     .filter(([, data]) => data.count >= MIN_GENRE_COUNT)
@@ -88,9 +77,7 @@ export function computeGenreStats(
 
   return {
     mostLoved: sorted.slice(0, 3),
-    leastLoved: sorted
-      .slice(-3)
-      .sort((a, b) => a.averageScore - b.averageScore),
+    leastLoved: sorted.slice(-3).sort((a, b) => a.averageScore - b.averageScore),
   };
 }
 
@@ -101,10 +88,7 @@ const MIN_SUBJECT_COUNT = 2;
 const MAX_SUBJECTS = 5;
 
 /** Average club/member score per book subject, top {@link MAX_SUBJECTS} by score. */
-export function computeSubjectStats(
-  bookData: BookData[],
-  memberId?: string,
-): SubjectScoreStats[] {
+export function computeSubjectStats(bookData: BookData[], memberId?: string): SubjectScoreStats[] {
   const subjectScores = accumulateCategoryScores(
     bookData,
     (book) => book.externalData?.subjects ?? [],
@@ -126,9 +110,7 @@ export function computeSubjectStats(
 }
 
 /** Read counts per book subject, top {@link MAX_SUBJECTS} by count. */
-export function computeSubjectReadCounts(
-  bookData: BookData[],
-): SubjectReadCount[] {
+export function computeSubjectReadCounts(bookData: BookData[]): SubjectReadCount[] {
   const counts: Record<string, number> = {};
 
   for (const book of bookData) {
@@ -177,9 +159,7 @@ export function computeMemberLeaderboard(
 
     const averageScore =
       scores.length > 0
-        ? Math.round(
-            (scores.reduce((a, b) => a + b, 0) / scores.length) * 100,
-          ) / 100
+        ? Math.round((scores.reduce((a, b) => a + b, 0) / scores.length) * 100) / 100
         : 0;
 
     return { member, averageScore, reviewCount: scores.length };
@@ -229,12 +209,7 @@ export function computeTasteSimilarity(
         const scores = movie.userScores;
         const scoreA = scores[memberA.id];
         const scoreB = scores[memberB.id];
-        if (
-          isDefined(scoreA) &&
-          !isNaN(scoreA) &&
-          isDefined(scoreB) &&
-          !isNaN(scoreB)
-        ) {
+        if (isDefined(scoreA) && !isNaN(scoreA) && isDefined(scoreB) && !isNaN(scoreB)) {
           sharedMovies.push({
             title: movie.title,
             imageUrl: movie.imageUrl,
@@ -246,12 +221,8 @@ export function computeTasteSimilarity(
 
       if (sharedMovies.length < MIN_SHARED_REVIEWS) continue;
 
-      const totalDiff = sharedMovies.reduce(
-        (sum, m) => sum + Math.abs(m.scoreA - m.scoreB),
-        0,
-      );
-      const avgDifference =
-        Math.round((totalDiff / sharedMovies.length) * 100) / 100;
+      const totalDiff = sharedMovies.reduce((sum, m) => sum + Math.abs(m.scoreA - m.scoreB), 0);
+      const avgDifference = Math.round((totalDiff / sharedMovies.length) * 100) / 100;
       const similarityPercent = Math.max(
         0,
         Math.round((1 - avgDifference / MAX_RAW_SCORE_DIFF) * 10000) / 100,
@@ -270,9 +241,7 @@ export function computeTasteSimilarity(
         avgDifference,
         sharedCount: sharedMovies.length,
         bestAgreements: sorted.slice(0, 3),
-        worstAgreements: sorted
-          .slice(-3)
-          .sort((a, b) => b.difference - a.difference),
+        worstAgreements: sorted.slice(-3).sort((a, b) => b.difference - a.difference),
       });
     }
   }
@@ -281,9 +250,7 @@ export function computeTasteSimilarity(
     return { mostSimilar: null, leastSimilar: null };
   }
 
-  const sortedPairs = [...pairs].sort(
-    (a, b) => b.similarityPercent - a.similarityPercent,
-  );
+  const sortedPairs = [...pairs].sort((a, b) => b.similarityPercent - a.similarityPercent);
 
   return {
     mostSimilar: sortedPairs[0],
@@ -317,11 +284,9 @@ export function computeClubConsensus(
 
     if (scoreEntries.length < MIN_SCORES_FOR_CONSENSUS) continue;
 
-    const mean =
-      scoreEntries.reduce((sum, s) => sum + s.score, 0) / scoreEntries.length;
+    const mean = scoreEntries.reduce((sum, s) => sum + s.score, 0) / scoreEntries.length;
     const variance =
-      scoreEntries.reduce((sum, s) => sum + (s.score - mean) ** 2, 0) /
-      scoreEntries.length;
+      scoreEntries.reduce((sum, s) => sum + (s.score - mean) ** 2, 0) / scoreEntries.length;
     const stdDev = Math.round(Math.sqrt(variance) * 100) / 100;
 
     entries.push({
@@ -381,10 +346,7 @@ function computeTopPeople<T extends WorkStatsData>(
         existing.totalScore += work.average;
         existing.count += 1;
         existing.works.push(work.title);
-        if (
-          !isDefined(existing.profileImageUrl) &&
-          isDefined(person.profileImageUrl)
-        ) {
+        if (!isDefined(existing.profileImageUrl) && isDefined(person.profileImageUrl)) {
           existing.profileImageUrl = person.profileImageUrl;
         }
       } else {
@@ -414,9 +376,7 @@ function computeTopPeople<T extends WorkStatsData>(
 }
 
 function tmdbProfileImageUrl(profilePath: string | null): string | undefined {
-  return isDefined(profilePath)
-    ? `${TMDB_PROFILE_BASE_URL}${profilePath}`
-    : undefined;
+  return isDefined(profilePath) ? `${TMDB_PROFILE_BASE_URL}${profilePath}` : undefined;
 }
 
 export function computeTopDirectors(movieData: MovieData[]): PersonStats[] {
@@ -439,12 +399,10 @@ export function computeTopActors(
 ): PersonStats[] {
   if (!isDefined(castByExternalId)) return [];
   return computeTopPeople(movieData, (m) =>
-    (isDefined(m.externalId) ? castByExternalId[m.externalId] : undefined)?.map(
-      (a) => ({
-        name: a.name,
-        profileImageUrl: tmdbProfileImageUrl(a.profilePath),
-      }),
-    ),
+    (isDefined(m.externalId) ? castByExternalId[m.externalId] : undefined)?.map((a) => ({
+      name: a.name,
+      profileImageUrl: tmdbProfileImageUrl(a.profilePath),
+    })),
   );
 }
 
@@ -516,10 +474,7 @@ export function computeScoreTrend(
 
     // Scale window to 20% of the member's reviews so the trend stays readable.
     // A fixed window over-smooths long-running clubs, making all lines converge.
-    const windowSize = Math.max(
-      5,
-      Math.min(30, Math.round(reviews.length * 0.2)),
-    );
+    const windowSize = Math.max(5, Math.min(30, Math.round(reviews.length * 0.2)));
 
     const points: ScoreTrendPoint[] = [];
     for (let index = windowSize - 1; index < reviews.length; index++) {
@@ -544,9 +499,7 @@ export function computeScoreTrend(
 
 const MIN_SCORES_FOR_VARIANCE = 2;
 
-export function computeScoreVariance(
-  workData: WorkStatsData[],
-): ScoreVariancePoint[] {
+export function computeScoreVariance(workData: WorkStatsData[]): ScoreVariancePoint[] {
   const perMovie: { date: Date; title: string; stdDev: number }[] = [];
 
   for (const movie of workData) {
@@ -562,8 +515,7 @@ export function computeScoreVariance(
     if (isNaN(date.getTime())) continue;
 
     const mean = scores.reduce((sum, s) => sum + s, 0) / scores.length;
-    const variance =
-      scores.reduce((sum, s) => sum + (s - mean) ** 2, 0) / scores.length;
+    const variance = scores.reduce((sum, s) => sum + (s - mean) ** 2, 0) / scores.length;
     const stdDev = Math.sqrt(variance);
 
     perMovie.push({ date, title: movie.title, stdDev });
@@ -575,10 +527,7 @@ export function computeScoreVariance(
 
   // Mirror computeScoreTrend's adaptive window: 20% of the data, clamped to
   // 5..30, so the line stays readable for both new and long-running clubs.
-  const windowSize = Math.max(
-    5,
-    Math.min(30, Math.round(perMovie.length * 0.2)),
-  );
+  const windowSize = Math.max(5, Math.min(30, Math.round(perMovie.length * 0.2)));
 
   const points: ScoreVariancePoint[] = [];
   for (let index = windowSize - 1; index < perMovie.length; index++) {
@@ -697,9 +646,7 @@ export function computeClubCurmudgeons(
 
     if (validScores.length < MIN_SCORES_FOR_CURMUDGEON) continue;
 
-    const outliers = validScores.filter(
-      (s) => movie.average - s.score >= CURMUDGEON_THRESHOLD,
-    );
+    const outliers = validScores.filter((s) => movie.average - s.score >= CURMUDGEON_THRESHOLD);
 
     if (outliers.length !== 1) continue;
 
@@ -737,17 +684,11 @@ export function computeClubCurmudgeons(
   return entries.sort((a, b) => b.movies.length - a.movies.length);
 }
 
-export function computeDecadeStats(
-  movieData: MovieData[],
-  memberId?: string,
-): DecadeStats[] {
-  const decadeScores: Record<string, { count: number; totalScore: number }> =
-    {};
+export function computeDecadeStats(movieData: MovieData[], memberId?: string): DecadeStats[] {
+  const decadeScores: Record<string, { count: number; totalScore: number }> = {};
 
   for (const movie of movieData) {
-    const score = isDefined(memberId)
-      ? movie.userScores[memberId]
-      : movie.average;
+    const score = isDefined(memberId) ? movie.userScores[memberId] : movie.average;
     if (!isDefined(score)) continue;
 
     const releaseDate = movie.externalData?.release_date;
@@ -778,17 +719,11 @@ export function computeDecadeStats(
 /** Average score grouped by a book's publication decade (from
  * `firstPublishYear`). Mirrors {@link computeDecadeStats}, which reads a movie's
  * `release_date` string instead. */
-export function computePublishDecadeStats(
-  bookData: BookData[],
-  memberId?: string,
-): DecadeStats[] {
-  const decadeScores: Record<string, { count: number; totalScore: number }> =
-    {};
+export function computePublishDecadeStats(bookData: BookData[], memberId?: string): DecadeStats[] {
+  const decadeScores: Record<string, { count: number; totalScore: number }> = {};
 
   for (const book of bookData) {
-    const score = isDefined(memberId)
-      ? book.userScores[memberId]
-      : book.average;
+    const score = isDefined(memberId) ? book.userScores[memberId] : book.average;
     if (!isDefined(score)) continue;
 
     const year = book.externalData?.firstPublishYear;
@@ -813,13 +748,8 @@ export function computePublishDecadeStats(
     .sort((a, b) => a.decade.localeCompare(b.decade));
 }
 
-export function computeHighestRatedByYear(
-  workData: WorkStatsData[],
-): HighestRatedByYearEntry[] {
-  const yearGroups = new Map<
-    number,
-    { best: WorkStatsData | null; count: number }
-  >();
+export function computeHighestRatedByYear(workData: WorkStatsData[]): HighestRatedByYearEntry[] {
+  const yearGroups = new Map<number, { best: WorkStatsData | null; count: number }>();
 
   for (const movie of workData) {
     if (!hasValue(movie.createdDate)) continue;
@@ -874,9 +804,7 @@ const MONTH_LABEL_FORMAT: Intl.DateTimeFormatOptions = {
  * Reviews per calendar month (UTC), with zero-count months filled in between
  * the club's first and last review so pace gaps are visible in the chart.
  */
-export function computeMonthlyActivity(
-  workData: WorkStatsData[],
-): MonthlyActivityPoint[] {
+export function computeMonthlyActivity(workData: WorkStatsData[]): MonthlyActivityPoint[] {
   const counts = new Map<number, number>();
 
   for (const work of workData) {
@@ -908,9 +836,7 @@ export function computeMonthlyActivity(
 }
 
 /** Running total of works reviewed, in review order. */
-export function computeCumulativeCounts(
-  workData: WorkStatsData[],
-): CumulativeCountPoint[] {
+export function computeCumulativeCounts(workData: WorkStatsData[]): CumulativeCountPoint[] {
   const dated: { date: Date; title: string }[] = [];
 
   for (const work of workData) {
@@ -952,8 +878,7 @@ export function computeClubRecords(workData: WorkStatsData[]): ClubRecords {
     if (scores.length < MIN_SCORES_FOR_DIVISIVE_RECORD) continue;
 
     const mean = scores.reduce((sum, s) => sum + s, 0) / scores.length;
-    const variance =
-      scores.reduce((sum, s) => sum + (s - mean) ** 2, 0) / scores.length;
+    const variance = scores.reduce((sum, s) => sum + (s - mean) ** 2, 0) / scores.length;
     const stdDev = Math.sqrt(variance);
 
     if (stdDev > widestSpread) {

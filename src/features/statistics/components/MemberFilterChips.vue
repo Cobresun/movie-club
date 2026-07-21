@@ -31,7 +31,6 @@
 
 <script setup lang="ts">
 import { isDefined } from "../../../../lib/checks/checks.js";
-
 import VAvatar from "@/common/components/VAvatar.vue";
 
 /** The subset of Member every caller has (some pass computed entries, not

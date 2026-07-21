@@ -8,11 +8,7 @@
       </v-btn>
     </div>
     <div class="flex flex-col gap-2">
-      <div
-        v-for="(email, index) in emails"
-        :key="index"
-        class="items-center gap-2"
-      >
+      <div v-for="(email, index) in emails" :key="index" class="items-center gap-2">
         <input
           v-model="emails[index]"
           type="email"
@@ -34,7 +30,6 @@ import { ref, computed } from "vue";
 import { useToast } from "vue-toastification";
 
 import { isDefined } from "../../../../lib/checks/checks.js";
-
 import { useAddMembers } from "@/service/useClub";
 
 const props = defineProps<{
@@ -57,9 +52,7 @@ const hasInvalidEmails = computed(() =>
   emails.value.some((email) => isDefined(email) && !isEmailValid(email)),
 );
 
-const canSubmit = computed(
-  () => emails.value.some((email) => email) && !hasInvalidEmails.value,
-);
+const canSubmit = computed(() => emails.value.some((email) => email) && !hasInvalidEmails.value);
 
 const { mutate: addMembers } = useAddMembers(props.clubId);
 

@@ -3,18 +3,11 @@ import axios from "axios";
 import { computed, Ref } from "vue";
 
 import { hasValue } from "../../lib/checks/checks.js";
-import {
-  TMDBPageResponse,
-  TMDBWatchProvidersResponse,
-} from "../../lib/types/movie";
+import { TMDBPageResponse, TMDBWatchProvidersResponse } from "../../lib/types/movie";
 
 const key = import.meta.env.VITE_TMDB_API_KEY;
 
-export type TMDBCollection =
-  | "popular"
-  | "now_playing"
-  | "upcoming"
-  | "top_rated";
+export type TMDBCollection = "popular" | "now_playing" | "upcoming" | "top_rated";
 
 export function useSearch(query: Ref<string>, enabled: boolean) {
   return useQuery<TMDBPageResponse>({

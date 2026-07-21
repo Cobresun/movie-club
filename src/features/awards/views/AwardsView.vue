@@ -15,16 +15,13 @@ import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 import { isDefined } from "../../../../lib/checks/checks.js";
-
 import { useAwardYears } from "@/service/useAwards";
 import { useClubSlug } from "@/service/useClub";
 
 const clubId = useClubSlug();
 const { data: years, isLoading } = useAwardYears(clubId);
 
-const selectYears = computed(() =>
-  years.value ? years.value.map((year) => year.toString()) : [],
-);
+const selectYears = computed(() => (years.value ? years.value.map((year) => year.toString()) : []));
 
 const route = useRoute();
 const router = useRouter();
@@ -36,9 +33,7 @@ const selectValue = computed({
       : "";
   },
   set(value: string) {
-    router
-      .push({ name: "AwardsYear", params: { year: value } })
-      .catch(console.error);
+    router.push({ name: "AwardsYear", params: { year: value } }).catch(console.error);
   },
 });
 </script>

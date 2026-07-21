@@ -1,12 +1,9 @@
-import { notFound } from "./responses";
-import { MiddlewareCallback, Request } from "./router";
 import { hasValue } from "../../../lib/checks/checks.js";
-import {
-  ClubType,
-  WorkListSystemType,
-} from "../../../lib/types/generated/db.js";
+import { ClubType, WorkListSystemType } from "../../../lib/types/generated/db.js";
 import ClubRepository from "../repositories/ClubRepository";
 import ListRepository from "../repositories/ListRepository";
+import { notFound } from "./responses";
+import { MiddlewareCallback, Request } from "./router";
 
 export function getErrorMessage(error: unknown) {
   if (error instanceof Error) return error.message;
@@ -30,10 +27,7 @@ export type ListRequest<T extends ClubRequest = ClubRequest> = T & {
 /**
  * Middleware that validates club slug and adds club data to request context
  */
-export const validClubSlug: MiddlewareCallback<Request, ClubRequest> = async (
-  req,
-  res,
-) => {
+export const validClubSlug: MiddlewareCallback<Request, ClubRequest> = async (req, res) => {
   const slug = req.params.clubSlug;
 
   if (!hasValue(slug)) {
@@ -67,10 +61,7 @@ export const validClubSlug: MiddlewareCallback<Request, ClubRequest> = async (
  * or `award_nominations`). Without this guard, the new ID-keyed list routes
  * would be a horizontal-access vector since list IDs are just integers.
  */
-export const validListId: MiddlewareCallback<ClubRequest, ListRequest> = async (
-  req,
-  res,
-) => {
+export const validListId: MiddlewareCallback<ClubRequest, ListRequest> = async (req, res) => {
   const listId = req.params.listId;
   if (!hasValue(listId)) {
     return res(notFound("List not found"));

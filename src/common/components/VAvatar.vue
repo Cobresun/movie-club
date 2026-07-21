@@ -1,12 +1,6 @@
 <template>
   <div>
-    <img
-      v-if="src"
-      class="max-w-none rounded-full"
-      :width="size"
-      :height="size"
-      :src="src"
-    />
+    <img v-if="src" class="max-w-none rounded-full" :width="size" :height="size" :src="src" />
     <div
       v-else
       :style="{
@@ -36,10 +30,7 @@ const { src, name = "", size = 48 } = defineProps<Props>();
 
 const initials = computed(() => {
   const initials = name.split(" ").map((val) => val.charAt(0).toUpperCase());
-  return [
-    initials[0],
-    initials.length > 1 ? initials[initials.length - 1] : undefined,
-  ].join("");
+  return [initials[0], initials.length > 1 ? initials[initials.length - 1] : undefined].join("");
 });
 
 const color = computed(() => {

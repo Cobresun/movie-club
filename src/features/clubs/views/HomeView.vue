@@ -16,9 +16,7 @@
           Rate movies, compare favorites, and find patterns.
         </h2>
         <div>
-          <v-btn class="px-4 py-1 text-lg" @click="getStarted">
-            Get started — it's free
-          </v-btn>
+          <v-btn class="px-4 py-1 text-lg" @click="getStarted"> Get started — it's free </v-btn>
         </div>
       </div>
     </div>
@@ -40,19 +38,16 @@
     <!-- Closing CTA -->
     <div class="mt-16 flex flex-col items-center space-y-6 text-center">
       <p class="max-w-2xl text-xl font-light">
-        Movies or books — start a club, invite your friends with a single link,
-        and settle the scores together.
+        Movies or books — start a club, invite your friends with a single link, and settle the
+        scores together.
       </p>
-      <v-btn class="px-4 py-1 text-lg" @click="getStarted">
-        Start your club
-      </v-btn>
+      <v-btn class="px-4 py-1 text-lg" @click="getStarted"> Start your club </v-btn>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import LandingFeatureCard from "../components/LandingFeatureCard.vue";
-
 import homeCinemaSvg from "@/assets/images/home_cinema.svg";
 import reviewSvg from "@/assets/images/menu-images/review.svg";
 import statisticsSvg from "@/assets/images/menu-images/statistics.svg";
@@ -69,14 +64,12 @@ const features: FeatureHighlight[] = [
   {
     image: reviewSvg,
     title: "Reviews & Scores",
-    description:
-      "Score every movie as a club and see everyone's ratings side by side.",
+    description: "Score every movie as a club and see everyone's ratings side by side.",
   },
   {
     image: watchlistSvg,
     title: "Shared Lists",
-    description:
-      "Keep a shared watchlist and backlog so the next pick is never a debate.",
+    description: "Keep a shared watchlist and backlog so the next pick is never a debate.",
   },
   {
     image: statisticsSvg,

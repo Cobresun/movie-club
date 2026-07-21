@@ -2,10 +2,7 @@ import axios from "axios";
 
 import { hasValue, isDefined } from "@/../lib/checks/checks";
 import { secureImageUrl, sortVolumesByPopularity } from "@/../lib/googleBooks";
-import {
-  GoogleBooksSearchResponse,
-  GoogleBooksVolume,
-} from "@/../lib/types/book";
+import { GoogleBooksSearchResponse, GoogleBooksVolume } from "@/../lib/types/book";
 import { ClubType, WorkType } from "@/../lib/types/generated/db";
 import { DetailedWorkListItem, WorkDataSummary } from "@/../lib/types/lists";
 import { TMDBPageResponse } from "@/../lib/types/movie";
@@ -35,10 +32,7 @@ export interface WorkSearchResult {
   imageUrl?: string;
 }
 
-async function searchMovies(
-  query: string,
-  signal?: AbortSignal,
-): Promise<WorkSearchResult[]> {
+async function searchMovies(query: string, signal?: AbortSignal): Promise<WorkSearchResult[]> {
   const { data } = await axios.get<TMDBPageResponse>(
     `https://api.themoviedb.org/3/search/movie?api_key=${TMDB_KEY}&query=${encodeURIComponent(query)}&language=en-US&include_adult=false`,
     { signal },
@@ -47,24 +41,20 @@ async function searchMovies(
     externalId: String(movie.id),
     title: movie.title,
     subtitle: movie.release_date ? movie.release_date.slice(0, 4) : undefined,
-    imageUrl: movie.poster_path
-      ? `${TMDB_IMAGE_BASE}${movie.poster_path}`
-      : undefined,
+    imageUrl: movie.poster_path ? `${TMDB_IMAGE_BASE}${movie.poster_path}` : undefined,
   }));
 }
 
 /** Map a Google Books volume (search or browse) to a WorkSearchResult. */
 export function volumeToResult(volume: GoogleBooksVolume): WorkSearchResult {
   const info = volume.volumeInfo;
-  const thumbnail =
-    info?.imageLinks?.thumbnail ?? info?.imageLinks?.smallThumbnail;
+  const thumbnail = info?.imageLinks?.thumbnail ?? info?.imageLinks?.smallThumbnail;
   return {
     externalId: volume.id,
     title: info?.title ?? "Untitled",
     subtitle:
-      [info?.authors?.[0], info?.publishedDate?.slice(0, 4)]
-        .filter(hasValue)
-        .join(" · ") || undefined,
+      [info?.authors?.[0], info?.publishedDate?.slice(0, 4)].filter(hasValue).join(" · ") ||
+      undefined,
     imageUrl: hasValue(thumbnail) ? secureImageUrl(thumbnail) : undefined,
   };
 }
@@ -92,15 +82,8 @@ export async function fetchBookVolumes(
   return (sortVolumes ? sortVolumes(volumes) : volumes).map(volumeToResult);
 }
 
-async function searchBooks(
-  query: string,
-  signal?: AbortSignal,
-): Promise<WorkSearchResult[]> {
-  return fetchBookVolumes(
-    { q: query, maxResults: "20" },
-    signal,
-    sortVolumesByPopularity,
-  );
+async function searchBooks(query: string, signal?: AbortSignal): Promise<WorkSearchResult[]> {
+  return fetchBookVolumes({ q: query, maxResults: "20" }, signal, sortVolumesByPopularity);
 }
 
 /**
@@ -146,10 +129,7 @@ export interface ClubTypeConfig {
   /** Filters SearchFilterBar offers for this club type. */
   readonly filterOptions: readonly FilterOption[];
   /** Search the club type's external source for works to add. */
-  readonly search: (
-    query: string,
-    signal?: AbortSignal,
-  ) => Promise<WorkSearchResult[]>;
+  readonly search: (query: string, signal?: AbortSignal) => Promise<WorkSearchResult[]>;
   /** Copy and icons for the statistics feature. */
   readonly stats: StatsConfig;
   /** Per-type extraction of the strings shown in the details drawers. */
@@ -291,9 +271,7 @@ const movieDisplay: WorkDisplay = {
 const bookDisplay: WorkDisplay = {
   subtitle: (data) => {
     const book = asBook(data);
-    return book?.firstPublishYear !== undefined
-      ? String(book.firstPublishYear)
-      : undefined;
+    return book?.firstPublishYear !== undefined ? String(book.firstPublishYear) : undefined;
   },
   metaLine: (data) => {
     const book = asBook(data);
@@ -369,8 +347,7 @@ function buildIdf(
     }
   }
   const total = corpus.length;
-  return (tag) =>
-    Math.log((total + 1) / ((documentFrequency.get(lower(tag)) ?? 0) + 1)) + 1;
+  return (tag) => Math.log((total + 1) / ((documentFrequency.get(lower(tag)) ?? 0) + 1)) + 1;
 }
 
 /**
@@ -397,11 +374,7 @@ function weightedJaccard(
 }
 
 /** Exponential closeness in [0,1]: 1 when equal, 0.5 at one half-life apart. */
-function proximityDecay(
-  a: number | undefined,
-  b: number | undefined,
-  halfLife: number,
-): number {
+function proximityDecay(a: number | undefined, b: number | undefined, halfLife: number): number {
   if (!isDefined(a) || !isDefined(b)) return 0;
   return Math.exp((-Math.abs(a - b) * Math.LN2) / halfLife);
 }
@@ -420,16 +393,11 @@ function releaseYear(data: { release_date?: string }): number | undefined {
 const makeMovieSimilarity = (
   corpus: readonly (WorkDataSummary | undefined)[],
 ): WorkSimilarityScorer => {
-  const directorIdf = buildIdf(corpus, (d) =>
-    names(asMovie(d)?.directors ?? []),
-  );
+  const directorIdf = buildIdf(corpus, (d) => names(asMovie(d)?.directors ?? []));
   // Bulk payloads carry cast names only (castNames); full actor objects live in
   // the per-work detail payload and aren't available for pivot scoring.
   const castIdf = buildIdf(corpus, (d) => asMovie(d)?.castNames ?? []);
-  const companyIdf = buildIdf(
-    corpus,
-    (d) => asMovie(d)?.production_companies ?? [],
-  );
+  const companyIdf = buildIdf(corpus, (d) => asMovie(d)?.production_companies ?? []);
   const genreIdf = buildIdf(corpus, (d) => asMovie(d)?.genres ?? []);
   const totalWeight = sum(Object.values(MOVIE_FIELD_WEIGHTS));
 
@@ -438,21 +406,14 @@ const makeMovieSimilarity = (
     const b = asMovie(candidate);
     if (a === undefined || b === undefined) return 0;
     const sameLanguage =
-      hasValue(a.original_language) &&
-      a.original_language === b.original_language;
+      hasValue(a.original_language) && a.original_language === b.original_language;
     const weighted =
       MOVIE_FIELD_WEIGHTS.director *
         weightedJaccard(names(a.directors), names(b.directors), directorIdf) +
-      MOVIE_FIELD_WEIGHTS.cast *
-        weightedJaccard(a.castNames, b.castNames, castIdf) +
+      MOVIE_FIELD_WEIGHTS.cast * weightedJaccard(a.castNames, b.castNames, castIdf) +
       MOVIE_FIELD_WEIGHTS.company *
-        weightedJaccard(
-          a.production_companies,
-          b.production_companies,
-          companyIdf,
-        ) +
-      MOVIE_FIELD_WEIGHTS.genre *
-        weightedJaccard(a.genres, b.genres, genreIdf) +
+        weightedJaccard(a.production_companies, b.production_companies, companyIdf) +
+      MOVIE_FIELD_WEIGHTS.genre * weightedJaccard(a.genres, b.genres, genreIdf) +
       MOVIE_FIELD_WEIGHTS.era *
         proximityDecay(releaseYear(a), releaseYear(b), ERA_HALF_LIFE_YEARS) +
       MOVIE_FIELD_WEIGHTS.language * (sameLanguage ? 1 : 0);
@@ -472,18 +433,11 @@ const makeBookSimilarity = (
     const b = asBook(candidate);
     if (a === undefined || b === undefined) return 0;
     const weighted =
-      BOOK_FIELD_WEIGHTS.author *
-        weightedJaccard(a.authors, b.authors, authorIdf) +
-      BOOK_FIELD_WEIGHTS.subject *
-        weightedJaccard(a.subjects, b.subjects, subjectIdf) +
+      BOOK_FIELD_WEIGHTS.author * weightedJaccard(a.authors, b.authors, authorIdf) +
+      BOOK_FIELD_WEIGHTS.subject * weightedJaccard(a.subjects, b.subjects, subjectIdf) +
       BOOK_FIELD_WEIGHTS.era *
-        proximityDecay(
-          a.firstPublishYear,
-          b.firstPublishYear,
-          ERA_HALF_LIFE_YEARS,
-        ) +
-      BOOK_FIELD_WEIGHTS.length *
-        proximityDecay(a.numberOfPages, b.numberOfPages, PAGE_HALF_LIFE);
+        proximityDecay(a.firstPublishYear, b.firstPublishYear, ERA_HALF_LIFE_YEARS) +
+      BOOK_FIELD_WEIGHTS.length * proximityDecay(a.numberOfPages, b.numberOfPages, PAGE_HALF_LIFE);
     return weighted / totalWeight;
   };
 };
@@ -502,15 +456,9 @@ export const CLUB_TYPE_CONFIG: Record<ClubType, ClubTypeConfig> = {
     label: "Movie club",
     noun: "movie",
     searchHint: "Search for a movie to add.",
-    searchableFieldsHint:
-      "title, genre, company, director, actor, or release year",
+    searchableFieldsHint: "title, genre, company, director, actor, or release year",
     filterOptions: [
-      enumOption(
-        "genre",
-        "Genre",
-        "Select a genre",
-        (data) => asMovie(data)?.genres ?? [],
-      ),
+      enumOption("genre", "Genre", "Select a genre", (data) => asMovie(data)?.genres ?? []),
       averageScoreOption,
       enumOption(
         "company",
@@ -565,18 +513,8 @@ export const CLUB_TYPE_CONFIG: Record<ClubType, ClubTypeConfig> = {
     searchHint: "Search for a book to add.",
     searchableFieldsHint: "title, author, subject, or published year",
     filterOptions: [
-      enumOption(
-        "author",
-        "Author",
-        "Select an author",
-        (data) => asBook(data)?.authors ?? [],
-      ),
-      enumOption(
-        "subject",
-        "Subject",
-        "Select a subject",
-        (data) => asBook(data)?.subjects ?? [],
-      ),
+      enumOption("author", "Author", "Select an author", (data) => asBook(data)?.authors ?? []),
+      enumOption("subject", "Subject", "Select a subject", (data) => asBook(data)?.subjects ?? []),
       averageScoreOption,
       reviewDateOption,
       numberOption(
@@ -641,9 +579,7 @@ const CLUB_TYPE_BY_WORK_TYPE: Record<WorkType, ClubType> = {
   [WorkType.book]: ClubType.book,
 };
 
-function workDisplay(
-  data: WorkDataSummary | undefined,
-): WorkDisplay | undefined {
+function workDisplay(data: WorkDataSummary | undefined): WorkDisplay | undefined {
   if (data === undefined) return undefined;
   // Legacy/partially-cached works can arrive without a `kind` discriminant, so
   // guard the lookup rather than assume it resolves (returns undefined copy,
@@ -653,9 +589,7 @@ function workDisplay(
 }
 
 /** A short, media-appropriate subtitle (release/first-published year). */
-export function workSubtitle(
-  data: WorkDataSummary | undefined,
-): string | undefined {
+export function workSubtitle(data: WorkDataSummary | undefined): string | undefined {
   return workDisplay(data)?.subtitle(data);
 }
 
@@ -663,16 +597,12 @@ export function workSubtitle(
  * A one-line, media-appropriate summary for the details drawers: "2h 35m ·
  * Adventure, Science Fiction" (movies) / "Frank Herbert · 412 pages" (books).
  */
-export function workMetaLine(
-  data: WorkDataSummary | undefined,
-): string | undefined {
+export function workMetaLine(data: WorkDataSummary | undefined): string | undefined {
   return workDisplay(data)?.metaLine(data);
 }
 
 /** The long-form blurb (TMDB overview / book description). */
-export function workOverview(
-  data: WorkDataSummary | undefined,
-): string | undefined {
+export function workOverview(data: WorkDataSummary | undefined): string | undefined {
   return workDisplay(data)?.overview(data);
 }
 

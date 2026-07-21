@@ -54,9 +54,7 @@ function collectIconNames(source: string): Set<string> {
 // e.g. `cond ? 'icon-a' : 'icon-b'`. Skipping condition operands avoids false
 // positives like `getIsSorted() === 'desc'`, where 'desc' is a comparison value.
 function ternaryLiterals(expression: string): string[] {
-  return [...expression.matchAll(/[?:]\s*'([a-z][a-z0-9-]*)'/g)].map(
-    (m) => m[1],
-  );
+  return [...expression.matchAll(/[?:]\s*'([a-z][a-z0-9-]*)'/g)].map((m) => m[1]);
 }
 
 describe("mdi icon registration", () => {
@@ -72,10 +70,7 @@ describe("mdi icon registration", () => {
   it("registers every icon referenced in templates", () => {
     const missing = [...usedBy.entries()]
       .filter(([name]) => !registered.has(toKey(name)))
-      .map(
-        ([name, files]) =>
-          `${name} (${toKey(name)}) used in ${files.join(", ")}`,
-      );
+      .map(([name, files]) => `${name} (${toKey(name)}) used in ${files.join(", ")}`);
 
     expect(
       missing,
@@ -102,10 +97,7 @@ describe("mdi icon registration", () => {
         { icon: config.stats.countIcon, clubType: config.clubType },
       ])
       .filter((entry) => !registered.has(toKey(entry.icon)))
-      .map(
-        (entry) =>
-          `${entry.icon} (${toKey(entry.icon)}) for ClubType "${entry.clubType}"`,
-      );
+      .map((entry) => `${entry.icon} (${toKey(entry.icon)}) for ClubType "${entry.clubType}"`);
 
     expect(
       missing,
@@ -118,9 +110,7 @@ describe("mdi icon registration", () => {
   it("registers every FACT_ICONS icon", () => {
     const missing = Object.entries(FACT_ICONS)
       .filter(([, icon]) => !registered.has(toKey(icon)))
-      .map(
-        ([kind, icon]) => `${icon} (${toKey(icon)}) for fact kind "${kind}"`,
-      );
+      .map(([kind, icon]) => `${icon} (${toKey(icon)}) for fact kind "${kind}"`);
 
     expect(
       missing,

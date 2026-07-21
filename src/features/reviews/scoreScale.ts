@@ -15,8 +15,7 @@ export const isValidScore = (score: number): boolean =>
   !Number.isNaN(score) && score >= SCORE_MIN && score <= SCORE_MAX;
 
 /** Trim floating-point noise for display, matching ReviewView's table cells. */
-export const formatScore = (score: number): string =>
-  String(Math.round(score * 100) / 100);
+export const formatScore = (score: number): string => String(Math.round(score * 100) / 100);
 
 export interface ScoreInputSanitization {
   /** The corrected string to write back to the model and the DOM. */

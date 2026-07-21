@@ -40,9 +40,9 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 
-import VBackdrop from "./VBackdrop.vue";
 import { useBackButtonClose } from "../composables/useBackButtonClose.js";
 import { useBodyScrollLock } from "../composables/useBodyScrollLock.js";
+import VBackdrop from "./VBackdrop.vue";
 
 type ZIndex = "40" | "50" | "60";
 

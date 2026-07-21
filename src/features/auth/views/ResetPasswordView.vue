@@ -10,23 +10,19 @@
         </div>
         <h1 class="text-2xl font-bold text-text">Password Reset!</h1>
         <p class="text-gray-300">
-          Your password has been reset successfully. You can now sign in with
-          your new password.
+          Your password has been reset successfully. You can now sign in with your new password.
         </p>
         <v-btn class="mt-4" @click="goToSignIn">Sign In</v-btn>
       </div>
 
       <!-- Invalid Token State -->
       <div v-else-if="isInvalidToken" class="space-y-4 text-center">
-        <div
-          class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-900/50"
-        >
+        <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-900/50">
           <mdicon name="alert-circle" size="32" class="text-red-400" />
         </div>
         <h1 class="text-2xl font-bold text-text">Invalid or Expired Link</h1>
         <p class="text-gray-300">
-          This password reset link is invalid or has expired. Please request a
-          new one.
+          This password reset link is invalid or has expired. Please request a new one.
         </p>
         <router-link to="/forgot-password">
           <v-btn class="mt-4">Request New Link</v-btn>
@@ -35,25 +31,18 @@
 
       <!-- Form State -->
       <form v-else class="space-y-4" @submit.prevent="handleSubmit">
-        <h1 class="mb-6 text-center text-2xl font-bold text-text">
-          Reset Password
-        </h1>
+        <h1 class="mb-6 text-center text-2xl font-bold text-text">Reset Password</h1>
 
         <p class="mb-4 text-gray-300">Enter your new password below.</p>
 
         <!-- Error Message -->
-        <div
-          v-if="errorMessage"
-          class="rounded bg-red-900/50 p-3 text-sm text-red-300"
-        >
+        <div v-if="errorMessage" class="rounded bg-red-900/50 p-3 text-sm text-red-300">
           {{ errorMessage }}
         </div>
 
         <!-- New Password -->
         <div>
-          <label
-            for="password"
-            class="mb-1 block text-sm font-medium text-gray-300"
+          <label for="password" class="mb-1 block text-sm font-medium text-gray-300"
             >New Password</label
           >
           <input
@@ -69,9 +58,7 @@
 
         <!-- Confirm Password -->
         <div>
-          <label
-            for="confirmPassword"
-            class="mb-1 block text-sm font-medium text-gray-300"
+          <label for="confirmPassword" class="mb-1 block text-sm font-medium text-gray-300"
             >Confirm Password</label
           >
           <input
@@ -103,7 +90,6 @@ import { ref, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 import { isDefined } from "../../../../lib/checks/checks.js";
-
 import { authClient } from "@/lib/auth-client";
 import { useAuthStore } from "@/stores/auth";
 
@@ -163,13 +149,11 @@ const handleSubmit = async () => {
     if (error) {
       if (
         isDefined(error.message) &&
-        (error.message?.includes("expired") ||
-          error.message?.includes("invalid"))
+        (error.message?.includes("expired") || error.message?.includes("invalid"))
       ) {
         isInvalidToken.value = true;
       } else {
-        errorMessage.value =
-          error.message ?? "Failed to reset password. Please try again.";
+        errorMessage.value = error.message ?? "Failed to reset password. Please try again.";
       }
       isLoading.value = false;
       return;

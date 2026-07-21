@@ -3,11 +3,7 @@ import { Ref } from "vue";
 
 import { hasValue } from "@/../lib/checks/checks";
 import { ClubType } from "@/../lib/types/generated/db";
-import {
-  clubTypeConfig,
-  fetchBookVolumes,
-  WorkSearchResult,
-} from "@/common/clubType";
+import { clubTypeConfig, fetchBookVolumes, WorkSearchResult } from "@/common/clubType";
 
 export type { WorkSearchResult } from "@/common/clubType";
 
@@ -51,11 +47,7 @@ export function useBookBrowse(subject: Ref<BookBrowseSubject>) {
  * Search for works to add, dispatching to the right external source via the
  * club type registry. Returns a media-agnostic {@link WorkSearchResult}[].
  */
-export function useMediaSearch(
-  clubType: ClubType,
-  query: Ref<string>,
-  enabled: boolean,
-) {
+export function useMediaSearch(clubType: ClubType, query: Ref<string>, enabled: boolean) {
   return useQuery<WorkSearchResult[]>({
     queryKey: ["media-search", clubType, query],
     enabled,

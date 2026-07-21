@@ -32,10 +32,9 @@
 import { computed } from "vue";
 import { useRoute } from "vue-router";
 
-import InsightsView from "./InsightsView.vue";
 import { isDefined } from "../../../../lib/checks/checks.js";
 import { useStatisticsData } from "../composables/useStatisticsData";
-
+import InsightsView from "./InsightsView.vue";
 import { clubTypeConfig } from "@/common/clubType";
 import EmptyState from "@/common/components/EmptyState.vue";
 import SharedPageCtaBanner from "@/common/components/SharedPageCtaBanner.vue";
@@ -48,8 +47,7 @@ const clubSlug = route.params.clubSlug as string;
 const { data: club } = useClub(clubSlug);
 const clubType = computed(() => club.value?.type);
 
-const { loading, workData, members, histogramData, hasReviews } =
-  useStatisticsData();
+const { loading, workData, members, histogramData, hasReviews } = useStatisticsData();
 
 // Wait for the club query too: the widget set and copy depend on club type.
 const isLoading = computed(() => loading.value || !isDefined(club.value));

@@ -13,12 +13,8 @@
             <span aria-hidden="true">🍿</span>
             <span class="text-sm font-semibold tracking-wide">MovieClub</span>
           </div>
-          <h2 class="mt-1 text-lg font-bold leading-tight text-white">
-            Join the Club!
-          </h2>
-          <p class="text-xs text-gray-200">
-            Rate movies and compare favorites with your friends.
-          </p>
+          <h2 class="mt-1 text-lg font-bold leading-tight text-white">Join the Club!</h2>
+          <p class="text-xs text-gray-200">Rate movies and compare favorites with your friends.</p>
         </div>
         <a
           href="/"

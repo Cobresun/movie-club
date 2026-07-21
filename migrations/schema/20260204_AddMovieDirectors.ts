@@ -7,10 +7,7 @@ export async function up(db: Kysely<unknown>) {
       col.references("movie_details.external_id").onDelete("cascade").notNull(),
     )
     .addColumn("director_name", "varchar(255)", (col) => col.notNull())
-    .addUniqueConstraint("movie_directors_unique", [
-      "external_id",
-      "director_name",
-    ])
+    .addUniqueConstraint("movie_directors_unique", ["external_id", "director_name"])
     .execute();
 }
 

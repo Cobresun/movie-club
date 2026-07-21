@@ -1,9 +1,5 @@
 <template>
-  <WidgetShell
-    v-if="monthlyPoints.length > 0"
-    title="Club Activity"
-    :subtitle="subtitle"
-  >
+  <WidgetShell v-if="monthlyPoints.length > 0" title="Club Activity" :subtitle="subtitle">
     <template #controls>
       <SegmentedToggle v-model="mode" :options="MODE_OPTIONS" />
     </template>
@@ -30,10 +26,7 @@
           ?
         </div>
         <div class="min-w-0 flex-1 text-left">
-          <p
-            class="w-fit max-w-full truncate text-sm font-medium text-white"
-            :title="entry.title"
-          >
+          <p class="w-fit max-w-full truncate text-sm font-medium text-white" :title="entry.title">
             {{ entry.title }}
           </p>
           <p class="mt-1 text-xs text-slate-400">
@@ -56,20 +49,16 @@
 import { AgCharts } from "ag-charts-vue3";
 import { computed, ref } from "vue";
 
-import SegmentedToggle from "./SegmentedToggle.vue";
-import WidgetShell from "./WidgetShell.vue";
 import { ClubType } from "../../../../lib/types/generated/db";
-import {
-  createCumulativeCountChartOptions,
-  createMonthlyActivityChartOptions,
-} from "../scoring";
+import { createCumulativeCountChartOptions, createMonthlyActivityChartOptions } from "../scoring";
 import {
   computeCumulativeCounts,
   computeHighestRatedByYear,
   computeMonthlyActivity,
 } from "../statsComputers";
 import type { WorkStatsData } from "../types";
-
+import SegmentedToggle from "./SegmentedToggle.vue";
+import WidgetShell from "./WidgetShell.vue";
 import { clubTypeConfig, clubTypeStats } from "@/common/clubType";
 import { useIsDesktop } from "@/common/composables/useIsDesktop";
 
@@ -96,28 +85,17 @@ const pluralNoun = computed(() => clubTypeStats(props.clubType).pluralNoun);
 
 const subtitle = computed(() => {
   if (mode.value === "monthly") return `${pluralNoun.value} reviewed per month`;
-  if (mode.value === "total")
-    return `Total ${pluralNoun.value.toLowerCase()} reviewed over time`;
+  if (mode.value === "total") return `Total ${pluralNoun.value.toLowerCase()} reviewed over time`;
   return `The top-rated ${noun.value} from each year your club reviewed`;
 });
 
 const monthlyPoints = computed(() => computeMonthlyActivity(props.workData));
-const cumulativePoints = computed(() =>
-  computeCumulativeCounts(props.workData),
-);
+const cumulativePoints = computed(() => computeCumulativeCounts(props.workData));
 const yearlyBest = computed(() => computeHighestRatedByYear(props.workData));
 
 const chartOptions = computed(() =>
   mode.value === "monthly"
-    ? createMonthlyActivityChartOptions(
-        monthlyPoints.value,
-        pluralNoun.value,
-        compact.value,
-      )
-    : createCumulativeCountChartOptions(
-        cumulativePoints.value,
-        pluralNoun.value,
-        compact.value,
-      ),
+    ? createMonthlyActivityChartOptions(monthlyPoints.value, pluralNoun.value, compact.value)
+    : createCumulativeCountChartOptions(cumulativePoints.value, pluralNoun.value, compact.value),
 );
 </script>

@@ -21,9 +21,7 @@ export async function insertMovieDetails(
       runtime: tmdbData.runtime,
       budget: tmdbData.budget,
       revenue: tmdbData.revenue,
-      release_date: tmdbData.release_date
-        ? new Date(tmdbData.release_date)
-        : null,
+      release_date: tmdbData.release_date ? new Date(tmdbData.release_date) : null,
       adult: tmdbData.adult,
       backdrop_path: tmdbData.backdrop_path,
       homepage: tmdbData.homepage,
@@ -55,9 +53,7 @@ export async function insertMovieDetails(
             genre_name: g.name,
           })),
         )
-        .onConflict((oc) =>
-          oc.columns(["external_id", "genre_name"]).doNothing(),
-        )
+        .onConflict((oc) => oc.columns(["external_id", "genre_name"]).doNothing())
         .execute(),
     );
   }
@@ -74,9 +70,7 @@ export async function insertMovieDetails(
             origin_country: c.origin_country,
           })),
         )
-        .onConflict((oc) =>
-          oc.columns(["external_id", "company_name"]).doNothing(),
-        )
+        .onConflict((oc) => oc.columns(["external_id", "company_name"]).doNothing())
         .execute(),
     );
   }
@@ -92,16 +86,12 @@ export async function insertMovieDetails(
             country_name: c.name,
           })),
         )
-        .onConflict((oc) =>
-          oc.columns(["external_id", "country_code"]).doNothing(),
-        )
+        .onConflict((oc) => oc.columns(["external_id", "country_code"]).doNothing())
         .execute(),
     );
   }
 
-  const directors = (tmdbData.credits?.crew ?? []).filter(
-    (c) => c.job === "Director",
-  );
+  const directors = (tmdbData.credits?.crew ?? []).filter((c) => c.job === "Director");
   if (directors.length > 0) {
     junctionInserts.push(
       dbOrTrx
@@ -114,16 +104,12 @@ export async function insertMovieDetails(
             profile_path: c.profile_path,
           })),
         )
-        .onConflict((oc) =>
-          oc.columns(["external_id", "director_name"]).doNothing(),
-        )
+        .onConflict((oc) => oc.columns(["external_id", "director_name"]).doNothing())
         .execute(),
     );
   }
 
-  const actors = (tmdbData.credits?.cast ?? []).sort(
-    (a, b) => a.order - b.order,
-  );
+  const actors = (tmdbData.credits?.cast ?? []).sort((a, b) => a.order - b.order);
   if (actors.length > 0) {
     junctionInserts.push(
       dbOrTrx
@@ -164,9 +150,7 @@ export async function updateMovieDetails(
       runtime: tmdbData.runtime,
       budget: tmdbData.budget,
       revenue: tmdbData.revenue,
-      release_date: tmdbData.release_date
-        ? new Date(tmdbData.release_date)
-        : null,
+      release_date: tmdbData.release_date ? new Date(tmdbData.release_date) : null,
       adult: tmdbData.adult,
       backdrop_path: tmdbData.backdrop_path,
       homepage: tmdbData.homepage,
@@ -185,10 +169,7 @@ export async function updateMovieDetails(
     .execute();
 
   // Update genres - delete old and insert new
-  await dbOrTrx
-    .deleteFrom("movie_genres")
-    .where("external_id", "=", externalId)
-    .execute();
+  await dbOrTrx.deleteFrom("movie_genres").where("external_id", "=", externalId).execute();
 
   if (tmdbData.genres.length > 0) {
     await dbOrTrx
@@ -203,14 +184,9 @@ export async function updateMovieDetails(
   }
 
   // Update directors - delete old and insert new
-  await dbOrTrx
-    .deleteFrom("movie_directors")
-    .where("external_id", "=", externalId)
-    .execute();
+  await dbOrTrx.deleteFrom("movie_directors").where("external_id", "=", externalId).execute();
 
-  const directors = (tmdbData.credits?.crew ?? []).filter(
-    (c) => c.job === "Director",
-  );
+  const directors = (tmdbData.credits?.crew ?? []).filter((c) => c.job === "Director");
 
   if (directors.length > 0) {
     await dbOrTrx
@@ -227,14 +203,9 @@ export async function updateMovieDetails(
   }
 
   // Update actors - delete old and insert new
-  await dbOrTrx
-    .deleteFrom("movie_actors")
-    .where("external_id", "=", externalId)
-    .execute();
+  await dbOrTrx.deleteFrom("movie_actors").where("external_id", "=", externalId).execute();
 
-  const actors = (tmdbData.credits?.cast ?? []).sort(
-    (a, b) => a.order - b.order,
-  );
+  const actors = (tmdbData.credits?.cast ?? []).sort((a, b) => a.order - b.order);
   if (actors.length > 0) {
     await dbOrTrx
       .insertInto("movie_actors")

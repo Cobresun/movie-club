@@ -17,7 +17,6 @@ import { badRequest, internalServerError, ok } from "../utils/responses";
 import { buildReviewScores } from "../utils/reviewScores";
 import { Router } from "../utils/router";
 import { ClubRequest, ListRequest, validListId } from "../utils/validation";
-
 import { BadRequest } from "@/common/errorCodes";
 
 const router = new Router<ClubRequest>("/api/club/:clubSlug/list");
@@ -190,11 +189,7 @@ router.post(
 
     // Single INSERT ... SELECT computes the position and detects "already in
     // list" via the (list_id, work_id) unique constraint in one round trip.
-    const inserted = await ListRepository.insertItemInList(
-      listId,
-      work.id,
-      userId,
-    );
+    const inserted = await ListRepository.insertItemInList(listId, work.id, userId);
     if (!inserted) {
       return res(badRequest(BadRequest.ItemInList));
     }
@@ -273,11 +268,7 @@ router.put(
     if (!exists) {
       return res(badRequest("This work does not exist in the list"));
     }
-    await ListRepository.updateAddedDate(
-      listId,
-      workId,
-      new Date(body.data.addedDate),
-    );
+    await ListRepository.updateAddedDate(listId, workId, new Date(body.data.addedDate));
     return res(ok());
   },
 );
@@ -339,15 +330,11 @@ function toDetailedListItem(
     imageUrl: item.image_url ?? undefined,
     externalId: item.external_id ?? undefined,
     addedBy: item.added_by_user_id ?? undefined,
-    externalData: hasValue(item.external_id)
-      ? externalData.get(item.external_id)
-      : undefined,
+    externalData: hasValue(item.external_id) ? externalData.get(item.external_id) : undefined,
   };
 }
 
-async function getReviewList(
-  clubId: string,
-): Promise<DetailedReviewListItem[]> {
+async function getReviewList(clubId: string): Promise<DetailedReviewListItem[]> {
   const [reviews, members] = await Promise.all([
     ReviewRepository.getReviewList(clubId),
     UserRepository.getMembersByClubId(clubId),

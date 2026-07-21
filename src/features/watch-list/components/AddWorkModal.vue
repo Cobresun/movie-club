@@ -3,7 +3,6 @@ import { computed, ref } from "vue";
 
 import { isDefined } from "../../../../lib/checks/checks";
 import { ClubType } from "../../../../lib/types/generated/db";
-
 import { workTypeForClub } from "@/common/clubType";
 import WorkSearchPrompt from "@/common/components/WorkSearchPrompt.vue";
 import { useClub, useClubSlug } from "@/service/useClub";
@@ -35,8 +34,7 @@ const movieTabs: { key: TMDBCollection; label: string }[] = [
 ];
 const activeCollection = ref<TMDBCollection>("popular");
 const activeMovieTabLabel = computed(
-  () =>
-    movieTabs.find((t) => t.key === activeCollection.value)?.label ?? "Popular",
+  () => movieTabs.find((t) => t.key === activeCollection.value)?.label ?? "Popular",
 );
 
 const {
@@ -53,9 +51,7 @@ const movieResults = computed<WorkSearchResult[]>(() => {
       externalId: String(movie.id),
       title: movie.title,
       subtitle: movie.release_date ? movie.release_date.slice(0, 4) : undefined,
-      imageUrl: movie.poster_path
-        ? `${BASE_IMAGE_URL}${movie.poster_path}`
-        : undefined,
+      imageUrl: movie.poster_path ? `${BASE_IMAGE_URL}${movie.poster_path}` : undefined,
     })),
   );
 });
@@ -64,8 +60,7 @@ const movieResults = computed<WorkSearchResult[]>(() => {
 const bookTabs = BOOK_BROWSE_SUBJECTS;
 const activeBookSubject = ref<BookBrowseSubject>("fiction");
 const activeBookTabLabel = computed(
-  () =>
-    bookTabs.find((t) => t.key === activeBookSubject.value)?.label ?? "Fiction",
+  () => bookTabs.find((t) => t.key === activeBookSubject.value)?.label ?? "Fiction",
 );
 const { data: bookBrowse } = useBookBrowse(activeBookSubject);
 const bookResults = computed<WorkSearchResult[]>(() =>
@@ -73,9 +68,7 @@ const bookResults = computed<WorkSearchResult[]>(() =>
 );
 
 // -- Shared --
-const defaultList = computed(() =>
-  isMovieClub.value ? movieResults.value : bookResults.value,
-);
+const defaultList = computed(() => (isMovieClub.value ? movieResults.value : bookResults.value));
 const defaultListTitle = computed(() =>
   isMovieClub.value ? activeMovieTabLabel.value : activeBookTabLabel.value,
 );

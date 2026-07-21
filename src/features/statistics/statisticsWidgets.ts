@@ -1,5 +1,7 @@
 import { type Component } from "vue";
 
+import { Member } from "../../../lib/types/club.js";
+import { ClubType } from "../../../lib/types/generated/db";
 import ActivityWidget from "./components/ActivityWidget.vue";
 import AuthorLeaderboardWidget from "./components/AuthorLeaderboardWidget.vue";
 import ClubConsensusWidget from "./components/ClubConsensusWidget.vue";
@@ -14,14 +16,7 @@ import StatsWidget from "./components/StatsWidget.vue";
 import SubjectStatsWidget from "./components/SubjectStatsWidget.vue";
 import TasteSimilarityWidget from "./components/TasteSimilarityWidget.vue";
 import TmdbDeviationWidget from "./components/TmdbDeviationWidget.vue";
-import {
-  type BookData,
-  type HistogramData,
-  type MovieData,
-  type WorkStatsData,
-} from "./types";
-import { Member } from "../../../lib/types/club.js";
-import { ClubType } from "../../../lib/types/generated/db";
+import { type BookData, type HistogramData, type MovieData, type WorkStatsData } from "./types";
 
 /**
  * Everything a statistics widget might need, assembled once by InsightsView and

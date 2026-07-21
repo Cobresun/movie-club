@@ -14,10 +14,7 @@ class WorkRepository {
   }
 
   async setNextWork(clubId: string, workId: string) {
-    return db
-      .insertInto("next_work")
-      .values({ club_id: clubId, work_id: workId })
-      .execute();
+    return db.insertInto("next_work").values({ club_id: clubId, work_id: workId }).execute();
   }
 
   async deleteNextWork(clubId: string) {
@@ -36,10 +33,7 @@ class WorkRepository {
         image_url: work.imageUrl,
       })
       .onConflict(
-        (oc) =>
-          oc
-            .constraint("uq_club_id_type_external_id")
-            .doUpdateSet({ club_id: clubId }), // This is a no-op, but required for the query to return the id
+        (oc) => oc.constraint("uq_club_id_type_external_id").doUpdateSet({ club_id: clubId }), // This is a no-op, but required for the query to return the id
       )
       .returning("id")
       .executeTakeFirstOrThrow();
@@ -52,9 +46,7 @@ class WorkRepository {
       try {
         await getProvider(work.type).fetchAndCacheDetails(externalId);
       } catch (error) {
-        console.error(
-          `Failed to cache ${work.type} details for ${externalId}: ${String(error)}`,
-        );
+        console.error(`Failed to cache ${work.type} details for ${externalId}: ${String(error)}`);
       }
     }
 
@@ -71,11 +63,7 @@ class WorkRepository {
   }
 
   async delete(clubId: string, workId: string) {
-    return db
-      .deleteFrom("work")
-      .where("id", "=", workId)
-      .where("club_id", "=", clubId)
-      .execute();
+    return db.deleteFrom("work").where("id", "=", workId).where("club_id", "=", clubId).execute();
   }
 }
 

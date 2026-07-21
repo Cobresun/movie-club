@@ -20,9 +20,7 @@
       <button
         :class="[
           'flex-1 pb-3 font-medium transition-colors',
-          isSignUp
-            ? 'border-b-2 border-primary text-primary'
-            : 'text-gray-400 hover:text-gray-300',
+          isSignUp ? 'border-b-2 border-primary text-primary' : 'text-gray-400 hover:text-gray-300',
         ]"
         @click="isSignUp = true"
       >
@@ -52,10 +50,7 @@
     </div>
 
     <!-- Error Message -->
-    <div
-      v-if="errorMessage"
-      class="mb-4 rounded bg-red-900/50 p-3 text-sm text-red-300"
-    >
+    <div v-if="errorMessage" class="mb-4 rounded bg-red-900/50 p-3 text-sm text-red-300">
       {{ errorMessage }}
       <button
         v-if="showResendVerification"
@@ -71,9 +66,7 @@
     <form class="space-y-4" @submit.prevent="handleSubmit">
       <!-- Name (Sign Up only) -->
       <div v-if="isSignUp">
-        <label for="name" class="mb-1 block text-sm font-medium text-gray-300"
-          >Name</label
-        >
+        <label for="name" class="mb-1 block text-sm font-medium text-gray-300">Name</label>
         <input
           id="name"
           v-model="name"
@@ -86,9 +79,7 @@
 
       <!-- Email -->
       <div>
-        <label for="email" class="mb-1 block text-sm font-medium text-gray-300"
-          >Email</label
-        >
+        <label for="email" class="mb-1 block text-sm font-medium text-gray-300">Email</label>
         <input
           id="email"
           v-model="email"
@@ -101,11 +92,7 @@
 
       <!-- Password -->
       <div>
-        <label
-          for="password"
-          class="mb-1 block text-sm font-medium text-gray-300"
-          >Password</label
-        >
+        <label for="password" class="mb-1 block text-sm font-medium text-gray-300">Password</label>
         <input
           id="password"
           v-model="password"
@@ -145,7 +132,6 @@ import { useRoute, useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
 
 import { hasValue, isString } from "../../../lib/checks/checks.js";
-
 import googleLogo from "@/assets/images/google-logo.svg";
 import { authClient } from "@/lib/auth-client";
 import { useAuthStore } from "@/stores/auth";
@@ -227,9 +213,7 @@ const handleSubmit = async () => {
         },
         {
           onSuccess: () => {
-            toast.success(
-              "Account created! Please check your email to verify your account.",
-            );
+            toast.success("Account created! Please check your email to verify your account.");
             handleClose();
           },
           onError: (ctx) => {

@@ -26,25 +26,20 @@ interface GenerateJsonOptions<T> {
  * validated JSON. Callers own their prompts and schemas — this module knows
  * nothing about what is being generated.
  */
-export async function generateJson<T>(
-  options: GenerateJsonOptions<T>,
-): Promise<T> {
+export async function generateJson<T>(options: GenerateJsonOptions<T>): Promise<T> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!hasValue(apiKey)) {
     throw new Error("GEMINI_API_KEY is not configured");
   }
 
-  const response = await axios.post<GeminiResponse>(
-    `${GEMINI_ENDPOINT}?key=${apiKey}`,
-    {
-      contents: [{ parts: [{ text: options.prompt }] }],
-      generationConfig: {
-        temperature: options.temperature,
-        responseMimeType: "application/json",
-        responseSchema: options.responseSchema,
-      },
+  const response = await axios.post<GeminiResponse>(`${GEMINI_ENDPOINT}?key=${apiKey}`, {
+    contents: [{ parts: [{ text: options.prompt }] }],
+    generationConfig: {
+      temperature: options.temperature,
+      responseMimeType: "application/json",
+      responseSchema: options.responseSchema,
     },
-  );
+  });
 
   const rawText = response.data.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!hasValue(rawText)) {

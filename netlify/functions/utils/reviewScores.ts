@@ -14,10 +14,7 @@ export interface ScoreEntry {
 // Builds the `scores` map for a single work: one entry per current member plus
 // a synthetic `average`. Filters to `memberIds` so a departed member's stale
 // score doesn't reappear, and returns an empty object when no member has scored.
-export function buildReviewScores(
-  entries: ScoreEntry[],
-  memberIds: Set<string>,
-): ReviewScores {
+export function buildReviewScores(entries: ScoreEntry[], memberIds: Set<string>): ReviewScores {
   const userScores = entries.reduce<ReviewScores>((acc, entry) => {
     if (
       hasValue(entry.user_id) &&
@@ -43,8 +40,7 @@ export function buildReviewScores(
     average: {
       id: "average",
       created_date: new Date().toISOString(),
-      score:
-        scores.reduce((sum, review) => sum + review.score, 0) / scores.length,
+      score: scores.reduce((sum, review) => sum + review.score, 0) / scores.length,
     },
   };
 }

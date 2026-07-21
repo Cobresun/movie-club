@@ -1,7 +1,6 @@
 import { screen } from "@testing-library/vue";
 
 import CastList from "../components/CastList.vue";
-
 import { render } from "@/tests/utils";
 
 const makeActors = (count: number) =>
@@ -20,9 +19,7 @@ describe("CastList", () => {
     // The character each actor plays is shown alongside their name.
     expect(screen.getByText("Character 1")).toBeInTheDocument();
     expect(screen.getByText("Character 4")).toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: /See all/ }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /See all/ })).not.toBeInTheDocument();
   });
 
   it("shows only the first 5 plus a '+N' affordance when there are more", () => {
@@ -31,9 +28,7 @@ describe("CastList", () => {
     expect(screen.getByText("Actor 5")).toBeInTheDocument();
     // The 6th and 7th members are hidden behind the modal until it is opened.
     expect(screen.queryByText("Actor 6")).not.toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "See all (7)" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "See all (7)" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "+2" })).toBeInTheDocument();
   });
 
@@ -43,9 +38,7 @@ describe("CastList", () => {
     await user.click(screen.getByRole("button", { name: "See all (7)" }));
 
     // level 2 = the modal's title; the section's own "Cast" label is an h3.
-    expect(
-      await screen.findByRole("heading", { name: "Cast", level: 2 }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Cast", level: 2 })).toBeInTheDocument();
     expect(screen.getByText("Actor 6")).toBeInTheDocument();
     expect(screen.getByText("Actor 7")).toBeInTheDocument();
   });

@@ -2,10 +2,7 @@
   <div class="-mx-2 overflow-x-auto pb-2 md:px-2">
     <table class="w-full min-w-[640px] border-separate border-spacing-y-2">
       <thead>
-        <tr
-          v-for="headerGroup in reviewTable.getHeaderGroups()"
-          :key="headerGroup.id"
-        >
+        <tr v-for="headerGroup in reviewTable.getHeaderGroups()" :key="headerGroup.id">
           <th
             v-for="header in headerGroup.headers"
             :key="header.id"
@@ -17,10 +14,7 @@
           >
             <div class="grid grid-cols-centerHeader items-center md:gap-x-1">
               <div class="col-start-2 max-md:scale-90">
-                <FlexRender
-                  :render="header.column.columnDef.header"
-                  :props="header.getContext()"
-                />
+                <FlexRender :render="header.column.columnDef.header" :props="header.getContext()" />
               </div>
               <mdicon
                 v-if="header.column.getCanSort()"
@@ -55,10 +49,7 @@
                 : '',
             ]"
           >
-            <FlexRender
-              :render="cell.column.columnDef.cell"
-              :props="cell.getContext()"
-            />
+            <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()" />
           </td>
         </tr>
       </tbody>

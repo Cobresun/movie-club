@@ -43,9 +43,7 @@ export function filterWorks<T extends DetailedWorkListItem>(
   }
 
   if (hasValue(freeText)) {
-    result = result.filter((work) =>
-      includesCaseInsensitive(work.title, freeText),
-    );
+    result = result.filter((work) => includesCaseInsensitive(work.title, freeText));
   }
 
   return result;

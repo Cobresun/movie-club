@@ -80,9 +80,7 @@ function validateDatabaseName(name: string): void {
   }
 
   if (name.length > 63) {
-    throw new Error(
-      `Database name too long: ${name}. Maximum length is 63 characters.`,
-    );
+    throw new Error(`Database name too long: ${name}. Maximum length is 63 characters.`);
   }
 }
 
@@ -90,10 +88,7 @@ function validateDatabaseName(name: string): void {
  * Checks if a database exists
  */
 async function databaseExists(pool: Pool, dbName: string): Promise<boolean> {
-  const result = await pool.query(
-    "SELECT 1 FROM pg_database WHERE datname = $1",
-    [dbName],
-  );
+  const result = await pool.query("SELECT 1 FROM pg_database WHERE datname = $1", [dbName]);
   return result.rowCount !== null && result.rowCount > 0;
 }
 
@@ -117,14 +112,9 @@ function buildS3Uri(bucket: string): string {
 /**
  * Finds the latest snapshot in S3
  */
-async function findLatestSnapshot(
-  pool: Pool,
-  s3Uri: string,
-): Promise<string | undefined> {
+async function findLatestSnapshot(pool: Pool, s3Uri: string): Promise<string | undefined> {
   try {
-    const result = await pool.query<{ path: string }>(
-      `SHOW BACKUPS IN '${s3Uri}'`,
-    );
+    const result = await pool.query<{ path: string }>(`SHOW BACKUPS IN '${s3Uri}'`);
     const snapshots = result.rows.map((row) => row.path);
     return snapshots[snapshots.length - 1]; // Latest is last
   } catch (error) {
@@ -173,20 +163,13 @@ async function addDatabaseMetadata(
  * Main spawn function
  */
 async function spawnDatabase(options: SpawnOptions): Promise<string> {
-  const {
-    sourceDb,
-    targetDb,
-    metadata: metadataArg,
-    replace = false,
-  } = options;
+  const { sourceDb, targetDb, metadata: metadataArg, replace = false } = options;
 
   validateDatabaseName(targetDb);
 
   const databaseUrl = process.env.DATABASE_URL_ROOT ?? process.env.DATABASE_URL;
   if (!hasValue(databaseUrl)) {
-    throw new Error(
-      "DATABASE_URL_ROOT or DATABASE_URL environment variable is not set",
-    );
+    throw new Error("DATABASE_URL_ROOT or DATABASE_URL environment variable is not set");
   }
 
   const connParams = parseConnectionString(databaseUrl);
@@ -219,13 +202,7 @@ async function spawnDatabase(options: SpawnOptions): Promise<string> {
       );
     }
 
-    await restoreFromSnapshot(
-      adminPool,
-      sourceDb,
-      targetDb,
-      s3Uri,
-      latestSnapshot,
-    );
+    await restoreFromSnapshot(adminPool, sourceDb, targetDb, s3Uri, latestSnapshot);
 
     const metadata: DbMetadata = {
       created_at: new Date().toISOString(),
@@ -309,9 +286,7 @@ function updateEnvFile(newDatabaseUrl: string): void {
     writeFileSync(envPath, updatedLines.join("\n"));
     console.log(`✓ Updated .env file with new DATABASE_URL`);
   } catch {
-    console.warn(
-      `Warning: Could not update .env file. Please update DATABASE_URL manually.`,
-    );
+    console.warn(`Warning: Could not update .env file. Please update DATABASE_URL manually.`);
   }
 }
 

@@ -1,10 +1,7 @@
 import { Kysely, sql } from "kysely";
 
 export async function up(db: Kysely<unknown>) {
-  await db.schema
-    .alterTable("work_list_item")
-    .addColumn("position", "integer")
-    .execute();
+  await db.schema.alterTable("work_list_item").addColumn("position", "integer").execute();
 
   await sql`
     UPDATE work_list_item

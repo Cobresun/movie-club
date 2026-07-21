@@ -36,11 +36,7 @@
               class="mt-2 flex items-center justify-center gap-1.5 text-xs text-slate-400"
               :title="`Added by ${adderFor(item)?.name}`"
             >
-              <VAvatar
-                :src="adderFor(item)?.image"
-                :name="adderFor(item)?.name ?? ''"
-                :size="18"
-              />
+              <VAvatar :src="adderFor(item)?.image" :name="adderFor(item)?.name ?? ''" :size="18" />
               <span class="truncate">{{ adderFor(item)?.name }}</span>
             </div>
           </WorkPosterCard>
@@ -56,13 +52,8 @@
 import { computed } from "vue";
 import { useRoute } from "vue-router";
 
-import {
-  hasElements,
-  hasValue,
-  isDefined,
-} from "../../../../lib/checks/checks.js";
+import { hasElements, hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import { DetailedWorkListItem } from "../../../../lib/types/lists.js";
-
 import EmptyState from "@/common/components/EmptyState.vue";
 import SharedPageCtaBanner from "@/common/components/SharedPageCtaBanner.vue";
 import SharedPageHeader from "@/common/components/SharedPageHeader.vue";
@@ -82,9 +73,7 @@ const { data: lists } = useClubLists(clubSlug);
 const { data: items, isLoading, error } = useList(clubSlug, listId);
 const { data: nextWorkId } = useNextWork(clubSlug);
 
-const listTitle = computed(
-  () => lists.value?.find((l) => l.id === listId)?.title ?? "List",
-);
+const listTitle = computed(() => lists.value?.find((l) => l.id === listId)?.title ?? "List");
 
 const memberById = computed(() => new Map(members.value.map((m) => [m.id, m])));
 const adderFor = (item: DetailedWorkListItem) =>

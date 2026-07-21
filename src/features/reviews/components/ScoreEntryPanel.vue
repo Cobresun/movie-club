@@ -26,11 +26,7 @@
       type="button"
       :disabled="!canSave"
       class="w-full rounded-lg py-3 text-center font-bold tracking-wide text-text transition duration-fast ease-standard"
-      :class="
-        canSave
-          ? 'bg-primary hover:brightness-110 active:scale-[0.98]'
-          : 'bg-gray-600'
-      "
+      :class="canSave ? 'bg-primary hover:brightness-110 active:scale-[0.98]' : 'bg-gray-600'"
       @click="save"
     >
       Save score
@@ -39,21 +35,12 @@
 </template>
 
 <script setup lang="ts">
-import {
-  computed,
-  inject,
-  nextTick,
-  onBeforeUnmount,
-  onMounted,
-  ref,
-  watch,
-} from "vue";
+import { computed, inject, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 
 import { isDefined, isTrue } from "../../../../lib/checks/checks.js";
 import { ScoreAssistKey } from "../scoreAssist";
 import { clampScore, isValidScore } from "../scoreScale";
 import ScoreDial from "./ScoreDial.vue";
-
 import { useClubSlug } from "@/service/useClub";
 import { useSubmitScore } from "@/service/useReviews";
 
@@ -88,9 +75,7 @@ const emit = defineEmits<{
 
 const clubSlug = useClubSlug();
 
-const scoreModel = ref(
-  props.draftScore?.toString() ?? props.score?.toString() ?? "",
-);
+const scoreModel = ref(props.draftScore?.toString() ?? props.score?.toString() ?? "");
 
 // Typed by the dial's exposed surface rather than InstanceType<typeof ScoreDial>:
 // ESLint's type-aware program cannot resolve .vue module types, so the latter
@@ -113,14 +98,10 @@ watch(
   },
 );
 
-const canSave = computed(() =>
-  isValidScore(Number.parseFloat(scoreModel.value)),
-);
+const canSave = computed(() => isValidScore(Number.parseFloat(scoreModel.value)));
 
 const scoreAssist = inject(ScoreAssistKey, undefined);
-const showAssist = computed(
-  () => isDefined(scoreAssist) && scoreAssist.isEligible(props.workId),
-);
+const showAssist = computed(() => isDefined(scoreAssist) && scoreAssist.isEligible(props.workId));
 
 const submitScore = useSubmitScore(clubSlug);
 

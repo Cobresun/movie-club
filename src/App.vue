@@ -2,10 +2,7 @@
   <div>
     <nav-bar />
     <div
-      v-if="
-        authStore.isInitialLoading ||
-        (authStore.isLoggedIn && authStore.isLoadingUserClubs)
-      "
+      v-if="authStore.isInitialLoading || (authStore.isLoggedIn && authStore.isLoadingUserClubs)"
       class="absolute w-full"
     >
       <div class="flex justify-center pt-20">
@@ -19,10 +16,7 @@
     </router-view>
 
     <!-- Auth Modal -->
-    <auth-modal
-      v-if="authStore.showAuthModal"
-      @close="authStore.closeAuthModal"
-    />
+    <auth-modal v-if="authStore.showAuthModal" @close="authStore.closeAuthModal" />
   </div>
 </template>
 

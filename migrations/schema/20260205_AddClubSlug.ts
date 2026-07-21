@@ -1,11 +1,7 @@
 import crypto from "crypto";
 import { ColumnType, Kysely, sql } from "kysely";
 
-export type Int8 = ColumnType<
-  string,
-  bigint | number | string,
-  bigint | number | string
->;
+export type Int8 = ColumnType<string, bigint | number | string, bigint | number | string>;
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
 /**
@@ -37,10 +33,7 @@ export async function up(db: Kysely<unknown>) {
   await db.schema.alterTable("club").addColumn("slug", "varchar(50)").execute();
 
   // Step 2: Add slug_updated_at column (nullable)
-  await db.schema
-    .alterTable("club")
-    .addColumn("slug_updated_at", "timestamp")
-    .execute();
+  await db.schema.alterTable("club").addColumn("slug_updated_at", "timestamp").execute();
 
   // Step 3: Create a typed interface for the migration
   interface MigrationClubTable {
@@ -56,10 +49,7 @@ export async function up(db: Kysely<unknown>) {
   }>();
 
   // Step 4: Fetch all existing clubs
-  const clubs = await typedDb
-    .selectFrom("club")
-    .select(["id", "name"])
-    .execute();
+  const clubs = await typedDb.selectFrom("club").select(["id", "name"]).execute();
 
   // Step 5: Generate slugs for all existing clubs
   const slugMap = new Map<string, string[]>(); // slug -> [clubIds] to detect collisions
@@ -93,11 +83,7 @@ export async function up(db: Kysely<unknown>) {
   // Step 6: Update each club with its generated slug
   // Note: We don't set slug_updated_at here so users can change their slug immediately
   for (const [clubId, slug] of clubSlugs.entries()) {
-    await typedDb
-      .updateTable("club")
-      .set({ slug })
-      .where("id", "=", clubId)
-      .execute();
+    await typedDb.updateTable("club").set({ slug }).where("id", "=", clubId).execute();
   }
 
   // Step 7: Make slug column NOT NULL and add unique constraint
@@ -107,12 +93,7 @@ export async function up(db: Kysely<unknown>) {
     .execute();
 
   // Step 8: Add unique index on slug for performance and uniqueness
-  await db.schema
-    .createIndex("club_slug_unique_idx")
-    .on("club")
-    .column("slug")
-    .unique()
-    .execute();
+  await db.schema.createIndex("club_slug_unique_idx").on("club").column("slug").unique().execute();
 
   // Step 9: Add check constraint for slug format
   // Pattern: 3-50 chars, lowercase letters, numbers, hyphens, no leading/trailing hyphens
@@ -125,9 +106,7 @@ export async function up(db: Kysely<unknown>) {
 
 export async function down(db: Kysely<unknown>) {
   // Drop constraint
-  await sql`ALTER TABLE club DROP CONSTRAINT IF EXISTS club_slug_format_check`.execute(
-    db,
-  );
+  await sql`ALTER TABLE club DROP CONSTRAINT IF EXISTS club_slug_format_check`.execute(db);
 
   // Drop index
   await db.schema.dropIndex("club_slug_unique_idx").execute();

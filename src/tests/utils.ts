@@ -2,16 +2,12 @@ import * as mdijs from "@mdi/js";
 import { createTestingPinia } from "@pinia/testing";
 import { VueQueryPlugin } from "@tanstack/vue-query";
 import userEvent from "@testing-library/user-event";
-import {
-  RenderOptions,
-  render as testingLibraryRender,
-} from "@testing-library/vue";
+import { RenderOptions, render as testingLibraryRender } from "@testing-library/vue";
 import mdiVue from "mdi-vue/v3";
 import { TransitionGroup } from "vue";
 import Toast from "vue-toastification";
 
 import PiniaStoreHelperTest from "./PiniaStoreHelper.test.vue";
-
 import LoadingSpinner from "@/common/components/LoadingSpinner.vue";
 import PageHeader from "@/common/components/PageHeader.vue";
 import VAvatar from "@/common/components/VAvatar.vue";
@@ -21,10 +17,7 @@ import VTable from "@/common/components/VTable.vue";
 import LazyLoad from "@/directives/LazyLoad";
 import Reveal from "@/directives/Reveal";
 
-export const render = (
-  component: unknown,
-  options: Partial<RenderOptions> = {},
-) => {
+export const render = (component: unknown, options: Partial<RenderOptions> = {}) => {
   const user = userEvent.setup();
   const pinia = createTestingPinia();
   testingLibraryRender(PiniaStoreHelperTest, {
@@ -49,7 +42,9 @@ export const render = (
         stubs: {
           "router-link": true,
           "router-view": true,
-          ...options.global?.stubs,
+          ...(Array.isArray(options.global?.stubs)
+            ? Object.fromEntries(options.global.stubs.map((s) => [s, true]))
+            : options.global?.stubs),
         },
       },
     }),

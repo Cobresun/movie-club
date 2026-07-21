@@ -32,9 +32,7 @@ function buildS3Uri(bucket: string): string {
  */
 async function listSnapshots(pool: Pool, s3Uri: string): Promise<string[]> {
   try {
-    const result = await pool.query<{ path: string }>(
-      `SHOW BACKUPS IN '${s3Uri}'`,
-    );
+    const result = await pool.query<{ path: string }>(`SHOW BACKUPS IN '${s3Uri}'`);
     return result.rows.map((row) => row.path);
   } catch (error) {
     if (error instanceof Error && error.message.includes("no backup")) {
@@ -47,11 +45,7 @@ async function listSnapshots(pool: Pool, s3Uri: string): Promise<string[]> {
 /**
  * Creates a new snapshot backup of the specified database
  */
-async function createSnapshot(
-  pool: Pool,
-  dbName: string,
-  s3Uri: string,
-): Promise<string> {
+async function createSnapshot(pool: Pool, dbName: string, s3Uri: string): Promise<string> {
   console.log(`Creating snapshot of database: ${dbName}...`);
 
   await pool.query(`
@@ -97,9 +91,7 @@ async function snapshotDatabase(dbName: string): Promise<void> {
       console.log(
         `\n⚠️  Note: You have ${snapshots.length} snapshots (keeping last ${MAX_SNAPSHOTS} is recommended).`,
       );
-      console.log(
-        `   Manually delete old snapshots from S3 if needed to save storage costs.`,
-      );
+      console.log(`   Manually delete old snapshots from S3 if needed to save storage costs.`);
     }
 
     console.log("\n✓ Snapshot complete!\n");
@@ -115,9 +107,7 @@ async function main() {
   const dbName = process.argv[2] ?? "dev";
 
   console.log("Usage: npm run db:snapshot [database_name]");
-  console.log(
-    'Example: npm run db:snapshot dev (or just "npm run db:snapshot")',
-  );
+  console.log('Example: npm run db:snapshot dev (or just "npm run db:snapshot")');
   console.log("");
 
   try {

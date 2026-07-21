@@ -1,19 +1,12 @@
 <template>
   <div class="mt-6 w-full text-left">
     <Transition name="fade" mode="out-in">
-      <div
-        v-if="hasQuestions"
-        key="loaded"
-        class="rounded-xl bg-lowBackground p-4"
-      >
+      <div v-if="hasQuestions" key="loaded" class="rounded-xl bg-lowBackground p-4">
         <div class="mb-3 flex items-center gap-2 text-sm text-gray-300">
           <mdicon name="creation" size="18" class="text-purple-300" />
           <span class="font-semibold">Discussion questions</span>
         </div>
-        <ol
-          class="flex flex-col gap-2 transition-opacity"
-          :class="{ 'opacity-50': isLoading }"
-        >
+        <ol class="flex flex-col gap-2 transition-opacity" :class="{ 'opacity-50': isLoading }">
           <li
             v-for="(question, index) in questions"
             :key="index"
@@ -32,25 +25,16 @@
             :disabled="isLoading"
             @click="regenerate"
           >
-            <mdicon
-              v-if="isLoading"
-              name="loading"
-              size="14"
-              class="animate-spin"
-            />
+            <mdicon v-if="isLoading" name="loading" size="14" class="animate-spin" />
             <span>{{ isLoading ? "Regenerating…" : "Regenerate" }}</span>
           </button>
         </div>
       </div>
 
-      <div
-        v-else-if="isUnrecognized"
-        key="unrecognized"
-        class="flex flex-col gap-2"
-      >
+      <div v-else-if="isUnrecognized" key="unrecognized" class="flex flex-col gap-2">
         <p class="text-sm text-red-400">
-          We couldn't recognize this {{ mediaNoun }}, so we couldn't generate
-          discussion questions for it.
+          We couldn't recognize this {{ mediaNoun }}, so we couldn't generate discussion questions
+          for it.
         </p>
         <button
           class="ai-shimmer-button flex items-center justify-center gap-2 rounded-lg py-3 text-sm font-semibold text-white"
@@ -62,9 +46,7 @@
       </div>
 
       <div v-else-if="isError" key="error" class="flex flex-col gap-2">
-        <p class="text-sm text-red-400">
-          Couldn't generate questions. Please try again.
-        </p>
+        <p class="text-sm text-red-400">Couldn't generate questions. Please try again.</p>
         <button
           class="ai-shimmer-button flex items-center justify-center gap-2 rounded-lg py-3 text-sm font-semibold text-white"
           :class="{ loading: isLoading }"
@@ -84,9 +66,7 @@
         @click="regenerate"
       >
         <mdicon name="creation" />
-        <span>{{
-          isLoading ? "Generating questions…" : "Generate discussion questions"
-        }}</span>
+        <span>{{ isLoading ? "Generating questions…" : "Generate discussion questions" }}</span>
       </button>
     </Transition>
   </div>
@@ -104,19 +84,14 @@ const props = defineProps<{
   mediaNoun: string;
 }>();
 
-const { data, isFetching, isError, refetch } = useDiscussionQuestions(
-  props.clubSlug,
-  props.workId,
-);
+const { data, isFetching, isError, refetch } = useDiscussionQuestions(props.clubSlug, props.workId);
 
 const questions = computed(() => data.value ?? []);
 const hasQuestions = computed(() => questions.value.length > 0);
 // A defined-but-empty result means the request succeeded but the model didn't
 // recognize the film (the query is disabled until refetch, so `data` is
 // undefined until a fetch completes).
-const isUnrecognized = computed(
-  () => data.value !== undefined && questions.value.length === 0,
-);
+const isUnrecognized = computed(() => data.value !== undefined && questions.value.length === 0);
 const isLoading = computed(() => isFetching.value);
 
 const regenerate = () => {
@@ -146,14 +121,7 @@ const regenerate = () => {
   z-index: -1;
   border-radius: inherit;
   padding: 2px;
-  background: conic-gradient(
-    from var(--ai-angle),
-    #ff4ecd,
-    #6e7bff,
-    #4ecdff,
-    #b14eff,
-    #ff4ecd
-  );
+  background: conic-gradient(from var(--ai-angle), #ff4ecd, #6e7bff, #4ecdff, #b14eff, #ff4ecd);
   -webkit-mask:
     linear-gradient(#000 0 0) content-box,
     linear-gradient(#000 0 0);

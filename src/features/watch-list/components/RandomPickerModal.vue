@@ -37,7 +37,6 @@ import { onMounted, ref, toRef } from "vue";
 
 import { DetailedWorkListItem } from "../../../../lib/types/lists";
 import { useRandomPicker } from "../composables/useRandomPicker";
-
 import WorkPosterCard from "@/common/components/WorkPosterCard.vue";
 
 const props = defineProps<{
@@ -48,15 +47,10 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: "close"): void;
   (e: "makeNext", item: DetailedWorkListItem): void;
-  (
-    e: "moveToList",
-    payload: { item: DetailedWorkListItem; listId: string },
-  ): void;
+  (e: "moveToList", payload: { item: DetailedWorkListItem; listId: string }): void;
 }>();
 
-const { currentItem, isRevealed, pick } = useRandomPicker(
-  toRef(props, "items"),
-);
+const { currentItem, isRevealed, pick } = useRandomPicker(toRef(props, "items"));
 
 const winner = ref<DetailedWorkListItem>();
 

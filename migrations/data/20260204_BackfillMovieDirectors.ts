@@ -22,20 +22,14 @@ async function fetchDirectors(externalId: string): Promise<string[]> {
   const response = await axios.get<TMDBCreditsResponse>(
     `https://api.themoviedb.org/3/movie/${externalId}/credits?api_key=${tmdbApiKey}`,
   );
-  return response.data.crew
-    .filter((c) => c.job === "Director")
-    .map((c) => c.name);
+  return response.data.crew.filter((c) => c.job === "Director").map((c) => c.name);
 }
 
 const backfillMovieDirectors = async () => {
   // Get all movie_details entries that don't have corresponding movie_directors rows
   const movies = await db
     .selectFrom("movie_details")
-    .leftJoin(
-      "movie_directors",
-      "movie_directors.external_id",
-      "movie_details.external_id",
-    )
+    .leftJoin("movie_directors", "movie_directors.external_id", "movie_details.external_id")
     .where("movie_directors.director_name", "is", null)
     .select(["movie_details.external_id", "movie_details.title"])
     .execute();
@@ -61,25 +55,16 @@ const backfillMovieDirectors = async () => {
                 director_name: name,
               })),
             )
-            .onConflict((oc) =>
-              oc.columns(["external_id", "director_name"]).doNothing(),
-            )
+            .onConflict((oc) => oc.columns(["external_id", "director_name"]).doNothing())
             .execute();
           processed++;
-          console.log(
-            `Processed: ${movie.title ?? movie.external_id} — ${directors.join(", ")}`,
-          );
+          console.log(`Processed: ${movie.title ?? movie.external_id} — ${directors.join(", ")}`);
         } else {
           skipped++;
-          console.log(
-            `Skipped (no directors found): ${movie.title ?? movie.external_id}`,
-          );
+          console.log(`Skipped (no directors found): ${movie.title ?? movie.external_id}`);
         }
       } catch (error) {
-        console.error(
-          `Error processing ${movie.title ?? movie.external_id}:`,
-          error,
-        );
+        console.error(`Error processing ${movie.title ?? movie.external_id}:`, error);
         errors++;
       }
     }
@@ -89,9 +74,7 @@ const backfillMovieDirectors = async () => {
       await new Promise((resolve) => setTimeout(resolve, BATCH_DELAY_MS));
     }
 
-    console.log(
-      `Progress: ${Math.min(i + BATCH_SIZE, movies.length)}/${movies.length}`,
-    );
+    console.log(`Progress: ${Math.min(i + BATCH_SIZE, movies.length)}/${movies.length}`);
   }
 
   console.log("\n=== Backfill Summary ===");

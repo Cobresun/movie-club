@@ -24,15 +24,11 @@ describe("secureImageUrl", () => {
   });
 
   it("strips the edge=curl param at the end of the query", () => {
-    expect(secureImageUrl("https://x.com/img?id=1&edge=curl")).toBe(
-      "https://x.com/img?id=1",
-    );
+    expect(secureImageUrl("https://x.com/img?id=1&edge=curl")).toBe("https://x.com/img?id=1");
   });
 
   it("leaves clean urls untouched", () => {
-    expect(secureImageUrl("https://x.com/img?id=1")).toBe(
-      "https://x.com/img?id=1",
-    );
+    expect(secureImageUrl("https://x.com/img?id=1")).toBe("https://x.com/img?id=1");
   });
 });
 
@@ -47,9 +43,7 @@ describe("bestCoverUrl", () => {
   });
 
   it("falls back through sizes", () => {
-    expect(bestCoverUrl({ smallThumbnail: "http://x.com/small" })).toBe(
-      "https://x.com/small",
-    );
+    expect(bestCoverUrl({ smallThumbnail: "http://x.com/small" })).toBe("https://x.com/small");
   });
 
   it("returns undefined without imageLinks", () => {
@@ -81,15 +75,11 @@ describe("parsePublishedYear", () => {
 
 describe("stripHtml", () => {
   it("strips tags and keeps text", () => {
-    expect(stripHtml("<p>A <b>classic</b> novel.</p>")).toBe(
-      "A classic novel.",
-    );
+    expect(stripHtml("<p>A <b>classic</b> novel.</p>")).toBe("A classic novel.");
   });
 
   it("turns breaks and paragraphs into newlines", () => {
-    expect(stripHtml("<p>One</p><p>Two<br/>Three</p>")).toBe(
-      "One\n\nTwo\nThree",
-    );
+    expect(stripHtml("<p>One</p><p>Two<br/>Three</p>")).toBe("One\n\nTwo\nThree");
   });
 
   it("decodes common entities", () => {
@@ -110,21 +100,12 @@ describe("sortVolumesByPopularity", () => {
   });
 
   it("orders by ratingsCount descending", () => {
-    const sorted = sortVolumesByPopularity([
-      volume("a", 5),
-      volume("b", 200),
-      volume("c", 40),
-    ]);
+    const sorted = sortVolumesByPopularity([volume("a", 5), volume("b", 200), volume("c", 40)]);
     expect(sorted.map((v) => v.id)).toEqual(["b", "c", "a"]);
   });
 
   it("keeps relevance order among unrated volumes and ranks them last", () => {
-    const sorted = sortVolumesByPopularity([
-      volume("a"),
-      volume("b", 3),
-      { id: "c" },
-      volume("d"),
-    ]);
+    const sorted = sortVolumesByPopularity([volume("a"), volume("b", 3), { id: "c" }, volume("d")]);
     expect(sorted.map((v) => v.id)).toEqual(["b", "a", "c", "d"]);
   });
 
@@ -137,9 +118,12 @@ describe("sortVolumesByPopularity", () => {
 
 describe("splitCategories", () => {
   it("splits BISAC paths into deduped terms", () => {
-    expect(
-      splitCategories(["Fiction / Thrillers / Suspense", "Fiction / Legal"]),
-    ).toEqual(["Fiction", "Thrillers", "Suspense", "Legal"]);
+    expect(splitCategories(["Fiction / Thrillers / Suspense", "Fiction / Legal"])).toEqual([
+      "Fiction",
+      "Thrillers",
+      "Suspense",
+      "Legal",
+    ]);
   });
 
   it("returns empty for no categories", () => {

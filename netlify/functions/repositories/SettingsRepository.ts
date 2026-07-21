@@ -36,10 +36,7 @@ class SettingsRepository {
     };
   }
 
-  async updateSettings(
-    clubId: string,
-    settings: Partial<ClubSettings>,
-  ): Promise<ClubSettings> {
+  async updateSettings(clubId: string, settings: Partial<ClubSettings>): Promise<ClubSettings> {
     const existing = await this.getSettings(clubId);
     const merged = {
       features: {
@@ -57,9 +54,7 @@ class SettingsRepository {
         value: JSON.stringify(merged),
       })
       .onConflict((eb) =>
-        eb
-          .columns(["club_id", "key"])
-          .doUpdateSet({ value: JSON.stringify(merged) }),
+        eb.columns(["club_id", "key"]).doUpdateSet({ value: JSON.stringify(merged) }),
       )
       .execute();
 

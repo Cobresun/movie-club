@@ -37,9 +37,7 @@ export default async (req: Request) => {
       totals.processed += result.processed;
       totals.updated += result.updated;
       totals.skipped += result.errors.length;
-      totals.errors.push(
-        ...result.errors.map((e) => ({ type: provider.type, ...e })),
-      );
+      totals.errors.push(...result.errors.map((e) => ({ type: provider.type, ...e })));
 
       console.log(
         `  ${provider.type}: processed ${result.processed}, updated ${result.updated}, errors ${result.errors.length}`,

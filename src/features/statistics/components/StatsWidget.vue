@@ -23,11 +23,7 @@
       v-if="isBookClub && totalPages > 0"
       class="flex flex-1 flex-col items-center rounded-xl border border-slate-700 bg-lowBackground py-5"
     >
-      <mdicon
-        name="file-document-outline"
-        class="mb-2 text-primary"
-        :size="20"
-      />
+      <mdicon name="file-document-outline" class="mb-2 text-primary" :size="20" />
       <p class="text-3xl font-bold text-white">{{ formattedPages }}</p>
       <p class="text-xs tracking-wide text-slate-400">pages read</p>
     </div>
@@ -40,7 +36,6 @@ import { computed } from "vue";
 import { isDefined } from "../../../../lib/checks/checks.js";
 import { ClubType } from "../../../../lib/types/generated/db";
 import { isBookStats, isMovieStats, type WorkStatsData } from "../types";
-
 import { clubTypeStats } from "@/common/clubType";
 
 const props = defineProps<{
@@ -73,9 +68,7 @@ const formattedTime = computed(() => {
   return `${totalHours.value}h ${minutes}m`;
 });
 
-const totalDays = computed(() =>
-  totalHours.value > 24 ? Math.round(totalHours.value / 24) : 0,
-);
+const totalDays = computed(() => (totalHours.value > 24 ? Math.round(totalHours.value / 24) : 0));
 
 const totalPages = computed(() =>
   props.workData.filter(isBookStats).reduce((sum, book) => {

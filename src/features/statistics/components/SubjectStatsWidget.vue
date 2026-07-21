@@ -40,12 +40,8 @@
             {{ index + 1 }}
           </span>
           <div class="flex min-w-0 flex-col">
-            <span class="truncate text-left text-white">{{
-              subject.subject
-            }}</span>
-            <div
-              class="mt-1 h-1.5 w-24 overflow-hidden rounded-full bg-gray-700"
-            >
+            <span class="truncate text-left text-white">{{ subject.subject }}</span>
+            <div class="mt-1 h-1.5 w-24 overflow-hidden rounded-full bg-gray-700">
               <div
                 class="h-full rounded-full bg-primary"
                 :style="{ width: barWidth(subject.count) }"
@@ -66,13 +62,10 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 
+import { computeSubjectReadCounts, computeSubjectStats } from "../statsComputers";
+import type { BookData } from "../types";
 import SegmentedToggle from "./SegmentedToggle.vue";
 import WidgetShell from "./WidgetShell.vue";
-import {
-  computeSubjectReadCounts,
-  computeSubjectStats,
-} from "../statsComputers";
-import type { BookData } from "../types";
 
 type Mode = "rated" | "read";
 

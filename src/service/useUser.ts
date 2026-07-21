@@ -2,7 +2,6 @@ import { useMutation, useQuery } from "@tanstack/vue-query";
 import { computed } from "vue";
 
 import { ClubPreview, User } from "../../lib/types/club";
-
 import { useAuthStore } from "@/stores/auth";
 
 export function useUser() {
@@ -29,8 +28,7 @@ export function useUserClubs() {
   return useQuery<ClubPreview[]>({
     queryKey: ["user", "clubs"],
     enabled: isLoggedIn,
-    queryFn: async () =>
-      (await auth.request.get<ClubPreview[]>("/api/member/clubs")).data,
+    queryFn: async () => (await auth.request.get<ClubPreview[]>("/api/member/clubs")).data,
   });
 }
 
@@ -64,8 +62,7 @@ export function useDeleteAvatar() {
 export function useUpdateName() {
   const auth = useAuthStore();
   return useMutation({
-    mutationFn: async (name: string) =>
-      await auth.request.put(`/api/member/name`, { name }),
+    mutationFn: async (name: string) => await auth.request.put(`/api/member/name`, { name }),
     onSettled: () => {
       // Refresh session to get updated user data
       auth.refreshSession().catch(console.error);

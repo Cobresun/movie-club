@@ -52,8 +52,7 @@ async function listDatabases(): Promise<DatabaseInfo[]> {
     // Filter out protected databases and CockroachDB internal databases
     const filteredRows = result.rows.filter(
       (row) =>
-        !PROTECTED_DATABASES.includes(row.database_name) &&
-        !row.database_name.startsWith("crdb_"),
+        !PROTECTED_DATABASES.includes(row.database_name) && !row.database_name.startsWith("crdb_"),
     );
 
     // Sort by name
@@ -98,9 +97,7 @@ function displayDatabases(databases: DatabaseInfo[]): void {
   const prodDatabases = databases.filter((db) => db.name === "prod");
   const devDatabases = databases.filter((db) => db.name === "dev");
   const prDatabases = databases.filter((db) => db.name.startsWith("pr_"));
-  const personalDatabases = databases.filter((db) =>
-    db.name.startsWith("dev_"),
-  );
+  const personalDatabases = databases.filter((db) => db.name.startsWith("dev_"));
   const otherDatabases = databases.filter(
     (db) =>
       !db.name.startsWith("pr_") &&

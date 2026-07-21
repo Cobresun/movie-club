@@ -1,10 +1,6 @@
 import { DetailedBookData } from "../../../../lib/types/book";
 import { WorkType } from "../../../../lib/types/generated/db";
-import {
-  DetailedReviewListItem,
-  DetailedWorkData,
-  Review,
-} from "../../../../lib/types/lists";
+import { DetailedReviewListItem, DetailedWorkData, Review } from "../../../../lib/types/lists";
 import { DetailedMovieData } from "../../../../lib/types/movie";
 import {
   answerComparison,
@@ -14,7 +10,6 @@ import {
   ScoredCandidate,
   startSession,
 } from "../composables/scoreAssistLogic";
-
 import { makeWorkSimilarity, workSimilarity } from "@/common/clubType";
 
 const USER_ID = "user-1";
@@ -123,8 +118,7 @@ function target(externalData?: DetailedWorkData): DetailedReviewListItem {
 }
 
 /** Candidates scored 1..9, no metadata — the workhorse pool. */
-const ladder = () =>
-  [1, 2, 3, 4, 5, 6, 7, 8, 9].map((score) => candidate(`w${score}`, score));
+const ladder = () => [1, 2, 3, 4, 5, 6, 7, 8, 9].map((score) => candidate(`w${score}`, score));
 
 describe("buildCandidatePool", () => {
   it("collects only the current user's scored works, excluding the target", () => {
@@ -150,10 +144,7 @@ describe("buildCandidatePool", () => {
   });
 
   it("drops non-finite scores", () => {
-    const reviews = [
-      reviewItem("a", { userScore: Number.NaN }),
-      reviewItem("b", { userScore: 5 }),
-    ];
+    const reviews = [reviewItem("a", { userScore: Number.NaN }), reviewItem("b", { userScore: 5 })];
     const pool = buildCandidatePool(reviews, USER_ID, "target");
     expect(pool.map((item) => item.workId)).toEqual(["b"]);
   });
@@ -163,13 +154,9 @@ describe("isScoreAssistEligible", () => {
   it("requires five scored works besides the target", () => {
     const four = [1, 2, 3, 4].map((n) => reviewItem(`w${n}`, { userScore: n }));
     const targetItem = reviewItem("target", { userScore: 8 });
-    expect(
-      isScoreAssistEligible([...four, targetItem], USER_ID, "target"),
-    ).toBe(false);
+    expect(isScoreAssistEligible([...four, targetItem], USER_ID, "target")).toBe(false);
     const five = [...four, reviewItem("w5", { userScore: 5 })];
-    expect(
-      isScoreAssistEligible([...five, targetItem], USER_ID, "target"),
-    ).toBe(true);
+    expect(isScoreAssistEligible([...five, targetItem], USER_ID, "target")).toBe(true);
   });
 
   it("is false without reviews or a user", () => {
@@ -262,9 +249,9 @@ describe("answerComparison", () => {
 
 describe("termination and suggestions", () => {
   it("terminates within MAX_COMPARISONS without repeating pivots, whatever the user answers", () => {
-    const pool = [
-      0, 1, 2, 3, 3.3, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.7, 8, 9, 10,
-    ].map((score, i) => candidate(`w${i}`, score));
+    const pool = [0, 1, 2, 3, 3.3, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.7, 8, 9, 10].map((score, i) =>
+      candidate(`w${i}`, score),
+    );
     for (const answer of ["more", "less", "skip", "same"] as const) {
       let session = startSession(target(), pool);
       const seen = new Set<string>();
@@ -281,10 +268,7 @@ describe("termination and suggestions", () => {
   });
 
   it("rounds the converged midpoint to the nearest half", () => {
-    let session = startSession(target(), [
-      candidate("a", 6),
-      candidate("b", 8.5),
-    ]);
+    let session = startSession(target(), [candidate("a", 6), candidate("b", 8.5)]);
     session = answerComparison(session, "more"); // pivot a (6)
     session = answerComparison(session, "less"); // pivot b (8.5)
     // Bracket (6, 8.5) -> midpoint 7.25 -> 7.5
@@ -315,10 +299,7 @@ describe("termination and suggestions", () => {
   });
 
   it("falls back to the scale midpoint when every pivot is skipped", () => {
-    let session = startSession(target(), [
-      candidate("a", 3),
-      candidate("b", 8),
-    ]);
+    let session = startSession(target(), [candidate("a", 3), candidate("b", 8)]);
     session = answerComparison(session, "skip");
     session = answerComparison(session, "skip");
     expect(session.result).toMatchObject({
@@ -352,11 +333,7 @@ describe("workSimilarity", () => {
       directors: ["Nolan"],
       genres: ["Drama", "Thriller"],
     });
-    const sharedDirector = workSimilarity(
-      WorkType.movie,
-      t,
-      movieData({ directors: ["Nolan"] }),
-    );
+    const sharedDirector = workSimilarity(WorkType.movie, t, movieData({ directors: ["Nolan"] }));
     const sharedGenres = workSimilarity(
       WorkType.movie,
       t,
@@ -373,21 +350,13 @@ describe("workSimilarity", () => {
       t,
       movieData({ directors: ["Nolan"], genres: ["Drama"] }),
     );
-    const directorOnly = workSimilarity(
-      WorkType.movie,
-      t,
-      movieData({ directors: ["Nolan"] }),
-    );
+    const directorOnly = workSimilarity(WorkType.movie, t, movieData({ directors: ["Nolan"] }));
     expect(both).toBeGreaterThan(directorOnly);
   });
 
   it("uses Jaccard overlap, so a broad tag set is not spuriously similar", () => {
     const t = movieData({ genres: ["Drama"] });
-    const focused = workSimilarity(
-      WorkType.movie,
-      t,
-      movieData({ genres: ["Drama"] }),
-    );
+    const focused = workSimilarity(WorkType.movie, t, movieData({ genres: ["Drama"] }));
     const diluted = workSimilarity(
       WorkType.movie,
       t,
@@ -399,53 +368,25 @@ describe("workSimilarity", () => {
 
   it("rewards a shared lead actor, but less than a shared director", () => {
     const t = movieData({ directors: ["Nolan"], actors: ["Bale"] });
-    const sharedActor = workSimilarity(
-      WorkType.movie,
-      t,
-      movieData({ actors: ["Bale"] }),
-    );
-    const sharedDirector = workSimilarity(
-      WorkType.movie,
-      t,
-      movieData({ directors: ["Nolan"] }),
-    );
+    const sharedActor = workSimilarity(WorkType.movie, t, movieData({ actors: ["Bale"] }));
+    const sharedDirector = workSimilarity(WorkType.movie, t, movieData({ directors: ["Nolan"] }));
     expect(sharedActor).toBeGreaterThan(0);
     expect(sharedActor).toBeLessThan(sharedDirector);
   });
 
   it("decays the era signal continuously with release-year distance", () => {
     const t = movieData({ releaseDate: "2000-01-01" });
-    const sameYear = workSimilarity(
-      WorkType.movie,
-      t,
-      movieData({ releaseDate: "2000-06-01" }),
-    );
-    const nearYear = workSimilarity(
-      WorkType.movie,
-      t,
-      movieData({ releaseDate: "2005-01-01" }),
-    );
-    const farYear = workSimilarity(
-      WorkType.movie,
-      t,
-      movieData({ releaseDate: "1960-01-01" }),
-    );
+    const sameYear = workSimilarity(WorkType.movie, t, movieData({ releaseDate: "2000-06-01" }));
+    const nearYear = workSimilarity(WorkType.movie, t, movieData({ releaseDate: "2005-01-01" }));
+    const farYear = workSimilarity(WorkType.movie, t, movieData({ releaseDate: "1960-01-01" }));
     expect(sameYear).toBeGreaterThan(nearYear);
     expect(nearYear).toBeGreaterThan(farYear);
   });
 
   it("adds a small bump for a shared original language", () => {
     const t = movieData({ language: "ja" });
-    const sameLanguage = workSimilarity(
-      WorkType.movie,
-      t,
-      movieData({ language: "ja" }),
-    );
-    const otherLanguage = workSimilarity(
-      WorkType.movie,
-      t,
-      movieData({ language: "en" }),
-    );
+    const sameLanguage = workSimilarity(WorkType.movie, t, movieData({ language: "ja" }));
+    const otherLanguage = workSimilarity(WorkType.movie, t, movieData({ language: "en" }));
     expect(sameLanguage).toBeGreaterThan(otherLanguage);
   });
 
@@ -470,28 +411,12 @@ describe("workSimilarity", () => {
 
   it("decays book era and length signals with distance", () => {
     const t = bookData({ firstPublishYear: 1990, numberOfPages: 300 });
-    const closeEra = workSimilarity(
-      WorkType.book,
-      t,
-      bookData({ firstPublishYear: 1992 }),
-    );
-    const farEra = workSimilarity(
-      WorkType.book,
-      t,
-      bookData({ firstPublishYear: 1900 }),
-    );
+    const closeEra = workSimilarity(WorkType.book, t, bookData({ firstPublishYear: 1992 }));
+    const farEra = workSimilarity(WorkType.book, t, bookData({ firstPublishYear: 1900 }));
     expect(closeEra).toBeGreaterThan(farEra);
 
-    const closeLength = workSimilarity(
-      WorkType.book,
-      t,
-      bookData({ numberOfPages: 320 }),
-    );
-    const farLength = workSimilarity(
-      WorkType.book,
-      t,
-      bookData({ numberOfPages: 900 }),
-    );
+    const closeLength = workSimilarity(WorkType.book, t, bookData({ numberOfPages: 320 }));
+    const farLength = workSimilarity(WorkType.book, t, bookData({ numberOfPages: 900 }));
     expect(closeLength).toBeGreaterThan(farLength);
   });
 

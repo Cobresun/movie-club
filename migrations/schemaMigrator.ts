@@ -30,9 +30,7 @@ function listMigrationsNotOnMain(): string[] | null {
         .filter(hasValue),
     );
 
-    return readdirSync(migrationFolder).filter(
-      (file) => file.endsWith(".ts") && !onMain.has(file),
-    );
+    return readdirSync(migrationFolder).filter((file) => file.endsWith(".ts") && !onMain.has(file));
   } catch {
     return null;
   }
@@ -62,9 +60,7 @@ function assertSafeToMigrate() {
   }
 
   if (process.env.FORCE_DEV_MIGRATE === "1") {
-    console.warn(
-      "⚠️  FORCE_DEV_MIGRATE=1 set: skipping shared dev database guard",
-    );
+    console.warn("⚠️  FORCE_DEV_MIGRATE=1 set: skipping shared dev database guard");
     return;
   }
 
@@ -82,24 +78,18 @@ function assertSafeToMigrate() {
     return;
   }
 
-  console.error(
-    "Refusing to migrate: DATABASE_URL points at the shared `dev` database,",
-  );
+  console.error("Refusing to migrate: DATABASE_URL points at the shared `dev` database,");
   console.error("but these migrations do not exist on origin/main:");
   newMigrations.forEach((file) => console.error(`  - ${file}`));
   console.error("");
-  console.error(
-    "Applying them would break deploy previews for every other open PR.",
-  );
+  console.error("Applying them would break deploy previews for every other open PR.");
   console.error("Test new migrations against a spawned database instead:");
   console.error("  npm run db:spawn my_feature");
   console.error(
     "  DATABASE_URL='<spawned-url>' npx tsx --env-file=.env ./migrations/schemaMigrator.ts",
   );
   console.error("");
-  console.error(
-    "If the migration was merged but your origin/main is stale, run `git fetch`.",
-  );
+  console.error("If the migration was merged but your origin/main is stale, run `git fetch`.");
   console.error("To bypass intentionally, set FORCE_DEV_MIGRATE=1.");
   process.exit(1);
 }
@@ -148,9 +138,7 @@ async function downgrade(migrator: Migrator) {
   const { error, results } = await migrator.migrateDown();
   results?.forEach((it) => {
     if (it.status === "Success") {
-      console.log(
-        `migration "${it.migrationName}" was successfully downgraded`,
-      );
+      console.log(`migration "${it.migrationName}" was successfully downgraded`);
     } else if (it.status === "Error") {
       console.error(`failed to downgrade migration "${it.migrationName}"`);
     }

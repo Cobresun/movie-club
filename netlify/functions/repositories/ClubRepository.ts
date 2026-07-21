@@ -12,11 +12,7 @@ interface JoinClubResult {
 
 class ClubRepository {
   async getById(clubId: string) {
-    return db
-      .selectFrom("club")
-      .selectAll()
-      .where("id", "=", clubId.toString())
-      .executeTakeFirst();
+    return db.selectFrom("club").selectAll().where("id", "=", clubId.toString()).executeTakeFirst();
   }
 
   async getBySlug(slug: string) {
@@ -58,11 +54,7 @@ class ClubRepository {
   }
 
   updateName(clubId: string, name: string) {
-    return db
-      .updateTable("club")
-      .set({ name })
-      .where("id", "=", clubId)
-      .executeTakeFirst();
+    return db.updateTable("club").set({ name }).where("id", "=", clubId).executeTakeFirst();
   }
 
   getClubPreviewsByUserId(userId: string) {
@@ -92,10 +84,7 @@ class ClubRepository {
       .executeTakeFirst());
   }
 
-  async joinClubWithInvite(
-    token: string,
-    userId: string,
-  ): Promise<JoinClubResult> {
+  async joinClubWithInvite(token: string, userId: string): Promise<JoinClubResult> {
     // Query invite using the provided token
     const invite = await db
       .selectFrom("club_invite")
@@ -133,11 +122,7 @@ class ClubRepository {
     return await db
       .selectFrom("club_invite")
       .innerJoin("club", "club.id", "club_invite.club_id")
-      .select([
-        "club.id as clubId",
-        "club.name as clubName",
-        "club_invite.expires_at as expiresAt",
-      ])
+      .select(["club.id as clubId", "club.name as clubName", "club_invite.expires_at as expiresAt"])
       .where("token", "=", token)
       .executeTakeFirst();
   }
