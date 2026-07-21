@@ -33,7 +33,7 @@ export interface ScoredCandidate {
 export type ComparisonAnswer = "more" | "less" | "same" | "skip";
 
 export interface ScoreAssistResult {
-  /** Rounded to the nearest 0.5 and clamped to 0-10. */
+  /** Rounded to two decimal places and clamped to 0-10. */
   suggestedScore: number;
   kind: "converged" | "matched" | "aboveAll" | "belowAll";
   /** Bracketing works that contextualize how the suggestion was derived. */
@@ -166,7 +166,7 @@ export function answerComparison(
         pivot: undefined,
         result: {
           kind: "matched",
-          suggestedScore: clampScore(roundHalf(pivot.score)),
+          suggestedScore: clampScore(roundToTwoDecimals(pivot.score)),
           matchedWork: pivot,
         },
       };
@@ -284,7 +284,7 @@ function finishSession(session: ScoreAssistSession): ScoreAssistSession {
     // than jumping to the midpoint of (top, 10].
     result = {
       kind: "aboveAll",
-      suggestedScore: clampScore(roundHalf(lo + 0.5)),
+      suggestedScore: clampScore(roundToTwoDecimals(lo + 0.5)),
       lowerWork,
     };
   } else if (
@@ -294,13 +294,13 @@ function finishSession(session: ScoreAssistSession): ScoreAssistSession {
   ) {
     result = {
       kind: "belowAll",
-      suggestedScore: clampScore(roundHalf(hi - 0.5)),
+      suggestedScore: clampScore(roundToTwoDecimals(hi - 0.5)),
       upperWork,
     };
   } else {
     result = {
       kind: "converged",
-      suggestedScore: clampScore(roundHalf((lo + hi) / 2)),
+      suggestedScore: clampScore(roundToTwoDecimals((lo + hi) / 2)),
       lowerWork,
       upperWork,
     };
@@ -308,8 +308,8 @@ function finishSession(session: ScoreAssistSession): ScoreAssistSession {
   return { ...session, pivot: undefined, result };
 }
 
-function roundHalf(score: number): number {
-  return Math.round(score * 2) / 2;
+function roundToTwoDecimals(score: number): number {
+  return Math.round(score * 100) / 100;
 }
 
 function clampScore(score: number): number {

@@ -234,7 +234,7 @@ describe("answerComparison", () => {
     let session = startSession(target(), [candidate("a", 7.3)]);
     session = answerComparison(session, "same");
     expect(session.result?.kind).toBe("matched");
-    expect(session.result?.suggestedScore).toBe(7.5);
+    expect(session.result?.suggestedScore).toBe(7.3);
     expect(session.result?.matchedWork?.workId).toBe("a");
   });
 
@@ -280,17 +280,27 @@ describe("termination and suggestions", () => {
     }
   });
 
-  it("rounds the converged midpoint to the nearest half", () => {
+  it("rounds the converged midpoint to two decimal places", () => {
     let session = startSession(target(), [
       candidate("a", 6),
       candidate("b", 8.5),
     ]);
     session = answerComparison(session, "more"); // pivot a (6)
     session = answerComparison(session, "less"); // pivot b (8.5)
-    // Bracket (6, 8.5) -> midpoint 7.25 -> 7.5
+    // Bracket (6, 8.5) -> midpoint 7.25, kept as-is rather than snapped to 7.5.
     expect(session.result).toMatchObject({
       kind: "converged",
-      suggestedScore: 7.5,
+      suggestedScore: 7.25,
+    });
+
+    // A midpoint with more than two decimals is rounded to two.
+    let odd = startSession(target(), [candidate("c", 6), candidate("d", 8.55)]);
+    odd = answerComparison(odd, "more"); // pivot c (6)
+    odd = answerComparison(odd, "less"); // pivot d (8.55)
+    // Bracket (6, 8.55) -> midpoint 7.275 -> 7.28
+    expect(odd.result).toMatchObject({
+      kind: "converged",
+      suggestedScore: 7.28,
     });
   });
 
