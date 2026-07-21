@@ -35,7 +35,7 @@
     "ag-charts-vue3": "^11.3.2",
     "axios": "^1.18.0",
     "bcrypt": "^6.0.0",
-    "better-auth": "^1.6.11",
+    "better-auth": "^1.6.13",
     "cloudinary": "^2.8.0",
     "idb-keyval": "^6.3.0",
     "kysely": "^0.27.6",
