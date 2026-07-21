@@ -1,11 +1,6 @@
 <template>
   <div>
-    <v-bottom-sheet
-      v-if="!isDesktop"
-      content-class="p-8"
-      :z-index="zIndex"
-      @close="emit('close')"
-    >
+    <v-bottom-sheet v-if="!isDesktop" content-class="p-8" :z-index="zIndex" @close="emit('close')">
       <slot />
     </v-bottom-sheet>
 
@@ -29,10 +24,10 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from "vue";
 
-import VBackdrop from "./VBackdrop.vue";
-import VBottomSheet from "./VBottomSheet.vue";
 import { useBodyScrollLock } from "../composables/useBodyScrollLock";
 import { useIsDesktop } from "../composables/useIsDesktop.js";
+import VBackdrop from "./VBackdrop.vue";
+import VBottomSheet from "./VBottomSheet.vue";
 
 type ModalSize = "default" | "sm" | "lg" | "full";
 type ZIndex = "40" | "50" | "60";

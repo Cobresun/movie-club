@@ -51,10 +51,7 @@ function generateRandomPasswordHash(): string {
 /**
  * Migrate a single Netlify Identity user to Better Auth
  */
-async function migrateUser(
-  netlifyUser: NetlifyUser,
-  stats: MigrationStats,
-): Promise<void> {
+async function migrateUser(netlifyUser: NetlifyUser, stats: MigrationStats): Promise<void> {
   const email = netlifyUser.email?.trim();
 
   if (!email) {
@@ -108,11 +105,7 @@ async function migrateUser(
       }
 
       if (Object.keys(updates).length > 0) {
-        await db
-          .updateTable("user")
-          .set(updates)
-          .where("email", "=", email)
-          .execute();
+        await db.updateTable("user").set(updates).where("email", "=", email).execute();
         stats.updated++;
         console.log(`✅ Updated existing user: ${email}`);
       } else {
@@ -143,8 +136,7 @@ async function migrateUser(
     }
 
     // Create account record for Better Auth
-    const password =
-      netlifyUser.encrypted_password ?? generateRandomPasswordHash();
+    const password = netlifyUser.encrypted_password ?? generateRandomPasswordHash();
 
     if (!netlifyUser.encrypted_password) {
       console.warn(
@@ -209,9 +201,7 @@ async function migrateNetlifyUsers() {
     process.exit(1);
   }
 
-  const usersData = JSON.parse(
-    fs.readFileSync(usersPath, "utf-8"),
-  ) as NetlifyUser[];
+  const usersData = JSON.parse(fs.readFileSync(usersPath, "utf-8")) as NetlifyUser[];
 
   const stats: MigrationStats = {
     total: usersData.length,

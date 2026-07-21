@@ -10,18 +10,13 @@ import {
   TMDBMovieData,
 } from "../../../lib/types/movie";
 
-async function makeTMDBApiCall<T>(
-  path: string,
-  params?: Record<string, string>,
-) {
+async function makeTMDBApiCall<T>(path: string, params?: Record<string, string>) {
   const tmdbApiKey = process.env.TMDB_API_KEY;
   const searchParams = new URLSearchParams({
     api_key: tmdbApiKey ?? "",
     ...params,
   });
-  return axios.get<T>(
-    `https://api.themoviedb.org/3${path}?${searchParams.toString()}`,
-  );
+  return axios.get<T>(`https://api.themoviedb.org/3${path}?${searchParams.toString()}`);
 }
 
 // The TMDB /configuration response (image base URLs, available sizes) is
@@ -35,19 +30,15 @@ let tmdbConfigPromise: Promise<AxiosResponse<TMDBConfig>> | undefined;
 
 async function getTMDBConfig() {
   if (!tmdbConfigPromise) {
-    tmdbConfigPromise = makeTMDBApiCall<TMDBConfig>("/configuration").catch(
-      (error) => {
-        tmdbConfigPromise = undefined;
-        throw error;
-      },
-    );
+    tmdbConfigPromise = makeTMDBApiCall<TMDBConfig>("/configuration").catch((error) => {
+      tmdbConfigPromise = undefined;
+      throw error;
+    });
   }
   return tmdbConfigPromise;
 }
 
-export async function getTMDBMovieData(
-  movieId: number,
-): Promise<AxiosResponse<TMDBMovieData>> {
+export async function getTMDBMovieData(movieId: number): Promise<AxiosResponse<TMDBMovieData>> {
   return makeTMDBApiCall<TMDBMovieData>(`/movie/${movieId}`, {
     append_to_response: "credits",
   });

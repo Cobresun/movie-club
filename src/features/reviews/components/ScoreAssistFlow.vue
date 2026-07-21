@@ -52,13 +52,9 @@ import { useToast } from "vue-toastification";
 import { isDefined } from "../../../../lib/checks/checks.js";
 import { ClubType } from "../../../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
-import {
-  ComparisonAnswer,
-  ScoredCandidate,
-} from "../composables/scoreAssistLogic";
+import { ComparisonAnswer, ScoredCandidate } from "../composables/scoreAssistLogic";
 import { useScoreAssist } from "../composables/useScoreAssist";
 import { formatScore } from "../scoreScale";
-
 import { clubTypeConfig } from "@/common/clubType";
 import WorkPosterCard from "@/common/components/WorkPosterCard.vue";
 import { workPosterUrl } from "@/common/workDisplay";

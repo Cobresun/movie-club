@@ -37,9 +37,7 @@ export const handlers = [
     return HttpResponse.json(reviews[0]?.scores ?? {});
   }),
   http.get("/api/club/:id/list", () => {
-    return HttpResponse.json([
-      { id: "1", title: "Watch List", systemType: null, itemCount: 1 },
-    ]);
+    return HttpResponse.json([{ id: "1", title: "Watch List", systemType: null, itemCount: 1 }]);
   }),
   // Registered before /list/:listId semantics apply client-side: MSW matches
   // in array order, mirroring the backend's literal-before-param routing.

@@ -43,10 +43,9 @@
 <script setup lang="ts">
 import { Row, Table } from "@tanstack/vue-table";
 
-import WorkDetailsContent from "./WorkDetailsContent.vue";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
 import VBottomSheet from "../../../common/components/VBottomSheet.vue";
-
+import WorkDetailsContent from "./WorkDetailsContent.vue";
 import VSideDrawer from "@/common/components/VSideDrawer.vue";
 import { useIsDesktop } from "@/common/composables/useIsDesktop.js";
 

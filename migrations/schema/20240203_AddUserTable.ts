@@ -16,19 +16,11 @@ export async function up(db: Kysely<unknown>) {
     .addColumn("user_id", "int8")
     .addColumn("role", "varchar(50)")
     .addPrimaryKeyConstraint("pk_club_member", ["club_id", "user_id"])
-    .addForeignKeyConstraint(
-      "fk_club_member_club_id",
-      ["club_id"],
-      "club",
-      ["id"],
-      (cb) => cb.onDelete("cascade"),
+    .addForeignKeyConstraint("fk_club_member_club_id", ["club_id"], "club", ["id"], (cb) =>
+      cb.onDelete("cascade"),
     )
-    .addForeignKeyConstraint(
-      "fk_club_member_user_id",
-      ["user_id"],
-      "user",
-      ["id"],
-      (cb) => cb.onDelete("cascade"),
+    .addForeignKeyConstraint("fk_club_member_user_id", ["user_id"], "user", ["id"], (cb) =>
+      cb.onDelete("cascade"),
     )
     .execute();
 }

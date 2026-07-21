@@ -4,8 +4,7 @@ import { isDefined } from "../../../lib/checks/checks.js";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-const EMAIL_FROM =
-  process.env.EMAIL_FROM ?? "Movie Club <noreply@movie-club.app>";
+const EMAIL_FROM = process.env.EMAIL_FROM ?? "Movie Club <noreply@movie-club.app>";
 
 // Brand colors matching the app's Tailwind config
 const COLORS = {

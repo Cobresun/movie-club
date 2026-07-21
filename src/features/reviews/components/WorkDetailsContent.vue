@@ -91,28 +91,17 @@
           ]"
         >
           <div class="min-w-0 flex-1">
-            <FlexRender
-              :render="cell.column.columnDef.header"
-              :props="headerCellProps(cell)"
-            />
+            <FlexRender :render="cell.column.columnDef.header" :props="headerCellProps(cell)" />
           </div>
           <div
             class="shrink-0 text-base font-semibold transition-[filter] duration-500 ease-standard"
-            :class="
-              shouldBlurScore(movie.id, cell.column.id) ? 'blur' : 'blur-none'
-            "
+            :class="shouldBlurScore(movie.id, cell.column.id) ? 'blur' : 'blur-none'"
           >
-            <FlexRender
-              :render="cell.column.columnDef.cell"
-              :props="scoreCellProps(cell)"
-            />
+            <FlexRender :render="cell.column.columnDef.cell" :props="scoreCellProps(cell)" />
           </div>
         </div>
       </div>
-      <p
-        v-if="getVisibleCells(movie).length === 0"
-        class="text-sm text-gray-500"
-      >
+      <p v-if="getVisibleCells(movie).length === 0" class="text-sm text-gray-500">
         No scores yet — be the first to rate it.
       </p>
     </section>
@@ -161,26 +150,16 @@
           :class="{ 'cursor-pointer hover:opacity-80': shouldBlurTmdbScore }"
           @click="revealTmdb"
         >
-          <span
-            class="block text-xs font-medium uppercase tracking-wide text-gray-500"
+          <span class="block text-xs font-medium uppercase tracking-wide text-gray-500"
             >TMDB rating</span
           >
           <span class="inline-flex items-center gap-1.5 text-sm text-gray-200">
             <span
               class="transition-[filter] duration-500 ease-standard"
-              :class="
-                shouldBlurTmdbScore
-                  ? 'select-none blur'
-                  : 'select-auto blur-none'
-              "
+              :class="shouldBlurTmdbScore ? 'select-none blur' : 'select-auto blur-none'"
               >{{ tmdbScore }}<span class="text-gray-500">/10</span></span
             >
-            <mdicon
-              v-if="shouldBlurTmdbScore"
-              name="eye-outline"
-              size="14"
-              class="text-gray-400"
-            />
+            <mdicon v-if="shouldBlurTmdbScore" name="eye-outline" size="14" class="text-gray-400" />
           </span>
         </div>
       </div>
@@ -191,11 +170,7 @@
         <ExternalLink label="Rotten Tomatoes" :href="rottenTomatoesUrl" />
       </div>
 
-      <WatchProviders
-        v-if="movieData"
-        :external-id="movie.original.externalId"
-        class="mt-4"
-      />
+      <WatchProviders v-if="movieData" :external-id="movie.original.externalId" class="mt-4" />
     </section>
 
     <CommentThread :work-id="movie.original.id" :club-slug="clubId" />
@@ -252,17 +227,11 @@
         <button
           type="button"
           class="flex flex-1 items-center justify-center gap-2 rounded-lg py-3 font-bold tracking-wide transition hover:brightness-110 active:scale-[0.98]"
-          :class="
-            isDefined(myReview)
-              ? 'bg-lowBackground text-gray-200'
-              : 'bg-primary text-text'
-          "
+          :class="isDefined(myReview) ? 'bg-lowBackground text-gray-200' : 'bg-primary text-text'"
           @click="showScoreEntry = true"
         >
           <mdicon :name="isDefined(myReview) ? 'pencil' : 'star'" size="20" />
-          <span>{{
-            isDefined(myReview) ? "Edit score" : `Rate this ${mediaNoun}`
-          }}</span>
+          <span>{{ isDefined(myReview) ? "Edit score" : `Rate this ${mediaNoun}` }}</span>
         </button>
         <button
           v-if="isDefined(myReview)"
@@ -293,21 +262,15 @@ import { Cell, FlexRender, Row, Table } from "@tanstack/vue-table";
 import { DateTime } from "luxon";
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 
-import DiscussionQuestions from "./DiscussionQuestions.vue";
-import ReviewFactCard from "./ReviewFactCard.vue";
-import ScoreEntryDock from "./ScoreEntryDock.vue";
-import ScoreEntryModal from "./ScoreEntryModal.vue";
 import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import { ClubType } from "../../../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
 import { computeReviewFact } from "../reviewFacts";
-
-import {
-  clubTypeConfig,
-  workMetaLine,
-  workOverview,
-  workSubtitle,
-} from "@/common/clubType";
+import DiscussionQuestions from "./DiscussionQuestions.vue";
+import ReviewFactCard from "./ReviewFactCard.vue";
+import ScoreEntryDock from "./ScoreEntryDock.vue";
+import ScoreEntryModal from "./ScoreEntryModal.vue";
+import { clubTypeConfig, workMetaLine, workOverview, workSubtitle } from "@/common/clubType";
 import BookMetadataGrid from "@/common/components/BookMetadataGrid.vue";
 import CastList from "@/common/components/CastList.vue";
 import CommentThread from "@/common/components/CommentThread.vue";
@@ -370,9 +333,7 @@ const discussionQuestionsEnabled = computed(
 const movieTitle = computed(() => String(props.movie.renderValue("title")));
 
 const formattedDateForInput = computed(() => {
-  return DateTime.fromISO(props.movie.original.createdDate).toFormat(
-    "yyyy-MM-dd",
-  );
+  return DateTime.fromISO(props.movie.original.createdDate).toFormat("yyyy-MM-dd");
 });
 
 const openDateEditor = () => {
@@ -382,9 +343,7 @@ const openDateEditor = () => {
 
 const saveDateChange = () => {
   if (hasValue(editedDate.value)) {
-    const isoDate = DateTime.fromFormat(editedDate.value, "yyyy-MM-dd")
-      .startOf("day")
-      .toISO();
+    const isoDate = DateTime.fromFormat(editedDate.value, "yyyy-MM-dd").startOf("day").toISO();
 
     if (isoDate !== null && hasValue(reviewsListId.value)) {
       updateAddedDate({
@@ -454,36 +413,23 @@ const { data: workDetails } = useWorkDetails(
   clubId,
   computed(() => props.movie.original.id),
 );
-const castActors = computed(
-  () => asMovie(workDetails.value ?? undefined)?.actors,
-);
+const castActors = computed(() => asMovie(workDetails.value ?? undefined)?.actors);
 // Drives book/movie wording in child components (e.g. the discussion-questions
 // "couldn't recognize this ___" message).
-const mediaNoun = computed(
-  () => clubTypeConfig(club.value?.type ?? ClubType.movie).noun,
-);
+const mediaNoun = computed(() => clubTypeConfig(club.value?.type ?? ClubType.movie).noun);
 const posterUrl = computed(() =>
-  workPosterUrl(
-    props.movie.original.externalData,
-    props.movie.original.imageUrl,
-  ),
+  workPosterUrl(props.movie.original.externalData, props.movie.original.imageUrl),
 );
 
 // Release year (movies) or first-published year (books), via the shared helper.
-const displayYear = computed(() =>
-  workSubtitle(props.movie.original.externalData),
-);
+const displayYear = computed(() => workSubtitle(props.movie.original.externalData));
 
 // "2h 35m · Adventure, Science Fiction" (movies) / "Frank Herbert · 412 pages"
 // (books), shown in the hero under the title. Runtime and genres live here, so
 // the Details section below only carries what the hero doesn't.
-const metaLine = computed(() =>
-  workMetaLine(props.movie.original.externalData),
-);
+const metaLine = computed(() => workMetaLine(props.movie.original.externalData));
 
-const overview = computed(() =>
-  workOverview(props.movie.original.externalData),
-);
+const overview = computed(() => workOverview(props.movie.original.externalData));
 
 // TMDB publishes ratings with three decimals (7.783); one is plenty here.
 const tmdbScore = computed(() =>
@@ -497,10 +443,7 @@ const tmdbScore = computed(() =>
 const hasDetails = computed(() => {
   if (isDefined(movieData.value)) return true;
   const book = bookData.value;
-  return (
-    isDefined(book) &&
-    (book.firstPublishYear !== undefined || book.subjects.length > 0)
-  );
+  return isDefined(book) && (book.firstPublishYear !== undefined || book.subjects.length > 0);
 });
 
 const letterboxdUrl = computed(() =>
@@ -565,9 +508,7 @@ const scoreCellProps = (cell: Cell<DetailedReviewListItem, unknown>) => ({
 // The current user's own review for this work, if any — prefills the panel and
 // tells it whether to create (POST) or update (PUT).
 const myReview = computed(() =>
-  isDefined(props.currentUserId)
-    ? props.movie.original.scores[props.currentUserId]
-    : undefined,
+  isDefined(props.currentUserId) ? props.movie.original.scores[props.currentUserId] : undefined,
 );
 
 // Mobile-only: score entry lives in its own overlay (ScoreEntryModal), opened
@@ -655,11 +596,7 @@ const hasClubScoresToReveal = computed(() => {
 });
 
 const showRevealPill = computed(() => {
-  if (
-    props.hasRated(props.movie.id) ||
-    props.revealedMovieIds.has(props.movie.id)
-  )
-    return false;
+  if (props.hasRated(props.movie.id) || props.revealedMovieIds.has(props.movie.id)) return false;
   return hasClubScoresToReveal.value;
 });
 

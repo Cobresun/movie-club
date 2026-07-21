@@ -22,26 +22,16 @@
           class="absolute left-0 top-full z-50 mt-1 min-w-[200px] origin-top-left rounded-lg bg-lowBackground shadow-lg"
         >
           <div class="py-1">
-            <MenuItem
-              v-for="club in clubs"
-              :key="club.clubId"
-              v-slot="{ active }"
-            >
+            <MenuItem v-for="club in clubs" :key="club.clubId" v-slot="{ active }">
               <button
                 class="flex w-full items-center gap-2 px-4 py-2 text-sm"
                 :class="[
-                  club.slug === currentSlug
-                    ? 'text-highlight'
-                    : 'text-white/80',
+                  club.slug === currentSlug ? 'text-highlight' : 'text-white/80',
                   active ? 'bg-white/10' : '',
                 ]"
                 @click="selectClub(club.slug)"
               >
-                <mdicon
-                  v-if="club.slug === currentSlug"
-                  name="check"
-                  :size="16"
-                />
+                <mdicon v-if="club.slug === currentSlug" name="check" :size="16" />
                 <span :class="{ 'ml-6': club.slug !== currentSlug }">
                   {{ club.clubName }}
                 </span>
@@ -85,16 +75,10 @@
           <li v-for="club in clubs" :key="club.clubId">
             <button
               class="flex w-full items-center gap-2 px-4 py-3 text-sm hover:bg-white/10"
-              :class="
-                club.slug === currentSlug ? 'text-highlight' : 'text-white/80'
-              "
+              :class="club.slug === currentSlug ? 'text-highlight' : 'text-white/80'"
               @click="selectClub(club.slug)"
             >
-              <mdicon
-                v-if="club.slug === currentSlug"
-                name="check"
-                :size="16"
-              />
+              <mdicon v-if="club.slug === currentSlug" name="check" :size="16" />
               <span :class="{ 'ml-6': club.slug !== currentSlug }">
                 {{ club.clubName }}
               </span>
@@ -126,9 +110,8 @@ import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/vue";
 import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
-import VBottomSheet from "./VBottomSheet.vue";
 import { hasValue } from "../../../lib/checks/checks.js";
-
+import VBottomSheet from "./VBottomSheet.vue";
 import { clubTypeIcon, clubTypeLabel } from "@/common/clubType";
 import { useIsDesktop } from "@/common/composables/useIsDesktop";
 import { setLastClubSlug } from "@/common/composables/useLastClubSlug";

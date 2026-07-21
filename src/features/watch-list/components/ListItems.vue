@@ -84,23 +84,11 @@
                       'col-span-2': !(canReview && listId !== reviewsListId),
                     }"
                     :disabled="isPending(item.id)"
-                    :title="
-                      item.id === nextWorkId
-                        ? 'Clear next up'
-                        : 'Set as next up'
-                    "
-                    @click="
-                      item.id === nextWorkId
-                        ? clearNextWork()
-                        : onSetNextWatch(item.id)
-                    "
+                    :title="item.id === nextWorkId ? 'Clear next up' : 'Set as next up'"
+                    @click="item.id === nextWorkId ? clearNextWork() : onSetNextWatch(item.id)"
                   >
                     <mdicon
-                      :name="
-                        item.id === nextWorkId
-                          ? 'arrow-collapse-down'
-                          : 'arrow-collapse-up'
-                      "
+                      :name="item.id === nextWorkId ? 'arrow-collapse-down' : 'arrow-collapse-up'"
                     />
                   </v-btn>
                 </div>
@@ -139,12 +127,11 @@ import { computed, ref, toRefs, watch } from "vue";
 import { VueDraggableNext } from "vue-draggable-next";
 import { useRouter } from "vue-router";
 
-import ListItemDetailsDrawer from "./ListItemDetailsDrawer.vue";
-import RandomPickerModal from "./RandomPickerModal.vue";
 import { hasValue, isDefined } from "../../../../lib/checks/checks";
 import { Member } from "../../../../lib/types/club";
 import { DetailedWorkListItem } from "../../../../lib/types/lists";
-
+import ListItemDetailsDrawer from "./ListItemDetailsDrawer.vue";
+import RandomPickerModal from "./RandomPickerModal.vue";
 import VAvatar from "@/common/components/VAvatar.vue";
 import WorkPosterCard from "@/common/components/WorkPosterCard.vue";
 import {
@@ -202,9 +189,7 @@ watch(
   [items, () => props.visibleIds],
   ([next, visibleIds]) => {
     const all = next ? [...next] : [];
-    draggableItems.value = visibleIds
-      ? all.filter((i) => visibleIds.has(i.id))
-      : all;
+    draggableItems.value = visibleIds ? all.filter((i) => visibleIds.has(i.id)) : all;
   },
   { immediate: true },
 );
@@ -224,8 +209,7 @@ const onSetNextWatch = (workId: string) => {
 };
 
 const onDragMove = (evt: { relatedContext: { index: number } }) => {
-  if (hasValue(nextWorkId.value) && evt.relatedContext.index === 0)
-    return false;
+  if (hasValue(nextWorkId.value) && evt.relatedContext.index === 0) return false;
 };
 
 const onDragEnd = () => {
@@ -268,13 +252,7 @@ const onMakeNext = (item: DetailedWorkListItem) => {
   randomPickerOpen.value = false;
 };
 
-const onMoveToList = ({
-  item,
-  listId,
-}: {
-  item: DetailedWorkListItem;
-  listId: string;
-}) => {
+const onMoveToList = ({ item, listId }: { item: DetailedWorkListItem; listId: string }) => {
   onMove(item.id, listId);
   randomPickerOpen.value = false;
 };

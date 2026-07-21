@@ -4,7 +4,6 @@ import { vi } from "vitest";
 
 import ScoreEntryPanel from "../components/ScoreEntryPanel.vue";
 import { ScoreAssistKey } from "../scoreAssist";
-
 import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
 import { server } from "@/mocks/server";
 import { render } from "@/tests/utils";
@@ -26,9 +25,7 @@ describe("ScoreEntryPanel", () => {
   it("renders the score field and disables Save until a value is entered", async () => {
     const { user } = render(ScoreEntryPanel, { props: { workId: "target" } });
 
-    expect(
-      screen.getByRole("spinbutton", { name: "Score" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("spinbutton", { name: "Score" })).toBeInTheDocument();
 
     const save = screen.getByRole("button", { name: "Save score" });
     expect(save).toBeDisabled();
@@ -83,9 +80,7 @@ describe("ScoreEntryPanel", () => {
     await user.type(screen.getByRole("spinbutton", { name: "Score" }), "8.5");
     await user.click(screen.getByRole("button", { name: "Save score" }));
 
-    await waitFor(() =>
-      expect(posted).toEqual({ workId: "target", score: 8.5 }),
-    );
+    await waitFor(() => expect(posted).toEqual({ workId: "target", score: 8.5 }));
     expect(rendered.emitted().submit).toHaveLength(1);
   });
 
@@ -148,8 +143,6 @@ describe("ScoreEntryPanel", () => {
       ...withAssist(false),
     });
 
-    expect(
-      screen.queryByRole("button", { name: /Compare to decide/ }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Compare to decide/ })).not.toBeInTheDocument();
   });
 });

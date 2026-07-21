@@ -17,10 +17,7 @@ import { Kysely, sql } from "kysely";
 // the old enum).
 export async function up(db: Kysely<unknown>) {
   // 1. New enum for system list identification.
-  await db.schema
-    .createType("work_list_system_type")
-    .asEnum(["reviews"])
-    .execute();
+  await db.schema.createType("work_list_system_type").asEnum(["reviews"]).execute();
 
   // 2. Add the new column (nullable for now so we can backfill).
   await db.schema
@@ -92,9 +89,7 @@ export async function up(db: Kysely<unknown>) {
         .selectFrom("work_list")
         .select([
           "id",
-          sql<number>`ROW_NUMBER() OVER (PARTITION BY club_id ORDER BY id) + 1`.as(
-            "rn",
-          ),
+          sql<number>`ROW_NUMBER() OVER (PARTITION BY club_id ORDER BY id) + 1`.as("rn"),
         ])
         .where("type", "not in", ["watchlist", "backlog"]),
     )
@@ -172,18 +167,11 @@ export async function down(db: Kysely<unknown>) {
     .with("ranked", (qb) =>
       qb
         .selectFrom("work_list")
-        .select([
-          "id",
-          sql<number>`ROW_NUMBER() OVER (PARTITION BY club_id ORDER BY id)`.as(
-            "rn",
-          ),
-        ])
+        .select(["id", sql<number>`ROW_NUMBER() OVER (PARTITION BY club_id ORDER BY id)`.as("rn")])
         .where("system_type", "is", null),
     )
     .deleteFrom("work_list")
-    .where("id", "in", (qb) =>
-      qb.selectFrom("ranked").select("id").where("rn", ">", 1),
-    )
+    .where("id", "in", (qb) => qb.selectFrom("ranked").select("id").where("rn", ">", 1))
     .execute();
 
   await typedDb
@@ -202,17 +190,10 @@ export async function down(db: Kysely<unknown>) {
     ADD CONSTRAINT uq_work_list_club_id_type UNIQUE (club_id, type)
   `.execute(db);
 
-  await db.schema
-    .createIndex("idx_work_list_type")
-    .on("work_list")
-    .column("type")
-    .execute();
+  await db.schema.createIndex("idx_work_list_type").on("work_list").column("type").execute();
 
   await sql`DROP INDEX IF EXISTS uq_work_list_club_system_type`.execute(db);
-  await db.schema
-    .dropIndex("idx_work_list_club_id_position")
-    .ifExists()
-    .execute();
+  await db.schema.dropIndex("idx_work_list_club_id_position").ifExists().execute();
   await db.schema.alterTable("work_list").dropColumn("position").execute();
   await db.schema.alterTable("work_list").dropColumn("system_type").execute();
   await db.schema.dropType("work_list_system_type").execute();

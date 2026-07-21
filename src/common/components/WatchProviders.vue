@@ -5,8 +5,7 @@
     are no providers the element is display:none, so it adds no grid gap.
   -->
   <div v-show="hasElements(providers)" class="flex flex-col gap-1.5">
-    <span
-      class="block text-xs font-medium uppercase tracking-wide text-gray-500"
+    <span class="block text-xs font-medium uppercase tracking-wide text-gray-500"
       >Where to watch</span
     >
     <a
@@ -35,7 +34,6 @@ import { computed, toRef } from "vue";
 
 import { hasElements, hasValue } from "../../../lib/checks/checks";
 import { TMDBWatchProvider } from "../../../lib/types/movie";
-
 import { useWatchProviders } from "@/service/useTMDB";
 
 const props = defineProps<{
@@ -60,22 +58,17 @@ function detectRegion(): string | undefined {
 
 const { data } = useWatchProviders(toRef(props, "externalId"));
 
-const regionData = computed(() =>
-  hasValue(region) ? data.value?.results[region] : undefined,
-);
+const regionData = computed(() => (hasValue(region) ? data.value?.results[region] : undefined));
 
 // "Where to watch" shows only subscription streaming services (TMDB's
 // `flatrate` bucket). Free/ad-supported and paid rent/buy are intentionally
 // excluded — these are the services you can actually stream the movie on.
 // Ordered by TMDB's display priority.
 const providers = computed<TMDBWatchProvider[]>(() =>
-  [...(regionData.value?.flatrate ?? [])].sort(
-    (a, b) => a.display_priority - b.display_priority,
-  ),
+  [...(regionData.value?.flatrate ?? [])].sort((a, b) => a.display_priority - b.display_priority),
 );
 
 const justWatchLink = computed(() => regionData.value?.link);
 
-const logoUrl = (logoPath: string) =>
-  `https://image.tmdb.org/t/p/w92${logoPath}`;
+const logoUrl = (logoPath: string) => `https://image.tmdb.org/t/p/w92${logoPath}`;
 </script>

@@ -7,17 +7,12 @@ import {
 } from "@tanstack/vue-query";
 import axios, { AxiosError, AxiosInstance } from "axios";
 
-import { reviewsListKey } from "./useList";
-import { useUser } from "./useUser";
 import { hasValue, isDefined } from "../../lib/checks/checks.js";
 import { Member } from "../../lib/types/club";
-import {
-  DetailedReviewListItem,
-  ReviewScores,
-  WorkCommentDto,
-} from "../../lib/types/lists";
+import { DetailedReviewListItem, ReviewScores, WorkCommentDto } from "../../lib/types/lists";
 import { MovieCastMember } from "../../lib/types/movie";
-
+import { reviewsListKey } from "./useList";
+import { useUser } from "./useUser";
 import { useAuthStore } from "@/stores/auth";
 
 /**
@@ -31,11 +26,8 @@ export function useReviewsCast(
   return useQuery({
     queryKey: ["reviewsCast", clubSlug] as const,
     queryFn: async () =>
-      (
-        await axios.get<Record<string, MovieCastMember[]>>(
-          `/api/club/${clubSlug}/reviews/cast`,
-        )
-      ).data,
+      (await axios.get<Record<string, MovieCastMember[]>>(`/api/club/${clubSlug}/reviews/cast`))
+        .data,
   });
 }
 
@@ -66,12 +58,8 @@ function startScorePoll(
         `/api/club/${clubSlug}/reviews/${workId}/scores`,
       );
       if (activeScorePolls.get(pollKey) !== token) return;
-      queryClient.setQueryData<DetailedReviewListItem[]>(
-        reviewsListKey(clubSlug),
-        (current) =>
-          current?.map((item) =>
-            item.id === workId ? { ...item, scores: data } : item,
-          ),
+      queryClient.setQueryData<DetailedReviewListItem[]>(reviewsListKey(clubSlug), (current) =>
+        current?.map((item) => (item.id === workId ? { ...item, scores: data } : item)),
       );
 
       // Stop early once every current member has a score — there's nothing left
@@ -144,8 +132,7 @@ export function useReviewWork(clubSlug: string) {
         },
       );
     },
-    onSuccess: (_data, { workId }) =>
-      startScorePoll(auth.request, queryClient, clubSlug, workId),
+    onSuccess: (_data, { workId }) => startScorePoll(auth.request, queryClient, clubSlug, workId),
     onSettled: () =>
       queryClient.invalidateQueries({
         queryKey: reviewsListKey(clubSlug),
@@ -160,14 +147,7 @@ export function useUpdateReviewScore(clubSlug: string) {
   return useMutation({
     // `workId` isn't part of the PUT body — it's carried through so `onSuccess`
     // can poll the per-work scores endpoint after an edit.
-    mutationFn: ({
-      reviewId,
-      score,
-    }: {
-      reviewId: string;
-      workId: string;
-      score: number;
-    }) =>
+    mutationFn: ({ reviewId, score }: { reviewId: string; workId: string; score: number }) =>
       auth.request.put(`/api/club/${clubSlug}/reviews/${reviewId}`, {
         score,
       }),
@@ -179,9 +159,7 @@ export function useUpdateReviewScore(clubSlug: string) {
         (currentReviews) => {
           if (!currentReviews || !currentUser) return currentReviews;
           return currentReviews.map((review) =>
-            Object.keys(review.scores).some(
-              (key) => review.scores[key].id === reviewId,
-            )
+            Object.keys(review.scores).some((key) => review.scores[key].id === reviewId)
               ? {
                   ...review,
                   scores: {
@@ -198,8 +176,7 @@ export function useUpdateReviewScore(clubSlug: string) {
         },
       );
     },
-    onSuccess: (_data, { workId }) =>
-      startScorePoll(auth.request, queryClient, clubSlug, workId),
+    onSuccess: (_data, { workId }) => startScorePoll(auth.request, queryClient, clubSlug, workId),
     onSettled: () =>
       queryClient.invalidateQueries({
         queryKey: reviewsListKey(clubSlug),
@@ -218,15 +195,7 @@ export function useSubmitScore(clubSlug: string) {
   const { mutate: create } = useReviewWork(clubSlug);
   const { mutate: update } = useUpdateReviewScore(clubSlug);
 
-  return ({
-    workId,
-    reviewId,
-    score,
-  }: {
-    workId: string;
-    reviewId?: string;
-    score: number;
-  }) => {
+  return ({ workId, reviewId, score }: { workId: string; reviewId?: string; score: number }) => {
     if (hasValue(reviewId)) {
       update({ reviewId, workId, score });
     } else {
@@ -262,22 +231,19 @@ export function useAddReviewComment(clubSlug: string, workId: string) {
     onMutate: ({ content, spoiler }) => {
       const currentUser = user.value;
       if (!isDefined(currentUser)) return;
-      queryClient.setQueryData<WorkCommentDto[]>(
-        ["comments", clubSlug, workId],
-        (current) => [
-          ...(current ?? []),
-          {
-            id: `temp-${Date.now()}`,
-            workId,
-            userId: currentUser.id,
-            userName: currentUser.name,
-            userImage: currentUser.image ?? undefined,
-            content,
-            createdDate: new Date().toISOString(),
-            spoiler,
-          },
-        ],
-      );
+      queryClient.setQueryData<WorkCommentDto[]>(["comments", clubSlug, workId], (current) => [
+        ...(current ?? []),
+        {
+          id: `temp-${Date.now()}`,
+          workId,
+          userId: currentUser.id,
+          userName: currentUser.name,
+          userImage: currentUser.image ?? undefined,
+          content,
+          createdDate: new Date().toISOString(),
+          spoiler,
+        },
+      ]);
     },
     onSettled: () =>
       queryClient.invalidateQueries({
@@ -300,10 +266,10 @@ export function useEditReviewComment(clubSlug: string, workId: string) {
       content: string;
       spoiler?: boolean;
     }) =>
-      auth.request.put(
-        `/api/club/${clubSlug}/reviews/${workId}/comments/${commentId}`,
-        { content, spoiler },
-      ),
+      auth.request.put(`/api/club/${clubSlug}/reviews/${workId}/comments/${commentId}`, {
+        content,
+        spoiler,
+      }),
     onMutate: ({ commentId, content, spoiler }) => {
       queryClient.setQueryData<WorkCommentDto[]>(
         ["comments", clubSlug, workId],
@@ -332,14 +298,11 @@ export function useDeleteReviewComment(clubSlug: string, workId: string) {
 
   return useMutation({
     mutationFn: (commentId: string) =>
-      auth.request.delete(
-        `/api/club/${clubSlug}/reviews/${workId}/comments/${commentId}`,
-      ),
+      auth.request.delete(`/api/club/${clubSlug}/reviews/${workId}/comments/${commentId}`),
     onMutate: (commentId: string) => {
       queryClient.setQueryData<WorkCommentDto[]>(
         ["comments", clubSlug, workId],
-        (current) =>
-          current?.filter((comment) => comment.id !== commentId) ?? [],
+        (current) => current?.filter((comment) => comment.id !== commentId) ?? [],
       );
     },
     onSettled: () =>

@@ -1,9 +1,6 @@
 <template>
   <div class="relative min-h-screen pb-24">
-    <SharedPageHeader
-      :club-name="club?.clubName ?? clubSlug"
-      :members="data?.members ?? []"
-    />
+    <SharedPageHeader :club-name="club?.clubName ?? clubSlug" :members="data?.members ?? []" />
 
     <div class="px-6 pt-6">
       <loading-spinner v-if="isLoading" />
@@ -29,10 +26,7 @@
                     <h1 class="mb-1 break-words text-4xl font-bold text-white">
                       {{ data.work.title }}
                     </h1>
-                    <p
-                      v-if="movieData?.tagline"
-                      class="text-lg italic text-gray-300"
-                    >
+                    <p v-if="movieData?.tagline" class="text-lg italic text-gray-300">
                       "{{ movieData.tagline }}"
                     </p>
                   </div>
@@ -49,12 +43,8 @@
                 <!-- Reviews Section -->
                 <div class="flex-1 space-y-4 self-center">
                   <!-- Ratings Box -->
-                  <div
-                    class="mt-6 w-full rounded-lg bg-slate-800 p-6 shadow-inner"
-                  >
-                    <div
-                      class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
-                    >
+                  <div class="mt-6 w-full rounded-lg bg-slate-800 p-6 shadow-inner">
+                    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                       <div class="flex items-center gap-3">
                         <mdicon name="star" class="h-8 w-8 text-yellow-500" />
                         <div>
@@ -62,9 +52,7 @@
                             <span class="text-3xl font-bold text-white">{{
                               averageScore.toFixed(1)
                             }}</span>
-                            <span class="text-lg text-gray-400">
-                              Club Average
-                            </span>
+                            <span class="text-lg text-gray-400"> Club Average </span>
                             <span class="text-sm text-gray-500">
                               ({{ data.reviews.length }} ratings)
                             </span>
@@ -102,21 +90,13 @@
                   >
                     <div class="flex items-center justify-between gap-4">
                       <div class="flex items-center gap-4">
-                        <v-avatar
-                          :src="member.image"
-                          :name="member.name"
-                          class="h-12 w-12"
-                        />
+                        <v-avatar :src="member.image" :name="member.name" class="h-12 w-12" />
                         <div>
                           <div class="font-medium text-white">
                             {{ member.name }}
                           </div>
                           <div class="text-sm text-gray-400">
-                            {{
-                              formatReviewTime(
-                                getReviewTimeForMember(member.id),
-                              )
-                            }}
+                            {{ formatReviewTime(getReviewTimeForMember(member.id)) }}
                           </div>
                         </div>
                       </div>
@@ -135,10 +115,7 @@
         </div>
 
         <!-- Comments Section -->
-        <SharedReviewComments
-          v-if="hasElements(data.comments)"
-          :comments="data.comments"
-        />
+        <SharedReviewComments v-if="hasElements(data.comments)" :comments="data.comments" />
       </div>
     </div>
 
@@ -154,7 +131,6 @@ import { useRoute } from "vue-router";
 import { hasElements, isDefined } from "../../../../lib/checks/checks.js";
 import ReviewFactCard from "../components/ReviewFactCard.vue";
 import { computeReviewFact } from "../reviewFacts";
-
 import LoadingSpinner from "@/common/components/LoadingSpinner.vue";
 import SharedPageCtaBanner from "@/common/components/SharedPageCtaBanner.vue";
 import SharedPageHeader from "@/common/components/SharedPageHeader.vue";
@@ -177,9 +153,7 @@ const { data, isLoading, error } = useSharedReview(clubSlug, workId);
 // sees in its review drawer.
 const { data: allReviews } = useReviewsList(clubSlug);
 const reviewFact = computed(() =>
-  isDefined(allReviews.value)
-    ? computeReviewFact(allReviews.value, workId)
-    : undefined,
+  isDefined(allReviews.value) ? computeReviewFact(allReviews.value, workId) : undefined,
 );
 
 const { share } = useShare();
@@ -195,9 +169,7 @@ const sharePage = () => {
 
 const movieData = computed(() => asMovie(data.value?.work.externalData));
 const posterSrc = computed(
-  () =>
-    workPosterUrl(data.value?.work.externalData, data.value?.work.imageUrl) ??
-    "",
+  () => workPosterUrl(data.value?.work.externalData, data.value?.work.imageUrl) ?? "",
 );
 
 const averageScore = computed(() => {

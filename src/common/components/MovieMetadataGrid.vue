@@ -2,42 +2,27 @@
   <!-- Stacked label-over-value facts; the parent supplies the grid so these
        items flow into whatever column layout the drawer uses. -->
   <div v-if="releaseDate">
-    <span
-      class="block text-xs font-medium uppercase tracking-wide text-gray-500"
-      >Released</span
-    >
+    <span class="block text-xs font-medium uppercase tracking-wide text-gray-500">Released</span>
     <span class="text-sm text-gray-200">{{ formattedReleaseDate }}</span>
   </div>
   <div v-if="runtime">
-    <span
-      class="block text-xs font-medium uppercase tracking-wide text-gray-500"
-      >Runtime</span
-    >
+    <span class="block text-xs font-medium uppercase tracking-wide text-gray-500">Runtime</span>
     <span class="text-sm text-gray-200">{{ formatRuntime(runtime) }}</span>
   </div>
   <div v-if="hasElements(directors)">
-    <span
-      class="block text-xs font-medium uppercase tracking-wide text-gray-500"
-      >{{ directors.length > 1 ? "Directors" : "Director" }}</span
-    >
-    <span class="text-sm text-gray-200">{{
-      directors.map((d) => d.name).join(", ")
+    <span class="block text-xs font-medium uppercase tracking-wide text-gray-500">{{
+      directors.length > 1 ? "Directors" : "Director"
     }}</span>
+    <span class="text-sm text-gray-200">{{ directors.map((d) => d.name).join(", ") }}</span>
   </div>
   <div v-if="voteAverage">
-    <span
-      class="block text-xs font-medium uppercase tracking-wide text-gray-500"
-      >TMDB rating</span
-    >
+    <span class="block text-xs font-medium uppercase tracking-wide text-gray-500">TMDB rating</span>
     <span class="text-sm text-gray-200"
       >{{ roundedVote }}<span class="text-gray-500">/10</span></span
     >
   </div>
   <div v-if="hasElements(genres)" class="col-span-full">
-    <span
-      class="block text-xs font-medium uppercase tracking-wide text-gray-500"
-      >Genres</span
-    >
+    <span class="block text-xs font-medium uppercase tracking-wide text-gray-500">Genres</span>
     <div class="mt-1.5 flex flex-wrap gap-1.5">
       <span
         v-for="genre in genres"
@@ -53,7 +38,6 @@
 import { computed } from "vue";
 
 import { hasElements, hasValue } from "../../../lib/checks/checks.js";
-
 import { formatRuntime } from "@/common/workDisplay";
 
 const props = defineProps<{
@@ -75,8 +59,6 @@ const formattedReleaseDate = computed(() => {
 });
 
 const roundedVote = computed(() =>
-  props.voteAverage === undefined
-    ? undefined
-    : Math.round(props.voteAverage * 10) / 10,
+  props.voteAverage === undefined ? undefined : Math.round(props.voteAverage * 10) / 10,
 );
 </script>

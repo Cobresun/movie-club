@@ -29,13 +29,9 @@ async function migrateAwardsData() {
     process.exit(1);
   }
 
-  const backupData = JSON.parse(
-    fs.readFileSync(backupPath, "utf-8"),
-  ) as ClubAwardsBackup;
+  const backupData = JSON.parse(fs.readFileSync(backupPath, "utf-8")) as ClubAwardsBackup;
 
-  console.log(
-    `📊 Found ${backupData.clubAwards.length} award years to migrate\n`,
-  );
+  console.log(`📊 Found ${backupData.clubAwards.length} award years to migrate\n`);
 
   // Look up Cobresun club by name
   const club = await db
@@ -80,9 +76,7 @@ async function migrateAwardsData() {
         VALUES (${clubId}, ${year}, ${JSON.stringify(data)}::jsonb)
       `.execute(db);
 
-      console.log(
-        `✨ Migrated year ${year} (${data.awards.length} categories)`,
-      );
+      console.log(`✨ Migrated year ${year} (${data.awards.length} categories)`);
       migrated++;
     } catch (error) {
       console.error(`❌ Error migrating year ${year}:`, error);

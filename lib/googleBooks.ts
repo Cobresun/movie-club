@@ -19,29 +19,20 @@ const MAX_COVER_URL_LENGTH = 255;
  */
 export function secureImageUrl(url: string): string {
   const secured = url.replace(/^http:\/\//, "https://");
-  return secured
-    .replace(/([?&])edge=curl&/, "$1")
-    .replace(/[?&]edge=curl$/, "");
+  return secured.replace(/([?&])edge=curl&/, "$1").replace(/[?&]edge=curl$/, "");
 }
 
 /** Pick the best available cover image from a volume's imageLinks. */
-export function bestCoverUrl(
-  imageLinks: GoogleBooksImageLinks | undefined,
-): string | undefined {
+export function bestCoverUrl(imageLinks: GoogleBooksImageLinks | undefined): string | undefined {
   const raw =
-    imageLinks?.medium ??
-    imageLinks?.small ??
-    imageLinks?.thumbnail ??
-    imageLinks?.smallThumbnail;
+    imageLinks?.medium ?? imageLinks?.small ?? imageLinks?.thumbnail ?? imageLinks?.smallThumbnail;
   if (!hasValue(raw)) return undefined;
   const url = secureImageUrl(raw);
   return url.length <= MAX_COVER_URL_LENGTH ? url : undefined;
 }
 
 /** Extract the year from a Google Books publishedDate ("YYYY[-MM[-DD]]"). */
-export function parsePublishedYear(
-  publishedDate: string | undefined,
-): number | undefined {
+export function parsePublishedYear(publishedDate: string | undefined): number | undefined {
   if (!hasValue(publishedDate)) return undefined;
   const match = /^\d{4}/.exec(publishedDate);
   return match ? Number(match[0]) : undefined;
@@ -67,10 +58,7 @@ export function stripHtml(html: string): string {
     .replace(/<br\s*\/?>/gi, "\n")
     .replace(/<\/p>/gi, "\n\n")
     .replace(/<[^>]*>/g, "")
-    .replace(
-      /&(?:amp|lt|gt|quot|#39|apos|nbsp);/g,
-      (entity) => HTML_ENTITIES[entity] ?? entity,
-    )
+    .replace(/&(?:amp|lt|gt|quot|#39|apos|nbsp);/g, (entity) => HTML_ENTITIES[entity] ?? entity)
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 }
@@ -80,12 +68,9 @@ export function stripHtml(html: string): string {
  * popularity `orderBy`). The sort is stable, so volumes with equal counts —
  * including the many with none at all — keep Google's relevance order.
  */
-export function sortVolumesByPopularity(
-  volumes: GoogleBooksVolume[],
-): GoogleBooksVolume[] {
+export function sortVolumesByPopularity(volumes: GoogleBooksVolume[]): GoogleBooksVolume[] {
   return [...volumes].sort(
-    (a, b) =>
-      (b.volumeInfo?.ratingsCount ?? 0) - (a.volumeInfo?.ratingsCount ?? 0),
+    (a, b) => (b.volumeInfo?.ratingsCount ?? 0) - (a.volumeInfo?.ratingsCount ?? 0),
   );
 }
 
@@ -94,8 +79,6 @@ export function sortVolumesByPopularity(
  * deduped single terms so subject filter suggestions stay short.
  */
 export function splitCategories(categories: string[]): string[] {
-  const terms = categories.flatMap((category) =>
-    category.split(" / ").map((term) => term.trim()),
-  );
+  const terms = categories.flatMap((category) => category.split(" / ").map((term) => term.trim()));
   return [...new Set(terms)].filter(hasValue);
 }

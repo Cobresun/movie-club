@@ -19,7 +19,6 @@ import { computed } from "vue";
 import { hasValue } from "../../../../lib/checks/checks";
 import { ClubType } from "../../../../lib/types/generated/db";
 import WorkSearchPrompt from "../../../common/components/WorkSearchPrompt.vue";
-
 import { workSubtitle, workTypeForClub } from "@/common/clubType";
 import { useClub, useClubSlug } from "@/service/useClub";
 import {
@@ -38,8 +37,7 @@ const clubId = useClubSlug();
 const { data: club } = useClub(clubId);
 const clubType = computed(() => club.value?.type ?? ClubType.movie);
 
-const { data: listItems, isLoading: listsLoading } =
-  useAllUserListItems(clubId);
+const { data: listItems, isLoading: listsLoading } = useAllUserListItems(clubId);
 const { data: reviewsListId } = useReviewsListId(clubId);
 
 const combinedListSearchIndex = computed<WorkSearchResult[]>(
@@ -52,15 +50,11 @@ const combinedListSearchIndex = computed<WorkSearchResult[]>(
     })) ?? [],
 );
 
-const { mutateAsync: queueReview, isLoading: queueLoading } =
-  useQueueReview(clubId);
-const { mutateAsync: addFromSearch, isLoading: addLoading } =
-  useAddToReviewsList(clubId);
+const { mutateAsync: queueReview, isLoading: queueLoading } = useQueueReview(clubId);
+const { mutateAsync: addFromSearch, isLoading: addLoading } = useAddToReviewsList(clubId);
 
 const selectFromDefault = async (work: WorkSearchResult) => {
-  const sourceItem = listItems.value?.find(
-    (item) => item.externalId === work.externalId,
-  );
+  const sourceItem = listItems.value?.find((item) => item.externalId === work.externalId);
   if (!sourceItem || !hasValue(reviewsListId.value)) return;
   await queueReview(
     {
@@ -89,7 +83,6 @@ const selectFromSearch = async (work: WorkSearchResult) => {
 };
 
 const loading = computed(
-  () =>
-    listsLoading.value || queueLoading.value || addLoading.value || !club.value,
+  () => listsLoading.value || queueLoading.value || addLoading.value || !club.value,
 );
 </script>

@@ -1,9 +1,6 @@
 <template>
   <div class="flex min-h-screen items-center justify-center">
-    <div
-      v-if="isLoggedIn"
-      class="w-full max-w-md rounded-lg border p-8 text-center"
-    >
+    <div v-if="isLoggedIn" class="w-full max-w-md rounded-lg border p-8 text-center">
       <h1 class="mb-4 text-2xl font-bold">Join Club</h1>
 
       <div v-if="isLoading" class="py-4">
@@ -36,7 +33,6 @@ import { computed, watchEffect } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 import { hasValue } from "../../../../lib/checks/checks.js";
-
 import { setLastClubSlug } from "@/common/composables/useLastClubSlug";
 import { useJoinClub, useClubDetails, useIsInClub } from "@/service/useClub";
 import { useAuthStore } from "@/stores/auth";

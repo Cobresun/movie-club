@@ -44,7 +44,6 @@ import { ref } from "vue";
 import { isDefined } from "../../../../lib/checks/checks.js";
 import { Award } from "../../../../lib/types/awards";
 import { Member } from "../../../../lib/types/club";
-
 import WorkPosterCard from "@/common/components/WorkPosterCard.vue";
 
 const { award, members, user } = defineProps<{
@@ -74,8 +73,7 @@ const swapRight = (index: number) => {
   nominations.value = arr;
 };
 
-const getMemberById = (id: string) =>
-  members.find((member) => member.id === id);
+const getMemberById = (id: string) => members.find((member) => member.id === id);
 
 const getMemberName = (id: string) => getMemberById(id)?.name ?? id;
 

@@ -4,10 +4,7 @@
        the poster/backdrop scale up slightly on desktop. The negative margins
        bleed the backdrop to the drawer edges (both containers pad px-4 pt-8). -->
   <div class="-mx-4 -mt-8 mb-5">
-    <div
-      class="relative overflow-hidden bg-lowBackground"
-      :class="isDesktop ? 'h-52' : 'h-44'"
-    >
+    <div class="relative overflow-hidden bg-lowBackground" :class="isDesktop ? 'h-52' : 'h-44'">
       <img
         v-if="hasBackdrop"
         :src="`https://image.tmdb.org/t/p/w780/${backdropPath}`"
@@ -31,14 +28,8 @@
         <PosterImage :image-url="posterUrl" />
       </div>
       <div class="flex min-w-0 flex-col pb-0.5">
-        <h2
-          class="font-bold leading-tight"
-          :class="isDesktop ? 'text-2xl' : 'text-xl'"
-        >
-          {{ title
-          }}<span v-if="year" class="font-normal text-gray-400">
-            ({{ year }})</span
-          >
+        <h2 class="font-bold leading-tight" :class="isDesktop ? 'text-2xl' : 'text-xl'">
+          {{ title }}<span v-if="year" class="font-normal text-gray-400"> ({{ year }})</span>
         </h2>
         <!-- Media facts: runtime · genres for movies, authors · pages for books -->
         <div v-if="$slots.meta" class="mt-1 text-sm leading-snug text-gray-300">
@@ -56,7 +47,6 @@
 import { computed, ref } from "vue";
 
 import { hasValue } from "../../../lib/checks/checks.js";
-
 import PosterImage from "@/common/components/PosterImage.vue";
 
 const props = withDefaults(

@@ -20,16 +20,9 @@ export interface FilterQuery {
  * {@link import("./clubType").FilterOption} owns its matcher, so all field-level
  * filtering logic lives in the club-type registry rather than in `filterWorks`.
  */
-export type WorkMatcher = (
-  work: DetailedWorkListItem,
-  query: FilterQuery,
-) => boolean;
+export type WorkMatcher = (work: DetailedWorkListItem, query: FilterQuery) => boolean;
 
-export function satisfiesComparator(
-  lhs: number,
-  op: Comparator,
-  rhs: number,
-): boolean {
+export function satisfiesComparator(lhs: number, op: Comparator, rhs: number): boolean {
   if (!isFinite(lhs) || !isFinite(rhs)) return false;
   switch (op) {
     case ">":
@@ -61,10 +54,7 @@ export function satisfiesDateComparator(
   }
 }
 
-export function includesCaseInsensitive(
-  haystack?: string,
-  needle?: string,
-): boolean {
+export function includesCaseInsensitive(haystack?: string, needle?: string): boolean {
   return haystack?.toLowerCase().includes(needle?.toLowerCase() ?? "") ?? false;
 }
 
@@ -73,13 +63,9 @@ export function includesCaseInsensitive(
  * authors) contains the query text. `select` is the same selector an enum
  * {@link import("./clubType").FilterOption} uses for its suggestions.
  */
-export function enumMatcher(
-  select: (data: WorkDataSummary | undefined) => string[],
-): WorkMatcher {
+export function enumMatcher(select: (data: WorkDataSummary | undefined) => string[]): WorkMatcher {
   return (work, query) =>
-    select(work.externalData).some((value) =>
-      includesCaseInsensitive(value, query.value),
-    );
+    select(work.externalData).some((value) => includesCaseInsensitive(value, query.value));
 }
 
 /** Numeric matcher honouring the `> = <` operators. */
@@ -89,11 +75,7 @@ export function numberMatcher(
   return (work, query) => {
     const raw = select(work);
     const lhs = typeof raw === "string" ? parseFloat(raw) : Number(raw ?? NaN);
-    return satisfiesComparator(
-      lhs,
-      query.operator ?? "=",
-      parseFloat(query.value),
-    );
+    return satisfiesComparator(lhs, query.operator ?? "=", parseFloat(query.value));
   };
 }
 
@@ -113,9 +95,7 @@ function hasScores(work: DetailedWorkListItem): work is DetailedReviewListItem {
 }
 
 /** Average score for a review row, or undefined for non-review works. */
-export function reviewAverageScore(
-  work: DetailedWorkListItem,
-): number | undefined {
+export function reviewAverageScore(work: DetailedWorkListItem): number | undefined {
   if (!hasScores(work)) return undefined;
   const average: Review | undefined = work.scores.average;
   return average?.score;

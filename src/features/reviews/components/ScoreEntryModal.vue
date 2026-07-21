@@ -36,13 +36,12 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 
-import ScoreAssistFlow from "./ScoreAssistFlow.vue";
-import ScoreEntryPanel from "./ScoreEntryPanel.vue";
 import { hasValue } from "../../../../lib/checks/checks.js";
 import { ClubType } from "../../../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
 import { buildCandidatePool } from "../composables/scoreAssistLogic";
-
+import ScoreAssistFlow from "./ScoreAssistFlow.vue";
+import ScoreEntryPanel from "./ScoreEntryPanel.vue";
 import { useClub, useClubSlug } from "@/service/useClub";
 import { useReviewsList } from "@/service/useList";
 import { useUser } from "@/service/useUser";

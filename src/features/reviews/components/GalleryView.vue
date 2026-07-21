@@ -16,9 +16,7 @@
             <ListboxOptions
               class="absolute z-10 mt-1 max-h-80 overflow-auto rounded-md border border-white bg-background py-1"
             >
-              <p class="px-3 py-1 text-left text-sm text-gray-400">
-                Sort reviews by
-              </p>
+              <p class="px-3 py-1 text-left text-sm text-gray-400">Sort reviews by</p>
               <ListboxOption
                 v-for="option in sortOptions"
                 v-slot="{ selected }"
@@ -136,20 +134,14 @@
 </template>
 
 <script setup lang="ts">
-import {
-  Listbox,
-  ListboxButton,
-  ListboxOption,
-  ListboxOptions,
-} from "@headlessui/vue";
+import { Listbox, ListboxButton, ListboxOption, ListboxOptions } from "@headlessui/vue";
 import { FlexRender, Row, Table } from "@tanstack/vue-table";
 import { computed, ref, nextTick, watch } from "vue";
 
-import WorkDetailsDrawer from "./WorkDetailsDrawer.vue";
 import { isDefined } from "../../../../lib/checks/checks.js";
 import { Member } from "../../../../lib/types/club";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
-
+import WorkDetailsDrawer from "./WorkDetailsDrawer.vue";
 import AverageImg from "@/assets/images/average.svg";
 import VAvatar from "@/common/components/VAvatar.vue";
 import WorkPosterCard from "@/common/components/WorkPosterCard.vue";
@@ -276,9 +268,7 @@ const selectedMovieId = ref<string | undefined>(undefined);
 
 const selectedMovie = computed(() => {
   if (selectedMovieId.value === undefined) return undefined;
-  return props.reviewTable
-    .getRowModel()
-    .rows.find((row) => row.id === selectedMovieId.value);
+  return props.reviewTable.getRowModel().rows.find((row) => row.id === selectedMovieId.value);
 });
 
 const openMovieDetails = async (row: Row<DetailedReviewListItem>) => {
@@ -287,9 +277,7 @@ const openMovieDetails = async (row: Row<DetailedReviewListItem>) => {
 
     await nextTick();
     // Find the clicked movie element and scroll to center it on page
-    const clickedElement = document.querySelector(
-      `[data-movie-id="${row.id}"]`,
-    );
+    const clickedElement = document.querySelector(`[data-movie-id="${row.id}"]`);
 
     if (clickedElement) {
       clickedElement.scrollIntoView({
@@ -310,9 +298,7 @@ watch(selectedMovieId, async (newValue, oldValue) => {
   // When drawer closes (transitions from true to false)
   if (isDefined(oldValue) && !isDefined(newValue)) {
     await nextTick();
-    const selectedElement = document.querySelector(
-      `[data-movie-id="${oldValue}"]`,
-    );
+    const selectedElement = document.querySelector(`[data-movie-id="${oldValue}"]`);
     if (selectedElement) {
       selectedElement.scrollIntoView({
         behavior: "smooth",

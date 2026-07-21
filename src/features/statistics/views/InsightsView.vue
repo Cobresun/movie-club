@@ -15,12 +15,7 @@ import { computed } from "vue";
 import { Member } from "../../../../lib/types/club";
 import { ClubType } from "../../../../lib/types/generated/db";
 import { STAT_WIDGETS, type StatWidgetContext } from "../statisticsWidgets";
-import {
-  isBookStats,
-  isMovieStats,
-  type HistogramData,
-  type WorkStatsData,
-} from "../types";
+import { isBookStats, isMovieStats, type HistogramData, type WorkStatsData } from "../types";
 
 const props = defineProps<{
   workData: WorkStatsData[];

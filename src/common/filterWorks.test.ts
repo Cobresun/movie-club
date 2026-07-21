@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { filterWorks } from "./filterWorks";
 import { DetailedBookData } from "../../lib/types/book";
 import { ClubType, WorkType } from "../../lib/types/generated/db";
 import { DetailedWorkListItem } from "../../lib/types/lists";
 import { DetailedMovieData } from "../../lib/types/movie";
+import { filterWorks } from "./filterWorks";
 
 function bookItem(
   id: string,
@@ -203,11 +203,9 @@ describe("filterWorks enum and free-text filters", () => {
   });
 
   it("matches free text against the title", () => {
-    expect(
-      ids(
-        filterWorks(books, { filters: {}, freeText: "tolkien" }, ClubType.book),
-      ),
-    ).toEqual(["tolkien"]);
+    expect(ids(filterWorks(books, { filters: {}, freeText: "tolkien" }, ClubType.book))).toEqual([
+      "tolkien",
+    ]);
   });
 });
 
@@ -317,11 +315,7 @@ describe("filterWorks club-type scoping", () => {
     // because book clubs do not register a `genre` option.
     expect(
       ids(
-        filterWorks(
-          items,
-          { filters: { genre: { value: "Drama" } }, freeText: "" },
-          ClubType.book,
-        ),
+        filterWorks(items, { filters: { genre: { value: "Drama" } }, freeText: "" }, ClubType.book),
       ),
     ).toEqual(["a", "b", "c"]);
   });

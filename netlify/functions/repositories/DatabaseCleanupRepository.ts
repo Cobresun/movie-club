@@ -106,14 +106,12 @@ class DatabaseCleanupRepository {
    */
   async listDatabases(): Promise<DatabaseInfo[]> {
     // Use CockroachDB's native SHOW DATABASES WITH COMMENT command
-    const result =
-      await sql<ShowDatabaseRow>`SHOW DATABASES WITH COMMENT`.execute(rootDb);
+    const result = await sql<ShowDatabaseRow>`SHOW DATABASES WITH COMMENT`.execute(rootDb);
 
     // Filter out protected databases and CockroachDB internal databases
     const databases = result.rows.filter(
       (row) =>
-        !PROTECTED_DATABASES.includes(row.database_name) &&
-        !row.database_name.startsWith("crdb_"),
+        !PROTECTED_DATABASES.includes(row.database_name) && !row.database_name.startsWith("crdb_"),
     );
 
     // Sort by name
@@ -236,10 +234,7 @@ class DatabaseCleanupRepository {
         await this.dropDatabase(db.name);
         deleted.push(db.name);
       } catch (error) {
-        console.error(
-          `Failed to drop database ${db.name}:`,
-          (error as Error).message,
-        );
+        console.error(`Failed to drop database ${db.name}:`, (error as Error).message);
         // Continue with other databases
       }
     }

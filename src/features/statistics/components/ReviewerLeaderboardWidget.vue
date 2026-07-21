@@ -12,11 +12,7 @@
       >
         <div class="flex items-center justify-between gap-3">
           <div class="flex min-w-0 items-center gap-3">
-            <v-avatar
-              :src="entry.member.image"
-              :name="entry.member.name"
-              :size="36"
-            />
+            <v-avatar :src="entry.member.image" :name="entry.member.name" :size="36" />
             <div class="min-w-0 text-left">
               <div class="flex items-center gap-2">
                 <span
@@ -44,9 +40,7 @@
             {{ entry.averageScore.toFixed(1) }}
           </span>
         </div>
-        <div
-          class="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-700/50"
-        >
+        <div class="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-700/50">
           <div
             class="h-full rounded-full transition-all duration-500"
             :style="{
@@ -63,20 +57,18 @@
 <script setup lang="ts">
 import { computed } from "vue";
 
-import WidgetShell from "./WidgetShell.vue";
 import { Member } from "../../../../lib/types/club";
 import { memberSeriesColor } from "../chartPalette";
 import { computeMemberLeaderboard } from "../statsComputers";
 import type { WorkStatsData } from "../types";
+import WidgetShell from "./WidgetShell.vue";
 
 const props = defineProps<{
   workData: WorkStatsData[];
   members: Member[];
 }>();
 
-const leaderboard = computed(() =>
-  computeMemberLeaderboard(props.workData, props.members),
-);
+const leaderboard = computed(() => computeMemberLeaderboard(props.workData, props.members));
 
 // Same color the member wears in every chart: their slot in the member list.
 function memberColor(memberId: string): string {

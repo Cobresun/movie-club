@@ -23,9 +23,8 @@
 import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
-import ClubSwitcher from "./ClubSwitcher.vue";
 import { hasValue } from "../../../lib/checks/checks.js";
-
+import ClubSwitcher from "./ClubSwitcher.vue";
 import { useUser } from "@/service/useUser";
 import { useAuthStore } from "@/stores/auth";
 

@@ -1,11 +1,7 @@
 <template>
   <div>
     <!-- TODO: the page header component checks for a club, lets not do that here! -->
-    <page-header
-      :has-back="false"
-      page-name="Create a Club"
-      :hide-club="true"
-    />
+    <page-header :has-back="false" page-name="Create a Club" :hide-club="true" />
     <div v-if="isLoggedIn">
       <div class="px-4 text-center">
         <input
@@ -17,10 +13,7 @@
           :class="{ 'border-red-500': showErrors && !isClubNameValid }"
         />
         <div class="mb-4">
-          <span
-            v-if="showErrors && !isClubNameValid"
-            class="text-sm text-red-500"
-          >
+          <span v-if="showErrors && !isClubNameValid" class="text-sm text-red-500">
             Club name is required
           </span>
         </div>
@@ -97,9 +90,7 @@ const submit = async () => {
       });
       const { slug } = response.data;
       setLastClubSlug(slug);
-      router
-        .push({ name: "ClubHome", params: { clubSlug: slug } })
-        .catch(console.error);
+      router.push({ name: "ClubHome", params: { clubSlug: slug } }).catch(console.error);
     } catch (error) {
       console.error("Failed to create club:", error);
     }

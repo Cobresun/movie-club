@@ -41,10 +41,9 @@
 </template>
 
 <script setup lang="ts">
-import ListItemDetailsContent from "./ListItemDetailsContent.vue";
 import { Member } from "../../../../lib/types/club";
 import { DetailedWorkListItem } from "../../../../lib/types/lists";
-
+import ListItemDetailsContent from "./ListItemDetailsContent.vue";
 import VBottomSheet from "@/common/components/VBottomSheet.vue";
 import VSideDrawer from "@/common/components/VSideDrawer.vue";
 import { useIsDesktop } from "@/common/composables/useIsDesktop.js";

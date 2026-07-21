@@ -15,15 +15,8 @@
     >
       <template v-if="hasValue(metaLine)" #meta>{{ metaLine }}</template>
       <template #date>
-        <span
-          v-if="isDefined(addedByMember)"
-          class="inline-flex items-center gap-2"
-        >
-          <VAvatar
-            :src="addedByMember.image"
-            :name="addedByMember.name"
-            :size="20"
-          />
+        <span v-if="isDefined(addedByMember)" class="inline-flex items-center gap-2">
+          <VAvatar :src="addedByMember.image" :name="addedByMember.name" :size="20" />
           <span>
             Added by {{ addedByMember.name }} on
             {{ formatDate(movie.createdDate) }}
@@ -57,11 +50,7 @@
           :subjects="bookData.subjects"
         />
       </div>
-      <WatchProviders
-        v-if="movieData"
-        :external-id="movie.externalId"
-        class="mt-4"
-      />
+      <WatchProviders v-if="movieData" :external-id="movie.externalId" class="mt-4" />
     </section>
 
     <CommentThread :work-id="movie.id" :club-slug="clubSlug" />
@@ -83,9 +72,7 @@
           class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary/20 py-3 text-primary"
           @click="toggleNextWork"
         >
-          <mdicon
-            :name="isNextWork ? 'arrow-collapse-down' : 'arrow-collapse-up'"
-          />
+          <mdicon :name="isNextWork ? 'arrow-collapse-down' : 'arrow-collapse-up'" />
           <span>{{ isNextWork ? "Unpin" : "Up Next" }}</span>
         </button>
         <button
@@ -128,19 +115,13 @@
 </template>
 
 <script setup lang="ts">
-import {
-  Listbox,
-  ListboxButton,
-  ListboxOption,
-  ListboxOptions,
-} from "@headlessui/vue";
+import { Listbox, ListboxButton, ListboxOption, ListboxOptions } from "@headlessui/vue";
 import { DateTime } from "luxon";
 import { computed, nextTick, ref } from "vue";
 
 import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import { Member } from "../../../../lib/types/club";
 import { DetailedWorkListItem } from "../../../../lib/types/lists";
-
 import { workMetaLine, workOverview, workSubtitle } from "@/common/clubType";
 import BookMetadataGrid from "@/common/components/BookMetadataGrid.vue";
 import CastList from "@/common/components/CastList.vue";
@@ -211,15 +192,11 @@ const { data: workDetails } = useWorkDetails(
   props.clubSlug,
   computed(() => props.movie.id),
 );
-const castActors = computed(
-  () => asMovie(workDetails.value ?? undefined)?.actors,
-);
+const castActors = computed(() => asMovie(workDetails.value ?? undefined)?.actors);
 
 // Cover/poster and year are sourced per media type; workPosterUrl prefers the
 // movie's TMDB poster and falls back to the work's stored imageUrl (book cover).
-const posterUrl = computed(() =>
-  workPosterUrl(props.movie.externalData, props.movie.imageUrl),
-);
+const posterUrl = computed(() => workPosterUrl(props.movie.externalData, props.movie.imageUrl));
 
 // Release year (movies) or first-published year (books), via the shared helper.
 const displayYear = computed(() => workSubtitle(props.movie.externalData));

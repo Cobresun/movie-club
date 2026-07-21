@@ -1,11 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  authorsMatch,
-  normalizeTitle,
-  selectBestVolume,
-  titlesMatch,
-} from "@/../lib/bookMatching";
+import { authorsMatch, normalizeTitle, selectBestVolume, titlesMatch } from "@/../lib/bookMatching";
 import { GoogleBooksVolume } from "@/../lib/types/book";
 
 describe("normalizeTitle", () => {
@@ -24,9 +19,7 @@ describe("titlesMatch", () => {
   });
 
   it("matches when one title is a subtitle-extended prefix", () => {
-    expect(
-      titlesMatch("Sapiens", "Sapiens: A Brief History of Humankind"),
-    ).toBe(true);
+    expect(titlesMatch("Sapiens", "Sapiens: A Brief History of Humankind")).toBe(true);
   });
 
   it("rejects unrelated titles", () => {
@@ -48,10 +41,7 @@ describe("authorsMatch", () => {
   });
 });
 
-function volume(
-  id: string,
-  info: NonNullable<GoogleBooksVolume["volumeInfo"]>,
-): GoogleBooksVolume {
+function volume(id: string, info: NonNullable<GoogleBooksVolume["volumeInfo"]>): GoogleBooksVolume {
   return { id, volumeInfo: info };
 }
 
@@ -69,9 +59,7 @@ describe("selectBestVolume", () => {
         authors: ["Someone Else"],
       }),
     ];
-    expect(
-      selectBestVolume(candidates, target.title, target.author),
-    ).toBeUndefined();
+    expect(selectBestVolume(candidates, target.title, target.author)).toBeUndefined();
   });
 
   it("prefers exact titles with covers over subtitle variants", () => {
@@ -88,18 +76,12 @@ describe("selectBestVolume", () => {
         pageCount: 180,
       }),
     ];
-    expect(selectBestVolume(candidates, target.title, target.author)?.id).toBe(
-      "exact",
-    );
+    expect(selectBestVolume(candidates, target.title, target.author)?.id).toBe("exact");
   });
 
   it("accepts a title-only match when the author is unknown", () => {
-    const candidates = [
-      volume("match", { title: "The Great Gatsby", authors: ["Anyone"] }),
-    ];
-    expect(selectBestVolume(candidates, target.title, undefined)?.id).toBe(
-      "match",
-    );
+    const candidates = [volume("match", { title: "The Great Gatsby", authors: ["Anyone"] })];
+    expect(selectBestVolume(candidates, target.title, undefined)?.id).toBe("match");
   });
 
   it("returns undefined for empty candidates", () => {

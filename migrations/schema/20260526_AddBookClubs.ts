@@ -16,9 +16,7 @@ export async function up(db: Kysely<unknown>) {
 
   await db.schema
     .alterTable("club")
-    .addColumn("type", sql`club_type`, (col) =>
-      col.notNull().defaultTo("movie"),
-    )
+    .addColumn("type", sql`club_type`, (col) => col.notNull().defaultTo("movie"))
     .execute();
 
   // Book metadata cache (OpenLibrary), keyed by external_id (Work key).
@@ -31,9 +29,7 @@ export async function up(db: Kysely<unknown>) {
     .addColumn("first_publish_year", "int8")
     .addColumn("number_of_pages", "int8")
     .addColumn("cover_url", "varchar(255)")
-    .addColumn("updated_date", "timestamptz", (col) =>
-      col.notNull().defaultTo("now()"),
-    )
+    .addColumn("updated_date", "timestamptz", (col) => col.notNull().defaultTo("now()"))
     .execute();
 
   await db.schema

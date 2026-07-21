@@ -23,10 +23,7 @@
           {{ subtitle }}
         </p>
 
-        <div
-          v-if="members.length > 0"
-          class="mt-4 flex items-center -space-x-2"
-        >
+        <div v-if="members.length > 0" class="mt-4 flex items-center -space-x-2">
           <v-avatar
             v-for="member in visibleMembers"
             :key="member.id"
@@ -68,7 +65,5 @@ const { clubName, members = [], eyebrow, subtitle } = defineProps<Props>();
 
 const MAX_VISIBLE_MEMBERS = 6;
 const visibleMembers = computed(() => members.slice(0, MAX_VISIBLE_MEMBERS));
-const extraMemberCount = computed(() =>
-  Math.max(members.length - MAX_VISIBLE_MEMBERS, 0),
-);
+const extraMemberCount = computed(() => Math.max(members.length - MAX_VISIBLE_MEMBERS, 0));
 </script>

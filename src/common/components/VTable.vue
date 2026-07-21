@@ -9,33 +9,16 @@
         <div
           v-if="head.includeHeader"
           class="grid items-center gap-x-1"
-          :class="[
-            head.centerHeader
-              ? 'grid-cols-centerHeader'
-              : 'grid-cols-leftHeader',
-          ]"
+          :class="[head.centerHeader ? 'grid-cols-centerHeader' : 'grid-cols-leftHeader']"
         >
-          <div
-            v-if="head.includeHeader"
-            :class="{ 'col-start-2': head.centerHeader }"
-          >
+          <div v-if="head.includeHeader" :class="{ 'col-start-2': head.centerHeader }">
             <slot :name="head.value">
               {{ head.title }}
             </slot>
           </div>
-          <div
-            v-if="head.sortable"
-            class="cursor-pointer"
-            @click="sort(head.value)"
-          >
-            <mdicon
-              v-if="!sortBy[head.value] || sortBy[head.value] === 0"
-              name="menu-down"
-            />
-            <mdicon
-              v-else-if="sortBy[head.value] === 1"
-              name="arrow-down-drop-circle"
-            />
+          <div v-if="head.sortable" class="cursor-pointer" @click="sort(head.value)">
+            <mdicon v-if="!sortBy[head.value] || sortBy[head.value] === 0" name="menu-down" />
+            <mdicon v-else-if="sortBy[head.value] === 1" name="arrow-down-drop-circle" />
             <mdicon v-else name="arrow-up-drop-circle" />
           </div>
         </div>
@@ -136,11 +119,7 @@ const comparator = (value: string, order: boolean) => {
     if (typeof aVal === "number" && typeof bVal === "number") {
       return aVal - bVal;
     }
-    if (
-      typeof aVal === "string" &&
-      typeof bVal === "string" &&
-      !isNaN(Date.parse(aVal))
-    ) {
+    if (typeof aVal === "string" && typeof bVal === "string" && !isNaN(Date.parse(aVal))) {
       return Date.parse(aVal) - Date.parse(bVal);
     }
     if (typeof aVal === "string" && typeof bVal === "string") {

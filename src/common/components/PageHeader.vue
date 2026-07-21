@@ -1,10 +1,6 @@
 <template>
   <div class="grid grid-cols-centerHeader items-center gap-x-2 sm:gap-x-8">
-    <router-link
-      v-if="hasBack"
-      class="flex justify-end"
-      :to="{ name: backRoute }"
-    >
+    <router-link v-if="hasBack" class="flex justify-end" :to="{ name: backRoute }">
       <mdicon class="cursor-pointer" name="arrow-left" size="40" />
     </router-link>
     <div v-else />

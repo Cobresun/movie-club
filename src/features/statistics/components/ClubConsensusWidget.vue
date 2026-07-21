@@ -23,10 +23,7 @@
           ?
         </div>
         <div class="min-w-0 flex-1 text-left">
-          <p
-            class="w-fit max-w-full truncate text-sm font-medium text-white"
-            :title="work.title"
-          >
+          <p class="w-fit max-w-full truncate text-sm font-medium text-white" :title="work.title">
             {{ work.title }}
           </p>
           <div class="mt-1 flex flex-wrap gap-1">
@@ -57,11 +54,11 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 
-import SegmentedToggle from "./SegmentedToggle.vue";
-import WidgetShell from "./WidgetShell.vue";
 import { Member } from "../../../../lib/types/club";
 import { computeClubConsensus } from "../statsComputers";
 import type { WorkStatsData } from "../types";
+import SegmentedToggle from "./SegmentedToggle.vue";
+import WidgetShell from "./WidgetShell.vue";
 
 type Mode = "agreed" | "divisive";
 
@@ -77,22 +74,16 @@ const props = defineProps<{
 
 const mode = ref<Mode>("agreed");
 
-const consensus = computed(() =>
-  computeClubConsensus(props.workData, props.members),
-);
+const consensus = computed(() => computeClubConsensus(props.workData, props.members));
 
 const hasData = computed(() => consensus.value.mostAgreed.length > 0);
 
 const activeEntries = computed(() =>
-  mode.value === "agreed"
-    ? consensus.value.mostAgreed
-    : consensus.value.mostDivisive,
+  mode.value === "agreed" ? consensus.value.mostAgreed : consensus.value.mostDivisive,
 );
 
 const subtitle = computed(() =>
-  mode.value === "agreed"
-    ? "Scores that landed closest together"
-    : "Scores that split the room",
+  mode.value === "agreed" ? "Scores that landed closest together" : "Scores that split the room",
 );
 
 function firstName(name: string): string {

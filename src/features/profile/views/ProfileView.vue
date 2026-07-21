@@ -1,9 +1,7 @@
 <template>
   <div class="flex flex-col items-center gap-8 p-8">
     <!-- Profile Info Section -->
-    <div
-      class="flex w-full max-w-5xl flex-col-reverse items-center justify-between md:flex-row"
-    >
+    <div class="flex w-full max-w-5xl flex-col-reverse items-center justify-between md:flex-row">
       <div class="text-left">
         <p class="text-lg font-semibold">Name:</p>
         <div v-if="!isEditingName" class="mb-2 flex items-center gap-2">
@@ -52,12 +50,7 @@
       <div class="relative">
         <input ref="fileInput" type="file" hidden @change="uploadAvatar" />
         <button class="group relative cursor-pointer" @click="openFileSelector">
-          <v-avatar
-            class="mb-4 md:mb-0"
-            :src="data?.image"
-            :name="data?.name"
-            size="160"
-          />
+          <v-avatar class="mb-4 md:mb-0" :src="data?.image" :name="data?.name" size="160" />
           <div
             class="absolute left-0 top-0 h-full w-full items-center justify-center rounded-full bg-black bg-opacity-30"
             :class="{ flex: isLoading, 'hidden group-hover:flex': !isLoading }"
@@ -94,13 +87,7 @@ import { useToast } from "vue-toastification";
 
 import { isDefined, hasValue } from "../../../../lib/checks/checks.js";
 import ChangePasswordForm from "../../auth/components/ChangePasswordForm.vue";
-
-import {
-  useUser,
-  useUpdateAvatar,
-  useDeleteAvatar,
-  useUpdateName,
-} from "@/service/useUser";
+import { useUser, useUpdateAvatar, useDeleteAvatar, useUpdateName } from "@/service/useUser";
 
 const data = useUser();
 const fileInput: Ref<HTMLInputElement | null> = ref(null);
@@ -176,13 +163,10 @@ const saveName = () => {
       editedName.value = "";
     },
     onError: (error: unknown) => {
-      nameError.value =
-        error instanceof Error ? error.message : "Failed to update name";
+      nameError.value = error instanceof Error ? error.message : "Failed to update name";
     },
   });
 };
 
-const isLoading = computed(
-  () => isAvatarPending.value || isDeletePending.value,
-);
+const isLoading = computed(() => isAvatarPending.value || isDeletePending.value);
 </script>

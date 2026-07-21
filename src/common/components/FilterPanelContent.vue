@@ -91,8 +91,8 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref } from "vue";
 
-import type { Comparator, FilterOption } from "./filterTypes";
 import { hasValue } from "../../../lib/checks/checks";
+import type { Comparator, FilterOption } from "./filterTypes";
 
 const props = defineProps<{
   opt: FilterOption;
@@ -118,16 +118,12 @@ const inputText = computed(() => String(inputValue.value).trim());
 const filteredSuggestions = computed(() => {
   const q = inputText.value.toLowerCase();
   if (!hasValue(q)) return props.valueSuggestions.slice(0, 20);
-  return props.valueSuggestions
-    .filter((v) => v.toLowerCase().includes(q))
-    .slice(0, 20);
+  return props.valueSuggestions.filter((v) => v.toLowerCase().includes(q)).slice(0, 20);
 });
 
 // Comparators only apply to number/date filters; enum/string filters omit one.
 const operatorForApply = (): Comparator | undefined =>
-  props.opt.type === "number" || props.opt.type === "date"
-    ? comparator.value
-    : undefined;
+  props.opt.type === "number" || props.opt.type === "date" ? comparator.value : undefined;
 
 function apply() {
   if (!hasValue(inputText.value)) return;
@@ -149,10 +145,7 @@ onMounted(() => {
         if (!inputElement) return;
 
         inputElement.focus();
-        if (
-          props.opt.type === "date" &&
-          typeof inputElement.showPicker === "function"
-        ) {
+        if (props.opt.type === "date" && typeof inputElement.showPicker === "function") {
           setTimeout(() => {
             inputElement.showPicker();
           }, 100);

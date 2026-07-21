@@ -1,8 +1,6 @@
 <template>
   <div class="flex min-h-[60vh] items-center justify-center p-8">
-    <div
-      class="w-full max-w-md rounded-lg bg-lowBackground p-8 text-center shadow-lg"
-    >
+    <div class="w-full max-w-md rounded-lg bg-lowBackground p-8 text-center shadow-lg">
       <!-- Loading State -->
       <div v-if="isVerifying" class="space-y-4">
         <loading-spinner />
@@ -25,9 +23,7 @@
 
       <!-- Error State -->
       <div v-else class="space-y-4">
-        <div
-          class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-900/50"
-        >
+        <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-900/50">
           <mdicon name="alert-circle" size="32" class="text-red-400" />
         </div>
         <h1 class="text-2xl font-bold text-text">Verification Failed</h1>
@@ -48,7 +44,6 @@ import { ref, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 import { isDefined } from "../../../../lib/checks/checks.js";
-
 import { authClient } from "@/lib/auth-client";
 import { useAuthStore } from "@/stores/auth";
 
@@ -79,17 +74,11 @@ onMounted(async () => {
     if (error) {
       isVerifying.value = false;
       if (isDefined(error.message) && error.message?.includes("expired")) {
-        errorMessage.value =
-          "This verification link has expired. Please request a new one.";
-      } else if (
-        isDefined(error.message) &&
-        error.message?.includes("invalid")
-      ) {
-        errorMessage.value =
-          "This verification link is invalid. Please request a new one.";
+        errorMessage.value = "This verification link has expired. Please request a new one.";
+      } else if (isDefined(error.message) && error.message?.includes("invalid")) {
+        errorMessage.value = "This verification link is invalid. Please request a new one.";
       } else {
-        errorMessage.value =
-          error.message ?? "Failed to verify email. Please try again.";
+        errorMessage.value = error.message ?? "Failed to verify email. Please try again.";
       }
       return;
     }
@@ -120,8 +109,7 @@ const resendVerification = async () => {
     });
     resendMessage.value = "Verification email sent! Please check your inbox.";
   } catch {
-    resendMessage.value =
-      "Failed to send verification email. Please try again.";
+    resendMessage.value = "Failed to send verification email. Please try again.";
   }
 };
 </script>

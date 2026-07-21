@@ -10,11 +10,7 @@
         >
           <p>{{ element.title }}</p>
           <div class="flex">
-            <mdicon
-              class="mr-2 cursor-pointer"
-              name="delete"
-              @click="deleteCategory(element)"
-            />
+            <mdicon class="mr-2 cursor-pointer" name="delete" @click="deleteCategory(element)" />
             <mdicon class="cursor-grab" name="menu" />
           </div>
         </div>
@@ -33,12 +29,7 @@ import { ref, watch, toRefs } from "vue";
 import { VueDraggableNext } from "vue-draggable-next";
 
 import { ClubAwards } from "../../../../lib/types/awards";
-
-import {
-  useAddCategory,
-  useDeleteCategory,
-  useReorderCategories,
-} from "@/service/useAwards";
+import { useAddCategory, useDeleteCategory, useReorderCategories } from "@/service/useAwards";
 
 const props = defineProps<{
   clubAward: ClubAwards;
@@ -55,10 +46,7 @@ watch(clubAward, () => {
 
 const newCategory = ref("");
 
-const { mutate: addCategoryMutation } = useAddCategory(
-  clubSlug.value,
-  year.value,
-);
+const { mutate: addCategoryMutation } = useAddCategory(clubSlug.value, year.value);
 
 const addCategory = () => {
   if (
@@ -70,23 +58,13 @@ const addCategory = () => {
   }
 };
 
-const { mutate: reorderCategories } = useReorderCategories(
-  clubSlug.value,
-  year.value,
-);
+const { mutate: reorderCategories } = useReorderCategories(clubSlug.value, year.value);
 
 watch(categories, () => {
-  if (
-    categories.value.some(
-      (category, index) => clubAward.value.awards[index] !== category,
-    )
-  ) {
+  if (categories.value.some((category, index) => clubAward.value.awards[index] !== category)) {
     reorderCategories(categories.value.map((category) => category.title));
   }
 });
 
-const { mutate: deleteCategory } = useDeleteCategory(
-  clubSlug.value,
-  year.value,
-);
+const { mutate: deleteCategory } = useDeleteCategory(clubSlug.value, year.value);
 </script>

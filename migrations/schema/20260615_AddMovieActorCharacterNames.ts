@@ -58,8 +58,7 @@ function characterValues(
 ): AliasedRawBuilder<MigrationTables["movie_actors"], "v"> {
   const rows = sql.join(
     updates.map(
-      (u) =>
-        sql`(${u.externalId}::VARCHAR, ${u.actorId}::INT8, ${u.character}::VARCHAR)`,
+      (u) => sql`(${u.externalId}::VARCHAR, ${u.actorId}::INT8, ${u.character}::VARCHAR)`,
     ),
   );
   return sql<MigrationTables["movie_actors"]>`(VALUES ${rows})`.as<"v">(
@@ -70,9 +69,7 @@ function characterValues(
 // CockroachDB DDL isn't transactional, so a failure during the backfill below
 // leaves the column in place; guard the ALTERs to keep up()/down() re-runnable
 // (Kysely's alterTable has no ifNotExists()).
-async function characterNameColumnExists(
-  db: Kysely<unknown>,
-): Promise<boolean> {
+async function characterNameColumnExists(db: Kysely<unknown>): Promise<boolean> {
   const tables = await db.introspection.getTables();
   return (
     tables
@@ -83,10 +80,7 @@ async function characterNameColumnExists(
 
 export async function up(db: Kysely<unknown>) {
   if (!(await characterNameColumnExists(db))) {
-    await db.schema
-      .alterTable("movie_actors")
-      .addColumn("character_name", "varchar")
-      .execute();
+    await db.schema.alterTable("movie_actors").addColumn("character_name", "varchar").execute();
   }
 
   const typedDb = db.withTables<MigrationTables>();
@@ -124,9 +118,7 @@ export async function up(db: Kysely<unknown>) {
     for (const result of results) {
       if (result.status === "rejected") {
         const message =
-          result.reason instanceof Error
-            ? result.reason.message
-            : String(result.reason);
+          result.reason instanceof Error ? result.reason.message : String(result.reason);
         console.error(`Error fetching credits: ${message}`);
         errors++;
         continue;
@@ -162,9 +154,7 @@ export async function up(db: Kysely<unknown>) {
       await new Promise((resolve) => setTimeout(resolve, BATCH_DELAY_MS));
     }
 
-    console.log(
-      `Progress: ${Math.min(i + BATCH_SIZE, movies.length)}/${movies.length}`,
-    );
+    console.log(`Progress: ${Math.min(i + BATCH_SIZE, movies.length)}/${movies.length}`);
   }
 
   console.log("\n=== Backfill Summary ===");
@@ -175,9 +165,6 @@ export async function up(db: Kysely<unknown>) {
 
 export async function down(db: Kysely<unknown>) {
   if (await characterNameColumnExists(db)) {
-    await db.schema
-      .alterTable("movie_actors")
-      .dropColumn("character_name")
-      .execute();
+    await db.schema.alterTable("movie_actors").dropColumn("character_name").execute();
   }
 }

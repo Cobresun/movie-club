@@ -15,10 +15,7 @@ export async function up(db: Kysely<unknown>) {
 
 export async function down(db: Kysely<unknown>) {
   // Re-add the image_url column
-  await db.schema
-    .alterTable("user")
-    .addColumn("image_url", "varchar(255)")
-    .execute();
+  await db.schema.alterTable("user").addColumn("image_url", "varchar(255)").execute();
 
   // Copy image values back to image_url
   // Note: This will copy ALL image values, including OAuth provider images

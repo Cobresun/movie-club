@@ -1,10 +1,6 @@
 import { sql } from "kysely";
 
-import {
-  hasElements,
-  isDefined,
-  hasValue,
-} from "../../../../lib/checks/checks.js";
+import { hasElements, isDefined, hasValue } from "../../../../lib/checks/checks.js";
 import {
   bestCoverUrl,
   parsePublishedYear,
@@ -53,15 +49,11 @@ export async function fetchBookData(externalId: string): Promise<BookData> {
 
   // Google keeps subtitles separate; OpenLibrary folded them into the title,
   // so joining preserves the display format users already have.
-  const title = hasValue(info?.subtitle)
-    ? `${info.title}: ${info.subtitle}`
-    : info?.title;
+  const title = hasValue(info?.subtitle) ? `${info.title}: ${info.subtitle}` : info?.title;
 
   return {
     title,
-    description: hasValue(info?.description)
-      ? stripHtml(info.description)
-      : undefined,
+    description: hasValue(info?.description) ? stripHtml(info.description) : undefined,
     firstPublishYear: parsePublishedYear(info?.publishedDate),
     numberOfPages: info?.pageCount,
     coverUrl: bestCoverUrl(info?.imageLinks),
@@ -75,33 +67,19 @@ function detailsQuery(externalIds: string[]) {
     .with("authors_agg", (qb) =>
       qb
         .selectFrom("book_authors")
-        .select([
-          "external_id",
-          db.fn.agg<string[]>("array_agg", ["author_name"]).as("authors"),
-        ])
+        .select(["external_id", db.fn.agg<string[]>("array_agg", ["author_name"]).as("authors")])
         .groupBy("external_id"),
     )
     .with("subjects_agg", (qb) =>
       qb
         .selectFrom("book_subjects")
-        .select([
-          "external_id",
-          db.fn.agg<string[]>("array_agg", ["subject"]).as("subjects"),
-        ])
+        .select(["external_id", db.fn.agg<string[]>("array_agg", ["subject"]).as("subjects")])
         .groupBy("external_id"),
     )
     .selectFrom("book_details")
     .where("book_details.external_id", "in", externalIds)
-    .leftJoin(
-      "authors_agg",
-      "authors_agg.external_id",
-      "book_details.external_id",
-    )
-    .leftJoin(
-      "subjects_agg",
-      "subjects_agg.external_id",
-      "book_details.external_id",
-    )
+    .leftJoin("authors_agg", "authors_agg.external_id", "book_details.external_id")
+    .leftJoin("subjects_agg", "subjects_agg.external_id", "book_details.external_id")
     .select([
       "book_details.external_id",
       "book_details.title",
@@ -151,9 +129,7 @@ class BookProvider implements MediaProvider {
             author_name: name,
           })),
         )
-        .onConflict((oc) =>
-          oc.columns(["external_id", "author_name"]).doNothing(),
-        )
+        .onConflict((oc) => oc.columns(["external_id", "author_name"]).doNothing())
         .execute();
     }
 
@@ -171,9 +147,7 @@ class BookProvider implements MediaProvider {
     }
   }
 
-  async getExternalData(
-    externalIds: string[],
-  ): Promise<Map<string, DetailedWorkData>> {
+  async getExternalData(externalIds: string[]): Promise<Map<string, DetailedWorkData>> {
     const map = new Map<string, DetailedWorkData>();
     if (externalIds.length === 0) return map;
 
@@ -195,9 +169,7 @@ class BookProvider implements MediaProvider {
   }
 
   // Book metadata is small enough that the summary IS the full shape.
-  async getExternalDataSummary(
-    externalIds: string[],
-  ): Promise<Map<string, WorkDataSummary>> {
+  async getExternalDataSummary(externalIds: string[]): Promise<Map<string, WorkDataSummary>> {
     return this.getExternalData(externalIds);
   }
 
@@ -207,10 +179,7 @@ class BookProvider implements MediaProvider {
     return Promise.resolve(new Map<string, MovieCastMember[]>());
   }
 
-  async getDiscussionPrompt(work: {
-    title: string;
-    externalId: string | null;
-  }): Promise<string> {
+  async getDiscussionPrompt(work: { title: string; externalId: string | null }): Promise<string> {
     let authors: string[] = [];
     let firstPublishYear: string | undefined;
     if (hasValue(work.externalId)) {
@@ -229,9 +198,7 @@ class BookProvider implements MediaProvider {
       authors = authorRows.map((row) => row.author_name);
     }
     const byline = hasElements(authors) ? ` by ${authors.join(" and ")}` : "";
-    const yearSuffix = hasValue(firstPublishYear)
-      ? ` (${firstPublishYear})`
-      : "";
+    const yearSuffix = hasValue(firstPublishYear) ? ` (${firstPublishYear})` : "";
     return `Generate 3 to 5 discussion prompts for a book club discussing "${work.title}"${byline}${yearSuffix}. Every prompt must be specific to THIS book — naming its actual characters, plot points, themes, or passages — never a generic question that could apply to any book.
 
 Order the prompts by depth: the first should be casual and easy to answer — a low-stakes entry point. Each subsequent prompt should be more thought-provoking than the last, with the final one being substantial — a real book-club-worthy question.
@@ -272,10 +239,7 @@ If you do not recognize this book or cannot confirm it is a real book, return 0 
             .execute();
 
           // Replace junction rows so removed authors/subjects don't linger.
-          await trx
-            .deleteFrom("book_authors")
-            .where("external_id", "=", external_id)
-            .execute();
+          await trx.deleteFrom("book_authors").where("external_id", "=", external_id).execute();
           if (data.authorNames.length > 0) {
             await trx
               .insertInto("book_authors")
@@ -288,10 +252,7 @@ If you do not recognize this book or cannot confirm it is a real book, return 0 
               .execute();
           }
 
-          await trx
-            .deleteFrom("book_subjects")
-            .where("external_id", "=", external_id)
-            .execute();
+          await trx.deleteFrom("book_subjects").where("external_id", "=", external_id).execute();
           if (data.subjects.length > 0) {
             await trx
               .insertInto("book_subjects")

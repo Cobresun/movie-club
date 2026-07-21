@@ -18,10 +18,7 @@ import type { Ref } from "vue";
  * const isModalOpen = ref(false);
  * useBodyScrollLock(isModalOpen);
  */
-export function useBodyScrollLock(
-  isOpen: Ref<boolean>,
-  shouldLock?: Ref<boolean>,
-) {
+export function useBodyScrollLock(isOpen: Ref<boolean>, shouldLock?: Ref<boolean>) {
   // Lock or unlock body scroll based on open state and condition
   const updateBodyScroll = () => {
     const shouldApplyLock = shouldLock ? shouldLock.value : true;

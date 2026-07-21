@@ -141,10 +141,7 @@ async function migrateBooksToGoogleBooks() {
             .where("type", "=", WorkType.book)
             .where("external_id", "=", oldId)
             .execute();
-          await trx
-            .deleteFrom("book_details")
-            .where("external_id", "=", oldId)
-            .execute();
+          await trx.deleteFrom("book_details").where("external_id", "=", oldId).execute();
         });
         migrated++;
       } catch (error) {

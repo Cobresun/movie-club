@@ -4,6 +4,8 @@ import type {
   AgLineSeriesTooltipRendererParams,
 } from "ag-charts-community";
 
+import { isDefined } from "../../../lib/checks/checks.js";
+import { Member } from "../../../lib/types/club";
 import {
   axisLabelFontSize,
   baseChartOptions,
@@ -21,8 +23,6 @@ import type {
   ScoreVariancePoint,
   WorkStatsData,
 } from "./types";
-import { isDefined } from "../../../lib/checks/checks.js";
-import { Member } from "../../../lib/types/club";
 
 export const createHistogramData = (scores: number[]): HistogramData[] => {
   if (scores.length === 0) return [];
@@ -41,9 +41,7 @@ export interface HistogramChartParams {
   compact: boolean;
 }
 
-export function createHistogramOptions(
-  params: HistogramChartParams,
-): AgCartesianChartOptions {
+export function createHistogramOptions(params: HistogramChartParams): AgCartesianChartOptions {
   const { filteredWorkData, histogramData, members, compact } = params;
 
   const filteredHistData = histogramData.map((bin) => {
@@ -86,9 +84,7 @@ export function createHistogramOptions(
         strokeWidth: 1,
         showInLegend: true,
         tooltip: {
-          renderer: function (
-            params: AgBarSeriesTooltipRendererParams<HistogramData>,
-          ) {
+          renderer: function (params: AgBarSeriesTooltipRendererParams<HistogramData>) {
             return (
               `<div class="ag-chart-tooltip-title" style="background-color: ${fill}">${member.name}</div>` +
               `<div class="ag-chart-tooltip-content">` +
@@ -138,9 +134,7 @@ export function createDecadeChartOptions(
         fill: CLUB_SERIES_COLOR,
         cornerRadius: 4,
         tooltip: {
-          renderer: function (
-            params: AgBarSeriesTooltipRendererParams<DecadeStats>,
-          ) {
+          renderer: function (params: AgBarSeriesTooltipRendererParams<DecadeStats>) {
             return (
               `<div class="ag-chart-tooltip-title" style="background-color: ${CLUB_SERIES_COLOR}">${params.datum.decade}</div>` +
               `<div class="ag-chart-tooltip-content">` +
@@ -196,9 +190,7 @@ export function createScoreVarianceChartOptions(
         },
         interpolation: { type: "smooth" as const },
         tooltip: {
-          renderer: function (
-            params: AgLineSeriesTooltipRendererParams<ScoreVariancePoint>,
-          ) {
+          renderer: function (params: AgLineSeriesTooltipRendererParams<ScoreVariancePoint>) {
             return (
               `<div class="ag-chart-tooltip-title" style="background-color: ${stroke}">${params.datum.movieTitle}</div>` +
               `<div class="ag-chart-tooltip-content">` +
@@ -268,9 +260,7 @@ export function createScoreTrendChartOptions(
       },
       interpolation: { type: "smooth" as const },
       tooltip: {
-        renderer: function (
-          params: AgLineSeriesTooltipRendererParams<ScoreTrendPoint>,
-        ) {
+        renderer: function (params: AgLineSeriesTooltipRendererParams<ScoreTrendPoint>) {
           return (
             `<div class="ag-chart-tooltip-title" style="background-color: ${color}">${member.name}</div>` +
             `<div class="ag-chart-tooltip-content">` +
@@ -328,9 +318,7 @@ export function createMonthlyActivityChartOptions(
         fill: CLUB_SERIES_COLOR,
         cornerRadius: 2,
         tooltip: {
-          renderer: function (
-            params: AgBarSeriesTooltipRendererParams<MonthlyActivityPoint>,
-          ) {
+          renderer: function (params: AgBarSeriesTooltipRendererParams<MonthlyActivityPoint>) {
             return (
               `<div class="ag-chart-tooltip-title" style="background-color: ${CLUB_SERIES_COLOR}">${params.datum.label}</div>` +
               `<div class="ag-chart-tooltip-content">` +
@@ -383,9 +371,7 @@ export function createCumulativeCountChartOptions(
         stroke,
         marker: { size: 4, fill: stroke },
         tooltip: {
-          renderer: function (
-            params: AgLineSeriesTooltipRendererParams<CumulativeCountPoint>,
-          ) {
+          renderer: function (params: AgLineSeriesTooltipRendererParams<CumulativeCountPoint>) {
             return (
               `<div class="ag-chart-tooltip-title" style="background-color: ${stroke}">${params.datum.title}</div>` +
               `<div class="ag-chart-tooltip-content">` +

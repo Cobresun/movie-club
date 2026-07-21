@@ -27,12 +27,7 @@ class ReviewRepository {
       .execute();
   }
 
-  async insertReview(
-    clubId: string,
-    workId: string,
-    userId: string,
-    score: number,
-  ) {
+  async insertReview(clubId: string, workId: string, userId: string, score: number) {
     const listId = await db
       .selectFrom("work_list")
       .select("id")
@@ -78,12 +73,7 @@ class ReviewRepository {
       .innerJoin("work", "work.id", "work_list_item.work_id")
       .where("work.id", "=", workId)
       .leftJoin("review", "review.work_id", "work.id")
-      .select([
-        "review.id as review_id",
-        "review.score",
-        "review.user_id",
-        "review.created_date",
-      ])
+      .select(["review.id as review_id", "review.score", "review.user_id", "review.created_date"])
       .groupBy(["review.id", "work.id", "work_list_item.time_added"])
       .execute();
   }

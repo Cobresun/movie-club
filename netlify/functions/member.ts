@@ -2,23 +2,19 @@ import { Handler, HandlerContext, HandlerEvent } from "@netlify/functions";
 import { parse } from "lambda-multipart-parser";
 import { z } from "zod";
 
+import { isDefined } from "../../lib/checks/checks.js";
+import { ClubPreview } from "../../lib/types/club";
 import ClubRepository from "./repositories/ClubRepository";
 import ImageRepository from "./repositories/ImageRepository";
 import UserRepository from "./repositories/UserRepository";
 import { loggedIn } from "./utils/auth";
 import { badRequest, ok } from "./utils/responses";
 import { Router } from "./utils/router";
-import { isDefined } from "../../lib/checks/checks.js";
-import { ClubPreview } from "../../lib/types/club";
 
 const router = new Router("/api/member");
 
 const updateNameSchema = z.object({
-  name: z
-    .string()
-    .trim()
-    .min(1, "Name cannot be empty")
-    .max(100, "Name is too long"),
+  name: z.string().trim().min(1, "Name cannot be empty").max(100, "Name is too long"),
 });
 
 router.get("/clubs", loggedIn, async (req, res) => {
@@ -27,9 +23,7 @@ router.get("/clubs", loggedIn, async (req, res) => {
     clubId: club.club_id,
     clubName: club.club_name,
     slug: club.slug,
-    slugUpdatedAt: club.slug_updated_at
-      ? String(club.slug_updated_at)
-      : undefined,
+    slugUpdatedAt: club.slug_updated_at ? String(club.slug_updated_at) : undefined,
     type: club.type,
   }));
   return res(ok(JSON.stringify(result)));
@@ -93,10 +87,7 @@ router.put("/name", loggedIn, async (req, res) => {
   return res(ok("Name updated successfully"));
 });
 
-const handler: Handler = async (
-  event: HandlerEvent,
-  context: HandlerContext,
-) => {
+const handler: Handler = async (event: HandlerEvent, context: HandlerContext) => {
   return router.route({ event, context, params: {} });
 };
 

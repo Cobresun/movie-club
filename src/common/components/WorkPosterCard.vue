@@ -1,9 +1,7 @@
 <template>
   <div
     class="relative h-full w-40 rounded-lg"
-    :class="[
-      highlighted ? 'outline outline-4 outline-highlightBackground' : '',
-    ]"
+    :class="[highlighted ? 'outline outline-4 outline-highlightBackground' : '']"
   >
     <button
       v-if="showDelete"
@@ -12,10 +10,7 @@
     >
       <mdicon name="close-circle-outline" />
     </button>
-    <div
-      v-if="loading"
-      class="absolute inset-0 flex items-center justify-center"
-    >
+    <div v-if="loading" class="absolute inset-0 flex items-center justify-center">
       <div class="absolute inset-0 bg-background opacity-50" />
       <loading-spinner />
     </div>

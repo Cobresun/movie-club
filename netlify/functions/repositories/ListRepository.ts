@@ -20,12 +20,7 @@ class ListRepository {
         "work_list.position",
         sql<string>`COUNT(work_list_item.work_id)`.as("item_count"),
       ])
-      .groupBy([
-        "work_list.id",
-        "work_list.title",
-        "work_list.system_type",
-        "work_list.position",
-      ])
+      .groupBy(["work_list.id", "work_list.title", "work_list.system_type", "work_list.position"])
       .orderBy("work_list.position", "asc")
       .orderBy("work_list.id", "asc")
       .execute();
@@ -45,9 +40,7 @@ class ListRepository {
       const max = await trx
         .selectFrom("work_list")
         .where("club_id", "=", clubId)
-        .select(
-          sql<number>`COALESCE(MAX(position), -1) + 1`.as("next_position"),
-        )
+        .select(sql<number>`COALESCE(MAX(position), -1) + 1`.as("next_position"))
         .executeTakeFirstOrThrow();
 
       return trx
@@ -59,11 +52,7 @@ class ListRepository {
   }
 
   async renameList(listId: string, title: string) {
-    return db
-      .updateTable("work_list")
-      .set({ title })
-      .where("id", "=", listId)
-      .execute();
+    return db.updateTable("work_list").set({ title }).where("id", "=", listId).execute();
   }
 
   async deleteList(listId: string) {
@@ -82,8 +71,7 @@ class ListRepository {
    * awards features.
    */
   async createListsForClub(clubId: string, clubType: ClubType) {
-    const defaultListTitle =
-      clubType === ClubType.book ? "Reading List" : "Watch List";
+    const defaultListTitle = clubType === ClubType.book ? "Reading List" : "Watch List";
     return db
       .insertInto("work_list")
       .values([
@@ -226,20 +214,13 @@ class ListRepository {
    * Returns false — without moving anything — when the destination list does
    * not exist in this club.
    */
-  async moveItem(
-    sourceListId: string,
-    destinationListId: string,
-    workId: string,
-    clubId: string,
-  ) {
+  async moveItem(sourceListId: string, destinationListId: string, workId: string, clubId: string) {
     return db.transaction().execute(async (trx) => {
       const [max, source, destination] = await Promise.all([
         trx
           .selectFrom("work_list_item")
           .where("list_id", "=", destinationListId)
-          .select(
-            sql<number>`COALESCE(MAX(position), 0) + 1`.as("next_position"),
-          )
+          .select(sql<number>`COALESCE(MAX(position), 0) + 1`.as("next_position"))
           .executeTakeFirstOrThrow(),
         trx
           .selectFrom("work_list_item")
@@ -259,8 +240,7 @@ class ListRepository {
         return false;
       }
 
-      const isMoveIntoReviews =
-        destination.system_type === WorkListSystemType.reviews;
+      const isMoveIntoReviews = destination.system_type === WorkListSystemType.reviews;
 
       await trx
         .insertInto("work_list_item")
@@ -312,9 +292,7 @@ class ListRepository {
       // Use Set to detect duplicates: ["a","a"] with owned ["a","b"] would
       // pass a plain length check but miss "b".
       if (new Set(valid).size !== owned.length) {
-        throw new Error(
-          "Reorder payload must include all user lists for the club",
-        );
+        throw new Error("Reorder payload must include all user lists for the club");
       }
       if (valid.length === 0) return;
 
@@ -348,13 +326,9 @@ class ListRepository {
 
     if (validWorkIds.length === 0) return;
 
-    const slots = currentPositions
-      .map((row) => Number(row.position))
-      .sort((a, b) => a - b);
+    const slots = currentPositions.map((row) => Number(row.position)).sort((a, b) => a - b);
 
-    const whenClauses = validWorkIds.map(
-      (id, i) => sql`WHEN ${id} THEN ${slots[i]}`,
-    );
+    const whenClauses = validWorkIds.map((id, i) => sql`WHEN ${id} THEN ${slots[i]}`);
 
     await db
       .updateTable("work_list_item")
@@ -383,13 +357,7 @@ class ListRepository {
     return await db
       .selectFrom("work")
       .where("work.id", "=", workId)
-      .select([
-        "work.id",
-        "work.title",
-        "work.type",
-        "work.image_url",
-        "work.external_id",
-      ])
+      .select(["work.id", "work.title", "work.type", "work.image_url", "work.external_id"])
       .executeTakeFirst();
   }
 }

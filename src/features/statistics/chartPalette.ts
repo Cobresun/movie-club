@@ -18,10 +18,7 @@
  *    templates use Tailwind emerald/rose classes; charts that need the same
  *    semantics use {@link POSITIVE_COLOR} / {@link NEGATIVE_COLOR}.
  */
-import type {
-  AgCartesianChartOptions,
-  AgChartLegendOptions,
-} from "ag-charts-community";
+import type { AgCartesianChartOptions, AgChartLegendOptions } from "ag-charts-community";
 
 /** Fixed-order categorical slots for member series. Never reordered. */
 export const MEMBER_SERIES_COLORS = [

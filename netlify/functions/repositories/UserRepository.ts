@@ -23,21 +23,11 @@ class UserRepository {
       .where("club.id", "=", clubId)
       .innerJoin("club_member", "club_member.club_id", "club.id")
       .innerJoin("user", "user.id", "club_member.user_id")
-      .select([
-        "user.id",
-        "user.email",
-        "user.name",
-        "user.image",
-        "club_member.role",
-      ])
+      .select(["user.id", "user.email", "user.name", "user.image", "club_member.role"])
       .execute();
   }
 
-  async updateImage(
-    userId: string,
-    imageUrl?: string | null,
-    imageId?: string | null,
-  ) {
+  async updateImage(userId: string, imageUrl?: string | null, imageId?: string | null) {
     return await db
       .updateTable("user")
       .set({ image_id: imageId, image: imageUrl })
@@ -46,11 +36,7 @@ class UserRepository {
   }
 
   async updateName(userId: string, name: string) {
-    return await db
-      .updateTable("user")
-      .set({ name })
-      .where("id", "=", userId)
-      .execute();
+    return await db.updateTable("user").set({ name }).where("id", "=", userId).execute();
   }
 
   async addClubMember(clubId: string, email: string, role: string = "member") {
@@ -66,11 +52,7 @@ class UserRepository {
     return user;
   }
 
-  async addClubMemberByUserId(
-    clubId: string,
-    userId: string,
-    role: string = "member",
-  ) {
+  async addClubMemberByUserId(clubId: string, userId: string, role: string = "member") {
     await db
       .insertInto("club_member")
       .values({
@@ -81,11 +63,7 @@ class UserRepository {
       .execute();
   }
 
-  async addClubMembers(
-    clubId: string,
-    emails: string[],
-    role: string = "member",
-  ) {
+  async addClubMembers(clubId: string, emails: string[], role: string = "member") {
     const results = await Promise.allSettled(
       emails.map(async (email) => {
         try {

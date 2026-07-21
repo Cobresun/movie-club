@@ -1,10 +1,10 @@
 import { Handler, HandlerContext, HandlerEvent } from "@netlify/functions";
 
+import { hasValue, isDefined } from "../../lib/checks/checks.js";
 import ClubRepository from "./repositories/ClubRepository";
 import SharedReviewService from "./services/SharedReviewService";
 import { badRequest, notFound, redirect, svg } from "./utils/responses";
 import { Router } from "./utils/router";
-import { hasValue, isDefined } from "../../lib/checks/checks.js";
 
 const router = new Router("/api/og-image");
 
@@ -13,9 +13,7 @@ router.get("/", async ({ event }, res) => {
     const { clubSlug, workId } = event.queryStringParameters ?? {};
 
     if (!hasValue(clubSlug) || !hasValue(workId)) {
-      return res(
-        badRequest("Missing required parameters: clubSlug and workId"),
-      );
+      return res(badRequest("Missing required parameters: clubSlug and workId"));
     }
 
     // Resolve club slug to numeric club ID
@@ -27,10 +25,7 @@ router.get("/", async ({ event }, res) => {
     const clubId = String(club.id);
 
     // Fetch review data using the shared service
-    const reviewData = await SharedReviewService.getSharedReviewData(
-      clubId,
-      workId,
-    );
+    const reviewData = await SharedReviewService.getSharedReviewData(clubId, workId);
 
     if (!reviewData) {
       console.error("Failed to fetch review data: work not found");
@@ -38,13 +33,9 @@ router.get("/", async ({ event }, res) => {
     }
 
     const movieTitle = reviewData.work.title;
-    const scores = reviewData.reviews
-      .map((r) => Number(r.score))
-      .filter((s) => !isNaN(s) && s > 0);
+    const scores = reviewData.reviews.map((r) => Number(r.score)).filter((s) => !isNaN(s) && s > 0);
     const avgScore =
-      scores.length > 0
-        ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1)
-        : "N/A";
+      scores.length > 0 ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1) : "N/A";
     const reviewCount = reviewData.reviews.length;
 
     // Use the work's stored image URL (TMDB poster for movies, Google Books
@@ -66,8 +57,7 @@ router.get("/", async ({ event }, res) => {
  * Generate a simple SVG image as fallback
  */
 function generateFallbackSVG(title: string, score: string, count: number) {
-  const truncatedTitle =
-    title.length > 40 ? title.substring(0, 37) + "..." : title;
+  const truncatedTitle = title.length > 40 ? title.substring(0, 37) + "..." : title;
 
   const svgContent = `<?xml version="1.0" encoding="UTF-8"?>
 <svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
@@ -124,10 +114,7 @@ function escapeXml(text: string): string {
     .replace(/'/g, "&apos;");
 }
 
-const handler: Handler = async (
-  event: HandlerEvent,
-  context: HandlerContext,
-) => {
+const handler: Handler = async (event: HandlerEvent, context: HandlerContext) => {
   return router.route({ event, context, params: {} });
 };
 

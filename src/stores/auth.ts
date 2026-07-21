@@ -8,7 +8,6 @@ import { isDefined, isTrue } from "../../lib/checks/checks.js";
 import { ClubPreview } from "../../lib/types/club";
 import { resolveDefaultClubSlug } from "../common/composables/useLastClubSlug";
 import { watchUntil } from "../common/composables/watchUntil";
-
 import { authClient } from "@/lib/auth-client";
 
 export const useAuthStore = defineStore("auth", () => {
@@ -37,8 +36,7 @@ export const useAuthStore = defineStore("auth", () => {
   } = useQuery({
     queryKey: ["user", "clubs"],
     queryFn: async () => {
-      const response =
-        await request.value.get<ClubPreview[]>("/api/member/clubs");
+      const response = await request.value.get<ClubPreview[]>("/api/member/clubs");
       return response.data;
     },
     enabled: isLoggedIn,
@@ -129,9 +127,7 @@ export const useAuthStore = defineStore("auth", () => {
 
     const slug = resolveDefaultClubSlug(userClubs.value);
     if (isDefined(slug)) {
-      router
-        .push({ name: "ClubHome", params: { clubSlug: slug } })
-        .catch(console.error);
+      router.push({ name: "ClubHome", params: { clubSlug: slug } }).catch(console.error);
     } else {
       router.push({ name: "NewClub" }).catch(console.error);
     }

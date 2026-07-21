@@ -26,9 +26,7 @@
         stroke-linecap="round"
         pathLength="1"
         :stroke-dasharray="`${fraction} 1`"
-        :class="
-          isDragging ? undefined : 'transition-all duration-fast ease-standard'
-        "
+        :class="isDragging ? undefined : 'transition-all duration-fast ease-standard'"
       />
       <circle
         :cx="handle.x"
@@ -36,15 +34,11 @@
         r="11"
         fill="#fff"
         class="cursor-grab drop-shadow"
-        :class="
-          isDragging ? undefined : 'transition-all duration-fast ease-standard'
-        "
+        :class="isDragging ? undefined : 'transition-all duration-fast ease-standard'"
       />
     </svg>
 
-    <div
-      class="pointer-events-none absolute inset-x-0 bottom-1 flex flex-col items-center gap-1"
-    >
+    <div class="pointer-events-none absolute inset-x-0 bottom-1 flex flex-col items-center gap-1">
       <input
         ref="scoreInput"
         v-model="model"
@@ -100,7 +94,6 @@ import {
   SCORE_MIN,
   SCORE_STEP,
 } from "../scoreScale";
-
 import { hapticTick } from "@/common/haptics";
 
 // The draft score stays a string so the input round-trips partial typing
@@ -118,9 +111,7 @@ const isDragging = ref(false);
 
 const parsedScore = computed(() => Number.parseFloat(model.value));
 const hasScore = computed(() => isValidScore(parsedScore.value));
-const fraction = computed(() =>
-  hasScore.value ? scoreToFraction(parsedScore.value) : 0,
-);
+const fraction = computed(() => (hasScore.value ? scoreToFraction(parsedScore.value) : 0));
 const band = computed(() => scoreBand(hasScore.value ? parsedScore.value : 0));
 const handle = computed(() => handlePosition(fraction.value));
 
@@ -178,10 +169,7 @@ const scoreAtPointer = (event: PointerEvent): number | undefined => {
   const rect = svg.getBoundingClientRect();
   if (rect.width === 0) return undefined;
   const scale = DIAL_VIEWBOX_WIDTH / rect.width;
-  return scoreFromPoint(
-    (event.clientX - rect.left) * scale,
-    (event.clientY - rect.top) * scale,
-  );
+  return scoreFromPoint((event.clientX - rect.left) * scale, (event.clientY - rect.top) * scale);
 };
 
 // Last detent the drag ticked at, so crossing each SCORE_STEP buzzes once

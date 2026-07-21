@@ -1,13 +1,8 @@
 import { DateTime } from "luxon";
 
-import {
-  hasElements,
-  hasValue,
-  isDefined,
-} from "../../../lib/checks/checks.js";
+import { hasElements, hasValue, isDefined } from "../../../lib/checks/checks.js";
 import { WorkType } from "../../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../../lib/types/lists";
-
 import { CLUB_TYPE_CONFIG } from "@/common/clubType";
 import { asBook, asMovie, formatRuntime } from "@/common/workDisplay";
 
@@ -80,8 +75,7 @@ const fact = (kind: FactKind, label: string, text: string): ReviewFact => ({
   text,
 });
 
-const averageOf = (work: DetailedReviewListItem): number | undefined =>
-  work.scores.average?.score;
+const averageOf = (work: DetailedReviewListItem): number | undefined => work.scores.average?.score;
 
 /** Individual member scores on a work (the synthetic average excluded). */
 const memberScoresOf = (work: DetailedReviewListItem): number[] =>
@@ -92,11 +86,9 @@ const memberScoresOf = (work: DetailedReviewListItem): number[] =>
 
 /** Review timestamps are UTC; read calendar fields in UTC so facts don't
  * shift across timezones (same convention as the statistics computers). */
-const utcDate = (iso: string): DateTime =>
-  DateTime.fromISO(iso, { zone: "utc" });
+const utcDate = (iso: string): DateTime => DateTime.fromISO(iso, { zone: "utc" });
 
-const formatScore = (score: number): string =>
-  String(Math.round(score * 10) / 10);
+const formatScore = (score: number): string => String(Math.round(score * 10) / 10);
 
 function ordinal(n: number): string {
   const rem100 = n % 100;
@@ -146,8 +138,7 @@ const allTimeRecord: FactGenerator = (ctx) => {
   return undefined;
 };
 
-const isCountMilestone = (n: number): boolean =>
-  n === 10 || n === 25 || (n >= 50 && n % 50 === 0);
+const isCountMilestone = (n: number): boolean => n === 10 || n === 25 || (n >= 50 && n % 50 === 0);
 
 const clubMilestone: FactGenerator = (ctx) => {
   if (!isCountMilestone(ctx.position)) return undefined;
@@ -202,10 +193,7 @@ const watchTimeMilestone: FactGenerator = (ctx) => {
   );
   if (!isDefined(hours)) return undefined;
   const days = Math.floor(hours / 24);
-  const stretch =
-    days === 1
-      ? "a full day on the couch"
-      : `over ${days} full days on the couch`;
+  const stretch = days === 1 ? "a full day on the couch" : `over ${days} full days on the couch`;
   return fact(
     "watchTimeMilestone",
     "Couch time",
@@ -232,9 +220,7 @@ const DIVISIVE_MIN_SPREAD = 4;
 
 const spreadOf = (work: DetailedReviewListItem): number | undefined => {
   const scores = memberScoresOf(work);
-  return scores.length >= 2
-    ? Math.max(...scores) - Math.min(...scores)
-    : undefined;
+  return scores.length >= 2 ? Math.max(...scores) - Math.min(...scores) : undefined;
 };
 
 const divisiveRecord: FactGenerator = (ctx) => {
@@ -262,9 +248,7 @@ const MIN_WORKS_FOR_YEAR_RECORD = 5;
 
 const yearRecord: FactGenerator = (ctx) => {
   const year = ctx.targetDate.year;
-  const cohort = ctx.scored.filter(
-    (work) => utcDate(work.createdDate).year === year,
-  );
+  const cohort = ctx.scored.filter((work) => utcDate(work.createdDate).year === year);
   if (cohort.length < MIN_WORKS_FOR_YEAR_RECORD) return undefined;
   const others = cohort
     .filter((work) => work.id !== ctx.target.id)
@@ -304,9 +288,7 @@ function personRecord(
 ): ReviewFact | undefined {
   for (const name of targetPeople) {
     const others = ctx.scored
-      .filter(
-        (work) => work.id !== ctx.target.id && peopleOf(work).includes(name),
-      )
+      .filter((work) => work.id !== ctx.target.id && peopleOf(work).includes(name))
       .map(averageOf)
       .filter(isDefined);
     if (others.length + 1 < MIN_WORKS_FOR_PERSON_RECORD) continue;
@@ -410,10 +392,7 @@ const oldestBook: FactGenerator = (ctx) => {
   if (ctx.works.length < MIN_WORKS_FOR_ALL_TIME_RECORD) return undefined;
   const year = asBook(ctx.target.externalData)?.firstPublishYear;
   if (!isDefined(year)) return undefined;
-  const others = otherValues(
-    ctx,
-    (work) => asBook(work.externalData)?.firstPublishYear,
-  );
+  const others = otherValues(ctx, (work) => asBook(work.externalData)?.firstPublishYear);
   if (!hasElements(others) || year >= Math.min(...others)) return undefined;
   return fact(
     "timeTravel",
@@ -460,22 +439,14 @@ const countryFirst: FactGenerator = (ctx) => {
   const prior = ctx.worksThrough.filter((work) => work.id !== ctx.target.id);
   if (prior.length < MIN_PRIOR_WORKS_FOR_FIRSTS) return undefined;
   const seen = new Set(
-    prior.flatMap(
-      (work) => asMovie(work.externalData)?.production_countries ?? [],
-    ),
+    prior.flatMap((work) => asMovie(work.externalData)?.production_countries ?? []),
   );
   // An empty seen-set means the history lacks country data, not that every
   // country is new.
   if (seen.size === 0) return undefined;
-  const newCountry = movie.production_countries.find(
-    (country) => !seen.has(country),
-  );
+  const newCountry = movie.production_countries.find((country) => !seen.has(country));
   if (!hasValue(newCountry)) return undefined;
-  return fact(
-    "countryFirst",
-    "Passport stamp",
-    `Your club's first movie from ${newCountry}.`,
-  );
+  return fact("countryFirst", "Passport stamp", `Your club's first movie from ${newCountry}.`);
 };
 
 const decadeFirst: FactGenerator = (ctx) => {
@@ -484,15 +455,9 @@ const decadeFirst: FactGenerator = (ctx) => {
   const prior = ctx.worksThrough.filter((work) => work.id !== ctx.target.id);
   if (prior.length < MIN_PRIOR_WORKS_FOR_FIRSTS) return undefined;
   const decadeOf = (y: number): number => Math.floor(y / 10) * 10;
-  const seen = new Set(
-    prior.map(releaseYearOf).filter(isDefined).map(decadeOf),
-  );
+  const seen = new Set(prior.map(releaseYearOf).filter(isDefined).map(decadeOf));
   if (seen.size === 0 || seen.has(decadeOf(year))) return undefined;
-  return fact(
-    "decadeFirst",
-    "Time capsule",
-    `Your club's first trip to the ${decadeOf(year)}s.`,
-  );
+  return fact("decadeFirst", "Time capsule", `Your club's first trip to the ${decadeOf(year)}s.`);
 };
 
 const firstGenre: FactGenerator = (ctx) => {
@@ -500,16 +465,10 @@ const firstGenre: FactGenerator = (ctx) => {
   if (!isDefined(movie) || !hasElements(movie.genres)) return undefined;
   const prior = ctx.worksThrough.filter((work) => work.id !== ctx.target.id);
   if (prior.length < MIN_PRIOR_WORKS_FOR_FIRSTS) return undefined;
-  const seen = new Set(
-    prior.flatMap((work) => asMovie(work.externalData)?.genres ?? []),
-  );
+  const seen = new Set(prior.flatMap((work) => asMovie(work.externalData)?.genres ?? []));
   const newGenre = movie.genres.find((genre) => !seen.has(genre));
   if (!hasValue(newGenre)) return undefined;
-  return fact(
-    "firstGenre",
-    "New territory",
-    `Your club's first ${newGenre} movie.`,
-  );
+  return fact("firstGenre", "New territory", `Your club's first ${newGenre} movie.`);
 };
 
 const TMDB_DEVIATION_THRESHOLD = 2.5;
@@ -561,8 +520,7 @@ const FACT_GENERATORS: Record<WorkType, FactGenerator[]> = {
 };
 
 const nounFor = (type: WorkType): string =>
-  Object.values(CLUB_TYPE_CONFIG).find((config) => config.workType === type)
-    ?.noun ?? "work";
+  Object.values(CLUB_TYPE_CONFIG).find((config) => config.workType === type)?.noun ?? "work";
 
 /**
  * Picks the single most interesting fact about a review, or undefined.
@@ -583,9 +541,7 @@ export function computeReviewFact(
   const targetAverage = averageOf(target);
   if (!isDefined(targetAverage)) return undefined;
 
-  const works = [...reviews].sort((a, b) =>
-    a.createdDate.localeCompare(b.createdDate),
-  );
+  const works = [...reviews].sort((a, b) => a.createdDate.localeCompare(b.createdDate));
   const position = works.findIndex((work) => work.id === target.id) + 1;
 
   const ctx: FactContext = {

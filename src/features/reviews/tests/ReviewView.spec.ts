@@ -3,7 +3,6 @@ import { screen, within } from "@testing-library/vue";
 import { http, HttpResponse } from "msw";
 
 import ReviewView from "../views/ReviewView.vue";
-
 import memberData from "@/mocks/data/member.json";
 import reviews from "@/mocks/data/reviews.json";
 import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
@@ -94,15 +93,9 @@ describe("ReviewView", () => {
 
     // Members are spelled out as "<name>'s rating" instead of a bare avatar,
     // and the aggregate/date columns get plain-language labels too.
-    expect(
-      await screen.findByRole("option", { name: /dev's rating/i }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("option", { name: /average rating/i }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("option", { name: /date reviewed/i }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("option", { name: /dev's rating/i })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /average rating/i })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /date reviewed/i })).toBeInTheDocument();
   });
 
   it("should describe the sort direction in words once a sort is chosen", async () => {
@@ -111,18 +104,14 @@ describe("ReviewView", () => {
     const sortButton = await screen.findByRole("button", { name: /sort by/i });
     await user.click(sortButton);
 
-    await user.click(
-      await screen.findByRole("option", { name: /average rating/i }),
-    );
+    await user.click(await screen.findByRole("option", { name: /average rating/i }));
 
     // Direction reads as words rather than a bare chevron, and reverses on click.
     const directionButton = await screen.findByRole("button", {
       name: /highest first/i,
     });
     await user.click(directionButton);
-    expect(
-      await screen.findByRole("button", { name: /lowest first/i }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /lowest first/i })).toBeInTheDocument();
   });
 
   it("should filter reviews when using search bar", async () => {
@@ -130,16 +119,12 @@ describe("ReviewView", () => {
     const searchBar = await screen.findByRole("textbox");
 
     expect(screen.getAllByText("12 Angry Men")[0]).toBeInTheDocument();
-    expect(
-      screen.getAllByText("The Empire Strikes Back")[0],
-    ).toBeInTheDocument();
+    expect(screen.getAllByText("The Empire Strikes Back")[0]).toBeInTheDocument();
 
     await user.type(searchBar, "12");
 
     expect(screen.getAllByText("12 Angry Men")[0]).toBeInTheDocument();
-    expect(
-      screen.queryByText("The Empire Strikes Back"),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText("The Empire Strikes Back")).not.toBeInTheDocument();
   });
 
   it("should submit score", async () => {
@@ -211,9 +196,7 @@ describe("ReviewView", () => {
 
     await user.type(scoreInput, "10");
     await user.click(screen.getByRole("button", { name: "Save score" }));
-    expect(
-      screen.queryByRole("spinbutton", { name: "Score" }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("spinbutton", { name: "Score" })).not.toBeInTheDocument();
     expect(within(row).getByRole("cell", { name: "10" })).toBeInTheDocument();
     expect(within(row).getByRole("cell", { name: "9" })).toBeInTheDocument();
   });
@@ -229,12 +212,8 @@ describe("ReviewView", () => {
     await user.click(await screen.findByRole("button", { name: "Add score" }));
 
     // The entry panel opens, but the assist button is absent (not eligible).
-    expect(
-      await screen.findByRole("spinbutton", { name: "Score" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: /Compare to decide/ }),
-    ).not.toBeInTheDocument();
+    expect(await screen.findByRole("spinbutton", { name: "Score" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Compare to decide/ })).not.toBeInTheDocument();
   });
 
   it("opens score assist from the entry panel once the user has five scored works", async () => {
@@ -247,9 +226,7 @@ describe("ReviewView", () => {
       scores: {},
     };
     server.use(
-      http.get("/api/club/:clubSlug/list/reviews", () =>
-        HttpResponse.json([...scored, unscored]),
-      ),
+      http.get("/api/club/:clubSlug/list/reviews", () => HttpResponse.json([...scored, unscored])),
     );
 
     const { user, pinia } = render(ReviewView, {
@@ -266,12 +243,8 @@ describe("ReviewView", () => {
     });
     await user.click(trigger);
 
-    expect(
-      await screen.findByText("Which movie did you like more?"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Which movie did you like more?")).toBeInTheDocument();
     // The entry popover closed when the modal opened.
-    expect(
-      screen.queryByRole("spinbutton", { name: "Score" }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("spinbutton", { name: "Score" })).not.toBeInTheDocument();
   });
 });

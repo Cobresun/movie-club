@@ -1,10 +1,6 @@
 import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import { WorkType } from "../../../../lib/types/generated/db";
-import {
-  DetailedReviewListItem,
-  WorkDataSummary,
-} from "../../../../lib/types/lists";
-
+import { DetailedReviewListItem, WorkDataSummary } from "../../../../lib/types/lists";
 import { makeWorkSimilarity, WorkSimilarityScorer } from "@/common/clubType";
 
 /**
@@ -93,9 +89,7 @@ export function buildCandidatePool(
         },
       ];
     })
-    .sort((a, b) =>
-      a.score !== b.score ? a.score - b.score : a.title.localeCompare(b.title),
-    );
+    .sort((a, b) => (a.score !== b.score ? a.score - b.score : a.title.localeCompare(b.title)));
 }
 
 export function isScoreAssistEligible(
@@ -104,10 +98,7 @@ export function isScoreAssistEligible(
   targetWorkId: string,
 ): boolean {
   if (reviews === undefined || !hasValue(userId)) return false;
-  return (
-    buildCandidatePool(reviews, userId, targetWorkId).length >=
-    MIN_SCORED_WORKS_FOR_ASSIST
-  );
+  return buildCandidatePool(reviews, userId, targetWorkId).length >= MIN_SCORED_WORKS_FOR_ASSIST;
 }
 
 export function startSession(
@@ -235,10 +226,7 @@ function selectPivot(session: ScoreAssistSession): ScoredCandidate | undefined {
   let maxScoreDistance = 0;
   let maxRankDistance = 0;
   for (let i = start; i < end; i++) {
-    maxScoreDistance = Math.max(
-      maxScoreDistance,
-      Math.abs(eligible[i].score - scoreMidpoint),
-    );
+    maxScoreDistance = Math.max(maxScoreDistance, Math.abs(eligible[i].score - scoreMidpoint));
     maxRankDistance = Math.max(maxRankDistance, Math.abs(i - windowMiddle));
   }
 
@@ -246,18 +234,11 @@ function selectPivot(session: ScoreAssistSession): ScoredCandidate | undefined {
   let bestScore = -Infinity;
   for (let i = start; i < end; i++) {
     const candidate = eligible[i];
-    const similarity = session.similarity(
-      session.targetData,
-      candidate.externalData,
-    );
+    const similarity = session.similarity(session.targetData, candidate.externalData);
     const scoreProximity =
-      maxScoreDistance === 0
-        ? 1
-        : 1 - Math.abs(candidate.score - scoreMidpoint) / maxScoreDistance;
+      maxScoreDistance === 0 ? 1 : 1 - Math.abs(candidate.score - scoreMidpoint) / maxScoreDistance;
     const rankCentrality =
-      maxRankDistance === 0
-        ? 1
-        : 1 - Math.abs(i - windowMiddle) / maxRankDistance;
+      maxRankDistance === 0 ? 1 : 1 - Math.abs(i - windowMiddle) / maxRankDistance;
     const positional = scoreProximity + RANK_TIEBREAK_WEIGHT * rankCentrality;
     const combined = similarity + POSITION_WEIGHT * positional;
     if (combined > bestScore) {
@@ -270,16 +251,11 @@ function selectPivot(session: ScoreAssistSession): ScoredCandidate | undefined {
 
 function finishSession(session: ScoreAssistSession): ScoreAssistSession {
   const { lo, hi, lowerWork, upperWork, candidates } = session;
-  const poolMax =
-    candidates.length > 0 ? candidates[candidates.length - 1] : undefined;
+  const poolMax = candidates.length > 0 ? candidates[candidates.length - 1] : undefined;
   const poolMin = candidates.length > 0 ? candidates[0] : undefined;
 
   let result: ScoreAssistResult;
-  if (
-    isDefined(lowerWork) &&
-    !isDefined(upperWork) &&
-    lowerWork.score === poolMax?.score
-  ) {
+  if (isDefined(lowerWork) && !isDefined(upperWork) && lowerWork.score === poolMax?.score) {
     // Liked it more than their top-rated work: nudge just above it rather
     // than jumping to the midpoint of (top, 10].
     result = {
@@ -287,11 +263,7 @@ function finishSession(session: ScoreAssistSession): ScoreAssistSession {
       suggestedScore: clampScore(roundHalf(lo + 0.5)),
       lowerWork,
     };
-  } else if (
-    isDefined(upperWork) &&
-    !isDefined(lowerWork) &&
-    upperWork.score === poolMin?.score
-  ) {
+  } else if (isDefined(upperWork) && !isDefined(lowerWork) && upperWork.score === poolMin?.score) {
     result = {
       kind: "belowAll",
       suggestedScore: clampScore(roundHalf(hi - 0.5)),

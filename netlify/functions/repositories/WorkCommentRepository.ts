@@ -2,10 +2,7 @@ import { WorkCommentDto } from "../../../lib/types/lists";
 import { db } from "../utils/database";
 
 class WorkCommentRepository {
-  async getByWorkAndClub(
-    workId: string,
-    clubId: string,
-  ): Promise<WorkCommentDto[]> {
+  async getByWorkAndClub(workId: string, clubId: string): Promise<WorkCommentDto[]> {
     const rows = await db
       .selectFrom("work_comment")
       .innerJoin("user", "user.id", "work_comment.user_id")
@@ -36,13 +33,7 @@ class WorkCommentRepository {
     }));
   }
 
-  async insert(
-    workId: string,
-    clubId: string,
-    userId: string,
-    content: string,
-    spoiler: boolean,
-  ) {
+  async insert(workId: string, clubId: string, userId: string, content: string, spoiler: boolean) {
     return db
       .insertInto("work_comment")
       .values({
@@ -55,12 +46,7 @@ class WorkCommentRepository {
       .execute();
   }
 
-  async updateContent(
-    commentId: string,
-    userId: string,
-    content: string,
-    spoiler?: boolean,
-  ) {
+  async updateContent(commentId: string, userId: string, content: string, spoiler?: boolean) {
     let query = db
       .updateTable("work_comment")
       .set("content", content)

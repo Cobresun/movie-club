@@ -16,8 +16,7 @@ const isMobileDevice = (): boolean => {
   const ua = navigator.userAgent;
 
   // Check for mobile device indicators in user agent
-  const mobileRegex =
-    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
+  const mobileRegex = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
 
   return mobileRegex.test(ua);
 };

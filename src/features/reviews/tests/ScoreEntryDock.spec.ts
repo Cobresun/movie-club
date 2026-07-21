@@ -7,7 +7,6 @@ import { WorkType } from "../../../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
 import ScoreEntryDock from "../components/ScoreEntryDock.vue";
 import { ScoreAssistKey } from "../scoreAssist";
-
 import memberData from "@/mocks/data/member.json";
 import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
 import { server } from "@/mocks/server";
@@ -90,23 +89,14 @@ describe("ScoreEntryDock", () => {
 
     await user.click(screen.getByRole("button", { name: /Rate this movie/ }));
 
-    await user.type(
-      await screen.findByRole("spinbutton", { name: "Score" }),
-      "8.5",
-    );
+    await user.type(await screen.findByRole("spinbutton", { name: "Score" }), "8.5");
     await user.click(screen.getByRole("button", { name: "Save score" }));
 
-    await waitFor(() =>
-      expect(posted).toEqual({ workId: "target", score: 8.5 }),
-    );
+    await waitFor(() => expect(posted).toEqual({ workId: "target", score: 8.5 }));
 
     // Saving collapses the panel and restores the CTA.
-    await waitFor(() =>
-      expect(screen.queryByRole("spinbutton")).not.toBeInTheDocument(),
-    );
-    expect(
-      screen.getByRole("button", { name: /Rate this movie/ }),
-    ).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole("spinbutton")).not.toBeInTheDocument());
+    expect(screen.getByRole("button", { name: /Rate this movie/ })).toBeInTheDocument();
   });
 
   it("labels the CTA as an edit when the user already has a review", () => {
@@ -115,18 +105,14 @@ describe("ScoreEntryDock", () => {
       ...withAssist(false),
     });
 
-    expect(
-      screen.getByRole("button", { name: /Edit score/ }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Edit score/ })).toBeInTheDocument();
   });
 
   it("swaps to the assist flow in place and prefills the dial with its suggestion", async () => {
     let posted: unknown;
     server.use(
       http.get("/api/club/:clubSlug/list/reviews", () =>
-        HttpResponse.json(
-          [2, 3, 4, 5, 6, 7].map((n) => scoredReview(`m${n}`, n)),
-        ),
+        HttpResponse.json([2, 3, 4, 5, 6, 7].map((n) => scoredReview(`m${n}`, n))),
       ),
       http.post("/api/club/test-club/reviews", async ({ request }) => {
         posted = await request.json();
@@ -141,22 +127,16 @@ describe("ScoreEntryDock", () => {
     logIn(pinia);
 
     await user.click(screen.getByRole("button", { name: /Rate this movie/ }));
-    await user.click(
-      await screen.findByRole("button", { name: /Compare to decide/ }),
-    );
+    await user.click(await screen.findByRole("button", { name: /Compare to decide/ }));
 
     // The dial gave way to the comparison flow inside the same panel.
-    expect(
-      await screen.findByText("Which movie did you like more?"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Which movie did you like more?")).toBeInTheDocument();
     expect(screen.queryByRole("spinbutton")).not.toBeInTheDocument();
 
     // Finishing the flow swaps back to the dial pre-filled with the
     // suggestion (the first pivot's score, 5) — nothing is saved yet.
     await user.click(screen.getByRole("button", { name: "Too close to call" }));
-    expect(
-      await screen.findByRole("spinbutton", { name: "Score" }),
-    ).toHaveValue(5);
+    expect(await screen.findByRole("spinbutton", { name: "Score" })).toHaveValue(5);
     expect(posted).toBeUndefined();
 
     // Saving is still the user's call; it persists and collapses the dock
@@ -164,9 +144,7 @@ describe("ScoreEntryDock", () => {
     await user.click(screen.getByRole("button", { name: "Save score" }));
     await waitFor(() => expect(posted).toEqual({ workId: "target", score: 5 }));
     await waitFor(() =>
-      expect(
-        screen.getByRole("button", { name: /Rate this movie/ }),
-      ).toBeInTheDocument(),
+      expect(screen.getByRole("button", { name: /Rate this movie/ })).toBeInTheDocument(),
     );
   });
 
@@ -180,18 +158,12 @@ describe("ScoreEntryDock", () => {
     });
 
     await user.click(screen.getByRole("button", { name: /Rate this movie/ }));
-    expect(
-      await screen.findByRole("spinbutton", { name: "Score" }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("spinbutton", { name: "Score" })).toBeInTheDocument();
 
     await user.keyboard("{Escape}");
 
-    await waitFor(() =>
-      expect(screen.queryByRole("spinbutton")).not.toBeInTheDocument(),
-    );
-    expect(
-      screen.getByRole("button", { name: /Rate this movie/ }),
-    ).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole("spinbutton")).not.toBeInTheDocument());
+    expect(screen.getByRole("button", { name: /Rate this movie/ })).toBeInTheDocument();
     // The capture-phase handler stopped propagation, so a bubble-phase
     // listener (VSideDrawer's close-on-escape) never saw the key.
     expect(drawerEscape).not.toHaveBeenCalled();

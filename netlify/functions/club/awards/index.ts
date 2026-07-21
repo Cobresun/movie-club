@@ -1,14 +1,14 @@
-import categoryRouter from "./category";
-import nominationRouter from "./nomination";
-import rankingRouter from "./ranking";
-import stepHandler from "./step";
-import { validYear } from "./utils";
 import { BaseAward, ClubAwards } from "../../../../lib/types/awards";
 import AwardsRepository from "../../repositories/AwardsRepository";
 import { notFound, ok } from "../../utils/responses";
 import { Router } from "../../utils/router";
 import { getDetailedMovie } from "../../utils/tmdb";
 import { ClubRequest } from "../../utils/validation";
+import categoryRouter from "./category";
+import nominationRouter from "./nomination";
+import rankingRouter from "./ranking";
+import stepHandler from "./step";
+import { validYear } from "./utils";
 
 const router = new Router<ClubRequest>("/api/club/:clubSlug/awards");
 router.use("/:year<\\d+>/category", validYear, categoryRouter);

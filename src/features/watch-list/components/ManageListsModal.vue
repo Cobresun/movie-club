@@ -11,12 +11,7 @@
           placeholder="New list name…"
           @keyup.enter="confirmCreateList"
         />
-        <v-btn
-          :disabled="newListTitle.trim() === ''"
-          @click="confirmCreateList"
-        >
-          + Create
-        </v-btn>
+        <v-btn :disabled="newListTitle.trim() === ''" @click="confirmCreateList"> + Create </v-btn>
       </div>
 
       <!-- Draggable list rows -->
@@ -46,21 +41,14 @@
               @keyup.enter="confirmRename(list.id)"
               @keyup.escape="cancelRename"
             />
-            <v-btn
-              :disabled="renameTitle.trim() === ''"
-              @click="confirmRename(list.id)"
-            >
+            <v-btn :disabled="renameTitle.trim() === ''" @click="confirmRename(list.id)">
               Save
             </v-btn>
             <v-btn @click="cancelRename">Cancel</v-btn>
           </template>
           <template v-else>
-            <span class="min-w-0 flex-1 truncate text-white">{{
-              list.title
-            }}</span>
-            <span class="shrink-0 text-sm text-slate-400"
-              >({{ list.itemCount }})</span
-            >
+            <span class="min-w-0 flex-1 truncate text-white">{{ list.title }}</span>
+            <span class="shrink-0 text-sm text-slate-400">({{ list.itemCount }})</span>
             <button
               class="shrink-0 text-slate-400 hover:text-white"
               title="Rename"

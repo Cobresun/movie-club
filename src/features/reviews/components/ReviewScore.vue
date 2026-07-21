@@ -1,12 +1,7 @@
 <template>
   <!-- Editable inline (reviews table): the score / "+" is a popover trigger that
        opens the shared score-entry panel. -->
-  <Popover
-    v-if="canEditInline"
-    v-slot="{ close }"
-    as="span"
-    class="inline-flex"
-  >
+  <Popover v-if="canEditInline" v-slot="{ close }" as="span" class="inline-flex">
     <PopoverButton
       :aria-label="isDefined(score) ? 'Edit score' : 'Add score'"
       class="flex cursor-pointer items-center justify-center gap-0.5 outline-none"
@@ -49,7 +44,6 @@ import { computed, inject } from "vue";
 import { isDefined } from "../../../../lib/checks/checks.js";
 import { ScoreAssistKey } from "../scoreAssist";
 import ScoreEntryPanel from "./ScoreEntryPanel.vue";
-
 import { useAnchoredPanel } from "@/common/composables/useAnchoredPanel";
 import { useUser } from "@/service/useUser";
 

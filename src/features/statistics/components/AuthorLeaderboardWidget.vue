@@ -15,10 +15,10 @@
 <script setup lang="ts">
 import { computed } from "vue";
 
-import PersonLeaderboard from "./PersonLeaderboard.vue";
-import WidgetShell from "./WidgetShell.vue";
 import { computeTopAuthors } from "../statsComputers";
 import type { BookData } from "../types";
+import PersonLeaderboard from "./PersonLeaderboard.vue";
+import WidgetShell from "./WidgetShell.vue";
 
 const props = defineProps<{
   bookData: BookData[];

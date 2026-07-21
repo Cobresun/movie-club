@@ -75,27 +75,23 @@ const updateReviewSchema = z.object({
   score: z.number().min(0).max(10),
 });
 
-router.put(
-  `/:reviewId`,
-  secured,
-  async ({ clubId, userId, params, event }, res) => {
-    if (!hasValue(params.reviewId)) {
-      return res(badRequest("No reviewId provided"));
-    }
-    if (!hasValue(event.body)) return res(badRequest("No body provided"));
-    const body = updateReviewSchema.safeParse(JSON.parse(event.body));
-    if (!body.success) return res(badRequest("Invalid body"));
+router.put(`/:reviewId`, secured, async ({ clubId, userId, params, event }, res) => {
+  if (!hasValue(params.reviewId)) {
+    return res(badRequest("No reviewId provided"));
+  }
+  if (!hasValue(event.body)) return res(badRequest("No body provided"));
+  const body = updateReviewSchema.safeParse(JSON.parse(event.body));
+  if (!body.success) return res(badRequest("Invalid body"));
 
-    const { score } = body.data;
-    const reviewId = params.reviewId;
-    const review = await ReviewRepository.getById(reviewId, clubId);
-    if (review.user_id !== userId) {
-      return res(badRequest("You are not allowed to edit this review"));
-    }
-    await ReviewRepository.updateScore(reviewId, score);
-    return res(ok());
-  },
-);
+  const { score } = body.data;
+  const reviewId = params.reviewId;
+  const review = await ReviewRepository.getById(reviewId, clubId);
+  if (review.user_id !== userId) {
+    return res(badRequest("You are not allowed to edit this review"));
+  }
+  await ReviewRepository.updateScore(reviewId, score);
+  return res(ok());
+});
 
 // Comment endpoints
 
@@ -108,137 +104,118 @@ router.get("/:workId/comments", secured, async ({ clubId, params }, res) => {
   if (!hasValue(params.workId)) {
     return res(badRequest("No workId provided"));
   }
-  const comments = await WorkCommentRepository.getByWorkAndClub(
-    params.workId,
-    clubId,
-  );
+  const comments = await WorkCommentRepository.getByWorkAndClub(params.workId, clubId);
   return res(ok(JSON.stringify(comments)));
 });
 
-router.post(
-  "/:workId/comments",
-  secured,
-  async ({ clubId, userId, params, event }, res) => {
-    if (!hasValue(params.workId)) {
-      return res(badRequest("No workId provided"));
-    }
-    if (!hasValue(event.body)) return res(badRequest("No body provided"));
-    const body = addCommentSchema.safeParse(JSON.parse(event.body));
-    if (!body.success) return res(badRequest("Invalid body"));
+router.post("/:workId/comments", secured, async ({ clubId, userId, params, event }, res) => {
+  if (!hasValue(params.workId)) {
+    return res(badRequest("No workId provided"));
+  }
+  if (!hasValue(event.body)) return res(badRequest("No body provided"));
+  const body = addCommentSchema.safeParse(JSON.parse(event.body));
+  if (!body.success) return res(badRequest("Invalid body"));
 
-    await WorkCommentRepository.insert(
-      params.workId,
-      clubId,
-      userId,
-      body.data.content,
-      body.data.spoiler,
-    );
-    return res(ok());
-  },
-);
+  await WorkCommentRepository.insert(
+    params.workId,
+    clubId,
+    userId,
+    body.data.content,
+    body.data.spoiler,
+  );
+  return res(ok());
+});
 
 const updateCommentSchema = z.object({
   content: z.string().min(1).max(2000),
   spoiler: z.boolean().optional(),
 });
 
-router.put(
-  "/:workId/comments/:commentId",
-  secured,
-  async ({ userId, params, event }, res) => {
-    if (!hasValue(params.workId) || !hasValue(params.commentId)) {
-      return res(badRequest("Missing parameters"));
-    }
-    if (!hasValue(event.body)) return res(badRequest("No body provided"));
-    const body = updateCommentSchema.safeParse(JSON.parse(event.body));
-    if (!body.success) return res(badRequest("Invalid body"));
+router.put("/:workId/comments/:commentId", secured, async ({ userId, params, event }, res) => {
+  if (!hasValue(params.workId) || !hasValue(params.commentId)) {
+    return res(badRequest("Missing parameters"));
+  }
+  if (!hasValue(event.body)) return res(badRequest("No body provided"));
+  const body = updateCommentSchema.safeParse(JSON.parse(event.body));
+  if (!body.success) return res(badRequest("Invalid body"));
 
-    const comment = await WorkCommentRepository.getById(params.commentId);
-    if (!comment) {
-      return res(badRequest("Comment not found"));
-    }
-    if (comment.user_id !== userId) {
-      return res(unauthorized("You can only edit your own comments"));
-    }
+  const comment = await WorkCommentRepository.getById(params.commentId);
+  if (!comment) {
+    return res(badRequest("Comment not found"));
+  }
+  if (comment.user_id !== userId) {
+    return res(unauthorized("You can only edit your own comments"));
+  }
 
-    await WorkCommentRepository.updateContent(
-      params.commentId,
-      userId,
-      body.data.content,
-      body.data.spoiler,
-    );
-    return res(ok());
-  },
-);
+  await WorkCommentRepository.updateContent(
+    params.commentId,
+    userId,
+    body.data.content,
+    body.data.spoiler,
+  );
+  return res(ok());
+});
 
-router.delete(
-  "/:workId/comments/:commentId",
-  secured,
-  async ({ userId, params }, res) => {
-    if (!hasValue(params.workId) || !hasValue(params.commentId)) {
-      return res(badRequest("Missing parameters"));
-    }
-    const comment = await WorkCommentRepository.getById(params.commentId);
-    if (!comment) {
-      return res(badRequest("Comment not found"));
-    }
-    if (comment.user_id !== userId) {
-      return res(unauthorized("You can only delete your own comments"));
-    }
-    await WorkCommentRepository.deleteById(params.commentId);
-    return res(ok());
-  },
-);
+router.delete("/:workId/comments/:commentId", secured, async ({ userId, params }, res) => {
+  if (!hasValue(params.workId) || !hasValue(params.commentId)) {
+    return res(badRequest("Missing parameters"));
+  }
+  const comment = await WorkCommentRepository.getById(params.commentId);
+  if (!comment) {
+    return res(badRequest("Comment not found"));
+  }
+  if (comment.user_id !== userId) {
+    return res(unauthorized("You can only delete your own comments"));
+  }
+  await WorkCommentRepository.deleteById(params.commentId);
+  return res(ok());
+});
 
 const discussionQuestionsSchema = z.object({
   questions: z.array(z.string().min(1)).max(5),
 });
 
-router.post(
-  "/:workId/discussion-questions",
-  secured,
-  async ({ clubId, params }, res) => {
-    if (!hasValue(params.workId)) {
-      return res(badRequest("No workId provided"));
-    }
+router.post("/:workId/discussion-questions", secured, async ({ clubId, params }, res) => {
+  if (!hasValue(params.workId)) {
+    return res(badRequest("No workId provided"));
+  }
 
-    const settings = await SettingsRepository.getSettings(clubId);
-    if (settings.features.discussionQuestions !== true) {
-      return res(badRequest("Feature not enabled"));
-    }
+  const settings = await SettingsRepository.getSettings(clubId);
+  if (settings.features.discussionQuestions !== true) {
+    return res(badRequest("Feature not enabled"));
+  }
 
-    // Resolve the work server-side from the workId so the prompt can't be
-    // poisoned by client-supplied input. The work's provider owns the
-    // type-specific metadata lookup and prompt wording.
-    const work = await WorkRepository.getById(clubId, params.workId);
-    if (!work) {
-      return res(badRequest("Work not found"));
-    }
+  // Resolve the work server-side from the workId so the prompt can't be
+  // poisoned by client-supplied input. The work's provider owns the
+  // type-specific metadata lookup and prompt wording.
+  const work = await WorkRepository.getById(clubId, params.workId);
+  if (!work) {
+    return res(badRequest("Work not found"));
+  }
 
-    const prompt = await getProvider(work.type).getDiscussionPrompt({
-      title: work.title,
-      externalId: work.external_id,
-    });
+  const prompt = await getProvider(work.type).getDiscussionPrompt({
+    title: work.title,
+    externalId: work.external_id,
+  });
 
-    const { questions } = await generateJson({
-      prompt,
-      schema: discussionQuestionsSchema,
-      responseSchema: {
-        type: "object",
-        properties: {
-          questions: {
-            type: "array",
-            items: { type: "string" },
-            maxItems: 5,
-          },
+  const { questions } = await generateJson({
+    prompt,
+    schema: discussionQuestionsSchema,
+    responseSchema: {
+      type: "object",
+      properties: {
+        questions: {
+          type: "array",
+          items: { type: "string" },
+          maxItems: 5,
         },
-        required: ["questions"],
       },
-      temperature: 0.9,
-    });
-    return res(ok(JSON.stringify({ questions })));
-  },
-);
+      required: ["questions"],
+    },
+    temperature: 0.9,
+  });
+  return res(ok(JSON.stringify({ questions })));
+});
 
 // Lightweight per-work scores endpoint. Returns only the `scores` map (one entry
 // per member plus a synthetic `average`) for a single work, so clients can poll
@@ -255,10 +232,7 @@ router.get("/:workId/scores", secured, async ({ clubId, params }, res) => {
 // Loads the raw per-work review rows plus the current member set and hands them
 // to the shared `buildReviewScores` helper (the same map `club/list.ts` builds
 // per work), scoped to a single work.
-async function buildWorkScores(
-  clubId: string,
-  workId: string,
-): Promise<ReviewScores> {
+async function buildWorkScores(clubId: string, workId: string): Promise<ReviewScores> {
   const [reviews, members] = await Promise.all([
     ReviewRepository.getReviewsByWorkId(clubId, workId),
     UserRepository.getMembersByClubId(clubId),
@@ -274,10 +248,7 @@ router.get("/:workId/shared", async ({ clubId, params }, res) => {
   }
 
   const workId = params.workId;
-  const sharedReviewData = await SharedReviewService.getSharedReviewData(
-    clubId,
-    workId,
-  );
+  const sharedReviewData = await SharedReviewService.getSharedReviewData(clubId, workId);
 
   if (!sharedReviewData) {
     return res(badRequest("Work not found"));

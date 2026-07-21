@@ -66,9 +66,7 @@ const nominationSchema = z
 
 const awardsDataSchema = z
   .object({
-    awards: z.array(
-      z.object({ nominations: z.array(nominationSchema) }).passthrough(),
-    ),
+    awards: z.array(z.object({ nominations: z.array(nominationSchema) }).passthrough()),
   })
   .passthrough();
 
@@ -93,10 +91,7 @@ async function rekeyAllRows(
     context: (msg: string) => string,
   ) => KeyResolver,
 ): Promise<RekeyStats> {
-  const rows = await db
-    .selectFrom("awards_temp")
-    .select(["club_id", "year"])
-    .execute();
+  const rows = await db.selectFrom("awards_temp").select(["club_id", "year"]).execute();
 
   const stats: RekeyStats = { rewritten: 0, unchanged: 0, unresolved: [] };
 

@@ -41,10 +41,7 @@ function surname(name: string): string {
 }
 
 /** True when any candidate author shares a surname with the target author. */
-export function authorsMatch(
-  candidateAuthors: string[],
-  targetAuthor: string,
-): boolean {
+export function authorsMatch(candidateAuthors: string[], targetAuthor: string): boolean {
   const target = surname(targetAuthor);
   if (target.length === 0) return false;
   return candidateAuthors.some((author) => surname(author) === target);
@@ -65,12 +62,8 @@ export function selectBestVolume(
   const acceptable = candidates.filter((candidate) => {
     const info = candidate.volumeInfo;
     if (!hasValue(info?.title)) return false;
-    const fullTitle = hasValue(info.subtitle)
-      ? `${info.title}: ${info.subtitle}`
-      : info.title;
-    const titleOk =
-      titlesMatch(info.title, targetTitle) ||
-      titlesMatch(fullTitle, targetTitle);
+    const fullTitle = hasValue(info.subtitle) ? `${info.title}: ${info.subtitle}` : info.title;
+    const titleOk = titlesMatch(info.title, targetTitle) || titlesMatch(fullTitle, targetTitle);
     if (!titleOk) return false;
     if (!hasValue(targetAuthor)) return true;
     return authorsMatch(info.authors ?? [], targetAuthor);
@@ -79,10 +72,7 @@ export function selectBestVolume(
   const score = (candidate: GoogleBooksVolume): number => {
     const info = candidate.volumeInfo;
     let value = 0;
-    if (
-      hasValue(info?.title) &&
-      normalizeTitle(info.title) === normalizeTitle(targetTitle)
-    ) {
+    if (hasValue(info?.title) && normalizeTitle(info.title) === normalizeTitle(targetTitle)) {
       value += 4;
     }
     if (info?.imageLinks !== undefined) value += 2;

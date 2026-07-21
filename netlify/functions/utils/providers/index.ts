@@ -1,9 +1,9 @@
-import bookProvider from "./bookProvider";
-import movieProvider from "./movieProvider";
-import { MediaProvider } from "./types";
 import { hasValue } from "../../../../lib/checks/checks.js";
 import { WorkType } from "../../../../lib/types/generated/db";
 import { DetailedWorkData, WorkDataSummary } from "../../../../lib/types/lists";
+import bookProvider from "./bookProvider";
+import movieProvider from "./movieProvider";
+import { MediaProvider } from "./types";
 
 /**
  * The provider registry. To support a new club type: add the enum value
@@ -37,9 +37,7 @@ export function allProviders(): MediaProvider[] {
 export async function getExternalDataForWorks(
   works: { externalId: string | null | undefined; type: WorkType }[],
 ): Promise<Map<string, DetailedWorkData>> {
-  return dispatchByType(works, (type, ids) =>
-    getProvider(type).getExternalData(ids),
-  );
+  return dispatchByType(works, (type, ids) => getProvider(type).getExternalData(ids));
 }
 
 /**
@@ -50,9 +48,7 @@ export async function getExternalDataForWorks(
 export async function getExternalSummariesForWorks(
   works: { externalId: string | null | undefined; type: WorkType }[],
 ): Promise<Map<string, WorkDataSummary>> {
-  return dispatchByType(works, (type, ids) =>
-    getProvider(type).getExternalDataSummary(ids),
-  );
+  return dispatchByType(works, (type, ids) => getProvider(type).getExternalDataSummary(ids));
 }
 
 async function dispatchByType<T>(

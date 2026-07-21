@@ -22,9 +22,7 @@ export async function up(db: Kysely<unknown>) {
     .addColumn("status", "varchar(50)")
     .addColumn("tagline", "varchar(255)")
     .addColumn("title", "varchar(255)")
-    .addColumn("updated_date", "timestamptz", (col) =>
-      col.notNull().defaultTo("now()"),
-    )
+    .addColumn("updated_date", "timestamptz", (col) => col.notNull().defaultTo("now()"))
     .execute();
 
   await db.schema
@@ -44,10 +42,7 @@ export async function up(db: Kysely<unknown>) {
     .addColumn("company_name", "varchar(255)", (col) => col.notNull())
     .addColumn("logo_path", "varchar(255)")
     .addColumn("origin_country", "varchar(10)")
-    .addUniqueConstraint("movie_companies_unique", [
-      "external_id",
-      "company_name",
-    ])
+    .addUniqueConstraint("movie_companies_unique", ["external_id", "company_name"])
     .execute();
 
   await db.schema
@@ -57,10 +52,7 @@ export async function up(db: Kysely<unknown>) {
     )
     .addColumn("country_code", "varchar(10)", (col) => col.notNull())
     .addColumn("country_name", "varchar(255)", (col) => col.notNull())
-    .addUniqueConstraint("movie_countries_unique", [
-      "external_id",
-      "country_code",
-    ])
+    .addUniqueConstraint("movie_countries_unique", ["external_id", "country_code"])
     .execute();
 }
 

@@ -36,9 +36,7 @@ export function isTrue(b: unknown): b is true {
  * Return true if the object specified is an array and is not empty.
  * @param arr
  */
-export function hasElements<T>(
-  arr: ReadonlyArray<T> | null | undefined,
-): arr is NonEmptyArray<T> {
+export function hasElements<T>(arr: ReadonlyArray<T> | null | undefined): arr is NonEmptyArray<T> {
   return isDefined(arr) && Array.isArray(arr) && arr.length > 0;
 }
 

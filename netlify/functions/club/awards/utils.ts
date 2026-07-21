@@ -8,10 +8,7 @@ export interface ClubAwardRequest extends ClubRequest {
   year: number;
 }
 
-export const validYear: MiddlewareCallback<
-  ClubRequest,
-  ClubAwardRequest
-> = async (req, res) => {
+export const validYear: MiddlewareCallback<ClubRequest, ClubAwardRequest> = async (req, res) => {
   if (!hasValue(req.params.year)) return res(notFound());
   const year = parseInt(req.params.year);
   if (isNaN(year)) return res(badRequest());

@@ -1,13 +1,6 @@
 import { Handler, HandlerContext, HandlerEvent } from "@netlify/functions";
 import { z } from "zod";
 
-import awardsRouter from "./awards";
-import inviteRouter from "./invite";
-import listRouter from "./list";
-import membersRouter from "./members";
-import joinRouter from "./members/join";
-import reviewsRouter from "./reviews";
-import settingsRouter from "./settings";
 import { hasValue } from "../../../lib/checks/checks.js";
 import { ClubPreview } from "../../../lib/types/club";
 import { ClubType } from "../../../lib/types/generated/db.js";
@@ -23,6 +16,13 @@ import { ok, badRequest, notFound } from "../utils/responses";
 import { Router } from "../utils/router";
 import { validateSlug } from "../utils/slug";
 import { validClubSlug } from "../utils/validation";
+import awardsRouter from "./awards";
+import inviteRouter from "./invite";
+import listRouter from "./list";
+import membersRouter from "./members";
+import joinRouter from "./members/join";
+import reviewsRouter from "./reviews";
+import settingsRouter from "./settings";
 
 const router = new Router("/api/club");
 router.use("/:clubSlug/list", validClubSlug, listRouter);
@@ -37,9 +37,7 @@ router.get("/:clubSlug", validClubSlug, (req, res) => {
     clubId: req.clubId,
     clubName: req.clubName,
     slug: req.clubSlug,
-    slugUpdatedAt: req.clubSlugUpdatedAt
-      ? String(req.clubSlugUpdatedAt)
-      : undefined,
+    slugUpdatedAt: req.clubSlugUpdatedAt ? String(req.clubSlugUpdatedAt) : undefined,
     type: req.clubType,
   };
   return Promise.resolve(res(ok(JSON.stringify(result))));
@@ -48,43 +46,32 @@ router.get("/:clubSlug", validClubSlug, (req, res) => {
 // Full external metadata (including the cast list) for a single work. Bulk
 // list/review payloads carry only summaries; the detail drawer fetches this
 // on demand.
-router.get(
-  "/:clubSlug/work/:workId/details",
-  validClubSlug,
-  async ({ clubId, params }, res) => {
-    if (!hasValue(params.workId)) return res(notFound("Work not found"));
-    const work = await WorkRepository.getById(clubId, params.workId);
-    if (!work) return res(notFound("Work not found"));
+router.get("/:clubSlug/work/:workId/details", validClubSlug, async ({ clubId, params }, res) => {
+  if (!hasValue(params.workId)) return res(notFound("Work not found"));
+  const work = await WorkRepository.getById(clubId, params.workId);
+  if (!work) return res(notFound("Work not found"));
 
-    const externalData = hasValue(work.external_id)
-      ? (await getProvider(work.type).getExternalData([work.external_id])).get(
-          work.external_id,
-        )
-      : undefined;
-    return res(ok(JSON.stringify(externalData ?? null)));
-  },
-);
+  const externalData = hasValue(work.external_id)
+    ? (await getProvider(work.type).getExternalData([work.external_id])).get(work.external_id)
+    : undefined;
+  return res(ok(JSON.stringify(externalData ?? null)));
+});
 
 const clubNameUpdateSchema = z.object({
   name: z.string().min(1).max(100),
 });
 
-router.put(
-  "/:clubSlug/name",
-  validClubSlug,
-  secured,
-  async ({ event, clubId }, res) => {
-    if (!hasValue(event.body)) return res(badRequest("Missing body"));
+router.put("/:clubSlug/name", validClubSlug, secured, async ({ event, clubId }, res) => {
+  if (!hasValue(event.body)) return res(badRequest("Missing body"));
 
-    const body = clubNameUpdateSchema.safeParse(JSON.parse(event.body));
-    if (!body.success) return res(badRequest("Invalid body"));
+  const body = clubNameUpdateSchema.safeParse(JSON.parse(event.body));
+  if (!body.success) return res(badRequest("Invalid body"));
 
-    const { name } = body.data;
-    await ClubRepository.updateName(clubId, name);
+  const { name } = body.data;
+  await ClubRepository.updateName(clubId, name);
 
-    return res(ok());
-  },
-);
+  return res(ok());
+});
 
 router.use("/join", joinRouter);
 router.use("/joinInfo/:token", joinRouter);
@@ -151,69 +138,51 @@ const nextWorkSchema = z.object({
   workId: z.string(),
 });
 
-router.put(
-  "/:clubSlug/nextWork",
-  validClubSlug,
-  secured,
-  async ({ event, clubId }, res) => {
-    if (!hasValue(event.body)) return res(badRequest("Missing body"));
-    const body = nextWorkSchema.safeParse(JSON.parse(event.body));
-    if (!body.success) return res(badRequest("Invalid body"));
-    const { workId } = body.data;
+router.put("/:clubSlug/nextWork", validClubSlug, secured, async ({ event, clubId }, res) => {
+  if (!hasValue(event.body)) return res(badRequest("Missing body"));
+  const body = nextWorkSchema.safeParse(JSON.parse(event.body));
+  if (!body.success) return res(badRequest("Invalid body"));
+  const { workId } = body.data;
 
-    await WorkRepository.deleteNextWork(clubId);
-    await WorkRepository.setNextWork(clubId, workId);
+  await WorkRepository.deleteNextWork(clubId);
+  await WorkRepository.setNextWork(clubId, workId);
 
-    return res(ok());
-  },
-);
+  return res(ok());
+});
 
-router.delete(
-  "/:clubSlug/nextWork",
-  validClubSlug,
-  secured,
-  async ({ clubId }, res) => {
-    await WorkRepository.deleteNextWork(clubId);
-    return res(ok());
-  },
-);
+router.delete("/:clubSlug/nextWork", validClubSlug, secured, async ({ clubId }, res) => {
+  await WorkRepository.deleteNextWork(clubId);
+  return res(ok());
+});
 
 const updateSlugSchema = z.object({
   slug: z.string(),
 });
 
-router.put(
-  "/:clubSlug/slug",
-  validClubSlug,
-  secured,
-  async ({ clubId, event }, res) => {
-    if (!hasValue(event.body)) return res(badRequest("Missing body"));
+router.put("/:clubSlug/slug", validClubSlug, secured, async ({ clubId, event }, res) => {
+  if (!hasValue(event.body)) return res(badRequest("Missing body"));
 
-    const body = updateSlugSchema.safeParse(JSON.parse(event.body));
-    if (!body.success) return res(badRequest("Invalid body"));
+  const body = updateSlugSchema.safeParse(JSON.parse(event.body));
+  if (!body.success) return res(badRequest("Invalid body"));
 
-    const { slug: newSlug } = body.data;
+  const { slug: newSlug } = body.data;
 
-    const validationError = validateSlug(newSlug);
-    if (hasValue(validationError)) {
-      return res(badRequest(validationError));
-    }
+  const validationError = validateSlug(newSlug);
+  if (hasValue(validationError)) {
+    return res(badRequest(validationError));
+  }
 
-    const slugTaken = await ClubRepository.slugExists(newSlug, clubId);
-    if (slugTaken) {
-      return res(badRequest("This url is already in use by another club"));
-    }
+  const slugTaken = await ClubRepository.slugExists(newSlug, clubId);
+  if (slugTaken) {
+    return res(badRequest("This url is already in use by another club"));
+  }
 
-    await ClubRepository.updateSlug(clubId, newSlug);
+  await ClubRepository.updateSlug(clubId, newSlug);
 
-    return res(ok(JSON.stringify({ slug: newSlug })));
-  },
-);
+  return res(ok(JSON.stringify({ slug: newSlug })));
+});
 
-const handler: Handler = async (
-  event: HandlerEvent,
-  context: HandlerContext,
-) => {
+const handler: Handler = async (event: HandlerEvent, context: HandlerContext) => {
   return router.route({ event, context, params: {} });
 };
 

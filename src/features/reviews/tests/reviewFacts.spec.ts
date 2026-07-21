@@ -3,11 +3,7 @@ import { describe, expect, it } from "vitest";
 import { isDefined } from "../../../../lib/checks/checks";
 import { DetailedBookData } from "../../../../lib/types/book";
 import { WorkType } from "../../../../lib/types/generated/db";
-import {
-  DetailedReviewListItem,
-  DetailedWorkData,
-  Review,
-} from "../../../../lib/types/lists";
+import { DetailedReviewListItem, DetailedWorkData, Review } from "../../../../lib/types/lists";
 import { DetailedMovieData } from "../../../../lib/types/movie";
 import { computeReviewFact } from "../reviewFacts";
 
@@ -347,10 +343,7 @@ describe("computeReviewFact", () => {
       { [MEMBER_A]: 6, [MEMBER_B]: 6 },
       { externalData: movieData({ releaseDate: "1954-03-15" }) },
     );
-    const reviews = [
-      ...filler(11, { movie: { releaseDate: "1990-05-01" } }),
-      target,
-    ];
+    const reviews = [...filler(11, { movie: { releaseDate: "1990-05-01" } }), target];
 
     const fact = computeReviewFact(reviews, "t");
     expect(fact?.kind).toBe("timeTravel");
@@ -365,10 +358,7 @@ describe("computeReviewFact", () => {
       { [MEMBER_A]: 6, [MEMBER_B]: 6 },
       { externalData: movieData({ countries: ["South Korea"] }) },
     );
-    const reviews = [
-      ...filler(11, { movie: { countries: ["United States of America"] } }),
-      target,
-    ];
+    const reviews = [...filler(11, { movie: { countries: ["United States of America"] } }), target];
 
     const fact = computeReviewFact(reviews, "t");
     expect(fact?.kind).toBe("countryFirst");
@@ -384,10 +374,7 @@ describe("computeReviewFact", () => {
       { [MEMBER_A]: 6, [MEMBER_B]: 6 },
       { externalData: movieData({ releaseDate: "1975-06-20" }) },
     );
-    const reviews = [
-      ...filler(11, { movie: { releaseDate: "1965-01-01" } }),
-      target,
-    ];
+    const reviews = [...filler(11, { movie: { releaseDate: "1965-01-01" } }), target];
 
     const fact = computeReviewFact(reviews, "t");
     expect(fact?.kind).toBe("decadeFirst");
@@ -436,10 +423,7 @@ describe("computeReviewFact", () => {
         externalData: bookData({ firstPublishYear: 1847 }),
       },
     );
-    const reviews = [
-      ...filler(11, { book: { firstPublishYear: 1990 } }),
-      target,
-    ];
+    const reviews = [...filler(11, { book: { firstPublishYear: 1990 } }), target];
 
     const fact = computeReviewFact(reviews, "t");
     expect(fact?.kind).toBe("timeTravel");

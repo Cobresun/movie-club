@@ -33,18 +33,14 @@ export interface MediaProvider {
    * Missing entries simply mean "not cached yet" — callers treat absence as
    * `externalData: undefined`, never an error.
    */
-  getExternalData: (
-    externalIds: string[],
-  ) => Promise<Map<string, DetailedWorkData>>;
+  getExternalData: (externalIds: string[]) => Promise<Map<string, DetailedWorkData>>;
 
   /**
    * Like {@link getExternalData} but returns the bulk-payload summary shape,
    * omitting heavyweight fields (movie cast lists). List/review endpoints use
    * this so response size doesn't scale with cast sizes.
    */
-  getExternalDataSummary: (
-    externalIds: string[],
-  ) => Promise<Map<string, WorkDataSummary>>;
+  getExternalDataSummary: (externalIds: string[]) => Promise<Map<string, WorkDataSummary>>;
 
   /**
    * Cast/people lists for a set of external IDs, keyed by external ID. Only
@@ -67,8 +63,5 @@ export interface MediaProvider {
    * Callers pass the work's own row values, so the prompt is always built from
    * server-resolved data — never from client input.
    */
-  getDiscussionPrompt: (work: {
-    title: string;
-    externalId: string | null;
-  }) => Promise<string>;
+  getDiscussionPrompt: (work: { title: string; externalId: string | null }) => Promise<string>;
 }

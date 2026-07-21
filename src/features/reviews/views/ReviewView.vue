@@ -49,9 +49,7 @@
       <div v-if="showEmptyState">
         <EmptyState
           :title="hasSearchTerm ? 'No Results Found' : 'No Reviews Yet'"
-          :description="
-            hasSearchTerm ? searchEmptyDescription : noReviewsDescription
-          "
+          :description="hasSearchTerm ? searchEmptyDescription : noReviewsDescription"
           :action-label="hasSearchTerm ? undefined : 'Add Review'"
           :action-icon="hasSearchTerm ? undefined : 'plus'"
           @action="openPrompt"
@@ -81,15 +79,7 @@ import {
   useVueTable,
 } from "@tanstack/vue-table";
 import { DateTime } from "luxon";
-import {
-  computed,
-  ref,
-  onMounted,
-  h,
-  provide,
-  resolveComponent,
-  watch,
-} from "vue";
+import { computed, ref, onMounted, h, provide, resolveComponent, watch } from "vue";
 
 import { hasValue, isDefined, isTrue } from "../../../../lib/checks/checks.js";
 import { ClubType } from "../../../../lib/types/generated/db";
@@ -100,12 +90,8 @@ import MovieTooltip from "../components/MovieTooltip.vue";
 import ReviewScore from "../components/ReviewScore.vue";
 import ScoreAssistModal from "../components/ScoreAssistModal.vue";
 import TableView from "../components/TableView.vue";
-import {
-  buildCandidatePool,
-  isScoreAssistEligible,
-} from "../composables/scoreAssistLogic";
+import { buildCandidatePool, isScoreAssistEligible } from "../composables/scoreAssistLogic";
 import { ScoreAssistKey } from "../scoreAssist";
-
 import AverageImg from "@/assets/images/average.svg";
 import { clubTypeConfig } from "@/common/clubType";
 import DeleteConfirmationModal from "@/common/components/DeleteConfirmationModal.vue";
@@ -116,11 +102,7 @@ import VToggle from "@/common/components/VToggle.vue";
 import { asMovie } from "@/common/workDisplay";
 import AddReviewPrompt from "@/features/reviews/components/AddReviewPrompt.vue";
 import { useClub, useIsInClub, useMembers } from "@/service/useClub";
-import {
-  useDeleteReview,
-  useReviewsList,
-  useReviewsListId,
-} from "@/service/useList";
+import { useDeleteReview, useReviewsList, useReviewsListId } from "@/service/useList";
 import { useUser } from "@/service/useUser";
 
 const { clubSlug } = defineProps<{ clubSlug: string }>();
@@ -142,8 +124,7 @@ watch(isGalleryView, (newVal) => {
 });
 
 const { isLoading: loadingReviews, data: reviews } = useReviewsList(clubSlug);
-const { isLoading: loadingMembers, data: membersResponse } =
-  useMembers(clubSlug);
+const { isLoading: loadingMembers, data: membersResponse } = useMembers(clubSlug);
 
 const loading = computed(() => loadingReviews.value || loadingMembers.value);
 
@@ -171,14 +152,10 @@ const confirmDelete = () => {
 };
 
 const hasSearchTerm = computed(() => hasActiveFilters.value);
-const showEmptyState = computed(
-  () => !loading.value && filteredReviews.value.length === 0,
-);
+const showEmptyState = computed(() => !loading.value && filteredReviews.value.length === 0);
 
 const searchEmptyDescription = computed(() => {
-  const fields = clubTypeConfig(
-    club.value?.type ?? ClubType.movie,
-  ).searchableFieldsHint;
+  const fields = clubTypeConfig(club.value?.type ?? ClubType.movie).searchableFieldsHint;
   return `Try adjusting your search or filters. You can search by ${fields}`;
 });
 const noReviewsDescription = computed(() => {
@@ -233,8 +210,7 @@ const scoreAssistCandidates = computed(() => {
   return buildCandidatePool(reviews.value ?? [], userId.value, target.id);
 });
 provide(ScoreAssistKey, {
-  isEligible: (workId: string) =>
-    isScoreAssistEligible(reviews.value, userId.value, workId),
+  isEligible: (workId: string) => isScoreAssistEligible(reviews.value, userId.value, workId),
   open: (workId: string) => {
     scoreAssistWorkId.value = workId;
   },
@@ -245,9 +221,7 @@ const hasUserRated = computed(() => {
   if (userId.value === undefined) return () => false;
 
   return (movieId: string) => {
-    const review = filteredReviews.value?.find(
-      (review) => review.id === movieId,
-    );
+    const review = filteredReviews.value?.find((review) => review.id === movieId);
     return Boolean(review?.scores[userId.value ?? ""]?.score !== undefined);
   };
 });
@@ -364,8 +338,7 @@ const columns = computed(() => [
       },
       cell: (info) => {
         const value = info.getValue();
-        const score =
-          value === undefined ? undefined : Math.round(value * 100) / 100;
+        const score = value === undefined ? undefined : Math.round(value * 100) / 100;
         let size: string | undefined;
         if (typeof info.meta?.size === "string") {
           size = info.meta.size;
@@ -384,9 +357,7 @@ const columns = computed(() => [
           "div",
           {
             class: revealOnClick ? "cursor-pointer hover:text-xl" : "",
-            onClick: revealOnClick
-              ? () => toggleReveal(info.row.id)
-              : undefined,
+            onClick: revealOnClick ? () => toggleReveal(info.row.id) : undefined,
           },
           [
             h(ReviewScore, {

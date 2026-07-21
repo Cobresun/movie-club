@@ -8,7 +8,7 @@ Movie Club is a Vue 3 web application for managing movie clubs, reviews, custom 
 
 ## Code Quality
 
-Code quality checks (`npm run type-check` and `npm run lint`) run automatically via Claude Code hooks after every file edit. Run `npm test` manually when changes affect tested code.
+Code quality checks (`npm run type-check` and `npm run lint`) run automatically via Claude Code hooks after every file edit. Run `npm test` manually when changes affect tested code. Linting uses oxlint (with `oxlint.config.ts`) and formatting uses oxfmt (with `.oxfmtrc.json`).
 
 ## Development Commands
 

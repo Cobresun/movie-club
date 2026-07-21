@@ -6,14 +6,13 @@ import {
   RouteLocationNormalized,
 } from "vue-router";
 
-import ClubRouterView from "./ClubRouterView.vue";
 import { hasElements, isDefined } from "../../lib/checks/checks.js";
 import { ClubType } from "../../lib/types/generated/db";
 import { resolveDefaultClubSlug } from "../common/composables/useLastClubSlug";
 import ClubHomeView from "../features/clubs/views/ClubHomeView.vue";
 import HomeView from "../features/clubs/views/HomeView.vue";
 import ReviewView from "../features/reviews/views/ReviewView.vue";
-
+import ClubRouterView from "./ClubRouterView.vue";
 import { useAuthStore } from "@/stores/auth";
 
 const checkClubAccess = async (
@@ -75,10 +74,7 @@ const clubGuard = async (
 
     if (club) {
       // Replace the numeric ID with the slug in the full path
-      const newPath = to.path.replace(
-        `/club/${clubSlug}`,
-        `/club/${club.slug}`,
-      );
+      const newPath = to.path.replace(`/club/${clubSlug}`, `/club/${club.slug}`);
 
       // Redirect to slug-based URL, replacing history entry
       return next({
@@ -196,8 +192,7 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: "/share/club/:clubSlug/statistics",
     name: "SharedStatistics",
-    component: () =>
-      import("../features/statistics/views/SharedStatisticsView.vue"),
+    component: () => import("../features/statistics/views/SharedStatisticsView.vue"),
     meta: {
       depth: 1,
       noAuth: true,
@@ -262,8 +257,7 @@ const routes: Array<RouteRecordRaw> = [
       {
         path: "lists",
         name: "Watchlists",
-        component: () =>
-          import("../features/watch-list/views/WatchListView.vue"),
+        component: () => import("../features/watch-list/views/WatchListView.vue"),
         props: true,
         meta: {
           depth: 2,
@@ -276,8 +270,7 @@ const routes: Array<RouteRecordRaw> = [
       {
         path: "statistics",
         name: "Statistics",
-        component: () =>
-          import("../features/statistics/views/StatisticsView.vue"),
+        component: () => import("../features/statistics/views/StatisticsView.vue"),
         props: true,
         meta: {
           depth: 2,
@@ -303,29 +296,25 @@ const routes: Array<RouteRecordRaw> = [
                 path: "categories",
                 name: "AwardsCategories",
                 props: true,
-                component: () =>
-                  import("../features/awards/views/CategoriesView.vue"),
+                component: () => import("../features/awards/views/CategoriesView.vue"),
               },
               {
                 path: "nominations",
                 name: "AwardsNominations",
                 props: true,
-                component: () =>
-                  import("../features/awards/views/NominationsView.vue"),
+                component: () => import("../features/awards/views/NominationsView.vue"),
               },
               {
                 path: "rankings",
                 name: "AwardsRankings",
                 props: true,
-                component: () =>
-                  import("../features/awards/views/RankingsView.vue"),
+                component: () => import("../features/awards/views/RankingsView.vue"),
               },
               {
                 path: "results",
                 name: "AwardsResults",
                 props: true,
-                component: () =>
-                  import("../features/awards/views/ResultView.vue"),
+                component: () => import("../features/awards/views/ResultView.vue"),
               },
             ],
           },
@@ -334,8 +323,7 @@ const routes: Array<RouteRecordRaw> = [
       {
         path: "settings",
         name: "ClubSettings",
-        component: () =>
-          import("../features/settings/views/ClubSettingsView.vue"),
+        component: () => import("../features/settings/views/ClubSettingsView.vue"),
         props: true,
         meta: {
           depth: 2,

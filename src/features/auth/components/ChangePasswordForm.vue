@@ -3,27 +3,19 @@
     <h2 class="mb-4 text-xl font-semibold text-text">Change Password</h2>
 
     <!-- Success Message -->
-    <div
-      v-if="successMessage"
-      class="mb-4 rounded bg-green-900/50 p-3 text-sm text-green-300"
-    >
+    <div v-if="successMessage" class="mb-4 rounded bg-green-900/50 p-3 text-sm text-green-300">
       {{ successMessage }}
     </div>
 
     <!-- Error Message -->
-    <div
-      v-if="errorMessage"
-      class="mb-4 rounded bg-red-900/50 p-3 text-sm text-red-300"
-    >
+    <div v-if="errorMessage" class="mb-4 rounded bg-red-900/50 p-3 text-sm text-red-300">
       {{ errorMessage }}
     </div>
 
     <form class="space-y-4" @submit.prevent="handleSubmit">
       <!-- Current Password -->
       <div>
-        <label
-          for="currentPassword"
-          class="mb-1 block text-sm font-medium text-gray-300"
+        <label for="currentPassword" class="mb-1 block text-sm font-medium text-gray-300"
           >Current Password</label
         >
         <input
@@ -38,9 +30,7 @@
 
       <!-- New Password -->
       <div>
-        <label
-          for="newPassword"
-          class="mb-1 block text-sm font-medium text-gray-300"
+        <label for="newPassword" class="mb-1 block text-sm font-medium text-gray-300"
           >New Password</label
         >
         <input
@@ -56,9 +46,7 @@
 
       <!-- Confirm New Password -->
       <div>
-        <label
-          for="confirmNewPassword"
-          class="mb-1 block text-sm font-medium text-gray-300"
+        <label for="confirmNewPassword" class="mb-1 block text-sm font-medium text-gray-300"
           >Confirm New Password</label
         >
         <input
@@ -101,7 +89,6 @@
 import { ref } from "vue";
 
 import { isDefined } from "../../../../lib/checks/checks.js";
-
 import { authClient } from "@/lib/auth-client";
 
 const currentPassword = ref("");
@@ -130,8 +117,7 @@ const handleSubmit = async () => {
 
   // Validate not same as current
   if (newPassword.value === currentPassword.value) {
-    errorMessage.value =
-      "New password must be different from current password.";
+    errorMessage.value = "New password must be different from current password.";
     return;
   }
 
@@ -152,8 +138,7 @@ const handleSubmit = async () => {
       ) {
         errorMessage.value = "Current password is incorrect.";
       } else {
-        errorMessage.value =
-          error.message ?? "Failed to change password. Please try again.";
+        errorMessage.value = error.message ?? "Failed to change password. Please try again.";
       }
       isLoading.value = false;
       return;

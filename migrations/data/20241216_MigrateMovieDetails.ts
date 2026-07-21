@@ -63,9 +63,7 @@ const populateMovieDetails = async () => {
       )
       .execute();
 
-    const existingIds = new Set(
-      existingDetails.map((d) => d.external_id.toString()),
-    );
+    const existingIds = new Set(existingDetails.map((d) => d.external_id.toString()));
     const moviesToProcess = batch.filter((m) => !existingIds.has(m.externalId));
 
     if (moviesToProcess.length === 0) {
@@ -120,9 +118,7 @@ const populateMovieDetails = async () => {
                   genre_name: g.name,
                 })),
               )
-              .onConflict((oc) =>
-                oc.columns(["external_id", "genre_name"]).doNothing(),
-              )
+              .onConflict((oc) => oc.columns(["external_id", "genre_name"]).doNothing())
               .execute();
           }
 
@@ -138,9 +134,7 @@ const populateMovieDetails = async () => {
                   origin_country: c.origin_country,
                 })),
               )
-              .onConflict((oc) =>
-                oc.columns(["external_id", "company_name"]).doNothing(),
-              )
+              .onConflict((oc) => oc.columns(["external_id", "company_name"]).doNothing())
               .execute();
           }
 
@@ -155,9 +149,7 @@ const populateMovieDetails = async () => {
                   country_name: c.name,
                 })),
               )
-              .onConflict((oc) =>
-                oc.columns(["external_id", "country_code"]).doNothing(),
-              )
+              .onConflict((oc) => oc.columns(["external_id", "country_code"]).doNothing())
               .execute();
           }
 

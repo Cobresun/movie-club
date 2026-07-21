@@ -1,7 +1,6 @@
 import "@testing-library/jest-dom";
 import PiniaStoreHelper from "./PiniaStoreHelper.test.vue";
 import { render } from "./utils";
-
 import { server } from "@/mocks/server";
 
 vi.mock("vue-router", () => ({

@@ -6,11 +6,6 @@ import { existsSync, readFileSync } from "fs";
 import path from "path";
 import { z } from "zod";
 
-import { dialect } from "./database.js";
-import { sendPasswordResetEmail, sendVerificationEmail } from "./email.js";
-import { unauthorized } from "./responses";
-import { isRouterResponse, Request, RouterResponse } from "./router";
-import { ClubRequest } from "./validation";
 import {
   ensure,
   filterUndefinedProperties,
@@ -18,11 +13,13 @@ import {
   isDefined,
 } from "../../../lib/checks/checks.js";
 import ClubRepository from "../repositories/ClubRepository";
+import { dialect } from "./database.js";
+import { sendPasswordResetEmail, sendVerificationEmail } from "./email.js";
+import { unauthorized } from "./responses";
+import { isRouterResponse, Request, RouterResponse } from "./router";
+import { ClubRequest } from "./validation";
 
-const googleClientId = ensure(
-  process.env.GOOGLE_CLIENT_ID,
-  "GOOGLE_CLIENT_ID is not set",
-);
+const googleClientId = ensure(process.env.GOOGLE_CLIENT_ID, "GOOGLE_CLIENT_ID is not set");
 const googleClientSecret = ensure(
   process.env.GOOGLE_CLIENT_SECRET,
   "GOOGLE_CLIENT_SECRET is not set",
@@ -45,11 +42,9 @@ function getTrustedOrigins(): string[] {
     // Silent fallback to env vars for local development
   }
 
-  return [
-    process.env.URL,
-    process.env.DEPLOY_PRIME_URL,
-    process.env.BETTER_AUTH_URL,
-  ].filter(isDefined);
+  return [process.env.URL, process.env.DEPLOY_PRIME_URL, process.env.BETTER_AUTH_URL].filter(
+    isDefined,
+  );
 }
 
 export const auth = betterAuth({

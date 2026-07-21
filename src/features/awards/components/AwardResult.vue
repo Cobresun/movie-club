@@ -9,10 +9,7 @@
     enter-active-class="transition-[height] ease-standard duration-500 overflow-hidden"
     enter-to-class="h-96"
   >
-    <div
-      v-if="showResult"
-      class="grid grid-cols-auto justify-items-center gap-4"
-    >
+    <div v-if="showResult" class="grid grid-cols-auto justify-items-center gap-4">
       <WorkPosterCard
         v-for="nomination in nominationsWithScore"
         :key="nomination.movieId"
@@ -41,7 +38,6 @@ import { computed, ref } from "vue";
 
 import { Award, AwardsStep } from "../../../../lib/types/awards";
 import { Member } from "../../../../lib/types/club";
-
 import WorkPosterCard from "@/common/components/WorkPosterCard.vue";
 
 const { award, members, step } = defineProps<{
@@ -63,8 +59,7 @@ const nominationsWithScore = computed(() =>
     .map((nomination) => ({
       ...nomination,
       score: Object.keys(nomination.ranking).reduce(
-        (currentScore, rankingKey) =>
-          currentScore + nomination.ranking[rankingKey],
+        (currentScore, rankingKey) => currentScore + nomination.ranking[rankingKey],
         0,
       ),
     }))

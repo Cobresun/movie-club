@@ -6,10 +6,7 @@ export default {
   },
 
   mounted(el: HTMLImageElement) {
-    function handleIntersect(
-      entries: IntersectionObserverEntry[],
-      observer: IntersectionObserver,
-    ) {
+    function handleIntersect(entries: IntersectionObserverEntry[], observer: IntersectionObserver) {
       entries.forEach((entry) => {
         if (entry.isIntersecting) {
           el.src = el.dataset.src ?? "";

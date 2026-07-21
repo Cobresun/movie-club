@@ -25,9 +25,7 @@ function p(name: string): { name: string; profilePath: string | null } {
   return { name, profilePath: null };
 }
 
-function makeExternalData(
-  overrides: Partial<DetailedMovieData> = {},
-): DetailedMovieData {
+function makeExternalData(overrides: Partial<DetailedMovieData> = {}): DetailedMovieData {
   return {
     kind: "movie",
     actors: [],
@@ -81,9 +79,7 @@ function makeMovie(overrides: Partial<MovieData> = {}): MovieData {
   };
 }
 
-function makeBookData(
-  overrides: Partial<DetailedBookData> = {},
-): DetailedBookData {
+function makeBookData(overrides: Partial<DetailedBookData> = {}): DetailedBookData {
   return {
     kind: "book",
     title: "Test Book",
@@ -239,10 +235,7 @@ describe("computeGenreStats", () => {
     ];
     const result = computeGenreStats(movies);
     const genreMap = Object.fromEntries(
-      [...result.mostLoved, ...result.leastLoved].map((g) => [
-        g.genre,
-        g.averageScore,
-      ]),
+      [...result.mostLoved, ...result.leastLoved].map((g) => [g.genre, g.averageScore]),
     );
     expect(genreMap["Action"]).toBe(7);
     expect(genreMap["Comedy"]).toBe(6);
@@ -335,10 +328,7 @@ describe("computeMemberLeaderboard", () => {
 
   it("filters out NaN scores", () => {
     const members = [makeMember({ id: "m1" })];
-    const movies = [
-      makeMovie({ userScores: { m1: NaN } }),
-      makeMovie({ userScores: { m1: 8 } }),
-    ];
+    const movies = [makeMovie({ userScores: { m1: NaN } }), makeMovie({ userScores: { m1: 8 } })];
     const result = computeMemberLeaderboard(movies, members);
     expect(result[0].reviewCount).toBe(1);
     expect(result[0].averageScore).toBe(8);
@@ -380,10 +370,7 @@ describe("computeTasteSimilarity", () => {
   });
 
   it("calculates 100% similarity for identical scores", () => {
-    const members = [
-      makeMember({ id: "m1", name: "A" }),
-      makeMember({ id: "m2", name: "B" }),
-    ];
+    const members = [makeMember({ id: "m1", name: "A" }), makeMember({ id: "m2", name: "B" })];
     const movies = [
       makeMovie({ userScores: { m1: 7, m2: 7 } }),
       makeMovie({ userScores: { m1: 5, m2: 5 } }),
@@ -859,12 +846,8 @@ describe("computeScoreVariance", () => {
   it("produces a rolling spread that drops when members agree more", () => {
     // First 5 movies: wide spread (8 vs 2). Last 5: tight spread (7 vs 7).
     const movies = [
-      ...Array.from({ length: 5 }, (_, i) =>
-        makeReviewedMovie(i + 1, { m1: 8, m2: 2 }),
-      ),
-      ...Array.from({ length: 5 }, (_, i) =>
-        makeReviewedMovie(i + 6, { m1: 7, m2: 7 }),
-      ),
+      ...Array.from({ length: 5 }, (_, i) => makeReviewedMovie(i + 1, { m1: 8, m2: 2 })),
+      ...Array.from({ length: 5 }, (_, i) => makeReviewedMovie(i + 6, { m1: 7, m2: 7 })),
     ];
 
     const points = computeScoreVariance(movies);
@@ -878,9 +861,7 @@ describe("computeScoreVariance", () => {
   });
 
   it("computes per-movie spread as population std dev", () => {
-    const movies = Array.from({ length: 5 }, (_, i) =>
-      makeReviewedMovie(i + 1, { m1: 8, m2: 2 }),
-    );
+    const movies = Array.from({ length: 5 }, (_, i) => makeReviewedMovie(i + 1, { m1: 8, m2: 2 }));
     const points = computeScoreVariance(movies);
     const first = ensure(points[0]);
     expect(first.movieStdDev).toBe(3);
@@ -900,9 +881,7 @@ describe("computeScoreVariance", () => {
     expect(points).toHaveLength(1);
     expect(points[0].movieTitle).toBe("E");
     for (let i = 1; i < points.length; i++) {
-      expect(points[i].date.getTime()).toBeGreaterThanOrEqual(
-        points[i - 1].date.getTime(),
-      );
+      expect(points[i].date.getTime()).toBeGreaterThanOrEqual(points[i - 1].date.getTime());
     }
   });
 });
@@ -975,9 +954,7 @@ describe("computeHighestRatedByYear", () => {
   });
 
   it("rounds the average to two decimals", () => {
-    const movies = [
-      makeMovie({ average: 8.126, createdDate: "2024-01-01T00:00:00.000Z" }),
-    ];
+    const movies = [makeMovie({ average: 8.126, createdDate: "2024-01-01T00:00:00.000Z" })];
 
     expect(computeHighestRatedByYear(movies)[0].average).toBe(8.13);
   });
