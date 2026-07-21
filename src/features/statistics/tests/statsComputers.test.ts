@@ -30,6 +30,7 @@ function makeExternalData(overrides: Partial<DetailedMovieData> = {}): DetailedM
     kind: "movie",
     actors: [],
     castNames: [],
+    majorCastNames: [],
     adult: false,
     backdrop_path: "",
     budget: 0,
