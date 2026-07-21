@@ -97,7 +97,7 @@
             class="shrink-0 text-base font-semibold transition-[filter] duration-500 ease-standard"
             :class="shouldBlurScore(movie.id, cell.column.id) ? 'blur' : 'blur-none'"
           >
-            <FlexRender :render="cell.column.columnDef.cell" :props="scoreCellProps(cell)" />
+            <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()" />
           </div>
         </div>
       </div>
@@ -493,15 +493,6 @@ const headerCellProps = (cell: Cell<DetailedReviewListItem, unknown>) => ({
   meta: {
     showName: true,
     size: "sm",
-  },
-});
-
-// The drawer's member grid is display-only — the current user enters/edits
-// their own score through the dedicated ScoreEntryPanel below it.
-const scoreCellProps = (cell: Cell<DetailedReviewListItem, unknown>) => ({
-  ...cell.getContext(),
-  meta: {
-    editable: false,
   },
 });
 

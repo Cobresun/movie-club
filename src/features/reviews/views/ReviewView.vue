@@ -69,8 +69,6 @@ import { hasValue, isDefined, isTrue } from "../../../../lib/checks/checks.js";
 import { ClubType } from "../../../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
 import GalleryView from "../components/GalleryView.vue";
-import MovieTooltip from "../components/MovieTooltip.vue";
-import ReviewScore from "../components/ReviewScore.vue";
 import ScoreAssistModal from "../components/ScoreAssistModal.vue";
 import { buildCandidatePool, isScoreAssistEligible } from "../composables/scoreAssistLogic";
 import { ScoreAssistKey } from "../scoreAssist";
@@ -79,7 +77,6 @@ import { clubTypeConfig } from "@/common/clubType";
 import EmptyState from "@/common/components/EmptyState.vue";
 import SearchFilterBar from "@/common/components/SearchFilterBar.vue";
 import VAvatar from "@/common/components/VAvatar.vue";
-import { asMovie } from "@/common/workDisplay";
 import AddReviewPrompt from "@/features/reviews/components/AddReviewPrompt.vue";
 import { useClub, useMembers } from "@/service/useClub";
 import { useDeleteReview, useReviewsList, useReviewsListId } from "@/service/useList";
@@ -188,15 +185,6 @@ const columns = computed(() => [
   }),
   columnHelper.accessor("title", {
     header: "Title",
-    cell: (info) =>
-      h(MovieTooltip, {
-        title: info.getValue(),
-        imageUrl: info.row.original.imageUrl,
-        movie: asMovie(info.row.original.externalData),
-      }),
-    meta: {
-      class: "font-bold align-middle",
-    },
   }),
   columnHelper.accessor("createdDate", {
     header: "Date Reviewed",
@@ -230,15 +218,8 @@ const columns = computed(() => [
       },
       cell: (info) => {
         const value = info.getValue();
-        const score = value === undefined ? undefined : Math.round(value * 100) / 100;
-        let size: string | undefined;
-        if (typeof info.meta?.size === "string") {
-          size = info.meta.size;
-        }
-
-        // Read-only in the gallery cards and the details drawer (entry there
-        // flows through the drawer's score CTA); editable in the table.
-        const editable = info.meta?.editable !== false;
+        if (value === undefined) return "";
+        const score = Math.round(value * 100) / 100;
 
         const shouldBlur = shouldBlurScore(info.row.id, info.column.id);
         // Gallery poster cards blur unrated scores but must not reveal them on
@@ -251,21 +232,19 @@ const columns = computed(() => [
             class: revealOnClick ? "cursor-pointer hover:text-xl" : "",
             onClick: revealOnClick ? () => toggleReveal(info.row.id) : undefined,
           },
-          [
-            h(ReviewScore, {
-              workId: info.row.original.id,
-              memberId: member.id,
-              score,
-              reviewId: info.row.original.scores[member.id]?.id,
-              size,
-              editable,
+          // Read-only: score entry/editing happens through the details drawer's
+          // score CTA, not inline.
+          h(
+            "span",
+            {
               class: shouldBlur
                 ? revealOnClick
                   ? "filter blur cursor-pointer"
                   : "filter blur"
                 : "",
-            }),
-          ],
+            },
+            score,
+          ),
         );
       },
       sortUndefined: "last",
