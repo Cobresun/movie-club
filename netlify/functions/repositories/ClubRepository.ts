@@ -1,6 +1,6 @@
 import crypto from "crypto";
 
-import { isTrue, isDefined } from "../../../lib/checks/checks.js";
+import { isDefined } from "../../../lib/checks/checks.js";
 import { ClubType } from "../../../lib/types/generated/db.js";
 import { db } from "../utils/database";
 import { generateSlugFromName, generateUniqueSlug } from "../utils/slug";
@@ -105,15 +105,14 @@ class ClubRepository {
       .execute();
   }
 
-  async isUserInClub(clubId: string, userId: string, isLegacy?: boolean) {
-    const clubCondition = isTrue(isLegacy) ? "club.legacy_id" : "club.id";
+  async isUserInClub(clubId: string, userId: string) {
+    // `secured` resolves the real club id before this runs, so membership is a
+    // single index lookup on club_member (no legacy_id join path anymore).
     return !!(await db
-      .selectFrom("user")
-      .where("user.id", "=", userId)
-      .innerJoin("club_member", "club_member.user_id", "user.id")
-      .innerJoin("club", "club.id", "club_member.club_id")
-      .where(clubCondition, "=", clubId)
-      .select("user.id")
+      .selectFrom("club_member")
+      .where("club_member.user_id", "=", userId)
+      .where("club_member.club_id", "=", clubId)
+      .select("club_member.user_id")
       .executeTakeFirst());
   }
 

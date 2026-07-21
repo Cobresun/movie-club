@@ -2,7 +2,7 @@ import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import { WorkType } from "../../../../lib/types/generated/db";
 import {
   DetailedReviewListItem,
-  DetailedWorkData,
+  WorkDataSummary,
 } from "../../../../lib/types/lists";
 
 import { workSimilarity } from "@/common/clubType";
@@ -24,7 +24,7 @@ export interface ScoredCandidate {
   workId: string;
   title: string;
   imageUrl?: string;
-  externalData?: DetailedWorkData;
+  externalData?: WorkDataSummary;
   /** The current user's score for this work. */
   score: number;
 }
@@ -45,7 +45,7 @@ export interface ScoreAssistResult {
 
 export interface ScoreAssistSession {
   readonly targetType: WorkType;
-  readonly targetData?: DetailedWorkData;
+  readonly targetData?: WorkDataSummary;
   /** Sorted ascending by score (title tie-break). */
   readonly candidates: readonly ScoredCandidate[];
   /**

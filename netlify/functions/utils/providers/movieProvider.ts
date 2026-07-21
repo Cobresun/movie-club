@@ -1,20 +1,22 @@
+import { sql } from "kysely";
 import { jsonBuildObject } from "kysely/helpers/postgres";
 
 import { isDefined, hasValue } from "../../../../lib/checks/checks.js";
 import { WorkType } from "../../../../lib/types/generated/db";
-import { DetailedWorkData } from "../../../../lib/types/lists";
-import { DetailedMovieData } from "../../../../lib/types/movie";
+import { DetailedWorkData, WorkDataSummary } from "../../../../lib/types/lists";
+import { MovieCastMember, MovieDataSummary } from "../../../../lib/types/movie";
 import { db } from "../database";
 import { insertMovieDetails, updateMovieDetails } from "../movieDetailsUpdater";
 import { getTMDBMovieData } from "../tmdb";
 import { MediaProvider, RefreshResult } from "./types";
 
 /**
- * Builds the `movie_details` + junction aggregates for a set of external IDs.
- * This is the query that used to live inline in ListRepository /
- * ReviewRepository; it now belongs to the movie provider.
+ * Builds the `movie_details` + junction aggregates for a set of external IDs,
+ * excluding the cast (see {@link castQuery}). Cast lists dominate row size, so
+ * keeping them out of this query keeps bulk list/review responses small and
+ * avoids shipping megabytes from the database on every list load.
  */
-function detailsQuery(externalIds: string[]) {
+function summaryQuery(externalIds: string[]) {
   return db
     .with("genres_agg", (qb) =>
       qb
@@ -63,21 +65,14 @@ function detailsQuery(externalIds: string[]) {
         ])
         .groupBy("external_id"),
     )
-    .with("actors_agg", (qb) =>
+    .with("cast_names_agg", (qb) =>
       qb
         .selectFrom("movie_actors")
-        .select((eb) => [
+        .select([
           "external_id",
-          eb.fn
-            .jsonAgg(
-              jsonBuildObject({
-                name: eb.ref("actor_name"),
-                character: eb.ref("character_name"),
-                profilePath: eb.ref("profile_path"),
-              }),
-            )
-            .orderBy("cast_order")
-            .as("actors"),
+          sql<string[]>`array_agg(actor_name ORDER BY cast_order)`.as(
+            "cast_names",
+          ),
         ])
         .groupBy("external_id"),
     )
@@ -104,8 +99,8 @@ function detailsQuery(externalIds: string[]) {
       "movie_details.external_id",
     )
     .leftJoin(
-      "actors_agg",
-      "actors_agg.external_id",
+      "cast_names_agg",
+      "cast_names_agg.external_id",
       "movie_details.external_id",
     )
     .select([
@@ -130,12 +125,12 @@ function detailsQuery(externalIds: string[]) {
       "companies_agg.production_companies",
       "countries_agg.production_countries",
       "directors_agg.directors",
-      "actors_agg.actors",
+      "cast_names_agg.cast_names",
     ]);
 }
 
-type MovieDetailRow = Awaited<
-  ReturnType<ReturnType<typeof detailsQuery>["execute"]>
+type MovieSummaryRow = Awaited<
+  ReturnType<ReturnType<typeof summaryQuery>["execute"]>
 >[number];
 
 /** Coerce a nullable Int8/decimal column (string | null) to number | undefined. */
@@ -143,10 +138,10 @@ function num(value: string | null): number | undefined {
   return isDefined(value) ? Number(value) : undefined;
 }
 
-function toDetailedMovieData(row: MovieDetailRow): DetailedMovieData {
+function toMovieDataSummary(row: MovieSummaryRow): MovieDataSummary {
   return {
     kind: "movie",
-    actors: row.actors?.filter(isDefined) ?? [],
+    castNames: row.cast_names?.filter(Boolean) ?? [],
     directors: row.directors?.filter(isDefined) ?? [],
     genres: row.genres?.filter(Boolean) ?? [],
     production_companies: row.production_companies?.filter(Boolean) ?? [],
@@ -174,6 +169,16 @@ class MovieProvider implements MediaProvider {
   readonly type = WorkType.movie;
 
   async fetchAndCacheDetails(externalId: string): Promise<void> {
+    // Details are immutable enough that a cached row means the TMDB round
+    // trip can be skipped entirely — the scheduled refresh keeps rows fresh.
+    // This makes re-adding a known movie (the common case) a single query.
+    const cached = await db
+      .selectFrom("movie_details")
+      .select("external_id")
+      .where("external_id", "=", externalId)
+      .executeTakeFirst();
+    if (isDefined(cached)) return;
+
     const { data } = await getTMDBMovieData(parseInt(externalId));
     await insertMovieDetails(externalId, data, db);
   }
@@ -184,11 +189,56 @@ class MovieProvider implements MediaProvider {
     const map = new Map<string, DetailedWorkData>();
     if (externalIds.length === 0) return map;
 
-    const rows = await detailsQuery(externalIds).execute();
+    const [summaries, casts] = await Promise.all([
+      this.getExternalDataSummary(externalIds),
+      this.getCast(externalIds),
+    ]);
+    for (const [externalId, summary] of summaries) {
+      if (summary.kind !== "movie") continue;
+      map.set(externalId, {
+        ...summary,
+        actors: casts.get(externalId) ?? [],
+      });
+    }
+    return map;
+  }
+
+  async getExternalDataSummary(
+    externalIds: string[],
+  ): Promise<Map<string, WorkDataSummary>> {
+    const map = new Map<string, WorkDataSummary>();
+    if (externalIds.length === 0) return map;
+
+    const rows = await summaryQuery(externalIds).execute();
     for (const row of rows) {
       if (hasValue(row.external_id) && hasValue(row.overview)) {
-        map.set(row.external_id, toDetailedMovieData(row));
+        map.set(row.external_id, toMovieDataSummary(row));
       }
+    }
+    return map;
+  }
+
+  async getCast(
+    externalIds: string[],
+  ): Promise<Map<string, MovieCastMember[]>> {
+    const map = new Map<string, MovieCastMember[]>();
+    if (externalIds.length === 0) return map;
+
+    const rows = await db
+      .selectFrom("movie_actors")
+      .where("external_id", "in", externalIds)
+      .select(["external_id", "actor_name", "character_name", "profile_path"])
+      .orderBy("external_id")
+      .orderBy("cast_order")
+      .execute();
+    for (const row of rows) {
+      const cast = map.get(row.external_id) ?? [];
+      cast.push({
+        name: row.actor_name,
+        character: row.character_name,
+        profilePath: row.profile_path,
+      });
+      map.set(row.external_id, cast);
     }
     return map;
   }

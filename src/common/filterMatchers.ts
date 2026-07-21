@@ -1,9 +1,9 @@
 import { hasValue } from "@/../lib/checks/checks";
 import {
   DetailedReviewListItem,
-  DetailedWorkData,
   DetailedWorkListItem,
   Review,
+  WorkDataSummary,
 } from "@/../lib/types/lists";
 
 /** Comparison operator for numeric/date filters. */
@@ -74,7 +74,7 @@ export function includesCaseInsensitive(
  * {@link import("./clubType").FilterOption} uses for its suggestions.
  */
 export function enumMatcher(
-  select: (data: DetailedWorkData | undefined) => string[],
+  select: (data: WorkDataSummary | undefined) => string[],
 ): WorkMatcher {
   return (work, query) =>
     select(work.externalData).some((value) =>

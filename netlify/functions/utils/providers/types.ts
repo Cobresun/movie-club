@@ -1,5 +1,6 @@
 import { WorkType } from "../../../../lib/types/generated/db";
-import { DetailedWorkData } from "../../../../lib/types/lists";
+import { DetailedWorkData, WorkDataSummary } from "../../../../lib/types/lists";
+import { MovieCastMember } from "../../../../lib/types/movie";
 
 /** Outcome of one provider's stale-details refresh batch. */
 export interface RefreshResult {
@@ -35,6 +36,22 @@ export interface MediaProvider {
   getExternalData: (
     externalIds: string[],
   ) => Promise<Map<string, DetailedWorkData>>;
+
+  /**
+   * Like {@link getExternalData} but returns the bulk-payload summary shape,
+   * omitting heavyweight fields (movie cast lists). List/review endpoints use
+   * this so response size doesn't scale with cast sizes.
+   */
+  getExternalDataSummary: (
+    externalIds: string[],
+  ) => Promise<Map<string, WorkDataSummary>>;
+
+  /**
+   * Cast/people lists for a set of external IDs, keyed by external ID. Only
+   * meaningful for providers whose works have a cast (movies); others return
+   * an empty map. Serves the statistics leaderboards' bulk cast fetch.
+   */
+  getCast: (externalIds: string[]) => Promise<Map<string, MovieCastMember[]>>;
 
   /**
    * Re-fetch the `limit` works whose cached details are stalest (oldest

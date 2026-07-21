@@ -26,15 +26,25 @@ const handler: Handler = async (event: HandlerEvent) => {
   // Call Better Auth handler
   const response = await auth.handler(request);
 
-  // Convert Web Response to Netlify HandlerResponse
+  // Convert Web Response to Netlify HandlerResponse. Set-Cookie must go
+  // through multiValueHeaders: the Headers API folds repeated Set-Cookie
+  // headers into one comma-joined value, which browsers parse as a single
+  // (broken) cookie — with the session cookieCache enabled, auth responses
+  // legitimately set two cookies.
   const responseHeaders: Record<string, string> = {};
   response.headers.forEach((value, key) => {
-    responseHeaders[key] = value;
+    if (key.toLowerCase() !== "set-cookie") {
+      responseHeaders[key] = value;
+    }
   });
+  const setCookies = response.headers.getSetCookie();
 
   return {
     statusCode: response.status,
     headers: responseHeaders,
+    ...(setCookies.length > 0
+      ? { multiValueHeaders: { "Set-Cookie": setCookies } }
+      : {}),
     body: await response.text(),
   };
 };

@@ -136,6 +136,33 @@ class ListRepository {
       .execute();
   }
 
+  // Every item on every user (non-system) list of the club, tagged with its
+  // source list, in one query. Ordered by list position then item position so
+  // the response groups naturally by list.
+  async getAllUserListItems(clubId: string) {
+    return await db
+      .selectFrom("work_list_item")
+      .innerJoin("work_list", "work_list.id", "work_list_item.list_id")
+      .innerJoin("work", "work.id", "work_list_item.work_id")
+      .where("work_list.club_id", "=", clubId)
+      .where("work_list.system_type", "is", null)
+      .select([
+        "work.id",
+        "work.title",
+        "work.type",
+        "work.image_url",
+        "work.external_id",
+        "work_list_item.time_added",
+        "work_list_item.added_by_user_id",
+        "work_list_item.list_id",
+        "work_list.title as list_title",
+      ])
+      .orderBy("work_list.position", "asc")
+      .orderBy("work_list.id", "asc")
+      .orderBy("work_list_item.position", "asc")
+      .execute();
+  }
+
   async isItemInList(listId: string, workId: string) {
     return !!(await db
       .selectFrom("work_list_item")
@@ -145,22 +172,30 @@ class ListRepository {
       .executeTakeFirst());
   }
 
+  /**
+   * Append a work to a list in a single statement: the INSERT ... SELECT
+   * computes the next position, and the (list_id, work_id) unique constraint
+   * turns a duplicate into a no-op. Returns false when the work was already
+   * on the list (nothing inserted).
+   */
   async insertItemInList(listId: string, workId: string, userId: string) {
-    const maxResult = await db
-      .selectFrom("work_list_item")
-      .where("list_id", "=", listId)
-      .select(sql<number>`COALESCE(MAX(position), 0) + 1`.as("next_position"))
-      .executeTakeFirstOrThrow();
-
-    return db
+    const result = await db
       .insertInto("work_list_item")
-      .values({
-        list_id: listId,
-        work_id: workId,
-        position: maxResult.next_position,
-        added_by_user_id: userId,
-      })
-      .execute();
+      .columns(["list_id", "work_id", "position", "added_by_user_id"])
+      .expression((eb) =>
+        eb
+          .selectFrom("work_list_item")
+          .where("list_id", "=", listId)
+          .select([
+            eb.val(listId).as("list_id"),
+            eb.val(workId).as("work_id"),
+            sql<number>`COALESCE(MAX(position), 0) + 1`.as("position"),
+            eb.val(userId).as("added_by_user_id"),
+          ]),
+      )
+      .onConflict((oc) => oc.columns(["list_id", "work_id"]).doNothing())
+      .executeTakeFirst();
+    return (result.numInsertedOrUpdatedRows ?? 0n) > 0n;
   }
 
   async deleteItemFromList(listId: string, workId: string) {
@@ -185,11 +220,17 @@ class ListRepository {
    * reviewed", so a move into reviews must stamp the current time (the column
    * default) rather than carry the source list's added-date forward, which
    * would back-date the review.
+   *
+   * The destination lookup doubles as the club-ownership check (the caller's
+   * club id must match), so callers don't need a separate validation query.
+   * Returns false — without moving anything — when the destination list does
+   * not exist in this club.
    */
   async moveItem(
     sourceListId: string,
     destinationListId: string,
     workId: string,
+    clubId: string,
   ) {
     return db.transaction().execute(async (trx) => {
       const [max, source, destination] = await Promise.all([
@@ -209,12 +250,17 @@ class ListRepository {
         trx
           .selectFrom("work_list")
           .where("id", "=", destinationListId)
+          .where("club_id", "=", clubId)
           .select("system_type")
           .executeTakeFirst(),
       ]);
 
+      if (!isDefined(destination)) {
+        return false;
+      }
+
       const isMoveIntoReviews =
-        destination?.system_type === WorkListSystemType.reviews;
+        destination.system_type === WorkListSystemType.reviews;
 
       await trx
         .insertInto("work_list_item")
@@ -235,6 +281,8 @@ class ListRepository {
         .where("list_id", "=", sourceListId)
         .where("work_id", "=", workId)
         .execute();
+
+      return true;
     });
   }
 

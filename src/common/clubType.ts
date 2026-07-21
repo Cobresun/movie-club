@@ -7,7 +7,7 @@ import {
   GoogleBooksVolume,
 } from "@/../lib/types/book";
 import { ClubType, WorkType } from "@/../lib/types/generated/db";
-import { DetailedWorkData, DetailedWorkListItem } from "@/../lib/types/lists";
+import { DetailedWorkListItem, WorkDataSummary } from "@/../lib/types/lists";
 import { TMDBPageResponse } from "@/../lib/types/movie";
 import {
   dateMatcher,
@@ -123,7 +123,7 @@ export interface FilterOption {
    * externalData (e.g. genres, author names) so SearchFilterBar can build
    * frequency-ranked suggestions. Returns `[]` for works of another kind.
    */
-  readonly suggestions?: (data: DetailedWorkData | undefined) => string[];
+  readonly suggestions?: (data: WorkDataSummary | undefined) => string[];
 }
 
 export interface ClubTypeConfig {
@@ -159,8 +159,8 @@ export interface ClubTypeConfig {
    * selection. Missing or mismatched-kind metadata scores 0.
    */
   readonly similarity: (
-    target: DetailedWorkData | undefined,
-    candidate: DetailedWorkData | undefined,
+    target: WorkDataSummary | undefined,
+    candidate: WorkDataSummary | undefined,
   ) => number;
 }
 
@@ -171,11 +171,11 @@ export interface ClubTypeConfig {
  */
 export interface WorkDisplay {
   /** Short subtitle: release year (movies) / first-published year (books). */
-  readonly subtitle: (data: DetailedWorkData | undefined) => string | undefined;
+  readonly subtitle: (data: WorkDataSummary | undefined) => string | undefined;
   /** One-line hero meta: "2h 35m · Adventure" / "Frank Herbert · 412 pages". */
-  readonly metaLine: (data: DetailedWorkData | undefined) => string | undefined;
+  readonly metaLine: (data: WorkDataSummary | undefined) => string | undefined;
   /** Long-form blurb: the TMDB overview / the book description. */
-  readonly overview: (data: DetailedWorkData | undefined) => string | undefined;
+  readonly overview: (data: WorkDataSummary | undefined) => string | undefined;
 }
 
 /**
@@ -205,7 +205,7 @@ function enumOption(
   key: string,
   label: string,
   placeholder: string,
-  select: (data: DetailedWorkData | undefined) => string[],
+  select: (data: WorkDataSummary | undefined) => string[],
 ): FilterOption {
   return {
     key,
@@ -383,7 +383,9 @@ export const CLUB_TYPE_CONFIG: Record<ClubType, ClubTypeConfig> = {
         "actor",
         "Actor",
         "Select an actor",
-        (data) => asMovie(data)?.actors?.map((a) => a.name) ?? [],
+        // Bulk payloads carry names only (castNames); full actor objects are
+        // fetched per-work by the detail drawer.
+        (data) => asMovie(data)?.castNames ?? [],
       ),
       reviewDateOption,
       dateOption(
@@ -484,7 +486,7 @@ export function clubTypeStats(type: ClubType): StatsConfig {
 // A work self-identifies its media type via `externalData.kind`, so display
 // helpers can route to the right registry entry without their callers knowing
 // the club type. Both maps are exhaustive (a new type won't compile until added).
-const CLUB_TYPE_BY_KIND: Record<DetailedWorkData["kind"], ClubType> = {
+const CLUB_TYPE_BY_KIND: Record<WorkDataSummary["kind"], ClubType> = {
   movie: ClubType.movie,
   book: ClubType.book,
 };
@@ -495,7 +497,7 @@ const CLUB_TYPE_BY_WORK_TYPE: Record<WorkType, ClubType> = {
 };
 
 function workDisplay(
-  data: DetailedWorkData | undefined,
+  data: WorkDataSummary | undefined,
 ): WorkDisplay | undefined {
   if (data === undefined) return undefined;
   // Legacy/partially-cached works can arrive without a `kind` discriminant, so
@@ -507,7 +509,7 @@ function workDisplay(
 
 /** A short, media-appropriate subtitle (release/first-published year). */
 export function workSubtitle(
-  data: DetailedWorkData | undefined,
+  data: WorkDataSummary | undefined,
 ): string | undefined {
   return workDisplay(data)?.subtitle(data);
 }
@@ -517,14 +519,14 @@ export function workSubtitle(
  * Adventure, Science Fiction" (movies) / "Frank Herbert · 412 pages" (books).
  */
 export function workMetaLine(
-  data: DetailedWorkData | undefined,
+  data: WorkDataSummary | undefined,
 ): string | undefined {
   return workDisplay(data)?.metaLine(data);
 }
 
 /** The long-form blurb (TMDB overview / book description). */
 export function workOverview(
-  data: DetailedWorkData | undefined,
+  data: WorkDataSummary | undefined,
 ): string | undefined {
   return workDisplay(data)?.overview(data);
 }
@@ -536,8 +538,8 @@ export function workOverview(
  */
 export function workSimilarity(
   type: WorkType,
-  target: DetailedWorkData | undefined,
-  candidate: DetailedWorkData | undefined,
+  target: WorkDataSummary | undefined,
+  candidate: WorkDataSummary | undefined,
 ): number {
   return clubTypeConfig(CLUB_TYPE_BY_WORK_TYPE[type]).similarity(
     target,

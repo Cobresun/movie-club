@@ -140,7 +140,7 @@
       <WorkDescription :key="movie.id" :overview="overview" />
     </section>
 
-    <CastList v-if="movieData" :actors="movieData.actors" class="mt-6" />
+    <CastList v-if="movieData" :actors="castActors" class="mt-6" />
 
     <!-- Details: factual metadata, external ratings and links -->
     <section v-if="hasDetails" class="mt-6">
@@ -325,6 +325,7 @@ import {
   useReviewsList,
   useReviewsListId,
   useUpdateAddedDate,
+  useWorkDetails,
 } from "@/service/useList";
 
 const props = defineProps<{
@@ -446,6 +447,16 @@ const reviewFact = computed(() =>
 
 const movieData = computed(() => asMovie(props.movie.original.externalData));
 const bookData = computed(() => asBook(props.movie.original.externalData));
+
+// The bulk reviews payload carries only summary metadata; the cast list is
+// fetched on demand when this drawer opens (cached per work for the session).
+const { data: workDetails } = useWorkDetails(
+  clubId,
+  computed(() => props.movie.original.id),
+);
+const castActors = computed(
+  () => asMovie(workDetails.value ?? undefined)?.actors,
+);
 // Drives book/movie wording in child components (e.g. the discussion-questions
 // "couldn't recognize this ___" message).
 const mediaNoun = computed(

@@ -38,6 +38,9 @@ function movieItem(
     externalData: {
       kind: "movie",
       actors: data.actors ?? [],
+      // The actor filter reads castNames (the bulk-payload field); derive it
+      // from the test's actor fixtures so filter tests exercise the real path.
+      castNames: data.castNames ?? (data.actors ?? []).map((a) => a.name),
       directors: [],
       genres: data.genres ?? [],
       production_companies: data.production_companies ?? [],

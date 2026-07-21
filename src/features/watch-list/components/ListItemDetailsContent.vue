@@ -39,7 +39,7 @@
       <WorkDescription :key="movie.id" :overview="overview" />
     </section>
 
-    <CastList :actors="movieData?.actors" class="mt-6" />
+    <CastList :actors="castActors" class="mt-6" />
 
     <!-- Details: factual metadata and availability -->
     <section v-if="movieData || bookData" class="mt-6">
@@ -153,6 +153,7 @@ import WatchProviders from "@/common/components/WatchProviders.vue";
 import WorkDescription from "@/common/components/WorkDescription.vue";
 import WorkPosterHero from "@/common/components/WorkPosterHero.vue";
 import { asBook, asMovie, workPosterUrl } from "@/common/workDisplay";
+import { useWorkDetails } from "@/service/useList";
 
 const props = defineProps<{
   movie: DetailedWorkListItem;
@@ -203,6 +204,16 @@ const formatDate = (dateString: string) => {
 
 const movieData = computed(() => asMovie(props.movie.externalData));
 const bookData = computed(() => asBook(props.movie.externalData));
+
+// Bulk list payloads carry only summary metadata; fetch the full cast on
+// demand when this drawer opens (skipped for optimistic temp rows).
+const { data: workDetails } = useWorkDetails(
+  props.clubSlug,
+  computed(() => props.movie.id),
+);
+const castActors = computed(
+  () => asMovie(workDetails.value ?? undefined)?.actors,
+);
 
 // Cover/poster and year are sourced per media type; workPosterUrl prefers the
 // movie's TMDB poster and falls back to the work's stored imageUrl (book cover).

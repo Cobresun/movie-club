@@ -1,6 +1,7 @@
+import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
 import { persistQueryClient } from "@tanstack/query-persist-client-core";
-import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
 import { VueQueryPlugin, VueQueryPluginOptions } from "@tanstack/vue-query";
+import { del, get, set } from "idb-keyval";
 import mdiVue from "mdi-vue/v3";
 import { createPinia } from "pinia";
 import { createApp, reactive, TransitionGroup } from "vue";
@@ -28,6 +29,14 @@ import MenuCard from "@/features/clubs/components/MenuCard.vue";
 import "./assets/styles/tailwind.css";
 import "vue-toastification/dist/index.css";
 
+// Tracks how many times each query has fetched during *this* page session.
+// It lives in memory and is empty on every load, which is the whole point:
+// combined with the persister below it gives stale-while-revalidate on a hard
+// refresh. The persister rehydrates cached data (instant paint), the empty map
+// forces a background revalidate on the first mount(s), and repeat navigation
+// within the session stays quiet. A fixed staleTime can't do this — it can't
+// tell "remounted during the session" from "reloaded the page" — so collaborative
+// data (scores, lists, awards, comments) would otherwise go stale across refreshes.
 const fetchedMap = reactive(new Map<string, number>());
 
 const vueQueryOptions: VueQueryPluginOptions = {
@@ -54,7 +63,16 @@ const vueQueryOptions: VueQueryPluginOptions = {
   clientPersister: (queryClient) => {
     return persistQueryClient({
       queryClient,
-      persister: createSyncStoragePersister({ storage: localStorage }),
+      // IndexedDB rather than localStorage: no ~5MB quota (which a large
+      // club's cached lists could exceed, silently disabling persistence)
+      // and no synchronous main-thread JSON serialization on every change.
+      persister: createAsyncStoragePersister({
+        storage: {
+          getItem: async (key: string) => (await get<string>(key)) ?? null,
+          setItem: (key: string, value: string) => set(key, value),
+          removeItem: (key: string) => del(key),
+        },
+      }),
       maxAge: 1000 * 60 * 60 * 24 * 7, // One week
       dehydrateOptions: {
         shouldDehydrateQuery: (query) => query.queryKey[0] !== "user",

@@ -8,7 +8,7 @@ import membersRouter from "./members";
 import joinRouter from "./members/join";
 import reviewsRouter from "./reviews";
 import settingsRouter from "./settings";
-import { ensure, hasValue } from "../../../lib/checks/checks.js";
+import { hasValue } from "../../../lib/checks/checks.js";
 import { ClubPreview } from "../../../lib/types/club";
 import { ClubType } from "../../../lib/types/generated/db.js";
 import ClubRepository from "../repositories/ClubRepository";
@@ -18,7 +18,8 @@ import UserRepository from "../repositories/UserRepository";
 import WorkRepository from "../repositories/WorkRepository";
 import { loggedIn, secured } from "../utils/auth";
 import { db } from "../utils/database";
-import { ok, badRequest } from "../utils/responses";
+import { getProvider } from "../utils/providers";
+import { ok, badRequest, notFound } from "../utils/responses";
 import { Router } from "../utils/router";
 import { validateSlug } from "../utils/slug";
 import { validClubSlug } from "../utils/validation";
@@ -30,19 +31,39 @@ router.use("/:clubSlug/members", validClubSlug, membersRouter);
 router.use("/:clubSlug/awards", validClubSlug, awardsRouter);
 router.use("/:clubSlug/invite", validClubSlug, inviteRouter);
 router.use("/:clubSlug/settings", validClubSlug, settingsRouter);
-router.get("/:clubSlug", validClubSlug, async ({ clubId }, res) => {
-  const club = ensure(await ClubRepository.getById(clubId));
+router.get("/:clubSlug", validClubSlug, (req, res) => {
+  // validClubSlug already fetched the club row; no second lookup needed.
   const result: ClubPreview = {
-    clubId: club.id,
-    clubName: club.name,
-    slug: club.slug,
-    slugUpdatedAt: club.slug_updated_at
-      ? String(club.slug_updated_at)
+    clubId: req.clubId,
+    clubName: req.clubName,
+    slug: req.clubSlug,
+    slugUpdatedAt: req.clubSlugUpdatedAt
+      ? String(req.clubSlugUpdatedAt)
       : undefined,
-    type: club.type,
+    type: req.clubType,
   };
-  return res(ok(JSON.stringify(result)));
+  return Promise.resolve(res(ok(JSON.stringify(result))));
 });
+
+// Full external metadata (including the cast list) for a single work. Bulk
+// list/review payloads carry only summaries; the detail drawer fetches this
+// on demand.
+router.get(
+  "/:clubSlug/work/:workId/details",
+  validClubSlug,
+  async ({ clubId, params }, res) => {
+    if (!hasValue(params.workId)) return res(notFound("Work not found"));
+    const work = await WorkRepository.getById(clubId, params.workId);
+    if (!work) return res(notFound("Work not found"));
+
+    const externalData = hasValue(work.external_id)
+      ? (await getProvider(work.type).getExternalData([work.external_id])).get(
+          work.external_id,
+        )
+      : undefined;
+    return res(ok(JSON.stringify(externalData ?? null)));
+  },
+);
 
 const clubNameUpdateSchema = z.object({
   name: z.string().min(1).max(100),
