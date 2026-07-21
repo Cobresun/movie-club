@@ -21,14 +21,6 @@
         </p>
         <p class="text-sm leading-snug text-gray-200">{{ fact.text }}</p>
       </div>
-      <button
-        type="button"
-        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-gray-400 transition hover:bg-primary/15 hover:text-primary"
-        aria-label="Share this review"
-        @click="emit('share')"
-      >
-        <mdicon name="share-variant" size="18" />
-      </button>
     </div>
   </div>
 </template>
@@ -37,6 +29,4 @@
 import type { ReviewFact } from "../reviewFacts";
 
 defineProps<{ fact: ReviewFact }>();
-
-const emit = defineEmits<{ (e: "share"): void }>();
 </script>

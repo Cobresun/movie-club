@@ -118,8 +118,7 @@
     </section>
 
     <!-- Spotlight fact: unlocks once every member has scored. Sits between the
-         verdict (scores) and the reference material (synopsis/details), with a
-         share shortcut since a completed review is the natural share moment.
+         verdict (scores) and the reference material (synopsis/details).
          Computed off the opening frame (see factReady), so it fades in after
          the drawer has painted. -->
     <Transition
@@ -130,7 +129,6 @@
         v-if="isDefined(reviewFact)"
         :fact="reviewFact"
         class="mt-4"
-        @share="shareReview(movie.original.id)"
       />
     </Transition>
 

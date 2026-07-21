@@ -87,12 +87,10 @@
                     </div>
                   </div>
 
-                  <!-- Same spotlight fact the club sees in the review drawer;
-                       the share button re-shares this page's own link. -->
+                  <!-- Same spotlight fact the club sees in the review drawer. -->
                   <ReviewFactCard
                     v-if="isDefined(reviewFact)"
                     :fact="reviewFact"
-                    @share="sharePage"
                   />
 
                   <div
@@ -159,7 +157,6 @@ import LoadingSpinner from "@/common/components/LoadingSpinner.vue";
 import SharedPageCtaBanner from "@/common/components/SharedPageCtaBanner.vue";
 import SharedPageHeader from "@/common/components/SharedPageHeader.vue";
 import VAvatar from "@/common/components/VAvatar.vue";
-import { useShare } from "@/common/composables/useShare";
 import { asMovie, workPosterUrl } from "@/common/workDisplay";
 import SharedReviewComments from "@/features/reviews/components/SharedReviewComments.vue";
 import { useClub } from "@/service/useClub";
@@ -181,17 +178,6 @@ const reviewFact = computed(() =>
     ? computeReviewFact(allReviews.value, workId)
     : undefined,
 );
-
-const { share } = useShare();
-const sharePage = () => {
-  const title = data.value?.work.title ?? "Review";
-  const clubName = data.value?.clubName ?? club.value?.clubName ?? "Movie Club";
-  void share({
-    url: `${window.location.origin}/share/club/${clubSlug}/review/${workId}`,
-    title: `${title} - ${clubName} Review`,
-    text: `${clubName}'s review of ${title}`,
-  });
-};
 
 const movieData = computed(() => asMovie(data.value?.work.externalData));
 const posterSrc = computed(
