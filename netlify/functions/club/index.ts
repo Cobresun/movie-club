@@ -102,10 +102,8 @@ router.post("/", loggedIn, async ({ event }, res) => {
   if (!body.success) return res(badRequest("Invalid body"));
   const { name, members, type } = body.data;
 
-  const legacyClubId = Math.floor(Math.random() * 100000);
-
   // Create Club
-  const newClub = await ClubRepository.insert(name, type, legacyClubId);
+  const newClub = await ClubRepository.insert(name, type);
 
   if (!newClub) {
     return res(badRequest("Failed to create club in database"));
