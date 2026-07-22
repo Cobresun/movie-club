@@ -113,6 +113,7 @@ export interface MovieActors {
   cast_order: Int8;
   character_name: string | null;
   external_id: string;
+  popularity: Numeric | null;
   profile_path: string | null;
   rowid: Generated<Int8>;
 }

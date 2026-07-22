@@ -122,6 +122,7 @@ export async function insertMovieDetails(
             character_name: c.character,
             cast_order: c.order,
             profile_path: c.profile_path,
+            popularity: c.popularity,
           })),
         )
         .onConflict((oc) => oc.columns(["external_id", "actor_id"]).doNothing())
@@ -217,6 +218,7 @@ export async function updateMovieDetails(
           character_name: c.character,
           cast_order: c.order,
           profile_path: c.profile_path,
+          popularity: c.popularity,
         })),
       )
       .execute();

@@ -19,6 +19,9 @@ export interface TMDBCastMember {
   character: string;
   order: number;
   profile_path: string | null;
+  /** The actor's current global TMDB popularity — a recognizability signal,
+   * independent of their billing position within this film. */
+  popularity: number;
 }
 
 export interface TMDBCrewMember {
@@ -81,6 +84,11 @@ export interface MovieDataSummary {
   /** Billed-order actor names only — enough for the `actor:` search filter.
    * Character names and profile photos ride the full shape. */
   castNames: string[];
+  /** Billed-order names of the *major* cast only — top-billed or a popularity
+   * star (see `lib/movie/majorCast.ts`). A pre-filtered subset of `castNames`
+   * so the review spotlight's "Familiar face" fact tracks recurring prominent
+   * actors, not incidental bit-parts, without shipping per-actor popularity. */
+  majorCastNames: string[];
   directors: { name: string; profilePath: string | null }[];
   genres: string[];
   production_companies: string[];

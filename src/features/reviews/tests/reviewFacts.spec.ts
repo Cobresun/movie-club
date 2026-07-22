@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { isDefined } from "../../../../lib/checks/checks";
+import { isMajorCastMember } from "../../../../lib/movie/majorCast";
 import { DetailedBookData } from "../../../../lib/types/book";
 import { WorkType } from "../../../../lib/types/generated/db";
 import { DetailedReviewListItem, DetailedWorkData, Review } from "../../../../lib/types/lists";
@@ -13,7 +14,9 @@ const MEMBER_B = "member-b";
 function movieData(
   opts: {
     directors?: string[];
-    actors?: string[];
+    // An actor is either a plain name or, to exercise the popularity path, a
+    // { name, popularity } pair. Billing order = array order.
+    actors?: (string | { name: string; popularity?: number })[];
     genres?: string[];
     countries?: string[];
     voteAverage?: number;
@@ -21,10 +24,16 @@ function movieData(
     releaseDate?: string;
   } = {},
 ): DetailedMovieData {
-  const actorNames = opts.actors ?? [];
+  const cast = (opts.actors ?? []).map((actor) =>
+    typeof actor === "string" ? { name: actor, popularity: undefined } : actor,
+  );
+  const actorNames = cast.map((c) => c.name);
   return {
     kind: "movie",
     castNames: actorNames,
+    // Mirror the server's major-cast filtering (lib/movie/majorCast) so
+    // reviewFacts sees the same pre-filtered shape it does in production.
+    majorCastNames: cast.filter((c, i) => isMajorCastMember(i, c.popularity)).map((c) => c.name),
     actors: actorNames.map((name) => ({
       name,
       character: null,
@@ -271,6 +280,70 @@ describe("computeReviewFact", () => {
     expect(fact?.kind).toBe("actorMilestone");
     expect(fact?.text).toContain("5th movie");
     expect(fact?.text).toContain("Tom Hanks");
+  });
+
+  it("ignores a bit-part actor buried deep in the cast", () => {
+    // Five distinct top-billed actors ahead of Hanks (with no popularity) push
+    // him out of the major cast, so his fifth appearance shouldn't surface a
+    // "familiar face" milestone. The leads differ per movie so none recur.
+    const withMinorHanks = (id: string, date: string, score: number) =>
+      work(
+        id,
+        date,
+        { [MEMBER_A]: score, [MEMBER_B]: score + 1 },
+        {
+          externalData: movieData({
+            actors: [`${id}-1`, `${id}-2`, `${id}-3`, `${id}-4`, `${id}-5`, "Tom Hanks"],
+          }),
+        },
+      );
+    const reviews = [
+      withMinorHanks("h-1", "2024-01-10T12:00:00.000Z", 3),
+      withMinorHanks("h-2", "2024-05-10T12:00:00.000Z", 8),
+      withMinorHanks("h-3", "2024-09-10T12:00:00.000Z", 5),
+      withMinorHanks("h-4", "2025-01-10T12:00:00.000Z", 6),
+      withMinorHanks("t", "2025-06-10T12:00:00.000Z", 5),
+    ];
+
+    const fact = computeReviewFact(reviews, "t");
+    expect(fact?.kind).not.toBe("actorMilestone");
+  });
+
+  it("counts a recognizable star billed just outside the top-billed slice", () => {
+    // A big ensemble bills five leads ahead of Holland, so billing alone would
+    // drop him — but his high popularity keeps him in the major cast, so his
+    // fifth appearance still surfaces a "familiar face" milestone. Uses a
+    // realistic popularity (~13, his measured TMDB value in Civil War).
+    const withStarHolland = (id: string, date: string, score: number) =>
+      work(
+        id,
+        date,
+        { [MEMBER_A]: score, [MEMBER_B]: score + 1 },
+        {
+          externalData: movieData({
+            actors: [
+              `${id}-1`,
+              `${id}-2`,
+              `${id}-3`,
+              `${id}-4`,
+              `${id}-5`,
+              { name: "Tom Holland", popularity: 13 },
+            ],
+          }),
+        },
+      );
+    const reviews = [
+      withStarHolland("h-1", "2024-01-10T12:00:00.000Z", 3),
+      withStarHolland("h-2", "2024-05-10T12:00:00.000Z", 8),
+      withStarHolland("h-3", "2024-09-10T12:00:00.000Z", 5),
+      withStarHolland("h-4", "2025-01-10T12:00:00.000Z", 6),
+      withStarHolland("t", "2025-06-10T12:00:00.000Z", 5),
+    ];
+
+    const fact = computeReviewFact(reviews, "t");
+    expect(fact?.kind).toBe("actorMilestone");
+    expect(fact?.text).toContain("5th movie");
+    expect(fact?.text).toContain("Tom Holland");
   });
 
   it("notices the club's first movie in a genre", () => {

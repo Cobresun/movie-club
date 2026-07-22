@@ -2,6 +2,7 @@ import { sql } from "kysely";
 import { jsonBuildObject } from "kysely/helpers/postgres";
 
 import { isDefined, hasValue } from "../../../../lib/checks/checks.js";
+import { MAJOR_CAST_SIZE, STAR_POPULARITY } from "../../../../lib/movie/majorCast.js";
 import { WorkType } from "../../../../lib/types/generated/db";
 import { DetailedWorkData, WorkDataSummary } from "../../../../lib/types/lists";
 import { MovieCastMember, MovieDataSummary } from "../../../../lib/types/movie";
@@ -64,6 +65,13 @@ function summaryQuery(externalIds: string[]) {
         .select([
           "external_id",
           sql<string[]>`array_agg(actor_name ORDER BY cast_order)`.as("cast_names"),
+          // Major cast only (top-billed OR a popularity star), filtered in the
+          // DB so the payload still ships names only — see lib/movie/majorCast.
+          sql<
+            string[]
+          >`array_agg(actor_name ORDER BY cast_order) FILTER (WHERE cast_order < ${MAJOR_CAST_SIZE} OR popularity >= ${STAR_POPULARITY})`.as(
+            "major_cast_names",
+          ),
         ])
         .groupBy("external_id"),
     )
@@ -97,6 +105,7 @@ function summaryQuery(externalIds: string[]) {
       "countries_agg.production_countries",
       "directors_agg.directors",
       "cast_names_agg.cast_names",
+      "cast_names_agg.major_cast_names",
     ]);
 }
 
@@ -111,6 +120,7 @@ function toMovieDataSummary(row: MovieSummaryRow): MovieDataSummary {
   return {
     kind: "movie",
     castNames: row.cast_names?.filter(Boolean) ?? [],
+    majorCastNames: row.major_cast_names?.filter(Boolean) ?? [],
     directors: row.directors?.filter(isDefined) ?? [],
     genres: row.genres?.filter(Boolean) ?? [],
     production_companies: row.production_companies?.filter(Boolean) ?? [],
