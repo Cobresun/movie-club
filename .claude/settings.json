@@ -6,8 +6,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "f=$(jq -r '.tool_input.file_path // empty'); if [ -n \"$f\" ]; then npx prettier --write --ignore-unknown \"$f\"; fi",
-            "timeout": 15000
+            "command": "f=$(jq -r '.tool_input.file_path // empty'); if [ -n \"$f\" ]; then npx oxfmt \"$f\" || true; fi",
+            "timeout": 15
           }
         ]
       }
@@ -17,8 +17,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "npm run type-check && files=$(git diff --name-only --diff-filter=d HEAD | grep -E '\\.(vue|ts|mjs|cjs|js)$' || true); if [ -n \"$files\" ]; then echo \"$files\" | xargs npx eslint --max-warnings 0; fi",
-            "timeout": 60000
+            "command": "npm run type-check && files=$(git diff --name-only --diff-filter=d HEAD | grep -E '\\.(vue|ts|mjs|cjs|js)$' || true); if [ -n \"$files\" ]; then echo \"$files\" | xargs npx oxlint --deny-warnings; fi",
+            "timeout": 60
           }
         ]
       }
