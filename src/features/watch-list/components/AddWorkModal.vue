@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import { useToast } from "vue-toastification";
 
 import { isDefined } from "../../../../lib/checks/checks";
 import { ClubType } from "../../../../lib/types/generated/db";
@@ -24,6 +25,7 @@ const clubType = computed(() => club.value?.type ?? ClubType.movie);
 const isMovieClub = computed(() => clubType.value === ClubType.movie);
 
 const { mutate } = useAddListItem(clubSlug, listId);
+const toast = useToast();
 
 // -- Movie clubs: TMDB collections (paginated) --
 const movieTabs: { key: TMDBCollection; label: string }[] = [
@@ -74,12 +76,18 @@ const defaultListTitle = computed(() =>
 );
 
 const onSelectWork = (work: WorkSearchResult) => {
-  mutate({
-    type: workTypeForClub(clubType.value),
-    title: work.title,
-    externalId: work.externalId,
-    imageUrl: work.imageUrl,
-  });
+  mutate(
+    {
+      type: workTypeForClub(clubType.value),
+      title: work.title,
+      externalId: work.externalId,
+      imageUrl: work.imageUrl,
+    },
+    {
+      onSuccess: () => toast.success(`Added "${work.title}" to the list`),
+      onError: () => toast.error(`Failed to add "${work.title}". Please try again.`),
+    },
+  );
   emit("close");
 };
 </script>
