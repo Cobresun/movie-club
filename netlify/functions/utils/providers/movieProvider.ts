@@ -2,10 +2,7 @@ import { sql, SqlBool } from "kysely";
 import { jsonBuildObject } from "kysely/helpers/postgres";
 
 import { isDefined, hasValue } from "../../../../lib/checks/checks.js";
-import {
-  MAJOR_CAST_SIZE,
-  STAR_POPULARITY,
-} from "../../../../lib/movie/majorCast.js";
+import { MAJOR_CAST_SIZE, STAR_POPULARITY } from "../../../../lib/movie/majorCast.js";
 import { WorkType } from "../../../../lib/types/generated/db";
 import { DetailedWorkData, WorkDataSummary } from "../../../../lib/types/lists";
 import { MovieCastMember, MovieDataSummary } from "../../../../lib/types/movie";
@@ -25,10 +22,7 @@ function summaryQuery(externalIds: string[]) {
     .with("genres_agg", (qb) =>
       qb
         .selectFrom("movie_genres")
-        .select([
-          "external_id",
-          db.fn.agg<string[]>("array_agg", ["genre_name"]).as("genres"),
-        ])
+        .select(["external_id", db.fn.agg<string[]>("array_agg", ["genre_name"]).as("genres")])
         .groupBy("external_id"),
     )
     .with("companies_agg", (qb) =>
@@ -36,9 +30,7 @@ function summaryQuery(externalIds: string[]) {
         .selectFrom("movie_production_companies")
         .select([
           "external_id",
-          db.fn
-            .agg<string[]>("array_agg", ["company_name"])
-            .as("production_companies"),
+          db.fn.agg<string[]>("array_agg", ["company_name"]).as("production_companies"),
         ])
         .groupBy("external_id"),
     )
@@ -47,9 +39,7 @@ function summaryQuery(externalIds: string[]) {
         .selectFrom("movie_production_countries")
         .select([
           "external_id",
-          db.fn
-            .agg<string[]>("array_agg", ["country_name"])
-            .as("production_countries"),
+          db.fn.agg<string[]>("array_agg", ["country_name"]).as("production_countries"),
         ])
         .groupBy("external_id"),
     )
@@ -74,10 +64,7 @@ function summaryQuery(externalIds: string[]) {
         .selectFrom("movie_actors")
         .select((eb) => [
           "external_id",
-          eb.fn
-            .agg<string[]>("array_agg", ["actor_name"])
-            .orderBy("cast_order")
-            .as("cast_names"),
+          eb.fn.agg<string[]>("array_agg", ["actor_name"]).orderBy("cast_order").as("cast_names"),
           // Major cast only (top-billed OR a popularity star), filtered in the
           // DB so the payload still ships names only — see lib/movie/majorCast.
           eb.fn
@@ -98,31 +85,11 @@ function summaryQuery(externalIds: string[]) {
     )
     .selectFrom("movie_details")
     .where("movie_details.external_id", "in", externalIds)
-    .leftJoin(
-      "genres_agg",
-      "genres_agg.external_id",
-      "movie_details.external_id",
-    )
-    .leftJoin(
-      "companies_agg",
-      "companies_agg.external_id",
-      "movie_details.external_id",
-    )
-    .leftJoin(
-      "countries_agg",
-      "countries_agg.external_id",
-      "movie_details.external_id",
-    )
-    .leftJoin(
-      "directors_agg",
-      "directors_agg.external_id",
-      "movie_details.external_id",
-    )
-    .leftJoin(
-      "cast_names_agg",
-      "cast_names_agg.external_id",
-      "movie_details.external_id",
-    )
+    .leftJoin("genres_agg", "genres_agg.external_id", "movie_details.external_id")
+    .leftJoin("companies_agg", "companies_agg.external_id", "movie_details.external_id")
+    .leftJoin("countries_agg", "countries_agg.external_id", "movie_details.external_id")
+    .leftJoin("directors_agg", "directors_agg.external_id", "movie_details.external_id")
+    .leftJoin("cast_names_agg", "cast_names_agg.external_id", "movie_details.external_id")
     .select([
       "movie_details.external_id",
       "movie_details.tmdb_score",
@@ -150,9 +117,7 @@ function summaryQuery(externalIds: string[]) {
     ]);
 }
 
-type MovieSummaryRow = Awaited<
-  ReturnType<ReturnType<typeof summaryQuery>["execute"]>
->[number];
+type MovieSummaryRow = Awaited<ReturnType<ReturnType<typeof summaryQuery>["execute"]>>[number];
 
 /** Coerce a nullable Int8/decimal column (string | null) to number | undefined. */
 function num(value: string | null): number | undefined {
@@ -205,9 +170,7 @@ class MovieProvider implements MediaProvider {
     await insertMovieDetails(externalId, data, db);
   }
 
-  async getExternalData(
-    externalIds: string[],
-  ): Promise<Map<string, DetailedWorkData>> {
+  async getExternalData(externalIds: string[]): Promise<Map<string, DetailedWorkData>> {
     const map = new Map<string, DetailedWorkData>();
     if (externalIds.length === 0) return map;
 
@@ -225,9 +188,7 @@ class MovieProvider implements MediaProvider {
     return map;
   }
 
-  async getExternalDataSummary(
-    externalIds: string[],
-  ): Promise<Map<string, WorkDataSummary>> {
+  async getExternalDataSummary(externalIds: string[]): Promise<Map<string, WorkDataSummary>> {
     const map = new Map<string, WorkDataSummary>();
     if (externalIds.length === 0) return map;
 
@@ -240,9 +201,7 @@ class MovieProvider implements MediaProvider {
     return map;
   }
 
-  async getCast(
-    externalIds: string[],
-  ): Promise<Map<string, MovieCastMember[]>> {
+  async getCast(externalIds: string[]): Promise<Map<string, MovieCastMember[]>> {
     const map = new Map<string, MovieCastMember[]>();
     if (externalIds.length === 0) return map;
 
@@ -265,10 +224,7 @@ class MovieProvider implements MediaProvider {
     return map;
   }
 
-  async getDiscussionPrompt(work: {
-    title: string;
-    externalId: string | null;
-  }): Promise<string> {
+  async getDiscussionPrompt(work: { title: string; externalId: string | null }): Promise<string> {
     let releaseYear: string | undefined;
     if (hasValue(work.externalId)) {
       const details = await db
@@ -278,9 +234,7 @@ class MovieProvider implements MediaProvider {
         .executeTakeFirst();
       releaseYear = details?.release_date?.getFullYear().toString();
     }
-    const label = hasValue(releaseYear)
-      ? `${work.title} (${releaseYear})`
-      : work.title;
+    const label = hasValue(releaseYear) ? `${work.title} (${releaseYear})` : work.title;
     return `Generate 3 to 5 discussion prompts for a movie club rewatching "${label}". Every prompt must be specific to THIS film — naming its actual characters, scenes, lines, or moments — never a generic question that could apply to any movie.
 
 Order the prompts by depth: the first should be casual and easy to answer — a low-stakes entry point. Each subsequent prompt should be more thought-provoking than the last, with the final one being substantial — a real book-club-worthy question, adapted for film.
@@ -303,9 +257,7 @@ If you do not recognize this film or cannot confirm it is a real movie, return 0
       result.processed++;
       try {
         const { data } = await getTMDBMovieData(parseInt(external_id));
-        await db
-          .transaction()
-          .execute((trx) => updateMovieDetails(external_id, data, trx));
+        await db.transaction().execute((trx) => updateMovieDetails(external_id, data, trx));
         result.updated++;
       } catch (error) {
         result.errors.push({

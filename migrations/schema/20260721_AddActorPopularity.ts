@@ -51,19 +51,13 @@ export async function up(db: Kysely<unknown>) {
   // for idempotent re-runs (CockroachDB has no transactional DDL, so a mid-run
   // failure leaves the column behind). Keep this one step as raw DDL; the data
   // queries below run through a typed handle.
-  await sql`ALTER TABLE movie_actors ADD COLUMN IF NOT EXISTS popularity NUMERIC`.execute(
-    db,
-  );
+  await sql`ALTER TABLE movie_actors ADD COLUMN IF NOT EXISTS popularity NUMERIC`.execute(db);
 
   const typedDb = db.withTables<MigrationTables>();
 
   const movies = await typedDb
     .selectFrom("movie_details")
-    .innerJoin(
-      "movie_actors",
-      "movie_actors.external_id",
-      "movie_details.external_id",
-    )
+    .innerJoin("movie_actors", "movie_actors.external_id", "movie_details.external_id")
     .where("movie_actors.popularity", "is", null)
     .select(["movie_details.external_id", "movie_details.title"])
     .distinct()
@@ -95,9 +89,7 @@ export async function up(db: Kysely<unknown>) {
     for (const result of results) {
       if (result.status === "rejected") {
         const message =
-          result.reason instanceof Error
-            ? result.reason.message
-            : String(result.reason);
+          result.reason instanceof Error ? result.reason.message : String(result.reason);
         console.error(`Error fetching credits: ${message}`);
         errors++;
         continue;
@@ -137,9 +129,7 @@ export async function up(db: Kysely<unknown>) {
       await new Promise((resolve) => setTimeout(resolve, BATCH_DELAY_MS));
     }
 
-    console.log(
-      `Progress: ${Math.min(i + BATCH_SIZE, movies.length)}/${movies.length}`,
-    );
+    console.log(`Progress: ${Math.min(i + BATCH_SIZE, movies.length)}/${movies.length}`);
   }
 
   console.log("\n=== Backfill Summary ===");
@@ -149,7 +139,5 @@ export async function up(db: Kysely<unknown>) {
 }
 
 export async function down(db: Kysely<unknown>) {
-  await sql`ALTER TABLE movie_actors DROP COLUMN IF EXISTS popularity`.execute(
-    db,
-  );
+  await sql`ALTER TABLE movie_actors DROP COLUMN IF EXISTS popularity`.execute(db);
 }
