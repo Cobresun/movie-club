@@ -114,11 +114,7 @@
       enter-active-class="transition duration-slow ease-standard"
       enter-from-class="-translate-y-1 opacity-0"
     >
-      <ReviewFactCard
-        v-if="isDefined(reviewFact)"
-        :fact="reviewFact"
-        class="mt-4"
-      />
+      <ReviewFactCard v-if="isDefined(reviewFact)" :fact="reviewFact" class="mt-4" />
     </Transition>
 
     <!-- Synopsis -->

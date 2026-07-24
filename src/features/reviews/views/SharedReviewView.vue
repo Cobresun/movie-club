@@ -76,10 +76,7 @@
                   </div>
 
                   <!-- Same spotlight fact the club sees in the review drawer. -->
-                  <ReviewFactCard
-                    v-if="isDefined(reviewFact)"
-                    :fact="reviewFact"
-                  />
+                  <ReviewFactCard v-if="isDefined(reviewFact)" :fact="reviewFact" />
 
                   <div
                     v-for="member in data.members"
