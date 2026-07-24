@@ -4,7 +4,11 @@ import { isDefined } from "../../../../lib/checks/checks";
 import { isMajorCastMember } from "../../../../lib/movie/majorCast";
 import { DetailedBookData } from "../../../../lib/types/book";
 import { WorkType } from "../../../../lib/types/generated/db";
-import { DetailedReviewListItem, DetailedWorkData, Review } from "../../../../lib/types/lists";
+import {
+  DetailedReviewListItem,
+  DetailedWorkData,
+  Review,
+} from "../../../../lib/types/lists";
 import { DetailedMovieData } from "../../../../lib/types/movie";
 import { computeReviewFact } from "../reviewFacts";
 
@@ -14,9 +18,9 @@ const MEMBER_B = "member-b";
 function movieData(
   opts: {
     directors?: string[];
-    // An actor is either a plain name or, to exercise the popularity path, a
-    // { name, popularity } pair. Billing order = array order.
-    actors?: (string | { name: string; popularity?: number })[];
+    // Billing order = array order. `popularity` is optional and only set when a
+    // test needs to exercise the star path in lib/movie/majorCast.
+    actors?: { name: string; popularity?: number }[];
     genres?: string[];
     countries?: string[];
     voteAverage?: number;
@@ -24,16 +28,16 @@ function movieData(
     releaseDate?: string;
   } = {},
 ): DetailedMovieData {
-  const cast = (opts.actors ?? []).map((actor) =>
-    typeof actor === "string" ? { name: actor, popularity: undefined } : actor,
-  );
+  const cast = opts.actors ?? [];
   const actorNames = cast.map((c) => c.name);
   return {
     kind: "movie",
     castNames: actorNames,
     // Mirror the server's major-cast filtering (lib/movie/majorCast) so
     // reviewFacts sees the same pre-filtered shape it does in production.
-    majorCastNames: cast.filter((c, i) => isMajorCastMember(i, c.popularity)).map((c) => c.name),
+    majorCastNames: cast
+      .filter((c, i) => isMajorCastMember(i, c.popularity))
+      .map((c) => c.name),
     actors: actorNames.map((name) => ({
       name,
       character: null,
@@ -264,7 +268,7 @@ describe("computeReviewFact", () => {
         id,
         date,
         { [MEMBER_A]: score, [MEMBER_B]: score + 1 },
-        { externalData: movieData({ actors: ["Tom Hanks"] }) },
+        { externalData: movieData({ actors: [{ name: "Tom Hanks" }] }) },
       );
     // Four prior Hanks movies across two years (so no year record), target is
     // the 5th. Distinct scores avoid records; 5th position isn't a milestone.
@@ -293,7 +297,14 @@ describe("computeReviewFact", () => {
         { [MEMBER_A]: score, [MEMBER_B]: score + 1 },
         {
           externalData: movieData({
-            actors: [`${id}-1`, `${id}-2`, `${id}-3`, `${id}-4`, `${id}-5`, "Tom Hanks"],
+            actors: [
+              { name: `${id}-1` },
+              { name: `${id}-2` },
+              { name: `${id}-3` },
+              { name: `${id}-4` },
+              { name: `${id}-5` },
+              { name: "Tom Hanks" },
+            ],
           }),
         },
       );
@@ -322,11 +333,11 @@ describe("computeReviewFact", () => {
         {
           externalData: movieData({
             actors: [
-              `${id}-1`,
-              `${id}-2`,
-              `${id}-3`,
-              `${id}-4`,
-              `${id}-5`,
+              { name: `${id}-1` },
+              { name: `${id}-2` },
+              { name: `${id}-3` },
+              { name: `${id}-4` },
+              { name: `${id}-5` },
               { name: "Tom Holland", popularity: 13 },
             ],
           }),
@@ -416,7 +427,10 @@ describe("computeReviewFact", () => {
       { [MEMBER_A]: 6, [MEMBER_B]: 6 },
       { externalData: movieData({ releaseDate: "1954-03-15" }) },
     );
-    const reviews = [...filler(11, { movie: { releaseDate: "1990-05-01" } }), target];
+    const reviews = [
+      ...filler(11, { movie: { releaseDate: "1990-05-01" } }),
+      target,
+    ];
 
     const fact = computeReviewFact(reviews, "t");
     expect(fact?.kind).toBe("timeTravel");
@@ -431,7 +445,10 @@ describe("computeReviewFact", () => {
       { [MEMBER_A]: 6, [MEMBER_B]: 6 },
       { externalData: movieData({ countries: ["South Korea"] }) },
     );
-    const reviews = [...filler(11, { movie: { countries: ["United States of America"] } }), target];
+    const reviews = [
+      ...filler(11, { movie: { countries: ["United States of America"] } }),
+      target,
+    ];
 
     const fact = computeReviewFact(reviews, "t");
     expect(fact?.kind).toBe("countryFirst");
@@ -447,7 +464,10 @@ describe("computeReviewFact", () => {
       { [MEMBER_A]: 6, [MEMBER_B]: 6 },
       { externalData: movieData({ releaseDate: "1975-06-20" }) },
     );
-    const reviews = [...filler(11, { movie: { releaseDate: "1965-01-01" } }), target];
+    const reviews = [
+      ...filler(11, { movie: { releaseDate: "1965-01-01" } }),
+      target,
+    ];
 
     const fact = computeReviewFact(reviews, "t");
     expect(fact?.kind).toBe("decadeFirst");
@@ -496,7 +516,10 @@ describe("computeReviewFact", () => {
         externalData: bookData({ firstPublishYear: 1847 }),
       },
     );
-    const reviews = [...filler(11, { book: { firstPublishYear: 1990 } }), target];
+    const reviews = [
+      ...filler(11, { book: { firstPublishYear: 1990 } }),
+      target,
+    ];
 
     const fact = computeReviewFact(reviews, "t");
     expect(fact?.kind).toBe("timeTravel");
