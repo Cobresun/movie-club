@@ -25,40 +25,12 @@ Runs the full application including Netlify functions with hot-reload. This is t
 - Use the `cobresunofficial@gmail.com` account for development
 - The `.env` file for development is documented in the Cobresun Notion
 
-### Building and Testing
-
-```bash
-npm run build          # Migrate, type-check, lint, test, then build for production
-npm run type-check     # Run TypeScript type checking without emitting files
-npm run lint           # Lint src, migrations, netlify/functions, lib, and scripts directories
-npm test               # Run tests once
-npm run test:watch     # Run tests in watch mode
-npm run coverage       # Run tests with coverage report
-```
-
 ### Database Migrations
 
-**Schema Migrations:**
+Build, test, lint, and migration scripts are all in `package.json`. Two things that aren't obvious from the script names:
 
-```bash
-npm run migrate:dev    # Apply schema migrations for development (uses .env file)
-npm run migrate:down   # Revert last schema migration (development only)
-npm run migrate        # Apply schema migrations for deployment (no .env file)
-```
-
-**Data Migrations:**
-
-```bash
-npm run migrate:data -- <YourDataMigration>  # Run specific data migration
-```
-
-**Code Generation:**
-
-```bash
-npm run codegen        # Generate TypeScript types from database schema using kysely-codegen
-```
-
-Migration files are located in `migrations/schema/` and must follow the naming convention: `<dateISO>_<yourchanges>` (e.g., `20240201_AddClubTable.ts`).
+- Data migrations take the migration name as an argument: `npm run migrate:data -- <YourDataMigration>`
+- Migration files live in `migrations/schema/` and must follow the naming convention `<dateISO>_<yourchanges>` (e.g. `20240201_AddClubTable.ts`)
 
 ### Database Management
 
@@ -82,32 +54,6 @@ Snapshots are stored in `s3://movie-club-crdb-dev-exports`. The spawn command cr
 - **Type guards:** Always use utilities from `lib/checks/checks.ts` (`hasValue`, `isDefined`, `hasElements`, `ensure`) instead of manual null/undefined checks. See `.claude/rules/code-quality.md` for details.
 - **No `as` casts:** Never use `as` type casting in tests or production code.
 - **No `watch()`:** Prefer keyed components over `watch()` for query data. See `.claude/rules/code-quality.md` for rationale and exceptions.
-
-## Common Patterns
-
-### Adding a New API Endpoint
-
-1. Create handler in appropriate `netlify/functions/` directory
-2. Use the custom Router class for routing
-3. Add middleware for validation (`validClubSlug`, `validListId` for list-scoped routes) and auth (`loggedIn`, `secured`)
-4. Use Zod schemas for request body validation
-5. Use Kysely with generated types for database queries
-6. Return responses using utility functions from `utils/responses.ts`
-
-### Adding a Database Table
-
-1. Create migration in `migrations/schema/` with ISO date prefix (YYYYMMDD)
-2. Run `npm run migrate:dev` to apply migration
-3. Run `npm run codegen` to regenerate TypeScript types
-4. Create repository class in `netlify/functions/repositories/` for data access
-
-### Adding a Frontend Feature
-
-1. Create feature directory in `src/features/<feature-name>/`
-2. Add views to `views/` subdirectory
-3. Create service composable in `src/service/use<Feature>.ts` for API calls
-4. Add routes in `src/router/index.ts` with appropriate `depth` meta
-5. Apply `beforeEnter: checkClubAccess` guard for club-scoped routes
 
 ## External Services
 

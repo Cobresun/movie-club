@@ -69,3 +69,9 @@ npm run db:cleanup arbitrary_lists
 - **Cannot drop an enum while a column still references it.** Drop the column first, then `DROP TYPE`.
 - **Embedded data backfills inside schema migrations** (like `20260315_AddPersonProfilePaths.ts`) require their full env (e.g. `TMDB_API_KEY`). Migrations aren't pure schema in this repo.
 
+## Adding a Database Table
+
+1. Create migration in `migrations/schema/` with ISO date prefix (YYYYMMDD)
+2. Run `npm run migrate:dev` to apply migration
+3. Run `npm run codegen` to regenerate TypeScript types
+4. Create repository class in `netlify/functions/repositories/` for data access

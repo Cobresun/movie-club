@@ -126,3 +126,12 @@ Backend uses `loggedIn` (any authenticated user) and `secured` (authenticated + 
 - `netlify/functions/og-image.ts` - Open Graph image generation
 - `netlify/functions/services/SharedReviewService.ts` - Shared review data service
 - `lib/types/*.ts` - Shared type definitions (club, movie, reviews, awards, lists, common, watchlist, etc.)
+
+## Adding a New API Endpoint
+
+1. Create handler in appropriate `netlify/functions/` directory
+2. Use the custom Router class for routing
+3. Add middleware for validation (`validClubSlug`, `validListId` for list-scoped routes) and auth (`loggedIn`, `secured`)
+4. Use Zod schemas for request body validation
+5. Use Kysely with generated types for database queries
+6. Return responses using utility functions from `utils/responses.ts`

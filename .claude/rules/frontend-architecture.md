@@ -101,3 +101,11 @@ Auth store (Pinia) manages user state via `authClient.useSession()`. Router guar
 - `src/router/index.ts` - Route definitions and navigation guards
 - `vite.config.ts` - Vite and Vitest configuration
 - `tailwind.config.cjs` - Tailwind CSS configuration
+
+## Adding a Frontend Feature
+
+1. Create feature directory in `src/features/<feature-name>/`
+2. Add views to `views/` subdirectory
+3. Create service composable in `src/service/use<Feature>.ts` for API calls
+4. Add routes in `src/router/index.ts` with appropriate `depth` meta
+5. Apply `beforeEnter: checkClubAccess` guard for club-scoped routes

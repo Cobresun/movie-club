@@ -1,10 +1,19 @@
+---
+paths:
+  - "src/**"
+  - "netlify/**"
+  - "lib/**"
+  - "migrations/**"
+  - "scripts/**"
+---
+
 # Code Quality Rules
 
 ## Type Guards and Utility Functions
 
 **Location:** `lib/checks/checks.ts`
 
-Always use these utilities instead of manual null/undefined checks. They maintain consistency and satisfy ESLint's `@typescript-eslint/strict-boolean-expressions` rule.
+Always use these utilities instead of manual null/undefined checks. They maintain consistency and satisfy oxlint's `typescript/strict-boolean-expressions` rule.
 
 ```typescript
 // PREFERRED: Check if string has value (not null/undefined/empty)
@@ -36,23 +45,6 @@ if (typeof myString === "string" && myString.length > 0) {}
 - `isDefined()` for **object/number/boolean checks**
 - `hasElements()` for **array checks**
 - `ensure()` when you want to **throw on null/undefined** (guard clauses)
-
-## Import Order
-
-`eslint-plugin-import` is configured in `eslint.config.mjs` with two declared groups (`builtin+external` and `internal+parent+sibling+index`), but because no path resolver is wired up, `@/*` alias imports are not classified as `internal` and end up in their own de-facto third group. In practice, `<script setup>` imports should form three blocks separated by single blank lines, alphabetized case-insensitively within each:
-
-```ts
-import { computed, shallowRef } from "vue";            // 1. external
-
-import { hasElements } from "../../../../lib/checks/checks";  // 2. relative parent/sibling
-import AddMovieModal from "../components/AddMovieModal.vue";
-import ListItems from "../components/ListItems.vue";
-
-import { useClubSlug } from "@/service/useClub";       // 3. @/ alias
-import { useClubLists } from "@/service/useList";
-```
-
-Blank lines within a group trigger `no empty line within import group`; missing blank lines between groups trigger `at least one empty line between import groups`. When adding a new import, slot it into the correct block in alphabetical position — do not append to the end. `npx eslint <file> --fix` handles this mechanically.
 
 ## Avoid `as` Type Casting
 
