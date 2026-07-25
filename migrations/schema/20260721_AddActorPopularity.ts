@@ -1,6 +1,8 @@
 import axios from "axios";
 import { Kysely, sql } from "kysely";
 
+import { hasElements } from "../../lib/checks/checks";
+
 interface TMDBCastMember {
   id: number;
   order: number;
@@ -80,11 +82,8 @@ export async function up(db: Kysely<unknown>) {
       ),
     );
 
-    const actorUpdates: {
-      externalId: string;
-      actorId: number;
-      popularity: number;
-    }[] = [];
+    // Grouped by movie so each movie costs one UPDATE, not one per cast member.
+    const actorUpdates = new Map<string, { actorId: number; popularity: number }[]>();
 
     for (const result of results) {
       if (result.status === "rejected") {
@@ -97,31 +96,47 @@ export async function up(db: Kysely<unknown>) {
 
       const { movie, credits } = result.value;
 
-      for (const castMember of credits.cast) {
-        actorUpdates.push({
-          externalId: movie.external_id,
-          actorId: castMember.id,
-          popularity: castMember.popularity,
-        });
+      // An empty cast would render an invalid `CASE actor_id END` / `IN ()`, so
+      // only movies with credits get an entry.
+      if (hasElements(credits.cast)) {
+        actorUpdates.set(
+          movie.external_id,
+          credits.cast.map((castMember) => ({
+            actorId: castMember.id,
+            popularity: castMember.popularity,
+          })),
+        );
       }
 
       processed++;
       console.log(`Processed: ${movie.title ?? movie.external_id}`);
     }
 
-    // Type-safe per-row updates. Kysely can't express a bulk UPDATE ... FROM
-    // (VALUES ...) with typed identifiers, so we issue one typed update per
-    // actor and let the pg pool bound real concurrency. This is a one-time
-    // backfill, so the extra round trips are acceptable.
+    // One typed UPDATE per movie, with the per-actor values as a CASE over
+    // actor_id (the same bulk-positional-update shape as work_list_item's
+    // position rewrite). Kysely can't express UPDATE ... FROM (VALUES ...) with
+    // typed identifiers, and issuing one statement per cast member instead cost
+    // thousands of round trips per batch — enough to blow the Netlify build
+    // time limit. Grouping keeps the identifiers schema-checked while holding
+    // the statement count at one per movie.
     await Promise.all(
-      actorUpdates.map((u) =>
-        typedDb
+      [...actorUpdates].map(([externalId, actors]) => {
+        const whenClauses = actors.map(
+          (a) => sql`WHEN ${a.actorId}::INT8 THEN ${a.popularity}::NUMERIC`,
+        );
+        return typedDb
           .updateTable("movie_actors")
-          .set({ popularity: u.popularity })
-          .where("external_id", "=", u.externalId)
-          .where("actor_id", "=", u.actorId)
-          .execute(),
-      ),
+          .set({
+            popularity: sql<number>`CASE actor_id ${sql.join(whenClauses, sql` `)} END`,
+          })
+          .where("external_id", "=", externalId)
+          .where(
+            "actor_id",
+            "in",
+            actors.map((a) => a.actorId),
+          )
+          .execute();
+      }),
     );
 
     // Delay between batches to respect TMDB rate limits
