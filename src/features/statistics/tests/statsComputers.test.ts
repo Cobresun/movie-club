@@ -1,8 +1,4 @@
 import { ensure } from "../../../../lib/checks/checks.js";
-import type { DetailedBookData } from "../../../../lib/types/book";
-import type { Member } from "../../../../lib/types/club";
-import { WorkType } from "../../../../lib/types/generated/db";
-import type { DetailedMovieData } from "../../../../lib/types/movie";
 import {
   computeClubRecords,
   computeCumulativeCounts,
@@ -19,104 +15,15 @@ import {
   computeTopAuthors,
   computeTopDirectors,
 } from "../statsComputers";
-import type { BookData, MovieData } from "../types";
-
-function p(name: string): { name: string; profilePath: string | null } {
-  return { name, profilePath: null };
-}
-
-function makeExternalData(overrides: Partial<DetailedMovieData> = {}): DetailedMovieData {
-  return {
-    kind: "movie",
-    actors: [],
-    castNames: [],
-    adult: false,
-    backdrop_path: "",
-    budget: 0,
-    directors: [],
-    genres: [],
-    homepage: "",
-    id: 1,
-    imdb_id: "",
-    original_language: "en",
-    original_title: "",
-    overview: "",
-    popularity: 0,
-    poster_path: "",
-    production_companies: [],
-    production_countries: [],
-    release_date: "2024-01-01",
-    revenue: 0,
-    runtime: 120,
-    spoken_languages: [],
-    status: "Released",
-    tagline: "",
-    title: "",
-    video: false,
-    vote_average: 7,
-    vote_count: 100,
-    ...overrides,
-  };
-}
-
-function makeMovie(overrides: Partial<MovieData> = {}): MovieData {
-  return {
-    id: "1",
-    type: WorkType.movie,
-    title: "Test Movie",
-    createdDate: "2024-01-01T00:00:00.000Z",
-    externalId: undefined,
-    imageUrl: undefined,
-    genres: [],
-    production_companies: [],
-    production_countries: [],
-    average: 7,
-    userScores: {},
-    scores: {},
-    externalData: makeExternalData(),
-    dateWatched: "1/1/2024",
-    ...overrides,
-  };
-}
-
-function makeBookData(overrides: Partial<DetailedBookData> = {}): DetailedBookData {
-  return {
-    kind: "book",
-    title: "Test Book",
-    authors: [],
-    subjects: [],
-    ...overrides,
-  };
-}
-
-// No externalData by default: book statistics are score-only, so a book
-// review without Google Books metadata still counts.
-function makeBook(overrides: Partial<BookData> = {}): BookData {
-  return {
-    id: "b1",
-    type: WorkType.book,
-    title: "Test Book",
-    createdDate: "2024-01-01T00:00:00.000Z",
-    externalId: undefined,
-    imageUrl: undefined,
-    average: 7,
-    userScores: {},
-    scores: {},
-    dateWatched: "1/1/2024",
-    ...overrides,
-  };
-}
-
-function makeMember(overrides: Partial<Member> = {}): Member {
-  return {
-    id: "m1",
-    email: "test@test.com",
-    name: "Test User",
-    image: "",
-    role: "member",
-    ...overrides,
-  };
-}
+import type { MovieData } from "../types";
+import {
+  makeBook,
+  makeExternalBook as makeBookData,
+  makeExternalMovie as makeExternalData,
+  makeMember,
+  makeMovie,
+  person as p,
+} from "./fixtures";
 
 // ---------- computeGenreStats ----------
 

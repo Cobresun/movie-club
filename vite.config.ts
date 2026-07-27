@@ -46,15 +46,15 @@ export default defineConfig({
       provider: "istanbul",
       reporter: ["text", "json", "html"],
       // Regression guards set just below the levels achieved by the test
-      // suite (64.6% stmts / 56.3% branch / 56.4% func / 66.3% lines after
-      // covering main's statistics registry, chart options, Google Books
-      // normalizers, and share/picker composables).
+      // suite (73.9% stmts / 65.4% branch / 68.6% func / 74.8% lines after
+      // covering every statistics widget and view, plus the reviews gallery,
+      // table, discussion questions, and add-review prompt).
       // Raise these as coverage grows; never lower them to merge.
       thresholds: {
-        statements: 64,
-        branches: 56,
-        functions: 56,
-        lines: 66,
+        statements: 73,
+        branches: 65,
+        functions: 68,
+        lines: 74,
       },
       include: ["src/**/*.{ts,vue}", "lib/**/*.ts", "netlify/functions/**/*.ts"],
       exclude: [
