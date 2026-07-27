@@ -17,9 +17,11 @@ Configured in `src/main.ts`. Key defaults:
 
 - `refetchOnWindowFocus: false`
 - `cacheTime`: 1 week
-- `refetchOnMount`: Custom logic — allows first refetch per query hash, suppresses subsequent remounts
-- **Persistence:** localStorage via `clientPersister`, 1-week maxAge
+- `refetchOnMount`: custom — always refetches an invalidated query, otherwise counts fetches per query hash in an in-memory map and stops refetching after the first couple of mounts
+- **Persistence:** IndexedDB (`idb-keyval` behind `createAsyncStoragePersister`), 1-week maxAge. Deliberately **not** localStorage: no ~5MB quota to silently blow past on a large club's cached lists, and no synchronous main-thread serialization
 - **User queries excluded from persistence:** `shouldDehydrateQuery` filters out `queryKey[0] === "user"`
+
+The persister and that in-memory map are one mechanism: the map is empty on every page load, so a hard refresh paints instantly from IndexedDB and then revalidates in the background, while navigation within the session stays quiet. A fixed `staleTime` can't express that — it can't distinguish a remount from a reload.
 
 ---
 
@@ -27,12 +29,14 @@ Configured in `src/main.ts`. Key defaults:
 
 Always use **string arrays** (not objects). Patterns:
 
-| Pattern | Example | Used for |
-|---------|---------|----------|
-| `[resource, id]` | `["club", clubSlug]` | Single resource |
-| `[resource, id, sub]` | `["club", clubSlug, "settings"]` | Nested resource |
-| `[resource, id, type]` | `["list", clubSlug, WorkListType.reviews]` | Typed sub-resource |
-| `[domain, action, param]` | `["tmdb", "search", query]` | External API |
+| Pattern                   | Example                          | Used for           |
+| ------------------------- | -------------------------------- | ------------------ |
+| `[resource, id]`          | `["club", clubSlug]`             | Single resource    |
+| `[resource, id, sub]`     | `["club", clubSlug, "settings"]` | Nested resource    |
+| `[resource, id, subId]`   | `["list", clubSlug, listId]`     | Sub-resource by id |
+| `[domain, action, param]` | `["tmdb", "search", query]`      | External API       |
+
+`src/service/useList.ts` exports key factories — `clubListsKey`, `listKey`, `reviewsListKey`, `workDetailsKey`. Call those instead of re-typing the array; a mutation that invalidates a hand-written key that has drifted fails silently.
 
 Prefix matching for invalidation: `invalidateQueries(["club"])` invalidates all queries starting with `"club"`.
 
@@ -41,6 +45,7 @@ Prefix matching for invalidation: `invalidateQueries(["club"])` invalidates all 
 ## useQuery Patterns
 
 **Standard query:**
+
 ```typescript
 export function useClub(clubSlug: string) {
   return useQuery<ClubPreview>({
@@ -51,6 +56,7 @@ export function useClub(clubSlug: string) {
 ```
 
 **Conditional fetching with `enabled`:**
+
 ```typescript
 export function useUserClubs() {
   const auth = useAuthStore();
@@ -64,17 +70,30 @@ export function useUserClubs() {
 ```
 
 **Reactive query keys with Refs** — query auto-refetches when Ref values change:
+
 ```typescript
 export function useAwards(clubId: Ref<string>, year: Ref<string>) {
   return useQuery({ queryKey: ["awards", clubId, year], queryFn: ... });
 }
 ```
 
-**Function overloads for type-safe return types:**
+**`MaybeRef` ids** — take the id as `MaybeRef<string>`, unwrap it into a `computed`, build the key from a `computed`, and guard the empty case with `enabled` so the query doesn't fire against a not-yet-resolved id:
+
 ```typescript
-export function useList(clubSlug: string, type: WorkListType.reviews): UseQueryReturnType<DetailedReviewListItem[], AxiosError>;
-export function useList(clubSlug: string, type: WorkListType.backlog | WorkListType.watchlist): UseQueryReturnType<DetailedWorkListItem[], AxiosError>;
+export function useList(
+  clubSlug: string,
+  listId: MaybeRef<string>,
+): UseQueryReturnType<DetailedWorkListItem[], AxiosError> {
+  const listIdRef = computed(() => unref(listId));
+  return useQuery({
+    queryKey: computed(() => listKey(clubSlug, listIdRef.value)),
+    queryFn: async () => (await axios.get(`/api/club/${clubSlug}/list/${listIdRef.value}`)).data,
+    enabled: () => listIdRef.value !== "",
+  });
+}
 ```
+
+This matters where an id is itself fetched — a list view resolving `reviewsListId` through `useReviewsListId` first. Callers pass either a plain string or a ref and get the same composable.
 
 ---
 
@@ -100,12 +119,11 @@ export function useCreateClub() {
 return useMutation({
   mutationFn: ({ workId, score }) => auth.request.post(...),
   onMutate: ({ workId, score }) => {
-    queryClient.setQueryData<DetailedReviewListItem[]>(
-      ["list", clubSlug, WorkListType.reviews],
-      (current) => current?.map(item => item.id === workId ? { ...item, updatedField } : item),
+    queryClient.setQueryData<DetailedReviewListItem[]>(reviewsListKey(clubSlug), (current) =>
+      current?.map(item => item.id === workId ? { ...item, updatedField } : item),
     );
   },
-  onSettled: () => queryClient.invalidateQueries({ queryKey: ["list", clubSlug, WorkListType.reviews] }),
+  onSettled: () => queryClient.invalidateQueries({ queryKey: reviewsListKey(clubSlug) }),
 });
 ```
 
@@ -148,14 +166,14 @@ return useMutation({
 
 - Register `VueQueryPlugin` in test globals (handled by custom `render` in `src/tests/utils.ts`)
 - VueQueryPlugin auto-creates a default QueryClient for tests
-- Clear `localStorage` between tests to reset persisted cache
-- Use MSW for API mocking — do not mock query hooks directly
+- Persistence is not wired up in tests — the IndexedDB persister lives in `src/main.ts`, which tests never run, so there is no cache to clear between them
+- Use MSW for API mocking (`src/mocks/server`, started in `src/tests/setup.ts`) — do not mock query hooks directly
 
 ---
 
 ## Common Gotchas
 
 1. **v4 vs v5 API:** This project uses v4. Key differences from v5: `cacheTime` (not `gcTime`), array-form `invalidateQueries(["key"])` (not always object-form), `isLoading` (not `isPending` for queries), `onSuccess`/`onError`/`onSettled` callbacks exist on useQuery (removed in v5)
-2. **User queries never persisted:** `queryKey[0] === "user"` is excluded from localStorage dehydration
-3. **Refetch suppression:** Custom `refetchOnMount` only allows first refetch per query hash — subsequent component mounts skip refetch
+2. **User queries never persisted:** `queryKey[0] === "user"` is excluded from dehydration, so auth-dependent data never survives a reload
+3. **Refetch suppression:** custom `refetchOnMount` counts fetches per query hash and goes quiet after the first couple of mounts, so a component that mounts repeatedly in one session will _not_ refetch. Invalidate explicitly after a mutation rather than expecting a remount to refresh anything
 4. **Reactive keys:** Pass `Ref` values directly in queryKey arrays — Vue Query unwraps them automatically
