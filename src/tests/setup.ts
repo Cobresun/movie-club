@@ -16,6 +16,10 @@ vi.mock("vue-router", () => ({
   })),
 }));
 
+// jsdom doesn't implement scrollIntoView; the gallery's card-click handler calls
+// it when opening the details drawer.
+window.HTMLElement.prototype.scrollIntoView = vi.fn();
+
 Object.defineProperty(window, "matchMedia", {
   writable: true,
   value: vi.fn().mockImplementation((query: string) => ({

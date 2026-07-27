@@ -1,5 +1,5 @@
 import { TestingPinia } from "@pinia/testing";
-import { screen, within } from "@testing-library/vue";
+import { screen } from "@testing-library/vue";
 import { http, HttpResponse } from "msw";
 
 import ReviewView from "../views/ReviewView.vue";
@@ -61,9 +61,6 @@ describe("ReviewView", () => {
 
   it("should open and close add review prompt", async () => {
     const { user } = render(ReviewView, { props: { clubSlug: "1" } });
-    // Switch to table view first (gallery view has multiple buttons)
-    const viewSwitch = screen.getByRole("switch");
-    await user.click(viewSwitch);
 
     const openButton = await screen.findByRole("button", {
       name: "Add review",
@@ -73,15 +70,6 @@ describe("ReviewView", () => {
 
     await user.keyboard("{Escape}");
     expect(screen.queryByText("From your lists")).not.toBeInTheDocument();
-  });
-
-  it("should switch between gallery and table view", async () => {
-    const { user } = render(ReviewView, { props: { clubSlug: "1" } });
-    const viewSwitch = screen.getByRole("switch");
-    // Gallery view is the default, so table should not be present initially
-    expect(screen.queryByRole("table")).not.toBeInTheDocument();
-    await user.click(viewSwitch);
-    expect(await screen.findByRole("table")).toBeInTheDocument();
   });
 
   it("should show human-readable sort options in the gallery sort menu", async () => {
@@ -119,7 +107,7 @@ describe("ReviewView", () => {
     const searchBar = await screen.findByRole("textbox");
 
     expect(screen.getAllByText("12 Angry Men")[0]).toBeInTheDocument();
-    expect(screen.getAllByText("The Empire Strikes Back")[0]).toBeInTheDocument();
+    expect((await screen.findAllByText("The Empire Strikes Back"))[0]).toBeInTheDocument();
 
     await user.type(searchBar, "12");
 
@@ -131,39 +119,14 @@ describe("ReviewView", () => {
     const { user, pinia } = render(ReviewView, {
       props: { clubSlug: "test-club" },
     });
-    const authStore = useAuthStore(pinia);
-    // @ts-expect-error Overwriting readonly property for testing purposes
-    authStore.user = {
-      id: memberData.id,
-      email: memberData.email,
-      name: memberData.name,
-      image: memberData.image,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      emailVerified: true,
-    };
-    //@ts-expect-error Forcing logged in to true for testing
-    authStore.isLoggedIn = true;
+    logIn(pinia);
 
-    // Switch to table view (gallery view is the default)
-    const viewSwitch = screen.getByRole("switch");
-    await user.click(viewSwitch);
+    // Score entry lives in the details drawer; open it for an unrated work.
+    await user.click((await screen.findAllByText("The Empire Strikes Back"))[0]);
+    await user.click(await screen.findByRole("button", { name: /rate this/i }));
 
-    const row = (
-      await screen.findByRole("cell", {
-        name: (content) => content.includes("The Empire Strikes Back"),
-      })
-    ).closest("tr") as HTMLElement;
-
-    const addScoreButton = await within(row).findByRole("button", {
-      name: "Add score",
-    });
-    expect(addScoreButton).toBeInTheDocument();
-
-    await user.click(addScoreButton);
     const scoreInput = await screen.findByRole("spinbutton", { name: "Score" });
     expect(scoreInput).toBeInTheDocument();
-    expect(scoreInput).toHaveFocus();
 
     const newReviews = [
       reviews[0],
@@ -196,9 +159,11 @@ describe("ReviewView", () => {
 
     await user.type(scoreInput, "10");
     await user.click(screen.getByRole("button", { name: "Save score" }));
+
+    // Entry closes, and the drawer flips to the edit affordance now that the
+    // user has a saved score for this work.
     expect(screen.queryByRole("spinbutton", { name: "Score" })).not.toBeInTheDocument();
-    expect(within(row).getByRole("cell", { name: "10" })).toBeInTheDocument();
-    expect(within(row).getByRole("cell", { name: "9" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /edit score/i })).toBeInTheDocument();
   });
 
   it("hides the score-assist button while the user has fewer than five scored works", async () => {
@@ -208,8 +173,9 @@ describe("ReviewView", () => {
     });
     logIn(pinia);
 
-    await user.click(screen.getByRole("switch"));
-    await user.click(await screen.findByRole("button", { name: "Add score" }));
+    // Open the drawer for an unrated work and start score entry.
+    await user.click((await screen.findAllByText("The Empire Strikes Back"))[0]);
+    await user.click(await screen.findByRole("button", { name: /rate this/i }));
 
     // The entry panel opens, but the assist button is absent (not eligible).
     expect(await screen.findByRole("spinbutton", { name: "Score" })).toBeInTheDocument();
@@ -234,9 +200,9 @@ describe("ReviewView", () => {
     });
     logIn(pinia);
 
-    await user.click(screen.getByRole("switch"));
-    // The only "Add score" affordance belongs to the unscored work.
-    await user.click(await screen.findByRole("button", { name: "Add score" }));
+    // Open the drawer for the only unscored work and start score entry.
+    await user.click((await screen.findAllByText("Unscored Movie"))[0]);
+    await user.click(await screen.findByRole("button", { name: /rate this/i }));
 
     const trigger = await screen.findByRole("button", {
       name: /Compare to decide/,
@@ -244,7 +210,7 @@ describe("ReviewView", () => {
     await user.click(trigger);
 
     expect(await screen.findByText("Which movie did you like more?")).toBeInTheDocument();
-    // The entry popover closed when the modal opened.
+    // The entry panel closed when the assist flow took over the modal.
     expect(screen.queryByRole("spinbutton", { name: "Score" })).not.toBeInTheDocument();
   });
 });
