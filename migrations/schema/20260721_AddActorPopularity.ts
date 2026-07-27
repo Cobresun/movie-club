@@ -1,7 +1,7 @@
 import axios from "axios";
 import { Kysely, sql } from "kysely";
 
-import { hasElements } from "../../lib/checks/checks";
+import { hasElements, NonEmptyArray } from "../../lib/checks/checks";
 
 interface TMDBCastMember {
   id: number;
@@ -12,6 +12,15 @@ interface TMDBCastMember {
 interface TMDBCreditsResponse {
   id: number;
   cast: TMDBCastMember[];
+}
+
+interface ActorPopularity {
+  actorId: number;
+  popularity: number;
+}
+
+function toActorPopularity(castMember: TMDBCastMember): ActorPopularity {
+  return { actorId: castMember.id, popularity: castMember.popularity };
 }
 
 const BATCH_SIZE = 40;
@@ -83,7 +92,9 @@ export async function up(db: Kysely<unknown>) {
     );
 
     // Grouped by movie so each movie costs one UPDATE, not one per cast member.
-    const actorUpdates = new Map<string, { actorId: number; popularity: number }[]>();
+    // Non-empty by construction so the `case` builder below always has a first
+    // `when` branch to start the chain from.
+    const actorUpdates = new Map<string, NonEmptyArray<ActorPopularity>>();
 
     for (const result of results) {
       if (result.status === "rejected") {
@@ -97,22 +108,21 @@ export async function up(db: Kysely<unknown>) {
       const { movie, credits } = result.value;
 
       // An empty cast would render an invalid `CASE actor_id END` / `IN ()`, so
-      // only movies with credits get an entry.
+      // only movies with credits get an entry. Destructuring the head keeps the
+      // non-emptiness in the type rather than re-asserting it at the UPDATE.
       if (hasElements(credits.cast)) {
-        actorUpdates.set(
-          movie.external_id,
-          credits.cast.map((castMember) => ({
-            actorId: castMember.id,
-            popularity: castMember.popularity,
-          })),
-        );
+        const [firstCastMember, ...restOfCast] = credits.cast;
+        actorUpdates.set(movie.external_id, [
+          toActorPopularity(firstCastMember),
+          ...restOfCast.map(toActorPopularity),
+        ]);
       }
 
       processed++;
       console.log(`Processed: ${movie.title ?? movie.external_id}`);
     }
 
-    // One typed UPDATE per movie, with the per-actor values as a CASE over
+    // One typed UPDATE per movie, with the per-actor values as a `case` over
     // actor_id (the same bulk-positional-update shape as work_list_item's
     // position rewrite). Kysely can't express UPDATE ... FROM (VALUES ...) with
     // typed identifiers, and issuing one statement per cast member instead cost
@@ -120,14 +130,21 @@ export async function up(db: Kysely<unknown>) {
     // time limit. Grouping keeps the identifiers schema-checked while holding
     // the statement count at one per movie.
     await Promise.all(
-      [...actorUpdates].map(([externalId, actors]) => {
-        const whenClauses = actors.map(
-          (a) => sql`WHEN ${a.actorId}::INT8 THEN ${a.popularity}::NUMERIC`,
-        );
-        return typedDb
+      [...actorUpdates].map(([externalId, actors]) =>
+        typedDb
           .updateTable("movie_actors")
-          .set({
-            popularity: sql<number>`CASE actor_id ${sql.join(whenClauses, sql` `)} END`,
+          .set((eb) => {
+            const [firstActor, ...restOfActors] = actors;
+            // The simple-`case` form compares each `when` against actor_id, so
+            // the chain has to be folded rather than written out literally.
+            let popularityCase = eb
+              .case("actor_id")
+              .when(firstActor.actorId)
+              .then(firstActor.popularity);
+            for (const actor of restOfActors) {
+              popularityCase = popularityCase.when(actor.actorId).then(actor.popularity);
+            }
+            return { popularity: popularityCase.end() };
           })
           .where("external_id", "=", externalId)
           .where(
@@ -135,8 +152,8 @@ export async function up(db: Kysely<unknown>) {
             "in",
             actors.map((a) => a.actorId),
           )
-          .execute();
-      }),
+          .execute(),
+      ),
     );
 
     // Delay between batches to respect TMDB rate limits
