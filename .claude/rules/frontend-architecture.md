@@ -5,107 +5,33 @@ paths:
 
 # Frontend Architecture (Vue 3 + Vite)
 
-## Project Structure
+Feature-based layout: `src/features/<feature>/` holds views, components, and composables for one domain; `src/common/` holds shared UI and utilities; `src/service/` holds the TanStack Query composables every feature fetches through. `@/*` aliases `src/*`.
 
-- `src/features/` - Feature-based modules containing views, components, and composables
-  - `auth/` - Authentication views (verify email, password reset)
-  - `awards/` - Awards system with nominations, rankings, and results
-  - `clubs/` - Club listing and creation
-  - `profile/` - User profile management
-  - `reviews/` - Movie reviews with gallery and table views
-  - `settings/` - Club settings and member management
-  - `statistics/` - Club statistics and charts
-  - `watch-list/` - Watchlist and backlog management
-- `src/common/` - Shared components and utilities
-  - `components/` - Reusable UI components (VBtn, VModal, VSelect, etc.)
-  - `composables/` - Shared Vue composables
-  - `errorCodes.ts` - Error code definitions
-- `src/service/` - TanStack Query composables for data fetching
-- `src/stores/` - Pinia stores (currently `auth.ts`)
-- `src/router/` - Vue Router configuration with auth guards
-- `src/lib/` - Library code (auth client)
-- `src/directives/` - Custom Vue directives (LazyLoad)
-- `src/mocks/` - MSW handlers and test data
+A handful of components are registered globally in `src/main.ts` (`v-btn`, `v-modal`, `page-header`, …) — they appear in templates with no import, so check there before assuming a tag is undefined.
 
-## Key Technologies
+## Icons (mdi-vue): the silent-failure trap
 
-- **Vue 3** with Composition API and `<script setup>`
-- **Vite** for build tooling
-- **TypeScript** with strict mode
-- **Pinia** for state management
-- **Vue Router 4** with route-based code splitting
-- **TanStack Query (Vue Query)** for server state management with persistence
-- **BetterAuth** (better-auth/vue) for authentication with email/password and Google OAuth
-- **Tailwind CSS** for styling
-- **Vitest** for testing with jsdom environment
-- **mdi-vue** for Material Design Icons
-- **vue-toastification** for toast notifications
-- **AG Charts** for statistics visualizations
-- **Headless UI** for accessible UI primitives
+Icons are referenced by kebab-case name (`<mdicon name="movie-open-outline">`), but **only icons registered in `src/icons.ts` exist** — that file imports a curated set of `mdiPascalCase` paths from `@mdi/js` so the bundler can tree-shake the other ~7,000. An unregistered name doesn't error; mdi-vue silently renders an `mdiAlert` triangle.
 
-## Global Components
+So: when you add or change an icon name, register the matching `mdiPascalCase` export in `src/icons.ts` (import + the `icons` object, alphabetized).
 
-Registered in `src/main.ts`: `v-avatar`, `v-backdrop`, `v-btn`, `v-select`, `v-switch`, `loading-spinner`, `movie-table`, `menu-card`, `v-modal`, `page-header`, `empty-state`
+`icons.test.ts` enforces this, but its scan is **static** — it only sees literal names in `.vue` templates (`name="..."` and ternary literals). Names produced by a function or computed are invisible to it:
 
-## Custom Directives
+- Names from `CLUB_TYPE_CONFIG` (`src/common/clubType.ts`) are covered by a dedicated registry test in `icons.test.ts`. A new club type needs its `icon` there **and** in `src/icons.ts`.
+- Any other computed/ref name (`copyIcon`, default `fallback-icon` props) is covered by nothing. Register those by hand.
 
-- `v-lazy-load` - Intersection Observer-based lazy loading for images
+## Router
 
-## Icons (mdi-vue)
+- Routes carry a `depth` meta. `App.vue` has a single `<transition name="route">`; the router compares depths and writes the direction to `document.documentElement.dataset.routeTransition`, and `tailwind.css` selects the animation with `html[data-route-transition="..."] .route-enter-active` rules.
+- That indirection is deliberate: a dynamic `:name` on `<transition>` **cannot** change the _leave_ classes, because Vue resolves them before the name updates. Drive variants from the html data attribute, not the name.
+- `checkClubAccess` guards club-scoped routes on membership. `noAuth: true` opts a route out of auth; `authRequired: true` redirects to Clubs when logged out.
 
-Icons are referenced by kebab-case name (`<mdicon name="movie-open-outline">`), but **only the icons explicitly registered in `src/icons.ts` exist** — that file imports a curated set of `mdiPascalCase` paths from `@mdi/js` so the bundler can tree-shake the other ~7,000 icons out of the bundle. An unregistered name does not error; mdi-vue silently renders an `mdiAlert` triangle.
+## Service layer
 
-**When you add or change an icon name, register the matching `mdiPascalCase` export in `src/icons.ts` (import + the `icons` object, alphabetized).**
+`src/service/use<Feature>.ts` wraps every API call in TanStack Query hooks — components should not fetch directly. Several accept `MaybeRef` so IDs can be reactive (e.g. `useList(slug, listIdRef)`).
 
-`icons.test.ts` enforces this in CI, but its scan is **static** — it only sees literal names in `.vue` templates (`name="..."` and ternary literals). Icon names produced by a function/computed are invisible to it and are the classic source of a runtime triangle:
+See the `tanstack-query-vue` skill for query-key conventions, mutation patterns, caching config, and optimistic updates.
 
-- Names from the `CLUB_TYPE_CONFIG` registry (`src/common/clubType.ts`), e.g. `:name="clubTypeIcon(club.type)"` — covered by a dedicated registry test in `icons.test.ts`. Adding a new club type means adding its `icon` there **and** registering that icon in `src/icons.ts`.
-- Any other computed/ref name (e.g. `copyIcon`, default `fallback-icon` props) — not covered by any test, so register those by hand.
+## Adding a feature
 
-## Path Alias
-
-- `@/*` maps to `src/*`
-
-## Router Architecture
-
-- Routes use a `depth` meta property for slide-in/slide-out transitions
-- `checkClubAccess` guard ensures users are club members before accessing club routes
-- Route transitions use animate.css classes (`animate__slideInRight`, `animate__slideInLeft`, etc.)
-- Routes with `noAuth: true` meta are accessible without authentication
-- Routes with `authRequired: true` meta redirect to Clubs page if not logged in
-
-## Service Layer
-
-Located in `src/service/`, these composables provide TanStack Query hooks for data fetching:
-
-- `useClub.ts` - Club CRUD, membership, invites, settings
-- `useReviews.ts` - Review management and scoring
-- `useList.ts` - Arbitrary user-list CRUD (`useClubLists`, `useList(slug, listIdRef)`, `useCreateList`, `useRenameList`, `useDeleteList`, `useAddListItem`, `useDeleteListItem`, `useReorderList`, `useMoveListItem`) plus reviews-list helpers (`useReviewsList`, `useDeleteReview`, `useAddToReviewsList`, `useQueueReview`, `useUpdateReviewAddedDate`, `useAllUserListItems`). `useList` accepts a `MaybeRef<string>` so the active list ID can be reactive.
-- `useAwards.ts` - Awards system data
-- `useUser.ts` - User profile and clubs
-- `useTMDB.ts` - TMDB movie search integration
-
-See `tanstack-query-vue` skill for query key conventions, mutation patterns, caching config, and optimistic update strategies.
-
-## Authentication (Frontend)
-
-Auth store (Pinia) manages user state via `authClient.useSession()`. Router guards check auth before accessing protected routes.
-
-- `src/lib/auth-client.ts` — BetterAuth Vue client
-- `src/stores/auth.ts` — Authentication state and session management
-
-## Key Frontend Files
-
-- `src/main.ts` - Vue app initialization, global components, plugins
-- `src/App.vue` - Root component with router view and transitions
-- `src/router/index.ts` - Route definitions and navigation guards
-- `vite.config.ts` - Vite and Vitest configuration
-- `tailwind.config.cjs` - Tailwind CSS configuration
-
-## Adding a Frontend Feature
-
-1. Create feature directory in `src/features/<feature-name>/`
-2. Add views to `views/` subdirectory
-3. Create service composable in `src/service/use<Feature>.ts` for API calls
-4. Add routes in `src/router/index.ts` with appropriate `depth` meta
-5. Apply `beforeEnter: checkClubAccess` guard for club-scoped routes
+Create `src/features/<name>/` with a `views/` subdirectory, add a `src/service/use<Feature>.ts` for its API calls, then register routes in `src/router/index.ts` with a `depth` meta and `beforeEnter: checkClubAccess` if club-scoped.
