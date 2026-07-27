@@ -35,6 +35,12 @@ export default defineConfig({
     // in one test cannot silently change the next). Inherited by both projects
     // via `extends: true`.
     restoreMocks: true,
+    // Pin the timezone so date assertions mean the same thing everywhere.
+    // Components format date-only strings with `new Date(...)` (parsed as UTC)
+    // and `toLocaleDateString` (rendered locally), so west of Greenwich a
+    // release date renders as the previous day — CI runs UTC and would
+    // disagree with a developer's machine. Inherited by both projects.
+    env: { TZ: "UTC" },
     coverage: {
       all: true,
       provider: "istanbul",

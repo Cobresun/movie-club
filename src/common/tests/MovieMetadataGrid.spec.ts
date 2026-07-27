@@ -14,7 +14,7 @@ describe("MovieMetadataGrid", () => {
     render(MovieMetadataGrid, { props: { releaseDate: "1994-09-23" } });
 
     expect(screen.getByText("Released")).toBeInTheDocument();
-    expect(screen.getByText("Sep 22, 1994")).toBeInTheDocument();
+    expect(screen.getByText("Sep 23, 1994")).toBeInTheDocument();
   });
 
   it("renders runtime as hours and minutes", () => {
