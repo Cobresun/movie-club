@@ -244,9 +244,7 @@ describe("ensure", () => {
   });
 
   it("throws a custom message when provided", () => {
-    expect(() => ensure(undefined, "Custom error message")).toThrow(
-      "Custom error message",
-    );
+    expect(() => ensure(undefined, "Custom error message")).toThrow("Custom error message");
   });
 
   it("does not throw for an empty string", () => {
@@ -276,9 +274,7 @@ describe("filterUndefinedProperties", () => {
   });
 
   it("returns an empty object when all values are undefined", () => {
-    expect(filterUndefinedProperties({ a: undefined, b: undefined })).toEqual(
-      {},
-    );
+    expect(filterUndefinedProperties({ a: undefined, b: undefined })).toEqual({});
   });
 
   it("returns an empty object for an empty input", () => {

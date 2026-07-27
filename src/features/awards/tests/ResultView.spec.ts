@@ -4,7 +4,6 @@ import { http, HttpResponse } from "msw";
 import { AwardsStep, ClubAwards } from "../../../../lib/types/awards";
 import { DetailedMovieData } from "../../../../lib/types/movie";
 import ResultView from "../views/ResultView.vue";
-
 import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
 import { server } from "@/mocks/server";
 import { render } from "@/tests/utils";
@@ -14,6 +13,7 @@ mockIntersectionObserver();
 const movieData: DetailedMovieData = {
   kind: "movie",
   actors: [],
+  castNames: [],
   directors: [],
   genres: [],
   production_companies: [],
@@ -31,8 +31,8 @@ const clubAward: ClubAwards = {
           movieId: 1,
           movieTitle: "Inception",
           posterUrl: "https://test.com/i.jpg",
-          nominatedBy: ["user"],
-          ranking: { user: 1, dev: 1 },
+          nominatedBy: ["2"],
+          ranking: { "2": 1, "1": 1 },
           movieData,
         },
       ],
@@ -40,15 +40,13 @@ const clubAward: ClubAwards = {
   ],
 };
 
-const props = { clubAward, clubId: "test-club", year: "2024" };
+const props = { clubAward, clubSlug: "test-club", year: "2024" };
 
 describe("ResultView", () => {
   it("renders each award with a Reveal button during presentation", async () => {
     render(ResultView, { props });
 
-    expect(
-      await screen.findByRole("heading", { name: "Awards" }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Awards" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Reveal" })).toBeInTheDocument();
   });
 

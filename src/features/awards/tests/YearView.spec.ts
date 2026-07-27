@@ -3,7 +3,6 @@ import { http, HttpResponse } from "msw";
 
 import { AwardsStep } from "../../../../lib/types/awards";
 import YearView from "../views/YearView.vue";
-
 import { server } from "@/mocks/server";
 import { render } from "@/tests/utils";
 
@@ -26,9 +25,7 @@ describe("YearView", () => {
     render(YearView, { props });
 
     // From CategorySelect, the next step is Nominations.
-    expect(
-      await screen.findByRole("button", { name: /Nominations/ }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /Nominations/ })).toBeInTheDocument();
   });
 
   it("advances to the next step when the button is clicked", async () => {
@@ -45,9 +42,7 @@ describe("YearView", () => {
 
     const { user } = render(YearView, { props });
 
-    await user.click(
-      await screen.findByRole("button", { name: /Nominations/ }),
-    );
+    await user.click(await screen.findByRole("button", { name: /Nominations/ }));
 
     await waitFor(() => {
       expect(body).toMatchObject({ step: AwardsStep.Nominations });
@@ -67,8 +62,6 @@ describe("YearView", () => {
     await waitFor(() => {
       expect(screen.queryByText("Loading")).not.toBeInTheDocument();
     });
-    expect(
-      screen.queryByRole("button", { name: /Awards|Results/ }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Awards|Results/ })).not.toBeInTheDocument();
   });
 });

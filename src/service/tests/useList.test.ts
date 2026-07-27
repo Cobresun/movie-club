@@ -21,7 +21,6 @@ import {
   useReviewsListId,
   useUpdateAddedDate,
 } from "../useList";
-
 import { server } from "@/mocks/server";
 import { render } from "@/tests/utils";
 
@@ -218,23 +217,31 @@ describe("useReviewsList", () => {
 // ---------------------------------------------------------------------------
 
 describe("useAllUserListItems", () => {
-  it("aggregates items across all lists with sourceListId/sourceListTitle", async () => {
+  it("returns every list's items in one request, tagged with their source list", async () => {
+    let requestedUrl = "";
     server.use(
-      http.get("/api/club/:id/list", () =>
-        HttpResponse.json([
-          { id: "list-1", title: "Watchlist", systemType: null, itemCount: 1 },
-        ]),
-      ),
-      http.get("/api/club/:id/list/list-1", () =>
-        HttpResponse.json([
+      // #421 replaced the per-list fan-out with a single aggregated endpoint.
+      http.get("/api/club/:id/list/all-items", ({ request }) => {
+        requestedUrl = request.url;
+        return HttpResponse.json([
           {
             id: "item-1",
             title: "Dune",
             type: "movie",
             createdDate: "2024-03-01T00:00:00.000Z",
+            sourceListId: "list-1",
+            sourceListTitle: "Watchlist",
           },
-        ]),
-      ),
+          {
+            id: "item-2",
+            title: "Solaris",
+            type: "movie",
+            createdDate: "2024-03-02T00:00:00.000Z",
+            sourceListId: "list-2",
+            sourceListTitle: "Backlog",
+          },
+        ]);
+      }),
     );
 
     const Harness = defineComponent({
@@ -242,11 +249,13 @@ describe("useAllUserListItems", () => {
         const { data, isSuccess } = useAllUserListItems("test-club");
         return { data, isSuccess };
       },
-      template: `<div>{{ isSuccess ? data?.[0]?.sourceListTitle : 'loading' }}</div>`,
+      template: `<ul v-if="isSuccess"><li v-for="i in data" :key="i.id">{{ i.title }} — {{ i.sourceListTitle }}</li></ul><div v-else>loading</div>`,
     });
 
-    const { findByText } = render(Harness);
-    await findByText("Watchlist");
+    const { findByText, getByText } = render(Harness);
+    await findByText("Dune — Watchlist");
+    expect(getByText("Solaris — Backlog")).toBeInTheDocument();
+    expect(requestedUrl).toContain("/api/club/test-club/list/all-items");
   });
 });
 
@@ -444,13 +453,10 @@ describe("useMoveListItem", () => {
   it("POSTs move to /api/club/:id/list/:sourceListId/items/:workId/move", async () => {
     let capturedBody: unknown = null;
     server.use(
-      http.post(
-        "/api/club/:id/list/:listId/items/:workId/move",
-        async ({ request }) => {
-          capturedBody = await request.json();
-          return new HttpResponse(null, { status: 200 });
-        },
-      ),
+      http.post("/api/club/:id/list/:listId/items/:workId/move", async ({ request }) => {
+        capturedBody = await request.json();
+        return new HttpResponse(null, { status: 200 });
+      }),
     );
 
     const Harness = defineComponent({
@@ -481,13 +487,10 @@ describe("useUpdateAddedDate", () => {
   it("PUTs added-date to correct endpoint", async () => {
     let capturedBody: unknown = null;
     server.use(
-      http.put(
-        "/api/club/:id/list/:listId/items/:workId/added-date",
-        async ({ request }) => {
-          capturedBody = await request.json();
-          return new HttpResponse(null, { status: 200 });
-        },
-      ),
+      http.put("/api/club/:id/list/:listId/items/:workId/added-date", async ({ request }) => {
+        capturedBody = await request.json();
+        return new HttpResponse(null, { status: 200 });
+      }),
     );
 
     const Harness = defineComponent({

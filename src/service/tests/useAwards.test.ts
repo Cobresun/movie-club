@@ -11,7 +11,6 @@ import {
   useSubmitRanking,
   useUpdateStep,
 } from "../useAwards";
-
 import { server } from "@/mocks/server";
 import { render } from "@/tests/utils";
 
@@ -178,13 +177,10 @@ describe("useDeleteCategory", () => {
   it("DELETEs category by title (URL-encoded)", async () => {
     let capturedPath = "";
     server.use(
-      http.delete(
-        "/api/club/:id/awards/:year/category/:title",
-        ({ request }) => {
-          capturedPath = new URL(request.url).pathname;
-          return new HttpResponse(null, { status: 200 });
-        },
-      ),
+      http.delete("/api/club/:id/awards/:year/category/:title", ({ request }) => {
+        capturedPath = new URL(request.url).pathname;
+        return new HttpResponse(null, { status: 200 });
+      }),
     );
 
     const Harness = defineComponent({
@@ -210,13 +206,10 @@ describe("useAddNomination", () => {
   it("POSTs a nomination to /api/club/:id/awards/:year/nomination", async () => {
     let capturedBody: unknown = null;
     server.use(
-      http.post(
-        "/api/club/:id/awards/:year/nomination",
-        async ({ request }) => {
-          capturedBody = await request.json();
-          return new HttpResponse(null, { status: 200 });
-        },
-      ),
+      http.post("/api/club/:id/awards/:year/nomination", async ({ request }) => {
+        capturedBody = await request.json();
+        return new HttpResponse(null, { status: 200 });
+      }),
     );
 
     const mockReview = {
@@ -277,13 +270,10 @@ describe("useDeleteNomination", () => {
   it("DELETEs nomination by movieId", async () => {
     let deletedMovieId = "";
     server.use(
-      http.delete(
-        "/api/club/:id/awards/:year/nomination/:movieId",
-        ({ params }) => {
-          deletedMovieId = String(params.movieId);
-          return new HttpResponse(null, { status: 200 });
-        },
-      ),
+      http.delete("/api/club/:id/awards/:year/nomination/:movieId", ({ params }) => {
+        deletedMovieId = String(params.movieId);
+        return new HttpResponse(null, { status: 200 });
+      }),
     );
 
     const Harness = defineComponent({

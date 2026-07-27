@@ -4,7 +4,6 @@ import { screen } from "@testing-library/vue";
 import { AwardsStep, ClubAwards } from "../../../../lib/types/awards";
 import { DetailedMovieData } from "../../../../lib/types/movie";
 import NominationsView from "../views/NominationsView.vue";
-
 import memberData from "@/mocks/data/member.json";
 import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
 import { useAuthStore } from "@/stores/auth";
@@ -15,6 +14,7 @@ mockIntersectionObserver();
 const movieData: DetailedMovieData = {
   kind: "movie",
   actors: [],
+  castNames: [],
   directors: [],
   genres: [],
   production_companies: [],
@@ -32,7 +32,7 @@ const clubAward: ClubAwards = {
           movieId: 1,
           movieTitle: "Inception",
           posterUrl: "https://test.com/i.jpg",
-          nominatedBy: ["user"],
+          nominatedBy: [memberData.id],
           ranking: {},
           movieData,
         },
@@ -40,7 +40,7 @@ const clubAward: ClubAwards = {
           movieId: 2,
           movieTitle: "Tenet",
           posterUrl: "https://test.com/t.jpg",
-          nominatedBy: ["dev"],
+          nominatedBy: ["999"],
           ranking: {},
           movieData,
         },
@@ -49,7 +49,7 @@ const clubAward: ClubAwards = {
   ],
 };
 
-const props = { clubAward, clubId: "test-club", year: "2024" };
+const props = { clubAward, clubSlug: "test-club", year: "2024" };
 
 function login(pinia: ReturnType<typeof createTestingPinia>) {
   const authStore = useAuthStore(pinia);
@@ -70,10 +70,9 @@ describe("NominationsView", () => {
     const { pinia } = render(NominationsView, { props });
     login(pinia);
 
-    expect(
-      await screen.findByRole("heading", { name: "Best Picture" }),
-    ).toBeInTheDocument();
-    // "user" nominated Inception; "dev" nominated Tenet — only mine shows.
+    expect(await screen.findByRole("heading", { name: "Best Picture" })).toBeInTheDocument();
+    // Nominations are attributed by user id: I nominated Inception, another
+    // member nominated Tenet — only mine shows.
     expect(screen.getByText("Inception")).toBeInTheDocument();
     expect(screen.queryByText("Tenet")).not.toBeInTheDocument();
   });
@@ -89,8 +88,6 @@ describe("NominationsView", () => {
     render(NominationsView, { props });
 
     expect(screen.getByText("0 / 1 categories")).toBeInTheDocument();
-    expect(
-      screen.queryByRole("heading", { name: "Best Picture" }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Best Picture" })).not.toBeInTheDocument();
   });
 });

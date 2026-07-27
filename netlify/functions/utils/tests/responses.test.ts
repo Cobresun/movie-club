@@ -48,15 +48,11 @@ describe("svg", () => {
   });
 
   it("uses a default immutable Cache-Control when none supplied", () => {
-    expect(svg("<svg/>").headers?.["Cache-Control"]).toBe(
-      "public, max-age=31536000, immutable",
-    );
+    expect(svg("<svg/>").headers?.["Cache-Control"]).toBe("public, max-age=31536000, immutable");
   });
 
   it("uses the provided Cache-Control value", () => {
-    expect(svg("<svg/>", "no-cache").headers?.["Cache-Control"]).toBe(
-      "no-cache",
-    );
+    expect(svg("<svg/>", "no-cache").headers?.["Cache-Control"]).toBe("no-cache");
   });
 
   it("passes through the body", () => {
@@ -74,15 +70,11 @@ describe("redirect", () => {
   });
 
   it("uses the default Cache-Control when none supplied", () => {
-    expect(redirect("/home").headers?.["Cache-Control"]).toBe(
-      "public, max-age=86400",
-    );
+    expect(redirect("/home").headers?.["Cache-Control"]).toBe("public, max-age=86400");
   });
 
   it("uses the provided Cache-Control value", () => {
-    expect(redirect("/home", "no-store").headers?.["Cache-Control"]).toBe(
-      "no-store",
-    );
+    expect(redirect("/home", "no-store").headers?.["Cache-Control"]).toBe("no-store");
   });
 
   it("sets body to empty string", () => {
@@ -156,9 +148,7 @@ describe("methodNotAllowed", () => {
   });
 
   it("sets Content-Type to application/json", () => {
-    expect(methodNotAllowed().headers?.["Content-Type"]).toBe(
-      "application/json",
-    );
+    expect(methodNotAllowed().headers?.["Content-Type"]).toBe("application/json");
   });
 
   it("includes a default error message", () => {
@@ -178,9 +168,7 @@ describe("internalServerError", () => {
   });
 
   it("sets Content-Type to application/json", () => {
-    expect(internalServerError().headers?.["Content-Type"]).toBe(
-      "application/json",
-    );
+    expect(internalServerError().headers?.["Content-Type"]).toBe("application/json");
   });
 
   it("includes a default error message", () => {
@@ -189,9 +177,7 @@ describe("internalServerError", () => {
   });
 
   it("includes a custom message when provided", () => {
-    const parsed = parseErrorBody(
-      internalServerError("database unavailable").body,
-    );
+    const parsed = parseErrorBody(internalServerError("database unavailable").body);
     expect(parsed.error).toBe("database unavailable");
   });
 });

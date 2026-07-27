@@ -2,7 +2,6 @@ import { screen } from "@testing-library/vue";
 import { http, HttpResponse } from "msw";
 
 import SharedListView from "../views/SharedListView.vue";
-
 import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
 import { server } from "@/mocks/server";
 import { render } from "@/tests/utils";
@@ -43,10 +42,7 @@ describe("SharedListView", () => {
 
   it("shows an error state when the list fails to load", async () => {
     server.use(
-      http.get(
-        "/api/club/:id/list/:listId",
-        () => new HttpResponse(null, { status: 500 }),
-      ),
+      http.get("/api/club/:id/list/:listId", () => new HttpResponse(null, { status: 500 })),
       nextWorkHandler(),
     );
 

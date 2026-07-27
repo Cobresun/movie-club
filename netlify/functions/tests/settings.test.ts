@@ -5,11 +5,11 @@
  */
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
-import { assertResponse, makeEvent, parseBody, stubContext } from "./helpers";
 import { ClubType } from "../../../lib/types/generated/db";
 import { handler } from "../club/index";
 import ClubRepository from "../repositories/ClubRepository";
 import SettingsRepository from "../repositories/SettingsRepository";
+import { assertResponse, makeEvent, parseBody, stubContext } from "./helpers";
 
 // ─── Mock: auth ──────────────────────────────────────────────────────────────
 vi.mock("../utils/auth", () => ({
@@ -93,13 +93,11 @@ vi.mock("../repositories/WorkCommentRepository", () => ({
 
 vi.mock("../repositories/WorkRepository", () => ({
   default: {
-    findByType: vi.fn(),
     insert: vi.fn(),
     delete: vi.fn(),
     getNextWork: vi.fn(),
     setNextWork: vi.fn(),
     deleteNextWork: vi.fn(),
-    getDiscussionContext: vi.fn(),
   },
 }));
 
@@ -140,12 +138,11 @@ const mockClub = {
   name: "My Club",
   slug: CLUB_SLUG,
   type: ClubType.movie,
-  legacy_id: null,
   slug_updated_at: null,
 };
 
 const defaultSettings = {
-  features: { blurScores: true, awards: false, discussionQuestions: false },
+  features: { awards: false, discussionQuestions: false },
 };
 
 function setupClub() {
@@ -162,9 +159,7 @@ beforeEach(() => {
 describe("GET /api/club/:clubSlug/settings/", () => {
   it("returns 200 with current settings", async () => {
     setupClub();
-    vi.mocked(SettingsRepository.getSettings).mockResolvedValue(
-      defaultSettings,
-    );
+    vi.mocked(SettingsRepository.getSettings).mockResolvedValue(defaultSettings);
 
     const event = makeEvent({
       path: `/api/club/${CLUB_SLUG}/settings/`,
@@ -175,8 +170,8 @@ describe("GET /api/club/:clubSlug/settings/", () => {
 
     expect(response.statusCode).toBe(200);
     const body = parseBody<typeof defaultSettings>(response.body);
-    expect(body.features.blurScores).toBe(true);
     expect(body.features.awards).toBe(false);
+    expect(body.features.discussionQuestions).toBe(false);
   });
 
   it("returns 401 when user is not authenticated", async () => {
@@ -216,11 +211,9 @@ describe("POST /api/club/:clubSlug/settings/", () => {
   it("returns 200 with updated settings when awards feature is enabled", async () => {
     setupClub();
     const updatedSettings = {
-      features: { blurScores: true, awards: true, discussionQuestions: false },
+      features: { awards: true, discussionQuestions: false },
     };
-    vi.mocked(SettingsRepository.updateSettings).mockResolvedValue(
-      updatedSettings,
-    );
+    vi.mocked(SettingsRepository.updateSettings).mockResolvedValue(updatedSettings);
 
     const event = makeEvent({
       path: `/api/club/${CLUB_SLUG}/settings/`,
@@ -237,9 +230,7 @@ describe("POST /api/club/:clubSlug/settings/", () => {
 
   it("returns 200 when body is an empty object (no-op update)", async () => {
     setupClub();
-    vi.mocked(SettingsRepository.updateSettings).mockResolvedValue(
-      defaultSettings,
-    );
+    vi.mocked(SettingsRepository.updateSettings).mockResolvedValue(defaultSettings);
 
     const event = makeEvent({
       path: `/api/club/${CLUB_SLUG}/settings/`,
@@ -272,8 +263,8 @@ describe("POST /api/club/:clubSlug/settings/", () => {
     const event = makeEvent({
       path: `/api/club/${CLUB_SLUG}/settings/`,
       httpMethod: "POST",
-      // blurScores must be boolean, not string
-      body: JSON.stringify({ features: { blurScores: "yes" } }),
+      // awards must be boolean, not string
+      body: JSON.stringify({ features: { awards: "yes" } }),
     });
 
     const response = assertResponse(await handler(event, stubContext));

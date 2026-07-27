@@ -1,7 +1,6 @@
 import { screen } from "@testing-library/vue";
 
 import AddMovieButton from "../components/AddMovieButton.vue";
-
 import { render } from "@/tests/utils";
 
 describe("AddMovieButton", () => {

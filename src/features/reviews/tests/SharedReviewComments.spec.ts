@@ -2,12 +2,9 @@ import { screen } from "@testing-library/vue";
 
 import { WorkCommentDto } from "../../../../lib/types/lists";
 import SharedReviewComments from "../components/SharedReviewComments.vue";
-
 import { render } from "@/tests/utils";
 
-const makeComment = (
-  overrides: Partial<WorkCommentDto> = {},
-): WorkCommentDto => ({
+const makeComment = (overrides: Partial<WorkCommentDto> = {}): WorkCommentDto => ({
   id: "c1",
   workId: "w1",
   userId: "u1",
@@ -54,9 +51,7 @@ describe("SharedReviewComments", () => {
 
     await user.click(hidden);
 
-    expect(screen.getByText("The killer was the butler.")).not.toHaveClass(
-      "blur-sm",
-    );
+    expect(screen.getByText("The killer was the butler.")).not.toHaveClass("blur-sm");
   });
 
   it("does not blur non-spoiler comments", () => {

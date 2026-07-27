@@ -1,23 +1,13 @@
 import { HandlerContext, HandlerEvent } from "@netlify/functions";
 import { describe, expect, it, vi } from "vitest";
 
-import {
-  Request,
-  Router,
-  createRouterResponse,
-  isRequest,
-  isRouterResponse,
-} from "../router";
+import { Request, Router, createRouterResponse, isRequest, isRouterResponse } from "../router";
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-function makeEvent(
-  path: string,
-  httpMethod: string,
-  body: string | null = null,
-): HandlerEvent {
+function makeEvent(path: string, httpMethod: string, body: string | null = null): HandlerEvent {
   return {
     path,
     httpMethod,
@@ -102,9 +92,7 @@ describe("isRequest", () => {
   });
 
   it("returns false when params is missing", () => {
-    expect(
-      isRequest({ event: makeEvent("/", "GET"), context: stubContext }),
-    ).toBe(false);
+    expect(isRequest({ event: makeEvent("/", "GET"), context: stubContext })).toBe(false);
   });
 
   it("returns false for null", () => {

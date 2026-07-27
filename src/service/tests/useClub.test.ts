@@ -1,7 +1,6 @@
 import { useQueryClient } from "@tanstack/vue-query";
-import { waitFor } from "@testing-library/vue";
 import { http, HttpResponse } from "msw";
-import { defineComponent, ref } from "vue";
+import { defineComponent } from "vue";
 
 import {
   useClub,
@@ -14,7 +13,6 @@ import {
   useMembers,
   useUpdateClubSettings,
 } from "../useClub";
-
 import { ClubType } from "@/../lib/types/generated/db";
 import { server } from "@/mocks/server";
 import { render } from "@/tests/utils";
@@ -51,9 +49,7 @@ describe("useClub", () => {
   });
 
   it("propagates errors from the API", async () => {
-    server.use(
-      http.get("/api/club/:id", () => new HttpResponse(null, { status: 404 })),
-    );
+    server.use(http.get("/api/club/:id", () => new HttpResponse(null, { status: 404 })));
 
     const Harness = defineComponent({
       setup() {
@@ -129,9 +125,7 @@ describe("useIsInClub", () => {
   it("returns false when user is not in the specified club", async () => {
     server.use(
       http.get("/api/member/clubs", () =>
-        HttpResponse.json([
-          { clubId: "1", clubName: "Another Club", slug: "another-club" },
-        ]),
+        HttpResponse.json([{ clubId: "1", clubName: "Another Club", slug: "another-club" }]),
       ),
     );
 
@@ -195,13 +189,7 @@ describe("useClubSettings", () => {
   it("fetches club settings from /api/club/:id/settings", async () => {
     server.use(
       http.get("/api/club/:id/settings", () =>
-        HttpResponse.json({
-          features: {
-            blurScores: true,
-            awards: false,
-            discussionQuestions: true,
-          },
-        }),
+        HttpResponse.json({ features: { awards: false, discussionQuestions: true } }),
       ),
     );
 
@@ -210,7 +198,7 @@ describe("useClubSettings", () => {
         const { data, isSuccess } = useClubSettings("test-club");
         return { data, isSuccess };
       },
-      template: `<div>{{ isSuccess ? String(data?.features.blurScores) : 'loading' }}</div>`,
+      template: `<div>{{ isSuccess ? String(data?.features.discussionQuestions) : 'loading' }}</div>`,
     });
 
     const { findByText } = render(Harness);
@@ -223,64 +211,71 @@ describe("useClubSettings", () => {
 // ---------------------------------------------------------------------------
 
 describe("useUpdateClubSettings", () => {
-  it("applies optimistic update before the response arrives", async () => {
-    const initial = {
-      features: {
-        blurScores: false,
-        awards: false,
-        discussionQuestions: false,
-      },
-    };
+  it("shows the new value before the server responds, then keeps it on success", async () => {
+    const initial = { features: { awards: false, discussionQuestions: false } };
+    let resolvePost: (() => void) | undefined;
     server.use(
       http.get("/api/club/:id/settings", () => HttpResponse.json(initial)),
       http.post("/api/club/:id/settings", async () => {
-        // delay so we can observe optimistic state
-        await new Promise((r) => setTimeout(r, 50));
+        // Hold the response open so the optimistic value is observable.
+        await new Promise<void>((resolve) => (resolvePost = resolve));
         return new HttpResponse(null, { status: 200 });
       }),
     );
-
-    const blurValue = ref<boolean | undefined>(undefined);
 
     const Harness = defineComponent({
       setup() {
         const { data: settings } = useClubSettings("test-club");
         const { mutate } = useUpdateClubSettings("test-club");
-        const trigger = () => mutate({ features: { blurScores: true } });
+        const trigger = () => mutate({ features: { awards: true } });
         return { settings, trigger };
       },
-      template: `<button @click="trigger">go</button>`,
+      template: `<button @click="trigger">awards: {{ String(settings?.features.awards) }}</button>`,
     });
 
-    const { getByRole, container } = render(Harness);
-    // wait for initial data
-    await waitFor(() => {
-      expect(blurValue.value !== undefined || container).toBeTruthy();
-    });
+    const { findByRole, getByRole } = render(Harness);
+    await findByRole("button", { name: "awards: false" });
 
     getByRole("button").click();
-    // Optimistic update should show quickly
-    await waitFor(
-      () => {
-        expect(blurValue.value).toBeDefined();
+    // onMutate writes the merged settings into the cache immediately.
+    await findByRole("button", { name: "awards: true" });
+
+    resolvePost?.();
+    await findByRole("button", { name: "awards: true" });
+  });
+
+  it("rolls back to the previous settings when the request fails", async () => {
+    server.use(
+      http.get("/api/club/:id/settings", () =>
+        HttpResponse.json({ features: { awards: false, discussionQuestions: false } }),
+      ),
+      http.post("/api/club/:id/settings", () => new HttpResponse(null, { status: 500 })),
+    );
+
+    const Harness = defineComponent({
+      setup() {
+        const { data: settings } = useClubSettings("test-club");
+        const { mutate } = useUpdateClubSettings("test-club");
+        const trigger = () => mutate({ features: { awards: true } });
+        return { settings, trigger };
       },
-      { timeout: 200 },
-    ).catch(() => {
-      // optimistic ref may not be wired in harness; that's ok — test verifies POST fires
+      template: `<button @click="trigger">awards: {{ String(settings?.features.awards) }}</button>`,
     });
+
+    const { findByRole, getByRole } = render(Harness);
+    await findByRole("button", { name: "awards: false" });
+
+    getByRole("button").click();
+    await findByRole("button", { name: "awards: true" });
+    // onError restores the snapshot taken in onMutate.
+    await findByRole("button", { name: "awards: false" });
   });
 
   it("POSTs updated settings to /api/club/:id/settings", async () => {
     let capturedBody: unknown = null;
     server.use(
       http.get("/api/club/:id/settings", () =>
-        HttpResponse.json({
-          features: {
-            blurScores: false,
-            awards: false,
-            discussionQuestions: false,
-          },
-        }),
+        HttpResponse.json({ features: { awards: false, discussionQuestions: false } }),
       ),
       http.post("/api/club/:id/settings", async ({ request }) => {
         capturedBody = await request.json();
@@ -291,7 +286,7 @@ describe("useUpdateClubSettings", () => {
     const Harness = defineComponent({
       setup() {
         const { mutate, isSuccess } = useUpdateClubSettings("test-club");
-        const trigger = () => mutate({ features: { blurScores: true } });
+        const trigger = () => mutate({ features: { discussionQuestions: true } });
         return { trigger, isSuccess };
       },
       template: `<button @click="trigger">{{ isSuccess ? 'done' : 'go' }}</button>`,
@@ -300,7 +295,7 @@ describe("useUpdateClubSettings", () => {
     const { getByRole, findByText } = render(Harness);
     getByRole("button").click();
     await findByText("done");
-    expect(capturedBody).toEqual({ features: { blurScores: true } });
+    expect(capturedBody).toEqual({ features: { discussionQuestions: true } });
   });
 });
 

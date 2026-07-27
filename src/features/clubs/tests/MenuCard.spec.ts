@@ -1,7 +1,6 @@
 import { screen } from "@testing-library/vue";
 
 import MenuCard from "../components/MenuCard.vue";
-
 import { render } from "@/tests/utils";
 
 describe("MenuCard", () => {

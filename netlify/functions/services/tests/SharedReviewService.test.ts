@@ -67,7 +67,6 @@ const mockClub = {
   name: "Film Club",
   slug: "film-club",
   type: ClubType.movie,
-  legacy_id: null,
   slug_updated_at: null,
 };
 
@@ -151,6 +150,7 @@ const mockComments = [
 const mockExternalData: DetailedWorkData = {
   kind: "movie",
   actors: [],
+  castNames: [],
   adult: undefined,
   backdrop_path: undefined,
   budget: undefined,
@@ -187,32 +187,20 @@ describe("SharedReviewService.getSharedReviewData", () => {
     vi.mocked(ClubRepository.getById).mockResolvedValue(mockClub);
     vi.mocked(WorkCommentRepository.getByWorkAndClub).mockResolvedValue([]);
 
-    const result = await SharedReviewService.getSharedReviewData(
-      "club-1",
-      "work-missing",
-    );
+    const result = await SharedReviewService.getSharedReviewData("club-1", "work-missing");
 
     expect(result).toBeNull();
   });
 
   it("returns review data when work exists", async () => {
-    vi.mocked(ReviewRepository.getReviewsByWorkId).mockResolvedValue(
-      mockReviews,
-    );
+    vi.mocked(ReviewRepository.getReviewsByWorkId).mockResolvedValue(mockReviews);
     vi.mocked(UserRepository.getMembersByClubId).mockResolvedValue(mockMembers);
     vi.mocked(ListRepository.getWorkDetails).mockResolvedValue(mockWorkDetails);
     vi.mocked(ClubRepository.getById).mockResolvedValue(mockClub);
-    vi.mocked(WorkCommentRepository.getByWorkAndClub).mockResolvedValue(
-      mockComments,
-    );
-    vi.mocked(getExternalDataForWorks).mockResolvedValue(
-      new Map([["27205", mockExternalData]]),
-    );
+    vi.mocked(WorkCommentRepository.getByWorkAndClub).mockResolvedValue(mockComments);
+    vi.mocked(getExternalDataForWorks).mockResolvedValue(new Map([["27205", mockExternalData]]));
 
-    const result = await SharedReviewService.getSharedReviewData(
-      "club-1",
-      "work-1",
-    );
+    const result = await SharedReviewService.getSharedReviewData("club-1", "work-1");
 
     expect(result).not.toBeNull();
     expect(result?.reviews).toBe(mockReviews);
@@ -226,14 +214,9 @@ describe("SharedReviewService.getSharedReviewData", () => {
     vi.mocked(ListRepository.getWorkDetails).mockResolvedValue(mockWorkDetails);
     vi.mocked(ClubRepository.getById).mockResolvedValue(mockClub);
     vi.mocked(WorkCommentRepository.getByWorkAndClub).mockResolvedValue([]);
-    vi.mocked(getExternalDataForWorks).mockResolvedValue(
-      new Map([["27205", mockExternalData]]),
-    );
+    vi.mocked(getExternalDataForWorks).mockResolvedValue(new Map([["27205", mockExternalData]]));
 
-    const result = await SharedReviewService.getSharedReviewData(
-      "club-1",
-      "work-1",
-    );
+    const result = await SharedReviewService.getSharedReviewData("club-1", "work-1");
 
     expect(result?.work.id).toBe("work-1");
     expect(result?.work.title).toBe("Inception");
@@ -253,10 +236,7 @@ describe("SharedReviewService.getSharedReviewData", () => {
     vi.mocked(WorkCommentRepository.getByWorkAndClub).mockResolvedValue([]);
     vi.mocked(getExternalDataForWorks).mockResolvedValue(new Map());
 
-    const result = await SharedReviewService.getSharedReviewData(
-      "club-1",
-      "work-1",
-    );
+    const result = await SharedReviewService.getSharedReviewData("club-1", "work-1");
 
     expect(result?.work.imageUrl).toBeUndefined();
   });
@@ -272,10 +252,7 @@ describe("SharedReviewService.getSharedReviewData", () => {
     vi.mocked(WorkCommentRepository.getByWorkAndClub).mockResolvedValue([]);
     vi.mocked(getExternalDataForWorks).mockResolvedValue(new Map());
 
-    const result = await SharedReviewService.getSharedReviewData(
-      "club-1",
-      "work-1",
-    );
+    const result = await SharedReviewService.getSharedReviewData("club-1", "work-1");
 
     expect(result?.work.imageUrl).toBe("https://cdn.example.com/image.jpg");
   });
@@ -291,10 +268,7 @@ describe("SharedReviewService.getSharedReviewData", () => {
     vi.mocked(WorkCommentRepository.getByWorkAndClub).mockResolvedValue([]);
     vi.mocked(getExternalDataForWorks).mockResolvedValue(new Map());
 
-    const result = await SharedReviewService.getSharedReviewData(
-      "club-1",
-      "work-1",
-    );
+    const result = await SharedReviewService.getSharedReviewData("club-1", "work-1");
 
     expect(result?.work.externalId).toBeUndefined();
   });
@@ -307,10 +281,7 @@ describe("SharedReviewService.getSharedReviewData", () => {
     vi.mocked(WorkCommentRepository.getByWorkAndClub).mockResolvedValue([]);
     vi.mocked(getExternalDataForWorks).mockResolvedValue(new Map());
 
-    const result = await SharedReviewService.getSharedReviewData(
-      "club-1",
-      "work-1",
-    );
+    const result = await SharedReviewService.getSharedReviewData("club-1", "work-1");
 
     expect(result).toBeNull();
   });
@@ -323,10 +294,7 @@ describe("SharedReviewService.getSharedReviewData", () => {
     vi.mocked(WorkCommentRepository.getByWorkAndClub).mockResolvedValue([]);
     vi.mocked(getExternalDataForWorks).mockResolvedValue(new Map());
 
-    const result = await SharedReviewService.getSharedReviewData(
-      "club-1",
-      "work-1",
-    );
+    const result = await SharedReviewService.getSharedReviewData("club-1", "work-1");
 
     expect(result?.clubName).toBe("Film Club");
   });
@@ -341,17 +309,11 @@ describe("SharedReviewService.getSharedReviewData", () => {
 
     await SharedReviewService.getSharedReviewData("club-42", "work-99");
 
-    expect(ReviewRepository.getReviewsByWorkId).toHaveBeenCalledWith(
-      "club-42",
-      "work-99",
-    );
+    expect(ReviewRepository.getReviewsByWorkId).toHaveBeenCalledWith("club-42", "work-99");
     expect(UserRepository.getMembersByClubId).toHaveBeenCalledWith("club-42");
     expect(ListRepository.getWorkDetails).toHaveBeenCalledWith("work-99");
     expect(ClubRepository.getById).toHaveBeenCalledWith("club-42");
-    expect(WorkCommentRepository.getByWorkAndClub).toHaveBeenCalledWith(
-      "work-99",
-      "club-42",
-    );
+    expect(WorkCommentRepository.getByWorkAndClub).toHaveBeenCalledWith("work-99", "club-42");
   });
 
   it("calls getExternalDataForWorks with the work's external id and type", async () => {

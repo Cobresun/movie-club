@@ -1,11 +1,10 @@
-import { createTestingPinia } from "@pinia/testing";
+import { TestingPinia } from "@pinia/testing";
 import { screen, waitFor } from "@testing-library/vue";
-import { http, HttpResponse } from "msw";
+import { vi } from "vitest";
 
 import ReviewScore from "../components/ReviewScore.vue";
-
+import { ScoreAssistKey } from "../scoreAssist";
 import memberData from "@/mocks/data/member.json";
-import { server } from "@/mocks/server";
 import { useAuthStore } from "@/stores/auth";
 import { render } from "@/tests/utils";
 
@@ -14,7 +13,7 @@ const SOMEONE_ELSE = "999";
 
 // useUser() reads the logged-in user straight from the auth store, so identity
 // is established by populating authStore.user rather than a network response.
-function asCurrentUser(pinia: ReturnType<typeof createTestingPinia>) {
+function asCurrentUser(pinia: TestingPinia) {
   const authStore = useAuthStore(pinia);
   // @ts-expect-error Overwriting readonly session user for testing purposes
   authStore.user = {
@@ -28,129 +27,88 @@ function asCurrentUser(pinia: ReturnType<typeof createTestingPinia>) {
   };
 }
 
+/** The Score Assist eligibility gate ReviewView provides to the panel. */
+function withAssist(isEligible: boolean, open = vi.fn()) {
+  return {
+    global: { provide: { [ScoreAssistKey]: { isEligible: () => isEligible, open } } },
+  };
+}
+
 describe("ReviewScore", () => {
-  it("renders the score value", async () => {
-    render(ReviewScore, { props: { memberId: ME, workId: "w1", score: 8 } });
+  it("renders another member's score as plain text, with no trigger", async () => {
+    const { pinia } = render(ReviewScore, {
+      props: { memberId: SOMEONE_ELSE, workId: "w1", score: 8, editable: true },
+    });
+    asCurrentUser(pinia);
 
     expect(await screen.findByText("8")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByRole("button")).not.toBeInTheDocument();
+    });
   });
 
-  it("shows an 'Add score' affordance for the current user when there is no score", async () => {
+  it("renders the current user's score read-only where inline entry is disabled", async () => {
     const { pinia } = render(ReviewScore, {
-      props: { memberId: ME, workId: "w1" },
+      props: { memberId: ME, workId: "w1", score: 8, editable: false },
     });
     asCurrentUser(pinia);
 
-    expect(
-      await screen.findByRole("button", { name: "Add score" }),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("8")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByRole("button")).not.toBeInTheDocument();
+    });
   });
 
-  it("shows no 'Add score' affordance for another member", async () => {
+  it("offers an 'Add score' trigger when the current user has not scored yet", async () => {
     const { pinia } = render(ReviewScore, {
-      props: { memberId: SOMEONE_ELSE, workId: "w1" },
+      props: { memberId: ME, workId: "w1", editable: true },
     });
     asCurrentUser(pinia);
 
-    await waitFor(() => {
-      expect(
-        screen.queryByRole("button", { name: "Add score" }),
-      ).not.toBeInTheDocument();
-    });
+    const trigger = await screen.findByRole("button", { name: "Add score" });
+    // The empty state reads as "+ /10" rather than a number.
+    expect(trigger).toHaveTextContent("/10");
   });
 
-  it("opens a score input when the current user clicks 'Add score'", async () => {
+  it("labels the trigger as an edit and shows the existing score", async () => {
+    const { pinia } = render(ReviewScore, {
+      props: { memberId: ME, workId: "w1", score: 7.5, editable: true },
+    });
+    asCurrentUser(pinia);
+
+    const trigger = await screen.findByRole("button", { name: "Edit score" });
+    expect(trigger).toHaveTextContent("7.5");
+  });
+
+  it("opens the score entry panel when the trigger is clicked", async () => {
     const { user, pinia } = render(ReviewScore, {
-      props: { memberId: ME, workId: "w1" },
+      props: { memberId: ME, workId: "w1", editable: true },
+      ...withAssist(false),
     });
     asCurrentUser(pinia);
 
     await user.click(await screen.findByRole("button", { name: "Add score" }));
 
-    expect(
-      await screen.findByRole("textbox", { name: "Score" }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("spinbutton", { name: "Score" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Save score" })).toBeInTheDocument();
   });
 
-  it("submits a new review score on Enter", async () => {
-    let body: unknown = null;
-    server.use(
-      http.post("/api/club/:id/reviews", async ({ request }) => {
-        body = await request.json();
-        return new HttpResponse(null, { status: 200 });
-      }),
-    );
-
+  it("hands the work off to the Score Assist flow and closes the popover", async () => {
+    const open = vi.fn();
     const { user, pinia } = render(ReviewScore, {
-      props: { memberId: ME, workId: "w1" },
+      props: { memberId: ME, workId: "w1", editable: true },
+      ...withAssist(true, open),
     });
     asCurrentUser(pinia);
 
     await user.click(await screen.findByRole("button", { name: "Add score" }));
-    await user.type(
-      await screen.findByRole("textbox", { name: "Score" }),
-      "7{Enter}",
-    );
+    await user.click(await screen.findByRole("button", { name: /Not sure/ }));
 
+    expect(open).toHaveBeenCalledWith("w1");
+    // A popover cannot swap its own content, so it closes and the standalone
+    // assist modal (hosted by ReviewView) takes over.
     await waitFor(() => {
-      expect(body).toMatchObject({ workId: "w1", score: 7 });
+      expect(screen.queryByRole("spinbutton", { name: "Score" })).not.toBeInTheDocument();
     });
-  });
-
-  it("updates an existing review score when a reviewId is provided", async () => {
-    let body: unknown = null;
-    let requestUrl = "";
-    server.use(
-      http.put("/api/club/:id/reviews/:reviewId", async ({ request }) => {
-        body = await request.json();
-        requestUrl = request.url;
-        return new HttpResponse(null, { status: 200 });
-      }),
-    );
-
-    const { user, pinia } = render(ReviewScore, {
-      props: { memberId: ME, workId: "w1", score: 5, reviewId: "r1" },
-    });
-    asCurrentUser(pinia);
-
-    await user.click(await screen.findByText("5"));
-
-    const input = await screen.findByRole("textbox", { name: "Score" });
-    await user.clear(input);
-    await user.type(input, "9{Enter}");
-
-    await waitFor(() => {
-      expect(body).toMatchObject({ score: 9 });
-    });
-    expect(requestUrl).toContain("/reviews/r1");
-  });
-
-  it("ignores an out-of-range score", async () => {
-    let posted = false;
-    server.use(
-      http.post("/api/club/:id/reviews", () => {
-        posted = true;
-        return new HttpResponse(null, { status: 200 });
-      }),
-    );
-
-    const { user, pinia } = render(ReviewScore, {
-      props: { memberId: ME, workId: "w1" },
-    });
-    asCurrentUser(pinia);
-
-    await user.click(await screen.findByRole("button", { name: "Add score" }));
-    await user.type(
-      await screen.findByRole("textbox", { name: "Score" }),
-      "42{Enter}",
-    );
-
-    // 42 is outside 0–10, so no request fires and the input stays open.
-    await waitFor(() => {
-      expect(
-        screen.getByRole("textbox", { name: "Score" }),
-      ).toBeInTheDocument();
-    });
-    expect(posted).toBe(false);
   });
 });

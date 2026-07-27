@@ -5,7 +5,6 @@ import { Member } from "../../../../lib/types/club";
 import { WorkType } from "../../../../lib/types/generated/db";
 import { DetailedWorkListItem } from "../../../../lib/types/lists";
 import ListItemDetailsContent from "../components/ListItemDetailsContent.vue";
-
 import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
 import { server } from "@/mocks/server";
 import { render } from "@/tests/utils";
@@ -21,7 +20,7 @@ const movie: DetailedWorkListItem = {
   imageUrl: "https://test.com/poster.jpg",
   externalData: {
     kind: "movie",
-    actors: [],
+    castNames: [],
     directors: [],
     genres: [],
     production_companies: [],
@@ -41,12 +40,9 @@ const baseProps = {
 // The panel embeds CommentThread and WatchProviders, which both fetch.
 beforeEach(() => {
   server.use(
-    http.get("/api/club/:id/reviews/:workId/comments", () =>
-      HttpResponse.json([]),
-    ),
-    http.get(
-      "https://api.themoviedb.org/3/movie/:movieId/watch/providers",
-      () => HttpResponse.json({ id: 27205, results: {} }),
+    http.get("/api/club/:id/reviews/:workId/comments", () => HttpResponse.json([])),
+    http.get("https://api.themoviedb.org/3/movie/:movieId/watch/providers", () =>
+      HttpResponse.json({ id: 27205, results: {} }),
     ),
   );
 });
@@ -115,8 +111,6 @@ describe("ListItemDetailsContent", () => {
       props: { ...baseProps, canReview: false },
     });
 
-    expect(
-      screen.queryByRole("button", { name: "Reviewed" }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Reviewed" })).not.toBeInTheDocument();
   });
 });

@@ -1,7 +1,6 @@
 import { screen } from "@testing-library/vue";
 
 import ForgotPasswordView from "../views/ForgotPasswordView.vue";
-
 import { authClient } from "@/lib/auth-client";
 import { render } from "@/tests/utils";
 
@@ -35,9 +34,7 @@ describe("ForgotPasswordView", () => {
   it("renders the send reset link button", () => {
     render(ForgotPasswordView);
 
-    expect(
-      screen.getByRole("button", { name: /Send Reset Link/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Send Reset Link/i })).toBeInTheDocument();
   });
 
   it("shows success state after submitting a valid email", async () => {
@@ -57,9 +54,7 @@ describe("ForgotPasswordView", () => {
     await user.click(screen.getByRole("button", { name: /Send Reset Link/i }));
 
     await screen.findByText("Check your email");
-    expect(
-      screen.getByRole("button", { name: /Try Again/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Try Again/i })).toBeInTheDocument();
   });
 
   it("resets to form when Try Again is clicked", async () => {
@@ -71,9 +66,7 @@ describe("ForgotPasswordView", () => {
     await screen.findByText("Check your email");
     await user.click(screen.getByRole("button", { name: /Try Again/i }));
 
-    expect(
-      screen.getByRole("button", { name: /Send Reset Link/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Send Reset Link/i })).toBeInTheDocument();
     expect(screen.queryByText("Check your email")).not.toBeInTheDocument();
   });
 

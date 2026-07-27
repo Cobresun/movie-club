@@ -11,7 +11,6 @@
 import { DeleteResult, InsertResult, UpdateResult } from "kysely";
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
-import { assertResponse, makeEvent, parseBody, stubContext } from "./helpers";
 import { ClubType, WorkType } from "../../../lib/types/generated/db";
 import { handler } from "../club/index";
 import ClubRepository from "../repositories/ClubRepository";
@@ -21,7 +20,8 @@ import SettingsRepository from "../repositories/SettingsRepository";
 import WorkCommentRepository from "../repositories/WorkCommentRepository";
 import WorkRepository from "../repositories/WorkRepository";
 import SharedReviewService from "../services/SharedReviewService";
-import { generateDiscussionQuestions } from "../utils/gemini";
+import { generateJson } from "../utils/gemini";
+import { assertResponse, makeEvent, parseBody, stubContext } from "./helpers";
 
 // ─── Mock: auth ──────────────────────────────────────────────────────────────
 vi.mock("../utils/auth", () => ({
@@ -102,13 +102,12 @@ vi.mock("../repositories/SettingsRepository", () => ({
 
 vi.mock("../repositories/WorkRepository", () => ({
   default: {
-    findByType: vi.fn(),
+    getById: vi.fn(),
     insert: vi.fn(),
     delete: vi.fn(),
     getNextWork: vi.fn(),
     setNextWork: vi.fn(),
     deleteNextWork: vi.fn(),
-    getDiscussionContext: vi.fn(),
   },
 }));
 
@@ -129,7 +128,13 @@ vi.mock("../utils/tmdb", () => ({
 }));
 
 vi.mock("../utils/gemini", () => ({
-  generateDiscussionQuestions: vi.fn(),
+  generateJson: vi.fn(),
+}));
+
+// The discussion-questions route delegates prompt wording to the work's
+// provider; mocking the registry keeps this test about routing and gating.
+vi.mock("../utils/providers", () => ({
+  getProvider: vi.fn(() => ({ getDiscussionPrompt: vi.fn(async () => "prompt") })),
 }));
 
 vi.mock("../services/SharedReviewService", () => ({
@@ -146,7 +151,6 @@ const mockClub = {
   name: "My Club",
   slug: CLUB_SLUG,
   type: ClubType.movie,
-  legacy_id: null,
   slug_updated_at: null,
 };
 
@@ -166,9 +170,7 @@ describe("POST /api/club/:clubSlug/reviews/", () => {
     setupClub();
     vi.mocked(ListRepository.getReviewsListId).mockResolvedValue("sys-list-1");
     vi.mocked(ListRepository.isItemInList).mockResolvedValue(true);
-    vi.mocked(ReviewRepository.insertReview).mockResolvedValue([
-      new InsertResult(undefined, 1n),
-    ]);
+    vi.mocked(ReviewRepository.insertReview).mockResolvedValue([new InsertResult(undefined, 1n)]);
 
     const event = makeEvent({
       path: `/api/club/${CLUB_SLUG}/reviews/`,
@@ -179,12 +181,7 @@ describe("POST /api/club/:clubSlug/reviews/", () => {
     const response = assertResponse(await handler(event, stubContext));
 
     expect(response.statusCode).toBe(200);
-    expect(ReviewRepository.insertReview).toHaveBeenCalledWith(
-      CLUB_ID,
-      "work-123",
-      "user-1",
-      8.5,
-    );
+    expect(ReviewRepository.insertReview).toHaveBeenCalledWith(CLUB_ID, "work-123", "user-1", 8.5);
   });
 
   it("returns 400 when movie is not in the reviews list", async () => {
@@ -263,9 +260,7 @@ describe("PUT /api/club/:clubSlug/reviews/:reviewId", () => {
       list_id: "sys-list-1",
       created_date: new Date(),
     });
-    vi.mocked(ReviewRepository.updateScore).mockResolvedValue([
-      new UpdateResult(0n, undefined),
-    ]);
+    vi.mocked(ReviewRepository.updateScore).mockResolvedValue([new UpdateResult(0n, undefined)]);
 
     const event = makeEvent({
       path: `/api/club/${CLUB_SLUG}/reviews/review-1`,
@@ -352,9 +347,7 @@ describe("GET /api/club/:clubSlug/reviews/:workId/comments", () => {
 describe("POST /api/club/:clubSlug/reviews/:workId/comments", () => {
   it("returns 200 when comment is added", async () => {
     setupClub();
-    vi.mocked(WorkCommentRepository.insert).mockResolvedValue([
-      new InsertResult(undefined, 1n),
-    ]);
+    vi.mocked(WorkCommentRepository.insert).mockResolvedValue([new InsertResult(undefined, 1n)]);
 
     const event = makeEvent({
       path: `/api/club/${CLUB_SLUG}/reviews/work-123/comments`,
@@ -490,9 +483,7 @@ describe("DELETE /api/club/:clubSlug/reviews/:workId/comments/:commentId", () =>
       id: "comment-1",
       user_id: "user-1",
     });
-    vi.mocked(WorkCommentRepository.deleteById).mockResolvedValue([
-      new DeleteResult(0n),
-    ]);
+    vi.mocked(WorkCommentRepository.deleteById).mockResolvedValue([new DeleteResult(0n)]);
 
     const event = makeEvent({
       path: `/api/club/${CLUB_SLUG}/reviews/work-123/comments/comment-1`,
@@ -590,15 +581,16 @@ describe("POST /api/club/:clubSlug/reviews/:workId/discussion-questions", () => 
   it("returns 200 with questions when feature is enabled", async () => {
     setupClub();
     vi.mocked(SettingsRepository.getSettings).mockResolvedValue({
-      features: { blurScores: false, awards: false, discussionQuestions: true },
+      features: { awards: false, discussionQuestions: true },
     });
-    vi.mocked(WorkRepository.getDiscussionContext).mockResolvedValue({
+    vi.mocked(WorkRepository.getById).mockResolvedValue({
       title: "Inception",
-      release_date: new Date("2010-07-16"),
+      type: WorkType.movie,
+      external_id: "27205",
     });
-    vi.mocked(generateDiscussionQuestions).mockResolvedValue([
-      "What did the ending mean?",
-    ]);
+    vi.mocked(generateJson).mockResolvedValue({
+      questions: ["What did the ending mean?"],
+    });
 
     const event = makeEvent({
       path: `/api/club/${CLUB_SLUG}/reviews/work-123/discussion-questions`,
@@ -615,11 +607,7 @@ describe("POST /api/club/:clubSlug/reviews/:workId/discussion-questions", () => 
   it("returns 400 when discussion questions feature is disabled", async () => {
     setupClub();
     vi.mocked(SettingsRepository.getSettings).mockResolvedValue({
-      features: {
-        blurScores: false,
-        awards: false,
-        discussionQuestions: false,
-      },
+      features: { awards: false, discussionQuestions: false },
     });
 
     const event = makeEvent({
@@ -635,9 +623,9 @@ describe("POST /api/club/:clubSlug/reviews/:workId/discussion-questions", () => 
   it("returns 400 when work is not found", async () => {
     setupClub();
     vi.mocked(SettingsRepository.getSettings).mockResolvedValue({
-      features: { blurScores: false, awards: false, discussionQuestions: true },
+      features: { awards: false, discussionQuestions: true },
     });
-    vi.mocked(WorkRepository.getDiscussionContext).mockResolvedValue(undefined);
+    vi.mocked(WorkRepository.getById).mockResolvedValue(undefined);
 
     const event = makeEvent({
       path: `/api/club/${CLUB_SLUG}/reviews/work-999/discussion-questions`,

@@ -5,10 +5,10 @@
  */
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
-import { assertResponse, makeEvent, parseBody, stubContext } from "./helpers";
 import { ClubType } from "../../../lib/types/generated/db";
 import { handler } from "../club/index";
 import ClubRepository from "../repositories/ClubRepository";
+import { assertResponse, makeEvent, parseBody, stubContext } from "./helpers";
 
 // ─── Mock: auth ──────────────────────────────────────────────────────────────
 vi.mock("../utils/auth", () => ({
@@ -92,13 +92,11 @@ vi.mock("../repositories/SettingsRepository", () => ({
 
 vi.mock("../repositories/WorkRepository", () => ({
   default: {
-    findByType: vi.fn(),
     insert: vi.fn(),
     delete: vi.fn(),
     getNextWork: vi.fn(),
     setNextWork: vi.fn(),
     deleteNextWork: vi.fn(),
-    getDiscussionContext: vi.fn(),
   },
 }));
 
@@ -139,7 +137,6 @@ const mockClub = {
   name: "My Club",
   slug: CLUB_SLUG,
   type: ClubType.movie,
-  legacy_id: null,
   slug_updated_at: null,
 };
 
@@ -157,9 +154,7 @@ beforeEach(() => {
 describe("POST /api/club/:clubSlug/invite/", () => {
   it("returns 200 with invite token when created successfully", async () => {
     setupClub();
-    vi.mocked(ClubRepository.createClubInvite).mockResolvedValue(
-      "token-abc123",
-    );
+    vi.mocked(ClubRepository.createClubInvite).mockResolvedValue("token-abc123");
 
     const event = makeEvent({
       path: `/api/club/${CLUB_SLUG}/invite/`,
@@ -176,9 +171,7 @@ describe("POST /api/club/:clubSlug/invite/", () => {
 
   it("returns 400 when creating invite throws an error", async () => {
     setupClub();
-    vi.mocked(ClubRepository.createClubInvite).mockRejectedValue(
-      new Error("DB error"),
-    );
+    vi.mocked(ClubRepository.createClubInvite).mockRejectedValue(new Error("DB error"));
 
     const event = makeEvent({
       path: `/api/club/${CLUB_SLUG}/invite/`,

@@ -17,13 +17,13 @@
  */
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
-import { assertResponse, makeEvent, parseBody, stubContext } from "./helpers";
 import { AwardsData, AwardsStep } from "../../../lib/types/awards";
 import { ClubType } from "../../../lib/types/generated/db";
 import { handler } from "../club/index";
 import AwardsRepository from "../repositories/AwardsRepository";
 import ClubRepository from "../repositories/ClubRepository";
 import { getDetailedMovie } from "../utils/tmdb";
+import { assertResponse, makeEvent, parseBody, stubContext } from "./helpers";
 
 // ─── Mock: auth ─────────────────────────────────────────────────────────────
 vi.mock("../utils/auth", () => ({
@@ -118,10 +118,8 @@ vi.mock("../repositories/WorkRepository", () => ({
     getNextWork: vi.fn(),
     setNextWork: vi.fn(),
     deleteNextWork: vi.fn(),
-    findByType: vi.fn(),
     insert: vi.fn(),
     delete: vi.fn(),
-    getDiscussionContext: vi.fn(),
   },
 }));
 
@@ -175,7 +173,6 @@ const mockClub = {
   name: "Test Club",
   slug: "1",
   type: ClubType.movie,
-  legacy_id: null,
   slug_updated_at: null,
 };
 
@@ -324,11 +321,7 @@ describe("POST /api/club/:clubSlug/awards/:year/category", () => {
     const response = assertResponse(await handler(event, stubContext));
 
     expect(response.statusCode).toBe(200);
-    expect(AwardsRepository.updateByYear).toHaveBeenCalledWith(
-      "1",
-      2024,
-      expect.any(Function),
-    );
+    expect(AwardsRepository.updateByYear).toHaveBeenCalledWith("1", 2024, expect.any(Function));
   });
 
   it("returns 400 when body is missing", async () => {
@@ -468,18 +461,12 @@ describe("POST /api/club/:clubSlug/awards/:year/nomination", () => {
     const response = assertResponse(await handler(event, stubContext));
 
     expect(response.statusCode).toBe(200);
-    expect(AwardsRepository.updateByYear).toHaveBeenCalledWith(
-      "1",
-      2024,
-      expect.any(Function),
-    );
+    expect(AwardsRepository.updateByYear).toHaveBeenCalledWith("1", 2024, expect.any(Function));
   });
 
   it("adds to nominatedBy when movie is already nominated", async () => {
     setupClubAndYear();
-    let capturedUpdater:
-      | ((data: typeof baseAwardsData) => typeof baseAwardsData)
-      | undefined;
+    let capturedUpdater: ((data: typeof baseAwardsData) => typeof baseAwardsData) | undefined;
     vi.mocked(AwardsRepository.updateByYear).mockImplementationOnce(
       async (_clubId, _year, updater) => {
         capturedUpdater = updater;
@@ -501,17 +488,13 @@ describe("POST /api/club/:clubSlug/awards/:year/nomination", () => {
     // Invoke the captured updater to verify data transformation
     const result = capturedUpdater?.(baseAwardsData);
     const bestPicture = result?.awards.find((a) => a.title === "Best Picture");
-    const nomination = bestPicture?.nominations.find(
-      (n) => n.movieId === 27205,
-    );
+    const nomination = bestPicture?.nominations.find((n) => n.movieId === 27205);
     expect(nomination?.nominatedBy).toContain("user-2");
   });
 
   it("creates new nomination when movie not yet nominated", async () => {
     setupClubAndYear();
-    let capturedUpdater:
-      | ((data: typeof baseAwardsData) => typeof baseAwardsData)
-      | undefined;
+    let capturedUpdater: ((data: typeof baseAwardsData) => typeof baseAwardsData) | undefined;
     vi.mocked(AwardsRepository.updateByYear).mockImplementationOnce(
       async (_clubId, _year, updater) => {
         capturedUpdater = updater;
@@ -533,9 +516,7 @@ describe("POST /api/club/:clubSlug/awards/:year/nomination", () => {
     const result = capturedUpdater?.(baseAwardsData);
     const bestPicture = result?.awards.find((a) => a.title === "Best Picture");
     expect(bestPicture?.nominations).toHaveLength(2);
-    const newNomination = bestPicture?.nominations.find(
-      (n) => n.movieId === 999,
-    );
+    const newNomination = bestPicture?.nominations.find((n) => n.movieId === 999);
     expect(newNomination?.nominatedBy).toEqual(["user-1"]);
     expect(newNomination?.ranking).toEqual({});
   });
@@ -592,9 +573,7 @@ describe("DELETE /api/club/:clubSlug/awards/:year/nomination/:movieId", () => {
 
   it("removes user from nominatedBy and filters empty nominations", async () => {
     setupClubAndYear();
-    let capturedUpdater:
-      | ((data: typeof baseAwardsData) => typeof baseAwardsData)
-      | undefined;
+    let capturedUpdater: ((data: typeof baseAwardsData) => typeof baseAwardsData) | undefined;
     vi.mocked(AwardsRepository.updateByYear).mockImplementationOnce(
       async (_clubId, _year, updater) => {
         capturedUpdater = updater;
@@ -667,18 +646,12 @@ describe("POST /api/club/:clubSlug/awards/:year/ranking", () => {
     const response = assertResponse(await handler(event, stubContext));
 
     expect(response.statusCode).toBe(200);
-    expect(AwardsRepository.updateByYear).toHaveBeenCalledWith(
-      "1",
-      2024,
-      expect.any(Function),
-    );
+    expect(AwardsRepository.updateByYear).toHaveBeenCalledWith("1", 2024, expect.any(Function));
   });
 
   it("records voter ranking by position index", async () => {
     setupClubAndYear();
-    let capturedUpdater:
-      | ((data: typeof baseAwardsData) => typeof baseAwardsData)
-      | undefined;
+    let capturedUpdater: ((data: typeof baseAwardsData) => typeof baseAwardsData) | undefined;
     vi.mocked(AwardsRepository.updateByYear).mockImplementationOnce(
       async (_clubId, _year, updater) => {
         capturedUpdater = updater;
@@ -699,9 +672,7 @@ describe("POST /api/club/:clubSlug/awards/:year/ranking", () => {
 
     const result = capturedUpdater?.(baseAwardsData);
     const bestPicture = result?.awards.find((a) => a.title === "Best Picture");
-    const nomination = bestPicture?.nominations.find(
-      (n) => n.movieId === 27205,
-    );
+    const nomination = bestPicture?.nominations.find((n) => n.movieId === 27205);
     expect(nomination?.ranking["user-1"]).toBe(1);
   });
 
@@ -750,18 +721,12 @@ describe("PUT /api/club/:clubSlug/awards/:year/step", () => {
     const response = assertResponse(await handler(event, stubContext));
 
     expect(response.statusCode).toBe(200);
-    expect(AwardsRepository.updateByYear).toHaveBeenCalledWith(
-      "1",
-      2024,
-      expect.any(Function),
-    );
+    expect(AwardsRepository.updateByYear).toHaveBeenCalledWith("1", 2024, expect.any(Function));
   });
 
   it("persists the new step value in the updater", async () => {
     setupClubAndYear();
-    let capturedUpdater:
-      | ((data: typeof baseAwardsData) => typeof baseAwardsData)
-      | undefined;
+    let capturedUpdater: ((data: typeof baseAwardsData) => typeof baseAwardsData) | undefined;
     vi.mocked(AwardsRepository.updateByYear).mockImplementationOnce(
       async (_clubId, _year, updater) => {
         capturedUpdater = updater;

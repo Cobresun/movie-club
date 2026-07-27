@@ -2,7 +2,6 @@ import { http, HttpResponse } from "msw";
 import { defineComponent } from "vue";
 
 import { useDiscussionQuestions } from "../useDiscussionQuestions";
-
 import { server } from "@/mocks/server";
 import { render } from "@/tests/utils";
 
@@ -18,10 +17,7 @@ describe("useDiscussionQuestions", () => {
 
     const Harness = defineComponent({
       setup() {
-        const { isLoading, isFetching, data } = useDiscussionQuestions(
-          "test-club",
-          "work-1",
-        );
+        const { isLoading, isFetching, data } = useDiscussionQuestions("test-club", "work-1");
         return { isLoading, isFetching, data };
       },
       template: `<div>{{ isFetching ? 'fetching' : 'idle' }}</div>`,
@@ -43,10 +39,7 @@ describe("useDiscussionQuestions", () => {
 
     const Harness = defineComponent({
       setup() {
-        const { data, refetch, isSuccess } = useDiscussionQuestions(
-          "test-club",
-          "work-1",
-        );
+        const { data, refetch, isSuccess } = useDiscussionQuestions("test-club", "work-1");
         return { data, refetch, isSuccess };
       },
       template: `<div><button @click="refetch()">fetch</button><span>{{ isSuccess ? data?.join('|') : 'idle' }}</span></div>`,
@@ -68,10 +61,7 @@ describe("useDiscussionQuestions", () => {
 
     const Harness = defineComponent({
       setup() {
-        const { isError, refetch } = useDiscussionQuestions(
-          "test-club",
-          "work-1",
-        );
+        const { isError, refetch } = useDiscussionQuestions("test-club", "work-1");
         return { isError, refetch };
       },
       template: `<div><button @click="refetch()">fetch</button>{{ isError ? 'error' : 'ok' }}</div>`,

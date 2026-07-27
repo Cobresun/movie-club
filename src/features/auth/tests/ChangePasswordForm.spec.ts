@@ -1,7 +1,6 @@
 import { screen } from "@testing-library/vue";
 
 import ChangePasswordForm from "../components/ChangePasswordForm.vue";
-
 import { authClient } from "@/lib/auth-client";
 import { render } from "@/tests/utils";
 
@@ -32,17 +31,13 @@ describe("ChangePasswordForm", () => {
   it("renders the submit button", () => {
     render(ChangePasswordForm);
 
-    expect(
-      screen.getByRole("button", { name: /Change Password/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Change Password/i })).toBeInTheDocument();
   });
 
   it("renders the revoke sessions checkbox", () => {
     render(ChangePasswordForm);
 
-    expect(
-      screen.getByLabelText(/Sign out of all other devices/i),
-    ).toBeInTheDocument();
+    expect(screen.getByLabelText(/Sign out of all other devices/i)).toBeInTheDocument();
   });
 
   it("shows error when new passwords do not match", async () => {
@@ -66,9 +61,7 @@ describe("ChangePasswordForm", () => {
 
     await user.click(screen.getByRole("button", { name: /Change Password/i }));
 
-    expect(
-      screen.getByText("New password must be at least 8 characters."),
-    ).toBeInTheDocument();
+    expect(screen.getByText("New password must be at least 8 characters.")).toBeInTheDocument();
   });
 
   it("shows error when new password equals current password", async () => {
@@ -90,16 +83,11 @@ describe("ChangePasswordForm", () => {
 
     await user.type(screen.getByLabelText("Current Password"), "oldpass1");
     await user.type(screen.getByLabelText("New Password"), "newpass123");
-    await user.type(
-      screen.getByLabelText("Confirm New Password"),
-      "newpass123",
-    );
+    await user.type(screen.getByLabelText("Confirm New Password"), "newpass123");
 
     await user.click(screen.getByRole("button", { name: /Change Password/i }));
 
-    expect(
-      await screen.findByText("Password changed successfully!"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Password changed successfully!")).toBeInTheDocument();
   });
 
   it("shows error message when API returns an incorrect password error", async () => {
@@ -116,15 +104,10 @@ describe("ChangePasswordForm", () => {
 
     await user.type(screen.getByLabelText("Current Password"), "wrongpass");
     await user.type(screen.getByLabelText("New Password"), "newpass123");
-    await user.type(
-      screen.getByLabelText("Confirm New Password"),
-      "newpass123",
-    );
+    await user.type(screen.getByLabelText("Confirm New Password"), "newpass123");
 
     await user.click(screen.getByRole("button", { name: /Change Password/i }));
 
-    expect(
-      await screen.findByText("Current password is incorrect."),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Current password is incorrect.")).toBeInTheDocument();
   });
 });

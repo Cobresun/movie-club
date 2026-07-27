@@ -23,9 +23,7 @@ async function importTmdb() {
 // Fixtures
 // ---------------------------------------------------------------------------
 
-function makeTMDBMovieData(
-  overrides: Partial<TMDBMovieData> = {},
-): TMDBMovieData {
+function makeTMDBMovieData(overrides: Partial<TMDBMovieData> = {}): TMDBMovieData {
   return {
     adult: false,
     backdrop_path: "/backdrop.jpg",
@@ -39,8 +37,7 @@ function makeTMDBMovieData(
     imdb_id: "tt1375666",
     original_language: "en",
     original_title: "Inception",
-    overview:
-      "Cobb steals information from his targets by entering their dreams.",
+    overview: "Cobb steals information from his targets by entering their dreams.",
     popularity: 87.3,
     poster_path: "/poster.jpg",
     production_companies: [
@@ -51,15 +48,11 @@ function makeTMDBMovieData(
         origin_country: "US",
       },
     ],
-    production_countries: [
-      { iso_3166_1: "US", name: "United States of America" },
-    ],
+    production_countries: [{ iso_3166_1: "US", name: "United States of America" }],
     release_date: "2010-07-16",
     revenue: 836836967,
     runtime: 148,
-    spoken_languages: [
-      { english_name: "English", iso_639_1: "en", name: "English" },
-    ],
+    spoken_languages: [{ english_name: "English", iso_639_1: "en", name: "English" }],
     status: "Released",
     tagline: "Your mind is the scene of the crime.",
     title: "Inception",
@@ -268,9 +261,7 @@ describe("getDetailedMovie", () => {
 
     const result = await getDetailedMovie([{ movieId: 27205 }]);
 
-    expect(result[0]?.posterUrl).toBe(
-      "https://image.tmdb.org/t/p/w154/poster.jpg",
-    );
+    expect(result[0]?.posterUrl).toBe("https://image.tmdb.org/t/p/w154/poster.jpg");
   });
 
   it("maps cast to actors sorted by order with profilePath", async () => {
@@ -331,9 +322,7 @@ describe("getDetailedMovie", () => {
 
     const result = await getDetailedMovie([{ movieId: 27205 }]);
 
-    expect(result[0]?.movieData.production_countries).toEqual([
-      "United States of America",
-    ]);
+    expect(result[0]?.movieData.production_countries).toEqual(["United States of America"]);
   });
 
   it("parses vote_average string to float", async () => {

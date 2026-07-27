@@ -10,7 +10,6 @@
 import { DeleteResult, InsertResult, UpdateResult } from "kysely";
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
-import { assertResponse, makeEvent, parseBody, stubContext } from "./helpers";
 import { ClubType } from "../../../lib/types/generated/db";
 import { handler } from "../club/index";
 import ClubRepository from "../repositories/ClubRepository";
@@ -18,6 +17,7 @@ import ListRepository from "../repositories/ListRepository";
 import SettingsRepository from "../repositories/SettingsRepository";
 import UserRepository from "../repositories/UserRepository";
 import WorkRepository from "../repositories/WorkRepository";
+import { assertResponse, makeEvent, parseBody, stubContext } from "./helpers";
 
 // ─── Mock: auth ────────────────────────────────────────────────────────────
 // auth.ts instantiates BetterAuth at import time; mock the whole module so no
@@ -115,10 +115,8 @@ vi.mock("../repositories/WorkRepository", () => ({
     getNextWork: vi.fn(),
     setNextWork: vi.fn(),
     deleteNextWork: vi.fn(),
-    findByType: vi.fn(),
     insert: vi.fn(),
     delete: vi.fn(),
-    getDiscussionContext: vi.fn(),
   },
 }));
 vi.mock("../repositories/ReviewRepository", () => ({
@@ -173,7 +171,6 @@ const mockClub = {
   name: "Test Club",
   slug: "test-club",
   type: ClubType.movie,
-  legacy_id: null,
   slug_updated_at: null,
 };
 
@@ -201,9 +198,7 @@ describe("GET /api/club/:clubSlug", () => {
     const response = assertResponse(await handler(event, stubContext));
 
     expect(response.statusCode).toBe(200);
-    const body = parseBody<{ clubId: string; clubName: string; slug: string }>(
-      response.body,
-    );
+    const body = parseBody<{ clubId: string; clubName: string; slug: string }>(response.body);
     expect(body.clubId).toBe("club-1");
     expect(body.clubName).toBe("Test Club");
     expect(body.slug).toBe("test-club");
@@ -234,9 +229,7 @@ describe("POST /api/club/", () => {
     vi.mocked(ListRepository.createListsForClub).mockResolvedValue([
       new InsertResult(undefined, 1n),
     ]);
-    vi.mocked(SettingsRepository.createDefaultSettings).mockResolvedValue(
-      undefined,
-    );
+    vi.mocked(SettingsRepository.createDefaultSettings).mockResolvedValue(undefined);
     vi.mocked(UserRepository.getByEmail).mockResolvedValue({
       id: "user-1",
       email: "user@example.com",
@@ -324,9 +317,7 @@ describe("POST /api/club/", () => {
 describe("PUT /api/club/:clubSlug/name", () => {
   it("returns 200 when name is updated successfully", async () => {
     setupClub();
-    vi.mocked(ClubRepository.updateName).mockResolvedValue(
-      new UpdateResult(0n, undefined),
-    );
+    vi.mocked(ClubRepository.updateName).mockResolvedValue(new UpdateResult(0n, undefined));
 
     const event = makeEvent({
       path: "/api/club/test-club/name",
@@ -337,10 +328,7 @@ describe("PUT /api/club/:clubSlug/name", () => {
     const response = assertResponse(await handler(event, stubContext));
 
     expect(response.statusCode).toBe(200);
-    expect(ClubRepository.updateName).toHaveBeenCalledWith(
-      "club-1",
-      "Updated Club Name",
-    );
+    expect(ClubRepository.updateName).toHaveBeenCalledWith("club-1", "Updated Club Name");
   });
 
   it("returns 400 when body is missing", async () => {
@@ -498,12 +486,8 @@ describe("GET /api/club/:clubSlug/nextWork", () => {
 describe("PUT /api/club/:clubSlug/nextWork", () => {
   it("returns 200 when next work is set", async () => {
     setupClub();
-    vi.mocked(WorkRepository.deleteNextWork).mockResolvedValue([
-      new DeleteResult(0n),
-    ]);
-    vi.mocked(WorkRepository.setNextWork).mockResolvedValue([
-      new InsertResult(undefined, 1n),
-    ]);
+    vi.mocked(WorkRepository.deleteNextWork).mockResolvedValue([new DeleteResult(0n)]);
+    vi.mocked(WorkRepository.setNextWork).mockResolvedValue([new InsertResult(undefined, 1n)]);
 
     const event = makeEvent({
       path: "/api/club/test-club/nextWork",
@@ -515,10 +499,7 @@ describe("PUT /api/club/:clubSlug/nextWork", () => {
 
     expect(response.statusCode).toBe(200);
     expect(WorkRepository.deleteNextWork).toHaveBeenCalledWith("club-1");
-    expect(WorkRepository.setNextWork).toHaveBeenCalledWith(
-      "club-1",
-      "work-456",
-    );
+    expect(WorkRepository.setNextWork).toHaveBeenCalledWith("club-1", "work-456");
   });
 
   it("returns 400 when body is missing", async () => {
@@ -541,9 +522,7 @@ describe("PUT /api/club/:clubSlug/nextWork", () => {
 describe("DELETE /api/club/:clubSlug/nextWork", () => {
   it("returns 200 when next work is deleted", async () => {
     setupClub();
-    vi.mocked(WorkRepository.deleteNextWork).mockResolvedValue([
-      new DeleteResult(0n),
-    ]);
+    vi.mocked(WorkRepository.deleteNextWork).mockResolvedValue([new DeleteResult(0n)]);
 
     const event = makeEvent({
       path: "/api/club/test-club/nextWork",

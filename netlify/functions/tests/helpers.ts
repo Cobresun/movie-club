@@ -1,8 +1,4 @@
-import {
-  HandlerContext,
-  HandlerEvent,
-  HandlerResponse,
-} from "@netlify/functions";
+import { HandlerContext, HandlerEvent, HandlerResponse } from "@netlify/functions";
 
 import { ensure } from "../../../lib/checks/checks";
 
@@ -10,13 +6,8 @@ import { ensure } from "../../../lib/checks/checks";
  * Narrow a `void | HandlerResponse` to `HandlerResponse`, throwing if the
  * handler returned void (which should never happen in these tests).
  */
-export function assertResponse(
-  result: void | HandlerResponse,
-): HandlerResponse {
-  return ensure(
-    result ?? undefined,
-    "Handler returned void — expected a HandlerResponse",
-  );
+export function assertResponse(result: void | HandlerResponse): HandlerResponse {
+  return ensure(result ?? undefined, "Handler returned void — expected a HandlerResponse");
 }
 
 /**
@@ -37,8 +28,7 @@ export function makeEvent(
     headers: overrides.headers ?? {},
     multiValueHeaders: overrides.multiValueHeaders ?? {},
     queryStringParameters: overrides.queryStringParameters ?? null,
-    multiValueQueryStringParameters:
-      overrides.multiValueQueryStringParameters ?? null,
+    multiValueQueryStringParameters: overrides.multiValueQueryStringParameters ?? null,
     body: overrides.body ?? null,
     isBase64Encoded: overrides.isBase64Encoded ?? false,
   };

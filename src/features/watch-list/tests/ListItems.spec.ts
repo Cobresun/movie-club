@@ -2,7 +2,6 @@ import { screen, waitFor } from "@testing-library/vue";
 import { http, HttpResponse } from "msw";
 
 import ListItems from "../components/ListItems.vue";
-
 import watchlist from "@/mocks/data/watchlist.json";
 import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
 import { server } from "@/mocks/server";
@@ -20,9 +19,7 @@ const defaultProps = {
 };
 
 const nextWorkHandler = () =>
-  http.get("/api/club/:id/nextWork", () =>
-    HttpResponse.json({ workId: undefined }),
-  );
+  http.get("/api/club/:id/nextWork", () => HttpResponse.json({ workId: undefined }));
 
 describe("ListItems", () => {
   it("renders a poster card for each item in the list", async () => {
@@ -30,9 +27,7 @@ describe("ListItems", () => {
 
     render(ListItems, { props: defaultProps });
 
-    expect(
-      await screen.findByText("The Super Mario Bros. Movie"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("The Super Mario Bros. Movie")).toBeInTheDocument();
   });
 
   it("shows empty state when the list has no items", async () => {
@@ -82,11 +77,7 @@ describe("ListItems", () => {
 
   it("shows 'Clear next up' title for the item that is currently next up", async () => {
     const nextItemId = watchlist[0].id;
-    server.use(
-      http.get("/api/club/:id/nextWork", () =>
-        HttpResponse.json({ workId: nextItemId }),
-      ),
-    );
+    server.use(http.get("/api/club/:id/nextWork", () => HttpResponse.json({ workId: nextItemId })));
 
     render(ListItems, { props: defaultProps });
 

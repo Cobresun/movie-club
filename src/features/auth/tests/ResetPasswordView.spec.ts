@@ -1,7 +1,6 @@
 import { screen } from "@testing-library/vue";
 
 import ResetPasswordView from "../views/ResetPasswordView.vue";
-
 import { authClient } from "@/lib/auth-client";
 import { render } from "@/tests/utils";
 
@@ -36,9 +35,7 @@ describe("ResetPasswordView", () => {
     render(ResetPasswordView);
 
     // Wait for onMounted to run and set the token
-    expect(
-      await screen.findByRole("button", { name: /Reset Password/i }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /Reset Password/i })).toBeInTheDocument();
     expect(screen.getByLabelText("New Password")).toBeInTheDocument();
     expect(screen.getByLabelText("Confirm Password")).toBeInTheDocument();
   });
@@ -67,9 +64,7 @@ describe("ResetPasswordView", () => {
     await user.click(screen.getByRole("button", { name: /Reset Password/i }));
 
     expect(await screen.findByText("Password Reset!")).toBeInTheDocument();
-    expect(
-      screen.getByText(/password has been reset successfully/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/password has been reset successfully/i)).toBeInTheDocument();
   });
 
   it("shows Sign In button in success state", async () => {
@@ -82,9 +77,7 @@ describe("ResetPasswordView", () => {
     await user.click(screen.getByRole("button", { name: /Reset Password/i }));
 
     await screen.findByText("Password Reset!");
-    expect(
-      screen.getByRole("button", { name: /Sign In/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Sign In/i })).toBeInTheDocument();
   });
 
   it("shows invalid token state when API returns an expired error", async () => {
@@ -105,8 +98,6 @@ describe("ResetPasswordView", () => {
     await user.type(screen.getByLabelText("Confirm Password"), "newpass123");
     await user.click(screen.getByRole("button", { name: /Reset Password/i }));
 
-    expect(
-      await screen.findByText("Invalid or Expired Link"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Invalid or Expired Link")).toBeInTheDocument();
   });
 });

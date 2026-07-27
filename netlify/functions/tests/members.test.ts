@@ -7,11 +7,11 @@
 import { DeleteResult } from "kysely";
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
-import { assertResponse, makeEvent, parseBody, stubContext } from "./helpers";
 import { ClubType } from "../../../lib/types/generated/db";
 import { handler } from "../club/index";
 import ClubRepository from "../repositories/ClubRepository";
 import UserRepository from "../repositories/UserRepository";
+import { assertResponse, makeEvent, parseBody, stubContext } from "./helpers";
 
 // ─── Mock: auth ──────────────────────────────────────────────────────────────
 vi.mock("../utils/auth", () => ({
@@ -103,13 +103,11 @@ vi.mock("../repositories/SettingsRepository", () => ({
 
 vi.mock("../repositories/WorkRepository", () => ({
   default: {
-    findByType: vi.fn(),
     insert: vi.fn(),
     delete: vi.fn(),
     getNextWork: vi.fn(),
     setNextWork: vi.fn(),
     deleteNextWork: vi.fn(),
-    getDiscussionContext: vi.fn(),
   },
 }));
 
@@ -141,7 +139,6 @@ const mockClub = {
   name: "My Club",
   slug: CLUB_SLUG,
   type: ClubType.movie,
-  legacy_id: null,
   slug_updated_at: null,
 };
 
@@ -218,9 +215,7 @@ describe("GET /api/club/:clubSlug/members/", () => {
 describe("DELETE /api/club/:clubSlug/members/self", () => {
   it("returns 200 when authenticated user leaves club", async () => {
     setupClub();
-    vi.mocked(UserRepository.removeClubMember).mockResolvedValue([
-      new DeleteResult(0n),
-    ]);
+    vi.mocked(UserRepository.removeClubMember).mockResolvedValue([new DeleteResult(0n)]);
 
     const event = makeEvent({
       path: `/api/club/${CLUB_SLUG}/members/self`,
@@ -230,10 +225,7 @@ describe("DELETE /api/club/:clubSlug/members/self", () => {
     const response = assertResponse(await handler(event, stubContext));
 
     expect(response.statusCode).toBe(200);
-    expect(UserRepository.removeClubMember).toHaveBeenCalledWith(
-      CLUB_ID,
-      "user-1",
-    );
+    expect(UserRepository.removeClubMember).toHaveBeenCalledWith(CLUB_ID, "user-1");
   });
 
   it("returns 401 when user is not authenticated", async () => {
@@ -259,9 +251,7 @@ describe("DELETE /api/club/:clubSlug/members/self", () => {
 describe("DELETE /api/club/:clubSlug/members/:memberId", () => {
   it("returns 200 when member is removed", async () => {
     setupClub();
-    vi.mocked(UserRepository.removeClubMember).mockResolvedValue([
-      new DeleteResult(0n),
-    ]);
+    vi.mocked(UserRepository.removeClubMember).mockResolvedValue([new DeleteResult(0n)]);
 
     const event = makeEvent({
       path: `/api/club/${CLUB_SLUG}/members/user-2`,
@@ -271,10 +261,7 @@ describe("DELETE /api/club/:clubSlug/members/:memberId", () => {
     const response = assertResponse(await handler(event, stubContext));
 
     expect(response.statusCode).toBe(200);
-    expect(UserRepository.removeClubMember).toHaveBeenCalledWith(
-      CLUB_ID,
-      "user-2",
-    );
+    expect(UserRepository.removeClubMember).toHaveBeenCalledWith(CLUB_ID, "user-2");
   });
 });
 
@@ -295,10 +282,7 @@ describe("POST /api/club/join", () => {
     const response = assertResponse(await handler(event, stubContext));
 
     expect(response.statusCode).toBe(200);
-    expect(ClubRepository.joinClubWithInvite).toHaveBeenCalledWith(
-      "abc123token",
-      "user-1",
-    );
+    expect(ClubRepository.joinClubWithInvite).toHaveBeenCalledWith("abc123token", "user-1");
   });
 
   it("returns 400 when invite token is invalid", async () => {
@@ -386,9 +370,7 @@ describe("GET /api/club/joinInfo/:token", () => {
   });
 
   it("returns 400 when invite token is not found", async () => {
-    vi.mocked(ClubRepository.getClubDetailsByInvite).mockResolvedValue(
-      undefined,
-    );
+    vi.mocked(ClubRepository.getClubDetailsByInvite).mockResolvedValue(undefined);
 
     const event = makeEvent({
       path: `/api/club/joinInfo/unknown-token`,

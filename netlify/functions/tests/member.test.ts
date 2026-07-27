@@ -8,12 +8,12 @@ import { UpdateResult } from "kysely";
 import { parse } from "lambda-multipart-parser";
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
-import { handler } from "../member";
-import { assertResponse, makeEvent, parseBody, stubContext } from "./helpers";
 import { ClubType } from "../../../lib/types/generated/db";
+import { handler } from "../member";
 import ClubRepository from "../repositories/ClubRepository";
 import ImageRepository from "../repositories/ImageRepository";
 import UserRepository from "../repositories/UserRepository";
+import { assertResponse, makeEvent, parseBody, stubContext } from "./helpers";
 
 // ─── Mock: auth ──────────────────────────────────────────────────────────────
 vi.mock("./utils/auth", () => ({
@@ -103,9 +103,9 @@ describe("GET /api/member/clubs", () => {
     const response = assertResponse(await handler(event, stubContext));
 
     expect(response.statusCode).toBe(200);
-    const body = parseBody<
-      Array<{ clubId: string; clubName: string; slug: string }>
-    >(response.body);
+    const body = parseBody<Array<{ clubId: string; clubName: string; slug: string }>>(
+      response.body,
+    );
     expect(body).toHaveLength(1);
     expect(body[0].clubId).toBe("club-1");
     expect(body[0].slug).toBe("test-club");
@@ -147,9 +147,7 @@ describe("GET /api/member/clubs", () => {
 
 describe("PUT /api/member/name", () => {
   it("returns 200 when name is updated successfully", async () => {
-    vi.mocked(UserRepository.updateName).mockResolvedValue([
-      new UpdateResult(0n, undefined),
-    ]);
+    vi.mocked(UserRepository.updateName).mockResolvedValue([new UpdateResult(0n, undefined)]);
 
     const event = makeEvent({
       path: "/api/member/name",
@@ -220,9 +218,7 @@ describe("DELETE /api/member/avatar", () => {
       emailVerified: true,
     });
     vi.mocked(ImageRepository.destroy).mockResolvedValue(undefined);
-    vi.mocked(UserRepository.updateImage).mockResolvedValue([
-      new UpdateResult(0n, undefined),
-    ]);
+    vi.mocked(UserRepository.updateImage).mockResolvedValue([new UpdateResult(0n, undefined)]);
 
     const event = makeEvent({
       path: "/api/member/avatar",
@@ -232,14 +228,8 @@ describe("DELETE /api/member/avatar", () => {
     const response = assertResponse(await handler(event, stubContext));
 
     expect(response.statusCode).toBe(200);
-    expect(ImageRepository.destroy).toHaveBeenCalledWith(
-      "cloudinary-public-id",
-    );
-    expect(UserRepository.updateImage).toHaveBeenCalledWith(
-      "user-1",
-      null,
-      null,
-    );
+    expect(ImageRepository.destroy).toHaveBeenCalledWith("cloudinary-public-id");
+    expect(UserRepository.updateImage).toHaveBeenCalledWith("user-1", null, null);
   });
 
   it("returns 200 and skips Cloudinary delete when user has no image_id", async () => {
@@ -253,9 +243,7 @@ describe("DELETE /api/member/avatar", () => {
       updatedAt: new Date(),
       emailVerified: true,
     });
-    vi.mocked(UserRepository.updateImage).mockResolvedValue([
-      new UpdateResult(0n, undefined),
-    ]);
+    vi.mocked(UserRepository.updateImage).mockResolvedValue([new UpdateResult(0n, undefined)]);
 
     const event = makeEvent({
       path: "/api/member/avatar",
@@ -280,10 +268,10 @@ describe("POST /api/member/avatar", () => {
     // plain object literal cannot satisfy; a typed Object.assign builds it
     // without resorting to an `as` cast.
     type MultipartRequest = Awaited<ReturnType<typeof parse>>;
-    const emptyMultipart = Object.assign<
-      Record<string, string>,
-      Pick<MultipartRequest, "files">
-    >({}, { files: [] });
+    const emptyMultipart = Object.assign<Record<string, string>, Pick<MultipartRequest, "files">>(
+      {},
+      { files: [] },
+    );
     vi.mocked(parse).mockResolvedValue(emptyMultipart);
 
     const event = makeEvent({

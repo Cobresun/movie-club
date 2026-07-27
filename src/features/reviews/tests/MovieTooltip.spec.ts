@@ -2,12 +2,12 @@ import { screen } from "@testing-library/vue";
 
 import { DetailedMovieData } from "../../../../lib/types/movie";
 import MovieTooltip from "../components/MovieTooltip.vue";
-
 import { render } from "@/tests/utils";
 
 const fullMovie: DetailedMovieData = {
   kind: "movie",
   actors: [],
+  castNames: [],
   directors: [{ name: "Christopher Nolan", profilePath: null }],
   genres: ["Action", "Sci-Fi"],
   production_companies: ["Warner Bros."],
@@ -25,21 +25,15 @@ describe("MovieTooltip", () => {
 
     expect(screen.getByText("Inception")).toBeInTheDocument();
     // Without movie data the hover tooltip (and its heading) is not rendered.
-    expect(
-      screen.queryByRole("heading", { name: "Inception" }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Inception" })).not.toBeInTheDocument();
     expect(screen.queryByText(/Runtime:/)).not.toBeInTheDocument();
   });
 
   it("renders the full movie details in the tooltip", () => {
     render(MovieTooltip, { props: { title: "Inception", movie: fullMovie } });
 
-    expect(
-      screen.getByRole("heading", { name: "Inception" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText("Your mind is the scene of the crime."),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Inception" })).toBeInTheDocument();
+    expect(screen.getByText("Your mind is the scene of the crime.")).toBeInTheDocument();
     expect(screen.getByText(/A thief who steals/)).toBeInTheDocument();
     expect(screen.getByText("148 minutes")).toBeInTheDocument();
     expect(screen.getByText("Action, Sci-Fi")).toBeInTheDocument();
@@ -52,6 +46,7 @@ describe("MovieTooltip", () => {
     const sparse: DetailedMovieData = {
       kind: "movie",
       actors: [],
+      castNames: [],
       directors: [],
       genres: [],
       production_companies: [],

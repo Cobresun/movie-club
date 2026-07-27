@@ -46,8 +46,7 @@ function makeDb() {
 
   const didInsert = (table: keyof DB) =>
     queries.some((q) => q.sql.includes(`insert into "${table}"`));
-  const didUpdate = (table: keyof DB) =>
-    queries.some((q) => q.sql.includes(`update "${table}"`));
+  const didUpdate = (table: keyof DB) => queries.some((q) => q.sql.includes(`update "${table}"`));
   const didDelete = (table: keyof DB) =>
     queries.some((q) => q.sql.includes(`delete from "${table}"`));
 
@@ -67,8 +66,7 @@ function makeTMDBData(overrides: Partial<TMDBMovieData> = {}): TMDBMovieData {
     imdb_id: "tt1375666",
     original_language: "en",
     original_title: "Inception",
-    overview:
-      "Cobb steals information from his targets by entering their dreams.",
+    overview: "Cobb steals information from his targets by entering their dreams.",
     popularity: 87.3,
     poster_path: "/poster.jpg",
     production_companies: [
@@ -79,15 +77,11 @@ function makeTMDBData(overrides: Partial<TMDBMovieData> = {}): TMDBMovieData {
         origin_country: "US",
       },
     ],
-    production_countries: [
-      { iso_3166_1: "US", name: "United States of America" },
-    ],
+    production_countries: [{ iso_3166_1: "US", name: "United States of America" }],
     release_date: "2010-07-16",
     revenue: 836836967,
     runtime: 148,
-    spoken_languages: [
-      { english_name: "English", iso_639_1: "en", name: "English" },
-    ],
+    spoken_languages: [{ english_name: "English", iso_639_1: "en", name: "English" }],
     status: "Released",
     tagline: "Your mind is the scene of the crime.",
     title: "Inception",
@@ -154,11 +148,7 @@ describe("insertMovieDetails", () => {
 
   it("skips production_companies insert when empty", async () => {
     const { db, didInsert } = makeDb();
-    await insertMovieDetails(
-      "27205",
-      makeTMDBData({ production_companies: [] }),
-      db,
-    );
+    await insertMovieDetails("27205", makeTMDBData({ production_companies: [] }), db);
     expect(didInsert("movie_production_companies")).toBe(false);
   });
 
@@ -170,11 +160,7 @@ describe("insertMovieDetails", () => {
 
   it("skips production_countries insert when empty", async () => {
     const { db, didInsert } = makeDb();
-    await insertMovieDetails(
-      "27205",
-      makeTMDBData({ production_countries: [] }),
-      db,
-    );
+    await insertMovieDetails("27205", makeTMDBData({ production_countries: [] }), db);
     expect(didInsert("movie_production_countries")).toBe(false);
   });
 
@@ -244,12 +230,8 @@ describe("updateMovieDetails", () => {
   it("deletes the old genres before re-inserting", async () => {
     const { db, queries } = makeDb();
     await updateMovieDetails("27205", makeTMDBData(), db);
-    const deleteIndex = queries.findIndex((q) =>
-      q.sql.includes(`delete from "movie_genres"`),
-    );
-    const insertIndex = queries.findIndex((q) =>
-      q.sql.includes(`insert into "movie_genres"`),
-    );
+    const deleteIndex = queries.findIndex((q) => q.sql.includes(`delete from "movie_genres"`));
+    const insertIndex = queries.findIndex((q) => q.sql.includes(`insert into "movie_genres"`));
     expect(deleteIndex).toBeGreaterThanOrEqual(0);
     expect(insertIndex).toBeGreaterThan(deleteIndex);
   });
@@ -270,11 +252,7 @@ describe("updateMovieDetails", () => {
 
   it("deletes directors but skips re-insert when no directors in crew", async () => {
     const { db, didInsert, didDelete } = makeDb();
-    await updateMovieDetails(
-      "27205",
-      makeTMDBData({ credits: { cast: [], crew: [] } }),
-      db,
-    );
+    await updateMovieDetails("27205", makeTMDBData({ credits: { cast: [], crew: [] } }), db);
     expect(didDelete("movie_directors")).toBe(true);
     expect(didInsert("movie_directors")).toBe(false);
   });
@@ -288,11 +266,7 @@ describe("updateMovieDetails", () => {
 
   it("deletes actors but skips re-insert when cast is empty", async () => {
     const { db, didInsert, didDelete } = makeDb();
-    await updateMovieDetails(
-      "27205",
-      makeTMDBData({ credits: { cast: [], crew: [] } }),
-      db,
-    );
+    await updateMovieDetails("27205", makeTMDBData({ credits: { cast: [], crew: [] } }), db);
     expect(didDelete("movie_actors")).toBe(true);
     expect(didInsert("movie_actors")).toBe(false);
   });
@@ -306,11 +280,7 @@ describe("updateMovieDetails", () => {
 
   it("deletes production_companies but skips re-insert when empty", async () => {
     const { db, didInsert, didDelete } = makeDb();
-    await updateMovieDetails(
-      "27205",
-      makeTMDBData({ production_companies: [] }),
-      db,
-    );
+    await updateMovieDetails("27205", makeTMDBData({ production_companies: [] }), db);
     expect(didDelete("movie_production_companies")).toBe(true);
     expect(didInsert("movie_production_companies")).toBe(false);
   });
@@ -324,11 +294,7 @@ describe("updateMovieDetails", () => {
 
   it("deletes production_countries but skips re-insert when empty", async () => {
     const { db, didInsert, didDelete } = makeDb();
-    await updateMovieDetails(
-      "27205",
-      makeTMDBData({ production_countries: [] }),
-      db,
-    );
+    await updateMovieDetails("27205", makeTMDBData({ production_countries: [] }), db);
     expect(didDelete("movie_production_countries")).toBe(true);
     expect(didInsert("movie_production_countries")).toBe(false);
   });
@@ -354,9 +320,7 @@ describe("updateMovieDetails", () => {
     );
     expect(companiesInsert).toBeDefined();
     // Two unique companies => "WB" is bound exactly once (not twice).
-    expect(companiesInsert?.parameters.filter((p) => p === "WB")).toHaveLength(
-      1,
-    );
+    expect(companiesInsert?.parameters.filter((p) => p === "WB")).toHaveLength(1);
     expect(companiesInsert?.parameters).toContain("Universal");
   });
 });

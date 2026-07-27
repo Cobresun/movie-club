@@ -3,7 +3,6 @@ import { screen } from "@testing-library/vue";
 import { Award, AwardsStep } from "../../../../lib/types/awards";
 import { DetailedMovieData } from "../../../../lib/types/movie";
 import AwardResult from "../components/AwardResult.vue";
-
 import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
 import { render } from "@/tests/utils";
 
@@ -27,6 +26,7 @@ const members = [
 const movieData: DetailedMovieData = {
   kind: "movie",
   actors: [],
+  castNames: [],
   directors: [],
   genres: [],
   production_companies: [],
@@ -40,16 +40,16 @@ const award: Award = {
       movieId: 1,
       movieTitle: "Inception",
       posterUrl: "https://test.com/inception.jpg",
-      nominatedBy: ["dev"],
-      ranking: { dev: 1, user: 2 },
+      nominatedBy: ["1"],
+      ranking: { "1": 1, "2": 2 },
       movieData,
     },
     {
       movieId: 2,
       movieTitle: "The Dark Knight",
       posterUrl: "https://test.com/dark-knight.jpg",
-      nominatedBy: ["user"],
-      ranking: { dev: 2, user: 1 },
+      nominatedBy: ["2"],
+      ranking: { "1": 2, "2": 1 },
       movieData,
     },
   ],
@@ -61,9 +61,7 @@ describe("AwardResult", () => {
       props: { award, members, step: AwardsStep.Presentation },
     });
 
-    expect(
-      screen.getByRole("heading", { name: "Best Picture" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Best Picture" })).toBeInTheDocument();
   });
 
   it("shows the Reveal button when step is Presentation (not completed)", () => {
@@ -118,8 +116,6 @@ describe("AwardResult", () => {
       props: { award, members, step: AwardsStep.Completed },
     });
 
-    expect(
-      screen.queryByRole("button", { name: "Reveal" }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Reveal" })).not.toBeInTheDocument();
   });
 });

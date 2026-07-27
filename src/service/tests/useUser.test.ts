@@ -1,14 +1,7 @@
 import { http, HttpResponse } from "msw";
 import { defineComponent } from "vue";
 
-import {
-  useDeleteAvatar,
-  useUpdateAvatar,
-  useUpdateName,
-  useUser,
-  useUserClubs,
-} from "../useUser";
-
+import { useDeleteAvatar, useUpdateAvatar, useUpdateName, useUser, useUserClubs } from "../useUser";
 import { server } from "@/mocks/server";
 import { useAuthStore } from "@/stores/auth";
 import { render } from "@/tests/utils";
@@ -145,11 +138,7 @@ describe("useUpdateAvatar", () => {
         const { mutate, isSuccess } = useUpdateAvatar();
         const submit = () => {
           const fd = new FormData();
-          fd.append(
-            "file",
-            new Blob(["img"], { type: "image/png" }),
-            "avatar.png",
-          );
+          fd.append("file", new Blob(["img"], { type: "image/png" }), "avatar.png");
           mutate(fd);
         };
         return { submit, isSuccess };

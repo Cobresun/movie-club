@@ -29,7 +29,7 @@ Run one project with `npx vitest run --project client <path>` / `--project serve
 
 - **Location:** handler/route tests in `netlify/functions/tests/`, util tests in `netlify/functions/utils/tests/`, service tests in `netlify/functions/services/tests/`, `lib/checks` tests in `lib/checks/tests/`.
 - **Helpers:** `netlify/functions/tests/helpers.ts` provides `makeEvent()`, `stubContext`, `assertResponse()` (narrows the handler's `void | HandlerResponse`), and `parseBody<T>()`.
-- **Mock everything external:** `vi.mock` every repository module, `../utils/database`, and `../utils/auth` (BetterAuth instantiates at import time and reads env vars — it must be mocked before importing any handler). Vitest hoists `vi.mock` above imports, so keep all imports at the top (ESLint import order) with the mock blocks after them.
+- **Mock everything external:** `vi.mock` every repository module, `../utils/database`, and `../utils/auth` (BetterAuth instantiates at import time and reads env vars — it must be mocked before importing any handler). Vitest hoists `vi.mock` above imports, so keep all imports at the top (oxlint import order) with the mock blocks after them.
 - **Generated-type gotchas:** kysely-codegen represents bigint/numeric columns as `string` (`position: "1"`, `runtime: "148"`); club rows require `legacy_id` and `slug_updated_at`; `WorkType` / `WorkListSystemType` are enums from `lib/types/generated/db` — never use string literals for them. Mock kysely results with real `InsertResult` / `UpdateResult` / `DeleteResult` instances, not `undefined`.
 - **Repositories are not unit-tested:** they are thin Kysely query builders, covered by integration via deploy-preview databases.
 
@@ -37,7 +37,7 @@ Run one project with `npx vitest run --project client <path>` / `--project serve
 
 - No `as` casts (see code-quality rules). For un-narrowable wide unions (e.g. ag-charts options), use runtime type-predicate helpers — see the top of `src/features/statistics/tests/scoring.test.ts`.
 - Query the DOM by role/text/aria-label, not CSS selectors. No snapshot tests.
-- ESLint disables `unbound-method`, `require-await`, and `vue/one-component-per-file` for `*.test.ts`/`*.spec.ts` only (they false-positive on Vitest idioms).
+- `oxlint.config.ts` has an `overrides` entry turning off `typescript/unbound-method` for `*.test.ts`/`*.spec.ts` only — `expect(Repo.method)` / `vi.mocked(Repo.method)` trip it on every assertion against a mocked module.
 - **Coverage:** `npm run coverage`; spans `src/`, `lib/`, and `netlify/functions/` with thresholds in `vite.config.ts` that must not be lowered. Per-file numbers: `npx vitest run <path> --coverage.enabled=true --coverage.all=false`.
 
 ## Writing good tests (review checklist)

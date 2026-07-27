@@ -72,9 +72,7 @@ describe("scheduled-db-cleanup handler", () => {
     const req = makeRequest({ next_run: "2024-01-02T00:00:00Z" });
     await handler(req);
 
-    expect(DatabaseCleanupRepository.cleanupOldDatabases).toHaveBeenCalledWith(
-      7,
-    );
+    expect(DatabaseCleanupRepository.cleanupOldDatabases).toHaveBeenCalledWith(7);
   });
 
   it("returns 200 with count=0 when no databases to clean up", async () => {
@@ -87,9 +85,7 @@ describe("scheduled-db-cleanup handler", () => {
     const response = await handler(req);
 
     expect(response.status).toBe(200);
-    const body = parseBody<{ success: boolean; count: number }>(
-      await response.text(),
-    );
+    const body = parseBody<{ success: boolean; count: number }>(await response.text());
     expect(body.success).toBe(true);
     expect(body.count).toBe(0);
   });
@@ -112,9 +108,7 @@ describe("scheduled-db-cleanup handler", () => {
     const response = await handler(req);
 
     expect(response.status).toBe(500);
-    const body = parseBody<{ success: boolean; error: string }>(
-      await response.text(),
-    );
+    const body = parseBody<{ success: boolean; error: string }>(await response.text());
     expect(body.success).toBe(false);
     expect(body.error).toContain("Connection refused");
   });

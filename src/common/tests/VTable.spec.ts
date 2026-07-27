@@ -1,7 +1,6 @@
 import { screen, within } from "@testing-library/vue";
 
 import VTable from "../components/VTable.vue";
-
 import { render } from "@/tests/utils";
 
 const headers = [
@@ -54,8 +53,7 @@ describe("VTable", () => {
     expect(within(dataRows()[0]).getByText("Inception")).toBeInTheDocument();
 
     // Click the Score column's sort icon div (second cursor-pointer div in headers)
-    const sortDivs =
-      container.querySelectorAll<HTMLElement>("th .cursor-pointer");
+    const sortDivs = container.querySelectorAll<HTMLElement>("th .cursor-pointer");
     await user.click(sortDivs[1]);
 
     // After ascending sort by score: Alien(7), Matrix(8), Inception(9)

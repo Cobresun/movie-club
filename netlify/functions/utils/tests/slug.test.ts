@@ -70,9 +70,7 @@ describe("generateSlugFromName", () => {
 
   it("truncates names longer than 50 characters", () => {
     const longName = "a".repeat(60);
-    expect(generateSlugFromName(longName).length).toBeLessThanOrEqual(
-      SLUG_MAX_LENGTH,
-    );
+    expect(generateSlugFromName(longName).length).toBeLessThanOrEqual(SLUG_MAX_LENGTH);
   });
 
   it("prepends 'club-' when the resulting slug is shorter than 3 characters", () => {

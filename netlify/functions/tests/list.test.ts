@@ -8,10 +8,9 @@
  *
  * System-list protections (rename/delete rejected) are also exercised.
  */
-import { DeleteResult, InsertResult, UpdateResult } from "kysely";
+import { DeleteResult, UpdateResult } from "kysely";
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
-import { assertResponse, makeEvent, parseBody, stubContext } from "./helpers";
 import { ClubType, WorkListSystemType } from "../../../lib/types/generated/db";
 import { handler } from "../club/index";
 import ClubRepository from "../repositories/ClubRepository";
@@ -19,6 +18,7 @@ import ListRepository from "../repositories/ListRepository";
 import ReviewRepository from "../repositories/ReviewRepository";
 import UserRepository from "../repositories/UserRepository";
 import WorkRepository from "../repositories/WorkRepository";
+import { assertResponse, makeEvent, parseBody, stubContext } from "./helpers";
 
 // ─── Mock: auth ──────────────────────────────────────────────────────────────
 vi.mock("../utils/auth", () => ({
@@ -87,13 +87,11 @@ vi.mock("../repositories/UserRepository", () => ({
 
 vi.mock("../repositories/WorkRepository", () => ({
   default: {
-    findByType: vi.fn(),
     insert: vi.fn(),
     delete: vi.fn(),
     getNextWork: vi.fn(),
     setNextWork: vi.fn(),
     deleteNextWork: vi.fn(),
-    getDiscussionContext: vi.fn(),
   },
 }));
 
@@ -146,7 +144,6 @@ const mockClub = {
   name: "My Club",
   slug: CLUB_SLUG,
   type: ClubType.movie,
-  legacy_id: null,
   slug_updated_at: null,
 };
 
@@ -194,9 +191,7 @@ describe("GET /api/club/:clubSlug/list/", () => {
     const response = assertResponse(await handler(event, stubContext));
 
     expect(response.statusCode).toBe(200);
-    const body = parseBody<
-      Array<{ id: string; title: string; itemCount: number }>
-    >(response.body);
+    const body = parseBody<Array<{ id: string; title: string; itemCount: number }>>(response.body);
     expect(body).toHaveLength(1);
     expect(body[0].id).toBe(LIST_ID);
     expect(body[0].itemCount).toBe(3);
@@ -315,10 +310,7 @@ describe("PUT /api/club/:clubSlug/list/reorder", () => {
     const response = assertResponse(await handler(event, stubContext));
 
     expect(response.statusCode).toBe(200);
-    expect(ListRepository.reorderLists).toHaveBeenCalledWith(CLUB_ID, [
-      "list-1",
-      "list-2",
-    ]);
+    expect(ListRepository.reorderLists).toHaveBeenCalledWith(CLUB_ID, ["list-1", "list-2"]);
   });
 
   it("returns 400 when body is missing", async () => {
@@ -391,9 +383,7 @@ describe("PUT /api/club/:clubSlug/list/:listId", () => {
   it("returns 200 when user list is renamed", async () => {
     setupClub();
     vi.mocked(ListRepository.getListById).mockResolvedValue(mockUserList);
-    vi.mocked(ListRepository.renameList).mockResolvedValue([
-      new UpdateResult(0n, undefined),
-    ]);
+    vi.mocked(ListRepository.renameList).mockResolvedValue([new UpdateResult(0n, undefined)]);
 
     const event = makeEvent({
       path: `/api/club/${CLUB_SLUG}/list/${LIST_ID}`,
@@ -404,10 +394,7 @@ describe("PUT /api/club/:clubSlug/list/:listId", () => {
     const response = assertResponse(await handler(event, stubContext));
 
     expect(response.statusCode).toBe(200);
-    expect(ListRepository.renameList).toHaveBeenCalledWith(
-      LIST_ID,
-      "Renamed List",
-    );
+    expect(ListRepository.renameList).toHaveBeenCalledWith(LIST_ID, "Renamed List");
   });
 
   it("returns 400 when trying to rename a system list", async () => {
@@ -449,9 +436,7 @@ describe("DELETE /api/club/:clubSlug/list/:listId", () => {
   it("returns 200 when user list is deleted", async () => {
     setupClub();
     vi.mocked(ListRepository.getListById).mockResolvedValue(mockUserList);
-    vi.mocked(ListRepository.deleteList).mockResolvedValue([
-      new DeleteResult(0n),
-    ]);
+    vi.mocked(ListRepository.deleteList).mockResolvedValue([new DeleteResult(0n)]);
 
     const event = makeEvent({
       path: `/api/club/${CLUB_SLUG}/list/${LIST_ID}`,
@@ -487,12 +472,8 @@ describe("POST /api/club/:clubSlug/list/:listId/items", () => {
   it("returns 200 when item is added to list (new work)", async () => {
     setupClub();
     vi.mocked(ListRepository.getListById).mockResolvedValue(mockUserList);
-    vi.mocked(WorkRepository.findByType).mockResolvedValue(undefined);
     vi.mocked(WorkRepository.insert).mockResolvedValue({ id: "work-new" });
-    vi.mocked(ListRepository.isItemInList).mockResolvedValue(false);
-    vi.mocked(ListRepository.insertItemInList).mockResolvedValue([
-      new InsertResult(undefined, 1n),
-    ]);
+    vi.mocked(ListRepository.insertItemInList).mockResolvedValue(true);
 
     const event = makeEvent({
       path: `/api/club/${CLUB_SLUG}/list/${LIST_ID}/items`,
@@ -507,23 +488,14 @@ describe("POST /api/club/:clubSlug/list/:listId/items", () => {
     const response = assertResponse(await handler(event, stubContext));
 
     expect(response.statusCode).toBe(200);
-    expect(ListRepository.insertItemInList).toHaveBeenCalledWith(
-      LIST_ID,
-      "work-new",
-      "user-1",
-    );
+    expect(ListRepository.insertItemInList).toHaveBeenCalledWith(LIST_ID, "work-new", "user-1");
   });
 
-  it("returns 200 when item already exists as work (reuses work id)", async () => {
+  it("upserts the work and lists the id the upsert returns", async () => {
     setupClub();
     vi.mocked(ListRepository.getListById).mockResolvedValue(mockUserList);
-    vi.mocked(WorkRepository.findByType).mockResolvedValue({
-      id: "work-existing",
-    });
-    vi.mocked(ListRepository.isItemInList).mockResolvedValue(false);
-    vi.mocked(ListRepository.insertItemInList).mockResolvedValue([
-      new InsertResult(undefined, 1n),
-    ]);
+    vi.mocked(WorkRepository.insert).mockResolvedValue({ id: "work-existing" });
+    vi.mocked(ListRepository.insertItemInList).mockResolvedValue(true);
 
     const event = makeEvent({
       path: `/api/club/${CLUB_SLUG}/list/${LIST_ID}/items`,
@@ -538,7 +510,11 @@ describe("POST /api/club/:clubSlug/list/:listId/items", () => {
     const response = assertResponse(await handler(event, stubContext));
 
     expect(response.statusCode).toBe(200);
-    expect(WorkRepository.insert).not.toHaveBeenCalled();
+    expect(WorkRepository.insert).toHaveBeenCalledWith(CLUB_ID, {
+      title: "The Matrix",
+      type: "movie",
+      externalId: "603",
+    });
     expect(ListRepository.insertItemInList).toHaveBeenCalledWith(
       LIST_ID,
       "work-existing",
@@ -549,8 +525,8 @@ describe("POST /api/club/:clubSlug/list/:listId/items", () => {
   it("returns 400 when item is already in list", async () => {
     setupClub();
     vi.mocked(ListRepository.getListById).mockResolvedValue(mockUserList);
-    vi.mocked(WorkRepository.findByType).mockResolvedValue({ id: "work-dup" });
-    vi.mocked(ListRepository.isItemInList).mockResolvedValue(true);
+    vi.mocked(WorkRepository.insert).mockResolvedValue({ id: "work-dup" });
+    vi.mocked(ListRepository.insertItemInList).mockResolvedValue(false);
 
     const event = makeEvent({
       path: `/api/club/${CLUB_SLUG}/list/${LIST_ID}/items`,
@@ -590,9 +566,7 @@ describe("DELETE /api/club/:clubSlug/list/:listId/items/:workId", () => {
     setupClub();
     vi.mocked(ListRepository.getListById).mockResolvedValue(mockUserList);
     vi.mocked(ListRepository.isItemInList).mockResolvedValue(true);
-    vi.mocked(ListRepository.deleteItemFromList).mockResolvedValue([
-      new DeleteResult(0n),
-    ]);
+    vi.mocked(ListRepository.deleteItemFromList).mockResolvedValue([new DeleteResult(0n)]);
     vi.mocked(WorkRepository.delete).mockResolvedValue([new DeleteResult(0n)]);
 
     const event = makeEvent({
@@ -603,10 +577,7 @@ describe("DELETE /api/club/:clubSlug/list/:listId/items/:workId", () => {
     const response = assertResponse(await handler(event, stubContext));
 
     expect(response.statusCode).toBe(200);
-    expect(ListRepository.deleteItemFromList).toHaveBeenCalledWith(
-      LIST_ID,
-      "work-123",
-    );
+    expect(ListRepository.deleteItemFromList).toHaveBeenCalledWith(LIST_ID, "work-123");
   });
 
   it("returns 400 when item is not in list", async () => {
@@ -642,10 +613,7 @@ describe("PUT /api/club/:clubSlug/list/:listId/reorder", () => {
     const response = assertResponse(await handler(event, stubContext));
 
     expect(response.statusCode).toBe(200);
-    expect(ListRepository.reorderList).toHaveBeenCalledWith(LIST_ID, [
-      "work-a",
-      "work-b",
-    ]);
+    expect(ListRepository.reorderList).toHaveBeenCalledWith(LIST_ID, ["work-a", "work-b"]);
   });
 
   it("returns 400 when workIds is empty", async () => {
@@ -671,9 +639,7 @@ describe("PUT /api/club/:clubSlug/list/:listId/items/:workId/added-date", () => 
     setupClub();
     vi.mocked(ListRepository.getListById).mockResolvedValue(mockUserList);
     vi.mocked(ListRepository.isItemInList).mockResolvedValue(true);
-    vi.mocked(ListRepository.updateAddedDate).mockResolvedValue([
-      new UpdateResult(0n, undefined),
-    ]);
+    vi.mocked(ListRepository.updateAddedDate).mockResolvedValue([new UpdateResult(0n, undefined)]);
 
     const event = makeEvent({
       path: `/api/club/${CLUB_SLUG}/list/${LIST_ID}/items/work-123/added-date`,
@@ -728,10 +694,8 @@ describe("PUT /api/club/:clubSlug/list/:listId/items/:workId/added-date", () => 
 describe("POST /api/club/:clubSlug/list/:listId/items/:workId/move", () => {
   it("returns 200 when item is moved to destination list", async () => {
     setupClub();
-    vi.mocked(ListRepository.getListById)
-      .mockResolvedValueOnce(mockUserList) // validListId for source
-      .mockResolvedValueOnce({ ...mockUserList, id: "dest-list-2" }); // destination lookup
-    vi.mocked(ListRepository.moveItem).mockResolvedValue(undefined);
+    vi.mocked(ListRepository.getListById).mockResolvedValue(mockUserList);
+    vi.mocked(ListRepository.moveItem).mockResolvedValue(true);
 
     const event = makeEvent({
       path: `/api/club/${CLUB_SLUG}/list/${LIST_ID}/items/work-123/move`,
@@ -746,14 +710,15 @@ describe("POST /api/club/:clubSlug/list/:listId/items/:workId/move", () => {
       LIST_ID,
       "dest-list-2",
       "work-123",
+      CLUB_ID,
     );
   });
 
-  it("returns 400 when destination list is not found", async () => {
+  it("returns 400 when the move finds no destination list in this club", async () => {
     setupClub();
-    vi.mocked(ListRepository.getListById)
-      .mockResolvedValueOnce(mockUserList) // validListId for source
-      .mockResolvedValueOnce(undefined); // destination not found
+    vi.mocked(ListRepository.getListById).mockResolvedValue(mockUserList);
+    // Destination ownership is validated inside moveItem's transaction.
+    vi.mocked(ListRepository.moveItem).mockResolvedValue(false);
 
     const event = makeEvent({
       path: `/api/club/${CLUB_SLUG}/list/${LIST_ID}/items/work-123/move`,

@@ -1,14 +1,7 @@
-import {
-  HandlerContext,
-  HandlerEvent,
-  HandlerResponse,
-} from "@netlify/functions";
+import { HandlerContext, HandlerEvent, HandlerResponse } from "@netlify/functions";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import {
-  ClubType,
-  WorkListSystemType,
-} from "../../../../lib/types/generated/db";
+import { ClubType, WorkListSystemType } from "../../../../lib/types/generated/db";
 import ClubRepository from "../../repositories/ClubRepository";
 import ListRepository from "../../repositories/ListRepository";
 import { createRouterResponse, Request, RouterResponse } from "../router";
@@ -86,6 +79,8 @@ function makeClubRequest(
     clubId,
     clubSlug,
     clubType: ClubType.movie,
+    clubName: "Test Club",
+    clubSlugUpdatedAt: null,
   };
 }
 
@@ -130,14 +125,14 @@ describe("validClubSlug", () => {
     expect(calls[0]?.statusCode).toBe(404);
   });
 
-  it("enriches the request with clubId and clubSlug on success", async () => {
+  it("enriches the request with the resolved club's id, slug, type, name and slug age", async () => {
+    const slugUpdatedAt = new Date("2026-01-02T03:04:05Z");
     vi.mocked(ClubRepository.getBySlug).mockResolvedValue({
       id: "42",
       slug: "my-club",
       name: "My Club",
       type: ClubType.movie,
-      legacy_id: null,
-      slug_updated_at: null,
+      slug_updated_at: slugUpdatedAt,
     });
 
     const req = makeBaseRequest({ clubSlug: "my-club" });
@@ -145,7 +140,13 @@ describe("validClubSlug", () => {
     const result = await validClubSlug(req, res);
 
     // result should be the enriched request (not a RouterResponse)
-    expect(result).toMatchObject({ clubId: "42", clubSlug: "my-club" });
+    expect(result).toMatchObject({
+      clubId: "42",
+      clubSlug: "my-club",
+      clubType: ClubType.movie,
+      clubName: "My Club",
+      clubSlugUpdatedAt: slugUpdatedAt,
+    });
   });
 
   it("calls ClubRepository.getBySlug with the correct slug", async () => {

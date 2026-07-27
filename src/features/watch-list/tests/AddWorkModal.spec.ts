@@ -2,7 +2,6 @@ import { screen } from "@testing-library/vue";
 import { http, HttpResponse } from "msw";
 
 import AddWorkModal from "../components/AddWorkModal.vue";
-
 import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
 import { server } from "@/mocks/server";
 import { render } from "@/tests/utils";
@@ -44,9 +43,7 @@ describe("AddWorkModal", () => {
 
     expect(await screen.findByText("Popular Pick")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Popular" })).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Now Playing" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Now Playing" })).toBeInTheDocument();
   });
 
   it("switches the collection when another tab is selected", async () => {

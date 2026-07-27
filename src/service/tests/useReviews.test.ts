@@ -10,7 +10,6 @@ import {
   useReviewWork,
   useUpdateReviewScore,
 } from "../useReviews";
-
 import { server } from "@/mocks/server";
 import { render } from "@/tests/utils";
 
@@ -81,14 +80,11 @@ describe("useUpdateReviewScore", () => {
     let capturedBody: unknown = null;
     let capturedReviewId = "";
     server.use(
-      http.put(
-        "/api/club/:id/reviews/:reviewId",
-        async ({ request, params }) => {
-          capturedReviewId = String(params.reviewId);
-          capturedBody = await request.json();
-          return new HttpResponse(null, { status: 200 });
-        },
-      ),
+      http.put("/api/club/:id/reviews/:reviewId", async ({ request, params }) => {
+        capturedReviewId = String(params.reviewId);
+        capturedBody = await request.json();
+        return new HttpResponse(null, { status: 200 });
+      }),
     );
 
     const Harness = defineComponent({
@@ -173,21 +169,15 @@ describe("useAddReviewComment", () => {
   it("POSTs comment to /api/club/:id/reviews/:workId/comments", async () => {
     let capturedBody: unknown = null;
     server.use(
-      http.post(
-        "/api/club/:id/reviews/:workId/comments",
-        async ({ request }) => {
-          capturedBody = await request.json();
-          return new HttpResponse(null, { status: 200 });
-        },
-      ),
+      http.post("/api/club/:id/reviews/:workId/comments", async ({ request }) => {
+        capturedBody = await request.json();
+        return new HttpResponse(null, { status: 200 });
+      }),
     );
 
     const Harness = defineComponent({
       setup() {
-        const { mutate, isSuccess } = useAddReviewComment(
-          "test-club",
-          "work-1",
-        );
+        const { mutate, isSuccess } = useAddReviewComment("test-club", "work-1");
         return { mutate, isSuccess };
       },
       template: `<button @click="() => mutate({ content: 'Loved it', spoiler: false })">{{ isSuccess ? 'done' : 'go' }}</button>`,
@@ -209,22 +199,16 @@ describe("useEditReviewComment", () => {
     let capturedBody: unknown = null;
     let capturedCommentId = "";
     server.use(
-      http.put(
-        "/api/club/:id/reviews/:workId/comments/:commentId",
-        async ({ request, params }) => {
-          capturedCommentId = String(params.commentId);
-          capturedBody = await request.json();
-          return new HttpResponse(null, { status: 200 });
-        },
-      ),
+      http.put("/api/club/:id/reviews/:workId/comments/:commentId", async ({ request, params }) => {
+        capturedCommentId = String(params.commentId);
+        capturedBody = await request.json();
+        return new HttpResponse(null, { status: 200 });
+      }),
     );
 
     const Harness = defineComponent({
       setup() {
-        const { mutate, isSuccess } = useEditReviewComment(
-          "test-club",
-          "work-1",
-        );
+        const { mutate, isSuccess } = useEditReviewComment("test-club", "work-1");
         return { mutate, isSuccess };
       },
       template: `<button @click="() => mutate({ commentId: 'c-7', content: 'Edited', spoiler: true })">{{ isSuccess ? 'done' : 'go' }}</button>`,
@@ -246,21 +230,15 @@ describe("useDeleteReviewComment", () => {
   it("DELETEs a comment by id", async () => {
     let deletedCommentId = "";
     server.use(
-      http.delete(
-        "/api/club/:id/reviews/:workId/comments/:commentId",
-        ({ params }) => {
-          deletedCommentId = String(params.commentId);
-          return new HttpResponse(null, { status: 200 });
-        },
-      ),
+      http.delete("/api/club/:id/reviews/:workId/comments/:commentId", ({ params }) => {
+        deletedCommentId = String(params.commentId);
+        return new HttpResponse(null, { status: 200 });
+      }),
     );
 
     const Harness = defineComponent({
       setup() {
-        const { mutate, isSuccess } = useDeleteReviewComment(
-          "test-club",
-          "work-1",
-        );
+        const { mutate, isSuccess } = useDeleteReviewComment("test-club", "work-1");
         return { mutate, isSuccess };
       },
       template: `<button @click="() => mutate('c-99')">{{ isSuccess ? 'done' : 'go' }}</button>`,

@@ -2,7 +2,6 @@ import { screen } from "@testing-library/vue";
 import { http, HttpResponse } from "msw";
 
 import ClubHomeView from "../views/ClubHomeView.vue";
-
 import members from "@/mocks/data/members.json";
 import { server } from "@/mocks/server";
 import { render } from "@/tests/utils";
@@ -10,9 +9,7 @@ import { render } from "@/tests/utils";
 // useInviteToken uses POST /api/club/:id/invite
 beforeEach(() => {
   server.use(
-    http.post("/api/club/:id/invite", () =>
-      HttpResponse.json({ token: "test-invite-token-123" }),
-    ),
+    http.post("/api/club/:id/invite", () => HttpResponse.json({ token: "test-invite-token-123" })),
   );
 });
 
@@ -51,9 +48,7 @@ describe("ClubHomeView", () => {
 
   it("renders 5 router-link stubs when awards feature is enabled", async () => {
     server.use(
-      http.get("/api/club/:id/settings", () =>
-        HttpResponse.json({ features: { awards: true } }),
-      ),
+      http.get("/api/club/:id/settings", () => HttpResponse.json({ features: { awards: true } })),
     );
 
     const { container } = render(ClubHomeView);
@@ -71,9 +66,7 @@ describe("ClubHomeView", () => {
     await screen.findByText("dev");
 
     // The invite pill is a div with @click="showInviteModal = true"
-    const plusPill = container.querySelector(
-      ".rounded-full.border-2.border-slate-600.bg-gray-500",
-    );
+    const plusPill = container.querySelector(".rounded-full.border-2.border-slate-600.bg-gray-500");
     expect(plusPill).toBeInTheDocument();
     if (plusPill) {
       await user.click(plusPill);
@@ -88,14 +81,10 @@ describe("ClubHomeView", () => {
 
     await screen.findByText("dev");
 
-    const plusPill = container.querySelector(
-      ".rounded-full.border-2.border-slate-600.bg-gray-500",
-    );
+    const plusPill = container.querySelector(".rounded-full.border-2.border-slate-600.bg-gray-500");
     if (plusPill) await user.click(plusPill);
 
-    const input = await screen.findByDisplayValue(
-      /join-club\/test-invite-token-123/,
-    );
+    const input = await screen.findByDisplayValue(/join-club\/test-invite-token-123/);
     expect(input).toBeInTheDocument();
   });
 

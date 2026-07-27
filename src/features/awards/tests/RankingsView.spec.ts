@@ -5,7 +5,6 @@ import { http, HttpResponse } from "msw";
 import { AwardsStep, ClubAwards } from "../../../../lib/types/awards";
 import { DetailedMovieData } from "../../../../lib/types/movie";
 import RankingsView from "../views/RankingsView.vue";
-
 import memberData from "@/mocks/data/member.json";
 import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
 import { server } from "@/mocks/server";
@@ -17,6 +16,7 @@ mockIntersectionObserver();
 const movieData: DetailedMovieData = {
   kind: "movie",
   actors: [],
+  castNames: [],
   directors: [],
   genres: [],
   production_companies: [],
@@ -34,16 +34,16 @@ const clubAward: ClubAwards = {
           movieId: 1,
           movieTitle: "Inception",
           posterUrl: "https://test.com/i.jpg",
-          nominatedBy: ["user"],
-          ranking: { user: 1, dev: 2 },
+          nominatedBy: [memberData.id],
+          ranking: { "2": 1, "1": 2 },
           movieData,
         },
         {
           movieId: 2,
           movieTitle: "Tenet",
           posterUrl: "https://test.com/t.jpg",
-          nominatedBy: ["dev"],
-          ranking: { user: 2, dev: 1 },
+          nominatedBy: ["999"],
+          ranking: { "2": 2, "1": 1 },
           movieData,
         },
       ],
@@ -51,7 +51,7 @@ const clubAward: ClubAwards = {
   ],
 };
 
-const props = { clubAward, clubId: "test-club", year: "2024" };
+const props = { clubAward, clubSlug: "test-club", year: "2024" };
 
 function login(pinia: ReturnType<typeof createTestingPinia>) {
   const authStore = useAuthStore(pinia);
@@ -71,18 +71,14 @@ describe("RankingsView", () => {
   it("prompts the user to log in when not authenticated", () => {
     render(RankingsView, { props });
 
-    expect(
-      screen.getByText("Please log in to rank movies!"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Please log in to rank movies!")).toBeInTheDocument();
   });
 
   it("renders a ranking widget per award when logged in", async () => {
     const { pinia } = render(RankingsView, { props });
     login(pinia);
 
-    expect(
-      await screen.findByRole("heading", { name: "Best Picture" }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Best Picture" })).toBeInTheDocument();
     expect(screen.getByText("Inception")).toBeInTheDocument();
     expect(screen.getByText("Tenet")).toBeInTheDocument();
   });
@@ -102,9 +98,11 @@ describe("RankingsView", () => {
     await user.click(await screen.findByRole("button", { name: "Submit" }));
 
     await waitFor(() => {
-      expect(body).toMatchObject({
+      // The voter is keyed by stable user id (not name) so a rename cannot
+      // orphan the ranking — see #397.
+      expect(body).toEqual({
         awardTitle: "Best Picture",
-        voter: "user",
+        voter: memberData.id,
         movies: [1, 2],
       });
     });

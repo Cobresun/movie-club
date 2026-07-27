@@ -4,7 +4,6 @@ import { http, HttpResponse } from "msw";
 import { WorkType } from "../../../../lib/types/generated/db";
 import { DetailedWorkListItem } from "../../../../lib/types/lists";
 import ListItemDetailsDrawer from "../components/ListItemDetailsDrawer.vue";
-
 import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
 import { server } from "@/mocks/server";
 import { render } from "@/tests/utils";
@@ -20,7 +19,7 @@ const movie: DetailedWorkListItem = {
   imageUrl: "https://test.com/poster.jpg",
   externalData: {
     kind: "movie",
-    actors: [],
+    castNames: [],
     directors: [],
     genres: [],
     production_companies: [],
@@ -38,12 +37,9 @@ const props = {
 
 beforeEach(() => {
   server.use(
-    http.get("/api/club/:id/reviews/:workId/comments", () =>
-      HttpResponse.json([]),
-    ),
-    http.get(
-      "https://api.themoviedb.org/3/movie/:movieId/watch/providers",
-      () => HttpResponse.json({ id: 27205, results: {} }),
+    http.get("/api/club/:id/reviews/:workId/comments", () => HttpResponse.json([])),
+    http.get("https://api.themoviedb.org/3/movie/:movieId/watch/providers", () =>
+      HttpResponse.json({ id: 27205, results: {} }),
     ),
   );
 });

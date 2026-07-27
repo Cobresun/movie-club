@@ -2,7 +2,6 @@ import { screen, waitFor } from "@testing-library/vue";
 import { http, HttpResponse } from "msw";
 
 import ManageListsModal from "../components/ManageListsModal.vue";
-
 import { server } from "@/mocks/server";
 import { render } from "@/tests/utils";
 

@@ -2,7 +2,6 @@ import { screen } from "@testing-library/vue";
 import { http, HttpResponse } from "msw";
 
 import WatchListView from "../views/WatchListView.vue";
-
 import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
 import { server } from "@/mocks/server";
 import { render } from "@/tests/utils";
@@ -10,11 +9,7 @@ import { render } from "@/tests/utils";
 mockIntersectionObserver();
 
 beforeEach(() => {
-  server.use(
-    http.get("/api/club/:id/nextWork", () =>
-      HttpResponse.json({ workId: null }),
-    ),
-  );
+  server.use(http.get("/api/club/:id/nextWork", () => HttpResponse.json({ workId: null })));
 });
 
 describe("WatchListView", () => {
@@ -22,18 +17,14 @@ describe("WatchListView", () => {
     render(WatchListView);
 
     // Baseline /list handler returns one list, "Watch List" with itemCount 1.
-    expect(
-      await screen.findByRole("heading", { name: "Watch List" }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Watch List" })).toBeInTheDocument();
     expect(screen.getByText("(1)")).toBeInTheDocument();
   });
 
   it("opens the manage-lists modal", async () => {
     const { user } = render(WatchListView);
 
-    await user.click(
-      await screen.findByRole("button", { name: "Manage lists" }),
-    );
+    await user.click(await screen.findByRole("button", { name: "Manage lists" }));
 
     expect(await screen.findByText("Manage Lists")).toBeInTheDocument();
   });

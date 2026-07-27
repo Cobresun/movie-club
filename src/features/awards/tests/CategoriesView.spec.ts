@@ -3,7 +3,6 @@ import { http, HttpResponse } from "msw";
 
 import { AwardsStep, ClubAwards } from "../../../../lib/types/awards";
 import CategoriesView from "../views/CategoriesView.vue";
-
 import { server } from "@/mocks/server";
 import { render } from "@/tests/utils";
 
@@ -16,7 +15,7 @@ const clubAward: ClubAwards = {
   ],
 };
 
-const props = { clubAward, clubId: "test-club", year: "2024" };
+const props = { clubAward, clubSlug: "test-club", year: "2024" };
 
 describe("CategoriesView", () => {
   it("renders the existing categories", async () => {
@@ -37,10 +36,7 @@ describe("CategoriesView", () => {
 
     const { user } = render(CategoriesView, { props });
 
-    await user.type(
-      screen.getByPlaceholderText("Add category"),
-      "Best Score{Enter}",
-    );
+    await user.type(screen.getByPlaceholderText("Add category"), "Best Score{Enter}");
 
     await waitFor(() => {
       expect(body).toMatchObject({ title: "Best Score" });
@@ -58,16 +54,11 @@ describe("CategoriesView", () => {
 
     const { user } = render(CategoriesView, { props });
 
-    await user.type(
-      screen.getByPlaceholderText("Add category"),
-      "Best Picture{Enter}",
-    );
+    await user.type(screen.getByPlaceholderText("Add category"), "Best Picture{Enter}");
 
     // "Best Picture" already exists, so no request is made.
     await waitFor(() => {
-      expect(screen.getByPlaceholderText("Add category")).toHaveValue(
-        "Best Picture",
-      );
+      expect(screen.getByPlaceholderText("Add category")).toHaveValue("Best Picture");
     });
     expect(posted).toBe(false);
   });

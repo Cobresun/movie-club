@@ -3,7 +3,6 @@ import { screen, waitFor } from "@testing-library/vue";
 import { http, HttpResponse } from "msw";
 
 import ProfileView from "../views/ProfileView.vue";
-
 import memberData from "@/mocks/data/member.json";
 import { server } from "@/mocks/server";
 import { useAuthStore } from "@/stores/auth";
@@ -99,9 +98,7 @@ describe("ProfileView", () => {
     await user.click(screen.getByRole("button", { name: "Cancel" }));
 
     expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Edit name" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Edit name" })).toBeInTheDocument();
   });
 
   it("deletes the profile photo", async () => {
@@ -116,9 +113,7 @@ describe("ProfileView", () => {
     const { user, pinia } = render(ProfileView);
     asCurrentUser(pinia);
 
-    await user.click(
-      await screen.findByRole("button", { name: "Delete photo" }),
-    );
+    await user.click(await screen.findByRole("button", { name: "Delete photo" }));
 
     await waitFor(() => {
       expect(deleted).toBe(true);

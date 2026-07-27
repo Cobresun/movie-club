@@ -44,10 +44,7 @@ describe("sendVerificationEmail", () => {
   it("calls resend.emails.send with the correct to address", async () => {
     mockSend.mockResolvedValue({ data: { id: "msg-1" }, error: null });
 
-    await sendVerificationEmail(
-      "user@example.com",
-      "https://example.com/verify",
-    );
+    await sendVerificationEmail("user@example.com", "https://example.com/verify");
 
     expect(mockSend).toHaveBeenCalledOnce();
     const call = mockSend.mock.calls[0]?.[0];
@@ -57,10 +54,7 @@ describe("sendVerificationEmail", () => {
   it("uses the verification email subject", async () => {
     mockSend.mockResolvedValue({ data: { id: "msg-1" }, error: null });
 
-    await sendVerificationEmail(
-      "user@example.com",
-      "https://example.com/verify",
-    );
+    await sendVerificationEmail("user@example.com", "https://example.com/verify");
 
     const call = mockSend.mock.calls[0]?.[0];
     expect(call?.subject).toContain("Verify");
@@ -69,10 +63,7 @@ describe("sendVerificationEmail", () => {
   it("includes the verification URL in the HTML body", async () => {
     mockSend.mockResolvedValue({ data: { id: "msg-1" }, error: null });
 
-    await sendVerificationEmail(
-      "user@example.com",
-      "https://example.com/verify/token-abc",
-    );
+    await sendVerificationEmail("user@example.com", "https://example.com/verify/token-abc");
 
     const call = mockSend.mock.calls[0]?.[0];
     expect(call?.html).toContain("https://example.com/verify/token-abc");
@@ -81,11 +72,7 @@ describe("sendVerificationEmail", () => {
   it("includes a personalised greeting when userName is provided", async () => {
     mockSend.mockResolvedValue({ data: { id: "msg-1" }, error: null });
 
-    await sendVerificationEmail(
-      "user@example.com",
-      "https://example.com/verify",
-      "Alice",
-    );
+    await sendVerificationEmail("user@example.com", "https://example.com/verify", "Alice");
 
     const call = mockSend.mock.calls[0]?.[0];
     expect(call?.html).toContain("Hi Alice");
@@ -94,10 +81,7 @@ describe("sendVerificationEmail", () => {
   it("uses a generic greeting when userName is omitted", async () => {
     mockSend.mockResolvedValue({ data: { id: "msg-1" }, error: null });
 
-    await sendVerificationEmail(
-      "user@example.com",
-      "https://example.com/verify",
-    );
+    await sendVerificationEmail("user@example.com", "https://example.com/verify");
 
     const call = mockSend.mock.calls[0]?.[0];
     expect(call?.html).toContain("Hi there");
@@ -129,10 +113,7 @@ describe("sendPasswordResetEmail", () => {
   it("calls resend.emails.send with the correct to address", async () => {
     mockSend.mockResolvedValue({ data: { id: "msg-2" }, error: null });
 
-    await sendPasswordResetEmail(
-      "user@example.com",
-      "https://example.com/reset",
-    );
+    await sendPasswordResetEmail("user@example.com", "https://example.com/reset");
 
     expect(mockSend).toHaveBeenCalledOnce();
     const call = mockSend.mock.calls[0]?.[0];
@@ -142,10 +123,7 @@ describe("sendPasswordResetEmail", () => {
   it("uses the password reset subject", async () => {
     mockSend.mockResolvedValue({ data: { id: "msg-2" }, error: null });
 
-    await sendPasswordResetEmail(
-      "user@example.com",
-      "https://example.com/reset",
-    );
+    await sendPasswordResetEmail("user@example.com", "https://example.com/reset");
 
     const call = mockSend.mock.calls[0]?.[0];
     expect(call?.subject).toContain("Reset");
@@ -154,10 +132,7 @@ describe("sendPasswordResetEmail", () => {
   it("includes the reset URL in the HTML body", async () => {
     mockSend.mockResolvedValue({ data: { id: "msg-2" }, error: null });
 
-    await sendPasswordResetEmail(
-      "user@example.com",
-      "https://example.com/reset/token-xyz",
-    );
+    await sendPasswordResetEmail("user@example.com", "https://example.com/reset/token-xyz");
 
     const call = mockSend.mock.calls[0]?.[0];
     expect(call?.html).toContain("https://example.com/reset/token-xyz");
@@ -166,11 +141,7 @@ describe("sendPasswordResetEmail", () => {
   it("includes a personalised greeting when userName is provided", async () => {
     mockSend.mockResolvedValue({ data: { id: "msg-2" }, error: null });
 
-    await sendPasswordResetEmail(
-      "user@example.com",
-      "https://example.com/reset",
-      "Bob",
-    );
+    await sendPasswordResetEmail("user@example.com", "https://example.com/reset", "Bob");
 
     const call = mockSend.mock.calls[0]?.[0];
     expect(call?.html).toContain("Hi Bob");
@@ -179,10 +150,7 @@ describe("sendPasswordResetEmail", () => {
   it("uses a generic greeting when userName is omitted", async () => {
     mockSend.mockResolvedValue({ data: { id: "msg-2" }, error: null });
 
-    await sendPasswordResetEmail(
-      "user@example.com",
-      "https://example.com/reset",
-    );
+    await sendPasswordResetEmail("user@example.com", "https://example.com/reset");
 
     const call = mockSend.mock.calls[0]?.[0];
     expect(call?.html).toContain("Hi there");

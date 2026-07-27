@@ -3,7 +3,6 @@ import { http, HttpResponse } from "msw";
 import { defineComponent } from "vue";
 
 import CommentThread from "../components/CommentThread.vue";
-
 import memberData from "@/mocks/data/member.json";
 import { server } from "@/mocks/server";
 import { useAuthStore } from "@/stores/auth";
@@ -85,9 +84,7 @@ const renderAsCurrentUser = () => render(AuthWrapperForTest);
 describe("CommentThread", () => {
   beforeEach(() => {
     server.use(
-      http.get(`/api/club/${CLUB_SLUG}/reviews/${WORK_ID}/comments`, () =>
-        HttpResponse.json([]),
-      ),
+      http.get(`/api/club/${CLUB_SLUG}/reviews/${WORK_ID}/comments`, () => HttpResponse.json([])),
     );
   });
 
@@ -227,9 +224,7 @@ describe("CommentThread", () => {
     await screen.findByText("My comment");
 
     // pencil and delete icons are rendered as buttons; current user owns c4
-    const editButtons = document.querySelectorAll(
-      "button[class*='text-gray-500']",
-    );
+    const editButtons = document.querySelectorAll("button[class*='text-gray-500']");
     // Exactly 2 action buttons (edit + delete) for the owned comment
     expect(editButtons.length).toBe(2);
   });
@@ -283,9 +278,7 @@ describe("CommentThread", () => {
 
     await user.click(screen.getByRole("button", { name: /cancel/i }));
 
-    expect(
-      screen.queryByRole("button", { name: /save/i }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /save/i })).not.toBeInTheDocument();
     expect(screen.getByText("Cancel this")).toBeInTheDocument();
   });
 

@@ -1,7 +1,6 @@
 import { screen } from "@testing-library/vue";
 
 import PosterImage from "../components/PosterImage.vue";
-
 import { render } from "@/tests/utils";
 
 describe("PosterImage", () => {
@@ -15,10 +14,7 @@ describe("PosterImage", () => {
 
     const img = screen.getByRole("img", { name: "Test movie" });
     expect(img).toBeInTheDocument();
-    expect(img).toHaveAttribute(
-      "src",
-      "https://image.tmdb.org/t/p/w500/abc123.jpg",
-    );
+    expect(img).toHaveAttribute("src", "https://image.tmdb.org/t/p/w500/abc123.jpg");
   });
 
   it("uses default alt text when alt prop is not provided", () => {

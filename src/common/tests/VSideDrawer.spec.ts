@@ -1,7 +1,6 @@
 import { screen } from "@testing-library/vue";
 
 import VSideDrawer from "../components/VSideDrawer.vue";
-
 import { render } from "@/tests/utils";
 
 // NOTE: VBackdrop is registered globally in main.ts but the shared test

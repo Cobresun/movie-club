@@ -3,7 +3,6 @@ import { screen } from "@testing-library/vue";
 import { Award } from "../../../../lib/types/awards";
 import { DetailedMovieData } from "../../../../lib/types/movie";
 import AwardRanking from "../components/AwardRanking.vue";
-
 import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
 import { render } from "@/tests/utils";
 
@@ -29,6 +28,7 @@ const currentUser = members[0];
 const movieData: DetailedMovieData = {
   kind: "movie",
   actors: [],
+  castNames: [],
   directors: [],
   genres: [],
   production_companies: [],
@@ -42,16 +42,16 @@ const award: Award = {
       movieId: 10,
       movieTitle: "Parasite",
       posterUrl: "https://test.com/parasite.jpg",
-      nominatedBy: ["dev"],
-      ranking: { dev: 1, user: 2 },
+      nominatedBy: ["1"],
+      ranking: { "1": 1, "2": 2 },
       movieData,
     },
     {
       movieId: 20,
       movieTitle: "Moonlight",
       posterUrl: "https://test.com/moonlight.jpg",
-      nominatedBy: ["user"],
-      ranking: { dev: 2, user: 1 },
+      nominatedBy: ["2"],
+      ranking: { "1": 2, "2": 1 },
       movieData,
     },
   ],
@@ -61,9 +61,7 @@ describe("AwardRanking", () => {
   it("renders the award title", () => {
     render(AwardRanking, { props: { award, members, user: currentUser } });
 
-    expect(
-      screen.getByRole("heading", { name: "Best Director" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Best Director" })).toBeInTheDocument();
   });
 
   it("renders all nominated movies", () => {
@@ -88,6 +86,33 @@ describe("AwardRanking", () => {
 
     // For "dev" the initial order is Parasite (10) then Moonlight (20).
     expect(emitted()["submit-ranking"]).toEqual([[[10, 20]]]);
+  });
+
+  it("resolves each nominator's avatar from the member id, so a rename follows", () => {
+    // Nominations store user ids, not names (#397): the same fixture rendered
+    // against renamed members shows the new name with no data migration.
+    const renamed = [
+      { id: "1", email: "dev@email.com", name: "Renamed Dev" },
+      { id: "2", email: "user@email.com", name: "Renamed User" },
+    ];
+
+    render(AwardRanking, {
+      props: { award, members: renamed, user: renamed[0] },
+    });
+
+    // VAvatar falls back to initials when the member has no image.
+    expect(screen.getByText("RD")).toBeInTheDocument();
+    expect(screen.getByText("RU")).toBeInTheDocument();
+  });
+
+  it("falls back to the raw id when the nominator is no longer a member", () => {
+    render(AwardRanking, {
+      props: { award, members: [members[1]], user: members[1] },
+    });
+
+    // Member "1" left the club; the avatar degrades to the id rather than
+    // dropping the nomination.
+    expect(screen.getByText("1")).toBeInTheDocument();
   });
 
   it("shows left-chevron for all but the first nomination", () => {

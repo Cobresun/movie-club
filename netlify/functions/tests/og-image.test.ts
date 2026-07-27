@@ -7,11 +7,11 @@
  */
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
-import { assertResponse, makeEvent, stubContext } from "./helpers";
 import { ClubType, WorkType } from "../../../lib/types/generated/db";
 import { handler } from "../og-image";
 import ClubRepository from "../repositories/ClubRepository";
 import SharedReviewService from "../services/SharedReviewService";
+import { assertResponse, makeEvent, stubContext } from "./helpers";
 
 // ─── Mock: auth ───────────────────────────────────────────────────────────────
 vi.mock("../utils/auth", () => ({
@@ -56,7 +56,6 @@ const mockClub = {
   name: "Test Club",
   slug: "test-club",
   type: ClubType.movie,
-  legacy_id: null,
   slug_updated_at: null,
 };
 
@@ -114,16 +113,12 @@ describe("GET /api/og-image", () => {
     const response = assertResponse(await handler(event, stubContext));
 
     expect(response.statusCode).toBe(302);
-    expect(response.headers?.["Location"]).toContain(
-      "https://image.tmdb.org/t/p/w500/poster.jpg",
-    );
+    expect(response.headers?.["Location"]).toContain("https://image.tmdb.org/t/p/w500/poster.jpg");
   });
 
   it("returns SVG fallback when imageUrl is undefined", async () => {
     vi.mocked(ClubRepository.getBySlug).mockResolvedValue(mockClub);
-    vi.mocked(SharedReviewService.getSharedReviewData).mockResolvedValue(
-      makeReviewData(undefined),
-    );
+    vi.mocked(SharedReviewService.getSharedReviewData).mockResolvedValue(makeReviewData(undefined));
 
     const event = makeEvent({
       path: "/api/og-image",
@@ -141,9 +136,7 @@ describe("GET /api/og-image", () => {
 
   it("includes average score in SVG when reviews are present", async () => {
     vi.mocked(ClubRepository.getBySlug).mockResolvedValue(mockClub);
-    vi.mocked(SharedReviewService.getSharedReviewData).mockResolvedValue(
-      makeReviewData(undefined),
-    );
+    vi.mocked(SharedReviewService.getSharedReviewData).mockResolvedValue(makeReviewData(undefined));
 
     const event = makeEvent({
       path: "/api/og-image",

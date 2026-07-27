@@ -2,7 +2,6 @@ import { screen } from "@testing-library/vue";
 import { http, HttpResponse } from "msw";
 
 import NewClubView from "../views/NewClubView.vue";
-
 import { server } from "@/mocks/server";
 import { useAuthStore } from "@/stores/auth";
 import { render } from "@/tests/utils";
@@ -11,9 +10,7 @@ describe("NewClubView", () => {
   it("shows a 'must be logged in' message when not authenticated", () => {
     render(NewClubView);
 
-    expect(
-      screen.getByText("Must be logged in to create a new club!"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Must be logged in to create a new club!")).toBeInTheDocument();
   });
 
   it("shows the club name input when logged in", async () => {

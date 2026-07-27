@@ -1,7 +1,6 @@
 import { screen } from "@testing-library/vue";
 
 import WorkDescription from "../components/WorkDescription.vue";
-
 import { render } from "@/tests/utils";
 
 describe("WorkDescription", () => {
@@ -24,9 +23,7 @@ describe("WorkDescription", () => {
     // In jsdom scrollHeight === clientHeight === 0, so shouldShowReadMore stays false
     render(WorkDescription, { props: { overview: "Short text." } });
 
-    expect(
-      screen.queryByRole("button", { name: /read more/i }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /read more/i })).not.toBeInTheDocument();
   });
 
   it("does not show the Read more button by default in jsdom (no real layout)", () => {
@@ -36,8 +33,6 @@ describe("WorkDescription", () => {
 
     // jsdom reports scrollHeight === clientHeight === 0, so the overflow check
     // never flips shouldShowReadMore on without real layout.
-    expect(
-      screen.queryByRole("button", { name: /read more/i }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /read more/i })).not.toBeInTheDocument();
   });
 });

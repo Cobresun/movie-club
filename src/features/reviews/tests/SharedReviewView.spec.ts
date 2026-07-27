@@ -2,7 +2,6 @@ import { screen } from "@testing-library/vue";
 import { http, HttpResponse } from "msw";
 
 import SharedReviewView from "../views/SharedReviewView.vue";
-
 import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
 import { server } from "@/mocks/server";
 import { render } from "@/tests/utils";
@@ -32,16 +31,12 @@ const sharedReview = {
 describe("SharedReviewView", () => {
   it("renders the shared review's work and member", async () => {
     server.use(
-      http.get("/api/club/:id/reviews/:workId/shared", () =>
-        HttpResponse.json(sharedReview),
-      ),
+      http.get("/api/club/:id/reviews/:workId/shared", () => HttpResponse.json(sharedReview)),
     );
 
     render(SharedReviewView);
 
-    expect(
-      await screen.findByRole("heading", { name: "Inception" }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Inception" })).toBeInTheDocument();
     expect(
       screen.getByText("Your mind is the scene of the crime.", {
         exact: false,
@@ -59,8 +54,6 @@ describe("SharedReviewView", () => {
 
     render(SharedReviewView);
 
-    expect(
-      await screen.findByText("Failed to load review"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Failed to load review")).toBeInTheDocument();
   });
 });
