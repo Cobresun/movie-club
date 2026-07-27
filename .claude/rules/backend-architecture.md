@@ -27,7 +27,7 @@ A handler is normally middleware + Zod body schema + repository + a helper from 
 
 ## Lists
 
-Lists are arbitrary and user-titled; the legacy `watchlist`/`backlog` enum was removed in `20260407_ArbitraryClubLists`. IDs are UUIDs. A club's _reviews_ list is a system list (`system_type = 'reviews'`) and is deliberately filtered out of the list-collection endpoint, fetched instead through a dedicated reviews-id route and a richer reviews shape. Rename and delete are rejected for system lists.
+Lists are arbitrary and user-titled, keyed by UUID. A club's _reviews_ list is a system list (`system_type = 'reviews'`) and is deliberately filtered out of the list-collection endpoint, fetched instead through a dedicated reviews-id route and a richer reviews shape. Rename and delete are rejected for system lists.
 
 `ListRepository.moveItem` is transactional with `ON CONFLICT DO NOTHING`, so moving into the reviews list and moving between user lists share one code path.
 
