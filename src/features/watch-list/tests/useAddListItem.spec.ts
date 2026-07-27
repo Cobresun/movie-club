@@ -1,20 +1,18 @@
-import { screen, waitFor } from "@testing-library/vue";
+import { screen } from "@testing-library/vue";
+import { config } from "@vue/test-utils";
 import { http, HttpResponse } from "msw";
-import { vi } from "vitest";
 import { defineComponent, h } from "vue";
-import { globalEventBus, TYPE } from "vue-toastification";
 
 import { WorkType } from "../../../../lib/types/generated/db";
 import { server } from "@/mocks/server";
 import { useAddListItem } from "@/service/useList";
 import { render } from "@/tests/utils";
 
-// Spy on vue-toastification's real global event bus (which the plugin the test
-// harness installs emits to) rather than mocking useToast — the mutation's toast
-// interface is resolved deep inside the service, and asserting the emitted "add"
-// event verifies the real end-to-end path. Toasts are emitted as
-// emit("add", { content, type }); the event name is a private enum, so match it
-// with expect.anything() and assert on the toast payload.
+// vue-toastification renders its toasts inside a <transition-group>, which VTU
+// stubs by default — the stub drops its children, so the toast text never hits
+// the DOM. Un-stub transitions for this file so we can assert on what the user
+// actually sees.
+config.global.stubs = { transition: false, "transition-group": false };
 
 // Minimal host that fires the add mutation on click, mirroring how AddWorkModal
 // calls mutate() and then immediately closes (which unmounts the modal).
@@ -32,17 +30,12 @@ const Harness = defineComponent({
   },
 });
 
+// The shared render() helper installs the toast plugin, and setup.ts renders a
+// Pinia helper through it too, so every toast shows up in more than one
+// container. Query for all matches rather than a single one.
+const findToast = (message: string) => screen.findAllByText(message);
+
 describe("useAddListItem", () => {
-  let emitSpy: ReturnType<typeof vi.spyOn>;
-
-  beforeEach(() => {
-    emitSpy = vi.spyOn(globalEventBus, "emit");
-  });
-
-  afterEach(() => {
-    emitSpy.mockRestore();
-  });
-
   it("shows a success toast even when the host unmounts before the request settles", async () => {
     let release!: () => void;
     const gate = new Promise<void>((resolve) => {
@@ -66,15 +59,7 @@ describe("useAddListItem", () => {
     // Only now does the in-flight POST resolve.
     release();
 
-    await waitFor(() =>
-      expect(emitSpy).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          content: 'Added "Inception" to the list',
-          type: TYPE.SUCCESS,
-        }),
-      ),
-    );
+    expect(await findToast('Added "Inception" to the list')).not.toHaveLength(0);
     expect(posted).toEqual({ type: WorkType.movie, title: "Inception", externalId: "1" });
   });
 
@@ -88,14 +73,6 @@ describe("useAddListItem", () => {
     const { user } = render(Harness);
     await user.click(screen.getByRole("button", { name: "add" }));
 
-    await waitFor(() =>
-      expect(emitSpy).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          content: 'Failed to add "Inception". Please try again.',
-          type: TYPE.ERROR,
-        }),
-      ),
-    );
+    expect(await findToast('Failed to add "Inception". Please try again.')).not.toHaveLength(0);
   });
 });
