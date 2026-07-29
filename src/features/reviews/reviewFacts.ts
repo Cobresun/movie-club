@@ -333,13 +333,18 @@ const authorRecord: FactGenerator = (ctx) => {
 
 const isActorMilestone = (n: number): boolean => n >= 5 && n % 5 === 0;
 
+// A "familiar face" milestone should celebrate a recognizable recurring actor,
+// not a bit-part player buried deep in the credits. `majorCastNames` is the
+// server-filtered major cast (top-billed OR a popularity star — see
+// lib/movie/majorCast.ts), so we count an actor only across the movies where
+// they were a prominent presence, never an incidental cameo.
 const actorMilestone: FactGenerator = (ctx) => {
   const movie = asMovie(ctx.target.externalData);
   if (!isDefined(movie)) return undefined;
   let best: { name: string; count: number } | undefined;
-  for (const name of movie.castNames) {
+  for (const name of movie.majorCastNames) {
     const count = ctx.worksThrough.filter(
-      (work) => asMovie(work.externalData)?.castNames.includes(name) === true,
+      (work) => asMovie(work.externalData)?.majorCastNames.includes(name) === true,
     ).length;
     if (isActorMilestone(count) && (!isDefined(best) || count > best.count)) {
       best = { name, count };

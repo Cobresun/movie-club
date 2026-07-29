@@ -33,6 +33,7 @@ function movieData(
       profilePath: null,
     })),
     castNames: opts.actors ?? [],
+    majorCastNames: opts.actors ?? [],
     directors: (opts.directors ?? []).map((name) => ({
       name,
       profilePath: null,
