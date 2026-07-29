@@ -7,6 +7,7 @@ import { Pool } from "pg";
 import { fileURLToPath } from "url";
 
 import { hasElements, hasValue, isDefined } from "../lib/checks/checks.js";
+import { BUILD_CONNECTION_TIMEOUT_MS, MIGRATION_QUERY_TIMEOUT_MS } from "../lib/db/poolOptions.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -99,6 +100,8 @@ async function withMigrator(next: (migrator: Migrator) => Promise<void>) {
     dialect: new CockroachDialect({
       pool: new Pool({
         connectionString: process.env.DATABASE_URL,
+        connectionTimeoutMillis: BUILD_CONNECTION_TIMEOUT_MS,
+        query_timeout: MIGRATION_QUERY_TIMEOUT_MS,
       }),
     }),
   });
@@ -134,28 +137,66 @@ async function migrateToLatest(migrator: Migrator) {
   }
 }
 
-async function downgrade(migrator: Migrator) {
-  const { error, results } = await migrator.migrateDown();
-  results?.forEach((it) => {
-    if (it.status === "Success") {
-      console.log(`migration "${it.migrationName}" was successfully downgraded`);
-    } else if (it.status === "Error") {
-      console.error(`failed to downgrade migration "${it.migrationName}"`);
-    }
-  });
+/**
+ * Reverses `steps` migrations, newest first.
+ *
+ * A manual tool, for iterating on a migration against a spawned database. It is
+ * deliberately not wired into any automated path: `down()` is not a reliable
+ * inverse of `up()` and does not have to throw to leave the schema or its data
+ * wrong, so nothing that must produce a trustworthy database can lean on it. The
+ * preview-database plugin rebuilds from a snapshot instead.
+ */
+function downgrade(steps: number) {
+  return async (migrator: Migrator) => {
+    for (let step = 0; step < steps; step++) {
+      const { error, results } = await migrator.migrateDown();
 
-  if (isDefined(error)) {
-    console.error("failed to downgrade");
+      results?.forEach((it) => {
+        if (it.status === "Success") {
+          console.log(`migration "${it.migrationName}" was successfully downgraded`);
+        } else if (it.status === "Error") {
+          console.error(`failed to downgrade migration "${it.migrationName}"`);
+        }
+      });
+
+      if (isDefined(error)) {
+        console.error("failed to downgrade");
+        console.error(error);
+        process.exit(1);
+      }
+
+      if (!hasElements(results ?? [])) {
+        console.log("nothing left to downgrade");
+        return;
+      }
+    }
+  };
+}
+
+/**
+ * Migrations are irreversible side effects on a real database, so a rejected
+ * promise must exit non-zero — callers (the Netlify build command, and the
+ * plugin's rollback-instead-of-restore path) branch on the exit code.
+ */
+function run(next: (migrator: Migrator) => Promise<void>) {
+  withMigrator(next).catch((error) => {
     console.error(error);
     process.exit(1);
-  }
+  });
 }
 
 if (process.argv[2] === "down") {
-  withMigrator(downgrade).catch(console.error);
+  const steps = Number.parseInt(process.argv[3] ?? "1", 10);
+
+  if (!Number.isInteger(steps) || steps < 1) {
+    console.error(`Invalid step count "${process.argv[3]}": expected a positive integer.`);
+    process.exit(1);
+  }
+
+  run(downgrade(steps));
 } else {
   // Down-migrating against dev stays allowed: it is the cleanup path when a
   // stray migration has already been applied there.
   assertSafeToMigrate();
-  withMigrator(migrateToLatest).catch(console.error);
+  run(migrateToLatest);
 }

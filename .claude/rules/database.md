@@ -43,6 +43,10 @@ npm run db:cleanup arbitrary_lists
 
 **Shared `dev` self-syncs after merge.** The plugin's `onSuccess` hook migrates shared `dev` on every production deploy, so it tracks `main` unattended. Running `migrate:dev` against `dev` yourself is a fallback for when that hook failed.
 
+**A `pr_<id>` database is advanced in place when the change is purely additive.** Restoring one from S3 costs ~100s of build time, so the plugin caches a per-migration hash manifest and compares it against what `kysely_migration` says is applied. If every applied migration still hashes to what was applied, the database is reused and the build's `npm run migrate` applies whatever is new. Anything else — an applied migration whose content changed, a deleted file, a missing cache — drops and restores. The decision logic is pure and tested in `netlify/plugins/preview-database/planDatabaseReuse.test.js`.
+
+**Editing a migration you have already pushed costs a full restore, by design.** The cheap-looking alternative is to reverse it with `down()` and let the build re-apply, but `down()` is not a reliable inverse and does not have to throw to be wrong — `20260407_ArbitraryClubLists.ts` deletes lists it can't represent in the old shape, `20260104_ConsolidateUserImage.ts` drops OAuth images, and both exit 0. Preview would then run against a database that silently no longer matches the migration chain, and a drifted schema can make the re-`up()` fail outright. Restoring is the only path that is always correct.
+
 ## CockroachDB gotchas
 
 - **No transactional DDL.** A migration erroring midway leaves created enums and columns behind. Either make `up()` idempotent or expect to drop orphans by hand (`DROP TYPE IF EXISTS`, `ALTER TABLE ... DROP COLUMN IF EXISTS`) before re-running.

@@ -7,6 +7,7 @@ import { Pool } from "pg";
 import * as readline from "readline/promises";
 
 import { ensure, hasValue } from "../lib/checks/checks.js";
+import { BUILD_CONNECTION_TIMEOUT_MS, RESTORE_QUERY_TIMEOUT_MS } from "../lib/db/poolOptions.js";
 
 interface SpawnOptions {
   sourceDb: string;
@@ -175,7 +176,14 @@ async function spawnDatabase(options: SpawnOptions): Promise<string> {
   const connParams = parseConnectionString(databaseUrl);
 
   const adminConnString = buildConnectionString(connParams, "defaultdb");
-  const adminPool = new Pool({ connectionString: adminConnString });
+  // A `RESTORE DATABASE` is one long blocking query and `pg` applies no deadline
+  // by default, so a wedged restore would otherwise bill build minutes until
+  // Netlify killed the build. See lib/db/poolOptions.ts.
+  const adminPool = new Pool({
+    connectionString: adminConnString,
+    connectionTimeoutMillis: BUILD_CONNECTION_TIMEOUT_MS,
+    query_timeout: RESTORE_QUERY_TIMEOUT_MS,
+  });
 
   try {
     const exists = await databaseExists(adminPool, targetDb);

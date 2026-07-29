@@ -28,3 +28,6 @@ jobs:
       - run: npm run type-check
       - run: npm run lint
       - run: npm test
+      # Netlify build plugins live outside vitest's `src/` root, so their pure
+      # logic is covered by node:test instead.
+      - run: npm run test:plugins
