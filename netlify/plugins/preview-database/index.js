@@ -1,14 +1,10 @@
 import { execSync } from "child_process";
 import { createHash } from "crypto";
-import {
-  readdirSync,
-  readFileSync,
-  existsSync,
-  writeFileSync,
-  mkdirSync,
-} from "fs";
+import { readdirSync, readFileSync, existsSync, writeFileSync, mkdirSync } from "fs";
 import path from "path";
 import pg from "pg";
+
+import { planDatabaseReuse } from "./planDatabaseReuse.js";
 
 /**
  * Type guard to check if string has value (not null/undefined/empty)
@@ -20,6 +16,47 @@ function hasValue(s) {
 }
 
 const { Pool } = pg;
+
+/**
+ * Mirrors lib/db/poolOptions.ts. This plugin runs as plain Node rather than
+ * through tsx, so it cannot import the TypeScript module — keep the two in sync.
+ *
+ * Without these, `pg` waits forever on both connect and query. Two deploy
+ * previews on 2026-07-24 stalled that way for 18 and 27 minutes and burned ~45
+ * build minutes between them.
+ */
+const BUILD_CONNECTION_TIMEOUT_MS = 30_000;
+const BUILD_QUERY_TIMEOUT_MS = 60_000;
+
+/** Ceiling for the whole `db-spawn` subprocess (BACKUP restore included). */
+const SPAWN_SUBPROCESS_TIMEOUT_MS = 600_000;
+
+/**
+ * @returns {string} DATABASE_URL_ROOT, or throws if it is not configured.
+ */
+function ensureRootUrl() {
+  const databaseUrl = process.env.DATABASE_URL_ROOT;
+  if (!hasValue(databaseUrl)) {
+    throw new Error("DATABASE_URL_ROOT environment variable is not set");
+  }
+  return databaseUrl;
+}
+
+/**
+ * Opens an admin pool against `defaultdb` with build-safe timeouts.
+ * @param {string} [database] - Database to connect to; defaults to `defaultdb`.
+ * @returns {InstanceType<typeof Pool>}
+ */
+function openPool(database = "defaultdb") {
+  const url = new URL(ensureRootUrl());
+  url.pathname = `/${database}`;
+
+  return new Pool({
+    connectionString: url.toString(),
+    connectionTimeoutMillis: BUILD_CONNECTION_TIMEOUT_MS,
+    query_timeout: BUILD_QUERY_TIMEOUT_MS,
+  });
+}
 
 /**
  * @typedef {Object} PluginInputs
@@ -56,55 +93,44 @@ const { Pool } = pg;
  * @property {NetlifyConfig} netlifyConfig
  */
 
-function calculateMigrationHash() {
+/**
+ * Hashes each migration file individually.
+ *
+ * A single blob hash over every file can only answer "did anything change?",
+ * which forces a full drop-and-restore for any edit. Per-file hashes let us ask
+ * the sharper question — *which* migrations changed, and have any of them
+ * already been applied to the preview database — so an additive change can skip
+ * the restore entirely.
+ *
+ * @returns {Record<string, string>} Migration file name → sha256 of its contents.
+ */
+function buildMigrationManifest() {
   const migrationsDir = path.join(process.cwd(), "migrations", "schema");
 
   if (!existsSync(migrationsDir)) {
-    return "no-migrations";
+    return {};
   }
 
-  try {
-    const files = readdirSync(migrationsDir)
-      .filter((f) => f.endsWith(".ts"))
-      .sort();
+  const files = readdirSync(migrationsDir)
+    .filter((f) => f.endsWith(".ts"))
+    .sort();
 
-    if (files.length === 0) {
-      return "no-migrations";
-    }
+  /** @type {Record<string, string>} */
+  const manifest = {};
 
-    const contents = files
-      .map((file) => {
-        const filePath = path.join(migrationsDir, file);
-        return readFileSync(filePath, "utf-8");
-      })
-      .join("\n");
-
-    const hash = createHash("sha256").update(contents).digest("hex");
-    return hash;
-  } catch (error) {
-    console.warn("Warning: Could not calculate migration hash:", error.message);
-    // Return a timestamp-based hash to force rebuild on error
-    return `error-${Date.now()}`;
+  for (const file of files) {
+    const contents = readFileSync(path.join(migrationsDir, file), "utf-8");
+    manifest[file] = createHash("sha256").update(contents).digest("hex");
   }
+
+  return manifest;
 }
 
 async function checkDatabaseExists(dbName) {
-  const databaseUrl = process.env.DATABASE_URL_ROOT;
-  if (!hasValue(databaseUrl)) {
-    throw new Error("DATABASE_URL_ROOT environment variable is not set");
-  }
-
-  const url = new URL(databaseUrl);
-  url.pathname = "/defaultdb";
-  const adminConnString = url.toString();
-
-  const pool = new Pool({ connectionString: adminConnString });
+  const pool = openPool();
 
   try {
-    const result = await pool.query(
-      "SELECT 1 FROM pg_database WHERE datname = $1",
-      [dbName],
-    );
+    const result = await pool.query("SELECT 1 FROM pg_database WHERE datname = $1", [dbName]);
     return result.rowCount !== null && result.rowCount > 0;
   } finally {
     await pool.end();
@@ -112,16 +138,7 @@ async function checkDatabaseExists(dbName) {
 }
 
 async function dropDatabase(dbName) {
-  const databaseUrl = process.env.DATABASE_URL_ROOT;
-  if (!hasValue(databaseUrl)) {
-    throw new Error("DATABASE_URL_ROOT environment variable is not set");
-  }
-
-  const url = new URL(databaseUrl);
-  url.pathname = "/defaultdb";
-  const adminConnString = url.toString();
-
-  const pool = new Pool({ connectionString: adminConnString });
+  const pool = openPool();
 
   try {
     console.log(`🗑️  Dropping existing database ${dbName}...`);
@@ -129,6 +146,53 @@ async function dropDatabase(dbName) {
     console.log(`✓ Database dropped: ${dbName}`);
   } finally {
     await pool.end();
+  }
+}
+
+/**
+ * Reads the migrations already applied to a preview database, in the order
+ * Kysely applied them (it sorts by file name).
+ *
+ * @param {string} dbName
+ * @returns {Promise<string[]>} Applied migration names, oldest first.
+ */
+async function getAppliedMigrations(dbName) {
+  const pool = openPool(dbName);
+
+  try {
+    const result = await pool.query("SELECT name FROM kysely_migration ORDER BY name ASC");
+    return result.rows.map((row) => row.name);
+  } finally {
+    await pool.end();
+  }
+}
+
+/**
+ * Migration files that exist locally but not on origin/main — i.e. the ones this
+ * PR introduces. Returns null if the comparison fails, which callers treat as
+ * "cannot reason about it, rebuild from scratch".
+ *
+ * @returns {string[] | null}
+ */
+function listMigrationsNotOnMain() {
+  try {
+    const onMain = new Set(
+      execSync("git ls-tree -r --name-only origin/main -- migrations/schema", {
+        encoding: "utf-8",
+        stdio: "pipe",
+      })
+        .split("\n")
+        .map((line) => path.basename(line.trim()))
+        .filter((line) => line.endsWith(".ts")),
+    );
+
+    return Object.keys(buildMigrationManifest()).filter((file) => !onMain.has(file));
+  } catch (error) {
+    console.warn(
+      "Warning: could not compare migrations against origin/main:",
+      error instanceof Error ? error.message : String(error),
+    );
+    return null;
   }
 }
 
@@ -152,61 +216,83 @@ function writeDatabaseUrlToConfig(databaseUrl) {
 
     writeFileSync(configFilePath, configContent, "utf-8");
 
-    console.log(
-      "✓ Wrote DATABASE_URL to database-config.json for Functions runtime",
-    );
+    console.log("✓ Wrote DATABASE_URL to database-config.json for Functions runtime");
   } catch (error) {
-    console.warn(
-      "Warning: Could not write DATABASE_URL to config file:",
-      error.message,
-    );
-    console.warn(
-      "Netlify Functions may not have access to the preview database",
-    );
+    console.warn("Warning: Could not write DATABASE_URL to config file:", error.message);
+    console.warn("Netlify Functions may not have access to the preview database");
   }
 }
 
 /**
- * Saves migration hash to a file for Netlify cache
- * @param {string} hash - The migration hash to save
- * @param {string} reviewId - The PR review ID
- * @returns {string} Path to the hash file
+ * Reverses the last `count` migrations on a preview database.
+ *
+ * Used when this PR edited a migration it had already applied here: rolling it
+ * back and letting the build re-apply it reproduces the schema a fresh restore
+ * would have produced, without the restore. Throws on the first failing `down()`
+ * so the caller can fall back to rebuilding.
+ *
+ * @param {string} databaseUrl - Connection string for the preview database.
+ * @param {number} count - Number of migrations to reverse.
+ * @returns {void}
  */
-function saveHashToFile(hash, reviewId) {
-  const cacheDir = path.join(process.cwd(), ".netlify-cache");
-  const hashFile = path.join(cacheDir, `pr-${reviewId}-hash.txt`);
+function rollbackMigrations(databaseUrl, count) {
+  const scriptPath = path.join(process.cwd(), "migrations", "schemaMigrator.ts");
 
-  if (!existsSync(cacheDir)) {
-    mkdirSync(cacheDir, { recursive: true });
-  }
-
-  writeFileSync(hashFile, hash, "utf-8");
-
-  return hashFile;
+  execSync(`npx tsx ${scriptPath} down ${count}`, {
+    stdio: "inherit",
+    env: { ...process.env, DATABASE_URL: databaseUrl, CI: "true" },
+    timeout: SPAWN_SUBPROCESS_TIMEOUT_MS,
+  });
 }
 
 /**
- * Restores migration hash from cached file
+ * Path of the per-PR migration manifest inside the Netlify build cache.
  * @param {string} reviewId - The PR review ID
- * @returns {string | null} The cached hash, or null if not found
+ * @returns {string}
  */
-function restoreHashFromFile(reviewId) {
-  const hashFile = path.join(
-    process.cwd(),
-    ".netlify-cache",
-    `pr-${reviewId}-hash.txt`,
-  );
+function manifestPath(reviewId) {
+  return path.join(process.cwd(), ".netlify-cache", `pr-${reviewId}-migrations.json`);
+}
 
-  if (existsSync(hashFile)) {
-    try {
-      return readFileSync(hashFile, "utf-8").trim();
-    } catch (error) {
-      console.warn("Warning: Could not read cached hash file:", error.message);
-      return null;
-    }
+/**
+ * Writes the migration manifest to the Netlify cache directory.
+ * @param {Record<string, string>} manifest
+ * @param {string} reviewId - The PR review ID
+ * @returns {string} Path to the manifest file
+ */
+function saveManifestToFile(manifest, reviewId) {
+  const file = manifestPath(reviewId);
+
+  mkdirSync(path.dirname(file), { recursive: true });
+  writeFileSync(file, JSON.stringify(manifest, null, 2), "utf-8");
+
+  return file;
+}
+
+/**
+ * Reads the manifest cached by the previous build.
+ *
+ * Returns null when it is missing or unreadable — including the one-time case of
+ * a PR whose cache still holds the old single-hash `.txt` format. Callers treat
+ * null as "rebuild from scratch", so a stale cache costs one restore, never
+ * correctness.
+ *
+ * @param {string} reviewId - The PR review ID
+ * @returns {Record<string, string> | null}
+ */
+function restoreManifestFromFile(reviewId) {
+  const file = manifestPath(reviewId);
+
+  if (!existsSync(file)) {
+    return null;
   }
 
-  return null;
+  try {
+    return JSON.parse(readFileSync(file, "utf-8"));
+  } catch (error) {
+    console.warn("Warning: Could not read cached migration manifest:", error.message);
+    return null;
+  }
 }
 
 /**
@@ -229,9 +315,7 @@ function checkForMigrations() {
     const hasChanges = migrationFiles.length > 0;
 
     if (hasChanges) {
-      console.log(
-        `  Found ${migrationFiles.length} changed migration file(s):`,
-      );
+      console.log(`  Found ${migrationFiles.length} changed migration file(s):`);
       migrationFiles.forEach((file) => console.log(`    - ${file}`));
     }
 
@@ -250,7 +334,7 @@ function checkForMigrations() {
  * @param {PluginContext} context
  * @returns {Promise<void>}
  */
-const onPreBuild = async ({ utils, inputs }) => {
+const onPreBuild = async ({ utils, inputs, netlifyConfig }) => {
   const { CONTEXT, REVIEW_ID, BRANCH } = process.env;
 
   if (CONTEXT !== "deploy-preview") {
@@ -259,9 +343,7 @@ const onPreBuild = async ({ utils, inputs }) => {
   }
 
   if (!hasValue(REVIEW_ID)) {
-    console.log(
-      "Warning: REVIEW_ID not available, skipping preview database setup",
-    );
+    console.log("Warning: REVIEW_ID not available, skipping preview database setup");
     return;
   }
 
@@ -275,9 +357,7 @@ const onPreBuild = async ({ utils, inputs }) => {
 
       const databaseUrl = process.env.DATABASE_URL_ROOT;
       if (hasValue(databaseUrl)) {
-        const sourceDb = hasValue(inputs.sourceDatabase)
-          ? inputs.sourceDatabase
-          : "dev";
+        const sourceDb = hasValue(inputs.sourceDatabase) ? inputs.sourceDatabase : "dev";
 
         const url = new URL(databaseUrl);
         url.pathname = `/${sourceDb}`;
@@ -289,128 +369,157 @@ const onPreBuild = async ({ utils, inputs }) => {
         console.log(`✓ Using ${sourceDb} database for this deploy preview\n`);
       }
 
+      // Tell the build command it can skip `npm run migrate` entirely. Shared
+      // `dev` is already at main's schema (the onSuccess hook below keeps it
+      // there), and with no migration diff there is nothing for the migrator to
+      // apply and no way for the committed types to have gone stale. Skipping
+      // saves a tsx cold start, a CockroachDB round trip and a full
+      // introspection on the ~90% of previews that touch no migrations.
+      //
+      // Only ever set in this branch: every other path leaves it unset and the
+      // build migrates as before, so a plugin failure degrades to the old
+      // behaviour rather than silently skipping a needed migration.
+      netlifyConfig.build.environment.SKIP_SCHEMA_MIGRATE = "true";
+
       return;
     }
 
     console.log("✓ Schema migrations detected!");
 
-    console.log("\n📊 Calculating migration hash...");
-    const currentHash = calculateMigrationHash();
-    console.log(`✓ Migration hash: ${currentHash.substring(0, 12)}...`);
+    console.log("\n📊 Hashing migration files...");
+    const manifest = buildMigrationManifest();
+    console.log(`✓ Hashed ${Object.keys(manifest).length} migration file(s)`);
 
-    const hashFile = path.join(
-      process.cwd(),
-      ".netlify-cache",
-      `pr-${REVIEW_ID}-hash.txt`,
-    );
+    const cacheFile = manifestPath(REVIEW_ID);
 
-    const restoredFile = await utils.cache.restore(hashFile);
-    const cachedHash =
-      restoredFile !== false && restoredFile !== null
-        ? restoreHashFromFile(REVIEW_ID)
-        : null;
+    const restoredFile = await utils.cache.restore(cacheFile);
+    const cachedManifest =
+      restoredFile !== false && restoredFile !== null ? restoreManifestFromFile(REVIEW_ID) : null;
 
-    if (hasValue(cachedHash)) {
-      console.log(`✓ Found cached hash: ${cachedHash.substring(0, 12)}...`);
+    if (cachedManifest === null) {
+      console.log("ℹ️  No cached manifest found (first build for this PR)");
     } else {
-      console.log("ℹ️  No cached hash found (first build for this PR)");
+      console.log(`✓ Found cached manifest (${Object.keys(cachedManifest).length} file(s))`);
     }
 
     const targetDb = `pr_${REVIEW_ID}`;
-
     const dbExists = await checkDatabaseExists(targetDb);
+
+    /**
+     * Points DATABASE_URL (and the Functions runtime config) at the preview
+     * database and persists the manifest for the next build.
+     * @param {string} databaseUrl
+     */
+    const adoptDatabase = async (databaseUrl) => {
+      process.env.DATABASE_URL = databaseUrl;
+      writeDatabaseUrlToConfig(databaseUrl);
+
+      await utils.cache.save(targetDb, ["preview-database-name"]);
+      saveManifestToFile(manifest, REVIEW_ID);
+      await utils.cache.save(cacheFile);
+    };
 
     if (dbExists) {
       console.log(`✓ Database ${targetDb} exists`);
-    } else {
-      console.log(`ℹ️  Database ${targetDb} does not exist yet`);
-    }
 
-    let shouldRebuild = false;
+      // Restoring from an S3 backup costs ~100s of build time; re-running a
+      // migration costs a second or two. Work out whether we can advance the
+      // existing database in place instead of rebuilding it.
+      let plan;
+      try {
+        const applied = await getAppliedMigrations(targetDb);
+        plan = planDatabaseReuse({
+          manifest,
+          cachedManifest,
+          applied,
+          prLocal: listMigrationsNotOnMain(),
+        });
+      } catch (error) {
+        plan = { reuse: false, reason: `could not inspect applied migrations: ${error.message}` };
+      }
 
-    if (!dbExists) {
-      console.log("\n→ Creating new preview database...\n");
-      shouldRebuild = true;
-    } else if (cachedHash !== currentHash) {
-      console.log("\n⚠️  Migrations have changed since last build!");
-      console.log("→ Rebuilding preview database...\n");
-      shouldRebuild = true;
+      if (plan.reuse) {
+        const url = new URL(ensureRootUrl());
+        url.pathname = `/${targetDb}`;
+
+        let rolledBack = true;
+
+        if (plan.rollback > 0) {
+          console.log(
+            `\n⚠️  ${plan.rollback} already-applied migration(s) from this PR changed since the last build`,
+          );
+          console.log("→ Rolling them back so the build's `npm run migrate` re-applies them\n");
+
+          try {
+            rollbackMigrations(url.toString(), plan.rollback);
+          } catch (error) {
+            // A missing or broken `down()` leaves the schema half-reversed, and
+            // CockroachDB has no transactional DDL to unwind it. Rebuilding from
+            // the snapshot is the known-good recovery, and it is exactly the
+            // cost we would have paid anyway — so this optimisation can only
+            // ever save time, never add failures.
+            console.log(`\n⚠️  Rollback failed: ${error.message}`);
+            rolledBack = false;
+          }
+        } else {
+          console.log(
+            "\n✓ Applied migrations are unchanged; new ones will be applied by the build",
+          );
+        }
+
+        if (rolledBack) {
+          console.log(`✓ Reusing existing database: ${targetDb}`);
+          console.log("→ Skipping database rebuild\n");
+
+          await adoptDatabase(url.toString());
+          return;
+        }
+      }
+
+      console.log(`\n⚠️  Cannot reuse ${targetDb}${plan.reuse ? "" : `: ${plan.reason}`}`);
+      console.log("→ Rebuilding preview database from snapshot...\n");
 
       await dropDatabase(targetDb);
     } else {
-      console.log("\n✓ Migrations unchanged since last build");
-      console.log(`✓ Reusing existing database: ${targetDb}`);
-      console.log("→ Skipping database rebuild\n");
-
-      const databaseUrl = process.env.DATABASE_URL_ROOT;
-      if (hasValue(databaseUrl)) {
-        const url = new URL(databaseUrl);
-        url.pathname = `/${targetDb}`;
-        const newDatabaseUrl = url.toString();
-
-        process.env.DATABASE_URL = newDatabaseUrl;
-        console.log(
-          "✓ DATABASE_URL updated to use existing preview database\n",
-        );
-
-        writeDatabaseUrlToConfig(newDatabaseUrl);
-      }
-
-      await utils.cache.save(targetDb, ["preview-database-name"]);
-
-      // Save current hash to file before caching it
-      saveHashToFile(currentHash, REVIEW_ID);
-      await utils.cache.save(hashFile);
-      return;
+      console.log(`ℹ️  Database ${targetDb} does not exist yet`);
+      console.log("\n→ Creating new preview database...\n");
     }
 
-    if (shouldRebuild) {
-      console.log(`🗄️  Creating preview database for PR #${REVIEW_ID}...\n`);
+    console.log(`🗄️  Creating preview database for PR #${REVIEW_ID}...\n`);
 
-      const sourceDb = hasValue(inputs.sourceDatabase)
-        ? inputs.sourceDatabase
-        : "dev";
+    const sourceDb = hasValue(inputs.sourceDatabase) ? inputs.sourceDatabase : "dev";
 
-      const metadata = JSON.stringify({
-        created_at: new Date().toISOString(),
-        pr_number: parseInt(REVIEW_ID, 10),
-        branch: BRANCH ?? "unknown",
-        created_by: "netlify-bot",
-      });
+    const metadata = JSON.stringify({
+      created_at: new Date().toISOString(),
+      pr_number: parseInt(REVIEW_ID, 10),
+      branch: BRANCH ?? "unknown",
+      created_by: "netlify-bot",
+    });
 
-      const scriptPath = path.join(process.cwd(), "scripts", "db-spawn.ts");
-      const cmd = `npx tsx ${scriptPath} ${sourceDb} ${targetDb} --metadata='${metadata}'`;
+    const scriptPath = path.join(process.cwd(), "scripts", "db-spawn.ts");
+    const cmd = `npx tsx ${scriptPath} ${sourceDb} ${targetDb} --metadata='${metadata}'`;
 
-      const output = execSync(cmd, {
-        encoding: "utf-8",
-        stdio: "pipe",
-        env: { ...process.env, CI: "true" },
-      });
+    const output = execSync(cmd, {
+      encoding: "utf-8",
+      stdio: "pipe",
+      env: { ...process.env, CI: "true" },
+      // A wedged RESTORE would otherwise bill build minutes until Netlify's own
+      // timeout fires. db-spawn's pool has its own query deadline; this is the
+      // backstop for the whole subprocess.
+      timeout: SPAWN_SUBPROCESS_TIMEOUT_MS,
+    });
 
-      const match = /DATABASE_URL=(.+)/.exec(output);
-      if (match && match[1]) {
-        const newDatabaseUrl = match[1].trim();
-
-        process.env.DATABASE_URL = newDatabaseUrl;
-
-        console.log(`\n✓ Preview database created: ${targetDb}`);
-        console.log("✓ DATABASE_URL updated for this build\n");
-
-        writeDatabaseUrlToConfig(newDatabaseUrl);
-
-        await utils.cache.save(targetDb, ["preview-database-name"]);
-
-        // Save current hash to file before caching it
-        saveHashToFile(currentHash, REVIEW_ID);
-        await utils.cache.save(hashFile);
-      } else {
-        throw new Error("Failed to extract DATABASE_URL from db-spawn output");
-      }
+    const match = /DATABASE_URL=(.+)/.exec(output);
+    if (!match || !match[1]) {
+      throw new Error("Failed to extract DATABASE_URL from db-spawn output");
     }
+
+    console.log(`\n✓ Preview database created: ${targetDb}`);
+    console.log("✓ DATABASE_URL updated for this build\n");
+
+    await adoptDatabase(match[1].trim());
   } catch (error) {
-    utils.build.failBuild(
-      `Failed to create preview database: ${error.message}`,
-    );
+    utils.build.failBuild(`Failed to create preview database: ${error.message}`);
   }
 };
 
@@ -447,30 +556,20 @@ const onSuccess = ({ inputs }) => {
 
   const rootUrl = process.env.DATABASE_URL_ROOT;
   if (!hasValue(rootUrl)) {
-    console.warn(
-      "Warning: DATABASE_URL_ROOT not set; skipping shared dev migration sync",
-    );
+    console.warn("Warning: DATABASE_URL_ROOT not set; skipping shared dev migration sync");
     return;
   }
 
-  const sourceDb = hasValue(inputs.sourceDatabase)
-    ? inputs.sourceDatabase
-    : "dev";
+  const sourceDb = hasValue(inputs.sourceDatabase) ? inputs.sourceDatabase : "dev";
 
   const url = new URL(rootUrl);
   url.pathname = `/${sourceDb}`;
   const devDatabaseUrl = url.toString();
 
-  console.log(
-    `\n🔄 Syncing schema migrations to shared ${sourceDb} database...`,
-  );
+  console.log(`\n🔄 Syncing schema migrations to shared ${sourceDb} database...`);
 
   try {
-    const scriptPath = path.join(
-      process.cwd(),
-      "migrations",
-      "schemaMigrator.ts",
-    );
+    const scriptPath = path.join(process.cwd(), "migrations", "schemaMigrator.ts");
 
     // Stream the migrator's output straight to the build log so its progress
     // (and any failure detail) is visible without re-capturing it here.
@@ -485,12 +584,8 @@ const onSuccess = ({ inputs }) => {
     // here must not fail the deploy. A stale `dev` only affects preview/local
     // environments and is recoverable with `npm run migrate:dev`.
     const message = error instanceof Error ? error.message : String(error);
-    console.warn(
-      `⚠️  Failed to sync migrations to the shared ${sourceDb} database: ${message}`,
-    );
-    console.warn(
-      "   Production is unaffected. Run `npm run migrate:dev` to sync manually.",
-    );
+    console.warn(`⚠️  Failed to sync migrations to the shared ${sourceDb} database: ${message}`);
+    console.warn("   Production is unaffected. Run `npm run migrate:dev` to sync manually.");
   }
 };
 

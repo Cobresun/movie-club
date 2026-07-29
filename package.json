@@ -11,6 +11,7 @@
     "format:check": "oxfmt --check src migrations netlify/functions lib scripts",
     "lint": "oxlint --deny-warnings src migrations netlify/functions lib scripts",
     "test": "vitest run",
+    "test:plugins": "node --test 'netlify/plugins/**/*.test.js'",
     "test:watch": "vitest",
     "coverage": "vitest run --coverage",
     "type-check": "vue-tsc --noEmit --composite false",

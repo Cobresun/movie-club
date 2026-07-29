@@ -43,6 +43,10 @@ npm run db:cleanup arbitrary_lists
 
 **Shared `dev` self-syncs after merge.** The plugin's `onSuccess` hook migrates shared `dev` on every production deploy, so it tracks `main` unattended. Running `migrate:dev` against `dev` yourself is a fallback for when that hook failed.
 
+**A `pr_<id>` database is advanced in place where it can be.** Restoring one from S3 costs ~100s of build time, so the plugin only rebuilds when it must. It caches a per-migration hash manifest and compares it against what `kysely_migration` says is applied: a new-but-unapplied migration is just applied by the build, and one the PR _edited_ after already applying it is rolled back (`schemaMigrator.ts down <n>`) so the build re-applies it. It falls back to drop-and-restore whenever it can't reason safely — a changed migration already on `main`, a deleted file, a merged migration sitting after the PR's own, a missing cache, or a `down()` that throws. The decision logic is pure and tested in `netlify/plugins/preview-database/planDatabaseReuse.test.js`.
+
+So a **working `down()` earns you faster preview builds**: without one, every push that touches the migration pays for a full restore.
+
 ## CockroachDB gotchas
 
 - **No transactional DDL.** A migration erroring midway leaves created enums and columns behind. Either make `up()` idempotent or expect to drop orphans by hand (`DROP TYPE IF EXISTS`, `ALTER TABLE ... DROP COLUMN IF EXISTS`) before re-running.
