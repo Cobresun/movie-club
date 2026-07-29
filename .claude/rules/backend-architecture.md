@@ -5,124 +5,42 @@ paths:
 
 # Backend Architecture (Netlify Functions)
 
-## Custom Router System
+## Custom router
 
-Located in `netlify/functions/utils/router.ts`. A type-safe Express-like router supporting middleware chaining with type transformations, path parameter extraction via `path-parser`, method routing (GET, POST, PUT, DELETE), sub-routers with `use()`, and automatic 404/405 responses.
+`netlify/functions/utils/router.ts` is a hand-rolled, type-safe Express-like router — middleware chaining _with type transformations_, path params via `path-parser`, sub-routers through `use()`, automatic 404/405. Middleware widens the handler's first argument, so a route mounted behind `validClubSlug` receives `clubSlug` already resolved and typed:
 
 ```typescript
-const router = new Router("/api/club");
 router.use("/:clubSlug/list", validClubSlug, listRouter);
-router.get("/:clubSlug", validClubSlug, async ({ clubSlug }, res) => {
-  const club = await ClubRepository.getBySlug(clubSlug);
-  return res(ok(JSON.stringify(result)));
-});
+router.get("/:clubSlug", validClubSlug, async ({ clubSlug }, res) =>
+  res(ok(JSON.stringify(await ClubRepository.getBySlug(clubSlug)))),
+);
 ```
 
-## API Structure
+Routers are mounted from `netlify/functions/club/index.ts` and `member.ts` — read those for the current route surface rather than relying on a list here.
 
-- `/api/og-image` - Open Graph image generation for shared reviews
-- `/api/auth/*` - BetterAuth endpoints (handled automatically)
-- `/api/club/*` - All club-related endpoints
-  - `/:clubSlug/list` - Arbitrary user-defined lists per club. List IDs are
-    UUIDs; the legacy `watchlist` / `backlog` enum was removed in
-    `20260407_ArbitraryClubLists`. System lists (`reviews`) are always
-    filtered out from the collection endpoint.
-    - `GET /` - List a club's user lists with item counts (system lists excluded)
-    - `GET /reviews-id` - Return the reviews system list ID (`{ id: string }`)
-    - `POST /` - Create a new list (`{ title }`)
-    - `GET /reviews` - Special-case rich shape for the reviews system list
-    - `GET /:listId` - Items on a single list
-    - `PUT /:listId` - Rename a list (rejected for system lists)
-    - `DELETE /:listId` - Delete a list (rejected for system lists)
-    - `POST /:listId/items` - Add a work to a list
-    - `DELETE /:listId/items/:workId` - Remove a work from a list
-    - `PUT /:listId/reorder` - Reorder list items
-    - `PUT /:listId/items/:workId/added-date` - Update item added date
-    - `POST /:listId/items/:workId/move` - Move a work to another list
-  - `/:clubSlug/reviews` - Movie reviews
-    - `POST /` - Score a movie (`{ workId, score }`)
-    - `DELETE /:workId` - Remove a work from the reviews list
-    - `GET /:workId/shared` - Shared review data for external sharing
-    - `GET /:workId/comments` - Get comments for a work
-    - `POST /:workId/comments` - Add comment to a work
-    - `PUT /:workId/comments/:commentId` - Update a comment
-    - `DELETE /:workId/comments/:commentId` - Delete a comment
-  - `/:clubSlug/members` - Club membership
-  - `/:clubSlug/awards` - Awards system (categories, nominations, rankings)
-  - `/:clubSlug/invite` - Invite token management
-  - `/:clubSlug/settings` - Club settings
-  - `/:clubSlug/nextWork` - Current movie being watched
-  - `/:clubSlug/name` - Update club name (PUT)
-  - `/:clubSlug/slug` - Update club slug (PUT)
-  - `/join` - Join club via invite
-  - `/joinInfo/:token` - Get club info from invite token
-- `/api/member/*` - User-specific endpoints
-  - `/clubs` - Get user's clubs
-  - `POST /avatar` - Upload avatar
-  - `DELETE /avatar` - Delete avatar
-  - `PUT /name` - Update user name
+## Request pipeline
 
-## Key Backend Patterns
+A handler is normally middleware + Zod body schema + repository + a helper from `utils/responses.ts` (`ok`, `badRequest`, `unauthorized`, `notFound`, `svg`, `redirect`).
 
-- Repository pattern for data access (e.g., `ClubRepository`, `UserRepository`, `WorkRepository`)
-- Middleware for authentication (`loggedIn`, `secured`) and validation (`validClubSlug`, `validListId` — the latter loads a list by `:listId`, asserts it belongs to the resolved club, and exposes `listSystemType` so handlers can gate operations on system lists)
-- Zod schemas for request body validation
-- Kysely for type-safe database queries
-- Response helpers from `utils/responses.ts` (`ok`, `badRequest`, `unauthorized`, `notFound`, `svg`, `redirect`)
+- `loggedIn` — any authenticated user. `secured` — authenticated _and_ a member of the resolved club.
+- `validClubSlug` resolves `:clubSlug`. `validListId` loads `:listId`, asserts it belongs to that club, and exposes `listSystemType` so handlers can gate operations on system lists.
 
-## Repository Classes
+## Lists
 
-Located in `netlify/functions/repositories/`:
+Lists are arbitrary and user-titled, keyed by UUID. A club's _reviews_ list is a system list (`system_type = 'reviews'`) and is deliberately filtered out of the list-collection endpoint, fetched instead through a dedicated reviews-id route and a richer reviews shape. Rename and delete are rejected for system lists.
 
-- `ClubRepository` - Club CRUD, membership checks, invites
-- `UserRepository` - User lookup and management
-- `WorkRepository` - Movie/work management
-- `ListRepository` - List CRUD and item operations; the reviews system list is distinguished by `system_type = 'reviews'` and looked up via `getReviewsListId`. `moveItem` is transactional with `ON CONFLICT DO NOTHING` so moving items into the reviews list and moving between user lists share the same code path.
-- `ReviewRepository` - Review data access
-- `AwardsRepository` - Awards system data
-- `SettingsRepository` - Club settings storage
-- `ImageRepository` - Cloudinary image management
-- `DatabaseCleanupRepository` - Preview database lifecycle management
-- `WorkCommentRepository` - Work comment CRUD
+`ListRepository.moveItem` is transactional with `ON CONFLICT DO NOTHING`, so moving into the reviews list and moving between user lists share one code path.
 
-Stale-metadata refresh is not a repository: each `MediaProvider`
-(`netlify/functions/utils/providers/`) implements `refreshStaleDetails(limit)`
-for its own source (TMDB, Google Books), and the scheduled refresh sweeps them.
+## Data access
 
-## Scheduled Functions
+Repository classes in `netlify/functions/repositories/` own all queries — one per aggregate, named `<Thing>Repository`. Kysely with generated types throughout.
 
-- `netlify/functions/scheduled-db-cleanup.ts` - Daily cleanup of stale preview databases
-- `netlify/functions/scheduled-work-refresh.ts` - Daily refresh of stale cached work metadata across all media providers (movies, books)
+Stale-metadata refresh is deliberately _not_ a repository: each `MediaProvider` in `netlify/functions/utils/providers/` implements `refreshStaleDetails(limit)` for its own source (TMDB, Google Books), and `scheduled-work-refresh.ts` sweeps them. `scheduled-db-cleanup.ts` reaps stale preview databases.
 
-## Edge Functions
+Deploy-time behavior lives in Netlify plugins: `netlify/plugins/preview-database/` (per-PR database selection, plus the shared-`dev` migration sync on production deploys) and `netlify/plugins/auth-config/`.
 
-- `netlify/edge-functions/shared-review.ts` - Edge function for shared review pages (`/share/club/:clubSlug/review/:workId`)
+## Auth
 
-## Netlify Plugins
+`netlify/functions/utils/auth.ts` is the BetterAuth server config — bcrypt hashing, Google OAuth, Resend emails, and a mixed ID strategy (auto-increment for users, UUIDs for sessions). See the `better-auth-best-practices` skill for general patterns.
 
-- `netlify/plugins/preview-database/` - Preview database management for deploy previews
-- `netlify/plugins/auth-config/` - Authentication configuration for deploys
-
-## Authentication (Backend)
-
-Backend uses `loggedIn` (any authenticated user) and `secured` (authenticated + club member) middleware. See `better-auth-best-practices` skill for general BetterAuth patterns.
-
-- `netlify/functions/utils/auth.ts` — BetterAuth server config (bcrypt hashing, Google OAuth, Resend emails, mixed ID generation: auto-increment for users, UUIDs for sessions)
-
-## Key Backend Files
-
-- `netlify/functions/club/index.ts` - Main club API router
-- `netlify/functions/auth.ts` - BetterAuth handler
-- `netlify/functions/member.ts` - Member API endpoints
-- `netlify/functions/utils/router.ts` - Custom routing framework
-- `netlify/functions/utils/database.ts` - Database connection singleton
-- `netlify/functions/utils/auth.ts` - Auth configuration and middleware
-- `netlify/functions/utils/responses.ts` - HTTP response helpers
-- `netlify/functions/utils/validation.ts` - Request validation middleware
-- `netlify/functions/utils/slug.ts` - Slug generation and validation
-- `netlify/functions/utils/email.ts` - Resend email templates
-- `netlify/functions/utils/workDetailsMapper.ts` - Work-to-external-data mapper
-- `netlify/functions/utils/movieDetailsUpdater.ts` - Movie details update utility
-- `netlify/functions/og-image.ts` - Open Graph image generation
-- `netlify/functions/services/SharedReviewService.ts` - Shared review data service
-- `lib/types/*.ts` - Shared type definitions (club, movie, reviews, awards, lists, common, watchlist, etc.)
+**Set-Cookie gotcha:** `Headers.forEach` folds repeated `Set-Cookie` values into one malformed header. Use `getSetCookie()` and return them via Netlify's `multiValueHeaders`.
