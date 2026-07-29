@@ -18,7 +18,6 @@ function movieData(
     // test needs to exercise the star path in lib/movie/majorCast.
     actors?: { name: string; popularity?: number }[];
     genres?: string[];
-    countries?: string[];
     voteAverage?: number;
     runtime?: number;
     releaseDate?: string;
@@ -43,7 +42,7 @@ function movieData(
     })),
     genres: opts.genres ?? [],
     production_companies: [],
-    production_countries: opts.countries ?? [],
+    production_countries: [],
     vote_average: opts.voteAverage,
     runtime: opts.runtime,
     release_date: opts.releaseDate,
@@ -427,20 +426,6 @@ describe("computeReviewFact", () => {
     expect(fact?.kind).toBe("timeTravel");
     expect(fact?.text).toContain("Released in 1954");
     expect(fact?.text).toContain("oldest movie");
-  });
-
-  it("stamps the passport for a first movie from a country", () => {
-    const target = work(
-      "t",
-      "2025-06-01T12:00:00.000Z",
-      { [MEMBER_A]: 6, [MEMBER_B]: 6 },
-      { externalData: movieData({ countries: ["South Korea"] }) },
-    );
-    const reviews = [...filler(11, { movie: { countries: ["United States of America"] } }), target];
-
-    const fact = computeReviewFact(reviews, "t");
-    expect(fact?.kind).toBe("countryFirst");
-    expect(fact?.text).toContain("first movie from South Korea");
   });
 
   it("notices the club's first trip to a decade", () => {

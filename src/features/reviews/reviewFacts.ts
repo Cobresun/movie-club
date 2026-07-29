@@ -42,7 +42,6 @@ export const FACT_ICONS = {
   timeTravel: "history",
   longestRuntime: "seat-recline-extra",
   longestBook: "book-open-page-variant",
-  countryFirst: "passport",
   decadeFirst: "calendar-star",
   firstGenre: "star-shooting",
   tmdbDeviation: "scale-unbalanced",
@@ -436,24 +435,6 @@ const longestBook: FactGenerator = (ctx) => {
 // club has enough history for a new genre/country/decade to be a genuine event.
 const MIN_PRIOR_WORKS_FOR_FIRSTS = 10;
 
-const countryFirst: FactGenerator = (ctx) => {
-  const movie = asMovie(ctx.target.externalData);
-  if (!isDefined(movie) || !hasElements(movie.production_countries)) {
-    return undefined;
-  }
-  const prior = ctx.worksThrough.filter((work) => work.id !== ctx.target.id);
-  if (prior.length < MIN_PRIOR_WORKS_FOR_FIRSTS) return undefined;
-  const seen = new Set(
-    prior.flatMap((work) => asMovie(work.externalData)?.production_countries ?? []),
-  );
-  // An empty seen-set means the history lacks country data, not that every
-  // country is new.
-  if (seen.size === 0) return undefined;
-  const newCountry = movie.production_countries.find((country) => !seen.has(country));
-  if (!hasValue(newCountry)) return undefined;
-  return fact("countryFirst", "Passport stamp", `Your club's first movie from ${newCountry}.`);
-};
-
 const decadeFirst: FactGenerator = (ctx) => {
   const year = releaseYearOf(ctx.target);
   if (!isDefined(year)) return undefined;
@@ -507,7 +488,6 @@ const FACT_GENERATORS: Record<WorkType, FactGenerator[]> = {
     actorMilestone,
     oldestMovie,
     longestRuntime,
-    countryFirst,
     decadeFirst,
     firstGenre,
     tmdbDeviation,
