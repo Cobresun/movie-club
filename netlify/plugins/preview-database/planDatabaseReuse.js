@@ -19,36 +19,35 @@ export function migrationName(file) {
  * Decides whether an existing preview database can be advanced in place instead
  * of dropped and restored from an S3 backup.
  *
- * Restoring costs ~100s of build time; re-running a migration costs a second or
- * two. The database is disposable, so the only thing we must protect is
- * *correctness*: the schema afterwards has to match what the PR's migrations
- * describe.
+ * Reuse is only ever offered when the change is *purely additive*: every
+ * migration already applied to this database still hashes to what was applied,
+ * and the only difference is migration files that have never run here. The
+ * build's `npm run migrate` applies those, and the result is the same schema a
+ * fresh restore would have produced.
  *
- * In-place is safe when every applied migration whose content changed is one
- * this PR owns (not yet on origin/main) *and* those changed migrations form a
- * contiguous run at the end of the applied list. Then rolling back that run and
- * letting the build's `npm run migrate` re-apply it reproduces the same schema a
- * fresh restore would. Anything else — a changed migration that is already on
- * main, a deleted file, a gap in the middle — we cannot safely unwind, so we
- * rebuild.
+ * If an already-applied migration's content changed, we rebuild. The tempting
+ * alternative — reverse it with `down()` and let the build re-apply it — is not
+ * safe, because `down()` is not a reliable inverse of `up()`. It does not have
+ * to throw to be wrong: `20260407_ArbitraryClubLists.ts` deletes work lists it
+ * cannot represent in the old shape ("a destructive rollback by necessity", per
+ * its own comment) and `20260104_ConsolidateUserImage.ts` documents losing OAuth
+ * images. Both exit 0, so no error-handling around the rollback could catch
+ * them; we would silently preview against a database that no longer matches the
+ * migration chain. A drifted schema can also make the re-`up()` fail outright,
+ * turning a build that would have passed into one that dies. Rebuilding costs
+ * ~100s and is always correct.
  *
  * @param {Object} args
  * @param {Record<string, string>} args.manifest - Current file → hash.
  * @param {Record<string, string> | null} args.cachedManifest - Manifest from the previous build.
  * @param {string[]} args.applied - Applied migration names, oldest first.
- * @param {string[] | null} args.prLocal - Migration files not on origin/main.
- * @returns {{ reuse: false, reason: string } | { reuse: true, rollback: number }}
+ * @returns {{ reuse: false, reason: string } | { reuse: true }}
  */
-export function planDatabaseReuse({ manifest, cachedManifest, applied, prLocal }) {
+export function planDatabaseReuse({ manifest, cachedManifest, applied }) {
   if (cachedManifest === null) {
     return { reuse: false, reason: "no cached migration manifest from a previous build" };
   }
 
-  if (prLocal === null) {
-    return { reuse: false, reason: "could not determine which migrations this PR owns" };
-  }
-
-  const prLocalNames = new Set(prLocal.map(migrationName));
   const current = new Map(
     Object.entries(manifest).map(([file, hash]) => [migrationName(file), hash]),
   );
@@ -56,48 +55,20 @@ export function planDatabaseReuse({ manifest, cachedManifest, applied, prLocal }
     Object.entries(cachedManifest).map(([file, hash]) => [migrationName(file), hash]),
   );
 
-  // Indices of applied migrations whose content is no longer what was applied.
-  const changed = [];
-
-  for (const [index, name] of applied.entries()) {
+  for (const name of applied) {
     if (!current.has(name)) {
       return { reuse: false, reason: `applied migration "${name}" no longer exists locally` };
     }
 
-    if (current.get(name) === cached.get(name)) {
-      continue;
-    }
-
-    if (!prLocalNames.has(name)) {
+    if (current.get(name) !== cached.get(name)) {
       return {
         reuse: false,
-        reason: `migration "${name}" is already on main but its content changed`,
-      };
-    }
-
-    changed.push(index);
-  }
-
-  if (changed.length === 0) {
-    // Purely additive: new migration files that were never applied here. The
-    // build's `npm run migrate` picks them up with no rollback needed.
-    return { reuse: true, rollback: 0 };
-  }
-
-  // The changed migrations must be a suffix of the applied list, otherwise
-  // rolling back to the earliest one would also unwind untouched migrations
-  // that sit after it.
-  const first = changed[0];
-  const rollback = applied.length - first;
-
-  for (let index = first; index < applied.length; index++) {
-    if (!prLocalNames.has(applied[index])) {
-      return {
-        reuse: false,
-        reason: `rolling back to "${applied[first]}" would also unwind "${applied[index]}", which is on main`,
+        reason: `migration "${name}" changed after it was applied here; rebuilding so it runs against a clean schema`,
       };
     }
   }
 
-  return { reuse: true, rollback };
+  // Purely additive: every applied migration is untouched, and anything new is a
+  // file that has never run here. The build's `npm run migrate` applies those.
+  return { reuse: true };
 }

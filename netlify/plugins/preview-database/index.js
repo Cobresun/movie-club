@@ -168,35 +168,6 @@ async function getAppliedMigrations(dbName) {
 }
 
 /**
- * Migration files that exist locally but not on origin/main — i.e. the ones this
- * PR introduces. Returns null if the comparison fails, which callers treat as
- * "cannot reason about it, rebuild from scratch".
- *
- * @returns {string[] | null}
- */
-function listMigrationsNotOnMain() {
-  try {
-    const onMain = new Set(
-      execSync("git ls-tree -r --name-only origin/main -- migrations/schema", {
-        encoding: "utf-8",
-        stdio: "pipe",
-      })
-        .split("\n")
-        .map((line) => path.basename(line.trim()))
-        .filter((line) => line.endsWith(".ts")),
-    );
-
-    return Object.keys(buildMigrationManifest()).filter((file) => !onMain.has(file));
-  } catch (error) {
-    console.warn(
-      "Warning: could not compare migrations against origin/main:",
-      error instanceof Error ? error.message : String(error),
-    );
-    return null;
-  }
-}
-
-/**
  * Writes DATABASE_URL to database-config.json for Netlify Functions to read at runtime
  * @param {string} databaseUrl - The database connection string
  * @returns {void}
@@ -221,28 +192,6 @@ function writeDatabaseUrlToConfig(databaseUrl) {
     console.warn("Warning: Could not write DATABASE_URL to config file:", error.message);
     console.warn("Netlify Functions may not have access to the preview database");
   }
-}
-
-/**
- * Reverses the last `count` migrations on a preview database.
- *
- * Used when this PR edited a migration it had already applied here: rolling it
- * back and letting the build re-apply it reproduces the schema a fresh restore
- * would have produced, without the restore. Throws on the first failing `down()`
- * so the caller can fall back to rebuilding.
- *
- * @param {string} databaseUrl - Connection string for the preview database.
- * @param {number} count - Number of migrations to reverse.
- * @returns {void}
- */
-function rollbackMigrations(databaseUrl, count) {
-  const scriptPath = path.join(process.cwd(), "migrations", "schemaMigrator.ts");
-
-  execSync(`npx tsx ${scriptPath} down ${count}`, {
-    stdio: "inherit",
-    env: { ...process.env, DATABASE_URL: databaseUrl, CI: "true" },
-    timeout: SPAWN_SUBPROCESS_TIMEOUT_MS,
-  });
 }
 
 /**
@@ -422,18 +371,13 @@ const onPreBuild = async ({ utils, inputs, netlifyConfig }) => {
     if (dbExists) {
       console.log(`✓ Database ${targetDb} exists`);
 
-      // Restoring from an S3 backup costs ~100s of build time; re-running a
-      // migration costs a second or two. Work out whether we can advance the
-      // existing database in place instead of rebuilding it.
+      // Restoring from an S3 backup costs ~100s of build time. When this build
+      // only *adds* migrations, the existing database can be advanced in place
+      // and the build's `npm run migrate` does the rest for free.
       let plan;
       try {
         const applied = await getAppliedMigrations(targetDb);
-        plan = planDatabaseReuse({
-          manifest,
-          cachedManifest,
-          applied,
-          prLocal: listMigrationsNotOnMain(),
-        });
+        plan = planDatabaseReuse({ manifest, cachedManifest, applied });
       } catch (error) {
         plan = { reuse: false, reason: `could not inspect applied migrations: ${error.message}` };
       }
@@ -442,41 +386,15 @@ const onPreBuild = async ({ utils, inputs, netlifyConfig }) => {
         const url = new URL(ensureRootUrl());
         url.pathname = `/${targetDb}`;
 
-        let rolledBack = true;
+        console.log("\n✓ Applied migrations are unchanged; new ones will be applied by the build");
+        console.log(`✓ Reusing existing database: ${targetDb}`);
+        console.log("→ Skipping database rebuild\n");
 
-        if (plan.rollback > 0) {
-          console.log(
-            `\n⚠️  ${plan.rollback} already-applied migration(s) from this PR changed since the last build`,
-          );
-          console.log("→ Rolling them back so the build's `npm run migrate` re-applies them\n");
-
-          try {
-            rollbackMigrations(url.toString(), plan.rollback);
-          } catch (error) {
-            // A missing or broken `down()` leaves the schema half-reversed, and
-            // CockroachDB has no transactional DDL to unwind it. Rebuilding from
-            // the snapshot is the known-good recovery, and it is exactly the
-            // cost we would have paid anyway — so this optimisation can only
-            // ever save time, never add failures.
-            console.log(`\n⚠️  Rollback failed: ${error.message}`);
-            rolledBack = false;
-          }
-        } else {
-          console.log(
-            "\n✓ Applied migrations are unchanged; new ones will be applied by the build",
-          );
-        }
-
-        if (rolledBack) {
-          console.log(`✓ Reusing existing database: ${targetDb}`);
-          console.log("→ Skipping database rebuild\n");
-
-          await adoptDatabase(url.toString());
-          return;
-        }
+        await adoptDatabase(url.toString());
+        return;
       }
 
-      console.log(`\n⚠️  Cannot reuse ${targetDb}${plan.reuse ? "" : `: ${plan.reason}`}`);
+      console.log(`\n⚠️  Cannot reuse ${targetDb}: ${plan.reason}`);
       console.log("→ Rebuilding preview database from snapshot...\n");
 
       await dropDatabase(targetDb);

@@ -140,9 +140,11 @@ async function migrateToLatest(migrator: Migrator) {
 /**
  * Reverses `steps` migrations, newest first.
  *
- * The preview-database plugin reverses a run of migrations at once when a PR
- * edits schema files it has already applied to its `pr_<id>` database, so that
- * the build can re-apply them instead of paying for a full restore from S3.
+ * A manual tool, for iterating on a migration against a spawned database. It is
+ * deliberately not wired into any automated path: `down()` is not a reliable
+ * inverse of `up()` and does not have to throw to leave the schema or its data
+ * wrong, so nothing that must produce a trustworthy database can lean on it. The
+ * preview-database plugin rebuilds from a snapshot instead.
  */
 function downgrade(steps: number) {
   return async (migrator: Migrator) => {
