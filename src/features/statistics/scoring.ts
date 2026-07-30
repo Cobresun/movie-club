@@ -6,14 +6,6 @@ import type {
 
 import { isDefined } from "../../../lib/checks/checks.js";
 import { Member } from "../../../lib/types/club";
-import {
-  axisLabelFontSize,
-  baseChartOptions,
-  baseLegendOptions,
-  CHART_SURFACE,
-  CLUB_SERIES_COLOR,
-  memberSeriesColor,
-} from "./chartPalette";
 import type {
   CumulativeCountPoint,
   DecadeStats,
@@ -23,6 +15,14 @@ import type {
   ScoreVariancePoint,
   WorkStatsData,
 } from "./types";
+import {
+  axisLabelFontSize,
+  baseChartOptions,
+  baseLegendOptions,
+  CHART_SURFACE,
+  CLUB_SERIES_COLOR,
+  memberSeriesColor,
+} from "@/common/chartPalette";
 
 export const createHistogramData = (scores: number[]): HistogramData[] => {
   if (scores.length === 0) return [];

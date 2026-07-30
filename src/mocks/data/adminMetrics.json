@@ -1,0 +1,52 @@
+{
+  "generatedAt": "2026-07-29T13:16:21.790Z",
+  "totals": {
+    "users": 83,
+    "verifiedUsers": 69,
+    "clubs": 22,
+    "movieClubs": 21,
+    "bookClubs": 1,
+    "memberships": 26,
+    "reviews": 1186,
+    "comments": 14,
+    "works": 713,
+    "lists": 79
+  },
+  "newUsers": { "last7Days": 2, "last30Days": 6 },
+  "newClubs": { "last7Days": 1, "last30Days": 3 },
+  "engagedUsers": { "last7Days": 5, "last30Days": 12 },
+  "loggedInUsers": { "last7Days": 6, "last30Days": 14 },
+  "activeClubs": { "last7Days": 3, "last30Days": 7 },
+  "weekly": {
+    "users": [
+      { "weekStart": "2026-07-13", "count": 1 },
+      { "weekStart": "2026-07-27", "count": 2 }
+    ],
+    "clubs": [{ "weekStart": "2026-07-27", "count": 1 }],
+    "reviews": [
+      { "weekStart": "2026-07-13", "count": 9 },
+      { "weekStart": "2026-07-20", "count": 4 },
+      { "weekStart": "2026-07-27", "count": 11 }
+    ]
+  },
+  "topClubs": [
+    {
+      "clubId": "940036320161660929",
+      "name": "Cobresun",
+      "slug": "cobresun",
+      "type": "movie",
+      "memberCount": 4,
+      "reviewCount": 819,
+      "createdAt": "2020-04-28"
+    },
+    {
+      "clubId": "940036320128499713",
+      "name": "Undated Club",
+      "slug": "undated-club",
+      "type": "book",
+      "memberCount": 2,
+      "reviewCount": 3,
+      "createdAt": null
+    }
+  ]
+}

@@ -9,10 +9,12 @@ import { z } from "zod";
 import {
   ensure,
   filterUndefinedProperties,
+  hasElements,
   hasValue,
   isDefined,
 } from "../../../lib/checks/checks.js";
 import ClubRepository from "../repositories/ClubRepository";
+import UserRepository from "../repositories/UserRepository";
 import { dialect } from "./database.js";
 import { sendPasswordResetEmail, sendVerificationEmail } from "./email.js";
 import { unauthorized } from "./responses";
@@ -134,6 +136,44 @@ export const loggedIn = async <T extends Request>(
     ...req,
     userId,
   };
+};
+
+/**
+ * Site-wide admin gate, used by the `/api/admin` endpoints.
+ *
+ * The schema has no notion of a site administrator: `club_member.role` is a
+ * free-form per-club string that no server-side check has ever read. So access
+ * is an email allowlist in `ADMIN_USER_EMAILS` (comma-separated), managed from
+ * the Netlify console rather than the database.
+ *
+ * Fails closed — an unset or empty allowlist authorizes nobody, so a misconfigured
+ * deploy hides the dashboard instead of exposing it to every logged-in user.
+ */
+export const siteAdmin = async <T extends Request>(
+  req: T,
+  res: (data: HandlerResponse) => RouterResponse,
+) => {
+  const loggedInResult = await loggedIn<T>(req, res);
+  if (isRouterResponse(loggedInResult)) {
+    return loggedInResult;
+  }
+
+  const allowlist = (process.env.ADMIN_USER_EMAILS ?? "")
+    .split(",")
+    .map((email) => email.trim().toLowerCase())
+    .filter(hasValue);
+
+  if (!hasElements(allowlist)) {
+    console.warn("ADMIN_USER_EMAILS is not set — denying admin request");
+    return res(unauthorized());
+  }
+
+  const user = await UserRepository.getUserById(loggedInResult.userId);
+  if (!allowlist.includes(user.email.trim().toLowerCase())) {
+    return res(unauthorized());
+  }
+
+  return loggedInResult;
 };
 
 export const secured = async <T extends ClubRequest>(

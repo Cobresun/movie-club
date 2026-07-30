@@ -57,8 +57,8 @@ import { computeClubCurmudgeons, computeGuiltyPleasures } from "../statsComputer
 import type { WorkStatsData } from "../types";
 import MemberFilterChips from "./MemberFilterChips.vue";
 import SegmentedToggle from "./SegmentedToggle.vue";
-import WidgetShell from "./WidgetShell.vue";
 import { clubTypeStats } from "@/common/clubType";
+import WidgetShell from "@/common/components/WidgetShell.vue";
 
 type Mode = "guilty" | "curmudgeon";
 

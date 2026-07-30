@@ -82,6 +82,7 @@ export interface BookSubjects {
 }
 
 export interface Club {
+  created_at: Generated<Timestamp | null>;
   id: Generated<Int8>;
   name: string;
   slug: string;
@@ -97,6 +98,7 @@ export interface ClubInvite {
 
 export interface ClubMember {
   club_id: Int8;
+  created_at: Generated<Timestamp | null>;
   role: string | null;
   user_id: Int8;
 }
@@ -105,6 +107,13 @@ export interface ClubSettings {
   club_id: Int8;
   key: string;
   value: Json;
+}
+
+export interface MetricSnapshot {
+  captured_on: Timestamp;
+  created_at: Generated<Timestamp>;
+  id: Generated<Int8>;
+  metrics: Json;
 }
 
 export interface MovieActors {
@@ -261,6 +270,7 @@ export interface DB {
   club_invite: ClubInvite;
   club_member: ClubMember;
   club_settings: ClubSettings;
+  metric_snapshot: MetricSnapshot;
   movie_actors: MovieActors;
   movie_details: MovieDetails;
   movie_directors: MovieDirectors;

@@ -74,7 +74,11 @@ const vueQueryOptions: VueQueryPluginOptions = {
       }),
       maxAge: 1000 * 60 * 60 * 24 * 7, // One week
       dehydrateOptions: {
-        shouldDehydrateQuery: (query) => query.queryKey[0] !== "user",
+        // "admin" joins "user" in staying out of IndexedDB: site-wide metrics
+        // are not this browser's data to keep, and a persisted copy would
+        // outlive the session that was authorised to see them.
+        shouldDehydrateQuery: (query) =>
+          query.queryKey[0] !== "user" && query.queryKey[0] !== "admin",
       },
     });
   },

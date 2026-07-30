@@ -20,7 +20,7 @@ import {
 import { computeScoreTrend, computeScoreVariance } from "../statsComputers";
 import type { HistogramData, WorkStatsData } from "../types";
 import SegmentedToggle from "./SegmentedToggle.vue";
-import WidgetShell from "./WidgetShell.vue";
+import WidgetShell from "@/common/components/WidgetShell.vue";
 import { useIsDesktop } from "@/common/composables/useIsDesktop";
 
 type Mode = "distribution" | "trend" | "spread";
