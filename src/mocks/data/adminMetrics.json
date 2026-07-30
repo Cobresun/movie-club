@@ -12,23 +12,135 @@
     "works": 713,
     "lists": 79
   },
-  "newUsers": { "last7Days": 2, "last30Days": 6 },
-  "newClubs": { "last7Days": 1, "last30Days": 3 },
-  "engagedUsers": { "last7Days": 5, "last30Days": 12 },
-  "loggedInUsers": { "last7Days": 6, "last30Days": 14 },
-  "activeClubs": { "last7Days": 3, "last30Days": 7 },
+  "newUsers": {
+    "last7Days": 2,
+    "last30Days": 6
+  },
+  "newClubs": {
+    "last7Days": 1,
+    "last30Days": 3
+  },
+  "engagedUsers": {
+    "last7Days": 5,
+    "last30Days": 12
+  },
+  "loggedInUsers": {
+    "last7Days": 6,
+    "last30Days": 14
+  },
+  "activeClubs": {
+    "last7Days": 3,
+    "last30Days": 7
+  },
   "weekly": {
     "users": [
-      { "weekStart": "2026-07-13", "count": 1 },
-      { "weekStart": "2026-07-27", "count": 2 }
+      {
+        "weekStart": "2026-07-13",
+        "count": 1
+      },
+      {
+        "weekStart": "2026-07-27",
+        "count": 2
+      }
     ],
-    "clubs": [{ "weekStart": "2026-07-27", "count": 1 }],
+    "clubs": [
+      {
+        "weekStart": "2026-07-27",
+        "count": 1
+      }
+    ],
     "reviews": [
-      { "weekStart": "2026-07-13", "count": 9 },
-      { "weekStart": "2026-07-20", "count": 4 },
-      { "weekStart": "2026-07-27", "count": 11 }
+      {
+        "weekStart": "2026-07-13",
+        "count": 9
+      },
+      {
+        "weekStart": "2026-07-20",
+        "count": 4
+      },
+      {
+        "weekStart": "2026-07-27",
+        "count": 11
+      }
     ]
   },
+  "health": {
+    "newUserActivation": {
+      "numerator": 4,
+      "denominator": 6
+    },
+    "unverifiedUsers": 14,
+    "dormantClubs": {
+      "numerator": 9,
+      "denominator": 20
+    },
+    "medianDaysToFirstReview": 2.5,
+    "daysToFirstReviewSample": 5,
+    "customListAdoption": {
+      "numerator": 11,
+      "denominator": 22
+    },
+    "commentedWorks": {
+      "numerator": 8,
+      "denominator": 640
+    },
+    "clubSizes": [
+      {
+        "label": "No members",
+        "clubs": 2
+      },
+      {
+        "label": "1",
+        "clubs": 9
+      },
+      {
+        "label": "2–3",
+        "clubs": 7
+      },
+      {
+        "label": "4–6",
+        "clubs": 3
+      },
+      {
+        "label": "7+",
+        "clubs": 1
+      }
+    ],
+    "signupMethods": [
+      {
+        "provider": "google",
+        "users": 51
+      },
+      {
+        "provider": "credential",
+        "users": 34
+      }
+    ]
+  },
+  "topUsers": [
+    {
+      "userId": "1",
+      "name": "Cobresun Official",
+      "image": null,
+      "reviews": 21,
+      "comments": 4,
+      "listAdds": 9,
+      "total": 34,
+      "clubs": 3,
+      "lastActive": "2026-07-29T11:02:00.000Z"
+    },
+    {
+      "userId": "2",
+      "name": "Quiet Commenter",
+      "image": null,
+      "reviews": 0,
+      "comments": 12,
+      "listAdds": 1,
+      "total": 13,
+      "clubs": 1,
+      "lastActive": "2026-07-27T08:30:00.000Z"
+    }
+  ],
   "topClubs": [
     {
       "clubId": "940036320161660929",
@@ -37,7 +149,13 @@
       "type": "movie",
       "memberCount": 4,
       "reviewCount": 819,
-      "createdAt": "2020-04-28"
+      "createdAt": "2020-04-28",
+      "memberNames": [
+        "Brian Norman",
+        "Kevin",
+        "sunny",
+        "wes"
+      ]
     },
     {
       "clubId": "940036320128499713",
@@ -46,7 +164,11 @@
       "type": "book",
       "memberCount": 2,
       "reviewCount": 3,
-      "createdAt": null
+      "createdAt": null,
+      "memberNames": [
+        "Ada",
+        "Grace"
+      ]
     }
   ]
 }

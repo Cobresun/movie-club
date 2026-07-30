@@ -3,11 +3,14 @@ import { sql } from "kysely";
 import { isDefined } from "../../../lib/checks/checks.js";
 import { ClubType, Json } from "../../../lib/types/generated/db.js";
 import {
+  ActiveUser,
+  SiteHealth,
   SiteMetrics,
   SnapshotHistoryPoint,
   snapshotHistoryMetricsSchema,
   TimeSeriesPoint,
   topClubSchema,
+  TRUSTED_CREATED_AT_SINCE,
 } from "../../../lib/types/metrics.js";
 import { db } from "../utils/database";
 
@@ -16,6 +19,22 @@ const WEEKS_OF_HISTORY = 26;
 
 /** How many clubs the leaderboard shows. */
 const TOP_CLUB_LIMIT = 10;
+
+/** How many people the most-active leaderboard shows. */
+const TOP_USER_LIMIT = 10;
+
+/**
+ * Silence after which an active club counts as dormant. Deliberately longer
+ * than the 30-day activity windows: clubs meet on their own cadence, and a club
+ * that skips a month is on a break, not lost.
+ */
+const DORMANCY_DAYS = 90;
+
+/**
+ * Fewer datable clubs than this and the time-to-first-review median is noise,
+ * so the dashboard shows the sample size instead of a number.
+ */
+const MIN_MEDIAN_SAMPLE = 3;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -40,23 +59,30 @@ function toIsoDate(value: Date): string {
 }
 
 /**
- * Every user-attributable content event, normalised to `(user_id, club_id, ts)`.
+ * Every user-attributable content event, normalised to `(user_id, club_id, ts, kind)`.
  *
  * Reviews and list items reach their club through `work_list`; comments carry
  * `club_id` directly. `work_list_item.added_by_user_id` is nullable for rows
- * added before that column existed, which is harmless here because
- * `count(DISTINCT …)` ignores NULLs — those rows still count toward club
- * activity, just not toward any user's engagement.
+ * added before that column existed, which is harmless for the distinct counts
+ * because `count(DISTINCT …)` ignores NULLs — those rows still count toward club
+ * activity, just not toward any user's engagement. Queries that group *by* user
+ * exclude them explicitly.
+ *
+ * `kind` is cast on the first branch only: a UNION takes each column's type from
+ * the leading branch, and an uncast string literal there is `unknown` rather than
+ * `text`, which makes the later `FILTER (WHERE kind = 'review')` comparisons
+ * ambiguous.
  */
 const ACTIVITY_EVENTS = sql`
-  SELECT review.user_id AS user_id, work_list.club_id AS club_id, review.created_date AS ts
+  SELECT review.user_id AS user_id, work_list.club_id AS club_id, review.created_date AS ts,
+         'review'::text AS kind
   FROM review
   JOIN work_list ON work_list.id = review.list_id
   UNION ALL
-  SELECT work_comment.user_id, work_comment.club_id, work_comment.created_date
+  SELECT work_comment.user_id, work_comment.club_id, work_comment.created_date, 'comment'
   FROM work_comment
   UNION ALL
-  SELECT work_list_item.added_by_user_id, work_list.club_id, work_list_item.time_added
+  SELECT work_list_item.added_by_user_id, work_list.club_id, work_list_item.time_added, 'list_add'
   FROM work_list_item
   JOIN work_list ON work_list.id = work_list_item.list_id
 `;
@@ -71,6 +97,49 @@ interface ActivityRow {
 interface WeeklyRow {
   week_start: string;
   count: string;
+}
+
+interface ActivationRow {
+  signups: string;
+  activated: string;
+}
+
+interface DormancyRow {
+  ever_active: string;
+  dormant: string;
+}
+
+interface ClubSizeRow {
+  empty: string;
+  solo: string;
+  small: string;
+  medium: string;
+  large: string;
+}
+
+interface TopUserRow {
+  user_id: string;
+  name: string;
+  image: string | null;
+  total: string;
+  reviews: string;
+  comments: string;
+  list_adds: string;
+  clubs: string;
+  last_active: Date;
+}
+
+/**
+ * Median of an unsorted list, or null when empty. Averages the middle pair on
+ * even counts.
+ */
+function median(values: number[]): number | null {
+  if (values.length === 0) {
+    return null;
+  }
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
 }
 
 class MetricsRepository {
@@ -163,6 +232,39 @@ class MetricsRepository {
           .where("createdAt", ">=", since30)
           .select((e) => e.fn.count<string>("userId").distinct().as("c"))
           .as("loggedInUsers30"),
+
+        // --- Health denominators ---------------------------------------------
+        // Each is a proportion's bottom half; the top halves live alongside so
+        // the dashboard can show "5 of 8" rather than a bare percentage.
+
+        // Clubs using the arbitrary-lists feature at all. System lists (the
+        // reviews list) are created for every club, so they'd make adoption 100%.
+        eb
+          .selectFrom("work_list")
+          .where("system_type", "is", null)
+          .select((e) => e.fn.count<string>("club_id").distinct().as("c"))
+          .as("clubsWithCustomLists"),
+
+        // Works that have been reviewed — the denominator for comment rate.
+        // A work nobody reviewed was never really "discussed" to begin with.
+        eb
+          .selectFrom("review")
+          .select((e) => e.fn.count<string>("work_id").distinct().as("c"))
+          .as("reviewedWorks"),
+
+        // Reviewed works that also drew at least one comment.
+        eb
+          .selectFrom("review")
+          .where((e) =>
+            e.exists(
+              e
+                .selectFrom("work_comment")
+                .whereRef("work_comment.work_id", "=", "review.work_id")
+                .select(sql`1`.as("one")),
+            ),
+          )
+          .select((e) => e.fn.count<string>("work_id").distinct().as("c"))
+          .as("commentedWorks"),
       ])
       .executeTakeFirstOrThrow();
   }
@@ -189,6 +291,176 @@ class MetricsRepository {
     return isDefined(row)
       ? row
       : { engaged_7: "0", engaged_30: "0", active_clubs_7: "0", active_clubs_30: "0" };
+  }
+
+  /**
+   * Do signups become users? Counts people who joined in the last 30 days and
+   * how many of them have since done anything at all.
+   *
+   * `EXISTS` rather than a join or an `IN`: the question is only whether a user
+   * appears in the activity set, and stopping at the first match avoids
+   * aggregating every event belonging to a prolific new member.
+   */
+  private async getActivation(): Promise<ActivationRow> {
+    const since30 = daysAgo(30);
+
+    const result = await sql<ActivationRow>`
+      WITH activity AS (${ACTIVITY_EVENTS}),
+      recent_users AS (SELECT id FROM "user" WHERE "createdAt" >= ${since30})
+      SELECT
+        (SELECT count(*) FROM recent_users) AS signups,
+        (SELECT count(*) FROM recent_users
+         WHERE EXISTS (SELECT 1 FROM activity WHERE activity.user_id = recent_users.id))
+          AS activated
+    `.execute(db);
+
+    return result.rows[0] ?? { signups: "0", activated: "0" };
+  }
+
+  /**
+   * Clubs that went quiet. A club counts as dormant once it has a history of
+   * activity but nothing within {@link DORMANCY_DAYS}.
+   *
+   * Deliberately measured over all activity rather than reviews alone: a club
+   * still adding to its watchlist is alive even if nobody has scored anything.
+   * Clubs that never did anything are excluded from both halves — they never
+   * became active, so they cannot have lapsed.
+   */
+  private async getDormancy(): Promise<DormancyRow> {
+    const cutoff = daysAgo(DORMANCY_DAYS);
+
+    const result = await sql<DormancyRow>`
+      WITH activity AS (${ACTIVITY_EVENTS}),
+      club_last_seen AS (
+        SELECT club_id, max(ts) AS last_ts
+        FROM activity
+        WHERE club_id IS NOT NULL
+        GROUP BY club_id
+      )
+      SELECT
+        count(*) AS ever_active,
+        count(*) FILTER (WHERE last_ts < ${cutoff}) AS dormant
+      FROM club_last_seen
+    `.execute(db);
+
+    return result.rows[0] ?? { ever_active: "0", dormant: "0" };
+  }
+
+  /**
+   * Days from club creation to first review, one row per club.
+   *
+   * Restricted to clubs created after {@link TRUSTED_CREATED_AT_SINCE}: earlier
+   * clubs had `created_at` backfilled *from* their first review, so they would
+   * all score ~0 days and produce a median describing the migration rather than
+   * how quickly new clubs get going.
+   *
+   * The median is taken in TypeScript rather than with `percentile_cont`, whose
+   * `WITHIN GROUP` ordered-set syntax CockroachDB does not implement. The row
+   * count is bounded by the number of clubs, so there is nothing to stream.
+   */
+  private async getDaysToFirstReview(): Promise<number[]> {
+    const result = await sql<{ days: string }>`
+      SELECT extract(epoch FROM (min(review.created_date) - club.created_at)) / 86400 AS days
+      FROM club
+      JOIN work_list ON work_list.club_id = club.id
+      JOIN review ON review.list_id = work_list.id
+      WHERE club.created_at >= ${TRUSTED_CREATED_AT_SINCE}
+      GROUP BY club.id, club.created_at
+    `.execute(db);
+
+    // A review predating its club's created_at would give a negative interval.
+    // Clamp rather than drop: it is a data artefact, not a club that took
+    // negative time to get started.
+    return result.rows.map((row) => Math.max(0, Number(row.days))).filter(Number.isFinite);
+  }
+
+  /**
+   * How many clubs are solo, small, or genuinely group-sized.
+   *
+   * `LEFT JOIN` so clubs with no members at all land in the `empty` bucket —
+   * an inner join would drop them, and a club nobody joined is precisely the
+   * kind of thing this histogram exists to expose.
+   */
+  private async getClubSizes(): Promise<ClubSizeRow> {
+    const result = await sql<ClubSizeRow>`
+      WITH sizes AS (
+        SELECT club.id, count(club_member.user_id) AS members
+        FROM club
+        LEFT JOIN club_member ON club_member.club_id = club.id
+        GROUP BY club.id
+      )
+      SELECT
+        count(*) FILTER (WHERE members = 0) AS empty,
+        count(*) FILTER (WHERE members = 1) AS solo,
+        count(*) FILTER (WHERE members BETWEEN 2 AND 3) AS small,
+        count(*) FILTER (WHERE members BETWEEN 4 AND 6) AS medium,
+        count(*) FILTER (WHERE members >= 7) AS large
+      FROM sizes
+    `.execute(db);
+
+    return result.rows[0] ?? { empty: "0", solo: "0", small: "0", medium: "0", large: "0" };
+  }
+
+  /**
+   * Which auth providers people actually sign up with.
+   *
+   * Counted per provider, not per user: linking Google to an existing password
+   * account creates a second `account` row, so a user can appear in two buckets
+   * and the buckets do not sum to the user total. That is the useful reading
+   * anyway — the question is which providers need to keep working.
+   */
+  private async getSignupMethods() {
+    const rows = await db
+      .selectFrom("account")
+      .select((eb) => ["providerId", eb.fn.count<string>("userId").distinct().as("users")])
+      .groupBy("providerId")
+      .orderBy("users", "desc")
+      .execute();
+
+    return rows.map((row) => ({ provider: row.providerId, users: toCount(row.users) }));
+  }
+
+  /**
+   * The busiest people over the last 30 days, broken down by what they did.
+   *
+   * The breakdown matters more than the total: someone with forty comments and
+   * no reviews is a different kind of user from the reverse, and a single
+   * "events" column hides that entirely.
+   */
+  private async getTopUsers(): Promise<ActiveUser[]> {
+    const since30 = daysAgo(30);
+
+    const result = await sql<TopUserRow>`
+      WITH activity AS (${ACTIVITY_EVENTS})
+      SELECT
+        activity.user_id AS user_id,
+        "user".name AS name,
+        "user".image AS image,
+        count(*) AS total,
+        count(*) FILTER (WHERE kind = 'review') AS reviews,
+        count(*) FILTER (WHERE kind = 'comment') AS comments,
+        count(*) FILTER (WHERE kind = 'list_add') AS list_adds,
+        count(DISTINCT activity.club_id) AS clubs,
+        max(activity.ts) AS last_active
+      FROM activity
+      JOIN "user" ON "user".id = activity.user_id
+      WHERE activity.ts >= ${since30}
+      GROUP BY activity.user_id, "user".name, "user".image
+      ORDER BY total DESC
+      LIMIT ${TOP_USER_LIMIT}
+    `.execute(db);
+
+    return result.rows.map((row) => ({
+      userId: String(row.user_id),
+      name: row.name,
+      image: row.image,
+      reviews: toCount(row.reviews),
+      comments: toCount(row.comments),
+      listAdds: toCount(row.list_adds),
+      total: toCount(row.total),
+      clubs: toCount(row.clubs),
+      lastActive: new Date(row.last_active).toISOString(),
+    }));
   }
 
   private toSeries(rows: WeeklyRow[]): TimeSeriesPoint[] {
@@ -268,6 +540,8 @@ class MetricsRepository {
       .limit(TOP_CLUB_LIMIT)
       .execute();
 
+    const memberNames = await this.getMemberNames(rows.map((row) => row.id));
+
     // Parsed rather than cast: `club.type` arrives as a plain string and
     // topClubSchema's nativeEnum check is what makes it a ClubType.
     return rows.map((row) =>
@@ -277,26 +551,119 @@ class MetricsRepository {
         slug: row.slug,
         type: row.type,
         memberCount: toCount(row.member_count),
+        memberNames: memberNames.get(String(row.id)) ?? [],
         reviewCount: toCount(row.review_count),
         createdAt: isDefined(row.created_at) ? toIsoDate(row.created_at) : null,
       }),
     );
   }
 
+  /**
+   * Member names for the leaderboard clubs, grouped by club.
+   *
+   * A follow-up query keyed on the ids the previous one returned, rather than a
+   * join or an `array_agg` correlated subquery: the leaderboard is ten clubs, so
+   * this is one small indexed lookup, and joining members into the club query
+   * would multiply its rows and break the review count it already computes.
+   */
+  private async getMemberNames(clubIds: string[]): Promise<Map<string, string[]>> {
+    const grouped = new Map<string, string[]>();
+    if (clubIds.length === 0) {
+      // `where in ()` is not valid SQL — Kysely would emit an empty list.
+      return grouped;
+    }
+
+    const rows = await db
+      .selectFrom("club_member")
+      .innerJoin("user", "user.id", "club_member.user_id")
+      // Explicit columns rather than selectAll(): both tables have columns that
+      // would shadow each other under a joined selectAll.
+      .select(["club_member.club_id", "user.name"])
+      .where("club_member.club_id", "in", clubIds)
+      .orderBy("user.name", "asc")
+      .execute();
+
+    for (const row of rows) {
+      const key = String(row.club_id);
+      const names = grouped.get(key);
+      if (names === undefined) {
+        grouped.set(key, [row.name]);
+      } else {
+        names.push(row.name);
+      }
+    }
+
+    return grouped;
+  }
+
   async getMetrics(): Promise<SiteMetrics> {
-    const [scalars, activity, weekly, topClubs] = await Promise.all([
+    const [
+      scalars,
+      activity,
+      weekly,
+      topClubs,
+      topUsers,
+      activation,
+      dormancy,
+      daysToFirstReview,
+      clubSizes,
+      signupMethods,
+    ] = await Promise.all([
       this.getScalars(),
       this.getActivity(),
       this.getWeeklySeries(),
       this.getTopClubs(),
+      this.getTopUsers(),
+      this.getActivation(),
+      this.getDormancy(),
+      this.getDaysToFirstReview(),
+      this.getClubSizes(),
+      this.getSignupMethods(),
     ]);
+
+    const totalUsers = toCount(scalars.users);
+    const totalClubs = toCount(scalars.clubs);
+
+    const health: SiteHealth = {
+      newUserActivation: {
+        numerator: toCount(activation.activated),
+        denominator: toCount(activation.signups),
+      },
+      unverifiedUsers: totalUsers - toCount(scalars.verifiedUsers),
+      dormantClubs: {
+        numerator: toCount(dormancy.dormant),
+        denominator: toCount(dormancy.ever_active),
+      },
+      // Withheld rather than shown as a shaky number: a median over one or two
+      // clubs says nothing, and the sample size travels alongside so the UI can
+      // explain the blank instead of rendering an empty stat.
+      medianDaysToFirstReview:
+        daysToFirstReview.length >= MIN_MEDIAN_SAMPLE ? median(daysToFirstReview) : null,
+      daysToFirstReviewSample: daysToFirstReview.length,
+      customListAdoption: {
+        numerator: toCount(scalars.clubsWithCustomLists),
+        denominator: totalClubs,
+      },
+      commentedWorks: {
+        numerator: toCount(scalars.commentedWorks),
+        denominator: toCount(scalars.reviewedWorks),
+      },
+      clubSizes: [
+        { label: "No members", clubs: toCount(clubSizes.empty) },
+        { label: "1", clubs: toCount(clubSizes.solo) },
+        { label: "2–3", clubs: toCount(clubSizes.small) },
+        { label: "4–6", clubs: toCount(clubSizes.medium) },
+        { label: "7+", clubs: toCount(clubSizes.large) },
+      ],
+      signupMethods,
+    };
 
     return {
       generatedAt: new Date().toISOString(),
       totals: {
-        users: toCount(scalars.users),
+        users: totalUsers,
         verifiedUsers: toCount(scalars.verifiedUsers),
-        clubs: toCount(scalars.clubs),
+        clubs: totalClubs,
         movieClubs: toCount(scalars.movieClubs),
         bookClubs: toCount(scalars.bookClubs),
         memberships: toCount(scalars.memberships),
@@ -326,7 +693,9 @@ class MetricsRepository {
         last30Days: toCount(activity.active_clubs_30),
       },
       weekly,
+      health,
       topClubs,
+      topUsers,
     };
   }
 

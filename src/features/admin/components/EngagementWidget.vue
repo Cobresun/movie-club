@@ -1,6 +1,6 @@
 <template>
-  <WidgetShell title="Active users and clubs" subtitle="Rolling windows, measured from right now">
-    <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
+  <WidgetShell title="Activity" subtitle="Rolling windows, measured from right now">
+    <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
       <div v-for="row in rows" :key="row.label" class="rounded-lg bg-background/50 p-3 text-left">
         <p class="text-xs uppercase tracking-wide text-slate-400">{{ row.label }}</p>
         <p class="mt-1 text-xl font-bold text-white">
@@ -31,8 +31,14 @@ const props = defineProps<{
   engagedUsers: ActivityCounts;
   loggedInUsers: ActivityCounts;
   activeClubs: ActivityCounts;
+  newUsers: ActivityCounts;
+  newClubs: ActivityCounts;
 }>();
 
+// New users and new clubs live here rather than in their own tile grid: they
+// are the same "a count, over two windows" shape as the rest, and rendering
+// them as four separate KPI tiles said the same thing in a second visual
+// language while taking twice the space.
 const rows = computed(() => [
   {
     label: "Engaged users",
@@ -41,5 +47,7 @@ const rows = computed(() => [
   },
   { label: "Signed in", counts: props.loggedInUsers, hint: "Started at least one session" },
   { label: "Active clubs", counts: props.activeClubs, hint: "Had at least one of those events" },
+  { label: "New users", counts: props.newUsers, hint: "Signed up in the window" },
+  { label: "New clubs", counts: props.newClubs, hint: "Created in the window" },
 ]);
 </script>
