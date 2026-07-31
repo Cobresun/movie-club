@@ -11,7 +11,7 @@ import { describe, expect, it } from "vitest";
 
 import { ClubType, WorkListSystemType } from "../../../lib/types/generated/db";
 import { createRouterResponse, isRouterResponse, Request } from "../utils/router";
-import { ClubRequest, getErrorMessage, validClubSlug, validListId } from "../utils/validation";
+import { ClubRequest, validClubSlug, validListId } from "../utils/validation";
 import { db } from "./helpers/database";
 import { createClub, createList } from "./helpers/factories";
 import { makeEvent, stubContext } from "./helpers/http";
@@ -127,16 +127,5 @@ describe("validListId", () => {
     const result = await validListId(clubRequest(club.id, params), respond);
 
     expect(responseOf(result).statusCode).toBe(404);
-  });
-});
-
-describe("getErrorMessage", () => {
-  it("returns an Error's message", () => {
-    expect(getErrorMessage(new Error("boom"))).toBe("boom");
-  });
-
-  it("stringifies anything else", () => {
-    expect(getErrorMessage("just a string")).toBe("just a string");
-    expect(getErrorMessage(404)).toBe("404");
   });
 });

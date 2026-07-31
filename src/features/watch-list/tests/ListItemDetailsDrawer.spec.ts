@@ -20,6 +20,7 @@ const movie: DetailedWorkListItem = {
   externalData: {
     kind: "movie",
     castNames: [],
+    majorCastNames: [],
     directors: [],
     genres: [],
     production_companies: [],

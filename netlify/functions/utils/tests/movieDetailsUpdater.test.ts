@@ -96,6 +96,7 @@ function makeTMDBData(overrides: Partial<TMDBMovieData> = {}): TMDBMovieData {
           character: "Cobb",
           order: 0,
           profile_path: null,
+          popularity: 5,
         },
       ],
       crew: [

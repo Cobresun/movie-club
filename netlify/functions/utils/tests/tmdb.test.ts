@@ -67,6 +67,7 @@ function makeTMDBMovieData(overrides: Partial<TMDBMovieData> = {}): TMDBMovieDat
           character: "Cobb",
           order: 0,
           profile_path: "/wo2hJpn04vbtmh0B9utCFdsQhxM.jpg",
+          popularity: 5,
         },
         {
           id: 24045,
@@ -74,6 +75,7 @@ function makeTMDBMovieData(overrides: Partial<TMDBMovieData> = {}): TMDBMovieDat
           character: "Arthur",
           order: 1,
           profile_path: null,
+          popularity: 5,
         },
       ],
       crew: [

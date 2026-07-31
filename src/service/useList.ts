@@ -1,6 +1,7 @@
 import { UseQueryReturnType, useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
 import axios, { AxiosError } from "axios";
 import { computed, unref, type MaybeRef } from "vue";
+import { useToast } from "vue-toastification";
 
 import { hasValue, isDefined } from "../../lib/checks/checks.js";
 import {
@@ -300,6 +301,7 @@ export function useReviewsList(
 export function useAddListItem(clubSlug: string, listId: string) {
   const auth = useAuthStore();
   const queryClient = useQueryClient();
+  const toast = useToast();
   return useMutation({
     mutationFn: (insertDto: ListInsertDto) =>
       auth.request.post(`/api/club/${clubSlug}/list/${listId}/items`, insertDto),
@@ -319,6 +321,11 @@ export function useAddListItem(clubSlug: string, listId: string) {
         ];
       });
     },
+    // Toast lives here (not at the mutate() call site) so it still fires after
+    // the Add modal unmounts on close — mutate() callbacks are dropped on unmount.
+    onSuccess: (_data, insertDto) => toast.success(`Added "${insertDto.title}" to the list`),
+    onError: (_error, insertDto) =>
+      toast.error(`Failed to add "${insertDto.title}". Please try again.`),
     onSettled: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: listKey(clubSlug, listId) }),

@@ -29,6 +29,7 @@ const movieData: DetailedMovieData = {
   kind: "movie",
   actors: [],
   castNames: [],
+  majorCastNames: [],
   directors: [],
   genres: [],
   production_companies: [],

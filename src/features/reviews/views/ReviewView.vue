@@ -1,13 +1,6 @@
 <template>
   <div class="p-2 text-center">
     <add-review-prompt v-if="modalOpen" @close="closePrompt" />
-    <delete-confirmation-modal
-      :show="!!reviewToDelete"
-      title="Delete Review"
-      message="Are you sure you want to delete this review? This action cannot be undone."
-      @confirm="confirmDelete"
-      @cancel="cancelDelete"
-    />
     <score-assist-modal
       v-if="isDefined(scoreAssistTarget)"
       :key="scoreAssistTarget.id"
@@ -16,13 +9,7 @@
       :club-type="club?.type ?? ClubType.movie"
       @close="scoreAssistWorkId = undefined"
     />
-    <page-header :has-back="true" back-route="ClubHome" page-name="Reviews">
-      <div class="flex gap-2">
-        <mdicon name="table" />
-        <VToggle v-model="isGalleryView" />
-        <mdicon name="image-multiple" />
-      </div>
-    </page-header>
+    <page-header :has-back="true" back-route="ClubHome" page-name="Reviews" />
     <loading-spinner v-if="loading" />
     <div v-else>
       <!-- Search Filter Bar -->
@@ -32,7 +19,7 @@
         :data="reviews ?? []"
         :club-type="club?.type ?? ClubType.movie"
         search-placeholder="Search reviews"
-        :class-name="isGalleryView ? 'mb-4' : 'mb-0'"
+        class-name="mb-4"
       >
         <template #action-button>
           <v-btn
@@ -55,19 +42,16 @@
           @action="openPrompt"
         />
       </div>
-      <template v-else>
-        <table-view v-if="!isGalleryView" :review-table="reviewTable" />
-        <gallery-view
-          v-else
-          :review-table="reviewTable"
-          :delete-review="deleteReview"
-          :members="members"
-          :revealed-movie-ids="revealedMovieIds"
-          :has-rated="hasUserRated"
-          :current-user-id="userId"
-          @toggle-reveal="toggleReveal"
-        />
-      </template>
+      <gallery-view
+        v-else
+        :review-table="reviewTable"
+        :delete-review="deleteReview"
+        :members="members"
+        :revealed-movie-ids="revealedMovieIds"
+        :has-rated="hasUserRated"
+        :current-user-id="userId"
+        @toggle-reveal="toggleReveal"
+      />
     </div>
   </div>
 </template>
@@ -79,49 +63,29 @@ import {
   useVueTable,
 } from "@tanstack/vue-table";
 import { DateTime } from "luxon";
-import { computed, ref, onMounted, h, provide, resolveComponent, watch } from "vue";
+import { computed, ref, h, provide } from "vue";
 
 import { hasValue, isDefined, isTrue } from "../../../../lib/checks/checks.js";
 import { ClubType } from "../../../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
-import { useShare } from "../../../common/composables/useShare";
 import GalleryView from "../components/GalleryView.vue";
-import MovieTooltip from "../components/MovieTooltip.vue";
-import ReviewScore from "../components/ReviewScore.vue";
 import ScoreAssistModal from "../components/ScoreAssistModal.vue";
-import TableView from "../components/TableView.vue";
 import { buildCandidatePool, isScoreAssistEligible } from "../composables/scoreAssistLogic";
 import { ScoreAssistKey } from "../scoreAssist";
 import AverageImg from "@/assets/images/average.svg";
 import { clubTypeConfig } from "@/common/clubType";
-import DeleteConfirmationModal from "@/common/components/DeleteConfirmationModal.vue";
 import EmptyState from "@/common/components/EmptyState.vue";
 import SearchFilterBar from "@/common/components/SearchFilterBar.vue";
 import VAvatar from "@/common/components/VAvatar.vue";
-import VToggle from "@/common/components/VToggle.vue";
-import { asMovie } from "@/common/workDisplay";
 import AddReviewPrompt from "@/features/reviews/components/AddReviewPrompt.vue";
-import { useClub, useIsInClub, useMembers } from "@/service/useClub";
+import { useClub, useMembers } from "@/service/useClub";
 import { useDeleteReview, useReviewsList, useReviewsListId } from "@/service/useList";
 import { useUser } from "@/service/useUser";
 
 const { clubSlug } = defineProps<{ clubSlug: string }>();
 
-const isGalleryView = ref(true);
-
 // Load club data for share functionality
 const { data: club } = useClub(clubSlug);
-
-onMounted(() => {
-  const savedView = localStorage.getItem("isGalleryView");
-  if (savedView !== null) {
-    isGalleryView.value = savedView === "true";
-  }
-});
-
-watch(isGalleryView, (newVal) => {
-  localStorage.setItem("isGalleryView", newVal.toString());
-});
 
 const { isLoading: loadingReviews, data: reviews } = useReviewsList(clubSlug);
 const { isLoading: loadingMembers, data: membersResponse } = useMembers(clubSlug);
@@ -140,17 +104,6 @@ const closePrompt = () => {
 const filteredReviews = ref<DetailedReviewListItem[]>([]);
 const hasActiveFilters = ref(false);
 
-const reviewToDelete = ref<string | null>(null);
-const cancelDelete = () => {
-  reviewToDelete.value = null;
-};
-const confirmDelete = () => {
-  if (hasValue(reviewToDelete.value)) {
-    deleteReview(reviewToDelete.value);
-    reviewToDelete.value = null;
-  }
-};
-
 const hasSearchTerm = computed(() => hasActiveFilters.value);
 const showEmptyState = computed(() => !loading.value && filteredReviews.value.length === 0);
 
@@ -166,26 +119,6 @@ const noReviewsDescription = computed(() => {
 const columnHelper = createColumnHelper<DetailedReviewListItem>();
 
 const members = computed(() => membersResponse.value ?? []);
-const isUserInClub = useIsInClub(clubSlug);
-
-const commonColumnVisibility = computed(() => ({
-  edit: isUserInClub.value,
-  imageUrl: false,
-  title: true,
-  createdDate: true,
-  score_average: true,
-  ...members.value.reduce<Record<string, boolean>>((acc, member) => {
-    acc[`member_${member.id}`] = true;
-    return acc;
-  }, {}),
-}));
-
-const galleryColumnVisibility = {
-  edit: false,
-  imageUrl: true,
-};
-
-const editingTable = ref(false);
 
 const { data: reviewsListId } = useReviewsListId(clubSlug);
 const { mutate: deleteReviewMutation } = useDeleteReview(clubSlug);
@@ -194,7 +127,6 @@ const deleteReview = (workId: string) => {
   deleteReviewMutation({ workId, reviewsListId: reviewsListId.value });
 };
 
-const mdicon = resolveComponent("mdicon");
 const currentUser = useUser();
 const userId = computed(() => currentUser.value?.id);
 
@@ -247,64 +179,12 @@ const shouldBlurScore = (rowId: string, columnId: string) => {
   return columnId.startsWith("member_") || columnId === "score_average";
 };
 
-const { share } = useShare();
-
 const columns = computed(() => [
   columnHelper.accessor("imageUrl", {
     header: "Poster",
   }),
-  columnHelper.display({
-    id: "edit",
-    header: () =>
-      h(mdicon, {
-        name: "pencil",
-        class: "cursor-pointer hover:text-primary transition-colors",
-        onClick: () => (editingTable.value = !editingTable.value),
-      }),
-    cell: ({ row }) =>
-      editingTable.value
-        ? h(mdicon, {
-            name: "delete",
-            class: "cursor-pointer hover:text-primary transition-colors",
-            onClick: () => {
-              reviewToDelete.value = row.original.id;
-            },
-          })
-        : h(
-            "div",
-            {
-              class:
-                "opacity-0 group-hover:opacity-100 transition-opacity duration-fast ease-standard space-x-4",
-            },
-            [
-              h(mdicon, {
-                name: "share",
-                class: "cursor-pointer hover:text-primary transition-colors",
-                onClick: () => {
-                  const url = `${window.location.origin}/share/club/${clubSlug}/review/${row.original.id}`;
-                  const title = row.original.title;
-                  const clubName = club.value?.clubName ?? "Movie Club";
-                  void share({
-                    url,
-                    title: `${title} - ${clubName} Review`,
-                    text: `${clubName}'s review of ${title}`,
-                  });
-                },
-              }),
-            ],
-          ),
-  }),
   columnHelper.accessor("title", {
     header: "Title",
-    cell: (info) =>
-      h(MovieTooltip, {
-        title: info.getValue(),
-        imageUrl: info.row.original.imageUrl,
-        movie: asMovie(info.row.original.externalData),
-      }),
-    meta: {
-      class: "font-bold align-middle",
-    },
   }),
   columnHelper.accessor("createdDate", {
     header: "Date Reviewed",
@@ -338,15 +218,8 @@ const columns = computed(() => [
       },
       cell: (info) => {
         const value = info.getValue();
-        const score = value === undefined ? undefined : Math.round(value * 100) / 100;
-        let size: string | undefined;
-        if (typeof info.meta?.size === "string") {
-          size = info.meta.size;
-        }
-
-        // Read-only in the gallery cards and the details drawer (entry there
-        // flows through the drawer's score CTA); editable in the table.
-        const editable = info.meta?.editable !== false;
+        if (value === undefined) return "";
+        const score = Math.round(value * 100) / 100;
 
         const shouldBlur = shouldBlurScore(info.row.id, info.column.id);
         // Gallery poster cards blur unrated scores but must not reveal them on
@@ -359,21 +232,19 @@ const columns = computed(() => [
             class: revealOnClick ? "cursor-pointer hover:text-xl" : "",
             onClick: revealOnClick ? () => toggleReveal(info.row.id) : undefined,
           },
-          [
-            h(ReviewScore, {
-              workId: info.row.original.id,
-              memberId: member.id,
-              score,
-              reviewId: info.row.original.scores[member.id]?.id,
-              size,
-              editable,
+          // Read-only: score entry/editing happens through the details drawer's
+          // score CTA, not inline.
+          h(
+            "span",
+            {
               class: shouldBlur
                 ? revealOnClick
                   ? "filter blur cursor-pointer"
                   : "filter blur"
                 : "",
-            }),
-          ],
+            },
+            score,
+          ),
         );
       },
       sortUndefined: "last",
@@ -428,14 +299,6 @@ const reviewTable = useVueTable({
   },
   get data() {
     return filteredReviews.value ?? [];
-  },
-  state: {
-    get columnVisibility() {
-      return {
-        ...commonColumnVisibility.value,
-        ...(isGalleryView.value ? galleryColumnVisibility : {}),
-      };
-    },
   },
   getCoreRowModel: getCoreRowModel<DetailedReviewListItem>(),
   getSortedRowModel: getSortedRowModel<DetailedReviewListItem>(),

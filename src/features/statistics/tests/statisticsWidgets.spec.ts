@@ -43,6 +43,7 @@ const movie: MovieData = {
   externalData: {
     kind: "movie",
     castNames: [],
+    majorCastNames: [],
     directors: [],
     genres: [],
     production_companies: [],

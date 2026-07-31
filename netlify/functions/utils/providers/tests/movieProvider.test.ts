@@ -37,6 +37,7 @@ function makeMovieRow(overrides: Partial<MovieRowLike> = {}): MovieRowLike {
     production_countries: ["United States of America", "United Kingdom"],
     directors: [{ name: "Christopher Nolan", profilePath: null }],
     cast_names: ["Leonardo DiCaprio", "Joseph Gordon-Levitt"],
+    major_cast_names: ["Leonardo DiCaprio", "Joseph Gordon-Levitt"],
     ...overrides,
   };
 }

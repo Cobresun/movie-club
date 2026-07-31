@@ -7,11 +7,6 @@ import { render } from "@/tests/utils";
 
 mockIntersectionObserver({ intersecting: true });
 
-// Opening a card's details scrolls it into view; jsdom has no layout.
-beforeAll(() => {
-  Element.prototype.scrollIntoView = vi.fn();
-});
-
 const members = [
   makeReviewMember({ id: "m1", name: "Ada Lovelace" }),
   makeReviewMember({ id: "m2", name: "Alan Turing" }),
@@ -160,7 +155,8 @@ describe("GalleryView", () => {
     await user.click(screen.getByText("Dune"));
 
     expect(document.querySelector("work-details-drawer-stub")).toBeInTheDocument();
-    expect(Element.prototype.scrollIntoView).toHaveBeenCalled();
+    // `src/tests/setup.ts` stubs this globally — jsdom has no layout.
+    expect(HTMLElement.prototype.scrollIntoView).toHaveBeenCalled();
   });
 
   it("renders no cards for a club with no reviews", () => {

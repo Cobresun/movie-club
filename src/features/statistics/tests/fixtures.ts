@@ -14,6 +14,7 @@ export function makeExternalMovie(overrides: Partial<DetailedMovieData> = {}): D
     kind: "movie",
     actors: [],
     castNames: [],
+    majorCastNames: [],
     adult: false,
     backdrop_path: "",
     budget: 0,
@@ -124,6 +125,7 @@ export const SCORED_MOVIE_REVIEW = {
   externalData: {
     kind: "movie",
     castNames: [],
+    majorCastNames: [],
     directors: [],
     genres: ["Sci-Fi"],
     production_companies: [],

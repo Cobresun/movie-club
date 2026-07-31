@@ -42,7 +42,6 @@ export const FACT_ICONS = {
   timeTravel: "history",
   longestRuntime: "seat-recline-extra",
   longestBook: "book-open-page-variant",
-  countryFirst: "passport",
   decadeFirst: "calendar-star",
   firstGenre: "star-shooting",
   tmdbDeviation: "scale-unbalanced",
@@ -333,13 +332,18 @@ const authorRecord: FactGenerator = (ctx) => {
 
 const isActorMilestone = (n: number): boolean => n >= 5 && n % 5 === 0;
 
+// A "familiar face" milestone should celebrate a recognizable recurring actor,
+// not a bit-part player buried deep in the credits. `majorCastNames` is the
+// server-filtered major cast (top-billed OR a popularity star — see
+// lib/movie/majorCast.ts), so we count an actor only across the movies where
+// they were a prominent presence, never an incidental cameo.
 const actorMilestone: FactGenerator = (ctx) => {
   const movie = asMovie(ctx.target.externalData);
   if (!isDefined(movie)) return undefined;
   let best: { name: string; count: number } | undefined;
-  for (const name of movie.castNames) {
+  for (const name of movie.majorCastNames) {
     const count = ctx.worksThrough.filter(
-      (work) => asMovie(work.externalData)?.castNames.includes(name) === true,
+      (work) => asMovie(work.externalData)?.majorCastNames.includes(name) === true,
     ).length;
     if (isActorMilestone(count) && (!isDefined(best) || count > best.count)) {
       best = { name, count };
@@ -431,24 +435,6 @@ const longestBook: FactGenerator = (ctx) => {
 // club has enough history for a new genre/country/decade to be a genuine event.
 const MIN_PRIOR_WORKS_FOR_FIRSTS = 10;
 
-const countryFirst: FactGenerator = (ctx) => {
-  const movie = asMovie(ctx.target.externalData);
-  if (!isDefined(movie) || !hasElements(movie.production_countries)) {
-    return undefined;
-  }
-  const prior = ctx.worksThrough.filter((work) => work.id !== ctx.target.id);
-  if (prior.length < MIN_PRIOR_WORKS_FOR_FIRSTS) return undefined;
-  const seen = new Set(
-    prior.flatMap((work) => asMovie(work.externalData)?.production_countries ?? []),
-  );
-  // An empty seen-set means the history lacks country data, not that every
-  // country is new.
-  if (seen.size === 0) return undefined;
-  const newCountry = movie.production_countries.find((country) => !seen.has(country));
-  if (!hasValue(newCountry)) return undefined;
-  return fact("countryFirst", "Passport stamp", `Your club's first movie from ${newCountry}.`);
-};
-
 const decadeFirst: FactGenerator = (ctx) => {
   const year = releaseYearOf(ctx.target);
   if (!isDefined(year)) return undefined;
@@ -502,7 +488,6 @@ const FACT_GENERATORS: Record<WorkType, FactGenerator[]> = {
     actorMilestone,
     oldestMovie,
     longestRuntime,
-    countryFirst,
     decadeFirst,
     firstGenre,
     tmdbDeviation,

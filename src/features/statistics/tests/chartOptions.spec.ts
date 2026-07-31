@@ -80,6 +80,7 @@ function work(id: string, userScores: Record<string, number>): MovieData {
     externalData: {
       kind: "movie",
       castNames: [],
+      majorCastNames: [],
       directors: [],
       genres: [],
       production_companies: [],

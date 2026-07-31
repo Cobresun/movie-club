@@ -43,6 +43,7 @@ export function tmdbMovie(id: number, overrides: Partial<TMDBMovieData> = {}): T
           character: `Hero ${id}`,
           order: 0,
           profile_path: `/lead-${id}.jpg`,
+          popularity: 12,
         },
         {
           id: id * 10 + 2,
@@ -50,6 +51,7 @@ export function tmdbMovie(id: number, overrides: Partial<TMDBMovieData> = {}): T
           character: `Sidekick ${id}`,
           order: 1,
           profile_path: null,
+          popularity: 1.5,
         },
       ],
       crew: [

@@ -68,7 +68,14 @@ describe("scheduled work refresh", () => {
           tmdbMovie(42, {
             credits: {
               cast: [
-                { id: 1, name: "Only Actor", character: "Only Role", order: 0, profile_path: null },
+                {
+                  id: 1,
+                  name: "Only Actor",
+                  character: "Only Role",
+                  order: 0,
+                  profile_path: null,
+                  popularity: 3,
+                },
               ],
               crew: [],
             },

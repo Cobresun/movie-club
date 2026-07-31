@@ -46,15 +46,15 @@ export default defineConfig({
       provider: "istanbul",
       reporter: ["text", "json", "html"],
       // Regression guards set just below the levels achieved by the test
-      // suite (80.5% stmts / 69.5% branch / 76.2% func / 81.9% lines). The
+      // suite (82.1% stmts / 70.8% branch / 77.6% func / 83.5% lines). The
       // backend jumped from ~63% to ~95% when the handler tests started
       // running against a real database instead of mocked repositories.
       // Raise these as coverage grows; never lower them to merge.
       thresholds: {
-        statements: 80,
-        branches: 69,
-        functions: 76,
-        lines: 81,
+        statements: 82,
+        branches: 70,
+        functions: 77,
+        lines: 83,
       },
       include: ["src/**/*.{ts,vue}", "lib/**/*.ts", "netlify/functions/**/*.ts"],
       exclude: [

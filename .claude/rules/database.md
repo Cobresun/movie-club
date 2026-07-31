@@ -5,67 +5,48 @@ paths:
   - "netlify/functions/repositories/**"
 ---
 
-# Database Architecture
+# Database
 
-**ORM:** Kysely with CockroachDB dialect (PostgreSQL-compatible). See `kysely` skill for query patterns, migration syntax, and type helpers.
+Kysely with the CockroachDB dialect (PostgreSQL-compatible). See the `kysely` skill for query patterns, migration syntax, and type helpers.
 
-**Key Files:**
+- Connection: `netlify/functions/utils/database.ts` (singleton `Kysely<DB>`)
+- **Schema of record: `lib/types/generated/db.ts`** — every table, column, and enum. Read it rather than trusting any prose summary; run `npm run codegen` after schema changes to regenerate it.
+- Migrations: `migrations/schema/`, named `YYYYMMDD_Description.ts`
 
-- Connection: `netlify/functions/utils/database.ts` (singleton `Kysely<DB>` instance)
-- Generated types: `lib/types/generated/db.ts` (run `npm run codegen` after schema changes)
-- Migrations: `migrations/schema/` (naming: `YYYYMMDD_Description.ts`)
+The shape worth knowing before you read: a `work` is a movie or book; `work_list` holds a club's lists, either user-defined (`system_type IS NULL`, free-form title) or system (`system_type = 'reviews'`), with a partial unique index enforcing at most one of each system list per club. Movie and book metadata are cached in separate `*_details` tables with their own junction tables.
 
-**Key Tables:**
+## Query gotcha: `selectAll()` after a join
 
-- `club` - Movie clubs (id, name, slug, legacy_id)
-- `club_member` - Club membership with roles (club_id, user_id, role)
-- `club_invite` - Invite tokens with expiration
-- `club_settings` - Key-value settings storage (JSON values)
-- `user` - User profiles (BetterAuth managed)
-- `account` - OAuth accounts (BetterAuth managed)
-- `session` - User sessions (BetterAuth managed)
-- `verification` - Email verification tokens (BetterAuth managed)
-- `movie_details` - Cached movie metadata from TMDB
-- `work_list` - Generic list table. Each club has one or more user-defined lists (free-form titles, `system_type IS NULL`) plus optional system lists (`system_type = 'reviews'`). A partial unique index `uq_work_list_club_system_type` enforces at most one of each system list per club. The legacy `type` enum was removed in `20260407_ArbitraryClubLists`.
-- `work_comment` - Comments on movie works (club_id, content, spoiler, user_id, work_id)
-- `review` - Movie reviews with scores
-- `awards_temp` - Temporary awards data storage (JSON)
-- `movie_directors` - Movie-to-director junction table
-- Various movie metadata junction tables (genres, production companies, countries)
+`selectAll()` with a join lets joined columns silently shadow base-table ones of the same name — the row typechecks, but you read the wrong value at runtime. Use `selectAll("table")` to scope it. Worth grepping for whenever a migration adds a column to a table that appears on the joined side of an existing query.
 
-**Enums:** `WorkListSystemType` (reviews), `WorkType` (movie)
+## Migration workflow
 
-## Migration Workflow
+**Validate schema migrations against a freshly spawned database, never your `.env`-pointed one.**
 
-Always validate schema migrations against a **freshly spawned dev database**, never against your personal `.env`-pointed DB.
-
-**Guard rail:** `schemaMigrator.ts` refuses to apply migrations against the shared `dev` database (`DATABASE_URL` path `/dev`) when `migrations/schema/` contains files not on `origin/main` — including uncommitted ones. It fails open if git is unavailable, does not apply to `migrate:down` (the cleanup path), and can be bypassed deliberately with `FORCE_DEV_MIGRATE=1`. If it false-positives on a freshly merged migration, run `git fetch` to update `origin/main`.
-
-**Why this matters — blast radius of shared `dev`.** The Netlify `preview-database` plugin (`netlify/plugins/preview-database/index.js`) points every PR that *does not* change migrations straight at shared `dev`. So if you run `migrate:dev` with `.env` still pointing at `postgresql://.../dev`, you rewrite the schema underneath every other open PR's deploy preview at once — their code still expects the old schema and their previews 500 until the migration is reverted on shared `dev` and the previews are rebuilt. The spawn-first rule isn't about cleanliness; it's the only thing that keeps this blast radius from firing.
-
-**After a migration merges, shared `dev` syncs automatically.** The `preview-database` plugin's `onSuccess` hook runs the schema migrator against shared `dev` on every *production* deploy (i.e. every merge to `main`), so `dev` tracks `main` without anyone running `migrate:dev` by hand. This closes the old gap where a merged migration reached prod but not `dev`, leaving every non-migration preview 500ing on the new column. The sync is non-fatal (a failure warns but does not fail the deploy) and a no-op when `dev` is already current. You should therefore only need to run `npm run migrate:dev` against shared `dev` yourself as a **fallback** — when the deploy hook failed, or to apply a migration before it has merged (which the guard rail blocks unless it is already on `origin/main`).
+This isn't tidiness. The `preview-database` plugin points every PR that _doesn't_ change migrations straight at shared `dev`. Running `migrate:dev` with `.env` on `postgresql://.../dev` rewrites the schema underneath every other open PR's deploy preview at once — their code expects the old schema, and their previews 500 until it's reverted and they're rebuilt.
 
 ```bash
-# 1. Spawn a fresh DB from the latest snapshot. Names must use only
-#    lowercase letters, numbers, and underscores — hyphens are rejected.
+# 1. Spawn from the latest snapshot (lowercase, numbers, underscores — no hyphens).
 npm run db:spawn arbitrary_lists
 
-# 2. Run the migrator + codegen against the new DB without touching .env.
-#    Inline DATABASE_URL takes precedence over the value loaded from
-#    --env-file=.env. The .env file is still needed so TMDB_API_KEY is
-#    available for the data-backfill step inside
-#    20260315_AddPersonProfilePaths.ts (it calls TMDB and 401s without it).
+# 2. Migrate + codegen against it without touching .env. An inline DATABASE_URL
+#    beats the --env-file value; .env is still needed because some migrations
+#    call external APIs during backfill (see below).
 DATABASE_URL='<spawned-url>' npx tsx --env-file=.env ./migrations/schemaMigrator.ts
 DATABASE_URL='<spawned-url>' npm run codegen
 
-# 3. Clean up when done.
+# 3. Clean up.
 npm run db:cleanup arbitrary_lists
 ```
 
-### CockroachDB migration gotchas
+**Guard rail.** `schemaMigrator.ts` refuses to run against shared `dev` when `migrations/schema/` contains files not on `origin/main`, including uncommitted ones. It does _not_ cover `migrate:down`, can be bypassed with `FORCE_DEV_MIGRATE=1`, and **fails open when git is unavailable** — so it reduces the blast radius above, it doesn't remove it. If it false-positives on a freshly merged migration, `git fetch` to update `origin/main`.
 
-- **No transactional DDL.** A migration that errors midway leaves the database in an intermediate state — created enums and columns persist. Plan to either make `up()` idempotent or expect to manually drop the orphans (`DROP TYPE IF EXISTS ...`, `ALTER TABLE ... DROP COLUMN IF EXISTS ...`) before re-running.
-- **Cannot drop UNIQUE constraints with `ALTER TABLE DROP CONSTRAINT`.** CockroachDB stores unique constraints as unique indexes; use `DROP INDEX <name> CASCADE` instead. (See crdb issue #42840.)
-- **Cannot drop an enum while a column still references it.** Drop the column first, then `DROP TYPE`.
-- **Embedded data backfills inside schema migrations** (like `20260315_AddPersonProfilePaths.ts`) require their full env (e.g. `TMDB_API_KEY`). Migrations aren't pure schema in this repo.
+**Shared `dev` self-syncs after merge.** The plugin's `onSuccess` hook migrates shared `dev` on every production deploy, so it tracks `main` unattended. Running `migrate:dev` against `dev` yourself is a fallback for when that hook failed.
 
+## CockroachDB gotchas
+
+- **No transactional DDL.** A migration erroring midway leaves created enums and columns behind. Either make `up()` idempotent or expect to drop orphans by hand (`DROP TYPE IF EXISTS`, `ALTER TABLE ... DROP COLUMN IF EXISTS`) before re-running.
+- **`ALTER TABLE DROP CONSTRAINT` can't drop UNIQUE** — CockroachDB stores those as unique indexes. Use `DROP INDEX <name> CASCADE` (crdb #42840).
+- **An enum can't be dropped while a column references it.** Drop the column first.
+- **`up()`/`down()` already run inside a transaction** — don't open another with `db.transaction()`.
+- **Migrations here aren't pure schema.** Some embed data backfills that call external APIs and need the matching env var (`20260315_AddPersonProfilePaths.ts` calls TMDB and 401s without `TMDB_API_KEY`).

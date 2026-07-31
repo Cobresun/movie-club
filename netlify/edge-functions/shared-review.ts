@@ -42,11 +42,7 @@ function isCrawler(userAgent: string): boolean {
   return CRAWLER_USER_AGENTS.some((bot) => ua.includes(bot.toLowerCase()));
 }
 
-function generateOGImageUrl(
-  origin: string,
-  clubSlug: string,
-  workId: string,
-): string {
+function generateOGImageUrl(origin: string, clubSlug: string, workId: string): string {
   // Use the OG image generation function
   // This will redirect to TMDB poster or generate SVG
   return `${origin}/api/og-image?clubSlug=${clubSlug}&workId=${workId}`;
@@ -141,22 +137,16 @@ export default async (request: Request) => {
     const response = await fetch(apiUrl);
 
     if (!response.ok) {
-      console.error(
-        `[Edge Function] API returned ${response.status}: ${response.statusText}`,
-      );
+      console.error(`[Edge Function] API returned ${response.status}: ${response.statusText}`);
       return; // Pass through on error
     }
 
     const data = (await response.json()) as ReviewData;
 
     // Calculate average score
-    const scores = data.reviews
-      .map((r) => Number(r.score))
-      .filter((s) => !isNaN(s) && s > 0);
+    const scores = data.reviews.map((r) => Number(r.score)).filter((s) => !isNaN(s) && s > 0);
     const avgScore =
-      scores.length > 0
-        ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1)
-        : "N/A";
+      scores.length > 0 ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1) : "N/A";
 
     // Generate OG image URL
     const ogImageUrl = generateOGImageUrl(url.origin, clubSlug, workId);
@@ -176,9 +166,7 @@ export default async (request: Request) => {
       siteName: "Movie Club",
     });
 
-    console.log(
-      `[Edge Function] Serving OG meta tags for crawler: ${userAgent.substring(0, 50)}`,
-    );
+    console.log(`[Edge Function] Serving OG meta tags for crawler: ${userAgent.substring(0, 50)}`);
 
     return new Response(html, {
       headers: {

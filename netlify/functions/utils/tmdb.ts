@@ -1,6 +1,7 @@
 import axios, { AxiosResponse } from "axios";
 
 import { hasValue } from "../../../lib/checks/checks.js";
+import { selectMajorCastNames } from "../../../lib/movie/majorCast.js";
 import { ExternalWorkData, WorkListItem } from "../../../lib/types/lists";
 import {
   BaseMovie,
@@ -54,18 +55,24 @@ export async function getDetailedMovie<T extends BaseMovie>(
       const tmdbData = response.data;
 
       // Transform TMDBMovieData into DetailedMovieData
-      const actors = (tmdbData.credits?.cast ?? [])
-        .sort((a, b) => a.order - b.order)
-        .map((c) => ({
-          name: c.name,
-          character: c.character,
-          profilePath: c.profile_path ?? null,
-        }));
+      const cast = (tmdbData.credits?.cast ?? []).sort((a, b) => a.order - b.order);
+      const actors = cast.map((c) => ({
+        name: c.name,
+        character: c.character,
+        profilePath: c.profile_path ?? null,
+      }));
 
       const movieData: DetailedMovieData = {
         kind: "movie",
         actors,
         castNames: actors.map((a) => a.name),
+        majorCastNames: selectMajorCastNames(
+          cast.map((c) => ({
+            name: c.name,
+            castOrder: c.order,
+            popularity: c.popularity,
+          })),
+        ),
         adult: tmdbData.adult,
         backdrop_path: tmdbData.backdrop_path,
         budget: tmdbData.budget,

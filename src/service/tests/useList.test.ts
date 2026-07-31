@@ -287,7 +287,7 @@ describe("useCreateList", () => {
     });
 
     const { getByRole, findByText } = render(Harness);
-    getByRole("button").click();
+    getByRole("button", { name: /^(?:go|done)$/ }).click();
     await findByText("done");
     expect(capturedBody).toEqual({ title: "Top Picks" });
   });
@@ -316,7 +316,7 @@ describe("useDeleteList", () => {
     });
 
     const { getByRole, findByText } = render(Harness);
-    getByRole("button").click();
+    getByRole("button", { name: /^(?:go|done)$/ }).click();
     await findByText("done");
     expect(deletedId).toBe("list-77");
   });
@@ -351,7 +351,7 @@ describe("useAddListItem", () => {
     });
 
     const { getByRole, findByText } = render(Harness);
-    getByRole("button").click();
+    getByRole("button", { name: /^(?:go|done)$/ }).click();
     await findByText("done");
     expect(capturedBody).toMatchObject({ title: "Blade Runner" });
     expect(OPTIMISTIC_WORK_ID).toBe("temp");
@@ -381,7 +381,7 @@ describe("useDeleteListItem", () => {
     });
 
     const { getByRole, findByText } = render(Harness);
-    getByRole("button").click();
+    getByRole("button", { name: /^(?:go|done)$/ }).click();
     await findByText("done");
     expect(deletedWorkId).toBe("work-99");
   });
@@ -410,7 +410,7 @@ describe("useDeleteReview", () => {
     });
 
     const { getByRole, findByText } = render(Harness);
-    getByRole("button").click();
+    getByRole("button", { name: /^(?:go|done)$/ }).click();
     await findByText("done");
     expect(deletedWorkId).toBe("w-1");
   });
@@ -439,7 +439,7 @@ describe("useReorderList", () => {
     });
 
     const { getByRole, findByText } = render(Harness);
-    getByRole("button").click();
+    getByRole("button", { name: /^(?:go|done)$/ }).click();
     await findByText("done");
     expect(capturedBody).toEqual({ workIds: ["b", "a"] });
   });
@@ -473,7 +473,7 @@ describe("useMoveListItem", () => {
     });
 
     const { getByRole, findByText } = render(Harness);
-    getByRole("button").click();
+    getByRole("button", { name: /^(?:go|done)$/ }).click();
     await findByText("done");
     expect(capturedBody).toMatchObject({ destinationListId: "list-dst" });
   });
@@ -507,7 +507,7 @@ describe("useUpdateAddedDate", () => {
     });
 
     const { getByRole, findByText } = render(Harness);
-    getByRole("button").click();
+    getByRole("button", { name: /^(?:go|done)$/ }).click();
     await findByText("done");
     expect(capturedBody).toEqual({ addedDate: "2023-06-15T00:00:00.000Z" });
   });

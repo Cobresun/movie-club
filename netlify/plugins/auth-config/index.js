@@ -39,9 +39,7 @@ const onPreBuild = () => {
     writeAuthConfigToFile();
   } catch (error) {
     console.warn("Warning: Could not write auth config file:", error.message);
-    console.warn(
-      "Netlify Functions may not have correct trusted origins for authentication",
-    );
+    console.warn("Netlify Functions may not have correct trusted origins for authentication");
   }
 };
 
