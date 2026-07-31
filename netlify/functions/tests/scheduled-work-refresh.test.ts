@@ -3,18 +3,25 @@
  * daily sweep that re-fetches the oldest cached metadata for every media
  * provider.
  *
- * The whole point of this job is that it rewrites rows, so it is only
- * meaningful against a real database: the assertions here read the refreshed
- * `movie_details` / `book_details` rows back.
+ * The job exists to rewrite cached rows, so it is only meaningful against a
+ * real database. What it wrote is read back off the list endpoint, which is
+ * where the refreshed metadata actually reaches a client.
  */
 import { http, HttpResponse } from "msw";
 import { describe, expect, it } from "vitest";
 
+import { ClubType, WorkType } from "../../../lib/types/generated/db";
+import { DetailedWorkListItem } from "../../../lib/types/lists";
+import { MovieDataSummary } from "../../../lib/types/movie";
+import { handler as clubHandler } from "../club/index";
 import refreshHandler from "../scheduled-work-refresh";
 import { googleBooksVolume, tmdbMovie } from "./fixtures/external";
-import { db } from "./helpers/database";
-import { cacheMovieDetails } from "./helpers/factories";
+import { signIn } from "./helpers/auth";
+import { addWork, createClub, SeededClub } from "./helpers/factories";
+import { requester } from "./helpers/http";
 import { requestsTo, server } from "./setup/externalApis";
+
+const api = requester(clubHandler);
 
 function scheduledRequest(body: unknown) {
   return new Request("https://localhost/.netlify/functions/scheduled-work-refresh", {
@@ -27,23 +34,25 @@ function run() {
   return refreshHandler(scheduledRequest({ next_run: "2026-01-01T00:00:00Z" }));
 }
 
-async function cacheBook(externalId: string, overrides: { title?: string; author?: string } = {}) {
-  await db
-    .insertInto("book_details")
-    .values({ external_id: externalId, title: overrides.title ?? "Old Title" })
-    .execute();
-  await db
-    .insertInto("book_authors")
-    .values({ external_id: externalId, author_name: overrides.author ?? "Old Author" })
-    .execute();
-}
+const metadataOf = async (club: SeededClub) => {
+  const items = await api.get<DetailedWorkListItem[]>(`/api/club/${club.slug}/list/${club.listId}`);
+  return items.body.map((item) => item.externalData);
+};
 
 describe("scheduled work refresh", () => {
   it("rewrites cached movie details from TMDB", async () => {
-    await cacheMovieDetails("42", { title: "Stale Title", tagline: "Stale tagline" });
+    const alice = await signIn("alice");
+    const club = await createClub(alice);
+    await addWork(club, alice, { title: "Stale", externalId: "42" });
+    expect(await metadataOf(club)).toMatchObject([
+      { tagline: "Tagline 42", overview: "Overview for movie 42" },
+    ]);
+
     server.use(
       http.get("https://api.themoviedb.org/3/movie/42", () =>
-        HttpResponse.json(tmdbMovie(42, { title: "Fresh Title", tagline: "Fresh tagline" })),
+        HttpResponse.json(
+          tmdbMovie(42, { tagline: "Fresh tagline", overview: "A freshly fetched overview" }),
+        ),
       ),
     );
 
@@ -51,17 +60,16 @@ describe("scheduled work refresh", () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({ success: true, processed: 1, updated: 1 });
-
-    const row = await db
-      .selectFrom("movie_details")
-      .select(["title", "tagline"])
-      .where("external_id", "=", "42")
-      .executeTakeFirstOrThrow();
-    expect(row).toEqual({ title: "Fresh Title", tagline: "Fresh tagline" });
+    expect(await metadataOf(club)).toMatchObject([
+      { tagline: "Fresh tagline", overview: "A freshly fetched overview" },
+    ]);
   });
 
   it("replaces the cast rather than appending to it", async () => {
-    await cacheMovieDetails("42");
+    const alice = await signIn("alice");
+    const club = await createClub(alice);
+    await addWork(club, alice, { externalId: "42" });
+
     server.use(
       http.get("https://api.themoviedb.org/3/movie/42", () =>
         HttpResponse.json(
@@ -86,16 +94,15 @@ describe("scheduled work refresh", () => {
 
     await run();
 
-    const actors = await db
-      .selectFrom("movie_actors")
-      .select("actor_name")
-      .where("external_id", "=", "42")
-      .execute();
-    expect(actors).toEqual([{ actor_name: "Only Actor" }]);
+    const [metadata] = await metadataOf(club);
+    expect((metadata as MovieDataSummary).castNames).toEqual(["Only Actor"]);
   });
 
   it("refreshes book details and their authors", async () => {
-    await cacheBook("bookvolume");
+    const alice = await signIn("alice");
+    const club = await createClub(alice, { type: ClubType.book });
+    await addWork(club, alice, { type: WorkType.book, externalId: "bookvolume" });
+
     server.use(
       http.get("https://www.googleapis.com/books/v1/volumes/bookvolume", () =>
         HttpResponse.json(
@@ -107,32 +114,34 @@ describe("scheduled work refresh", () => {
     const response = await run();
 
     expect(await response.json()).toMatchObject({ success: true, processed: 1, updated: 1 });
-    const book = await db
-      .selectFrom("book_details")
-      .select("title")
-      .where("external_id", "=", "bookvolume")
-      .executeTakeFirstOrThrow();
-    expect(book.title).toBe("Fresh Book");
-    const authors = await db
-      .selectFrom("book_authors")
-      .select("author_name")
-      .where("external_id", "=", "bookvolume")
-      .execute();
-    expect(authors).toEqual([{ author_name: "Fresh Author" }]);
+    expect(await metadataOf(club)).toMatchObject([
+      { kind: "book", title: "Fresh Book", authors: ["Fresh Author"] },
+    ]);
   });
 
   it("skips legacy OpenLibrary ids that Google Books cannot resolve", async () => {
-    await cacheBook("OL45804W");
+    const alice = await signIn("alice");
+    const club = await createClub(alice, { type: ClubType.book });
+    server.use(
+      http.get("https://www.googleapis.com/books/v1/volumes/OL45804W", () =>
+        HttpResponse.json(googleBooksVolume("OL45804W")),
+      ),
+    );
+    await addWork(club, alice, { type: WorkType.book, externalId: "OL45804W" });
+    const callsWhileAdding = requestsTo("googleapis.com/books").length;
 
     const response = await run();
 
     expect(await response.json()).toMatchObject({ processed: 0 });
-    expect(requestsTo("googleapis.com/books")).toHaveLength(0);
+    expect(requestsTo("googleapis.com/books")).toHaveLength(callsWhileAdding);
   });
 
   it("keeps going and reports the failure when one work's fetch errors", async () => {
-    await cacheMovieDetails("42");
-    await cacheMovieDetails("43");
+    const alice = await signIn("alice");
+    const club = await createClub(alice);
+    await addWork(club, alice, { externalId: "42" });
+    await addWork(club, alice, { externalId: "43" });
+
     server.use(
       http.get(
         "https://api.themoviedb.org/3/movie/42",

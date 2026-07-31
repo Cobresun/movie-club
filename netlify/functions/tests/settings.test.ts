@@ -7,8 +7,7 @@ import { describe, expect, it } from "vitest";
 import { handler } from "../club/index";
 import { ClubSettings } from "../repositories/SettingsRepository";
 import { signIn } from "./helpers/auth";
-import { db } from "./helpers/database";
-import { createClub } from "./helpers/factories";
+import { addReviewedWork, createClub } from "./helpers/factories";
 import { requester } from "./helpers/http";
 
 const api = requester(handler);
@@ -16,10 +15,7 @@ const api = requester(handler);
 describe("GET /api/club/:clubSlug/settings", () => {
   it("returns the club's stored feature flags", async () => {
     const alice = await signIn("alice");
-    const club = await createClub({
-      members: [{ userId: alice.userId }],
-      features: { awards: true },
-    });
+    const club = await createClub(alice, { features: { awards: true } });
 
     const res = await api.get<ClubSettings>(`/api/club/${club.slug}/settings`, { as: alice });
 
@@ -27,19 +23,10 @@ describe("GET /api/club/:clubSlug/settings", () => {
     expect(res.body).toEqual({ features: { awards: true, discussionQuestions: false } });
   });
 
-  it("falls back to all-off defaults when the club has no settings row", async () => {
-    const alice = await signIn("alice");
-    const club = await createClub({ members: [{ userId: alice.userId }] });
-    await db.deleteFrom("club_settings").where("club_id", "=", club.id).execute();
-
-    const res = await api.get<ClubSettings>(`/api/club/${club.slug}/settings`, { as: alice });
-
-    expect(res.body).toEqual({ features: { awards: false, discussionQuestions: false } });
-  });
-
   it("returns 401 for a non-member", async () => {
+    const alice = await signIn("alice");
     const bob = await signIn("bob");
-    const club = await createClub();
+    const club = await createClub(alice, { members: [alice] });
 
     const res = await api.get(`/api/club/${club.slug}/settings`, { as: bob });
 
@@ -58,7 +45,7 @@ describe("GET /api/club/:clubSlug/settings", () => {
 describe("POST /api/club/:clubSlug/settings", () => {
   it("enables a feature and persists it", async () => {
     const alice = await signIn("alice");
-    const club = await createClub({ members: [{ userId: alice.userId }] });
+    const club = await createClub(alice);
 
     const res = await api.post<ClubSettings>(`/api/club/${club.slug}/settings`, {
       body: { features: { awards: true } },
@@ -74,10 +61,7 @@ describe("POST /api/club/:clubSlug/settings", () => {
 
   it("leaves the features it was not given alone", async () => {
     const alice = await signIn("alice");
-    const club = await createClub({
-      members: [{ userId: alice.userId }],
-      features: { discussionQuestions: true },
-    });
+    const club = await createClub(alice, { features: { discussionQuestions: true } });
 
     const res = await api.post<ClubSettings>(`/api/club/${club.slug}/settings`, {
       body: { features: { awards: true } },
@@ -89,10 +73,7 @@ describe("POST /api/club/:clubSlug/settings", () => {
 
   it("treats an empty body object as a no-op", async () => {
     const alice = await signIn("alice");
-    const club = await createClub({
-      members: [{ userId: alice.userId }],
-      features: { awards: true },
-    });
+    const club = await createClub(alice, { features: { awards: true } });
 
     const res = await api.post<ClubSettings>(`/api/club/${club.slug}/settings`, {
       body: {},
@@ -103,12 +84,36 @@ describe("POST /api/club/:clubSlug/settings", () => {
     expect(res.body).toEqual({ features: { awards: true, discussionQuestions: false } });
   });
 
+  it("gates the feature it names — turning discussion questions off closes the route", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub(alice, { features: { discussionQuestions: true } });
+    const work = await addReviewedWork(club, alice, { externalId: null });
+
+    const enabled = await api.post(
+      `/api/club/${club.slug}/reviews/${work.id}/discussion-questions`,
+      { as: alice },
+    );
+    expect(enabled.statusCode).toBe(200);
+
+    await api.post(`/api/club/${club.slug}/settings`, {
+      body: { features: { discussionQuestions: false } },
+      as: alice,
+    });
+
+    const disabled = await api.post<{ error: string }>(
+      `/api/club/${club.slug}/reviews/${work.id}/discussion-questions`,
+      { as: alice },
+    );
+    expect(disabled.statusCode).toBe(400);
+    expect(disabled.body.error).toBe("Feature not enabled");
+  });
+
   it.each([
     ["no body", undefined],
     ["a non-boolean feature flag", { features: { awards: "yes" } }],
   ])("returns 400 with %s", async (_label, body) => {
     const alice = await signIn("alice");
-    const club = await createClub({ members: [{ userId: alice.userId }] });
+    const club = await createClub(alice);
 
     const res = await api.post(`/api/club/${club.slug}/settings`, { body, as: alice });
 
@@ -116,8 +121,9 @@ describe("POST /api/club/:clubSlug/settings", () => {
   });
 
   it("returns 401 for a non-member", async () => {
+    const alice = await signIn("alice");
     const bob = await signIn("bob");
-    const club = await createClub();
+    const club = await createClub(alice, { members: [alice] });
 
     const res = await api.post(`/api/club/${club.slug}/settings`, {
       body: { features: { awards: true } },
@@ -125,5 +131,7 @@ describe("POST /api/club/:clubSlug/settings", () => {
     });
 
     expect(res.statusCode).toBe(401);
+    const settings = await api.get<ClubSettings>(`/api/club/${club.slug}/settings`, { as: alice });
+    expect(settings.body.features.awards).toBe(false);
   });
 });

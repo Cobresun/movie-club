@@ -1,15 +1,22 @@
-import { db, pool } from "../../utils/database";
+import { DB } from "../../../../lib/types/generated/db";
+import { pool } from "../../utils/database";
 
 /**
- * Domain tables, children before parents so a single multi-statement DELETE
- * never trips a foreign key (CockroachDB checks constraints per statement).
+ * Tables `resetDatabase()` deliberately leaves alone.
  *
- * `user`, `account`, `session` and `verification` are deliberately absent:
- * signing a user up costs two bcrypt hashes, so the auth fixtures create their
+ * Signing a user up costs two bcrypt hashes, so the auth fixtures create their
  * users once per file and reuse them (see `helpers/auth.ts`). Nothing a test
  * asserts on is user-global — club membership, lists and reviews all hang off
- * `club`, which is wiped — so keeping the accounts around is invisible to
- * tests and saves the suite tens of seconds.
+ * `club`, which is wiped — so keeping the accounts around is invisible to tests
+ * and saves the suite tens of seconds.
+ */
+const PRESERVED_TABLES = ["account", "session", "user", "verification"] as const;
+
+type DomainTable = Exclude<keyof DB, (typeof PRESERVED_TABLES)[number]>;
+
+/**
+ * Everything else, children before parents so a single multi-statement DELETE
+ * never trips a foreign key (CockroachDB checks constraints per statement).
  */
 const DOMAIN_TABLES = [
   "review",
@@ -32,7 +39,21 @@ const DOMAIN_TABLES = [
   "book_authors",
   "book_subjects",
   "book_details",
-];
+] as const satisfies readonly DomainTable[];
+
+/**
+ * Fails to compile when `npm run codegen` adds a table that is neither listed
+ * above nor preserved, naming the offender:
+ *
+ *   Type '"new_table"' does not satisfy the constraint 'never'.
+ *
+ * The fix is to decide which list it belongs on — silently leaving a table
+ * un-reset would leak rows between tests.
+ */
+type AssertEveryTableHandled<T extends never> = T;
+type _EveryTableHandled = AssertEveryTableHandled<
+  Exclude<DomainTable, (typeof DOMAIN_TABLES)[number]>
+>;
 
 /**
  * Empty every domain table between tests.
@@ -49,5 +70,3 @@ export async function resetDatabase() {
 export async function closeDatabase() {
   await pool.end();
 }
-
-export { db };

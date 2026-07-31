@@ -5,6 +5,12 @@
  * so it only means anything against a real cluster. These tests create throwaway
  * `pr_*` databases on the test container, comment them with the metadata the
  * preview-database plugin writes, and check which ones survive.
+ *
+ * The raw SQL here is deliberate and has no API alternative: the subject under
+ * test operates on databases, not on rows, and the Netlify plugin that creates
+ * preview databases is the only thing that ever issues these statements in
+ * production. Assertions still go through `DatabaseCleanupRepository`, which is
+ * the interface the scheduled function itself uses.
  */
 import { sql } from "kysely";
 import { afterAll, afterEach, describe, expect, it } from "vitest";

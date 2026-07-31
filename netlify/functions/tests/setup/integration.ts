@@ -6,7 +6,7 @@ import { afterAll, afterEach, beforeAll, beforeEach } from "vitest";
 
 import { restoreFixtureUsers } from "../helpers/auth";
 import { closeDatabase, resetDatabase } from "../helpers/database";
-import { externalRequests, server } from "./externalApis";
+import { externalRequests, sentEmails, server } from "./externalApis";
 
 beforeAll(() => {
   // Anything reaching a host without a handler is a bug in the test, not a
@@ -16,11 +16,14 @@ beforeAll(() => {
 
 beforeEach(async () => {
   externalRequests.length = 0;
+  sentEmails.length = 0;
   await resetDatabase();
-  await restoreFixtureUsers();
 });
 
-afterEach(() => {
+afterEach(async () => {
+  // Runs before resetHandlers so the profile endpoints still have their
+  // Cloudinary handler while undoing an avatar upload.
+  await restoreFixtureUsers();
   server.resetHandlers();
 });
 

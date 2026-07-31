@@ -1,5 +1,6 @@
 import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
+import { z } from "zod";
 
 import { geminiJsonResponse, googleBooksVolume, tmdbConfig, tmdbMovie } from "../fixtures/external";
 
@@ -30,6 +31,28 @@ const GEMINI = /generativelanguage\.googleapis\.com/;
  */
 export const externalRequests: { method: string; url: string }[] = [];
 
+export interface SentEmail {
+  to: string;
+  subject: string;
+  html: string;
+}
+
+/**
+ * Emails BetterAuth handed to Resend during the current test. Cleared before
+ * each test.
+ *
+ * This is the test suite's inbox: `helpers/auth.ts` confirms a new account by
+ * following the link out of the verification email, exactly as a user would,
+ * rather than flipping `emailVerified` in the database.
+ */
+export const sentEmails: SentEmail[] = [];
+
+const resendPayloadSchema = z.object({
+  to: z.union([z.string(), z.array(z.string())]),
+  subject: z.string(),
+  html: z.string(),
+});
+
 export const server = setupServer(
   http.get(`${TMDB}/configuration`, () => HttpResponse.json(tmdbConfig())),
 
@@ -55,8 +78,17 @@ export const server = setupServer(
   ),
 
   // Resend, reached through the SDK by BetterAuth's verification and
-  // password-reset emails.
-  http.post("https://api.resend.com/emails", () => HttpResponse.json({ id: "test-email-id" })),
+  // password-reset emails. The payload is kept so tests (and the sign-up
+  // fixture) can read what was actually sent.
+  http.post("https://api.resend.com/emails", async ({ request }) => {
+    const payload = resendPayloadSchema.parse(await request.json());
+    sentEmails.push({
+      to: Array.isArray(payload.to) ? payload.to[0] : payload.to,
+      subject: payload.subject,
+      html: payload.html,
+    });
+    return HttpResponse.json({ id: "test-email-id" });
+  }),
 
   // Cloudinary avatar upload / delete.
   http.post("https://api.cloudinary.com/v1_1/:cloud/image/upload", () =>
@@ -77,4 +109,9 @@ server.events.on("request:start", ({ request }) => {
 /** Requests made to `host` during this test, most recent last. */
 export function requestsTo(host: string) {
   return externalRequests.filter((request) => request.url.includes(host));
+}
+
+/** The most recent email sent to `address`, or undefined if there is none. */
+export function lastEmailTo(address: string): SentEmail | undefined {
+  return sentEmails.filter((email) => email.to === address).at(-1);
 }

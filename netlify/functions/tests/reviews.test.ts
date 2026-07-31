@@ -14,28 +14,31 @@ import { ReviewScores, SharedReviewResponse, WorkCommentDto } from "../../../lib
 import { MovieCastMember } from "../../../lib/types/movie";
 import { handler } from "../club/index";
 import { geminiJsonResponse } from "./fixtures/external";
-import { signIn } from "./helpers/auth";
-import { db } from "./helpers/database";
+import { signIn, TestSession } from "./helpers/auth";
 import {
-  addMember,
-  cacheMovieDetails,
+  addComment,
+  addReviewedWork,
+  addWork,
   createClub,
-  createComment,
-  createReview,
-  createReviewedWork,
-  createUser,
-  createWork,
+  scoreWork,
+  SeededClub,
 } from "./helpers/factories";
 import { requester } from "./helpers/http";
 import { server } from "./setup/externalApis";
 
 const api = requester(handler);
 
+const scoresOf = (club: SeededClub, workId: string, as: TestSession) =>
+  api.get<ReviewScores>(`/api/club/${club.slug}/reviews/${workId}/scores`, { as });
+
+const commentsOn = (club: SeededClub, workId: string, as: TestSession) =>
+  api.get<WorkCommentDto[]>(`/api/club/${club.slug}/reviews/${workId}/comments`, { as });
+
 describe("POST /api/club/:clubSlug/reviews", () => {
   it("records the member's score for a work on the reviews list", async () => {
     const alice = await signIn("alice");
-    const club = await createClub({ members: [{ userId: alice.userId }] });
-    const work = await createReviewedWork(club, { externalId: null });
+    const club = await createClub(alice);
+    const work = await addReviewedWork(club, alice, { externalId: null });
 
     const res = await api.post(`/api/club/${club.slug}/reviews`, {
       body: { workId: work.id, score: 8.5 },
@@ -43,16 +46,14 @@ describe("POST /api/club/:clubSlug/reviews", () => {
     });
 
     expect(res.statusCode).toBe(200);
-    const scores = await api.get<ReviewScores>(`/api/club/${club.slug}/reviews/${work.id}/scores`, {
-      as: alice,
-    });
+    const scores = await scoresOf(club, work.id, alice);
     expect(scores.body[alice.userId].score).toBe(8.5);
   });
 
   it("rejects a work that is not on the reviews list", async () => {
     const alice = await signIn("alice");
-    const club = await createClub({ members: [{ userId: alice.userId }] });
-    const work = await createWork(club.id, { externalId: null });
+    const club = await createClub(alice);
+    const work = await addWork(club, alice, { externalId: null });
 
     const res = await api.post<{ error: string }>(`/api/club/${club.slug}/reviews`, {
       body: { workId: work.id, score: 5 },
@@ -68,8 +69,8 @@ describe("POST /api/club/:clubSlug/reviews", () => {
     ["a negative score", -1],
   ])("returns 400 for %s", async (_label, score) => {
     const alice = await signIn("alice");
-    const club = await createClub({ members: [{ userId: alice.userId }] });
-    const work = await createReviewedWork(club, { externalId: null });
+    const club = await createClub(alice);
+    const work = await addReviewedWork(club, alice, { externalId: null });
 
     const res = await api.post(`/api/club/${club.slug}/reviews`, {
       body: { workId: work.id, score },
@@ -77,11 +78,12 @@ describe("POST /api/club/:clubSlug/reviews", () => {
     });
 
     expect(res.statusCode).toBe(400);
+    expect((await scoresOf(club, work.id, alice)).body).toEqual({});
   });
 
   it("returns 400 without a body", async () => {
     const alice = await signIn("alice");
-    const club = await createClub({ members: [{ userId: alice.userId }] });
+    const club = await createClub(alice);
 
     const res = await api.post(`/api/club/${club.slug}/reviews`, { as: alice });
 
@@ -89,9 +91,10 @@ describe("POST /api/club/:clubSlug/reviews", () => {
   });
 
   it("returns 401 for a non-member", async () => {
+    const alice = await signIn("alice");
     const bob = await signIn("bob");
-    const club = await createClub();
-    const work = await createReviewedWork(club, { externalId: null });
+    const club = await createClub(alice, { members: [alice] });
+    const work = await addReviewedWork(club, alice, { externalId: null });
 
     const res = await api.post(`/api/club/${club.slug}/reviews`, {
       body: { workId: work.id, score: 5 },
@@ -105,9 +108,10 @@ describe("POST /api/club/:clubSlug/reviews", () => {
 describe("PUT /api/club/:clubSlug/reviews/:reviewId", () => {
   it("updates the author's own score", async () => {
     const alice = await signIn("alice");
-    const club = await createClub({ members: [{ userId: alice.userId }] });
-    const work = await createReviewedWork(club, { externalId: null });
-    const reviewId = await createReview(club.reviewsListId, work.id, alice.userId, 4);
+    const club = await createClub(alice);
+    const work = await addReviewedWork(club, alice, { externalId: null });
+    await scoreWork(club, alice, work.id, 4);
+    const reviewId = (await scoresOf(club, work.id, alice)).body[alice.userId].id;
 
     const res = await api.put(`/api/club/${club.slug}/reviews/${reviewId}`, {
       body: { score: 9 },
@@ -115,22 +119,17 @@ describe("PUT /api/club/:clubSlug/reviews/:reviewId", () => {
     });
 
     expect(res.statusCode).toBe(200);
-    const row = await db
-      .selectFrom("review")
-      .select("score")
-      .where("id", "=", reviewId)
-      .executeTakeFirstOrThrow();
-    expect(Number(row.score)).toBe(9);
+    const scores = await scoresOf(club, work.id, alice);
+    expect(scores.body[alice.userId].score).toBe(9);
   });
 
   it("refuses to update another member's score", async () => {
     const alice = await signIn("alice");
     const carol = await signIn("carol");
-    const club = await createClub({
-      members: [{ userId: alice.userId }, { userId: carol.userId }],
-    });
-    const work = await createReviewedWork(club, { externalId: null });
-    const reviewId = await createReview(club.reviewsListId, work.id, carol.userId, 4);
+    const club = await createClub(alice, { members: [alice, carol] });
+    const work = await addReviewedWork(club, alice, { externalId: null });
+    await scoreWork(club, carol, work.id, 4);
+    const reviewId = (await scoresOf(club, work.id, alice)).body[carol.userId].id;
 
     const res = await api.put<{ error: string }>(`/api/club/${club.slug}/reviews/${reviewId}`, {
       body: { score: 1 },
@@ -139,20 +138,17 @@ describe("PUT /api/club/:clubSlug/reviews/:reviewId", () => {
 
     expect(res.statusCode).toBe(400);
     expect(res.body.error).toBe("You are not allowed to edit this review");
-    const row = await db
-      .selectFrom("review")
-      .select("score")
-      .where("id", "=", reviewId)
-      .executeTakeFirstOrThrow();
-    expect(Number(row.score)).toBe(4);
+    const scores = await scoresOf(club, work.id, alice);
+    expect(scores.body[carol.userId].score).toBe(4);
   });
 
   it("cannot reach a review belonging to another club", async () => {
     const alice = await signIn("alice");
-    const club = await createClub({ members: [{ userId: alice.userId }] });
-    const otherClub = await createClub({ members: [{ userId: alice.userId }] });
-    const work = await createReviewedWork(otherClub, { externalId: null });
-    const reviewId = await createReview(otherClub.reviewsListId, work.id, alice.userId, 4);
+    const club = await createClub(alice);
+    const otherClub = await createClub(alice);
+    const work = await addReviewedWork(otherClub, alice, { externalId: null });
+    await scoreWork(otherClub, alice, work.id, 4);
+    const reviewId = (await scoresOf(otherClub, work.id, alice)).body[alice.userId].id;
 
     const res = await api.put(`/api/club/${club.slug}/reviews/${reviewId}`, {
       body: { score: 1 },
@@ -162,19 +158,16 @@ describe("PUT /api/club/:clubSlug/reviews/:reviewId", () => {
     // getById scopes the lookup to the club and throws when it finds nothing,
     // which the router turns into a 500 rather than letting the edit through.
     expect(res.statusCode).toBe(500);
-    const row = await db
-      .selectFrom("review")
-      .select("score")
-      .where("id", "=", reviewId)
-      .executeTakeFirstOrThrow();
-    expect(Number(row.score)).toBe(4);
+    const scores = await scoresOf(otherClub, work.id, alice);
+    expect(scores.body[alice.userId].score).toBe(4);
   });
 
   it("returns 400 without a body", async () => {
     const alice = await signIn("alice");
-    const club = await createClub({ members: [{ userId: alice.userId }] });
-    const work = await createReviewedWork(club, { externalId: null });
-    const reviewId = await createReview(club.reviewsListId, work.id, alice.userId, 4);
+    const club = await createClub(alice);
+    const work = await addReviewedWork(club, alice, { externalId: null });
+    await scoreWork(club, alice, work.id, 4);
+    const reviewId = (await scoresOf(club, work.id, alice)).body[alice.userId].id;
 
     const res = await api.put(`/api/club/${club.slug}/reviews/${reviewId}`, { as: alice });
 
@@ -185,31 +178,26 @@ describe("PUT /api/club/:clubSlug/reviews/:reviewId", () => {
 describe("GET /api/club/:clubSlug/reviews/:workId/scores", () => {
   it("returns one entry per member plus the average", async () => {
     const alice = await signIn("alice");
-    const club = await createClub({ members: [{ userId: alice.userId }] });
-    const other = await createUser({ name: "Other" });
-    await addMember(club.id, other.userId);
-    const work = await createReviewedWork(club, { externalId: null });
-    await createReview(club.reviewsListId, work.id, alice.userId, 7);
-    await createReview(club.reviewsListId, work.id, other.userId, 5);
+    const carol = await signIn("carol");
+    const club = await createClub(alice, { members: [alice, carol] });
+    const work = await addReviewedWork(club, alice, { externalId: null });
+    await scoreWork(club, alice, work.id, 7);
+    await scoreWork(club, carol, work.id, 5);
 
-    const res = await api.get<ReviewScores>(`/api/club/${club.slug}/reviews/${work.id}/scores`, {
-      as: alice,
-    });
+    const res = await scoresOf(club, work.id, alice);
 
     expect(res.statusCode).toBe(200);
     expect(res.body[alice.userId].score).toBe(7);
-    expect(res.body[other.userId].score).toBe(5);
+    expect(res.body[carol.userId].score).toBe(5);
     expect(res.body.average.score).toBe(6);
   });
 
   it("returns an empty map before anyone has scored", async () => {
     const alice = await signIn("alice");
-    const club = await createClub({ members: [{ userId: alice.userId }] });
-    const work = await createReviewedWork(club, { externalId: null });
+    const club = await createClub(alice);
+    const work = await addReviewedWork(club, alice, { externalId: null });
 
-    const res = await api.get<ReviewScores>(`/api/club/${club.slug}/reviews/${work.id}/scores`, {
-      as: alice,
-    });
+    const res = await scoresOf(club, work.id, alice);
 
     expect(res.body).toEqual({});
   });
@@ -217,9 +205,9 @@ describe("GET /api/club/:clubSlug/reviews/:workId/scores", () => {
 
 describe("GET /api/club/:clubSlug/reviews/cast", () => {
   it("returns the cast of every reviewed work, keyed by external id", async () => {
-    const club = await createClub();
-    await cacheMovieDetails("77");
-    await createReviewedWork(club, { externalId: "77" });
+    const alice = await signIn("alice");
+    const club = await createClub(alice);
+    await addReviewedWork(club, alice, { externalId: "77" });
 
     const res = await api.get<Record<string, MovieCastMember[]>>(
       `/api/club/${club.slug}/reviews/cast`,
@@ -233,7 +221,8 @@ describe("GET /api/club/:clubSlug/reviews/cast", () => {
   });
 
   it("returns an empty object for a club with no reviews", async () => {
-    const club = await createClub();
+    const alice = await signIn("alice");
+    const club = await createClub(alice);
 
     const res = await api.get(`/api/club/${club.slug}/reviews/cast`);
 
@@ -244,26 +233,12 @@ describe("GET /api/club/:clubSlug/reviews/cast", () => {
 describe("comments on a reviewed work", () => {
   it("returns comments oldest first with their author's profile", async () => {
     const alice = await signIn("alice");
-    const club = await createClub({ members: [{ userId: alice.userId }] });
-    const work = await createReviewedWork(club, { externalId: null });
-    await createComment({
-      workId: work.id,
-      clubId: club.id,
-      userId: alice.userId,
-      content: "First",
-    });
-    await createComment({
-      workId: work.id,
-      clubId: club.id,
-      userId: alice.userId,
-      content: "Second",
-      spoiler: true,
-    });
+    const club = await createClub(alice);
+    const work = await addReviewedWork(club, alice, { externalId: null });
+    await addComment(club, alice, work.id, "First");
+    await addComment(club, alice, work.id, "Second", true);
 
-    const res = await api.get<WorkCommentDto[]>(
-      `/api/club/${club.slug}/reviews/${work.id}/comments`,
-      { as: alice },
-    );
+    const res = await commentsOn(club, work.id, alice);
 
     expect(res.statusCode).toBe(200);
     expect(res.body.map((comment) => [comment.content, comment.spoiler])).toEqual([
@@ -275,8 +250,8 @@ describe("comments on a reviewed work", () => {
 
   it("adds a comment", async () => {
     const alice = await signIn("alice");
-    const club = await createClub({ members: [{ userId: alice.userId }] });
-    const work = await createReviewedWork(club, { externalId: null });
+    const club = await createClub(alice);
+    const work = await addReviewedWork(club, alice, { externalId: null });
 
     const res = await api.post(`/api/club/${club.slug}/reviews/${work.id}/comments`, {
       body: { content: "Loved the third act", spoiler: true },
@@ -284,10 +259,7 @@ describe("comments on a reviewed work", () => {
     });
 
     expect(res.statusCode).toBe(200);
-    const comments = await api.get<WorkCommentDto[]>(
-      `/api/club/${club.slug}/reviews/${work.id}/comments`,
-      { as: alice },
-    );
+    const comments = await commentsOn(club, work.id, alice);
     expect(comments.body[0]).toMatchObject({
       content: "Loved the third act",
       spoiler: true,
@@ -297,18 +269,15 @@ describe("comments on a reviewed work", () => {
 
   it("defaults spoiler to false", async () => {
     const alice = await signIn("alice");
-    const club = await createClub({ members: [{ userId: alice.userId }] });
-    const work = await createReviewedWork(club, { externalId: null });
+    const club = await createClub(alice);
+    const work = await addReviewedWork(club, alice, { externalId: null });
 
     await api.post(`/api/club/${club.slug}/reviews/${work.id}/comments`, {
       body: { content: "No spoilers here" },
       as: alice,
     });
 
-    const comments = await api.get<WorkCommentDto[]>(
-      `/api/club/${club.slug}/reviews/${work.id}/comments`,
-      { as: alice },
-    );
+    const comments = await commentsOn(club, work.id, alice);
     expect(comments.body[0].spoiler).toBe(false);
   });
 
@@ -318,8 +287,8 @@ describe("comments on a reviewed work", () => {
     ["no body", undefined],
   ])("returns 400 for %s", async (_label, body) => {
     const alice = await signIn("alice");
-    const club = await createClub({ members: [{ userId: alice.userId }] });
-    const work = await createReviewedWork(club, { externalId: null });
+    const club = await createClub(alice);
+    const work = await addReviewedWork(club, alice, { externalId: null });
 
     const res = await api.post(`/api/club/${club.slug}/reviews/${work.id}/comments`, {
       body,
@@ -327,18 +296,14 @@ describe("comments on a reviewed work", () => {
     });
 
     expect(res.statusCode).toBe(400);
+    expect((await commentsOn(club, work.id, alice)).body).toEqual([]);
   });
 
   it("lets the author edit their comment", async () => {
     const alice = await signIn("alice");
-    const club = await createClub({ members: [{ userId: alice.userId }] });
-    const work = await createReviewedWork(club, { externalId: null });
-    const commentId = await createComment({
-      workId: work.id,
-      clubId: club.id,
-      userId: alice.userId,
-      content: "Typo",
-    });
+    const club = await createClub(alice);
+    const work = await addReviewedWork(club, alice, { externalId: null });
+    const commentId = await addComment(club, alice, work.id, "Typo");
 
     const res = await api.put(`/api/club/${club.slug}/reviews/${work.id}/comments/${commentId}`, {
       body: { content: "Fixed", spoiler: true },
@@ -346,26 +311,16 @@ describe("comments on a reviewed work", () => {
     });
 
     expect(res.statusCode).toBe(200);
-    const comments = await api.get<WorkCommentDto[]>(
-      `/api/club/${club.slug}/reviews/${work.id}/comments`,
-      { as: alice },
-    );
+    const comments = await commentsOn(club, work.id, alice);
     expect(comments.body[0]).toMatchObject({ content: "Fixed", spoiler: true });
   });
 
   it("returns 401 when editing someone else's comment", async () => {
     const alice = await signIn("alice");
     const carol = await signIn("carol");
-    const club = await createClub({
-      members: [{ userId: alice.userId }, { userId: carol.userId }],
-    });
-    const work = await createReviewedWork(club, { externalId: null });
-    const commentId = await createComment({
-      workId: work.id,
-      clubId: club.id,
-      userId: carol.userId,
-      content: "Carol's take",
-    });
+    const club = await createClub(alice, { members: [alice, carol] });
+    const work = await addReviewedWork(club, alice, { externalId: null });
+    const commentId = await addComment(club, carol, work.id, "Carol's take");
 
     const res = await api.put<{ error: string }>(
       `/api/club/${club.slug}/reviews/${work.id}/comments/${commentId}`,
@@ -374,17 +329,14 @@ describe("comments on a reviewed work", () => {
 
     expect(res.statusCode).toBe(401);
     expect(res.body.error).toBe("You can only edit your own comments");
-    const comments = await api.get<WorkCommentDto[]>(
-      `/api/club/${club.slug}/reviews/${work.id}/comments`,
-      { as: alice },
-    );
+    const comments = await commentsOn(club, work.id, alice);
     expect(comments.body[0].content).toBe("Carol's take");
   });
 
   it("returns 400 when editing a comment that does not exist", async () => {
     const alice = await signIn("alice");
-    const club = await createClub({ members: [{ userId: alice.userId }] });
-    const work = await createReviewedWork(club, { externalId: null });
+    const club = await createClub(alice);
+    const work = await addReviewedWork(club, alice, { externalId: null });
 
     const res = await api.put(`/api/club/${club.slug}/reviews/${work.id}/comments/999999`, {
       body: { content: "Ghost" },
@@ -396,14 +348,9 @@ describe("comments on a reviewed work", () => {
 
   it("lets the author delete their comment", async () => {
     const alice = await signIn("alice");
-    const club = await createClub({ members: [{ userId: alice.userId }] });
-    const work = await createReviewedWork(club, { externalId: null });
-    const commentId = await createComment({
-      workId: work.id,
-      clubId: club.id,
-      userId: alice.userId,
-      content: "Delete me",
-    });
+    const club = await createClub(alice);
+    const work = await addReviewedWork(club, alice, { externalId: null });
+    const commentId = await addComment(club, alice, work.id, "Delete me");
 
     const res = await api.delete(
       `/api/club/${club.slug}/reviews/${work.id}/comments/${commentId}`,
@@ -411,26 +358,15 @@ describe("comments on a reviewed work", () => {
     );
 
     expect(res.statusCode).toBe(200);
-    const comments = await api.get<WorkCommentDto[]>(
-      `/api/club/${club.slug}/reviews/${work.id}/comments`,
-      { as: alice },
-    );
-    expect(comments.body).toEqual([]);
+    expect((await commentsOn(club, work.id, alice)).body).toEqual([]);
   });
 
   it("returns 401 when deleting someone else's comment", async () => {
     const alice = await signIn("alice");
     const carol = await signIn("carol");
-    const club = await createClub({
-      members: [{ userId: alice.userId }, { userId: carol.userId }],
-    });
-    const work = await createReviewedWork(club, { externalId: null });
-    const commentId = await createComment({
-      workId: work.id,
-      clubId: club.id,
-      userId: carol.userId,
-      content: "Carol's take",
-    });
+    const club = await createClub(alice, { members: [alice, carol] });
+    const work = await addReviewedWork(club, alice, { externalId: null });
+    const commentId = await addComment(club, carol, work.id, "Carol's take");
 
     const res = await api.delete<{ error: string }>(
       `/api/club/${club.slug}/reviews/${work.id}/comments/${commentId}`,
@@ -439,12 +375,13 @@ describe("comments on a reviewed work", () => {
 
     expect(res.statusCode).toBe(401);
     expect(res.body.error).toBe("You can only delete your own comments");
+    expect((await commentsOn(club, work.id, alice)).body).toHaveLength(1);
   });
 
   it("returns 400 when deleting a comment that does not exist", async () => {
     const alice = await signIn("alice");
-    const club = await createClub({ members: [{ userId: alice.userId }] });
-    const work = await createReviewedWork(club, { externalId: null });
+    const club = await createClub(alice);
+    const work = await addReviewedWork(club, alice, { externalId: null });
 
     const res = await api.delete(`/api/club/${club.slug}/reviews/${work.id}/comments/999999`, {
       as: alice,
@@ -454,9 +391,10 @@ describe("comments on a reviewed work", () => {
   });
 
   it("returns 401 for a non-member reading comments", async () => {
+    const alice = await signIn("alice");
     const bob = await signIn("bob");
-    const club = await createClub();
-    const work = await createReviewedWork(club, { externalId: null });
+    const club = await createClub(alice, { members: [alice] });
+    const work = await addReviewedWork(club, alice, { externalId: null });
 
     const res = await api.get(`/api/club/${club.slug}/reviews/${work.id}/comments`, { as: bob });
 
@@ -467,14 +405,10 @@ describe("comments on a reviewed work", () => {
 describe("POST /api/club/:clubSlug/reviews/:workId/discussion-questions", () => {
   it("returns the questions Gemini generated for the work", async () => {
     const alice = await signIn("alice");
-    const club = await createClub({
-      members: [{ userId: alice.userId }],
-      features: { discussionQuestions: true },
-    });
-    await cacheMovieDetails("120");
-    const work = await createReviewedWork(club, {
-      externalId: "120",
+    const club = await createClub(alice, { features: { discussionQuestions: true } });
+    const work = await addReviewedWork(club, alice, {
       title: "The Lord of the Rings",
+      externalId: "120",
     });
 
     let prompt = "";
@@ -499,8 +433,8 @@ describe("POST /api/club/:clubSlug/reviews/:workId/discussion-questions", () => 
 
   it("returns 400 when the feature is off for the club", async () => {
     const alice = await signIn("alice");
-    const club = await createClub({ members: [{ userId: alice.userId }] });
-    const work = await createReviewedWork(club, { externalId: null });
+    const club = await createClub(alice);
+    const work = await addReviewedWork(club, alice, { externalId: null });
 
     const res = await api.post<{ error: string }>(
       `/api/club/${club.slug}/reviews/${work.id}/discussion-questions`,
@@ -513,10 +447,7 @@ describe("POST /api/club/:clubSlug/reviews/:workId/discussion-questions", () => 
 
   it("returns 400 for a work that is not in the club", async () => {
     const alice = await signIn("alice");
-    const club = await createClub({
-      members: [{ userId: alice.userId }],
-      features: { discussionQuestions: true },
-    });
+    const club = await createClub(alice, { features: { discussionQuestions: true } });
 
     const res = await api.post<{ error: string }>(
       `/api/club/${club.slug}/reviews/999999/discussion-questions`,
@@ -529,11 +460,8 @@ describe("POST /api/club/:clubSlug/reviews/:workId/discussion-questions", () => 
 
   it("returns 500 when Gemini returns a payload the schema rejects", async () => {
     const alice = await signIn("alice");
-    const club = await createClub({
-      members: [{ userId: alice.userId }],
-      features: { discussionQuestions: true },
-    });
-    const work = await createReviewedWork(club, { externalId: null });
+    const club = await createClub(alice, { features: { discussionQuestions: true } });
+    const work = await addReviewedWork(club, alice, { externalId: null });
     server.use(
       http.post("https://generativelanguage.googleapis.com/*", () =>
         HttpResponse.json(geminiJsonResponse({ questions: [42] })),
@@ -550,22 +478,15 @@ describe("POST /api/club/:clubSlug/reviews/:workId/discussion-questions", () => 
 
 describe("GET /api/club/:clubSlug/reviews/:workId/shared", () => {
   it("returns the work, its scores, members and comments without a session", async () => {
-    const club = await createClub({ name: "Shared Club" });
-    const member = await createUser({ name: "Member" });
-    await addMember(club.id, member.userId);
-    await cacheMovieDetails("500");
-    const work = await createReviewedWork(club, {
-      externalId: "500",
+    const alice = await signIn("alice");
+    const club = await createClub(alice, { name: "Shared Club" });
+    const work = await addReviewedWork(club, alice, {
       title: "Reservoir Dogs",
+      externalId: "500",
       imageUrl: "/dogs.jpg",
     });
-    await createReview(club.reviewsListId, work.id, member.userId, 9);
-    await createComment({
-      workId: work.id,
-      clubId: club.id,
-      userId: member.userId,
-      content: "A classic",
-    });
+    await scoreWork(club, alice, work.id, 9);
+    await addComment(club, alice, work.id, "A classic");
 
     const res = await api.get<SharedReviewResponse>(
       `/api/club/${club.slug}/reviews/${work.id}/shared`,
@@ -582,14 +503,15 @@ describe("GET /api/club/:clubSlug/reviews/:workId/shared", () => {
     });
     // The shared payload carries the full metadata, cast included.
     expect(res.body.work.externalData).toMatchObject({ kind: "movie" });
-    expect(res.body.members.map((member) => member.name)).toEqual(["Member"]);
+    expect(res.body.members.map((member) => member.name)).toEqual(["Alice"]);
     expect(res.body.comments.map((comment) => comment.content)).toEqual(["A classic"]);
     expect(res.body.reviews.map((review) => Number(review.score))).toEqual([9]);
   });
 
   it("omits external metadata for a work with no external id", async () => {
-    const club = await createClub();
-    const work = await createReviewedWork(club, { externalId: null });
+    const alice = await signIn("alice");
+    const club = await createClub(alice);
+    const work = await addReviewedWork(club, alice, { externalId: null });
 
     const res = await api.get<SharedReviewResponse>(
       `/api/club/${club.slug}/reviews/${work.id}/shared`,
@@ -601,7 +523,8 @@ describe("GET /api/club/:clubSlug/reviews/:workId/shared", () => {
   });
 
   it("returns 400 for an unknown work", async () => {
-    const club = await createClub();
+    const alice = await signIn("alice");
+    const club = await createClub(alice);
 
     const res = await api.get<{ error: string }>(`/api/club/${club.slug}/reviews/999999/shared`);
 

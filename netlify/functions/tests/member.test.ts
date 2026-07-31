@@ -4,53 +4,70 @@
  *
  * The avatar routes run the real Cloudinary SDK against an MSW-intercepted
  * Cloudinary, so the multipart parsing and the upload/destroy calls are
- * genuinely exercised.
+ * genuinely exercised. What the profile now looks like is read back off the
+ * club members endpoint, which is where a client sees it.
  */
 import { http, HttpResponse } from "msw";
 import { describe, expect, it } from "vitest";
 
-import { ClubPreview } from "../../../lib/types/club";
+import { ClubPreview, Member } from "../../../lib/types/club";
 import { ClubType } from "../../../lib/types/generated/db";
+import { handler as clubHandler } from "../club/index";
 import { handler } from "../member";
-import { signIn } from "./helpers/auth";
-import { db } from "./helpers/database";
-import { createClub } from "./helpers/factories";
+import { signIn, TestSession } from "./helpers/auth";
+import { createClub, SeededClub } from "./helpers/factories";
 import { makeEvent, requester } from "./helpers/http";
 import { requestsTo, server } from "./setup/externalApis";
 
 const api = requester(handler);
+const clubApi = requester(clubHandler);
+
+const AVATAR_URL = "https://res.cloudinary.com/test-cloud/image/upload/avatar.jpg";
 
 /** A minimal multipart/form-data body carrying one file field. */
-function multipartAvatar(filename = "avatar.png") {
+function multipartAvatar(fields: { file?: string; note?: string } = { file: "avatar.png" }) {
   const boundary = "----movieclubtestboundary";
-  const body = [
-    `--${boundary}`,
-    `Content-Disposition: form-data; name="file"; filename="${filename}"`,
-    "Content-Type: image/png",
-    "",
-    "pretend-png-bytes",
-    `--${boundary}--`,
-    "",
-  ].join("\r\n");
+  const parts = [`--${boundary}`];
+  if (fields.file !== undefined) {
+    parts.push(
+      `Content-Disposition: form-data; name="file"; filename="${fields.file}"`,
+      "Content-Type: image/png",
+      "",
+      "pretend-png-bytes",
+    );
+  } else {
+    parts.push('Content-Disposition: form-data; name="note"', "", fields.note ?? "hi");
+  }
+  parts.push(`--${boundary}--`, "");
 
-  return { boundary, body };
+  return { boundary, body: parts.join("\r\n") };
+}
+
+function uploadAvatar(session: TestSession, fields?: Parameters<typeof multipartAvatar>[0]) {
+  const { boundary, body } = multipartAvatar(fields);
+  return api.send(
+    makeEvent({
+      path: "/api/member/avatar",
+      httpMethod: "POST",
+      body,
+      as: session,
+      headers: { "content-type": `multipart/form-data; boundary=${boundary}` },
+    }),
+  );
+}
+
+/** The profile a club sees for `session` — how a client observes name and avatar. */
+async function profileIn(club: SeededClub, session: TestSession) {
+  const members = await clubApi.get<Member[]>(`/api/club/${club.slug}/members`);
+  return members.body.find((member) => member.id === session.userId);
 }
 
 describe("GET /api/member/clubs", () => {
   it("returns a preview of every club the user belongs to", async () => {
     const alice = await signIn("alice");
-    const movies = await createClub({
-      name: "Movie Night",
-      slug: "movie-night",
-      members: [{ userId: alice.userId }],
-    });
-    await createClub({
-      name: "Books",
-      slug: "books-club",
-      type: ClubType.book,
-      members: [{ userId: alice.userId }],
-    });
-    await createClub({ name: "Not Mine", slug: "not-mine" });
+    const movies = await createClub(alice, { name: "Movie Night" });
+    await createClub(alice, { name: "Books", type: ClubType.book });
+    await createClub(alice, { name: "Not Mine", members: [] });
 
     const res = await api.get<ClubPreview[]>("/api/member/clubs", { as: alice });
 
@@ -59,7 +76,7 @@ describe("GET /api/member/clubs", () => {
     expect(res.body).toContainEqual({
       clubId: movies.id,
       clubName: "Movie Night",
-      slug: "movie-night",
+      slug: movies.slug,
       type: ClubType.movie,
     });
     expect(res.body.map((club) => club.clubName).sort()).toEqual(["Books", "Movie Night"]);
@@ -81,18 +98,14 @@ describe("GET /api/member/clubs", () => {
 });
 
 describe("PUT /api/member/name", () => {
-  it("renames the signed-in user", async () => {
+  it("renames the signed-in user everywhere they appear", async () => {
     const alice = await signIn("alice");
+    const club = await createClub(alice);
 
     const res = await api.put("/api/member/name", { body: { name: "  Alice B  " }, as: alice });
 
     expect(res.statusCode).toBe(200);
-    const row = await db
-      .selectFrom("user")
-      .select("name")
-      .where("id", "=", alice.userId)
-      .executeTakeFirstOrThrow();
-    expect(row.name).toBe("Alice B");
+    expect(await profileIn(club, alice)).toMatchObject({ name: "Alice B" });
   });
 
   it.each([
@@ -100,11 +113,13 @@ describe("PUT /api/member/name", () => {
     ["a name over 100 characters", { name: "x".repeat(101) }, "Name is too long"],
   ])("returns 400 for %s", async (_label, body, message) => {
     const alice = await signIn("alice");
+    const club = await createClub(alice);
 
     const res = await api.put<{ error: string }>("/api/member/name", { body, as: alice });
 
     expect(res.statusCode).toBe(400);
     expect(res.body.error).toBe(message);
+    expect(await profileIn(club, alice)).toMatchObject({ name: "Alice" });
   });
 
   it("returns 401 without a session", async () => {
@@ -115,38 +130,20 @@ describe("PUT /api/member/name", () => {
 });
 
 describe("POST /api/member/avatar", () => {
-  it("uploads the file to Cloudinary and stores the returned url", async () => {
+  it("uploads the file to Cloudinary and shows the returned url on the profile", async () => {
     const alice = await signIn("alice");
-    const { boundary, body } = multipartAvatar();
+    const club = await createClub(alice);
 
-    const res = await api.send(
-      makeEvent({
-        path: "/api/member/avatar",
-        httpMethod: "POST",
-        body,
-        as: alice,
-        headers: { "content-type": `multipart/form-data; boundary=${boundary}` },
-      }),
-    );
+    const res = await uploadAvatar(alice);
 
     expect(res.statusCode).toBe(200);
     expect(requestsTo("api.cloudinary.com")).toHaveLength(1);
-    const row = await db
-      .selectFrom("user")
-      .select(["image", "image_id"])
-      .where("id", "=", alice.userId)
-      .executeTakeFirstOrThrow();
-    expect(row.image).toBe("https://res.cloudinary.com/test-cloud/image/upload/avatar.jpg");
-    expect(row.image_id).toBe("avatar-public-id");
+    expect(await profileIn(club, alice)).toMatchObject({ image: AVATAR_URL });
   });
 
   it("deletes the previous Cloudinary asset when replacing an avatar", async () => {
     const alice = await signIn("alice");
-    await db
-      .updateTable("user")
-      .set({ image: "https://old.example/a.jpg", image_id: "old-public-id" })
-      .where("id", "=", alice.userId)
-      .execute();
+    await uploadAvatar(alice);
 
     const destroyed: string[] = [];
     server.use(
@@ -156,66 +153,35 @@ describe("POST /api/member/avatar", () => {
       }),
     );
 
-    const { boundary, body } = multipartAvatar();
-    const res = await api.send(
-      makeEvent({
-        path: "/api/member/avatar",
-        httpMethod: "POST",
-        body,
-        as: alice,
-        headers: { "content-type": `multipart/form-data; boundary=${boundary}` },
-      }),
-    );
+    const res = await uploadAvatar(alice);
 
     expect(res.statusCode).toBe(200);
-    expect(destroyed.join()).toContain("old-public-id");
+    expect(destroyed.join()).toContain("avatar-public-id");
   });
 
   it("returns 400 when the request carries no file", async () => {
     const alice = await signIn("alice");
-    const boundary = "----movieclubtestboundary";
-    const body = [
-      `--${boundary}`,
-      'Content-Disposition: form-data; name="note"',
-      "",
-      "hi",
-      `--${boundary}--`,
-      "",
-    ].join("\r\n");
+    const club = await createClub(alice);
 
-    const res = await api.send(
-      makeEvent({
-        path: "/api/member/avatar",
-        httpMethod: "POST",
-        body,
-        as: alice,
-        headers: { "content-type": `multipart/form-data; boundary=${boundary}` },
-      }),
-    );
+    const res = await uploadAvatar(alice, { note: "no file here" });
 
     expect(res.statusCode).toBe(400);
+    expect(await profileIn(club, alice)).not.toHaveProperty("image");
   });
 });
 
 describe("DELETE /api/member/avatar", () => {
   it("clears the avatar and deletes the Cloudinary asset", async () => {
     const alice = await signIn("alice");
-    await db
-      .updateTable("user")
-      .set({ image: "https://old.example/a.jpg", image_id: "old-public-id" })
-      .where("id", "=", alice.userId)
-      .execute();
+    const club = await createClub(alice);
+    await uploadAvatar(alice);
 
     const res = await api.delete("/api/member/avatar", { as: alice });
 
     expect(res.statusCode).toBe(200);
-    expect(requestsTo("api.cloudinary.com")).toHaveLength(1);
-    const row = await db
-      .selectFrom("user")
-      .select(["image", "image_id"])
-      .where("id", "=", alice.userId)
-      .executeTakeFirstOrThrow();
-    expect(row).toEqual({ image: null, image_id: null });
+    // Upload + destroy.
+    expect(requestsTo("api.cloudinary.com")).toHaveLength(2);
+    expect(await profileIn(club, alice)).not.toHaveProperty("image");
   });
 
   it("skips Cloudinary when the user has no stored asset", async () => {

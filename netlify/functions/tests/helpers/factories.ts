@@ -1,21 +1,35 @@
 import { AwardsData } from "../../../../lib/types/awards";
 import { ClubType, WorkListSystemType, WorkType } from "../../../../lib/types/generated/db";
-import { TMDBMovieData } from "../../../../lib/types/movie";
+import { DetailedWorkListItem } from "../../../../lib/types/lists";
+import { handler as clubHandler } from "../../club/index";
 import { db } from "../../utils/database";
-import { insertMovieDetails } from "../../utils/movieDetailsUpdater";
-import { tmdbMovie } from "../fixtures/external";
+import { TestSession } from "./auth";
+import { requester } from "./http";
 
 /**
  * Arrange-phase seeding for the integration suite.
  *
- * These write rows directly rather than calling the repositories, so a test's
- * setup never depends on the code it is about to exercise — a broken
- * `ListRepository.createList` should fail the list tests, not silently make
- * their fixtures wrong too.
+ * Everything here drives the same endpoints a client uses, so a fixture cannot
+ * describe a state the app is incapable of producing, and a bug in the write
+ * path shows up as a failing test rather than as a fixture quietly papering
+ * over it.
+ *
+ * Two exceptions are marked below — expiring an invite and opening an awards
+ * year have no endpoint at all — and they are the only direct database writes
+ * left in the suite.
  */
+
+const api = requester(clubHandler);
 
 let counter = 0;
 const unique = () => `${Date.now().toString(36)}-${(counter += 1)}`;
+
+/** Throw with the response body when a fixture's own request fails. */
+function assertOk(what: string, response: { statusCode: number; raw?: string }) {
+  if (response.statusCode >= 400) {
+    throw new Error(`${what} failed: ${response.statusCode} ${response.raw ?? ""}`);
+  }
+}
 
 export interface SeededClub {
   id: string;
@@ -28,254 +42,257 @@ export interface SeededClub {
   reviewsListId: string;
 }
 
+interface ListSummary {
+  id: string;
+  title: string;
+  systemType: WorkListSystemType | null;
+  itemCount: number;
+}
+
 /**
- * Create a club with the two lists every real club is born with (one user list
- * plus the `reviews` system list) and default settings.
+ * Create a club through `POST /api/club`, so it is born with exactly the lists
+ * and settings a real club gets.
+ *
+ * `owner` is the session that creates it. By default the owner is also its
+ * first member (and therefore its admin); pass `members` to change that — an
+ * empty array leaves the club with no members at all.
  */
 export async function createClub(
+  owner: TestSession,
   options: {
     name?: string;
-    slug?: string;
     type?: ClubType;
-    members?: { userId: string; role?: string }[];
+    members?: TestSession[];
     features?: { awards?: boolean; discussionQuestions?: boolean };
   } = {},
 ): Promise<SeededClub> {
-  const type = options.type ?? ClubType.movie;
-  const name = options.name ?? "Test Club";
-  const slug = options.slug ?? `test-club-${unique()}`;
+  const name = options.name ?? `Test Club ${unique()}`;
+  const members = options.members ?? [owner];
 
-  const club = await db
-    .insertInto("club")
-    .values({ name, slug, type })
-    .returning(["id", "slug", "name", "type"])
-    .executeTakeFirstOrThrow();
-  const clubId = String(club.id);
+  const created = await api.post<{ clubId: string; slug: string }>("/api/club", {
+    body: {
+      name,
+      type: options.type ?? ClubType.movie,
+      members: members.map((member) => member.email),
+    },
+    as: owner,
+  });
+  assertOk(`Creating club "${name}"`, created);
 
-  const lists = await db
-    .insertInto("work_list")
-    .values([
-      {
-        club_id: clubId,
-        title: type === ClubType.book ? "Reading List" : "Watch List",
-        position: 0,
-      },
-      {
-        club_id: clubId,
-        title: "Reviews",
-        system_type: WorkListSystemType.reviews,
-        position: 1,
-      },
-    ])
-    .returning(["id", "system_type"])
-    .execute();
+  const slug = created.body.slug;
+  const lists = await api.get<ListSummary[]>(`/api/club/${slug}/list`);
+  assertOk(`Reading lists for "${slug}"`, lists);
 
-  await db
-    .insertInto("club_settings")
-    .values({
-      club_id: clubId,
-      key: "features",
-      value: JSON.stringify({
-        features: {
-          awards: options.features?.awards ?? false,
-          discussionQuestions: options.features?.discussionQuestions ?? false,
-        },
-      }),
-    })
-    .execute();
+  // `reviews-id` and the settings write are both member-only. A club seeded
+  // with no members still needs its reviews list id, so the owner joins for
+  // the two reads and leaves again — cheaper than exposing the id another way.
+  const seededWithoutMembers = members.length === 0;
+  if (seededWithoutMembers) await joinClub({ slug }, owner);
+  const member = members[0] ?? owner;
 
-  for (const member of options.members ?? []) {
-    await addMember(clubId, member.userId, member.role);
+  const reviews = await api.get<{ id: string }>(`/api/club/${slug}/list/reviews-id`, {
+    as: member,
+  });
+  assertOk(`Reading the reviews list id for "${slug}"`, reviews);
+
+  if (options.features) {
+    const updated = await api.post(`/api/club/${slug}/settings`, {
+      body: { features: options.features },
+      as: member,
+    });
+    assertOk(`Enabling features on "${slug}"`, updated);
   }
 
-  const userList = lists.find((list) => list.system_type === null);
-  const reviewsList = lists.find((list) => list.system_type === WorkListSystemType.reviews);
-  if (!userList || !reviewsList) {
-    throw new Error("Failed to seed the club's default lists");
-  }
+  if (seededWithoutMembers) await leaveClub({ slug }, owner);
 
   return {
-    id: clubId,
-    slug: club.slug,
-    name: club.name,
-    type: club.type,
-    listId: String(userList.id),
-    reviewsListId: String(reviewsList.id),
+    id: created.body.clubId,
+    slug,
+    name,
+    type: options.type ?? ClubType.movie,
+    listId: lists.body[0].id,
+    reviewsListId: reviews.body.id,
   };
 }
 
-export async function addMember(clubId: string, userId: string, role = "member") {
-  await db.insertInto("club_member").values({ club_id: clubId, user_id: userId, role }).execute();
+/** Join a club as `session` — the same route the invite-less join link uses. */
+export async function joinClub(club: { slug: string }, session: TestSession) {
+  const joined = await api.get(`/api/club/${club.slug}/members/join`, { as: session });
+  assertOk(`${session.email} joining "${club.slug}"`, joined);
 }
 
-/** An extra list beyond the club's default one. */
-export async function createList(clubId: string, title: string, position?: number) {
-  const row = await db
-    .insertInto("work_list")
-    .values({ club_id: clubId, title, ...(position === undefined ? {} : { position }) })
-    .returning("id")
-    .executeTakeFirstOrThrow();
-  return String(row.id);
+export async function leaveClub(club: { slug: string }, session: TestSession) {
+  const left = await api.delete(`/api/club/${club.slug}/members/self`, { as: session });
+  assertOk(`${session.email} leaving "${club.slug}"`, left);
+}
+
+/** Add a list beyond the club's default one. */
+export async function createList(club: SeededClub, session: TestSession, title: string) {
+  const created = await api.post<ListSummary>(`/api/club/${club.slug}/list`, {
+    body: { title },
+    as: session,
+  });
+  assertOk(`Creating list "${title}"`, created);
+  return created.body.id;
 }
 
 export interface SeededWork {
   id: string;
   title: string;
-  externalId: string | null;
+  externalId: string | undefined;
   type: WorkType;
+  /** The list the work was added to. */
+  listId: string;
 }
 
-export async function createWork(
-  clubId: string,
+/**
+ * Add a work to a list. The endpoint answers with no body, so the work is read
+ * back off the list — which also proves the add landed.
+ */
+export async function addWork(
+  club: SeededClub,
+  session: TestSession,
   options: {
+    listId?: string;
     title?: string;
     type?: WorkType;
+    /** `null` adds a work with no external id, so it carries no metadata. */
     externalId?: string | null;
-    imageUrl?: string | null;
+    imageUrl?: string;
+    addedDate?: Date;
   } = {},
 ): Promise<SeededWork> {
+  const listId = options.listId ?? club.listId;
   const type = options.type ?? WorkType.movie;
   const externalId =
-    options.externalId === undefined ? String(1000 + (counter += 1)) : options.externalId;
+    options.externalId === null ? undefined : (options.externalId ?? String(1000 + (counter += 1)));
   const title = options.title ?? `Work ${externalId ?? unique()}`;
 
-  const row = await db
-    .insertInto("work")
-    .values({
-      club_id: clubId,
-      title,
+  const added = await api.post(`/api/club/${club.slug}/list/${listId}/items`, {
+    body: {
       type,
-      external_id: externalId,
-      image_url: options.imageUrl ?? null,
-    })
-    .returning("id")
-    .executeTakeFirstOrThrow();
+      title,
+      ...(externalId === undefined ? {} : { externalId }),
+      ...(options.imageUrl === undefined ? {} : { imageUrl: options.imageUrl }),
+    },
+    as: session,
+  });
+  assertOk(`Adding "${title}" to list ${listId}`, added);
 
-  return { id: String(row.id), title, externalId, type };
+  const items = await api.get<DetailedWorkListItem[]>(`/api/club/${club.slug}/list/${listId}`);
+  assertOk(`Reading list ${listId}`, items);
+  const item = items.body.findLast((candidate) => candidate.title === title);
+  if (!item) {
+    throw new Error(`Added "${title}" to list ${listId} but it is not on the list`);
+  }
+
+  if (options.addedDate) {
+    await setAddedDate(club, session, listId, item.id, options.addedDate);
+  }
+
+  return { id: item.id, title, externalId, type, listId };
 }
 
-export async function addToList(
+export async function setAddedDate(
+  club: SeededClub,
+  session: TestSession,
   listId: string,
   workId: string,
-  options: { position?: number; addedBy?: string; timeAdded?: Date } = {},
+  addedDate: Date,
 ) {
-  await db
-    .insertInto("work_list_item")
-    .values({
-      list_id: listId,
-      work_id: workId,
-      ...(options.position === undefined ? {} : { position: options.position }),
-      added_by_user_id: options.addedBy ?? null,
-      ...(options.timeAdded === undefined ? {} : { time_added: options.timeAdded }),
-    })
-    .execute();
+  const updated = await api.put(
+    `/api/club/${club.slug}/list/${listId}/items/${workId}/added-date`,
+    { body: { addedDate: addedDate.toISOString() }, as: session },
+  );
+  assertOk(`Setting the added date of work ${workId}`, updated);
 }
 
 /** A work on the club's `reviews` list — the precondition for scoring it. */
-export async function createReviewedWork(
+export function addReviewedWork(
   club: SeededClub,
-  options: {
-    title?: string;
-    type?: WorkType;
-    externalId?: string | null;
-    imageUrl?: string | null;
-    timeAdded?: Date;
-  } = {},
+  session: TestSession,
+  options: Parameters<typeof addWork>[2] = {},
 ): Promise<SeededWork> {
-  const work = await createWork(club.id, options);
-  await addToList(club.reviewsListId, work.id, { timeAdded: options.timeAdded });
-  return work;
+  return addWork(club, session, { ...options, listId: club.reviewsListId });
 }
 
-export async function createReview(
-  listId: string,
+export async function scoreWork(
+  club: SeededClub,
+  session: TestSession,
   workId: string,
-  userId: string,
   score: number,
-  createdDate?: Date,
 ) {
-  const row = await db
-    .insertInto("review")
-    .values({
-      list_id: listId,
-      work_id: workId,
-      user_id: userId,
-      score,
-      ...(createdDate === undefined ? {} : { created_date: createdDate }),
-    })
-    .returning("id")
-    .executeTakeFirstOrThrow();
-  return String(row.id);
+  const scored = await api.post(`/api/club/${club.slug}/reviews`, {
+    body: { workId, score },
+    as: session,
+  });
+  assertOk(`${session.email} scoring work ${workId}`, scored);
 }
 
-export async function createComment(options: {
-  workId: string;
-  clubId: string;
-  userId: string;
-  content: string;
-  spoiler?: boolean;
-}) {
-  const row = await db
-    .insertInto("work_comment")
-    .values({
-      work_id: options.workId,
-      club_id: options.clubId,
-      user_id: options.userId,
-      content: options.content,
-      spoiler: options.spoiler ?? false,
-    })
-    .returning("id")
-    .executeTakeFirstOrThrow();
-  return String(row.id);
-}
-
-export async function createInvite(
-  clubId: string,
-  options: { token?: string; expiresAt?: Date } = {},
+export async function addComment(
+  club: SeededClub,
+  session: TestSession,
+  workId: string,
+  content: string,
+  spoiler = false,
 ) {
-  const token = options.token ?? `invite-${unique()}`;
-  await db
-    .insertInto("club_invite")
-    .values({
-      club_id: clubId,
-      token,
-      expires_at: options.expiresAt ?? new Date(Date.now() + 24 * 60 * 60 * 1000),
-    })
-    .execute();
-  return token;
+  const added = await api.post(`/api/club/${club.slug}/reviews/${workId}/comments`, {
+    body: { content, spoiler },
+    as: session,
+  });
+  assertOk(`${session.email} commenting on work ${workId}`, added);
+
+  const comments = await api.get<{ id: string; content: string }[]>(
+    `/api/club/${club.slug}/reviews/${workId}/comments`,
+    { as: session },
+  );
+  const comment = comments.body.findLast((candidate) => candidate.content === content);
+  if (!comment) {
+    throw new Error(`Added a comment to work ${workId} but it is not on the work`);
+  }
+  return comment.id;
 }
 
-export async function createAwards(clubId: string, year: number, data: AwardsData) {
+export async function setNextWork(club: SeededClub, session: TestSession, workId: string) {
+  const set = await api.put(`/api/club/${club.slug}/nextWork`, { body: { workId }, as: session });
+  assertOk(`Setting the next work of "${club.slug}"`, set);
+}
+
+export async function createInvite(club: SeededClub, session: TestSession) {
+  const created = await api.post<{ token: string }>(`/api/club/${club.slug}/invite`, {
+    as: session,
+  });
+  assertOk(`Creating an invite for "${club.slug}"`, created);
+  return created.body.token;
+}
+
+// --- The two states no endpoint can produce -------------------------------
+
+/**
+ * Backdate an invite so it is already expired.
+ *
+ * `POST /invite` always issues a 24-hour token and nothing can shorten it, so
+ * the expiry branches are unreachable through the API. Direct write, kept to
+ * this one column.
+ */
+export async function expireInvite(token: string) {
   await db
-    .insertInto("awards_temp")
-    .values({ club_id: clubId, year: String(year), data: JSON.stringify(data) })
+    .updateTable("club_invite")
+    .set({ expires_at: new Date(Date.now() - 60_000) })
+    .where("token", "=", token)
     .execute();
 }
 
 /**
- * Prime the `movie_details` cache the way a real add would, so list and review
- * payloads carry external metadata without the handler needing to call TMDB.
+ * Open an awards year for a club.
+ *
+ * Every awards route runs through `validYear`, which 404s unless the year's row
+ * already exists, and no endpoint creates it — the rows predate the API and are
+ * seeded out of band. Direct write until an "open a year" route exists.
  */
-export async function cacheMovieDetails(externalId: string, overrides?: Partial<TMDBMovieData>) {
-  await insertMovieDetails(externalId, tmdbMovie(Number(externalId), overrides), db);
-}
-
-/** A user who never signs in — enough to be a club member or a review's author. */
-export async function createUser(options: { name?: string; email?: string } = {}) {
-  const id = unique();
-  const row = await db
-    .insertInto("user")
-    .values({
-      name: options.name ?? `User ${id}`,
-      email: options.email ?? `user-${id}@movie.club`,
-      emailVerified: true,
-      updatedAt: new Date(),
-    })
-    .returning(["id", "name", "email"])
-    .executeTakeFirstOrThrow();
-  return { userId: String(row.id), name: row.name, email: row.email };
-}
-
-export async function createNextWork(clubId: string, workId: string) {
-  await db.insertInto("next_work").values({ club_id: clubId, work_id: workId }).execute();
+export async function createAwardsYear(club: SeededClub, year: number, data: AwardsData) {
+  await db
+    .insertInto("awards_temp")
+    .values({ club_id: club.id, year: String(year), data: JSON.stringify(data) })
+    .execute();
 }

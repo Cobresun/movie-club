@@ -1,26 +1,21 @@
 /**
  * Integration tests for `netlify/functions/og-image.ts` — the Open Graph image
- * a shared review link unfurls to. Runs against real club, work and review rows
- * through `SharedReviewService`.
+ * a shared review link unfurls to.
  */
 import { describe, expect, it } from "vitest";
 
 import { handler } from "../og-image";
-import {
-  addMember,
-  createClub,
-  createReview,
-  createReviewedWork,
-  createUser,
-} from "./helpers/factories";
+import { signIn } from "./helpers/auth";
+import { addReviewedWork, createClub, scoreWork } from "./helpers/factories";
 import { requester } from "./helpers/http";
 
 const api = requester(handler);
 
 describe("GET /api/og-image", () => {
   it("redirects to the work's own image when it has one", async () => {
-    const club = await createClub();
-    const work = await createReviewedWork(club, {
+    const alice = await signIn("alice");
+    const club = await createClub(alice);
+    const work = await addReviewedWork(club, alice, {
       externalId: null,
       imageUrl: "https://image.tmdb.org/t/p/w500/poster.jpg",
     });
@@ -34,18 +29,12 @@ describe("GET /api/og-image", () => {
   });
 
   it("renders an SVG card with the title, average score and rating count", async () => {
-    const club = await createClub();
-    const first = await createUser({ name: "First" });
-    const second = await createUser({ name: "Second" });
-    await addMember(club.id, first.userId);
-    await addMember(club.id, second.userId);
-    const work = await createReviewedWork(club, {
-      externalId: null,
-      imageUrl: null,
-      title: "No Poster",
-    });
-    await createReview(club.reviewsListId, work.id, first.userId, 8);
-    await createReview(club.reviewsListId, work.id, second.userId, 7);
+    const alice = await signIn("alice");
+    const bob = await signIn("bob");
+    const club = await createClub(alice, { members: [alice, bob] });
+    const work = await addReviewedWork(club, alice, { title: "No Poster", externalId: null });
+    await scoreWork(club, alice, work.id, 8);
+    await scoreWork(club, bob, work.id, 7);
 
     const res = await api.get<string>("/api/og-image", {
       query: { clubSlug: club.slug, workId: work.id },
@@ -59,8 +48,9 @@ describe("GET /api/og-image", () => {
   });
 
   it("says N/A when nobody has scored the work", async () => {
-    const club = await createClub();
-    const work = await createReviewedWork(club, { externalId: null, imageUrl: null });
+    const alice = await signIn("alice");
+    const club = await createClub(alice);
+    const work = await addReviewedWork(club, alice, { externalId: null });
 
     const res = await api.get<string>("/api/og-image", {
       query: { clubSlug: club.slug, workId: work.id },
@@ -77,11 +67,11 @@ describe("GET /api/og-image", () => {
   });
 
   it("escapes XML-significant characters in the title", async () => {
-    const club = await createClub();
-    const work = await createReviewedWork(club, {
-      externalId: null,
-      imageUrl: null,
+    const alice = await signIn("alice");
+    const club = await createClub(alice);
+    const work = await addReviewedWork(club, alice, {
       title: "Fish & <Chips>",
+      externalId: null,
     });
 
     const res = await api.get<string>("/api/og-image", {
@@ -92,7 +82,8 @@ describe("GET /api/og-image", () => {
   });
 
   it("falls back to a generic card when the work does not exist", async () => {
-    const club = await createClub();
+    const alice = await signIn("alice");
+    const club = await createClub(alice);
 
     const res = await api.get<string>("/api/og-image", {
       query: { clubSlug: club.slug, workId: "999999" },

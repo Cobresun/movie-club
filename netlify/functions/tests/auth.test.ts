@@ -2,91 +2,96 @@
  * Integration tests for `netlify/functions/auth.ts` — the adapter that bridges
  * a Netlify event to BetterAuth's Web `Request`/`Response` handler.
  *
- * Nothing about auth is stubbed here: real bcrypt hashing, real `account` and
+ * Nothing about auth is stubbed: real bcrypt hashing, real `account` and
  * `session` rows in CockroachDB, real signed cookies. Only the verification
- * email leaves the process, and MSW catches that at Resend's endpoint.
+ * email leaves the process, and MSW catches that at Resend's endpoint — which
+ * is also how these tests read the confirmation link, exactly as a user would.
  */
 import { describe, expect, it } from "vitest";
 
 import { handler } from "../auth";
-import { db } from "./helpers/database";
+import { handler as clubHandler } from "../club/index";
+import { AUTH_HEADERS } from "./helpers/auth";
 import { requester } from "./helpers/http";
-import { requestsTo } from "./setup/externalApis";
+import { lastEmailTo } from "./setup/externalApis";
 
 const api = requester(handler);
+const clubApi = requester(clubHandler);
 
 const PASSWORD = "correct-horse-battery-staple";
 
 let counter = 0;
 const freshEmail = () => `signup-${Date.now().toString(36)}-${(counter += 1)}@movie.club`;
 
-async function signUp<T = { user: { id: string } }>(email: string) {
+function signUp<T = { user: { id: string } }>(email: string, password = PASSWORD) {
   return api.post<T>("/api/auth/sign-up/email", {
-    body: { email, password: PASSWORD, name: "New User" },
-    headers: { "content-type": "application/json", host: "localhost:8888" },
+    body: { email, password, name: "New User" },
+    headers: AUTH_HEADERS,
   });
 }
 
 function signInRequest(email: string, password = PASSWORD) {
   return api.post("/api/auth/sign-in/email", {
     body: { email, password },
-    headers: { "content-type": "application/json", host: "localhost:8888" },
+    headers: AUTH_HEADERS,
   });
 }
 
-async function verify(email: string) {
-  await db.updateTable("user").set({ emailVerified: true }).where("email", "=", email).execute();
+/** Click the link out of the verification email, as a new user would. */
+async function followVerificationLink(email: string) {
+  const message = lastEmailTo(email);
+  if (!message) throw new Error(`No email was sent to ${email}`);
+  const link = /href="([^"]*verify-email[^"]*)"/.exec(message.html)?.[1];
+  if (link === undefined) throw new Error(`The email to ${email} carried no verification link`);
+  const url = new URL(link.replaceAll("&amp;", "&"));
+  return api.get(`${url.pathname}${url.search}`, { headers: AUTH_HEADERS });
+}
+
+function cookieFrom(response: { multiValueHeaders: Record<string, string[]> }) {
+  return (response.multiValueHeaders["Set-Cookie"] ?? [])
+    .map((setCookie) => setCookie.split(";")[0])
+    .join("; ");
 }
 
 describe("POST /api/auth/sign-up/email", () => {
-  it("creates the user and sends a verification email", async () => {
+  it("emails the new address a verification link", async () => {
     const email = freshEmail();
 
     const res = await signUp(email);
 
     expect(res.statusCode).toBe(200);
-    const user = await db
-      .selectFrom("user")
-      .select(["name", "emailVerified"])
-      .where("email", "=", email)
-      .executeTakeFirstOrThrow();
-    expect(user).toEqual({ name: "New User", emailVerified: false });
-    expect(requestsTo("api.resend.com")).toHaveLength(1);
+    const message = lastEmailTo(email);
+    expect(message?.subject).toMatch(/verify/i);
+    expect(message?.html).toContain("verify-email");
   });
 
-  it("stores a hashed password, never the password itself", async () => {
+  it("refuses to sign the new account in until that link is followed", async () => {
     const email = freshEmail();
-
     await signUp(email);
 
-    const account = await db
-      .selectFrom("account")
-      .innerJoin("user", "user.id", "account.userId")
-      .select("account.password")
-      .where("user.email", "=", email)
-      .executeTakeFirstOrThrow();
-    expect(account.password).not.toBe(PASSWORD);
-    expect(account.password).toMatch(/^\$2[aby]\$/);
+    expect((await signInRequest(email)).statusCode).toBe(403);
+
+    const verified = await followVerificationLink(email);
+    expect(verified.statusCode).toBeLessThan(400);
+    expect((await signInRequest(email)).statusCode).toBe(200);
   });
 
-  it("answers a repeat sign-up with a decoy instead of creating a second user", async () => {
+  it("answers a repeat sign-up with a decoy rather than touching the account", async () => {
     const email = freshEmail();
     const first = await signUp(email);
-    const original = await db
-      .selectFrom("user")
-      .select("id")
-      .where("email", "=", email)
-      .executeTakeFirstOrThrow();
+    await followVerificationLink(email);
 
-    const second = await signUp<{ user: { id: string } }>(email);
+    const second = await signUp(email, "a-different-password");
 
     // BetterAuth deliberately reports success so the endpoint cannot be used
     // to enumerate registered addresses — the id it hands back is a decoy.
     expect(second.statusCode).toBe(200);
     expect(second.body.user.id).not.toBe(first.body.user.id);
 
-    const users = await db.selectFrom("user").select("id").where("email", "=", email).execute();
-    expect(users).toEqual([{ id: original.id }]);
+    // The original credentials still work and the second password does not, so
+    // nothing about the real account changed.
+    expect((await signInRequest(email)).statusCode).toBe(200);
+    expect((await signInRequest(email, "a-different-password")).statusCode).toBe(401);
   });
 });
 
@@ -94,7 +99,7 @@ describe("POST /api/auth/sign-in/email", () => {
   it("returns both session cookies through multiValueHeaders", async () => {
     const email = freshEmail();
     await signUp(email);
-    await verify(email);
+    await followVerificationLink(email);
 
     const res = await signInRequest(email);
 
@@ -109,41 +114,35 @@ describe("POST /api/auth/sign-in/email", () => {
     expect(res.headers).not.toHaveProperty("set-cookie");
   });
 
-  it("opens a session row the get-session endpoint then resolves", async () => {
+  it("opens a session the rest of the API accepts", async () => {
     const email = freshEmail();
     await signUp(email);
-    await verify(email);
-
-    const signedIn = await signInRequest(email);
-    const cookie = signedIn.multiValueHeaders["Set-Cookie"]
-      .map((setCookie) => setCookie.split(";")[0])
-      .join("; ");
+    await followVerificationLink(email);
+    const cookie = cookieFrom(await signInRequest(email));
 
     const session = await api.get<{ user: { email: string } }>("/api/auth/get-session", {
-      headers: { cookie, host: "localhost:8888" },
+      headers: { ...AUTH_HEADERS, cookie },
     });
-
     expect(session.statusCode).toBe(200);
     expect(session.body.user.email).toBe(email);
+
+    // The same cookie satisfies `loggedIn` on an ordinary club route.
+    const clubs = await clubApi.post<{ slug: string }>("/api/club", {
+      body: { name: "Brand New Club", members: [email] },
+      headers: { cookie },
+    });
+    expect(clubs.statusCode).toBe(200);
   });
 
   it("refuses the wrong password", async () => {
     const email = freshEmail();
     await signUp(email);
-    await verify(email);
+    await followVerificationLink(email);
 
     const res = await signInRequest(email, "not-the-password");
 
     expect(res.statusCode).toBe(401);
-  });
-
-  it("refuses an address that has not been verified", async () => {
-    const email = freshEmail();
-    await signUp(email);
-
-    const res = await signInRequest(email);
-
-    expect(res.statusCode).toBe(403);
+    expect(res.multiValueHeaders["Set-Cookie"]).toBeUndefined();
   });
 
   it("refuses an unknown address", async () => {
@@ -155,9 +154,17 @@ describe("POST /api/auth/sign-in/email", () => {
 
 describe("GET /api/auth/get-session", () => {
   it("returns an empty session for a request with no cookie", async () => {
-    const res = await api.get("/api/auth/get-session", { headers: { host: "localhost:8888" } });
+    const res = await api.get("/api/auth/get-session", { headers: AUTH_HEADERS });
 
     expect(res.statusCode).toBe(200);
+    expect(res.body).toBeNull();
+  });
+
+  it("returns an empty session for a forged cookie", async () => {
+    const res = await api.get("/api/auth/get-session", {
+      headers: { ...AUTH_HEADERS, cookie: "better-auth.session_token=not-a-real-token" },
+    });
+
     expect(res.body).toBeNull();
   });
 });

@@ -34,52 +34,56 @@ API calls are mocked with MSW — handlers in `src/mocks/handlers.ts`, fixtures 
 - **`IntersectionObserver`** doesn't exist in jsdom, and `v-lazy-load` / `v-reveal` construct one on mount. Call `mockIntersectionObserver()` (`@/mocks/IntersectionObserver`) at the top of any spec rendering them or the mount throws and later tests fail with confusing leftover-DOM errors. It defaults to never firing, which parks a lazy image's URL in `data-src` with an empty `src`; pass `{ intersecting: true }` to assert the resolved `src`.
 - **AG Charts** paints into a `<canvas>` jsdom cannot provide and throws on both mount and unmount. Opt into the stub with `vi.mock("ag-charts-vue3", async () => await import("@/mocks/agCharts"))` — the dynamic import avoids the TDZ error a static one hits under `vi.mock` hoisting. It renders `role="img"` and exposes `chartOptions(el)` / `chartSeriesNames(el)`; detailed option assertions belong in `chartOptions.spec.ts`.
 - **Clipboard:** `userEvent.setup()` — which `render()` always calls — installs its own `navigator.clipboard`, silently replacing a spy stubbed in `beforeEach`. The test then fails with "0 calls" while a success toast proves the copy happened. Spy _after_ `render()`.
-- **`GalleryView` / `TableView`** take a live TanStack table, and `useVueTable` needs a component instance, so one cannot be built in module scope. Use `withReviewTable()` from `src/features/reviews/tests/reviewTable.ts`.
+- **`GalleryView`** takes a live TanStack table, and `useVueTable` needs a component instance, so one cannot be built in module scope. Use `withReviewTable()` from `src/features/reviews/tests/reviewTable.ts`.
 - **Statistics fixtures** live in `src/features/statistics/tests/fixtures.ts`. Two thresholds bite: `computeScoreTrend` reads `work.scores` (timestamped), not `work.userScores`, and both rolling charts use a window of `Math.max(5, …)` — so trend/spread need six scored reviews before they plot anything.
 
 ## Integration tests (`netlify/functions/tests/`)
 
-**Do not `vi.mock` repositories, `utils/database`, or `utils/auth` here.** Mocking those is what the suite used to do, and it hid a live 404 on every awards write route because the mocks answered a URL shape the real router never matched.
+**Arrange and assert through the same interfaces a client has.** No `vi.mock` of repositories, `utils/database` or `utils/auth`, and no direct database reads — a test that queries a table is asserting an implementation detail, and one that seeds a table is describing a state the app may not even be able to produce. `helpers/database.ts` deliberately does not export the Kysely handle.
 
 Real: the routers, `validClubSlug` / `validListId`, BetterAuth's `loggedIn` / `secured`, every repository, Kysely, the migrated schema. Faked, and only at the network boundary via MSW: TMDB, Google Books, Gemini, Resend, Cloudinary — with `onUnhandledRequest: "error"`, so a call to any other host fails the test.
 
-| Path                    | Purpose                                                                                                                                                    |
-| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `setup/globalSetup.ts`  | Starts the container once per run, migrates it via `npx tsx ./migrations/schemaMigrator.ts`                                                                |
-| `setup/env.ts`          | Points `DATABASE_URL` / `DATABASE_URL_ROOT` at it. **Must be imported before anything reaching `utils/database.ts`**, which builds its pool at import time |
-| `setup/integration.ts`  | Per-file setup: starts MSW, resets the database before each test                                                                                           |
-| `setup/externalApis.ts` | The MSW server, its default handlers, and `requestsTo(host)`                                                                                               |
-| `fixtures/external.ts`  | `tmdbMovie()` / `googleBooksVolume()` / `geminiJsonResponse()` payload builders                                                                            |
-| `helpers/http.ts`       | `requester(handler)` → `.get/.post/.put/.delete`, plus `makeEvent()` / `send()`                                                                            |
-| `helpers/auth.ts`       | `signIn("alice" \| "bob" \| "carol")` → a real signed session cookie                                                                                       |
-| `helpers/factories.ts`  | Row seeding: `createClub`, `createWork`, `addToList`, `createReview`, …                                                                                    |
-| `helpers/database.ts`   | `resetDatabase()` and the `db` handle for assertions                                                                                                       |
+| Path | Purpose |
+| --- | --- |
+| `setup/globalSetup.ts` | Starts the container once per run, migrates it via `npx tsx ./migrations/schemaMigrator.ts` |
+| `setup/env.ts` | Points `DATABASE_URL` / `DATABASE_URL_ROOT` at it. **Must be imported before anything reaching `utils/database.ts`**, which builds its pool at import time |
+| `setup/integration.ts` | Per-file setup: starts MSW, resets the database before each test, undoes profile edits after |
+| `setup/externalApis.ts` | The MSW server, its handlers, `requestsTo(host)` and `sentEmails` |
+| `fixtures/external.ts` | `tmdbMovie()` / `googleBooksVolume()` / `geminiJsonResponse()` payload builders |
+| `helpers/http.ts` | `requester(handler)` → `.get/.post/.put/.delete`, plus `makeEvent()` / `send()` |
+| `helpers/auth.ts` | `signIn("alice" \| "bob" \| …)` → a real signed session cookie |
+| `helpers/factories.ts` | `createClub`, `addWork`, `scoreWork`, `addComment`, … — all driving real endpoints |
+| `helpers/database.ts` | `resetDatabase()` only |
 
 ```ts
 const api = requester(handler);
 
 it("renames the club", async () => {
   const alice = await signIn("alice");
-  const club = await createClub({ members: [{ userId: alice.userId }] });
+  const club = await createClub(alice);
 
   const res = await api.put(`/api/club/${club.slug}/name`, { body: { name: "New" }, as: alice });
 
   expect(res.statusCode).toBe(200);
+  expect((await api.get<ClubPreview>(`/api/club/${club.slug}`)).body.clubName).toBe("New");
 });
 ```
 
-- **`as:` is a real session.** `signIn()` runs `auth.api.signUpEmail` + `signInEmail` and captures the signed cookie. Omit it for an anonymous request; pass `headers: { cookie: "better-auth.session_token=bogus" }` for an invalid one.
-- **Assert through the API _and_ the database.** A write test should re-read via a GET or query `db` directly.
-- **Seed with the factories, not the handlers** — arranging state through the code under test hides its bugs. The exception is when the setup _is_ the behaviour, e.g. adding a work twice to check the upsert.
+- **`signIn()` is the real thing**: it posts to `/api/auth/sign-up/email`, follows the link out of the verification email BetterAuth sends (captured at Resend's endpoint), and posts to `/api/auth/sign-in/email`. The `as:` cookie is the cookie a browser would hold. Omit `as` for an anonymous request; pass `headers: { cookie: "better-auth.session_token=bogus" }` for an invalid one.
+- **Assert a write by reading it back** through the endpoint a client would use — the club preview for a rename, the members list for a profile change, `GET /awards/:year` for an awards write.
+- **The factories drive endpoints too**, so a bug in the write path fails the test rather than being papered over by a hand-built row.
 - **`requestsTo(host)`** is how cache behaviour gets asserted: re-adding a known movie must make no second TMDB call.
+
+**The two justified exceptions**, both in `helpers/factories.ts` and both commented there: `expireInvite()` (nothing can shorten a 24-hour token) and `createAwardsYear()` (no endpoint opens a year). `scheduled-db-cleanup.test.ts` issues `CREATE DATABASE` for the same reason — its subject operates on databases, not rows. Anything else reaching for the database is a smell; find the endpoint instead.
 
 Gotchas:
 
-- Isolation is `resetDatabase()` between tests, deleting every domain table. The auth tables survive on purpose — signing a user up costs two bcrypt hashes, so the three fixture users are created once per file and reused, with `restoreFixtureUsers()` undoing profile edits.
+- Isolation is `resetDatabase()` between tests, deleting every domain table. Its table list is typed `satisfies readonly DomainTable[]` with an exhaustiveness check, so `npm run codegen` adding a table fails type-check until someone decides whether it should be cleared.
+- The auth tables survive on purpose — signing a user up costs two bcrypt hashes, so the fixture users are created once and reused; `restoreFixtureUsers()` undoes profile edits through the profile endpoints.
 - Files run serially (`fileParallelism: false`); they share one database. No `describe.concurrent`.
 - **CockroachDB v25+ required.** On v24.1 the `20260407_ArbitraryClubLists` migration fails from scratch — the `DROP COLUMN` schema-change job is still in flight when the `DROP TYPE` runs. Override with `COCKROACH_TEST_IMAGE`.
 - An error thrown inside a handler becomes a 500 (the router catches it). `executeTakeFirstOrThrow` on a missing row is the usual cause.
-- kysely-codegen types bigint/numeric columns as `string` (`position: "1"`, `score: "8.5"`) — compare with `Number(...)`.
+- `MovieDataSummary` has no `title` — the summary query does not select `movie_details.title`. Assert on `tagline` or `overview` instead.
 
 ## Environment-dependent tests
 

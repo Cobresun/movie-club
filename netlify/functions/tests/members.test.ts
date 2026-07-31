@@ -1,66 +1,88 @@
 /**
  * Integration tests for `netlify/functions/club/members.ts` and
  * `club/members/join.ts` — membership listing, leaving, removal, and the
- * invite-token join flow, all against real rows.
+ * invite-token join flow.
  */
 import { describe, expect, it } from "vitest";
 
 import { Member } from "../../../lib/types/club";
-import { handler } from "../club/index";
-import { signIn } from "./helpers/auth";
-import { db } from "./helpers/database";
-import { addMember, createClub, createInvite, createUser } from "./helpers/factories";
-import { requester } from "./helpers/http";
+import { handler as clubHandler } from "../club/index";
+import { handler as memberHandler } from "../member";
+import { signIn, TestSession } from "./helpers/auth";
+import { createClub, createInvite, expireInvite, joinClub } from "./helpers/factories";
+import { makeEvent, requester } from "./helpers/http";
 
-const api = requester(handler);
+const api = requester(clubHandler);
+const memberApi = requester(memberHandler);
+
+const membersOf = (slug: string) => api.get<Member[]>(`/api/club/${slug}/members`);
+
+/** Upload an avatar as `session`, so a test can assert the image comes back. */
+async function uploadAvatar(session: TestSession) {
+  const boundary = "----movieclubtestboundary";
+  const body = [
+    `--${boundary}`,
+    'Content-Disposition: form-data; name="file"; filename="avatar.png"',
+    "Content-Type: image/png",
+    "",
+    "pretend-png-bytes",
+    `--${boundary}--`,
+    "",
+  ].join("\r\n");
+
+  return memberApi.send(
+    makeEvent({
+      path: "/api/member/avatar",
+      httpMethod: "POST",
+      body,
+      as: session,
+      headers: { "content-type": `multipart/form-data; boundary=${boundary}` },
+    }),
+  );
+}
 
 describe("GET /api/club/:clubSlug/members", () => {
   it("returns every member with their profile and role", async () => {
-    const club = await createClub();
-    const admin = await createUser({ name: "Admin" });
-    const regular = await createUser({ name: "Regular" });
-    await addMember(club.id, admin.userId, "admin");
-    await addMember(club.id, regular.userId);
-    await db
-      .updateTable("user")
-      .set({ image: "https://images.example/admin.jpg" })
-      .where("id", "=", admin.userId)
-      .execute();
+    const alice = await signIn("alice");
+    const bob = await signIn("bob");
+    const club = await createClub(alice, { members: [alice, bob] });
+    await uploadAvatar(alice);
 
-    const res = await api.get<Member[]>(`/api/club/${club.slug}/members`);
+    const res = await membersOf(club.slug);
 
     expect(res.statusCode).toBe(200);
     expect(res.body).toHaveLength(2);
     expect(res.body).toContainEqual({
-      id: admin.userId,
-      email: admin.email,
-      name: "Admin",
-      image: "https://images.example/admin.jpg",
+      id: alice.userId,
+      email: alice.email,
+      name: "Alice",
+      image: "https://res.cloudinary.com/test-cloud/image/upload/avatar.jpg",
       role: "admin",
     });
     expect(res.body).toContainEqual({
-      id: regular.userId,
-      email: regular.email,
-      name: "Regular",
+      id: bob.userId,
+      email: bob.email,
+      name: "Bob",
       role: "member",
     });
   });
 
   it("returns an empty list for a club with no members", async () => {
-    const club = await createClub();
+    const alice = await signIn("alice");
+    const club = await createClub(alice, { members: [] });
 
-    const res = await api.get<Member[]>(`/api/club/${club.slug}/members`);
+    const res = await membersOf(club.slug);
 
     expect(res.body).toEqual([]);
   });
 
   it("does not leak another club's members", async () => {
-    const club = await createClub();
-    const other = await createClub();
-    const outsider = await createUser({ name: "Outsider" });
-    await addMember(other.id, outsider.userId);
+    const alice = await signIn("alice");
+    const bob = await signIn("bob");
+    const club = await createClub(alice, { members: [] });
+    await createClub(bob, { members: [bob] });
 
-    const res = await api.get<Member[]>(`/api/club/${club.slug}/members`);
+    const res = await membersOf(club.slug);
 
     expect(res.body).toEqual([]);
   });
@@ -75,86 +97,100 @@ describe("GET /api/club/:clubSlug/members", () => {
 describe("DELETE /api/club/:clubSlug/members/self", () => {
   it("removes the authenticated member from the club", async () => {
     const alice = await signIn("alice");
-    const club = await createClub({ members: [{ userId: alice.userId }] });
+    const club = await createClub(alice);
 
     const res = await api.delete(`/api/club/${club.slug}/members/self`, { as: alice });
 
     expect(res.statusCode).toBe(200);
-    const members = await api.get<Member[]>(`/api/club/${club.slug}/members`);
-    expect(members.body).toEqual([]);
+    expect((await membersOf(club.slug)).body).toEqual([]);
   });
 
   it("returns 401 without a session", async () => {
-    const club = await createClub();
+    const alice = await signIn("alice");
+    const club = await createClub(alice);
 
     const res = await api.delete(`/api/club/${club.slug}/members/self`);
 
     expect(res.statusCode).toBe(401);
+    expect((await membersOf(club.slug)).body).toHaveLength(1);
   });
 });
 
 describe("DELETE /api/club/:clubSlug/members/:memberId", () => {
   it("removes another member", async () => {
     const alice = await signIn("alice");
-    const club = await createClub({ members: [{ userId: alice.userId }] });
-    const other = await createUser({ name: "Other" });
-    await addMember(club.id, other.userId);
+    const bob = await signIn("bob");
+    const club = await createClub(alice, { members: [alice, bob] });
 
-    const res = await api.delete(`/api/club/${club.slug}/members/${other.userId}`, { as: alice });
+    const res = await api.delete(`/api/club/${club.slug}/members/${bob.userId}`, { as: alice });
 
     expect(res.statusCode).toBe(200);
-    const members = await api.get<Member[]>(`/api/club/${club.slug}/members`);
-    expect(members.body.map((member) => member.id)).toEqual([alice.userId]);
+    expect((await membersOf(club.slug)).body.map((member) => member.id)).toEqual([alice.userId]);
   });
 
   it("returns 401 for a signed-in user outside the club", async () => {
+    const alice = await signIn("alice");
     const bob = await signIn("bob");
-    const club = await createClub();
-    const other = await createUser({ name: "Other" });
-    await addMember(club.id, other.userId);
+    const club = await createClub(alice, { members: [alice] });
 
-    const res = await api.delete(`/api/club/${club.slug}/members/${other.userId}`, { as: bob });
+    const res = await api.delete(`/api/club/${club.slug}/members/${alice.userId}`, { as: bob });
 
     expect(res.statusCode).toBe(401);
-    const members = await api.get<Member[]>(`/api/club/${club.slug}/members`);
-    expect(members.body).toHaveLength(1);
+    expect((await membersOf(club.slug)).body).toHaveLength(1);
   });
 });
 
 describe("GET /api/club/:clubSlug/members/join", () => {
   it("adds the signed-in user to the club", async () => {
     const alice = await signIn("alice");
-    const club = await createClub();
+    const bob = await signIn("bob");
+    const club = await createClub(alice, { members: [alice] });
 
-    const res = await api.get(`/api/club/${club.slug}/members/join`, { as: alice });
+    const res = await api.get(`/api/club/${club.slug}/members/join`, { as: bob });
 
     expect(res.statusCode).toBe(200);
-    const members = await api.get<Member[]>(`/api/club/${club.slug}/members`);
-    expect(members.body.map((member) => member.id)).toEqual([alice.userId]);
+    expect((await membersOf(club.slug)).body.map((member) => member.id).sort()).toEqual(
+      [alice.userId, bob.userId].sort(),
+    );
   });
 
   it("returns 401 without a session", async () => {
-    const club = await createClub();
+    const alice = await signIn("alice");
+    const club = await createClub(alice, { members: [] });
 
     const res = await api.get(`/api/club/${club.slug}/members/join`);
 
     expect(res.statusCode).toBe(401);
+    expect((await membersOf(club.slug)).body).toEqual([]);
   });
 });
 
 describe("POST /api/club/join", () => {
   it("joins the club the invite token belongs to", async () => {
     const alice = await signIn("alice");
-    const club = await createClub();
-    const token = await createInvite(club.id);
+    const bob = await signIn("bob");
+    const club = await createClub(alice, { members: [alice] });
+    const token = await createInvite(club, alice);
 
-    const res = await api.post(`/api/club/join`, { body: { token }, as: alice });
+    const res = await api.post(`/api/club/join`, { body: { token }, as: bob });
 
     expect(res.statusCode).toBe(200);
-    const members = await api.get<Member[]>(`/api/club/${club.slug}/members`);
-    expect(members.body.map((member) => [member.id, member.role])).toEqual([
-      [alice.userId, "member"],
-    ]);
+    const members = await membersOf(club.slug);
+    expect(members.body).toContainEqual(
+      expect.objectContaining({ id: bob.userId, role: "member" }),
+    );
+  });
+
+  it("shows up in the joiner's own club list", async () => {
+    const alice = await signIn("alice");
+    const bob = await signIn("bob");
+    const club = await createClub(alice, { name: "Joinable", members: [alice] });
+    const token = await createInvite(club, alice);
+
+    await api.post(`/api/club/join`, { body: { token }, as: bob });
+
+    const clubs = await memberApi.get<{ clubName: string }[]>("/api/member/clubs", { as: bob });
+    expect(clubs.body.map((entry) => entry.clubName)).toEqual(["Joinable"]);
   });
 
   it("rejects an unknown token", async () => {
@@ -169,21 +205,22 @@ describe("POST /api/club/join", () => {
     expect(res.body.error).toBe("Invalid invite token");
   });
 
-  it("rejects an expired token and deletes it", async () => {
+  it("rejects an expired token and retires it", async () => {
     const alice = await signIn("alice");
-    const club = await createClub();
-    const token = await createInvite(club.id, { expiresAt: new Date(Date.now() - 1000) });
+    const bob = await signIn("bob");
+    const club = await createClub(alice, { members: [alice] });
+    const token = await createInvite(club, alice);
+    await expireInvite(token);
 
-    const res = await api.post<{ error: string }>(`/api/club/join`, { body: { token }, as: alice });
+    const res = await api.post<{ error: string }>(`/api/club/join`, { body: { token }, as: bob });
 
     expect(res.statusCode).toBe(400);
     expect(res.body.error).toBe("Invite token expired");
-    const remaining = await db
-      .selectFrom("club_invite")
-      .select("token")
-      .where("club_id", "=", club.id)
-      .execute();
-    expect(remaining).toEqual([]);
+    expect((await membersOf(club.slug)).body).toHaveLength(1);
+
+    // The expired token is gone, so it now reads as invalid rather than stale.
+    const retry = await api.post<{ error: string }>(`/api/club/join`, { body: { token }, as: bob });
+    expect(retry.body.error).toBe("Invalid invite token");
   });
 
   it.each([
@@ -198,19 +235,22 @@ describe("POST /api/club/join", () => {
   });
 
   it("returns 401 without a session", async () => {
-    const club = await createClub();
-    const token = await createInvite(club.id);
+    const alice = await signIn("alice");
+    const club = await createClub(alice, { members: [alice] });
+    const token = await createInvite(club, alice);
 
     const res = await api.post(`/api/club/join`, { body: { token } });
 
     expect(res.statusCode).toBe(401);
+    expect((await membersOf(club.slug)).body).toHaveLength(1);
   });
 });
 
 describe("GET /api/club/joinInfo/:token", () => {
   it("returns the club behind a valid token", async () => {
-    const club = await createClub({ name: "Invite Club" });
-    const token = await createInvite(club.id);
+    const alice = await signIn("alice");
+    const club = await createClub(alice, { name: "Invite Club" });
+    const token = await createInvite(club, alice);
 
     const res = await api.get<{ clubId: string; clubName: string }>(`/api/club/joinInfo/${token}`);
 
@@ -220,8 +260,10 @@ describe("GET /api/club/joinInfo/:token", () => {
   });
 
   it("returns 400 for an expired token", async () => {
-    const club = await createClub();
-    const token = await createInvite(club.id, { expiresAt: new Date(Date.now() - 1000) });
+    const alice = await signIn("alice");
+    const club = await createClub(alice);
+    const token = await createInvite(club, alice);
+    await expireInvite(token);
 
     const res = await api.get<{ error: string }>(`/api/club/joinInfo/${token}`);
 
@@ -234,5 +276,20 @@ describe("GET /api/club/joinInfo/:token", () => {
 
     expect(res.statusCode).toBe(400);
     expect(res.body.error).toBe("Invalid invite token");
+  });
+});
+
+describe("leaving and rejoining", () => {
+  it("drops the club from the member's own list and puts it back", async () => {
+    const alice = await signIn("alice");
+    const bob = await signIn("bob");
+    const club = await createClub(alice, { name: "Revolving Door", members: [alice, bob] });
+
+    await api.delete(`/api/club/${club.slug}/members/self`, { as: bob });
+    expect((await memberApi.get<unknown[]>("/api/member/clubs", { as: bob })).body).toEqual([]);
+
+    await joinClub(club, bob);
+    const clubs = await memberApi.get<{ clubName: string }[]>("/api/member/clubs", { as: bob });
+    expect(clubs.body.map((entry) => entry.clubName)).toEqual(["Revolving Door"]);
   });
 });

@@ -2,17 +2,16 @@
  * Integration tests for `netlify/functions/club/awards/`.
  *
  * The awards data is a single JSON blob updated inside a `SELECT … FOR UPDATE`
- * transaction, so every route here is a read-modify-write against a real row —
- * exactly the shape a mocked repository cannot check. The detail endpoint also
- * hydrates nominations from TMDB, which MSW serves.
+ * transaction, so every route here is a read-modify-write — exactly the shape a
+ * mocked repository cannot check. Each write is asserted by reading the year
+ * back through `GET /awards/:year`, which is the only view a client has.
  */
 import { describe, expect, it } from "vitest";
 
-import { AwardsData, awardsDataSchema, AwardsStep, ClubAwards } from "../../../lib/types/awards";
+import { AwardsData, AwardsStep, ClubAwards } from "../../../lib/types/awards";
 import { handler } from "../club/index";
 import { signIn } from "./helpers/auth";
-import { db } from "./helpers/database";
-import { createAwards, createClub } from "./helpers/factories";
+import { createAwardsYear, createClub, SeededClub } from "./helpers/factories";
 import { requester } from "./helpers/http";
 
 const api = requester(handler);
@@ -23,26 +22,23 @@ function awardsData(overrides: Partial<AwardsData> = {}): AwardsData {
   return { step: AwardsStep.Nominations, awards: [], ...overrides };
 }
 
-/**
- * Read the stored blob back through the production schema, so a write that
- * corrupts its shape fails the test rather than being silently reinterpreted.
- */
-async function storedAwards(clubId: string, year = YEAR): Promise<AwardsData> {
-  const row = await db
-    .selectFrom("awards_temp")
-    .select("data")
-    .where("club_id", "=", clubId)
-    .where("year", "=", String(year))
-    .executeTakeFirstOrThrow();
-  return awardsDataSchema.parse(row.data);
+/** The year as a client sees it. */
+const awardsOf = (club: SeededClub, year = YEAR) =>
+  api.get<ClubAwards>(`/api/club/${club.slug}/awards/${year}`);
+
+/** Categories, in order, as returned by the awards endpoint. */
+async function categoryTitles(club: SeededClub) {
+  const res = await awardsOf(club);
+  return res.body.awards.map((award) => award.title);
 }
 
 describe("GET /api/club/:clubSlug/awards/years", () => {
   it("returns the club's award years, newest first", async () => {
-    const club = await createClub();
-    await createAwards(club.id, 2022, awardsData());
-    await createAwards(club.id, 2024, awardsData());
-    await createAwards(club.id, 2023, awardsData());
+    const alice = await signIn("alice");
+    const club = await createClub(alice);
+    await createAwardsYear(club, 2022, awardsData());
+    await createAwardsYear(club, 2024, awardsData());
+    await createAwardsYear(club, 2023, awardsData());
 
     const res = await api.get<number[]>(`/api/club/${club.slug}/awards/years`);
 
@@ -51,7 +47,8 @@ describe("GET /api/club/:clubSlug/awards/years", () => {
   });
 
   it("returns an empty array for a club with no awards", async () => {
-    const club = await createClub();
+    const alice = await signIn("alice");
+    const club = await createClub(alice);
 
     const res = await api.get<number[]>(`/api/club/${club.slug}/awards/years`);
 
@@ -59,9 +56,10 @@ describe("GET /api/club/:clubSlug/awards/years", () => {
   });
 
   it("does not see another club's years", async () => {
-    const club = await createClub();
-    const other = await createClub();
-    await createAwards(other.id, 2024, awardsData());
+    const alice = await signIn("alice");
+    const club = await createClub(alice);
+    const other = await createClub(alice);
+    await createAwardsYear(other, 2024, awardsData());
 
     const res = await api.get<number[]>(`/api/club/${club.slug}/awards/years`);
 
@@ -71,9 +69,10 @@ describe("GET /api/club/:clubSlug/awards/years", () => {
 
 describe("GET /api/club/:clubSlug/awards/:year", () => {
   it("returns the year's awards with each nomination hydrated from TMDB", async () => {
-    const club = await createClub();
-    await createAwards(
-      club.id,
+    const alice = await signIn("alice");
+    const club = await createClub(alice);
+    await createAwardsYear(
+      club,
       YEAR,
       awardsData({
         step: AwardsStep.Ratings,
@@ -86,7 +85,7 @@ describe("GET /api/club/:clubSlug/awards/:year", () => {
       }),
     );
 
-    const res = await api.get<ClubAwards>(`/api/club/${club.slug}/awards/${YEAR}`);
+    const res = await awardsOf(club);
 
     expect(res.statusCode).toBe(200);
     expect(res.body.year).toBe(YEAR);
@@ -100,7 +99,8 @@ describe("GET /api/club/:clubSlug/awards/:year", () => {
   });
 
   it("returns 404 for a year with no awards", async () => {
-    const club = await createClub();
+    const alice = await signIn("alice");
+    const club = await createClub(alice);
 
     const res = await api.get(`/api/club/${club.slug}/awards/1999`);
 
@@ -117,9 +117,9 @@ describe("GET /api/club/:clubSlug/awards/:year", () => {
 describe("POST /api/club/:clubSlug/awards/:year/category", () => {
   it("appends a category with no nominations", async () => {
     const alice = await signIn("alice");
-    const club = await createClub({ members: [{ userId: alice.userId }] });
-    await createAwards(
-      club.id,
+    const club = await createClub(alice);
+    await createAwardsYear(
+      club,
       YEAR,
       awardsData({ awards: [{ title: "Best Score", nominations: [] }] }),
     );
@@ -130,9 +130,9 @@ describe("POST /api/club/:clubSlug/awards/:year/category", () => {
     });
 
     expect(res.statusCode).toBe(200);
-    const stored = await storedAwards(club.id);
-    expect(stored.awards.map((award) => award.title)).toEqual(["Best Score", "Best Picture"]);
-    expect(stored.awards[1].nominations).toEqual([]);
+    const awards = await awardsOf(club);
+    expect(awards.body.awards.map((award) => award.title)).toEqual(["Best Score", "Best Picture"]);
+    expect(awards.body.awards[1].nominations).toEqual([]);
   });
 
   it.each([
@@ -140,8 +140,8 @@ describe("POST /api/club/:clubSlug/awards/:year/category", () => {
     ["a body without a title", { name: "Best Picture" }],
   ])("returns 400 with %s", async (_label, body) => {
     const alice = await signIn("alice");
-    const club = await createClub({ members: [{ userId: alice.userId }] });
-    await createAwards(club.id, YEAR, awardsData());
+    const club = await createClub(alice);
+    await createAwardsYear(club, YEAR, awardsData());
 
     const res = await api.post(`/api/club/${club.slug}/awards/${YEAR}/category`, {
       body,
@@ -149,12 +149,14 @@ describe("POST /api/club/:clubSlug/awards/:year/category", () => {
     });
 
     expect(res.statusCode).toBe(400);
+    expect(await categoryTitles(club)).toEqual([]);
   });
 
   it("returns 401 for a non-member", async () => {
+    const alice = await signIn("alice");
     const bob = await signIn("bob");
-    const club = await createClub();
-    await createAwards(club.id, YEAR, awardsData());
+    const club = await createClub(alice, { members: [alice] });
+    await createAwardsYear(club, YEAR, awardsData());
 
     const res = await api.post(`/api/club/${club.slug}/awards/${YEAR}/category`, {
       body: { title: "Best Picture" },
@@ -162,15 +164,16 @@ describe("POST /api/club/:clubSlug/awards/:year/category", () => {
     });
 
     expect(res.statusCode).toBe(401);
+    expect(await categoryTitles(club)).toEqual([]);
   });
 });
 
 describe("PUT /api/club/:clubSlug/awards/:year/category", () => {
   it("reorders the categories to match the payload", async () => {
     const alice = await signIn("alice");
-    const club = await createClub({ members: [{ userId: alice.userId }] });
-    await createAwards(
-      club.id,
+    const club = await createClub(alice);
+    await createAwardsYear(
+      club,
       YEAR,
       awardsData({
         awards: [
@@ -187,15 +190,14 @@ describe("PUT /api/club/:clubSlug/awards/:year/category", () => {
     });
 
     expect(res.statusCode).toBe(200);
-    const stored = await storedAwards(club.id);
-    expect(stored.awards.map((award) => award.title)).toEqual(["C", "A", "B"]);
+    expect(await categoryTitles(club)).toEqual(["C", "A", "B"]);
   });
 
   it("returns 500 and leaves the order alone when a title does not exist", async () => {
     const alice = await signIn("alice");
-    const club = await createClub({ members: [{ userId: alice.userId }] });
-    await createAwards(
-      club.id,
+    const club = await createClub(alice);
+    await createAwardsYear(
+      club,
       YEAR,
       awardsData({
         awards: [
@@ -211,8 +213,7 @@ describe("PUT /api/club/:clubSlug/awards/:year/category", () => {
     });
 
     expect(res.statusCode).toBe(500);
-    const stored = await storedAwards(club.id);
-    expect(stored.awards.map((award) => award.title)).toEqual(["A", "B"]);
+    expect(await categoryTitles(club)).toEqual(["A", "B"]);
   });
 
   it.each([
@@ -220,8 +221,8 @@ describe("PUT /api/club/:clubSlug/awards/:year/category", () => {
     ["categories that are not strings", { categories: [1, 2] }],
   ])("returns 400 with %s", async (_label, body) => {
     const alice = await signIn("alice");
-    const club = await createClub({ members: [{ userId: alice.userId }] });
-    await createAwards(club.id, YEAR, awardsData());
+    const club = await createClub(alice);
+    await createAwardsYear(club, YEAR, awardsData());
 
     const res = await api.put(`/api/club/${club.slug}/awards/${YEAR}/category`, {
       body,
@@ -235,9 +236,9 @@ describe("PUT /api/club/:clubSlug/awards/:year/category", () => {
 describe("DELETE /api/club/:clubSlug/awards/:year/category/:awardTitle", () => {
   it("removes just that category", async () => {
     const alice = await signIn("alice");
-    const club = await createClub({ members: [{ userId: alice.userId }] });
-    await createAwards(
-      club.id,
+    const club = await createClub(alice);
+    await createAwardsYear(
+      club,
       YEAR,
       awardsData({
         awards: [
@@ -252,17 +253,16 @@ describe("DELETE /api/club/:clubSlug/awards/:year/category/:awardTitle", () => {
     });
 
     expect(res.statusCode).toBe(200);
-    const stored = await storedAwards(club.id);
-    expect(stored.awards.map((award) => award.title)).toEqual(["Keep"]);
+    expect(await categoryTitles(club)).toEqual(["Keep"]);
   });
 });
 
 describe("POST /api/club/:clubSlug/awards/:year/nomination", () => {
   it("creates a nomination for a movie nobody has nominated yet", async () => {
     const alice = await signIn("alice");
-    const club = await createClub({ members: [{ userId: alice.userId }] });
-    await createAwards(
-      club.id,
+    const club = await createClub(alice);
+    await createAwardsYear(
+      club,
       YEAR,
       awardsData({ awards: [{ title: "Best Picture", nominations: [] }] }),
     );
@@ -273,17 +273,20 @@ describe("POST /api/club/:clubSlug/awards/:year/nomination", () => {
     });
 
     expect(res.statusCode).toBe(200);
-    const stored = await storedAwards(club.id);
-    expect(stored.awards[0].nominations).toEqual([
-      { movieId: 27, nominatedBy: [alice.userId], ranking: {} },
-    ]);
+    const awards = await awardsOf(club);
+    expect(awards.body.awards[0].nominations).toHaveLength(1);
+    expect(awards.body.awards[0].nominations[0]).toMatchObject({
+      movieId: 27,
+      nominatedBy: [alice.userId],
+      ranking: {},
+    });
   });
 
   it("adds a second nominator to an existing nomination", async () => {
     const alice = await signIn("alice");
-    const club = await createClub({ members: [{ userId: alice.userId }] });
-    await createAwards(
-      club.id,
+    const club = await createClub(alice);
+    await createAwardsYear(
+      club,
       YEAR,
       awardsData({
         awards: [
@@ -300,17 +303,16 @@ describe("POST /api/club/:clubSlug/awards/:year/nomination", () => {
       as: alice,
     });
 
-    const stored = await storedAwards(club.id);
-    expect(stored.awards[0].nominations).toEqual([
-      { movieId: 27, nominatedBy: ["99", alice.userId], ranking: {} },
-    ]);
+    const awards = await awardsOf(club);
+    expect(awards.body.awards[0].nominations).toHaveLength(1);
+    expect(awards.body.awards[0].nominations[0].nominatedBy).toEqual(["99", alice.userId]);
   });
 
   it("leaves other categories untouched", async () => {
     const alice = await signIn("alice");
-    const club = await createClub({ members: [{ userId: alice.userId }] });
-    await createAwards(
-      club.id,
+    const club = await createClub(alice);
+    await createAwardsYear(
+      club,
       YEAR,
       awardsData({
         awards: [
@@ -325,8 +327,8 @@ describe("POST /api/club/:clubSlug/awards/:year/nomination", () => {
       as: alice,
     });
 
-    const stored = await storedAwards(club.id);
-    expect(stored.awards[1].nominations).toEqual([]);
+    const awards = await awardsOf(club);
+    expect(awards.body.awards[1].nominations).toEqual([]);
   });
 
   it.each([
@@ -337,8 +339,12 @@ describe("POST /api/club/:clubSlug/awards/:year/nomination", () => {
     ],
   ])("returns 400 with %s", async (_label, body) => {
     const alice = await signIn("alice");
-    const club = await createClub({ members: [{ userId: alice.userId }] });
-    await createAwards(club.id, YEAR, awardsData());
+    const club = await createClub(alice);
+    await createAwardsYear(
+      club,
+      YEAR,
+      awardsData({ awards: [{ title: "Best Picture", nominations: [] }] }),
+    );
 
     const res = await api.post(`/api/club/${club.slug}/awards/${YEAR}/nomination`, {
       body,
@@ -346,15 +352,16 @@ describe("POST /api/club/:clubSlug/awards/:year/nomination", () => {
     });
 
     expect(res.statusCode).toBe(400);
+    expect((await awardsOf(club)).body.awards[0].nominations).toEqual([]);
   });
 });
 
 describe("DELETE /api/club/:clubSlug/awards/:year/nomination/:movieId", () => {
   it("drops the user from nominatedBy but keeps the nomination for the others", async () => {
     const alice = await signIn("alice");
-    const club = await createClub({ members: [{ userId: alice.userId }] });
-    await createAwards(
-      club.id,
+    const club = await createClub(alice);
+    await createAwardsYear(
+      club,
       YEAR,
       awardsData({
         awards: [
@@ -372,17 +379,15 @@ describe("DELETE /api/club/:clubSlug/awards/:year/nomination/:movieId", () => {
     });
 
     expect(res.statusCode).toBe(200);
-    const stored = await storedAwards(club.id);
-    expect(stored.awards[0].nominations).toEqual([
-      { movieId: 27, nominatedBy: ["99"], ranking: {} },
-    ]);
+    const awards = await awardsOf(club);
+    expect(awards.body.awards[0].nominations[0].nominatedBy).toEqual(["99"]);
   });
 
   it("removes the nomination entirely once its last nominator leaves", async () => {
     const alice = await signIn("alice");
-    const club = await createClub({ members: [{ userId: alice.userId }] });
-    await createAwards(
-      club.id,
+    const club = await createClub(alice);
+    await createAwardsYear(
+      club,
       YEAR,
       awardsData({
         awards: [
@@ -399,8 +404,8 @@ describe("DELETE /api/club/:clubSlug/awards/:year/nomination/:movieId", () => {
       as: alice,
     });
 
-    const stored = await storedAwards(club.id);
-    expect(stored.awards[0].nominations).toEqual([]);
+    const awards = await awardsOf(club);
+    expect(awards.body.awards[0].nominations).toEqual([]);
   });
 
   it.each([
@@ -408,8 +413,19 @@ describe("DELETE /api/club/:clubSlug/awards/:year/nomination/:movieId", () => {
     ["userId", { awardTitle: "Best Picture" }],
   ])("returns 400 when the %s query parameter is missing", async (_label, query) => {
     const alice = await signIn("alice");
-    const club = await createClub({ members: [{ userId: alice.userId }] });
-    await createAwards(club.id, YEAR, awardsData());
+    const club = await createClub(alice);
+    await createAwardsYear(
+      club,
+      YEAR,
+      awardsData({
+        awards: [
+          {
+            title: "Best Picture",
+            nominations: [{ movieId: 27, nominatedBy: [alice.userId], ranking: {} }],
+          },
+        ],
+      }),
+    );
 
     const res = await api.delete(`/api/club/${club.slug}/awards/${YEAR}/nomination/27`, {
       query,
@@ -417,15 +433,16 @@ describe("DELETE /api/club/:clubSlug/awards/:year/nomination/:movieId", () => {
     });
 
     expect(res.statusCode).toBe(400);
+    expect((await awardsOf(club)).body.awards[0].nominations).toHaveLength(1);
   });
 });
 
 describe("POST /api/club/:clubSlug/awards/:year/ranking", () => {
   it("records the voter's ranking as the position of each movie", async () => {
     const alice = await signIn("alice");
-    const club = await createClub({ members: [{ userId: alice.userId }] });
-    await createAwards(
-      club.id,
+    const club = await createClub(alice);
+    await createAwardsYear(
+      club,
       YEAR,
       awardsData({
         awards: [
@@ -447,8 +464,8 @@ describe("POST /api/club/:clubSlug/awards/:year/ranking", () => {
     });
 
     expect(res.statusCode).toBe(200);
-    const stored = await storedAwards(club.id);
-    expect(stored.awards[0].nominations.map((nomination) => nomination.ranking)).toEqual([
+    const awards = await awardsOf(club);
+    expect(awards.body.awards[0].nominations.map((nomination) => nomination.ranking)).toEqual([
       { [alice.userId]: 2 },
       {},
       { [alice.userId]: 1 },
@@ -457,9 +474,9 @@ describe("POST /api/club/:clubSlug/awards/:year/ranking", () => {
 
   it("keeps other voters' rankings", async () => {
     const alice = await signIn("alice");
-    const club = await createClub({ members: [{ userId: alice.userId }] });
-    await createAwards(
-      club.id,
+    const club = await createClub(alice);
+    await createAwardsYear(
+      club,
       YEAR,
       awardsData({
         awards: [
@@ -476,8 +493,8 @@ describe("POST /api/club/:clubSlug/awards/:year/ranking", () => {
       as: alice,
     });
 
-    const stored = await storedAwards(club.id);
-    expect(stored.awards[0].nominations[0].ranking).toEqual({ "9": 1, [alice.userId]: 1 });
+    const awards = await awardsOf(club);
+    expect(awards.body.awards[0].nominations[0].ranking).toEqual({ "9": 1, [alice.userId]: 1 });
   });
 
   it.each([
@@ -485,8 +502,8 @@ describe("POST /api/club/:clubSlug/awards/:year/ranking", () => {
     ["movies that are not numbers", { awardTitle: "Best Picture", movies: ["a"], voter: "1" }],
   ])("returns 400 with %s", async (_label, body) => {
     const alice = await signIn("alice");
-    const club = await createClub({ members: [{ userId: alice.userId }] });
-    await createAwards(club.id, YEAR, awardsData());
+    const club = await createClub(alice);
+    await createAwardsYear(club, YEAR, awardsData());
 
     const res = await api.post(`/api/club/${club.slug}/awards/${YEAR}/ranking`, {
       body,
@@ -500,8 +517,8 @@ describe("POST /api/club/:clubSlug/awards/:year/ranking", () => {
 describe("PUT /api/club/:clubSlug/awards/:year/step", () => {
   it("advances the awards to the given step", async () => {
     const alice = await signIn("alice");
-    const club = await createClub({ members: [{ userId: alice.userId }] });
-    await createAwards(club.id, YEAR, awardsData({ step: AwardsStep.CategorySelect }));
+    const club = await createClub(alice);
+    await createAwardsYear(club, YEAR, awardsData({ step: AwardsStep.CategorySelect }));
 
     const res = await api.put(`/api/club/${club.slug}/awards/${YEAR}/step`, {
       body: { step: AwardsStep.Presentation },
@@ -509,8 +526,7 @@ describe("PUT /api/club/:clubSlug/awards/:year/step", () => {
     });
 
     expect(res.statusCode).toBe(200);
-    const stored = await storedAwards(club.id);
-    expect(stored.step).toBe(AwardsStep.Presentation);
+    expect((await awardsOf(club)).body.step).toBe(AwardsStep.Presentation);
   });
 
   it.each([
@@ -518,18 +534,20 @@ describe("PUT /api/club/:clubSlug/awards/:year/step", () => {
     ["a step that is not a number", { step: "Presentation" }],
   ])("returns 400 with %s", async (_label, body) => {
     const alice = await signIn("alice");
-    const club = await createClub({ members: [{ userId: alice.userId }] });
-    await createAwards(club.id, YEAR, awardsData());
+    const club = await createClub(alice);
+    await createAwardsYear(club, YEAR, awardsData({ step: AwardsStep.CategorySelect }));
 
     const res = await api.put(`/api/club/${club.slug}/awards/${YEAR}/step`, { body, as: alice });
 
     expect(res.statusCode).toBe(400);
+    expect((await awardsOf(club)).body.step).toBe(AwardsStep.CategorySelect);
   });
 
   it("returns 401 for a non-member", async () => {
+    const alice = await signIn("alice");
     const bob = await signIn("bob");
-    const club = await createClub();
-    await createAwards(club.id, YEAR, awardsData());
+    const club = await createClub(alice, { members: [alice] });
+    await createAwardsYear(club, YEAR, awardsData({ step: AwardsStep.CategorySelect }));
 
     const res = await api.put(`/api/club/${club.slug}/awards/${YEAR}/step`, {
       body: { step: AwardsStep.Completed },
@@ -537,5 +555,6 @@ describe("PUT /api/club/:clubSlug/awards/:year/step", () => {
     });
 
     expect(res.statusCode).toBe(401);
+    expect((await awardsOf(club)).body.step).toBe(AwardsStep.CategorySelect);
   });
 });

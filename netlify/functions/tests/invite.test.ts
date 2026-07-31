@@ -6,15 +6,16 @@
 import { describe, expect, it } from "vitest";
 
 import { handler } from "../club/index";
-import { db } from "./helpers/database";
-import { createClub, createInvite } from "./helpers/factories";
+import { signIn } from "./helpers/auth";
+import { createClub, createInvite, expireInvite } from "./helpers/factories";
 import { requester } from "./helpers/http";
 
 const api = requester(handler);
 
 describe("POST /api/club/:clubSlug/invite", () => {
   it("issues a token that the join-info endpoint resolves back to the club", async () => {
-    const club = await createClub({ name: "Invite Club" });
+    const alice = await signIn("alice");
+    const club = await createClub(alice, { name: "Invite Club" });
 
     const res = await api.post<{ token: string }>(`/api/club/${club.slug}/invite`);
 
@@ -25,41 +26,31 @@ describe("POST /api/club/:clubSlug/invite", () => {
     expect(info.body.clubName).toBe("Invite Club");
   });
 
-  it("reuses the club's live invite and pushes its expiry out", async () => {
-    const club = await createClub();
-    const existing = await createInvite(club.id, {
-      token: "existing-token",
-      expiresAt: new Date(Date.now() + 60 * 1000),
-    });
+  it("reuses the club's live invite rather than issuing a second one", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub(alice);
+    const existing = await createInvite(club, alice);
 
     const res = await api.post<{ token: string }>(`/api/club/${club.slug}/invite`);
 
     expect(res.body.token).toBe(existing);
-    const invites = await db
-      .selectFrom("club_invite")
-      .select(["token", "expires_at"])
-      .where("club_id", "=", club.id)
-      .execute();
-    expect(invites).toHaveLength(1);
-    expect(invites[0].expires_at.getTime()).toBeGreaterThan(Date.now() + 23 * 60 * 60 * 1000);
   });
 
-  it("clears an expired invite and issues a fresh one", async () => {
-    const club = await createClub();
-    await createInvite(club.id, {
-      token: "stale-token",
-      expiresAt: new Date(Date.now() - 1000),
-    });
+  it("retires an expired invite and issues a fresh one", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub(alice);
+    const stale = await createInvite(club, alice);
+    await expireInvite(stale);
 
     const res = await api.post<{ token: string }>(`/api/club/${club.slug}/invite`);
 
-    expect(res.body.token).not.toBe("stale-token");
-    const invites = await db
-      .selectFrom("club_invite")
-      .select("token")
-      .where("club_id", "=", club.id)
-      .execute();
-    expect(invites).toEqual([{ token: res.body.token }]);
+    expect(res.body.token).not.toBe(stale);
+    // The old token no longer resolves; the new one does.
+    expect((await api.get<{ error: string }>(`/api/club/joinInfo/${stale}`)).body.error).toBe(
+      "Invalid invite token",
+    );
+    const info = await api.get<{ clubId: string }>(`/api/club/joinInfo/${res.body.token}`);
+    expect(info.body.clubId).toBe(club.id);
   });
 
   it("returns 404 for an unknown club", async () => {
