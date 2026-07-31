@@ -5,11 +5,6 @@ import ListRepository from "../repositories/ListRepository";
 import { notFound } from "./responses";
 import { MiddlewareCallback, Request } from "./router";
 
-export function getErrorMessage(error: unknown) {
-  if (error instanceof Error) return error.message;
-  return String(error);
-}
-
 export type ClubRequest<T extends Request = Request> = T & {
   clubId: string;
   clubSlug: string;
