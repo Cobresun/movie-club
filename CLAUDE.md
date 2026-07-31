@@ -28,13 +28,17 @@ Runs the full application including Netlify functions with hot-reload. This is t
 ### Building and Testing
 
 ```bash
-npm run build          # Migrate, type-check, lint, test, then build for production
-npm run type-check     # Run TypeScript type checking without emitting files
-npm run lint           # Lint src, migrations, netlify/functions, lib, and scripts directories
-npm test               # Run tests once
-npm run test:watch     # Run tests in watch mode
-npm run coverage       # Run tests with coverage report
+npm run build            # Migrate, type-check, lint, test, then build for production
+npm run type-check       # Run TypeScript type checking without emitting files
+npm run lint             # Lint src, migrations, netlify/functions, lib, and scripts directories
+npm test                 # Run tests once (all three Vitest projects)
+npm run test:watch       # Run tests in watch mode
+npm run test:unit        # Frontend + pure backend units only — no Docker needed
+npm run test:integration # Backend handlers against a real CockroachDB
+npm run coverage         # Run tests with coverage report
 ```
+
+**Docker must be running for `npm test`.** The `integration` project starts a throwaway CockroachDB with testcontainers, migrates it from scratch, and runs every Netlify function handler against it (see `.claude/rules/testing.md`). Use `npm run test:unit` when you only need the units and don't want to start Docker.
 
 ### Database Migrations
 

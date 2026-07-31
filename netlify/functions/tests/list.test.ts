@@ -1,748 +1,809 @@
 /**
- * Tests for netlify/functions/club/list.ts
+ * Integration tests for `netlify/functions/club/list.ts`.
  *
- * Covers: GET / (lists), GET /reviews, GET /reviews-id, POST / (create),
- * PUT /reorder (lists), GET /:listId, PUT /:listId (rename), DELETE /:listId,
- * POST /:listId/items, DELETE /:listId/items/:workId, PUT /:listId/reorder,
- * PUT /:listId/items/:workId/added-date, POST /:listId/items/:workId/move
- *
- * System-list protections (rename/delete rejected) are also exercised.
+ * Lists are where the schema's constraints do most of the work — positions,
+ * the (list_id, work_id) unique index, the system-list partial index, the move
+ * transaction — so these run against a real CockroachDB rather than a stubbed
+ * repository. Adding a work also exercises the provider cache: the first add
+ * fetches TMDB (through MSW), later ones must not.
  */
-import { DeleteResult, UpdateResult } from "kysely";
-import { vi, describe, it, expect, beforeEach } from "vitest";
+import { http, HttpResponse } from "msw";
+import { describe, expect, it } from "vitest";
 
-import { ClubType, WorkListSystemType } from "../../../lib/types/generated/db";
+import { ClubType, WorkListSystemType, WorkType } from "../../../lib/types/generated/db";
+import { DetailedReviewListItem, DetailedWorkListItem } from "../../../lib/types/lists";
+import { MovieDataSummary } from "../../../lib/types/movie";
 import { handler } from "../club/index";
-import ClubRepository from "../repositories/ClubRepository";
-import ListRepository from "../repositories/ListRepository";
-import ReviewRepository from "../repositories/ReviewRepository";
-import UserRepository from "../repositories/UserRepository";
-import WorkRepository from "../repositories/WorkRepository";
-import { assertResponse, makeEvent, parseBody, stubContext } from "./helpers";
+import { signIn } from "./helpers/auth";
+import { db } from "./helpers/database";
+import {
+  addMember,
+  addToList,
+  cacheMovieDetails,
+  createClub,
+  createList,
+  createReview,
+  createReviewedWork,
+  createUser,
+  createWork,
+} from "./helpers/factories";
+import { requester } from "./helpers/http";
+import { requestsTo, server } from "./setup/externalApis";
 
-// ─── Mock: auth ──────────────────────────────────────────────────────────────
-vi.mock("../utils/auth", () => ({
-  auth: { api: { getSession: vi.fn() } },
-  loggedIn: vi.fn(async (req: Record<string, unknown>) => ({
-    ...req,
-    userId: "user-1",
-  })),
-  secured: vi.fn(async (req: Record<string, unknown>) => ({
-    ...req,
-    userId: "user-1",
-  })),
-}));
+const api = requester(handler);
 
-// ─── Mock: database ──────────────────────────────────────────────────────────
-vi.mock("../utils/database", () => ({
-  db: {},
-  pool: {},
-  dialect: {},
-  getDbUrl: vi.fn(),
-}));
-
-// ─── Mock: repositories ──────────────────────────────────────────────────────
-vi.mock("../repositories/ClubRepository", () => ({
-  default: {
-    getBySlug: vi.fn(),
-    isUserInClub: vi.fn(),
-  },
-}));
-
-vi.mock("../repositories/ListRepository", () => ({
-  default: {
-    getListsForClub: vi.fn(),
-    getReviewsListId: vi.fn(),
-    getListById: vi.fn(),
-    isItemInList: vi.fn(),
-    insertItemInList: vi.fn(),
-    deleteItemFromList: vi.fn(),
-    renameList: vi.fn(),
-    deleteList: vi.fn(),
-    createList: vi.fn(),
-    getListItems: vi.fn(),
-    reorderList: vi.fn(),
-    reorderLists: vi.fn(),
-    updateAddedDate: vi.fn(),
-    moveItem: vi.fn(),
-    getWorkDetails: vi.fn(),
-  },
-}));
-
-vi.mock("../repositories/ReviewRepository", () => ({
-  default: {
-    getReviewList: vi.fn(),
-    insertReview: vi.fn(),
-    getById: vi.fn(),
-    updateScore: vi.fn(),
-    getReviewsByWorkId: vi.fn(),
-  },
-}));
-
-vi.mock("../repositories/UserRepository", () => ({
-  default: {
-    getMembersByClubId: vi.fn(),
-  },
-}));
-
-vi.mock("../repositories/WorkRepository", () => ({
-  default: {
-    insert: vi.fn(),
-    delete: vi.fn(),
-    getNextWork: vi.fn(),
-    setNextWork: vi.fn(),
-    deleteNextWork: vi.fn(),
-  },
-}));
-
-vi.mock("../repositories/WorkCommentRepository", () => ({
-  default: {
-    getByWorkAndClub: vi.fn(),
-    insert: vi.fn(),
-    getById: vi.fn(),
-    updateContent: vi.fn(),
-    deleteById: vi.fn(),
-  },
-}));
-
-vi.mock("../repositories/SettingsRepository", () => ({
-  default: {
-    getSettings: vi.fn(),
-    updateSettings: vi.fn(),
-    createDefaultSettings: vi.fn(),
-  },
-}));
-
-vi.mock("../repositories/AwardsRepository", () => ({
-  default: { getByYear: vi.fn(), getYears: vi.fn() },
-}));
-
-vi.mock("../utils/tmdb", () => ({
-  getDetailedMovie: vi.fn(),
-  getDetailedWorks: vi.fn(),
-  getTMDBMovieData: vi.fn(),
-}));
-
-vi.mock("../utils/gemini", () => ({
-  generateDiscussionQuestions: vi.fn(),
-}));
-
-vi.mock("../services/SharedReviewService", () => ({
-  default: { getSharedReviewData: vi.fn() },
-}));
-
-// Import the top-level club handler (which mounts listRouter via use())
-
-// ─── Shared fixtures ──────────────────────────────────────────────────────────
-
-const CLUB_SLUG = "my-club";
-const CLUB_ID = "club-1";
-const LIST_ID = "list-99";
-
-const mockClub = {
-  id: CLUB_ID,
-  name: "My Club",
-  slug: CLUB_SLUG,
-  type: ClubType.movie,
-  slug_updated_at: null,
-};
-
-function setupClub() {
-  vi.mocked(ClubRepository.getBySlug).mockResolvedValue(mockClub);
-  vi.mocked(ClubRepository.isUserInClub).mockResolvedValue(true);
+interface ListSummary {
+  id: string;
+  title: string;
+  systemType: WorkListSystemType | null;
+  itemCount: number;
 }
 
-/** A user list (system_type = null). */
-const mockUserList = {
-  id: LIST_ID,
-  title: "Watch List",
-  system_type: null,
-  club_id: CLUB_ID,
-  position: "0",
-};
+describe("GET /api/club/:clubSlug/list", () => {
+  it("returns the club's user lists with their item counts", async () => {
+    const club = await createClub();
+    const shortlist = await createList(club.id, "Shortlist", 2);
+    const work = await createWork(club.id);
+    await addToList(club.listId, work.id);
 
-/** A system list (system_type = 'reviews'). */
-const mockSystemList = {
-  id: "sys-list-1",
-  title: "Reviews",
-  system_type: WorkListSystemType.reviews,
-  club_id: CLUB_ID,
-  position: "-1",
-};
+    const res = await api.get<ListSummary[]>(`/api/club/${club.slug}/list`);
 
-beforeEach(() => {
-  vi.clearAllMocks();
-});
-
-// ─── GET / (list collection) ──────────────────────────────────────────────────
-
-describe("GET /api/club/:clubSlug/list/", () => {
-  it("returns 200 with mapped list objects", async () => {
-    setupClub();
-    vi.mocked(ListRepository.getListsForClub).mockResolvedValue([
-      { ...mockUserList, item_count: "3" },
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toEqual([
+      { id: club.listId, title: "Watch List", systemType: null, itemCount: 1 },
+      { id: shortlist, title: "Shortlist", systemType: null, itemCount: 0 },
     ]);
+  });
 
-    const event = makeEvent({
-      path: `/api/club/${CLUB_SLUG}/list/`,
-      httpMethod: "GET",
-    });
+  it("never exposes the reviews system list", async () => {
+    const club = await createClub();
 
-    const response = assertResponse(await handler(event, stubContext));
+    const res = await api.get<ListSummary[]>(`/api/club/${club.slug}/list`);
 
-    expect(response.statusCode).toBe(200);
-    const body = parseBody<Array<{ id: string; title: string; itemCount: number }>>(response.body);
-    expect(body).toHaveLength(1);
-    expect(body[0].id).toBe(LIST_ID);
-    expect(body[0].itemCount).toBe(3);
+    expect(res.body.map((list) => list.id)).not.toContain(club.reviewsListId);
+  });
+
+  it("orders lists by position", async () => {
+    const club = await createClub();
+    await createList(club.id, "Third", 4);
+    await createList(club.id, "Second", 3);
+
+    const res = await api.get<ListSummary[]>(`/api/club/${club.slug}/list`);
+
+    expect(res.body.map((list) => list.title)).toEqual(["Watch List", "Second", "Third"]);
   });
 });
-
-// ─── GET /reviews ─────────────────────────────────────────────────────────────
-
-describe("GET /api/club/:clubSlug/list/reviews", () => {
-  it("returns 200 with review list data", async () => {
-    setupClub();
-    vi.mocked(ReviewRepository.getReviewList).mockResolvedValue([]);
-    vi.mocked(UserRepository.getMembersByClubId).mockResolvedValue([]);
-
-    const event = makeEvent({
-      path: `/api/club/${CLUB_SLUG}/list/reviews`,
-      httpMethod: "GET",
-    });
-
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(200);
-    const body = parseBody<unknown[]>(response.body);
-    expect(Array.isArray(body)).toBe(true);
-  });
-});
-
-// ─── GET /reviews-id ─────────────────────────────────────────────────────────
 
 describe("GET /api/club/:clubSlug/list/reviews-id", () => {
-  it("returns 200 with reviews list ID", async () => {
-    setupClub();
-    vi.mocked(ListRepository.getReviewsListId).mockResolvedValue("sys-list-1");
+  it("returns the id of the reviews system list", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub({ members: [{ userId: alice.userId }] });
 
-    const event = makeEvent({
-      path: `/api/club/${CLUB_SLUG}/list/reviews-id`,
-      httpMethod: "GET",
+    const res = await api.get<{ id: string }>(`/api/club/${club.slug}/list/reviews-id`, {
+      as: alice,
     });
 
-    const response = assertResponse(await handler(event, stubContext));
+    expect(res.statusCode).toBe(200);
+    expect(res.body.id).toBe(club.reviewsListId);
+  });
 
-    expect(response.statusCode).toBe(200);
-    const body = parseBody<{ id: string }>(response.body);
-    expect(body.id).toBe("sys-list-1");
+  it("returns 401 for a non-member", async () => {
+    const bob = await signIn("bob");
+    const club = await createClub();
+
+    const res = await api.get(`/api/club/${club.slug}/list/reviews-id`, { as: bob });
+
+    expect(res.statusCode).toBe(401);
   });
 });
 
-// ─── POST / (create list) ─────────────────────────────────────────────────────
+describe("POST /api/club/:clubSlug/list", () => {
+  it("creates a list at the end of the club's ordering", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub({ members: [{ userId: alice.userId }] });
 
-describe("POST /api/club/:clubSlug/list/", () => {
-  it("returns 200 with created list when title is valid", async () => {
-    setupClub();
-    vi.mocked(ListRepository.createList).mockResolvedValue({
-      id: "new-list-1",
-      title: "My New List",
-      system_type: null,
-      club_id: CLUB_ID,
+    const res = await api.post<ListSummary>(`/api/club/${club.slug}/list`, {
+      body: { title: "Halloween" },
+      as: alice,
     });
 
-    const event = makeEvent({
-      path: `/api/club/${CLUB_SLUG}/list/`,
-      httpMethod: "POST",
-      body: JSON.stringify({ title: "My New List" }),
-    });
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toMatchObject({ title: "Halloween", systemType: null, itemCount: 0 });
 
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(200);
-    const body = parseBody<{ id: string; title: string }>(response.body);
-    expect(body.id).toBe("new-list-1");
-    expect(body.title).toBe("My New List");
+    const row = await db
+      .selectFrom("work_list")
+      .select("position")
+      .where("id", "=", res.body.id)
+      .executeTakeFirstOrThrow();
+    // Watch List is 0 and Reviews is 1, so the new list lands at 2.
+    expect(Number(row.position)).toBe(2);
   });
 
-  it("returns 400 when body is missing", async () => {
-    setupClub();
+  it.each([
+    ["no body", undefined],
+    ["an empty title", { title: "" }],
+    ["a title over 100 characters", { title: "x".repeat(101) }],
+  ])("returns 400 with %s", async (_label, body) => {
+    const alice = await signIn("alice");
+    const club = await createClub({ members: [{ userId: alice.userId }] });
 
-    const event = makeEvent({
-      path: `/api/club/${CLUB_SLUG}/list/`,
-      httpMethod: "POST",
-      body: null,
-    });
+    const res = await api.post(`/api/club/${club.slug}/list`, { body, as: alice });
 
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(400);
+    expect(res.statusCode).toBe(400);
   });
 
-  it("returns 400 when title is empty", async () => {
-    setupClub();
+  it("returns 401 for a non-member", async () => {
+    const bob = await signIn("bob");
+    const club = await createClub();
 
-    const event = makeEvent({
-      path: `/api/club/${CLUB_SLUG}/list/`,
-      httpMethod: "POST",
-      body: JSON.stringify({ title: "" }),
-    });
+    const res = await api.post(`/api/club/${club.slug}/list`, { body: { title: "X" }, as: bob });
 
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(400);
+    expect(res.statusCode).toBe(401);
   });
 });
-
-// ─── PUT /reorder (lists) ─────────────────────────────────────────────────────
 
 describe("PUT /api/club/:clubSlug/list/reorder", () => {
-  it("returns 200 when list order is updated", async () => {
-    setupClub();
-    vi.mocked(ListRepository.reorderLists).mockResolvedValue(undefined);
+  it("reassigns positions to the order given", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub({ members: [{ userId: alice.userId }] });
+    const second = await createList(club.id, "Second", 2);
 
-    const event = makeEvent({
-      path: `/api/club/${CLUB_SLUG}/list/reorder`,
-      httpMethod: "PUT",
-      body: JSON.stringify({ listIds: ["list-1", "list-2"] }),
+    const res = await api.put(`/api/club/${club.slug}/list/reorder`, {
+      body: { listIds: [second, club.listId] },
+      as: alice,
     });
 
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(200);
-    expect(ListRepository.reorderLists).toHaveBeenCalledWith(CLUB_ID, ["list-1", "list-2"]);
+    expect(res.statusCode).toBe(200);
+    const lists = await api.get<ListSummary[]>(`/api/club/${club.slug}/list`);
+    expect(lists.body.map((list) => list.title)).toEqual(["Second", "Watch List"]);
   });
 
-  it("returns 400 when body is missing", async () => {
-    setupClub();
+  it("rejects a payload that omits one of the club's lists", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub({ members: [{ userId: alice.userId }] });
+    await createList(club.id, "Second", 2);
 
-    const event = makeEvent({
-      path: `/api/club/${CLUB_SLUG}/list/reorder`,
-      httpMethod: "PUT",
-      body: null,
+    const res = await api.put(`/api/club/${club.slug}/list/reorder`, {
+      body: { listIds: [club.listId] },
+      as: alice,
     });
 
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(400);
+    expect(res.statusCode).toBe(500);
   });
 
-  it("returns 400 when listIds array is empty", async () => {
-    setupClub();
+  it.each([
+    ["no body", undefined],
+    ["an empty listIds array", { listIds: [] }],
+    ["malformed JSON", "{ not json"],
+  ])("returns 400 with %s", async (_label, body) => {
+    const alice = await signIn("alice");
+    const club = await createClub({ members: [{ userId: alice.userId }] });
 
-    const event = makeEvent({
-      path: `/api/club/${CLUB_SLUG}/list/reorder`,
-      httpMethod: "PUT",
-      body: JSON.stringify({ listIds: [] }),
-    });
+    const res = await api.put(`/api/club/${club.slug}/list/reorder`, { body, as: alice });
 
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(400);
+    expect(res.statusCode).toBe(400);
   });
 });
-
-// ─── GET /:listId ─────────────────────────────────────────────────────────────
 
 describe("GET /api/club/:clubSlug/list/:listId", () => {
-  it("returns 200 with list items", async () => {
-    setupClub();
-    vi.mocked(ListRepository.getListById).mockResolvedValue(mockUserList);
-    vi.mocked(ListRepository.getListItems).mockResolvedValue([]);
+  it("returns the list's items with their cached metadata, in position order", async () => {
+    const club = await createClub();
+    await cacheMovieDetails("11");
+    const first = await createWork(club.id, { externalId: "11", title: "Star Wars" });
+    const second = await createWork(club.id, { externalId: null, title: "Untracked" });
+    await addToList(club.listId, second.id, { position: 2 });
+    await addToList(club.listId, first.id, { position: 1 });
 
-    const event = makeEvent({
-      path: `/api/club/${CLUB_SLUG}/list/${LIST_ID}`,
-      httpMethod: "GET",
-    });
+    const res = await api.get<DetailedWorkListItem<MovieDataSummary>[]>(
+      `/api/club/${club.slug}/list/${club.listId}`,
+    );
 
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(200);
-    const body = parseBody<unknown[]>(response.body);
-    expect(Array.isArray(body)).toBe(true);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.map((item) => item.title)).toEqual(["Star Wars", "Untracked"]);
+    expect(res.body[0].externalData?.overview).toBe("Overview for movie 11");
+    // The bulk payload omits cast lists; only `castNames` rides along.
+    expect(res.body[0].externalData).not.toHaveProperty("actors");
+    expect(res.body[0].externalData?.castNames).toEqual(["Lead 11", "Support 11"]);
+    expect(res.body[1].externalData).toBeUndefined();
   });
 
-  it("returns 404 when list does not belong to club", async () => {
-    setupClub();
-    vi.mocked(ListRepository.getListById).mockResolvedValue(undefined);
+  it("records who added an item and when", async () => {
+    const club = await createClub();
+    const adder = await createUser({ name: "Adder" });
+    const work = await createWork(club.id, { externalId: null });
+    const timeAdded = new Date("2024-03-04T05:06:07.000Z");
+    await addToList(club.listId, work.id, { addedBy: adder.userId, timeAdded });
 
-    const event = makeEvent({
-      path: `/api/club/${CLUB_SLUG}/list/unknown-list`,
-      httpMethod: "GET",
-    });
+    const res = await api.get<DetailedWorkListItem[]>(`/api/club/${club.slug}/list/${club.listId}`);
 
-    const response = assertResponse(await handler(event, stubContext));
+    expect(res.body[0].addedBy).toBe(adder.userId);
+    expect(res.body[0].createdDate).toBe(timeAdded.toISOString());
+  });
 
-    expect(response.statusCode).toBe(404);
+  it("returns 404 for a list belonging to another club", async () => {
+    const club = await createClub();
+    const other = await createClub();
+
+    const res = await api.get(`/api/club/${club.slug}/list/${other.listId}`);
+
+    expect(res.statusCode).toBe(404);
   });
 });
 
-// ─── PUT /:listId (rename) ────────────────────────────────────────────────────
+describe("GET /api/club/:clubSlug/list/all-items", () => {
+  it("returns every user list's items tagged with its source list", async () => {
+    const club = await createClub();
+    const shortlist = await createList(club.id, "Shortlist", 2);
+    const onWatchList = await createWork(club.id, { externalId: null, title: "On Watch List" });
+    const onShortlist = await createWork(club.id, { externalId: null, title: "On Shortlist" });
+    const reviewed = await createWork(club.id, { externalId: null, title: "Reviewed" });
+    await addToList(club.listId, onWatchList.id);
+    await addToList(shortlist, onShortlist.id);
+    await addToList(club.reviewsListId, reviewed.id);
+
+    const res = await api.get<(DetailedWorkListItem & { sourceListTitle: string })[]>(
+      `/api/club/${club.slug}/list/all-items`,
+    );
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.map((item) => [item.title, item.sourceListTitle])).toEqual([
+      ["On Watch List", "Watch List"],
+      ["On Shortlist", "Shortlist"],
+    ]);
+  });
+});
 
 describe("PUT /api/club/:clubSlug/list/:listId", () => {
-  it("returns 200 when user list is renamed", async () => {
-    setupClub();
-    vi.mocked(ListRepository.getListById).mockResolvedValue(mockUserList);
-    vi.mocked(ListRepository.renameList).mockResolvedValue([new UpdateResult(0n, undefined)]);
+  it("renames a user list", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub({ members: [{ userId: alice.userId }] });
 
-    const event = makeEvent({
-      path: `/api/club/${CLUB_SLUG}/list/${LIST_ID}`,
-      httpMethod: "PUT",
-      body: JSON.stringify({ title: "Renamed List" }),
+    const res = await api.put(`/api/club/${club.slug}/list/${club.listId}`, {
+      body: { title: "Renamed" },
+      as: alice,
     });
 
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(200);
-    expect(ListRepository.renameList).toHaveBeenCalledWith(LIST_ID, "Renamed List");
+    expect(res.statusCode).toBe(200);
+    const lists = await api.get<ListSummary[]>(`/api/club/${club.slug}/list`);
+    expect(lists.body[0].title).toBe("Renamed");
   });
 
-  it("returns 400 when trying to rename a system list", async () => {
-    setupClub();
-    vi.mocked(ListRepository.getListById).mockResolvedValue(mockSystemList);
+  it("refuses to rename a system list", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub({ members: [{ userId: alice.userId }] });
 
-    const event = makeEvent({
-      path: `/api/club/${CLUB_SLUG}/list/sys-list-1`,
-      httpMethod: "PUT",
-      body: JSON.stringify({ title: "Hack Reviews" }),
-    });
+    const res = await api.put<{ error: string }>(
+      `/api/club/${club.slug}/list/${club.reviewsListId}`,
+      { body: { title: "Not Reviews" }, as: alice },
+    );
 
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(400);
-    const body = parseBody<{ error: string }>(response.body);
-    expect(body.error).toContain("Cannot rename a system list");
+    expect(res.statusCode).toBe(400);
+    expect(res.body.error).toBe("Cannot rename a system list");
+    const row = await db
+      .selectFrom("work_list")
+      .select("title")
+      .where("id", "=", club.reviewsListId)
+      .executeTakeFirstOrThrow();
+    expect(row.title).toBe("Reviews");
   });
 
-  it("returns 400 when body is missing", async () => {
-    setupClub();
-    vi.mocked(ListRepository.getListById).mockResolvedValue(mockUserList);
+  it("returns 400 without a body", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub({ members: [{ userId: alice.userId }] });
 
-    const event = makeEvent({
-      path: `/api/club/${CLUB_SLUG}/list/${LIST_ID}`,
-      httpMethod: "PUT",
-      body: null,
-    });
+    const res = await api.put(`/api/club/${club.slug}/list/${club.listId}`, { as: alice });
 
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(400);
+    expect(res.statusCode).toBe(400);
   });
 });
-
-// ─── DELETE /:listId ─────────────────────────────────────────────────────────
 
 describe("DELETE /api/club/:clubSlug/list/:listId", () => {
-  it("returns 200 when user list is deleted", async () => {
-    setupClub();
-    vi.mocked(ListRepository.getListById).mockResolvedValue(mockUserList);
-    vi.mocked(ListRepository.deleteList).mockResolvedValue([new DeleteResult(0n)]);
+  it("deletes a user list and its items", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub({ members: [{ userId: alice.userId }] });
+    const work = await createWork(club.id, { externalId: null });
+    await addToList(club.listId, work.id);
 
-    const event = makeEvent({
-      path: `/api/club/${CLUB_SLUG}/list/${LIST_ID}`,
-      httpMethod: "DELETE",
-    });
+    const res = await api.delete(`/api/club/${club.slug}/list/${club.listId}`, { as: alice });
 
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(200);
-    expect(ListRepository.deleteList).toHaveBeenCalledWith(LIST_ID);
+    expect(res.statusCode).toBe(200);
+    const remaining = await db
+      .selectFrom("work_list_item")
+      .select("work_id")
+      .where("list_id", "=", club.listId)
+      .execute();
+    expect(remaining).toEqual([]);
+    expect((await api.get<ListSummary[]>(`/api/club/${club.slug}/list`)).body).toEqual([]);
   });
 
-  it("returns 400 when trying to delete a system list", async () => {
-    setupClub();
-    vi.mocked(ListRepository.getListById).mockResolvedValue(mockSystemList);
+  it("refuses to delete a system list", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub({ members: [{ userId: alice.userId }] });
 
-    const event = makeEvent({
-      path: `/api/club/${CLUB_SLUG}/list/sys-list-1`,
-      httpMethod: "DELETE",
-    });
+    const res = await api.delete<{ error: string }>(
+      `/api/club/${club.slug}/list/${club.reviewsListId}`,
+      { as: alice },
+    );
 
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(400);
-    const body = parseBody<{ error: string }>(response.body);
-    expect(body.error).toContain("Cannot delete a system list");
+    expect(res.statusCode).toBe(400);
+    expect(res.body.error).toBe("Cannot delete a system list");
+    const row = await db
+      .selectFrom("work_list")
+      .select("id")
+      .where("id", "=", club.reviewsListId)
+      .executeTakeFirst();
+    expect(row).toBeDefined();
   });
 });
-
-// ─── POST /:listId/items ──────────────────────────────────────────────────────
 
 describe("POST /api/club/:clubSlug/list/:listId/items", () => {
-  it("returns 200 when item is added to list (new work)", async () => {
-    setupClub();
-    vi.mocked(ListRepository.getListById).mockResolvedValue(mockUserList);
-    vi.mocked(WorkRepository.insert).mockResolvedValue({ id: "work-new" });
-    vi.mocked(ListRepository.insertItemInList).mockResolvedValue(true);
+  it("creates the work, caches its TMDB metadata, and puts it on the list", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub({ members: [{ userId: alice.userId }] });
 
-    const event = makeEvent({
-      path: `/api/club/${CLUB_SLUG}/list/${LIST_ID}/items`,
-      httpMethod: "POST",
-      body: JSON.stringify({
-        title: "The Matrix",
-        type: "movie",
-        externalId: "603",
-      }),
+    const res = await api.post(`/api/club/${club.slug}/list/${club.listId}/items`, {
+      body: { type: WorkType.movie, title: "Alien", externalId: "348", imageUrl: "/alien.jpg" },
+      as: alice,
     });
 
-    const response = assertResponse(await handler(event, stubContext));
+    expect(res.statusCode).toBe(200);
+    expect(requestsTo("api.themoviedb.org/3/movie/348")).toHaveLength(1);
 
-    expect(response.statusCode).toBe(200);
-    expect(ListRepository.insertItemInList).toHaveBeenCalledWith(LIST_ID, "work-new", "user-1");
-  });
-
-  it("upserts the work and lists the id the upsert returns", async () => {
-    setupClub();
-    vi.mocked(ListRepository.getListById).mockResolvedValue(mockUserList);
-    vi.mocked(WorkRepository.insert).mockResolvedValue({ id: "work-existing" });
-    vi.mocked(ListRepository.insertItemInList).mockResolvedValue(true);
-
-    const event = makeEvent({
-      path: `/api/club/${CLUB_SLUG}/list/${LIST_ID}/items`,
-      httpMethod: "POST",
-      body: JSON.stringify({
-        title: "The Matrix",
-        type: "movie",
-        externalId: "603",
-      }),
-    });
-
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(200);
-    expect(WorkRepository.insert).toHaveBeenCalledWith(CLUB_ID, {
-      title: "The Matrix",
-      type: "movie",
-      externalId: "603",
-    });
-    expect(ListRepository.insertItemInList).toHaveBeenCalledWith(
-      LIST_ID,
-      "work-existing",
-      "user-1",
+    const items = await api.get<DetailedWorkListItem<MovieDataSummary>[]>(
+      `/api/club/${club.slug}/list/${club.listId}`,
     );
+    expect(items.body).toHaveLength(1);
+    expect(items.body[0]).toMatchObject({
+      title: "Alien",
+      externalId: "348",
+      imageUrl: "/alien.jpg",
+      addedBy: alice.userId,
+    });
+    expect(items.body[0].externalData?.genres).toEqual(["Drama"]);
   });
 
-  it("returns 400 when item is already in list", async () => {
-    setupClub();
-    vi.mocked(ListRepository.getListById).mockResolvedValue(mockUserList);
-    vi.mocked(WorkRepository.insert).mockResolvedValue({ id: "work-dup" });
-    vi.mocked(ListRepository.insertItemInList).mockResolvedValue(false);
+  it("reuses the cached metadata rather than calling TMDB again", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub({ members: [{ userId: alice.userId }] });
+    const other = await createList(club.id, "Other");
+    const body = { type: WorkType.movie, title: "Alien", externalId: "348" };
 
-    const event = makeEvent({
-      path: `/api/club/${CLUB_SLUG}/list/${LIST_ID}/items`,
-      httpMethod: "POST",
-      body: JSON.stringify({
-        title: "The Matrix",
-        type: "movie",
-        externalId: "603",
-      }),
-    });
+    await api.post(`/api/club/${club.slug}/list/${club.listId}/items`, { body, as: alice });
+    await api.post(`/api/club/${club.slug}/list/${other}/items`, { body, as: alice });
 
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(400);
+    expect(requestsTo("api.themoviedb.org/3/movie/348")).toHaveLength(1);
   });
 
-  it("returns 400 when body is missing", async () => {
-    setupClub();
-    vi.mocked(ListRepository.getListById).mockResolvedValue(mockUserList);
+  it("reuses the existing work when the same external id is added twice", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub({ members: [{ userId: alice.userId }] });
+    const other = await createList(club.id, "Other");
+    const body = { type: WorkType.movie, title: "Alien", externalId: "348" };
 
-    const event = makeEvent({
-      path: `/api/club/${CLUB_SLUG}/list/${LIST_ID}/items`,
-      httpMethod: "POST",
-      body: null,
+    await api.post(`/api/club/${club.slug}/list/${club.listId}/items`, { body, as: alice });
+    await api.post(`/api/club/${club.slug}/list/${other}/items`, { body, as: alice });
+
+    const works = await db.selectFrom("work").select("id").where("club_id", "=", club.id).execute();
+    expect(works).toHaveLength(1);
+  });
+
+  it("rejects a work that is already on the list", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub({ members: [{ userId: alice.userId }] });
+    const body = { type: WorkType.movie, title: "Alien", externalId: "348" };
+
+    await api.post(`/api/club/${club.slug}/list/${club.listId}/items`, { body, as: alice });
+    const res = await api.post<{ error: string }>(
+      `/api/club/${club.slug}/list/${club.listId}/items`,
+      { body, as: alice },
+    );
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.error).toBe("Item is already in list");
+  });
+
+  it("appends each new item after the last one", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub({ members: [{ userId: alice.userId }] });
+
+    for (const externalId of ["1", "2", "3"]) {
+      await api.post(`/api/club/${club.slug}/list/${club.listId}/items`, {
+        body: { type: WorkType.movie, title: `Movie ${externalId}`, externalId },
+        as: alice,
+      });
+    }
+
+    const items = await api.get<DetailedWorkListItem[]>(
+      `/api/club/${club.slug}/list/${club.listId}`,
+    );
+    expect(items.body.map((item) => item.title)).toEqual(["Movie 1", "Movie 2", "Movie 3"]);
+  });
+
+  it("still adds the work when the metadata provider fails", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub({ members: [{ userId: alice.userId }] });
+    server.use(
+      http.get(
+        "https://api.themoviedb.org/3/movie/:id",
+        () => new HttpResponse(null, { status: 500 }),
+      ),
+    );
+
+    const res = await api.post(`/api/club/${club.slug}/list/${club.listId}/items`, {
+      body: { type: WorkType.movie, title: "Flaky", externalId: "999" },
+      as: alice,
     });
 
-    const response = assertResponse(await handler(event, stubContext));
+    expect(res.statusCode).toBe(200);
+    const items = await api.get<DetailedWorkListItem[]>(
+      `/api/club/${club.slug}/list/${club.listId}`,
+    );
+    expect(items.body[0].title).toBe("Flaky");
+    expect(items.body[0].externalData).toBeUndefined();
+  });
 
-    expect(response.statusCode).toBe(400);
+  it("caches Google Books metadata for a book club", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub({ type: ClubType.book, members: [{ userId: alice.userId }] });
+
+    const res = await api.post(`/api/club/${club.slug}/list/${club.listId}/items`, {
+      body: { type: WorkType.book, title: "Dune", externalId: "voldune" },
+      as: alice,
+    });
+
+    expect(res.statusCode).toBe(200);
+    const items = await api.get<DetailedWorkListItem[]>(
+      `/api/club/${club.slug}/list/${club.listId}`,
+    );
+    expect(items.body[0].externalData).toMatchObject({
+      kind: "book",
+      title: "Book voldune",
+      authors: ["Author voldune"],
+      firstPublishYear: 1998,
+      numberOfPages: 321,
+    });
+  });
+
+  it("returns 400 without a body", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub({ members: [{ userId: alice.userId }] });
+
+    const res = await api.post(`/api/club/${club.slug}/list/${club.listId}/items`, { as: alice });
+
+    expect(res.statusCode).toBe(400);
+  });
+
+  it("returns 401 for a non-member", async () => {
+    const bob = await signIn("bob");
+    const club = await createClub();
+
+    const res = await api.post(`/api/club/${club.slug}/list/${club.listId}/items`, {
+      body: { type: WorkType.movie, title: "Alien", externalId: "348" },
+      as: bob,
+    });
+
+    expect(res.statusCode).toBe(401);
   });
 });
-
-// ─── DELETE /:listId/items/:workId ────────────────────────────────────────────
 
 describe("DELETE /api/club/:clubSlug/list/:listId/items/:workId", () => {
-  it("returns 200 when item is removed from list", async () => {
-    setupClub();
-    vi.mocked(ListRepository.getListById).mockResolvedValue(mockUserList);
-    vi.mocked(ListRepository.isItemInList).mockResolvedValue(true);
-    vi.mocked(ListRepository.deleteItemFromList).mockResolvedValue([new DeleteResult(0n)]);
-    vi.mocked(WorkRepository.delete).mockResolvedValue([new DeleteResult(0n)]);
+  it("removes the item and deletes the now-orphaned work", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub({ members: [{ userId: alice.userId }] });
+    const work = await createWork(club.id, { externalId: null });
+    await addToList(club.listId, work.id);
 
-    const event = makeEvent({
-      path: `/api/club/${CLUB_SLUG}/list/${LIST_ID}/items/work-123`,
-      httpMethod: "DELETE",
+    const res = await api.delete(`/api/club/${club.slug}/list/${club.listId}/items/${work.id}`, {
+      as: alice,
     });
 
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(200);
-    expect(ListRepository.deleteItemFromList).toHaveBeenCalledWith(LIST_ID, "work-123");
+    expect(res.statusCode).toBe(200);
+    const works = await db.selectFrom("work").select("id").where("id", "=", work.id).execute();
+    expect(works).toEqual([]);
   });
 
-  it("returns 400 when item is not in list", async () => {
-    setupClub();
-    vi.mocked(ListRepository.getListById).mockResolvedValue(mockUserList);
-    vi.mocked(ListRepository.isItemInList).mockResolvedValue(false);
+  it("keeps the work when it is still on another list", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub({ members: [{ userId: alice.userId }] });
+    const other = await createList(club.id, "Other");
+    const work = await createWork(club.id, { externalId: null });
+    await addToList(club.listId, work.id);
+    await addToList(other, work.id);
 
-    const event = makeEvent({
-      path: `/api/club/${CLUB_SLUG}/list/${LIST_ID}/items/work-999`,
-      httpMethod: "DELETE",
+    const res = await api.delete(`/api/club/${club.slug}/list/${club.listId}/items/${work.id}`, {
+      as: alice,
     });
 
-    const response = assertResponse(await handler(event, stubContext));
+    expect(res.statusCode).toBe(200);
+    const stillThere = await db
+      .selectFrom("work_list_item")
+      .select("list_id")
+      .where("work_id", "=", work.id)
+      .execute();
+    expect(stillThere).toEqual([{ list_id: other }]);
+  });
 
-    expect(response.statusCode).toBe(400);
+  it("returns 400 when the work is not on the list", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub({ members: [{ userId: alice.userId }] });
+    const work = await createWork(club.id, { externalId: null });
+
+    const res = await api.delete<{ error: string }>(
+      `/api/club/${club.slug}/list/${club.listId}/items/${work.id}`,
+      { as: alice },
+    );
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.error).toBe("This movie does not exist in the list");
   });
 });
-
-// ─── PUT /:listId/reorder ─────────────────────────────────────────────────────
 
 describe("PUT /api/club/:clubSlug/list/:listId/reorder", () => {
-  it("returns 200 when items are reordered", async () => {
-    setupClub();
-    vi.mocked(ListRepository.getListById).mockResolvedValue(mockUserList);
-    vi.mocked(ListRepository.reorderList).mockResolvedValue(undefined);
+  it("reorders the given works into the slots they already occupied", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub({ members: [{ userId: alice.userId }] });
+    const works = [
+      await createWork(club.id, { externalId: null, title: "A" }),
+      await createWork(club.id, { externalId: null, title: "B" }),
+      await createWork(club.id, { externalId: null, title: "C" }),
+    ];
+    await addToList(club.listId, works[0].id, { position: 1 });
+    await addToList(club.listId, works[1].id, { position: 2 });
+    await addToList(club.listId, works[2].id, { position: 3 });
 
-    const event = makeEvent({
-      path: `/api/club/${CLUB_SLUG}/list/${LIST_ID}/reorder`,
-      httpMethod: "PUT",
-      body: JSON.stringify({ workIds: ["work-a", "work-b"] }),
+    const res = await api.put(`/api/club/${club.slug}/list/${club.listId}/reorder`, {
+      body: { workIds: [works[2].id, works[0].id, works[1].id] },
+      as: alice,
     });
 
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(200);
-    expect(ListRepository.reorderList).toHaveBeenCalledWith(LIST_ID, ["work-a", "work-b"]);
+    expect(res.statusCode).toBe(200);
+    const items = await api.get<DetailedWorkListItem[]>(
+      `/api/club/${club.slug}/list/${club.listId}`,
+    );
+    expect(items.body.map((item) => item.title)).toEqual(["C", "A", "B"]);
   });
 
-  it("returns 400 when workIds is empty", async () => {
-    setupClub();
-    vi.mocked(ListRepository.getListById).mockResolvedValue(mockUserList);
+  it("leaves works outside the payload in their own slots", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub({ members: [{ userId: alice.userId }] });
+    const works = [
+      await createWork(club.id, { externalId: null, title: "A" }),
+      await createWork(club.id, { externalId: null, title: "B" }),
+      await createWork(club.id, { externalId: null, title: "C" }),
+    ];
+    await addToList(club.listId, works[0].id, { position: 1 });
+    await addToList(club.listId, works[1].id, { position: 2 });
+    await addToList(club.listId, works[2].id, { position: 3 });
 
-    const event = makeEvent({
-      path: `/api/club/${CLUB_SLUG}/list/${LIST_ID}/reorder`,
-      httpMethod: "PUT",
-      body: JSON.stringify({ workIds: [] }),
+    await api.put(`/api/club/${club.slug}/list/${club.listId}/reorder`, {
+      body: { workIds: [works[2].id, works[0].id] },
+      as: alice,
     });
 
-    const response = assertResponse(await handler(event, stubContext));
+    const items = await api.get<DetailedWorkListItem[]>(
+      `/api/club/${club.slug}/list/${club.listId}`,
+    );
+    expect(items.body.map((item) => item.title)).toEqual(["C", "B", "A"]);
+  });
 
-    expect(response.statusCode).toBe(400);
+  it.each([
+    ["no body", undefined],
+    ["an empty workIds array", { workIds: [] }],
+    ["malformed JSON", "}{"],
+  ])("returns 400 with %s", async (_label, body) => {
+    const alice = await signIn("alice");
+    const club = await createClub({ members: [{ userId: alice.userId }] });
+
+    const res = await api.put(`/api/club/${club.slug}/list/${club.listId}/reorder`, {
+      body,
+      as: alice,
+    });
+
+    expect(res.statusCode).toBe(400);
   });
 });
-
-// ─── PUT /:listId/items/:workId/added-date ────────────────────────────────────
 
 describe("PUT /api/club/:clubSlug/list/:listId/items/:workId/added-date", () => {
-  it("returns 200 when added date is updated", async () => {
-    setupClub();
-    vi.mocked(ListRepository.getListById).mockResolvedValue(mockUserList);
-    vi.mocked(ListRepository.isItemInList).mockResolvedValue(true);
-    vi.mocked(ListRepository.updateAddedDate).mockResolvedValue([new UpdateResult(0n, undefined)]);
+  it("updates the item's added date", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub({ members: [{ userId: alice.userId }] });
+    const work = await createWork(club.id, { externalId: null });
+    await addToList(club.listId, work.id);
 
-    const event = makeEvent({
-      path: `/api/club/${CLUB_SLUG}/list/${LIST_ID}/items/work-123/added-date`,
-      httpMethod: "PUT",
-      body: JSON.stringify({ addedDate: "2024-01-15T00:00:00Z" }),
-    });
-
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(200);
-    expect(ListRepository.updateAddedDate).toHaveBeenCalledWith(
-      LIST_ID,
-      "work-123",
-      new Date("2024-01-15T00:00:00Z"),
+    const res = await api.put(
+      `/api/club/${club.slug}/list/${club.listId}/items/${work.id}/added-date`,
+      { body: { addedDate: "2020-01-02T03:04:05.000Z" }, as: alice },
     );
+
+    expect(res.statusCode).toBe(200);
+    const items = await api.get<DetailedWorkListItem[]>(
+      `/api/club/${club.slug}/list/${club.listId}`,
+    );
+    expect(items.body[0].createdDate).toBe("2020-01-02T03:04:05.000Z");
   });
 
-  it("returns 400 when date is not a valid ISO datetime", async () => {
-    setupClub();
-    vi.mocked(ListRepository.getListById).mockResolvedValue(mockUserList);
+  it("returns 400 for a date that is not an ISO datetime with an offset", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub({ members: [{ userId: alice.userId }] });
+    const work = await createWork(club.id, { externalId: null });
+    await addToList(club.listId, work.id);
 
-    const event = makeEvent({
-      path: `/api/club/${CLUB_SLUG}/list/${LIST_ID}/items/work-123/added-date`,
-      httpMethod: "PUT",
-      body: JSON.stringify({ addedDate: "not-a-date" }),
-    });
+    const res = await api.put(
+      `/api/club/${club.slug}/list/${club.listId}/items/${work.id}/added-date`,
+      { body: { addedDate: "2020-01-02" }, as: alice },
+    );
 
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(400);
+    expect(res.statusCode).toBe(400);
   });
 
-  it("returns 400 when work is not in list", async () => {
-    setupClub();
-    vi.mocked(ListRepository.getListById).mockResolvedValue(mockUserList);
-    vi.mocked(ListRepository.isItemInList).mockResolvedValue(false);
+  it("returns 400 when the work is not on the list", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub({ members: [{ userId: alice.userId }] });
+    const work = await createWork(club.id, { externalId: null });
 
-    const event = makeEvent({
-      path: `/api/club/${CLUB_SLUG}/list/${LIST_ID}/items/work-999/added-date`,
-      httpMethod: "PUT",
-      body: JSON.stringify({ addedDate: "2024-01-15T00:00:00Z" }),
-    });
+    const res = await api.put<{ error: string }>(
+      `/api/club/${club.slug}/list/${club.listId}/items/${work.id}/added-date`,
+      { body: { addedDate: "2020-01-02T03:04:05.000Z" }, as: alice },
+    );
 
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(400);
+    expect(res.statusCode).toBe(400);
+    expect(res.body.error).toBe("This work does not exist in the list");
   });
 });
 
-// ─── POST /:listId/items/:workId/move ─────────────────────────────────────────
-
 describe("POST /api/club/:clubSlug/list/:listId/items/:workId/move", () => {
-  it("returns 200 when item is moved to destination list", async () => {
-    setupClub();
-    vi.mocked(ListRepository.getListById).mockResolvedValue(mockUserList);
-    vi.mocked(ListRepository.moveItem).mockResolvedValue(true);
+  it("moves the work between lists, carrying its attribution forward", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub({ members: [{ userId: alice.userId }] });
+    const destination = await createList(club.id, "Destination");
+    const adder = await createUser({ name: "Adder" });
+    const work = await createWork(club.id, { externalId: null, title: "Moved" });
+    const timeAdded = new Date("2021-05-06T07:08:09.000Z");
+    await addToList(club.listId, work.id, { addedBy: adder.userId, timeAdded });
 
-    const event = makeEvent({
-      path: `/api/club/${CLUB_SLUG}/list/${LIST_ID}/items/work-123/move`,
-      httpMethod: "POST",
-      body: JSON.stringify({ destinationListId: "dest-list-2" }),
+    const res = await api.post(`/api/club/${club.slug}/list/${club.listId}/items/${work.id}/move`, {
+      body: { destinationListId: destination },
+      as: alice,
     });
 
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(200);
-    expect(ListRepository.moveItem).toHaveBeenCalledWith(
-      LIST_ID,
-      "dest-list-2",
-      "work-123",
-      CLUB_ID,
+    expect(res.statusCode).toBe(200);
+    const source = await api.get<DetailedWorkListItem[]>(
+      `/api/club/${club.slug}/list/${club.listId}`,
     );
+    expect(source.body).toEqual([]);
+
+    const moved = await api.get<DetailedWorkListItem[]>(
+      `/api/club/${club.slug}/list/${destination}`,
+    );
+    expect(moved.body[0]).toMatchObject({
+      title: "Moved",
+      addedBy: adder.userId,
+      createdDate: timeAdded.toISOString(),
+    });
   });
 
-  it("returns 400 when the move finds no destination list in this club", async () => {
-    setupClub();
-    vi.mocked(ListRepository.getListById).mockResolvedValue(mockUserList);
-    // Destination ownership is validated inside moveItem's transaction.
-    vi.mocked(ListRepository.moveItem).mockResolvedValue(false);
+  it("stamps the current time when moving into the reviews list", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub({ members: [{ userId: alice.userId }] });
+    const work = await createWork(club.id, { externalId: null });
+    const longAgo = new Date("2015-01-01T00:00:00.000Z");
+    await addToList(club.listId, work.id, { timeAdded: longAgo });
 
-    const event = makeEvent({
-      path: `/api/club/${CLUB_SLUG}/list/${LIST_ID}/items/work-123/move`,
-      httpMethod: "POST",
-      body: JSON.stringify({ destinationListId: "non-existent" }),
+    const res = await api.post(`/api/club/${club.slug}/list/${club.listId}/items/${work.id}/move`, {
+      body: { destinationListId: club.reviewsListId },
+      as: alice,
     });
 
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(400);
+    expect(res.statusCode).toBe(200);
+    const item = await db
+      .selectFrom("work_list_item")
+      .select("time_added")
+      .where("list_id", "=", club.reviewsListId)
+      .where("work_id", "=", work.id)
+      .executeTakeFirstOrThrow();
+    expect(item.time_added.getTime()).toBeGreaterThan(longAgo.getTime());
   });
 
-  it("returns 400 when body is missing", async () => {
-    setupClub();
-    vi.mocked(ListRepository.getListById).mockResolvedValue(mockUserList);
+  it("returns 400 when the destination belongs to another club", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub({ members: [{ userId: alice.userId }] });
+    const otherClub = await createClub();
+    const work = await createWork(club.id, { externalId: null });
+    await addToList(club.listId, work.id);
 
-    const event = makeEvent({
-      path: `/api/club/${CLUB_SLUG}/list/${LIST_ID}/items/work-123/move`,
-      httpMethod: "POST",
-      body: null,
+    const res = await api.post<{ error: string }>(
+      `/api/club/${club.slug}/list/${club.listId}/items/${work.id}/move`,
+      { body: { destinationListId: otherClub.listId }, as: alice },
+    );
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.error).toBe("Destination list not found");
+    const stillHome = await db
+      .selectFrom("work_list_item")
+      .select("list_id")
+      .where("work_id", "=", work.id)
+      .execute();
+    expect(stillHome).toEqual([{ list_id: club.listId }]);
+  });
+
+  it("returns 400 without a body", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub({ members: [{ userId: alice.userId }] });
+    const work = await createWork(club.id, { externalId: null });
+    await addToList(club.listId, work.id);
+
+    const res = await api.post(`/api/club/${club.slug}/list/${club.listId}/items/${work.id}/move`, {
+      as: alice,
     });
 
-    const response = assertResponse(await handler(event, stubContext));
+    expect(res.statusCode).toBe(400);
+  });
+});
 
-    expect(response.statusCode).toBe(400);
+describe("GET /api/club/:clubSlug/list/reviews", () => {
+  it("returns each reviewed work with its per-member scores and average", async () => {
+    const club = await createClub();
+    const first = await createUser({ name: "First" });
+    const second = await createUser({ name: "Second" });
+    await addMember(club.id, first.userId);
+    await addMember(club.id, second.userId);
+    await cacheMovieDetails("13");
+    const work = await createReviewedWork(club, { externalId: "13", title: "Forrest Gump" });
+    await createReview(club.reviewsListId, work.id, first.userId, 8);
+    await createReview(club.reviewsListId, work.id, second.userId, 6);
+
+    const res = await api.get<DetailedReviewListItem<MovieDataSummary>[]>(
+      `/api/club/${club.slug}/list/reviews`,
+    );
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toHaveLength(1);
+    expect(res.body[0].title).toBe("Forrest Gump");
+    expect(res.body[0].scores[first.userId].score).toBe(8);
+    expect(res.body[0].scores[second.userId].score).toBe(6);
+    expect(res.body[0].scores.average.score).toBe(7);
+    expect(res.body[0].externalData?.overview).toBe("Overview for movie 13");
+  });
+
+  it("excludes the scores of members who have left the club", async () => {
+    const club = await createClub();
+    const stayed = await createUser({ name: "Stayed" });
+    const departed = await createUser({ name: "Departed" });
+    await addMember(club.id, stayed.userId);
+    const work = await createReviewedWork(club, { externalId: null });
+    await createReview(club.reviewsListId, work.id, stayed.userId, 9);
+    await createReview(club.reviewsListId, work.id, departed.userId, 1);
+
+    const res = await api.get<DetailedReviewListItem[]>(`/api/club/${club.slug}/list/reviews`);
+
+    expect(Object.keys(res.body[0].scores).sort()).toEqual([stayed.userId, "average"].sort());
+    expect(res.body[0].scores.average.score).toBe(9);
+  });
+
+  it("returns an empty scores map for a work nobody has scored", async () => {
+    const club = await createClub();
+    await createReviewedWork(club, { externalId: null });
+
+    const res = await api.get<DetailedReviewListItem[]>(`/api/club/${club.slug}/list/reviews`);
+
+    expect(res.body[0].scores).toEqual({});
+  });
+
+  it("returns the most recently added work first", async () => {
+    const club = await createClub();
+    await createReviewedWork(club, {
+      externalId: null,
+      title: "Older",
+      timeAdded: new Date("2020-01-01T00:00:00.000Z"),
+    });
+    await createReviewedWork(club, {
+      externalId: null,
+      title: "Newer",
+      timeAdded: new Date("2024-01-01T00:00:00.000Z"),
+    });
+
+    const res = await api.get<DetailedReviewListItem[]>(`/api/club/${club.slug}/list/reviews`);
+
+    expect(res.body.map((item) => item.title)).toEqual(["Newer", "Older"]);
   });
 });

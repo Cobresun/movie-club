@@ -1,775 +1,541 @@
 /**
- * Tests for netlify/functions/club/awards/ handlers
+ * Integration tests for `netlify/functions/club/awards/`.
  *
- * Covers:
- *   - GET  /:clubSlug/awards/years
- *   - GET  /:clubSlug/awards/:year
- *   - POST /:clubSlug/awards/:year/category
- *   - PUT  /:clubSlug/awards/:year/category
- *   - DELETE /:clubSlug/awards/:year/category/:awardTitle
- *   - POST /:clubSlug/awards/:year/nomination
- *   - DELETE /:clubSlug/awards/:year/nomination/:movieId
- *   - POST /:clubSlug/awards/:year/ranking
- *   - PUT  /:clubSlug/awards/:year/step
- *
- * validYear middleware (existsByYear) and validClubSlug are mocked so handlers
- * run in isolation.
+ * The awards data is a single JSON blob updated inside a `SELECT … FOR UPDATE`
+ * transaction, so every route here is a read-modify-write against a real row —
+ * exactly the shape a mocked repository cannot check. The detail endpoint also
+ * hydrates nominations from TMDB, which MSW serves.
  */
-import { vi, describe, it, expect, beforeEach } from "vitest";
+import { describe, expect, it } from "vitest";
 
-import { AwardsData, AwardsStep } from "../../../lib/types/awards";
-import { ClubType } from "../../../lib/types/generated/db";
+import { AwardsData, awardsDataSchema, AwardsStep, ClubAwards } from "../../../lib/types/awards";
 import { handler } from "../club/index";
-import AwardsRepository from "../repositories/AwardsRepository";
-import ClubRepository from "../repositories/ClubRepository";
-import { getDetailedMovie } from "../utils/tmdb";
-import { assertResponse, makeEvent, parseBody, stubContext } from "./helpers";
+import { signIn } from "./helpers/auth";
+import { db } from "./helpers/database";
+import { createAwards, createClub } from "./helpers/factories";
+import { requester } from "./helpers/http";
 
-// ─── Mock: auth ─────────────────────────────────────────────────────────────
-vi.mock("../utils/auth", () => ({
-  auth: { api: { getSession: vi.fn() } },
-  loggedIn: vi.fn(async (req: Record<string, unknown>) => ({
-    ...req,
-    userId: "user-1",
-  })),
-  secured: vi.fn(async (req: Record<string, unknown>) => ({
-    ...req,
-    userId: "user-1",
-  })),
-}));
+const api = requester(handler);
 
-// ─── Mock: database ──────────────────────────────────────────────────────────
-vi.mock("../utils/database", () => ({
-  db: {},
-  pool: {},
-  dialect: {},
-  getDbUrl: vi.fn(),
-}));
+const YEAR = 2024;
 
-// ─── Mock: repositories ──────────────────────────────────────────────────────
-vi.mock("../repositories/ClubRepository", () => ({
-  default: {
-    getBySlug: vi.fn(),
-    getById: vi.fn(),
-    isUserInClub: vi.fn(),
-    insert: vi.fn(),
-    updateName: vi.fn(),
-    updateSlug: vi.fn(),
-    slugExists: vi.fn(),
-    getClubPreviewsByUserId: vi.fn(),
-    createClubInvite: vi.fn(),
-    joinClubWithInvite: vi.fn(),
-    getClubDetailsByInvite: vi.fn(),
-  },
-}));
-
-vi.mock("../repositories/AwardsRepository", () => ({
-  default: {
-    getByYear: vi.fn(),
-    getYears: vi.fn(),
-    existsByYear: vi.fn(),
-    updateByYear: vi.fn(),
-  },
-}));
-
-vi.mock("../repositories/ListRepository", () => ({
-  default: {
-    createListsForClub: vi.fn(),
-    getListsForClub: vi.fn(),
-    getReviewsListId: vi.fn(),
-    getListById: vi.fn(),
-    isItemInList: vi.fn(),
-    insertItemInList: vi.fn(),
-    deleteItemFromList: vi.fn(),
-    renameList: vi.fn(),
-    deleteList: vi.fn(),
-    createList: vi.fn(),
-    getListItems: vi.fn(),
-    reorderList: vi.fn(),
-    reorderLists: vi.fn(),
-    updateAddedDate: vi.fn(),
-    moveItem: vi.fn(),
-    getWorkDetails: vi.fn(),
-  },
-}));
-
-vi.mock("../repositories/SettingsRepository", () => ({
-  default: {
-    createDefaultSettings: vi.fn(),
-    getSettings: vi.fn(),
-    updateSettings: vi.fn(),
-  },
-}));
-
-vi.mock("../repositories/UserRepository", () => ({
-  default: {
-    getByEmail: vi.fn(),
-    getMembersByClubId: vi.fn(),
-    getUserById: vi.fn(),
-    removeClubMember: vi.fn(),
-    addClubMemberByUserId: vi.fn(),
-    updateImage: vi.fn(),
-    updateName: vi.fn(),
-  },
-}));
-
-vi.mock("../repositories/WorkRepository", () => ({
-  default: {
-    getNextWork: vi.fn(),
-    setNextWork: vi.fn(),
-    deleteNextWork: vi.fn(),
-    insert: vi.fn(),
-    delete: vi.fn(),
-  },
-}));
-
-vi.mock("../repositories/ReviewRepository", () => ({
-  default: {
-    getReviewList: vi.fn(),
-    insertReview: vi.fn(),
-    getById: vi.fn(),
-    updateScore: vi.fn(),
-    getReviewsByWorkId: vi.fn(),
-  },
-}));
-
-vi.mock("../repositories/WorkCommentRepository", () => ({
-  default: {
-    getByWorkAndClub: vi.fn(),
-    insert: vi.fn(),
-    getById: vi.fn(),
-    updateContent: vi.fn(),
-    deleteById: vi.fn(),
-  },
-}));
-
-vi.mock("../utils/tmdb", () => ({
-  getDetailedMovie: vi.fn(),
-  getDetailedWorks: vi.fn(),
-  getTMDBMovieData: vi.fn(),
-}));
-
-vi.mock("../utils/gemini", () => ({
-  generateDiscussionQuestions: vi.fn(),
-}));
-
-vi.mock("../services/SharedReviewService", () => ({
-  default: {
-    getSharedReviewData: vi.fn(),
-  },
-}));
-
-// ─── Import mocked modules for assertions ────────────────────────────────────
-
-// ─── Shared fixtures ─────────────────────────────────────────────────────────
-
-// The awards sub-router path patterns (:clubId<\\d+>, :year<\\d+>) require all
-// digits. Since the club/index handler uses /:clubSlug/awards and the path
-// ultimately gets tested against the full URL, we use a numeric slug so the
-// digit constraint on the nested sub-routers is satisfied. Using "1" as both
-// slug and id means event.path of "/api/club/1/awards/..." passes all checks.
-const mockClub = {
-  id: "1",
-  name: "Test Club",
-  slug: "1",
-  type: ClubType.movie,
-  slug_updated_at: null,
-};
-
-const baseAwardsData: AwardsData = {
-  step: AwardsStep.Nominations,
-  awards: [
-    {
-      title: "Best Picture",
-      nominations: [
-        {
-          movieId: 27205,
-          nominatedBy: ["user-1"],
-          ranking: {},
-        },
-      ],
-    },
-    {
-      title: "Best Director",
-      nominations: [],
-    },
-  ],
-};
-
-function setupClubAndYear() {
-  vi.mocked(ClubRepository.getBySlug).mockResolvedValue(mockClub);
-  vi.mocked(AwardsRepository.existsByYear).mockResolvedValue(true);
+function awardsData(overrides: Partial<AwardsData> = {}): AwardsData {
+  return { step: AwardsStep.Nominations, awards: [], ...overrides };
 }
 
-beforeEach(() => {
-  vi.clearAllMocks();
-});
-
-// ─── GET /years ───────────────────────────────────────────────────────────────
+/**
+ * Read the stored blob back through the production schema, so a write that
+ * corrupts its shape fails the test rather than being silently reinterpreted.
+ */
+async function storedAwards(clubId: string, year = YEAR): Promise<AwardsData> {
+  const row = await db
+    .selectFrom("awards_temp")
+    .select("data")
+    .where("club_id", "=", clubId)
+    .where("year", "=", String(year))
+    .executeTakeFirstOrThrow();
+  return awardsDataSchema.parse(row.data);
+}
 
 describe("GET /api/club/:clubSlug/awards/years", () => {
-  it("returns 200 with years array", async () => {
-    vi.mocked(ClubRepository.getBySlug).mockResolvedValue(mockClub);
-    vi.mocked(AwardsRepository.getYears).mockResolvedValue([2024, 2023, 2022]);
+  it("returns the club's award years, newest first", async () => {
+    const club = await createClub();
+    await createAwards(club.id, 2022, awardsData());
+    await createAwards(club.id, 2024, awardsData());
+    await createAwards(club.id, 2023, awardsData());
 
-    const event = makeEvent({
-      path: "/api/club/1/awards/years",
-      httpMethod: "GET",
-    });
+    const res = await api.get<number[]>(`/api/club/${club.slug}/awards/years`);
 
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(200);
-    const body = parseBody<number[]>(response.body);
-    expect(body).toEqual([2024, 2023, 2022]);
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toEqual([2024, 2023, 2022]);
   });
 
-  it("returns 200 with empty array when no years exist", async () => {
-    vi.mocked(ClubRepository.getBySlug).mockResolvedValue(mockClub);
-    vi.mocked(AwardsRepository.getYears).mockResolvedValue([]);
+  it("returns an empty array for a club with no awards", async () => {
+    const club = await createClub();
 
-    const event = makeEvent({
-      path: "/api/club/1/awards/years",
-      httpMethod: "GET",
-    });
+    const res = await api.get<number[]>(`/api/club/${club.slug}/awards/years`);
 
-    const response = assertResponse(await handler(event, stubContext));
+    expect(res.body).toEqual([]);
+  });
 
-    expect(response.statusCode).toBe(200);
-    const body = parseBody<number[]>(response.body);
-    expect(body).toEqual([]);
+  it("does not see another club's years", async () => {
+    const club = await createClub();
+    const other = await createClub();
+    await createAwards(other.id, 2024, awardsData());
+
+    const res = await api.get<number[]>(`/api/club/${club.slug}/awards/years`);
+
+    expect(res.body).toEqual([]);
   });
 });
-
-// ─── GET /:year ───────────────────────────────────────────────────────────────
 
 describe("GET /api/club/:clubSlug/awards/:year", () => {
-  it("returns 200 with awards data when year exists", async () => {
-    setupClubAndYear();
-    vi.mocked(AwardsRepository.getByYear).mockResolvedValue(baseAwardsData);
-    vi.mocked(getDetailedMovie).mockResolvedValue([]);
+  it("returns the year's awards with each nomination hydrated from TMDB", async () => {
+    const club = await createClub();
+    await createAwards(
+      club.id,
+      YEAR,
+      awardsData({
+        step: AwardsStep.Ratings,
+        awards: [
+          {
+            title: "Best Picture",
+            nominations: [{ movieId: 27, nominatedBy: ["7"], ranking: {} }],
+          },
+        ],
+      }),
+    );
 
-    const event = makeEvent({
-      path: "/api/club/1/awards/2024",
-      httpMethod: "GET",
+    const res = await api.get<ClubAwards>(`/api/club/${club.slug}/awards/${YEAR}`);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.year).toBe(YEAR);
+    expect(res.body.step).toBe(AwardsStep.Ratings);
+    expect(res.body.awards[0].title).toBe("Best Picture");
+    expect(res.body.awards[0].nominations[0]).toMatchObject({
+      movieId: 27,
+      movieTitle: "Movie 27",
+      posterUrl: "https://image.tmdb.org/t/p/w154/poster-27.jpg",
     });
-
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(200);
-    const body = parseBody<{ year: number; step: number }>(response.body);
-    expect(body.year).toBe(2024);
-    expect(body.step).toBe(AwardsStep.Nominations);
   });
 
-  it("returns 404 when year does not exist in awards repository", async () => {
-    vi.mocked(ClubRepository.getBySlug).mockResolvedValue(mockClub);
-    vi.mocked(AwardsRepository.existsByYear).mockResolvedValue(true);
-    vi.mocked(AwardsRepository.getByYear).mockResolvedValue(null);
+  it("returns 404 for a year with no awards", async () => {
+    const club = await createClub();
 
-    const event = makeEvent({
-      path: "/api/club/1/awards/2024",
-      httpMethod: "GET",
-    });
+    const res = await api.get(`/api/club/${club.slug}/awards/1999`);
 
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(404);
+    expect(res.statusCode).toBe(404);
   });
 
-  it("returns 404 when validYear finds no row in existsByYear", async () => {
-    vi.mocked(ClubRepository.getBySlug).mockResolvedValue(mockClub);
-    vi.mocked(AwardsRepository.existsByYear).mockResolvedValue(false);
+  it("returns 404 for an unknown club", async () => {
+    const res = await api.get(`/api/club/nope/awards/${YEAR}`);
 
-    const event = makeEvent({
-      path: "/api/club/1/awards/2024",
-      httpMethod: "GET",
-    });
-
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(404);
-  });
-
-  it("returns 404 when club is not found", async () => {
-    vi.mocked(ClubRepository.getBySlug).mockResolvedValue(undefined);
-
-    const event = makeEvent({
-      path: "/api/club/unknown-club/awards/2024",
-      httpMethod: "GET",
-    });
-
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(404);
+    expect(res.statusCode).toBe(404);
   });
 });
-
-// ─── POST /:year/category ─────────────────────────────────────────────────────
 
 describe("POST /api/club/:clubSlug/awards/:year/category", () => {
-  it("returns 200 when category is added successfully", async () => {
-    setupClubAndYear();
-    vi.mocked(AwardsRepository.updateByYear).mockResolvedValue(undefined);
+  it("appends a category with no nominations", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub({ members: [{ userId: alice.userId }] });
+    await createAwards(
+      club.id,
+      YEAR,
+      awardsData({ awards: [{ title: "Best Score", nominations: [] }] }),
+    );
 
-    const event = makeEvent({
-      path: "/api/club/1/awards/2024/category",
-      httpMethod: "POST",
-      body: JSON.stringify({ title: "Best Screenplay" }),
+    const res = await api.post(`/api/club/${club.slug}/awards/${YEAR}/category`, {
+      body: { title: "Best Picture" },
+      as: alice,
     });
 
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(200);
-    expect(AwardsRepository.updateByYear).toHaveBeenCalledWith("1", 2024, expect.any(Function));
+    expect(res.statusCode).toBe(200);
+    const stored = await storedAwards(club.id);
+    expect(stored.awards.map((award) => award.title)).toEqual(["Best Score", "Best Picture"]);
+    expect(stored.awards[1].nominations).toEqual([]);
   });
 
-  it("returns 400 when body is missing", async () => {
-    setupClubAndYear();
+  it.each([
+    ["no body", undefined],
+    ["a body without a title", { name: "Best Picture" }],
+  ])("returns 400 with %s", async (_label, body) => {
+    const alice = await signIn("alice");
+    const club = await createClub({ members: [{ userId: alice.userId }] });
+    await createAwards(club.id, YEAR, awardsData());
 
-    const event = makeEvent({
-      path: "/api/club/1/awards/2024/category",
-      httpMethod: "POST",
-      body: null,
+    const res = await api.post(`/api/club/${club.slug}/awards/${YEAR}/category`, {
+      body,
+      as: alice,
     });
 
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(400);
+    expect(res.statusCode).toBe(400);
   });
 
-  it("returns 400 when body schema is invalid", async () => {
-    setupClubAndYear();
+  it("returns 401 for a non-member", async () => {
+    const bob = await signIn("bob");
+    const club = await createClub();
+    await createAwards(club.id, YEAR, awardsData());
 
-    const event = makeEvent({
-      path: "/api/club/1/awards/2024/category",
-      httpMethod: "POST",
-      body: JSON.stringify({ invalid: "data" }),
+    const res = await api.post(`/api/club/${club.slug}/awards/${YEAR}/category`, {
+      body: { title: "Best Picture" },
+      as: bob,
     });
 
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(400);
+    expect(res.statusCode).toBe(401);
   });
 });
-
-// ─── PUT /:year/category ──────────────────────────────────────────────────────
 
 describe("PUT /api/club/:clubSlug/awards/:year/category", () => {
-  it("returns 200 when categories are reordered successfully", async () => {
-    setupClubAndYear();
-    vi.mocked(AwardsRepository.updateByYear).mockResolvedValue(undefined);
-
-    const event = makeEvent({
-      path: "/api/club/1/awards/2024/category",
-      httpMethod: "PUT",
-      body: JSON.stringify({ categories: ["Best Director", "Best Picture"] }),
-    });
-
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(200);
-  });
-
-  it("returns 400 when body is missing", async () => {
-    setupClubAndYear();
-
-    const event = makeEvent({
-      path: "/api/club/1/awards/2024/category",
-      httpMethod: "PUT",
-      body: null,
-    });
-
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(400);
-  });
-
-  it("returns 400 when body schema is invalid (categories must be string array)", async () => {
-    setupClubAndYear();
-
-    const event = makeEvent({
-      path: "/api/club/1/awards/2024/category",
-      httpMethod: "PUT",
-      body: JSON.stringify({ categories: [1, 2] }),
-    });
-
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(400);
-  });
-
-  it("returns 500 when updateByYear throws (mismatched category)", async () => {
-    setupClubAndYear();
-    vi.mocked(AwardsRepository.updateByYear).mockImplementationOnce(
-      async (_clubId, _year, updater) => {
-        updater(baseAwardsData);
-      },
+  it("reorders the categories to match the payload", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub({ members: [{ userId: alice.userId }] });
+    await createAwards(
+      club.id,
+      YEAR,
+      awardsData({
+        awards: [
+          { title: "A", nominations: [] },
+          { title: "B", nominations: [] },
+          { title: "C", nominations: [] },
+        ],
+      }),
     );
 
-    // Provide a category name that doesn't exist in base awards data
-    const event = makeEvent({
-      path: "/api/club/1/awards/2024/category",
-      httpMethod: "PUT",
-      body: JSON.stringify({
-        categories: ["Nonexistent Category", "Also Nonexistent"],
-      }),
+    const res = await api.put(`/api/club/${club.slug}/awards/${YEAR}/category`, {
+      body: { categories: ["C", "A", "B"] },
+      as: alice,
     });
 
-    const response = assertResponse(await handler(event, stubContext));
+    expect(res.statusCode).toBe(200);
+    const stored = await storedAwards(club.id);
+    expect(stored.awards.map((award) => award.title)).toEqual(["C", "A", "B"]);
+  });
 
-    // Router catches thrown errors and returns 500
-    expect(response.statusCode).toBe(500);
+  it("returns 500 and leaves the order alone when a title does not exist", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub({ members: [{ userId: alice.userId }] });
+    await createAwards(
+      club.id,
+      YEAR,
+      awardsData({
+        awards: [
+          { title: "A", nominations: [] },
+          { title: "B", nominations: [] },
+        ],
+      }),
+    );
+
+    const res = await api.put(`/api/club/${club.slug}/awards/${YEAR}/category`, {
+      body: { categories: ["A", "Nonexistent"] },
+      as: alice,
+    });
+
+    expect(res.statusCode).toBe(500);
+    const stored = await storedAwards(club.id);
+    expect(stored.awards.map((award) => award.title)).toEqual(["A", "B"]);
+  });
+
+  it.each([
+    ["no body", undefined],
+    ["categories that are not strings", { categories: [1, 2] }],
+  ])("returns 400 with %s", async (_label, body) => {
+    const alice = await signIn("alice");
+    const club = await createClub({ members: [{ userId: alice.userId }] });
+    await createAwards(club.id, YEAR, awardsData());
+
+    const res = await api.put(`/api/club/${club.slug}/awards/${YEAR}/category`, {
+      body,
+      as: alice,
+    });
+
+    expect(res.statusCode).toBe(400);
   });
 });
-
-// ─── DELETE /:year/category/:awardTitle ───────────────────────────────────────
 
 describe("DELETE /api/club/:clubSlug/awards/:year/category/:awardTitle", () => {
-  it("returns 200 when category is deleted successfully", async () => {
-    setupClubAndYear();
-    vi.mocked(AwardsRepository.updateByYear).mockResolvedValue(undefined);
+  it("removes just that category", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub({ members: [{ userId: alice.userId }] });
+    await createAwards(
+      club.id,
+      YEAR,
+      awardsData({
+        awards: [
+          { title: "Keep", nominations: [] },
+          { title: "Drop", nominations: [] },
+        ],
+      }),
+    );
 
-    const event = makeEvent({
-      path: "/api/club/1/awards/2024/category/Best%20Picture",
-      httpMethod: "DELETE",
+    const res = await api.delete(`/api/club/${club.slug}/awards/${YEAR}/category/Drop`, {
+      as: alice,
     });
 
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(200);
+    expect(res.statusCode).toBe(200);
+    const stored = await storedAwards(club.id);
+    expect(stored.awards.map((award) => award.title)).toEqual(["Keep"]);
   });
 });
-
-// ─── POST /:year/nomination ───────────────────────────────────────────────────
 
 describe("POST /api/club/:clubSlug/awards/:year/nomination", () => {
-  it("returns 200 when nomination is added successfully", async () => {
-    setupClubAndYear();
-    vi.mocked(AwardsRepository.updateByYear).mockResolvedValue(undefined);
-
-    const event = makeEvent({
-      path: "/api/club/1/awards/2024/nomination",
-      httpMethod: "POST",
-      body: JSON.stringify({
-        awardTitle: "Best Picture",
-        movieId: 550,
-        nominatedBy: "user-1",
-      }),
-    });
-
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(200);
-    expect(AwardsRepository.updateByYear).toHaveBeenCalledWith("1", 2024, expect.any(Function));
-  });
-
-  it("adds to nominatedBy when movie is already nominated", async () => {
-    setupClubAndYear();
-    let capturedUpdater: ((data: typeof baseAwardsData) => typeof baseAwardsData) | undefined;
-    vi.mocked(AwardsRepository.updateByYear).mockImplementationOnce(
-      async (_clubId, _year, updater) => {
-        capturedUpdater = updater;
-      },
+  it("creates a nomination for a movie nobody has nominated yet", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub({ members: [{ userId: alice.userId }] });
+    await createAwards(
+      club.id,
+      YEAR,
+      awardsData({ awards: [{ title: "Best Picture", nominations: [] }] }),
     );
 
-    const event = makeEvent({
-      path: "/api/club/1/awards/2024/nomination",
-      httpMethod: "POST",
-      body: JSON.stringify({
-        awardTitle: "Best Picture",
-        movieId: 27205, // already in baseAwardsData
-        nominatedBy: "user-2",
-      }),
+    const res = await api.post(`/api/club/${club.slug}/awards/${YEAR}/nomination`, {
+      body: { awardTitle: "Best Picture", movieId: 27, nominatedBy: alice.userId },
+      as: alice,
     });
 
-    assertResponse(await handler(event, stubContext));
-
-    // Invoke the captured updater to verify data transformation
-    const result = capturedUpdater?.(baseAwardsData);
-    const bestPicture = result?.awards.find((a) => a.title === "Best Picture");
-    const nomination = bestPicture?.nominations.find((n) => n.movieId === 27205);
-    expect(nomination?.nominatedBy).toContain("user-2");
+    expect(res.statusCode).toBe(200);
+    const stored = await storedAwards(club.id);
+    expect(stored.awards[0].nominations).toEqual([
+      { movieId: 27, nominatedBy: [alice.userId], ranking: {} },
+    ]);
   });
 
-  it("creates new nomination when movie not yet nominated", async () => {
-    setupClubAndYear();
-    let capturedUpdater: ((data: typeof baseAwardsData) => typeof baseAwardsData) | undefined;
-    vi.mocked(AwardsRepository.updateByYear).mockImplementationOnce(
-      async (_clubId, _year, updater) => {
-        capturedUpdater = updater;
-      },
+  it("adds a second nominator to an existing nomination", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub({ members: [{ userId: alice.userId }] });
+    await createAwards(
+      club.id,
+      YEAR,
+      awardsData({
+        awards: [
+          {
+            title: "Best Picture",
+            nominations: [{ movieId: 27, nominatedBy: ["99"], ranking: {} }],
+          },
+        ],
+      }),
     );
 
-    const event = makeEvent({
-      path: "/api/club/1/awards/2024/nomination",
-      httpMethod: "POST",
-      body: JSON.stringify({
-        awardTitle: "Best Picture",
-        movieId: 999,
-        nominatedBy: "user-1",
+    await api.post(`/api/club/${club.slug}/awards/${YEAR}/nomination`, {
+      body: { awardTitle: "Best Picture", movieId: 27, nominatedBy: alice.userId },
+      as: alice,
+    });
+
+    const stored = await storedAwards(club.id);
+    expect(stored.awards[0].nominations).toEqual([
+      { movieId: 27, nominatedBy: ["99", alice.userId], ranking: {} },
+    ]);
+  });
+
+  it("leaves other categories untouched", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub({ members: [{ userId: alice.userId }] });
+    await createAwards(
+      club.id,
+      YEAR,
+      awardsData({
+        awards: [
+          { title: "Best Picture", nominations: [] },
+          { title: "Best Score", nominations: [] },
+        ],
       }),
+    );
+
+    await api.post(`/api/club/${club.slug}/awards/${YEAR}/nomination`, {
+      body: { awardTitle: "Best Picture", movieId: 27, nominatedBy: alice.userId },
+      as: alice,
     });
 
-    assertResponse(await handler(event, stubContext));
-
-    const result = capturedUpdater?.(baseAwardsData);
-    const bestPicture = result?.awards.find((a) => a.title === "Best Picture");
-    expect(bestPicture?.nominations).toHaveLength(2);
-    const newNomination = bestPicture?.nominations.find((n) => n.movieId === 999);
-    expect(newNomination?.nominatedBy).toEqual(["user-1"]);
-    expect(newNomination?.ranking).toEqual({});
+    const stored = await storedAwards(club.id);
+    expect(stored.awards[1].nominations).toEqual([]);
   });
 
-  it("returns 400 when body is missing", async () => {
-    setupClubAndYear();
+  it.each([
+    ["no body", undefined],
+    [
+      "a movieId that is not a number",
+      { awardTitle: "Best Picture", movieId: "27", nominatedBy: "1" },
+    ],
+  ])("returns 400 with %s", async (_label, body) => {
+    const alice = await signIn("alice");
+    const club = await createClub({ members: [{ userId: alice.userId }] });
+    await createAwards(club.id, YEAR, awardsData());
 
-    const event = makeEvent({
-      path: "/api/club/1/awards/2024/nomination",
-      httpMethod: "POST",
-      body: null,
+    const res = await api.post(`/api/club/${club.slug}/awards/${YEAR}/nomination`, {
+      body,
+      as: alice,
     });
 
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(400);
-  });
-
-  it("returns 400 when body schema is invalid", async () => {
-    setupClubAndYear();
-
-    const event = makeEvent({
-      path: "/api/club/1/awards/2024/nomination",
-      httpMethod: "POST",
-      body: JSON.stringify({ awardTitle: "Best Picture" }), // missing movieId
-    });
-
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(400);
+    expect(res.statusCode).toBe(400);
   });
 });
-
-// ─── DELETE /:year/nomination/:movieId ────────────────────────────────────────
 
 describe("DELETE /api/club/:clubSlug/awards/:year/nomination/:movieId", () => {
-  it("returns 200 when nomination is removed", async () => {
-    setupClubAndYear();
-    vi.mocked(AwardsRepository.updateByYear).mockResolvedValue(undefined);
-
-    const event = makeEvent({
-      path: "/api/club/1/awards/2024/nomination/27205",
-      httpMethod: "DELETE",
-      queryStringParameters: {
-        awardTitle: "Best Picture",
-        userId: "user-1",
-      },
-    });
-
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(200);
-  });
-
-  it("removes user from nominatedBy and filters empty nominations", async () => {
-    setupClubAndYear();
-    let capturedUpdater: ((data: typeof baseAwardsData) => typeof baseAwardsData) | undefined;
-    vi.mocked(AwardsRepository.updateByYear).mockImplementationOnce(
-      async (_clubId, _year, updater) => {
-        capturedUpdater = updater;
-      },
+  it("drops the user from nominatedBy but keeps the nomination for the others", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub({ members: [{ userId: alice.userId }] });
+    await createAwards(
+      club.id,
+      YEAR,
+      awardsData({
+        awards: [
+          {
+            title: "Best Picture",
+            nominations: [{ movieId: 27, nominatedBy: [alice.userId, "99"], ranking: {} }],
+          },
+        ],
+      }),
     );
 
-    const event = makeEvent({
-      path: "/api/club/1/awards/2024/nomination/27205",
-      httpMethod: "DELETE",
-      queryStringParameters: {
-        awardTitle: "Best Picture",
-        userId: "user-1",
-      },
+    const res = await api.delete(`/api/club/${club.slug}/awards/${YEAR}/nomination/27`, {
+      query: { awardTitle: "Best Picture", userId: alice.userId },
+      as: alice,
     });
 
-    assertResponse(await handler(event, stubContext));
-
-    // user-1 is the only nominator; removing should eliminate the nomination
-    const result = capturedUpdater?.(baseAwardsData);
-    const bestPicture = result?.awards.find((a) => a.title === "Best Picture");
-    expect(bestPicture?.nominations).toHaveLength(0);
+    expect(res.statusCode).toBe(200);
+    const stored = await storedAwards(club.id);
+    expect(stored.awards[0].nominations).toEqual([
+      { movieId: 27, nominatedBy: ["99"], ranking: {} },
+    ]);
   });
 
-  it("returns 400 when awardTitle query param is missing", async () => {
-    setupClubAndYear();
+  it("removes the nomination entirely once its last nominator leaves", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub({ members: [{ userId: alice.userId }] });
+    await createAwards(
+      club.id,
+      YEAR,
+      awardsData({
+        awards: [
+          {
+            title: "Best Picture",
+            nominations: [{ movieId: 27, nominatedBy: [alice.userId], ranking: {} }],
+          },
+        ],
+      }),
+    );
 
-    const event = makeEvent({
-      path: "/api/club/1/awards/2024/nomination/27205",
-      httpMethod: "DELETE",
-      queryStringParameters: { userId: "user-1" },
+    await api.delete(`/api/club/${club.slug}/awards/${YEAR}/nomination/27`, {
+      query: { awardTitle: "Best Picture", userId: alice.userId },
+      as: alice,
     });
 
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(400);
+    const stored = await storedAwards(club.id);
+    expect(stored.awards[0].nominations).toEqual([]);
   });
 
-  it("returns 400 when userId query param is missing", async () => {
-    setupClubAndYear();
+  it.each([
+    ["awardTitle", { userId: "1" }],
+    ["userId", { awardTitle: "Best Picture" }],
+  ])("returns 400 when the %s query parameter is missing", async (_label, query) => {
+    const alice = await signIn("alice");
+    const club = await createClub({ members: [{ userId: alice.userId }] });
+    await createAwards(club.id, YEAR, awardsData());
 
-    const event = makeEvent({
-      path: "/api/club/1/awards/2024/nomination/27205",
-      httpMethod: "DELETE",
-      queryStringParameters: { awardTitle: "Best Picture" },
+    const res = await api.delete(`/api/club/${club.slug}/awards/${YEAR}/nomination/27`, {
+      query,
+      as: alice,
     });
 
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(400);
+    expect(res.statusCode).toBe(400);
   });
 });
-
-// ─── POST /:year/ranking ──────────────────────────────────────────────────────
 
 describe("POST /api/club/:clubSlug/awards/:year/ranking", () => {
-  it("returns 200 when ranking is submitted", async () => {
-    setupClubAndYear();
-    vi.mocked(AwardsRepository.updateByYear).mockResolvedValue(undefined);
-
-    const event = makeEvent({
-      path: "/api/club/1/awards/2024/ranking",
-      httpMethod: "POST",
-      body: JSON.stringify({
-        awardTitle: "Best Picture",
-        movies: [27205, 550],
-        voter: "user-1",
+  it("records the voter's ranking as the position of each movie", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub({ members: [{ userId: alice.userId }] });
+    await createAwards(
+      club.id,
+      YEAR,
+      awardsData({
+        awards: [
+          {
+            title: "Best Picture",
+            nominations: [
+              { movieId: 1, nominatedBy: ["9"], ranking: {} },
+              { movieId: 2, nominatedBy: ["9"], ranking: {} },
+              { movieId: 3, nominatedBy: ["9"], ranking: {} },
+            ],
+          },
+        ],
       }),
-    });
-
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(200);
-    expect(AwardsRepository.updateByYear).toHaveBeenCalledWith("1", 2024, expect.any(Function));
-  });
-
-  it("records voter ranking by position index", async () => {
-    setupClubAndYear();
-    let capturedUpdater: ((data: typeof baseAwardsData) => typeof baseAwardsData) | undefined;
-    vi.mocked(AwardsRepository.updateByYear).mockImplementationOnce(
-      async (_clubId, _year, updater) => {
-        capturedUpdater = updater;
-      },
     );
 
-    const event = makeEvent({
-      path: "/api/club/1/awards/2024/ranking",
-      httpMethod: "POST",
-      body: JSON.stringify({
-        awardTitle: "Best Picture",
-        movies: [27205],
-        voter: "user-1",
+    const res = await api.post(`/api/club/${club.slug}/awards/${YEAR}/ranking`, {
+      body: { awardTitle: "Best Picture", movies: [3, 1], voter: alice.userId },
+      as: alice,
+    });
+
+    expect(res.statusCode).toBe(200);
+    const stored = await storedAwards(club.id);
+    expect(stored.awards[0].nominations.map((nomination) => nomination.ranking)).toEqual([
+      { [alice.userId]: 2 },
+      {},
+      { [alice.userId]: 1 },
+    ]);
+  });
+
+  it("keeps other voters' rankings", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub({ members: [{ userId: alice.userId }] });
+    await createAwards(
+      club.id,
+      YEAR,
+      awardsData({
+        awards: [
+          {
+            title: "Best Picture",
+            nominations: [{ movieId: 1, nominatedBy: ["9"], ranking: { "9": 1 } }],
+          },
+        ],
       }),
+    );
+
+    await api.post(`/api/club/${club.slug}/awards/${YEAR}/ranking`, {
+      body: { awardTitle: "Best Picture", movies: [1], voter: alice.userId },
+      as: alice,
     });
 
-    assertResponse(await handler(event, stubContext));
-
-    const result = capturedUpdater?.(baseAwardsData);
-    const bestPicture = result?.awards.find((a) => a.title === "Best Picture");
-    const nomination = bestPicture?.nominations.find((n) => n.movieId === 27205);
-    expect(nomination?.ranking["user-1"]).toBe(1);
+    const stored = await storedAwards(club.id);
+    expect(stored.awards[0].nominations[0].ranking).toEqual({ "9": 1, [alice.userId]: 1 });
   });
 
-  it("returns 400 when body is missing", async () => {
-    setupClubAndYear();
+  it.each([
+    ["no body", undefined],
+    ["movies that are not numbers", { awardTitle: "Best Picture", movies: ["a"], voter: "1" }],
+  ])("returns 400 with %s", async (_label, body) => {
+    const alice = await signIn("alice");
+    const club = await createClub({ members: [{ userId: alice.userId }] });
+    await createAwards(club.id, YEAR, awardsData());
 
-    const event = makeEvent({
-      path: "/api/club/1/awards/2024/ranking",
-      httpMethod: "POST",
-      body: null,
+    const res = await api.post(`/api/club/${club.slug}/awards/${YEAR}/ranking`, {
+      body,
+      as: alice,
     });
 
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(400);
-  });
-
-  it("returns 400 when body schema is invalid", async () => {
-    setupClubAndYear();
-
-    const event = makeEvent({
-      path: "/api/club/1/awards/2024/ranking",
-      httpMethod: "POST",
-      body: JSON.stringify({ awardTitle: "Best Picture", voter: "user-1" }), // missing movies
-    });
-
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(400);
+    expect(res.statusCode).toBe(400);
   });
 });
 
-// ─── PUT /:year/step ──────────────────────────────────────────────────────────
-
 describe("PUT /api/club/:clubSlug/awards/:year/step", () => {
-  it("returns 200 when step is updated", async () => {
-    setupClubAndYear();
-    vi.mocked(AwardsRepository.updateByYear).mockResolvedValue(undefined);
+  it("advances the awards to the given step", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub({ members: [{ userId: alice.userId }] });
+    await createAwards(club.id, YEAR, awardsData({ step: AwardsStep.CategorySelect }));
 
-    const event = makeEvent({
-      path: "/api/club/1/awards/2024/step",
-      httpMethod: "PUT",
-      body: JSON.stringify({ step: AwardsStep.Ratings }),
+    const res = await api.put(`/api/club/${club.slug}/awards/${YEAR}/step`, {
+      body: { step: AwardsStep.Presentation },
+      as: alice,
     });
 
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(200);
-    expect(AwardsRepository.updateByYear).toHaveBeenCalledWith("1", 2024, expect.any(Function));
+    expect(res.statusCode).toBe(200);
+    const stored = await storedAwards(club.id);
+    expect(stored.step).toBe(AwardsStep.Presentation);
   });
 
-  it("persists the new step value in the updater", async () => {
-    setupClubAndYear();
-    let capturedUpdater: ((data: typeof baseAwardsData) => typeof baseAwardsData) | undefined;
-    vi.mocked(AwardsRepository.updateByYear).mockImplementationOnce(
-      async (_clubId, _year, updater) => {
-        capturedUpdater = updater;
-      },
-    );
+  it.each([
+    ["no body", undefined],
+    ["a step that is not a number", { step: "Presentation" }],
+  ])("returns 400 with %s", async (_label, body) => {
+    const alice = await signIn("alice");
+    const club = await createClub({ members: [{ userId: alice.userId }] });
+    await createAwards(club.id, YEAR, awardsData());
 
-    const event = makeEvent({
-      path: "/api/club/1/awards/2024/step",
-      httpMethod: "PUT",
-      body: JSON.stringify({ step: AwardsStep.Presentation }),
-    });
+    const res = await api.put(`/api/club/${club.slug}/awards/${YEAR}/step`, { body, as: alice });
 
-    assertResponse(await handler(event, stubContext));
-
-    const result = capturedUpdater?.(baseAwardsData);
-    expect(result?.step).toBe(AwardsStep.Presentation);
+    expect(res.statusCode).toBe(400);
   });
 
-  it("returns 400 when body is missing", async () => {
-    setupClubAndYear();
+  it("returns 401 for a non-member", async () => {
+    const bob = await signIn("bob");
+    const club = await createClub();
+    await createAwards(club.id, YEAR, awardsData());
 
-    const event = makeEvent({
-      path: "/api/club/1/awards/2024/step",
-      httpMethod: "PUT",
-      body: null,
+    const res = await api.put(`/api/club/${club.slug}/awards/${YEAR}/step`, {
+      body: { step: AwardsStep.Completed },
+      as: bob,
     });
 
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(400);
-  });
-
-  it("returns 400 when body schema is invalid (step must be number)", async () => {
-    setupClubAndYear();
-
-    const event = makeEvent({
-      path: "/api/club/1/awards/2024/step",
-      httpMethod: "PUT",
-      body: JSON.stringify({ step: "invalid" }),
-    });
-
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(400);
+    expect(res.statusCode).toBe(401);
   });
 });

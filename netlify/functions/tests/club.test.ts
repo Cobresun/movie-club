@@ -1,567 +1,480 @@
 /**
- * Tests for netlify/functions/club/index.ts
+ * Integration tests for `netlify/functions/club/index.ts`.
  *
- * Covers: GET /:clubSlug, POST /, PUT /:clubSlug/name, PUT /:clubSlug/slug,
- * GET|PUT|DELETE /:clubSlug/nextWork, and 404/405 routing.
- *
- * Auth (loggedIn / secured) and validClubSlug middleware are mocked so that
- * we can exercise the handlers in isolation.
+ * Every layer below the HTTP boundary is real: the router, `validClubSlug`,
+ * BetterAuth's `loggedIn` / `secured`, the repositories and CockroachDB. Only
+ * TMDB is faked, and that at the network level (MSW).
  */
-import { DeleteResult, InsertResult, UpdateResult } from "kysely";
-import { vi, describe, it, expect, beforeEach } from "vitest";
+import { describe, expect, it } from "vitest";
 
-import { ClubType } from "../../../lib/types/generated/db";
+import { ClubPreview } from "../../../lib/types/club";
+import { ClubType, WorkListSystemType, WorkType } from "../../../lib/types/generated/db";
+import { DetailedMovieData } from "../../../lib/types/movie";
 import { handler } from "../club/index";
-import ClubRepository from "../repositories/ClubRepository";
-import ListRepository from "../repositories/ListRepository";
-import SettingsRepository from "../repositories/SettingsRepository";
-import UserRepository from "../repositories/UserRepository";
-import WorkRepository from "../repositories/WorkRepository";
-import { assertResponse, makeEvent, parseBody, stubContext } from "./helpers";
+import { signIn } from "./helpers/auth";
+import { db } from "./helpers/database";
+import {
+  addToList,
+  cacheMovieDetails,
+  createClub,
+  createNextWork,
+  createUser,
+  createWork,
+} from "./helpers/factories";
+import { requester } from "./helpers/http";
+import { requestsTo } from "./setup/externalApis";
 
-// ─── Mock: auth ────────────────────────────────────────────────────────────
-// auth.ts instantiates BetterAuth at import time; mock the whole module so no
-// env-var assertions fire.  loggedIn / secured are replaced with pass-through
-// stubs that inject a userId so downstream handlers see an authenticated user.
-
-vi.mock("../utils/auth", () => {
-  return {
-    auth: { api: { getSession: vi.fn() } },
-    loggedIn: vi.fn(async (req: Record<string, unknown>) => ({
-      ...req,
-      userId: "user-1",
-    })),
-    secured: vi.fn(async (req: Record<string, unknown>) => ({
-      ...req,
-      userId: "user-1",
-    })),
-  };
-});
-
-// ─── Mock: database ─────────────────────────────────────────────────────────
-// club/index.ts calls db.insertInto("club_member").values(...).execute() directly,
-// so we need a fluent query-builder stub.
-const mockExecute = vi.fn().mockResolvedValue([]);
-const mockQueryBuilder = {
-  values: vi.fn().mockReturnThis(),
-  execute: mockExecute,
-};
-
-vi.mock("../utils/database", () => ({
-  db: {
-    insertInto: vi.fn(() => mockQueryBuilder),
-  },
-  pool: {},
-  dialect: {},
-  getDbUrl: vi.fn(),
-}));
-
-// ─── Mock: repositories ─────────────────────────────────────────────────────
-vi.mock("../repositories/ClubRepository", () => ({
-  default: {
-    getBySlug: vi.fn(),
-    getById: vi.fn(),
-    insert: vi.fn(),
-    updateName: vi.fn(),
-    updateSlug: vi.fn(),
-    slugExists: vi.fn(),
-    isUserInClub: vi.fn(),
-    getClubPreviewsByUserId: vi.fn(),
-    createClubInvite: vi.fn(),
-    joinClubWithInvite: vi.fn(),
-    getClubDetailsByInvite: vi.fn(),
-  },
-}));
-vi.mock("../repositories/ListRepository", () => ({
-  default: {
-    createListsForClub: vi.fn(),
-    getListsForClub: vi.fn(),
-    getReviewsListId: vi.fn(),
-    getListById: vi.fn(),
-    isItemInList: vi.fn(),
-    insertItemInList: vi.fn(),
-    deleteItemFromList: vi.fn(),
-    renameList: vi.fn(),
-    deleteList: vi.fn(),
-    createList: vi.fn(),
-    getListItems: vi.fn(),
-    reorderList: vi.fn(),
-    reorderLists: vi.fn(),
-    updateAddedDate: vi.fn(),
-    moveItem: vi.fn(),
-    getWorkDetails: vi.fn(),
-  },
-}));
-vi.mock("../repositories/SettingsRepository", () => ({
-  default: {
-    createDefaultSettings: vi.fn(),
-    getSettings: vi.fn(),
-    updateSettings: vi.fn(),
-  },
-}));
-vi.mock("../repositories/UserRepository", () => ({
-  default: {
-    getByEmail: vi.fn(),
-    getMembersByClubId: vi.fn(),
-    getUserById: vi.fn(),
-    removeClubMember: vi.fn(),
-    addClubMemberByUserId: vi.fn(),
-    updateImage: vi.fn(),
-    updateName: vi.fn(),
-  },
-}));
-vi.mock("../repositories/WorkRepository", () => ({
-  default: {
-    getNextWork: vi.fn(),
-    setNextWork: vi.fn(),
-    deleteNextWork: vi.fn(),
-    insert: vi.fn(),
-    delete: vi.fn(),
-  },
-}));
-vi.mock("../repositories/ReviewRepository", () => ({
-  default: {
-    getReviewList: vi.fn(),
-    insertReview: vi.fn(),
-    getById: vi.fn(),
-    updateScore: vi.fn(),
-    getReviewsByWorkId: vi.fn(),
-  },
-}));
-vi.mock("../repositories/WorkCommentRepository", () => ({
-  default: {
-    getByWorkAndClub: vi.fn(),
-    insert: vi.fn(),
-    getById: vi.fn(),
-    updateContent: vi.fn(),
-    deleteById: vi.fn(),
-  },
-}));
-vi.mock("../repositories/AwardsRepository", () => ({
-  default: {
-    getByYear: vi.fn(),
-    getYears: vi.fn(),
-  },
-}));
-
-vi.mock("../utils/tmdb", () => ({
-  getDetailedMovie: vi.fn(),
-  getDetailedWorks: vi.fn(),
-  getTMDBMovieData: vi.fn(),
-}));
-
-vi.mock("../utils/gemini", () => ({
-  generateDiscussionQuestions: vi.fn(),
-}));
-
-vi.mock("../services/SharedReviewService", () => ({
-  default: {
-    getSharedReviewData: vi.fn(),
-  },
-}));
-
-// Import the mocked modules for assertions
-
-// Import handler AFTER all mocks are set up
-
-// ─── Shared fixtures ─────────────────────────────────────────────────────────
-
-const mockClub = {
-  id: "club-1",
-  name: "Test Club",
-  slug: "test-club",
-  type: ClubType.movie,
-  slug_updated_at: null,
-};
-
-function setupClub() {
-  vi.mocked(ClubRepository.getBySlug).mockResolvedValue(mockClub);
-  vi.mocked(ClubRepository.getById).mockResolvedValue(mockClub);
-  vi.mocked(ClubRepository.isUserInClub).mockResolvedValue(true);
-}
-
-beforeEach(() => {
-  vi.clearAllMocks();
-});
-
-// ─── GET /:clubSlug ──────────────────────────────────────────────────────────
+const api = requester(handler);
 
 describe("GET /api/club/:clubSlug", () => {
-  it("returns 200 with club preview when club exists", async () => {
-    setupClub();
+  it("returns the club preview", async () => {
+    const club = await createClub({ name: "Film Buffs", slug: "film-buffs" });
 
-    const event = makeEvent({
-      path: "/api/club/test-club",
-      httpMethod: "GET",
+    const res = await api.get<ClubPreview>("/api/club/film-buffs");
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toEqual({
+      clubId: club.id,
+      clubName: "Film Buffs",
+      slug: "film-buffs",
+      type: ClubType.movie,
     });
-
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(200);
-    const body = parseBody<{ clubId: string; clubName: string; slug: string }>(response.body);
-    expect(body.clubId).toBe("club-1");
-    expect(body.clubName).toBe("Test Club");
-    expect(body.slug).toBe("test-club");
   });
 
-  it("returns 404 when club slug is not found", async () => {
-    vi.mocked(ClubRepository.getBySlug).mockResolvedValue(undefined);
+  it("reports the club type for a book club", async () => {
+    await createClub({ slug: "page-turners", type: ClubType.book });
 
-    const event = makeEvent({
-      path: "/api/club/unknown-club",
-      httpMethod: "GET",
-    });
+    const res = await api.get<ClubPreview>("/api/club/page-turners");
 
-    const response = assertResponse(await handler(event, stubContext));
+    expect(res.body.type).toBe(ClubType.book);
+  });
 
-    expect(response.statusCode).toBe(404);
+  it("returns 404 for an unknown slug", async () => {
+    const res = await api.get("/api/club/nobody-here");
+
+    expect(res.statusCode).toBe(404);
+  });
+
+  it("returns 405 for a method the route does not define", async () => {
+    const club = await createClub();
+
+    const res = await api.post(`/api/club/${club.slug}`);
+
+    expect(res.statusCode).toBe(405);
   });
 });
 
-// ─── POST / (create club) ────────────────────────────────────────────────────
+describe("POST /api/club", () => {
+  it("creates a club with a slug derived from its name", async () => {
+    const alice = await signIn("alice");
 
-describe("POST /api/club/", () => {
-  it("returns 200 with clubId and slug when club is created successfully", async () => {
-    vi.mocked(ClubRepository.insert).mockResolvedValue({
-      id: "new-club-1",
-      slug: "new-club",
+    const res = await api.post<{ clubId: string; slug: string }>("/api/club", {
+      body: { name: "The Late Night Crew", members: [] },
+      as: alice,
     });
-    vi.mocked(ListRepository.createListsForClub).mockResolvedValue([
-      new InsertResult(undefined, 1n),
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.slug).toBe("the-late-night-crew");
+
+    const club = await db
+      .selectFrom("club")
+      .selectAll()
+      .where("id", "=", res.body.clubId)
+      .executeTakeFirstOrThrow();
+    expect(club.name).toBe("The Late Night Crew");
+    // Left null on creation so a brand-new club can still change its URL.
+    expect(club.slug_updated_at).toBeNull();
+  });
+
+  it("gives the new club a default user list and a reviews system list", async () => {
+    const alice = await signIn("alice");
+
+    const res = await api.post<{ clubId: string }>("/api/club", {
+      body: { name: "List Club", members: [] },
+      as: alice,
+    });
+
+    const lists = await db
+      .selectFrom("work_list")
+      .select(["title", "system_type"])
+      .where("club_id", "=", res.body.clubId)
+      .orderBy("position", "asc")
+      .execute();
+
+    expect(lists).toEqual([
+      { title: "Watch List", system_type: null },
+      { title: "Reviews", system_type: WorkListSystemType.reviews },
     ]);
-    vi.mocked(SettingsRepository.createDefaultSettings).mockResolvedValue(undefined);
-    vi.mocked(UserRepository.getByEmail).mockResolvedValue({
-      id: "user-1",
-      email: "user@example.com",
-      name: "User",
-      image: null,
-      image_id: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      emailVerified: true,
-    });
-
-    const event = makeEvent({
-      path: "/api/club/",
-      httpMethod: "POST",
-      body: JSON.stringify({ name: "New Club", members: ["user@example.com"] }),
-    });
-
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(200);
-    const body = parseBody<{ clubId: string; slug: string }>(response.body);
-    expect(body.clubId).toBe("new-club-1");
-    expect(body.slug).toBe("new-club");
   });
 
-  it("returns 400 when body is missing", async () => {
-    const event = makeEvent({
-      path: "/api/club/",
-      httpMethod: "POST",
-      body: null,
+  it("names the default list for the club's media type", async () => {
+    const alice = await signIn("alice");
+
+    const res = await api.post<{ clubId: string }>("/api/club", {
+      body: { name: "Book Club", members: [], type: ClubType.book },
+      as: alice,
     });
 
-    const response = assertResponse(await handler(event, stubContext));
+    const list = await db
+      .selectFrom("work_list")
+      .select("title")
+      .where("club_id", "=", res.body.clubId)
+      .where("system_type", "is", null)
+      .executeTakeFirstOrThrow();
 
-    expect(response.statusCode).toBe(400);
+    expect(list.title).toBe("Reading List");
   });
 
-  it("returns 400 when body is invalid JSON schema", async () => {
-    const event = makeEvent({
-      path: "/api/club/",
-      httpMethod: "POST",
-      body: JSON.stringify({ invalid: "data" }),
+  it("seeds default settings with every feature off", async () => {
+    const alice = await signIn("alice");
+
+    const res = await api.post<{ clubId: string }>("/api/club", {
+      body: { name: "Settings Club", members: [] },
+      as: alice,
     });
 
-    const response = assertResponse(await handler(event, stubContext));
+    const settings = await db
+      .selectFrom("club_settings")
+      .select("value")
+      .where("club_id", "=", res.body.clubId)
+      .where("key", "=", "features")
+      .executeTakeFirstOrThrow();
 
-    expect(response.statusCode).toBe(400);
+    expect(settings.value).toEqual({ features: { awards: false, discussionQuestions: false } });
   });
 
-  it("returns 401 when user is not authenticated", async () => {
-    // Override loggedIn to return 401 for this test
-    const { loggedIn } = await import("../utils/auth");
-    vi.mocked(loggedIn).mockImplementationOnce(async (_req, res) =>
-      res({ statusCode: 401, body: "" }),
-    );
+  it("adds the listed members, making the first one an admin", async () => {
+    const alice = await signIn("alice");
+    const second = await createUser({ name: "Second" });
 
-    const event = makeEvent({
-      path: "/api/club/",
-      httpMethod: "POST",
-      body: JSON.stringify({ name: "Club", members: [] }),
+    const res = await api.post<{ clubId: string }>("/api/club", {
+      body: { name: "Crew", members: [alice.email, second.email] },
+      as: alice,
     });
 
-    const response = assertResponse(await handler(event, stubContext));
+    const members = await db
+      .selectFrom("club_member")
+      .innerJoin("user", "user.id", "club_member.user_id")
+      .select(["user.name", "club_member.role"])
+      .where("club_member.club_id", "=", res.body.clubId)
+      .orderBy("club_member.role", "asc")
+      .execute();
 
-    expect(response.statusCode).toBe(401);
+    expect(members).toEqual([
+      { name: "Alice", role: "admin" },
+      { name: "Second", role: "member" },
+    ]);
   });
 
-  it("returns 400 when ClubRepository.insert returns undefined", async () => {
-    vi.mocked(ClubRepository.insert).mockResolvedValue(undefined);
+  it("appends a suffix when the derived slug is taken", async () => {
+    const alice = await signIn("alice");
+    await createClub({ name: "Duplicate", slug: "duplicate" });
 
-    const event = makeEvent({
-      path: "/api/club/",
-      httpMethod: "POST",
-      body: JSON.stringify({ name: "New Club", members: [] }),
+    const res = await api.post<{ slug: string }>("/api/club", {
+      body: { name: "Duplicate", members: [] },
+      as: alice,
     });
 
-    const response = assertResponse(await handler(event, stubContext));
+    expect(res.body.slug).not.toBe("duplicate");
+    expect(res.body.slug).toMatch(/^duplicate-[0-9a-f]{6}$/);
+  });
 
-    expect(response.statusCode).toBe(400);
+  it("reports failure but still creates the club when a member email is unknown", async () => {
+    const alice = await signIn("alice");
+
+    const res = await api.post("/api/club", {
+      body: { name: "Ghost Club", members: ["nobody@movie.club"] },
+      as: alice,
+    });
+
+    expect(res.statusCode).toBe(400);
+    const club = await db
+      .selectFrom("club")
+      .select("id")
+      .where("name", "=", "Ghost Club")
+      .executeTakeFirst();
+    expect(club).toBeDefined();
+  });
+
+  it("returns 401 when the request has no session", async () => {
+    const res = await api.post("/api/club", { body: { name: "Anon Club", members: [] } });
+
+    expect(res.statusCode).toBe(401);
+  });
+
+  it("returns 401 when the session cookie is not a real session", async () => {
+    const res = await api.post("/api/club", {
+      body: { name: "Forged", members: [] },
+      headers: { cookie: "better-auth.session_token=not-a-real-token" },
+    });
+
+    expect(res.statusCode).toBe(401);
+  });
+
+  it("returns 400 without a body", async () => {
+    const alice = await signIn("alice");
+
+    const res = await api.post("/api/club", { as: alice });
+
+    expect(res.statusCode).toBe(400);
+  });
+
+  it("returns 400 when the body does not match the schema", async () => {
+    const alice = await signIn("alice");
+
+    const res = await api.post("/api/club", { body: { invalid: "data" }, as: alice });
+
+    expect(res.statusCode).toBe(400);
   });
 });
-
-// ─── PUT /:clubSlug/name ─────────────────────────────────────────────────────
 
 describe("PUT /api/club/:clubSlug/name", () => {
-  it("returns 200 when name is updated successfully", async () => {
-    setupClub();
-    vi.mocked(ClubRepository.updateName).mockResolvedValue(new UpdateResult(0n, undefined));
+  it("renames the club", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub({ name: "Old Name", members: [{ userId: alice.userId }] });
 
-    const event = makeEvent({
-      path: "/api/club/test-club/name",
-      httpMethod: "PUT",
-      body: JSON.stringify({ name: "Updated Club Name" }),
+    const res = await api.put(`/api/club/${club.slug}/name`, {
+      body: { name: "New Name" },
+      as: alice,
     });
 
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(200);
-    expect(ClubRepository.updateName).toHaveBeenCalledWith("club-1", "Updated Club Name");
+    expect(res.statusCode).toBe(200);
+    const row = await db
+      .selectFrom("club")
+      .select("name")
+      .where("id", "=", club.id)
+      .executeTakeFirstOrThrow();
+    expect(row.name).toBe("New Name");
   });
 
-  it("returns 400 when body is missing", async () => {
-    setupClub();
+  it("returns 401 for a signed-in user who is not a member", async () => {
+    const bob = await signIn("bob");
+    const club = await createClub({ name: "Members Only" });
 
-    const event = makeEvent({
-      path: "/api/club/test-club/name",
-      httpMethod: "PUT",
-      body: null,
-    });
+    const res = await api.put(`/api/club/${club.slug}/name`, { body: { name: "Hi" }, as: bob });
 
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(400);
+    expect(res.statusCode).toBe(401);
+    const row = await db
+      .selectFrom("club")
+      .select("name")
+      .where("id", "=", club.id)
+      .executeTakeFirstOrThrow();
+    expect(row.name).toBe("Members Only");
   });
 
-  it("returns 400 when name fails schema validation", async () => {
-    setupClub();
+  it("returns 400 for an empty name", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub({ members: [{ userId: alice.userId }] });
 
-    const event = makeEvent({
-      path: "/api/club/test-club/name",
-      httpMethod: "PUT",
-      body: JSON.stringify({ name: "" }),
-    });
+    const res = await api.put(`/api/club/${club.slug}/name`, { body: { name: "" }, as: alice });
 
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(400);
+    expect(res.statusCode).toBe(400);
   });
 
-  it("returns 401 when user is not authenticated", async () => {
-    setupClub();
-    const { secured } = await import("../utils/auth");
-    vi.mocked(secured).mockImplementationOnce(async (_req, res) =>
-      res({ statusCode: 401, body: "" }),
-    );
+  it("returns 400 without a body", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub({ members: [{ userId: alice.userId }] });
 
-    const event = makeEvent({
-      path: "/api/club/test-club/name",
-      httpMethod: "PUT",
-      body: JSON.stringify({ name: "Name" }),
-    });
+    const res = await api.put(`/api/club/${club.slug}/name`, { as: alice });
 
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(401);
+    expect(res.statusCode).toBe(400);
   });
 });
-
-// ─── PUT /:clubSlug/slug ─────────────────────────────────────────────────────
 
 describe("PUT /api/club/:clubSlug/slug", () => {
-  it("returns 200 with new slug when slug is updated successfully", async () => {
-    setupClub();
-    vi.mocked(ClubRepository.slugExists).mockResolvedValue(false);
-    vi.mocked(ClubRepository.updateSlug).mockResolvedValue(undefined);
+  it("changes the slug and stamps slug_updated_at", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub({ slug: "old-slug", members: [{ userId: alice.userId }] });
 
-    const event = makeEvent({
-      path: "/api/club/test-club/slug",
-      httpMethod: "PUT",
-      body: JSON.stringify({ slug: "new-slug" }),
+    const res = await api.put<{ slug: string }>(`/api/club/${club.slug}/slug`, {
+      body: { slug: "new-slug" },
+      as: alice,
     });
 
-    const response = assertResponse(await handler(event, stubContext));
+    expect(res.statusCode).toBe(200);
+    expect(res.body.slug).toBe("new-slug");
 
-    expect(response.statusCode).toBe(200);
-    const body = parseBody<{ slug: string }>(response.body);
-    expect(body.slug).toBe("new-slug");
+    const row = await db
+      .selectFrom("club")
+      .select(["slug", "slug_updated_at"])
+      .where("id", "=", club.id)
+      .executeTakeFirstOrThrow();
+    expect(row.slug).toBe("new-slug");
+    expect(row.slug_updated_at).toBeInstanceOf(Date);
+
+    // The club is reachable under its new URL, and not the old one.
+    expect((await api.get("/api/club/new-slug")).statusCode).toBe(200);
+    expect((await api.get("/api/club/old-slug")).statusCode).toBe(404);
   });
 
-  it("returns 400 when slug is already taken by another club", async () => {
-    setupClub();
-    vi.mocked(ClubRepository.slugExists).mockResolvedValue(true);
+  it("returns 400 when another club already uses the slug", async () => {
+    const alice = await signIn("alice");
+    await createClub({ slug: "taken-slug" });
+    const club = await createClub({ slug: "my-slug", members: [{ userId: alice.userId }] });
 
-    const event = makeEvent({
-      path: "/api/club/test-club/slug",
-      httpMethod: "PUT",
-      body: JSON.stringify({ slug: "taken-slug" }),
+    const res = await api.put<{ error: string }>(`/api/club/${club.slug}/slug`, {
+      body: { slug: "taken-slug" },
+      as: alice,
     });
 
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(400);
+    expect(res.statusCode).toBe(400);
+    expect(res.body.error).toBe("This url is already in use by another club");
   });
 
-  it("returns 400 when body is missing", async () => {
-    setupClub();
+  it("allows a club to re-save its own slug", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub({ slug: "same-slug", members: [{ userId: alice.userId }] });
 
-    const event = makeEvent({
-      path: "/api/club/test-club/slug",
-      httpMethod: "PUT",
-      body: null,
+    const res = await api.put(`/api/club/${club.slug}/slug`, {
+      body: { slug: "same-slug" },
+      as: alice,
     });
 
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(400);
+    expect(res.statusCode).toBe(200);
   });
 
-  it("returns 400 when slug contains invalid characters", async () => {
-    setupClub();
+  it.each([
+    ["uppercase and spaces", "INVALID SLUG"],
+    ["a leading hyphen", "-leading"],
+    ["fewer than three characters", "ab"],
+    ["a reserved word", "settings"],
+  ])("returns 400 for a slug with %s", async (_label, slug) => {
+    const alice = await signIn("alice");
+    const club = await createClub({ members: [{ userId: alice.userId }] });
 
-    const event = makeEvent({
-      path: "/api/club/test-club/slug",
-      httpMethod: "PUT",
-      body: JSON.stringify({ slug: "INVALID SLUG WITH SPACES!" }),
-    });
+    const res = await api.put(`/api/club/${club.slug}/slug`, { body: { slug }, as: alice });
 
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(400);
-  });
-});
-
-// ─── GET /:clubSlug/nextWork ──────────────────────────────────────────────────
-
-describe("GET /api/club/:clubSlug/nextWork", () => {
-  it("returns 200 with workId when next work exists", async () => {
-    setupClub();
-    vi.mocked(WorkRepository.getNextWork).mockResolvedValue({
-      work_id: "work-123",
-    });
-
-    const event = makeEvent({
-      path: "/api/club/test-club/nextWork",
-      httpMethod: "GET",
-    });
-
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(200);
-    const body = parseBody<{ workId: string }>(response.body);
-    expect(body.workId).toBe("work-123");
+    expect(res.statusCode).toBe(400);
   });
 
-  it("returns 200 with undefined workId when no next work", async () => {
-    setupClub();
-    vi.mocked(WorkRepository.getNextWork).mockResolvedValue(undefined);
+  it("returns 401 for a non-member", async () => {
+    const bob = await signIn("bob");
+    const club = await createClub({ slug: "not-yours" });
 
-    const event = makeEvent({
-      path: "/api/club/test-club/nextWork",
-      httpMethod: "GET",
-    });
+    const res = await api.put(`/api/club/${club.slug}/slug`, { body: { slug: "mine" }, as: bob });
 
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(200);
-    const body = parseBody<{ workId: undefined }>(response.body);
-    expect(body.workId).toBeUndefined();
+    expect(res.statusCode).toBe(401);
   });
 });
 
-// ─── PUT /:clubSlug/nextWork ──────────────────────────────────────────────────
+describe("/api/club/:clubSlug/nextWork", () => {
+  it("returns the club's next work", async () => {
+    const club = await createClub();
+    const work = await createWork(club.id, { title: "Up Next" });
+    await createNextWork(club.id, work.id);
 
-describe("PUT /api/club/:clubSlug/nextWork", () => {
-  it("returns 200 when next work is set", async () => {
-    setupClub();
-    vi.mocked(WorkRepository.deleteNextWork).mockResolvedValue([new DeleteResult(0n)]);
-    vi.mocked(WorkRepository.setNextWork).mockResolvedValue([new InsertResult(undefined, 1n)]);
+    const res = await api.get<{ workId: string }>(`/api/club/${club.slug}/nextWork`);
 
-    const event = makeEvent({
-      path: "/api/club/test-club/nextWork",
-      httpMethod: "PUT",
-      body: JSON.stringify({ workId: "work-456" }),
-    });
-
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(200);
-    expect(WorkRepository.deleteNextWork).toHaveBeenCalledWith("club-1");
-    expect(WorkRepository.setNextWork).toHaveBeenCalledWith("club-1", "work-456");
+    expect(res.statusCode).toBe(200);
+    expect(res.body.workId).toBe(work.id);
   });
 
-  it("returns 400 when body is missing", async () => {
-    setupClub();
+  it("returns an empty payload when nothing is queued", async () => {
+    const club = await createClub();
 
-    const event = makeEvent({
-      path: "/api/club/test-club/nextWork",
-      httpMethod: "PUT",
-      body: null,
+    const res = await api.get<{ workId?: string }>(`/api/club/${club.slug}/nextWork`);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.workId).toBeUndefined();
+  });
+
+  it("replaces the previous next work rather than adding a second one", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub({ members: [{ userId: alice.userId }] });
+    const first = await createWork(club.id);
+    const second = await createWork(club.id);
+    await createNextWork(club.id, first.id);
+
+    const res = await api.put(`/api/club/${club.slug}/nextWork`, {
+      body: { workId: second.id },
+      as: alice,
     });
 
-    const response = assertResponse(await handler(event, stubContext));
+    expect(res.statusCode).toBe(200);
+    const rows = await db
+      .selectFrom("next_work")
+      .select("work_id")
+      .where("club_id", "=", club.id)
+      .execute();
+    expect(rows).toEqual([{ work_id: second.id }]);
+  });
 
-    expect(response.statusCode).toBe(400);
+  it("clears the next work", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub({ members: [{ userId: alice.userId }] });
+    const work = await createWork(club.id);
+    await createNextWork(club.id, work.id);
+
+    const res = await api.delete(`/api/club/${club.slug}/nextWork`, { as: alice });
+
+    expect(res.statusCode).toBe(200);
+    const after = await api.get<{ workId?: string }>(`/api/club/${club.slug}/nextWork`);
+    expect(after.body.workId).toBeUndefined();
+  });
+
+  it("returns 401 when a non-member sets the next work", async () => {
+    const bob = await signIn("bob");
+    const club = await createClub();
+    const work = await createWork(club.id);
+
+    const res = await api.put(`/api/club/${club.slug}/nextWork`, {
+      body: { workId: work.id },
+      as: bob,
+    });
+
+    expect(res.statusCode).toBe(401);
+  });
+
+  it("returns 400 without a body", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub({ members: [{ userId: alice.userId }] });
+
+    const res = await api.put(`/api/club/${club.slug}/nextWork`, { as: alice });
+
+    expect(res.statusCode).toBe(400);
   });
 });
 
-// ─── DELETE /:clubSlug/nextWork ───────────────────────────────────────────────
+describe("GET /api/club/:clubSlug/work/:workId/details", () => {
+  it("returns the work's cached metadata including its full cast", async () => {
+    const club = await createClub();
+    await cacheMovieDetails("550");
+    const work = await createWork(club.id, { externalId: "550", title: "Fight Club" });
+    await addToList(club.listId, work.id);
 
-describe("DELETE /api/club/:clubSlug/nextWork", () => {
-  it("returns 200 when next work is deleted", async () => {
-    setupClub();
-    vi.mocked(WorkRepository.deleteNextWork).mockResolvedValue([new DeleteResult(0n)]);
+    const res = await api.get<DetailedMovieData>(`/api/club/${club.slug}/work/${work.id}/details`);
 
-    const event = makeEvent({
-      path: "/api/club/test-club/nextWork",
-      httpMethod: "DELETE",
-    });
-
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(200);
-    expect(WorkRepository.deleteNextWork).toHaveBeenCalledWith("club-1");
-  });
-});
-
-// ─── 404 / 405 routing ───────────────────────────────────────────────────────
-
-describe("routing: unknown paths and wrong methods", () => {
-  it("returns 404 for an unknown path", async () => {
-    const event = makeEvent({
-      path: "/api/club/non-existent-path/something",
-      httpMethod: "GET",
-    });
-
-    const response = assertResponse(await handler(event, stubContext));
-
-    // validClubSlug will 404 on an unknown slug
-    expect(response.statusCode).toBe(404);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.kind).toBe("movie");
+    expect(res.body.overview).toBe("Overview for movie 550");
+    expect(res.body.directors).toEqual([
+      { name: "Director 550", profilePath: "/director-550.jpg" },
+    ]);
+    expect(res.body.actors).toEqual([
+      { name: "Lead 550", character: "Hero 550", profilePath: "/lead-550.jpg" },
+      { name: "Support 550", character: "Sidekick 550", profilePath: null },
+    ]);
+    // Details come out of the cache — no TMDB round trip on read.
+    expect(requestsTo("api.themoviedb.org")).toHaveLength(0);
   });
 
-  it("returns 405 for wrong HTTP method on known route", async () => {
-    setupClub();
+  it("returns null for a work with no external id", async () => {
+    const club = await createClub();
+    const work = await createWork(club.id, { externalId: null });
 
-    const event = makeEvent({
-      path: "/api/club/test-club",
-      httpMethod: "POST",
-    });
+    const res = await api.get(`/api/club/${club.slug}/work/${work.id}/details`);
 
-    // GET /:clubSlug exists; POST does not
-    const response = assertResponse(await handler(event, stubContext));
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toBeNull();
+  });
 
-    expect(response.statusCode).toBe(405);
+  it("returns 404 for a work belonging to another club", async () => {
+    const club = await createClub();
+    const otherClub = await createClub();
+    const work = await createWork(otherClub.id, { type: WorkType.movie });
+
+    const res = await api.get(`/api/club/${club.slug}/work/${work.id}/details`);
+
+    expect(res.statusCode).toBe(404);
   });
 });

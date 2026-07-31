@@ -1,314 +1,249 @@
 /**
- * Tests for netlify/functions/member.ts
+ * Integration tests for `netlify/functions/member.ts` — the signed-in user's
+ * own profile: their clubs, display name and avatar.
  *
- * Covers: GET /clubs, PUT /name, DELETE /avatar, POST /avatar (thin wrapper
- * around multipart-parse — the success path is skipped; see rationale below).
+ * The avatar routes run the real Cloudinary SDK against an MSW-intercepted
+ * Cloudinary, so the multipart parsing and the upload/destroy calls are
+ * genuinely exercised.
  */
-import { UpdateResult } from "kysely";
-import { parse } from "lambda-multipart-parser";
-import { vi, describe, it, expect, beforeEach } from "vitest";
+import { http, HttpResponse } from "msw";
+import { describe, expect, it } from "vitest";
 
+import { ClubPreview } from "../../../lib/types/club";
 import { ClubType } from "../../../lib/types/generated/db";
 import { handler } from "../member";
-import ClubRepository from "../repositories/ClubRepository";
-import ImageRepository from "../repositories/ImageRepository";
-import UserRepository from "../repositories/UserRepository";
-import { assertResponse, makeEvent, parseBody, stubContext } from "./helpers";
+import { signIn } from "./helpers/auth";
+import { db } from "./helpers/database";
+import { createClub } from "./helpers/factories";
+import { makeEvent, requester } from "./helpers/http";
+import { requestsTo, server } from "./setup/externalApis";
 
-// ─── Mock: auth ──────────────────────────────────────────────────────────────
-vi.mock("./utils/auth", () => ({
-  auth: { api: { getSession: vi.fn() } },
-  loggedIn: vi.fn(async (req: Record<string, unknown>) => ({
-    ...req,
-    userId: "user-1",
-  })),
-  secured: vi.fn(async (req: Record<string, unknown>) => ({
-    ...req,
-    userId: "user-1",
-  })),
-}));
+const api = requester(handler);
 
-vi.mock("../utils/auth", () => ({
-  auth: { api: { getSession: vi.fn() } },
-  loggedIn: vi.fn(async (req: Record<string, unknown>) => ({
-    ...req,
-    userId: "user-1",
-  })),
-  secured: vi.fn(async (req: Record<string, unknown>) => ({
-    ...req,
-    userId: "user-1",
-  })),
-}));
+/** A minimal multipart/form-data body carrying one file field. */
+function multipartAvatar(filename = "avatar.png") {
+  const boundary = "----movieclubtestboundary";
+  const body = [
+    `--${boundary}`,
+    `Content-Disposition: form-data; name="file"; filename="${filename}"`,
+    "Content-Type: image/png",
+    "",
+    "pretend-png-bytes",
+    `--${boundary}--`,
+    "",
+  ].join("\r\n");
 
-// ─── Mock: database ──────────────────────────────────────────────────────────
-vi.mock("../utils/database", () => ({
-  db: {},
-  pool: {},
-  dialect: {},
-  getDbUrl: vi.fn(),
-}));
-
-// ─── Mock: repositories ──────────────────────────────────────────────────────
-vi.mock("../repositories/ClubRepository", () => ({
-  default: {
-    getClubPreviewsByUserId: vi.fn(),
-  },
-}));
-
-vi.mock("../repositories/UserRepository", () => ({
-  default: {
-    getUserById: vi.fn(),
-    updateImage: vi.fn(),
-    updateName: vi.fn(),
-  },
-}));
-
-vi.mock("../repositories/ImageRepository", () => ({
-  default: {
-    upload: vi.fn(),
-    destroy: vi.fn(),
-  },
-}));
-
-// lambda-multipart-parser is used in POST /avatar; mock it to control parse
-vi.mock("lambda-multipart-parser", () => ({
-  parse: vi.fn(),
-}));
-
-// ─── Shared fixtures ──────────────────────────────────────────────────────────
-
-beforeEach(() => {
-  vi.clearAllMocks();
-});
-
-// ─── GET /clubs ───────────────────────────────────────────────────────────────
+  return { boundary, body };
+}
 
 describe("GET /api/member/clubs", () => {
-  it("returns 200 with club previews for the authenticated user", async () => {
-    vi.mocked(ClubRepository.getClubPreviewsByUserId).mockResolvedValue([
-      {
-        club_id: "club-1",
-        club_name: "Test Club",
-        slug: "test-club",
-        type: ClubType.movie,
-        slug_updated_at: null,
-      },
-    ]);
-
-    const event = makeEvent({
-      path: "/api/member/clubs",
-      httpMethod: "GET",
+  it("returns a preview of every club the user belongs to", async () => {
+    const alice = await signIn("alice");
+    const movies = await createClub({
+      name: "Movie Night",
+      slug: "movie-night",
+      members: [{ userId: alice.userId }],
     });
+    await createClub({
+      name: "Books",
+      slug: "books-club",
+      type: ClubType.book,
+      members: [{ userId: alice.userId }],
+    });
+    await createClub({ name: "Not Mine", slug: "not-mine" });
 
-    const response = assertResponse(await handler(event, stubContext));
+    const res = await api.get<ClubPreview[]>("/api/member/clubs", { as: alice });
 
-    expect(response.statusCode).toBe(200);
-    const body = parseBody<Array<{ clubId: string; clubName: string; slug: string }>>(
-      response.body,
-    );
-    expect(body).toHaveLength(1);
-    expect(body[0].clubId).toBe("club-1");
-    expect(body[0].slug).toBe("test-club");
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toHaveLength(2);
+    expect(res.body).toContainEqual({
+      clubId: movies.id,
+      clubName: "Movie Night",
+      slug: "movie-night",
+      type: ClubType.movie,
+    });
+    expect(res.body.map((club) => club.clubName).sort()).toEqual(["Books", "Movie Night"]);
   });
 
-  it("returns 200 with empty array when user has no clubs", async () => {
-    vi.mocked(ClubRepository.getClubPreviewsByUserId).mockResolvedValue([]);
+  it("returns an empty list for a user in no clubs", async () => {
+    const bob = await signIn("bob");
 
-    const event = makeEvent({
-      path: "/api/member/clubs",
-      httpMethod: "GET",
-    });
+    const res = await api.get<ClubPreview[]>("/api/member/clubs", { as: bob });
 
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(200);
-    const body = parseBody<unknown[]>(response.body);
-    expect(body).toHaveLength(0);
+    expect(res.body).toEqual([]);
   });
 
-  it("returns 401 when user is not authenticated", async () => {
-    const { loggedIn } = await import("../utils/auth");
-    vi.mocked(loggedIn).mockImplementationOnce(async (_req, res) =>
-      res({ statusCode: 401, body: "" }),
-    );
+  it("returns 401 without a session", async () => {
+    const res = await api.get("/api/member/clubs");
 
-    const event = makeEvent({
-      path: "/api/member/clubs",
-      httpMethod: "GET",
-    });
-
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(401);
+    expect(res.statusCode).toBe(401);
   });
 });
-
-// ─── PUT /name ────────────────────────────────────────────────────────────────
 
 describe("PUT /api/member/name", () => {
-  it("returns 200 when name is updated successfully", async () => {
-    vi.mocked(UserRepository.updateName).mockResolvedValue([new UpdateResult(0n, undefined)]);
+  it("renames the signed-in user", async () => {
+    const alice = await signIn("alice");
 
-    const event = makeEvent({
-      path: "/api/member/name",
-      httpMethod: "PUT",
-      body: JSON.stringify({ name: "Alice" }),
-    });
+    const res = await api.put("/api/member/name", { body: { name: "  Alice B  " }, as: alice });
 
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(200);
-    expect(UserRepository.updateName).toHaveBeenCalledWith("user-1", "Alice");
+    expect(res.statusCode).toBe(200);
+    const row = await db
+      .selectFrom("user")
+      .select("name")
+      .where("id", "=", alice.userId)
+      .executeTakeFirstOrThrow();
+    expect(row.name).toBe("Alice B");
   });
 
-  it("returns 400 when name is empty after trim", async () => {
-    const event = makeEvent({
-      path: "/api/member/name",
-      httpMethod: "PUT",
-      body: JSON.stringify({ name: "   " }),
-    });
+  it.each([
+    ["a name that is only whitespace", { name: "   " }, "Name cannot be empty"],
+    ["a name over 100 characters", { name: "x".repeat(101) }, "Name is too long"],
+  ])("returns 400 for %s", async (_label, body, message) => {
+    const alice = await signIn("alice");
 
-    const response = assertResponse(await handler(event, stubContext));
+    const res = await api.put<{ error: string }>("/api/member/name", { body, as: alice });
 
-    expect(response.statusCode).toBe(400);
+    expect(res.statusCode).toBe(400);
+    expect(res.body.error).toBe(message);
   });
 
-  it("returns 400 when name exceeds 100 characters", async () => {
-    const event = makeEvent({
-      path: "/api/member/name",
-      httpMethod: "PUT",
-      body: JSON.stringify({ name: "a".repeat(101) }),
-    });
+  it("returns 401 without a session", async () => {
+    const res = await api.put("/api/member/name", { body: { name: "Anon" } });
 
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(400);
-  });
-
-  it("returns 401 when user is not authenticated", async () => {
-    const { loggedIn } = await import("../utils/auth");
-    vi.mocked(loggedIn).mockImplementationOnce(async (_req, res) =>
-      res({ statusCode: 401, body: "" }),
-    );
-
-    const event = makeEvent({
-      path: "/api/member/name",
-      httpMethod: "PUT",
-      body: JSON.stringify({ name: "Alice" }),
-    });
-
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(401);
+    expect(res.statusCode).toBe(401);
   });
 });
-
-// ─── DELETE /avatar ───────────────────────────────────────────────────────────
-
-describe("DELETE /api/member/avatar", () => {
-  it("returns 200 when avatar with Cloudinary asset is deleted", async () => {
-    vi.mocked(UserRepository.getUserById).mockResolvedValue({
-      id: "user-1",
-      email: "user@example.com",
-      name: "Alice",
-      image: "https://res.cloudinary.com/example/image.jpg",
-      image_id: "cloudinary-public-id",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      emailVerified: true,
-    });
-    vi.mocked(ImageRepository.destroy).mockResolvedValue(undefined);
-    vi.mocked(UserRepository.updateImage).mockResolvedValue([new UpdateResult(0n, undefined)]);
-
-    const event = makeEvent({
-      path: "/api/member/avatar",
-      httpMethod: "DELETE",
-    });
-
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(200);
-    expect(ImageRepository.destroy).toHaveBeenCalledWith("cloudinary-public-id");
-    expect(UserRepository.updateImage).toHaveBeenCalledWith("user-1", null, null);
-  });
-
-  it("returns 200 and skips Cloudinary delete when user has no image_id", async () => {
-    vi.mocked(UserRepository.getUserById).mockResolvedValue({
-      id: "user-1",
-      email: "user@example.com",
-      name: "Alice",
-      image: null,
-      image_id: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      emailVerified: true,
-    });
-    vi.mocked(UserRepository.updateImage).mockResolvedValue([new UpdateResult(0n, undefined)]);
-
-    const event = makeEvent({
-      path: "/api/member/avatar",
-      httpMethod: "DELETE",
-    });
-
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(200);
-    expect(ImageRepository.destroy).not.toHaveBeenCalled();
-  });
-});
-
-// ─── POST /avatar ─────────────────────────────────────────────────────────────
-// The success path requires a real multipart body including a file buffer, which
-// is impractical to construct in a unit test.  We cover the "no file uploaded"
-// error branch and leave the happy path for integration tests.
 
 describe("POST /api/member/avatar", () => {
-  it("returns 400 when no file is included in the multipart request", async () => {
-    // MultipartRequest is an intersection with Record<string, string>, which a
-    // plain object literal cannot satisfy; a typed Object.assign builds it
-    // without resorting to an `as` cast.
-    type MultipartRequest = Awaited<ReturnType<typeof parse>>;
-    const emptyMultipart = Object.assign<Record<string, string>, Pick<MultipartRequest, "files">>(
-      {},
-      { files: [] },
+  it("uploads the file to Cloudinary and stores the returned url", async () => {
+    const alice = await signIn("alice");
+    const { boundary, body } = multipartAvatar();
+
+    const res = await api.send(
+      makeEvent({
+        path: "/api/member/avatar",
+        httpMethod: "POST",
+        body,
+        as: alice,
+        headers: { "content-type": `multipart/form-data; boundary=${boundary}` },
+      }),
     );
-    vi.mocked(parse).mockResolvedValue(emptyMultipart);
 
-    const event = makeEvent({
-      path: "/api/member/avatar",
-      httpMethod: "POST",
-      headers: { "content-type": "multipart/form-data; boundary=boundary" },
-      body: "",
-    });
+    expect(res.statusCode).toBe(200);
+    expect(requestsTo("api.cloudinary.com")).toHaveLength(1);
+    const row = await db
+      .selectFrom("user")
+      .select(["image", "image_id"])
+      .where("id", "=", alice.userId)
+      .executeTakeFirstOrThrow();
+    expect(row.image).toBe("https://res.cloudinary.com/test-cloud/image/upload/avatar.jpg");
+    expect(row.image_id).toBe("avatar-public-id");
+  });
 
-    const response = assertResponse(await handler(event, stubContext));
+  it("deletes the previous Cloudinary asset when replacing an avatar", async () => {
+    const alice = await signIn("alice");
+    await db
+      .updateTable("user")
+      .set({ image: "https://old.example/a.jpg", image_id: "old-public-id" })
+      .where("id", "=", alice.userId)
+      .execute();
 
-    expect(response.statusCode).toBe(400);
+    const destroyed: string[] = [];
+    server.use(
+      http.post("https://api.cloudinary.com/v1_1/:cloud/image/destroy", async ({ request }) => {
+        destroyed.push(await request.text());
+        return HttpResponse.json({ result: "ok" });
+      }),
+    );
+
+    const { boundary, body } = multipartAvatar();
+    const res = await api.send(
+      makeEvent({
+        path: "/api/member/avatar",
+        httpMethod: "POST",
+        body,
+        as: alice,
+        headers: { "content-type": `multipart/form-data; boundary=${boundary}` },
+      }),
+    );
+
+    expect(res.statusCode).toBe(200);
+    expect(destroyed.join()).toContain("old-public-id");
+  });
+
+  it("returns 400 when the request carries no file", async () => {
+    const alice = await signIn("alice");
+    const boundary = "----movieclubtestboundary";
+    const body = [
+      `--${boundary}`,
+      'Content-Disposition: form-data; name="note"',
+      "",
+      "hi",
+      `--${boundary}--`,
+      "",
+    ].join("\r\n");
+
+    const res = await api.send(
+      makeEvent({
+        path: "/api/member/avatar",
+        httpMethod: "POST",
+        body,
+        as: alice,
+        headers: { "content-type": `multipart/form-data; boundary=${boundary}` },
+      }),
+    );
+
+    expect(res.statusCode).toBe(400);
   });
 });
 
-// ─── 404 / 405 routing ───────────────────────────────────────────────────────
+describe("DELETE /api/member/avatar", () => {
+  it("clears the avatar and deletes the Cloudinary asset", async () => {
+    const alice = await signIn("alice");
+    await db
+      .updateTable("user")
+      .set({ image: "https://old.example/a.jpg", image_id: "old-public-id" })
+      .where("id", "=", alice.userId)
+      .execute();
 
-describe("routing: unknown paths and wrong methods", () => {
-  it("returns 404 for an unknown path under /api/member", async () => {
-    const event = makeEvent({
-      path: "/api/member/unknown-endpoint",
-      httpMethod: "GET",
-    });
+    const res = await api.delete("/api/member/avatar", { as: alice });
 
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(404);
+    expect(res.statusCode).toBe(200);
+    expect(requestsTo("api.cloudinary.com")).toHaveLength(1);
+    const row = await db
+      .selectFrom("user")
+      .select(["image", "image_id"])
+      .where("id", "=", alice.userId)
+      .executeTakeFirstOrThrow();
+    expect(row).toEqual({ image: null, image_id: null });
   });
 
-  it("returns 405 when wrong HTTP method is used on known route", async () => {
-    const event = makeEvent({
-      path: "/api/member/clubs",
-      httpMethod: "POST",
-    });
+  it("skips Cloudinary when the user has no stored asset", async () => {
+    const alice = await signIn("alice");
 
-    const response = assertResponse(await handler(event, stubContext));
+    const res = await api.delete("/api/member/avatar", { as: alice });
 
-    expect(response.statusCode).toBe(405);
+    expect(res.statusCode).toBe(200);
+    expect(requestsTo("api.cloudinary.com")).toHaveLength(0);
+  });
+
+  it("returns 401 without a session", async () => {
+    const res = await api.delete("/api/member/avatar");
+
+    expect(res.statusCode).toBe(401);
+  });
+});
+
+describe("routing", () => {
+  it("returns 404 for an unknown path", async () => {
+    const res = await api.get("/api/member/unknown");
+
+    expect(res.statusCode).toBe(404);
+  });
+
+  it("returns 405 for a method the route does not define", async () => {
+    const res = await api.post("/api/member/clubs");
+
+    expect(res.statusCode).toBe(405);
   });
 });

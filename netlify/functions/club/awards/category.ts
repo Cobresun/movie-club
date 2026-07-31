@@ -7,7 +7,7 @@ import { badRequest, ok } from "../../utils/responses";
 import { Router } from "../../utils/router";
 import { ClubAwardRequest } from "./utils";
 
-const router = new Router<ClubAwardRequest>("/api/club/:clubId<\\d+>/awards/:year<\\d+>/category");
+const router = new Router<ClubAwardRequest>("/api/club/:clubSlug/awards/:year<\\d+>/category");
 
 const addCategorySchema = z.object({
   title: z.string(),

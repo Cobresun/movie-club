@@ -1,115 +1,115 @@
 /**
- * Tests for netlify/functions/scheduled-db-cleanup.ts
+ * Integration tests for `netlify/functions/scheduled-db-cleanup.ts`.
  *
- * DatabaseCleanupRepository is mocked. The handler receives a standard
- * Netlify scheduled-function Request with a JSON body.
+ * The cleanup reads `SHOW DATABASES WITH COMMENT` and issues `DROP DATABASE`,
+ * so it only means anything against a real cluster. These tests create throwaway
+ * `pr_*` databases on the test container, comment them with the metadata the
+ * preview-database plugin writes, and check which ones survive.
  */
-import { vi, describe, it, expect, beforeEach } from "vitest";
+import { sql } from "kysely";
+import { afterAll, afterEach, describe, expect, it } from "vitest";
 
-// ─── Mock: database (DatabaseCleanupRepository imports db + rootDb at load time)
-vi.mock("../utils/database", () => ({
-  db: {},
-  pool: {},
-  dialect: {},
-  getDbUrl: vi.fn(),
-}));
+import DatabaseCleanupRepository, {
+  rootDb,
+  rootPool,
+} from "../repositories/DatabaseCleanupRepository";
+import cleanupHandler from "../scheduled-db-cleanup";
 
-vi.mock("../repositories/DatabaseCleanupRepository", () => ({
-  default: {
-    cleanupOldDatabases: vi.fn(),
-  },
-  PROTECTED_DATABASES: ["dev", "prod", "defaultdb", "postgres", "system"],
-}));
+const created: string[] = [];
 
-import DatabaseCleanupRepository from "../repositories/DatabaseCleanupRepository";
-import handler from "../scheduled-db-cleanup";
-import { parseBody } from "./helpers";
+async function createPreviewDatabase(name: string, createdAt: Date) {
+  await sql`CREATE DATABASE IF NOT EXISTS ${sql.id(name)}`.execute(rootDb);
+  await sql`COMMENT ON DATABASE ${sql.id(name)} IS ${sql.lit(
+    JSON.stringify({ created_at: createdAt.toISOString(), created_by: "tests", pr_number: 1 }),
+  )}`.execute(rootDb);
+  created.push(name);
+}
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+function daysAgo(days: number) {
+  return new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+}
 
-function makeRequest(body: unknown): Request {
-  return new Request("http://localhost/scheduled-db-cleanup", {
+function scheduledRequest(body: unknown) {
+  return new Request("https://localhost/.netlify/functions/scheduled-db-cleanup", {
     method: "POST",
     body: JSON.stringify(body),
   });
 }
 
-beforeEach(() => {
-  vi.clearAllMocks();
+afterEach(async () => {
+  for (const name of created.splice(0)) {
+    await sql`DROP DATABASE IF EXISTS ${sql.id(name)}`.execute(rootDb);
+  }
 });
 
-// ─── handler ──────────────────────────────────────────────────────────────────
+afterAll(async () => {
+  await rootPool.end();
+});
 
-describe("scheduled-db-cleanup handler", () => {
-  it("returns 200 with cleanup results on success", async () => {
-    vi.mocked(DatabaseCleanupRepository.cleanupOldDatabases).mockResolvedValue({
-      count: 2,
-      deleted: ["pr_123", "dev_old_feature"],
-    });
+describe("scheduled database cleanup", () => {
+  it("drops preview databases past the retention window and keeps the rest", async () => {
+    await createPreviewDatabase("pr_stale_cleanup_test", daysAgo(30));
+    await createPreviewDatabase("pr_fresh_cleanup_test", daysAgo(1));
 
-    const req = makeRequest({ next_run: "2024-01-02T00:00:00Z" });
-    const response = await handler(req);
-
-    expect(response.status).toBe(200);
-    const body = parseBody<{
-      success: boolean;
-      count: number;
-      deleted: string[];
-      next_run: string;
-    }>(await response.text());
-    expect(body.success).toBe(true);
-    expect(body.count).toBe(2);
-    expect(body.deleted).toEqual(["pr_123", "dev_old_feature"]);
-    expect(body.next_run).toBe("2024-01-02T00:00:00Z");
-  });
-
-  it("passes olderThanDays=7 to cleanupOldDatabases", async () => {
-    vi.mocked(DatabaseCleanupRepository.cleanupOldDatabases).mockResolvedValue({
-      count: 0,
-      deleted: [],
-    });
-
-    const req = makeRequest({ next_run: "2024-01-02T00:00:00Z" });
-    await handler(req);
-
-    expect(DatabaseCleanupRepository.cleanupOldDatabases).toHaveBeenCalledWith(7);
-  });
-
-  it("returns 200 with count=0 when no databases to clean up", async () => {
-    vi.mocked(DatabaseCleanupRepository.cleanupOldDatabases).mockResolvedValue({
-      count: 0,
-      deleted: [],
-    });
-
-    const req = makeRequest({ next_run: "2024-01-02T00:00:00Z" });
-    const response = await handler(req);
+    const response = await cleanupHandler(scheduledRequest({ next_run: "2026-01-01T00:00:00Z" }));
 
     expect(response.status).toBe(200);
-    const body = parseBody<{ success: boolean; count: number }>(await response.text());
-    expect(body.success).toBe(true);
-    expect(body.count).toBe(0);
+    const body = await response.json();
+    expect(body).toMatchObject({ success: true, count: 1, deleted: ["pr_stale_cleanup_test"] });
+
+    const remaining = await DatabaseCleanupRepository.listDatabases();
+    const names = remaining.map((database) => database.name);
+    expect(names).toContain("pr_fresh_cleanup_test");
+    expect(names).not.toContain("pr_stale_cleanup_test");
   });
 
-  it("returns 500 when payload schema is invalid", async () => {
-    const req = makeRequest({ wrong_field: "value" });
-    const response = await handler(req);
+  it("leaves databases whose comment carries no creation date", async () => {
+    await sql`CREATE DATABASE IF NOT EXISTS ${sql.id("pr_undated_cleanup_test")}`.execute(rootDb);
+    created.push("pr_undated_cleanup_test");
+
+    const response = await cleanupHandler(scheduledRequest({ next_run: "2026-01-01T00:00:00Z" }));
+
+    const body = await response.json();
+    expect(body).toMatchObject({ count: 0, deleted: [] });
+  });
+
+  it("reports success with nothing deleted when no database is stale", async () => {
+    const response = await cleanupHandler(scheduledRequest({ next_run: "2026-01-01T00:00:00Z" }));
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      success: true,
+      count: 0,
+      deleted: [],
+      next_run: "2026-01-01T00:00:00Z",
+    });
+  });
+
+  it("returns 500 when the scheduled payload is not the expected shape", async () => {
+    const response = await cleanupHandler(scheduledRequest({ wrong: "shape" }));
 
     expect(response.status).toBe(500);
-    const body = parseBody<{ success: boolean }>(await response.text());
-    expect(body.success).toBe(false);
+    expect(await response.json()).toMatchObject({ success: false });
+  });
+});
+
+describe("DatabaseCleanupRepository.canDeleteDatabase", () => {
+  it.each(["dev", "prod", "defaultdb", "postgres", "system"])("protects %s", (name) => {
+    expect(DatabaseCleanupRepository.canDeleteDatabase(name)).toBe(false);
   });
 
-  it("returns 500 when cleanupOldDatabases throws", async () => {
-    vi.mocked(DatabaseCleanupRepository.cleanupOldDatabases).mockRejectedValue(
-      new Error("Connection refused"),
+  it("refuses names outside the pr_ / dev_ prefixes", () => {
+    expect(DatabaseCleanupRepository.canDeleteDatabase("movie_club_test")).toBe(false);
+  });
+
+  it("allows preview and spawned databases", () => {
+    expect(DatabaseCleanupRepository.canDeleteDatabase("pr_123")).toBe(true);
+    expect(DatabaseCleanupRepository.canDeleteDatabase("dev_someone_feature")).toBe(true);
+  });
+
+  it("refuses to drop a protected database even when asked directly", async () => {
+    await expect(DatabaseCleanupRepository.dropDatabase("prod")).rejects.toThrow(
+      /Cannot delete protected database/,
     );
-
-    const req = makeRequest({ next_run: "2024-01-02T00:00:00Z" });
-    const response = await handler(req);
-
-    expect(response.status).toBe(500);
-    const body = parseBody<{ success: boolean; error: string }>(await response.text());
-    expect(body.success).toBe(false);
-    expect(body.error).toContain("Connection refused");
   });
 });

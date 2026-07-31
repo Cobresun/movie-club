@@ -46,15 +46,15 @@ export default defineConfig({
       provider: "istanbul",
       reporter: ["text", "json", "html"],
       // Regression guards set just below the levels achieved by the test
-      // suite (73.9% stmts / 65.4% branch / 68.6% func / 74.8% lines after
-      // covering every statistics widget and view, plus the reviews gallery,
-      // table, discussion questions, and add-review prompt).
+      // suite (80.5% stmts / 69.5% branch / 76.2% func / 81.9% lines). The
+      // backend jumped from ~63% to ~95% when the handler tests started
+      // running against a real database instead of mocked repositories.
       // Raise these as coverage grows; never lower them to merge.
       thresholds: {
-        statements: 73,
-        branches: 65,
-        functions: 68,
-        lines: 74,
+        statements: 80,
+        branches: 69,
+        functions: 76,
+        lines: 81,
       },
       include: ["src/**/*.{ts,vue}", "lib/**/*.ts", "netlify/functions/**/*.ts"],
       exclude: [
@@ -65,10 +65,6 @@ export default defineConfig({
         "**/*.spec.ts",
         "lib/types/generated/**",
         "src/main.ts",
-        // Bootstrap/config modules that only wire up external services at
-        // import time; nothing to unit test without a live DB or env secrets.
-        "netlify/functions/utils/database.ts",
-        "netlify/functions/utils/auth.ts",
       ],
     },
     projects: [
@@ -88,7 +84,48 @@ export default defineConfig({
           name: "server",
           globals: true,
           environment: "node",
-          include: ["lib/**/*.{test,spec}.ts", "netlify/functions/**/*.{test,spec}.ts"],
+          include: [
+            "lib/**/*.{test,spec}.ts",
+            "netlify/functions/utils/**/*.{test,spec}.ts",
+            "scripts/**/*.{test,spec}.ts",
+          ],
+        },
+      },
+      {
+        extends: true,
+        test: {
+          // Handler-level tests that run against a real CockroachDB started by
+          // globalSetup (see netlify/functions/tests/setup/). Requires Docker.
+          name: "integration",
+          globals: true,
+          environment: "node",
+          include: ["netlify/functions/tests/**/*.{test,spec}.ts"],
+          globalSetup: "netlify/functions/tests/setup/globalSetup.ts",
+          setupFiles: "netlify/functions/tests/setup/integration.ts",
+          // One worker, one database: the suite resets shared tables between
+          // tests, so files must not run concurrently.
+          fileParallelism: false,
+          // Pulling and booting the container is a one-off cost paid inside
+          // globalSetup's budget, and bcrypt makes the first sign-in of a file
+          // slower than a unit test.
+          testTimeout: 20_000,
+          hookTimeout: 120_000,
+          teardownTimeout: 60_000,
+          // Service credentials the backend reads at import time. Every one of
+          // these hosts is intercepted by MSW, so the values only need to exist
+          // — except BETTER_AUTH_SECRET, which really does sign the session
+          // cookies the tests send.
+          env: {
+            BETTER_AUTH_URL: "http://localhost:8888",
+            BETTER_AUTH_SECRET: "integration-test-secret-integration-test-secret",
+            GOOGLE_CLIENT_ID: "test-google-client-id",
+            GOOGLE_CLIENT_SECRET: "test-google-client-secret",
+            TMDB_API_KEY: "test-tmdb-key",
+            GOOGLE_BOOKS_API_KEY: "test-google-books-key",
+            GEMINI_API_KEY: "test-gemini-key",
+            RESEND_API_KEY: "test-resend-key",
+            CLOUDINARY_URL: "cloudinary://test-key:test-secret@test-cloud",
+          },
         },
       },
     ],

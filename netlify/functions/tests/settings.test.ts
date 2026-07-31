@@ -1,292 +1,129 @@
 /**
- * Tests for netlify/functions/club/settings.ts
- *
- * Covers: GET / (get settings), POST / (update settings)
+ * Integration tests for `netlify/functions/club/settings.ts` — the club feature
+ * flags, stored as a JSON blob in `club_settings` and merged on write.
  */
-import { vi, describe, it, expect, beforeEach } from "vitest";
+import { describe, expect, it } from "vitest";
 
-import { ClubType } from "../../../lib/types/generated/db";
 import { handler } from "../club/index";
-import ClubRepository from "../repositories/ClubRepository";
-import SettingsRepository from "../repositories/SettingsRepository";
-import { assertResponse, makeEvent, parseBody, stubContext } from "./helpers";
+import { ClubSettings } from "../repositories/SettingsRepository";
+import { signIn } from "./helpers/auth";
+import { db } from "./helpers/database";
+import { createClub } from "./helpers/factories";
+import { requester } from "./helpers/http";
 
-// ─── Mock: auth ──────────────────────────────────────────────────────────────
-vi.mock("../utils/auth", () => ({
-  auth: { api: { getSession: vi.fn() } },
-  loggedIn: vi.fn(async (req: Record<string, unknown>) => ({
-    ...req,
-    userId: "user-1",
-  })),
-  secured: vi.fn(async (req: Record<string, unknown>) => ({
-    ...req,
-    userId: "user-1",
-  })),
-}));
+const api = requester(handler);
 
-// ─── Mock: database ──────────────────────────────────────────────────────────
-vi.mock("../utils/database", () => ({
-  db: {},
-  pool: {},
-  dialect: {},
-  getDbUrl: vi.fn(),
-}));
-
-// ─── Mock: repositories ──────────────────────────────────────────────────────
-vi.mock("../repositories/ClubRepository", () => ({
-  default: {
-    getBySlug: vi.fn(),
-    isUserInClub: vi.fn(),
-    createClubInvite: vi.fn(),
-    joinClubWithInvite: vi.fn(),
-    getClubDetailsByInvite: vi.fn(),
-  },
-}));
-
-vi.mock("../repositories/SettingsRepository", () => ({
-  default: {
-    getSettings: vi.fn(),
-    updateSettings: vi.fn(),
-    createDefaultSettings: vi.fn(),
-  },
-}));
-
-vi.mock("../repositories/ListRepository", () => ({
-  default: {
-    getListsForClub: vi.fn(),
-    getReviewsListId: vi.fn(),
-    getListById: vi.fn(),
-    isItemInList: vi.fn(),
-    insertItemInList: vi.fn(),
-    deleteItemFromList: vi.fn(),
-    renameList: vi.fn(),
-    deleteList: vi.fn(),
-    createList: vi.fn(),
-    getListItems: vi.fn(),
-    reorderList: vi.fn(),
-    reorderLists: vi.fn(),
-    updateAddedDate: vi.fn(),
-    moveItem: vi.fn(),
-    getWorkDetails: vi.fn(),
-  },
-}));
-
-vi.mock("../repositories/ReviewRepository", () => ({
-  default: {
-    getReviewList: vi.fn(),
-    insertReview: vi.fn(),
-    getById: vi.fn(),
-    updateScore: vi.fn(),
-    getReviewsByWorkId: vi.fn(),
-  },
-}));
-
-vi.mock("../repositories/WorkCommentRepository", () => ({
-  default: {
-    getByWorkAndClub: vi.fn(),
-    insert: vi.fn(),
-    getById: vi.fn(),
-    updateContent: vi.fn(),
-    deleteById: vi.fn(),
-  },
-}));
-
-vi.mock("../repositories/WorkRepository", () => ({
-  default: {
-    insert: vi.fn(),
-    delete: vi.fn(),
-    getNextWork: vi.fn(),
-    setNextWork: vi.fn(),
-    deleteNextWork: vi.fn(),
-  },
-}));
-
-vi.mock("../repositories/UserRepository", () => ({
-  default: {
-    getMembersByClubId: vi.fn(),
-    getByEmail: vi.fn(),
-    removeClubMember: vi.fn(),
-    addClubMemberByUserId: vi.fn(),
-  },
-}));
-
-vi.mock("../repositories/AwardsRepository", () => ({
-  default: { getByYear: vi.fn(), getYears: vi.fn() },
-}));
-
-vi.mock("../utils/tmdb", () => ({
-  getDetailedMovie: vi.fn(),
-  getDetailedWorks: vi.fn(),
-  getTMDBMovieData: vi.fn(),
-}));
-
-vi.mock("../utils/gemini", () => ({
-  generateDiscussionQuestions: vi.fn(),
-}));
-
-vi.mock("../services/SharedReviewService", () => ({
-  default: { getSharedReviewData: vi.fn() },
-}));
-
-// ─── Shared fixtures ──────────────────────────────────────────────────────────
-
-const CLUB_SLUG = "my-club";
-const CLUB_ID = "club-1";
-
-const mockClub = {
-  id: CLUB_ID,
-  name: "My Club",
-  slug: CLUB_SLUG,
-  type: ClubType.movie,
-  slug_updated_at: null,
-};
-
-const defaultSettings = {
-  features: { awards: false, discussionQuestions: false },
-};
-
-function setupClub() {
-  vi.mocked(ClubRepository.getBySlug).mockResolvedValue(mockClub);
-  vi.mocked(ClubRepository.isUserInClub).mockResolvedValue(true);
-}
-
-beforeEach(() => {
-  vi.clearAllMocks();
-});
-
-// ─── GET /settings ────────────────────────────────────────────────────────────
-
-describe("GET /api/club/:clubSlug/settings/", () => {
-  it("returns 200 with current settings", async () => {
-    setupClub();
-    vi.mocked(SettingsRepository.getSettings).mockResolvedValue(defaultSettings);
-
-    const event = makeEvent({
-      path: `/api/club/${CLUB_SLUG}/settings/`,
-      httpMethod: "GET",
+describe("GET /api/club/:clubSlug/settings", () => {
+  it("returns the club's stored feature flags", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub({
+      members: [{ userId: alice.userId }],
+      features: { awards: true },
     });
 
-    const response = assertResponse(await handler(event, stubContext));
+    const res = await api.get<ClubSettings>(`/api/club/${club.slug}/settings`, { as: alice });
 
-    expect(response.statusCode).toBe(200);
-    const body = parseBody<typeof defaultSettings>(response.body);
-    expect(body.features.awards).toBe(false);
-    expect(body.features.discussionQuestions).toBe(false);
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toEqual({ features: { awards: true, discussionQuestions: false } });
   });
 
-  it("returns 401 when user is not authenticated", async () => {
-    setupClub();
-    const { secured } = await import("../utils/auth");
-    vi.mocked(secured).mockImplementationOnce(async (_req, res) =>
-      res({ statusCode: 401, body: "" }),
-    );
+  it("falls back to all-off defaults when the club has no settings row", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub({ members: [{ userId: alice.userId }] });
+    await db.deleteFrom("club_settings").where("club_id", "=", club.id).execute();
 
-    const event = makeEvent({
-      path: `/api/club/${CLUB_SLUG}/settings/`,
-      httpMethod: "GET",
-    });
+    const res = await api.get<ClubSettings>(`/api/club/${club.slug}/settings`, { as: alice });
 
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(401);
+    expect(res.body).toEqual({ features: { awards: false, discussionQuestions: false } });
   });
 
-  it("returns 404 when club slug is unknown", async () => {
-    vi.mocked(ClubRepository.getBySlug).mockResolvedValue(undefined);
+  it("returns 401 for a non-member", async () => {
+    const bob = await signIn("bob");
+    const club = await createClub();
 
-    const event = makeEvent({
-      path: `/api/club/unknown-club/settings/`,
-      httpMethod: "GET",
-    });
+    const res = await api.get(`/api/club/${club.slug}/settings`, { as: bob });
 
-    const response = assertResponse(await handler(event, stubContext));
+    expect(res.statusCode).toBe(401);
+  });
 
-    expect(response.statusCode).toBe(404);
+  it("returns 404 for an unknown club", async () => {
+    const alice = await signIn("alice");
+
+    const res = await api.get("/api/club/not-a-club/settings", { as: alice });
+
+    expect(res.statusCode).toBe(404);
   });
 });
 
-// ─── POST /settings ───────────────────────────────────────────────────────────
+describe("POST /api/club/:clubSlug/settings", () => {
+  it("enables a feature and persists it", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub({ members: [{ userId: alice.userId }] });
 
-describe("POST /api/club/:clubSlug/settings/", () => {
-  it("returns 200 with updated settings when awards feature is enabled", async () => {
-    setupClub();
-    const updatedSettings = {
-      features: { awards: true, discussionQuestions: false },
-    };
-    vi.mocked(SettingsRepository.updateSettings).mockResolvedValue(updatedSettings);
-
-    const event = makeEvent({
-      path: `/api/club/${CLUB_SLUG}/settings/`,
-      httpMethod: "POST",
-      body: JSON.stringify({ features: { awards: true } }),
+    const res = await api.post<ClubSettings>(`/api/club/${club.slug}/settings`, {
+      body: { features: { awards: true } },
+      as: alice,
     });
 
-    const response = assertResponse(await handler(event, stubContext));
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toEqual({ features: { awards: true, discussionQuestions: false } });
 
-    expect(response.statusCode).toBe(200);
-    const body = parseBody<typeof updatedSettings>(response.body);
-    expect(body.features.awards).toBe(true);
+    const reread = await api.get<ClubSettings>(`/api/club/${club.slug}/settings`, { as: alice });
+    expect(reread.body.features.awards).toBe(true);
   });
 
-  it("returns 200 when body is an empty object (no-op update)", async () => {
-    setupClub();
-    vi.mocked(SettingsRepository.updateSettings).mockResolvedValue(defaultSettings);
-
-    const event = makeEvent({
-      path: `/api/club/${CLUB_SLUG}/settings/`,
-      httpMethod: "POST",
-      body: JSON.stringify({}),
+  it("leaves the features it was not given alone", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub({
+      members: [{ userId: alice.userId }],
+      features: { discussionQuestions: true },
     });
 
-    const response = assertResponse(await handler(event, stubContext));
+    const res = await api.post<ClubSettings>(`/api/club/${club.slug}/settings`, {
+      body: { features: { awards: true } },
+      as: alice,
+    });
 
-    expect(response.statusCode).toBe(200);
+    expect(res.body).toEqual({ features: { awards: true, discussionQuestions: true } });
   });
 
-  it("returns 400 when body is missing", async () => {
-    setupClub();
-
-    const event = makeEvent({
-      path: `/api/club/${CLUB_SLUG}/settings/`,
-      httpMethod: "POST",
-      body: null,
+  it("treats an empty body object as a no-op", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub({
+      members: [{ userId: alice.userId }],
+      features: { awards: true },
     });
 
-    const response = assertResponse(await handler(event, stubContext));
+    const res = await api.post<ClubSettings>(`/api/club/${club.slug}/settings`, {
+      body: {},
+      as: alice,
+    });
 
-    expect(response.statusCode).toBe(400);
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toEqual({ features: { awards: true, discussionQuestions: false } });
   });
 
-  it("returns 400 when features contains invalid field types", async () => {
-    setupClub();
+  it.each([
+    ["no body", undefined],
+    ["a non-boolean feature flag", { features: { awards: "yes" } }],
+  ])("returns 400 with %s", async (_label, body) => {
+    const alice = await signIn("alice");
+    const club = await createClub({ members: [{ userId: alice.userId }] });
 
-    const event = makeEvent({
-      path: `/api/club/${CLUB_SLUG}/settings/`,
-      httpMethod: "POST",
-      // awards must be boolean, not string
-      body: JSON.stringify({ features: { awards: "yes" } }),
-    });
+    const res = await api.post(`/api/club/${club.slug}/settings`, { body, as: alice });
 
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(400);
+    expect(res.statusCode).toBe(400);
   });
 
-  it("returns 401 when user is not authenticated", async () => {
-    setupClub();
-    const { secured } = await import("../utils/auth");
-    vi.mocked(secured).mockImplementationOnce(async (_req, res) =>
-      res({ statusCode: 401, body: "" }),
-    );
+  it("returns 401 for a non-member", async () => {
+    const bob = await signIn("bob");
+    const club = await createClub();
 
-    const event = makeEvent({
-      path: `/api/club/${CLUB_SLUG}/settings/`,
-      httpMethod: "POST",
-      body: JSON.stringify({ features: { awards: true } }),
+    const res = await api.post(`/api/club/${club.slug}/settings`, {
+      body: { features: { awards: true } },
+      as: bob,
     });
 
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(401);
+    expect(res.statusCode).toBe(401);
   });
 });

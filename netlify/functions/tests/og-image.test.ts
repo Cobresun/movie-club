@@ -1,265 +1,123 @@
 /**
- * Tests for netlify/functions/og-image.ts
- *
- * ClubRepository and SharedReviewService are mocked. The handler returns either
- * a 302 redirect (when poster_path is available), an SVG fallback, or an error
- * response.
+ * Integration tests for `netlify/functions/og-image.ts` — the Open Graph image
+ * a shared review link unfurls to. Runs against real club, work and review rows
+ * through `SharedReviewService`.
  */
-import { vi, describe, it, expect, beforeEach } from "vitest";
+import { describe, expect, it } from "vitest";
 
-import { ClubType, WorkType } from "../../../lib/types/generated/db";
 import { handler } from "../og-image";
-import ClubRepository from "../repositories/ClubRepository";
-import SharedReviewService from "../services/SharedReviewService";
-import { assertResponse, makeEvent, stubContext } from "./helpers";
+import {
+  addMember,
+  createClub,
+  createReview,
+  createReviewedWork,
+  createUser,
+} from "./helpers/factories";
+import { requester } from "./helpers/http";
 
-// ─── Mock: auth ───────────────────────────────────────────────────────────────
-vi.mock("../utils/auth", () => ({
-  auth: { api: { getSession: vi.fn() } },
-  loggedIn: vi.fn(async (req: Record<string, unknown>) => ({
-    ...req,
-    userId: "user-1",
-  })),
-  secured: vi.fn(async (req: Record<string, unknown>) => ({
-    ...req,
-    userId: "user-1",
-  })),
-}));
-
-// ─── Mock: database ───────────────────────────────────────────────────────────
-vi.mock("../utils/database", () => ({
-  db: {},
-  pool: {},
-  dialect: {},
-  getDbUrl: vi.fn(),
-}));
-
-// ─── Mock: repositories ───────────────────────────────────────────────────────
-vi.mock("../repositories/ClubRepository", () => ({
-  default: {
-    getBySlug: vi.fn(),
-    getById: vi.fn(),
-  },
-}));
-
-// ─── Mock: SharedReviewService ────────────────────────────────────────────────
-vi.mock("../services/SharedReviewService", () => ({
-  default: {
-    getSharedReviewData: vi.fn(),
-  },
-}));
-
-// ─── Fixtures ─────────────────────────────────────────────────────────────────
-
-const mockClub = {
-  id: "1",
-  name: "Test Club",
-  slug: "test-club",
-  type: ClubType.movie,
-  slug_updated_at: null,
-};
-
-// The og-image handler redirects to the work's stored image URL (a TMDB poster
-// for movies, an OpenLibrary cover for books); externalData is not consulted.
-function makeReviewData(imageUrl: string | undefined) {
-  return {
-    work: {
-      id: "work-1",
-      title: "Inception",
-      type: WorkType.movie,
-      imageUrl,
-      externalId: undefined,
-      externalData: undefined,
-    },
-    reviews: [
-      {
-        score: "8",
-        user_id: "user-1",
-        review_id: "r1",
-        created_date: new Date(),
-      },
-      {
-        score: "7",
-        user_id: "user-2",
-        review_id: "r2",
-        created_date: new Date(),
-      },
-    ],
-    members: [],
-    comments: [],
-    clubName: "Test Club",
-  };
-}
-
-beforeEach(() => {
-  vi.clearAllMocks();
-});
-
-// ─── GET /api/og-image ────────────────────────────────────────────────────────
+const api = requester(handler);
 
 describe("GET /api/og-image", () => {
-  it("redirects to the work's stored image URL when present", async () => {
-    vi.mocked(ClubRepository.getBySlug).mockResolvedValue(mockClub);
-    vi.mocked(SharedReviewService.getSharedReviewData).mockResolvedValue(
-      makeReviewData("https://image.tmdb.org/t/p/w500/poster.jpg"),
-    );
-
-    const event = makeEvent({
-      path: "/api/og-image",
-      httpMethod: "GET",
-      queryStringParameters: { clubSlug: "test-club", workId: "work-1" },
+  it("redirects to the work's own image when it has one", async () => {
+    const club = await createClub();
+    const work = await createReviewedWork(club, {
+      externalId: null,
+      imageUrl: "https://image.tmdb.org/t/p/w500/poster.jpg",
     });
 
-    const response = assertResponse(await handler(event, stubContext));
+    const res = await api.get("/api/og-image", {
+      query: { clubSlug: club.slug, workId: work.id },
+    });
 
-    expect(response.statusCode).toBe(302);
-    expect(response.headers?.["Location"]).toContain("https://image.tmdb.org/t/p/w500/poster.jpg");
+    expect(res.statusCode).toBe(302);
+    expect(res.headers.Location).toBe("https://image.tmdb.org/t/p/w500/poster.jpg");
   });
 
-  it("returns SVG fallback when imageUrl is undefined", async () => {
-    vi.mocked(ClubRepository.getBySlug).mockResolvedValue(mockClub);
-    vi.mocked(SharedReviewService.getSharedReviewData).mockResolvedValue(makeReviewData(undefined));
+  it("renders an SVG card with the title, average score and rating count", async () => {
+    const club = await createClub();
+    const first = await createUser({ name: "First" });
+    const second = await createUser({ name: "Second" });
+    await addMember(club.id, first.userId);
+    await addMember(club.id, second.userId);
+    const work = await createReviewedWork(club, {
+      externalId: null,
+      imageUrl: null,
+      title: "No Poster",
+    });
+    await createReview(club.reviewsListId, work.id, first.userId, 8);
+    await createReview(club.reviewsListId, work.id, second.userId, 7);
 
-    const event = makeEvent({
-      path: "/api/og-image",
-      httpMethod: "GET",
-      queryStringParameters: { clubSlug: "test-club", workId: "work-1" },
+    const res = await api.get<string>("/api/og-image", {
+      query: { clubSlug: club.slug, workId: work.id },
     });
 
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(200);
-    expect(response.headers?.["Content-Type"]).toBe("image/svg+xml");
-    expect(response.body).toContain("<svg");
-    expect(response.body).toContain("Inception");
+    expect(res.statusCode).toBe(200);
+    expect(res.headers["Content-Type"]).toBe("image/svg+xml");
+    expect(res.body).toContain("No Poster");
+    expect(res.body).toContain("7.5");
+    expect(res.body).toContain("from 2 ratings");
   });
 
-  it("includes average score in SVG when reviews are present", async () => {
-    vi.mocked(ClubRepository.getBySlug).mockResolvedValue(mockClub);
-    vi.mocked(SharedReviewService.getSharedReviewData).mockResolvedValue(makeReviewData(undefined));
+  it("says N/A when nobody has scored the work", async () => {
+    const club = await createClub();
+    const work = await createReviewedWork(club, { externalId: null, imageUrl: null });
 
-    const event = makeEvent({
-      path: "/api/og-image",
-      httpMethod: "GET",
-      queryStringParameters: { clubSlug: "test-club", workId: "work-1" },
+    const res = await api.get<string>("/api/og-image", {
+      query: { clubSlug: club.slug, workId: work.id },
     });
 
-    const response = assertResponse(await handler(event, stubContext));
-
-    // scores are 8 and 7; average = 7.5
-    expect(response.body).toContain("7.5");
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toContain("N/A");
+    // Known wart, pinned here rather than fixed in a test-only change: the
+    // rating count comes from the raw query rows, and `getReviewsByWorkId`
+    // left-joins `review`, so an unscored work still yields one (all-null)
+    // row. The card therefore reads "from 1 rating" with no ratings at all.
+    // Counting `scores` instead of `reviews` in og-image.ts is the fix.
+    expect(res.body).toContain("from 1 rating");
   });
 
-  it("returns 400 when clubSlug is missing", async () => {
-    const event = makeEvent({
-      path: "/api/og-image",
-      httpMethod: "GET",
-      queryStringParameters: { workId: "work-1" },
+  it("escapes XML-significant characters in the title", async () => {
+    const club = await createClub();
+    const work = await createReviewedWork(club, {
+      externalId: null,
+      imageUrl: null,
+      title: "Fish & <Chips>",
     });
 
-    const response = assertResponse(await handler(event, stubContext));
+    const res = await api.get<string>("/api/og-image", {
+      query: { clubSlug: club.slug, workId: work.id },
+    });
 
-    expect(response.statusCode).toBe(400);
+    expect(res.body).toContain("Fish &amp; &lt;Chips&gt;");
   });
 
-  it("returns 400 when workId is missing", async () => {
-    const event = makeEvent({
-      path: "/api/og-image",
-      httpMethod: "GET",
-      queryStringParameters: { clubSlug: "test-club" },
+  it("falls back to a generic card when the work does not exist", async () => {
+    const club = await createClub();
+
+    const res = await api.get<string>("/api/og-image", {
+      query: { clubSlug: club.slug, workId: "999999" },
     });
 
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(400);
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toContain("Movie Review");
+    expect(res.body).toContain("N/A");
   });
 
-  it("returns 400 when both parameters are missing", async () => {
-    const event = makeEvent({
-      path: "/api/og-image",
-      httpMethod: "GET",
-      queryStringParameters: null,
-    });
+  it.each([
+    ["clubSlug", { workId: "1" }],
+    ["workId", { clubSlug: "some-club" }],
+    ["both parameters", {}],
+  ])("returns 400 when %s is missing", async (_label, query) => {
+    const res = await api.get("/api/og-image", { query });
 
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(400);
+    expect(res.statusCode).toBe(400);
   });
 
-  it("returns 404 when club is not found", async () => {
-    vi.mocked(ClubRepository.getBySlug).mockResolvedValue(undefined);
-
-    const event = makeEvent({
-      path: "/api/og-image",
-      httpMethod: "GET",
-      queryStringParameters: { clubSlug: "unknown-club", workId: "work-1" },
+  it("returns 404 for an unknown club", async () => {
+    const res = await api.get("/api/og-image", {
+      query: { clubSlug: "no-such-club", workId: "1" },
     });
 
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(404);
-  });
-
-  it("returns SVG fallback when review data is null (work not found)", async () => {
-    vi.mocked(ClubRepository.getBySlug).mockResolvedValue(mockClub);
-    vi.mocked(SharedReviewService.getSharedReviewData).mockResolvedValue(null);
-
-    const event = makeEvent({
-      path: "/api/og-image",
-      httpMethod: "GET",
-      queryStringParameters: { clubSlug: "test-club", workId: "missing-work" },
-    });
-
-    const response = assertResponse(await handler(event, stubContext));
-
-    // Falls back to SVG with generic title
-    expect(response.statusCode).toBe(200);
-    expect(response.headers?.["Content-Type"]).toBe("image/svg+xml");
-  });
-
-  it("returns SVG fallback when SharedReviewService throws", async () => {
-    vi.mocked(ClubRepository.getBySlug).mockResolvedValue(mockClub);
-    vi.mocked(SharedReviewService.getSharedReviewData).mockRejectedValue(
-      new Error("Database error"),
-    );
-
-    const event = makeEvent({
-      path: "/api/og-image",
-      httpMethod: "GET",
-      queryStringParameters: { clubSlug: "test-club", workId: "work-1" },
-    });
-
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.statusCode).toBe(200);
-    expect(response.headers?.["Content-Type"]).toBe("image/svg+xml");
-  });
-
-  it("shows N/A score in SVG when no reviews have valid scores", async () => {
-    vi.mocked(ClubRepository.getBySlug).mockResolvedValue(mockClub);
-    vi.mocked(SharedReviewService.getSharedReviewData).mockResolvedValue({
-      work: {
-        id: "work-1",
-        title: "Unknown",
-        type: WorkType.movie,
-        imageUrl: undefined,
-        externalId: undefined,
-        externalData: undefined,
-      },
-      reviews: [],
-      members: [],
-      comments: [],
-      clubName: "Test Club",
-    });
-
-    const event = makeEvent({
-      path: "/api/og-image",
-      httpMethod: "GET",
-      queryStringParameters: { clubSlug: "test-club", workId: "work-1" },
-    });
-
-    const response = assertResponse(await handler(event, stubContext));
-
-    expect(response.body).toContain("N/A");
+    expect(res.statusCode).toBe(404);
   });
 });
