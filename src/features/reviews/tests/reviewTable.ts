@@ -39,11 +39,10 @@ export function score(id: string, value: number) {
 }
 
 /**
- * The columns ReviewView builds, reduced to the parts GalleryView and TableView
- * actually read: the poster/title/date trio they render themselves, one column
- * per member, and the club average. Cells render plain text rather than the
- * real `ReviewScore`/`MovieTooltip` components so these specs stay about the two
- * layout components rather than their children.
+ * The columns ReviewView builds, reduced to the parts GalleryView actually
+ * reads: the poster/title/date trio it renders itself, one column per member,
+ * and the club average. Cells render plain text rather than the real score
+ * components, so these specs stay about the layout rather than its children.
  */
 function testColumns(members: Member[]) {
   return [
