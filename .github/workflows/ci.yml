@@ -27,4 +27,8 @@ jobs:
       - run: npm run format:check
       - run: npm run type-check
       - run: npm run lint
+      # The `integration` Vitest project starts a CockroachDB container with
+      # testcontainers, so this step needs a Docker daemon. GitHub-hosted
+      # `ubuntu-latest` runners ship one; a self-hosted runner would need it
+      # installed, or `npm run test:unit` in its place.
       - run: npm test
