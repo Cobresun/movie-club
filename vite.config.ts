@@ -45,7 +45,27 @@ export default defineConfig({
       all: true,
       provider: "istanbul",
       reporter: ["text", "json", "html"],
-      exclude: ["**/mocks/**", "**/tests/**"],
+      // Regression guards set just below the levels achieved by the test
+      // suite (82.1% stmts / 70.8% branch / 77.6% func / 83.5% lines). The
+      // backend jumped from ~63% to ~95% when the handler tests started
+      // running against a real database instead of mocked repositories.
+      // Raise these as coverage grows; never lower them to merge.
+      thresholds: {
+        statements: 82,
+        branches: 70,
+        functions: 77,
+        lines: 83,
+      },
+      include: ["src/**/*.{ts,vue}", "lib/**/*.ts", "netlify/functions/**/*.ts"],
+      exclude: [
+        "**/mocks/**",
+        "**/tests/**",
+        "**/*.d.ts",
+        "**/*.test.ts",
+        "**/*.spec.ts",
+        "lib/types/generated/**",
+        "src/main.ts",
+      ],
     },
     projects: [
       {
