@@ -71,16 +71,6 @@ export function useIsInClub(clubSlug: MaybeRef<string>) {
   return isUserInClub;
 }
 
-export function useAddMembers(clubSlug: string) {
-  const auth = useAuthStore();
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (members: string[]) =>
-      auth.request.post(`/api/club/${clubSlug}/members`, { members }),
-    onSuccess: () => queryClient.invalidateQueries(["members", clubSlug]),
-  });
-}
-
 export function useLeaveClub(clubSlug: string) {
   const auth = useAuthStore();
   const router = useRouter();
