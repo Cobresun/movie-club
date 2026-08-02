@@ -102,6 +102,17 @@ const rootDb = new Kysely({
 
 class DatabaseCleanupRepository {
   /**
+   * Closes the admin pool this repository opens against `defaultdb`.
+   *
+   * Only callers that outlive the work — the integration suite, which would
+   * otherwise hold a Vitest worker open on an idle client — need this; the
+   * scheduled function and the CLI exit on their own.
+   */
+  async close(): Promise<void> {
+    await rootPool.end();
+  }
+
+  /**
    * Lists all databases with their metadata
    */
   async listDatabases(): Promise<DatabaseInfo[]> {
