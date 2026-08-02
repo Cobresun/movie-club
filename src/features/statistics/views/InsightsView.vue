@@ -16,6 +16,7 @@ import { Member } from "../../../../lib/types/club";
 import { ClubType } from "../../../../lib/types/generated/db";
 import { STAT_WIDGETS, type StatWidgetContext } from "../statisticsWidgets";
 import { isBookStats, isMovieStats, type HistogramData, type WorkStatsData } from "../types";
+import { useUser } from "@/service/useUser";
 
 const props = defineProps<{
   workData: WorkStatsData[];
@@ -23,6 +24,11 @@ const props = defineProps<{
   histogramData: HistogramData[];
   clubType: ClubType;
 }>();
+
+// Read here rather than threaded through every parent view: the shared
+// (public) statistics page renders the same widgets, and a signed-in viewer
+// who happens to be a member of that club gets their own scope there too.
+const currentUser = useUser();
 
 // Media-specific widgets read metadata off the narrowed slice: genres/TMDB for
 // movies, subjects/authors for books. Era and activity widgets are
@@ -35,6 +41,7 @@ const context = computed<StatWidgetContext>(() => ({
   members: props.members,
   histogramData: props.histogramData,
   clubType: props.clubType,
+  currentUserId: currentUser.value?.id,
 }));
 
 const widgets = computed(() =>
