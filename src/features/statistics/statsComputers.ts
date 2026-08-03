@@ -7,7 +7,6 @@ import type {
   ClubCurmudgeonEntry,
   ClubRecords,
   CumulativeCountPoint,
-  DecadeStats,
   GenreStats,
   GenreWatchCount,
   GuiltyPleasureEntry,
@@ -682,70 +681,6 @@ export function computeClubCurmudgeons(
   }
 
   return entries.sort((a, b) => b.movies.length - a.movies.length);
-}
-
-export function computeDecadeStats(movieData: MovieData[], memberId?: string): DecadeStats[] {
-  const decadeScores: Record<string, { count: number; totalScore: number }> = {};
-
-  for (const movie of movieData) {
-    const score = isDefined(memberId) ? movie.userScores[memberId] : movie.average;
-    if (!isDefined(score)) continue;
-
-    const releaseDate = movie.externalData?.release_date;
-    if (!hasValue(releaseDate)) continue;
-
-    const year = parseInt(releaseDate.substring(0, 4), 10);
-    if (isNaN(year)) continue;
-
-    const decade = `${Math.floor(year / 10) * 10}s`;
-    const existing = decadeScores[decade];
-    if (isDefined(existing)) {
-      existing.count++;
-      existing.totalScore += score;
-    } else {
-      decadeScores[decade] = { count: 1, totalScore: score };
-    }
-  }
-
-  return Object.entries(decadeScores)
-    .map(([decade, data]) => ({
-      decade,
-      averageScore: Math.round((data.totalScore / data.count) * 100) / 100,
-      count: data.count,
-    }))
-    .sort((a, b) => a.decade.localeCompare(b.decade));
-}
-
-/** Average score grouped by a book's publication decade (from
- * `firstPublishYear`). Mirrors {@link computeDecadeStats}, which reads a movie's
- * `release_date` string instead. */
-export function computePublishDecadeStats(bookData: BookData[], memberId?: string): DecadeStats[] {
-  const decadeScores: Record<string, { count: number; totalScore: number }> = {};
-
-  for (const book of bookData) {
-    const score = isDefined(memberId) ? book.userScores[memberId] : book.average;
-    if (!isDefined(score)) continue;
-
-    const year = book.externalData?.firstPublishYear;
-    if (!isDefined(year) || isNaN(year)) continue;
-
-    const decade = `${Math.floor(year / 10) * 10}s`;
-    const existing = decadeScores[decade];
-    if (isDefined(existing)) {
-      existing.count++;
-      existing.totalScore += score;
-    } else {
-      decadeScores[decade] = { count: 1, totalScore: score };
-    }
-  }
-
-  return Object.entries(decadeScores)
-    .map(([decade, data]) => ({
-      decade,
-      averageScore: Math.round((data.totalScore / data.count) * 100) / 100,
-      count: data.count,
-    }))
-    .sort((a, b) => a.decade.localeCompare(b.decade));
 }
 
 export function computeHighestRatedByYear(workData: WorkStatsData[]): HighestRatedByYearEntry[] {

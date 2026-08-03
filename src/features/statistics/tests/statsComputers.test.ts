@@ -11,7 +11,6 @@ import {
   computeHighestRatedByYear,
   computeMemberLeaderboard,
   computeMonthlyActivity,
-  computePublishDecadeStats,
   computeScoreVariance,
   computeSubjectReadCounts,
   computeSubjectStats,
@@ -1193,61 +1192,6 @@ describe("computeSubjectReadCounts", () => {
     expect(result).toHaveLength(5);
     expect(result[0].subject).toBe("F");
     expect(result.map((s) => s.subject)).not.toContain("A");
-  });
-});
-
-// ---------- computePublishDecadeStats ----------
-
-describe("computePublishDecadeStats", () => {
-  it("returns empty for an empty book list", () => {
-    expect(computePublishDecadeStats([])).toEqual([]);
-  });
-
-  it("skips books without a first-publish year", () => {
-    const books = [
-      makeBook({ average: 8, externalData: makeBookData() }),
-      makeBook({ average: 6 }),
-    ];
-    expect(computePublishDecadeStats(books)).toEqual([]);
-  });
-
-  it("groups books into decades by publish year, sorted ascending", () => {
-    const books = [
-      makeBook({
-        average: 8,
-        externalData: makeBookData({ firstPublishYear: 1998 }),
-      }),
-      makeBook({
-        average: 6,
-        externalData: makeBookData({ firstPublishYear: 1995 }),
-      }),
-      makeBook({
-        average: 9,
-        externalData: makeBookData({ firstPublishYear: 2003 }),
-      }),
-    ];
-    const result = computePublishDecadeStats(books);
-    expect(result).toEqual([
-      { decade: "1990s", averageScore: 7, count: 2 },
-      { decade: "2000s", averageScore: 9, count: 1 },
-    ]);
-  });
-
-  it("uses member-specific scores when a memberId is provided", () => {
-    const books = [
-      makeBook({
-        average: 5,
-        userScores: { m1: 9 },
-        externalData: makeBookData({ firstPublishYear: 1980 }),
-      }),
-      makeBook({
-        average: 5,
-        userScores: { m1: 7 },
-        externalData: makeBookData({ firstPublishYear: 1985 }),
-      }),
-    ];
-    expect(computePublishDecadeStats(books, "m1")[0].averageScore).toBe(8);
-    expect(computePublishDecadeStats(books)[0].averageScore).toBe(5);
   });
 });
 

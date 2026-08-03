@@ -61,12 +61,6 @@ export interface GenreWatchCount {
   count: number;
 }
 
-export interface DecadeStats {
-  decade: string;
-  averageScore: number;
-  count: number;
-}
-
 export interface SubjectScoreStats {
   subject: string;
   averageScore: number;

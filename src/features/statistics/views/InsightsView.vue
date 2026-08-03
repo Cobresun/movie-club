@@ -25,8 +25,8 @@ const props = defineProps<{
 }>();
 
 // Media-specific widgets read metadata off the narrowed slice: genres/TMDB for
-// movies, subjects/authors for books. Era and activity widgets are
-// media-agnostic and take workData. Which widgets appear (and in what order)
+// movies, subjects/authors for books. The activity widget is
+// media-agnostic and takes workData. Which widgets appear (and in what order)
 // is driven by the per-club-type STAT_WIDGETS registry.
 const context = computed<StatWidgetContext>(() => ({
   workData: props.workData,

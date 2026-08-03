@@ -8,7 +8,6 @@ import { isDefined } from "../../../lib/checks/checks.js";
 import { Member } from "../../../lib/types/club";
 import type {
   CumulativeCountPoint,
-  DecadeStats,
   HistogramData,
   MonthlyActivityPoint,
   ScoreTrendPoint,
@@ -112,57 +111,6 @@ export function createHistogramOptions(params: HistogramChartParams): AgCartesia
       },
     ],
     legend: baseLegendOptions(compact),
-  };
-}
-
-export function createDecadeChartOptions(
-  decadeStats: DecadeStats[],
-  countLabel = "Movies",
-  compact = false,
-): AgCartesianChartOptions {
-  return {
-    ...baseChartOptions(compact),
-    data: decadeStats,
-    series: [
-      {
-        type: "bar" as const,
-        direction: "vertical" as const,
-        xKey: "decade",
-        xName: "Decade",
-        yKey: "averageScore",
-        yName: "Avg Score",
-        fill: CLUB_SERIES_COLOR,
-        cornerRadius: 4,
-        tooltip: {
-          renderer: function (params: AgBarSeriesTooltipRendererParams<DecadeStats>) {
-            return (
-              `<div class="ag-chart-tooltip-title" style="background-color: ${CLUB_SERIES_COLOR}">${params.datum.decade}</div>` +
-              `<div class="ag-chart-tooltip-content">` +
-              `Avg Score: ${params.datum.averageScore}` +
-              `<br/>` +
-              `${countLabel}: ${params.datum.count}` +
-              `</div>`
-            );
-          },
-        },
-      },
-    ],
-    axes: [
-      {
-        type: "category",
-        position: "bottom",
-        label: { fontSize: axisLabelFontSize(compact) },
-      },
-      {
-        type: "number",
-        position: "left",
-        min: 0,
-        max: 10,
-        label: { fontSize: axisLabelFontSize(compact) },
-        title: { enabled: !compact, text: "Average Score" },
-      },
-    ],
-    legend: { enabled: false },
   };
 }
 
