@@ -62,6 +62,7 @@ import type { WorkStatsData } from "../types";
 import SegmentedToggle from "./SegmentedToggle.vue";
 import VAvatar from "@/common/components/VAvatar.vue";
 import WidgetShell from "@/common/components/WidgetShell.vue";
+import { firstName } from "@/common/memberName";
 
 type Mode = "most" | "least";
 
@@ -116,8 +117,4 @@ const subtitle = computed(() =>
     ? "The pair whose scores line up the closest"
     : "The pair whose scores clash the hardest",
 );
-
-function firstName(name: string): string {
-  return name.split(" ")[0];
-}
 </script>
