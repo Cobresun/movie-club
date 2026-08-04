@@ -43,7 +43,7 @@ import { computed } from "vue";
 import { isDefined } from "../../../../lib/checks/checks.js";
 import { computeClubRecords } from "../statsComputers";
 import type { ClubRecordEntry, WorkStatsData } from "../types";
-import WidgetShell from "./WidgetShell.vue";
+import WidgetShell from "@/common/components/WidgetShell.vue";
 
 const props = defineProps<{
   workData: WorkStatsData[];

@@ -58,8 +58,8 @@ import {
 } from "../statsComputers";
 import type { WorkStatsData } from "../types";
 import SegmentedToggle from "./SegmentedToggle.vue";
-import WidgetShell from "./WidgetShell.vue";
 import { clubTypeConfig, clubTypeStats } from "@/common/clubType";
+import WidgetShell from "@/common/components/WidgetShell.vue";
 import { useIsDesktop } from "@/common/composables/useIsDesktop";
 
 type Mode = "monthly" | "total" | "years";

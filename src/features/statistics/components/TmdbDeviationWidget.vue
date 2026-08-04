@@ -55,7 +55,7 @@ import { computed, ref } from "vue";
 import { computeTmdbDeviation } from "../statsComputers";
 import type { MovieData } from "../types";
 import SegmentedToggle from "./SegmentedToggle.vue";
-import WidgetShell from "./WidgetShell.vue";
+import WidgetShell from "@/common/components/WidgetShell.vue";
 
 type Mode = "higher" | "lower";
 

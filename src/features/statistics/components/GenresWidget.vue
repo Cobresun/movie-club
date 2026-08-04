@@ -137,7 +137,7 @@ import { computeGenreStats, computeGenreWatchCounts } from "../statsComputers";
 import type { MovieData } from "../types";
 import MemberFilterChips from "./MemberFilterChips.vue";
 import SegmentedToggle from "./SegmentedToggle.vue";
-import WidgetShell from "./WidgetShell.vue";
+import WidgetShell from "@/common/components/WidgetShell.vue";
 
 type Mode = "rated" | "watched";
 

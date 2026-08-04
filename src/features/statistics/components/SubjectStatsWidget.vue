@@ -65,7 +65,7 @@ import { computed, ref } from "vue";
 import { computeSubjectReadCounts, computeSubjectStats } from "../statsComputers";
 import type { BookData } from "../types";
 import SegmentedToggle from "./SegmentedToggle.vue";
-import WidgetShell from "./WidgetShell.vue";
+import WidgetShell from "@/common/components/WidgetShell.vue";
 
 type Mode = "rated" | "read";
 

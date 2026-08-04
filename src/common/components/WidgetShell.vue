@@ -21,7 +21,7 @@
 </template>
 
 <script setup lang="ts">
-import { hasValue } from "../../../../lib/checks/checks.js";
+import { hasValue } from "../../../lib/checks/checks.js";
 
 defineProps<{
   title?: string;

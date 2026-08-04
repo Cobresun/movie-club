@@ -58,10 +58,10 @@
 import { computed } from "vue";
 
 import { Member } from "../../../../lib/types/club";
-import { memberSeriesColor } from "../chartPalette";
 import { computeMemberLeaderboard } from "../statsComputers";
 import type { WorkStatsData } from "../types";
-import WidgetShell from "./WidgetShell.vue";
+import { memberSeriesColor } from "@/common/chartPalette";
+import WidgetShell from "@/common/components/WidgetShell.vue";
 
 const props = defineProps<{
   workData: WorkStatsData[];

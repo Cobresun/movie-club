@@ -19,7 +19,7 @@ import { computeTopActors, computeTopDirectors } from "../statsComputers";
 import type { MovieData } from "../types";
 import PersonLeaderboard from "./PersonLeaderboard.vue";
 import SegmentedToggle from "./SegmentedToggle.vue";
-import WidgetShell from "./WidgetShell.vue";
+import WidgetShell from "@/common/components/WidgetShell.vue";
 import { useClubSlug } from "@/service/useClub";
 import { useReviewsCast } from "@/service/useReviews";
 

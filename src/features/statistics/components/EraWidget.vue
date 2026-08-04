@@ -15,8 +15,8 @@ import { createDecadeChartOptions } from "../scoring";
 import { computeDecadeStats, computePublishDecadeStats } from "../statsComputers";
 import { isBookStats, isMovieStats, type DecadeStats, type WorkStatsData } from "../types";
 import MemberFilterChips from "./MemberFilterChips.vue";
-import WidgetShell from "./WidgetShell.vue";
 import { clubTypeStats } from "@/common/clubType";
+import WidgetShell from "@/common/components/WidgetShell.vue";
 import { useIsDesktop } from "@/common/composables/useIsDesktop";
 
 /**

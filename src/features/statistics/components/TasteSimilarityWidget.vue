@@ -60,8 +60,8 @@ import { Member } from "../../../../lib/types/club";
 import { computeTasteSimilarity } from "../statsComputers";
 import type { WorkStatsData } from "../types";
 import SegmentedToggle from "./SegmentedToggle.vue";
-import WidgetShell from "./WidgetShell.vue";
 import VAvatar from "@/common/components/VAvatar.vue";
+import WidgetShell from "@/common/components/WidgetShell.vue";
 
 type Mode = "most" | "least";
 

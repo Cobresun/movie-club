@@ -18,7 +18,7 @@ import { computed } from "vue";
 import { computeTopAuthors } from "../statsComputers";
 import type { BookData } from "../types";
 import PersonLeaderboard from "./PersonLeaderboard.vue";
-import WidgetShell from "./WidgetShell.vue";
+import WidgetShell from "@/common/components/WidgetShell.vue";
 
 const props = defineProps<{
   bookData: BookData[];

@@ -218,6 +218,29 @@ const routes: Array<RouteRecordRaw> = [
     },
   },
   {
+    path: "/admin",
+    name: "Admin",
+    component: () => import("../features/admin/views/AdminDashboardView.vue"),
+    // Only the login check lives here. Whether a logged-in user is a site admin
+    // is decided by the API (the ADMIN_USER_EMAILS allowlist), and the view
+    // renders an explanatory panel when it answers 401 — the client is never the
+    // authority on this.
+    beforeEnter: async (to, from, next) => {
+      const auth = useAuthStore();
+
+      await auth.waitForAuthReady();
+      if (!auth.isLoggedIn) {
+        next({ name: "Clubs" });
+      } else {
+        next();
+      }
+    },
+    meta: {
+      depth: 1,
+      authRequired: true,
+    },
+  },
+  {
     path: "/newClub",
     name: "NewClub",
     component: () => import("../features/clubs/views/NewClubView.vue"),

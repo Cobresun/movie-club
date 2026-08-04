@@ -1,5 +1,6 @@
 import { http, HttpResponse } from "msw";
 
+import adminMetrics from "./data/adminMetrics.json";
 import club from "./data/club.json";
 import googleBooksSearch from "./data/googleBooksSearch.json";
 import member from "./data/member.json";
@@ -9,6 +10,12 @@ import TMDBSearch from "./data/TMDBSearch.json";
 import watchlist from "./data/watchlist.json";
 
 export const handlers = [
+  http.get("/api/admin/metrics", () => {
+    return HttpResponse.json(adminMetrics);
+  }),
+  http.get("/api/admin/metrics/history", () => {
+    return HttpResponse.json([]);
+  }),
   http.get("/api/member", () => {
     return HttpResponse.json(member);
   }),
