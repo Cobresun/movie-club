@@ -77,6 +77,7 @@ import { clubTypeConfig } from "@/common/clubType";
 import EmptyState from "@/common/components/EmptyState.vue";
 import SearchFilterBar from "@/common/components/SearchFilterBar.vue";
 import VAvatar from "@/common/components/VAvatar.vue";
+import { firstName } from "@/common/memberName";
 import AddReviewPrompt from "@/features/reviews/components/AddReviewPrompt.vue";
 import { useClub, useMembers } from "@/service/useClub";
 import { useDeleteReview, useReviewsList, useReviewsListId } from "@/service/useList";
@@ -206,7 +207,9 @@ const columns = computed(() => [
               name: member.name,
               size,
             }),
-            h("span", { class: "truncate" }, member.name),
+            // Chips are narrow — the first name is enough to tell members
+            // apart, and the avatar carries the rest.
+            h("span", { class: "truncate" }, firstName(member.name)),
           ]);
         } else {
           return h(VAvatar, {

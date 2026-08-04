@@ -59,6 +59,7 @@ import { computeClubConsensus } from "../statsComputers";
 import type { WorkStatsData } from "../types";
 import SegmentedToggle from "./SegmentedToggle.vue";
 import WidgetShell from "@/common/components/WidgetShell.vue";
+import { firstName } from "@/common/memberName";
 
 type Mode = "agreed" | "divisive";
 
@@ -85,8 +86,4 @@ const activeEntries = computed(() =>
 const subtitle = computed(() =>
   mode.value === "agreed" ? "Scores that landed closest together" : "Scores that split the room",
 );
-
-function firstName(name: string): string {
-  return name.split(" ")[0];
-}
 </script>
