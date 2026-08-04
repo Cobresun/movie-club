@@ -150,6 +150,7 @@
       "memberCount": 4,
       "reviewCount": 819,
       "createdAt": "2020-04-28",
+      "lastReviewAt": "2026-07-30",
       "memberNames": ["Brian Norman", "Kevin", "sunny", "wes"]
     },
     {
@@ -160,6 +161,7 @@
       "memberCount": 2,
       "reviewCount": 3,
       "createdAt": null,
+      "lastReviewAt": null,
       "memberNames": ["Ada", "Grace"]
     }
   ]

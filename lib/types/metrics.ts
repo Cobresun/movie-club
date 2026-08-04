@@ -137,6 +137,12 @@ export const topClubSchema = z.object({
   reviewCount: z.number(),
   /** Null for clubs whose creation date could not be backfilled (no activity). */
   createdAt: z.string().nullable(),
+  /**
+   * When the club last logged a review, as a UTC calendar date. Null for a club
+   * that has never reviewed anything — the count says how much a club has done,
+   * this says whether it is still doing it.
+   */
+  lastReviewAt: z.string().nullable(),
 });
 export type TopClub = z.infer<typeof topClubSchema>;
 
