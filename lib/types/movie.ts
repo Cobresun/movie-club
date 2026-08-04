@@ -149,13 +149,6 @@ export interface TMDBWatchProvidersResponse {
   results: Record<string, TMDBWatchProviderRegion | undefined>;
 }
 
-export interface MovieSearchIndex {
-  title: string;
-  release_date: string;
-  id: number;
-  poster_path: string;
-}
-
 export interface ProductionCompany {
   id: number;
   logo_path: string;

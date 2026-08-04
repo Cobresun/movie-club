@@ -6,7 +6,3 @@ export interface Header {
   includeHeader?: boolean;
   centerHeader?: boolean;
 }
-
-export type DateObject = {
-  "@ts": string;
-};
