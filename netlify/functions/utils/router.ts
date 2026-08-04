@@ -33,12 +33,6 @@ export interface Request {
   params: StringRecord;
 }
 
-export function isRequest(req: unknown): req is Request {
-  return (
-    typeof req === "object" && req !== null && "event" in req && "context" in req && "params" in req
-  );
-}
-
 export type MiddlewareCallback<T, R> = (
   req: T,
   res: (data: HandlerResponse) => RouterResponse,
