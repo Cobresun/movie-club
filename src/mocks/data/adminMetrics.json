@@ -150,7 +150,13 @@
       "memberCount": 4,
       "reviewCount": 819,
       "createdAt": "2020-04-28",
-      "memberNames": ["Brian Norman", "Kevin", "sunny", "wes"]
+      "lastReviewAt": "2026-07-30",
+      "memberNames": [
+        "Brian Norman",
+        "Kevin",
+        "sunny",
+        "wes"
+      ]
     },
     {
       "clubId": "940036320128499713",
@@ -160,7 +166,11 @@
       "memberCount": 2,
       "reviewCount": 3,
       "createdAt": null,
-      "memberNames": ["Ada", "Grace"]
+      "lastReviewAt": null,
+      "memberNames": [
+        "Ada",
+        "Grace"
+      ]
     }
   ]
 }

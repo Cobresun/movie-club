@@ -7,6 +7,7 @@
             <th scope="col" class="py-2 pr-3 font-medium">Club</th>
             <th scope="col" class="py-2 pr-3 font-medium">Members</th>
             <th scope="col" class="py-2 pr-3 text-right font-medium">Reviews</th>
+            <th scope="col" class="py-2 pr-3 text-right font-medium">Last review</th>
             <th scope="col" class="py-2 text-right font-medium">Since</th>
           </tr>
         </thead>
@@ -39,6 +40,12 @@
               </span>
             </td>
             <td class="py-2 pr-3 text-right text-white">{{ formatCount(club.reviewCount) }}</td>
+            <td class="py-2 pr-3 text-right text-slate-400">
+              <span v-if="hasValue(club.lastReviewAt)">{{ club.lastReviewAt }}</span>
+              <span v-else class="text-slate-600" title="This club has never logged a review">
+                never
+              </span>
+            </td>
             <td class="py-2 text-right text-slate-400">
               <span v-if="hasValue(club.createdAt)">{{ club.createdAt }}</span>
               <span v-else class="text-slate-600" title="No activity to date this club from">

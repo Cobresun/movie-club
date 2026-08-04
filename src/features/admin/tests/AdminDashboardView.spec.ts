@@ -47,6 +47,16 @@ describe("AdminDashboardView", () => {
     expect(await screen.findByText("Cobresun")).toBeInTheDocument();
     expect(screen.getByText("819")).toBeInTheDocument();
     expect(screen.getByText("2020-04-28")).toBeInTheDocument();
+    expect(screen.getByText("2026-07-30")).toBeInTheDocument();
+  });
+
+  it("says a club has never reviewed rather than leaving the last-review cell blank", async () => {
+    renderDashboard();
+
+    const name = await screen.findByText("Undated Club");
+    const row = ensure(name.closest("tr"), "expected the club name in a table row");
+
+    expect(within(row).getByText("never")).toBeInTheDocument();
   });
 
   it("names club members, collapsing the tail once the row would get long", async () => {

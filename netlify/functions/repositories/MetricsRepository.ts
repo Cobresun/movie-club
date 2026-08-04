@@ -575,6 +575,12 @@ class MetricsRepository {
           .whereRef("work_list.club_id", "=", "club.id")
           .select((e) => e.fn.countAll<string>().as("c"))
           .as("review_count"),
+        eb
+          .selectFrom("review")
+          .innerJoin("work_list", "work_list.id", "review.list_id")
+          .whereRef("work_list.club_id", "=", "club.id")
+          .select((e) => e.fn.max("review.created_date").as("d"))
+          .as("last_review_at"),
       ])
       .orderBy(sql`review_count`, "desc")
       .limit(TOP_CLUB_LIMIT)
@@ -594,6 +600,8 @@ class MetricsRepository {
         memberNames: memberNames.get(String(row.id)) ?? [],
         reviewCount: toCount(row.review_count),
         createdAt: isDefined(row.created_at) ? toIsoDate(row.created_at) : null,
+        // Null for a club with no reviews at all — max() over an empty set.
+        lastReviewAt: isDefined(row.last_review_at) ? toIsoDate(row.last_review_at) : null,
       }),
     );
   }
