@@ -1,6 +1,21 @@
 import { Kysely, sql } from "kysely";
 
 /**
+ * Snapshot of just the columns the backfill reads/writes, so its queries are
+ * type-checked against the schema rather than stringly-typed SQL. The migration
+ * handle is `Kysely<unknown>`, so `withTables` is how we teach it about these
+ * tables (including the `created_at` columns added moments earlier). int8 keys
+ * come back from CockroachDB as strings.
+ */
+type MigrationTables = {
+  club: { id: string; created_at: Date | null };
+  club_member: { club_id: string; created_at: Date | null };
+  work_list: { id: string; club_id: string };
+  work_list_item: { list_id: string; time_added: Date };
+  review: { list_id: string; created_date: Date };
+};
+
+/**
  * Groundwork for the site-wide observability dashboard (/admin).
  *
  * Two things this adds that cannot be reconstructed later:
@@ -38,36 +53,45 @@ export async function up(db: Kysely<unknown>) {
   await db.schema.alterTable("club").addColumn("created_at", "timestamptz").execute();
   await db.schema.alterTable("club_member").addColumn("created_at", "timestamptz").execute();
 
+  const typedDb = db.withTables<MigrationTables>();
+
   // Earliest activity per club, across both signals that carry a timestamp.
   // Clubs with no reviews and no list items match nothing here and stay NULL.
-  await sql`
-    UPDATE club
-    SET created_at = earliest.first_activity
-    FROM (
-      SELECT work_list.club_id AS club_id, MIN(activity.ts) AS first_activity
-      FROM (
-        SELECT list_id, time_added AS ts FROM work_list_item
-        UNION ALL
-        SELECT list_id, created_date AS ts FROM review
-      ) AS activity
-      JOIN work_list ON work_list.id = activity.list_id
-      GROUP BY work_list.club_id
-    ) AS earliest
-    WHERE club.id = earliest.club_id
-  `.execute(db);
+  const earliestActivity = typedDb
+    .selectFrom((eb) =>
+      eb
+        .selectFrom("work_list_item")
+        .select(["list_id", "time_added as ts"])
+        .unionAll(eb.selectFrom("review").select(["list_id", "created_date as ts"]))
+        .as("activity"),
+    )
+    .innerJoin("work_list", "work_list.id", "activity.list_id")
+    .select((eb) => ["work_list.club_id", eb.fn.min("activity.ts").as("first_activity")])
+    .groupBy("work_list.club_id");
+
+  await typedDb
+    .updateTable("club")
+    .from(earliestActivity.as("earliest"))
+    .set((eb) => ({ created_at: eb.ref("earliest.first_activity") }))
+    .whereRef("club.id", "=", "earliest.club_id")
+    .execute();
 
   // There is no per-membership signal to date a join from, so members inherit
   // their club's backfilled date (NULL included — an unknown club start means an
   // unknown join date). Only memberships created after this migration are exact.
-  await sql`
-    UPDATE club_member
-    SET created_at = club.created_at
-    FROM club
-    WHERE club_member.club_id = club.id
-  `.execute(db);
+  await typedDb
+    .updateTable("club_member")
+    .from("club")
+    .set((eb) => ({ created_at: eb.ref("club.created_at") }))
+    .whereRef("club_member.club_id", "=", "club.id")
+    .execute();
 
-  await sql`ALTER TABLE club ALTER COLUMN created_at SET DEFAULT now()`.execute(db);
-  await sql`ALTER TABLE club_member ALTER COLUMN created_at SET DEFAULT now()`.execute(db);
+  for (const table of ["club", "club_member"] as const) {
+    await db.schema
+      .alterTable(table)
+      .alterColumn("created_at", (col) => col.setDefault(sql`now()`))
+      .execute();
+  }
 
   await db.schema
     .createTable("metric_snapshot")

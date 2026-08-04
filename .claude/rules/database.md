@@ -21,6 +21,8 @@ The shape worth knowing before you read: a `work` is a movie or book; `work_list
 
 ## Migration workflow
 
+**Write backfills as typed Kysely queries, not `sql` template strings.** The `Kysely<unknown>` handle a migration receives knows no tables; `db.withTables<{...}>()` teaches it the columns that migration touches — including ones it just added — so identifiers are schema-checked. Raw `sql` is for DDL the builder can't express (`ADD COLUMN IF NOT EXISTS`, `DROP INDEX ... CASCADE`). See the `kysely` skill → Migrations.
+
 **Validate schema migrations against a freshly spawned database, never your `.env`-pointed one.**
 
 This isn't tidiness. The `preview-database` plugin points every PR that _doesn't_ change migrations straight at shared `dev`. Running `migrate:dev` with `.env` on `postgresql://.../dev` rewrites the schema underneath every other open PR's deploy preview at once — their code expects the old schema, and their previews 500 until it's reverted and they're rebuilt.
