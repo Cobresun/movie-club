@@ -1,7 +1,7 @@
-import { sql } from "kysely";
+import { Expression, QueryCreator, sql } from "kysely";
 
 import { isDefined } from "../../../lib/checks/checks.js";
-import { ClubType, Json } from "../../../lib/types/generated/db.js";
+import { ClubType, DB, Json } from "../../../lib/types/generated/db.js";
 import {
   ActiveUser,
   SiteHealth,
@@ -58,8 +58,11 @@ function toIsoDate(value: Date): string {
   return value.toISOString().slice(0, 10);
 }
 
+type ActivityKind = "review" | "comment" | "list_add";
+
 /**
- * Every user-attributable content event, normalised to `(user_id, club_id, ts, kind)`.
+ * Every user-attributable content event, normalised to `(user_id, club_id, ts, kind)`,
+ * as a CTE the activity queries below mount with `.with("activity", activityEvents)`.
  *
  * Reviews and list items reach their club through `work_list`; comments carry
  * `club_id` directly. `work_list_item.added_by_user_id` is nullable for rows
@@ -68,65 +71,57 @@ function toIsoDate(value: Date): string {
  * activity, just not toward any user's engagement. Queries that group *by* user
  * exclude them explicitly.
  *
- * `kind` is cast on the first branch only: a UNION takes each column's type from
- * the leading branch, and an uncast string literal there is `unknown` rather than
- * `text`, which makes the later `FILTER (WHERE kind = 'review')` comparisons
- * ambiguous.
+ * The list-item branch leads deliberately, because a UNION takes each column's
+ * type from its first branch and that branch is the one telling the truth about
+ * both awkward columns:
+ *
+ * - `added_by_user_id` is the only nullable `user_id` of the three, so leading
+ *   with it gives the CTE an honestly nullable column instead of a cast that
+ *   would hide the NULLs from the type system.
+ * - `kind` needs an explicit `::text`; an uncast string literal in the leading
+ *   branch is `unknown` rather than `text`, which makes the `filterWhere` on
+ *   `kind` in {@link MetricsRepository.getTopUsers} ambiguous.
  */
-const ACTIVITY_EVENTS = sql`
-  SELECT review.user_id AS user_id, work_list.club_id AS club_id, review.created_date AS ts,
-         'review'::text AS kind
-  FROM review
-  JOIN work_list ON work_list.id = review.list_id
-  UNION ALL
-  SELECT work_comment.user_id, work_comment.club_id, work_comment.created_date, 'comment'
-  FROM work_comment
-  UNION ALL
-  SELECT work_list_item.added_by_user_id, work_list.club_id, work_list_item.time_added, 'list_add'
-  FROM work_list_item
-  JOIN work_list ON work_list.id = work_list_item.list_id
-`;
-
-interface ActivityRow {
-  engaged_7: string;
-  engaged_30: string;
-  active_clubs_7: string;
-  active_clubs_30: string;
+function activityEvents(qc: QueryCreator<DB>) {
+  return qc
+    .selectFrom("work_list_item")
+    .innerJoin("work_list", "work_list.id", "work_list_item.list_id")
+    .select([
+      "work_list_item.added_by_user_id as user_id",
+      "work_list.club_id as club_id",
+      "work_list_item.time_added as ts",
+      sql<ActivityKind>`${sql.lit("list_add")}::text`.as("kind"),
+    ])
+    .unionAll(
+      qc
+        .selectFrom("review")
+        .innerJoin("work_list", "work_list.id", "review.list_id")
+        .select([
+          "review.user_id as user_id",
+          "work_list.club_id as club_id",
+          "review.created_date as ts",
+          sql<ActivityKind>`${sql.lit("review")}`.as("kind"),
+        ]),
+    )
+    .unionAll(
+      qc
+        .selectFrom("work_comment")
+        .select([
+          "work_comment.user_id as user_id",
+          "work_comment.club_id as club_id",
+          "work_comment.created_date as ts",
+          sql<ActivityKind>`${sql.lit("comment")}`.as("kind"),
+        ]),
+    );
 }
 
-interface WeeklyRow {
-  week_start: string;
-  count: string;
-}
-
-interface ActivationRow {
-  signups: string;
-  activated: string;
-}
-
-interface DormancyRow {
-  ever_active: string;
-  dormant: string;
-}
-
-interface ClubSizeRow {
-  empty: string;
-  solo: string;
-  small: string;
-  medium: string;
-  large: string;
-}
-
-interface TopUserRow {
-  user_id: string;
-  name: string;
-  image: string | null;
-  total: string;
-  reviews: string;
-  comments: string;
-  list_adds: string;
-  clubs: string;
-  last_active: Date;
+/**
+ * `to_char(date_trunc('week', …))`, with the column reference passed in as a
+ * checked expression rather than spliced in as text. Formatting in the database
+ * keeps the bucket key clear of any JS timezone conversion on the way out.
+ */
+function weekStart(column: Expression<Date | null>) {
+  return sql<string>`to_char(date_trunc('week', ${column}), 'YYYY-MM-DD')`;
 }
 
 /**
@@ -260,7 +255,7 @@ class MetricsRepository {
               e
                 .selectFrom("work_comment")
                 .whereRef("work_comment.work_id", "=", "review.work_id")
-                .select(sql`1`.as("one")),
+                .select(e.lit(1).as("one")),
             ),
           )
           .select((e) => e.fn.count<string>("work_id").distinct().as("c"))
@@ -273,24 +268,31 @@ class MetricsRepository {
    * Engaged users and active clubs, both windows, from one pass over the
    * unioned activity events. `FILTER` lets a single scan serve both windows.
    */
-  private async getActivity(): Promise<ActivityRow> {
+  private async getActivity() {
     const since7 = daysAgo(7);
     const since30 = daysAgo(30);
 
-    const result = await sql<ActivityRow>`
-      WITH activity AS (${ACTIVITY_EVENTS})
-      SELECT
-        count(DISTINCT user_id) FILTER (WHERE ts >= ${since7}) AS engaged_7,
-        count(DISTINCT user_id) FILTER (WHERE ts >= ${since30}) AS engaged_30,
-        count(DISTINCT club_id) FILTER (WHERE ts >= ${since7}) AS active_clubs_7,
-        count(DISTINCT club_id) FILTER (WHERE ts >= ${since30}) AS active_clubs_30
-      FROM activity
-    `.execute(db);
-
-    const row = result.rows[0];
-    return isDefined(row)
-      ? row
-      : { engaged_7: "0", engaged_30: "0", active_clubs_7: "0", active_clubs_30: "0" };
+    // An ungrouped aggregate always returns exactly one row, here and in the
+    // other single-row aggregates below — hence OrThrow rather than a zeroed
+    // fallback for a case that cannot happen.
+    return await db
+      .with("activity", activityEvents)
+      .selectFrom("activity")
+      .select((eb) => [
+        eb.fn.count<string>("user_id").distinct().filterWhere("ts", ">=", since7).as("engaged_7"),
+        eb.fn.count<string>("user_id").distinct().filterWhere("ts", ">=", since30).as("engaged_30"),
+        eb.fn
+          .count<string>("club_id")
+          .distinct()
+          .filterWhere("ts", ">=", since7)
+          .as("active_clubs_7"),
+        eb.fn
+          .count<string>("club_id")
+          .distinct()
+          .filterWhere("ts", ">=", since30)
+          .as("active_clubs_30"),
+      ])
+      .executeTakeFirstOrThrow();
   }
 
   /**
@@ -301,20 +303,33 @@ class MetricsRepository {
    * appears in the activity set, and stopping at the first match avoids
    * aggregating every event belonging to a prolific new member.
    */
-  private async getActivation(): Promise<ActivationRow> {
+  private async getActivation() {
     const since30 = daysAgo(30);
 
-    const result = await sql<ActivationRow>`
-      WITH activity AS (${ACTIVITY_EVENTS}),
-      recent_users AS (SELECT id FROM "user" WHERE "createdAt" >= ${since30})
-      SELECT
-        (SELECT count(*) FROM recent_users) AS signups,
-        (SELECT count(*) FROM recent_users
-         WHERE EXISTS (SELECT 1 FROM activity WHERE activity.user_id = recent_users.id))
-          AS activated
-    `.execute(db);
-
-    return result.rows[0] ?? { signups: "0", activated: "0" };
+    return await db
+      .with("activity", activityEvents)
+      .with("recent_users", (qc) =>
+        qc.selectFrom("user").select("id").where("createdAt", ">=", since30),
+      )
+      .selectNoFrom((eb) => [
+        eb
+          .selectFrom("recent_users")
+          .select((e) => e.fn.countAll<string>().as("c"))
+          .as("signups"),
+        eb
+          .selectFrom("recent_users")
+          .where((e) =>
+            e.exists(
+              e
+                .selectFrom("activity")
+                .whereRef("activity.user_id", "=", "recent_users.id")
+                .select(e.lit(1).as("one")),
+            ),
+          )
+          .select((e) => e.fn.countAll<string>().as("c"))
+          .as("activated"),
+      ])
+      .executeTakeFirstOrThrow();
   }
 
   /**
@@ -326,24 +341,24 @@ class MetricsRepository {
    * Clubs that never did anything are excluded from both halves — they never
    * became active, so they cannot have lapsed.
    */
-  private async getDormancy(): Promise<DormancyRow> {
+  private async getDormancy() {
     const cutoff = daysAgo(DORMANCY_DAYS);
 
-    const result = await sql<DormancyRow>`
-      WITH activity AS (${ACTIVITY_EVENTS}),
-      club_last_seen AS (
-        SELECT club_id, max(ts) AS last_ts
-        FROM activity
-        WHERE club_id IS NOT NULL
-        GROUP BY club_id
+    return await db
+      .with("activity", activityEvents)
+      .with("club_last_seen", (qc) =>
+        qc
+          .selectFrom("activity")
+          .select((eb) => ["club_id", eb.fn.max("ts").as("last_ts")])
+          .where("club_id", "is not", null)
+          .groupBy("club_id"),
       )
-      SELECT
-        count(*) AS ever_active,
-        count(*) FILTER (WHERE last_ts < ${cutoff}) AS dormant
-      FROM club_last_seen
-    `.execute(db);
-
-    return result.rows[0] ?? { ever_active: "0", dormant: "0" };
+      .selectFrom("club_last_seen")
+      .select((eb) => [
+        eb.fn.countAll<string>().as("ever_active"),
+        eb.fn.countAll<string>().filterWhere("last_ts", "<", cutoff).as("dormant"),
+      ])
+      .executeTakeFirstOrThrow();
   }
 
   /**
@@ -359,19 +374,25 @@ class MetricsRepository {
    * count is bounded by the number of clubs, so there is nothing to stream.
    */
   private async getDaysToFirstReview(): Promise<number[]> {
-    const result = await sql<{ days: string }>`
-      SELECT extract(epoch FROM (min(review.created_date) - club.created_at)) / 86400 AS days
-      FROM club
-      JOIN work_list ON work_list.club_id = club.id
-      JOIN review ON review.list_id = work_list.id
-      WHERE club.created_at >= ${TRUSTED_CREATED_AT_SINCE}
-      GROUP BY club.id, club.created_at
-    `.execute(db);
+    const rows = await db
+      .selectFrom("club")
+      .innerJoin("work_list", "work_list.club_id", "club.id")
+      .innerJoin("review", "review.list_id", "work_list.id")
+      // Pinned to UTC midnight rather than handed over as a bare date string,
+      // which the server would resolve in its own session timezone.
+      .where("club.created_at", ">=", new Date(`${TRUSTED_CREATED_AT_SINCE}T00:00:00Z`))
+      .groupBy(["club.id", "club.created_at"])
+      .select((eb) =>
+        sql<string>`extract(epoch from (${eb.fn.min("review.created_date")} - ${eb.ref("club.created_at")})) / 86400`.as(
+          "days",
+        ),
+      )
+      .execute();
 
     // A review predating its club's created_at would give a negative interval.
     // Clamp rather than drop: it is a data artefact, not a club that took
     // negative time to get started.
-    return result.rows.map((row) => Math.max(0, Number(row.days))).filter(Number.isFinite);
+    return rows.map((row) => Math.max(0, Number(row.days))).filter(Number.isFinite);
   }
 
   /**
@@ -380,25 +401,38 @@ class MetricsRepository {
    * `LEFT JOIN` so clubs with no members at all land in the `empty` bucket —
    * an inner join would drop them, and a club nobody joined is precisely the
    * kind of thing this histogram exists to expose.
+   *
+   * Bucketed here rather than with `FILTER (WHERE members BETWEEN …)` in SQL:
+   * the bucket boundaries would have to compare against a `count()`, whose
+   * honest type is the string node-postgres returns, and typing it as a number
+   * to make the comparison compile is exactly the lie {@link toCount} exists to
+   * prevent. The database still does the counting; this only sorts one row per
+   * club into five bins.
    */
-  private async getClubSizes(): Promise<ClubSizeRow> {
-    const result = await sql<ClubSizeRow>`
-      WITH sizes AS (
-        SELECT club.id, count(club_member.user_id) AS members
-        FROM club
-        LEFT JOIN club_member ON club_member.club_id = club.id
-        GROUP BY club.id
-      )
-      SELECT
-        count(*) FILTER (WHERE members = 0) AS empty,
-        count(*) FILTER (WHERE members = 1) AS solo,
-        count(*) FILTER (WHERE members BETWEEN 2 AND 3) AS small,
-        count(*) FILTER (WHERE members BETWEEN 4 AND 6) AS medium,
-        count(*) FILTER (WHERE members >= 7) AS large
-      FROM sizes
-    `.execute(db);
+  private async getClubSizes() {
+    const rows = await db
+      .selectFrom("club")
+      .leftJoin("club_member", "club_member.club_id", "club.id")
+      .select((eb) => ["club.id", eb.fn.count<string>("club_member.user_id").as("members")])
+      .groupBy("club.id")
+      .execute();
 
-    return result.rows[0] ?? { empty: "0", solo: "0", small: "0", medium: "0", large: "0" };
+    const sizes = { empty: 0, solo: 0, small: 0, medium: 0, large: 0 };
+    for (const row of rows) {
+      const members = toCount(row.members);
+      if (members === 0) {
+        sizes.empty++;
+      } else if (members === 1) {
+        sizes.solo++;
+      } else if (members <= 3) {
+        sizes.small++;
+      } else if (members <= 6) {
+        sizes.medium++;
+      } else {
+        sizes.large++;
+      }
+    }
+    return sizes;
   }
 
   /**
@@ -430,27 +464,32 @@ class MetricsRepository {
   private async getTopUsers(): Promise<ActiveUser[]> {
     const since30 = daysAgo(30);
 
-    const result = await sql<TopUserRow>`
-      WITH activity AS (${ACTIVITY_EVENTS})
-      SELECT
-        activity.user_id AS user_id,
-        "user".name AS name,
-        "user".image AS image,
-        count(*) AS total,
-        count(*) FILTER (WHERE kind = 'review') AS reviews,
-        count(*) FILTER (WHERE kind = 'comment') AS comments,
-        count(*) FILTER (WHERE kind = 'list_add') AS list_adds,
-        count(DISTINCT activity.club_id) AS clubs,
-        max(activity.ts) AS last_active
-      FROM activity
-      JOIN "user" ON "user".id = activity.user_id
-      WHERE activity.ts >= ${since30}
-      GROUP BY activity.user_id, "user".name, "user".image
-      ORDER BY total DESC
-      LIMIT ${TOP_USER_LIMIT}
-    `.execute(db);
+    const rows = await db
+      .with("activity", activityEvents)
+      .selectFrom("activity")
+      // The join drops the NULL-attribution list adds described on
+      // {@link activityEvents}, which is what keeps them out of this leaderboard.
+      .innerJoin("user", "user.id", "activity.user_id")
+      .select((eb) => [
+        "activity.user_id as user_id",
+        "user.name as name",
+        "user.image as image",
+        eb.fn.countAll<string>().as("total"),
+        eb.fn.countAll<string>().filterWhere("kind", "=", "review").as("reviews"),
+        eb.fn.countAll<string>().filterWhere("kind", "=", "comment").as("comments"),
+        eb.fn.countAll<string>().filterWhere("kind", "=", "list_add").as("list_adds"),
+        eb.fn.count<string>("activity.club_id").distinct().as("clubs"),
+        eb.fn.max("activity.ts").as("last_active"),
+      ])
+      .where("activity.ts", ">=", since30)
+      .groupBy(["activity.user_id", "user.name", "user.image"])
+      // A select alias, not a column, so there is nothing for Kysely to check
+      // against the schema — the same reason getTopClubs orders this way.
+      .orderBy(sql`total`, "desc")
+      .limit(TOP_USER_LIMIT)
+      .execute();
 
-    return result.rows.map((row) => ({
+    return rows.map((row) => ({
       userId: String(row.user_id),
       name: row.name,
       image: row.image,
@@ -463,50 +502,51 @@ class MetricsRepository {
     }));
   }
 
-  private toSeries(rows: WeeklyRow[]): TimeSeriesPoint[] {
+  private toSeries(rows: { week_start: string; count: string }[]): TimeSeriesPoint[] {
     return rows.map((row) => ({ weekStart: row.week_start, count: toCount(row.count) }));
   }
 
-  /**
-   * Weekly buckets for the three growth charts. Raw SQL here because
-   * `date_trunc` grouping gains nothing from Kysely's type system and reads far
-   * worse through it. `to_char` formats in the database so the bucket key never
-   * passes through a JS timezone conversion on the way out.
-   */
+  /** Weekly buckets for the three growth charts. */
   private async getWeeklySeries() {
     const since = daysAgo(WEEKS_OF_HISTORY * 7);
 
     const [users, clubs, reviews] = await Promise.all([
-      sql<WeeklyRow>`
-        SELECT to_char(date_trunc('week', "createdAt"), 'YYYY-MM-DD') AS week_start,
-               count(*) AS count
-        FROM "user"
-        WHERE "createdAt" >= ${since}
-        GROUP BY 1
-        ORDER BY 1
-      `.execute(db),
-      sql<WeeklyRow>`
-        SELECT to_char(date_trunc('week', created_at), 'YYYY-MM-DD') AS week_start,
-               count(*) AS count
-        FROM club
-        WHERE created_at >= ${since}
-        GROUP BY 1
-        ORDER BY 1
-      `.execute(db),
-      sql<WeeklyRow>`
-        SELECT to_char(date_trunc('week', created_date), 'YYYY-MM-DD') AS week_start,
-               count(*) AS count
-        FROM review
-        WHERE created_date >= ${since}
-        GROUP BY 1
-        ORDER BY 1
-      `.execute(db),
+      db
+        .selectFrom("user")
+        .select((eb) => [
+          weekStart(eb.ref("createdAt")).as("week_start"),
+          eb.fn.countAll<string>().as("count"),
+        ])
+        .where("createdAt", ">=", since)
+        .groupBy((eb) => weekStart(eb.ref("createdAt")))
+        .orderBy((eb) => weekStart(eb.ref("createdAt")))
+        .execute(),
+      db
+        .selectFrom("club")
+        .select((eb) => [
+          weekStart(eb.ref("created_at")).as("week_start"),
+          eb.fn.countAll<string>().as("count"),
+        ])
+        .where("created_at", ">=", since)
+        .groupBy((eb) => weekStart(eb.ref("created_at")))
+        .orderBy((eb) => weekStart(eb.ref("created_at")))
+        .execute(),
+      db
+        .selectFrom("review")
+        .select((eb) => [
+          weekStart(eb.ref("created_date")).as("week_start"),
+          eb.fn.countAll<string>().as("count"),
+        ])
+        .where("created_date", ">=", since)
+        .groupBy((eb) => weekStart(eb.ref("created_date")))
+        .orderBy((eb) => weekStart(eb.ref("created_date")))
+        .execute(),
     ]);
 
     return {
-      users: this.toSeries(users.rows),
-      clubs: this.toSeries(clubs.rows),
-      reviews: this.toSeries(reviews.rows),
+      users: this.toSeries(users),
+      clubs: this.toSeries(clubs),
+      reviews: this.toSeries(reviews),
     };
   }
 
@@ -649,11 +689,11 @@ class MetricsRepository {
         denominator: toCount(scalars.reviewedWorks),
       },
       clubSizes: [
-        { label: "No members", clubs: toCount(clubSizes.empty) },
-        { label: "1", clubs: toCount(clubSizes.solo) },
-        { label: "2–3", clubs: toCount(clubSizes.small) },
-        { label: "4–6", clubs: toCount(clubSizes.medium) },
-        { label: "7+", clubs: toCount(clubSizes.large) },
+        { label: "No members", clubs: clubSizes.empty },
+        { label: "1", clubs: clubSizes.solo },
+        { label: "2–3", clubs: clubSizes.small },
+        { label: "4–6", clubs: clubSizes.medium },
+        { label: "7+", clubs: clubSizes.large },
       ],
       signupMethods,
     };
@@ -735,7 +775,10 @@ class MetricsRepository {
       // Formatted in the database on purpose: node-postgres returns a `date`
       // column as a Date at *local* midnight, so calling toISOString() on it
       // would report the previous day for anyone west of UTC.
-      .select([sql<string>`to_char(captured_on, 'YYYY-MM-DD')`.as("captured_on"), "metrics"])
+      .select((eb) => [
+        sql<string>`to_char(${eb.ref("captured_on")}, 'YYYY-MM-DD')`.as("captured_on"),
+        "metrics",
+      ])
       .where("captured_on", ">=", daysAgo(days))
       .orderBy("captured_on", "asc")
       .execute();
