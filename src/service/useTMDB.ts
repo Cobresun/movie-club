@@ -9,32 +9,6 @@ const key = import.meta.env.VITE_TMDB_API_KEY;
 
 export type TMDBCollection = "popular" | "now_playing" | "upcoming" | "top_rated";
 
-export function useSearch(query: Ref<string>, enabled: boolean) {
-  return useQuery<TMDBPageResponse>({
-    queryKey: ["tmdb", "search", query],
-    enabled,
-    queryFn: async ({ signal }) =>
-      (
-        await axios.get<TMDBPageResponse>(
-          `https://api.themoviedb.org/3/search/movie?api_key=${key}&query=${query.value}&language=en-US&include_adult=false`,
-          { signal },
-        )
-      ).data,
-  });
-}
-
-export function useCollection(collection: Ref<TMDBCollection>) {
-  return useQuery<TMDBPageResponse>({
-    queryKey: ["tmdb", "collection", collection],
-    queryFn: async () =>
-      (
-        await axios.get<TMDBPageResponse>(
-          `https://api.themoviedb.org/3/movie/${collection.value}?api_key=${key}&language=en-US`,
-        )
-      ).data,
-  });
-}
-
 export function useInfiniteCollection(collection: Ref<TMDBCollection>) {
   return useInfiniteQuery<TMDBPageResponse>({
     queryKey: ["tmdb", "collection", "infinite", collection],
