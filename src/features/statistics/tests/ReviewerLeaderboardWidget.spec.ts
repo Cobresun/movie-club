@@ -1,8 +1,8 @@
 import { screen } from "@testing-library/vue";
 
-import { MEMBER_SERIES_COLORS } from "../chartPalette";
 import ReviewerLeaderboardWidget from "../components/ReviewerLeaderboardWidget.vue";
 import { makeMember, makeMovie } from "./fixtures";
+import { MEMBER_SERIES_COLORS } from "@/common/chartPalette";
 import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
 import { render } from "@/tests/utils";
 
