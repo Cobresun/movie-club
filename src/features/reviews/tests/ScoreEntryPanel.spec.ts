@@ -106,6 +106,26 @@ describe("ScoreEntryPanel", () => {
     await waitFor(() => expect(put).toEqual({ score: 7 }));
   });
 
+  it("autofocuses a prefilled field with the caret at the end, not selecting it", async () => {
+    // Asserted through the calls rather than `selectionStart`: jsdom reports a
+    // null caret for `type="number"` and resets the selection when the field
+    // flips back from text, so the placement itself is unobservable here.
+    const setSelectionRange = vi.spyOn(HTMLInputElement.prototype, "setSelectionRange");
+    const select = vi.spyOn(HTMLInputElement.prototype, "select");
+
+    render(ScoreEntryPanel, {
+      props: { workId: "target", reviewId: "rev1", score: 8.5, autofocus: true },
+    });
+
+    const input = screen.getByRole("spinbutton", { name: "Score" });
+    await waitFor(() => expect(input).toHaveFocus());
+
+    // "8.5" — caret past the last character, so a keystroke appends instead of
+    // replacing the whole score.
+    expect(setSelectionRange).toHaveBeenCalledWith(3, 3);
+    expect(select).not.toHaveBeenCalled();
+  });
+
   it("re-seeds the field when the score prop changes out from under it", async () => {
     // Mirrors returning from Score Assist: the saved suggestion flows in as a new
     // `score` prop, and the (mount-seeded) field must follow it rather than keep
