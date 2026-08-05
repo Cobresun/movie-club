@@ -11,8 +11,8 @@
     <div v-if="isLoading" class="flex justify-center"><loading-spinner /></div>
     <empty-state
       v-else-if="!items || items.length === 0"
-      header="Empty list"
-      message="Add items to this list to see them here."
+      title="Empty list"
+      description="Add items to this list to see them here."
     />
     <template v-else>
       <div class="w-full">
