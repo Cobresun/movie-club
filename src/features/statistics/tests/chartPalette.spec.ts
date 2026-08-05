@@ -5,7 +5,7 @@ import {
   CLUB_SERIES_COLOR,
   MEMBER_SERIES_COLORS,
   memberSeriesColor,
-} from "../chartPalette";
+} from "@/common/chartPalette";
 
 /**
  * The palette is the statistics page's single source of chart-color truth

@@ -1,6 +1,6 @@
 import { screen } from "@testing-library/vue";
 
-import WidgetShell from "../components/WidgetShell.vue";
+import WidgetShell from "@/common/components/WidgetShell.vue";
 import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
 import { render } from "@/tests/utils";
 
