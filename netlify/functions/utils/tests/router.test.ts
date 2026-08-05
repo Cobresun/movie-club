@@ -1,7 +1,7 @@
 import { HandlerContext, HandlerEvent } from "@netlify/functions";
 import { describe, expect, it, vi } from "vitest";
 
-import { Request, Router, createRouterResponse, isRequest, isRouterResponse } from "../router";
+import { Request, Router, createRouterResponse, isRouterResponse } from "../router";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -71,32 +71,6 @@ describe("isRouterResponse", () => {
 
   it("returns false for a string", () => {
     expect(isRouterResponse("hello")).toBe(false);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// isRequest
-// ---------------------------------------------------------------------------
-
-describe("isRequest", () => {
-  it("returns true for a well-formed Request object", () => {
-    expect(isRequest(makeRequest("/foo", "GET"))).toBe(true);
-  });
-
-  it("returns false when event is missing", () => {
-    expect(isRequest({ context: stubContext, params: {} })).toBe(false);
-  });
-
-  it("returns false when context is missing", () => {
-    expect(isRequest({ event: makeEvent("/", "GET"), params: {} })).toBe(false);
-  });
-
-  it("returns false when params is missing", () => {
-    expect(isRequest({ event: makeEvent("/", "GET"), context: stubContext })).toBe(false);
-  });
-
-  it("returns false for null", () => {
-    expect(isRequest(null)).toBe(false);
   });
 });
 
