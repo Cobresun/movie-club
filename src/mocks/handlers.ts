@@ -31,6 +31,15 @@ export const handlers = [
   http.get("/api/club/:id/settings", () => {
     return HttpResponse.json({});
   }),
+  http.get("/api/club/:id/list/reviews-id", () => {
+    return HttpResponse.json({ id: "reviews" });
+  }),
+  // The details drawer loads a work's comments as soon as it opens, so any
+  // spec that clicks into a review needs this even when comments aren't its
+  // subject. Specs that assert on comments override it with server.use().
+  http.get("/api/club/:id/reviews/:workId/comments", () => {
+    return HttpResponse.json([]);
+  }),
   http.get("/api/club/:id/list/reviews", () => {
     return HttpResponse.json(reviews);
   }),
