@@ -25,10 +25,18 @@
             <span v-if="comment.spoiler" class="text-yellow-500"> &middot; Spoiler </span>
           </div>
           <template v-if="comment.userId === currentUserId">
-            <button class="text-gray-500 hover:text-primary" @click="startEditing(comment)">
+            <button
+              aria-label="Edit comment"
+              class="text-gray-500 hover:text-primary"
+              @click="startEditing(comment)"
+            >
               <mdicon name="pencil-outline" :size="14" />
             </button>
-            <button class="text-gray-500 hover:text-red-400" @click="promptDelete(comment.id)">
+            <button
+              aria-label="Delete comment"
+              class="text-gray-500 hover:text-red-400"
+              @click="promptDelete(comment.id)"
+            >
               <mdicon name="delete-outline" :size="14" />
             </button>
           </template>
@@ -119,6 +127,7 @@
           </span>
         </div>
         <v-btn
+          aria-label="Send comment"
           :disabled="!hasValue(newComment.trim()) || newComment.length > MAX_LENGTH"
           @click="sendComment"
         >
