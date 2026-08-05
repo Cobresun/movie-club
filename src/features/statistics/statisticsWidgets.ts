@@ -6,7 +6,6 @@ import ActivityWidget from "./components/ActivityWidget.vue";
 import AuthorLeaderboardWidget from "./components/AuthorLeaderboardWidget.vue";
 import ClubConsensusWidget from "./components/ClubConsensusWidget.vue";
 import ClubRecordsWidget from "./components/ClubRecordsWidget.vue";
-import EraWidget from "./components/EraWidget.vue";
 import GenresWidget from "./components/GenresWidget.vue";
 import MemberOutliersWidget from "./components/MemberOutliersWidget.vue";
 import PeopleWidget from "./components/PeopleWidget.vue";
@@ -78,15 +77,6 @@ const activityWidget: StatWidgetDef = {
   component: ActivityWidget,
   props: (ctx) => ({ workData: ctx.workData, clubType: ctx.clubType }),
 };
-const eraWidget: StatWidgetDef = {
-  key: "era",
-  component: EraWidget,
-  props: (ctx) => ({
-    workData: ctx.workData,
-    members: ctx.members,
-    clubType: ctx.clubType,
-  }),
-};
 const reviewerLeaderboardWidget: StatWidgetDef = {
   key: "reviewer-leaderboard",
   component: ReviewerLeaderboardWidget,
@@ -133,7 +123,6 @@ export const STAT_WIDGETS: Record<ClubType, StatWidgetDef[]> = {
       component: GenresWidget,
       props: (ctx) => ({ movieData: ctx.movieData, members: ctx.members }),
     },
-    eraWidget,
     {
       key: "people",
       component: PeopleWidget,
@@ -159,7 +148,6 @@ export const STAT_WIDGETS: Record<ClubType, StatWidgetDef[]> = {
       component: SubjectStatsWidget,
       props: (ctx) => ({ bookData: ctx.bookData }),
     },
-    eraWidget,
     {
       key: "authors",
       component: AuthorLeaderboardWidget,
