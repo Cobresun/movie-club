@@ -207,9 +207,19 @@ const endDrag = () => {
 };
 
 defineExpose({
+  // Caret at the end, not a full selection: reopening the entry surface on an
+  // existing score should let you tweak a digit rather than have the first
+  // keystroke wipe the value. `setSelectionRange` throws on `type="number"`,
+  // so the field is flipped to text for the one call — the caret survives the
+  // flip back, and the value never changes, so no input event fires.
   focusInput: () => {
-    scoreInput.value?.focus();
-    scoreInput.value?.select();
+    const input = scoreInput.value;
+    if (!isDefined(input)) return;
+    const end = input.value.length;
+    input.type = "text";
+    input.focus();
+    input.setSelectionRange(end, end);
+    input.type = "number";
   },
 });
 </script>
