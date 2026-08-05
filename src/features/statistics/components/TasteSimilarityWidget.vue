@@ -1,14 +1,17 @@
 <template>
   <WidgetShell v-if="hasData" title="Taste Similarity" :subtitle="subtitle">
     <template #controls>
-      <SegmentedToggle v-model="mode" :options="modeOptions" />
+      <div class="flex flex-wrap items-center gap-2">
+        <SegmentedToggle v-if="scopeOptions.length > 1" v-model="scope" :options="scopeOptions" />
+        <SegmentedToggle v-model="mode" :options="modeOptions" />
+      </div>
     </template>
 
     <div v-if="activePair" class="text-left">
       <div class="mb-4 flex items-center justify-center gap-3">
         <div class="flex flex-col items-center">
           <v-avatar :src="activePair.memberA.image" :name="activePair.memberA.name" :size="48" />
-          <span class="mt-1 text-xs text-slate-300">{{ firstName(activePair.memberA.name) }}</span>
+          <span class="mt-1 text-xs text-slate-300">{{ memberLabel(activePair.memberA) }}</span>
         </div>
         <div class="flex flex-col items-center px-3">
           <span class="text-2xl font-bold" :class="accentTextClass"
@@ -18,7 +21,7 @@
         </div>
         <div class="flex flex-col items-center">
           <v-avatar :src="activePair.memberB.image" :name="activePair.memberB.name" :size="48" />
-          <span class="mt-1 text-xs text-slate-300">{{ firstName(activePair.memberB.name) }}</span>
+          <span class="mt-1 text-xs text-slate-300">{{ memberLabel(activePair.memberB) }}</span>
         </div>
       </div>
 
@@ -55,7 +58,7 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 
-import { isDefined } from "../../../../lib/checks/checks.js";
+import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import { Member } from "../../../../lib/types/club";
 import { computeTasteSimilarity } from "../statsComputers";
 import type { WorkStatsData } from "../types";
@@ -65,13 +68,48 @@ import WidgetShell from "@/common/components/WidgetShell.vue";
 import { firstName } from "@/common/memberName";
 
 type Mode = "most" | "least";
+type Scope = "club" | "you";
 
 const props = defineProps<{
   workData: WorkStatsData[];
   members: Member[];
+  /** Set when the viewer is signed in; unlocks the "You" scope if they're a club member. */
+  currentUserId?: string;
 }>();
 
-const tasteSimilarity = computed(() => computeTasteSimilarity(props.workData, props.members));
+const clubSimilarity = computed(() => computeTasteSimilarity(props.workData, props.members));
+
+// Only worth computing when the viewer is actually one of this club's members
+// — an anonymous or non-member viewer has no pairs of their own.
+const userSimilarity = computed(() => {
+  if (!hasValue(props.currentUserId)) return { mostSimilar: null, leastSimilar: null };
+  return computeTasteSimilarity(props.workData, props.members, props.currentUserId);
+});
+
+const scopeOptions = computed(() => {
+  const options: { value: Scope; label: string }[] = [{ value: "club", label: "Club" }];
+  if (isDefined(userSimilarity.value.mostSimilar)) {
+    options.push({ value: "you", label: "You" });
+  }
+  return options;
+});
+
+// Fall back to the first tab with data rather than watching for changes
+// (see code-quality.md on avoiding watch()).
+const selectedScope = ref<Scope>("club");
+const scope = computed<Scope>({
+  get: () =>
+    scopeOptions.value.some((option) => option.value === selectedScope.value)
+      ? selectedScope.value
+      : "club",
+  set: (value) => {
+    selectedScope.value = value;
+  },
+});
+
+const tasteSimilarity = computed(() =>
+  scope.value === "you" ? userSimilarity.value : clubSimilarity.value,
+);
 
 const modeOptions = computed(() => {
   const options: { value: Mode; label: string }[] = [];
@@ -86,8 +124,6 @@ const modeOptions = computed(() => {
 
 const hasData = computed(() => modeOptions.value.length > 0);
 
-// Fall back to the first tab with data rather than watching for changes
-// (see code-quality.md on avoiding watch()).
 const selectedMode = ref<Mode>("most");
 const mode = computed<Mode>({
   get: () =>
@@ -112,9 +148,21 @@ const accentTextClass = computed(() =>
   mode.value === "most" ? "text-emerald-400" : "text-rose-400",
 );
 
-const subtitle = computed(() =>
-  mode.value === "most"
-    ? "The pair whose scores line up the closest"
-    : "The pair whose scores clash the hardest",
-);
+const SUBTITLES: Record<Scope, Record<Mode, string>> = {
+  club: {
+    most: "The pair whose scores line up the closest",
+    least: "The pair whose scores clash the hardest",
+  },
+  you: {
+    most: "The member whose scores line up closest with yours",
+    least: "The member whose scores clash hardest with yours",
+  },
+};
+
+const subtitle = computed(() => SUBTITLES[scope.value][mode.value]);
+
+function memberLabel(member: { id: string; name: string }): string {
+  if (scope.value === "you" && member.id === props.currentUserId) return "You";
+  return firstName(member.name);
+}
 </script>

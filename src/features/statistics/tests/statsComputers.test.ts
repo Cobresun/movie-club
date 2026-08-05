@@ -476,6 +476,52 @@ describe("computeTasteSimilarity", () => {
     expect(mostSimilar.memberA.id).toBe(leastSimilar.memberA.id);
     expect(mostSimilar.memberB.id).toBe(leastSimilar.memberB.id);
   });
+
+  describe("scoped to a member", () => {
+    const members = [
+      makeMember({ id: "m1", name: "A" }),
+      makeMember({ id: "m2", name: "B" }),
+      makeMember({ id: "m3", name: "C" }),
+    ];
+    // A/B differ by 1 (90%), B/C by 4 (60%), A/C by 5 (50%).
+    const movies = [
+      makeMovie({ userScores: { m1: 7, m2: 6, m3: 2 } }),
+      makeMovie({ userScores: { m1: 8, m2: 7, m3: 3 } }),
+      makeMovie({ userScores: { m1: 6, m2: 5, m3: 1 } }),
+    ];
+
+    it("only considers pairs involving the given member", () => {
+      const result = computeTasteSimilarity(movies, members, "m1");
+      const mostSimilar = ensure(result.mostSimilar);
+      const leastSimilar = ensure(result.leastSimilar);
+
+      expect(mostSimilar.memberB.name).toBe("B");
+      expect(leastSimilar.memberB.name).toBe("C");
+    });
+
+    it("scopes independently per member", () => {
+      // C's closest is B (60%), even though B's own closest is A (90%).
+      const result = computeTasteSimilarity(movies, members, "m3");
+      expect(ensure(result.mostSimilar).memberB.name).toBe("B");
+      expect(ensure(result.leastSimilar).memberB.name).toBe("A");
+    });
+
+    it("puts the scoped member in the memberA slot with their scores", () => {
+      // m3 is memberB in the unscoped m2/m3 pair, so the pair gets flipped.
+      const mostSimilar = ensure(computeTasteSimilarity(movies, members, "m3").mostSimilar);
+
+      expect(mostSimilar.memberA.id).toBe("m3");
+      expect(mostSimilar.bestAgreements[0].scoreA).toBe(2);
+      expect(mostSimilar.bestAgreements[0].scoreB).toBe(6);
+    });
+
+    it("returns nulls for a member with no qualifying pairs", () => {
+      const withNewcomer = [...members, makeMember({ id: "m4", name: "D" })];
+      const result = computeTasteSimilarity(movies, withNewcomer, "m4");
+      expect(result.mostSimilar).toBeNull();
+      expect(result.leastSimilar).toBeNull();
+    });
+  });
 });
 
 // ---------- computeTopDirectors ----------

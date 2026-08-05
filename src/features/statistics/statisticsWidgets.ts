@@ -30,6 +30,9 @@ export interface StatWidgetContext {
   members: Member[];
   histogramData: HistogramData[];
   clubType: ClubType;
+  /** The signed-in viewer, when there is one. Widgets that offer a "you" scope
+   * read it; it is undefined on the public shared page and for non-members. */
+  currentUserId?: string;
 }
 
 /**
@@ -86,7 +89,11 @@ const reviewerLeaderboardWidget: StatWidgetDef = {
 const tasteSimilarityWidget: StatWidgetDef = {
   key: "taste-similarity",
   component: TasteSimilarityWidget,
-  props: (ctx) => ({ workData: ctx.workData, members: ctx.members }),
+  props: (ctx) => ({
+    workData: ctx.workData,
+    members: ctx.members,
+    currentUserId: ctx.currentUserId,
+  }),
   visible: hasMoreThan(2),
 };
 const memberOutliersWidget: StatWidgetDef = {

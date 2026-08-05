@@ -14,6 +14,7 @@ import type {
   MemberLeaderboardEntry,
   MemberPairSimilarity,
   MonthlyActivityPoint,
+  MovieAgreement,
   MovieData,
   ScoreTrendPoint,
   ScoreVariancePoint,
@@ -179,9 +180,37 @@ export function computeMemberLeaderboard(
 const MIN_SHARED_REVIEWS = 3;
 const MAX_RAW_SCORE_DIFF = 10;
 
+/**
+ * Puts `memberId` in the `memberA` slot, swapping the paired scores along with
+ * the members so a caller rendering "A vs B" stays aligned.
+ */
+function orientPairToMember(pair: MemberPairSimilarity, memberId: string): MemberPairSimilarity {
+  if (pair.memberA.id === memberId) return pair;
+
+  const swapScores = (agreement: MovieAgreement): MovieAgreement => ({
+    ...agreement,
+    scoreA: agreement.scoreB,
+    scoreB: agreement.scoreA,
+  });
+
+  return {
+    ...pair,
+    memberA: pair.memberB,
+    memberB: pair.memberA,
+    bestAgreements: pair.bestAgreements.map(swapScores),
+    worstAgreements: pair.worstAgreements.map(swapScores),
+  };
+}
+
+/**
+ * The closest and furthest-apart member pairs by average score difference.
+ * Passing `memberId` scopes the comparison to that member's own pairs (who
+ * they're most and least alike), with them oriented into the `memberA` slot.
+ */
 export function computeTasteSimilarity(
   workData: WorkStatsData[],
   members: Member[],
+  memberId?: string,
 ): {
   mostSimilar: MemberPairSimilarity | null;
   leastSimilar: MemberPairSimilarity | null;
@@ -245,11 +274,17 @@ export function computeTasteSimilarity(
     }
   }
 
-  if (pairs.length === 0) {
+  const scopedPairs = isDefined(memberId)
+    ? pairs
+        .filter((pair) => pair.memberA.id === memberId || pair.memberB.id === memberId)
+        .map((pair) => orientPairToMember(pair, memberId))
+    : pairs;
+
+  if (scopedPairs.length === 0) {
     return { mostSimilar: null, leastSimilar: null };
   }
 
-  const sortedPairs = [...pairs].sort((a, b) => b.similarityPercent - a.similarityPercent);
+  const sortedPairs = [...scopedPairs].sort((a, b) => b.similarityPercent - a.similarityPercent);
 
   return {
     mostSimilar: sortedPairs[0],
