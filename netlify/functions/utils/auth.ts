@@ -114,10 +114,6 @@ export const auth = betterAuth({
   },
 });
 
-export type AuthRequest<T extends Request = Request> = T & {
-  userId: string;
-};
-
 export const loggedIn = async <T extends Request>(
   req: T,
   res: (data: HandlerResponse) => RouterResponse,
