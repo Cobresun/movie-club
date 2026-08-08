@@ -8,21 +8,11 @@ export default defineConfig({
     "eslint/eqeqeq": "error",
     "eslint/no-var": "error",
     "eslint/prefer-arrow-callback": "error",
-    "eslint/no-restricted-globals": [
-      "error",
-      "event",
-      "length",
-      "stop",
-      "toString",
-      "alert",
-    ],
+    "eslint/no-restricted-globals": ["error", "event", "length", "stop", "toString", "alert"],
     "typescript/method-signature-style": "error",
     "typescript/switch-exhaustiveness-check": "error",
     "typescript/no-non-null-assertion": "error",
-    "typescript/strict-boolean-expressions": [
-      "error",
-      { allowNumber: false },
-    ],
+    "typescript/strict-boolean-expressions": ["error", { allowNumber: false }],
     "import/newline-after-import": "error",
     "@tanstack/query/exhaustive-deps": "error",
     "@tanstack/query/stable-query-client": "error",
@@ -32,6 +22,17 @@ export default defineConfig({
     "@tanstack/query/no-void-query-fn": "error",
     "@tanstack/query/mutation-property-order": "error",
   },
+  overrides: [
+    {
+      // `expect(Repo.method)` and `vi.mocked(Repo.method)` are the idiomatic
+      // way to assert on a mocked module, and they trip unbound-method on
+      // every call — the rule has no signal to give in a test file.
+      files: ["**/*.test.ts", "**/*.spec.ts"],
+      rules: {
+        "typescript/unbound-method": "off",
+      },
+    },
+  ],
   options: {
     typeAware: true,
   },
