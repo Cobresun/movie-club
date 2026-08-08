@@ -1,7 +1,7 @@
 /**
  * The statistics feature's single source of chart color truth.
  *
- * Three color roles, used the same way in every widget and chart:
+ * Two color roles, used the same way in every widget and chart:
  *
  * 1. **Member identity** — each member takes {@link memberSeriesColor} at their
  *    index in the club member list, so a member wears the same color in every
@@ -14,9 +14,6 @@
  * 2. **Club aggregate** — single-series charts about the club as a whole
  *    (decade averages, activity, score spread) use {@link CLUB_SERIES_COLOR},
  *    the brand primary.
- * 3. **Sentiment** — "high/loved/above" vs "low/hated/below" accents in
- *    templates use Tailwind emerald/rose classes; charts that need the same
- *    semantics use {@link POSITIVE_COLOR} / {@link NEGATIVE_COLOR}.
  */
 import type { AgCartesianChartOptions, AgChartLegendOptions } from "ag-charts-community";
 
@@ -43,10 +40,6 @@ export function memberSeriesColor(index: number): string {
 
 /** Brand primary — every single-series "club as a whole" chart uses this. */
 export const CLUB_SERIES_COLOR = "#2196F3";
-
-/** Chart-side equivalents of the emerald/rose Tailwind sentiment classes. */
-export const POSITIVE_COLOR = "#34d399"; // emerald-400
-export const NEGATIVE_COLOR = "#fb7185"; // rose-400
 
 /** The surface charts render on (Tailwind `lowBackground`). Used as the
  * spacer stroke between stacked segments so touching fills stay separable. */
