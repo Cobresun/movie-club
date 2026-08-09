@@ -240,7 +240,6 @@ export const snapshotHistoryMetricsSchema = z.object({
     })
     .optional(),
 });
-export type SnapshotHistoryMetrics = z.infer<typeof snapshotHistoryMetricsSchema>;
 
 export const snapshotHistoryPointSchema = z.object({
   capturedOn: z.string(),
