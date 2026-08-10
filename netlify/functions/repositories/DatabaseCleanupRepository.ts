@@ -249,5 +249,3 @@ class DatabaseCleanupRepository {
 }
 
 export default new DatabaseCleanupRepository();
-export { PROTECTED_DATABASES };
-export type { DatabaseInfo, CleanupResult };
