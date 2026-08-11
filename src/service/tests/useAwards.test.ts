@@ -36,8 +36,8 @@ describe("useAwardYears", () => {
       template: `<div>{{ isSuccess ? data?.join(',') : 'loading' }}</div>`,
     });
 
-    const { findByText } = render(Harness);
-    await findByText("2022,2023,2024");
+    const rendered = render(Harness);
+    await rendered.findByText("2022,2023,2024");
     expect(capturedUrl).toContain("/api/club/test-club/awards/years");
   });
 });
@@ -70,8 +70,8 @@ describe("useAwards", () => {
       template: `<div>{{ isSuccess ? data?.step : 'loading' }}</div>`,
     });
 
-    const { findByText } = render(Harness);
-    await findByText("nominations");
+    const rendered = render(Harness);
+    await rendered.findByText("nominations");
     expect(capturedUrl).toContain("/api/club/test-club/awards/2024");
   });
 
@@ -133,9 +133,9 @@ describe("useUpdateStep", () => {
       template: `<button @click="() => mutate('rankings')">{{ isSuccess ? 'done' : 'go' }}</button>`,
     });
 
-    const { getByRole, findByText } = render(Harness);
-    getByRole("button").click();
-    await findByText("done");
+    const rendered = render(Harness);
+    rendered.getByRole("button").click();
+    await rendered.findByText("done");
     expect(capturedBody).toEqual({ step: "rankings" });
   });
 });
@@ -162,9 +162,9 @@ describe("useAddCategory", () => {
       template: `<button @click="() => mutate('Best Picture')">{{ isSuccess ? 'done' : 'go' }}</button>`,
     });
 
-    const { getByRole, findByText } = render(Harness);
-    getByRole("button").click();
-    await findByText("done");
+    const rendered = render(Harness);
+    rendered.getByRole("button").click();
+    await rendered.findByText("done");
     expect(capturedBody).toEqual({ title: "Best Picture" });
   });
 });
@@ -191,9 +191,9 @@ describe("useDeleteCategory", () => {
       template: `<button @click="() => mutate({ title: 'Best Picture', nominations: [] })">{{ isSuccess ? 'done' : 'go' }}</button>`,
     });
 
-    const { getByRole, findByText } = render(Harness);
-    getByRole("button").click();
-    await findByText("done");
+    const rendered = render(Harness);
+    rendered.getByRole("button").click();
+    await rendered.findByText("done");
     expect(capturedPath).toContain("Best%20Picture");
   });
 });
@@ -231,9 +231,9 @@ describe("useAddNomination", () => {
       template: `<button @click="() => mutate(payload)">{{ isSuccess ? 'done' : 'go' }}</button>`,
     });
 
-    const { getByRole, findByText } = render(Harness);
-    getByRole("button").click();
-    await findByText("done");
+    const rendered = render(Harness);
+    rendered.getByRole("button").click();
+    await rendered.findByText("done");
     expect(capturedBody).toMatchObject({
       awardTitle: "Best Picture",
       movieId: 278,
@@ -256,9 +256,9 @@ describe("useAddNomination", () => {
       template: `<button @click="() => mutate({ awardTitle: 'Best Picture', review: badReview })">{{ isError ? 'error' : 'go' }}</button>`,
     });
 
-    const { getByRole, findByText } = render(Harness);
-    getByRole("button").click();
-    await findByText("error");
+    const rendered = render(Harness);
+    rendered.getByRole("button").click();
+    await rendered.findByText("error");
   });
 });
 
@@ -284,9 +284,9 @@ describe("useDeleteNomination", () => {
       template: `<button @click="() => mutate({ awardTitle: 'Best Picture', movieId: 278 })">{{ isSuccess ? 'done' : 'go' }}</button>`,
     });
 
-    const { getByRole, findByText } = render(Harness);
-    getByRole("button").click();
-    await findByText("done");
+    const rendered = render(Harness);
+    rendered.getByRole("button").click();
+    await rendered.findByText("done");
     expect(deletedMovieId).toBe("278");
   });
 });
@@ -314,9 +314,9 @@ describe("useSubmitRanking", () => {
       template: `<button @click="() => mutate(payload)">{{ isSuccess ? 'done' : 'go' }}</button>`,
     });
 
-    const { getByRole, findByText } = render(Harness);
-    getByRole("button").click();
-    await findByText("done");
+    const rendered = render(Harness);
+    rendered.getByRole("button").click();
+    await rendered.findByText("done");
     expect(capturedBody).toMatchObject({
       awardTitle: "Best Picture",
       movies: [278, 389],

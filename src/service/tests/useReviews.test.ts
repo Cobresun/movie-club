@@ -36,9 +36,9 @@ describe("useReviewWork", () => {
       template: `<button @click="() => mutate(payload)">{{ isSuccess ? 'done' : 'go' }}</button>`,
     });
 
-    const { getByRole, findByText } = render(Harness);
-    getByRole("button").click();
-    await findByText("done");
+    const rendered = render(Harness);
+    rendered.getByRole("button").click();
+    await rendered.findByText("done");
     expect(capturedBody).toMatchObject({ workId: "work-1", score: 8 });
   });
 
@@ -64,9 +64,9 @@ describe("useReviewWork", () => {
       template: `<button @click="() => mutate(payload)">{{ isSuccess ? 'done' : 'go' }}</button>`,
     });
 
-    const { getByRole, findByText } = render(Harness);
-    getByRole("button").click();
-    await findByText("done");
+    const rendered = render(Harness);
+    rendered.getByRole("button").click();
+    await rendered.findByText("done");
     expect(capturedBody).toMatchObject({ sourceListId: "src-list" });
   });
 });
@@ -95,9 +95,9 @@ describe("useUpdateReviewScore", () => {
       template: `<button @click="() => mutate({ reviewId: 'rev-42', score: 7 })">{{ isSuccess ? 'done' : 'go' }}</button>`,
     });
 
-    const { getByRole, findByText } = render(Harness);
-    getByRole("button").click();
-    await findByText("done");
+    const rendered = render(Harness);
+    rendered.getByRole("button").click();
+    await rendered.findByText("done");
     expect(capturedReviewId).toBe("rev-42");
     expect(capturedBody).toEqual({ score: 7 });
   });
@@ -133,8 +133,8 @@ describe("useReviewComments", () => {
       template: `<div>{{ isSuccess ? data?.[0]?.content : 'loading' }}</div>`,
     });
 
-    const { findByText } = render(Harness);
-    await findByText("Great film!");
+    const rendered = render(Harness);
+    await rendered.findByText("Great film!");
   });
 
   it("propagates errors when comments fetch fails", async () => {
@@ -156,8 +156,8 @@ describe("useReviewComments", () => {
       template: `<div>{{ isError ? 'error' : 'ok' }}</div>`,
     });
 
-    const { findByText } = render(Harness);
-    await findByText("error");
+    const rendered = render(Harness);
+    await rendered.findByText("error");
   });
 });
 
@@ -183,9 +183,9 @@ describe("useAddReviewComment", () => {
       template: `<button @click="() => mutate({ content: 'Loved it', spoiler: false })">{{ isSuccess ? 'done' : 'go' }}</button>`,
     });
 
-    const { getByRole, findByText } = render(Harness);
-    getByRole("button").click();
-    await findByText("done");
+    const rendered = render(Harness);
+    rendered.getByRole("button").click();
+    await rendered.findByText("done");
     expect(capturedBody).toEqual({ content: "Loved it", spoiler: false });
   });
 });
@@ -214,9 +214,9 @@ describe("useEditReviewComment", () => {
       template: `<button @click="() => mutate({ commentId: 'c-7', content: 'Edited', spoiler: true })">{{ isSuccess ? 'done' : 'go' }}</button>`,
     });
 
-    const { getByRole, findByText } = render(Harness);
-    getByRole("button").click();
-    await findByText("done");
+    const rendered = render(Harness);
+    rendered.getByRole("button").click();
+    await rendered.findByText("done");
     expect(capturedCommentId).toBe("c-7");
     expect(capturedBody).toEqual({ content: "Edited", spoiler: true });
   });
@@ -244,9 +244,9 @@ describe("useDeleteReviewComment", () => {
       template: `<button @click="() => mutate('c-99')">{{ isSuccess ? 'done' : 'go' }}</button>`,
     });
 
-    const { getByRole, findByText } = render(Harness);
-    getByRole("button").click();
-    await findByText("done");
+    const rendered = render(Harness);
+    rendered.getByRole("button").click();
+    await rendered.findByText("done");
     expect(deletedCommentId).toBe("c-99");
   });
 });

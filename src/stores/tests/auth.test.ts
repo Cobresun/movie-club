@@ -19,8 +19,8 @@ describe("useAuthStore", () => {
       template: `<div>{{ isLoggedIn ? 'logged-in' : 'logged-out' }}</div>`,
     });
 
-    const { getByText } = render(Harness);
-    expect(getByText("logged-out")).toBeInTheDocument();
+    const rendered = render(Harness);
+    expect(rendered.getByText("logged-out")).toBeInTheDocument();
   });
 
   it("user is undefined when there is no session", () => {
@@ -32,8 +32,8 @@ describe("useAuthStore", () => {
       template: `<div>{{ user ? user.name : 'no-user' }}</div>`,
     });
 
-    const { getByText } = render(Harness);
-    expect(getByText("no-user")).toBeInTheDocument();
+    const rendered = render(Harness);
+    expect(rendered.getByText("no-user")).toBeInTheDocument();
   });
 
   it("showAuthModal defaults to false", () => {
@@ -45,8 +45,8 @@ describe("useAuthStore", () => {
       template: `<div>{{ showAuthModal ? 'open' : 'closed' }}</div>`,
     });
 
-    const { getByText } = render(Harness);
-    expect(getByText("closed")).toBeInTheDocument();
+    const rendered = render(Harness);
+    expect(rendered.getByText("closed")).toBeInTheDocument();
   });
 
   // Note: login() and closeAuthModal() are one-line state setters that
@@ -62,10 +62,10 @@ describe("useAuthStore", () => {
       template: `<div><button @click="auth.showAuthModal = false">dismiss</button>{{ auth.showAuthModal ? 'modal-open' : 'modal-closed' }}</div>`,
     });
 
-    const { getByRole, getByText, findByText } = render(Harness);
-    expect(getByText("modal-open")).toBeInTheDocument();
-    getByRole("button").click();
-    expect(await findByText("modal-closed")).toBeInTheDocument();
+    const rendered = render(Harness);
+    expect(rendered.getByText("modal-open")).toBeInTheDocument();
+    rendered.getByRole("button").click();
+    expect(await rendered.findByText("modal-closed")).toBeInTheDocument();
   });
 
   it("isClubMember returns false when userClubs is undefined", () => {
@@ -78,8 +78,8 @@ describe("useAuthStore", () => {
       template: `<div>{{ isMember ? 'member' : 'not-member' }}</div>`,
     });
 
-    const { getByText } = render(Harness);
-    expect(getByText("not-member")).toBeInTheDocument();
+    const rendered = render(Harness);
+    expect(rendered.getByText("not-member")).toBeInTheDocument();
   });
 
   it("request is a computed axios instance", () => {
@@ -93,7 +93,7 @@ describe("useAuthStore", () => {
       template: `<div>{{ hasRequest ? 'has-request' : 'no-request' }}</div>`,
     });
 
-    const { getByText } = render(Harness);
-    expect(getByText("has-request")).toBeInTheDocument();
+    const rendered = render(Harness);
+    expect(rendered.getByText("has-request")).toBeInTheDocument();
   });
 });

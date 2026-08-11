@@ -43,8 +43,8 @@ describe("useClub", () => {
       template: `<div>{{ isSuccess ? data?.clubName : 'loading' }}</div>`,
     });
 
-    const { findByText } = render(Harness);
-    await findByText("Sci-Fi Night");
+    const rendered = render(Harness);
+    await rendered.findByText("Sci-Fi Night");
     expect(capturedUrl).toContain("/api/club/sci-fi");
   });
 
@@ -62,8 +62,8 @@ describe("useClub", () => {
       template: `<div>{{ isError ? 'error' : 'ok' }}</div>`,
     });
 
-    const { findByText } = render(Harness);
-    await findByText("error");
+    const rendered = render(Harness);
+    await rendered.findByText("error");
   });
 });
 
@@ -92,8 +92,8 @@ describe("useMembers", () => {
       template: `<div>{{ isSuccess ? data?.length : 'loading' }}</div>`,
     });
 
-    const { findByText } = render(Harness);
-    await findByText("2");
+    const rendered = render(Harness);
+    await rendered.findByText("2");
     expect(capturedUrl).toContain("/api/club/test-club/members");
   });
 });
@@ -112,8 +112,8 @@ describe("useClubSlug", () => {
       template: `<div>{{ slug }}</div>`,
     });
 
-    const { getByText } = render(Harness);
-    expect(getByText("test-club")).toBeInTheDocument();
+    const rendered = render(Harness);
+    expect(rendered.getByText("test-club")).toBeInTheDocument();
   });
 });
 
@@ -137,8 +137,8 @@ describe("useIsInClub", () => {
       template: `<div>{{ isIn ? 'member' : 'not-member' }}</div>`,
     });
 
-    const { findByText } = render(Harness);
-    await findByText("not-member");
+    const rendered = render(Harness);
+    await rendered.findByText("not-member");
   });
 });
 
@@ -170,9 +170,9 @@ describe("useCreateClub", () => {
       template: `<button @click="submit">{{ isSuccess ? 'done' : 'create' }}</button>`,
     });
 
-    const { getByRole, findByText } = render(Harness);
-    getByRole("button").click();
-    await findByText("done");
+    const rendered = render(Harness);
+    rendered.getByRole("button").click();
+    await rendered.findByText("done");
     expect(capturedBody).toEqual({
       name: "New Club",
       members: ["alice@test.com"],
@@ -201,8 +201,8 @@ describe("useClubSettings", () => {
       template: `<div>{{ isSuccess ? String(data?.features.discussionQuestions) : 'loading' }}</div>`,
     });
 
-    const { findByText } = render(Harness);
-    await findByText("true");
+    const rendered = render(Harness);
+    await rendered.findByText("true");
   });
 });
 
@@ -233,15 +233,15 @@ describe("useUpdateClubSettings", () => {
       template: `<button @click="trigger">awards: {{ String(settings?.features.awards) }}</button>`,
     });
 
-    const { findByRole, getByRole } = render(Harness);
-    await findByRole("button", { name: "awards: false" });
+    const rendered = render(Harness);
+    await rendered.findByRole("button", { name: "awards: false" });
 
-    getByRole("button").click();
+    rendered.getByRole("button").click();
     // onMutate writes the merged settings into the cache immediately.
-    await findByRole("button", { name: "awards: true" });
+    await rendered.findByRole("button", { name: "awards: true" });
 
     resolvePost?.();
-    await findByRole("button", { name: "awards: true" });
+    await rendered.findByRole("button", { name: "awards: true" });
   });
 
   it("rolls back to the previous settings when the request fails", async () => {
@@ -262,13 +262,13 @@ describe("useUpdateClubSettings", () => {
       template: `<button @click="trigger">awards: {{ String(settings?.features.awards) }}</button>`,
     });
 
-    const { findByRole, getByRole } = render(Harness);
-    await findByRole("button", { name: "awards: false" });
+    const rendered = render(Harness);
+    await rendered.findByRole("button", { name: "awards: false" });
 
-    getByRole("button").click();
-    await findByRole("button", { name: "awards: true" });
+    rendered.getByRole("button").click();
+    await rendered.findByRole("button", { name: "awards: true" });
     // onError restores the snapshot taken in onMutate.
-    await findByRole("button", { name: "awards: false" });
+    await rendered.findByRole("button", { name: "awards: false" });
   });
 
   it("POSTs updated settings to /api/club/:id/settings", async () => {
@@ -292,9 +292,9 @@ describe("useUpdateClubSettings", () => {
       template: `<button @click="trigger">{{ isSuccess ? 'done' : 'go' }}</button>`,
     });
 
-    const { getByRole, findByText } = render(Harness);
-    getByRole("button").click();
-    await findByText("done");
+    const rendered = render(Harness);
+    rendered.getByRole("button").click();
+    await rendered.findByText("done");
     expect(capturedBody).toEqual({ features: { discussionQuestions: true } });
   });
 });
@@ -323,8 +323,8 @@ describe("useClubDetails", () => {
       template: `<div>{{ isSuccess ? data?.clubName : 'loading' }}</div>`,
     });
 
-    const { findByText } = render(Harness);
-    await findByText("Horror Club");
+    const rendered = render(Harness);
+    await rendered.findByText("Horror Club");
   });
 });
 
@@ -350,9 +350,9 @@ describe("useLeaveClub", () => {
       template: `<button @click="mutate()">{{ isSuccess ? 'left' : 'leave' }}</button>`,
     });
 
-    const { getByRole, findByText } = render(Harness);
-    getByRole("button").click();
-    await findByText("left");
+    const rendered = render(Harness);
+    rendered.getByRole("button").click();
+    await rendered.findByText("left");
     expect(deleteCalled).toBe(true);
   });
 });

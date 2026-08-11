@@ -45,9 +45,9 @@ describe("useDiscussionQuestions", () => {
       template: `<div><button @click="refetch()">fetch</button><span>{{ isSuccess ? data?.join('|') : 'idle' }}</span></div>`,
     });
 
-    const { getByRole, findByText } = render(Harness);
-    getByRole("button").click();
-    await findByText("What is the theme?|Who is the hero?");
+    const rendered = render(Harness);
+    rendered.getByRole("button").click();
+    await rendered.findByText("What is the theme?|Who is the hero?");
   });
 
   it("does not retry on failure (retry: false)", async () => {
@@ -67,9 +67,9 @@ describe("useDiscussionQuestions", () => {
       template: `<div><button @click="refetch()">fetch</button>{{ isError ? 'error' : 'ok' }}</div>`,
     });
 
-    const { getByRole, findByText } = render(Harness);
-    getByRole("button").click();
-    await findByText("error");
+    const rendered = render(Harness);
+    rendered.getByRole("button").click();
+    await rendered.findByText("error");
     // retry: false means exactly one attempt
     expect(callCount).toBe(1);
   });

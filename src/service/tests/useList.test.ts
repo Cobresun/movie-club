@@ -67,8 +67,8 @@ describe("useClubLists", () => {
       template: `<div>{{ isSuccess ? data?.length : 'loading' }}</div>`,
     });
 
-    const { findByText } = render(Harness);
-    await findByText("2");
+    const rendered = render(Harness);
+    await rendered.findByText("2");
     expect(capturedUrl).toContain("/api/club/test-club/list");
   });
 });
@@ -93,8 +93,8 @@ describe("useReviewsListId", () => {
       template: `<div>{{ isSuccess ? data : 'loading' }}</div>`,
     });
 
-    const { findByText } = render(Harness);
-    await findByText("reviews-list-123");
+    const rendered = render(Harness);
+    await rendered.findByText("reviews-list-123");
   });
 });
 
@@ -125,8 +125,8 @@ describe("useList", () => {
       template: `<div>{{ isSuccess ? data?.[0]?.title : 'loading' }}</div>`,
     });
 
-    const { findByText } = render(Harness);
-    await findByText("The Matrix");
+    const rendered = render(Harness);
+    await rendered.findByText("The Matrix");
   });
 
   it("does not fetch when listId is empty string", async () => {
@@ -207,8 +207,8 @@ describe("useReviewsList", () => {
       template: `<div>{{ isSuccess ? data?.[0]?.title : 'loading' }}</div>`,
     });
 
-    const { findByText } = render(Harness);
-    await findByText("Inception");
+    const rendered = render(Harness);
+    await rendered.findByText("Inception");
   });
 });
 
@@ -252,9 +252,9 @@ describe("useAllUserListItems", () => {
       template: `<ul v-if="isSuccess"><li v-for="i in data" :key="i.id">{{ i.title }} — {{ i.sourceListTitle }}</li></ul><div v-else>loading</div>`,
     });
 
-    const { findByText, getByText } = render(Harness);
-    await findByText("Dune — Watchlist");
-    expect(getByText("Solaris — Backlog")).toBeInTheDocument();
+    const rendered = render(Harness);
+    await rendered.findByText("Dune — Watchlist");
+    expect(rendered.getByText("Solaris — Backlog")).toBeInTheDocument();
     expect(requestedUrl).toContain("/api/club/test-club/list/all-items");
   });
 });
@@ -286,9 +286,9 @@ describe("useCreateList", () => {
       template: `<button @click="() => mutate('Top Picks')">{{ isSuccess ? 'done' : 'go' }}</button>`,
     });
 
-    const { getByRole, findByText } = render(Harness);
-    getByRole("button", { name: /^(?:go|done)$/ }).click();
-    await findByText("done");
+    const rendered = render(Harness);
+    rendered.getByRole("button", { name: /^(?:go|done)$/ }).click();
+    await rendered.findByText("done");
     expect(capturedBody).toEqual({ title: "Top Picks" });
   });
 });
@@ -315,9 +315,9 @@ describe("useDeleteList", () => {
       template: `<button @click="() => mutate('list-77')">{{ isSuccess ? 'done' : 'go' }}</button>`,
     });
 
-    const { getByRole, findByText } = render(Harness);
-    getByRole("button", { name: /^(?:go|done)$/ }).click();
-    await findByText("done");
+    const rendered = render(Harness);
+    rendered.getByRole("button", { name: /^(?:go|done)$/ }).click();
+    await rendered.findByText("done");
     expect(deletedId).toBe("list-77");
   });
 });
@@ -350,9 +350,9 @@ describe("useAddListItem", () => {
       template: `<button @click="() => mutate(payload)">{{ isSuccess ? 'done' : 'go' }}</button>`,
     });
 
-    const { getByRole, findByText } = render(Harness);
-    getByRole("button", { name: /^(?:go|done)$/ }).click();
-    await findByText("done");
+    const rendered = render(Harness);
+    rendered.getByRole("button", { name: /^(?:go|done)$/ }).click();
+    await rendered.findByText("done");
     expect(capturedBody).toMatchObject({ title: "Blade Runner" });
     expect(OPTIMISTIC_WORK_ID).toBe("temp");
   });
@@ -380,9 +380,9 @@ describe("useDeleteListItem", () => {
       template: `<button @click="() => mutate('work-99')">{{ isSuccess ? 'done' : 'go' }}</button>`,
     });
 
-    const { getByRole, findByText } = render(Harness);
-    getByRole("button", { name: /^(?:go|done)$/ }).click();
-    await findByText("done");
+    const rendered = render(Harness);
+    rendered.getByRole("button", { name: /^(?:go|done)$/ }).click();
+    await rendered.findByText("done");
     expect(deletedWorkId).toBe("work-99");
   });
 });
@@ -409,9 +409,9 @@ describe("useDeleteReview", () => {
       template: `<button @click="() => mutate({ workId: 'w-1', reviewsListId: 'rev-list' })">{{ isSuccess ? 'done' : 'go' }}</button>`,
     });
 
-    const { getByRole, findByText } = render(Harness);
-    getByRole("button", { name: /^(?:go|done)$/ }).click();
-    await findByText("done");
+    const rendered = render(Harness);
+    rendered.getByRole("button", { name: /^(?:go|done)$/ }).click();
+    await rendered.findByText("done");
     expect(deletedWorkId).toBe("w-1");
   });
 });
@@ -438,9 +438,9 @@ describe("useReorderList", () => {
       template: `<button @click="() => mutate(['b', 'a'])">{{ isSuccess ? 'done' : 'go' }}</button>`,
     });
 
-    const { getByRole, findByText } = render(Harness);
-    getByRole("button", { name: /^(?:go|done)$/ }).click();
-    await findByText("done");
+    const rendered = render(Harness);
+    rendered.getByRole("button", { name: /^(?:go|done)$/ }).click();
+    await rendered.findByText("done");
     expect(capturedBody).toEqual({ workIds: ["b", "a"] });
   });
 });
@@ -472,9 +472,9 @@ describe("useMoveListItem", () => {
       template: `<button @click="() => mutate(payload)">{{ isSuccess ? 'done' : 'go' }}</button>`,
     });
 
-    const { getByRole, findByText } = render(Harness);
-    getByRole("button", { name: /^(?:go|done)$/ }).click();
-    await findByText("done");
+    const rendered = render(Harness);
+    rendered.getByRole("button", { name: /^(?:go|done)$/ }).click();
+    await rendered.findByText("done");
     expect(capturedBody).toMatchObject({ destinationListId: "list-dst" });
   });
 });
@@ -506,9 +506,9 @@ describe("useUpdateAddedDate", () => {
       template: `<button @click="() => mutate(payload)">{{ isSuccess ? 'done' : 'go' }}</button>`,
     });
 
-    const { getByRole, findByText } = render(Harness);
-    getByRole("button", { name: /^(?:go|done)$/ }).click();
-    await findByText("done");
+    const rendered = render(Harness);
+    rendered.getByRole("button", { name: /^(?:go|done)$/ }).click();
+    await rendered.findByText("done");
     expect(capturedBody).toEqual({ addedDate: "2023-06-15T00:00:00.000Z" });
   });
 });

@@ -40,8 +40,8 @@ describe("useWatchProviders", () => {
       template: `<div>{{ isSuccess ? data?.results?.US?.flatrate?.[0]?.provider_name : 'loading' }}</div>`,
     });
 
-    const { findByText } = render(Harness);
-    await findByText("Netflix");
+    const rendered = render(Harness);
+    await rendered.findByText("Netflix");
   });
 
   it("does not fetch when externalId is undefined", async () => {

@@ -27,8 +27,8 @@ describe("useUser", () => {
       template: `<div>{{ user ? user.name : 'no-user' }}</div>`,
     });
 
-    const { getByText } = render(Harness);
-    expect(getByText("no-user")).toBeInTheDocument();
+    const rendered = render(Harness);
+    expect(rendered.getByText("no-user")).toBeInTheDocument();
   });
 
   it("returns mapped user when auth store has a session user", () => {
@@ -51,10 +51,8 @@ describe("useUser", () => {
       template: `<div>{{ user ? user.name : 'no-user' }}</div>`,
     });
 
-    const { getByText, pinia } = render(Harness);
-    // Access pinia to ensure auth store is registered
-    void pinia;
-    expect(getByText("Alice")).toBeInTheDocument();
+    const rendered = render(Harness);
+    expect(rendered.getByText("Alice")).toBeInTheDocument();
   });
 });
 
@@ -111,10 +109,10 @@ describe("useUpdateName", () => {
       template: `<button @click="() => mutate('Bob')">{{ isSuccess ? 'done' : 'go' }}</button>`,
     });
 
-    const { getByRole, findByText, pinia } = render(Harness);
-    stubRefreshSession(pinia);
-    getByRole("button").click();
-    await findByText("done");
+    const rendered = render(Harness);
+    stubRefreshSession(rendered.pinia);
+    rendered.getByRole("button").click();
+    await rendered.findByText("done");
     expect(capturedBody).toEqual({ name: "Bob" });
   });
 });
@@ -146,10 +144,10 @@ describe("useUpdateAvatar", () => {
       template: `<button @click="submit">{{ isSuccess ? 'done' : 'go' }}</button>`,
     });
 
-    const { getByRole, findByText, pinia } = render(Harness);
-    stubRefreshSession(pinia);
-    getByRole("button").click();
-    await findByText("done");
+    const rendered = render(Harness);
+    stubRefreshSession(rendered.pinia);
+    rendered.getByRole("button").click();
+    await rendered.findByText("done");
     expect(receivedRequest).toBe(true);
   });
 });
@@ -176,10 +174,10 @@ describe("useDeleteAvatar", () => {
       template: `<button @click="mutate()">{{ isSuccess ? 'done' : 'go' }}</button>`,
     });
 
-    const { getByRole, findByText, pinia } = render(Harness);
-    stubRefreshSession(pinia);
-    getByRole("button").click();
-    await findByText("done");
+    const rendered = render(Harness);
+    stubRefreshSession(rendered.pinia);
+    rendered.getByRole("button").click();
+    await rendered.findByText("done");
     expect(deleteCalled).toBe(true);
   });
 });
