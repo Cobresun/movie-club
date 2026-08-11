@@ -1,22 +1,34 @@
-import axios from "axios";
+/**
+ * Tests for netlify/functions/utils/tmdb.ts
+ *
+ * Real axios against MSW-faked HTTP. Handlers are keyed by endpoint rather than
+ * by call order, so `/configuration` and `/movie/:id` are answered independently
+ * however many times the module happens to fetch them.
+ */
+import { HttpResponse } from "msw";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { WorkType } from "../../../../lib/types/generated/db";
 import { TMDBConfig, TMDBMovieData } from "../../../../lib/types/movie";
+import { captureGet, type CapturedRequest } from "../../tests/msw";
 
-// Vitest hoists vi.mock above all imports, so axios is intercepted before
-// tmdb.ts binds to it regardless of statement order.
-vi.mock("axios");
+const CONFIG_URL = "https://api.themoviedb.org/3/configuration";
+const MOVIE_URL = "https://api.themoviedb.org/3/movie/:movieId";
 
 // ---------------------------------------------------------------------------
 // Helpers to rebuild mocked imports after each module reset
 // ---------------------------------------------------------------------------
 
-// We re-import the module under test via a helper so each describe block gets
-// a fresh copy with the module-scoped tmdbConfigPromise cleared.
+// tmdb.ts memoizes the /configuration response in a module-scoped promise, so
+// each test re-imports the module to get that cache cleared.
 async function importTmdb() {
   const mod = await import("../tmdb");
   return mod;
+}
+
+/** The movie id from a captured `/3/movie/:id` request URL. */
+function requestedMovieId(request: CapturedRequest) {
+  return request.url.pathname.split("/").pop() ?? "";
 }
 
 // ---------------------------------------------------------------------------
@@ -114,77 +126,71 @@ function makeTMDBConfig(): TMDBConfig {
   };
 }
 
+beforeEach(() => {
+  vi.stubEnv("TMDB_API_KEY", "test-api-key");
+  vi.resetModules();
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
+
 // ---------------------------------------------------------------------------
 // getTMDBMovieData
 // ---------------------------------------------------------------------------
 
 describe("getTMDBMovieData", () => {
-  const axiosGetMock = vi.mocked(axios.get);
-
-  beforeEach(() => {
-    vi.stubEnv("TMDB_API_KEY", "test-api-key");
-    vi.resetModules();
-  });
-
-  afterEach(() => {
-    vi.unstubAllEnvs();
-    vi.resetAllMocks();
-  });
-
   it("calls the correct TMDB movie endpoint with the movie id", async () => {
     const { getTMDBMovieData } = await importTmdb();
-    axiosGetMock.mockResolvedValueOnce({
-      data: makeTMDBMovieData(),
-      status: 200,
-    });
+    const calls = captureGet(MOVIE_URL, () => makeTMDBMovieData());
 
     await getTMDBMovieData(27205);
 
-    const calledUrl = axiosGetMock.mock.calls[0]?.[0] ?? "";
-    expect(calledUrl).toContain("/movie/27205");
+    expect(calls[0]?.url.pathname).toBe("/3/movie/27205");
   });
 
   it("includes the api_key query param", async () => {
     const { getTMDBMovieData } = await importTmdb();
-    axiosGetMock.mockResolvedValueOnce({
-      data: makeTMDBMovieData(),
-      status: 200,
-    });
+    const calls = captureGet(MOVIE_URL, () => makeTMDBMovieData());
 
     await getTMDBMovieData(27205);
 
-    const calledUrl = axiosGetMock.mock.calls[0]?.[0] ?? "";
-    expect(calledUrl).toContain("api_key=test-api-key");
+    expect(calls[0]?.url.searchParams.get("api_key")).toBe("test-api-key");
   });
 
   it("appends credits via append_to_response", async () => {
     const { getTMDBMovieData } = await importTmdb();
-    axiosGetMock.mockResolvedValueOnce({
-      data: makeTMDBMovieData(),
-      status: 200,
-    });
+    const calls = captureGet(MOVIE_URL, () => makeTMDBMovieData());
 
     await getTMDBMovieData(27205);
 
-    const calledUrl = axiosGetMock.mock.calls[0]?.[0] ?? "";
-    expect(calledUrl).toContain("append_to_response=credits");
+    expect(calls[0]?.url.searchParams.get("append_to_response")).toBe("credits");
   });
 
-  it("returns the axios response from TMDB", async () => {
+  it("returns the TMDB response body", async () => {
     const { getTMDBMovieData } = await importTmdb();
     const tmdbData = makeTMDBMovieData();
-    axiosGetMock.mockResolvedValueOnce({ data: tmdbData, status: 200 });
+    captureGet(MOVIE_URL, () => tmdbData);
 
     const result = await getTMDBMovieData(27205);
 
     expect(result.data).toEqual(tmdbData);
   });
 
-  it("propagates axios errors", async () => {
+  it("propagates TMDB errors", async () => {
     const { getTMDBMovieData } = await importTmdb();
-    axiosGetMock.mockRejectedValueOnce(new Error("network error"));
+    captureGet(MOVIE_URL, () =>
+      HttpResponse.json({ status_message: "Not found" }, { status: 404 }),
+    );
 
-    await expect(getTMDBMovieData(27205)).rejects.toThrow("network error");
+    await expect(getTMDBMovieData(27205)).rejects.toThrow("Request failed with status code 404");
+  });
+
+  it("propagates transport failures", async () => {
+    const { getTMDBMovieData } = await importTmdb();
+    captureGet(MOVIE_URL, () => HttpResponse.error());
+
+    await expect(getTMDBMovieData(27205)).rejects.toThrow();
   });
 
   it("uses an empty string for api_key when TMDB_API_KEY is not set", async () => {
@@ -193,44 +199,26 @@ describe("getTMDBMovieData", () => {
     // real secret) — making the assertion non-deterministic.
     vi.stubEnv("TMDB_API_KEY", "");
     const { getTMDBMovieData } = await importTmdb();
-    axiosGetMock.mockResolvedValueOnce({
-      data: makeTMDBMovieData(),
-      status: 200,
-    });
+    const calls = captureGet(MOVIE_URL, () => makeTMDBMovieData());
 
     await getTMDBMovieData(27205);
 
-    const calledUrl = axiosGetMock.mock.calls[0]?.[0] ?? "";
     // api_key param is present but empty
-    expect(calledUrl).toContain("api_key=");
+    expect(calls[0]?.url.searchParams.get("api_key")).toBe("");
   });
 });
 
 // ---------------------------------------------------------------------------
 // getDetailedMovie
-// Each test resets modules to clear the module-scoped tmdbConfigPromise cache
-// so every test controls the full sequence of axios.get calls.
 // ---------------------------------------------------------------------------
 
 describe("getDetailedMovie", () => {
-  const axiosGetMock = vi.mocked(axios.get);
-
   beforeEach(() => {
-    vi.stubEnv("TMDB_API_KEY", "test-api-key");
-    vi.resetModules();
-  });
-
-  afterEach(() => {
-    vi.unstubAllEnvs();
-    vi.resetAllMocks();
+    captureGet(CONFIG_URL, () => makeTMDBConfig());
   });
 
   it("returns an empty array when called with no movies", async () => {
     const { getDetailedMovie } = await importTmdb();
-    axiosGetMock.mockResolvedValueOnce({
-      data: makeTMDBConfig(),
-      status: 200,
-    });
 
     const result = await getDetailedMovie([]);
 
@@ -239,12 +227,7 @@ describe("getDetailedMovie", () => {
 
   it("merges TMDB data into each movie object", async () => {
     const { getDetailedMovie } = await importTmdb();
-    axiosGetMock
-      .mockResolvedValueOnce({ data: makeTMDBConfig(), status: 200 })
-      .mockResolvedValueOnce({
-        data: makeTMDBMovieData({ title: "Inception" }),
-        status: 200,
-      });
+    captureGet(MOVIE_URL, () => makeTMDBMovieData({ title: "Inception" }));
 
     const result = await getDetailedMovie([{ movieId: 27205 }]);
 
@@ -254,12 +237,7 @@ describe("getDetailedMovie", () => {
 
   it("builds posterUrl from config secure_base_url + w154 + poster_path", async () => {
     const { getDetailedMovie } = await importTmdb();
-    axiosGetMock
-      .mockResolvedValueOnce({ data: makeTMDBConfig(), status: 200 })
-      .mockResolvedValueOnce({
-        data: makeTMDBMovieData({ poster_path: "/poster.jpg" }),
-        status: 200,
-      });
+    captureGet(MOVIE_URL, () => makeTMDBMovieData({ poster_path: "/poster.jpg" }));
 
     const result = await getDetailedMovie([{ movieId: 27205 }]);
 
@@ -268,9 +246,7 @@ describe("getDetailedMovie", () => {
 
   it("maps cast to actors sorted by order with profilePath", async () => {
     const { getDetailedMovie } = await importTmdb();
-    axiosGetMock
-      .mockResolvedValueOnce({ data: makeTMDBConfig(), status: 200 })
-      .mockResolvedValueOnce({ data: makeTMDBMovieData(), status: 200 });
+    captureGet(MOVIE_URL, () => makeTMDBMovieData());
 
     const result = await getDetailedMovie([{ movieId: 27205 }]);
     const actors = result[0]?.movieData.actors ?? [];
@@ -283,9 +259,7 @@ describe("getDetailedMovie", () => {
 
   it("filters crew to only Directors", async () => {
     const { getDetailedMovie } = await importTmdb();
-    axiosGetMock
-      .mockResolvedValueOnce({ data: makeTMDBConfig(), status: 200 })
-      .mockResolvedValueOnce({ data: makeTMDBMovieData(), status: 200 });
+    captureGet(MOVIE_URL, () => makeTMDBMovieData());
 
     const result = await getDetailedMovie([{ movieId: 27205 }]);
     const directors = result[0]?.movieData.directors ?? [];
@@ -296,9 +270,7 @@ describe("getDetailedMovie", () => {
 
   it("maps genres to string array", async () => {
     const { getDetailedMovie } = await importTmdb();
-    axiosGetMock
-      .mockResolvedValueOnce({ data: makeTMDBConfig(), status: 200 })
-      .mockResolvedValueOnce({ data: makeTMDBMovieData(), status: 200 });
+    captureGet(MOVIE_URL, () => makeTMDBMovieData());
 
     const result = await getDetailedMovie([{ movieId: 27205 }]);
 
@@ -307,9 +279,7 @@ describe("getDetailedMovie", () => {
 
   it("maps production_companies to name strings", async () => {
     const { getDetailedMovie } = await importTmdb();
-    axiosGetMock
-      .mockResolvedValueOnce({ data: makeTMDBConfig(), status: 200 })
-      .mockResolvedValueOnce({ data: makeTMDBMovieData(), status: 200 });
+    captureGet(MOVIE_URL, () => makeTMDBMovieData());
 
     const result = await getDetailedMovie([{ movieId: 27205 }]);
 
@@ -318,9 +288,7 @@ describe("getDetailedMovie", () => {
 
   it("maps production_countries to name strings", async () => {
     const { getDetailedMovie } = await importTmdb();
-    axiosGetMock
-      .mockResolvedValueOnce({ data: makeTMDBConfig(), status: 200 })
-      .mockResolvedValueOnce({ data: makeTMDBMovieData(), status: 200 });
+    captureGet(MOVIE_URL, () => makeTMDBMovieData());
 
     const result = await getDetailedMovie([{ movieId: 27205 }]);
 
@@ -329,12 +297,7 @@ describe("getDetailedMovie", () => {
 
   it("parses vote_average string to float", async () => {
     const { getDetailedMovie } = await importTmdb();
-    axiosGetMock
-      .mockResolvedValueOnce({ data: makeTMDBConfig(), status: 200 })
-      .mockResolvedValueOnce({
-        data: makeTMDBMovieData({ vote_average: "8.36" }),
-        status: 200,
-      });
+    captureGet(MOVIE_URL, () => makeTMDBMovieData({ vote_average: "8.36" }));
 
     const result = await getDetailedMovie([{ movieId: 27205 }]);
 
@@ -343,9 +306,7 @@ describe("getDetailedMovie", () => {
 
   it("preserves extra properties from the input movie object", async () => {
     const { getDetailedMovie } = await importTmdb();
-    axiosGetMock
-      .mockResolvedValueOnce({ data: makeTMDBConfig(), status: 200 })
-      .mockResolvedValueOnce({ data: makeTMDBMovieData(), status: 200 });
+    captureGet(MOVIE_URL, () => makeTMDBMovieData());
 
     const input = { movieId: 27205, customField: "kept" };
     const result = await getDetailedMovie([input]);
@@ -355,12 +316,7 @@ describe("getDetailedMovie", () => {
 
   it("handles movies with no credits gracefully", async () => {
     const { getDetailedMovie } = await importTmdb();
-    axiosGetMock
-      .mockResolvedValueOnce({ data: makeTMDBConfig(), status: 200 })
-      .mockResolvedValueOnce({
-        data: makeTMDBMovieData({ credits: undefined }),
-        status: 200,
-      });
+    captureGet(MOVIE_URL, () => makeTMDBMovieData({ credits: undefined }));
 
     const result = await getDetailedMovie([{ movieId: 27205 }]);
 
@@ -374,18 +330,6 @@ describe("getDetailedMovie", () => {
 // ---------------------------------------------------------------------------
 
 describe("getDetailedWorks", () => {
-  const axiosGetMock = vi.mocked(axios.get);
-
-  beforeEach(() => {
-    vi.stubEnv("TMDB_API_KEY", "test-api-key");
-    vi.resetModules();
-  });
-
-  afterEach(() => {
-    vi.unstubAllEnvs();
-    vi.resetAllMocks();
-  });
-
   it("returns an empty array when called with no works", async () => {
     const { getDetailedWorks } = await importTmdb();
 
@@ -397,7 +341,7 @@ describe("getDetailedWorks", () => {
   it("attaches externalData to works that have an externalId", async () => {
     const { getDetailedWorks } = await importTmdb();
     const tmdbData = makeTMDBMovieData();
-    axiosGetMock.mockResolvedValueOnce({ data: tmdbData, status: 200 });
+    captureGet(MOVIE_URL, () => tmdbData);
 
     const work = {
       id: "work-1",
@@ -415,6 +359,7 @@ describe("getDetailedWorks", () => {
 
   it("leaves works without an externalId unchanged", async () => {
     const { getDetailedWorks } = await importTmdb();
+    const calls = captureGet(MOVIE_URL, () => makeTMDBMovieData());
     const work = {
       id: "work-2",
       type: WorkType.movie,
@@ -426,11 +371,12 @@ describe("getDetailedWorks", () => {
 
     expect(result).toHaveLength(1);
     expect(result[0]).toEqual(work);
-    expect(axiosGetMock).not.toHaveBeenCalled();
+    expect(calls).toHaveLength(0);
   });
 
   it("leaves works with an empty externalId unchanged", async () => {
     const { getDetailedWorks } = await importTmdb();
+    const calls = captureGet(MOVIE_URL, () => makeTMDBMovieData());
     const work = {
       id: "work-3",
       type: WorkType.movie,
@@ -442,16 +388,16 @@ describe("getDetailedWorks", () => {
     const result = await getDetailedWorks([work]);
 
     expect(result).toHaveLength(1);
-    expect(axiosGetMock).not.toHaveBeenCalled();
+    expect(calls).toHaveLength(0);
   });
 
   it("processes multiple works in parallel", async () => {
     const { getDetailedWorks } = await importTmdb();
-    const tmdbData1 = makeTMDBMovieData({ id: 27205, title: "Inception" });
-    const tmdbData2 = makeTMDBMovieData({ id: 550, title: "Fight Club" });
-    axiosGetMock
-      .mockResolvedValueOnce({ data: tmdbData1, status: 200 })
-      .mockResolvedValueOnce({ data: tmdbData2, status: 200 });
+    const byId: Record<string, TMDBMovieData> = {
+      "27205": makeTMDBMovieData({ id: 27205, title: "Inception" }),
+      "550": makeTMDBMovieData({ id: 550, title: "Fight Club" }),
+    };
+    captureGet(MOVIE_URL, (request) => byId[requestedMovieId(request)] ?? null);
 
     const works = [
       {
@@ -479,7 +425,7 @@ describe("getDetailedWorks", () => {
 
   it("propagates TMDB fetch errors", async () => {
     const { getDetailedWorks } = await importTmdb();
-    axiosGetMock.mockRejectedValueOnce(new Error("TMDB down"));
+    captureGet(MOVIE_URL, () => HttpResponse.error());
 
     const work = {
       id: "w1",
@@ -489,6 +435,6 @@ describe("getDetailedWorks", () => {
       externalId: "27205",
     };
 
-    await expect(getDetailedWorks([work])).rejects.toThrow("TMDB down");
+    await expect(getDetailedWorks([work])).rejects.toThrow();
   });
 });

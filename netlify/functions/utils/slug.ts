@@ -1,6 +1,14 @@
 import crypto from "crypto";
 
-// Reserved slugs that cannot be used for clubs
+// Reserved slugs that cannot be used for clubs.
+//
+// Club URLs are namespaced (`/club/<slug>` on the frontend, `/api/club/<slug>`
+// on the backend), so a club slug cannot actually shadow a top-level route
+// today — this list is defensive, kept in case club URLs are ever hoisted to
+// the root. It is deliberately not derived from the router: plenty of top-level
+// routes (`/verify-email`, `/forgot-password`, `/join-club/...`) would be
+// harmless club slugs, and the useful entries here ("api", "admin", "share")
+// are about URL namespaces rather than individual route records.
 const RESERVED_SLUGS = [
   "new",
   "create",

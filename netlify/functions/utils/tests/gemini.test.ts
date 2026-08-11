@@ -1,17 +1,24 @@
 /**
  * Tests for netlify/functions/utils/gemini.ts
  *
- * axios is mocked so no real HTTP calls are made.
- * GEMINI_API_KEY is provided/removed via vi.stubEnv.
+ * Real axios against MSW-faked HTTP: the request body the assertions inspect is
+ * the JSON axios actually serialised onto the wire.
+ * GEMINI_API_KEY is provided/removed via vi.stubEnv (read per call, so no
+ * module reset is needed).
  */
-import axios from "axios";
+import { HttpResponse } from "msw";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 
-vi.mock("axios");
+import { capturePost, type CapturedRequest } from "../../tests/msw";
+import { generateJson } from "../gemini";
 
-// Schema for the Gemini request body captured from the axios mock — typed
-// extraction without `as` casts.
+// Wildcard rather than the literal path: the model segment ends in
+// `:generateContent`, which msw's path parser would read as a path parameter.
+const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/*";
+
+// Schema for the Gemini request body captured by MSW — typed extraction
+// without `as` casts.
 const geminiRequestSchema = z.object({
   contents: z.array(z.object({ parts: z.array(z.object({ text: z.string() })) })),
   generationConfig: z.object({
@@ -21,23 +28,16 @@ const geminiRequestSchema = z.object({
   }),
 });
 
-function parseRequest(body: unknown) {
-  return geminiRequestSchema.parse(body);
-}
-
-async function importGemini() {
-  const mod = await import("../gemini");
-  return mod;
+function parseRequest(calls: CapturedRequest[]) {
+  return geminiRequestSchema.parse(calls[0]?.body);
 }
 
 beforeEach(() => {
   vi.stubEnv("GEMINI_API_KEY", "test-gemini-key");
-  vi.resetModules();
 });
 
 afterEach(() => {
   vi.unstubAllEnvs();
-  vi.resetAllMocks();
 });
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -51,17 +51,12 @@ const questionsResponseSchema = {
   required: ["questions"],
 };
 
-function makeGeminiResponse(payload: unknown) {
-  return {
-    data: { candidates: [{ content: { parts: [{ text: JSON.stringify(payload) }] } }] },
-    status: 200,
-  };
+/** A Gemini success body wrapping `payload` as the candidate's JSON text. */
+function geminiResponse(payload: unknown) {
+  return { candidates: [{ content: { parts: [{ text: JSON.stringify(payload) }] } }] };
 }
 
-function callGenerateJson(
-  generateJson: Awaited<ReturnType<typeof importGemini>>["generateJson"],
-  prompt = "Generate discussion prompts for Inception.",
-) {
+function callGenerateJson(prompt = "Generate discussion prompts for Inception.") {
   return generateJson({
     prompt,
     responseSchema: questionsResponseSchema,
@@ -72,17 +67,14 @@ function callGenerateJson(
 // ─── generateJson ─────────────────────────────────────────────────────────────
 
 describe("generateJson", () => {
-  const axiosPostMock = vi.mocked(axios.post);
-
   it("returns the parsed payload from a well-formed Gemini response", async () => {
-    const { generateJson } = await importGemini();
-    axiosPostMock.mockResolvedValueOnce(
-      makeGeminiResponse({
+    capturePost(GEMINI_URL, () =>
+      geminiResponse({
         questions: ["Was the ending inevitable?", "What does the spinning top symbolise?"],
       }),
     );
 
-    const result = await callGenerateJson(generateJson);
+    const result = await callGenerateJson();
 
     expect(result.questions).toEqual([
       "Was the ending inevitable?",
@@ -91,49 +83,44 @@ describe("generateJson", () => {
   });
 
   it("accepts an empty collection when the caller's schema allows it", async () => {
-    const { generateJson } = await importGemini();
-    axiosPostMock.mockResolvedValueOnce(makeGeminiResponse({ questions: [] }));
+    capturePost(GEMINI_URL, () => geminiResponse({ questions: [] }));
 
-    const result = await callGenerateJson(generateJson);
+    const result = await callGenerateJson();
 
     expect(result.questions).toEqual([]);
   });
 
   it("posts to the Gemini endpoint with the api key in the URL", async () => {
-    const { generateJson } = await importGemini();
-    axiosPostMock.mockResolvedValueOnce(makeGeminiResponse({ questions: ["Q1"] }));
+    const calls = capturePost(GEMINI_URL, () => geminiResponse({ questions: ["Q1"] }));
 
-    await callGenerateJson(generateJson);
+    await callGenerateJson();
 
-    const calledUrl = axiosPostMock.mock.calls[0]?.[0] ?? "";
-    expect(calledUrl).toContain("generativelanguage.googleapis.com");
-    expect(calledUrl).toContain("key=test-gemini-key");
+    expect(calls[0]?.url.pathname).toContain("models/gemini-3.5-flash:generateContent");
+    expect(calls[0]?.url.searchParams.get("key")).toBe("test-gemini-key");
   });
 
   it("sends the caller's prompt verbatim", async () => {
-    const { generateJson } = await importGemini();
-    axiosPostMock.mockResolvedValueOnce(makeGeminiResponse({ questions: ["Q1"] }));
+    const calls = capturePost(GEMINI_URL, () => geminiResponse({ questions: ["Q1"] }));
 
-    await callGenerateJson(generateJson, "Discuss Blade Runner 2049 (2017).");
+    await callGenerateJson("Discuss Blade Runner 2049 (2017).");
 
-    const request = parseRequest(axiosPostMock.mock.calls[0]?.[1]);
-    expect(request.contents[0]?.parts[0]?.text).toBe("Discuss Blade Runner 2049 (2017).");
+    expect(parseRequest(calls).contents[0]?.parts[0]?.text).toBe(
+      "Discuss Blade Runner 2049 (2017).",
+    );
   });
 
   it("asks Gemini for JSON constrained by the caller's response schema", async () => {
-    const { generateJson } = await importGemini();
-    axiosPostMock.mockResolvedValueOnce(makeGeminiResponse({ questions: ["Q1"] }));
+    const calls = capturePost(GEMINI_URL, () => geminiResponse({ questions: ["Q1"] }));
 
-    await callGenerateJson(generateJson);
+    await callGenerateJson();
 
-    const request = parseRequest(axiosPostMock.mock.calls[0]?.[1]);
+    const request = parseRequest(calls);
     expect(request.generationConfig.responseMimeType).toBe("application/json");
     expect(request.generationConfig.responseSchema).toEqual(questionsResponseSchema);
   });
 
   it("forwards the temperature when the caller sets one", async () => {
-    const { generateJson } = await importGemini();
-    axiosPostMock.mockResolvedValueOnce(makeGeminiResponse({ questions: ["Q1"] }));
+    const calls = capturePost(GEMINI_URL, () => geminiResponse({ questions: ["Q1"] }));
 
     await generateJson({
       prompt: "anything",
@@ -142,8 +129,7 @@ describe("generateJson", () => {
       temperature: 0.4,
     });
 
-    const request = parseRequest(axiosPostMock.mock.calls[0]?.[1]);
-    expect(request.generationConfig.temperature).toBe(0.4);
+    expect(parseRequest(calls).generationConfig.temperature).toBe(0.4);
   });
 
   it("throws when GEMINI_API_KEY is not set", async () => {
@@ -151,41 +137,37 @@ describe("generateJson", () => {
     // restore the ambient environment — unset locally but populated on CI
     // (Netlify injects the real secret), making the test non-deterministic.
     vi.stubEnv("GEMINI_API_KEY", "");
-    const { generateJson } = await importGemini();
 
-    await expect(callGenerateJson(generateJson)).rejects.toThrow(
-      "GEMINI_API_KEY is not configured",
-    );
+    await expect(callGenerateJson()).rejects.toThrow("GEMINI_API_KEY is not configured");
   });
 
   it("throws when the response contains no candidates", async () => {
-    const { generateJson } = await importGemini();
-    axiosPostMock.mockResolvedValueOnce({ data: { candidates: [] }, status: 200 });
+    capturePost(GEMINI_URL, () => ({ candidates: [] }));
 
-    await expect(callGenerateJson(generateJson)).rejects.toThrow("Gemini returned no text content");
+    await expect(callGenerateJson()).rejects.toThrow("Gemini returned no text content");
   });
 
   it("throws when the candidate content is missing text", async () => {
-    const { generateJson } = await importGemini();
-    axiosPostMock.mockResolvedValueOnce({
-      data: { candidates: [{ content: { parts: [{}] } }] },
-      status: 200,
-    });
+    capturePost(GEMINI_URL, () => ({ candidates: [{ content: { parts: [{}] } }] }));
 
-    await expect(callGenerateJson(generateJson)).rejects.toThrow("Gemini returned no text content");
+    await expect(callGenerateJson()).rejects.toThrow("Gemini returned no text content");
   });
 
   it("throws when the JSON does not match the caller's schema", async () => {
-    const { generateJson } = await importGemini();
-    axiosPostMock.mockResolvedValueOnce(makeGeminiResponse({ wrong: "shape" }));
+    capturePost(GEMINI_URL, () => geminiResponse({ wrong: "shape" }));
 
-    await expect(callGenerateJson(generateJson)).rejects.toThrow("Gemini returned malformed JSON");
+    await expect(callGenerateJson()).rejects.toThrow("Gemini returned malformed JSON");
   });
 
-  it("propagates axios network errors", async () => {
-    const { generateJson } = await importGemini();
-    axiosPostMock.mockRejectedValueOnce(new Error("network timeout"));
+  it("propagates API errors", async () => {
+    capturePost(GEMINI_URL, () => HttpResponse.json({ error: "unavailable" }, { status: 503 }));
 
-    await expect(callGenerateJson(generateJson)).rejects.toThrow("network timeout");
+    await expect(callGenerateJson()).rejects.toThrow("Request failed with status code 503");
+  });
+
+  it("propagates transport failures", async () => {
+    capturePost(GEMINI_URL, () => HttpResponse.error());
+
+    await expect(callGenerateJson()).rejects.toThrow();
   });
 });

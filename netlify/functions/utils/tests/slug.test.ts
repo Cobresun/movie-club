@@ -2,8 +2,6 @@ import { describe, expect, it } from "vitest";
 
 import {
   SLUG_MAX_LENGTH,
-  SLUG_MIN_LENGTH,
-  SLUG_PATTERN,
   generateSlugFromName,
   generateUniqueSlug,
   isReservedSlug,
@@ -11,35 +9,9 @@ import {
   validateSlugFormat,
 } from "../slug";
 
-// ---------- constants ----------
-
-describe("SLUG_MIN_LENGTH / SLUG_MAX_LENGTH", () => {
-  it("min length is 3", () => {
-    expect(SLUG_MIN_LENGTH).toBe(3);
-  });
-
-  it("max length is 50", () => {
-    expect(SLUG_MAX_LENGTH).toBe(50);
-  });
-});
-
-describe("SLUG_PATTERN", () => {
-  it("accepts a valid slug", () => {
-    expect(SLUG_PATTERN.test("my-club")).toBe(true);
-  });
-
-  it("requires the string to start with alphanumeric", () => {
-    expect(SLUG_PATTERN.test("-bad")).toBe(false);
-  });
-
-  it("requires the string to end with alphanumeric", () => {
-    expect(SLUG_PATTERN.test("bad-")).toBe(false);
-  });
-
-  it("rejects uppercase letters", () => {
-    expect(SLUG_PATTERN.test("MyClub")).toBe(false);
-  });
-});
+// The constants and SLUG_PATTERN are deliberately not asserted on directly —
+// a test that restates a constant just has to be edited whenever the constant
+// changes. The behaviour they drive is covered through validateSlugFormat.
 
 // ---------- generateSlugFromName ----------
 
