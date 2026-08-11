@@ -88,15 +88,15 @@ function getRootDbUrl(): string | undefined {
   return buildConnectionString(connParams, "defaultdb");
 }
 
-export const rootPool = new Pool({
+const rootPool = new Pool({
   connectionString: getRootDbUrl(),
 });
 
-export const rootDialect = new CockroachDialect({
+const rootDialect = new CockroachDialect({
   pool: rootPool,
 });
 
-export const rootDb = new Kysely({
+const rootDb = new Kysely({
   dialect: rootDialect,
 });
 
