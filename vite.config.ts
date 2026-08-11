@@ -30,14 +30,44 @@ export default defineConfig({
   },
   test: {
     globals: true,
-    environment: "jsdom",
-    setupFiles: "tests/setup.ts",
-    root: "src/",
+    // Both inherited by the projects below via `extends: true`.
+    restoreMocks: true,
+    // Test-runner only; does not affect the app. Keeps date assertions
+    // agreeing between a developer's machine and CI, which runs UTC.
+    env: { TZ: "UTC" },
     coverage: {
       all: true,
       provider: "istanbul",
       reporter: ["text", "json", "html"],
       exclude: ["**/mocks/**", "**/tests/**"],
     },
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: "client",
+          globals: true,
+          environment: "jsdom",
+          setupFiles: "src/tests/setup.ts",
+          include: ["src/**/*.{test,spec}.ts"],
+        },
+      },
+      {
+        // Pure units with no DOM and no database. The previous `root: "src/"`
+        // made everything outside src/ invisible to the runner, so no backend
+        // test could exist at all.
+        extends: true,
+        test: {
+          name: "server",
+          globals: true,
+          environment: "node",
+          include: [
+            "lib/**/*.{test,spec}.ts",
+            "netlify/functions/utils/**/*.{test,spec}.ts",
+            "scripts/**/*.{test,spec}.ts",
+          ],
+        },
+      },
+    ],
   },
 });
