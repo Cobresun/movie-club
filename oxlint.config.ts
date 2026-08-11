@@ -22,17 +22,6 @@ export default defineConfig({
     "@tanstack/query/no-void-query-fn": "error",
     "@tanstack/query/mutation-property-order": "error",
   },
-  overrides: [
-    {
-      // `expect(Repo.method)` and `vi.mocked(Repo.method)` are the idiomatic
-      // way to assert on a mocked module, and they trip unbound-method on
-      // every call — the rule has no signal to give in a test file.
-      files: ["**/*.test.ts", "**/*.spec.ts"],
-      rules: {
-        "typescript/unbound-method": "off",
-      },
-    },
-  ],
   options: {
     typeAware: true,
   },

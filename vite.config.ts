@@ -30,16 +30,10 @@ export default defineConfig({
   },
   test: {
     globals: true,
-    // Restore every spy/mock to its original implementation after each test so
-    // mock state never leaks between tests (a vi.spyOn or mockResolvedValue set
-    // in one test cannot silently change the next). Inherited by both projects
-    // via `extends: true`.
+    // Both inherited by the projects below via `extends: true`.
     restoreMocks: true,
-    // Pin the timezone so date assertions mean the same thing everywhere.
-    // Components format date-only strings with `new Date(...)` (parsed as UTC)
-    // and `toLocaleDateString` (rendered locally), so west of Greenwich a
-    // release date renders as the previous day — CI runs UTC and would
-    // disagree with a developer's machine. Inherited by both projects.
+    // Test-runner only; does not affect the app. Keeps date assertions
+    // agreeing between a developer's machine and CI, which runs UTC.
     env: { TZ: "UTC" },
     coverage: {
       all: true,
