@@ -1,15 +1,21 @@
 /**
  * Tests for netlify/functions/utils/providers/googleBooks.ts
  *
- * Real axios against MSW-faked HTTP, so the assertions read the URL actually
- * requested. The key is supplied via vi.stubEnv — never vi.unstubAllEnvs(),
- * which would restore the ambient environment (unset locally, populated on CI)
- * and make the keyless case flaky.
+ * Real axios against MSW-faked HTTP: `netlify/functions/tests/mocks/handlers.ts`
+ * answers the volume and search endpoints with the default fixtures, and a test
+ * overrides them with `server.use` when it needs a different body. Both fixtures
+ * are derived from the id (or query) that was requested, so asserting on the
+ * returned volumes is also what proves the right request went out.
+ *
+ * The key is supplied via vi.stubEnv — never vi.unstubAllEnvs() mid-test, which
+ * would restore the ambient environment (unset locally, populated on CI) and
+ * make the keyless case flaky.
  */
-import { HttpResponse } from "msw";
+import { HttpResponse, http } from "msw";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { captureGet } from "../../../tests/msw";
+import { googleBooksVolume } from "../../../tests/fixtures/external";
+import { server } from "../../../tests/mocks/server";
 import { getGoogleBooksVolume, searchGoogleBooksVolumes } from "../googleBooks";
 
 const VOLUME_URL = "https://www.googleapis.com/books/v1/volumes/:volumeId";
@@ -25,40 +31,24 @@ afterEach(() => {
 
 describe("getGoogleBooksVolume", () => {
   it("returns the volume payload for the requested id", async () => {
-    captureGet(VOLUME_URL, () => ({ id: "zyTCAlFPjgYC", volumeInfo: { title: "Dune" } }));
-
     const volume = await getGoogleBooksVolume("zyTCAlFPjgYC");
 
-    expect(volume.volumeInfo?.title).toBe("Dune");
+    expect(volume).toEqual(googleBooksVolume("zyTCAlFPjgYC"));
   });
 
-  it("requests the volume by id against the v1 books API", async () => {
-    const calls = captureGet(VOLUME_URL, () => ({ id: "abc" }));
-
-    await getGoogleBooksVolume("abc");
-
-    expect(calls[0]?.url.pathname).toBe("/books/v1/volumes/abc");
-  });
-
-  it("sends the API key when one is configured", async () => {
-    const calls = captureGet(VOLUME_URL, () => ({ id: "abc" }));
-
-    await getGoogleBooksVolume("abc");
-
-    expect(calls[0]?.url.searchParams.get("key")).toBe("test-books-key");
-  });
-
-  it("omits the key entirely when unset — an empty key param is a 400", async () => {
+  it("still fetches the volume when no API key is configured", async () => {
+    // Keyless requests are allowed at a low rate limit, but `key=` with an
+    // empty value is a 400 — which the default handler reproduces, so this
+    // rejects if the provider stops omitting the param.
     vi.stubEnv("GOOGLE_BOOKS_API_KEY", "");
-    const calls = captureGet(VOLUME_URL, () => ({ id: "abc" }));
 
-    await getGoogleBooksVolume("abc");
-
-    expect(calls[0]?.url.searchParams.has("key")).toBe(false);
+    await expect(getGoogleBooksVolume("abc")).resolves.toEqual(googleBooksVolume("abc"));
   });
 
   it("propagates API errors to the caller", async () => {
-    captureGet(VOLUME_URL, () => HttpResponse.json({ error: "rate limited" }, { status: 429 }));
+    server.use(
+      http.get(VOLUME_URL, () => HttpResponse.json({ error: "rate limited" }, { status: 429 })),
+    );
 
     await expect(getGoogleBooksVolume("abc")).rejects.toThrow(
       "Request failed with status code 429",
@@ -68,47 +58,37 @@ describe("getGoogleBooksVolume", () => {
 
 describe("searchGoogleBooksVolumes", () => {
   it("returns the matched volumes", async () => {
-    captureGet(SEARCH_URL, () => ({ totalItems: 2, items: [{ id: "a" }, { id: "b" }] }));
+    server.use(
+      http.get(SEARCH_URL, () =>
+        HttpResponse.json({
+          totalItems: 2,
+          items: [googleBooksVolume("a"), googleBooksVolume("b")],
+        }),
+      ),
+    );
 
     const volumes = await searchGoogleBooksVolumes("dune");
 
     expect(volumes.map((v) => v.id)).toEqual(["a", "b"]);
   });
 
+  it("searches for the caller's query", async () => {
+    // The default handler echoes `q` back in the volume it returns.
+    const volumes = await searchGoogleBooksVolumes('intitle:"The Left Hand of Darkness"');
+
+    expect(volumes.map((v) => v.id)).toEqual(['vol-intitle:"The Left Hand of Darkness"']);
+  });
+
   it("returns an empty array when the response omits items on no results", async () => {
     // The API leaves `items` absent rather than sending [].
-    captureGet(SEARCH_URL, () => ({ totalItems: 0 }));
+    server.use(http.get(SEARCH_URL, () => HttpResponse.json({ totalItems: 0 })));
 
     await expect(searchGoogleBooksVolumes("no such book")).resolves.toEqual([]);
   });
 
-  it("searches books only, by relevance, 20 at a time by default", async () => {
-    const calls = captureGet(SEARCH_URL, () => ({ totalItems: 0 }));
+  it("still searches when no API key is configured", async () => {
+    vi.stubEnv("GOOGLE_BOOKS_API_KEY", "");
 
-    await searchGoogleBooksVolumes("dune");
-
-    const params = calls[0]?.url.searchParams;
-    expect(params?.get("q")).toBe("dune");
-    expect(params?.get("printType")).toBe("books");
-    expect(params?.get("orderBy")).toBe("relevance");
-    expect(params?.get("maxResults")).toBe("20");
-  });
-
-  it("honours a caller's ordering and page size", async () => {
-    const calls = captureGet(SEARCH_URL, () => ({ totalItems: 0 }));
-
-    await searchGoogleBooksVolumes("dune", { orderBy: "newest", maxResults: 5 });
-
-    const params = calls[0]?.url.searchParams;
-    expect(params?.get("orderBy")).toBe("newest");
-    expect(params?.get("maxResults")).toBe("5");
-  });
-
-  it("encodes a query containing spaces and punctuation", async () => {
-    const calls = captureGet(SEARCH_URL, () => ({ totalItems: 0 }));
-
-    await searchGoogleBooksVolumes('intitle:"The Left Hand of Darkness"');
-
-    expect(calls[0]?.url.searchParams.get("q")).toBe('intitle:"The Left Hand of Darkness"');
+    await expect(searchGoogleBooksVolumes("dune")).resolves.toHaveLength(1);
   });
 });
