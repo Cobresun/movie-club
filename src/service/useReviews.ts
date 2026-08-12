@@ -87,7 +87,7 @@ function startScorePoll(
   setTimeout(() => void tick(0), SCORE_POLL_INTERVAL_MS);
 }
 
-export function useReviewWork(clubSlug: string) {
+function useReviewWork(clubSlug: string) {
   const auth = useAuthStore();
   const queryClient = useQueryClient();
   const user = useUser();
@@ -140,7 +140,7 @@ export function useReviewWork(clubSlug: string) {
   });
 }
 
-export function useUpdateReviewScore(clubSlug: string) {
+function useUpdateReviewScore(clubSlug: string) {
   const auth = useAuthStore();
   const queryClient = useQueryClient();
   const user = useUser();
