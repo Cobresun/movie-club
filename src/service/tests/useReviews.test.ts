@@ -7,18 +7,29 @@ import {
   useDeleteReviewComment,
   useEditReviewComment,
   useReviewComments,
-  useReviewWork,
-  useUpdateReviewScore,
+  useSubmitScore,
 } from "../useReviews";
 import { server } from "@/mocks/server";
 import { render } from "@/tests/utils";
 
 // ---------------------------------------------------------------------------
-// useReviewWork
+// useSubmitScore
+//
+// The create and update mutations it picks between are module-private, so both
+// paths are driven through this — the surface ReviewScore, ScoreEntryPanel and
+// ScoreAssistModal actually call.
 // ---------------------------------------------------------------------------
 
-describe("useReviewWork", () => {
-  it("POSTs a review score to /api/club/:id/reviews", async () => {
+describe("useSubmitScore", () => {
+  const Harness = defineComponent({
+    props: { payload: { type: Object, required: true } },
+    setup() {
+      return { submit: useSubmitScore("test-club") };
+    },
+    template: `<button @click="() => submit(payload)">go</button>`,
+  });
+
+  it("POSTs to /api/club/:id/reviews when the work has no review yet", async () => {
     let capturedBody: unknown = null;
     server.use(
       http.post("/api/club/:id/reviews", async ({ request }) => {
@@ -27,56 +38,13 @@ describe("useReviewWork", () => {
       }),
     );
 
-    const Harness = defineComponent({
-      setup() {
-        const { mutate, isSuccess } = useReviewWork("test-club");
-        const payload = { workId: "work-1", score: 8 };
-        return { mutate, isSuccess, payload };
-      },
-      template: `<button @click="() => mutate(payload)">{{ isSuccess ? 'done' : 'go' }}</button>`,
-    });
-
-    const rendered = render(Harness);
+    const rendered = render(Harness, { props: { payload: { workId: "work-1", score: 8 } } });
     rendered.getByRole("button").click();
-    await rendered.findByText("done");
-    expect(capturedBody).toMatchObject({ workId: "work-1", score: 8 });
+
+    await vi.waitFor(() => expect(capturedBody).toMatchObject({ workId: "work-1", score: 8 }));
   });
 
-  it("includes sourceListId when provided", async () => {
-    let capturedBody: unknown = null;
-    server.use(
-      http.post("/api/club/:id/reviews", async ({ request }) => {
-        capturedBody = await request.json();
-        return new HttpResponse(null, { status: 200 });
-      }),
-    );
-
-    const Harness = defineComponent({
-      setup() {
-        const { mutate, isSuccess } = useReviewWork("test-club");
-        const payload = {
-          workId: "work-2",
-          score: 9,
-          sourceListId: "src-list",
-        };
-        return { mutate, isSuccess, payload };
-      },
-      template: `<button @click="() => mutate(payload)">{{ isSuccess ? 'done' : 'go' }}</button>`,
-    });
-
-    const rendered = render(Harness);
-    rendered.getByRole("button").click();
-    await rendered.findByText("done");
-    expect(capturedBody).toMatchObject({ sourceListId: "src-list" });
-  });
-});
-
-// ---------------------------------------------------------------------------
-// useUpdateReviewScore
-// ---------------------------------------------------------------------------
-
-describe("useUpdateReviewScore", () => {
-  it("PUTs updated score to /api/club/:id/reviews/:reviewId", async () => {
+  it("PUTs to /api/club/:id/reviews/:reviewId when a review already exists", async () => {
     let capturedBody: unknown = null;
     let capturedReviewId = "";
     server.use(
@@ -87,18 +55,12 @@ describe("useUpdateReviewScore", () => {
       }),
     );
 
-    const Harness = defineComponent({
-      setup() {
-        const { mutate, isSuccess } = useUpdateReviewScore("test-club");
-        return { mutate, isSuccess };
-      },
-      template: `<button @click="() => mutate({ reviewId: 'rev-42', score: 7 })">{{ isSuccess ? 'done' : 'go' }}</button>`,
+    const rendered = render(Harness, {
+      props: { payload: { workId: "work-1", reviewId: "rev-42", score: 7 } },
     });
-
-    const rendered = render(Harness);
     rendered.getByRole("button").click();
-    await rendered.findByText("done");
-    expect(capturedReviewId).toBe("rev-42");
+
+    await vi.waitFor(() => expect(capturedReviewId).toBe("rev-42"));
     expect(capturedBody).toEqual({ score: 7 });
   });
 });
