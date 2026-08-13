@@ -61,6 +61,7 @@ export default defineConfig({
           name: "server",
           globals: true,
           environment: "node",
+          setupFiles: "netlify/functions/tests/setup.ts",
           include: [
             "lib/**/*.{test,spec}.ts",
             "netlify/functions/utils/**/*.{test,spec}.ts",
