@@ -122,5 +122,3 @@ async function main() {
 if (import.meta.url === `file://${process.argv[1]}`) {
   void main();
 }
-
-export { snapshotDatabase, listSnapshots, buildS3Uri };
