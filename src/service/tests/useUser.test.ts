@@ -62,28 +62,22 @@ describe("useUser", () => {
 
 describe("useUserClubs", () => {
   it("does not fetch clubs when user is not logged in", async () => {
-    let fetchCalled = false;
     server.use(
       http.get("/api/member/clubs", () => {
-        fetchCalled = true;
-        return HttpResponse.json([]);
+        throw new Error("A logged-out user has no clubs to fetch");
       }),
     );
 
     const Harness = defineComponent({
       setup() {
-        // isLoggedIn is false by default in test pinia
-        const { isLoading } = useUserClubs();
-        return { isLoading };
+        const { status, fetchStatus } = useUserClubs();
+        return { status, fetchStatus };
       },
-      template: `<div>{{ isLoading ? 'loading' : 'idle' }}</div>`,
+      template: `<div>{{ status }}/{{ fetchStatus }}</div>`,
     });
 
-    render(Harness);
-    await new Promise((r) => setTimeout(r, 50));
-    // The global setup renders PiniaStoreHelper which also runs useUserClubs
-    // via the auth store; but since isLoggedIn=false it should not fetch.
-    expect(fetchCalled).toBe(false);
+    const rendered = render(Harness);
+    await rendered.findByText("loading/idle");
   });
 });
 
@@ -92,28 +86,27 @@ describe("useUserClubs", () => {
 // ---------------------------------------------------------------------------
 
 describe("useUpdateName", () => {
-  it("PUTs new name to /api/member/name", async () => {
-    let capturedBody: unknown = null;
+  it("sends the new name to the profile endpoint", async () => {
     server.use(
       http.put("/api/member/name", async ({ request }) => {
-        capturedBody = await request.json();
-        return new HttpResponse(null, { status: 200 });
+        const { name } = (await request.json()) as { name?: string };
+        return HttpResponse.json({ storedName: name ?? "none" });
       }),
     );
 
     const Harness = defineComponent({
       setup() {
-        const { mutate, isSuccess } = useUpdateName();
-        return { mutate, isSuccess };
+        const { mutate, data } = useUpdateName();
+        return { mutate, data };
       },
-      template: `<button @click="() => mutate('Bob')">{{ isSuccess ? 'done' : 'go' }}</button>`,
+      template: `<button @click="() => mutate('Bob')">{{ data?.data.storedName ?? 'go' }}</button>`,
     });
 
     const rendered = render(Harness);
     stubRefreshSession(rendered.pinia);
     rendered.getByRole("button").click();
-    await rendered.findByText("done");
-    expect(capturedBody).toEqual({ name: "Bob" });
+
+    await rendered.findByRole("button", { name: "Bob" });
   });
 });
 
@@ -122,33 +115,34 @@ describe("useUpdateName", () => {
 // ---------------------------------------------------------------------------
 
 describe("useUpdateAvatar", () => {
-  it("POSTs FormData to /api/member/avatar", async () => {
-    let receivedRequest = false;
+  it("uploads the chosen file", async () => {
     server.use(
-      http.post("/api/member/avatar", () => {
-        receivedRequest = true;
-        return new HttpResponse(null, { status: 200 });
+      http.post("/api/member/avatar", async ({ request }) => {
+        const file = (await request.formData()).get("file");
+        return HttpResponse.json({
+          uploaded: file === null || typeof file === "string" ? "nothing" : await file.text(),
+        });
       }),
     );
 
     const Harness = defineComponent({
       setup() {
-        const { mutate, isSuccess } = useUpdateAvatar();
+        const { mutate, data } = useUpdateAvatar();
         const submit = () => {
           const fd = new FormData();
-          fd.append("file", new Blob(["img"], { type: "image/png" }), "avatar.png");
+          fd.append("file", new Blob(["poster-bytes"], { type: "image/png" }), "avatar.png");
           mutate(fd);
         };
-        return { submit, isSuccess };
+        return { submit, data };
       },
-      template: `<button @click="submit">{{ isSuccess ? 'done' : 'go' }}</button>`,
+      template: `<button @click="submit">{{ data?.data.uploaded ?? 'go' }}</button>`,
     });
 
     const rendered = render(Harness);
     stubRefreshSession(rendered.pinia);
     rendered.getByRole("button").click();
-    await rendered.findByText("done");
-    expect(receivedRequest).toBe(true);
+
+    await rendered.findByRole("button", { name: "poster-bytes" });
   });
 });
 
@@ -157,14 +151,8 @@ describe("useUpdateAvatar", () => {
 // ---------------------------------------------------------------------------
 
 describe("useDeleteAvatar", () => {
-  it("DELETEs avatar at /api/member/avatar", async () => {
-    let deleteCalled = false;
-    server.use(
-      http.delete("/api/member/avatar", () => {
-        deleteCalled = true;
-        return new HttpResponse(null, { status: 200 });
-      }),
-    );
+  it("reports success once the avatar is gone", async () => {
+    server.use(http.delete("/api/member/avatar", () => new HttpResponse(null, { status: 200 })));
 
     const Harness = defineComponent({
       setup() {
@@ -177,7 +165,7 @@ describe("useDeleteAvatar", () => {
     const rendered = render(Harness);
     stubRefreshSession(rendered.pinia);
     rendered.getByRole("button").click();
+
     await rendered.findByText("done");
-    expect(deleteCalled).toBe(true);
   });
 });

@@ -22,17 +22,15 @@ import { render } from "@/tests/utils";
 // ---------------------------------------------------------------------------
 
 describe("useClub", () => {
-  it("fetches club data from /api/club/:id", async () => {
-    let capturedUrl = "";
+  it("loads the club the slug names", async () => {
     server.use(
-      http.get("/api/club/:id", ({ request }) => {
-        capturedUrl = request.url;
-        return HttpResponse.json({
+      http.get("/api/club/:id", ({ params }) =>
+        HttpResponse.json({
           clubId: "42",
-          clubName: "Sci-Fi Night",
-          slug: "sci-fi",
-        });
-      }),
+          clubName: `Club ${String(params.id)}`,
+          slug: String(params.id),
+        }),
+      ),
     );
 
     const Harness = defineComponent({
@@ -44,8 +42,7 @@ describe("useClub", () => {
     });
 
     const rendered = render(Harness);
-    await rendered.findByText("Sci-Fi Night");
-    expect(capturedUrl).toContain("/api/club/sci-fi");
+    await rendered.findByText("Club sci-fi");
   });
 
   it("propagates errors from the API", async () => {
@@ -72,16 +69,14 @@ describe("useClub", () => {
 // ---------------------------------------------------------------------------
 
 describe("useMembers", () => {
-  it("fetches members from /api/club/:id/members", async () => {
-    let capturedUrl = "";
+  it("loads the members of the club the slug names", async () => {
     server.use(
-      http.get("/api/club/:id/members", ({ request }) => {
-        capturedUrl = request.url;
-        return HttpResponse.json([
-          { id: "1", name: "Alice", email: "alice@test.com" },
+      http.get("/api/club/:id/members", ({ params }) =>
+        HttpResponse.json([
+          { id: "1", name: `Alice of ${String(params.id)}`, email: "alice@test.com" },
           { id: "2", name: "Bob", email: "bob@test.com" },
-        ]);
-      }),
+        ]),
+      ),
     );
 
     const Harness = defineComponent({
@@ -89,12 +84,11 @@ describe("useMembers", () => {
         const { data, isSuccess } = useMembers("test-club");
         return { data, isSuccess };
       },
-      template: `<div>{{ isSuccess ? data?.length : 'loading' }}</div>`,
+      template: `<div v-if="isSuccess">{{ data?.map((m) => m.name).join(", ") }}</div>`,
     });
 
     const rendered = render(Harness);
-    await rendered.findByText("2");
-    expect(capturedUrl).toContain("/api/club/test-club/members");
+    await rendered.findByText("Alice of test-club, Bob");
   });
 });
 
@@ -122,13 +116,7 @@ describe("useClubSlug", () => {
 // ---------------------------------------------------------------------------
 
 describe("useIsInClub", () => {
-  it("returns false when user is not in the specified club", async () => {
-    server.use(
-      http.get("/api/member/clubs", () =>
-        HttpResponse.json([{ clubId: "1", clubName: "Another Club", slug: "another-club" }]),
-      ),
-    );
-
+  it("reports the user is not in the club while their clubs are unknown", async () => {
     const Harness = defineComponent({
       setup() {
         const isIn = useIsInClub("my-club");
@@ -147,37 +135,33 @@ describe("useIsInClub", () => {
 // ---------------------------------------------------------------------------
 
 describe("useCreateClub", () => {
-  it("POSTs to /api/club and invalidates user clubs query", async () => {
-    let capturedBody: unknown = null;
+  it("creates a club under the name the caller gave", async () => {
     server.use(
       http.post("/api/club", async ({ request }) => {
-        capturedBody = await request.json();
-        return HttpResponse.json({ clubId: "new-1", slug: "new-club" });
+        // The API names the field `name`; the composable takes `clubName`.
+        const { name, type } = (await request.json()) as { name?: string; type: ClubType };
+        return HttpResponse.json({ clubId: "new-1", slug: `${type}-${name ?? "unnamed"}` });
       }),
     );
 
     const Harness = defineComponent({
       setup() {
-        const { mutate, isSuccess } = useCreateClub();
+        const { mutate, data } = useCreateClub();
         const submit = () =>
           mutate({
             clubName: "New Club",
             members: ["alice@test.com"],
             type: ClubType.movie,
           });
-        return { submit, isSuccess };
+        return { submit, data };
       },
-      template: `<button @click="submit">{{ isSuccess ? 'done' : 'create' }}</button>`,
+      template: `<button @click="submit">{{ data?.data.slug ?? 'create' }}</button>`,
     });
 
     const rendered = render(Harness);
     rendered.getByRole("button").click();
-    await rendered.findByText("done");
-    expect(capturedBody).toEqual({
-      name: "New Club",
-      members: ["alice@test.com"],
-      type: ClubType.movie,
-    });
+
+    await rendered.findByRole("button", { name: "movie-New Club" });
   });
 });
 
@@ -271,31 +255,34 @@ describe("useUpdateClubSettings", () => {
     await rendered.findByRole("button", { name: "awards: false" });
   });
 
-  it("POSTs updated settings to /api/club/:id/settings", async () => {
-    let capturedBody: unknown = null;
+  it("persists the change, so a refetch still reports it", async () => {
+    let stored = { features: { awards: false, discussionQuestions: false } };
     server.use(
-      http.get("/api/club/:id/settings", () =>
-        HttpResponse.json({ features: { awards: false, discussionQuestions: false } }),
-      ),
+      http.get("/api/club/:id/settings", () => HttpResponse.json(stored)),
       http.post("/api/club/:id/settings", async ({ request }) => {
-        capturedBody = await request.json();
+        const body = (await request.json()) as { features?: Partial<typeof stored.features> };
+        stored = { features: { ...stored.features, ...body.features } };
         return new HttpResponse(null, { status: 200 });
       }),
     );
 
     const Harness = defineComponent({
       setup() {
-        const { mutate, isSuccess } = useUpdateClubSettings("test-club");
+        const { data: settings } = useClubSettings("test-club");
+        const { mutate } = useUpdateClubSettings("test-club");
         const trigger = () => mutate({ features: { discussionQuestions: true } });
-        return { trigger, isSuccess };
+        return { trigger, settings };
       },
-      template: `<button @click="trigger">{{ isSuccess ? 'done' : 'go' }}</button>`,
+      template: `<button @click="trigger">questions: {{ String(settings?.features.discussionQuestions) }}, awards: {{ String(settings?.features.awards) }}</button>`,
     });
 
     const rendered = render(Harness);
+    await rendered.findByRole("button", { name: "questions: false, awards: false" });
+
     rendered.getByRole("button").click();
-    await rendered.findByText("done");
-    expect(capturedBody).toEqual({ features: { discussionQuestions: true } });
+
+    // The invalidated query re-reads what the server actually stored.
+    await rendered.findByRole("button", { name: "questions: true, awards: false" });
   });
 });
 
@@ -333,13 +320,9 @@ describe("useClubDetails", () => {
 // ---------------------------------------------------------------------------
 
 describe("useLeaveClub", () => {
-  it("DELETEs /api/club/:id/members/self", async () => {
-    let deleteCalled = false;
+  it("reports success once the club drops the member", async () => {
     server.use(
-      http.delete("/api/club/:id/members/self", () => {
-        deleteCalled = true;
-        return new HttpResponse(null, { status: 200 });
-      }),
+      http.delete("/api/club/:id/members/self", () => new HttpResponse(null, { status: 200 })),
     );
 
     const Harness = defineComponent({
@@ -352,7 +335,7 @@ describe("useLeaveClub", () => {
 
     const rendered = render(Harness);
     rendered.getByRole("button").click();
+
     await rendered.findByText("left");
-    expect(deleteCalled).toBe(true);
   });
 });

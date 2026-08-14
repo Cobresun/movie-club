@@ -45,25 +45,22 @@ describe("useWatchProviders", () => {
   });
 
   it("does not fetch when externalId is undefined", async () => {
-    let fetchCalled = false;
     server.use(
       http.get("https://api.themoviedb.org/3/movie/:movieId/watch/providers", () => {
-        fetchCalled = true;
-        return HttpResponse.json({ id: 0, results: {} });
+        throw new Error("There is no work to ask TMDB about");
       }),
     );
 
     const Harness = defineComponent({
       setup() {
         const externalId = ref<string | undefined>(undefined);
-        const { isLoading } = useWatchProviders(externalId);
-        return { isLoading };
+        const { status, fetchStatus } = useWatchProviders(externalId);
+        return { status, fetchStatus };
       },
-      template: `<div>{{ isLoading ? 'loading' : 'idle' }}</div>`,
+      template: `<div>{{ status }}/{{ fetchStatus }}</div>`,
     });
 
-    render(Harness);
-    await new Promise((r) => setTimeout(r, 50));
-    expect(fetchCalled).toBe(false);
+    const rendered = render(Harness);
+    await rendered.findByText("loading/idle");
   });
 });

@@ -7,25 +7,22 @@ import { render } from "@/tests/utils";
 
 describe("useDiscussionQuestions", () => {
   it("is disabled by default and does not fetch on mount", async () => {
-    let fetchCalled = false;
     server.use(
       http.post("/api/club/:id/reviews/:workId/discussion-questions", () => {
-        fetchCalled = true;
-        return HttpResponse.json({ questions: ["Q1", "Q2"] });
+        throw new Error("Questions cost a Gemini call, so nothing may ask for them on mount");
       }),
     );
 
     const Harness = defineComponent({
       setup() {
-        const { isLoading, isFetching, data } = useDiscussionQuestions("test-club", "work-1");
-        return { isLoading, isFetching, data };
+        const { status, fetchStatus } = useDiscussionQuestions("test-club", "work-1");
+        return { status, fetchStatus };
       },
-      template: `<div>{{ isFetching ? 'fetching' : 'idle' }}</div>`,
+      template: `<div>{{ status }}/{{ fetchStatus }}</div>`,
     });
 
-    render(Harness);
-    await new Promise((r) => setTimeout(r, 80));
-    expect(fetchCalled).toBe(false);
+    const rendered = render(Harness);
+    await rendered.findByText("loading/idle");
   });
 
   it("fetches questions when refetch() is called manually", async () => {
