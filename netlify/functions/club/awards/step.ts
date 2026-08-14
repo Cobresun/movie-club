@@ -1,10 +1,10 @@
 import { z } from "zod";
 
-import { hasValue } from "../../../../lib/checks/checks.js";
 import AwardsRepository from "../../repositories/AwardsRepository";
 import { secured } from "../../utils/auth";
-import { badRequest, ok } from "../../utils/responses";
-import { Router } from "../../utils/router";
+import { parseBody } from "../../utils/parseBody";
+import { ok } from "../../utils/responses";
+import { isRouterResponse, Router } from "../../utils/router";
 import { ClubAwardRequest } from "./utils";
 
 const router = new Router<ClubAwardRequest>("/api/club/:clubSlug/awards/:year<\\d+>/step");
@@ -14,11 +14,10 @@ const updateStepSchema = z.object({
 });
 
 router.put("/", secured<ClubAwardRequest>, async ({ event, clubId, year }, res) => {
-  if (!hasValue(event.body)) return res(badRequest("Missing body"));
-  const body = updateStepSchema.safeParse(JSON.parse(event.body));
-  if (!body.success) return res(badRequest("Invalid body"));
+  const body = parseBody(event, updateStepSchema, res);
+  if (isRouterResponse(body)) return body;
 
-  const { step } = body.data;
+  const { step } = body;
 
   await AwardsRepository.updateByYear(clubId, year, (currentData) => ({
     ...currentData,

@@ -9,7 +9,7 @@ import { MovieCastMember, MovieDataSummary } from "../../../../lib/types/movie";
 import { db } from "../database";
 import { insertMovieDetails, updateMovieDetails } from "../movieDetailsUpdater";
 import { getTMDBMovieData } from "../tmdb";
-import { MediaProvider, RefreshResult } from "./types";
+import { MediaProvider, numOrUndefined, RefreshResult } from "./types";
 
 /**
  * Builds the `movie_details` + junction aggregates for a set of external IDs,
@@ -119,11 +119,6 @@ function summaryQuery(externalIds: string[]) {
 
 type MovieSummaryRow = Awaited<ReturnType<ReturnType<typeof summaryQuery>["execute"]>>[number];
 
-/** Coerce a nullable Int8/decimal column (string | null) to number | undefined. */
-function num(value: string | null): number | undefined {
-  return isDefined(value) ? Number(value) : undefined;
-}
-
 /**
  * Maps a raw `movie_details` aggregate row to the public {@link MovieDataSummary}
  * shape: nullable Int8/decimal columns become `number | undefined`, dates become
@@ -140,20 +135,20 @@ export function toMovieDataSummary(row: MovieSummaryRow): MovieDataSummary {
     production_countries: row.production_countries?.filter(Boolean) ?? [],
     adult: row.adult ?? undefined,
     backdrop_path: row.backdrop_path ?? undefined,
-    budget: num(row.budget),
+    budget: numOrUndefined(row.budget),
     homepage: row.homepage ?? undefined,
     imdb_id: row.imdb_id ?? undefined,
     original_language: row.original_language ?? undefined,
     original_title: row.original_title ?? undefined,
     overview: row.overview ?? undefined,
-    popularity: num(row.popularity),
+    popularity: numOrUndefined(row.popularity),
     poster_path: row.poster_path ?? undefined,
     release_date: row.release_date?.toISOString(),
-    revenue: num(row.revenue),
-    runtime: num(row.runtime),
+    revenue: numOrUndefined(row.revenue),
+    runtime: numOrUndefined(row.runtime),
     status: row.status ?? undefined,
     tagline: row.tagline ?? undefined,
-    vote_average: num(row.tmdb_score),
+    vote_average: numOrUndefined(row.tmdb_score),
   };
 }
 

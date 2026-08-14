@@ -1,6 +1,12 @@
+import { isDefined } from "../../../../lib/checks/checks.js";
 import { WorkType } from "../../../../lib/types/generated/db";
 import { DetailedWorkData, WorkDataSummary } from "../../../../lib/types/lists";
 import { MovieCastMember } from "../../../../lib/types/movie";
+
+/** Coerce a nullable Int8/decimal column (string | null) to number | undefined. */
+export function numOrUndefined(value: string | null): number | undefined {
+  return isDefined(value) ? Number(value) : undefined;
+}
 
 /** Outcome of one provider's stale-details refresh batch. */
 export interface RefreshResult {

@@ -4,8 +4,9 @@ import { hasValue } from "../../../../lib/checks/checks.js";
 import { BaseAward, BaseAwardNomination } from "../../../../lib/types/awards";
 import AwardsRepository from "../../repositories/AwardsRepository";
 import { secured } from "../../utils/auth";
+import { parseBody } from "../../utils/parseBody";
 import { badRequest, ok } from "../../utils/responses";
-import { Router } from "../../utils/router";
+import { isRouterResponse, Router } from "../../utils/router";
 import { ClubAwardRequest } from "./utils";
 
 const router = new Router<ClubAwardRequest>("/api/club/:clubSlug/awards/:year<\\d+>/nomination");
@@ -18,11 +19,10 @@ const addNominationSchema = z.object({
 });
 
 router.post("/", secured<ClubAwardRequest>, async ({ event, clubId, year }, res) => {
-  if (!hasValue(event.body)) return res(badRequest("Missing body"));
-  const body = addNominationSchema.safeParse(JSON.parse(event.body));
-  if (!body.success) return res(badRequest("Invalid body"));
+  const body = parseBody(event, addNominationSchema, res);
+  if (isRouterResponse(body)) return body;
 
-  const { awardTitle, movieId, nominatedBy } = body.data;
+  const { awardTitle, movieId, nominatedBy } = body;
 
   await AwardsRepository.updateByYear(clubId, year, (currentData) => ({
     ...currentData,

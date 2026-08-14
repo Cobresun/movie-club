@@ -276,7 +276,7 @@ import WatchProviders from "@/common/components/WatchProviders.vue";
 import WorkDescription from "@/common/components/WorkDescription.vue";
 import WorkPosterHero from "@/common/components/WorkPosterHero.vue";
 import { useShare } from "@/common/composables/useShare";
-import { asBook, asMovie, workPosterUrl } from "@/common/workDisplay";
+import { asBook, asMovie, formatDate, workPosterUrl } from "@/common/workDisplay";
 import { useClub, useClubSettings, useClubSlug } from "@/service/useClub";
 import {
   useReviewsList,
@@ -535,10 +535,6 @@ const isJustSavedCell = (cell: Cell<DetailedReviewListItem, unknown>) =>
 
 const close = () => {
   emit("close");
-};
-
-const formatDate = (dateString: string) => {
-  return DateTime.fromISO(dateString).toLocaleString(DateTime.DATE_MED);
 };
 
 // Share functionality

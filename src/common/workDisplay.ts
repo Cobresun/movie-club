@@ -1,3 +1,5 @@
+import { DateTime } from "luxon";
+
 import { hasValue } from "@/../lib/checks/checks";
 import { DetailedBookData } from "@/../lib/types/book";
 import { WorkDataSummary } from "@/../lib/types/lists";
@@ -64,4 +66,9 @@ export function formatRuntime(minutes: number): string {
   const rest = minutes % 60;
   if (hours === 0) return `${rest}m`;
   return rest === 0 ? `${hours}h` : `${hours}h ${rest}m`;
+}
+
+/** ISO date string → medium-length localized date (e.g. "Jan 5, 2024"). */
+export function formatDate(dateString: string): string {
+  return DateTime.fromISO(dateString).toLocaleString(DateTime.DATE_MED);
 }

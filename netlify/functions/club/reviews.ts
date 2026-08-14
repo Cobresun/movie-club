@@ -11,10 +11,11 @@ import WorkRepository from "../repositories/WorkRepository";
 import SharedReviewService from "../services/SharedReviewService";
 import { secured } from "../utils/auth";
 import { generateJson } from "../utils/gemini";
+import { parseBody } from "../utils/parseBody";
 import { getProvider } from "../utils/providers";
 import { badRequest, ok, unauthorized } from "../utils/responses";
 import { buildReviewScores } from "../utils/reviewScores";
-import { Router } from "../utils/router";
+import { isRouterResponse, Router } from "../utils/router";
 import { ClubRequest } from "../utils/validation";
 
 const router = new Router<ClubRequest>("/api/club/:clubSlug/reviews");
@@ -55,11 +56,10 @@ const addReviewSchema = z.object({
 });
 
 router.post("/", secured, async ({ clubId, userId, event }, res) => {
-  if (!hasValue(event.body)) return res(badRequest("No body provided"));
-  const body = addReviewSchema.safeParse(JSON.parse(event.body));
-  if (!body.success) return res(badRequest("Invalid body"));
+  const body = parseBody(event, addReviewSchema, res);
+  if (isRouterResponse(body)) return body;
 
-  const { score, workId } = body.data;
+  const { score, workId } = body;
 
   const reviewsListId = await ListRepository.getReviewsListId(clubId);
   const exists = await ListRepository.isItemInList(reviewsListId, workId);
@@ -79,11 +79,10 @@ router.put(`/:reviewId`, secured, async ({ clubId, userId, params, event }, res)
   if (!hasValue(params.reviewId)) {
     return res(badRequest("No reviewId provided"));
   }
-  if (!hasValue(event.body)) return res(badRequest("No body provided"));
-  const body = updateReviewSchema.safeParse(JSON.parse(event.body));
-  if (!body.success) return res(badRequest("Invalid body"));
+  const body = parseBody(event, updateReviewSchema, res);
+  if (isRouterResponse(body)) return body;
 
-  const { score } = body.data;
+  const { score } = body;
   const reviewId = params.reviewId;
   const review = await ReviewRepository.getById(reviewId, clubId);
   if (review.user_id !== userId) {
@@ -112,17 +111,10 @@ router.post("/:workId/comments", secured, async ({ clubId, userId, params, event
   if (!hasValue(params.workId)) {
     return res(badRequest("No workId provided"));
   }
-  if (!hasValue(event.body)) return res(badRequest("No body provided"));
-  const body = addCommentSchema.safeParse(JSON.parse(event.body));
-  if (!body.success) return res(badRequest("Invalid body"));
+  const body = parseBody(event, addCommentSchema, res);
+  if (isRouterResponse(body)) return body;
 
-  await WorkCommentRepository.insert(
-    params.workId,
-    clubId,
-    userId,
-    body.data.content,
-    body.data.spoiler,
-  );
+  await WorkCommentRepository.insert(params.workId, clubId, userId, body.content, body.spoiler);
   return res(ok());
 });
 
@@ -135,9 +127,8 @@ router.put("/:workId/comments/:commentId", secured, async ({ userId, params, eve
   if (!hasValue(params.workId) || !hasValue(params.commentId)) {
     return res(badRequest("Missing parameters"));
   }
-  if (!hasValue(event.body)) return res(badRequest("No body provided"));
-  const body = updateCommentSchema.safeParse(JSON.parse(event.body));
-  if (!body.success) return res(badRequest("Invalid body"));
+  const body = parseBody(event, updateCommentSchema, res);
+  if (isRouterResponse(body)) return body;
 
   const comment = await WorkCommentRepository.getById(params.commentId);
   if (!comment) {
@@ -147,12 +138,7 @@ router.put("/:workId/comments/:commentId", secured, async ({ userId, params, eve
     return res(unauthorized("You can only edit your own comments"));
   }
 
-  await WorkCommentRepository.updateContent(
-    params.commentId,
-    userId,
-    body.data.content,
-    body.data.spoiler,
-  );
+  await WorkCommentRepository.updateContent(params.commentId, userId, body.content, body.spoiler);
   return res(ok());
 });
 
