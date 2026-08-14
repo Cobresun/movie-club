@@ -19,6 +19,7 @@ import { computed, toRefs } from "vue";
 import { useRouter } from "vue-router";
 
 import { AwardsStep } from "../../../../lib/types/awards";
+import { getNextStep } from "../nextStep";
 import { useAwards, useUpdateStep } from "@/service/useAwards";
 import { useMembers } from "@/service/useClub";
 
@@ -52,14 +53,7 @@ const { data: clubAward, isLoading } = useAwards(clubSlug, year, (clubAward) => 
   if (step) router.push({ name: step.routeName }).catch(console.error);
 });
 
-const nextStep = computed(() => {
-  const index = steps.findIndex((step) => step.step === clubAward.value?.step);
-  if (0 <= index + 1 && index + 1 < steps.length - 1) {
-    return steps[index + 1];
-  } else {
-    return undefined;
-  }
-});
+const nextStep = computed(() => getNextStep(steps, clubAward.value?.step));
 
 const { mutate } = useUpdateStep(clubSlug, year);
 const updateStep = () => {
