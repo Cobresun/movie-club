@@ -6,7 +6,7 @@ import { afterAll, afterEach, beforeAll, beforeEach } from "vitest";
 
 import { restoreFixtureUsers } from "../helpers/auth";
 import { closeDatabase, resetDatabase } from "../helpers/database";
-import { externalRequests, sentEmails, server } from "./externalApis";
+import { sentEmails, server } from "./externalApis";
 
 beforeAll(() => {
   // Anything reaching a host without a handler is a bug in the test, not a
@@ -15,7 +15,6 @@ beforeAll(() => {
 });
 
 beforeEach(async () => {
-  externalRequests.length = 0;
   sentEmails.length = 0;
   await resetDatabase();
 });

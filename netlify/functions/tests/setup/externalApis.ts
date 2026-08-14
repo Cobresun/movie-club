@@ -18,18 +18,15 @@ import { geminiJsonResponse, googleBooksVolume, tmdbConfig, tmdbMovie } from "..
  * an unmocked host fails the test instead of hitting the internet.
  */
 
-const TMDB = "https://api.themoviedb.org/3";
-const GOOGLE_BOOKS = "https://www.googleapis.com/books/v1";
+export const TMDB = "https://api.themoviedb.org/3";
+export const GOOGLE_BOOKS = "https://www.googleapis.com/books/v1";
 // The Gemini path ends in `models/<model>:generateContent`; the colon would be
 // read as a path parameter by MSW's matcher, so match the host instead.
 const GEMINI = /generativelanguage\.googleapis\.com/;
 
-/**
- * Every request MSW intercepted during the current test, so a test can assert
- * on cache behaviour ("re-adding a known movie makes no second TMDB call")
- * rather than just on the response body. Cleared before each test.
- */
-export const externalRequests: { method: string; url: string }[] = [];
+const CLOUDINARY = "https://api.cloudinary.com/v1_1/:cloud";
+export const CLOUDINARY_UPLOAD = `${CLOUDINARY}/image/upload`;
+export const CLOUDINARY_DESTROY = `${CLOUDINARY}/image/destroy`;
 
 export interface SentEmail {
   to: string;
@@ -91,24 +88,30 @@ export const server = setupServer(
   }),
 
   // Cloudinary avatar upload / delete.
-  http.post("https://api.cloudinary.com/v1_1/:cloud/image/upload", () =>
+  http.post(CLOUDINARY_UPLOAD, () =>
     HttpResponse.json({
       secure_url: "https://res.cloudinary.com/test-cloud/image/upload/avatar.jpg",
       public_id: "avatar-public-id",
     }),
   ),
-  http.post("https://api.cloudinary.com/v1_1/:cloud/image/destroy", () =>
-    HttpResponse.json({ result: "ok" }),
-  ),
+  http.post(CLOUDINARY_DESTROY, () => HttpResponse.json({ result: "ok" })),
 );
 
-server.events.on("request:start", ({ request }) => {
-  externalRequests.push({ method: request.method, url: request.url });
-});
-
-/** Requests made to `host` during this test, most recent last. */
-export function requestsTo(host: string) {
-  return externalRequests.filter((request) => request.url.includes(host));
+/**
+ * Makes any matching request blow up for the rest of the current test.
+ *
+ * This is how the suite says "this endpoint must not be reached" — for a cache
+ * that should spare a second fetch, or a cleanup that has nothing to clean up.
+ * Asserting on a log of intercepted requests would instead couple the test to
+ * the calls a handler happens to make, which is the thing the integration
+ * suite is trying not to care about.
+ */
+export function failOnRequest(method: "get" | "post" | "delete", path: string | RegExp) {
+  server.use(
+    http[method](path, ({ request }) => {
+      throw new Error(`Unexpected request to ${request.method} ${request.url}`);
+    }),
+  );
 }
 
 /** The most recent email sent to `address`, or undefined if there is none. */

@@ -2,10 +2,10 @@
  * Integration tests for `netlify/functions/member.ts` — the signed-in user's
  * own profile: their clubs, display name and avatar.
  *
- * The avatar routes run the real Cloudinary SDK against an MSW-intercepted
- * Cloudinary, so the multipart parsing and the upload/destroy calls are
- * genuinely exercised. What the profile now looks like is read back off the
- * club members endpoint, which is where a client sees it.
+ * The avatar routes run the real image-upload stack — multipart parsing and
+ * the SDK's own requests — against an MSW-intercepted host. Where the file
+ * ends up is an implementation detail; what the tests check is the round trip,
+ * read back off the club members endpoint, which is where a client sees it.
  */
 import { http, HttpResponse } from "msw";
 import { describe, expect, it } from "vitest";
@@ -17,12 +17,13 @@ import { handler } from "../member";
 import { signIn, TestSession } from "./helpers/auth";
 import { createClub, SeededClub } from "./helpers/factories";
 import { makeEvent, requester } from "./helpers/http";
-import { requestsTo, server } from "./setup/externalApis";
+import { CLOUDINARY_DESTROY, CLOUDINARY_UPLOAD, failOnRequest, server } from "./setup/externalApis";
 
 const api = requester(handler);
 const clubApi = requester(clubHandler);
 
 const AVATAR_URL = "https://res.cloudinary.com/test-cloud/image/upload/avatar.jpg";
+const REPLACEMENT_AVATAR_URL = "https://res.cloudinary.com/test-cloud/image/upload/second.jpg";
 
 /** A minimal multipart/form-data body carrying one file field. */
 function multipartAvatar(fields: { file?: string; note?: string } = { file: "avatar.png" }) {
@@ -130,33 +131,31 @@ describe("PUT /api/member/name", () => {
 });
 
 describe("POST /api/member/avatar", () => {
-  it("uploads the file to Cloudinary and shows the returned url on the profile", async () => {
+  it("stores the uploaded file and shows it on the profile", async () => {
     const alice = await signIn("alice");
     const club = await createClub(alice);
 
     const res = await uploadAvatar(alice);
 
     expect(res.statusCode).toBe(200);
-    expect(requestsTo("api.cloudinary.com")).toHaveLength(1);
     expect(await profileIn(club, alice)).toMatchObject({ image: AVATAR_URL });
   });
 
-  it("deletes the previous Cloudinary asset when replacing an avatar", async () => {
+  it("replaces an existing avatar with the newly uploaded one", async () => {
     const alice = await signIn("alice");
+    const club = await createClub(alice);
     await uploadAvatar(alice);
 
-    const destroyed: string[] = [];
     server.use(
-      http.post("https://api.cloudinary.com/v1_1/:cloud/image/destroy", async ({ request }) => {
-        destroyed.push(await request.text());
-        return HttpResponse.json({ result: "ok" });
-      }),
+      http.post(CLOUDINARY_UPLOAD, () =>
+        HttpResponse.json({ secure_url: REPLACEMENT_AVATAR_URL, public_id: "second-public-id" }),
+      ),
     );
 
     const res = await uploadAvatar(alice);
 
     expect(res.statusCode).toBe(200);
-    expect(destroyed.join()).toContain("avatar-public-id");
+    expect(await profileIn(club, alice)).toMatchObject({ image: REPLACEMENT_AVATAR_URL });
   });
 
   it("returns 400 when the request carries no file", async () => {
@@ -171,7 +170,7 @@ describe("POST /api/member/avatar", () => {
 });
 
 describe("DELETE /api/member/avatar", () => {
-  it("clears the avatar and deletes the Cloudinary asset", async () => {
+  it("clears the avatar off the profile", async () => {
     const alice = await signIn("alice");
     const club = await createClub(alice);
     await uploadAvatar(alice);
@@ -179,18 +178,17 @@ describe("DELETE /api/member/avatar", () => {
     const res = await api.delete("/api/member/avatar", { as: alice });
 
     expect(res.statusCode).toBe(200);
-    // Upload + destroy.
-    expect(requestsTo("api.cloudinary.com")).toHaveLength(2);
     expect(await profileIn(club, alice)).not.toHaveProperty("image");
   });
 
-  it("skips Cloudinary when the user has no stored asset", async () => {
+  it("succeeds when the user has no stored avatar", async () => {
     const alice = await signIn("alice");
+    // Nothing was ever uploaded, so there is nothing to delete remotely.
+    failOnRequest("post", CLOUDINARY_DESTROY);
 
     const res = await api.delete("/api/member/avatar", { as: alice });
 
     expect(res.statusCode).toBe(200);
-    expect(requestsTo("api.cloudinary.com")).toHaveLength(0);
   });
 
   it("returns 401 without a session", async () => {

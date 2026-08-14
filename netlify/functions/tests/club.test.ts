@@ -14,7 +14,7 @@ import { handler } from "../club/index";
 import { signIn } from "./helpers/auth";
 import { addWork, createClub, setNextWork } from "./helpers/factories";
 import { requester } from "./helpers/http";
-import { requestsTo } from "./setup/externalApis";
+import { failOnRequest, TMDB } from "./setup/externalApis";
 
 const api = requester(handler);
 
@@ -415,6 +415,9 @@ describe("GET /api/club/:clubSlug/work/:workId/details", () => {
     const club = await createClub(alice);
     const work = await addWork(club, alice, { title: "Fight Club", externalId: "550" });
 
+    // Adding the work cached the details, so serving them must not need TMDB.
+    failOnRequest("get", `${TMDB}/movie/550`);
+
     const res = await api.get<DetailedMovieData>(`/api/club/${club.slug}/work/${work.id}/details`);
 
     expect(res.statusCode).toBe(200);
@@ -427,8 +430,6 @@ describe("GET /api/club/:clubSlug/work/:workId/details", () => {
       { name: "Lead 550", character: "Hero 550", profilePath: "/lead-550.jpg" },
       { name: "Support 550", character: "Sidekick 550", profilePath: null },
     ]);
-    // Adding the work cached the details; reading them makes no further call.
-    expect(requestsTo("api.themoviedb.org/3/movie/550")).toHaveLength(1);
   });
 
   it("returns null for a work with no external id", async () => {
