@@ -252,11 +252,15 @@ describe("GET /api/club/joinInfo/:token", () => {
     const club = await createClub(alice, { name: "Invite Club" });
     const token = await createInvite(club, alice);
 
-    const res = await api.get<{ clubId: string; clubName: string }>(`/api/club/joinInfo/${token}`);
+    const res = await api.get<{ clubId: string; clubName: string; slug: string }>(
+      `/api/club/joinInfo/${token}`,
+    );
 
     expect(res.statusCode).toBe(200);
     expect(res.body.clubId).toBe(club.id);
     expect(res.body.clubName).toBe("Invite Club");
+    // The join page needs the slug to redirect the new member into the club.
+    expect(res.body.slug).toBe(club.slug);
   });
 
   it("returns 400 for an expired token", async () => {
