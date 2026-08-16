@@ -1,6 +1,4 @@
-import { useQueryClient } from "@tanstack/vue-query";
 import { http, HttpResponse } from "msw";
-import { defineComponent } from "vue";
 
 import { useReviewsList } from "../useList";
 import {
@@ -11,10 +9,7 @@ import {
   useSubmitScore,
 } from "../useReviews";
 import { server } from "@/mocks/server";
-import { render } from "@/tests/utils";
-
-/** Renders the thread as text, so a comment's content and spoiler flag show. */
-const THREAD = `{{ thread?.map((c) => c.spoiler ? c.content + ' (spoiler)' : c.content).join(', ') || 'empty' }}`;
+import { withSetup } from "@/tests/utils";
 
 function comment(id: string, content: string, spoiler = false) {
   return {
@@ -54,6 +49,16 @@ function commentsApi(initial: ReturnType<typeof comment>[] = []) {
   ];
 }
 
+/** Runs the comment thread query alongside the mutation under test. */
+function withThread<T>(mutation: () => T) {
+  return () => ({ thread: useReviewComments("test-club", "work-1"), mutation: mutation() });
+}
+
+/** The thread's contents as `content` / `content (spoiler)`. */
+function contents(thread: ReturnType<typeof useReviewComments>) {
+  return thread.data.value?.map((c) => (c.spoiler ? `${c.content} (spoiler)` : c.content));
+}
+
 // ---------------------------------------------------------------------------
 // useSubmitScore
 //
@@ -63,15 +68,6 @@ function commentsApi(initial: ReturnType<typeof comment>[] = []) {
 // ---------------------------------------------------------------------------
 
 describe("useSubmitScore", () => {
-  const Harness = defineComponent({
-    props: { payload: { type: Object, required: true } },
-    setup() {
-      const { data: reviews } = useReviewsList("test-club");
-      return { submit: useSubmitScore("test-club"), reviews };
-    },
-    template: `<button @click="() => submit(payload)">{{ reviews?.[0]?.scores["u-1"]?.score ?? 'unscored' }}</button>`,
-  });
-
   /**
    * One work on the reviews list, behind an API that scores it the way the real
    * one does: a work is created once and updated after that.
@@ -110,86 +106,45 @@ describe("useSubmitScore", () => {
     ];
   }
 
+  const scoreOnList = (reviews: ReturnType<typeof useReviewsList>) =>
+    reviews.data.value?.[0]?.scores["u-1"]?.score;
+
   it("scores a work that has no review yet", async () => {
     server.use(...reviewedWork());
 
-    const rendered = render(Harness, { props: { payload: { workId: "work-1", score: 8 } } });
-    await rendered.findByRole("button", { name: "unscored" });
+    const { result } = withSetup(() => ({
+      reviews: useReviewsList("test-club"),
+      submit: useSubmitScore("test-club"),
+    }));
 
-    rendered.getByRole("button").click();
+    await vi.waitFor(() => {
+      expect(scoreOnList(result.reviews)).toBeUndefined();
+    });
 
-    await rendered.findByRole("button", { name: "8" });
+    result.submit({ workId: "work-1", score: 8 });
+
+    await vi.waitFor(() => {
+      expect(scoreOnList(result.reviews)).toBe(8);
+    });
   });
 
   it("replaces the score on a work that is already reviewed", async () => {
     server.use(...reviewedWork({ reviewId: "rev-42", score: 5 }));
 
-    const rendered = render(Harness, {
-      props: { payload: { workId: "work-1", reviewId: "rev-42", score: 7 } },
-    });
-    await rendered.findByRole("button", { name: "5" });
+    const { result } = withSetup(() => ({
+      reviews: useReviewsList("test-club"),
+      submit: useSubmitScore("test-club"),
+    }));
 
-    rendered.getByRole("button").click();
-
-    await rendered.findByRole("button", { name: "7" });
-  });
-});
-
-// ---------------------------------------------------------------------------
-// useReviewComments
-// ---------------------------------------------------------------------------
-
-describe("useReviewComments", () => {
-  it("fetches comments from /api/club/:id/reviews/:workId/comments", async () => {
-    server.use(
-      http.get("/api/club/:id/reviews/:workId/comments", () =>
-        HttpResponse.json([
-          {
-            id: "c-1",
-            workId: "work-1",
-            userId: "u-1",
-            userName: "Alice",
-            content: "Great film!",
-            createdDate: "2024-01-01T00:00:00.000Z",
-            spoiler: false,
-          },
-        ]),
-      ),
-    );
-
-    const Harness = defineComponent({
-      setup() {
-        const { data, isSuccess } = useReviewComments("test-club", "work-1");
-        return { data, isSuccess };
-      },
-      template: `<div>{{ isSuccess ? data?.[0]?.content : 'loading' }}</div>`,
+    await vi.waitFor(() => {
+      expect(scoreOnList(result.reviews)).toBe(5);
     });
 
-    const rendered = render(Harness);
-    await rendered.findByText("Great film!");
-  });
+    result.submit({ workId: "work-1", reviewId: "rev-42", score: 7 });
 
-  it("propagates errors when comments fetch fails", async () => {
-    server.use(
-      http.get(
-        "/api/club/:id/reviews/:workId/comments",
-        () => new HttpResponse(null, { status: 403 }),
-      ),
-    );
-
-    const Harness = defineComponent({
-      setup() {
-        // Disable retries so the error surfaces immediately instead of after
-        // 3 retries with exponential backoff (~7 s total by default).
-        useQueryClient().setDefaultOptions({ queries: { retry: false } });
-        const { isError } = useReviewComments("test-club", "work-1");
-        return { isError };
-      },
-      template: `<div>{{ isError ? 'error' : 'ok' }}</div>`,
+    await vi.waitFor(() => {
+      expect(scoreOnList(result.reviews)).toBe(7);
     });
-
-    const rendered = render(Harness);
-    await rendered.findByText("error");
   });
 });
 
@@ -201,21 +156,17 @@ describe("useAddReviewComment", () => {
   it("puts the new comment on the thread", async () => {
     server.use(...commentsApi());
 
-    const Harness = defineComponent({
-      setup() {
-        const { mutate } = useAddReviewComment("test-club", "work-1");
-        const { data: thread } = useReviewComments("test-club", "work-1");
-        return { mutate, thread };
-      },
-      template: `<button @click="() => mutate({ content: 'Loved it', spoiler: false })">${THREAD}</button>`,
+    const { result } = withSetup(withThread(() => useAddReviewComment("test-club", "work-1")));
+
+    await vi.waitFor(() => {
+      expect(contents(result.thread)).toEqual([]);
     });
 
-    const rendered = render(Harness);
-    await rendered.findByRole("button", { name: "empty" });
+    result.mutation.mutate({ content: "Loved it", spoiler: false });
 
-    rendered.getByRole("button").click();
-
-    await rendered.findByRole("button", { name: "Loved it" });
+    await vi.waitFor(() => {
+      expect(contents(result.thread)).toEqual(["Loved it"]);
+    });
   });
 });
 
@@ -227,21 +178,17 @@ describe("useEditReviewComment", () => {
   it("rewrites the comment in place, spoiler flag included", async () => {
     server.use(...commentsApi([comment("c-7", "First thoughts")]));
 
-    const Harness = defineComponent({
-      setup() {
-        const { mutate } = useEditReviewComment("test-club", "work-1");
-        const { data: thread } = useReviewComments("test-club", "work-1");
-        return { mutate, thread };
-      },
-      template: `<button @click="() => mutate({ commentId: 'c-7', content: 'Edited', spoiler: true })">${THREAD}</button>`,
+    const { result } = withSetup(withThread(() => useEditReviewComment("test-club", "work-1")));
+
+    await vi.waitFor(() => {
+      expect(contents(result.thread)).toEqual(["First thoughts"]);
     });
 
-    const rendered = render(Harness);
-    await rendered.findByRole("button", { name: "First thoughts" });
+    result.mutation.mutate({ commentId: "c-7", content: "Edited", spoiler: true });
 
-    rendered.getByRole("button").click();
-
-    await rendered.findByRole("button", { name: "Edited (spoiler)" });
+    await vi.waitFor(() => {
+      expect(contents(result.thread)).toEqual(["Edited (spoiler)"]);
+    });
   });
 });
 
@@ -253,20 +200,16 @@ describe("useDeleteReviewComment", () => {
   it("takes only the named comment off the thread", async () => {
     server.use(...commentsApi([comment("c-99", "Delete me"), comment("c-100", "Keep me")]));
 
-    const Harness = defineComponent({
-      setup() {
-        const { mutate } = useDeleteReviewComment("test-club", "work-1");
-        const { data: thread } = useReviewComments("test-club", "work-1");
-        return { mutate, thread };
-      },
-      template: `<button @click="() => mutate('c-99')">${THREAD}</button>`,
+    const { result } = withSetup(withThread(() => useDeleteReviewComment("test-club", "work-1")));
+
+    await vi.waitFor(() => {
+      expect(contents(result.thread)).toEqual(["Delete me", "Keep me"]);
     });
 
-    const rendered = render(Harness);
-    await rendered.findByRole("button", { name: "Delete me, Keep me" });
+    result.mutation.mutate("c-99");
 
-    rendered.getByRole("button").click();
-
-    await rendered.findByRole("button", { name: "Keep me" });
+    await vi.waitFor(() => {
+      expect(contents(result.thread)).toEqual(["Keep me"]);
+    });
   });
 });

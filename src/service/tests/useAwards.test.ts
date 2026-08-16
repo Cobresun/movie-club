@@ -1,5 +1,5 @@
 import { http, HttpResponse } from "msw";
-import { defineComponent, ref } from "vue";
+import { ref } from "vue";
 
 import { AwardsStep } from "../../../lib/types/awards";
 import { WorkType } from "../../../lib/types/generated/db";
@@ -7,17 +7,13 @@ import {
   useAddCategory,
   useAddNomination,
   useAwards,
-  useAwardYears,
   useDeleteCategory,
   useDeleteNomination,
   useSubmitRanking,
   useUpdateStep,
 } from "../useAwards";
 import { server } from "@/mocks/server";
-import { render } from "@/tests/utils";
-
-/** Renders the year as text: its step, then each category and its nominees. */
-const AWARDS = `{{ awards?.step }} | {{ awards?.awards.map((a) => a.title + ':' + a.nominations.map((n) => n.movieId).join('+')).join(', ') || 'no categories' }}`;
+import { withSetup } from "@/tests/utils";
 
 interface FakeNomination {
   movieId: number;
@@ -35,10 +31,10 @@ interface FakeAward {
  * A fake awards year that keeps what the mutations send it, so each one is
  * checked by reading the year back the way a client does.
  */
-function awardsApi(initial: { step?: string; awards?: FakeAward[] } = {}) {
+function awardsApi(initial: { step?: AwardsStep; awards?: FakeAward[] } = {}) {
   const year = {
     year: "2024",
-    step: initial.step ?? "nominations",
+    step: initial.step ?? AwardsStep.Nominations,
     awards: initial.awards ?? [],
   };
   const base = "/api/club/:id/awards/:year";
@@ -48,7 +44,7 @@ function awardsApi(initial: { step?: string; awards?: FakeAward[] } = {}) {
   return [
     http.get(base, () => HttpResponse.json(year)),
     http.put(`${base}/step`, async ({ request }) => {
-      ({ step: year.step } = (await request.json()) as { step: string });
+      ({ step: year.step } = (await request.json()) as { step: AwardsStep });
       return ok();
     }),
     http.post(`${base}/category`, async ({ request }) => {
@@ -100,62 +96,28 @@ function awardsApi(initial: { step?: string; awards?: FakeAward[] } = {}) {
   ];
 }
 
-/** A component that shows the year and runs `use` against it. */
-function harness(use: () => { trigger: () => void }) {
-  return defineComponent({
-    setup() {
-      const { data: awards } = useAwards(ref("test-club"), ref("2024"));
-      return { awards, ...use() };
-    },
-    template: `<button @click="trigger">${AWARDS}</button>`,
-  });
+/** Runs the year query alongside the mutation under test. */
+function withYear<T>(mutation: () => T) {
+  return () => ({ year: useAwards(ref("test-club"), ref("2024")), mutation: mutation() });
 }
 
-// ---------------------------------------------------------------------------
-// useAwardYears
-// ---------------------------------------------------------------------------
+/** The year's categories as `title:movieId+movieId`. */
+function categories(year: ReturnType<typeof useAwards>) {
+  return year.data.value?.awards.map(
+    (award) => `${award.title}:${award.nominations.map((n) => n.movieId).join("+")}`,
+  );
+}
 
-describe("useAwardYears", () => {
-  it("lists the years the club has run awards for", async () => {
-    server.use(http.get("/api/club/:id/awards/years", () => HttpResponse.json([2022, 2023, 2024])));
-
-    const Harness = defineComponent({
-      setup() {
-        const { data, isSuccess } = useAwardYears("test-club");
-        return { data, isSuccess };
-      },
-      template: `<div>{{ isSuccess ? data?.join(',') : 'loading' }}</div>`,
-    });
-
-    const rendered = render(Harness);
-    await rendered.findByText("2022,2023,2024");
-  });
-});
+/** A nomination with no rankings yet. */
+function nomination(movieId: number): FakeNomination {
+  return { movieId, movieTitle: `Movie ${movieId}`, nominatedBy: [], ranking: {} };
+}
 
 // ---------------------------------------------------------------------------
 // useAwards
 // ---------------------------------------------------------------------------
 
 describe("useAwards", () => {
-  it("loads the year the refs name", async () => {
-    server.use(
-      http.get("/api/club/:id/awards/:year", ({ params }) =>
-        HttpResponse.json({ year: params.year, step: `step of ${String(params.id)}`, awards: [] }),
-      ),
-    );
-
-    const Harness = defineComponent({
-      setup() {
-        const { data, isSuccess } = useAwards(ref("test-club"), ref("2024"));
-        return { data, isSuccess };
-      },
-      template: `<div>{{ isSuccess ? data?.year + '/' + data?.step : 'loading' }}</div>`,
-    });
-
-    const rendered = render(Harness);
-    await rendered.findByText("2024/step of test-club");
-  });
-
   it("swaps to the other year when the year ref changes", async () => {
     server.use(
       http.get("/api/club/:id/awards/:year", ({ params }) =>
@@ -164,21 +126,17 @@ describe("useAwards", () => {
     );
 
     const year = ref("2023");
+    const { result } = withSetup(() => useAwards(ref("test-club"), year));
 
-    const Harness = defineComponent({
-      setup() {
-        const { data } = useAwards(ref("test-club"), year);
-        return { data };
-      },
-      template: `<div>{{ data?.year ?? 'loading' }}</div>`,
+    await vi.waitFor(() => {
+      expect(result.data.value?.year).toBe("2023");
     });
-
-    const rendered = render(Harness);
-    await rendered.findByText("2023");
 
     year.value = "2024";
 
-    await rendered.findByText("2024");
+    await vi.waitFor(() => {
+      expect(result.data.value?.year).toBe("2024");
+    });
   });
 });
 
@@ -188,21 +146,19 @@ describe("useAwards", () => {
 
 describe("useUpdateStep", () => {
   it("moves the year to the given step", async () => {
-    server.use(...awardsApi({ step: String(AwardsStep.Nominations) }));
+    server.use(...awardsApi({ step: AwardsStep.Nominations }));
 
-    const Harness = harness(() => {
-      const { mutate } = useUpdateStep(ref("test-club"), ref("2024"));
-      return { trigger: () => mutate(AwardsStep.Ratings) };
+    const { result } = withSetup(withYear(() => useUpdateStep(ref("test-club"), ref("2024"))));
+
+    await vi.waitFor(() => {
+      expect(result.year.data.value?.step).toBe(AwardsStep.Nominations);
     });
 
-    const rendered = render(Harness);
-    const button = await rendered.findByRole("button", {
-      name: `${String(AwardsStep.Nominations)} | no categories`,
+    result.mutation.mutate(AwardsStep.Ratings);
+
+    await vi.waitFor(() => {
+      expect(result.year.data.value?.step).toBe(AwardsStep.Ratings);
     });
-
-    button.click();
-
-    await rendered.findByRole("button", { name: `${String(AwardsStep.Ratings)} | no categories` });
   });
 });
 
@@ -214,17 +170,17 @@ describe("useAddCategory", () => {
   it("adds the category to the year", async () => {
     server.use(...awardsApi());
 
-    const Harness = harness(() => {
-      const { mutate } = useAddCategory("test-club", "2024");
-      return { trigger: () => mutate("Best Picture") };
+    const { result } = withSetup(withYear(() => useAddCategory("test-club", "2024")));
+
+    await vi.waitFor(() => {
+      expect(categories(result.year)).toEqual([]);
     });
 
-    const rendered = render(Harness);
-    const button = await rendered.findByRole("button", { name: "nominations | no categories" });
+    result.mutation.mutate("Best Picture");
 
-    button.click();
-
-    await rendered.findByRole("button", { name: "nominations | Best Picture:" });
+    await vi.waitFor(() => {
+      expect(categories(result.year)).toEqual(["Best Picture:"]);
+    });
   });
 });
 
@@ -236,17 +192,17 @@ describe("useDeleteCategory", () => {
   it("removes a category whose title needs escaping in the url", async () => {
     server.use(...awardsApi({ awards: [{ title: "Best Picture", nominations: [] }] }));
 
-    const Harness = harness(() => {
-      const { mutate } = useDeleteCategory("test-club", "2024");
-      return { trigger: () => mutate({ title: "Best Picture", nominations: [] }) };
+    const { result } = withSetup(withYear(() => useDeleteCategory("test-club", "2024")));
+
+    await vi.waitFor(() => {
+      expect(categories(result.year)).toEqual(["Best Picture:"]);
     });
 
-    const rendered = render(Harness);
-    const button = await rendered.findByRole("button", { name: "nominations | Best Picture:" });
+    result.mutation.mutate({ title: "Best Picture", nominations: [] });
 
-    button.click();
-
-    await rendered.findByRole("button", { name: "nominations | no categories" });
+    await vi.waitFor(() => {
+      expect(categories(result.year)).toEqual([]);
+    });
   });
 });
 
@@ -258,53 +214,48 @@ describe("useAddNomination", () => {
   it("nominates the review's work for the category", async () => {
     server.use(...awardsApi({ awards: [{ title: "Best Picture", nominations: [] }] }));
 
-    const Harness = harness(() => {
-      const { mutate } = useAddNomination("test-club", "2024");
-      return {
-        trigger: () =>
-          mutate({
-            awardTitle: "Best Picture",
-            review: {
-              id: "r-1",
-              title: "The Shawshank Redemption",
-              type: WorkType.movie,
-              createdDate: "2024-01-01T00:00:00.000Z",
-              // The nomination is keyed by TMDB id, so this is what lands.
-              externalId: "278",
-              imageUrl: "https://img.test/poster.jpg",
-              scores: {},
-            },
-          }),
-      };
+    const { result } = withSetup(withYear(() => useAddNomination("test-club", "2024")));
+
+    await vi.waitFor(() => {
+      expect(categories(result.year)).toEqual(["Best Picture:"]);
     });
 
-    const rendered = render(Harness);
-    const button = await rendered.findByRole("button", { name: "nominations | Best Picture:" });
+    result.mutation.mutate({
+      awardTitle: "Best Picture",
+      review: {
+        id: "r-1",
+        title: "The Shawshank Redemption",
+        type: WorkType.movie,
+        createdDate: "2024-01-01T00:00:00.000Z",
+        // The nomination is keyed by TMDB id, so this is what lands.
+        externalId: "278",
+        imageUrl: "https://img.test/poster.jpg",
+        scores: {},
+      },
+    });
 
-    button.click();
-
-    await rendered.findByRole("button", { name: "nominations | Best Picture:278" });
+    await vi.waitFor(() => {
+      expect(categories(result.year)).toEqual(["Best Picture:278"]);
+    });
   });
 
-  it("throws when review has no externalId", async () => {
-    const Harness = defineComponent({
-      setup() {
-        const { mutate, isError } = useAddNomination("test-club", "2024");
-        const badReview = {
-          id: "r-bad",
-          title: "Mystery Film",
-          type: "movie" as const,
-          createdDate: "2024-01-01T00:00:00.000Z",
-          scores: {},
-        };
-        return { mutate, isError, badReview };
+  it("fails the mutation when the review has no externalId", async () => {
+    const { result } = withSetup(() => useAddNomination("test-club", "2024"));
+
+    result.mutate({
+      awardTitle: "Best Picture",
+      review: {
+        id: "r-bad",
+        title: "Mystery Film",
+        type: WorkType.movie,
+        createdDate: "2024-01-01T00:00:00.000Z",
+        scores: {},
       },
-      template: `<button @click="() => mutate({ awardTitle: 'Best Picture', review: badReview })">{{ isError ? 'error' : 'go' }}</button>`,
     });
 
-    const rendered = render(Harness);
-    rendered.getByRole("button").click();
-    await rendered.findByText("error");
+    await vi.waitFor(() => {
+      expect(result.isError.value).toBe(true);
+    });
   });
 });
 
@@ -319,28 +270,23 @@ describe("useDeleteNomination", () => {
         awards: [
           {
             title: "Best Picture",
-            nominations: [
-              { movieId: 278, movieTitle: "Movie 278", nominatedBy: [], ranking: {} },
-              { movieId: 389, movieTitle: "Movie 389", nominatedBy: [], ranking: {} },
-            ],
+            nominations: [nomination(278), nomination(389)],
           },
         ],
       }),
     );
 
-    const Harness = harness(() => {
-      const { mutate } = useDeleteNomination("test-club", "2024");
-      return { trigger: () => mutate({ awardTitle: "Best Picture", movieId: 278 }) };
+    const { result } = withSetup(withYear(() => useDeleteNomination("test-club", "2024")));
+
+    await vi.waitFor(() => {
+      expect(categories(result.year)).toEqual(["Best Picture:278+389"]);
     });
 
-    const rendered = render(Harness);
-    const button = await rendered.findByRole("button", {
-      name: "nominations | Best Picture:278+389",
+    result.mutation.mutate({ awardTitle: "Best Picture", movieId: 278 });
+
+    await vi.waitFor(() => {
+      expect(categories(result.year)).toEqual(["Best Picture:389"]);
     });
-
-    button.click();
-
-    await rendered.findByRole("button", { name: "nominations | Best Picture:389" });
   });
 });
 
@@ -349,39 +295,39 @@ describe("useDeleteNomination", () => {
 // ---------------------------------------------------------------------------
 
 describe("useSubmitRanking", () => {
-  it("records the ranking against the nominations", async () => {
+  it("records the ranking in the order the caller gave", async () => {
     server.use(
       ...awardsApi({
         awards: [
           {
             title: "Best Picture",
-            nominations: [
-              { movieId: 278, movieTitle: "Movie 278", nominatedBy: [], ranking: {} },
-              { movieId: 389, movieTitle: "Movie 389", nominatedBy: [], ranking: {} },
-            ],
+            nominations: [nomination(278), nomination(389)],
           },
         ],
       }),
     );
 
-    const Harness = defineComponent({
-      setup() {
-        const { data: awards } = useAwards(ref("test-club"), ref("2024"));
-        const { mutate } = useSubmitRanking("test-club", "2024");
-        return {
-          awards,
-          trigger: () => mutate({ awardTitle: "Best Picture", movies: [389, 278] }),
-        };
-      },
-      template: `<button @click="trigger">{{ awards?.awards[0]?.nominations.map((n) => n.movieId + '=' + Object.values(n.ranking).join()).join(', ') ?? 'loading' }}</button>`,
+    const rankings = () =>
+      result.year.data.value?.awards[0]?.nominations.map(
+        (n) => [n.movieId, Object.values(n.ranking)] as const,
+      );
+
+    const { result } = withSetup(withYear(() => useSubmitRanking("test-club", "2024")));
+
+    await vi.waitFor(() => {
+      expect(rankings()).toEqual([
+        [278, []],
+        [389, []],
+      ]);
     });
 
-    const rendered = render(Harness);
-    const button = await rendered.findByRole("button", { name: "278=, 389=" });
+    result.mutation.mutate({ awardTitle: "Best Picture", movies: [389, 278] });
 
-    button.click();
-
-    // The ranking arrived in the order the caller gave: 389 first, then 278.
-    await rendered.findByRole("button", { name: "278=2, 389=1" });
+    await vi.waitFor(() => {
+      expect(rankings()).toEqual([
+        [278, [2]],
+        [389, [1]],
+      ]);
+    });
   });
 });

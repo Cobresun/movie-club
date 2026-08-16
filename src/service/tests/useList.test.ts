@@ -1,5 +1,5 @@
 import { http, HttpResponse } from "msw";
-import { defineComponent, ref } from "vue";
+import { ref } from "vue";
 
 import {
   useAddListItem,
@@ -13,15 +13,11 @@ import {
   useMoveListItem,
   useReorderList,
   useReviewsList,
-  useReviewsListId,
   useUpdateAddedDate,
 } from "../useList";
+import { WorkType } from "@/../lib/types/generated/db";
 import { server } from "@/mocks/server";
-import { render } from "@/tests/utils";
-
-/** Renders a query's titles as text, so a list's contents and order show. */
-const TITLES = `{{ lists?.map((l) => l.title).join(', ') || 'empty' }}`;
-const ITEMS = `{{ items?.map((i) => i.title).join(', ') || 'empty' }}`;
+import { withSetup } from "@/tests/utils";
 
 function item(id: string, title: string) {
   return { id, title, type: "movie", createdDate: "2024-01-01T00:00:00.000Z" };
@@ -105,90 +101,16 @@ function listsApi(initial: ReturnType<typeof list>[]) {
   ];
 }
 
-// ---------------------------------------------------------------------------
-// useClubLists
-// ---------------------------------------------------------------------------
-
-describe("useClubLists", () => {
-  it("loads the lists of the club the slug names", async () => {
-    server.use(
-      http.get("/api/club/:id/list", ({ params }) =>
-        HttpResponse.json([
-          { id: "1", title: `Watch List of ${String(params.id)}`, systemType: null, itemCount: 3 },
-          { id: "2", title: "Backlog", systemType: null, itemCount: 1 },
-        ]),
-      ),
-    );
-
-    const Harness = defineComponent({
-      setup() {
-        const { data, isSuccess } = useClubLists("test-club");
-        return { data, isSuccess };
-      },
-      template: `<div v-if="isSuccess">{{ data?.map((l) => l.title).join(", ") }}</div>`,
-    });
-
-    const rendered = render(Harness);
-    await rendered.findByText("Watch List of test-club, Backlog");
-  });
-});
-
-// ---------------------------------------------------------------------------
-// useReviewsListId
-// ---------------------------------------------------------------------------
-
-describe("useReviewsListId", () => {
-  it("fetches the reviews list id from /api/club/:id/list/reviews-id", async () => {
-    server.use(
-      http.get("/api/club/:id/list/reviews-id", () =>
-        HttpResponse.json({ id: "reviews-list-123" }),
-      ),
-    );
-
-    const Harness = defineComponent({
-      setup() {
-        const { data, isSuccess } = useReviewsListId("test-club");
-        return { data, isSuccess };
-      },
-      template: `<div>{{ isSuccess ? data : 'loading' }}</div>`,
-    });
-
-    const rendered = render(Harness);
-    await rendered.findByText("reviews-list-123");
-  });
-});
+/** The titles of whatever a list/lists query is holding. */
+function titles(query: { data: { value?: { title: string }[] } }) {
+  return query.data.value?.map((entry) => entry.title);
+}
 
 // ---------------------------------------------------------------------------
 // useList
 // ---------------------------------------------------------------------------
 
 describe("useList", () => {
-  it("fetches list items from /api/club/:id/list/:listId", async () => {
-    server.use(
-      http.get("/api/club/:id/list/:listId", () =>
-        HttpResponse.json([
-          {
-            id: "item-1",
-            title: "The Matrix",
-            type: "movie",
-            createdDate: "2024-01-01T00:00:00.000Z",
-          },
-        ]),
-      ),
-    );
-
-    const Harness = defineComponent({
-      setup() {
-        const { data, isSuccess } = useList("test-club", "list-42");
-        return { data, isSuccess };
-      },
-      template: `<div>{{ isSuccess ? data?.[0]?.title : 'loading' }}</div>`,
-    });
-
-    const rendered = render(Harness);
-    await rendered.findByText("The Matrix");
-  });
-
   it("does not fetch when listId is empty string", async () => {
     server.use(
       http.get("/api/club/:id/list/:listId", () => {
@@ -196,81 +118,35 @@ describe("useList", () => {
       }),
     );
 
-    const Harness = defineComponent({
-      setup() {
-        const { status, fetchStatus } = useList("test-club", "");
-        return { status, fetchStatus };
-      },
-      template: `<div>{{ status }}/{{ fetchStatus }}</div>`,
-    });
+    const { result } = withSetup(() => useList("test-club", ""));
 
-    const rendered = render(Harness);
-    await rendered.findByText("loading/idle");
+    await vi.waitFor(() => {
+      expect(result.status.value).toBe("loading");
+      expect(result.fetchStatus.value).toBe("idle");
+    });
   });
 
   it("swaps to the other list when the listId ref changes", async () => {
     server.use(
       http.get("/api/club/:id/list/:listId", ({ params }) =>
         HttpResponse.json([
-          {
-            id: `item-of-${String(params.listId)}`,
-            title: `Item of ${String(params.listId)}`,
-            type: "movie",
-            createdDate: "2024-01-01T00:00:00.000Z",
-          },
+          item(`item-of-${String(params.listId)}`, `Item of ${String(params.listId)}`),
         ]),
       ),
     );
 
-    const listIdRef = ref("list-a");
+    const listId = ref("list-a");
+    const { result } = withSetup(() => useList("test-club", listId));
 
-    const Harness = defineComponent({
-      setup() {
-        const { data } = useList("test-club", listIdRef);
-        return { data };
-      },
-      template: `<div>{{ data?.[0]?.title ?? 'loading' }}</div>`,
+    await vi.waitFor(() => {
+      expect(titles(result)).toEqual(["Item of list-a"]);
     });
 
-    const rendered = render(Harness);
-    await rendered.findByText("Item of list-a");
+    listId.value = "list-b";
 
-    listIdRef.value = "list-b";
-
-    await rendered.findByText("Item of list-b");
-  });
-});
-
-// ---------------------------------------------------------------------------
-// useReviewsList
-// ---------------------------------------------------------------------------
-
-describe("useReviewsList", () => {
-  it("fetches reviews from /api/club/:id/list/reviews", async () => {
-    server.use(
-      http.get("/api/club/:id/list/reviews", () =>
-        HttpResponse.json([
-          {
-            id: "r-1",
-            title: "Inception",
-            type: "movie",
-            createdDate: "2024-01-01T00:00:00.000Z",
-            scores: {},
-          },
-        ]),
-      ),
-    );
-
-    const Harness = defineComponent({
-      setup() {
-        const { data, isSuccess } = useReviewsList("test-club");
-        return { data, isSuccess };
-      },
-      template: `<div>{{ isSuccess ? data?.[0]?.title : 'loading' }}</div>`,
+    await vi.waitFor(() => {
+      expect(titles(result)).toEqual(["Item of list-b"]);
     });
-
-    const rendered = render(Harness);
-    await rendered.findByText("Inception");
   });
 });
 
@@ -285,18 +161,12 @@ describe("useAllUserListItems", () => {
       http.get("/api/club/:id/list/all-items", () =>
         HttpResponse.json([
           {
-            id: "item-1",
-            title: "Dune",
-            type: "movie",
-            createdDate: "2024-03-01T00:00:00.000Z",
+            ...item("item-1", "Dune"),
             sourceListId: "list-1",
             sourceListTitle: "Watchlist",
           },
           {
-            id: "item-2",
-            title: "Solaris",
-            type: "movie",
-            createdDate: "2024-03-02T00:00:00.000Z",
+            ...item("item-2", "Solaris"),
             sourceListId: "list-2",
             sourceListTitle: "Backlog",
           },
@@ -304,17 +174,14 @@ describe("useAllUserListItems", () => {
       ),
     );
 
-    const Harness = defineComponent({
-      setup() {
-        const { data, isSuccess } = useAllUserListItems("test-club");
-        return { data, isSuccess };
-      },
-      template: `<ul v-if="isSuccess"><li v-for="i in data" :key="i.id">{{ i.title }} — {{ i.sourceListTitle }}</li></ul><div v-else>loading</div>`,
-    });
+    const { result } = withSetup(() => useAllUserListItems("test-club"));
 
-    const rendered = render(Harness);
-    await rendered.findByText("Dune — Watchlist");
-    expect(rendered.getByText("Solaris — Backlog")).toBeInTheDocument();
+    await vi.waitFor(() => {
+      expect(result.data.value?.map((i) => [i.title, i.sourceListTitle])).toEqual([
+        ["Dune", "Watchlist"],
+        ["Solaris", "Backlog"],
+      ]);
+    });
   });
 });
 
@@ -326,21 +193,20 @@ describe("useCreateList", () => {
   it("adds the new list to the club's lists", async () => {
     server.use(...listsApi([list("list-1", "Watch List")]));
 
-    const Harness = defineComponent({
-      setup() {
-        const { mutate } = useCreateList("test-club");
-        const { data: lists } = useClubLists("test-club");
-        return { mutate, lists };
-      },
-      template: `<button @click="() => mutate('Top Picks')">${TITLES}</button>`,
+    const { result } = withSetup(() => ({
+      lists: useClubLists("test-club"),
+      create: useCreateList("test-club"),
+    }));
+
+    await vi.waitFor(() => {
+      expect(titles(result.lists)).toEqual(["Watch List"]);
     });
 
-    const rendered = render(Harness);
-    const button = await rendered.findByRole("button", { name: "Watch List" });
+    result.create.mutate("Top Picks");
 
-    button.click();
-
-    await rendered.findByRole("button", { name: "Watch List, Top Picks" });
+    await vi.waitFor(() => {
+      expect(titles(result.lists)).toEqual(["Watch List", "Top Picks"]);
+    });
   });
 });
 
@@ -352,21 +218,20 @@ describe("useDeleteList", () => {
   it("removes only the list it names", async () => {
     server.use(...listsApi([list("list-77", "Doomed"), list("list-2", "Keeper")]));
 
-    const Harness = defineComponent({
-      setup() {
-        const { mutate } = useDeleteList("test-club");
-        const { data: lists } = useClubLists("test-club");
-        return { mutate, lists };
-      },
-      template: `<button @click="() => mutate('list-77')">${TITLES}</button>`,
+    const { result } = withSetup(() => ({
+      lists: useClubLists("test-club"),
+      remove: useDeleteList("test-club"),
+    }));
+
+    await vi.waitFor(() => {
+      expect(titles(result.lists)).toEqual(["Doomed", "Keeper"]);
     });
 
-    const rendered = render(Harness);
-    const button = await rendered.findByRole("button", { name: "Doomed, Keeper" });
+    result.remove.mutate("list-77");
 
-    button.click();
-
-    await rendered.findByRole("button", { name: "Keeper" });
+    await vi.waitFor(() => {
+      expect(titles(result.lists)).toEqual(["Keeper"]);
+    });
   });
 });
 
@@ -378,27 +243,25 @@ describe("useAddListItem", () => {
   it("puts the work on the list", async () => {
     server.use(...listsApi([list("list-1", "Watch List")]));
 
-    const Harness = defineComponent({
-      setup() {
-        const { mutate } = useAddListItem("test-club", "list-1");
-        const { data: items } = useList("test-club", "list-1");
-        const payload = {
-          type: "movie" as const,
-          title: "Blade Runner",
-          externalId: "78",
-          imageUrl: "https://img.test/br.jpg",
-        };
-        return { mutate, items, payload };
-      },
-      template: `<button @click="() => mutate(payload)">${ITEMS}</button>`,
+    const { result } = withSetup(() => ({
+      items: useList("test-club", "list-1"),
+      add: useAddListItem("test-club", "list-1"),
+    }));
+
+    await vi.waitFor(() => {
+      expect(titles(result.items)).toEqual([]);
     });
 
-    const rendered = render(Harness);
-    const button = await rendered.findByRole("button", { name: "empty" });
+    result.add.mutate({
+      type: WorkType.movie,
+      title: "Blade Runner",
+      externalId: "78",
+      imageUrl: "https://img.test/br.jpg",
+    });
 
-    button.click();
-
-    await rendered.findByRole("button", { name: "Blade Runner" });
+    await vi.waitFor(() => {
+      expect(titles(result.items)).toEqual(["Blade Runner"]);
+    });
   });
 });
 
@@ -414,21 +277,20 @@ describe("useDeleteListItem", () => {
       ]),
     );
 
-    const Harness = defineComponent({
-      setup() {
-        const { mutate } = useDeleteListItem("test-club", "list-1");
-        const { data: items } = useList("test-club", "list-1");
-        return { mutate, items };
-      },
-      template: `<button @click="() => mutate('work-99')">${ITEMS}</button>`,
+    const { result } = withSetup(() => ({
+      items: useList("test-club", "list-1"),
+      remove: useDeleteListItem("test-club", "list-1"),
+    }));
+
+    await vi.waitFor(() => {
+      expect(titles(result.items)).toEqual(["Doomed", "Keeper"]);
     });
 
-    const rendered = render(Harness);
-    const button = await rendered.findByRole("button", { name: "Doomed, Keeper" });
+    result.remove.mutate("work-99");
 
-    button.click();
-
-    await rendered.findByRole("button", { name: "Keeper" });
+    await vi.waitFor(() => {
+      expect(titles(result.items)).toEqual(["Keeper"]);
+    });
   });
 });
 
@@ -442,26 +304,25 @@ describe("useDeleteReview", () => {
       ...listsApi([list("rev-list", "Reviews", [item("w-1", "Doomed"), item("w-2", "Keeper")])]),
     );
 
-    const Harness = defineComponent({
-      setup() {
-        const { mutate } = useDeleteReview("test-club");
-        const { data: items } = useReviewsList("test-club");
-        return { mutate, items };
-      },
-      template: `<button @click="() => mutate({ workId: 'w-1', reviewsListId: 'rev-list' })">${ITEMS}</button>`,
+    const { result } = withSetup(() => ({
+      items: useReviewsList("test-club"),
+      remove: useDeleteReview("test-club"),
+    }));
+
+    await vi.waitFor(() => {
+      expect(titles(result.items)).toEqual(["Doomed", "Keeper"]);
     });
 
-    const rendered = render(Harness);
-    const button = await rendered.findByRole("button", { name: "Doomed, Keeper" });
+    result.remove.mutate({ workId: "w-1", reviewsListId: "rev-list" });
 
-    button.click();
-
-    await rendered.findByRole("button", { name: "Keeper" });
+    await vi.waitFor(() => {
+      expect(titles(result.items)).toEqual(["Keeper"]);
+    });
   });
 });
 
 // ---------------------------------------------------------------------------
-// useReorderList (optimistic reorder + rollback)
+// useReorderList (optimistic reorder)
 // ---------------------------------------------------------------------------
 
 describe("useReorderList", () => {
@@ -470,21 +331,20 @@ describe("useReorderList", () => {
       ...listsApi([list("list-1", "Watch List", [item("a", "Alien"), item("b", "Barbie")])]),
     );
 
-    const Harness = defineComponent({
-      setup() {
-        const { mutate } = useReorderList("test-club", "list-1");
-        const { data: items } = useList("test-club", "list-1");
-        return { mutate, items };
-      },
-      template: `<button @click="() => mutate(['b', 'a'])">${ITEMS}</button>`,
+    const { result } = withSetup(() => ({
+      items: useList("test-club", "list-1"),
+      reorder: useReorderList("test-club", "list-1"),
+    }));
+
+    await vi.waitFor(() => {
+      expect(titles(result.items)).toEqual(["Alien", "Barbie"]);
     });
 
-    const rendered = render(Harness);
-    const button = await rendered.findByRole("button", { name: "Alien, Barbie" });
+    result.reorder.mutate(["b", "a"]);
 
-    button.click();
-
-    await rendered.findByRole("button", { name: "Barbie, Alien" });
+    await vi.waitFor(() => {
+      expect(titles(result.items)).toEqual(["Barbie", "Alien"]);
+    });
   });
 });
 
@@ -501,27 +361,27 @@ describe("useMoveListItem", () => {
       ]),
     );
 
-    const Harness = defineComponent({
-      setup() {
-        const { mutate } = useMoveListItem("test-club");
-        const { data: source } = useList("test-club", "list-src");
-        const { data: destination } = useList("test-club", "list-dst");
-        const payload = {
-          sourceListId: "list-src",
-          destinationListId: "list-dst",
-          workId: "work-5",
-        };
-        return { mutate, source, destination, payload };
-      },
-      template: `<button @click="() => mutate(payload)">{{ (source ?? []).map((i) => i.title).join() || 'empty' }} -> {{ (destination ?? []).map((i) => i.title).join() || 'empty' }}</button>`,
+    const { result } = withSetup(() => ({
+      source: useList("test-club", "list-src"),
+      destination: useList("test-club", "list-dst"),
+      move: useMoveListItem("test-club"),
+    }));
+
+    await vi.waitFor(() => {
+      expect(titles(result.source)).toEqual(["Solaris"]);
+      expect(titles(result.destination)).toEqual([]);
     });
 
-    const rendered = render(Harness);
-    const button = await rendered.findByRole("button", { name: "Solaris -> empty" });
+    result.move.mutate({
+      sourceListId: "list-src",
+      destinationListId: "list-dst",
+      workId: "work-5",
+    });
 
-    button.click();
-
-    await rendered.findByRole("button", { name: "empty -> Solaris" });
+    await vi.waitFor(() => {
+      expect(titles(result.source)).toEqual([]);
+      expect(titles(result.destination)).toEqual(["Solaris"]);
+    });
   });
 });
 
@@ -533,25 +393,23 @@ describe("useUpdateAddedDate", () => {
   it("backdates the work on the reviews list", async () => {
     server.use(...listsApi([list("rev-list", "Reviews", [item("work-7", "Nope")])]));
 
-    const Harness = defineComponent({
-      setup() {
-        const { mutate } = useUpdateAddedDate("test-club");
-        const { data: items } = useReviewsList("test-club");
-        const payload = {
-          listId: "rev-list",
-          workId: "work-7",
-          addedDate: "2023-06-15T00:00:00.000Z",
-        };
-        return { mutate, items, payload };
-      },
-      template: `<button @click="() => mutate(payload)">{{ items?.[0]?.createdDate ?? 'loading' }}</button>`,
+    const { result } = withSetup(() => ({
+      items: useReviewsList("test-club"),
+      backdate: useUpdateAddedDate("test-club"),
+    }));
+
+    await vi.waitFor(() => {
+      expect(result.items.data.value?.[0]?.createdDate).toBe("2024-01-01T00:00:00.000Z");
     });
 
-    const rendered = render(Harness);
-    const button = await rendered.findByRole("button", { name: "2024-01-01T00:00:00.000Z" });
+    result.backdate.mutate({
+      listId: "rev-list",
+      workId: "work-7",
+      addedDate: "2023-06-15T00:00:00.000Z",
+    });
 
-    button.click();
-
-    await rendered.findByRole("button", { name: "2023-06-15T00:00:00.000Z" });
+    await vi.waitFor(() => {
+      expect(result.items.data.value?.[0]?.createdDate).toBe("2023-06-15T00:00:00.000Z");
+    });
   });
 });

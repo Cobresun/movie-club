@@ -4,7 +4,7 @@ import { VueQueryPlugin } from "@tanstack/vue-query";
 import userEvent from "@testing-library/user-event";
 import { RenderOptions, render as testingLibraryRender } from "@testing-library/vue";
 import mdiVue from "mdi-vue/v3";
-import { TransitionGroup } from "vue";
+import { TransitionGroup, createApp } from "vue";
 import Toast from "vue-toastification";
 
 import PiniaStoreHelperTest from "./PiniaStoreHelper.test.vue";
@@ -74,4 +74,36 @@ export const render = <C>(component: C, options: Partial<RenderOptions<C>> = {})
     user,
     pinia,
   };
+};
+
+/**
+ * Runs a composable in an app scope and hands back what it returned, so a
+ * service test can assert on the composable's own refs instead of rendering a
+ * component and reading its template back. Installs the same plugins `render`
+ * does — Pinia for the stores composables read, Vue Query for the queries they
+ * build, Toast for the mutations that report failures.
+ *
+ * The callback runs inside `setup()`, so it can also seed store state before
+ * calling the composable under test.
+ */
+export const withSetup = <T>(composable: () => T) => {
+  const pinia = createTestingPinia();
+  let result!: T;
+
+  const app = createApp({
+    setup() {
+      result = composable();
+      return () => null;
+    },
+  });
+  app.use(pinia);
+  // Disable query retries so error-path tests surface the error state
+  // immediately instead of racing the default 3x exponential backoff.
+  app.use(VueQueryPlugin, {
+    queryClientConfig: { defaultOptions: { queries: { retry: false } } },
+  });
+  app.use(Toast);
+  app.mount(document.createElement("div"));
+
+  return { result, pinia, unmount: () => app.unmount() };
 };
