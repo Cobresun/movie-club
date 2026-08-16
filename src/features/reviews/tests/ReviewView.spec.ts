@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/vue";
+import { screen, waitFor } from "@testing-library/vue";
 import { http, HttpResponse } from "msw";
 
 import ReviewView from "../views/ReviewView.vue";
@@ -145,6 +145,39 @@ describe("ReviewView", () => {
     // user has a saved score for this work.
     expect(screen.queryByRole("spinbutton", { name: "Score" })).not.toBeInTheDocument();
     expect(await screen.findByRole("button", { name: /edit score/i })).toBeInTheDocument();
+  });
+
+  it("removes only the user's own score, leaving the work on the reviews list", async () => {
+    const { user, pinia } = render(ReviewView, {
+      props: { clubSlug: "test-club" },
+    });
+    logIn(pinia);
+
+    // "12 Angry Men" is the one work member "2" has scored in the fixture.
+    await user.click((await screen.findAllByText("12 Angry Men"))[0]);
+    await user.click(await screen.findByRole("button", { name: /edit score/i }));
+
+    let deletedReviewId: string | undefined;
+    server.use(
+      http.delete("/api/club/:clubSlug/reviews/:reviewId", ({ params }) => {
+        deletedReviewId = String(params.reviewId);
+        return HttpResponse.json({});
+      }),
+      http.get("/api/club/:clubSlug/list/reviews", () =>
+        HttpResponse.json([{ ...reviews[0], scores: {} }, reviews[1]]),
+      ),
+    );
+
+    await user.click(screen.getByRole("button", { name: "Remove my score" }));
+    await user.click(screen.getByRole("button", { name: "Remove" }));
+
+    await waitFor(() => expect(deletedReviewId).toBe("test"));
+
+    // The work is still on the list, unlike the club-wide "Delete review".
+    expect(screen.queryByRole("spinbutton", { name: "Score" })).not.toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /rate this/i })).toBeInTheDocument();
+    expect(screen.getByText(/No scores yet/)).toBeInTheDocument();
+    expect(screen.getAllByText("12 Angry Men").length).toBeGreaterThan(0);
   });
 
   it("hides the score-assist button while the user has fewer than five scored works", async () => {

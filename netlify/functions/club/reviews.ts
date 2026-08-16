@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { hasValue } from "../../../lib/checks/checks.js";
+import { hasValue, isDefined } from "../../../lib/checks/checks.js";
 import { ReviewScores } from "../../../lib/types/lists";
 import ListRepository from "../repositories/ListRepository";
 import ReviewRepository from "../repositories/ReviewRepository";
@@ -14,7 +14,7 @@ import { generateJson } from "../utils/gemini";
 import { parseBody } from "../utils/parseBody";
 import { getProvider } from "../utils/providers";
 import { requireParam } from "../utils/requireParam";
-import { badRequest, ok, unauthorized } from "../utils/responses";
+import { badRequest, notFound, ok, unauthorized } from "../utils/responses";
 import { buildReviewScores } from "../utils/reviewScores";
 import { isRouterResponse, Router } from "../utils/router";
 import { ClubRequest } from "../utils/validation";
@@ -83,11 +83,33 @@ router.put(`/:reviewId`, secured, async ({ clubId, userId, params, event }, res)
   if (isRouterResponse(body)) return body;
 
   const { score } = body;
-  const review = await ReviewRepository.getById(reviewId, clubId);
+  const review = await ReviewRepository.findById(reviewId, clubId);
+  if (!isDefined(review)) {
+    return res(notFound("Review not found"));
+  }
   if (review.user_id !== userId) {
     return res(badRequest("You are not allowed to edit this review"));
   }
   await ReviewRepository.updateScore(reviewId, score);
+  return res(ok());
+});
+
+// Unscoring a work: drops the caller's own score and nothing else, so the work
+// stays on the reviews list for everyone who did mean to rate it. Removing the
+// work itself is a separate, club-wide action (DELETE on the list item).
+router.delete(`/:reviewId`, secured, async ({ clubId, userId, params }, res) => {
+  const reviewId = requireParam(params, "reviewId", res);
+  if (isRouterResponse(reviewId)) return reviewId;
+
+  const review = await ReviewRepository.findById(reviewId, clubId);
+  if (!isDefined(review)) {
+    return res(notFound("Review not found"));
+  }
+  if (review.user_id !== userId) {
+    return res(unauthorized("You can only delete your own reviews"));
+  }
+
+  await ReviewRepository.deleteById(reviewId);
   return res(ok());
 });
 

@@ -10,7 +10,12 @@ import { http, HttpResponse } from "msw";
 import { describe, expect, it } from "vitest";
 
 import { WorkType } from "../../../lib/types/generated/db";
-import { ReviewScores, SharedReviewResponse, WorkCommentDto } from "../../../lib/types/lists";
+import {
+  DetailedReviewListItem,
+  ReviewScores,
+  SharedReviewResponse,
+  WorkCommentDto,
+} from "../../../lib/types/lists";
 import { MovieCastMember } from "../../../lib/types/movie";
 import { handler } from "../club/index";
 import { geminiJsonResponse } from "./fixtures/external";
@@ -155,9 +160,9 @@ describe("PUT /api/club/:clubSlug/reviews/:reviewId", () => {
       as: alice,
     });
 
-    // getById scopes the lookup to the club and throws when it finds nothing,
-    // which the router turns into a 500 rather than letting the edit through.
-    expect(res.statusCode).toBe(500);
+    // The lookup is scoped to the club, so a review that belongs to another one
+    // is indistinguishable from a review that does not exist.
+    expect(res.statusCode).toBe(404);
     const scores = await scoresOf(otherClub, work.id, alice);
     expect(scores.body[alice.userId].score).toBe(4);
   });
@@ -172,6 +177,106 @@ describe("PUT /api/club/:clubSlug/reviews/:reviewId", () => {
     const res = await api.put(`/api/club/${club.slug}/reviews/${reviewId}`, { as: alice });
 
     expect(res.statusCode).toBe(400);
+  });
+});
+
+describe("DELETE /api/club/:clubSlug/reviews/:reviewId", () => {
+  const reviewIdOf = async (club: SeededClub, workId: string, as: TestSession) =>
+    (await scoresOf(club, workId, as)).body[as.userId].id;
+
+  const reviewedWorkIds = async (club: SeededClub) =>
+    (
+      await api.get<DetailedReviewListItem[]>(`/api/club/${club.slug}/list/reviews`)
+    ).body.map((review) => review.id);
+
+  it("removes the caller's own score and leaves the other scores alone", async () => {
+    const alice = await signIn("alice");
+    const bob = await signIn("bob");
+    const club = await createClub(alice, { members: [alice, bob] });
+    const work = await addReviewedWork(club, alice, { externalId: null });
+    await scoreWork(club, alice, work.id, 9);
+    await scoreWork(club, bob, work.id, 5);
+
+    const res = await api.delete(
+      `/api/club/${club.slug}/reviews/${await reviewIdOf(club, work.id, alice)}`,
+      { as: alice },
+    );
+
+    expect(res.statusCode).toBe(200);
+    const scores = await scoresOf(club, work.id, alice);
+    expect(scores.body[alice.userId]).toBeUndefined();
+    expect(scores.body[bob.userId].score).toBe(5);
+    expect(scores.body.average.score).toBe(5);
+  });
+
+  it("keeps the work on the reviews list once its only score is removed", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub(alice);
+    const work = await addReviewedWork(club, alice, { externalId: null });
+    await scoreWork(club, alice, work.id, 7);
+
+    await api.delete(`/api/club/${club.slug}/reviews/${await reviewIdOf(club, work.id, alice)}`, {
+      as: alice,
+    });
+
+    expect((await scoresOf(club, work.id, alice)).body).toEqual({});
+    expect(await reviewedWorkIds(club)).toContain(work.id);
+  });
+
+  it("refuses to delete another member's score", async () => {
+    const alice = await signIn("alice");
+    const bob = await signIn("bob");
+    const club = await createClub(alice, { members: [alice, bob] });
+    const work = await addReviewedWork(club, alice, { externalId: null });
+    await scoreWork(club, alice, work.id, 9);
+
+    const res = await api.delete(
+      `/api/club/${club.slug}/reviews/${await reviewIdOf(club, work.id, alice)}`,
+      { as: bob },
+    );
+
+    expect(res.statusCode).toBe(401);
+    expect((await scoresOf(club, work.id, alice)).body[alice.userId].score).toBe(9);
+  });
+
+  it("returns 401 for a non-member", async () => {
+    const alice = await signIn("alice");
+    const carol = await signIn("carol");
+    const club = await createClub(alice, { members: [alice] });
+    const work = await addReviewedWork(club, alice, { externalId: null });
+    await scoreWork(club, alice, work.id, 9);
+
+    const res = await api.delete(
+      `/api/club/${club.slug}/reviews/${await reviewIdOf(club, work.id, alice)}`,
+      { as: carol },
+    );
+
+    expect(res.statusCode).toBe(401);
+  });
+
+  it("cannot reach a review belonging to another club", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub(alice);
+    const otherClub = await createClub(alice);
+    const work = await addReviewedWork(otherClub, alice, { externalId: null });
+    await scoreWork(otherClub, alice, work.id, 9);
+
+    const res = await api.delete(
+      `/api/club/${club.slug}/reviews/${await reviewIdOf(otherClub, work.id, alice)}`,
+      { as: alice },
+    );
+
+    expect(res.statusCode).toBe(404);
+    expect((await scoresOf(otherClub, work.id, alice)).body[alice.userId].score).toBe(9);
+  });
+
+  it("returns 404 for a review id that does not exist", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub(alice);
+
+    const res = await api.delete(`/api/club/${club.slug}/reviews/999999`, { as: alice });
+
+    expect(res.statusCode).toBe(404);
   });
 });
 
