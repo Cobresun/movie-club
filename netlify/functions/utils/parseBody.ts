@@ -1,5 +1,5 @@
 import { HandlerEvent, HandlerResponse } from "@netlify/functions";
-import { ZodType, ZodTypeDef } from "zod";
+import { z, ZodType } from "zod";
 
 import { hasValue } from "../../../lib/checks/checks.js";
 import { badRequest } from "./responses";
@@ -11,16 +11,16 @@ import { RouterResponse } from "./router";
  * (check with `isRouterResponse`) — covering the "missing body", "malformed
  * JSON", and "fails schema" cases with a single 400 response each.
  *
- * `Input` is pinned to `any` rather than left to default to `Output`: with it
- * defaulted, a schema using `.default()` (output field required, input field
- * optional) makes TS infer `T` as the union of both, silently widening parsed
- * fields back to optional.
+ * The return type is inferred from the schema itself rather than from a bare
+ * output type parameter: `z.output` keeps a schema using `.default()` (output
+ * field required, input field optional) from widening the parsed field back to
+ * optional.
  */
-export function parseBody<T>(
+export function parseBody<S extends ZodType>(
   event: HandlerEvent,
-  schema: ZodType<T, ZodTypeDef, any>,
+  schema: S,
   res: (data: HandlerResponse) => RouterResponse,
-): T | RouterResponse {
+): z.output<S> | RouterResponse {
   if (!hasValue(event.body)) return res(badRequest("No body provided"));
 
   let json: unknown;

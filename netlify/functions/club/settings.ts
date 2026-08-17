@@ -1,7 +1,6 @@
-import { z } from "zod";
-
-import SettingsRepository from "../repositories/SettingsRepository.js";
-import { ClubSettings } from "../repositories/SettingsRepository.js";
+import SettingsRepository, {
+  clubSettingsUpdateSchema,
+} from "../repositories/SettingsRepository.js";
 import { secured } from "../utils/auth";
 import { parseBody } from "../utils/parseBody";
 import { ok } from "../utils/responses";
@@ -15,21 +14,11 @@ router.get("/", secured, async ({ clubId }, res) => {
   return res(ok(JSON.stringify(settings)));
 });
 
-const updateSettingsSchema = z.object({
-  features: z
-    .object({
-      awards: z.boolean(),
-      discussionQuestions: z.boolean(),
-    })
-    .partial()
-    .optional(),
-});
-
 router.post("/", secured, async ({ clubId, event }, res) => {
-  const body = parseBody(event, updateSettingsSchema, res);
+  const body = parseBody(event, clubSettingsUpdateSchema, res);
   if (isRouterResponse(body)) return body;
 
-  const settings = await SettingsRepository.updateSettings(clubId, body as Partial<ClubSettings>);
+  const settings = await SettingsRepository.updateSettings(clubId, body);
   return res(ok(JSON.stringify(settings)));
 });
 
