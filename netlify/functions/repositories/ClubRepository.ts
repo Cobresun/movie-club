@@ -113,6 +113,7 @@ class ClubRepository {
         user_id: userId,
         role: "member",
       })
+      .onConflict((oc) => oc.columns(["club_id", "user_id"]).doNothing())
       .execute();
 
     return { success: true };
@@ -122,7 +123,12 @@ class ClubRepository {
     return await db
       .selectFrom("club_invite")
       .innerJoin("club", "club.id", "club_invite.club_id")
-      .select(["club.id as clubId", "club.name as clubName", "club_invite.expires_at as expiresAt"])
+      .select([
+        "club.id as clubId",
+        "club.name as clubName",
+        "club.slug as slug",
+        "club_invite.expires_at as expiresAt",
+      ])
       .where("token", "=", token)
       .executeTakeFirst();
   }
