@@ -1,8 +1,10 @@
+import { z } from "zod";
+
 import { hasValue } from "../../../lib/checks/checks.js";
 import { ClubType, WorkListSystemType } from "../../../lib/types/generated/db.js";
 import ClubRepository from "../repositories/ClubRepository";
 import ListRepository from "../repositories/ListRepository";
-import { notFound } from "./responses";
+import { badRequest, notFound } from "./responses";
 import { MiddlewareCallback, Request } from "./router";
 
 export type ClubRequest<T extends Request = Request> = T & {
@@ -71,3 +73,25 @@ export const validListId: MiddlewareCallback<ClubRequest, ListRequest> = async (
     listSystemType: list.system_type,
   };
 };
+
+/**
+ * Parses and validates a request body against a Zod schema, collapsing the
+ * repeated "missing body" / "invalid body" checks handlers otherwise
+ * duplicate before every write route.
+ */
+export function parseJsonBody<T extends z.ZodTypeAny>(
+  event: { body: string | null },
+  schema: T,
+  missingBodyMessage = "No body provided",
+):
+  | { success: true; data: z.infer<T> }
+  | { success: false; response: ReturnType<typeof badRequest> } {
+  if (!hasValue(event.body)) {
+    return { success: false, response: badRequest(missingBodyMessage) };
+  }
+  const parsed = schema.safeParse(JSON.parse(event.body));
+  if (!parsed.success) {
+    return { success: false, response: badRequest("Invalid body") };
+  }
+  return { success: true, data: parsed.data };
+}
