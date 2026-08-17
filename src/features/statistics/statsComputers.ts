@@ -580,7 +580,83 @@ export function computeScoreVariance(workData: WorkStatsData[]): ScoreVariancePo
   return points;
 }
 
-const MIN_SCORES_FOR_GUILTY_PLEASURE = 2;
+const MIN_SCORES_FOR_SCORE_OUTLIER = 2;
+
+interface ScoreOutlierMovie {
+  title: string;
+  imageUrl: string | undefined;
+  memberScore: number;
+  clubAverage: number;
+  difference: number;
+}
+
+interface ScoreOutlierEntry {
+  member: { id: string; name: string; image?: string };
+  movies: ScoreOutlierMovie[];
+}
+
+/**
+ * Movies where exactly one member's score diverged from the club average by
+ * at least the threshold, grouped per member. `isOutlier` picks which side
+ * of the average counts (above for guilty pleasures, below for curmudgeons);
+ * `sortMovies` orders each member's list.
+ */
+function computeScoreOutliers(
+  workData: WorkStatsData[],
+  members: Member[],
+  isOutlier: (score: number, average: number) => boolean,
+  sortMovies: (a: ScoreOutlierMovie, b: ScoreOutlierMovie) => number,
+  maxMoviesPerMember: number,
+): ScoreOutlierEntry[] {
+  const memberMap = new Map(members.map((m) => [m.id, m]));
+  const memberMovies = new Map<string, ScoreOutlierMovie[]>();
+
+  for (const movie of workData) {
+    const validScores: { memberId: string; score: number }[] = [];
+    for (const [memberId, score] of Object.entries(movie.userScores)) {
+      if (isDefined(score) && !isNaN(score) && memberMap.has(memberId)) {
+        validScores.push({ memberId, score });
+      }
+    }
+
+    if (validScores.length < MIN_SCORES_FOR_SCORE_OUTLIER) continue;
+
+    const outliers = validScores.filter((s) => isOutlier(s.score, movie.average));
+
+    if (outliers.length !== 1) continue;
+
+    const outlier = outliers[0];
+    const entry: ScoreOutlierMovie = {
+      title: movie.title,
+      imageUrl: movie.imageUrl,
+      memberScore: outlier.score,
+      clubAverage: Math.round(movie.average * 100) / 100,
+      difference: Math.round((outlier.score - movie.average) * 100) / 100,
+    };
+
+    const existing = memberMovies.get(outlier.memberId);
+    if (isDefined(existing)) {
+      existing.push(entry);
+    } else {
+      memberMovies.set(outlier.memberId, [entry]);
+    }
+  }
+
+  const entries: ScoreOutlierEntry[] = [];
+  for (const [memberId, movies] of memberMovies) {
+    const member = memberMap.get(memberId);
+    if (!isDefined(member)) continue;
+
+    movies.sort(sortMovies);
+    entries.push({
+      member: { id: member.id, name: member.name, image: member.image },
+      movies: movies.slice(0, maxMoviesPerMember),
+    });
+  }
+
+  return entries.sort((a, b) => b.movies.length - a.movies.length);
+}
+
 const GUILTY_PLEASURE_THRESHOLD = 2;
 const MAX_GUILTY_PLEASURES_PER_MEMBER = 5;
 
@@ -588,69 +664,15 @@ export function computeGuiltyPleasures(
   workData: WorkStatsData[],
   members: Member[],
 ): GuiltyPleasureEntry[] {
-  const memberMap = new Map(members.map((m) => [m.id, m]));
-  const memberMovies = new Map<
-    string,
-    {
-      title: string;
-      imageUrl: string | undefined;
-      memberScore: number;
-      clubAverage: number;
-      difference: number;
-    }[]
-  >();
-
-  for (const movie of workData) {
-    const validScores: { memberId: string; score: number }[] = [];
-    for (const [memberId, score] of Object.entries(movie.userScores)) {
-      if (isDefined(score) && !isNaN(score) && memberMap.has(memberId)) {
-        validScores.push({ memberId, score });
-      }
-    }
-
-    if (validScores.length < MIN_SCORES_FOR_GUILTY_PLEASURE) continue;
-
-    const outliers = validScores.filter(
-      (s) => s.score - movie.average >= GUILTY_PLEASURE_THRESHOLD,
-    );
-
-    if (outliers.length !== 1) continue;
-
-    const outlier = outliers[0];
-    const difference = Math.round((outlier.score - movie.average) * 100) / 100;
-
-    const existing = memberMovies.get(outlier.memberId);
-    const entry = {
-      title: movie.title,
-      imageUrl: movie.imageUrl,
-      memberScore: outlier.score,
-      clubAverage: Math.round(movie.average * 100) / 100,
-      difference,
-    };
-
-    if (isDefined(existing)) {
-      existing.push(entry);
-    } else {
-      memberMovies.set(outlier.memberId, [entry]);
-    }
-  }
-
-  const entries: GuiltyPleasureEntry[] = [];
-  for (const [memberId, movies] of memberMovies) {
-    const member = memberMap.get(memberId);
-    if (!isDefined(member)) continue;
-
-    movies.sort((a, b) => b.difference - a.difference);
-    entries.push({
-      member: { id: member.id, name: member.name, image: member.image },
-      movies: movies.slice(0, MAX_GUILTY_PLEASURES_PER_MEMBER),
-    });
-  }
-
-  return entries.sort((a, b) => b.movies.length - a.movies.length);
+  return computeScoreOutliers(
+    workData,
+    members,
+    (score, average) => score - average >= GUILTY_PLEASURE_THRESHOLD,
+    (a, b) => b.difference - a.difference,
+    MAX_GUILTY_PLEASURES_PER_MEMBER,
+  );
 }
 
-const MIN_SCORES_FOR_CURMUDGEON = 2;
 const CURMUDGEON_THRESHOLD = 2;
 const MAX_CURMUDGEON_MOVIES_PER_MEMBER = 5;
 
@@ -658,64 +680,13 @@ export function computeClubCurmudgeons(
   workData: WorkStatsData[],
   members: Member[],
 ): ClubCurmudgeonEntry[] {
-  const memberMap = new Map(members.map((m) => [m.id, m]));
-  const memberMovies = new Map<
-    string,
-    {
-      title: string;
-      imageUrl: string | undefined;
-      memberScore: number;
-      clubAverage: number;
-      difference: number;
-    }[]
-  >();
-
-  for (const movie of workData) {
-    const validScores: { memberId: string; score: number }[] = [];
-    for (const [memberId, score] of Object.entries(movie.userScores)) {
-      if (isDefined(score) && !isNaN(score) && memberMap.has(memberId)) {
-        validScores.push({ memberId, score });
-      }
-    }
-
-    if (validScores.length < MIN_SCORES_FOR_CURMUDGEON) continue;
-
-    const outliers = validScores.filter((s) => movie.average - s.score >= CURMUDGEON_THRESHOLD);
-
-    if (outliers.length !== 1) continue;
-
-    const outlier = outliers[0];
-    const difference = Math.round((outlier.score - movie.average) * 100) / 100;
-
-    const existing = memberMovies.get(outlier.memberId);
-    const entry = {
-      title: movie.title,
-      imageUrl: movie.imageUrl,
-      memberScore: outlier.score,
-      clubAverage: Math.round(movie.average * 100) / 100,
-      difference,
-    };
-
-    if (isDefined(existing)) {
-      existing.push(entry);
-    } else {
-      memberMovies.set(outlier.memberId, [entry]);
-    }
-  }
-
-  const entries: ClubCurmudgeonEntry[] = [];
-  for (const [memberId, movies] of memberMovies) {
-    const member = memberMap.get(memberId);
-    if (!isDefined(member)) continue;
-
-    movies.sort((a, b) => a.difference - b.difference);
-    entries.push({
-      member: { id: member.id, name: member.name, image: member.image },
-      movies: movies.slice(0, MAX_CURMUDGEON_MOVIES_PER_MEMBER),
-    });
-  }
-
-  return entries.sort((a, b) => b.movies.length - a.movies.length);
+  return computeScoreOutliers(
+    workData,
+    members,
+    (score, average) => average - score >= CURMUDGEON_THRESHOLD,
+    (a, b) => a.difference - b.difference,
+    MAX_CURMUDGEON_MOVIES_PER_MEMBER,
+  );
 }
 
 export function computeHighestRatedByYear(workData: WorkStatsData[]): HighestRatedByYearEntry[] {

@@ -4,6 +4,7 @@ import type { Member } from "../../../../lib/types/club";
 import { WorkType } from "../../../../lib/types/generated/db";
 import type { DetailedMovieData } from "../../../../lib/types/movie";
 import {
+  computeClubCurmudgeons,
   computeClubRecords,
   computeCumulativeCounts,
   computeGenreStats,
@@ -836,6 +837,190 @@ describe("computeGuiltyPleasures", () => {
     const result = computeGuiltyPleasures(movies, members);
     expect(result).toHaveLength(1);
     expect(result[0].movies[0].difference).toBe(2);
+  });
+});
+
+describe("computeClubCurmudgeons", () => {
+  it("returns empty array for empty movie list", () => {
+    const members = [makeMember({ id: "m1" })];
+    const result = computeClubCurmudgeons([], members);
+    expect(result).toEqual([]);
+  });
+
+  it("returns empty array when no scores are 2+ below average", () => {
+    const members = [
+      makeMember({ id: "m1", name: "Alice" }),
+      makeMember({ id: "m2", name: "Bob" }),
+    ];
+    const movies = [
+      makeMovie({ average: 7, userScores: { m1: 7.5, m2: 6.5 } }),
+      makeMovie({ average: 5, userScores: { m1: 5.5, m2: 4.5 } }),
+    ];
+    const result = computeClubCurmudgeons(movies, members);
+    expect(result).toEqual([]);
+  });
+
+  it("includes movie where exactly one member is 2+ below average", () => {
+    const members = [
+      makeMember({ id: "m1", name: "Alice" }),
+      makeMember({ id: "m2", name: "Bob" }),
+    ];
+    const movies = [
+      makeMovie({
+        title: "Panned Movie",
+        average: 5,
+        userScores: { m1: 2, m2: 8 },
+      }),
+    ];
+    const result = computeClubCurmudgeons(movies, members);
+    expect(result).toHaveLength(1);
+    expect(result[0].member.name).toBe("Alice");
+    expect(result[0].movies).toHaveLength(1);
+    expect(result[0].movies[0].title).toBe("Panned Movie");
+    expect(result[0].movies[0].memberScore).toBe(2);
+    expect(result[0].movies[0].clubAverage).toBe(5);
+    expect(result[0].movies[0].difference).toBe(-3);
+  });
+
+  it("excludes movie where two members are both 2+ below average", () => {
+    const members = [
+      makeMember({ id: "m1", name: "Alice" }),
+      makeMember({ id: "m2", name: "Bob" }),
+      makeMember({ id: "m3", name: "Carol" }),
+    ];
+    const movies = [
+      makeMovie({
+        title: "Both Hated",
+        average: 5,
+        userScores: { m1: 2, m2: 3, m3: 10 },
+      }),
+    ];
+    const result = computeClubCurmudgeons(movies, members);
+    expect(result).toEqual([]);
+  });
+
+  it("skips movies with fewer than 2 scores", () => {
+    const members = [
+      makeMember({ id: "m1", name: "Alice" }),
+      makeMember({ id: "m2", name: "Bob" }),
+    ];
+    const movies = [
+      makeMovie({
+        title: "Solo",
+        average: 1,
+        userScores: { m1: 1 },
+      }),
+    ];
+    const result = computeClubCurmudgeons(movies, members);
+    expect(result).toEqual([]);
+  });
+
+  it("skips members with undefined or NaN scores", () => {
+    const members = [
+      makeMember({ id: "m1", name: "Alice" }),
+      makeMember({ id: "m2", name: "Bob" }),
+      makeMember({ id: "m3", name: "Carol" }),
+    ];
+    const movies = [
+      makeMovie({
+        title: "Test",
+        average: 7,
+        userScores: { m1: undefined, m2: NaN, m3: 4 },
+      }),
+    ];
+    const result = computeClubCurmudgeons(movies, members);
+    // Only m3 has a valid score, but need 2+ valid scores
+    expect(result).toEqual([]);
+  });
+
+  it("sorts movies by difference ascending (most negative first) within each member", () => {
+    const members = [
+      makeMember({ id: "m1", name: "Alice" }),
+      makeMember({ id: "m2", name: "Bob" }),
+    ];
+    const movies = [
+      makeMovie({
+        title: "Small Gap",
+        average: 5,
+        userScores: { m1: 3, m2: 7 },
+      }),
+      makeMovie({
+        title: "Big Gap",
+        average: 6,
+        userScores: { m1: -1, m2: 9 },
+      }),
+    ];
+    const result = computeClubCurmudgeons(movies, members);
+    expect(result).toHaveLength(1);
+    expect(result[0].movies[0].title).toBe("Big Gap");
+    expect(result[0].movies[1].title).toBe("Small Gap");
+  });
+
+  it("sorts members by number of curmudgeon movies descending", () => {
+    const members = [
+      makeMember({ id: "m1", name: "Alice" }),
+      makeMember({ id: "m2", name: "Bob" }),
+      makeMember({ id: "m3", name: "Carol" }),
+    ];
+    const movies = [
+      makeMovie({
+        title: "A1",
+        average: 4,
+        userScores: { m1: 1, m2: 6, m3: 5 },
+      }),
+      makeMovie({
+        title: "B1",
+        average: 5,
+        userScores: { m1: 6, m2: 2, m3: 7 },
+      }),
+      makeMovie({
+        title: "B2",
+        average: 5,
+        userScores: { m1: 7, m2: 1, m3: 7 },
+      }),
+    ];
+    const result = computeClubCurmudgeons(movies, members);
+    expect(result[0].member.name).toBe("Bob");
+    expect(result[0].movies).toHaveLength(2);
+    expect(result[1].member.name).toBe("Alice");
+    expect(result[1].movies).toHaveLength(1);
+  });
+
+  it("limits each member to top 5 movies", () => {
+    const members = [
+      makeMember({ id: "m1", name: "Alice" }),
+      makeMember({ id: "m2", name: "Bob" }),
+    ];
+    const movies = Array.from({ length: 7 }, (_, i) =>
+      makeMovie({
+        id: `movie-${i}`,
+        title: `Movie ${i}`,
+        average: 6,
+        userScores: { m1: 1 - i * 0.1, m2: 9 },
+      }),
+    );
+    const result = computeClubCurmudgeons(movies, members);
+    expect(result).toHaveLength(1);
+    expect(result[0].movies).toHaveLength(5);
+    // Should keep the top 5 by difference (lowest scores first)
+    expect(result[0].movies[0].title).toBe("Movie 6");
+  });
+
+  it("includes movie at exactly 2 point threshold", () => {
+    const members = [
+      makeMember({ id: "m1", name: "Alice" }),
+      makeMember({ id: "m2", name: "Bob" }),
+    ];
+    const movies = [
+      makeMovie({
+        title: "Exact Threshold",
+        average: 5,
+        userScores: { m1: 3, m2: 7 },
+      }),
+    ];
+    const result = computeClubCurmudgeons(movies, members);
+    expect(result).toHaveLength(1);
+    expect(result[0].movies[0].difference).toBe(-2);
   });
 });
 
