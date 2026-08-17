@@ -1,32 +1,13 @@
-import { TestingPinia } from "@pinia/testing";
 import { screen } from "@testing-library/vue";
 import { http, HttpResponse } from "msw";
 
 import ReviewView from "../views/ReviewView.vue";
-import memberData from "@/mocks/data/member.json";
 import reviews from "@/mocks/data/reviews.json";
 import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
 import { server } from "@/mocks/server";
-import { useAuthStore } from "@/stores/auth";
-import { render } from "@/tests/utils";
+import { logIn, render } from "@/tests/utils";
 
 mockIntersectionObserver();
-
-function logIn(pinia: TestingPinia) {
-  const authStore = useAuthStore(pinia);
-  // @ts-expect-error Overwriting readonly property for testing purposes
-  authStore.user = {
-    id: memberData.id,
-    email: memberData.email,
-    name: memberData.name,
-    image: memberData.image,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    emailVerified: true,
-  };
-  // @ts-expect-error Forcing logged in to true for testing
-  authStore.isLoggedIn = true;
-}
 
 /** A work the mock user (member "2") has scored, for score-assist fixtures. */
 function scoredReview(id: string, score: number) {

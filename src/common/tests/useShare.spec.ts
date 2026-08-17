@@ -1,4 +1,5 @@
-import { afterEach, vi } from "vitest";
+import userEvent from "@testing-library/user-event";
+import { afterEach, beforeEach, vi } from "vitest";
 
 import { useShare } from "@/common/composables/useShare";
 
@@ -9,7 +10,7 @@ const IPHONE_UA =
 const ANDROID_UA =
   "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36";
 
-/** jsdom's navigator has no `share`/`clipboard`, so both are installed here. */
+/** jsdom's navigator has no `share`, so it is installed (or removed) per test. */
 function stubNavigator({
   userAgent,
   share,
@@ -17,18 +18,12 @@ function stubNavigator({
   userAgent: string;
   share?: (data: ShareData) => Promise<void>;
 }) {
-  const writeText = vi.fn(() => Promise.resolve());
   Object.defineProperty(navigator, "userAgent", { value: userAgent, configurable: true });
-  Object.defineProperty(navigator, "clipboard", {
-    value: { writeText },
-    configurable: true,
-  });
   if (share) {
     Object.defineProperty(navigator, "share", { value: share, configurable: true });
   } else {
     Reflect.deleteProperty(navigator, "share");
   }
-  return { writeText };
 }
 
 const payload = {
@@ -36,6 +31,12 @@ const payload = {
   title: "Inception",
   text: "We rated Inception 8.5",
 };
+
+beforeEach(() => {
+  // user-event installs jsdom's missing `navigator.clipboard`, so the tests can
+  // read back what the composable copied instead of spying on writeText.
+  userEvent.setup();
+});
 
 afterEach(() => {
   Reflect.deleteProperty(navigator, "share");
@@ -61,11 +62,11 @@ describe("useShare", () => {
   });
 
   it("copies the URL to the clipboard when native share is unavailable", async () => {
-    const { writeText } = stubNavigator({ userAgent: DESKTOP_UA });
+    stubNavigator({ userAgent: DESKTOP_UA });
 
     await useShare().share(payload);
 
-    expect(writeText).toHaveBeenCalledWith(payload.url);
+    expect(await navigator.clipboard.readText()).toBe(payload.url);
   });
 
   it("passes the text along to the share sheet on Android", async () => {
@@ -98,20 +99,21 @@ describe("useShare", () => {
   it("stays quiet when the user dismisses the share sheet", async () => {
     const abort = new Error("dismissed");
     abort.name = "AbortError";
-    const share = vi.fn(() => Promise.reject(abort));
-    const { writeText } = stubNavigator({ userAgent: ANDROID_UA, share });
+    stubNavigator({ userAgent: ANDROID_UA, share: vi.fn(() => Promise.reject(abort)) });
 
     await useShare().share(payload);
 
-    expect(writeText).not.toHaveBeenCalled();
+    expect(await navigator.clipboard.readText()).toBe("");
   });
 
   it("falls back to the clipboard when the share sheet genuinely fails", async () => {
-    const share = vi.fn(() => Promise.reject(new Error("share unavailable")));
-    const { writeText } = stubNavigator({ userAgent: ANDROID_UA, share });
+    stubNavigator({
+      userAgent: ANDROID_UA,
+      share: vi.fn(() => Promise.reject(new Error("share unavailable"))),
+    });
 
     await useShare().share(payload);
 
-    expect(writeText).toHaveBeenCalledWith(payload.url);
+    expect(await navigator.clipboard.readText()).toBe(payload.url);
   });
 });

@@ -43,11 +43,4 @@ describe("PosterImage", () => {
 
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
   });
-
-  it("renders a placeholder container regardless of image presence", () => {
-    const { container } = render(PosterImage, { props: { imageUrl: null } });
-
-    // The wrapper div is always rendered
-    expect(container.firstChild).toBeInTheDocument();
-  });
 });

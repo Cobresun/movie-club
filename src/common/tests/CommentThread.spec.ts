@@ -1,301 +1,180 @@
 import { screen } from "@testing-library/vue";
-import { http, HttpResponse } from "msw";
-import { defineComponent } from "vue";
 
 import CommentThread from "../components/CommentThread.vue";
+import { comment, commentsApi } from "@/mocks/comments";
 import memberData from "@/mocks/data/member.json";
 import { server } from "@/mocks/server";
-import { useAuthStore } from "@/stores/auth";
-import { render } from "@/tests/utils";
+import { logIn, render } from "@/tests/utils";
 
 const CLUB_SLUG = "test-club";
 const WORK_ID = "movie-123";
 
-const mockComments = (
-  comments: {
-    id: string;
-    workId: string;
-    userId: string;
-    userName: string;
-    content: string;
-    createdDate: string;
-    spoiler: boolean;
-    userImage?: string;
-  }[],
-) => {
-  server.use(
-    http.get(`/api/club/${CLUB_SLUG}/reviews/${WORK_ID}/comments`, () =>
-      HttpResponse.json(comments),
-    ),
-  );
-};
+/** A comment by somebody other than the signed-in member. */
+const theirComment = (content: string, spoiler = false) =>
+  comment({ id: `their-${content}`, workId: WORK_ID, userName: "Alice", content, spoiler });
 
-const mockAddComment = () => {
-  server.use(
-    http.post(
-      `/api/club/${CLUB_SLUG}/reviews/${WORK_ID}/comments`,
-      () => new HttpResponse(null, { status: 200 }),
-    ),
-  );
-};
-
-const mockEditComment = (commentId: string) => {
-  server.use(
-    http.put(
-      `/api/club/${CLUB_SLUG}/reviews/${WORK_ID}/comments/${commentId}`,
-      () => new HttpResponse(null, { status: 200 }),
-    ),
-  );
-};
-
-const mockDeleteComment = (commentId: string) => {
-  server.use(
-    http.delete(
-      `/api/club/${CLUB_SLUG}/reviews/${WORK_ID}/comments/${commentId}`,
-      () => new HttpResponse(null, { status: 200 }),
-    ),
-  );
-};
-
-// Wraps CommentThread in a parent component that pre-seeds the auth store with
-// the current-user data before CommentThread's setup() runs.  This is necessary
-// because CommentThread captures `currentUserId` once at setup time via
-// `ref(user.value?.id)`, so the user must be present before the child mounts.
-const AuthWrapperForTest = defineComponent({
-  components: { CommentThread },
-  setup() {
-    const auth = useAuthStore();
-    // @ts-expect-error Overwriting writable-computed stub for test
-    auth.user = {
-      id: memberData.id,
-      email: memberData.email,
-      name: memberData.name,
-      image: memberData.image,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      emailVerified: true,
-    };
-  },
-  template: `<CommentThread workId="${WORK_ID}" clubSlug="${CLUB_SLUG}" />`,
-});
-
-const renderAsCurrentUser = () => render(AuthWrapperForTest);
-
-describe("CommentThread", () => {
-  beforeEach(() => {
-    server.use(
-      http.get(`/api/club/${CLUB_SLUG}/reviews/${WORK_ID}/comments`, () => HttpResponse.json([])),
-    );
+/** A comment the signed-in member wrote, so the owner controls show up. */
+const myComment = (content: string, spoiler = false) =>
+  comment({
+    id: `mine-${content}`,
+    workId: WORK_ID,
+    userId: memberData.id,
+    userName: memberData.name,
+    content,
+    spoiler,
   });
 
+const renderThread = () =>
+  render(CommentThread, { props: { workId: WORK_ID, clubSlug: CLUB_SLUG } });
+
+describe("CommentThread", () => {
   it("renders the Comments heading", () => {
-    render(CommentThread, {
-      props: { workId: WORK_ID, clubSlug: CLUB_SLUG },
-    });
+    renderThread();
 
     expect(screen.getByText("Comments")).toBeInTheDocument();
   });
 
   it("shows empty state message when there are no comments", async () => {
-    render(CommentThread, {
-      props: { workId: WORK_ID, clubSlug: CLUB_SLUG },
-    });
+    renderThread();
 
     expect(await screen.findByText(/No comments yet/i)).toBeInTheDocument();
   });
 
   it("renders existing comments", async () => {
-    mockComments([
-      {
-        id: "c1",
-        workId: WORK_ID,
-        userId: "other-user",
-        userName: "Alice",
-        content: "Great movie!",
-        createdDate: new Date().toISOString(),
-        spoiler: false,
-      },
-    ]);
+    server.use(...commentsApi([theirComment("Great movie!")]));
 
-    render(CommentThread, {
-      props: { workId: WORK_ID, clubSlug: CLUB_SLUG },
-    });
+    renderThread();
 
     expect(await screen.findByText("Great movie!")).toBeInTheDocument();
     expect(screen.getByText("Alice")).toBeInTheDocument();
   });
 
-  it("shows the comment input textarea and send button", () => {
-    render(CommentThread, {
-      props: { workId: WORK_ID, clubSlug: CLUB_SLUG },
-    });
+  it("send button is disabled until a comment is typed", async () => {
+    const rendered = renderThread();
 
-    expect(screen.getByPlaceholderText("Write a comment…")).toBeInTheDocument();
-  });
+    expect(screen.getByRole("button", { name: /send/i })).toBeDisabled();
 
-  it("send button is disabled when textarea is empty", () => {
-    render(CommentThread, {
-      props: { workId: WORK_ID, clubSlug: CLUB_SLUG },
-    });
-
-    const btn = screen.getByRole("button", { name: /send/i });
-    expect(btn).toBeDisabled();
-  });
-
-  it("enables send button when text is entered", async () => {
-    mockAddComment();
-    const { user } = render(CommentThread, {
-      props: { workId: WORK_ID, clubSlug: CLUB_SLUG },
-    });
-
-    const textarea = screen.getByPlaceholderText("Write a comment…");
-    await user.type(textarea, "Hello world");
+    await rendered.user.type(screen.getByPlaceholderText("Write a comment…"), "Hello world");
 
     expect(screen.getByRole("button", { name: /send/i })).not.toBeDisabled();
   });
 
-  it("shows spoiler label for comments marked as spoiler (for other users)", async () => {
-    mockComments([
-      {
-        id: "c2",
-        workId: WORK_ID,
-        userId: "other-user",
-        userName: "Bob",
-        content: "The ending is wild!",
-        createdDate: new Date().toISOString(),
-        spoiler: true,
-      },
-    ]);
+  it("adds a typed comment to the thread and clears the box", async () => {
+    server.use(...commentsApi());
 
-    render(CommentThread, {
-      props: { workId: WORK_ID, clubSlug: CLUB_SLUG },
-    });
+    const rendered = renderThread();
+
+    const textarea = await screen.findByPlaceholderText("Write a comment…");
+    await rendered.user.type(textarea, "Hello world");
+    await rendered.user.click(screen.getByRole("button", { name: /send/i }));
+
+    expect(await screen.findByText("Hello world")).toBeInTheDocument();
+    expect(textarea).toHaveValue("");
+  });
+
+  it("shows spoiler label for comments marked as spoiler", async () => {
+    server.use(...commentsApi([theirComment("The ending is wild!", true)]));
+
+    renderThread();
 
     expect(await screen.findByText("Spoiler")).toBeInTheDocument();
   });
 
-  it("blurs spoiler comment content for other users", async () => {
-    mockComments([
-      {
-        id: "c3",
-        workId: WORK_ID,
-        userId: "other-user",
-        userName: "Carol",
-        content: "Secret ending revealed",
-        createdDate: new Date().toISOString(),
-        spoiler: true,
-      },
-    ]);
+  it("keeps spoiler content out of the page until it is revealed", async () => {
+    server.use(...commentsApi([theirComment("Secret ending revealed", true)]));
 
-    render(CommentThread, {
-      props: { workId: WORK_ID, clubSlug: CLUB_SLUG },
-    });
+    const rendered = renderThread();
 
-    await screen.findByText("Secret ending revealed");
+    // Blurring the real text would still read it out to a screen reader and
+    // leave it in the page's text, so the content is not rendered at all until
+    // the reader asks for it.
+    const reveal = await screen.findByRole("button", { name: "Reveal spoiler" });
+    expect(screen.queryByText("Secret ending revealed")).not.toBeInTheDocument();
 
-    const blurredPara = document.querySelector(".blur-sm");
-    expect(blurredPara).toBeInTheDocument();
+    await rendered.user.click(reveal);
+
+    expect(await screen.findByText("Secret ending revealed")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Reveal spoiler" })).not.toBeInTheDocument();
+  });
+
+  it("shows the author their own spoiler comment unmasked", async () => {
+    server.use(...commentsApi([myComment("My own spoiler", true)]));
+
+    const rendered = renderThread();
+    logIn(rendered.pinia);
+
+    expect(await screen.findByText("My own spoiler")).toBeInTheDocument();
   });
 
   it("shows edit and delete buttons only for the current user's comments", async () => {
-    mockComments([
-      {
-        id: "c4",
-        workId: WORK_ID,
-        userId: memberData.id,
-        userName: memberData.name,
-        content: "My comment",
-        createdDate: new Date().toISOString(),
-        spoiler: false,
-      },
-      {
-        id: "c5",
-        workId: WORK_ID,
-        userId: "other-user",
-        userName: "Other",
-        content: "Other comment",
-        createdDate: new Date().toISOString(),
-        spoiler: false,
-      },
-    ]);
+    server.use(...commentsApi([myComment("My comment"), theirComment("Other comment")]));
 
-    renderAsCurrentUser();
-
-    await screen.findByText("My comment");
+    const rendered = renderThread();
+    logIn(rendered.pinia);
 
     // Only the owned comment gets an edit/delete pair.
-    expect(screen.getAllByRole("button", { name: "Edit comment" })).toHaveLength(1);
+    expect(await screen.findAllByRole("button", { name: "Edit comment" })).toHaveLength(1);
     expect(screen.getAllByRole("button", { name: "Delete comment" })).toHaveLength(1);
   });
 
-  it("enters edit mode when pencil button is clicked", async () => {
-    mockComments([
-      {
-        id: "c6",
-        workId: WORK_ID,
-        userId: memberData.id,
-        userName: memberData.name,
-        content: "Edit me",
-        createdDate: new Date().toISOString(),
-        spoiler: false,
-      },
-    ]);
-    mockEditComment("c6");
+  it("saves an edit back to the thread", async () => {
+    server.use(...commentsApi([myComment("Edit me")]));
 
-    const { user } = renderAsCurrentUser();
+    const rendered = renderThread();
+    logIn(rendered.pinia);
 
-    await screen.findByText("Edit me");
+    await rendered.user.click(await screen.findByRole("button", { name: "Edit comment" }));
 
-    await user.click(screen.getByRole("button", { name: "Edit comment" }));
+    const editBox = screen.getByDisplayValue("Edit me");
+    await rendered.user.clear(editBox);
+    await rendered.user.type(editBox, "Edited after all");
+    await rendered.user.click(screen.getByRole("button", { name: /save/i }));
 
-    expect(screen.getByDisplayValue("Edit me")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /cancel/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /save/i })).toBeInTheDocument();
+    expect(await screen.findByText("Edited after all")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /save/i })).not.toBeInTheDocument();
   });
 
-  it("cancels editing when Cancel is clicked", async () => {
-    mockComments([
-      {
-        id: "c7",
-        workId: WORK_ID,
-        userId: memberData.id,
-        userName: memberData.name,
-        content: "Cancel this",
-        createdDate: new Date().toISOString(),
-        spoiler: false,
-      },
-    ]);
+  it("leaves the comment alone when an edit is cancelled", async () => {
+    server.use(...commentsApi([myComment("Cancel this")]));
 
-    const { user } = renderAsCurrentUser();
-    await screen.findByText("Cancel this");
+    const rendered = renderThread();
+    logIn(rendered.pinia);
 
-    await user.click(screen.getByRole("button", { name: "Edit comment" }));
+    await rendered.user.click(await screen.findByRole("button", { name: "Edit comment" }));
 
-    await user.click(screen.getByRole("button", { name: /cancel/i }));
+    const editBox = screen.getByDisplayValue("Cancel this");
+    await rendered.user.clear(editBox);
+    await rendered.user.type(editBox, "Never mind");
+    await rendered.user.click(screen.getByRole("button", { name: /cancel/i }));
 
     expect(screen.queryByRole("button", { name: /save/i })).not.toBeInTheDocument();
     expect(screen.getByText("Cancel this")).toBeInTheDocument();
   });
 
-  it("shows delete confirmation modal when delete button is clicked", async () => {
-    mockComments([
-      {
-        id: "c8",
-        workId: WORK_ID,
-        userId: memberData.id,
-        userName: memberData.name,
-        content: "Delete me",
-        createdDate: new Date().toISOString(),
-        spoiler: false,
-      },
-    ]);
-    mockDeleteComment("c8");
+  it("takes a comment off the thread once the delete is confirmed", async () => {
+    server.use(...commentsApi([myComment("Delete me"), theirComment("Keep me")]));
 
-    const { user } = renderAsCurrentUser();
-    await screen.findByText("Delete me");
+    const rendered = renderThread();
+    logIn(rendered.pinia);
 
-    await user.click(screen.getByRole("button", { name: "Delete comment" }));
+    await rendered.user.click(await screen.findByRole("button", { name: "Delete comment" }));
+    await rendered.user.click(await screen.findByRole("button", { name: /^delete$/i }));
 
+    await screen.findByText("Keep me");
+    expect(screen.queryByText("Delete me")).not.toBeInTheDocument();
+  });
+
+  it("keeps the comment when the delete is called off", async () => {
+    server.use(...commentsApi([myComment("Delete me")]));
+
+    const rendered = renderThread();
+    logIn(rendered.pinia);
+
+    await rendered.user.click(await screen.findByRole("button", { name: "Delete comment" }));
     expect(await screen.findByText("Delete Comment")).toBeInTheDocument();
+
+    await rendered.user.click(screen.getByRole("button", { name: /cancel/i }));
+
+    expect(screen.getByText("Delete me")).toBeInTheDocument();
   });
 });
