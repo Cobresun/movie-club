@@ -11,9 +11,10 @@ import UserRepository from "../repositories/UserRepository";
 import WorkRepository from "../repositories/WorkRepository";
 import { loggedIn, secured } from "../utils/auth";
 import { db } from "../utils/database";
+import { parseBody } from "../utils/parseBody";
 import { getProvider } from "../utils/providers";
 import { ok, badRequest, notFound } from "../utils/responses";
-import { Router } from "../utils/router";
+import { isRouterResponse, Router } from "../utils/router";
 import { validateSlug } from "../utils/slug";
 import { validClubSlug } from "../utils/validation";
 import awardsRouter from "./awards";
@@ -62,12 +63,10 @@ const clubNameUpdateSchema = z.object({
 });
 
 router.put("/:clubSlug/name", validClubSlug, secured, async ({ event, clubId }, res) => {
-  if (!hasValue(event.body)) return res(badRequest("Missing body"));
+  const body = parseBody(event, clubNameUpdateSchema, res);
+  if (isRouterResponse(body)) return body;
 
-  const body = clubNameUpdateSchema.safeParse(JSON.parse(event.body));
-  if (!body.success) return res(badRequest("Invalid body"));
-
-  const { name } = body.data;
+  const { name } = body;
   await ClubRepository.updateName(clubId, name);
 
   return res(ok());
@@ -83,11 +82,9 @@ const clubCreateSchema = z.object({
 });
 
 router.post("/", loggedIn, async ({ event }, res) => {
-  if (!hasValue(event.body)) return res(badRequest("Missing body"));
-
-  const body = clubCreateSchema.safeParse(JSON.parse(event.body));
-  if (!body.success) return res(badRequest("Invalid body"));
-  const { name, members, type } = body.data;
+  const body = parseBody(event, clubCreateSchema, res);
+  if (isRouterResponse(body)) return body;
+  const { name, members, type } = body;
 
   // Create Club
   const newClub = await ClubRepository.insert(name, type);
@@ -139,10 +136,9 @@ const nextWorkSchema = z.object({
 });
 
 router.put("/:clubSlug/nextWork", validClubSlug, secured, async ({ event, clubId }, res) => {
-  if (!hasValue(event.body)) return res(badRequest("Missing body"));
-  const body = nextWorkSchema.safeParse(JSON.parse(event.body));
-  if (!body.success) return res(badRequest("Invalid body"));
-  const { workId } = body.data;
+  const body = parseBody(event, nextWorkSchema, res);
+  if (isRouterResponse(body)) return body;
+  const { workId } = body;
 
   await WorkRepository.deleteNextWork(clubId);
   await WorkRepository.setNextWork(clubId, workId);
@@ -160,12 +156,10 @@ const updateSlugSchema = z.object({
 });
 
 router.put("/:clubSlug/slug", validClubSlug, secured, async ({ clubId, event }, res) => {
-  if (!hasValue(event.body)) return res(badRequest("Missing body"));
+  const body = parseBody(event, updateSlugSchema, res);
+  if (isRouterResponse(body)) return body;
 
-  const body = updateSlugSchema.safeParse(JSON.parse(event.body));
-  if (!body.success) return res(badRequest("Invalid body"));
-
-  const { slug: newSlug } = body.data;
+  const { slug: newSlug } = body;
 
   const validationError = validateSlug(newSlug);
   if (hasValue(validationError)) {

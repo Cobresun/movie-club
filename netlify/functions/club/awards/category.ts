@@ -1,10 +1,11 @@
 import { z } from "zod";
 
-import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
+import { isDefined } from "../../../../lib/checks/checks.js";
 import AwardsRepository from "../../repositories/AwardsRepository";
 import { secured } from "../../utils/auth";
+import { parseBody } from "../../utils/parseBody";
 import { requireParam } from "../../utils/requireParam";
-import { badRequest, ok } from "../../utils/responses";
+import { ok } from "../../utils/responses";
 import { isRouterResponse, Router } from "../../utils/router";
 import { ClubAwardRequest } from "./utils";
 
@@ -15,10 +16,9 @@ const addCategorySchema = z.object({
 });
 
 router.post("/", secured<ClubAwardRequest>, async ({ event, clubId, year }, res) => {
-  if (!hasValue(event.body)) return res(badRequest("Missing body"));
-  const body = addCategorySchema.safeParse(JSON.parse(event.body));
-  if (!body.success) return res(badRequest("Invalid body"));
-  const { title } = body.data;
+  const body = parseBody(event, addCategorySchema, res);
+  if (isRouterResponse(body)) return body;
+  const { title } = body;
 
   await AwardsRepository.updateByYear(clubId, year, (currentData) => ({
     ...currentData,
@@ -33,11 +33,10 @@ const updateCategorySchema = z.object({
 });
 
 router.put("/", secured<ClubAwardRequest>, async ({ event, clubId, year }, res) => {
-  if (!hasValue(event.body)) return res(badRequest("Missing body"));
-  const body = updateCategorySchema.safeParse(JSON.parse(event.body));
-  if (!body.success) return res(badRequest("Invalid body"));
+  const body = parseBody(event, updateCategorySchema, res);
+  if (isRouterResponse(body)) return body;
 
-  const { categories } = body.data;
+  const { categories } = body;
 
   await AwardsRepository.updateByYear(clubId, year, (currentData) => {
     // Reorder awards based on the categories order

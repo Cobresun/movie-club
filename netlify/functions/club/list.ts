@@ -12,6 +12,7 @@ import ReviewRepository from "../repositories/ReviewRepository";
 import UserRepository from "../repositories/UserRepository";
 import WorkRepository from "../repositories/WorkRepository";
 import { secured } from "../utils/auth";
+import { parseBody } from "../utils/parseBody";
 import { getExternalSummariesForWorks } from "../utils/providers";
 import { requireParam } from "../utils/requireParam";
 import { badRequest, internalServerError, ok } from "../utils/responses";
@@ -70,26 +71,18 @@ const reorderListsSchema = z.object({
 });
 
 router.put("/reorder", secured, async ({ clubId, event }, res) => {
-  if (!hasValue(event.body)) return res(badRequest("No body provided"));
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(event.body);
-  } catch {
-    return res(badRequest("Invalid JSON"));
-  }
-  const body = reorderListsSchema.safeParse(parsed);
-  if (!body.success) return res(badRequest("Invalid body provided"));
+  const body = parseBody(event, reorderListsSchema, res);
+  if (isRouterResponse(body)) return body;
 
-  await ListRepository.reorderLists(clubId, body.data.listIds);
+  await ListRepository.reorderLists(clubId, body.listIds);
   return res(ok());
 });
 
 router.post("/", secured, async ({ clubId, event }, res) => {
-  if (!hasValue(event.body)) return res(badRequest("No body provided"));
-  const body = createListSchema.safeParse(JSON.parse(event.body));
-  if (!body.success) return res(badRequest("Invalid body provided"));
+  const body = parseBody(event, createListSchema, res);
+  if (isRouterResponse(body)) return body;
 
-  const created = await ListRepository.createList(clubId, body.data.title);
+  const created = await ListRepository.createList(clubId, body.title);
   return res(
     ok(
       JSON.stringify({
@@ -150,11 +143,10 @@ router.put(
     if (listSystemType !== null) {
       return res(badRequest("Cannot rename a system list"));
     }
-    if (!hasValue(event.body)) return res(badRequest("No body provided"));
-    const body = renameSchema.safeParse(JSON.parse(event.body));
-    if (!body.success) return res(badRequest("Invalid body provided"));
+    const body = parseBody(event, renameSchema, res);
+    if (isRouterResponse(body)) return body;
 
-    await ListRepository.renameList(listId, body.data.title);
+    await ListRepository.renameList(listId, body.title);
     return res(ok());
   },
 );
@@ -179,14 +171,13 @@ router.post(
   validListId,
   secured<ListRequest>,
   async ({ listId, clubId, userId, event }, res) => {
-    if (!hasValue(event.body)) return res(badRequest("No body provided"));
-    const body = listInsertDtoSchema.safeParse(JSON.parse(event.body));
-    if (!body.success) return res(badRequest("Invalid body provided"));
+    const body = parseBody(event, listInsertDtoSchema, res);
+    if (isRouterResponse(body)) return body;
 
     // insert() upserts on (club_id, type, external_id) and always returns the
     // id, so no lookup-then-insert dance is needed. Its metadata fetch is a
     // no-op when details are already cached.
-    const work = await WorkRepository.insert(clubId, body.data);
+    const work = await WorkRepository.insert(clubId, body);
 
     // Single INSERT ... SELECT computes the position and detects "already in
     // list" via the (list_id, work_id) unique constraint in one round trip.
@@ -231,17 +222,10 @@ router.put(
   validListId,
   secured<ListRequest>,
   async ({ listId, event }, res) => {
-    if (!hasValue(event.body)) return res(badRequest("No body provided"));
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(event.body);
-    } catch {
-      return res(badRequest("Invalid JSON"));
-    }
-    const body = reorderSchema.safeParse(parsed);
-    if (!body.success) return res(badRequest("Invalid body provided"));
+    const body = parseBody(event, reorderSchema, res);
+    if (isRouterResponse(body)) return body;
 
-    await ListRepository.reorderList(listId, body.data.workIds);
+    await ListRepository.reorderList(listId, body.workIds);
     return res(ok());
   },
 );
@@ -257,15 +241,14 @@ router.put(
   async ({ listId, params, event }, res) => {
     const workId = requireParam(params, "workId", res);
     if (isRouterResponse(workId)) return workId;
-    if (!hasValue(event.body)) return res(badRequest("No body provided"));
-    const body = updateAddedDateSchema.safeParse(JSON.parse(event.body));
-    if (!body.success) return res(badRequest("Invalid body provided"));
+    const body = parseBody(event, updateAddedDateSchema, res);
+    if (isRouterResponse(body)) return body;
 
     const exists = await ListRepository.isItemInList(listId, workId);
     if (!exists) {
       return res(badRequest("This work does not exist in the list"));
     }
-    await ListRepository.updateAddedDate(listId, workId, new Date(body.data.addedDate));
+    await ListRepository.updateAddedDate(listId, workId, new Date(body.addedDate));
     return res(ok());
   },
 );
@@ -281,18 +264,12 @@ router.post(
   async ({ listId, clubId, params, event }, res) => {
     const workId = requireParam(params, "workId", res);
     if (isRouterResponse(workId)) return workId;
-    if (!hasValue(event.body)) return res(badRequest("No body provided"));
-    const body = moveSchema.safeParse(JSON.parse(event.body));
-    if (!body.success) return res(badRequest("Invalid body provided"));
+    const body = parseBody(event, moveSchema, res);
+    if (isRouterResponse(body)) return body;
 
     // Destination ownership is validated inside the move transaction (the
     // destination row is fetched there anyway), saving a separate round trip.
-    const moved = await ListRepository.moveItem(
-      listId,
-      body.data.destinationListId,
-      workId,
-      clubId,
-    );
+    const moved = await ListRepository.moveItem(listId, body.destinationListId, workId, clubId);
     if (!moved) {
       return res(badRequest("Destination list not found"));
     }

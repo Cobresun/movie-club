@@ -1,11 +1,22 @@
+import { z } from "zod";
+
 import { db } from "../utils/database";
 
-export interface ClubSettings {
-  features: {
-    awards: boolean;
-    discussionQuestions: boolean;
-  };
-}
+export const clubSettingsSchema = z.object({
+  features: z.object({
+    awards: z.boolean(),
+    discussionQuestions: z.boolean(),
+  }),
+});
+
+export type ClubSettings = z.infer<typeof clubSettingsSchema>;
+
+/** Every field optional: an update patches whichever features it names. */
+export const clubSettingsUpdateSchema = z.object({
+  features: clubSettingsSchema.shape.features.partial().optional(),
+});
+
+export type ClubSettingsUpdate = z.infer<typeof clubSettingsUpdateSchema>;
 
 const DEFAULT_SETTINGS: ClubSettings = {
   features: {
@@ -27,16 +38,18 @@ class SettingsRepository {
       return DEFAULT_SETTINGS;
     }
 
-    const storedSettings = result.value as Partial<ClubSettings>;
+    // The column is untyped JSON, so anything could be in there — a row written
+    // before a feature flag existed reads back as a partial.
+    const storedSettings = clubSettingsUpdateSchema.safeParse(result.value);
     return {
       features: {
         ...DEFAULT_SETTINGS.features,
-        ...storedSettings.features,
+        ...(storedSettings.success ? storedSettings.data.features : undefined),
       },
     };
   }
 
-  async updateSettings(clubId: string, settings: Partial<ClubSettings>): Promise<ClubSettings> {
+  async updateSettings(clubId: string, settings: ClubSettingsUpdate): Promise<ClubSettings> {
     const existing = await this.getSettings(clubId);
     const merged = {
       features: {

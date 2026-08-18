@@ -13,7 +13,7 @@ import { DetailedWorkData, WorkDataSummary } from "../../../../lib/types/lists";
 import { MovieCastMember } from "../../../../lib/types/movie";
 import { db } from "../database";
 import { getGoogleBooksVolume } from "./googleBooks";
-import { MediaProvider, RefreshResult } from "./types";
+import { MediaProvider, numOrUndefined, RefreshResult } from "./types";
 
 /**
  * Matches legacy OpenLibrary work keys (e.g. "OL45804W") that the
@@ -21,11 +21,6 @@ import { MediaProvider, RefreshResult } from "./types";
  * never fit this shape, so it cleanly separates migrated from unmigrated rows.
  */
 export const OPEN_LIBRARY_ID_PATTERN = "^OL[0-9]+[WM]$";
-
-/** Coerce a nullable Int8 column (string | null) to number | undefined. */
-function num(value: string | null): number | undefined {
-  return isDefined(value) ? Number(value) : undefined;
-}
 
 /** Parsed Google Books metadata for one work, ready to persist. */
 interface BookData {
@@ -159,8 +154,8 @@ class BookProvider implements MediaProvider {
         description: row.description ?? undefined,
         authors: row.authors?.filter(Boolean) ?? [],
         subjects: row.subjects?.filter(Boolean) ?? [],
-        firstPublishYear: num(row.first_publish_year),
-        numberOfPages: num(row.number_of_pages),
+        firstPublishYear: numOrUndefined(row.first_publish_year),
+        numberOfPages: numOrUndefined(row.number_of_pages),
         coverUrl: row.cover_url ?? undefined,
       };
       map.set(row.external_id, data);

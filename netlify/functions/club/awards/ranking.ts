@@ -1,11 +1,11 @@
 import { z } from "zod";
 
-import { hasValue } from "../../../../lib/checks/checks.js";
 import { BaseAward, BaseAwardNomination } from "../../../../lib/types/awards";
 import AwardsRepository from "../../repositories/AwardsRepository";
 import { secured } from "../../utils/auth";
-import { badRequest, ok } from "../../utils/responses";
-import { Router } from "../../utils/router";
+import { parseBody } from "../../utils/parseBody";
+import { ok } from "../../utils/responses";
+import { isRouterResponse, Router } from "../../utils/router";
 import { ClubAwardRequest } from "./utils";
 
 const router = new Router<ClubAwardRequest>("/api/club/:clubSlug/awards/:year<\\d+>/ranking");
@@ -18,11 +18,10 @@ const addRankingSchema = z.object({
 });
 
 router.post("/", secured<ClubAwardRequest>, async ({ event, clubId, year }, res) => {
-  if (!hasValue(event.body)) return res(badRequest("Missing body"));
-  const body = addRankingSchema.safeParse(JSON.parse(event.body));
-  if (!body.success) return res(badRequest("Invalid body"));
+  const body = parseBody(event, addRankingSchema, res);
+  if (isRouterResponse(body)) return body;
 
-  const { awardTitle, movies, voter } = body.data;
+  const { awardTitle, movies, voter } = body;
 
   // Create a map of movieId -> rank
   const movieRanks = new Map(movies.map((movieId, index) => [movieId, index + 1]));
