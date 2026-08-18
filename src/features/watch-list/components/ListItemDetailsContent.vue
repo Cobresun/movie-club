@@ -116,7 +116,6 @@
 
 <script setup lang="ts">
 import { Listbox, ListboxButton, ListboxOption, ListboxOptions } from "@headlessui/vue";
-import { DateTime } from "luxon";
 import { computed, nextTick, ref } from "vue";
 
 import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
@@ -133,7 +132,7 @@ import VAvatar from "@/common/components/VAvatar.vue";
 import WatchProviders from "@/common/components/WatchProviders.vue";
 import WorkDescription from "@/common/components/WorkDescription.vue";
 import WorkPosterHero from "@/common/components/WorkPosterHero.vue";
-import { asBook, asMovie, workPosterUrl } from "@/common/workDisplay";
+import { asBook, asMovie, formatDate, workPosterUrl } from "@/common/workDisplay";
 import { useWorkDetails } from "@/service/useList";
 
 const props = defineProps<{
@@ -177,10 +176,6 @@ const onMoveSelect = async (value: string | null) => {
   }
   await nextTick();
   moveToValue.value = null;
-};
-
-const formatDate = (dateString: string) => {
-  return DateTime.fromISO(dateString).toLocaleString(DateTime.DATE_MED);
 };
 
 const movieData = computed(() => asMovie(props.movie.externalData));
