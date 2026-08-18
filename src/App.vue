@@ -1,17 +1,17 @@
 <template>
   <div>
     <nav-bar />
-    <div
-      v-if="
-        authStore.isInitialLoading ||
-        (authStore.isLoggedIn && authStore.isLoadingUserClubs) ||
-        authStore.isNavigatingAfterAuth
-      "
-      class="absolute w-full"
-    >
-      <!-- Boot placeholder. "/" resolves to a club home for anyone signed in, so
-           this traces that page: title, member pills, then the nav cards. -->
-      <div class="mx-auto max-w-5xl px-4 pt-6" role="status" aria-label="Loading">
+    <div v-if="authStore.isAppLoading" class="absolute w-full">
+      <!-- Only painted once a club home is known to be what's coming: title,
+           member pills, nav cards. While the session check is still out on a
+           browser whose last session was signed out, this stays empty rather
+           than flashing a club home at a visitor bound for the landing page. -->
+      <div
+        v-if="authStore.isLoadingClubHome"
+        class="mx-auto max-w-5xl px-4 pt-6"
+        role="status"
+        aria-label="Loading"
+      >
         <SkeletonBlock class="mx-auto h-9 w-56 max-w-full rounded-lg" />
         <MemberPillsSkeleton class="mt-6" />
         <div class="mt-6 flex flex-wrap justify-center gap-3">

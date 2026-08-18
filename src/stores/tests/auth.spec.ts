@@ -60,6 +60,66 @@ const mountStore = async (push: () => Promise<unknown>) => {
   return { store, unmount: () => app.unmount() };
 };
 
+const signedInSession = {
+  data: { session: { id: "s-1" }, user: { id: "u-1" } },
+  isPending: false,
+  isRefetching: false,
+};
+
+afterEach(() => {
+  session.value = { ...signedInSession };
+  localStorage.clear();
+});
+
+describe("the signed-in hint", () => {
+  it("records how the session resolved, for the next cold load", async () => {
+    const { store, unmount } = await mountStore(vi.fn(() => Promise.resolve()));
+
+    expect(store.isLoggedIn).toBe(true);
+    expect(localStorage.getItem("wasSignedIn")).toBe("true");
+
+    unmount();
+  });
+
+  it("clears the hint when the session resolves signed out", async () => {
+    localStorage.setItem("wasSignedIn", "true");
+    session.value = { data: undefined, isPending: false, isRefetching: false } as never;
+
+    const { store, unmount } = await mountStore(vi.fn(() => Promise.resolve()));
+
+    expect(store.isLoggedIn).toBe(false);
+    expect(localStorage.getItem("wasSignedIn")).toBeNull();
+
+    unmount();
+  });
+
+  it("predicts a club home for a cold load whose last session was signed in", async () => {
+    localStorage.setItem("wasSignedIn", "true");
+    session.value = { data: undefined, isPending: true, isRefetching: false } as never;
+
+    const { store, unmount } = await mountStore(vi.fn(() => Promise.resolve()));
+
+    expect(store.isAppLoading).toBe(true);
+    expect(store.isLoadingClubHome).toBe(true);
+
+    unmount();
+  });
+
+  it("predicts nothing for a cold load whose last session was signed out", async () => {
+    // The reported bug: with no hint, a still-resolving session must not put a
+    // club home on screen — the visitor may well be headed for the landing
+    // page. The router still waits (isAppLoading), it just waits on a blank.
+    session.value = { data: undefined, isPending: true, isRefetching: false } as never;
+
+    const { store, unmount } = await mountStore(vi.fn(() => Promise.resolve()));
+
+    expect(store.isAppLoading).toBe(true);
+    expect(store.isLoadingClubHome).toBe(false);
+
+    unmount();
+  });
+});
+
 describe("navigateAfterAuth", () => {
   beforeEach(() => {
     server.use(
@@ -93,6 +153,10 @@ describe("navigateAfterAuth", () => {
       params: { clubSlug: "test-club" },
     });
     expect(store.isNavigatingAfterAuth).toBe(true);
+    // What App.vue actually reads: the gate is up and it is a club home that
+    // is coming, so the placeholder stays put while the route swaps under it.
+    expect(store.isAppLoading).toBe(true);
+    expect(store.isLoadingClubHome).toBe(true);
 
     landOnDestination();
     await navigation;

@@ -7,10 +7,8 @@ import { render } from "@/tests/utils";
 // be exercised without needing reactivity in the stub.
 const { authStore } = vi.hoisted(() => ({
   authStore: {
-    isInitialLoading: false,
-    isLoggedIn: false,
-    isLoadingUserClubs: false,
-    isNavigatingAfterAuth: false,
+    isAppLoading: false,
+    isLoadingClubHome: false,
     showAuthModal: false,
     closeAuthModal: vi.fn(),
   },
@@ -22,10 +20,8 @@ const renderApp = () => render(App, { global: { stubs: { NavBar: true, AuthModal
 
 describe("App loading gate", () => {
   beforeEach(() => {
-    authStore.isInitialLoading = false;
-    authStore.isLoggedIn = false;
-    authStore.isLoadingUserClubs = false;
-    authStore.isNavigatingAfterAuth = false;
+    authStore.isAppLoading = false;
+    authStore.isLoadingClubHome = false;
   });
 
   it("renders the routed page once nothing is loading", () => {
@@ -35,8 +31,9 @@ describe("App loading gate", () => {
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
-  it("shows the boot placeholder while the session is resolving", () => {
-    authStore.isInitialLoading = true;
+  it("shows the placeholder when a club home is what's loading", () => {
+    authStore.isAppLoading = true;
+    authStore.isLoadingClubHome = true;
 
     const { container } = renderApp();
 
@@ -44,16 +41,16 @@ describe("App loading gate", () => {
     expect(container.querySelector("router-view-stub")).toBeNull();
   });
 
-  it("holds the placeholder through a post-login navigation", () => {
-    // Session and clubs have both resolved; only the hop to the destination is
-    // outstanding. Dropping the gate here is what used to flash the page the
-    // user signed in from.
-    authStore.isLoggedIn = true;
-    authStore.isNavigatingAfterAuth = true;
+  it("paints nothing while a load that isn't a club home is pending", () => {
+    // The reported bug: refreshing while logged out flashed a club home on the
+    // way to the landing page. The gate still holds the router back — routes
+    // without a guard branch on isLoggedIn and would paint their logged-out
+    // half mid-check — it just holds a blank frame instead of a wrong page.
+    authStore.isAppLoading = true;
 
     const { container } = renderApp();
 
-    expect(screen.getByRole("status", { name: "Loading" })).toBeInTheDocument();
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
     expect(container.querySelector("router-view-stub")).toBeNull();
   });
 });
