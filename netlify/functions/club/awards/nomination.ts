@@ -4,8 +4,9 @@ import { hasValue } from "../../../../lib/checks/checks.js";
 import { BaseAward, BaseAwardNomination } from "../../../../lib/types/awards";
 import AwardsRepository from "../../repositories/AwardsRepository";
 import { secured } from "../../utils/auth";
+import { requireParam } from "../../utils/requireParam";
 import { badRequest, ok } from "../../utils/responses";
-import { Router } from "../../utils/router";
+import { isRouterResponse, Router } from "../../utils/router";
 import { ClubAwardRequest } from "./utils";
 
 const router = new Router<ClubAwardRequest>("/api/club/:clubSlug/awards/:year<\\d+>/nomination");
@@ -65,8 +66,9 @@ router.delete(
   secured<ClubAwardRequest>,
   async ({ event, params, clubId, year }, res) => {
     const awardTitle = event.queryStringParameters?.awardTitle;
-    if (!hasValue(params.movieId)) return res(badRequest("Missing movieId in path parameters"));
-    const movieId = parseInt(params.movieId);
+    const movieIdParam = requireParam(params, "movieId", res);
+    if (isRouterResponse(movieIdParam)) return movieIdParam;
+    const movieId = parseInt(movieIdParam);
     const userId = event.queryStringParameters?.userId;
 
     if (!hasValue(awardTitle)) return res(badRequest("Missing award title in query parameters"));

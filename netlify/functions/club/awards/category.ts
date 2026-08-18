@@ -3,8 +3,9 @@ import { z } from "zod";
 import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import AwardsRepository from "../../repositories/AwardsRepository";
 import { secured } from "../../utils/auth";
+import { requireParam } from "../../utils/requireParam";
 import { badRequest, ok } from "../../utils/responses";
-import { Router } from "../../utils/router";
+import { isRouterResponse, Router } from "../../utils/router";
 import { ClubAwardRequest } from "./utils";
 
 const router = new Router<ClubAwardRequest>("/api/club/:clubSlug/awards/:year<\\d+>/category");
@@ -58,9 +59,8 @@ router.put("/", secured<ClubAwardRequest>, async ({ event, clubId, year }, res) 
 });
 
 router.delete("/:awardTitle", secured<ClubAwardRequest>, async ({ params, clubId, year }, res) => {
-  const awardTitle = params.awardTitle;
-
-  if (!hasValue(awardTitle)) return res(badRequest("Missing award title"));
+  const awardTitle = requireParam(params, "awardTitle", res);
+  if (isRouterResponse(awardTitle)) return awardTitle;
 
   await AwardsRepository.updateByYear(clubId, year, (currentData) => ({
     ...currentData,

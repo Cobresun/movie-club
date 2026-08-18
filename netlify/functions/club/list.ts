@@ -13,9 +13,10 @@ import UserRepository from "../repositories/UserRepository";
 import WorkRepository from "../repositories/WorkRepository";
 import { secured } from "../utils/auth";
 import { getExternalSummariesForWorks } from "../utils/providers";
+import { requireParam } from "../utils/requireParam";
 import { badRequest, internalServerError, ok } from "../utils/responses";
 import { buildReviewScores } from "../utils/reviewScores";
-import { Router } from "../utils/router";
+import { isRouterResponse, Router } from "../utils/router";
 import { ClubRequest, ListRequest, validListId } from "../utils/validation";
 import { BadRequest } from "@/common/errorCodes";
 
@@ -202,10 +203,8 @@ router.delete(
   validListId,
   secured<ListRequest>,
   async ({ listId, clubId, params }, res) => {
-    if (!hasValue(params.workId)) {
-      return res(badRequest("No workId provided"));
-    }
-    const workId = params.workId;
+    const workId = requireParam(params, "workId", res);
+    if (isRouterResponse(workId)) return workId;
     const exists = await ListRepository.isItemInList(listId, workId);
     if (!exists) {
       return res(badRequest("This movie does not exist in the list"));
@@ -256,14 +255,12 @@ router.put(
   validListId,
   secured<ListRequest>,
   async ({ listId, params, event }, res) => {
-    if (!hasValue(params.workId)) {
-      return res(badRequest("No workId provided"));
-    }
+    const workId = requireParam(params, "workId", res);
+    if (isRouterResponse(workId)) return workId;
     if (!hasValue(event.body)) return res(badRequest("No body provided"));
     const body = updateAddedDateSchema.safeParse(JSON.parse(event.body));
     if (!body.success) return res(badRequest("Invalid body provided"));
 
-    const workId = params.workId;
     const exists = await ListRepository.isItemInList(listId, workId);
     if (!exists) {
       return res(badRequest("This work does not exist in the list"));
@@ -282,9 +279,8 @@ router.post(
   validListId,
   secured<ListRequest>,
   async ({ listId, clubId, params, event }, res) => {
-    if (!hasValue(params.workId)) {
-      return res(badRequest("No workId provided"));
-    }
+    const workId = requireParam(params, "workId", res);
+    if (isRouterResponse(workId)) return workId;
     if (!hasValue(event.body)) return res(badRequest("No body provided"));
     const body = moveSchema.safeParse(JSON.parse(event.body));
     if (!body.success) return res(badRequest("Invalid body provided"));
@@ -294,7 +290,7 @@ router.post(
     const moved = await ListRepository.moveItem(
       listId,
       body.data.destinationListId,
-      params.workId,
+      workId,
       clubId,
     );
     if (!moved) {

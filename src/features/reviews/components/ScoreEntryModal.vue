@@ -34,17 +34,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { ref } from "vue";
 
-import { hasValue } from "../../../../lib/checks/checks.js";
-import { ClubType } from "../../../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
-import { buildCandidatePool } from "../composables/scoreAssistLogic";
+import { useScoreAssistCandidates } from "../composables/useScoreAssistCandidates";
 import ScoreAssistFlow from "./ScoreAssistFlow.vue";
 import ScoreEntryPanel from "./ScoreEntryPanel.vue";
-import { useClub, useClubSlug } from "@/service/useClub";
-import { useReviewsList } from "@/service/useList";
-import { useUser } from "@/service/useUser";
 
 const props = defineProps<{
   target: DetailedReviewListItem;
@@ -70,15 +65,5 @@ const applySuggestion = (score: number) => {
 // Assist inputs are derived here (from the cached reviews query) rather than
 // prop-drilled through the drawer, so any surface can host this modal with
 // just the target work.
-const clubSlug = useClubSlug();
-const { data: club } = useClub(clubSlug);
-const { data: reviews } = useReviewsList(clubSlug);
-const user = useUser();
-
-const clubType = computed(() => club.value?.type ?? ClubType.movie);
-const candidates = computed(() =>
-  hasValue(user.value?.id)
-    ? buildCandidatePool(reviews.value ?? [], user.value.id, props.target.id)
-    : [],
-);
+const { clubType, candidates } = useScoreAssistCandidates(() => props.target.id);
 </script>

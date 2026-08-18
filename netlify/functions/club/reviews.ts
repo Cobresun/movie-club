@@ -12,9 +12,10 @@ import SharedReviewService from "../services/SharedReviewService";
 import { secured } from "../utils/auth";
 import { generateJson } from "../utils/gemini";
 import { getProvider } from "../utils/providers";
+import { requireParam } from "../utils/requireParam";
 import { badRequest, ok, unauthorized } from "../utils/responses";
 import { buildReviewScores } from "../utils/reviewScores";
-import { Router } from "../utils/router";
+import { isRouterResponse, Router } from "../utils/router";
 import { ClubRequest } from "../utils/validation";
 
 const router = new Router<ClubRequest>("/api/club/:clubSlug/reviews");
@@ -76,15 +77,13 @@ const updateReviewSchema = z.object({
 });
 
 router.put(`/:reviewId`, secured, async ({ clubId, userId, params, event }, res) => {
-  if (!hasValue(params.reviewId)) {
-    return res(badRequest("No reviewId provided"));
-  }
+  const reviewId = requireParam(params, "reviewId", res);
+  if (isRouterResponse(reviewId)) return reviewId;
   if (!hasValue(event.body)) return res(badRequest("No body provided"));
   const body = updateReviewSchema.safeParse(JSON.parse(event.body));
   if (!body.success) return res(badRequest("Invalid body"));
 
   const { score } = body.data;
-  const reviewId = params.reviewId;
   const review = await ReviewRepository.getById(reviewId, clubId);
   if (review.user_id !== userId) {
     return res(badRequest("You are not allowed to edit this review"));
@@ -101,28 +100,20 @@ const addCommentSchema = z.object({
 });
 
 router.get("/:workId/comments", secured, async ({ clubId, params }, res) => {
-  if (!hasValue(params.workId)) {
-    return res(badRequest("No workId provided"));
-  }
-  const comments = await WorkCommentRepository.getByWorkAndClub(params.workId, clubId);
+  const workId = requireParam(params, "workId", res);
+  if (isRouterResponse(workId)) return workId;
+  const comments = await WorkCommentRepository.getByWorkAndClub(workId, clubId);
   return res(ok(JSON.stringify(comments)));
 });
 
 router.post("/:workId/comments", secured, async ({ clubId, userId, params, event }, res) => {
-  if (!hasValue(params.workId)) {
-    return res(badRequest("No workId provided"));
-  }
+  const workId = requireParam(params, "workId", res);
+  if (isRouterResponse(workId)) return workId;
   if (!hasValue(event.body)) return res(badRequest("No body provided"));
   const body = addCommentSchema.safeParse(JSON.parse(event.body));
   if (!body.success) return res(badRequest("Invalid body"));
 
-  await WorkCommentRepository.insert(
-    params.workId,
-    clubId,
-    userId,
-    body.data.content,
-    body.data.spoiler,
-  );
+  await WorkCommentRepository.insert(workId, clubId, userId, body.data.content, body.data.spoiler);
   return res(ok());
 });
 
@@ -132,14 +123,15 @@ const updateCommentSchema = z.object({
 });
 
 router.put("/:workId/comments/:commentId", secured, async ({ userId, params, event }, res) => {
-  if (!hasValue(params.workId) || !hasValue(params.commentId)) {
-    return res(badRequest("Missing parameters"));
-  }
+  const workId = requireParam(params, "workId", res);
+  if (isRouterResponse(workId)) return workId;
+  const commentId = requireParam(params, "commentId", res);
+  if (isRouterResponse(commentId)) return commentId;
   if (!hasValue(event.body)) return res(badRequest("No body provided"));
   const body = updateCommentSchema.safeParse(JSON.parse(event.body));
   if (!body.success) return res(badRequest("Invalid body"));
 
-  const comment = await WorkCommentRepository.getById(params.commentId);
+  const comment = await WorkCommentRepository.getById(commentId);
   if (!comment) {
     return res(badRequest("Comment not found"));
   }
@@ -148,7 +140,7 @@ router.put("/:workId/comments/:commentId", secured, async ({ userId, params, eve
   }
 
   await WorkCommentRepository.updateContent(
-    params.commentId,
+    commentId,
     userId,
     body.data.content,
     body.data.spoiler,
@@ -157,17 +149,18 @@ router.put("/:workId/comments/:commentId", secured, async ({ userId, params, eve
 });
 
 router.delete("/:workId/comments/:commentId", secured, async ({ userId, params }, res) => {
-  if (!hasValue(params.workId) || !hasValue(params.commentId)) {
-    return res(badRequest("Missing parameters"));
-  }
-  const comment = await WorkCommentRepository.getById(params.commentId);
+  const workId = requireParam(params, "workId", res);
+  if (isRouterResponse(workId)) return workId;
+  const commentId = requireParam(params, "commentId", res);
+  if (isRouterResponse(commentId)) return commentId;
+  const comment = await WorkCommentRepository.getById(commentId);
   if (!comment) {
     return res(badRequest("Comment not found"));
   }
   if (comment.user_id !== userId) {
     return res(unauthorized("You can only delete your own comments"));
   }
-  await WorkCommentRepository.deleteById(params.commentId);
+  await WorkCommentRepository.deleteById(commentId);
   return res(ok());
 });
 
@@ -176,9 +169,8 @@ const discussionQuestionsSchema = z.object({
 });
 
 router.post("/:workId/discussion-questions", secured, async ({ clubId, params }, res) => {
-  if (!hasValue(params.workId)) {
-    return res(badRequest("No workId provided"));
-  }
+  const workId = requireParam(params, "workId", res);
+  if (isRouterResponse(workId)) return workId;
 
   const settings = await SettingsRepository.getSettings(clubId);
   if (settings.features.discussionQuestions !== true) {
@@ -188,7 +180,7 @@ router.post("/:workId/discussion-questions", secured, async ({ clubId, params },
   // Resolve the work server-side from the workId so the prompt can't be
   // poisoned by client-supplied input. The work's provider owns the
   // type-specific metadata lookup and prompt wording.
-  const work = await WorkRepository.getById(clubId, params.workId);
+  const work = await WorkRepository.getById(clubId, workId);
   if (!work) {
     return res(badRequest("Work not found"));
   }
@@ -222,10 +214,9 @@ router.post("/:workId/discussion-questions", secured, async ({ clubId, params },
 // it cheaply to pick up other members' scores during a synchronized scoring
 // session without refetching the whole reviews list (posters, metadata, etc.).
 router.get("/:workId/scores", secured, async ({ clubId, params }, res) => {
-  if (!hasValue(params.workId)) {
-    return res(badRequest("No workId provided"));
-  }
-  const scores = await buildWorkScores(clubId, params.workId);
+  const workId = requireParam(params, "workId", res);
+  if (isRouterResponse(workId)) return workId;
+  const scores = await buildWorkScores(clubId, workId);
   return res(ok(JSON.stringify(scores)));
 });
 
@@ -243,11 +234,9 @@ async function buildWorkScores(clubId: string, workId: string): Promise<ReviewSc
 }
 
 router.get("/:workId/shared", async ({ clubId, params }, res) => {
-  if (!hasValue(params.workId)) {
-    return res(badRequest("No workId provided"));
-  }
+  const workId = requireParam(params, "workId", res);
+  if (isRouterResponse(workId)) return workId;
 
-  const workId = params.workId;
   const sharedReviewData = await SharedReviewService.getSharedReviewData(clubId, workId);
 
   if (!sharedReviewData) {

@@ -115,17 +115,13 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 
-import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
-import { ClubType } from "../../../../lib/types/generated/db";
+import { isDefined } from "../../../../lib/checks/checks.js";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
-import { buildCandidatePool } from "../composables/scoreAssistLogic";
+import { useScoreAssistCandidates } from "../composables/useScoreAssistCandidates";
 import ScoreAssistFlow from "./ScoreAssistFlow.vue";
 import ScoreEntryPanel from "./ScoreEntryPanel.vue";
 import { clubTypeConfig } from "@/common/clubType";
 import AnimatedHeight from "@/common/components/AnimatedHeight.vue";
-import { useClub, useClubSlug } from "@/service/useClub";
-import { useReviewsList } from "@/service/useList";
-import { useUser } from "@/service/useUser";
 
 const props = defineProps<{
   target: DetailedReviewListItem;
@@ -189,18 +185,8 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydownCapture, tr
 // Assist inputs are derived here (from the cached reviews query) rather than
 // prop-drilled, mirroring ScoreEntryModal, so the drawer only hands the dock
 // its target work.
-const clubSlug = useClubSlug();
-const { data: club } = useClub(clubSlug);
-const { data: reviews } = useReviewsList(clubSlug);
-const user = useUser();
-
-const clubType = computed(() => club.value?.type ?? ClubType.movie);
+const { clubType, candidates } = useScoreAssistCandidates(() => props.target.id);
 const noun = computed(() => clubTypeConfig(clubType.value).noun);
-const candidates = computed(() =>
-  hasValue(user.value?.id)
-    ? buildCandidatePool(reviews.value ?? [], user.value.id, props.target.id)
-    : [],
-);
 
 // The work's title is already in the drawer hero right above, so the heading
 // names the action rather than repeating it.
