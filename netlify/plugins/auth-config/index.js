@@ -22,8 +22,20 @@ function writeAuthConfigToFile() {
     ].filter(hasValue),
   );
 
+  // The URL this particular deploy answers on: the site URL in production, the
+  // per-PR one on a deploy preview. BetterAuth's emailed links are built from
+  // BETTER_AUTH_URL (pinned to production for Google OAuth), so the functions
+  // need this to point password-reset and verification links back at the deploy
+  // whose database actually holds the token.
+  const siteURL = [
+    process.env.DEPLOY_PRIME_URL,
+    process.env.URL,
+    process.env.BETTER_AUTH_URL,
+  ].find(hasValue);
+
   const configContent = JSON.stringify(
     {
+      siteURL,
       trustedOrigins: Array.from(origins),
     },
     null,
