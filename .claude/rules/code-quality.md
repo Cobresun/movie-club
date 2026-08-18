@@ -9,6 +9,21 @@ paths:
 
 # Code Quality
 
+## Comments
+
+Default to no comment. The code, the types, and the test names carry the _what_; a comment that restates them goes stale and earns nothing. Write one only for tricky business logic that needs a _why_ — a non-obvious rule, an ordering constraint, a deliberate deviation someone would otherwise "fix."
+
+Never write a comment that references a previous implementation. `// now uses the registry instead of the old ternary`, `// replaces the legacy data migration`, `// keeping this for backwards compat with the old shape` — none of that survives contact with a reader who never saw the old code, and git history already holds it. Describe what the code does now, or say nothing. The same goes for comments addressed at review time (`// changed per feedback`) and for commented-out code: delete it.
+
+```ts
+// Bad — restates the code, and dates itself against a version nobody can see.
+// Look up the config from the registry (used to be a switch on clubType)
+const config = clubTypeConfig(type);
+
+// Good — a rule the reader cannot derive from the code.
+// Awards ties resolve to the earlier nomination, matching how the club votes in person.
+```
+
 ## Type guards
 
 `lib/checks/checks.ts` holds this codebase's null/empty checks — `hasValue`, `isDefined`, `isString`, `isTrue`, `hasElements`, `ensure`, `filterUndefinedProperties`. Read the signatures there; they're written to narrow types and to satisfy oxlint's `typescript/strict-boolean-expressions`, which rejects most hand-rolled truthiness checks anyway. Reach for these before writing a manual `x && x.trim() !== ""`.
