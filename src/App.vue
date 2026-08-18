@@ -2,7 +2,11 @@
   <div>
     <nav-bar />
     <div
-      v-if="authStore.isInitialLoading || (authStore.isLoggedIn && authStore.isLoadingUserClubs)"
+      v-if="
+        authStore.isInitialLoading ||
+        (authStore.isLoggedIn && authStore.isLoadingUserClubs) ||
+        authStore.isNavigatingAfterAuth
+      "
       class="absolute w-full"
     >
       <!-- Boot placeholder. "/" resolves to a club home for anyone signed in, so

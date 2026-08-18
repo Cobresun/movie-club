@@ -128,10 +128,10 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
-import { useRoute, useRouter } from "vue-router";
+import { useRoute } from "vue-router";
 import { useToast } from "vue-toastification";
 
-import { hasValue, isString } from "../../../lib/checks/checks.js";
+import { isString } from "../../../lib/checks/checks.js";
 import googleLogo from "@/assets/images/google-logo.svg";
 import { authClient } from "@/lib/auth-client";
 import { useAuthStore } from "@/stores/auth";
@@ -142,7 +142,6 @@ const emit = defineEmits<{
 
 const toast = useToast();
 const route = useRoute();
-const router = useRouter();
 const authStore = useAuthStore();
 
 const isSignUp = ref(false);
@@ -176,21 +175,6 @@ const getRedirectUrl = (): string | undefined => {
     return route.fullPath;
   }
   return undefined;
-};
-
-// After an SPA (non-OAuth) auth success: return to the redirect target if
-// there is one, otherwise fall back to the user's default club. When the
-// target is the page we're already on (e.g. the invite page), stay put — the
-// view reacts to the session change on its own.
-const navigateAfterAuth = () => {
-  const redirect = getRedirectUrl();
-  if (hasValue(redirect)) {
-    if (redirect !== route.fullPath) {
-      router.push(redirect).catch(console.error);
-    }
-  } else {
-    void authStore.navigateToDefaultClub();
-  }
 };
 
 const handleSubmit = async () => {
@@ -235,7 +219,10 @@ const handleSubmit = async () => {
           onSuccess: () => {
             toast.success("Signed in successfully!");
             handleClose();
-            navigateAfterAuth();
+            // Non-OAuth success: the store drives the hop to the redirect
+            // target (or the default club) and holds the app's loading gate
+            // up until it lands.
+            void authStore.navigateAfterAuth(getRedirectUrl());
           },
           onError: (ctx) => {
             // Handle email verification required error

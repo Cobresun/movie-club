@@ -4,7 +4,7 @@ import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
-import { isDefined, isTrue } from "../../lib/checks/checks.js";
+import { hasValue, isDefined, isTrue } from "../../lib/checks/checks.js";
 import { ClubPreview } from "../../lib/types/club";
 import { resolveDefaultClubSlug } from "../common/composables/useLastClubSlug";
 import { watchUntil } from "../common/composables/watchUntil";
@@ -116,20 +116,48 @@ export const useAuthStore = defineStore("auth", () => {
     await session.value.refetch();
   };
 
-  const navigateToDefaultClub = async () => {
-    // Wait for BetterAuth's session to reflect the login —
-    // onSuccess fires before the reactive session updates
-    if (!isLoggedIn.value) {
-      await watchUntil(isLoggedIn, (loggedIn) => loggedIn);
-    }
+  // Held as state, and not merely awaited, because App.vue's loading gate has
+  // to stay up for the WHOLE hop. The clubs query resolving and the router
+  // landing on the destination happen in different ticks: the gate's computed
+  // and the watchUntil below both react to the same change, but Vue renders
+  // before an awaited continuation runs, so between the two the app would
+  // paint the page the user signed in from — the logged-out landing page.
+  const isNavigatingAfterAuth = ref(false);
 
-    await waitForClubsReady();
+  /**
+   * Post-login navigation, owned here so the flag above covers every path out
+   * of the auth modal. `redirect` is the route the user was headed for before
+   * they had to authenticate; without one they land on their default club.
+   */
+  const navigateAfterAuth = async (redirect?: string) => {
+    isNavigatingAfterAuth.value = true;
+    try {
+      // Wait for BetterAuth's session to reflect the login —
+      // onSuccess fires before the reactive session updates
+      if (!isLoggedIn.value) {
+        await watchUntil(isLoggedIn, (loggedIn) => loggedIn);
+      }
 
-    const slug = resolveDefaultClubSlug(userClubs.value);
-    if (isDefined(slug)) {
-      router.push({ name: "ClubHome", params: { clubSlug: slug } }).catch(console.error);
-    } else {
-      router.push({ name: "NewClub" }).catch(console.error);
+      await waitForClubsReady();
+
+      if (hasValue(redirect)) {
+        // Already on the target (e.g. a club invite page): the view reacts to
+        // the session change on its own, so pushing would only be a no-op
+        // navigation failure.
+        if (redirect !== route.fullPath) {
+          await router.push(redirect);
+        }
+        return;
+      }
+
+      const slug = resolveDefaultClubSlug(userClubs.value);
+      await router.push(
+        isDefined(slug) ? { name: "ClubHome", params: { clubSlug: slug } } : { name: "NewClub" },
+      );
+    } catch (error) {
+      console.error(error);
+    } finally {
+      isNavigatingAfterAuth.value = false;
     }
   };
 
@@ -160,6 +188,7 @@ export const useAuthStore = defineStore("auth", () => {
     // Helper methods for router guards
     waitForAuthReady,
     waitForClubsReady,
-    navigateToDefaultClub,
+    isNavigatingAfterAuth,
+    navigateAfterAuth,
   };
 });
