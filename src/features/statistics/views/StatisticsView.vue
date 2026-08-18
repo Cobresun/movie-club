@@ -10,7 +10,7 @@
         <mdicon name="share-variant" />
       </button>
     </page-header>
-    <loading-spinner v-if="isLoading" />
+    <StatsSkeleton v-if="isLoading" />
 
     <div v-else-if="!hasReviews">
       <EmptyState
@@ -42,6 +42,7 @@ import { useStatisticsData } from "../composables/useStatisticsData";
 import InsightsView from "./InsightsView.vue";
 import { clubTypeConfig, clubTypeStats } from "@/common/clubType";
 import EmptyState from "@/common/components/EmptyState.vue";
+import StatsSkeleton from "@/common/components/StatsSkeleton.vue";
 import { useShare } from "@/common/composables/useShare";
 import { useClub, useClubSlug } from "@/service/useClub";
 

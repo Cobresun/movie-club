@@ -124,7 +124,16 @@
       <!-- Members Section -->
       <div class="mt-8 space-y-4">
         <h3 class="text-xl font-semibold">Members</h3>
-        <loading-spinner v-if="isLoadingMembers" />
+        <RowListSkeleton
+          v-if="isLoadingMembers"
+          class="gap-3"
+          :count="3"
+          :lines="2"
+          avatar
+          row-class="rounded-lg bg-gray-800 p-4"
+          role="status"
+          aria-label="Loading members"
+        />
         <div v-else class="space-y-3">
           <div
             v-for="member in members"
@@ -254,6 +263,7 @@ import { ref, computed, watch } from "vue";
 import { useToast } from "vue-toastification";
 
 import { hasValue } from "../../../../lib/checks/checks";
+import RowListSkeleton from "@/common/components/RowListSkeleton.vue";
 import {
   useMembers,
   useClubSlug,

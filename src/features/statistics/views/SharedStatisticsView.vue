@@ -7,7 +7,7 @@
     />
 
     <div class="mx-auto max-w-6xl space-y-6 px-6 pt-6">
-      <loading-spinner v-if="isLoading" />
+      <StatsSkeleton v-if="isLoading" />
 
       <EmptyState
         v-else-if="!hasReviews"
@@ -39,6 +39,7 @@ import { clubTypeConfig } from "@/common/clubType";
 import EmptyState from "@/common/components/EmptyState.vue";
 import SharedPageCtaBanner from "@/common/components/SharedPageCtaBanner.vue";
 import SharedPageHeader from "@/common/components/SharedPageHeader.vue";
+import StatsSkeleton from "@/common/components/StatsSkeleton.vue";
 import { useClub } from "@/service/useClub";
 
 const route = useRoute();

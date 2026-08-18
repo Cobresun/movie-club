@@ -7,7 +7,7 @@
     />
 
     <div class="mx-auto max-w-6xl space-y-6 px-6 pt-6">
-      <loading-spinner v-if="isLoading" />
+      <WorkGridSkeleton v-if="isLoading" :count="8" role="status" aria-label="Loading list" />
       <div v-else-if="error" class="rounded-lg bg-red-900/50 p-4">
         <p class="text-center text-red-400">Failed to load list</p>
       </div>
@@ -58,6 +58,7 @@ import EmptyState from "@/common/components/EmptyState.vue";
 import SharedPageCtaBanner from "@/common/components/SharedPageCtaBanner.vue";
 import SharedPageHeader from "@/common/components/SharedPageHeader.vue";
 import VAvatar from "@/common/components/VAvatar.vue";
+import WorkGridSkeleton from "@/common/components/WorkGridSkeleton.vue";
 import WorkPosterCard from "@/common/components/WorkPosterCard.vue";
 import { useClub, useMembers } from "@/service/useClub";
 import { useClubLists, useList, useNextWork } from "@/service/useList";

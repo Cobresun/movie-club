@@ -12,6 +12,7 @@
   --motion-base: 200ms; /* fades: backdrops, modals, list enter/leave */
   --motion-slow: 300ms; /* spatial overlays: drawers, sheets, reveals */
   --motion-page: 350ms; /* route transitions */
+  --motion-shimmer: 1400ms; /* looping loading-skeleton sweep */
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
   --ease-emphasized: cubic-bezier(0.32, 0.72, 0, 1);
 }

@@ -3,7 +3,7 @@
     <SharedPageHeader :club-name="club?.clubName ?? clubSlug" :members="data?.members ?? []" />
 
     <div class="px-6 pt-6">
-      <loading-spinner v-if="isLoading" />
+      <SharedReviewSkeleton v-if="isLoading" />
       <div v-else-if="error" class="rounded-lg bg-red-900/50 p-4">
         <p class="text-center text-red-400">Failed to load review</p>
       </div>
@@ -126,12 +126,12 @@ import { useRoute } from "vue-router";
 import { hasElements, isDefined } from "../../../../lib/checks/checks.js";
 import ReviewFactCard from "../components/ReviewFactCard.vue";
 import { computeReviewFact } from "../reviewFacts";
-import LoadingSpinner from "@/common/components/LoadingSpinner.vue";
 import SharedPageCtaBanner from "@/common/components/SharedPageCtaBanner.vue";
 import SharedPageHeader from "@/common/components/SharedPageHeader.vue";
 import VAvatar from "@/common/components/VAvatar.vue";
 import { asMovie, workPosterUrl } from "@/common/workDisplay";
 import SharedReviewComments from "@/features/reviews/components/SharedReviewComments.vue";
+import SharedReviewSkeleton from "@/features/reviews/components/SharedReviewSkeleton.vue";
 import { useClub } from "@/service/useClub";
 import { useReviewsList, useSharedReview } from "@/service/useList";
 
