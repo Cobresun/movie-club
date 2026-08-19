@@ -1,37 +1,28 @@
 import { screen } from "@testing-library/vue";
+import { http, HttpResponse } from "msw";
+import { useRoute } from "vue-router";
 
 import VerifyEmailView from "../views/VerifyEmailView.vue";
-import { authClient } from "@/lib/auth-client";
+import { server } from "@/mocks/server";
 import { render } from "@/tests/utils";
 
-vi.mock("@/lib/auth-client", () => ({
-  authClient: {
-    verifyEmail: vi.fn(),
-    sendVerificationEmail: vi.fn(),
-    useSession: vi.fn(() => ({ value: { data: null, isPending: false } })),
-  },
-}));
+const VERIFY_ENDPOINT = "/api/auth/verify-email";
 
-vi.mock("vue-router", () => ({
-  useRoute: vi.fn(() => ({
-    params: { clubSlug: "test-club" },
-    query: { token: "valid-verify-token" },
-  })),
-  useRouter: vi.fn(() => ({
-    push: vi.fn(() => Promise.resolve()),
-  })),
-}));
+/** Makes the verification endpoint reject the token the view was given. */
+function verificationFails(message: string) {
+  server.use(http.get(VERIFY_ENDPOINT, () => HttpResponse.json({ message }, { status: 400 })));
+}
+
+beforeEach(() => {
+  useRoute().query.token = "valid-verify-token";
+});
 
 describe("VerifyEmailView", () => {
   beforeEach(() => {
-    vi.mocked(authClient.verifyEmail).mockResolvedValue({
-      data: null,
-      error: null,
-    });
-    vi.mocked(authClient.sendVerificationEmail).mockResolvedValue({
-      data: null,
-      error: null,
-    });
+    server.use(
+      http.get(VERIFY_ENDPOINT, () => HttpResponse.json({ status: true })),
+      http.post("/api/auth/send-verification-email", () => HttpResponse.json({ status: true })),
+    );
   });
 
   it("shows success state after successful email verification", async () => {
@@ -49,14 +40,7 @@ describe("VerifyEmailView", () => {
   });
 
   it("shows error state when verification fails with expired token", async () => {
-    vi.mocked(authClient.verifyEmail).mockResolvedValue({
-      data: null,
-      error: {
-        message: "Token has expired",
-        status: 400,
-        statusText: "Bad Request",
-      },
-    });
+    verificationFails("Token has expired");
 
     render(VerifyEmailView);
 
@@ -65,14 +49,7 @@ describe("VerifyEmailView", () => {
   });
 
   it("shows error state when verification fails with invalid token", async () => {
-    vi.mocked(authClient.verifyEmail).mockResolvedValue({
-      data: null,
-      error: {
-        message: "invalid token",
-        status: 400,
-        statusText: "Bad Request",
-      },
-    });
+    verificationFails("invalid token");
 
     render(VerifyEmailView);
 
@@ -81,14 +58,7 @@ describe("VerifyEmailView", () => {
   });
 
   it("shows the Resend Verification Email button on error", async () => {
-    vi.mocked(authClient.verifyEmail).mockResolvedValue({
-      data: null,
-      error: {
-        message: "Token has expired",
-        status: 400,
-        statusText: "Bad Request",
-      },
-    });
+    verificationFails("Token has expired");
 
     render(VerifyEmailView);
 

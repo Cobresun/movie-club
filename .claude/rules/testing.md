@@ -14,7 +14,8 @@ Vitest with jsdom and `globals: true`, rooted at `src/`. Feature tests live in `
 
 Read it before writing a test — it makes several things global, which explains behavior that otherwise looks like magic:
 
-- **`vue-router` is mocked wholesale.** `useRoute()` always returns `params.clubSlug === "test-club"`, and `useRouter()` returns stubs. Don't set up a real router; do assert against those stubs for navigation.
+- **`vue-router` is mocked wholesale**, with one shared route and one shared router for the whole suite, both reset before every test. `useRoute()` returns `params.clubSlug === "test-club"` and an empty `query` — mutate it (`useRoute().query.token = "…"`) when a view reads something else. `useRouter()` returns stable `push`/`replace` spies, so assert navigation with `vi.mocked(useRouter()).push.mock.calls`. Never re-mock `vue-router` in a spec.
+- **`router-link` is stubbed as a plain anchor**, so links keep their slot content and carry `role="link"`. Query navigation with `getByRole("link", { name })` rather than reaching for `router-link-stub`.
 - **A Pinia helper component is rendered before every test**, so stores are initialized without per-test setup.
 - **`window.matchMedia` is stubbed** to always report `matches: false` — media-query-driven branches take the false path unless you override it.
 - **MSW is started once and `resetHandlers()` runs after each test**, so per-test `server.use(...)` overrides don't leak.

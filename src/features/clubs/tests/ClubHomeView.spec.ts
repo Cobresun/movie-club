@@ -6,15 +6,18 @@ import members from "@/mocks/data/members.json";
 import { server } from "@/mocks/server";
 import { render } from "@/tests/utils";
 
-// useInviteToken uses POST /api/club/:id/invite
 beforeEach(() => {
   server.use(
     http.post("/api/club/:id/invite", () => HttpResponse.json({ token: "test-invite-token-123" })),
   );
 });
 
+const openInviteModal = async (user: ReturnType<typeof render>["user"]) => {
+  await user.click(await screen.findByRole("button", { name: "Invite members" }));
+};
+
 describe("ClubHomeView", () => {
-  it("shows a loading spinner while members are loading", () => {
+  it("shows a loading spinner while members are loading", async () => {
     server.use(
       http.get("/api/club/:id/members", async () => {
         await new Promise(() => {
@@ -24,77 +27,46 @@ describe("ClubHomeView", () => {
       }),
     );
 
-    const { container } = render(ClubHomeView);
-    // LoadingSpinner renders a .lds-spinner div
-    expect(container.querySelector(".lds-spinner")).toBeInTheDocument();
+    render(ClubHomeView);
+
+    expect(await screen.findByRole("status", { name: "Loading" })).toBeInTheDocument();
   });
 
-  it("renders member names after loading", async () => {
+  it("renders every member's name", async () => {
     render(ClubHomeView);
 
     expect(await screen.findByText("dev")).toBeInTheDocument();
-    expect(screen.getByText("user")).toBeInTheDocument();
+    members.forEach((member) => {
+      expect(screen.getByText(member.name)).toBeInTheDocument();
+    });
   });
 
-  it("renders 4 router-link stubs for core sections (no awards)", async () => {
-    // Reviews, Watchlists, Statistics, ClubSettings
-    const { container } = render(ClubHomeView);
+  it("links to each core section", async () => {
+    render(ClubHomeView);
 
-    await screen.findByText("dev");
-
-    const links = container.querySelectorAll("router-link-stub");
-    expect(links.length).toBe(4);
+    for (const name of ["Reviews", "Lists", "Statistics", "Club Settings"]) {
+      expect(await screen.findByRole("link", { name })).toBeInTheDocument();
+    }
+    expect(screen.queryByRole("link", { name: "Awards" })).not.toBeInTheDocument();
   });
 
-  it("renders 5 router-link stubs when awards feature is enabled", async () => {
+  it("links to awards when the awards feature is enabled", async () => {
     server.use(
       http.get("/api/club/:id/settings", () => HttpResponse.json({ features: { awards: true } })),
     );
 
-    const { container } = render(ClubHomeView);
+    render(ClubHomeView);
 
-    await screen.findByText("dev");
-
-    const links = container.querySelectorAll("router-link-stub");
-    expect(links.length).toBe(5);
+    expect(await screen.findByRole("link", { name: "Awards" })).toBeInTheDocument();
   });
 
-  it("opens invite modal when the plus pill is clicked", async () => {
-    const { user, container } = render(ClubHomeView);
+  it("shows the shareable invite link after opening the invite modal", async () => {
+    const { user } = render(ClubHomeView);
 
-    // Wait for members to load
-    await screen.findByText("dev");
-
-    // The invite pill is a div with @click="showInviteModal = true"
-    const plusPill = container.querySelector(".rounded-full.border-2.border-slate-600.bg-gray-500");
-    expect(plusPill).toBeInTheDocument();
-    if (plusPill) {
-      await user.click(plusPill);
-    }
+    await openInviteModal(user);
 
     expect(await screen.findByText("Invite Members")).toBeInTheDocument();
     expect(screen.getByText(/Share this link/i)).toBeInTheDocument();
-  });
-
-  it("shows the invite link input after opening invite modal", async () => {
-    const { user, container } = render(ClubHomeView);
-
-    await screen.findByText("dev");
-
-    const plusPill = container.querySelector(".rounded-full.border-2.border-slate-600.bg-gray-500");
-    if (plusPill) await user.click(plusPill);
-
-    const input = await screen.findByDisplayValue(/join-club\/test-invite-token-123/);
-    expect(input).toBeInTheDocument();
-  });
-
-  it("renders all member names", async () => {
-    render(ClubHomeView);
-
-    await screen.findByText("dev");
-
-    members.forEach((m) => {
-      expect(screen.getByText(m.name)).toBeInTheDocument();
-    });
+    expect(screen.getByDisplayValue(/join-club\/test-invite-token-123/)).toBeInTheDocument();
   });
 });

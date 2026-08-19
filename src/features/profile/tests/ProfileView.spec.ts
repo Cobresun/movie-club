@@ -1,36 +1,14 @@
-import { createTestingPinia } from "@pinia/testing";
 import { screen, waitFor } from "@testing-library/vue";
 import { http, HttpResponse } from "msw";
 
 import ProfileView from "../views/ProfileView.vue";
-import memberData from "@/mocks/data/member.json";
 import { server } from "@/mocks/server";
-import { useAuthStore } from "@/stores/auth";
-import { render } from "@/tests/utils";
-
-// ProfileView reads the signed-in user from the auth store; the avatar/name
-// mutations call auth.refreshSession() in onSettled, so it must resolve (a
-// testing-pinia action stub returns undefined and .catch() would throw).
-function asCurrentUser(pinia: ReturnType<typeof createTestingPinia>) {
-  const authStore = useAuthStore(pinia);
-  // @ts-expect-error Overwriting readonly session user for testing purposes
-  authStore.user = {
-    id: memberData.id,
-    email: memberData.email,
-    name: memberData.name,
-    image: memberData.image,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    emailVerified: true,
-  };
-  vi.mocked(authStore.refreshSession).mockResolvedValue(undefined);
-  return authStore;
-}
+import { logIn, render } from "@/tests/utils";
 
 describe("ProfileView", () => {
   it("renders the signed-in user's name and email", async () => {
     const { pinia } = render(ProfileView);
-    asCurrentUser(pinia);
+    logIn(pinia);
 
     expect(await screen.findByText("user")).toBeInTheDocument();
     expect(screen.getByText("user@email.com")).toBeInTheDocument();
@@ -38,7 +16,7 @@ describe("ProfileView", () => {
 
   it("opens the change-password modal", async () => {
     const { user, pinia } = render(ProfileView);
-    asCurrentUser(pinia);
+    logIn(pinia);
 
     await user.click(screen.getByRole("button", { name: "Change Password" }));
 
@@ -55,7 +33,7 @@ describe("ProfileView", () => {
     );
 
     const { user, pinia } = render(ProfileView);
-    asCurrentUser(pinia);
+    logIn(pinia);
 
     await user.click(await screen.findByRole("button", { name: "Edit name" }));
     const input = screen.getByRole("textbox");
@@ -78,7 +56,7 @@ describe("ProfileView", () => {
     );
 
     const { user, pinia } = render(ProfileView);
-    asCurrentUser(pinia);
+    logIn(pinia);
 
     await user.click(await screen.findByRole("button", { name: "Edit name" }));
     await user.clear(screen.getByRole("textbox"));
@@ -90,7 +68,7 @@ describe("ProfileView", () => {
 
   it("cancels name editing and returns to the display view", async () => {
     const { user, pinia } = render(ProfileView);
-    asCurrentUser(pinia);
+    logIn(pinia);
 
     await user.click(await screen.findByRole("button", { name: "Edit name" }));
     expect(screen.getByRole("textbox")).toBeInTheDocument();
@@ -111,7 +89,7 @@ describe("ProfileView", () => {
     );
 
     const { user, pinia } = render(ProfileView);
-    asCurrentUser(pinia);
+    logIn(pinia);
 
     await user.click(await screen.findByRole("button", { name: "Delete photo" }));
 

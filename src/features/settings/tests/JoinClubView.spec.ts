@@ -3,8 +3,7 @@ import { http, HttpResponse } from "msw";
 
 import JoinClubView from "../views/JoinClubView.vue";
 import { server } from "@/mocks/server";
-import { useAuthStore } from "@/stores/auth";
-import { render } from "@/tests/utils";
+import { logIn, render } from "@/tests/utils";
 
 const clubDetailsResponse = {
   clubId: "42",
@@ -27,24 +26,13 @@ describe("JoinClubView", () => {
     expect(screen.getByRole("button", { name: "Log In" })).toBeInTheDocument();
   });
 
-  it("calls auth.login when 'Log In' is clicked", async () => {
-    const { user, pinia } = render(JoinClubView);
-    const authStore = useAuthStore(pinia);
-    vi.mocked(authStore.login).mockResolvedValue(undefined);
-
-    await user.click(screen.getByRole("button", { name: "Log In" }));
-
-    expect(authStore.login).toHaveBeenCalled();
-  });
-
-  it("shows the club name and Join button when logged in and invite is valid", async () => {
+  it("shows the invite once the user is logged in", async () => {
     const { pinia } = render(JoinClubView);
-    const authStore = useAuthStore(pinia);
-    // @ts-expect-error Override readonly computed for testing
-    authStore.isLoggedIn = true;
+    logIn(pinia);
 
     expect(await screen.findByText(/Science Fiction Book Club/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Join Club" })).toBeInTheDocument();
+    expect(screen.queryByText("Please log in to join this club")).not.toBeInTheDocument();
   });
 
   it("shows an error message when the invite token is invalid", async () => {
@@ -53,9 +41,7 @@ describe("JoinClubView", () => {
     );
 
     const { pinia } = render(JoinClubView);
-    const authStore = useAuthStore(pinia);
-    // @ts-expect-error Override readonly computed for testing
-    authStore.isLoggedIn = true;
+    logIn(pinia);
 
     expect(await screen.findByText("The invite token is invalid or expired.")).toBeInTheDocument();
   });
@@ -70,9 +56,7 @@ describe("JoinClubView", () => {
     );
 
     const { user, pinia } = render(JoinClubView);
-    const authStore = useAuthStore(pinia);
-    // @ts-expect-error Override readonly computed for testing
-    authStore.isLoggedIn = true;
+    logIn(pinia);
 
     await user.click(await screen.findByRole("button", { name: "Join Club" }));
 

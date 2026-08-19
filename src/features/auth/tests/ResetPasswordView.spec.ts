@@ -1,15 +1,11 @@
 import { screen } from "@testing-library/vue";
+import { http, HttpResponse } from "msw";
 
 import ResetPasswordView from "../views/ResetPasswordView.vue";
-import { authClient } from "@/lib/auth-client";
+import { server } from "@/mocks/server";
 import { render } from "@/tests/utils";
 
-vi.mock("@/lib/auth-client", () => ({
-  authClient: {
-    resetPassword: vi.fn(),
-    useSession: vi.fn(() => ({ value: { data: null, isPending: false } })),
-  },
-}));
+const RESET_ENDPOINT = "/api/auth/reset-password";
 
 // useRoute is mocked globally in setup.ts with params.clubSlug="test-club"
 // but no query params — override for tests that need a token
@@ -25,10 +21,7 @@ vi.mock("vue-router", () => ({
 
 describe("ResetPasswordView", () => {
   beforeEach(() => {
-    vi.mocked(authClient.resetPassword).mockResolvedValue({
-      data: null,
-      error: null,
-    });
+    server.use(http.post(RESET_ENDPOINT, () => HttpResponse.json({ status: true })));
   });
 
   it("renders the reset password form", async () => {
@@ -81,14 +74,11 @@ describe("ResetPasswordView", () => {
   });
 
   it("shows invalid token state when API returns an expired error", async () => {
-    vi.mocked(authClient.resetPassword).mockResolvedValue({
-      data: null,
-      error: {
-        message: "Token has expired",
-        status: 400,
-        statusText: "Bad Request",
-      },
-    });
+    server.use(
+      http.post(RESET_ENDPOINT, () =>
+        HttpResponse.json({ message: "Token has expired" }, { status: 400 }),
+      ),
+    );
 
     const { user } = render(ResetPasswordView);
 

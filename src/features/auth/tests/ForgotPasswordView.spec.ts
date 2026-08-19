@@ -1,22 +1,15 @@
 import { screen } from "@testing-library/vue";
+import { http, HttpResponse } from "msw";
 
 import ForgotPasswordView from "../views/ForgotPasswordView.vue";
-import { authClient } from "@/lib/auth-client";
+import { server } from "@/mocks/server";
 import { render } from "@/tests/utils";
 
-vi.mock("@/lib/auth-client", () => ({
-  authClient: {
-    requestPasswordReset: vi.fn(),
-    useSession: vi.fn(() => ({ value: { data: null, isPending: false } })),
-  },
-}));
+const RESET_ENDPOINT = "/api/auth/request-password-reset";
 
 describe("ForgotPasswordView", () => {
   beforeEach(() => {
-    vi.mocked(authClient.requestPasswordReset).mockResolvedValue({
-      data: null,
-      error: null,
-    });
+    server.use(http.post(RESET_ENDPOINT, () => HttpResponse.json({ status: true })));
   });
 
   it("renders the heading", () => {
@@ -71,14 +64,11 @@ describe("ForgotPasswordView", () => {
   });
 
   it("shows an error message when the API returns an error", async () => {
-    vi.mocked(authClient.requestPasswordReset).mockResolvedValue({
-      data: null,
-      error: {
-        message: "Rate limit exceeded",
-        status: 429,
-        statusText: "Too Many Requests",
-      },
-    });
+    server.use(
+      http.post(RESET_ENDPOINT, () =>
+        HttpResponse.json({ message: "Rate limit exceeded" }, { status: 429 }),
+      ),
+    );
 
     const { user } = render(ForgotPasswordView);
 

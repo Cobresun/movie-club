@@ -1,23 +1,15 @@
 import { screen } from "@testing-library/vue";
+import { http, HttpResponse } from "msw";
 
 import ChangePasswordForm from "../components/ChangePasswordForm.vue";
-import { authClient } from "@/lib/auth-client";
+import { server } from "@/mocks/server";
 import { render } from "@/tests/utils";
 
-// authClient.changePassword is called directly (not via MSW) — stub it
-vi.mock("@/lib/auth-client", () => ({
-  authClient: {
-    changePassword: vi.fn(),
-    useSession: vi.fn(() => ({ value: { data: null, isPending: false } })),
-  },
-}));
+const CHANGE_PASSWORD_ENDPOINT = "/api/auth/change-password";
 
 describe("ChangePasswordForm", () => {
   beforeEach(() => {
-    vi.mocked(authClient.changePassword).mockResolvedValue({
-      data: null,
-      error: null,
-    });
+    server.use(http.post(CHANGE_PASSWORD_ENDPOINT, () => HttpResponse.json({ status: true })));
   });
 
   it("renders the form fields", () => {
@@ -91,14 +83,11 @@ describe("ChangePasswordForm", () => {
   });
 
   it("shows error message when API returns an incorrect password error", async () => {
-    vi.mocked(authClient.changePassword).mockResolvedValue({
-      data: null,
-      error: {
-        message: "incorrect password",
-        status: 400,
-        statusText: "Bad Request",
-      },
-    });
+    server.use(
+      http.post(CHANGE_PASSWORD_ENDPOINT, () =>
+        HttpResponse.json({ message: "incorrect password" }, { status: 400 }),
+      ),
+    );
 
     const { user } = render(ChangePasswordForm);
 

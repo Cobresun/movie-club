@@ -1,10 +1,10 @@
 import { screen } from "@testing-library/vue";
 import { http, HttpResponse } from "msw";
+import { useRouter } from "vue-router";
 
 import NewClubView from "../views/NewClubView.vue";
 import { server } from "@/mocks/server";
-import { useAuthStore } from "@/stores/auth";
-import { render } from "@/tests/utils";
+import { render, logIn } from "@/tests/utils";
 
 describe("NewClubView", () => {
   it("shows a 'must be logged in' message when not authenticated", () => {
@@ -15,79 +15,39 @@ describe("NewClubView", () => {
 
   it("shows the club name input when logged in", async () => {
     const { pinia } = render(NewClubView);
-    const authStore = useAuthStore(pinia);
-    // @ts-expect-error Overwriting readonly computed for test
-    authStore.isLoggedIn = true;
-    // @ts-expect-error Overwriting readonly computed for test
-    authStore.user = {
-      id: "1",
-      email: "creator@test.com",
-      name: "Creator",
-      image: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      emailVerified: true,
-    };
+    logIn(pinia);
 
     expect(await screen.findByPlaceholderText("Club name")).toBeInTheDocument();
   });
 
   it("shows a validation error when submitting with no club name", async () => {
     const { pinia, user } = render(NewClubView);
-    const authStore = useAuthStore(pinia);
-    // @ts-expect-error Overwriting readonly computed for test
-    authStore.isLoggedIn = true;
-    // @ts-expect-error Overwriting readonly computed for test
-    authStore.user = {
-      id: "1",
-      email: "creator@test.com",
-      name: "Creator",
-      image: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      emailVerified: true,
-    };
+    logIn(pinia);
 
-    const button = await screen.findByRole("button", { name: /Create club/i });
-    await user.click(button);
+    await user.click(await screen.findByRole("button", { name: /Create club/i }));
 
     expect(screen.getByText("Club name is required")).toBeInTheDocument();
   });
 
-  it("calls the create club API when a valid name is submitted", async () => {
-    let capturedBody: unknown = null;
-
+  it("opens the club it just created", async () => {
     server.use(
       http.post("/api/club", async ({ request }) => {
-        capturedBody = await request.json();
-        return HttpResponse.json({ clubId: "123", slug: "my-new-club" });
+        const { name } = (await request.json()) as { name: string };
+        return HttpResponse.json({ clubId: "123", slug: name.toLowerCase().replace(/ /g, "-") });
       }),
     );
 
     const { pinia, user } = render(NewClubView);
-    const authStore = useAuthStore(pinia);
-    // @ts-expect-error Overwriting readonly computed for test
-    authStore.isLoggedIn = true;
-    // @ts-expect-error Overwriting readonly computed for test
-    authStore.user = {
-      id: "1",
-      email: "creator@test.com",
-      name: "Creator",
-      image: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      emailVerified: true,
-    };
+    logIn(pinia);
 
-    const input = await screen.findByPlaceholderText("Club name");
-    await user.type(input, "My New Club");
+    await user.type(await screen.findByPlaceholderText("Club name"), "My New Club");
+    await user.click(screen.getByRole("button", { name: /Create club/i }));
 
-    const button = screen.getByRole("button", { name: /Create club/i });
-    await user.click(button);
-
-    // Wait for the mutation to complete
+    const router = vi.mocked(useRouter());
     await vi.waitFor(() => {
-      expect(capturedBody).toMatchObject({ name: "My New Club" });
+      expect(router.push.mock.calls).toContainEqual([
+        { name: "ClubHome", params: { clubSlug: "my-new-club" } },
+      ]);
     });
   });
 });
