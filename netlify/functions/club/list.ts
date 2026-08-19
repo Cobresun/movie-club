@@ -14,6 +14,7 @@ import WorkRepository from "../repositories/WorkRepository";
 import { secured } from "../utils/auth";
 import { parseBody } from "../utils/parseBody";
 import { getExternalSummariesForWorks } from "../utils/providers";
+import { requireParam } from "../utils/requireParam";
 import { badRequest, internalServerError, ok } from "../utils/responses";
 import { buildReviewScores } from "../utils/reviewScores";
 import { isRouterResponse, Router } from "../utils/router";
@@ -193,10 +194,8 @@ router.delete(
   validListId,
   secured<ListRequest>,
   async ({ listId, clubId, params }, res) => {
-    if (!hasValue(params.workId)) {
-      return res(badRequest("No workId provided"));
-    }
-    const workId = params.workId;
+    const workId = requireParam(params, "workId", res);
+    if (isRouterResponse(workId)) return workId;
     const exists = await ListRepository.isItemInList(listId, workId);
     if (!exists) {
       return res(badRequest("This movie does not exist in the list"));
@@ -240,13 +239,11 @@ router.put(
   validListId,
   secured<ListRequest>,
   async ({ listId, params, event }, res) => {
-    if (!hasValue(params.workId)) {
-      return res(badRequest("No workId provided"));
-    }
+    const workId = requireParam(params, "workId", res);
+    if (isRouterResponse(workId)) return workId;
     const body = parseBody(event, updateAddedDateSchema, res);
     if (isRouterResponse(body)) return body;
 
-    const workId = params.workId;
     const exists = await ListRepository.isItemInList(listId, workId);
     if (!exists) {
       return res(badRequest("This work does not exist in the list"));
@@ -265,20 +262,14 @@ router.post(
   validListId,
   secured<ListRequest>,
   async ({ listId, clubId, params, event }, res) => {
-    if (!hasValue(params.workId)) {
-      return res(badRequest("No workId provided"));
-    }
+    const workId = requireParam(params, "workId", res);
+    if (isRouterResponse(workId)) return workId;
     const body = parseBody(event, moveSchema, res);
     if (isRouterResponse(body)) return body;
 
     // Destination ownership is validated inside the move transaction (the
     // destination row is fetched there anyway), saving a separate round trip.
-    const moved = await ListRepository.moveItem(
-      listId,
-      body.destinationListId,
-      params.workId,
-      clubId,
-    );
+    const moved = await ListRepository.moveItem(listId, body.destinationListId, workId, clubId);
     if (!moved) {
       return res(badRequest("Destination list not found"));
     }

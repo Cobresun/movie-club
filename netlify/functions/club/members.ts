@@ -1,9 +1,9 @@
-import { hasValue } from "../../../lib/checks/checks.js";
 import { Member } from "../../../lib/types/club";
 import UserRepository from "../repositories/UserRepository";
 import { secured, loggedIn } from "../utils/auth";
-import { ok, badRequest } from "../utils/responses";
-import { Router } from "../utils/router";
+import { requireParam } from "../utils/requireParam";
+import { ok } from "../utils/responses";
+import { isRouterResponse, Router } from "../utils/router";
 import { ClubRequest, validClubSlug } from "../utils/validation";
 
 const router = new Router<ClubRequest>("/api/club/:clubSlug/members");
@@ -31,8 +31,9 @@ router.get("/join", validClubSlug, loggedIn<ClubRequest>, async (req, res) => {
 });
 
 router.delete("/:memberId", secured, async ({ clubId, params }, res) => {
-  if (!hasValue(params.memberId)) return res(badRequest("Missing memberId"));
-  await UserRepository.removeClubMember(clubId, params.memberId);
+  const memberId = requireParam(params, "memberId", res);
+  if (isRouterResponse(memberId)) return memberId;
+  await UserRepository.removeClubMember(clubId, memberId);
   return res(ok());
 });
 
