@@ -80,21 +80,19 @@ describe("CommentThread", () => {
     expect(await screen.findByText("Spoiler")).toBeInTheDocument();
   });
 
-  it("keeps spoiler content out of the page until it is revealed", async () => {
+  it("hides spoiler content from assistive tech until it is revealed", async () => {
     server.use(...commentsApi([theirComment("Secret ending revealed", true)]));
 
     const rendered = renderThread();
 
-    // Blurring the real text would still read it out to a screen reader and
-    // leave it in the page's text, so the content is not rendered at all until
-    // the reader asks for it.
-    const reveal = await screen.findByRole("button", { name: "Reveal spoiler" });
-    expect(screen.queryByText("Secret ending revealed")).not.toBeInTheDocument();
+    // The blur is visual only, so aria-hidden is what actually keeps the
+    // spoiler from being read out before the member asks for it.
+    const spoiler = await screen.findByText("Secret ending revealed");
+    expect(spoiler).toHaveAttribute("aria-hidden", "true");
 
-    await rendered.user.click(reveal);
+    await rendered.user.click(spoiler);
 
-    expect(await screen.findByText("Secret ending revealed")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Reveal spoiler" })).not.toBeInTheDocument();
+    expect(screen.getByText("Secret ending revealed")).not.toHaveAttribute("aria-hidden");
   });
 
   it("shows the author their own spoiler comment unmasked", async () => {

@@ -83,20 +83,17 @@
 
         <!-- Display mode -->
         <div v-else class="mt-2">
-          <!-- A hidden spoiler is a button, not blurred text: blur is a purely
-               visual filter, so rendering the real content would still read it
-               out to a screen reader and leave it in the page's text. The
-               masked stand-in keeps the shape of the paragraph while the
-               content stays out of the DOM until it is revealed. -->
-          <button
+          <!-- `blur-sm` is a purely visual filter, so the hidden branch also
+               carries aria-hidden: without it the spoiler is read out in full
+               to a screen reader that cannot see the blur. -->
+          <p
             v-if="isSpoilerHidden(comment)"
-            type="button"
-            class="w-full cursor-pointer select-none whitespace-pre-wrap text-left text-sm text-gray-200 blur-sm transition-all"
+            aria-hidden="true"
+            class="cursor-pointer select-none whitespace-pre-wrap text-left text-sm text-gray-200 blur-sm transition-all"
             @click="revealedSpoilers.add(comment.id)"
           >
-            <span aria-hidden="true">{{ maskSpoiler(comment.content) }}</span>
-            <span class="sr-only">Reveal spoiler</span>
-          </button>
+            {{ comment.content }}
+          </p>
           <p v-else class="whitespace-pre-wrap text-left text-sm text-gray-200">
             {{ comment.content }}
           </p>
@@ -187,9 +184,6 @@ const revealedSpoilers = reactive(new Set<string>());
 
 const isSpoilerHidden = (comment: WorkCommentDto) =>
   comment.spoiler && comment.userId !== currentUserId.value && !revealedSpoilers.has(comment.id);
-
-/** Stands in for hidden spoiler text, keeping the word shape under the blur. */
-const maskSpoiler = (content: string) => content.replace(/\S/g, "█");
 
 const showDeleteConfirmation = ref(false);
 const pendingDeleteId = ref<string | null>(null);
