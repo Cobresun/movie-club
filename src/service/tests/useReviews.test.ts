@@ -8,46 +8,9 @@ import {
   useReviewComments,
   useSubmitScore,
 } from "../useReviews";
+import { comment, commentsApi } from "@/mocks/comments";
 import { server } from "@/mocks/server";
 import { withSetup } from "@/tests/utils";
-
-function comment(id: string, content: string, spoiler = false) {
-  return {
-    id,
-    workId: "work-1",
-    userId: "u-1",
-    userName: "Alice",
-    content,
-    createdDate: "2024-01-01T00:00:00.000Z",
-    spoiler,
-  };
-}
-
-/** A comment thread that keeps what the mutations send it. */
-function commentsApi(initial: ReturnType<typeof comment>[] = []) {
-  let thread = [...initial];
-  const base = "/api/club/:id/reviews/:workId/comments";
-
-  return [
-    http.get(base, () => HttpResponse.json(thread)),
-    http.post(base, async ({ request }) => {
-      const { content, spoiler } = (await request.json()) as { content: string; spoiler: boolean };
-      thread = [...thread, comment(`c-${thread.length + 1}`, content, spoiler)];
-      return HttpResponse.json({});
-    }),
-    http.put(`${base}/:commentId`, async ({ request, params }) => {
-      const { content, spoiler } = (await request.json()) as { content: string; spoiler: boolean };
-      thread = thread.map((existing) =>
-        existing.id === params.commentId ? { ...existing, content, spoiler } : existing,
-      );
-      return HttpResponse.json({});
-    }),
-    http.delete(`${base}/:commentId`, ({ params }) => {
-      thread = thread.filter((existing) => existing.id !== params.commentId);
-      return HttpResponse.json({});
-    }),
-  ];
-}
 
 /** Runs the comment thread query alongside the mutation under test. */
 function withThread<T>(mutation: () => T) {
@@ -176,7 +139,7 @@ describe("useAddReviewComment", () => {
 
 describe("useEditReviewComment", () => {
   it("rewrites the comment in place, spoiler flag included", async () => {
-    server.use(...commentsApi([comment("c-7", "First thoughts")]));
+    server.use(...commentsApi([comment({ id: "c-7", content: "First thoughts" })]));
 
     const { result } = withSetup(withThread(() => useEditReviewComment("test-club", "work-1")));
 
@@ -198,7 +161,12 @@ describe("useEditReviewComment", () => {
 
 describe("useDeleteReviewComment", () => {
   it("takes only the named comment off the thread", async () => {
-    server.use(...commentsApi([comment("c-99", "Delete me"), comment("c-100", "Keep me")]));
+    server.use(
+      ...commentsApi([
+        comment({ id: "c-99", content: "Delete me" }),
+        comment({ id: "c-100", content: "Keep me" }),
+      ]),
+    );
 
     const { result } = withSetup(withThread(() => useDeleteReviewComment("test-club", "work-1")));
 

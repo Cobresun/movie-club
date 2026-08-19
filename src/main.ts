@@ -22,7 +22,6 @@ import VBtn from "@/common/components/VBtn.vue";
 import VModal from "@/common/components/VModal.vue";
 import VSelect from "@/common/components/VSelect.vue";
 import VSwitch from "@/common/components/VSwitch.vue";
-import VTable from "@/common/components/VTable.vue";
 import MenuCard from "@/features/clubs/components/MenuCard.vue";
 
 import "./assets/styles/tailwind.css";
@@ -91,7 +90,6 @@ createApp(App)
   .component("v-select", VSelect)
   .component("v-switch", VSwitch)
   .component("loading-spinner", Loading)
-  .component("movie-table", VTable)
   .component("menu-card", MenuCard)
   .component("v-modal", VModal)
   .component("page-header", PageHeader)

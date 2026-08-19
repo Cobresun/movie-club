@@ -83,12 +83,12 @@
 
         <!-- Display mode -->
         <div v-else class="mt-2">
+          <!-- `blur-sm` is a purely visual filter, so the hidden branch also
+               carries aria-hidden: without it the spoiler is read out in full
+               to a screen reader that cannot see the blur. -->
           <p
-            v-if="
-              comment.spoiler &&
-              comment.userId !== currentUserId &&
-              !revealedSpoilers.has(comment.id)
-            "
+            v-if="isSpoilerHidden(comment)"
+            aria-hidden="true"
             class="cursor-pointer select-none whitespace-pre-wrap text-left text-sm text-gray-200 blur-sm transition-all"
             @click="revealedSpoilers.add(comment.id)"
           >
@@ -140,7 +140,7 @@
 
 <script setup lang="ts">
 import { DateTime } from "luxon";
-import { nextTick, reactive, ref } from "vue";
+import { computed, nextTick, reactive, ref } from "vue";
 
 import { hasElements, hasValue } from "../../../lib/checks/checks.js";
 import { WorkCommentDto } from "../../../lib/types/lists";
@@ -162,7 +162,10 @@ const props = defineProps<{
 }>();
 
 const user = useUser();
-const currentUserId = ref(user.value?.id);
+// Computed, not a one-off `ref(user.value?.id)`: the session can resolve after
+// this component mounts, and a snapshot taken at setup would leave the author
+// without the edit and delete controls for their own comments.
+const currentUserId = computed(() => user.value?.id);
 
 const { data: comments } = useReviewComments(props.clubSlug, props.workId);
 const { mutate: addComment } = useAddReviewComment(props.clubSlug, props.workId);
@@ -178,6 +181,9 @@ const editContent = ref("");
 const editSpoiler = ref(false);
 
 const revealedSpoilers = reactive(new Set<string>());
+
+const isSpoilerHidden = (comment: WorkCommentDto) =>
+  comment.spoiler && comment.userId !== currentUserId.value && !revealedSpoilers.has(comment.id);
 
 const showDeleteConfirmation = ref(false);
 const pendingDeleteId = ref<string | null>(null);
