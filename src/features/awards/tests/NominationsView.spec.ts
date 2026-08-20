@@ -1,4 +1,3 @@
-import { createTestingPinia } from "@pinia/testing";
 import { screen } from "@testing-library/vue";
 
 import { AwardsStep, ClubAwards } from "../../../../lib/types/awards";
@@ -6,8 +5,7 @@ import { DetailedMovieData } from "../../../../lib/types/movie";
 import NominationsView from "../views/NominationsView.vue";
 import memberData from "@/mocks/data/member.json";
 import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
-import { useAuthStore } from "@/stores/auth";
-import { render } from "@/tests/utils";
+import { logIn, render } from "@/tests/utils";
 
 mockIntersectionObserver();
 
@@ -52,24 +50,10 @@ const clubAward: ClubAwards = {
 
 const props = { clubAward, clubSlug: "test-club", year: "2024" };
 
-function login(pinia: ReturnType<typeof createTestingPinia>) {
-  const authStore = useAuthStore(pinia);
-  // @ts-expect-error Overwriting readonly session user for testing purposes
-  authStore.user = {
-    id: memberData.id,
-    email: memberData.email,
-    name: memberData.name,
-    image: memberData.image,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    emailVerified: true,
-  };
-}
-
 describe("NominationsView", () => {
   it("shows only the current user's own nominations", async () => {
     const { pinia } = render(NominationsView, { props });
-    login(pinia);
+    logIn(pinia);
 
     expect(await screen.findByRole("heading", { name: "Best Picture" })).toBeInTheDocument();
     // Nominations are attributed by user id: I nominated Inception, another
@@ -80,7 +64,7 @@ describe("NominationsView", () => {
 
   it("reports nomination progress across categories", async () => {
     const { pinia } = render(NominationsView, { props });
-    login(pinia);
+    logIn(pinia);
 
     expect(await screen.findByText("1 / 1 categories")).toBeInTheDocument();
   });

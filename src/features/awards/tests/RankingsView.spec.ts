@@ -1,4 +1,3 @@
-import { createTestingPinia } from "@pinia/testing";
 import { screen, waitFor } from "@testing-library/vue";
 import { http, HttpResponse } from "msw";
 
@@ -8,8 +7,7 @@ import RankingsView from "../views/RankingsView.vue";
 import memberData from "@/mocks/data/member.json";
 import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
 import { server } from "@/mocks/server";
-import { useAuthStore } from "@/stores/auth";
-import { render } from "@/tests/utils";
+import { logIn, render } from "@/tests/utils";
 
 mockIntersectionObserver();
 
@@ -54,20 +52,6 @@ const clubAward: ClubAwards = {
 
 const props = { clubAward, clubSlug: "test-club", year: "2024" };
 
-function login(pinia: ReturnType<typeof createTestingPinia>) {
-  const authStore = useAuthStore(pinia);
-  // @ts-expect-error Overwriting readonly session user for testing purposes
-  authStore.user = {
-    id: memberData.id,
-    email: memberData.email,
-    name: memberData.name,
-    image: memberData.image,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    emailVerified: true,
-  };
-}
-
 describe("RankingsView", () => {
   it("prompts the user to log in when not authenticated", () => {
     render(RankingsView, { props });
@@ -77,7 +61,7 @@ describe("RankingsView", () => {
 
   it("renders a ranking widget per award when logged in", async () => {
     const { pinia } = render(RankingsView, { props });
-    login(pinia);
+    logIn(pinia);
 
     expect(await screen.findByRole("heading", { name: "Best Picture" })).toBeInTheDocument();
     expect(screen.getByText("Inception")).toBeInTheDocument();
@@ -94,7 +78,7 @@ describe("RankingsView", () => {
     );
 
     const { user, pinia } = render(RankingsView, { props });
-    login(pinia);
+    logIn(pinia);
 
     await user.click(await screen.findByRole("button", { name: "Submit" }));
 

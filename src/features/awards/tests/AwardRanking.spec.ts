@@ -116,26 +116,24 @@ describe("AwardRanking", () => {
     expect(screen.getByText("1")).toBeInTheDocument();
   });
 
-  it("shows left-chevron for all but the first nomination", () => {
+  it("offers a move button only in the directions a nomination can travel", () => {
     render(AwardRanking, { props: { award, members, user: currentUser } });
 
-    // First card should only have chevron-right; second should have both
-    const buttons = screen.getAllByRole("button");
-    // Submit + left + right chevron buttons (Submit, right for first, left+right for second)
-    expect(buttons.length).toBeGreaterThanOrEqual(3);
+    // For "dev" the initial order is Parasite (10) then Moonlight (20), so the
+    // ends of the list can each only move inwards.
+    expect(screen.queryByRole("button", { name: "Move Parasite left" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Move Parasite right" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Move Moonlight left" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Move Moonlight right" })).not.toBeInTheDocument();
   });
 
-  it("re-orders nominations when the right chevron is clicked on the first card", async () => {
+  it("re-orders nominations when the first one is moved right", async () => {
     const { user, emitted } = render(AwardRanking, {
       props: { award, members, user: currentUser },
     });
 
     // For "dev" the initial order is Parasite (10) then Moonlight (20).
-    const chevronRight = screen
-      .getAllByRole("button")
-      .find((btn) => btn.querySelector(".mdi-chevron-right"));
-    expect(chevronRight).toBeDefined();
-    if (chevronRight) await user.click(chevronRight);
+    await user.click(screen.getByRole("button", { name: "Move Parasite right" }));
 
     // Submitting now should report the swapped order.
     await user.click(screen.getByRole("button", { name: "Submit" }));
