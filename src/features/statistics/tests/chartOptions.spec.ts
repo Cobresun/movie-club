@@ -3,7 +3,6 @@ import type { AgCartesianChartOptions } from "ag-charts-community";
 import { WorkType } from "../../../../lib/types/generated/db";
 import {
   createCumulativeCountChartOptions,
-  createDecadeChartOptions,
   createHistogramOptions,
   createMonthlyActivityChartOptions,
 } from "../scoring";
@@ -143,36 +142,6 @@ describe("createHistogramOptions", () => {
     expect(axisAt(options, "bottom")?.title?.enabled).toBe(false);
     expect(Number(axisAt(options, "bottom")?.label?.fontSize)).toBeLessThan(
       Number(axisAt(createHistogramOptions(params), "bottom")?.label?.fontSize),
-    );
-  });
-});
-
-// ─── createDecadeChartOptions ─────────────────────────────────────────────────
-
-describe("createDecadeChartOptions", () => {
-  const decades = [
-    { decade: "1990s", averageScore: 8.1, count: 4 },
-    { decade: "2000s", averageScore: 7.2, count: 9 },
-  ];
-
-  it("plots the decades it is given", () => {
-    expect(createDecadeChartOptions(decades).data).toEqual(decades);
-  });
-
-  it("pins the score axis to the full 0–10 scale so decades stay comparable", () => {
-    const left = axisAt(createDecadeChartOptions(decades), "left");
-
-    expect(left?.min).toBe(0);
-    expect(left?.max).toBe(10);
-  });
-
-  it("hides the legend — it is a single club-wide series", () => {
-    expect(createDecadeChartOptions(decades).legend?.enabled).toBe(false);
-  });
-
-  it("drops the axis title in compact mode", () => {
-    expect(axisAt(createDecadeChartOptions(decades, "Books", true), "left")?.title?.enabled).toBe(
-      false,
     );
   });
 });
