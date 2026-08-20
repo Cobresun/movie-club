@@ -10,6 +10,9 @@ import TMDBSearch from "./data/TMDBSearch.json";
 import watchlist from "./data/watchlist.json";
 
 export const handlers = [
+  http.get("/api/auth/get-session", () => {
+    return HttpResponse.json(null);
+  }),
   http.get("/api/admin/metrics", () => {
     return HttpResponse.json(adminMetrics);
   }),

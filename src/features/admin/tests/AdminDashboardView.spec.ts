@@ -21,15 +21,7 @@ vi.mock("ag-charts-vue3", () => ({
   AgCharts: defineComponent({ name: "AgCharts", template: "<div data-testid='ag-chart' />" }),
 }));
 
-/**
- * The shared render helper stubs `router-link` with `true`, which drops the
- * default slot — and the club names in the leaderboard live inside that slot.
- * This stub keeps the link inert but renders its children.
- */
-const renderDashboard = () =>
-  render(AdminDashboardView, {
-    global: { stubs: { "router-link": { template: "<a><slot /></a>" } } },
-  });
+const renderDashboard = () => render(AdminDashboardView);
 
 describe("AdminDashboardView", () => {
   it("shows the site totals once metrics load", async () => {

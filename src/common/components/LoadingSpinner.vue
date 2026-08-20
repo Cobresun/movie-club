@@ -1,5 +1,5 @@
 <template>
-  <div class="lds-spinner">
+  <div class="lds-spinner" role="status" aria-label="Loading">
     <div />
     <div />
     <div />

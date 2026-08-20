@@ -4,7 +4,7 @@
     :class="`bg-${bgColor}`"
     @click="emit('click')"
   >
-    <img :src="image" class="mx-auto mb-1 h-16 w-32 md:mb-2 md:h-20 md:w-40" />
+    <img :src="image" alt="" class="mx-auto mb-1 h-16 w-32 md:mb-2 md:h-20 md:w-40" />
     <div class="prompt">
       <slot />
     </div>

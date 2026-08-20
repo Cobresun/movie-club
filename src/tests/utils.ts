@@ -63,7 +63,14 @@ export const render = <C>(component: C, options: Partial<RenderOptions<C>> = {})
         ],
         directives: { "lazy-load": LazyLoad, reveal: Reveal },
         stubs: {
-          "router-link": true,
+          // Render router-links as real anchors rather than VTU's
+          // `<router-link-stub>`: that keeps the link's slot content in the
+          // accessibility tree, so tests query navigation by role and name
+          // instead of counting stub elements.
+          "router-link": {
+            props: ["to"],
+            template: '<a href="#"><slot /></a>',
+          },
           "router-view": true,
           ...(Array.isArray(options.global?.stubs)
             ? Object.fromEntries(options.global.stubs.map((s: string) => [s, true]))
@@ -99,6 +106,10 @@ export const logIn = (pinia: TestingPinia) => {
   };
   // @ts-expect-error Forcing logged in to true for testing
   authStore.isLoggedIn = true;
+  // Views that mutate the profile call `refreshSession()` in a mutation's
+  // `onSettled` and chain onto it; a bare testing-pinia action stub returns
+  // undefined, so the chained `.catch()` would throw.
+  vi.mocked(authStore.refreshSession).mockResolvedValue(undefined);
 };
 
 /**
