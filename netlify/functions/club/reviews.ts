@@ -94,9 +94,8 @@ router.put(`/:reviewId`, secured, async ({ clubId, userId, params, event }, res)
   return res(ok());
 });
 
-// Unscoring a work: drops the caller's own score and nothing else, so the work
-// stays on the reviews list for everyone who did mean to rate it. Removing the
-// work itself is a separate, club-wide action (DELETE on the list item).
+// Drops the caller's own score only; the work stays on the reviews list.
+// Removing the work itself is a separate, club-wide action on the list item.
 router.delete(`/:reviewId`, secured, async ({ clubId, userId, params }, res) => {
   const reviewId = requireParam(params, "reviewId", res);
   if (isRouterResponse(reviewId)) return reviewId;

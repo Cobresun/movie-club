@@ -232,10 +232,9 @@ function withoutMemberScore(scores: ReviewScores, userId: string): ReviewScores 
 }
 
 /**
- * Removes the current user's own score from a work — the "I rated the wrong
- * thing" escape hatch. Only the caller's review row goes; the work stays on the
- * club's reviews list with everyone else's scores intact (removing the work
- * itself is `useDeleteReview`).
+ * Removes the current user's own score from a work. The work stays on the
+ * club's reviews list with everyone else's scores intact; removing the work
+ * itself is `useDeleteReview`.
  */
 export function useDeleteScore(clubSlug: string) {
   const auth = useAuthStore();
@@ -243,7 +242,7 @@ export function useDeleteScore(clubSlug: string) {
   const user = useUser();
 
   return useMutation({
-    // `workId` isn't part of the request — it's carried through so the cache
+    // `workId` isn't part of the request; it is carried through so the cache
     // update can find the work whose score map lost an entry.
     mutationFn: ({ reviewId }: { reviewId: string; workId: string }) =>
       auth.request.delete(`/api/club/${clubSlug}/reviews/${reviewId}`),

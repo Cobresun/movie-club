@@ -185,9 +185,9 @@ describe("DELETE /api/club/:clubSlug/reviews/:reviewId", () => {
     (await scoresOf(club, workId, as)).body[as.userId].id;
 
   const reviewedWorkIds = async (club: SeededClub) =>
-    (
-      await api.get<DetailedReviewListItem[]>(`/api/club/${club.slug}/list/reviews`)
-    ).body.map((review) => review.id);
+    (await api.get<DetailedReviewListItem[]>(`/api/club/${club.slug}/list/reviews`)).body.map(
+      (review) => review.id,
+    );
 
   it("removes the caller's own score and leaves the other scores alone", async () => {
     const alice = await signIn("alice");

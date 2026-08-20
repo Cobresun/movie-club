@@ -167,8 +167,7 @@ describe("ScoreEntryPanel", () => {
     await user.click(screen.getByRole("button", { name: "Remove" }));
 
     await waitFor(() => expect(deleted).toBe(true));
-    // The panel closes, but without the just-saved celebration — there is no
-    // score left to celebrate.
+    // The panel closes without the saved-score animation.
     expect(rendered.emitted().submit).toHaveLength(1);
     expect(rendered.emitted().saved).toBeUndefined();
   });

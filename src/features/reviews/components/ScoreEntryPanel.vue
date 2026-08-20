@@ -32,12 +32,8 @@
       Save score
     </button>
 
-    <!-- The "I rated the wrong thing" escape hatch. It only exists once a score
-         has been saved, and it stays the quietest control in the panel — muted
-         red text, no fill — so it never competes with Save. The confirm step is
-         inline rather than an overlay: the panel already sits inside a drawer or
-         a modal, and stacking a third layer to undo one number is heavier than
-         the action deserves. -->
+    <!-- The confirm step is inline rather than an overlay: the panel already
+         sits inside a drawer or a modal, so an overlay would be a third layer. -->
     <template v-if="hasValue(reviewId)">
       <button
         v-if="!confirmingRemove"
@@ -161,15 +157,14 @@ const save = () => {
 
 const deleteScore = useDeleteScore(clubSlug);
 
-// Two-step: the first tap arms the confirm row, the second actually deletes.
 const confirmingRemove = ref(false);
 
 const removeScore = () => {
   const reviewId = props.reviewId;
   if (!hasValue(reviewId)) return;
   deleteScore.mutate({ reviewId, workId: props.workId });
-  // "submit" (and never "saved") — the host closes the panel without firing the
-  // just-saved celebration for a score that no longer exists.
+  // "submit" and not "saved": the host closes the panel without running the
+  // saved-score animation for a score that no longer exists.
   emit("submit");
 };
 
