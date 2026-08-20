@@ -72,16 +72,16 @@ describe("AddReviewPrompt", () => {
         return new HttpResponse(null, { status: 200 });
       }),
     );
-    const { user, emitted } = render(AddReviewPrompt);
+    const rendered = render(AddReviewPrompt);
 
-    await user.click(await screen.findByText("The Super Mario Bros. Movie"));
+    await rendered.user.click(await screen.findByText("The Super Mario Bros. Movie"));
 
     await waitFor(() => {
       expect(moved).toHaveBeenCalledWith(
         expect.objectContaining({ listId: "1", workId: "item-1" }),
       );
     });
-    expect(emitted().close).toBeTruthy();
+    expect(rendered.emitted().close).toBeTruthy();
   });
 
   it("adds a work found through search straight to the reviews list", async () => {
@@ -105,11 +105,14 @@ describe("AddReviewPrompt", () => {
         return new HttpResponse(null, { status: 200 });
       }),
     );
-    const { user, emitted } = render(AddReviewPrompt);
+    const rendered = render(AddReviewPrompt);
 
-    await user.type(await screen.findByPlaceholderText("Type to filter or search"), "Fight Club");
+    await rendered.user.type(
+      await screen.findByPlaceholderText("Type to filter or search"),
+      "Fight Club",
+    );
 
-    await user.click(await screen.findByText("Fight Club"));
+    await rendered.user.click(await screen.findByText("Fight Club"));
 
     await waitFor(() => {
       expect(added).toHaveBeenCalledWith(
@@ -119,17 +122,17 @@ describe("AddReviewPrompt", () => {
         }),
       );
     });
-    expect(emitted().close).toBeTruthy();
+    expect(rendered.emitted().close).toBeTruthy();
   });
 
   it("closes when the user presses Escape", async () => {
     server.use(allItems());
-    const { user, emitted } = render(AddReviewPrompt);
+    const rendered = render(AddReviewPrompt);
 
     await screen.findByText("From your lists");
-    await user.keyboard("{Escape}");
+    await rendered.user.keyboard("{Escape}");
 
-    expect(emitted().close).toBeTruthy();
+    expect(rendered.emitted().close).toBeTruthy();
   });
 
   it("spins while the club's lists are still loading", () => {
