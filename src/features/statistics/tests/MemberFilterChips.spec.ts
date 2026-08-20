@@ -27,23 +27,23 @@ describe("MemberFilterChips", () => {
   });
 
   it("selects a member by emitting their id", async () => {
-    const { user, emitted } = render(MemberFilterChips, {
+    const rendered = render(MemberFilterChips, {
       props: { members, modelValue: undefined },
     });
 
-    await user.click(screen.getByRole("button", { name: /dev/ }));
+    await rendered.user.click(screen.getByRole("button", { name: /dev/ }));
 
-    expect(emitted()["update:modelValue"]).toEqual([["1"]]);
+    expect(rendered.emitted()["update:modelValue"]).toEqual([["1"]]);
   });
 
   it("clears the selection by emitting undefined from the All chip", async () => {
-    const { user, emitted } = render(MemberFilterChips, {
+    const rendered = render(MemberFilterChips, {
       props: { members, modelValue: "1" },
     });
 
-    await user.click(screen.getByRole("button", { name: "All" }));
+    await rendered.user.click(screen.getByRole("button", { name: "All" }));
 
-    expect(emitted()["update:modelValue"]).toEqual([[undefined]]);
+    expect(rendered.emitted()["update:modelValue"]).toEqual([[undefined]]);
   });
 
   it("marks the selected member's chip as the active one", () => {
@@ -89,22 +89,22 @@ describe("SegmentedToggle", () => {
   });
 
   it("emits the option's value when a tab is clicked", async () => {
-    const { user, emitted } = render(SegmentedToggle, {
+    const rendered = render(SegmentedToggle, {
       props: { options, modelValue: "scores" },
     });
 
-    await user.click(screen.getByRole("tab", { name: "Counts" }));
+    await rendered.user.click(screen.getByRole("tab", { name: "Counts" }));
 
-    expect(emitted()["update:modelValue"]).toEqual([["counts"]]);
+    expect(rendered.emitted()["update:modelValue"]).toEqual([["counts"]]);
   });
 
   it("still emits when the current option is re-clicked, leaving dedupe to v-model", async () => {
-    const { user, emitted } = render(SegmentedToggle, {
+    const rendered = render(SegmentedToggle, {
       props: { options, modelValue: "scores" },
     });
 
-    await user.click(screen.getByRole("tab", { name: "Scores" }));
+    await rendered.user.click(screen.getByRole("tab", { name: "Scores" }));
 
-    expect(emitted()["update:modelValue"]).toEqual([["scores"]]);
+    expect(rendered.emitted()["update:modelValue"]).toEqual([["scores"]]);
   });
 });

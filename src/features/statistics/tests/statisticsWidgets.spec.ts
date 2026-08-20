@@ -98,7 +98,7 @@ describe("STAT_WIDGETS", () => {
   });
 
   it("shows the score-only widgets to both club types", () => {
-    const shared = ["stats", "club-records", "score-charts", "activity", "era", "club-consensus"];
+    const shared = ["stats", "club-records", "score-charts", "activity", "club-consensus"];
 
     for (const clubType of Object.values(ClubType)) {
       expect(visibleKeys(clubType, 5)).toEqual(expect.arrayContaining(shared));

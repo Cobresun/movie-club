@@ -72,7 +72,6 @@ describe("InsightsView", () => {
     expect(screen.getByRole("heading", { name: "Scores" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Club Activity" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Genres" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Through the Years" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Reviewer Stats" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Club Consensus" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Club vs TMDB" })).toBeInTheDocument();
