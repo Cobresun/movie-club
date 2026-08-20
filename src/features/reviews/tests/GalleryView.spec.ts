@@ -150,13 +150,15 @@ describe("GalleryView", () => {
   });
 
   it("opens the details drawer for the clicked review", async () => {
+    // `src/tests/setup.ts` stubs this globally — jsdom has no layout. Hold the
+    // spy in a local so the assertion never references the method unbound.
+    const scrollIntoView = vi.spyOn(HTMLElement.prototype, "scrollIntoView");
     const { user } = renderGallery();
 
     await user.click(screen.getByText("Dune"));
 
     expect(document.querySelector("work-details-drawer-stub")).toBeInTheDocument();
-    // `src/tests/setup.ts` stubs this globally — jsdom has no layout.
-    expect(HTMLElement.prototype.scrollIntoView).toHaveBeenCalled();
+    expect(scrollIntoView).toHaveBeenCalled();
   });
 
   it("renders no cards for a club with no reviews", () => {
