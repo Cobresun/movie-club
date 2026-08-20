@@ -87,6 +87,13 @@ function startScorePoll(
   setTimeout(() => void tick(0), SCORE_POLL_INTERVAL_MS);
 }
 
+// Deleting a score has no poll of its own, but a poll left running from an
+// earlier save on the same work would keep writing server snapshots over the
+// optimistic removal until the DELETE lands. Bumping the token retires it.
+function cancelScorePoll(clubSlug: string, workId: string) {
+  activeScorePolls.delete(`${clubSlug}:${workId}`);
+}
+
 function useReviewWork(clubSlug: string) {
   const auth = useAuthStore();
   const queryClient = useQueryClient();
@@ -202,6 +209,60 @@ export function useSubmitScore(clubSlug: string) {
       create({ workId, score });
     }
   };
+}
+
+/**
+ * Drops one member's entry from a work's score map and recomputes the synthetic
+ * `average`, mirroring the server's `buildReviewScores` — including its empty
+ * map once nobody has scored the work.
+ */
+function withoutMemberScore(scores: ReviewScores, userId: string): ReviewScores {
+  const remaining = Object.entries(scores).filter(([key]) => key !== userId && key !== "average");
+  if (remaining.length === 0) return {};
+
+  const total = remaining.reduce((sum, [, review]) => sum + review.score, 0);
+  return {
+    ...Object.fromEntries(remaining),
+    average: {
+      id: "average",
+      created_date: new Date().toISOString(),
+      score: total / remaining.length,
+    },
+  };
+}
+
+/**
+ * Removes the current user's own score from a work. The work stays on the
+ * club's reviews list with everyone else's scores intact; removing the work
+ * itself is `useDeleteReview`.
+ */
+export function useDeleteScore(clubSlug: string) {
+  const auth = useAuthStore();
+  const queryClient = useQueryClient();
+  const user = useUser();
+
+  return useMutation({
+    // `workId` isn't part of the request; it is carried through so the cache
+    // update can find the work whose score map lost an entry.
+    mutationFn: ({ reviewId }: { reviewId: string; workId: string }) =>
+      auth.request.delete(`/api/club/${clubSlug}/reviews/${reviewId}`),
+    onMutate: ({ workId }) => {
+      cancelScorePoll(clubSlug, workId);
+      const userId = user.value?.id;
+      if (!isDefined(userId)) return;
+      queryClient.setQueryData<DetailedReviewListItem[]>(reviewsListKey(clubSlug), (current) =>
+        current?.map((review) =>
+          review.id === workId
+            ? { ...review, scores: withoutMemberScore(review.scores, userId) }
+            : review,
+        ),
+      );
+    },
+    onSettled: () =>
+      queryClient.invalidateQueries({
+        queryKey: reviewsListKey(clubSlug),
+      }),
+  });
 }
 
 export function useReviewComments(clubSlug: string, workId: string) {

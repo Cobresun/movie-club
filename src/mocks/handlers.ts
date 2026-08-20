@@ -49,6 +49,9 @@ export const handlers = [
   http.put("/api/club/:id/reviews/:reviewId", () => {
     return new HttpResponse(null, { status: 200 });
   }),
+  http.delete("/api/club/:id/reviews/:reviewId", () => {
+    return new HttpResponse(null, { status: 200 });
+  }),
   http.get("/api/club/:id/reviews/:workId/scores", () => {
     return HttpResponse.json(reviews[0]?.scores ?? {});
   }),
