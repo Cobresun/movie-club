@@ -24,12 +24,17 @@
         />
       </div>
       <div class="flex justify-between">
-        <v-btn v-if="index > 0" @click="swapLeft(index)">
+        <v-btn
+          v-if="index > 0"
+          :aria-label="`Move ${nomination.movieTitle} left`"
+          @click="swapLeft(index)"
+        >
           <mdicon name="chevron-left" />
         </v-btn>
         <v-btn
           v-if="index < nominations.length - 1"
           :class="{ 'ml-auto': index === 0 }"
+          :aria-label="`Move ${nomination.movieTitle} right`"
           @click="swapRight(index)"
         >
           <mdicon name="chevron-right" />
