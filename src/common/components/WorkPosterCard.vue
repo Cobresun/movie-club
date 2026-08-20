@@ -24,6 +24,7 @@
       <img
         v-lazy-load
         :src="posterUrl"
+        :alt="title"
         class="aspect-[2/3] w-full rounded-t-lg object-cover"
         :class="{ 'cursor-pointer': selectable }"
         @click="selectable ? emit('select') : undefined"

@@ -93,10 +93,7 @@ describe("ListItems", () => {
 
     await screen.findByText("The Super Mario Bros. Movie");
 
-    const img = document.querySelector("img");
-    if (img instanceof HTMLImageElement) {
-      await rendered.user.click(img);
-    }
+    await rendered.user.click(screen.getByRole("img", { name: "The Super Mario Bros. Movie" }));
 
     await waitFor(() => {
       expect(rendered.emitted()["select"]).toBeTruthy();
