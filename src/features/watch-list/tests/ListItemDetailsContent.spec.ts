@@ -78,33 +78,33 @@ describe("ListItemDetailsContent", () => {
   });
 
   it("emits set-next-work from the 'Up Next' action", async () => {
-    const { user, emitted } = render(ListItemDetailsContent, {
+    const rendered = render(ListItemDetailsContent, {
       props: baseProps,
     });
 
-    await user.click(screen.getByRole("button", { name: "Up Next" }));
+    await rendered.user.click(screen.getByRole("button", { name: "Up Next" }));
 
-    expect(emitted()["set-next-work"]).toHaveLength(1);
+    expect(rendered.emitted()["set-next-work"]).toHaveLength(1);
   });
 
   it("emits clear-next-work from the 'Unpin' action when already next up", async () => {
-    const { user, emitted } = render(ListItemDetailsContent, {
+    const rendered = render(ListItemDetailsContent, {
       props: { ...baseProps, isNextWork: true },
     });
 
-    await user.click(screen.getByRole("button", { name: "Unpin" }));
+    await rendered.user.click(screen.getByRole("button", { name: "Unpin" }));
 
-    expect(emitted()["clear-next-work"]).toHaveLength(1);
+    expect(rendered.emitted()["clear-next-work"]).toHaveLength(1);
   });
 
   it("emits review from the 'Reviewed' action when reviewing is allowed", async () => {
-    const { user, emitted } = render(ListItemDetailsContent, {
+    const rendered = render(ListItemDetailsContent, {
       props: baseProps,
     });
 
-    await user.click(screen.getByRole("button", { name: "Reviewed" }));
+    await rendered.user.click(screen.getByRole("button", { name: "Reviewed" }));
 
-    expect(emitted()["review"]).toHaveLength(1);
+    expect(rendered.emitted()["review"]).toHaveLength(1);
   });
 
   it("hides the 'Reviewed' action when reviewing is not allowed", () => {

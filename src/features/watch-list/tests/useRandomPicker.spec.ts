@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, vi } from "vitest";
+import { afterEach, beforeEach, vi, type Mock } from "vitest";
 import { ref } from "vue";
 
 import { useRandomPicker } from "../composables/useRandomPicker";
@@ -8,9 +8,13 @@ import { useRandomPicker } from "../composables/useRandomPicker";
  * winner, so every test drives it with fake timers rather than waiting ~4s of
  * real time.
  */
+/** Held in a local so assertions never reference `navigator.vibrate` unbound. */
+let vibrate: Mock;
+
 beforeEach(() => {
   vi.useFakeTimers();
-  Object.defineProperty(navigator, "vibrate", { value: vi.fn(), configurable: true });
+  vibrate = vi.fn();
+  Object.defineProperty(navigator, "vibrate", { value: vibrate, configurable: true });
 });
 
 afterEach(() => {
@@ -90,7 +94,6 @@ describe("useRandomPicker", () => {
   });
 
   it("buzzes on each tick and again with a pattern on the reveal", async () => {
-    const vibrate = vi.mocked(navigator.vibrate);
     const { pick } = useRandomPicker(ref(["a", "b"]));
 
     await runPick(pick);

@@ -53,10 +53,10 @@ describe("ListItemDetailsDrawer", () => {
   });
 
   it("forwards the set-next-work action from the content", async () => {
-    const { user, emitted } = render(ListItemDetailsDrawer, { props });
+    const rendered = render(ListItemDetailsDrawer, { props });
 
-    await user.click(await screen.findByRole("button", { name: "Up Next" }));
+    await rendered.user.click(await screen.findByRole("button", { name: "Up Next" }));
 
-    expect(emitted()["set-next-work"]).toHaveLength(1);
+    expect(rendered.emitted()["set-next-work"]).toHaveLength(1);
   });
 });

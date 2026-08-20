@@ -89,17 +89,17 @@ describe("ListItems", () => {
   it("emits select event when poster card image is clicked", async () => {
     server.use(nextWorkHandler());
 
-    const { user, emitted } = render(ListItems, { props: defaultProps });
+    const rendered = render(ListItems, { props: defaultProps });
 
     await screen.findByText("The Super Mario Bros. Movie");
 
     const img = document.querySelector("img");
     if (img instanceof HTMLImageElement) {
-      await user.click(img);
+      await rendered.user.click(img);
     }
 
     await waitFor(() => {
-      expect(emitted()["select"]).toBeTruthy();
+      expect(rendered.emitted()["select"]).toBeTruthy();
     });
   });
 });
