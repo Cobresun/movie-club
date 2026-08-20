@@ -11,10 +11,10 @@ describe("AddMovieButton", () => {
   });
 
   it("emits a click event when the button is clicked", async () => {
-    const { user, emitted } = render(AddMovieButton);
+    const rendered = render(AddMovieButton);
 
-    await user.click(screen.getByRole("button"));
+    await rendered.user.click(screen.getByRole("button"));
 
-    expect(emitted().click).toHaveLength(1);
+    expect(rendered.emitted().click).toHaveLength(1);
   });
 });

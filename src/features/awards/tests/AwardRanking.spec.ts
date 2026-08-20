@@ -79,14 +79,14 @@ describe("AwardRanking", () => {
   });
 
   it("emits 'submit-ranking' with movie IDs in current order when Submit is clicked", async () => {
-    const { user, emitted } = render(AwardRanking, {
+    const rendered = render(AwardRanking, {
       props: { award, members, user: currentUser },
     });
 
-    await user.click(screen.getByRole("button", { name: "Submit" }));
+    await rendered.user.click(screen.getByRole("button", { name: "Submit" }));
 
     // For "dev" the initial order is Parasite (10) then Moonlight (20).
-    expect(emitted()["submit-ranking"]).toEqual([[[10, 20]]]);
+    expect(rendered.emitted()["submit-ranking"]).toEqual([[[10, 20]]]);
   });
 
   it("resolves each nominator's avatar from the member id, so a rename follows", () => {
@@ -128,16 +128,16 @@ describe("AwardRanking", () => {
   });
 
   it("re-orders nominations when the first one is moved right", async () => {
-    const { user, emitted } = render(AwardRanking, {
+    const rendered = render(AwardRanking, {
       props: { award, members, user: currentUser },
     });
 
     // For "dev" the initial order is Parasite (10) then Moonlight (20).
-    await user.click(screen.getByRole("button", { name: "Move Parasite right" }));
+    await rendered.user.click(screen.getByRole("button", { name: "Move Parasite right" }));
 
     // Submitting now should report the swapped order.
-    await user.click(screen.getByRole("button", { name: "Submit" }));
+    await rendered.user.click(screen.getByRole("button", { name: "Submit" }));
 
-    expect(emitted()["submit-ranking"]).toEqual([[[20, 10]]]);
+    expect(rendered.emitted()["submit-ranking"]).toEqual([[[20, 10]]]);
   });
 });

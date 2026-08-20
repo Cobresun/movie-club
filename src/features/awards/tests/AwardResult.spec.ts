@@ -94,13 +94,13 @@ describe("AwardResult", () => {
   });
 
   it("emits 'reveal' event when Reveal is clicked", async () => {
-    const { user, emitted } = render(AwardResult, {
+    const rendered = render(AwardResult, {
       props: { award, members, step: AwardsStep.Presentation },
     });
 
-    await user.click(screen.getByRole("button", { name: "Reveal" }));
+    await rendered.user.click(screen.getByRole("button", { name: "Reveal" }));
 
-    expect(emitted().reveal).toHaveLength(1);
+    expect(rendered.emitted().reveal).toHaveLength(1);
   });
 
   it("shows nominations immediately when step is Completed", () => {
