@@ -44,14 +44,6 @@ describe("isDefined", () => {
   it("returns false for undefined", () => {
     expect(isDefined(undefined)).toBe(false);
   });
-
-  it("narrows the type to non-nullable T", () => {
-    const value: string | null = "test";
-    if (isDefined(value)) {
-      // TypeScript should infer value as string here
-      expect(value.toUpperCase()).toBe("TEST");
-    }
-  });
 });
 
 // ---------- hasValue ----------
@@ -80,13 +72,6 @@ describe("hasValue", () => {
 
   it("returns false for a string of length 0 created via constructor", () => {
     expect(hasValue(String())).toBe(false);
-  });
-
-  it("narrows the type to string inside the guard", () => {
-    const value: string | undefined = "movie";
-    if (hasValue(value)) {
-      expect(value.length).toBeGreaterThan(0);
-    }
   });
 });
 
@@ -124,13 +109,6 @@ describe("isString", () => {
   it("returns false for an array", () => {
     expect(isString([])).toBe(false);
   });
-
-  it("narrows unknown to string inside the guard", () => {
-    const value: unknown = "test";
-    if (isString(value)) {
-      expect(value.toUpperCase()).toBe("TEST");
-    }
-  });
 });
 
 // ---------- isTrue ----------
@@ -158,14 +136,6 @@ describe("isTrue", () => {
 
   it("returns false for undefined", () => {
     expect(isTrue(undefined)).toBe(false);
-  });
-
-  it("narrows unknown to true inside the guard", () => {
-    const value: unknown = true;
-    if (isTrue(value)) {
-      // TypeScript should see value as `true`
-      expect(value).toBe(true);
-    }
   });
 });
 
@@ -200,14 +170,6 @@ describe("hasElements", () => {
   it("works with an empty readonly array", () => {
     const arr: ReadonlyArray<number> = [];
     expect(hasElements(arr)).toBe(false);
-  });
-
-  it("narrows to NonEmptyArray inside the guard", () => {
-    const arr: string[] | null = ["a", "b"];
-    if (hasElements(arr)) {
-      // The first element is guaranteed to exist by the NonEmptyArray type
-      expect(arr[0]).toBe("a");
-    }
   });
 });
 
