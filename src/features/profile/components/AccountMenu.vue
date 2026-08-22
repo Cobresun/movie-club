@@ -1,7 +1,7 @@
 <template>
   <div ref="root" class="relative">
     <button
-      class="rounded-full transition-shadow duration-fast ease-standard"
+      class="block rounded-full transition-shadow duration-fast ease-standard"
       :class="{ 'ring-2 ring-highlight ring-offset-2 ring-offset-background': isOpen }"
       aria-label="Account"
       aria-haspopup="dialog"
