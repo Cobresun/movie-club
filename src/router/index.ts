@@ -8,9 +8,15 @@ import {
 
 import { hasElements, isDefined } from "../../lib/checks/checks.js";
 import { ClubType } from "../../lib/types/generated/db";
-import { resolveDefaultClubSlug } from "../common/composables/useLastClubSlug";
-import ClubHomeView from "../features/clubs/views/ClubHomeView.vue";
+import { DEFAULT_CLUB_SECTION } from "../common/clubSections";
+import {
+  getLastClubSection,
+  rememberClubSection,
+  resolveDefaultClubSlug,
+} from "../common/composables/useLastClubSlug";
+import ClubView from "../features/clubs/views/ClubView.vue";
 import HomeView from "../features/clubs/views/HomeView.vue";
+import { openAccountMenu } from "../features/profile/composables/useAccountMenu";
 import ReviewView from "../features/reviews/views/ReviewView.vue";
 import ClubRouterView from "./ClubRouterView.vue";
 import { useAuthStore } from "@/stores/auth";
@@ -107,7 +113,7 @@ const movieClubOnly = async (
   const clubSlug = to.params.clubSlug as string;
   const club = auth.userClubs?.find((c) => c.slug === clubSlug);
   if (club && club.type !== ClubType.movie) {
-    return next({ name: "ClubHome", params: { clubSlug } });
+    return next({ name: DEFAULT_CLUB_SECTION, params: { clubSlug } });
   }
   return next();
 };
@@ -199,18 +205,22 @@ const routes: Array<RouteRecordRaw> = [
     },
   },
   {
+    // Account details are an overlay on whatever page you're already on, not a
+    // screen of their own. The route is kept so old links and bookmarks still
+    // resolve: it opens the account menu and hands the user back to the app.
+    // `component` is required for a record with a `beforeEnter`, but the guard
+    // always redirects, so HomeView is never rendered from here.
     path: "/profile",
     name: "Profile",
-    component: () => import("../features/profile/views/ProfileView.vue"),
+    component: HomeView,
     beforeEnter: async (to, from, next) => {
       const auth = useAuthStore();
 
       await auth.waitForAuthReady();
-      if (!auth.isLoggedIn) {
-        next({ name: "Clubs" });
-      } else {
-        next();
+      if (auth.isLoggedIn) {
+        openAccountMenu();
       }
+      next({ name: "Clubs" });
     },
     meta: {
       depth: 1,
@@ -260,12 +270,22 @@ const routes: Array<RouteRecordRaw> = [
     },
     children: [
       {
+        // Not a page: a club URL resolves to whichever section this member was
+        // last reading in that club, so no session starts on a contentless menu.
         path: "",
         name: "ClubHome",
-        component: ClubHomeView,
+        redirect: (to) => ({
+          name: getLastClubSection(String(to.params.clubSlug)),
+          params: { clubSlug: to.params.clubSlug },
+        }),
+      },
+      {
+        path: "club",
+        name: "Club",
+        component: ClubView,
         props: true,
         meta: {
-          depth: 1,
+          depth: 2,
         },
       },
       {
@@ -432,8 +452,9 @@ router.beforeEach((to, from) => {
   document.documentElement.dataset.routeTransition = direction;
 });
 
-router.afterEach(() => {
+router.afterEach((to) => {
   lastPosition = historyPosition();
+  rememberClubSection(to);
 });
 
 export default router;

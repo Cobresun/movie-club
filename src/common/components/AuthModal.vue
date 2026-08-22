@@ -233,7 +233,6 @@ const handleSubmit = async () => {
         },
         {
           onSuccess: () => {
-            toast.success("Signed in successfully!");
             handleClose();
             navigateAfterAuth();
           },

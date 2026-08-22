@@ -16,7 +16,7 @@
     </div>
     <div
       v-if="showDragHandle"
-      class="drag-handle absolute left-1 top-1 z-20 cursor-grab rounded bg-black/60 p-0.5 text-white active:cursor-grabbing"
+      class="drag-handle absolute left-1 top-1 z-10 cursor-grab rounded bg-black/60 p-0.5 text-white active:cursor-grabbing"
     >
       <mdicon name="drag" :size="20" />
     </div>

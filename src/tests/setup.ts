@@ -18,6 +18,9 @@ const router = vi.hoisted(() => ({
 const route = vi.hoisted(() => ({
   params: { clubSlug: "test-club" } as Record<string, string>,
   query: {} as Record<string, string>,
+  // Components that resolve the active club section read `matched` (see
+  // clubSections.sectionNameForRoute); a spec sets it to name the section.
+  matched: [] as { name?: string }[],
 }));
 
 vi.mock("vue-router", () => ({
@@ -50,6 +53,7 @@ beforeEach(() => {
   router.replace.mockClear();
   route.params = { clubSlug: "test-club" };
   route.query = {};
+  route.matched = [];
   render(PiniaStoreHelper);
 });
 

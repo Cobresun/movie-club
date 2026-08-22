@@ -1,40 +1,34 @@
 <template>
-  <div class="flex items-center justify-between p-4">
-    <div class="flex items-center gap-2">
-      <router-link :to="logoDestination">
+  <div class="flex items-center justify-between gap-2 p-3 sm:p-4">
+    <div class="flex min-w-0 flex-grow items-center gap-3">
+      <router-link
+        :to="logoDestination"
+        class="flex-shrink-0"
+        :class="{ 'hidden md:block': showClubSwitcher }"
+      >
         <h3 class="text-2xl font-bold text-highlight">MovieClub</h3>
       </router-link>
-      <ClubSwitcher v-if="isLoggedIn && hasClubContext" />
+      <ClubSwitcher v-if="showClubSwitcher" />
     </div>
-    <div v-if="authReady" class="flex items-center">
-      <v-avatar
-        v-if="isLoggedIn"
-        class="mr-3 cursor-pointer"
-        :name="fullName"
-        :src="avatarURL"
-        @click="toProfile"
-      />
-      <v-btn v-if="!isLoggedIn" @click="login"> Login </v-btn>
-      <v-btn v-else @click="logout"> Logout </v-btn>
+    <div v-if="authReady" class="flex flex-shrink-0 items-center">
+      <AccountMenu v-if="isLoggedIn" />
+      <v-btn v-else @click="login"> Login </v-btn>
     </div>
   </div>
 </template>
 <script setup lang="ts">
 import { computed } from "vue";
-import { useRoute, useRouter } from "vue-router";
+import { useRoute } from "vue-router";
 
 import { hasValue } from "../../../lib/checks/checks.js";
 import ClubSwitcher from "./ClubSwitcher.vue";
-import { useUser } from "@/service/useUser";
+import AccountMenu from "@/features/profile/components/AccountMenu.vue";
 import { useAuthStore } from "@/stores/auth";
 
 const store = useAuthStore();
-const user = useUser();
 const route = useRoute();
 
 const isLoggedIn = computed(() => store.isLoggedIn);
-const fullName = computed(() => store.user?.name ?? "");
-const avatarURL = computed(() => user.value?.image);
 const authReady = computed(() => store.ready);
 
 const currentSlug = computed(() => {
@@ -50,6 +44,8 @@ const hasClubContext = computed(() => {
   return hasValue(slug) && store.isClubMember(slug);
 });
 
+const showClubSwitcher = computed(() => isLoggedIn.value && hasClubContext.value);
+
 const logoDestination = computed(() => {
   const slug = currentSlug.value;
   if (hasValue(slug) && store.isClubMember(slug)) {
@@ -60,14 +56,5 @@ const logoDestination = computed(() => {
 
 function login() {
   store.login();
-}
-
-async function logout() {
-  await store.logout();
-}
-
-const router = useRouter();
-function toProfile() {
-  router.push({ name: "Profile" }).catch(console.error);
 }
 </script>
