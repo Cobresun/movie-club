@@ -6,6 +6,7 @@
     <button
       v-if="showDelete"
       class="absolute -right-3 -top-3 rounded-full bg-background"
+      :aria-label="`Remove ${title}`"
       @click="emit('delete')"
     >
       <mdicon name="close-circle-outline" />
@@ -21,12 +22,29 @@
       <mdicon name="drag" :size="20" />
     </div>
     <div class="flex h-full flex-col rounded-lg bg-slate-700">
+      <!-- Selecting a card opens its details, so the poster has to be a real
+           button: as a bare `<img @click>` it was neither focusable nor
+           announced, leaving the drawer unreachable by keyboard. The img is
+           the button's only content, so its alt is the button's name. -->
+      <button
+        v-if="selectable"
+        type="button"
+        class="block w-full rounded-t-lg"
+        @click="emit('select')"
+      >
+        <img
+          v-lazy-load
+          :src="posterUrl"
+          :alt="title"
+          class="aspect-[2/3] w-full rounded-t-lg object-cover"
+        />
+      </button>
       <img
+        v-else
         v-lazy-load
         :src="posterUrl"
+        :alt="title"
         class="aspect-[2/3] w-full rounded-t-lg object-cover"
-        :class="{ 'cursor-pointer': selectable }"
-        @click="selectable ? emit('select') : undefined"
       />
       <div class="flex h-auto flex-grow flex-col px-2 pb-2">
         <div class="my-2 flex flex-grow items-center justify-center">
