@@ -16,6 +16,38 @@ Three Vitest projects (`vite.config.ts`), all run by `npm test`:
 
 `npm run test:unit` skips the integration project — **the rest of `npm test` needs Docker running**, because integration starts a container.
 
+## What a test is allowed to assert on
+
+These four come up in review more than anything else. They apply to every project, not just the client.
+
+**Assert on the result, never on the request.** Capturing an outgoing call and checking its URL or body proves the code called the function the test told it to expect. It passes just as happily when the endpoint is wrong in a way the test also got wrong. Assert on what the function returned, or on what is now on screen.
+
+```ts
+// No — the test and the code agree with each other, not with the API.
+let body: unknown;
+server.use(http.post("/api/club/:id/list", async ({ request }) => { body = await request.json(); … }));
+expect(body).toMatchObject({ title: "Sci-Fi" });
+
+// Yes — the list is there afterwards.
+await user.click(screen.getByRole("button", { name: "+ Create" }));
+expect(await screen.findByText("Sci-Fi")).toBeInTheDocument();
+```
+
+When the write is optimistic and refetches, that needs a handler that remembers: `commentsApi()` (`src/mocks/comments.ts`) and `clubListsApi()` (`src/mocks/lists.ts`) are fakes that keep what the mutations send them, so the round trip is real. Write one rather than freezing a single canned response.
+
+**Query the way a user finds things.** `getByRole`, `getByLabelText`, `getByText`. Never `container.querySelector`, a class, or `getByTitle` — a `title` attribute is a tooltip, not a name.
+
+**A test that cannot find an element without a selector has found a bug.** That is the point of the rule: an element with no role and no accessible name is one a screen reader cannot announce and a keyboard cannot reach. Fix the component — add the role, the `aria-label`, the `aria-pressed`, or make the `<div @click>` a real `<button>` — then query it. This has turned up a keyboard-unreachable poster card, unnamed icon buttons, a filter chip whose selected state was colour alone, and a spoiler that screen readers read out in full. Do not add a test-only hook such as `data-testid` to get around it.
+
+**Do not assert on styling.** Class names, colours, paddings and font sizes should be free to change without a test failing. If a class is the only evidence of a state, that state has no accessible representation — see the rule above.
+
+## What is worth testing at all
+
+- **Constants.** A test that restates a constant only forces two edits instead of one. Test the function that reads it.
+- **Configuration.** Registry shape — key uniqueness, what `props()` returns — is the same thing one level up. Assert the behaviour it drives, through the view that renders it.
+- **Plumbing.** A component that only passes props down and re-emits events up is covered by its child's spec and its parent's.
+- **Composables.** Logic in a composable is usually covered by the components that use it — cover it there first. What is left over (branches no component reaches, timing, an error path) belongs in a spec that calls the composable directly through `withSetup()` from `@/tests/utils`; never build a `defineComponent` harness by hand.
+
 ## What `src/tests/setup.ts` does for you
 
 Read it before writing a test — it makes several things global, which explains behavior that otherwise looks like magic:
@@ -34,8 +66,8 @@ API calls are mocked with MSW — handlers in `src/mocks/handlers.ts`, fixtures 
 
 - **`IntersectionObserver`** doesn't exist in jsdom, and `v-lazy-load` / `v-reveal` construct one on mount. Call `mockIntersectionObserver()` (`@/mocks/IntersectionObserver`) at the top of any spec rendering them or the mount throws and later tests fail with confusing leftover-DOM errors. It defaults to never firing, which parks a lazy image's URL in `data-src` with an empty `src`; pass `{ intersecting: true }` to assert the resolved `src`.
 - **AG Charts** paints into a `<canvas>` jsdom cannot provide and throws on both mount and unmount. Opt into the stub with `vi.mock("ag-charts-vue3", async () => await import("@/mocks/agCharts"))` — the dynamic import avoids the TDZ error a static one hits under `vi.mock` hoisting. It renders `role="img"` and exposes `chartOptions(el)` / `chartSeriesNames(el)`; detailed option assertions belong in `chartOptions.spec.ts`.
-- **Clipboard:** `userEvent.setup()` — which `render()` always calls — installs its own `navigator.clipboard`, silently replacing a spy stubbed in `beforeEach`. The test then fails with "0 calls" while a success toast proves the copy happened. Spy _after_ `render()`.
-- **`GalleryView`** takes a live TanStack table, and `useVueTable` needs a component instance, so one cannot be built in module scope. Use `withReviewTable()` from `src/features/reviews/tests/reviewTable.ts`.
+- **Clipboard:** `userEvent.setup()` — which `render()` always calls — installs the `navigator.clipboard` jsdom lacks, and it is a working one. Assert with `await navigator.clipboard.readText()`, the way a user would paste. Stubbing a `writeText` spy in `beforeEach` fails with "0 calls" while a success toast proves the copy happened, because `setup()` replaced the object the spy was on.
+- **`GalleryView`** takes a live TanStack table built by `ReviewView`, and `useVueTable` needs a component instance, so one cannot be built in module scope. Render `ReviewView` rather than constructing a stand-in table: a hand-built one sorts perfectly while the real columns are wrong.
 - **Statistics fixtures** live in `src/features/statistics/tests/fixtures.ts`. Two thresholds bite: `computeScoreTrend` reads `work.scores` (timestamped), not `work.userScores`, and both rolling charts use a window of `Math.max(5, …)` — so trend/spread need six scored reviews before they plot anything.
 
 ## Integration tests (`netlify/functions/tests/`)
@@ -49,7 +81,7 @@ Real: the routers, `validClubSlug` / `validListId`, BetterAuth's `loggedIn` / `s
 | `setup/globalSetup.ts` | Starts the container once per run, migrates it via `npx tsx ./migrations/schemaMigrator.ts` |
 | `setup/env.ts` | Points `DATABASE_URL` / `DATABASE_URL_ROOT` at it. **Must be imported before anything reaching `utils/database.ts`**, which builds its pool at import time |
 | `setup/integration.ts` | Per-file setup: starts MSW, resets the database before each test, undoes profile edits after |
-| `setup/externalApis.ts` | The MSW server, its handlers, `requestsTo(host)` and `sentEmails` |
+| `setup/externalApis.ts` | The MSW server, its handlers, `failOnRequest()` and `sentEmails` |
 | `fixtures/external.ts` | `tmdbMovie()` / `googleBooksVolume()` / `geminiJsonResponse()` payload builders |
 | `helpers/http.ts` | `requester(handler)` → `.get/.post/.put/.delete`, plus `makeEvent()` / `send()` |
 | `helpers/auth.ts` | `signIn("alice" \| "bob" \| …)` → a real signed session cookie |
@@ -73,7 +105,7 @@ it("renames the club", async () => {
 - **`signIn()` is the real thing**: it posts to `/api/auth/sign-up/email`, follows the link out of the verification email BetterAuth sends (captured at Resend's endpoint), and posts to `/api/auth/sign-in/email`. The `as:` cookie is the cookie a browser would hold. Omit `as` for an anonymous request; pass `headers: { cookie: "better-auth.session_token=bogus" }` for an invalid one.
 - **Assert a write by reading it back** through the endpoint a client would use — the club preview for a rename, the members list for a profile change, `GET /awards/:year` for an awards write.
 - **The factories drive endpoints too**, so a bug in the write path fails the test rather than being papered over by a hand-built row.
-- **`requestsTo(host)`** is how cache behaviour gets asserted: re-adding a known movie must make no second TMDB call.
+- **`failOnRequest(method, path)`** is how "must not call out again" gets asserted: it swaps that endpoint's handler for one that throws, so caching is proved by the request never happening rather than by counting requests.
 
 **The two justified exceptions**, both in `helpers/factories.ts` and both commented there: `expireInvite()` (nothing can shorten a 24-hour token) and `createAwardsYear()` (no endpoint opens a year). `scheduled-db-cleanup.test.ts` issues `CREATE DATABASE` for the same reason — its subject operates on databases, not rows. Anything else reaching for the database is a smell; find the endpoint instead.
 
