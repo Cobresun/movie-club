@@ -49,7 +49,9 @@ const router = useRouter();
 
 const { data: clubAward, isLoading } = useAwards(clubSlug, year, (clubAward) => {
   const step = steps.find((step) => step.step === clubAward.step);
-  if (step) router.push({ name: step.routeName }).catch(console.error);
+  // Replace: a year on its own renders nothing, so it must not be a history
+  // entry the back button can land on.
+  if (step) router.replace({ name: step.routeName }).catch(console.error);
 });
 
 const nextStep = computed(() => {
