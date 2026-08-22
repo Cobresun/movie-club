@@ -1,195 +1,186 @@
-import { screen } from "@testing-library/vue";
+import { screen, waitFor } from "@testing-library/vue";
+import { http, HttpResponse } from "msw";
 
-import GalleryView from "../components/GalleryView.vue";
-import { makeReview, makeReviewMember, score, withReviewTable } from "./reviewTable";
+import ReviewView from "../views/ReviewView.vue";
 import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
-import { render } from "@/tests/utils";
+import { server } from "@/mocks/server";
+import { logIn, render } from "@/tests/utils";
 
 mockIntersectionObserver({ intersecting: true });
 
-const members = [
-  makeReviewMember({ id: "m1", name: "Ada Lovelace" }),
-  makeReviewMember({ id: "m2", name: "Alan Turing" }),
-];
+/**
+ * The gallery is driven by the TanStack table `ReviewView` builds, so these
+ * specs render the view rather than handing the gallery a table of their own —
+ * a stand-in table can sort perfectly while the real columns are wrong.
+ */
 
+const score = (id: string, value: number) => ({
+  id,
+  createdDate: "2024-05-28T04:46:37.751Z",
+  score: value,
+});
+
+const review = (
+  id: string,
+  title: string,
+  createdDate: string,
+  scores: Record<string, ReturnType<typeof score>>,
+) => ({
+  id,
+  title,
+  type: "movie",
+  createdDate,
+  imageUrl: `https://image.tmdb.org/${id}.jpg`,
+  externalId: id,
+  scores,
+});
+
+// dev (member 1) rates Arrival highest; the club average puts Dune on top.
+// The two orderings differ, so a sort that reads the wrong column is visible.
 const reviews = [
-  makeReview({
-    id: "1",
-    title: "Dune",
-    createdDate: "2024-05-28T04:46:37.751Z",
-    scores: { m1: score("s1", 9), m2: score("s2", 7), average: score("avg1", 8) },
+  review("1", "Dune", "2024-05-28T04:46:37.751Z", {
+    "1": score("s1", 7),
+    "2": score("s2", 9),
+    average: score("avg1", 8),
   }),
-  makeReview({
-    id: "2",
-    title: "Arrival",
-    createdDate: "2024-06-30T04:46:37.751Z",
-    imageUrl: undefined,
-    scores: { m1: score("s3", 6), average: score("avg2", 6) },
+  review("2", "Arrival", "2024-06-30T04:46:37.751Z", {
+    "1": score("s3", 9),
+    average: score("avg2", 6),
   }),
 ];
 
-const renderGallery = (overrides: Record<string, unknown> = {}) => {
-  const { host, getTable } = withReviewTable(GalleryView, {
-    reviews,
-    members,
-    props: {
-      deleteReview: vi.fn(),
-      members,
-      revealedMovieIds: new Set<string>(),
-      hasRated: () => true,
-      ...overrides,
-    },
-  });
-  return {
-    ...render(host, {
-      // The drawer is covered by its own spec; stubbing it keeps these tests
-      // about the gallery's own selection behaviour.
-      global: { stubs: { WorkDetailsDrawer: true } },
-    }),
-    getTable,
-  };
+/** The gallery's cards, in the order they appear on the page. */
+const cardTitles = () =>
+  screen.getAllByRole("heading", { level: 3 }).map((heading) => heading.textContent?.trim());
+
+const renderGallery = () => {
+  server.use(http.get("/api/club/:id/list/reviews", () => HttpResponse.json(reviews)));
+  return render(ReviewView, { props: { clubSlug: "test-club" } });
 };
 
 describe("GalleryView", () => {
-  it("renders a poster card per review", () => {
+  it("renders a card per review, with its date and score pills", async () => {
     renderGallery();
 
-    expect(screen.getByText("Dune")).toBeInTheDocument();
-    expect(screen.getByText("Arrival")).toBeInTheDocument();
-  });
-
-  it("shows the review date and score pills on each card", () => {
-    renderGallery();
-
+    expect(await screen.findByRole("heading", { name: "Dune" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Arrival" })).toBeInTheDocument();
     expect(screen.getByText("5/28/2024")).toBeInTheDocument();
-    expect(screen.getByText("9")).toBeInTheDocument();
+    expect(screen.getByText("6/30/2024")).toBeInTheDocument();
+    // Dune: dev's 7, user's 9 and the club's 8.
     expect(screen.getByText("7")).toBeInTheDocument();
+    expect(screen.getAllByText("9")).toHaveLength(2);
     expect(screen.getByText("8")).toBeInTheDocument();
   });
 
-  it("omits score pills for members who have not scored the work", () => {
+  it("omits score pills for members who have not scored the work", async () => {
     renderGallery();
 
-    // Arrival has Ada's 6 and the average 6, but nothing from Alan.
-    expect(screen.getAllByText("6")).toHaveLength(2);
+    await screen.findByRole("heading", { name: "Arrival" });
+
+    // Arrival carries dev's 9 and the average 6, but nothing from user — a
+    // pill for an unscored member would show up as a second 6.
+    expect(screen.getAllByText("6")).toHaveLength(1);
   });
 
-  it("offers sorting by average, by member, and by date", async () => {
+  it("puts the highest club average first when sorting by average rating", async () => {
     const { user } = renderGallery();
 
-    await user.click(screen.getByRole("button", { name: /Sort by/ }));
+    await user.click(await screen.findByRole("button", { name: /Sort by/ }));
+    await user.click(screen.getByRole("option", { name: /Average rating/ }));
 
-    expect(screen.getByText("Average rating")).toBeInTheDocument();
-    expect(screen.getByText("Ada Lovelace's rating")).toBeInTheDocument();
-    expect(screen.getByText("Date reviewed")).toBeInTheDocument();
-  });
-
-  it("does not offer to sort by poster or title", async () => {
-    const { user } = renderGallery();
-
-    await user.click(screen.getByRole("button", { name: /Sort by/ }));
-
-    expect(screen.queryByText("Poster")).not.toBeInTheDocument();
-    expect(screen.queryByText("Title")).not.toBeInTheDocument();
-  });
-
-  it("sorts descending when an option is picked", async () => {
-    const { user, getTable } = renderGallery();
-
-    await user.click(screen.getByRole("button", { name: /Sort by/ }));
-    await user.click(screen.getByText("Average rating"));
-
-    expect(getTable()?.getState().sorting).toEqual([{ id: "score_average", desc: true }]);
+    await waitFor(() => expect(cardTitles()).toEqual(["Dune", "Arrival"]));
     expect(screen.getByRole("button", { name: /Sorted by.*Average rating/ })).toBeInTheDocument();
   });
 
-  it("describes a rating sort as highest-first and reverses it on demand", async () => {
-    const { user, getTable } = renderGallery();
+  it("sorts by a member's own scores rather than the club's", async () => {
+    const { user } = renderGallery();
 
-    await user.click(screen.getByRole("button", { name: /Sort by/ }));
-    await user.click(screen.getByText("Average rating"));
-    expect(screen.getByRole("button", { name: /Highest first/ })).toBeInTheDocument();
+    await user.click(await screen.findByRole("button", { name: /Sort by/ }));
+    await user.click(screen.getByRole("option", { name: /dev's rating/ }));
+
+    // dev gave Arrival a 9 and Dune a 7 — the opposite of the club average.
+    await waitFor(() => expect(cardTitles()).toEqual(["Arrival", "Dune"]));
+  });
+
+  it("reverses the order on demand, and says which way it runs", async () => {
+    const { user } = renderGallery();
+
+    await user.click(await screen.findByRole("button", { name: /Sort by/ }));
+    await user.click(screen.getByRole("option", { name: /Average rating/ }));
+    await waitFor(() => expect(cardTitles()).toEqual(["Dune", "Arrival"]));
 
     await user.click(screen.getByRole("button", { name: /Highest first/ }));
 
+    await waitFor(() => expect(cardTitles()).toEqual(["Arrival", "Dune"]));
     expect(screen.getByRole("button", { name: /Lowest first/ })).toBeInTheDocument();
-    expect(getTable()?.getState().sorting).toEqual([{ id: "score_average", desc: false }]);
   });
 
-  it("describes a date sort as newest-first instead", async () => {
+  it("describes a date sort as newest-first instead of highest-first", async () => {
     const { user } = renderGallery();
 
-    await user.click(screen.getByRole("button", { name: /Sort by/ }));
-    await user.click(screen.getByText("Date reviewed"));
+    await user.click(await screen.findByRole("button", { name: /Sort by/ }));
+    await user.click(screen.getByRole("option", { name: /Date reviewed/ }));
 
+    await waitFor(() => expect(cardTitles()).toEqual(["Arrival", "Dune"]));
     expect(screen.getByRole("button", { name: /Newest first/ })).toBeInTheDocument();
   });
 
-  it("clears the sort", async () => {
-    const { user, getTable } = renderGallery();
+  it("restores the club's own order when the sort is cleared", async () => {
+    const { user } = renderGallery();
 
-    await user.click(screen.getByRole("button", { name: /Sort by/ }));
-    await user.click(screen.getByText("Average rating"));
+    await user.click(await screen.findByRole("button", { name: /Sort by/ }));
+    await user.click(screen.getByRole("option", { name: /Average rating/ }));
     await user.click(screen.getByRole("button", { name: /Clear/ }));
 
-    expect(getTable()?.getState().sorting).toEqual([]);
+    await waitFor(() => expect(cardTitles()).toEqual(["Dune", "Arrival"]));
     expect(screen.getByRole("button", { name: /Sort by/ })).toBeInTheDocument();
   });
 
-  it("offers no direction or clear controls until something is sorted", () => {
+  it("offers no direction or clear controls until something is sorted", async () => {
     renderGallery();
+
+    await screen.findByRole("heading", { name: "Dune" });
 
     expect(screen.queryByRole("button", { name: /Highest first/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Clear/ })).not.toBeInTheDocument();
   });
 
-  it("keeps the drawer closed until a card is clicked", () => {
-    renderGallery();
-
-    expect(document.querySelector("work-details-drawer-stub")).not.toBeInTheDocument();
-  });
-
-  it("opens the details drawer for the clicked review", async () => {
-    // `src/tests/setup.ts` stubs this globally — jsdom has no layout. Hold the
-    // spy in a local so the assertion never references the method unbound.
-    const scrollIntoView = vi.spyOn(HTMLElement.prototype, "scrollIntoView");
+  it("does not offer to sort by poster or title", async () => {
     const { user } = renderGallery();
 
-    await user.click(screen.getByText("Dune"));
+    await user.click(await screen.findByRole("button", { name: /Sort by/ }));
 
-    expect(document.querySelector("work-details-drawer-stub")).toBeInTheDocument();
-    expect(scrollIntoView).toHaveBeenCalled();
+    expect(screen.queryByRole("option", { name: /Poster/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /Title/ })).not.toBeInTheDocument();
   });
 
-  it("renders no cards for a club with no reviews", () => {
-    const { host } = withReviewTable(GalleryView, {
-      reviews: [],
-      members,
-      props: {
-        deleteReview: vi.fn(),
-        members,
-        revealedMovieIds: new Set<string>(),
-        hasRated: () => true,
-      },
-    });
-    render(host, { global: { stubs: { WorkDetailsDrawer: true } } });
+  it("opens the details for the card a reader picks", async () => {
+    const { user, pinia } = renderGallery();
+    logIn(pinia);
 
-    expect(screen.queryByText("Dune")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Sort by/ })).toBeInTheDocument();
+    // The mock member has scored Dune but not Arrival, so the drawer offers
+    // each work the entry point that matches — something no card shows.
+    await user.click(await screen.findByRole("button", { name: "Arrival" }));
+
+    expect(await screen.findByRole("button", { name: /rate this/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /edit score/i })).not.toBeInTheDocument();
   });
 
-  it("renders a sort option per member of the club", async () => {
-    const { user } = renderGallery();
+  it("keeps the details closed until a card is picked", async () => {
+    const { pinia } = renderGallery();
+    logIn(pinia);
 
-    await user.click(screen.getByRole("button", { name: /Sort by/ }));
-    const options = screen.getAllByRole("option");
+    await screen.findByRole("heading", { name: "Dune" });
 
-    expect(options).toHaveLength(4);
-    expect(options[0]).toHaveTextContent("Date reviewed");
-    // Member options lead with the member's avatar, which falls back to their
-    // initials when they have no profile image.
-    expect(options[1]).toHaveTextContent("ALAda Lovelace's rating");
-    expect(options[2]).toHaveTextContent("ATAlan Turing's rating");
-    expect(options[3]).toHaveTextContent("Average rating");
+    expect(screen.queryByRole("button", { name: /rate this/i })).not.toBeInTheDocument();
+  });
+
+  it("shows the empty state rather than an empty gallery", async () => {
+    server.use(http.get("/api/club/:id/list/reviews", () => HttpResponse.json([])));
+
+    render(ReviewView, { props: { clubSlug: "test-club" } });
+
+    expect(await screen.findByText("No Reviews Yet")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Sort by/ })).not.toBeInTheDocument();
   });
 });

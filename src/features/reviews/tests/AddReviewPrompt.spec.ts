@@ -2,6 +2,7 @@ import { screen, waitFor } from "@testing-library/vue";
 import { http, HttpResponse } from "msw";
 
 import AddReviewPrompt from "../components/AddReviewPrompt.vue";
+import ReviewView from "../views/ReviewView.vue";
 import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
 import { server } from "@/mocks/server";
 import { render } from "@/tests/utils";
@@ -30,6 +31,42 @@ const listItems = [
 
 const allItems = (items: unknown[] = listItems) =>
   http.get("/api/club/:id/list/all-items", () => HttpResponse.json(items));
+
+/**
+ * A reviews list that keeps what the prompt sends it, whether the work is
+ * moved off another list or added straight from a search. Queuing a review is
+ * only observable on the reviews page, so the round trip is asserted there
+ * rather than on the request the prompt made.
+ */
+const reviewsApi = (initial: unknown[] = []) => {
+  let reviews = [...initial];
+  const queue = (work: Record<string, unknown>) => {
+    reviews = [...reviews, { ...work, scores: {} }];
+  };
+
+  return [
+    http.get("/api/club/:id/list/reviews", () => HttpResponse.json(reviews)),
+    http.post("/api/club/:id/list/:listId/items/:workId/move", ({ params }) => {
+      const moving = listItems.find((item) => item.id === params.workId);
+      if (moving) queue(moving);
+      return new HttpResponse(null, { status: 200 });
+    }),
+    http.post("/api/club/:id/list/:listId/items", async ({ request }) => {
+      queue((await request.json()) as Record<string, unknown>);
+      return new HttpResponse(null, { status: 200 });
+    }),
+  ];
+};
+
+const tmdbSearch = (title: string) =>
+  http.get("https://api.themoviedb.org/3/search/movie", () =>
+    HttpResponse.json({
+      page: 1,
+      total_pages: 1,
+      total_results: 1,
+      results: [{ id: 550, title, release_date: "1999-10-15", poster_path: "/fc.jpg" }],
+    }),
+  );
 
 describe("AddReviewPrompt", () => {
   it("lists the works already on the club's lists", async () => {
@@ -63,66 +100,15 @@ describe("AddReviewPrompt", () => {
     expect(screen.queryByText("Dune")).not.toBeInTheDocument();
   });
 
-  it("queues a review by moving the work out of its source list", async () => {
-    const moved = vi.fn();
-    server.use(
-      allItems(),
-      http.post("/api/club/:id/list/:listId/items/:workId/move", ({ params }) => {
-        moved(params);
-        return new HttpResponse(null, { status: 200 });
-      }),
-    );
+  it("closes once a work has been picked", async () => {
+    server.use(allItems(), ...reviewsApi());
     const rendered = render(AddReviewPrompt);
 
     await rendered.user.click(await screen.findByText("The Super Mario Bros. Movie"));
 
     await waitFor(() => {
-      expect(moved).toHaveBeenCalledWith(
-        expect.objectContaining({ listId: "1", workId: "item-1" }),
-      );
+      expect(rendered.emitted().close).toBeTruthy();
     });
-    expect(rendered.emitted().close).toBeTruthy();
-  });
-
-  it("adds a work found through search straight to the reviews list", async () => {
-    const added = vi.fn();
-    server.use(
-      allItems([]),
-      // The baseline TMDB handler returns no results, so a searchable movie is
-      // supplied here.
-      http.get("https://api.themoviedb.org/3/search/movie", () =>
-        HttpResponse.json({
-          page: 1,
-          total_pages: 1,
-          total_results: 1,
-          results: [
-            { id: 550, title: "Fight Club", release_date: "1999-10-15", poster_path: "/fc.jpg" },
-          ],
-        }),
-      ),
-      http.post("/api/club/:id/list/:listId/items", async ({ request, params }) => {
-        added({ listId: params.listId, body: await request.json() });
-        return new HttpResponse(null, { status: 200 });
-      }),
-    );
-    const rendered = render(AddReviewPrompt);
-
-    await rendered.user.type(
-      await screen.findByPlaceholderText("Type to filter or search"),
-      "Fight Club",
-    );
-
-    await rendered.user.click(await screen.findByText("Fight Club"));
-
-    await waitFor(() => {
-      expect(added).toHaveBeenCalledWith(
-        expect.objectContaining({
-          listId: "reviews",
-          body: expect.objectContaining({ type: "movie", title: "Fight Club" }),
-        }),
-      );
-    });
-    expect(rendered.emitted().close).toBeTruthy();
   });
 
   it("closes when the user presses Escape", async () => {
@@ -139,5 +125,32 @@ describe("AddReviewPrompt", () => {
     render(AddReviewPrompt);
 
     expect(screen.queryByText("From your lists")).not.toBeInTheDocument();
+  });
+});
+
+describe("queuing a review from the prompt", () => {
+  it("puts a work from another list onto the reviews page", async () => {
+    server.use(allItems(), ...reviewsApi());
+    const { user } = render(ReviewView, { props: { clubSlug: "test-club" } });
+
+    await user.click(await screen.findByRole("button", { name: "Add review" }));
+    await user.click(await screen.findByText("The Super Mario Bros. Movie"));
+
+    expect(
+      await screen.findByRole("heading", { name: "The Super Mario Bros. Movie" }),
+    ).toBeInTheDocument();
+  });
+
+  it("puts a work found through search onto the reviews page", async () => {
+    // The baseline TMDB handler returns no results, so a searchable movie is
+    // supplied here.
+    server.use(allItems([]), tmdbSearch("Fight Club"), ...reviewsApi());
+    const { user } = render(ReviewView, { props: { clubSlug: "test-club" } });
+
+    await user.click(await screen.findByRole("button", { name: "Add review" }));
+    await user.type(await screen.findByPlaceholderText("Type to filter or search"), "Fight Club");
+    await user.click(await screen.findByText("Fight Club"));
+
+    expect(await screen.findByRole("heading", { name: "Fight Club" })).toBeInTheDocument();
   });
 });
