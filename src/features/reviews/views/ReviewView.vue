@@ -10,7 +10,7 @@
       @close="scoreAssistWorkId = undefined"
     />
     <page-header :has-back="true" back-route="ClubHome" page-name="Reviews" />
-    <loading-spinner v-if="loading" />
+    <ReviewsSkeleton v-if="loading" />
     <div v-else>
       <!-- Search Filter Bar -->
       <search-filter-bar
@@ -69,6 +69,7 @@ import { hasValue, isDefined, isTrue } from "../../../../lib/checks/checks.js";
 import { ClubType } from "../../../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
 import GalleryView from "../components/GalleryView.vue";
+import ReviewsSkeleton from "../components/ReviewsSkeleton.vue";
 import ScoreAssistModal from "../components/ScoreAssistModal.vue";
 import { buildCandidatePool, isScoreAssistEligible } from "../composables/scoreAssistLogic";
 import { ScoreAssistKey } from "../scoreAssist";

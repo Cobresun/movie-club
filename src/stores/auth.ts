@@ -1,12 +1,13 @@
 import { useQuery } from "@tanstack/vue-query";
 import axios from "axios";
 import { defineStore } from "pinia";
-import { ref, computed } from "vue";
+import { ref, computed, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
-import { isDefined, isTrue } from "../../lib/checks/checks.js";
+import { hasValue, isDefined, isTrue } from "../../lib/checks/checks.js";
 import { ClubPreview } from "../../lib/types/club";
 import { resolveDefaultClubSlug } from "../common/composables/useLastClubSlug";
+import { getSignedInHint, setSignedInHint } from "../common/composables/useSessionHint";
 import { watchUntil } from "../common/composables/watchUntil";
 import { authClient } from "@/lib/auth-client";
 
@@ -22,6 +23,20 @@ export const useAuthStore = defineStore("auth", () => {
   const isLoggedIn = computed(() => isDefined(session.value.data?.session));
   const ready = computed(() => session.value.isPending === false);
   const isInitialLoading = computed(() => session.value.isPending === true);
+
+  // Read once, before the session check comes back: it describes the PREVIOUS
+  // session, so nothing that happens now can change what it should have said.
+  // It is the app's only clue, during that check, about where it is headed.
+  const wasSignedIn = getSignedInHint();
+
+  // Keep the hint honest for the next cold load.
+  watch(
+    [ready, isLoggedIn],
+    ([isReady, loggedIn]) => {
+      if (isReady) setSignedInHint(loggedIn);
+    },
+    { immediate: true },
+  );
 
   // Axios instance for authenticated requests
   // Better Auth handles cookies automatically, so we don't need to manually add auth headers
@@ -116,22 +131,78 @@ export const useAuthStore = defineStore("auth", () => {
     await session.value.refetch();
   };
 
-  const navigateToDefaultClub = async () => {
-    // Wait for BetterAuth's session to reflect the login —
-    // onSuccess fires before the reactive session updates
-    if (!isLoggedIn.value) {
-      await watchUntil(isLoggedIn, (loggedIn) => loggedIn);
-    }
+  // Held as state, and not merely awaited, because App.vue's loading gate has
+  // to stay up for the WHOLE hop. The clubs query resolving and the router
+  // landing on the destination happen in different ticks: the gate's computed
+  // and the watchUntil below both react to the same change, but Vue renders
+  // before an awaited continuation runs, so between the two the app would
+  // paint the page the user signed in from — the logged-out landing page.
+  const isNavigatingAfterAuth = ref(false);
 
-    await waitForClubsReady();
+  /**
+   * Post-login navigation, owned here so the flag above covers every path out
+   * of the auth modal. `redirect` is the route the user was headed for before
+   * they had to authenticate; without one they land on their default club.
+   */
+  const navigateAfterAuth = async (redirect?: string) => {
+    isNavigatingAfterAuth.value = true;
+    try {
+      // Wait for BetterAuth's session to reflect the login —
+      // onSuccess fires before the reactive session updates
+      if (!isLoggedIn.value) {
+        await watchUntil(isLoggedIn, (loggedIn) => loggedIn);
+      }
 
-    const slug = resolveDefaultClubSlug(userClubs.value);
-    if (isDefined(slug)) {
-      router.push({ name: "ClubHome", params: { clubSlug: slug } }).catch(console.error);
-    } else {
-      router.push({ name: "NewClub" }).catch(console.error);
+      await waitForClubsReady();
+
+      if (hasValue(redirect)) {
+        // Already on the target (e.g. a club invite page): the view reacts to
+        // the session change on its own, so pushing would only be a no-op
+        // navigation failure.
+        if (redirect !== route.fullPath) {
+          await router.push(redirect);
+        }
+        return;
+      }
+
+      const slug = resolveDefaultClubSlug(userClubs.value);
+      await router.push(
+        isDefined(slug) ? { name: "ClubHome", params: { clubSlug: slug } } : { name: "NewClub" },
+      );
+    } catch (error) {
+      console.error(error);
+    } finally {
+      isNavigatingAfterAuth.value = false;
     }
   };
+
+  /**
+   * The app can't hand the screen over to the router yet: the session check is
+   * still out, a signed-in user's clubs are loading, or someone who just
+   * signed in is being moved to their destination.
+   *
+   * Note this is what makes the session check block routes that have no guard
+   * of their own (JoinClub, NewClub). They branch on isLoggedIn at render
+   * time, so letting them paint mid-check shows a signed-in user the
+   * logged-out half of the page.
+   */
+  const isAppLoading = computed(
+    () =>
+      isInitialLoading.value ||
+      (isLoggedIn.value && isLoadingUserClubs.value) ||
+      isNavigatingAfterAuth.value,
+  );
+
+  /**
+   * ...and the stretch of that where a club home is what's coming, so App.vue
+   * can put up a placeholder shaped like one.
+   *
+   * A cold load whose last session was signed out is deliberately excluded: it
+   * may well be a visitor on their way to the landing page, and painting a
+   * club home at them is a flash of a screen they never asked for. They get a
+   * held blank frame instead, for the same few hundred milliseconds.
+   */
+  const isLoadingClubHome = computed(() => isAppLoading.value && (isLoggedIn.value || wasSignedIn));
 
   return {
     // Session data
@@ -139,6 +210,8 @@ export const useAuthStore = defineStore("auth", () => {
     ready,
     isLoggedIn,
     isInitialLoading,
+    isAppLoading,
+    isLoadingClubHome,
     session,
 
     // Auth UI
@@ -160,6 +233,7 @@ export const useAuthStore = defineStore("auth", () => {
     // Helper methods for router guards
     waitForAuthReady,
     waitForClubsReady,
-    navigateToDefaultClub,
+    isNavigatingAfterAuth,
+    navigateAfterAuth,
   };
 });

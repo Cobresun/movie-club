@@ -5,6 +5,7 @@ import { isDefined } from "../../../../lib/checks/checks";
 import { ClubType } from "../../../../lib/types/generated/db";
 import { workTypeForClub } from "@/common/clubType";
 import WorkSearchPrompt from "@/common/components/WorkSearchPrompt.vue";
+import WorkSearchSkeleton from "@/common/components/WorkSearchSkeleton.vue";
 import { useClub, useClubSlug } from "@/service/useClub";
 import { BASE_IMAGE_URL, useAddListItem } from "@/service/useList";
 import {
@@ -85,7 +86,7 @@ const onSelectWork = (work: WorkSearchResult) => {
 </script>
 
 <template>
-  <loading-spinner v-if="!club" class="self-center" />
+  <WorkSearchSkeleton v-if="!club" />
   <div v-else class="flex h-full flex-col">
     <div class="mb-2 flex gap-1 overflow-x-auto">
       <template v-if="isMovieClub">

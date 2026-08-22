@@ -17,7 +17,7 @@ const openInviteModal = async (user: ReturnType<typeof render>["user"]) => {
 };
 
 describe("ClubHomeView", () => {
-  it("shows a loading spinner while members are loading", async () => {
+  it("shows a loading skeleton while members are loading", async () => {
     server.use(
       http.get("/api/club/:id/members", async () => {
         await new Promise(() => {
@@ -29,7 +29,7 @@ describe("ClubHomeView", () => {
 
     render(ClubHomeView);
 
-    expect(await screen.findByRole("status", { name: "Loading" })).toBeInTheDocument();
+    expect(await screen.findByRole("status", { name: "Loading members" })).toBeInTheDocument();
   });
 
   it("renders every member's name", async () => {
