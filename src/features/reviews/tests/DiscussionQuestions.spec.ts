@@ -31,11 +31,9 @@ describe("DiscussionQuestions", () => {
 
     await user.click(screen.getByRole("button", { name: /Generate discussion questions/ }));
 
-    expect(await screen.findByText("What is the theme?")).toBeInTheDocument();
-    expect(screen.getByText("Who is the hero?")).toBeInTheDocument();
-    expect(screen.getByText("Discussion questions")).toBeInTheDocument();
-    const numbers = screen.getAllByText(/^\d\.$/).map((el) => el.textContent);
-    expect(numbers).toEqual(["1.", "2."]);
+    expect(await screen.findByText("Discussion questions")).toBeInTheDocument();
+    const questions = screen.getAllByRole("listitem").map((item) => item.textContent?.trim());
+    expect(questions).toEqual(["1.What is the theme?", "2.Who is the hero?"]);
   });
 
   it("swaps the prompt for a regenerate control once questions exist", async () => {

@@ -46,12 +46,14 @@ describe("SharedReviewComments", () => {
     });
 
     expect(screen.getByText(/Spoiler/)).toBeInTheDocument();
+    // The blur is visual only, so aria-hidden is what actually keeps the
+    // spoiler from being read out before the reader asks for it.
     const hidden = screen.getByText("The killer was the butler.");
-    expect(hidden).toHaveClass("blur-sm");
+    expect(hidden).toHaveAttribute("aria-hidden", "true");
 
     await user.click(hidden);
 
-    expect(screen.getByText("The killer was the butler.")).not.toHaveClass("blur-sm");
+    expect(screen.getByText("The killer was the butler.")).not.toHaveAttribute("aria-hidden");
   });
 
   it("does not blur non-spoiler comments", () => {
@@ -60,7 +62,7 @@ describe("SharedReviewComments", () => {
     });
 
     expect(screen.queryByText(/Spoiler/)).not.toBeInTheDocument();
-    expect(screen.getByText("No spoilers here.")).not.toHaveClass("blur-sm");
+    expect(screen.getByText("No spoilers here.")).not.toHaveAttribute("aria-hidden");
   });
 
   it("renders nothing in the list when there are no comments", () => {
