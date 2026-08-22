@@ -93,7 +93,6 @@
         <label class="text-[13px] font-medium text-white/60" for="account-name">Your name</label>
         <input
           id="account-name"
-          ref="nameInput"
           v-model="editedName"
           type="text"
           class="min-h-[50px] rounded-[10px] bg-lowBackground px-3.5 text-[15px] text-white placeholder-white/35 ring-1 ring-inset ring-white/[0.12] focus:outline-none focus:ring-2 focus:ring-primary"
@@ -138,7 +137,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref, useTemplateRef } from "vue";
+import { computed, ref, useTemplateRef } from "vue";
 import { useToast } from "vue-toastification";
 
 import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
@@ -225,7 +224,8 @@ const removePhoto = () => {
 };
 
 // ── Name ───────────────────────────────────────────────────────────────────
-const nameInput = useTemplateRef<HTMLInputElement>("nameInput");
+// The field is deliberately left unfocused: auto-focusing throws the keyboard
+// up over the sheet before the user has decided they want to type.
 const isEditingName = ref(false);
 const editedName = ref("");
 const nameError = ref("");
@@ -235,7 +235,6 @@ const startEditingName = () => {
   editedName.value = user.value?.name ?? "";
   nameError.value = "";
   isEditingName.value = true;
-  nextTick(() => nameInput.value?.focus()).catch(console.error);
 };
 
 const cancelEditingName = () => {
