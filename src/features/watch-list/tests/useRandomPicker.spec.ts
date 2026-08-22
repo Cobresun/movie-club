@@ -4,9 +4,13 @@ import { ref } from "vue";
 import { useRandomPicker } from "../composables/useRandomPicker";
 
 /**
- * The picker runs a fixed 20-tick slot-machine animation before landing on its
- * winner, so every test drives it with fake timers rather than waiting ~4s of
- * real time.
+ * `RandomPickerModal.spec.ts` covers the picker as a user meets it — the reel
+ * lands and offers the winner. What is left here is the reel mechanics that
+ * spec cannot see from the outside: rejection on an empty list, the snapshot
+ * the pick takes of its candidates, and the haptics.
+ *
+ * The reel runs a fixed 20-tick animation before landing, so every test drives
+ * it with fake timers rather than waiting ~4s of real time.
  */
 /** Held in a local so assertions never reference `navigator.vibrate` unbound. */
 let vibrate: Mock;
@@ -45,33 +49,7 @@ describe("useRandomPicker", () => {
     expect(items).toContain(winner);
   });
 
-  it("always picks the only candidate in a one-item list", async () => {
-    const { pick, currentItem, isRevealed } = useRandomPicker(ref(["Solaris"]));
-
-    const winner = await runPick(pick);
-
-    expect(winner).toBe("Solaris");
-    expect(currentItem.value).toBe("Solaris");
-    expect(isRevealed.value).toBe(true);
-  });
-
-  it("leaves the reveal flag down and the display empty until the reel stops", async () => {
-    const { pick, isRevealed, currentItem } = useRandomPicker(ref(["a", "b", "c"]));
-
-    const promise = pick();
-    expect(isRevealed.value).toBe(false);
-
-    // One tick in: something is showing, but it is not the final answer yet.
-    await vi.advanceTimersByTimeAsync(100);
-    expect(currentItem.value).toBeDefined();
-    expect(isRevealed.value).toBe(false);
-
-    await vi.runAllTimersAsync();
-    await promise;
-    expect(isRevealed.value).toBe(true);
-  });
-
-  it("settles on the same item it resolves with", async () => {
+  it("settles the display on the same item it resolves with", async () => {
     const { pick, currentItem } = useRandomPicker(ref(["a", "b", "c", "d"]));
 
     const winner = await runPick(pick);

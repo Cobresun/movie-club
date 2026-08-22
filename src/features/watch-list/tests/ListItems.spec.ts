@@ -9,6 +9,9 @@ import { render } from "@/tests/utils";
 
 mockIntersectionObserver();
 
+/** The single work the baseline `/list/:listId` handler serves. */
+const MARIO = "The Super Mario Bros. Movie";
+
 const defaultProps = {
   clubSlug: "test-club",
   listId: "1",
@@ -27,7 +30,7 @@ describe("ListItems", () => {
 
     render(ListItems, { props: defaultProps });
 
-    expect(await screen.findByText("The Super Mario Bros. Movie")).toBeInTheDocument();
+    expect(await screen.findByText(MARIO)).toBeInTheDocument();
   });
 
   it("shows empty state when the list has no items", async () => {
@@ -41,62 +44,67 @@ describe("ListItems", () => {
     expect(await screen.findByText("Empty list")).toBeInTheDocument();
   });
 
-  it("shows 'Set as next up' title button when no item is next up", async () => {
+  it("offers to set an item as next up when nothing is", async () => {
     server.use(nextWorkHandler());
 
     render(ListItems, { props: defaultProps });
 
-    await screen.findByText("The Super Mario Bros. Movie");
-
-    expect(screen.getByTitle("Set as next up")).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: `Set ${MARIO} as next up` }),
+    ).toBeInTheDocument();
   });
 
-  it("shows 'Move to reviews' button when reviewsListId is provided", async () => {
+  it("offers to clear next up on the item that currently holds it", async () => {
+    server.use(
+      http.get("/api/club/:id/nextWork", () => HttpResponse.json({ workId: watchlist[0].id })),
+    );
+
+    render(ListItems, { props: defaultProps });
+
+    expect(
+      await screen.findByRole("button", { name: `Clear ${MARIO} as next up` }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: `Set ${MARIO} as next up` }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("offers to move an item to reviews when the club has a reviews list", async () => {
     server.use(nextWorkHandler());
 
     render(ListItems, {
       props: { ...defaultProps, reviewsListId: "reviews-list-id" },
     });
 
-    await screen.findByText("The Super Mario Bros. Movie");
-
-    expect(screen.getByTitle("Move to reviews")).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: `Move ${MARIO} to reviews` }),
+    ).toBeInTheDocument();
   });
 
-  it("does not show 'Move to reviews' button when listId equals reviewsListId", async () => {
+  it("does not offer to move to reviews from the reviews list itself", async () => {
     server.use(nextWorkHandler());
 
     render(ListItems, {
       props: { ...defaultProps, listId: "1", reviewsListId: "1" },
     });
 
-    await screen.findByText("The Super Mario Bros. Movie");
+    await screen.findByText(MARIO);
 
-    expect(screen.queryByTitle("Move to reviews")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: `Move ${MARIO} to reviews` }),
+    ).not.toBeInTheDocument();
   });
 
-  it("shows 'Clear next up' title for the item that is currently next up", async () => {
-    const nextItemId = watchlist[0].id;
-    server.use(http.get("/api/club/:id/nextWork", () => HttpResponse.json({ workId: nextItemId })));
-
-    render(ListItems, { props: defaultProps });
-
-    await screen.findByText("The Super Mario Bros. Movie");
-
-    expect(screen.getByTitle("Clear next up")).toBeInTheDocument();
-  });
-
-  it("emits select event when poster card image is clicked", async () => {
+  it("selects the item whose poster is clicked", async () => {
     server.use(nextWorkHandler());
 
     const rendered = render(ListItems, { props: defaultProps });
 
-    await screen.findByText("The Super Mario Bros. Movie");
-
-    await rendered.user.click(screen.getByRole("img", { name: "The Super Mario Bros. Movie" }));
+    await screen.findByText(MARIO);
+    await rendered.user.click(screen.getByRole("button", { name: MARIO }));
 
     await waitFor(() => {
-      expect(rendered.emitted()["select"]).toBeTruthy();
+      expect(rendered.emitted()["select"]).toEqual([[watchlist[0].id]]);
     });
   });
 });

@@ -9,7 +9,12 @@ import { render } from "@/tests/utils";
 mockIntersectionObserver();
 
 beforeEach(() => {
-  server.use(http.get("/api/club/:id/nextWork", () => HttpResponse.json({ workId: null })));
+  server.use(
+    http.get("/api/club/:id/nextWork", () => HttpResponse.json({ workId: null })),
+    http.get("https://api.themoviedb.org/3/movie/:movieId/watch/providers", () =>
+      HttpResponse.json({ id: 502356, results: {} }),
+    ),
+  );
 });
 
 describe("WatchListView", () => {
@@ -35,5 +40,18 @@ describe("WatchListView", () => {
     render(WatchListView);
 
     expect(await screen.findByText("No lists yet")).toBeInTheDocument();
+  });
+
+  it("opens an item's details when its poster is clicked", async () => {
+    const title = "The Super Mario Bros. Movie";
+    const { user } = render(WatchListView);
+
+    await user.click(await screen.findByRole("button", { name: title }));
+
+    // The panel carries the per-item actions and the added-on line that only
+    // it offers; the title is already on the card behind it.
+    expect(await screen.findByRole("button", { name: "Up Next" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Delete" })).toBeInTheDocument();
+    expect(screen.getByText(/^Added /)).toBeInTheDocument();
   });
 });

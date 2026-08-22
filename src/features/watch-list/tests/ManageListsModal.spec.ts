@@ -1,7 +1,7 @@
 import { screen, waitFor } from "@testing-library/vue";
-import { http, HttpResponse } from "msw";
 
 import ManageListsModal from "../components/ManageListsModal.vue";
+import { clubList, clubListsApi } from "@/mocks/lists";
 import { server } from "@/mocks/server";
 import { render } from "@/tests/utils";
 
@@ -9,26 +9,16 @@ const props = { show: true, clubSlug: "test-club" };
 
 describe("ManageListsModal", () => {
   it("renders the club's lists with their item counts", async () => {
+    server.use(...clubListsApi([clubList({ id: "1", title: "Watch List", itemCount: 3 })]));
+
     render(ManageListsModal, { props });
 
-    // Baseline handler returns one list: "Watch List" with itemCount 1.
     expect(await screen.findByText("Watch List")).toBeInTheDocument();
-    expect(screen.getByText("(1)")).toBeInTheDocument();
+    expect(screen.getByText("(3)")).toBeInTheDocument();
   });
 
   it("creates a new list", async () => {
-    let body: unknown = null;
-    server.use(
-      http.post("/api/club/:id/list", async ({ request }) => {
-        body = await request.json();
-        return HttpResponse.json({
-          id: "2",
-          title: "Sci-Fi",
-          systemType: null,
-          itemCount: 0,
-        });
-      }),
-    );
+    server.use(...clubListsApi());
 
     const { user } = render(ManageListsModal, { props });
     await screen.findByText("Watch List");
@@ -36,63 +26,73 @@ describe("ManageListsModal", () => {
     await user.type(screen.getByPlaceholderText("New list name…"), "Sci-Fi");
     await user.click(screen.getByRole("button", { name: "+ Create" }));
 
-    await waitFor(() => {
-      expect(body).toMatchObject({ title: "Sci-Fi" });
-    });
+    expect(await screen.findByText("Sci-Fi")).toBeInTheDocument();
+    expect(screen.getByText("Watch List")).toBeInTheDocument();
   });
 
   it("renames an existing list", async () => {
-    let body: unknown = null;
-    let requestUrl = "";
-    server.use(
-      http.put("/api/club/:id/list/:listId", async ({ request }) => {
-        body = await request.json();
-        requestUrl = request.url;
-        return new HttpResponse(null, { status: 200 });
-      }),
-    );
+    server.use(...clubListsApi());
 
     const { user } = render(ManageListsModal, { props });
     await screen.findByText("Watch List");
 
-    await user.click(screen.getByRole("button", { name: "Rename" }));
+    await user.click(screen.getByRole("button", { name: "Rename Watch List" }));
     const renameInput = screen.getByDisplayValue("Watch List");
     await user.clear(renameInput);
     await user.type(renameInput, "Favorites");
     await user.click(screen.getByRole("button", { name: "Save" }));
 
-    await waitFor(() => {
-      expect(body).toMatchObject({ title: "Favorites" });
-    });
-    expect(requestUrl).toContain("/list/1");
+    expect(await screen.findByText("Favorites")).toBeInTheDocument();
+    expect(screen.queryByText("Watch List")).not.toBeInTheDocument();
+  });
+
+  it("keeps the old name when a rename is cancelled", async () => {
+    server.use(...clubListsApi());
+
+    const { user } = render(ManageListsModal, { props });
+    await screen.findByText("Watch List");
+
+    await user.click(screen.getByRole("button", { name: "Rename Watch List" }));
+    const renameInput = screen.getByDisplayValue("Watch List");
+    await user.clear(renameInput);
+    await user.type(renameInput, "Favorites");
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(await screen.findByText("Watch List")).toBeInTheDocument();
+    expect(screen.queryByText("Favorites")).not.toBeInTheDocument();
   });
 
   it("deletes a list after confirmation", async () => {
-    let deleteUrl = "";
     server.use(
-      http.delete("/api/club/:id/list/:listId", ({ request }) => {
-        deleteUrl = request.url;
-        return new HttpResponse(null, { status: 200 });
-      }),
+      ...clubListsApi([
+        clubList({ id: "1", title: "Watch List" }),
+        clubList({ id: "2", title: "Sci-Fi" }),
+      ]),
     );
 
     const { user } = render(ManageListsModal, { props });
     await screen.findByText("Watch List");
 
-    // The row's delete control is an icon button (named via its title).
-    await user.click(screen.getByTitle("Delete"));
+    await user.click(screen.getByRole("button", { name: "Delete Watch List" }));
     expect(await screen.findByText("Delete list")).toBeInTheDocument();
-
-    // The confirmation modal's confirm button is the one with visible text.
-    const confirm = screen
-      .getAllByRole("button", { name: "Delete" })
-      .find((button) => button.textContent?.trim() === "Delete");
-    expect(confirm).toBeDefined();
-    if (confirm) await user.click(confirm);
+    await user.click(screen.getByRole("button", { name: "Delete" }));
 
     await waitFor(() => {
-      expect(deleteUrl).toContain("/list/1");
+      expect(screen.queryByText("Watch List")).not.toBeInTheDocument();
     });
+    expect(screen.getByText("Sci-Fi")).toBeInTheDocument();
+  });
+
+  it("keeps the list when the delete is cancelled", async () => {
+    server.use(...clubListsApi());
+
+    const { user } = render(ManageListsModal, { props });
+    await screen.findByText("Watch List");
+
+    await user.click(screen.getByRole("button", { name: "Delete Watch List" }));
+    await user.click(await screen.findByRole("button", { name: "Cancel" }));
+
+    expect(screen.getByText("Watch List")).toBeInTheDocument();
   });
 
   it("does not render when show is false", () => {
