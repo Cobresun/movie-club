@@ -83,8 +83,9 @@
           :title="row.renderValue('title')"
           :poster-url="row.renderValue('imageUrl')"
           :highlighted="selectedMovieId === row.id"
+          selectable
           class="transition-all duration-fast ease-standard md:cursor-pointer"
-          @click="openMovieDetails(row)"
+          @select="openMovieDetails(row)"
         >
           <div class="mb-2 text-sm text-gray-400">
             <FlexRender
