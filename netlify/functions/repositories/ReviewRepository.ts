@@ -27,6 +27,38 @@ class ReviewRepository {
       .execute();
   }
 
+  /**
+   * Every work `userId` has scored, across every club they are still a member
+   * of — the cross-club comparison pool Score Assist draws on. Joining
+   * `club_member` (rather than trusting the review rows alone) drops scores
+   * left behind in clubs they have since left.
+   */
+  async getScoredWorksByUser(userId: string) {
+    return db
+      .selectFrom("review")
+      .where("review.user_id", "=", userId)
+      .innerJoin("work_list", "work_list.id", "review.list_id")
+      .where("work_list.system_type", "=", WorkListSystemType.reviews)
+      .innerJoin("club", "club.id", "work_list.club_id")
+      .innerJoin("club_member", (join) =>
+        join.onRef("club_member.club_id", "=", "club.id").on("club_member.user_id", "=", userId),
+      )
+      .innerJoin("work", "work.id", "review.work_id")
+      .select([
+        "work.id as work_id",
+        "work.title",
+        "work.type",
+        "work.image_url",
+        "work.external_id",
+        "club.id as club_id",
+        "club.name as club_name",
+        "club.slug as club_slug",
+        "review.score",
+        "review.created_date",
+      ])
+      .execute();
+  }
+
   async insertReview(clubId: string, workId: string, userId: string, score: number) {
     const listId = await db
       .selectFrom("work_list")

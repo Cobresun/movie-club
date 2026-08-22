@@ -62,6 +62,23 @@ describe("ScoreAssistModal", () => {
     expect(screen.queryByText("This one")).not.toBeInTheDocument();
   });
 
+  it("says which club a comparison came from when it isn't this one", () => {
+    const fromElsewhere = candidates.map((candidate) =>
+      candidate.workId === "w4" ? { ...candidate, clubName: "Sunday Cinema" } : candidate,
+    );
+    render(ScoreAssistModal, {
+      props: { target: makeTarget(), candidates: fromElsewhere, clubType: ClubType.movie },
+    });
+    expect(screen.getByText("from Sunday Cinema")).toBeInTheDocument();
+  });
+
+  it("leaves comparisons from this club unlabelled", () => {
+    render(ScoreAssistModal, {
+      props: { target: makeTarget(), candidates, clubType: ClubType.movie },
+    });
+    expect(screen.queryByText(/^from /)).not.toBeInTheDocument();
+  });
+
   it("uses the book noun for book clubs", () => {
     render(ScoreAssistModal, {
       props: { target: makeTarget(), candidates, clubType: ClubType.book },

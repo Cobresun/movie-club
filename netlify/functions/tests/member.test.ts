@@ -11,11 +11,19 @@ import { http, HttpResponse } from "msw";
 import { describe, expect, it } from "vitest";
 
 import { ClubPreview, Member } from "../../../lib/types/club";
-import { ClubType } from "../../../lib/types/generated/db";
+import { ClubType, WorkType } from "../../../lib/types/generated/db";
+import { MemberScoredWork } from "../../../lib/types/lists";
 import { handler as clubHandler } from "../club/index";
 import { handler } from "../member";
 import { signIn, TestSession } from "./helpers/auth";
-import { createClub, SeededClub } from "./helpers/factories";
+import {
+  addReviewedWork,
+  createClub,
+  joinClub,
+  leaveClub,
+  scoreWork,
+  SeededClub,
+} from "./helpers/factories";
 import { makeEvent, requester } from "./helpers/http";
 import { CLOUDINARY_DESTROY, CLOUDINARY_UPLOAD, failOnRequest, server } from "./setup/externalApis";
 
@@ -93,6 +101,80 @@ describe("GET /api/member/clubs", () => {
 
   it("returns 401 without a session", async () => {
     const res = await api.get("/api/member/clubs");
+
+    expect(res.statusCode).toBe(401);
+  });
+});
+
+describe("GET /api/member/scores", () => {
+  it("returns the member's own scores from every club they belong to", async () => {
+    const alice = await signIn("alice");
+    const movies = await createClub(alice, { name: "Movie Night" });
+    const books = await createClub(alice, { name: "Books", type: ClubType.book });
+    const movie = await addReviewedWork(movies, alice, { title: "Heat", externalId: "77" });
+    const book = await addReviewedWork(books, alice, {
+      title: "Dune",
+      type: WorkType.book,
+      externalId: "vol-1",
+    });
+    await scoreWork(movies, alice, movie.id, 8.5);
+    await scoreWork(books, alice, book.id, 6);
+
+    const res = await api.get<MemberScoredWork[]>("/api/member/scores", { as: alice });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toHaveLength(2);
+    expect(res.body).toContainEqual(
+      expect.objectContaining({
+        workId: movie.id,
+        clubName: "Movie Night",
+        clubSlug: movies.slug,
+        type: WorkType.movie,
+        title: "Heat",
+        externalId: "77",
+        score: 8.5,
+      }),
+    );
+    expect(res.body).toContainEqual(
+      expect.objectContaining({
+        workId: book.id,
+        clubName: "Books",
+        type: WorkType.book,
+        score: 6,
+      }),
+    );
+  });
+
+  it("omits unscored works and other members' scores", async () => {
+    const alice = await signIn("alice");
+    const bob = await signIn("bob");
+    const club = await createClub(alice, { members: [alice, bob] });
+    const scored = await addReviewedWork(club, alice, { externalId: null });
+    const unscored = await addReviewedWork(club, alice, { externalId: null });
+    await scoreWork(club, alice, scored.id, 7);
+    await scoreWork(club, bob, unscored.id, 2);
+
+    const res = await api.get<MemberScoredWork[]>("/api/member/scores", { as: alice });
+
+    expect(res.body.map((work) => work.workId)).toEqual([scored.id]);
+  });
+
+  it("drops scores left behind in a club the member has left", async () => {
+    const alice = await signIn("alice");
+    const bob = await signIn("bob");
+    const club = await createClub(alice, { members: [alice] });
+    await joinClub(club, bob);
+    const work = await addReviewedWork(club, alice, { externalId: null });
+    await scoreWork(club, bob, work.id, 9);
+    await leaveClub(club, bob);
+
+    const res = await api.get<MemberScoredWork[]>("/api/member/scores", { as: bob });
+
+    expect(res.body).toEqual([]);
+  });
+
+  it("returns 401 without a session", async () => {
+    const res = await api.get("/api/member/scores");
 
     expect(res.statusCode).toBe(401);
   });

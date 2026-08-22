@@ -81,7 +81,7 @@ import { firstName } from "@/common/memberName";
 import AddReviewPrompt from "@/features/reviews/components/AddReviewPrompt.vue";
 import { useClub, useMembers } from "@/service/useClub";
 import { useDeleteReview, useReviewsList, useReviewsListId } from "@/service/useList";
-import { useUser } from "@/service/useUser";
+import { useMemberScores, useUser } from "@/service/useUser";
 
 const { clubSlug } = defineProps<{ clubSlug: string }>();
 
@@ -137,13 +137,15 @@ const scoreAssistWorkId = ref<string>();
 const scoreAssistTarget = computed(() =>
   reviews.value?.find((review) => review.id === scoreAssistWorkId.value),
 );
+const { data: memberScores } = useMemberScores();
 const scoreAssistCandidates = computed(() => {
   const target = scoreAssistTarget.value;
   if (!isDefined(target) || !hasValue(userId.value)) return [];
-  return buildCandidatePool(reviews.value ?? [], userId.value, target.id);
+  return buildCandidatePool(reviews.value ?? [], userId.value, target.id, memberScores.value ?? []);
 });
 provide(ScoreAssistKey, {
-  isEligible: (workId: string) => isScoreAssistEligible(reviews.value, userId.value, workId),
+  isEligible: (workId: string) =>
+    isScoreAssistEligible(reviews.value, userId.value, workId, memberScores.value ?? []),
   open: (workId: string) => {
     scoreAssistWorkId.value = workId;
   },

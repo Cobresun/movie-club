@@ -1,6 +1,11 @@
 import { DetailedBookData } from "../../../../lib/types/book";
 import { WorkType } from "../../../../lib/types/generated/db";
-import { DetailedReviewListItem, DetailedWorkData, Review } from "../../../../lib/types/lists";
+import {
+  DetailedReviewListItem,
+  DetailedWorkData,
+  MemberScoredWork,
+  Review,
+} from "../../../../lib/types/lists";
 import { DetailedMovieData } from "../../../../lib/types/movie";
 import {
   answerComparison,
@@ -86,6 +91,8 @@ function reviewItem(
   opts: {
     userScore?: number;
     title?: string;
+    type?: WorkType;
+    externalId?: string;
     externalData?: DetailedWorkData;
   } = {},
 ): DetailedReviewListItem {
@@ -106,11 +113,39 @@ function reviewItem(
   }
   return {
     id,
-    type: WorkType.movie,
+    type: opts.type ?? WorkType.movie,
     title: opts.title ?? `Work ${id}`,
     createdDate: "2024-01-01",
+    externalId: opts.externalId,
     scores,
     externalData: opts.externalData,
+  };
+}
+
+/** A work the user scored in some club — the `GET /api/member/scores` shape. */
+function memberScore(
+  workId: string,
+  score: number,
+  opts: {
+    title?: string;
+    type?: WorkType;
+    externalId?: string;
+    clubName?: string;
+    scoredDate?: string;
+    externalData?: DetailedWorkData;
+  } = {},
+): MemberScoredWork {
+  return {
+    workId,
+    clubId: "club-2",
+    clubName: opts.clubName ?? "Other Club",
+    clubSlug: "other-club",
+    type: opts.type ?? WorkType.movie,
+    title: opts.title ?? `Work ${workId}`,
+    externalId: opts.externalId,
+    externalData: opts.externalData,
+    score,
+    scoredDate: opts.scoredDate ?? "2024-01-01T00:00:00.000Z",
   };
 }
 
@@ -151,6 +186,73 @@ describe("buildCandidatePool", () => {
   });
 });
 
+describe("buildCandidatePool across clubs", () => {
+  const targetItem = reviewItem("target", { externalId: "tt-target" });
+
+  it("adds works scored in the user's other clubs, tagged with their club", () => {
+    const pool = buildCandidatePool(
+      [targetItem, reviewItem("a", { userScore: 7 })],
+      USER_ID,
+      "target",
+      [memberScore("elsewhere", 3, { externalId: "tt-1", clubName: "Sunday Cinema" })],
+    );
+    expect(pool.map((item) => item.workId)).toEqual(["elsewhere", "a"]);
+    expect(pool[0].clubName).toBe("Sunday Cinema");
+    // This club's own works carry no club label — nothing to disambiguate.
+    expect(pool[1].clubName).toBeUndefined();
+  });
+
+  it("ignores other-club works of a different media type than the target", () => {
+    const pool = buildCandidatePool([targetItem], USER_ID, "target", [
+      memberScore("a-book", 9, { type: WorkType.book, externalId: "vol-1" }),
+      memberScore("a-movie", 4, { externalId: "tt-1" }),
+    ]);
+    expect(pool.map((item) => item.workId)).toEqual(["a-movie"]);
+  });
+
+  it("lets this club's own score win over the same work scored elsewhere", () => {
+    const pool = buildCandidatePool(
+      [targetItem, reviewItem("a", { userScore: 7, externalId: "tt-1" })],
+      USER_ID,
+      "target",
+      [memberScore("elsewhere", 3, { externalId: "tt-1" })],
+    );
+    expect(pool.map((item) => ({ id: item.workId, score: item.score }))).toEqual([
+      { id: "a", score: 7 },
+    ]);
+  });
+
+  it("keeps the most recent score when two other clubs scored the same work", () => {
+    const pool = buildCandidatePool([targetItem], USER_ID, "target", [
+      memberScore("old", 3, { externalId: "tt-1", scoredDate: "2024-01-01T00:00:00.000Z" }),
+      memberScore("new", 8, { externalId: "tt-1", scoredDate: "2025-06-01T00:00:00.000Z" }),
+    ]);
+    expect(pool.map((item) => item.workId)).toEqual(["new"]);
+  });
+
+  it("never offers the target back as another club's copy of the same work", () => {
+    const pool = buildCandidatePool([targetItem], USER_ID, "target", [
+      memberScore("target-elsewhere", 6, { externalId: "tt-target" }),
+    ]);
+    expect(pool).toEqual([]);
+  });
+
+  it("keeps other-club works that carry no external id", () => {
+    const pool = buildCandidatePool([targetItem], USER_ID, "target", [
+      memberScore("no-id-1", 2),
+      memberScore("no-id-2", 5),
+    ]);
+    expect(pool.map((item) => item.workId)).toEqual(["no-id-1", "no-id-2"]);
+  });
+
+  it("ignores other-club scores when the target is not on this club's list", () => {
+    const pool = buildCandidatePool([reviewItem("a", { userScore: 7 })], USER_ID, "missing", [
+      memberScore("elsewhere", 3, { externalId: "tt-1" }),
+    ]);
+    expect(pool.map((item) => item.workId)).toEqual(["a"]);
+  });
+});
+
 describe("isScoreAssistEligible", () => {
   it("requires five scored works besides the target", () => {
     const four = [1, 2, 3, 4].map((n) => reviewItem(`w${n}`, { userScore: n }));
@@ -158,6 +260,14 @@ describe("isScoreAssistEligible", () => {
     expect(isScoreAssistEligible([...four, targetItem], USER_ID, "target")).toBe(false);
     const five = [...four, reviewItem("w5", { userScore: 5 })];
     expect(isScoreAssistEligible([...five, targetItem], USER_ID, "target")).toBe(true);
+  });
+
+  it("counts works scored in the user's other clubs", () => {
+    const targetItem = reviewItem("target", { externalId: "tt-target" });
+    const three = [1, 2, 3].map((n) => reviewItem(`w${n}`, { userScore: n }));
+    expect(isScoreAssistEligible([...three, targetItem], USER_ID, "target")).toBe(false);
+    const elsewhere = [4, 5].map((n) => memberScore(`e${n}`, n, { externalId: `tt-${n}` }));
+    expect(isScoreAssistEligible([...three, targetItem], USER_ID, "target", elsewhere)).toBe(true);
   });
 
   it("is false without reviews or a user", () => {
