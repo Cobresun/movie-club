@@ -8,7 +8,7 @@
       :aria-expanded="isOpen"
       @click="toggle"
     >
-      <v-avatar :name="fullName" :src="avatarURL" />
+      <v-avatar :name="fullName" :src="avatarURL" :size="44" />
     </button>
 
     <!-- Desktop: a popover anchored under the avatar, mirroring how
