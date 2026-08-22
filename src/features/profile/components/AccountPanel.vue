@@ -1,9 +1,14 @@
 <template>
-  <!-- Height is animated because the panel swaps between three heights in
-       place — main, name editor, photo actions — and inside a bottom sheet a
-       snap resize reads as the sheet jumping. -->
+  <!-- Every secondary view — name editor, photo actions, password — swaps in
+       place rather than opening over the top, so nothing here ever unmounts the
+       sheet the user is standing in. Height is animated because a snap resize
+       inside a bottom sheet reads as the sheet jumping. -->
   <AnimatedHeight>
-    <div v-if="view === 'photo'">
+    <div v-if="view === 'password'" class="px-4 pb-1">
+      <ChangePasswordForm @back="view = 'main'" />
+    </div>
+
+    <div v-else-if="view === 'photo'">
       <div class="flex items-center gap-1" :class="dense ? 'px-2 py-2' : 'px-2 pb-1'">
         <button
           class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full transition-colors duration-fast ease-standard hover:bg-white/10"
@@ -114,7 +119,7 @@
         </div>
       </div>
 
-      <button :class="rowClass" @click="emit('change-password')">
+      <button :class="rowClass" @click="view = 'password'">
         <mdicon name="lock-outline" :size="iconSize" class="flex-shrink-0 text-white/60" />
         <span class="flex-grow">Change password</span>
         <mdicon name="chevron-right" :size="chevronSize" class="flex-shrink-0 text-white/35" />
@@ -137,6 +142,7 @@ import { computed, nextTick, ref, useTemplateRef } from "vue";
 import { useToast } from "vue-toastification";
 
 import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
+import ChangePasswordForm from "../../auth/components/ChangePasswordForm.vue";
 import AnimatedHeight from "@/common/components/AnimatedHeight.vue";
 import { useDeleteAvatar, useUpdateAvatar, useUpdateName, useUser } from "@/service/useUser";
 import { useAuthStore } from "@/stores/auth";
@@ -150,7 +156,6 @@ import { useAuthStore } from "@/stores/auth";
 const { dense = false } = defineProps<{ dense?: boolean }>();
 
 const emit = defineEmits<{
-  (e: "change-password"): void;
   (e: "close"): void;
 }>();
 
@@ -160,7 +165,7 @@ const authStore = useAuthStore();
 const toast = useToast();
 const user = useUser();
 
-const view = ref<"main" | "photo">("main");
+const view = ref<"main" | "photo" | "password">("main");
 const hasPhoto = computed(() => hasValue(user.value?.image));
 
 const rowClass = computed(() =>

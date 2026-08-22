@@ -25,26 +25,21 @@
         aria-label="Account"
         class="absolute right-0 top-full z-50 mt-1 w-[300px] origin-top-right overflow-hidden rounded-xl bg-lowBackground pb-1 shadow-lg"
       >
-        <AccountPanel dense @change-password="openPassword" @close="close" />
+        <AccountPanel dense @close="close" />
       </div>
     </transition>
 
     <!-- Mobile: a bottom sheet, so the account view is something you dismiss
          rather than a screen you have to find your way out of. -->
     <v-bottom-sheet v-if="!isDesktop && isOpen" content-class="pb-6" @close="close">
-      <AccountPanel @change-password="openPassword" @close="close" />
+      <AccountPanel @close="close" />
     </v-bottom-sheet>
-
-    <v-modal v-if="showPasswordModal" size="sm" z-index="60" @close="closePassword">
-      <ChangePasswordForm @back="backToAccount" />
-    </v-modal>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, onUnmounted, ref, watch } from "vue";
 
-import ChangePasswordForm from "../../auth/components/ChangePasswordForm.vue";
 import { closeAccountMenu, openAccountMenu, useAccountMenu } from "../composables/useAccountMenu";
 import AccountPanel from "./AccountPanel.vue";
 import VBottomSheet from "@/common/components/VBottomSheet.vue";
@@ -61,7 +56,6 @@ const fullName = computed(() => store.user?.name ?? "");
 const avatarURL = computed(() => user.value?.image);
 
 const root = ref<HTMLElement | null>(null);
-const showPasswordModal = ref(false);
 
 const close = () => closeAccountMenu();
 
@@ -71,22 +65,6 @@ const toggle = () => {
   } else {
     openAccountMenu();
   }
-};
-
-const openPassword = () => {
-  // Closed rather than stacked: on mobile two bottom sheets deep is a lot of
-  // screen to dig out of, and `back` in the password sheet brings this one back.
-  close();
-  showPasswordModal.value = true;
-};
-
-const closePassword = () => {
-  showPasswordModal.value = false;
-};
-
-const backToAccount = () => {
-  showPasswordModal.value = false;
-  openAccountMenu();
 };
 
 // The bottom sheet brings its own dismissal (grabber, backdrop, back button);
@@ -120,10 +98,7 @@ watch(
 watch(
   () => store.isLoggedIn,
   (loggedIn) => {
-    if (!loggedIn) {
-      close();
-      closePassword();
-    }
+    if (!loggedIn) close();
   },
 );
 

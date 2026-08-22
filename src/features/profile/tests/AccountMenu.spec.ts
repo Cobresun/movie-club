@@ -134,7 +134,7 @@ describe("AccountMenu", () => {
     expect(await screen.findByRole("button", { name: /Edit name/ })).toBeInTheDocument();
   });
 
-  it("swaps the menu for the password form, and back again", async () => {
+  it("swaps to the password form in place, and back again", async () => {
     const { user } = renderMenu();
     await open(user);
 
@@ -142,6 +142,11 @@ describe("AccountMenu", () => {
 
     expect(await screen.findByLabelText("Current password")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Edit name/ })).not.toBeInTheDocument();
+    // The form replaces the panel's contents; the sheet holding it stays put.
+    expect(screen.getByRole("button", { name: "Account" })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
 
     await user.click(screen.getByRole("button", { name: "Back to account" }));
 
