@@ -4,10 +4,15 @@ import { Member } from "../../../../lib/types/club";
 import { WorkType } from "../../../../lib/types/generated/db";
 import TasteSimilarityWidget from "../components/TasteSimilarityWidget.vue";
 import type { BookData } from "../types";
+import { makeMember, makeMovie } from "./fixtures";
 import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
 import { render } from "@/tests/utils";
 
 mockIntersectionObserver();
+
+// ─── Scope fixtures ───────────────────────────────────────────────────────────
+// Drive the club-wide vs "You" scope toggle. Book works, so the widget is
+// exercised for a club type that has no poster/TMDB data.
 
 const members: Member[] = [
   { id: "m1", name: "Ann Adams", email: "ann@example.com" },
@@ -41,6 +46,26 @@ function pairLabels(): string[] {
     .getAllByText(/.+/, { selector: "span.mt-1" })
     .map((element) => element.textContent ?? "");
 }
+
+// ─── Presentation fixtures ────────────────────────────────────────────────────
+// A clean two-agree/one-disagree split, for the copy, gap figures and the
+// agreement/disagreement lists.
+
+const pairMembers = [
+  makeMember({ id: "m1", name: "Ada Lovelace" }),
+  makeMember({ id: "m2", name: "Alan Turing" }),
+  makeMember({ id: "m3", name: "Grace Hopper" }),
+];
+
+// Ada and Alan score identically; Grace disagrees with both by a wide margin.
+// Three shared reviews is the minimum a pair needs to be compared at all.
+const pairWorkData = [
+  makeMovie({ id: "1", title: "Agreed On", userScores: { m1: 8, m2: 8, m3: 1 } }),
+  makeMovie({ id: "2", title: "Also Agreed", userScores: { m1: 7, m2: 7, m3: 2 } }),
+  makeMovie({ id: "3", title: "Agreed Again", userScores: { m1: 9, m2: 9, m3: 3 } }),
+];
+
+const pairProps = { workData: pairWorkData, members: pairMembers };
 
 describe("TasteSimilarityWidget", () => {
   it("shows the club-wide pair and no scope toggle for a signed-out viewer", () => {
@@ -90,5 +115,72 @@ describe("TasteSimilarityWidget", () => {
 
     // Cal's furthest is Bo at 50% — same number here, so assert on the pair.
     expect(pairLabels()).toEqual(["You", "Bo"]);
+  });
+
+  it("opens on the closest-matching pair", () => {
+    render(TasteSimilarityWidget, { props: pairProps });
+
+    expect(screen.getByRole("heading", { name: "Taste Similarity" })).toBeInTheDocument();
+    expect(screen.getByText("The pair whose scores line up the closest")).toBeInTheDocument();
+    expect(screen.getByText("Ada")).toBeInTheDocument();
+    expect(screen.getByText("Alan")).toBeInTheDocument();
+    expect(screen.getByText("100%")).toBeInTheDocument();
+  });
+
+  it("reports the pair's average gap and how many reviews it is based on", () => {
+    render(TasteSimilarityWidget, { props: pairProps });
+
+    expect(screen.getByText("0")).toBeInTheDocument();
+    expect(screen.getByText(/points across 3 shared reviews/)).toBeInTheDocument();
+  });
+
+  it("lists the pair's top agreements with both scores", () => {
+    render(TasteSimilarityWidget, { props: pairProps });
+
+    expect(screen.getByText("Top agreements")).toBeInTheDocument();
+    expect(screen.getByText("Agreed On")).toBeInTheDocument();
+    expect(screen.getByText("8 vs 8")).toBeInTheDocument();
+  });
+
+  it("switches to the pair whose scores clash hardest", async () => {
+    const { user } = render(TasteSimilarityWidget, { props: pairProps });
+
+    await user.click(screen.getByRole("tab", { name: "Least Similar" }));
+
+    expect(screen.getByText("The pair whose scores clash the hardest")).toBeInTheDocument();
+    expect(screen.getByText("Grace")).toBeInTheDocument();
+    expect(screen.getByText("40%")).toBeInTheDocument();
+    expect(screen.getByText("Biggest disagreements")).toBeInTheDocument();
+  });
+
+  it("shows the widest gaps first in the least-similar view", async () => {
+    const { user } = render(TasteSimilarityWidget, { props: pairProps });
+
+    await user.click(screen.getByRole("tab", { name: "Least Similar" }));
+
+    expect(screen.getByText("8 vs 1")).toBeInTheDocument();
+    expect(screen.getByText("9 vs 3")).toBeInTheDocument();
+  });
+
+  it("renders nothing when no pair shares the three-review minimum", () => {
+    render(TasteSimilarityWidget, {
+      props: { members: pairMembers, workData: [pairWorkData[0], pairWorkData[1]] },
+    });
+
+    expect(screen.queryByText("Taste Similarity")).not.toBeInTheDocument();
+  });
+
+  it("renders nothing for a club with a single member", () => {
+    render(TasteSimilarityWidget, {
+      props: { workData: pairWorkData, members: [pairMembers[0]] },
+    });
+
+    expect(screen.queryByText("Taste Similarity")).not.toBeInTheDocument();
+  });
+
+  it("renders nothing for a club with no reviews", () => {
+    render(TasteSimilarityWidget, { props: { members: pairMembers, workData: [] } });
+
+    expect(screen.queryByText("Taste Similarity")).not.toBeInTheDocument();
   });
 });
