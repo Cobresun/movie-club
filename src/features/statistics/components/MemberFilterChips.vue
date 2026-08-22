@@ -1,8 +1,11 @@
 <template>
   <div class="flex flex-wrap items-center gap-2">
+    <!-- Which chip is active is otherwise carried by colour alone, so nothing
+         announces the current filter. aria-pressed is what says so. -->
     <button
       v-if="includeAll"
       class="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-all"
+      :aria-pressed="!isDefined(modelValue)"
       :class="
         !isDefined(modelValue)
           ? 'bg-primary text-white shadow-md shadow-primary/25'
@@ -16,6 +19,7 @@
       v-for="member in members"
       :key="member.id"
       class="inline-flex items-center gap-1.5 rounded-full py-1 pl-1 pr-3 text-sm font-medium transition-all"
+      :aria-pressed="modelValue === member.id"
       :class="
         modelValue === member.id
           ? 'bg-primary text-white shadow-md shadow-primary/25'

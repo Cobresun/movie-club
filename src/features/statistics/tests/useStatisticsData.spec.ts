@@ -1,12 +1,11 @@
 import { waitFor } from "@testing-library/vue";
 import { http, HttpResponse } from "msw";
-import { defineComponent } from "vue";
 
-import { ensure, isDefined } from "../../../../lib/checks/checks";
+import { isDefined } from "../../../../lib/checks/checks";
 import { useStatisticsData } from "../composables/useStatisticsData";
 import { isMovieStats, type WorkStatsData } from "../types";
 import { server } from "@/mocks/server";
-import { render } from "@/tests/utils";
+import { withSetup } from "@/tests/utils";
 
 const members = [
   { id: "1", email: "dev@email.com", name: "dev" },
@@ -50,26 +49,25 @@ function bookReview(overrides: Record<string, unknown> = {}) {
   };
 }
 
-/** Renders the composable and exposes its result for assertions. */
+/**
+ * Runs the composable against a club's reviews and settles its queries.
+ *
+ * The widget specs cover what a reader sees; what is left here is the shaping
+ * the composable does before any widget gets a row — dropping works nothing
+ * can be computed from, and binning the histogram.
+ */
 async function renderStats(reviews: unknown[], memberList = members) {
   server.use(
     http.get("/api/club/:id/list/reviews", () => HttpResponse.json(reviews)),
     http.get("/api/club/:id/members", () => HttpResponse.json(memberList)),
   );
 
-  const captured: { value?: ReturnType<typeof useStatisticsData> } = {};
-  const Harness = defineComponent({
-    setup() {
-      captured.value = useStatisticsData();
-      return () => null;
-    },
-  });
-  render(Harness);
+  const { result } = withSetup(() => useStatisticsData());
 
   await waitFor(() => {
-    expect(captured.value?.loading.value).toBe(false);
+    expect(result.loading.value).toBe(false);
   });
-  return ensure(captured.value);
+  return result;
 }
 
 describe("useStatisticsData", () => {
