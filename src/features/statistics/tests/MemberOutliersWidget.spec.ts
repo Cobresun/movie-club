@@ -97,7 +97,7 @@ describe("MemberOutliersWidget", () => {
     // widget falls back to the only member who does rather than showing blanks.
     await user.click(screen.getByRole("tab", { name: "Curmudgeons" }));
 
-    expect(screen.getByRole("button", { name: /Alan Turing/ })).toHaveClass("bg-primary");
+    expect(screen.getByRole("button", { name: /Alan Turing/, pressed: true })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Ada Lovelace/ })).not.toBeInTheDocument();
   });
 

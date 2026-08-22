@@ -49,20 +49,22 @@ describe("MemberFilterChips", () => {
   it("marks the selected member's chip as the active one", () => {
     render(MemberFilterChips, { props: { members, modelValue: "2" } });
 
-    expect(screen.getByRole("button", { name: /user/ })).toHaveClass("bg-primary");
-    expect(screen.getByRole("button", { name: /dev/ })).not.toHaveClass("bg-primary");
+    expect(screen.getByRole("button", { name: /user/, pressed: true })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /dev/, pressed: false })).toBeInTheDocument();
   });
 
-  it("highlights All while no member is selected", () => {
+  it("marks All as the active chip while no member is selected", () => {
     render(MemberFilterChips, { props: { members, modelValue: undefined } });
 
-    expect(screen.getByRole("button", { name: "All" })).toHaveClass("bg-primary");
+    expect(screen.getByRole("button", { name: "All", pressed: true })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /dev/, pressed: true })).not.toBeInTheDocument();
   });
 
-  it("renders nothing but the All chip for a club with no members", () => {
+  it("offers nothing but the All chip for a club with no members", () => {
     render(MemberFilterChips, { props: { members: [], modelValue: undefined } });
 
-    expect(screen.getAllByRole("button")).toHaveLength(1);
+    expect(screen.getByRole("button", { name: "All" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /dev|user/ })).not.toBeInTheDocument();
   });
 });
 

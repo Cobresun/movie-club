@@ -42,6 +42,16 @@ const movieData = [
     userScores: { m1: 8, m2: 7, m3: 6 },
     externalData: makeExternalMovie({ vote_average: 8, release_date: "2016-11-11" }),
   }),
+  // Taste similarity needs three works every pair has both scored before it
+  // has anything to rank.
+  makeMovie({
+    id: "3",
+    title: "Solaris",
+    average: 6,
+    genres: ["Sci-Fi"],
+    userScores: { m1: 7, m2: 6, m3: 5 },
+    externalData: makeExternalMovie({ vote_average: 7, release_date: "1972-03-20" }),
+  }),
 ];
 
 const bookData = [
@@ -75,6 +85,9 @@ describe("InsightsView", () => {
     expect(screen.getByRole("heading", { name: "Reviewer Stats" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Club Consensus" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Club vs TMDB" })).toBeInTheDocument();
+    // Similarity between exactly two members is a single pair, not a ranking,
+    // so it only appears once the club is bigger than that.
+    expect(screen.getByRole("heading", { name: /Taste Similarity/ })).toBeInTheDocument();
   });
 
   it("omits the book-only widgets from a movie club", () => {
@@ -82,8 +95,8 @@ describe("InsightsView", () => {
       props: { workData: movieData, members, histogramData, clubType: ClubType.movie },
     });
 
-    expect(screen.queryByText("Subjects")).not.toBeInTheDocument();
-    expect(screen.queryByText("Most Read Authors")).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /Subjects/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /Most Read Authors/ })).not.toBeInTheDocument();
     expect(screen.queryByText("books read")).not.toBeInTheDocument();
   });
 
@@ -102,9 +115,9 @@ describe("InsightsView", () => {
       props: { workData: bookData, members, histogramData, clubType: ClubType.book },
     });
 
-    expect(screen.queryByText("Genres")).not.toBeInTheDocument();
-    expect(screen.queryByText("Filmmakers")).not.toBeInTheDocument();
-    expect(screen.queryByText("Club vs TMDB")).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /Genres/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /Filmmakers/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /Club vs TMDB/ })).not.toBeInTheDocument();
   });
 
   it("hides the comparison widgets in a one-member club", () => {
@@ -117,9 +130,9 @@ describe("InsightsView", () => {
       },
     });
 
-    expect(screen.queryByText("Reviewer Stats")).not.toBeInTheDocument();
-    expect(screen.queryByText("Guilty Pleasures")).not.toBeInTheDocument();
-    expect(screen.queryByText("Taste Similarity")).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /Reviewer Stats/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /Guilty Pleasures/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /Taste Similarity/ })).not.toBeInTheDocument();
     // Widgets that work for any club size still render.
     expect(screen.getByRole("heading", { name: "Club Records" })).toBeInTheDocument();
   });
@@ -135,7 +148,7 @@ describe("InsightsView", () => {
     });
 
     expect(screen.getByRole("heading", { name: "Reviewer Stats" })).toBeInTheDocument();
-    expect(screen.queryByText("Taste Similarity")).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /Taste Similarity/ })).not.toBeInTheDocument();
   });
 
   it("renders the always-on widgets even with no reviews", () => {
@@ -145,6 +158,6 @@ describe("InsightsView", () => {
 
     expect(screen.getByText("movies watched")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Scores" })).toBeInTheDocument();
-    expect(screen.queryByText("Club Records")).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /Club Records/ })).not.toBeInTheDocument();
   });
 });

@@ -33,7 +33,7 @@ describe("ClubConsensusWidget", () => {
     expect(screen.getByText("Scores that landed closest together")).toBeInTheDocument();
     // Both works appear, ordered by how tightly the scores clustered.
     const titles = screen
-      .getAllByTitle(/Unanimous|Contentious/)
+      .getAllByText(/^(Unanimous|Contentious)$/)
       .map((el) => el.textContent?.trim());
     expect(titles[0]).toBe("Unanimous");
   });
@@ -59,7 +59,7 @@ describe("ClubConsensusWidget", () => {
 
     expect(screen.getByText("Scores that split the room")).toBeInTheDocument();
     const titles = screen
-      .getAllByTitle(/Unanimous|Contentious/)
+      .getAllByText(/^(Unanimous|Contentious)$/)
       .map((el) => el.textContent?.trim());
     expect(titles[0]).toBe("Contentious");
   });

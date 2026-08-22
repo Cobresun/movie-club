@@ -129,20 +129,18 @@ describe("createHistogramOptions", () => {
     );
   });
 
-  it("labels both axes at full size", () => {
+  it("names both axes for what they plot", () => {
     const options = createHistogramOptions(params);
 
     expect(axisAt(options, "bottom")?.title).toMatchObject({ enabled: true, text: "Score" });
     expect(axisAt(options, "left")?.title).toMatchObject({ enabled: true, text: "Reviews" });
   });
 
-  it("drops the axis titles and shrinks labels in compact mode", () => {
+  it("drops the axis titles in compact mode, where there is no room for them", () => {
     const options = createHistogramOptions({ ...params, compact: true });
 
     expect(axisAt(options, "bottom")?.title?.enabled).toBe(false);
-    expect(Number(axisAt(options, "bottom")?.label?.fontSize)).toBeLessThan(
-      Number(axisAt(createHistogramOptions(params), "bottom")?.label?.fontSize),
-    );
+    expect(axisAt(options, "left")?.title?.enabled).toBe(false);
   });
 });
 

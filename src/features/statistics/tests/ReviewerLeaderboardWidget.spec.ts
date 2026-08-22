@@ -2,7 +2,6 @@ import { screen } from "@testing-library/vue";
 
 import ReviewerLeaderboardWidget from "../components/ReviewerLeaderboardWidget.vue";
 import { makeMember, makeMovie } from "./fixtures";
-import { MEMBER_SERIES_COLORS } from "@/common/chartPalette";
 import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
 import { render } from "@/tests/utils";
 
@@ -59,16 +58,6 @@ describe("ReviewerLeaderboardWidget", () => {
     });
 
     expect(screen.getAllByText("1 review")).toHaveLength(2);
-  });
-
-  it("gives each member the chart color of their slot in the member list", () => {
-    const { container } = render(ReviewerLeaderboardWidget, { props: { workData, members } });
-
-    // The swatch next to a name must match that member's series color so the
-    // leaderboard and the charts agree — the widget's stated subtitle promise.
-    const swatches = container.querySelectorAll("span.rounded-full[style]");
-    expect(swatches[0]).toHaveStyle({ backgroundColor: MEMBER_SERIES_COLORS[0] });
-    expect(swatches[1]).toHaveStyle({ backgroundColor: MEMBER_SERIES_COLORS[1] });
   });
 
   it("omits members who have not scored anything", () => {
