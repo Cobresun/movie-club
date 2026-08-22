@@ -11,15 +11,16 @@
       <ClubSwitcher v-if="showClubSwitcher" />
     </div>
     <div v-if="authReady" class="flex flex-shrink-0 items-center">
-      <v-avatar
+      <button
         v-if="isLoggedIn"
-        class="mr-3 cursor-pointer"
-        :name="fullName"
-        :src="avatarURL"
+        class="rounded-full"
+        aria-label="Profile"
+        title="Profile"
         @click="toProfile"
-      />
-      <v-btn v-if="!isLoggedIn" @click="login"> Login </v-btn>
-      <v-btn v-else @click="logout"> Logout </v-btn>
+      >
+        <v-avatar :name="fullName" :src="avatarURL" />
+      </button>
+      <v-btn v-else @click="login"> Login </v-btn>
     </div>
   </div>
 </template>
@@ -66,10 +67,6 @@ const logoDestination = computed(() => {
 
 function login() {
   store.login();
-}
-
-async function logout() {
-  await store.logout();
 }
 
 const router = useRouter();

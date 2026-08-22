@@ -70,9 +70,18 @@
       </div>
     </div>
 
-    <!-- Change Password Section -->
-    <div class="w-full max-w-md">
+    <!-- Account Actions Section -->
+    <div class="flex w-full max-w-md flex-col gap-4">
       <v-btn @click="showPasswordModal = true">Change Password</v-btn>
+
+      <button
+        class="flex min-h-[52px] items-center gap-3 rounded-xl px-4 py-3.5 text-left ring-1 ring-inset ring-white/[0.12] transition-colors duration-fast ease-standard hover:bg-white/10"
+        @click="logout"
+      >
+        <mdicon name="logout" :size="22" class="flex-shrink-0 text-white/60" />
+        <span class="flex-grow text-[15px] font-medium text-orange-300">Logout</span>
+        <mdicon name="chevron-right" :size="20" class="text-white/35" />
+      </button>
     </div>
 
     <!-- Change Password Modal -->
@@ -88,7 +97,9 @@ import { useToast } from "vue-toastification";
 import { isDefined, hasValue } from "../../../../lib/checks/checks.js";
 import ChangePasswordForm from "../../auth/components/ChangePasswordForm.vue";
 import { useUser, useUpdateAvatar, useDeleteAvatar, useUpdateName } from "@/service/useUser";
+import { useAuthStore } from "@/stores/auth";
 
+const authStore = useAuthStore();
 const data = useUser();
 const fileInput: Ref<HTMLInputElement | null> = ref(null);
 const showPasswordModal = ref(false);
@@ -169,4 +180,8 @@ const saveName = () => {
 };
 
 const isLoading = computed(() => isAvatarPending.value || isDeletePending.value);
+
+const logout = async () => {
+  await authStore.logout();
+};
 </script>

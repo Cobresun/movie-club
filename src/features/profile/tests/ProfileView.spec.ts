@@ -3,6 +3,7 @@ import { http, HttpResponse } from "msw";
 
 import ProfileView from "../views/ProfileView.vue";
 import { server } from "@/mocks/server";
+import { useAuthStore } from "@/stores/auth";
 import { logIn, render } from "@/tests/utils";
 
 describe("ProfileView", () => {
@@ -96,5 +97,14 @@ describe("ProfileView", () => {
     await waitFor(() => {
       expect(deleted).toBe(true);
     });
+  });
+
+  it("signs the user out", async () => {
+    const { user, pinia } = render(ProfileView);
+    logIn(pinia);
+
+    await user.click(await screen.findByRole("button", { name: "Logout" }));
+
+    expect(useAuthStore(pinia).logout).toHaveBeenCalled();
   });
 });
