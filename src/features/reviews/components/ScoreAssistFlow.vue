@@ -22,7 +22,13 @@
             :aria-label="`I liked ${pivot.title} more`"
             @click="answer('less')"
           >
-            <WorkPosterCard :title="pivot.title" :poster-url="pivotPosterUrl" />
+            <WorkPosterCard :title="pivot.title" :poster-url="pivotPosterUrl">
+              <!-- The pool spans every club the user belongs to, so a pivot
+                   they only ever scored elsewhere says where it came from. -->
+              <span v-if="hasValue(pivot.clubName)" class="text-xs text-gray-400">
+                from {{ pivot.clubName }}
+              </span>
+            </WorkPosterCard>
           </button>
         </Transition>
       </div>
@@ -49,7 +55,7 @@
 import { computed } from "vue";
 import { useToast } from "vue-toastification";
 
-import { isDefined } from "../../../../lib/checks/checks.js";
+import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import { ClubType } from "../../../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
 import { ComparisonAnswer, ScoredCandidate } from "../composables/scoreAssistLogic";

@@ -1,6 +1,10 @@
 import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import { WorkType } from "../../../../lib/types/generated/db";
-import { DetailedReviewListItem, WorkDataSummary } from "../../../../lib/types/lists";
+import {
+  DetailedReviewListItem,
+  MemberScoredWork,
+  WorkDataSummary,
+} from "../../../../lib/types/lists";
 import { makeWorkSimilarity, WorkSimilarityScorer } from "@/common/clubType";
 
 /**
@@ -23,6 +27,8 @@ export interface ScoredCandidate {
   externalData?: WorkDataSummary;
   /** The current user's score for this work. */
   score: number;
+  /** Set only when the score came from one of the user's *other* clubs. */
+  clubName?: string;
 }
 
 /** The user's verdict on the current comparison, relative to the TARGET. */
@@ -67,38 +73,98 @@ export interface ScoreAssistSession {
   readonly result?: ScoreAssistResult;
 }
 
+/**
+ * The comparison pool for one target work: everything the user has scored,
+ * from this club and from every other club they belong to. Cross-club works
+ * are restricted to the target's own media type — a book score says nothing
+ * about where a movie sits on the user's movie scale.
+ *
+ * `otherClubScores` is the whole `GET /api/member/scores` payload, this club
+ * included; entries already covered by `reviews` are dropped, so the club being
+ * reviewed in always speaks for itself (its list carries optimistic updates the
+ * cross-club query hasn't seen yet).
+ */
 export function buildCandidatePool(
   reviews: readonly DetailedReviewListItem[],
   userId: string,
   targetWorkId: string,
+  otherClubScores: readonly MemberScoredWork[] = [],
 ): ScoredCandidate[] {
-  return reviews
-    .flatMap<ScoredCandidate>((item) => {
-      if (item.id === targetWorkId) return [];
-      // Indexing by userId (never iterating keys) is what keeps the synthetic
-      // "average" entry in `scores` out of the pool.
-      const score = item.scores[userId]?.score;
-      if (!isDefined(score) || !Number.isFinite(score)) return [];
-      return [
-        {
-          workId: item.id,
-          title: item.title,
-          imageUrl: item.imageUrl,
-          externalData: item.externalData,
-          score,
-        },
-      ];
-    })
-    .sort((a, b) => (a.score !== b.score ? a.score - b.score : a.title.localeCompare(b.title)));
+  const target = reviews.find((item) => item.id === targetWorkId);
+  const pool = reviews.flatMap<ScoredCandidate>((item) => {
+    if (item.id === targetWorkId) return [];
+    // Indexing by userId (never iterating keys) is what keeps the synthetic
+    // "average" entry in `scores` out of the pool.
+    const score = item.scores[userId]?.score;
+    if (!isDefined(score) || !Number.isFinite(score)) return [];
+    return [
+      {
+        workId: item.id,
+        title: item.title,
+        imageUrl: item.imageUrl,
+        externalData: item.externalData,
+        score,
+      },
+    ];
+  });
+
+  const seenWorkIds = new Set([targetWorkId, ...pool.map((candidate) => candidate.workId)]);
+  const seenWorks = new Set(
+    reviews
+      .filter((item) => seenWorkIds.has(item.id))
+      .map((item) => sameWorkKey(item.type, item.externalId))
+      .filter(hasValue),
+  );
+
+  if (isDefined(target)) {
+    // Most recent first, so a work scored in two other clubs contributes the
+    // score the user gave it last.
+    for (const scored of [...otherClubScores].sort((a, b) =>
+      b.scoredDate.localeCompare(a.scoredDate),
+    )) {
+      if (scored.type !== target.type) continue;
+      if (seenWorkIds.has(scored.workId) || !Number.isFinite(scored.score)) continue;
+      const key = sameWorkKey(scored.type, scored.externalId);
+      if (hasValue(key) && seenWorks.has(key)) continue;
+
+      seenWorkIds.add(scored.workId);
+      if (hasValue(key)) seenWorks.add(key);
+      pool.push({
+        workId: scored.workId,
+        title: scored.title,
+        imageUrl: scored.imageUrl,
+        externalData: scored.externalData,
+        score: scored.score,
+        clubName: scored.clubName,
+      });
+    }
+  }
+
+  return pool.sort((a, b) =>
+    a.score !== b.score ? a.score - b.score : a.title.localeCompare(b.title),
+  );
+}
+
+/**
+ * Identifies the same movie/book across clubs — each club owns its own `work`
+ * row, so only the provider's id ties them together. Works with no external id
+ * carry no such identity and are never deduplicated.
+ */
+function sameWorkKey(type: WorkType, externalId: string | undefined): string | undefined {
+  return hasValue(externalId) ? `${type}:${externalId}` : undefined;
 }
 
 export function isScoreAssistEligible(
   reviews: readonly DetailedReviewListItem[] | undefined,
   userId: string | undefined,
   targetWorkId: string,
+  otherClubScores: readonly MemberScoredWork[] = [],
 ): boolean {
   if (reviews === undefined || !hasValue(userId)) return false;
-  return buildCandidatePool(reviews, userId, targetWorkId).length >= MIN_SCORED_WORKS_FOR_ASSIST;
+  return (
+    buildCandidatePool(reviews, userId, targetWorkId, otherClubScores).length >=
+    MIN_SCORED_WORKS_FOR_ASSIST
+  );
 }
 
 export function startSession(

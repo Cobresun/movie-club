@@ -12,7 +12,7 @@ import { Member } from "../../lib/types/club";
 import { DetailedReviewListItem, ReviewScores, WorkCommentDto } from "../../lib/types/lists";
 import { MovieCastMember } from "../../lib/types/movie";
 import { reviewsListKey } from "./useList";
-import { useUser } from "./useUser";
+import { memberScoresKey, useUser } from "./useUser";
 import { useAuthStore } from "@/stores/auth";
 
 /**
@@ -133,10 +133,10 @@ function useReviewWork(clubSlug: string) {
       );
     },
     onSuccess: (_data, { workId }) => startScorePoll(auth.request, queryClient, clubSlug, workId),
-    onSettled: () =>
-      queryClient.invalidateQueries({
-        queryKey: reviewsListKey(clubSlug),
-      }),
+    onSettled: async () => {
+      await queryClient.invalidateQueries({ queryKey: reviewsListKey(clubSlug) });
+      await queryClient.invalidateQueries({ queryKey: memberScoresKey });
+    },
   });
 }
 
@@ -177,10 +177,10 @@ function useUpdateReviewScore(clubSlug: string) {
       );
     },
     onSuccess: (_data, { workId }) => startScorePoll(auth.request, queryClient, clubSlug, workId),
-    onSettled: () =>
-      queryClient.invalidateQueries({
-        queryKey: reviewsListKey(clubSlug),
-      }),
+    onSettled: async () => {
+      await queryClient.invalidateQueries({ queryKey: reviewsListKey(clubSlug) });
+      await queryClient.invalidateQueries({ queryKey: memberScoresKey });
+    },
   });
 }
 

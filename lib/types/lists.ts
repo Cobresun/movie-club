@@ -56,6 +56,27 @@ export type DetailedWorkListItem<T extends WorkDataSummary = WorkDataSummary> = 
 export type DetailedReviewListItem<T extends WorkDataSummary = WorkDataSummary> = ReviewListItem &
   ExternalWorkData<T>;
 
+/**
+ * One work the signed-in member has scored, in any club they belong to.
+ * Returned by `GET /api/member/scores` and fed to Score Assist so its
+ * comparison pool can reach past the club currently being reviewed in.
+ */
+export interface MemberScoredWork {
+  workId: string;
+  clubId: string;
+  clubName: string;
+  clubSlug: string;
+  type: WorkType;
+  title: string;
+  imageUrl?: string;
+  externalId?: string;
+  externalData?: WorkDataSummary;
+  /** The member's own score, 0-10. */
+  score: number;
+  /** When they scored it — used to pick a winner when clubs disagree. */
+  scoredDate: string;
+}
+
 export interface WorkCommentDto {
   id: string;
   workId: string;
