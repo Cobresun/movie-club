@@ -16,6 +16,7 @@ import {
 } from "../common/composables/useLastClubSlug";
 import ClubView from "../features/clubs/views/ClubView.vue";
 import HomeView from "../features/clubs/views/HomeView.vue";
+import { openAccountMenu } from "../features/profile/composables/useAccountMenu";
 import ReviewView from "../features/reviews/views/ReviewView.vue";
 import ClubRouterView from "./ClubRouterView.vue";
 import { useAuthStore } from "@/stores/auth";
@@ -204,18 +205,22 @@ const routes: Array<RouteRecordRaw> = [
     },
   },
   {
+    // Account details are an overlay on whatever page you're already on, not a
+    // screen of their own. The route is kept so old links and bookmarks still
+    // resolve: it opens the account menu and hands the user back to the app.
+    // `component` is required for a record with a `beforeEnter`, but the guard
+    // always redirects, so HomeView is never rendered from here.
     path: "/profile",
     name: "Profile",
-    component: () => import("../features/profile/views/ProfileView.vue"),
+    component: HomeView,
     beforeEnter: async (to, from, next) => {
       const auth = useAuthStore();
 
       await auth.waitForAuthReady();
-      if (!auth.isLoggedIn) {
-        next({ name: "Clubs" });
-      } else {
-        next();
+      if (auth.isLoggedIn) {
+        openAccountMenu();
       }
+      next({ name: "Clubs" });
     },
     meta: {
       depth: 1,

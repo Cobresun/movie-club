@@ -25,6 +25,15 @@ export const handlers = [
   http.get("/api/member/clubs", () => {
     return HttpResponse.json([club]);
   }),
+  http.put("/api/member/name", () => {
+    return new HttpResponse(null, { status: 200 });
+  }),
+  http.post("/api/member/avatar", () => {
+    return new HttpResponse(null, { status: 200 });
+  }),
+  http.delete("/api/member/avatar", () => {
+    return new HttpResponse(null, { status: 200 });
+  }),
   http.get("/api/club/:id", () => {
     return HttpResponse.json(club);
   }),

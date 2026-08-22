@@ -11,35 +11,24 @@
       <ClubSwitcher v-if="showClubSwitcher" />
     </div>
     <div v-if="authReady" class="flex flex-shrink-0 items-center">
-      <button
-        v-if="isLoggedIn"
-        class="rounded-full"
-        aria-label="Profile"
-        title="Profile"
-        @click="toProfile"
-      >
-        <v-avatar :name="fullName" :src="avatarURL" />
-      </button>
+      <AccountMenu v-if="isLoggedIn" />
       <v-btn v-else @click="login"> Login </v-btn>
     </div>
   </div>
 </template>
 <script setup lang="ts">
 import { computed } from "vue";
-import { useRoute, useRouter } from "vue-router";
+import { useRoute } from "vue-router";
 
 import { hasValue } from "../../../lib/checks/checks.js";
 import ClubSwitcher from "./ClubSwitcher.vue";
-import { useUser } from "@/service/useUser";
+import AccountMenu from "@/features/profile/components/AccountMenu.vue";
 import { useAuthStore } from "@/stores/auth";
 
 const store = useAuthStore();
-const user = useUser();
 const route = useRoute();
 
 const isLoggedIn = computed(() => store.isLoggedIn);
-const fullName = computed(() => store.user?.name ?? "");
-const avatarURL = computed(() => user.value?.image);
 const authReady = computed(() => store.ready);
 
 const currentSlug = computed(() => {
@@ -67,10 +56,5 @@ const logoDestination = computed(() => {
 
 function login() {
   store.login();
-}
-
-const router = useRouter();
-function toProfile() {
-  router.push({ name: "Profile" }).catch(console.error);
 }
 </script>
