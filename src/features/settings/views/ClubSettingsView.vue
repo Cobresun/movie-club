@@ -1,6 +1,6 @@
 <template>
   <div>
-    <page-header page-name="Club Settings" has-back back-route="ClubHome" />
+    <page-header page-name="Club Settings" has-back back-route="Club" />
 
     <div class="mx-auto max-w-3xl px-4 pb-6">
       <!-- Club Name Section -->

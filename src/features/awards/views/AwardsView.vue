@@ -1,7 +1,7 @@
 <template>
   <div class="flex justify-center p-2">
     <div class="w-full max-w-4xl text-center">
-      <page-header has-back back-route="ClubHome" page-name="Awards" />
+      <page-header :has-back="false" page-name="Awards" />
       <loading-spinner v-if="isLoading" />
       <div v-else>
         <v-select v-model="selectValue" :items="selectYears" />
