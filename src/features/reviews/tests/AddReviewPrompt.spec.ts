@@ -1,6 +1,7 @@
 import { screen, waitFor } from "@testing-library/vue";
 import { http, HttpResponse } from "msw";
 
+import { listInsertDtoSchema } from "../../../../lib/types/lists";
 import AddReviewPrompt from "../components/AddReviewPrompt.vue";
 import ReviewView from "../views/ReviewView.vue";
 import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
@@ -52,7 +53,7 @@ const reviewsApi = (initial: unknown[] = []) => {
       return new HttpResponse(null, { status: 200 });
     }),
     http.post("/api/club/:id/list/:listId/items", async ({ request }) => {
-      queue((await request.json()) as Record<string, unknown>);
+      queue(listInsertDtoSchema.parse(await request.json()));
       return new HttpResponse(null, { status: 200 });
     }),
   ];
