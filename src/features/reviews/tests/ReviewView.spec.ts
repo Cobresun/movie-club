@@ -154,7 +154,7 @@ describe("ReviewView", () => {
     logIn(pinia);
 
     // "12 Angry Men" is the one work member "2" has scored in the fixture.
-    await user.click((await screen.findAllByText("12 Angry Men"))[0]);
+    await user.click(await screen.findByRole("button", { name: "12 Angry Men" }));
     await user.click(await screen.findByRole("button", { name: /edit score/i }));
 
     let deletedReviewId: string | undefined;
