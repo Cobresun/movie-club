@@ -52,6 +52,7 @@
             <button
               class="shrink-0 text-slate-400 hover:text-white"
               title="Rename"
+              :aria-label="`Rename ${list.title}`"
               @click="startRename(list)"
             >
               <mdicon name="pencil" :size="18" />
@@ -59,6 +60,7 @@
             <button
               class="shrink-0 text-slate-400 hover:text-red-400"
               title="Delete"
+              :aria-label="`Delete ${list.title}`"
               @click="deletingListId = list.id"
             >
               <mdicon name="trash-can-outline" :size="18" />
