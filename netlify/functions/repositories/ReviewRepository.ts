@@ -45,14 +45,18 @@ class ReviewRepository {
       .execute();
   }
 
-  async getById(id: string, clubId: string) {
+  // Scoped to the club through the review's list, so a review id from another
+  // club reads as "not found" rather than as somebody else's row. `selectAll`
+  // is scoped to `review`: work_list has an `id` of its own that would
+  // otherwise shadow the review's.
+  async findById(id: string, clubId: string) {
     return db
       .selectFrom("review")
-      .selectAll()
+      .selectAll("review")
       .innerJoin("work_list", "work_list.id", "review.list_id")
       .where("work_list.club_id", "=", clubId)
       .where("review.id", "=", id)
-      .executeTakeFirstOrThrow();
+      .executeTakeFirst();
   }
 
   async updateScore(id: string, score: number) {
@@ -62,6 +66,10 @@ class ReviewRepository {
       .set("created_date", new Date())
       .where("id", "=", id)
       .execute();
+  }
+
+  async deleteById(id: string) {
+    return db.deleteFrom("review").where("id", "=", id).execute();
   }
 
   async getReviewsByWorkId(clubId: string, workId: string) {

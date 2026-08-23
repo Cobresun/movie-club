@@ -1,16 +1,19 @@
 import { http, HttpResponse } from "msw";
 
+import { ReviewScores } from "../../../lib/types/lists";
 import { useReviewsList } from "../useList";
 import {
   useAddReviewComment,
   useDeleteReviewComment,
+  useDeleteScore,
   useEditReviewComment,
   useReviewComments,
   useSubmitScore,
 } from "../useReviews";
 import { comment, commentsApi } from "@/mocks/comments";
+import memberData from "@/mocks/data/member.json";
 import { server } from "@/mocks/server";
-import { withSetup } from "@/tests/utils";
+import { logIn, withSetup } from "@/tests/utils";
 
 /** Runs the comment thread query alongside the mutation under test. */
 function withThread<T>(mutation: () => T) {
@@ -108,6 +111,110 @@ describe("useSubmitScore", () => {
     await vi.waitFor(() => {
       expect(scoreOnList(result.reviews)).toBe(7);
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// useDeleteScore (optimistic)
+// ---------------------------------------------------------------------------
+
+describe("useDeleteScore", () => {
+  const score = (id: string, value: number) => ({
+    id,
+    created_date: "2024-05-28T04:46:37.751Z",
+    score: value,
+  });
+
+  /**
+   * One scored work behind an API whose DELETE only answers once the test says
+   * so, which is what leaves the optimistic cache write observable: the
+   * invalidation that follows the response would otherwise overwrite it.
+   */
+  function scoredWork(scores: ReviewScores) {
+    const work = {
+      id: "work-1",
+      title: "12 Angry Men",
+      type: "movie",
+      createdDate: "2024-05-28T04:46:37.751Z",
+      scores,
+    };
+    let release!: () => void;
+    const answered = new Promise<void>((resolve) => (release = resolve));
+
+    return {
+      handlers: [
+        http.get("/api/club/:id/list/reviews", () => HttpResponse.json([work])),
+        http.delete("/api/club/:id/reviews/:reviewId", async () => {
+          await answered;
+          return HttpResponse.json({});
+        }),
+      ],
+      /** Answers the DELETE, with the scores the server reports afterwards. */
+      finish: (after: ReviewScores) => {
+        work.scores = after;
+        release();
+      },
+    };
+  }
+
+  const scoresOnList = (reviews: ReturnType<typeof useReviewsList>) =>
+    reviews.data.value?.[0]?.scores;
+
+  function removeScore(handlers: ReturnType<typeof scoredWork>["handlers"]) {
+    server.use(...handlers);
+
+    const { result, pinia } = withSetup(() => ({
+      reviews: useReviewsList("test-club"),
+      remove: useDeleteScore("test-club"),
+    }));
+    logIn(pinia);
+
+    return result;
+  }
+
+  it("drops the member's score and recomputes the average from what is left", async () => {
+    const { handlers, finish } = scoredWork({
+      [memberData.id]: score("review-mine", 10),
+      "3": score("review-theirs", 6),
+      average: score("average", 8),
+    });
+    const result = removeScore(handlers);
+
+    await vi.waitFor(() => {
+      expect(scoresOnList(result.reviews)?.average.score).toBe(8);
+    });
+
+    result.remove.mutate({ reviewId: "review-mine", workId: "work-1" });
+
+    await vi.waitFor(() => {
+      expect(scoresOnList(result.reviews)?.[memberData.id]).toBeUndefined();
+    });
+    expect(scoresOnList(result.reviews)?.["3"].score).toBe(6);
+    expect(scoresOnList(result.reviews)?.average.score).toBe(6);
+
+    finish({ "3": score("review-theirs", 6), average: score("average", 6) });
+  });
+
+  it("empties the score map when the removed score was the only one", async () => {
+    const { handlers, finish } = scoredWork({
+      [memberData.id]: score("review-mine", 10),
+      average: score("average", 10),
+    });
+    const result = removeScore(handlers);
+
+    await vi.waitFor(() => {
+      expect(scoresOnList(result.reviews)?.[memberData.id]?.score).toBe(10);
+    });
+
+    result.remove.mutate({ reviewId: "review-mine", workId: "work-1" });
+
+    // The server's own answer for a work nobody has scored, so the work reads
+    // as unrated rather than as rated with an average of nothing.
+    await vi.waitFor(() => {
+      expect(scoresOnList(result.reviews)).toEqual({});
+    });
+
+    finish({});
   });
 });
 

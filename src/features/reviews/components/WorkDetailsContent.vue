@@ -3,7 +3,7 @@
     <delete-confirmation-modal
       :show="showDeleteConfirmation"
       title="Delete Review"
-      message="Are you sure you want to delete this review? This action cannot be undone."
+      message="This removes the whole review for the club — the work and everyone's scores — and cannot be undone. To drop just your own score, use Remove my score in the score panel."
       @confirm="confirmDelete"
       @cancel="cancelDelete"
     />
