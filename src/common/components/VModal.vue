@@ -26,11 +26,11 @@ import { computed, onMounted, onUnmounted, ref } from "vue";
 
 import { useBodyScrollLock } from "../composables/useBodyScrollLock";
 import { useIsDesktop } from "../composables/useIsDesktop.js";
+import { type ZIndex, zIndexClass as zIndexClassOf } from "../zIndex.js";
 import VBackdrop from "./VBackdrop.vue";
 import VBottomSheet from "./VBottomSheet.vue";
 
 type ModalSize = "default" | "sm" | "lg" | "full";
-type ZIndex = "40" | "50" | "60";
 
 const props = withDefaults(
   defineProps<{
@@ -85,9 +85,7 @@ const desktopClasses = computed(() => {
   return `left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-lg ${sizeClass}`;
 });
 
-const zIndexClass = computed(() =>
-  props.zIndex === "40" ? "z-40" : props.zIndex === "60" ? "z-[60]" : "z-50",
-);
+const zIndexClass = computed(() => zIndexClassOf(props.zIndex));
 </script>
 
 <style scoped>

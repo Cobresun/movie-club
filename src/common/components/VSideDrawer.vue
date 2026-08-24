@@ -22,7 +22,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 
-type ZIndex = "40" | "50" | "60";
+import { type ZIndex, lowerZIndex } from "../zIndex.js";
 
 const props = withDefaults(defineProps<{ zIndex?: ZIndex }>(), {
   zIndex: "50",
@@ -32,9 +32,7 @@ const emit = defineEmits<{
   (e: "close"): void;
 }>();
 
-const backdropZIndex = computed<ZIndex>(() =>
-  props.zIndex === "60" ? "50" : props.zIndex === "50" ? "40" : "40",
-);
+const backdropZIndex = computed<ZIndex>(() => lowerZIndex(props.zIndex));
 
 const isVisible = ref(true);
 
