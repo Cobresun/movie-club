@@ -10,7 +10,7 @@
         :class="[
           contentZIndexClass,
           {
-            'transition-transform duration-slow ease-emphasized': !isDragging,
+            'transition-[transform,height,bottom] duration-slow ease-emphasized': !isDragging,
           },
         ]"
         :style="sheetStyle"
@@ -42,6 +42,7 @@ import { computed, ref } from "vue";
 
 import { useBackButtonClose } from "../composables/useBackButtonClose.js";
 import { useBodyScrollLock } from "../composables/useBodyScrollLock.js";
+import { useKeyboardInset } from "../composables/useKeyboardInset.js";
 import { type ZIndex, lowerZIndex, zIndexClass } from "../zIndex.js";
 import VBackdrop from "./VBackdrop.vue";
 
@@ -145,13 +146,26 @@ const handleTouchEnd = (event: TouchEvent) => {
   touchStartTime.value = null;
 };
 
+// A keyboard opening would otherwise shove the whole sheet upwards, leaving it
+// floating mid-screen with a gap underneath. Instead the sheet grows into an
+// expanded state: pinned to the top of the keyboard, filling everything above
+// it, the way a native sheet does when you start typing in one.
+const { keyboardInset, viewportHeight } = useKeyboardInset();
+
 const sheetStyle = computed(() => {
+  const style: Record<string, string> = {};
+
   if (isDragging.value || dragOffset.value > 0) {
-    return {
-      transform: `translateY(${Math.max(0, dragOffset.value)}px)`,
-    };
+    style.transform = `translateY(${Math.max(0, dragOffset.value)}px)`;
   }
-  return {};
+
+  if (keyboardInset.value > 0) {
+    style.bottom = `${keyboardInset.value}px`;
+    style.height = `${viewportHeight.value}px`;
+    style.maxHeight = `${viewportHeight.value}px`;
+  }
+
+  return style;
 });
 </script>
 
