@@ -1,51 +1,20 @@
 <template>
   <div class="mx-auto flex max-w-3xl flex-col gap-6 px-4 pb-8 pt-6">
-    <section class="flex flex-col gap-2.5">
-      <h2 class="text-lg font-semibold">Members</h2>
-      <loading-spinner v-if="isLoadingMembers" />
-      <div v-else class="flex flex-wrap gap-2">
-        <div
-          v-for="member in members"
-          :key="member.id"
-          class="inline-flex items-center gap-2 rounded-full border-2 px-3 py-1.5"
-          :class="member.role === 'admin' ? 'border-highlightBackground' : 'border-slate-600'"
-        >
-          <v-avatar :src="member.image" :name="member.name" :size="24" />
-          <span class="text-sm">{{ member.name }}</span>
-        </div>
+    <header class="flex items-center gap-3.5">
+      <v-avatar :name="club?.clubName ?? ''" :size="56" class="flex-shrink-0" />
+      <div class="flex min-w-0 flex-col gap-0.5">
+        <h1 class="truncate text-2xl font-semibold leading-tight">{{ club?.clubName }}</h1>
+        <span v-if="hasValue(meta)" class="truncate text-[13px] text-white/55">{{ meta }}</span>
       </div>
-    </section>
+    </header>
 
-    <section class="flex flex-col gap-2.5">
-      <h2 class="text-lg font-semibold">Invite</h2>
-      <p class="text-sm font-light text-white/60">
-        Send this link to add someone to {{ club?.clubName ?? "this club" }}.
-      </p>
-      <div class="flex gap-2.5">
-        <input
-          ref="inviteLinkInput"
-          :value="inviteLink"
-          readonly
-          aria-label="Invite link"
-          class="min-h-[44px] min-w-0 flex-grow rounded-md border-2 border-slate-600 bg-background px-3 text-sm text-white/70"
-        />
-        <v-btn class="h-[44px] min-w-[44px]" aria-label="Copy invite link" @click="copyInviteLink">
-          <mdicon :name="copyIcon" />
-        </v-btn>
-      </div>
-    </section>
+    <ClubMembersCard :club-slug="clubSlug" />
+
+    <ClubSettingsCard :club-slug="clubSlug" />
 
     <section class="flex flex-col overflow-hidden rounded-xl bg-lowBackground">
-      <router-link
-        :to="{ name: 'ClubSettings', params: { clubSlug } }"
-        class="flex min-h-[52px] items-center gap-3 px-4 py-3.5 transition-colors duration-fast ease-standard hover:bg-white/10"
-      >
-        <mdicon name="cog" :size="22" class="flex-shrink-0 text-white/60" />
-        <span class="flex-grow text-[15px] font-medium">Club settings</span>
-        <mdicon name="chevron-right" :size="20" class="text-white/35" />
-      </router-link>
       <button
-        class="flex min-h-[52px] items-center gap-3 border-t border-white/[0.08] px-4 py-3.5 text-left transition-colors duration-fast ease-standard hover:bg-white/10"
+        class="flex min-h-[56px] items-center gap-3 px-4 py-3.5 text-left transition-colors duration-fast ease-standard hover:bg-white/10"
         @click="showLeaveConfirm = true"
       >
         <mdicon name="logout" :size="22" class="flex-shrink-0 text-white/60" />
@@ -56,7 +25,7 @@
 
     <v-modal v-if="showLeaveConfirm" size="sm" @close="showLeaveConfirm = false">
       <h3 class="mb-4 text-xl font-semibold">Leave club?</h3>
-      <p class="mb-6 text-gray-300">
+      <p class="mb-6 text-white/70">
         Are you sure you want to leave this club? This action cannot be undone.
       </p>
       <div class="flex gap-3">
@@ -77,16 +46,21 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { computed, ref } from "vue";
 
-import { useInviteLink } from "@/common/composables/useInviteLink";
-import { useMembers, useClub, useClubSlug, useLeaveClub } from "@/service/useClub";
+import { hasValue } from "../../../../lib/checks/checks.js";
+import ClubMembersCard from "../components/ClubMembersCard.vue";
+import ClubSettingsCard from "../components/ClubSettingsCard.vue";
+import { clubMetaLine } from "@/common/clubType";
+import { useClub, useClubSlug, useLeaveClub, useMembers } from "@/service/useClub";
 
 const clubSlug = useClubSlug();
-const { data: members, isLoading: isLoadingMembers } = useMembers(clubSlug);
+
 const { data: club } = useClub(clubSlug);
-const { mutate: leaveClub, isLoading: isLeaving } = useLeaveClub(clubSlug);
+const { data: members } = useMembers(clubSlug);
+const { mutate: leaveClub, isPending: isLeaving } = useLeaveClub(clubSlug);
 
 const showLeaveConfirm = ref(false);
-const { inviteLink, inviteLinkInput, copyIcon, copyInviteLink } = useInviteLink(clubSlug);
+
+const meta = computed(() => clubMetaLine(club.value?.type, members.value?.length));
 </script>
