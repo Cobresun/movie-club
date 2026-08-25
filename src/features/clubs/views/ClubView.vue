@@ -54,15 +54,6 @@
       </button>
     </section>
 
-    <router-link
-      :to="{ name: 'NewClub' }"
-      class="flex min-h-[52px] items-center gap-3 rounded-xl px-4 py-3.5 ring-1 ring-inset ring-white/[0.12] transition-colors duration-fast ease-standard hover:bg-white/10"
-    >
-      <mdicon name="plus" :size="22" class="flex-shrink-0 text-white/60" />
-      <span class="flex-grow text-[15px] font-medium">Create or join another club</span>
-      <mdicon name="chevron-right" :size="20" class="text-white/35" />
-    </router-link>
-
     <v-modal v-if="showLeaveConfirm" size="sm" @close="showLeaveConfirm = false">
       <h3 class="mb-4 text-xl font-semibold">Leave club?</h3>
       <p class="mb-6 text-gray-300">

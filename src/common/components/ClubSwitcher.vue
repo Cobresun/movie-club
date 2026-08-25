@@ -14,10 +14,8 @@
       <!-- Desktop: Headless UI Menu -->
       <Menu v-if="isDesktop" as="div">
         <MenuButton
-          class="flex min-h-[44px] items-center gap-2 rounded-lg bg-lowBackground py-1.5 pl-1.5 pr-2 ring-1 ring-inset transition-colors duration-fast ease-standard hover:bg-white/10"
-          :class="isTipOpen ? 'ring-primary' : 'ring-white/[0.08]'"
+          class="flex min-h-[44px] items-center gap-2 rounded-lg bg-lowBackground py-1.5 pl-1.5 pr-2 ring-1 ring-inset ring-white/[0.08] transition-colors duration-fast ease-standard hover:bg-white/10"
           :aria-label="`Switch club. Current: ${activeClubName}`"
-          @click="dismissTip"
         >
           <ClubChipBody :club-name="activeClubName" :meta="activeClubMeta" />
           <mdicon name="chevron-down" :size="18" class="flex-shrink-0 text-white/70" />
@@ -84,10 +82,9 @@
       <!-- Mobile: custom button + bottom sheet -->
       <template v-else>
         <button
-          class="flex min-h-[44px] w-full items-center gap-2 rounded-lg bg-lowBackground py-1.5 pl-1.5 pr-2 ring-1 ring-inset transition-colors duration-fast ease-standard hover:bg-white/10"
-          :class="isTipOpen ? 'ring-primary' : 'ring-white/[0.08]'"
+          class="flex min-h-[44px] w-full items-center gap-2 rounded-lg bg-lowBackground py-1.5 pl-1.5 pr-2 ring-1 ring-inset ring-white/[0.08] transition-colors duration-fast ease-standard hover:bg-white/10"
           :aria-label="`Switch club. Current: ${activeClubName}`"
-          @click="openSheet"
+          @click="isMobileOpen = true"
         >
           <ClubChipBody :club-name="activeClubName" :meta="activeClubMeta" />
           <mdicon name="chevron-down" :size="18" class="flex-shrink-0 text-white/70" />
@@ -137,23 +134,6 @@
           </div>
         </VBottomSheet>
       </template>
-
-      <!-- Shown once, the first time a member has a second club to switch to. -->
-      <div v-if="isTipOpen" class="absolute left-0 right-0 top-full z-40 mt-2 md:w-[320px]">
-        <div class="-mb-[7px] ml-6 h-3.5 w-3.5 rotate-45 rounded-sm bg-primary" />
-        <div class="flex flex-col gap-2.5 rounded-[10px] bg-primary p-3.5">
-          <p class="text-[15px] font-semibold leading-snug">You're in two clubs now</p>
-          <p class="text-sm font-light leading-snug">
-            Tap the club name to switch between them. Whatever page you're on stays put.
-          </p>
-          <button
-            class="min-h-[40px] self-start rounded-md bg-white/20 px-4 py-2 text-sm font-semibold"
-            @click="dismissTip"
-          >
-            Got it
-          </button>
-        </div>
-      </div>
     </template>
   </div>
 </template>
@@ -174,8 +154,6 @@ import { useIsDesktop } from "@/common/composables/useIsDesktop";
 import { setLastClubSlug } from "@/common/composables/useLastClubSlug";
 import { useMembers } from "@/service/useClub";
 import { useAuthStore } from "@/stores/auth";
-
-const SWITCH_TIP_KEY = "clubSwitchTipSeen";
 
 const authStore = useAuthStore();
 const router = useRouter();
@@ -205,21 +183,6 @@ const activeClubMeta = computed(() => {
     ? clubTypeLabel(type)
     : `${clubTypeLabel(type)} · ${count} ${count === 1 ? "member" : "members"}`;
 });
-
-const tipDismissed = ref(localStorage.getItem(SWITCH_TIP_KEY) === "true");
-const isTipOpen = computed(
-  () => hasMultipleClubs.value && !tipDismissed.value && !isMobileOpen.value,
-);
-
-const dismissTip = () => {
-  tipDismissed.value = true;
-  localStorage.setItem(SWITCH_TIP_KEY, "true");
-};
-
-const openSheet = () => {
-  dismissTip();
-  isMobileOpen.value = true;
-};
 
 /**
  * Switching clubs keeps you in the section you were reading. Awards has no

@@ -47,7 +47,6 @@ describe("ClubView", () => {
     render(ClubView);
 
     expect(await screen.findByRole("link", { name: "Club settings" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Create or join another club" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Leave club" })).toBeInTheDocument();
   });
 

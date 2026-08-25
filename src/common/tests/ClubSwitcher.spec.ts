@@ -67,7 +67,6 @@ describe("ClubSwitcher", () => {
     back = vi.spyOn(window.history, "back").mockImplementation(() => {});
 
     state.userClubs = [testClub, otherClub];
-    localStorage.clear();
 
     router = await makeRealRouter();
     vi.mocked(useRouter).mockReturnValue(router);
@@ -128,41 +127,6 @@ describe("ClubSwitcher", () => {
 
       expect(screen.queryByRole("button", { name: /Switch club/ })).not.toBeInTheDocument();
       expect(screen.getByRole("link", { name: /Test Club/ })).toBeInTheDocument();
-    });
-
-    it("never shows the switching tip", () => {
-      render(ClubSwitcher);
-
-      expect(screen.queryByText("You're in two clubs now")).not.toBeInTheDocument();
-    });
-  });
-
-  describe("the first-switch tip", () => {
-    it("appears once a member has a second club", () => {
-      render(ClubSwitcher);
-
-      expect(screen.getByText("You're in two clubs now")).toBeInTheDocument();
-    });
-
-    it("stays dismissed after 'Got it'", async () => {
-      const first = render(ClubSwitcher);
-
-      await first.user.click(screen.getByRole("button", { name: "Got it" }));
-      expect(screen.queryByText("You're in two clubs now")).not.toBeInTheDocument();
-
-      first.unmount();
-      render(ClubSwitcher);
-      expect(screen.queryByText("You're in two clubs now")).not.toBeInTheDocument();
-    });
-
-    it("stays dismissed after using the chip", async () => {
-      const first = render(ClubSwitcher);
-
-      await openSheet(first.user);
-      first.unmount();
-
-      render(ClubSwitcher);
-      expect(screen.queryByText("You're in two clubs now")).not.toBeInTheDocument();
     });
   });
 });
