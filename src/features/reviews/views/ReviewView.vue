@@ -9,7 +9,7 @@
       :club-type="club?.type ?? ClubType.movie"
       @close="scoreAssistWorkId = undefined"
     />
-    <page-header :has-back="true" back-route="ClubHome" page-name="Reviews" />
+    <page-header :has-back="false" page-name="Reviews" />
     <loading-spinner v-if="loading" />
     <div v-else>
       <!-- Search Filter Bar -->
