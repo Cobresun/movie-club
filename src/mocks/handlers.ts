@@ -40,6 +40,9 @@ export const handlers = [
   http.get("/api/club/:id/members", () => {
     return HttpResponse.json(members);
   }),
+  http.post("/api/club/:id/invite", () => {
+    return HttpResponse.json({ token: "test-invite-token" });
+  }),
   http.get("/api/club/:id/settings", () => {
     return HttpResponse.json({});
   }),

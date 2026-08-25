@@ -12,7 +12,7 @@ export interface ClubSection {
   readonly name: string;
   /** Desktop label. */
   readonly label: string;
-  /** Mobile label — the bottom bar splits five tabs across the viewport. */
+  /** Mobile label — the bottom bar splits the tabs across the viewport. */
   readonly shortLabel: string;
   /** Material Design Icon name. Reached via a computed, so register in icons.ts. */
   readonly icon: string;
@@ -35,7 +35,6 @@ export const CLUB_SECTIONS: readonly ClubSection[] = [
     icon: "trophy-outline",
     requires: "awards",
   },
-  { name: "Club", label: "Club", shortLabel: "Club", icon: "account-multiple-outline" },
 ];
 
 /** Where a club route lands when we have no better idea (see useLastClubSlug). */
