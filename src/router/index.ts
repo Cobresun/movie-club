@@ -260,6 +260,19 @@ const routes: Array<RouteRecordRaw> = [
     },
   },
   {
+    // The handoff a brand-new club owner lands on: it hands them the invite
+    // link before the club itself. Deliberately outside ClubRouterView, so the
+    // section nav doesn't frame it as another club tab.
+    path: "/club/:clubSlug/invite",
+    name: "ClubInvite",
+    component: () => import("../features/clubs/views/ClubInviteView.vue"),
+    beforeEnter: checkClubAccess,
+    meta: {
+      depth: 2,
+      authRequired: true,
+    },
+  },
+  {
     path: "/club/:clubSlug",
     component: ClubRouterView,
     beforeEnter: clubGuard,

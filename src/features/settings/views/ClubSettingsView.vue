@@ -254,12 +254,12 @@ import { ref, computed, watch } from "vue";
 import { useToast } from "vue-toastification";
 
 import { hasValue } from "../../../../lib/checks/checks";
+import { useInviteLink } from "@/common/composables/useInviteLink";
 import {
   useMembers,
   useClubSlug,
   useLeaveClub,
   useRemoveMember,
-  useInviteToken,
   useClubSettings,
   useUpdateClubSettings,
   useClub,
@@ -273,8 +273,6 @@ const auth = useAuthStore();
 const showLeaveConfirm = ref(false);
 const showRemoveConfirm = ref(false);
 const clubId = useClubSlug();
-const inviteLinkInput = ref<HTMLInputElement | null>(null);
-const hasCopied = ref(false);
 const memberToRemove = ref<{ id: string; name: string } | null>(null);
 const isRemoving = ref(false);
 const newSlug = ref("");
@@ -285,10 +283,10 @@ const { data: club } = useClub(clubId);
 const { data: members, isLoading: isLoadingMembers, refetch: refetchMembers } = useMembers(clubId);
 const { mutate: leaveClubMutation, isPending: isLeaving } = useLeaveClub(clubId);
 const { mutate: removeMemberMutation } = useRemoveMember(clubId);
-const { data: inviteToken } = useInviteToken(clubId);
 const { data: settings } = useClubSettings(clubId);
 const { mutate: updateSettings } = useUpdateClubSettings(clubId);
 const { mutate: updateClubName, isPending: isSavingName } = useUpdateClubName(clubId);
+const { inviteLink, inviteLinkInput, copyIcon, copyInviteLink } = useInviteLink(clubId);
 
 const editedClubName = ref(club.value?.clubName ?? "");
 
@@ -394,29 +392,6 @@ const updateDiscussionQuestionsFeature = (value: boolean) => {
       onError: () => toast.error("Failed to update settings"),
     },
   );
-};
-
-const inviteLink = computed(() => {
-  const baseUrl = window.location.origin;
-  return `${baseUrl}/join-club/${inviteToken.value}`;
-});
-
-const copyIcon = computed(() => (hasCopied.value ? "check" : "content-copy"));
-
-const copyInviteLink = async () => {
-  try {
-    await navigator.clipboard.writeText(inviteLink.value);
-    hasCopied.value = true;
-    setTimeout(() => {
-      hasCopied.value = false;
-    }, 2000);
-  } catch {
-    // Fallback for browsers that don't support clipboard API
-    if (inviteLinkInput.value) {
-      inviteLinkInput.value.select();
-      document.execCommand("copy");
-    }
-  }
 };
 
 const leaveClub = () => {
