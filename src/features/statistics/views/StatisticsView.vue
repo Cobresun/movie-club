@@ -1,6 +1,6 @@
 <template>
   <div class="text-center">
-    <page-header :has-back="true" back-route="ClubHome" page-name="Statistics">
+    <page-header :has-back="false" page-name="Statistics">
       <button
         v-if="!isLoading && hasReviews"
         class="text-white transition hover:text-primary"

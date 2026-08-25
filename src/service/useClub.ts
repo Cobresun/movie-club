@@ -47,10 +47,12 @@ export function useCreateClub() {
   });
 }
 
-export function useMembers(clubSlug: string) {
+export function useMembers(clubSlug: MaybeRef<string>) {
+  const slug = computed(() => unref(clubSlug));
   return useQuery<Member[]>({
-    queryKey: ["members", clubSlug],
-    queryFn: async () => (await axios.get<Member[]>(`/api/club/${clubSlug}/members`)).data,
+    queryKey: computed(() => ["members", slug.value]),
+    queryFn: async () => (await axios.get<Member[]>(`/api/club/${slug.value}/members`)).data,
+    enabled: () => slug.value !== "",
   });
 }
 

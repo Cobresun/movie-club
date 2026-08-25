@@ -1,4 +1,5 @@
 import {
+  mdiAccountMultipleOutline,
   mdiAccountOutline,
   mdiAccountStar,
   mdiAlertCircle,
@@ -15,6 +16,7 @@ import {
   mdiCakeVariant,
   mdiCalendarStar,
   mdiCheck,
+  mdiChartBoxOutline,
   mdiChevronDown,
   mdiChevronLeft,
   mdiChevronRight,
@@ -34,6 +36,7 @@ import {
   mdiEyeOutline,
   mdiFileDocumentOutline,
   mdiFilmstrip,
+  mdiFormatListBulleted,
   mdiHistory,
   mdiImageMultiple,
   mdiLoading,
@@ -61,6 +64,7 @@ import {
   mdiStar,
   mdiStarCircle,
   mdiStarOff,
+  mdiStarOutline,
   mdiStarShooting,
   mdiSwapHorizontal,
   mdiSwordCross,
@@ -70,6 +74,7 @@ import {
   mdiTrashCanOutline,
   mdiTrophy,
   mdiTrophyBroken,
+  mdiTrophyOutline,
   mdiViewDashboard,
 } from "@mdi/js";
 
@@ -95,6 +100,7 @@ import {
  * test, but any other dynamic icon name must be registered here by hand.
  */
 export const icons = {
+  mdiAccountMultipleOutline,
   mdiAccountOutline,
   mdiAccountStar,
   mdiAlertCircle,
@@ -111,6 +117,7 @@ export const icons = {
   mdiCakeVariant,
   mdiCalendarStar,
   mdiCheck,
+  mdiChartBoxOutline,
   mdiChevronDown,
   mdiChevronLeft,
   mdiChevronRight,
@@ -130,6 +137,7 @@ export const icons = {
   mdiEyeOutline,
   mdiFileDocumentOutline,
   mdiFilmstrip,
+  mdiFormatListBulleted,
   mdiHistory,
   mdiImageMultiple,
   mdiLoading,
@@ -157,6 +165,7 @@ export const icons = {
   mdiStar,
   mdiStarCircle,
   mdiStarOff,
+  mdiStarOutline,
   mdiStarShooting,
   mdiSwapHorizontal,
   mdiSwordCross,
@@ -166,5 +175,6 @@ export const icons = {
   mdiTrashCanOutline,
   mdiTrophy,
   mdiTrophyBroken,
+  mdiTrophyOutline,
   mdiViewDashboard,
 };

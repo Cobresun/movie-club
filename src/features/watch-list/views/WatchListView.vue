@@ -78,7 +78,7 @@ const shareList = (listId: string) => {
 
 <template>
   <div class="p-2 text-center">
-    <page-header :has-back="true" back-route="ClubHome" page-name="Lists" />
+    <page-header :has-back="false" page-name="Lists" />
     <WatchListSkeleton v-if="isLoading" />
     <template v-else-if="hasElements(userLists)">
       <search-filter-bar

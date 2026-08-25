@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { CLUB_SECTIONS } from "./common/clubSections";
 import { CLUB_TYPE_CONFIG } from "./common/clubType";
 import { FACT_ICONS } from "./features/reviews/reviewFacts";
 import { icons } from "./icons";
@@ -102,6 +103,19 @@ describe("mdi icon registration", () => {
     expect(
       missing,
       `Unregistered club-type icons — add their mdiPascalCase export to src/icons.ts:\n${missing.join("\n")}`,
+    ).toEqual([]);
+  });
+
+  // ClubSectionNav renders its tabs from CLUB_SECTIONS via `:name="section.icon"`,
+  // another dynamic name the static scan can't see.
+  it("registers every club section icon", () => {
+    const missing = CLUB_SECTIONS.filter((section) => !registered.has(toKey(section.icon))).map(
+      (section) => `${section.icon} (${toKey(section.icon)}) for section "${section.name}"`,
+    );
+
+    expect(
+      missing,
+      `Unregistered club-section icons — add their mdiPascalCase export to src/icons.ts:\n${missing.join("\n")}`,
     ).toEqual([]);
   });
 
