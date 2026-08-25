@@ -1,5 +1,4 @@
 import {
-  mdiAccountMultipleOutline,
   mdiAccountStar,
   mdiAlertCircle,
   mdiAlertOutline,
@@ -102,7 +101,6 @@ import {
  * test, but any other dynamic icon name must be registered here by hand.
  */
 export const icons = {
-  mdiAccountMultipleOutline,
   mdiAccountStar,
   mdiAlertCircle,
   mdiAlertOutline,
