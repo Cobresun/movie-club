@@ -1,4 +1,5 @@
 import {
+  mdiAccountGroupOutline,
   mdiAccountStar,
   mdiAlertCircle,
   mdiAlertOutline,
@@ -39,6 +40,7 @@ import {
   mdiHistory,
   mdiImageMultiple,
   mdiImageOutline,
+  mdiLinkVariant,
   mdiLoading,
   mdiLockOutline,
   mdiLogout,
@@ -101,6 +103,7 @@ import {
  * test, but any other dynamic icon name must be registered here by hand.
  */
 export const icons = {
+  mdiAccountGroupOutline,
   mdiAccountStar,
   mdiAlertCircle,
   mdiAlertOutline,
@@ -141,6 +144,7 @@ export const icons = {
   mdiHistory,
   mdiImageMultiple,
   mdiImageOutline,
+  mdiLinkVariant,
   mdiLoading,
   mdiLockOutline,
   mdiLogout,

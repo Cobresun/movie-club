@@ -29,8 +29,6 @@
             :club-slug="currentSlug"
             :club-name="activeClubName"
             :meta="activeClubMeta"
-            :members="members"
-            avatar-ring-class="shadow-[0_0_0_2px_#393E46]"
             row-role="menuitem"
             @navigated="close()"
           />
@@ -109,9 +107,7 @@
           :club-slug="currentSlug"
           :club-name="activeClubName"
           :meta="activeClubMeta"
-          :members="members"
           show-identity
-          avatar-ring-class="shadow-[0_0_0_2px_#222831]"
           @navigated="isMobileOpen = false"
         />
 
@@ -177,7 +173,7 @@ import ClubChipBody from "./ClubChipBody.vue";
 import ClubPanelRows from "./ClubPanelRows.vue";
 import MemberAvatarStack from "./MemberAvatarStack.vue";
 import VBottomSheet from "./VBottomSheet.vue";
-import { clubTypeLabel } from "@/common/clubType";
+import { clubMetaLine, clubTypeLabel } from "@/common/clubType";
 import { useIsDesktop } from "@/common/composables/useIsDesktop";
 import { setLastClubSlug } from "@/common/composables/useLastClubSlug";
 import { useMembers } from "@/service/useClub";
@@ -203,14 +199,7 @@ const activeClubName = computed(() => activeClub.value?.clubName ?? "Select Club
 
 const { data: members } = useMembers(currentSlug);
 
-const activeClubMeta = computed(() => {
-  const type = activeClub.value?.type;
-  if (type === undefined) return "";
-  const count = members.value?.length;
-  return count === undefined
-    ? clubTypeLabel(type)
-    : `${clubTypeLabel(type)} · ${count} ${count === 1 ? "member" : "members"}`;
-});
+const activeClubMeta = computed(() => clubMetaLine(activeClub.value?.type, members.value?.length));
 
 /**
  * Switching clubs keeps you in the section you were reading. Awards has no

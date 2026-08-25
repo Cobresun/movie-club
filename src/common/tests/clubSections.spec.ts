@@ -22,7 +22,7 @@ describe("clubSections", () => {
 
   it("recognises only section route names", () => {
     expect(isClubSection("Watchlists")).toBe(true);
-    expect(isClubSection("ClubSettings")).toBe(false);
+    expect(isClubSection("Club")).toBe(false);
     expect(isClubSection(undefined)).toBe(false);
   });
 
@@ -64,7 +64,7 @@ describe("clubSections", () => {
     });
 
     it("returns null for club routes outside the section bar", () => {
-      const route = { matched: [{ name: undefined }, { name: "ClubSettings" }] };
+      const route = { matched: [{ name: undefined }, { name: "Club" }] };
 
       expect(sectionNameForRoute(route as never)).toBeNull();
     });
