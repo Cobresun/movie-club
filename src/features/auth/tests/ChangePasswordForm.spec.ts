@@ -15,43 +15,42 @@ describe("ChangePasswordForm", () => {
   it("renders the form fields", () => {
     render(ChangePasswordForm);
 
-    expect(screen.getByLabelText("Current Password")).toBeInTheDocument();
-    expect(screen.getByLabelText("New Password")).toBeInTheDocument();
-    expect(screen.getByLabelText("Confirm New Password")).toBeInTheDocument();
+    expect(screen.getByLabelText("Current password")).toBeInTheDocument();
+    expect(screen.getByLabelText("New password")).toBeInTheDocument();
   });
 
   it("renders the submit button", () => {
     render(ChangePasswordForm);
 
-    expect(screen.getByRole("button", { name: /Change Password/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Update password" })).toBeInTheDocument();
   });
 
-  it("renders the revoke sessions checkbox", () => {
+  it("renders the revoke sessions toggle, on by default", () => {
     render(ChangePasswordForm);
 
-    expect(screen.getByLabelText(/Sign out of all other devices/i)).toBeInTheDocument();
+    expect(screen.getByLabelText("Sign out of all other devices")).toBeChecked();
   });
 
-  it("shows error when new passwords do not match", async () => {
+  it("reveals and re-hides the new password", async () => {
     const { user } = render(ChangePasswordForm);
 
-    await user.type(screen.getByLabelText("Current Password"), "oldpass1");
-    await user.type(screen.getByLabelText("New Password"), "newpass1");
-    await user.type(screen.getByLabelText("Confirm New Password"), "different");
+    const field = screen.getByLabelText("New password");
+    expect(field).toHaveAttribute("type", "password");
 
-    await user.click(screen.getByRole("button", { name: /Change Password/i }));
+    await user.click(screen.getByRole("button", { name: "Show password" }));
+    expect(field).toHaveAttribute("type", "text");
 
-    expect(screen.getByText("New passwords do not match.")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Hide password" }));
+    expect(field).toHaveAttribute("type", "password");
   });
 
   it("shows error when new password is too short", async () => {
     const { user } = render(ChangePasswordForm);
 
-    await user.type(screen.getByLabelText("Current Password"), "oldpass1");
-    await user.type(screen.getByLabelText("New Password"), "short");
-    await user.type(screen.getByLabelText("Confirm New Password"), "short");
+    await user.type(screen.getByLabelText("Current password"), "oldpass1");
+    await user.type(screen.getByLabelText("New password"), "short");
 
-    await user.click(screen.getByRole("button", { name: /Change Password/i }));
+    await user.click(screen.getByRole("button", { name: "Update password" }));
 
     expect(screen.getByText("New password must be at least 8 characters.")).toBeInTheDocument();
   });
@@ -59,27 +58,30 @@ describe("ChangePasswordForm", () => {
   it("shows error when new password equals current password", async () => {
     const { user } = render(ChangePasswordForm);
 
-    await user.type(screen.getByLabelText("Current Password"), "samepass1");
-    await user.type(screen.getByLabelText("New Password"), "samepass1");
-    await user.type(screen.getByLabelText("Confirm New Password"), "samepass1");
+    await user.type(screen.getByLabelText("Current password"), "samepass1");
+    await user.type(screen.getByLabelText("New password"), "samepass1");
 
-    await user.click(screen.getByRole("button", { name: /Change Password/i }));
+    await user.click(screen.getByRole("button", { name: "Update password" }));
 
     expect(
       screen.getByText("New password must be different from current password."),
     ).toBeInTheDocument();
   });
 
-  it("shows success message on successful password change", async () => {
-    const { user } = render(ChangePasswordForm);
+  it("emits back on a successful password change", async () => {
+    // `emitted` stays on the render result rather than being destructured, so
+    // oxlint's unbound-method rule doesn't flag it.
+    const form = render(ChangePasswordForm);
+    const user = form.user;
 
-    await user.type(screen.getByLabelText("Current Password"), "oldpass1");
-    await user.type(screen.getByLabelText("New Password"), "newpass123");
-    await user.type(screen.getByLabelText("Confirm New Password"), "newpass123");
+    await user.type(screen.getByLabelText("Current password"), "oldpass1");
+    await user.type(screen.getByLabelText("New password"), "newpass123");
 
-    await user.click(screen.getByRole("button", { name: /Change Password/i }));
+    await user.click(screen.getByRole("button", { name: "Update password" }));
 
-    expect(await screen.findByText("Password changed successfully!")).toBeInTheDocument();
+    await vi.waitFor(() => {
+      expect(form.emitted()).toHaveProperty("back");
+    });
   });
 
   it("shows error message when API returns an incorrect password error", async () => {
@@ -91,12 +93,19 @@ describe("ChangePasswordForm", () => {
 
     const { user } = render(ChangePasswordForm);
 
-    await user.type(screen.getByLabelText("Current Password"), "wrongpass");
-    await user.type(screen.getByLabelText("New Password"), "newpass123");
-    await user.type(screen.getByLabelText("Confirm New Password"), "newpass123");
+    await user.type(screen.getByLabelText("Current password"), "wrongpass");
+    await user.type(screen.getByLabelText("New password"), "newpass123");
 
-    await user.click(screen.getByRole("button", { name: /Change Password/i }));
+    await user.click(screen.getByRole("button", { name: "Update password" }));
 
     expect(await screen.findByText("Current password is incorrect.")).toBeInTheDocument();
+  });
+
+  it("returns to the account menu from the header", async () => {
+    const form = render(ChangePasswordForm);
+
+    await form.user.click(screen.getByRole("button", { name: "Back to account" }));
+
+    expect(form.emitted()).toHaveProperty("back");
   });
 });
