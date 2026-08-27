@@ -36,7 +36,7 @@ router.get("/", async ({ event }, res) => {
     const scores = reviewData.reviews.map((r) => Number(r.score)).filter((s) => !isNaN(s) && s > 0);
     const avgScore =
       scores.length > 0 ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1) : "N/A";
-    const reviewCount = reviewData.reviews.length;
+    const reviewCount = scores.length;
 
     // Use the work's stored image URL (TMDB poster for movies, Google Books
     // cover for books) so OG images are generic across club types.
