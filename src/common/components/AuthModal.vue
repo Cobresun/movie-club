@@ -217,7 +217,6 @@ const handleSubmit = async () => {
         },
         {
           onSuccess: () => {
-            toast.success("Signed in successfully!");
             handleClose();
             // Non-OAuth success: the store drives the hop to the redirect
             // target (or the default club) and holds the app's loading gate
