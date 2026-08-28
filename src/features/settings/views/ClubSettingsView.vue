@@ -203,57 +203,25 @@
       </div>
     </div>
 
-    <!-- Leave Club Confirmation Modal -->
-    <div
-      v-if="showLeaveConfirm"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4"
-      @click="showLeaveConfirm = false"
-    >
-      <div class="w-full max-w-sm rounded-lg bg-gray-800 p-6" @click.stop="">
-        <h3 class="mb-4 text-xl font-semibold">Leave Club?</h3>
-        <p class="mb-6 text-gray-300">
-          Are you sure you want to leave this club? This action cannot be undone.
-        </p>
-        <div class="flex gap-3">
-          <v-btn class="flex-1 bg-gray-600 hover:bg-gray-700" @click="showLeaveConfirm = false">
-            Cancel
-          </v-btn>
-          <v-btn
-            variant="danger"
-            class="flex-1 bg-red-500 hover:bg-red-600"
-            :loading="isLeaving"
-            @click="leaveClub"
-          >
-            Leave
-          </v-btn>
-        </div>
-      </div>
-    </div>
+    <DeleteConfirmationModal
+      :show="showLeaveConfirm"
+      title="Leave Club?"
+      message="Are you sure you want to leave this club? This action cannot be undone."
+      confirm-label="Leave"
+      :loading="isLeaving"
+      @cancel="showLeaveConfirm = false"
+      @confirm="leaveClub"
+    />
 
-    <!-- Remove Member Confirmation Modal -->
-    <div
-      v-if="showRemoveConfirm"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4"
-      @click="showRemoveConfirm = false"
-    >
-      <div class="w-full max-w-sm rounded-lg bg-gray-800 p-6" @click.stop="">
-        <h3 class="mb-4 text-xl font-semibold">Remove {{ memberToRemove?.name }}?</h3>
-        <p class="mb-6 text-gray-300">Are you sure you want to remove this member from the club?</p>
-        <div class="flex gap-3">
-          <v-btn class="flex-1 bg-gray-600 hover:bg-gray-700" @click="showRemoveConfirm = false">
-            Cancel
-          </v-btn>
-          <v-btn
-            variant="danger"
-            class="flex-1 bg-red-500 hover:bg-red-600"
-            :loading="isRemoving"
-            @click="confirmRemoveMember"
-          >
-            Remove
-          </v-btn>
-        </div>
-      </div>
-    </div>
+    <DeleteConfirmationModal
+      :show="showRemoveConfirm"
+      :title="`Remove ${memberToRemove?.name}?`"
+      message="Are you sure you want to remove this member from the club?"
+      confirm-label="Remove"
+      :loading="isRemoving"
+      @cancel="showRemoveConfirm = false"
+      @confirm="confirmRemoveMember"
+    />
   </div>
 </template>
 
@@ -263,6 +231,7 @@ import { ref, computed, watch } from "vue";
 import { useToast } from "vue-toastification";
 
 import { hasValue } from "../../../../lib/checks/checks";
+import DeleteConfirmationModal from "@/common/components/DeleteConfirmationModal.vue";
 import RowListSkeleton from "@/common/components/RowListSkeleton.vue";
 import {
   useMembers,

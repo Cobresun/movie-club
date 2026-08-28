@@ -6,16 +6,18 @@
         <p>{{ message }}</p>
         <div class="flex gap-3">
           <button
-            class="flex-1 rounded-md bg-gray-600 py-3 font-bold text-white hover:brightness-110"
+            class="flex-1 rounded-md bg-gray-600 py-3 font-bold text-white hover:brightness-110 disabled:opacity-50"
+            :disabled="loading"
             @click="emit('cancel')"
           >
             Cancel
           </button>
           <button
-            class="flex-1 rounded-md bg-red-500 py-3 font-bold text-white hover:brightness-110"
+            class="flex-1 rounded-md bg-red-500 py-3 font-bold text-white hover:brightness-110 disabled:opacity-50"
+            :disabled="loading"
             @click="emit('confirm')"
           >
-            Delete
+            {{ confirmLabel }}
           </button>
         </div>
       </div>
@@ -29,10 +31,14 @@ withDefaults(
     show: boolean;
     title?: string;
     message?: string;
+    confirmLabel?: string;
+    loading?: boolean;
   }>(),
   {
     title: "Remove from List",
     message: "Are you sure you want to remove this item from the list?",
+    confirmLabel: "Delete",
+    loading: false,
   },
 );
 

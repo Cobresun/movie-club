@@ -3,7 +3,7 @@
        items flow into whatever column layout the drawer uses. -->
   <div v-if="releaseDate">
     <span class="block text-xs font-medium uppercase tracking-wide text-gray-500">Released</span>
-    <span class="text-sm text-gray-200">{{ formattedReleaseDate }}</span>
+    <span class="text-sm text-gray-200">{{ formatDate(releaseDate) }}</span>
   </div>
   <div v-if="runtime">
     <span class="block text-xs font-medium uppercase tracking-wide text-gray-500">Runtime</span>
@@ -37,8 +37,8 @@
 <script setup lang="ts">
 import { computed } from "vue";
 
-import { hasElements, hasValue } from "../../../lib/checks/checks.js";
-import { formatRuntime } from "@/common/workDisplay";
+import { hasElements } from "../../../lib/checks/checks.js";
+import { formatDate, formatRuntime } from "@/common/workDisplay";
 
 const props = defineProps<{
   releaseDate?: string;
@@ -47,16 +47,6 @@ const props = defineProps<{
   directors?: { name: string }[];
   voteAverage?: number;
 }>();
-
-const formattedReleaseDate = computed(() => {
-  if (!hasValue(props.releaseDate)) return "";
-  const date = new Date(props.releaseDate);
-  return date.toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-});
 
 const roundedVote = computed(() =>
   props.voteAverage === undefined ? undefined : Math.round(props.voteAverage * 10) / 10,
