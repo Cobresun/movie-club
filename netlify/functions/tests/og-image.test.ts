@@ -58,12 +58,7 @@ describe("GET /api/og-image", () => {
 
     expect(res.statusCode).toBe(200);
     expect(res.body).toContain("N/A");
-    // Known wart, pinned here rather than fixed in a test-only change: the
-    // rating count comes from the raw query rows, and `getReviewsByWorkId`
-    // left-joins `review`, so an unscored work still yields one (all-null)
-    // row. The card therefore reads "from 1 rating" with no ratings at all.
-    // Counting `scores` instead of `reviews` in og-image.ts is the fix.
-    expect(res.body).toContain("from 1 rating");
+    expect(res.body).toContain("from 0 ratings");
   });
 
   it("escapes XML-significant characters in the title", async () => {

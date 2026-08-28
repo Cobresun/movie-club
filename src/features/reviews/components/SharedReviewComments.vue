@@ -12,8 +12,12 @@
         </div>
       </div>
       <div class="mt-2">
+        <!-- `blur-sm` is a purely visual filter, so the hidden branch also
+             carries aria-hidden: without it the spoiler is read out in full
+             to a screen reader that cannot see the blur. -->
         <p
           v-if="comment.spoiler && !revealedSpoilers.has(comment.id)"
+          aria-hidden="true"
           class="cursor-pointer select-none whitespace-pre-wrap text-left text-sm text-gray-200 blur-sm transition-all"
           @click="revealedSpoilers.add(comment.id)"
         >

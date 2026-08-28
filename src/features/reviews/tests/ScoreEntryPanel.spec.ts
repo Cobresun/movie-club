@@ -141,6 +141,59 @@ describe("ScoreEntryPanel", () => {
     expect(input).toHaveValue(8);
   });
 
+  it("offers no removal until a score has actually been saved", () => {
+    render(ScoreEntryPanel, { props: { workId: "target" } });
+
+    expect(screen.queryByRole("button", { name: "Remove my score" })).not.toBeInTheDocument();
+  });
+
+  it("deletes an existing score once the inline confirm is accepted", async () => {
+    let deleted = false;
+    server.use(
+      http.delete("/api/club/test-club/reviews/rev1", () => {
+        deleted = true;
+        return HttpResponse.json({});
+      }),
+    );
+
+    const rendered = render(ScoreEntryPanel, {
+      props: { workId: "target", reviewId: "rev1", score: 6 },
+    });
+    const { user } = rendered;
+
+    await user.click(screen.getByRole("button", { name: "Remove my score" }));
+    expect(screen.getByText(/Remove your score\?/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Remove" }));
+
+    await waitFor(() => expect(deleted).toBe(true));
+    // The panel closes without the saved-score animation.
+    expect(rendered.emitted().submit).toHaveLength(1);
+    expect(rendered.emitted().saved).toBeUndefined();
+  });
+
+  it("sends nothing when the removal confirm is dismissed", async () => {
+    let deleted = false;
+    server.use(
+      http.delete("/api/club/test-club/reviews/rev1", () => {
+        deleted = true;
+        return HttpResponse.json({});
+      }),
+    );
+
+    const rendered = render(ScoreEntryPanel, {
+      props: { workId: "target", reviewId: "rev1", score: 6 },
+    });
+    const { user } = rendered;
+
+    await user.click(screen.getByRole("button", { name: "Remove my score" }));
+    await user.click(screen.getByRole("button", { name: "Keep it" }));
+
+    expect(screen.getByRole("button", { name: "Remove my score" })).toBeInTheDocument();
+    expect(deleted).toBe(false);
+    expect(rendered.emitted().submit).toBeUndefined();
+  });
+
   it("emits assist from the labeled button when eligible", async () => {
     // The panel doesn't open the flow itself: the host decides whether to swap
     // its own overlay content or open the standalone modal.

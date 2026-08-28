@@ -80,6 +80,7 @@
                     class="flex justify-center"
                     :disabled="isPending(item.id)"
                     :title="'Move to reviews'"
+                    :aria-label="`Move ${item.title} to reviews`"
                     @click="onReview(item.id)"
                   >
                     <mdicon name="check" />
@@ -91,6 +92,11 @@
                     }"
                     :disabled="isPending(item.id)"
                     :title="item.id === nextWorkId ? 'Clear next up' : 'Set as next up'"
+                    :aria-label="
+                      item.id === nextWorkId
+                        ? `Clear ${item.title} as next up`
+                        : `Set ${item.title} as next up`
+                    "
                     @click="item.id === nextWorkId ? clearNextWork() : onSetNextWatch(item.id)"
                   >
                     <mdicon

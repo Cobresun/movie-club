@@ -42,9 +42,8 @@ import { computed, ref } from "vue";
 
 import { useBackButtonClose } from "../composables/useBackButtonClose.js";
 import { useBodyScrollLock } from "../composables/useBodyScrollLock.js";
+import { type ZIndex, lowerZIndex, zIndexClass } from "../zIndex.js";
 import VBackdrop from "./VBackdrop.vue";
-
-type ZIndex = "40" | "50" | "60";
 
 const props = withDefaults(
   defineProps<{
@@ -63,14 +62,9 @@ const emit = defineEmits<{
   (e: "close"): void;
 }>();
 
-const backdropZIndex = computed(() => {
-  // Backdrop should be one level lower than content
-  return props.zIndex === "60" ? "50" : props.zIndex === "50" ? "40" : "40";
-});
+const backdropZIndex = computed(() => lowerZIndex(props.zIndex));
 
-const contentZIndexClass = computed(() =>
-  props.zIndex === "40" ? "z-40" : props.zIndex === "60" ? "z-[60]" : "z-50",
-);
+const contentZIndexClass = computed(() => zIndexClass(props.zIndex));
 
 const isVisible = ref(true);
 const onTransitionEnd = () => {

@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/vue";
+import { screen, waitFor } from "@testing-library/vue";
 import { http, HttpResponse } from "msw";
 
 import ReviewView from "../views/ReviewView.vue";
@@ -103,7 +103,7 @@ describe("ReviewView", () => {
     logIn(pinia);
 
     // Score entry lives in the details drawer; open it for an unrated work.
-    await user.click((await screen.findAllByText("The Empire Strikes Back"))[0]);
+    await user.click(await screen.findByRole("button", { name: "The Empire Strikes Back" }));
     await user.click(await screen.findByRole("button", { name: /rate this/i }));
 
     const scoreInput = await screen.findByRole("spinbutton", { name: "Score" });
@@ -147,6 +147,39 @@ describe("ReviewView", () => {
     expect(await screen.findByRole("button", { name: /edit score/i })).toBeInTheDocument();
   });
 
+  it("removes only the user's own score, leaving the work on the reviews list", async () => {
+    const { user, pinia } = render(ReviewView, {
+      props: { clubSlug: "test-club" },
+    });
+    logIn(pinia);
+
+    // "12 Angry Men" is the one work member "2" has scored in the fixture.
+    await user.click(await screen.findByRole("button", { name: "12 Angry Men" }));
+    await user.click(await screen.findByRole("button", { name: /edit score/i }));
+
+    let deletedReviewId: string | undefined;
+    server.use(
+      http.delete("/api/club/:clubSlug/reviews/:reviewId", ({ params }) => {
+        deletedReviewId = String(params.reviewId);
+        return HttpResponse.json({});
+      }),
+      http.get("/api/club/:clubSlug/list/reviews", () =>
+        HttpResponse.json([{ ...reviews[0], scores: {} }, reviews[1]]),
+      ),
+    );
+
+    await user.click(screen.getByRole("button", { name: "Remove my score" }));
+    await user.click(screen.getByRole("button", { name: "Remove" }));
+
+    await waitFor(() => expect(deletedReviewId).toBe("test"));
+
+    // The work is still on the list, unlike the club-wide "Delete review".
+    expect(screen.queryByRole("spinbutton", { name: "Score" })).not.toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /rate this/i })).toBeInTheDocument();
+    expect(screen.getByText(/No scores yet/)).toBeInTheDocument();
+    expect(screen.getAllByText("12 Angry Men").length).toBeGreaterThan(0);
+  });
+
   it("hides the score-assist button while the user has fewer than five scored works", async () => {
     // Default fixture: member "2" has scored only one work.
     const { user, pinia } = render(ReviewView, {
@@ -155,7 +188,7 @@ describe("ReviewView", () => {
     logIn(pinia);
 
     // Open the drawer for an unrated work and start score entry.
-    await user.click((await screen.findAllByText("The Empire Strikes Back"))[0]);
+    await user.click(await screen.findByRole("button", { name: "The Empire Strikes Back" }));
     await user.click(await screen.findByRole("button", { name: /rate this/i }));
 
     // The entry panel opens, but the assist button is absent (not eligible).
@@ -182,7 +215,7 @@ describe("ReviewView", () => {
     logIn(pinia);
 
     // Open the drawer for the only unscored work and start score entry.
-    await user.click((await screen.findAllByText("Unscored Movie"))[0]);
+    await user.click(await screen.findByRole("button", { name: "Unscored Movie" }));
     await user.click(await screen.findByRole("button", { name: /rate this/i }));
 
     const trigger = await screen.findByRole("button", {
