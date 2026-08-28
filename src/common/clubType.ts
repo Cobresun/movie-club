@@ -579,6 +579,18 @@ export function clubTypeLabel(type: ClubType): string {
   return clubTypeConfig(type).label;
 }
 
+/**
+ * The one-line club summary every club surface shows under the club's name:
+ * "Movie club · 6 members". Either half may still be loading, so both are
+ * optional and the line degrades to whichever half has arrived.
+ */
+export function clubMetaLine(type: ClubType | undefined, memberCount: number | undefined): string {
+  if (!isDefined(type)) return "";
+  const label = clubTypeLabel(type);
+  if (!isDefined(memberCount)) return label;
+  return `${label} · ${memberCount} ${memberCount === 1 ? "member" : "members"}`;
+}
+
 /** Statistics-feature copy and icons for a club's media type. */
 export function clubTypeStats(type: ClubType): StatsConfig {
   return clubTypeConfig(type).stats;
