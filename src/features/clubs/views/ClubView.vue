@@ -77,37 +77,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref } from "vue";
 
-import { useMembers, useClub, useClubSlug, useInviteToken, useLeaveClub } from "@/service/useClub";
+import { useInviteLink } from "@/common/composables/useInviteLink";
+import { useMembers, useClub, useClubSlug, useLeaveClub } from "@/service/useClub";
 
 const clubSlug = useClubSlug();
 const { data: members, isLoading: isLoadingMembers } = useMembers(clubSlug);
 const { data: club } = useClub(clubSlug);
-const { data: inviteToken } = useInviteToken(clubSlug);
 const { mutate: leaveClub, isLoading: isLeaving } = useLeaveClub(clubSlug);
 
 const showLeaveConfirm = ref(false);
-const inviteLinkInput = ref<HTMLInputElement | null>(null);
-const hasCopied = ref(false);
-
-const inviteLink = computed(() => `${window.location.origin}/join-club/${inviteToken.value}`);
-
-const copyIcon = computed(() => (hasCopied.value ? "check" : "content-copy"));
-
-const copyInviteLink = async () => {
-  try {
-    await navigator.clipboard.writeText(inviteLink.value);
-    hasCopied.value = true;
-    setTimeout(() => {
-      hasCopied.value = false;
-    }, 2000);
-  } catch {
-    // Fallback for browsers that don't support the Clipboard API
-    if (inviteLinkInput.value) {
-      inviteLinkInput.value.select();
-      document.execCommand("copy");
-    }
-  }
-};
+const { inviteLink, inviteLinkInput, copyIcon, copyInviteLink } = useInviteLink(clubSlug);
 </script>

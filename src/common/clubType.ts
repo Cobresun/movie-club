@@ -132,6 +132,8 @@ export interface ClubTypeConfig {
   readonly search: (query: string, signal?: AbortSignal) => Promise<WorkSearchResult[]>;
   /** Copy and icons for the statistics feature. */
   readonly stats: StatsConfig;
+  /** Copy for the invite handoff shown after a club is created. */
+  readonly invite: InviteConfig;
   /** Per-type extraction of the strings shown in the details drawers. */
   readonly display: WorkDisplay;
   /**
@@ -174,6 +176,16 @@ export interface StatsConfig {
   readonly countIcon: string;
   /** Title used when sharing the statistics page. */
   readonly shareTitle: string;
+}
+
+/**
+ * Copy the invite screen hands to the OS share sheet. The link itself is
+ * media-agnostic; only the sentence describing what the recipient is joining
+ * changes with the club's media type.
+ */
+export interface InviteConfig {
+  /** Body text offered alongside the invite URL when sharing natively. */
+  readonly shareText: string;
 }
 
 // --- FilterOption builders --------------------------------------------------
@@ -501,6 +513,9 @@ export const CLUB_TYPE_CONFIG: Record<ClubType, ClubTypeConfig> = {
       countIcon: "filmstrip",
       shareTitle: "Movie Club Statistics",
     },
+    invite: {
+      shareText: "Join my club and score the movies we watch together.",
+    },
     display: movieDisplay,
     makeSimilarity: makeMovieSimilarity,
   },
@@ -537,6 +552,9 @@ export const CLUB_TYPE_CONFIG: Record<ClubType, ClubTypeConfig> = {
       countIcon: "book-open-page-variant-outline",
       shareTitle: "Book Club Statistics",
     },
+    invite: {
+      shareText: "Join my club and score the books we read together.",
+    },
     display: bookDisplay,
     makeSimilarity: makeBookSimilarity,
   },
@@ -564,6 +582,11 @@ export function clubTypeLabel(type: ClubType): string {
 /** Statistics-feature copy and icons for a club's media type. */
 export function clubTypeStats(type: ClubType): StatsConfig {
   return clubTypeConfig(type).stats;
+}
+
+/** Invite-screen copy for a club's media type. */
+export function clubTypeInvite(type: ClubType): InviteConfig {
+  return clubTypeConfig(type).invite;
 }
 
 // A work self-identifies its media type via `externalData.kind`, so display
