@@ -1,37 +1,43 @@
 <template>
   <div class="relative min-w-0 flex-grow md:flex-grow-0">
-    <!-- One club: the chip is a link into that club, with no menu to open. -->
-    <router-link
-      v-if="!hasMultipleClubs"
-      :to="{ name: 'Club', params: { clubSlug: currentSlug } }"
-      class="flex min-h-[44px] w-full items-center gap-2 rounded-lg bg-lowBackground py-1.5 pl-1.5 pr-2 ring-1 ring-inset ring-white/[0.08] transition-colors duration-fast ease-standard hover:bg-white/10"
-    >
-      <ClubChipBody :club-name="activeClubName" :meta="activeClubMeta" />
-      <mdicon name="chevron-right" :size="18" class="flex-shrink-0 text-white/45" />
-    </router-link>
+    <!-- Desktop: Headless UI Menu -->
+    <Menu v-if="isDesktop" v-slot="{ close }" as="div">
+      <MenuButton
+        class="flex min-h-[44px] items-center gap-2 rounded-lg bg-lowBackground py-1.5 pl-1.5 pr-2 ring-1 ring-inset ring-white/[0.08] transition-colors duration-fast ease-standard hover:bg-white/10"
+        :aria-label="`Club menu. Current: ${activeClubName}`"
+      >
+        <ClubChipBody :club-name="activeClubName" :meta="activeClubMeta" />
+        <MemberAvatarStack
+          :members="members"
+          :size="22"
+          ring-class="shadow-[0_0_0_2px_#393E46]"
+          class="mr-0.5"
+        />
+        <mdicon name="chevron-down" :size="18" class="flex-shrink-0 text-white/70" />
+      </MenuButton>
 
-    <template v-else>
-      <!-- Desktop: Headless UI Menu -->
-      <Menu v-if="isDesktop" as="div">
-        <MenuButton
-          class="flex min-h-[44px] items-center gap-2 rounded-lg bg-lowBackground py-1.5 pl-1.5 pr-2 ring-1 ring-inset ring-white/[0.08] transition-colors duration-fast ease-standard hover:bg-white/10"
-          :aria-label="`Switch club. Current: ${activeClubName}`"
+      <transition
+        enter-active-class="transition duration-fast ease-standard"
+        enter-from-class="-translate-y-1 scale-95 opacity-0"
+        leave-active-class="transition duration-fast ease-standard"
+        leave-to-class="-translate-y-1 scale-95 opacity-0"
+      >
+        <MenuItems
+          class="absolute left-0 top-full z-50 mt-1 min-w-[300px] origin-top-left overflow-hidden rounded-xl bg-lowBackground shadow-lg"
         >
-          <ClubChipBody :club-name="activeClubName" :meta="activeClubMeta" />
-          <mdicon name="chevron-down" :size="18" class="flex-shrink-0 text-white/70" />
-        </MenuButton>
+          <ClubPanelRows
+            :club-slug="currentSlug"
+            :club-name="activeClubName"
+            :meta="activeClubMeta"
+            :members="members"
+            avatar-ring-class="shadow-[0_0_0_2px_#393E46]"
+            row-role="menuitem"
+            @navigated="close()"
+          />
 
-        <transition
-          enter-active-class="transition duration-fast ease-standard"
-          enter-from-class="-translate-y-1 scale-95 opacity-0"
-          leave-active-class="transition duration-fast ease-standard"
-          leave-to-class="-translate-y-1 scale-95 opacity-0"
-        >
-          <MenuItems
-            class="absolute left-0 top-full z-50 mt-1 min-w-[300px] origin-top-left overflow-hidden rounded-xl bg-lowBackground shadow-lg"
-          >
+          <template v-if="hasMultipleClubs">
             <div
-              class="px-4 pb-1.5 pt-3 text-[11px] font-semibold uppercase tracking-widest text-white/45"
+              class="border-t border-white/[0.08] px-4 pb-1.5 pt-3 text-[11px] font-semibold uppercase tracking-widest text-white/45"
             >
               Your clubs
             </div>
@@ -63,36 +69,55 @@
                 </button>
               </MenuItem>
             </div>
-            <div class="border-t border-white/10">
-              <MenuItem v-slot="{ active }">
-                <button
-                  class="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-white/80"
-                  :class="active ? 'bg-white/10' : ''"
-                  @click="createNewClub"
-                >
-                  <mdicon name="plus" :size="16" />
-                  Create new club
-                </button>
-              </MenuItem>
-            </div>
-          </MenuItems>
-        </transition>
-      </Menu>
+          </template>
 
-      <!-- Mobile: custom button + bottom sheet -->
-      <template v-else>
-        <button
-          class="flex min-h-[44px] w-full items-center gap-2 rounded-lg bg-lowBackground py-1.5 pl-1.5 pr-2 ring-1 ring-inset ring-white/[0.08] transition-colors duration-fast ease-standard hover:bg-white/10"
-          :aria-label="`Switch club. Current: ${activeClubName}`"
-          @click="isMobileOpen = true"
-        >
-          <ClubChipBody :club-name="activeClubName" :meta="activeClubMeta" />
-          <mdicon name="chevron-down" :size="18" class="flex-shrink-0 text-white/70" />
-        </button>
+          <div class="border-t border-white/10">
+            <MenuItem v-slot="{ active }">
+              <button
+                class="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-white/80"
+                :class="active ? 'bg-white/10' : ''"
+                @click="createNewClub"
+              >
+                <mdicon name="plus" :size="16" />
+                Create new club
+              </button>
+            </MenuItem>
+          </div>
+        </MenuItems>
+      </transition>
+    </Menu>
 
-        <VBottomSheet v-if="isMobileOpen" content-class="pb-6" @close="isMobileOpen = false">
+    <!-- Mobile: custom button + bottom sheet -->
+    <template v-else>
+      <button
+        class="flex min-h-[44px] w-full items-center gap-2 rounded-lg bg-lowBackground py-1.5 pl-1.5 pr-2 ring-1 ring-inset ring-white/[0.08] transition-colors duration-fast ease-standard hover:bg-white/10"
+        :aria-label="`Club menu. Current: ${activeClubName}`"
+        @click="isMobileOpen = true"
+      >
+        <ClubChipBody :club-name="activeClubName" :meta="activeClubMeta" />
+        <MemberAvatarStack
+          :members="members"
+          :size="22"
+          ring-class="shadow-[0_0_0_2px_#393E46]"
+          class="mr-0.5"
+        />
+        <mdicon name="chevron-down" :size="18" class="flex-shrink-0 text-white/70" />
+      </button>
+
+      <VBottomSheet v-if="isMobileOpen" content-class="pb-6" @close="isMobileOpen = false">
+        <ClubPanelRows
+          :club-slug="currentSlug"
+          :club-name="activeClubName"
+          :meta="activeClubMeta"
+          :members="members"
+          show-identity
+          avatar-ring-class="shadow-[0_0_0_2px_#222831]"
+          @navigated="isMobileOpen = false"
+        />
+
+        <template v-if="hasMultipleClubs">
           <div
-            class="px-4 pb-2 pt-1 text-[11px] font-semibold uppercase tracking-widest text-white/45"
+            class="border-t border-white/[0.08] px-4 pb-2 pt-3 text-[11px] font-semibold uppercase tracking-widest text-white/45"
           >
             Your clubs
           </div>
@@ -123,17 +148,18 @@
               </button>
             </li>
           </ul>
-          <div class="mt-2 border-t border-white/10">
-            <button
-              class="flex min-h-[52px] w-full items-center gap-3 px-4 py-3 text-[15px] text-white/80 hover:bg-white/10"
-              @click="createNewClub"
-            >
-              <mdicon name="plus" :size="20" />
-              Create new club
-            </button>
-          </div>
-        </VBottomSheet>
-      </template>
+        </template>
+
+        <div class="mt-2 border-t border-white/10">
+          <button
+            class="flex min-h-[52px] w-full items-center gap-3 px-4 py-3 text-[15px] text-white/80 hover:bg-white/10"
+            @click="createNewClub"
+          >
+            <mdicon name="plus" :size="20" />
+            Create new club
+          </button>
+        </div>
+      </VBottomSheet>
     </template>
   </div>
 </template>
@@ -148,6 +174,8 @@ import { ClubPreview } from "../../../lib/types/club";
 import { ClubType } from "../../../lib/types/generated/db";
 import { DEFAULT_CLUB_SECTION, sectionNameForRoute } from "../clubSections";
 import ClubChipBody from "./ClubChipBody.vue";
+import ClubPanelRows from "./ClubPanelRows.vue";
+import MemberAvatarStack from "./MemberAvatarStack.vue";
 import VBottomSheet from "./VBottomSheet.vue";
 import { clubTypeLabel } from "@/common/clubType";
 import { useIsDesktop } from "@/common/composables/useIsDesktop";

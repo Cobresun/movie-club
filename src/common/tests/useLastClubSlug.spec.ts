@@ -58,6 +58,12 @@ describe("last club section", () => {
     expect(getLastClubSection("a-club")).toBe("Reviews");
   });
 
+  it("falls back to the default for a section that no longer exists", () => {
+    localStorage.setItem("lastClubSection", JSON.stringify({ "a-club": "Club" }));
+
+    expect(getLastClubSection("a-club")).toBe("Reviews");
+  });
+
   it("falls back to the default when the stored value is unusable", () => {
     localStorage.setItem("lastClubSection", "not json");
 
