@@ -2,12 +2,15 @@ import { Handler, HandlerContext, HandlerEvent } from "@netlify/functions";
 import { parse } from "lambda-multipart-parser";
 import { z } from "zod";
 
-import { isDefined } from "../../lib/checks/checks.js";
+import { hasValue, isDefined } from "../../lib/checks/checks.js";
 import { ClubPreview } from "../../lib/types/club";
+import { MemberScoredWork } from "../../lib/types/lists";
 import ClubRepository from "./repositories/ClubRepository";
 import ImageRepository from "./repositories/ImageRepository";
+import ReviewRepository from "./repositories/ReviewRepository";
 import UserRepository from "./repositories/UserRepository";
 import { loggedIn } from "./utils/auth";
+import { getExternalSummariesForWorks } from "./utils/providers";
 import { badRequest, ok } from "./utils/responses";
 import { Router } from "./utils/router";
 
@@ -25,6 +28,31 @@ router.get("/clubs", loggedIn, async (req, res) => {
     slug: club.slug,
     slugUpdatedAt: club.slug_updated_at ? String(club.slug_updated_at) : undefined,
     type: club.type,
+  }));
+  return res(ok(JSON.stringify(result)));
+});
+
+// Every work the member has scored, in any club they belong to. Score Assist
+// draws its comparison pool from here so a member reviewing in one club can be
+// asked about works they only ever scored in another.
+router.get("/scores", loggedIn, async (req, res) => {
+  const rows = await ReviewRepository.getScoredWorksByUser(req.userId);
+  const externalData = await getExternalSummariesForWorks(
+    rows.map((row) => ({ externalId: row.external_id, type: row.type })),
+  );
+
+  const result: MemberScoredWork[] = rows.map((row) => ({
+    workId: row.work_id,
+    clubId: row.club_id,
+    clubName: row.club_name,
+    clubSlug: row.club_slug,
+    type: row.type,
+    title: row.title,
+    imageUrl: row.image_url ?? undefined,
+    externalId: row.external_id ?? undefined,
+    externalData: hasValue(row.external_id) ? externalData.get(row.external_id) : undefined,
+    score: parseFloat(row.score),
+    scoredDate: row.created_date.toISOString(),
   }));
   return res(ok(JSON.stringify(result)));
 });

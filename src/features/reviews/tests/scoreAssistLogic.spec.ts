@@ -1,6 +1,10 @@
 import { DetailedBookData } from "../../../../lib/types/book";
 import { WorkType } from "../../../../lib/types/generated/db";
-import { DetailedReviewListItem, DetailedWorkData, Review } from "../../../../lib/types/lists";
+import {
+  DetailedReviewListItem,
+  DetailedWorkData,
+  MemberScoredWork,
+} from "../../../../lib/types/lists";
 import { DetailedMovieData } from "../../../../lib/types/movie";
 import {
   answerComparison,
@@ -12,8 +16,7 @@ import {
 } from "../composables/scoreAssistLogic";
 import { makeWorkSimilarity, workSimilarity } from "@/common/clubType";
 
-const USER_ID = "user-1";
-const OTHER_USER_ID = "user-2";
+const CURRENT_CLUB_ID = "club-1";
 
 function movieData(
   opts: {
@@ -74,95 +77,167 @@ function candidate(
     title: opts.title ?? `Work ${workId}`,
     score,
     externalData: opts.externalData,
+    clubId: CURRENT_CLUB_ID,
+    clubName: "This Club",
   };
 }
 
-/**
- * Every item carries an "average" pseudo-score and another member's score, so
- * any test that counts candidates implicitly proves both are ignored.
- */
+/** The work being scored, as the club's reviews list carries it. */
 function reviewItem(
   id: string,
   opts: {
-    userScore?: number;
     title?: string;
+    type?: WorkType;
+    externalId?: string;
     externalData?: DetailedWorkData;
   } = {},
 ): DetailedReviewListItem {
-  const scores: Record<string, Review> = {
-    average: { id: `avg-${id}`, created_date: "2024-01-01", score: 6 },
-    [OTHER_USER_ID]: {
-      id: `other-${id}`,
-      created_date: "2024-01-01",
-      score: 6,
-    },
-  };
-  if (opts.userScore !== undefined) {
-    scores[USER_ID] = {
-      id: `review-${id}`,
-      created_date: "2024-01-01",
-      score: opts.userScore,
-    };
-  }
   return {
     id,
-    type: WorkType.movie,
+    type: opts.type ?? WorkType.movie,
     title: opts.title ?? `Work ${id}`,
     createdDate: "2024-01-01",
-    scores,
+    externalId: opts.externalId,
+    scores: { average: { id: `avg-${id}`, created_date: "2024-01-01", score: 6 } },
     externalData: opts.externalData,
   };
 }
 
+/** A work the user scored in some club — the `GET /api/member/scores` shape. */
+function memberScore(
+  workId: string,
+  score: number,
+  opts: {
+    title?: string;
+    type?: WorkType;
+    externalId?: string;
+    clubId?: string;
+    clubName?: string;
+    scoredDate?: string;
+    externalData?: DetailedWorkData;
+  } = {},
+): MemberScoredWork {
+  return {
+    workId,
+    clubId: opts.clubId ?? "club-2",
+    clubName: opts.clubName ?? "Other Club",
+    clubSlug: "other-club",
+    type: opts.type ?? WorkType.movie,
+    title: opts.title ?? `Work ${workId}`,
+    externalId: opts.externalId,
+    externalData: opts.externalData,
+    score,
+    scoredDate: opts.scoredDate ?? "2024-01-01T00:00:00.000Z",
+  };
+}
+
 function target(externalData?: DetailedWorkData): DetailedReviewListItem {
-  return reviewItem("target", { userScore: undefined, externalData });
+  return reviewItem("target", { externalData });
 }
 
 /** Candidates scored 1..9, no metadata — the workhorse pool. */
 const ladder = () => [1, 2, 3, 4, 5, 6, 7, 8, 9].map((score) => candidate(`w${score}`, score));
 
 describe("buildCandidatePool", () => {
-  it("collects only the current user's scored works, excluding the target", () => {
-    const reviews = [
-      reviewItem("target", { userScore: 8 }),
-      reviewItem("a", { userScore: 7 }),
-      // Only the average + another member's score: must not become a candidate.
-      reviewItem("b", {}),
-      reviewItem("c", { userScore: 3 }),
-    ];
-    const pool = buildCandidatePool(reviews, USER_ID, "target");
-    expect(pool.map((item) => item.workId)).toEqual(["c", "a"]);
+  const targetItem = reviewItem("target", { externalId: "tt-target" });
+
+  it("collects the user's scores from every club, tagged with the club each came from", () => {
+    const pool = buildCandidatePool(
+      [
+        memberScore("here", 7, { clubId: CURRENT_CLUB_ID, clubName: "Movie Night" }),
+        memberScore("elsewhere", 3, { externalId: "tt-1", clubName: "Sunday Cinema" }),
+      ],
+      targetItem,
+    );
+    expect(pool.map((item) => [item.workId, item.clubId, item.clubName])).toEqual([
+      ["elsewhere", "club-2", "Sunday Cinema"],
+      ["here", CURRENT_CLUB_ID, "Movie Night"],
+    ]);
+  });
+
+  it("excludes the target's own score", () => {
+    const pool = buildCandidatePool(
+      [
+        memberScore("target", 8, { externalId: "tt-target", clubId: CURRENT_CLUB_ID }),
+        memberScore("a", 7),
+      ],
+      targetItem,
+    );
+    expect(pool.map((item) => item.workId)).toEqual(["a"]);
   });
 
   it("sorts ascending by score with a title tie-break", () => {
-    const reviews = [
-      reviewItem("a", { userScore: 7, title: "Zulu" }),
-      reviewItem("b", { userScore: 7, title: "Alpha" }),
-      reviewItem("c", { userScore: 2 }),
-    ];
-    const pool = buildCandidatePool(reviews, USER_ID, "target");
+    const pool = buildCandidatePool(
+      [
+        memberScore("a", 7, { title: "Zulu" }),
+        memberScore("b", 7, { title: "Alpha" }),
+        memberScore("c", 2),
+      ],
+      targetItem,
+    );
     expect(pool.map((item) => item.workId)).toEqual(["c", "b", "a"]);
   });
 
   it("drops non-finite scores", () => {
-    const reviews = [reviewItem("a", { userScore: Number.NaN }), reviewItem("b", { userScore: 5 })];
-    const pool = buildCandidatePool(reviews, USER_ID, "target");
+    const pool = buildCandidatePool(
+      [memberScore("a", Number.NaN), memberScore("b", 5)],
+      targetItem,
+    );
     expect(pool.map((item) => item.workId)).toEqual(["b"]);
+  });
+
+  it("ignores works of a different media type than the target", () => {
+    const pool = buildCandidatePool(
+      [
+        memberScore("a-book", 9, { type: WorkType.book, externalId: "vol-1" }),
+        memberScore("a-movie", 4, { externalId: "tt-1" }),
+      ],
+      targetItem,
+    );
+    expect(pool.map((item) => item.workId)).toEqual(["a-movie"]);
+  });
+
+  it("keeps the most recent score when two clubs scored the same work", () => {
+    const pool = buildCandidatePool(
+      [
+        memberScore("old", 3, { externalId: "tt-1", scoredDate: "2024-01-01T00:00:00.000Z" }),
+        memberScore("new", 8, { externalId: "tt-1", scoredDate: "2025-06-01T00:00:00.000Z" }),
+      ],
+      targetItem,
+    );
+    expect(pool.map((item) => item.workId)).toEqual(["new"]);
+  });
+
+  it("never offers another club's copy of the target back", () => {
+    const pool = buildCandidatePool(
+      [memberScore("target-elsewhere", 6, { externalId: "tt-target" })],
+      targetItem,
+    );
+    expect(pool).toEqual([]);
+  });
+
+  it("keeps works that carry no external id", () => {
+    const pool = buildCandidatePool(
+      [memberScore("no-id-1", 2), memberScore("no-id-2", 5)],
+      targetItem,
+    );
+    expect(pool.map((item) => item.workId)).toEqual(["no-id-1", "no-id-2"]);
   });
 });
 
 describe("isScoreAssistEligible", () => {
-  it("requires five scored works besides the target", () => {
-    const four = [1, 2, 3, 4].map((n) => reviewItem(`w${n}`, { userScore: n }));
-    const targetItem = reviewItem("target", { userScore: 8 });
-    expect(isScoreAssistEligible([...four, targetItem], USER_ID, "target")).toBe(false);
-    const five = [...four, reviewItem("w5", { userScore: 5 })];
-    expect(isScoreAssistEligible([...five, targetItem], USER_ID, "target")).toBe(true);
+  const targetItem = reviewItem("target", { externalId: "tt-target" });
+
+  it("requires five scored works besides the target, counting every club", () => {
+    const four = [1, 2, 3, 4].map((n) => memberScore(`w${n}`, n, { externalId: `tt-${n}` }));
+    expect(isScoreAssistEligible(four, targetItem)).toBe(false);
+    const fifth = memberScore("w5", 5, { clubId: CURRENT_CLUB_ID, externalId: "tt-5" });
+    expect(isScoreAssistEligible([...four, fifth], targetItem)).toBe(true);
   });
 
-  it("is false without reviews or a user", () => {
-    expect(isScoreAssistEligible(undefined, USER_ID, "target")).toBe(false);
-    expect(isScoreAssistEligible([], undefined, "target")).toBe(false);
+  it("is false without scores or a target", () => {
+    expect(isScoreAssistEligible(undefined, targetItem)).toBe(false);
+    expect(isScoreAssistEligible([], undefined)).toBe(false);
   });
 });
 

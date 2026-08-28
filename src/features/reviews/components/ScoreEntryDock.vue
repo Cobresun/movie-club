@@ -69,6 +69,7 @@
                 :target="target"
                 :candidates="candidates"
                 :club-type="clubType"
+                :current-club-id="clubId"
                 @suggest="applySuggestion"
               />
             </Transition>
@@ -185,7 +186,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydownCapture, tr
 // Assist inputs are derived here (from the cached reviews query) rather than
 // prop-drilled, mirroring ScoreEntryModal, so the drawer only hands the dock
 // its target work.
-const { clubType, candidates } = useScoreAssistCandidates(() => props.target.id);
+const { clubType, clubId, candidates } = useScoreAssistCandidates(() => props.target);
 const noun = computed(() => clubTypeConfig(clubType.value).noun);
 
 // The work's title is already in the drawer hero right above, so the heading

@@ -22,7 +22,14 @@
             :aria-label="`I liked ${pivot.title} more`"
             @click="answer('less')"
           >
-            <WorkPosterCard :title="pivot.title" :poster-url="pivotPosterUrl" />
+            <WorkPosterCard :title="pivot.title" :poster-url="pivotPosterUrl">
+              <!-- The pool spans every club the user belongs to, so a pivot
+                   they scored elsewhere says where it came from. Clubs can
+                   share a name, so the comparison is by id. -->
+              <span v-if="isFromAnotherClub" class="text-xs text-gray-400">
+                from {{ pivot.clubName }}
+              </span>
+            </WorkPosterCard>
           </button>
         </Transition>
       </div>
@@ -49,7 +56,7 @@
 import { computed } from "vue";
 import { useToast } from "vue-toastification";
 
-import { isDefined } from "../../../../lib/checks/checks.js";
+import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import { ClubType } from "../../../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
 import { ComparisonAnswer, ScoredCandidate } from "../composables/scoreAssistLogic";
@@ -68,6 +75,8 @@ const props = defineProps<{
   target: DetailedReviewListItem;
   candidates: ScoredCandidate[];
   clubType: ClubType;
+  /** The club being reviewed in; its own works need no "from ..." label. */
+  currentClubId?: string;
 }>();
 
 const emit = defineEmits<{
@@ -93,6 +102,12 @@ const pivotPosterUrl = computed(() =>
   isDefined(pivot.value)
     ? (workPosterUrl(pivot.value.externalData, pivot.value.imageUrl) ?? "")
     : "",
+);
+const isFromAnotherClub = computed(
+  () =>
+    isDefined(pivot.value) &&
+    hasValue(props.currentClubId) &&
+    pivot.value.clubId !== props.currentClubId,
 );
 
 const toast = useToast();

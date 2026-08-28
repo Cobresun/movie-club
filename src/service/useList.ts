@@ -11,6 +11,7 @@ import {
   ListInsertDto,
   SharedReviewResponse,
 } from "../../lib/types/lists.js";
+import { memberScoresKey } from "./useUser";
 import { useAuthStore } from "@/stores/auth";
 
 export const BASE_IMAGE_URL = "https://image.tmdb.org/t/p/w154/";
@@ -284,7 +285,10 @@ export function useDeleteReview(clubSlug: string) {
         current?.filter((item) => item.id !== workId),
       );
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: reviewsListKey(clubSlug) }),
+    onSettled: async () => {
+      await queryClient.invalidateQueries({ queryKey: reviewsListKey(clubSlug) });
+      await queryClient.invalidateQueries({ queryKey: memberScoresKey });
+    },
   });
 }
 

@@ -7,6 +7,7 @@
       :target="scoreAssistTarget"
       :candidates="scoreAssistCandidates"
       :club-type="club?.type ?? ClubType.movie"
+      :current-club-id="club?.clubId"
       @close="scoreAssistWorkId = undefined"
     />
     <page-header :has-back="true" back-route="ClubHome" page-name="Reviews" />
@@ -82,7 +83,7 @@ import { firstName } from "@/common/memberName";
 import AddReviewPrompt from "@/features/reviews/components/AddReviewPrompt.vue";
 import { useClub, useMembers } from "@/service/useClub";
 import { useDeleteReview, useReviewsList, useReviewsListId } from "@/service/useList";
-import { useUser } from "@/service/useUser";
+import { useMemberScores, useUser } from "@/service/useUser";
 
 const { clubSlug } = defineProps<{ clubSlug: string }>();
 
@@ -138,13 +139,18 @@ const scoreAssistWorkId = ref<string>();
 const scoreAssistTarget = computed(() =>
   reviews.value?.find((review) => review.id === scoreAssistWorkId.value),
 );
+const { data: memberScores } = useMemberScores();
 const scoreAssistCandidates = computed(() => {
   const target = scoreAssistTarget.value;
-  if (!isDefined(target) || !hasValue(userId.value)) return [];
-  return buildCandidatePool(reviews.value ?? [], userId.value, target.id);
+  if (!isDefined(target)) return [];
+  return buildCandidatePool(memberScores.value ?? [], target);
 });
 provide(ScoreAssistKey, {
-  isEligible: (workId: string) => isScoreAssistEligible(reviews.value, userId.value, workId),
+  isEligible: (workId: string) =>
+    isScoreAssistEligible(
+      memberScores.value,
+      reviews.value?.find((review) => review.id === workId),
+    ),
   open: (workId: string) => {
     scoreAssistWorkId.value = workId;
   },

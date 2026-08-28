@@ -2,6 +2,7 @@ import { useMutation, useQuery } from "@tanstack/vue-query";
 import { computed } from "vue";
 
 import { ClubPreview, User } from "../../lib/types/club";
+import { MemberScoredWork } from "../../lib/types/lists";
 import { useAuthStore } from "@/stores/auth";
 
 export function useUser() {
@@ -29,6 +30,24 @@ export function useUserClubs() {
     queryKey: ["user", "clubs"],
     enabled: isLoggedIn,
     queryFn: async () => (await auth.request.get<ClubPreview[]>("/api/member/clubs")).data,
+  });
+}
+
+export const memberScoresKey = ["user", "scores"] as const;
+
+/**
+ * Every work the signed-in member has scored, across all of their clubs. Score
+ * Assist compares against this so its pool isn't limited to the club being
+ * reviewed in.
+ */
+export function useMemberScores() {
+  const auth = useAuthStore();
+  const isLoggedIn = computed(() => auth.isLoggedIn);
+
+  return useQuery<MemberScoredWork[]>({
+    queryKey: memberScoresKey,
+    enabled: isLoggedIn,
+    queryFn: async () => (await auth.request.get<MemberScoredWork[]>("/api/member/scores")).data,
   });
 }
 

@@ -1,6 +1,11 @@
 import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import { WorkType } from "../../../../lib/types/generated/db";
-import { DetailedReviewListItem, WorkDataSummary } from "../../../../lib/types/lists";
+import {
+  DetailedReviewListItem,
+  MemberScoredWork,
+  WorkDataSummary,
+  WorkListItem,
+} from "../../../../lib/types/lists";
 import { makeWorkSimilarity, WorkSimilarityScorer } from "@/common/clubType";
 
 /**
@@ -23,6 +28,9 @@ export interface ScoredCandidate {
   externalData?: WorkDataSummary;
   /** The current user's score for this work. */
   score: number;
+  /** The club they left that score in — the pool spans all of their clubs. */
+  clubId: string;
+  clubName: string;
 }
 
 /** The user's verdict on the current comparison, relative to the TARGET. */
@@ -67,38 +75,64 @@ export interface ScoreAssistSession {
   readonly result?: ScoreAssistResult;
 }
 
+/** Everything buildCandidatePool needs to know about the work being scored. */
+export type ScoreAssistTarget = Pick<WorkListItem, "id" | "type" | "externalId">;
+
+/**
+ * The comparison pool for one target work, drawn from `scores` — the whole
+ * `GET /api/member/scores` payload, every work the user has scored in every
+ * club they belong to, the club being reviewed in included.
+ *
+ * Candidates are restricted to the target's own media type — a book score says
+ * nothing about where a movie sits on the user's movie scale — and deduplicated
+ * by external id, most recent score first, so a work two of their clubs have
+ * both seen is offered once, at the score they last gave it.
+ */
 export function buildCandidatePool(
-  reviews: readonly DetailedReviewListItem[],
-  userId: string,
-  targetWorkId: string,
+  scores: readonly MemberScoredWork[],
+  target: ScoreAssistTarget,
 ): ScoredCandidate[] {
-  return reviews
-    .flatMap<ScoredCandidate>((item) => {
-      if (item.id === targetWorkId) return [];
-      // Indexing by userId (never iterating keys) is what keeps the synthetic
-      // "average" entry in `scores` out of the pool.
-      const score = item.scores[userId]?.score;
-      if (!isDefined(score) || !Number.isFinite(score)) return [];
-      return [
-        {
-          workId: item.id,
-          title: item.title,
-          imageUrl: item.imageUrl,
-          externalData: item.externalData,
-          score,
-        },
-      ];
-    })
-    .sort((a, b) => (a.score !== b.score ? a.score - b.score : a.title.localeCompare(b.title)));
+  const seenWorks = new Set([sameWorkKey(target.type, target.externalId)].filter(hasValue));
+  const pool: ScoredCandidate[] = [];
+
+  for (const scored of [...scores].sort((a, b) => b.scoredDate.localeCompare(a.scoredDate))) {
+    if (scored.type !== target.type) continue;
+    if (scored.workId === target.id || !Number.isFinite(scored.score)) continue;
+    const key = sameWorkKey(scored.type, scored.externalId);
+    if (hasValue(key) && seenWorks.has(key)) continue;
+
+    if (hasValue(key)) seenWorks.add(key);
+    pool.push({
+      workId: scored.workId,
+      title: scored.title,
+      imageUrl: scored.imageUrl,
+      externalData: scored.externalData,
+      score: scored.score,
+      clubId: scored.clubId,
+      clubName: scored.clubName,
+    });
+  }
+
+  return pool.sort((a, b) =>
+    a.score !== b.score ? a.score - b.score : a.title.localeCompare(b.title),
+  );
+}
+
+/**
+ * Identifies the same movie/book across clubs — each club owns its own `work`
+ * row, so only the provider's id ties them together. Works with no external id
+ * carry no such identity and are never deduplicated.
+ */
+function sameWorkKey(type: WorkType, externalId: string | undefined): string | undefined {
+  return hasValue(externalId) ? `${type}:${externalId}` : undefined;
 }
 
 export function isScoreAssistEligible(
-  reviews: readonly DetailedReviewListItem[] | undefined,
-  userId: string | undefined,
-  targetWorkId: string,
+  scores: readonly MemberScoredWork[] | undefined,
+  target: ScoreAssistTarget | undefined,
 ): boolean {
-  if (reviews === undefined || !hasValue(userId)) return false;
-  return buildCandidatePool(reviews, userId, targetWorkId).length >= MIN_SCORED_WORKS_FOR_ASSIST;
+  if (!isDefined(scores) || !isDefined(target)) return false;
+  return buildCandidatePool(scores, target).length >= MIN_SCORED_WORKS_FOR_ASSIST;
 }
 
 export function startSession(

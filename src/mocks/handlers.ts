@@ -25,6 +25,9 @@ export const handlers = [
   http.get("/api/member/clubs", () => {
     return HttpResponse.json([club]);
   }),
+  http.get("/api/member/scores", () => {
+    return HttpResponse.json([]);
+  }),
   http.get("/api/club/:id", () => {
     return HttpResponse.json(club);
   }),

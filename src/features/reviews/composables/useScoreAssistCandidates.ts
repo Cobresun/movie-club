@@ -1,31 +1,24 @@
 import { computed, MaybeRefOrGetter, toValue } from "vue";
 
-import { hasValue } from "../../../../lib/checks/checks.js";
 import { ClubType } from "../../../../lib/types/generated/db";
-import { buildCandidatePool } from "./scoreAssistLogic";
+import { buildCandidatePool, ScoreAssistTarget } from "./scoreAssistLogic";
 import { useClub, useClubSlug } from "@/service/useClub";
-import { useReviewsList } from "@/service/useList";
-import { useUser } from "@/service/useUser";
+import { useMemberScores } from "@/service/useUser";
 
 /**
- * Score-assist inputs derived from the cached reviews query: the club type
- * ScoreAssistFlow needs for its copy, and the pool of works the current user
- * has already scored (minus the target). ScoreEntryModal and ScoreEntryDock
- * each host the assist flow inline and previously duplicated this exact
- * derivation.
+ * Score-assist inputs: the club type and id ScoreAssistFlow needs for its copy
+ * and club labels, and the pool of works the current user has already scored
+ * (minus the target) across every club they belong to. ScoreEntryModal and
+ * ScoreEntryDock each host the assist flow inline and share this derivation.
  */
-export function useScoreAssistCandidates(targetWorkId: MaybeRefOrGetter<string>) {
+export function useScoreAssistCandidates(target: MaybeRefOrGetter<ScoreAssistTarget>) {
   const clubSlug = useClubSlug();
   const { data: club } = useClub(clubSlug);
-  const { data: reviews } = useReviewsList(clubSlug);
-  const user = useUser();
+  const { data: memberScores } = useMemberScores();
 
   const clubType = computed(() => club.value?.type ?? ClubType.movie);
-  const candidates = computed(() =>
-    hasValue(user.value?.id)
-      ? buildCandidatePool(reviews.value ?? [], user.value.id, toValue(targetWorkId))
-      : [],
-  );
+  const clubId = computed(() => club.value?.clubId);
+  const candidates = computed(() => buildCandidatePool(memberScores.value ?? [], toValue(target)));
 
-  return { clubType, candidates };
+  return { clubType, clubId, candidates };
 }
