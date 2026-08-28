@@ -119,3 +119,19 @@ input[type="date"] {
   color-scheme: dark;
   accent-color: #2196f3;
 }
+
+/* Mobile browsers — iOS Safari in particular — zoom the viewport in when a
+   focused field renders text below 16px, which yanks the page around whenever
+   a keyboard opens (the account bottom sheet was the worst offender). Floor
+   every field at 16px on touch pointers instead of restricting the viewport's
+   maximum-scale, which would also take pinch-zoom away from Android users.
+   `!important` is needed because the sizes come from Tailwind utilities on the
+   elements themselves; a field that is deliberately larger opts out with the
+   important modifier (`!text-4xl` on ScoreDial's input). */
+@media (pointer: coarse) {
+  input:not([type="checkbox"], [type="radio"], [type="range"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
