@@ -5,6 +5,7 @@
         v-if="!isLoading && hasReviews"
         class="text-white transition hover:text-primary"
         title="Share statistics"
+        aria-label="Share statistics"
         @click="shareStats"
       >
         <mdicon name="share-variant" />
