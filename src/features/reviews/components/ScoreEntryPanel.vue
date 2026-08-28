@@ -31,18 +31,51 @@
     >
       Save score
     </button>
+
+    <!-- The confirm step is inline rather than an overlay: the panel already
+         sits inside a drawer or a modal, so an overlay would be a third layer. -->
+    <template v-if="hasValue(reviewId)">
+      <button
+        v-if="!confirmingRemove"
+        type="button"
+        class="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm text-red-400/80 transition duration-fast ease-standard hover:bg-red-500/10 hover:text-red-400"
+        @click="confirmingRemove = true"
+      >
+        <mdicon name="delete-outline" size="16" />
+        <span>Remove my score</span>
+      </button>
+      <div v-else class="flex w-full flex-col items-center gap-2">
+        <p class="text-sm text-gray-300">Remove your score? You can always rate it again.</p>
+        <div class="flex w-full gap-2">
+          <button
+            type="button"
+            class="flex-1 rounded-lg bg-gray-600 py-2 text-sm font-bold text-white transition duration-fast ease-standard hover:brightness-110 active:scale-[0.98]"
+            @click="confirmingRemove = false"
+          >
+            Keep it
+          </button>
+          <button
+            type="button"
+            class="flex-1 rounded-lg bg-red-500 py-2 text-sm font-bold text-white transition duration-fast ease-standard hover:brightness-110 active:scale-[0.98]"
+            @click="removeScore"
+          >
+            Remove
+          </button>
+        </div>
+      </div>
+    </template>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, inject, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 
-import { isDefined, isTrue } from "../../../../lib/checks/checks.js";
+import { hasValue, isDefined, isTrue } from "../../../../lib/checks/checks.js";
 import { ScoreAssistKey } from "../scoreAssist";
 import { clampScore, isValidScore } from "../scoreScale";
 import ScoreDial from "./ScoreDial.vue";
 import { useClubSlug } from "@/service/useClub";
-import { useSubmitScore } from "@/service/useReviews";
+import { useDeleteScore, useSubmitScore } from "@/service/useReviews";
 
 const props = defineProps<{
   workId: string;
@@ -119,6 +152,19 @@ const save = () => {
     });
     emit("saved");
   }
+  emit("submit");
+};
+
+const deleteScore = useDeleteScore(clubSlug);
+
+const confirmingRemove = ref(false);
+
+const removeScore = () => {
+  const reviewId = props.reviewId;
+  if (!hasValue(reviewId)) return;
+  deleteScore.mutate({ reviewId, workId: props.workId });
+  // "submit" and not "saved": the host closes the panel without running the
+  // saved-score animation for a score that no longer exists.
   emit("submit");
 };
 
