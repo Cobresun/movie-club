@@ -27,6 +27,7 @@
         :target="target"
         :candidates="candidates"
         :club-type="clubType"
+        :current-club-id="clubId"
         @suggest="applySuggestion"
       />
     </template>
@@ -65,5 +66,5 @@ const applySuggestion = (score: number) => {
 // Assist inputs are derived here (from the cached reviews query) rather than
 // prop-drilled through the drawer, so any surface can host this modal with
 // just the target work.
-const { clubType, candidates } = useScoreAssistCandidates(() => props.target.id);
+const { clubType, clubId, candidates } = useScoreAssistCandidates(() => props.target);
 </script>

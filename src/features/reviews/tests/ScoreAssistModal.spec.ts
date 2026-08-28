@@ -37,10 +37,13 @@ function makeTarget(scores: Record<string, Review> = {}): DetailedReviewListItem
 
 // Scores 1..5: the first pivot is Movie 4 (rank-middle window 2/3/4, closest
 // to the initial 0-10 midpoint), per the deterministic selection rules.
+const CURRENT_CLUB_ID = "club-1";
 const candidates: ScoredCandidate[] = [1, 2, 3, 4, 5].map((n) => ({
   workId: `w${n}`,
   title: `Movie ${n}`,
   score: n,
+  clubId: CURRENT_CLUB_ID,
+  clubName: "Movie Night",
 }));
 
 describe("ScoreAssistModal", () => {
@@ -64,19 +67,47 @@ describe("ScoreAssistModal", () => {
 
   it("says which club a comparison came from when it isn't this one", () => {
     const fromElsewhere = candidates.map((candidate) =>
-      candidate.workId === "w4" ? { ...candidate, clubName: "Sunday Cinema" } : candidate,
+      candidate.workId === "w4"
+        ? { ...candidate, clubId: "club-2", clubName: "Sunday Cinema" }
+        : candidate,
     );
     render(ScoreAssistModal, {
-      props: { target: makeTarget(), candidates: fromElsewhere, clubType: ClubType.movie },
+      props: {
+        target: makeTarget(),
+        candidates: fromElsewhere,
+        clubType: ClubType.movie,
+        currentClubId: CURRENT_CLUB_ID,
+      },
     });
     expect(screen.getByText("from Sunday Cinema")).toBeInTheDocument();
   });
 
   it("leaves comparisons from this club unlabelled", () => {
     render(ScoreAssistModal, {
-      props: { target: makeTarget(), candidates, clubType: ClubType.movie },
+      props: {
+        target: makeTarget(),
+        candidates,
+        clubType: ClubType.movie,
+        currentClubId: CURRENT_CLUB_ID,
+      },
     });
     expect(screen.queryByText(/^from /)).not.toBeInTheDocument();
+  });
+
+  // Clubs can share a name, so the label is decided by club id.
+  it("labels a comparison from another club that shares this club's name", () => {
+    const sameName = candidates.map((candidate) =>
+      candidate.workId === "w4" ? { ...candidate, clubId: "club-2" } : candidate,
+    );
+    render(ScoreAssistModal, {
+      props: {
+        target: makeTarget(),
+        candidates: sameName,
+        clubType: ClubType.movie,
+        currentClubId: CURRENT_CLUB_ID,
+      },
+    });
+    expect(screen.getByText("from Movie Night")).toBeInTheDocument();
   });
 
   it("uses the book noun for book clubs", () => {

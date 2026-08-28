@@ -7,6 +7,7 @@
       :target="scoreAssistTarget"
       :candidates="scoreAssistCandidates"
       :club-type="club?.type ?? ClubType.movie"
+      :current-club-id="club?.clubId"
       @close="scoreAssistWorkId = undefined"
     />
     <page-header :has-back="true" back-route="ClubHome" page-name="Reviews" />
@@ -140,12 +141,15 @@ const scoreAssistTarget = computed(() =>
 const { data: memberScores } = useMemberScores();
 const scoreAssistCandidates = computed(() => {
   const target = scoreAssistTarget.value;
-  if (!isDefined(target) || !hasValue(userId.value)) return [];
-  return buildCandidatePool(reviews.value ?? [], userId.value, target.id, memberScores.value ?? []);
+  if (!isDefined(target)) return [];
+  return buildCandidatePool(memberScores.value ?? [], target);
 });
 provide(ScoreAssistKey, {
   isEligible: (workId: string) =>
-    isScoreAssistEligible(reviews.value, userId.value, workId, memberScores.value ?? []),
+    isScoreAssistEligible(
+      memberScores.value,
+      reviews.value?.find((review) => review.id === workId),
+    ),
   open: (workId: string) => {
     scoreAssistWorkId.value = workId;
   },

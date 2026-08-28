@@ -6,7 +6,6 @@ import { WorkType } from "../../../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
 import ScoreEntryDock from "../components/ScoreEntryDock.vue";
 import { ScoreAssistKey } from "../scoreAssist";
-import memberData from "@/mocks/data/member.json";
 import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
 import { server } from "@/mocks/server";
 import { logIn, render } from "@/tests/utils";
@@ -24,19 +23,16 @@ function makeTarget(): DetailedReviewListItem {
 }
 
 /** A work the mock user has scored, for the assist candidate pool. */
-function scoredReview(id: string, score: number) {
+function memberScore(id: string, score: number) {
   return {
-    id,
-    title: `Movie ${id}`,
-    createdDate: "2024-05-28T04:46:37.751Z",
+    workId: id,
+    clubId: "1",
+    clubName: "Test club",
+    clubSlug: "test-club",
     type: "movie",
-    scores: {
-      [memberData.id]: {
-        id: `review-${id}`,
-        created_date: "2024-05-28T04:46:37.751Z",
-        score,
-      },
-    },
+    title: `Movie ${id}`,
+    score,
+    scoredDate: "2024-05-28T04:46:37.751Z",
   };
 }
 
@@ -93,8 +89,8 @@ describe("ScoreEntryDock", () => {
   it("swaps to the assist flow in place and prefills the dial with its suggestion", async () => {
     let posted: unknown;
     server.use(
-      http.get("/api/club/:clubSlug/list/reviews", () =>
-        HttpResponse.json([2, 3, 4, 5, 6, 7].map((n) => scoredReview(`m${n}`, n))),
+      http.get("/api/member/scores", () =>
+        HttpResponse.json([2, 3, 4, 5, 6, 7].map((n) => memberScore(`m${n}`, n))),
       ),
       http.post("/api/club/test-club/reviews", async ({ request }) => {
         posted = await request.json();

@@ -5,6 +5,7 @@
       :target="target"
       :candidates="candidates"
       :club-type="clubType"
+      :current-club-id="currentClubId"
       @suggest="suggestedScore = $event"
     />
     <!-- The popover that launched this modal is already closed, so once the
@@ -41,6 +42,7 @@ const props = defineProps<{
   target: DetailedReviewListItem;
   candidates: ScoredCandidate[];
   clubType: ClubType;
+  currentClubId?: string;
 }>();
 
 const emit = defineEmits<{

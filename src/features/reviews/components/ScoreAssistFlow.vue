@@ -24,8 +24,9 @@
           >
             <WorkPosterCard :title="pivot.title" :poster-url="pivotPosterUrl">
               <!-- The pool spans every club the user belongs to, so a pivot
-                   they only ever scored elsewhere says where it came from. -->
-              <span v-if="hasValue(pivot.clubName)" class="text-xs text-gray-400">
+                   they scored elsewhere says where it came from. Clubs can
+                   share a name, so the comparison is by id. -->
+              <span v-if="isFromAnotherClub" class="text-xs text-gray-400">
                 from {{ pivot.clubName }}
               </span>
             </WorkPosterCard>
@@ -74,6 +75,8 @@ const props = defineProps<{
   target: DetailedReviewListItem;
   candidates: ScoredCandidate[];
   clubType: ClubType;
+  /** The club being reviewed in; its own works need no "from ..." label. */
+  currentClubId?: string;
 }>();
 
 const emit = defineEmits<{
@@ -99,6 +102,12 @@ const pivotPosterUrl = computed(() =>
   isDefined(pivot.value)
     ? (workPosterUrl(pivot.value.externalData, pivot.value.imageUrl) ?? "")
     : "",
+);
+const isFromAnotherClub = computed(
+  () =>
+    isDefined(pivot.value) &&
+    hasValue(props.currentClubId) &&
+    pivot.value.clubId !== props.currentClubId,
 );
 
 const toast = useToast();

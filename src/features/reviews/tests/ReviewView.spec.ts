@@ -10,24 +10,16 @@ import { logIn, render } from "@/tests/utils";
 mockIntersectionObserver();
 
 /** A work the mock user (member "2") has scored, for score-assist fixtures. */
-function scoredReview(id: string, score: number) {
+function memberScore(id: string, score: number) {
   return {
-    id,
-    title: `Movie ${id}`,
-    createdDate: "2024-05-28T04:46:37.751Z",
+    workId: id,
+    clubId: "1",
+    clubName: "Test club",
+    clubSlug: "test-club",
     type: "movie",
-    scores: {
-      "2": {
-        id: `review-${id}`,
-        created_date: "2024-05-28T04:46:37.751Z",
-        score,
-      },
-      average: {
-        id: "average",
-        created_date: "2024-05-28T04:46:37.751Z",
-        score,
-      },
-    },
+    title: `Movie ${id}`,
+    score,
+    scoredDate: "2024-05-28T04:46:37.751Z",
   };
 }
 
@@ -148,7 +140,7 @@ describe("ReviewView", () => {
   });
 
   it("hides the score-assist button while the user has fewer than five scored works", async () => {
-    // Default fixture: member "2" has scored only one work.
+    // Default fixture: the member has no scores in any club.
     const { user, pinia } = render(ReviewView, {
       props: { clubSlug: "test-club" },
     });
@@ -164,7 +156,6 @@ describe("ReviewView", () => {
   });
 
   it("opens score assist from the entry panel once the user has five scored works", async () => {
-    const scored = [2, 3, 4, 5, 6, 7].map((n) => scoredReview(`m${n}`, n));
     const unscored = {
       id: "t1",
       title: "Unscored Movie",
@@ -173,7 +164,11 @@ describe("ReviewView", () => {
       scores: {},
     };
     server.use(
-      http.get("/api/club/:clubSlug/list/reviews", () => HttpResponse.json([...scored, unscored])),
+      http.get("/api/club/:clubSlug/list/reviews", () => HttpResponse.json([unscored])),
+      // The comparison pool is the member's scores across all of their clubs.
+      http.get("/api/member/scores", () =>
+        HttpResponse.json([2, 3, 4, 5, 6, 7].map((n) => memberScore(`m${n}`, n))),
+      ),
     );
 
     const { user, pinia } = render(ReviewView, {
