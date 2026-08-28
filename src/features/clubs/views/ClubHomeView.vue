@@ -4,7 +4,7 @@
 
     <!-- Members section -->
     <div class="mx-auto max-w-3xl p-4 text-center">
-      <loading-spinner v-if="isLoadingMembers" />
+      <MemberPillsSkeleton v-if="isLoadingMembers" role="status" aria-label="Loading members" />
       <div v-else class="flex flex-wrap justify-center gap-2">
         <!-- Member pills -->
         <div
@@ -83,6 +83,7 @@ import awardsSvg from "@/assets/images/menu-images/awards.svg";
 import reviewSvg from "@/assets/images/menu-images/review.svg";
 import statisticsSvg from "@/assets/images/menu-images/statistics.svg";
 import watchlistSvg from "@/assets/images/menu-images/watchlist.svg";
+import MemberPillsSkeleton from "@/common/components/MemberPillsSkeleton.vue";
 import {
   useMembers,
   useClub,

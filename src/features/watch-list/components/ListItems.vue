@@ -8,7 +8,13 @@
       @make-next="onMakeNext"
       @move-to-list="onMoveToList"
     />
-    <div v-if="isLoading" class="flex justify-center"><loading-spinner /></div>
+    <WorkGridSkeleton
+      v-if="isLoading"
+      class="my-4"
+      :count="6"
+      role="status"
+      aria-label="Loading items"
+    />
     <empty-state
       v-else-if="!items || items.length === 0"
       title="Empty list"
@@ -139,6 +145,7 @@ import { DetailedWorkListItem } from "../../../../lib/types/lists";
 import ListItemDetailsDrawer from "./ListItemDetailsDrawer.vue";
 import RandomPickerModal from "./RandomPickerModal.vue";
 import VAvatar from "@/common/components/VAvatar.vue";
+import WorkGridSkeleton from "@/common/components/WorkGridSkeleton.vue";
 import WorkPosterCard from "@/common/components/WorkPosterCard.vue";
 import {
   OPTIMISTIC_WORK_ID,

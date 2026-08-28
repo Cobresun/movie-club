@@ -56,7 +56,13 @@
           />
         </TransitionGroup>
       </div>
-      <loading-spinner v-if="includeSearch && loadingSearch" class="mt-3 self-center" />
+      <WorkGridSkeleton
+        v-if="includeSearch && loadingSearch"
+        class="mt-3"
+        size="sm"
+        :count="6"
+        :lines="0"
+      />
       <div v-if="showHint" class="mt-10 flex flex-col items-center gap-2 text-gray-400">
         <mdicon :name="fallbackIcon" :size="48" class="opacity-50" />
         <p>{{ hintMessage }}</p>
@@ -70,6 +76,7 @@ import { ref, computed } from "vue";
 
 import { isDefined } from "../../../lib/checks/checks";
 import { ClubType } from "../../../lib/types/generated/db";
+import WorkGridSkeleton from "./WorkGridSkeleton.vue";
 import WorkSearchCard from "./WorkSearchCard.vue";
 import { clubTypeConfig } from "@/common/clubType";
 import { useMediaSearch, WorkSearchResult } from "@/service/useMediaSearch";

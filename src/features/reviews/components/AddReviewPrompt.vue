@@ -1,6 +1,6 @@
 <template>
   <v-modal size="lg" @close="emit('close')">
-    <loading-spinner v-if="loading" class="self-center" />
+    <WorkSearchSkeleton v-if="loading" />
     <WorkSearchPrompt
       v-else
       :club-type="clubType"
@@ -19,6 +19,7 @@ import { computed } from "vue";
 import { hasValue } from "../../../../lib/checks/checks";
 import { ClubType } from "../../../../lib/types/generated/db";
 import WorkSearchPrompt from "../../../common/components/WorkSearchPrompt.vue";
+import WorkSearchSkeleton from "../../../common/components/WorkSearchSkeleton.vue";
 import { workSubtitle, workTypeForClub } from "@/common/clubType";
 import { useClub, useClubSlug } from "@/service/useClub";
 import {

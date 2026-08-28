@@ -8,6 +8,7 @@ import { DetailedWorkListItem } from "../../../../lib/types/lists";
 import AddWorkModal from "../components/AddWorkModal.vue";
 import ListItems from "../components/ListItems.vue";
 import ManageListsModal from "../components/ManageListsModal.vue";
+import WatchListSkeleton from "../components/WatchListSkeleton.vue";
 import { useCollapsedLists } from "../composables/useCollapsedLists";
 import SearchFilterBar from "@/common/components/SearchFilterBar.vue";
 import { useClub, useClubSlug, useMembers } from "@/service/useClub";
@@ -76,7 +77,7 @@ const shareList = async (listId: string) => {
 <template>
   <div class="p-2 text-center">
     <page-header :has-back="true" back-route="ClubHome" page-name="Lists" />
-    <loading-spinner v-if="isLoading" />
+    <WatchListSkeleton v-if="isLoading" />
     <template v-else-if="hasElements(userLists)">
       <search-filter-bar
         v-model:filtered-data="filteredItems"

@@ -1,6 +1,14 @@
 <template>
   <div>
-    <loading-spinner v-if="isLoading" />
+    <div
+      v-if="isLoading"
+      class="flex flex-col items-center"
+      role="status"
+      aria-label="Loading awards"
+    >
+      <SkeletonBlock class="m-4 h-8 w-40 rounded-lg" />
+      <RowListSkeleton class="w-11/12 max-w-lg" :count="5" />
+    </div>
     <div v-else>
       <RouterView :club-award="clubAward" />
       <v-btn
@@ -19,6 +27,8 @@ import { computed, toRefs } from "vue";
 import { useRouter } from "vue-router";
 
 import { AwardsStep } from "../../../../lib/types/awards";
+import RowListSkeleton from "@/common/components/RowListSkeleton.vue";
+import SkeletonBlock from "@/common/components/SkeletonBlock.vue";
 import { useAwards, useUpdateStep } from "@/service/useAwards";
 import { useMembers } from "@/service/useClub";
 
