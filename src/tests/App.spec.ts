@@ -16,7 +16,19 @@ const { authStore } = vi.hoisted(() => ({
 
 vi.mock("@/stores/auth", () => ({ useAuthStore: () => authStore }));
 
-const renderApp = () => render(App, { global: { stubs: { NavBar: true, AuthModal: true } } });
+// The routed page is stubbed with visible text rather than VTU's default
+// `<router-view-stub>`, so the assertions can ask whether the page is on
+// screen the way a user would see it.
+const renderApp = () =>
+  render(App, {
+    global: {
+      stubs: {
+        NavBar: true,
+        AuthModal: true,
+        "router-view": { template: "<div>Routed page</div>" },
+      },
+    },
+  });
 
 describe("App loading gate", () => {
   beforeEach(() => {
@@ -25,9 +37,9 @@ describe("App loading gate", () => {
   });
 
   it("renders the routed page once nothing is loading", () => {
-    const { container } = renderApp();
+    renderApp();
 
-    expect(container.querySelector("router-view-stub")).not.toBeNull();
+    expect(screen.getByText("Routed page")).toBeInTheDocument();
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
@@ -35,10 +47,10 @@ describe("App loading gate", () => {
     authStore.isAppLoading = true;
     authStore.isLoadingClubHome = true;
 
-    const { container } = renderApp();
+    renderApp();
 
     expect(screen.getByRole("status", { name: "Loading" })).toBeInTheDocument();
-    expect(container.querySelector("router-view-stub")).toBeNull();
+    expect(screen.queryByText("Routed page")).not.toBeInTheDocument();
   });
 
   it("paints nothing while a load that isn't a club home is pending", () => {
@@ -48,9 +60,9 @@ describe("App loading gate", () => {
     // half mid-check — it just holds a blank frame instead of a wrong page.
     authStore.isAppLoading = true;
 
-    const { container } = renderApp();
+    renderApp();
 
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
-    expect(container.querySelector("router-view-stub")).toBeNull();
+    expect(screen.queryByText("Routed page")).not.toBeInTheDocument();
   });
 });

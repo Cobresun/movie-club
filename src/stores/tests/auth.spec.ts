@@ -1,126 +1,113 @@
-import { http, HttpResponse } from "msw";
+import { VueQueryPlugin } from "@tanstack/vue-query";
+import { render } from "@testing-library/vue";
+import { delay, http, HttpResponse } from "msw";
+import { createPinia } from "pinia";
+import { nextTick } from "vue";
+import { useRouter } from "vue-router";
 
 import { server } from "@/mocks/server";
+import { useAuthStore } from "@/stores/auth";
+import PiniaStoreHelper from "@/tests/PiniaStoreHelper.test.vue";
 
-// Plain object rather than a ref: vi.hoisted runs before imports, so `ref`
-// isn't available yet — and the session is signed-in from the start in these
-// tests, so nothing has to react to it changing.
-const { session } = vi.hoisted(() => ({
-  session: {
-    value: {
-      data: { session: { id: "s-1" }, user: { id: "u-1" } },
-      isPending: false,
-      isRefetching: false,
-    },
-  },
-}));
+const signedInSession = { session: { id: "s-1" }, user: { id: "u-1" } };
 
-vi.mock("@/lib/auth-client", () => ({
-  authClient: { useSession: () => session },
-}));
+type SessionResponse = typeof signedInSession | null;
 
 /**
- * The store has to come from a fresh module registry: `src/tests/setup.ts`
- * imports it before this file's mocks are registered, so the cached copy holds
- * the REAL auth client and would never report a signed-in session. Everything
- * the store touches is re-imported alongside it so they all agree on one Vue.
- *
- * A real pinia, not createTestingPinia: these tests are about the action's own
- * behaviour, and testing pinia stubs actions out.
+ * The auth client resolves its session over the network (`customFetchImpl`
+ * looks `fetch` up per call), so these tests answer the session check like any
+ * other API call rather than mocking the client module.
  */
-const mountStore = async (push: () => Promise<unknown>) => {
-  vi.resetModules();
-  const [{ createApp }, { createPinia }, { VueQueryPlugin }, vueRouter, { useAuthStore }] =
-    await Promise.all([
-      import("vue"),
-      import("pinia"),
-      import("@tanstack/vue-query"),
-      import("vue-router"),
-      import("@/stores/auth"),
-    ]);
+const answerSessionCheck = (body: SessionResponse) =>
+  server.use(http.get("/api/auth/get-session", () => HttpResponse.json(body)));
 
-  vi.mocked(vueRouter.useRouter).mockReturnValue({
-    push,
-    beforeEach: vi.fn(() => vi.fn()),
-  } as unknown as ReturnType<typeof vueRouter.useRouter>);
+const leaveSessionCheckPending = () =>
+  server.use(http.get("/api/auth/get-session", () => delay("infinite")));
 
-  let store!: ReturnType<typeof useAuthStore>;
-  const app = createApp({
-    setup() {
-      store = useAuthStore();
-      return () => null;
+/**
+ * A real pinia, not createTestingPinia: these tests are about the store's own
+ * actions and computeds, and testing pinia stubs actions out. The store is
+ * instantiated inside a component so the queries it builds run in a normal
+ * setup context; `useAuthStore(pinia)` then hands back that same instance.
+ */
+const mountAuthStore = () => {
+  const pinia = createPinia();
+  render(PiniaStoreHelper, {
+    global: {
+      plugins: [
+        pinia,
+        // Disable query retries so error paths surface immediately instead of
+        // racing the default 3x exponential backoff.
+        [VueQueryPlugin, { queryClientConfig: { defaultOptions: { queries: { retry: false } } } }],
+      ],
     },
   });
-  app.use(createPinia());
-  app.use(VueQueryPlugin, {
-    queryClientConfig: { defaultOptions: { queries: { retry: false } } },
-  });
-  app.mount(document.createElement("div"));
-
-  return { store, unmount: () => app.unmount() };
+  return useAuthStore(pinia);
 };
 
-const signedInSession = {
-  data: { session: { id: "s-1" }, user: { id: "u-1" } },
-  isPending: false,
-  isRefetching: false,
+/** A store whose session check has come back with `body`. */
+const mountWithResolvedSession = async (body: SessionResponse) => {
+  answerSessionCheck(body);
+  const store = mountAuthStore();
+  await store.refreshSession();
+  await nextTick();
+  return store;
+};
+
+/** A store on a cold load, with the session check still out. */
+const mountWithPendingSession = async () => {
+  leaveSessionCheckPending();
+  const store = mountAuthStore();
+  void store.refreshSession();
+  await nextTick();
+  return store;
 };
 
 afterEach(() => {
-  session.value = { ...signedInSession };
   localStorage.clear();
 });
 
 describe("the signed-in hint", () => {
   it("records how the session resolved, for the next cold load", async () => {
-    const { store, unmount } = await mountStore(vi.fn(() => Promise.resolve()));
+    const store = await mountWithResolvedSession(signedInSession);
 
     expect(store.isLoggedIn).toBe(true);
     expect(localStorage.getItem("wasSignedIn")).toBe("true");
-
-    unmount();
   });
 
   it("clears the hint when the session resolves signed out", async () => {
     localStorage.setItem("wasSignedIn", "true");
-    session.value = { data: undefined, isPending: false, isRefetching: false } as never;
 
-    const { store, unmount } = await mountStore(vi.fn(() => Promise.resolve()));
+    const store = await mountWithResolvedSession(null);
 
     expect(store.isLoggedIn).toBe(false);
     expect(localStorage.getItem("wasSignedIn")).toBeNull();
-
-    unmount();
   });
 
   it("predicts a club home for a cold load whose last session was signed in", async () => {
     localStorage.setItem("wasSignedIn", "true");
-    session.value = { data: undefined, isPending: true, isRefetching: false } as never;
 
-    const { store, unmount } = await mountStore(vi.fn(() => Promise.resolve()));
+    const store = await mountWithPendingSession();
 
     expect(store.isAppLoading).toBe(true);
     expect(store.isLoadingClubHome).toBe(true);
-
-    unmount();
   });
 
   it("predicts nothing for a cold load whose last session was signed out", async () => {
     // The reported bug: with no hint, a still-resolving session must not put a
     // club home on screen — the visitor may well be headed for the landing
     // page. The router still waits (isAppLoading), it just waits on a blank.
-    session.value = { data: undefined, isPending: true, isRefetching: false } as never;
-
-    const { store, unmount } = await mountStore(vi.fn(() => Promise.resolve()));
+    const store = await mountWithPendingSession();
 
     expect(store.isAppLoading).toBe(true);
     expect(store.isLoadingClubHome).toBe(false);
-
-    unmount();
   });
 });
 
 describe("navigateAfterAuth", () => {
+  // The suite-wide router mock from src/tests/setup.ts, cleared between tests.
+  const router = () => vi.mocked(useRouter());
+
   beforeEach(() => {
     server.use(
       http.get("/api/member/clubs", () =>
@@ -133,25 +120,23 @@ describe("navigateAfterAuth", () => {
     // A push left pending, so the flag can be inspected in the window between
     // "clubs resolved" and "navigation complete" — the window where the app
     // used to drop the gate and paint the logged-out landing page.
-    let landOnDestination!: () => void;
-    const push = vi.fn(
-      () =>
-        new Promise<void>((resolve) => {
-          landOnDestination = resolve;
-        }),
+    let landOnDestination = (): void => undefined;
+    router().push.mockReturnValueOnce(
+      new Promise<void>((resolve) => {
+        landOnDestination = resolve;
+      }),
     );
 
-    const { store, unmount } = await mountStore(push);
+    const store = await mountWithResolvedSession(signedInSession);
 
     const navigation = store.navigateAfterAuth();
     expect(store.isNavigatingAfterAuth).toBe(true);
 
     // Being called at all means the clubs query has already resolved.
-    await vi.waitFor(() => expect(push).toHaveBeenCalledTimes(1));
-    expect(push).toHaveBeenCalledWith({
-      name: "ClubHome",
-      params: { clubSlug: "test-club" },
-    });
+    await vi.waitFor(() => expect(router().push.mock.calls).toHaveLength(1));
+    expect(router().push.mock.calls).toContainEqual([
+      { name: "ClubHome", params: { clubSlug: "test-club" } },
+    ]);
     expect(store.isNavigatingAfterAuth).toBe(true);
     // What App.vue actually reads: the gate is up and it is a club home that
     // is coming, so the placeholder stays put while the route swaps under it.
@@ -161,32 +146,24 @@ describe("navigateAfterAuth", () => {
     landOnDestination();
     await navigation;
     expect(store.isNavigatingAfterAuth).toBe(false);
-
-    unmount();
   });
 
   it("sends a user with no clubs to club creation", async () => {
     server.use(http.get("/api/member/clubs", () => HttpResponse.json([])));
-    const push = vi.fn(() => Promise.resolve());
 
-    const { store, unmount } = await mountStore(push);
+    const store = await mountWithResolvedSession(signedInSession);
     await store.navigateAfterAuth();
 
-    expect(push).toHaveBeenCalledWith({ name: "NewClub" });
+    expect(router().push.mock.calls).toContainEqual([{ name: "NewClub" }]);
     expect(store.isNavigatingAfterAuth).toBe(false);
-
-    unmount();
   });
 
   it("releases the gate when the navigation fails", async () => {
-    vi.spyOn(console, "error").mockImplementation(() => undefined);
-    const push = vi.fn(() => Promise.reject(new Error("guard rejected")));
+    router().push.mockImplementationOnce(() => Promise.reject(new Error("guard rejected")));
 
-    const { store, unmount } = await mountStore(push);
+    const store = await mountWithResolvedSession(signedInSession);
     await store.navigateAfterAuth();
 
     expect(store.isNavigatingAfterAuth).toBe(false);
-
-    unmount();
   });
 });
