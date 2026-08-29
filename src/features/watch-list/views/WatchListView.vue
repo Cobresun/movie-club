@@ -90,7 +90,7 @@ const shareList = async (listId: string) => {
         <template #action-button>
           <v-btn @click="managingLists = true">
             <mdicon name="cog" :size="16" class="mr-1" />
-            Manage lists
+            Manage
           </v-btn>
         </template>
       </search-filter-bar>

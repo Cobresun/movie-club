@@ -29,7 +29,7 @@ describe("WatchListView", () => {
   it("opens the manage-lists modal", async () => {
     const { user } = render(WatchListView);
 
-    await user.click(await screen.findByRole("button", { name: "Manage lists" }));
+    await user.click(await screen.findByRole("button", { name: "Manage" }));
 
     expect(await screen.findByText("Manage Lists")).toBeInTheDocument();
   });
