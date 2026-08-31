@@ -84,14 +84,30 @@ function createButton(text: string, url: string): string {
   `;
 }
 
+type ActionEmailOptions = {
+  to: string;
+  url: string;
+  userName?: string;
+  subject: string;
+  intro: string;
+  buttonText: string;
+  disclaimer: string;
+  errorLabel: string;
+};
+
 /**
- * Sends a verification email to the user
+ * Builds and sends an email that asks the recipient to follow a link (verification, password reset, ...)
  */
-export async function sendVerificationEmail(
-  to: string,
-  url: string,
-  userName?: string,
-): Promise<void> {
+async function sendActionEmail({
+  to,
+  url,
+  userName,
+  subject,
+  intro,
+  buttonText,
+  disclaimer,
+  errorLabel,
+}: ActionEmailOptions): Promise<void> {
   const greeting = isDefined(userName) ? `Hi ${userName},` : "Hi there,";
 
   const content = `
@@ -99,11 +115,11 @@ export async function sendVerificationEmail(
       ${greeting}
     </p>
     <p style="margin: 0 0 8px 0; font-size: 16px; color: ${COLORS.text};">
-      Thanks for signing up for Movie Club! Please verify your email address to get started.
+      ${intro}
     </p>
-    
-    ${createButton("Verify Email", url)}
-    
+
+    ${createButton(buttonText, url)}
+
     <p style="margin: 0 0 8px 0; font-size: 14px; color: ${COLORS.textMuted};">
       Or copy and paste this link into your browser:
     </p>
@@ -111,7 +127,7 @@ export async function sendVerificationEmail(
       ${url}
     </p>
     <p style="margin: 0; font-size: 14px; color: ${COLORS.textMuted};">
-      This link will expire in 1 hour. If you didn't create an account, you can safely ignore this email.
+      ${disclaimer}
     </p>
   `;
 
@@ -120,14 +136,35 @@ export async function sendVerificationEmail(
   const { error } = await resend.emails.send({
     from: EMAIL_FROM,
     to: [to],
-    subject: "Verify your email - Movie Club",
+    subject,
     html,
   });
 
   if (error) {
-    console.error("Failed to send verification email:", error);
-    throw new Error(`Failed to send verification email: ${error.message}`);
+    console.error(`Failed to send ${errorLabel} email:`, error);
+    throw new Error(`Failed to send ${errorLabel} email: ${error.message}`);
   }
+}
+
+/**
+ * Sends a verification email to the user
+ */
+export async function sendVerificationEmail(
+  to: string,
+  url: string,
+  userName?: string,
+): Promise<void> {
+  await sendActionEmail({
+    to,
+    url,
+    userName,
+    subject: "Verify your email - Movie Club",
+    intro: "Thanks for signing up for Movie Club! Please verify your email address to get started.",
+    buttonText: "Verify Email",
+    disclaimer:
+      "This link will expire in 1 hour. If you didn't create an account, you can safely ignore this email.",
+    errorLabel: "verification",
+  });
 }
 
 /**
@@ -138,40 +175,16 @@ export async function sendPasswordResetEmail(
   url: string,
   userName?: string,
 ): Promise<void> {
-  const greeting = isDefined(userName) ? `Hi ${userName},` : "Hi there,";
-
-  const content = `
-    <p style="margin: 0 0 16px 0; font-size: 16px; color: ${COLORS.text};">
-      ${greeting}
-    </p>
-    <p style="margin: 0 0 8px 0; font-size: 16px; color: ${COLORS.text};">
-      We received a request to reset your password. Click the button below to choose a new password.
-    </p>
-    
-    ${createButton("Reset Password", url)}
-    
-    <p style="margin: 0 0 8px 0; font-size: 14px; color: ${COLORS.textMuted};">
-      Or copy and paste this link into your browser:
-    </p>
-    <p style="margin: 0 0 16px 0; font-size: 12px; color: ${COLORS.highlight}; word-break: break-all;">
-      ${url}
-    </p>
-    <p style="margin: 0; font-size: 14px; color: ${COLORS.textMuted};">
-      This link will expire in 1 hour. If you didn't request a password reset, you can safely ignore this email.
-    </p>
-  `;
-
-  const html = createEmailTemplate(content);
-
-  const { error } = await resend.emails.send({
-    from: EMAIL_FROM,
-    to: [to],
+  await sendActionEmail({
+    to,
+    url,
+    userName,
     subject: "Reset your password - Movie Club",
-    html,
+    intro:
+      "We received a request to reset your password. Click the button below to choose a new password.",
+    buttonText: "Reset Password",
+    disclaimer:
+      "This link will expire in 1 hour. If you didn't request a password reset, you can safely ignore this email.",
+    errorLabel: "password reset",
   });
-
-  if (error) {
-    console.error("Failed to send password reset email:", error);
-    throw new Error(`Failed to send password reset email: ${error.message}`);
-  }
 }
