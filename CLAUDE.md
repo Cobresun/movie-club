@@ -10,6 +10,17 @@ Movie Club is a Vue 3 app for managing movie/book clubs, reviews, custom lists, 
 - Lint/format is oxlint + oxfmt, not ESLint/Prettier. `type-check` and `lint` run automatically via hooks after each edit, so you rarely need to invoke them; `npm test` is manual.
 - **`npm test` needs Docker running.** The `integration` Vitest project starts a throwaway CockroachDB and runs every Netlify function handler against it. `npm run test:unit` skips it; `npm run test:integration` runs only it. See `.claude/rules/testing.md`.
 
+## What review will ask for
+
+The rules in `.claude/rules/` are largely a record of corrections that came back more than once. Four account for most of them:
+
+1. **Every query is a typed Kysely query** — repositories, providers and migrations alike, including pre-existing raw SQL in code you are already editing (`database.md`).
+2. **Club-type variation lives in the registry**, never in an inline `clubType === …` branch — on the backend too, where it means the `MediaProvider`, not a `WorkType` switch in a shared query (`code-quality.md`, `backend-architecture.md`).
+3. **Tests assert what a user sees, through the queries a user would use** — no CSS selectors, no assertions on outgoing requests, no direct database reads, no hand-rolled harness where a shared helper exists (`testing.md`).
+4. **The PR contains only the change it claims to** — no stray endpoints, lockfile churn, drive-by reformatting, or half-removed features (`code-quality.md`).
+
+When a correction lands here a second time, write it into these files as part of the same PR; they are reviewed like code and are expected to stay true.
+
 ## Database workflow
 
 Schema migrations live in `migrations/schema/` and must be named `<YYYYMMDD>_<Description>.ts` — the migrator orders by filename. (`migrations/data/` and `npm run migrate:data -- <Name>` are the legacy path; new data rewrites go in schema migrations.)
