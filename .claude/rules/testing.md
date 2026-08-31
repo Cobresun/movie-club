@@ -46,7 +46,10 @@ When the write is optimistic and refetches, that needs a handler that remembers:
 - **Constants.** A test that restates a constant only forces two edits instead of one. Test the function that reads it.
 - **Configuration.** Registry shape — key uniqueness, what `props()` returns — is the same thing one level up. Assert the behaviour it drives, through the view that renders it.
 - **Plumbing.** A component that only passes props down and re-emits events up is covered by its child's spec and its parent's.
+- **Service hooks.** Same answer as composables, and stated more bluntly in review: a spec that mounts a harness around `useList` and asserts that an API call happened is testing the harness. The logic in `src/service/use<Feature>.ts` belongs to the components that consume it — cover it there. What is genuinely left over goes in `src/service/tests/`.
 - **Composables.** Logic in a composable is usually covered by the components that use it — cover it there first. What is left over (branches no component reaches, timing, an error path) belongs in a spec that calls the composable directly through `withSetup()` from `@/tests/utils`; never build a `defineComponent` harness by hand.
+
+**Fix the harness, don't work around it in the spec.** If `render()` is missing a global registration, add it to `src/tests/utils.ts`; if several specs need a signed-in user, use `logIn(pinia)` rather than a fourth hand-rolled variant. Stubbing a component, re-mocking the router, or building a bespoke `defineComponent` wrapper to get one spec green leaves the next author with the same problem — and hand-rolled harnesses get sent back in review.
 
 ## What `src/tests/setup.ts` does for you
 
@@ -76,17 +79,17 @@ API calls are mocked with MSW — handlers in `src/mocks/handlers.ts`, fixtures 
 
 Real: the routers, `validClubSlug` / `validListId`, BetterAuth's `loggedIn` / `secured`, every repository, Kysely, the migrated schema. Faked, and only at the network boundary via MSW: TMDB, Google Books, Gemini, Resend, Cloudinary — with `onUnhandledRequest: "error"`, so a call to any other host fails the test.
 
-| Path | Purpose |
-| --- | --- |
-| `setup/globalSetup.ts` | Starts the container once per run, migrates it via `npx tsx ./migrations/schemaMigrator.ts` |
-| `setup/env.ts` | Points `DATABASE_URL` / `DATABASE_URL_ROOT` at it. **Must be imported before anything reaching `utils/database.ts`**, which builds its pool at import time |
-| `setup/integration.ts` | Per-file setup: starts MSW, resets the database before each test, undoes profile edits after |
-| `setup/externalApis.ts` | The MSW server, its handlers, `failOnRequest()` and `sentEmails` |
-| `fixtures/external.ts` | `tmdbMovie()` / `googleBooksVolume()` / `geminiJsonResponse()` payload builders |
-| `helpers/http.ts` | `requester(handler)` → `.get/.post/.put/.delete`, plus `makeEvent()` / `send()` |
-| `helpers/auth.ts` | `signIn("alice" \| "bob" \| …)` → a real signed session cookie |
-| `helpers/factories.ts` | `createClub`, `addWork`, `scoreWork`, `addComment`, … — all driving real endpoints |
-| `helpers/database.ts` | `resetDatabase()` only |
+| Path                    | Purpose                                                                                                                                                    |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `setup/globalSetup.ts`  | Starts the container once per run, migrates it via `npx tsx ./migrations/schemaMigrator.ts`                                                                |
+| `setup/env.ts`          | Points `DATABASE_URL` / `DATABASE_URL_ROOT` at it. **Must be imported before anything reaching `utils/database.ts`**, which builds its pool at import time |
+| `setup/integration.ts`  | Per-file setup: starts MSW, resets the database before each test, undoes profile edits after                                                               |
+| `setup/externalApis.ts` | The MSW server, its handlers, `failOnRequest()` and `sentEmails`                                                                                           |
+| `fixtures/external.ts`  | `tmdbMovie()` / `googleBooksVolume()` / `geminiJsonResponse()` payload builders                                                                            |
+| `helpers/http.ts`       | `requester(handler)` → `.get/.post/.put/.delete`, plus `makeEvent()` / `send()`                                                                            |
+| `helpers/auth.ts`       | `signIn("alice" \| "bob" \| …)` → a real signed session cookie                                                                                             |
+| `helpers/factories.ts`  | `createClub`, `addWork`, `scoreWork`, `addComment`, … — all driving real endpoints                                                                         |
+| `helpers/database.ts`   | `resetDatabase()` only                                                                                                                                     |
 
 ```ts
 const api = requester(handler);
@@ -123,5 +126,7 @@ Gotchas:
 To simulate a missing secret, use `vi.stubEnv(KEY, "")` rather than `vi.unstubAllEnvs()`. The latter passes locally but fails on Netlify, where the real secret is injected into the environment.
 
 ## Prefer a real dependency to a mocked one
+
+**Auth is not an exception.** Don't `vi.mock("@/lib/auth-client")` — drive the session over the network like everything else, answering `/api/auth/get-session` with MSW. (`auth-client.ts` resolves `fetch` per call rather than capturing it at module load precisely so MSW can intercept; that indirection is load-bearing, not an oversight.) On the backend the same rule rules out mocking `axios`: TMDB, Google Books, Gemini and Resend are faked at their URLs, with the real HTTP client underneath.
 
 A mocked repository can only confirm that the handler calls the function the test told it to expect. If a test needs a stub to be meaningful, that is usually a sign the thing under test should be exercised through its real collaborators instead. Mock at the boundary — the network — not between your own modules.

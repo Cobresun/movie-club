@@ -15,13 +15,29 @@ Kysely with the CockroachDB dialect (PostgreSQL-compatible). See the `kysely` sk
 
 The shape worth knowing before you read: a `work` is a movie or book; `work_list` holds a club's lists, either user-defined (`system_type IS NULL`, free-form title) or system (`system_type = 'reviews'`), with a partial unique index enforcing at most one of each system list per club. Movie and book metadata are cached in separate `*_details` tables with their own junction tables.
 
+## Every query is a typed Kysely query
+
+This is the single most repeated piece of review feedback in this repository, and it applies everywhere a query is written — repositories, providers, scheduled functions, migrations — not just to new code. A raw `sql` string is unchecked against the schema: it survives a column rename, a type change, and a table drop, and fails in production instead of at `type-check`.
+
+- **Migrations.** The `Kysely<unknown>` handle a migration receives knows no tables; `db.withTables<{...}>()` teaches it the columns that migration touches — including ones it just added — so identifiers are schema-checked. See the `kysely` skill → Migrations.
+- **Conditionals.** Kysely has a typed `case` builder (`eb.case().when(…).then(…).end()`) and typed comparison/expression helpers. Reach for those before dropping into `sql`.
+- **Code you are only passing through.** "I know it's existing, but can we use Kysely here too?" is the standing answer when a change touches a raw query. Converting the query you are already editing is expected, not scope creep.
+
+The narrow legitimate uses of raw `sql`, all of them present in the codebase:
+
+- DDL the builder cannot express — `ADD COLUMN IF NOT EXISTS`, `DROP INDEX ... CASCADE`, `CREATE`/`DROP DATABASE` (`DatabaseCleanupRepository`).
+- Ordering by a computed alias that is not a column (``.orderBy(sql`total`, "desc")``).
+- A `CASE` over a caller-supplied id list to reorder rows in one statement (`ListRepository.moveItem` and friends), where the number of branches is dynamic.
+
+Anything else, build with the query builder.
+
 ## Query gotcha: `selectAll()` after a join
 
 `selectAll()` with a join lets joined columns silently shadow base-table ones of the same name — the row typechecks, but you read the wrong value at runtime. Use `selectAll("table")` to scope it. Worth grepping for whenever a migration adds a column to a table that appears on the joined side of an existing query.
 
 ## Migration workflow
 
-**Write backfills as typed Kysely queries, not `sql` template strings.** The `Kysely<unknown>` handle a migration receives knows no tables; `db.withTables<{...}>()` teaches it the columns that migration touches — including ones it just added — so identifiers are schema-checked. Raw `sql` is for DDL the builder can't express (`ADD COLUMN IF NOT EXISTS`, `DROP INDEX ... CASCADE`). See the `kysely` skill → Migrations.
+**Backfills are typed Kysely queries too** — see the section above; `db.withTables<{...}>()` is how a migration gets types for the tables it touches.
 
 **Validate schema migrations against a freshly spawned database, never your `.env`-pointed one.**
 
@@ -42,6 +58,8 @@ npm run db:cleanup arbitrary_lists
 ```
 
 **Guard rail.** `schemaMigrator.ts` refuses to run against shared `dev` when `migrations/schema/` contains files not on `origin/main`, including uncommitted ones. It does _not_ cover `migrate:down`, can be bypassed with `FORCE_DEV_MIGRATE=1`, and **fails open when git is unavailable** — so it reduces the blast radius above, it doesn't remove it. If it false-positives on a freshly merged migration, `git fetch` to update `origin/main`.
+
+**Deploy previews migrate forward from a fresh copy, never up → down → up.** A preview exists to look like production, and production only ever runs `up()`. Reusing a preview database by rolling it back through `down()` first assumes the down migration perfectly inverts the up one — for many migrations that is difficult and for some impossible (a dropped column's data is gone), so the preview ends up on a schema production will never have. Do not add optimizations that reuse a preview database across incompatible migration states; spawn a fresh one.
 
 **Shared `dev` self-syncs after merge.** The plugin's `onSuccess` hook migrates shared `dev` on every production deploy, so it tracks `main` unattended. Running `migrate:dev` against `dev` yourself is a fallback for when that hook failed.
 
