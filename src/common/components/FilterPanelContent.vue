@@ -298,12 +298,23 @@ const canApply = computed(() =>
   props.opt.type === "year" ? yearRange.value !== undefined : hasValue(inputText.value),
 );
 
+// Two thumbs parked on the same year read as one, so a range always opens on a
+// real span: a bucket above the anchor year, or below it when the anchor is
+// already at the upper bound (which it is by default).
+function spreadFrom(anchor: number): YearRange {
+  const { start, end } = yearBounds.value;
+  const to = Math.min(anchor + YEAR_BUCKET, end);
+  return { from: Math.max(start, Math.min(anchor, to - YEAR_BUCKET)), to };
+}
+
 function setYearMode(mode: "exact" | "range") {
   yearMode.value = mode;
   const from = parseYear(fromYear.value);
   const to = parseYear(toYear.value);
   if (mode === "range" && from !== undefined && (to === undefined || to <= from)) {
-    toYear.value = Math.min(from + YEAR_BUCKET, yearBounds.value.end);
+    const span = spreadFrom(from);
+    fromYear.value = span.from;
+    toYear.value = span.to;
   }
 }
 
