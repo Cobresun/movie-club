@@ -260,6 +260,7 @@ import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import { ClubType } from "../../../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
 import { computeReviewFact } from "../reviewFacts";
+import { getVisibleCells } from "../reviewTableCells";
 import DiscussionQuestions from "./DiscussionQuestions.vue";
 import ReviewFactCard from "./ReviewFactCard.vue";
 import ScoreEntryDock from "./ScoreEntryDock.vue";
@@ -457,23 +458,6 @@ const rottenTomatoesUrl = computed(() => {
     ? `https://www.rottentomatoes.com/search?search=${encodeURIComponent(title)}`
     : undefined;
 });
-
-const CUSTOM_RENDERED_COLUMNS = ["title", "imageUrl", "createdDate"];
-
-const getVisibleCells = (row: Row<DetailedReviewListItem>) => {
-  return row.getVisibleCells().filter((cell) => {
-    // First filter out custom rendered columns
-    if (CUSTOM_RENDERED_COLUMNS.includes(cell.column.id)) {
-      return false;
-    }
-
-    // Then check if the cell has a value. The current user's own pill is no
-    // exception: it only appears once they have scored (entry happens through
-    // the sticky CTA, not the grid).
-    const value = cell.getValue();
-    return value !== undefined && value !== null && value !== "";
-  });
-};
 
 // The average gets a full-width, primary-tinted tile so the club's verdict
 // stands out from the individual member scores.

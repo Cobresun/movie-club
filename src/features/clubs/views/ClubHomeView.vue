@@ -84,47 +84,17 @@ import reviewSvg from "@/assets/images/menu-images/review.svg";
 import statisticsSvg from "@/assets/images/menu-images/statistics.svg";
 import watchlistSvg from "@/assets/images/menu-images/watchlist.svg";
 import MemberPillsSkeleton from "@/common/components/MemberPillsSkeleton.vue";
-import {
-  useMembers,
-  useClub,
-  useClubSlug,
-  useInviteToken,
-  useClubSettings,
-} from "@/service/useClub";
+import { useCopyInviteLink } from "@/common/composables/useCopyInviteLink";
+import { useMembers, useClub, useClubSlug, useClubSettings } from "@/service/useClub";
 
 const clubId = useClubSlug();
 const { data: members, isLoading: isLoadingMembers } = useMembers(clubId);
 const { data: club } = useClub(clubId);
-const { data: inviteToken } = useInviteToken(clubId);
 const { data: settings } = useClubSettings(clubId);
 
 // Awards are movie-only for now; hide them for book clubs.
 const isMovieClub = computed(() => club.value?.type === ClubType.movie);
 
 const showInviteModal = ref(false);
-const inviteLinkInput = ref<HTMLInputElement | null>(null);
-const hasCopied = ref(false);
-
-const inviteLink = computed(() => {
-  const baseUrl = window.location.origin;
-  return `${baseUrl}/join-club/${inviteToken.value}`;
-});
-
-const copyIcon = computed(() => (hasCopied.value ? "check" : "content-copy"));
-
-const copyInviteLink = async () => {
-  try {
-    await navigator.clipboard.writeText(inviteLink.value);
-    hasCopied.value = true;
-    setTimeout(() => {
-      hasCopied.value = false;
-    }, 2000);
-  } catch {
-    // Fallback for browsers that don't support the Clipboard API
-    if (inviteLinkInput.value) {
-      inviteLinkInput.value.select();
-      document.execCommand("copy");
-    }
-  }
-};
+const { inviteLinkInput, inviteLink, copyIcon, copyInviteLink } = useCopyInviteLink(clubId);
 </script>
