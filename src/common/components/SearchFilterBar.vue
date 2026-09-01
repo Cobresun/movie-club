@@ -62,7 +62,7 @@
           <Teleport to="body">
             <PopoverPanel
               :focus="true"
-              class="fixed min-w-[280px] rounded-lg border border-slate-600 bg-background p-4 shadow-2xl"
+              class="fixed w-80 rounded-lg border border-slate-600 bg-background p-4 shadow-2xl"
               :style="teleportedPanelStyle"
             >
               <FilterPanelContent
@@ -207,42 +207,52 @@ const activeMobileFilter = ref<FilterOption | null>(null);
 
 /** Anchor for the teleported panel (viewport / fixed positioning). */
 const teleportedPanelAnchor = ref<HTMLElement | null>(null);
-const teleportedPanelStyle = ref({
+const teleportedPanelStyle = ref<Record<string, string>>({
   top: "0px",
   left: "0px",
   zIndex: "9999",
 });
 
-function fixedPopoverCoords(anchor: HTMLElement) {
-  const popoverWidth = 280;
+const PANEL_WIDTH = 320;
+const PANEL_GAP = 8;
+const VIEWPORT_MARGIN = 16;
+const MIN_PANEL_HEIGHT = 200;
+
+/**
+ * Panels vary in height — the year picker is roughly twice the number one — and
+ * the panel is not measurable before it paints, so the space it may occupy is
+ * bounded instead: hang it off whichever edge of the pill has more room and cap
+ * it at that room, leaving a tall panel to scroll rather than run off screen.
+ */
+function fixedPopoverStyle(anchor: HTMLElement) {
   const rect = anchor.getBoundingClientRect();
-  let left = rect.left;
-  let top = rect.bottom + 8;
+  const left = Math.max(
+    VIEWPORT_MARGIN,
+    Math.min(rect.left, window.innerWidth - PANEL_WIDTH - VIEWPORT_MARGIN),
+  );
+  const spaceBelow = window.innerHeight - rect.bottom - PANEL_GAP - VIEWPORT_MARGIN;
+  const spaceAbove = rect.top - PANEL_GAP - VIEWPORT_MARGIN;
+  const shared = {
+    left: `${left}px`,
+    zIndex: "9999",
+    overflowY: "auto",
+  };
 
-  if (left + popoverWidth > window.innerWidth) {
-    left = window.innerWidth - popoverWidth - 16;
+  if (spaceBelow >= MIN_PANEL_HEIGHT || spaceBelow >= spaceAbove) {
+    return { ...shared, top: `${rect.bottom + PANEL_GAP}px`, maxHeight: `${spaceBelow}px` };
   }
-  if (left < 16) {
-    left = 16;
-  }
-
-  const estimatedHeight = 250;
-  if (top + estimatedHeight > window.innerHeight) {
-    top = rect.top - estimatedHeight - 8;
-  }
-
-  return { top, left };
+  // Anchored by its bottom edge, so it grows upwards without being measured.
+  return {
+    ...shared,
+    bottom: `${window.innerHeight - rect.top + PANEL_GAP}px`,
+    maxHeight: `${spaceAbove}px`,
+  };
 }
 
 function updateTeleportedPanelStyle() {
-  const el = teleportedPanelAnchor.value;
-  if (!el) return;
-  const { top, left } = fixedPopoverCoords(el);
-  teleportedPanelStyle.value = {
-    top: `${top}px`,
-    left: `${left}px`,
-    zIndex: "9999",
-  };
+  const anchor = teleportedPanelAnchor.value;
+  if (!anchor) return;
+  teleportedPanelStyle.value = fixedPopoverStyle(anchor);
 }
 
 function syncTeleportedPanelPosition() {
