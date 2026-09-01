@@ -4,9 +4,15 @@
 
 export type Comparator = ">" | "=" | "<";
 
+/** Inclusive span of calendar years, the value a `year` filter applies. */
+export interface YearRange {
+  from: number;
+  to: number;
+}
+
 export interface FilterOption {
   key: string;
   label: string;
-  type: "string" | "number" | "date" | "enum";
+  type: "string" | "number" | "date" | "enum" | "year";
   placeholder?: string;
 }

@@ -68,9 +68,10 @@
               <FilterPanelContent
                 :opt="opt"
                 :value-suggestions="suggestionsFor(opt.key)"
+                :years="yearsFor(opt.key)"
                 @apply="
-                  (value, operator) => {
-                    applyFilter(opt, value, operator);
+                  (value, operator, range) => {
+                    applyFilter(opt, value, operator, range);
                     close();
                   }
                 "
@@ -100,6 +101,7 @@
       <FilterPanelContent
         :opt="activeMobileFilter"
         :value-suggestions="suggestionsFor(activeMobileFilter.key)"
+        :years="yearsFor(activeMobileFilter.key)"
         @apply="applyMobileFilter"
         @cancel="activeMobileFilter = null"
       />
@@ -111,14 +113,14 @@
 import { Popover, PopoverButton, PopoverGroup, PopoverPanel } from "@headlessui/vue";
 import { computed, onMounted, onUnmounted, ref, watchEffect } from "vue";
 
-import { hasValue } from "../../../lib/checks/checks";
+import { hasValue, isDefined } from "../../../lib/checks/checks";
 import { ClubType } from "../../../lib/types/generated/db";
 import type { DetailedWorkListItem } from "../../../lib/types/lists";
 import { clubTypeConfig, type FilterOption } from "../clubType";
 import { useIsDesktop } from "../composables/useIsDesktop.js";
 import { filterWorks } from "../filterWorks";
 import FilterPanelContent from "./FilterPanelContent.vue";
-import type { Comparator } from "./filterTypes";
+import type { Comparator, YearRange } from "./filterTypes";
 import VBottomSheet from "./VBottomSheet.vue";
 
 // Component props
@@ -173,6 +175,18 @@ const computedValueSuggestions = computed<Record<string, string[]>>(() => {
   return result;
 });
 
+// Years present in the data for each year filter, feeding that filter's
+// distribution chart. Keyed by filter key, from the option's `year` selector.
+const computedYears = computed<Record<string, number[]>>(() => {
+  const result: Record<string, number[]> = {};
+  for (const opt of FILTER_OPTIONS.value) {
+    if (opt.year === undefined) continue;
+    const select = opt.year;
+    result[opt.key] = props.data.map(select).filter(isDefined);
+  }
+  return result;
+});
+
 // Search and Filters state
 const searchTerm = ref("");
 
@@ -180,9 +194,10 @@ const searchTerm = ref("");
 interface AppliedFilter {
   key: string;
   label: string;
-  type: "string" | "number" | "date" | "enum";
+  type: "string" | "number" | "date" | "enum" | "year";
   operator?: Comparator;
   value: string;
+  range?: YearRange;
 }
 const appliedFilters = ref<AppliedFilter[]>([]);
 
@@ -265,6 +280,10 @@ function suggestionsFor(key: string): string[] {
   return computedValueSuggestions.value[key] ?? [];
 }
 
+function yearsFor(key: string): number[] {
+  return computedYears.value[key] ?? [];
+}
+
 // Build filters object from pills
 const filtersObject = computed(() => {
   return appliedFilters.value.reduce(
@@ -272,10 +291,11 @@ const filtersObject = computed(() => {
       acc[f.key] = {
         operator: f.operator,
         value: f.value,
+        range: f.range,
       };
       return acc;
     },
-    {} as Record<string, { operator?: Comparator; value: string }>,
+    {} as Record<string, { operator?: Comparator; value: string; range?: YearRange }>,
   );
 });
 
@@ -301,7 +321,7 @@ watchEffect(() => {
   hasActiveFilters.value = derivedHasActiveFilters.value;
 });
 
-function applyFilter(opt: FilterOption, value: string, operator?: Comparator) {
+function applyFilter(opt: FilterOption, value: string, operator?: Comparator, range?: YearRange) {
   const valueStr = value.trim();
   if (!hasValue(valueStr)) return;
 
@@ -311,6 +331,7 @@ function applyFilter(opt: FilterOption, value: string, operator?: Comparator) {
     type: opt.type,
     operator,
     value: valueStr,
+    range,
   };
 
   const existingIdx = appliedFilters.value.findIndex((p) => p.key === newPill.key);
@@ -322,10 +343,10 @@ function applyFilter(opt: FilterOption, value: string, operator?: Comparator) {
 }
 
 // Bottom-sheet apply: reads the active option, then closes the sheet.
-function applyMobileFilter(value: string, operator?: Comparator) {
+function applyMobileFilter(value: string, operator?: Comparator, range?: YearRange) {
   const opt = activeMobileFilter.value;
   if (!opt) return;
-  applyFilter(opt, value, operator);
+  applyFilter(opt, value, operator, range);
   activeMobileFilter.value = null;
 }
 

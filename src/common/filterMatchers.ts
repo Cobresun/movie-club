@@ -5,14 +5,19 @@ import {
   Review,
   WorkDataSummary,
 } from "@/../lib/types/lists";
+import type { YearRange } from "@/common/components/filterTypes";
 
 /** Comparison operator for numeric/date filters. */
 export type Comparator = ">" | "<" | "=";
 
-/** A single applied filter: a value plus an optional comparator. */
+/**
+ * A single applied filter: a display value plus, depending on the option's
+ * type, a comparator (number/date) or an inclusive year span (year).
+ */
 export interface FilterQuery {
   operator?: Comparator;
   value: string;
+  range?: YearRange;
 }
 
 /**
@@ -87,6 +92,22 @@ export function dateMatcher(
     const lhs = select(work);
     if (!hasValue(lhs)) return false;
     return satisfiesDateComparator(lhs, query.operator ?? "=", query.value);
+  };
+}
+
+/**
+ * Year matcher: the work's year must fall inside the applied span, both ends
+ * included. A single year is the span `{ from: y, to: y }`, so one predicate
+ * serves both "one year" and "range" without a comparator.
+ */
+export function yearMatcher(
+  select: (work: DetailedWorkListItem) => number | undefined,
+): WorkMatcher {
+  return (work, query) => {
+    const year = select(work);
+    const range = query.range;
+    if (year === undefined || range === undefined) return false;
+    return year >= range.from && year <= range.to;
   };
 }
 
