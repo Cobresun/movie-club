@@ -3,7 +3,7 @@
     <div class="h-20" />
     <div
       class="fixed inset-x-0 bottom-0 px-4 pb-4 transition-transform duration-slow ease-emphasized"
-      :class="{ 'translate-y-[150%]': isScrollingDown }"
+      :class="{ 'translate-y-[150%]': isHidden }"
     >
       <div
         class="mx-auto flex max-w-3xl items-center justify-between gap-4 rounded-xl border border-slate-700 bg-gradient-to-r from-secondary to-lowBackground px-5 py-3 shadow-lg"
@@ -28,31 +28,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from "vue";
+import { computed } from "vue";
 
+import { useHideOnScroll } from "../composables/useHideOnScroll";
 import { useAuthStore } from "@/stores/auth";
 
 const authStore = useAuthStore();
 const isLoggedIn = computed(() => authStore.isLoggedIn);
 
-const isScrollingDown = ref(false);
-let lastScrollY = 0;
-
-const handleScroll = () => {
-  const currentScrollY = window.scrollY;
-  if (currentScrollY > lastScrollY && currentScrollY > 50) {
-    isScrollingDown.value = true;
-  } else if (currentScrollY < lastScrollY) {
-    isScrollingDown.value = false;
-  }
-  lastScrollY = currentScrollY;
-};
-
-onMounted(() => {
-  window.addEventListener("scroll", handleScroll, { passive: true });
-});
-
-onUnmounted(() => {
-  window.removeEventListener("scroll", handleScroll);
-});
+const { isHidden } = useHideOnScroll({ revealOffset: 50 });
 </script>
