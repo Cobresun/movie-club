@@ -142,6 +142,7 @@ import { computed, ref, nextTick, watch } from "vue";
 import { isDefined } from "../../../../lib/checks/checks.js";
 import { Member } from "../../../../lib/types/club";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
+import { getVisibleCells } from "../reviewTableCells";
 import WorkDetailsDrawer from "./WorkDetailsDrawer.vue";
 import AverageImg from "@/assets/images/average.svg";
 import VAvatar from "@/common/components/VAvatar.vue";
@@ -160,23 +161,7 @@ const emit = defineEmits<{
   (e: "toggle-reveal", movieId: string): void;
 }>();
 
-const CUSTOM_RENDERED_COLUMNS = ["title", "imageUrl", "createdDate"];
 const NON_SORTABLE_COLUMNS = ["imageUrl", "title"];
-
-const getVisibleCells = (row: Row<DetailedReviewListItem>) => {
-  return row.getVisibleCells().filter((cell) => {
-    // First filter out custom rendered columns
-    if (CUSTOM_RENDERED_COLUMNS.includes(cell.column.id)) {
-      return false;
-    }
-
-    // Check if the cell has a value to not display empty chips. The current
-    // user's own pill only appears once they have scored — entry happens in
-    // the details drawer, not on the poster card.
-    const value = cell.getValue();
-    return value !== undefined && value !== null && value !== "";
-  });
-};
 
 const getSortableColumns = () => {
   return props.reviewTable.getFlatHeaders().filter((header) => {
