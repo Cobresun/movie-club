@@ -6,6 +6,8 @@
       <div
         v-if="isVisible"
         ref="sheetRef"
+        role="dialog"
+        aria-modal="true"
         class="sheet fixed inset-x-0 bottom-0 w-full overflow-y-auto rounded-t-2xl bg-background"
         :class="[
           contentZIndexClass,
