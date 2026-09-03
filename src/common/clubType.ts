@@ -11,6 +11,7 @@ import {
   enumMatcher,
   numberMatcher,
   reviewAverageScore,
+  yearMatcher,
   type WorkMatcher,
 } from "@/common/filterMatchers";
 import { asBook, asMovie, formatRuntime } from "@/common/workDisplay";
@@ -94,7 +95,7 @@ async function searchBooks(query: string, signal?: AbortSignal): Promise<WorkSea
 export interface FilterOption {
   readonly key: string;
   readonly label: string;
-  readonly type: "enum" | "number" | "date";
+  readonly type: "enum" | "number" | "date" | "year";
   readonly placeholder: string;
   /**
    * Decides whether a work row satisfies this filter. Owning the predicate here
@@ -107,6 +108,11 @@ export interface FilterOption {
    * frequency-ranked suggestions. Returns `[]` for works of another kind.
    */
   readonly suggestions?: (data: WorkDataSummary | undefined) => string[];
+  /**
+   * Year options only: the work's year, used both to match and to plot the
+   * distribution the picker draws behind its scrubber.
+   */
+  readonly year?: (work: DetailedWorkListItem) => number | undefined;
 }
 
 export interface ClubTypeConfig {
@@ -227,6 +233,27 @@ function dateOption(
     type: "date",
     placeholder,
     matches: dateMatcher(select),
+  };
+}
+
+/**
+ * A calendar-year filter: one year or an inclusive span of them. Years are
+ * compared as numbers, so a work only needs to yield a year — no date parsing,
+ * and no month/day precision the picker would have to invent.
+ */
+function yearOption(
+  key: string,
+  label: string,
+  placeholder: string,
+  select: (work: DetailedWorkListItem) => number | undefined,
+): FilterOption {
+  return {
+    key,
+    label,
+    type: "year",
+    placeholder,
+    matches: yearMatcher(select),
+    year: select,
   };
 }
 
@@ -481,12 +508,10 @@ export const CLUB_TYPE_CONFIG: Record<ClubType, ClubTypeConfig> = {
         (data) => asMovie(data)?.castNames ?? [],
       ),
       reviewDateOption,
-      dateOption(
-        "release_date",
-        "Release Date",
-        "Enter a year",
-        (work) => asMovie(work.externalData)?.release_date,
-      ),
+      yearOption("release_date", "Release Year", "Enter a year", (work) => {
+        const movie = asMovie(work.externalData);
+        return movie === undefined ? undefined : releaseYear(movie);
+      }),
       numberOption(
         "runtime",
         "Runtime (min)",

@@ -62,15 +62,16 @@
           <Teleport to="body">
             <PopoverPanel
               :focus="true"
-              class="fixed min-w-[280px] rounded-lg border border-slate-600 bg-background p-4 shadow-2xl"
+              class="fixed w-80 rounded-lg border border-slate-600 bg-background p-4 shadow-2xl"
               :style="teleportedPanelStyle"
             >
               <FilterPanelContent
                 :opt="opt"
                 :value-suggestions="suggestionsFor(opt.key)"
+                :years="yearsFor(opt.key)"
                 @apply="
-                  (value, operator) => {
-                    applyFilter(opt, value, operator);
+                  (value, operator, range) => {
+                    applyFilter(opt, value, operator, range);
                     close();
                   }
                 "
@@ -100,6 +101,7 @@
       <FilterPanelContent
         :opt="activeMobileFilter"
         :value-suggestions="suggestionsFor(activeMobileFilter.key)"
+        :years="yearsFor(activeMobileFilter.key)"
         @apply="applyMobileFilter"
         @cancel="activeMobileFilter = null"
       />
@@ -111,14 +113,14 @@
 import { Popover, PopoverButton, PopoverGroup, PopoverPanel } from "@headlessui/vue";
 import { computed, onMounted, onUnmounted, ref, watchEffect } from "vue";
 
-import { hasValue } from "../../../lib/checks/checks";
+import { hasValue, isDefined } from "../../../lib/checks/checks";
 import { ClubType } from "../../../lib/types/generated/db";
 import type { DetailedWorkListItem } from "../../../lib/types/lists";
 import { clubTypeConfig, type FilterOption } from "../clubType";
 import { useIsDesktop } from "../composables/useIsDesktop.js";
 import { filterWorks } from "../filterWorks";
 import FilterPanelContent from "./FilterPanelContent.vue";
-import type { Comparator } from "./filterTypes";
+import type { Comparator, YearRange } from "./filterTypes";
 import VBottomSheet from "./VBottomSheet.vue";
 
 // Component props
@@ -173,6 +175,18 @@ const computedValueSuggestions = computed<Record<string, string[]>>(() => {
   return result;
 });
 
+// Years present in the data for each year filter, feeding that filter's
+// distribution chart. Keyed by filter key, from the option's `year` selector.
+const computedYears = computed<Record<string, number[]>>(() => {
+  const result: Record<string, number[]> = {};
+  for (const opt of FILTER_OPTIONS.value) {
+    if (opt.year === undefined) continue;
+    const select = opt.year;
+    result[opt.key] = props.data.map(select).filter(isDefined);
+  }
+  return result;
+});
+
 // Search and Filters state
 const searchTerm = ref("");
 
@@ -180,9 +194,10 @@ const searchTerm = ref("");
 interface AppliedFilter {
   key: string;
   label: string;
-  type: "string" | "number" | "date" | "enum";
+  type: "string" | "number" | "date" | "enum" | "year";
   operator?: Comparator;
   value: string;
+  range?: YearRange;
 }
 const appliedFilters = ref<AppliedFilter[]>([]);
 
@@ -192,42 +207,52 @@ const activeMobileFilter = ref<FilterOption | null>(null);
 
 /** Anchor for the teleported panel (viewport / fixed positioning). */
 const teleportedPanelAnchor = ref<HTMLElement | null>(null);
-const teleportedPanelStyle = ref({
+const teleportedPanelStyle = ref<Record<string, string>>({
   top: "0px",
   left: "0px",
   zIndex: "9999",
 });
 
-function fixedPopoverCoords(anchor: HTMLElement) {
-  const popoverWidth = 280;
+const PANEL_WIDTH = 320;
+const PANEL_GAP = 8;
+const VIEWPORT_MARGIN = 16;
+const MIN_PANEL_HEIGHT = 200;
+
+/**
+ * Panels vary in height — the year picker is roughly twice the number one — and
+ * the panel is not measurable before it paints, so the space it may occupy is
+ * bounded instead: hang it off whichever edge of the pill has more room and cap
+ * it at that room, leaving a tall panel to scroll rather than run off screen.
+ */
+function fixedPopoverStyle(anchor: HTMLElement) {
   const rect = anchor.getBoundingClientRect();
-  let left = rect.left;
-  let top = rect.bottom + 8;
+  const left = Math.max(
+    VIEWPORT_MARGIN,
+    Math.min(rect.left, window.innerWidth - PANEL_WIDTH - VIEWPORT_MARGIN),
+  );
+  const spaceBelow = window.innerHeight - rect.bottom - PANEL_GAP - VIEWPORT_MARGIN;
+  const spaceAbove = rect.top - PANEL_GAP - VIEWPORT_MARGIN;
+  const shared = {
+    left: `${left}px`,
+    zIndex: "9999",
+    overflowY: "auto",
+  };
 
-  if (left + popoverWidth > window.innerWidth) {
-    left = window.innerWidth - popoverWidth - 16;
+  if (spaceBelow >= MIN_PANEL_HEIGHT || spaceBelow >= spaceAbove) {
+    return { ...shared, top: `${rect.bottom + PANEL_GAP}px`, maxHeight: `${spaceBelow}px` };
   }
-  if (left < 16) {
-    left = 16;
-  }
-
-  const estimatedHeight = 250;
-  if (top + estimatedHeight > window.innerHeight) {
-    top = rect.top - estimatedHeight - 8;
-  }
-
-  return { top, left };
+  // Anchored by its bottom edge, so it grows upwards without being measured.
+  return {
+    ...shared,
+    bottom: `${window.innerHeight - rect.top + PANEL_GAP}px`,
+    maxHeight: `${spaceAbove}px`,
+  };
 }
 
 function updateTeleportedPanelStyle() {
-  const el = teleportedPanelAnchor.value;
-  if (!el) return;
-  const { top, left } = fixedPopoverCoords(el);
-  teleportedPanelStyle.value = {
-    top: `${top}px`,
-    left: `${left}px`,
-    zIndex: "9999",
-  };
+  const anchor = teleportedPanelAnchor.value;
+  if (!anchor) return;
+  teleportedPanelStyle.value = fixedPopoverStyle(anchor);
 }
 
 function syncTeleportedPanelPosition() {
@@ -265,6 +290,10 @@ function suggestionsFor(key: string): string[] {
   return computedValueSuggestions.value[key] ?? [];
 }
 
+function yearsFor(key: string): number[] {
+  return computedYears.value[key] ?? [];
+}
+
 // Build filters object from pills
 const filtersObject = computed(() => {
   return appliedFilters.value.reduce(
@@ -272,10 +301,11 @@ const filtersObject = computed(() => {
       acc[f.key] = {
         operator: f.operator,
         value: f.value,
+        range: f.range,
       };
       return acc;
     },
-    {} as Record<string, { operator?: Comparator; value: string }>,
+    {} as Record<string, { operator?: Comparator; value: string; range?: YearRange }>,
   );
 });
 
@@ -301,7 +331,7 @@ watchEffect(() => {
   hasActiveFilters.value = derivedHasActiveFilters.value;
 });
 
-function applyFilter(opt: FilterOption, value: string, operator?: Comparator) {
+function applyFilter(opt: FilterOption, value: string, operator?: Comparator, range?: YearRange) {
   const valueStr = value.trim();
   if (!hasValue(valueStr)) return;
 
@@ -311,6 +341,7 @@ function applyFilter(opt: FilterOption, value: string, operator?: Comparator) {
     type: opt.type,
     operator,
     value: valueStr,
+    range,
   };
 
   const existingIdx = appliedFilters.value.findIndex((p) => p.key === newPill.key);
@@ -322,10 +353,10 @@ function applyFilter(opt: FilterOption, value: string, operator?: Comparator) {
 }
 
 // Bottom-sheet apply: reads the active option, then closes the sheet.
-function applyMobileFilter(value: string, operator?: Comparator) {
+function applyMobileFilter(value: string, operator?: Comparator, range?: YearRange) {
   const opt = activeMobileFilter.value;
   if (!opt) return;
-  applyFilter(opt, value, operator);
+  applyFilter(opt, value, operator, range);
   activeMobileFilter.value = null;
 }
 
