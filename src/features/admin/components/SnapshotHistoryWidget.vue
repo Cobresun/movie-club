@@ -11,7 +11,7 @@
       />
     </template>
 
-    <ag-charts v-if="points.length > 1" :options="options" />
+    <VChart v-if="points.length > 1" :options="options" />
     <p v-else class="py-8 text-center text-sm text-slate-500">
       {{
         points.length === 0
@@ -29,7 +29,6 @@
 
 <script setup lang="ts">
 import type { AgCartesianChartOptions } from "ag-charts-community";
-import { AgCharts } from "ag-charts-vue3";
 import { computed } from "vue";
 
 import { SnapshotHistoryPoint } from "../../../../lib/types/metrics";
@@ -41,6 +40,7 @@ import {
   baseLegendOptions,
   MEMBER_SERIES_COLORS,
 } from "@/common/chartPalette";
+import VChart from "@/common/components/VChart.vue";
 import WidgetShell from "@/common/components/WidgetShell.vue";
 import { useIsDesktop } from "@/common/composables/useIsDesktop";
 import SegmentedToggle from "@/features/statistics/components/SegmentedToggle.vue";
