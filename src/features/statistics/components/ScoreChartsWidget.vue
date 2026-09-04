@@ -3,12 +3,11 @@
     <template #controls>
       <SegmentedToggle v-model="mode" :options="modeOptions" />
     </template>
-    <ag-charts :options="chartOptions" />
+    <VChart :options="chartOptions" />
   </WidgetShell>
 </template>
 
 <script setup lang="ts">
-import { AgCharts } from "ag-charts-vue3";
 import { computed, ref } from "vue";
 
 import { Member } from "../../../../lib/types/club";
@@ -20,6 +19,7 @@ import {
 import { computeScoreTrend, computeScoreVariance } from "../statsComputers";
 import type { HistogramData, WorkStatsData } from "../types";
 import SegmentedToggle from "./SegmentedToggle.vue";
+import VChart from "@/common/components/VChart.vue";
 import WidgetShell from "@/common/components/WidgetShell.vue";
 import { useIsDesktop } from "@/common/composables/useIsDesktop";
 

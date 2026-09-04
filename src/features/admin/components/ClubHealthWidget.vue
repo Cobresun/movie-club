@@ -6,7 +6,7 @@
     <div class="grid gap-5 lg:grid-cols-[3fr_2fr]">
       <div>
         <p class="mb-2 text-xs uppercase tracking-wide text-slate-400">Members per club</p>
-        <ag-charts v-if="hasClubs" :options="options" />
+        <VChart v-if="hasClubs" :options="options" />
         <p v-else class="py-8 text-center text-sm text-slate-500">No clubs yet.</p>
       </div>
 
@@ -47,12 +47,12 @@
 
 <script setup lang="ts">
 import type { AgCartesianChartOptions } from "ag-charts-community";
-import { AgCharts } from "ag-charts-vue3";
 import { computed } from "vue";
 
 import { ClubSizeBucket, Rate } from "../../../../lib/types/metrics";
 import { formatCount, formatDuration, integerTickStep } from "../formatMetrics";
 import { axisLabelFontSize, baseChartOptions, CLUB_SERIES_COLOR } from "@/common/chartPalette";
+import VChart from "@/common/components/VChart.vue";
 import WidgetShell from "@/common/components/WidgetShell.vue";
 import { useIsDesktop } from "@/common/composables/useIsDesktop";
 

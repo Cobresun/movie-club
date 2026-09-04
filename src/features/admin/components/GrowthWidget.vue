@@ -3,7 +3,7 @@
     title="Growth and activity"
     subtitle="Per week. Clubs created before 29 Jul 2026 are dated from their first review, so early weeks are approximate."
   >
-    <ag-charts v-if="weeks.length > 0" :options="options" />
+    <VChart v-if="weeks.length > 0" :options="options" />
     <p v-else class="py-8 text-center text-sm text-slate-500">
       No signups, new clubs, or reviews in the last 26 weeks.
     </p>
@@ -12,7 +12,6 @@
 
 <script setup lang="ts">
 import type { AgCartesianChartOptions } from "ag-charts-community";
-import { AgCharts } from "ag-charts-vue3";
 import { computed } from "vue";
 
 import { TimeSeriesPoint } from "../../../../lib/types/metrics";
@@ -24,6 +23,7 @@ import {
   CLUB_SERIES_COLOR,
   MEMBER_SERIES_COLORS,
 } from "@/common/chartPalette";
+import VChart from "@/common/components/VChart.vue";
 import WidgetShell from "@/common/components/WidgetShell.vue";
 import { useIsDesktop } from "@/common/composables/useIsDesktop";
 
