@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, ref, shallowRef } from "vue";
-import { useToast } from "vue-toastification";
 
 import { hasElements } from "../../../../lib/checks/checks";
 import { ClubType } from "../../../../lib/types/generated/db";
@@ -11,6 +10,7 @@ import ManageListsModal from "../components/ManageListsModal.vue";
 import WatchListSkeleton from "../components/WatchListSkeleton.vue";
 import { useCollapsedLists } from "../composables/useCollapsedLists";
 import SearchFilterBar from "@/common/components/SearchFilterBar.vue";
+import { useShare } from "@/common/composables/useShare";
 import { useClub, useClubSlug, useMembers } from "@/service/useClub";
 import {
   ClubListSummary,
@@ -66,11 +66,13 @@ const visibleIds = computed(() =>
   hasActiveFilters.value ? new Set(filteredItems.value.map((i) => i.id)) : null,
 );
 
-const toast = useToast();
-const shareList = async (listId: string) => {
-  const url = `${window.location.origin}/share/club/${clubSlug}/list/${listId}`;
-  await navigator.clipboard.writeText(url);
-  toast.success("List link copied to clipboard!");
+const { share } = useShare();
+const shareList = (listId: string) => {
+  const list = userLists.value.find((l) => l.id === listId);
+  share({
+    url: `${window.location.origin}/share/club/${clubSlug}/list/${listId}`,
+    title: list?.title ?? "List",
+  }).catch(console.error);
 };
 </script>
 
