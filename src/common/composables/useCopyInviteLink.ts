@@ -14,16 +14,16 @@ export function useCopyInviteLink(clubSlug: string) {
   const copyInviteLink = async () => {
     try {
       await navigator.clipboard.writeText(inviteLink.value);
-      hasCopied.value = true;
-      setTimeout(() => {
-        hasCopied.value = false;
-      }, 2000);
     } catch {
       if (inviteLinkInput.value) {
         inviteLinkInput.value.select();
         document.execCommand("copy");
       }
     }
+    hasCopied.value = true;
+    setTimeout(() => {
+      hasCopied.value = false;
+    }, 2000);
   };
 
   return { inviteLinkInput, inviteLink, copyIcon, copyInviteLink };
