@@ -1,5 +1,6 @@
 import { Row } from "@tanstack/vue-table";
 
+import { isDefined } from "../../../lib/checks/checks.js";
 import { DetailedReviewListItem } from "../../../lib/types/lists";
 
 const CUSTOM_RENDERED_COLUMNS = ["title", "imageUrl", "createdDate"];
@@ -16,6 +17,6 @@ export const getVisibleCells = (row: Row<DetailedReviewListItem>) => {
     }
 
     const value = cell.getValue();
-    return value !== undefined && value !== null && value !== "";
+    return isDefined(value) && value !== "";
   });
 };
