@@ -41,12 +41,11 @@
         </span>
       </div>
     </div>
-    <ag-charts v-else :options="chartOptions" />
+    <VChart v-else :options="chartOptions" />
   </WidgetShell>
 </template>
 
 <script setup lang="ts">
-import { AgCharts } from "ag-charts-vue3";
 import { computed, ref } from "vue";
 
 import { ClubType } from "../../../../lib/types/generated/db";
@@ -59,6 +58,7 @@ import {
 import type { WorkStatsData } from "../types";
 import SegmentedToggle from "./SegmentedToggle.vue";
 import { clubTypeConfig, clubTypeStats } from "@/common/clubType";
+import VChart from "@/common/components/VChart.vue";
 import WidgetShell from "@/common/components/WidgetShell.vue";
 import { useIsDesktop } from "@/common/composables/useIsDesktop";
 

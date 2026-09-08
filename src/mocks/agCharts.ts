@@ -21,6 +21,8 @@ import { ensure } from "@/../lib/checks/checks";
  * The dynamic import matters: `vi.mock` is hoisted above the file's imports, so
  * a factory that referenced a statically-imported stub would hit a TDZ error.
  */
+const SERIES_AREA_CLASS = "ag-charts-series-area";
+
 export const AgCharts = defineComponent({
   name: "AgCharts",
   props: {
@@ -38,7 +40,11 @@ export const AgCharts = defineComponent({
       },
       { flush: "sync" },
     );
-    return () => h("div", { ref: element, role: "img", "aria-label": "chart" });
+    return () =>
+      h("div", { ref: element, role: "img", "aria-label": "chart" }, [
+        // The element the real component attaches its pointer listeners to.
+        h("div", { class: SERIES_AREA_CLASS }),
+      ]);
   },
 });
 
@@ -70,4 +76,15 @@ function isKeyedSeries(series: unknown): series is KeyedSeries {
 export function chartSeriesNames(element: Element): string[] {
   const series: unknown[] = chartOptions(element).series ?? [];
   return series.filter(isKeyedSeries).map((one) => one.yName ?? one.yKey);
+}
+
+/**
+ * The element AG Charts listens on for the pointer leaving a chart — dismissing
+ * a tooltip means getting a `mouseleave` to it.
+ */
+export function chartSeriesArea(element: Element): Element {
+  return ensure(
+    element.querySelector(`.${SERIES_AREA_CLASS}`),
+    "element was not rendered by the ag-charts stub",
+  );
 }
