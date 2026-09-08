@@ -6,7 +6,7 @@
         <WorkDetailsContent
           :key="movie.id"
           :movie="movie"
-          :review-table="reviewTable"
+          :members="members"
           :delete-review="deleteReview"
           :revealed-movie-ids="revealedMovieIds"
           :has-rated="hasRated"
@@ -25,7 +25,7 @@
         <WorkDetailsContent
           :key="movie.id"
           :movie="movie"
-          :review-table="reviewTable"
+          :members="members"
           :delete-review="deleteReview"
           :revealed-movie-ids="revealedMovieIds"
           :has-rated="hasRated"
@@ -41,8 +41,7 @@
 </template>
 
 <script setup lang="ts">
-import { Row, Table } from "@tanstack/vue-table";
-
+import { Member } from "../../../../lib/types/club";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
 import VBottomSheet from "../../../common/components/VBottomSheet.vue";
 import WorkDetailsContent from "./WorkDetailsContent.vue";
@@ -50,8 +49,8 @@ import VSideDrawer from "@/common/components/VSideDrawer.vue";
 import { useIsDesktop } from "@/common/composables/useIsDesktop.js";
 
 defineProps<{
-  movie: Row<DetailedReviewListItem>;
-  reviewTable: Table<DetailedReviewListItem>;
+  movie: DetailedReviewListItem;
+  members: Member[];
   deleteReview: (workId: string) => void;
   revealedMovieIds: Set<string>;
   hasRated: (movieId: string) => boolean;

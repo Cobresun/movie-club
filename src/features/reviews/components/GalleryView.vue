@@ -53,7 +53,7 @@
           :title="`Currently ${directionLabel.toLowerCase()}. Click to reverse.`"
           @click="reverseSort"
         >
-          <mdicon :name="sortState[0]?.desc ? 'chevron-down' : 'chevron-up'" />
+          <mdicon :name="sort?.desc ? 'chevron-down' : 'chevron-up'" />
           <span>{{ directionLabel }}</span>
         </button>
         <button
@@ -77,40 +77,38 @@
         style="grid-template-columns: repeat(auto-fill, minmax(168px, 1fr))"
       >
         <WorkPosterCard
-          v-for="row in reviewTable.getRowModel().rows"
-          :key="row.id"
-          :data-movie-id="row.id"
-          :title="row.renderValue('title')"
-          :poster-url="row.renderValue('imageUrl')"
-          :highlighted="selectedMovieId === row.id"
+          v-for="review in sortedReviews"
+          :key="review.id"
+          :data-movie-id="review.id"
+          :title="review.title"
+          :poster-url="review.imageUrl ?? ''"
+          :highlighted="selectedMovieId === review.id"
           selectable
           class="transition-all duration-fast ease-standard md:cursor-pointer"
-          @select="openMovieDetails(row)"
+          @select="openMovieDetails(review)"
         >
           <div class="mb-2 text-sm text-gray-400">
-            <FlexRender
-              :render="reviewTable.getColumn('createdDate')?.columnDef.cell"
-              :props="getCell(row, 'createdDate')?.getContext()"
-            />
+            {{ formatCardDate(review.createdDate) }}
           </div>
           <div class="grid grid-cols-2 gap-2">
             <div
-              v-for="cell in getVisibleCells(row)"
-              :key="cell.id"
+              v-for="entry in workScoreEntries(review, members)"
+              :key="entry.id"
               class="flex items-center rounded-3xl bg-slate-600"
             >
-              <FlexRender
-                :render="cell.column.columnDef.header"
-                :props="{ ...cell.getContext(), meta: { size: 'sm' } }"
-              />
+              <ScoreLabel :entry="entry" />
               <div class="flex-grow text-sm">
-                <FlexRender
-                  :render="cell.column.columnDef.cell"
-                  :props="{
-                    ...cell.getContext(),
-                    meta: { size: 'sm', revealable: false },
-                  }"
-                />
+                <!-- Cards never reveal on click: reveal flows through the
+                     details drawer's own pill. -->
+                <span
+                  :class="[
+                    isDefined(entry.memberId) ? '' : 'text-lg font-bold text-primary',
+                    isScoreBlurred(entry, currentUserId, isRevealed(review.id))
+                      ? 'blur filter'
+                      : '',
+                  ]"
+                  >{{ entry.value }}</span
+                >
               </div>
             </div>
           </div>
@@ -123,7 +121,7 @@
       v-if="selectedMovie"
       :key="selectedMovie.id"
       :movie="selectedMovie"
-      :review-table="reviewTable"
+      :members="members"
       :delete-review="deleteReview"
       :revealed-movie-ids="revealedMovieIds"
       :has-rated="hasRated"
@@ -136,20 +134,22 @@
 
 <script setup lang="ts">
 import { Listbox, ListboxButton, ListboxOption, ListboxOptions } from "@headlessui/vue";
-import { FlexRender, Row, Table } from "@tanstack/vue-table";
+import { DateTime } from "luxon";
 import { computed, ref, nextTick, watch } from "vue";
 
 import { isDefined } from "../../../../lib/checks/checks.js";
 import { Member } from "../../../../lib/types/club";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
-import { getVisibleCells } from "../reviewTableCells";
+import { isScoreBlurred, workScoreEntries } from "../reviewScores";
+import { ReviewSort, reviewSortOptions, sortReviews } from "../reviewSort";
+import ScoreLabel from "./ScoreLabel.vue";
 import WorkDetailsDrawer from "./WorkDetailsDrawer.vue";
 import AverageImg from "@/assets/images/average.svg";
 import VAvatar from "@/common/components/VAvatar.vue";
 import WorkPosterCard from "@/common/components/WorkPosterCard.vue";
 
 const props = defineProps<{
-  reviewTable: Table<DetailedReviewListItem>;
+  reviews: DetailedReviewListItem[];
   deleteReview: (workId: string) => void;
   members: Member[];
   revealedMovieIds: Set<string>;
@@ -161,109 +161,58 @@ const emit = defineEmits<{
   (e: "toggle-reveal", movieId: string): void;
 }>();
 
-const NON_SORTABLE_COLUMNS = ["imageUrl", "title"];
+const sort = ref<ReviewSort>();
 
-const getSortableColumns = () => {
-  return props.reviewTable.getFlatHeaders().filter((header) => {
-    return !NON_SORTABLE_COLUMNS.includes(header.id);
-  });
-};
+const sortOptions = computed(() => reviewSortOptions(props.members));
 
-// The raw column headers are avatars and images, so "sort by <avatar>" reads as
-// meaningless to users. Map each sortable column to a plain-language descriptor
-// ("Sarah's rating", "Average rating", "Date reviewed") the dropdown can spell
-// out instead.
-type SortOption =
-  | { id: string; type: "member"; label: string; name: string; image?: string }
-  | { id: string; type: "average"; label: string }
-  | { id: string; type: "date"; label: string };
-
-const sortOptions = computed<SortOption[]>(() =>
-  getSortableColumns()
-    .filter((header) => header.column.getCanSort())
-    .map((header) => {
-      const id = header.id;
-      const member = props.members.find((m) => `member_${m.id}` === id);
-      if (isDefined(member)) {
-        return {
-          id,
-          type: "member",
-          label: `${member.name}'s rating`,
-          name: member.name,
-          image: member.image,
-        };
-      }
-      if (id === "score_average") {
-        return { id, type: "average", label: "Average rating" };
-      }
-      return { id, type: "date", label: "Date reviewed" };
-    }),
-);
+const sortedReviews = computed(() => sortReviews(props.reviews, sort.value));
 
 const activeSortOption = computed(() =>
-  sortOptions.value.find((option) => option.id === sortState.value[0]?.id),
+  sortOptions.value.find((option) => option.id === sort.value?.id),
 );
 
 // Direction words depend on what's being sorted: dates read newest/oldest,
 // ratings read highest/lowest. A bare up/down chevron didn't convey either.
 const directionLabel = computed(() => {
-  const sort = sortState.value[0];
-  if (!isDefined(sort)) return "";
+  if (!isDefined(sort.value)) return "";
   if (activeSortOption.value?.type === "date") {
-    return sort.desc ? "Newest first" : "Oldest first";
+    return sort.value.desc ? "Newest first" : "Oldest first";
   }
-  return sort.desc ? "Highest first" : "Lowest first";
+  return sort.value.desc ? "Highest first" : "Lowest first";
 });
-
-const getCell = (row: Row<DetailedReviewListItem>, columnId: string) => {
-  return row.getVisibleCells().find((cell) => cell.column.id === columnId);
-};
 
 const reverseSort = () => {
-  const currentSort = sortState.value[0];
-  if (!isDefined(currentSort)) {
-    return;
-  }
-  props.reviewTable.setSorting([
-    {
-      id: currentSort.id,
-      desc: !currentSort.desc,
-    },
-  ]);
+  if (!isDefined(sort.value)) return;
+  sort.value = { id: sort.value.id, desc: !sort.value.desc };
 };
 
-const sortState = computed(() => props.reviewTable.getState().sorting);
-
 const selectedSort = computed<string | undefined>({
-  get: () => sortState.value[0]?.id,
+  get: () => sort.value?.id,
   set: (value: string | undefined) => {
-    if (!isDefined(value)) {
-      props.reviewTable.setSorting([]);
-      return;
-    }
-    props.reviewTable.setSorting([
-      {
-        id: value,
-        desc: true,
-      },
-    ]);
+    sort.value = isDefined(value) ? { id: value, desc: true } : undefined;
   },
 });
+
+// Cards carry the compact numeric date; the details drawer spells it out.
+const formatCardDate = (createdDate: string) => DateTime.fromISO(createdDate).toLocaleString();
+
+const isRevealed = (movieId: string) =>
+  props.hasRated(movieId) || props.revealedMovieIds.has(movieId);
 
 const selectedMovieId = ref<string | undefined>(undefined);
 
 const selectedMovie = computed(() => {
   if (selectedMovieId.value === undefined) return undefined;
-  return props.reviewTable.getRowModel().rows.find((row) => row.id === selectedMovieId.value);
+  return props.reviews.find((review) => review.id === selectedMovieId.value);
 });
 
-const openMovieDetails = async (row: Row<DetailedReviewListItem>) => {
-  if (selectedMovieId.value !== row.id) {
-    selectedMovieId.value = row.id;
+const openMovieDetails = async (review: DetailedReviewListItem) => {
+  if (selectedMovieId.value !== review.id) {
+    selectedMovieId.value = review.id;
 
     await nextTick();
     // Find the clicked movie element and scroll to center it on page
-    const clickedElement = document.querySelector(`[data-movie-id="${row.id}"]`);
+    const clickedElement = document.querySelector(`[data-movie-id="${review.id}"]`);
 
     if (clickedElement) {
       clickedElement.scrollIntoView({

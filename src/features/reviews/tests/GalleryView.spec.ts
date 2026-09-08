@@ -9,9 +9,9 @@ import { logIn, render } from "@/tests/utils";
 mockIntersectionObserver({ intersecting: true });
 
 /**
- * The gallery is driven by the TanStack table `ReviewView` builds, so these
- * specs render the view rather than handing the gallery a table of their own —
- * a stand-in table can sort perfectly while the real columns are wrong.
+ * The gallery renders the reviews and members `ReviewView` hands it, so these
+ * specs render the view rather than handing the gallery a list of their own —
+ * a hand-picked list can sort perfectly while the wiring is wrong.
  */
 
 const score = (id: string, value: number) => ({
@@ -113,6 +113,24 @@ describe("GalleryView", () => {
 
     await waitFor(() => expect(cardTitles()).toEqual(["Arrival", "Dune"]));
     expect(screen.getByRole("button", { name: /Lowest first/ })).toBeInTheDocument();
+  });
+
+  it("leaves works nobody has scored at the bottom whichever way the sort runs", async () => {
+    server.use(
+      http.get("/api/club/:id/list/reviews", () =>
+        HttpResponse.json([...reviews, review("3", "Solaris", "2024-07-31T04:46:37.751Z", {})]),
+      ),
+    );
+    const { user } = render(ReviewView, { props: { clubSlug: "test-club" } });
+
+    await user.click(await screen.findByRole("button", { name: /Sort by/ }));
+    await user.click(screen.getByRole("option", { name: /Average rating/ }));
+    await waitFor(() => expect(cardTitles()).toEqual(["Dune", "Arrival", "Solaris"]));
+
+    // Reversing promotes the lowest score, not the work that has none.
+    await user.click(screen.getByRole("button", { name: /Highest first/ }));
+
+    await waitFor(() => expect(cardTitles()).toEqual(["Arrival", "Dune", "Solaris"]));
   });
 
   it("describes a date sort as newest-first instead of highest-first", async () => {

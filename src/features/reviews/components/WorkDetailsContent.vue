@@ -13,7 +13,7 @@
     <WorkPosterHero
       :poster-url="posterUrl"
       :backdrop-path="movieData?.backdrop_path"
-      :title="movieTitle"
+      :title="movie.title"
       :year="displayYear"
       :is-desktop="isDesktop"
     >
@@ -24,7 +24,7 @@
             class="inline-flex cursor-pointer items-center gap-1 hover:text-primary hover:underline"
             @click="openDateEditor"
           >
-            Reviewed {{ formatDate(movie.original.createdDate) }}
+            Reviewed {{ formatDate(movie.createdDate) }}
             <mdicon name="pencil" size="14" class="text-current" />
           </span>
         </template>
@@ -80,28 +80,31 @@
 
       <div class="grid grid-cols-2 gap-3">
         <div
-          v-for="cell in getVisibleCells(movie)"
-          :key="cell.id"
+          v-for="entry in scoreEntries"
+          :key="entry.id"
           class="flex items-center gap-2.5 rounded-xl px-3 py-2.5"
           :class="[
-            isAverageCell(cell)
-              ? 'col-span-2 bg-primary/10 ring-1 ring-primary/25'
-              : 'bg-lowBackground',
-            { 'score-just-saved': isJustSavedCell(cell) },
+            isDefined(entry.memberId)
+              ? 'bg-lowBackground'
+              : 'col-span-2 bg-primary/10 ring-1 ring-primary/25',
+            { 'score-just-saved': isJustSavedEntry(entry) },
           ]"
         >
           <div class="min-w-0 flex-1">
-            <FlexRender :render="cell.column.columnDef.header" :props="headerCellProps(cell)" />
+            <ScoreLabel :entry="entry" show-name />
           </div>
           <div
             class="shrink-0 text-base font-semibold transition-[filter] duration-500 ease-standard"
-            :class="shouldBlurScore(movie.id, cell.column.id) ? 'blur' : 'blur-none'"
+            :class="[
+              isDefined(entry.memberId) ? '' : 'text-lg font-bold text-primary',
+              isScoreBlurred(entry, currentUserId, isRevealed) ? 'blur' : 'blur-none',
+            ]"
           >
-            <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()" />
+            {{ entry.value }}
           </div>
         </div>
       </div>
-      <p v-if="getVisibleCells(movie).length === 0" class="text-sm text-gray-500">
+      <p v-if="scoreEntries.length === 0" class="text-sm text-gray-500">
         No scores yet — be the first to rate it.
       </p>
     </section>
@@ -164,15 +167,15 @@
         <ExternalLink label="Rotten Tomatoes" :href="rottenTomatoesUrl" />
       </div>
 
-      <WatchProviders v-if="movieData" :external-id="movie.original.externalId" class="mt-4" />
+      <WatchProviders v-if="movieData" :external-id="movie.externalId" class="mt-4" />
     </section>
 
-    <CommentThread :work-id="movie.original.id" :club-slug="clubId" />
+    <CommentThread :work-id="movie.id" :club-slug="clubId" />
 
     <DiscussionQuestions
       v-if="discussionQuestionsEnabled"
       :club-slug="clubId"
-      :work-id="movie.original.id"
+      :work-id="movie.id"
       :media-noun="mediaNoun"
     />
 
@@ -196,7 +199,7 @@
     >
       <ScoreEntryDock
         v-if="isDesktop"
-        :target="movie.original"
+        :target="movie"
         :score="myReview?.score"
         :review-id="myReview?.id"
         @saved="onScoreSaved"
@@ -208,7 +211,7 @@
           <button
             type="button"
             class="flex shrink-0 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 font-bold tracking-wide text-text transition hover:brightness-110 active:scale-[0.98]"
-            @click="shareReview(movie.original.id)"
+            @click="shareReview(movie.id)"
           >
             <mdicon name="share" size="20" />
             <span>Share</span>
@@ -231,7 +234,7 @@
           v-if="isDefined(myReview)"
           type="button"
           class="flex shrink-0 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 font-bold tracking-wide text-text transition hover:brightness-110 active:scale-[0.98]"
-          @click="shareReview(movie.original.id)"
+          @click="shareReview(movie.id)"
         >
           <mdicon name="share" size="20" />
           <span>Share</span>
@@ -241,8 +244,8 @@
 
     <ScoreEntryModal
       v-if="showScoreEntry"
-      :key="movie.original.id"
-      :target="movie.original"
+      :key="movie.id"
+      :target="movie"
       :score="myReview?.score"
       :review-id="myReview?.id"
       @close="showScoreEntry = false"
@@ -252,19 +255,20 @@
 </template>
 
 <script setup lang="ts">
-import { Cell, FlexRender, Row, Table } from "@tanstack/vue-table";
 import { DateTime } from "luxon";
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 
 import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
+import { Member } from "../../../../lib/types/club";
 import { ClubType } from "../../../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
 import { computeReviewFact } from "../reviewFacts";
-import { getVisibleCells } from "../reviewTableCells";
+import { ScoreEntry, isOthersScore, isScoreBlurred, workScoreEntries } from "../reviewScores";
 import DiscussionQuestions from "./DiscussionQuestions.vue";
 import ReviewFactCard from "./ReviewFactCard.vue";
 import ScoreEntryDock from "./ScoreEntryDock.vue";
 import ScoreEntryModal from "./ScoreEntryModal.vue";
+import ScoreLabel from "./ScoreLabel.vue";
 import { clubTypeConfig, workMetaLine, workOverview, workSubtitle } from "@/common/clubType";
 import BookMetadataGrid from "@/common/components/BookMetadataGrid.vue";
 import CastList from "@/common/components/CastList.vue";
@@ -287,8 +291,8 @@ import {
 } from "@/service/useList";
 
 const props = defineProps<{
-  movie: Row<DetailedReviewListItem>;
-  reviewTable: Table<DetailedReviewListItem>;
+  movie: DetailedReviewListItem;
+  members: Member[];
   deleteReview: (workId: string) => void;
   revealedMovieIds: Set<string>;
   hasRated: (movieId: string) => boolean;
@@ -308,7 +312,7 @@ const cancelDelete = () => {
   showDeleteConfirmation.value = false;
 };
 const confirmDelete = () => {
-  props.deleteReview(props.movie.original.id);
+  props.deleteReview(props.movie.id);
   showDeleteConfirmation.value = false;
   close();
 };
@@ -325,10 +329,8 @@ const editedDate = ref("");
 const discussionQuestionsEnabled = computed(
   () => clubSettings.value?.features?.discussionQuestions === true,
 );
-const movieTitle = computed(() => String(props.movie.renderValue("title")));
-
 const formattedDateForInput = computed(() => {
-  return DateTime.fromISO(props.movie.original.createdDate).toFormat("yyyy-MM-dd");
+  return DateTime.fromISO(props.movie.createdDate).toFormat("yyyy-MM-dd");
 });
 
 const openDateEditor = () => {
@@ -343,7 +345,7 @@ const saveDateChange = () => {
     if (isoDate !== null && hasValue(reviewsListId.value)) {
       updateAddedDate({
         listId: reviewsListId.value,
-        workId: props.movie.original.id,
+        workId: props.movie.id,
         addedDate: isoDate,
       });
     }
@@ -395,36 +397,34 @@ onMounted(() => {
 onBeforeUnmount(() => cancelFactIdle?.());
 const reviewFact = computed(() =>
   factReady.value && isDefined(allReviews.value)
-    ? computeReviewFact(allReviews.value, props.movie.original.id)
+    ? computeReviewFact(allReviews.value, props.movie.id)
     : undefined,
 );
 
-const movieData = computed(() => asMovie(props.movie.original.externalData));
-const bookData = computed(() => asBook(props.movie.original.externalData));
+const movieData = computed(() => asMovie(props.movie.externalData));
+const bookData = computed(() => asBook(props.movie.externalData));
 
 // The bulk reviews payload carries only summary metadata; the cast list is
 // fetched on demand when this drawer opens (cached per work for the session).
 const { data: workDetails } = useWorkDetails(
   clubId,
-  computed(() => props.movie.original.id),
+  computed(() => props.movie.id),
 );
 const castActors = computed(() => asMovie(workDetails.value ?? undefined)?.actors);
 // Drives book/movie wording in child components (e.g. the discussion-questions
 // "couldn't recognize this ___" message).
 const mediaNoun = computed(() => clubTypeConfig(club.value?.type ?? ClubType.movie).noun);
-const posterUrl = computed(() =>
-  workPosterUrl(props.movie.original.externalData, props.movie.original.imageUrl),
-);
+const posterUrl = computed(() => workPosterUrl(props.movie.externalData, props.movie.imageUrl));
 
 // Release year (movies) or first-published year (books), via the shared helper.
-const displayYear = computed(() => workSubtitle(props.movie.original.externalData));
+const displayYear = computed(() => workSubtitle(props.movie.externalData));
 
 // "2h 35m · Adventure, Science Fiction" (movies) / "Frank Herbert · 412 pages"
 // (books), shown in the hero under the title. Runtime and genres live here, so
 // the Details section below only carries what the hero doesn't.
-const metaLine = computed(() => workMetaLine(props.movie.original.externalData));
+const metaLine = computed(() => workMetaLine(props.movie.externalData));
 
-const overview = computed(() => workOverview(props.movie.original.externalData));
+const overview = computed(() => workOverview(props.movie.externalData));
 
 // TMDB publishes ratings with three decimals (7.783); one is plenty here.
 const tmdbScore = computed(() =>
@@ -442,42 +442,29 @@ const hasDetails = computed(() => {
 });
 
 const letterboxdUrl = computed(() =>
-  hasValue(props.movie.original.externalId)
-    ? `https://letterboxd.com/tmdb/${props.movie.original.externalId}/`
+  hasValue(props.movie.externalId)
+    ? `https://letterboxd.com/tmdb/${props.movie.externalId}/`
     : undefined,
 );
 
 const imdbUrl = computed(() => {
-  const imdbId = asMovie(props.movie.original.externalData)?.imdb_id;
+  const imdbId = asMovie(props.movie.externalData)?.imdb_id;
   return hasValue(imdbId) ? `https://www.imdb.com/title/${imdbId}/` : undefined;
 });
 
 const rottenTomatoesUrl = computed(() => {
-  const title = props.movie.original.title;
+  const title = props.movie.title;
   return hasValue(title)
     ? `https://www.rottentomatoes.com/search?search=${encodeURIComponent(title)}`
     : undefined;
 });
 
-// The average gets a full-width, primary-tinted tile so the club's verdict
-// stands out from the individual member scores.
-const isAverageCell = (cell: Cell<DetailedReviewListItem, unknown>) =>
-  cell.column.id === "score_average";
-
-// Tile headers show avatar + name (sm size) so members are identifiable
-// without hovering; the same meta convention GalleryView uses.
-const headerCellProps = (cell: Cell<DetailedReviewListItem, unknown>) => ({
-  ...cell.getContext(),
-  meta: {
-    showName: true,
-    size: "sm",
-  },
-});
+const scoreEntries = computed(() => workScoreEntries(props.movie, props.members));
 
 // The current user's own review for this work, if any — prefills the panel and
 // tells it whether to create (POST) or update (PUT).
 const myReview = computed(() =>
-  isDefined(props.currentUserId) ? props.movie.original.scores[props.currentUserId] : undefined,
+  isDefined(props.currentUserId) ? props.movie.scores[props.currentUserId] : undefined,
 );
 
 // Mobile-only: score entry lives in its own overlay (ScoreEntryModal), opened
@@ -510,12 +497,9 @@ onBeforeUnmount(() => {
   if (isDefined(justSavedTimer)) clearTimeout(justSavedTimer);
 });
 
-// Only the current user's own tile celebrates — identified by the `member_<id>`
-// column id the reviews table builds per member.
-const isJustSavedCell = (cell: Cell<DetailedReviewListItem, unknown>) =>
-  justSaved.value &&
-  isDefined(props.currentUserId) &&
-  cell.column.id === `member_${props.currentUserId}`;
+// Only the current user's own tile celebrates.
+const isJustSavedEntry = (entry: ScoreEntry) =>
+  justSaved.value && isDefined(props.currentUserId) && entry.memberId === props.currentUserId;
 
 const close = () => {
   emit("close");
@@ -526,7 +510,7 @@ const { share } = useShare();
 
 const shareReview = (id: string) => {
   const url = `${window.location.origin}/share/club/${clubId}/review/${id}`;
-  const title = String(props.movie.renderValue("title"));
+  const title = props.movie.title;
   const clubName = club.value?.clubName ?? "Movie Club";
 
   void share({
@@ -540,30 +524,15 @@ const toggleMovieReveal = (movieId: string) => {
   emit("toggle-reveal", movieId);
 };
 
-const shouldBlurScore = (rowId: string, columnId: string) => {
-  if (props.hasRated(rowId) || props.revealedMovieIds.has(rowId)) {
-    return false;
-  }
+const isRevealed = computed(
+  () => props.hasRated(props.movie.id) || props.revealedMovieIds.has(props.movie.id),
+);
 
-  if (columnId === `member_${props.currentUserId}`) {
-    return false;
-  }
-
-  return columnId.startsWith("member_") || columnId === "score_average";
-};
-
-const hasClubScoresToReveal = computed(() => {
-  return getVisibleCells(props.movie).some((cell) => {
-    const colId = cell.column.id;
-    if (colId === `member_${props.currentUserId}`) return false;
-    return colId.startsWith("member_") || colId === "score_average";
-  });
-});
-
-const showRevealPill = computed(() => {
-  if (props.hasRated(props.movie.id) || props.revealedMovieIds.has(props.movie.id)) return false;
-  return hasClubScoresToReveal.value;
-});
+const showRevealPill = computed(
+  () =>
+    !isRevealed.value &&
+    scoreEntries.value.some((entry) => isOthersScore(entry, props.currentUserId)),
+);
 
 const tmdbRevealed = ref(false);
 

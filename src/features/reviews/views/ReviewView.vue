@@ -45,7 +45,7 @@
       </div>
       <gallery-view
         v-else
-        :review-table="reviewTable"
+        :reviews="filteredReviews"
         :delete-review="deleteReview"
         :members="members"
         :revealed-movie-ids="revealedMovieIds"
@@ -57,16 +57,9 @@
   </div>
 </template>
 <script setup lang="ts">
-import {
-  createColumnHelper,
-  getCoreRowModel,
-  getSortedRowModel,
-  useVueTable,
-} from "@tanstack/vue-table";
-import { DateTime } from "luxon";
-import { computed, ref, h, provide } from "vue";
+import { computed, ref, provide } from "vue";
 
-import { hasValue, isDefined, isTrue } from "../../../../lib/checks/checks.js";
+import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import { ClubType } from "../../../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
 import GalleryView from "../components/GalleryView.vue";
@@ -74,12 +67,9 @@ import ReviewsSkeleton from "../components/ReviewsSkeleton.vue";
 import ScoreAssistModal from "../components/ScoreAssistModal.vue";
 import { buildCandidatePool, isScoreAssistEligible } from "../composables/scoreAssistLogic";
 import { ScoreAssistKey } from "../scoreAssist";
-import AverageImg from "@/assets/images/average.svg";
 import { clubTypeConfig } from "@/common/clubType";
 import EmptyState from "@/common/components/EmptyState.vue";
 import SearchFilterBar from "@/common/components/SearchFilterBar.vue";
-import VAvatar from "@/common/components/VAvatar.vue";
-import { firstName } from "@/common/memberName";
 import AddReviewPrompt from "@/features/reviews/components/AddReviewPrompt.vue";
 import { useClub, useMembers } from "@/service/useClub";
 import { useDeleteReview, useReviewsList, useReviewsListId } from "@/service/useList";
@@ -118,8 +108,6 @@ const noReviewsDescription = computed(() => {
   const noun = clubTypeConfig(club.value?.type ?? ClubType.movie).noun;
   return `Start building your club's ${noun} collection by adding your first review`;
 });
-
-const columnHelper = createColumnHelper<DetailedReviewListItem>();
 
 const members = computed(() => membersResponse.value ?? []);
 
@@ -174,144 +162,4 @@ const toggleReveal = (movieId: string) => {
   }
   revealedMovieIds.value = new Set(revealedMovieIds.value);
 };
-
-const shouldBlurScore = (rowId: string, columnId: string) => {
-  if (hasUserRated.value(rowId) || revealedMovieIds.value.has(rowId)) {
-    return false;
-  }
-
-  if (columnId === `member_${userId.value}`) {
-    return false;
-  }
-
-  return columnId.startsWith("member_") || columnId === "score_average";
-};
-
-const columns = computed(() => [
-  columnHelper.accessor("imageUrl", {
-    header: "Poster",
-  }),
-  columnHelper.accessor("title", {
-    header: "Title",
-  }),
-  columnHelper.accessor("createdDate", {
-    header: "Date Reviewed",
-    cell: (info) => DateTime.fromISO(info.getValue()).toLocaleString(),
-  }),
-  ...members.value.map((member) =>
-    columnHelper.accessor((row) => row.scores[member.id]?.score, {
-      id: `member_${member.id}`,
-      header: (context) => {
-        let size: number | undefined;
-        if (typeof context.meta?.size === "string") {
-          size = context.meta.size === "sm" ? 28 : undefined;
-        }
-
-        if (isTrue(context.meta?.showName)) {
-          return h("div", { class: "flex min-w-0 items-center gap-2" }, [
-            h(VAvatar, {
-              src: member.image,
-              name: member.name,
-              size,
-            }),
-            // Chips are narrow — the first name is enough to tell members
-            // apart, and the avatar carries the rest.
-            h("span", { class: "truncate" }, firstName(member.name)),
-          ]);
-        } else {
-          return h(VAvatar, {
-            src: member.image,
-            name: member.name,
-            size,
-          });
-        }
-      },
-      cell: (info) => {
-        const value = info.getValue();
-        if (value === undefined) return "";
-        const score = Math.round(value * 100) / 100;
-
-        const shouldBlur = shouldBlurScore(info.row.id, info.column.id);
-        // Gallery poster cards blur unrated scores but must not reveal them on
-        // click — reveal there flows through the details drawer's own pill.
-        const revealOnClick = shouldBlur && info.meta?.revealable !== false;
-
-        return h(
-          "div",
-          {
-            class: revealOnClick ? "cursor-pointer hover:text-xl" : "",
-            onClick: revealOnClick ? () => toggleReveal(info.row.id) : undefined,
-          },
-          // Read-only: score entry/editing happens through the details drawer's
-          // score CTA, not inline.
-          h(
-            "span",
-            {
-              class: shouldBlur
-                ? revealOnClick
-                  ? "filter blur cursor-pointer"
-                  : "filter blur"
-                : "",
-            },
-            score,
-          ),
-        );
-      },
-      sortUndefined: "last",
-    }),
-  ),
-  columnHelper.accessor((row) => row.scores.average?.score, {
-    id: "score_average",
-    header: (context) => {
-      let size = "w-16";
-      if (typeof context.meta?.size === "string") {
-        size = context.meta.size === "sm" ? "w-7 h-7" : "w-16";
-      }
-
-      if (isTrue(context.meta?.showName)) {
-        return h("div", { class: "flex min-w-0 items-center gap-2" }, [
-          h("img", { src: AverageImg, class: `${size} max-w-none` }),
-          h("span", { class: "truncate" }, "Average"),
-        ]);
-      } else {
-        return h("img", { src: AverageImg, class: `${size} max-w-none` });
-      }
-    },
-    cell: (info) => {
-      const review = info.getValue();
-      if (review === undefined) {
-        return "";
-      }
-
-      const shouldBlur = shouldBlurScore(info.row.id, info.column.id);
-      const revealOnClick = shouldBlur && info.meta?.revealable !== false;
-
-      return h(
-        "div",
-        {
-          class: shouldBlur
-            ? revealOnClick
-              ? "font-bold text-lg text-primary filter blur cursor-pointer"
-              : "font-bold text-lg text-primary filter blur"
-            : "font-bold text-lg text-primary",
-          onClick: revealOnClick ? () => toggleReveal(info.row.id) : undefined,
-        },
-        Math.round(review * 100) / 100,
-      );
-    },
-    sortUndefined: "last",
-  }),
-]);
-
-const reviewTable = useVueTable({
-  get columns() {
-    return columns.value;
-  },
-  get data() {
-    return filteredReviews.value ?? [];
-  },
-  getCoreRowModel: getCoreRowModel<DetailedReviewListItem>(),
-  getSortedRowModel: getSortedRowModel<DetailedReviewListItem>(),
-  getRowId: (row) => row.id,
-});
 </script>
