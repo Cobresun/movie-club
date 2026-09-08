@@ -58,7 +58,7 @@
       <router-link :to="{ name: 'Statistics' }">
         <menu-card :image="statisticsSvg"> Statistics </menu-card>
       </router-link>
-      <router-link v-if="isMovieClub && settings?.features?.awards" :to="{ name: 'Awards' }">
+      <router-link v-if="supportsAwards && settings?.features?.awards" :to="{ name: 'Awards' }">
         <menu-card :image="awardsSvg"> Awards </menu-card>
       </router-link>
     </div>
@@ -78,11 +78,11 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 
-import { ClubType } from "@/../lib/types/generated/db";
 import awardsSvg from "@/assets/images/menu-images/awards.svg";
 import reviewSvg from "@/assets/images/menu-images/review.svg";
 import statisticsSvg from "@/assets/images/menu-images/statistics.svg";
 import watchlistSvg from "@/assets/images/menu-images/watchlist.svg";
+import { clubTypeSupportsAwards } from "@/common/clubType";
 import MemberPillsSkeleton from "@/common/components/MemberPillsSkeleton.vue";
 import { useCopyInviteLink } from "@/common/composables/useCopyInviteLink";
 import { useMembers, useClub, useClubSlug, useClubSettings } from "@/service/useClub";
@@ -92,8 +92,9 @@ const { data: members, isLoading: isLoadingMembers } = useMembers(clubId);
 const { data: club } = useClub(clubId);
 const { data: settings } = useClubSettings(clubId);
 
-// Awards are movie-only for now; hide them for book clubs.
-const isMovieClub = computed(() => club.value?.type === ClubType.movie);
+const supportsAwards = computed(
+  () => club.value !== undefined && clubTypeSupportsAwards(club.value.type),
+);
 
 const showInviteModal = ref(false);
 const { inviteLinkInput, inviteLink, copyIcon, copyInviteLink } = useCopyInviteLink(clubId);

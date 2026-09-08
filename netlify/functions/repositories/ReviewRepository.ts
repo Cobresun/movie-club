@@ -59,17 +59,11 @@ class ReviewRepository {
       .execute();
   }
 
-  async insertReview(clubId: string, workId: string, userId: string, score: number) {
-    const listId = await db
-      .selectFrom("work_list")
-      .select("id")
-      .where("club_id", "=", clubId)
-      .where("system_type", "=", WorkListSystemType.reviews)
-      .executeTakeFirstOrThrow();
+  async insertReview(listId: string, workId: string, userId: string, score: number) {
     return db
       .insertInto("review")
       .values({
-        list_id: listId.id,
+        list_id: listId,
         work_id: workId,
         user_id: userId,
         score,
