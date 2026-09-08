@@ -40,7 +40,6 @@
 <script setup lang="ts">
 import { computed, onUnmounted, ref, watch } from "vue";
 
-import { closeAccountMenu, openAccountMenu, useAccountMenu } from "../composables/useAccountMenu";
 import AccountPanel from "./AccountPanel.vue";
 import VBottomSheet from "@/common/components/VBottomSheet.vue";
 import { useIsDesktop } from "@/common/composables/useIsDesktop";
@@ -50,21 +49,19 @@ import { useAuthStore } from "@/stores/auth";
 const store = useAuthStore();
 const user = useUser();
 const isDesktop = useIsDesktop();
-const isOpen = useAccountMenu();
+const isOpen = ref(false);
 
 const fullName = computed(() => store.user?.name ?? "");
 const avatarURL = computed(() => user.value?.image);
 
 const root = ref<HTMLElement | null>(null);
 
-const close = () => closeAccountMenu();
+const close = () => {
+  isOpen.value = false;
+};
 
 const toggle = () => {
-  if (isOpen.value) {
-    close();
-  } else {
-    openAccountMenu();
-  }
+  isOpen.value = !isOpen.value;
 };
 
 // The bottom sheet brings its own dismissal (grabber, backdrop, back button);
@@ -93,8 +90,7 @@ watch(
   { immediate: true },
 );
 
-// A logged-out user has no menu to show — and `/profile` may have opened it
-// before the session was known.
+// A logged-out user has no menu to show.
 watch(
   () => store.isLoggedIn,
   (loggedIn) => {
@@ -102,8 +98,5 @@ watch(
   },
 );
 
-onUnmounted(() => {
-  stopListening();
-  close();
-});
+onUnmounted(stopListening);
 </script>

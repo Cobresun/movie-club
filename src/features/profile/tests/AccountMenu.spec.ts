@@ -2,14 +2,15 @@ import type { TestingPinia } from "@pinia/testing";
 import type { UserEvent } from "@testing-library/user-event";
 import { screen, waitFor } from "@testing-library/vue";
 import { http, HttpResponse } from "msw";
+import { useRouter } from "vue-router";
 
 import AccountMenu from "../components/AccountMenu.vue";
 import { server } from "@/mocks/server";
 import { useAuthStore } from "@/stores/auth";
-import { logIn, render } from "@/tests/utils";
+import { logIn, render, setViewport } from "@/tests/utils";
 
-// `useIsDesktop` reads matchMedia, which setup.ts stubs as never matching, so
-// these exercise the mobile bottom-sheet container.
+// The shared setup leaves `useIsDesktop` on mobile, so these exercise the
+// bottom-sheet container.
 const renderMenu = () => {
   const { user, pinia } = render(AccountMenu);
   logIn(pinia);
@@ -134,24 +135,17 @@ describe("AccountMenu", () => {
     expect(await screen.findByRole("button", { name: /Edit name/ })).toBeInTheDocument();
   });
 
-  it("swaps to the password form in place, and back again", async () => {
+  it("leaves the menu for the password screen", async () => {
     const { user } = renderMenu();
     await open(user);
 
     await user.click(await screen.findByRole("button", { name: "Change password" }));
 
-    expect(await screen.findByLabelText("Current password")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Edit name/ })).not.toBeInTheDocument();
-    // The form replaces the panel's contents; the sheet holding it stays put.
-    expect(screen.getByRole("button", { name: "Account" })).toHaveAttribute(
-      "aria-expanded",
-      "true",
-    );
-
-    await user.click(screen.getByRole("button", { name: "Back to account" }));
-
-    expect(await screen.findByRole("button", { name: /Edit name/ })).toBeInTheDocument();
-    expect(screen.queryByLabelText("Current password")).not.toBeInTheDocument();
+    expect(vi.mocked(useRouter()).push.mock.calls).toContainEqual([{ name: "Profile" }]);
+    // The menu closes on its way out rather than lingering behind the screen.
+    await waitFor(() => {
+      expect(screen.queryByText("user@email.com")).not.toBeInTheDocument();
+    });
   });
 
   it("signs the user out", async () => {
@@ -165,22 +159,7 @@ describe("AccountMenu", () => {
 });
 
 describe("AccountMenu on desktop", () => {
-  const asDesktop = (matches: boolean) => {
-    vi.mocked(window.matchMedia).mockImplementation(
-      (query: string) =>
-        ({
-          matches,
-          media: query,
-          onchange: null,
-          addEventListener: vi.fn(),
-          removeEventListener: vi.fn(),
-          dispatchEvent: vi.fn(),
-        }) as unknown as MediaQueryList,
-    );
-  };
-
-  beforeEach(() => asDesktop(true));
-  afterEach(() => asDesktop(false));
+  beforeEach(() => setViewport(true));
 
   it("opens a popover anchored under the avatar", async () => {
     const { user } = renderMenu();

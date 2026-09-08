@@ -1,16 +1,5 @@
 <template>
   <div>
-    <div class="mb-4 flex items-center gap-1">
-      <button
-        class="-ml-2.5 flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full transition-colors duration-fast ease-standard hover:bg-white/10"
-        aria-label="Back to account"
-        @click="emit('back')"
-      >
-        <mdicon name="arrow-left" :size="24" class="text-white/60" />
-      </button>
-      <h2 class="flex-grow text-[17px] font-semibold text-text">Change password</h2>
-    </div>
-
     <div v-if="errorMessage" class="mb-4 rounded bg-red-900/50 p-3 text-sm text-red-300">
       {{ errorMessage }}
     </div>
@@ -105,8 +94,9 @@ import { useToast } from "vue-toastification";
 import { isDefined } from "../../../../lib/checks/checks.js";
 import { authClient } from "@/lib/auth-client";
 
+// The page that hosts the form decides where a successful change lands.
 const emit = defineEmits<{
-  (e: "back"): void;
+  (e: "done"): void;
 }>();
 
 const toast = useToast();
@@ -161,7 +151,7 @@ const handleSubmit = async () => {
     currentPassword.value = "";
     newPassword.value = "";
     showNewPassword.value = false;
-    emit("back");
+    emit("done");
   } catch {
     errorMessage.value = "An unexpected error occurred. Please try again.";
   } finally {

@@ -84,6 +84,24 @@ export const render = <C>(component: C, options: Partial<RenderOptions<C>> = {})
 };
 
 /**
+ * Points `useIsDesktop`'s media query at a viewport. It reads `matchMedia` in
+ * `onMounted`, so call this before `render` — the shared setup resets it to
+ * mobile between tests.
+ */
+export const setViewport = (isDesktop: boolean) => {
+  vi.mocked(window.matchMedia).mockImplementation((media: string) => ({
+    matches: isDesktop,
+    media,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(() => true),
+  }));
+};
+
+/**
  * Signs the mock member (`src/mocks/data/member.json`) in on a rendered
  * component's Pinia instance, so tests can exercise the paths that depend on
  * who is logged in — owning a comment, having scored a work.

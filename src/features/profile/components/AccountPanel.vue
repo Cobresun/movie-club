@@ -1,14 +1,11 @@
 <template>
-  <!-- Every secondary view — name editor, photo actions, password — swaps in
-       place rather than opening over the top, so nothing here ever unmounts the
-       sheet the user is standing in. Height is animated because a snap resize
-       inside a bottom sheet reads as the sheet jumping. -->
+  <!-- The quick edits — name, photo — swap in place rather than opening over
+       the top, so nothing here ever unmounts the sheet the user is standing in.
+       Changing a password is the one thing that leaves: it gets its own screen.
+       Height is animated because a snap resize inside a bottom sheet reads as
+       the sheet jumping. -->
   <AnimatedHeight>
-    <div v-if="view === 'password'" class="px-4 pb-1">
-      <ChangePasswordForm @back="view = 'main'" />
-    </div>
-
-    <div v-else-if="view === 'photo'">
+    <div v-if="view === 'photo'">
       <div class="flex items-center gap-1" :class="dense ? 'px-2 py-2' : 'px-2 pb-1'">
         <button
           class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full transition-colors duration-fast ease-standard hover:bg-white/10"
@@ -118,7 +115,7 @@
         </div>
       </div>
 
-      <button :class="rowClass" @click="view = 'password'">
+      <button :class="rowClass" @click="toPasswordScreen">
         <mdicon name="lock-outline" :size="iconSize" class="flex-shrink-0 text-white/60" />
         <span class="flex-grow">Change password</span>
         <mdicon name="chevron-right" :size="chevronSize" class="flex-shrink-0 text-white/35" />
@@ -138,10 +135,10 @@
 
 <script setup lang="ts">
 import { computed, ref, useTemplateRef } from "vue";
+import { useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
 
 import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
-import ChangePasswordForm from "../../auth/components/ChangePasswordForm.vue";
 import AnimatedHeight from "@/common/components/AnimatedHeight.vue";
 import { useDeleteAvatar, useUpdateAvatar, useUpdateName, useUser } from "@/service/useUser";
 import { useAuthStore } from "@/stores/auth";
@@ -161,10 +158,11 @@ const emit = defineEmits<{
 const MAX_AVATAR_BYTES = 6 * 1024 * 1024;
 
 const authStore = useAuthStore();
+const router = useRouter();
 const toast = useToast();
 const user = useUser();
 
-const view = ref<"main" | "photo" | "password">("main");
+const view = ref<"main" | "photo">("main");
 const hasPhoto = computed(() => hasValue(user.value?.image));
 
 const rowClass = computed(() =>
@@ -265,6 +263,20 @@ const saveName = () => {
       nameError.value = error instanceof Error ? error.message : "Failed to update name";
     },
   });
+};
+
+// ── Password ───────────────────────────────────────────────────────────────
+// A security form deserves a screen rather than a 300px popover column, so this
+// is the one row that leaves the menu. Close only once the navigation resolves:
+// unmounting the sheet first lets `useBackButtonClose` pop its synthetic history
+// entry and cancel the navigation.
+const toPasswordScreen = () => {
+  router
+    .push({ name: "Profile" })
+    .then(() => {
+      emit("close");
+    })
+    .catch(console.error);
 };
 
 // ── Session ────────────────────────────────────────────────────────────────
