@@ -120,7 +120,7 @@ import { clubTypeConfig, type FilterOption } from "../clubType";
 import { useIsDesktop } from "../composables/useIsDesktop.js";
 import { filterWorks } from "../filterWorks";
 import FilterPanelContent from "./FilterPanelContent.vue";
-import type { Comparator, YearRange } from "./filterTypes";
+import type { Comparator, FilterOptionType, YearRange } from "./filterTypes";
 import VBottomSheet from "./VBottomSheet.vue";
 
 // Component props
@@ -194,7 +194,7 @@ const searchTerm = ref("");
 interface AppliedFilter {
   key: string;
   label: string;
-  type: "string" | "number" | "date" | "enum" | "year";
+  type: FilterOptionType;
   operator?: Comparator;
   value: string;
   range?: YearRange;

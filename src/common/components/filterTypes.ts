@@ -10,9 +10,17 @@ export interface YearRange {
   to: number;
 }
 
+/**
+ * The shapes of filter a club type may offer, each with its own form in
+ * FilterPanelContent. Declared once here and reused by the registry's
+ * FilterOption and by the applied-filter pills, so a new type can't be added to
+ * one and forgotten in the others.
+ */
+export type FilterOptionType = "number" | "date" | "enum" | "year";
+
 export interface FilterOption {
   key: string;
   label: string;
-  type: "string" | "number" | "date" | "enum" | "year";
+  type: FilterOptionType;
   placeholder?: string;
 }

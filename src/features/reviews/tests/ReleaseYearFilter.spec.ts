@@ -111,9 +111,7 @@ describe("Release Year filter", () => {
     const from = Number(
       (await screen.findByRole<HTMLInputElement>("spinbutton", { name: "From year" })).value,
     );
-    const to = Number(
-      screen.getByRole<HTMLInputElement>("spinbutton", { name: "To year" }).value,
-    );
+    const to = Number(screen.getByRole<HTMLInputElement>("spinbutton", { name: "To year" }).value);
     expect(from).toBeLessThan(to);
 
     expect(screen.getByRole("slider", { name: "From year slider" })).toHaveValue(String(from));

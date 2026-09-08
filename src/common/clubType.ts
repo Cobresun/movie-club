@@ -6,6 +6,7 @@ import { GoogleBooksSearchResponse, GoogleBooksVolume } from "@/../lib/types/boo
 import { ClubType, WorkType } from "@/../lib/types/generated/db";
 import { DetailedWorkListItem, WorkDataSummary } from "@/../lib/types/lists";
 import { TMDBPageResponse } from "@/../lib/types/movie";
+import type { FilterOptionType } from "@/common/components/filterTypes";
 import {
   dateMatcher,
   enumMatcher,
@@ -95,7 +96,7 @@ async function searchBooks(query: string, signal?: AbortSignal): Promise<WorkSea
 export interface FilterOption {
   readonly key: string;
   readonly label: string;
-  readonly type: "enum" | "number" | "date" | "year";
+  readonly type: FilterOptionType;
   readonly placeholder: string;
   /**
    * Decides whether a work row satisfies this filter. Owning the predicate here
