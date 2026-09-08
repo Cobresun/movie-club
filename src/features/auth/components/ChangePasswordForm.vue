@@ -94,11 +94,6 @@ import { useToast } from "vue-toastification";
 import { isDefined } from "../../../../lib/checks/checks.js";
 import { authClient } from "@/lib/auth-client";
 
-// The page that hosts the form decides where a successful change lands.
-const emit = defineEmits<{
-  (e: "done"): void;
-}>();
-
 const toast = useToast();
 
 const currentPassword = ref("");
@@ -151,7 +146,6 @@ const handleSubmit = async () => {
     currentPassword.value = "";
     newPassword.value = "";
     showNewPassword.value = false;
-    emit("done");
   } catch {
     errorMessage.value = "An unexpected error occurred. Please try again.";
   } finally {

@@ -1,4 +1,5 @@
 import {
+  mdiAccountOutline,
   mdiAccountStar,
   mdiAlertCircle,
   mdiAlertOutline,
@@ -13,7 +14,6 @@ import {
   mdiBookshelf,
   mdiCakeVariant,
   mdiCalendarStar,
-  mdiCamera,
   mdiCheck,
   mdiChevronDown,
   mdiChevronLeft,
@@ -36,9 +36,7 @@ import {
   mdiFilmstrip,
   mdiHistory,
   mdiImageMultiple,
-  mdiImageOutline,
   mdiLoading,
-  mdiLockOutline,
   mdiLogout,
   mdiMagnify,
   mdiMedal,
@@ -97,6 +95,7 @@ import {
  * test, but any other dynamic icon name must be registered here by hand.
  */
 export const icons = {
+  mdiAccountOutline,
   mdiAccountStar,
   mdiAlertCircle,
   mdiAlertOutline,
@@ -111,7 +110,6 @@ export const icons = {
   mdiBookshelf,
   mdiCakeVariant,
   mdiCalendarStar,
-  mdiCamera,
   mdiCheck,
   mdiChevronDown,
   mdiChevronLeft,
@@ -134,9 +132,7 @@ export const icons = {
   mdiFilmstrip,
   mdiHistory,
   mdiImageMultiple,
-  mdiImageOutline,
   mdiLoading,
-  mdiLockOutline,
   mdiLogout,
   mdiMagnify,
   mdiMedal,

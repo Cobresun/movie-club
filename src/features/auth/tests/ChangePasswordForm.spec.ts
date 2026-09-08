@@ -68,11 +68,8 @@ describe("ChangePasswordForm", () => {
     ).toBeInTheDocument();
   });
 
-  it("emits done on a successful password change", async () => {
-    // `emitted` stays on the render result rather than being destructured, so
-    // oxlint's unbound-method rule doesn't flag it.
-    const form = render(ChangePasswordForm);
-    const user = form.user;
+  it("empties the fields on a successful password change", async () => {
+    const { user } = render(ChangePasswordForm);
 
     await user.type(screen.getByLabelText("Current password"), "oldpass1");
     await user.type(screen.getByLabelText("New password"), "newpass123");
@@ -80,8 +77,9 @@ describe("ChangePasswordForm", () => {
     await user.click(screen.getByRole("button", { name: "Update password" }));
 
     await vi.waitFor(() => {
-      expect(form.emitted()).toHaveProperty("done");
+      expect(screen.getByLabelText("Current password")).toHaveValue("");
     });
+    expect(screen.getByLabelText("New password")).toHaveValue("");
   });
 
   it("shows error message when API returns an incorrect password error", async () => {
