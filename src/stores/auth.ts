@@ -127,8 +127,12 @@ export const useAuthStore = defineStore("auth", () => {
     }
   };
 
+  // Profile edits write the user row directly, so the signed session_data
+  // cookie keeps describing the old name and avatar until it expires.
+  // `disableCookieCache` makes get-session read the database — and rewrite the
+  // cookie — so the refreshed session is the one that was just saved.
   const refreshSession = async () => {
-    await session.value.refetch();
+    await session.value.refetch({ query: { disableCookieCache: true } });
   };
 
   // Held as state, and not merely awaited, because App.vue's loading gate has

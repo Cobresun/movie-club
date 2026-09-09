@@ -104,6 +104,30 @@ describe("the signed-in hint", () => {
   });
 });
 
+describe("refreshSession", () => {
+  it("shows the avatar the member just saved rather than the cached one", async () => {
+    // The session endpoint behaves like BetterAuth's: the signed cookie cache
+    // answers, still carrying the old avatar, until a caller asks for it to be
+    // bypassed and the database — where the upload landed — answers instead.
+    const cached = { session: { id: "s-1" }, user: { id: "u-1", image: "https://img/old.png" } };
+    const saved = { session: { id: "s-1" }, user: { id: "u-1", image: "https://img/new.png" } };
+    server.use(
+      http.get("/api/auth/get-session", ({ request }) =>
+        HttpResponse.json(
+          new URL(request.url).searchParams.get("disableCookieCache") === "true" ? saved : cached,
+        ),
+      ),
+    );
+
+    const store = mountAuthStore();
+    await vi.waitFor(() => expect(store.user?.image).toBe("https://img/old.png"));
+
+    await store.refreshSession();
+
+    expect(store.user?.image).toBe("https://img/new.png");
+  });
+});
+
 describe("navigateAfterAuth", () => {
   // The suite-wide router mock from src/tests/setup.ts, cleared between tests.
   const router = () => vi.mocked(useRouter());

@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "@tanstack/vue-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
 import { computed } from "vue";
 
 import { ClubPreview, User } from "../../lib/types/club";
@@ -51,8 +51,24 @@ export function useMemberScores() {
   });
 }
 
+/**
+ * What a profile edit changes beyond the row it wrote: the session the whole
+ * app reads its own name and avatar from, and the member lists every club
+ * renders them in.
+ */
+function useProfileRefresh() {
+  const auth = useAuthStore();
+  const queryClient = useQueryClient();
+
+  return () => {
+    auth.refreshSession().catch(console.error);
+    queryClient.invalidateQueries(["members"]).catch(console.error);
+  };
+}
+
 export function useUpdateAvatar() {
   const auth = useAuthStore();
+  const refreshProfile = useProfileRefresh();
   return useMutation({
     mutationFn: async (formData: FormData) =>
       await auth.request.post(`/api/member/avatar`, formData, {
@@ -60,31 +76,24 @@ export function useUpdateAvatar() {
           "Content-Type": "multipart/form-data",
         },
       }),
-    onSettled: () => {
-      // Refresh session to get updated user data
-      auth.refreshSession().catch(console.error);
-    },
+    onSettled: refreshProfile,
   });
 }
 
 export function useDeleteAvatar() {
   const auth = useAuthStore();
+  const refreshProfile = useProfileRefresh();
   return useMutation({
     mutationFn: async () => await auth.request.delete(`/api/member/avatar`),
-    onSettled: () => {
-      // Refresh session to get updated user data
-      auth.refreshSession().catch(console.error);
-    },
+    onSettled: refreshProfile,
   });
 }
 
 export function useUpdateName() {
   const auth = useAuthStore();
+  const refreshProfile = useProfileRefresh();
   return useMutation({
     mutationFn: async (name: string) => await auth.request.put(`/api/member/name`, { name }),
-    onSettled: () => {
-      // Refresh session to get updated user data
-      auth.refreshSession().catch(console.error);
-    },
+    onSettled: refreshProfile,
   });
 }
