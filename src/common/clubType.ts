@@ -139,6 +139,8 @@ export interface ClubTypeConfig {
   readonly search: (query: string, signal?: AbortSignal) => Promise<WorkSearchResult[]>;
   /** Copy and icons for the statistics feature. */
   readonly stats: StatsConfig;
+  /** Whether this club type can use the awards feature. */
+  readonly supportsAwards: boolean;
   /** Per-type extraction of the strings shown in the details drawers. */
   readonly display: WorkDisplay;
   /**
@@ -527,6 +529,7 @@ export const CLUB_TYPE_CONFIG: Record<ClubType, ClubTypeConfig> = {
       countIcon: "filmstrip",
       shareTitle: "Movie Club Statistics",
     },
+    supportsAwards: true,
     display: movieDisplay,
     makeSimilarity: makeMovieSimilarity,
   },
@@ -563,6 +566,7 @@ export const CLUB_TYPE_CONFIG: Record<ClubType, ClubTypeConfig> = {
       countIcon: "book-open-page-variant-outline",
       shareTitle: "Book Club Statistics",
     },
+    supportsAwards: false,
     display: bookDisplay,
     makeSimilarity: makeBookSimilarity,
   },
@@ -590,6 +594,11 @@ export function clubTypeLabel(type: ClubType): string {
 /** Statistics-feature copy and icons for a club's media type. */
 export function clubTypeStats(type: ClubType): StatsConfig {
   return clubTypeConfig(type).stats;
+}
+
+/** Whether a club's media type can use the awards feature. */
+export function clubTypeSupportsAwards(type: ClubType): boolean {
+  return clubTypeConfig(type).supportsAwards;
 }
 
 // A work self-identifies its media type via `externalData.kind`, so display

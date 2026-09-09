@@ -68,7 +68,7 @@ router.post("/", secured, async ({ clubId, userId, event }, res) => {
     return res(badRequest("This movie does not exist in the list"));
   }
 
-  await ReviewRepository.insertReview(clubId, workId, userId, score);
+  await ReviewRepository.insertReview(reviewsListId, workId, userId, score);
   return res(ok());
 });
 

@@ -4,6 +4,14 @@ import { isDefined } from "../../../lib/checks/checks";
 import { ClubType, WorkListSystemType } from "../../../lib/types/generated/db";
 import { db } from "../utils/database";
 
+// The name of a club's default user-facing list, keyed by club type — a
+// feature-local registry (see code-quality.md) so a new club type won't
+// compile until it has a title here.
+const DEFAULT_LIST_TITLE: Record<ClubType, string> = {
+  [ClubType.movie]: "Watch List",
+  [ClubType.book]: "Reading List",
+};
+
 class ListRepository {
   // -- List CRUD --------------------------------------------------------
 
@@ -71,11 +79,10 @@ class ListRepository {
    * awards features.
    */
   async createListsForClub(clubId: string, clubType: ClubType) {
-    const defaultListTitle = clubType === ClubType.book ? "Reading List" : "Watch List";
     return db
       .insertInto("work_list")
       .values([
-        { club_id: clubId, title: defaultListTitle },
+        { club_id: clubId, title: DEFAULT_LIST_TITLE[clubType] },
         {
           club_id: clubId,
           title: "Reviews",
