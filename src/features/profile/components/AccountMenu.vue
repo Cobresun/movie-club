@@ -67,7 +67,9 @@ const toggle = () => {
 // The bottom sheet brings its own dismissal (grabber, backdrop, back button);
 // the desktop popover has to grow its own.
 const onPointerDown = (event: PointerEvent) => {
-  if (!root.value?.contains(event.target as Node)) close();
+  const target = event.target;
+  const insideMenu = target instanceof Node && root.value?.contains(target) === true;
+  if (!insideMenu) close();
 };
 
 const onKeyDown = (event: KeyboardEvent) => {

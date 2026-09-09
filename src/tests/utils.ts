@@ -17,6 +17,7 @@ import VBtn from "@/common/components/VBtn.vue";
 import VModal from "@/common/components/VModal.vue";
 import VSelect from "@/common/components/VSelect.vue";
 import VSwitch from "@/common/components/VSwitch.vue";
+import VTextField from "@/common/components/VTextField.vue";
 import LazyLoad from "@/directives/LazyLoad";
 import Reveal from "@/directives/Reveal";
 import MenuCard from "@/features/clubs/components/MenuCard.vue";
@@ -42,6 +43,7 @@ export const render = <C>(component: C, options: Partial<RenderOptions<C>> = {})
           "v-btn": VBtn,
           "v-select": VSelect,
           "v-switch": VSwitch,
+          "v-text-field": VTextField,
           "empty-state": EmptyState,
           "loading-spinner": LoadingSpinner,
           "menu-card": MenuCard,

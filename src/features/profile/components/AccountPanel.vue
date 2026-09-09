@@ -39,7 +39,7 @@
       @click="toProfile"
     >
       <mdicon name="account-outline" :size="dense ? 18 : 22" class="flex-shrink-0 text-white/60" />
-      <span class="flex-grow">Edit profile</span>
+      <span class="flex-grow">Profile</span>
       <mdicon name="chevron-right" :size="dense ? 16 : 20" class="flex-shrink-0 text-white/35" />
     </button>
 

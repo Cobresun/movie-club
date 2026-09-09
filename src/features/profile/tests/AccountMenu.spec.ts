@@ -49,7 +49,7 @@ describe("AccountMenu", () => {
 
     await open(user);
 
-    expect(await screen.findByRole("button", { name: "Edit profile" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Profile" })).toBeInTheDocument();
     expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
   });
 
@@ -57,7 +57,7 @@ describe("AccountMenu", () => {
     const { user } = renderMenu();
     await open(user);
 
-    await user.click(await screen.findByRole("button", { name: "Edit profile" }));
+    await user.click(await screen.findByRole("button", { name: "Profile" }));
 
     expect(vi.mocked(useRouter()).push.mock.calls).toContainEqual([{ name: "Profile" }]);
     // The menu closes on its way out rather than lingering behind the screen.

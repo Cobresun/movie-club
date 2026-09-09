@@ -16,7 +16,7 @@ describe("ProfileView", () => {
   it("gathers photo, name and password onto one screen", async () => {
     renderProfile();
 
-    expect(screen.getByRole("heading", { name: "Edit profile" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Profile" })).toBeInTheDocument();
     expect(await screen.findByRole("button", { name: "Change photo" })).toBeInTheDocument();
     expect(screen.getByLabelText("Your name")).toBeInTheDocument();
     expect(screen.getByLabelText("Current password")).toBeInTheDocument();

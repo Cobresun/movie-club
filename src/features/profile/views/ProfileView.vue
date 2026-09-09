@@ -1,11 +1,36 @@
 <template>
   <div>
-    <page-header has-back back-route="Clubs" page-name="Edit profile" hide-club />
+    <page-header has-back back-route="Clubs" page-name="Profile" hide-club />
 
     <div class="mx-auto w-full max-w-md px-4 pb-8">
       <section class="flex flex-col items-center gap-4 pt-2">
         <div class="relative">
-          <v-avatar :src="user?.image" :name="user?.name ?? ''" :size="96" />
+          <button
+            class="group relative block rounded-full disabled:cursor-not-allowed"
+            aria-label="Change photo"
+            :disabled="isPhotoPending"
+            @click="openFileSelector"
+          >
+            <v-avatar :src="user?.image" :name="user?.name ?? ''" :size="120" />
+            <!-- A badge rather than a hover scrim: a touch screen never reports
+                 a hover, and the pencil is the only thing saying the avatar is
+                 a control. -->
+            <span
+              class="absolute bottom-0 right-0 flex h-9 w-9 items-center justify-center rounded-full bg-lowBackground text-white ring-2 ring-background transition-colors duration-fast ease-standard group-hover:bg-white/20"
+            >
+              <mdicon name="pencil" :size="20" />
+            </span>
+          </button>
+
+          <button
+            v-if="hasPhoto && !isPhotoPending"
+            class="absolute right-0 top-0 flex h-9 w-9 items-center justify-center rounded-full bg-red-500 text-white ring-2 ring-background transition-colors duration-fast ease-standard hover:bg-red-600"
+            aria-label="Remove photo"
+            @click="removePhoto"
+          >
+            <mdicon name="close" :size="22" />
+          </button>
+
           <span
             v-if="isPhotoPending"
             class="absolute inset-0 flex items-center justify-center rounded-full bg-black/40"
@@ -16,46 +41,21 @@
           </span>
         </div>
 
-        <div class="flex gap-3">
-          <button
-            class="flex min-h-[44px] items-center justify-center rounded-md px-4 text-[15px] font-semibold ring-1 ring-inset ring-white/[0.12] transition-colors duration-fast ease-standard hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
-            :disabled="isPhotoPending"
-            @click="openFileSelector"
-          >
-            Change photo
-          </button>
-          <button
-            v-if="hasPhoto"
-            class="flex min-h-[44px] items-center justify-center rounded-md px-4 text-[15px] font-semibold text-red-400 ring-1 ring-inset ring-white/[0.12] transition-colors duration-fast ease-standard hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
-            :disabled="isPhotoPending"
-            @click="removePhoto"
-          >
-            Remove photo
-          </button>
-        </div>
-
-        <p class="text-xs text-white/40">Up to 6&nbsp;MB. Square images look best.</p>
+        <p class="text-xs text-white/40">Up to 6&nbsp;MB.</p>
       </section>
 
       <section class="mt-6 border-t border-white/10 pt-5">
         <h2 class="pb-3 text-[11px] font-semibold uppercase tracking-widest text-white/45">Name</h2>
 
         <form class="flex flex-col gap-4" @submit.prevent="saveName">
-          <div class="flex flex-col gap-1.5">
-            <label for="profile-name" class="text-[13px] font-medium text-white/60"
-              >Your name</label
-            >
-            <input
-              id="profile-name"
-              v-model="editedName"
-              type="text"
-              class="min-h-[50px] rounded-[10px] bg-lowBackground px-3.5 text-[15px] text-white placeholder-white/35 ring-1 ring-inset ring-white/[0.12] focus:outline-none focus:ring-2 focus:ring-primary"
-              placeholder="Enter your name"
-              maxlength="100"
-            />
-            <p v-if="nameError" class="text-sm text-red-400">{{ nameError }}</p>
-            <p v-else class="text-xs text-white/40">Shown to everyone in your clubs</p>
-          </div>
+          <v-text-field
+            v-model="editedName"
+            label="Your name"
+            placeholder="Enter your name"
+            :maxlength="100"
+            hint="Shown to everyone in your clubs"
+            :error="nameError"
+          />
 
           <v-btn type="submit" class="min-h-[52px] w-full" :disabled="isNamePending">
             Save name
@@ -105,7 +105,8 @@ const openFileSelector = () => {
 };
 
 const uploadAvatar = (event: Event) => {
-  const input = event.target as HTMLInputElement;
+  const input = event.target;
+  if (!(input instanceof HTMLInputElement)) return;
   if (!isDefined(input.files) || input.files.length === 0) return;
 
   const file = input.files[0];

@@ -5,52 +5,24 @@
     </div>
 
     <form class="flex flex-col gap-4" @submit.prevent="handleSubmit">
-      <div class="flex flex-col gap-1.5">
-        <label for="currentPassword" class="text-[13px] font-medium text-white/60">
-          Current password
-        </label>
-        <input
-          id="currentPassword"
-          v-model="currentPassword"
-          type="password"
-          required
-          :class="fieldClass"
-          placeholder="Enter current password"
-        />
-      </div>
+      <v-text-field
+        v-model="currentPassword"
+        label="Current password"
+        type="password"
+        required
+        placeholder="Enter current password"
+      />
 
-      <div class="flex flex-col gap-1.5">
-        <label for="newPassword" class="text-[13px] font-medium text-white/60">New password</label>
-        <!-- A reveal toggle in place of a confirm field: it catches the same
-             typos without a second box to fill in and mismatch. -->
-        <div
-          class="flex items-center gap-1 rounded-[10px] bg-lowBackground pr-1.5 ring-1 ring-inset ring-white/[0.12] focus-within:ring-2 focus-within:ring-primary"
-        >
-          <input
-            id="newPassword"
-            v-model="newPassword"
-            :type="showNewPassword ? 'text' : 'password'"
-            required
-            minlength="8"
-            class="min-h-[50px] flex-grow bg-transparent px-3.5 text-[15px] text-white placeholder-white/35 focus:outline-none"
-            placeholder="At least 8 characters"
-          />
-          <button
-            type="button"
-            class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg transition-colors duration-fast ease-standard hover:bg-white/10"
-            :aria-label="showNewPassword ? 'Hide password' : 'Show password'"
-            :aria-pressed="showNewPassword"
-            @click="showNewPassword = !showNewPassword"
-          >
-            <mdicon
-              :name="showNewPassword ? 'eye-off-outline' : 'eye-outline'"
-              :size="21"
-              class="text-highlight"
-            />
-          </button>
-        </div>
-        <p class="text-xs text-white/40">At least 8 characters.</p>
-      </div>
+      <v-text-field
+        v-model="newPassword"
+        label="New password"
+        type="password"
+        required
+        revealable
+        :minlength="8"
+        placeholder="At least 8 characters"
+        hint="At least 8 characters."
+      />
 
       <label
         class="-mx-2 flex min-h-[56px] cursor-pointer items-center gap-3 rounded-lg border-t border-white/10 px-2 transition-colors duration-fast ease-standard hover:bg-white/5"
@@ -98,13 +70,9 @@ const toast = useToast();
 
 const currentPassword = ref("");
 const newPassword = ref("");
-const showNewPassword = ref(false);
 const revokeOtherSessions = ref(true);
 const isLoading = ref(false);
 const errorMessage = ref("");
-
-const fieldClass =
-  "min-h-[50px] rounded-[10px] bg-lowBackground px-3.5 text-[15px] text-white placeholder-white/35 ring-1 ring-inset ring-white/[0.12] focus:outline-none focus:ring-2 focus:ring-primary";
 
 const handleSubmit = async () => {
   errorMessage.value = "";
@@ -145,7 +113,6 @@ const handleSubmit = async () => {
     toast.success("Password changed successfully");
     currentPassword.value = "";
     newPassword.value = "";
-    showNewPassword.value = false;
   } catch {
     errorMessage.value = "An unexpected error occurred. Please try again.";
   } finally {
