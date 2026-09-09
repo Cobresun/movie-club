@@ -2,25 +2,9 @@ import { screen } from "@testing-library/vue";
 
 import ReviewView from "../views/ReviewView.vue";
 import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
-import { render } from "@/tests/utils";
+import { render, setViewport } from "@/tests/utils";
 
 mockIntersectionObserver();
-
-// useIsDesktop() reads window.matchMedia("(min-width: 768px)") in onMounted, so the
-// mock must be set before render(). The shared setup defaults to matches:false (mobile).
-function setViewport(isDesktop: boolean) {
-  Object.defineProperty(window, "matchMedia", {
-    writable: true,
-    value: vi.fn().mockImplementation((query: string) => ({
-      matches: isDesktop,
-      media: query,
-      onchange: null,
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-      dispatchEvent: vi.fn(),
-    })),
-  });
-}
 
 // The bottom sheet (VBottomSheet) is the only container with this rounded-top class;
 // the desktop popover panel uses rounded-lg. Used to tell the two apart.

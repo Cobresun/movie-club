@@ -22,6 +22,7 @@ import VBtn from "@/common/components/VBtn.vue";
 import VModal from "@/common/components/VModal.vue";
 import VSelect from "@/common/components/VSelect.vue";
 import VSwitch from "@/common/components/VSwitch.vue";
+import VTextField from "@/common/components/VTextField.vue";
 import MenuCard from "@/features/clubs/components/MenuCard.vue";
 
 import "./assets/styles/tailwind.css";
@@ -89,6 +90,7 @@ createApp(App)
   .component("v-btn", VBtn)
   .component("v-select", VSelect)
   .component("v-switch", VSwitch)
+  .component("v-text-field", VTextField)
   .component("loading-spinner", Loading)
   .component("menu-card", MenuCard)
   .component("v-modal", VModal)

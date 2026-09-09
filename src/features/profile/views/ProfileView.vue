@@ -1,156 +1,155 @@
 <template>
-  <div class="flex flex-col items-center gap-8 p-8">
-    <!-- Profile Info Section -->
-    <div class="flex w-full max-w-5xl flex-col-reverse items-center justify-between md:flex-row">
-      <div class="text-left">
-        <p class="text-lg font-semibold">Name:</p>
-        <div v-if="!isEditingName" class="mb-2 flex items-center gap-2">
-          <p>{{ data?.name }}</p>
+  <div>
+    <page-header has-back back-route="Clubs" page-name="Profile" hide-club />
+
+    <div class="mx-auto w-full max-w-md px-4 pb-8">
+      <section class="flex flex-col items-center gap-4 pt-2">
+        <div class="relative">
           <button
-            class="text-gray-400 transition-colors hover:text-primary"
-            title="Edit name"
-            @click="startEditingName"
+            class="group relative block rounded-full disabled:cursor-not-allowed"
+            aria-label="Change photo"
+            :disabled="isPhotoPending"
+            @click="openFileSelector"
           >
-            <mdicon name="pencil" size="20" />
+            <v-avatar :src="user?.image" :name="user?.name ?? ''" :size="120" />
+            <!-- A badge rather than a hover scrim: a touch screen never reports
+                 a hover, and the pencil is the only thing saying the avatar is
+                 a control. -->
+            <span
+              class="absolute bottom-0 right-0 flex h-9 w-9 items-center justify-center rounded-full bg-lowBackground text-white ring-2 ring-background transition-colors duration-fast ease-standard group-hover:bg-white/20"
+            >
+              <mdicon name="pencil" :size="20" />
+            </span>
           </button>
-        </div>
-        <div v-else class="mb-2 flex flex-col gap-2">
-          <div class="flex items-center gap-2">
-            <input
-              v-model="editedName"
-              type="text"
-              class="rounded border border-gray-600 bg-gray-700 px-3 py-1 text-white placeholder-gray-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-              placeholder="Enter your name"
-              maxlength="100"
-              @keyup.enter="saveName"
-              @keyup.escape="cancelEditingName"
-            />
-            <button
-              class="text-green-500 transition-colors hover:text-green-400"
-              title="Save"
-              :disabled="isNamePending"
-              @click="saveName"
-            >
-              <mdicon name="check" size="24" />
-            </button>
-            <button
-              class="text-red-500 transition-colors hover:text-red-400"
-              title="Cancel"
-              :disabled="isNamePending"
-              @click="cancelEditingName"
-            >
-              <mdicon name="close" size="24" />
-            </button>
-          </div>
-          <p v-if="nameError" class="text-sm text-red-400">{{ nameError }}</p>
-        </div>
-        <p class="text-lg font-semibold">Email:</p>
-        <p>{{ data?.email }}</p>
-      </div>
-      <div class="relative">
-        <input ref="fileInput" type="file" hidden @change="uploadAvatar" />
-        <button class="group relative cursor-pointer" @click="openFileSelector">
-          <v-avatar class="mb-4 md:mb-0" :src="data?.image" :name="data?.name" size="160" />
-          <div
-            class="absolute left-0 top-0 h-full w-full items-center justify-center rounded-full bg-black bg-opacity-30"
-            :class="{ flex: isLoading, 'hidden group-hover:flex': !isLoading }"
+
+          <button
+            v-if="hasPhoto && !isPhotoPending"
+            class="absolute right-0 top-0 flex h-9 w-9 items-center justify-center rounded-full bg-red-500 text-white ring-2 ring-background transition-colors duration-fast ease-standard hover:bg-red-600"
+            aria-label="Remove photo"
+            @click="removePhoto"
           >
-            <loading-spinner v-if="isLoading" />
-            <mdicon v-else name="pencil" size="32" />
-          </div>
-        </button>
-        <button
-          v-if="data?.image && !isLoading"
-          class="absolute right-0 top-0 flex h-10 w-10 items-center justify-center rounded-full bg-red-500 text-white shadow-lg transition-colors hover:bg-red-600"
-          title="Delete photo"
-          @click="handleDeleteAvatar"
-        >
-          <mdicon name="close" size="24" />
-        </button>
-      </div>
+            <mdicon name="close" :size="22" />
+          </button>
+
+          <span
+            v-if="isPhotoPending"
+            class="absolute inset-0 flex items-center justify-center rounded-full bg-black/40"
+            role="status"
+            aria-label="Updating photo"
+          >
+            <mdicon name="loading" :size="32" class="animate-spin" />
+          </span>
+        </div>
+
+        <p class="text-xs text-white/40">Up to 6&nbsp;MB.</p>
+      </section>
+
+      <section class="mt-6 border-t border-white/10 pt-5">
+        <h2 class="pb-3 text-[11px] font-semibold uppercase tracking-widest text-white/45">Name</h2>
+
+        <form class="flex flex-col gap-4" @submit.prevent="saveName">
+          <v-text-field
+            v-model="editedName"
+            label="Your name"
+            placeholder="Enter your name"
+            :maxlength="100"
+            hint="Shown to everyone in your clubs"
+            :error="nameError"
+          />
+
+          <v-btn type="submit" class="min-h-[52px] w-full" :disabled="isNamePending">
+            Save name
+          </v-btn>
+        </form>
+      </section>
+
+      <section class="mt-6 border-t border-white/10 pt-5">
+        <h2 class="pb-3 text-[11px] font-semibold uppercase tracking-widest text-white/45">
+          Password
+        </h2>
+        <ChangePasswordForm />
+      </section>
     </div>
 
-    <!-- Change Password Section -->
-    <div class="w-full max-w-md">
-      <v-btn @click="showPasswordModal = true">Change Password</v-btn>
-    </div>
-
-    <!-- Change Password Modal -->
-    <v-modal v-if="showPasswordModal" @close="showPasswordModal = false">
-      <ChangePasswordForm />
-    </v-modal>
+    <input ref="fileInput" type="file" accept="image/*" hidden @change="uploadAvatar" />
   </div>
 </template>
+
 <script setup lang="ts">
-import { computed, ref, Ref } from "vue";
+import { computed, ref, useTemplateRef, watch } from "vue";
 import { useToast } from "vue-toastification";
 
-import { isDefined, hasValue } from "../../../../lib/checks/checks.js";
+import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import ChangePasswordForm from "../../auth/components/ChangePasswordForm.vue";
-import { useUser, useUpdateAvatar, useDeleteAvatar, useUpdateName } from "@/service/useUser";
+import { useDeleteAvatar, useUpdateAvatar, useUpdateName, useUser } from "@/service/useUser";
 
-const data = useUser();
-const fileInput: Ref<HTMLInputElement | null> = ref(null);
-const showPasswordModal = ref(false);
+/**
+ * Everything about the signed-in member that they can change, on one screen.
+ * The account menu in the nav bar only points here: a security form, and a
+ * field the mobile keyboard covers, both want a page rather than a sheet.
+ */
+const MAX_AVATAR_BYTES = 6 * 1024 * 1024;
 
-// Name editing state
-const isEditingName = ref(false);
-const editedName = ref("");
-const nameError = ref("");
+const toast = useToast();
+const user = useUser();
+
+// ── Profile photo ──────────────────────────────────────────────────────────
+const fileInput = useTemplateRef<HTMLInputElement>("fileInput");
+const hasPhoto = computed(() => hasValue(user.value?.image));
+const { mutate: updateAvatar, isPending: isAvatarPending } = useUpdateAvatar();
+const { mutate: deleteAvatar, isPending: isDeletePending } = useDeleteAvatar();
+const isPhotoPending = computed(() => isAvatarPending.value || isDeletePending.value);
 
 const openFileSelector = () => {
   fileInput.value?.click();
 };
 
-const { mutate, isPending: isAvatarPending } = useUpdateAvatar();
-const { mutate: deleteAvatar, isPending: isDeletePending } = useDeleteAvatar();
-const { mutate: updateName, isPending: isNamePending } = useUpdateName();
-const toast = useToast();
-
 const uploadAvatar = (event: Event) => {
-  const input = event.target as HTMLInputElement;
+  const input = event.target;
+  if (!(input instanceof HTMLInputElement)) return;
   if (!isDefined(input.files) || input.files.length === 0) return;
 
   const file = input.files[0];
-  const maxFileSize = 6 * 1024 * 1024;
+  // Clearing the input is what lets the same file be picked twice — after a
+  // rejected upload, or after removing the photo it was uploaded as.
+  input.value = "";
 
-  if (file.size > maxFileSize) {
+  if (file.size > MAX_AVATAR_BYTES) {
     toast.error("The file size should not exceed 6MB");
     return;
   }
 
   const formData = new FormData();
-  formData.append("avatar", input.files[0]);
-
-  mutate(formData);
+  formData.append("avatar", file);
+  updateAvatar(formData);
 };
 
-const handleDeleteAvatar = () => {
+const removePhoto = () => {
   deleteAvatar();
 };
 
-const startEditingName = () => {
-  editedName.value = data.value?.name ?? "";
-  nameError.value = "";
-  isEditingName.value = true;
-};
+// ── Name ───────────────────────────────────────────────────────────────────
+const editedName = ref(user.value?.name ?? "");
+const nameError = ref("");
+const { mutate: updateName, isPending: isNamePending } = useUpdateName();
 
-const cancelEditingName = () => {
-  isEditingName.value = false;
-  editedName.value = "";
-  nameError.value = "";
-};
+// The session resolves after this screen mounts on a cold load, and every
+// mutation refreshes it, so the field follows the name the server last gave us.
+watch(
+  () => user.value?.name,
+  (name) => {
+    editedName.value = name ?? "";
+  },
+);
 
 const saveName = () => {
   nameError.value = "";
 
   const trimmedName = editedName.value.trim();
-
   if (!hasValue(trimmedName)) {
     nameError.value = "Name cannot be empty";
     return;
   }
-
   if (trimmedName.length > 100) {
     nameError.value = "Name is too long (max 100 characters)";
     return;
@@ -159,14 +158,10 @@ const saveName = () => {
   updateName(trimmedName, {
     onSuccess: () => {
       toast.success("Name updated successfully");
-      isEditingName.value = false;
-      editedName.value = "";
     },
     onError: (error: unknown) => {
       nameError.value = error instanceof Error ? error.message : "Failed to update name";
     },
   });
 };
-
-const isLoading = computed(() => isAvatarPending.value || isDeletePending.value);
 </script>

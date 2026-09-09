@@ -1,49 +1,53 @@
 import { screen, waitFor } from "@testing-library/vue";
-import { http, HttpResponse } from "msw";
+import { delay, http, HttpResponse } from "msw";
 
 import ProfileView from "../views/ProfileView.vue";
+import memberData from "@/mocks/data/member.json";
 import { server } from "@/mocks/server";
 import { logIn, render } from "@/tests/utils";
 
+const renderProfile = () => {
+  const { user, pinia } = render(ProfileView);
+  logIn(pinia);
+  return { user, pinia };
+};
+
 describe("ProfileView", () => {
-  it("renders the signed-in user's name and email", async () => {
-    const { pinia } = render(ProfileView);
-    logIn(pinia);
+  it("gathers photo, name and password onto one screen", async () => {
+    renderProfile();
 
-    expect(await screen.findByText("user")).toBeInTheDocument();
-    expect(screen.getByText("user@email.com")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Profile" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Change photo" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Your name")).toBeInTheDocument();
+    expect(screen.getByLabelText("Current password")).toBeInTheDocument();
+    expect(screen.getByLabelText("New password")).toBeInTheDocument();
   });
 
-  it("opens the change-password modal", async () => {
-    const { user, pinia } = render(ProfileView);
-    logIn(pinia);
-
-    await user.click(screen.getByRole("button", { name: "Change Password" }));
-
-    expect(await screen.findByText("Current Password")).toBeInTheDocument();
-  });
-
-  it("edits and saves the user's name", async () => {
-    let body: unknown = null;
-    server.use(
-      http.put("/api/member/name", async ({ request }) => {
-        body = await request.json();
-        return new HttpResponse(null, { status: 200 });
-      }),
-    );
-
-    const { user, pinia } = render(ProfileView);
-    logIn(pinia);
-
-    await user.click(await screen.findByRole("button", { name: "Edit name" }));
-    const input = screen.getByRole("textbox");
-    await user.clear(input);
-    await user.type(input, "Grace Hopper");
-    await user.click(screen.getByRole("button", { name: "Save" }));
+  it("fills the name field with the name the member already has", async () => {
+    renderProfile();
 
     await waitFor(() => {
-      expect(body).toMatchObject({ name: "Grace Hopper" });
+      expect(screen.getByLabelText("Your name")).toHaveValue(memberData.name);
     });
+  });
+
+  it("puts the hint back once a rejected name is fixed and saved", async () => {
+    server.use(http.put("/api/member/name", () => new HttpResponse(null, { status: 200 })));
+
+    const { user } = renderProfile();
+    const field = await screen.findByLabelText("Your name");
+
+    await user.clear(field);
+    await user.click(screen.getByRole("button", { name: "Save name" }));
+    expect(await screen.findByText("Name cannot be empty")).toBeInTheDocument();
+
+    await user.type(field, "Grace Hopper");
+    await user.click(screen.getByRole("button", { name: "Save name" }));
+
+    await waitFor(() => {
+      expect(screen.queryByText("Name cannot be empty")).not.toBeInTheDocument();
+    });
+    expect(screen.getByText("Shown to everyone in your clubs")).toBeInTheDocument();
   });
 
   it("rejects an empty name without calling the API", async () => {
@@ -55,46 +59,49 @@ describe("ProfileView", () => {
       }),
     );
 
-    const { user, pinia } = render(ProfileView);
-    logIn(pinia);
+    const { user } = renderProfile();
 
-    await user.click(await screen.findByRole("button", { name: "Edit name" }));
-    await user.clear(screen.getByRole("textbox"));
-    await user.click(screen.getByRole("button", { name: "Save" }));
+    await user.clear(await screen.findByLabelText("Your name"));
+    await user.click(screen.getByRole("button", { name: "Save name" }));
 
     expect(await screen.findByText("Name cannot be empty")).toBeInTheDocument();
     expect(requested).toBe(false);
   });
 
-  it("cancels name editing and returns to the display view", async () => {
-    const { user, pinia } = render(ProfileView);
-    logIn(pinia);
+  it("reports a name the server refused", async () => {
+    server.use(http.put("/api/member/name", () => new HttpResponse(null, { status: 500 })));
 
-    await user.click(await screen.findByRole("button", { name: "Edit name" }));
-    expect(screen.getByRole("textbox")).toBeInTheDocument();
+    const { user } = renderProfile();
+    const field = await screen.findByLabelText("Your name");
 
-    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    await user.clear(field);
+    await user.type(field, "Grace Hopper");
+    await user.click(screen.getByRole("button", { name: "Save name" }));
 
-    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Edit name" })).toBeInTheDocument();
+    expect(await screen.findByText(/Request failed with status code 500/)).toBeInTheDocument();
   });
 
-  it("deletes the profile photo", async () => {
-    let deleted = false;
+  it("shows the photo working while it is removed", async () => {
     server.use(
-      http.delete("/api/member/avatar", () => {
-        deleted = true;
+      http.delete("/api/member/avatar", async () => {
+        await delay();
         return new HttpResponse(null, { status: 200 });
       }),
     );
 
-    const { user, pinia } = render(ProfileView);
-    logIn(pinia);
+    const { user } = renderProfile();
 
-    await user.click(await screen.findByRole("button", { name: "Delete photo" }));
+    await user.click(await screen.findByRole("button", { name: "Remove photo" }));
 
+    expect(await screen.findByRole("status", { name: "Updating photo" })).toBeInTheDocument();
     await waitFor(() => {
-      expect(deleted).toBe(true);
+      expect(screen.queryByRole("status", { name: "Updating photo" })).not.toBeInTheDocument();
     });
+  });
+
+  it("offers nothing to remove until there is a photo", () => {
+    render(ProfileView);
+
+    expect(screen.queryByRole("button", { name: "Remove photo" })).not.toBeInTheDocument();
   });
 });

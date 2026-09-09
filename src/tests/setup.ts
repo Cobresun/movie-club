@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom";
 import PiniaStoreHelper from "./PiniaStoreHelper.test.vue";
-import { render } from "./utils";
+import { render, setViewport } from "./utils";
 import { server } from "@/mocks/server";
 
 // One router instance for the whole suite, so a test can assert navigation with
@@ -29,23 +29,16 @@ vi.mock("vue-router", () => ({
 // it when opening the details drawer.
 window.HTMLElement.prototype.scrollIntoView = vi.fn();
 
-Object.defineProperty(window, "matchMedia", {
-  writable: true,
-  value: vi.fn().mockImplementation((query: string) => ({
-    matches: false,
-    media: query,
-    onchange: null,
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    dispatchEvent: vi.fn(),
-  })),
-});
+// jsdom has no matchMedia; `useIsDesktop` calls it on mount. Tests default to
+// mobile and opt into desktop with `setViewport(true)`.
+Object.defineProperty(window, "matchMedia", { writable: true, value: vi.fn() });
 
 beforeAll(() => {
   server.listen({ onUnhandledRequest: "error" });
 });
 
 beforeEach(() => {
+  setViewport(false);
   router.push.mockClear();
   router.replace.mockClear();
   route.params = { clubSlug: "test-club" };

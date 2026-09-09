@@ -1,85 +1,59 @@
 <template>
-  <div class="rounded-lg p-6">
-    <h2 class="mb-4 text-xl font-semibold text-text">Change Password</h2>
-
-    <!-- Success Message -->
-    <div v-if="successMessage" class="mb-4 rounded bg-green-900/50 p-3 text-sm text-green-300">
-      {{ successMessage }}
-    </div>
-
-    <!-- Error Message -->
+  <div>
     <div v-if="errorMessage" class="mb-4 rounded bg-red-900/50 p-3 text-sm text-red-300">
       {{ errorMessage }}
     </div>
 
-    <form class="space-y-4" @submit.prevent="handleSubmit">
-      <!-- Current Password -->
-      <div>
-        <label for="currentPassword" class="mb-1 block text-sm font-medium text-gray-300"
-          >Current Password</label
-        >
-        <input
-          id="currentPassword"
-          v-model="currentPassword"
-          type="password"
-          required
-          class="w-full rounded border border-gray-600 bg-gray-700 px-3 py-2 text-white placeholder-gray-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-          placeholder="Enter current password"
-        />
-      </div>
+    <form class="flex flex-col gap-4" @submit.prevent="handleSubmit">
+      <v-text-field
+        v-model="currentPassword"
+        label="Current password"
+        type="password"
+        required
+        placeholder="Enter current password"
+      />
 
-      <!-- New Password -->
-      <div>
-        <label for="newPassword" class="mb-1 block text-sm font-medium text-gray-300"
-          >New Password</label
-        >
-        <input
-          id="newPassword"
-          v-model="newPassword"
-          type="password"
-          required
-          minlength="8"
-          class="w-full rounded border border-gray-600 bg-gray-700 px-3 py-2 text-white placeholder-gray-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-          placeholder="Min 8 characters"
-        />
-      </div>
+      <v-text-field
+        v-model="newPassword"
+        label="New password"
+        type="password"
+        required
+        revealable
+        :minlength="8"
+        placeholder="At least 8 characters"
+        hint="At least 8 characters."
+      />
 
-      <!-- Confirm New Password -->
-      <div>
-        <label for="confirmNewPassword" class="mb-1 block text-sm font-medium text-gray-300"
-          >Confirm New Password</label
-        >
+      <label
+        class="-mx-2 flex min-h-[56px] cursor-pointer items-center gap-3 rounded-lg border-t border-white/10 px-2 transition-colors duration-fast ease-standard hover:bg-white/5"
+      >
+        <span class="flex flex-grow flex-col gap-0.5">
+          <span class="text-[15px] font-medium text-text">Sign out of all other devices</span>
+          <span class="text-xs text-white/40">Ends every session except this one</span>
+        </span>
         <input
-          id="confirmNewPassword"
-          v-model="confirmNewPassword"
-          type="password"
-          required
-          minlength="8"
-          class="w-full rounded border border-gray-600 bg-gray-700 px-3 py-2 text-white placeholder-gray-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-          placeholder="Confirm new password"
-        />
-      </div>
-
-      <!-- Revoke Other Sessions -->
-      <div class="flex items-center gap-2">
-        <input
-          id="revokeOtherSessions"
           v-model="revokeOtherSessions"
           type="checkbox"
-          class="h-4 w-4 rounded border-gray-600 bg-gray-700 text-primary focus:ring-primary"
+          class="peer sr-only"
+          aria-label="Sign out of all other devices"
         />
-        <label for="revokeOtherSessions" class="text-sm text-gray-300">
-          Sign out of all other devices
-        </label>
-      </div>
+        <span
+          class="relative h-[22px] w-11 flex-shrink-0 rounded-full py-0.5 pl-1 transition-colors duration-base ease-standard peer-checked:bg-primary peer-focus-visible:ring-2 peer-focus-visible:ring-highlight"
+          :class="revokeOtherSessions ? 'bg-primary' : 'bg-gray-600'"
+        >
+          <span
+            class="block h-[18px] w-[18px] transform rounded-full bg-white shadow transition-transform duration-base ease-standard"
+            :class="{ 'translate-x-full': revokeOtherSessions }"
+          />
+        </span>
+      </label>
 
-      <!-- Submit Button -->
       <button
         type="submit"
         :disabled="isLoading"
-        class="rounded bg-primary px-4 py-2 font-medium text-text transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+        class="flex min-h-[52px] w-full items-center justify-center rounded-md bg-primary text-base font-bold tracking-wide text-text transition duration-fast ease-standard hover:brightness-110 active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-gray-600"
       >
-        {{ isLoading ? "Changing..." : "Change Password" }}
+        {{ isLoading ? "Updating…" : "Update password" }}
       </button>
     </form>
   </div>
@@ -87,35 +61,27 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
+import { useToast } from "vue-toastification";
 
 import { isDefined } from "../../../../lib/checks/checks.js";
 import { authClient } from "@/lib/auth-client";
 
+const toast = useToast();
+
 const currentPassword = ref("");
 const newPassword = ref("");
-const confirmNewPassword = ref("");
 const revokeOtherSessions = ref(true);
 const isLoading = ref(false);
 const errorMessage = ref("");
-const successMessage = ref("");
 
 const handleSubmit = async () => {
   errorMessage.value = "";
-  successMessage.value = "";
 
-  // Validate passwords match
-  if (newPassword.value !== confirmNewPassword.value) {
-    errorMessage.value = "New passwords do not match.";
-    return;
-  }
-
-  // Validate password length
   if (newPassword.value.length < 8) {
     errorMessage.value = "New password must be at least 8 characters.";
     return;
   }
 
-  // Validate not same as current
   if (newPassword.value === currentPassword.value) {
     errorMessage.value = "New password must be different from current password.";
     return;
@@ -144,10 +110,9 @@ const handleSubmit = async () => {
       return;
     }
 
-    successMessage.value = "Password changed successfully!";
+    toast.success("Password changed successfully");
     currentPassword.value = "";
     newPassword.value = "";
-    confirmNewPassword.value = "";
   } catch {
     errorMessage.value = "An unexpected error occurred. Please try again.";
   } finally {
