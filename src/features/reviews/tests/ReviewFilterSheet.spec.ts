@@ -6,10 +6,6 @@ import { render, setViewport } from "@/tests/utils";
 
 mockIntersectionObserver();
 
-// The bottom sheet (VBottomSheet) is the only container with this rounded-top class;
-// the desktop popover panel uses rounded-lg. Used to tell the two apart.
-const bottomSheet = () => document.querySelector(".rounded-t-2xl");
-
 describe("SearchFilterBar responsive filter UI", () => {
   it("opens a bottom sheet (not the desktop tooltip) when a pill is tapped on mobile", async () => {
     setViewport(false);
@@ -20,7 +16,7 @@ describe("SearchFilterBar responsive filter UI", () => {
     // The shared filter form renders...
     expect(await screen.findByRole("button", { name: "Apply" })).toBeInTheDocument();
     // ...inside a bottom sheet.
-    expect(bottomSheet()).toBeInTheDocument();
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
 
   it("closes the bottom sheet on Cancel without applying a filter", async () => {
@@ -31,7 +27,7 @@ describe("SearchFilterBar responsive filter UI", () => {
     await user.click(await screen.findByRole("button", { name: "Cancel" }));
 
     expect(screen.queryByRole("button", { name: "Apply" })).not.toBeInTheDocument();
-    expect(bottomSheet()).not.toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
   it("applies a filter from the bottom sheet and shows it as an active pill", async () => {
@@ -55,6 +51,7 @@ describe("SearchFilterBar responsive filter UI", () => {
     await user.click(await screen.findByRole("button", { name: "Runtime (min)" }));
 
     expect(await screen.findByRole("button", { name: "Apply" })).toBeInTheDocument();
-    expect(bottomSheet()).not.toBeInTheDocument();
+    // The bottom sheet is a modal dialog; the popover panel is not.
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 });
