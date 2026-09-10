@@ -20,7 +20,7 @@ const testClub = makeClub("test-club", "Test Club");
 const otherClub = makeClub("other-club", "Other Club");
 const bookClub = makeClub("book-club", "Book Club", ClubType.book);
 
-const state = vi.hoisted(() => ({ userClubs: [] as unknown[] }));
+const state = vi.hoisted((): { userClubs: ClubPreview[] } => ({ userClubs: [] }));
 
 vi.mock("@/stores/auth", () => ({
   useAuthStore: () => state,

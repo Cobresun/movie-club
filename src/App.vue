@@ -2,26 +2,15 @@
   <div>
     <nav-bar />
     <div v-if="authStore.isAppLoading" class="absolute w-full">
-      <!-- Only painted once a club home is known to be what's coming: title,
-           member pills, nav cards. While the session check is still out on a
-           browser whose last session was signed out, this stays empty rather
-           than flashing a club home at a visitor bound for the landing page. -->
-      <div
-        v-if="authStore.isLoadingClubHome"
-        class="mx-auto max-w-5xl px-4 pt-6"
-        role="status"
-        aria-label="Loading"
-      >
-        <SkeletonBlock class="mx-auto h-9 w-56 max-w-full rounded-lg" />
-        <MemberPillsSkeleton class="mt-6" />
-        <div class="mt-6 flex flex-wrap justify-center gap-3">
-          <SkeletonBlock
-            v-for="card in 4"
-            :key="card"
-            class="h-24 w-36 rounded-xl md:h-28 md:w-44"
-            :style="{ '--skeleton-index': card - 1 }"
-          />
-        </div>
+      <!-- Only painted once a club is known to be what's coming. A club URL
+           lands on a section, Reviews by default, so the placeholder is shaped
+           like ReviewView: its title, then its own loading state. While the
+           session check is still out on a browser whose last session was
+           signed out, this stays empty rather than flashing a club at a
+           visitor bound for the landing page. -->
+      <div v-if="authStore.isLoadingClubHome" class="p-2">
+        <SkeletonBlock class="mx-auto my-2 h-8 w-32 rounded-lg sm:my-4 sm:h-9" />
+        <ReviewsSkeleton />
       </div>
     </div>
     <router-view v-else v-slot="{ Component }">
@@ -37,9 +26,9 @@
 
 <script setup lang="ts">
 import AuthModal from "@/common/components/AuthModal.vue";
-import MemberPillsSkeleton from "@/common/components/MemberPillsSkeleton.vue";
 import NavBar from "@/common/components/NavBar.vue";
 import SkeletonBlock from "@/common/components/SkeletonBlock.vue";
+import ReviewsSkeleton from "@/features/reviews/components/ReviewsSkeleton.vue";
 import { useAuthStore } from "@/stores/auth";
 
 const authStore = useAuthStore();

@@ -1,8 +1,14 @@
-import type { RouteLocationNormalized } from "vue-router";
+import type { RouteParamsGeneric } from "vue-router";
+import { z } from "zod";
 
 import { hasElements, hasValue, isDefined } from "../../../lib/checks/checks.js";
 import { ClubPreview } from "../../../lib/types/club";
-import { DEFAULT_CLUB_SECTION, isClubSection, sectionNameForRoute } from "../clubSections";
+import {
+  DEFAULT_CLUB_SECTION,
+  isClubSection,
+  sectionNameForRoute,
+  type SectionRoute,
+} from "../clubSections";
 
 const LAST_CLUB_SLUG_KEY = "lastClubSlug";
 const LAST_CLUB_SECTION_KEY = "lastClubSection";
@@ -22,18 +28,17 @@ export function clearLastClubSlug(): void {
 
 // Sections are stored per club — switching clubs should land you on the section
 // you last used *in that club*, not the one you were reading a moment ago.
-type LastSections = Record<string, string>;
+const lastSectionsSchema = z.record(z.string(), z.string());
+type LastSections = z.infer<typeof lastSectionsSchema>;
 
 function readLastSections(): LastSections {
   const raw = localStorage.getItem(LAST_CLUB_SECTION_KEY);
   if (!hasValue(raw)) return {};
   try {
-    const parsed: unknown = JSON.parse(raw);
-    // Anything that isn't a plain object (an older value, a hand-edited entry)
-    // is discarded rather than trusted — the fallback is a working default.
-    return typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)
-      ? (parsed as LastSections)
-      : {};
+    // Anything that isn't a slug → name map (an older value, a hand-edited
+    // entry) is discarded rather than trusted — the fallback is a working default.
+    const result = lastSectionsSchema.safeParse(JSON.parse(raw));
+    return result.success ? result.data : {};
   } catch {
     return {};
   }
@@ -60,9 +65,7 @@ export function setLastClubSection(slug: string, section: string): void {
  * it. Routes outside the section bar (club settings, the redirect itself) leave
  * the stored section alone.
  */
-export function rememberClubSection(
-  route: Pick<RouteLocationNormalized, "params" | "matched">,
-): void {
+export function rememberClubSection(route: SectionRoute & { params: RouteParamsGeneric }): void {
   const slug = route.params.clubSlug;
   const section = sectionNameForRoute(route);
   if (typeof slug === "string" && isDefined(section)) {

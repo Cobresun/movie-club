@@ -19,9 +19,10 @@ describe("ClubSectionNav", () => {
   it("links to every always-available section", async () => {
     render(ClubSectionNav, { props: { clubSlug: "test-club" } });
 
-    for (const name of ["Reviews", "Lists", "Stats", "Club"]) {
-      expect(await screen.findByRole("link", { name })).toBeInTheDocument();
-    }
+    expect(await screen.findByRole("link", { name: "Reviews" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Lists" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Stats" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Club" })).toBeInTheDocument();
   });
 
   it("hides awards when the feature is off", async () => {

@@ -5,7 +5,7 @@
         <h1 class="text-3xl font-bold leading-tight">{{ heading }}</h1>
         <p v-if="isFirstClub" class="text-[15px] font-light leading-relaxed text-white/65">
           A club is a handful of friends who watch the same films — or read the same books — and
-          score them together. Most people are in exactly one.
+          score them together.
         </p>
         <p v-else class="text-[15px] font-light leading-relaxed text-white/65">
           Start a second club, or join one you were invited to.

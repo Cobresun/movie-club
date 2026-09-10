@@ -47,13 +47,13 @@ describe("clubSections", () => {
     it("resolves a nested route to the section it lives under", () => {
       const route = { matched: [{ name: undefined }, { name: "Awards" }, { name: "AwardsYear" }] };
 
-      expect(sectionNameForRoute(route as never)).toBe("Awards");
+      expect(sectionNameForRoute(route)).toBe("Awards");
     });
 
     it("returns null for club routes outside the section bar", () => {
       const route = { matched: [{ name: undefined }, { name: "ClubSettings" }] };
 
-      expect(sectionNameForRoute(route as never)).toBeNull();
+      expect(sectionNameForRoute(route)).toBeNull();
     });
   });
 });

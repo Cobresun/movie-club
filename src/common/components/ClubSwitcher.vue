@@ -145,11 +145,10 @@ import { useRoute, useRouter } from "vue-router";
 
 import { hasValue } from "../../../lib/checks/checks.js";
 import { ClubPreview } from "../../../lib/types/club";
-import { ClubType } from "../../../lib/types/generated/db";
 import { DEFAULT_CLUB_SECTION, sectionNameForRoute } from "../clubSections";
 import ClubChipBody from "./ClubChipBody.vue";
 import VBottomSheet from "./VBottomSheet.vue";
-import { clubTypeLabel } from "@/common/clubType";
+import { clubTypeLabel, clubTypeSupportsAwards } from "@/common/clubType";
 import { useIsDesktop } from "@/common/composables/useIsDesktop";
 import { setLastClubSlug } from "@/common/composables/useLastClubSlug";
 import { useMembers } from "@/service/useClub";
@@ -186,13 +185,13 @@ const activeClubMeta = computed(() => {
 
 /**
  * Switching clubs keeps you in the section you were reading. Awards has no
- * equivalent in a book club, so those fall back to the default section rather
+ * equivalent in a club type without awards (books), so those fall back to the default section rather
  * than bouncing off `movieClubOnly`.
  */
 const targetSection = (club: ClubPreview) => {
   const section = sectionNameForRoute(route);
   if (!hasValue(section)) return DEFAULT_CLUB_SECTION;
-  if (section === "Awards" && club.type !== ClubType.movie) return DEFAULT_CLUB_SECTION;
+  if (section === "Awards" && !clubTypeSupportsAwards(club.type)) return DEFAULT_CLUB_SECTION;
   return section;
 };
 

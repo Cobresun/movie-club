@@ -63,14 +63,22 @@ describe("last club section", () => {
 
     expect(getLastClubSection("a-club")).toBe("Reviews");
   });
+
+  it("falls back to the default when the stored value is not a slug-to-section map", () => {
+    localStorage.setItem("lastClubSection", JSON.stringify({ "a-club": ["Statistics"] }));
+
+    expect(getLastClubSection("a-club")).toBe("Reviews");
+  });
 });
 
 describe("rememberClubSection", () => {
-  const route = (clubSlug: string | undefined, ...names: (string | undefined)[]) =>
-    ({
-      params: clubSlug === undefined ? {} : { clubSlug },
-      matched: names.map((name) => ({ name })),
-    }) as never;
+  const route = (
+    clubSlug: string | undefined,
+    ...names: (string | undefined)[]
+  ): Parameters<typeof rememberClubSection>[0] => ({
+    params: clubSlug === undefined ? {} : { clubSlug },
+    matched: names.map((name) => ({ name })),
+  });
 
   it("records the section a club navigation landed on", () => {
     rememberClubSection(route("a-club", undefined, "Watchlists"));

@@ -1,6 +1,8 @@
-import type { RouteLocationNormalizedLoaded } from "vue-router";
+import type { RouteRecordNormalized } from "vue-router";
 
+import { isDefined } from "@/../lib/checks/checks";
 import { ClubType } from "@/../lib/types/generated/db";
+import { clubTypeSupportsAwards } from "@/common/clubType";
 
 /**
  * One tab in the persistent club navigation (see ClubSectionNav). Every route
@@ -50,7 +52,7 @@ export function isClubSection(name: unknown): name is string {
 
 /**
  * Whether a club shows this section. Awards is the only conditional one today:
- * movie clubs with the feature switched on, matching the `movieClubOnly` guard.
+ * club types that support awards, with the feature switched on.
  *
  * `clubType`/`awardsEnabled` are optional so a caller with a still-loading club
  * can render the bar without flashing Awards in and out — unknown reads as off.
@@ -61,7 +63,12 @@ export function isSectionVisible(
   awardsEnabled: boolean | undefined,
 ): boolean {
   if (section.requires !== "awards") return true;
-  return clubType === ClubType.movie && awardsEnabled === true;
+  return isDefined(clubType) && clubTypeSupportsAwards(clubType) && awardsEnabled === true;
+}
+
+/** The part of a route the section lookup reads. */
+export interface SectionRoute {
+  readonly matched: ReadonlyArray<Pick<RouteRecordNormalized, "name">>;
 }
 
 /**
@@ -70,9 +77,7 @@ export function isSectionVisible(
  * the route name so nested routes — `AwardsYear`, its ballot children — still
  * light up their parent tab.
  */
-export function sectionNameForRoute(
-  route: Pick<RouteLocationNormalizedLoaded, "matched">,
-): string | null {
+export function sectionNameForRoute(route: SectionRoute): string | null {
   for (const record of route.matched) {
     if (isClubSection(record.name)) return record.name;
   }
