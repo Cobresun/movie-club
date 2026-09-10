@@ -1,5 +1,6 @@
 import { screen } from "@testing-library/vue";
 import { http, HttpResponse } from "msw";
+import { useRoute } from "vue-router";
 
 import ResetPasswordView from "../views/ResetPasswordView.vue";
 import { server } from "@/mocks/server";
@@ -7,17 +8,9 @@ import { render } from "@/tests/utils";
 
 const RESET_ENDPOINT = "/api/auth/reset-password";
 
-// useRoute is mocked globally in setup.ts with params.clubSlug="test-club"
-// but no query params — override for tests that need a token
-vi.mock("vue-router", () => ({
-  useRoute: vi.fn(() => ({
-    params: { clubSlug: "test-club" },
-    query: { token: "valid-token-abc" },
-  })),
-  useRouter: vi.fn(() => ({
-    push: vi.fn(() => Promise.resolve()),
-  })),
-}));
+beforeEach(() => {
+  useRoute().query.token = "valid-token-abc";
+});
 
 describe("ResetPasswordView", () => {
   beforeEach(() => {
