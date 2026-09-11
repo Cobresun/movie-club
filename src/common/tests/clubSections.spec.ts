@@ -26,6 +26,19 @@ describe("clubSections", () => {
     expect(isClubSection(undefined)).toBe(false);
   });
 
+  it("is the four tabs of the bar, in order", () => {
+    expect(CLUB_SECTIONS.map((candidate) => candidate.name)).toEqual([
+      "Reviews",
+      "Watchlists",
+      "Statistics",
+      "Awards",
+    ]);
+  });
+
+  it("no longer treats the club page as a section", () => {
+    expect(isClubSection("Club")).toBe(false);
+  });
+
   describe("isSectionVisible", () => {
     it("always shows unconditional sections", () => {
       expect(isSectionVisible(reviews, undefined, undefined)).toBe(true);

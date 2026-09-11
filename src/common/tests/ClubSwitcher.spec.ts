@@ -45,6 +45,7 @@ const makeRealRouter = async () => {
       { path: "/club/:clubSlug/statistics", name: "Statistics", component: stub },
       { path: "/club/:clubSlug/awards", name: "Awards", component: stub },
       { path: "/club/:clubSlug/club", name: "Club", component: stub },
+      { path: "/club/:clubSlug/settings", name: "ClubSettings", component: stub },
       { path: "/new", name: "NewClub", component: stub },
     ],
   });
@@ -53,7 +54,7 @@ const makeRealRouter = async () => {
 };
 
 const openSheet = async (user: ReturnType<typeof render>["user"]) => {
-  await user.click(screen.getByRole("button", { name: /Switch club/ }));
+  await user.click(screen.getByRole("button", { name: /Club menu/ }));
 };
 
 describe("ClubSwitcher", () => {
@@ -117,16 +118,56 @@ describe("ClubSwitcher", () => {
     expect(router.currentRoute.value.params.clubSlug).toBe("book-club");
   });
 
+  describe("the club panel", () => {
+    it("opens the club page from the members row", async () => {
+      const { user } = render(ClubSwitcher);
+
+      await openSheet(user);
+      await user.click(screen.getByRole("button", { name: "Members" }));
+
+      expect(router.currentRoute.value.name).toBe("Club");
+      expect(router.currentRoute.value.params.clubSlug).toBe("test-club");
+      // The sheet's history cleanup must not undo the navigation it just made.
+      expect(back).not.toHaveBeenCalled();
+    });
+
+    it("opens club settings from the settings row", async () => {
+      const { user } = render(ClubSwitcher);
+
+      await openSheet(user);
+      await user.click(screen.getByRole("button", { name: /Club settings/ }));
+
+      expect(router.currentRoute.value.name).toBe("ClubSettings");
+      expect(back).not.toHaveBeenCalled();
+    });
+
+    it("copies the invite link from the invite row", async () => {
+      const { user } = render(ClubSwitcher);
+      // userEvent installs its own clipboard on setup, so spy after rendering.
+      const writeText = vi.spyOn(navigator.clipboard, "writeText");
+
+      await openSheet(user);
+      await user.click(screen.getByRole("button", { name: /Invite people/ }));
+
+      expect(writeText).toHaveBeenCalledWith(expect.stringContaining("/join-club/"));
+    });
+  });
+
   describe("with a single club", () => {
     beforeEach(() => {
       state.userClubs = [testClub];
     });
 
-    it("offers no switcher, just a way into the club", () => {
-      render(ClubSwitcher);
+    it("opens the same panel, without a list to switch between", async () => {
+      const { user } = render(ClubSwitcher);
 
-      expect(screen.queryByRole("button", { name: /Switch club/ })).not.toBeInTheDocument();
-      expect(screen.getByRole("link", { name: /Test Club/ })).toBeInTheDocument();
+      await openSheet(user);
+
+      expect(screen.getByRole("button", { name: "Members" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /Invite people/ })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /Club settings/ })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /Create new club/ })).toBeInTheDocument();
+      expect(screen.queryByText("Your clubs")).not.toBeInTheDocument();
     });
   });
 });

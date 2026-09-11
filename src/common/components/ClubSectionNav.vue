@@ -19,14 +19,6 @@
     >
       {{ section.label }}
     </router-link>
-    <div class="flex-grow" />
-    <router-link
-      :to="{ name: 'ClubSettings', params: { clubSlug } }"
-      class="mb-1.5 flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm text-white/70 transition-colors duration-fast ease-standard hover:bg-white/10 hover:text-white"
-    >
-      <mdicon name="cog" :size="18" />
-      Club settings
-    </router-link>
   </nav>
 
   <!-- Mobile: a fixed bottom bar. Content reserves room for it (see ClubRouterView). -->
