@@ -5,6 +5,8 @@ import userEvent from "@testing-library/user-event";
 import { RenderOptions, render as testingLibraryRender } from "@testing-library/vue";
 import mdiVue from "mdi-vue/v3";
 import { TransitionGroup, createApp } from "vue";
+import type { RouteLocationMatched } from "vue-router";
+import { useRoute } from "vue-router";
 import Toast from "vue-toastification";
 
 import PiniaStoreHelperTest from "./PiniaStoreHelper.test.vue";
@@ -20,7 +22,6 @@ import VSwitch from "@/common/components/VSwitch.vue";
 import VTextField from "@/common/components/VTextField.vue";
 import LazyLoad from "@/directives/LazyLoad";
 import Reveal from "@/directives/Reveal";
-import MenuCard from "@/features/clubs/components/MenuCard.vue";
 import memberData from "@/mocks/data/member.json";
 import { useAuthStore } from "@/stores/auth";
 
@@ -46,7 +47,6 @@ export const render = <C>(component: C, options: Partial<RenderOptions<C>> = {})
           "v-text-field": VTextField,
           "empty-state": EmptyState,
           "loading-spinner": LoadingSpinner,
-          "menu-card": MenuCard,
           "v-modal": VModal,
           "page-header": PageHeader,
           DraggableTransitionGroup: TransitionGroup,
@@ -162,4 +162,17 @@ export const withSetup = <T>(composable: () => T) => {
   app.mount(document.createElement("div"));
 
   return { result, pinia, unmount: () => app.unmount() };
+};
+
+/**
+ * Points the mocked `useRoute()` at a club section, for the components that
+ * resolve the active tab from `matched` (see `common/clubSections`). Pass the
+ * matched record names outermost-first — the club router view, then the
+ * section, then any nested route.
+ *
+ * The cast is the mock boundary: setup.ts's route fixture carries names only,
+ * while `useRoute()` is typed with vue-router's full record.
+ */
+export const setRouteMatched = (...names: (string | undefined)[]) => {
+  useRoute().matched = names.map((name) => ({ name })) as RouteLocationMatched[];
 };

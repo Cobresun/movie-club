@@ -1,4 +1,3 @@
-import type { TestingPinia } from "@pinia/testing";
 import type { UserEvent } from "@testing-library/user-event";
 import { screen, waitFor } from "@testing-library/vue";
 import { useRouter } from "vue-router";
@@ -72,7 +71,7 @@ describe("AccountMenu", () => {
 
     await user.click(await screen.findByRole("button", { name: "Log out" }));
 
-    expect(useAuthStore(pinia as TestingPinia).logout).toHaveBeenCalled();
+    expect(useAuthStore(pinia).logout).toHaveBeenCalled();
   });
 });
 

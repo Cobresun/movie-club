@@ -10,7 +10,7 @@
       :current-club-id="club?.clubId"
       @close="scoreAssistWorkId = undefined"
     />
-    <page-header :has-back="true" back-route="ClubHome" page-name="Reviews" />
+    <page-header :has-back="false" page-name="Reviews" />
     <ReviewsSkeleton v-if="loading" />
     <div v-else>
       <!-- Search Filter Bar -->

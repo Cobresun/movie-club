@@ -1,0 +1,75 @@
+<template>
+  <!-- Desktop: a strip under the header, tabs underlined on the container border -->
+  <nav
+    v-if="isDesktop"
+    aria-label="Club sections"
+    class="flex items-end gap-0.5 border-b border-white/10 px-4"
+  >
+    <router-link
+      v-for="section in sections"
+      :key="section.name"
+      :to="{ name: section.name, params: { clubSlug } }"
+      class="border-b-2 px-3.5 pb-2.5 pt-2 text-[15px] font-medium transition-colors duration-fast ease-standard"
+      :class="
+        section.name === activeSection
+          ? '-mb-px border-highlight text-highlight'
+          : 'border-transparent text-white/70 hover:text-white'
+      "
+      :aria-current="section.name === activeSection ? 'page' : undefined"
+    >
+      {{ section.label }}
+    </router-link>
+    <div class="flex-grow" />
+    <router-link
+      :to="{ name: 'ClubSettings', params: { clubSlug } }"
+      class="mb-1.5 flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm text-white/70 transition-colors duration-fast ease-standard hover:bg-white/10 hover:text-white"
+    >
+      <mdicon name="cog" :size="18" />
+      Club settings
+    </router-link>
+  </nav>
+
+  <!-- Mobile: a fixed bottom bar. Content reserves room for it (see ClubRouterView). -->
+  <nav
+    v-else
+    aria-label="Club sections"
+    class="fixed inset-x-0 bottom-0 z-20 flex h-[62px] items-stretch border-t border-white/10 bg-background"
+  >
+    <router-link
+      v-for="section in sections"
+      :key="section.name"
+      :to="{ name: section.name, params: { clubSlug } }"
+      class="flex flex-grow flex-col items-center justify-center gap-[3px] transition-colors duration-fast ease-standard"
+      :class="section.name === activeSection ? 'text-highlight' : 'text-white/55'"
+      :aria-current="section.name === activeSection ? 'page' : undefined"
+    >
+      <mdicon :name="section.icon" :size="24" />
+      <span class="text-[11px] font-medium">{{ section.shortLabel }}</span>
+    </router-link>
+  </nav>
+</template>
+
+<script setup lang="ts">
+import { computed } from "vue";
+import { useRoute } from "vue-router";
+
+import { CLUB_SECTIONS, isSectionVisible, sectionNameForRoute } from "../clubSections";
+import { useIsDesktop } from "../composables/useIsDesktop";
+import { useClub, useClubSettings } from "@/service/useClub";
+
+const { clubSlug } = defineProps<{ clubSlug: string }>();
+
+const route = useRoute();
+const isDesktop = useIsDesktop();
+
+const { data: club } = useClub(clubSlug);
+const { data: settings } = useClubSettings(clubSlug);
+
+const sections = computed(() =>
+  CLUB_SECTIONS.filter((section) =>
+    isSectionVisible(section, club.value?.type, settings.value?.features?.awards),
+  ),
+);
+
+const activeSection = computed(() => sectionNameForRoute(route));
+</script>

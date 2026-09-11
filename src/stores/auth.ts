@@ -198,12 +198,12 @@ export const useAuthStore = defineStore("auth", () => {
   );
 
   /**
-   * ...and the stretch of that where a club home is what's coming, so App.vue
-   * can put up a placeholder shaped like one.
+   * ...and the stretch of that where a club is what's coming, so App.vue can
+   * put up a placeholder shaped like the section it lands on.
    *
    * A cold load whose last session was signed out is deliberately excluded: it
    * may well be a visitor on their way to the landing page, and painting a
-   * club home at them is a flash of a screen they never asked for. They get a
+   * club at them is a flash of a screen they never asked for. They get a
    * held blank frame instead, for the same few hundred milliseconds.
    */
   const isLoadingClubHome = computed(() => isAppLoading.value && (isLoggedIn.value || wasSignedIn));

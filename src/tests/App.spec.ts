@@ -43,13 +43,14 @@ describe("App loading gate", () => {
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
-  it("shows the placeholder when a club home is what's loading", () => {
+  it("shows the reviews placeholder when a club is what's loading", () => {
     authStore.isAppLoading = true;
     authStore.isLoadingClubHome = true;
 
     renderApp();
 
-    expect(screen.getByRole("status", { name: "Loading" })).toBeInTheDocument();
+    // A club URL lands on Reviews by default, so that's the shape held up.
+    expect(screen.getByRole("status", { name: "Loading reviews" })).toBeInTheDocument();
     expect(screen.queryByText("Routed page")).not.toBeInTheDocument();
   });
 
