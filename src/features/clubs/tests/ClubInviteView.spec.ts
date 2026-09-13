@@ -1,4 +1,4 @@
-import { screen, waitFor } from "@testing-library/vue";
+import { screen } from "@testing-library/vue";
 import { http, HttpResponse } from "msw";
 import { useRouter } from "vue-router";
 
@@ -44,15 +44,14 @@ describe("ClubInviteView", () => {
     expect(await screen.findByDisplayValue(/join-club\/invite-abc123/)).toBeInTheDocument();
   });
 
-  it("copies the invite link and confirms with a tick", async () => {
-    const { user, container } = render(ClubInviteView);
+  it("copies the invite link and confirms the copy", async () => {
+    const { user } = render(ClubInviteView);
     await screen.findByDisplayValue(/join-club\/invite-abc123/);
-    const writeText = vi.spyOn(navigator.clipboard, "writeText").mockResolvedValue();
 
     await user.click(screen.getByRole("button", { name: "Copy invite link" }));
 
-    expect(writeText).toHaveBeenCalledWith(expect.stringContaining("/join-club/invite-abc123"));
-    await waitFor(() => expect(container.querySelector(".mdi-check")).not.toBeNull());
+    expect(await navigator.clipboard.readText()).toContain("/join-club/invite-abc123");
+    expect(await screen.findByRole("button", { name: "Invite link copied" })).toBeInTheDocument();
   });
 
   it("leaves out the share button when the device has no share sheet", async () => {

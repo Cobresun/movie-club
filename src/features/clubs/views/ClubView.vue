@@ -29,7 +29,7 @@
           aria-label="Invite link"
           class="min-h-[44px] min-w-0 flex-grow rounded-md border-2 border-slate-600 bg-background px-3 text-sm text-white/70"
         />
-        <v-btn class="h-[44px] min-w-[44px]" aria-label="Copy invite link" @click="copyInviteLink">
+        <v-btn class="h-[44px] min-w-[44px]" :aria-label="copyLabel" @click="copyInviteLink">
           <mdicon :name="copyIcon" />
         </v-btn>
       </div>
@@ -89,5 +89,6 @@ const { data: club } = useClub(clubSlug);
 const { mutate: leaveClub, isLoading: isLeaving } = useLeaveClub(clubSlug);
 
 const showLeaveConfirm = ref(false);
-const { inviteLinkInput, inviteLink, copyIcon, copyInviteLink } = useCopyInviteLink(clubSlug);
+const { inviteLinkInput, inviteLink, copyIcon, copyLabel, copyInviteLink } =
+  useCopyInviteLink(clubSlug);
 </script>

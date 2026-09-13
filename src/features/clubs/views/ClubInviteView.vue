@@ -13,11 +13,7 @@
             aria-label="Invite link"
             class="min-h-[44px] min-w-0 flex-grow rounded-md border-2 border-slate-600 bg-background px-3 text-sm text-white/70"
           />
-          <v-btn
-            class="h-[44px] min-w-[44px]"
-            aria-label="Copy invite link"
-            @click="copyInviteLink"
-          >
+          <v-btn class="h-[44px] min-w-[44px]" :aria-label="copyLabel" @click="copyInviteLink">
             <mdicon :name="copyIcon" />
           </v-btn>
         </div>
@@ -57,7 +53,8 @@ import { useClub, useClubSlug } from "@/service/useClub";
 const router = useRouter();
 const clubSlug = useClubSlug();
 const { data: club } = useClub(clubSlug);
-const { inviteLinkInput, inviteLink, copyIcon, copyInviteLink } = useCopyInviteLink(clubSlug);
+const { inviteLinkInput, inviteLink, copyIcon, copyLabel, copyInviteLink } =
+  useCopyInviteLink(clubSlug);
 const { share, canUseNativeShare } = useShare();
 
 const clubName = computed(() => club.value?.clubName ?? "Your club");
