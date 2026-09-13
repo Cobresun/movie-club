@@ -182,7 +182,11 @@
                 readonly
                 class="flex-1 rounded border border-gray-600 bg-gray-700 p-3 text-sm text-gray-200"
               />
-              <v-btn class="h-12 w-12 bg-blue-600 hover:bg-blue-700" @click="copyInviteLink">
+              <v-btn
+                class="h-12 w-12 bg-blue-600 hover:bg-blue-700"
+                :aria-label="copyLabel"
+                @click="copyInviteLink"
+              >
                 <mdicon :name="copyIcon" />
               </v-btn>
             </div>
@@ -263,7 +267,8 @@ const { data: members, isLoading: isLoadingMembers, refetch: refetchMembers } = 
 const { mutate: leaveClubMutation, isPending: isLeaving } = useLeaveClub(clubId);
 const { mutate: removeMemberMutation } = useRemoveMember(clubId);
 const { data: settings } = useClubSettings(clubId);
-const { inviteLinkInput, inviteLink, copyIcon, copyInviteLink } = useCopyInviteLink(clubId);
+const { inviteLinkInput, inviteLink, copyIcon, copyLabel, copyInviteLink } =
+  useCopyInviteLink(clubId);
 const { mutate: updateSettings } = useUpdateClubSettings(clubId);
 const { mutate: updateClubName, isPending: isSavingName } = useUpdateClubName(clubId);
 

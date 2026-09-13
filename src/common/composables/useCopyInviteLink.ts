@@ -10,6 +10,7 @@ export function useCopyInviteLink(clubSlug: string) {
 
   const inviteLink = computed(() => `${window.location.origin}/join-club/${inviteToken.value}`);
   const copyIcon = computed(() => (hasCopied.value ? "check" : "content-copy"));
+  const copyLabel = computed(() => (hasCopied.value ? "Invite link copied" : "Copy invite link"));
 
   const copyInviteLink = async () => {
     try {
@@ -26,5 +27,5 @@ export function useCopyInviteLink(clubSlug: string) {
     }, 2000);
   };
 
-  return { inviteLinkInput, inviteLink, copyIcon, copyInviteLink };
+  return { inviteLinkInput, inviteLink, copyIcon, copyLabel, copyInviteLink };
 }

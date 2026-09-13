@@ -58,7 +58,7 @@ describe("NewClubView", () => {
     expect(screen.getByText("Club name is required")).toBeInTheDocument();
   });
 
-  it("opens the club it just created", async () => {
+  it("hands the new club's invite link over before the club itself", async () => {
     server.use(
       http.post("/api/club", async ({ request }) => {
         const { name } = (await request.json()) as { name: string };
@@ -75,7 +75,7 @@ describe("NewClubView", () => {
     const router = vi.mocked(useRouter());
     await vi.waitFor(() => {
       expect(router.push.mock.calls).toContainEqual([
-        { name: "ClubHome", params: { clubSlug: "my-new-club" } },
+        { name: "ClubInvite", params: { clubSlug: "my-new-club" } },
       ]);
     });
   });

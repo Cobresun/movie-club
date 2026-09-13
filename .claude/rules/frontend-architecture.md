@@ -37,6 +37,8 @@ These are the nits that come back every review; none of them are negotiable in a
 
 Every element a user can act on needs a role and an accessible name — a real `<button>` rather than a `<div @click>`, an `aria-label` on an icon-only control, `alt` on a poster image, `aria-pressed` on a toggle, and a state that is conveyed by something other than colour alone. Content hidden behind a spoiler blur must be hidden from screen readers, not merely blurred.
 
+A transient state shown as an icon swap — the tick after a copy button is pressed — needs the same treatment: change the control's accessible name (`:aria-label="copyLabel"`) rather than leaving the tick as the only evidence, which leaves a screen reader with no confirmation and a test with nothing but `.mdi-check` to query.
+
 The test suite is how this gets enforced — a spec that cannot find an element without a CSS selector has found a real bug (see `testing.md`). Reviews here have turned up keyboard-unreachable poster cards, unnamed chevron buttons, an inaccessible loading state and a spoiler read out in full. Fix the component; do not reach for a selector or a `data-testid`.
 
 ## Router

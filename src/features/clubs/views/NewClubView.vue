@@ -136,7 +136,7 @@ const submit = async () => {
       });
       const { slug } = response.data;
       setLastClubSlug(slug);
-      router.push({ name: "ClubHome", params: { clubSlug: slug } }).catch(console.error);
+      router.push({ name: "ClubInvite", params: { clubSlug: slug } }).catch(console.error);
     } catch (error) {
       console.error("Failed to create club:", error);
     }
