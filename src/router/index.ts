@@ -18,6 +18,7 @@ import ClubView from "../features/clubs/views/ClubView.vue";
 import HomeView from "../features/clubs/views/HomeView.vue";
 import ReviewView from "../features/reviews/views/ReviewView.vue";
 import ClubRouterView from "./ClubRouterView.vue";
+import { installViewTransitions } from "./viewTransitions";
 import { useAuthStore } from "@/stores/auth";
 
 const checkClubAccess = async (
@@ -145,16 +146,12 @@ const routes: Array<RouteRecordRaw> = [
         replace: true,
       };
     },
-    meta: {
-      depth: 0,
-    },
   },
   {
     path: "/verify-email",
     name: "VerifyEmail",
     component: () => import("../features/auth/views/VerifyEmailView.vue"),
     meta: {
-      depth: 1,
       noAuth: true,
     },
   },
@@ -163,7 +160,6 @@ const routes: Array<RouteRecordRaw> = [
     name: "ForgotPassword",
     component: () => import("../features/auth/views/ForgotPasswordView.vue"),
     meta: {
-      depth: 1,
       noAuth: true,
     },
   },
@@ -172,7 +168,6 @@ const routes: Array<RouteRecordRaw> = [
     name: "ResetPassword",
     component: () => import("../features/auth/views/ResetPasswordView.vue"),
     meta: {
-      depth: 1,
       noAuth: true,
     },
   },
@@ -181,7 +176,6 @@ const routes: Array<RouteRecordRaw> = [
     name: "SharedReview",
     component: () => import("../features/reviews/views/SharedReviewView.vue"),
     meta: {
-      depth: 1,
       noAuth: true,
     },
   },
@@ -190,7 +184,6 @@ const routes: Array<RouteRecordRaw> = [
     name: "SharedList",
     component: () => import("../features/watch-list/views/SharedListView.vue"),
     meta: {
-      depth: 1,
       noAuth: true,
     },
   },
@@ -199,7 +192,6 @@ const routes: Array<RouteRecordRaw> = [
     name: "SharedStatistics",
     component: () => import("../features/statistics/views/SharedStatisticsView.vue"),
     meta: {
-      depth: 1,
       noAuth: true,
     },
   },
@@ -218,7 +210,6 @@ const routes: Array<RouteRecordRaw> = [
       }
     },
     meta: {
-      depth: 1,
       authRequired: true,
     },
   },
@@ -241,7 +232,6 @@ const routes: Array<RouteRecordRaw> = [
       }
     },
     meta: {
-      depth: 1,
       authRequired: true,
     },
   },
@@ -250,7 +240,6 @@ const routes: Array<RouteRecordRaw> = [
     name: "NewClub",
     component: () => import("../features/clubs/views/NewClubView.vue"),
     meta: {
-      depth: 1,
       authRequired: true,
     },
   },
@@ -273,7 +262,6 @@ const routes: Array<RouteRecordRaw> = [
     beforeEnter: clubGuard,
     props: true,
     meta: {
-      depth: 1,
       authRequired: true,
     },
     children: [
@@ -292,27 +280,18 @@ const routes: Array<RouteRecordRaw> = [
         name: "Club",
         component: ClubView,
         props: true,
-        meta: {
-          depth: 2,
-        },
       },
       {
         path: "reviews",
         name: "Reviews",
         component: ReviewView,
         props: true,
-        meta: {
-          depth: 2,
-        },
       },
       {
         path: "lists",
         name: "Watchlists",
         component: () => import("../features/watch-list/views/WatchListView.vue"),
         props: true,
-        meta: {
-          depth: 2,
-        },
       },
       {
         path: "watch-list",
@@ -323,9 +302,6 @@ const routes: Array<RouteRecordRaw> = [
         name: "Statistics",
         component: () => import("../features/statistics/views/StatisticsView.vue"),
         props: true,
-        meta: {
-          depth: 2,
-        },
       },
       {
         path: "awards",
@@ -333,9 +309,6 @@ const routes: Array<RouteRecordRaw> = [
         component: () => import("../features/awards/views/AwardsView.vue"),
         beforeEnter: movieClubOnly,
         props: true,
-        meta: {
-          depth: 2,
-        },
         children: [
           {
             path: ":year",
@@ -377,7 +350,6 @@ const routes: Array<RouteRecordRaw> = [
         component: () => import("../features/settings/views/ClubSettingsView.vue"),
         props: true,
         meta: {
-          depth: 2,
           authRequired: true,
         },
       },
@@ -387,16 +359,12 @@ const routes: Array<RouteRecordRaw> = [
     path: "/join-club/:inviteToken",
     name: "JoinClub",
     component: () => import("../features/settings/views/JoinClubView.vue"),
-    meta: {
-      depth: 1,
-    },
   },
   {
     path: "/club-not-found",
     name: "ClubNotFound",
     component: () => import("../common/views/ClubNotFoundView.vue"),
     meta: {
-      depth: 1,
       noAuth: true,
     },
   },
@@ -405,17 +373,14 @@ const routes: Array<RouteRecordRaw> = [
     name: "NotFound",
     component: () => import("../common/views/NotFoundView.vue"),
     meta: {
-      depth: 0,
       noAuth: true,
     },
   },
 ];
 
-const routerHistory = createWebHistory();
-
 const router = createRouter({
   routes,
-  history: routerHistory,
+  history: createWebHistory(),
   scrollBehavior(to, from) {
     // Overlays like the bottom sheet / details drawer push a synthetic history
     // entry (see useBackButtonClose) that keeps the same URL, then pop it on
@@ -429,39 +394,9 @@ const router = createRouter({
   },
 });
 
-const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-
-const historyPosition = () => {
-  const position: unknown = routerHistory.state.position;
-  return typeof position === "number" ? position : undefined;
-};
-
-// Safari plays its own native snapshot animation for the back/forward swipe
-// gesture, so replaying ours doubles it. Traversals are detected by history
-// position rather than a popstate listener: the browser has already moved to
-// the target entry when guards run, whereas a push updates history only after
-// navigation is confirmed — so a position change here means back/forward.
-let lastPosition = historyPosition();
-
-router.beforeEach((to, from) => {
-  const isTraversal = historyPosition() !== lastPosition;
-  let direction = "none";
-  if (isDefined(from.name) && !(isSafari && isTraversal)) {
-    if (to.meta.depth === from.meta.depth) {
-      direction = "fade";
-    } else {
-      direction = to.meta.depth > from.meta.depth ? "push" : "pop";
-    }
-  }
-  // Drives the html[data-route-transition="..."] CSS in tailwind.css. The
-  // direction must live outside the <transition> props because a leaving page
-  // keeps the props captured when it rendered (a dynamic :name can't change
-  // the exit animation), while attribute selectors resolve live.
-  document.documentElement.dataset.routeTransition = direction;
-});
+installViewTransitions(router);
 
 router.afterEach((to) => {
-  lastPosition = historyPosition();
   rememberClubSection(to);
 });
 

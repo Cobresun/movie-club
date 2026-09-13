@@ -26,7 +26,6 @@ module.exports = {
         fast: "var(--motion-fast)",
         base: "var(--motion-base)",
         slow: "var(--motion-slow)",
-        page: "var(--motion-page)",
       },
       transitionTimingFunction: {
         standard: "var(--ease-standard)",

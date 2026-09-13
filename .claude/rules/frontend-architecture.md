@@ -43,8 +43,8 @@ The test suite is how this gets enforced — a spec that cannot find an element 
 
 ## Router
 
-- Routes carry a `depth` meta. `App.vue` has a single `<transition name="route">`; the router compares depths and writes the direction to `document.documentElement.dataset.routeTransition`, and `tailwind.css` selects the animation with `html[data-route-transition="..."] .route-enter-active` rules.
-- That indirection is deliberate: a dynamic `:name` on `<transition>` **cannot** change the _leave_ classes, because Vue resolves them before the name updates. Drive variants from the html data attribute, not the name.
+- Page transitions are one crossfade for every route change, driven by the View Transitions API from `router/viewTransitions.ts` — not by a Vue `<transition>` around a `<router-view>`. Because it snapshots the document, it covers nested router-views too. Don't add per-route or directional (push/pop) animations: `transform` on a page wrapper re-anchors every `position: fixed` descendant (the mobile section bar, un-teleported overlays) to the moving page.
+- Overlays (`VModal`, `VBottomSheet`, `VSideDrawer`) keep their own Vue `<Transition>`s; they are not page transitions.
 - `checkClubAccess` guards club-scoped routes on membership. `noAuth: true` opts a route out of auth; `authRequired: true` redirects to Clubs when logged out.
 
 ## Service layer
@@ -64,4 +64,4 @@ See the `tanstack-query-vue` skill for query-key conventions, mutation patterns,
 
 ## Adding a feature
 
-Create `src/features/<name>/` with a `views/` subdirectory, add a `src/service/use<Feature>.ts` for its API calls, then register routes in `src/router/index.ts` with a `depth` meta and `beforeEnter: checkClubAccess` if club-scoped.
+Create `src/features/<name>/` with a `views/` subdirectory, add a `src/service/use<Feature>.ts` for its API calls, then register routes in `src/router/index.ts` with `beforeEnter: checkClubAccess` if club-scoped.

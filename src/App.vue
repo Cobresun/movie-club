@@ -1,7 +1,7 @@
 <template>
   <div>
     <nav-bar />
-    <div v-if="authStore.isAppLoading" class="absolute w-full">
+    <div v-if="authStore.isAppLoading">
       <!-- Only painted once a club is known to be what's coming. A club URL
            lands on a section, Reviews by default, so the placeholder is shaped
            like ReviewView: its title, then its own loading state. While the
@@ -13,11 +13,7 @@
         <ReviewsSkeleton />
       </div>
     </div>
-    <router-view v-else v-slot="{ Component }">
-      <transition name="route">
-        <component :is="Component" class="absolute w-full" />
-      </transition>
-    </router-view>
+    <router-view v-else />
 
     <!-- Auth Modal -->
     <auth-modal v-if="authStore.showAuthModal" @close="authStore.closeAuthModal" />
