@@ -105,17 +105,20 @@ function useReviewWork(clubSlug: string) {
       score,
       sourceListId,
       seasonNumber,
+      episodeNumber,
     }: {
       workId: string;
       score: number;
       sourceListId?: string;
       seasonNumber?: number;
+      episodeNumber?: number;
     }) =>
       auth.request.post(`/api/club/${clubSlug}/reviews`, {
         score,
         workId,
         sourceListId,
         seasonNumber,
+        episodeNumber,
       }),
     onMutate: ({ workId, score }) => {
       if (!workId) return;
@@ -202,26 +205,36 @@ function useUpdateReviewScore(clubSlug: string) {
  * the score (see `isValidScore` in scoreScale.ts) before calling.
  */
 export function useSubmitScore(clubSlug: string) {
-  const { mutate: create } = useReviewWork(clubSlug);
-  const { mutate: update } = useUpdateReviewScore(clubSlug);
+  // mutateAsync rather than mutate: a mutate-level callback only fires for the
+  // latest call, so two saves in quick succession would drop the first one's
+  // onSettled. Each promise settles on its own.
+  const { mutateAsync: create } = useReviewWork(clubSlug);
+  const { mutateAsync: update } = useUpdateReviewScore(clubSlug);
 
-  return ({
-    workId,
-    reviewId,
-    score,
-    seasonNumber,
-  }: {
-    workId: string;
-    reviewId?: string;
-    score: number;
-    /** Scores every episode of one season of the TV show `workId` names. */
-    seasonNumber?: number;
-  }) => {
-    if (hasValue(reviewId)) {
-      update({ reviewId, workId, score });
-    } else {
-      create({ workId, score, seasonNumber });
-    }
+  return (
+    {
+      workId,
+      reviewId,
+      score,
+      seasonNumber,
+      episodeNumber,
+    }: {
+      workId: string;
+      reviewId?: string;
+      score: number;
+      /** Scores every episode of one season of the TV show `workId` names. */
+      seasonNumber?: number;
+      /** Narrows `seasonNumber` to one episode, which need not be a work yet. */
+      episodeNumber?: number;
+    },
+    /** Runs once the save has settled and the reviews list has refetched. */
+    options?: { onSettled?: () => void },
+  ) => {
+    const saving = hasValue(reviewId)
+      ? update({ reviewId, workId, score })
+      : create({ workId, score, seasonNumber, episodeNumber });
+    // A failed save surfaces through the refetch putting the old score back.
+    void saving.catch(() => undefined).finally(() => options?.onSettled?.());
   };
 }
 

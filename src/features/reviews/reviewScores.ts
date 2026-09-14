@@ -1,6 +1,6 @@
 import { isDefined } from "../../../lib/checks/checks.js";
 import { Member } from "../../../lib/types/club";
-import { DetailedReviewListItem } from "../../../lib/types/lists";
+import { DetailedReviewListItem, ReviewScores } from "../../../lib/types/lists";
 
 /** One score to show for a work: a member's, or the club's average. */
 export interface ScoreEntry {
@@ -29,9 +29,13 @@ const roundScore = (score: number) => Math.round(score * 100) / 100;
  * The scores a work actually has, in club-member order with the average last.
  * Members who have not scored the work are left out rather than shown blank.
  */
-export const workScoreEntries = (work: DetailedReviewListItem, members: Member[]): ScoreEntry[] => {
+export const workScoreEntries = (work: DetailedReviewListItem, members: Member[]): ScoreEntry[] =>
+  scoreEntries(work.scores, members);
+
+/** {@link workScoreEntries} for a bare score map — a TV rollup has no work of its own. */
+export const scoreEntries = (scores: ReviewScores, members: Member[]): ScoreEntry[] => {
   const entries = members.flatMap<ScoreEntry>((member) => {
-    const score = work.scores[member.id]?.score;
+    const score = scores[member.id]?.score;
     if (score === undefined) return [];
     return [
       {
@@ -44,7 +48,7 @@ export const workScoreEntries = (work: DetailedReviewListItem, members: Member[]
     ];
   });
 
-  const average = work.scores.average?.score;
+  const average = scores.average?.score;
   if (average !== undefined) {
     entries.push({ id: AVERAGE_SCORE_ID, name: "Average", value: roundScore(average) });
   }
