@@ -104,15 +104,18 @@ function useReviewWork(clubSlug: string) {
       workId,
       score,
       sourceListId,
+      seasonNumber,
     }: {
       workId: string;
       score: number;
       sourceListId?: string;
+      seasonNumber?: number;
     }) =>
       auth.request.post(`/api/club/${clubSlug}/reviews`, {
         score,
         workId,
         sourceListId,
+        seasonNumber,
       }),
     onMutate: ({ workId, score }) => {
       if (!workId) return;
@@ -202,11 +205,22 @@ export function useSubmitScore(clubSlug: string) {
   const { mutate: create } = useReviewWork(clubSlug);
   const { mutate: update } = useUpdateReviewScore(clubSlug);
 
-  return ({ workId, reviewId, score }: { workId: string; reviewId?: string; score: number }) => {
+  return ({
+    workId,
+    reviewId,
+    score,
+    seasonNumber,
+  }: {
+    workId: string;
+    reviewId?: string;
+    score: number;
+    /** Scores every episode of one season of the TV show `workId` names. */
+    seasonNumber?: number;
+  }) => {
     if (hasValue(reviewId)) {
       update({ reviewId, workId, score });
     } else {
-      create({ workId, score });
+      create({ workId, score, seasonNumber });
     }
   };
 }

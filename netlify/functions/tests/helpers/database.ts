@@ -39,6 +39,13 @@ const DOMAIN_TABLES = [
   "book_authors",
   "book_subjects",
   "book_details",
+  "tv_episode_details",
+  "tv_season_details",
+  "tv_show_cast",
+  "tv_show_creators",
+  "tv_show_genres",
+  "tv_show_networks",
+  "tv_show_details",
   "metric_snapshot",
 ] as const satisfies readonly DomainTable[];
 

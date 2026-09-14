@@ -3,10 +3,12 @@ import { DateTime } from "luxon";
 import { hasValue } from "@/../lib/checks/checks";
 import { DetailedBookData } from "@/../lib/types/book";
 import { WorkDataSummary } from "@/../lib/types/lists";
+import { TvDataSummary } from "@/../lib/types/tv";
 
 // Movies cache only a bare TMDB poster path; expand it here (w500 — higher res
 // than the w154 url stored on the work). Books store an absolute cover url.
 const TMDB_POSTER_BASE = "https://image.tmdb.org/t/p/w500";
+const TMDB_STILL_BASE = "https://image.tmdb.org/t/p/w300";
 
 // The guards are generic over the union they receive so they narrow to the
 // matching member of THAT union: summary data narrows to MovieDataSummary,
@@ -26,6 +28,13 @@ export function isBookData<T extends WorkDataSummary>(
   return data?.kind === "book";
 }
 
+/** Type guard: `externalData` is TV metadata. */
+export function isTvData<T extends WorkDataSummary>(
+  data: T | undefined,
+): data is Extract<T, { kind: "tv" }> {
+  return data?.kind === "tv";
+}
+
 /**
  * Narrow a work-data union to its movie/book member. Returns undefined when
  * the data is absent or of a different kind, so callers can drive
@@ -43,6 +52,10 @@ export function asBook<T extends WorkDataSummary>(
   return isBookData(data) ? data : undefined;
 }
 
+export function asTv<T extends WorkDataSummary>(data: T | undefined): TvDataSummary | undefined {
+  return isTvData(data) ? data : undefined;
+}
+
 /**
  * Resolve a ready-to-render poster/cover URL for a work. Prefers the movie's
  * TMDB poster path (rendered at a higher resolution than the stored url),
@@ -57,6 +70,11 @@ export function workPosterUrl(
   if (hasValue(movie?.poster_path)) {
     return `${TMDB_POSTER_BASE}${movie.poster_path}`;
   }
+  // An episode leads with its own still and falls back to the show's poster,
+  // so a season a club has opened but not watched still shows artwork.
+  const tv = asTv(data);
+  if (hasValue(tv?.stillPath)) return `${TMDB_STILL_BASE}${tv.stillPath}`;
+  if (hasValue(tv?.posterPath)) return `${TMDB_POSTER_BASE}${tv.posterPath}`;
   return fallbackImageUrl ?? undefined;
 }
 

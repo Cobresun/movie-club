@@ -13,7 +13,9 @@ Kysely with the CockroachDB dialect (PostgreSQL-compatible). See the `kysely` sk
 - **Schema of record: `lib/types/generated/db.ts`** — every table, column, and enum. Read it rather than trusting any prose summary; run `npm run codegen` after schema changes to regenerate it.
 - Migrations: `migrations/schema/`, named `YYYYMMDD_Description.ts`
 
-The shape worth knowing before you read: a `work` is a movie or book; `work_list` holds a club's lists, either user-defined (`system_type IS NULL`, free-form title) or system (`system_type = 'reviews'`), with a partial unique index enforcing at most one of each system list per club. Movie and book metadata are cached in separate `*_details` tables with their own junction tables.
+The shape worth knowing before you read: a `work` is a movie, a book, or one level of a TV show; `work_list` holds a club's lists, either user-defined (`system_type IS NULL`, free-form title) or system (`system_type = 'reviews'`), with a partial unique index enforcing at most one of each system list per club. Movie, book and TV metadata are cached in separate `*_details` tables with their own junction tables.
+
+**TV works are addressed, not parented.** A TV `work.external_id` is an address — `"95396"` is the show, `"95396:1"` a season, `"95396:1:4"` an episode — and that address is the entire hierarchy: there is no `parent_work_id`, so a work can never disagree with TMDB about what it belongs to. Only episodes carry reviews; a season's or show's score is computed from them and never stored. Parse an address with `parseTvAddress` (`lib/types/tv.ts`) and **only inside the TV provider** — to every shared query `external_id` stays an opaque string.
 
 ## Every query is a typed Kysely query
 

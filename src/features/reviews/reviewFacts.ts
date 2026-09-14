@@ -502,6 +502,9 @@ const FACT_GENERATORS: Record<WorkType, FactGenerator[]> = {
     oldestBook,
     longestBook,
   ],
+  // The media-agnostic generators only: the movie and book ones read metadata
+  // an episode does not carry.
+  [WorkType.tv]: [allTimeRecord, clubMilestone, divisiveRecord, yearRecord],
 };
 
 const nounFor = (type: WorkType): string =>

@@ -1,6 +1,6 @@
 import { isDefined } from "../../../../lib/checks/checks.js";
 import { WorkType } from "../../../../lib/types/generated/db";
-import { DetailedWorkData, WorkDataSummary } from "../../../../lib/types/lists";
+import { DetailedWorkData, ListInsertDto, WorkDataSummary } from "../../../../lib/types/lists";
 import { MovieCastMember } from "../../../../lib/types/movie";
 
 /** Coerce a nullable Int8/decimal column (string | null) to number | undefined. */
@@ -70,4 +70,19 @@ export interface MediaProvider {
    * server-resolved data — never from client input.
    */
   getDiscussionPrompt: (work: { title: string; externalId: string | null }) => Promise<string>;
+
+  /**
+   * The further works a score on `work` fans out to. Media whose work is
+   * scored directly — a movie, a book, one TV episode — return an empty
+   * array, meaning "write the score to this work and nothing else". A TV
+   * season returns one entry per episode TMDB lists for it, so scoring a
+   * season is a bulk write rather than a number stored above the episodes.
+   *
+   * Returned works may not exist yet: the caller upserts each one before
+   * writing a review against it.
+   */
+  expandScoreTargets: (
+    work: { title: string; externalId: string | null },
+    options?: { seasonNumber?: number },
+  ) => Promise<ListInsertDto[]>;
 }

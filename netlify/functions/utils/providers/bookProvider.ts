@@ -9,7 +9,7 @@ import {
 } from "../../../../lib/googleBooks";
 import { DetailedBookData } from "../../../../lib/types/book";
 import { WorkType } from "../../../../lib/types/generated/db";
-import { DetailedWorkData, WorkDataSummary } from "../../../../lib/types/lists";
+import { DetailedWorkData, ListInsertDto, WorkDataSummary } from "../../../../lib/types/lists";
 import { MovieCastMember } from "../../../../lib/types/movie";
 import { db } from "../database";
 import { getGoogleBooksVolume } from "./googleBooks";
@@ -172,6 +172,10 @@ class BookProvider implements MediaProvider {
   // the summary payload.
   getCast(): Promise<Map<string, MovieCastMember[]>> {
     return Promise.resolve(new Map<string, MovieCastMember[]>());
+  }
+
+  async expandScoreTargets(): Promise<ListInsertDto[]> {
+    return [];
   }
 
   async getDiscussionPrompt(work: { title: string; externalId: string | null }): Promise<string> {
