@@ -143,6 +143,9 @@ export interface ClubTypeConfig {
   readonly icon: string;
   /** Human label, e.g. for tooltips/aria ("Movie club"). */
   readonly label: string;
+  /** What a club of this type reviews, in the plural — the club-type picker's
+   * option ("Movies", "Books", "TV shows"). */
+  readonly pluralLabel: string;
   /** Singular noun for one item of the media ("movie", "book"). */
   readonly noun: string;
   /** Past-tense verb for having finished one work ("watched", "read"). */
@@ -599,6 +602,7 @@ export const CLUB_TYPE_CONFIG: Record<ClubType, ClubTypeConfig> = {
     workType: WorkType.movie,
     icon: "movie-open-outline",
     label: "Movie club",
+    pluralLabel: "Movies",
     noun: "movie",
     finishedVerb: "watched",
     searchHint: "Search for a movie to add.",
@@ -658,6 +662,7 @@ export const CLUB_TYPE_CONFIG: Record<ClubType, ClubTypeConfig> = {
     workType: WorkType.book,
     icon: "book-open-page-variant-outline",
     label: "Book club",
+    pluralLabel: "Books",
     noun: "book",
     finishedVerb: "read",
     searchHint: "Search for a book to add.",
@@ -700,6 +705,7 @@ export const CLUB_TYPE_CONFIG: Record<ClubType, ClubTypeConfig> = {
     workType: WorkType.tv,
     icon: "television-classic",
     label: "TV club",
+    pluralLabel: "TV shows",
     // The unit a TV club scores is the episode. A club adds a show and works
     // down into it, so the add-prompt copy lives in `searchHint` instead.
     noun: "episode",
@@ -778,6 +784,11 @@ export function clubMetaLine(type: ClubType | undefined, memberCount: number | u
   const label = clubTypeLabel(type);
   if (!isDefined(memberCount)) return label;
   return `${label} · ${memberCount} ${memberCount === 1 ? "member" : "members"}`;
+}
+
+/** Every club type a club can be created as, in registry order. */
+export function clubTypeOptions(): ClubTypeConfig[] {
+  return Object.values(CLUB_TYPE_CONFIG);
 }
 
 /** Statistics-feature copy and icons for a club's media type. */
