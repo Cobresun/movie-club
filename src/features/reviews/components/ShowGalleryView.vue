@@ -4,7 +4,6 @@
       v-if="isDefined(openShow)"
       :key="openShow.showId"
       :show="openShow"
-      :reviews="reviews"
       :delete-review="deleteReview"
       :members="members"
       :revealed-movie-ids="revealedMovieIds"
