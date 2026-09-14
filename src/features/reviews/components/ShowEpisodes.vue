@@ -89,50 +89,41 @@
     </div>
 
     <WorkDetailsDrawer
-      v-if="selectedEpisode"
-      :key="selectedEpisode.id"
-      :movie="selectedEpisode"
+      v-if="isDefined(openEpisode)"
+      :key="openEpisode.episodeNumber"
+      :movie="openEpisode.work"
       :members="members"
       :delete-review="deleteReview"
       :revealed-movie-ids="revealedMovieIds"
       :has-rated="hasRated"
       :current-user-id="currentUserId"
+      :save-score="openEpisode.saveScore"
       @toggle-reveal="emit('toggle-reveal', $event)"
-      @close="selectedEpisodeId = undefined"
+      @close="selectedEpisodeNumber = undefined"
     />
 
-    <v-modal v-if="isDefined(scoreTarget)" @close="scoreTarget = undefined">
-      <div class="flex w-full max-w-sm flex-col gap-4 p-2">
-        <template v-if="scoreTarget.kind === 'season'">
-          <h3 class="text-lg font-semibold">Score all of {{ scoreTarget.season.title }}</h3>
-          <p class="text-sm text-gray-300">
-            Writes your score to every one of the {{ scoreTarget.season.episodeCount }} episodes
-            TMDB lists for this season.
-          </p>
-          <p v-if="replacedCount > 0" class="text-sm font-semibold text-highlightBackground">
-            This replaces {{ replacedCount }} {{ replacedCount === 1 ? "score" : "scores" }} you set
-            individually.
-          </p>
-        </template>
-        <template v-else>
-          <h3 class="text-lg font-semibold">Score {{ scoreTarget.card.title }}</h3>
-          <p class="text-sm text-gray-300">{{ show.title }} · {{ scoreTarget.card.code }}</p>
-        </template>
-        <ScoreDial v-model="draftScore" @save="confirmScore" />
+    <v-modal v-if="isDefined(seasonFill)" size="sm" @close="seasonFill = undefined">
+      <div class="flex w-full flex-col gap-4">
+        <h3 class="text-lg font-semibold">Score all of {{ seasonFill.title }}</h3>
+        <p class="text-sm text-gray-300">
+          Writes your score to every one of the {{ seasonFill.episodeCount }} episodes TMDB lists
+          for this season.
+        </p>
+        <p v-if="replacedCount > 0" class="text-sm font-semibold text-highlightBackground">
+          This replaces {{ replacedCount }} {{ replacedCount === 1 ? "score" : "scores" }} you set
+          individually.
+        </p>
+        <ScoreDial v-model="draftScore" @save="confirmSeasonFill" />
         <div class="flex justify-end gap-2">
           <button
             type="button"
             class="rounded-md px-4 py-2 font-bold tracking-wide text-gray-300"
-            @click="scoreTarget = undefined"
+            @click="seasonFill = undefined"
           >
             Cancel
           </button>
-          <v-btn :disabled="!canSave" @click="confirmScore">
-            {{
-              scoreTarget.kind === "season"
-                ? `Score ${scoreTarget.season.episodeCount} episodes`
-                : "Save score"
-            }}
+          <v-btn :disabled="!canSave" @click="confirmSeasonFill">
+            Score {{ seasonFill.episodeCount }} episodes
           </v-btn>
         </div>
       </div>
@@ -146,10 +137,11 @@ import { computed, ref } from "vue";
 
 import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import { Member } from "../../../../lib/types/club";
-import { DetailedReviewListItem, ReviewScores } from "../../../../lib/types/lists";
+import { ReviewScores } from "../../../../lib/types/lists";
 import {
   buildEpisodeCards,
   EpisodeCard as EpisodeCardData,
+  episodePreview,
   withMemberScore,
 } from "../episodeCards";
 import { scoreEntries } from "../reviewScores";
@@ -164,7 +156,6 @@ import { useTvSeason } from "@/service/useTMDB";
 
 const props = defineProps<{
   show: ShowNode;
-  reviews: DetailedReviewListItem[];
   deleteReview: (workId: string) => void;
   members: Member[];
   revealedMovieIds: Set<string>;
@@ -265,6 +256,7 @@ const cardViews = computed(() => {
       // yourself, or revealed them from its details drawer.
       revealed:
         hasOwnScore || (isDefined(card.node) && props.revealedMovieIds.has(card.node.workId)),
+      scores,
       canScore: card.aired && isDefined(userId) && !hasOwnScore,
       pending: isDefined(pending),
     };
@@ -273,73 +265,74 @@ const cardViews = computed(() => {
 
 // -- Opening an episode -------------------------------------------------------
 
-const selectedEpisodeId = ref<string>();
-const selectedEpisode = computed(() =>
-  props.reviews.find((review) => review.id === selectedEpisodeId.value),
-);
+const selectedEpisodeNumber = ref<number>();
 
-type ScoreTarget =
-  | { kind: "season"; season: SeasonNode }
-  | { kind: "episode"; card: EpisodeCardData; seasonNumber: number };
+const selectCard = (card: EpisodeCardData) => {
+  if (card.aired) selectedEpisodeNumber.value = card.episodeNumber;
+};
 
-const scoreTarget = ref<ScoreTarget>();
+const clubSlug = useClubSlug();
+const submitScore = useSubmitScore(clubSlug);
+
+/** An episode on the reviews list opens as itself. One nobody has scored yet
+ * opens as a preview, scored through the show until that save lists it. */
+const openEpisode = computed(() => {
+  const seasonNumber = season.value?.seasonNumber;
+  const view = cardViews.value.find(
+    (option) => option.card.episodeNumber === selectedEpisodeNumber.value,
+  );
+  if (!isDefined(view) || !isDefined(seasonNumber)) return undefined;
+
+  const { card } = view;
+  if (isDefined(card.node)) {
+    return { episodeNumber: card.episodeNumber, work: card.node.review, saveScore: undefined };
+  }
+  return {
+    episodeNumber: card.episodeNumber,
+    work: episodePreview(props.show.data, seasonNumber, card, view.scores),
+    saveScore: (score: number) => {
+      const settle = markPending([pendingKey(seasonNumber, card.episodeNumber)], score);
+      submitScore(
+        { workId: props.show.workId, score, seasonNumber, episodeNumber: card.episodeNumber },
+        { onSettled: settle },
+      );
+    },
+  };
+});
+
+// -- Scoring a whole season ---------------------------------------------------
+
+const seasonFill = ref<SeasonNode>();
 const draftScore = ref("");
 const canSave = computed(() => isValidScore(Number.parseFloat(draftScore.value)));
 
-const openScore = (target: ScoreTarget) => {
+const openSeasonFill = (target: SeasonNode) => {
   draftScore.value = "";
-  scoreTarget.value = target;
-};
-
-const openSeasonFill = (target: SeasonNode) => openScore({ kind: "season", season: target });
-
-/** An episode on the reviews list opens its details, where it is scored like
- * any other work; one that is not yet opens straight onto the dial. */
-const selectCard = (card: EpisodeCardData) => {
-  if (isDefined(card.node)) {
-    selectedEpisodeId.value = card.node.workId;
-    return;
-  }
-  const seasonNumber = season.value?.seasonNumber;
-  if (!card.aired || !isDefined(seasonNumber)) return;
-  openScore({ kind: "episode", card, seasonNumber });
+  seasonFill.value = target;
 };
 
 /** How many episodes of the season the member has already scored by hand —
  * the fill overwrites them, so the dialog says so before it does. */
 const replacedCount = computed(() => {
-  const target = scoreTarget.value;
+  const target = seasonFill.value;
   const userId = props.currentUserId;
-  if (target?.kind !== "season" || !isDefined(userId)) return 0;
-  return target.season.episodes.filter((episode) => isDefined(episode.review.scores[userId]))
-    .length;
+  if (!isDefined(target) || !isDefined(userId)) return 0;
+  return target.episodes.filter((episode) => isDefined(episode.review.scores[userId])).length;
 });
 
-const clubSlug = useClubSlug();
-const submitScore = useSubmitScore(clubSlug);
-
-const confirmScore = () => {
-  const target = scoreTarget.value;
+const confirmSeasonFill = () => {
+  const target = seasonFill.value;
   const score = Number.parseFloat(draftScore.value);
   if (!isDefined(target) || !isValidScore(score)) return;
 
-  // Either way the gesture is addressed to the show's work plus the numbers
-  // the member picked; the server resolves which episodes that means.
-  if (target.kind === "season") {
-    const seasonNumber = target.season.seasonNumber;
-    const settle = markPending(
-      cards.value.map((card) => pendingKey(seasonNumber, card.episodeNumber)),
-      score,
-    );
-    submitScore({ workId: props.show.workId, score, seasonNumber }, { onSettled: settle });
-  } else {
-    const { seasonNumber, card } = target;
-    const settle = markPending([pendingKey(seasonNumber, card.episodeNumber)], score);
-    submitScore(
-      { workId: props.show.workId, score, seasonNumber, episodeNumber: card.episodeNumber },
-      { onSettled: settle },
-    );
-  }
-  scoreTarget.value = undefined;
+  // Addressed to the show plus the season; the server resolves which episodes
+  // that means.
+  const seasonNumber = target.seasonNumber;
+  const settle = markPending(
+    cards.value.map((card) => pendingKey(seasonNumber, card.episodeNumber)),
+    score,
+  );
+  submitScore({ workId: props.show.workId, score, seasonNumber }, { onSettled: settle });
+  seasonFill.value = undefined;
 };
 </script>
