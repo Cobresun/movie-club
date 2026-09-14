@@ -91,6 +91,8 @@ const props = defineProps<{
   // mid-transition.
   autofocus?: boolean;
   autofocusDelay?: number;
+  // Saves in place of scoring `workId`, for a work not on the reviews list yet.
+  saveScore?: (score: number) => void;
 }>();
 
 const emit = defineEmits<{
@@ -145,11 +147,15 @@ const save = () => {
   // precision every score display rounds to (formatScore).
   const clamped = clampScore(Math.round(score * 100) / 100);
   if (clamped !== props.score) {
-    submitScore({
-      workId: props.workId,
-      reviewId: props.reviewId,
-      score: clamped,
-    });
+    if (isDefined(props.saveScore)) {
+      props.saveScore(clamped);
+    } else {
+      submitScore({
+        workId: props.workId,
+        reviewId: props.reviewId,
+        score: clamped,
+      });
+    }
     emit("saved");
   }
   emit("submit");

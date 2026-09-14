@@ -1,4 +1,4 @@
-import { screen, waitFor } from "@testing-library/vue";
+import { screen } from "@testing-library/vue";
 import { http, HttpResponse } from "msw";
 
 import { WorkType } from "../../../../lib/types/generated/db";
@@ -97,11 +97,18 @@ const tvReviews = [
   ]),
 ];
 
-function tmdbEpisode(seasonNumber: number, episodeNumber: number, name: string, airDate: string) {
+function tmdbEpisode(
+  seasonNumber: number,
+  episodeNumber: number,
+  name: string,
+  airDate: string,
+  overview?: string,
+) {
   return {
     episode_number: episodeNumber,
     season_number: seasonNumber,
     name,
+    overview,
     still_path: null,
     air_date: airDate,
   } satisfies TMDBTvEpisodeData;
@@ -111,7 +118,13 @@ const tmdbSeasons = {
   1: [
     tmdbEpisode(1, 1, "Good News About Hell", "2022-02-18"),
     tmdbEpisode(1, 2, "Half Loop", "2022-02-18"),
-    tmdbEpisode(1, 3, "In Perpetuity", "2022-02-25"),
+    tmdbEpisode(
+      1,
+      3,
+      "In Perpetuity",
+      "2022-02-25",
+      "Mark and his team take a field trip to the Perpetuity Wing.",
+    ),
   ],
   2: [
     tmdbEpisode(2, 1, "Hello, Ms. Cobel", "2025-01-17"),
@@ -175,19 +188,44 @@ describe("TV reviews", () => {
     expect(screen.queryByRole("button", { name: "Score Half Loop" })).not.toBeInTheDocument();
   });
 
-  it("scores an episode nobody has scored yet", async () => {
+  it("opens a scored episode onto its details", async () => {
+    const { user } = await openSeverance();
+
+    await user.click(await screen.findByRole("button", { name: "Half Loop" }));
+
+    expect(
+      await screen.findByRole("heading", { name: /^Half Loop/, level: 2 }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /edit score/i })).toBeInTheDocument();
+  });
+
+  it("opens an episode nobody has scored onto its details", async () => {
+    const { user } = await openSeverance();
+
+    await user.click(await screen.findByRole("button", { name: "In Perpetuity" }));
+
+    expect(
+      await screen.findByRole("heading", { name: /^In Perpetuity/, level: 2 }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/field trip to the Perpetuity Wing/)).toBeInTheDocument();
+    expect(screen.getByText(/No scores yet/)).toBeInTheDocument();
+    // There is no work to delete until someone scores it.
+    expect(screen.queryByRole("button", { name: "Delete review" })).not.toBeInTheDocument();
+  });
+
+  it("scores an episode nobody has scored yet from its details", async () => {
     const { user } = await openSeverance();
 
     await user.click(await screen.findByRole("button", { name: "Score In Perpetuity" }));
+    await user.click(await screen.findByRole("button", { name: "Rate this episode" }));
     await user.type(await screen.findByRole("spinbutton", { name: "Score" }), "7.5");
     await user.click(screen.getByRole("button", { name: "Save score" }));
 
-    await waitFor(() =>
-      expect(screen.queryByRole("button", { name: "Score In Perpetuity" })).not.toBeInTheDocument(),
-    );
-    // Your score, and the episode average that one score makes.
-    expect(await screen.findAllByText("7.5")).toHaveLength(2);
-    expect(await screen.findByText("3/9 episodes")).toBeInTheDocument();
+    // Now on the reviews list, the episode opens as itself.
+    expect(await screen.findByRole("button", { name: /edit score/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Delete review" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Score In Perpetuity" })).not.toBeInTheDocument();
+    expect(screen.getByText("3/9 episodes")).toBeInTheDocument();
   });
 
   it("lists a later season's upcoming episodes without offering to score them", async () => {

@@ -9,6 +9,7 @@
         :score="score"
         :review-id="reviewId"
         :draft-score="suggestedScore"
+        :save-score="saveScore"
         @submit="emit('close')"
         @saved="emit('saved')"
         @assist="mode = 'assist'"
@@ -46,6 +47,7 @@ const props = defineProps<{
   target: DetailedReviewListItem;
   score?: number;
   reviewId?: string;
+  saveScore?: (score: number) => void;
 }>();
 
 const emit = defineEmits<{

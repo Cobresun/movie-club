@@ -1,6 +1,6 @@
 import { isDefined } from "../../../lib/checks/checks.js";
 import { DetailedReviewListItem, ReviewScores } from "../../../lib/types/lists";
-import { TvSeasonSummary } from "../../../lib/types/tv";
+import { TvDataSummary, TvSeasonSummary } from "../../../lib/types/tv";
 import { asTv } from "@/common/workDisplay";
 
 /**
@@ -30,6 +30,9 @@ export interface ShowNode {
   /** The show's own work — what a score gesture on the show is aimed at. */
   workId: string;
   showId: string;
+  /** The show's own metadata, whose series fields an episode not yet on the
+   * reviews list borrows. */
+  data: TvDataSummary;
   title: string;
   imageUrl?: string;
   metaLine?: string;
@@ -137,6 +140,7 @@ export function buildShowTree(reviews: DetailedReviewListItem[]): ShowNode[] {
     nodes.push({
       workId: showReview.id,
       showId,
+      data: tv,
       title: tv.showTitle,
       imageUrl: showReview.imageUrl,
       metaLine: showMetaLine(tv.numberOfSeasons, tv.numberOfEpisodes),

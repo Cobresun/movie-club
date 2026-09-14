@@ -13,6 +13,7 @@
           :current-user-id="currentUserId"
           :is-desktop="isDesktop"
           :dismissing="closing"
+          :save-score="saveScore"
           @close="close"
           @toggle-reveal="toggleMovieReveal"
         />
@@ -32,6 +33,7 @@
           :current-user-id="currentUserId"
           :is-desktop="isDesktop"
           :dismissing="closing"
+          :save-score="saveScore"
           @close="close"
           @toggle-reveal="toggleMovieReveal"
         />
@@ -55,6 +57,7 @@ defineProps<{
   revealedMovieIds: Set<string>;
   hasRated: (movieId: string) => boolean;
   currentUserId?: string;
+  saveScore?: (score: number) => void;
 }>();
 
 const emit = defineEmits<{
