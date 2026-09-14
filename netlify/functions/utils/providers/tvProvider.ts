@@ -341,19 +341,20 @@ class TvProvider implements MediaProvider {
 
   /**
    * A season resolves to every episode TMDB lists for it, a show to every
-   * episode of every season but specials. An episode resolves to nothing —
-   * it is scored directly.
+   * episode of every season but specials. An episode is scored directly.
    *
-   * `seasonNumber` narrows a show to one of its seasons. It is the only thing
-   * the caller chooses: which episodes that season holds is still read from
-   * the server's own cached TMDB data, never from the request.
+   * `seasonNumber` narrows a show to one of its seasons, and `episodeNumber`
+   * narrows that season to one episode — how a club scores an episode before
+   * it exists as a work. The numbers are the only thing the caller chooses:
+   * which episodes a season holds, and what they are called, is still read
+   * from the server's own cached TMDB data, never from the request.
    */
   async expandScoreTargets(
     work: { externalId: string | null },
-    options?: { seasonNumber?: number },
-  ): Promise<ListInsertDto[]> {
+    options?: { seasonNumber?: number; episodeNumber?: number },
+  ): Promise<ListInsertDto[] | undefined> {
     const address = parseTvAddress(work.externalId);
-    if (address === undefined || tvLevel(address) === "episode") return [];
+    if (address === undefined || tvLevel(address) === "episode") return undefined;
 
     const chosenSeason = address.seasonNumber ?? options?.seasonNumber;
     const seasonNumbers =
@@ -367,6 +368,8 @@ class TvProvider implements MediaProvider {
       seasonNumbers.map((seasonNumber) => this.cacheSeason(address.showId, seasonNumber)),
     );
 
+    const episodeNumber = chosenSeason === undefined ? undefined : options?.episodeNumber;
+
     const rows = await db
       .selectFrom("tv_episode_details")
       .where("show_external_id", "=", address.showId)
@@ -376,6 +379,9 @@ class TvProvider implements MediaProvider {
         seasonNumbers.map((seasonNumber) =>
           formatTvAddress({ showId: address.showId, seasonNumber }),
         ),
+      )
+      .$if(episodeNumber !== undefined, (qb) =>
+        qb.where("episode_number", "=", String(episodeNumber)),
       )
       .select(["external_id", "name", "season_number", "episode_number", "still_path"])
       .orderBy("season_number")
