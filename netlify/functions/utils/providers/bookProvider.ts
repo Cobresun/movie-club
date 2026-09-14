@@ -174,8 +174,8 @@ class BookProvider implements MediaProvider {
     return Promise.resolve(new Map<string, MovieCastMember[]>());
   }
 
-  async expandScoreTargets(): Promise<ListInsertDto[]> {
-    return [];
+  async expandScoreTargets(): Promise<ListInsertDto[] | undefined> {
+    return undefined;
   }
 
   async getDiscussionPrompt(work: { title: string; externalId: string | null }): Promise<string> {

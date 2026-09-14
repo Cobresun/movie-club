@@ -73,16 +73,19 @@ export interface MediaProvider {
 
   /**
    * The further works a score on `work` fans out to. Media whose work is
-   * scored directly — a movie, a book, one TV episode — return an empty
-   * array, meaning "write the score to this work and nothing else". A TV
-   * season returns one entry per episode TMDB lists for it, so scoring a
-   * season is a bulk write rather than a number stored above the episodes.
+   * scored directly — a movie, a book, one TV episode — return `undefined`,
+   * meaning "write the score to this work and nothing else". A TV season
+   * returns one entry per episode TMDB lists for it, so scoring a season is a
+   * bulk write rather than a number stored above the episodes.
+   *
+   * An empty array means the gesture resolved to nothing — a season TMDB lists
+   * no episodes for, or an episode it does not list — and nothing is written.
    *
    * Returned works may not exist yet: the caller upserts each one before
    * writing a review against it.
    */
   expandScoreTargets: (
     work: { title: string; externalId: string | null },
-    options?: { seasonNumber?: number },
-  ) => Promise<ListInsertDto[]>;
+    options?: { seasonNumber?: number; episodeNumber?: number },
+  ) => Promise<ListInsertDto[] | undefined>;
 }

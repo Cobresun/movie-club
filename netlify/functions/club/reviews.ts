@@ -51,19 +51,26 @@ router.get("/cast", async ({ clubId }, res) => {
   return res(ok(JSON.stringify(result)));
 });
 
-const addReviewSchema = z.object({
-  score: z.number().min(0).max(10),
-  workId: z.string(),
-  /** Narrows a TV show to one of its seasons. Which episodes that season holds
-   * is still resolved server-side from cached TMDB data. */
-  seasonNumber: z.number().int().min(0).optional(),
-});
+const addReviewSchema = z
+  .object({
+    score: z.number().min(0).max(10),
+    workId: z.string(),
+    /** Narrows a TV show to one of its seasons. Which episodes that season
+     * holds is still resolved server-side from cached TMDB data. */
+    seasonNumber: z.number().int().min(0).optional(),
+    /** Narrows that season to one episode, which need not be a work yet. */
+    episodeNumber: z.number().int().min(0).optional(),
+  })
+  .refine((body) => body.episodeNumber === undefined || body.seasonNumber !== undefined, {
+    message: "episodeNumber needs a seasonNumber",
+    path: ["episodeNumber"],
+  });
 
 router.post("/", secured, async ({ clubId, userId, event }, res) => {
   const body = parseBody(event, addReviewSchema, res);
   if (isRouterResponse(body)) return body;
 
-  const { score, workId, seasonNumber } = body;
+  const { score, workId, seasonNumber, episodeNumber } = body;
 
   const work = await WorkRepository.getById(clubId, workId);
   if (!isDefined(work)) {
@@ -82,11 +89,14 @@ router.post("/", secured, async ({ clubId, userId, event }, res) => {
   // them and puts them on the reviews list.
   const targets = await getProvider(work.type).expandScoreTargets(
     { title: work.title, externalId: work.external_id },
-    { seasonNumber },
+    { seasonNumber, episodeNumber },
   );
+  if (isDefined(targets) && targets.length === 0) {
+    return res(badRequest("There is nothing to score there"));
+  }
 
   let scoredWorkIds = [workId];
-  if (targets.length > 0) {
+  if (isDefined(targets)) {
     const insertedIds = await WorkRepository.insertMany(clubId, targets);
     scoredWorkIds = targets
       .map((target) =>
