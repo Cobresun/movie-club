@@ -6,6 +6,7 @@ import { GoogleBooksSearchResponse, GoogleBooksVolume } from "@/../lib/types/boo
 import { ClubType, WorkType } from "@/../lib/types/generated/db";
 import { DetailedWorkListItem, WorkDataSummary } from "@/../lib/types/lists";
 import { TMDBPageResponse } from "@/../lib/types/movie";
+import { episodeCode, TMDBTvPageResponse, TvDataSummary } from "@/../lib/types/tv";
 import type { FilterOptionType } from "@/common/components/filterTypes";
 import {
   dateMatcher,
@@ -15,7 +16,7 @@ import {
   yearMatcher,
   type WorkMatcher,
 } from "@/common/filterMatchers";
-import { asBook, asMovie, formatRuntime } from "@/common/workDisplay";
+import { asBook, asMovie, asTv, formatRuntime } from "@/common/workDisplay";
 
 const TMDB_KEY = import.meta.env.VITE_TMDB_API_KEY;
 const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w154";
@@ -44,6 +45,24 @@ async function searchMovies(query: string, signal?: AbortSignal): Promise<WorkSe
     title: movie.title,
     subtitle: movie.release_date ? movie.release_date.slice(0, 4) : undefined,
     imageUrl: movie.poster_path ? `${TMDB_IMAGE_BASE}${movie.poster_path}` : undefined,
+  }));
+}
+
+/**
+ * TV search returns shows, never seasons or episodes: a club adds a series and
+ * works down into it, so the only address a search result carries is a bare
+ * show id.
+ */
+async function searchTvShows(query: string, signal?: AbortSignal): Promise<WorkSearchResult[]> {
+  const { data } = await axios.get<TMDBTvPageResponse>(
+    `https://api.themoviedb.org/3/search/tv?api_key=${TMDB_KEY}&query=${encodeURIComponent(query)}&language=en-US&include_adult=false`,
+    { signal },
+  );
+  return data.results.map((show) => ({
+    externalId: String(show.id),
+    title: show.name,
+    subtitle: hasValue(show.first_air_date) ? show.first_air_date.slice(0, 4) : undefined,
+    imageUrl: hasValue(show.poster_path) ? `${TMDB_IMAGE_BASE}${show.poster_path}` : undefined,
   }));
 }
 
@@ -328,6 +347,42 @@ const bookDisplay: WorkDisplay = {
   overview: (data) => asBook(data)?.description,
 };
 
+function tvYear(tv: TvDataSummary): string | undefined {
+  return hasValue(tv.airDate) && tv.airDate.length >= 4 ? tv.airDate.slice(0, 4) : undefined;
+}
+
+const tvDisplay: WorkDisplay = {
+  subtitle: (data) => {
+    const tv = asTv(data);
+    if (tv === undefined) return undefined;
+    const year = tvYear(tv);
+    // An episode leads with its code: "S01E04" is how a club refers to it,
+    // and the year alone would not distinguish it from its 18 siblings.
+    if (tv.seasonNumber !== undefined && tv.episodeNumber !== undefined) {
+      const code = episodeCode(tv.seasonNumber, tv.episodeNumber);
+      return hasValue(year) ? `${code} · ${year}` : code;
+    }
+    return year;
+  },
+  metaLine: (data) => {
+    const tv = asTv(data);
+    if (tv === undefined) return undefined;
+    const parts: string[] = [];
+    if (tv.level === "episode" && isDefined(tv.runtime) && tv.runtime > 0) {
+      parts.push(formatRuntime(tv.runtime));
+    }
+    if (tv.level === "season" && isDefined(tv.episodeCount) && tv.episodeCount > 0) {
+      parts.push(`${tv.episodeCount} episodes`);
+    }
+    if (tv.level === "show" && isDefined(tv.numberOfSeasons) && tv.numberOfSeasons > 0) {
+      parts.push(`${tv.numberOfSeasons} seasons`);
+    }
+    if (tv.genres.length > 0) parts.push(tv.genres.join(", "));
+    return parts.length > 0 ? parts.join(" · ") : undefined;
+  },
+  overview: (data) => asTv(data)?.overview,
+};
+
 // --- Per-type similarity (Score Assist pivot selection) ---------------------
 // Score Assist ranks comparison candidates by how "alike" they feel to the work
 // being reviewed, so the user compares familiar things. A scorer returns a value
@@ -484,6 +539,47 @@ const makeBookSimilarity = (
   };
 };
 
+// TV field weights: two episodes of the same series are the comparison a
+// member actually wants when scoring one — the show they are watching is the
+// yardstick — so shared series identity outweighs every other signal.
+const TV_FIELD_WEIGHTS = {
+  series: 6,
+  creator: 3,
+  cast: 2,
+  genre: 2,
+  network: 1,
+  era: 1,
+} as const;
+
+const makeTvSimilarity = (
+  corpus: readonly (WorkDataSummary | undefined)[],
+): WorkSimilarityScorer => {
+  const creatorIdf = buildIdf(corpus, (d) => asTv(d)?.creators ?? []);
+  const castIdf = buildIdf(corpus, (d) => asTv(d)?.castNames ?? []);
+  const genreIdf = buildIdf(corpus, (d) => asTv(d)?.genres ?? []);
+  const networkIdf = buildIdf(corpus, (d) => asTv(d)?.networks ?? []);
+  const totalWeight = sum(Object.values(TV_FIELD_WEIGHTS));
+
+  return (target, candidate) => {
+    const a = asTv(target);
+    const b = asTv(candidate);
+    if (a === undefined || b === undefined) return 0;
+    const weighted =
+      TV_FIELD_WEIGHTS.series * (a.showId === b.showId ? 1 : 0) +
+      TV_FIELD_WEIGHTS.creator * weightedJaccard(a.creators, b.creators, creatorIdf) +
+      TV_FIELD_WEIGHTS.cast * weightedJaccard(a.castNames, b.castNames, castIdf) +
+      TV_FIELD_WEIGHTS.genre * weightedJaccard(a.genres, b.genres, genreIdf) +
+      TV_FIELD_WEIGHTS.network * weightedJaccard(a.networks, b.networks, networkIdf) +
+      TV_FIELD_WEIGHTS.era * proximityDecay(tvAirYear(a), tvAirYear(b), ERA_HALF_LIFE_YEARS);
+    return weighted / totalWeight;
+  };
+};
+
+function tvAirYear(tv: TvDataSummary): number | undefined {
+  const year = hasValue(tv.airDate) ? Number.parseInt(tv.airDate.slice(0, 4), 10) : Number.NaN;
+  return Number.isFinite(year) ? year : undefined;
+}
+
 /**
  * Everything that varies by a club's media type, in one place. To add a third
  * club type: add the enum value (migration + codegen) and one entry here — copy,
@@ -588,6 +684,58 @@ export const CLUB_TYPE_CONFIG: Record<ClubType, ClubTypeConfig> = {
     display: bookDisplay,
     makeSimilarity: makeBookSimilarity,
   },
+  [ClubType.tv]: {
+    clubType: ClubType.tv,
+    workType: WorkType.tv,
+    icon: "television-classic",
+    label: "TV club",
+    // The unit a TV club scores is the episode. A club adds a show and works
+    // down into it, so the add-prompt copy lives in `searchHint` instead.
+    noun: "episode",
+    searchHint: "Search for a show to add.",
+    searchableFieldsHint: "title, genre, creator, network, actor, or air year",
+    filterOptions: [
+      enumOption("show", "Show", "Select a show", (data) => {
+        const tv = asTv(data);
+        return tv === undefined ? [] : [tv.showTitle];
+      }),
+      enumOption("genre", "Genre", "Select a genre", (data) => asTv(data)?.genres ?? []),
+      averageScoreOption,
+      enumOption("creator", "Creator", "Select a creator", (data) => asTv(data)?.creators ?? []),
+      enumOption("network", "Network", "Select a network", (data) => asTv(data)?.networks ?? []),
+      enumOption("actor", "Actor", "Select an actor", (data) => asTv(data)?.castNames ?? []),
+      reviewDateOption,
+      yearOption("air_date", "Air Year", "Enter a year", (work) => {
+        const tv = asTv(work.externalData);
+        return tv === undefined ? undefined : tvAirYear(tv);
+      }),
+      numberOption(
+        "season_number",
+        "Season",
+        "Enter a season number",
+        (work) => asTv(work.externalData)?.seasonNumber,
+      ),
+      numberOption(
+        "runtime",
+        "Runtime (min)",
+        "Enter minutes",
+        (work) => asTv(work.externalData)?.runtime,
+      ),
+    ],
+    search: searchTvShows,
+    stats: {
+      pluralNoun: "Episodes",
+      countLabel: "episodes watched",
+      countIcon: "television-play",
+      shareTitle: "TV Club Statistics",
+    },
+    supportsAwards: false,
+    invite: {
+      shareText: "Join my club and score the shows we watch together.",
+    },
+    display: tvDisplay,
+    makeSimilarity: makeTvSimilarity,
+  },
 };
 
 export function clubTypeConfig(type: ClubType): ClubTypeConfig {
@@ -642,11 +790,13 @@ export function clubTypeInvite(type: ClubType): InviteConfig {
 const CLUB_TYPE_BY_KIND: Record<WorkDataSummary["kind"], ClubType> = {
   movie: ClubType.movie,
   book: ClubType.book,
+  tv: ClubType.tv,
 };
 
 const CLUB_TYPE_BY_WORK_TYPE: Record<WorkType, ClubType> = {
   [WorkType.movie]: ClubType.movie,
   [WorkType.book]: ClubType.book,
+  [WorkType.tv]: ClubType.tv,
 };
 
 function workDisplay(data: WorkDataSummary | undefined): WorkDisplay | undefined {

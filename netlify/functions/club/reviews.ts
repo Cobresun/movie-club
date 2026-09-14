@@ -54,22 +54,50 @@ router.get("/cast", async ({ clubId }, res) => {
 const addReviewSchema = z.object({
   score: z.number().min(0).max(10),
   workId: z.string(),
+  /** Narrows a TV show to one of its seasons. Which episodes that season holds
+   * is still resolved server-side from cached TMDB data. */
+  seasonNumber: z.number().int().min(0).optional(),
 });
 
 router.post("/", secured, async ({ clubId, userId, event }, res) => {
   const body = parseBody(event, addReviewSchema, res);
   if (isRouterResponse(body)) return body;
 
-  const { score, workId } = body;
+  const { score, workId, seasonNumber } = body;
+
+  const work = await WorkRepository.getById(clubId, workId);
+  if (!isDefined(work)) {
+    return res(notFound("Work not found"));
+  }
 
   const reviewsListId = await ListRepository.getReviewsListId(clubId);
   const exists = await ListRepository.isItemInList(reviewsListId, workId);
   if (!exists) {
-    return res(badRequest("This movie does not exist in the list"));
+    return res(badRequest("This work is not on the reviews list"));
   }
 
-  await ReviewRepository.insertReview(reviewsListId, workId, userId, score);
-  return res(ok());
+  // A score gesture writes to the works it resolves to: a movie, book or
+  // episode to itself, a TV season or show to every episode beneath it. The
+  // episodes may not exist as works yet — scoring the season is what creates
+  // them and puts them on the reviews list.
+  const targets = await getProvider(work.type).expandScoreTargets(
+    { title: work.title, externalId: work.external_id },
+    { seasonNumber },
+  );
+
+  let scoredWorkIds = [workId];
+  if (targets.length > 0) {
+    const insertedIds = await WorkRepository.insertMany(clubId, targets);
+    scoredWorkIds = targets
+      .map((target) =>
+        hasValue(target.externalId) ? insertedIds.get(target.externalId) : undefined,
+      )
+      .filter(isDefined);
+    await ListRepository.insertItemsInList(reviewsListId, scoredWorkIds, userId);
+  }
+
+  await ReviewRepository.replaceScores(reviewsListId, scoredWorkIds, userId, score);
+  return res(ok(JSON.stringify({ scoredWorks: scoredWorkIds.length })));
 });
 
 const updateReviewSchema = z.object({

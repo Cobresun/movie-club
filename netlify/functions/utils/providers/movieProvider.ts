@@ -4,7 +4,7 @@ import { jsonBuildObject } from "kysely/helpers/postgres";
 import { isDefined, hasValue } from "../../../../lib/checks/checks.js";
 import { MAJOR_CAST_SIZE, STAR_POPULARITY } from "../../../../lib/movie/majorCast.js";
 import { WorkType } from "../../../../lib/types/generated/db";
-import { DetailedWorkData, WorkDataSummary } from "../../../../lib/types/lists";
+import { DetailedWorkData, ListInsertDto, WorkDataSummary } from "../../../../lib/types/lists";
 import { MovieCastMember, MovieDataSummary } from "../../../../lib/types/movie";
 import { db } from "../database";
 import { insertMovieDetails, updateMovieDetails } from "../movieDetailsUpdater";
@@ -222,6 +222,10 @@ class MovieProvider implements MediaProvider {
       map.set(row.external_id, cast);
     }
     return map;
+  }
+
+  async expandScoreTargets(): Promise<ListInsertDto[]> {
+    return [];
   }
 
   async getDiscussionPrompt(work: { title: string; externalId: string | null }): Promise<string> {
