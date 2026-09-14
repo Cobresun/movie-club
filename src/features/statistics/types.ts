@@ -1,6 +1,7 @@
 import { DetailedBookData } from "../../../lib/types/book";
 import { WorkType } from "../../../lib/types/generated/db";
 import { MovieDataSummary } from "../../../lib/types/movie";
+import { TvDataSummary } from "../../../lib/types/tv";
 
 /**
  * Score and review metadata shared by every reviewed work, regardless of
@@ -35,7 +36,14 @@ export interface BookData extends WorkStatsBase {
   externalData?: DetailedBookData;
 }
 
-export type WorkStatsData = MovieData | BookData;
+export interface TvData extends WorkStatsBase {
+  type: WorkType.tv;
+  // An episode counts as a work whether or not its metadata cached, so the
+  // score-based widgets still see a club's whole history.
+  externalData?: TvDataSummary;
+}
+
+export type WorkStatsData = MovieData | BookData | TvData;
 
 export function isMovieStats(work: WorkStatsData): work is MovieData {
   return work.type === WorkType.movie;
@@ -43,6 +51,10 @@ export function isMovieStats(work: WorkStatsData): work is MovieData {
 
 export function isBookStats(work: WorkStatsData): work is BookData {
   return work.type === WorkType.book;
+}
+
+export function isTvStats(work: WorkStatsData): work is TvData {
+  return work.type === WorkType.tv;
 }
 
 export type HistogramData = {
