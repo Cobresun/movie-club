@@ -66,7 +66,7 @@ describe("POST /api/club/:clubSlug/reviews", () => {
     });
 
     expect(res.statusCode).toBe(400);
-    expect(res.body.error).toBe("This movie does not exist in the list");
+    expect(res.body.error).toBe("This work is not on the reviews list");
   });
 
   it.each([
