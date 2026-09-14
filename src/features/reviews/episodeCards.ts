@@ -1,8 +1,15 @@
 import { hasValue } from "../../../lib/checks/checks.js";
-import { ReviewScores } from "../../../lib/types/lists";
-import { episodeCode, TMDBTvEpisodeData } from "../../../lib/types/tv";
+import { WorkType } from "../../../lib/types/generated/db";
+import { DetailedReviewListItem, ReviewScores } from "../../../lib/types/lists";
+import {
+  episodeCode,
+  formatTvAddress,
+  TMDBTvEpisodeData,
+  TvDataSummary,
+} from "../../../lib/types/tv";
 import { EpisodeNode } from "./reviewTree";
 import { tmdbStillUrl } from "@/common/workDisplay";
+import { OPTIMISTIC_WORK_ID } from "@/service/useList";
 
 /** One card in a season's episode gallery. */
 export interface EpisodeCard {
@@ -12,6 +19,8 @@ export interface EpisodeCard {
   stillUrl?: string;
   /** The episode's work on the reviews list — absent until the club scores it. */
   node?: EpisodeNode;
+  /** TMDB's listing for the episode, which a preview of it is built from. */
+  tmdb?: TMDBTvEpisodeData;
   /** Whether the episode has aired, so there is something to score. */
   aired: boolean;
 }
@@ -44,6 +53,7 @@ export function buildEpisodeCards(
         node?.review.imageUrl ??
         (hasValue(episode.still_path) ? tmdbStillUrl(episode.still_path) : undefined),
       node,
+      tmdb: episode,
       aired: node !== undefined || (hasValue(episode.air_date) && episode.air_date <= today),
     });
   }
@@ -61,6 +71,53 @@ export function buildEpisodeCards(
   }
 
   return [...cards.values()].sort((a, b) => a.episodeNumber - b.episodeNumber);
+}
+
+/**
+ * An episode nobody has scored, shaped as the work it becomes once someone
+ * does, so the details drawer can show it before it is on the reviews list.
+ * Its fields mirror the episode summary the server builds from the same TMDB
+ * listing (`tvProvider.getExternalDataSummary`).
+ */
+export function episodePreview(
+  show: TvDataSummary,
+  seasonNumber: number,
+  card: EpisodeCard,
+  scores: ReviewScores,
+): DetailedReviewListItem {
+  const episode = card.tmdb;
+  return {
+    id: OPTIMISTIC_WORK_ID,
+    type: WorkType.tv,
+    title: card.title,
+    createdDate: new Date().toISOString(),
+    externalId: formatTvAddress({
+      showId: show.showId,
+      seasonNumber,
+      episodeNumber: card.episodeNumber,
+    }),
+    imageUrl: card.stillUrl,
+    scores,
+    externalData: {
+      kind: "tv",
+      showId: show.showId,
+      showTitle: show.showTitle,
+      genres: show.genres,
+      creators: show.creators,
+      networks: show.networks,
+      castNames: show.castNames,
+      level: "episode",
+      seasonNumber,
+      episodeNumber: card.episodeNumber,
+      title: card.title,
+      overview: episode?.overview,
+      posterPath: show.posterPath,
+      stillPath: episode?.still_path ?? undefined,
+      airDate: episode?.air_date,
+      runtime: episode?.runtime,
+      voteAverage: episode?.vote_average,
+    },
+  };
 }
 
 /**
