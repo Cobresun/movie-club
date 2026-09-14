@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Movie Club is a Vue 3 app for managing movie/book clubs, reviews, custom lists, and awards. Netlify Functions for the API, CockroachDB via Kysely, BetterAuth for auth. Architecture notes live in `.claude/rules/`, loaded by path.
+Movie Club is a Vue 3 app for managing movie, book and TV clubs, reviews, custom lists, and awards. Netlify Functions for the API, CockroachDB via Kysely, BetterAuth for auth. Architecture notes live in `.claude/rules/`, loaded by path.
 
 ## Non-obvious setup
 

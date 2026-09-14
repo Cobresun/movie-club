@@ -2,7 +2,14 @@ import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 import { z } from "zod";
 
-import { geminiJsonResponse, googleBooksVolume, tmdbConfig, tmdbMovie } from "../fixtures/external";
+import {
+  geminiJsonResponse,
+  googleBooksVolume,
+  tmdbConfig,
+  tmdbMovie,
+  tmdbTvSeason,
+  tmdbTvShow,
+} from "../fixtures/external";
 
 /**
  * The only thing the integration suite fakes: the third-party HTTP APIs.
@@ -55,6 +62,14 @@ export const server = setupServer(
 
   http.get(`${TMDB}/movie/:movieId`, ({ params }) =>
     HttpResponse.json(tmdbMovie(Number(params.movieId))),
+  ),
+
+  http.get(`${TMDB}/tv/:showId/season/:seasonNumber`, ({ params }) =>
+    HttpResponse.json(tmdbTvSeason(Number(params.showId), Number(params.seasonNumber))),
+  ),
+
+  http.get(`${TMDB}/tv/:showId`, ({ params }) =>
+    HttpResponse.json(tmdbTvShow(Number(params.showId))),
   ),
 
   http.get(`${GOOGLE_BOOKS}/volumes/:volumeId`, ({ params }) =>

@@ -10,6 +10,7 @@ import { db } from "../utils/database";
 const DEFAULT_LIST_TITLE: Record<ClubType, string> = {
   [ClubType.movie]: "Watch List",
   [ClubType.book]: "Reading List",
+  [ClubType.tv]: "Watch List",
 };
 
 class ListRepository {
@@ -191,6 +192,36 @@ class ListRepository {
       .onConflict((oc) => oc.columns(["list_id", "work_id"]).doNothing())
       .executeTakeFirst();
     return (result.numInsertedOrUpdatedRows ?? 0n) > 0n;
+  }
+
+  /**
+   * Append several works to a list at once, keeping their given order. Runs in
+   * a transaction so the positions it hands out are computed against a list no
+   * concurrent append can have moved underneath it.
+   */
+  async insertItemsInList(listId: string, workIds: string[], userId: string) {
+    if (workIds.length === 0) return;
+    return db.transaction().execute(async (trx) => {
+      const last = await trx
+        .selectFrom("work_list_item")
+        .where("list_id", "=", listId)
+        .select(sql<number>`COALESCE(MAX(position), 0)`.as("position"))
+        .executeTakeFirst();
+      const base = last?.position ?? 0;
+
+      await trx
+        .insertInto("work_list_item")
+        .values(
+          workIds.map((workId, index) => ({
+            list_id: listId,
+            work_id: workId,
+            position: base + index + 1,
+            added_by_user_id: userId,
+          })),
+        )
+        .onConflict((oc) => oc.columns(["list_id", "work_id"]).doNothing())
+        .execute();
+    });
   }
 
   async deleteItemFromList(listId: string, workId: string) {

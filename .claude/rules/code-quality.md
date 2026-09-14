@@ -62,7 +62,7 @@ const stats = computed(() => clubTypeStats(props.clubType));
 Which registry depends on what the value depends on:
 
 1. **Cross-feature display/behavior** → the shared `CLUB_TYPE_CONFIG` in `src/common/clubType.ts`. Add a field or sub-block, read it via a helper like `clubTypeConfig(type)`. Components take `clubType` as a prop and look it up.
-2. **Logic depending on a feature's own types** → a feature-local `Record<Enum, ...>`, _not_ `src/common`. Putting it in `clubType.ts` would force the shared module to import feature types (e.g. statistics' `WorkStatsData`), inverting the `common → feature` dependency. Mirror the pattern locally instead — `WORK_STATS_BUILDERS` in `useStatisticsData.ts` is the example.
+2. **Logic depending on a feature's own types** → a feature-local `Record<Enum, ...>`, _not_ `src/common`. Putting it in `clubType.ts` would force the shared module to import feature types (e.g. statistics' `WorkStatsData`), inverting the `common → feature` dependency. Mirror the pattern locally instead — `WORK_STATS_BUILDERS` in `useStatisticsData.ts` is the example, as are `REVIEW_LAYOUTS` (which reviews layout a club type renders) and `STAT_WIDGETS`.
 
 Typing registries as `Record<Enum, ...>` buys exhaustiveness: a new club/work type won't compile until every registry covers it.
 

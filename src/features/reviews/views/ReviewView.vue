@@ -44,7 +44,8 @@
           @action="openPrompt"
         />
       </div>
-      <gallery-view
+      <component
+        :is="reviewLayout"
         v-else
         ref="gallery"
         :reviews="filteredReviews"
@@ -64,11 +65,11 @@ import { computed, nextTick, ref, provide, useTemplateRef } from "vue";
 import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import { ClubType } from "../../../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
-import GalleryView from "../components/GalleryView.vue";
 import ReviewsSkeleton from "../components/ReviewsSkeleton.vue";
 import ScoreAssistModal from "../components/ScoreAssistModal.vue";
 import UpNextCard from "../components/UpNextCard.vue";
 import { buildCandidatePool, isScoreAssistEligible } from "../composables/scoreAssistLogic";
+import { REVIEW_LAYOUTS } from "../reviewLayouts";
 import { ScoreAssistKey } from "../scoreAssist";
 import { clubTypeConfig } from "@/common/clubType";
 import EmptyState from "@/common/components/EmptyState.vue";
@@ -114,13 +115,16 @@ const noReviewsDescription = computed(() => {
 
 const members = computed(() => membersResponse.value ?? []);
 
+const reviewLayout = computed(() => REVIEW_LAYOUTS[club.value?.type ?? ClubType.movie]);
+
 // Starting the up-next review lands straight in its details drawer, where the
 // score entry lives. The gallery may only just have mounted (the first review
-// replaces the empty state), so wait a tick for its ref.
-const gallery = useTemplateRef("gallery");
+// replaces the empty state), so wait a tick for its ref. Only the flat gallery
+// layout exposes `openReview`.
+const gallery = useTemplateRef<{ openReview?: (workId: string) => void }>("gallery");
 const openStartedReview = async (workId: string) => {
   await nextTick();
-  gallery.value?.openReview(workId);
+  gallery.value?.openReview?.(workId);
 };
 
 const { data: reviewsListId } = useReviewsListId(clubSlug);

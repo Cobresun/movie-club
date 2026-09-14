@@ -3,13 +3,14 @@ import { z } from "zod";
 import { DetailedBookData } from "./book";
 import { WorkType } from "./generated/db";
 import { DetailedMovieData, MovieDataSummary } from "./movie";
+import { DetailedTvData, TvDataSummary } from "./tv";
 
 /**
  * Discriminated union of all media metadata shapes. Discriminate on `.kind`
  * (or on the sibling `WorkListItem.type`). Add a member here when introducing
  * a new club type.
  */
-export type DetailedWorkData = DetailedMovieData | DetailedBookData;
+export type DetailedWorkData = DetailedMovieData | DetailedBookData | DetailedTvData;
 
 /**
  * The bulk-payload variant of {@link DetailedWorkData}: each member may omit
@@ -17,7 +18,7 @@ export type DetailedWorkData = DetailedMovieData | DetailedBookData;
  * reviews endpoints return this; the per-work details endpoint returns the
  * full shape. Book metadata is small enough to double as its own summary.
  */
-export type WorkDataSummary = MovieDataSummary | DetailedBookData;
+export type WorkDataSummary = MovieDataSummary | DetailedBookData | TvDataSummary;
 
 export interface WorkListItem {
   id: string;
