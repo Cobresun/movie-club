@@ -41,6 +41,9 @@ export interface ShowNode {
    * club working through a series week by week would otherwise sit frozen at
    * the date it added the show. */
   lastScoredAt?: string;
+  /** The date the show's card carries: when its latest episode joined the
+   * reviews list, or the show itself before any episode has. */
+  reviewedDate: string;
 }
 
 /**
@@ -143,6 +146,9 @@ export function buildShowTree(reviews: DetailedReviewListItem[]): ShowNode[] {
       scoredCount: allEpisodes.filter((episode) => episode.scored).length,
       scores: rollUpScores(seasons.map((season) => season.scores)),
       lastScoredAt: latestScoreDate(allEpisodes),
+      reviewedDate: allEpisodes
+        .map((episode) => episode.review.createdDate)
+        .reduce((a, b) => (a > b ? a : b), showReview.createdDate),
     });
   }
 

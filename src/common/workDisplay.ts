@@ -73,9 +73,14 @@ export function workPosterUrl(
   // An episode leads with its own still and falls back to the show's poster,
   // so a season a club has opened but not watched still shows artwork.
   const tv = asTv(data);
-  if (hasValue(tv?.stillPath)) return `${TMDB_STILL_BASE}${tv.stillPath}`;
+  if (hasValue(tv?.stillPath)) return tmdbStillUrl(tv.stillPath);
   if (hasValue(tv?.posterPath)) return `${TMDB_POSTER_BASE}${tv.posterPath}`;
   return fallbackImageUrl ?? undefined;
+}
+
+/** A TMDB episode still path → a ready-to-render url. */
+export function tmdbStillUrl(stillPath: string): string {
+  return `${TMDB_STILL_BASE}${stillPath}`;
 }
 
 /** "155" minutes → "2h 35m" (or "45m" under an hour). */
@@ -89,4 +94,9 @@ export function formatRuntime(minutes: number): string {
 /** ISO date string → medium-length localized date (e.g. "Jan 5, 2024"). */
 export function formatDate(dateString: string): string {
   return DateTime.fromISO(dateString).toLocaleString(DateTime.DATE_MED);
+}
+
+/** The compact numeric date a gallery card carries; the details drawer spells it out. */
+export function formatCardDate(dateString: string): string {
+  return DateTime.fromISO(dateString).toLocaleString();
 }
