@@ -31,6 +31,14 @@ afterEach(() => {
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
+const GEMINI_OVERLOADED = {
+  error: {
+    code: 503,
+    message: "This model is currently experiencing high demand.",
+    status: "UNAVAILABLE",
+  },
+};
+
 /** The shape callers most commonly ask Gemini for: `{ questions: string[] }`. */
 const questionsSchema = z.object({ questions: z.array(z.string()) });
 
@@ -97,12 +105,38 @@ describe("generateJson", () => {
     await expect(callGenerateJson()).rejects.toThrow("Gemini returned malformed JSON");
   });
 
-  it("propagates API errors", async () => {
+  it("retries when Gemini is briefly overloaded", async () => {
     server.use(
-      http.post(GEMINI_URL, () => HttpResponse.json({ error: "unavailable" }, { status: 503 })),
+      http.post(GEMINI_URL, () => HttpResponse.json(GEMINI_OVERLOADED, { status: 503 }), {
+        once: true,
+      }),
     );
 
-    await expect(callGenerateJson()).rejects.toThrow("Request failed with status code 503");
+    const result = await callGenerateJson();
+
+    expect(result.questions).toEqual(GEMINI_QUESTIONS);
+  });
+
+  it("gives up with Google's reason when Gemini stays overloaded", async () => {
+    server.use(http.post(GEMINI_URL, () => HttpResponse.json(GEMINI_OVERLOADED, { status: 503 })));
+
+    await expect(callGenerateJson()).rejects.toThrow(
+      `Gemini request failed with status 503: ${GEMINI_OVERLOADED.error.message}`,
+    );
+  });
+
+  it("does not retry a rejected request", async () => {
+    server.use(
+      http.post(
+        GEMINI_URL,
+        () => HttpResponse.json({ error: { message: "API key not valid." } }, { status: 400 }),
+        { once: true },
+      ),
+    );
+
+    await expect(callGenerateJson()).rejects.toThrow(
+      "Gemini request failed with status 400: API key not valid.",
+    );
   });
 
   it("propagates transport failures", async () => {
