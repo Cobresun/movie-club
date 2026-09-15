@@ -45,7 +45,7 @@
           class="w-12 shrink-0 text-right font-bold"
           :class="[
             isDefined(level.scores.average) ? 'text-primary' : 'text-gray-500',
-            revealed ? '' : 'blur filter',
+            revealed || !isDefined(level.scores.average) ? '' : 'blur filter',
           ]"
         >
           {{ formatRollup(level.scores) }}
