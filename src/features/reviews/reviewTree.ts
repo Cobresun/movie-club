@@ -232,6 +232,43 @@ function buildSeasons(
     });
 }
 
+/** The season a member is most likely picking up: the one holding the club's
+ * latest review, or the first season before anything has been scored. */
+export function currentSeasonNumber(show: ShowNode): number | undefined {
+  let latest: { date: string; seasonNumber: number } | undefined;
+  for (const season of show.seasons) {
+    const reviews = [season.review, ...season.episodes.map((episode) => episode.review)];
+    for (const review of reviews.filter(isDefined)) {
+      if (latest === undefined || review.createdDate > latest.date) {
+        latest = { date: review.createdDate, seasonNumber: season.seasonNumber };
+      }
+    }
+  }
+  return latest?.seasonNumber ?? show.seasons[0]?.seasonNumber;
+}
+
+/** Names a show, or one of its seasons, in the set of rows a reader has open. */
+export const expansionKey = (showId: string, seasonNumber?: number) =>
+  isDefined(seasonNumber) ? `season:${showId}:${seasonNumber}` : `show:${showId}`;
+
+export const formatRollup = (scores: ReviewScores) =>
+  isDefined(scores.average) ? scores.average.score.toFixed(1) : "—";
+
+export const rollupLabel = (scores: ReviewScores) =>
+  isDefined(scores.average) ? `average ${formatRollup(scores)}` : "no scores yet";
+
+export const coverageLabel = (scored: number, total: number) => `${scored}/${total} episodes`;
+
+/** Where the reader's own score at a season or show comes from, in a line. */
+export function ownScoreNote(level: LevelScores, userId: string | undefined, below: string) {
+  const own = isDefined(userId) ? level.scores[userId] : undefined;
+  if (!isDefined(own) || !isDefined(userId)) return "You haven't scored it yet";
+  const value = own.score.toFixed(1);
+  return level.averagedMemberIds.has(userId)
+    ? `Yours is averaged from your ${below}: ${value}`
+    : `You scored it ${Math.round(own.score * 100) / 100}`;
+}
+
 function latestScoreDate(reviews: DetailedReviewListItem[]): string | undefined {
   const dates = reviews
     .flatMap((review) =>
