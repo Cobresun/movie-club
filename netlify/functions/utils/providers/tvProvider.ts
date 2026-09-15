@@ -9,16 +9,16 @@ import {
   parseTvAddress,
   TvAddress,
   TvDataSummary,
+  TvLevel,
   tvLevel,
   TvSeasonSummary,
 } from "../../../../lib/types/tv";
 import { db } from "../database";
 import { getTMDBTvSeason, getTMDBTvShowData } from "../tmdb";
 import { upsertTvSeasonDetails, upsertTvShowDetails } from "../tvDetailsUpdater";
-import { MediaProvider, numOrUndefined, RefreshResult } from "./types";
+import { MediaProvider, numOrUndefined, RefreshResult, ScoreTarget } from "./types";
 
-/** TMDB's season 0 holds specials, which a season- or show-level score never
- * fills: a club reaches them by opening season 0 and scoring deliberately. */
+/** TMDB's season 0 holds specials, which the show's season list leaves out. */
 const SPECIALS_SEASON = "0";
 
 /**
@@ -141,6 +141,21 @@ function toShowSummary(context: ShowContext): TvDataSummary {
 }
 
 const TMDB_STILL_BASE = "https://image.tmdb.org/t/p/w300";
+const TMDB_POSTER_BASE = "https://image.tmdb.org/t/p/w154";
+
+/** What a discussion prompt calls the work, at each level a club can score. */
+const TV_PROMPT_UNIT: Record<TvLevel, string> = {
+  show: "series",
+  season: "season",
+  episode: "episode",
+};
+
+/** `Severance S01E04 "The You You Are"`, `Severance, Season 1`, or the show. */
+function promptLabel(address: TvAddress, showTitle: string, title: string): string {
+  if (address.seasonNumber === undefined) return title;
+  if (address.episodeNumber === undefined) return `${showTitle}, ${title}`;
+  return `${showTitle} ${episodeCode(address.seasonNumber, address.episodeNumber)} "${title}"`;
+}
 
 function stillUrl(stillPath: string): string {
   return `${TMDB_STILL_BASE}${stillPath}`;
@@ -340,60 +355,72 @@ class TvProvider implements MediaProvider {
   }
 
   /**
-   * A season resolves to every episode TMDB lists for it, a show to every
-   * episode of every season but specials. An episode is scored directly.
+   * Every level is scored on its own: a score on the show stays on the show,
+   * one on a season stays on that season, and neither is ever written down to
+   * the episodes beneath it.
    *
    * `seasonNumber` narrows a show to one of its seasons, and `episodeNumber`
-   * narrows that season to one episode — how a club scores an episode before
-   * it exists as a work. The numbers are the only thing the caller chooses:
-   * which episodes a season holds, and what they are called, is still read
-   * from the server's own cached TMDB data, never from the request.
+   * narrows that season to one episode — how a club scores a season or an
+   * episode before it exists as a work. The numbers are the only thing the
+   * caller chooses: whether TMDB lists that season or episode, and what it is
+   * called, is read from the server's own cached TMDB data.
    */
-  async expandScoreTargets(
+  async resolveScoreTarget(
     work: { externalId: string | null },
-    options?: { seasonNumber?: number; episodeNumber?: number },
-  ): Promise<ListInsertDto[] | undefined> {
+    options: { seasonNumber?: number; episodeNumber?: number },
+  ): Promise<ScoreTarget> {
     const address = parseTvAddress(work.externalId);
-    if (address === undefined || tvLevel(address) === "episode") return undefined;
+    if (address === undefined) return { kind: "self" };
 
-    const chosenSeason = address.seasonNumber ?? options?.seasonNumber;
-    const seasonNumbers =
-      chosenSeason !== undefined
-        ? [chosenSeason]
-        : await this.scorableSeasonNumbers(address.showId);
+    const seasonNumber = address.seasonNumber ?? options.seasonNumber;
+    const target: TvAddress = {
+      showId: address.showId,
+      seasonNumber,
+      episodeNumber:
+        address.episodeNumber ?? (seasonNumber === undefined ? undefined : options.episodeNumber),
+    };
+    if (tvLevel(target) === tvLevel(address)) return { kind: "self" };
 
+    const targetWork =
+      tvLevel(target) === "season" ? await this.seasonWork(target) : await this.episodeWork(target);
+    return targetWork === undefined ? { kind: "missing" } : { kind: "work", work: targetWork };
+  }
+
+  private async seasonWork(address: TvAddress): Promise<ListInsertDto | undefined> {
+    const externalId = formatTvAddress(address);
+    const row = await db
+      .selectFrom("tv_season_details")
+      .where("external_id", "=", externalId)
+      .select(["name", "season_number", "poster_path"])
+      .executeTakeFirst();
+    if (row === undefined) return undefined;
+    return {
+      type: WorkType.tv,
+      title: row.name ?? `Season ${row.season_number}`,
+      externalId,
+      imageUrl: hasValue(row.poster_path) ? `${TMDB_POSTER_BASE}${row.poster_path}` : undefined,
+    };
+  }
+
+  private async episodeWork(address: TvAddress): Promise<ListInsertDto | undefined> {
+    if (address.seasonNumber === undefined) return undefined;
     // The season may never have been opened, so its episodes are not cached
-    // yet — filling it is exactly the moment they have to exist.
-    await Promise.all(
-      seasonNumbers.map((seasonNumber) => this.cacheSeason(address.showId, seasonNumber)),
-    );
+    // yet — scoring one of them is exactly the moment they have to exist.
+    await this.cacheSeason(address.showId, address.seasonNumber);
 
-    const episodeNumber = chosenSeason === undefined ? undefined : options?.episodeNumber;
-
-    const rows = await db
+    const externalId = formatTvAddress(address);
+    const row = await db
       .selectFrom("tv_episode_details")
-      .where("show_external_id", "=", address.showId)
-      .where(
-        "season_external_id",
-        "in",
-        seasonNumbers.map((seasonNumber) =>
-          formatTvAddress({ showId: address.showId, seasonNumber }),
-        ),
-      )
-      .$if(episodeNumber !== undefined, (qb) =>
-        qb.where("episode_number", "=", String(episodeNumber)),
-      )
-      .select(["external_id", "name", "season_number", "episode_number", "still_path"])
-      .orderBy("season_number")
-      .orderBy("episode_number")
-      .execute();
-
-    return rows.map((row) => ({
+      .where("external_id", "=", externalId)
+      .select(["name", "season_number", "episode_number", "still_path"])
+      .executeTakeFirst();
+    if (row === undefined) return undefined;
+    return {
       type: WorkType.tv,
       title: row.name ?? episodeCode(Number(row.season_number), Number(row.episode_number)),
-      externalId: row.external_id,
+      externalId,
       imageUrl: hasValue(row.still_path) ? stillUrl(row.still_path) : undefined,
-    }));
+    };
   }
 
   async getDiscussionPrompt(work: { title: string; externalId: string | null }): Promise<string> {
@@ -406,21 +433,21 @@ class TvProvider implements MediaProvider {
     const data = summaries.get(formatTvAddress(address));
     const summary = data?.kind === "tv" ? data : undefined;
 
-    const label =
-      summary?.level === "episode" &&
-      summary.seasonNumber !== undefined &&
-      summary.episodeNumber !== undefined
-        ? `${summary.showTitle} ${episodeCode(summary.seasonNumber, summary.episodeNumber)} "${summary.title}"`
-        : (summary?.title ?? work.title);
+    const label = promptLabel(
+      address,
+      summary?.showTitle ?? work.title,
+      summary?.title ?? work.title,
+    );
+    const unit = TV_PROMPT_UNIT[tvLevel(address)];
     const premise = hasValue(summary?.overview) ? `\n\nWhat happens: ${summary.overview}` : "";
 
     return `Generate 3 to 5 discussion prompts for a TV club that just watched ${label}.${premise}
 
-Every prompt must be specific to THIS episode — naming its actual characters, scenes, lines, or moments — never a generic question that could apply to any episode of television. Prompts may draw on what the series has established so far, but must never reference anything that happens after it: the club is watching in order, and a prompt that spoils a later episode ruins the watch.
+Every prompt must be specific to THIS ${unit} — naming its actual characters, scenes, lines, or moments — never a generic question that could apply to any ${unit} of television. Prompts may draw on what the series has established so far, but must never reference anything that happens after this ${unit}: the club is watching in order, and a prompt that spoils what comes later ruins the watch.
 
 Order the prompts by depth: the first should be casual and easy to answer — a low-stakes entry point. Each subsequent prompt should be more thought-provoking than the last, with the final one being substantial.
 
-Whenever the episode supports it, frame prompts as debates: questions with defensible answers on more than one side, designed to spark disagreement among friends rather than consensus. Keep each prompt succinct — one clear, concise question with no preamble.
+Whenever the ${unit} supports it, frame prompts as debates: questions with defensible answers on more than one side, designed to spark disagreement among friends rather than consensus. Keep each prompt succinct — one clear, concise question with no preamble.
 
 If you do not recognize this series or cannot confirm it is real, return 0 questions.`;
   }
@@ -494,17 +521,6 @@ If you do not recognize this series or cannot confirm it is real, return 0 quest
 
     const { data } = await getTMDBTvSeason(Number.parseInt(showId, 10), seasonNumber);
     await db.transaction().execute((trx) => upsertTvSeasonDetails(showId, data, trx));
-  }
-
-  private async scorableSeasonNumbers(showId: string): Promise<number[]> {
-    const rows = await db
-      .selectFrom("tv_season_details")
-      .where("show_external_id", "=", showId)
-      .where("season_number", "!=", SPECIALS_SEASON)
-      .select("season_number")
-      .orderBy("season_number")
-      .execute();
-    return rows.map((row) => Number(row.season_number));
   }
 }
 

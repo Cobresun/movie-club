@@ -13,9 +13,17 @@
           class="transition-[filter] duration-500 ease-standard"
           :class="[
             isDefined(entry.memberId) ? '' : 'text-lg font-bold text-primary',
+            entry.averaged ? 'italic text-gray-300' : '',
             isScoreBlurred(entry, currentUserId, revealed) ? 'blur filter' : 'blur-none',
           ]"
           :style="{ transitionDelay: `${index * 80}ms` }"
+          ><template v-if="entry.averaged"
+            ><mdicon
+              name="approximately-equal"
+              :size="14"
+              class="inline-block align-middle text-gray-400"
+              aria-hidden="true"
+            /><span class="sr-only">Averaged </span></template
           >{{ entry.value }}</span
         >
       </div>

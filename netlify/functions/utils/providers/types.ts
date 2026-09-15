@@ -72,20 +72,23 @@ export interface MediaProvider {
   getDiscussionPrompt: (work: { title: string; externalId: string | null }) => Promise<string>;
 
   /**
-   * The further works a score on `work` fans out to. Media whose work is
-   * scored directly — a movie, a book, one TV episode — return `undefined`,
-   * meaning "write the score to this work and nothing else". A TV season
-   * returns one entry per episode TMDB lists for it, so scoring a season is a
-   * bulk write rather than a number stored above the episodes.
+   * The one work a score on `work` lands on. A score is always written to a
+   * single work: scoring a TV season or show stores a number at that level
+   * and never touches the episodes beneath it.
    *
-   * An empty array means the gesture resolved to nothing — a season TMDB lists
-   * no episodes for, or an episode it does not list — and nothing is written.
-   *
-   * Returned works may not exist yet: the caller upserts each one before
-   * writing a review against it.
+   * `seasonNumber` and `episodeNumber` narrow a TV show to one of its seasons
+   * or episodes, which need not be works yet — `{ kind: "work" }` carries what
+   * the caller upserts before writing the review. Media that take no narrowing
+   * return `{ kind: "self" }`; `{ kind: "missing" }` means the narrowing named
+   * something the provider does not list, and nothing is written.
    */
-  expandScoreTargets: (
+  resolveScoreTarget: (
     work: { title: string; externalId: string | null },
-    options?: { seasonNumber?: number; episodeNumber?: number },
-  ) => Promise<ListInsertDto[] | undefined>;
+    options: { seasonNumber?: number; episodeNumber?: number },
+  ) => Promise<ScoreTarget>;
 }
+
+export type ScoreTarget =
+  | { kind: "self" }
+  | { kind: "work"; work: ListInsertDto }
+  | { kind: "missing" };

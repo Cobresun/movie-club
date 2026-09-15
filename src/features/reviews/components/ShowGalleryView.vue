@@ -27,12 +27,10 @@
           @select="openShowId = show.showId"
         >
           <div class="mb-2 text-sm text-gray-400">{{ formatCardDate(show.reviewedDate) }}</div>
-          <!-- A rollup spans many episodes, so it is shown rather than
-               blurred like a single episode's scores. -->
           <ScoreChips
-            :entries="scoreEntries(show.scores, members)"
+            :entries="scoreEntries(show.scores, members, show.averagedMemberIds)"
             :current-user-id="currentUserId"
-            revealed
+            :revealed="hasOwnScore(show.scores, currentUserId)"
           />
           <div class="mt-2 text-xs text-gray-400">
             {{ show.scoredCount }}/{{ show.episodeCount }} episodes
@@ -48,7 +46,7 @@ import { computed, ref } from "vue";
 
 import { isDefined } from "../../../../lib/checks/checks.js";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
-import { scoreEntries } from "../reviewScores";
+import { hasOwnScore, scoreEntries } from "../reviewScores";
 import { buildShowTree } from "../reviewTree";
 import ScoreChips from "./ScoreChips.vue";
 import ShowEpisodes from "./ShowEpisodes.vue";

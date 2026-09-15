@@ -38,8 +38,8 @@ export interface BookData extends WorkStatsBase {
 
 export interface TvData extends WorkStatsBase {
   type: WorkType.tv;
-  // An episode counts as a work whether or not its metadata cached, so the
-  // score-based widgets still see a club's whole history.
+  // Only episodes count (`isScoredUnit`), and a work reads as one only once
+  // its metadata has cached — the same rule movie stats apply.
   externalData?: TvDataSummary;
 }
 

@@ -239,18 +239,46 @@ describe("TV reviews", () => {
     expect(screen.getByRole("button", { name: "Score Hello, Ms. Cobel" })).toBeInTheDocument();
   });
 
-  it("says how many of your own scores a season fill will replace", async () => {
+  it("scores a season on its own, leaving the episode scores beneath it as they were", async () => {
     const { user } = await openSeverance();
 
-    await user.click(screen.getByRole("button", { name: "Score all episodes" }));
+    await user.click(screen.getByRole("button", { name: "Score season" }));
+    expect(await screen.findByText(/Everything that happens in season 1/)).toBeInTheDocument();
+    await user.click(await screen.findByRole("button", { name: "Rate this season" }));
+    await user.type(await screen.findByRole("spinbutton", { name: "Score" }), "4");
+    await user.click(screen.getByRole("button", { name: "Save score" }));
 
+    // Now on the reviews list, the season opens as itself.
+    expect(await screen.findByRole("button", { name: /edit score/i })).toBeInTheDocument();
+    // Your 4 replaces the 10 your episodes averaged; member 1 set no season
+    // score, so theirs is still their episodes' 6.
     expect(
-      await screen.findByText(/Writes your score to every one of the 9 episodes/),
+      await screen.findByRole("button", { name: "Season 1, average 5.0" }),
     ).toBeInTheDocument();
-    // The signed-in member scored one of the two episodes by hand.
-    expect(
-      await screen.findByText(/This replaces 1 score you set individually/),
-    ).toBeInTheDocument();
+    expect(screen.getByText("10")).toBeInTheDocument();
+    expect(screen.getByText("2/9 episodes")).toBeInTheDocument();
+  });
+
+  it("scores the show on its own, leaving its seasons as they were", async () => {
+    const { user } = await openSeverance();
+
+    await user.click(screen.getByRole("button", { name: "Score show" }));
+    await user.click(await screen.findByRole("button", { name: "Rate this show" }));
+    await user.type(await screen.findByRole("spinbutton", { name: "Score" }), "7");
+    await user.click(screen.getByRole("button", { name: "Save score" }));
+
+    expect(await screen.findByRole("button", { name: /edit score/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Season 1, average 8.0" })).toBeInTheDocument();
+  });
+
+  it("marks a show score averaged from a member's episodes apart from one they set", async () => {
+    useTvClub([{ ...show, scores: scores({ memberId: "1", score: 9 }) }, ...tvReviews.slice(1)]);
+    render(ReviewView, { props: { clubSlug: "1" } });
+
+    // Member 1 set 9 on the show itself, which wins over their episodes' 6;
+    // member 2 set nothing there, so theirs is their one episode's 10.
+    expect(await screen.findByText("9.5")).toBeInTheDocument();
+    expect(screen.getAllByText("Averaged")).toHaveLength(1);
   });
 
   it("goes back to every show", async () => {

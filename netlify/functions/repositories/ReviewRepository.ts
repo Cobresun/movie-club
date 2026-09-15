@@ -60,32 +60,24 @@ class ReviewRepository {
   }
 
   /**
-   * Write `userId`'s score to every one of `workIds`, replacing whatever they
-   * had scored those works before. Scoring a TV season resolves to its
-   * episodes, so one gesture lands as many rows; dropping the caller's old
-   * rows first is what makes a re-fill overwrite rather than accumulate.
-   * Only the caller's own reviews are touched.
+   * Write `userId`'s score to `workId`, replacing any score they had on it.
+   * A TV season or episode nobody has scored has no work yet, so the client
+   * cannot know a review id to update — two quick saves both arrive here, and
+   * dropping the caller's old row first keeps them from stacking up. Only the
+   * caller's own review is touched.
    */
-  async replaceScores(listId: string, workIds: string[], userId: string, score: number) {
-    if (workIds.length === 0) return;
+  async replaceScore(listId: string, workId: string, userId: string, score: number) {
     return db.transaction().execute(async (trx) => {
       await trx
         .deleteFrom("review")
         .where("list_id", "=", listId)
         .where("user_id", "=", userId)
-        .where("work_id", "in", workIds)
+        .where("work_id", "=", workId)
         .execute();
 
       await trx
         .insertInto("review")
-        .values(
-          workIds.map((workId) => ({
-            list_id: listId,
-            work_id: workId,
-            user_id: userId,
-            score,
-          })),
-        )
+        .values({ list_id: listId, work_id: workId, user_id: userId, score })
         .execute();
     });
   }

@@ -9,11 +9,11 @@ import {
 } from "../../../../lib/googleBooks";
 import { DetailedBookData } from "../../../../lib/types/book";
 import { WorkType } from "../../../../lib/types/generated/db";
-import { DetailedWorkData, ListInsertDto, WorkDataSummary } from "../../../../lib/types/lists";
+import { DetailedWorkData, WorkDataSummary } from "../../../../lib/types/lists";
 import { MovieCastMember } from "../../../../lib/types/movie";
 import { db } from "../database";
 import { getGoogleBooksVolume } from "./googleBooks";
-import { MediaProvider, numOrUndefined, RefreshResult } from "./types";
+import { MediaProvider, numOrUndefined, RefreshResult, ScoreTarget } from "./types";
 
 /**
  * Matches legacy OpenLibrary work keys (e.g. "OL45804W") that the
@@ -174,8 +174,8 @@ class BookProvider implements MediaProvider {
     return Promise.resolve(new Map<string, MovieCastMember[]>());
   }
 
-  async expandScoreTargets(): Promise<ListInsertDto[] | undefined> {
-    return undefined;
+  async resolveScoreTarget(): Promise<ScoreTarget> {
+    return { kind: "self" };
   }
 
   async getDiscussionPrompt(work: { title: string; externalId: string | null }): Promise<string> {
