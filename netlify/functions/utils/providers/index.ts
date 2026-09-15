@@ -3,6 +3,7 @@ import { WorkType } from "../../../../lib/types/generated/db";
 import { DetailedWorkData, WorkDataSummary } from "../../../../lib/types/lists";
 import bookProvider from "./bookProvider";
 import movieProvider from "./movieProvider";
+import tvProvider from "./tvProvider";
 import { MediaProvider } from "./types";
 
 /**
@@ -13,6 +14,7 @@ import { MediaProvider } from "./types";
 const providers: Record<WorkType, MediaProvider> = {
   [WorkType.movie]: movieProvider,
   [WorkType.book]: bookProvider,
+  [WorkType.tv]: tvProvider,
 };
 
 export function getProvider(type: WorkType): MediaProvider {

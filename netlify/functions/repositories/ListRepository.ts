@@ -10,6 +10,7 @@ import { db } from "../utils/database";
 const DEFAULT_LIST_TITLE: Record<ClubType, string> = {
   [ClubType.movie]: "Watch List",
   [ClubType.book]: "Reading List",
+  [ClubType.tv]: "Watch List",
 };
 
 class ListRepository {

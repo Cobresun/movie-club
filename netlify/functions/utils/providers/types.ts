@@ -1,6 +1,6 @@
 import { isDefined } from "../../../../lib/checks/checks.js";
 import { WorkType } from "../../../../lib/types/generated/db";
-import { DetailedWorkData, WorkDataSummary } from "../../../../lib/types/lists";
+import { DetailedWorkData, ListInsertDto, WorkDataSummary } from "../../../../lib/types/lists";
 import { MovieCastMember } from "../../../../lib/types/movie";
 
 /** Coerce a nullable Int8/decimal column (string | null) to number | undefined. */
@@ -70,4 +70,25 @@ export interface MediaProvider {
    * server-resolved data — never from client input.
    */
   getDiscussionPrompt: (work: { title: string; externalId: string | null }) => Promise<string>;
+
+  /**
+   * The one work a score on `work` lands on. A score is always written to a
+   * single work: scoring a TV season or show stores a number at that level
+   * and never touches the episodes beneath it.
+   *
+   * `seasonNumber` and `episodeNumber` narrow a TV show to one of its seasons
+   * or episodes, which need not be works yet — `{ kind: "work" }` carries what
+   * the caller upserts before writing the review. Media that take no narrowing
+   * return `{ kind: "self" }`; `{ kind: "missing" }` means the narrowing named
+   * something the provider does not list, and nothing is written.
+   */
+  resolveScoreTarget: (
+    work: { title: string; externalId: string | null },
+    options: { seasonNumber?: number; episodeNumber?: number },
+  ) => Promise<ScoreTarget>;
 }
+
+export type ScoreTarget =
+  | { kind: "self" }
+  | { kind: "work"; work: ListInsertDto }
+  | { kind: "missing" };

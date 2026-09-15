@@ -1,5 +1,6 @@
 import { GoogleBooksVolume } from "../../../../lib/types/book";
 import { TMDBConfig, TMDBMovieData } from "../../../../lib/types/movie";
+import { TMDBTvSeasonData, TMDBTvShowData } from "../../../../lib/types/tv";
 
 /**
  * Payload builders for the third-party APIs the backend talks to.
@@ -125,5 +126,72 @@ export function googleBooksVolume(
 export function geminiJsonResponse(payload: unknown) {
   return {
     candidates: [{ content: { parts: [{ text: JSON.stringify(payload) }] } }],
+  };
+}
+
+/**
+ * A show with two seasons: season 1 has three episodes, season 2 has two, and
+ * TMDB's season 0 carries a special that the show's season list leaves out.
+ */
+export const TV_SEASON_EPISODE_COUNTS: Record<number, number> = { 0: 1, 1: 3, 2: 2 };
+
+export function tmdbTvShow(id: number, overrides: Partial<TMDBTvShowData> = {}): TMDBTvShowData {
+  return {
+    id,
+    name: `Show ${id}`,
+    overview: `Overview of show ${id}`,
+    poster_path: `/show-${id}.jpg`,
+    backdrop_path: `/backdrop-${id}.jpg`,
+    first_air_date: "2022-02-18",
+    last_air_date: "2022-04-08",
+    status: "Returning Series",
+    original_language: "en",
+    number_of_seasons: 2,
+    number_of_episodes: TV_SEASON_EPISODE_COUNTS[1] + TV_SEASON_EPISODE_COUNTS[2],
+    vote_average: 8.4,
+    genres: [{ id: 18, name: "Drama" }],
+    created_by: [{ id: 1, name: `Creator ${id}`, profile_path: null }],
+    networks: [{ id: 2552, name: "Apple TV+", logo_path: null }],
+    seasons: Object.entries(TV_SEASON_EPISODE_COUNTS).map(([seasonNumber, episodeCount]) => ({
+      season_number: Number(seasonNumber),
+      name: Number(seasonNumber) === 0 ? "Specials" : `Season ${seasonNumber}`,
+      overview: "",
+      poster_path: `/season-${seasonNumber}.jpg`,
+      air_date: "2022-02-18",
+      episode_count: episodeCount,
+    })),
+    aggregate_credits: {
+      cast: [
+        {
+          id: 10,
+          name: `Lead ${id}`,
+          order: 0,
+          profile_path: null,
+          roles: [{ character: "Mark" }],
+        },
+      ],
+    },
+    ...overrides,
+  };
+}
+
+export function tmdbTvSeason(showId: number, seasonNumber: number): TMDBTvSeasonData {
+  const episodeCount = TV_SEASON_EPISODE_COUNTS[seasonNumber] ?? 0;
+  return {
+    season_number: seasonNumber,
+    name: seasonNumber === 0 ? "Specials" : `Season ${seasonNumber}`,
+    overview: "",
+    poster_path: `/season-${seasonNumber}.jpg`,
+    air_date: "2022-02-18",
+    episodes: Array.from({ length: episodeCount }, (_, index) => ({
+      episode_number: index + 1,
+      season_number: seasonNumber,
+      name: `Show ${showId} S${seasonNumber}E${index + 1}`,
+      overview: `Episode ${index + 1} of season ${seasonNumber}`,
+      still_path: `/still-${seasonNumber}-${index + 1}.jpg`,
+      air_date: "2022-02-18",
+      runtime: 48,
+      vote_average: 8.1,
+    })),
   };
 }

@@ -43,7 +43,8 @@
           @action="openPrompt"
         />
       </div>
-      <gallery-view
+      <component
+        :is="reviewLayout"
         v-else
         :reviews="filteredReviews"
         :delete-review="deleteReview"
@@ -62,10 +63,10 @@ import { computed, ref, provide } from "vue";
 import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import { ClubType } from "../../../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
-import GalleryView from "../components/GalleryView.vue";
 import ReviewsSkeleton from "../components/ReviewsSkeleton.vue";
 import ScoreAssistModal from "../components/ScoreAssistModal.vue";
 import { buildCandidatePool, isScoreAssistEligible } from "../composables/scoreAssistLogic";
+import { REVIEW_LAYOUTS } from "../reviewLayouts";
 import { ScoreAssistKey } from "../scoreAssist";
 import { clubTypeConfig } from "@/common/clubType";
 import EmptyState from "@/common/components/EmptyState.vue";
@@ -110,6 +111,8 @@ const noReviewsDescription = computed(() => {
 });
 
 const members = computed(() => membersResponse.value ?? []);
+
+const reviewLayout = computed(() => REVIEW_LAYOUTS[club.value?.type ?? ClubType.movie]);
 
 const { data: reviewsListId } = useReviewsListId(clubSlug);
 const { mutate: deleteReviewMutation } = useDeleteReview(clubSlug);

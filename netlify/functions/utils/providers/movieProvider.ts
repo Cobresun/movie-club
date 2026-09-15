@@ -9,7 +9,7 @@ import { MovieCastMember, MovieDataSummary } from "../../../../lib/types/movie";
 import { db } from "../database";
 import { insertMovieDetails, updateMovieDetails } from "../movieDetailsUpdater";
 import { getTMDBMovieData } from "../tmdb";
-import { MediaProvider, numOrUndefined, RefreshResult } from "./types";
+import { MediaProvider, numOrUndefined, RefreshResult, ScoreTarget } from "./types";
 
 /**
  * Builds the `movie_details` + junction aggregates for a set of external IDs,
@@ -222,6 +222,10 @@ class MovieProvider implements MediaProvider {
       map.set(row.external_id, cast);
     }
     return map;
+  }
+
+  async resolveScoreTarget(): Promise<ScoreTarget> {
+    return { kind: "self" };
   }
 
   async getDiscussionPrompt(work: { title: string; externalId: string | null }): Promise<string> {

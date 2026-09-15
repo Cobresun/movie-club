@@ -13,7 +13,7 @@ import { DetailedWorkData, WorkDataSummary } from "../../../../lib/types/lists";
 import { MovieCastMember } from "../../../../lib/types/movie";
 import { db } from "../database";
 import { getGoogleBooksVolume } from "./googleBooks";
-import { MediaProvider, numOrUndefined, RefreshResult } from "./types";
+import { MediaProvider, numOrUndefined, RefreshResult, ScoreTarget } from "./types";
 
 /**
  * Matches legacy OpenLibrary work keys (e.g. "OL45804W") that the
@@ -172,6 +172,10 @@ class BookProvider implements MediaProvider {
   // the summary payload.
   getCast(): Promise<Map<string, MovieCastMember[]>> {
     return Promise.resolve(new Map<string, MovieCastMember[]>());
+  }
+
+  async resolveScoreTarget(): Promise<ScoreTarget> {
+    return { kind: "self" };
   }
 
   async getDiscussionPrompt(work: { title: string; externalId: string | null }): Promise<string> {

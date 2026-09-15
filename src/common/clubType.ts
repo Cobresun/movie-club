@@ -6,6 +6,7 @@ import { GoogleBooksSearchResponse, GoogleBooksVolume } from "@/../lib/types/boo
 import { ClubType, WorkType } from "@/../lib/types/generated/db";
 import { DetailedWorkListItem, WorkDataSummary } from "@/../lib/types/lists";
 import { TMDBPageResponse } from "@/../lib/types/movie";
+import { episodeCode, TMDBTvPageResponse, TvDataSummary } from "@/../lib/types/tv";
 import type { FilterOptionType } from "@/common/components/filterTypes";
 import {
   dateMatcher,
@@ -15,7 +16,7 @@ import {
   yearMatcher,
   type WorkMatcher,
 } from "@/common/filterMatchers";
-import { asBook, asMovie, formatRuntime } from "@/common/workDisplay";
+import { asBook, asMovie, asTv, formatRuntime } from "@/common/workDisplay";
 
 const TMDB_KEY = import.meta.env.VITE_TMDB_API_KEY;
 const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w154";
@@ -44,6 +45,24 @@ async function searchMovies(query: string, signal?: AbortSignal): Promise<WorkSe
     title: movie.title,
     subtitle: movie.release_date ? movie.release_date.slice(0, 4) : undefined,
     imageUrl: movie.poster_path ? `${TMDB_IMAGE_BASE}${movie.poster_path}` : undefined,
+  }));
+}
+
+/**
+ * TV search returns shows, never seasons or episodes: a club adds a series and
+ * works down into it, so the only address a search result carries is a bare
+ * show id.
+ */
+async function searchTvShows(query: string, signal?: AbortSignal): Promise<WorkSearchResult[]> {
+  const { data } = await axios.get<TMDBTvPageResponse>(
+    `https://api.themoviedb.org/3/search/tv?api_key=${TMDB_KEY}&query=${encodeURIComponent(query)}&language=en-US&include_adult=false`,
+    { signal },
+  );
+  return data.results.map((show) => ({
+    externalId: String(show.id),
+    title: show.name,
+    subtitle: hasValue(show.first_air_date) ? show.first_air_date.slice(0, 4) : undefined,
+    imageUrl: hasValue(show.poster_path) ? `${TMDB_IMAGE_BASE}${show.poster_path}` : undefined,
   }));
 }
 
@@ -124,6 +143,9 @@ export interface ClubTypeConfig {
   readonly icon: string;
   /** Human label, e.g. for tooltips/aria ("Movie club"). */
   readonly label: string;
+  /** What a club of this type reviews, in the plural — the club-type picker's
+   * option ("Movies", "Books", "TV shows"). */
+  readonly pluralLabel: string;
   /** Singular noun for one item of the media ("movie", "book"). */
   readonly noun: string;
   /** Empty-state hint shown in the add/search prompt. */
@@ -145,6 +167,12 @@ export interface ClubTypeConfig {
   readonly invite: InviteConfig;
   /** Per-type extraction of the strings shown in the details drawers. */
   readonly display: WorkDisplay;
+  /**
+   * Whether a reviewed work is one of the units statistics and review facts
+   * count. Every movie and book is. A TV club counts episodes: a season or
+   * show it scored on its own would otherwise count the same series again.
+   */
+  readonly isScoredUnit: (data: WorkDataSummary | undefined) => boolean;
   /**
    * Build a similarity scorer for Score Assist's pivot selection, calibrated to
    * a candidate pool (its tag frequencies weight the overlaps). The returned
@@ -168,6 +196,9 @@ export interface WorkDisplay {
   readonly metaLine: (data: WorkDataSummary | undefined) => string | undefined;
   /** Long-form blurb: the TMDB overview / the book description. */
   readonly overview: (data: WorkDataSummary | undefined) => string | undefined;
+  /** What one work is called ("Rate this season"), for media whose works come
+   * at more than one level. Others fall back to the club type's `noun`. */
+  readonly noun?: (data: WorkDataSummary | undefined) => string | undefined;
 }
 
 /**
@@ -328,6 +359,43 @@ const bookDisplay: WorkDisplay = {
   overview: (data) => asBook(data)?.description,
 };
 
+function tvYear(tv: TvDataSummary): string | undefined {
+  return hasValue(tv.airDate) && tv.airDate.length >= 4 ? tv.airDate.slice(0, 4) : undefined;
+}
+
+const tvDisplay: WorkDisplay = {
+  subtitle: (data) => {
+    const tv = asTv(data);
+    if (tv === undefined) return undefined;
+    const year = tvYear(tv);
+    // An episode leads with its code: "S01E04" is how a club refers to it,
+    // and the year alone would not distinguish it from its 18 siblings.
+    if (tv.seasonNumber !== undefined && tv.episodeNumber !== undefined) {
+      const code = episodeCode(tv.seasonNumber, tv.episodeNumber);
+      return hasValue(year) ? `${code} · ${year}` : code;
+    }
+    return year;
+  },
+  metaLine: (data) => {
+    const tv = asTv(data);
+    if (tv === undefined) return undefined;
+    const parts: string[] = [];
+    if (tv.level === "episode" && isDefined(tv.runtime) && tv.runtime > 0) {
+      parts.push(formatRuntime(tv.runtime));
+    }
+    if (tv.level === "season" && isDefined(tv.episodeCount) && tv.episodeCount > 0) {
+      parts.push(`${tv.episodeCount} episodes`);
+    }
+    if (tv.level === "show" && isDefined(tv.numberOfSeasons) && tv.numberOfSeasons > 0) {
+      parts.push(`${tv.numberOfSeasons} seasons`);
+    }
+    if (tv.genres.length > 0) parts.push(tv.genres.join(", "));
+    return parts.length > 0 ? parts.join(" · ") : undefined;
+  },
+  overview: (data) => asTv(data)?.overview,
+  noun: (data) => asTv(data)?.level,
+};
+
 // --- Per-type similarity (Score Assist pivot selection) ---------------------
 // Score Assist ranks comparison candidates by how "alike" they feel to the work
 // being reviewed, so the user compares familiar things. A scorer returns a value
@@ -484,6 +552,47 @@ const makeBookSimilarity = (
   };
 };
 
+// TV field weights: two episodes of the same series are the comparison a
+// member actually wants when scoring one — the show they are watching is the
+// yardstick — so shared series identity outweighs every other signal.
+const TV_FIELD_WEIGHTS = {
+  series: 6,
+  creator: 3,
+  cast: 2,
+  genre: 2,
+  network: 1,
+  era: 1,
+} as const;
+
+const makeTvSimilarity = (
+  corpus: readonly (WorkDataSummary | undefined)[],
+): WorkSimilarityScorer => {
+  const creatorIdf = buildIdf(corpus, (d) => asTv(d)?.creators ?? []);
+  const castIdf = buildIdf(corpus, (d) => asTv(d)?.castNames ?? []);
+  const genreIdf = buildIdf(corpus, (d) => asTv(d)?.genres ?? []);
+  const networkIdf = buildIdf(corpus, (d) => asTv(d)?.networks ?? []);
+  const totalWeight = sum(Object.values(TV_FIELD_WEIGHTS));
+
+  return (target, candidate) => {
+    const a = asTv(target);
+    const b = asTv(candidate);
+    if (a === undefined || b === undefined) return 0;
+    const weighted =
+      TV_FIELD_WEIGHTS.series * (a.showId === b.showId ? 1 : 0) +
+      TV_FIELD_WEIGHTS.creator * weightedJaccard(a.creators, b.creators, creatorIdf) +
+      TV_FIELD_WEIGHTS.cast * weightedJaccard(a.castNames, b.castNames, castIdf) +
+      TV_FIELD_WEIGHTS.genre * weightedJaccard(a.genres, b.genres, genreIdf) +
+      TV_FIELD_WEIGHTS.network * weightedJaccard(a.networks, b.networks, networkIdf) +
+      TV_FIELD_WEIGHTS.era * proximityDecay(tvAirYear(a), tvAirYear(b), ERA_HALF_LIFE_YEARS);
+    return weighted / totalWeight;
+  };
+};
+
+function tvAirYear(tv: TvDataSummary): number | undefined {
+  const year = hasValue(tv.airDate) ? Number.parseInt(tv.airDate.slice(0, 4), 10) : Number.NaN;
+  return Number.isFinite(year) ? year : undefined;
+}
+
 /**
  * Everything that varies by a club's media type, in one place. To add a third
  * club type: add the enum value (migration + codegen) and one entry here — copy,
@@ -496,6 +605,7 @@ export const CLUB_TYPE_CONFIG: Record<ClubType, ClubTypeConfig> = {
     workType: WorkType.movie,
     icon: "movie-open-outline",
     label: "Movie club",
+    pluralLabel: "Movies",
     noun: "movie",
     searchHint: "Search for a movie to add.",
     searchableFieldsHint: "title, genre, company, director, actor, or release year",
@@ -546,6 +656,7 @@ export const CLUB_TYPE_CONFIG: Record<ClubType, ClubTypeConfig> = {
       shareText: "Join my club and score the movies we watch together.",
     },
     display: movieDisplay,
+    isScoredUnit: () => true,
     makeSimilarity: makeMovieSimilarity,
   },
   [ClubType.book]: {
@@ -553,6 +664,7 @@ export const CLUB_TYPE_CONFIG: Record<ClubType, ClubTypeConfig> = {
     workType: WorkType.book,
     icon: "book-open-page-variant-outline",
     label: "Book club",
+    pluralLabel: "Books",
     noun: "book",
     searchHint: "Search for a book to add.",
     searchableFieldsHint: "title, author, subject, or published year",
@@ -586,7 +698,62 @@ export const CLUB_TYPE_CONFIG: Record<ClubType, ClubTypeConfig> = {
       shareText: "Join my club and score the books we read together.",
     },
     display: bookDisplay,
+    isScoredUnit: () => true,
     makeSimilarity: makeBookSimilarity,
+  },
+  [ClubType.tv]: {
+    clubType: ClubType.tv,
+    workType: WorkType.tv,
+    icon: "television-classic",
+    label: "TV club",
+    pluralLabel: "TV shows",
+    // The unit a TV club scores is the episode. A club adds a show and works
+    // down into it, so the add-prompt copy lives in `searchHint` instead.
+    noun: "episode",
+    searchHint: "Search for a show to add.",
+    searchableFieldsHint: "title, genre, creator, network, actor, or air year",
+    filterOptions: [
+      enumOption("show", "Show", "Select a show", (data) => {
+        const tv = asTv(data);
+        return tv === undefined ? [] : [tv.showTitle];
+      }),
+      enumOption("genre", "Genre", "Select a genre", (data) => asTv(data)?.genres ?? []),
+      averageScoreOption,
+      enumOption("creator", "Creator", "Select a creator", (data) => asTv(data)?.creators ?? []),
+      enumOption("network", "Network", "Select a network", (data) => asTv(data)?.networks ?? []),
+      enumOption("actor", "Actor", "Select an actor", (data) => asTv(data)?.castNames ?? []),
+      reviewDateOption,
+      yearOption("air_date", "Air Year", "Enter a year", (work) => {
+        const tv = asTv(work.externalData);
+        return tv === undefined ? undefined : tvAirYear(tv);
+      }),
+      numberOption(
+        "season_number",
+        "Season",
+        "Enter a season number",
+        (work) => asTv(work.externalData)?.seasonNumber,
+      ),
+      numberOption(
+        "runtime",
+        "Runtime (min)",
+        "Enter minutes",
+        (work) => asTv(work.externalData)?.runtime,
+      ),
+    ],
+    search: searchTvShows,
+    stats: {
+      pluralNoun: "Episodes",
+      countLabel: "episodes watched",
+      countIcon: "television-play",
+      shareTitle: "TV Club Statistics",
+    },
+    supportsAwards: false,
+    invite: {
+      shareText: "Join my club and score the shows we watch together.",
+    },
+    display: tvDisplay,
+    isScoredUnit: (data) => asTv(data)?.level === "episode",
+    makeSimilarity: makeTvSimilarity,
   },
 };
 
@@ -607,6 +774,11 @@ export function clubTypeIcon(type: ClubType): string {
 /** Human label for a club's media type (e.g. for tooltips/aria). */
 export function clubTypeLabel(type: ClubType): string {
   return clubTypeConfig(type).label;
+}
+
+/** Every club type a club can be created as, in registry order. */
+export function clubTypeOptions(): ClubTypeConfig[] {
+  return Object.values(CLUB_TYPE_CONFIG);
 }
 
 /** Statistics-feature copy and icons for a club's media type. */
@@ -630,11 +802,13 @@ export function clubTypeInvite(type: ClubType): InviteConfig {
 const CLUB_TYPE_BY_KIND: Record<WorkDataSummary["kind"], ClubType> = {
   movie: ClubType.movie,
   book: ClubType.book,
+  tv: ClubType.tv,
 };
 
 const CLUB_TYPE_BY_WORK_TYPE: Record<WorkType, ClubType> = {
   [WorkType.movie]: ClubType.movie,
   [WorkType.book]: ClubType.book,
+  [WorkType.tv]: ClubType.tv,
 };
 
 function workDisplay(data: WorkDataSummary | undefined): WorkDisplay | undefined {
@@ -662,6 +836,16 @@ export function workMetaLine(data: WorkDataSummary | undefined): string | undefi
 /** The long-form blurb (TMDB overview / book description). */
 export function workOverview(data: WorkDataSummary | undefined): string | undefined {
   return workDisplay(data)?.overview(data);
+}
+
+/** What this one work is called, when its media has more than one level. */
+export function workNoun(data: WorkDataSummary | undefined): string | undefined {
+  return workDisplay(data)?.noun?.(data);
+}
+
+/** Whether statistics and review facts count this work (see `isScoredUnit`). */
+export function isScoredUnit(work: { type: WorkType; externalData?: WorkDataSummary }): boolean {
+  return clubTypeConfig(CLUB_TYPE_BY_WORK_TYPE[work.type]).isScoredUnit(work.externalData);
 }
 
 /**

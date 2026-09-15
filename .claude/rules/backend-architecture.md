@@ -58,6 +58,8 @@ Lists are arbitrary and user-titled, keyed by UUID. A club's _reviews_ list is a
 
 Repository classes in `netlify/functions/repositories/` own all queries — one per aggregate, named `<Thing>Repository`. Kysely with generated types throughout.
 
+A score always lands on exactly one work. `MediaProvider.resolveScoreTarget(work, { seasonNumber, episodeNumber })` says which: `self` for a movie, a book, or any TV work scored as itself; `work` for a TV show narrowed to a season or episode that may not be a work yet; `missing` when the narrowing names something TMDB does not list, which is refused. `POST /reviews` upserts that one work, puts it on the reviews list and writes the review, so there is no per-level score endpoint and no club-type branch in the handler. A TV season or show score is its own review — it is never written down to the episodes beneath it, and a fan-out that did so is the mistake this design exists to prevent.
+
 Stale-metadata refresh is deliberately _not_ a repository: each `MediaProvider` in `netlify/functions/utils/providers/` implements `refreshStaleDetails(limit)` for its own source (TMDB, Google Books), and `scheduled-work-refresh.ts` sweeps them. `scheduled-db-cleanup.ts` reaps stale preview databases, and `scheduled-metrics-snapshot.ts` records the observability rollups `MetricsRepository` reads.
 
 Deploy-time behavior lives in Netlify plugins: `netlify/plugins/preview-database/` (per-PR database selection, plus the shared-`dev` migration sync on production deploys) and `netlify/plugins/auth-config/`.
