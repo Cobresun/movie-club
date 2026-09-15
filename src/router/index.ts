@@ -345,13 +345,10 @@ const routes: Array<RouteRecordRaw> = [
         ],
       },
       {
+        // Club settings merged into the club page; links people already have
+        // out there still resolve.
         path: "settings",
-        name: "ClubSettings",
-        component: () => import("../features/settings/views/ClubSettingsView.vue"),
-        props: true,
-        meta: {
-          authRequired: true,
-        },
+        redirect: (to) => ({ name: "Club", params: { clubSlug: to.params.clubSlug } }),
       },
     ],
   },

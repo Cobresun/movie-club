@@ -53,7 +53,7 @@ const makeRealRouter = async () => {
 };
 
 const openSheet = async (user: ReturnType<typeof render>["user"]) => {
-  await user.click(screen.getByRole("button", { name: /Switch club/ }));
+  await user.click(screen.getByRole("button", { name: /Club menu/ }));
 };
 
 describe("ClubSwitcher", () => {
@@ -117,16 +117,42 @@ describe("ClubSwitcher", () => {
     expect(router.currentRoute.value.params.clubSlug).toBe("book-club");
   });
 
+  describe("the club panel", () => {
+    it("opens the club page from the club row", async () => {
+      const { user } = render(ClubSwitcher);
+
+      await openSheet(user);
+      await user.click(screen.getByRole("button", { name: /Members & settings/ }));
+
+      expect(router.currentRoute.value.name).toBe("Club");
+      expect(router.currentRoute.value.params.clubSlug).toBe("test-club");
+      // The sheet's history cleanup must not undo the navigation it just made.
+      expect(back).not.toHaveBeenCalled();
+    });
+
+    it("leaves members and inviting to the club page", async () => {
+      const { user } = render(ClubSwitcher);
+
+      await openSheet(user);
+
+      expect(screen.queryByRole("button", { name: /Invite people/ })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /Club settings/ })).not.toBeInTheDocument();
+    });
+  });
+
   describe("with a single club", () => {
     beforeEach(() => {
       state.userClubs = [testClub];
     });
 
-    it("offers no switcher, just a way into the club", () => {
-      render(ClubSwitcher);
+    it("opens the same panel, without a list to switch between", async () => {
+      const { user } = render(ClubSwitcher);
 
-      expect(screen.queryByRole("button", { name: /Switch club/ })).not.toBeInTheDocument();
-      expect(screen.getByRole("link", { name: /Test Club/ })).toBeInTheDocument();
+      await openSheet(user);
+
+      expect(screen.getByRole("button", { name: /Members & settings/ })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /Create new club/ })).toBeInTheDocument();
+      expect(screen.queryByText("Your clubs")).not.toBeInTheDocument();
     });
   });
 });

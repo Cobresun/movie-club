@@ -22,8 +22,21 @@ describe("clubSections", () => {
 
   it("recognises only section route names", () => {
     expect(isClubSection("Watchlists")).toBe(true);
-    expect(isClubSection("ClubSettings")).toBe(false);
+    expect(isClubSection("Club")).toBe(false);
     expect(isClubSection(undefined)).toBe(false);
+  });
+
+  it("is the four tabs of the bar, in order", () => {
+    expect(CLUB_SECTIONS.map((candidate) => candidate.name)).toEqual([
+      "Reviews",
+      "Watchlists",
+      "Statistics",
+      "Awards",
+    ]);
+  });
+
+  it("no longer treats the club page as a section", () => {
+    expect(isClubSection("Club")).toBe(false);
   });
 
   describe("isSectionVisible", () => {
@@ -51,7 +64,7 @@ describe("clubSections", () => {
     });
 
     it("returns null for club routes outside the section bar", () => {
-      const route = { matched: [{ name: undefined }, { name: "ClubSettings" }] };
+      const route = { matched: [{ name: undefined }, { name: "Club" }] };
 
       expect(sectionNameForRoute(route)).toBeNull();
     });
