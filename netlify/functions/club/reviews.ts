@@ -55,8 +55,8 @@ const addReviewSchema = z
   .object({
     score: z.number().min(0).max(10),
     workId: z.string(),
-    /** Narrows a TV show to one of its seasons. Which episodes that season
-     * holds is still resolved server-side from cached TMDB data. */
+    /** Narrows a TV show to one of its seasons, which need not be a work yet.
+     * Whether TMDB lists it is still resolved server-side. */
     seasonNumber: z.number().int().min(0).optional(),
     /** Narrows that season to one episode, which need not be a work yet. */
     episodeNumber: z.number().int().min(0).optional(),
@@ -83,31 +83,25 @@ router.post("/", secured, async ({ clubId, userId, event }, res) => {
     return res(badRequest("This work is not on the reviews list"));
   }
 
-  // A score gesture writes to the works it resolves to: a movie, book or
-  // episode to itself, a TV season or show to every episode beneath it. The
-  // episodes may not exist as works yet — scoring the season is what creates
-  // them and puts them on the reviews list.
-  const targets = await getProvider(work.type).expandScoreTargets(
+  // A score lands on exactly one work. A narrowed TV show resolves to the
+  // season or episode it names, which may not be a work yet — scoring it is
+  // what creates it and puts it on the reviews list.
+  const target = await getProvider(work.type).resolveScoreTarget(
     { title: work.title, externalId: work.external_id },
     { seasonNumber, episodeNumber },
   );
-  if (isDefined(targets) && targets.length === 0) {
+  if (target.kind === "missing") {
     return res(badRequest("There is nothing to score there"));
   }
 
-  let scoredWorkIds = [workId];
-  if (isDefined(targets)) {
-    const insertedIds = await WorkRepository.insertMany(clubId, targets);
-    scoredWorkIds = targets
-      .map((target) =>
-        hasValue(target.externalId) ? insertedIds.get(target.externalId) : undefined,
-      )
-      .filter(isDefined);
-    await ListRepository.insertItemsInList(reviewsListId, scoredWorkIds, userId);
+  let scoredWorkId = workId;
+  if (target.kind === "work") {
+    scoredWorkId = (await WorkRepository.insert(clubId, target.work)).id;
+    await ListRepository.insertItemInList(reviewsListId, scoredWorkId, userId);
   }
 
-  await ReviewRepository.replaceScores(reviewsListId, scoredWorkIds, userId, score);
-  return res(ok(JSON.stringify({ scoredWorks: scoredWorkIds.length })));
+  await ReviewRepository.replaceScore(reviewsListId, scoredWorkId, userId, score);
+  return res(ok());
 });
 
 const updateReviewSchema = z.object({
