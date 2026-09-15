@@ -1,4 +1,5 @@
-import { screen } from "@testing-library/vue";
+import { UserEvent } from "@testing-library/user-event";
+import { screen, within } from "@testing-library/vue";
 import { http, HttpResponse } from "msw";
 
 import { WorkType } from "../../../../lib/types/generated/db";
@@ -144,54 +145,90 @@ function useTvClub(reviews: DetailedReviewListItem[] = tvReviews) {
 /** The club slug the mocked route carries, which score saves refetch under. */
 const CLUB_SLUG = "test-club";
 
-async function openSeverance() {
-  useTvClub();
+/** Renders the club signed in; Severance, its latest show, opens on season 1. */
+async function renderSeverance(reviews: DetailedReviewListItem[] = tvReviews) {
+  useTvClub(reviews);
   const rendered = render(ReviewView, { props: { clubSlug: CLUB_SLUG } });
   logIn(rendered.pinia);
-  await rendered.user.click(await screen.findByRole("button", { name: "Severance" }));
-  await screen.findByRole("heading", { name: "Severance", level: 2 });
+  await screen.findByRole("heading", { name: "In Perpetuity", level: 4 });
   return rendered;
 }
 
-describe("TV reviews", () => {
-  it("shows each show as a poster card with its rolled-up score and coverage", async () => {
-    useTvClub();
-    render(ReviewView, { props: { clubSlug: "1" } });
+async function saveScore(user: UserEvent, value: string) {
+  await user.type(await screen.findByRole("spinbutton", { name: "Score" }), value);
+  await user.click(screen.getByRole("button", { name: "Save score" }));
+}
 
-    expect(await screen.findByRole("heading", { name: "Severance" })).toBeInTheDocument();
+describe("TV reviews", () => {
+  it("lists each show with its rolled-up score and coverage", async () => {
+    await renderSeverance();
+
+    expect(screen.getByRole("heading", { name: /^Severance/, level: 2 })).toBeInTheDocument();
     // Per member first: member 1 averages 6 over their two episodes, member 2
     // scored a single 10, so the club sits at 8 — not the 7.33 that averaging
     // all three review rows would give.
-    expect(screen.getByText("8")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Severance, average 8.0" })).toBeInTheDocument();
     expect(screen.getByText("2/19 episodes")).toBeInTheDocument();
   });
 
-  it("opens a show onto every episode of its season, scored or not", async () => {
-    await openSeverance();
+  it("opens on the season the club is in, listing every episode scored or not", async () => {
+    await renderSeverance();
 
-    expect(await screen.findByRole("heading", { name: "In Perpetuity" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Good News About Hell" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Half Loop" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /^Season 1/ })).toHaveAttribute(
-      "aria-pressed",
+      "aria-expanded",
       "true",
+    );
+    expect(screen.getByRole("button", { name: /^Season 2/ })).toHaveAttribute(
+      "aria-expanded",
+      "false",
     );
     expect(screen.getByText("2/9 episodes")).toBeInTheDocument();
   });
 
   it("offers to score only the aired episodes you have not scored", async () => {
-    await openSeverance();
+    await renderSeverance();
 
-    await screen.findByRole("heading", { name: "In Perpetuity" });
     expect(screen.getByRole("button", { name: "Score In Perpetuity" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Score Good News About Hell" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Score Half Loop" })).not.toBeInTheDocument();
   });
 
-  it("opens a scored episode onto its details", async () => {
-    const { user } = await openSeverance();
+  it("opens an episode in place, keeping others' scores hidden until you reveal them", async () => {
+    const { user } = await renderSeverance();
 
-    await user.click(await screen.findByRole("button", { name: "Half Loop" }));
+    await user.click(screen.getByRole("button", { name: "Good News About Hell" }));
+
+    expect(screen.getByRole("button", { name: "Good News About Hell" })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    expect(screen.getByText(/stay hidden until you score this episode/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Reveal scores" }));
+
+    expect(screen.queryByText(/stay hidden until you score this episode/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Reveal scores" })).not.toBeInTheDocument();
+  });
+
+  it("scores an episode nobody has scored yet from its row", async () => {
+    const { user } = await renderSeverance();
+
+    await user.click(screen.getByRole("button", { name: "Score In Perpetuity" }));
+    await saveScore(user, "7.5");
+
+    // Now on the reviews list, the episode's score is yours to edit.
+    expect(await screen.findByRole("button", { name: "Edit your score" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Score In Perpetuity" })).not.toBeInTheDocument();
+    expect(screen.getByText("3/9 episodes")).toBeInTheDocument();
+  });
+
+  it("opens a scored episode onto its details", async () => {
+    const { user } = await renderSeverance();
+
+    await user.click(screen.getByRole("button", { name: "Half Loop" }));
+    await user.click(screen.getByRole("button", { name: "episode details" }));
 
     expect(
       await screen.findByRole("heading", { name: /^Half Loop/, level: 2 }),
@@ -200,9 +237,10 @@ describe("TV reviews", () => {
   });
 
   it("opens an episode nobody has scored onto its details", async () => {
-    const { user } = await openSeverance();
+    const { user } = await renderSeverance();
 
-    await user.click(await screen.findByRole("button", { name: "In Perpetuity" }));
+    await user.click(screen.getByRole("button", { name: "In Perpetuity" }));
+    await user.click(screen.getByRole("button", { name: "episode details" }));
 
     expect(
       await screen.findByRole("heading", { name: /^In Perpetuity/, level: 2 }),
@@ -213,23 +251,8 @@ describe("TV reviews", () => {
     expect(screen.queryByRole("button", { name: "Delete review" })).not.toBeInTheDocument();
   });
 
-  it("scores an episode nobody has scored yet from its details", async () => {
-    const { user } = await openSeverance();
-
-    await user.click(await screen.findByRole("button", { name: "Score In Perpetuity" }));
-    await user.click(await screen.findByRole("button", { name: "Rate this episode" }));
-    await user.type(await screen.findByRole("spinbutton", { name: "Score" }), "7.5");
-    await user.click(screen.getByRole("button", { name: "Save score" }));
-
-    // Now on the reviews list, the episode opens as itself.
-    expect(await screen.findByRole("button", { name: /edit score/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Delete review" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Score In Perpetuity" })).not.toBeInTheDocument();
-    expect(screen.getByText("3/9 episodes")).toBeInTheDocument();
-  });
-
   it("lists a later season's upcoming episodes without offering to score them", async () => {
-    const { user } = await openSeverance();
+    const { user } = await renderSeverance();
 
     await user.click(screen.getByRole("button", { name: /^Season 2/ }));
 
@@ -240,54 +263,58 @@ describe("TV reviews", () => {
   });
 
   it("scores a season on its own, leaving the episode scores beneath it as they were", async () => {
-    const { user } = await openSeverance();
+    const { user } = await renderSeverance();
 
     await user.click(screen.getByRole("button", { name: "Score season" }));
-    expect(await screen.findByText(/Everything that happens in season 1/)).toBeInTheDocument();
-    await user.click(await screen.findByRole("button", { name: "Rate this season" }));
-    await user.type(await screen.findByRole("spinbutton", { name: "Score" }), "4");
-    await user.click(screen.getByRole("button", { name: "Save score" }));
+    await saveScore(user, "4");
 
-    // Now on the reviews list, the season opens as itself.
-    expect(await screen.findByRole("button", { name: /edit score/i })).toBeInTheDocument();
+    // Now on the reviews list, the season's score is yours to edit.
+    expect(await screen.findByRole("button", { name: "Edit your score" })).toBeInTheDocument();
     // Your 4 replaces the 10 your episodes averaged; member 1 set no season
     // score, so theirs is still their episodes' 6.
-    expect(
-      await screen.findByRole("button", { name: "Season 1, average 5.0" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Season 1, average 5.0" })).toBeInTheDocument();
     expect(screen.getByText("10")).toBeInTheDocument();
     expect(screen.getByText("2/9 episodes")).toBeInTheDocument();
   });
 
   it("scores the show on its own, leaving its seasons as they were", async () => {
-    const { user } = await openSeverance();
+    const { user } = await renderSeverance();
 
     await user.click(screen.getByRole("button", { name: "Score show" }));
-    await user.click(await screen.findByRole("button", { name: "Rate this show" }));
-    await user.type(await screen.findByRole("spinbutton", { name: "Score" }), "7");
-    await user.click(screen.getByRole("button", { name: "Save score" }));
+    await saveScore(user, "7");
 
-    expect(await screen.findByRole("button", { name: /edit score/i })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Edit your score" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Season 1, average 8.0" })).toBeInTheDocument();
   });
 
   it("marks a show score averaged from a member's episodes apart from one they set", async () => {
-    useTvClub([{ ...show, scores: scores({ memberId: "1", score: 9 }) }, ...tvReviews.slice(1)]);
-    render(ReviewView, { props: { clubSlug: "1" } });
+    await renderSeverance([
+      { ...show, scores: scores({ memberId: "1", score: 9 }) },
+      ...tvReviews.slice(1),
+    ]);
 
     // Member 1 set 9 on the show itself, which wins over their episodes' 6;
     // member 2 set nothing there, so theirs is their one episode's 10.
-    expect(await screen.findByText("9.5")).toBeInTheDocument();
-    expect(screen.getAllByText("Averaged")).toHaveLength(1);
+    const showScore = within(screen.getByRole("group", { name: "Show score" }));
+    expect(showScore.getByText("9.5")).toBeInTheDocument();
+    expect(showScore.getAllByText("Averaged")).toHaveLength(1);
   });
 
-  it("goes back to every show", async () => {
-    const { user } = await openSeverance();
+  it("collapses a show and expands every show and season at once", async () => {
+    const { user } = await renderSeverance();
 
-    await user.click(screen.getByRole("button", { name: "All shows" }));
+    await user.click(screen.getByRole("button", { name: /^Severance/ }));
 
-    expect(await screen.findByText("2/19 episodes")).toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "Severance", level: 2 })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Severance/ })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+    expect(screen.queryByRole("heading", { name: "In Perpetuity" })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Expand all" }));
+
+    expect(await screen.findByRole("heading", { name: "Not Out Yet" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "In Perpetuity" })).toBeInTheDocument();
   });
 
   it("tells a club with no shows yet what to do", async () => {
