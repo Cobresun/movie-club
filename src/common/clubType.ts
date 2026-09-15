@@ -168,6 +168,12 @@ export interface ClubTypeConfig {
   /** Per-type extraction of the strings shown in the details drawers. */
   readonly display: WorkDisplay;
   /**
+   * Whether a reviewed work is one of the units statistics and review facts
+   * count. Every movie and book is. A TV club counts episodes: a season or
+   * show it scored on its own would otherwise count the same series again.
+   */
+  readonly isScoredUnit: (data: WorkDataSummary | undefined) => boolean;
+  /**
    * Build a similarity scorer for Score Assist's pivot selection, calibrated to
    * a candidate pool (its tag frequencies weight the overlaps). The returned
    * scorer maps a (target, candidate) pair to [0,1]; missing or mismatched-kind
@@ -190,6 +196,9 @@ export interface WorkDisplay {
   readonly metaLine: (data: WorkDataSummary | undefined) => string | undefined;
   /** Long-form blurb: the TMDB overview / the book description. */
   readonly overview: (data: WorkDataSummary | undefined) => string | undefined;
+  /** What one work is called ("Rate this season"), for media whose works come
+   * at more than one level. Others fall back to the club type's `noun`. */
+  readonly noun?: (data: WorkDataSummary | undefined) => string | undefined;
 }
 
 /**
@@ -384,6 +393,7 @@ const tvDisplay: WorkDisplay = {
     return parts.length > 0 ? parts.join(" · ") : undefined;
   },
   overview: (data) => asTv(data)?.overview,
+  noun: (data) => asTv(data)?.level,
 };
 
 // --- Per-type similarity (Score Assist pivot selection) ---------------------
@@ -646,6 +656,7 @@ export const CLUB_TYPE_CONFIG: Record<ClubType, ClubTypeConfig> = {
       shareText: "Join my club and score the movies we watch together.",
     },
     display: movieDisplay,
+    isScoredUnit: () => true,
     makeSimilarity: makeMovieSimilarity,
   },
   [ClubType.book]: {
@@ -687,6 +698,7 @@ export const CLUB_TYPE_CONFIG: Record<ClubType, ClubTypeConfig> = {
       shareText: "Join my club and score the books we read together.",
     },
     display: bookDisplay,
+    isScoredUnit: () => true,
     makeSimilarity: makeBookSimilarity,
   },
   [ClubType.tv]: {
@@ -740,6 +752,7 @@ export const CLUB_TYPE_CONFIG: Record<ClubType, ClubTypeConfig> = {
       shareText: "Join my club and score the shows we watch together.",
     },
     display: tvDisplay,
+    isScoredUnit: (data) => asTv(data)?.level === "episode",
     makeSimilarity: makeTvSimilarity,
   },
 };
@@ -823,6 +836,16 @@ export function workMetaLine(data: WorkDataSummary | undefined): string | undefi
 /** The long-form blurb (TMDB overview / book description). */
 export function workOverview(data: WorkDataSummary | undefined): string | undefined {
   return workDisplay(data)?.overview(data);
+}
+
+/** What this one work is called, when its media has more than one level. */
+export function workNoun(data: WorkDataSummary | undefined): string | undefined {
+  return workDisplay(data)?.noun?.(data);
+}
+
+/** Whether statistics and review facts count this work (see `isScoredUnit`). */
+export function isScoredUnit(work: { type: WorkType; externalData?: WorkDataSummary }): boolean {
+  return clubTypeConfig(CLUB_TYPE_BY_WORK_TYPE[work.type]).isScoredUnit(work.externalData);
 }
 
 /**

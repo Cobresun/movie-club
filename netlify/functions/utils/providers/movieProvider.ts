@@ -4,12 +4,12 @@ import { jsonBuildObject } from "kysely/helpers/postgres";
 import { isDefined, hasValue } from "../../../../lib/checks/checks.js";
 import { MAJOR_CAST_SIZE, STAR_POPULARITY } from "../../../../lib/movie/majorCast.js";
 import { WorkType } from "../../../../lib/types/generated/db";
-import { DetailedWorkData, ListInsertDto, WorkDataSummary } from "../../../../lib/types/lists";
+import { DetailedWorkData, WorkDataSummary } from "../../../../lib/types/lists";
 import { MovieCastMember, MovieDataSummary } from "../../../../lib/types/movie";
 import { db } from "../database";
 import { insertMovieDetails, updateMovieDetails } from "../movieDetailsUpdater";
 import { getTMDBMovieData } from "../tmdb";
-import { MediaProvider, numOrUndefined, RefreshResult } from "./types";
+import { MediaProvider, numOrUndefined, RefreshResult, ScoreTarget } from "./types";
 
 /**
  * Builds the `movie_details` + junction aggregates for a set of external IDs,
@@ -224,8 +224,8 @@ class MovieProvider implements MediaProvider {
     return map;
   }
 
-  async expandScoreTargets(): Promise<ListInsertDto[] | undefined> {
-    return undefined;
+  async resolveScoreTarget(): Promise<ScoreTarget> {
+    return { kind: "self" };
   }
 
   async getDiscussionPrompt(work: { title: string; externalId: string | null }): Promise<string> {
