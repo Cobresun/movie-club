@@ -40,8 +40,6 @@
             <mdicon name="loading" :size="32" class="animate-spin" />
           </span>
         </div>
-
-        <p class="text-xs text-white/40">Up to 6&nbsp;MB.</p>
       </section>
 
       <section class="mt-6 border-t border-white/10 pt-5">
@@ -71,16 +69,32 @@
       </section>
     </div>
 
-    <input ref="fileInput" type="file" accept="image/*" hidden @change="uploadAvatar" />
+    <input
+      ref="fileInput"
+      type="file"
+      accept="image/*"
+      aria-label="Choose a photo"
+      hidden
+      @change="pickPhoto"
+    />
+
+    <PhotoCropModal
+      v-if="isDefined(photoToCrop)"
+      :image="photoToCrop"
+      @cancel="closeCropper"
+      @save="uploadPhoto"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, useTemplateRef, watch } from "vue";
+import { computed, ref, shallowRef, useTemplateRef, watch } from "vue";
 import { useToast } from "vue-toastification";
 
 import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import ChangePasswordForm from "../../auth/components/ChangePasswordForm.vue";
+import { decodePhoto } from "../avatarImage";
+import PhotoCropModal from "../components/PhotoCropModal.vue";
 import { useDeleteAvatar, useUpdateAvatar, useUpdateName, useUser } from "@/service/useUser";
 
 /**
@@ -88,8 +102,6 @@ import { useDeleteAvatar, useUpdateAvatar, useUpdateName, useUser } from "@/serv
  * The account menu in the nav bar only points here: a security form, and a
  * field the mobile keyboard covers, both want a page rather than a sheet.
  */
-const MAX_AVATAR_BYTES = 6 * 1024 * 1024;
-
 const toast = useToast();
 const user = useUser();
 
@@ -104,24 +116,40 @@ const openFileSelector = () => {
   fileInput.value?.click();
 };
 
-const uploadAvatar = (event: Event) => {
+const photoToCrop = shallowRef<ImageBitmap>();
+
+const pickPhoto = async (event: Event) => {
   const input = event.target;
   if (!(input instanceof HTMLInputElement)) return;
   if (!isDefined(input.files) || input.files.length === 0) return;
 
   const file = input.files[0];
   // Clearing the input is what lets the same file be picked twice — after a
-  // rejected upload, or after removing the photo it was uploaded as.
+  // cancelled crop, or after removing the photo it was uploaded as.
   input.value = "";
 
-  if (file.size > MAX_AVATAR_BYTES) {
-    toast.error("The file size should not exceed 6MB");
-    return;
+  try {
+    photoToCrop.value = await decodePhoto(file);
+  } catch (error) {
+    console.error(error);
+    toast.error("That photo couldn't be opened. Try a JPEG or PNG.");
   }
+};
 
+const closeCropper = () => {
+  photoToCrop.value?.close();
+  photoToCrop.value = undefined;
+};
+
+const uploadPhoto = (photo: Blob) => {
+  closeCropper();
   const formData = new FormData();
-  formData.append("avatar", file);
-  updateAvatar(formData);
+  formData.append("avatar", photo, "avatar");
+  updateAvatar(formData, {
+    onError: () => {
+      toast.error("Couldn't update your photo");
+    },
+  });
 };
 
 const removePhoto = () => {
