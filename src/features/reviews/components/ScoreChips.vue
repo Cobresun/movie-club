@@ -1,11 +1,12 @@
 <template>
-  <div class="grid grid-cols-2 gap-2">
+  <div :class="row ? 'flex flex-wrap items-center gap-1.5' : 'grid grid-cols-2 gap-2'">
     <div
       v-for="entry in entries"
       :key="entry.id"
       class="flex items-center rounded-3xl bg-slate-600"
+      :class="row ? 'gap-2 pr-3' : ''"
     >
-      <ScoreLabel :entry="entry" />
+      <ScoreLabel :entry="entry" :show-name="showNames" />
       <div class="flex-grow text-sm">
         <!-- Cards never reveal on click: reveal flows through the
              details drawer's own pill. -->
@@ -38,5 +39,8 @@ defineProps<{
   entries: ScoreEntry[];
   currentUserId?: string;
   revealed: boolean;
+  /** One wrapping line, for a row, instead of the card's two-column grid. */
+  row?: boolean;
+  showNames?: boolean;
 }>();
 </script>

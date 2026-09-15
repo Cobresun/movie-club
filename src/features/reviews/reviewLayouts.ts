@@ -2,12 +2,12 @@ import { Component } from "vue";
 
 import { ClubType } from "../../../lib/types/generated/db";
 import GalleryView from "./components/GalleryView.vue";
-import ShowGalleryView from "./components/ShowGalleryView.vue";
+import ShowListView from "./components/ShowListView.vue";
 
 /**
  * How a club type lays its reviews out. Movies and books are a flat grid of
- * one card per scored work; TV is a grid of shows, each opening onto its
- * episodes a season at a time, because a club working through a series would
+ * one card per scored work; TV is a list of shows that open in place onto
+ * their seasons and episodes, because a club working through a series would
  * otherwise bury every other entry under sixty cards.
  *
  * Feature-local rather than part of `CLUB_TYPE_CONFIG`: it wires up reviews
@@ -17,5 +17,5 @@ import ShowGalleryView from "./components/ShowGalleryView.vue";
 export const REVIEW_LAYOUTS: Record<ClubType, Component> = {
   [ClubType.movie]: GalleryView,
   [ClubType.book]: GalleryView,
-  [ClubType.tv]: ShowGalleryView,
+  [ClubType.tv]: ShowListView,
 };
