@@ -1,16 +1,24 @@
-import axios from "axios";
+import axios, { isAxiosError, type AxiosResponse } from "axios";
 import { z } from "zod";
 
 import { hasValue } from "../../../lib/checks/checks.js";
 
-const GEMINI_MODEL = "gemini-3.8-flash";
+// Flash-Lite rather than full Flash: the larger Flash models shed load with
+// 503s often enough to fail most requests, and answer too slowly for a
+// function timeout when they do succeed.
+const GEMINI_MODEL = "gemini-3.5-flash-lite";
 const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+
+// Gemini's 503 "high demand" responses usually clear within a second.
+const RETRY_DELAYS_MS = [250, 750];
 
 interface GeminiResponse {
   candidates?: {
     content?: { parts?: { text?: string }[] };
   }[];
 }
+
+const geminiErrorSchema = z.object({ error: z.object({ message: z.string() }) });
 
 interface GenerateJsonOptions<T> {
   prompt: string;
@@ -32,7 +40,7 @@ export async function generateJson<T>(options: GenerateJsonOptions<T>): Promise<
     throw new Error("GEMINI_API_KEY is not configured");
   }
 
-  const response = await axios.post<GeminiResponse>(`${GEMINI_ENDPOINT}?key=${apiKey}`, {
+  const response = await post(apiKey, {
     contents: [{ parts: [{ text: options.prompt }] }],
     generationConfig: {
       temperature: options.temperature,
@@ -52,4 +60,38 @@ export async function generateJson<T>(options: GenerateJsonOptions<T>): Promise<
   }
 
   return parsed.data;
+}
+
+async function post(
+  apiKey: string,
+  body: unknown,
+  attempt = 0,
+): Promise<AxiosResponse<GeminiResponse>> {
+  try {
+    return await axios.post<GeminiResponse>(GEMINI_ENDPOINT, body, {
+      headers: { "x-goog-api-key": apiKey },
+    });
+  } catch (error) {
+    const delay = RETRY_DELAYS_MS[attempt];
+    if (isAxiosError(error) && error.response?.status === 503 && delay !== undefined) {
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      return post(apiKey, body, attempt + 1);
+    }
+    throw toGeminiError(error);
+  }
+}
+
+// An AxiosError carries the request config and socket, headers included, and
+// the router logs thrown errors whole — so it must not escape with the key
+// inside. Rethrow a plain Error naming only the status and Google's reason.
+function toGeminiError(error: unknown): Error {
+  if (!isAxiosError(error)) {
+    return error instanceof Error ? error : new Error(String(error));
+  }
+  if (error.response === undefined) {
+    return new Error(`Gemini request failed: ${error.message}`);
+  }
+  const parsed = geminiErrorSchema.safeParse(error.response.data);
+  const reason = parsed.success ? parsed.data.error.message : error.message;
+  return new Error(`Gemini request failed with status ${error.response.status}: ${reason}`);
 }
