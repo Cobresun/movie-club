@@ -55,7 +55,7 @@
           class="text-2xl font-bold leading-tight"
           :class="[
             isDefined(show.scores.average) ? 'text-primary' : 'text-gray-500',
-            revealed ? '' : 'blur filter',
+            revealed || !isDefined(show.scores.average) ? '' : 'blur filter',
           ]"
         >
           {{ formatRollup(show.scores) }}
