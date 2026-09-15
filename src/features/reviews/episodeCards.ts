@@ -12,7 +12,7 @@ import { EpisodeNode } from "./reviewTree";
 import { tmdbStillUrl } from "@/common/workDisplay";
 import { OPTIMISTIC_WORK_ID } from "@/service/useList";
 
-/** One card in a season's episode gallery. */
+/** One episode in a season's list, scored or not. */
 export interface EpisodeCard {
   episodeNumber: number;
   code: string;
@@ -26,14 +26,24 @@ export interface EpisodeCard {
   aired: boolean;
 }
 
+/** What a score entry at one level saves to: the work itself once it is on the
+ * reviews list, or `saveScore` for a season or episode nobody has scored yet. */
+export interface ScoreTarget {
+  workId: string;
+  /** The reader's own score, set on this work directly. */
+  score?: number;
+  reviewId?: string;
+  saveScore?: (score: number) => void;
+}
+
 /**
- * Every episode of a season as a card. TMDB decides which episodes exist; the
+ * Every episode of a season, in order. TMDB decides which episodes exist; the
  * reviews list decides which of them the club has scored. An episode on the
- * list that TMDB no longer lists still gets its card, so a score is never
+ * list that TMDB no longer lists is still included, so a score is never
  * hidden — the same rule `buildShowTree` applies to seasons.
  *
  * Until the season's TMDB listing arrives (or if it cannot be fetched), the
- * cards are the scored episodes alone.
+ * list is the scored episodes alone.
  */
 export function buildEpisodeCards(
   seasonNumber: number,
