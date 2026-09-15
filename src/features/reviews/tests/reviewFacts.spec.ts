@@ -516,3 +516,60 @@ describe("computeReviewFact", () => {
     expect(fact?.text).toContain("3 books by Ursula K. Le Guin");
   });
 });
+
+describe("computeReviewFact in a TV club", () => {
+  function tvWork(
+    id: string,
+    date: string,
+    score: number,
+    level: "season" | "episode",
+  ): DetailedReviewListItem {
+    return work(
+      id,
+      date,
+      { [MEMBER_A]: score, [MEMBER_B]: score },
+      {
+        type: WorkType.tv,
+        externalData: {
+          kind: "tv",
+          level,
+          showId: "1",
+          showTitle: "Severance",
+          seasonNumber: 1,
+          title: `Work ${id}`,
+          genres: [],
+          creators: [],
+          networks: [],
+          castNames: [],
+          actors: [],
+        },
+      },
+    );
+  }
+
+  const episodes = (count: number) =>
+    Array.from({ length: count }, (_, i) =>
+      tvWork(
+        `e${i}`,
+        `2025-0${1 + Math.floor(i / 3)}-0${1 + (i % 3)}T12:00:00.000Z`,
+        5 + (i % 3),
+        "episode",
+      ),
+    );
+
+  it("counts episodes alone, leaving out a season the club scored on its own", () => {
+    const season = tvWork("s1", "2025-05-01T12:00:00.000Z", 10, "season");
+    const target = tvWork("t", "2025-06-01T12:00:00.000Z", 6, "episode");
+
+    const fact = computeReviewFact([...episodes(9), season, target], "t");
+
+    expect(fact?.kind).toBe("clubMilestone");
+    expect(fact?.text).toContain("10th episode");
+  });
+
+  it("has nothing to say about a season scored on its own", () => {
+    const season = tvWork("s1", "2025-06-01T12:00:00.000Z", 10, "season");
+
+    expect(computeReviewFact([...episodes(11), season], "s1")).toBeUndefined();
+  });
+});

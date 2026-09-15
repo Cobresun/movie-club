@@ -131,7 +131,7 @@ export function geminiJsonResponse(payload: unknown) {
 
 /**
  * A show with two seasons: season 1 has three episodes, season 2 has two, and
- * TMDB's season 0 carries a special that a show-level score must leave alone.
+ * TMDB's season 0 carries a special that the show's season list leaves out.
  */
 export const TV_SEASON_EPISODE_COUNTS: Record<number, number> = { 0: 1, 1: 3, 2: 2 };
 

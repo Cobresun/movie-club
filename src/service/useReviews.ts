@@ -222,7 +222,7 @@ export function useSubmitScore(clubSlug: string) {
       workId: string;
       reviewId?: string;
       score: number;
-      /** Scores every episode of one season of the TV show `workId` names. */
+      /** Narrows the TV show `workId` names to one season, which need not be a work yet. */
       seasonNumber?: number;
       /** Narrows `seasonNumber` to one episode, which need not be a work yet. */
       episodeNumber?: number;

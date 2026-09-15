@@ -272,7 +272,13 @@ import ReviewFactCard from "./ReviewFactCard.vue";
 import ScoreEntryDock from "./ScoreEntryDock.vue";
 import ScoreEntryModal from "./ScoreEntryModal.vue";
 import ScoreLabel from "./ScoreLabel.vue";
-import { clubTypeConfig, workMetaLine, workOverview, workSubtitle } from "@/common/clubType";
+import {
+  clubTypeConfig,
+  workMetaLine,
+  workNoun,
+  workOverview,
+  workSubtitle,
+} from "@/common/clubType";
 import BookMetadataGrid from "@/common/components/BookMetadataGrid.vue";
 import CastList from "@/common/components/CastList.vue";
 import CommentThread from "@/common/components/CommentThread.vue";
@@ -419,7 +425,10 @@ const { data: workDetails } = useWorkDetails(
 const castActors = computed(() => asMovie(workDetails.value ?? undefined)?.actors);
 // Drives book/movie wording in child components (e.g. the discussion-questions
 // "couldn't recognize this ___" message).
-const mediaNoun = computed(() => clubTypeConfig(club.value?.type ?? ClubType.movie).noun);
+const mediaNoun = computed(
+  () =>
+    workNoun(props.movie.externalData) ?? clubTypeConfig(club.value?.type ?? ClubType.movie).noun,
+);
 const posterUrl = computed(() => workPosterUrl(props.movie.externalData, props.movie.imageUrl));
 
 // Release year (movies) or first-published year (books), via the shared helper.
