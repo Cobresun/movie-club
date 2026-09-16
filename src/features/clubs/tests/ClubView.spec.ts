@@ -42,14 +42,11 @@ describe("ClubView", () => {
   describe("inviting", () => {
     it("copies the club link from the invite row", async () => {
       const { user } = render(ClubView);
-      // userEvent installs its own clipboard on setup, so spy after rendering.
-      const writeText = vi.spyOn(navigator.clipboard, "writeText");
 
       await user.click(await screen.findByRole("button", { name: /Invite people/ }));
 
-      expect(writeText).toHaveBeenCalledWith(
-        expect.stringContaining("/join-club/test-invite-token"),
-      );
+      // `userEvent.setup()` (inside render) installs the clipboard jsdom lacks.
+      expect(await navigator.clipboard.readText()).toContain("/join-club/test-invite-token");
     });
   });
 
