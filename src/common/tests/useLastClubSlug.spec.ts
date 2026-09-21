@@ -53,7 +53,13 @@ describe("last club section", () => {
   });
 
   it("ignores route names that are not sections", () => {
-    setLastClubSection("a-club", "ClubSettings");
+    setLastClubSection("a-club", "Club");
+
+    expect(getLastClubSection("a-club")).toBe("Reviews");
+  });
+
+  it("falls back to the default for a section that no longer exists", () => {
+    localStorage.setItem("lastClubSection", JSON.stringify({ "a-club": "Club" }));
 
     expect(getLastClubSection("a-club")).toBe("Reviews");
   });
@@ -95,7 +101,7 @@ describe("rememberClubSection", () => {
   it("leaves the stored section alone for routes outside the bar", () => {
     setLastClubSection("a-club", "Statistics");
 
-    rememberClubSection(route("a-club", undefined, "ClubSettings"));
+    rememberClubSection(route("a-club", undefined, "Club"));
 
     expect(getLastClubSection("a-club")).toBe("Statistics");
   });

@@ -22,7 +22,35 @@ describe("ClubSectionNav", () => {
     expect(await screen.findByRole("link", { name: "Reviews" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Lists" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Stats" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Club" })).toBeInTheDocument();
+  });
+
+  it("shows four tabs and nothing else once awards is on", async () => {
+    withClubType(ClubType.movie);
+    withAwards(true);
+
+    render(ClubSectionNav, { props: { clubSlug: "test-club" } });
+
+    expect(await screen.findByRole("link", { name: "Awards" })).toBeInTheDocument();
+    expect(screen.getAllByRole("link").map((link) => link.textContent?.trim())).toEqual([
+      "Reviews",
+      "Lists",
+      "Stats",
+      "Awards",
+    ]);
+  });
+
+  it("no longer offers a Club tab", async () => {
+    render(ClubSectionNav, { props: { clubSlug: "test-club" } });
+
+    expect(await screen.findByRole("link", { name: "Reviews" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Club" })).not.toBeInTheDocument();
+  });
+
+  it("does not offer club settings — that lives in the club menu", async () => {
+    render(ClubSectionNav, { props: { clubSlug: "test-club" } });
+
+    expect(await screen.findByRole("link", { name: "Reviews" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /Club settings/ })).not.toBeInTheDocument();
   });
 
   it("hides awards when the feature is off", async () => {
