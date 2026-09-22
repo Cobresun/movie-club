@@ -14,20 +14,37 @@
       <empty-state
         v-else-if="!hasYears"
         title="No awards yet"
-        description="This club hasn't run an awards season. Once a year is opened you'll pick categories, nominate works and rank them here."
+        description="Run your own awards season: choose categories like Best Picture or Funniest Movie, nominate the movies you reviewed, vote, and reveal the winners together."
+        action-label="Start your first awards"
+        action-icon="trophy-outline"
+        @action="creating = true"
       />
       <div v-else>
-        <v-select v-model="selectValue" :items="selectYears" />
-        <RouterView />
+        <div class="flex items-center justify-center gap-2">
+          <label class="sr-only" for="awards-year">Awards year</label>
+          <v-select id="awards-year" v-model="selectValue" :items="selectYears" />
+          <v-btn class="mb-2" @click="creating = true">
+            <mdicon name="plus" :size="20" />New awards
+          </v-btn>
+        </div>
+        <RouterView :key="routeYear" />
       </div>
+      <NewAwardsModal
+        v-if="creating"
+        :club-slug="clubId"
+        :existing-years="years ?? []"
+        @close="creating = false"
+        @created="openYear"
+      />
     </div>
   </div>
 </template>
 <script setup lang="ts">
-import { computed, watch } from "vue";
+import { computed, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 import { hasElements, hasValue } from "../../../../lib/checks/checks.js";
+import NewAwardsModal from "../components/NewAwardsModal.vue";
 import RowListSkeleton from "@/common/components/RowListSkeleton.vue";
 import SkeletonBlock from "@/common/components/SkeletonBlock.vue";
 import { useAwardYears } from "@/service/useAwards";
@@ -70,4 +87,12 @@ const selectValue = computed({
     router.push({ name: "AwardsYear", params: { year: value } }).catch(console.error);
   },
 });
+
+const creating = ref(false);
+const openYear = (year: number) => {
+  creating.value = false;
+  router
+    .push({ name: "AwardsYear", params: { clubSlug: clubId, year: year.toString() } })
+    .catch(console.error);
+};
 </script>

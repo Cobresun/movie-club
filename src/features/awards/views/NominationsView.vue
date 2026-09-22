@@ -2,10 +2,17 @@
   <v-modal v-if="currentAward" size="lg" @close="closePrompt">
     <div class="flex h-full flex-col">
       <h3 class="mb-2 text-left text-xl font-bold">{{ currentAward.title }}</h3>
+      <p v-if="!hasElements(candidates)" class="mt-4 text-gray-400">
+        {{
+          hasElements(reviewsForYear)
+            ? "You've nominated every movie the club reviewed this year."
+            : `The club didn't review any movies in ${year}, so there's nothing to nominate.`
+        }}
+      </p>
       <div class="flex-grow overflow-auto">
         <WorkSearchPrompt
           :club-type="ClubType.movie"
-          :default-list="reviewsForYear"
+          :default-list="candidates"
           :default-list-title="`${year} Reviews`"
           :include-search="false"
           @select-from-default="addNomination"
@@ -34,6 +41,7 @@
         <AddMovieButton
           v-for="index in getAddButtonNumber(award)"
           :key="index"
+          :label="`Nominate a movie for ${award.title}`"
           @click="openPrompt(award)"
         />
       </div>
@@ -84,10 +92,11 @@
 import { DateTime } from "luxon";
 import { computed, ref } from "vue";
 
+import { NOMINATIONS_PER_AWARD } from "../../../../lib/awards";
+import { hasElements } from "../../../../lib/checks/checks.js";
 import { Award, ClubAwards } from "../../../../lib/types/awards";
 import { ClubType } from "../../../../lib/types/generated/db";
 import AddMovieButton from "../components/AddMovieButton.vue";
-import { NOMINATIONS_PER_AWARD } from "../constants";
 import { workSubtitle } from "@/common/clubType";
 import WorkPosterCard from "@/common/components/WorkPosterCard.vue";
 import WorkSearchPrompt from "@/common/components/WorkSearchPrompt.vue";
@@ -146,6 +155,15 @@ const reviewsForYear = computed(() => {
       subtitle: workSubtitle(review.externalData),
       imageUrl: review.imageUrl,
     }));
+});
+
+const candidates = computed(() => {
+  const nominated = new Set(
+    userOnlyAwards.value
+      .find((award) => award.title === currentAward.value?.title)
+      ?.nominations.map((nomination) => String(nomination.movieId)),
+  );
+  return reviewsForYear.value.filter((review) => !nominated.has(review.externalId));
 });
 
 const { mutate } = useAddNomination(clubSlug, year);

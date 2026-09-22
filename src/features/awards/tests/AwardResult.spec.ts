@@ -119,4 +119,51 @@ describe("AwardResult", () => {
 
     expect(screen.queryByRole("button", { name: "Reveal" })).not.toBeInTheDocument();
   });
+
+  it("names the nominee with the best total rank the winner", () => {
+    const decided: Award = {
+      ...award,
+      nominations: [
+        { ...award.nominations[0], ranking: { "1": 2, "2": 2 } },
+        { ...award.nominations[1], ranking: { "1": 1, "2": 1 } },
+      ],
+    };
+
+    render(AwardResult, { props: { award: decided, members, step: AwardsStep.Completed } });
+
+    const nominees = screen.getAllByRole("listitem", { name: /^(Inception|The Dark Knight)/ });
+    expect(nominees[0]).toHaveAccessibleName("The Dark Knight, winner");
+    expect(nominees[1]).toHaveAccessibleName("Inception");
+  });
+
+  it("does not let a nominee added after someone voted win on their empty ballot", () => {
+    const late: Award = {
+      ...award,
+      nominations: [
+        { ...award.nominations[0], ranking: { "1": 1, "2": 1 } },
+        { ...award.nominations[1], ranking: { "1": 2 } },
+      ],
+    };
+
+    render(AwardResult, { props: { award: late, members, step: AwardsStep.Completed } });
+
+    expect(screen.getByRole("listitem", { name: "user ranked it unranked" })).toBeInTheDocument();
+    expect(screen.getByRole("listitem", { name: "Inception, winner" })).toBeInTheDocument();
+    expect(screen.getByRole("listitem", { name: "The Dark Knight" })).toBeInTheDocument();
+  });
+
+  it("shows only the members who voted in the category", () => {
+    const onlyDev: Award = {
+      ...award,
+      nominations: award.nominations.map((nomination, index) => ({
+        ...nomination,
+        ranking: { "1": index + 1 },
+      })),
+    };
+
+    render(AwardResult, { props: { award: onlyDev, members, step: AwardsStep.Completed } });
+
+    expect(screen.getByRole("listitem", { name: "dev ranked it #1" })).toBeInTheDocument();
+    expect(screen.queryByRole("listitem", { name: /^user ranked/ })).not.toBeInTheDocument();
+  });
 });

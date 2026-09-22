@@ -110,7 +110,7 @@ it("renames the club", async () => {
 - **The factories drive endpoints too**, so a bug in the write path fails the test rather than being papered over by a hand-built row.
 - **`failOnRequest(method, path)`** is how "must not call out again" gets asserted: it swaps that endpoint's handler for one that throws, so caching is proved by the request never happening rather than by counting requests.
 
-**The two justified exceptions**, both in `helpers/factories.ts` and both commented there: `expireInvite()` (nothing can shorten a 24-hour token) and `createAwardsYear()` (no endpoint opens a year). `scheduled-db-cleanup.test.ts` issues `CREATE DATABASE` for the same reason — its subject operates on databases, not rows. Anything else reaching for the database is a smell; find the endpoint instead.
+**The one justified exception** is `expireInvite()` in `helpers/factories.ts`, commented there: nothing can shorten a 24-hour token. Awards years are opened with `createAwardsYear()` and walked through their phases with `setAwardsStep()` / `nominate()` / `rankAward()`, all driving the endpoints — the step endpoint only moves one phase at a time, so `setAwardsStep()` walks there. `scheduled-db-cleanup.test.ts` issues `CREATE DATABASE` for a similar reason — its subject operates on databases, not rows. Anything else reaching for the database is a smell; find the endpoint instead.
 
 Gotchas:
 
