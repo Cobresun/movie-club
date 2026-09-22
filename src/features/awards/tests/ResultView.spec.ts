@@ -47,7 +47,7 @@ describe("ResultView", () => {
   it("renders each award with a Reveal button during presentation", async () => {
     render(ResultView, { props });
 
-    expect(await screen.findByRole("heading", { name: "Awards" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Ceremony" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Reveal" })).toBeInTheDocument();
   });
 

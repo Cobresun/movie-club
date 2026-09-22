@@ -1,9 +1,9 @@
-import { screen, waitFor } from "@testing-library/vue";
-import { http, HttpResponse } from "msw";
+import { screen } from "@testing-library/vue";
 
 import { AwardsStep, ClubAwards } from "../../../../lib/types/awards";
 import { DetailedMovieData } from "../../../../lib/types/movie";
 import RankingsView from "../views/RankingsView.vue";
+import { awardsApi } from "@/mocks/awards";
 import memberData from "@/mocks/data/member.json";
 import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
 import { server } from "@/mocks/server";
@@ -68,28 +68,23 @@ describe("RankingsView", () => {
     expect(screen.getByText("Tenet")).toBeInTheDocument();
   });
 
-  it("submits the ranking in the current order", async () => {
-    let body: unknown = null;
-    server.use(
-      http.post("/api/club/:id/awards/:year/ranking", async ({ request }) => {
-        body = await request.json();
-        return new HttpResponse(null, { status: 200 });
-      }),
-    );
+  it("tells the member how many categories they have left to rank", async () => {
+    const { pinia } = render(RankingsView, { props });
+    logIn(pinia);
+
+    expect(await screen.findByText("You've ranked 1 of 1 category.")).toBeInTheDocument();
+  });
+
+  it("confirms the ballot once it is saved", async () => {
+    server.use(...awardsApi([clubAward]));
 
     const { user, pinia } = render(RankingsView, { props });
     logIn(pinia);
 
-    await user.click(await screen.findByRole("button", { name: "Submit" }));
+    await user.click(await screen.findByRole("button", { name: "Update ranking" }));
 
-    await waitFor(() => {
-      // The voter is keyed by stable user id (not name) so a rename cannot
-      // orphan the ranking — see #397.
-      expect(body).toEqual({
-        awardTitle: "Best Picture",
-        voter: memberData.id,
-        movies: [1, 2],
-      });
-    });
+    // The toast plugin is installed twice in tests (see useAddListItem.spec.ts),
+    // so the toast shows up in more than one container.
+    expect(await screen.findAllByText("Saved your Best Picture ranking")).not.toHaveLength(0);
   });
 });

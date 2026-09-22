@@ -54,6 +54,12 @@ Lists are arbitrary and user-titled, keyed by UUID. A club's _reviews_ list is a
 
 `ListRepository.moveItem` is transactional with `ON CONFLICT DO NOTHING`, so moving into the reviews list and moving between user lists share one code path.
 
+## Awards
+
+A club's awards year is one JSON document in `awards_temp`, rewritten through `AwardsRepository.updateByYear` under `SELECT … FOR UPDATE`. The updater returns the new document or `reject(message)`, which leaves the row alone and becomes the route's 400 — use that for anything the current state forbids rather than throwing, which surfaces as a 500.
+
+The year moves through `AwardsStep` one phase at a time, forward or back (`stepChangeError` in `lib/awards.ts`), and each write is gated on its phase: categories only while choosing categories, nominations only during nominations, ballots only during voting. Nominations and ballots are attributed to the session's `userId`, never to an id in the body. Rules the client also shows — the per-member nomination limit, category-title limits, scoring — live in `lib/awards.ts` so both sides read the same ones.
+
 ## Data access
 
 Repository classes in `netlify/functions/repositories/` own all queries — one per aggregate, named `<Thing>Repository`. Kysely with generated types throughout.

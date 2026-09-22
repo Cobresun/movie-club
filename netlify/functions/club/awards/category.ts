@@ -1,18 +1,25 @@
 import { z } from "zod";
 
+import { awardTitleSchema, isSameCategoryTitle } from "../../../../lib/awards";
 import { isDefined } from "../../../../lib/checks/checks.js";
-import AwardsRepository from "../../repositories/AwardsRepository";
+import { AwardsData, AwardsStep } from "../../../../lib/types/awards";
+import AwardsRepository, { AwardsRejection, reject } from "../../repositories/AwardsRepository";
 import { secured } from "../../utils/auth";
 import { parseBody } from "../../utils/parseBody";
 import { requireParam } from "../../utils/requireParam";
-import { ok } from "../../utils/responses";
+import { badRequest, ok } from "../../utils/responses";
 import { isRouterResponse, Router } from "../../utils/router";
 import { ClubAwardRequest } from "./utils";
 
 const router = new Router<ClubAwardRequest>("/api/club/:clubSlug/awards/:year<\\d+>/category");
 
+const categoriesLocked = (data: AwardsData): AwardsRejection | undefined =>
+  data.step === AwardsStep.CategorySelect
+    ? undefined
+    : reject("Categories are locked once nominations open");
+
 const addCategorySchema = z.object({
-  title: z.string(),
+  title: awardTitleSchema,
 });
 
 router.post("/", secured<ClubAwardRequest>, async ({ event, clubId, year }, res) => {
@@ -20,10 +27,18 @@ router.post("/", secured<ClubAwardRequest>, async ({ event, clubId, year }, res)
   if (isRouterResponse(body)) return body;
   const { title } = body;
 
-  await AwardsRepository.updateByYear(clubId, year, (currentData) => ({
-    ...currentData,
-    awards: [...currentData.awards, { title, nominations: [] }],
-  }));
+  const rejection = await AwardsRepository.updateByYear(clubId, year, (currentData) => {
+    const locked = categoriesLocked(currentData);
+    if (locked) return locked;
+    if (currentData.awards.some((award) => isSameCategoryTitle(award.title, title))) {
+      return reject(`"${title}" is already a category`);
+    }
+    return {
+      ...currentData,
+      awards: [...currentData.awards, { title, nominations: [] }],
+    };
+  });
+  if (rejection) return res(badRequest(rejection.rejected));
 
   return res(ok());
 });
@@ -38,14 +53,19 @@ router.put("/", secured<ClubAwardRequest>, async ({ event, clubId, year }, res) 
 
   const { categories } = body;
 
-  await AwardsRepository.updateByYear(clubId, year, (currentData) => {
-    // Reorder awards based on the categories order
+  const rejection = await AwardsRepository.updateByYear(clubId, year, (currentData) => {
+    const locked = categoriesLocked(currentData);
+    if (locked) return locked;
+
     const updatedAwards = categories
       .map((category) => currentData.awards.find((award) => award.title === category))
       .filter(isDefined);
 
-    if (updatedAwards.length !== categories.length) {
-      throw new Error("One or more of the category titles you provided does not exist");
+    if (
+      categories.length !== currentData.awards.length ||
+      new Set(updatedAwards).size !== currentData.awards.length
+    ) {
+      return reject("Send every category exactly once to reorder them");
     }
 
     return {
@@ -53,6 +73,7 @@ router.put("/", secured<ClubAwardRequest>, async ({ event, clubId, year }, res) 
       awards: updatedAwards,
     };
   });
+  if (rejection) return res(badRequest(rejection.rejected));
 
   return res(ok());
 });
@@ -61,10 +82,16 @@ router.delete("/:awardTitle", secured<ClubAwardRequest>, async ({ params, clubId
   const awardTitle = requireParam(params, "awardTitle", res);
   if (isRouterResponse(awardTitle)) return awardTitle;
 
-  await AwardsRepository.updateByYear(clubId, year, (currentData) => ({
-    ...currentData,
-    awards: currentData.awards.filter((award) => award.title !== awardTitle),
-  }));
+  const rejection = await AwardsRepository.updateByYear(
+    clubId,
+    year,
+    (currentData) =>
+      categoriesLocked(currentData) ?? {
+        ...currentData,
+        awards: currentData.awards.filter((award) => award.title !== awardTitle),
+      },
+  );
+  if (rejection) return res(badRequest(rejection.rejected));
 
   return res(ok());
 });
