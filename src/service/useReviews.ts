@@ -120,8 +120,11 @@ function useReviewWork(clubSlug: string) {
         seasonNumber,
         episodeNumber,
       }),
-    onMutate: ({ workId, score }) => {
-      if (!workId) return;
+    // A narrowed save lands on a season or episode that may not be a work
+    // yet, not on `workId` (the show), so there is no list item to write the
+    // score onto or poll. Its caller shows the save as pending instead.
+    onMutate: ({ workId, score, seasonNumber }) => {
+      if (!workId || isDefined(seasonNumber)) return;
       queryClient.setQueryData<DetailedReviewListItem[]>(
         reviewsListKey(clubSlug),
         (currentReviews) => {
@@ -145,7 +148,10 @@ function useReviewWork(clubSlug: string) {
         },
       );
     },
-    onSuccess: (_data, { workId }) => startScorePoll(auth.request, queryClient, clubSlug, workId),
+    onSuccess: (_data, { workId, seasonNumber }) => {
+      if (isDefined(seasonNumber)) return;
+      startScorePoll(auth.request, queryClient, clubSlug, workId);
+    },
     onSettled: async () => {
       await queryClient.invalidateQueries({ queryKey: reviewsListKey(clubSlug) });
       await queryClient.invalidateQueries({ queryKey: memberScoresKey });
