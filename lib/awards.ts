@@ -77,21 +77,19 @@ export const PHASE_WORK: Partial<Record<AwardsStep, string>> = {
 };
 
 /**
- * Why the year cannot move to `target`, or `undefined` when it can. Steps move
- * one at a time. The club moves forward together: nobody can close a phase
- * while a member still has their part of it to do. Moving back is always
- * allowed, so a phase can be reopened for someone who needs to change theirs.
+ * Why the year cannot move to `target`, or `undefined` when it can. The year
+ * only ever moves forward, one phase at a time, and the club moves together:
+ * nobody can close a phase while a member still has their part of it to do.
+ * Once a phase closes it stays closed.
  */
 export function stepChangeError(
   data: AwardsData,
   target: AwardsStep,
   memberIds: string[],
 ): string | undefined {
-  if (Math.abs(target - data.step) !== 1) {
-    return "Awards move one step at a time";
+  if (target !== data.step + 1) {
+    return "Awards only move forward, one step at a time";
   }
-  if (target < data.step) return undefined;
-
   if (data.step === AwardsStep.CategorySelect && data.awards.length === 0) {
     return "Add at least one category before opening nominations";
   }
@@ -112,9 +110,8 @@ export interface ScoredNomination<T extends BaseAwardNomination> {
 /**
  * Ranks a category's nominees by total rank across everyone who voted in it.
  *
- * A voter who ranked some nominees but not others (a nominee added after they
- * voted) counts the missing ones as last place, so a late nominee cannot win on
- * an empty column. Ties share the win.
+ * A nominee a voter left unranked counts as their last place, so it cannot win
+ * on an empty column. Ties share the win.
  */
 export function scoreAward<T extends BaseAwardNomination>(
   nominations: T[],

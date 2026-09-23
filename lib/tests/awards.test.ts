@@ -57,10 +57,10 @@ describe("stepChangeError", () => {
     awards,
   });
 
-  it("allows moving back one step whatever is outstanding", () => {
-    expect(
-      stepChangeError(year(AwardsStep.Ratings), AwardsStep.Nominations, ["a"]),
-    ).toBeUndefined();
+  it("never moves back", () => {
+    expect(stepChangeError(year(AwardsStep.Ratings), AwardsStep.Nominations, [])).toBe(
+      "Awards only move forward, one step at a time",
+    );
   });
 
   it("refuses to skip or stand still", () => {

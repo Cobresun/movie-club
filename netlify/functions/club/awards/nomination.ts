@@ -18,11 +18,7 @@ import { ClubAwardRequest } from "./utils";
 
 const router = new Router<ClubAwardRequest>("/api/club/:clubSlug/awards/:year<\\d+>/nomination");
 
-/**
- * Applies `change` to one category's nominations. When the set of nominees
- * changes, every ballot already cast in that category ranked a different field,
- * so its rankings are cleared and the category is voted on again.
- */
+/** Applies `change` to one category's nominations, while nominations are open. */
 function updateNominations(
   data: AwardsData,
   awardTitle: string,
@@ -36,20 +32,9 @@ function updateNominations(
   const nominations = change(target);
   if ("rejected" in nominations) return nominations;
 
-  const sameField =
-    nominations.length === target.nominations.length &&
-    nominations.every((n) => target.nominations.some((t) => t.movieId === n.movieId));
-
   return {
     ...data,
-    awards: data.awards.map((award) =>
-      award === target
-        ? {
-            ...award,
-            nominations: sameField ? nominations : nominations.map((n) => ({ ...n, ranking: {} })),
-          }
-        : award,
-    ),
+    awards: data.awards.map((award) => (award === target ? { ...award, nominations } : award)),
   };
 }
 

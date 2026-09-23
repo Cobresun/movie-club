@@ -9,28 +9,35 @@
     </p>
     <p v-else-if="hasValue(advanceBlocked)" class="text-sm text-gray-300">{{ advanceBlocked }}</p>
 
-    <div class="flex flex-wrap items-center justify-between gap-2">
-      <button
-        v-if="phase.previous"
-        type="button"
-        class="flex items-center text-sm font-semibold text-gray-300 underline-offset-2 hover:underline"
-        @click="moveTo(phase.previous.step)"
-      >
-        <mdicon name="chevron-left" :size="18" />{{ phase.previous.label }}
-      </button>
-      <span v-else />
-      <v-btn
-        v-if="phase.next"
-        :disabled="hasValue(advanceBlocked)"
-        @click="moveTo(phase.next.step)"
-      >
-        {{ phase.next.label }}<mdicon name="chevron-right" />
-      </v-btn>
-    </div>
+    <v-btn
+      v-if="phase.next"
+      class="self-end"
+      :disabled="hasValue(advanceBlocked)"
+      @click="confirming = true"
+    >
+      {{ phase.next.label }}<mdicon name="chevron-right" />
+    </v-btn>
+
+    <v-modal v-if="confirming && phase.next" size="sm" @close="confirming = false">
+      <div class="flex flex-col gap-4 text-left">
+        <h2 class="text-xl font-bold">{{ phase.next.label }}?</h2>
+        <p>{{ phase.next.confirm }} There's no going back.</p>
+        <div class="flex items-center justify-end gap-4">
+          <button
+            type="button"
+            class="text-sm font-semibold text-gray-300 underline-offset-2 hover:underline"
+            @click="confirming = false"
+          >
+            Cancel
+          </button>
+          <v-btn @click="advance(phase.next.step)">{{ phase.next.label }}</v-btn>
+        </div>
+      </div>
+    </v-modal>
   </section>
 </template>
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref } from "vue";
 
 import { membersYetToFinish, PHASE_WORK, stepChangeError } from "../../../../lib/awards";
 import { hasElements, hasValue } from "../../../../lib/checks/checks.js";
@@ -76,5 +83,9 @@ const listNames = (people: Member[]) => {
 };
 
 const { mutate } = useUpdateStep(clubSlug, year);
-const moveTo = (step: AwardsStep) => mutate(step);
+const confirming = ref(false);
+const advance = (step: AwardsStep) => {
+  confirming.value = false;
+  mutate(step);
+};
 </script>

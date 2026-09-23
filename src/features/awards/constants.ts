@@ -22,9 +22,8 @@ export interface AwardsPhase {
   routeName: string;
   /** What members do during the phase, shown under the progress bar. */
   description: string;
-  /** Where the phase's controls can move the year, and the button that does it. */
-  next?: { step: AwardsStep; label: string };
-  previous?: { step: AwardsStep; label: string };
+  /** The phase this one closes into, the button that does it, and what closing means. */
+  next?: { step: AwardsStep; label: string; confirm: string };
 }
 
 /**
@@ -38,29 +37,38 @@ export const AWARDS_PHASES: Record<AwardsStep, AwardsPhase> = {
     routeName: "AwardsCategories",
     description:
       "Decide which awards you're handing out. Add your own or pick from the suggestions, then drag them into the order you'll present them.",
-    next: { step: AwardsStep.Nominations, label: "Open nominations" },
+    next: {
+      step: AwardsStep.Nominations,
+      label: "Open nominations",
+      confirm: "Categories will be locked for good.",
+    },
   },
   [AwardsStep.Nominations]: {
     label: "Nominations",
     routeName: "AwardsNominations",
     description: `Everyone nominates at least one (and up to ${NOMINATIONS_PER_AWARD}) of the movies the club reviewed this year in every category. Your picks stay private until voting opens, which happens once everyone is done.`,
-    next: { step: AwardsStep.Ratings, label: "Start voting" },
-    previous: { step: AwardsStep.CategorySelect, label: "Back to categories" },
+    next: {
+      step: AwardsStep.Ratings,
+      label: "Start voting",
+      confirm: "Nominations will close for good.",
+    },
   },
   [AwardsStep.Ratings]: {
     label: "Voting",
     routeName: "AwardsRankings",
     description:
       "Put each category's nominees in order, most deserving first, and save. Once everyone has voted, the ceremony can start; the nominee with the best total rank across everyone's ballots wins.",
-    next: { step: AwardsStep.Presentation, label: "Start the ceremony" },
-    previous: { step: AwardsStep.Nominations, label: "Back to nominations" },
+    next: {
+      step: AwardsStep.Presentation,
+      label: "Start the ceremony",
+      confirm: "Voting will close for good and nobody will be able to change their ballot.",
+    },
   },
   [AwardsStep.Presentation]: {
     label: "Ceremony",
     routeName: "AwardsResults",
     description:
       "Get the club together and reveal the winners one category at a time. Once every category is revealed, the awards are complete.",
-    previous: { step: AwardsStep.Ratings, label: "Back to voting" },
   },
   [AwardsStep.Completed]: {
     label: "Ceremony",
