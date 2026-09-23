@@ -20,8 +20,43 @@
       </div>
     </div>
   </v-modal>
-  <div class="relative">
+  <div>
     <h2 class="m-4 text-2xl font-bold">Nominations</h2>
+    <div
+      class="mx-auto mb-6 flex w-full max-w-sm items-center justify-between gap-3 rounded-lg bg-gradient-to-r from-blue-500 to-purple-600 px-6 py-3 text-left"
+    >
+      <div class="text-white">
+        <div class="text-sm font-medium opacity-90">Your nominations</div>
+        <div class="text-lg font-bold">
+          {{ completedCategoriesCount }} / {{ totalCategories }} categories
+        </div>
+      </div>
+      <svg
+        class="h-12 w-12 flex-shrink-0 -rotate-90 transform"
+        viewBox="0 0 36 36"
+        xmlns="http://www.w3.org/2000/svg"
+        aria-hidden="true"
+      >
+        <circle
+          cx="18"
+          cy="18"
+          r="16"
+          fill="none"
+          stroke="rgba(255, 255, 255, 0.3)"
+          stroke-width="3"
+        />
+        <circle
+          cx="18"
+          cy="18"
+          r="16"
+          fill="none"
+          stroke="white"
+          stroke-width="3"
+          :stroke-dasharray="`${progressPercentage}, 100`"
+          stroke-linecap="round"
+        />
+      </svg>
+    </div>
     <div v-for="award in userOnlyAwards" :key="award.title">
       <h3 class="mb-2 text-left text-xl font-bold">{{ award.title }}</h3>
       <div class="grid grid-cols-auto">
@@ -44,46 +79,6 @@
           :label="`Nominate a movie for ${award.title}`"
           @click="openPrompt(award)"
         />
-      </div>
-    </div>
-
-    <!-- Floating Progress Indicator -->
-    <div
-      class="fixed bottom-6 right-6 z-10 rounded-lg bg-gradient-to-r from-blue-500 to-purple-600 px-6 py-3 shadow-lg transition-all hover:shadow-xl"
-    >
-      <div class="flex items-center gap-3">
-        <div class="text-white">
-          <div class="text-sm font-medium opacity-90">Nomination Progress</div>
-          <div class="text-lg font-bold">
-            {{ completedCategoriesCount }} / {{ totalCategories }} categories
-          </div>
-        </div>
-        <div class="flex h-12 w-12 items-center justify-center">
-          <svg
-            class="h-12 w-12 -rotate-90 transform"
-            viewBox="0 0 36 36"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <circle
-              cx="18"
-              cy="18"
-              r="16"
-              fill="none"
-              stroke="rgba(255, 255, 255, 0.3)"
-              stroke-width="3"
-            />
-            <circle
-              cx="18"
-              cy="18"
-              r="16"
-              fill="none"
-              stroke="white"
-              stroke-width="3"
-              :stroke-dasharray="`${progressPercentage}, 100`"
-              stroke-linecap="round"
-            />
-          </svg>
-        </div>
       </div>
     </div>
   </div>
