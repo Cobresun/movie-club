@@ -293,3 +293,22 @@ function showMetaLine(
   }
   return parts.length > 0 ? parts.join(" · ") : undefined;
 }
+
+/**
+ * Every work of each show `matched` touches. A show's rows and rollups are
+ * built from all of its works, so a search hitting one episode title, or a
+ * filter only episodes carry (season, runtime), keeps the whole show rather
+ * than handing the tree an episode with no show to hang from.
+ */
+export function wholeShows(
+  all: DetailedReviewListItem[],
+  matched: DetailedReviewListItem[],
+): DetailedReviewListItem[] {
+  const showIds = new Set(
+    matched.map((review) => asTv(review.externalData)?.showId).filter(isDefined),
+  );
+  return all.filter((review) => {
+    const showId = asTv(review.externalData)?.showId;
+    return isDefined(showId) && showIds.has(showId);
+  });
+}

@@ -228,6 +228,10 @@ class MovieProvider implements MediaProvider {
     return { kind: "self" };
   }
 
+  partsPrefix(): undefined {
+    return undefined;
+  }
+
   async getDiscussionPrompt(work: { title: string; externalId: string | null }): Promise<string> {
     let releaseYear: string | undefined;
     if (hasValue(work.externalId)) {

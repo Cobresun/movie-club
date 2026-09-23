@@ -5,16 +5,18 @@
  * TMDB is faked at the network boundary, so the provider's real address
  * parsing, season caching and target resolution all run.
  */
-import { describe, expect, it } from "vitest";
+import { http, HttpResponse } from "msw";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { ClubType, WorkType } from "../../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../../lib/types/lists";
 import { TvDataSummary } from "../../../lib/types/tv";
 import { handler } from "../club/index";
-import { TV_SEASON_EPISODE_COUNTS } from "./fixtures/external";
+import { TV_SEASON_EPISODE_COUNTS, tmdbTvSeason, tmdbTvShow } from "./fixtures/external";
 import { signIn, TestSession } from "./helpers/auth";
 import { addWork, createClub, SeededClub } from "./helpers/factories";
 import { requester } from "./helpers/http";
+import { server, TMDB } from "./setup/externalApis";
 
 const api = requester(handler);
 
@@ -207,5 +209,134 @@ describe("scoring a TV show", () => {
 
     expect(res.statusCode).toBe(400);
     expect((await reviewsOf(club)).map((review) => review.externalId)).toEqual([SHOW_ID]);
+  });
+
+  it("refuses an episode of a season TMDB does not list, leaving no season behind", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub(alice, { type: ClubType.tv });
+    const show = await seedShow(club, alice);
+
+    const res = await score(club, alice, {
+      workId: show.id,
+      score: 9,
+      seasonNumber: 9,
+      episodeNumber: 1,
+    });
+
+    expect(res.statusCode).toBe(400);
+    const showItem = (await reviewsOf(club)).find((review) => review.externalId === SHOW_ID);
+    const data = showItem?.externalData as TvDataSummary | undefined;
+    expect(data?.seasons?.map((season) => season.seasonNumber)).toEqual([1, 2]);
+  });
+});
+
+describe("scoring what aired after it was cached", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  /** Moves the clock past the window in which a cached listing is trusted. */
+  function laterThatNight() {
+    vi.useFakeTimers({ toFake: ["Date"], now: Date.now() + 20 * 60 * 1000 });
+  }
+
+  it("scores an episode that aired after its season was cached", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub(alice, { type: ClubType.tv });
+    const show = await seedShow(club, alice);
+    await score(club, alice, { workId: show.id, score: 8, seasonNumber: 1, episodeNumber: 1 });
+
+    const cached = tmdbTvSeason(Number(SHOW_ID), 1);
+    const newEpisodeNumber = (cached.episodes?.length ?? 0) + 1;
+    server.use(
+      http.get(`${TMDB}/tv/:showId/season/1`, () =>
+        HttpResponse.json({
+          ...cached,
+          episodes: [
+            ...(cached.episodes ?? []),
+            {
+              episode_number: newEpisodeNumber,
+              season_number: 1,
+              name: "Tonight's episode",
+              still_path: null,
+            },
+          ],
+        }),
+      ),
+    );
+    laterThatNight();
+
+    const res = await score(club, alice, {
+      workId: show.id,
+      score: 9,
+      seasonNumber: 1,
+      episodeNumber: newEpisodeNumber,
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(await scoreOf(club, `${SHOW_ID}:1:${newEpisodeNumber}`, alice)).toBe(9);
+  });
+
+  it("scores a season announced after the show was cached", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub(alice, { type: ClubType.tv });
+    const show = await seedShow(club, alice);
+
+    const cached = tmdbTvShow(Number(SHOW_ID));
+    server.use(
+      http.get(`${TMDB}/tv/:showId`, () =>
+        HttpResponse.json({
+          ...cached,
+          number_of_seasons: 3,
+          seasons: [
+            ...(cached.seasons ?? []),
+            { season_number: 3, name: "Season 3", poster_path: null, episode_count: 0 },
+          ],
+        }),
+      ),
+    );
+    laterThatNight();
+
+    const res = await score(club, alice, { workId: show.id, score: 7, seasonNumber: 3 });
+
+    expect(res.statusCode).toBe(200);
+    expect(await scoreOf(club, `${SHOW_ID}:3`, alice)).toBe(7);
+  });
+});
+
+describe("removing a TV show", () => {
+  it("takes the show's seasons and episodes off the reviews list with it", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub(alice, { type: ClubType.tv });
+    const show = await seedShow(club, alice);
+    await score(club, alice, { workId: show.id, score: 8, seasonNumber: 1 });
+    await score(club, alice, { workId: show.id, score: 9, seasonNumber: 1, episodeNumber: 2 });
+
+    const res = await api.delete(
+      `/api/club/${club.slug}/list/${club.reviewsListId}/items/${show.id}`,
+      { as: alice },
+    );
+
+    expect(res.statusCode).toBe(200);
+    expect(await reviewsOf(club)).toEqual([]);
+  });
+
+  it("keeps another show's works when one is removed", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub(alice, { type: ClubType.tv });
+    const show = await seedShow(club, alice);
+    const other = await addWork(club, alice, {
+      listId: club.reviewsListId,
+      type: WorkType.tv,
+      externalId: `${SHOW_ID}0`,
+      title: "Another show",
+    });
+    await score(club, alice, { workId: other.id, score: 6, seasonNumber: 1 });
+
+    await api.delete(`/api/club/${club.slug}/list/${club.reviewsListId}/items/${show.id}`, {
+      as: alice,
+    });
+
+    expect(await scoreOf(club, `${SHOW_ID}0:1`, alice)).toBe(6);
   });
 });

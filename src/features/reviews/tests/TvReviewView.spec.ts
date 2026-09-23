@@ -277,6 +277,54 @@ describe("TV reviews", () => {
     expect(screen.getByText("2/9 episodes")).toBeInTheDocument();
   });
 
+  it("never shows a season score as the show's own while it saves", async () => {
+    const { user } = await renderSeverance();
+    let release: () => void = () => undefined;
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    server.use(
+      http.post("/api/club/:id/reviews", async () => {
+        await held;
+        return new HttpResponse(null, { status: 200 });
+      }),
+    );
+
+    await user.click(screen.getByRole("button", { name: "Score season" }));
+    await saveScore(user, "4");
+
+    const showScore = within(screen.getByRole("group", { name: "Show score" }));
+    expect(showScore.getByText("Yours is averaged from your seasons: 10.0")).toBeInTheDocument();
+    expect(showScore.queryByText(/You scored it/)).not.toBeInTheDocument();
+    release();
+  });
+
+  it("keeps a whole show when the search matches one of its episodes", async () => {
+    const { user } = await renderSeverance();
+
+    await user.type(screen.getByRole("textbox"), "Half Loop");
+
+    expect(
+      await screen.findByRole("button", { name: "Severance, average 8.0" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Half Loop" })).toBeInTheDocument();
+  });
+
+  it("keeps a show when a filter only its episodes carry matches", async () => {
+    const { user } = await renderSeverance();
+
+    await user.click(screen.getByRole("button", { name: "Season" }));
+    await user.type(await screen.findByPlaceholderText("Enter a season number"), "1");
+    await user.click(screen.getByRole("button", { name: "=" }));
+    await user.click(screen.getByRole("button", { name: "Apply" }));
+
+    expect(await screen.findByRole("button", { name: /^Season\W*1$/ })).toBeInTheDocument();
+
+    expect(
+      await screen.findByRole("button", { name: "Severance, average 8.0" }),
+    ).toBeInTheDocument();
+  });
+
   it("scores the show on its own, leaving its seasons as they were", async () => {
     const { user } = await renderSeverance();
 

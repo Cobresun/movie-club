@@ -178,6 +178,10 @@ class BookProvider implements MediaProvider {
     return { kind: "self" };
   }
 
+  partsPrefix(): undefined {
+    return undefined;
+  }
+
   async getDiscussionPrompt(work: { title: string; externalId: string | null }): Promise<string> {
     let authors: string[] = [];
     let firstPublishYear: string | undefined;
