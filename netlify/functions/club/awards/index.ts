@@ -53,6 +53,15 @@ router.post("/", secured<ClubRequest>, async ({ event, clubId }, res) => {
   if (isRouterResponse(body)) return body;
   const { year, categories } = body;
 
+  const available = await AwardsRepository.getAvailableYears(clubId);
+  if (!available.includes(year)) {
+    return res(
+      badRequest(
+        `${year} isn't available: the club has no reviewed movies from it, or it already has awards`,
+      ),
+    );
+  }
+
   const created = await AwardsRepository.create(clubId, year, {
     step: AwardsStep.CategorySelect,
     awards: categories.map((title) => ({ title, nominations: [] })),
@@ -60,6 +69,11 @@ router.post("/", secured<ClubRequest>, async ({ event, clubId }, res) => {
   if (!created) return res(badRequest(`This club already has ${year} awards`));
 
   return res(ok());
+});
+
+router.get("/available-years", async ({ clubId }, res) => {
+  const years = await AwardsRepository.getAvailableYears(clubId);
+  return res(ok(JSON.stringify(years)));
 });
 
 router.get("/years", async ({ clubId }, res) => {

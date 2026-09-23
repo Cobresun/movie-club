@@ -12,10 +12,12 @@ import { AwardsStep, ClubAwards } from "../../../lib/types/awards";
 import { handler } from "../club/index";
 import { signIn } from "./helpers/auth";
 import {
+  addWork,
   createAwardsYear,
   createClub,
   nominate,
   rankAward,
+  reviewMovieIn,
   SeededClub,
   setAwardsStep,
 } from "./helpers/factories";
@@ -88,10 +90,48 @@ describe("GET /api/club/:clubSlug/awards/years", () => {
   });
 });
 
+describe("GET /api/club/:clubSlug/awards/available-years", () => {
+  const availableYears = (club: SeededClub) =>
+    api.get<number[]>(`/api/club/${club.slug}/awards/available-years`);
+
+  it("offers each year the club reviewed a movie in, newest first", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub(alice);
+    await reviewMovieIn(club, alice, 2022);
+    await reviewMovieIn(club, alice, 2024);
+    await reviewMovieIn(club, alice, 2024);
+
+    const res = await availableYears(club);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toEqual([2024, 2022]);
+  });
+
+  it("leaves out years that already have awards", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub(alice);
+    await reviewMovieIn(club, alice, 2023);
+    await createAwardsYear(club, alice, 2024);
+
+    expect((await availableYears(club)).body).toEqual([2023]);
+  });
+
+  it("ignores movies still on a watch list and other clubs' reviews", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub(alice);
+    const other = await createClub(alice);
+    await addWork(club, alice, { addedDate: new Date(Date.UTC(2021, 5, 15)) });
+    await reviewMovieIn(other, alice, 2020);
+
+    expect((await availableYears(club)).body).toEqual([]);
+  });
+});
+
 describe("POST /api/club/:clubSlug/awards", () => {
   it("opens the year on the categories step with the categories it was given", async () => {
     const alice = await signIn("alice");
     const club = await createClub(alice);
+    await reviewMovieIn(club, alice, YEAR);
 
     const res = await api.post(`/api/club/${club.slug}/awards`, {
       body: { year: YEAR, categories: ["Best Picture", "  Funniest Movie "] },
@@ -129,8 +169,23 @@ describe("POST /api/club/:clubSlug/awards", () => {
   ])("returns 400 with %s", async (_label, body) => {
     const alice = await signIn("alice");
     const club = await createClub(alice);
+    await reviewMovieIn(club, alice, YEAR);
 
     const res = await api.post(`/api/club/${club.slug}/awards`, { body, as: alice });
+
+    expect(res.statusCode).toBe(400);
+    expect((await api.get<number[]>(`/api/club/${club.slug}/awards/years`)).body).toEqual([]);
+  });
+
+  it("refuses a year the club did not review a movie in", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub(alice);
+    await reviewMovieIn(club, alice, 2023);
+
+    const res = await api.post(`/api/club/${club.slug}/awards`, {
+      body: { year: YEAR, categories: [] },
+      as: alice,
+    });
 
     expect(res.statusCode).toBe(400);
     expect((await api.get<number[]>(`/api/club/${club.slug}/awards/years`)).body).toEqual([]);
@@ -140,6 +195,7 @@ describe("POST /api/club/:clubSlug/awards", () => {
     const alice = await signIn("alice");
     const bob = await signIn("bob");
     const club = await createClub(alice, { members: [alice] });
+    await reviewMovieIn(club, alice, YEAR);
 
     const res = await api.post(`/api/club/${club.slug}/awards`, {
       body: { year: YEAR, categories: [] },

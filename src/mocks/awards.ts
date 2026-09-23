@@ -40,22 +40,27 @@ const ok = () => new HttpResponse(null, { status: 200 });
  * year, edit it and move it along, then read the result back off the screen —
  * the same round trip the API gives the app. Writes are attributed to the
  * member `logIn()` signs in, the way the server attributes them to the session.
+ * `reviewedYears` are the years the club reviewed movies in, which are the only
+ * ones a year can be opened for.
  */
-export const awardsApi = (initial: ClubAwards[] = []) => {
+export const awardsApi = (initial: ClubAwards[] = [], reviewedYears: number[] = []) => {
   const years = new Map(initial.map((entry) => [entry.year, structuredClone(entry)]));
   const base = "/api/club/:id/awards";
   const yearOf = (params: { year?: unknown }) => years.get(Number(params.year));
+  const available = () =>
+    [...new Set(reviewedYears)].filter((year) => !years.has(year)).sort((a, b) => b - a);
   const awardOf = (entry: ClubAwards, title: unknown): Award | undefined =>
     entry.awards.find((award) => award.title === String(title));
 
   return [
     http.get(`${base}/years`, () => HttpResponse.json([...years.keys()].sort((a, b) => b - a))),
+    http.get(`${base}/available-years`, () => HttpResponse.json(available())),
     http.post(base, async ({ request }) => {
       const { year, categories } = (await request.json()) as {
         year: number;
         categories: string[];
       };
-      if (years.has(year)) return badRequest(`This club already has ${year} awards`);
+      if (!available().includes(year)) return badRequest(`${year} isn't available`);
       years.set(
         year,
         awardsYear(year, { awards: categories.map((title) => ({ title, nominations: [] })) }),

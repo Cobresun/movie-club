@@ -1,4 +1,5 @@
 import { AwardsData, awardsDataSchema } from "../../../lib/types/awards";
+import { WorkListSystemType, WorkType } from "../../../lib/types/generated/db";
 import { db } from "../utils/database";
 
 /** An update the current state of the year does not allow, with the reason. */
@@ -21,6 +22,30 @@ class AwardsRepository {
       .execute();
 
     return rows.map((row) => Number(row.year));
+  }
+
+  /**
+   * Years a club can open awards for: years it reviewed a movie in that has
+   * no awards yet, newest first. A movie counts toward the year it joined the
+   * reviews list (UTC), and only movies with an external id can be nominated.
+   */
+  async getAvailableYears(clubId: string): Promise<number[]> {
+    const [reviews, taken] = await Promise.all([
+      db
+        .selectFrom("work_list")
+        .innerJoin("work_list_item", "work_list_item.list_id", "work_list.id")
+        .innerJoin("work", "work.id", "work_list_item.work_id")
+        .select("work_list_item.time_added")
+        .where("work_list.club_id", "=", clubId)
+        .where("work_list.system_type", "=", WorkListSystemType.reviews)
+        .where("work.type", "=", WorkType.movie)
+        .where("work.external_id", "is not", null)
+        .execute(),
+      this.getYears(clubId),
+    ]);
+
+    const reviewed = new Set(reviews.map((row) => new Date(row.time_added).getUTCFullYear()));
+    return [...reviewed].filter((year) => !taken.includes(year)).sort((a, b) => b - a);
   }
 
   /**
