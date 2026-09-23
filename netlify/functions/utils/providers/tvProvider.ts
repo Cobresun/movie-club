@@ -1,3 +1,5 @@
+import { isAxiosError } from "axios";
+
 import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import { WorkType } from "../../../../lib/types/generated/db";
 import { DetailedWorkData, ListInsertDto, WorkDataSummary } from "../../../../lib/types/lists";
@@ -138,6 +140,18 @@ function toShowSummary(context: ShowContext): TvDataSummary {
     numberOfEpisodes: numOrUndefined(row.number_of_episodes),
     voteAverage: numOrUndefined(row.tmdb_score),
   };
+}
+
+/**
+ * How old a cached show or season listing may be before a score naming
+ * something it lacks re-reads TMDB, instead of refusing until the scheduled
+ * refresh. Bounded so a bogus season or episode number cannot make every
+ * request a TMDB call.
+ */
+const MISS_REFETCH_AFTER_MS = 15 * 60 * 1000;
+
+function isOlderThanRefetchWindow(updatedDate: Date): boolean {
+  return Date.now() - updatedDate.getTime() > MISS_REFETCH_AFTER_MS;
 }
 
 const TMDB_STILL_BASE = "https://image.tmdb.org/t/p/w300";
@@ -387,40 +401,82 @@ class TvProvider implements MediaProvider {
   }
 
   private async seasonWork(address: TvAddress): Promise<ListInsertDto | undefined> {
-    const externalId = formatTvAddress(address);
-    const row = await db
-      .selectFrom("tv_season_details")
-      .where("external_id", "=", externalId)
-      .select(["name", "season_number", "poster_path"])
-      .executeTakeFirst();
+    const row = await this.seasonRow(address);
     if (row === undefined) return undefined;
     return {
       type: WorkType.tv,
       title: row.name ?? `Season ${row.season_number}`,
-      externalId,
+      externalId: formatTvAddress(address),
       imageUrl: hasValue(row.poster_path) ? `${TMDB_POSTER_BASE}${row.poster_path}` : undefined,
     };
   }
 
   private async episodeWork(address: TvAddress): Promise<ListInsertDto | undefined> {
-    if (address.seasonNumber === undefined) return undefined;
+    const { showId, seasonNumber } = address;
+    if (seasonNumber === undefined) return undefined;
+    // Only a season the show lists is fetched: TMDB 404s any other, and an
+    // empty answer would otherwise leave a phantom season in the show's list.
+    if ((await this.seasonRow({ showId, seasonNumber })) === undefined) return undefined;
+
     // The season may never have been opened, so its episodes are not cached
     // yet — scoring one of them is exactly the moment they have to exist.
-    await this.cacheSeason(address.showId, address.seasonNumber);
-
-    const externalId = formatTvAddress(address);
-    const row = await db
-      .selectFrom("tv_episode_details")
-      .where("external_id", "=", externalId)
-      .select(["name", "season_number", "episode_number", "still_path"])
-      .executeTakeFirst();
+    if (!(await this.cacheSeason(showId, seasonNumber))) return undefined;
+    let row = await this.episodeRow(address);
+    // The browser reads TMDB live, so it offers an episode the night it airs
+    // while this cache still holds the season as it was earlier.
+    if (row === undefined && (await this.isSeasonStale(showId, seasonNumber))) {
+      await this.cacheSeason(showId, seasonNumber, { force: true });
+      row = await this.episodeRow(address);
+    }
     if (row === undefined) return undefined;
     return {
       type: WorkType.tv,
       title: row.name ?? episodeCode(Number(row.season_number), Number(row.episode_number)),
-      externalId,
+      externalId: formatTvAddress(address),
       imageUrl: hasValue(row.still_path) ? stillUrl(row.still_path) : undefined,
     };
+  }
+
+  /** The show's own listing of a season, re-read once if a newly announced
+   * season is missing from a listing older than {@link MISS_REFETCH_AFTER_MS}. */
+  private async seasonRow(address: TvAddress) {
+    const read = () =>
+      db
+        .selectFrom("tv_season_details")
+        .where("external_id", "=", formatTvAddress(address))
+        .select(["name", "season_number", "poster_path"])
+        .executeTakeFirst();
+
+    const row = await read();
+    if (row !== undefined || !(await this.isShowStale(address.showId))) return row;
+    await this.cacheShow(address.showId, { force: true });
+    return read();
+  }
+
+  private episodeRow(address: TvAddress) {
+    return db
+      .selectFrom("tv_episode_details")
+      .where("external_id", "=", formatTvAddress(address))
+      .select(["name", "season_number", "episode_number", "still_path"])
+      .executeTakeFirst();
+  }
+
+  private async isShowStale(showId: string): Promise<boolean> {
+    const row = await db
+      .selectFrom("tv_show_details")
+      .where("external_id", "=", showId)
+      .select("updated_date")
+      .executeTakeFirst();
+    return row === undefined || isOlderThanRefetchWindow(row.updated_date);
+  }
+
+  private async isSeasonStale(showId: string, seasonNumber: number): Promise<boolean> {
+    const row = await db
+      .selectFrom("tv_episode_details")
+      .where("season_external_id", "=", formatTvAddress({ showId, seasonNumber }))
+      .select((eb) => eb.fn.max("updated_date").as("updated_date"))
+      .executeTakeFirst();
+    return !isDefined(row?.updated_date) || isOlderThanRefetchWindow(row.updated_date);
   }
 
   async getDiscussionPrompt(work: { title: string; externalId: string | null }): Promise<string> {
@@ -493,34 +549,52 @@ If you do not recognize this series or cannot confirm it is real, return 0 quest
     return result;
   }
 
-  private async cacheShow(showId: string): Promise<void> {
-    const cached = await db
-      .selectFrom("tv_show_details")
-      .select("external_id")
-      .where("external_id", "=", showId)
-      .executeTakeFirst();
-    if (isDefined(cached)) return;
+  private async cacheShow(showId: string, options?: { force: boolean }): Promise<void> {
+    if (options?.force !== true) {
+      const cached = await db
+        .selectFrom("tv_show_details")
+        .select("external_id")
+        .where("external_id", "=", showId)
+        .executeTakeFirst();
+      if (isDefined(cached)) return;
+    }
 
     const { data } = await getTMDBTvShowData(Number.parseInt(showId, 10));
     await db.transaction().execute((trx) => upsertTvShowDetails(showId, data, trx));
   }
 
+  /** Whether the season's episodes are cached once this returns: false when
+   * TMDB does not know the season. */
   private async cacheSeason(
     showId: string,
     seasonNumber: number,
     options?: { force: boolean },
-  ): Promise<void> {
+  ): Promise<boolean> {
     if (options?.force !== true) {
       const cached = await db
         .selectFrom("tv_episode_details")
         .select("external_id")
         .where("season_external_id", "=", formatTvAddress({ showId, seasonNumber }))
         .executeTakeFirst();
-      if (isDefined(cached)) return;
+      if (isDefined(cached)) return true;
     }
 
-    const { data } = await getTMDBTvSeason(Number.parseInt(showId, 10), seasonNumber);
-    await db.transaction().execute((trx) => upsertTvSeasonDetails(showId, data, trx));
+    try {
+      const { data } = await getTMDBTvSeason(Number.parseInt(showId, 10), seasonNumber);
+      await db.transaction().execute((trx) => upsertTvSeasonDetails(showId, data, trx));
+      return true;
+    } catch (error) {
+      if (isAxiosError(error) && error.response?.status === 404) return false;
+      throw error;
+    }
+  }
+
+  /** Only a show has parts: removing a season keeps the episodes scored on
+   * their own, which still roll up to the show. */
+  partsPrefix(externalId: string): string | undefined {
+    const address = parseTvAddress(externalId);
+    if (address === undefined || tvLevel(address) !== "show") return undefined;
+    return `${address.showId}:`;
   }
 }
 

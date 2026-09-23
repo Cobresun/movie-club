@@ -202,6 +202,15 @@ class ListRepository {
       .execute();
   }
 
+  async deleteItemsFromList(listId: string, workIds: string[]) {
+    if (workIds.length === 0) return;
+    await db
+      .deleteFrom("work_list_item")
+      .where("work_id", "in", workIds)
+      .where("list_id", "=", listId)
+      .execute();
+  }
+
   /**
    * Move a work from one list to another atomically. Used by the "move to..."
    * UI and by the review flow (which moves from any source list into the
