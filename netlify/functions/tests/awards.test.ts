@@ -461,27 +461,6 @@ describe("POST /api/club/:clubSlug/awards/:year/nomination", () => {
     expect(await nominees(club)).toEqual({});
   });
 
-  it("clears the category's ballots when a new nominee is added after voting", async () => {
-    const { alice, bob, club } = await clubWithTwoMembers();
-    await createAwardsYear(club, alice, YEAR, ["Best Picture"]);
-    await setAwardsStep(club, alice, YEAR, AwardsStep.Nominations);
-    await nominate(club, alice, YEAR, "Best Picture", 1);
-    await nominate(club, alice, YEAR, "Best Picture", 2);
-    await nominate(club, bob, YEAR, "Best Picture", 1);
-    await setAwardsStep(club, alice, YEAR, AwardsStep.Ratings);
-    await rankAward(club, alice, YEAR, "Best Picture", [2, 1]);
-    await setAwardsStep(club, alice, YEAR, AwardsStep.Nominations);
-
-    await nominate(club, bob, YEAR, "Best Picture", 3);
-
-    const awards = await awardsOf(club);
-    expect(awards.body.awards[0].nominations.map((nomination) => nomination.ranking)).toEqual([
-      {},
-      {},
-      {},
-    ]);
-  });
-
   it.each([
     ["no body", undefined],
     ["a movieId that is not a number", { awardTitle: "Best Picture", movieId: "27" }],
@@ -678,7 +657,7 @@ describe("PUT /api/club/:clubSlug/awards/:year/step", () => {
     expect((await awardsOf(club)).body.step).toBe(AwardsStep.Nominations);
   });
 
-  it("reopens the previous step", async () => {
+  it("refuses to go back to a closed step", async () => {
     const alice = await signIn("alice");
     const club = await createClub(alice);
     await createAwardsYear(club, alice, YEAR, ["Best Picture"]);
@@ -691,8 +670,8 @@ describe("PUT /api/club/:clubSlug/awards/:year/step", () => {
       as: alice,
     });
 
-    expect(res.statusCode).toBe(200);
-    expect((await awardsOf(club)).body.step).toBe(AwardsStep.Nominations);
+    expect(res.statusCode).toBe(400);
+    expect((await awardsOf(club)).body.step).toBe(AwardsStep.Ratings);
   });
 
   it("refuses to start voting until every member has nominated in every category", async () => {

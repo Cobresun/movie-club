@@ -16,7 +16,7 @@
       </p>
       <RouterView :club-award="clubAward" />
       <PhaseControls
-        v-if="clubAward.step !== AwardsStep.Completed"
+        v-if="isDefined(AWARDS_PHASES[clubAward.step].next)"
         :club-award="clubAward"
         :club-slug="clubSlug"
         :year="year"
@@ -46,7 +46,6 @@ import { computed, ref, toRefs, watch } from "vue";
 import { useRouter } from "vue-router";
 
 import { isDefined } from "../../../../lib/checks/checks.js";
-import { AwardsStep } from "../../../../lib/types/awards";
 import AwardsStepper from "../components/AwardsStepper.vue";
 import PhaseControls from "../components/PhaseControls.vue";
 import { AWARDS_PHASES } from "../constants";

@@ -49,6 +49,9 @@ describe("YearView", () => {
     const { user } = render(YearView, { props });
 
     await user.click(await screen.findByRole("button", { name: /Open nominations/ }));
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByText(/Categories will be locked for good/)).toBeInTheDocument();
+    await user.click(within(dialog).getByRole("button", { name: "Open nominations" }));
 
     await waitFor(async () => expect(await currentPhase()).toHaveTextContent("Nominations"));
     const [categories] = within(screen.getByRole("list", { name: "Awards progress" })).getAllByRole(
@@ -93,6 +96,9 @@ describe("YearView", () => {
 
     expect(await screen.findByText("3 of 3 members have finished nominating")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /Start voting/ }));
+    await user.click(
+      within(await screen.findByRole("dialog")).getByRole("button", { name: "Start voting" }),
+    );
 
     await waitFor(async () => expect(await currentPhase()).toHaveTextContent("Voting"));
   });
@@ -120,14 +126,27 @@ describe("YearView", () => {
     expect(screen.getByRole("button", { name: /Start the ceremony/ })).toBeDisabled();
   });
 
-  it("reopens the previous phase", async () => {
-    withYear({ step: AwardsStep.Ratings, awards: [{ title: "Best Picture", nominations: [] }] });
+  it("stays put when the member backs out of the confirmation", async () => {
+    withYear({ awards: [{ title: "Best Picture", nominations: [] }] });
 
     const { user } = render(YearView, { props });
 
-    await user.click(await screen.findByRole("button", { name: "Back to nominations" }));
+    await user.click(await screen.findByRole("button", { name: /Open nominations/ }));
+    await user.click(
+      within(await screen.findByRole("dialog")).getByRole("button", { name: "Cancel" }),
+    );
 
-    await waitFor(async () => expect(await currentPhase()).toHaveTextContent("Nominations"));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(await currentPhase()).toHaveTextContent("Categories");
+  });
+
+  it("offers no way back to an earlier phase", async () => {
+    withYear({ step: AwardsStep.Ratings, awards: [{ title: "Best Picture", nominations: [] }] });
+
+    render(YearView, { props });
+
+    expect(await screen.findByRole("button", { name: /Start the ceremony/ })).toBeInTheDocument();
+    expect(within(controls()).getAllByRole("button")).toHaveLength(1);
   });
 
   it("leaves the ceremony to finish itself when every category is revealed", async () => {
@@ -135,8 +154,8 @@ describe("YearView", () => {
 
     render(YearView, { props });
 
-    expect(await screen.findByRole("button", { name: "Back to voting" })).toBeInTheDocument();
-    expect(within(controls()).getAllByRole("button")).toHaveLength(1);
+    expect(await currentPhase()).toHaveTextContent("Ceremony");
+    expect(screen.queryByRole("region", { name: "Phase controls" })).not.toBeInTheDocument();
   });
 
   it("deletes the year after confirming", async () => {
