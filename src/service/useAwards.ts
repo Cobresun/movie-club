@@ -11,6 +11,7 @@ import { useUser } from "./useUser";
 import { useAuthStore } from "@/stores/auth";
 
 const awardYearsKey = (clubSlug: string) => ["awards-years", clubSlug];
+const availableYearsKey = (clubSlug: string) => ["awards-available-years", clubSlug];
 const awardsKey = (clubSlug: string, year: string) => ["awards", clubSlug, year];
 
 /** Toasts the reason the server refused an awards change. */
@@ -28,6 +29,15 @@ export function useAwardYears(clubSlug: string): UseQueryReturnType<number[], Ax
   return useQuery({
     queryKey: awardYearsKey(clubSlug),
     queryFn: async () => (await axios.get<number[]>(`/api/club/${clubSlug}/awards/years`)).data,
+  });
+}
+
+/** Years the club reviewed movies in that have no awards yet, newest first. */
+export function useAvailableAwardYears(clubSlug: string): UseQueryReturnType<number[], AxiosError> {
+  return useQuery({
+    queryKey: availableYearsKey(clubSlug),
+    queryFn: async () =>
+      (await axios.get<number[]>(`/api/club/${clubSlug}/awards/available-years`)).data,
   });
 }
 
@@ -51,7 +61,11 @@ export function useCreateAwardsYear(clubSlug: string) {
     mutationFn: (input: { year: number; categories: string[] }) =>
       auth.request.post(`/api/club/${clubSlug}/awards`, input),
     onError,
-    onSettled: () => queryClient.invalidateQueries(awardYearsKey(clubSlug)),
+    onSettled: () =>
+      Promise.all([
+        queryClient.invalidateQueries(awardYearsKey(clubSlug)),
+        queryClient.invalidateQueries(availableYearsKey(clubSlug)),
+      ]),
   });
 }
 
@@ -68,7 +82,11 @@ export function useDeleteAwardsYear(clubSlug: string, year: string) {
       );
     },
     onError,
-    onSettled: () => queryClient.invalidateQueries(awardYearsKey(clubSlug)),
+    onSettled: () =>
+      Promise.all([
+        queryClient.invalidateQueries(awardYearsKey(clubSlug)),
+        queryClient.invalidateQueries(availableYearsKey(clubSlug)),
+      ]),
   });
 }
 

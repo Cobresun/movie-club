@@ -265,13 +265,22 @@ export async function createInvite(club: SeededClub, session: TestSession) {
   return created.body.token;
 }
 
-/** Open an awards year through `POST /awards`; it starts on the categories step. */
+/** Put a movie on the reviews list as though it was reviewed during `year`. */
+export function reviewMovieIn(club: SeededClub, session: TestSession, year: number) {
+  return addReviewedWork(club, session, { addedDate: new Date(Date.UTC(year, 5, 15)) });
+}
+
+/**
+ * Open an awards year through `POST /awards`; it starts on the categories step.
+ * A club can only open a year it reviewed a movie in, so one is reviewed first.
+ */
 export async function createAwardsYear(
   club: SeededClub,
   session: TestSession,
   year: number,
   categories: string[] = [],
 ) {
+  await reviewMovieIn(club, session, year);
   const created = await api.post(`/api/club/${club.slug}/awards`, {
     body: { year, categories },
     as: session,

@@ -1,4 +1,4 @@
-import { screen, waitFor } from "@testing-library/vue";
+import { screen, waitFor, within } from "@testing-library/vue";
 import { useRoute, useRouter } from "vue-router";
 
 import AwardsView from "../views/AwardsView.vue";
@@ -8,8 +8,6 @@ import { render } from "@/tests/utils";
 
 const withYears = (...years: number[]) =>
   server.use(...awardsApi(years.map((year) => awardsYear(year))));
-
-const thisYear = new Date().getFullYear();
 
 describe("AwardsView", () => {
   it("renders a year option for each available awards year", async () => {
@@ -55,32 +53,87 @@ describe("AwardsView", () => {
     expect(vi.mocked(useRouter()).replace.mock.calls).toHaveLength(0);
   });
 
-  it("opens this year's awards from the empty state and takes the club to it", async () => {
+  it("opens a year the club reviewed movies in and takes the club to it", async () => {
+    server.use(...awardsApi([], [2023, 2025]));
+
+    const { user } = render(AwardsView);
+
+    await user.click(await screen.findByRole("button", { name: "Start your first awards" }));
+    const year = await screen.findByRole("combobox", { name: "Year" });
+    expect(year).toHaveValue("2025");
+    expect(
+      within(year)
+        .getAllByRole("option")
+        .map((option) => option.textContent?.trim()),
+    ).toEqual(["2025", "2023"]);
+    expect(screen.getByRole("radio", { name: "Suggested categories" })).toBeChecked();
+
+    await user.selectOptions(year, "2023");
+    await user.click(screen.getByRole("button", { name: "Start 2023 awards" }));
+
+    expect(await screen.findByRole("option", { name: "2023" })).toBeInTheDocument();
+    expect(vi.mocked(useRouter()).push.mock.calls).toContainEqual([
+      { name: "AwardsYear", params: { clubSlug: "test-club", year: "2023" } },
+    ]);
+  });
+
+  it("only offers years that do not have awards yet", async () => {
+    server.use(...awardsApi([awardsYear(2024)], [2024, 2023]));
+    useRoute().params.year = "2024";
+
+    const { user } = render(AwardsView);
+
+    await user.click(await screen.findByRole("button", { name: "New awards" }));
+
+    const year = await screen.findByRole("combobox", { name: "Year" });
+    expect(
+      within(year)
+        .getAllByRole("option")
+        .map((option) => option.textContent?.trim()),
+    ).toEqual(["2023"]);
+  });
+
+  it("explains that there is nothing to open before the club has reviewed a movie", async () => {
     withYears();
 
     const { user } = render(AwardsView);
 
     await user.click(await screen.findByRole("button", { name: "Start your first awards" }));
-    expect(screen.getByRole("textbox", { name: "Year" })).toHaveValue(String(thisYear));
-    expect(screen.getByRole("radio", { name: /Suggested categories/ })).toBeChecked();
-    await user.click(screen.getByRole("button", { name: `Start ${thisYear} awards` }));
 
-    expect(await screen.findByRole("option", { name: String(thisYear) })).toBeInTheDocument();
-    expect(vi.mocked(useRouter()).push.mock.calls).toContainEqual([
-      { name: "AwardsYear", params: { clubSlug: "test-club", year: String(thisYear) } },
-    ]);
+    expect(
+      await screen.findByText(
+        "The club hasn't reviewed any movies yet. Once it has, you can hold awards for that year.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Start \d{4} awards$/ })).not.toBeInTheDocument();
+  });
+
+  it("explains that every reviewed year already has awards", async () => {
+    server.use(...awardsApi([awardsYear(2024)], [2024]));
+    useRoute().params.year = "2024";
+
+    const { user } = render(AwardsView);
+
+    await user.click(await screen.findByRole("button", { name: "New awards" }));
+
+    expect(
+      await screen.findByText("Every year the club reviewed movies in already has awards."),
+    ).toBeInTheDocument();
   });
 
   it("offers last year's categories when starting a new year", async () => {
     server.use(
-      ...awardsApi([
-        awardsYear(2024, {
-          awards: [
-            { title: "Best Picture", nominations: [] },
-            { title: "Funniest Movie", nominations: [] },
-          ],
-        }),
-      ]),
+      ...awardsApi(
+        [
+          awardsYear(2024, {
+            awards: [
+              { title: "Best Picture", nominations: [] },
+              { title: "Funniest Movie", nominations: [] },
+            ],
+          }),
+        ],
+        [2024, 2025],
+      ),
     );
     useRoute().params.year = "2024";
 
@@ -91,24 +144,5 @@ describe("AwardsView", () => {
     expect(
       await screen.findByRole("radio", { name: "The same categories as 2024" }),
     ).toHaveAccessibleDescription("Best Picture, Funniest Movie");
-  });
-
-  it.each([
-    ["a year that is not four digits", "24", "Enter a four-digit year"],
-    ["a year the club already has", "2024", "This club already has awards for that year"],
-  ])("refuses %s", async (_label, typed, message) => {
-    withYears(2024);
-    useRoute().params.year = "2024";
-
-    const { user } = render(AwardsView);
-
-    await user.click(await screen.findByRole("button", { name: "New awards" }));
-    const year = screen.getByRole("textbox", { name: "Year" });
-    await user.clear(year);
-    await user.type(year, typed);
-    await user.click(screen.getByRole("button", { name: `Start ${typed} awards` }));
-
-    expect(await screen.findByText(message)).toBeInTheDocument();
-    expect(vi.mocked(useRouter()).push.mock.calls).toHaveLength(0);
   });
 });

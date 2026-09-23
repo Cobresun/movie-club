@@ -148,7 +148,9 @@ const { data: reviews } = useReviewsList(clubSlug);
 const reviewsForYear = computed(() => {
   if (!reviews.value) return [];
   return reviews.value
-    .filter((review) => DateTime.fromISO(review.createdDate).year === parseInt(year))
+    .filter(
+      (review) => DateTime.fromISO(review.createdDate, { zone: "utc" }).year === parseInt(year),
+    )
     .map<WorkSearchResult>((review) => ({
       externalId: review.externalId ?? "",
       title: review.title,
