@@ -45,10 +45,10 @@
         />
       </div>
       <component
-        :is="reviewLayout"
+        :is="reviewLayout.component"
         v-else
         ref="gallery"
-        :reviews="filteredReviews"
+        :reviews="shownReviews"
         :delete-review="deleteReview"
         :members="members"
         :revealed-movie-ids="revealedMovieIds"
@@ -101,8 +101,13 @@ const closePrompt = () => {
 const filteredReviews = ref<DetailedReviewListItem[]>([]);
 const hasActiveFilters = ref(false);
 
+const reviewLayout = computed(() => REVIEW_LAYOUTS[club.value?.type ?? ClubType.movie]);
+const shownReviews = computed(() =>
+  reviewLayout.value.select(reviews.value ?? [], filteredReviews.value),
+);
+
 const hasSearchTerm = computed(() => hasActiveFilters.value);
-const showEmptyState = computed(() => !loading.value && filteredReviews.value.length === 0);
+const showEmptyState = computed(() => !loading.value && shownReviews.value.length === 0);
 
 const searchEmptyDescription = computed(() => {
   const fields = clubTypeConfig(club.value?.type ?? ClubType.movie).searchableFieldsHint;
@@ -114,8 +119,6 @@ const noReviewsDescription = computed(() => {
 });
 
 const members = computed(() => membersResponse.value ?? []);
-
-const reviewLayout = computed(() => REVIEW_LAYOUTS[club.value?.type ?? ClubType.movie]);
 
 // Starting the up-next review lands straight in its details drawer, where the
 // score entry lives. The gallery may only just have mounted (the first review
@@ -165,7 +168,7 @@ const hasUserRated = computed(() => {
   if (userId.value === undefined) return () => false;
 
   return (movieId: string) => {
-    const review = filteredReviews.value?.find((review) => review.id === movieId);
+    const review = shownReviews.value.find((review) => review.id === movieId);
     return Boolean(review?.scores[userId.value ?? ""]?.score !== undefined);
   };
 });

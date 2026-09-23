@@ -86,6 +86,14 @@ export interface MediaProvider {
     work: { title: string; externalId: string | null },
     options: { seasonNumber?: number; episodeNumber?: number },
   ) => Promise<ScoreTarget>;
+
+  /**
+   * The `external_id` prefix shared by every work that belongs to this one —
+   * a TV show's seasons and episodes — so removing the work from a list takes
+   * its parts with it rather than leaving them counted in statistics with
+   * nothing to hang from. Undefined for a work with no parts.
+   */
+  partsPrefix: (externalId: string) => string | undefined;
 }
 
 export type ScoreTarget =

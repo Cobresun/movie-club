@@ -9,6 +9,7 @@ import {
   tmdbMovie,
   tmdbTvSeason,
   tmdbTvShow,
+  TV_SEASON_EPISODE_COUNTS,
 } from "../fixtures/external";
 
 /**
@@ -64,9 +65,14 @@ export const server = setupServer(
     HttpResponse.json(tmdbMovie(Number(params.movieId))),
   ),
 
-  http.get(`${TMDB}/tv/:showId/season/:seasonNumber`, ({ params }) =>
-    HttpResponse.json(tmdbTvSeason(Number(params.showId), Number(params.seasonNumber))),
-  ),
+  // TMDB 404s a season the show does not have, rather than listing it empty.
+  http.get(`${TMDB}/tv/:showId/season/:seasonNumber`, ({ params }) => {
+    const seasonNumber = Number(params.seasonNumber);
+    if (!(seasonNumber in TV_SEASON_EPISODE_COUNTS)) {
+      return HttpResponse.json({ status_code: 34 }, { status: 404 });
+    }
+    return HttpResponse.json(tmdbTvSeason(Number(params.showId), seasonNumber));
+  }),
 
   http.get(`${TMDB}/tv/:showId`, ({ params }) =>
     HttpResponse.json(tmdbTvShow(Number(params.showId))),
