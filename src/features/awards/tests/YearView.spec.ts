@@ -61,23 +61,40 @@ describe("YearView", () => {
     ]);
   });
 
-  it("says who has not nominated yet and which categories are empty", async () => {
+  it("holds nominations open until every member has a nominee in every category", async () => {
     withYear({
       step: AwardsStep.Nominations,
       awards: [
-        { title: "Best Picture", nominations: [awardNominee(1, { nominatedBy: ["1"] })] },
-        { title: "Best Score", nominations: [] },
+        { title: "Best Picture", nominations: [awardNominee(1, { nominatedBy: ["1", "2"] })] },
+        { title: "Best Score", nominations: [awardNominee(2, { nominatedBy: ["1", "3"] })] },
       ],
     });
 
     render(YearView, { props });
 
-    expect(await screen.findByText("1 of 3 members have nominated")).toBeInTheDocument();
+    expect(await screen.findByText("1 of 3 members have finished nominating")).toBeInTheDocument();
     expect(
-      screen.getByText("Waiting on user and cole. You can move on without them."),
+      screen.getByText("Waiting on user and cole. The club moves on once everyone is done."),
     ).toBeInTheDocument();
-    expect(screen.getByText("Best Score has no nominations yet.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Start voting/ })).toBeEnabled();
+    expect(screen.getByRole("button", { name: /Start voting/ })).toBeDisabled();
+  });
+
+  it("opens voting once everyone has nominated", async () => {
+    const everyone = ["1", "2", "3"];
+    withYear({
+      step: AwardsStep.Nominations,
+      awards: [
+        { title: "Best Picture", nominations: [awardNominee(1, { nominatedBy: everyone })] },
+        { title: "Best Score", nominations: [awardNominee(2, { nominatedBy: everyone })] },
+      ],
+    });
+
+    const { user } = render(YearView, { props });
+
+    expect(await screen.findByText("3 of 3 members have finished nominating")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Start voting/ }));
+
+    await waitFor(async () => expect(await currentPhase()).toHaveTextContent("Voting"));
   });
 
   it("counts a member as done voting once every contested category is ranked", async () => {
@@ -100,6 +117,7 @@ describe("YearView", () => {
 
     expect(await screen.findByText("1 of 3 members have finished voting")).toBeInTheDocument();
     expect(screen.getByText(/Waiting on user and cole/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Start the ceremony/ })).toBeDisabled();
   });
 
   it("reopens the previous phase", async () => {

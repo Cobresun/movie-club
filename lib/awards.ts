@@ -42,22 +42,62 @@ export const hasRankedAward = (award: BaseAward, voterId: string) =>
 export const hasFinishedVoting = (awards: BaseAward[], voterId: string) =>
   awards.filter(needsRanking).every((award) => hasRankedAward(award, voterId));
 
-export const hasNominated = (awards: BaseAward[], userId: string) =>
-  awards.some((award) =>
+/**
+ * A member has finished nominating once they have a nominee in every category.
+ * Backing a movie someone else already nominated counts, so a member is never
+ * stuck on a category they have no fresh pick for.
+ */
+export const hasFinishedNominating = (awards: BaseAward[], userId: string) =>
+  awards.every((award) =>
     award.nominations.some((nomination) => nomination.nominatedBy.includes(userId)),
   );
 
 /**
- * Why the year cannot move to `target`, or `undefined` when it can. Steps move
- * one at a time in either direction, so a club can reopen the previous phase
- * for someone who missed it, but nothing skips a phase.
+ * The members who still have their part of the current phase to do. Only
+ * nominations and voting ask something of every member; the other phases are
+ * run by the club as a whole.
  */
-export function stepChangeError(data: AwardsData, target: AwardsStep): string | undefined {
+export function membersYetToFinish(data: AwardsData, memberIds: string[]): string[] {
+  switch (data.step) {
+    case AwardsStep.Nominations:
+      return memberIds.filter((id) => !hasFinishedNominating(data.awards, id));
+    case AwardsStep.Ratings:
+      return memberIds.filter((id) => !hasFinishedVoting(data.awards, id));
+    case AwardsStep.CategorySelect:
+    case AwardsStep.Presentation:
+    case AwardsStep.Completed:
+      return [];
+  }
+}
+
+/** What members are doing during the phases that ask something of each of them. */
+export const PHASE_WORK: Partial<Record<AwardsStep, string>> = {
+  [AwardsStep.Nominations]: "nominating",
+  [AwardsStep.Ratings]: "voting",
+};
+
+/**
+ * Why the year cannot move to `target`, or `undefined` when it can. Steps move
+ * one at a time. The club moves forward together: nobody can close a phase
+ * while a member still has their part of it to do. Moving back is always
+ * allowed, so a phase can be reopened for someone who needs to change theirs.
+ */
+export function stepChangeError(
+  data: AwardsData,
+  target: AwardsStep,
+  memberIds: string[],
+): string | undefined {
   if (Math.abs(target - data.step) !== 1) {
     return "Awards move one step at a time";
   }
-  if (target === AwardsStep.Nominations && data.step === AwardsStep.CategorySelect) {
-    if (data.awards.length === 0) return "Add at least one category before opening nominations";
+  if (target < data.step) return undefined;
+
+  if (data.step === AwardsStep.CategorySelect && data.awards.length === 0) {
+    return "Add at least one category before opening nominations";
+  }
+  const waiting = membersYetToFinish(data, memberIds).length;
+  if (waiting > 0) {
+    return `Everyone has to finish ${PHASE_WORK[data.step] ?? "this step"} first (${waiting} still to go)`;
   }
   return undefined;
 }

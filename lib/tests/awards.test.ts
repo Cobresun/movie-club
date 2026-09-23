@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { scoreAward, stepChangeError } from "../awards";
-import { AwardsStep, BaseAwardNomination } from "../types/awards";
+import { AwardsStep, BaseAward, BaseAwardNomination } from "../types/awards";
 
 const nominee = (movieId: number, ranking: Record<string, number>): BaseAwardNomination => ({
   movieId,
@@ -52,26 +52,59 @@ describe("scoreAward", () => {
 });
 
 describe("stepChangeError", () => {
-  const year = (step: AwardsStep, categories = 1) => ({
+  const year = (step: AwardsStep, awards: BaseAward[] = [{ title: "C", nominations: [] }]) => ({
     step,
-    awards: Array.from({ length: categories }, (_, i) => ({ title: `C${i}`, nominations: [] })),
+    awards,
   });
 
-  it("allows moving one step forward or back", () => {
-    expect(stepChangeError(year(AwardsStep.Nominations), AwardsStep.Ratings)).toBeUndefined();
+  it("allows moving back one step whatever is outstanding", () => {
     expect(
-      stepChangeError(year(AwardsStep.Nominations), AwardsStep.CategorySelect),
+      stepChangeError(year(AwardsStep.Ratings), AwardsStep.Nominations, ["a"]),
     ).toBeUndefined();
   });
 
   it("refuses to skip or stand still", () => {
-    expect(stepChangeError(year(AwardsStep.CategorySelect), AwardsStep.Ratings)).toBeDefined();
-    expect(stepChangeError(year(AwardsStep.Ratings), AwardsStep.Ratings)).toBeDefined();
+    expect(stepChangeError(year(AwardsStep.CategorySelect), AwardsStep.Ratings, [])).toBeDefined();
+    expect(stepChangeError(year(AwardsStep.Ratings), AwardsStep.Ratings, [])).toBeDefined();
   });
 
   it("refuses to open nominations without a category", () => {
-    expect(stepChangeError(year(AwardsStep.CategorySelect, 0), AwardsStep.Nominations)).toBe(
+    expect(stepChangeError(year(AwardsStep.CategorySelect, []), AwardsStep.Nominations, [])).toBe(
       "Add at least one category before opening nominations",
     );
+  });
+
+  it("holds nominations open until every member has a nominee in every category", () => {
+    const awards = [
+      { title: "A", nominations: [nominee(1, {})] },
+      { title: "B", nominations: [{ ...nominee(2, {}), nominatedBy: ["2"] }] },
+    ];
+    // Member 1 nominated in A only; member 2 in B only.
+    expect(
+      stepChangeError(year(AwardsStep.Nominations, awards), AwardsStep.Ratings, ["1", "2"]),
+    ).toBe("Everyone has to finish nominating first (2 still to go)");
+
+    // Backing an existing nominee counts.
+    const backed = [
+      { title: "A", nominations: [{ ...nominee(1, {}), nominatedBy: ["1", "2"] }] },
+      { title: "B", nominations: [{ ...nominee(2, {}), nominatedBy: ["2", "1"] }] },
+    ];
+    expect(
+      stepChangeError(year(AwardsStep.Nominations, backed), AwardsStep.Ratings, ["1", "2"]),
+    ).toBeUndefined();
+  });
+
+  it("holds voting open until every member has ranked every contested category", () => {
+    const awards = [
+      { title: "A", nominations: [nominee(1, { a: 1, b: 2 }), nominee(2, { a: 2 })] },
+      // A lone nominee needs no ballot.
+      { title: "B", nominations: [nominee(3, {})] },
+    ];
+    expect(
+      stepChangeError(year(AwardsStep.Ratings, awards), AwardsStep.Presentation, ["a", "b"]),
+    ).toBe("Everyone has to finish voting first (1 still to go)");
+    expect(
+      stepChangeError(year(AwardsStep.Ratings, awards), AwardsStep.Presentation, ["a"]),
+    ).toBeUndefined();
   });
 });

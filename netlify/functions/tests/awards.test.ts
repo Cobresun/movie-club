@@ -467,6 +467,7 @@ describe("POST /api/club/:clubSlug/awards/:year/nomination", () => {
     await setAwardsStep(club, alice, YEAR, AwardsStep.Nominations);
     await nominate(club, alice, YEAR, "Best Picture", 1);
     await nominate(club, alice, YEAR, "Best Picture", 2);
+    await nominate(club, bob, YEAR, "Best Picture", 1);
     await setAwardsStep(club, alice, YEAR, AwardsStep.Ratings);
     await rankAward(club, alice, YEAR, "Best Picture", [2, 1]);
     await setAwardsStep(club, alice, YEAR, AwardsStep.Nominations);
@@ -681,6 +682,8 @@ describe("PUT /api/club/:clubSlug/awards/:year/step", () => {
     const alice = await signIn("alice");
     const club = await createClub(alice);
     await createAwardsYear(club, alice, YEAR, ["Best Picture"]);
+    await setAwardsStep(club, alice, YEAR, AwardsStep.Nominations);
+    await nominate(club, alice, YEAR, "Best Picture", 1);
     await setAwardsStep(club, alice, YEAR, AwardsStep.Ratings);
 
     const res = await api.put(`/api/club/${club.slug}/awards/${YEAR}/step`, {
@@ -690,6 +693,61 @@ describe("PUT /api/club/:clubSlug/awards/:year/step", () => {
 
     expect(res.statusCode).toBe(200);
     expect((await awardsOf(club)).body.step).toBe(AwardsStep.Nominations);
+  });
+
+  it("refuses to start voting until every member has nominated in every category", async () => {
+    const { alice, bob, club } = await clubWithTwoMembers();
+    await createAwardsYear(club, alice, YEAR, ["Best Picture", "Best Score"]);
+    await setAwardsStep(club, alice, YEAR, AwardsStep.Nominations);
+    await nominate(club, alice, YEAR, "Best Picture", 1);
+    await nominate(club, alice, YEAR, "Best Score", 2);
+    await nominate(club, bob, YEAR, "Best Picture", 1);
+
+    const blocked = await api.put(`/api/club/${club.slug}/awards/${YEAR}/step`, {
+      body: { step: AwardsStep.Ratings },
+      as: alice,
+    });
+
+    expect(blocked.statusCode).toBe(400);
+    expect((await awardsOf(club)).body.step).toBe(AwardsStep.Nominations);
+
+    await nominate(club, bob, YEAR, "Best Score", 2);
+
+    const opened = await api.put(`/api/club/${club.slug}/awards/${YEAR}/step`, {
+      body: { step: AwardsStep.Ratings },
+      as: alice,
+    });
+
+    expect(opened.statusCode).toBe(200);
+    expect((await awardsOf(club)).body.step).toBe(AwardsStep.Ratings);
+  });
+
+  it("refuses to start the ceremony until every member has voted", async () => {
+    const { alice, bob, club } = await clubWithTwoMembers();
+    await createAwardsYear(club, alice, YEAR, ["Best Picture"]);
+    await setAwardsStep(club, alice, YEAR, AwardsStep.Nominations);
+    await nominate(club, alice, YEAR, "Best Picture", 1);
+    await nominate(club, bob, YEAR, "Best Picture", 2);
+    await setAwardsStep(club, alice, YEAR, AwardsStep.Ratings);
+    await rankAward(club, alice, YEAR, "Best Picture", [1, 2]);
+
+    const blocked = await api.put(`/api/club/${club.slug}/awards/${YEAR}/step`, {
+      body: { step: AwardsStep.Presentation },
+      as: alice,
+    });
+
+    expect(blocked.statusCode).toBe(400);
+    expect((await awardsOf(club)).body.step).toBe(AwardsStep.Ratings);
+
+    await rankAward(club, bob, YEAR, "Best Picture", [2, 1]);
+
+    const started = await api.put(`/api/club/${club.slug}/awards/${YEAR}/step`, {
+      body: { step: AwardsStep.Presentation },
+      as: alice,
+    });
+
+    expect(started.statusCode).toBe(200);
+    expect((await awardsOf(club)).body.step).toBe(AwardsStep.Presentation);
   });
 
   it("refuses to skip a step", async () => {

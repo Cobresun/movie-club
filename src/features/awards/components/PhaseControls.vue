@@ -5,12 +5,9 @@
   >
     <p v-if="hasValue(progress)" class="font-semibold">{{ progress }}</p>
     <p v-if="hasElements(waitingOn)" class="text-sm text-gray-300">
-      Waiting on {{ listNames(waitingOn) }}. You can move on without them.
+      Waiting on {{ listNames(waitingOn) }}. The club moves on once everyone is done.
     </p>
-    <p v-for="warning in warnings" :key="warning" class="text-sm text-yellow-300">
-      {{ warning }}
-    </p>
-    <p v-if="hasValue(advanceBlocked)" class="text-sm text-gray-300">{{ advanceBlocked }}</p>
+    <p v-else-if="hasValue(advanceBlocked)" class="text-sm text-gray-300">{{ advanceBlocked }}</p>
 
     <div class="flex flex-wrap items-center justify-between gap-2">
       <button
@@ -35,7 +32,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 
-import { hasFinishedVoting, hasNominated, stepChangeError } from "../../../../lib/awards";
+import { membersYetToFinish, PHASE_WORK, stepChangeError } from "../../../../lib/awards";
 import { hasElements, hasValue } from "../../../../lib/checks/checks.js";
 import { AwardsStep, ClubAwards } from "../../../../lib/types/awards";
 import { Member } from "../../../../lib/types/club";
@@ -51,19 +48,15 @@ const { clubAward, clubSlug, year, members } = defineProps<{
 
 const phase = computed(() => AWARDS_PHASES[clubAward.step]);
 
+const memberIds = computed(() => members.map((member) => member.id));
+
 const advanceBlocked = computed(() =>
-  phase.value.next ? stepChangeError(clubAward, phase.value.next.step) : undefined,
+  phase.value.next ? stepChangeError(clubAward, phase.value.next.step, memberIds.value) : undefined,
 );
 
-const done = computed(() => {
-  switch (clubAward.step) {
-    case AwardsStep.Nominations:
-      return members.filter((member) => hasNominated(clubAward.awards, member.id));
-    case AwardsStep.Ratings:
-      return members.filter((member) => hasFinishedVoting(clubAward.awards, member.id));
-    default:
-      return undefined;
-  }
+const waitingOn = computed(() => {
+  const outstanding = membersYetToFinish(clubAward, memberIds.value);
+  return members.filter((member) => outstanding.includes(member.id));
 });
 
 const progress = computed(() => {
@@ -71,22 +64,11 @@ const progress = computed(() => {
     const count = clubAward.awards.length;
     return `${count} ${count === 1 ? "category" : "categories"}`;
   }
-  if (!done.value) return undefined;
-  const verb = clubAward.step === AwardsStep.Nominations ? "nominated" : "finished voting";
-  return `${done.value.length} of ${members.length} members have ${verb}`;
+  const work = PHASE_WORK[clubAward.step];
+  if (!hasValue(work)) return undefined;
+  const finished = members.length - waitingOn.value.length;
+  return `${finished} of ${members.length} members have finished ${work}`;
 });
-
-const waitingOn = computed(() =>
-  done.value ? members.filter((member) => !done.value?.includes(member)) : [],
-);
-
-const warnings = computed(() =>
-  clubAward.step === AwardsStep.Nominations
-    ? clubAward.awards
-        .filter((award) => !hasElements(award.nominations))
-        .map((award) => `${award.title} has no nominations yet.`)
-    : [],
-);
 
 const listNames = (people: Member[]) => {
   const names = people.map((member) => member.name);

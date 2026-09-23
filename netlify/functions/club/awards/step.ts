@@ -3,6 +3,7 @@ import { z } from "zod";
 import { stepChangeError } from "../../../../lib/awards";
 import { AwardsStep } from "../../../../lib/types/awards";
 import AwardsRepository, { reject } from "../../repositories/AwardsRepository";
+import UserRepository from "../../repositories/UserRepository";
 import { secured } from "../../utils/auth";
 import { parseBody } from "../../utils/parseBody";
 import { badRequest, ok } from "../../utils/responses";
@@ -21,8 +22,11 @@ router.put("/", secured<ClubAwardRequest>, async ({ event, clubId, year }, res) 
 
   const { step } = body;
 
+  const members = await UserRepository.getMembersByClubId(clubId);
+  const memberIds = members.map((member) => member.id);
+
   const rejection = await AwardsRepository.updateByYear(clubId, year, (currentData) => {
-    const error = stepChangeError(currentData, step);
+    const error = stepChangeError(currentData, step, memberIds);
     return error === undefined ? { ...currentData, step } : reject(error);
   });
   if (rejection) return res(badRequest(rejection.rejected));
