@@ -43,7 +43,7 @@ export const AWARDS_PHASES: Record<AwardsStep, AwardsPhase> = {
   [AwardsStep.Nominations]: {
     label: "Nominations",
     routeName: "AwardsNominations",
-    description: `Everyone nominates up to ${NOMINATIONS_PER_AWARD} of the movies the club reviewed this year in each category. Your picks stay private until voting opens.`,
+    description: `Everyone nominates at least one (and up to ${NOMINATIONS_PER_AWARD}) of the movies the club reviewed this year in every category. Your picks stay private until voting opens, which happens once everyone is done.`,
     next: { step: AwardsStep.Ratings, label: "Start voting" },
     previous: { step: AwardsStep.CategorySelect, label: "Back to categories" },
   },
@@ -51,7 +51,7 @@ export const AWARDS_PHASES: Record<AwardsStep, AwardsPhase> = {
     label: "Voting",
     routeName: "AwardsRankings",
     description:
-      "Put each category's nominees in order, most deserving first, and save. The nominee with the best total rank across everyone's ballots wins.",
+      "Put each category's nominees in order, most deserving first, and save. Once everyone has voted, the ceremony can start; the nominee with the best total rank across everyone's ballots wins.",
     next: { step: AwardsStep.Presentation, label: "Start the ceremony" },
     previous: { step: AwardsStep.Nominations, label: "Back to nominations" },
   },
