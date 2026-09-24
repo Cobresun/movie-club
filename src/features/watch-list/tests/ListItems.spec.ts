@@ -44,55 +44,57 @@ describe("ListItems", () => {
     expect(await screen.findByText("Empty list")).toBeInTheDocument();
   });
 
-  it("offers to set an item as next up when nothing is", async () => {
+  it("keeps list actions off the card and in the details panel", async () => {
     server.use(nextWorkHandler());
 
     render(ListItems, { props: defaultProps });
 
-    expect(
-      await screen.findByRole("button", { name: `Set ${MARIO} as next up` }),
-    ).toBeInTheDocument();
+    await screen.findByText(MARIO);
+    expect(screen.getAllByRole("button")).toHaveLength(1);
   });
 
-  it("offers to clear next up on the item that currently holds it", async () => {
+  it("labels the item that is next up", async () => {
     server.use(
       http.get("/api/club/:id/nextWork", () => HttpResponse.json({ workId: watchlist[0].id })),
     );
 
     render(ListItems, { props: defaultProps });
 
-    expect(
-      await screen.findByRole("button", { name: `Clear ${MARIO} as next up` }),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: `Set ${MARIO} as next up` }),
-    ).not.toBeInTheDocument();
+    expect(await screen.findByText("Up next")).toBeInTheDocument();
   });
 
-  it("offers to move an item to reviews when the club has a reviews list", async () => {
+  it("does not label an item as next up when nothing is", async () => {
     server.use(nextWorkHandler());
 
-    render(ListItems, {
-      props: { ...defaultProps, reviewsListId: "reviews-list-id" },
-    });
-
-    expect(
-      await screen.findByRole("button", { name: `Move ${MARIO} to reviews` }),
-    ).toBeInTheDocument();
-  });
-
-  it("does not offer to move to reviews from the reviews list itself", async () => {
-    server.use(nextWorkHandler());
-
-    render(ListItems, {
-      props: { ...defaultProps, listId: "1", reviewsListId: "1" },
-    });
+    render(ListItems, { props: defaultProps });
 
     await screen.findByText(MARIO);
+    expect(screen.queryByText("Up next")).not.toBeInTheDocument();
+  });
 
-    expect(
-      screen.queryByRole("button", { name: `Move ${MARIO} to reviews` }),
-    ).not.toBeInTheDocument();
+  it("offers to mark the selected item as watched when the club has a reviews list", async () => {
+    server.use(nextWorkHandler());
+
+    render(ListItems, {
+      props: {
+        ...defaultProps,
+        reviewsListId: "reviews-list-id",
+        selectedItemId: watchlist[0].id,
+      },
+    });
+
+    expect(await screen.findByRole("button", { name: "Mark as watched" })).toBeInTheDocument();
+  });
+
+  it("does not offer to mark as watched from the reviews list itself", async () => {
+    server.use(nextWorkHandler());
+
+    render(ListItems, {
+      props: { ...defaultProps, reviewsListId: "1", selectedItemId: watchlist[0].id },
+    });
+
+    await screen.findByRole("button", { name: "Up next" });
+    expect(screen.queryByRole("button", { name: "Mark as watched" })).not.toBeInTheDocument();
   });
 
   it("selects the item whose poster is clicked", async () => {

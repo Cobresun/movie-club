@@ -50,8 +50,8 @@ describe("WatchListView", () => {
 
     // The panel carries the per-item actions and the added-on line that only
     // it offers; the title is already on the card behind it.
-    expect(await screen.findByRole("button", { name: "Up Next" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Delete" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Up next" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Remove from list" })).toBeInTheDocument();
     expect(screen.getByText(/^Added /)).toBeInTheDocument();
   });
 });
