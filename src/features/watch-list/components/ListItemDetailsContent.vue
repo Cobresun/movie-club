@@ -2,6 +2,9 @@
   <div class="flex-grow text-left">
     <delete-confirmation-modal
       :show="showDeleteConfirmation"
+      title="Remove from list"
+      :message="`Remove ${movie.title} from this list?`"
+      confirm-label="Remove"
       @confirm="confirmDelete"
       @cancel="showDeleteConfirmation = false"
     />
@@ -25,6 +28,50 @@
         <template v-else>Added {{ formatDate(movie.createdDate) }}</template>
       </template>
     </WorkPosterHero>
+
+    <div class="-mt-2 flex flex-wrap gap-2">
+      <Listbox
+        v-if="otherLists.length > 0"
+        v-model="moveToValue"
+        @update:model-value="onMoveSelect"
+      >
+        <div class="relative">
+          <ListboxButton
+            class="flex items-center gap-1.5 rounded-full bg-lowBackground px-3 py-1.5 text-sm text-gray-200 transition hover:brightness-110"
+          >
+            <mdicon name="swap-horizontal" size="16" />
+            <span>Move to list</span>
+            <mdicon name="chevron-down" size="16" />
+          </ListboxButton>
+          <ListboxOptions
+            class="absolute left-0 top-full z-20 mt-1 max-h-64 w-56 overflow-y-auto rounded-lg border border-gray-700 bg-background py-1 shadow-lg focus:outline-none"
+          >
+            <ListboxOption
+              v-for="list in otherLists"
+              :key="list.id"
+              v-slot="{ active }"
+              :value="list.id"
+              as="template"
+            >
+              <li
+                class="cursor-pointer truncate px-4 py-2 text-sm"
+                :class="{ 'bg-lowBackground': active }"
+              >
+                {{ list.title }}
+              </li>
+            </ListboxOption>
+          </ListboxOptions>
+        </div>
+      </Listbox>
+      <button
+        type="button"
+        class="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm text-red-400 transition hover:bg-red-500/10"
+        @click="showDeleteConfirmation = true"
+      >
+        <mdicon name="delete-outline" size="16" />
+        <span>Remove from list</span>
+      </button>
+    </div>
 
     <!-- Synopsis -->
     <section v-if="hasValue(overview)" class="mt-5">
@@ -55,73 +102,50 @@
 
     <CommentThread :work-id="movie.id" :club-slug="clubSlug" />
 
-    <!-- Sticky action footer -->
     <div
-      class="sticky bottom-0 -mx-4 mt-6 space-y-2 border-t border-gray-700/60 bg-background px-4 pb-2 pt-3"
+      class="sticky bottom-0 -mx-4 mt-6 border-t border-gray-700/60 bg-background px-4 pb-2 pt-3"
     >
-      <div class="flex w-full flex-wrap gap-3">
+      <div class="flex items-center gap-2">
         <button
           v-if="canReview"
-          class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary/20 py-3 text-primary"
+          type="button"
+          class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary py-3 font-bold tracking-wide text-text transition hover:brightness-110 active:scale-[0.98]"
+          :aria-describedby="reviewHintId"
           @click="emit('review')"
         >
-          <mdicon name="check" />
-          <span>Reviewed</span>
+          <mdicon name="check" size="20" />
+          <span>Mark as {{ finishedVerb }}</span>
         </button>
         <button
-          class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary/20 py-3 text-primary"
+          type="button"
+          class="flex items-center justify-center gap-2 rounded-lg py-3 font-bold tracking-wide transition hover:brightness-110 active:scale-[0.98]"
+          :class="[
+            canReview ? 'shrink-0 px-4' : 'flex-1',
+            isNextWork ? 'bg-highlightBackground text-slate-900' : 'bg-lowBackground text-gray-200',
+          ]"
+          :aria-pressed="isNextWork"
           @click="toggleNextWork"
         >
-          <mdicon :name="isNextWork ? 'arrow-collapse-down' : 'arrow-collapse-up'" />
-          <span>{{ isNextWork ? "Unpin" : "Up Next" }}</span>
-        </button>
-        <button
-          class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-red-500/20 py-3 text-red-500"
-          @click="showDeleteConfirmation = true"
-        >
-          <mdicon name="delete" />
-          <span>Delete</span>
+          <mdicon :name="isNextWork ? 'pin' : 'pin-outline'" size="20" />
+          <span>Up next</span>
         </button>
       </div>
-
-      <Listbox
-        v-if="otherLists.length > 0"
-        v-model="moveToValue"
-        @update:model-value="onMoveSelect"
-      >
-        <div class="relative">
-          <ListboxButton
-            class="flex w-full items-center justify-between rounded-lg bg-lowBackground px-4 py-2.5 text-sm text-gray-300"
-          >
-            <span>Move to…</span>
-            <mdicon name="chevron-down" />
-          </ListboxButton>
-          <ListboxOptions
-            class="absolute bottom-full left-0 z-10 mb-1 w-full rounded-lg border border-gray-700 bg-background py-1 shadow-lg focus:outline-none"
-          >
-            <ListboxOption
-              v-for="list in otherLists"
-              :key="list.id"
-              :value="list.id"
-              class="cursor-pointer px-4 py-2 text-sm hover:bg-lowBackground"
-            >
-              {{ list.title }}
-            </ListboxOption>
-          </ListboxOptions>
-        </div>
-      </Listbox>
+      <p v-if="canReview" :id="reviewHintId" class="mt-2 text-center text-xs text-gray-400">
+        Moves it to Reviews so the club can score it.
+      </p>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { Listbox, ListboxButton, ListboxOption, ListboxOptions } from "@headlessui/vue";
-import { computed, nextTick, ref } from "vue";
+import { computed, nextTick, ref, useId } from "vue";
 
 import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import { Member } from "../../../../lib/types/club";
+import { ClubType } from "../../../../lib/types/generated/db";
 import { DetailedWorkListItem } from "../../../../lib/types/lists";
-import { workMetaLine, workOverview, workSubtitle } from "@/common/clubType";
+import { clubTypeConfig, workMetaLine, workOverview, workSubtitle } from "@/common/clubType";
 import BookMetadataGrid from "@/common/components/BookMetadataGrid.vue";
 import CastList from "@/common/components/CastList.vue";
 import CommentThread from "@/common/components/CommentThread.vue";
@@ -133,6 +157,7 @@ import WatchProviders from "@/common/components/WatchProviders.vue";
 import WorkDescription from "@/common/components/WorkDescription.vue";
 import WorkPosterHero from "@/common/components/WorkPosterHero.vue";
 import { asBook, asMovie, formatDate, workPosterUrl } from "@/common/workDisplay";
+import { useClub } from "@/service/useClub";
 import { useWorkDetails } from "@/service/useList";
 
 const props = defineProps<{
@@ -153,6 +178,12 @@ const emit = defineEmits<{
   (e: "delete"): void;
   (e: "move-to-list", listId: string): void;
 }>();
+
+const { data: club } = useClub(props.clubSlug);
+const finishedVerb = computed(
+  () => clubTypeConfig(club.value?.type ?? ClubType.movie).finishedVerb,
+);
+const reviewHintId = useId();
 
 const showDeleteConfirmation = ref(false);
 

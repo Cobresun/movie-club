@@ -126,6 +126,8 @@ export interface ClubTypeConfig {
   readonly label: string;
   /** Singular noun for one item of the media ("movie", "book"). */
   readonly noun: string;
+  /** Past-tense verb for having finished one work ("watched", "read"). */
+  readonly finishedVerb: string;
   /** Empty-state hint shown in the add/search prompt. */
   readonly searchHint: string;
   /**
@@ -497,6 +499,7 @@ export const CLUB_TYPE_CONFIG: Record<ClubType, ClubTypeConfig> = {
     icon: "movie-open-outline",
     label: "Movie club",
     noun: "movie",
+    finishedVerb: "watched",
     searchHint: "Search for a movie to add.",
     searchableFieldsHint: "title, genre, company, director, actor, or release year",
     filterOptions: [
@@ -554,6 +557,7 @@ export const CLUB_TYPE_CONFIG: Record<ClubType, ClubTypeConfig> = {
     icon: "book-open-page-variant-outline",
     label: "Book club",
     noun: "book",
+    finishedVerb: "read",
     searchHint: "Search for a book to add.",
     searchableFieldsHint: "title, author, subject, or published year",
     filterOptions: [
