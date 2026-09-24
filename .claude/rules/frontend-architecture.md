@@ -45,6 +45,7 @@ The test suite is how this gets enforced — a spec that cannot find an element 
 
 - Page transitions are one crossfade for every route change, driven by the View Transitions API from `router/viewTransitions.ts` — not by a Vue `<transition>` around a `<router-view>`. Because it snapshots the document, it covers nested router-views too. Don't add per-route or directional (push/pop) animations: `transform` on a page wrapper re-anchors every `position: fixed` descendant (the mobile section bar, un-teleported overlays) to the moving page.
 - Overlays (`VModal`, `VBottomSheet`, `VSideDrawer`) keep their own Vue `<Transition>`s; they are not page transitions.
+- Lazy club section views are fetched in the background once the first club page is up (`router/preloadClubSections.ts`, driven by `CLUB_SECTIONS`). vue-router downloads a lazy view before committing, so without it the first tap on a tab visibly does nothing; a new section is covered as soon as it is in `CLUB_SECTIONS`.
 - `checkClubAccess` guards club-scoped routes on membership. `noAuth: true` opts a route out of auth; `authRequired: true` redirects to Clubs when logged out.
 
 ## Service layer

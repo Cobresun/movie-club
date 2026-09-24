@@ -18,6 +18,7 @@ import ClubView from "../features/clubs/views/ClubView.vue";
 import HomeView from "../features/clubs/views/HomeView.vue";
 import ReviewView from "../features/reviews/views/ReviewView.vue";
 import ClubRouterView from "./ClubRouterView.vue";
+import { installClubSectionPreload } from "./preloadClubSections";
 import { installViewTransitions } from "./viewTransitions";
 import { useAuthStore } from "@/stores/auth";
 
@@ -392,6 +393,7 @@ const router = createRouter({
 });
 
 installViewTransitions(router);
+installClubSectionPreload(router);
 
 router.afterEach((to) => {
   rememberClubSection(to);
