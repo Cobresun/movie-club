@@ -37,9 +37,10 @@ const allItems = (items: unknown[] = listItems) =>
  * A reviews list that keeps what the prompt sends it, whether the work is
  * moved off another list or added straight from a search. Queuing a review is
  * only observable on the reviews page, so the round trip is asserted there
- * rather than on the request the prompt made.
+ * rather than on the request the prompt made. `answered` holds the writes'
+ * responses back until it resolves.
  */
-const reviewsApi = (initial: unknown[] = []) => {
+const reviewsApi = (initial: unknown[] = [], answered: Promise<void> = Promise.resolve()) => {
   let reviews = [...initial];
   const queue = (work: Record<string, unknown>) => {
     reviews = [...reviews, { ...work, scores: {} }];
@@ -47,12 +48,14 @@ const reviewsApi = (initial: unknown[] = []) => {
 
   return [
     http.get("/api/club/:id/list/reviews", () => HttpResponse.json(reviews)),
-    http.post("/api/club/:id/list/:listId/items/:workId/move", ({ params }) => {
+    http.post("/api/club/:id/list/:listId/items/:workId/move", async ({ params }) => {
+      await answered;
       const moving = listItems.find((item) => item.id === params.workId);
       if (moving) queue(moving);
       return new HttpResponse(null, { status: 200 });
     }),
     http.post("/api/club/:id/list/:listId/items", async ({ request }) => {
+      await answered;
       queue(listInsertDtoSchema.parse(await request.json()));
       return new HttpResponse(null, { status: 200 });
     }),
@@ -153,5 +156,34 @@ describe("queuing a review from the prompt", () => {
     await user.click(await screen.findByText("Fight Club"));
 
     expect(await screen.findByRole("heading", { name: "Fight Club" })).toBeInTheDocument();
+  });
+
+  it("shows the work on the reviews page, pending, before the server answers", async () => {
+    let release = () => {};
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    server.use(allItems(), ...reviewsApi([], gate));
+    const { user } = render(ReviewView, { props: { clubSlug: "test-club" } });
+
+    await user.click(await screen.findByRole("button", { name: "Add review" }));
+    await user.click(await screen.findByText("From your lists"));
+    await user.click(screen.getByText("The Super Mario Bros. Movie"));
+
+    expect(
+      await screen.findByRole("heading", { name: "The Super Mario Bros. Movie" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("From your lists")).not.toBeInTheDocument();
+    expect(screen.getByRole("status", { name: "Loading" })).toBeInTheDocument();
+    // Nothing to open details for until the server has given it a real id.
+    expect(
+      screen.queryByRole("button", { name: "The Super Mario Bros. Movie" }),
+    ).not.toBeInTheDocument();
+
+    release();
+
+    expect(
+      await screen.findByRole("button", { name: "The Super Mario Bros. Movie" }),
+    ).toBeInTheDocument();
   });
 });

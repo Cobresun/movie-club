@@ -49,6 +49,27 @@ describe("YearView", () => {
     });
   });
 
+  it("offers the step after next before the server confirms the advance", async () => {
+    server.use(
+      http.get("/api/club/:id/awards/:year", () =>
+        HttpResponse.json(awardsAtStep(AwardsStep.CategorySelect)),
+      ),
+      http.put("/api/club/:id/awards/:year/step", async () => {
+        await new Promise(() => {
+          /* never resolves */
+        });
+        return new HttpResponse(null, { status: 200 });
+      }),
+    );
+
+    const { user } = render(YearView, { props });
+
+    await user.click(await screen.findByRole("button", { name: /Nominations/ }));
+
+    // From Nominations, the next step is Rankings.
+    expect(await screen.findByRole("button", { name: /Rankings/ })).toBeInTheDocument();
+  });
+
   it("shows no next-step button on the final (Presentation) step", async () => {
     server.use(
       http.get("/api/club/:id/awards/:year", () =>

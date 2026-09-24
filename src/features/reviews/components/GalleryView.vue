@@ -83,7 +83,8 @@
           :title="review.title"
           :poster-url="review.imageUrl ?? ''"
           :highlighted="selectedMovieId === review.id"
-          selectable
+          :loading="isPendingReview(review.id)"
+          :selectable="!isPendingReview(review.id)"
           class="transition-all duration-fast ease-standard md:cursor-pointer"
           @select="openMovieDetails(review)"
         >
@@ -147,6 +148,7 @@ import WorkDetailsDrawer from "./WorkDetailsDrawer.vue";
 import AverageImg from "@/assets/images/average.svg";
 import VAvatar from "@/common/components/VAvatar.vue";
 import WorkPosterCard from "@/common/components/WorkPosterCard.vue";
+import { OPTIMISTIC_WORK_ID } from "@/service/useList";
 
 const props = defineProps<{
   reviews: DetailedReviewListItem[];
@@ -195,6 +197,10 @@ const selectedSort = computed<string | undefined>({
 
 // Cards carry the compact numeric date; the details drawer spells it out.
 const formatCardDate = (createdDate: string) => DateTime.fromISO(createdDate).toLocaleString();
+
+// A work still on its way onto the reviews list has no real id to score or
+// open details for until the refetch replaces it.
+const isPendingReview = (workId: string) => workId === OPTIMISTIC_WORK_ID;
 
 const isRevealed = (movieId: string) =>
   props.hasRated(movieId) || props.revealedMovieIds.has(movieId);

@@ -140,7 +140,7 @@
 
 <script setup lang="ts">
 import { DateTime } from "luxon";
-import { computed, nextTick, reactive, ref } from "vue";
+import { computed, reactive, ref, watch } from "vue";
 
 import { hasElements, hasValue } from "../../../lib/checks/checks.js";
 import { WorkCommentDto } from "../../../lib/types/lists";
@@ -188,21 +188,24 @@ const isSpoilerHidden = (comment: WorkCommentDto) =>
 const showDeleteConfirmation = ref(false);
 const pendingDeleteId = ref<string | null>(null);
 
+// Sending scrolls the thread to the new comment as soon as its optimistic copy
+// renders, rather than once the round trip and refetch have come back.
+const scrollToLatestPending = ref(false);
+watch(
+  () => comments.value?.length,
+  () => {
+    if (!scrollToLatestPending.value || commentsContainer.value === null) return;
+    scrollToLatestPending.value = false;
+    commentsContainer.value.scrollTop = commentsContainer.value.scrollHeight;
+  },
+  { flush: "post" },
+);
+
 const sendComment = () => {
   const content = newComment.value.trim();
   if (!hasValue(content)) return;
-  addComment(
-    { content, spoiler: newSpoiler.value },
-    {
-      onSettled: () => {
-        nextTick(() => {
-          if (commentsContainer.value !== null) {
-            commentsContainer.value.scrollTop = commentsContainer.value.scrollHeight;
-          }
-        }).catch(console.error);
-      },
-    },
-  );
+  scrollToLatestPending.value = true;
+  addComment({ content, spoiler: newSpoiler.value });
   newComment.value = "";
   newSpoiler.value = false;
 };

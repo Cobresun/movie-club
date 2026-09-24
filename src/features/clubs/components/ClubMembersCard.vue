@@ -76,12 +76,7 @@
         <v-btn class="flex-1 bg-gray-600 hover:bg-gray-700" @click="memberToRemove = undefined">
           Cancel
         </v-btn>
-        <v-btn
-          variant="danger"
-          class="flex-1 bg-red-500 hover:bg-red-600"
-          :loading="isRemoving"
-          @click="confirmRemove()"
-        >
+        <v-btn variant="danger" class="flex-1 bg-red-500 hover:bg-red-600" @click="confirmRemove()">
           Remove
         </v-btn>
       </div>
@@ -107,7 +102,7 @@ const auth = useAuthStore();
 const toast = useToast();
 
 const { data: members, isLoading } = useMembers(clubSlug);
-const { mutate: removeMember, isPending: isRemoving } = useRemoveMember(clubSlug);
+const { mutate: removeMember } = useRemoveMember(clubSlug);
 const { inviteLinkInput, inviteLink, copyIcon, copyInviteLink } = useCopyInviteLink(clubSlug);
 
 const currentUserEmail = computed(() => auth.user?.email);
@@ -117,11 +112,9 @@ const confirmRemove = () => {
   if (!isDefined(memberToRemove.value)) return;
 
   removeMember(memberToRemove.value.id, {
-    onSuccess: () => {
-      toast.success("Member removed successfully");
-      memberToRemove.value = undefined;
-    },
+    onSuccess: () => toast.success("Member removed successfully"),
     onError: () => toast.error("Failed to remove member"),
   });
+  memberToRemove.value = undefined;
 };
 </script>

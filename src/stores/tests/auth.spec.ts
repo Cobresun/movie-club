@@ -1,5 +1,5 @@
 import { VueQueryPlugin } from "@tanstack/vue-query";
-import { render } from "@testing-library/vue";
+import { render, waitFor } from "@testing-library/vue";
 import { delay, http, HttpResponse } from "msw";
 import { createPinia } from "pinia";
 import { nextTick } from "vue";
@@ -189,5 +189,60 @@ describe("navigateAfterAuth", () => {
     await store.navigateAfterAuth();
 
     expect(store.isNavigatingAfterAuth).toBe(false);
+  });
+});
+
+describe("a cold load whose last session was signed in", () => {
+  it("fetches the member's clubs while the session check is still out", async () => {
+    // The session atom is shared across tests; start this one from a
+    // signed-out atom, so the check below is a first one rather than a refetch.
+    await mountWithResolvedSession(null);
+    localStorage.setItem("wasSignedIn", "true");
+    server.use(
+      http.get("/api/member/clubs", () =>
+        HttpResponse.json([{ clubId: "1", clubName: "Film", slug: "film", type: "movie" }]),
+      ),
+    );
+
+    const store = await mountWithPendingSession();
+
+    await waitFor(() => {
+      expect(store.userClubs?.map((club) => club.slug)).toEqual(["film"]);
+    });
+    expect(store.isInitialLoading).toBe(true);
+
+    // The session atom outlives the test; settle it for the next one.
+    answerSessionCheck(signedInSession);
+    await store.refreshSession();
+  });
+
+  it("leaves the clubs loading, not failed, once the session turns out to have expired", async () => {
+    localStorage.setItem("wasSignedIn", "true");
+    server.use(http.get("/api/member/clubs", () => new HttpResponse(null, { status: 401 })));
+
+    const store = await mountWithResolvedSession(null);
+
+    await waitFor(() => {
+      expect(store.isLoadingUserClubs).toBe(true);
+    });
+    expect(store.userClubs).toBeUndefined();
+  });
+});
+
+describe("waitForAuthReady", () => {
+  it("does not hold a signed-in member up while the session refetches", async () => {
+    server.use(http.get("/api/member/clubs", () => HttpResponse.json([])));
+    const store = await mountWithResolvedSession(signedInSession);
+    leaveSessionCheckPending();
+
+    void store.session.refetch();
+    await nextTick();
+
+    await expect(store.waitForAuthReady()).resolves.toBeUndefined();
+    expect(store.isLoggedIn).toBe(true);
+
+    // The session atom outlives the test; settle it for the next one.
+    answerSessionCheck(signedInSession);
+    await store.refreshSession();
   });
 });
