@@ -61,51 +61,26 @@
               :selectable="!isPending(item.id)"
               @select="emit('select', item.id)"
             >
-              <div class="mt-2 flex flex-col gap-2">
-                <div
-                  v-if="isDefined(adderFor(item))"
-                  class="flex items-center justify-center gap-1.5 text-xs text-slate-400"
-                  :title="`Added by ${adderFor(item)?.name}`"
-                >
-                  <VAvatar
-                    :src="adderFor(item)?.image"
-                    :name="adderFor(item)?.name ?? ''"
-                    :size="18"
-                  />
-                  <span class="truncate">{{ adderFor(item)?.name }}</span>
-                </div>
-                <div class="grid grid-cols-2 gap-2">
-                  <v-btn
-                    v-if="canReview && listId !== reviewsListId"
-                    class="flex justify-center"
-                    :disabled="isPending(item.id)"
-                    :title="'Move to reviews'"
-                    :aria-label="`Move ${item.title} to reviews`"
-                    @click="onReview(item.id)"
-                  >
-                    <mdicon name="check" />
-                  </v-btn>
-                  <v-btn
-                    class="flex justify-center"
-                    :class="{
-                      'col-span-2': !(canReview && listId !== reviewsListId),
-                    }"
-                    :disabled="isPending(item.id)"
-                    :title="item.id === nextWorkId ? 'Clear next up' : 'Set as next up'"
-                    :aria-label="
-                      item.id === nextWorkId
-                        ? `Clear ${item.title} as next up`
-                        : `Set ${item.title} as next up`
-                    "
-                    @click="item.id === nextWorkId ? clearNextWork() : onSetNextWatch(item.id)"
-                  >
-                    <mdicon
-                      :name="item.id === nextWorkId ? 'arrow-collapse-down' : 'arrow-collapse-up'"
-                    />
-                  </v-btn>
-                </div>
+              <div
+                v-if="isDefined(adderFor(item))"
+                class="flex items-center justify-center gap-1.5 text-xs text-slate-400"
+                :title="`Added by ${adderFor(item)?.name}`"
+              >
+                <VAvatar
+                  :src="adderFor(item)?.image"
+                  :name="adderFor(item)?.name ?? ''"
+                  :size="18"
+                />
+                <span class="truncate">{{ adderFor(item)?.name }}</span>
               </div>
             </WorkPosterCard>
+            <span
+              v-if="item.id === nextWorkId"
+              class="pointer-events-none absolute left-2 top-2 z-10 flex items-center gap-1 rounded-full bg-highlightBackground px-2 py-0.5 text-xs font-bold text-slate-900 shadow"
+            >
+              <mdicon name="pin" :size="14" />
+              Up next
+            </span>
           </div>
         </VueDraggableNext>
       </div>
