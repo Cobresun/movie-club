@@ -8,7 +8,7 @@
     <router-link
       v-for="section in sections"
       :key="section.name"
-      :to="{ name: section.name, params: { clubSlug } }"
+      :to="sectionLocation(section)"
       class="border-b-2 px-3.5 pb-2.5 pt-2 text-[15px] font-medium transition-colors duration-fast ease-standard"
       :class="
         section.name === activeSection
@@ -34,10 +34,13 @@
     <router-link
       v-for="section in sections"
       :key="section.name"
-      :to="{ name: section.name, params: { clubSlug } }"
+      :to="sectionLocation(section)"
       class="flex flex-grow flex-col items-center justify-center gap-[3px] transition-colors duration-fast ease-standard"
       :class="section.name === activeSection ? 'text-highlight' : 'text-white/55'"
       :aria-current="section.name === activeSection ? 'page' : undefined"
+      @touchstart="onTouchStart"
+      @touchend="onTouchEnd($event, section)"
+      @touchcancel="touchStart = undefined"
     >
       <mdicon :name="section.icon" :size="24" />
       <span class="text-[11px] font-medium">{{ section.shortLabel }}</span>
@@ -46,17 +49,24 @@
 </template>
 
 <script setup lang="ts">
-import { computed, watch } from "vue";
-import { useRoute } from "vue-router";
+import { computed, ref, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
 
-import { CLUB_SECTIONS, isSectionVisible, sectionNameForRoute } from "../clubSections";
+import {
+  CLUB_SECTIONS,
+  type ClubSection,
+  isSectionVisible,
+  sectionNameForRoute,
+} from "../clubSections";
 import { useHideOnScroll } from "../composables/useHideOnScroll";
 import { useIsDesktop } from "../composables/useIsDesktop";
+import { isDefined } from "@/../lib/checks/checks";
 import { useClub, useClubSettings } from "@/service/useClub";
 
 const { clubSlug } = defineProps<{ clubSlug: string }>();
 
 const route = useRoute();
+const router = useRouter();
 const isDesktop = useIsDesktop();
 const { isHidden, reveal } = useHideOnScroll();
 
@@ -70,6 +80,33 @@ const sections = computed(() =>
 );
 
 const activeSection = computed(() => sectionNameForRoute(route));
+
+const sectionLocation = (section: ClubSection) => ({ name: section.name, params: { clubSlug } });
+
+// A tap on a page that is still momentum-scrolling only stops the scroll; the
+// browser never turns it into a click. The bar slides back in on an upward
+// flick, so that is exactly when it gets tapped. Navigate on the touch itself,
+// and cancel the click it would otherwise produce so it can't navigate twice.
+const TAP_SLOP_PX = 10;
+const touchStart = ref<{ x: number; y: number }>();
+
+const onTouchStart = (event: TouchEvent) => {
+  const touch = event.touches[0];
+  touchStart.value =
+    event.touches.length === 1 ? { x: touch.clientX, y: touch.clientY } : undefined;
+};
+
+const onTouchEnd = (event: TouchEvent, section: ClubSection) => {
+  const start = touchStart.value;
+  const touch = event.changedTouches[0];
+  touchStart.value = undefined;
+  if (!isDefined(start)) return;
+
+  if (Math.hypot(touch.clientX - start.x, touch.clientY - start.y) > TAP_SLOP_PX) return;
+
+  event.preventDefault();
+  router.push(sectionLocation(section)).catch(console.error);
+};
 
 // A new section starts at the top of its own scroll position; make sure the bar
 // is there when it does.

@@ -1,5 +1,6 @@
-import { screen } from "@testing-library/vue";
+import { fireEvent, screen } from "@testing-library/vue";
 import { http, HttpResponse } from "msw";
+import { useRouter } from "vue-router";
 
 import ClubSectionNav from "../components/ClubSectionNav.vue";
 import { ClubType } from "@/../lib/types/generated/db";
@@ -92,6 +93,28 @@ describe("ClubSectionNav", () => {
       "page",
     );
     expect(screen.getByRole("link", { name: "Reviews" })).not.toHaveAttribute("aria-current");
+  });
+
+  it("navigates on a tap even when the browser never sends the click", async () => {
+    render(ClubSectionNav, { props: { clubSlug: "test-club" } });
+    const stats = await screen.findByRole("link", { name: "Stats" });
+
+    await fireEvent.touchStart(stats, { touches: [{ clientX: 50, clientY: 20 }] });
+    await fireEvent.touchEnd(stats, { changedTouches: [{ clientX: 52, clientY: 21 }] });
+
+    expect(vi.mocked(useRouter()).push.mock.calls).toEqual([
+      [{ name: "Statistics", params: { clubSlug: "test-club" } }],
+    ]);
+  });
+
+  it("leaves a swipe that starts on the bar to the browser", async () => {
+    render(ClubSectionNav, { props: { clubSlug: "test-club" } });
+    const stats = await screen.findByRole("link", { name: "Stats" });
+
+    await fireEvent.touchStart(stats, { touches: [{ clientX: 50, clientY: 20 }] });
+    await fireEvent.touchEnd(stats, { changedTouches: [{ clientX: 50, clientY: -80 }] });
+
+    expect(vi.mocked(useRouter()).push.mock.calls).toEqual([]);
   });
 
   it("marks the parent section current on a nested route", async () => {
