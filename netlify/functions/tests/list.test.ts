@@ -639,6 +639,31 @@ describe("POST /api/club/:clubSlug/list/:listId/items/:workId/move", () => {
     expect(Date.parse(reviewed.body[0].createdDate)).toBeGreaterThan(longAgo.getTime());
   });
 
+  it("returns 400 and leaves the work on its list when it has already been reviewed", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub(alice);
+    const reviewed = await addWork(club, alice, {
+      externalId: "550",
+      listId: club.reviewsListId,
+      addedDate: new Date("2015-01-01T00:00:00.000Z"),
+    });
+    await addWork(club, alice, { externalId: "550" });
+
+    const res = await api.post<{ error: string }>(
+      `/api/club/${club.slug}/list/${club.listId}/items/${reviewed.id}/move`,
+      { body: { destinationListId: club.reviewsListId }, as: alice },
+    );
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.error).toBe("Item is already in list");
+    expect((await itemsOf(club.slug, club.listId)).body.map((item) => item.id)).toEqual([
+      reviewed.id,
+    ]);
+    expect((await itemsOf(club.slug, club.reviewsListId)).body[0].createdDate).toBe(
+      "2015-01-01T00:00:00.000Z",
+    );
+  });
+
   it("returns 400 when the destination belongs to another club", async () => {
     const alice = await signIn("alice");
     const club = await createClub(alice);

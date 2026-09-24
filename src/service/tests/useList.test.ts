@@ -418,7 +418,11 @@ describe("useQueueReview", () => {
       expect(titles(result.reviews)).toEqual([]);
     });
 
-    result.queue.mutate({ workId: "work-5", sourceListId: "list-src", reviewsListId: "rev-list" });
+    result.queue.queueReview({
+      workId: "work-5",
+      sourceListId: "list-src",
+      reviewsListId: "rev-list",
+    });
 
     await vi.waitFor(() => {
       expect(titles(result.source)).toEqual([]);
@@ -432,6 +436,35 @@ describe("useQueueReview", () => {
     release();
     await reread;
     expect(titles(result.reviews)).toEqual(["Solaris"]);
+  });
+
+  it("refuses a work the reviews list already holds, leaving it on its list", async () => {
+    server.use(
+      ...listsApi([
+        list("list-src", "Source", [item("work-5", "Solaris")]),
+        list("rev-list", "Reviews", [item("work-5", "Solaris")]),
+      ]),
+    );
+
+    const { result } = withSetup(() => ({
+      source: useList("test-club", "list-src"),
+      reviews: useReviewsList("test-club"),
+      queue: useQueueReview("test-club"),
+    }));
+
+    await vi.waitFor(() => {
+      expect(titles(result.source)).toEqual(["Solaris"]);
+      expect(titles(result.reviews)).toEqual(["Solaris"]);
+    });
+
+    const queued = result.queue.queueReview({
+      workId: "work-5",
+      sourceListId: "list-src",
+      reviewsListId: "rev-list",
+    });
+
+    expect(queued).toBe(false);
+    expect(titles(result.source)).toEqual(["Solaris"]);
   });
 });
 

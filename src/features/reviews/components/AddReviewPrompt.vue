@@ -51,23 +51,23 @@ const combinedListSearchIndex = computed<WorkSearchResult[]>(
     })) ?? [],
 );
 
-const { mutate: queueReview } = useQueueReview(clubId);
-const { mutateAsync: addFromSearch, isLoading: addLoading } = useAddToReviewsList(clubId);
+const { queueReview } = useQueueReview(clubId);
+const { mutate: addFromSearch, isLoading: addLoading } = useAddToReviewsList(clubId);
 
 const selectFromDefault = (work: WorkSearchResult) => {
   const sourceItem = listItems.value?.find((item) => item.externalId === work.externalId);
   if (!sourceItem || !hasValue(reviewsListId.value)) return;
-  queueReview({
+  const queued = queueReview({
     workId: sourceItem.id,
     sourceListId: sourceItem.sourceListId,
     reviewsListId: reviewsListId.value,
   });
-  emit("close");
+  if (queued) emit("close");
 };
 
-const selectFromSearch = async (work: WorkSearchResult) => {
+const selectFromSearch = (work: WorkSearchResult) => {
   if (!hasValue(reviewsListId.value)) return;
-  await addFromSearch(
+  addFromSearch(
     {
       insertDto: {
         type: workTypeForClub(clubType.value),

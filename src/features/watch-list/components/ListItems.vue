@@ -210,7 +210,7 @@ watch(
 
 const { mutate: deleteItem } = useDeleteListItem(props.clubSlug, props.listId);
 const { mutate: moveItem } = useMoveListItem(props.clubSlug);
-const { mutate: queueReview } = useQueueReview(props.clubSlug);
+const { queueReview } = useQueueReview(props.clubSlug);
 const router = useRouter();
 
 const onSetNextWatch = (workId: string) => {
@@ -274,7 +274,9 @@ const onMoveToList = ({ item, listId }: { item: DetailedWorkListItem; listId: st
 
 const onReview = (workId: string) => {
   if (props.reviewsListId === null || isPending(workId)) return;
-  queueReview({ workId, sourceListId: props.listId, reviewsListId: props.reviewsListId });
+  if (!queueReview({ workId, sourceListId: props.listId, reviewsListId: props.reviewsListId })) {
+    return;
+  }
   router.push({ name: "Reviews" }).catch(console.error);
 };
 </script>

@@ -204,8 +204,9 @@ class ListRepository {
   /**
    * Move a work from one list to another atomically. Used by the "move to..."
    * UI and by the review flow (which moves from any source list into the
-   * `reviews` system list). The destination insert is a no-op if the work is
-   * already on the target list, so a movie can safely be on multiple lists.
+   * `reviews` system list). Between ordinary lists the destination insert is a
+   * no-op if the work is already on the target list, so a movie can safely be
+   * on multiple lists and the move just takes it off the source.
    *
    * The original "added by" user and "time added" are carried forward to the
    * destination so attribution survives a move rather than resetting to the
@@ -218,10 +219,18 @@ class ListRepository {
    *
    * The destination lookup doubles as the club-ownership check (the caller's
    * club id must match), so callers don't need a separate validation query.
-   * Returns false — without moving anything — when the destination list does
-   * not exist in this club.
+   *
+   * Nothing moves when the destination list does not exist in this club, or
+   * when the destination is the reviews list and already holds the work: that
+   * work has been reviewed, and taking it off the source would claim a new
+   * review that never happened.
    */
-  async moveItem(sourceListId: string, destinationListId: string, workId: string, clubId: string) {
+  async moveItem(
+    sourceListId: string,
+    destinationListId: string,
+    workId: string,
+    clubId: string,
+  ): Promise<"moved" | "destination-not-found" | "already-reviewed"> {
     return db.transaction().execute(async (trx) => {
       const [max, source, destination] = await Promise.all([
         trx
@@ -244,12 +253,12 @@ class ListRepository {
       ]);
 
       if (!isDefined(destination)) {
-        return false;
+        return "destination-not-found";
       }
 
       const isMoveIntoReviews = destination.system_type === WorkListSystemType.reviews;
 
-      await trx
+      const inserted = await trx
         .insertInto("work_list_item")
         .values({
           list_id: destinationListId,
@@ -261,7 +270,11 @@ class ListRepository {
             : {}),
         })
         .onConflict((oc) => oc.columns(["list_id", "work_id"]).doNothing())
-        .execute();
+        .executeTakeFirst();
+
+      if (isMoveIntoReviews && (inserted.numInsertedOrUpdatedRows ?? 0n) === 0n) {
+        return "already-reviewed";
+      }
 
       await trx
         .deleteFrom("work_list_item")
@@ -269,7 +282,7 @@ class ListRepository {
         .where("work_id", "=", workId)
         .execute();
 
-      return true;
+      return "moved";
     });
   }
 

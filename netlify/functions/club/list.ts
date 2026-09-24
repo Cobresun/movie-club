@@ -270,8 +270,11 @@ router.post(
     // Destination ownership is validated inside the move transaction (the
     // destination row is fetched there anyway), saving a separate round trip.
     const moved = await ListRepository.moveItem(listId, body.destinationListId, workId, clubId);
-    if (!moved) {
+    if (moved === "destination-not-found") {
       return res(badRequest("Destination list not found"));
+    }
+    if (moved === "already-reviewed") {
+      return res(badRequest(BadRequest.ItemInList));
     }
     return res(ok());
   },

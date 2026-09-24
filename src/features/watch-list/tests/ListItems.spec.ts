@@ -143,6 +143,23 @@ describe("ListItems", () => {
     expect(screen.getByRole("button", { name: `Move ${MARIO} to reviews` })).toBeInTheDocument();
   });
 
+  it("puts the item back and says it has already been reviewed when the server has it", async () => {
+    server.use(
+      nextWorkHandler(),
+      http.post(moveEndpoint, () =>
+        HttpResponse.json({ error: "Item is already in list" }, { status: 400 }),
+      ),
+    );
+    const { user } = render(ListItems, {
+      props: { ...defaultProps, reviewsListId: "reviews-list-id" },
+    });
+
+    await user.click(await screen.findByRole("button", { name: `Move ${MARIO} to reviews` }));
+
+    expect(await screen.findAllByText(`"${MARIO}" has already been reviewed.`)).not.toHaveLength(0);
+    expect(screen.getByRole("button", { name: `Move ${MARIO} to reviews` })).toBeInTheDocument();
+  });
+
   it("selects the item whose poster is clicked", async () => {
     server.use(nextWorkHandler());
 

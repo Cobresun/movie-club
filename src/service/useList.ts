@@ -12,6 +12,7 @@ import {
   SharedReviewResponse,
 } from "../../lib/types/lists.js";
 import { memberScoresKey } from "./useUser";
+import { BadRequest } from "@/common/errorCodes";
 import { useAuthStore } from "@/stores/auth";
 
 export const BASE_IMAGE_URL = "https://image.tmdb.org/t/p/w154/";
@@ -214,20 +215,31 @@ export function useWorkDetails(
 // the next refetch; reads wait for these first.
 const pendingReviewMoves = new Set<Promise<unknown>>();
 
+const alreadyReviewedMessage = (title: string) => `"${title}" has already been reviewed.`;
+
+const isAlreadyOnList = (error: unknown) =>
+  axios.isAxiosError<{ error?: string }>(error) &&
+  error.response?.data.error === BadRequest.ItemInList;
+
+interface QueueReviewVariables {
+  workId: string;
+  sourceListId?: string;
+  reviewsListId: string;
+}
+
+/**
+ * Moves a work onto the club's reviews list. `queueReview` returns false, and
+ * tells the user why, when the reviews list already holds the work, so the
+ * caller can stay put rather than navigate to a review that isn't new. The
+ * check reads the cached reviews list; the server rejects the move too, for
+ * when that cache is stale.
+ */
 export function useQueueReview(clubSlug: string) {
   const auth = useAuthStore();
   const queryClient = useQueryClient();
   const toast = useToast();
-  return useMutation({
-    mutationFn: async ({
-      workId,
-      sourceListId,
-      reviewsListId,
-    }: {
-      workId: string;
-      sourceListId?: string;
-      reviewsListId: string;
-    }) => {
+  const { mutate } = useMutation({
+    mutationFn: async ({ workId, sourceListId, reviewsListId }: QueueReviewVariables) => {
       if (!hasValue(sourceListId)) return;
       if (sourceListId === reviewsListId) return;
       const move = auth.request.post(
@@ -275,16 +287,16 @@ export function useQueueReview(clubSlug: string) {
     // Toast lives here (not at the mutate() call site) because callers navigate
     // away the moment they fire the move, and mutate() callbacks are dropped on
     // unmount.
-    onError: (_err, _vars, context) => {
+    onError: (error, _vars, context) => {
       if (!context) return;
       queryClient.setQueryData(context.sourceKey, context.previousSource);
       queryClient.setQueryData(["lists", clubSlug, "all-items"], context.previousAllItems);
       queryClient.setQueryData(reviewsListKey(clubSlug), context.previousReviews);
-      const title = context.movingItem?.title;
+      const title = context.movingItem?.title ?? "This work";
       toast.error(
-        hasValue(title)
-          ? `Failed to move "${title}" to reviews. Please try again.`
-          : "Failed to move to reviews. Please try again.",
+        isAlreadyOnList(error)
+          ? alreadyReviewedMessage(title)
+          : `Failed to move "${title}" to reviews. Please try again.`,
       );
     },
     onSettled: async (_data, _err, vars) => {
@@ -305,11 +317,26 @@ export function useQueueReview(clubSlug: string) {
       await Promise.all(invalidations);
     },
   });
+
+  const queueReview = (variables: QueueReviewVariables) => {
+    const reviewed = queryClient
+      .getQueryData<DetailedReviewListItem[]>(reviewsListKey(clubSlug))
+      ?.find((item) => item.id === variables.workId);
+    if (isDefined(reviewed)) {
+      toast.error(alreadyReviewedMessage(reviewed.title));
+      return false;
+    }
+    mutate(variables);
+    return true;
+  };
+
+  return { queueReview };
 }
 
 export function useAddToReviewsList(clubSlug: string) {
   const auth = useAuthStore();
   const queryClient = useQueryClient();
+  const toast = useToast();
   return useMutation({
     mutationFn: async ({
       insertDto,
@@ -318,6 +345,12 @@ export function useAddToReviewsList(clubSlug: string) {
       insertDto: ListInsertDto;
       reviewsListId: string;
     }) => auth.request.post(`/api/club/${clubSlug}/list/${reviewsListId}/items`, insertDto),
+    onError: (error, { insertDto }) =>
+      toast.error(
+        isAlreadyOnList(error)
+          ? alreadyReviewedMessage(insertDto.title)
+          : `Failed to add "${insertDto.title}" to reviews. Please try again.`,
+      ),
     onSettled: () => queryClient.invalidateQueries({ queryKey: reviewsListKey(clubSlug) }),
   });
 }

@@ -1,4 +1,4 @@
-import { screen, waitFor } from "@testing-library/vue";
+import { screen, waitFor, within } from "@testing-library/vue";
 import { config } from "@vue/test-utils";
 import { http, HttpResponse } from "msw";
 
@@ -188,6 +188,39 @@ describe("queuing a review from the prompt", () => {
       await screen.findAllByText(`Failed to move "${MARIO}" to reviews. Please try again.`),
     ).not.toHaveLength(0);
     expect(screen.queryByRole("heading", { name: MARIO })).not.toBeInTheDocument();
+  });
+
+  it("says a work has already been reviewed instead of queuing it again", async () => {
+    server.use(allItems(), ...reviewsApi([{ ...listItems[0], scores: {} }]));
+    const { user } = render(ReviewView, { props: { clubSlug: "test-club" } });
+
+    await screen.findByRole("heading", { name: MARIO });
+    await user.click(screen.getByRole("button", { name: "Add review" }));
+    await user.click(await within(await screen.findByRole("dialog")).findByText(MARIO));
+
+    expect(await screen.findAllByText(`"${MARIO}" has already been reviewed.`)).not.toHaveLength(0);
+    expect(screen.getByText("From your lists")).toBeInTheDocument();
+  });
+
+  it("says a work found through search has already been reviewed", async () => {
+    server.use(
+      allItems([]),
+      tmdbSearch("Fight Club"),
+      http.post("/api/club/:id/list/:listId/items", () =>
+        HttpResponse.json({ error: "Item is already in list" }, { status: 400 }),
+      ),
+      ...reviewsApi(),
+    );
+    const { user } = render(ReviewView, { props: { clubSlug: "test-club" } });
+
+    await user.click(await screen.findByRole("button", { name: "Add review" }));
+    await user.type(await screen.findByPlaceholderText("Type to filter or search"), "Fight Club");
+    await user.click(await screen.findByText("Fight Club"));
+
+    expect(await screen.findAllByText('"Fight Club" has already been reviewed.')).not.toHaveLength(
+      0,
+    );
+    expect(screen.getByPlaceholderText("Type to filter or search")).toBeInTheDocument();
   });
 
   it("puts a work found through search onto the reviews page", async () => {
