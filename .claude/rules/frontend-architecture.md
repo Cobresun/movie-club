@@ -57,6 +57,7 @@ See the `tanstack-query-vue` skill for query-key conventions, mutation patterns,
 
 - **Update both ends of a move.** Removing from the source list and letting the destination wait for the refetch is a half-done optimistic update.
 - **When the real id only exists after the response** (a freshly created list), keep the pending item visibly pending rather than letting the user reorder something that has no id yet.
+- **Don't hang navigation or a modal close on a `mutate()` callback.** In TanStack Query v4 the call-site `onSuccess` fires only after the hook's own `onSettled` has finished, and ours await their invalidation refetches — so the user waits out the write _and_ every refetch. Navigate or close straight after `mutate()`, and put anything that must still happen (an error toast, a rollback) in the hook's options, which outlive the component.
 
 **Don't paper over freshness with `staleTime`.** Scores, lists, comments and awards are collaborative — several people change them while another is looking at the page, and a user who hits refresh expects to see it. `src/main.ts` deliberately drives revalidation from a per-session fetch counter rather than a fixed `staleTime`, so a hard refresh revalidates while navigation within the session stays quiet; a blanket `staleTime` cannot tell those two apart. Read the comment there before changing the query defaults. `staleTime: Infinity` on immutable per-id data (TMDB details, generated discussion questions) is the exception, not the pattern.
 

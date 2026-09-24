@@ -208,9 +208,16 @@ export function useWorkDetails(
   });
 }
 
+// Moves into the reviews list that have not landed yet. The reviews page shows
+// the moved work optimistically, so a read of the reviews list that raced the
+// move could return a snapshot without it and wipe the work off the page until
+// the next refetch; reads wait for these first.
+const pendingReviewMoves = new Set<Promise<unknown>>();
+
 export function useQueueReview(clubSlug: string) {
   const auth = useAuthStore();
   const queryClient = useQueryClient();
+  const toast = useToast();
   return useMutation({
     mutationFn: async ({
       workId,
@@ -223,20 +230,61 @@ export function useQueueReview(clubSlug: string) {
     }) => {
       if (!hasValue(sourceListId)) return;
       if (sourceListId === reviewsListId) return;
-      return auth.request.post(`/api/club/${clubSlug}/list/${sourceListId}/items/${workId}/move`, {
-        destinationListId: reviewsListId,
-      });
+      const move = auth.request.post(
+        `/api/club/${clubSlug}/list/${sourceListId}/items/${workId}/move`,
+        { destinationListId: reviewsListId },
+      );
+      pendingReviewMoves.add(move);
+      return move.finally(() => pendingReviewMoves.delete(move));
     },
-    // Optimistically remove the work from its source list so the UI reacts
-    // immediately; the reviews page picks it up via invalidation.
-    onMutate: ({ workId, sourceListId }) => {
-      if (!hasValue(sourceListId)) return;
-      queryClient.setQueryData<DetailedWorkListItem[]>(listKey(clubSlug, sourceListId), (current) =>
+    onMutate: async ({ workId, sourceListId, reviewsListId }) => {
+      if (!hasValue(sourceListId) || sourceListId === reviewsListId) return;
+      const sourceKey = listKey(clubSlug, sourceListId);
+      const allItemsKey = ["lists", clubSlug, "all-items"] as const;
+      await queryClient.cancelQueries({ queryKey: reviewsListKey(clubSlug) });
+
+      const previousSource = queryClient.getQueryData<DetailedWorkListItem[]>(sourceKey);
+      const previousAllItems = queryClient.getQueryData<UserListItemWithSource[]>(allItemsKey);
+      const previousReviews = queryClient.getQueryData<DetailedReviewListItem[]>(
+        reviewsListKey(clubSlug),
+      );
+      const movingItem =
+        previousSource?.find((item) => item.id === workId) ??
+        previousAllItems?.find((item) => item.id === workId);
+
+      queryClient.setQueryData<DetailedWorkListItem[]>(sourceKey, (current) =>
         current?.filter((item) => item.id !== workId),
       );
-      queryClient.setQueryData<UserListItemWithSource[]>(
-        ["lists", clubSlug, "all-items"],
-        (current) => current?.filter((item) => item.id !== workId),
+      queryClient.setQueryData<UserListItemWithSource[]>(allItemsKey, (current) =>
+        current?.filter((item) => item.id !== workId),
+      );
+      if (isDefined(movingItem)) {
+        // The server stamps a work's review date with the time of the move.
+        const review: DetailedReviewListItem = {
+          ...movingItem,
+          createdDate: new Date().toISOString(),
+          scores: {},
+        };
+        queryClient.setQueryData<DetailedReviewListItem[]>(reviewsListKey(clubSlug), (current) =>
+          current && !current.some((item) => item.id === workId) ? [...current, review] : current,
+        );
+      }
+
+      return { sourceKey, previousSource, previousAllItems, previousReviews, movingItem };
+    },
+    // Toast lives here (not at the mutate() call site) because callers navigate
+    // away the moment they fire the move, and mutate() callbacks are dropped on
+    // unmount.
+    onError: (_err, _vars, context) => {
+      if (!context) return;
+      queryClient.setQueryData(context.sourceKey, context.previousSource);
+      queryClient.setQueryData(["lists", clubSlug, "all-items"], context.previousAllItems);
+      queryClient.setQueryData(reviewsListKey(clubSlug), context.previousReviews);
+      const title = context.movingItem?.title;
+      toast.error(
+        hasValue(title)
+          ? `Failed to move "${title}" to reviews. Please try again.`
+          : "Failed to move to reviews. Please try again.",
       );
     },
     onSettled: async (_data, _err, vars) => {
@@ -297,8 +345,10 @@ export function useReviewsList(
 ): UseQueryReturnType<DetailedReviewListItem[], AxiosError> {
   return useQuery({
     queryKey: reviewsListKey(clubSlug),
-    queryFn: async () =>
-      (await axios.get<DetailedReviewListItem[]>(`/api/club/${clubSlug}/list/reviews`)).data,
+    queryFn: async () => {
+      await Promise.allSettled(pendingReviewMoves);
+      return (await axios.get<DetailedReviewListItem[]>(`/api/club/${clubSlug}/list/reviews`)).data;
+    },
   });
 }
 

@@ -51,20 +51,18 @@ const combinedListSearchIndex = computed<WorkSearchResult[]>(
     })) ?? [],
 );
 
-const { mutateAsync: queueReview, isLoading: queueLoading } = useQueueReview(clubId);
+const { mutate: queueReview } = useQueueReview(clubId);
 const { mutateAsync: addFromSearch, isLoading: addLoading } = useAddToReviewsList(clubId);
 
-const selectFromDefault = async (work: WorkSearchResult) => {
+const selectFromDefault = (work: WorkSearchResult) => {
   const sourceItem = listItems.value?.find((item) => item.externalId === work.externalId);
   if (!sourceItem || !hasValue(reviewsListId.value)) return;
-  await queueReview(
-    {
-      workId: sourceItem.id,
-      sourceListId: sourceItem.sourceListId,
-      reviewsListId: reviewsListId.value,
-    },
-    { onSuccess: () => emit("close") },
-  );
+  queueReview({
+    workId: sourceItem.id,
+    sourceListId: sourceItem.sourceListId,
+    reviewsListId: reviewsListId.value,
+  });
+  emit("close");
 };
 
 const selectFromSearch = async (work: WorkSearchResult) => {
@@ -83,7 +81,5 @@ const selectFromSearch = async (work: WorkSearchResult) => {
   );
 };
 
-const loading = computed(
-  () => listsLoading.value || queueLoading.value || addLoading.value || !club.value,
-);
+const loading = computed(() => listsLoading.value || addLoading.value || !club.value);
 </script>

@@ -1,4 +1,5 @@
 import { screen, waitFor } from "@testing-library/vue";
+import { config } from "@vue/test-utils";
 import { http, HttpResponse } from "msw";
 
 import { listInsertDtoSchema } from "../../../../lib/types/lists";
@@ -9,6 +10,13 @@ import { server } from "@/mocks/server";
 import { render } from "@/tests/utils";
 
 mockIntersectionObserver();
+
+// vue-toastification renders inside a <transition-group>, which VTU stubs by
+// default and so drops the toast text; un-stub transitions to read it.
+config.global.stubs = { transition: false, "transition-group": false };
+
+const MARIO = "The Super Mario Bros. Movie";
+const moveEndpoint = "/api/club/:id/list/:listId/items/:workId/move";
 
 const listItems = [
   {
@@ -140,6 +148,46 @@ describe("queuing a review from the prompt", () => {
     expect(
       await screen.findByRole("heading", { name: "The Super Mario Bros. Movie" }),
     ).toBeInTheDocument();
+  });
+
+  it("shows the work on the reviews page before the move has landed", async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    // Resolving with nothing hands the request on to reviewsApi's move handler.
+    server.use(
+      allItems(),
+      http.post(moveEndpoint, async () => {
+        await gate;
+      }),
+      ...reviewsApi(),
+    );
+    const { user } = render(ReviewView, { props: { clubSlug: "test-club" } });
+
+    await user.click(await screen.findByRole("button", { name: "Add review" }));
+    await user.click(await screen.findByText(MARIO));
+
+    expect(await screen.findByRole("heading", { name: MARIO })).toBeInTheDocument();
+    expect(screen.queryByText("From your lists")).not.toBeInTheDocument();
+    release();
+  });
+
+  it("takes the work back off the reviews page when the move fails", async () => {
+    server.use(
+      allItems(),
+      http.post(moveEndpoint, () => HttpResponse.json({ message: "boom" }, { status: 500 })),
+      ...reviewsApi(),
+    );
+    const { user } = render(ReviewView, { props: { clubSlug: "test-club" } });
+
+    await user.click(await screen.findByRole("button", { name: "Add review" }));
+    await user.click(await screen.findByText(MARIO));
+
+    expect(
+      await screen.findAllByText(`Failed to move "${MARIO}" to reviews. Please try again.`),
+    ).not.toHaveLength(0);
+    expect(screen.queryByRole("heading", { name: MARIO })).not.toBeInTheDocument();
   });
 
   it("puts a work found through search onto the reviews page", async () => {

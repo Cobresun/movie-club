@@ -11,6 +11,7 @@ import {
   useDeleteReview,
   useList,
   useMoveListItem,
+  useQueueReview,
   useReorderList,
   useReviewsList,
   useUpdateAddedDate,
@@ -382,6 +383,55 @@ describe("useMoveListItem", () => {
       expect(titles(result.source)).toEqual([]);
       expect(titles(result.destination)).toEqual(["Solaris"]);
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// useQueueReview (optimistic move into the reviews list)
+// ---------------------------------------------------------------------------
+
+describe("useQueueReview", () => {
+  it("keeps the work on the reviews list when the list is re-read mid-move", async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    server.use(
+      // Resolving with nothing hands the request on to listsApi's move handler.
+      http.post("/api/club/:id/list/:listId/items/:workId/move", async () => {
+        await gate;
+      }),
+      ...listsApi([
+        list("list-src", "Source", [item("work-5", "Solaris")]),
+        list("rev-list", "Reviews"),
+      ]),
+    );
+
+    const { result } = withSetup(() => ({
+      source: useList("test-club", "list-src"),
+      reviews: useReviewsList("test-club"),
+      queue: useQueueReview("test-club"),
+    }));
+
+    await vi.waitFor(() => {
+      expect(titles(result.source)).toEqual(["Solaris"]);
+      expect(titles(result.reviews)).toEqual([]);
+    });
+
+    result.queue.mutate({ workId: "work-5", sourceListId: "list-src", reviewsListId: "rev-list" });
+
+    await vi.waitFor(() => {
+      expect(titles(result.source)).toEqual([]);
+      expect(titles(result.reviews)).toEqual(["Solaris"]);
+    });
+
+    const reread = result.reviews.refetch();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(titles(result.reviews)).toEqual(["Solaris"]);
+
+    release();
+    await reread;
+    expect(titles(result.reviews)).toEqual(["Solaris"]);
   });
 });
 
