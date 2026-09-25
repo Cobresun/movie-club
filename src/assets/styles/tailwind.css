@@ -25,6 +25,7 @@
   ::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+    animation-delay: 0ms !important;
     transition-duration: 0.01ms !important;
     transition-delay: 0ms !important;
     scroll-behavior: auto !important;
@@ -39,6 +40,14 @@
 ::view-transition-new(root) {
   animation-duration: var(--motion-base);
   animation-timing-function: var(--ease-standard);
+}
+
+/* The desktop club-section underline (ClubSectionNav) carries its own
+   view-transition-name, so on a section change the browser morphs it from the
+   old tab to the new one instead of crossfading it with the rest of the page. */
+::view-transition-group(club-section-indicator) {
+  animation-duration: var(--motion-slow);
+  animation-timing-function: var(--ease-emphasized);
 }
 
 /* Scroll-reveal (v-reveal directive, src/directives/Reveal.ts). */
@@ -64,6 +73,35 @@
 }
 .animate-fade-up {
   animation: fade-up var(--motion-slow) var(--ease-standard) both;
+}
+
+/* Lazy-loaded images (v-lazy-load, src/directives/LazyLoad.ts) fade in once
+   they finish loading instead of popping in. Transform is listed too so a
+   hover zoom on the same image keeps its own transition. */
+.lazy-fade {
+  opacity: 0;
+  transition:
+    opacity var(--motion-slow) var(--ease-standard),
+    transform var(--motion-slow) var(--ease-standard);
+}
+.lazy-fade.lazy-loaded {
+  opacity: 1;
+}
+
+/* Score bars grow in from the left, staggered by the row's --i. Inside a
+   v-reveal container they wait, collapsed, until it scrolls into view. */
+@keyframes bar-grow {
+  from {
+    transform: scaleX(0);
+  }
+}
+.animate-bar-grow {
+  transform-origin: left;
+  animation: bar-grow 700ms var(--ease-emphasized) both;
+  animation-delay: calc(var(--i, 0) * 60ms);
+}
+.reveal-init:not(.reveal-visible) .animate-bar-grow {
+  animation-play-state: paused;
 }
 
 html {

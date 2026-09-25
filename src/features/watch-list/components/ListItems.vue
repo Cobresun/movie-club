@@ -59,7 +59,9 @@
               :show-drag-handle="item.id !== nextWorkId && !isPending(item.id)"
               :highlighted="item.id === nextWorkId"
               :selectable="!isPending(item.id)"
+              :class="{ 'card-pulse': item.id === pulseId }"
               @select="emit('select', item.id)"
+              @animationend="onPulseEnd"
             >
               <div class="mt-2 flex flex-col gap-2">
                 <div
@@ -135,7 +137,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, toRefs, watch } from "vue";
+import { computed, nextTick, ref, toRefs, watch } from "vue";
 import { VueDraggableNext } from "vue-draggable-next";
 import { useRouter } from "vue-router";
 
@@ -211,8 +213,24 @@ const { mutate: deleteItem } = useDeleteListItem(props.clubSlug, props.listId);
 const { mutate: moveItem } = useMoveListItem(props.clubSlug);
 const router = useRouter();
 
+// The card just promoted to next up, or just dropped after a drag, glows once
+// so the eye can find where it landed.
+const pulseId = ref<string>();
+
+const pulse = (workId: string | undefined) => {
+  pulseId.value = undefined;
+  void nextTick(() => {
+    pulseId.value = workId;
+  });
+};
+
+const onPulseEnd = (event: AnimationEvent) => {
+  if (event.target === event.currentTarget) pulseId.value = undefined;
+};
+
 const onSetNextWatch = (workId: string) => {
   if (isPending(workId)) return;
+  pulse(workId);
   setNextWork(workId);
   const newOrder = [
     workId,
@@ -225,7 +243,10 @@ const onDragMove = (evt: { relatedContext: { index: number } }) => {
   if (hasValue(nextWorkId.value) && evt.relatedContext.index === 0) return false;
 };
 
-const onDragEnd = () => {
+const onDragEnd = (event: { newIndex?: number; oldIndex?: number }) => {
+  if (event.newIndex !== event.oldIndex && isDefined(event.newIndex)) {
+    pulse(draggableItems.value[event.newIndex]?.id);
+  }
   reorderList(draggableItems.value.map((i) => i.id));
 };
 
@@ -311,5 +332,22 @@ const onReview = (workId: string) => {
 
 .list-item-move {
   transition: transform var(--motion-slow) var(--ease-emphasized);
+}
+
+/* On the card, not its grid cell: the cell's transform belongs to the FLIP
+   move above, and an animation would override it. */
+.card-pulse {
+  animation: card-pulse 700ms var(--ease-emphasized);
+}
+
+@keyframes card-pulse {
+  30% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 6px rgba(177, 160, 5, 0.45);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(177, 160, 5, 0);
+  }
 }
 </style>

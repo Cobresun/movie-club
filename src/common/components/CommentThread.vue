@@ -10,95 +10,100 @@
       @cancel="showDeleteConfirmation = false"
     />
 
-    <div
-      v-if="hasElements(comments)"
-      ref="commentsContainer"
-      class="mb-4 max-h-80 space-y-3 overflow-y-auto"
-    >
-      <div v-for="comment in comments" :key="comment.id" class="rounded-lg bg-lowBackground p-3">
-        <div class="flex items-center gap-2">
-          <v-avatar :name="comment.userName" :src="comment.userImage" :size="28" />
-          <div class="flex flex-1 items-center gap-1 text-xs text-gray-400">
-            <span class="font-medium text-gray-300">{{ comment.userName }}</span>
-            <span>&middot;</span>
-            <span>{{ formatRelativeTime(comment.createdDate) }}</span>
-            <span v-if="comment.spoiler" class="text-yellow-500"> &middot; Spoiler </span>
-          </div>
-          <template v-if="comment.userId === currentUserId">
-            <button
-              aria-label="Edit comment"
-              class="text-gray-500 hover:text-primary"
-              @click="startEditing(comment)"
-            >
-              <mdicon name="pencil-outline" :size="14" />
-            </button>
-            <button
-              aria-label="Delete comment"
-              class="text-gray-500 hover:text-red-400"
-              @click="promptDelete(comment.id)"
-            >
-              <mdicon name="delete-outline" :size="14" />
-            </button>
-          </template>
-        </div>
-
-        <!-- Editing mode -->
-        <div v-if="editingCommentId === comment.id" class="mt-2">
-          <textarea
-            v-model="editContent"
-            :maxlength="MAX_LENGTH"
-            class="w-full resize-none rounded-lg border border-gray-600 bg-background px-3 py-2 text-left text-base text-white placeholder-gray-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary md:text-sm"
-            rows="3"
-          />
-          <div class="mt-2 flex items-center justify-between">
-            <div class="flex items-center gap-3">
-              <label class="flex items-center gap-1.5 text-xs text-gray-400">
-                <input v-model="editSpoiler" type="checkbox" class="accent-primary" />
-                Spoiler
-              </label>
-              <span
-                class="text-xs"
-                :class="editContent.length > MAX_LENGTH * 0.9 ? 'text-red-400' : 'text-gray-500'"
-              >
-                {{ editContent.length }}/{{ MAX_LENGTH }}
-              </span>
+    <div v-if="hasElements(comments)" ref="commentsContainer" class="mb-4 max-h-80 overflow-y-auto">
+      <!-- Not `appear`: the thread loads in place, and only comments added
+           after that rise in. -->
+      <TransitionGroup
+        tag="div"
+        class="space-y-3"
+        enter-active-class="transition duration-slow ease-emphasized"
+        enter-from-class="translate-y-2 opacity-0"
+        leave-active-class="transition-opacity duration-base ease-standard"
+        leave-to-class="opacity-0"
+      >
+        <div v-for="comment in comments" :key="comment.id" class="rounded-lg bg-lowBackground p-3">
+          <div class="flex items-center gap-2">
+            <v-avatar :name="comment.userName" :src="comment.userImage" :size="28" />
+            <div class="flex flex-1 items-center gap-1 text-xs text-gray-400">
+              <span class="font-medium text-gray-300">{{ comment.userName }}</span>
+              <span>&middot;</span>
+              <span>{{ formatRelativeTime(comment.createdDate) }}</span>
+              <span v-if="comment.spoiler" class="text-yellow-500"> &middot; Spoiler </span>
             </div>
-            <div class="flex gap-2">
+            <template v-if="comment.userId === currentUserId">
               <button
-                class="rounded bg-gray-600 px-3 py-1 text-xs text-white"
-                @click="cancelEditing"
+                aria-label="Edit comment"
+                class="text-gray-500 hover:text-primary"
+                @click="startEditing(comment)"
               >
-                Cancel
+                <mdicon name="pencil-outline" :size="14" />
               </button>
               <button
-                class="rounded bg-primary px-3 py-1 text-xs text-white"
-                :disabled="!hasValue(editContent.trim()) || editContent.length > MAX_LENGTH"
-                @click="saveEdit(comment.id)"
+                aria-label="Delete comment"
+                class="text-gray-500 hover:text-red-400"
+                @click="promptDelete(comment.id)"
               >
-                Save
+                <mdicon name="delete-outline" :size="14" />
               </button>
+            </template>
+          </div>
+
+          <!-- Editing mode -->
+          <div v-if="editingCommentId === comment.id" class="mt-2">
+            <textarea
+              v-model="editContent"
+              :maxlength="MAX_LENGTH"
+              class="w-full resize-none rounded-lg border border-gray-600 bg-background px-3 py-2 text-left text-base text-white placeholder-gray-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary md:text-sm"
+              rows="3"
+            />
+            <div class="mt-2 flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <label class="flex items-center gap-1.5 text-xs text-gray-400">
+                  <input v-model="editSpoiler" type="checkbox" class="accent-primary" />
+                  Spoiler
+                </label>
+                <span
+                  class="text-xs"
+                  :class="editContent.length > MAX_LENGTH * 0.9 ? 'text-red-400' : 'text-gray-500'"
+                >
+                  {{ editContent.length }}/{{ MAX_LENGTH }}
+                </span>
+              </div>
+              <div class="flex gap-2">
+                <button
+                  class="rounded bg-gray-600 px-3 py-1 text-xs text-white"
+                  @click="cancelEditing"
+                >
+                  Cancel
+                </button>
+                <button
+                  class="rounded bg-primary px-3 py-1 text-xs text-white"
+                  :disabled="!hasValue(editContent.trim()) || editContent.length > MAX_LENGTH"
+                  @click="saveEdit(comment.id)"
+                >
+                  Save
+                </button>
+              </div>
             </div>
           </div>
-        </div>
 
-        <!-- Display mode -->
-        <div v-else class="mt-2">
-          <!-- `blur-sm` is a purely visual filter, so the hidden branch also
+          <!-- Display mode -->
+          <div v-else class="mt-2">
+            <!-- `blur-sm` is a purely visual filter, so while hidden it also
                carries aria-hidden: without it the spoiler is read out in full
-               to a screen reader that cannot see the blur. -->
-          <p
-            v-if="isSpoilerHidden(comment)"
-            aria-hidden="true"
-            class="cursor-pointer select-none whitespace-pre-wrap text-left text-sm text-gray-200 blur-sm transition-all"
-            @click="revealedSpoilers.add(comment.id)"
-          >
-            {{ comment.content }}
-          </p>
-          <p v-else class="whitespace-pre-wrap text-left text-sm text-gray-200">
-            {{ comment.content }}
-          </p>
+               to a screen reader that cannot see the blur. One element for
+               both states, so the blur can transition away. -->
+            <p
+              :aria-hidden="isSpoilerHidden(comment) || undefined"
+              class="whitespace-pre-wrap text-left text-sm text-gray-200 transition-[filter] duration-slow ease-standard"
+              :class="isSpoilerHidden(comment) ? 'cursor-pointer select-none blur-sm' : 'blur-none'"
+              @click="revealedSpoilers.add(comment.id)"
+            >
+              {{ comment.content }}
+            </p>
+          </div>
         </div>
-      </div>
+      </TransitionGroup>
     </div>
 
     <p v-else class="mb-4 text-sm text-gray-500">

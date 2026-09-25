@@ -7,10 +7,12 @@
           <span class="font-semibold">Discussion questions</span>
         </div>
         <ol class="flex flex-col gap-2 transition-opacity" :class="{ 'opacity-50': isLoading }">
+          <!-- Keyed by text so a regenerated set remounts and deals in again. -->
           <li
             v-for="(question, index) in questions"
-            :key="index"
-            class="flex gap-3 rounded-lg bg-background/60 p-3 text-sm leading-relaxed"
+            :key="`${index}-${question}`"
+            class="animate-fade-up flex gap-3 rounded-lg bg-background/60 p-3 text-sm leading-relaxed"
+            :style="{ animationDelay: `${index * 70}ms` }"
           >
             <span class="font-bold text-purple-300">{{ index + 1 }}.</span>
             <span>{{ question }}</span>

@@ -92,7 +92,7 @@
           </div>
           <div class="grid grid-cols-2 gap-2">
             <div
-              v-for="entry in workScoreEntries(review, members)"
+              v-for="(entry, index) in workScoreEntries(review, members)"
               :key="entry.id"
               class="flex items-center rounded-3xl bg-slate-600"
             >
@@ -101,12 +101,14 @@
                 <!-- Cards never reveal on click: reveal flows through the
                      details drawer's own pill. -->
                 <span
+                  class="transition-[filter] duration-500 ease-standard"
                   :class="[
                     isDefined(entry.memberId) ? '' : 'text-lg font-bold text-primary',
                     isScoreBlurred(entry, currentUserId, isRevealed(review.id))
                       ? 'blur filter'
-                      : '',
+                      : 'blur-none',
                   ]"
+                  :style="{ transitionDelay: `${index * 80}ms` }"
                   >{{ entry.value }}</span
                 >
               </div>

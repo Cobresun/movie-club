@@ -3,7 +3,14 @@
     {{ title }}
   </h3>
 
-  <div class="space-y-3">
+  <!-- Rows that survive a re-sort (a member filter, a mode switch) glide to
+       their new rank; leavers drop out at once so the move starts clean. -->
+  <TransitionGroup
+    tag="div"
+    class="space-y-3"
+    move-class="transition-transform duration-slow ease-emphasized"
+    leave-active-class="hidden"
+  >
     <div
       v-for="(entry, index) in entries"
       :key="entry.name"
@@ -68,9 +75,9 @@
 
           <div class="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-700/50">
             <div
-              class="h-full rounded-full transition-all duration-500"
+              class="animate-bar-grow h-full rounded-full transition-all duration-500"
               :class="barColor(entry.averageScore)"
-              :style="{ width: barWidth(entry.averageScore) + '%' }"
+              :style="{ width: barWidth(entry.averageScore) + '%', '--i': index }"
             />
           </div>
         </div>
@@ -86,7 +93,7 @@
         </span>
       </div>
     </div>
-  </div>
+  </TransitionGroup>
 
   <p v-if="entries.length === 0" class="py-4 text-center text-sm text-slate-500">
     {{ emptyMessage }}
