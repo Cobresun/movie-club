@@ -182,6 +182,11 @@ const handleTouchStart = (event: TouchEvent) => {
   gesture = undefined;
   const sheet = sheetRef.value;
   if (!isVisible.value || !sheet || event.touches.length !== 1) return;
+  // A sheet opened from inside this one (score entry over work details) sits
+  // in this sheet's DOM, so its touches bubble up here too. Each gesture
+  // belongs to the innermost modal it lands in, so only the top layer moves.
+  if (!(event.target instanceof Element)) return;
+  if (event.target.closest('[aria-modal="true"]') !== sheet) return;
 
   const touch = event.touches[0];
   const fromHandle = handleRef.value?.contains(event.target as Node) ?? false;
