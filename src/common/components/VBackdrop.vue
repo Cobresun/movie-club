@@ -1,6 +1,7 @@
 <template>
   <Transition name="fade" appear>
     <div
+      v-if="visible"
       class="fixed inset-0 touch-none overscroll-none bg-black bg-opacity-50"
       :class="zIndexClass"
       @click="handleClose"
@@ -16,9 +17,13 @@ import { type ZIndex, zIndexClass as zIndexClassOf } from "../zIndex.js";
 const props = withDefaults(
   defineProps<{
     zIndex?: ZIndex;
+    // Owners flip this when their dismissal starts, so the backdrop fades out
+    // alongside the panel instead of vanishing when the owner unmounts.
+    visible?: boolean;
   }>(),
   {
     zIndex: "50",
+    visible: true,
   },
 );
 

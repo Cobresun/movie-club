@@ -28,10 +28,6 @@ vi.mock("vue-router", () => ({
   useRouter: vi.fn(() => router),
 }));
 
-// jsdom doesn't implement scrollIntoView; the gallery's card-click handler calls
-// it when opening the details drawer.
-window.HTMLElement.prototype.scrollIntoView = vi.fn();
-
 // jsdom has no matchMedia; `useIsDesktop` calls it on mount. Tests default to
 // mobile and opt into desktop with `setViewport(true)`.
 Object.defineProperty(window, "matchMedia", { writable: true, value: vi.fn() });

@@ -5,7 +5,7 @@
     </v-bottom-sheet>
 
     <template v-if="isDesktop">
-      <v-backdrop :z-index="zIndex" @close="handleClose" />
+      <v-backdrop :z-index="zIndex" :visible="isVisible" @close="handleClose" />
 
       <Transition name="fade" appear @after-leave="onTransitionEnd">
         <div
