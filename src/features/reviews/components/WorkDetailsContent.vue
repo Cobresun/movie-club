@@ -109,10 +109,11 @@
       </p>
     </section>
 
-    <!-- Spotlight fact: unlocks once every member has scored. Sits between the
-         verdict (scores) and the reference material (synopsis/details).
-         Computed off the opening frame (see factReady), so it fades in after
-         the drawer has painted. -->
+    <!-- Spotlight fact: sits between the verdict (scores) and the reference
+         material (synopsis/details). Hidden behind the same reveal as the
+         scores, since "your club's lowest-rated…" gives them away. Computed
+         off the opening frame (see factReady), so it fades in after the drawer
+         has painted. -->
     <Transition
       enter-active-class="transition duration-slow ease-standard"
       enter-from-class="-translate-y-1 opacity-0"
@@ -395,8 +396,10 @@ onMounted(() => {
   }
 });
 onBeforeUnmount(() => cancelFactIdle?.());
+// Every fact is derived from the club's scores (or at least picked over the
+// ones that are), so it stays hidden until the scores themselves are revealed.
 const reviewFact = computed(() =>
-  factReady.value && isDefined(allReviews.value)
+  factReady.value && isRevealed.value && isDefined(allReviews.value)
     ? computeReviewFact(allReviews.value, props.movie.id)
     : undefined,
 );
