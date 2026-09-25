@@ -15,6 +15,9 @@
       <div class="absolute inset-0 bg-background opacity-50" />
       <loading-spinner />
     </div>
+    <!-- z-10, not higher: the handle only has to clear the poster below it, and
+         the fixed mobile section bar (z-20) renders before this in the DOM, so a
+         handle at z-20 would paint over the bar as the grid scrolls past it. -->
     <div
       v-if="showDragHandle"
       class="drag-handle absolute left-1 top-1 z-10 cursor-grab rounded bg-black/60 p-0.5 text-white active:cursor-grabbing"
