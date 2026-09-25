@@ -114,8 +114,9 @@ function useReviewWork(clubSlug: string) {
         workId,
         sourceListId,
       }),
-    onMutate: ({ workId, score }) => {
+    onMutate: async ({ workId, score }) => {
       if (!workId) return;
+      await queryClient.cancelQueries({ queryKey: reviewsListKey(clubSlug) });
       queryClient.setQueryData<DetailedReviewListItem[]>(
         reviewsListKey(clubSlug),
         (currentReviews) => {
@@ -141,8 +142,10 @@ function useReviewWork(clubSlug: string) {
     },
     onSuccess: (_data, { workId }) => startScorePoll(auth.request, queryClient, clubSlug, workId),
     onSettled: async () => {
-      await queryClient.invalidateQueries({ queryKey: reviewsListKey(clubSlug) });
-      await queryClient.invalidateQueries({ queryKey: memberScoresKey });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: reviewsListKey(clubSlug) }),
+        queryClient.invalidateQueries({ queryKey: memberScoresKey }),
+      ]);
     },
   });
 }
@@ -158,8 +161,9 @@ function useUpdateReviewScore(clubSlug: string) {
       auth.request.put(`/api/club/${clubSlug}/reviews/${reviewId}`, {
         score,
       }),
-    onMutate: ({ reviewId, score }) => {
+    onMutate: async ({ reviewId, score }) => {
       if (!reviewId) return;
+      await queryClient.cancelQueries({ queryKey: reviewsListKey(clubSlug) });
       const currentUser = user.value;
       queryClient.setQueryData<DetailedReviewListItem[]>(
         reviewsListKey(clubSlug),
@@ -185,8 +189,10 @@ function useUpdateReviewScore(clubSlug: string) {
     },
     onSuccess: (_data, { workId }) => startScorePoll(auth.request, queryClient, clubSlug, workId),
     onSettled: async () => {
-      await queryClient.invalidateQueries({ queryKey: reviewsListKey(clubSlug) });
-      await queryClient.invalidateQueries({ queryKey: memberScoresKey });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: reviewsListKey(clubSlug) }),
+        queryClient.invalidateQueries({ queryKey: memberScoresKey }),
+      ]);
     },
   });
 }
@@ -246,10 +252,11 @@ export function useDeleteScore(clubSlug: string) {
     // update can find the work whose score map lost an entry.
     mutationFn: ({ reviewId }: { reviewId: string; workId: string }) =>
       auth.request.delete(`/api/club/${clubSlug}/reviews/${reviewId}`),
-    onMutate: ({ workId }) => {
+    onMutate: async ({ workId }) => {
       cancelScorePoll(clubSlug, workId);
       const userId = user.value?.id;
       if (!isDefined(userId)) return;
+      await queryClient.cancelQueries({ queryKey: reviewsListKey(clubSlug) });
       queryClient.setQueryData<DetailedReviewListItem[]>(reviewsListKey(clubSlug), (current) =>
         current?.map((review) =>
           review.id === workId
@@ -289,9 +296,10 @@ export function useAddReviewComment(clubSlug: string, workId: string) {
         content,
         spoiler,
       }),
-    onMutate: ({ content, spoiler }) => {
+    onMutate: async ({ content, spoiler }) => {
       const currentUser = user.value;
       if (!isDefined(currentUser)) return;
+      await queryClient.cancelQueries({ queryKey: ["comments", clubSlug, workId] });
       queryClient.setQueryData<WorkCommentDto[]>(["comments", clubSlug, workId], (current) => [
         ...(current ?? []),
         {
@@ -331,7 +339,8 @@ export function useEditReviewComment(clubSlug: string, workId: string) {
         content,
         spoiler,
       }),
-    onMutate: ({ commentId, content, spoiler }) => {
+    onMutate: async ({ commentId, content, spoiler }) => {
+      await queryClient.cancelQueries({ queryKey: ["comments", clubSlug, workId] });
       queryClient.setQueryData<WorkCommentDto[]>(
         ["comments", clubSlug, workId],
         (current) =>
@@ -360,7 +369,8 @@ export function useDeleteReviewComment(clubSlug: string, workId: string) {
   return useMutation({
     mutationFn: (commentId: string) =>
       auth.request.delete(`/api/club/${clubSlug}/reviews/${workId}/comments/${commentId}`),
-    onMutate: (commentId: string) => {
+    onMutate: async (commentId: string) => {
+      await queryClient.cancelQueries({ queryKey: ["comments", clubSlug, workId] });
       queryClient.setQueryData<WorkCommentDto[]>(
         ["comments", clubSlug, workId],
         (current) => current?.filter((comment) => comment.id !== commentId) ?? [],

@@ -37,6 +37,22 @@ export function useUpdateStep(clubId: Ref<string>, year: Ref<string>) {
       auth.request.put(`/api/club/${clubId.value}/awards/${year.value}/step`, {
         step,
       }),
+    // Cancelling matters beyond the optimistic write: an in-flight fetch of the
+    // old step would land after the caller has navigated on, and YearView
+    // redirects to whichever step a fetch reports.
+    onMutate: async (step) => {
+      await queryClient.cancelQueries(["awards", clubId, year]);
+      const previous = queryClient.getQueryData<ClubAwards>(["awards", clubId, year]);
+      if (isDefined(previous)) {
+        queryClient.setQueryData<ClubAwards>(["awards", clubId, year], { ...previous, step });
+      }
+      return { previous };
+    },
+    onError: (_error, _step, context) => {
+      if (isDefined(context?.previous)) {
+        queryClient.setQueryData(["awards", clubId, year], context.previous);
+      }
+    },
     onSettled: () => {
       queryClient.invalidateQueries(["awards", clubId, year]).catch(console.error);
     },
@@ -236,6 +252,32 @@ export function useSubmitRanking(clubSlug: string, year: string) {
         voter: user.value?.id,
         movies,
       }),
+    // Mirrors the server: each ranked movie records this voter's 1-based rank.
+    onMutate: async ({ awardTitle, movies }) => {
+      const voter = user.value?.id;
+      if (!hasValue(voter)) return;
+      await queryClient.cancelQueries(["awards", clubSlug, year]);
+      const ranks = new Map(movies.map((movieId, index) => [movieId, index + 1]));
+      queryClient.setQueryData<ClubAwards>(["awards", clubSlug, year], (current) => {
+        if (!current) return current;
+        return {
+          ...current,
+          awards: current.awards.map((award) =>
+            award.title === awardTitle
+              ? {
+                  ...award,
+                  nominations: award.nominations.map((nomination) => {
+                    const rank = ranks.get(nomination.movieId);
+                    return rank === undefined
+                      ? nomination
+                      : { ...nomination, ranking: { ...nomination.ranking, [voter]: rank } };
+                  }),
+                }
+              : award,
+          ),
+        };
+      });
+    },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["awards", clubSlug, year] }).catch(console.error);
     },

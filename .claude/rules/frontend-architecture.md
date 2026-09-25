@@ -46,6 +46,7 @@ The test suite is how this gets enforced — a spec that cannot find an element 
 - Page transitions are one crossfade for every route change, driven by the View Transitions API from `router/viewTransitions.ts` — not by a Vue `<transition>` around a `<router-view>`. Because it snapshots the document, it covers nested router-views too. Don't add per-route or directional (push/pop) animations: `transform` on a page wrapper re-anchors every `position: fixed` descendant (the mobile section bar, un-teleported overlays) to the moving page.
 - Overlays (`VModal`, `VBottomSheet`, `VSideDrawer`) keep their own Vue `<Transition>`s; they are not page transitions.
 - `checkClubAccess` guards club-scoped routes on membership. `noAuth: true` opts a route out of auth; `authRequired: true` redirects to Clubs when logged out.
+- Guards answer from the cache when it can: membership the clubs list already confirms passes without waiting on a background refetch, and `waitForAuthReady` does not wait out BetterAuth's refetch-on-focus of a signed-in session. So a mutation that changes membership or a slug has to write the clubs cache itself before navigating (see `useClub.ts`) — the guard will not wait for its refetch.
 
 ## Service layer
 
@@ -53,10 +54,13 @@ The test suite is how this gets enforced — a spec that cannot find an element 
 
 See the `tanstack-query-vue` skill for query-key conventions, mutation patterns, caching config, and optimistic updates.
 
-**Mutations that change something on screen get an optimistic update.** Creating a list, renaming one, reordering, moving an item — waiting for the round trip reads as broken, and "it'll be there after the refetch" is not accepted in review. Two things to get right:
+**Mutations that change something on screen get an optimistic update.** Creating a list, renaming one, reordering, moving an item — waiting for the round trip reads as broken, and "it'll be there after the refetch" is not accepted in review. What to get right:
 
 - **Update both ends of a move.** Removing from the source list and letting the destination wait for the refetch is a half-done optimistic update.
 - **When the real id only exists after the response** (a freshly created list), keep the pending item visibly pending rather than letting the user reorder something that has no id yet.
+- **Cancel before you write.** `await queryClient.cancelQueries(...)` for every key `onMutate` touches. A refetch already in flight — usually the previous mutation's settle — otherwise lands after the optimistic write and snaps the screen back until the next one.
+- **Don't wait on the settle.** Close the modal, clear the editor or navigate when the user acts, not in `onSuccess` of a mutation whose `onSettled` refetches: that is one slow round trip for the write and another for the refetch. Failures come back as a toast (from the service, when the caller has unmounted by then) or by reopening the editor on what was typed.
+- **Write what the response already told you.** When a mutation's response or an already-cached query holds the new state — a created club's slug, the preview on an invite page — put it in the cache in `onSuccess` and invalidate in the background, rather than awaiting the invalidation.
 
 **Don't paper over freshness with `staleTime`.** Scores, lists, comments and awards are collaborative — several people change them while another is looking at the page, and a user who hits refresh expects to see it. `src/main.ts` deliberately drives revalidation from a per-session fetch counter rather than a fixed `staleTime`, so a hard refresh revalidates while navigation within the session stays quiet; a blanket `staleTime` cannot tell those two apart. Read the comment there before changing the query defaults. `staleTime: Infinity` on immutable per-id data (TMDB details, generated discussion questions) is the exception, not the pattern.
 

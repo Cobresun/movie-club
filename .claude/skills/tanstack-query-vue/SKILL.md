@@ -19,7 +19,7 @@ Configured in `src/main.ts`. Key defaults:
 - `cacheTime`: 1 week
 - `refetchOnMount`: custom — always refetches an invalidated query, otherwise counts fetches per query hash in an in-memory map and stops refetching after the first couple of mounts
 - **Persistence:** IndexedDB (`idb-keyval` behind `createAsyncStoragePersister`), 1-week maxAge. Deliberately **not** localStorage: no ~5MB quota to silently blow past on a large club's cached lists, and no synchronous main-thread serialization
-- **User queries excluded from persistence:** `shouldDehydrateQuery` filters out `queryKey[0] === "user"`
+- **User queries excluded from persistence:** `shouldDehydrateQuery` filters out `queryKey[0] === "user"`. The auth store instead starts `["user", "clubs"]` alongside the session check on a browser whose last session was signed in, so a cold load pays for one round trip rather than two back to back
 
 The persister and that in-memory map are one mechanism: the map is empty on every page load, so a hard refresh paints instantly from IndexedDB and then revalidates in the background, while navigation within the session stays quiet. A fixed `staleTime` can't express that — it can't distinguish a remount from a reload.
 
@@ -118,7 +118,9 @@ export function useCreateClub() {
 ```typescript
 return useMutation({
   mutationFn: ({ workId, score }) => auth.request.post(...),
-  onMutate: ({ workId, score }) => {
+  onMutate: async ({ workId, score }) => {
+    // An in-flight refetch would otherwise land on top of the optimistic write.
+    await queryClient.cancelQueries({ queryKey: reviewsListKey(clubSlug) });
     queryClient.setQueryData<DetailedReviewListItem[]>(reviewsListKey(clubSlug), (current) =>
       current?.map(item => item.id === workId ? { ...item, updatedField } : item),
     );

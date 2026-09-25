@@ -272,18 +272,14 @@ const onMoveToList = ({ item, listId }: { item: DetailedWorkListItem; listId: st
 
 const onReview = (workId: string) => {
   if (props.reviewsListId === null || isPending(workId)) return;
-  moveItem(
-    {
-      sourceListId: props.listId,
-      destinationListId: props.reviewsListId,
-      workId,
-    },
-    {
-      onSuccess: () => {
-        router.push({ name: "Reviews" }).catch(console.error);
-      },
-    },
-  );
+  // The move lands the work on the reviews page optimistically, so there is
+  // nothing to wait for before going there.
+  moveItem({
+    sourceListId: props.listId,
+    destinationListId: props.reviewsListId,
+    workId,
+  });
+  router.push({ name: "Reviews" }).catch(console.error);
 };
 </script>
 
