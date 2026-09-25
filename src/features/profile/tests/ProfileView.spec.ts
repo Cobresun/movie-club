@@ -1,10 +1,16 @@
 import { screen, waitFor } from "@testing-library/vue";
+import { config } from "@vue/test-utils";
 import { delay, http, HttpResponse } from "msw";
 
 import ProfileView from "../views/ProfileView.vue";
+import { mockCanvas } from "@/mocks/canvas";
 import memberData from "@/mocks/data/member.json";
 import { server } from "@/mocks/server";
 import { logIn, render } from "@/tests/utils";
+
+// vue-toastification renders inside a <transition-group>, whose default VTU
+// stub drops the toast text; un-stub it so the error toasts can be read.
+config.global.stubs = { transition: false, "transition-group": false };
 
 const renderProfile = () => {
   const { user, pinia } = render(ProfileView);
@@ -103,5 +109,73 @@ describe("ProfileView", () => {
     render(ProfileView);
 
     expect(screen.queryByRole("button", { name: "Remove photo" })).not.toBeInTheDocument();
+  });
+
+  describe("choosing a new photo", () => {
+    const photo = new File(["pretend-jpeg-bytes"], "holiday.jpg", { type: "image/jpeg" });
+
+    const pickPhoto = async () => {
+      const rendered = renderProfile();
+      await rendered.user.upload(screen.getByLabelText("Choose a photo"), photo);
+      return rendered;
+    };
+
+    beforeEach(() => {
+      mockCanvas();
+    });
+
+    it("opens the photo in a cropper before anything is uploaded", async () => {
+      await pickPhoto();
+
+      expect(await screen.findByRole("img", { name: "Crop preview" })).toBeInTheDocument();
+      expect(screen.getByRole("slider", { name: "Zoom" })).toBeInTheDocument();
+      expect(screen.queryByRole("status", { name: "Updating photo" })).not.toBeInTheDocument();
+    });
+
+    it("uploads the crop once it is saved", async () => {
+      server.use(
+        http.post("/api/member/avatar", async () => {
+          await delay();
+          return new HttpResponse(null, { status: 200 });
+        }),
+      );
+
+      const { user } = await pickPhoto();
+      await user.click(await screen.findByRole("button", { name: "Save photo" }));
+
+      expect(await screen.findByRole("status", { name: "Updating photo" })).toBeInTheDocument();
+      expect(screen.queryByRole("img", { name: "Crop preview" })).not.toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.queryByRole("status", { name: "Updating photo" })).not.toBeInTheDocument();
+      });
+    });
+
+    it("leaves the photo alone when the crop is cancelled", async () => {
+      const { user } = await pickPhoto();
+      await user.click(await screen.findByRole("button", { name: "Cancel" }));
+
+      expect(screen.queryByRole("img", { name: "Crop preview" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("status", { name: "Updating photo" })).not.toBeInTheDocument();
+    });
+
+    it("says so when the browser can't open the photo", async () => {
+      mockCanvas({ decodable: false });
+
+      await pickPhoto();
+
+      expect(
+        await screen.findAllByText("That photo couldn't be opened. Try a JPEG or PNG."),
+      ).not.toHaveLength(0);
+      expect(screen.queryByRole("img", { name: "Crop preview" })).not.toBeInTheDocument();
+    });
+
+    it("says so when the upload is refused", async () => {
+      server.use(http.post("/api/member/avatar", () => new HttpResponse(null, { status: 500 })));
+
+      const { user } = await pickPhoto();
+      await user.click(await screen.findByRole("button", { name: "Save photo" }));
+
+      expect(await screen.findAllByText("Couldn't update your photo")).not.toHaveLength(0);
+    });
   });
 });

@@ -6,11 +6,12 @@ class ImageRepository {
       cloudinary.uploader
         .upload_stream(
           {
+            // The member framed the photo themselves when they cropped it, so
+            // this only resizes — face-gravity cropping would re-frame it.
             transformation: {
               width: 256,
-              crop: "thumb",
-              gravity: "faces",
-              aspect_ratio: "1.0",
+              height: 256,
+              crop: "fill",
             },
           },
           (error, uploadResult) => {
