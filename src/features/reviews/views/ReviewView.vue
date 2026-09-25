@@ -13,6 +13,7 @@
     <page-header :has-back="false" page-name="Reviews" />
     <ReviewsSkeleton v-if="loading" />
     <div v-else>
+      <UpNextCard :club-slug="clubSlug" @started="openStartedReview" />
       <!-- Search Filter Bar -->
       <search-filter-bar
         v-model:filtered-data="filteredReviews"
@@ -45,6 +46,7 @@
       </div>
       <gallery-view
         v-else
+        ref="gallery"
         :reviews="filteredReviews"
         :delete-review="deleteReview"
         :members="members"
@@ -57,7 +59,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { computed, ref, provide } from "vue";
+import { computed, nextTick, ref, provide, useTemplateRef } from "vue";
 
 import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import { ClubType } from "../../../../lib/types/generated/db";
@@ -65,6 +67,7 @@ import { DetailedReviewListItem } from "../../../../lib/types/lists";
 import GalleryView from "../components/GalleryView.vue";
 import ReviewsSkeleton from "../components/ReviewsSkeleton.vue";
 import ScoreAssistModal from "../components/ScoreAssistModal.vue";
+import UpNextCard from "../components/UpNextCard.vue";
 import { buildCandidatePool, isScoreAssistEligible } from "../composables/scoreAssistLogic";
 import { ScoreAssistKey } from "../scoreAssist";
 import { clubTypeConfig } from "@/common/clubType";
@@ -110,6 +113,15 @@ const noReviewsDescription = computed(() => {
 });
 
 const members = computed(() => membersResponse.value ?? []);
+
+// Starting the up-next review lands straight in its details drawer, where the
+// score entry lives. The gallery may only just have mounted (the first review
+// replaces the empty state), so wait a tick for its ref.
+const gallery = useTemplateRef("gallery");
+const openStartedReview = async (workId: string) => {
+  await nextTick();
+  gallery.value?.openReview(workId);
+};
 
 const { data: reviewsListId } = useReviewsListId(clubSlug);
 const { mutate: deleteReviewMutation } = useDeleteReview(clubSlug);
