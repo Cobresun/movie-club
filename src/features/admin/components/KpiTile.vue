@@ -2,7 +2,9 @@
   <div class="rounded-xl bg-lowBackground p-4">
     <p class="text-sm text-slate-400">{{ label }}</p>
     <div class="mt-1 flex items-baseline gap-2">
-      <p class="text-2xl font-bold text-white">{{ formatCount(value) }}</p>
+      <p ref="valueEl" class="text-2xl font-bold tabular-nums text-white">
+        {{ formatCount(shownValue) }}
+      </p>
       <span v-if="deltaLabel !== null" class="text-xs font-medium" :class="deltaClass">
         {{ deltaLabel }}
       </span>
@@ -12,10 +14,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref } from "vue";
 
 import { hasValue } from "../../../../lib/checks/checks.js";
 import { formatCount } from "../formatMetrics";
+import { useCountUp } from "@/common/composables/useCountUp";
 
 const props = defineProps<{
   label: string;
@@ -28,6 +31,9 @@ const props = defineProps<{
    */
   delta?: number | null;
 }>();
+
+const valueEl = ref<HTMLElement | null>(null);
+const shownValue = useCountUp(() => props.value, valueEl);
 
 const deltaLabel = computed(() => {
   const delta = props.delta;
