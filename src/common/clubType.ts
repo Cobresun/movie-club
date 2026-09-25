@@ -32,6 +32,8 @@ export interface WorkSearchResult {
   title: string;
   subtitle?: string;
   imageUrl?: string;
+  /** Why the work is being suggested, e.g. "Similar to Parasite". */
+  reason?: string;
 }
 
 async function searchMovies(query: string, signal?: AbortSignal): Promise<WorkSearchResult[]> {
@@ -146,6 +148,11 @@ export interface ClubTypeConfig {
    * watch"). Movies do (TMDB/JustWatch); books don't.
    */
   readonly supportsWatchProviders: boolean;
+  /**
+   * Whether the add modal offers recommendations drawn from the members'
+   * scores. Needs a source of similar works; TMDB has one, Google Books doesn't.
+   */
+  readonly supportsRecommendations: boolean;
   /** Copy for the invite handoff shown after a club is created. */
   readonly invite: InviteConfig;
   /** Per-type extraction of the strings shown in the details drawers. */
@@ -548,6 +555,7 @@ export const CLUB_TYPE_CONFIG: Record<ClubType, ClubTypeConfig> = {
     },
     supportsAwards: true,
     supportsWatchProviders: true,
+    supportsRecommendations: true,
     invite: {
       shareText: "Join my club and score the movies we watch together.",
     },
@@ -589,6 +597,7 @@ export const CLUB_TYPE_CONFIG: Record<ClubType, ClubTypeConfig> = {
     },
     supportsAwards: false,
     supportsWatchProviders: false,
+    supportsRecommendations: false,
     invite: {
       shareText: "Join my club and score the books we read together.",
     },
@@ -645,6 +654,11 @@ export function clubTypeSupportsAwards(type: ClubType): boolean {
  */
 export function workTypeSupportsWatchProviders(type: WorkType): boolean {
   return clubTypeConfig(CLUB_TYPE_BY_WORK_TYPE[type]).supportsWatchProviders;
+}
+
+/** Whether a club's media type offers recommendations when adding a work. */
+export function clubTypeSupportsRecommendations(type: ClubType): boolean {
+  return clubTypeConfig(type).supportsRecommendations;
 }
 
 /** Invite-screen copy for a club's media type. */

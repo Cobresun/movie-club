@@ -1,6 +1,7 @@
 import { screen } from "@testing-library/vue";
 import { http, HttpResponse } from "msw";
 
+import { WorkRecommendation } from "../../../../lib/types/recommendations";
 import AddWorkModal from "../components/AddWorkModal.vue";
 import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
 import { server } from "@/mocks/server";
@@ -15,6 +16,26 @@ const titleByCollection: Record<string, string> = {
   upcoming: "Upcoming Pick",
   top_rated: "Top Rated Pick",
 };
+
+const recommendations: WorkRecommendation[] = [
+  {
+    externalId: "949",
+    title: "Heat",
+    subtitle: "1995",
+    imageUrl: "https://image.tmdb.org/t/p/w154/heat.jpg",
+    similarTo: ["Collateral", "Thief"],
+  },
+  {
+    externalId: "11",
+    title: "Ronin",
+    subtitle: "1998",
+    imageUrl: "https://image.tmdb.org/t/p/w154/ronin.jpg",
+    similarTo: [],
+  },
+];
+
+const respondWithRecommendations = (body: WorkRecommendation[]) =>
+  server.use(http.get("/api/club/:id/recommendations", () => HttpResponse.json(body)));
 
 beforeEach(() => {
   server.use(
@@ -38,20 +59,73 @@ beforeEach(() => {
 });
 
 describe("AddWorkModal", () => {
-  it("shows the Popular collection by default", async () => {
+  it("opens on the club's recommendations, saying what each is similar to", async () => {
+    respondWithRecommendations(recommendations);
     render(AddWorkModal, { props: { listId: "1" } });
 
-    expect(await screen.findByText("Popular Pick")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Popular" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Now Playing" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /Heat/ })).toHaveTextContent(
+      "Similar to Collateral and Thief",
+    );
+    expect(screen.getByRole("button", { name: /Ronin/ })).not.toHaveTextContent("Similar to");
+    expect(screen.getByRole("button", { name: "Recommended" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
   });
 
-  it("switches the collection when another tab is selected", async () => {
+  it("switches between recommendations and a collection", async () => {
+    respondWithRecommendations(recommendations);
     const { user } = render(AddWorkModal, { props: { listId: "1" } });
 
-    await screen.findByText("Popular Pick");
+    await screen.findByText("Heat");
     await user.click(screen.getByRole("button", { name: "Now Playing" }));
 
     expect(await screen.findByText("Now Playing Pick")).toBeInTheDocument();
+    expect(screen.queryByText("Heat")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Recommended" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+
+    await user.click(screen.getByRole("button", { name: "Recommended" }));
+
+    expect(await screen.findByText("Heat")).toBeInTheDocument();
+  });
+
+  it("explains where recommendations come from when there are none yet", async () => {
+    respondWithRecommendations([]);
+    render(AddWorkModal, { props: { listId: "1" } });
+
+    expect(
+      await screen.findByText(
+        "No recommendations yet. They're drawn from the movies your members have scored.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("says so when recommendations cannot be loaded", async () => {
+    server.use(
+      http.get("/api/club/:id/recommendations", () => new HttpResponse(null, { status: 500 })),
+    );
+    render(AddWorkModal, { props: { listId: "1" } });
+
+    expect(
+      await screen.findByText("Recommendations couldn't be loaded. Try again later."),
+    ).toBeInTheDocument();
+  });
+
+  it("offers book clubs their subject tabs without recommendations", async () => {
+    server.use(
+      http.get("/api/club/:id", () =>
+        HttpResponse.json({ clubId: 1, clubName: "Test club", type: "book" }),
+      ),
+    );
+    render(AddWorkModal, { props: { listId: "1" } });
+
+    expect(await screen.findByRole("button", { name: "Fiction" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(screen.queryByRole("button", { name: "Recommended" })).not.toBeInTheDocument();
   });
 });

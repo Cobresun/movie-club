@@ -1,5 +1,5 @@
 import { GoogleBooksVolume } from "../../../../lib/types/book";
-import { TMDBConfig, TMDBMovieData } from "../../../../lib/types/movie";
+import { TMDBConfig, TMDBMovieData, TMDBPageResponse } from "../../../../lib/types/movie";
 
 /**
  * Payload builders for the third-party APIs the backend talks to.
@@ -98,6 +98,11 @@ export function tmdbMovie(id: number, overrides: Partial<TMDBMovieData> = {}): T
     vote_count: 900,
     ...overrides,
   };
+}
+
+/** A single-page TMDB list response, as `/movie/:id/recommendations` returns. */
+export function tmdbPage(results: TMDBMovieData[]): TMDBPageResponse {
+  return { page: 1, total_pages: 1, total_results: results.length, results };
 }
 
 export function googleBooksVolume(

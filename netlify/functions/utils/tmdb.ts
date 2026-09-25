@@ -9,6 +9,7 @@ import {
   DetailedMovieData,
   TMDBConfig,
   TMDBMovieData,
+  TMDBPageResponse,
 } from "../../../lib/types/movie";
 
 async function makeTMDBApiCall<T>(path: string, params?: Record<string, string>) {
@@ -43,6 +44,18 @@ export async function getTMDBMovieData(movieId: number): Promise<AxiosResponse<T
   return makeTMDBApiCall<TMDBMovieData>(`/movie/${movieId}`, {
     append_to_response: "credits",
   });
+}
+
+/** TMDB's "if you liked this" list for one movie, most relevant first. */
+export async function getTMDBRecommendations(movieId: number): Promise<TMDBMovieData[]> {
+  const { data } = await makeTMDBApiCall<TMDBPageResponse>(`/movie/${movieId}/recommendations`);
+  return data.results;
+}
+
+/** Prefix a TMDB `poster_path` is appended to for a w154 poster. */
+export async function getTMDBPosterBaseUrl(): Promise<string> {
+  const configuration = await getTMDBConfig();
+  return `${configuration.data.images.secure_base_url}w154`;
 }
 
 export async function getDetailedMovie<T extends BaseMovie>(
