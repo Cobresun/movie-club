@@ -52,4 +52,18 @@ describe("VBottomSheet", () => {
 
     expect(screen.getByLabelText("Note")).toBeInTheDocument();
   });
+
+  it("dismisses only the top sheet when a stacked one is pulled down", async () => {
+    render(VBottomSheet, {
+      global: { components: { VBottomSheet } },
+      slots: {
+        default: "<p>Review details</p><VBottomSheet><p>Score entry</p></VBottomSheet>",
+      },
+    });
+
+    await drag(screen.getByText("Score entry"), 100, 400);
+
+    expect(screen.queryByText("Score entry")).not.toBeInTheDocument();
+    expect(screen.getByText("Review details")).toBeInTheDocument();
+  });
 });
