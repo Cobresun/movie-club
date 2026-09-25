@@ -225,6 +225,13 @@ const openMovieDetails = async (review: DetailedReviewListItem) => {
   }
 };
 
+const openReview = (workId: string) => {
+  const review = props.reviews.find((r) => r.id === workId);
+  if (isDefined(review)) void openMovieDetails(review);
+};
+
+defineExpose({ openReview });
+
 const toggleMovieReveal = (movieId: string) => {
   emit("toggle-reveal", movieId);
 };
