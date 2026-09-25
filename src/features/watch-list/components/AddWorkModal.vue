@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 
-import { isDefined } from "../../../../lib/checks/checks";
+import { hasElements, isDefined } from "../../../../lib/checks/checks";
 import { ClubType } from "../../../../lib/types/generated/db";
-import { workTypeForClub } from "@/common/clubType";
+import { clubTypeStats, clubTypeSupportsRecommendations, workTypeForClub } from "@/common/clubType";
 import WorkSearchPrompt from "@/common/components/WorkSearchPrompt.vue";
 import WorkSearchSkeleton from "@/common/components/WorkSearchSkeleton.vue";
 import { useClub, useClubSlug } from "@/service/useClub";
@@ -14,6 +14,7 @@ import {
   useBookBrowse,
   WorkSearchResult,
 } from "@/service/useMediaSearch";
+import { useRecommendations } from "@/service/useRecommendations";
 import { TMDBCollection, useInfiniteCollection } from "@/service/useTMDB";
 
 const { listId } = defineProps<{ listId: string }>();
@@ -25,6 +26,35 @@ const clubType = computed(() => club.value?.type ?? ClubType.movie);
 const isMovieClub = computed(() => clubType.value === ClubType.movie);
 
 const { mutate } = useAddListItem(clubSlug, listId);
+
+// -- Recommendations, for club types with a source of similar works --
+const offersRecommendations = computed(
+  () => isDefined(club.value) && clubTypeSupportsRecommendations(club.value.type),
+);
+const recommendedSelected = ref(true);
+const showingRecommendations = computed(
+  () => offersRecommendations.value && recommendedSelected.value,
+);
+
+const {
+  data: recommendations,
+  isLoading: recommendationsLoading,
+  isError: recommendationsFailed,
+} = useRecommendations(clubSlug, showingRecommendations);
+
+const recommendationResults = computed<WorkSearchResult[]>(() =>
+  (recommendations.value ?? []).map(({ similarTo, ...work }) => ({
+    ...work,
+    reason: hasElements(similarTo) ? `Similar to ${similarTo.join(" and ")}` : undefined,
+  })),
+);
+
+const recommendationsHint = computed(() => {
+  if (!showingRecommendations.value) return undefined;
+  if (recommendationsFailed.value) return "Recommendations couldn't be loaded. Try again later.";
+  const plural = clubTypeStats(clubType.value).pluralNoun.toLowerCase();
+  return `No recommendations yet. They're drawn from the ${plural} your members have scored.`;
+});
 
 // -- Movie clubs: TMDB collections (paginated) --
 const movieTabs: { key: TMDBCollection; label: string }[] = [
@@ -69,10 +99,53 @@ const bookResults = computed<WorkSearchResult[]>(() =>
 );
 
 // -- Shared --
-const defaultList = computed(() => (isMovieClub.value ? movieResults.value : bookResults.value));
-const defaultListTitle = computed(() =>
-  isMovieClub.value ? activeMovieTabLabel.value : activeBookTabLabel.value,
-);
+interface BrowseTab {
+  key: string;
+  label: string;
+  active: boolean;
+  select: () => void;
+}
+
+const tabs = computed<BrowseTab[]>(() => [
+  ...(offersRecommendations.value
+    ? [
+        {
+          key: "recommended",
+          label: "Recommended",
+          active: showingRecommendations.value,
+          select: () => (recommendedSelected.value = true),
+        },
+      ]
+    : []),
+  ...(isMovieClub.value
+    ? movieTabs.map((tab) => ({
+        ...tab,
+        active: !showingRecommendations.value && activeCollection.value === tab.key,
+        select: () => {
+          recommendedSelected.value = false;
+          activeCollection.value = tab.key;
+        },
+      }))
+    : bookTabs.map((tab) => ({
+        ...tab,
+        active: !showingRecommendations.value && activeBookSubject.value === tab.key,
+        select: () => {
+          recommendedSelected.value = false;
+          activeBookSubject.value = tab.key;
+        },
+      }))),
+]);
+
+const browsingMovies = computed(() => isMovieClub.value && !showingRecommendations.value);
+
+const defaultList = computed(() => {
+  if (showingRecommendations.value) return recommendationResults.value;
+  return isMovieClub.value ? movieResults.value : bookResults.value;
+});
+const defaultListTitle = computed(() => {
+  if (showingRecommendations.value) return "Recommended for your club";
+  return isMovieClub.value ? activeMovieTabLabel.value : activeBookTabLabel.value;
+});
 
 const onSelectWork = (work: WorkSearchResult) => {
   mutate({
@@ -89,45 +162,29 @@ const onSelectWork = (work: WorkSearchResult) => {
   <WorkSearchSkeleton v-if="!club" />
   <div v-else class="flex h-full flex-col">
     <div class="mb-2 flex gap-1 overflow-x-auto">
-      <template v-if="isMovieClub">
-        <button
-          v-for="tab in movieTabs"
-          :key="tab.key"
-          class="shrink-0 rounded-full px-3 py-1 text-sm font-medium transition-colors"
-          :class="
-            activeCollection === tab.key
-              ? 'bg-primary text-white'
-              : 'bg-slate-700 text-gray-300 hover:bg-slate-600'
-          "
-          @click="activeCollection = tab.key"
-        >
-          {{ tab.label }}
-        </button>
-      </template>
-      <template v-else>
-        <button
-          v-for="tab in bookTabs"
-          :key="tab.key"
-          class="shrink-0 rounded-full px-3 py-1 text-sm font-medium transition-colors"
-          :class="
-            activeBookSubject === tab.key
-              ? 'bg-primary text-white'
-              : 'bg-slate-700 text-gray-300 hover:bg-slate-600'
-          "
-          @click="activeBookSubject = tab.key"
-        >
-          {{ tab.label }}
-        </button>
-      </template>
+      <button
+        v-for="tab in tabs"
+        :key="tab.key"
+        class="shrink-0 rounded-full px-3 py-1 text-sm font-medium transition-colors"
+        :class="
+          tab.active ? 'bg-primary text-white' : 'bg-slate-700 text-gray-300 hover:bg-slate-600'
+        "
+        :aria-pressed="tab.active"
+        @click="tab.select()"
+      >
+        {{ tab.label }}
+      </button>
     </div>
     <WorkSearchPrompt
       class="min-h-0 flex-1"
       :club-type="clubType"
       :default-list-title="defaultListTitle"
       :default-list="defaultList"
-      :on-load-more="isMovieClub ? () => fetchNextPage() : undefined"
+      :loading-default="showingRecommendations && recommendationsLoading"
+      :empty-hint="recommendationsHint"
+      :on-load-more="browsingMovies ? () => fetchNextPage() : undefined"
       :loading-more="isFetchingNextPage"
-      :has-more="isMovieClub && hasNextPage === true"
+      :has-more="browsingMovies && hasNextPage === true"
       @select-from-default="onSelectWork"
       @select-from-search="onSelectWork"
     />

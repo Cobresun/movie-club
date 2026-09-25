@@ -2,6 +2,7 @@ import { isDefined } from "../../../../lib/checks/checks.js";
 import { WorkType } from "../../../../lib/types/generated/db";
 import { DetailedWorkData, WorkDataSummary } from "../../../../lib/types/lists";
 import { MovieCastMember } from "../../../../lib/types/movie";
+import { SimilarWork } from "../../../../lib/types/recommendations";
 
 /** Coerce a nullable Int8/decimal column (string | null) to number | undefined. */
 export function numOrUndefined(value: string | null): number | undefined {
@@ -70,4 +71,11 @@ export interface MediaProvider {
    * server-resolved data — never from client input.
    */
   getDiscussionPrompt: (work: { title: string; externalId: string | null }) => Promise<string>;
+
+  /**
+   * Works this provider's source considers similar to one work, most similar
+   * first — the candidate pool club recommendations are ranked from. Providers
+   * whose source has no such signal return an empty list.
+   */
+  getSimilarWorks: (externalId: string) => Promise<SimilarWork[]>;
 }
