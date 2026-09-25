@@ -61,6 +61,16 @@ class WorkRepository {
       .executeTakeFirst();
   }
 
+  /** External ids of every work the club holds, on any of its lists. */
+  async getExternalIds(clubId: string): Promise<string[]> {
+    const rows = await db
+      .selectFrom("work")
+      .where("club_id", "=", clubId)
+      .select("external_id")
+      .execute();
+    return rows.map((row) => row.external_id).filter(hasValue);
+  }
+
   async delete(clubId: string, workId: string) {
     return db.deleteFrom("work").where("id", "=", workId).where("club_id", "=", clubId).execute();
   }
