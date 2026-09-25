@@ -22,6 +22,7 @@ import inviteRouter from "./invite";
 import listRouter from "./list";
 import membersRouter from "./members";
 import joinRouter from "./members/join";
+import recommendationsRouter from "./recommendations";
 import reviewsRouter from "./reviews";
 import settingsRouter from "./settings";
 
@@ -32,6 +33,7 @@ router.use("/:clubSlug/members", validClubSlug, membersRouter);
 router.use("/:clubSlug/awards", validClubSlug, awardsRouter);
 router.use("/:clubSlug/invite", validClubSlug, inviteRouter);
 router.use("/:clubSlug/settings", validClubSlug, settingsRouter);
+router.use("/:clubSlug/recommendations", validClubSlug, recommendationsRouter);
 router.get("/:clubSlug", validClubSlug, (req, res) => {
   // validClubSlug already fetched the club row; no second lookup needed.
   const result: ClubPreview = {
