@@ -184,6 +184,15 @@ describe("GalleryView", () => {
     expect(screen.queryByRole("button", { name: /edit score/i })).not.toBeInTheDocument();
   });
 
+  it("moves focus into the details it opens", async () => {
+    const { user, pinia } = renderGallery();
+    logIn(pinia);
+
+    await user.click(await screen.findByRole("button", { name: "Arrival" }));
+
+    expect(await screen.findByRole("dialog")).toHaveFocus();
+  });
+
   it("keeps the details closed until a card is picked", async () => {
     const { pinia } = renderGallery();
     logIn(pinia);

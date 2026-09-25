@@ -79,7 +79,6 @@
         <WorkPosterCard
           v-for="review in sortedReviews"
           :key="review.id"
-          :data-movie-id="review.id"
           :title="review.title"
           :poster-url="review.imageUrl ?? ''"
           :highlighted="selectedMovieId === review.id"
@@ -135,7 +134,7 @@
 <script setup lang="ts">
 import { Listbox, ListboxButton, ListboxOption, ListboxOptions } from "@headlessui/vue";
 import { DateTime } from "luxon";
-import { computed, ref, nextTick, watch } from "vue";
+import { computed, ref } from "vue";
 
 import { isDefined } from "../../../../lib/checks/checks.js";
 import { Member } from "../../../../lib/types/club";
@@ -206,42 +205,13 @@ const selectedMovie = computed(() => {
   return props.reviews.find((review) => review.id === selectedMovieId.value);
 });
 
-const openMovieDetails = async (review: DetailedReviewListItem) => {
-  if (selectedMovieId.value !== review.id) {
-    selectedMovieId.value = review.id;
-
-    await nextTick();
-    // Find the clicked movie element and scroll to center it on page
-    const clickedElement = document.querySelector(`[data-movie-id="${review.id}"]`);
-
-    if (clickedElement) {
-      clickedElement.scrollIntoView({
-        behavior: "smooth",
-        block: "center",
-      });
-    } else {
-      selectedMovieId.value = undefined;
-    }
-  }
+const openMovieDetails = (review: DetailedReviewListItem) => {
+  selectedMovieId.value = review.id;
 };
 
 const toggleMovieReveal = (movieId: string) => {
   emit("toggle-reveal", movieId);
 };
-
-watch(selectedMovieId, async (newValue, oldValue) => {
-  // When drawer closes (transitions from true to false)
-  if (isDefined(oldValue) && !isDefined(newValue)) {
-    await nextTick();
-    const selectedElement = document.querySelector(`[data-movie-id="${oldValue}"]`);
-    if (selectedElement) {
-      selectedElement.scrollIntoView({
-        behavior: "smooth",
-        block: "center",
-      });
-    }
-  }
-});
 </script>
 
 <style scoped>
