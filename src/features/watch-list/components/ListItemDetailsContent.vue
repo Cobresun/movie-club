@@ -34,7 +34,7 @@
 
     <CastList :actors="castActors" class="mt-6" />
 
-    <!-- Details: factual metadata and availability -->
+    <!-- Details: factual metadata -->
     <section v-if="movieData || bookData" class="mt-6">
       <SectionHeader title="Details" />
       <div class="grid grid-cols-2 gap-x-4 gap-y-3">
@@ -50,8 +50,12 @@
           :subjects="bookData.subjects"
         />
       </div>
-      <WatchProviders v-if="movieData" :external-id="movie.externalId" class="mt-4" />
     </section>
+
+    <!-- Availability comes straight from TMDB off the work's external id, so it
+         stands on its own: a list item whose cached metadata hasn't filled in
+         yet still shows where to stream it. -->
+    <WatchProviders v-if="showWatchProviders" :external-id="movie.externalId" class="mt-4" />
 
     <CommentThread :work-id="movie.id" :club-slug="clubSlug" />
 
@@ -121,7 +125,12 @@ import { computed, nextTick, ref } from "vue";
 import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import { Member } from "../../../../lib/types/club";
 import { DetailedWorkListItem } from "../../../../lib/types/lists";
-import { workMetaLine, workOverview, workSubtitle } from "@/common/clubType";
+import {
+  workMetaLine,
+  workOverview,
+  workSubtitle,
+  workTypeSupportsWatchProviders,
+} from "@/common/clubType";
 import BookMetadataGrid from "@/common/components/BookMetadataGrid.vue";
 import CastList from "@/common/components/CastList.vue";
 import CommentThread from "@/common/components/CommentThread.vue";
@@ -202,4 +211,11 @@ const displayYear = computed(() => workSubtitle(props.movie.externalData));
 const metaLine = computed(() => workMetaLine(props.movie.externalData));
 
 const overview = computed(() => workOverview(props.movie.externalData));
+
+// Driven by the work's own type (via the registry) rather than by the cached
+// metadata, so a movie still shows where to stream it when its details haven't
+// been cached.
+const showWatchProviders = computed(
+  () => workTypeSupportsWatchProviders(props.movie.type) && hasValue(props.movie.externalId),
+);
 </script>

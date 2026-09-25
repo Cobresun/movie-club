@@ -48,6 +48,33 @@ beforeEach(() => {
   );
 });
 
+const streamingOn = (providerName: string) => {
+  Object.defineProperty(window.navigator, "language", {
+    value: "en-US",
+    configurable: true,
+  });
+  server.use(
+    http.get("https://api.themoviedb.org/3/movie/:movieId/watch/providers", () =>
+      HttpResponse.json({
+        id: 27205,
+        results: {
+          US: {
+            link: "https://www.themoviedb.org/movie/27205/watch?locale=US",
+            flatrate: [
+              {
+                provider_id: 8,
+                provider_name: providerName,
+                logo_path: "/n.jpg",
+                display_priority: 1,
+              },
+            ],
+          },
+        },
+      }),
+    ),
+  );
+};
+
 describe("ListItemDetailsContent", () => {
   it("renders the work title", async () => {
     render(ListItemDetailsContent, { props: baseProps });
@@ -105,6 +132,26 @@ describe("ListItemDetailsContent", () => {
     await rendered.user.click(screen.getByRole("button", { name: "Reviewed" }));
 
     expect(rendered.emitted()["review"]).toHaveLength(1);
+  });
+
+  it("shows where to watch the movie", async () => {
+    streamingOn("Netflix");
+
+    render(ListItemDetailsContent, { props: baseProps });
+
+    expect(await screen.findByTitle("Netflix")).toBeVisible();
+    expect(screen.getByText("Where to watch")).toBeVisible();
+  });
+
+  it("shows where to watch even when the work has no cached metadata", async () => {
+    streamingOn("Netflix");
+
+    render(ListItemDetailsContent, {
+      props: { ...baseProps, movie: { ...movie, externalData: undefined } },
+    });
+
+    expect(await screen.findByTitle("Netflix")).toBeVisible();
+    expect(screen.getByText("Where to watch")).toBeVisible();
   });
 
   it("hides the 'Reviewed' action when reviewing is not allowed", () => {

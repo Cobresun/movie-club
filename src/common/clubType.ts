@@ -141,6 +141,11 @@ export interface ClubTypeConfig {
   readonly stats: StatsConfig;
   /** Whether this club type can use the awards feature. */
   readonly supportsAwards: boolean;
+  /**
+   * Whether works of this type have streaming availability to show ("where to
+   * watch"). Movies do (TMDB/JustWatch); books don't.
+   */
+  readonly supportsWatchProviders: boolean;
   /** Copy for the invite handoff shown after a club is created. */
   readonly invite: InviteConfig;
   /** Per-type extraction of the strings shown in the details drawers. */
@@ -542,6 +547,7 @@ export const CLUB_TYPE_CONFIG: Record<ClubType, ClubTypeConfig> = {
       shareTitle: "Movie Club Statistics",
     },
     supportsAwards: true,
+    supportsWatchProviders: true,
     invite: {
       shareText: "Join my club and score the movies we watch together.",
     },
@@ -582,6 +588,7 @@ export const CLUB_TYPE_CONFIG: Record<ClubType, ClubTypeConfig> = {
       shareTitle: "Book Club Statistics",
     },
     supportsAwards: false,
+    supportsWatchProviders: false,
     invite: {
       shareText: "Join my club and score the books we read together.",
     },
@@ -629,6 +636,15 @@ export function clubTypeStats(type: ClubType): StatsConfig {
 /** Whether a club's media type can use the awards feature. */
 export function clubTypeSupportsAwards(type: ClubType): boolean {
   return clubTypeConfig(type).supportsAwards;
+}
+
+/**
+ * Whether a work of this type can have streaming availability shown. Driven by
+ * the work type rather than the cached metadata, so availability still renders
+ * for a work whose external details haven't been cached yet.
+ */
+export function workTypeSupportsWatchProviders(type: WorkType): boolean {
+  return clubTypeConfig(CLUB_TYPE_BY_WORK_TYPE[type]).supportsWatchProviders;
 }
 
 /** Invite-screen copy for a club's media type. */
