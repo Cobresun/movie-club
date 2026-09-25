@@ -6,7 +6,8 @@ import { WorkType } from "../../../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
 import { createHistogramData } from "../scoring";
 import type { WorkStatsBase, WorkStatsData, HistogramData } from "../types";
-import { asBook, isMovieData } from "@/common/workDisplay";
+import { isScoredUnit } from "@/common/clubType";
+import { asBook, asTv, isMovieData } from "@/common/workDisplay";
 import { useMembers, useClubSlug } from "@/service/useClub";
 import { useReviewsList } from "@/service/useList";
 
@@ -65,6 +66,13 @@ const WORK_STATS_BUILDERS: Record<
     type: WorkType.book,
     externalData: asBook(review.externalData),
   }),
+  [WorkType.tv]: (base, review) => ({
+    // One scored episode counts like one scored movie, so an episode stands on
+    // its scores alone.
+    ...base,
+    type: WorkType.tv,
+    externalData: asTv(review.externalData),
+  }),
   [WorkType.movie]: (base, review) => {
     // Movie stats read external metadata; skip works without it.
     const externalData = review.externalData;
@@ -104,6 +112,7 @@ function statsBase(review: DetailedReviewListItem): WorkStatsBase {
 
 function mapReviewsToWorks(reviews: DetailedReviewListItem[]): WorkStatsData[] {
   return reviews
+    .filter(isScoredUnit)
     .map((review) => WORK_STATS_BUILDERS[review.type](statsBase(review), review))
     .filter(isDefined)
     .filter((work) => Object.keys(work.userScores).length > 0);

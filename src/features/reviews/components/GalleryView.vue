@@ -90,28 +90,11 @@
           <div class="mb-2 text-sm text-gray-400">
             {{ formatCardDate(review.createdDate) }}
           </div>
-          <div class="grid grid-cols-2 gap-2">
-            <div
-              v-for="entry in workScoreEntries(review, members)"
-              :key="entry.id"
-              class="flex items-center rounded-3xl bg-slate-600"
-            >
-              <ScoreLabel :entry="entry" />
-              <div class="flex-grow text-sm">
-                <!-- Cards never reveal on click: reveal flows through the
-                     details drawer's own pill. -->
-                <span
-                  :class="[
-                    isDefined(entry.memberId) ? '' : 'text-lg font-bold text-primary',
-                    isScoreBlurred(entry, currentUserId, isRevealed(review.id))
-                      ? 'blur filter'
-                      : '',
-                  ]"
-                  >{{ entry.value }}</span
-                >
-              </div>
-            </div>
-          </div>
+          <ScoreChips
+            :entries="workScoreEntries(review, members)"
+            :current-user-id="currentUserId"
+            :revealed="isRevealed(review.id)"
+          />
         </WorkPosterCard>
       </transition-group>
     </div>
@@ -134,19 +117,19 @@
 
 <script setup lang="ts">
 import { Listbox, ListboxButton, ListboxOption, ListboxOptions } from "@headlessui/vue";
-import { DateTime } from "luxon";
 import { computed, ref, nextTick, watch } from "vue";
 
 import { isDefined } from "../../../../lib/checks/checks.js";
 import { Member } from "../../../../lib/types/club";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
-import { isScoreBlurred, workScoreEntries } from "../reviewScores";
+import { workScoreEntries } from "../reviewScores";
 import { ReviewSort, reviewSortOptions, sortReviews } from "../reviewSort";
-import ScoreLabel from "./ScoreLabel.vue";
+import ScoreChips from "./ScoreChips.vue";
 import WorkDetailsDrawer from "./WorkDetailsDrawer.vue";
 import AverageImg from "@/assets/images/average.svg";
 import VAvatar from "@/common/components/VAvatar.vue";
 import WorkPosterCard from "@/common/components/WorkPosterCard.vue";
+import { formatCardDate } from "@/common/workDisplay";
 
 const props = defineProps<{
   reviews: DetailedReviewListItem[];
@@ -192,9 +175,6 @@ const selectedSort = computed<string | undefined>({
     sort.value = isDefined(value) ? { id: value, desc: true } : undefined;
   },
 });
-
-// Cards carry the compact numeric date; the details drawer spells it out.
-const formatCardDate = (createdDate: string) => DateTime.fromISO(createdDate).toLocaleString();
 
 const isRevealed = (movieId: string) =>
   props.hasRated(movieId) || props.revealedMovieIds.has(movieId);

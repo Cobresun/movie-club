@@ -10,6 +10,7 @@ import { db } from "../utils/database";
 const DEFAULT_LIST_TITLE: Record<ClubType, string> = {
   [ClubType.movie]: "Watch List",
   [ClubType.book]: "Reading List",
+  [ClubType.tv]: "Watch List",
 };
 
 class ListRepository {
@@ -197,6 +198,15 @@ class ListRepository {
     return db
       .deleteFrom("work_list_item")
       .where("work_id", "=", workId)
+      .where("list_id", "=", listId)
+      .execute();
+  }
+
+  async deleteItemsFromList(listId: string, workIds: string[]) {
+    if (workIds.length === 0) return;
+    await db
+      .deleteFrom("work_list_item")
+      .where("work_id", "in", workIds)
       .where("list_id", "=", listId)
       .execute();
   }

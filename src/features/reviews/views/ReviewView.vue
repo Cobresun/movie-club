@@ -43,9 +43,10 @@
           @action="openPrompt"
         />
       </div>
-      <gallery-view
+      <component
+        :is="reviewLayout.component"
         v-else
-        :reviews="filteredReviews"
+        :reviews="shownReviews"
         :delete-review="deleteReview"
         :members="members"
         :revealed-movie-ids="revealedMovieIds"
@@ -62,10 +63,10 @@ import { computed, ref, provide } from "vue";
 import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import { ClubType } from "../../../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
-import GalleryView from "../components/GalleryView.vue";
 import ReviewsSkeleton from "../components/ReviewsSkeleton.vue";
 import ScoreAssistModal from "../components/ScoreAssistModal.vue";
 import { buildCandidatePool, isScoreAssistEligible } from "../composables/scoreAssistLogic";
+import { REVIEW_LAYOUTS } from "../reviewLayouts";
 import { ScoreAssistKey } from "../scoreAssist";
 import { clubTypeConfig } from "@/common/clubType";
 import EmptyState from "@/common/components/EmptyState.vue";
@@ -97,8 +98,13 @@ const closePrompt = () => {
 const filteredReviews = ref<DetailedReviewListItem[]>([]);
 const hasActiveFilters = ref(false);
 
+const reviewLayout = computed(() => REVIEW_LAYOUTS[club.value?.type ?? ClubType.movie]);
+const shownReviews = computed(() =>
+  reviewLayout.value.select(reviews.value ?? [], filteredReviews.value),
+);
+
 const hasSearchTerm = computed(() => hasActiveFilters.value);
-const showEmptyState = computed(() => !loading.value && filteredReviews.value.length === 0);
+const showEmptyState = computed(() => !loading.value && shownReviews.value.length === 0);
 
 const searchEmptyDescription = computed(() => {
   const fields = clubTypeConfig(club.value?.type ?? ClubType.movie).searchableFieldsHint;
@@ -149,7 +155,7 @@ const hasUserRated = computed(() => {
   if (userId.value === undefined) return () => false;
 
   return (movieId: string) => {
-    const review = filteredReviews.value?.find((review) => review.id === movieId);
+    const review = shownReviews.value.find((review) => review.id === movieId);
     return Boolean(review?.scores[userId.value ?? ""]?.score !== undefined);
   };
 });

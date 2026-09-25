@@ -54,6 +54,15 @@ describe("GET /api/club/:clubSlug", () => {
     expect(res.body.type).toBe(ClubType.book);
   });
 
+  it("reports the club type for a TV club", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub(alice, { type: ClubType.tv });
+
+    const res = await api.get<ClubPreview>(`/api/club/${club.slug}`);
+
+    expect(res.body.type).toBe(ClubType.tv);
+  });
+
   it("returns 404 for an unknown slug", async () => {
     const res = await api.get("/api/club/nobody-here");
 

@@ -59,16 +59,27 @@ class ReviewRepository {
       .execute();
   }
 
-  async insertReview(listId: string, workId: string, userId: string, score: number) {
-    return db
-      .insertInto("review")
-      .values({
-        list_id: listId,
-        work_id: workId,
-        user_id: userId,
-        score,
-      })
-      .execute();
+  /**
+   * Write `userId`'s score to `workId`, replacing any score they had on it.
+   * A TV season or episode nobody has scored has no work yet, so the client
+   * cannot know a review id to update — two quick saves both arrive here, and
+   * dropping the caller's old row first keeps them from stacking up. Only the
+   * caller's own review is touched.
+   */
+  async replaceScore(listId: string, workId: string, userId: string, score: number) {
+    return db.transaction().execute(async (trx) => {
+      await trx
+        .deleteFrom("review")
+        .where("list_id", "=", listId)
+        .where("user_id", "=", userId)
+        .where("work_id", "=", workId)
+        .execute();
+
+      await trx
+        .insertInto("review")
+        .values({ list_id: listId, work_id: workId, user_id: userId, score })
+        .execute();
+    });
   }
 
   // Scoped to the club through the review's list, so a review id from another

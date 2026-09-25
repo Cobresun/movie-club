@@ -6,7 +6,7 @@ import {
   WorkDataSummary,
   WorkListItem,
 } from "../../../../lib/types/lists";
-import { makeWorkSimilarity, WorkSimilarityScorer } from "@/common/clubType";
+import { isScoredUnit, makeWorkSimilarity, WorkSimilarityScorer } from "@/common/clubType";
 
 /**
  * Score Assist: converge on a 0-10 score suggestion for a target work by
@@ -84,9 +84,11 @@ export type ScoreAssistTarget = Pick<WorkListItem, "id" | "type" | "externalId">
  * club they belong to, the club being reviewed in included.
  *
  * Candidates are restricted to the target's own media type — a book score says
- * nothing about where a movie sits on the user's movie scale — and deduplicated
- * by external id, most recent score first, so a work two of their clubs have
- * both seen is offered once, at the score they last gave it.
+ * nothing about where a movie sits on the user's movie scale — and to the units
+ * a club of that type counts, so a TV season scored on its own is never offered
+ * as an episode to compare against. They are deduplicated by external id, most
+ * recent score first, so a work two of their clubs have both seen is offered
+ * once, at the score they last gave it.
  */
 export function buildCandidatePool(
   scores: readonly MemberScoredWork[],
@@ -96,7 +98,7 @@ export function buildCandidatePool(
   const pool: ScoredCandidate[] = [];
 
   for (const scored of [...scores].sort((a, b) => b.scoredDate.localeCompare(a.scoredDate))) {
-    if (scored.type !== target.type) continue;
+    if (scored.type !== target.type || !isScoredUnit(scored)) continue;
     if (scored.workId === target.id || !Number.isFinite(scored.score)) continue;
     const key = sameWorkKey(scored.type, scored.externalId);
     if (hasValue(key) && seenWorks.has(key)) continue;
