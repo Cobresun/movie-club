@@ -6,15 +6,8 @@ import { GoogleBooksSearchResponse, GoogleBooksVolume } from "@/../lib/types/boo
 import { ClubType, WorkType } from "@/../lib/types/generated/db";
 import { DetailedWorkListItem, WorkDataSummary } from "@/../lib/types/lists";
 import { TMDBPageResponse } from "@/../lib/types/movie";
-import type { FilterOptionType } from "@/common/components/filterTypes";
-import {
-  dateMatcher,
-  enumMatcher,
-  numberMatcher,
-  reviewAverageScore,
-  yearMatcher,
-  type WorkMatcher,
-} from "@/common/filterMatchers";
+import type { RangePreset } from "@/common/components/filterTypes";
+import { reviewAverageScore } from "@/common/filterMatchers";
 import { asBook, asMovie, formatRuntime } from "@/common/workDisplay";
 
 const TMDB_KEY = import.meta.env.VITE_TMDB_API_KEY;
@@ -92,28 +85,42 @@ async function searchBooks(query: string, signal?: AbortSignal): Promise<WorkSea
  * A single filter exposed by SearchFilterBar. The set of options a club shows
  * is driven entirely by its club type (see {@link ClubTypeConfig.filterOptions}),
  * so movie-only fields never appear for book clubs and vice versa.
+ *
+ * There are two kinds, each with its own section in the filter panel: a
+ * `choice` is a set of tappable values (genres, people), a `range` is a span
+ * picked on a histogram of the values the club actually has (years, scores).
  */
-export interface FilterOption {
+export type FilterOption = ChoiceFilterOption | RangeFilterOption;
+
+interface FilterOptionBase {
   readonly key: string;
+  /** Section heading, sentence case ("Release year"). */
   readonly label: string;
-  readonly type: FilterOptionType;
-  readonly placeholder: string;
-  /**
-   * Decides whether a work row satisfies this filter. Owning the predicate here
-   * keeps `filterWorks` media-agnostic — it never grows a branch per field.
-   */
-  readonly matches: WorkMatcher;
-  /**
-   * Enum options only: extract the aggregatable values from one work's
-   * externalData (e.g. genres, author names) so SearchFilterBar can build
-   * frequency-ranked suggestions. Returns `[]` for works of another kind.
-   */
-  readonly suggestions?: (data: WorkDataSummary | undefined) => string[];
-  /**
-   * Year options only: the work's year, used both to match and to plot the
-   * distribution the picker draws behind its scrubber.
-   */
-  readonly year?: (work: DetailedWorkListItem) => number | undefined;
+  /** Icon on the section heading and on the applied-filter chip. */
+  readonly icon: string;
+}
+
+export interface ChoiceFilterOption extends FilterOptionBase {
+  readonly kind: "choice";
+  /** Every value one work offers for this filter, e.g. its genres. */
+  readonly values: (work: DetailedWorkListItem) => string[];
+  /** Placeholder for the search field a long list of values gets. */
+  readonly searchPlaceholder: string;
+  /** Most common values first, or the newest first (for years). */
+  readonly order: "popular" | "newest";
+}
+
+export interface RangeFilterOption extends FilterOptionBase {
+  readonly kind: "range";
+  /** The work's value, or undefined when it has none. */
+  readonly value: (work: DetailedWorkListItem) => number | undefined;
+  /** Increment the slider snaps to. Must divide `bucket`. */
+  readonly step: number;
+  /** Width of one histogram bar, in the value's own units. */
+  readonly bucket: number;
+  readonly format: (value: number) => string;
+  /** One-tap shortcuts, derived from every value in the club's data. */
+  readonly presets: (values: number[]) => RangePreset[];
 }
 
 export interface ClubTypeConfig {
@@ -202,94 +209,52 @@ export interface InviteConfig {
   readonly shareText: string;
 }
 
-// --- FilterOption builders --------------------------------------------------
-// Each builder derives an option's `matches` predicate from a single selector,
-// so the registry entries below stay declarative and can never omit their
-// filtering logic.
+// --- Filter options ---------------------------------------------------------
 
-/** Enum filter: one selector drives both suggestions and matching. */
-function enumOption(
-  key: string,
-  label: string,
-  placeholder: string,
-  select: (data: WorkDataSummary | undefined) => string[],
-): FilterOption {
-  return {
-    key,
-    label,
-    type: "enum",
-    placeholder,
-    matches: enumMatcher(select),
-    suggestions: select,
-  };
+const formatScore = (score: number) => String(Math.round(score * 100) / 100);
+
+function yearOf(isoDate: string): string {
+  return isoDate.slice(0, 4);
 }
 
-/** Numeric filter with `> = <` comparators. */
-function numberOption(
-  key: string,
-  label: string,
-  placeholder: string,
-  select: (work: DetailedWorkListItem) => number | string | undefined,
-): FilterOption {
-  return {
-    key,
-    label,
-    type: "number",
-    placeholder,
-    matches: numberMatcher(select),
-  };
-}
-
-/** Date filter with `> = <` comparators. */
-function dateOption(
-  key: string,
-  label: string,
-  placeholder: string,
-  select: (work: DetailedWorkListItem) => string | undefined,
-): FilterOption {
-  return {
-    key,
-    label,
-    type: "date",
-    placeholder,
-    matches: dateMatcher(select),
-  };
-}
-
-/**
- * A calendar-year filter: one year or an inclusive span of them. Years are
- * compared as numbers, so a work only needs to yield a year — no date parsing,
- * and no month/day precision the picker would have to invent.
- */
-function yearOption(
-  key: string,
-  label: string,
-  placeholder: string,
-  select: (work: DetailedWorkListItem) => number | undefined,
-): FilterOption {
-  return {
-    key,
-    label,
-    type: "year",
-    placeholder,
-    matches: yearMatcher(select),
-    year: select,
-  };
+/** "’90s" for last century, "2010s" for this one — the way people say them. */
+function decadePresets(years: number[]): RangePreset[] {
+  const decades = [...new Set(years.map((year) => Math.floor(year / 10) * 10))].sort(
+    (a, b) => a - b,
+  );
+  return decades.map((decade) => ({
+    label: decade < 2000 ? `’${String(decade).slice(2)}s` : `${decade}s`,
+    from: decade,
+    to: decade + 9,
+  }));
 }
 
 // Filters shared by every club type (scores and review metadata).
-const averageScoreOption = numberOption(
-  "average_score",
-  "Average Score",
-  "Enter score",
-  reviewAverageScore,
-);
-const reviewDateOption = dateOption(
-  "review_date",
-  "Review Date",
-  "Enter a year",
-  (work) => work.createdDate,
-);
+const clubScoreFilter: RangeFilterOption = {
+  kind: "range",
+  key: "average_score",
+  label: "Club score",
+  icon: "star-outline",
+  value: reviewAverageScore,
+  step: 0.5,
+  bucket: 1,
+  format: formatScore,
+  presets: () => [
+    { label: "Loved it", detail: "8+", from: 8 },
+    { label: "Liked it", detail: "6+", from: 6 },
+    { label: "Not for us", detail: "5 and under", to: 5 },
+  ],
+};
+
+const reviewedInFilter: ChoiceFilterOption = {
+  kind: "choice",
+  key: "review_date",
+  label: "Reviewed in",
+  icon: "calendar-check-outline",
+  values: (work) => [yearOf(work.createdDate)],
+  searchPlaceholder: "Find a year",
+  order: "newest",
+};
 
 // --- Per-type display extraction --------------------------------------------
 
@@ -505,39 +470,75 @@ export const CLUB_TYPE_CONFIG: Record<ClubType, ClubTypeConfig> = {
     searchHint: "Search for a movie to add.",
     searchableFieldsHint: "title, genre, company, director, actor, or release year",
     filterOptions: [
-      enumOption("genre", "Genre", "Select a genre", (data) => asMovie(data)?.genres ?? []),
-      averageScoreOption,
-      enumOption(
-        "company",
-        "Production Company",
-        "Select a company",
-        (data) => asMovie(data)?.production_companies ?? [],
-      ),
-      enumOption(
-        "director",
-        "Director",
-        "Select a director",
-        (data) => asMovie(data)?.directors?.map((d) => d.name) ?? [],
-      ),
-      enumOption(
-        "actor",
-        "Actor",
-        "Select an actor",
+      {
+        kind: "choice",
+        key: "genre",
+        label: "Genre",
+        icon: "drama-masks",
+        values: (work) => asMovie(work.externalData)?.genres ?? [],
+        searchPlaceholder: "Find a genre",
+        order: "popular",
+      },
+      clubScoreFilter,
+      {
+        kind: "range",
+        key: "release_date",
+        label: "Release year",
+        icon: "calendar-range",
+        value: (work) => {
+          const movie = asMovie(work.externalData);
+          return movie === undefined ? undefined : releaseYear(movie);
+        },
+        step: 1,
+        bucket: 5,
+        format: String,
+        presets: decadePresets,
+      },
+      {
+        kind: "range",
+        key: "runtime",
+        label: "Runtime",
+        icon: "timer-outline",
+        value: (work) => asMovie(work.externalData)?.runtime,
+        step: 5,
+        bucket: 15,
+        format: formatRuntime,
+        presets: () => [
+          { label: "Short & sweet", detail: "under 1h 30m", to: 90 },
+          { label: "Feature length", detail: "1h 30m – 2h", from: 90, to: 120 },
+          { label: "Epic", detail: "2h 30m+", from: 150 },
+        ],
+      },
+      {
+        kind: "choice",
+        key: "director",
+        label: "Director",
+        icon: "bullhorn-outline",
+        values: (work) => asMovie(work.externalData)?.directors?.map((d) => d.name) ?? [],
+        searchPlaceholder: "Find a director",
+        order: "popular",
+      },
+      {
+        kind: "choice",
+        key: "actor",
+        label: "Cast",
+        icon: "account-star",
         // Bulk payloads carry names only (castNames); full actor objects are
         // fetched per-work by the detail drawer.
-        (data) => asMovie(data)?.castNames ?? [],
-      ),
-      reviewDateOption,
-      yearOption("release_date", "Release Year", "Enter a year", (work) => {
-        const movie = asMovie(work.externalData);
-        return movie === undefined ? undefined : releaseYear(movie);
-      }),
-      numberOption(
-        "runtime",
-        "Runtime (min)",
-        "Enter minutes",
-        (work) => asMovie(work.externalData)?.runtime,
-      ),
+        values: (work) => asMovie(work.externalData)?.castNames ?? [],
+        searchPlaceholder: "Find an actor",
+        order: "popular",
+      },
+      {
+        kind: "choice",
+        key: "company",
+        label: "Studio",
+        icon: "domain",
+        values: (work) => asMovie(work.externalData)?.production_companies ?? [],
+        searchPlaceholder: "Find a studio",
+        order: "popular",
+      },
+      reviewedInFilter,
     ],
     search: searchMovies,
     stats: {
@@ -563,22 +564,55 @@ export const CLUB_TYPE_CONFIG: Record<ClubType, ClubTypeConfig> = {
     searchHint: "Search for a book to add.",
     searchableFieldsHint: "title, author, subject, or published year",
     filterOptions: [
-      enumOption("author", "Author", "Select an author", (data) => asBook(data)?.authors ?? []),
-      enumOption("subject", "Subject", "Select a subject", (data) => asBook(data)?.subjects ?? []),
-      averageScoreOption,
-      reviewDateOption,
-      numberOption(
-        "first_publish_year",
-        "First Published",
-        "Enter a year",
-        (work) => asBook(work.externalData)?.firstPublishYear,
-      ),
-      numberOption(
-        "pages",
-        "Pages",
-        "Enter page count",
-        (work) => asBook(work.externalData)?.numberOfPages,
-      ),
+      {
+        kind: "choice",
+        key: "author",
+        label: "Author",
+        icon: "feather",
+        values: (work) => asBook(work.externalData)?.authors ?? [],
+        searchPlaceholder: "Find an author",
+        order: "popular",
+      },
+      {
+        kind: "choice",
+        key: "subject",
+        label: "Subject",
+        icon: "tag-outline",
+        values: (work) => asBook(work.externalData)?.subjects ?? [],
+        searchPlaceholder: "Find a subject",
+        order: "popular",
+      },
+      clubScoreFilter,
+      {
+        kind: "range",
+        key: "first_publish_year",
+        label: "First published",
+        icon: "calendar-range",
+        value: (work) => asBook(work.externalData)?.firstPublishYear,
+        step: 1,
+        bucket: 10,
+        format: String,
+        presets: () => [
+          { label: "Classics", detail: "before 1950", to: 1949 },
+          { label: "Modern", detail: "1950 – 1999", from: 1950, to: 1999 },
+          { label: "This century", detail: "2000+", from: 2000 },
+        ],
+      },
+      {
+        kind: "range",
+        key: "pages",
+        label: "Length",
+        icon: "book-open-page-variant-outline",
+        value: (work) => asBook(work.externalData)?.numberOfPages,
+        step: 10,
+        bucket: 50,
+        format: (pages) => `${pages} pages`,
+        presets: () => [
+          { label: "Quick read", detail: "under 200 pages", to: 200 },
+          { label: "Doorstopper", detail: "500+ pages", from: 500 },
+        ],
+      },
+      reviewedInFilter,
     ],
     search: searchBooks,
     stats: {
