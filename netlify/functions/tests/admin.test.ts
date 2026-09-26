@@ -96,6 +96,31 @@ describe("GET /api/admin/metrics", () => {
     expect(pulse.newClubs).toEqual({ current: 1, previous: 0 });
   });
 
+  it("counts a club in every window it was active in", async () => {
+    // A club active in two windows belongs in both. Counting several windows
+    // with `count(DISTINCT …) FILTER` in one SELECT gets this wrong on
+    // CockroachDB (see .claude/rules/database.md); this fixture is too small to
+    // trigger that locally, but it pins down the answer the fix must give.
+    const daysAgo = (days: number) => new Date(Date.now() - days * DAY_MS);
+    const steady = await createClub(admin);
+    const lapsed = await createClub(admin);
+    // Newest first as well as oldest first, so the result cannot depend on
+    // which of a club's rows happens to be read first.
+    await addWork(steady, admin, { addedDate: daysAgo(1) });
+    for (const club of [steady, lapsed]) {
+      await addWork(club, admin, { addedDate: daysAgo(10) });
+      await addWork(club, admin, { addedDate: daysAgo(200) });
+    }
+    await addWork(steady, admin, { addedDate: daysAgo(2) });
+
+    const week = await dashboard("7d");
+    const month = await dashboard("30d");
+
+    expect(week.pulse.activeClubs).toEqual({ current: 1, previous: 2 });
+    expect(week.pulse.activeUsers).toEqual({ current: 1, previous: 1 });
+    expect(month.pulse.activeClubs).toEqual({ current: 2, previous: 0 });
+  });
+
   it("has nothing to compare against over all time", async () => {
     const club = await createClub(admin);
     await reviewTogether(club, [[admin, 7]]);
