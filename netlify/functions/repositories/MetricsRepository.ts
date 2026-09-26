@@ -188,45 +188,47 @@ type ActivityRow = InferResult<ReturnType<typeof activityEvents>>[number];
 
 class MetricsRepository {
   /**
-   * The headline counts for the range and for the range before it, from one
-   * pass over the activity union plus one over signups.
+   * Distinct clubs and people active in `[from, until)`, plus reviews and
+   * comments, from one pass over the activity union.
+   *
+   * One query per window, with the window in `WHERE`, on purpose: CockroachDB
+   * returns wrong answers — often 0 — when a single SELECT holds several
+   * `count(DISTINCT x)` over the same column with different `FILTER` clauses
+   * (or one filtered and one not). Two windows in one SELECT is exactly that
+   * shape, and it is how the dashboard once reported one active club while
+   * its own leaderboard listed four. Never pair `.distinct()` with
+   * `.filterWhere()`.
    */
+  private async countActivity(from: Date, until: Date) {
+    const row = await db
+      .with("activity", activityEvents)
+      .selectFrom("activity")
+      .where("ts", ">=", from)
+      .where("ts", "<", until)
+      .select((eb) => [
+        eb.fn.count<string>("club_id").distinct().as("clubs"),
+        eb.fn.count<string>("user_id").distinct().as("users"),
+        eb.fn.countAll<string>().filterWhere("kind", "=", "review").as("reviews"),
+        eb.fn.countAll<string>().filterWhere("kind", "=", "comment").as("comments"),
+      ])
+      .executeTakeFirstOrThrow();
+
+    return {
+      clubs: toCount(row.clubs),
+      users: toCount(row.users),
+      reviews: toCount(row.reviews),
+      comments: toCount(row.comments),
+    };
+  }
+
+  /** The headline counts for the range and for the range before it. */
   private async getPulse(window: RangeWindow) {
     const { since } = window;
     const previousSince = window.previousSince ?? since;
 
-    const [activity, signups] = await Promise.all([
-      db
-        .with("activity", activityEvents)
-        .selectFrom("activity")
-        .where("ts", ">=", previousSince)
-        .select((eb) => {
-          const current = eb("ts", ">=", since);
-          const previous = eb.and([eb("ts", ">=", previousSince), eb("ts", "<", since)]);
-          return [
-            eb.fn.count<string>("club_id").distinct().filterWhere(current).as("clubs_now"),
-            eb.fn.count<string>("club_id").distinct().filterWhere(previous).as("clubs_before"),
-            eb.fn.count<string>("user_id").distinct().filterWhere(current).as("users_now"),
-            eb.fn.count<string>("user_id").distinct().filterWhere(previous).as("users_before"),
-            eb.fn
-              .countAll<string>()
-              .filterWhere(eb.and([current, eb("kind", "=", "review")]))
-              .as("reviews_now"),
-            eb.fn
-              .countAll<string>()
-              .filterWhere(eb.and([previous, eb("kind", "=", "review")]))
-              .as("reviews_before"),
-            eb.fn
-              .countAll<string>()
-              .filterWhere(eb.and([current, eb("kind", "=", "comment")]))
-              .as("comments_now"),
-            eb.fn
-              .countAll<string>()
-              .filterWhere(eb.and([previous, eb("kind", "=", "comment")]))
-              .as("comments_before"),
-          ];
-        })
-        .executeTakeFirstOrThrow(),
+    const [current, previous, signups] = await Promise.all([
+      this.countActivity(since, window.now),
+      window.previousSince === undefined ? undefined : this.countActivity(previousSince, since),
       db
         .selectNoFrom((eb) => [
           eb
@@ -255,19 +257,19 @@ class MetricsRepository {
         .executeTakeFirstOrThrow(),
     ]);
 
-    const hasPrevious = window.previousSince !== undefined;
-    const period = (now: string | null, before: string | null): PeriodCount => ({
-      current: toCount(now),
-      previous: hasPrevious ? toCount(before) : null,
+    const hasPrevious = previous !== undefined;
+    const period = (now: number, before: number | undefined): PeriodCount => ({
+      current: now,
+      previous: hasPrevious ? (before ?? 0) : null,
     });
 
     return {
-      activeClubs: period(activity.clubs_now, activity.clubs_before),
-      activeUsers: period(activity.users_now, activity.users_before),
-      newUsers: period(signups.users_now, signups.users_before),
-      newClubs: period(signups.clubs_now, signups.clubs_before),
-      reviews: period(activity.reviews_now, activity.reviews_before),
-      comments: period(activity.comments_now, activity.comments_before),
+      activeClubs: period(current.clubs, previous?.clubs),
+      activeUsers: period(current.users, previous?.users),
+      newUsers: period(toCount(signups.users_now), toCount(signups.users_before)),
+      newClubs: period(toCount(signups.clubs_now), toCount(signups.clubs_before)),
+      reviews: period(current.reviews, previous?.reviews),
+      comments: period(current.comments, previous?.comments),
     };
   }
 
@@ -953,10 +955,11 @@ class MetricsRepository {
    * deleted as they expire — so anything not captured on the day is gone.
    */
   private async getSnapshotMetrics(): Promise<SnapshotMetrics> {
-    const since7 = daysAgo(7);
-    const since30 = daysAgo(30);
+    const now = new Date();
+    const since7 = daysAgo(7, now.getTime());
+    const since30 = daysAgo(30, now.getTime());
 
-    const [scalars, activity, newUserActivation, clubStatus] = await Promise.all([
+    const [scalars, week, month, newUserActivation, clubStatus] = await Promise.all([
       db
         .selectNoFrom((eb) => [
           eb
@@ -988,17 +991,8 @@ class MetricsRepository {
             .as("logged_in_30"),
         ])
         .executeTakeFirstOrThrow(),
-      db
-        .with("activity", activityEvents)
-        .selectFrom("activity")
-        .where("ts", ">=", since30)
-        .select((eb) => [
-          eb.fn.count<string>("user_id").distinct().filterWhere("ts", ">=", since7).as("users_7"),
-          eb.fn.count<string>("user_id").distinct().as("users_30"),
-          eb.fn.count<string>("club_id").distinct().filterWhere("ts", ">=", since7).as("clubs_7"),
-          eb.fn.count<string>("club_id").distinct().as("clubs_30"),
-        ])
-        .executeTakeFirstOrThrow(),
+      this.countActivity(since7, now),
+      this.countActivity(since30, now),
       this.getActivation(since30),
       this.getClubStatus(),
     ]);
@@ -1009,18 +1003,12 @@ class MetricsRepository {
         clubs: toCount(scalars.clubs),
         reviews: toCount(scalars.reviews),
       },
-      engagedUsers: {
-        last7Days: toCount(activity.users_7),
-        last30Days: toCount(activity.users_30),
-      },
+      engagedUsers: { last7Days: week.users, last30Days: month.users },
       loggedInUsers: {
         last7Days: toCount(scalars.logged_in_7),
         last30Days: toCount(scalars.logged_in_30),
       },
-      activeClubs: {
-        last7Days: toCount(activity.clubs_7),
-        last30Days: toCount(activity.clubs_30),
-      },
+      activeClubs: { last7Days: week.clubs, last30Days: month.clubs },
       health: {
         newUserActivation,
         unverifiedUsers: toCount(scalars.users) - toCount(scalars.verified_users),
