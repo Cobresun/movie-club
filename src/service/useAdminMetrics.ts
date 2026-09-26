@@ -2,36 +2,47 @@ import { useQuery } from "@tanstack/vue-query";
 import axios from "axios";
 import { computed, MaybeRef, unref } from "vue";
 
-import { SiteMetrics, SnapshotHistoryPoint } from "../../lib/types/metrics";
+import { AdminDashboard, MetricsRange, SnapshotHistoryPoint } from "../../lib/types/metrics";
 
-/** Default window for the snapshot history charts, in days. */
-export const DEFAULT_HISTORY_DAYS = 90;
+/**
+ * The dashboard over a time frame the caller can change.
+ *
+ * The range is part of the key, so switching frames swaps to a separately
+ * cached entry and flipping back is instant. `keepPreviousData` holds the old
+ * frame on screen while a new one loads, rather than dropping the whole page
+ * back to a spinner on every tap.
+ */
+export function useAdminMetrics(range: MaybeRef<MetricsRange>) {
+  const selected = computed(() => unref(range));
 
-export function useAdminMetrics() {
-  return useQuery<SiteMetrics>({
-    queryKey: ["admin", "metrics"],
-    queryFn: async () => (await axios.get<SiteMetrics>("/api/admin/metrics")).data,
+  return useQuery<AdminDashboard>({
+    queryKey: ["admin", "metrics", selected],
+    queryFn: async () =>
+      (
+        await axios.get<AdminDashboard>("/api/admin/metrics", {
+          params: { range: selected.value },
+        })
+      ).data,
+    keepPreviousData: true,
     // A 401 here means "you are not a site admin", which no amount of retrying
     // will fix — retries would just delay the unauthorized state by seconds.
     retry: false,
   });
 }
 
-/**
- * Snapshot history over a window the caller can change.
- *
- * `days` is a `MaybeRef` so the dashboard's window toggle drives it directly:
- * the key includes the value, so switching windows swaps to a separately cached
- * entry and flipping back is instant rather than a refetch.
- */
-export function useAdminMetricsHistory(days: MaybeRef<number> = DEFAULT_HISTORY_DAYS) {
-  const window = computed(() => unref(days));
+/** The daily snapshots over the same range, for the monthly-actives trend. */
+export function useAdminMetricsHistory(range: MaybeRef<MetricsRange>) {
+  const selected = computed(() => unref(range));
 
   return useQuery<SnapshotHistoryPoint[]>({
-    queryKey: ["admin", "metrics", "history", window],
+    queryKey: ["admin", "metrics", "history", selected],
     queryFn: async () =>
-      (await axios.get<SnapshotHistoryPoint[]>(`/api/admin/metrics/history?days=${window.value}`))
-        .data,
+      (
+        await axios.get<SnapshotHistoryPoint[]>("/api/admin/metrics/history", {
+          params: { range: selected.value },
+        })
+      ).data,
+    keepPreviousData: true,
     retry: false,
   });
 }

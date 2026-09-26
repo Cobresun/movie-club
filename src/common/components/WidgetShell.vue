@@ -1,5 +1,5 @@
 <template>
-  <div v-reveal class="mx-auto w-11/12" :class="outerClass">
+  <div v-reveal :class="outerClass ?? 'mx-auto w-11/12'">
     <div :class="innerClass ?? 'rounded-xl bg-lowBackground p-4 sm:p-5'">
       <div
         v-if="hasValue(title) || $slots.controls"
