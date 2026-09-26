@@ -1,9 +1,7 @@
 import { screen, waitFor, within } from "@testing-library/vue";
-import { http, HttpResponse } from "msw";
+import { delay, http, HttpResponse } from "msw";
 import { describe, expect, it, vi } from "vitest";
-import { defineComponent } from "vue";
 
-import { ensure } from "../../../../lib/checks/checks";
 import AdminDashboardView from "../views/AdminDashboardView.vue";
 import adminMetrics from "@/mocks/data/adminMetrics.json";
 import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
@@ -14,127 +12,169 @@ import { render } from "@/tests/utils";
 // IntersectionObserver — absent in jsdom.
 mockIntersectionObserver();
 
-// ag-charts reaches for a real canvas and throws on mount under jsdom. A thrown
-// mount doesn't fail cleanly either — the half-rendered tree makes later queries
-// in the same file report duplicate matches — so the module is replaced wholesale.
-vi.mock("ag-charts-vue3", () => ({
-  AgCharts: defineComponent({ name: "AgCharts", template: "<div data-testid='ag-chart' />" }),
-}));
+vi.mock("ag-charts-vue3", async () => await import("@/mocks/agCharts"));
 
-const renderDashboard = () => render(AdminDashboardView);
+/** The Pulse tile for `label`, once the dashboard has loaded. */
+const pulseTile = async (label: string) =>
+  within(await screen.findByRole("group", { name: label }));
 
 describe("AdminDashboardView", () => {
-  it("shows the site totals once metrics load", async () => {
-    renderDashboard();
+  it("leads with the range's headline numbers and how they moved", async () => {
+    render(AdminDashboardView);
 
-    expect(await screen.findByText("1,186")).toBeInTheDocument();
-    expect(screen.getByText("83")).toBeInTheDocument();
-    expect(screen.getByText("713")).toBeInTheDocument();
-    expect(screen.getByText("83% verified")).toBeInTheDocument();
+    const clubs = await pulseTile("Active clubs");
+    expect(clubs.getByText("3")).toBeInTheDocument();
+    expect(clubs.getByText("+200%")).toBeInTheDocument();
+    expect(clubs.getByText("vs prior 30 days")).toBeInTheDocument();
+
+    expect((await pulseTile("Reviews")).getByText("−20%")).toBeInTheDocument();
+    // From zero, the change is absolute rather than an infinite percentage.
+    expect((await pulseTile("Comments")).getByText("+5")).toBeInTheDocument();
+    expect((await pulseTile("Active people")).getByText("No change")).toBeInTheDocument();
+    expect(screen.getByText(/32 reviews/)).toBeInTheDocument();
   });
 
-  it("lists the busiest clubs", async () => {
-    renderDashboard();
-
-    expect(await screen.findByText("Cobresun")).toBeInTheDocument();
-    expect(screen.getByText("819")).toBeInTheDocument();
-    expect(screen.getByText("2020-04-28")).toBeInTheDocument();
-    expect(screen.getByText("2026-07-30")).toBeInTheDocument();
-  });
-
-  it("says a club has never reviewed rather than leaving the last-review cell blank", async () => {
-    renderDashboard();
-
-    const name = await screen.findByText("Undated Club");
-    const row = ensure(name.closest("tr"), "expected the club name in a table row");
-
-    expect(within(row).getByText("never")).toBeInTheDocument();
-  });
-
-  it("names club members, collapsing the tail once the row would get long", async () => {
-    renderDashboard();
-
-    // Two members fit; four collapse to three names plus a count.
-    expect(await screen.findByText("Ada, Grace")).toBeInTheDocument();
-    expect(screen.getByText("Brian Norman, Kevin, sunny +1")).toBeInTheDocument();
-  });
-
-  it("marks a club with no datable activity as unknown rather than inventing a date", async () => {
-    renderDashboard();
-
-    expect(await screen.findByText("Undated Club")).toBeInTheDocument();
-    expect(screen.getByText("unknown")).toBeInTheDocument();
-  });
-
-  it("ranks the most active people and breaks their activity down by kind", async () => {
-    renderDashboard();
-
-    const name = await screen.findByText("Cobresun Official");
-
-    // Scoped to the row: bare counts like "34" also appear in the signup-source
-    // meter, so an unscoped getByText matches two unrelated numbers.
-    const row = ensure(name.closest("tr"), "expected the leaderboard name in a table row");
-    const cells = within(row)
-      .getAllByRole("cell")
-      .map((cell) => cell.textContent?.trim());
-
-    // Reviews, comments, list adds, total, clubs — the breakdown is the point
-    // of the table, and a single "events" column would hide it.
-    expect(cells).toEqual(expect.arrayContaining(["21", "4", "9", "34", "3"]));
-
-    // A user with only comments is still ranked, and still shows a zero review count.
-    const quiet = ensure(
-      screen.getByText("Quiet Commenter").closest("tr"),
-      "expected the second leaderboard row",
+  it("reloads every section for the time frame picked", async () => {
+    server.use(
+      http.get("/api/admin/metrics", ({ request }) => {
+        const range = new URL(request.url).searchParams.get("range");
+        if (range !== "all") return HttpResponse.json(adminMetrics);
+        return HttpResponse.json({
+          ...adminMetrics,
+          range: "all",
+          pulse: {
+            ...adminMetrics.pulse,
+            activeClubs: { current: 36, previous: null },
+          },
+        });
+      }),
     );
-    expect(within(quiet).getAllByRole("cell")[1]).toHaveTextContent("0");
+
+    const { user } = render(AdminDashboardView);
+    await pulseTile("Active clubs");
+
+    await user.click(screen.getByRole("tab", { name: "All" }));
+
+    const clubs = await pulseTile("Active clubs");
+    expect(await clubs.findByText("36")).toBeInTheDocument();
+    // All time has no period before it to compare with.
+    expect(clubs.queryByText(/vs prior/)).not.toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "All" })).toHaveAttribute("aria-selected", "true");
   });
 
-  it("shows health rates with the fraction behind them, not just a percentage", async () => {
-    renderDashboard();
+  it("shows which titles are being reviewed, rated, fought over, and queued", async () => {
+    const { user } = render(AdminDashboardView);
 
-    // newUserActivation is 4 of 6 in the fixture.
-    expect(await screen.findByText("67%")).toBeInTheDocument();
-    expect(screen.getByText("4 of 6")).toBeInTheDocument();
+    const reviewed = await screen.findByRole("list", { name: "Popular" });
+    expect(within(reviewed).getByText("The Matrix")).toBeInTheDocument();
+    expect(within(reviewed).getByText("6 reviews · 2 clubs")).toBeInTheDocument();
 
-    // Stickiness: 5 engaged in 7d against 12 in 30d.
-    expect(screen.getByText("42%")).toBeInTheDocument();
+    await user.click(screen.getByRole("tab", { name: "Top rated" }));
+    const rated = screen.getByRole("list", { name: "Top rated" });
+    expect(within(rated).getAllByRole("listitem")[0]).toHaveTextContent("Dune: Part Two");
+    expect(within(rated).getByLabelText("Average score 8.5")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("tab", { name: "Divisive" }));
+    expect(screen.getByLabelText("Scores spread ±3.1")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("tab", { name: "Wanted" }));
+    const wanted = screen.getByRole("list", { name: "Wanted" });
+    expect(within(wanted).getByText("Oppenheimer")).toBeInTheDocument();
+    expect(within(wanted).getByText("Queued by 3 clubs")).toBeInTheDocument();
   });
 
-  it("reports dormant clubs against the clubs that were ever active", async () => {
-    renderDashboard();
-
-    expect(await screen.findByText("Dormant clubs")).toBeInTheDocument();
-    expect(screen.getByText("of 20 that were ever active")).toBeInTheDocument();
-  });
-
-  it("withholds the time-to-first-review median when too few clubs are datable", async () => {
+  it("says why a board is empty rather than showing a blank card", async () => {
     server.use(
       http.get("/api/admin/metrics", () =>
         HttpResponse.json({
           ...adminMetrics,
-          health: {
-            ...adminMetrics.health,
-            medianDaysToFirstReview: null,
-            daysToFirstReviewSample: 2,
-          },
+          works: { ...adminMetrics.works, highestRated: [] },
         }),
       ),
     );
 
-    renderDashboard();
+    const { user } = render(AdminDashboardView);
+    await screen.findByRole("list", { name: "Popular" });
 
-    expect(await screen.findByText("Time to first review")).toBeInTheDocument();
-    expect(screen.getByText(/needs a few more to mean anything/)).toBeInTheDocument();
+    await user.click(screen.getByRole("tab", { name: "Top rated" }));
+
+    expect(
+      screen.getByText("No title has three or more reviews in the last 30 days."),
+    ).toBeInTheDocument();
   });
 
-  it("shows no delta at all when history has no baseline to compare against", async () => {
-    renderDashboard();
+  it("names who is in the busiest clubs and flags new ones that never got going", async () => {
+    const { user } = render(AdminDashboardView);
 
-    // The default history handler returns [], so nothing can be differenced —
-    // and "no baseline" must not render as "+0 this week".
-    expect(await screen.findByText("1,186")).toBeInTheDocument();
-    expect(screen.queryByText(/[+−]\d+ this week/)).not.toBeInTheDocument();
+    const busiest = await screen.findByRole("list", { name: "Busiest clubs" });
+    expect(within(busiest).getByRole("link", { name: /Cobresun/ })).toBeInTheDocument();
+    expect(within(busiest).getByText(/Brian Norman, Kevin, sunny \+1/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("tab", { name: "New" }));
+
+    const newest = screen.getByRole("list", { name: "New clubs" });
+    const undated = within(newest)
+      .getByRole("link", { name: /Undated Club/ })
+      .closest("li");
+    if (undated === null) throw new Error("expected the club in a list item");
+    expect(within(undated).getByText("Not started")).toBeInTheDocument();
+  });
+
+  it("breaks each person's activity down by kind", async () => {
+    const { user } = render(AdminDashboardView);
+
+    const people = await screen.findByRole("list", { name: "Most active people" });
+    expect(
+      within(people).getByText("21 reviews · 4 comments · 9 list adds · 3 clubs"),
+    ).toBeInTheDocument();
+    // Kinds they never did are left out rather than listed as zero.
+    expect(within(people).getByText("1 comment · 1 club")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("tab", { name: "Newcomers" }));
+
+    const newcomers = screen.getByRole("list", { name: "Newcomers" });
+    expect(within(newcomers).getByText("Fresh Face")).toBeInTheDocument();
+    expect(within(newcomers).getByText("No activity yet")).toBeInTheDocument();
+  });
+
+  it("lists the latest reviews with their scores", async () => {
+    render(AdminDashboardView);
+
+    const feed = await screen.findByRole("list", { name: "Latest activity" });
+    const [review, comment] = within(feed).getAllByRole("listitem");
+
+    expect(review).toHaveTextContent("Brian Norman scored The Matrix");
+    expect(review).toHaveTextContent("8.5");
+    expect(comment).toHaveTextContent("Kevin commented on The Matrix");
+  });
+
+  it("shows health rates with the fraction behind them, and where clubs stand", async () => {
+    render(AdminDashboardView);
+
+    expect(await screen.findByText("5 of 13 people who signed in")).toBeInTheDocument();
+    expect(screen.getByText("38%")).toBeInTheDocument();
+    expect(screen.getByText("58")).toBeInTheDocument();
+    expect(screen.getByText(/never started/)).toBeInTheDocument();
+    expect(screen.getByText(/clubs have no members left at all/)).toBeInTheDocument();
+  });
+
+  it("explains that monthly actives need snapshots before there is a trend", async () => {
+    const { user } = render(AdminDashboardView);
+    await pulseTile("Active clubs");
+
+    await user.click(screen.getByRole("tab", { name: "Monthly actives" }));
+
+    expect(await screen.findByText("No snapshots in this range yet.")).toBeInTheDocument();
+  });
+
+  it("holds the page's shape with a placeholder while metrics load", async () => {
+    server.use(http.get("/api/admin/metrics", () => delay("infinite")));
+
+    render(AdminDashboardView);
+
+    expect(await screen.findByRole("status", { name: "Loading metrics" })).toBeInTheDocument();
+    // The range picker stays usable rather than waiting behind the placeholder.
+    expect(screen.getByRole("tab", { name: "90D" })).toBeInTheDocument();
   });
 
   it("explains the situation instead of erroring when the API says 401", async () => {
@@ -143,7 +183,7 @@ describe("AdminDashboardView", () => {
       http.get("/api/admin/metrics/history", () => new HttpResponse(null, { status: 401 })),
     );
 
-    renderDashboard();
+    render(AdminDashboardView);
 
     expect(await screen.findByText("Not available")).toBeInTheDocument();
     expect(screen.getByText(/limited to site administrators/)).toBeInTheDocument();
@@ -156,11 +196,11 @@ describe("AdminDashboardView", () => {
       http.get("/api/admin/metrics/history", () => new HttpResponse(null, { status: 500 })),
     );
 
-    renderDashboard();
+    render(AdminDashboardView);
 
     await waitFor(() => {
       expect(screen.getByText("Couldn't load metrics")).toBeInTheDocument();
     });
-    expect(screen.getByText("Try again")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Try again" })).toBeInTheDocument();
   });
 });

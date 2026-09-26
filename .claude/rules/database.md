@@ -69,4 +69,5 @@ npm run db:cleanup arbitrary_lists
 - **`ALTER TABLE DROP CONSTRAINT` can't drop UNIQUE** — CockroachDB stores those as unique indexes. Use `DROP INDEX <name> CASCADE` (crdb #42840).
 - **An enum can't be dropped while a column references it.** Drop the column first.
 - **`up()`/`down()` already run inside a transaction** — don't open another with `db.transaction()`.
+- **Never pair `.distinct()` with `.filterWhere()`.** When one SELECT holds several `count(DISTINCT x)` over the same column with different `FILTER` clauses (or one filtered and one not), CockroachDB returns wrong counts — often 0 — with no error. It is data- and plan-dependent, so a small test fixture can pass while production is wrong; it had the admin dashboard reporting one active club while its own leaderboard listed four. Put each window in its own query's `WHERE` instead (`MetricsRepository.countActivity`). A `FILTER` on a non-distinct `countAll()` is fine.
 - **Migrations here aren't pure schema.** Some embed data backfills that call external APIs and need the matching env var (`20260315_AddPersonProfilePaths.ts` calls TMDB and 401s without `TMDB_API_KEY`).
