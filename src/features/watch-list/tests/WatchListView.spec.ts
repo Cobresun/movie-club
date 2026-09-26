@@ -1,7 +1,8 @@
-import { screen } from "@testing-library/vue";
+import { screen, within } from "@testing-library/vue";
 import { http, HttpResponse } from "msw";
 
 import WatchListView from "../views/WatchListView.vue";
+import watchlist from "@/mocks/data/watchlist.json";
 import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
 import { server } from "@/mocks/server";
 import { render } from "@/tests/utils";
@@ -53,5 +54,36 @@ describe("WatchListView", () => {
     expect(await screen.findByRole("button", { name: "Up Next" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Delete" })).toBeInTheDocument();
     expect(screen.getByText(/^Added /)).toBeInTheDocument();
+  });
+
+  it("filters the lists by what the movies are, not by review scores", async () => {
+    server.use(
+      http.get("/api/club/:id/list/all-items", () =>
+        HttpResponse.json(
+          watchlist.map((item) => ({
+            ...item,
+            // The shared fixture predates the summary shape list payloads carry.
+            externalData: {
+              ...item.externalData,
+              kind: "movie",
+              genres: ["Comedy"],
+              directors: [],
+              castNames: [],
+              production_companies: [],
+            },
+            sourceListId: "1",
+            sourceListTitle: "Watch List",
+          })),
+        ),
+      ),
+    );
+    const { user } = render(WatchListView);
+
+    await user.click(await screen.findByRole("button", { name: "Filters" }));
+    const panel = within(await screen.findByRole("dialog"));
+
+    expect(panel.getByRole("heading", { name: "Genre" })).toBeInTheDocument();
+    expect(panel.queryByRole("heading", { name: "Club score" })).not.toBeInTheDocument();
+    expect(panel.queryByRole("heading", { name: "Reviewed in" })).not.toBeInTheDocument();
   });
 });

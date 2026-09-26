@@ -90,12 +90,13 @@ describe("mdi icon registration", () => {
   // icons are registered here — this is the guard that catches a new club type
   // (or a renamed icon) before it renders mdi-vue's mdiAlert fallback.
   it("registers every CLUB_TYPE_CONFIG icon", () => {
-    // Each config contributes its club icon plus dynamic stats icons — all reach
-    // templates via computeds, so none are covered by the static scan above.
+    // Each config contributes its club icon plus dynamic stats and filter icons —
+    // all reach templates via computeds, so none are covered by the static scan above.
     const missing = Object.values(CLUB_TYPE_CONFIG)
       .flatMap((config) => [
         { icon: config.icon, clubType: config.clubType },
         { icon: config.stats.countIcon, clubType: config.clubType },
+        ...config.filterOptions.map((option) => ({ icon: option.icon, clubType: config.clubType })),
       ])
       .filter((entry) => !registered.has(toKey(entry.icon)))
       .map((entry) => `${entry.icon} (${toKey(entry.icon)}) for ClubType "${entry.clubType}"`);

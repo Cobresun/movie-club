@@ -1,129 +1,129 @@
 <template>
-  <div class="flex flex-col items-center justify-center" :class="className">
-    <!-- Search + Filters Row -->
+  <div class="flex flex-col items-center gap-2" :class="className">
     <div class="flex w-full items-center justify-center gap-2">
-      <!-- Main search input (free text only) -->
-      <div class="relative order-2 w-[min(720px,90%)]">
+      <div class="relative min-w-0 max-w-[720px] flex-1">
         <mdicon
           name="magnify"
-          class="absolute left-3 top-1/2 -translate-y-1/2 transform text-slate-200"
+          class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-200"
         />
-
         <input
           v-model="searchTerm"
           type="text"
           class="w-full rounded-md border-2 border-slate-600 bg-background p-2 pl-10 text-base text-white outline-none focus:border-primary"
+          :class="{ 'pr-10': hasValue(searchTerm) }"
           :placeholder="searchPlaceholder"
+          :aria-label="searchPlaceholder"
         />
+        <button
+          v-if="hasValue(searchTerm)"
+          type="button"
+          aria-label="Clear search"
+          class="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-400 hover:text-white"
+          @click="searchTerm = ''"
+        >
+          <mdicon name="close" :size="18" />
+        </button>
       </div>
 
-      <!-- Action button slot -->
-      <div class="order-3 ml-1">
-        <slot name="action-button" />
-      </div>
+      <button
+        v-if="hasElements(availableOptions)"
+        type="button"
+        :aria-label="filtersLabel"
+        :aria-expanded="panelOpen"
+        class="relative flex h-11 shrink-0 items-center gap-2 rounded-md border-2 px-2.5 transition-colors duration-fast md:px-3"
+        :class="
+          hasElements(activeChips)
+            ? 'border-primary bg-primary/15 text-white'
+            : 'border-slate-600 text-slate-200 hover:border-slate-400 hover:text-white'
+        "
+        @click="panelOpen = true"
+      >
+        <mdicon name="tune-variant" />
+        <span class="hidden md:inline">Filters</span>
+        <span
+          v-if="hasElements(activeChips)"
+          aria-hidden="true"
+          class="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-xs font-bold text-white"
+        >
+          {{ activeChips.length }}
+        </span>
+      </button>
+
+      <slot name="action-button" />
     </div>
 
-    <!-- Available filter options as pills -->
-    <PopoverGroup
-      as="div"
-      class="scrollbar-hide relative mt-2 flex w-full flex-nowrap gap-2 overflow-x-auto md:flex-wrap md:justify-center"
+    <div
+      v-if="hasElements(activeChips)"
+      class="scrollbar-hide flex w-full flex-nowrap items-center gap-2 overflow-x-auto md:flex-wrap md:justify-center"
     >
-      <template v-for="opt in FILTER_OPTIONS" :key="opt.key">
-        <!-- Applied filter pill (clickable to remove) -->
-        <button
-          v-if="isFilterApplied(opt.key)"
-          type="button"
-          :class="[
-            'relative shrink-0 cursor-pointer whitespace-nowrap rounded-full border px-3 py-1 text-sm hover:bg-lowBackground',
-            'border-primary bg-primary/20 text-white',
-          ]"
-          @click="removeAppliedFilter(opt.key)"
-        >
-          <span>{{ opt.label }}</span>
-          <span v-if="isFilterApplied(opt.key)" class="ml-1 opacity-80">
-            {{ getAppliedFilterDisplay(opt.key) }}
-          </span>
-        </button>
+      <button
+        v-for="chip in activeChips"
+        :key="chip.id"
+        type="button"
+        :aria-label="`Remove ${chip.label}: ${chip.text}`"
+        class="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-primary bg-primary/20 py-1 pl-2.5 pr-2 text-sm text-white hover:bg-primary/30"
+        @click="chip.remove()"
+      >
+        <mdicon :name="chip.icon" :size="16" class="text-highlight" />
+        {{ chip.text }}
+        <mdicon name="close" :size="14" class="opacity-70" />
+      </button>
+      <button
+        type="button"
+        class="shrink-0 whitespace-nowrap px-1 text-sm text-slate-400 hover:text-white"
+        @click="clearFilters"
+      >
+        Clear all
+      </button>
+    </div>
 
-        <!-- Desktop: anchored popover tooltip near the pill -->
-        <Popover v-else-if="isDesktop" v-slot="{ close }" class="relative shrink-0">
-          <PopoverButton
-            :class="[
-              'relative shrink-0 cursor-pointer whitespace-nowrap rounded-full border px-3 py-1 text-sm hover:bg-lowBackground',
-              'border-white opacity-80',
-            ]"
-            @click="prepareFilterPopover($event)"
-          >
-            <span>{{ opt.label }}</span>
-          </PopoverButton>
-
-          <!-- Body teleport + fixed: escapes ancestor stacking contexts and overflow so
-               the panel stays above the reviews table (sticky headers, etc.). -->
-          <Teleport to="body">
-            <PopoverPanel
-              :focus="true"
-              class="fixed w-80 rounded-lg border border-slate-600 bg-background p-4 shadow-2xl"
-              :style="teleportedPanelStyle"
-            >
-              <FilterPanelContent
-                :opt="opt"
-                :value-suggestions="suggestionsFor(opt.key)"
-                :years="yearsFor(opt.key)"
-                @apply="
-                  (value, operator, range) => {
-                    applyFilter(opt, value, operator, range);
-                    close();
-                  }
-                "
-                @cancel="close()"
-              />
-            </PopoverPanel>
-          </Teleport>
-        </Popover>
-
-        <!-- Mobile: pill opens a bottom sheet instead of the desktop tooltip -->
-        <button
-          v-else
-          type="button"
-          :class="[
-            'relative shrink-0 cursor-pointer whitespace-nowrap rounded-full border px-3 py-1 text-sm hover:bg-lowBackground',
-            'border-white opacity-80',
-          ]"
-          @click="activeMobileFilter = opt"
-        >
-          <span>{{ opt.label }}</span>
-        </button>
-      </template>
-    </PopoverGroup>
-
-    <!-- Mobile filter bottom sheet (replaces the desktop tooltip on < 768px) -->
-    <v-bottom-sheet v-if="!isDesktop && activeMobileFilter" @close="activeMobileFilter = null">
-      <FilterPanelContent
-        :opt="activeMobileFilter"
-        :value-suggestions="suggestionsFor(activeMobileFilter.key)"
-        :years="yearsFor(activeMobileFilter.key)"
-        @apply="applyMobileFilter"
-        @cancel="activeMobileFilter = null"
-      />
-    </v-bottom-sheet>
+    <template v-if="panelOpen">
+      <v-side-drawer v-if="isDesktop" @close="panelOpen = false">
+        <div role="dialog" aria-modal="true" aria-label="Filters" class="h-full">
+          <FilterPanel
+            class="min-h-full"
+            :options="availableOptions"
+            :all-works="works"
+            :facets="facets"
+            :selections="selections"
+            :result-label="resultLabel"
+            @update="setSelection"
+            @clear="clearFilters"
+            @close="panelOpen = false"
+          />
+        </div>
+      </v-side-drawer>
+      <v-bottom-sheet v-else content-class="px-4" @close="panelOpen = false">
+        <FilterPanel
+          :options="availableOptions"
+          :all-works="works"
+          :facets="facets"
+          :selections="selections"
+          :result-label="resultLabel"
+          @update="setSelection"
+          @clear="clearFilters"
+          @close="panelOpen = false"
+        />
+      </v-bottom-sheet>
+    </template>
   </div>
 </template>
 
 <script setup lang="ts" generic="T extends DetailedWorkListItem">
-import { Popover, PopoverButton, PopoverGroup, PopoverPanel } from "@headlessui/vue";
-import { computed, onMounted, onUnmounted, ref, watchEffect } from "vue";
+import { computed, ref, watchEffect } from "vue";
 
-import { hasValue, isDefined } from "../../../lib/checks/checks";
+import { hasElements, hasValue } from "../../../lib/checks/checks";
 import { ClubType } from "../../../lib/types/generated/db";
 import type { DetailedWorkListItem } from "../../../lib/types/lists";
 import { clubTypeConfig, type FilterOption } from "../clubType";
 import { useIsDesktop } from "../composables/useIsDesktop.js";
+import { describeRange } from "../filterMatchers";
 import { filterWorks } from "../filterWorks";
-import FilterPanelContent from "./FilterPanelContent.vue";
-import type { Comparator, FilterOptionType, YearRange } from "./filterTypes";
+import FilterPanel from "./FilterPanel.vue";
+import type { FilterSelection } from "./filterTypes";
 import VBottomSheet from "./VBottomSheet.vue";
+import VSideDrawer from "./VSideDrawer.vue";
 
-// Component props
 interface Props {
   data: T[];
   clubType: ClubType;
@@ -145,229 +145,122 @@ const hasActiveFilters = defineModel<boolean>("hasActiveFilters", {
   required: true,
 });
 
+const isDesktop = useIsDesktop();
+const panelOpen = ref(false);
+const searchTerm = ref("");
+const selections = ref<Partial<Record<string, FilterSelection>>>({});
+
+const config = computed(() => clubTypeConfig(props.clubType));
+
+// The same work can sit on several watchlists; count and filter it once.
+const works = computed(() => [...new Map(props.data.map((work) => [work.id, work])).values()]);
+
 // Filter options come from the club-type registry (movie/book have different
 // fields); excludeFilterKeys lets a view drop options that don't apply (e.g.
-// score-based filters on the watchlist).
-const FILTER_OPTIONS = computed(() =>
-  clubTypeConfig(props.clubType).filterOptions.filter(
-    (o) => !props.excludeFilterKeys.includes(o.key),
+// score-based filters on the watchlist). An option no work has a value for
+// would be an empty section, so it is left out.
+const availableOptions = computed(() =>
+  config.value.filterOptions.filter(
+    (option) =>
+      !props.excludeFilterKeys.includes(option.key) &&
+      works.value.some((work) =>
+        option.kind === "choice"
+          ? hasElements(option.values(work))
+          : option.value(work) !== undefined,
+      ),
   ),
 );
 
-// Frequency-ranked value suggestions for each enum filter, derived from the
-// current data via the option's `suggestions` selector. Keyed by filter key.
-const computedValueSuggestions = computed<Record<string, string[]>>(() => {
-  const result: Record<string, string[]> = {};
-  for (const opt of FILTER_OPTIONS.value) {
-    if (opt.suggestions === undefined) continue;
-    const select = opt.suggestions;
-    const counts = new Map<string, number>();
-    props.data.forEach((item) =>
-      select(item.externalData).forEach((value) => {
-        const currentCount = counts.get(value);
-        counts.set(value, currentCount !== undefined ? currentCount + 1 : 1);
-      }),
-    );
-    result[opt.key] = Array.from(counts.entries())
-      .sort((a, b) => b[1] - a[1]) // Sort by frequency (descending)
-      .map(([value, count]) => `${value} (${count})`);
-  }
-  return result;
-});
-
-// Years present in the data for each year filter, feeding that filter's
-// distribution chart. Keyed by filter key, from the option's `year` selector.
-const computedYears = computed<Record<string, number[]>>(() => {
-  const result: Record<string, number[]> = {};
-  for (const opt of FILTER_OPTIONS.value) {
-    if (opt.year === undefined) continue;
-    const select = opt.year;
-    result[opt.key] = props.data.map(select).filter(isDefined);
-  }
-  return result;
-});
-
-// Search and Filters state
-const searchTerm = ref("");
-
-// Applied filters pills
-interface AppliedFilter {
-  key: string;
-  label: string;
-  type: FilterOptionType;
-  operator?: Comparator;
-  value: string;
-  range?: YearRange;
-}
-const appliedFilters = ref<AppliedFilter[]>([]);
-
-// Viewport: desktop shows the anchored popover, mobile opens a bottom sheet.
-const isDesktop = useIsDesktop();
-const activeMobileFilter = ref<FilterOption | null>(null);
-
-/** Anchor for the teleported panel (viewport / fixed positioning). */
-const teleportedPanelAnchor = ref<HTMLElement | null>(null);
-const teleportedPanelStyle = ref<Record<string, string>>({
-  top: "0px",
-  left: "0px",
-  zIndex: "9999",
-});
-
-const PANEL_WIDTH = 320;
-const PANEL_GAP = 8;
-const VIEWPORT_MARGIN = 16;
-const MIN_PANEL_HEIGHT = 200;
-
-/**
- * Panels vary in height — the year picker is roughly twice the number one — and
- * the panel is not measurable before it paints, so the space it may occupy is
- * bounded instead: hang it off whichever edge of the pill has more room and cap
- * it at that room, leaving a tall panel to scroll rather than run off screen.
- */
-function fixedPopoverStyle(anchor: HTMLElement) {
-  const rect = anchor.getBoundingClientRect();
-  const left = Math.max(
-    VIEWPORT_MARGIN,
-    Math.min(rect.left, window.innerWidth - PANEL_WIDTH - VIEWPORT_MARGIN),
-  );
-  const spaceBelow = window.innerHeight - rect.bottom - PANEL_GAP - VIEWPORT_MARGIN;
-  const spaceAbove = rect.top - PANEL_GAP - VIEWPORT_MARGIN;
-  const shared = {
-    left: `${left}px`,
-    zIndex: "9999",
-    overflowY: "auto",
-  };
-
-  if (spaceBelow >= MIN_PANEL_HEIGHT || spaceBelow >= spaceAbove) {
-    return { ...shared, top: `${rect.bottom + PANEL_GAP}px`, maxHeight: `${spaceBelow}px` };
-  }
-  // Anchored by its bottom edge, so it grows upwards without being measured.
-  return {
-    ...shared,
-    bottom: `${window.innerHeight - rect.top + PANEL_GAP}px`,
-    maxHeight: `${spaceAbove}px`,
-  };
+function setSelection(key: string, selection: FilterSelection | undefined) {
+  const next = { ...selections.value };
+  if (selection === undefined) delete next[key];
+  else next[key] = selection;
+  selections.value = next;
 }
 
-function updateTeleportedPanelStyle() {
-  const anchor = teleportedPanelAnchor.value;
-  if (!anchor) return;
-  teleportedPanelStyle.value = fixedPopoverStyle(anchor);
+function clearFilters() {
+  selections.value = {};
 }
 
-function syncTeleportedPanelPosition() {
-  updateTeleportedPanelStyle();
-}
+const freeText = computed(() => searchTerm.value.trim());
 
-// Helper functions for pill display
-const isFilterApplied = (key: string) => {
-  return appliedFilters.value.some((p) => p.key === key);
-};
-
-const getAppliedFilterDisplay = (key: string) => {
-  const filter = appliedFilters.value.find((p) => p.key === key);
-  if (!filter) return "";
-  const operator = filter.operator ? filter.operator : "";
-  return `${operator}${filter.value}`;
-};
-
-function removeAppliedFilter(key: string) {
-  const existingIdx = appliedFilters.value.findIndex((p) => p.key === key);
-  if (existingIdx >= 0) {
-    appliedFilters.value.splice(existingIdx, 1);
-  }
-}
-
-// Desktop only: position the teleported panel before it opens. The form's own
-// focus/showPicker handling lives in FilterPanelContent's onMounted.
-function prepareFilterPopover(event: Event) {
-  const btn = event.currentTarget;
-  teleportedPanelAnchor.value = btn instanceof HTMLElement ? btn : null;
-  updateTeleportedPanelStyle();
-}
-
-function suggestionsFor(key: string): string[] {
-  return computedValueSuggestions.value[key] ?? [];
-}
-
-function yearsFor(key: string): number[] {
-  return computedYears.value[key] ?? [];
-}
-
-// Build filters object from pills
-const filtersObject = computed(() => {
-  return appliedFilters.value.reduce(
-    (acc, f) => {
-      acc[f.key] = {
-        operator: f.operator,
-        value: f.value,
-        range: f.range,
-      };
-      return acc;
-    },
-    {} as Record<string, { operator?: Comparator; value: string; range?: YearRange }>,
-  );
-});
-
-// Check if any filters or search are active
-const derivedHasActiveFilters = computed(() => {
-  return appliedFilters.value.length > 0 || searchTerm.value.trim().length > 0;
-});
-
-// Apply filtering internally and sync to parent via v-model
-const derivedFiltered = computed(() => {
-  return filterWorks(
-    props.data,
-    {
-      filters: filtersObject.value,
-      freeText: searchTerm.value.trim(),
-    },
+const filtered = computed(() =>
+  filterWorks(
+    works.value,
+    { selections: selections.value, freeText: freeText.value },
     props.clubType,
-  );
+  ),
+);
+
+// What each filter's section counts and plots: the works that every *other*
+// filter leaves, so a value that would lead nowhere shows up as zero.
+const facets = computed(() => {
+  const result: Partial<Record<string, T[]>> = {};
+  for (const option of availableOptions.value) {
+    const { [option.key]: _own, ...others } = selections.value;
+    result[option.key] = filterWorks(
+      works.value,
+      { selections: others, freeText: freeText.value },
+      props.clubType,
+    );
+  }
+  return result;
+});
+
+interface ActiveChip {
+  id: string;
+  icon: string;
+  label: string;
+  text: string;
+  remove: () => void;
+}
+
+function chipsFor(option: FilterOption, selection: FilterSelection): ActiveChip[] {
+  if (option.kind === "range" && selection.kind === "range") {
+    return [
+      {
+        id: option.key,
+        icon: option.icon,
+        label: option.label,
+        text: describeRange(selection, option.format),
+        remove: () => setSelection(option.key, undefined),
+      },
+    ];
+  }
+  if (selection.kind !== "choice") return [];
+  return selection.values.map((value) => ({
+    id: `${option.key}:${value}`,
+    icon: option.icon,
+    label: option.label,
+    text: value,
+    remove: () => {
+      const values = selection.values.filter((kept) => kept !== value);
+      setSelection(option.key, hasElements(values) ? { kind: "choice", values } : undefined);
+    },
+  }));
+}
+
+const activeChips = computed(() =>
+  config.value.filterOptions.flatMap((option) => {
+    const selection = selections.value[option.key];
+    return selection === undefined ? [] : chipsFor(option, selection);
+  }),
+);
+
+const filtersLabel = computed(() =>
+  hasElements(activeChips.value) ? `Filters, ${activeChips.value.length} active` : "Filters",
+);
+
+const resultLabel = computed(() => {
+  const count = filtered.value.length;
+  const { noun, stats } = config.value;
+  if (count === 0) return `No ${stats.pluralNoun.toLowerCase()} match`;
+  return `Show ${count} ${count === 1 ? noun : stats.pluralNoun.toLowerCase()}`;
 });
 
 watchEffect(() => {
-  filteredData.value = derivedFiltered.value;
-  hasActiveFilters.value = derivedHasActiveFilters.value;
-});
-
-function applyFilter(opt: FilterOption, value: string, operator?: Comparator, range?: YearRange) {
-  const valueStr = value.trim();
-  if (!hasValue(valueStr)) return;
-
-  const newPill: AppliedFilter = {
-    key: opt.key,
-    label: opt.label,
-    type: opt.type,
-    operator,
-    value: valueStr,
-    range,
-  };
-
-  const existingIdx = appliedFilters.value.findIndex((p) => p.key === newPill.key);
-  if (existingIdx >= 0) {
-    appliedFilters.value.splice(existingIdx, 1, newPill);
-  } else {
-    appliedFilters.value.push(newPill);
-  }
-}
-
-// Bottom-sheet apply: reads the active option, then closes the sheet.
-function applyMobileFilter(value: string, operator?: Comparator, range?: YearRange) {
-  const opt = activeMobileFilter.value;
-  if (!opt) return;
-  applyFilter(opt, value, operator, range);
-  activeMobileFilter.value = null;
-}
-
-onMounted(() => {
-  window.addEventListener("scroll", syncTeleportedPanelPosition, true);
-  window.addEventListener("resize", syncTeleportedPanelPosition);
-});
-
-onUnmounted(() => {
-  window.removeEventListener("scroll", syncTeleportedPanelPosition, true);
-  window.removeEventListener("resize", syncTeleportedPanelPosition);
+  filteredData.value = filtered.value;
+  hasActiveFilters.value = hasElements(activeChips.value) || hasValue(freeText.value);
 });
 </script>
 
