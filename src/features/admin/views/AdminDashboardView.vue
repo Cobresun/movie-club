@@ -39,7 +39,7 @@
         </div>
       </div>
 
-      <loading-spinner v-if="isLoading" />
+      <AdminDashboardSkeleton v-if="isLoading" />
 
       <div
         v-else-if="dashboard"
@@ -120,6 +120,7 @@ import axios from "axios";
 import { computed, ref } from "vue";
 
 import { DEFAULT_METRICS_RANGE, MetricsRange } from "../../../../lib/types/metrics";
+import AdminDashboardSkeleton from "../components/AdminDashboardSkeleton.vue";
 import ClubStatusWidget from "../components/ClubStatusWidget.vue";
 import ClubsWidget from "../components/ClubsWidget.vue";
 import FeedWidget from "../components/FeedWidget.vue";

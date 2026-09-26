@@ -1,5 +1,5 @@
 import { screen, waitFor, within } from "@testing-library/vue";
-import { http, HttpResponse } from "msw";
+import { delay, http, HttpResponse } from "msw";
 import { describe, expect, it, vi } from "vitest";
 
 import AdminDashboardView from "../views/AdminDashboardView.vue";
@@ -165,6 +165,16 @@ describe("AdminDashboardView", () => {
     await user.click(screen.getByRole("tab", { name: "Monthly actives" }));
 
     expect(await screen.findByText("No snapshots in this range yet.")).toBeInTheDocument();
+  });
+
+  it("holds the page's shape with a placeholder while metrics load", async () => {
+    server.use(http.get("/api/admin/metrics", () => delay("infinite")));
+
+    render(AdminDashboardView);
+
+    expect(await screen.findByRole("status", { name: "Loading metrics" })).toBeInTheDocument();
+    // The range picker stays usable rather than waiting behind the placeholder.
+    expect(screen.getByRole("tab", { name: "90D" })).toBeInTheDocument();
   });
 
   it("explains the situation instead of erroring when the API says 401", async () => {
