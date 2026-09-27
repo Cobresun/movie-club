@@ -102,6 +102,14 @@ describe("WrappedView", () => {
     expect(await slide()).toHaveTextContent(/movies watched\s*4/);
   });
 
+  it("can be closed back to the statistics page", async () => {
+    server.use(reviews(MOVIE_REVIEWS));
+    renderWrapped();
+
+    await slide();
+    expect(screen.getByRole("link", { name: "Close Wrapped" })).toBeInTheDocument();
+  });
+
   it("goes back to an earlier year", async () => {
     server.use(reviews(MOVIE_REVIEWS));
     renderWrapped("2024");

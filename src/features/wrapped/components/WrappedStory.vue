@@ -1,10 +1,10 @@
 <template>
   <section
-    class="mx-auto flex w-[min(100%,calc((100dvh-19rem)*9/16))] min-w-[16rem] flex-col gap-3"
+    class="flex flex-col gap-3"
     aria-roledescription="carousel"
     :aria-label="`${clubName} Wrapped ${year}`"
   >
-    <div class="flex gap-1">
+    <div class="mx-auto flex max-w-full gap-1" :style="{ width: `${displayWidth}px` }">
       <button
         v-for="(card, index) in cards"
         :key="card.id"
@@ -21,36 +21,49 @@
       </button>
     </div>
 
-    <div
-      ref="cardElement"
-      class="aspect-[9/16] w-full cursor-pointer touch-pan-y select-none overflow-hidden rounded-2xl shadow-2xl"
-      @pointerdown="onPointerDown"
-      @pointerup="onPointerUp"
-      @pointercancel="pointerStart = undefined"
-    >
-      <Transition
-        mode="out-in"
-        enter-active-class="transition duration-base ease-standard"
-        enter-from-class="scale-[0.98] opacity-0"
-        leave-active-class="transition duration-fast ease-standard"
-        leave-to-class="opacity-0"
+    <div ref="stage" class="flex min-h-0 flex-1 items-center justify-center">
+      <div
+        ref="cardViewport"
+        class="relative shrink-0 cursor-pointer touch-pan-y select-none overflow-hidden rounded-2xl shadow-2xl"
+        :style="{ width: `${displayWidth}px`, height: `${displayHeight}px` }"
+        @pointerdown="onPointerDown"
+        @pointerup="onPointerUp"
+        @pointercancel="pointerStart = undefined"
       >
-        <WrappedCardFrame
-          :key="currentCard.id"
-          role="group"
-          aria-roledescription="slide"
-          :aria-label="`${currentIndex + 1} of ${cards.length}: ${currentCard.label}`"
-          :tone="currentCard.tone"
-          :title="currentCard.label"
-          :club-name="clubName"
-          :year="year"
+        <div
+          ref="cardElement"
+          class="absolute left-0 top-0 origin-top-left"
+          :style="{
+            width: `${CARD_WIDTH}px`,
+            height: `${CARD_HEIGHT}px`,
+            transform: `scale(${scale})`,
+          }"
         >
-          <component :is="currentCard.component" v-bind="currentCard.props" />
-        </WrappedCardFrame>
-      </Transition>
+          <Transition
+            mode="out-in"
+            enter-active-class="transition duration-base ease-standard"
+            enter-from-class="scale-[0.98] opacity-0"
+            leave-active-class="transition duration-fast ease-standard"
+            leave-to-class="opacity-0"
+          >
+            <WrappedCardFrame
+              :key="currentCard.id"
+              role="group"
+              aria-roledescription="slide"
+              :aria-label="`${currentIndex + 1} of ${cards.length}: ${currentCard.label}`"
+              :tone="currentCard.tone"
+              :title="currentCard.label"
+              :club-name="clubName"
+              :year="year"
+            >
+              <component :is="currentCard.component" v-bind="currentCard.props" />
+            </WrappedCardFrame>
+          </Transition>
+        </div>
+      </div>
     </div>
 
-    <div class="flex items-center">
+    <div class="mx-auto flex max-w-full items-center" :style="{ width: `${displayWidth}px` }">
       <button
         type="button"
         class="rounded-full p-1.5 text-white transition hover:bg-white/10 disabled:opacity-30"
@@ -82,11 +95,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, onUnmounted, ref } from "vue";
 import { useToast } from "vue-toastification";
 
 import { isDefined } from "../../../../lib/checks/checks.js";
-import { renderCardImage } from "../cardImage";
+import { CARD_HEIGHT, CARD_WIDTH, renderCardImage } from "../cardImage";
 import type { WrappedCard } from "../wrappedDeck";
 import WrappedCardFrame from "./WrappedCardFrame.vue";
 import { useShare } from "@/common/composables/useShare";
@@ -114,6 +127,29 @@ const next = () => {
 const SWIPE_DISTANCE = 40;
 const TAP_SLOP = 10;
 
+// Largest the card may grow on a big screen before it stops reading as a story.
+const MAX_SCALE = 1.4;
+
+const stage = ref<HTMLElement>();
+const scale = ref(1);
+const displayWidth = computed(() => CARD_WIDTH * scale.value);
+const displayHeight = computed(() => CARD_HEIGHT * scale.value);
+
+let stageObserver: ResizeObserver | undefined;
+
+onMounted(() => {
+  if (typeof ResizeObserver === "undefined" || !isDefined(stage.value)) return;
+  stageObserver = new ResizeObserver(([entry]) => {
+    const { width, height } = entry.contentRect;
+    if (width === 0 || height === 0) return;
+    scale.value = Math.min(width / CARD_WIDTH, height / CARD_HEIGHT, MAX_SCALE);
+  });
+  stageObserver.observe(stage.value);
+});
+
+onBeforeUnmount(() => stageObserver?.disconnect());
+
+const cardViewport = ref<HTMLElement>();
 const cardElement = ref<HTMLElement>();
 const pointerStart = ref<{ x: number; y: number }>();
 
@@ -127,7 +163,7 @@ const onPointerDown = (event: PointerEvent) => {
 const onPointerUp = (event: PointerEvent) => {
   const start = pointerStart.value;
   pointerStart.value = undefined;
-  if (!isDefined(start) || !isDefined(cardElement.value)) return;
+  if (!isDefined(start) || !isDefined(cardViewport.value)) return;
 
   const dx = event.clientX - start.x;
   const dy = event.clientY - start.y;
@@ -135,7 +171,7 @@ const onPointerUp = (event: PointerEvent) => {
     if (dx < 0) next();
     else previous();
   } else if (Math.abs(dx) < TAP_SLOP && Math.abs(dy) < TAP_SLOP) {
-    const bounds = cardElement.value.getBoundingClientRect();
+    const bounds = cardViewport.value.getBoundingClientRect();
     if (event.clientX - bounds.left < bounds.width / 3) previous();
     else next();
   }
