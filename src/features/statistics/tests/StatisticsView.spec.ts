@@ -31,6 +31,14 @@ describe("StatisticsView", () => {
     expect(screen.getByRole("heading", { name: "Scores" })).toBeInTheDocument();
   });
 
+  it("links to the club's Wrapped for each year it reviewed in", async () => {
+    server.use(scoredReviews());
+    render(StatisticsView);
+
+    expect(await screen.findByRole("heading", { name: "Club Wrapped" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "2024 Wrapped" })).toBeInTheDocument();
+  });
+
   it("shows the page header while loading", () => {
     render(StatisticsView);
 
