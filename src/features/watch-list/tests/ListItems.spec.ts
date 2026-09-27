@@ -2,7 +2,7 @@ import { screen, waitFor } from "@testing-library/vue";
 import { http, HttpResponse } from "msw";
 
 import ListItems from "../components/ListItems.vue";
-import watchlist from "@/mocks/data/watchlist.json";
+import watchlist from "@/mocks/data/watchlist";
 import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
 import { server } from "@/mocks/server";
 import { render } from "@/tests/utils";

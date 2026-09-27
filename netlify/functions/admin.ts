@@ -1,6 +1,11 @@
 import { Handler } from "@netlify/functions";
 
-import { DEFAULT_METRICS_RANGE, metricsRangeSchema } from "../../lib/types/metrics.js";
+import {
+  AdminDashboard,
+  DEFAULT_METRICS_RANGE,
+  metricsRangeSchema,
+  SnapshotHistoryPoint,
+} from "../../lib/types/metrics.js";
 import MetricsRepository from "./repositories/MetricsRepository.js";
 import { siteAdmin } from "./utils/auth";
 import { ok } from "./utils/responses";
@@ -17,13 +22,13 @@ const rangeSchema = metricsRangeSchema.catch(DEFAULT_METRICS_RANGE);
 router.get("/metrics", siteAdmin, async ({ event }, res) => {
   const range = rangeSchema.parse(event.queryStringParameters?.range);
   const dashboard = await MetricsRepository.getDashboard(range);
-  return res(ok(JSON.stringify(dashboard)));
+  return res(ok<AdminDashboard>(dashboard));
 });
 
 router.get("/metrics/history", siteAdmin, async ({ event }, res) => {
   const range = rangeSchema.parse(event.queryStringParameters?.range);
   const snapshots = await MetricsRepository.getSnapshots(range);
-  return res(ok(JSON.stringify(snapshots)));
+  return res(ok<SnapshotHistoryPoint[]>(snapshots));
 });
 
 const handler: Handler = async (event, context) => router.route({ event, context, params: {} });

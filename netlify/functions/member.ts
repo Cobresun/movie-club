@@ -29,7 +29,7 @@ router.get("/clubs", loggedIn, async (req, res) => {
     slugUpdatedAt: club.slug_updated_at ? String(club.slug_updated_at) : undefined,
     type: club.type,
   }));
-  return res(ok(JSON.stringify(result)));
+  return res(ok<ClubPreview[]>(result));
 });
 
 // Every work the member has scored, in any club they belong to. Score Assist
@@ -54,7 +54,7 @@ router.get("/scores", loggedIn, async (req, res) => {
     score: parseFloat(row.score),
     scoredDate: row.created_date.toISOString(),
   }));
-  return res(ok(JSON.stringify(result)));
+  return res(ok<MemberScoredWork[]>(result));
 });
 
 router.post("/avatar", loggedIn, async (req, res) => {
@@ -75,7 +75,7 @@ router.post("/avatar", loggedIn, async (req, res) => {
 
     await UserRepository.updateImage(req.userId, url, id);
 
-    return res(ok("Avatar updated successfully"));
+    return res(ok());
   } catch (error) {
     console.error("Error updating avatar:", error);
     return res(badRequest("Error updating avatar"));
@@ -94,7 +94,7 @@ router.delete("/avatar", loggedIn, async (req, res) => {
     // Clear the image URL and ID from the database
     await UserRepository.updateImage(req.userId, null, null);
 
-    return res(ok("Avatar deleted successfully"));
+    return res(ok());
   } catch (error) {
     console.error("Error deleting avatar:", error);
     return res(badRequest("Error deleting avatar"));
@@ -112,7 +112,7 @@ router.put("/name", loggedIn, async (req, res) => {
 
   await UserRepository.updateName(req.userId, name);
 
-  return res(ok("Name updated successfully"));
+  return res(ok());
 });
 
 const handler: Handler = async (event: HandlerEvent, context: HandlerContext) => {

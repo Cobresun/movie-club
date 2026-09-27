@@ -1,6 +1,6 @@
 import { http, HttpResponse } from "msw";
 
-import { ClubListSummary } from "@/service/useList";
+import { ClubListSummary } from "../../lib/types/lists";
 
 export const clubList = (
   overrides: Partial<ClubListSummary> & { id: string },
@@ -27,12 +27,12 @@ export const clubListsApi = (
   const base = "/api/club/:id/list";
 
   return [
-    http.get(base, () => HttpResponse.json(lists)),
+    http.get(base, () => HttpResponse.json<ClubListSummary[]>(lists)),
     http.post(base, async ({ request }) => {
       const { title } = (await request.json()) as { title: string };
       const created = clubList({ id: `list-${lists.length + 1}`, title });
       lists = [...lists, created];
-      return HttpResponse.json(created);
+      return HttpResponse.json<ClubListSummary>(created);
     }),
     http.put(`${base}/reorder`, async ({ request }) => {
       const { listIds } = (await request.json()) as { listIds: string[] };
