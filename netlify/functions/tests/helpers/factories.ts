@@ -1,6 +1,6 @@
 import { AwardsData } from "../../../../lib/types/awards";
-import { ClubType, WorkListSystemType, WorkType } from "../../../../lib/types/generated/db";
-import { DetailedWorkListItem } from "../../../../lib/types/lists";
+import { ClubType, WorkType } from "../../../../lib/types/generated/db";
+import { ClubListSummary, DetailedWorkListItem } from "../../../../lib/types/lists";
 import { handler as clubHandler } from "../../club/index";
 import { db } from "../../utils/database";
 import { TestSession } from "./auth";
@@ -42,13 +42,6 @@ export interface SeededClub {
   reviewsListId: string;
 }
 
-interface ListSummary {
-  id: string;
-  title: string;
-  systemType: WorkListSystemType | null;
-  itemCount: number;
-}
-
 /**
  * Create a club through `POST /api/club`, so it is born with exactly the lists
  * and settings a real club gets.
@@ -80,7 +73,7 @@ export async function createClub(
   assertOk(`Creating club "${name}"`, created);
 
   const slug = created.body.slug;
-  const lists = await api.get<ListSummary[]>(`/api/club/${slug}/list`);
+  const lists = await api.get<ClubListSummary[]>(`/api/club/${slug}/list`);
   assertOk(`Reading lists for "${slug}"`, lists);
 
   // `reviews-id` and the settings write are both member-only. A club seeded
@@ -128,7 +121,7 @@ export async function leaveClub(club: { slug: string }, session: TestSession) {
 
 /** Add a list beyond the club's default one. */
 export async function createList(club: SeededClub, session: TestSession, title: string) {
-  const created = await api.post<ListSummary>(`/api/club/${club.slug}/list`, {
+  const created = await api.post<ClubListSummary>(`/api/club/${club.slug}/list`, {
     body: { title },
     as: session,
   });

@@ -3,7 +3,7 @@ import { computed, ref, shallowRef } from "vue";
 
 import { hasElements } from "../../../../lib/checks/checks";
 import { ClubType } from "../../../../lib/types/generated/db";
-import { DetailedWorkListItem } from "../../../../lib/types/lists";
+import { ClubListSummary, DetailedWorkListItem } from "../../../../lib/types/lists";
 import AddWorkModal from "../components/AddWorkModal.vue";
 import ListItems from "../components/ListItems.vue";
 import ManageListsModal from "../components/ManageListsModal.vue";
@@ -12,12 +12,7 @@ import { useCollapsedLists } from "../composables/useCollapsedLists";
 import SearchFilterBar from "@/common/components/SearchFilterBar.vue";
 import { useShare } from "@/common/composables/useShare";
 import { useClub, useClubSlug, useMembers } from "@/service/useClub";
-import {
-  ClubListSummary,
-  useAllUserListItems,
-  useClubLists,
-  useReviewsListId,
-} from "@/service/useList";
+import { useAllUserListItems, useClubLists, useReviewsListId } from "@/service/useList";
 
 const clubSlug = useClubSlug();
 const { data: club } = useClub(clubSlug);

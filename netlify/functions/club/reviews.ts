@@ -1,7 +1,13 @@
 import { z } from "zod";
 
 import { hasValue, isDefined } from "../../../lib/checks/checks.js";
-import { ReviewScores } from "../../../lib/types/lists";
+import {
+  DiscussionQuestionsResponse,
+  ReviewScores,
+  SharedReviewResponse,
+  WorkCommentDto,
+} from "../../../lib/types/lists";
+import { MovieCastMember } from "../../../lib/types/movie";
 import ListRepository from "../repositories/ListRepository";
 import ReviewRepository from "../repositories/ReviewRepository";
 import SettingsRepository from "../repositories/SettingsRepository";
@@ -39,16 +45,13 @@ router.get("/cast", async ({ clubId }, res) => {
     ),
   );
 
-  const result: Record<
-    string,
-    { name: string; character: string | null; profilePath: string | null }[]
-  > = {};
+  const result: Record<string, MovieCastMember[]> = {};
   for (const map of castByType) {
     for (const [externalId, cast] of map) {
       result[externalId] = cast;
     }
   }
-  return res(ok(JSON.stringify(result)));
+  return res(ok<Record<string, MovieCastMember[]>>(result));
 });
 
 const addReviewSchema = z.object({
@@ -123,7 +126,7 @@ router.get("/:workId/comments", secured, async ({ clubId, params }, res) => {
   const workId = requireParam(params, "workId", res);
   if (isRouterResponse(workId)) return workId;
   const comments = await WorkCommentRepository.getByWorkAndClub(workId, clubId);
-  return res(ok(JSON.stringify(comments)));
+  return res(ok<WorkCommentDto[]>(comments));
 });
 
 router.post("/:workId/comments", secured, async ({ clubId, userId, params, event }, res) => {
@@ -219,7 +222,7 @@ router.post("/:workId/discussion-questions", secured, async ({ clubId, params },
     },
     temperature: 0.9,
   });
-  return res(ok(JSON.stringify({ questions })));
+  return res(ok<DiscussionQuestionsResponse>({ questions }));
 });
 
 // Lightweight per-work scores endpoint. Returns only the `scores` map (one entry
@@ -230,7 +233,7 @@ router.get("/:workId/scores", secured, async ({ clubId, params }, res) => {
   const workId = requireParam(params, "workId", res);
   if (isRouterResponse(workId)) return workId;
   const scores = await buildWorkScores(clubId, workId);
-  return res(ok(JSON.stringify(scores)));
+  return res(ok<ReviewScores>(scores));
 });
 
 // Loads the raw per-work review rows plus the current member set and hands them
@@ -256,7 +259,7 @@ router.get("/:workId/shared", async ({ clubId, params }, res) => {
     return res(badRequest("Work not found"));
   }
 
-  return res(ok(JSON.stringify(sharedReviewData)));
+  return res(ok<SharedReviewResponse>(sharedReviewData));
 });
 
 export default router;

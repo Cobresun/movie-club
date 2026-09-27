@@ -1,6 +1,7 @@
 import { Handler } from "@netlify/functions";
 import { z } from "zod";
 
+import { SiteMetrics, SnapshotHistoryPoint } from "../../lib/types/metrics";
 import MetricsRepository from "./repositories/MetricsRepository.js";
 import { siteAdmin } from "./utils/auth";
 import { ok } from "./utils/responses";
@@ -18,13 +19,13 @@ const historyDaysSchema = z.coerce.number().int().min(1).max(365).catch(DEFAULT_
 
 router.get("/metrics", siteAdmin, async (_req, res) => {
   const metrics = await MetricsRepository.getMetrics();
-  return res(ok(JSON.stringify(metrics)));
+  return res(ok<SiteMetrics>(metrics));
 });
 
 router.get("/metrics/history", siteAdmin, async ({ event }, res) => {
   const days = historyDaysSchema.parse(event.queryStringParameters?.days ?? DEFAULT_HISTORY_DAYS);
   const snapshots = await MetricsRepository.getSnapshots(days);
-  return res(ok(JSON.stringify(snapshots)));
+  return res(ok<SnapshotHistoryPoint[]>(snapshots));
 });
 
 const handler: Handler = async (event, context) => router.route({ event, context, params: {} });
