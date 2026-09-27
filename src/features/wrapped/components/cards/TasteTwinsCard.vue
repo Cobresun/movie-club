@@ -8,7 +8,7 @@
         Taste twins
       </h3>
       <div class="mt-3 flex items-center gap-3">
-        <div class="flex shrink-0 -space-x-3">
+        <div class="flex shrink-0 gap-1">
           <v-avatar :src="twins.memberA.image" :name="twins.memberA.name" :size="56" />
           <v-avatar :src="twins.memberB.image" :name="twins.memberB.name" :size="56" />
         </div>
@@ -32,7 +32,7 @@
         Most at odds
       </h3>
       <div class="mt-3 flex items-center gap-3">
-        <div class="flex shrink-0 -space-x-2">
+        <div class="flex shrink-0 gap-1">
           <v-avatar :src="opposites.memberA.image" :name="opposites.memberA.name" :size="40" />
           <v-avatar :src="opposites.memberB.image" :name="opposites.memberB.name" :size="40" />
         </div>
