@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <title>Movie Club</title>
+  <rect width="512" height="512" rx="112" fill="#222831"/>
+  <defs>
+    <clipPath id="arm"><rect x="96" y="120" width="320" height="60" rx="12"/></clipPath>
+    <clipPath id="band"><rect x="96" y="200" width="320" height="60"/></clipPath>
+  </defs>
+  <g transform="translate(0 16)">
+    <!-- clapper arm, hinged open at the top-left of the slate -->
+    <g transform="rotate(-14 96 190)" clip-path="url(#arm)">
+      <rect x="96" y="120" width="320" height="60" fill="#6FBAFF"/>
+      <path d="M142 120h52l-34 60h-52zM246 120h52l-34 60h-52zM350 120h52l-34 60h-52z" fill="#222831"/>
+    </g>
+    <!-- slate body -->
+    <path d="M96 200h320v168a28 28 0 0 1-28 28H124a28 28 0 0 1-28-28z" fill="#2196F3"/>
+    <g clip-path="url(#band)">
+      <rect x="96" y="200" width="320" height="60" fill="#6FBAFF"/>
+      <path d="M142 200h52l-34 60h-52zM246 200h52l-34 60h-52zM350 200h52l-34 60h-52z" fill="#222831"/>
+    </g>
+    <!-- review star -->
+    <path d="M256 274l23.5 47.6 52.5 7.6-38 37 9 52.3-47-24.7-47 24.7 9-52.3-38-37 52.5-7.6z" fill="#FFFFFF" transform="translate(256 330) scale(0.78) translate(-256 -342)"/>
+  </g>
+</svg>
