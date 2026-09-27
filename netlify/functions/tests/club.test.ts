@@ -7,8 +7,9 @@
  */
 import { describe, expect, it } from "vitest";
 
-import { ClubPreview, Member } from "../../../lib/types/club";
+import { ClubPreview, ClubSettings, Member } from "../../../lib/types/club";
 import { ClubType, WorkType } from "../../../lib/types/generated/db";
+import { ClubListSummary } from "../../../lib/types/lists";
 import { DetailedMovieData } from "../../../lib/types/movie";
 import { handler } from "../club/index";
 import { signIn } from "./helpers/auth";
@@ -17,17 +18,6 @@ import { requester } from "./helpers/http";
 import { failOnRequest, TMDB } from "./setup/externalApis";
 
 const api = requester(handler);
-
-interface ListSummary {
-  id: string;
-  title: string;
-  systemType: string | null;
-  itemCount: number;
-}
-
-interface ClubSettings {
-  features: { awards: boolean; discussionQuestions: boolean };
-}
 
 describe("GET /api/club/:clubSlug", () => {
   it("returns the club preview", async () => {
@@ -100,7 +90,7 @@ describe("POST /api/club", () => {
       as: alice,
     });
 
-    const lists = await api.get<ListSummary[]>(`/api/club/${res.body.slug}/list`);
+    const lists = await api.get<ClubListSummary[]>(`/api/club/${res.body.slug}/list`);
     expect(lists.body).toEqual([
       { id: expect.any(String), title: "Watch List", systemType: null, itemCount: 0 },
     ]);
@@ -120,7 +110,7 @@ describe("POST /api/club", () => {
       as: alice,
     });
 
-    const lists = await api.get<ListSummary[]>(`/api/club/${res.body.slug}/list`);
+    const lists = await api.get<ClubListSummary[]>(`/api/club/${res.body.slug}/list`);
     expect(lists.body[0].title).toBe("Reading List");
   });
 

@@ -22,7 +22,7 @@ export const commentsApi = (initial: WorkCommentDto[] = []) => {
   const base = "/api/club/:id/reviews/:workId/comments";
 
   return [
-    http.get(base, () => HttpResponse.json(thread)),
+    http.get(base, () => HttpResponse.json<WorkCommentDto[]>(thread)),
     http.post(base, async ({ request }) => {
       const { content, spoiler } = (await request.json()) as { content: string; spoiler: boolean };
       thread = [...thread, comment({ id: `c-${thread.length + 1}`, content, spoiler })];

@@ -610,7 +610,34 @@ describe("GET /api/club/:clubSlug/reviews/:workId/shared", () => {
     expect(res.body.work.externalData).toMatchObject({ kind: "movie" });
     expect(res.body.members.map((member) => member.name)).toEqual(["Alice"]);
     expect(res.body.comments.map((comment) => comment.content)).toEqual(["A classic"]);
-    expect(res.body.reviews.map((review) => Number(review.score))).toEqual([9]);
+    expect(res.body.reviews.map((review) => review.score)).toEqual([9]);
+  });
+
+  it("does not expose member email addresses to an anonymous viewer", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub(alice);
+    const work = await addReviewedWork(club, alice);
+
+    const res = await api.get<SharedReviewResponse>(
+      `/api/club/${club.slug}/reviews/${work.id}/shared`,
+    );
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.members).toHaveLength(1);
+    expect(res.body.members[0]).not.toHaveProperty("email");
+  });
+
+  it("returns no reviews for a work nobody has scored", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub(alice);
+    const work = await addReviewedWork(club, alice);
+
+    const res = await api.get<SharedReviewResponse>(
+      `/api/club/${club.slug}/reviews/${work.id}/shared`,
+    );
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.reviews).toEqual([]);
   });
 
   it("omits external metadata for a work with no external id", async () => {
