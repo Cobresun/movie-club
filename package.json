@@ -44,6 +44,7 @@
     "lambda-multipart-parser": "^1.0.1",
     "luxon": "^3.7.2",
     "mdi-vue": "^3.0.13",
+    "modern-screenshot": "^4.7.0",
     "path-parser": "^6.1.0",
     "pg": "^8.16.3",
     "pinia": "^3.0.4",

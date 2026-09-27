@@ -6,6 +6,12 @@ interface ShareOptions {
   text?: string;
 }
 
+interface ShareImageOptions {
+  blob: Blob;
+  fileName: string;
+  title: string;
+}
+
 /**
  * Detects if the current device is a mobile device.
  * Checks user agent for mobile device indicators.
@@ -88,8 +94,37 @@ export function useShare() {
     }
   };
 
+  /**
+   * Hands an image to the share sheet on mobile, so it can go straight to a
+   * story or a chat, and downloads it everywhere else.
+   */
+  const shareImage = async ({ blob, fileName, title }: ShareImageOptions): Promise<void> => {
+    const file = new File([blob], fileName, { type: blob.type });
+    if (canUseNativeShare() && "canShare" in navigator && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title });
+        return;
+      } catch (error) {
+        if (error instanceof Error && error.name === "AbortError") return;
+      }
+    }
+    downloadFile(file);
+  };
+
+  const downloadFile = (file: File): void => {
+    const url = URL.createObjectURL(file);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = file.name;
+    link.click();
+    // Revoking in the same task can cancel the download in some browsers.
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+    toast.success("Image saved to your downloads");
+  };
+
   return {
     share,
+    shareImage,
     canUseNativeShare,
   };
 }
