@@ -8,18 +8,18 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- crossorigin lets a saved Wrapped card read these @font-face rules and
+         embed Poppins; without it the image falls back to a system font. -->
     <link
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+      crossorigin="anonymous"
     />
 
     <title>Movie Club</title>
 
     <!-- Default Open Graph Meta Tags (overridden by edge function for shared reviews) -->
-    <meta
-      property="og:title"
-      content="Movie Club - Review movies with your friends"
-    />
+    <meta property="og:title" content="Movie Club - Review movies with your friends" />
     <meta
       property="og:description"
       content="Join clubs and review movies with your friends. Track ratings, manage watchlists, and discover great films together."
@@ -31,8 +31,8 @@
   <body class="bg-background text-text">
     <noscript>
       <strong
-        >We're sorry but Movie Club doesn't work properly without JavaScript
-        enabled. Please enable it to continue.</strong
+        >We're sorry but Movie Club doesn't work properly without JavaScript enabled. Please enable
+        it to continue.</strong
       >
     </noscript>
     <div id="app"></div>
