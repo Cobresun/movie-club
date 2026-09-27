@@ -10,8 +10,12 @@
 import { http, HttpResponse } from "msw";
 import { describe, expect, it } from "vitest";
 
-import { ClubType, WorkListSystemType, WorkType } from "../../../lib/types/generated/db";
-import { DetailedReviewListItem, DetailedWorkListItem } from "../../../lib/types/lists";
+import { ClubType, WorkType } from "../../../lib/types/generated/db";
+import {
+  ClubListSummary,
+  DetailedReviewListItem,
+  DetailedWorkListItem,
+} from "../../../lib/types/lists";
 import { MovieDataSummary } from "../../../lib/types/movie";
 import { handler } from "../club/index";
 import { signIn } from "./helpers/auth";
@@ -30,14 +34,7 @@ import { failOnRequest, server, TMDB } from "./setup/externalApis";
 
 const api = requester(handler);
 
-interface ListSummary {
-  id: string;
-  title: string;
-  systemType: WorkListSystemType | null;
-  itemCount: number;
-}
-
-const listsOf = (slug: string) => api.get<ListSummary[]>(`/api/club/${slug}/list`);
+const listsOf = (slug: string) => api.get<ClubListSummary[]>(`/api/club/${slug}/list`);
 const itemsOf = (slug: string, listId: string) =>
   api.get<DetailedWorkListItem<MovieDataSummary>[]>(`/api/club/${slug}/list/${listId}`);
 
@@ -97,7 +94,7 @@ describe("POST /api/club/:clubSlug/list", () => {
     const club = await createClub(alice);
     await createList(club, alice, "Shortlist");
 
-    const res = await api.post<ListSummary>(`/api/club/${club.slug}/list`, {
+    const res = await api.post<ClubListSummary>(`/api/club/${club.slug}/list`, {
       body: { title: "Halloween" },
       as: alice,
     });

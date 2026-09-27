@@ -35,7 +35,7 @@ router.get("/:year<\\d+>", validYear, async ({ clubId, year }, res) => {
       })),
     ),
   };
-  return res(ok(JSON.stringify(retObj)));
+  return res(ok<ClubAwards>(retObj));
 });
 
 router.delete(
@@ -78,7 +78,7 @@ router.get("/available-years", async ({ clubId }, res) => {
 
 router.get("/years", async ({ clubId }, res) => {
   const years = await AwardsRepository.getYears(clubId);
-  return res(ok(JSON.stringify(years)));
+  return res(ok<number[]>(years));
 });
 
 export default router;

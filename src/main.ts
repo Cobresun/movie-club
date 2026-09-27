@@ -72,6 +72,9 @@ const vueQueryOptions: VueQueryPluginOptions = {
         },
       }),
       maxAge: 1000 * 60 * 60 * 24 * 7, // One week
+      // A deploy can change a response shape, and the persisted cache would
+      // otherwise paint week-old data in the old shape before revalidating.
+      buster: __BUILD_ID__,
       dehydrateOptions: {
         // "admin" joins "user" in staying out of IndexedDB: site-wide metrics
         // are not this browser's data to keep, and a persisted copy would
