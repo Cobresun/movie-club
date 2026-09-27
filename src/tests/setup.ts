@@ -28,6 +28,10 @@ vi.mock("vue-router", () => ({
   useRouter: vi.fn(() => router),
 }));
 
+// jsdom doesn't implement pointer capture, which the Wrapped story takes while a
+// card is dragged.
+window.HTMLElement.prototype.setPointerCapture = vi.fn();
+
 // jsdom has no matchMedia; `useIsDesktop` calls it on mount. Tests default to
 // mobile and opt into desktop with `setViewport(true)`.
 Object.defineProperty(window, "matchMedia", { writable: true, value: vi.fn() });

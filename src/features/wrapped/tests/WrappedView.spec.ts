@@ -233,6 +233,21 @@ describe("WrappedView", () => {
     expect(await screen.findByRole("group", { name: "2 of 9: Time together" })).toBeInTheDocument();
   });
 
+  it("swipes between cards", async () => {
+    server.use(reviews(MOVIE_REVIEWS));
+    const { user } = renderWrapped();
+    const card = await slide();
+
+    await user.pointer([
+      { keys: "[MouseLeft>]", target: card, coords: { clientX: 300, clientY: 300 } },
+      { target: card, coords: { clientX: 200, clientY: 305 } },
+      { target: card, coords: { clientX: 100, clientY: 310 } },
+      { keys: "[/MouseLeft]", target: card, coords: { clientX: 100, clientY: 310 } },
+    ]);
+
+    expect(await screen.findByRole("group", { name: "2 of 9: Time together" })).toBeInTheDocument();
+  });
+
   it("stops at the ends of the story", async () => {
     server.use(reviews(MOVIE_REVIEWS));
     const { user } = renderWrapped();
