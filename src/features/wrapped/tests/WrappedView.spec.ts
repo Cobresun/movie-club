@@ -1,10 +1,11 @@
 import { screen, within } from "@testing-library/vue";
 import { config } from "@vue/test-utils";
-import { domToBlob } from "modern-screenshot";
+import { domToCanvas } from "modern-screenshot";
 import { http, HttpResponse } from "msw";
 import { useRouter } from "vue-router";
 
 import WrappedView from "../views/WrappedView.vue";
+import { mockCanvas } from "@/mocks/canvas";
 import { mockDownloads } from "@/mocks/downloads";
 import { server } from "@/mocks/server";
 import { render } from "@/tests/utils";
@@ -310,6 +311,7 @@ describe("WrappedView", () => {
   });
 
   it("saves the current card as an image", async () => {
+    mockCanvas();
     mockDownloads();
     server.use(reviews(MOVIE_REVIEWS));
     const { user } = renderWrapped();
@@ -323,7 +325,7 @@ describe("WrappedView", () => {
 
   it("tells the member when a card can't be turned into an image", async () => {
     vi.spyOn(console, "error").mockImplementation(() => undefined);
-    vi.mocked(domToBlob).mockRejectedValueOnce(new Error("Tainted canvas"));
+    vi.mocked(domToCanvas).mockRejectedValueOnce(new Error("Tainted canvas"));
     server.use(reviews(MOVIE_REVIEWS));
     const { user } = renderWrapped();
     await slide();

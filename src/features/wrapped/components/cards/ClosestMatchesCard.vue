@@ -1,7 +1,7 @@
 <template>
   <ul class="flex flex-1 flex-col justify-center gap-5">
     <li v-for="match in matches" :key="match.member.id" class="flex items-center gap-3">
-      <div class="flex shrink-0 -space-x-2">
+      <div class="flex shrink-0 gap-1">
         <v-avatar :src="match.member.image" :name="match.member.name" :size="40" />
         <v-avatar :src="match.match.image" :name="match.match.name" :size="40" />
       </div>
