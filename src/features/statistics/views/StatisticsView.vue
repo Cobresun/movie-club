@@ -24,6 +24,7 @@
     </div>
 
     <div v-else-if="clubType !== undefined">
+      <WrappedEntryCard :club-slug="clubSlug" :years="wrappedYears(workData)" class="mb-6" />
       <InsightsView
         :work-data="workData"
         :members="members"
@@ -39,6 +40,8 @@ import { computed } from "vue";
 import { useRouter } from "vue-router";
 
 import { isDefined } from "../../../../lib/checks/checks.js";
+import WrappedEntryCard from "../../wrapped/components/WrappedEntryCard.vue";
+import { wrappedYears } from "../../wrapped/wrapped";
 import { useStatisticsData } from "../composables/useStatisticsData";
 import InsightsView from "./InsightsView.vue";
 import { clubTypeConfig, clubTypeStats } from "@/common/clubType";
