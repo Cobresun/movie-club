@@ -89,13 +89,41 @@ function placeImage(image: HTMLImageElement, card: HTMLElement): ImagePlacement 
 }
 
 /**
- * A fresh CORS fetch: a cached copy the page's `<img>` loaded without CORS
- * would taint the canvas. An image that can't be fetched is left out rather
- * than failing the whole card.
+ * Same-origin paths netlify.toml proxies to the hosts cards take images from.
+ * A canvas can only read a cross-origin image whose host sends CORS headers,
+ * which these don't all do, so an image is fetched through its proxy first.
+ */
+const IMAGE_PROXIES: Record<string, string> = {
+  "image.tmdb.org": "/image-proxy/tmdb",
+  "books.google.com": "/image-proxy/google-books",
+  "lh3.googleusercontent.com": "/image-proxy/google-avatars",
+  "res.cloudinary.com": "/image-proxy/cloudinary",
+};
+
+function proxiedUrl(src: string): string | undefined {
+  const url = new URL(src, window.location.href);
+  const prefix = IMAGE_PROXIES[url.host];
+  return isDefined(prefix) ? `${prefix}${url.pathname}${url.search}` : undefined;
+}
+
+/**
+ * Tries the same-origin proxy, then the image's own host (which works for a
+ * host that does send CORS headers, and wherever the proxy isn't running, as
+ * under plain `vite`). An image neither yields is left out rather than failing
+ * the whole card.
  */
 async function loadBitmap(src: string): Promise<ImageBitmap | undefined> {
+  for (const url of [proxiedUrl(src), src].filter(isDefined)) {
+    const bitmap = await fetchBitmap(url);
+    if (isDefined(bitmap)) return bitmap;
+  }
+  return undefined;
+}
+
+/** `no-store`: a cached copy the page's `<img>` loaded without CORS would taint the canvas. */
+async function fetchBitmap(url: string): Promise<ImageBitmap | undefined> {
   try {
-    const response = await fetch(src, { mode: "cors", cache: "no-store" });
+    const response = await fetch(url, { mode: "cors", cache: "no-store" });
     if (!response.ok) return undefined;
     return await createImageBitmap(await response.blob());
   } catch {
