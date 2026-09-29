@@ -45,6 +45,11 @@ export const FACT_ICONS = {
   decadeFirst: "calendar-star",
   firstGenre: "star-shooting",
   tmdbDeviation: "scale-unbalanced",
+  perfectScore: "numeric-10-circle",
+  unanimous: "handshake",
+  personalBest: "trending-up",
+  personalLow: "trending-down",
+  loneWolf: "account-alert",
 } as const;
 
 export type FactKind = keyof typeof FACT_ICONS;
@@ -63,6 +68,14 @@ interface FactContext {
   targetDate: DateTime;
   /** "movie" or "book", from the shared club-type registry. */
   noun: string;
+  /** Display name of a club member, or undefined for someone no longer in it. */
+  nameOf: (memberId: string) => string | undefined;
+}
+
+/** Anyone with a name the fact can show — club members, or a shared page's. */
+export interface FactMember {
+  id: string;
+  name: string;
 }
 
 type FactGenerator = (ctx: FactContext) => ReviewFact | undefined;
@@ -76,12 +89,20 @@ const fact = (kind: FactKind, label: string, text: string): ReviewFact => ({
 
 const averageOf = (work: DetailedReviewListItem): number | undefined => work.scores.average?.score;
 
+interface MemberScore {
+  memberId: string;
+  score: number;
+}
+
 /** Individual member scores on a work (the synthetic average excluded). */
-const memberScoresOf = (work: DetailedReviewListItem): number[] =>
+const memberEntriesOf = (work: DetailedReviewListItem): MemberScore[] =>
   Object.entries(work.scores)
     .filter(([id]) => id !== "average")
-    .map(([, review]) => review.score)
-    .filter((score) => !isNaN(score));
+    .map(([memberId, review]) => ({ memberId, score: review.score }))
+    .filter(({ score }) => !isNaN(score));
+
+const memberScoresOf = (work: DetailedReviewListItem): number[] =>
+  memberEntriesOf(work).map(({ score }) => score);
 
 /** Review timestamps are UTC; read calendar fields in UTC so facts don't
  * shift across timezones (same convention as the statistics computers). */
@@ -472,35 +493,178 @@ const tmdbDeviation: FactGenerator = (ctx) => {
   );
 };
 
+// ---------------------------------------------------------------------------
+// Member facts: about one person's score rather than the club's verdict.
+// ---------------------------------------------------------------------------
+
+const PERFECT_SCORE = 10;
+// "The 7th perfect 10" isn't news; only the first few are.
+const MAX_PERFECT_SCORE_RANK = 3;
+
+const listFormat = new Intl.ListFormat("en-US", { style: "long", type: "conjunction" });
+
+/** Anchored to worksThrough, so "the 2nd perfect 10" stays true forever. */
+const perfectScore: FactGenerator = (ctx) => {
+  const prior = ctx.worksThrough.filter((work) => work.id !== ctx.target.id);
+  if (prior.length < MIN_PRIOR_WORKS_FOR_FIRSTS) return undefined;
+  const names = memberEntriesOf(ctx.target)
+    .filter(({ score }) => score === PERFECT_SCORE)
+    .map(({ memberId }) => ctx.nameOf(memberId))
+    .filter(isDefined);
+  if (!hasElements(names)) return undefined;
+  const priorPerfects = prior
+    .flatMap(memberScoresOf)
+    .filter((score) => score === PERFECT_SCORE).length;
+  const rank = priorPerfects + 1;
+  if (rank > MAX_PERFECT_SCORE_RANK) return undefined;
+  const from = listFormat.format(names);
+  return fact(
+    "perfectScore",
+    "Perfect 10",
+    rank === 1
+      ? `The first perfect 10 in club history, from ${from}.`
+      : `Only the ${ordinal(rank)} perfect 10 in club history, from ${from}.`,
+  );
+};
+
+// Two people matching is a coincidence; three is a consensus.
+const MIN_SCORERS_FOR_UNANIMOUS = 3;
+
+const unanimous: FactGenerator = (ctx) => {
+  const scores = memberScoresOf(ctx.target);
+  if (scores.length < MIN_SCORERS_FOR_UNANIMOUS) return undefined;
+  if (scores.some((score) => score !== scores[0])) return undefined;
+  return fact(
+    "unanimous",
+    "Unanimous",
+    `All ${scores.length} members scored it exactly ${formatScore(scores[0])}.`,
+  );
+};
+
+// A personal record needs a real history behind it; early on, every other
+// score would be someone's "new best".
+const MIN_PRIOR_SCORES_FOR_PERSONAL_RECORD = 20;
+
+/**
+ * The target beat (or undercut) every score its member gave to earlier works.
+ * When several members set records at once, the longest history wins.
+ */
+const personalRecord: FactGenerator = (ctx) => {
+  const prior = ctx.worksThrough.filter((work) => work.id !== ctx.target.id);
+  let best: { name: string; score: number; priorCount: number; high: boolean } | undefined;
+  for (const { memberId, score } of memberEntriesOf(ctx.target)) {
+    const name = ctx.nameOf(memberId);
+    if (!isDefined(name)) continue;
+    const priorScores = prior
+      .flatMap(memberEntriesOf)
+      .filter((entry) => entry.memberId === memberId);
+    if (priorScores.length < MIN_PRIOR_SCORES_FOR_PERSONAL_RECORD) continue;
+    if (isDefined(best) && priorScores.length <= best.priorCount) continue;
+    const values = priorScores.map((entry) => entry.score);
+    if (score > Math.max(...values)) {
+      best = { name, score, priorCount: values.length, high: true };
+    } else if (score < Math.min(...values)) {
+      best = { name, score, priorCount: values.length, high: false };
+    }
+  }
+  if (!isDefined(best)) return undefined;
+  const { name, score, priorCount, high } = best;
+  return high
+    ? fact(
+        "personalBest",
+        "Personal best",
+        `A new high for ${name}: ${formatScore(score)}, above all ${priorCount} of their earlier scores.`,
+      )
+    : fact(
+        "personalLow",
+        "Personal low",
+        `A new low for ${name}: ${formatScore(score)}, below all ${priorCount} of their earlier scores.`,
+      );
+};
+
+// With only two scorers, each is equally "the outlier" — there's no pack to
+// stray from.
+const MIN_SCORERS_FOR_LONE_WOLF = 3;
+const LONE_WOLF_GAP = 3;
+
+/** One member landed at least {@link LONE_WOLF_GAP} points from every other score. */
+const loneWolf: FactGenerator = (ctx) => {
+  const entries = memberEntriesOf(ctx.target);
+  if (entries.length < MIN_SCORERS_FOR_LONE_WOLF) return undefined;
+  let widest: { name: string; score: number; gap: number; above: boolean } | undefined;
+  for (const { memberId, score } of entries) {
+    const name = ctx.nameOf(memberId);
+    if (!isDefined(name)) continue;
+    const others = entries.filter((entry) => entry.memberId !== memberId).map((e) => e.score);
+    const gapAbove = score - Math.max(...others);
+    const gapBelow = Math.min(...others) - score;
+    const gap = Math.max(gapAbove, gapBelow);
+    if (gap >= LONE_WOLF_GAP && (!isDefined(widest) || gap > widest.gap)) {
+      widest = { name, score, gap, above: gapAbove > gapBelow };
+    }
+  }
+  if (!isDefined(widest)) return undefined;
+  const direction = widest.above ? "above" : "below";
+  return fact(
+    "loneWolf",
+    "Lone wolf",
+    `${widest.name}'s ${formatScore(widest.score)} was ${formatScore(widest.gap)} points ${direction} anyone else's.`,
+  );
+};
+
+/**
+ * A generator plus whether its fact gives away scores. The review drawer blurs
+ * other members' scores until the viewer rates or reveals, and a fact like
+ * "Alice's 2 was 5 points below anyone else's" would undo that.
+ */
+interface FactCandidate {
+  generate: FactGenerator;
+  revealsScores: boolean;
+}
+
+const scoreFact = (generate: FactGenerator): FactCandidate => ({ generate, revealsScores: true });
+const metadataFact = (generate: FactGenerator): FactCandidate => ({
+  generate,
+  revealsScores: false,
+});
+
 /**
  * Ordered candidate generators per work type, most interesting first — the
  * first one that fires wins. Keyed by WorkType (same feature-local registry
  * pattern as WORK_STATS_BUILDERS) so a new club type must declare its list.
  */
-const FACT_GENERATORS: Record<WorkType, FactGenerator[]> = {
+const FACT_GENERATORS: Record<WorkType, FactCandidate[]> = {
   [WorkType.movie]: [
-    allTimeRecord,
-    clubMilestone,
-    watchTimeMilestone,
-    divisiveRecord,
-    yearRecord,
-    directorRecord,
-    actorMilestone,
-    oldestMovie,
-    longestRuntime,
-    decadeFirst,
-    firstGenre,
-    tmdbDeviation,
+    scoreFact(allTimeRecord),
+    metadataFact(clubMilestone),
+    metadataFact(watchTimeMilestone),
+    scoreFact(divisiveRecord),
+    scoreFact(perfectScore),
+    scoreFact(unanimous),
+    scoreFact(yearRecord),
+    scoreFact(directorRecord),
+    scoreFact(personalRecord),
+    scoreFact(loneWolf),
+    metadataFact(actorMilestone),
+    metadataFact(oldestMovie),
+    metadataFact(longestRuntime),
+    metadataFact(decadeFirst),
+    metadataFact(firstGenre),
+    scoreFact(tmdbDeviation),
   ],
   [WorkType.book]: [
-    allTimeRecord,
-    clubMilestone,
-    pagesMilestone,
-    divisiveRecord,
-    yearRecord,
-    authorRecord,
-    oldestBook,
-    longestBook,
+    scoreFact(allTimeRecord),
+    metadataFact(clubMilestone),
+    metadataFact(pagesMilestone),
+    scoreFact(divisiveRecord),
+    scoreFact(perfectScore),
+    scoreFact(unanimous),
+    scoreFact(yearRecord),
+    scoreFact(authorRecord),
+    scoreFact(personalRecord),
+    scoreFact(loneWolf),
+    metadataFact(oldestBook),
+    metadataFact(longestBook),
   ],
 };
 
@@ -515,10 +679,15 @@ const nounFor = (type: WorkType): string =>
  * clubs (e.g. book clubs) not everyone reviews every work, so gating on a full
  * house would suppress facts entirely. Most reviews won't produce one anyway;
  * that's by design.
+ *
+ * `hideScores` skips facts that would give away scores the viewer can't see
+ * yet, so the best score-free fact (a milestone, say) shows instead.
  */
 export function computeReviewFact(
   reviews: DetailedReviewListItem[],
   workId: string,
+  members: readonly FactMember[],
+  { hideScores = false }: { hideScores?: boolean } = {},
 ): ReviewFact | undefined {
   const target = reviews.find((review) => review.id === workId);
   if (!isDefined(target)) return undefined;
@@ -528,6 +697,7 @@ export function computeReviewFact(
 
   const works = [...reviews].sort((a, b) => a.createdDate.localeCompare(b.createdDate));
   const position = works.findIndex((work) => work.id === target.id) + 1;
+  const names = new Map(members.map((member) => [member.id, member.name]));
 
   const ctx: FactContext = {
     target,
@@ -538,9 +708,11 @@ export function computeReviewFact(
     targetAverage,
     targetDate: utcDate(target.createdDate),
     noun: nounFor(target.type),
+    nameOf: (memberId) => names.get(memberId),
   };
 
-  for (const generate of FACT_GENERATORS[target.type]) {
+  for (const { generate, revealsScores } of FACT_GENERATORS[target.type]) {
+    if (hideScores && revealsScores) continue;
     const result = generate(ctx);
     if (isDefined(result)) return result;
   }

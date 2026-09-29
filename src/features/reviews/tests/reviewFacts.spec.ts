@@ -10,6 +10,12 @@ import { computeReviewFact } from "../reviewFacts";
 
 const MEMBER_A = "member-a";
 const MEMBER_B = "member-b";
+const MEMBER_C = "member-c";
+const MEMBERS = [
+  { id: MEMBER_A, name: "Alice" },
+  { id: MEMBER_B, name: "Bob" },
+  { id: MEMBER_C, name: "Casey" },
+];
 
 function movieData(
   opts: {
@@ -133,14 +139,14 @@ describe("computeReviewFact", () => {
     const target = work("t", "2025-06-01T12:00:00.000Z", { [MEMBER_A]: 10 });
     const reviews = [...filler(11), target];
 
-    expect(computeReviewFact(reviews, "t")?.kind).toBe("allTimeHigh");
+    expect(computeReviewFact(reviews, "t", MEMBERS)?.kind).toBe("allTimeHigh");
   });
 
   it("returns undefined when the target has no score", () => {
     const target = work("t", "2025-06-01T12:00:00.000Z", {});
     const reviews = [...filler(12), target];
 
-    expect(computeReviewFact(reviews, "t")).toBeUndefined();
+    expect(computeReviewFact(reviews, "t", MEMBERS)).toBeUndefined();
   });
 
   it("returns undefined for an unremarkable review", () => {
@@ -150,7 +156,7 @@ describe("computeReviewFact", () => {
     });
     const reviews = [...filler(3), target];
 
-    expect(computeReviewFact(reviews, "t")).toBeUndefined();
+    expect(computeReviewFact(reviews, "t", MEMBERS)).toBeUndefined();
   });
 
   it("crowns an all-time high once the club has enough history", () => {
@@ -160,7 +166,7 @@ describe("computeReviewFact", () => {
     });
     const reviews = [...filler(11), target];
 
-    const fact = computeReviewFact(reviews, "t");
+    const fact = computeReviewFact(reviews, "t", MEMBERS);
     expect(fact?.kind).toBe("allTimeHigh");
     expect(fact?.text).toContain("highest-rated movie in club history");
     expect(fact?.text).toContain("9.5");
@@ -173,7 +179,7 @@ describe("computeReviewFact", () => {
     });
     const reviews = [...filler(11), target];
 
-    expect(computeReviewFact(reviews, "t")?.kind).toBe("allTimeLow");
+    expect(computeReviewFact(reviews, "t", MEMBERS)?.kind).toBe("allTimeLow");
   });
 
   it("prefers an all-time record over a coinciding count milestone", () => {
@@ -184,7 +190,7 @@ describe("computeReviewFact", () => {
     });
     const reviews = [...filler(9), target];
 
-    expect(computeReviewFact(reviews, "t")?.kind).toBe("allTimeHigh");
+    expect(computeReviewFact(reviews, "t", MEMBERS)?.kind).toBe("allTimeHigh");
   });
 
   it("marks the club's 10th review as a milestone", () => {
@@ -195,7 +201,7 @@ describe("computeReviewFact", () => {
     });
     const reviews = [...filler(9), target];
 
-    const fact = computeReviewFact(reviews, "t");
+    const fact = computeReviewFact(reviews, "t", MEMBERS);
     expect(fact?.kind).toBe("clubMilestone");
     expect(fact?.text).toContain("10th movie");
   });
@@ -208,7 +214,7 @@ describe("computeReviewFact", () => {
     // 11 works total so the target isn't a count milestone.
     const reviews = [...filler(10), target];
 
-    const fact = computeReviewFact(reviews, "t");
+    const fact = computeReviewFact(reviews, "t", MEMBERS);
     expect(fact?.kind).toBe("divisive");
     expect(fact?.text).toContain("most divisive");
   });
@@ -227,7 +233,7 @@ describe("computeReviewFact", () => {
       [MEMBER_B]: 9,
     });
 
-    const fact = computeReviewFact([...sameYear, target], "t");
+    const fact = computeReviewFact([...sameYear, target], "t", MEMBERS);
     expect(fact?.kind).toBe("yearHigh");
     expect(fact?.text).toContain("2025");
   });
@@ -250,7 +256,7 @@ describe("computeReviewFact", () => {
       byNolan("t", "2025-02-10T12:00:00.000Z", 7.5),
     ];
 
-    const fact = computeReviewFact(reviews, "t");
+    const fact = computeReviewFact(reviews, "t", MEMBERS);
     expect(fact?.kind).toBe("personHigh");
     expect(fact?.text).toContain("3 films directed by Christopher Nolan");
   });
@@ -273,7 +279,7 @@ describe("computeReviewFact", () => {
       withHanks("t", "2025-06-10T12:00:00.000Z", 5),
     ];
 
-    const fact = computeReviewFact(reviews, "t");
+    const fact = computeReviewFact(reviews, "t", MEMBERS);
     expect(fact?.kind).toBe("actorMilestone");
     expect(fact?.text).toContain("5th movie");
     expect(fact?.text).toContain("Tom Hanks");
@@ -309,7 +315,7 @@ describe("computeReviewFact", () => {
       withMinorHanks("t", "2025-06-10T12:00:00.000Z", 5),
     ];
 
-    const fact = computeReviewFact(reviews, "t");
+    const fact = computeReviewFact(reviews, "t", MEMBERS);
     expect(fact?.kind).not.toBe("actorMilestone");
   });
 
@@ -344,7 +350,7 @@ describe("computeReviewFact", () => {
       withStarHolland("t", "2025-06-10T12:00:00.000Z", 5),
     ];
 
-    const fact = computeReviewFact(reviews, "t");
+    const fact = computeReviewFact(reviews, "t", MEMBERS);
     expect(fact?.kind).toBe("actorMilestone");
     expect(fact?.text).toContain("5th movie");
     expect(fact?.text).toContain("Tom Holland");
@@ -361,7 +367,7 @@ describe("computeReviewFact", () => {
     // first-genre history threshold is met.
     const reviews = [...filler(11), target];
 
-    const fact = computeReviewFact(reviews, "t");
+    const fact = computeReviewFact(reviews, "t", MEMBERS);
     expect(fact?.kind).toBe("firstGenre");
     expect(fact?.text).toContain("first Romance movie");
   });
@@ -375,7 +381,7 @@ describe("computeReviewFact", () => {
     );
     const reviews = [...filler(3), target];
 
-    const fact = computeReviewFact(reviews, "t");
+    const fact = computeReviewFact(reviews, "t", MEMBERS);
     expect(fact?.kind).toBe("tmdbDeviation");
     expect(fact?.text).toContain("4 points lower");
   });
@@ -390,7 +396,7 @@ describe("computeReviewFact", () => {
     );
     const reviews = [...filler(11, { movie: { runtime: 126 } }), target];
 
-    const fact = computeReviewFact(reviews, "t");
+    const fact = computeReviewFact(reviews, "t", MEMBERS);
     expect(fact?.kind).toBe("watchTimeMilestone");
     expect(fact?.text).toContain("24 hours");
     expect(fact?.text).toContain("a full day on the couch");
@@ -407,7 +413,7 @@ describe("computeReviewFact", () => {
     // milestone, so the runtime record is the fact that fires.
     const reviews = [...filler(11, { movie: { runtime: 100 } }), target];
 
-    const fact = computeReviewFact(reviews, "t");
+    const fact = computeReviewFact(reviews, "t", MEMBERS);
     expect(fact?.kind).toBe("longestRuntime");
     expect(fact?.text).toContain("3h 20m");
     expect(fact?.text).toContain("longest movie");
@@ -422,7 +428,7 @@ describe("computeReviewFact", () => {
     );
     const reviews = [...filler(11, { movie: { releaseDate: "1990-05-01" } }), target];
 
-    const fact = computeReviewFact(reviews, "t");
+    const fact = computeReviewFact(reviews, "t", MEMBERS);
     expect(fact?.kind).toBe("timeTravel");
     expect(fact?.text).toContain("Released in 1954");
     expect(fact?.text).toContain("oldest movie");
@@ -439,7 +445,7 @@ describe("computeReviewFact", () => {
     );
     const reviews = [...filler(11, { movie: { releaseDate: "1965-01-01" } }), target];
 
-    const fact = computeReviewFact(reviews, "t");
+    const fact = computeReviewFact(reviews, "t", MEMBERS);
     expect(fact?.kind).toBe("decadeFirst");
     expect(fact?.text).toContain("first trip to the 1970s");
   });
@@ -454,7 +460,7 @@ describe("computeReviewFact", () => {
     );
     const reviews = [...filler(11, { book: { pages: 420 } }), target];
 
-    const fact = computeReviewFact(reviews, "t");
+    const fact = computeReviewFact(reviews, "t", MEMBERS);
     expect(fact?.kind).toBe("pagesMilestone");
     expect(fact?.text).toContain("5,000 pages");
     expect(fact?.text).toContain("4 copies of War and Peace");
@@ -470,7 +476,7 @@ describe("computeReviewFact", () => {
     // 11 priors at 300 pages keep total pages under the 5,000 milestone.
     const reviews = [...filler(11, { book: { pages: 300 } }), target];
 
-    const fact = computeReviewFact(reviews, "t");
+    const fact = computeReviewFact(reviews, "t", MEMBERS);
     expect(fact?.kind).toBe("longestBook");
     expect(fact?.text).toContain("1,178 pages");
     expect(fact?.text).toContain("longest book");
@@ -488,7 +494,7 @@ describe("computeReviewFact", () => {
     );
     const reviews = [...filler(11, { book: { firstPublishYear: 1990 } }), target];
 
-    const fact = computeReviewFact(reviews, "t");
+    const fact = computeReviewFact(reviews, "t", MEMBERS);
     expect(fact?.kind).toBe("timeTravel");
     expect(fact?.text).toContain("First published in 1847");
     expect(fact?.text).toContain("oldest book");
@@ -511,8 +517,153 @@ describe("computeReviewFact", () => {
       byAuthor("t", "2025-02-10T12:00:00.000Z", 8),
     ];
 
-    const fact = computeReviewFact(reviews, "t");
+    const fact = computeReviewFact(reviews, "t", MEMBERS);
     expect(fact?.kind).toBe("personHigh");
     expect(fact?.text).toContain("3 books by Ursula K. Le Guin");
+  });
+
+  it("skips score facts while scores are hidden, falling back to a score-free one", () => {
+    // Both the 10th work and the highest-rated ever: hidden, only the milestone remains.
+    const target = work("t", "2025-06-01T12:00:00.000Z", {
+      [MEMBER_A]: 10,
+      [MEMBER_B]: 10,
+    });
+    const reviews = [...filler(9), target];
+
+    const fact = computeReviewFact(reviews, "t", MEMBERS, { hideScores: true });
+    expect(fact?.kind).toBe("clubMilestone");
+  });
+});
+
+describe("computeReviewFact member facts", () => {
+  it("names who gave the club's first perfect 10", () => {
+    // A 9 in the history keeps the target (avg 8.5) off the all-time record.
+    const target = work("t", "2025-06-01T12:00:00.000Z", {
+      [MEMBER_A]: 10,
+      [MEMBER_B]: 7,
+    });
+    const reviews = [...filler(10, { scoreOf: (i) => (i === 0 ? 9 : 6) }), target];
+
+    expect(computeReviewFact(reviews, "t", MEMBERS)?.text).toBe(
+      "The first perfect 10 in club history, from Alice.",
+    );
+  });
+
+  it("counts the 3rd perfect 10", () => {
+    // Both members gave the first filler a 10, so the target's is the 3rd.
+    const target = work("t", "2025-06-01T12:00:00.000Z", {
+      [MEMBER_A]: 7,
+      [MEMBER_B]: 10,
+    });
+    const reviews = [...filler(10, { scoreOf: (i) => (i === 0 ? 10 : 6) }), target];
+
+    expect(computeReviewFact(reviews, "t", MEMBERS)?.text).toBe(
+      "Only the 3rd perfect 10 in club history, from Bob.",
+    );
+  });
+
+  it("stops counting perfect 10s once they're no longer rare", () => {
+    const target = work("t", "2025-06-01T12:00:00.000Z", {
+      [MEMBER_A]: 7,
+      [MEMBER_B]: 10,
+    });
+    const reviews = [...filler(10, { scoreOf: (i) => (i < 2 ? 10 : 6) }), target];
+
+    expect(computeReviewFact(reviews, "t", MEMBERS)?.kind).not.toBe("perfectScore");
+  });
+
+  it("calls a unanimous score", () => {
+    const target = work("t", "2025-06-01T12:00:00.000Z", {
+      [MEMBER_A]: 7,
+      [MEMBER_B]: 7,
+      [MEMBER_C]: 7,
+    });
+    const reviews = [...filler(3), target];
+
+    const fact = computeReviewFact(reviews, "t", MEMBERS);
+    expect(fact?.kind).toBe("unanimous");
+    expect(fact?.text).toBe("All 3 members scored it exactly 7.");
+  });
+
+  it("doesn't call two matching scores unanimous", () => {
+    const target = work("t", "2025-06-01T12:00:00.000Z", {
+      [MEMBER_A]: 7,
+      [MEMBER_B]: 7,
+    });
+    const reviews = [...filler(3), target];
+
+    expect(computeReviewFact(reviews, "t", MEMBERS)).toBeUndefined();
+  });
+
+  it("celebrates a member's new personal best", () => {
+    // Filler scores run 5–7, so Alice's 8 beats all 20 of hers while the
+    // club average (7) stays level with the all-time high.
+    const target = work("t", "2025-06-01T12:00:00.000Z", {
+      [MEMBER_A]: 8,
+      [MEMBER_B]: 6,
+    });
+    const reviews = [...filler(20), target];
+
+    const fact = computeReviewFact(reviews, "t", MEMBERS);
+    expect(fact?.kind).toBe("personalBest");
+    expect(fact?.text).toBe("A new high for Alice: 8, above all 20 of their earlier scores.");
+  });
+
+  it("marks a member's new personal low", () => {
+    const target = work("t", "2025-06-01T12:00:00.000Z", {
+      [MEMBER_A]: 6,
+      [MEMBER_B]: 4,
+    });
+    const reviews = [...filler(20), target];
+
+    const fact = computeReviewFact(reviews, "t", MEMBERS);
+    expect(fact?.kind).toBe("personalLow");
+    expect(fact?.text).toBe("A new low for Bob: 4, below all 20 of their earlier scores.");
+  });
+
+  it("waits for a longer history before calling a personal record", () => {
+    const target = work("t", "2025-06-01T12:00:00.000Z", {
+      [MEMBER_A]: 8,
+      [MEMBER_B]: 6,
+    });
+    const reviews = [...filler(19), target];
+
+    expect(computeReviewFact(reviews, "t", MEMBERS)?.kind).not.toBe("personalBest");
+  });
+
+  it("singles out a lone wolf far from everyone else", () => {
+    const target = work("t", "2025-06-01T12:00:00.000Z", {
+      [MEMBER_A]: 2,
+      [MEMBER_B]: 7,
+      [MEMBER_C]: 8,
+    });
+    const reviews = [...filler(3), target];
+
+    const fact = computeReviewFact(reviews, "t", MEMBERS);
+    expect(fact?.kind).toBe("loneWolf");
+    expect(fact?.text).toBe("Alice's 2 was 5 points below anyone else's.");
+  });
+
+  it("leaves out a lone wolf who is no longer in the club", () => {
+    const target = work("t", "2025-06-01T12:00:00.000Z", {
+      [MEMBER_A]: 2,
+      [MEMBER_B]: 7,
+      [MEMBER_C]: 8,
+    });
+    const reviews = [...filler(3), target];
+    const withoutAlice = MEMBERS.filter((member) => member.id !== MEMBER_A);
+
+    expect(computeReviewFact(reviews, "t", withoutAlice)).toBeUndefined();
+  });
+
+  it("keeps a lone wolf's score hidden until scores are revealed", () => {
+    const target = work("t", "2025-06-01T12:00:00.000Z", {
+      [MEMBER_A]: 2,
+      [MEMBER_B]: 7,
+      [MEMBER_C]: 8,
+    });
+    const reviews = [...filler(3), target];
+
+    expect(computeReviewFact(reviews, "t", MEMBERS, { hideScores: true })).toBeUndefined();
   });
 });

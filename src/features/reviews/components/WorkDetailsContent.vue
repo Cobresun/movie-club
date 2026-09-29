@@ -109,8 +109,8 @@
       </p>
     </section>
 
-    <!-- Spotlight fact: unlocks once every member has scored. Sits between the
-         verdict (scores) and the reference material (synopsis/details).
+    <!-- Spotlight fact: sits between the verdict (scores) and the reference
+         material (synopsis/details).
          Computed off the opening frame (see factReady), so it fades in after
          the drawer has painted. -->
     <Transition
@@ -371,6 +371,9 @@ const cancelDateEdit = () => {
 // until its leave transition finishes, so a still-pending idle callback (or
 // its timeout) can land mid-close — the `dismissing` guard skips the scan
 // then, since a fact appearing in a closing drawer helps no one.
+//
+// While other members' scores are blurred, facts that would give them away are
+// skipped in favour of a score-free one.
 const { data: allReviews } = useReviewsList(clubId);
 const factReady = ref(false);
 let cancelFactIdle: (() => void) | undefined;
@@ -397,7 +400,9 @@ onMounted(() => {
 onBeforeUnmount(() => cancelFactIdle?.());
 const reviewFact = computed(() =>
   factReady.value && isDefined(allReviews.value)
-    ? computeReviewFact(allReviews.value, props.movie.id)
+    ? computeReviewFact(allReviews.value, props.movie.id, props.members, {
+        hideScores: !isRevealed.value,
+      })
     : undefined,
 );
 

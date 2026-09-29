@@ -1,5 +1,6 @@
 import { screen } from "@testing-library/vue";
 import { http, HttpResponse } from "msw";
+import { useRoute } from "vue-router";
 
 import SharedReviewView from "../views/SharedReviewView.vue";
 import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
@@ -41,6 +42,49 @@ describe("SharedReviewView", () => {
       screen.getByText("Your mind is the scene of the crime.", {
         exact: false,
       }),
+    ).toBeInTheDocument();
+  });
+
+  it("names the member behind a spotlight fact", async () => {
+    useRoute().params.workId = "work-1";
+    const scored = (userId: string, score: number) => ({
+      id: `review-${userId}`,
+      created_date: "2024-05-01T00:00:00Z",
+      score,
+    });
+    server.use(
+      http.get("/api/club/:id/reviews/:workId/shared", () =>
+        HttpResponse.json({
+          ...sharedReview,
+          members: [
+            { id: "1", name: "Dana", image: "https://test.com/dana.jpg" },
+            { id: "2", name: "Eli", image: "https://test.com/eli.jpg" },
+            { id: "3", name: "Fran", image: "https://test.com/fran.jpg" },
+          ],
+        }),
+      ),
+      http.get("/api/club/:id/list/reviews", () =>
+        HttpResponse.json([
+          {
+            id: "work-1",
+            type: "movie",
+            title: "Inception",
+            createdDate: "2024-05-01T00:00:00Z",
+            scores: {
+              "1": scored("1", 2),
+              "2": scored("2", 7),
+              "3": scored("3", 8),
+              average: scored("average", 17 / 3),
+            },
+          },
+        ]),
+      ),
+    );
+
+    render(SharedReviewView);
+
+    expect(
+      await screen.findByText("Dana's 2 was 5 points below anyone else's."),
     ).toBeInTheDocument();
   });
 

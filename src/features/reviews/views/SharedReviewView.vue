@@ -147,7 +147,9 @@ const { data, isLoading, error } = useSharedReview(clubSlug, workId);
 // sees in its review drawer.
 const { data: allReviews } = useReviewsList(clubSlug);
 const reviewFact = computed(() =>
-  isDefined(allReviews.value) ? computeReviewFact(allReviews.value, workId) : undefined,
+  isDefined(allReviews.value) && isDefined(data.value)
+    ? computeReviewFact(allReviews.value, workId, data.value.members)
+    : undefined,
 );
 
 const movieData = computed(() => asMovie(data.value?.work.externalData));

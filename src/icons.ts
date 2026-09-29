@@ -1,4 +1,5 @@
 import {
+  mdiAccountAlert,
   mdiAccountGroupOutline,
   mdiAccountOutline,
   mdiAccountStar,
@@ -37,6 +38,7 @@ import {
   mdiFileDocumentOutline,
   mdiFilmstrip,
   mdiFormatListBulleted,
+  mdiHandshake,
   mdiHistory,
   mdiImageMultiple,
   mdiLinkVariant,
@@ -50,6 +52,7 @@ import {
   mdiMovie,
   mdiMovieOpenOutline,
   mdiMovieOutline,
+  mdiNumeric10Circle,
   mdiOpenInNew,
   mdiPencil,
   mdiPencilOutline,
@@ -73,6 +76,8 @@ import {
   mdiThumbDown,
   mdiTicketOutline,
   mdiTrashCanOutline,
+  mdiTrendingDown,
+  mdiTrendingUp,
   mdiTrophy,
   mdiTrophyBroken,
   mdiTrophyOutline,
@@ -101,6 +106,7 @@ import {
  * test, but any other dynamic icon name must be registered here by hand.
  */
 export const icons = {
+  mdiAccountAlert,
   mdiAccountGroupOutline,
   mdiAccountOutline,
   mdiAccountStar,
@@ -139,6 +145,7 @@ export const icons = {
   mdiFileDocumentOutline,
   mdiFilmstrip,
   mdiFormatListBulleted,
+  mdiHandshake,
   mdiHistory,
   mdiImageMultiple,
   mdiLinkVariant,
@@ -152,6 +159,7 @@ export const icons = {
   mdiMovie,
   mdiMovieOpenOutline,
   mdiMovieOutline,
+  mdiNumeric10Circle,
   mdiOpenInNew,
   mdiPencil,
   mdiPencilOutline,
@@ -175,6 +183,8 @@ export const icons = {
   mdiThumbDown,
   mdiTicketOutline,
   mdiTrashCanOutline,
+  mdiTrendingDown,
+  mdiTrendingUp,
   mdiTrophy,
   mdiTrophyBroken,
   mdiTrophyOutline,
