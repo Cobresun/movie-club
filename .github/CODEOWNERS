@@ -1,0 +1,23 @@
+# Paths listed here need a code owner's review before merging (enforced by the
+# "Require review from Code Owners" rule on main, which requires 0 approvals
+# otherwise). Anything not listed — mainly the frontend in src/ — merges once
+# CI is green. Keep this list covering everything that isn't a trivial revert.
+
+# Database: migrations run against prod on the production deploy
+/migrations/                 @cole-adams
+/scripts/                    @cole-adams
+
+# Backend: Netlify functions, repositories, plugins, edge functions, and the
+# shared lib they import (including the generated DB types)
+/netlify/                    @cole-adams
+/lib/                        @cole-adams
+
+# Build and deploy config: the Netlify build command runs `npm run migrate`
+/netlify.toml                @cole-adams
+/package.json                @cole-adams
+/package-lock.json           @cole-adams
+/deno.lock                   @cole-adams
+/*.config.*                  @cole-adams
+
+# The gate itself: CODEOWNERS and CI workflows
+/.github/                    @cole-adams
