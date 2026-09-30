@@ -172,6 +172,46 @@ describe("ReviewView", () => {
     expect(screen.getAllByText("12 Angry Men").length).toBeGreaterThan(0);
   });
 
+  it("keeps the review fact hidden until the club scores are revealed", async () => {
+    // Ten scored works so all-time records apply; "Flop" — scored only by
+    // member "3", not the signed-in user — is the club's lowest-rated.
+    const history = Array.from({ length: 9 }, (_, i) => ({
+      ...reviews[0],
+      id: `past-${i}`,
+      title: `Past ${i}`,
+      externalId: `past-${i}`,
+      createdDate: `2024-01-${String(i + 10).padStart(2, "0")}T00:00:00.000Z`,
+      scores: {
+        "3": { id: `r-${i}`, createdDate: "2024-01-01T00:00:00.000Z", score: 7 },
+        average: { id: "average", createdDate: "2024-01-01T00:00:00.000Z", score: 7 },
+      },
+    }));
+    const flop = {
+      ...reviews[1],
+      title: "Flop",
+      createdDate: "2024-01-01T00:00:00.000Z",
+      scores: {
+        "3": { id: "flop", createdDate: "2024-01-01T00:00:00.000Z", score: 2 },
+        average: { id: "average", createdDate: "2024-01-01T00:00:00.000Z", score: 2 },
+      },
+    };
+    server.use(
+      http.get("/api/club/:clubSlug/list/reviews", () => HttpResponse.json([flop, ...history])),
+    );
+
+    const { user, pinia } = render(ReviewView, { props: { clubSlug: "test-club" } });
+    logIn(pinia);
+
+    await user.click(await screen.findByRole("button", { name: "Flop" }));
+    const reveal = await screen.findByRole("button", { name: "Reveal club scores" });
+    // The fact arms on idle after the drawer opens; give it the chance to.
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    expect(screen.queryByText(/lowest-rated/)).not.toBeInTheDocument();
+
+    await user.click(reveal);
+    expect(await screen.findByText(/lowest-rated movie in club history/)).toBeInTheDocument();
+  });
+
   it("hides the score-assist button while the user has fewer than five scored works", async () => {
     // Default fixture: the member has no scores in any club.
     const { user, pinia } = render(ReviewView, {
