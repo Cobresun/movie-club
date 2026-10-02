@@ -146,9 +146,14 @@ export const loggedIn = async <T extends Request>(
   req: T,
   res: (data: HandlerResponse) => RouterResponse,
 ) => {
-  // Get session from Better Auth using request headers
+  // Get session from Better Auth using request headers. `disableRefresh`
+  // leaves renewing the session to the client's own get-session call: a
+  // renewal here would push the database expiry out but drop the Set-Cookie
+  // that goes with it, after which get-session sees nothing left to renew and
+  // the browser's cookie lapses a week after sign-in.
   const session = await auth.api.getSession({
     headers: new Headers(filterUndefinedProperties(req.event.headers)),
+    query: { disableRefresh: true },
   });
 
   const userId = session?.user?.id;
