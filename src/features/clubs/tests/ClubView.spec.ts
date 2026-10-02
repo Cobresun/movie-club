@@ -60,6 +60,41 @@ describe("ClubView", () => {
       expect(screen.getByRole("button", { name: "Remove" })).toBeInTheDocument();
     });
 
+    it("drops the member as soon as the removal is confirmed", async () => {
+      server.use(
+        http.delete("/api/club/:id/members/:memberId", async () => {
+          await new Promise(() => {
+            /* never resolves */
+          });
+          return new HttpResponse(null, { status: 200 });
+        }),
+      );
+      const { user } = render(ClubView);
+
+      await user.click(await screen.findByRole("button", { name: "Remove cole" }));
+      await user.click(await screen.findByRole("button", { name: "Remove" }));
+
+      expect(screen.queryByText("Remove cole?")).not.toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.queryByText("cole")).not.toBeInTheDocument();
+      });
+    });
+
+    it("puts the member back when the removal fails", async () => {
+      server.use(
+        http.delete(
+          "/api/club/:id/members/:memberId",
+          () => new HttpResponse(null, { status: 500 }),
+        ),
+      );
+      const { user } = render(ClubView);
+
+      await user.click(await screen.findByRole("button", { name: "Remove cole" }));
+      await user.click(await screen.findByRole("button", { name: "Remove" }));
+
+      expect(await screen.findByRole("button", { name: "Remove cole" })).toBeInTheDocument();
+    });
+
     it("does not offer to remove yourself", async () => {
       const { pinia } = render(ClubView);
       logIn(pinia);
@@ -99,6 +134,42 @@ describe("ClubView", () => {
       await waitFor(() => {
         expect(body).toMatchObject({ name: "Renamed Club" });
       });
+    });
+
+    it("shows the new club name while the save is still in flight", async () => {
+      server.use(
+        http.put("/api/club/:id/name", async () => {
+          await new Promise(() => {
+            /* never resolves */
+          });
+          return new HttpResponse(null, { status: 200 });
+        }),
+      );
+      const { user } = render(ClubView);
+
+      await user.click(await screen.findByRole("button", { name: /Club name/ }));
+      const nameInput = screen.getByLabelText("Club name");
+      await user.clear(nameInput);
+      await user.type(nameInput, "Renamed Club");
+      await user.click(screen.getByRole("button", { name: "Save" }));
+
+      expect(await screen.findByRole("heading", { name: "Renamed Club" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /Club name.*Renamed Club/ })).toBeInTheDocument();
+    });
+
+    it("reopens the name editor on what was typed when the save fails", async () => {
+      server.use(http.put("/api/club/:id/name", () => new HttpResponse(null, { status: 500 })));
+      const { user } = render(ClubView);
+
+      await user.click(await screen.findByRole("button", { name: /Club name/ }));
+      const nameInput = screen.getByLabelText("Club name");
+      await user.clear(nameInput);
+      await user.type(nameInput, "Renamed Club");
+      await user.click(screen.getByRole("button", { name: "Save" }));
+
+      expect(await screen.findByText("Failed to update club name")).toBeInTheDocument();
+      expect(screen.getByLabelText("Club name")).toHaveValue("Renamed Club");
+      expect(screen.getByRole("heading", { name: "Test club" })).toBeInTheDocument();
     });
 
     it("rejects a club link that breaks the slug rules", async () => {

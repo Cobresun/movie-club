@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/vue-query";
+import { useQuery, useQueryClient } from "@tanstack/vue-query";
 import axios from "axios";
 import { defineStore } from "pinia";
 import { ref, computed, watch } from "vue";
@@ -29,11 +29,20 @@ export const useAuthStore = defineStore("auth", () => {
   // It is the app's only clue, during that check, about where it is headed.
   const wasSignedIn = getSignedInHint();
 
+  const queryClient = useQueryClient();
+
   // Keep the hint honest for the next cold load.
   watch(
     [ready, isLoggedIn],
     ([isReady, loggedIn]) => {
-      if (isReady) setSignedInHint(loggedIn);
+      if (!isReady) return;
+      setSignedInHint(loggedIn);
+      // Nobody's clubs belong in the cache once signed out — including the
+      // failed early fetch below, which would otherwise leave the query in an
+      // error state that a later sign-in's waitForClubsReady reads as settled.
+      if (!loggedIn) {
+        queryClient.resetQueries({ queryKey: ["user", "clubs"] }).catch(console.error);
+      }
     },
     { immediate: true },
   );
@@ -41,6 +50,13 @@ export const useAuthStore = defineStore("auth", () => {
   // Axios instance for authenticated requests
   // Better Auth handles cookies automatically, so we don't need to manually add auth headers
   const request = computed(() => axios.create());
+
+  // A browser whose last session was signed in asks for its clubs alongside
+  // the session check rather than after it. Both are slow round trips, and
+  // running them back to back is what holds the loading gate up on a cold
+  // load. Should the session turn out to have expired, the request fails
+  // harmlessly and the query disables itself.
+  const fetchClubsEarly = computed(() => wasSignedIn && isInitialLoading.value);
 
   // Fetch user's clubs
   const {
@@ -54,7 +70,8 @@ export const useAuthStore = defineStore("auth", () => {
       const response = await request.value.get<ClubPreview[]>("/api/member/clubs");
       return response.data;
     },
-    enabled: isLoggedIn,
+    enabled: computed(() => isLoggedIn.value || fetchClubsEarly.value),
+    retry: (failureCount) => isLoggedIn.value && failureCount < 3,
   });
 
   const isClubMember = (clubSlug: string) => {
@@ -69,12 +86,17 @@ export const useAuthStore = defineStore("auth", () => {
     await refetchUserClubs();
   };
 
-  // Helper to wait for auth and clubs to be ready
+  // Resolve once the session can answer "is anyone signed in?". BetterAuth
+  // refetches the session on every window focus; a signed-in session already
+  // answers that, so only a first check, or a refetch that could still sign
+  // someone in, holds navigation up.
   const waitForAuthReady = async () => {
-    if (session.value.isRefetching || session.value.isPending) {
+    const mustWait = () =>
+      session.value.isPending || (session.value.isRefetching && !isLoggedIn.value);
+    if (mustWait()) {
       await watchUntil(
-        () => [session.value.isPending, session.value.isRefetching],
-        ([isPending, isRefetching]) => !isPending && !isRefetching,
+        () => [session.value.isPending, session.value.isRefetching, isLoggedIn.value],
+        () => !mustWait(),
       );
     }
   };

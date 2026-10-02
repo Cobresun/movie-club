@@ -1,5 +1,6 @@
 import { screen, waitFor } from "@testing-library/vue";
-import { http, HttpResponse } from "msw";
+import { delay, http, HttpResponse } from "msw";
+import { useRouter } from "vue-router";
 
 import JoinClubView from "../views/JoinClubView.vue";
 import { server } from "@/mocks/server";
@@ -62,6 +63,32 @@ describe("JoinClubView", () => {
 
     await waitFor(() => {
       expect(joinRequested).toBe(true);
+    });
+  });
+
+  it("heads into the club once the join lands, without waiting on the clubs refetch", async () => {
+    let clubsRequests = 0;
+    server.use(
+      http.get("/api/club/joinInfo/:token", () =>
+        HttpResponse.json({ ...clubDetailsResponse, slug: "sci-fi" }),
+      ),
+      http.get("/api/member/clubs", async () => {
+        clubsRequests += 1;
+        if (clubsRequests > 1) await delay("infinite");
+        return HttpResponse.json([]);
+      }),
+      http.post("/api/club/join", () => new HttpResponse(null, { status: 200 })),
+    );
+
+    const { user, pinia } = render(JoinClubView);
+    logIn(pinia);
+
+    await user.click(await screen.findByRole("button", { name: "Join Club" }));
+
+    await waitFor(() => {
+      expect(vi.mocked(useRouter()).replace.mock.calls).toContainEqual([
+        { name: "ClubHome", params: { clubSlug: "sci-fi" } },
+      ]);
     });
   });
 });
