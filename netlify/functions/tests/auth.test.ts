@@ -7,16 +7,18 @@
  * email leaves the process, and MSW catches that at Resend's endpoint — which
  * is also how these tests read the confirmation link, exactly as a user would.
  */
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { handler } from "../auth";
 import { handler as clubHandler } from "../club/index";
+import { handler as memberHandler } from "../member";
 import { AUTH_HEADERS } from "./helpers/auth";
 import { requester } from "./helpers/http";
 import { lastEmailTo } from "./setup/externalApis";
 
 const api = requester(handler);
 const clubApi = requester(clubHandler);
+const memberApi = requester(memberHandler);
 
 const PASSWORD = "correct-horse-battery-staple";
 
@@ -166,5 +168,44 @@ describe("GET /api/auth/get-session", () => {
     });
 
     expect(res.body).toBeNull();
+  });
+
+  // The browser's session cookie lasts a week from the last time it was
+  // issued, so a regular user stays signed in only if get-session keeps
+  // reissuing it. A phone returning to a backgrounded tab fires get-session and
+  // the app's own refetches at once, so API routes must not renew the session
+  // out from under it: they cannot set a cookie, and get-session would find
+  // nothing left to renew.
+  it("reissues the session cookie on a later visit, even when an API call got there first", async () => {
+    const email = freshEmail();
+    await signUp(email);
+    await followVerificationLink(email);
+    const signedIn = await signInRequest(email);
+    // The short-lived session_data cookie is long gone a day later; only the
+    // session token is left for the browser to send.
+    const cookie = cookieFrom(signedIn)
+      .split("; ")
+      .filter((pair) => pair.startsWith("better-auth.session_token="))
+      .join("; ");
+
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      vi.setSystemTime(Date.now() + 2 * 24 * 60 * 60 * 1000);
+
+      const clubs = await memberApi.get("/api/member/clubs", { headers: { cookie } });
+      expect(clubs.statusCode).toBe(200);
+
+      const session = await api.get<{ user: { email: string } }>("/api/auth/get-session", {
+        headers: { ...AUTH_HEADERS, cookie },
+      });
+
+      expect(session.body.user.email).toBe(email);
+      const reissued = (session.multiValueHeaders["Set-Cookie"] ?? []).find((setCookie) =>
+        setCookie.startsWith("better-auth.session_token="),
+      );
+      expect(reissued).toMatch(/Max-Age=604800/);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
