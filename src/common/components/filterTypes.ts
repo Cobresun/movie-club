@@ -1,26 +1,30 @@
-// Shared types for the search-filter UI (SearchFilterBar + FilterPanelContent).
-// Kept in a plain .ts module so both vue-tsc and typescript-eslint resolve them
-// (types exported from a .vue <script> block are not seen by the ESLint type service).
+// Shared types for the search-filter UI (SearchFilterBar, FilterPanel and its
+// sections). Kept in a plain .ts module so the registry in clubType.ts can use
+// them without importing a .vue file.
 
-export type Comparator = ">" | "=" | "<";
-
-/** Inclusive span of calendar years, the value a `year` filter applies. */
-export interface YearRange {
-  from: number;
-  to: number;
+/** The values picked from a choice filter; a work matches if it has any of them. */
+export interface ChoiceSelection {
+  kind: "choice";
+  values: string[];
 }
 
 /**
- * The shapes of filter a club type may offer, each with its own form in
- * FilterPanelContent. Declared once here and reused by the registry's
- * FilterOption and by the applied-filter pills, so a new type can't be added to
- * one and forgotten in the others.
+ * An inclusive numeric span. A missing end is open, so `{ from: 8 }` reads as
+ * "8 and up" and survives the data growing past today's highest value.
  */
-export type FilterOptionType = "number" | "date" | "enum" | "year";
+export interface RangeSelection {
+  kind: "range";
+  from?: number;
+  to?: number;
+}
 
-export interface FilterOption {
-  key: string;
+export type FilterSelection = ChoiceSelection | RangeSelection;
+
+/** A one-tap shortcut for a range filter, e.g. "Short & sweet" → up to 90 minutes. */
+export interface RangePreset {
   label: string;
-  type: FilterOptionType;
-  placeholder?: string;
+  /** The span in words, when the label alone doesn't say it ("8+"). */
+  detail?: string;
+  from?: number;
+  to?: number;
 }
