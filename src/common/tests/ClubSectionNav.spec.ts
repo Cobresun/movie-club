@@ -3,7 +3,7 @@ import { http, HttpResponse } from "msw";
 
 import ClubSectionNav from "../components/ClubSectionNav.vue";
 import { ClubType } from "@/../lib/types/generated/db";
-import club from "@/mocks/data/club.json";
+import club from "@/mocks/data/club";
 import { server } from "@/mocks/server";
 import { render, setRouteMatched } from "@/tests/utils";
 

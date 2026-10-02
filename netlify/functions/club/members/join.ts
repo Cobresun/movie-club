@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { hasValue } from "../../../../lib/checks/checks.js";
+import { ClubInviteDetails } from "../../../../lib/types/club";
 import ClubRepository from "../../repositories/ClubRepository";
 import { loggedIn } from "../../utils/auth";
 import { badRequest, ok } from "../../utils/responses";
@@ -31,7 +32,7 @@ router.post("/join", loggedIn, async (req, res) => {
       return res(badRequest(result.error));
     }
 
-    return res(ok("Joined club successfully"));
+    return res(ok());
   } catch (error) {
     console.error("Error joining club:", error);
     return res(badRequest("Internal server error"));
@@ -53,7 +54,14 @@ router.get("/joinInfo/:token", async (req, res) => {
     return res(badRequest("Invite token expired"));
   }
 
-  return res(ok(JSON.stringify(invite)));
+  return res(
+    ok<ClubInviteDetails>({
+      clubId: invite.clubId,
+      clubName: invite.clubName,
+      slug: invite.slug,
+      expiresAt: invite.expiresAt.toISOString(),
+    }),
+  );
 });
 
 export default router;
