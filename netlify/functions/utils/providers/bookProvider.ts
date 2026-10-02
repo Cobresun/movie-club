@@ -11,6 +11,7 @@ import { DetailedBookData } from "../../../../lib/types/book";
 import { WorkType } from "../../../../lib/types/generated/db";
 import { DetailedWorkData, WorkDataSummary } from "../../../../lib/types/lists";
 import { MovieCastMember } from "../../../../lib/types/movie";
+import { SimilarWork } from "../../../../lib/types/recommendations";
 import { db } from "../database";
 import { getGoogleBooksVolume } from "./googleBooks";
 import { MediaProvider, numOrUndefined, RefreshResult } from "./types";
@@ -201,6 +202,11 @@ Order the prompts by depth: the first should be casual and easy to answer — a 
 Whenever the book supports it, frame prompts as debates: questions with defensible answers on more than one side, designed to spark disagreement among friends rather than consensus. Keep each prompt succinct — one clear, concise question with no preamble.
 
 If you do not recognize this book or cannot confirm it is a real book, return 0 questions.`;
+  }
+
+  // Google Books has no similar-volumes endpoint to draw candidates from.
+  getSimilarWorks(): Promise<SimilarWork[]> {
+    return Promise.resolve([]);
   }
 
   async refreshStaleDetails(limit: number): Promise<RefreshResult> {

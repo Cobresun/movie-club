@@ -1,5 +1,5 @@
 import { hasValue } from "../../../../lib/checks/checks.js";
-import { WorkType } from "../../../../lib/types/generated/db";
+import { ClubType, WorkType } from "../../../../lib/types/generated/db";
 import { DetailedWorkData, WorkDataSummary } from "../../../../lib/types/lists";
 import bookProvider from "./bookProvider";
 import movieProvider from "./movieProvider";
@@ -15,8 +15,18 @@ const providers: Record<WorkType, MediaProvider> = {
   [WorkType.book]: bookProvider,
 };
 
+const WORK_TYPE_BY_CLUB_TYPE: Record<ClubType, WorkType> = {
+  [ClubType.movie]: WorkType.movie,
+  [ClubType.book]: WorkType.book,
+};
+
 export function getProvider(type: WorkType): MediaProvider {
   return providers[type];
+}
+
+/** The provider for the works a club of this type collects. */
+export function getProviderForClub(type: ClubType): MediaProvider {
+  return getProvider(WORK_TYPE_BY_CLUB_TYPE[type]);
 }
 
 /** Every registered provider — used by the scheduled refresh to sweep all types. */

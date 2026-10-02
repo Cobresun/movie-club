@@ -6,9 +6,10 @@ import { MAJOR_CAST_SIZE, STAR_POPULARITY } from "../../../../lib/movie/majorCas
 import { WorkType } from "../../../../lib/types/generated/db";
 import { DetailedWorkData, WorkDataSummary } from "../../../../lib/types/lists";
 import { MovieCastMember, MovieDataSummary } from "../../../../lib/types/movie";
+import { SimilarWork } from "../../../../lib/types/recommendations";
 import { db } from "../database";
 import { insertMovieDetails, updateMovieDetails } from "../movieDetailsUpdater";
-import { getTMDBMovieData } from "../tmdb";
+import { getTMDBMovieData, getTMDBPosterBaseUrl, getTMDBRecommendations } from "../tmdb";
 import { MediaProvider, numOrUndefined, RefreshResult } from "./types";
 
 /**
@@ -242,6 +243,24 @@ Order the prompts by depth: the first should be casual and easy to answer — a 
 Whenever the film supports it, frame prompts as debates: questions with defensible answers on more than one side, designed to spark disagreement among friends rather than consensus. Keep each prompt succinct — one clear, concise question with no preamble.
 
 If you do not recognize this film or cannot confirm it is a real movie, return 0 questions.`;
+  }
+
+  async getSimilarWorks(externalId: string): Promise<SimilarWork[]> {
+    const [movies, posterBaseUrl] = await Promise.all([
+      getTMDBRecommendations(parseInt(externalId)),
+      getTMDBPosterBaseUrl(),
+    ]);
+    // Adult titles are excluded to match search (`include_adult=false`). A
+    // posterless card reads as broken in the add grid, and TMDB's posterless
+    // recommendations are overwhelmingly obscure entries nobody is looking for.
+    return movies
+      .filter((movie) => movie.adult !== true && hasValue(movie.poster_path))
+      .map((movie) => ({
+        externalId: String(movie.id),
+        title: movie.title,
+        subtitle: hasValue(movie.release_date) ? movie.release_date.slice(0, 4) : undefined,
+        imageUrl: `${posterBaseUrl}${movie.poster_path}`,
+      }));
   }
 
   async refreshStaleDetails(limit: number): Promise<RefreshResult> {
