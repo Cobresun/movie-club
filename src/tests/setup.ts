@@ -32,6 +32,9 @@ vi.mock("vue-router", () => ({
 // it when opening the details drawer.
 window.HTMLElement.prototype.scrollIntoView = vi.fn();
 
+// Nor pointer capture, which the Wrapped story takes while a card is dragged.
+window.HTMLElement.prototype.setPointerCapture = vi.fn();
+
 // jsdom has no matchMedia; `useIsDesktop` calls it on mount. Tests default to
 // mobile and opt into desktop with `setViewport(true)`.
 Object.defineProperty(window, "matchMedia", { writable: true, value: vi.fn() });
