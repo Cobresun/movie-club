@@ -24,7 +24,15 @@
     >
       <mdicon name="drag" :size="20" />
     </div>
-    <div class="flex h-full flex-col rounded-lg bg-slate-700">
+    <!-- Hover lift is gated on a real hover pointer: on touch, :hover sticks
+         after a tap and would leave the card floating. -->
+    <div
+      class="flex h-full flex-col rounded-lg bg-slate-700 transition duration-base ease-standard"
+      :class="{
+        'group [@media(hover:hover)]:hover:-translate-y-1 [@media(hover:hover)]:hover:shadow-xl [@media(hover:hover)]:hover:shadow-black/40':
+          selectable,
+      }"
+    >
       <!-- Selecting a card opens its details, so the poster has to be a real
            button: as a bare `<img @click>` it was neither focusable nor
            announced, leaving the drawer unreachable by keyboard. The img is
@@ -32,14 +40,14 @@
       <button
         v-if="selectable"
         type="button"
-        class="block w-full rounded-t-lg"
+        class="block w-full overflow-hidden rounded-t-lg transition-transform duration-fast ease-standard active:scale-[0.98]"
         @click="emit('select')"
       >
         <img
           v-lazy-load
           :src="posterUrl"
           :alt="title"
-          class="aspect-[2/3] w-full rounded-t-lg object-cover"
+          class="aspect-[2/3] w-full rounded-t-lg object-cover [@media(hover:hover)]:group-hover:scale-105"
         />
       </button>
       <img

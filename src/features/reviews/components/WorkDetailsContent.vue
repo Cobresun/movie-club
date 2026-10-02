@@ -80,7 +80,7 @@
 
       <div class="grid grid-cols-2 gap-3">
         <div
-          v-for="entry in scoreEntries"
+          v-for="(entry, index) in scoreEntries"
           :key="entry.id"
           class="flex items-center gap-2.5 rounded-xl px-3 py-2.5"
           :class="[
@@ -93,12 +93,17 @@
           <div class="min-w-0 flex-1">
             <ScoreLabel :entry="entry" show-name />
           </div>
+          <!-- Revealed scores un-blur one after another rather than all at
+               once, settling from a slight shrink as they come into focus. -->
           <div
-            class="shrink-0 text-base font-semibold transition-[filter] duration-500 ease-standard"
+            class="shrink-0 text-base font-semibold transition-[filter,transform] duration-500 ease-emphasized"
             :class="[
               isDefined(entry.memberId) ? '' : 'text-lg font-bold text-primary',
-              isScoreBlurred(entry, currentUserId, isRevealed) ? 'blur' : 'blur-none',
+              isScoreBlurred(entry, currentUserId, isRevealed)
+                ? 'scale-90 blur'
+                : 'scale-100 blur-none',
             ]"
+            :style="{ transitionDelay: `${index * 80}ms` }"
           >
             {{ entry.value }}
           </div>

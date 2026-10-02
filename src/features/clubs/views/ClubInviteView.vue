@@ -1,7 +1,30 @@
 <template>
   <div class="px-4 pb-10 pt-2">
     <div class="mx-auto flex max-w-lg flex-col gap-5">
-      <h1 class="text-3xl font-bold leading-tight">{{ clubName }} needs people</h1>
+      <!-- The club was just created: a check draws itself in to mark it. -->
+      <svg viewBox="0 0 52 52" class="h-14 w-14 text-highlight" aria-hidden="true">
+        <circle
+          class="draw-in"
+          cx="26"
+          cy="26"
+          r="24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="3"
+          pathLength="1"
+        />
+        <path
+          class="draw-in draw-in-late"
+          d="M15 27l7 7 15-15"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="4"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          pathLength="1"
+        />
+      </svg>
+      <h1 class="animate-fade-up text-3xl font-bold leading-tight">{{ clubName }} needs people</h1>
 
       <div class="flex flex-col gap-3 rounded-xl bg-lowBackground p-4">
         <h2 class="text-lg font-semibold">Invite link</h2>
@@ -71,3 +94,21 @@ const goToClub = () => {
   router.push({ name: "ClubHome", params: { clubSlug } }).catch(console.error);
 };
 </script>
+
+<style scoped>
+.draw-in {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: draw-in 500ms var(--ease-emphasized) forwards;
+}
+
+.draw-in-late {
+  animation-delay: 350ms;
+}
+
+@keyframes draw-in {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+</style>
