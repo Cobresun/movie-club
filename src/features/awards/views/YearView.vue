@@ -9,108 +9,84 @@
       <SkeletonBlock class="m-4 h-8 w-40 rounded-lg" />
       <RowListSkeleton class="w-11/12 max-w-lg" :count="5" />
     </div>
-    <div v-else>
+    <div v-else-if="clubAward">
+      <AwardsStepper class="mt-4" :step="clubAward.step" />
+      <p class="mx-auto mt-4 w-11/12 max-w-lg text-sm text-gray-400">
+        {{ AWARDS_PHASES[clubAward.step].description }}
+      </p>
       <RouterView :club-award="clubAward" />
-      <v-btn
-        v-if="nextStep"
-        class="float-right m-4 mt-8"
-        :disabled="!enableButton"
-        @click="updateStep"
+      <PhaseControls
+        v-if="isDefined(AWARDS_PHASES[clubAward.step].next)"
+        :club-award="clubAward"
+        :club-slug="clubSlug"
+        :year="year"
+        :members="members ?? []"
+      />
+      <button
+        type="button"
+        class="mx-auto mb-8 mt-6 flex items-center gap-1 text-sm text-gray-400 hover:text-red-400"
+        @click="confirmingDelete = true"
       >
-        {{ nextStep.title }}<mdicon name="chevron-right" />
-      </v-btn>
+        <mdicon name="delete-outline" :size="18" />Delete {{ year }} awards
+      </button>
+      <DeleteConfirmationModal
+        :show="confirmingDelete"
+        :title="`Delete ${year} awards?`"
+        :message="`This removes every category, nomination and vote for ${year}. It can't be undone.`"
+        confirm-label="Delete"
+        :loading="isDeleting"
+        @cancel="confirmingDelete = false"
+        @confirm="deleteYear"
+      />
     </div>
   </div>
 </template>
 <script setup lang="ts">
-import { computed, toRefs } from "vue";
+import { computed, ref, toRefs, watch } from "vue";
 import { useRouter } from "vue-router";
 
-import { AwardsStep } from "../../../../lib/types/awards";
+import { isDefined } from "../../../../lib/checks/checks.js";
+import AwardsStepper from "../components/AwardsStepper.vue";
+import PhaseControls from "../components/PhaseControls.vue";
+import { AWARDS_PHASES } from "../constants";
+import DeleteConfirmationModal from "@/common/components/DeleteConfirmationModal.vue";
 import RowListSkeleton from "@/common/components/RowListSkeleton.vue";
 import SkeletonBlock from "@/common/components/SkeletonBlock.vue";
-import { useAwards, useUpdateStep } from "@/service/useAwards";
+import { useAwards, useDeleteAwardsYear } from "@/service/useAwards";
 import { useMembers } from "@/service/useClub";
 
 const props = defineProps<{ clubSlug: string; year: string }>();
 const { clubSlug, year } = toRefs(props);
 
-const steps = [
-  {
-    step: AwardsStep.CategorySelect,
-    routeName: "AwardsCategories",
-    title: "Categories",
-  },
-  {
-    step: AwardsStep.Nominations,
-    routeName: "AwardsNominations",
-    title: "Nominations",
-  },
-  { step: AwardsStep.Ratings, routeName: "AwardsRankings", title: "Rankings" },
-  {
-    step: AwardsStep.Presentation,
-    routeName: "AwardsResults",
-    title: "Results",
-  },
-  { step: AwardsStep.Completed, routeName: "AwardsResults", title: "Awards" },
-];
-
 const router = useRouter();
 
-const { data: clubAward, isLoading } = useAwards(clubSlug, year, (clubAward) => {
-  const step = steps.find((step) => step.step === clubAward.step);
-  // Replace: a year on its own renders nothing, so it must not be a history
-  // entry the back button can land on.
-  if (step) router.replace({ name: step.routeName }).catch(console.error);
-});
+const { data: clubAward, isLoading } = useAwards(clubSlug, year);
+const { data: members } = useMembers(clubSlug);
 
-const nextStep = computed(() => {
-  const index = steps.findIndex((step) => step.step === clubAward.value?.step);
-  if (0 <= index + 1 && index + 1 < steps.length - 1) {
-    return steps[index + 1];
-  } else {
-    return undefined;
-  }
-});
+// Whoever moves the year along, everyone lands on the page for its phase.
+// Replace: a year on its own renders nothing, so it must not be a history
+// entry the back button can land on.
+const phaseRoute = computed(() =>
+  isDefined(clubAward.value) ? AWARDS_PHASES[clubAward.value.step].routeName : undefined,
+);
+watch(
+  phaseRoute,
+  (name) => {
+    if (isDefined(name)) router.replace({ name }).catch(console.error);
+  },
+  { immediate: true },
+);
 
-const { mutate } = useUpdateStep(clubSlug, year);
-const updateStep = () => {
-  if (nextStep.value) {
-    mutate(nextStep.value.step);
-    router.push({ name: nextStep.value.routeName }).catch(console.error);
-  }
-};
-
-const { data: members } = useMembers(clubSlug.value);
-const filteredMembers = computed(() => members.value ?? []);
-
-const completedCategories = computed(() => {
-  if (!clubAward.value) return false;
-  return clubAward.value.awards.length > 0;
-});
-
-const completedRanking = computed(() => {
-  if (!clubAward.value) return false;
-  return clubAward.value.awards.every((award) =>
-    filteredMembers.value.every((member) =>
-      award.nominations.every((nomination) => nomination.ranking[member.id] !== undefined),
-    ),
-  );
-});
-
-const enableButton = computed(() => {
-  switch (clubAward.value?.step) {
-    case AwardsStep.CategorySelect:
-      return completedCategories.value;
-    case AwardsStep.Ratings:
-      return completedRanking.value;
-    case AwardsStep.Completed:
-    case AwardsStep.Presentation:
-    case AwardsStep.Nominations:
-    case undefined:
-      return true;
-    default:
-      return true;
-  }
-});
+const confirmingDelete = ref(false);
+const { mutate: deleteMutation, isLoading: isDeleting } = useDeleteAwardsYear(
+  props.clubSlug,
+  props.year,
+);
+const deleteYear = () =>
+  deleteMutation(undefined, {
+    onSuccess: () => {
+      confirmingDelete.value = false;
+      router.push({ name: "Awards" }).catch(console.error);
+    },
+  });
 </script>

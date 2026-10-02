@@ -1,5 +1,5 @@
 <template>
-  <h2 class="m-4 text-2xl font-bold">Awards</h2>
+  <h2 class="m-4 text-2xl font-bold">Ceremony</h2>
   <AwardResult
     v-for="award in clubAward.awards"
     :key="award.title"
@@ -10,22 +10,20 @@
   />
 </template>
 <script setup lang="ts">
-import { ref, toRefs } from "vue";
+import { ref } from "vue";
 
 import { AwardsStep, ClubAwards } from "../../../../lib/types/awards";
 import AwardResult from "../components/AwardResult.vue";
 import { useUpdateStep } from "@/service/useAwards";
 import { useMembers } from "@/service/useClub";
 
-const props = defineProps<{
+const { clubAward, clubSlug, year } = defineProps<{
   clubAward: ClubAwards;
   clubSlug: string;
   year: string;
 }>();
 
-const { clubAward, clubSlug, year } = toRefs(props);
-
-const { data: members } = useMembers(clubSlug.value);
+const { data: members } = useMembers(clubSlug);
 
 const revealedAwards = ref<string[]>([]);
 
@@ -34,9 +32,8 @@ const { mutate } = useUpdateStep(clubSlug, year);
 const revealHandler = (awardTitle: string) => {
   revealedAwards.value.push(awardTitle);
   if (
-    clubAward.value.awards.every((award) =>
-      revealedAwards.value.some((title) => title === award.title),
-    )
+    clubAward.step === AwardsStep.Presentation &&
+    clubAward.awards.every((award) => revealedAwards.value.includes(award.title))
   ) {
     mutate(AwardsStep.Completed);
   }
