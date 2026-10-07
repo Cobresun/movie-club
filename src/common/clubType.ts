@@ -721,6 +721,7 @@ export const CLUB_TYPE_CONFIG: Record<ClubType, ClubTypeConfig> = {
     // The unit a TV club scores is the episode. A club adds a show and works
     // down into it, so the add-prompt copy lives in `searchHint` instead.
     noun: "episode",
+    finishedVerb: "watched",
     searchHint: "Search for a show to add.",
     searchableFieldsHint: "title, genre, creator, network, actor, or air year",
     filterOptions: [
@@ -759,6 +760,9 @@ export const CLUB_TYPE_CONFIG: Record<ClubType, ClubTypeConfig> = {
       shareTitle: "TV Club Statistics",
     },
     supportsAwards: false,
+    // Where-to-watch only queries TMDB's movie endpoint; a show id there would
+    // resolve to an unrelated movie.
+    supportsWatchProviders: false,
     invite: {
       shareText: "Join my club and score the shows we watch together.",
     },
