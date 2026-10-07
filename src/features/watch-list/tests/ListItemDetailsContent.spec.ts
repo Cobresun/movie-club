@@ -5,7 +5,7 @@ import { Member } from "../../../../lib/types/club";
 import { WorkType } from "../../../../lib/types/generated/db";
 import { DetailedWorkListItem } from "../../../../lib/types/lists";
 import ListItemDetailsContent from "../components/ListItemDetailsContent.vue";
-import club from "@/mocks/data/club.json";
+import club from "@/mocks/data/club";
 import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
 import { server } from "@/mocks/server";
 import { render } from "@/tests/utils";
