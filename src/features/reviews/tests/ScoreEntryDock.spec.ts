@@ -67,7 +67,11 @@ describe("ScoreEntryDock", () => {
 
     await user.click(screen.getByRole("button", { name: /Rate this movie/ }));
 
-    await user.type(await screen.findByRole("spinbutton", { name: "Score" }), "8.5");
+    // The dock focuses the field once its expansion finishes; typing before
+    // that lands lets the delayed focus interrupt the keystrokes mid-value.
+    const input = await screen.findByRole("spinbutton", { name: "Score" });
+    await waitFor(() => expect(input).toHaveFocus());
+    await user.type(input, "8.5");
     await user.click(screen.getByRole("button", { name: "Save score" }));
 
     await waitFor(() => expect(posted).toEqual({ workId: "target", score: 8.5 }));
