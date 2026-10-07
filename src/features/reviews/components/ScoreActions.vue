@@ -2,13 +2,13 @@
   <div class="flex flex-col gap-3">
     <div v-if="editing" class="animate-fade-up flex max-w-xs flex-col gap-2">
       <ScoreEntryPanel
-        :work-id="workId"
+        :work="work"
         :score="score"
         :review-id="reviewId"
         :save-score="saveScore"
         :autofocus="isDesktop"
         @submit="editing = false"
-        @assist="scoreAssist?.open(workId)"
+        @assist="openAssist"
       />
       <button
         type="button"
@@ -64,14 +64,16 @@
 import { inject } from "vue";
 
 import { isDefined } from "../../../../lib/checks/checks.js";
+import { DetailedReviewListItem } from "../../../../lib/types/lists";
 import { ScoreAssistKey } from "../scoreAssist";
 import ScoreEntryPanel from "./ScoreEntryPanel.vue";
 import { useIsDesktop } from "@/common/composables/useIsDesktop";
 
-defineProps<{
+const props = defineProps<{
   /** "show", "season" or "episode" — what the buttons name. */
   noun: string;
-  workId: string;
+  /** The work scored here — listed, or a preview of a TV season or episode. */
+  work: DetailedReviewListItem;
   score?: number;
   /** The reader's own review on this work, set only when they scored it directly. */
   reviewId?: string;
@@ -89,4 +91,10 @@ const editing = defineModel<boolean>("editing", { default: false });
 
 const isDesktop = useIsDesktop();
 const scoreAssist = inject(ScoreAssistKey, undefined);
+
+// The assist modal takes over from the inline editor, so only one save is on screen.
+const openAssist = () => {
+  editing.value = false;
+  scoreAssist?.open(props.work, props.saveScore);
+};
 </script>

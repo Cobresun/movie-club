@@ -16,7 +16,7 @@
     />
     <ScoreActions
       :noun="noun"
-      :work-id="target.workId"
+      :work="target.work"
       :score="target.score"
       :review-id="target.reviewId"
       :save-score="target.saveScore"

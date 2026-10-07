@@ -471,12 +471,28 @@ class TvProvider implements MediaProvider {
   }
 
   private async isSeasonStale(showId: string, seasonNumber: number): Promise<boolean> {
+    const cachedDate = await this.seasonCachedDate(showId, seasonNumber);
+    return !isDefined(cachedDate) || isOlderThanRefetchWindow(cachedDate);
+  }
+
+  /** When the season's episodes were last cached, if ever. A season TMDB lists
+   * with no episodes yet (announced, not aired) stores none, so its own row
+   * stands in until the show's listing gives it some. */
+  private async seasonCachedDate(showId: string, seasonNumber: number) {
     const row = await db
-      .selectFrom("tv_episode_details")
-      .where("season_external_id", "=", formatTvAddress({ showId, seasonNumber }))
-      .select((eb) => eb.fn.max("updated_date").as("updated_date"))
+      .selectFrom("tv_season_details as season")
+      .leftJoin("tv_episode_details as episode", "episode.season_external_id", "season.external_id")
+      .where("season.external_id", "=", formatTvAddress({ showId, seasonNumber }))
+      .groupBy(["season.episode_count", "season.updated_date"])
+      .select((eb) => [
+        "season.episode_count",
+        "season.updated_date",
+        eb.fn.max("episode.updated_date").as("episodes_updated_date"),
+      ])
       .executeTakeFirst();
-    return !isDefined(row?.updated_date) || isOlderThanRefetchWindow(row.updated_date);
+    if (!isDefined(row)) return undefined;
+    if (isDefined(row.episodes_updated_date)) return row.episodes_updated_date;
+    return Number(row.episode_count) === 0 ? row.updated_date : undefined;
   }
 
   async getDiscussionPrompt(work: { title: string; externalId: string | null }): Promise<string> {
@@ -570,13 +586,8 @@ If you do not recognize this series or cannot confirm it is real, return 0 quest
     seasonNumber: number,
     options?: { force: boolean },
   ): Promise<boolean> {
-    if (options?.force !== true) {
-      const cached = await db
-        .selectFrom("tv_episode_details")
-        .select("external_id")
-        .where("season_external_id", "=", formatTvAddress({ showId, seasonNumber }))
-        .executeTakeFirst();
-      if (isDefined(cached)) return true;
+    if (options?.force !== true && isDefined(await this.seasonCachedDate(showId, seasonNumber))) {
+      return true;
     }
 
     try {

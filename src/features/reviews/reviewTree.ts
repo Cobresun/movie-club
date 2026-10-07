@@ -259,6 +259,10 @@ export const rollupLabel = (scores: ReviewScores) =>
 
 export const coverageLabel = (scored: number, total: number) => `${scored}/${total} episodes`;
 
+/** How much of the coverage bar is filled, as a whole percentage. */
+export const coveragePercent = (scored: number, total: number) =>
+  total === 0 ? 0 : Math.round((scored / total) * 100);
+
 /** Where the reader's own score at a season or show comes from, in a line. */
 export function ownScoreNote(level: LevelScores, userId: string | undefined, below: string) {
   const own = isDefined(userId) ? level.scores[userId] : undefined;

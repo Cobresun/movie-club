@@ -29,7 +29,8 @@ export interface EpisodeCard {
 /** What a score entry at one level saves to: the work itself once it is on the
  * reviews list, or `saveScore` for a season or episode nobody has scored yet. */
 export interface ScoreTarget {
-  workId: string;
+  /** The work on the reviews list, or a preview of the one a save creates. */
+  work: DetailedReviewListItem;
   /** The reader's own score, set on this work directly. */
   score?: number;
   reviewId?: string;
@@ -169,18 +170,19 @@ export function seasonPreview(
 /**
  * A score map with one member's score written in and the average recomputed,
  * mirroring the server's `buildReviewScores` — what a card shows while that
- * member's save is still in flight.
+ * member's save is still in flight, under `reviewId` once it has one.
  */
 export function withMemberScore(
   scores: ReviewScores,
   memberId: string,
   score: number,
+  reviewId = "pending",
 ): ReviewScores {
   const createdDate = new Date().toISOString();
   const members: ReviewScores = Object.fromEntries(
     Object.entries(scores).filter(([key]) => key !== "average"),
   );
-  members[memberId] = { id: "pending", created_date: createdDate, score };
+  members[memberId] = { id: reviewId, created_date: createdDate, score };
   const values = Object.values(members).map((review) => review.score);
   return {
     ...members,

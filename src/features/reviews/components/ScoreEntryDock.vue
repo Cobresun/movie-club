@@ -54,7 +54,7 @@
             <Transition name="mode-swap" mode="out-in">
               <ScoreEntryPanel
                 v-if="mode === 'entry'"
-                :work-id="target.id"
+                :work="target"
                 :score="score"
                 :review-id="reviewId"
                 :draft-score="suggestedScore"
