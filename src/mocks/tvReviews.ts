@@ -2,9 +2,10 @@ import { http, HttpResponse } from "msw";
 import { z } from "zod";
 
 import { WorkType } from "../../lib/types/generated/db";
-import { DetailedReviewListItem, ReviewScores } from "../../lib/types/lists";
+import { DetailedReviewListItem } from "../../lib/types/lists";
 import { formatTvAddress, TMDBTvEpisodeData, TvDataSummary } from "../../lib/types/tv";
 import { asTv } from "../common/workDisplay";
+import { withMemberScore } from "../features/reviews/episodeCards";
 
 const scoreBodySchema = z.object({
   workId: z.string(),
@@ -12,23 +13,6 @@ const scoreBodySchema = z.object({
   seasonNumber: z.number().optional(),
   episodeNumber: z.number().optional(),
 });
-
-function withScore(scores: ReviewScores, userId: string, score: number): ReviewScores {
-  const members: ReviewScores = Object.fromEntries(
-    Object.entries(scores).filter(([key]) => key !== "average"),
-  );
-  const createdDate = new Date().toISOString();
-  members[userId] = { id: `r-${userId}`, created_date: createdDate, score };
-  const values = Object.values(members).map((review) => review.score);
-  return {
-    ...members,
-    average: {
-      id: "average",
-      created_date: createdDate,
-      score: values.reduce((total, value) => total + value, 0) / values.length,
-    },
-  };
-}
 
 /**
  * A TV club's reviews list and TMDB's season listings, kept together so a
@@ -114,7 +98,7 @@ export const tvReviewsApi = ({
 
       list = list.map((item) =>
         item.id === target.id
-          ? { ...item, scores: withScore(item.scores, userId, body.score) }
+          ? { ...item, scores: withMemberScore(item.scores, userId, body.score, `r-${userId}`) }
           : item,
       );
       return new HttpResponse(null, { status: 200 });

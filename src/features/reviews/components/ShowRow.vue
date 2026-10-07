@@ -34,7 +34,10 @@
         </span>
         <div class="flex items-center gap-2">
           <div class="h-1 w-16 overflow-hidden rounded-full bg-white/10 md:w-28" aria-hidden="true">
-            <div class="h-full rounded-full bg-primary" :style="{ width: `${coveragePercent}%` }" />
+            <div
+              class="h-full rounded-full bg-primary"
+              :style="{ width: `${coveragePercent(show.scoredCount, show.episodeCount)}%` }"
+            />
           </div>
           <span class="text-xs text-white/55">
             {{ coverageLabel(show.scoredCount, show.episodeCount) }}
@@ -125,6 +128,7 @@ import { Member } from "../../../../lib/types/club";
 import { hasOwnScore, scoreEntries } from "../reviewScores";
 import {
   coverageLabel,
+  coveragePercent,
   expansionKey,
   formatRollup,
   ownScoreNote,
@@ -174,12 +178,6 @@ const revealed = computed(
 const showTarget = computed(() => {
   const userId = props.currentUserId;
   const own = isDefined(userId) ? props.show.review.scores[userId] : undefined;
-  return { workId: props.show.workId, score: own?.score, reviewId: own?.id };
+  return { work: props.show.review, score: own?.score, reviewId: own?.id };
 });
-
-const coveragePercent = computed(() =>
-  props.show.episodeCount === 0
-    ? 0
-    : Math.round((props.show.scoredCount / props.show.episodeCount) * 100),
-);
 </script>

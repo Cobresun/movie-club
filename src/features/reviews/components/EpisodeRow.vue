@@ -96,7 +96,7 @@
       <ScoreActions
         v-model:editing="editing"
         noun="episode"
-        :work-id="scoreTarget.workId"
+        :work="scoreTarget.work"
         :score="scoreTarget.score"
         :review-id="scoreTarget.reviewId"
         :save-score="scoreTarget.saveScore"

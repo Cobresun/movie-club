@@ -16,7 +16,7 @@ import { TV_SEASON_EPISODE_COUNTS, tmdbTvSeason, tmdbTvShow } from "./fixtures/e
 import { signIn, TestSession } from "./helpers/auth";
 import { addWork, createClub, SeededClub } from "./helpers/factories";
 import { requester } from "./helpers/http";
-import { server, TMDB } from "./setup/externalApis";
+import { failOnRequest, server, TMDB } from "./setup/externalApis";
 
 const api = requester(handler);
 
@@ -275,6 +275,47 @@ describe("scoring what aired after it was cached", () => {
 
     expect(res.statusCode).toBe(200);
     expect(await scoreOf(club, `${SHOW_ID}:1:${newEpisodeNumber}`, alice)).toBe(9);
+  });
+
+  it("trusts a cached season with no episodes yet until it is due a refetch", async () => {
+    const cachedShow = tmdbTvShow(Number(SHOW_ID));
+    const announced = { ...tmdbTvSeason(Number(SHOW_ID), 3), episodes: [] };
+    server.use(
+      http.get(`${TMDB}/tv/:showId`, () =>
+        HttpResponse.json({
+          ...cachedShow,
+          number_of_seasons: 3,
+          seasons: [
+            ...(cachedShow.seasons ?? []),
+            { season_number: 3, name: "Season 3", poster_path: null, episode_count: 0 },
+          ],
+        }),
+      ),
+      http.get(`${TMDB}/tv/:showId/season/3`, () => HttpResponse.json(announced)),
+    );
+    const alice = await signIn("alice");
+    const club = await createClub(alice, { type: ClubType.tv });
+    const show = await seedShow(club, alice);
+    const premiere = { workId: show.id, score: 9, seasonNumber: 3, episodeNumber: 1 };
+    expect((await score(club, alice, premiere)).statusCode).toBe(400);
+
+    failOnRequest("get", `${TMDB}/tv/:showId/season/3`);
+    expect((await score(club, alice, premiere)).statusCode).toBe(400);
+
+    server.use(
+      http.get(`${TMDB}/tv/:showId/season/3`, () =>
+        HttpResponse.json({
+          ...announced,
+          episodes: tmdbTvSeason(Number(SHOW_ID), 1)
+            .episodes?.slice(0, 1)
+            .map((episode) => ({ ...episode, season_number: 3 })),
+        }),
+      ),
+    );
+    laterThatNight();
+
+    expect((await score(club, alice, premiere)).statusCode).toBe(200);
+    expect(await scoreOf(club, `${SHOW_ID}:3:1`, alice)).toBe(9);
   });
 
   it("scores a season announced after the show was cached", async () => {

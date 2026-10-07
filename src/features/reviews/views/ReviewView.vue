@@ -8,7 +8,8 @@
       :candidates="scoreAssistCandidates"
       :club-type="club?.type ?? ClubType.movie"
       :current-club-id="club?.clubId"
-      @close="scoreAssistWorkId = undefined"
+      :save-score="scoreAssistOpened?.saveScore"
+      @close="scoreAssistOpened = undefined"
     />
     <page-header :has-back="false" page-name="Reviews" />
     <ReviewsSkeleton v-if="loading" />
@@ -128,11 +129,18 @@ const currentUser = useUser();
 const userId = computed(() => currentUser.value?.id);
 
 // Score Assist: one modal instance lives here; scattered score-entry
-// affordances open it (and gate their trigger) through the provided key.
-const scoreAssistWorkId = ref<string>();
-const scoreAssistTarget = computed(() =>
-  reviews.value?.find((review) => review.id === scoreAssistWorkId.value),
-);
+// affordances open it (and gate their trigger) through the provided key. They
+// hand over the work itself, since a TV season or episode nobody has scored is
+// a preview that is not on the reviews list yet.
+const scoreAssistOpened = ref<{
+  target: DetailedReviewListItem;
+  saveScore?: (score: number) => void;
+}>();
+// A listed work is read back off the list, so the modal sees its saves land.
+const scoreAssistTarget = computed(() => {
+  const opened = scoreAssistOpened.value?.target;
+  return reviews.value?.find((review) => review.id === opened?.id) ?? opened;
+});
 const { data: memberScores } = useMemberScores();
 const scoreAssistCandidates = computed(() => {
   const target = scoreAssistTarget.value;
@@ -140,13 +148,9 @@ const scoreAssistCandidates = computed(() => {
   return buildCandidatePool(memberScores.value ?? [], target);
 });
 provide(ScoreAssistKey, {
-  isEligible: (workId: string) =>
-    isScoreAssistEligible(
-      memberScores.value,
-      reviews.value?.find((review) => review.id === workId),
-    ),
-  open: (workId: string) => {
-    scoreAssistWorkId.value = workId;
+  isEligible: (work) => isScoreAssistEligible(memberScores.value, work),
+  open: (target, saveScore) => {
+    scoreAssistOpened.value = { target, saveScore };
   },
 });
 

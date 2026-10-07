@@ -28,7 +28,10 @@
           class="hidden h-1 w-20 overflow-hidden rounded-full bg-white/10 md:block"
           aria-hidden="true"
         >
-          <div class="h-full rounded-full bg-primary" :style="{ width: `${coveragePercent}%` }" />
+          <div
+            class="h-full rounded-full bg-primary"
+            :style="{ width: `${coveragePercent(season.scoredCount, season.episodeCount)}%` }"
+          />
         </div>
         <span class="flex-grow text-xs text-white/55">
           {{ coverageLabel(season.scoredCount, season.episodeCount) }}
@@ -133,6 +136,7 @@ import {
 import { hasOwnScore, isOthersScore, scoreEntries } from "../reviewScores";
 import {
   coverageLabel,
+  coveragePercent,
   formatRollup,
   LevelScores,
   ownScoreNote,
@@ -146,7 +150,6 @@ import ScoreChips from "./ScoreChips.vue";
 import WorkDetailsDrawer from "./WorkDetailsDrawer.vue";
 import { useIsDesktop } from "@/common/composables/useIsDesktop";
 import { useClubSlug } from "@/service/useClub";
-import { OPTIMISTIC_WORK_ID } from "@/service/useList";
 import { useSubmitScore } from "@/service/useReviews";
 import { useTvSeason } from "@/service/useTMDB";
 
@@ -236,19 +239,21 @@ const scoreThroughShow = (episodeNumber?: number) => (score: number) => {
   );
 };
 
-/** Where a score entry saves to: the listed work, or through the show. */
+/** Where a score entry saves to: the listed work, or — previewed as the work
+ * it becomes — through the show. */
 const targetFor = (
   review: DetailedReviewListItem | undefined,
   key: PendingKey,
+  preview: () => DetailedReviewListItem,
   episodeNumber?: number,
 ): ScoreTarget => {
   const userId = props.currentUserId;
   if (isDefined(review)) {
     const own = isDefined(userId) ? review.scores[userId] : undefined;
-    return { workId: review.id, score: own?.score, reviewId: own?.id };
+    return { work: review, score: own?.score, reviewId: own?.id };
   }
   return {
-    workId: OPTIMISTIC_WORK_ID,
+    work: preview(),
     score: pendingScores.value.get(key),
     saveScore: scoreThroughShow(episodeNumber),
   };
@@ -285,12 +290,10 @@ const revealed = computed(
     props.revealedMovieIds.has(revealKey.value),
 );
 
-const seasonTarget = computed(() => targetFor(props.season.review, SEASON));
-
-const coveragePercent = computed(() =>
-  props.season.episodeCount === 0
-    ? 0
-    : Math.round((props.season.scoredCount / props.season.episodeCount) * 100),
+const seasonTarget = computed(() =>
+  targetFor(props.season.review, SEASON, () =>
+    seasonPreview(props.show.data, props.season, tmdbSeason.value, withPending({}, SEASON)),
+  ),
 );
 
 // -- Episodes -----------------------------------------------------------------
@@ -315,7 +318,12 @@ const cardViews = computed(() =>
         !revealed &&
         entries.some((entry) => isOthersScore(entry, props.currentUserId)),
       pending: pendingScores.value.has(card.episodeNumber),
-      target: targetFor(card.node?.review, card.episodeNumber, card.episodeNumber),
+      target: targetFor(
+        card.node?.review,
+        card.episodeNumber,
+        () => episodePreview(props.show.data, props.season.seasonNumber, card, scores),
+        card.episodeNumber,
+      ),
     };
   }),
 );
@@ -341,23 +349,13 @@ interface OpenedWork {
 const openedWork = computed<OpenedWork | undefined>(() => {
   const key = opened.value;
   if (key === SEASON) {
-    const { review } = props.season;
-    if (isDefined(review)) return { key: SEASON, work: review };
-    return {
-      key: SEASON,
-      work: seasonPreview(props.show.data, props.season, tmdbSeason.value, withPending({}, SEASON)),
-      saveScore: scoreThroughShow(),
-    };
+    const { work, saveScore } = seasonTarget.value;
+    return { key: SEASON, work, saveScore };
   }
 
   const view = cardViews.value.find((option) => option.card.episodeNumber === key);
   if (!isDefined(view)) return undefined;
-  const episodeKey = `episode-${view.card.episodeNumber}`;
-  if (isDefined(view.card.node)) return { key: episodeKey, work: view.card.node.review };
-  return {
-    key: episodeKey,
-    work: episodePreview(props.show.data, props.season.seasonNumber, view.card, view.scores),
-    saveScore: view.target.saveScore,
-  };
+  const { work, saveScore } = view.target;
+  return { key: `episode-${view.card.episodeNumber}`, work, saveScore };
 });
 </script>

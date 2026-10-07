@@ -53,10 +53,6 @@ export function isBookStats(work: WorkStatsData): work is BookData {
   return work.type === WorkType.book;
 }
 
-export function isTvStats(work: WorkStatsData): work is TvData {
-  return work.type === WorkType.tv;
-}
-
 export type HistogramData = {
   bin: number;
   [index: string]: number;
