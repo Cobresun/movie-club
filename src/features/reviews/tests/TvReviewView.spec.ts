@@ -159,6 +159,29 @@ async function saveScore(user: UserEvent, value: string) {
   await user.click(screen.getByRole("button", { name: "Save score" }));
 }
 
+/** Five episodes of another show the member scored in another club — enough
+ * for Score Assist to compare against. */
+function scoredEpisodesElsewhere() {
+  server.use(
+    http.get("/api/member/scores", () =>
+      HttpResponse.json(
+        [3, 4, 5, 6, 7].map((value, index) => ({
+          workId: `other-${index}`,
+          clubId: "9",
+          clubName: "Another club",
+          clubSlug: "another-club",
+          type: WorkType.tv,
+          title: `Other episode ${index}`,
+          externalId: `1399:1:${index + 1}`,
+          externalData: { ...seriesFields, showId: "1399", level: "episode" },
+          score: value,
+          scoredDate: "2026-03-04T00:00:00.000Z",
+        })),
+      ),
+    ),
+  );
+}
+
 describe("TV reviews", () => {
   it("lists each show with its rolled-up score and coverage", async () => {
     await renderSeverance();
@@ -225,33 +248,33 @@ describe("TV reviews", () => {
   });
 
   it("offers score assist on an episode nobody has scored, saving its suggestion", async () => {
-    // Five episodes of another show the member scored elsewhere — enough to compare against.
-    server.use(
-      http.get("/api/member/scores", () =>
-        HttpResponse.json(
-          [3, 4, 5, 6, 7].map((value, index) => ({
-            workId: `other-${index}`,
-            clubId: "9",
-            clubName: "Another club",
-            clubSlug: "another-club",
-            type: WorkType.tv,
-            title: `Other episode ${index}`,
-            externalId: `1399:1:${index + 1}`,
-            externalData: { ...seriesFields, showId: "1399", level: "episode" },
-            score: value,
-            scoredDate: "2026-03-04T00:00:00.000Z",
-          })),
-        ),
-      ),
-    );
+    scoredEpisodesElsewhere();
     const { user } = await renderSeverance();
 
     await user.click(screen.getByRole("button", { name: "Score In Perpetuity" }));
     await user.click(await screen.findByRole("button", { name: /Compare to decide/ }));
-    await user.click(await screen.findByRole("button", { name: "Too close to call" }));
+    expect(
+      await screen.findByRole("heading", { name: "Which episode did you like more?" }),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Too close to call" }));
     await user.click(await screen.findByRole("button", { name: "Save score" }));
 
     expect(await screen.findByText("3/9 episodes")).toBeInTheDocument();
+  });
+
+  it("offers score assist on a season's own score, comparing it against episodes", async () => {
+    scoredEpisodesElsewhere();
+    const { user } = await renderSeverance();
+
+    await user.click(screen.getByRole("button", { name: "Score season" }));
+    await user.click(await screen.findByRole("button", { name: /Compare to decide/ }));
+    expect(
+      await screen.findByRole("heading", { name: "Which did you like more?" }),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Too close to call" }));
+    await user.click(await screen.findByRole("button", { name: "Save score" }));
+
+    expect(await screen.findByRole("button", { name: "Edit your score" })).toBeInTheDocument();
   });
 
   it("opens a scored episode onto its details", async () => {

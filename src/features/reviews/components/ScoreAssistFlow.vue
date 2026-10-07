@@ -2,7 +2,7 @@
   <div class="flex flex-col items-center gap-4 text-center">
     <template v-if="isDefined(pivot)">
       <div class="flex flex-col gap-1">
-        <h2 class="text-xl font-bold">Which {{ noun }} did you like more?</h2>
+        <h2 class="text-xl font-bold">{{ question }}</h2>
         <p class="text-sm text-gray-400">Tap the one you liked more</p>
       </div>
       <div class="flex justify-center gap-4">
@@ -62,7 +62,7 @@ import { DetailedReviewListItem } from "../../../../lib/types/lists";
 import { ComparisonAnswer, ScoredCandidate } from "../composables/scoreAssistLogic";
 import { useScoreAssist } from "../composables/useScoreAssist";
 import { formatScore } from "../scoreScale";
-import { clubTypeConfig } from "@/common/clubType";
+import { clubTypeConfig, workNoun } from "@/common/clubType";
 import WorkPosterCard from "@/common/components/WorkPosterCard.vue";
 import { workPosterUrl } from "@/common/workDisplay";
 
@@ -93,7 +93,13 @@ const {
   progressLabel,
 } = useScoreAssist(props.target, props.candidates);
 
-const noun = computed(() => clubTypeConfig(props.clubType).noun);
+// Candidates are always the club's own unit (an episode, for TV), so a target
+// at another level — a season or show — is compared without naming either.
+const question = computed(() => {
+  const noun = clubTypeConfig(props.clubType).noun;
+  const targetNoun = workNoun(props.target.externalData) ?? noun;
+  return targetNoun === noun ? `Which ${noun} did you like more?` : "Which did you like more?";
+});
 
 const targetPosterUrl = computed(
   () => workPosterUrl(props.target.externalData, props.target.imageUrl) ?? "",
