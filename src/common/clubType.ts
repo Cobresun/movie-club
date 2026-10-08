@@ -151,8 +151,8 @@ export interface ClubTypeConfig {
    */
   readonly supportsWatchProviders: boolean;
   /**
-   * Whether the add modal offers recommendations drawn from the members'
-   * scores. Needs a source of similar works; TMDB has one, Google Books doesn't.
+   * Whether the add modal offers recommendations drawn from the club's
+   * review scores. Needs a source of similar works; TMDB has one, Google Books doesn't.
    */
   readonly supportsRecommendations: boolean;
   /** Copy for the invite handoff shown after a club is created. */

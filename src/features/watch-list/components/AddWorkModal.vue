@@ -53,7 +53,7 @@ const recommendationsHint = computed(() => {
   if (!showingRecommendations.value) return undefined;
   if (recommendationsFailed.value) return "Recommendations couldn't be loaded. Try again later.";
   const plural = clubTypeStats(clubType.value).pluralNoun.toLowerCase();
-  return `No recommendations yet. They're drawn from the ${plural} your members have scored.`;
+  return `No recommendations yet. They're drawn from the ${plural} your club has scored.`;
 });
 
 // -- Movie clubs: TMDB collections (paginated) --

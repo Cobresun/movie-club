@@ -3,7 +3,7 @@ import { SimilarWork, WorkRecommendation } from "../../../lib/types/recommendati
 /**
  * Club recommendations, in two steps.
  *
- * 1. {@link selectSeeds} turns every score the club's members have given into a
+ * 1. {@link selectSeeds} turns every score given in the club's reviews into a
  *    per-work *affinity*: how far above or below their own habits the members
  *    scored it. The strongest likes and dislikes become seeds.
  * 2. The external source lists works similar to each seed, and
@@ -12,15 +12,13 @@ import { SimilarWork, WorkRecommendation } from "../../../lib/types/recommendati
  *    several favourites point at rises; one that mostly resembles a flop sinks.
  */
 
-/** One score a club member gave a work, in this club or another they belong to. */
+/** One score a member gave a work in the club's reviews. */
 export interface MemberScore {
   userId: string;
   externalId: string;
   title: string;
   /** 0–10. */
   score: number;
-  /** Whether the score was given in the club being recommended for. */
-  inClub: boolean;
 }
 
 export interface Seed {
@@ -28,8 +26,6 @@ export interface Seed {
   title: string;
   /** Above 0 when the members liked it relative to their habits, below when they didn't. */
   affinity: number;
-  /** Whether the viewer may be shown this seed's title as a reason. */
-  citable: boolean;
 }
 
 export interface SeedSimilarWorks {
@@ -46,11 +42,6 @@ const PRIOR_WEIGHT = 3;
  * not turn a single 8 into a rave.
  */
 const MIN_SPREAD = 1.5;
-/**
- * A score from another club reflects one member's taste, not something the
- * club chose to watch together, so it counts for less than the club's own.
- */
-const OTHER_CLUB_WEIGHT = 0.5;
 /** Pseudo-weight of "no opinion" in each work's affinity, so agreement outweighs one voice. */
 const AFFINITY_SHRINKAGE = 1;
 const MIN_SEED_AFFINITY = 0.25;
@@ -83,57 +74,26 @@ function memberBaselines(scores: readonly MemberScore[]): Map<string, Baseline> 
 }
 
 /**
- * A member who scored the same work in two clubs has one opinion of it, not
- * two; the score given in this club wins.
- */
-function onePerMemberAndWork(scores: readonly MemberScore[]): MemberScore[] {
-  const kept = new Map<string, MemberScore>();
-  for (const score of scores) {
-    const key = `${score.userId}:${score.externalId}`;
-    const existing = kept.get(key);
-    if (existing === undefined || (score.inClub && !existing.inClub)) kept.set(key, score);
-  }
-  return [...kept.values()];
-}
-
-/**
  * The works whose scores say most about the club's taste: its strongest likes
  * and dislikes, relative to each member's own scoring habits.
- *
- * A work is citable when the club reviewed it or the viewer scored it
- * themselves. Another member's scores from a club the viewer is not in still
- * shape the ranking, but are never named.
  */
-export function selectSeeds(allScores: readonly MemberScore[], viewerId: string): Seed[] {
-  const scores = onePerMemberAndWork(allScores);
+export function selectSeeds(scores: readonly MemberScore[]): Seed[] {
   const baselines = memberBaselines(scores);
 
-  const works = new Map<
-    string,
-    { title: string; weighted: number; weight: number; citable: boolean }
-  >();
+  const works = new Map<string, { title: string; deviations: number; count: number }>();
   for (const score of scores) {
     const baseline = baselines.get(score.userId);
     if (baseline === undefined) continue;
-    const weight = score.inClub ? 1 : OTHER_CLUB_WEIGHT;
-    const deviation = (score.score - baseline.center) / baseline.spread;
-    const work = works.get(score.externalId) ?? {
-      title: score.title,
-      weighted: 0,
-      weight: 0,
-      citable: false,
-    };
-    work.weighted += weight * deviation;
-    work.weight += weight;
-    work.citable ||= score.inClub || score.userId === viewerId;
+    const work = works.get(score.externalId) ?? { title: score.title, deviations: 0, count: 0 };
+    work.deviations += (score.score - baseline.center) / baseline.spread;
+    work.count += 1;
     works.set(score.externalId, work);
   }
 
   const seeds: Seed[] = Array.from(works, ([externalId, work]) => ({
     externalId,
     title: work.title,
-    affinity: work.weighted / (work.weight + AFFINITY_SHRINKAGE),
-    citable: work.citable,
+    affinity: work.deviations / (work.count + AFFINITY_SHRINKAGE),
   }));
   const liked = seeds
     .filter((seed) => seed.affinity >= MIN_SEED_AFFINITY)
@@ -164,7 +124,7 @@ export function rankRecommendations(
       const pull = seed.affinity / (1 + rank / RANK_HALF_WEIGHT);
       const candidate = candidates.get(work.externalId) ?? { work, score: 0, reasons: [] };
       candidate.score += pull;
-      if (seed.citable && pull > 0) candidate.reasons.push({ title: seed.title, pull });
+      if (pull > 0) candidate.reasons.push({ title: seed.title, pull });
       candidates.set(work.externalId, candidate);
     });
   }

@@ -6,9 +6,9 @@ import { ClubRequest } from "../utils/validation";
 
 const router = new Router<ClubRequest>("/api/club/:clubSlug/recommendations");
 
-// Members only: the ranking draws on members' scores from their other clubs.
-router.get("/", secured, async ({ clubId, clubType, userId }, res) => {
-  const recommendations = await RecommendationService.getForClub(clubId, clubType, userId);
+// Members only: it feeds the add modal, and every call fans out to TMDB.
+router.get("/", secured, async ({ clubId, clubType }, res) => {
+  const recommendations = await RecommendationService.getForClub(clubId, clubType);
   return res(ok(JSON.stringify(recommendations)));
 });
 
