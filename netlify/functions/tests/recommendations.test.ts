@@ -12,14 +12,7 @@ import { WorkRecommendation } from "../../../lib/types/recommendations";
 import { handler } from "../club/index";
 import { tmdbMovie, tmdbPage } from "./fixtures/external";
 import { signIn, TestSession } from "./helpers/auth";
-import {
-  addReviewedWork,
-  addWork,
-  createClub,
-  leaveClub,
-  scoreWork,
-  SeededClub,
-} from "./helpers/factories";
+import { addReviewedWork, addWork, createClub, scoreWork, SeededClub } from "./helpers/factories";
 import { requester } from "./helpers/http";
 import { failOnRequest, server, TMDB } from "./setup/externalApis";
 
@@ -97,55 +90,31 @@ describe("GET /api/club/:clubSlug/recommendations", () => {
     expect(titles(res.body)).toEqual(["Movie 11", "Movie 10"]);
   });
 
-  it("leaves out movies the club already has or a member has already scored", async () => {
+  it("leaves out movies the club already has", async () => {
     const alice = await signIn("alice");
-    const bob = await signIn("bob");
-    const club = await createClub(alice, { members: [alice, bob] });
+    const club = await createClub(alice);
     await reviewed(club, 1, [[alice, 9]]);
     await reviewed(club, 2, [[alice, 2]]);
     await addWork(club, alice, { externalId: "20", title: "Movie 20" });
-    const bobsOtherClub = await createClub(bob);
-    await reviewed(bobsOtherClub, 21, [[bob, 6]]);
-    tmdbRecommends({ 1: [20, 21, 22] });
+    tmdbRecommends({ 1: [2, 20, 21] });
 
     const res = await recommendationsFor(club, alice);
 
-    expect(titles(res.body)).toEqual(["Movie 22"]);
+    expect(titles(res.body)).toEqual(["Movie 21"]);
   });
 
-  it("draws on members' scores from their other clubs, naming only what the viewer can see", async () => {
+  it("ignores what members have scored in their other clubs", async () => {
     const alice = await signIn("alice");
     const bob = await signIn("bob");
     const club = await createClub(alice, { members: [alice, bob] });
-    const alicesOtherClub = await createClub(alice);
-    await reviewed(alicesOtherClub, 1, [[alice, 9]]);
-    await reviewed(alicesOtherClub, 2, [[alice, 2]]);
     const bobsOtherClub = await createClub(bob);
     await reviewed(bobsOtherClub, 3, [[bob, 9]]);
     await reviewed(bobsOtherClub, 4, [[bob, 2]]);
-    tmdbRecommends({ 1: [10], 3: [30] });
-
-    const asAlice = await recommendationsFor(club, alice);
-    const asBob = await recommendationsFor(club, bob);
-
-    const reasons = (recommendations: WorkRecommendation[]) =>
-      Object.fromEntries(recommendations.map((r) => [r.title, r.similarTo]));
-    expect(reasons(asAlice.body)).toEqual({ "Movie 10": ["Movie 1"], "Movie 30": [] });
-    expect(reasons(asBob.body)).toEqual({ "Movie 10": [], "Movie 30": ["Movie 3"] });
-  });
-
-  it("ignores scores from a club the member has since left", async () => {
-    const alice = await signIn("alice");
-    const bob = await signIn("bob");
-    const club = await createClub(alice, { members: [alice, bob] });
-    const bobsOldClub = await createClub(bob);
-    await reviewed(bobsOldClub, 3, [[bob, 9]]);
-    await reviewed(bobsOldClub, 4, [[bob, 2]]);
-    await leaveClub(bobsOldClub, bob);
-    tmdbRecommends({ 3: [30] });
+    failOnRequest("get", RECOMMENDATIONS);
 
     const res = await recommendationsFor(club, alice);
 
+    expect(res.statusCode).toBe(200);
     expect(res.body).toEqual([]);
   });
 
@@ -169,7 +138,7 @@ describe("GET /api/club/:clubSlug/recommendations", () => {
     expect(titles(res.body)).toEqual(["Movie 20"]);
   });
 
-  it("recommends nothing, without asking TMDB, when no member has scored anything", async () => {
+  it("recommends nothing, without asking TMDB, when the club has scored nothing", async () => {
     const alice = await signIn("alice");
     const club = await createClub(alice);
     await addWork(club, alice, { externalId: "20" });

@@ -98,7 +98,7 @@ describe("AddWorkModal", () => {
 
     expect(
       await screen.findByText(
-        "No recommendations yet. They're drawn from the movies your members have scored.",
+        "No recommendations yet. They're drawn from the movies your club has scored.",
       ),
     ).toBeInTheDocument();
   });

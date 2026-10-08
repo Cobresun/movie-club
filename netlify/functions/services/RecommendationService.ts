@@ -15,17 +15,12 @@ import {
 class RecommendationService {
   /**
    * Works the club does not have yet, ranked by how well they fit the taste
-   * its current members have shown — in this club and in every other club
-   * they belong to. See `utils/recommendations.ts` for the ranking.
+   * its reviews show. See `utils/recommendations.ts` for the ranking.
    */
-  async getForClub(
-    clubId: string,
-    clubType: ClubType,
-    viewerId: string,
-  ): Promise<WorkRecommendation[]> {
+  async getForClub(clubId: string, clubType: ClubType): Promise<WorkRecommendation[]> {
     const provider = getProviderForClub(clubType);
     const [rows, clubExternalIds] = await Promise.all([
-      ReviewRepository.getClubMemberScores(clubId, provider.type),
+      ReviewRepository.getClubScores(clubId),
       WorkRepository.getExternalIds(clubId),
     ]);
 
@@ -37,19 +32,16 @@ class RecommendationService {
               externalId: row.external_id,
               title: row.title,
               score: parseFloat(row.score),
-              inClub: row.club_id === clubId,
             },
           ]
         : [],
     );
 
     const similarBySeed = await Promise.all(
-      selectSeeds(scores, viewerId).map((seed) => this.similarTo(provider, seed)),
+      selectSeeds(scores).map((seed) => this.similarTo(provider, seed)),
     );
 
-    // Anything a member has already scored, anywhere, is not new to the club.
-    const excluded = new Set([...clubExternalIds, ...scores.map((score) => score.externalId)]);
-    return rankRecommendations(similarBySeed, excluded);
+    return rankRecommendations(similarBySeed, new Set(clubExternalIds));
   }
 
   private async similarTo(provider: MediaProvider, seed: Seed): Promise<SeedSimilarWorks> {

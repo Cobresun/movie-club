@@ -1,4 +1,4 @@
-import { WorkListSystemType, WorkType } from "../../../lib/types/generated/db";
+import { WorkListSystemType } from "../../../lib/types/generated/db";
 import { db } from "../utils/database";
 
 class ReviewRepository {
@@ -59,34 +59,15 @@ class ReviewRepository {
       .execute();
   }
 
-  /**
-   * Every score the club's current members have given works of `type`, in any
-   * club they still belong to — the taste signal recommendations are ranked
-   * from. `club_id` is the club each score was given in. The second
-   * `club_member` join drops scores left behind in clubs a member has left,
-   * as {@link getScoredWorksByUser} does.
-   */
-  async getClubMemberScores(clubId: string, type: WorkType) {
+  /** Every score given in the club's reviews — the taste signal recommendations are ranked from. */
+  async getClubScores(clubId: string) {
     return db
-      .selectFrom("club_member as member")
-      .where("member.club_id", "=", clubId)
-      .innerJoin("review", "review.user_id", "member.user_id")
-      .innerJoin("work_list", "work_list.id", "review.list_id")
+      .selectFrom("work_list")
+      .where("work_list.club_id", "=", clubId)
       .where("work_list.system_type", "=", WorkListSystemType.reviews)
-      .innerJoin("club_member as scored_in", (join) =>
-        join
-          .onRef("scored_in.club_id", "=", "work_list.club_id")
-          .onRef("scored_in.user_id", "=", "review.user_id"),
-      )
+      .innerJoin("review", "review.list_id", "work_list.id")
       .innerJoin("work", "work.id", "review.work_id")
-      .where("work.type", "=", type)
-      .select([
-        "review.user_id",
-        "review.score",
-        "work.external_id",
-        "work.title",
-        "work_list.club_id",
-      ])
+      .select(["review.user_id", "review.score", "work.external_id", "work.title"])
       .execute();
   }
 

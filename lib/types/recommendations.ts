@@ -12,10 +12,6 @@ export interface SimilarWork {
  * ranked best-first.
  */
 export interface WorkRecommendation extends SimilarWork {
-  /**
-   * Titles of the works this recommendation grew from, most influential first.
-   * Only works the viewer can already see are named: the club's own reviews and
-   * the viewer's own scores, never another member's scores from another club.
-   */
+  /** Titles of the club's reviewed works this recommendation grew from, most influential first. */
   similarTo: string[];
 }
