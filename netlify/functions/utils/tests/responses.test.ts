@@ -22,15 +22,15 @@ function parseErrorBody(body: string | undefined): { error: string } {
 describe("ok", () => {
   it("returns status 200", () => {
     expect(ok().statusCode).toBe(200);
-    expect(ok("{}").statusCode).toBe(200);
+    expect(ok<object>({}).statusCode).toBe(200);
   });
 
   it("sets Content-Type to application/json", () => {
     expect(ok().headers?.["Content-Type"]).toBe("application/json");
   });
 
-  it("passes through the body string", () => {
-    expect(ok('{"id":1}').body).toBe('{"id":1}');
+  it("serializes the body as JSON", () => {
+    expect(ok<{ id: number }>({ id: 1 }).body).toBe('{"id":1}');
   });
 
   it("allows undefined body", () => {

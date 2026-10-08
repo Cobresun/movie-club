@@ -17,7 +17,7 @@ router.get("/", async ({ clubId }, res) => {
     image: member.image ?? undefined,
     role: member.role ?? undefined,
   }));
-  return res(ok(JSON.stringify(response)));
+  return res(ok<Member[]>(response));
 });
 
 router.delete("/self", secured, async ({ clubId, userId }, res) => {

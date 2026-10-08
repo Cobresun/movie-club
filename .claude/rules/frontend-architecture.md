@@ -49,7 +49,7 @@ The test suite is how this gets enforced — a spec that cannot find an element 
 
 ## Service layer
 
-`src/service/use<Feature>.ts` wraps every API call in TanStack Query hooks — components should not fetch directly. Several accept `MaybeRef` so IDs can be reactive (e.g. `useList(slug, listIdRef)`).
+`src/service/use<Feature>.ts` wraps every API call in TanStack Query hooks — components should not fetch directly. Response types come from `lib/types/`, the same ones the handler passes to `ok<T>()`; don't declare a response interface in the service. Several accept `MaybeRef` so IDs can be reactive (e.g. `useList(slug, listIdRef)`).
 
 See the `tanstack-query-vue` skill for query-key conventions, mutation patterns, caching config, and optimistic updates.
 

@@ -6,7 +6,16 @@ import type { MaybeRef } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 import { hasValue } from "../../lib/checks/checks.js";
-import { ClubPreview, Member } from "../../lib/types/club";
+import {
+  ClubInviteDetails,
+  ClubPreview,
+  ClubSettings,
+  ClubSettingsUpdate,
+  ClubSlugResponse,
+  CreatedClubResponse,
+  InviteTokenResponse,
+  Member,
+} from "../../lib/types/club";
 import { ClubType } from "../../lib/types/generated/db";
 import { clearLastClubSlug, getLastClubSlug } from "../common/composables/useLastClubSlug";
 import { reviewsListKey } from "./useList";
@@ -36,7 +45,7 @@ export function useCreateClub() {
       members: string[];
       type: ClubType;
     }) =>
-      auth.request.post<{ clubId: string; slug: string }>(`/api/club`, {
+      auth.request.post<CreatedClubResponse>(`/api/club`, {
         name: clubName,
         members,
         type,
@@ -110,11 +119,11 @@ export function useJoinClub(inviteToken: string) {
 }
 
 export function useClubDetails(inviteToken: string) {
-  return useQuery<ClubPreview>({
+  return useQuery<ClubInviteDetails>({
     queryKey: ["club-details", inviteToken],
     queryFn: async () => {
       try {
-        const response = await axios.get<ClubPreview>(`/api/club/joinInfo/${inviteToken}`);
+        const response = await axios.get<ClubInviteDetails>(`/api/club/joinInfo/${inviteToken}`);
         return response.data;
       } catch (error) {
         console.error("Error fetching club details:", error);
@@ -146,21 +155,10 @@ export function useInviteToken(clubSlug: string) {
   return useQuery({
     queryKey: ["invite-token", clubSlug],
     queryFn: async () => {
-      const response = await axios.post<{ token: string }>(`/api/club/${clubSlug}/invite`);
+      const response = await axios.post<InviteTokenResponse>(`/api/club/${clubSlug}/invite`);
       return response.data.token;
     },
   });
-}
-
-interface ClubSettings {
-  features: {
-    awards: boolean;
-    discussionQuestions: boolean;
-  };
-}
-
-interface ClubSettingsUpdate {
-  features?: Partial<ClubSettings["features"]>;
 }
 
 export function useClubSettings(clubSlug: string): UseQueryReturnType<ClubSettings, unknown> {
@@ -220,7 +218,7 @@ export function useUpdateClubSlug(clubSlug: string) {
 
   return useMutation({
     mutationFn: (newSlug: string) =>
-      auth.request.put<{ slug: string }>(`/api/club/${clubSlug}/slug`, {
+      auth.request.put<ClubSlugResponse>(`/api/club/${clubSlug}/slug`, {
         slug: newSlug,
       }),
     onSuccess: (response) => {

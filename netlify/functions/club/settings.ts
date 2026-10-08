@@ -1,6 +1,5 @@
-import SettingsRepository, {
-  clubSettingsUpdateSchema,
-} from "../repositories/SettingsRepository.js";
+import { ClubSettings, clubSettingsUpdateSchema } from "../../../lib/types/club";
+import SettingsRepository from "../repositories/SettingsRepository.js";
 import { secured } from "../utils/auth";
 import { parseBody } from "../utils/parseBody";
 import { ok } from "../utils/responses";
@@ -11,7 +10,7 @@ const router = new Router<ClubRequest>("/api/club/:clubSlug/settings");
 
 router.get("/", secured, async ({ clubId }, res) => {
   const settings = await SettingsRepository.getSettings(clubId);
-  return res(ok(JSON.stringify(settings)));
+  return res(ok<ClubSettings>(settings));
 });
 
 router.post("/", secured, async ({ clubId, event }, res) => {
@@ -19,7 +18,7 @@ router.post("/", secured, async ({ clubId, event }, res) => {
   if (isRouterResponse(body)) return body;
 
   const settings = await SettingsRepository.updateSettings(clubId, body);
-  return res(ok(JSON.stringify(settings)));
+  return res(ok<ClubSettings>(settings));
 });
 
 export default router;

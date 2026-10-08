@@ -12,7 +12,7 @@ paths:
 ```typescript
 router.use("/:clubSlug/list", validClubSlug, listRouter);
 router.get("/:clubSlug", validClubSlug, async ({ clubSlug }, res) =>
-  res(ok(JSON.stringify(await ClubRepository.getBySlug(clubSlug)))),
+  res(ok<ClubPreview>(await ClubRepository.getBySlug(clubSlug))),
 );
 ```
 
@@ -24,6 +24,8 @@ A handler is normally middleware + Zod body schema + repository + a helper from 
 
 - `loggedIn` — any authenticated user. `secured` — authenticated _and_ a member of the resolved club.
 - `validClubSlug` resolves `:clubSlug`. `validListId` loads `:listId`, asserts it belongs to that club, and exposes `listSystemType` so handlers can gate operations on system lists.
+
+**Responses name their contract: `ok<T>(data)`**, where `T` is the type in `lib/types/` that the frontend service reads the same endpoint as. `ok` serializes `data` itself, and its type argument is required — an untyped `ok(data)` does not compile — so the handler and the service cannot drift apart silently. A shape the frontend reads belongs in `lib/types/`, not in `src/service/` or a repository. `ok()` with no argument is an empty 200 for mutations.
 
 **Bodies go through `parseBody(event, schema, res)`** (`utils/parseBody.ts`) with a Zod schema — it handles missing body, malformed JSON, and schema failure as one 400 each. A cast (`event.body as CreateListDto`) is not validation; it is the bug. This applies to handlers you are only passing through: converting a cast you happened to touch is in scope, not scope creep.
 
