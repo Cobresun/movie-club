@@ -1,12 +1,22 @@
 <template>
-  <div class="rounded-xl bg-lowBackground p-4">
-    <p class="text-sm text-slate-400">{{ label }}</p>
+  <!-- A row on phones, so three rates don't stack into a screen of cards. -->
+  <div
+    class="flex items-center gap-4 rounded-xl bg-lowBackground p-3.5 sm:flex-col sm:items-start sm:gap-1 sm:p-4"
+  >
+    <p v-if="percent === null" class="w-16 shrink-0 text-2xl font-bold text-slate-500 sm:w-auto">
+      —
+    </p>
+    <p v-else class="w-16 shrink-0 text-2xl font-bold tabular-nums sm:w-auto" :class="toneClass">
+      {{ percent }}%
+    </p>
 
-    <p v-if="percent === null" class="mt-1 text-2xl font-bold text-slate-600">—</p>
-    <p v-else class="mt-1 text-2xl font-bold" :class="toneClass">{{ percent }}%</p>
-
-    <p class="mt-1 text-xs text-slate-500">{{ detail }}</p>
-    <p class="mt-1 text-xs text-slate-600">{{ hint }}</p>
+    <div class="min-w-0 sm:contents">
+      <p class="text-xs font-medium uppercase tracking-wide text-slate-400 sm:order-first">
+        {{ label }}
+      </p>
+      <p class="mt-0.5 text-xs text-slate-300">{{ detail }}</p>
+      <p class="mt-0.5 text-xs text-slate-500">{{ hint }}</p>
+    </div>
   </div>
 </template>
 
@@ -30,7 +40,7 @@ const props = defineProps<{
   hint: string;
   /**
    * Percentage at or above which the rate reads as healthy. Omit for metrics
-   * with no good direction — a signup-source split isn't better when higher.
+   * with no good direction.
    */
   goodAtOrAbove?: number;
   /** Below this the rate reads as a problem. */
@@ -38,7 +48,7 @@ const props = defineProps<{
 }>();
 
 const toneClass = computed(() => {
-  if (props.percent === null) return "text-slate-600";
+  if (props.percent === null) return "text-slate-500";
   if (props.badBelow !== undefined && props.percent < props.badBelow) return "text-rose-400";
   if (props.goodAtOrAbove !== undefined && props.percent >= props.goodAtOrAbove) {
     return "text-emerald-400";
