@@ -3,7 +3,7 @@ import { DateTime } from "luxon";
 import { hasElements, hasValue, isDefined } from "../../../lib/checks/checks.js";
 import { WorkType } from "../../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../../lib/types/lists";
-import { CLUB_TYPE_CONFIG } from "@/common/clubType";
+import { CLUB_TYPE_CONFIG, isScoredUnit } from "@/common/clubType";
 import { asBook, asMovie, formatRuntime } from "@/common/workDisplay";
 
 /**
@@ -502,6 +502,9 @@ const FACT_GENERATORS: Record<WorkType, FactGenerator[]> = {
     oldestBook,
     longestBook,
   ],
+  // The media-agnostic generators only: the movie and book ones read metadata
+  // an episode does not carry.
+  [WorkType.tv]: [allTimeRecord, clubMilestone, divisiveRecord, yearRecord],
 };
 
 const nounFor = (type: WorkType): string =>
@@ -521,12 +524,14 @@ export function computeReviewFact(
   workId: string,
 ): ReviewFact | undefined {
   const target = reviews.find((review) => review.id === workId);
-  if (!isDefined(target)) return undefined;
+  if (!isDefined(target) || !isScoredUnit(target)) return undefined;
 
   const targetAverage = averageOf(target);
   if (!isDefined(targetAverage)) return undefined;
 
-  const works = [...reviews].sort((a, b) => a.createdDate.localeCompare(b.createdDate));
+  const works = reviews
+    .filter(isScoredUnit)
+    .sort((a, b) => a.createdDate.localeCompare(b.createdDate));
   const position = works.findIndex((work) => work.id === target.id) + 1;
 
   const ctx: FactContext = {

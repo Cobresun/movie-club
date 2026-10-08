@@ -165,4 +165,17 @@ export const STAT_WIDGETS: Record<ClubType, StatWidgetDef[]> = {
     memberOutliersWidget,
     clubConsensusWidget,
   ],
+  // Score-based widgets only: every media-specific widget here reads movie or
+  // book metadata. The TV equivalents (best and worst episode, score across a
+  // season, guest-star leaderboards) are their own piece of work.
+  [ClubType.tv]: [
+    statsWidget,
+    clubRecordsWidget,
+    scoreChartsWidget,
+    activityWidget,
+    reviewerLeaderboardWidget,
+    tasteSimilarityWidget,
+    memberOutliersWidget,
+    clubConsensusWidget,
+  ],
 };

@@ -1,4 +1,5 @@
 import { hasValue } from "../../../lib/checks/checks.js";
+import { WorkType } from "../../../lib/types/generated/db";
 import { ListInsertDto } from "../../../lib/types/lists.js";
 import { db } from "../utils/database";
 import { getProvider } from "../utils/providers";
@@ -63,6 +64,38 @@ class WorkRepository {
 
   async delete(clubId: string, workId: string) {
     return db.deleteFrom("work").where("id", "=", workId).where("club_id", "=", clubId).execute();
+  }
+
+  /** Ids of the club's works of `type` whose external id starts with `prefix`. */
+  async getIdsByExternalIdPrefix(clubId: string, type: WorkType, prefix: string) {
+    const rows = await db
+      .selectFrom("work")
+      .where("club_id", "=", clubId)
+      .where("type", "=", type)
+      .where("external_id", "like", `${prefix}%`)
+      .select("id")
+      .execute();
+    return rows.map((row) => row.id);
+  }
+
+  /** Deletes those of `workIds` that are no longer on any list. */
+  async deleteUnlisted(clubId: string, workIds: string[]) {
+    if (workIds.length === 0) return;
+    await db
+      .deleteFrom("work")
+      .where("club_id", "=", clubId)
+      .where("id", "in", workIds)
+      .where((eb) =>
+        eb.not(
+          eb.exists(
+            eb
+              .selectFrom("work_list_item")
+              .select("work_list_item.work_id")
+              .whereRef("work_list_item.work_id", "=", "work.id"),
+          ),
+        ),
+      )
+      .execute();
   }
 }
 

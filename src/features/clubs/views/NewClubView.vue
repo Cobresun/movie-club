@@ -4,8 +4,8 @@
       <div class="flex flex-col gap-2">
         <h1 class="text-3xl font-bold leading-tight">{{ heading }}</h1>
         <p v-if="isFirstClub" class="text-[15px] font-light leading-relaxed text-white/65">
-          A club is a handful of friends who watch the same films — or read the same books — and
-          score them together.
+          A club is a handful of friends who watch the same films or shows — or read the same books
+          — and score them together.
         </p>
         <p v-else class="text-[15px] font-light leading-relaxed text-white/65">
           Start a second club, or join one you were invited to.
@@ -29,20 +29,20 @@
         <p class="text-[13px] text-white/55">What will this club review?</p>
         <div class="flex gap-3">
           <button
-            v-for="option in clubTypeOptions"
-            :key="option.value"
+            v-for="option in typeOptions"
+            :key="option.clubType"
             type="button"
             class="flex min-h-[44px] flex-grow flex-col items-center gap-1.5 rounded-lg p-3 text-[15px] font-medium ring-2 ring-inset transition-colors duration-fast ease-standard"
             :class="
-              clubType === option.value
+              clubType === option.clubType
                 ? 'bg-primary/[0.14] text-highlight ring-primary'
                 : 'text-white/70 ring-slate-600 hover:ring-slate-500'
             "
-            :aria-pressed="clubType === option.value"
-            @click="clubType = option.value"
+            :aria-pressed="clubType === option.clubType"
+            @click="clubType = option.clubType"
           >
-            <mdicon :name="clubTypeIcon(option.value)" :size="26" />
-            <span>{{ option.label }}</span>
+            <mdicon :name="option.icon" :size="26" />
+            <span>{{ option.pluralLabel }}</span>
           </button>
         </div>
 
@@ -89,7 +89,7 @@ import { useRouter } from "vue-router";
 
 import { hasValue } from "@/../lib/checks/checks";
 import { ClubType } from "@/../lib/types/generated/db";
-import { clubTypeIcon } from "@/common/clubType";
+import { clubTypeOptions } from "@/common/clubType";
 import { setLastClubSlug } from "@/common/composables/useLastClubSlug";
 import { useCreateClub } from "@/service/useClub";
 import { useAuthStore } from "@/stores/auth";
@@ -99,10 +99,7 @@ const clubName = ref("");
 const clubType = ref<ClubType>(ClubType.movie);
 const showErrors = ref(false);
 
-const clubTypeOptions: { value: ClubType; label: string }[] = [
-  { value: ClubType.movie, label: "Movies" },
-  { value: ClubType.book, label: "Books" },
-];
+const typeOptions = clubTypeOptions();
 
 const authStore = useAuthStore();
 const isLoggedIn = computed(() => authStore.isLoggedIn);

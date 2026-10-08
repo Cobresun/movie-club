@@ -51,24 +51,56 @@ router.get("/cast", async ({ clubId }, res) => {
   return res(ok(JSON.stringify(result)));
 });
 
-const addReviewSchema = z.object({
-  score: z.number().min(0).max(10),
-  workId: z.string(),
-});
+const addReviewSchema = z
+  .object({
+    score: z.number().min(0).max(10),
+    workId: z.string(),
+    /** Narrows a TV show to one of its seasons, which need not be a work yet.
+     * Whether TMDB lists it is still resolved server-side. */
+    seasonNumber: z.number().int().min(0).optional(),
+    /** Narrows that season to one episode, which need not be a work yet. */
+    episodeNumber: z.number().int().min(0).optional(),
+  })
+  .refine((body) => body.episodeNumber === undefined || body.seasonNumber !== undefined, {
+    message: "episodeNumber needs a seasonNumber",
+    path: ["episodeNumber"],
+  });
 
 router.post("/", secured, async ({ clubId, userId, event }, res) => {
   const body = parseBody(event, addReviewSchema, res);
   if (isRouterResponse(body)) return body;
 
-  const { score, workId } = body;
+  const { score, workId, seasonNumber, episodeNumber } = body;
+
+  const work = await WorkRepository.getById(clubId, workId);
+  if (!isDefined(work)) {
+    return res(notFound("Work not found"));
+  }
 
   const reviewsListId = await ListRepository.getReviewsListId(clubId);
   const exists = await ListRepository.isItemInList(reviewsListId, workId);
   if (!exists) {
-    return res(badRequest("This movie does not exist in the list"));
+    return res(badRequest("This work is not on the reviews list"));
   }
 
-  await ReviewRepository.insertReview(reviewsListId, workId, userId, score);
+  // A score lands on exactly one work. A narrowed TV show resolves to the
+  // season or episode it names, which may not be a work yet — scoring it is
+  // what creates it and puts it on the reviews list.
+  const target = await getProvider(work.type).resolveScoreTarget(
+    { title: work.title, externalId: work.external_id },
+    { seasonNumber, episodeNumber },
+  );
+  if (target.kind === "missing") {
+    return res(badRequest("There is nothing to score there"));
+  }
+
+  let scoredWorkId = workId;
+  if (target.kind === "work") {
+    scoredWorkId = (await WorkRepository.insert(clubId, target.work)).id;
+    await ListRepository.insertItemInList(reviewsListId, scoredWorkId, userId);
+  }
+
+  await ReviewRepository.replaceScore(reviewsListId, scoredWorkId, userId, score);
   return res(ok());
 });
 

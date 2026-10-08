@@ -8,7 +8,8 @@
       :candidates="scoreAssistCandidates"
       :club-type="club?.type ?? ClubType.movie"
       :current-club-id="club?.clubId"
-      @close="scoreAssistWorkId = undefined"
+      :save-score="scoreAssistOpened?.saveScore"
+      @close="scoreAssistOpened = undefined"
     />
     <page-header :has-back="false" page-name="Reviews" />
     <ReviewsSkeleton v-if="loading" />
@@ -43,9 +44,10 @@
           @action="openPrompt"
         />
       </div>
-      <gallery-view
+      <component
+        :is="reviewLayout.component"
         v-else
-        :reviews="filteredReviews"
+        :reviews="shownReviews"
         :delete-review="deleteReview"
         :members="members"
         :revealed-movie-ids="revealedMovieIds"
@@ -62,10 +64,10 @@ import { computed, ref, provide } from "vue";
 import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import { ClubType } from "../../../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
-import GalleryView from "../components/GalleryView.vue";
 import ReviewsSkeleton from "../components/ReviewsSkeleton.vue";
 import ScoreAssistModal from "../components/ScoreAssistModal.vue";
 import { buildCandidatePool, isScoreAssistEligible } from "../composables/scoreAssistLogic";
+import { REVIEW_LAYOUTS } from "../reviewLayouts";
 import { ScoreAssistKey } from "../scoreAssist";
 import { clubTypeConfig } from "@/common/clubType";
 import EmptyState from "@/common/components/EmptyState.vue";
@@ -97,8 +99,13 @@ const closePrompt = () => {
 const filteredReviews = ref<DetailedReviewListItem[]>([]);
 const hasActiveFilters = ref(false);
 
+const reviewLayout = computed(() => REVIEW_LAYOUTS[club.value?.type ?? ClubType.movie]);
+const shownReviews = computed(() =>
+  reviewLayout.value.select(reviews.value ?? [], filteredReviews.value),
+);
+
 const hasSearchTerm = computed(() => hasActiveFilters.value);
-const showEmptyState = computed(() => !loading.value && filteredReviews.value.length === 0);
+const showEmptyState = computed(() => !loading.value && shownReviews.value.length === 0);
 
 const searchEmptyDescription = computed(() => {
   const fields = clubTypeConfig(club.value?.type ?? ClubType.movie).searchableFieldsHint;
@@ -122,11 +129,18 @@ const currentUser = useUser();
 const userId = computed(() => currentUser.value?.id);
 
 // Score Assist: one modal instance lives here; scattered score-entry
-// affordances open it (and gate their trigger) through the provided key.
-const scoreAssistWorkId = ref<string>();
-const scoreAssistTarget = computed(() =>
-  reviews.value?.find((review) => review.id === scoreAssistWorkId.value),
-);
+// affordances open it (and gate their trigger) through the provided key. They
+// hand over the work itself, since a TV season or episode nobody has scored is
+// a preview that is not on the reviews list yet.
+const scoreAssistOpened = ref<{
+  target: DetailedReviewListItem;
+  saveScore?: (score: number) => void;
+}>();
+// A listed work is read back off the list, so the modal sees its saves land.
+const scoreAssistTarget = computed(() => {
+  const opened = scoreAssistOpened.value?.target;
+  return reviews.value?.find((review) => review.id === opened?.id) ?? opened;
+});
 const { data: memberScores } = useMemberScores();
 const scoreAssistCandidates = computed(() => {
   const target = scoreAssistTarget.value;
@@ -134,13 +148,9 @@ const scoreAssistCandidates = computed(() => {
   return buildCandidatePool(memberScores.value ?? [], target);
 });
 provide(ScoreAssistKey, {
-  isEligible: (workId: string) =>
-    isScoreAssistEligible(
-      memberScores.value,
-      reviews.value?.find((review) => review.id === workId),
-    ),
-  open: (workId: string) => {
-    scoreAssistWorkId.value = workId;
+  isEligible: (work) => isScoreAssistEligible(memberScores.value, work),
+  open: (target, saveScore) => {
+    scoreAssistOpened.value = { target, saveScore };
   },
 });
 
@@ -149,7 +159,7 @@ const hasUserRated = computed(() => {
   if (userId.value === undefined) return () => false;
 
   return (movieId: string) => {
-    const review = filteredReviews.value?.find((review) => review.id === movieId);
+    const review = shownReviews.value.find((review) => review.id === movieId);
     return Boolean(review?.scores[userId.value ?? ""]?.score !== undefined);
   };
 });

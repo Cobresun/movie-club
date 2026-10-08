@@ -2,7 +2,15 @@ import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 import { z } from "zod";
 
-import { geminiJsonResponse, googleBooksVolume, tmdbConfig, tmdbMovie } from "../fixtures/external";
+import {
+  geminiJsonResponse,
+  googleBooksVolume,
+  tmdbConfig,
+  tmdbMovie,
+  tmdbTvSeason,
+  tmdbTvShow,
+  TV_SEASON_EPISODE_COUNTS,
+} from "../fixtures/external";
 
 /**
  * The only thing the integration suite fakes: the third-party HTTP APIs.
@@ -55,6 +63,19 @@ export const server = setupServer(
 
   http.get(`${TMDB}/movie/:movieId`, ({ params }) =>
     HttpResponse.json(tmdbMovie(Number(params.movieId))),
+  ),
+
+  // TMDB 404s a season the show does not have, rather than listing it empty.
+  http.get(`${TMDB}/tv/:showId/season/:seasonNumber`, ({ params }) => {
+    const seasonNumber = Number(params.seasonNumber);
+    if (!(seasonNumber in TV_SEASON_EPISODE_COUNTS)) {
+      return HttpResponse.json({ status_code: 34 }, { status: 404 });
+    }
+    return HttpResponse.json(tmdbTvSeason(Number(params.showId), seasonNumber));
+  }),
+
+  http.get(`${TMDB}/tv/:showId`, ({ params }) =>
+    HttpResponse.json(tmdbTvShow(Number(params.showId))),
   ),
 
   http.get(`${GOOGLE_BOOKS}/volumes/:volumeId`, ({ params }) =>

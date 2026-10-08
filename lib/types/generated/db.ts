@@ -3,6 +3,7 @@ import type { ColumnType } from "kysely";
 export enum ClubType {
   book = "book",
   movie = "movie",
+  tv = "tv",
 }
 
 export enum WorkListSystemType {
@@ -12,6 +13,7 @@ export enum WorkListSystemType {
 export enum WorkType {
   book = "book",
   movie = "movie",
+  tv = "tv",
 }
 
 export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
@@ -205,6 +207,83 @@ export interface Session {
   userId: Int8;
 }
 
+export interface TvEpisodeDetails {
+  air_date: Timestamp | null;
+  episode_number: Int8;
+  external_id: string;
+  id: Generated<Int8>;
+  name: string | null;
+  overview: string | null;
+  runtime: Int8 | null;
+  season_external_id: string;
+  season_number: Int8;
+  show_external_id: string;
+  still_path: string | null;
+  tmdb_score: Numeric | null;
+  updated_date: Generated<Timestamp>;
+}
+
+export interface TvSeasonDetails {
+  air_date: Timestamp | null;
+  episode_count: Generated<Int8>;
+  external_id: string;
+  id: Generated<Int8>;
+  name: string | null;
+  overview: string | null;
+  poster_path: string | null;
+  season_number: Int8;
+  show_external_id: string;
+  updated_date: Generated<Timestamp>;
+}
+
+export interface TvShowCast {
+  actor_id: Int8;
+  actor_name: string;
+  cast_order: Int8;
+  character_name: string | null;
+  external_id: string;
+  popularity: Numeric | null;
+  profile_path: string | null;
+  rowid: Generated<Int8>;
+}
+
+export interface TvShowCreators {
+  creator_name: string;
+  external_id: string;
+  profile_path: string | null;
+  rowid: Generated<Int8>;
+}
+
+export interface TvShowDetails {
+  backdrop_path: string | null;
+  external_id: string;
+  first_air_date: Timestamp | null;
+  id: Generated<Int8>;
+  last_air_date: Timestamp | null;
+  name: string | null;
+  number_of_episodes: Int8 | null;
+  number_of_seasons: Int8 | null;
+  original_language: string | null;
+  overview: string | null;
+  poster_path: string | null;
+  status: string | null;
+  tmdb_score: Numeric | null;
+  updated_date: Generated<Timestamp>;
+}
+
+export interface TvShowGenres {
+  external_id: string;
+  genre_name: string;
+  rowid: Generated<Int8>;
+}
+
+export interface TvShowNetworks {
+  external_id: string;
+  logo_path: string | null;
+  network_name: string;
+  rowid: Generated<Int8>;
+}
+
 export interface User {
   createdAt: Generated<Timestamp>;
   email: string;
@@ -280,6 +359,13 @@ export interface DB {
   next_work: NextWork;
   review: Review;
   session: Session;
+  tv_episode_details: TvEpisodeDetails;
+  tv_season_details: TvSeasonDetails;
+  tv_show_cast: TvShowCast;
+  tv_show_creators: TvShowCreators;
+  tv_show_details: TvShowDetails;
+  tv_show_genres: TvShowGenres;
+  tv_show_networks: TvShowNetworks;
   user: User;
   verification: Verification;
   work: Work;

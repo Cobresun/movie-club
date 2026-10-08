@@ -71,6 +71,7 @@
 import { computed, inject, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 
 import { hasValue, isDefined, isTrue } from "../../../../lib/checks/checks.js";
+import { ScoreAssistTarget } from "../composables/scoreAssistLogic";
 import { ScoreAssistKey } from "../scoreAssist";
 import { clampScore, isValidScore } from "../scoreScale";
 import ScoreDial from "./ScoreDial.vue";
@@ -78,7 +79,7 @@ import { useClubSlug } from "@/service/useClub";
 import { useDeleteScore, useSubmitScore } from "@/service/useReviews";
 
 const props = defineProps<{
-  workId: string;
+  work: ScoreAssistTarget;
   score?: number;
   reviewId?: string;
   // Pre-fills the input with a not-yet-saved value (Score Assist's suggestion)
@@ -91,6 +92,8 @@ const props = defineProps<{
   // mid-transition.
   autofocus?: boolean;
   autofocusDelay?: number;
+  // Saves in place of scoring `work`, for a work not on the reviews list yet.
+  saveScore?: (score: number) => void;
 }>();
 
 const emit = defineEmits<{
@@ -134,7 +137,7 @@ watch(
 const canSave = computed(() => isValidScore(Number.parseFloat(scoreModel.value)));
 
 const scoreAssist = inject(ScoreAssistKey, undefined);
-const showAssist = computed(() => isDefined(scoreAssist) && scoreAssist.isEligible(props.workId));
+const showAssist = computed(() => isDefined(scoreAssist) && scoreAssist.isEligible(props.work));
 
 const submitScore = useSubmitScore(clubSlug);
 
@@ -145,11 +148,15 @@ const save = () => {
   // precision every score display rounds to (formatScore).
   const clamped = clampScore(Math.round(score * 100) / 100);
   if (clamped !== props.score) {
-    submitScore({
-      workId: props.workId,
-      reviewId: props.reviewId,
-      score: clamped,
-    });
+    if (isDefined(props.saveScore)) {
+      props.saveScore(clamped);
+    } else {
+      submitScore({
+        workId: props.work.id,
+        reviewId: props.reviewId,
+        score: clamped,
+      });
+    }
     emit("saved");
   }
   emit("submit");
@@ -162,7 +169,7 @@ const confirmingRemove = ref(false);
 const removeScore = () => {
   const reviewId = props.reviewId;
   if (!hasValue(reviewId)) return;
-  deleteScore.mutate({ reviewId, workId: props.workId });
+  deleteScore.mutate({ reviewId, workId: props.work.id });
   // "submit" and not "saved": the host closes the panel without running the
   // saved-score animation for a score that no longer exists.
   emit("submit");

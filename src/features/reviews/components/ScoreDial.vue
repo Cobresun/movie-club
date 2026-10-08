@@ -212,9 +212,11 @@ defineExpose({
   // keystroke wipe the value. `setSelectionRange` throws on `type="number"`,
   // so the field is flipped to text for the one call — the caret survives the
   // flip back, and the value never changes, so no input event fires.
+  // Already focused means the user got there first (the dock's autofocus is
+  // delayed); the flip would reset their caret to the start mid-typing.
   focusInput: () => {
     const input = scoreInput.value;
-    if (!isDefined(input)) return;
+    if (!isDefined(input) || document.activeElement === input) return;
     const end = input.value.length;
     input.type = "text";
     input.focus();
