@@ -189,7 +189,10 @@ const showDeleteConfirmation = ref(false);
 const pendingDeleteId = ref<string | null>(null);
 
 // Sending scrolls the thread to the new comment as soon as its optimistic copy
-// renders, rather than once the round trip and refetch have come back.
+// renders, rather than once the round trip and refetch have come back. A
+// nextTick after addComment would be too early: onMutate awaits cancelQueries
+// before writing the optimistic copy, and the container isn't mounted until
+// the thread has a comment.
 const scrollToLatestPending = ref(false);
 watch(
   () => comments.value?.length,

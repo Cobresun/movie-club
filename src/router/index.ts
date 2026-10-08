@@ -6,7 +6,7 @@ import {
   RouteLocationNormalized,
 } from "vue-router";
 
-import { hasElements, isDefined } from "../../lib/checks/checks.js";
+import { hasElements, isDefined, isString } from "../../lib/checks/checks.js";
 import { ClubType } from "../../lib/types/generated/db";
 import { DEFAULT_CLUB_SECTION } from "../common/clubSections";
 import {
@@ -35,7 +35,10 @@ const checkClubAccess = async (
     });
   }
 
-  const clubSlug = to.params.clubSlug as string;
+  const clubSlug = to.params.clubSlug;
+  if (!isString(clubSlug)) {
+    return next({ name: "ClubNotFound" });
+  }
 
   // Membership the cache already confirms lets the navigation through without
   // waiting on a background refetch of the clubs list. Only a club the cache
@@ -114,7 +117,10 @@ const movieClubOnly = async (
   next: NavigationGuardNext,
 ) => {
   const auth = useAuthStore();
-  const clubSlug = to.params.clubSlug as string;
+  const clubSlug = to.params.clubSlug;
+  if (!isString(clubSlug)) {
+    return next();
+  }
   const findClub = () => auth.userClubs?.find((c) => c.slug === clubSlug);
 
   if (!isDefined(findClub())) {
