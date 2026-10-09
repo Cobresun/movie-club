@@ -87,6 +87,13 @@
 
       <section class="space-y-4">
         <h2 class="mx-auto w-11/12 text-sm font-bold uppercase tracking-wide text-slate-400">
+          Acquisition
+        </h2>
+        <AcquisitionChannelsWidget :signup-sources="metrics.signupSources" />
+      </section>
+
+      <section class="space-y-4">
+        <h2 class="mx-auto w-11/12 text-sm font-bold uppercase tracking-wide text-slate-400">
           Health
         </h2>
 
@@ -151,6 +158,7 @@
 import axios from "axios";
 import { computed, ref } from "vue";
 
+import AcquisitionChannelsWidget from "../components/AcquisitionChannelsWidget.vue";
 import ClubHealthWidget from "../components/ClubHealthWidget.vue";
 import EngagementWidget from "../components/EngagementWidget.vue";
 import GrowthWidget from "../components/GrowthWidget.vue";

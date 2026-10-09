@@ -101,6 +101,32 @@ describe("AdminDashboardView", () => {
     expect(screen.getByText("42%")).toBeInTheDocument();
   });
 
+  it("compares signups per acquisition channel, with how many of each activated", async () => {
+    renderDashboard();
+
+    const invite = await screen.findByRole("row", { name: /Club invite/ });
+    const cells = within(invite)
+      .getAllByRole("cell")
+      .map((cell) => cell.textContent?.replace(/\s+/g, " ").trim());
+
+    // 5 in 30 days, 41 all time, 29 of those 41 activated.
+    expect(cells).toEqual(["5", "41", "71% (29)"]);
+  });
+
+  it("shows a dash rather than 0% for a channel nobody has come through", async () => {
+    renderDashboard();
+
+    const referral = await screen.findByRole("row", { name: /Referral/ });
+
+    expect(within(referral).getAllByRole("cell")[2]).toHaveTextContent("—");
+  });
+
+  it("keeps accounts that predate tracking in their own row", async () => {
+    renderDashboard();
+
+    expect(await screen.findByRole("row", { name: /Not recorded/ })).toBeInTheDocument();
+  });
+
   it("reports dormant clubs against the clubs that were ever active", async () => {
     renderDashboard();
 

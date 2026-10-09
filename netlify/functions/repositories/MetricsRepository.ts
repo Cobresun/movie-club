@@ -1,10 +1,11 @@
 import { Expression, QueryCreator, sql } from "kysely";
 
 import { isDefined } from "../../../lib/checks/checks.js";
-import { ClubType, DB, Json } from "../../../lib/types/generated/db.js";
+import { ClubType, DB, Json, SignupSource } from "../../../lib/types/generated/db.js";
 import {
   ActiveUser,
   SiteHealth,
+  SignupSourceCount,
   SiteMetrics,
   SnapshotHistoryPoint,
   snapshotHistoryMetricsSchema,
@@ -455,6 +456,59 @@ class MetricsRepository {
   }
 
   /**
+   * Signups per acquisition channel, and how many from each went on to do
+   * anything — a channel that brings people who never review is not one worth
+   * growing.
+   *
+   * Every channel gets a row even at zero, so the dashboard compares the same
+   * set from day one; the not-recorded row appears only when it has members.
+   */
+  private async getSignupSources(): Promise<SignupSourceCount[]> {
+    const since30 = daysAgo(30);
+
+    const rows = await db
+      .with("activity", activityEvents)
+      .selectFrom("user")
+      .select((eb) => [
+        "user.signup_source",
+        eb.fn.countAll<string>().as("users"),
+        eb.fn.countAll<string>().filterWhere("user.createdAt", ">=", since30).as("last_30"),
+        eb.fn
+          .countAll<string>()
+          .filterWhere((e) =>
+            e.exists(
+              e
+                .selectFrom("activity")
+                .whereRef("activity.user_id", "=", "user.id")
+                .select(e.lit(1).as("one")),
+            ),
+          )
+          .as("activated"),
+      ])
+      .groupBy("user.signup_source")
+      .execute();
+
+    const counts = rows.map((row) => ({
+      source: row.signup_source,
+      users: toCount(row.users),
+      last30Days: toCount(row.last_30),
+      activated: toCount(row.activated),
+    }));
+
+    const channels = Object.values(SignupSource).map(
+      (source) =>
+        counts.find((count) => count.source === source) ?? {
+          source,
+          users: 0,
+          last30Days: 0,
+          activated: 0,
+        },
+    );
+    const notRecorded = counts.filter((count) => count.source === null);
+    return [...channels, ...notRecorded];
+  }
+
+  /**
    * The busiest people over the last 30 days, broken down by what they did.
    *
    * The breakdown matters more than the total: someone with forty comments and
@@ -656,6 +710,7 @@ class MetricsRepository {
       daysToFirstReview,
       clubSizes,
       signupMethods,
+      signupSources,
     ] = await Promise.all([
       this.getScalars(),
       this.getActivity(),
@@ -667,6 +722,7 @@ class MetricsRepository {
       this.getDaysToFirstReview(),
       this.getClubSizes(),
       this.getSignupMethods(),
+      this.getSignupSources(),
     ]);
 
     const totalUsers = toCount(scalars.users);
@@ -740,6 +796,7 @@ class MetricsRepository {
         last7Days: toCount(activity.active_clubs_7),
         last30Days: toCount(activity.active_clubs_30),
       },
+      signupSources,
       weekly,
       health,
       topClubs,

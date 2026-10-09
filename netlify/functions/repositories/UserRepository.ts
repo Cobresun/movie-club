@@ -1,3 +1,4 @@
+import { SignupSource } from "../../../lib/types/generated/db.js";
 import { db } from "../utils/database";
 
 class UserRepository {
@@ -31,6 +32,14 @@ class UserRepository {
     return await db
       .updateTable("user")
       .set({ image_id: imageId, image: imageUrl })
+      .where("id", "=", userId)
+      .execute();
+  }
+
+  async setSignupSource(userId: string, signupSource: SignupSource) {
+    await db
+      .updateTable("user")
+      .set({ signup_source: signupSource })
       .where("id", "=", userId)
       .execute();
   }
