@@ -1,9 +1,10 @@
 <template>
   <div>
     <v-backdrop
-      ref="backdropRef"
       :z-index="backdropZIndex"
       :visible="isVisible"
+      :opacity="backdropOpacity"
+      :tracking="dragging"
       @close="handleClose"
     />
 
@@ -46,7 +47,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from "vue";
+import { computed, nextTick, onMounted, onUnmounted, ref } from "vue";
 
 import { useBackButtonClose } from "../composables/useBackButtonClose.js";
 import { useBodyScrollLock } from "../composables/useBodyScrollLock.js";
@@ -77,7 +78,6 @@ const contentZIndexClass = computed(() => zIndexClass(props.zIndex));
 
 const sheetRef = ref<HTMLElement>();
 const handleRef = ref<HTMLElement>();
-const backdropRef = ref<InstanceType<typeof VBackdrop>>();
 
 const isVisible = ref(true);
 const onTransitionEnd = () => {
@@ -111,10 +111,9 @@ onUnmounted(() => {
   }
 });
 
-// Drag to dismiss. The drag writes `transform` straight onto the element
-// rather than through reactive state: touchmove fires every frame, and a
-// re-render of the sheet and its slot per event drops frames. Transitions are
-// off while the finger is down so the sheet tracks it 1:1, and back on at
+// Drag to dismiss. The offset only feeds the sheet's own `:style`, so a
+// touchmove patches that one element and leaves the slot alone. Transitions
+// are off while the finger is down so the sheet tracks it 1:1, and back on at
 // release so it settles back or slides the rest of the way out from exactly
 // where it was let go.
 
@@ -127,8 +126,6 @@ const FLING_MIN_DISTANCE = 16;
 // Release velocity is measured over the tail of the gesture, not the whole of
 // it, so a slow drag ending in a flick reads as a flick.
 const VELOCITY_WINDOW_MS = 100;
-
-const BACKDROP_SETTLE = "opacity var(--motion-base) var(--ease-standard)";
 
 interface Gesture {
   startX: number;
@@ -143,25 +140,18 @@ interface Gesture {
 
 let gesture: Gesture | undefined;
 
-// The backdrop's root is its fade `<Transition>`, so `$el` is the backdrop
-// element while shown and a placeholder comment once it has left.
-const backdropEl = (): HTMLElement | undefined => {
-  const el: unknown = backdropRef.value?.$el;
-  return el instanceof HTMLElement ? el : undefined;
-};
+const dragOffset = ref(0);
+const dragHeight = ref(0);
+const dragging = ref(false);
+// Set once a drag is released past the threshold: both layers head for their
+// closed state from wherever the finger let go.
+const dismissing = ref(false);
 
-const applyOffset = (offset: number, settle: boolean) => {
-  const sheet = sheetRef.value;
-  if (!sheet) return;
-  sheet.style.transition = settle ? "" : "none";
-  sheet.style.transform = offset > 0 ? `translateY(${offset}px)` : "";
-
-  const backdrop = backdropEl();
-  if (backdrop) {
-    backdrop.style.transition = settle ? BACKDROP_SETTLE : "none";
-    backdrop.style.opacity = offset > 0 ? String(Math.max(0, 1 - offset / sheet.offsetHeight)) : "";
-  }
-};
+const backdropOpacity = computed(() => {
+  if (dismissing.value) return 0;
+  if (dragOffset.value <= 0) return undefined;
+  return Math.max(0, 1 - dragOffset.value / dragHeight.value);
+});
 
 // Whether a touch landing on `target` may pull the sheet down. Not when it
 // lands on a field or on a control handling its own touches (`touch-action:
@@ -218,13 +208,15 @@ const handleTouchMove = (event: TouchEvent) => {
   if (event.cancelable) event.preventDefault();
 
   gesture.offset = Math.max(0, dy);
+  dragging.value = true;
   const samples = gesture.samples;
   samples.push({ y: touch.clientY, t: event.timeStamp });
   while (samples.length > 2 && event.timeStamp - samples[0].t > VELOCITY_WINDOW_MS) {
     samples.shift();
   }
 
-  applyOffset(gesture.offset, false);
+  dragHeight.value = gesture.height;
+  dragOffset.value = gesture.offset;
 };
 
 const releaseVelocity = (samples: Gesture["samples"]): number => {
@@ -234,10 +226,11 @@ const releaseVelocity = (samples: Gesture["samples"]): number => {
   return elapsed > 0 ? (last.y - first.y) / elapsed : 0;
 };
 
-const handleTouchEnd = (event: TouchEvent) => {
+const handleTouchEnd = async (event: TouchEvent) => {
   const ended = gesture;
   gesture = undefined;
   if (!ended || ended.mode !== "drag") return;
+  dragging.value = false;
 
   const velocity = releaseVelocity(ended.samples);
   const flungDown = velocity > FLING_VELOCITY && ended.offset > FLING_MIN_DISTANCE;
@@ -247,22 +240,14 @@ const handleTouchEnd = (event: TouchEvent) => {
     (flungDown || (!flungUp && ended.offset > ended.height * DISMISS_FRACTION));
 
   if (!shouldClose) {
-    applyOffset(0, true);
+    dragOffset.value = 0;
     return;
   }
 
-  // Continue from where the finger let go: restore the transition and aim
-  // both layers at their closed state in the same frame the leave starts.
-  const sheet = sheetRef.value;
-  if (sheet) {
-    sheet.style.transition = "";
-    sheet.style.transform = "translateY(100%)";
-  }
-  const backdrop = backdropEl();
-  if (backdrop) {
-    backdrop.style.transition = BACKDROP_SETTLE;
-    backdrop.style.opacity = "0";
-  }
+  // Aim both layers at their closed state and let that render before the
+  // leave starts: once `v-if` drops the sheet, Vue no longer patches it.
+  dismissing.value = true;
+  await nextTick();
   handleClose();
 };
 
@@ -272,7 +257,15 @@ const handleTouchEnd = (event: TouchEvent) => {
 // it, the way a native sheet does when you start typing in one.
 const { keyboardInset, viewportHeight } = useKeyboardInset();
 
-const sheetStyle = computed(() => {
+const dragStyle = computed(() => {
+  if (dismissing.value) return { transform: "translateY(100%)" };
+  return {
+    transform: dragOffset.value > 0 ? `translateY(${dragOffset.value}px)` : undefined,
+    transition: dragging.value ? "none" : undefined,
+  };
+});
+
+const keyboardStyle = computed(() => {
   if (keyboardInset.value <= 0) return {};
   return {
     bottom: `${keyboardInset.value}px`,
@@ -280,6 +273,8 @@ const sheetStyle = computed(() => {
     maxHeight: `${viewportHeight.value}px`,
   };
 });
+
+const sheetStyle = computed(() => ({ ...keyboardStyle.value, ...dragStyle.value }));
 </script>
 
 <style scoped>
