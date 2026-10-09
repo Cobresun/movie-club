@@ -43,7 +43,7 @@ const allItems = (items: unknown[] = listItems) =>
 const reviewsApi = (initial: unknown[] = [], answered: Promise<void> = Promise.resolve()) => {
   let reviews = [...initial];
   const queue = (work: Record<string, unknown>) => {
-    reviews = [...reviews, { ...work, scores: {} }];
+    reviews = [...reviews, { createdDate: new Date().toISOString(), ...work, scores: {} }];
   };
 
   return [
