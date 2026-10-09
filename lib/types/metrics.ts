@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { ClubType } from "./generated/db";
+import { ClubType, SignupSource } from "./generated/db";
 
 /**
  * Shapes for the site-wide observability dashboard (`/admin`).
@@ -57,6 +57,20 @@ export const signupMethodSchema = z.object({
   users: z.number(),
 });
 export type SignupMethod = z.infer<typeof signupMethodSchema>;
+
+/**
+ * Accounts that arrived through one acquisition channel. `source` is null for
+ * accounts with nothing recorded: everyone who signed up before tracking began,
+ * and anyone whose browser blocked the attribution cookie.
+ */
+export const signupSourceCountSchema = z.object({
+  source: z.nativeEnum(SignupSource).nullable(),
+  users: z.number(),
+  last30Days: z.number(),
+  /** Of `users`, how many have since created a review, comment, or list item. */
+  activated: z.number(),
+});
+export type SignupSourceCount = z.infer<typeof signupSourceCountSchema>;
 
 /**
  * Operational health — the numbers that say whether the product is working,
@@ -189,6 +203,9 @@ export const siteMetricsSchema = z.object({
 
   /** Clubs with at least one review, comment, or list item in the window. */
   activeClubs: activityCountsSchema,
+
+  /** One row per acquisition channel, every channel present even at zero. */
+  signupSources: z.array(signupSourceCountSchema),
 
   weekly: z.object({
     users: z.array(timeSeriesPointSchema),
