@@ -73,6 +73,20 @@ export const signupSourceCountSchema = z.object({
 export type SignupSourceCount = z.infer<typeof signupSourceCountSchema>;
 
 /**
+ * Accounts whose landing link carried a `utm_source`, per source and campaign —
+ * the breakdown that tells one ad or post from another inside a channel.
+ */
+export const signupCampaignCountSchema = z.object({
+  utmSource: z.string(),
+  utmCampaign: z.string().nullable(),
+  users: z.number(),
+  last30Days: z.number(),
+  /** Of `users`, how many have since created a review, comment, or list item. */
+  activated: z.number(),
+});
+export type SignupCampaignCount = z.infer<typeof signupCampaignCountSchema>;
+
+/**
  * Operational health — the numbers that say whether the product is working,
  * as opposed to how big it is.
  */
@@ -206,6 +220,9 @@ export const siteMetricsSchema = z.object({
 
   /** One row per acquisition channel, every channel present even at zero. */
   signupSources: z.array(signupSourceCountSchema),
+
+  /** Tagged campaigns, most signups first. */
+  signupCampaigns: z.array(signupCampaignCountSchema),
 
   weekly: z.object({
     users: z.array(timeSeriesPointSchema),

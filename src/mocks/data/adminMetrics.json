@@ -64,6 +64,22 @@
       "activated": 610
     }
   ],
+  "signupCampaigns": [
+    {
+      "utmSource": "reddit",
+      "utmCampaign": "test1_bookclub",
+      "users": 14,
+      "last30Days": 14,
+      "activated": 5
+    },
+    {
+      "utmSource": "share",
+      "utmCampaign": null,
+      "users": 3,
+      "last30Days": 1,
+      "activated": 1
+    }
+  ],
   "weekly": {
     "users": [
       {

@@ -13,7 +13,12 @@ import {
   hasValue,
   isDefined,
 } from "../../../lib/checks/checks.js";
-import { SIGNUP_SOURCE_COOKIE, signupSourceSchema } from "../../../lib/signupSource.js";
+import {
+  parseCampaign,
+  SIGNUP_CAMPAIGN_COOKIE,
+  SIGNUP_SOURCE_COOKIE,
+  signupSourceSchema,
+} from "../../../lib/signupSource.js";
 import ClubRepository from "../repositories/ClubRepository";
 import UserRepository from "../repositories/UserRepository";
 import { dialect } from "./database.js";
@@ -129,8 +134,9 @@ export const auth = betterAuth({
           if (!source.success) {
             return;
           }
+          const campaign = parseCampaign(context?.getCookie(SIGNUP_CAMPAIGN_COOKIE));
           try {
-            await UserRepository.setSignupSource(user.id, source.data);
+            await UserRepository.setSignupSource(user.id, source.data, campaign);
           } catch (error) {
             console.error("Failed to record signup source", error);
           }

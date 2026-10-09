@@ -144,7 +144,7 @@ const toast = useToast();
 const route = useRoute();
 const authStore = useAuthStore();
 
-const isSignUp = ref(false);
+const isSignUp = ref(authStore.authModalOpensOnSignUp);
 const email = ref("");
 const password = ref("");
 const name = ref("");

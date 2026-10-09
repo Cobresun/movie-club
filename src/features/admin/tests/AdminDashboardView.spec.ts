@@ -127,6 +127,28 @@ describe("AdminDashboardView", () => {
     expect(await screen.findByRole("row", { name: /Not recorded/ })).toBeInTheDocument();
   });
 
+  it("breaks tagged signups down by ad source and campaign", async () => {
+    renderDashboard();
+
+    const reddit = await screen.findByRole("row", { name: /test1_bookclub/ });
+    const cells = within(reddit)
+      .getAllByRole("cell")
+      .map((cell) => cell.textContent?.replace(/\s+/g, " ").trim());
+
+    expect(cells).toEqual(["14", "14", "36% (5)"]);
+  });
+
+  it("explains how to tag a link before any campaign has brought a signup", async () => {
+    server.use(
+      http.get("/api/admin/metrics", () =>
+        HttpResponse.json({ ...adminMetrics, signupCampaigns: [] }),
+      ),
+    );
+    renderDashboard();
+
+    expect(await screen.findByText(/No signups from tagged links yet/)).toBeInTheDocument();
+  });
+
   it("reports dormant clubs against the clubs that were ever active", async () => {
     renderDashboard();
 

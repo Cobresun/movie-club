@@ -1,4 +1,10 @@
-import { classifyLanding, SIGNUP_SOURCE_COOKIE } from "../../lib/signupSource";
+import {
+  campaignFromLanding,
+  classifyLanding,
+  serializeCampaign,
+  SIGNUP_CAMPAIGN_COOKIE,
+  SIGNUP_SOURCE_COOKIE,
+} from "../../lib/signupSource";
 import { SignupSource } from "../../lib/types/generated/db";
 
 /** Long enough to span the gap between someone first hearing about the app and signing up. */
@@ -28,5 +34,14 @@ export function recordLandingSource(href: string, referrer: string): void {
   }
 
   const secure = landing.protocol === "https:" ? "; Secure" : "";
-  document.cookie = `${SIGNUP_SOURCE_COOKIE}=${source}; Path=/; Max-Age=${COOKIE_MAX_AGE_SECONDS}; SameSite=Lax${secure}`;
+  const attributes = `Path=/; Max-Age=${COOKIE_MAX_AGE_SECONDS}; SameSite=Lax${secure}`;
+  document.cookie = `${SIGNUP_SOURCE_COOKIE}=${source}; ${attributes}`;
+
+  // The campaign belongs to the visit the channel was credited to, so a later
+  // untagged visit that takes the credit (an invite) clears it.
+  const campaign = campaignFromLanding(landing);
+  document.cookie =
+    campaign === undefined
+      ? `${SIGNUP_CAMPAIGN_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax${secure}`
+      : `${SIGNUP_CAMPAIGN_COOKIE}=${serializeCampaign(campaign)}; ${attributes}`;
 }

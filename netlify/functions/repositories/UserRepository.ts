@@ -1,3 +1,4 @@
+import { SignupCampaign } from "../../../lib/signupSource.js";
 import { SignupSource } from "../../../lib/types/generated/db.js";
 import { db } from "../utils/database";
 
@@ -36,10 +37,14 @@ class UserRepository {
       .execute();
   }
 
-  async setSignupSource(userId: string, signupSource: SignupSource) {
+  async setSignupSource(userId: string, signupSource: SignupSource, campaign?: SignupCampaign) {
     await db
       .updateTable("user")
-      .set({ signup_source: signupSource })
+      .set({
+        signup_source: signupSource,
+        signup_utm_source: campaign?.utmSource ?? null,
+        signup_utm_campaign: campaign?.utmCampaign ?? null,
+      })
       .where("id", "=", userId)
       .execute();
   }

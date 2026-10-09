@@ -12,6 +12,46 @@ export const SIGNUP_SOURCE_COOKIE = "mc_signup_source";
 
 export const signupSourceSchema = z.nativeEnum(SignupSource);
 
+/**
+ * The ad or post a tagged link belongs to, so paid and posted channels that all
+ * count as `referral` can be told apart. Stored as `<utm_source>~<utm_campaign>`
+ * in its own cookie beside {@link SIGNUP_SOURCE_COOKIE}.
+ */
+export const SIGNUP_CAMPAIGN_COOKIE = "mc_signup_campaign";
+
+const campaignTag = z.string().regex(/^[\w.-]{1,64}$/);
+
+export const signupCampaignSchema = z.object({
+  utmSource: campaignTag,
+  utmCampaign: campaignTag.optional(),
+});
+export type SignupCampaign = z.infer<typeof signupCampaignSchema>;
+
+/** The campaign a landing URL is tagged with, or undefined when it carries no valid `utm_source`. */
+export function campaignFromLanding(landing: URL): SignupCampaign | undefined {
+  const parsed = signupCampaignSchema.safeParse({
+    utmSource: landing.searchParams.get("utm_source") ?? undefined,
+    utmCampaign: landing.searchParams.get("utm_campaign") ?? undefined,
+  });
+  return parsed.success ? parsed.data : undefined;
+}
+
+export function serializeCampaign(campaign: SignupCampaign): string {
+  return [campaign.utmSource, campaign.utmCampaign ?? ""].join("~");
+}
+
+export function parseCampaign(value: string | null | undefined): SignupCampaign | undefined {
+  if (value === null || value === undefined) {
+    return undefined;
+  }
+  const [utmSource, utmCampaign = ""] = value.split("~");
+  const parsed = signupCampaignSchema.safeParse({
+    utmSource,
+    utmCampaign: utmCampaign === "" ? undefined : utmCampaign,
+  });
+  return parsed.success ? parsed.data : undefined;
+}
+
 /** Query parameters that mark a link as deliberately tagged for a campaign or referrer. */
 const REFERRAL_PARAMS = ["ref", "utm_source"];
 
