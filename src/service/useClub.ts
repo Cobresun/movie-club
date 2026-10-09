@@ -5,13 +5,15 @@ import { computed, unref } from "vue";
 import type { MaybeRef } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
-import { hasValue } from "../../lib/checks/checks.js";
+import { hasValue, isDefined } from "../../lib/checks/checks.js";
 import { ClubPreview, Member } from "../../lib/types/club";
 import { ClubType } from "../../lib/types/generated/db";
 import { clearLastClubSlug, getLastClubSlug } from "../common/composables/useLastClubSlug";
 import { reviewsListKey } from "./useList";
 import { useUserClubs } from "./useUser";
 import { useAuthStore } from "@/stores/auth";
+
+const userClubsKey = ["user", "clubs"] as const;
 
 const fetchClub = async (clubSlug: string) =>
   (await axios.get<ClubPreview>(`/api/club/${clubSlug}`)).data;
@@ -41,8 +43,15 @@ export function useCreateClub() {
         members,
         type,
       }),
-    onSuccess: () => {
-      queryClient.invalidateQueries(["user", "clubs"]).catch(console.error);
+    // The response names the new club, so the membership list can carry it
+    // before the refetch lands and the club's route guard lets the owner
+    // straight in.
+    onSuccess: ({ data }, { clubName, type }) => {
+      queryClient.setQueryData<ClubPreview[]>(userClubsKey, (current) => [
+        ...(current ?? []),
+        { clubId: data.clubId, clubName, slug: data.slug, slugUpdatedAt: undefined, type },
+      ]);
+      queryClient.invalidateQueries(userClubsKey).catch(console.error);
     },
   });
 }
@@ -80,13 +89,20 @@ export function useLeaveClub(clubSlug: string) {
 
   return useMutation({
     mutationFn: () => auth.request.delete(`/api/club/${clubSlug}/members/self`),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries(["user", "clubs"]);
+    onSuccess: () => {
+      queryClient.setQueryData<ClubPreview[]>(userClubsKey, (current) =>
+        current?.filter((club) => club.slug !== clubSlug),
+      );
       // Clear lastClubSlug so the Clubs guard doesn't redirect back to the left club
       if (getLastClubSlug() === clubSlug) {
         clearLastClubSlug();
       }
-      router.push({ name: "Clubs" }).catch(console.error);
+      // Revalidate only once the Clubs guard has read the list above: started
+      // first, the refetch is what that guard would sit waiting for.
+      router
+        .push({ name: "Clubs" })
+        .then(() => queryClient.invalidateQueries(userClubsKey))
+        .catch(console.error);
     },
   });
 }
@@ -102,9 +118,18 @@ export function useJoinClub(inviteToken: string) {
         userId: auth.user?.id,
       }),
     // Navigation to the joined club is handled by JoinClubView, which reacts
-    // to the refreshed membership list once this invalidation resolves.
-    onSuccess: async () => {
-      await queryClient.invalidateQueries(["user", "clubs"]);
+    // to the membership list gaining the club. The invite page already holds
+    // the club's preview, so the list carries it before the refetch lands.
+    onSuccess: () => {
+      const joined = queryClient.getQueryData<ClubPreview>(["club-details", inviteToken]);
+      if (isDefined(joined)) {
+        queryClient.setQueryData<ClubPreview[]>(userClubsKey, (current) =>
+          current?.some((club) => club.clubId === joined.clubId) === true
+            ? current
+            : [...(current ?? []), joined],
+        );
+      }
+      queryClient.invalidateQueries(userClubsKey).catch(console.error);
     },
   });
 }
@@ -131,7 +156,20 @@ export function useRemoveMember(clubSlug: string) {
   return useMutation({
     mutationFn: (memberId: string) =>
       auth.request.delete(`/api/club/${clubSlug}/members/${memberId}`),
-    onSuccess: () => {
+    onMutate: async (memberId) => {
+      await queryClient.cancelQueries(["members", clubSlug]);
+      const previous = queryClient.getQueryData<Member[]>(["members", clubSlug]);
+      queryClient.setQueryData<Member[]>(["members", clubSlug], (current) =>
+        current?.filter((member) => member.id !== memberId),
+      );
+      return { previous };
+    },
+    onError: (_error, _memberId, context) => {
+      if (isDefined(context?.previous)) {
+        queryClient.setQueryData(["members", clubSlug], context.previous);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries(["members", clubSlug]).catch(console.error);
       queryClient
         .invalidateQueries({
@@ -225,17 +263,28 @@ export function useUpdateClubSlug(clubSlug: string) {
       }),
     onSuccess: (response) => {
       const newSlug = response.data.slug;
-      // Invalidate club queries
-      queryClient.invalidateQueries(["club"]).catch(console.error);
-      queryClient.invalidateQueries(["user", "clubs"]).catch(console.error);
+      // The club guard on the new URL checks membership by slug, so the list
+      // has to know the new one before the push rather than after a refetch.
+      queryClient.setQueryData<ClubPreview[]>(userClubsKey, (current) =>
+        current?.map((club) => (club.slug === clubSlug ? { ...club, slug: newSlug } : club)),
+      );
+      const previewed = queryClient.getQueryData<ClubPreview>(["club", clubSlug]);
+      if (isDefined(previewed)) {
+        queryClient.setQueryData<ClubPreview>(["club", newSlug], { ...previewed, slug: newSlug });
+      }
 
-      // Navigate to the new slug URL
       const currentRoute = router.currentRoute.value;
       router
         .push({
           name: currentRoute.name ?? undefined,
           params: { ...currentRoute.params, clubSlug: newSlug },
         })
+        .then(() =>
+          Promise.all([
+            queryClient.invalidateQueries(["club"]),
+            queryClient.invalidateQueries(userClubsKey),
+          ]),
+        )
         .catch(console.error);
     },
   });
@@ -247,9 +296,35 @@ export function useUpdateClubName(clubId: string) {
 
   return useMutation({
     mutationFn: (name: string) => auth.request.put(`/api/club/${clubId}/name`, { name }),
-    onSuccess: () => {
+    onMutate: async (name) => {
+      await Promise.all([
+        queryClient.cancelQueries(["club", clubId], { exact: true }),
+        queryClient.cancelQueries(userClubsKey),
+      ]);
+      const previousClub = queryClient.getQueryData<ClubPreview>(["club", clubId]);
+      const previousClubs = queryClient.getQueryData<ClubPreview[]>(userClubsKey);
+      if (isDefined(previousClub)) {
+        queryClient.setQueryData<ClubPreview>(["club", clubId], {
+          ...previousClub,
+          clubName: name,
+        });
+      }
+      queryClient.setQueryData<ClubPreview[]>(userClubsKey, (current) =>
+        current?.map((club) => (club.slug === clubId ? { ...club, clubName: name } : club)),
+      );
+      return { previousClub, previousClubs };
+    },
+    onError: (_error, _name, context) => {
+      if (isDefined(context?.previousClub)) {
+        queryClient.setQueryData(["club", clubId], context.previousClub);
+      }
+      if (isDefined(context?.previousClubs)) {
+        queryClient.setQueryData(userClubsKey, context.previousClubs);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries(["club", clubId]).catch(console.error);
-      queryClient.invalidateQueries(["user", "clubs"]).catch(console.error);
+      queryClient.invalidateQueries(userClubsKey).catch(console.error);
     },
   });
 }
