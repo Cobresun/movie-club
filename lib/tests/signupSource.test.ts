@@ -17,6 +17,15 @@ describe("classifyLanding", () => {
     expect(classifyLanding(at("/share/club/cobresun/statistics"), "")).toBe(SignupSource.share);
   });
 
+  it("credits a link tagged by a shared page's own call to action to sharing, not referral", () => {
+    expect(
+      classifyLanding(
+        at("/newClub?utm_source=share&utm_medium=review&utm_campaign=start_club"),
+        "",
+      ),
+    ).toBe(SignupSource.share);
+  });
+
   it("credits a visit from another site to referral", () => {
     expect(classifyLanding(at("/"), "https://www.reddit.com/r/movies")).toBe(SignupSource.referral);
   });
