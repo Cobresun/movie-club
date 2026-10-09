@@ -1,4 +1,4 @@
-import { LandingSource } from "../../../lib/signupSource.js";
+import { LandingSource, SignupCampaign } from "../../../lib/signupSource.js";
 import { db } from "../utils/database";
 
 class UserRepository {
@@ -36,10 +36,19 @@ class UserRepository {
       .execute();
   }
 
-  async setSignupSource(userId: string, { source, detail }: LandingSource) {
+  async setSignupSource(
+    userId: string,
+    { source, detail }: LandingSource,
+    campaign?: SignupCampaign,
+  ) {
     await db
       .updateTable("user")
-      .set({ signup_source: source, signup_source_detail: detail })
+      .set({
+        signup_source: source,
+        signup_source_detail: detail,
+        signup_utm_source: campaign?.utmSource ?? null,
+        signup_utm_campaign: campaign?.utmCampaign ?? null,
+      })
       .where("id", "=", userId)
       .execute();
   }

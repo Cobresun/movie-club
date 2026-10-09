@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { classifyLanding, parseSignupSourceCookie } from "../signupSource";
+import {
+  campaignFromLanding,
+  classifyLanding,
+  parseCampaign,
+  parseSignupSourceCookie,
+  serializeCampaign,
+} from "../signupSource";
 import { SignupSource } from "../types/generated/db";
 
 const at = (path: string) => new URL(path, "https://movieclub.example");
@@ -87,5 +93,35 @@ describe("parseSignupSourceCookie", () => {
     });
     expect(parseSignupSourceCookie("carrier-pigeon")).toBeUndefined();
     expect(parseSignupSourceCookie(undefined)).toBeUndefined();
+  });
+});
+
+describe("campaigns", () => {
+  it("reads the source and campaign an ad link is tagged with", () => {
+    expect(campaignFromLanding(at("/?utm_source=reddit&utm_campaign=test1_bookclub"))).toEqual({
+      utmSource: "reddit",
+      utmCampaign: "test1_bookclub",
+    });
+  });
+
+  it("has no campaign for an untagged link", () => {
+    expect(campaignFromLanding(at("/?ref=friend"))).toBeUndefined();
+  });
+
+  it("ignores a tag with characters the cookie could not carry", () => {
+    expect(campaignFromLanding(at("/?utm_source=a;b"))).toBeUndefined();
+  });
+
+  it("reads back the campaign it stored, with or without a campaign name", () => {
+    const tagged = { utmSource: "reddit", utmCampaign: "test1_bookclub" };
+    const sourceOnly = { utmSource: "newsletter" };
+
+    expect(parseCampaign(serializeCampaign(tagged))).toEqual(tagged);
+    expect(parseCampaign(serializeCampaign(sourceOnly))).toEqual(sourceOnly);
+  });
+
+  it("rejects a stored value it did not write", () => {
+    expect(parseCampaign("<script>")).toBeUndefined();
+    expect(parseCampaign(undefined)).toBeUndefined();
   });
 });

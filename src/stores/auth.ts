@@ -17,6 +17,7 @@ export const useAuthStore = defineStore("auth", () => {
 
   // Modal state for auth UI
   const showAuthModal = ref(false);
+  const authModalOpensOnSignUp = ref(false);
 
   // Derived state from session
   const user = computed(() => session.value.data?.user);
@@ -117,6 +118,12 @@ export const useAuthStore = defineStore("auth", () => {
 
   // Auth actions
   const login = () => {
+    authModalOpensOnSignUp.value = false;
+    showAuthModal.value = true;
+  };
+
+  const signUp = () => {
+    authModalOpensOnSignUp.value = true;
     showAuthModal.value = true;
   };
 
@@ -242,7 +249,9 @@ export const useAuthStore = defineStore("auth", () => {
 
     // Auth UI
     showAuthModal,
+    authModalOpensOnSignUp,
     login,
+    signUp,
     closeAuthModal,
     logout,
     refreshSession,

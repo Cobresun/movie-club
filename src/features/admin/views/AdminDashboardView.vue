@@ -93,6 +93,7 @@
           :signup-sources="metrics.signupSources"
           :signup-referrers="metrics.signupReferrers"
         />
+        <SignupCampaignsWidget :signup-campaigns="metrics.signupCampaigns" />
       </section>
 
       <section class="space-y-4">
@@ -167,6 +168,7 @@ import EngagementWidget from "../components/EngagementWidget.vue";
 import GrowthWidget from "../components/GrowthWidget.vue";
 import KpiTile from "../components/KpiTile.vue";
 import RateTile from "../components/RateTile.vue";
+import SignupCampaignsWidget from "../components/SignupCampaignsWidget.vue";
 import SignupSourceWidget from "../components/SignupSourceWidget.vue";
 import SnapshotHistoryWidget from "../components/SnapshotHistoryWidget.vue";
 import TopClubsWidget from "../components/TopClubsWidget.vue";

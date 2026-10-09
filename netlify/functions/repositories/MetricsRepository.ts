@@ -5,6 +5,7 @@ import { ClubType, DB, Json, SignupSource } from "../../../lib/types/generated/d
 import {
   ActiveUser,
   SiteHealth,
+  SignupCampaignCount,
   SignupReferrerCount,
   SignupSourceCount,
   SiteMetrics,
@@ -512,6 +513,50 @@ class MetricsRepository {
     return [...channels, ...notRecorded];
   }
 
+  /** Signups per tagged campaign, with the same activation measure as {@link getSignupSources}. */
+  private async getSignupCampaigns(): Promise<SignupCampaignCount[]> {
+    const since30 = daysAgo(30);
+
+    const rows = await db
+      .with("activity", activityEvents)
+      .selectFrom("user")
+      .where("user.signup_utm_source", "is not", null)
+      .select((eb) => [
+        "user.signup_utm_source",
+        "user.signup_utm_campaign",
+        eb.fn.countAll<string>().as("users"),
+        eb.fn.countAll<string>().filterWhere("user.createdAt", ">=", since30).as("last_30"),
+        eb.fn
+          .countAll<string>()
+          .filterWhere((e) =>
+            e.exists(
+              e
+                .selectFrom("activity")
+                .whereRef("activity.user_id", "=", "user.id")
+                .select(e.lit(1).as("one")),
+            ),
+          )
+          .as("activated"),
+      ])
+      .groupBy(["user.signup_utm_source", "user.signup_utm_campaign"])
+      .orderBy((eb) => eb.fn.countAll(), "desc")
+      .execute();
+
+    return rows.flatMap((row) =>
+      row.signup_utm_source === null
+        ? []
+        : [
+            {
+              utmSource: row.signup_utm_source,
+              utmCampaign: row.signup_utm_campaign,
+              users: toCount(row.users),
+              last30Days: toCount(row.last_30),
+              activated: toCount(row.activated),
+            },
+          ],
+    );
+  }
+
   /**
    * Referral signups broken down by who referred them, so a tagged link such as
    * `?ref=birthdaybot` can be told apart from the rest of the channel. Signups
@@ -753,6 +798,7 @@ class MetricsRepository {
       signupMethods,
       signupSources,
       signupReferrers,
+      signupCampaigns,
     ] = await Promise.all([
       this.getScalars(),
       this.getActivity(),
@@ -766,6 +812,7 @@ class MetricsRepository {
       this.getSignupMethods(),
       this.getSignupSources(),
       this.getSignupReferrers(),
+      this.getSignupCampaigns(),
     ]);
 
     const totalUsers = toCount(scalars.users);
@@ -841,6 +888,7 @@ class MetricsRepository {
       },
       signupSources,
       signupReferrers,
+      signupCampaigns,
       weekly,
       health,
       topClubs,
