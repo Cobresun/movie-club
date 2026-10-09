@@ -26,7 +26,12 @@ export function classifyLanding(landing: URL, referrer: string): SignupSource {
   if (landing.pathname.startsWith("/join-club/")) {
     return SignupSource.invite;
   }
-  if (landing.pathname.startsWith("/share/")) {
+  // The shared pages' own calls to action tag themselves this way, so a click
+  // from one into a fresh page load is still the share.
+  if (
+    landing.pathname.startsWith("/share/") ||
+    landing.searchParams.get("utm_source") === "share"
+  ) {
     return SignupSource.share;
   }
   if (REFERRAL_PARAMS.some((param) => landing.searchParams.has(param))) {
