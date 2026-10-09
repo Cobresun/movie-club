@@ -50,4 +50,17 @@ describe("SharedListView", () => {
 
     expect(await screen.findByText("Failed to load list")).toBeInTheDocument();
   });
+
+  it("invites a logged-out visitor to start their own club", async () => {
+    server.use(
+      http.get("/api/club/:id/list/:listId", () => HttpResponse.json([])),
+      nextWorkHandler(),
+    );
+    render(SharedListView);
+
+    expect(await screen.findByRole("link", { name: "Start your own club" })).toHaveAttribute(
+      "href",
+      "/newClub?utm_source=share&utm_medium=list&utm_campaign=start_club",
+    );
+  });
 });

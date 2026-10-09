@@ -44,7 +44,7 @@
       </div>
     </div>
 
-    <SharedPageCtaBanner />
+    <SharedPageCtaBanner source="list" />
   </div>
 </template>
 

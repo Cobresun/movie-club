@@ -24,7 +24,7 @@
       />
     </div>
 
-    <SharedPageCtaBanner />
+    <SharedPageCtaBanner source="statistics" />
   </div>
 </template>
 

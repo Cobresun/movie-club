@@ -79,7 +79,16 @@
         <span v-if="inviteError" class="text-sm text-red-500">{{ inviteError }}</span>
       </div>
     </div>
-    <div v-else class="text-center">Must be logged in to create a new club!</div>
+    <div v-else class="mx-auto flex max-w-lg flex-col gap-5">
+      <div class="flex flex-col gap-2">
+        <h1 class="text-3xl font-bold leading-tight">Start your own club</h1>
+        <p class="text-[15px] font-light leading-relaxed text-white/65">
+          A club is a handful of friends who watch the same films — or read the same books — and
+          score them together. Sign up, name your club, and invite them with one link.
+        </p>
+      </div>
+      <v-btn class="min-h-[44px]" @click="authStore.signUp()">Sign up to start a club</v-btn>
+    </div>
   </div>
 </template>
 
