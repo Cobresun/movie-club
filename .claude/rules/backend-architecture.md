@@ -67,3 +67,5 @@ Deploy-time behavior lives in Netlify plugins: `netlify/plugins/preview-database
 `netlify/functions/utils/auth.ts` is the BetterAuth server config — bcrypt hashing, Google OAuth, Resend emails, and a mixed ID strategy (auto-increment for users, UUIDs for sessions). See the `better-auth-best-practices` skill for general patterns.
 
 **Set-Cookie gotcha:** `Headers.forEach` folds repeated `Set-Cookie` values into one malformed header. Use `getSetCookie()` and return them via Netlify's `multiValueHeaders`.
+
+**Only the auth endpoint renews sessions.** `loggedIn` reads the session with `disableRefresh`, because `auth.api.getSession` has nowhere to send a Set-Cookie: a renewal there extends the database row while the browser's cookie still lapses a week after it was issued.
