@@ -9,10 +9,13 @@ import { useAuthStore } from "@/stores/auth";
 import { render, logIn } from "@/tests/utils";
 
 describe("NewClubView", () => {
-  it("shows a 'must be logged in' message when not authenticated", () => {
-    render(NewClubView);
+  it("asks a logged-out visitor to sign up to start a club", async () => {
+    const { pinia, user } = render(NewClubView);
 
-    expect(screen.getByText("Must be logged in to create a new club!")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Start your own club" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Sign up to start a club" }));
+
+    expect(vi.mocked(useAuthStore(pinia).signUp)).toHaveBeenCalled();
   });
 
   it("explains what a club is and names both ways in", async () => {
