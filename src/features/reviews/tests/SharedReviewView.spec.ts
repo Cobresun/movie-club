@@ -56,4 +56,16 @@ describe("SharedReviewView", () => {
 
     expect(await screen.findByText("Failed to load review")).toBeInTheDocument();
   });
+
+  it("invites a logged-out visitor to start their own club", async () => {
+    server.use(
+      http.get("/api/club/:id/reviews/:workId/shared", () => HttpResponse.json(sharedReview)),
+    );
+    render(SharedReviewView);
+
+    expect(await screen.findByRole("link", { name: "Start your own club" })).toHaveAttribute(
+      "href",
+      "/newClub?utm_source=share&utm_medium=review&utm_campaign=start_club",
+    );
+  });
 });

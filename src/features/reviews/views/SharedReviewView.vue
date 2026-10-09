@@ -114,7 +114,7 @@
       </div>
     </div>
 
-    <SharedPageCtaBanner />
+    <SharedPageCtaBanner source="review" />
   </div>
 </template>
 
