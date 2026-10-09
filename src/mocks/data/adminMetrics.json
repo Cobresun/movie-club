@@ -32,6 +32,38 @@
     "last7Days": 3,
     "last30Days": 7
   },
+  "signupSources": [
+    {
+      "source": "invite",
+      "users": 41,
+      "last30Days": 5,
+      "activated": 29
+    },
+    {
+      "source": "share",
+      "users": 9,
+      "last30Days": 2,
+      "activated": 3
+    },
+    {
+      "source": "referral",
+      "users": 0,
+      "last30Days": 0,
+      "activated": 0
+    },
+    {
+      "source": "direct",
+      "users": 12,
+      "last30Days": 1,
+      "activated": 4
+    },
+    {
+      "source": null,
+      "users": 1124,
+      "last30Days": 0,
+      "activated": 610
+    }
+  ],
   "weekly": {
     "users": [
       {

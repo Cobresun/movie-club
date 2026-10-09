@@ -77,10 +77,10 @@ async function confirmEmailAddress(email: string) {
   }
 }
 
-async function signUp(email: string, name: string) {
+async function signUp(email: string, name: string, headers: Record<string, string> = {}) {
   const response = await auth.post("/api/auth/sign-up/email", {
     body: { email, password: PASSWORD, name },
-    headers: AUTH_HEADERS,
+    headers: { ...AUTH_HEADERS, ...headers },
   });
   if (response.statusCode >= 400) {
     throw new Error(`Signing up ${email} failed: ${response.statusCode} ${response.raw ?? ""}`);
@@ -131,9 +131,16 @@ export async function signIn(who: FixtureUser): Promise<TestSession> {
   return testSession;
 }
 
-/** Sign-up/sign-in for an address outside the fixture set, e.g. to test the flow itself. */
-export async function signUpNewUser(email: string, name = "New User") {
-  await signUp(email, name);
+/**
+ * Sign-up for an address outside the fixture set, e.g. to test the flow itself.
+ * `headers` ride on the sign-up request, as a browser's cookies would.
+ */
+export async function signUpNewUser(
+  email: string,
+  name = "New User",
+  headers: Record<string, string> = {},
+) {
+  await signUp(email, name, headers);
   sentEmails.length = 0;
 }
 

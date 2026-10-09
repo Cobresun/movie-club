@@ -23,6 +23,7 @@ import VModal from "@/common/components/VModal.vue";
 import VSelect from "@/common/components/VSelect.vue";
 import VSwitch from "@/common/components/VSwitch.vue";
 import VTextField from "@/common/components/VTextField.vue";
+import { recordLandingSource } from "@/common/recordLandingSource";
 
 import "./assets/styles/tailwind.css";
 import "vue-toastification/dist/index.css";
@@ -82,6 +83,8 @@ const vueQueryOptions: VueQueryPluginOptions = {
     });
   },
 };
+
+recordLandingSource(window.location.href, document.referrer);
 
 createApp(App)
   .component("v-avatar", VAvatar)
