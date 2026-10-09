@@ -1,13 +1,7 @@
 <template>
   <div class="px-6 py-10 md:px-24 md:py-16 lg:px-40">
     <!-- Hero -->
-    <div
-      class="flex flex-col space-y-10 md:flex-row-reverse md:items-center md:space-x-14 md:space-y-0"
-    >
-      <div class="flex-grow-0">
-        <img :src="homeCinemaSvg" alt="Friends watching a movie together" />
-      </div>
-
+    <div class="flex flex-col space-y-10 md:flex-row md:items-center md:space-x-14 md:space-y-0">
       <div class="flex flex-col space-y-6 text-left">
         <h1 class="text-3xl font-bold leading-tight md:text-5xl">
           Get your 🍿 ready for MovieClub: The Book Club for Movies
@@ -19,6 +13,8 @@
           <v-btn class="px-4 py-1 text-lg" @click="getStarted"> Get started — it's free </v-btn>
         </div>
       </div>
+
+      <LandingClubPreview class="flex-shrink-0" />
     </div>
 
     <!-- Feature highlights -->
@@ -47,8 +43,8 @@
 </template>
 
 <script setup lang="ts">
+import LandingClubPreview from "../components/LandingClubPreview.vue";
 import LandingFeatureCard from "../components/LandingFeatureCard.vue";
-import homeCinemaSvg from "@/assets/images/home_cinema.svg";
 import reviewSvg from "@/assets/images/menu-images/review.svg";
 import statisticsSvg from "@/assets/images/menu-images/statistics.svg";
 import watchlistSvg from "@/assets/images/menu-images/watchlist.svg";
@@ -82,6 +78,6 @@ const features: FeatureHighlight[] = [
 const authStore = useAuthStore();
 
 function getStarted() {
-  authStore.login();
+  authStore.signUp();
 }
 </script>

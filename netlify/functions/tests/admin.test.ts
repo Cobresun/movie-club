@@ -4,20 +4,28 @@
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { SIGNUP_SOURCE_COOKIE } from "../../../lib/signupSource";
+import { SIGNUP_CAMPAIGN_COOKIE, SIGNUP_SOURCE_COOKIE } from "../../../lib/signupSource";
 import { SignupSource } from "../../../lib/types/generated/db";
-import { SignupSourceCount, SiteMetrics } from "../../../lib/types/metrics";
+import { SignupCampaignCount, SignupSourceCount, SiteMetrics } from "../../../lib/types/metrics";
 import { handler as adminHandler } from "../admin";
 import { FIXTURE_USERS, signIn, signUpNewUser } from "./helpers/auth";
 import { requester } from "./helpers/http";
 
 const api = requester(adminHandler);
 
-async function signupSources(): Promise<SignupSourceCount[]> {
+async function siteMetrics(): Promise<SiteMetrics> {
   const alice = await signIn("alice");
   const res = await api.get<SiteMetrics>("/api/admin/metrics", { as: alice });
   expect(res.statusCode).toBe(200);
-  return res.body.signupSources;
+  return res.body;
+}
+
+async function signupSources(): Promise<SignupSourceCount[]> {
+  return (await siteMetrics()).signupSources;
+}
+
+async function signupCampaigns(): Promise<SignupCampaignCount[]> {
+  return (await siteMetrics()).signupCampaigns;
 }
 
 async function countFrom(source: SignupSource | null) {
@@ -59,6 +67,34 @@ describe("signup sources", () => {
     });
 
     expect((await countFrom(null)).users).toBe(before.users + 1);
+  });
+
+  it("credits a signup from a tagged ad to its source and campaign", async () => {
+    await signUpNewUser("from-reddit@movie.club", "From Reddit", {
+      cookie: `${SIGNUP_SOURCE_COOKIE}=${SignupSource.referral}; ${SIGNUP_CAMPAIGN_COOKIE}=reddit~test1_bookclub`,
+    });
+
+    expect(await signupCampaigns()).toContainEqual({
+      utmSource: "reddit",
+      utmCampaign: "test1_bookclub",
+      users: 1,
+      last30Days: 1,
+      activated: 0,
+    });
+  });
+
+  it("still credits the channel when the campaign cookie was tampered with", async () => {
+    const campaignSignups = async () =>
+      (await signupCampaigns()).reduce((sum, row) => sum + row.users, 0);
+    const referralsBefore = (await countFrom(SignupSource.referral)).users;
+    const campaignSignupsBefore = await campaignSignups();
+
+    await signUpNewUser("tampered@movie.club", "Tampered", {
+      cookie: `${SIGNUP_SOURCE_COOKIE}=${SignupSource.referral}; ${SIGNUP_CAMPAIGN_COOKIE}=<script>`,
+    });
+
+    expect((await countFrom(SignupSource.referral)).users).toBe(referralsBefore + 1);
+    expect(await campaignSignups()).toBe(campaignSignupsBefore);
   });
 
   it("keeps the numbers from anyone not on the admin allowlist", async () => {
