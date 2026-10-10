@@ -1,3 +1,4 @@
+import { WorkType } from "../../../lib/types/generated/db";
 import { SimilarWork, WorkRecommendation } from "../../../lib/types/recommendations";
 
 /**
@@ -5,16 +6,19 @@ import { SimilarWork, WorkRecommendation } from "../../../lib/types/recommendati
  *
  * 1. {@link selectSeeds} turns every score given in the club's reviews into a
  *    per-work *affinity*: how far above or below their own habits the members
- *    scored it. The strongest likes and dislikes become seeds.
+ *    scored it. Likes drawn from the strongest, and the strongest dislikes,
+ *    become seeds.
  * 2. The external source lists works similar to each seed, and
  *    {@link rankRecommendations} sums, per candidate, each seed's affinity
  *    discounted by how far down that seed's list the candidate sits. A film
  *    several favourites point at rises; one that mostly resembles a flop sinks.
+ *    Dislikes never add a candidate — they only push down what the likes found.
  */
 
 /** One score a member gave a work in the club's reviews. */
 export interface MemberScore {
   userId: string;
+  type: WorkType;
   externalId: string;
   title: string;
   /** 0–10. */
@@ -23,6 +27,7 @@ export interface MemberScore {
 
 export interface Seed {
   externalId: string;
+  type: WorkType;
   title: string;
   /** Above 0 when the members liked it relative to their habits, below when they didn't. */
   affinity: number;
@@ -46,6 +51,12 @@ const MIN_SPREAD = 1.5;
 const AFFINITY_SHRINKAGE = 1;
 const MIN_SEED_AFFINITY = 0.25;
 const LIKED_SEEDS = 8;
+/**
+ * The strongest likes the {@link LIKED_SEEDS} are drawn from. Drawing rather
+ * than always taking the top few lets a club with many reviews see different
+ * recommendations from one visit to the next.
+ */
+const LIKED_SEED_POOL = 20;
 const DISLIKED_SEEDS = 3;
 /** List position at which a candidate's pull from a seed has halved. */
 const RANK_HALF_WEIGHT = 5;
@@ -74,17 +85,29 @@ function memberBaselines(scores: readonly MemberScore[]): Map<string, Baseline> 
 }
 
 /**
- * The works whose scores say most about the club's taste: its strongest likes
- * and dislikes, relative to each member's own scoring habits.
+ * The works whose scores say most about the club's taste, relative to each
+ * member's own scoring habits: likes drawn from its strongest, and its
+ * strongest dislikes.
  */
-export function selectSeeds(scores: readonly MemberScore[]): Seed[] {
+export function selectSeeds(
+  scores: readonly MemberScore[],
+  random: () => number = Math.random,
+): Seed[] {
   const baselines = memberBaselines(scores);
 
-  const works = new Map<string, { title: string; deviations: number; count: number }>();
+  const works = new Map<
+    string,
+    { type: WorkType; title: string; deviations: number; count: number }
+  >();
   for (const score of scores) {
     const baseline = baselines.get(score.userId);
     if (baseline === undefined) continue;
-    const work = works.get(score.externalId) ?? { title: score.title, deviations: 0, count: 0 };
+    const work = works.get(score.externalId) ?? {
+      type: score.type,
+      title: score.title,
+      deviations: 0,
+      count: 0,
+    };
     work.deviations += (score.score - baseline.center) / baseline.spread;
     work.count += 1;
     works.set(score.externalId, work);
@@ -92,27 +115,40 @@ export function selectSeeds(scores: readonly MemberScore[]): Seed[] {
 
   const seeds: Seed[] = Array.from(works, ([externalId, work]) => ({
     externalId,
+    type: work.type,
     title: work.title,
     affinity: work.deviations / (work.count + AFFINITY_SHRINKAGE),
   }));
-  const liked = seeds
+  const likedPool = seeds
     .filter((seed) => seed.affinity >= MIN_SEED_AFFINITY)
     .sort((a, b) => b.affinity - a.affinity)
-    .slice(0, LIKED_SEEDS);
+    .slice(0, LIKED_SEED_POOL);
   const disliked = seeds
     .filter((seed) => seed.affinity <= -MIN_SEED_AFFINITY)
     .sort((a, b) => a.affinity - b.affinity)
     .slice(0, DISLIKED_SEEDS);
-  return [...liked, ...disliked];
+  return [...drawWeighted(likedPool, LIKED_SEEDS, random), ...disliked];
 }
 
 /**
- * Rank every work similar to a seed, best first, leaving out `excluded` ids.
- * Only candidates the seeds pull toward on balance are returned.
+ * `count` of `seeds` drawn without replacement, each with odds in proportion
+ * to its affinity (Efraimidis–Spirakis), so the strongest likes turn up most
+ * often without crowding out the rest.
+ */
+function drawWeighted(seeds: readonly Seed[], count: number, random: () => number): Seed[] {
+  return seeds
+    .map((seed) => ({ seed, key: random() ** (1 / seed.affinity) }))
+    .sort((a, b) => b.key - a.key)
+    .slice(0, count)
+    .map(({ seed }) => seed);
+}
+
+/**
+ * Rank every work similar to a seed, best first. Only candidates the seeds
+ * pull toward on balance are returned.
  */
 export function rankRecommendations(
   similarBySeed: readonly SeedSimilarWorks[],
-  excluded: ReadonlySet<string>,
 ): WorkRecommendation[] {
   const candidates = new Map<
     string,
@@ -120,7 +156,6 @@ export function rankRecommendations(
   >();
   for (const { seed, works } of similarBySeed) {
     works.forEach((work, rank) => {
-      if (excluded.has(work.externalId)) return;
       const pull = seed.affinity / (1 + rank / RANK_HALF_WEIGHT);
       const candidate = candidates.get(work.externalId) ?? { work, score: 0, reasons: [] };
       candidate.score += pull;

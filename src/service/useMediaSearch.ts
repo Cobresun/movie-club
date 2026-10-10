@@ -1,45 +1,22 @@
-import { useQuery } from "@tanstack/vue-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/vue-query";
 import { Ref } from "vue";
 
-import { hasValue } from "@/../lib/checks/checks";
 import { ClubType } from "@/../lib/types/generated/db";
-import { clubTypeConfig, fetchBookVolumes, WorkSearchResult } from "@/common/clubType";
+import { BrowsePage, clubTypeConfig, WorkSearchResult } from "@/common/clubType";
 
 export type { WorkSearchResult } from "@/common/clubType";
 
 /**
- * Curated browse tabs for book clubs — the book-club analog of TMDB
- * collections. Google Books has no trending endpoint, so each tab is a
- * newest-first subject query.
+ * Browse one of a club type's {@link ClubTypeConfig.browseTabs}, a page at a
+ * time, from the club type's external source.
  */
-export const BOOK_BROWSE_SUBJECTS = [
-  { key: "fiction", label: "Fiction" },
-  { key: "mystery", label: "Mystery" },
-  { key: "science fiction", label: "Sci-Fi" },
-  { key: "biography", label: "Biography" },
-  { key: "history", label: "History" },
-] as const;
-
-export type BookBrowseSubject = (typeof BOOK_BROWSE_SUBJECTS)[number]["key"];
-
-/** Newest Google Books volumes for a browse subject. */
-export function useBookBrowse(subject: Ref<BookBrowseSubject>) {
-  return useQuery<WorkSearchResult[]>({
-    queryKey: ["book-browse", subject],
-    queryFn: async ({ signal }) => {
-      const results = await fetchBookVolumes(
-        {
-          q: `subject:"${subject.value}"`,
-          orderBy: "newest",
-          maxResults: "24",
-          langRestrict: "en",
-        },
-        signal,
-      );
-      // newest-first surfaces many coverless volumes; a coverless grid looks
-      // broken, so only show results with an image.
-      return results.filter((result) => hasValue(result.imageUrl));
-    },
+export function useBrowse(clubType: Ref<ClubType>, tab: Ref<string>, enabled: Ref<boolean>) {
+  return useInfiniteQuery<BrowsePage>({
+    queryKey: ["browse", clubType, tab],
+    enabled,
+    queryFn: ({ pageParam = 1, signal }) =>
+      clubTypeConfig(clubType.value).browse(tab.value, Number(pageParam), signal),
+    getNextPageParam: (lastPage) => lastPage.nextPage,
   });
 }
 

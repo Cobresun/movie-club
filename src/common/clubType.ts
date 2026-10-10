@@ -5,7 +5,7 @@ import { secureImageUrl, sortVolumesByPopularity } from "@/../lib/googleBooks";
 import { GoogleBooksSearchResponse, GoogleBooksVolume } from "@/../lib/types/book";
 import { ClubType, WorkType } from "@/../lib/types/generated/db";
 import { DetailedWorkListItem, WorkDataSummary } from "@/../lib/types/lists";
-import { TMDBPageResponse } from "@/../lib/types/movie";
+import { TMDBMovieData, TMDBPageResponse } from "@/../lib/types/movie";
 import type { FilterOptionType } from "@/common/components/filterTypes";
 import {
   dateMatcher,
@@ -36,17 +36,49 @@ export interface WorkSearchResult {
   reason?: string;
 }
 
+/** A tab the add modal offers for browsing an external source without searching. */
+export interface BrowseTab {
+  readonly key: string;
+  readonly label: string;
+}
+
+/** One page of a browse tab, and the number of the page after it if there is one. */
+export interface BrowsePage {
+  results: WorkSearchResult[];
+  nextPage?: number;
+}
+
+function movieToResult(movie: TMDBMovieData): WorkSearchResult {
+  return {
+    externalId: String(movie.id),
+    title: movie.title,
+    subtitle: movie.release_date ? movie.release_date.slice(0, 4) : undefined,
+    imageUrl: movie.poster_path ? `${TMDB_IMAGE_BASE}${movie.poster_path}` : undefined,
+  };
+}
+
 async function searchMovies(query: string, signal?: AbortSignal): Promise<WorkSearchResult[]> {
   const { data } = await axios.get<TMDBPageResponse>(
     `https://api.themoviedb.org/3/search/movie?api_key=${TMDB_KEY}&query=${encodeURIComponent(query)}&language=en-US&include_adult=false`,
     { signal },
   );
-  return data.results.map((movie) => ({
-    externalId: String(movie.id),
-    title: movie.title,
-    subtitle: movie.release_date ? movie.release_date.slice(0, 4) : undefined,
-    imageUrl: movie.poster_path ? `${TMDB_IMAGE_BASE}${movie.poster_path}` : undefined,
-  }));
+  return data.results.map(movieToResult);
+}
+
+/** A page of one of TMDB's movie collections (popular, now playing, …). */
+async function browseMovies(
+  collection: string,
+  page: number,
+  signal?: AbortSignal,
+): Promise<BrowsePage> {
+  const { data } = await axios.get<TMDBPageResponse>(
+    `https://api.themoviedb.org/3/movie/${collection}?api_key=${TMDB_KEY}&language=en-US&page=${page}`,
+    { signal },
+  );
+  return {
+    results: data.results.map(movieToResult),
+    nextPage: data.page < data.total_pages ? data.page + 1 : undefined,
+  };
 }
 
 /** Map a Google Books volume (search or browse) to a WorkSearchResult. */
@@ -88,6 +120,29 @@ export async function fetchBookVolumes(
 
 async function searchBooks(query: string, signal?: AbortSignal): Promise<WorkSearchResult[]> {
   return fetchBookVolumes({ q: query, maxResults: "20" }, signal, sortVolumesByPopularity);
+}
+
+/**
+ * Newest Google Books volumes for a subject. Google Books has no trending
+ * endpoint, so each book browse tab is a subject query, and it is one page.
+ */
+async function browseBooks(
+  subject: string,
+  _page: number,
+  signal?: AbortSignal,
+): Promise<BrowsePage> {
+  const results = await fetchBookVolumes(
+    {
+      q: `subject:"${subject}"`,
+      orderBy: "newest",
+      maxResults: "24",
+      langRestrict: "en",
+    },
+    signal,
+  );
+  // newest-first surfaces many coverless volumes; a coverless grid looks
+  // broken, so only show results with an image.
+  return { results: results.filter((result) => hasValue(result.imageUrl)) };
 }
 
 /**
@@ -141,6 +196,10 @@ export interface ClubTypeConfig {
   readonly filterOptions: readonly FilterOption[];
   /** Search the club type's external source for works to add. */
   readonly search: (query: string, signal?: AbortSignal) => Promise<WorkSearchResult[]>;
+  /** Tabs the add modal offers for browsing without a search; the first is the default. */
+  readonly browseTabs: readonly [BrowseTab, ...BrowseTab[]];
+  /** Fetch one page of a browse tab's works from the club type's external source. */
+  readonly browse: (tab: string, page: number, signal?: AbortSignal) => Promise<BrowsePage>;
   /** Copy and icons for the statistics feature. */
   readonly stats: StatsConfig;
   /** Whether this club type can use the awards feature. */
@@ -550,6 +609,13 @@ export const CLUB_TYPE_CONFIG: Record<ClubType, ClubTypeConfig> = {
       ),
     ],
     search: searchMovies,
+    browseTabs: [
+      { key: "popular", label: "Popular" },
+      { key: "now_playing", label: "Now Playing" },
+      { key: "upcoming", label: "Upcoming" },
+      { key: "top_rated", label: "Top Rated" },
+    ],
+    browse: browseMovies,
     stats: {
       pluralNoun: "Movies",
       countLabel: "movies watched",
@@ -593,6 +659,14 @@ export const CLUB_TYPE_CONFIG: Record<ClubType, ClubTypeConfig> = {
       ),
     ],
     search: searchBooks,
+    browseTabs: [
+      { key: "fiction", label: "Fiction" },
+      { key: "mystery", label: "Mystery" },
+      { key: "science fiction", label: "Sci-Fi" },
+      { key: "biography", label: "Biography" },
+      { key: "history", label: "History" },
+    ],
+    browse: browseBooks,
     stats: {
       pluralNoun: "Books",
       countLabel: "books read",
@@ -658,11 +732,6 @@ export function clubTypeSupportsAwards(type: ClubType): boolean {
  */
 export function workTypeSupportsWatchProviders(type: WorkType): boolean {
   return clubTypeConfig(CLUB_TYPE_BY_WORK_TYPE[type]).supportsWatchProviders;
-}
-
-/** Whether a club's media type offers recommendations when adding a work. */
-export function clubTypeSupportsRecommendations(type: ClubType): boolean {
-  return clubTypeConfig(type).supportsRecommendations;
 }
 
 /** Invite-screen copy for a club's media type. */

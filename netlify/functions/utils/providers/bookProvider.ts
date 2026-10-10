@@ -205,8 +205,8 @@ If you do not recognize this book or cannot confirm it is a real book, return 0 
   }
 
   // Google Books has no similar-volumes endpoint to draw candidates from.
-  getSimilarWorks(): Promise<SimilarWork[]> {
-    return Promise.resolve([]);
+  getSimilarWorks(): Promise<Map<string, SimilarWork[]>> {
+    return Promise.resolve(new Map());
   }
 
   async refreshStaleDetails(limit: number): Promise<RefreshResult> {

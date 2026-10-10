@@ -73,9 +73,16 @@ export interface MediaProvider {
   getDiscussionPrompt: (work: { title: string; externalId: string | null }) => Promise<string>;
 
   /**
-   * Works this provider's source considers similar to one work, most similar
-   * first — the candidate pool club recommendations are ranked from. Providers
-   * whose source has no such signal return an empty list.
+   * Works this provider's source considers similar to each of `externalIds`,
+   * most similar first, keyed by the id they are similar to — the candidate
+   * pool club recommendations are ranked from. Works in `excludedIds` never
+   * appear; a provider that can page further down its source does so rather
+   * than return a list the exclusions have emptied. A seed whose lookup fails
+   * is left out rather than failing the batch. Providers whose source has no
+   * such signal return an empty map.
    */
-  getSimilarWorks: (externalId: string) => Promise<SimilarWork[]>;
+  getSimilarWorks: (
+    externalIds: string[],
+    excludedIds: ReadonlySet<string>,
+  ) => Promise<Map<string, SimilarWork[]>>;
 }
