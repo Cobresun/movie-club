@@ -1,6 +1,7 @@
 import { hasValue } from "../../../../lib/checks/checks.js";
 import { WorkType } from "../../../../lib/types/generated/db";
 import { DetailedWorkData, WorkDataSummary } from "../../../../lib/types/lists";
+import { SimilarWork } from "../../../../lib/types/recommendations";
 import bookProvider from "./bookProvider";
 import movieProvider from "./movieProvider";
 import { MediaProvider } from "./types";
@@ -49,6 +50,17 @@ export async function getExternalSummariesForWorks(
   works: { externalId: string | null | undefined; type: WorkType }[],
 ): Promise<Map<string, WorkDataSummary>> {
   return dispatchByType(works, (type, ids) => getProvider(type).getExternalDataSummary(ids));
+}
+
+/**
+ * Works similar to each of `works`, keyed by the external id they are similar
+ * to, with `excludedIds` left out — dispatched by each work's own type.
+ */
+export async function getSimilarWorksForWorks(
+  works: { externalId: string; type: WorkType }[],
+  excludedIds: ReadonlySet<string>,
+): Promise<Map<string, SimilarWork[]>> {
+  return dispatchByType(works, (type, ids) => getProvider(type).getSimilarWorks(ids, excludedIds));
 }
 
 async function dispatchByType<T>(
