@@ -1,4 +1,5 @@
 import { screen, waitFor, within } from "@testing-library/vue";
+import { http, HttpResponse } from "msw";
 import { useRouter } from "vue-router";
 
 import { AwardsStep, ClubAwards } from "../../../../lib/types/awards";
@@ -27,9 +28,9 @@ describe("YearView", () => {
 
     expect(await currentPhase()).toHaveTextContent("Categories");
     expect(within(controls()).getByText("1 category")).toBeInTheDocument();
-    expect(vi.mocked(useRouter()).replace.mock.calls).toContainEqual([
-      { name: "AwardsCategories" },
-    ]);
+    expect(
+      await screen.findByRole("heading", { level: 2, name: "Categories" }),
+    ).toBeInTheDocument();
   });
 
   it("will not open nominations until there is a category", async () => {
@@ -59,9 +60,30 @@ describe("YearView", () => {
     );
     expect(categories).toHaveTextContent("Categories (done)");
     expect(await currentPhase()).not.toHaveTextContent("(done)");
-    expect(vi.mocked(useRouter()).replace.mock.calls).toContainEqual([
-      { name: "AwardsNominations" },
-    ]);
+    expect(
+      await screen.findByRole("heading", { level: 2, name: "Nominations" }),
+    ).toBeInTheDocument();
+  });
+
+  it("moves to the next phase before the server confirms the advance", async () => {
+    withYear({ awards: [{ title: "Best Picture", nominations: [] }] });
+    server.use(
+      http.put("/api/club/:slug/awards/:year/step", async () => {
+        await new Promise(() => {
+          /* never resolves */
+        });
+        return new HttpResponse(null, { status: 200 });
+      }),
+    );
+
+    const { user } = render(YearView, { props });
+
+    await user.click(await screen.findByRole("button", { name: /Open nominations/ }));
+    await user.click(
+      within(await screen.findByRole("dialog")).getByRole("button", { name: "Open nominations" }),
+    );
+
+    await waitFor(async () => expect(await currentPhase()).toHaveTextContent("Nominations"));
   });
 
   it("holds nominations open until every member has a nominee in every category", async () => {

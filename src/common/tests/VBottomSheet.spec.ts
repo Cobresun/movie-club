@@ -1,7 +1,16 @@
-import { screen } from "@testing-library/vue";
+import { fireEvent, screen } from "@testing-library/vue";
 
 import VBottomSheet from "../components/VBottomSheet.vue";
 import { render } from "@/tests/utils";
+
+// Drags are touch gestures on the content, the way a thumb pulls the sheet
+// down. As in VSideDrawer.spec, jsdom runs no CSS transitions, so a dismissal
+// shows up as the content going away.
+const drag = async (target: Element, fromY: number, toY: number) => {
+  await fireEvent.touchStart(target, { touches: [{ clientX: 0, clientY: fromY }] });
+  await fireEvent.touchMove(target, { touches: [{ clientX: 0, clientY: toY }] });
+  await fireEvent.touchEnd(target, { changedTouches: [{ clientX: 0, clientY: toY }] });
+};
 
 describe("VBottomSheet", () => {
   it("renders as an accessible modal dialog", () => {
@@ -18,5 +27,43 @@ describe("VBottomSheet", () => {
     expect(pushState).toHaveBeenCalledTimes(1);
 
     pushState.mockRestore();
+  });
+
+  it("dismisses when its content is pulled down", async () => {
+    render(VBottomSheet, { slots: { default: "<p>Sheet content</p>" } });
+
+    await drag(screen.getByText("Sheet content"), 100, 400);
+
+    expect(screen.queryByText("Sheet content")).not.toBeInTheDocument();
+  });
+
+  it("stays open when its content is swiped up to scroll", async () => {
+    render(VBottomSheet, { slots: { default: "<p>Sheet content</p>" } });
+
+    await drag(screen.getByText("Sheet content"), 400, 100);
+
+    expect(screen.getByText("Sheet content")).toBeInTheDocument();
+  });
+
+  it("leaves a field's own touches alone rather than dragging the sheet", async () => {
+    render(VBottomSheet, { slots: { default: '<input aria-label="Note" />' } });
+
+    await drag(screen.getByLabelText("Note"), 100, 400);
+
+    expect(screen.getByLabelText("Note")).toBeInTheDocument();
+  });
+
+  it("dismisses only the top sheet when a stacked one is pulled down", async () => {
+    render(VBottomSheet, {
+      global: { components: { VBottomSheet } },
+      slots: {
+        default: "<p>Review details</p><VBottomSheet><p>Score entry</p></VBottomSheet>",
+      },
+    });
+
+    await drag(screen.getByText("Score entry"), 100, 400);
+
+    expect(screen.queryByText("Score entry")).not.toBeInTheDocument();
+    expect(screen.getByText("Review details")).toBeInTheDocument();
   });
 });

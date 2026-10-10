@@ -4,9 +4,14 @@
     title="Reviewer Stats"
     subtitle="Average score per member — chart colors match"
   >
-    <ul class="space-y-3">
+    <TransitionGroup
+      tag="ul"
+      class="space-y-3"
+      move-class="transition-transform duration-slow ease-emphasized"
+      leave-active-class="hidden"
+    >
       <li
-        v-for="entry in leaderboard"
+        v-for="(entry, index) in leaderboard"
         :key="entry.member.id"
         class="rounded-lg border border-slate-700/30 bg-background/50 px-3 py-2.5"
       >
@@ -42,15 +47,16 @@
         </div>
         <div class="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-700/50">
           <div
-            class="h-full rounded-full transition-all duration-500"
+            class="animate-bar-grow h-full rounded-full transition-all duration-500"
             :style="{
               width: `${(entry.averageScore / 10) * 100}%`,
               backgroundColor: memberColor(entry.member.id),
+              '--i': index,
             }"
           />
         </div>
       </li>
-    </ul>
+    </TransitionGroup>
   </WidgetShell>
 </template>
 

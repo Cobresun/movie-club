@@ -51,39 +51,35 @@ const combinedListSearchIndex = computed<WorkSearchResult[]>(
     })) ?? [],
 );
 
-const { mutateAsync: queueReview, isLoading: queueLoading } = useQueueReview(clubId);
-const { mutateAsync: addFromSearch, isLoading: addLoading } = useAddToReviewsList(clubId);
+const { mutate: queueReview } = useQueueReview(clubId);
+const { mutate: addFromSearch } = useAddToReviewsList(clubId);
 
-const selectFromDefault = async (work: WorkSearchResult) => {
+// Both writes put the work on the reviews page optimistically, so the prompt
+// closes on the pick rather than on the round trip.
+const selectFromDefault = (work: WorkSearchResult) => {
   const sourceItem = listItems.value?.find((item) => item.externalId === work.externalId);
   if (!sourceItem || !hasValue(reviewsListId.value)) return;
-  await queueReview(
-    {
-      workId: sourceItem.id,
-      sourceListId: sourceItem.sourceListId,
-      reviewsListId: reviewsListId.value,
-    },
-    { onSuccess: () => emit("close") },
-  );
+  queueReview({
+    workId: sourceItem.id,
+    sourceListId: sourceItem.sourceListId,
+    reviewsListId: reviewsListId.value,
+  });
+  emit("close");
 };
 
-const selectFromSearch = async (work: WorkSearchResult) => {
+const selectFromSearch = (work: WorkSearchResult) => {
   if (!hasValue(reviewsListId.value)) return;
-  await addFromSearch(
-    {
-      insertDto: {
-        type: workTypeForClub(clubType.value),
-        title: work.title,
-        externalId: work.externalId,
-        imageUrl: work.imageUrl,
-      },
-      reviewsListId: reviewsListId.value,
+  addFromSearch({
+    insertDto: {
+      type: workTypeForClub(clubType.value),
+      title: work.title,
+      externalId: work.externalId,
+      imageUrl: work.imageUrl,
     },
-    { onSuccess: () => emit("close") },
-  );
+    reviewsListId: reviewsListId.value,
+  });
+  emit("close");
 };
 
-const loading = computed(
-  () => listsLoading.value || queueLoading.value || addLoading.value || !club.value,
-);
+const loading = computed(() => listsLoading.value || !club.value);
 </script>

@@ -97,13 +97,22 @@ export function useUpdateStep(clubSlug: string, year: string) {
   return useMutation({
     mutationFn: (step: AwardsStep) =>
       auth.request.put(`/api/club/${clubSlug}/awards/${year}/step`, { step }),
+    // An in-flight fetch of the old step would otherwise land after the
+    // optimistic write and put everyone back on the previous phase's page.
     onMutate: async (step) => {
       await queryClient.cancelQueries(awardsKey(clubSlug, year));
-      queryClient.setQueryData<ClubAwards>(awardsKey(clubSlug, year), (current) =>
-        current ? { ...current, step } : current,
-      );
+      const previous = queryClient.getQueryData<ClubAwards>(awardsKey(clubSlug, year));
+      if (isDefined(previous)) {
+        queryClient.setQueryData<ClubAwards>(awardsKey(clubSlug, year), { ...previous, step });
+      }
+      return { previous };
     },
-    onError,
+    onError: (error, _step, context) => {
+      if (isDefined(context?.previous)) {
+        queryClient.setQueryData(awardsKey(clubSlug, year), context.previous);
+      }
+      onError(error);
+    },
     onSettled: () => {
       queryClient.invalidateQueries(awardsKey(clubSlug, year)).catch(console.error);
     },
@@ -315,26 +324,28 @@ export function useSubmitRanking(clubSlug: string, year: string) {
         awardTitle,
         movies,
       }),
+    // Mirrors the server: each ranked movie records this voter's 1-based rank.
     onMutate: async ({ awardTitle, movies }) => {
+      const voter = user.value?.id;
+      if (!hasValue(voter)) return;
       await queryClient.cancelQueries(awardsKey(clubSlug, year));
-      queryClient.setQueryData<ClubAwards>(awardsKey(clubSlug, year), (currentAwards) => {
-        const userId = user.value?.id;
-        if (!currentAwards || !hasValue(userId)) return currentAwards;
+      const ranks = new Map(movies.map((movieId, index) => [movieId, index + 1]));
+      queryClient.setQueryData<ClubAwards>(awardsKey(clubSlug, year), (current) => {
+        if (!current) return current;
         return {
-          ...currentAwards,
-          awards: currentAwards.awards.map((award) =>
-            award.title !== awardTitle
-              ? award
-              : {
+          ...current,
+          awards: current.awards.map((award) =>
+            award.title === awardTitle
+              ? {
                   ...award,
-                  nominations: award.nominations.map((nomination) => ({
-                    ...nomination,
-                    ranking: {
-                      ...nomination.ranking,
-                      [userId]: movies.indexOf(nomination.movieId) + 1,
-                    },
-                  })),
-                },
+                  nominations: award.nominations.map((nomination) => {
+                    const rank = ranks.get(nomination.movieId);
+                    return rank === undefined
+                      ? nomination
+                      : { ...nomination, ranking: { ...nomination.ranking, [voter]: rank } };
+                  }),
+                }
+              : award,
           ),
         };
       });

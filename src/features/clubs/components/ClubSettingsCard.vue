@@ -9,7 +9,6 @@
         input-id="club-name"
         :value="club?.clubName ?? ''"
         :error="nameError"
-        :saving="isSavingName"
         :maxlength="100"
         @save="saveName"
         @dirty="nameError = ''"
@@ -95,7 +94,7 @@ const toast = useToast();
 
 const { data: club } = useClub(clubSlug);
 const { data: settings } = useClubSettings(clubSlug);
-const { mutate: updateName, isPending: isSavingName } = useUpdateClubName(clubSlug);
+const { mutate: updateName } = useUpdateClubName(clubSlug);
 const { mutate: updateSlug, isPending: isSavingSlug } = useUpdateClubSlug(clubSlug);
 const { mutate: updateSettings } = useUpdateClubSettings(clubSlug);
 
@@ -130,13 +129,14 @@ const saveName = (name: string) => {
     return;
   }
 
+  // The new name shows at once; a rejected save rolls it back and reopens the
+  // editor on what was typed so nothing is lost.
+  isEditingName.value = false;
   updateName(name, {
-    onSuccess: () => {
-      toast.success("Club name updated successfully");
-      isEditingName.value = false;
-    },
+    onSuccess: () => toast.success("Club name updated successfully"),
     onError: () => {
       nameError.value = "Failed to update club name";
+      isEditingName.value = true;
     },
   });
 };

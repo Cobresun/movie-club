@@ -1,4 +1,10 @@
-import { UseQueryReturnType, useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
+import {
+  QueryClient,
+  UseQueryReturnType,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/vue-query";
 import axios, { AxiosError } from "axios";
 import { computed, unref, type MaybeRef } from "vue";
 import { useToast } from "vue-toastification";
@@ -30,6 +36,37 @@ export const reviewsListKey = (clubSlug: string) => ["list", clubSlug, "reviews"
 export const workDetailsKey = (clubSlug: string, workId: string) =>
   ["workDetails", clubSlug, workId] as const;
 
+const reviewsListIdKey = (clubSlug: string) => ["reviewsListId", clubSlug] as const;
+
+const allUserListItemsKey = (clubSlug: string) => ["lists", clubSlug, "all-items"] as const;
+
+/**
+ * Puts a work at the top of the reviews page (newest first, as the server
+ * orders it) before the write that adds it has landed. It carries the
+ * optimistic id until the settle refetch replaces it, so the page shows it as
+ * pending rather than letting anyone score a work the server may not have yet.
+ */
+async function addPendingReview(
+  queryClient: QueryClient,
+  clubSlug: string,
+  work: Omit<DetailedWorkListItem, "id" | "createdDate">,
+) {
+  await queryClient.cancelQueries({ queryKey: reviewsListKey(clubSlug) });
+  queryClient.setQueryData<DetailedReviewListItem[]>(reviewsListKey(clubSlug), (current) =>
+    isDefined(current)
+      ? [
+          {
+            ...work,
+            id: OPTIMISTIC_WORK_ID,
+            createdDate: new Date().toISOString(),
+            scores: {},
+          },
+          ...current,
+        ]
+      : current,
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Club lists collection (the user lists shown in the list switcher)
 // ---------------------------------------------------------------------------
@@ -50,7 +87,7 @@ export function useClubLists(clubSlug: string): UseQueryReturnType<ClubListSumma
 
 export function useReviewsListId(clubSlug: string): UseQueryReturnType<string, AxiosError> {
   return useQuery({
-    queryKey: ["reviewsListId", clubSlug] as const,
+    queryKey: reviewsListIdKey(clubSlug),
     queryFn: async () =>
       (await axios.get<{ id: string }>(`/api/club/${clubSlug}/list/reviews-id`)).data.id,
   });
@@ -97,7 +134,8 @@ export function useRenameList(clubSlug: string) {
   return useMutation({
     mutationFn: ({ listId, title }: { listId: string; title: string }) =>
       auth.request.put(`/api/club/${clubSlug}/list/${listId}`, { title }),
-    onMutate: ({ listId, title }) => {
+    onMutate: async ({ listId, title }) => {
+      await queryClient.cancelQueries({ queryKey: clubListsKey(clubSlug) });
       queryClient.setQueriesData<ClubListSummary[]>(
         { queryKey: clubListsKey(clubSlug) },
         (current) => current?.map((l) => (l.id === listId ? { ...l, title } : l)),
@@ -141,7 +179,8 @@ export function useDeleteList(clubSlug: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (listId: string) => auth.request.delete(`/api/club/${clubSlug}/list/${listId}`),
-    onMutate: (listId) => {
+    onMutate: async (listId) => {
+      await queryClient.cancelQueries({ queryKey: clubListsKey(clubSlug) });
       queryClient.setQueryData<ClubListSummary[]>(clubListsKey(clubSlug), (current) =>
         current?.filter((l) => l.id !== listId),
       );
@@ -178,7 +217,7 @@ export function useAllUserListItems(
   clubSlug: string,
 ): UseQueryReturnType<UserListItemWithSource[], AxiosError> {
   return useQuery({
-    queryKey: ["lists", clubSlug, "all-items"] as const,
+    queryKey: allUserListItemsKey(clubSlug),
     queryFn: async () =>
       (await axios.get<UserListItemWithSource[]>(`/api/club/${clubSlug}/list/all-items`)).data,
   });
@@ -211,6 +250,7 @@ export function useWorkDetails(
 export function useQueueReview(clubSlug: string) {
   const auth = useAuthStore();
   const queryClient = useQueryClient();
+  const toast = useToast();
   return useMutation({
     mutationFn: async ({
       workId,
@@ -227,25 +267,44 @@ export function useQueueReview(clubSlug: string) {
         destinationListId: reviewsListId,
       });
     },
-    // Optimistically remove the work from its source list so the UI reacts
-    // immediately; the reviews page picks it up via invalidation.
-    onMutate: ({ workId, sourceListId }) => {
-      if (!hasValue(sourceListId)) return;
+    // Both ends of the move: the work leaves its source list and appears,
+    // pending, on the reviews page.
+    onMutate: async ({ workId, sourceListId, reviewsListId }) => {
+      if (!hasValue(sourceListId) || sourceListId === reviewsListId) return;
+      await Promise.all([
+        queryClient.cancelQueries({ queryKey: listKey(clubSlug, sourceListId) }),
+        queryClient.cancelQueries({ queryKey: allUserListItemsKey(clubSlug) }),
+      ]);
+      const moving =
+        queryClient
+          .getQueryData<UserListItemWithSource[]>(allUserListItemsKey(clubSlug))
+          ?.find((item) => item.id === workId) ??
+        queryClient
+          .getQueryData<DetailedWorkListItem[]>(listKey(clubSlug, sourceListId))
+          ?.find((item) => item.id === workId);
       queryClient.setQueryData<DetailedWorkListItem[]>(listKey(clubSlug, sourceListId), (current) =>
         current?.filter((item) => item.id !== workId),
       );
-      queryClient.setQueryData<UserListItemWithSource[]>(
-        ["lists", clubSlug, "all-items"],
-        (current) => current?.filter((item) => item.id !== workId),
+      queryClient.setQueryData<UserListItemWithSource[]>(allUserListItemsKey(clubSlug), (current) =>
+        current?.filter((item) => item.id !== workId),
       );
+      if (isDefined(moving)) {
+        await addPendingReview(queryClient, clubSlug, {
+          type: moving.type,
+          title: moving.title,
+          externalId: moving.externalId,
+          imageUrl: moving.imageUrl,
+          externalData: moving.externalData,
+        });
+      }
     },
+    // The prompt that started this has closed by the time a failure comes back.
+    onError: () => toast.error("Failed to add the review. Please try again."),
     onSettled: async (_data, _err, vars) => {
       const invalidations = [
         queryClient.invalidateQueries({ queryKey: reviewsListKey(clubSlug) }),
         queryClient.invalidateQueries({ queryKey: clubListsKey(clubSlug) }),
-        queryClient.invalidateQueries({
-          queryKey: ["lists", clubSlug, "all-items"],
-        }),
+        queryClient.invalidateQueries({ queryKey: allUserListItemsKey(clubSlug) }),
       ];
       if (hasValue(vars.sourceListId)) {
         invalidations.push(
@@ -262,6 +321,7 @@ export function useQueueReview(clubSlug: string) {
 export function useAddToReviewsList(clubSlug: string) {
   const auth = useAuthStore();
   const queryClient = useQueryClient();
+  const toast = useToast();
   return useMutation({
     mutationFn: async ({
       insertDto,
@@ -270,6 +330,10 @@ export function useAddToReviewsList(clubSlug: string) {
       insertDto: ListInsertDto;
       reviewsListId: string;
     }) => auth.request.post(`/api/club/${clubSlug}/list/${reviewsListId}/items`, insertDto),
+    onMutate: ({ insertDto }) => addPendingReview(queryClient, clubSlug, insertDto),
+    // The prompt that started this has closed by the time a failure comes back.
+    onError: (_error, { insertDto }) =>
+      toast.error(`Failed to add "${insertDto.title}". Please try again.`),
     onSettled: () => queryClient.invalidateQueries({ queryKey: reviewsListKey(clubSlug) }),
   });
 }
@@ -280,14 +344,17 @@ export function useDeleteReview(clubSlug: string) {
   return useMutation({
     mutationFn: async ({ workId, reviewsListId }: { workId: string; reviewsListId: string }) =>
       auth.request.delete(`/api/club/${clubSlug}/list/${reviewsListId}/items/${workId}`),
-    onMutate: ({ workId }) => {
+    onMutate: async ({ workId }) => {
+      await queryClient.cancelQueries({ queryKey: reviewsListKey(clubSlug) });
       queryClient.setQueryData<DetailedReviewListItem[]>(reviewsListKey(clubSlug), (current) =>
         current?.filter((item) => item.id !== workId),
       );
     },
     onSettled: async () => {
-      await queryClient.invalidateQueries({ queryKey: reviewsListKey(clubSlug) });
-      await queryClient.invalidateQueries({ queryKey: memberScoresKey });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: reviewsListKey(clubSlug) }),
+        queryClient.invalidateQueries({ queryKey: memberScoresKey }),
+      ]);
     },
   });
 }
@@ -309,7 +376,8 @@ export function useAddListItem(clubSlug: string, listId: string) {
   return useMutation({
     mutationFn: (insertDto: ListInsertDto) =>
       auth.request.post(`/api/club/${clubSlug}/list/${listId}/items`, insertDto),
-    onMutate: (insertDto) => {
+    onMutate: async (insertDto) => {
+      await queryClient.cancelQueries({ queryKey: listKey(clubSlug, listId) });
       queryClient.setQueryData<DetailedWorkListItem[]>(listKey(clubSlug, listId), (currentList) => {
         if (!currentList) return currentList;
         return [
@@ -345,8 +413,9 @@ export function useDeleteListItem(clubSlug: string, listId: string) {
   return useMutation({
     mutationFn: (workId: string) =>
       auth.request.delete(`/api/club/${clubSlug}/list/${listId}/items/${workId}`),
-    onMutate: (workId) => {
+    onMutate: async (workId) => {
       if (!workId) return;
+      await queryClient.cancelQueries({ queryKey: listKey(clubSlug, listId) });
       queryClient.setQueryData<DetailedWorkListItem[]>(listKey(clubSlug, listId), (currentList) =>
         currentList?.filter((item) => item.id !== workId),
       );
@@ -407,7 +476,11 @@ export function useMoveListItem(clubSlug: string) {
       auth.request.post(`/api/club/${clubSlug}/list/${sourceListId}/items/${workId}/move`, {
         destinationListId,
       }),
-    onMutate: ({ sourceListId, destinationListId, workId }) => {
+    onMutate: async ({ sourceListId, destinationListId, workId }) => {
+      await Promise.all([
+        queryClient.cancelQueries({ queryKey: listKey(clubSlug, sourceListId) }),
+        queryClient.cancelQueries({ queryKey: listKey(clubSlug, destinationListId) }),
+      ]);
       const sourceItems = queryClient.getQueryData<DetailedWorkListItem[]>(
         listKey(clubSlug, sourceListId),
       );
@@ -420,6 +493,16 @@ export function useMoveListItem(clubSlug: string) {
           listKey(clubSlug, destinationListId),
           (current) => (current ? [...current, movingItem] : [movingItem]),
         );
+        // The reviews page reads its own richer shape, not the list's.
+        if (queryClient.getQueryData<string>(reviewsListIdKey(clubSlug)) === destinationListId) {
+          await addPendingReview(queryClient, clubSlug, {
+            type: movingItem.type,
+            title: movingItem.title,
+            externalId: movingItem.externalId,
+            imageUrl: movingItem.imageUrl,
+            externalData: movingItem.externalData,
+          });
+        }
       }
     },
     onSettled: async (_data, _err, vars) => {
@@ -459,8 +542,9 @@ export function useSetNextWork(clubSlug: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (workId: string) => auth.request.put(`/api/club/${clubSlug}/nextWork`, { workId }),
-    onMutate: (workId) => {
+    onMutate: async (workId) => {
       if (!workId) return;
+      await queryClient.cancelQueries({ queryKey: ["nextWork", clubSlug] });
       queryClient.setQueryData<string>(["nextWork", clubSlug], () => workId);
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey: ["nextWork", clubSlug] }),
@@ -472,7 +556,8 @@ export function useClearNextWork(clubSlug: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: () => auth.request.delete(`/api/club/${clubSlug}/nextWork`),
-    onMutate: () => {
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: ["nextWork", clubSlug] });
       queryClient.setQueryData<string | null>(["nextWork", clubSlug], null);
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey: ["nextWork", clubSlug] }),
@@ -515,7 +600,8 @@ export function useUpdateAddedDate(clubSlug: string) {
       auth.request.put(`/api/club/${clubSlug}/list/${listId}/items/${workId}/added-date`, {
         addedDate,
       }),
-    onMutate: ({ workId, addedDate }) => {
+    onMutate: async ({ workId, addedDate }) => {
+      await queryClient.cancelQueries({ queryKey: reviewsListKey(clubSlug) });
       queryClient.setQueryData<DetailedReviewListItem[]>(
         reviewsListKey(clubSlug),
         (currentList) => {

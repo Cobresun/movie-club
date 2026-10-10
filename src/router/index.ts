@@ -6,7 +6,7 @@ import {
   RouteLocationNormalized,
 } from "vue-router";
 
-import { hasElements, isDefined } from "../../lib/checks/checks.js";
+import { hasElements, isDefined, isString } from "../../lib/checks/checks.js";
 import { ClubType } from "../../lib/types/generated/db";
 import { DEFAULT_CLUB_SECTION } from "../common/clubSections";
 import {
@@ -35,12 +35,22 @@ const checkClubAccess = async (
     });
   }
 
+  const clubSlug = to.params.clubSlug;
+  if (!isString(clubSlug)) {
+    return next({ name: "ClubNotFound" });
+  }
+
+  // Membership the cache already confirms lets the navigation through without
+  // waiting on a background refetch of the clubs list. Only a club the cache
+  // does not know about waits for the list to settle.
+  if (auth.isClubMember(clubSlug)) {
+    return next();
+  }
+
   // waitForClubsReady waits out any in-flight refetch (e.g. the one triggered
   // by creating or joining a club), so the membership check below usually sees
   // the fresh list rather than a stale cache.
   await auth.waitForClubsReady();
-
-  const clubSlug = to.params.clubSlug as string;
   if (auth.isClubMember(clubSlug)) {
     return next();
   }
@@ -107,11 +117,18 @@ const movieClubOnly = async (
   next: NavigationGuardNext,
 ) => {
   const auth = useAuthStore();
-  await auth.waitForAuthReady();
-  await auth.waitForClubsReady();
+  const clubSlug = to.params.clubSlug;
+  if (!isString(clubSlug)) {
+    return next();
+  }
+  const findClub = () => auth.userClubs?.find((c) => c.slug === clubSlug);
 
-  const clubSlug = to.params.clubSlug as string;
-  const club = auth.userClubs?.find((c) => c.slug === clubSlug);
+  if (!isDefined(findClub())) {
+    await auth.waitForAuthReady();
+    await auth.waitForClubsReady();
+  }
+
+  const club = findClub();
   if (club && club.type !== ClubType.movie) {
     return next({ name: DEFAULT_CLUB_SECTION, params: { clubSlug } });
   }

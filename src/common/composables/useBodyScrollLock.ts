@@ -1,6 +1,38 @@
 import { onUnmounted, watch } from "vue";
 import type { Ref } from "vue";
 
+// Overlays stack (the score-entry sheet opens over the work-details sheet), so
+// the lock is counted: the page only scrolls again once the last overlay
+// holding it lets go, rather than when the top one closes.
+let lockCount = 0;
+let restoreStyles: (() => void) | undefined;
+
+const acquire = () => {
+  lockCount++;
+  if (lockCount > 1) return;
+
+  const { style } = document.body;
+  const previous = { overflow: style.overflow, paddingRight: style.paddingRight };
+  // Hiding a classic (non-overlay) scrollbar widens the page, shifting the
+  // content behind the overlay sideways; pad the width it took back in.
+  const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+
+  style.overflow = "hidden";
+  if (scrollbarWidth > 0) style.paddingRight = `${scrollbarWidth}px`;
+
+  restoreStyles = () => {
+    style.overflow = previous.overflow;
+    style.paddingRight = previous.paddingRight;
+  };
+};
+
+const release = () => {
+  lockCount--;
+  if (lockCount > 0) return;
+  restoreStyles?.();
+  restoreStyles = undefined;
+};
+
 /**
  * Composable to manage body scroll locking for modals, drawers, and bottom sheets.
  *
@@ -19,28 +51,22 @@ import type { Ref } from "vue";
  * useBodyScrollLock(isModalOpen);
  */
 export function useBodyScrollLock(isOpen: Ref<boolean>, shouldLock?: Ref<boolean>) {
-  // Lock or unlock body scroll based on open state and condition
-  const updateBodyScroll = () => {
-    const shouldApplyLock = shouldLock ? shouldLock.value : true;
+  let held = false;
 
-    if (isOpen.value && shouldApplyLock) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
+  const update = () => {
+    const wanted = isOpen.value && (shouldLock?.value ?? true);
+    if (wanted === held) return;
+    held = wanted;
+    if (wanted) acquire();
+    else release();
   };
 
-  // Watch for changes in open state
-  watch(isOpen, updateBodyScroll);
-  updateBodyScroll();
+  watch([isOpen, () => shouldLock?.value], update);
+  update();
 
-  // Watch for changes in shouldLock condition if provided
-  if (shouldLock) {
-    watch(shouldLock, updateBodyScroll);
-  }
-
-  // Ensure body scroll is restored when component unmounts
   onUnmounted(() => {
-    document.body.style.overflow = "";
+    if (!held) return;
+    held = false;
+    release();
   });
 }

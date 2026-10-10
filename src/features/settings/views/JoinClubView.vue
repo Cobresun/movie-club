@@ -1,6 +1,9 @@
 <template>
   <div class="flex min-h-screen items-center justify-center">
-    <div v-if="isLoggedIn" class="w-full max-w-md rounded-lg border p-8 text-center">
+    <div
+      v-if="isLoggedIn"
+      class="animate-fade-up w-full max-w-md rounded-lg border p-8 text-center"
+    >
       <h1 class="mb-4 text-2xl font-bold">Join Club</h1>
 
       <div v-if="isLoading" class="py-4">
@@ -8,7 +11,7 @@
       </div>
 
       <template v-else-if="clubDetails">
-        <p class="mb-6">
+        <p class="animate-fade-up mb-6">
           You've been invited to join
           <strong>{{ clubDetails.clubName }}</strong>
         </p>

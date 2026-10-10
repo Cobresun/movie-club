@@ -79,11 +79,11 @@
         <WorkPosterCard
           v-for="review in sortedReviews"
           :key="review.id"
-          :data-movie-id="review.id"
           :title="review.title"
           :poster-url="review.imageUrl ?? ''"
           :highlighted="selectedMovieId === review.id"
-          selectable
+          :loading="isPendingReview(review.id)"
+          :selectable="!isPendingReview(review.id)"
           class="transition-all duration-fast ease-standard md:cursor-pointer"
           @select="openMovieDetails(review)"
         >
@@ -92,7 +92,7 @@
           </div>
           <div class="grid grid-cols-2 gap-2">
             <div
-              v-for="entry in workScoreEntries(review, members)"
+              v-for="(entry, index) in workScoreEntries(review, members)"
               :key="entry.id"
               class="flex items-center rounded-3xl bg-slate-600"
             >
@@ -101,12 +101,14 @@
                 <!-- Cards never reveal on click: reveal flows through the
                      details drawer's own pill. -->
                 <span
+                  class="transition-[filter] duration-500 ease-standard"
                   :class="[
                     isDefined(entry.memberId) ? '' : 'text-lg font-bold text-primary',
                     isScoreBlurred(entry, currentUserId, isRevealed(review.id))
                       ? 'blur filter'
-                      : '',
+                      : 'blur-none',
                   ]"
+                  :style="{ transitionDelay: `${index * 80}ms` }"
                   >{{ entry.value }}</span
                 >
               </div>
@@ -135,7 +137,7 @@
 <script setup lang="ts">
 import { Listbox, ListboxButton, ListboxOption, ListboxOptions } from "@headlessui/vue";
 import { DateTime } from "luxon";
-import { computed, ref, nextTick, watch } from "vue";
+import { computed, ref } from "vue";
 
 import { isDefined } from "../../../../lib/checks/checks.js";
 import { Member } from "../../../../lib/types/club";
@@ -147,6 +149,7 @@ import WorkDetailsDrawer from "./WorkDetailsDrawer.vue";
 import AverageImg from "@/assets/images/average.svg";
 import VAvatar from "@/common/components/VAvatar.vue";
 import WorkPosterCard from "@/common/components/WorkPosterCard.vue";
+import { OPTIMISTIC_WORK_ID } from "@/service/useList";
 
 const props = defineProps<{
   reviews: DetailedReviewListItem[];
@@ -196,6 +199,10 @@ const selectedSort = computed<string | undefined>({
 // Cards carry the compact numeric date; the details drawer spells it out.
 const formatCardDate = (createdDate: string) => DateTime.fromISO(createdDate).toLocaleString();
 
+// A work still on its way onto the reviews list has no real id to score or
+// open details for until the refetch replaces it.
+const isPendingReview = (workId: string) => workId === OPTIMISTIC_WORK_ID;
+
 const isRevealed = (movieId: string) =>
   props.hasRated(movieId) || props.revealedMovieIds.has(movieId);
 
@@ -206,42 +213,20 @@ const selectedMovie = computed(() => {
   return props.reviews.find((review) => review.id === selectedMovieId.value);
 });
 
-const openMovieDetails = async (review: DetailedReviewListItem) => {
-  if (selectedMovieId.value !== review.id) {
-    selectedMovieId.value = review.id;
-
-    await nextTick();
-    // Find the clicked movie element and scroll to center it on page
-    const clickedElement = document.querySelector(`[data-movie-id="${review.id}"]`);
-
-    if (clickedElement) {
-      clickedElement.scrollIntoView({
-        behavior: "smooth",
-        block: "center",
-      });
-    } else {
-      selectedMovieId.value = undefined;
-    }
-  }
+const openMovieDetails = (review: DetailedReviewListItem) => {
+  selectedMovieId.value = review.id;
 };
+
+const openReview = (workId: string) => {
+  const review = props.reviews.find((r) => r.id === workId);
+  if (isDefined(review)) void openMovieDetails(review);
+};
+
+defineExpose({ openReview });
 
 const toggleMovieReveal = (movieId: string) => {
   emit("toggle-reveal", movieId);
 };
-
-watch(selectedMovieId, async (newValue, oldValue) => {
-  // When drawer closes (transitions from true to false)
-  if (isDefined(oldValue) && !isDefined(newValue)) {
-    await nextTick();
-    const selectedElement = document.querySelector(`[data-movie-id="${oldValue}"]`);
-    if (selectedElement) {
-      selectedElement.scrollIntoView({
-        behavior: "smooth",
-        block: "center",
-      });
-    }
-  }
-});
 </script>
 
 <style scoped>
