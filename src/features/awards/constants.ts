@@ -1,3 +1,5 @@
+import { Component, defineAsyncComponent } from "vue";
+
 import { NOMINATIONS_PER_AWARD } from "../../../lib/awards";
 import { AwardsStep } from "../../../lib/types/awards";
 
@@ -17,9 +19,15 @@ export const SUGGESTED_CATEGORIES = [
 /** What a new year starts with when the club takes the suggestions. */
 export const STARTER_CATEGORIES = SUGGESTED_CATEGORIES.slice(0, 6);
 
+const CategoriesView = defineAsyncComponent(() => import("./views/CategoriesView.vue"));
+const NominationsView = defineAsyncComponent(() => import("./views/NominationsView.vue"));
+const RankingsView = defineAsyncComponent(() => import("./views/RankingsView.vue"));
+const ResultView = defineAsyncComponent(() => import("./views/ResultView.vue"));
+
 export interface AwardsPhase {
   label: string;
-  routeName: string;
+  /** The page members work on during the phase. */
+  view: Component;
   /** What members do during the phase, shown under the progress bar. */
   description: string;
   /** The phase this one closes into, the button that does it, and what closing means. */
@@ -34,7 +42,7 @@ export interface AwardsPhase {
 export const AWARDS_PHASES: Record<AwardsStep, AwardsPhase> = {
   [AwardsStep.CategorySelect]: {
     label: "Categories",
-    routeName: "AwardsCategories",
+    view: CategoriesView,
     description:
       "Decide which awards you're handing out. Add your own or pick from the suggestions, then drag them into the order you'll present them.",
     next: {
@@ -45,7 +53,7 @@ export const AWARDS_PHASES: Record<AwardsStep, AwardsPhase> = {
   },
   [AwardsStep.Nominations]: {
     label: "Nominations",
-    routeName: "AwardsNominations",
+    view: NominationsView,
     description: `Everyone nominates at least one (and up to ${NOMINATIONS_PER_AWARD}) of the movies the club reviewed this year in every category. Your picks stay private until voting opens, which happens once everyone is done.`,
     next: {
       step: AwardsStep.Ratings,
@@ -55,7 +63,7 @@ export const AWARDS_PHASES: Record<AwardsStep, AwardsPhase> = {
   },
   [AwardsStep.Ratings]: {
     label: "Voting",
-    routeName: "AwardsRankings",
+    view: RankingsView,
     description:
       "Put each category's nominees in order, most deserving first, and save. Once everyone has voted, the ceremony can start; the nominee with the best total rank across everyone's ballots wins.",
     next: {
@@ -66,13 +74,13 @@ export const AWARDS_PHASES: Record<AwardsStep, AwardsPhase> = {
   },
   [AwardsStep.Presentation]: {
     label: "Ceremony",
-    routeName: "AwardsResults",
+    view: ResultView,
     description:
       "Get the club together and reveal the winners one category at a time. Once every category is revealed, the awards are complete.",
   },
   [AwardsStep.Completed]: {
     label: "Ceremony",
-    routeName: "AwardsResults",
+    view: ResultView,
     description: "The winners are in.",
   },
 };

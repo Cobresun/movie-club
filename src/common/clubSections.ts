@@ -73,8 +73,8 @@ export interface SectionRoute {
 /**
  * The section a route belongs to, or `null` for club routes that aren't part of
  * the bar (Club settings, the ClubHome redirect). Reads `matched` rather than
- * the route name so nested routes — `AwardsYear`, its ballot children — still
- * light up their parent tab.
+ * the route name so nested routes such as `AwardsYear` still light up their
+ * parent tab.
  */
 export function sectionNameForRoute(route: SectionRoute): string | null {
   for (const record of route.matched) {

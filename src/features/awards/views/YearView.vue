@@ -14,7 +14,12 @@
       <p class="mx-auto mt-4 w-11/12 max-w-lg text-sm text-gray-400">
         {{ AWARDS_PHASES[clubAward.step].description }}
       </p>
-      <RouterView :club-award="clubAward" />
+      <component
+        :is="AWARDS_PHASES[clubAward.step].view"
+        :club-award="clubAward"
+        :club-slug="clubSlug"
+        :year="year"
+      />
       <PhaseControls
         v-if="isDefined(AWARDS_PHASES[clubAward.step].next)"
         :club-award="clubAward"
@@ -42,7 +47,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { computed, ref, toRefs, watch } from "vue";
+import { ref, toRefs } from "vue";
 import { useRouter } from "vue-router";
 
 import { isDefined } from "../../../../lib/checks/checks.js";
@@ -62,20 +67,6 @@ const router = useRouter();
 
 const { data: clubAward, isLoading } = useAwards(clubSlug, year);
 const { data: members } = useMembers(clubSlug);
-
-// Whoever moves the year along, everyone lands on the page for its phase.
-// Replace: a year on its own renders nothing, so it must not be a history
-// entry the back button can land on.
-const phaseRoute = computed(() =>
-  isDefined(clubAward.value) ? AWARDS_PHASES[clubAward.value.step].routeName : undefined,
-);
-watch(
-  phaseRoute,
-  (name) => {
-    if (isDefined(name)) router.replace({ name }).catch(console.error);
-  },
-  { immediate: true },
-);
 
 const confirmingDelete = ref(false);
 const { mutate: deleteMutation, isLoading: isDeleting } = useDeleteAwardsYear(
