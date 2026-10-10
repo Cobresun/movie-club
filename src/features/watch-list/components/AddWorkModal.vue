@@ -3,19 +3,13 @@ import { computed, ref } from "vue";
 
 import { hasElements, isDefined } from "../../../../lib/checks/checks";
 import { ClubType } from "../../../../lib/types/generated/db";
-import { clubTypeStats, clubTypeSupportsRecommendations, workTypeForClub } from "@/common/clubType";
+import { clubTypeConfig, clubTypeStats, workTypeForClub } from "@/common/clubType";
 import WorkSearchPrompt from "@/common/components/WorkSearchPrompt.vue";
 import WorkSearchSkeleton from "@/common/components/WorkSearchSkeleton.vue";
 import { useClub, useClubSlug } from "@/service/useClub";
-import { BASE_IMAGE_URL, useAddListItem } from "@/service/useList";
-import {
-  BOOK_BROWSE_SUBJECTS,
-  BookBrowseSubject,
-  useBookBrowse,
-  WorkSearchResult,
-} from "@/service/useMediaSearch";
+import { useAddListItem } from "@/service/useList";
+import { useBrowse, WorkSearchResult } from "@/service/useMediaSearch";
 import { useRecommendations } from "@/service/useRecommendations";
-import { TMDBCollection, useInfiniteCollection } from "@/service/useTMDB";
 
 const { listId } = defineProps<{ listId: string }>();
 const emit = defineEmits<{ (e: "close"): void }>();
@@ -23,13 +17,13 @@ const emit = defineEmits<{ (e: "close"): void }>();
 const clubSlug = useClubSlug();
 const { data: club } = useClub(clubSlug);
 const clubType = computed(() => club.value?.type ?? ClubType.movie);
-const isMovieClub = computed(() => clubType.value === ClubType.movie);
+const config = computed(() => clubTypeConfig(clubType.value));
 
 const { mutate } = useAddListItem(clubSlug, listId);
 
 // -- Recommendations, for club types with a source of similar works --
 const offersRecommendations = computed(
-  () => isDefined(club.value) && clubTypeSupportsRecommendations(club.value.type),
+  () => isDefined(club.value) && config.value.supportsRecommendations,
 );
 const recommendedSelected = ref(true);
 const showingRecommendations = computed(
@@ -42,10 +36,12 @@ const {
   isError: recommendationsFailed,
 } = useRecommendations(clubSlug, showingRecommendations);
 
+const listFormat = new Intl.ListFormat("en", { type: "conjunction" });
+
 const recommendationResults = computed<WorkSearchResult[]>(() =>
   (recommendations.value ?? []).map(({ similarTo, ...work }) => ({
     ...work,
-    reason: hasElements(similarTo) ? `Similar to ${similarTo.join(" and ")}` : undefined,
+    reason: hasElements(similarTo) ? `Similar to ${listFormat.format(similarTo)}` : undefined,
   })),
 );
 
@@ -56,57 +52,38 @@ const recommendationsHint = computed(() => {
   return `No recommendations yet. They're drawn from the ${plural} your club has scored.`;
 });
 
-// -- Movie clubs: TMDB collections (paginated) --
-const movieTabs: { key: TMDBCollection; label: string }[] = [
-  { key: "popular", label: "Popular" },
-  { key: "now_playing", label: "Now Playing" },
-  { key: "upcoming", label: "Upcoming" },
-  { key: "top_rated", label: "Top Rated" },
-];
-const activeCollection = ref<TMDBCollection>("popular");
-const activeMovieTabLabel = computed(
-  () => movieTabs.find((t) => t.key === activeCollection.value)?.label ?? "Popular",
+// -- Browsing the club type's external source --
+const selectedBrowseKey = ref<string>();
+const activeBrowseTab = computed(
+  () =>
+    config.value.browseTabs.find((tab) => tab.key === selectedBrowseKey.value) ??
+    config.value.browseTabs[0],
 );
 
 const {
-  data: collectionData,
+  data: browseData,
   fetchNextPage,
   hasNextPage,
   isFetchingNextPage,
-} = useInfiniteCollection(activeCollection);
-
-const movieResults = computed<WorkSearchResult[]>(() => {
-  if (!isMovieClub.value || !isDefined(collectionData.value)) return [];
-  return collectionData.value.pages.flatMap((page) =>
-    page.results.map((movie) => ({
-      externalId: String(movie.id),
-      title: movie.title,
-      subtitle: movie.release_date ? movie.release_date.slice(0, 4) : undefined,
-      imageUrl: movie.poster_path ? `${BASE_IMAGE_URL}${movie.poster_path}` : undefined,
-    })),
-  );
-});
-
-// -- Book clubs: Google Books subject browse --
-const bookTabs = BOOK_BROWSE_SUBJECTS;
-const activeBookSubject = ref<BookBrowseSubject>("fiction");
-const activeBookTabLabel = computed(
-  () => bookTabs.find((t) => t.key === activeBookSubject.value)?.label ?? "Fiction",
+} = useBrowse(
+  clubType,
+  computed(() => activeBrowseTab.value.key),
+  computed(() => isDefined(club.value)),
 );
-const { data: bookBrowse } = useBookBrowse(activeBookSubject);
-const bookResults = computed<WorkSearchResult[]>(() =>
-  isMovieClub.value ? [] : (bookBrowse.value ?? []),
+
+const browseResults = computed<WorkSearchResult[]>(
+  () => browseData.value?.pages.flatMap((page) => page.results) ?? [],
 );
 
 // -- Shared --
-interface BrowseTab {
+interface Tab {
   key: string;
   label: string;
   active: boolean;
   select: () => void;
 }
 
-const tabs = computed<BrowseTab[]>(() => [
+const tabs = computed<Tab[]>(() => [
   ...(offersRecommendations.value
     ? [
         {
@@ -117,35 +94,23 @@ const tabs = computed<BrowseTab[]>(() => [
         },
       ]
     : []),
-  ...(isMovieClub.value
-    ? movieTabs.map((tab) => ({
-        ...tab,
-        active: !showingRecommendations.value && activeCollection.value === tab.key,
-        select: () => {
-          recommendedSelected.value = false;
-          activeCollection.value = tab.key;
-        },
-      }))
-    : bookTabs.map((tab) => ({
-        ...tab,
-        active: !showingRecommendations.value && activeBookSubject.value === tab.key,
-        select: () => {
-          recommendedSelected.value = false;
-          activeBookSubject.value = tab.key;
-        },
-      }))),
+  ...config.value.browseTabs.map((tab) => ({
+    ...tab,
+    active: !showingRecommendations.value && activeBrowseTab.value.key === tab.key,
+    select: () => {
+      recommendedSelected.value = false;
+      selectedBrowseKey.value = tab.key;
+    },
+  })),
 ]);
 
-const browsingMovies = computed(() => isMovieClub.value && !showingRecommendations.value);
-
-const defaultList = computed(() => {
-  if (showingRecommendations.value) return recommendationResults.value;
-  return isMovieClub.value ? movieResults.value : bookResults.value;
-});
-const defaultListTitle = computed(() => {
-  if (showingRecommendations.value) return "Recommended for your club";
-  return isMovieClub.value ? activeMovieTabLabel.value : activeBookTabLabel.value;
-});
+const defaultList = computed(() =>
+  showingRecommendations.value ? recommendationResults.value : browseResults.value,
+);
+const defaultListTitle = computed(() =>
+  showingRecommendations.value ? "Recommended for your club" : activeBrowseTab.value.label,
+);
+const browsing = computed(() => !showingRecommendations.value);
 
 const onSelectWork = (work: WorkSearchResult) => {
   mutate({
@@ -182,9 +147,9 @@ const onSelectWork = (work: WorkSearchResult) => {
       :default-list="defaultList"
       :loading-default="showingRecommendations && recommendationsLoading"
       :empty-hint="recommendationsHint"
-      :on-load-more="browsingMovies ? () => fetchNextPage() : undefined"
+      :on-load-more="browsing ? () => fetchNextPage() : undefined"
       :loading-more="isFetchingNextPage"
-      :has-more="browsingMovies && hasNextPage === true"
+      :has-more="browsing && hasNextPage === true"
       @select-from-default="onSelectWork"
       @select-from-search="onSelectWork"
     />

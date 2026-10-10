@@ -21,7 +21,6 @@ import { recommendationsKey } from "./useRecommendations";
 import { memberScoresKey } from "./useUser";
 import { useAuthStore } from "@/stores/auth";
 
-export const BASE_IMAGE_URL = "https://image.tmdb.org/t/p/w154/";
 export const OPTIMISTIC_WORK_ID = "temp";
 
 // ---------------------------------------------------------------------------

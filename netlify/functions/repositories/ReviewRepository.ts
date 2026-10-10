@@ -67,7 +67,7 @@ class ReviewRepository {
       .where("work_list.system_type", "=", WorkListSystemType.reviews)
       .innerJoin("review", "review.list_id", "work_list.id")
       .innerJoin("work", "work.id", "review.work_id")
-      .select(["review.user_id", "review.score", "work.external_id", "work.title"])
+      .select(["review.user_id", "review.score", "work.external_id", "work.title", "work.type"])
       .execute();
   }
 

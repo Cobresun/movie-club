@@ -103,6 +103,31 @@ describe("GET /api/club/:clubSlug/recommendations", () => {
     expect(titles(res.body)).toEqual(["Movie 21"]);
   });
 
+  it("looks further down TMDB's list when the club already has the top of it", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub(alice);
+    await reviewed(club, 1, [[alice, 9]]);
+    await reviewed(club, 2, [[alice, 2]]);
+    const firstPage = Array.from({ length: 20 }, (_, index) => 100 + index);
+    for (const id of firstPage) await addWork(club, alice, { externalId: String(id) });
+    server.use(
+      http.get(RECOMMENDATIONS, ({ params, request }) => {
+        if (params.movieId !== "1") return HttpResponse.json(tmdbPage([]));
+        const secondPage = new URL(request.url).searchParams.get("page") === "2";
+        const ids = secondPage ? [200] : firstPage;
+        return HttpResponse.json({
+          ...tmdbPage(ids.map((id) => tmdbMovie(id))),
+          page: secondPage ? 2 : 1,
+          total_pages: 2,
+        });
+      }),
+    );
+
+    const res = await recommendationsFor(club, alice);
+
+    expect(titles(res.body)).toEqual(["Movie 200"]);
+  });
+
   it("ignores what members have scored in their other clubs", async () => {
     const alice = await signIn("alice");
     const bob = await signIn("bob");

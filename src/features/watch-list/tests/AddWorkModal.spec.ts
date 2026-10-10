@@ -73,6 +73,17 @@ describe("AddWorkModal", () => {
     );
   });
 
+  it("names every work a recommendation is similar to", async () => {
+    respondWithRecommendations([
+      { ...recommendations[0], similarTo: ["Collateral", "Thief", "Sicario"] },
+    ]);
+    render(AddWorkModal, { props: { listId: "1" } });
+
+    expect(await screen.findByRole("button", { name: /Heat/ })).toHaveTextContent(
+      "Similar to Collateral, Thief, and Sicario",
+    );
+  });
+
   it("switches between recommendations and a collection", async () => {
     respondWithRecommendations(recommendations);
     const { user } = render(AddWorkModal, { props: { listId: "1" } });
