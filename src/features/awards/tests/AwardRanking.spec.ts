@@ -72,18 +72,39 @@ describe("AwardRanking", () => {
     expect(screen.getByText("Moonlight")).toBeInTheDocument();
   });
 
-  it("renders a Submit button", () => {
+  it("shows a ballot the member already cast as saved, offering to update it", () => {
     render(AwardRanking, { props: { award, members, user: currentUser } });
 
-    expect(screen.getByRole("button", { name: "Submit" })).toBeInTheDocument();
+    expect(screen.getByText("Saved")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Update ranking" })).toBeInTheDocument();
   });
 
-  it("emits 'submit-ranking' with movie IDs in current order when Submit is clicked", async () => {
+  it("asks a member who has not voted to save a ranking", () => {
+    const newcomer = { id: "3", email: "cole@test.com", name: "cole" };
+
+    render(AwardRanking, { props: { award, members, user: newcomer } });
+
+    expect(screen.queryByText("Saved")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Save ranking" })).toBeInTheDocument();
+  });
+
+  it("does not ask anyone to rank a lone nominee", () => {
+    const lone: Award = { ...award, nominations: [award.nominations[0]] };
+
+    render(AwardRanking, { props: { award: lone, members, user: currentUser } });
+
+    expect(
+      screen.getByText("Parasite is the only nominee, so it wins by default."),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /ranking/ })).not.toBeInTheDocument();
+  });
+
+  it("emits 'submit-ranking' with movie IDs in current order when the ranking is saved", async () => {
     const rendered = render(AwardRanking, {
       props: { award, members, user: currentUser },
     });
 
-    await rendered.user.click(screen.getByRole("button", { name: "Submit" }));
+    await rendered.user.click(screen.getByRole("button", { name: "Update ranking" }));
 
     // For "dev" the initial order is Parasite (10) then Moonlight (20).
     expect(rendered.emitted()["submit-ranking"]).toEqual([[[10, 20]]]);
@@ -121,22 +142,22 @@ describe("AwardRanking", () => {
 
     // For "dev" the initial order is Parasite (10) then Moonlight (20), so the
     // ends of the list can each only move inwards.
-    expect(screen.queryByRole("button", { name: "Move Parasite left" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Move Parasite right" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Move Moonlight left" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Move Moonlight right" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Rank Parasite higher" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Rank Parasite lower" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Rank Moonlight higher" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Rank Moonlight lower" })).not.toBeInTheDocument();
   });
 
-  it("re-orders nominations when the first one is moved right", async () => {
+  it("re-orders nominations when the first one is ranked lower", async () => {
     const rendered = render(AwardRanking, {
       props: { award, members, user: currentUser },
     });
 
     // For "dev" the initial order is Parasite (10) then Moonlight (20).
-    await rendered.user.click(screen.getByRole("button", { name: "Move Parasite right" }));
+    await rendered.user.click(screen.getByRole("button", { name: "Rank Parasite lower" }));
 
     // Submitting now should report the swapped order.
-    await rendered.user.click(screen.getByRole("button", { name: "Submit" }));
+    await rendered.user.click(screen.getByRole("button", { name: "Update ranking" }));
 
     expect(rendered.emitted()["submit-ranking"]).toEqual([[[20, 10]]]);
   });

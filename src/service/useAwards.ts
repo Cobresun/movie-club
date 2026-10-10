@@ -1,60 +1,120 @@
 import { useMutation, useQuery, useQueryClient, UseQueryReturnType } from "@tanstack/vue-query";
 import axios, { AxiosError } from "axios";
-import { Ref } from "vue";
+import { computed, Ref } from "vue";
+import { useToast } from "vue-toastification";
 
 import { hasValue, isDefined } from "../../lib/checks/checks.js";
-import { Award, AwardsStep, ClubAwards } from "../../lib/types/awards";
+import { AwardsStep, ClubAwards } from "../../lib/types/awards";
 import { DetailedReviewListItem } from "../../lib/types/lists";
 import { DetailedMovieData } from "../../lib/types/movie";
 import { useUser } from "./useUser";
 import { useAuthStore } from "@/stores/auth";
 
+const awardYearsKey = (clubSlug: string) => ["awards-years", clubSlug];
+const availableYearsKey = (clubSlug: string) => ["awards-available-years", clubSlug];
+const awardsKey = (clubSlug: string, year: string) => ["awards", clubSlug, year];
+
+/** Toasts the reason the server refused an awards change. */
+function useAwardsErrorToast() {
+  const toast = useToast();
+  return (error: unknown) => {
+    const message = axios.isAxiosError<{ error?: string }>(error)
+      ? error.response?.data?.error
+      : undefined;
+    toast.error(message ?? "Something went wrong. Please try again.");
+  };
+}
+
 export function useAwardYears(clubSlug: string): UseQueryReturnType<number[], AxiosError> {
   return useQuery({
-    queryKey: ["awards-years", clubSlug],
+    queryKey: awardYearsKey(clubSlug),
     queryFn: async () => (await axios.get<number[]>(`/api/club/${clubSlug}/awards/years`)).data,
+  });
+}
+
+/** Years the club reviewed movies in that have no awards yet, newest first. */
+export function useAvailableAwardYears(clubSlug: string): UseQueryReturnType<number[], AxiosError> {
+  return useQuery({
+    queryKey: availableYearsKey(clubSlug),
+    queryFn: async () =>
+      (await axios.get<number[]>(`/api/club/${clubSlug}/awards/available-years`)).data,
   });
 }
 
 export function useAwards(
   clubId: Ref<string>,
   year: Ref<string>,
-  onSuccess?: (data: ClubAwards) => void,
 ): UseQueryReturnType<ClubAwards, AxiosError> {
   return useQuery({
     queryKey: ["awards", clubId, year],
     queryFn: async () =>
       (await axios.get<ClubAwards>(`/api/club/${clubId.value}/awards/${year.value}`)).data,
-    onSuccess,
+    enabled: computed(() => hasValue(year.value)),
   });
 }
 
-export function useUpdateStep(clubId: Ref<string>, year: Ref<string>) {
+export function useCreateAwardsYear(clubSlug: string) {
   const auth = useAuthStore();
   const queryClient = useQueryClient();
+  const onError = useAwardsErrorToast();
+  return useMutation({
+    mutationFn: (input: { year: number; categories: string[] }) =>
+      auth.request.post(`/api/club/${clubSlug}/awards`, input),
+    onError,
+    onSettled: () =>
+      Promise.all([
+        queryClient.invalidateQueries(awardYearsKey(clubSlug)),
+        queryClient.invalidateQueries(availableYearsKey(clubSlug)),
+      ]),
+  });
+}
+
+export function useDeleteAwardsYear(clubSlug: string, year: string) {
+  const auth = useAuthStore();
+  const queryClient = useQueryClient();
+  const onError = useAwardsErrorToast();
+  return useMutation({
+    mutationFn: () => auth.request.delete(`/api/club/${clubSlug}/awards/${year}`),
+    onMutate: async () => {
+      await queryClient.cancelQueries(awardYearsKey(clubSlug));
+      queryClient.setQueryData<number[]>(awardYearsKey(clubSlug), (years) =>
+        years?.filter((existing) => existing.toString() !== year),
+      );
+    },
+    onError,
+    onSettled: () =>
+      Promise.all([
+        queryClient.invalidateQueries(awardYearsKey(clubSlug)),
+        queryClient.invalidateQueries(availableYearsKey(clubSlug)),
+      ]),
+  });
+}
+
+export function useUpdateStep(clubSlug: string, year: string) {
+  const auth = useAuthStore();
+  const queryClient = useQueryClient();
+  const onError = useAwardsErrorToast();
   return useMutation({
     mutationFn: (step: AwardsStep) =>
-      auth.request.put(`/api/club/${clubId.value}/awards/${year.value}/step`, {
-        step,
-      }),
-    // Cancelling matters beyond the optimistic write: an in-flight fetch of the
-    // old step would land after the caller has navigated on, and YearView
-    // redirects to whichever step a fetch reports.
+      auth.request.put(`/api/club/${clubSlug}/awards/${year}/step`, { step }),
+    // An in-flight fetch of the old step would otherwise land after the
+    // optimistic write and put everyone back on the previous phase's page.
     onMutate: async (step) => {
-      await queryClient.cancelQueries(["awards", clubId, year]);
-      const previous = queryClient.getQueryData<ClubAwards>(["awards", clubId, year]);
+      await queryClient.cancelQueries(awardsKey(clubSlug, year));
+      const previous = queryClient.getQueryData<ClubAwards>(awardsKey(clubSlug, year));
       if (isDefined(previous)) {
-        queryClient.setQueryData<ClubAwards>(["awards", clubId, year], { ...previous, step });
+        queryClient.setQueryData<ClubAwards>(awardsKey(clubSlug, year), { ...previous, step });
       }
       return { previous };
     },
-    onError: (_error, _step, context) => {
+    onError: (error, _step, context) => {
       if (isDefined(context?.previous)) {
-        queryClient.setQueryData(["awards", clubId, year], context.previous);
+        queryClient.setQueryData(awardsKey(clubSlug, year), context.previous);
       }
+      onError(error);
     },
     onSettled: () => {
-      queryClient.invalidateQueries(["awards", clubId, year]).catch(console.error);
+      queryClient.invalidateQueries(awardsKey(clubSlug, year)).catch(console.error);
     },
   });
 }
@@ -62,14 +122,15 @@ export function useUpdateStep(clubId: Ref<string>, year: Ref<string>) {
 export function useAddCategory(clubSlug: string, year: string) {
   const auth = useAuthStore();
   const queryClient = useQueryClient();
+  const onError = useAwardsErrorToast();
   return useMutation({
     mutationFn: (title: string) =>
       auth.request.post(`/api/club/${clubSlug}/awards/${year}/category`, {
         title,
       }),
     onMutate: async (title) => {
-      await queryClient.cancelQueries(["awards", clubSlug, year]);
-      queryClient.setQueryData<ClubAwards>(["awards", clubSlug, year], (currentAwards) => {
+      await queryClient.cancelQueries(awardsKey(clubSlug, year));
+      queryClient.setQueryData<ClubAwards>(awardsKey(clubSlug, year), (currentAwards) => {
         if (!currentAwards) return currentAwards;
         return {
           ...currentAwards,
@@ -77,8 +138,9 @@ export function useAddCategory(clubSlug: string, year: string) {
         };
       });
     },
+    onError,
     onSettled: () => {
-      queryClient.invalidateQueries(["awards", clubSlug, year]).catch(console.error);
+      queryClient.invalidateQueries(awardsKey(clubSlug, year)).catch(console.error);
     },
   });
 }
@@ -86,25 +148,27 @@ export function useAddCategory(clubSlug: string, year: string) {
 export function useReorderCategories(clubSlug: string, year: string) {
   const auth = useAuthStore();
   const queryClient = useQueryClient();
+  const onError = useAwardsErrorToast();
   return useMutation({
     mutationFn: (categories: string[]) =>
       auth.request.put(`/api/club/${clubSlug}/awards/${year}/category`, {
         categories,
       }),
     onMutate: async (categories) => {
-      await queryClient.cancelQueries(["awards", clubSlug, year]);
-      queryClient.setQueryData<ClubAwards>(["awards", clubSlug, year], (currentAwards) => {
+      await queryClient.cancelQueries(awardsKey(clubSlug, year));
+      queryClient.setQueryData<ClubAwards>(awardsKey(clubSlug, year), (currentAwards) => {
         if (!currentAwards) return currentAwards;
         return {
           ...currentAwards,
-          awards: categories.map((category) =>
-            currentAwards.awards.find((award) => award.title === category),
-          ) as Award[],
+          awards: categories
+            .map((category) => currentAwards.awards.find((award) => award.title === category))
+            .filter(isDefined),
         };
       });
     },
+    onError,
     onSettled: () => {
-      queryClient.invalidateQueries(["awards", clubSlug, year]).catch(console.error);
+      queryClient.invalidateQueries(awardsKey(clubSlug, year)).catch(console.error);
     },
   });
 }
@@ -112,23 +176,25 @@ export function useReorderCategories(clubSlug: string, year: string) {
 export function useDeleteCategory(clubSlug: string, year: string) {
   const auth = useAuthStore();
   const queryClient = useQueryClient();
+  const onError = useAwardsErrorToast();
   return useMutation({
-    mutationFn: (award: Award) =>
+    mutationFn: (awardTitle: string) =>
       auth.request.delete(
-        `/api/club/${clubSlug}/awards/${year}/category/${encodeURIComponent(award.title)}`,
+        `/api/club/${clubSlug}/awards/${year}/category/${encodeURIComponent(awardTitle)}`,
       ),
-    onMutate: async (award) => {
-      await queryClient.cancelQueries(["awards", clubSlug, year]);
-      queryClient.setQueryData<ClubAwards>(["awards", clubSlug, year], (currentAwards) => {
+    onMutate: async (awardTitle) => {
+      await queryClient.cancelQueries(awardsKey(clubSlug, year));
+      queryClient.setQueryData<ClubAwards>(awardsKey(clubSlug, year), (currentAwards) => {
         if (!currentAwards) return currentAwards;
         return {
           ...currentAwards,
-          awards: currentAwards.awards.filter((curAward) => curAward.title !== award.title),
+          awards: currentAwards.awards.filter((award) => award.title !== awardTitle),
         };
       });
     },
+    onError,
     onSettled: () => {
-      queryClient.invalidateQueries(["awards", clubSlug, year]).catch(console.error);
+      queryClient.invalidateQueries(awardsKey(clubSlug, year)).catch(console.error);
     },
   });
 }
@@ -137,6 +203,7 @@ export function useAddNomination(clubSlug: string, year: string) {
   const user = useUser();
   const auth = useAuthStore();
   const queryClient = useQueryClient();
+  const onError = useAwardsErrorToast();
   return useMutation({
     mutationFn: ({
       awardTitle,
@@ -151,42 +218,51 @@ export function useAddNomination(clubSlug: string, year: string) {
       return auth.request.post(`/api/club/${clubSlug}/awards/${year}/nomination`, {
         awardTitle,
         movieId: parseInt(review.externalId),
-        // Key by stable user ID so renames don't orphan the entry.
-        nominatedBy: user.value?.id,
       });
     },
     onMutate: async ({ awardTitle, review }) => {
-      await queryClient.cancelQueries(["awards", clubSlug, year]);
-      queryClient.setQueryData<ClubAwards>(["awards", clubSlug, year], (currentClubAwards) => {
+      await queryClient.cancelQueries(awardsKey(clubSlug, year));
+      queryClient.setQueryData<ClubAwards>(awardsKey(clubSlug, year), (currentClubAwards) => {
         const userId = user.value?.id;
-        if (!currentClubAwards || !hasValue(userId)) return currentClubAwards;
+        if (!currentClubAwards || !hasValue(userId) || !isDefined(review.externalId)) {
+          return currentClubAwards;
+        }
+        const movieId = parseInt(review.externalId);
         return {
           ...currentClubAwards,
           awards: currentClubAwards.awards.map((award) => {
-            if (award.title === awardTitle) {
+            if (award.title !== awardTitle) return award;
+            if (award.nominations.some((nomination) => nomination.movieId === movieId)) {
               return {
                 ...award,
-                nominations: [
-                  ...award.nominations,
-                  {
-                    movieId: parseInt(review.externalId ?? "0"),
-                    movieTitle: review.title,
-                    posterUrl: review.imageUrl ?? "",
-                    movieData: review.externalData as DetailedMovieData,
-                    nominatedBy: [userId],
-                    ranking: {},
-                  },
-                ],
+                nominations: award.nominations.map((nomination) =>
+                  nomination.movieId === movieId
+                    ? { ...nomination, nominatedBy: [...nomination.nominatedBy, userId] }
+                    : nomination,
+                ),
               };
-            } else {
-              return award;
             }
+            return {
+              ...award,
+              nominations: [
+                ...award.nominations,
+                {
+                  movieId,
+                  movieTitle: review.title,
+                  posterUrl: review.imageUrl ?? "",
+                  movieData: review.externalData as DetailedMovieData,
+                  nominatedBy: [userId],
+                  ranking: {},
+                },
+              ],
+            };
           }),
         };
       });
     },
+    onError,
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["awards", clubSlug, year] }).catch(console.error);
+      queryClient.invalidateQueries({ queryKey: awardsKey(clubSlug, year) }).catch(console.error);
     },
   });
 }
@@ -195,47 +271,44 @@ export function useDeleteNomination(clubSlug: string, year: string) {
   const auth = useAuthStore();
   const queryClient = useQueryClient();
   const user = useUser();
+  const onError = useAwardsErrorToast();
 
   return useMutation({
     mutationFn: (input: { awardTitle: string; movieId: number }) =>
       auth.request.delete(`/api/club/${clubSlug}/awards/${year}/nomination/${input.movieId}`, {
-        params: { awardTitle: input.awardTitle, userId: user.value?.id },
+        params: { awardTitle: input.awardTitle },
       }),
     onMutate: async (input) => {
-      await queryClient.cancelQueries(["awards", clubSlug, year]);
+      await queryClient.cancelQueries(awardsKey(clubSlug, year));
 
-      queryClient.setQueryData(
-        ["awards", clubSlug, year],
-        (currentAwards: ClubAwards | undefined) => {
-          if (!currentAwards) return currentAwards;
-
-          const updatedAwards = currentAwards.awards.map((award: Award) => {
-            if (award.title === input.awardTitle) {
-              const updatedNominations = award.nominations
-                .map((nomination) => {
-                  if (nomination.movieId === input.movieId) {
-                    return {
-                      ...nomination,
-                      nominatedBy: nomination.nominatedBy.filter(
-                        (nominator) => nominator !== user.value?.id,
-                      ),
-                    };
-                  }
-                  return nomination;
-                })
-                .filter((nomination) => nomination.nominatedBy.length > 0);
-
-              return { ...award, nominations: updatedNominations };
-            }
-            return award;
-          });
-
-          return { ...currentAwards, awards: updatedAwards };
-        },
-      );
+      queryClient.setQueryData<ClubAwards>(awardsKey(clubSlug, year), (currentAwards) => {
+        if (!currentAwards) return currentAwards;
+        return {
+          ...currentAwards,
+          awards: currentAwards.awards.map((award) => {
+            if (award.title !== input.awardTitle) return award;
+            return {
+              ...award,
+              nominations: award.nominations
+                .map((nomination) =>
+                  nomination.movieId === input.movieId
+                    ? {
+                        ...nomination,
+                        nominatedBy: nomination.nominatedBy.filter(
+                          (nominator) => nominator !== user.value?.id,
+                        ),
+                      }
+                    : nomination,
+                )
+                .filter((nomination) => nomination.nominatedBy.length > 0),
+            };
+          }),
+        };
+      });
     },
+    onError,
     onSettled: () => {
-      queryClient.invalidateQueries(["awards", clubSlug, year]).catch(console.error);
+      queryClient.invalidateQueries(awardsKey(clubSlug, year)).catch(console.error);
     },
   });
 }
@@ -244,21 +317,20 @@ export function useSubmitRanking(clubSlug: string, year: string) {
   const auth = useAuthStore();
   const user = useUser();
   const queryClient = useQueryClient();
+  const onError = useAwardsErrorToast();
   return useMutation({
     mutationFn: ({ awardTitle, movies }: { awardTitle: string; movies: number[] }) =>
       auth.request.post(`/api/club/${clubSlug}/awards/${year}/ranking`, {
         awardTitle,
-        // Key by stable user ID so renames don't orphan the ranking.
-        voter: user.value?.id,
         movies,
       }),
     // Mirrors the server: each ranked movie records this voter's 1-based rank.
     onMutate: async ({ awardTitle, movies }) => {
       const voter = user.value?.id;
       if (!hasValue(voter)) return;
-      await queryClient.cancelQueries(["awards", clubSlug, year]);
+      await queryClient.cancelQueries(awardsKey(clubSlug, year));
       const ranks = new Map(movies.map((movieId, index) => [movieId, index + 1]));
-      queryClient.setQueryData<ClubAwards>(["awards", clubSlug, year], (current) => {
+      queryClient.setQueryData<ClubAwards>(awardsKey(clubSlug, year), (current) => {
         if (!current) return current;
         return {
           ...current,
@@ -278,8 +350,9 @@ export function useSubmitRanking(clubSlug: string, year: string) {
         };
       });
     },
+    onError,
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["awards", clubSlug, year] }).catch(console.error);
+      queryClient.invalidateQueries({ queryKey: awardsKey(clubSlug, year) }).catch(console.error);
     },
   });
 }

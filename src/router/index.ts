@@ -332,32 +332,14 @@ const routes: Array<RouteRecordRaw> = [
             name: "AwardsYear",
             component: () => import("../features/awards/views/YearView.vue"),
             props: true,
-            children: [
-              {
-                path: "categories",
-                name: "AwardsCategories",
-                props: true,
-                component: () => import("../features/awards/views/CategoriesView.vue"),
-              },
-              {
-                path: "nominations",
-                name: "AwardsNominations",
-                props: true,
-                component: () => import("../features/awards/views/NominationsView.vue"),
-              },
-              {
-                path: "rankings",
-                name: "AwardsRankings",
-                props: true,
-                component: () => import("../features/awards/views/RankingsView.vue"),
-              },
-              {
-                path: "results",
-                name: "AwardsResults",
-                props: true,
-                component: () => import("../features/awards/views/ResultView.vue"),
-              },
-            ],
+          },
+          {
+            // Each phase once had its own page; links people already have still resolve.
+            path: ":year/:phase(categories|nominations|rankings|results)",
+            redirect: (to) => ({
+              name: "AwardsYear",
+              params: { clubSlug: to.params.clubSlug, year: to.params.year },
+            }),
           },
         ],
       },
