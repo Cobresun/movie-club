@@ -13,7 +13,7 @@ import {
   hasValue,
   isDefined,
 } from "../../../lib/checks/checks.js";
-import { SIGNUP_SOURCE_COOKIE, signupSourceSchema } from "../../../lib/signupSource.js";
+import { parseSignupSourceCookie, SIGNUP_SOURCE_COOKIE } from "../../../lib/signupSource.js";
 import ClubRepository from "../repositories/ClubRepository";
 import UserRepository from "../repositories/UserRepository";
 import { dialect } from "./database.js";
@@ -125,12 +125,14 @@ export const auth = betterAuth({
         // every client receives. A failure is logged, not thrown: losing one
         // signup's attribution is better than losing the signup.
         after: async (user, context) => {
-          const source = signupSourceSchema.safeParse(context?.getCookie(SIGNUP_SOURCE_COOKIE));
-          if (!source.success) {
+          const landing = parseSignupSourceCookie(
+            context?.getCookie(SIGNUP_SOURCE_COOKIE) ?? undefined,
+          );
+          if (landing === undefined) {
             return;
           }
           try {
-            await UserRepository.setSignupSource(user.id, source.data);
+            await UserRepository.setSignupSource(user.id, landing);
           } catch (error) {
             console.error("Failed to record signup source", error);
           }

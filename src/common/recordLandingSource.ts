@@ -1,4 +1,8 @@
-import { classifyLanding, SIGNUP_SOURCE_COOKIE } from "../../lib/signupSource";
+import {
+  classifyLanding,
+  formatSignupSourceCookie,
+  SIGNUP_SOURCE_COOKIE,
+} from "../../lib/signupSource";
 import { SignupSource } from "../../lib/types/generated/db";
 
 /** Long enough to span the gap between someone first hearing about the app and signing up. */
@@ -22,11 +26,14 @@ function readCookie(name: string): string | undefined {
  */
 export function recordLandingSource(href: string, referrer: string): void {
   const landing = new URL(href);
-  const source = classifyLanding(landing, referrer);
-  if (source === SignupSource.direct && readCookie(SIGNUP_SOURCE_COOKIE) !== undefined) {
+  const landingSource = classifyLanding(landing, referrer);
+  if (
+    landingSource.source === SignupSource.direct &&
+    readCookie(SIGNUP_SOURCE_COOKIE) !== undefined
+  ) {
     return;
   }
 
   const secure = landing.protocol === "https:" ? "; Secure" : "";
-  document.cookie = `${SIGNUP_SOURCE_COOKIE}=${source}; Path=/; Max-Age=${COOKIE_MAX_AGE_SECONDS}; SameSite=Lax${secure}`;
+  document.cookie = `${SIGNUP_SOURCE_COOKIE}=${formatSignupSourceCookie(landingSource)}; Path=/; Max-Age=${COOKIE_MAX_AGE_SECONDS}; SameSite=Lax${secure}`;
 }

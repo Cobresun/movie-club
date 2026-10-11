@@ -5,6 +5,7 @@ import { ClubType, DB, Json, SignupSource } from "../../../lib/types/generated/d
 import {
   ActiveUser,
   SiteHealth,
+  SignupReferrerCount,
   SignupSourceCount,
   SiteMetrics,
   SnapshotHistoryPoint,
@@ -23,6 +24,9 @@ const TOP_CLUB_LIMIT = 10;
 
 /** How many people the most-active leaderboard shows. */
 const TOP_USER_LIMIT = 10;
+
+/** Named referrers listed under the acquisition table. */
+const TOP_REFERRERS = 10;
 
 /**
  * Silence after which an active club counts as dormant. Deliberately longer
@@ -509,6 +513,43 @@ class MetricsRepository {
   }
 
   /**
+   * Referral signups broken down by who referred them, so a tagged link such as
+   * `?ref=birthdaybot` can be told apart from the rest of the channel. Signups
+   * whose referrer went unnamed (an untagged link with no referrer header) count
+   * towards the referral row but appear here under no name.
+   */
+  private async getSignupReferrers(): Promise<SignupReferrerCount[]> {
+    const since30 = daysAgo(30);
+
+    const rows = await db
+      .selectFrom("user")
+      .where("user.signup_source", "=", SignupSource.referral)
+      .where("user.signup_source_detail", "is not", null)
+      .select((eb) => [
+        "user.signup_source_detail",
+        eb.fn.countAll<string>().as("users"),
+        eb.fn.countAll<string>().filterWhere("user.createdAt", ">=", since30).as("last_30"),
+      ])
+      .groupBy("user.signup_source_detail")
+      .orderBy("users", "desc")
+      .orderBy("user.signup_source_detail")
+      .limit(TOP_REFERRERS)
+      .execute();
+
+    return rows.flatMap((row) =>
+      isDefined(row.signup_source_detail)
+        ? [
+            {
+              referrer: row.signup_source_detail,
+              users: toCount(row.users),
+              last30Days: toCount(row.last_30),
+            },
+          ]
+        : [],
+    );
+  }
+
+  /**
    * The busiest people over the last 30 days, broken down by what they did.
    *
    * The breakdown matters more than the total: someone with forty comments and
@@ -711,6 +752,7 @@ class MetricsRepository {
       clubSizes,
       signupMethods,
       signupSources,
+      signupReferrers,
     ] = await Promise.all([
       this.getScalars(),
       this.getActivity(),
@@ -723,6 +765,7 @@ class MetricsRepository {
       this.getClubSizes(),
       this.getSignupMethods(),
       this.getSignupSources(),
+      this.getSignupReferrers(),
     ]);
 
     const totalUsers = toCount(scalars.users);
@@ -797,6 +840,7 @@ class MetricsRepository {
         last30Days: toCount(activity.active_clubs_30),
       },
       signupSources,
+      signupReferrers,
       weekly,
       health,
       topClubs,
