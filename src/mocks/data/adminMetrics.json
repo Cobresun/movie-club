@@ -41,15 +41,15 @@
     },
     {
       "source": "share",
-      "users": 9,
-      "last30Days": 2,
-      "activated": 3
-    },
-    {
-      "source": "referral",
       "users": 0,
       "last30Days": 0,
       "activated": 0
+    },
+    {
+      "source": "referral",
+      "users": 4,
+      "last30Days": 2,
+      "activated": 1
     },
     {
       "source": "direct",
@@ -62,6 +62,18 @@
       "users": 1124,
       "last30Days": 0,
       "activated": 610
+    }
+  ],
+  "signupReferrers": [
+    {
+      "referrer": "birthdaybot",
+      "users": 3,
+      "last30Days": 2
+    },
+    {
+      "referrer": "reddit.com",
+      "users": 1,
+      "last30Days": 0
     }
   ],
   "weekly": {

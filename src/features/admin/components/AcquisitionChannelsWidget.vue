@@ -32,6 +32,34 @@
       </table>
     </div>
 
+    <div v-if="signupReferrers.length > 0" class="mt-6 overflow-x-auto">
+      <table class="w-full text-left text-sm">
+        <caption class="pb-2 text-left text-xs uppercase tracking-wide text-slate-400">
+          Top referrers
+        </caption>
+        <thead class="text-xs uppercase tracking-wide text-slate-400">
+          <tr>
+            <th scope="col" class="py-2 pr-3 font-medium">Tag or site</th>
+            <th scope="col" class="py-2 pr-3 text-right font-medium">Last 30 days</th>
+            <th scope="col" class="py-2 text-right font-medium">All time</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            v-for="referrer in signupReferrers"
+            :key="referrer.referrer"
+            class="border-t border-slate-700/40"
+          >
+            <th scope="row" class="py-2 pr-3 font-normal text-white">{{ referrer.referrer }}</th>
+            <td class="py-2 pr-3 text-right font-bold text-white">
+              {{ formatCount(referrer.last30Days) }}
+            </td>
+            <td class="py-2 text-right text-slate-300">{{ formatCount(referrer.users) }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
     <p class="mt-4 text-xs text-slate-500">
       Credited to the last visit that came through a link, so typing the address in afterwards
       doesn't erase an invite. Activated means the account has since reviewed, commented, or added
@@ -44,12 +72,13 @@
 import { computed } from "vue";
 
 import { SignupSource } from "../../../../lib/types/generated/db";
-import { SignupSourceCount } from "../../../../lib/types/metrics";
+import { SignupReferrerCount, SignupSourceCount } from "../../../../lib/types/metrics";
 import { formatCount, percentOf } from "../formatMetrics";
 import WidgetShell from "@/common/components/WidgetShell.vue";
 
 const props = defineProps<{
   signupSources: SignupSourceCount[];
+  signupReferrers: SignupReferrerCount[];
 }>();
 
 const CHANNELS: Record<SignupSource, { label: string; description: string }> = {

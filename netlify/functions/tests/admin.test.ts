@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { SIGNUP_SOURCE_COOKIE } from "../../../lib/signupSource";
 import { SignupSource } from "../../../lib/types/generated/db";
-import { SignupSourceCount, SiteMetrics } from "../../../lib/types/metrics";
+import { SignupReferrerCount, SignupSourceCount, SiteMetrics } from "../../../lib/types/metrics";
 import { handler as adminHandler } from "../admin";
 import { FIXTURE_USERS, signIn, signUpNewUser } from "./helpers/auth";
 import { requester } from "./helpers/http";
@@ -18,6 +18,13 @@ async function signupSources(): Promise<SignupSourceCount[]> {
   const res = await api.get<SiteMetrics>("/api/admin/metrics", { as: alice });
   expect(res.statusCode).toBe(200);
   return res.body.signupSources;
+}
+
+async function signupReferrers(): Promise<SignupReferrerCount[]> {
+  const alice = await signIn("alice");
+  const res = await api.get<SiteMetrics>("/api/admin/metrics", { as: alice });
+  expect(res.statusCode).toBe(200);
+  return res.body.signupReferrers;
 }
 
 async function countFrom(source: SignupSource | null) {
@@ -59,6 +66,19 @@ describe("signup sources", () => {
     });
 
     expect((await countFrom(null)).users).toBe(before.users + 1);
+  });
+
+  it("names the referrer a referral signup was tagged with", async () => {
+    const before =
+      (await signupReferrers()).find((row) => row.referrer === "birthdaybot")?.users ?? 0;
+
+    await signUpNewUser("birthday@movie.club", "Birthday", {
+      cookie: `${SIGNUP_SOURCE_COOKIE}=${SignupSource.referral}:birthdaybot`,
+    });
+
+    expect(await signupReferrers()).toContainEqual(
+      expect.objectContaining({ referrer: "birthdaybot", users: before + 1 }),
+    );
   });
 
   it("keeps the numbers from anyone not on the admin allowlist", async () => {

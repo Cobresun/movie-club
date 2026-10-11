@@ -12,7 +12,7 @@ function recordedSource() {
   return document.cookie
     .split("; ")
     .find((pair) => pair.startsWith(`${SIGNUP_SOURCE_COOKIE}=`))
-    ?.split("=")[1];
+    ?.slice(SIGNUP_SOURCE_COOKIE.length + 1);
 }
 
 describe("recordLandingSource", () => {
@@ -44,5 +44,11 @@ describe("recordLandingSource", () => {
     landOn("/");
 
     expect(recordedSource()).toBe("direct");
+  });
+
+  it("remembers who a referral came from", () => {
+    landOn("/?ref=birthdaybot");
+
+    expect(recordedSource()).toBe("referral:birthdaybot");
   });
 });

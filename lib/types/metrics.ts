@@ -72,6 +72,14 @@ export const signupSourceCountSchema = z.object({
 });
 export type SignupSourceCount = z.infer<typeof signupSourceCountSchema>;
 
+/** Referral signups credited to one named referrer: a `?ref=` tag or a referring site. */
+export const signupReferrerCountSchema = z.object({
+  referrer: z.string(),
+  users: z.number(),
+  last30Days: z.number(),
+});
+export type SignupReferrerCount = z.infer<typeof signupReferrerCountSchema>;
+
 /**
  * Operational health — the numbers that say whether the product is working,
  * as opposed to how big it is.
@@ -206,6 +214,8 @@ export const siteMetricsSchema = z.object({
 
   /** One row per acquisition channel, every channel present even at zero. */
   signupSources: z.array(signupSourceCountSchema),
+  /** The busiest named referrers within the referral channel, most signups first. */
+  signupReferrers: z.array(signupReferrerCountSchema),
 
   weekly: z.object({
     users: z.array(timeSeriesPointSchema),

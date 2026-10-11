@@ -89,7 +89,10 @@
         <h2 class="mx-auto w-11/12 text-sm font-bold uppercase tracking-wide text-slate-400">
           Acquisition
         </h2>
-        <AcquisitionChannelsWidget :signup-sources="metrics.signupSources" />
+        <AcquisitionChannelsWidget
+          :signup-sources="metrics.signupSources"
+          :signup-referrers="metrics.signupReferrers"
+        />
       </section>
 
       <section class="space-y-4">

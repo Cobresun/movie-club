@@ -116,9 +116,23 @@ describe("AdminDashboardView", () => {
   it("shows a dash rather than 0% for a channel nobody has come through", async () => {
     renderDashboard();
 
-    const referral = await screen.findByRole("row", { name: /Referral/ });
+    const share = await screen.findByRole("row", { name: /Shared page/ });
 
-    expect(within(referral).getAllByRole("cell")[2]).toHaveTextContent("—");
+    expect(within(share).getAllByRole("cell")[2]).toHaveTextContent("—");
+  });
+
+  it("names who referral signups came from, so a tagged link can be told apart", async () => {
+    renderDashboard();
+
+    const referrers = await screen.findByRole("table", { name: "Top referrers" });
+    const birthdayBot = within(referrers).getByRole("row", { name: /birthdaybot/ });
+
+    // 2 in 30 days, 3 all time.
+    expect(
+      within(birthdayBot)
+        .getAllByRole("cell")
+        .map((cell) => cell.textContent?.trim()),
+    ).toEqual(["2", "3"]);
   });
 
   it("keeps accounts that predate tracking in their own row", async () => {

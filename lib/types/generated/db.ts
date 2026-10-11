@@ -221,6 +221,7 @@ export interface User {
   image_id: string | null;
   name: string;
   signup_source: SignupSource | null;
+  signup_source_detail: string | null;
   updatedAt: Generated<Timestamp>;
 }
 

@@ -12,6 +12,48 @@ export const SIGNUP_SOURCE_COOKIE = "mc_signup_source";
 
 export const signupSourceSchema = z.nativeEnum(SignupSource);
 
+/**
+ * Where a visit came from, as remembered for the sign-up that may follow.
+ * `detail` names the referrer — the `ref`/`utm_source` tag, or the referring
+ * site's host — and is only ever set for {@link SignupSource.referral}, the one
+ * channel that lumps unrelated sources together.
+ */
+export interface LandingSource {
+  source: SignupSource;
+  detail: string | null;
+}
+
+/**
+ * Referrer names come straight from a URL anyone can craft, and end up in the
+ * database and on the admin dashboard, so only short slug- or host-like values
+ * are kept; anything else is dropped and the signup still counts as a referral.
+ */
+const DETAIL_PATTERN = /^[a-z0-9][a-z0-9._-]{0,63}$/;
+
+function normaliseDetail(raw: string | null | undefined): string | null {
+  const detail = raw?.trim().toLowerCase();
+  return detail !== undefined && DETAIL_PATTERN.test(detail) ? detail : null;
+}
+
+/** `source` alone, or `source:detail`; both halves are cookie-safe by construction. */
+export function formatSignupSourceCookie({ source, detail }: LandingSource): string {
+  return detail === null ? source : `${source}:${detail}`;
+}
+
+/** The inverse of {@link formatSignupSourceCookie}; undefined for anything it would not have written. */
+export function parseSignupSourceCookie(value: string | undefined): LandingSource | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  const [rawSource, rawDetail] = value.split(":", 2);
+  const source = signupSourceSchema.safeParse(rawSource);
+  if (!source.success) {
+    return undefined;
+  }
+  const detail = source.data === SignupSource.referral ? normaliseDetail(rawDetail) : null;
+  return { source: source.data, detail };
+}
+
 /** Query parameters that mark a link as deliberately tagged for a campaign or referrer. */
 const REFERRAL_PARAMS = ["ref", "utm_source"];
 
@@ -22,9 +64,9 @@ const REFERRAL_PARAMS = ["ref", "utm_source"];
  * The path wins over the referrer: an invite link opened from a chat app is an
  * invite whichever app it was opened from.
  */
-export function classifyLanding(landing: URL, referrer: string): SignupSource {
+export function classifyLanding(landing: URL, referrer: string): LandingSource {
   if (landing.pathname.startsWith("/join-club/")) {
-    return SignupSource.invite;
+    return { source: SignupSource.invite, detail: null };
   }
   // The shared pages' own calls to action tag themselves this way, so a click
   // from one into a fresh page load is still the share.
@@ -32,13 +74,20 @@ export function classifyLanding(landing: URL, referrer: string): SignupSource {
     landing.pathname.startsWith("/share/") ||
     landing.searchParams.get("utm_source") === "share"
   ) {
-    return SignupSource.share;
+    return { source: SignupSource.share, detail: null };
   }
-  if (REFERRAL_PARAMS.some((param) => landing.searchParams.has(param))) {
-    return SignupSource.referral;
+  const tag = REFERRAL_PARAMS.find((param) => landing.searchParams.has(param));
+  if (tag !== undefined) {
+    return {
+      source: SignupSource.referral,
+      detail: normaliseDetail(landing.searchParams.get(tag)),
+    };
   }
   if (URL.canParse(referrer) && new URL(referrer).host !== landing.host) {
-    return SignupSource.referral;
+    return {
+      source: SignupSource.referral,
+      detail: normaliseDetail(new URL(referrer).hostname.replace(/^www\./, "")),
+    };
   }
-  return SignupSource.direct;
+  return { source: SignupSource.direct, detail: null };
 }
