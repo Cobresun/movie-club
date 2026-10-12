@@ -1,4 +1,4 @@
-import { AwardsData } from "../../../../lib/types/awards";
+import { AwardsStep, ClubAwards } from "../../../../lib/types/awards";
 import { ClubType, WorkListSystemType, WorkType } from "../../../../lib/types/generated/db";
 import { DetailedWorkListItem } from "../../../../lib/types/lists";
 import { handler as clubHandler } from "../../club/index";
@@ -14,9 +14,8 @@ import { requester } from "./http";
  * path shows up as a failing test rather than as a fixture quietly papering
  * over it.
  *
- * Two exceptions are marked below — expiring an invite and opening an awards
- * year have no endpoint at all — and they are the only direct database writes
- * left in the suite.
+ * One exception is marked below — expiring an invite has no endpoint at all —
+ * and it is the only direct database write left in the suite.
  */
 
 const api = requester(clubHandler);
@@ -266,7 +265,81 @@ export async function createInvite(club: SeededClub, session: TestSession) {
   return created.body.token;
 }
 
-// --- The two states no endpoint can produce -------------------------------
+/** Put a movie on the reviews list as though it was reviewed during `year`. */
+export function reviewMovieIn(club: SeededClub, session: TestSession, year: number) {
+  return addReviewedWork(club, session, { addedDate: new Date(Date.UTC(year, 5, 15)) });
+}
+
+/**
+ * Open an awards year through `POST /awards`; it starts on the categories step.
+ * A club can only open a year it reviewed a movie in, so one is reviewed first.
+ */
+export async function createAwardsYear(
+  club: SeededClub,
+  session: TestSession,
+  year: number,
+  categories: string[] = [],
+) {
+  await reviewMovieIn(club, session, year);
+  const created = await api.post(`/api/club/${club.slug}/awards`, {
+    body: { year, categories },
+    as: session,
+  });
+  assertOk(`Opening ${year} awards for "${club.slug}"`, created);
+}
+
+/**
+ * Walk an awards year forward to `step`. The step endpoint only ever moves one
+ * phase forward, and only once every member has done their part, so arrange
+ * nominations and ballots before calling this.
+ */
+export async function setAwardsStep(
+  club: SeededClub,
+  session: TestSession,
+  year: number,
+  step: AwardsStep,
+) {
+  const current = await api.get<ClubAwards>(`/api/club/${club.slug}/awards/${year}`);
+  assertOk(`Reading ${year} awards for "${club.slug}"`, current);
+
+  for (let next = current.body.step + 1; next <= step; next += 1) {
+    const moved = await api.put(`/api/club/${club.slug}/awards/${year}/step`, {
+      body: { step: next },
+      as: session,
+    });
+    assertOk(`Moving ${year} awards to step ${next}`, moved);
+  }
+}
+
+export async function nominate(
+  club: SeededClub,
+  session: TestSession,
+  year: number,
+  awardTitle: string,
+  movieId: number,
+) {
+  const nominated = await api.post(`/api/club/${club.slug}/awards/${year}/nomination`, {
+    body: { awardTitle, movieId },
+    as: session,
+  });
+  assertOk(`${session.email} nominating ${movieId} for "${awardTitle}"`, nominated);
+}
+
+export async function rankAward(
+  club: SeededClub,
+  session: TestSession,
+  year: number,
+  awardTitle: string,
+  movies: number[],
+) {
+  const ranked = await api.post(`/api/club/${club.slug}/awards/${year}/ranking`, {
+    body: { awardTitle, movies },
+    as: session,
+  });
+  assertOk(`${session.email} ranking "${awardTitle}"`, ranked);
+}
+
+// --- The one state no endpoint can produce -------------------------------
 
 /**
  * Backdate an invite so it is already expired.
@@ -280,19 +353,5 @@ export async function expireInvite(token: string) {
     .updateTable("club_invite")
     .set({ expires_at: new Date(Date.now() - 60_000) })
     .where("token", "=", token)
-    .execute();
-}
-
-/**
- * Open an awards year for a club.
- *
- * Every awards route runs through `validYear`, which 404s unless the year's row
- * already exists, and no endpoint creates it — the rows predate the API and are
- * seeded out of band. Direct write until an "open a year" route exists.
- */
-export async function createAwardsYear(club: SeededClub, year: number, data: AwardsData) {
-  await db
-    .insertInto("awards_temp")
-    .values({ club_id: club.id, year: String(year), data: JSON.stringify(data) })
     .execute();
 }

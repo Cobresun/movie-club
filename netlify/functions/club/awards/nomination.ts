@@ -1,8 +1,14 @@
 import { z } from "zod";
 
+import { NOMINATIONS_PER_AWARD } from "../../../../lib/awards";
 import { hasValue } from "../../../../lib/checks/checks.js";
-import { BaseAward, BaseAwardNomination } from "../../../../lib/types/awards";
-import AwardsRepository from "../../repositories/AwardsRepository";
+import {
+  AwardsData,
+  AwardsStep,
+  BaseAward,
+  BaseAwardNomination,
+} from "../../../../lib/types/awards";
+import AwardsRepository, { AwardsRejection, reject } from "../../repositories/AwardsRepository";
 import { secured } from "../../utils/auth";
 import { parseBody } from "../../utils/parseBody";
 import { requireParam } from "../../utils/requireParam";
@@ -12,51 +18,56 @@ import { ClubAwardRequest } from "./utils";
 
 const router = new Router<ClubAwardRequest>("/api/club/:clubSlug/awards/:year<\\d+>/nomination");
 
+/** Applies `change` to one category's nominations, while nominations are open. */
+function updateNominations(
+  data: AwardsData,
+  awardTitle: string,
+  change: (award: BaseAward) => BaseAwardNomination[] | AwardsRejection,
+): AwardsData | AwardsRejection {
+  if (data.step !== AwardsStep.Nominations) return reject("Nominations are closed");
+
+  const target = data.awards.find((award) => award.title === awardTitle);
+  if (!target) return reject(`"${awardTitle}" is not a category`);
+
+  const nominations = change(target);
+  if ("rejected" in nominations) return nominations;
+
+  return {
+    ...data,
+    awards: data.awards.map((award) => (award === target ? { ...award, nominations } : award)),
+  };
+}
+
 const addNominationSchema = z.object({
   awardTitle: z.string(),
   movieId: z.number(),
-  // Stable user ID (not display name) so renames don't orphan the nomination.
-  nominatedBy: z.string(),
 });
 
-router.post("/", secured<ClubAwardRequest>, async ({ event, clubId, year }, res) => {
+router.post("/", secured<ClubAwardRequest>, async ({ event, clubId, year, userId }, res) => {
   const body = parseBody(event, addNominationSchema, res);
   if (isRouterResponse(body)) return body;
 
-  const { awardTitle, movieId, nominatedBy } = body;
+  const { awardTitle, movieId } = body;
 
-  await AwardsRepository.updateByYear(clubId, year, (currentData) => ({
-    ...currentData,
-    awards: currentData.awards.map((award: BaseAward) => {
-      if (award.title !== awardTitle) return award;
-
-      // Check if movie is already nominated
-      const existingNomination = award.nominations.find(
-        (n: BaseAwardNomination) => n.movieId === movieId,
-      );
-
-      if (existingNomination) {
-        // Add user to existing nomination's nominatedBy list
-        return {
-          ...award,
-          nominations: award.nominations.map((n: BaseAwardNomination) =>
-            n.movieId === movieId ? { ...n, nominatedBy: [...n.nominatedBy, nominatedBy] } : n,
-          ),
-        };
-      } else {
-        // Add new nomination
-        const newNomination: BaseAwardNomination = {
-          movieId,
-          nominatedBy: [nominatedBy],
-          ranking: {},
-        };
-        return {
-          ...award,
-          nominations: [...award.nominations, newNomination],
-        };
+  const rejection = await AwardsRepository.updateByYear(clubId, year, (currentData) =>
+    updateNominations(currentData, awardTitle, ({ nominations }) => {
+      const mine = nominations.filter((n) => n.nominatedBy.includes(userId));
+      if (mine.some((n) => n.movieId === movieId)) {
+        return reject("You already nominated that movie");
       }
+      if (mine.length >= NOMINATIONS_PER_AWARD) {
+        return reject(`You can nominate up to ${NOMINATIONS_PER_AWARD} movies per category`);
+      }
+
+      if (nominations.some((n) => n.movieId === movieId)) {
+        return nominations.map((n) =>
+          n.movieId === movieId ? { ...n, nominatedBy: [...n.nominatedBy, userId] } : n,
+        );
+      }
+      return [...nominations, { movieId, nominatedBy: [userId], ranking: {} }];
     }),
-  }));
+  );
+  if (rejection) return res(badRequest(rejection.rejected));
 
   return res(ok());
 });
@@ -64,38 +75,26 @@ router.post("/", secured<ClubAwardRequest>, async ({ event, clubId, year }, res)
 router.delete(
   "/:movieId",
   secured<ClubAwardRequest>,
-  async ({ event, params, clubId, year }, res) => {
+  async ({ event, params, clubId, year, userId }, res) => {
     const awardTitle = event.queryStringParameters?.awardTitle;
     const movieIdParam = requireParam(params, "movieId", res);
     if (isRouterResponse(movieIdParam)) return movieIdParam;
     const movieId = parseInt(movieIdParam);
-    const userId = event.queryStringParameters?.userId;
 
     if (!hasValue(awardTitle)) return res(badRequest("Missing award title in query parameters"));
-    if (!hasValue(userId)) return res(badRequest("Missing userId in query parameters"));
 
-    await AwardsRepository.updateByYear(clubId, year, (currentData) => ({
-      ...currentData,
-      awards: currentData.awards.map((award: BaseAward) => {
-        if (award.title !== awardTitle) return award;
-
-        // Remove user from nomination and filter out empty nominations
-        const updatedNominations = award.nominations
-          .map((n: BaseAwardNomination) => {
-            if (n.movieId !== movieId) return n;
-            return {
-              ...n,
-              nominatedBy: n.nominatedBy.filter((user: string) => user !== userId),
-            };
-          })
-          .filter((n: BaseAwardNomination) => n.nominatedBy.length > 0);
-
-        return {
-          ...award,
-          nominations: updatedNominations,
-        };
-      }),
-    }));
+    const rejection = await AwardsRepository.updateByYear(clubId, year, (currentData) =>
+      updateNominations(currentData, awardTitle, ({ nominations }) =>
+        nominations
+          .map((n) =>
+            n.movieId === movieId
+              ? { ...n, nominatedBy: n.nominatedBy.filter((user) => user !== userId) }
+              : n,
+          )
+          .filter((n) => n.nominatedBy.length > 0),
+      ),
+    );
+    if (rejection) return res(badRequest(rejection.rejected));
 
     return res(ok());
   },
