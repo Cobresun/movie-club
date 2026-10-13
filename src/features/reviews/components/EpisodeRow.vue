@@ -1,5 +1,5 @@
 <template>
-  <li class="border-t border-white/5" :class="open ? 'bg-white/[0.03]' : ''">
+  <li class="border-t border-white/5">
     <div
       class="relative isolate flex min-h-[56px] items-center gap-3 py-2 pl-3 pr-2 transition-colors duration-fast ease-standard md:gap-4 md:pl-11 md:pr-3"
       :class="card.aired ? 'hover:bg-white/5' : 'opacity-60'"
@@ -24,16 +24,15 @@
       </span>
       <div class="flex min-w-0 flex-grow flex-col">
         <!-- The title is the row's button; its ::after stretches over the
-             whole row so anywhere on it toggles. It sits at z-10, over the
-             blurred scores and still that would otherwise swallow the click,
-             and the Score button at z-20 above it. -->
+             whole row so anywhere on it opens the episode's details. It sits
+             at z-10, over the blurred scores and still that would otherwise
+             swallow the click, and the Score button at z-20 above it. -->
         <h4 class="text-sm font-medium leading-snug">
           <button
             type="button"
             class="text-left after:absolute after:inset-0 after:z-10 after:content-[''] disabled:cursor-default"
-            :aria-expanded="open"
             :disabled="!card.aired"
-            @click="open = !open"
+            @click="emit('details')"
           >
             {{ card.title }}
           </button>
@@ -104,32 +103,6 @@
       </div>
     </div>
 
-    <div v-if="open" class="animate-fade-up flex flex-col gap-3 pb-4 pl-[52px] pr-3 md:pl-[176px]">
-      <p v-if="isDefined(card.node)" class="text-xs text-gray-400">
-        Reviewed {{ formatCardDate(card.node.review.createdDate) }}
-      </p>
-      <ScoreChips
-        v-if="!isDesktop && memberEntries.length > 0"
-        row
-        show-names
-        :entries="memberEntries"
-        :current-user-id="currentUserId"
-        :revealed="revealed"
-      />
-      <p v-if="canReveal" class="text-sm text-gray-400">
-        Everyone else's scores stay hidden until you score this episode.
-      </p>
-      <ScoreActions
-        noun="episode"
-        :has-own-score="isDefined(scoreTarget.reviewId)"
-        :can-score="isDefined(currentUserId)"
-        :can-reveal="canReveal"
-        @score="scoring = true"
-        @reveal="emit('reveal')"
-        @details="emit('details')"
-      />
-    </div>
-
     <Teleport to="body">
       <ScoreEntryModal
         v-if="scoring"
@@ -149,11 +122,9 @@ import { computed, ref, useId } from "vue";
 import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import { EpisodeCard, ScoreTarget } from "../episodeCards";
 import { ScoreEntry } from "../reviewScores";
-import ScoreActions from "./ScoreActions.vue";
 import ScoreChips from "./ScoreChips.vue";
 import ScoreEntryModal from "./ScoreEntryModal.vue";
 import { useIsDesktop } from "@/common/composables/useIsDesktop";
-import { formatCardDate } from "@/common/workDisplay";
 
 const props = defineProps<{
   card: EpisodeCard;
@@ -161,7 +132,6 @@ const props = defineProps<{
   revealed: boolean;
   /** Whether the reader can score it from the row: aired, and not scored yet. */
   canScore: boolean;
-  canReveal: boolean;
   /** The first episode the reader has yet to score after their last scored one. */
   upNext: boolean;
   pending: boolean;
@@ -171,14 +141,12 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: "details"): void;
-  (e: "reveal"): void;
 }>();
 
 const isDesktop = useIsDesktop();
 
 const upNextId = useId();
 
-const open = ref(false);
 const scoring = ref(false);
 
 const number = computed(() => `E${String(props.card.episodeNumber).padStart(2, "0")}`);

@@ -18,9 +18,9 @@ const scoreBodySchema = z.object({
 
 /**
  * A TV club's reviews list and TMDB's season listings, kept together so a
- * test can score the show, a season or an episode — even a season or episode
- * nobody has scored, which is not on the list yet — and read the result back
- * off the screen after the refetch.
+ * test can score the show or an episode — even an episode nobody has scored,
+ * which is not on the list yet — and read the result back off the screen after
+ * the refetch.
  *
  * `seasons` stands in for both TMDB's season endpoint and the server's cached
  * copy of it: which episodes exist, and so what a score on a show can name.
@@ -66,18 +66,9 @@ export const tvReviewsApi = ({
     const show = asTv(work.externalData);
     if (show?.level !== "show" || seasonNumber === undefined) return work;
 
-    const season = show.seasons?.find((option) => option.seasonNumber === seasonNumber);
+    // A season is never scored on its own, so only an episode can be named.
+    if (episodeNumber === undefined) return undefined;
     const series = { ...show, seasons: undefined, numberOfSeasons: undefined };
-    if (episodeNumber === undefined) {
-      if (season === undefined) return undefined;
-      return workAt(formatTvAddress({ showId: show.showId, seasonNumber }), {
-        ...series,
-        level: "season",
-        seasonNumber,
-        title: season.name,
-        episodeCount: season.episodeCount,
-      });
-    }
 
     const episode = seasons[seasonNumber]?.find(
       (option) => option.episode_number === episodeNumber,

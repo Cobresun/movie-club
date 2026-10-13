@@ -2,7 +2,7 @@
   <div
     role="tablist"
     aria-label="Seasons"
-    class="flex gap-2 overflow-x-auto px-3 pb-1 pt-3 md:pl-11 md:pr-3"
+    class="flex gap-2 overflow-x-auto py-2.5 pl-3 pr-1 md:pl-11"
     @keydown="onKeydown"
   >
     <button

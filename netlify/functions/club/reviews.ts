@@ -55,14 +55,14 @@ const addReviewSchema = z
   .object({
     score: z.number().min(0).max(10),
     workId: z.string(),
-    /** Narrows a TV show to one of its seasons, which need not be a work yet.
-     * Whether TMDB lists it is still resolved server-side. */
+    /** With `episodeNumber`, narrows a TV show to one episode, which need not
+     * be a work yet. Whether TMDB lists it is still resolved server-side. */
     seasonNumber: z.number().int().min(0).optional(),
-    /** Narrows that season to one episode, which need not be a work yet. */
     episodeNumber: z.number().int().min(0).optional(),
   })
-  .refine((body) => body.episodeNumber === undefined || body.seasonNumber !== undefined, {
-    message: "episodeNumber needs a seasonNumber",
+  // Only an episode can be narrowed to: a season is never scored on its own.
+  .refine((body) => (body.seasonNumber === undefined) === (body.episodeNumber === undefined), {
+    message: "seasonNumber and episodeNumber come together",
     path: ["episodeNumber"],
   });
 
@@ -84,8 +84,8 @@ router.post("/", secured, async ({ clubId, userId, event }, res) => {
   }
 
   // A score lands on exactly one work. A narrowed TV show resolves to the
-  // season or episode it names, which may not be a work yet — scoring it is
-  // what creates it and puts it on the reviews list.
+  // episode it names, which may not be a work yet — scoring it is what creates
+  // it and puts it on the reviews list.
   const target = await getProvider(work.type).resolveScoreTarget(
     { title: work.title, externalId: work.external_id },
     { seasonNumber, episodeNumber },

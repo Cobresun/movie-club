@@ -522,7 +522,7 @@ describe("computeReviewFact in a TV club", () => {
     id: string,
     date: string,
     score: number,
-    level: "season" | "episode",
+    level: "show" | "episode",
   ): DetailedReviewListItem {
     return work(
       id,
@@ -557,19 +557,19 @@ describe("computeReviewFact in a TV club", () => {
       ),
     );
 
-  it("counts episodes alone, leaving out a season the club scored on its own", () => {
-    const season = tvWork("s1", "2025-05-01T12:00:00.000Z", 10, "season");
+  it("counts episodes alone, leaving out a show the club scored on its own", () => {
+    const show = tvWork("s1", "2025-05-01T12:00:00.000Z", 10, "show");
     const target = tvWork("t", "2025-06-01T12:00:00.000Z", 6, "episode");
 
-    const fact = computeReviewFact([...episodes(9), season, target], "t");
+    const fact = computeReviewFact([...episodes(9), show, target], "t");
 
     expect(fact?.kind).toBe("clubMilestone");
     expect(fact?.text).toContain("10th episode");
   });
 
-  it("has nothing to say about a season scored on its own", () => {
-    const season = tvWork("s1", "2025-06-01T12:00:00.000Z", 10, "season");
+  it("has nothing to say about a show scored on its own", () => {
+    const show = tvWork("s1", "2025-06-01T12:00:00.000Z", 10, "show");
 
-    expect(computeReviewFact([...episodes(11), season], "s1")).toBeUndefined();
+    expect(computeReviewFact([...episodes(11), show], "s1")).toBeUndefined();
   });
 });

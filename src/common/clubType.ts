@@ -176,8 +176,8 @@ export interface ClubTypeConfig {
   readonly display: WorkDisplay;
   /**
    * Whether a reviewed work is one of the units statistics and review facts
-   * count. Every movie and book is. A TV club counts episodes: a season or
-   * show it scored on its own would otherwise count the same series again.
+   * count. Every movie and book is. A TV club counts episodes: a show it
+   * scored on its own would otherwise count the same series again.
    */
   readonly isScoredUnit: (data: WorkDataSummary | undefined) => boolean;
   /**
@@ -203,7 +203,7 @@ export interface WorkDisplay {
   readonly metaLine: (data: WorkDataSummary | undefined) => string | undefined;
   /** Long-form blurb: the TMDB overview / the book description. */
   readonly overview: (data: WorkDataSummary | undefined) => string | undefined;
-  /** What one work is called ("Rate this season"), for media whose works come
+  /** What one work is called ("Rate this show"), for media whose works come
    * at more than one level. Others fall back to the club type's `noun`. */
   readonly noun?: (data: WorkDataSummary | undefined) => string | undefined;
 }
@@ -389,9 +389,6 @@ const tvDisplay: WorkDisplay = {
     const parts: string[] = [];
     if (tv.level === "episode" && isDefined(tv.runtime) && tv.runtime > 0) {
       parts.push(formatRuntime(tv.runtime));
-    }
-    if (tv.level === "season" && isDefined(tv.episodeCount) && tv.episodeCount > 0) {
-      parts.push(`${tv.episodeCount} episodes`);
     }
     if (tv.level === "show" && isDefined(tv.numberOfSeasons) && tv.numberOfSeasons > 0) {
       parts.push(`${tv.numberOfSeasons} seasons`);

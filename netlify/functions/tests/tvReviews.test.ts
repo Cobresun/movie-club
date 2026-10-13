@@ -1,6 +1,7 @@
 /**
- * Integration tests for TV clubs: the show, each season and each episode are
- * scored on their own, and a score at one level never writes to another.
+ * Integration tests for TV clubs: the show and each episode are scored on
+ * their own, a score at one level never writes to another, and a season is
+ * never scored — it is its members' averages over their episodes.
  *
  * TMDB is faked at the network boundary, so the provider's real address
  * parsing, season caching and target resolution all run.
@@ -21,7 +22,7 @@ import { failOnRequest, server, TMDB } from "./setup/externalApis";
 const api = requester(handler);
 
 const SHOW_ID = "95396";
-const SEASON_1 = `${SHOW_ID}:1`;
+const EPISODE_1 = `${SHOW_ID}:1:1`;
 
 async function seedShow(club: SeededClub, session: TestSession) {
   return addWork(club, session, {
@@ -52,96 +53,79 @@ async function score(
 }
 
 describe("scoring a TV show", () => {
-  it("stores a season score on the season, without creating or scoring any episode", async () => {
+  it("refuses a score on a season, which is only ever its members' episode averages", async () => {
     const alice = await signIn("alice");
     const club = await createClub(alice, { type: ClubType.tv });
     const show = await seedShow(club, alice);
 
     const res = await score(club, alice, { workId: show.id, score: 8, seasonNumber: 1 });
 
-    expect(res.statusCode).toBe(200);
+    expect(res.statusCode).toBe(400);
     const reviews = await reviewsOf(club);
-    const season = reviews.find((review) => review.externalId === SEASON_1);
-    expect(season?.title).toBe("Season 1");
-    expect((season?.externalData as TvDataSummary | undefined)?.level).toBe("season");
-    expect(season?.scores[alice.userId]?.score).toBe(8);
-    expect(new Set(reviews.map((review) => review.externalId))).toEqual(
-      new Set([SHOW_ID, SEASON_1]),
-    );
+    expect(reviews.map((review) => review.externalId)).toEqual([SHOW_ID]);
+    expect(reviews.every((review) => Object.keys(review.scores).length === 0)).toBe(true);
   });
 
-  it("leaves the member's episode scores alone when they score the season", async () => {
+  it("stores a show score on the show itself, touching no episode", async () => {
     const alice = await signIn("alice");
     const club = await createClub(alice, { type: ClubType.tv });
     const show = await seedShow(club, alice);
-
-    await score(club, alice, { workId: show.id, score: 10, seasonNumber: 1, episodeNumber: 1 });
-    await score(club, alice, { workId: show.id, score: 4, seasonNumber: 1 });
-
-    expect(await scoreOf(club, `${SHOW_ID}:1:1`, alice)).toBe(10);
-    expect(await scoreOf(club, SEASON_1, alice)).toBe(4);
-  });
-
-  it("leaves the season score alone when the member scores one of its episodes", async () => {
-    const alice = await signIn("alice");
-    const club = await createClub(alice, { type: ClubType.tv });
-    const show = await seedShow(club, alice);
-
-    await score(club, alice, { workId: show.id, score: 4, seasonNumber: 1 });
-    await score(club, alice, { workId: show.id, score: 10, seasonNumber: 1, episodeNumber: 2 });
-
-    expect(await scoreOf(club, SEASON_1, alice)).toBe(4);
-    expect(await scoreOf(club, `${SHOW_ID}:1:2`, alice)).toBe(10);
-  });
-
-  it("stores a show score on the show itself, touching no season or episode", async () => {
-    const alice = await signIn("alice");
-    const club = await createClub(alice, { type: ClubType.tv });
-    const show = await seedShow(club, alice);
-    await score(club, alice, { workId: show.id, score: 9, seasonNumber: 1 });
+    await score(club, alice, { workId: show.id, score: 9, seasonNumber: 1, episodeNumber: 1 });
 
     const res = await score(club, alice, { workId: show.id, score: 7 });
 
     expect(res.statusCode).toBe(200);
     expect(await scoreOf(club, SHOW_ID, alice)).toBe(7);
-    expect(await scoreOf(club, SEASON_1, alice)).toBe(9);
+    expect(await scoreOf(club, EPISODE_1, alice)).toBe(9);
   });
 
-  it("replaces the member's season score when they score it again", async () => {
+  it("leaves the show score alone when the member scores one of its episodes", async () => {
     const alice = await signIn("alice");
     const club = await createClub(alice, { type: ClubType.tv });
     const show = await seedShow(club, alice);
 
-    await score(club, alice, { workId: show.id, score: 8, seasonNumber: 1 });
-    await score(club, alice, { workId: show.id, score: 6, seasonNumber: 1 });
+    await score(club, alice, { workId: show.id, score: 4 });
+    await score(club, alice, { workId: show.id, score: 10, seasonNumber: 1, episodeNumber: 2 });
 
-    expect(await scoreOf(club, SEASON_1, alice)).toBe(6);
+    expect(await scoreOf(club, SHOW_ID, alice)).toBe(4);
+    expect(await scoreOf(club, `${SHOW_ID}:1:2`, alice)).toBe(10);
   });
 
-  it("scores a season through its own work once it exists", async () => {
+  it("replaces the member's episode score when they score it again", async () => {
     const alice = await signIn("alice");
     const club = await createClub(alice, { type: ClubType.tv });
     const show = await seedShow(club, alice);
-    await score(club, alice, { workId: show.id, score: 8, seasonNumber: 1 });
-    const season = (await reviewsOf(club)).find((review) => review.externalId === SEASON_1);
 
-    const res = await score(club, alice, { workId: season?.id ?? "", score: 5 });
+    await score(club, alice, { workId: show.id, score: 8, seasonNumber: 1, episodeNumber: 1 });
+    await score(club, alice, { workId: show.id, score: 6, seasonNumber: 1, episodeNumber: 1 });
+
+    expect(await scoreOf(club, EPISODE_1, alice)).toBe(6);
+  });
+
+  it("scores an episode through its own work once it exists", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub(alice, { type: ClubType.tv });
+    const show = await seedShow(club, alice);
+    await score(club, alice, { workId: show.id, score: 8, seasonNumber: 1, episodeNumber: 1 });
+    const episode = (await reviewsOf(club)).find((review) => review.externalId === EPISODE_1);
+
+    const res = await score(club, alice, { workId: episode?.id ?? "", score: 5 });
 
     expect(res.statusCode).toBe(200);
-    expect(await scoreOf(club, SEASON_1, alice)).toBe(5);
+    expect(await scoreOf(club, EPISODE_1, alice)).toBe(5);
   });
 
-  it("leaves another member's season score untouched", async () => {
+  it("leaves another member's episode score untouched", async () => {
     const alice = await signIn("alice");
     const bob = await signIn("bob");
     const club = await createClub(alice, { type: ClubType.tv, members: [alice, bob] });
     const show = await seedShow(club, alice);
 
-    await score(club, bob, { workId: show.id, score: 9, seasonNumber: 1 });
-    await score(club, alice, { workId: show.id, score: 4, seasonNumber: 1 });
+    await score(club, bob, { workId: show.id, score: 9, seasonNumber: 1, episodeNumber: 1 });
+    await score(club, alice, { workId: show.id, score: 4, seasonNumber: 1, episodeNumber: 1 });
 
-    expect(await scoreOf(club, SEASON_1, bob)).toBe(9);
-    expect(await scoreOf(club, SEASON_1, alice)).toBe(4);
+    expect(await scoreOf(club, EPISODE_1, bob)).toBe(9);
+    expect(await scoreOf(club, EPISODE_1, alice)).toBe(4);
   });
 
   it("carries the show's season list so a club can open a season it has not scored", async () => {
@@ -198,17 +182,6 @@ describe("scoring a TV show", () => {
     expect(res.statusCode).toBe(400);
     const reviews = await reviewsOf(club);
     expect(reviews.every((review) => Object.keys(review.scores).length === 0)).toBe(true);
-  });
-
-  it("refuses a season TMDB does not list", async () => {
-    const alice = await signIn("alice");
-    const club = await createClub(alice, { type: ClubType.tv });
-    const show = await seedShow(club, alice);
-
-    const res = await score(club, alice, { workId: show.id, score: 9, seasonNumber: 9 });
-
-    expect(res.statusCode).toBe(400);
-    expect((await reviewsOf(club)).map((review) => review.externalId)).toEqual([SHOW_ID]);
   });
 
   it("refuses an episode of a season TMDB does not list, leaving no season behind", async () => {
@@ -318,7 +291,7 @@ describe("scoring what aired after it was cached", () => {
     expect(await scoreOf(club, `${SHOW_ID}:3:1`, alice)).toBe(9);
   });
 
-  it("scores a season announced after the show was cached", async () => {
+  it("scores an episode of a season announced after the show was cached", async () => {
     const alice = await signIn("alice");
     const club = await createClub(alice, { type: ClubType.tv });
     const show = await seedShow(club, alice);
@@ -331,26 +304,39 @@ describe("scoring what aired after it was cached", () => {
           number_of_seasons: 3,
           seasons: [
             ...(cached.seasons ?? []),
-            { season_number: 3, name: "Season 3", poster_path: null, episode_count: 0 },
+            { season_number: 3, name: "Season 3", poster_path: null, episode_count: 1 },
           ],
+        }),
+      ),
+      http.get(`${TMDB}/tv/:showId/season/3`, () =>
+        HttpResponse.json({
+          ...tmdbTvSeason(Number(SHOW_ID), 3),
+          episodes: tmdbTvSeason(Number(SHOW_ID), 1)
+            .episodes?.slice(0, 1)
+            .map((episode) => ({ ...episode, season_number: 3 })),
         }),
       ),
     );
     laterThatNight();
 
-    const res = await score(club, alice, { workId: show.id, score: 7, seasonNumber: 3 });
+    const res = await score(club, alice, {
+      workId: show.id,
+      score: 7,
+      seasonNumber: 3,
+      episodeNumber: 1,
+    });
 
     expect(res.statusCode).toBe(200);
-    expect(await scoreOf(club, `${SHOW_ID}:3`, alice)).toBe(7);
+    expect(await scoreOf(club, `${SHOW_ID}:3:1`, alice)).toBe(7);
   });
 });
 
 describe("removing a TV show", () => {
-  it("takes the show's seasons and episodes off the reviews list with it", async () => {
+  it("takes the show's episodes off the reviews list with it", async () => {
     const alice = await signIn("alice");
     const club = await createClub(alice, { type: ClubType.tv });
     const show = await seedShow(club, alice);
-    await score(club, alice, { workId: show.id, score: 8, seasonNumber: 1 });
+    await score(club, alice, { workId: show.id, score: 8, seasonNumber: 1, episodeNumber: 1 });
     await score(club, alice, { workId: show.id, score: 9, seasonNumber: 1, episodeNumber: 2 });
 
     const res = await api.delete(
@@ -372,12 +358,12 @@ describe("removing a TV show", () => {
       externalId: `${SHOW_ID}0`,
       title: "Another show",
     });
-    await score(club, alice, { workId: other.id, score: 6, seasonNumber: 1 });
+    await score(club, alice, { workId: other.id, score: 6, seasonNumber: 1, episodeNumber: 1 });
 
     await api.delete(`/api/club/${club.slug}/list/${club.reviewsListId}/items/${show.id}`, {
       as: alice,
     });
 
-    expect(await scoreOf(club, `${SHOW_ID}0:1`, alice)).toBe(6);
+    expect(await scoreOf(club, `${SHOW_ID}0:1:1`, alice)).toBe(6);
   });
 });

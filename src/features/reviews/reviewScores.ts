@@ -11,8 +11,7 @@ export interface ScoreEntry {
   /** Absent on the club average. */
   memberId?: string;
   value: number;
-  /** A TV season or show score the member did not set, averaged from theirs
-   * one level down. */
+  /** A TV show score the member did not set, averaged from their seasons. */
   averaged?: boolean;
 }
 
@@ -35,7 +34,7 @@ const roundScore = (score: number) => Math.round(score * 100) / 100;
 export const workScoreEntries = (work: DetailedReviewListItem, members: Member[]): ScoreEntry[] =>
   scoreEntries(work.scores, members);
 
-/** {@link workScoreEntries} for a bare score map, such as a TV season's, whose
+/** {@link workScoreEntries} for a bare score map, such as a TV show's, whose
  * `averagedMemberIds` are marked as averaged rather than set. */
 export const scoreEntries = (
   scores: ReviewScores,

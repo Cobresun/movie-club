@@ -155,7 +155,6 @@ function isOlderThanRefetchWindow(updatedDate: Date): boolean {
 }
 
 const TMDB_STILL_BASE = "https://image.tmdb.org/t/p/w300";
-const TMDB_POSTER_BASE = "https://image.tmdb.org/t/p/w154";
 
 /** What a discussion prompt calls the work, at each level a club can score. */
 const TV_PROMPT_UNIT: Record<TvLevel, string> = {
@@ -221,17 +220,15 @@ class TvProvider implements MediaProvider {
     if (addresses.size === 0) return map;
 
     const showIds = [...new Set([...addresses.values()].map((address) => address.showId))];
-    const seasonIds: string[] = [];
-    const episodeIds: string[] = [];
-    for (const [externalId, address] of addresses) {
-      const level = tvLevel(address);
-      if (level === "season") seasonIds.push(externalId);
-      if (level === "episode") episodeIds.push(externalId);
-    }
+    // A season is never a work of its own, so only shows and episodes are
+    // summarised; a show carries its season list instead.
+    const episodeIds = [...addresses]
+      .filter(([, address]) => tvLevel(address) === "episode")
+      .map(([externalId]) => externalId);
 
     const wantsShow = [...addresses.values()].some((address) => tvLevel(address) === "show");
 
-    const [showRows, showSeasonRows, seasonRows, episodeRows] = await Promise.all([
+    const [showRows, showSeasonRows, episodeRows] = await Promise.all([
       showQuery(showIds).execute(),
       !wantsShow
         ? []
@@ -248,13 +245,6 @@ class TvProvider implements MediaProvider {
               "air_date",
             ])
             .orderBy("season_number")
-            .execute(),
-      seasonIds.length === 0
-        ? []
-        : db
-            .selectFrom("tv_season_details")
-            .where("external_id", "in", seasonIds)
-            .selectAll()
             .execute(),
       episodeIds.length === 0
         ? []
@@ -290,21 +280,6 @@ class TvProvider implements MediaProvider {
           seasons: seasonsByShow.get(address.showId) ?? [],
         });
       }
-    }
-
-    for (const row of seasonRows) {
-      const context = contexts.get(row.show_external_id);
-      if (context === undefined) continue;
-      map.set(row.external_id, {
-        ...seriesFields(context),
-        level: "season",
-        seasonNumber: Number(row.season_number),
-        title: row.name ?? `Season ${row.season_number}`,
-        overview: row.overview ?? undefined,
-        posterPath: row.poster_path ?? context.row.poster_path ?? undefined,
-        airDate: row.air_date?.toISOString(),
-        episodeCount: Number(row.episode_count),
-      });
     }
 
     for (const row of episodeRows) {
@@ -369,15 +344,14 @@ class TvProvider implements MediaProvider {
   }
 
   /**
-   * Every level is scored on its own: a score on the show stays on the show,
-   * one on a season stays on that season, and neither is ever written down to
-   * the episodes beneath it.
+   * The show and each episode are scored on their own: a score on the show
+   * stays on the show and is never written down to the episodes beneath it.
+   * A season is never scored.
    *
-   * `seasonNumber` narrows a show to one of its seasons, and `episodeNumber`
-   * narrows that season to one episode — how a club scores a season or an
-   * episode before it exists as a work. The numbers are the only thing the
-   * caller chooses: whether TMDB lists that season or episode, and what it is
-   * called, is read from the server's own cached TMDB data.
+   * `seasonNumber` and `episodeNumber` narrow a show to one episode — how a
+   * club scores an episode before it exists as a work. The numbers are the
+   * only thing the caller chooses: whether TMDB lists that episode, and what it
+   * is called, is read from the server's own cached TMDB data.
    */
   async resolveScoreTarget(
     work: { externalId: string | null },
@@ -393,22 +367,13 @@ class TvProvider implements MediaProvider {
       episodeNumber:
         address.episodeNumber ?? (seasonNumber === undefined ? undefined : options.episodeNumber),
     };
+    // A season is never scored: it is its members' averages over their
+    // episodes, computed in the client.
+    if (tvLevel(target) === "season") return { kind: "missing" };
     if (tvLevel(target) === tvLevel(address)) return { kind: "self" };
 
-    const targetWork =
-      tvLevel(target) === "season" ? await this.seasonWork(target) : await this.episodeWork(target);
+    const targetWork = await this.episodeWork(target);
     return targetWork === undefined ? { kind: "missing" } : { kind: "work", work: targetWork };
-  }
-
-  private async seasonWork(address: TvAddress): Promise<ListInsertDto | undefined> {
-    const row = await this.seasonRow(address);
-    if (row === undefined) return undefined;
-    return {
-      type: WorkType.tv,
-      title: row.name ?? `Season ${row.season_number}`,
-      externalId: formatTvAddress(address),
-      imageUrl: hasValue(row.poster_path) ? `${TMDB_POSTER_BASE}${row.poster_path}` : undefined,
-    };
   }
 
   private async episodeWork(address: TvAddress): Promise<ListInsertDto | undefined> {

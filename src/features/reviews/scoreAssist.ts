@@ -14,7 +14,7 @@ import { ScoreAssistTarget } from "./composables/scoreAssistLogic";
 export interface ScoreAssist {
   /**
    * True when the current user has scored enough works besides this one. Takes
-   * the work rather than its id: a TV season or episode nobody has scored yet
+   * the work rather than its id: a TV episode nobody has scored yet
    * is only a preview, not on the reviews list for an id to find it by.
    */
   isEligible: (work: ScoreAssistTarget) => boolean;

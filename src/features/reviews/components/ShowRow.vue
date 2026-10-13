@@ -81,43 +81,43 @@
     </div>
 
     <div v-if="open" class="animate-fade-up border-t border-white/10">
-      <LevelScore
-        label="Show score"
-        noun="show"
-        below="seasons"
-        :level="show"
-        :entries="entries"
-        :revealed="revealed"
-        :target="showTarget"
-        :current-user-id="currentUserId"
-        @reveal="emit('toggle-reveal', show.workId)"
-        @details="detailsOpen = true"
-      />
-
-      <p v-if="show.seasons.length === 0" class="px-3 pb-3 text-sm text-gray-400 md:pl-11">
-        This show's seasons haven't loaded yet.
-      </p>
-      <template v-else>
+      <!-- One line of controls: which season, and the show's own details,
+           where the show is scored and discussed like any other work. -->
+      <div class="flex items-center gap-2 pr-2 md:pr-3">
         <SeasonTabs
+          v-if="show.seasons.length > 0"
           v-model="selectedSeason"
-          class="border-t border-white/10"
+          class="min-w-0 flex-grow"
           :show-id="show.showId"
           :seasons="show.seasons"
           :is-revealed="isSeasonRevealed"
         />
-        <SeasonSection
-          v-if="isDefined(selectedSeasonNode)"
-          :key="selectedSeasonNode.seasonNumber"
-          :show="show"
-          :season="selectedSeasonNode"
-          :members="members"
-          :delete-review="deleteReview"
-          :revealed-movie-ids="revealedMovieIds"
-          :has-rated="hasRated"
-          :current-user-id="currentUserId"
-          @toggle-reveal="emit('toggle-reveal', $event)"
-        />
-      </template>
+        <p v-else class="flex-grow py-3 pl-3 text-sm text-gray-400 md:pl-11">
+          This show's seasons haven't loaded yet.
+        </p>
+        <button
+          type="button"
+          class="flex shrink-0 items-center gap-1.5 rounded-full bg-lowBackground px-3 py-1.5 text-sm text-gray-300 transition duration-fast ease-standard hover:brightness-110"
+          :aria-label="`${show.title} details`"
+          @click="detailsOpen = true"
+        >
+          <mdicon name="comment-text-outline" :size="16" />
+          <span class="hidden sm:inline">Show details</span>
+        </button>
+      </div>
+
+      <SeasonSection
+        v-if="isDefined(selectedSeasonNode)"
+        :key="selectedSeasonNode.seasonNumber"
+        :show="show"
+        :season="selectedSeasonNode"
+        :members="members"
+        :delete-review="deleteReview"
+        :revealed-movie-ids="revealedMovieIds"
+        :has-rated="hasRated"
+        :current-user-id="currentUserId"
+        @toggle-reveal="emit('toggle-reveal', $event)"
+      />
     </div>
 
     <!-- Teleported: an overlay inside the expanded panel would be
@@ -154,7 +154,6 @@ import {
   seasonRevealKey,
   ShowNode,
 } from "../reviewTree";
-import LevelScore from "./LevelScore.vue";
 import ScoreChips from "./ScoreChips.vue";
 import SeasonSection from "./SeasonSection.vue";
 import SeasonTabs from "./SeasonTabs.vue";
@@ -211,12 +210,4 @@ const revealed = computed(
     hasOwnScore(props.show.scores, props.currentUserId) ||
     props.revealedMovieIds.has(props.show.workId),
 );
-
-// The show is always on the reviews list, so its score saves to it directly —
-// and only a score set on the show itself is the reader's to edit or remove.
-const showTarget = computed(() => {
-  const userId = props.currentUserId;
-  const own = isDefined(userId) ? props.show.review.scores[userId] : undefined;
-  return { work: props.show.review, score: own?.score, reviewId: own?.id };
-});
 </script>

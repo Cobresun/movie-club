@@ -7,9 +7,11 @@ import { MovieCastMember } from "./movie";
  * always knows what it belongs to without a parent pointer that could
  * disagree with TMDB.
  *
- * Every level is scored on its own, and a score at one level is never written
- * to another. A member who has not scored a season or show directly is shown
- * the average of their own scores one level down, computed in the client.
+ * The show and each episode are scored on their own, and a score at one level
+ * is never written to another. A season is never scored: it is each member's
+ * average over their episodes, and a member who has not scored the show
+ * directly is shown the average of their seasons — both computed in the
+ * client.
  */
 export interface TvAddress {
   showId: string;

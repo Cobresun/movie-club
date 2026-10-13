@@ -5,7 +5,6 @@ import {
   episodeCode,
   formatTvAddress,
   TMDBTvEpisodeData,
-  TMDBTvSeasonData,
   TvDataSummary,
 } from "../../../lib/types/tv";
 import { EpisodeNode } from "./reviewTree";
@@ -26,8 +25,8 @@ export interface EpisodeCard {
   aired: boolean;
 }
 
-/** What a score entry at one level saves to: the work itself once it is on the
- * reviews list, or `saveScore` for a season or episode nobody has scored yet. */
+/** What a score entry saves to: the work itself once it is on the reviews
+ * list, or `saveScore` for an episode nobody has scored yet. */
 export interface ScoreTarget {
   /** The work on the reviews list, or a preview of the one a save creates. */
   work: DetailedReviewListItem;
@@ -136,33 +135,6 @@ export function episodePreview(
       airDate: episode?.air_date,
       runtime: episode?.runtime,
       voteAverage: episode?.vote_average,
-    },
-  };
-}
-
-/** {@link episodePreview} for a season nobody has scored on its own yet. */
-export function seasonPreview(
-  show: TvDataSummary,
-  season: { seasonNumber: number; title: string; episodeCount: number },
-  tmdb: TMDBTvSeasonData | undefined,
-  scores: ReviewScores,
-): DetailedReviewListItem {
-  return {
-    id: OPTIMISTIC_WORK_ID,
-    type: WorkType.tv,
-    title: season.title,
-    createdDate: new Date().toISOString(),
-    externalId: formatTvAddress({ showId: show.showId, seasonNumber: season.seasonNumber }),
-    scores,
-    externalData: {
-      ...seriesFields(show),
-      level: "season",
-      seasonNumber: season.seasonNumber,
-      title: season.title,
-      overview: hasValue(tmdb?.overview) ? tmdb.overview : undefined,
-      posterPath: tmdb?.poster_path ?? show.posterPath,
-      airDate: tmdb?.air_date,
-      episodeCount: season.episodeCount,
     },
   };
 }

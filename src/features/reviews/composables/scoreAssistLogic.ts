@@ -85,7 +85,7 @@ export type ScoreAssistTarget = Pick<WorkListItem, "id" | "type" | "externalId">
  *
  * Candidates are restricted to the target's own media type — a book score says
  * nothing about where a movie sits on the user's movie scale — and to the units
- * a club of that type counts, so a TV season scored on its own is never offered
+ * a club of that type counts, so a TV show scored on its own is never offered
  * as an episode to compare against. They are deduplicated by external id, most
  * recent score first, so a work two of their clubs have both seen is offered
  * once, at the score they last gave it.

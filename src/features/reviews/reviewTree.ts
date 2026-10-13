@@ -14,19 +14,20 @@ export interface EpisodeNode {
   scored: boolean;
 }
 
-/** A season's or show's scores, each member's either set at that level or
- * averaged from the level below. */
+/** A show's scores, each member's either set on the show or averaged from
+ * their seasons. */
 export interface LevelScores {
   scores: ReviewScores;
   /** Members whose score here is averaged from the level below, not set. */
   averagedMemberIds: ReadonlySet<string>;
 }
 
-export interface SeasonNode extends LevelScores {
+export interface SeasonNode {
   seasonNumber: number;
   title: string;
-  /** The season's own work, once someone has scored the season itself. */
-  review?: DetailedReviewListItem;
+  /** Each member's average over the episodes they scored, and the club's mean
+   * of those. A season is never scored on its own. */
+  scores: ReviewScores;
   episodes: EpisodeNode[];
   /** Episodes TMDB lists for this season — the coverage denominator. */
   episodeCount: number;
@@ -55,12 +56,12 @@ export interface ShowNode extends LevelScores {
 }
 
 /**
- * A level's scores. A member's score is the one they set at this level, and
- * only when they have not set one is it the mean of their own scores one level
- * down — a score set on a season never reaches its episodes, and an episode
- * score never overwrites the season's. The club's number is the mean of those
- * member scores: averaging every review row instead would let a member who
- * scored only the two episodes they loved outweigh one who scored all nine.
+ * A level's scores. A member's score is the one they set at this level (only
+ * a show can be scored on its own), and only when they have not set one is it
+ * the mean of their own scores one level down — a show score never reaches
+ * its seasons. The club's number is the mean of those member scores: averaging
+ * every review row instead would let a member who scored only the two
+ * episodes they loved outweigh one who scored all nine.
  */
 export function levelScores(own: ReviewScores, below: ReviewScores[]): LevelScores {
   const belowByMember = new Map<string, number[]>();
@@ -113,7 +114,6 @@ function isScored(review: DetailedReviewListItem): boolean {
  */
 export function buildShowTree(reviews: DetailedReviewListItem[]): ShowNode[] {
   const shows = new Map<string, DetailedReviewListItem>();
-  const seasonsByShow = new Map<string, Map<number, DetailedReviewListItem>>();
   const episodesByShow = new Map<string, EpisodeNode[]>();
 
   for (const review of reviews) {
@@ -122,10 +122,6 @@ export function buildShowTree(reviews: DetailedReviewListItem[]): ShowNode[] {
 
     if (tv.level === "show") {
       shows.set(tv.showId, review);
-    } else if (tv.level === "season" && tv.seasonNumber !== undefined) {
-      const seasons = seasonsByShow.get(tv.showId) ?? new Map<number, DetailedReviewListItem>();
-      seasons.set(tv.seasonNumber, review);
-      seasonsByShow.set(tv.showId, seasons);
     } else if (tv.level === "episode" && tv.episodeNumber !== undefined) {
       const episodes = episodesByShow.get(tv.showId) ?? [];
       episodes.push({
@@ -145,13 +141,9 @@ export function buildShowTree(reviews: DetailedReviewListItem[]): ShowNode[] {
     const tv = asTv(showReview.externalData);
     if (tv === undefined) continue;
 
-    const seasonReviews = seasonsByShow.get(showId) ?? new Map<number, DetailedReviewListItem>();
-    const seasons = buildSeasons(tv.seasons ?? [], seasonReviews, episodesByShow.get(showId) ?? []);
+    const seasons = buildSeasons(tv.seasons ?? [], episodesByShow.get(showId) ?? []);
     const allEpisodes = seasons.flatMap((season) => season.episodes);
-    const reviewsUnder = [
-      ...seasonReviews.values(),
-      ...allEpisodes.map((episode) => episode.review),
-    ];
+    const reviewsUnder = allEpisodes.map((episode) => episode.review);
 
     nodes.push({
       ...levelScores(
@@ -216,13 +208,10 @@ export function isPendingShow(review: DetailedReviewListItem): boolean {
  * Season rows come from the show's TMDB season list, so every season is
  * browsable the moment a club adds a show — including the ones it has not
  * reached yet. A season TMDB does not list (specials a club scored
- * deliberately) still gets a row when it has a score, so none is ever hidden.
+ * deliberately) still gets a row when one of its episodes has a score, so
+ * none is ever hidden.
  */
-function buildSeasons(
-  seasonSummaries: TvSeasonSummary[],
-  seasonReviews: Map<number, DetailedReviewListItem>,
-  episodes: EpisodeNode[],
-): SeasonNode[] {
+function buildSeasons(seasonSummaries: TvSeasonSummary[], episodes: EpisodeNode[]): SeasonNode[] {
   const bySeason = new Map<number, EpisodeNode[]>();
   for (const episode of episodes) {
     const seasonNumber = asTv(episode.review.externalData)?.seasonNumber;
@@ -233,11 +222,11 @@ function buildSeasons(
   const summaries = new Map(
     seasonSummaries.map((summary) => [summary.seasonNumber, summary] as const),
   );
-  for (const seasonNumber of new Set([...bySeason.keys(), ...seasonReviews.keys()])) {
+  for (const seasonNumber of bySeason.keys()) {
     if (summaries.has(seasonNumber)) continue;
     summaries.set(seasonNumber, {
       seasonNumber,
-      name: seasonReviews.get(seasonNumber)?.title ?? `Season ${seasonNumber}`,
+      name: `Season ${seasonNumber}`,
       episodeCount: bySeason.get(seasonNumber)?.length ?? 0,
     });
   }
@@ -248,15 +237,13 @@ function buildSeasons(
       const seasonEpisodes = (bySeason.get(summary.seasonNumber) ?? []).sort(
         (a, b) => a.episodeNumber - b.episodeNumber,
       );
-      const review = seasonReviews.get(summary.seasonNumber);
       return {
-        ...levelScores(
-          review?.scores ?? {},
+        scores: levelScores(
+          {},
           seasonEpisodes.map((episode) => episode.review.scores),
-        ),
+        ).scores,
         seasonNumber: summary.seasonNumber,
         title: summary.name,
-        review,
         episodes: seasonEpisodes,
         episodeCount: Math.max(summary.episodeCount, seasonEpisodes.length),
         scoredCount: seasonEpisodes.filter((episode) => episode.scored).length,
@@ -269,8 +256,7 @@ function buildSeasons(
 export function currentSeasonNumber(show: ShowNode): number | undefined {
   let latest: { date: string; seasonNumber: number } | undefined;
   for (const season of show.seasons) {
-    const reviews = [season.review, ...season.episodes.map((episode) => episode.review)];
-    for (const review of reviews.filter(isDefined)) {
+    for (const review of season.episodes.map((episode) => episode.review)) {
       if (latest === undefined || review.createdDate > latest.date) {
         latest = { date: review.createdDate, seasonNumber: season.seasonNumber };
       }
@@ -299,23 +285,9 @@ export const coverageLabel = (scored: number, total: number) => `${scored}/${tot
 export const coveragePercent = (scored: number, total: number) =>
   total === 0 ? 0 : Math.round((scored / total) * 100);
 
-/** The reader's own score at a season or show, and whether they set it there
- * or it is averaged from theirs one level down. */
-export function ownLevelScore(
-  level: LevelScores,
-  userId: string | undefined,
-): { value: string; averaged: boolean } | undefined {
-  const own = isDefined(userId) ? level.scores[userId] : undefined;
-  if (!isDefined(own) || !isDefined(userId)) return undefined;
-  return level.averagedMemberIds.has(userId)
-    ? { value: own.score.toFixed(1), averaged: true }
-    : { value: String(Math.round(own.score * 100) / 100), averaged: false };
-}
-
-/** A season has no work to reveal by until someone scores it on its own, so
- * it reveals by its address instead. */
+/** A season has no work of its own to reveal by, so it reveals by its address. */
 export const seasonRevealKey = (showId: string, season: SeasonNode) =>
-  season.review?.id ?? formatTvAddress({ showId, seasonNumber: season.seasonNumber });
+  formatTvAddress({ showId, seasonNumber: season.seasonNumber });
 
 function latestScoreDate(reviews: DetailedReviewListItem[]): string | undefined {
   const dates = reviews

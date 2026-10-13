@@ -73,14 +73,16 @@ export interface MediaProvider {
 
   /**
    * The one work a score on `work` lands on. A score is always written to a
-   * single work: scoring a TV season or show stores a number at that level
-   * and never touches the episodes beneath it.
+   * single work: scoring a TV show stores a number on the show and never
+   * touches the episodes beneath it. A TV season is never scored — it is its
+   * members' averages over their episodes.
    *
-   * `seasonNumber` and `episodeNumber` narrow a TV show to one of its seasons
-   * or episodes, which need not be works yet — `{ kind: "work" }` carries what
+   * `seasonNumber` and `episodeNumber` together narrow a TV show to one
+   * episode, which need not be a work yet — `{ kind: "work" }` carries what
    * the caller upserts before writing the review. Media that take no narrowing
-   * return `{ kind: "self" }`; `{ kind: "missing" }` means the narrowing named
-   * something the provider does not list, and nothing is written.
+   * return `{ kind: "self" }`; `{ kind: "missing" }` means the target is not
+   * something that can be scored (a season, or an episode the provider does
+   * not list), and nothing is written.
    */
   resolveScoreTarget: (
     work: { title: string; externalId: string | null },

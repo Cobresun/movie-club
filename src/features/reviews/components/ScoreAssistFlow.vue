@@ -94,7 +94,7 @@ const {
 } = useScoreAssist(props.target, props.candidates);
 
 // Candidates are always the club's own unit (an episode, for TV), so a target
-// at another level — a season or show — is compared without naming either.
+// at another level — a show — is compared without naming either.
 const question = computed(() => {
   const noun = clubTypeConfig(props.clubType).noun;
   const targetNoun = workNoun(props.target.externalData) ?? noun;

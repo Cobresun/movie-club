@@ -5,37 +5,68 @@
     :aria-labelledby="seasonTabId(show.showId, season.seasonNumber)"
     class="animate-fade-up"
   >
-    <div class="flex items-baseline gap-2 px-3 pt-3 md:pl-11 md:pr-3">
-      <h3 class="font-semibold">{{ season.title }}</h3>
-      <span class="text-xs text-white/55">
+    <!-- The season in a line: each member's average over the episodes they
+         scored, and the club's mean of those. A season is never scored on
+         its own. -->
+    <div
+      role="group"
+      :aria-label="`${season.title} scores`"
+      class="flex flex-wrap items-center gap-x-3 gap-y-2 bg-white/[0.02] py-2.5 pl-3 pr-2 md:gap-x-4 md:pl-11 md:pr-3"
+    >
+      <h3 class="text-sm font-semibold">{{ season.title }}</h3>
+      <span class="flex-grow text-xs text-white/55">
         {{ coverageLabel(season.scoredCount, season.episodeCount) }}
       </span>
+      <ScoreChips
+        v-if="isDesktop && memberEntries.length > 0"
+        class="justify-end"
+        row
+        :entries="memberEntries"
+        :current-user-id="currentUserId"
+        :revealed="revealed"
+      />
+      <button
+        v-if="canReveal"
+        type="button"
+        class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-gray-400 transition duration-fast ease-standard hover:bg-white/10 hover:text-gray-200"
+        :aria-label="`Reveal ${season.title} scores`"
+        @click="emit('toggle-reveal', revealKey)"
+      >
+        <mdicon name="eye-outline" :size="18" />
+      </button>
+      <span
+        class="w-10 shrink-0 text-right font-bold"
+        :class="[
+          isDefined(season.scores.average) ? 'text-primary' : 'text-gray-500',
+          revealed || !isDefined(season.scores.average) ? '' : 'blur filter',
+        ]"
+        :aria-hidden="(!revealed && isDefined(season.scores.average)) || undefined"
+      >
+        {{ formatRollup(season.scores) }}
+      </span>
+      <!-- Holds the episode rows' action column, so the season's average
+           lines up with theirs. -->
+      <span class="w-10 shrink-0" aria-hidden="true" />
+      <ScoreChips
+        v-if="!isDesktop && memberEntries.length > 0"
+        class="w-full"
+        row
+        :entries="memberEntries"
+        :current-user-id="currentUserId"
+        :revealed="revealed"
+      />
     </div>
-    <LevelScore
-      label="Season score"
-      noun="season"
-      below="episodes"
-      show-club
-      chips-on-desktop
-      :level="level"
-      :entries="entries"
-      :revealed="revealed"
-      :target="seasonTarget"
-      :current-user-id="currentUserId"
-      @reveal="emit('toggle-reveal', revealKey)"
-      @details="opened = 'season'"
-    />
 
     <p
       v-if="cards.length === 0 && isLoadingEpisodes"
-      class="px-3 pb-3 text-sm text-gray-400 md:pl-11"
+      class="px-3 py-3 text-sm text-gray-400 md:pl-11"
       role="status"
     >
       Loading episodes…
     </p>
     <p
       v-else-if="cards.length === 0 && isEpisodesError"
-      class="px-3 pb-3 text-sm text-gray-400 md:pl-11"
+      class="px-3 py-3 text-sm text-gray-400 md:pl-11"
     >
       Couldn't load this season's episodes.
     </p>
@@ -48,13 +79,11 @@
         :entries="view.entries"
         :revealed="view.revealed"
         :can-score="view.canScore"
-        :can-reveal="view.canReveal"
         :up-next="view.card.episodeNumber === upNext"
         :pending="view.pending"
         :score-target="view.target"
         :current-user-id="currentUserId"
         @details="opened = view.card.episodeNumber"
-        @reveal="revealEpisode(view.card)"
       />
     </ul>
 
@@ -83,18 +112,11 @@ import { computed, ref } from "vue";
 import { isDefined } from "../../../../lib/checks/checks.js";
 import { Member } from "../../../../lib/types/club";
 import { DetailedReviewListItem, ReviewScores } from "../../../../lib/types/lists";
-import {
-  buildEpisodeCards,
-  EpisodeCard,
-  episodePreview,
-  ScoreTarget,
-  seasonPreview,
-  withMemberScore,
-} from "../episodeCards";
+import { buildEpisodeCards, episodePreview, ScoreTarget, withMemberScore } from "../episodeCards";
 import { hasOwnScore, isOthersScore, scoreEntries } from "../reviewScores";
 import {
   coverageLabel,
-  LevelScores,
+  formatRollup,
   SeasonNode,
   seasonPanelId,
   seasonRevealKey,
@@ -102,8 +124,9 @@ import {
   ShowNode,
 } from "../reviewTree";
 import EpisodeRow from "./EpisodeRow.vue";
-import LevelScore from "./LevelScore.vue";
+import ScoreChips from "./ScoreChips.vue";
 import WorkDetailsDrawer from "./WorkDetailsDrawer.vue";
+import { useIsDesktop } from "@/common/composables/useIsDesktop";
 import { useClubSlug } from "@/service/useClub";
 import { useSubmitScore } from "@/service/useReviews";
 import { useTvSeason } from "@/service/useTMDB";
@@ -121,6 +144,8 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: "toggle-reveal", workId: string): void;
 }>();
+
+const isDesktop = useIsDesktop();
 
 // Only the selected season is mounted, so only its listing is fetched: a club
 // deep into a long show would otherwise pull every season's just to draw the
@@ -146,17 +171,13 @@ const cards = computed(() =>
 );
 
 // -- Pending scores ---------------------------------------------------------
-// A season or episode nobody has scored has no work on the reviews list for
-// the usual optimistic update to write into, so a save shows here, keyed by
-// the episode number (or none, for the season itself), until the refetched
-// list carries it.
+// An episode nobody has scored has no work on the reviews list for the usual
+// optimistic update to write into, so a save shows here, keyed by the episode
+// number, until the refetched list carries it.
 
-const SEASON = "season";
-type PendingKey = number | typeof SEASON;
+const pendingScores = ref(new Map<number, number>());
 
-const pendingScores = ref(new Map<PendingKey, number>());
-
-const markPending = (key: PendingKey, score: number) => {
+const markPending = (key: number, score: number) => {
   pendingScores.value = new Map([...pendingScores.value, [key, score]]);
   return () => {
     // A later save on the same work owns the entry now; leave it be.
@@ -166,7 +187,7 @@ const markPending = (key: PendingKey, score: number) => {
 };
 
 /** `scores` with the reader's in-flight save written in, if they have one. */
-const withPending = (scores: ReviewScores, key: PendingKey) => {
+const withPending = (scores: ReviewScores, key: number) => {
   const pending = pendingScores.value.get(key);
   const userId = props.currentUserId;
   return isDefined(pending) && isDefined(userId)
@@ -177,9 +198,9 @@ const withPending = (scores: ReviewScores, key: PendingKey) => {
 const clubSlug = useClubSlug();
 const submitScore = useSubmitScore(clubSlug);
 
-/** Saves a score on a season or episode that is not a work yet, through the show. */
-const scoreThroughShow = (episodeNumber?: number) => (score: number) => {
-  const settle = markPending(episodeNumber ?? SEASON, score);
+/** Saves a score on an episode that is not a work yet, through the show. */
+const scoreThroughShow = (episodeNumber: number) => (score: number) => {
+  const settle = markPending(episodeNumber, score);
   submitScore(
     {
       workId: props.show.workId,
@@ -195,9 +216,8 @@ const scoreThroughShow = (episodeNumber?: number) => (score: number) => {
  * it becomes — through the show. */
 const targetFor = (
   review: DetailedReviewListItem | undefined,
-  key: PendingKey,
+  episodeNumber: number,
   preview: () => DetailedReviewListItem,
-  episodeNumber?: number,
 ): ScoreTarget => {
   const userId = props.currentUserId;
   if (isDefined(review)) {
@@ -206,40 +226,30 @@ const targetFor = (
   }
   return {
     work: preview(),
-    score: pendingScores.value.get(key),
+    score: pendingScores.value.get(episodeNumber),
     saveScore: scoreThroughShow(episodeNumber),
   };
 };
 
-// -- The season's own score ---------------------------------------------------
+// -- The season's scores -------------------------------------------------------
 
-/** The season's scores, with a save still in flight standing in for the
- * reader's own — set now, so no longer averaged from their episodes. */
-const level = computed<LevelScores>(() => {
-  const userId = props.currentUserId;
-  if (!pendingScores.value.has(SEASON) || !isDefined(userId)) return props.season;
-  return {
-    scores: withPending(props.season.scores, SEASON),
-    averagedMemberIds: new Set([...props.season.averagedMemberIds].filter((id) => id !== userId)),
-  };
-});
-
-const entries = computed(() =>
-  scoreEntries(level.value.scores, props.members, level.value.averagedMemberIds),
+// Every member's number here is an average, so each reads to one decimal.
+const memberEntries = computed(() =>
+  scoreEntries(props.season.scores, props.members)
+    .filter((entry) => isDefined(entry.memberId))
+    .map((entry) => ({ ...entry, value: Number(entry.value.toFixed(1)) })),
 );
-const memberEntries = computed(() => entries.value.filter((entry) => isDefined(entry.memberId)));
 
 const revealKey = computed(() => seasonRevealKey(props.show.showId, props.season));
 const revealed = computed(
   () =>
-    hasOwnScore(level.value.scores, props.currentUserId) ||
+    hasOwnScore(props.season.scores, props.currentUserId) ||
     props.revealedMovieIds.has(revealKey.value),
 );
-
-const seasonTarget = computed(() =>
-  targetFor(props.season.review, SEASON, () =>
-    seasonPreview(props.show.data, props.season, tmdbSeason.value, withPending({}, SEASON)),
-  ),
+const canReveal = computed(
+  () =>
+    !revealed.value &&
+    memberEntries.value.some((entry) => isOthersScore(entry, props.currentUserId)),
 );
 
 // -- Episodes -----------------------------------------------------------------
@@ -259,16 +269,9 @@ const cardViews = computed(() =>
       revealed,
       scores,
       canScore: card.aired && isDefined(props.currentUserId) && !ownScore,
-      canReveal:
-        isDefined(card.node) &&
-        !revealed &&
-        entries.some((entry) => isOthersScore(entry, props.currentUserId)),
       pending: pendingScores.value.has(card.episodeNumber),
-      target: targetFor(
-        card.node?.review,
-        card.episodeNumber,
-        () => episodePreview(props.show.data, props.season.seasonNumber, card, scores),
-        card.episodeNumber,
+      target: targetFor(card.node?.review, card.episodeNumber, () =>
+        episodePreview(props.show.data, props.season.seasonNumber, card, scores),
       ),
     };
   }),
@@ -283,17 +286,13 @@ const upNext = computed(() => {
   return views.slice(lastScored + 1).find((view) => view.canScore)?.card.episodeNumber;
 });
 
-const revealEpisode = (card: EpisodeCard) => {
-  if (isDefined(card.node)) emit("toggle-reveal", card.node.workId);
-};
-
 // -- The details drawer -------------------------------------------------------
-// The season and each episode open in the same drawer as movies and books. One
-// nobody has scored yet opens as a preview, scored through the show until that
-// save lists it — the key stays put, so the drawer switches to the real work in
-// place.
+// An episode opens in the same drawer as movies and books, score entry and
+// all. One nobody has scored yet opens as a preview, scored through the show
+// until that save lists it — the key stays put, so the drawer switches to the
+// real work in place.
 
-const opened = ref<PendingKey>();
+const opened = ref<number>();
 
 interface OpenedWork {
   key: string;
@@ -302,13 +301,7 @@ interface OpenedWork {
 }
 
 const openedWork = computed<OpenedWork | undefined>(() => {
-  const key = opened.value;
-  if (key === SEASON) {
-    const { work, saveScore } = seasonTarget.value;
-    return { key: SEASON, work, saveScore };
-  }
-
-  const view = cardViews.value.find((option) => option.card.episodeNumber === key);
+  const view = cardViews.value.find((option) => option.card.episodeNumber === opened.value);
   if (!isDefined(view)) return undefined;
   const { work, saveScore } = view.target;
   return { key: `episode-${view.card.episodeNumber}`, work, saveScore };

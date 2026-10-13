@@ -1,12 +1,6 @@
 import { execSync } from "child_process";
 import { createHash } from "crypto";
-import {
-  readdirSync,
-  readFileSync,
-  existsSync,
-  writeFileSync,
-  mkdirSync,
-} from "fs";
+import { readdirSync, readFileSync, existsSync, writeFileSync, mkdirSync } from "fs";
 import path from "path";
 import pg from "pg";
 
@@ -101,10 +95,7 @@ async function checkDatabaseExists(dbName) {
   const pool = new Pool({ connectionString: adminConnString });
 
   try {
-    const result = await pool.query(
-      "SELECT 1 FROM pg_database WHERE datname = $1",
-      [dbName],
-    );
+    const result = await pool.query("SELECT 1 FROM pg_database WHERE datname = $1", [dbName]);
     return result.rowCount !== null && result.rowCount > 0;
   } finally {
     await pool.end();
@@ -152,17 +143,10 @@ function writeDatabaseUrlToConfig(databaseUrl) {
 
     writeFileSync(configFilePath, configContent, "utf-8");
 
-    console.log(
-      "✓ Wrote DATABASE_URL to database-config.json for Functions runtime",
-    );
+    console.log("✓ Wrote DATABASE_URL to database-config.json for Functions runtime");
   } catch (error) {
-    console.warn(
-      "Warning: Could not write DATABASE_URL to config file:",
-      error.message,
-    );
-    console.warn(
-      "Netlify Functions may not have access to the preview database",
-    );
+    console.warn("Warning: Could not write DATABASE_URL to config file:", error.message);
+    console.warn("Netlify Functions may not have access to the preview database");
   }
 }
 
@@ -191,11 +175,7 @@ function saveHashToFile(hash, reviewId) {
  * @returns {string | null} The cached hash, or null if not found
  */
 function restoreHashFromFile(reviewId) {
-  const hashFile = path.join(
-    process.cwd(),
-    ".netlify-cache",
-    `pr-${reviewId}-hash.txt`,
-  );
+  const hashFile = path.join(process.cwd(), ".netlify-cache", `pr-${reviewId}-hash.txt`);
 
   if (existsSync(hashFile)) {
     try {
@@ -229,9 +209,7 @@ function checkForMigrations() {
     const hasChanges = migrationFiles.length > 0;
 
     if (hasChanges) {
-      console.log(
-        `  Found ${migrationFiles.length} changed migration file(s):`,
-      );
+      console.log(`  Found ${migrationFiles.length} changed migration file(s):`);
       migrationFiles.forEach((file) => console.log(`    - ${file}`));
     }
 
@@ -259,9 +237,7 @@ const onPreBuild = async ({ utils, inputs }) => {
   }
 
   if (!hasValue(REVIEW_ID)) {
-    console.log(
-      "Warning: REVIEW_ID not available, skipping preview database setup",
-    );
+    console.log("Warning: REVIEW_ID not available, skipping preview database setup");
     return;
   }
 
@@ -275,9 +251,7 @@ const onPreBuild = async ({ utils, inputs }) => {
 
       const databaseUrl = process.env.DATABASE_URL_ROOT;
       if (hasValue(databaseUrl)) {
-        const sourceDb = hasValue(inputs.sourceDatabase)
-          ? inputs.sourceDatabase
-          : "dev";
+        const sourceDb = hasValue(inputs.sourceDatabase) ? inputs.sourceDatabase : "dev";
 
         const url = new URL(databaseUrl);
         url.pathname = `/${sourceDb}`;
@@ -298,17 +272,11 @@ const onPreBuild = async ({ utils, inputs }) => {
     const currentHash = calculateMigrationHash();
     console.log(`✓ Migration hash: ${currentHash.substring(0, 12)}...`);
 
-    const hashFile = path.join(
-      process.cwd(),
-      ".netlify-cache",
-      `pr-${REVIEW_ID}-hash.txt`,
-    );
+    const hashFile = path.join(process.cwd(), ".netlify-cache", `pr-${REVIEW_ID}-hash.txt`);
 
     const restoredFile = await utils.cache.restore(hashFile);
     const cachedHash =
-      restoredFile !== false && restoredFile !== null
-        ? restoreHashFromFile(REVIEW_ID)
-        : null;
+      restoredFile !== false && restoredFile !== null ? restoreHashFromFile(REVIEW_ID) : null;
 
     if (hasValue(cachedHash)) {
       console.log(`✓ Found cached hash: ${cachedHash.substring(0, 12)}...`);
@@ -349,9 +317,7 @@ const onPreBuild = async ({ utils, inputs }) => {
         const newDatabaseUrl = url.toString();
 
         process.env.DATABASE_URL = newDatabaseUrl;
-        console.log(
-          "✓ DATABASE_URL updated to use existing preview database\n",
-        );
+        console.log("✓ DATABASE_URL updated to use existing preview database\n");
 
         writeDatabaseUrlToConfig(newDatabaseUrl);
       }
@@ -367,9 +333,7 @@ const onPreBuild = async ({ utils, inputs }) => {
     if (shouldRebuild) {
       console.log(`🗄️  Creating preview database for PR #${REVIEW_ID}...\n`);
 
-      const sourceDb = hasValue(inputs.sourceDatabase)
-        ? inputs.sourceDatabase
-        : "dev";
+      const sourceDb = hasValue(inputs.sourceDatabase) ? inputs.sourceDatabase : "dev";
 
       const metadata = JSON.stringify({
         created_at: new Date().toISOString(),
@@ -408,9 +372,7 @@ const onPreBuild = async ({ utils, inputs }) => {
       }
     }
   } catch (error) {
-    utils.build.failBuild(
-      `Failed to create preview database: ${error.message}`,
-    );
+    utils.build.failBuild(`Failed to create preview database: ${error.message}`);
   }
 };
 
@@ -447,30 +409,20 @@ const onSuccess = ({ inputs }) => {
 
   const rootUrl = process.env.DATABASE_URL_ROOT;
   if (!hasValue(rootUrl)) {
-    console.warn(
-      "Warning: DATABASE_URL_ROOT not set; skipping shared dev migration sync",
-    );
+    console.warn("Warning: DATABASE_URL_ROOT not set; skipping shared dev migration sync");
     return;
   }
 
-  const sourceDb = hasValue(inputs.sourceDatabase)
-    ? inputs.sourceDatabase
-    : "dev";
+  const sourceDb = hasValue(inputs.sourceDatabase) ? inputs.sourceDatabase : "dev";
 
   const url = new URL(rootUrl);
   url.pathname = `/${sourceDb}`;
   const devDatabaseUrl = url.toString();
 
-  console.log(
-    `\n🔄 Syncing schema migrations to shared ${sourceDb} database...`,
-  );
+  console.log(`\n🔄 Syncing schema migrations to shared ${sourceDb} database...`);
 
   try {
-    const scriptPath = path.join(
-      process.cwd(),
-      "migrations",
-      "schemaMigrator.ts",
-    );
+    const scriptPath = path.join(process.cwd(), "migrations", "schemaMigrator.ts");
 
     // Stream the migrator's output straight to the build log so its progress
     // (and any failure detail) is visible without re-capturing it here.
@@ -485,12 +437,8 @@ const onSuccess = ({ inputs }) => {
     // here must not fail the deploy. A stale `dev` only affects preview/local
     // environments and is recoverable with `npm run migrate:dev`.
     const message = error instanceof Error ? error.message : String(error);
-    console.warn(
-      `⚠️  Failed to sync migrations to the shared ${sourceDb} database: ${message}`,
-    );
-    console.warn(
-      "   Production is unaffected. Run `npm run migrate:dev` to sync manually.",
-    );
+    console.warn(`⚠️  Failed to sync migrations to the shared ${sourceDb} database: ${message}`);
+    console.warn("   Production is unaffected. Run `npm run migrate:dev` to sync manually.");
   }
 };
 
