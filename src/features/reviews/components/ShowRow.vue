@@ -1,6 +1,6 @@
 <template>
   <article class="rounded-lg border border-white/10 bg-white/[0.03] text-left">
-    <div class="relative flex items-center gap-3 p-2.5 md:gap-5 md:p-3">
+    <div class="relative isolate flex items-center gap-3 p-2.5 md:gap-5 md:p-3">
       <img
         v-if="hasValue(show.imageUrl)"
         v-lazy-load
@@ -17,11 +17,13 @@
 
       <div class="flex min-w-0 flex-grow flex-col gap-1">
         <!-- The title is the row's button; its ::after stretches over the
-             whole header so anywhere on it opens the show. -->
+             whole header so anywhere on it opens the show. It sits at z-10
+             because the rotated chevron, blurred score and fading poster
+             each paint above an unraised overlay and swallow the click. -->
         <h2 class="text-base font-semibold leading-snug md:text-lg">
           <button
             type="button"
-            class="line-clamp-2 text-left after:absolute after:inset-0 after:content-['']"
+            class="line-clamp-2 text-left after:absolute after:inset-0 after:z-10 after:content-['']"
             :aria-expanded="open"
             :aria-label="`${show.title}, ${rollupLabel(show.scores)}`"
             @click="emit('toggle')"

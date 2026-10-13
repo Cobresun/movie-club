@@ -1,7 +1,7 @@
 <template>
   <li class="border-t border-white/5" :class="open ? 'bg-white/[0.03]' : ''">
     <div
-      class="relative flex min-h-[56px] items-center gap-3 py-2 pl-3 pr-2 transition-colors duration-fast ease-standard md:gap-4 md:pl-11 md:pr-3"
+      class="relative isolate flex min-h-[56px] items-center gap-3 py-2 pl-3 pr-2 transition-colors duration-fast ease-standard md:gap-4 md:pl-11 md:pr-3"
       :class="card.aired ? 'hover:bg-white/5' : 'opacity-60'"
     >
       <template v-if="isDesktop">
@@ -24,12 +24,13 @@
       </span>
       <div class="flex min-w-0 flex-grow flex-col">
         <!-- The title is the row's button; its ::after stretches over the
-             whole row so anywhere on it toggles, while the Score button sits
-             above. -->
+             whole row so anywhere on it toggles. It sits at z-10, over the
+             blurred scores and still that would otherwise swallow the click,
+             and the Score button at z-20 above it. -->
         <h4 class="text-sm font-medium leading-snug">
           <button
             type="button"
-            class="text-left after:absolute after:inset-0 after:content-[''] disabled:cursor-default"
+            class="text-left after:absolute after:inset-0 after:z-10 after:content-[''] disabled:cursor-default"
             :aria-expanded="open"
             :disabled="!card.aired"
             @click="open = !open"
@@ -73,7 +74,7 @@
         <button
           v-if="canScore"
           type="button"
-          class="relative flex h-9 w-9 items-center justify-center rounded-full transition duration-fast ease-standard active:scale-95"
+          class="relative z-20 flex h-9 w-9 items-center justify-center rounded-full transition duration-fast ease-standard active:scale-95"
           :class="
             upNext
               ? 'bg-primary text-white shadow-md shadow-primary/30 hover:brightness-110'
