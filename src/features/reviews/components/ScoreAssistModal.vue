@@ -14,7 +14,7 @@
     <template v-else>
       <h2 class="mb-4 text-center text-xl font-bold">{{ target.title }}</h2>
       <ScoreEntryPanel
-        :work-id="target.id"
+        :work="target"
         :score="myReview?.score"
         :review-id="myReview?.id"
         :draft-score="suggestedScore"

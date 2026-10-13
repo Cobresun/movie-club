@@ -58,6 +58,31 @@ describe("NewClubView", () => {
     expect(screen.getByText("Club name is required")).toBeInTheDocument();
   });
 
+  it("offers every club type a club can be created as", async () => {
+    const { pinia } = render(NewClubView);
+    logIn(pinia);
+
+    expect(await screen.findByRole("button", { name: "Movies" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Books" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "TV shows" })).toBeInTheDocument();
+  });
+
+  it("moves the selection to the club type you pick", async () => {
+    const { pinia, user } = render(NewClubView);
+    logIn(pinia);
+
+    // Movies is the default, so picking TV has to deselect it — the selected
+    // state is what tells you which type the club will be created as.
+    expect(
+      await screen.findByRole("button", { name: "Movies", pressed: true }),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "TV shows" }));
+
+    expect(screen.getByRole("button", { name: "TV shows", pressed: true })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Movies", pressed: false })).toBeInTheDocument();
+  });
+
   it("hands the new club's invite link over before the club itself", async () => {
     server.use(
       http.post("/api/club", async ({ request }) => {

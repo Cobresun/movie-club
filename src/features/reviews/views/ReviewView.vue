@@ -44,10 +44,11 @@
           @action="openPrompt"
         />
       </div>
-      <gallery-view
+      <component
+        :is="reviewLayout.component"
         v-else
         ref="gallery"
-        :reviews="filteredReviews"
+        :reviews="shownReviews"
         :delete-review="deleteReview"
         :members="members"
         :revealed-movie-ids="revealedMovieIds"
@@ -64,11 +65,11 @@ import { computed, nextTick, ref, provide, useTemplateRef } from "vue";
 import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import { ClubType } from "../../../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
-import GalleryView from "../components/GalleryView.vue";
 import ReviewsSkeleton from "../components/ReviewsSkeleton.vue";
 import ScoreAssistModal from "../components/ScoreAssistModal.vue";
 import UpNextCard from "../components/UpNextCard.vue";
 import { buildCandidatePool, isScoreAssistEligible } from "../composables/scoreAssistLogic";
+import { REVIEW_LAYOUTS } from "../reviewLayouts";
 import { ScoreAssistKey } from "../scoreAssist";
 import { clubTypeConfig } from "@/common/clubType";
 import EmptyState from "@/common/components/EmptyState.vue";
@@ -100,8 +101,13 @@ const closePrompt = () => {
 const filteredReviews = ref<DetailedReviewListItem[]>([]);
 const hasActiveFilters = ref(false);
 
+const reviewLayout = computed(() => REVIEW_LAYOUTS[club.value?.type ?? ClubType.movie]);
+const shownReviews = computed(() =>
+  reviewLayout.value.select(reviews.value ?? [], filteredReviews.value),
+);
+
 const hasSearchTerm = computed(() => hasActiveFilters.value);
-const showEmptyState = computed(() => !loading.value && filteredReviews.value.length === 0);
+const showEmptyState = computed(() => !loading.value && shownReviews.value.length === 0);
 
 const searchEmptyDescription = computed(() => {
   const fields = clubTypeConfig(club.value?.type ?? ClubType.movie).searchableFieldsHint;
@@ -116,11 +122,12 @@ const members = computed(() => membersResponse.value ?? []);
 
 // Starting the up-next review lands straight in its details drawer, where the
 // score entry lives. The gallery may only just have mounted (the first review
-// replaces the empty state), so wait a tick for its ref.
-const gallery = useTemplateRef("gallery");
+// replaces the empty state), so wait a tick for its ref. Only the flat gallery
+// layout exposes `openReview`.
+const gallery = useTemplateRef<{ openReview?: (workId: string) => void }>("gallery");
 const openStartedReview = async (workId: string) => {
   await nextTick();
-  gallery.value?.openReview(workId);
+  gallery.value?.openReview?.(workId);
 };
 
 const { data: reviewsListId } = useReviewsListId(clubSlug);
@@ -146,11 +153,7 @@ const scoreAssistCandidates = computed(() => {
   return buildCandidatePool(memberScores.value ?? [], target);
 });
 provide(ScoreAssistKey, {
-  isEligible: (workId: string) =>
-    isScoreAssistEligible(
-      memberScores.value,
-      reviews.value?.find((review) => review.id === workId),
-    ),
+  isEligible: (work) => isScoreAssistEligible(memberScores.value, work),
   open: (workId: string) => {
     scoreAssistWorkId.value = workId;
   },
@@ -161,7 +164,7 @@ const hasUserRated = computed(() => {
   if (userId.value === undefined) return () => false;
 
   return (movieId: string) => {
-    const review = filteredReviews.value?.find((review) => review.id === movieId);
+    const review = shownReviews.value.find((review) => review.id === movieId);
     return Boolean(review?.scores[userId.value ?? ""]?.score !== undefined);
   };
 });

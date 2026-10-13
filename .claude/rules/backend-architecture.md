@@ -64,6 +64,12 @@ The year moves forward through `AwardsStep` one phase at a time and never back �
 
 Repository classes in `netlify/functions/repositories/` own all queries — one per aggregate, named `<Thing>Repository`. Kysely with generated types throughout.
 
+A score always lands on exactly one work. `MediaProvider.resolveScoreTarget(work, { seasonNumber, episodeNumber })` says which: `self` for a movie, a book, a TV show or a TV episode scored as itself; `work` for a TV show narrowed to an episode that may not be a work yet; `missing` for a season, or an episode TMDB does not list, which is refused. `POST /reviews` upserts that one work, puts it on the reviews list and writes the review, so there is no per-level score endpoint and no club-type branch in the handler. A TV show score is its own review — it is never written down to the episodes beneath it, and a fan-out that did so is the mistake this design exists to prevent. A season is never scored at all: it is each member's average over their episodes, computed in the client.
+
+The TV provider resolves an episode from its own TMDB cache. When that cache lacks what the client (which reads TMDB live) offered — an episode that aired tonight, a newly announced season — it re-reads TMDB once, and only if the cached listing is over 15 minutes old; a season TMDB 404s is `missing`, never a 500 or an empty cached season.
+
+Removing a work from a list also removes its parts, found through `MediaProvider.partsPrefix(externalId)` (a TV show's `"95396:"`; undefined for everything else). Without it a deleted show's episodes stay on the reviews list, invisible in the UI but still counted by statistics, review facts and Score Assist.
+
 Stale-metadata refresh is deliberately _not_ a repository: each `MediaProvider` in `netlify/functions/utils/providers/` implements `refreshStaleDetails(limit)` for its own source (TMDB, Google Books), and `scheduled-work-refresh.ts` sweeps them. `scheduled-db-cleanup.ts` reaps stale preview databases, and `scheduled-metrics-snapshot.ts` records the observability rollups `MetricsRepository` reads.
 
 Deploy-time behavior lives in Netlify plugins: `netlify/plugins/preview-database/` (per-PR database selection, plus the shared-`dev` migration sync on production deploys) and `netlify/plugins/auth-config/`.

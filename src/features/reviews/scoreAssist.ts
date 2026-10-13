@@ -1,5 +1,7 @@
 import type { InjectionKey } from "vue";
 
+import { ScoreAssistTarget } from "./composables/scoreAssistLogic";
+
 /**
  * Score Assist: the "not sure what to score this?" comparison flow. Provided
  * by ReviewView (which hosts the standalone ScoreAssistModal instance) so
@@ -10,8 +12,12 @@ import type { InjectionKey } from "vue";
  * calling `open`.
  */
 export interface ScoreAssist {
-  /** True when the current user has scored enough works besides this one. */
-  isEligible: (workId: string) => boolean;
+  /**
+   * True when the current user has scored enough works besides this one. Takes
+   * the work rather than its id: a TV episode nobody has scored yet
+   * is only a preview, not on the reviews list for an id to find it by.
+   */
+  isEligible: (work: ScoreAssistTarget) => boolean;
   /** Opens the Score Assist modal for the given work. */
   open: (workId: string) => void;
 }

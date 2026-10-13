@@ -32,6 +32,9 @@ vi.mock("vue-router", () => ({
 // mobile and opt into desktop with `setViewport(true)`.
 Object.defineProperty(window, "matchMedia", { writable: true, value: vi.fn() });
 
+// Nor scrolling: a show the reader has just added scrolls itself into view.
+Element.prototype.scrollIntoView = vi.fn();
+
 beforeAll(() => {
   server.listen({ onUnhandledRequest: "error" });
 });

@@ -1,6 +1,7 @@
 import { z } from "zod";
 
-import { hasValue } from "../../../lib/checks/checks.js";
+import { hasValue, isDefined } from "../../../lib/checks/checks.js";
+import { WorkType } from "../../../lib/types/generated/db";
 import {
   DetailedReviewListItem,
   DetailedWorkListItem,
@@ -13,7 +14,7 @@ import UserRepository from "../repositories/UserRepository";
 import WorkRepository from "../repositories/WorkRepository";
 import { secured } from "../utils/auth";
 import { parseBody } from "../utils/parseBody";
-import { getExternalSummariesForWorks } from "../utils/providers";
+import { getExternalSummariesForWorks, getProvider } from "../utils/providers";
 import { requireParam } from "../utils/requireParam";
 import { badRequest, internalServerError, ok } from "../utils/responses";
 import { buildReviewScores } from "../utils/reviewScores";
@@ -189,6 +190,14 @@ router.post(
   },
 );
 
+/** Works that belong to `work` (a TV show's seasons and episodes) and leave
+ * the list with it. */
+async function partIdsOf(clubId: string, work: { type: WorkType; external_id: string | null }) {
+  if (!hasValue(work.external_id)) return [];
+  const prefix = getProvider(work.type).partsPrefix(work.external_id);
+  return hasValue(prefix) ? WorkRepository.getIdsByExternalIdPrefix(clubId, work.type, prefix) : [];
+}
+
 router.delete(
   "/:listId/items/:workId",
   validListId,
@@ -200,7 +209,12 @@ router.delete(
     if (!exists) {
       return res(badRequest("This movie does not exist in the list"));
     }
+    const work = await WorkRepository.getById(clubId, workId);
+    const partIds = isDefined(work) ? await partIdsOf(clubId, work) : [];
+
     await ListRepository.deleteItemFromList(listId, workId);
+    await ListRepository.deleteItemsFromList(listId, partIds);
+    await WorkRepository.deleteUnlisted(clubId, partIds);
     try {
       await WorkRepository.delete(clubId, workId);
     } catch (e) {

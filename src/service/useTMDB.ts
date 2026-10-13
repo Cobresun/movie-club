@@ -2,8 +2,9 @@ import { useInfiniteQuery, useQuery } from "@tanstack/vue-query";
 import axios from "axios";
 import { computed, Ref } from "vue";
 
-import { hasValue } from "../../lib/checks/checks.js";
+import { hasValue, isDefined } from "../../lib/checks/checks.js";
 import { TMDBPageResponse, TMDBWatchProvidersResponse } from "../../lib/types/movie";
+import { TMDBTvSeasonData } from "../../lib/types/tv";
 
 const key = import.meta.env.VITE_TMDB_API_KEY;
 
@@ -20,6 +21,31 @@ export function useInfiniteCollection(collection: Ref<TMDBCollection>) {
       ).data,
     getNextPageParam: (lastPage) =>
       lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined,
+  });
+}
+
+/**
+ * Every episode TMDB lists for one season of a show. The reviews list only
+ * carries episodes the club has scored; this is what lets a member see the
+ * rest and score one once they have watched it.
+ */
+export function useTvSeason(
+  showId: Ref<string | undefined>,
+  seasonNumber: Ref<number | undefined>,
+) {
+  return useQuery<TMDBTvSeasonData>({
+    queryKey: ["tmdb", "tv-season", showId, seasonNumber],
+    enabled: computed(() => hasValue(showId.value) && isDefined(seasonNumber.value)),
+    // An airing season gains episodes week to week, so this is not per-id
+    // immutable data; an hour matches the watch-providers window.
+    staleTime: 1000 * 60 * 60,
+    queryFn: async ({ signal }) =>
+      (
+        await axios.get<TMDBTvSeasonData>(
+          `https://api.themoviedb.org/3/tv/${showId.value}/season/${seasonNumber.value}?api_key=${key}&language=en-US`,
+          { signal },
+        )
+      ).data,
   });
 }
 
