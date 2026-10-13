@@ -73,7 +73,7 @@ router.post("/", secured<ClubRequest>, async ({ event, clubId }, res) => {
 
 router.get("/available-years", async ({ clubId }, res) => {
   const years = await AwardsRepository.getAvailableYears(clubId);
-  return res(ok(JSON.stringify(years)));
+  return res(ok<number[]>(years));
 });
 
 router.get("/years", async ({ clubId }, res) => {
