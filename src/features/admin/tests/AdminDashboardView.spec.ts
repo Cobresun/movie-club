@@ -137,6 +137,62 @@ describe("AdminDashboardView", () => {
     expect(within(newcomers).getByText("No activity yet")).toBeInTheDocument();
   });
 
+  it("compares signups per channel in the range, with how many of each activated", async () => {
+    render(AdminDashboardView);
+
+    const channels = await screen.findByRole("list", { name: "Channels" });
+    const [invite, share, , , notRecorded] = within(channels).getAllByRole("listitem");
+
+    expect(invite).toHaveTextContent("Club invite");
+    expect(invite).toHaveTextContent("5 signups");
+    expect(invite).toHaveTextContent("80% activated (4)");
+    // A channel nobody came through reads as a dash, not 0%.
+    expect(share).toHaveTextContent("Shared page");
+    expect(share).toHaveTextContent("—");
+    // Accounts that predate tracking keep their own row.
+    expect(notRecorded).toHaveTextContent("Not recorded");
+  });
+
+  it("names who referral signups came from and which campaign brought them", async () => {
+    const { user } = render(AdminDashboardView);
+    await screen.findByRole("list", { name: "Channels" });
+
+    await user.click(screen.getByRole("tab", { name: "Referrers" }));
+    const [birthdayBot] = within(screen.getByRole("list", { name: "Referrers" })).getAllByRole(
+      "listitem",
+    );
+    expect(birthdayBot).toHaveTextContent("birthdaybot");
+    expect(birthdayBot).toHaveTextContent("2 signups");
+
+    await user.click(screen.getByRole("tab", { name: "Campaigns" }));
+    const [reddit] = within(screen.getByRole("list", { name: "Campaigns" })).getAllByRole(
+      "listitem",
+    );
+    expect(reddit).toHaveTextContent("reddit");
+    expect(reddit).toHaveTextContent("test1_bookclub");
+    expect(reddit).toHaveTextContent("14 signups");
+    expect(reddit).toHaveTextContent("36% activated (5)");
+  });
+
+  it("explains how to tag a link before any campaign has brought a signup", async () => {
+    server.use(
+      http.get("/api/admin/metrics", () =>
+        HttpResponse.json({
+          ...adminMetrics,
+          acquisition: { ...adminMetrics.acquisition, campaigns: [] },
+        }),
+      ),
+    );
+    const { user } = render(AdminDashboardView);
+    await screen.findByRole("list", { name: "Channels" });
+
+    await user.click(screen.getByRole("tab", { name: "Campaigns" }));
+
+    expect(
+      screen.getByText(/No signups from tagged links in the last 30 days/),
+    ).toBeInTheDocument();
+  });
+
   it("lists the latest reviews with their scores", async () => {
     render(AdminDashboardView);
 
