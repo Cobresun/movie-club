@@ -7,6 +7,8 @@ import { formatTvAddress, TMDBTvEpisodeData, TvDataSummary } from "../../lib/typ
 import { asTv } from "../common/workDisplay";
 import { withMemberScore } from "../features/reviews/episodeCards";
 
+const addBodySchema = z.object({ externalId: z.string() });
+
 const scoreBodySchema = z.object({
   workId: z.string(),
   score: z.number(),
@@ -22,15 +24,19 @@ const scoreBodySchema = z.object({
  *
  * `seasons` stands in for both TMDB's season endpoint and the server's cached
  * copy of it: which episodes exist, and so what a score on a show can name.
+ * `catalog` holds the shows the club can add, as the server returns them once
+ * added.
  */
 export const tvReviewsApi = ({
   reviews,
   userId,
   seasons,
+  catalog = [],
 }: {
   reviews: DetailedReviewListItem[];
   userId: string;
   seasons: Record<number, TMDBTvEpisodeData[]>;
+  catalog?: DetailedReviewListItem[];
 }) => {
   let list = [...reviews];
 
@@ -89,6 +95,13 @@ export const tvReviewsApi = ({
 
   return [
     http.get("/api/club/:id/list/reviews", () => HttpResponse.json(list)),
+    http.post("/api/club/:id/list/:listId/items", async ({ request }) => {
+      const { externalId } = addBodySchema.parse(await request.json());
+      const show = catalog.find((item) => item.externalId === externalId);
+      if (show === undefined) return new HttpResponse(null, { status: 400 });
+      list = [{ ...show, createdDate: new Date().toISOString() }, ...list];
+      return new HttpResponse(null, { status: 200 });
+    }),
     http.post("/api/club/:id/reviews", async ({ request }) => {
       const body = scoreBodySchema.parse(await request.json());
       const work = list.find((item) => item.id === body.workId);

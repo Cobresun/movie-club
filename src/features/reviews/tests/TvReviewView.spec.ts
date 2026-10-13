@@ -133,12 +133,39 @@ const tmdbSeasons = {
   ],
 };
 
+/** A show the club can add, as the server returns it once added. */
+const theBear: DetailedReviewListItem = {
+  ...show,
+  id: "show-2",
+  title: "The Bear",
+  externalId: "136315",
+  imageUrl: "https://image.tmdb.org/t/p/w154/bear.jpg",
+  externalData: {
+    ...seriesFields,
+    showId: "136315",
+    showTitle: "The Bear",
+    level: "show",
+    title: "The Bear",
+    numberOfSeasons: 1,
+    numberOfEpisodes: 8,
+    seasons: [{ seasonNumber: 1, name: "Season 1", episodeCount: 8 }],
+  },
+};
+
 function useTvClub(reviews: DetailedReviewListItem[] = tvReviews) {
   server.use(
     http.get("/api/club/:id", () =>
       HttpResponse.json({ clubId: 1, clubName: "Test club", type: "tv" }),
     ),
-    ...tvReviewsApi({ reviews, userId: SIGNED_IN, seasons: tmdbSeasons }),
+    ...tvReviewsApi({ reviews, userId: SIGNED_IN, seasons: tmdbSeasons, catalog: [theBear] }),
+    http.get("https://api.themoviedb.org/3/search/tv", () =>
+      HttpResponse.json({
+        page: 1,
+        total_pages: 1,
+        total_results: 1,
+        results: [{ id: 136315, name: "The Bear", poster_path: "/bear.jpg" }],
+      }),
+    ),
   );
 }
 
@@ -436,6 +463,43 @@ describe("TV reviews", () => {
 
     expect(screen.getByRole("tab", { name: /^Season 2/ })).toHaveFocus();
     expect(await screen.findByRole("heading", { name: "Not Out Yet" })).toBeInTheDocument();
+  });
+
+  it("shows a show being added at the top, then opens it there once it lands", async () => {
+    const { user } = await renderSeverance();
+    let release: () => void = () => undefined;
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    server.use(
+      http.post("/api/club/:id/list/:listId/items", async () => {
+        // Returning nothing hands the request on to the club's fake, which adds it.
+        await held;
+      }),
+    );
+
+    await user.click(screen.getByRole("button", { name: "Add review" }));
+    await user.type(await screen.findByPlaceholderText("Type to filter or search"), "Bear");
+    await user.click(await screen.findByText("The Bear"));
+
+    expect(await screen.findByText("Adding to the club…")).toBeInTheDocument();
+    expect(screen.getAllByRole("heading", { level: 2 })[0]).toHaveTextContent("The Bear");
+
+    release();
+
+    // Added moments ago, it sits above Severance even though nobody has
+    // scored it, and opens ready to score.
+    const bear = await screen.findByRole("button", { name: "The Bear, no scores yet" });
+    expect(bear).toHaveAttribute("aria-expanded", "true");
+    expect(screen.queryByText("Adding to the club…")).not.toBeInTheDocument();
+    expect(screen.getAllByRole("heading", { level: 2 })[0]).toHaveTextContent("The Bear");
+  });
+
+  it("holds a show's place while its seasons are still being fetched", async () => {
+    await renderSeverance([...tvReviews, { ...theBear, externalData: undefined }]);
+
+    expect(screen.getByRole("heading", { name: "The Bear", level: 2 })).toBeInTheDocument();
+    expect(screen.getByText("Getting seasons and episodes…")).toBeInTheDocument();
   });
 
   it("tells a club with no shows yet what to do", async () => {

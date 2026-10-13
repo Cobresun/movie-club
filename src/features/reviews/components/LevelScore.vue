@@ -1,15 +1,15 @@
 <template>
   <div role="group" :aria-label="label" class="px-3 py-3 md:pl-11 md:pr-3">
     <div class="flex flex-wrap items-center gap-x-6 gap-y-3">
-      <div class="flex items-end gap-6">
-        <div v-if="showClub" class="flex flex-col-reverse">
+      <p v-if="!hasNumbers" class="text-sm text-gray-400">
+        No scores yet. Be the first to score this {{ noun }}.
+      </p>
+      <div v-else class="flex items-end gap-6">
+        <div v-if="showClub && isDefined(level.scores.average)" class="flex flex-col-reverse">
           <span class="text-[11px] text-white/55">Club</span>
           <span
             class="text-2xl font-bold leading-tight"
-            :class="[
-              isDefined(level.scores.average) ? 'text-primary' : 'text-gray-500',
-              revealed || !isDefined(level.scores.average) ? '' : 'blur filter',
-            ]"
+            :class="revealed ? 'text-primary' : 'text-primary blur filter'"
             :aria-hidden="!revealed || undefined"
           >
             {{ formatRollup(level.scores) }}
@@ -116,5 +116,8 @@ const isDesktop = useIsDesktop();
 const scoring = ref(false);
 
 const own = computed(() => ownLevelScore(props.level, props.currentUserId));
+const hasNumbers = computed(
+  () => isDefined(own.value) || (props.showClub && isDefined(props.level.scores.average)),
+);
 const memberEntries = computed(() => props.entries.filter((entry) => isDefined(entry.memberId)));
 </script>

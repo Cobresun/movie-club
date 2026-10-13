@@ -2,6 +2,7 @@ import { hasValue, isDefined } from "../../../lib/checks/checks.js";
 import { DetailedReviewListItem, ReviewScores } from "../../../lib/types/lists";
 import { formatTvAddress, TvDataSummary, TvSeasonSummary } from "../../../lib/types/tv";
 import { asTv } from "@/common/workDisplay";
+import { OPTIMISTIC_WORK_ID } from "@/service/useList";
 
 /** One episode on the reviews list. */
 export interface EpisodeNode {
@@ -46,9 +47,7 @@ export interface ShowNode extends LevelScores {
   seasons: SeasonNode[];
   episodeCount: number;
   scoredCount: number;
-  /** Most recent score anywhere in the show, which is how shows are ordered:
-   * a club working through a series week by week would otherwise sit frozen
-   * at the date it added the show. */
+  /** Most recent score anywhere in the show. */
   lastScoredAt?: string;
   /** The date the show's card carries: when its latest season or episode
    * joined the reviews list, or the show itself before any has. */
@@ -109,8 +108,8 @@ function isScored(review: DetailedReviewListItem): boolean {
  * until someone scores it: its row is built from the show's cached season
  * list and whichever of its episodes are on the list.
  *
- * Works whose TV metadata has not cached yet are dropped rather than rendered
- * as an unplaceable row — the scheduled refresh fills them in.
+ * Pending shows ({@link isPendingShow}) are left out: they have no seasons
+ * to build a row from, so the list draws them as placeholders instead.
  */
 export function buildShowTree(reviews: DetailedReviewListItem[]): ShowNode[] {
   const shows = new Map<string, DetailedReviewListItem>();
@@ -119,7 +118,7 @@ export function buildShowTree(reviews: DetailedReviewListItem[]): ShowNode[] {
 
   for (const review of reviews) {
     const tv = asTv(review.externalData);
-    if (tv === undefined) continue;
+    if (tv === undefined || isPendingShow(review)) continue;
 
     if (tv.level === "show") {
       shows.set(tv.showId, review);
@@ -177,7 +176,40 @@ export function buildShowTree(reviews: DetailedReviewListItem[]): ShowNode[] {
     });
   }
 
-  return nodes.sort((a, b) => (b.lastScoredAt ?? "").localeCompare(a.lastScoredAt ?? ""));
+  return nodes.sort((a, b) => lastActivity(b).localeCompare(lastActivity(a)));
+}
+
+/**
+ * How shows are ordered: by the latest thing that happened to each, a score
+ * anywhere in it or the show being added. A club working through a series
+ * week by week would otherwise sit frozen at the date it added the show, and
+ * a show just added would sink below every show with a score.
+ */
+function lastActivity(show: ShowNode): string {
+  const scored = show.lastScoredAt ?? "";
+  return scored > show.review.createdDate ? scored : show.review.createdDate;
+}
+
+/** The show the club scored most recently, which a visit opens on. */
+export function lastScoredShow(shows: ShowNode[]): ShowNode | undefined {
+  return shows
+    .filter((show) => isDefined(show.lastScoredAt))
+    .reduce<ShowNode | undefined>(
+      (latest, show) =>
+        isDefined(latest) && (latest.lastScoredAt ?? "") >= (show.lastScoredAt ?? "")
+          ? latest
+          : show,
+      undefined,
+    );
+}
+
+/**
+ * A show on its way onto the reviews list: the optimistic work an add puts
+ * there before the server has it, or a show the server has but whose TMDB
+ * details have not cached yet. Neither has the seasons a row is built from.
+ */
+export function isPendingShow(review: DetailedReviewListItem): boolean {
+  return review.id === OPTIMISTIC_WORK_ID || !isDefined(asTv(review.externalData));
 }
 
 /**
@@ -324,7 +356,11 @@ export function wholeShows(
   const showIds = new Set(
     matched.map((review) => asTv(review.externalData)?.showId).filter(isDefined),
   );
+  const matchedIds = new Set(matched.map((review) => review.id));
   return all.filter((review) => {
+    // A show still being added stays in view whatever the filters say: it is
+    // what the reader just did.
+    if (isPendingShow(review)) return review.id === OPTIMISTIC_WORK_ID || matchedIds.has(review.id);
     const showId = asTv(review.externalData)?.showId;
     return isDefined(showId) && showIds.has(showId);
   });

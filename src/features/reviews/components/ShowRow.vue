@@ -1,5 +1,9 @@
 <template>
-  <article class="rounded-lg border border-white/10 bg-white/[0.03] text-left">
+  <article
+    ref="card"
+    class="scroll-mt-4 rounded-lg border border-white/10 bg-white/[0.03] text-left"
+    :class="justAdded ? 'animate-just-added' : ''"
+  >
     <div class="relative isolate flex items-center gap-3 p-2.5 md:gap-5 md:p-3">
       <img
         v-if="hasValue(show.imageUrl)"
@@ -135,7 +139,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, onMounted, ref, useTemplateRef } from "vue";
 
 import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import { Member } from "../../../../lib/types/club";
@@ -160,6 +164,8 @@ import { useIsDesktop } from "@/common/composables/useIsDesktop";
 const props = defineProps<{
   show: ShowNode;
   open: boolean;
+  /** Glows once on arrival, for a show the reader has just added. */
+  justAdded?: boolean;
   members: Member[];
   deleteReview: (workId: string) => void;
   revealedMovieIds: Set<string>;
@@ -175,6 +181,14 @@ const emit = defineEmits<{
 const isDesktop = useIsDesktop();
 
 const detailsOpen = ref(false);
+
+// A show lands open at the top of the list, above whatever the reader was
+// looking at; the browser's scroll anchoring would otherwise keep that in view
+// and push the new show off the top of the screen.
+const card = useTemplateRef<HTMLElement>("card");
+onMounted(() => {
+  if (props.justAdded) card.value?.scrollIntoView({ behavior: "smooth", block: "start" });
+});
 
 const selectedSeason = ref(currentSeasonNumber(props.show) ?? 0);
 const selectedSeasonNode = computed(
