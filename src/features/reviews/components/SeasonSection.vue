@@ -5,33 +5,58 @@
     :aria-labelledby="seasonTabId(show.showId, season.seasonNumber)"
     class="animate-fade-up"
   >
-    <!-- The season in a line: the club's average where each episode's sits,
-         and each member's average over the episodes they scored where the
-         episodes' scores sit. A season is never scored on its own. -->
+    <!-- The season's summary: the club's mean of each member's average over
+         the episodes they scored, and those member averages. Set apart from
+         the episode rows below so the two kinds of number never read as one;
+         a season is never scored on its own. -->
     <div
       role="group"
       :aria-label="`${season.title} scores`"
-      class="flex items-center gap-3 bg-white/[0.02] py-2 pl-3 pr-2 md:gap-4 md:pl-11 md:pr-3"
+      class="mx-3 mb-3 flex flex-wrap items-center gap-x-4 gap-y-2.5 rounded-lg bg-primary/10 px-3 py-2.5 ring-1 ring-inset ring-primary/20 md:mx-4 md:px-4"
     >
-      <AverageTile :value="average" :hidden="!revealed" />
-      <div class="flex min-w-0 flex-grow flex-col">
-        <h3 class="text-sm font-semibold">{{ season.title }}</h3>
-        <span class="text-xs text-white/55">
-          {{ coverageLabel(season.scoredCount, season.episodeCount) }}
+      <div class="flex min-w-0 flex-grow items-center gap-3">
+        <span
+          class="text-3xl font-bold leading-none"
+          :class="isDefined(average) ? 'text-primary' : 'text-gray-500'"
+        >
+          <template v-if="!isDefined(average)">—</template>
+          <span v-else-if="!revealed" class="blur" aria-hidden="true">{{ average }}</span>
+          <template v-else
+            ><span class="sr-only">Season average </span><span>{{ average }}</span></template
+          >
         </span>
+        <div class="flex min-w-0 flex-col gap-1">
+          <h3 class="text-xs font-semibold uppercase tracking-wide text-primary/90">
+            {{ season.title }} average
+          </h3>
+          <div class="flex items-center gap-2">
+            <div
+              class="h-1 w-16 overflow-hidden rounded-full bg-white/10 md:w-24"
+              aria-hidden="true"
+            >
+              <div
+                class="h-full rounded-full bg-primary"
+                :style="{ width: `${coveragePercent(season.scoredCount, season.episodeCount)}%` }"
+              />
+            </div>
+            <span class="text-xs text-white/55">
+              {{ coverageLabel(season.scoredCount, season.episodeCount) }}
+            </span>
+          </div>
+        </div>
+        <button
+          v-if="canReveal"
+          type="button"
+          class="ml-auto flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-gray-400 transition duration-fast ease-standard hover:bg-white/10 hover:text-gray-200"
+          :aria-label="`Reveal ${season.title} scores`"
+          @click="emit('toggle-reveal', revealKey)"
+        >
+          <mdicon name="eye-outline" :size="18" />
+        </button>
       </div>
-      <button
-        v-if="canReveal"
-        type="button"
-        class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-gray-400 transition duration-fast ease-standard hover:bg-white/10 hover:text-gray-200"
-        :aria-label="`Reveal ${season.title} scores`"
-        @click="emit('toggle-reveal', revealKey)"
-      >
-        <mdicon name="eye-outline" :size="18" />
-      </button>
       <ScoreChips
         v-if="memberEntries.length > 0"
-        class="shrink-0 justify-end"
+        class="justify-start md:justify-end"
         row
         :entries="memberEntries"
         :current-user-id="currentUserId"
@@ -41,14 +66,14 @@
 
     <p
       v-if="cards.length === 0 && isLoadingEpisodes"
-      class="px-3 py-3 text-sm text-gray-400 md:pl-11"
+      class="px-3 py-3 text-sm text-gray-400 md:px-4"
       role="status"
     >
       Loading episodes…
     </p>
     <p
       v-else-if="cards.length === 0 && isEpisodesError"
-      class="px-3 py-3 text-sm text-gray-400 md:pl-11"
+      class="px-3 py-3 text-sm text-gray-400 md:px-4"
     >
       Couldn't load this season's episodes.
     </p>
@@ -97,6 +122,7 @@ import { buildEpisodeCards, episodePreview, ScoreTarget, withMemberScore } from 
 import { hasOwnScore, isOthersScore, scoreEntries } from "../reviewScores";
 import {
   coverageLabel,
+  coveragePercent,
   formatRollup,
   SeasonNode,
   seasonPanelId,
@@ -104,7 +130,6 @@ import {
   seasonTabId,
   ShowNode,
 } from "../reviewTree";
-import AverageTile from "./AverageTile.vue";
 import EpisodeRow from "./EpisodeRow.vue";
 import ScoreChips from "./ScoreChips.vue";
 import WorkDetailsDrawer from "./WorkDetailsDrawer.vue";

@@ -380,6 +380,19 @@ describe("TV reviews", () => {
     ).toBeInTheDocument();
   });
 
+  it("rates the show from its card, then shows your score there", async () => {
+    const { user } = await renderSeverance();
+
+    await user.click(screen.getByRole("button", { name: "Rate Severance" }));
+    await saveScore(user, "7");
+
+    expect(
+      await screen.findByRole("button", { name: "Your score for Severance, 7. Change it" }),
+    ).toBeInTheDocument();
+    const season = within(screen.getByRole("group", { name: "Season 1 scores" }));
+    expect(season.getByText("8.0")).toBeInTheDocument();
+  });
+
   it("scores the show from its details, leaving its seasons as they were", async () => {
     const { user } = await renderSeverance();
 

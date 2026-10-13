@@ -4,17 +4,17 @@
     class="scroll-mt-4 rounded-lg border border-white/10 bg-white/[0.03] text-left"
     :class="justAdded ? 'animate-just-added' : ''"
   >
-    <div class="relative isolate flex items-center gap-3 p-2.5 md:gap-5 md:p-3">
+    <div class="relative isolate flex items-center gap-3 p-3 md:gap-5">
       <img
         v-if="hasValue(show.imageUrl)"
         v-lazy-load
         :src="show.imageUrl"
         alt=""
-        class="h-[66px] w-11 shrink-0 rounded-md object-cover md:h-[84px] md:w-14"
+        class="h-[84px] w-14 shrink-0 rounded-md object-cover md:h-24 md:w-16"
       />
       <div
         v-else
-        class="flex h-[66px] w-11 shrink-0 items-center justify-center rounded-md bg-lowBackground md:h-[84px] md:w-14"
+        class="flex h-[84px] w-14 shrink-0 items-center justify-center rounded-md bg-lowBackground md:h-24 md:w-16"
       >
         <mdicon name="television-classic" class="text-slate-500" />
       </div>
@@ -23,7 +23,8 @@
         <!-- The title is the row's button; its ::after stretches over the
              whole header so anywhere on it opens the show. It sits at z-10
              because the rotated chevron, blurred score and fading poster
-             each paint above an unraised overlay and swallow the click. -->
+             each paint above an unraised overlay and swallow the click; the
+             show's own actions sit at z-20 above it. -->
         <h2 class="text-base font-semibold leading-snug md:text-lg">
           <button
             type="button"
@@ -48,6 +49,46 @@
           <span class="text-xs text-white/55">
             {{ coverageLabel(show.scoredCount, show.episodeCount) }}
           </span>
+        </div>
+
+        <!-- The show is scored from its own card, the way an episode is
+             scored from its row. -->
+        <div class="relative z-20 mt-1 flex flex-wrap items-center gap-2">
+          <button
+            v-if="isDefined(currentUserId)"
+            type="button"
+            class="flex items-center gap-1.5 rounded-full py-1 pl-2 pr-3 text-sm font-medium transition duration-fast ease-standard active:scale-95"
+            :class="
+              isDefined(ownShowScore)
+                ? 'bg-white/5 text-gray-200 ring-1 ring-inset ring-white/10 hover:bg-white/10'
+                : 'bg-primary/15 text-primary ring-1 ring-inset ring-primary/40 hover:bg-primary/25'
+            "
+            :aria-label="
+              isDefined(ownShowScore)
+                ? `Your score for ${show.title}, ${ownShowScore.score}. Change it`
+                : `Rate ${show.title}`
+            "
+            @click="rating = true"
+          >
+            <template v-if="isDefined(ownShowScore)">
+              <mdicon name="star" :size="16" class="text-primary" />
+              <span>Your score</span>
+              <span class="font-bold text-white">{{ ownShowScore.score }}</span>
+            </template>
+            <template v-else>
+              <mdicon name="star-outline" :size="16" />
+              <span>Rate show</span>
+            </template>
+          </button>
+          <button
+            type="button"
+            class="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-sm text-gray-400 transition duration-fast ease-standard hover:bg-white/5 hover:text-gray-200"
+            :aria-label="`${show.title} details`"
+            @click="detailsOpen = true"
+          >
+            <mdicon name="comment-text-outline" :size="16" />
+            <span class="hidden sm:inline">Details</span>
+          </button>
         </div>
       </div>
 
@@ -81,29 +122,15 @@
     </div>
 
     <div v-if="open" class="animate-fade-up border-t border-white/10">
-      <!-- One line of controls: which season, and the show's own details,
-           where the show is scored and discussed like any other work. -->
-      <div class="flex items-center gap-2 pr-2 md:pr-3">
-        <SeasonTabs
-          v-if="show.seasons.length > 0"
-          v-model="selectedSeason"
-          class="min-w-0 flex-grow"
-          :show-id="show.showId"
-          :seasons="show.seasons"
-        />
-        <p v-else class="flex-grow py-3 pl-3 text-sm text-gray-400 md:pl-11">
-          This show's seasons haven't loaded yet.
-        </p>
-        <button
-          type="button"
-          class="flex shrink-0 items-center gap-1.5 rounded-full bg-lowBackground px-3 py-1.5 text-sm text-gray-300 transition duration-fast ease-standard hover:brightness-110"
-          :aria-label="`${show.title} details`"
-          @click="detailsOpen = true"
-        >
-          <mdicon name="comment-text-outline" :size="16" />
-          <span class="hidden sm:inline">Show details</span>
-        </button>
-      </div>
+      <SeasonTabs
+        v-if="show.seasons.length > 0"
+        v-model="selectedSeason"
+        :show-id="show.showId"
+        :seasons="show.seasons"
+      />
+      <p v-else class="py-3 pl-3 text-sm text-gray-400 md:pl-6">
+        This show's seasons haven't loaded yet.
+      </p>
 
       <SeasonSection
         v-if="isDefined(selectedSeasonNode)"
@@ -133,6 +160,13 @@
         @toggle-reveal="emit('toggle-reveal', $event)"
         @close="detailsOpen = false"
       />
+      <ScoreEntryModal
+        v-if="rating"
+        :target="show.review"
+        :score="ownShowScore?.score"
+        :review-id="ownShowScore?.id"
+        @close="rating = false"
+      />
     </Teleport>
   </article>
 </template>
@@ -152,6 +186,7 @@ import {
   ShowNode,
 } from "../reviewTree";
 import ScoreChips from "./ScoreChips.vue";
+import ScoreEntryModal from "./ScoreEntryModal.vue";
 import SeasonSection from "./SeasonSection.vue";
 import SeasonTabs from "./SeasonTabs.vue";
 import WorkDetailsDrawer from "./WorkDetailsDrawer.vue";
@@ -177,6 +212,13 @@ const emit = defineEmits<{
 const isDesktop = useIsDesktop();
 
 const detailsOpen = ref(false);
+const rating = ref(false);
+
+/** The score the reader set on the show itself, not one averaged from their
+ * episodes. */
+const ownShowScore = computed(() =>
+  isDefined(props.currentUserId) ? props.show.review.scores[props.currentUserId] : undefined,
+);
 
 // A show lands open at the top of the list, above whatever the reader was
 // looking at; the browser's scroll anchoring would otherwise keep that in view
