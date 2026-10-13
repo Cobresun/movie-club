@@ -5,6 +5,13 @@ export enum ClubType {
   movie = "movie",
 }
 
+export enum SignupSource {
+  direct = "direct",
+  invite = "invite",
+  referral = "referral",
+  share = "share",
+}
+
 export enum WorkListSystemType {
   reviews = "reviews",
 }
@@ -213,6 +220,10 @@ export interface User {
   image: string | null;
   image_id: string | null;
   name: string;
+  signup_source: SignupSource | null;
+  signup_source_detail: string | null;
+  signup_utm_campaign: string | null;
+  signup_utm_source: string | null;
   updatedAt: Generated<Timestamp>;
 }
 

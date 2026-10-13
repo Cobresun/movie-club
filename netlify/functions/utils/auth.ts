@@ -13,6 +13,12 @@ import {
   hasValue,
   isDefined,
 } from "../../../lib/checks/checks.js";
+import {
+  parseCampaign,
+  parseSignupSourceCookie,
+  SIGNUP_CAMPAIGN_COOKIE,
+  SIGNUP_SOURCE_COOKIE,
+} from "../../../lib/signupSource.js";
 import ClubRepository from "../repositories/ClubRepository";
 import UserRepository from "../repositories/UserRepository";
 import { dialect } from "./database.js";
@@ -116,6 +122,30 @@ export const auth = betterAuth({
     },
   },
   trustedOrigins: getTrustedOrigins(),
+  databaseHooks: {
+    user: {
+      create: {
+        // An `after` hook writing through the repository, rather than a
+        // BetterAuth additionalField, keeps the column out of the session user
+        // every client receives. A failure is logged, not thrown: losing one
+        // signup's attribution is better than losing the signup.
+        after: async (user, context) => {
+          const landing = parseSignupSourceCookie(
+            context?.getCookie(SIGNUP_SOURCE_COOKIE) ?? undefined,
+          );
+          if (landing === undefined) {
+            return;
+          }
+          const campaign = parseCampaign(context?.getCookie(SIGNUP_CAMPAIGN_COOKIE));
+          try {
+            await UserRepository.setSignupSource(user.id, landing, campaign);
+          } catch (error) {
+            console.error("Failed to record signup source", error);
+          }
+        },
+      },
+    },
+  },
   session: {
     // Cache the session in a short-lived signed cookie so getSession() —
     // which runs on every secured request — usually skips its database
