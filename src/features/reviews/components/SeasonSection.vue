@@ -5,26 +5,21 @@
     :aria-labelledby="seasonTabId(show.showId, season.seasonNumber)"
     class="animate-fade-up"
   >
-    <!-- The season in a line: each member's average over the episodes they
-         scored, and the club's mean of those. A season is never scored on
-         its own. -->
+    <!-- The season in a line: the club's average where each episode's sits,
+         and each member's average over the episodes they scored where the
+         episodes' scores sit. A season is never scored on its own. -->
     <div
       role="group"
       :aria-label="`${season.title} scores`"
-      class="flex flex-wrap items-center gap-x-3 gap-y-2 bg-white/[0.02] py-2.5 pl-3 pr-2 md:gap-x-4 md:pl-11 md:pr-3"
+      class="flex items-center gap-3 bg-white/[0.02] py-2 pl-3 pr-2 md:gap-4 md:pl-11 md:pr-3"
     >
-      <h3 class="text-sm font-semibold">{{ season.title }}</h3>
-      <span class="flex-grow text-xs text-white/55">
-        {{ coverageLabel(season.scoredCount, season.episodeCount) }}
-      </span>
-      <ScoreChips
-        v-if="isDesktop && memberEntries.length > 0"
-        class="justify-end"
-        row
-        :entries="memberEntries"
-        :current-user-id="currentUserId"
-        :revealed="revealed"
-      />
+      <AverageTile :value="average" :hidden="!revealed" />
+      <div class="flex min-w-0 flex-grow flex-col">
+        <h3 class="text-sm font-semibold">{{ season.title }}</h3>
+        <span class="text-xs text-white/55">
+          {{ coverageLabel(season.scoredCount, season.episodeCount) }}
+        </span>
+      </div>
       <button
         v-if="canReveal"
         type="button"
@@ -34,22 +29,9 @@
       >
         <mdicon name="eye-outline" :size="18" />
       </button>
-      <span
-        class="w-10 shrink-0 text-right font-bold"
-        :class="[
-          isDefined(season.scores.average) ? 'text-primary' : 'text-gray-500',
-          revealed || !isDefined(season.scores.average) ? '' : 'blur filter',
-        ]"
-        :aria-hidden="(!revealed && isDefined(season.scores.average)) || undefined"
-      >
-        {{ formatRollup(season.scores) }}
-      </span>
-      <!-- Holds the episode rows' action column, so the season's average
-           lines up with theirs. -->
-      <span class="w-10 shrink-0" aria-hidden="true" />
       <ScoreChips
-        v-if="!isDesktop && memberEntries.length > 0"
-        class="w-full"
+        v-if="memberEntries.length > 0"
+        class="shrink-0 justify-end"
         row
         :entries="memberEntries"
         :current-user-id="currentUserId"
@@ -79,7 +61,6 @@
         :entries="view.entries"
         :revealed="view.revealed"
         :can-score="view.canScore"
-        :up-next="view.card.episodeNumber === upNext"
         :pending="view.pending"
         :score-target="view.target"
         :current-user-id="currentUserId"
@@ -123,10 +104,10 @@ import {
   seasonTabId,
   ShowNode,
 } from "../reviewTree";
+import AverageTile from "./AverageTile.vue";
 import EpisodeRow from "./EpisodeRow.vue";
 import ScoreChips from "./ScoreChips.vue";
 import WorkDetailsDrawer from "./WorkDetailsDrawer.vue";
-import { useIsDesktop } from "@/common/composables/useIsDesktop";
 import { useClubSlug } from "@/service/useClub";
 import { useSubmitScore } from "@/service/useReviews";
 import { useTvSeason } from "@/service/useTMDB";
@@ -144,8 +125,6 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: "toggle-reveal", workId: string): void;
 }>();
-
-const isDesktop = useIsDesktop();
 
 // Only the selected season is mounted, so only its listing is fetched: a club
 // deep into a long show would otherwise pull every season's just to draw the
@@ -240,6 +219,10 @@ const memberEntries = computed(() =>
     .map((entry) => ({ ...entry, value: Number(entry.value.toFixed(1)) })),
 );
 
+const average = computed(() =>
+  isDefined(props.season.scores.average) ? formatRollup(props.season.scores) : undefined,
+);
+
 const revealKey = computed(() => seasonRevealKey(props.show.showId, props.season));
 const revealed = computed(
   () =>
@@ -276,15 +259,6 @@ const cardViews = computed(() =>
     };
   }),
 );
-
-/** The first aired episode the reader has yet to score after the last one
- * they did — where they are in the season. */
-const upNext = computed(() => {
-  if (!isDefined(props.currentUserId)) return undefined;
-  const views = cardViews.value;
-  const lastScored = views.findLastIndex((view) => hasOwnScore(view.scores, props.currentUserId));
-  return views.slice(lastScored + 1).find((view) => view.canScore)?.card.episodeNumber;
-});
 
 // -- The details drawer -------------------------------------------------------
 // An episode opens in the same drawer as movies and books, score entry and

@@ -90,7 +90,6 @@
           class="min-w-0 flex-grow"
           :show-id="show.showId"
           :seasons="show.seasons"
-          :is-revealed="isSeasonRevealed"
         />
         <p v-else class="flex-grow py-3 pl-3 text-sm text-gray-400 md:pl-11">
           This show's seasons haven't loaded yet.
@@ -150,8 +149,6 @@ import {
   currentSeasonNumber,
   formatRollup,
   rollupLabel,
-  SeasonNode,
-  seasonRevealKey,
   ShowNode,
 } from "../reviewTree";
 import ScoreChips from "./ScoreChips.vue";
@@ -195,10 +192,6 @@ const selectedSeasonNode = computed(
     props.show.seasons.find((season) => season.seasonNumber === selectedSeason.value) ??
     props.show.seasons[0],
 );
-
-const isSeasonRevealed = (season: SeasonNode) =>
-  hasOwnScore(season.scores, props.currentUserId) ||
-  props.revealedMovieIds.has(seasonRevealKey(props.show.showId, season));
 
 const entries = computed(() =>
   scoreEntries(props.show.scores, props.members, props.show.averagedMemberIds),

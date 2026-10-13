@@ -1,9 +1,10 @@
 <template>
   <li class="border-t border-white/5">
     <div
-      class="relative isolate flex min-h-[56px] items-center gap-3 py-2 pl-3 pr-2 transition-colors duration-fast ease-standard md:gap-4 md:pl-11 md:pr-3"
-      :class="card.aired ? 'hover:bg-white/5' : 'opacity-60'"
+      class="relative isolate flex min-h-[60px] items-center gap-3 py-2 pl-3 pr-2 transition-colors duration-fast ease-standard md:gap-4 md:pl-11 md:pr-3"
+      :class="card.aired ? 'hover:bg-white/5' : ''"
     >
+      <AverageTile :value="average" :hidden="!revealed" />
       <template v-if="isDesktop">
         <img
           v-if="hasValue(card.stillUrl)"
@@ -24,10 +25,11 @@
       </span>
       <div class="flex min-w-0 flex-grow flex-col">
         <!-- The title is the row's button; its ::after stretches over the
-             whole row so anywhere on it opens the episode's details. It sits
-             at z-10, over the blurred scores and still that would otherwise
-             swallow the click, and the Score button at z-20 above it. -->
-        <h4 class="text-sm font-medium leading-snug">
+             whole row, scores included, so anywhere on it opens the episode's
+             details. It sits at z-10, over the blurred average and still that
+             would otherwise swallow the click, and the Score button at z-20
+             above it. -->
+        <h4 class="text-sm font-medium leading-snug" :class="card.aired ? '' : 'text-gray-400'">
           <button
             type="button"
             class="text-left after:absolute after:inset-0 after:z-10 after:content-[''] disabled:cursor-default"
@@ -37,70 +39,37 @@
             {{ card.title }}
           </button>
         </h4>
+        <!-- Worded as well as coloured, so a date still to come reads as one
+             without the colour. -->
         <span
-          v-if="upNext"
-          :id="upNextId"
-          class="text-[10px] font-semibold uppercase tracking-wider text-primary"
+          v-if="isDefined(airDate)"
+          class="text-xs"
+          :class="card.aired ? 'text-gray-400' : 'text-amber-300'"
         >
-          Up next
+          {{ card.aired ? airDate : `Airs ${airDate}` }}
         </span>
       </div>
 
+      <!-- The right edge only ever asks for your score or shows the scores in:
+           your own on a phone, everyone's on desktop. -->
+      <button
+        v-if="canScore"
+        type="button"
+        class="relative z-20 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-primary ring-1 ring-inset ring-primary/30 transition duration-fast ease-standard hover:bg-primary/15 hover:ring-primary/50 active:scale-95"
+        :aria-label="`Score ${card.title}`"
+        @click="scoring = true"
+      >
+        <mdicon name="plus" :size="18" />
+      </button>
       <ScoreChips
-        v-if="isDesktop && memberEntries.length > 0"
+        v-else-if="shownEntries.length > 0"
         class="shrink-0 justify-end"
         row
-        :entries="memberEntries"
+        :entries="shownEntries"
         :current-user-id="currentUserId"
         :revealed="revealed"
       />
-      <span
-        v-if="isDefined(average)"
-        class="w-10 shrink-0 text-right font-bold text-primary"
-        :class="revealed ? '' : 'blur filter'"
-        :aria-hidden="!revealed || undefined"
-      >
-        {{ average }}
-      </span>
-      <span v-if="pending" class="shrink-0 text-xs text-gray-400" role="status">Saving…</span>
-      <span
-        v-else-if="!card.aired"
-        class="shrink-0 rounded-full bg-white/5 px-2 py-0.5 text-xs text-gray-400"
-      >
-        Upcoming
-      </span>
-      <div v-else class="flex w-10 shrink-0 justify-center">
-        <button
-          v-if="canScore"
-          type="button"
-          class="relative z-20 flex h-9 w-9 items-center justify-center rounded-full transition duration-fast ease-standard active:scale-95"
-          :class="
-            upNext
-              ? 'bg-primary text-white shadow-md shadow-primary/30 hover:brightness-110'
-              : 'text-primary ring-1 ring-inset ring-primary/30 hover:bg-primary/15 hover:ring-primary/50'
-          "
-          :aria-label="`Score ${card.title}`"
-          :aria-describedby="upNext ? upNextId : undefined"
-          @click="scoring = true"
-        >
-          <mdicon name="plus" :size="18" />
-        </button>
-        <template v-else-if="isDefined(ownScore)">
-          <mdicon
-            v-if="isDesktop"
-            name="check"
-            :size="18"
-            class="text-white/35"
-            aria-hidden="true"
-          />
-          <span
-            v-else
-            class="animate-fade-up min-w-[1.5rem] rounded-full bg-slate-600 px-1.5 text-center text-xs font-semibold leading-6"
-          >
-            <span class="sr-only">Your score </span>{{ ownScore.value }}
-          </span>
-        </template>
-      </div>
+      <span v-if="pending" class="sr-only" role="status">Saving…</span>
     </div>
 
     <Teleport to="body">
@@ -117,11 +86,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, useId } from "vue";
+import { DateTime } from "luxon";
+import { computed, ref } from "vue";
 
 import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import { EpisodeCard, ScoreTarget } from "../episodeCards";
 import { ScoreEntry } from "../reviewScores";
+import AverageTile from "./AverageTile.vue";
 import ScoreChips from "./ScoreChips.vue";
 import ScoreEntryModal from "./ScoreEntryModal.vue";
 import { useIsDesktop } from "@/common/composables/useIsDesktop";
@@ -132,8 +103,6 @@ const props = defineProps<{
   revealed: boolean;
   /** Whether the reader can score it from the row: aired, and not scored yet. */
   canScore: boolean;
-  /** The first episode the reader has yet to score after their last scored one. */
-  upNext: boolean;
   pending: boolean;
   scoreTarget: ScoreTarget;
   currentUserId?: string;
@@ -145,19 +114,27 @@ const emit = defineEmits<{
 
 const isDesktop = useIsDesktop();
 
-const upNextId = useId();
-
 const scoring = ref(false);
 
 const number = computed(() => `E${String(props.card.episodeNumber).padStart(2, "0")}`);
 
-const memberEntries = computed(() => props.entries.filter((entry) => isDefined(entry.memberId)));
+const airDate = computed(() => {
+  const date = props.card.airDate;
+  if (!hasValue(date)) return undefined;
+  // An air date is a calendar day (TMDB's "2022-02-18", or the server's
+  // midnight-UTC timestamp of it); read in local time it can slip a day.
+  const parsed = DateTime.fromISO(date, { zone: "utc" });
+  return parsed.isValid ? parsed.toLocaleString(DateTime.DATE_MED) : undefined;
+});
+
 const average = computed(() =>
   props.entries.find((entry) => !isDefined(entry.memberId))?.value.toFixed(1),
 );
-const ownScore = computed(() =>
-  props.entries.find(
-    (entry) => isDefined(entry.memberId) && entry.memberId === props.currentUserId,
-  ),
-);
+
+const shownEntries = computed(() => {
+  const members = props.entries.filter((entry) => isDefined(entry.memberId));
+  return isDesktop.value
+    ? members
+    : members.filter((entry) => entry.memberId === props.currentUserId);
+});
 </script>

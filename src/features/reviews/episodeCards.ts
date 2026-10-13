@@ -17,6 +17,8 @@ export interface EpisodeCard {
   code: string;
   title: string;
   stillUrl?: string;
+  /** When it airs or aired, as TMDB's ISO date. */
+  airDate?: string;
   /** The episode's work on the reviews list — absent until the club scores it. */
   node?: EpisodeNode;
   /** TMDB's listing for the episode, which a preview of it is built from. */
@@ -63,6 +65,7 @@ export function buildEpisodeCards(
       stillUrl:
         node?.review.imageUrl ??
         (hasValue(episode.still_path) ? tmdbStillUrl(episode.still_path) : undefined),
+      airDate: hasValue(episode.air_date) ? episode.air_date : node?.airDate,
       node,
       tmdb: episode,
       aired: node !== undefined || (hasValue(episode.air_date) && episode.air_date <= today),
@@ -76,6 +79,7 @@ export function buildEpisodeCards(
       code: episodeCode(seasonNumber, node.episodeNumber),
       title: node.title,
       stillUrl: node.review.imageUrl,
+      airDate: node.airDate,
       node,
       aired: true,
     });
