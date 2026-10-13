@@ -1,122 +1,78 @@
 <template>
-  <section>
-    <!-- Sticks while its episodes scroll past; the opaque layer underneath
-         keeps rows from showing through the translucent tint. -->
-    <div class="sticky top-0 z-10 bg-background">
-      <div
-        class="relative flex min-h-[48px] items-center gap-3 border-t border-white/10 bg-white/5 py-2 pl-3 pr-2 md:gap-4 md:pl-4 md:pr-3"
-      >
-        <mdicon
-          name="chevron-right"
-          :size="18"
-          class="shrink-0 text-white/60 transition-transform duration-base ease-standard"
-          :class="open ? 'rotate-90' : ''"
-          aria-hidden="true"
-        />
-        <h3 class="shrink-0 text-[15px] font-semibold">
-          <button
-            type="button"
-            class="after:absolute after:inset-0 after:content-['']"
-            :aria-expanded="open"
-            :aria-label="`${season.title}, ${rollupLabel(level.scores)}`"
-            @click="emit('toggle')"
-          >
-            {{ season.title }}
-          </button>
-        </h3>
-        <div
-          class="hidden h-1 w-20 overflow-hidden rounded-full bg-white/10 md:block"
-          aria-hidden="true"
-        >
-          <div
-            class="h-full rounded-full bg-primary"
-            :style="{ width: `${coveragePercent(season.scoredCount, season.episodeCount)}%` }"
-          />
-        </div>
-        <span class="flex-grow text-xs text-white/55">
-          {{ coverageLabel(season.scoredCount, season.episodeCount) }}
-        </span>
-        <ScoreChips
-          v-if="isDesktop && memberEntries.length > 0"
-          class="justify-end"
-          row
-          :entries="memberEntries"
-          :current-user-id="currentUserId"
-          :revealed="revealed"
-        />
-        <span
-          class="w-10 shrink-0 text-right font-bold"
-          :class="[
-            isDefined(level.scores.average) ? 'text-primary' : 'text-gray-500',
-            revealed || !isDefined(level.scores.average) ? '' : 'blur filter',
-          ]"
-        >
-          {{ formatRollup(level.scores) }}
-        </span>
-        <!-- Holds the episode rows' action column, so the season's average
-             lines up with theirs. -->
-        <span class="w-10 shrink-0" aria-hidden="true" />
-      </div>
+  <section
+    :id="seasonPanelId(show.showId, season.seasonNumber)"
+    role="tabpanel"
+    :aria-labelledby="seasonTabId(show.showId, season.seasonNumber)"
+    class="animate-fade-up"
+  >
+    <div class="flex items-baseline gap-2 px-3 pt-3 md:pl-11 md:pr-3">
+      <h3 class="font-semibold">{{ season.title }}</h3>
+      <span class="text-xs text-white/55">
+        {{ coverageLabel(season.scoredCount, season.episodeCount) }}
+      </span>
     </div>
-
-    <div v-if="open" class="animate-fade-up">
-      <LevelScore
-        label="Season score"
-        noun="season"
-        :note="ownScoreNote(level, currentUserId, 'episodes')"
-        :entries="entries"
-        :revealed="revealed"
-        :target="seasonTarget"
-        :current-user-id="currentUserId"
-        @reveal="emit('toggle-reveal', revealKey)"
-        @details="opened = 'season'"
-      />
-
-      <p
-        v-if="cards.length === 0 && isLoadingEpisodes"
-        class="px-3 pb-3 text-sm text-gray-400 md:pl-11"
-        role="status"
-      >
-        Loading episodes…
-      </p>
-      <p
-        v-else-if="cards.length === 0 && isEpisodesError"
-        class="px-3 pb-3 text-sm text-gray-400 md:pl-11"
-      >
-        Couldn't load this season's episodes.
-      </p>
-
-      <ul :aria-label="`${season.title} episodes`">
-        <EpisodeRow
-          v-for="view in cardViews"
-          :key="view.card.episodeNumber"
-          :card="view.card"
-          :entries="view.entries"
-          :revealed="view.revealed"
-          :can-score="view.canScore"
-          :can-reveal="view.canReveal"
-          :pending="view.pending"
-          :score-target="view.target"
-          :current-user-id="currentUserId"
-          @details="opened = view.card.episodeNumber"
-          @reveal="revealEpisode(view.card)"
-        />
-      </ul>
-    </div>
-
-    <WorkDetailsDrawer
-      v-if="isDefined(openedWork)"
-      :key="openedWork.key"
-      :movie="openedWork.work"
-      :members="members"
-      :delete-review="deleteReview"
-      :revealed-movie-ids="revealedMovieIds"
-      :has-rated="hasRated"
+    <LevelScore
+      label="Season score"
+      noun="season"
+      below="episodes"
+      show-club
+      chips-on-desktop
+      :level="level"
+      :entries="entries"
+      :revealed="revealed"
+      :target="seasonTarget"
       :current-user-id="currentUserId"
-      :save-score="openedWork.saveScore"
-      @toggle-reveal="emit('toggle-reveal', $event)"
-      @close="opened = undefined"
+      @reveal="emit('toggle-reveal', revealKey)"
+      @details="opened = 'season'"
     />
+
+    <p
+      v-if="cards.length === 0 && isLoadingEpisodes"
+      class="px-3 pb-3 text-sm text-gray-400 md:pl-11"
+      role="status"
+    >
+      Loading episodes…
+    </p>
+    <p
+      v-else-if="cards.length === 0 && isEpisodesError"
+      class="px-3 pb-3 text-sm text-gray-400 md:pl-11"
+    >
+      Couldn't load this season's episodes.
+    </p>
+
+    <ul :aria-label="`${season.title} episodes`">
+      <EpisodeRow
+        v-for="view in cardViews"
+        :key="view.card.episodeNumber"
+        :card="view.card"
+        :entries="view.entries"
+        :revealed="view.revealed"
+        :can-score="view.canScore"
+        :can-reveal="view.canReveal"
+        :up-next="view.card.episodeNumber === upNext"
+        :pending="view.pending"
+        :score-target="view.target"
+        :current-user-id="currentUserId"
+        @details="opened = view.card.episodeNumber"
+        @reveal="revealEpisode(view.card)"
+      />
+    </ul>
+
+    <Teleport to="body">
+      <WorkDetailsDrawer
+        v-if="isDefined(openedWork)"
+        :key="openedWork.key"
+        :movie="openedWork.work"
+        :members="members"
+        :delete-review="deleteReview"
+        :revealed-movie-ids="revealedMovieIds"
+        :has-rated="hasRated"
+        :current-user-id="currentUserId"
+        :save-score="openedWork.saveScore"
+        @toggle-reveal="emit('toggle-reveal', $event)"
+        @close="opened = undefined"
+      />
+    </Teleport>
   </section>
 </template>
 
@@ -127,7 +83,6 @@ import { computed, ref } from "vue";
 import { isDefined } from "../../../../lib/checks/checks.js";
 import { Member } from "../../../../lib/types/club";
 import { DetailedReviewListItem, ReviewScores } from "../../../../lib/types/lists";
-import { formatTvAddress } from "../../../../lib/types/tv";
 import {
   buildEpisodeCards,
   EpisodeCard,
@@ -139,19 +94,16 @@ import {
 import { hasOwnScore, isOthersScore, scoreEntries } from "../reviewScores";
 import {
   coverageLabel,
-  coveragePercent,
-  formatRollup,
   LevelScores,
-  ownScoreNote,
-  rollupLabel,
   SeasonNode,
+  seasonPanelId,
+  seasonRevealKey,
+  seasonTabId,
   ShowNode,
 } from "../reviewTree";
 import EpisodeRow from "./EpisodeRow.vue";
 import LevelScore from "./LevelScore.vue";
-import ScoreChips from "./ScoreChips.vue";
 import WorkDetailsDrawer from "./WorkDetailsDrawer.vue";
-import { useIsDesktop } from "@/common/composables/useIsDesktop";
 import { useClubSlug } from "@/service/useClub";
 import { useSubmitScore } from "@/service/useReviews";
 import { useTvSeason } from "@/service/useTMDB";
@@ -159,7 +111,6 @@ import { useTvSeason } from "@/service/useTMDB";
 const props = defineProps<{
   show: ShowNode;
   season: SeasonNode;
-  open: boolean;
   members: Member[];
   deleteReview: (workId: string) => void;
   revealedMovieIds: Set<string>;
@@ -168,21 +119,19 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  (e: "toggle"): void;
   (e: "toggle-reveal", workId: string): void;
 }>();
 
-const isDesktop = useIsDesktop();
-
-// A closed season fetches nothing: a club deep into a long show would
-// otherwise pull every season's listing just to draw the headers.
+// Only the selected season is mounted, so only its listing is fetched: a club
+// deep into a long show would otherwise pull every season's just to draw the
+// tabs.
 const {
   data: tmdbSeason,
   isLoading: isLoadingEpisodes,
   isError: isEpisodesError,
 } = useTvSeason(
   computed(() => props.show.showId),
-  computed(() => (props.open ? props.season.seasonNumber : undefined)),
+  computed(() => props.season.seasonNumber),
 );
 
 const today = DateTime.now().toISODate() ?? "";
@@ -280,13 +229,7 @@ const entries = computed(() =>
 );
 const memberEntries = computed(() => entries.value.filter((entry) => isDefined(entry.memberId)));
 
-/** A season has no work to reveal by until someone scores it on its own, so
- * it reveals by its address instead. */
-const revealKey = computed(
-  () =>
-    props.season.review?.id ??
-    formatTvAddress({ showId: props.show.showId, seasonNumber: props.season.seasonNumber }),
-);
+const revealKey = computed(() => seasonRevealKey(props.show.showId, props.season));
 const revealed = computed(
   () =>
     hasOwnScore(level.value.scores, props.currentUserId) ||
@@ -330,6 +273,15 @@ const cardViews = computed(() =>
     };
   }),
 );
+
+/** The first aired episode the reader has yet to score after the last one
+ * they did — where they are in the season. */
+const upNext = computed(() => {
+  if (!isDefined(props.currentUserId)) return undefined;
+  const views = cardViews.value;
+  const lastScored = views.findLastIndex((view) => hasOwnScore(view.scores, props.currentUserId));
+  return views.slice(lastScored + 1).find((view) => view.canScore)?.card.episodeNumber;
+});
 
 const revealEpisode = (card: EpisodeCard) => {
   if (isDefined(card.node)) emit("toggle-reveal", card.node.workId);

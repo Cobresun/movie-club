@@ -2,35 +2,17 @@
   <div class="mx-auto flex w-full max-w-5xl flex-col gap-3 md:px-6">
     <div v-if="shows.length === 0" class="text-gray-400">No shows match the current filters.</div>
 
-    <div v-else class="flex items-center justify-between gap-2 px-1">
-      <span class="text-sm text-gray-400">
-        {{ shows.length === 1 ? "1 show" : `${shows.length} shows` }}
-      </span>
-      <button
-        type="button"
-        class="flex items-center gap-1 rounded-full px-3 py-1 text-sm text-gray-300 transition duration-fast ease-standard hover:bg-white/10 hover:text-white"
-        @click="allExpanded ? (expanded = new Set()) : expandAll()"
-      >
-        <mdicon
-          :name="allExpanded ? 'unfold-less-horizontal' : 'unfold-more-horizontal'"
-          :size="18"
-          aria-hidden="true"
-        />
-        {{ allExpanded ? "Collapse all" : "Expand all" }}
-      </button>
-    </div>
-
     <ShowRow
       v-for="show in shows"
       :key="show.showId"
       :show="show"
-      :expanded="expanded"
+      :open="openShowIds.has(show.showId)"
       :members="members"
       :delete-review="deleteReview"
       :revealed-movie-ids="revealedMovieIds"
       :has-rated="hasRated"
       :current-user-id="currentUserId"
-      @toggle="toggle"
+      @toggle="toggle(show.showId)"
       @toggle-reveal="emit('toggle-reveal', $event)"
     />
   </div>
@@ -41,7 +23,7 @@ import { computed, ref } from "vue";
 
 import { isDefined } from "../../../../lib/checks/checks.js";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
-import { buildShowTree, currentSeasonNumber, expansionKey } from "../reviewTree";
+import { buildShowTree } from "../reviewTree";
 import ShowRow from "./ShowRow.vue";
 import { Member } from "@/../lib/types/club";
 
@@ -60,35 +42,14 @@ const emit = defineEmits<{
 
 const shows = computed(() => buildShowTree(props.reviews));
 
-/** The show the club scored most recently opens on the season it is in. */
-function initiallyExpanded(): Set<string> {
-  const latest = shows.value[0];
-  if (!isDefined(latest)) return new Set();
-  const season = currentSeasonNumber(latest);
-  return new Set([
-    expansionKey(latest.showId),
-    ...(isDefined(season) ? [expansionKey(latest.showId, season)] : []),
-  ]);
-}
+// The show the club scored most recently starts open; each show opens on the
+// season the club is in.
+const latest = shows.value[0];
+const openShowIds = ref<ReadonlySet<string>>(new Set(isDefined(latest) ? [latest.showId] : []));
 
-const expanded = ref<ReadonlySet<string>>(initiallyExpanded());
-
-const toggle = (key: string) => {
-  const next = new Set(expanded.value);
-  if (!next.delete(key)) next.add(key);
-  expanded.value = next;
-};
-
-const everyKey = computed(() =>
-  shows.value.flatMap((show) => [
-    expansionKey(show.showId),
-    ...show.seasons.map((season) => expansionKey(show.showId, season.seasonNumber)),
-  ]),
-);
-
-const allExpanded = computed(() => everyKey.value.every((key) => expanded.value.has(key)));
-
-const expandAll = () => {
-  expanded.value = new Set(everyKey.value);
+const toggle = (showId: string) => {
+  const next = new Set(openShowIds.value);
+  if (!next.delete(showId)) next.add(showId);
+  openShowIds.value = next;
 };
 </script>

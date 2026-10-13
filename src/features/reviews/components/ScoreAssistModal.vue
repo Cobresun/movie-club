@@ -18,7 +18,6 @@
         :score="myReview?.score"
         :review-id="myReview?.id"
         :draft-score="suggestedScore"
-        :save-score="saveScore"
         @submit="emit('close')"
       />
     </template>
@@ -44,7 +43,6 @@ const props = defineProps<{
   candidates: ScoredCandidate[];
   clubType: ClubType;
   currentClubId?: string;
-  saveScore?: (score: number) => void;
 }>();
 
 const emit = defineEmits<{

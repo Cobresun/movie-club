@@ -1,6 +1,6 @@
 import { hasValue, isDefined } from "../../../lib/checks/checks.js";
 import { DetailedReviewListItem, ReviewScores } from "../../../lib/types/lists";
-import { TvDataSummary, TvSeasonSummary } from "../../../lib/types/tv";
+import { formatTvAddress, TvDataSummary, TvSeasonSummary } from "../../../lib/types/tv";
 import { asTv } from "@/common/workDisplay";
 
 /** One episode on the reviews list. */
@@ -247,9 +247,13 @@ export function currentSeasonNumber(show: ShowNode): number | undefined {
   return latest?.seasonNumber ?? show.seasons[0]?.seasonNumber;
 }
 
-/** Names a show, or one of its seasons, in the set of rows a reader has open. */
-export const expansionKey = (showId: string, seasonNumber?: number) =>
-  isDefined(seasonNumber) ? `season:${showId}:${seasonNumber}` : `show:${showId}`;
+/** The id of a season's tab in its show's season list, unique on the page. */
+export const seasonTabId = (showId: string, seasonNumber: number) =>
+  `show-${showId}-season-${seasonNumber}`;
+
+/** The id of the panel a season's tab controls. */
+export const seasonPanelId = (showId: string, seasonNumber: number) =>
+  `${seasonTabId(showId, seasonNumber)}-panel`;
 
 export const formatRollup = (scores: ReviewScores) =>
   isDefined(scores.average) ? scores.average.score.toFixed(1) : "—";
@@ -263,15 +267,23 @@ export const coverageLabel = (scored: number, total: number) => `${scored}/${tot
 export const coveragePercent = (scored: number, total: number) =>
   total === 0 ? 0 : Math.round((scored / total) * 100);
 
-/** Where the reader's own score at a season or show comes from, in a line. */
-export function ownScoreNote(level: LevelScores, userId: string | undefined, below: string) {
+/** The reader's own score at a season or show, and whether they set it there
+ * or it is averaged from theirs one level down. */
+export function ownLevelScore(
+  level: LevelScores,
+  userId: string | undefined,
+): { value: string; averaged: boolean } | undefined {
   const own = isDefined(userId) ? level.scores[userId] : undefined;
-  if (!isDefined(own) || !isDefined(userId)) return "You haven't scored it yet";
-  const value = own.score.toFixed(1);
+  if (!isDefined(own) || !isDefined(userId)) return undefined;
   return level.averagedMemberIds.has(userId)
-    ? `Yours is averaged from your ${below}: ${value}`
-    : `You scored it ${Math.round(own.score * 100) / 100}`;
+    ? { value: own.score.toFixed(1), averaged: true }
+    : { value: String(Math.round(own.score * 100) / 100), averaged: false };
 }
+
+/** A season has no work to reveal by until someone scores it on its own, so
+ * it reveals by its address instead. */
+export const seasonRevealKey = (showId: string, season: SeasonNode) =>
+  season.review?.id ?? formatTvAddress({ showId, seasonNumber: season.seasonNumber });
 
 function latestScoreDate(reviews: DetailedReviewListItem[]): string | undefined {
   const dates = reviews

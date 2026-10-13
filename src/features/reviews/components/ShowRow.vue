@@ -24,7 +24,7 @@
             class="line-clamp-2 text-left after:absolute after:inset-0 after:content-['']"
             :aria-expanded="open"
             :aria-label="`${show.title}, ${rollupLabel(show.scores)}`"
-            @click="emit('toggle', expansionKey(show.showId))"
+            @click="emit('toggle')"
           >
             {{ show.title }}
           </button>
@@ -78,7 +78,8 @@
       <LevelScore
         label="Show score"
         noun="show"
-        :note="ownScoreNote(show, currentUserId, 'seasons')"
+        below="seasons"
+        :level="show"
         :entries="entries"
         :revealed="revealed"
         :target="showTarget"
@@ -90,33 +91,44 @@
       <p v-if="show.seasons.length === 0" class="px-3 pb-3 text-sm text-gray-400 md:pl-11">
         This show's seasons haven't loaded yet.
       </p>
-      <SeasonSection
-        v-for="season in show.seasons"
-        :key="season.seasonNumber"
-        :show="show"
-        :season="season"
-        :open="expanded.has(expansionKey(show.showId, season.seasonNumber))"
+      <template v-else>
+        <SeasonTabs
+          v-model="selectedSeason"
+          class="border-t border-white/10"
+          :show-id="show.showId"
+          :seasons="show.seasons"
+          :is-revealed="isSeasonRevealed"
+        />
+        <SeasonSection
+          v-if="isDefined(selectedSeasonNode)"
+          :key="selectedSeasonNode.seasonNumber"
+          :show="show"
+          :season="selectedSeasonNode"
+          :members="members"
+          :delete-review="deleteReview"
+          :revealed-movie-ids="revealedMovieIds"
+          :has-rated="hasRated"
+          :current-user-id="currentUserId"
+          @toggle-reveal="emit('toggle-reveal', $event)"
+        />
+      </template>
+    </div>
+
+    <!-- Teleported: an overlay inside the expanded panel would be
+         positioned against its mount animation's transform, not the screen. -->
+    <Teleport to="body">
+      <WorkDetailsDrawer
+        v-if="detailsOpen"
+        :movie="show.review"
         :members="members"
         :delete-review="deleteReview"
         :revealed-movie-ids="revealedMovieIds"
         :has-rated="hasRated"
         :current-user-id="currentUserId"
-        @toggle="emit('toggle', expansionKey(show.showId, season.seasonNumber))"
         @toggle-reveal="emit('toggle-reveal', $event)"
+        @close="detailsOpen = false"
       />
-    </div>
-
-    <WorkDetailsDrawer
-      v-if="detailsOpen"
-      :movie="show.review"
-      :members="members"
-      :delete-review="deleteReview"
-      :revealed-movie-ids="revealedMovieIds"
-      :has-rated="hasRated"
-      :current-user-id="currentUserId"
-      @toggle-reveal="emit('toggle-reveal', $event)"
-      @close="detailsOpen = false"
-    />
+    </Teleport>
   </article>
 </template>
 
@@ -129,22 +141,23 @@ import { hasOwnScore, scoreEntries } from "../reviewScores";
 import {
   coverageLabel,
   coveragePercent,
-  expansionKey,
+  currentSeasonNumber,
   formatRollup,
-  ownScoreNote,
   rollupLabel,
+  SeasonNode,
+  seasonRevealKey,
   ShowNode,
 } from "../reviewTree";
 import LevelScore from "./LevelScore.vue";
 import ScoreChips from "./ScoreChips.vue";
 import SeasonSection from "./SeasonSection.vue";
+import SeasonTabs from "./SeasonTabs.vue";
 import WorkDetailsDrawer from "./WorkDetailsDrawer.vue";
 import { useIsDesktop } from "@/common/composables/useIsDesktop";
 
 const props = defineProps<{
   show: ShowNode;
-  /** The shows and seasons the reader has open, by `expansionKey`. */
-  expanded: ReadonlySet<string>;
+  open: boolean;
   members: Member[];
   deleteReview: (workId: string) => void;
   revealedMovieIds: Set<string>;
@@ -153,14 +166,24 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  (e: "toggle", key: string): void;
+  (e: "toggle"): void;
   (e: "toggle-reveal", workId: string): void;
 }>();
 
 const isDesktop = useIsDesktop();
 
-const open = computed(() => props.expanded.has(expansionKey(props.show.showId)));
 const detailsOpen = ref(false);
+
+const selectedSeason = ref(currentSeasonNumber(props.show) ?? 0);
+const selectedSeasonNode = computed(
+  () =>
+    props.show.seasons.find((season) => season.seasonNumber === selectedSeason.value) ??
+    props.show.seasons[0],
+);
+
+const isSeasonRevealed = (season: SeasonNode) =>
+  hasOwnScore(season.scores, props.currentUserId) ||
+  props.revealedMovieIds.has(seasonRevealKey(props.show.showId, season));
 
 const entries = computed(() =>
   scoreEntries(props.show.scores, props.members, props.show.averagedMemberIds),

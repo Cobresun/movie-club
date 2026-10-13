@@ -1,6 +1,5 @@
 import type { InjectionKey } from "vue";
 
-import { DetailedReviewListItem } from "../../../lib/types/lists";
 import { ScoreAssistTarget } from "./composables/scoreAssistLogic";
 
 /**
@@ -19,11 +18,8 @@ export interface ScoreAssist {
    * is only a preview, not on the reviews list for an id to find it by.
    */
   isEligible: (work: ScoreAssistTarget) => boolean;
-  /**
-   * Opens the Score Assist modal for the given work; `saveScore` saves in place
-   * of scoring it directly, as for ScoreEntryPanel.
-   */
-  open: (work: DetailedReviewListItem, saveScore?: (score: number) => void) => void;
+  /** Opens the Score Assist modal for the given work. */
+  open: (workId: string) => void;
 }
 
 export const ScoreAssistKey: InjectionKey<ScoreAssist> = Symbol("scoreAssist");

@@ -199,12 +199,9 @@ describe("TV reviews", () => {
 
     expect(screen.getByRole("heading", { name: "Good News About Hell" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Half Loop" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /^Season 1/ })).toHaveAttribute(
-      "aria-expanded",
-      "true",
-    );
-    expect(screen.getByRole("button", { name: /^Season 2/ })).toHaveAttribute(
-      "aria-expanded",
+    expect(screen.getByRole("tab", { name: /^Season 1/ })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: /^Season 2/ })).toHaveAttribute(
+      "aria-selected",
       "false",
     );
     expect(screen.getByText("2/9 episodes")).toBeInTheDocument();
@@ -216,6 +213,18 @@ describe("TV reviews", () => {
     expect(screen.getByRole("button", { name: "Score In Perpetuity" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Score Good News About Hell" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Score Half Loop" })).not.toBeInTheDocument();
+  });
+
+  it("marks the episode after the last one you scored as up next", async () => {
+    await renderSeverance();
+
+    // Member 2 scored episode 2, so episode 3 is where they pick up.
+    expect(screen.getByRole("button", { name: "Score In Perpetuity" })).toHaveAccessibleDescription(
+      "Up next",
+    );
+    expect(
+      screen.getByRole("button", { name: "Score Good News About Hell" }),
+    ).not.toHaveAccessibleDescription();
   });
 
   it("opens an episode in place, keeping others' scores hidden until you reveal them", async () => {
@@ -241,10 +250,12 @@ describe("TV reviews", () => {
     await user.click(screen.getByRole("button", { name: "Score In Perpetuity" }));
     await saveScore(user, "7.5");
 
-    // Now on the reviews list, the episode's score is yours to edit.
-    expect(await screen.findByRole("button", { name: "Edit your score" })).toBeInTheDocument();
+    expect(await screen.findByText("3/9 episodes")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Score In Perpetuity" })).not.toBeInTheDocument();
-    expect(screen.getByText("3/9 episodes")).toBeInTheDocument();
+
+    // Now on the reviews list, the episode's score is yours to edit.
+    await user.click(screen.getByRole("button", { name: "In Perpetuity" }));
+    expect(screen.getByRole("button", { name: "Edit your score" })).toBeInTheDocument();
   });
 
   it("offers score assist on an episode nobody has scored, saving its suggestion", async () => {
@@ -307,7 +318,7 @@ describe("TV reviews", () => {
   it("lists a later season's upcoming episodes without offering to score them", async () => {
     const { user } = await renderSeverance();
 
-    await user.click(screen.getByRole("button", { name: /^Season 2/ }));
+    await user.click(screen.getByRole("tab", { name: /^Season 2/ }));
 
     expect(await screen.findByRole("heading", { name: "Not Out Yet" })).toBeInTheDocument();
     expect(screen.getByText("Upcoming")).toBeInTheDocument();
@@ -325,7 +336,7 @@ describe("TV reviews", () => {
     expect(await screen.findByRole("button", { name: "Edit your score" })).toBeInTheDocument();
     // Your 4 replaces the 10 your episodes averaged; member 1 set no season
     // score, so theirs is still their episodes' 6.
-    expect(screen.getByRole("button", { name: "Season 1, average 5.0" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Season 1, average 5.0" })).toBeInTheDocument();
     expect(screen.getByText("10")).toBeInTheDocument();
     expect(screen.getByText("2/9 episodes")).toBeInTheDocument();
   });
@@ -347,8 +358,8 @@ describe("TV reviews", () => {
     await saveScore(user, "4");
 
     const showScore = within(screen.getByRole("group", { name: "Show score" }));
-    expect(showScore.getByText("Yours is averaged from your seasons: 10.0")).toBeInTheDocument();
-    expect(showScore.queryByText(/You scored it/)).not.toBeInTheDocument();
+    expect(showScore.getByText("You · from your seasons")).toBeInTheDocument();
+    expect(showScore.getByText("10.0")).toBeInTheDocument();
     release();
   });
 
@@ -385,7 +396,7 @@ describe("TV reviews", () => {
     await saveScore(user, "7");
 
     expect(await screen.findByRole("button", { name: "Edit your score" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Season 1, average 8.0" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Season 1, average 8.0" })).toBeInTheDocument();
   });
 
   it("marks a show score averaged from a member's episodes apart from one they set", async () => {
@@ -401,7 +412,7 @@ describe("TV reviews", () => {
     expect(showScore.getAllByText("Averaged")).toHaveLength(1);
   });
 
-  it("collapses a show and expands every show and season at once", async () => {
+  it("collapses a show and opens it again", async () => {
     const { user } = await renderSeverance();
 
     await user.click(screen.getByRole("button", { name: /^Severance/ }));
@@ -412,10 +423,19 @@ describe("TV reviews", () => {
     );
     expect(screen.queryByRole("heading", { name: "In Perpetuity" })).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Expand all" }));
+    await user.click(screen.getByRole("button", { name: /^Severance/ }));
 
+    expect(await screen.findByRole("heading", { name: "In Perpetuity" })).toBeInTheDocument();
+  });
+
+  it("moves between seasons with the arrow keys", async () => {
+    const { user } = await renderSeverance();
+
+    await user.click(screen.getByRole("tab", { name: /^Season 1/ }));
+    await user.keyboard("{ArrowRight}");
+
+    expect(screen.getByRole("tab", { name: /^Season 2/ })).toHaveFocus();
     expect(await screen.findByRole("heading", { name: "Not Out Yet" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "In Perpetuity" })).toBeInTheDocument();
   });
 
   it("tells a club with no shows yet what to do", async () => {

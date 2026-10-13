@@ -1,7 +1,7 @@
 <template>
   <li class="border-t border-white/5" :class="open ? 'bg-white/[0.03]' : ''">
     <div
-      class="relative flex min-h-[52px] items-center gap-3 py-1.5 pl-3 pr-2 transition-colors duration-fast ease-standard md:gap-4 md:pl-11 md:pr-3"
+      class="relative flex min-h-[56px] items-center gap-3 py-2 pl-3 pr-2 transition-colors duration-fast ease-standard md:gap-4 md:pl-11 md:pr-3"
       :class="card.aired ? 'hover:bg-white/5' : 'opacity-60'"
     >
       <template v-if="isDesktop">
@@ -22,19 +22,29 @@
       <span class="w-7 shrink-0 text-xs font-semibold text-white/55" aria-hidden="true">
         {{ number }}
       </span>
-      <!-- The title is the row's button; its ::after stretches over the whole
-           row so anywhere on it toggles, while the Score button sits above. -->
-      <h4 class="min-w-0 flex-grow text-sm font-medium leading-snug">
-        <button
-          type="button"
-          class="text-left after:absolute after:inset-0 after:content-[''] disabled:cursor-default"
-          :aria-expanded="open"
-          :disabled="!card.aired"
-          @click="open = !open"
+      <div class="flex min-w-0 flex-grow flex-col">
+        <!-- The title is the row's button; its ::after stretches over the
+             whole row so anywhere on it toggles, while the Score button sits
+             above. -->
+        <h4 class="text-sm font-medium leading-snug">
+          <button
+            type="button"
+            class="text-left after:absolute after:inset-0 after:content-[''] disabled:cursor-default"
+            :aria-expanded="open"
+            :disabled="!card.aired"
+            @click="open = !open"
+          >
+            {{ card.title }}
+          </button>
+        </h4>
+        <span
+          v-if="upNext"
+          :id="upNextId"
+          class="text-[10px] font-semibold uppercase tracking-wider text-primary"
         >
-          {{ card.title }}
-        </button>
-      </h4>
+          Up next
+        </span>
+      </div>
 
       <ScoreChips
         v-if="isDesktop && memberEntries.length > 0"
@@ -48,6 +58,7 @@
         v-if="isDefined(average)"
         class="w-10 shrink-0 text-right font-bold text-primary"
         :class="revealed ? '' : 'blur filter'"
+        :aria-hidden="!revealed || undefined"
       >
         {{ average }}
       </span>
@@ -62,9 +73,15 @@
         <button
           v-if="canScore"
           type="button"
-          class="relative flex h-9 w-9 items-center justify-center rounded-full text-primary ring-1 ring-inset ring-primary/30 transition duration-fast ease-standard hover:bg-primary/15 hover:ring-primary/50 active:scale-95"
+          class="relative flex h-9 w-9 items-center justify-center rounded-full transition duration-fast ease-standard active:scale-95"
+          :class="
+            upNext
+              ? 'bg-primary text-white shadow-md shadow-primary/30 hover:brightness-110'
+              : 'text-primary ring-1 ring-inset ring-primary/30 hover:bg-primary/15 hover:ring-primary/50'
+          "
           :aria-label="`Score ${card.title}`"
-          @click="startScoring"
+          :aria-describedby="upNext ? upNextId : undefined"
+          @click="scoring = true"
         >
           <mdicon name="plus" :size="18" />
         </button>
@@ -78,7 +95,7 @@
           />
           <span
             v-else
-            class="min-w-[1.5rem] rounded-full bg-slate-600 px-1.5 text-center text-xs font-semibold leading-6"
+            class="animate-fade-up min-w-[1.5rem] rounded-full bg-slate-600 px-1.5 text-center text-xs font-semibold leading-6"
           >
             <span class="sr-only">Your score </span>{{ ownScore.value }}
           </span>
@@ -86,7 +103,7 @@
       </div>
     </div>
 
-    <div v-if="open" class="animate-fade-up flex flex-col gap-3 pb-4 pl-12 pr-3 md:pl-[148px]">
+    <div v-if="open" class="animate-fade-up flex flex-col gap-3 pb-4 pl-[52px] pr-3 md:pl-[176px]">
       <p v-if="isDefined(card.node)" class="text-xs text-gray-400">
         Reviewed {{ formatCardDate(card.node.review.createdDate) }}
       </p>
@@ -102,29 +119,38 @@
         Everyone else's scores stay hidden until you score this episode.
       </p>
       <ScoreActions
-        v-model:editing="editing"
         noun="episode"
-        :work="scoreTarget.work"
-        :score="scoreTarget.score"
-        :review-id="scoreTarget.reviewId"
-        :save-score="scoreTarget.saveScore"
+        :has-own-score="isDefined(scoreTarget.reviewId)"
         :can-score="isDefined(currentUserId)"
         :can-reveal="canReveal"
+        @score="scoring = true"
         @reveal="emit('reveal')"
         @details="emit('details')"
       />
     </div>
+
+    <Teleport to="body">
+      <ScoreEntryModal
+        v-if="scoring"
+        :target="scoreTarget.work"
+        :score="scoreTarget.score"
+        :review-id="scoreTarget.reviewId"
+        :save-score="scoreTarget.saveScore"
+        @close="scoring = false"
+      />
+    </Teleport>
   </li>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref, useId } from "vue";
 
 import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import { EpisodeCard, ScoreTarget } from "../episodeCards";
 import { ScoreEntry } from "../reviewScores";
 import ScoreActions from "./ScoreActions.vue";
 import ScoreChips from "./ScoreChips.vue";
+import ScoreEntryModal from "./ScoreEntryModal.vue";
 import { useIsDesktop } from "@/common/composables/useIsDesktop";
 import { formatCardDate } from "@/common/workDisplay";
 
@@ -135,6 +161,8 @@ const props = defineProps<{
   /** Whether the reader can score it from the row: aired, and not scored yet. */
   canScore: boolean;
   canReveal: boolean;
+  /** The first episode the reader has yet to score after their last scored one. */
+  upNext: boolean;
   pending: boolean;
   scoreTarget: ScoreTarget;
   currentUserId?: string;
@@ -147,13 +175,10 @@ const emit = defineEmits<{
 
 const isDesktop = useIsDesktop();
 
-const open = ref(false);
-const editing = ref(false);
+const upNextId = useId();
 
-const startScoring = () => {
-  open.value = true;
-  editing.value = true;
-};
+const open = ref(false);
+const scoring = ref(false);
 
 const number = computed(() => `E${String(props.card.episodeNumber).padStart(2, "0")}`);
 

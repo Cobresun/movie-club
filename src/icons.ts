@@ -16,6 +16,7 @@ import {
   mdiCakeVariant,
   mdiCalendarStar,
   mdiCheck,
+  mdiCheckCircle,
   mdiChartBoxOutline,
   mdiChevronDown,
   mdiChevronLeft,
@@ -81,8 +82,6 @@ import {
   mdiTrophy,
   mdiTrophyBroken,
   mdiTrophyOutline,
-  mdiUnfoldLessHorizontal,
-  mdiUnfoldMoreHorizontal,
   mdiViewDashboard,
 } from "@mdi/js";
 
@@ -125,6 +124,7 @@ export const icons = {
   mdiCakeVariant,
   mdiCalendarStar,
   mdiCheck,
+  mdiCheckCircle,
   mdiChartBoxOutline,
   mdiChevronDown,
   mdiChevronLeft,
@@ -190,7 +190,5 @@ export const icons = {
   mdiTrophy,
   mdiTrophyBroken,
   mdiTrophyOutline,
-  mdiUnfoldLessHorizontal,
-  mdiUnfoldMoreHorizontal,
   mdiViewDashboard,
 };
