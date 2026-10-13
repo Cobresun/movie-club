@@ -2,20 +2,21 @@
   <div class="mx-auto flex w-full max-w-5xl flex-col gap-3 md:px-6">
     <div v-if="shows.length === 0" class="text-gray-400">No shows match the current filters.</div>
 
-    <div v-else class="flex items-center justify-end gap-2">
+    <div v-else class="flex items-center justify-between gap-2 px-1">
+      <span class="text-sm text-gray-400">
+        {{ shows.length === 1 ? "1 show" : `${shows.length} shows` }}
+      </span>
       <button
         type="button"
-        class="rounded-full bg-lowBackground px-3 py-1 text-sm text-gray-300 transition duration-fast ease-standard hover:brightness-110"
-        @click="expandAll"
+        class="flex items-center gap-1 rounded-full px-3 py-1 text-sm text-gray-300 transition duration-fast ease-standard hover:bg-white/10 hover:text-white"
+        @click="allExpanded ? (expanded = new Set()) : expandAll()"
       >
-        Expand all
-      </button>
-      <button
-        type="button"
-        class="rounded-full bg-lowBackground px-3 py-1 text-sm text-gray-300 transition duration-fast ease-standard hover:brightness-110"
-        @click="expanded = new Set()"
-      >
-        Collapse all
+        <mdicon
+          :name="allExpanded ? 'unfold-less-horizontal' : 'unfold-more-horizontal'"
+          :size="18"
+          aria-hidden="true"
+        />
+        {{ allExpanded ? "Collapse all" : "Expand all" }}
       </button>
     </div>
 
@@ -78,12 +79,16 @@ const toggle = (key: string) => {
   expanded.value = next;
 };
 
+const everyKey = computed(() =>
+  shows.value.flatMap((show) => [
+    expansionKey(show.showId),
+    ...show.seasons.map((season) => expansionKey(show.showId, season.seasonNumber)),
+  ]),
+);
+
+const allExpanded = computed(() => everyKey.value.every((key) => expanded.value.has(key)));
+
 const expandAll = () => {
-  expanded.value = new Set(
-    shows.value.flatMap((show) => [
-      expansionKey(show.showId),
-      ...show.seasons.map((season) => expansionKey(show.showId, season.seasonNumber)),
-    ]),
-  );
+  expanded.value = new Set(everyKey.value);
 };
 </script>

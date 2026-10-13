@@ -1,4 +1,4 @@
-import { isDefined } from "../../../lib/checks/checks.js";
+import { hasValue, isDefined } from "../../../lib/checks/checks.js";
 import { DetailedReviewListItem, ReviewScores } from "../../../lib/types/lists";
 import { TvDataSummary, TvSeasonSummary } from "../../../lib/types/tv";
 import { asTv } from "@/common/workDisplay";
@@ -165,7 +165,7 @@ export function buildShowTree(reviews: DetailedReviewListItem[]): ShowNode[] {
       data: tv,
       title: tv.showTitle,
       imageUrl: showReview.imageUrl,
-      metaLine: showMetaLine(tv.numberOfSeasons, tv.numberOfEpisodes),
+      metaLine: showMetaLine(tv),
       seasons,
       episodeCount:
         tv.numberOfEpisodes ?? seasons.reduce((total, season) => total + season.episodeCount, 0),
@@ -284,16 +284,17 @@ function latestScoreDate(reviews: DetailedReviewListItem[]): string | undefined 
   return dates.length === 0 ? undefined : dates.reduce((a, b) => (a > b ? a : b));
 }
 
-function showMetaLine(
-  seasons: number | undefined,
-  episodes: number | undefined,
-): string | undefined {
+/** Year, network and season count. The episode count is left to the
+ * coverage line beneath it, which already reads "x/19 episodes". */
+function showMetaLine(tv: TvDataSummary): string | undefined {
   const parts: string[] = [];
+  const year = tv.airDate?.slice(0, 4);
+  if (hasValue(year)) parts.push(year);
+  const network = tv.networks[0];
+  if (hasValue(network)) parts.push(network);
+  const seasons = tv.numberOfSeasons;
   if (isDefined(seasons) && seasons > 0) {
     parts.push(seasons === 1 ? "1 season" : `${seasons} seasons`);
-  }
-  if (isDefined(episodes) && episodes > 0) {
-    parts.push(episodes === 1 ? "1 episode" : `${episodes} episodes`);
   }
   return parts.length > 0 ? parts.join(" · ") : undefined;
 }

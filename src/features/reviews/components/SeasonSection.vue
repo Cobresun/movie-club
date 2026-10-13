@@ -4,7 +4,7 @@
          keeps rows from showing through the translucent tint. -->
     <div class="sticky top-0 z-10 bg-background">
       <div
-        class="relative flex min-h-[48px] items-center gap-3 border-t border-white/10 bg-white/5 py-2 pl-3 pr-3 md:gap-4 md:pl-4"
+        class="relative flex min-h-[48px] items-center gap-3 border-t border-white/10 bg-white/5 py-2 pl-3 pr-2 md:gap-4 md:pl-4 md:pr-3"
       >
         <mdicon
           name="chevron-right"
@@ -45,7 +45,7 @@
           :revealed="revealed"
         />
         <span
-          class="w-12 shrink-0 text-right font-bold"
+          class="w-10 shrink-0 text-right font-bold"
           :class="[
             isDefined(level.scores.average) ? 'text-primary' : 'text-gray-500',
             revealed || !isDefined(level.scores.average) ? '' : 'blur filter',
@@ -53,6 +53,9 @@
         >
           {{ formatRollup(level.scores) }}
         </span>
+        <!-- Holds the episode rows' action column, so the season's average
+             lines up with theirs. -->
+        <span class="w-10 shrink-0" aria-hidden="true" />
       </div>
     </div>
 

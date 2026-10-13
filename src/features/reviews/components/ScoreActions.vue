@@ -54,7 +54,7 @@
         @click="emit('details')"
       >
         <mdicon name="comment-text-outline" :size="16" />
-        Details
+        <span class="hidden sm:inline">Details</span>
       </button>
     </div>
   </div>

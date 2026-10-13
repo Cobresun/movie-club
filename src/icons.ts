@@ -81,6 +81,8 @@ import {
   mdiTrophy,
   mdiTrophyBroken,
   mdiTrophyOutline,
+  mdiUnfoldLessHorizontal,
+  mdiUnfoldMoreHorizontal,
   mdiViewDashboard,
 } from "@mdi/js";
 
@@ -188,5 +190,7 @@ export const icons = {
   mdiTrophy,
   mdiTrophyBroken,
   mdiTrophyOutline,
+  mdiUnfoldLessHorizontal,
+  mdiUnfoldMoreHorizontal,
   mdiViewDashboard,
 };

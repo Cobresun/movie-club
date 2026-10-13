@@ -36,8 +36,6 @@
         </button>
       </h4>
 
-      <span v-if="pending" class="shrink-0 text-sm text-gray-400" role="status">Saving…</span>
-      <span v-else-if="!card.aired" class="shrink-0 text-sm text-gray-400">Upcoming</span>
       <ScoreChips
         v-if="isDesktop && memberEntries.length > 0"
         class="shrink-0 justify-end"
@@ -53,11 +51,18 @@
       >
         {{ average }}
       </span>
-      <div class="flex w-10 shrink-0 justify-center">
+      <span v-if="pending" class="shrink-0 text-xs text-gray-400" role="status">Saving…</span>
+      <span
+        v-else-if="!card.aired"
+        class="shrink-0 rounded-full bg-white/5 px-2 py-0.5 text-xs text-gray-400"
+      >
+        Upcoming
+      </span>
+      <div v-else class="flex w-10 shrink-0 justify-center">
         <button
           v-if="canScore"
           type="button"
-          class="relative flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary transition duration-fast ease-standard hover:bg-primary/20 active:scale-95"
+          class="relative flex h-9 w-9 items-center justify-center rounded-full text-primary ring-1 ring-inset ring-primary/30 transition duration-fast ease-standard hover:bg-primary/15 hover:ring-primary/50 active:scale-95"
           :aria-label="`Score ${card.title}`"
           @click="startScoring"
         >
@@ -71,7 +76,10 @@
             class="text-white/35"
             aria-hidden="true"
           />
-          <span v-else class="rounded-full bg-slate-600 px-2 text-xs font-semibold leading-6">
+          <span
+            v-else
+            class="min-w-[1.5rem] rounded-full bg-slate-600 px-1.5 text-center text-xs font-semibold leading-6"
+          >
             <span class="sr-only">Your score </span>{{ ownScore.value }}
           </span>
         </template>
@@ -83,10 +91,10 @@
         Reviewed {{ formatCardDate(card.node.review.createdDate) }}
       </p>
       <ScoreChips
-        v-if="!isDesktop && entries.length > 0"
+        v-if="!isDesktop && memberEntries.length > 0"
         row
         show-names
-        :entries="entries"
+        :entries="memberEntries"
         :current-user-id="currentUserId"
         :revealed="revealed"
       />

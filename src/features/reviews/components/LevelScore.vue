@@ -1,16 +1,18 @@
 <template>
   <div role="group" :aria-label="label" class="flex flex-col gap-3 px-3 py-3 md:pl-11 md:pr-4">
-    <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+    <div class="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
       <span class="text-[11px] font-semibold uppercase tracking-wider text-white/45">
         {{ label }}
       </span>
       <span class="text-sm text-gray-400">{{ note }}</span>
     </div>
+    <!-- The club's average already sits in the header above, so only the
+         members' scores are listed here. -->
     <ScoreChips
-      v-if="!isDesktop && entries.length > 0"
+      v-if="!isDesktop && memberEntries.length > 0"
       row
       show-names
-      :entries="entries"
+      :entries="memberEntries"
       :current-user-id="currentUserId"
       :revealed="revealed"
     />
@@ -29,6 +31,8 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from "vue";
+
 import { isDefined } from "../../../../lib/checks/checks.js";
 import { ScoreTarget } from "../episodeCards";
 import { isOthersScore, ScoreEntry } from "../reviewScores";
@@ -36,7 +40,7 @@ import ScoreActions from "./ScoreActions.vue";
 import ScoreChips from "./ScoreChips.vue";
 import { useIsDesktop } from "@/common/composables/useIsDesktop";
 
-defineProps<{
+const props = defineProps<{
   /** "Show score" or "Season score". */
   label: string;
   noun: string;
@@ -53,4 +57,6 @@ const emit = defineEmits<{
 }>();
 
 const isDesktop = useIsDesktop();
+
+const memberEntries = computed(() => props.entries.filter((entry) => isDefined(entry.memberId)));
 </script>

@@ -21,7 +21,7 @@
         <h2 class="text-base font-semibold leading-snug md:text-lg">
           <button
             type="button"
-            class="text-left after:absolute after:inset-0 after:content-['']"
+            class="line-clamp-2 text-left after:absolute after:inset-0 after:content-['']"
             :aria-expanded="open"
             :aria-label="`${show.title}, ${rollupLabel(show.scores)}`"
             @click="emit('toggle', expansionKey(show.showId))"

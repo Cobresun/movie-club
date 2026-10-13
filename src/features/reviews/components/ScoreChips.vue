@@ -24,8 +24,8 @@
               :size="14"
               class="inline-block align-middle text-gray-400"
               aria-hidden="true"
-            /><span class="sr-only">Averaged </span></template
-          >{{ entry.value }}</span
+            /><span class="sr-only">Averaged </span>{{ Number(entry.value.toFixed(1)) }}</template
+          ><template v-else>{{ entry.value }}</template></span
         >
       </div>
     </div>

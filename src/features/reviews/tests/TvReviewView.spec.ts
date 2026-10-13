@@ -396,8 +396,8 @@ describe("TV reviews", () => {
 
     // Member 1 set 9 on the show itself, which wins over their episodes' 6;
     // member 2 set nothing there, so theirs is their one episode's 10.
+    expect(screen.getByRole("button", { name: "Severance, average 9.5" })).toBeInTheDocument();
     const showScore = within(screen.getByRole("group", { name: "Show score" }));
-    expect(showScore.getByText("9.5")).toBeInTheDocument();
     expect(showScore.getAllByText("Averaged")).toHaveLength(1);
   });
 
