@@ -84,8 +84,7 @@ const parseJson: <T>(input: string) => T = JSON.parse;
 
 /**
  * Hand a body back with the caller's type without going through the parser:
- * for SVG and redirect responses, and for the handlers that answer
- * `ok("Joined club successfully")` — a bare string under a JSON content type.
+ * for SVG and redirect responses, and for any body that is not valid JSON.
  */
 function asBody<T>(value: string | undefined): T {
   return parseJson<T>(JSON.stringify(value ?? null));
