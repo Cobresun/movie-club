@@ -6,9 +6,17 @@
         <v-avatar :src="match.match.image" :name="match.match.name" :size="40" />
       </div>
       <p class="min-w-0 flex-1 text-sm leading-snug">
-        <span class="font-semibold">{{ firstName(match.member.name) }}</span
-        >{{ " " }}<span class="text-white/75">is closest to</span>{{ " "
-        }}<span class="font-semibold">{{ firstName(match.match.name) }}</span>
+        <template v-if="match.mutual">
+          <span class="font-semibold">{{ firstName(match.member.name) }}</span
+          >{{ " " }}<span class="text-white/75">and</span>{{ " "
+          }}<span class="font-semibold">{{ firstName(match.match.name) }}</span
+          >{{ " " }}<span class="text-white/75">are each other's closest</span>
+        </template>
+        <template v-else>
+          <span class="font-semibold">{{ firstName(match.member.name) }}</span
+          >{{ " " }}<span class="text-white/75">is closest to</span>{{ " "
+          }}<span class="font-semibold">{{ firstName(match.match.name) }}</span>
+        </template>
       </p>
       <span class="shrink-0 text-xl font-bold tabular-nums">
         {{ Math.round(match.similarityPercent) }}%
