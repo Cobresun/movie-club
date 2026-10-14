@@ -274,6 +274,18 @@ const routes: Array<RouteRecordRaw> = [
     },
   },
   {
+    // Full-width story cards, so like the invite handoff it sits outside
+    // ClubRouterView and its section bar.
+    path: "/club/:clubSlug/wrapped/:year(\\d{4})?",
+    name: "Wrapped",
+    component: () => import("../features/wrapped/views/WrappedView.vue"),
+    beforeEnter: checkClubAccess,
+    props: true,
+    meta: {
+      authRequired: true,
+    },
+  },
+  {
     path: "/club/:clubSlug",
     component: ClubRouterView,
     beforeEnter: clubGuard,
