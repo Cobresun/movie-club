@@ -7,7 +7,7 @@
         type="button"
         :aria-pressed="isPresetActive(preset)"
         :disabled="!isPresetActive(preset) && !presetHasMatches(preset)"
-        class="duration-fast inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-35"
+        class="duration-fast inline-flex items-center gap-1.5 rounded-full border border-gray-200 px-3 py-1.5 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-35"
         :class="
           isPresetActive(preset)
             ? 'border-primary bg-primary text-white'
