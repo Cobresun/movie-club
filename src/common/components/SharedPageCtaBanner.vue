@@ -13,14 +13,16 @@
             <span aria-hidden="true">🍿</span>
             <span class="text-sm font-semibold tracking-wide">MovieClub</span>
           </div>
-          <h2 class="mt-1 text-lg font-bold leading-tight text-white">Join the Club!</h2>
-          <p class="text-xs text-gray-200">Rate movies and compare favorites with your friends.</p>
+          <h2 class="mt-1 text-lg font-bold leading-tight text-white">
+            Want one for your friends?
+          </h2>
+          <p class="text-xs text-gray-200">Score movies or books together. It's free.</p>
         </div>
         <a
-          href="/"
+          :href="startClubHref"
           class="whitespace-nowrap rounded-md bg-primary px-4 py-2 text-sm font-bold tracking-wide text-white transition hover:brightness-110 active:brightness-105"
         >
-          Sign Up
+          Start your own club
         </a>
       </div>
     </div>
@@ -32,6 +34,23 @@ import { computed } from "vue";
 
 import { useHideOnScroll } from "../composables/useHideOnScroll";
 import { useAuthStore } from "@/stores/auth";
+
+const { source } = defineProps<{
+  /** Which share page this is, so signups can be attributed to it. */
+  source: "review" | "list" | "statistics";
+}>();
+
+// UTM tags on a real page load, so signup tracking can read them off the
+// landing URL. The new club page keeps its full URL as the post-signup
+// redirect, so the tags survive the email-verification round trip too.
+const startClubHref = computed(
+  () =>
+    `/newClub?${new URLSearchParams({
+      utm_source: "share",
+      utm_medium: source,
+      utm_campaign: "start_club",
+    }).toString()}`,
+);
 
 const authStore = useAuthStore();
 const isLoggedIn = computed(() => authStore.isLoggedIn);

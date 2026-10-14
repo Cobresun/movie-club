@@ -1,12 +1,10 @@
 <template>
-  <div class="pb-12">
+  <div class="pb-16">
     <!-- hide-club is required here: PageHeader otherwise resolves a club from the
          route, and this route has no clubSlug to resolve. -->
     <page-header :has-back="false" page-name="Site metrics" hide-club />
 
-    <loading-spinner v-if="isLoading" />
-
-    <div v-else-if="isUnauthorized" class="mx-auto w-11/12 max-w-lg py-16 text-center">
+    <div v-if="isUnauthorized" class="mx-auto w-11/12 max-w-lg py-16 text-center">
       <h2 class="text-xl font-bold text-white">Not available</h2>
       <p class="mt-2 text-sm text-slate-400">
         This page is limited to site administrators. If that should include you, ask for your email
@@ -20,130 +18,100 @@
       <v-btn class="mt-4" @click="refetch()">Try again</v-btn>
     </div>
 
-    <div v-else-if="metrics" class="space-y-8">
-      <!-- Freshness belongs where it's read, not in a footnote: the only
-           question anyone asks of the capture time is whether the numbers are
-           stale, and a relative phrasing answers it without arithmetic. -->
-      <div class="mx-auto flex w-11/12 items-center justify-between gap-3">
-        <p class="text-sm text-slate-500">Updated {{ generatedLabel }}</p>
-        <v-btn :disabled="isFetching" @click="refetch()">
-          {{ isFetching ? "Refreshing…" : "Refresh" }}
-        </v-btn>
+    <template v-else>
+      <!-- The range drives every section below, so it stays in reach while
+           scrolling rather than living at the top of one card. -->
+      <div class="sticky top-0 z-10 bg-background/90 py-2 backdrop-blur">
+        <div class="mx-auto flex w-11/12 max-w-6xl items-center justify-between gap-3">
+          <SegmentedToggle v-model="range" :options="RANGE_OPTIONS" />
+          <div class="flex shrink-0 items-center gap-2">
+            <p v-if="dashboard" class="hidden text-xs text-slate-500 sm:block">
+              Updated {{ formatRelativeTime(dashboard.generatedAt) }}
+            </p>
+            <v-btn
+              :disabled="isFetching"
+              :aria-label="isFetching ? 'Refreshing metrics' : 'Refresh metrics'"
+              @click="refresh"
+            >
+              <mdicon name="refresh" size="20" :class="{ 'animate-spin': isFetching }" />
+            </v-btn>
+          </div>
+        </div>
       </div>
 
-      <section class="space-y-4">
-        <h2 class="mx-auto w-11/12 text-sm font-bold uppercase tracking-wide text-slate-400">
-          Scale
-        </h2>
-        <div class="mx-auto grid w-11/12 grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-          <KpiTile
-            label="Users"
-            :value="metrics.totals.users"
-            :delta="deltas.users"
-            :caption="`${percentOf(metrics.totals.verifiedUsers, metrics.totals.users)}% verified`"
-          />
-          <KpiTile
-            label="Clubs"
-            :value="metrics.totals.clubs"
-            :delta="deltas.clubs"
-            :caption="`${metrics.totals.movieClubs} movie · ${metrics.totals.bookClubs} book`"
-          />
-          <KpiTile
-            label="Memberships"
-            :value="metrics.totals.memberships"
-            :caption="`across ${metrics.totals.lists} lists`"
-          />
-          <KpiTile
-            label="Reviews"
-            :value="metrics.totals.reviews"
-            :delta="deltas.reviews"
-            :caption="`${metrics.totals.comments} comments`"
-          />
-          <KpiTile label="Works" :value="metrics.totals.works" caption="movies and books tracked" />
-        </div>
-      </section>
+      <AdminDashboardSkeleton v-if="isLoading" />
 
-      <section class="space-y-4">
-        <h2 class="mx-auto w-11/12 text-sm font-bold uppercase tracking-wide text-slate-400">
-          Momentum
-        </h2>
+      <div
+        v-else-if="dashboard"
+        class="mx-auto mt-4 w-11/12 max-w-6xl space-y-4 transition-opacity"
+        :class="{ 'opacity-60': isPreviousData }"
+        :aria-busy="isPreviousData"
+      >
+        <section aria-label="Pulse" class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          <PulseTile
+            v-for="tile in pulseTiles"
+            :key="tile.label"
+            :label="tile.label"
+            :count="tile.count"
+            :comparison="rangePrevious(range)"
+          />
+        </section>
 
-        <EngagementWidget
-          :engaged-users="metrics.engagedUsers"
-          :logged-in-users="metrics.loggedInUsers"
-          :active-clubs="metrics.activeClubs"
-          :new-users="metrics.newUsers"
-          :new-clubs="metrics.newClubs"
+        <TrendsWidget
+          :range="dashboard.range"
+          :unit="dashboard.activity.unit"
+          :buckets="dashboard.activity.buckets"
+          :snapshots="history ?? []"
         />
 
-        <GrowthWidget
-          :users="metrics.weekly.users"
-          :clubs="metrics.weekly.clubs"
-          :reviews="metrics.weekly.reviews"
-        />
-
-        <SnapshotHistoryWidget v-model:days="historyWindow" :history="history ?? []" />
-      </section>
-
-      <section class="space-y-4">
-        <h2 class="mx-auto w-11/12 text-sm font-bold uppercase tracking-wide text-slate-400">
-          Health
-        </h2>
-
-        <div class="mx-auto grid w-11/12 grid-cols-2 gap-3 lg:grid-cols-4">
-          <RateTile
-            label="Stickiness"
-            :percent="stickinessPercent"
-            :detail="`${formatCount(metrics.engagedUsers.last7Days)} of ${formatCount(metrics.engagedUsers.last30Days)} monthly actives`"
-            hint="Came back within the week"
-            :good-at-or-above="40"
-            :bad-below="15"
+        <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <WorksWidget :works="dashboard.works" :range="dashboard.range" />
+          <FeedWidget :events="dashboard.feed" />
+          <ClubsWidget
+            :busiest="dashboard.clubs.busiest"
+            :newest="dashboard.clubs.newest"
+            :range="dashboard.range"
           />
-          <RateTile
-            label="New-user activation"
-            :percent="ratePercent(metrics.health.newUserActivation)"
-            :detail="rateFraction(metrics.health.newUserActivation)"
-            hint="Signed up in 30d and did something"
-            :good-at-or-above="50"
-            :bad-below="20"
-          />
-          <RateTile
-            label="Works discussed"
-            :percent="ratePercent(metrics.health.commentedWorks)"
-            :detail="rateFraction(metrics.health.commentedWorks)"
-            hint="Reviewed works that drew a comment"
-            :good-at-or-above="40"
-          />
-          <RateTile
-            label="Custom lists"
-            :percent="ratePercent(metrics.health.customListAdoption)"
-            :detail="rateFraction(metrics.health.customListAdoption)"
-            hint="Clubs using a list beyond reviews"
-            :good-at-or-above="50"
+          <PeopleWidget
+            :most-active="dashboard.people.mostActive"
+            :newest="dashboard.people.newest"
+            :range="dashboard.range"
           />
         </div>
 
-        <ClubHealthWidget
-          :club-sizes="metrics.health.clubSizes"
-          :dormant-clubs="metrics.health.dormantClubs"
-          :median-days-to-first-review="metrics.health.medianDaysToFirstReview"
-          :days-to-first-review-sample="metrics.health.daysToFirstReviewSample"
-        />
-
-        <SignupSourceWidget
-          :signup-methods="metrics.health.signupMethods"
-          :unverified-users="metrics.health.unverifiedUsers"
-        />
-      </section>
-
-      <section class="space-y-4">
-        <h2 class="mx-auto w-11/12 text-sm font-bold uppercase tracking-wide text-slate-400">
-          Who
-        </h2>
-        <TopUsersWidget :users="metrics.topUsers" />
-        <TopClubsWidget :clubs="metrics.topClubs" />
-      </section>
-    </div>
+        <section aria-labelledby="health-heading" class="space-y-3 pt-4">
+          <h2 id="health-heading" class="text-sm font-bold uppercase tracking-wide text-slate-400">
+            Health
+          </h2>
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <RateTile
+              label="Contribution"
+              :percent="ratePercent(dashboard.health.contribution)"
+              :detail="`${rateFraction(dashboard.health.contribution)} people who signed in`"
+              hint="Wrote something, last 30 days"
+              :good-at-or-above="40"
+              :bad-below="15"
+            />
+            <RateTile
+              label="New-user activation"
+              :percent="ratePercent(dashboard.health.newUserActivation)"
+              :detail="`${rateFraction(dashboard.health.newUserActivation)} who signed up`"
+              :hint="`Did anything at all, joined ${rangeWithin(dashboard.range)}`"
+              :good-at-or-above="50"
+              :bad-below="20"
+            />
+            <RateTile
+              label="Discussion"
+              :percent="ratePercent(dashboard.health.discussion)"
+              :detail="`${rateFraction(dashboard.health.discussion)} reviewed titles`"
+              hint="Drew at least one comment"
+              :good-at-or-above="30"
+            />
+          </div>
+          <ClubStatusWidget :status="dashboard.health.clubStatus" />
+        </section>
+      </div>
+    </template>
   </div>
 </template>
 
@@ -151,35 +119,35 @@
 import axios from "axios";
 import { computed, ref } from "vue";
 
-import ClubHealthWidget from "../components/ClubHealthWidget.vue";
-import EngagementWidget from "../components/EngagementWidget.vue";
-import GrowthWidget from "../components/GrowthWidget.vue";
-import KpiTile from "../components/KpiTile.vue";
+import { DEFAULT_METRICS_RANGE, MetricsRange } from "../../../../lib/types/metrics";
+import AdminDashboardSkeleton from "../components/AdminDashboardSkeleton.vue";
+import ClubStatusWidget from "../components/ClubStatusWidget.vue";
+import ClubsWidget from "../components/ClubsWidget.vue";
+import FeedWidget from "../components/FeedWidget.vue";
+import PeopleWidget from "../components/PeopleWidget.vue";
+import PulseTile from "../components/PulseTile.vue";
 import RateTile from "../components/RateTile.vue";
-import SignupSourceWidget from "../components/SignupSourceWidget.vue";
-import SnapshotHistoryWidget from "../components/SnapshotHistoryWidget.vue";
-import TopClubsWidget from "../components/TopClubsWidget.vue";
-import TopUsersWidget from "../components/TopUsersWidget.vue";
-import {
-  deltaOverDays,
-  formatCount,
-  formatRelativeTime,
-  percentOf,
-  rateFraction,
-  ratePercent,
-  stickiness,
-} from "../formatMetrics";
-import { type HistoryWindow } from "../historyWindow";
+import TrendsWidget from "../components/TrendsWidget.vue";
+import WorksWidget from "../components/WorksWidget.vue";
+import { formatRelativeTime, rateFraction, ratePercent } from "../formatMetrics";
+import { RANGE_OPTIONS, rangePrevious, rangeWithin } from "../ranges";
+import SegmentedToggle from "@/features/statistics/components/SegmentedToggle.vue";
 import { useAdminMetrics, useAdminMetricsHistory } from "@/service/useAdminMetrics";
 
-/** Window the KPI deltas compare against. */
-const DELTA_DAYS = 7;
+const range = ref<MetricsRange>(DEFAULT_METRICS_RANGE);
 
-const historyWindow = ref<HistoryWindow>("90");
-const historyDays = computed(() => Number(historyWindow.value));
+const {
+  data: dashboard,
+  isLoading,
+  isError,
+  isFetching,
+  isPreviousData,
+  error,
+  refetch,
+} = useAdminMetrics(range);
+const { data: history, refetch: refetchHistory } = useAdminMetricsHistory(range);
 
-const { data: metrics, isLoading, isError, isFetching, error, refetch } = useAdminMetrics();
-const { data: history } = useAdminMetricsHistory(historyDays);
+const refresh = () => Promise.all([refetch(), refetchHistory()]);
 
 /**
  * A 401 is the expected answer for everyone who isn't on the allowlist, so it
@@ -191,31 +159,16 @@ const isUnauthorized = computed(
   () => axios.isAxiosError(error.value) && error.value.response?.status === 401,
 );
 
-const generatedLabel = computed(() =>
-  metrics.value === undefined ? "unknown" : formatRelativeTime(metrics.value.generatedAt),
-);
-
-const stickinessPercent = computed(() =>
-  metrics.value === undefined ? null : stickiness(metrics.value.engagedUsers),
-);
-
-/**
- * Week-over-week movement for the running totals, read out of the snapshot
- * history rather than queried — the daily job already stores these three.
- *
- * Only those three: memberships and works aren't in the snapshot's narrow
- * compatibility schema, so their tiles show no delta rather than a wrong one.
- */
-const deltas = computed(() => {
-  const totals = metrics.value?.totals;
-  const points = history.value ?? [];
-  if (totals === undefined) {
-    return { users: null, clubs: null, reviews: null };
-  }
-  return {
-    users: deltaOverDays(points, "users", totals.users, DELTA_DAYS),
-    clubs: deltaOverDays(points, "clubs", totals.clubs, DELTA_DAYS),
-    reviews: deltaOverDays(points, "reviews", totals.reviews, DELTA_DAYS),
-  };
+const pulseTiles = computed(() => {
+  const pulse = dashboard.value?.pulse;
+  if (pulse === undefined) return [];
+  return [
+    { label: "Active clubs", count: pulse.activeClubs },
+    { label: "Active people", count: pulse.activeUsers },
+    { label: "Reviews", count: pulse.reviews },
+    { label: "Comments", count: pulse.comments },
+    { label: "New people", count: pulse.newUsers },
+    { label: "New clubs", count: pulse.newClubs },
+  ];
 });
 </script>
