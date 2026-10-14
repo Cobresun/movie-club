@@ -316,6 +316,48 @@ describe("WrappedView", () => {
     expect(screen.getByRole("link", { name: "2025" })).toBeInTheDocument();
   });
 
+  describe("the current year", () => {
+    const thisYear = [
+      movieReview("6", "Sinners", "2026-04-10", { 1: 9, 2: 8 }),
+      movieReview("7", "Weapons", "2026-08-10", { 1: 7, 2: 6 }),
+    ];
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("stays hidden until December, even by its link", async () => {
+      vi.useFakeTimers({ toFake: ["Date"], now: new Date("2026-11-20T12:00:00.000Z") });
+      server.use(reviews([...MOVIE_REVIEWS, ...thisYear]));
+      renderWrapped("2026");
+
+      expect(await screen.findByText("2026 Wrapped isn't out yet")).toBeInTheDocument();
+      expect(
+        screen.getByText("Your club's 2026 Wrapped arrives on December 1."),
+      ).toBeInTheDocument();
+      expect(screen.queryByRole("link", { name: "2026" })).not.toBeInTheDocument();
+      expect(screen.getByRole("link", { name: "2025" })).toBeInTheDocument();
+    });
+
+    it("opens on it, so far, once December comes", async () => {
+      vi.useFakeTimers({ toFake: ["Date"], now: new Date("2026-12-02T12:00:00.000Z") });
+      server.use(reviews([...MOVIE_REVIEWS, ...thisYear]));
+      renderWrapped();
+
+      expect(within(await slide()).getByText("so far")).toBeInTheDocument();
+      expect(screen.getByRole("link", { name: "2026" })).toHaveAttribute("aria-current", "page");
+    });
+
+    it("tells a club in its first year when its Wrapped arrives", async () => {
+      vi.useFakeTimers({ toFake: ["Date"], now: new Date("2026-11-20T12:00:00.000Z") });
+      server.use(reviews(thisYear));
+      renderWrapped();
+
+      expect(await screen.findByText("2026 Wrapped isn't out yet")).toBeInTheDocument();
+      expect(screen.queryByRole("navigation", { name: "Wrapped years" })).not.toBeInTheDocument();
+    });
+  });
+
   it("sends a club with no reviews to the reviews page", async () => {
     server.use(reviews([]));
     const { user } = renderWrapped();

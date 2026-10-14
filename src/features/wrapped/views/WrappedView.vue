@@ -42,12 +42,18 @@
       />
 
       <EmptyState
-        v-else-if="years.length === 0"
+        v-else-if="workData.length === 0"
         title="Nothing to wrap yet"
         :description="`Wrapped appears once your club has scored some ${noun}s.`"
         action-label="Go to Reviews"
         action-icon="arrow-right"
         @action="goToReviews"
+      />
+
+      <EmptyState
+        v-else-if="!isDefined(selectedYear) || !isYearReleased(selectedYear)"
+        :title="`${unreleasedYear} Wrapped isn't out yet`"
+        :description="`Your club's ${unreleasedYear} Wrapped arrives on December 1.`"
       />
 
       <template v-else-if="isDefined(club)">
@@ -78,7 +84,7 @@ import { isDefined } from "../../../../lib/checks/checks.js";
 import { useStatisticsData } from "../../statistics/composables/useStatisticsData";
 import { isBookStats, isMovieStats } from "../../statistics/types";
 import WrappedStory from "../components/WrappedStory.vue";
-import { isYearInProgress, worksInYear, wrappedYears } from "../wrapped";
+import { isYearInProgress, isYearReleased, worksInYear, wrappedYears } from "../wrapped";
 import { buildWrappedDeck } from "../wrappedDeck";
 import { clubTypeConfig } from "@/common/clubType";
 import EmptyState from "@/common/components/EmptyState.vue";
@@ -101,6 +107,10 @@ const selectedYear = computed(() => {
   const requested = Number.parseInt(props.year ?? "", 10);
   return Number.isNaN(requested) ? years.value[0] : requested;
 });
+
+// The year a not-yet-released Wrapped would be for: the one asked for, or this
+// year when a club's only reviews are from it.
+const unreleasedYear = computed(() => selectedYear.value ?? new Date().getUTCFullYear());
 
 // A club with many years scrolls the chip row; bring the open year into view
 // when it is one further along the row, e.g. a link straight to an old year.

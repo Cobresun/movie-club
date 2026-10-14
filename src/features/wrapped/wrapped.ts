@@ -12,10 +12,22 @@ export function reviewYear(work: WorkStatsData): number | undefined {
   return isNaN(date.getTime()) ? undefined : date.getUTCFullYear();
 }
 
-/** Every year the club reviewed something in, newest first. */
-export function wrappedYears(workData: WorkStatsData[]): number[] {
+/**
+ * The month (zero-based, UTC) a year's Wrapped comes out in: December, as
+ * Spotify does, so the year is nearly over before the club looks back on it.
+ */
+const RELEASE_MONTH = 11;
+
+/** Whether `year`'s Wrapped is out: any past year, and this one from December. */
+export function isYearReleased(year: number, now = new Date()): boolean {
+  const currentYear = now.getUTCFullYear();
+  return year < currentYear || (year === currentYear && now.getUTCMonth() >= RELEASE_MONTH);
+}
+
+/** Every year the club reviewed something in whose Wrapped is out, newest first. */
+export function wrappedYears(workData: WorkStatsData[], now = new Date()): number[] {
   const years = new Set(workData.map(reviewYear).filter(isDefined));
-  return [...years].sort((a, b) => b - a);
+  return [...years].filter((year) => isYearReleased(year, now)).sort((a, b) => b - a);
 }
 
 export function worksInYear<T extends WorkStatsData>(workData: T[], year: number): T[] {
