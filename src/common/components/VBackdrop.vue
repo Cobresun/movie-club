@@ -2,7 +2,7 @@
   <Transition name="fade" appear>
     <div
       v-if="visible"
-      class="backdrop bg-opacity-50 fixed inset-0 touch-none overscroll-none bg-black"
+      class="backdrop fixed inset-0 touch-none overscroll-none bg-black/50"
       :class="zIndexClass"
       :style="{ opacity, transition: tracking ? 'none' : undefined }"
       @click="handleClose"

@@ -5,17 +5,17 @@
     <li
       v-for="(entry, index) in entries"
       :key="entry.id"
-      class="flex items-center gap-1 rounded-full py-0.5 pl-0.5 pr-2 text-xs"
+      class="flex items-center gap-1 rounded-full py-0.5 pr-2 pl-0.5 text-xs"
       :class="
         entry.memberId === currentUserId
-          ? 'bg-primary/15 ring-1 ring-inset ring-primary/50'
+          ? 'bg-primary/15 ring-primary/50 ring-1 ring-inset'
           : 'bg-white/5'
       "
     >
       <VAvatar :src="entry.image" :name="entry.name" :size="20" aria-hidden="true" />
       <span class="sr-only">{{ entry.name }}</span>
       <span
-        class="font-semibold tabular-nums transition-[filter] duration-500 ease-standard"
+        class="ease-standard font-semibold tabular-nums transition-[filter] duration-500"
         :class="isScoreBlurred(entry, currentUserId, revealed) ? 'blur-sm' : 'blur-none'"
         :style="{ transitionDelay: `${index * 80}ms` }"
         :aria-hidden="isScoreBlurred(entry, currentUserId, revealed) || undefined"

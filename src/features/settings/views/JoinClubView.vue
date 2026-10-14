@@ -2,7 +2,7 @@
   <div class="flex min-h-screen items-center justify-center">
     <div
       v-if="isLoggedIn"
-      class="animate-fade-up w-full max-w-md rounded-lg border p-8 text-center"
+      class="animate-fade-up w-full max-w-md rounded-lg border border-gray-200 p-8 text-center"
     >
       <h1 class="mb-4 text-2xl font-bold">Join Club</h1>
 

@@ -40,6 +40,7 @@
           :delay="150"
           :delay-on-touch-only="true"
           :animation="200"
+          :fallback-on-body="true"
           handle=".drag-handle"
           filter=".no-drag"
           :prevent-on-filter="false"

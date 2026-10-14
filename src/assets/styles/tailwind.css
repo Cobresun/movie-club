@@ -43,6 +43,21 @@
   transition-duration: var(--motion-slow);
 }
 
+/* Restore v3 Preflight defaults that v4 dropped or changed: pointer cursor on
+   enabled buttons, and gray-400 placeholder text on inputs/textareas that do
+   not specify their own placeholder-* utility. */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--color-gray-400);
+  }
+}
+
 /* Reduced-motion layer: durations collapse to near-zero rather than
    `animation: none` so transitions still COMPLETE — overlay dismissal
    (VModal/VBottomSheet/VSideDrawer) relies on @after-leave firing. */
@@ -178,4 +193,14 @@ input[type="date"] {
   textarea {
     font-size: 16px !important;
   }
+}
+
+/* SortableJS drag fallback preview (e.g. inside transformed modals) */
+.sortable-fallback {
+  opacity: 1 !important;
+  background-color: rgb(15 23 42 / 0.95) !important;
+  box-shadow:
+    0 10px 15px -3px rgb(0 0 0 / 0.5),
+    0 4px 6px -4px rgb(0 0 0 / 0.5);
+  cursor: grabbing;
 }

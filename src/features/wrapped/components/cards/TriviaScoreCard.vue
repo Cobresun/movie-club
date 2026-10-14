@@ -1,7 +1,7 @@
 <template>
   <div class="flex flex-1 flex-col justify-center">
     <mdicon name="trophy" :size="44" class="text-white/80" />
-    <p class="mt-4 text-7xl font-bold tabular-nums leading-none tracking-tight">
+    <p class="mt-4 text-7xl leading-none font-bold tracking-tight tabular-nums">
       {{ correctCount }}/{{ questionCount }}
     </p>
     <p class="mt-2 text-3xl font-semibold">guessed right</p>

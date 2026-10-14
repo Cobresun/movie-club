@@ -21,6 +21,8 @@
         class="flex flex-col gap-2"
         handle=".list-drag-handle"
         :animation="200"
+        :force-fallback="true"
+        :fallback-on-body="true"
         @end="onListsReordered"
       >
         <div

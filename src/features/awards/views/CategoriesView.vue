@@ -5,7 +5,15 @@
       <p v-if="!hasElements(categories)" class="mb-4 text-gray-400">
         No categories yet. Add your own below or pick from the suggestions.
       </p>
-      <VueDraggableNext v-model="categories" tag="ul" handle=".drag-handle" aria-label="Categories">
+      <VueDraggableNext
+        v-model="categories"
+        tag="ul"
+        handle=".drag-handle"
+        :animation="200"
+        :force-fallback="true"
+        :fallback-on-body="true"
+        aria-label="Categories"
+      >
         <li
           v-for="(element, index) in categories"
           :key="element.title"
