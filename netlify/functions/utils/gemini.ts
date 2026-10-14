@@ -6,7 +6,7 @@ import { hasValue } from "../../../lib/checks/checks.js";
 // Flash-Lite rather than full Flash: the larger Flash models shed load with
 // 503s often enough to fail most requests, and answer too slowly for a
 // function timeout when they do succeed.
-const GEMINI_MODEL = "gemini-3.5-flash-lite";
+const GEMINI_MODEL = "gemini-3.6-flash";
 const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
 // Gemini's 503 "high demand" responses usually clear within a second.
