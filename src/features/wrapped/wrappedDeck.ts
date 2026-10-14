@@ -33,7 +33,6 @@ export type WrappedTone = "violet" | "blue" | "emerald" | "rose" | "amber" | "sk
 /** One year of one club, assembled once by WrappedView for every card builder. */
 export interface WrappedContext {
   year: number;
-  inProgress: boolean;
   clubType: ClubType;
   workData: WorkStatsData[];
   movieData: MovieData[];
@@ -81,7 +80,6 @@ const intro: WrappedCardDef = {
   cards: (ctx) => [
     {
       year: ctx.year,
-      inProgress: ctx.inProgress,
       clubIcon: clubTypeIcon(ctx.clubType),
       workCount: ctx.workData.length,
       countLabel: clubTypeStats(ctx.clubType).countLabel,

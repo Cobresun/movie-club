@@ -3,7 +3,6 @@ import {
   computeClosestMatches,
   computeHotTakes,
   computePicks,
-  isYearInProgress,
   isYearReleased,
   worksInYear,
   wrappedYears,
@@ -24,14 +23,14 @@ describe("wrappedYears", () => {
     expect(wrappedYears(works)).toEqual([2025, 2024]);
   });
 
-  it("holds back the current year until its Wrapped comes out in December", () => {
+  it("holds back the current year until its Wrapped comes out on January 1", () => {
     const works = [
       makeMovie({ id: "1", createdDate: "2025-06-01T00:00:00.000Z" }),
       makeMovie({ id: "2", createdDate: "2026-03-01T00:00:00.000Z" }),
     ];
 
-    expect(wrappedYears(works, new Date("2026-11-30T23:59:59.000Z"))).toEqual([2025]);
-    expect(wrappedYears(works, new Date("2026-12-01T00:00:00.000Z"))).toEqual([2026, 2025]);
+    expect(wrappedYears(works, new Date("2026-12-31T23:59:59.000Z"))).toEqual([2025]);
+    expect(wrappedYears(works, new Date("2027-01-01T00:00:00.000Z"))).toEqual([2026, 2025]);
   });
 
   it("files a review made at midnight UTC on New Year's Day under the new year", () => {
@@ -42,24 +41,15 @@ describe("wrappedYears", () => {
   });
 });
 
-describe("isYearInProgress", () => {
-  it("is true only for the current calendar year", () => {
-    const now = new Date("2026-09-27T12:00:00.000Z");
-
-    expect(isYearInProgress(2026, now)).toBe(true);
-    expect(isYearInProgress(2025, now)).toBe(false);
-  });
-});
-
 describe("isYearReleased", () => {
-  it("releases past years, and the current one from December 1", () => {
-    const november = new Date("2026-11-15T12:00:00.000Z");
-    const december = new Date("2026-12-01T00:00:00.000Z");
+  it("releases a year on January 1 of the next", () => {
+    const newYearsEve = new Date("2026-12-31T23:59:59.000Z");
+    const newYearsDay = new Date("2027-01-01T00:00:00.000Z");
 
-    expect(isYearReleased(2025, november)).toBe(true);
-    expect(isYearReleased(2026, november)).toBe(false);
-    expect(isYearReleased(2026, december)).toBe(true);
-    expect(isYearReleased(2027, december)).toBe(false);
+    expect(isYearReleased(2025, newYearsEve)).toBe(true);
+    expect(isYearReleased(2026, newYearsEve)).toBe(false);
+    expect(isYearReleased(2026, newYearsDay)).toBe(true);
+    expect(isYearReleased(2027, newYearsDay)).toBe(false);
   });
 });
 

@@ -53,7 +53,7 @@
       <EmptyState
         v-else-if="!isDefined(selectedYear) || !isYearReleased(selectedYear)"
         :title="`${unreleasedYear} Wrapped isn't out yet`"
-        :description="`Your club's ${unreleasedYear} Wrapped arrives on December 1.`"
+        :description="`Your club's ${unreleasedYear} Wrapped arrives on January 1, ${unreleasedYear + 1}.`"
       />
 
       <template v-else-if="isDefined(club)">
@@ -84,7 +84,7 @@ import { isDefined } from "../../../../lib/checks/checks.js";
 import { useStatisticsData } from "../../statistics/composables/useStatisticsData";
 import { isBookStats, isMovieStats } from "../../statistics/types";
 import WrappedStory from "../components/WrappedStory.vue";
-import { isYearInProgress, isYearReleased, worksInYear, wrappedYears } from "../wrapped";
+import { isYearReleased, worksInYear, wrappedYears } from "../wrapped";
 import { buildWrappedDeck } from "../wrappedDeck";
 import { clubTypeConfig } from "@/common/clubType";
 import EmptyState from "@/common/components/EmptyState.vue";
@@ -131,7 +131,6 @@ const deck = computed(() => {
   if (works.length === 0) return [];
   return buildWrappedDeck({
     year: selectedYear.value,
-    inProgress: isYearInProgress(selectedYear.value),
     clubType: club.value.type,
     workData: works,
     movieData: works.filter(isMovieStats),

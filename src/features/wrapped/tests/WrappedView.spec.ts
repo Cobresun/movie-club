@@ -326,30 +326,30 @@ describe("WrappedView", () => {
       vi.useRealTimers();
     });
 
-    it("stays hidden until December, even by its link", async () => {
-      vi.useFakeTimers({ toFake: ["Date"], now: new Date("2026-11-20T12:00:00.000Z") });
+    it("stays hidden until January 1, even by its link", async () => {
+      vi.useFakeTimers({ toFake: ["Date"], now: new Date("2026-12-20T12:00:00.000Z") });
       server.use(reviews([...MOVIE_REVIEWS, ...thisYear]));
       renderWrapped("2026");
 
       expect(await screen.findByText("2026 Wrapped isn't out yet")).toBeInTheDocument();
       expect(
-        screen.getByText("Your club's 2026 Wrapped arrives on December 1."),
+        screen.getByText("Your club's 2026 Wrapped arrives on January 1, 2027."),
       ).toBeInTheDocument();
       expect(screen.queryByRole("link", { name: "2026" })).not.toBeInTheDocument();
       expect(screen.getByRole("link", { name: "2025" })).toBeInTheDocument();
     });
 
-    it("opens on it, so far, once December comes", async () => {
-      vi.useFakeTimers({ toFake: ["Date"], now: new Date("2026-12-02T12:00:00.000Z") });
+    it("opens on it once the new year comes", async () => {
+      vi.useFakeTimers({ toFake: ["Date"], now: new Date("2027-01-01T00:00:00.000Z") });
       server.use(reviews([...MOVIE_REVIEWS, ...thisYear]));
       renderWrapped();
 
-      expect(within(await slide()).getByText("so far")).toBeInTheDocument();
+      expect(within(await slide()).getByText("wrapped")).toBeInTheDocument();
       expect(screen.getByRole("link", { name: "2026" })).toHaveAttribute("aria-current", "page");
     });
 
     it("tells a club in its first year when its Wrapped arrives", async () => {
-      vi.useFakeTimers({ toFake: ["Date"], now: new Date("2026-11-20T12:00:00.000Z") });
+      vi.useFakeTimers({ toFake: ["Date"], now: new Date("2026-12-20T12:00:00.000Z") });
       server.use(reviews(thisYear));
       renderWrapped();
 

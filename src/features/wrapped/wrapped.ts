@@ -13,15 +13,11 @@ export function reviewYear(work: WorkStatsData): number | undefined {
 }
 
 /**
- * The month (zero-based, UTC) a year's Wrapped comes out in: December, as
- * Spotify does, so the year is nearly over before the club looks back on it.
+ * Whether `year`'s Wrapped is out: it comes out on January 1 (UTC) of the next
+ * year, once every review that belongs in it is in.
  */
-const RELEASE_MONTH = 11;
-
-/** Whether `year`'s Wrapped is out: any past year, and this one from December. */
 export function isYearReleased(year: number, now = new Date()): boolean {
-  const currentYear = now.getUTCFullYear();
-  return year < currentYear || (year === currentYear && now.getUTCMonth() >= RELEASE_MONTH);
+  return year < now.getUTCFullYear();
 }
 
 /** Every year the club reviewed something in whose Wrapped is out, newest first. */
@@ -32,11 +28,6 @@ export function wrappedYears(workData: WorkStatsData[], now = new Date()): numbe
 
 export function worksInYear<T extends WorkStatsData>(workData: T[], year: number): T[] {
   return workData.filter((work) => reviewYear(work) === year);
-}
-
-/** Whether `year` is still under way, so its Wrapped reads "so far". */
-export function isYearInProgress(year: number, now = new Date()): boolean {
-  return year === now.getUTCFullYear();
 }
 
 function scoredValues(work: WorkStatsData): [string, number][] {
