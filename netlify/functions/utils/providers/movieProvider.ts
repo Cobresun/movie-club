@@ -6,9 +6,10 @@ import { MAJOR_CAST_SIZE, STAR_POPULARITY } from "../../../../lib/movie/majorCas
 import { WorkType } from "../../../../lib/types/generated/db";
 import { DetailedWorkData, WorkDataSummary } from "../../../../lib/types/lists";
 import { MovieCastMember, MovieDataSummary } from "../../../../lib/types/movie";
+import { SimilarWork } from "../../../../lib/types/recommendations";
 import { db } from "../database";
 import { insertMovieDetails, updateMovieDetails } from "../movieDetailsUpdater";
-import { getTMDBMovieData } from "../tmdb";
+import { getTMDBMovieData, getTMDBPosterUrlBuilder, getTMDBRecommendations } from "../tmdb";
 import { MediaProvider, numOrUndefined, RefreshResult } from "./types";
 
 /**
@@ -118,6 +119,37 @@ function summaryQuery(externalIds: string[]) {
 }
 
 type MovieSummaryRow = Awaited<ReturnType<ReturnType<typeof summaryQuery>["execute"]>>[number];
+
+/** Enough candidates per seed for its pull to reach past what the club already has. */
+const SIMILAR_PER_SEED = 20;
+/** TMDB's recommendations rarely run past two pages of relevant titles. */
+const MAX_SIMILAR_PAGES = 2;
+
+async function similarMovies(
+  externalId: string,
+  excludedIds: ReadonlySet<string>,
+  posterUrl: (posterPath: string) => string,
+): Promise<SimilarWork[]> {
+  const similar: SimilarWork[] = [];
+  for (let page = 1; page <= MAX_SIMILAR_PAGES; page++) {
+    const response = await getTMDBRecommendations(parseInt(externalId), page);
+    for (const movie of response.results) {
+      // Adult titles are excluded to match search (`include_adult=false`). A
+      // posterless card reads as broken in the add grid, and TMDB's posterless
+      // recommendations are overwhelmingly obscure entries nobody is looking for.
+      if (movie.adult === true || !hasValue(movie.poster_path)) continue;
+      if (excludedIds.has(String(movie.id))) continue;
+      similar.push({
+        externalId: String(movie.id),
+        title: movie.title,
+        subtitle: hasValue(movie.release_date) ? movie.release_date.slice(0, 4) : undefined,
+        imageUrl: posterUrl(movie.poster_path),
+      });
+    }
+    if (similar.length >= SIMILAR_PER_SEED || page >= response.total_pages) break;
+  }
+  return similar;
+}
 
 /**
  * Maps a raw `movie_details` aggregate row to the public {@link MovieDataSummary}
@@ -242,6 +274,24 @@ Order the prompts by depth: the first should be casual and easy to answer — a 
 Whenever the film supports it, frame prompts as debates: questions with defensible answers on more than one side, designed to spark disagreement among friends rather than consensus. Keep each prompt succinct — one clear, concise question with no preamble.
 
 If you do not recognize this film or cannot confirm it is a real movie, return 0 questions.`;
+  }
+
+  async getSimilarWorks(
+    externalIds: string[],
+    excludedIds: ReadonlySet<string>,
+  ): Promise<Map<string, SimilarWork[]>> {
+    const posterUrl = await getTMDBPosterUrlBuilder();
+    const similar = await Promise.all(
+      externalIds.map(async (externalId) => {
+        try {
+          return [externalId, await similarMovies(externalId, excludedIds, posterUrl)] as const;
+        } catch (error) {
+          console.error(`Failed to fetch works similar to ${externalId}: ${String(error)}`);
+          return undefined;
+        }
+      }),
+    );
+    return new Map(similar.filter(isDefined));
   }
 
   async refreshStaleDetails(limit: number): Promise<RefreshResult> {

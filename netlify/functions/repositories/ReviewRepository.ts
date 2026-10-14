@@ -59,6 +59,18 @@ class ReviewRepository {
       .execute();
   }
 
+  /** Every score given in the club's reviews — the taste signal recommendations are ranked from. */
+  async getClubScores(clubId: string) {
+    return db
+      .selectFrom("work_list")
+      .where("work_list.club_id", "=", clubId)
+      .where("work_list.system_type", "=", WorkListSystemType.reviews)
+      .innerJoin("review", "review.list_id", "work_list.id")
+      .innerJoin("work", "work.id", "review.work_id")
+      .select(["review.user_id", "review.score", "work.external_id", "work.title", "work.type"])
+      .execute();
+  }
+
   async insertReview(listId: string, workId: string, userId: string, score: number) {
     return db
       .insertInto("review")

@@ -17,10 +17,10 @@ import {
   ListInsertDto,
   SharedReviewResponse,
 } from "../../lib/types/lists.js";
+import { recommendationsKey } from "./useRecommendations";
 import { memberScoresKey } from "./useUser";
 import { useAuthStore } from "@/stores/auth";
 
-export const BASE_IMAGE_URL = "https://image.tmdb.org/t/p/w154/";
 export const OPTIMISTIC_WORK_ID = "temp";
 
 // ---------------------------------------------------------------------------
@@ -402,6 +402,7 @@ export function useAddListItem(clubSlug: string, listId: string) {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: listKey(clubSlug, listId) }),
         queryClient.invalidateQueries({ queryKey: clubListsKey(clubSlug) }),
+        queryClient.invalidateQueries({ queryKey: recommendationsKey(clubSlug) }),
       ]);
     },
   });

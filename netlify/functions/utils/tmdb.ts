@@ -9,6 +9,7 @@ import {
   DetailedMovieData,
   TMDBConfig,
   TMDBMovieData,
+  TMDBPageResponse,
 } from "../../../lib/types/movie";
 
 async function makeTMDBApiCall<T>(path: string, params?: Record<string, string>) {
@@ -45,10 +46,27 @@ export async function getTMDBMovieData(movieId: number): Promise<AxiosResponse<T
   });
 }
 
+/** One page of TMDB's "if you liked this" list for a movie, most relevant first. */
+export async function getTMDBRecommendations(
+  movieId: number,
+  page: number,
+): Promise<TMDBPageResponse> {
+  const { data } = await makeTMDBApiCall<TMDBPageResponse>(`/movie/${movieId}/recommendations`, {
+    page: String(page),
+  });
+  return data;
+}
+
+/** Turns a TMDB `poster_path` into a w154 poster URL. */
+export async function getTMDBPosterUrlBuilder(): Promise<(posterPath: string) => string> {
+  const configuration = await getTMDBConfig();
+  return (posterPath) => `${configuration.data.images.secure_base_url}w154${posterPath}`;
+}
+
 export async function getDetailedMovie<T extends BaseMovie>(
   movies: T[],
 ): Promise<(T & DetailedMovie)[]> {
-  const configuration = await getTMDBConfig();
+  const posterUrl = await getTMDBPosterUrlBuilder();
   return await Promise.all(
     movies.map(async (movie) => {
       const response = await getTMDBMovieData(movie.movieId);
@@ -106,7 +124,7 @@ export async function getDetailedMovie<T extends BaseMovie>(
         ...movie,
         movieTitle: tmdbData.title,
         movieData,
-        posterUrl: `${configuration.data.images.secure_base_url}w154${tmdbData.poster_path}`,
+        posterUrl: posterUrl(tmdbData.poster_path),
       };
     }),
   );

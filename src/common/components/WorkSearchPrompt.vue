@@ -24,6 +24,7 @@
             :style="{ '--stagger': Math.min(index, 8) }"
             :title="item.title"
             :subtitle="item.subtitle"
+            :reason="item.reason"
             :poster-url="item.imageUrl"
             :fallback-icon="fallbackIcon"
             @select="emit('select-from-default', item)"
@@ -56,6 +57,7 @@
           />
         </TransitionGroup>
       </div>
+      <WorkGridSkeleton v-if="loadingDefault" class="mt-3" size="sm" :count="6" :lines="0" />
       <WorkGridSkeleton
         v-if="includeSearch && loadingSearch"
         class="mt-3"
@@ -89,6 +91,8 @@ const {
   onLoadMore,
   loadingMore = false,
   hasMore = false,
+  loadingDefault = false,
+  emptyHint,
 } = defineProps<{
   clubType: ClubType;
   defaultList: WorkSearchResult[];
@@ -97,6 +101,9 @@ const {
   onLoadMore?: () => void;
   loadingMore?: boolean;
   hasMore?: boolean;
+  loadingDefault?: boolean;
+  /** Shown instead of the club type's search hint when nothing is on screen. */
+  emptyHint?: string;
 }>();
 
 const emit = defineEmits<{
@@ -145,13 +152,14 @@ const noResults = computed(() => {
 // Hint shown when nothing is on screen yet (no default items, nothing typed).
 const showHint = computed(
   () =>
+    !loadingDefault &&
     !loadingSearch.value &&
     searchText.value.trim().length === 0 &&
     filteredDefaultList.value.length === 0 &&
     searchResults.value.length === 0,
 );
 
-const hintMessage = computed(() => config.value.searchHint);
+const hintMessage = computed(() => emptyHint ?? config.value.searchHint);
 </script>
 
 <style scoped>
