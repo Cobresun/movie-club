@@ -34,7 +34,7 @@
             :value="inviteLink"
             readonly
             aria-label="Invite link"
-            class="bg-background min-h-[44px] min-w-0 flex-grow rounded-md border-2 border-slate-600 px-3 text-sm text-white/70"
+            class="bg-background min-h-[44px] min-w-0 grow rounded-md border-2 border-slate-600 px-3 text-sm text-white/70"
           />
           <v-btn class="h-[44px] min-w-[44px]" :aria-label="copyLabel" @click="copyInviteLink">
             <mdicon :name="copyIcon" />

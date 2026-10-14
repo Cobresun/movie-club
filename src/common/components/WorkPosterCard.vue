@@ -47,7 +47,7 @@
           v-lazy-load
           :src="posterUrl"
           :alt="title"
-          class="aspect-[2/3] w-full rounded-t-lg object-cover [@media(hover:hover)]:group-hover:scale-105"
+          class="aspect-2/3 w-full rounded-t-lg object-cover [@media(hover:hover)]:group-hover:scale-105"
         />
       </button>
       <img
@@ -55,10 +55,10 @@
         v-lazy-load
         :src="posterUrl"
         :alt="title"
-        class="aspect-[2/3] w-full rounded-t-lg object-cover"
+        class="aspect-2/3 w-full rounded-t-lg object-cover"
       />
-      <div class="flex h-auto flex-grow flex-col px-2 pb-2">
-        <div class="my-2 flex flex-grow items-center justify-center">
+      <div class="flex h-auto grow flex-col px-2 pb-2">
+        <div class="my-2 flex grow items-center justify-center">
           <h3 class="h-min font-semibold" style="height: min-content">
             {{ title }}
           </h3>

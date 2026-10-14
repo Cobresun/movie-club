@@ -1,5 +1,5 @@
 <template>
-  <v-avatar :name="clubName" :size="30" class="flex-shrink-0" />
+  <v-avatar :name="clubName" :size="30" class="shrink-0" />
   <span class="flex min-w-0 flex-col items-start gap-px">
     <span class="max-w-[250px] truncate text-sm leading-tight font-semibold">
       {{ clubName }}
@@ -8,7 +8,7 @@
       {{ meta }}
     </span>
   </span>
-  <span class="flex-grow" />
+  <span class="grow" />
 </template>
 
 <script setup lang="ts">

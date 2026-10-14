@@ -16,13 +16,13 @@
         @load="backdropLoaded = true"
       />
       <div
-        class="via-background/40 to-background absolute inset-0 bg-gradient-to-b from-black/30"
+        class="via-background/40 to-background absolute inset-0 bg-linear-to-b from-black/30"
       ></div>
     </div>
 
     <div class="relative -mt-20 flex items-end gap-4 px-4">
       <div
-        class="flex-shrink-0 overflow-hidden rounded-lg shadow-xl ring-1 ring-white/10"
+        class="shrink-0 overflow-hidden rounded-lg shadow-xl ring-1 ring-white/10"
         :class="isDesktop ? 'w-28' : 'w-24'"
       >
         <PosterImage :image-url="posterUrl" />

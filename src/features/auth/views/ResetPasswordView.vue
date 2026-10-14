@@ -51,7 +51,7 @@
             type="password"
             required
             minlength="8"
-            class="focus:border-primary focus:ring-primary w-full rounded border border-gray-600 bg-gray-700 px-3 py-2 text-white placeholder-gray-400 focus:ring-1 focus:outline-none"
+            class="focus:border-primary focus:ring-primary w-full rounded border border-gray-600 bg-gray-700 px-3 py-2 text-white placeholder-gray-400 focus:ring-1 focus:outline-hidden"
             placeholder="Min 8 characters"
           />
         </div>
@@ -67,7 +67,7 @@
             type="password"
             required
             minlength="8"
-            class="focus:border-primary focus:ring-primary w-full rounded border border-gray-600 bg-gray-700 px-3 py-2 text-white placeholder-gray-400 focus:ring-1 focus:outline-none"
+            class="focus:border-primary focus:ring-primary w-full rounded border border-gray-600 bg-gray-700 px-3 py-2 text-white placeholder-gray-400 focus:ring-1 focus:outline-hidden"
             placeholder="Confirm your password"
           />
         </div>

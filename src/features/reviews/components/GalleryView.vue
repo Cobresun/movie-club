@@ -38,7 +38,7 @@
                     class="h-6 w-6 max-w-none"
                   />
                   <mdicon v-else name="clock-outline" class="w-6" />
-                  <span class="flex-grow">{{ option.label }}</span>
+                  <span class="grow">{{ option.label }}</span>
                   <mdicon v-if="selected" name="check" class="text-primary" />
                 </div>
               </ListboxOption>
@@ -97,7 +97,7 @@
               class="flex items-center rounded-3xl bg-slate-600"
             >
               <ScoreLabel :entry="entry" />
-              <div class="flex-grow text-sm">
+              <div class="grow text-sm">
                 <!-- Cards never reveal on click: reveal flows through the
                      details drawer's own pill. -->
                 <span

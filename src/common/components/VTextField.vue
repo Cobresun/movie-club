@@ -14,7 +14,7 @@
         :required="required"
         :minlength="minlength"
         :maxlength="maxlength"
-        class="min-h-[50px] min-w-0 flex-grow bg-transparent px-3.5 text-[15px] text-white placeholder-white/35 focus:outline-none"
+        class="min-h-[50px] min-w-0 grow bg-transparent px-3.5 text-[15px] text-white placeholder-white/35 focus:outline-hidden"
         @input="onInput"
       />
 
@@ -23,7 +23,7 @@
       <button
         v-if="revealable"
         type="button"
-        class="duration-fast ease-standard flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg transition-colors hover:bg-white/10"
+        class="duration-fast ease-standard flex h-11 w-11 shrink-0 items-center justify-center rounded-lg transition-colors hover:bg-white/10"
         :aria-label="revealed ? 'Hide password' : 'Show password'"
         :aria-pressed="revealed"
         @click="revealed = !revealed"

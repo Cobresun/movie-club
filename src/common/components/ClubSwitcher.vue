@@ -1,5 +1,5 @@
 <template>
-  <div class="relative min-w-0 flex-grow md:flex-grow-0">
+  <div class="relative min-w-0 grow md:grow-0">
     <!-- Desktop: Headless UI Menu -->
     <Menu v-if="isDesktop" v-slot="{ close }" as="div">
       <MenuButton
@@ -13,7 +13,7 @@
           ring-class="shadow-[0_0_0_2px_#393E46]"
           class="mr-0.5"
         />
-        <mdicon name="chevron-down" :size="18" class="flex-shrink-0 text-white/70" />
+        <mdicon name="chevron-down" :size="18" class="shrink-0 text-white/70" />
       </MenuButton>
 
       <transition
@@ -47,7 +47,7 @@
                   @click="selectClub(club)"
                 >
                   <v-avatar :name="club.clubName" :size="30" />
-                  <span class="flex min-w-0 flex-grow flex-col">
+                  <span class="flex min-w-0 grow flex-col">
                     <span
                       class="truncate text-sm leading-tight font-medium"
                       :class="club.slug === currentSlug ? 'text-highlight' : 'text-white/85'"
@@ -62,7 +62,7 @@
                     v-if="club.slug === currentSlug"
                     name="check"
                     :size="16"
-                    class="text-highlight flex-shrink-0"
+                    class="text-highlight shrink-0"
                   />
                 </button>
               </MenuItem>
@@ -99,7 +99,7 @@
           ring-class="shadow-[0_0_0_2px_#393E46]"
           class="mr-0.5"
         />
-        <mdicon name="chevron-down" :size="18" class="flex-shrink-0 text-white/70" />
+        <mdicon name="chevron-down" :size="18" class="shrink-0 text-white/70" />
       </button>
 
       <VBottomSheet v-if="isMobileOpen" content-class="pb-6" @close="isMobileOpen = false">
@@ -124,7 +124,7 @@
                 @click="selectClub(club)"
               >
                 <v-avatar :name="club.clubName" :size="34" />
-                <span class="flex min-w-0 flex-grow flex-col">
+                <span class="flex min-w-0 grow flex-col">
                   <span
                     class="truncate text-[15px] leading-tight font-medium"
                     :class="club.slug === currentSlug ? 'text-highlight' : 'text-white/85'"
@@ -139,7 +139,7 @@
                   v-if="club.slug === currentSlug"
                   name="check"
                   :size="20"
-                  class="text-highlight flex-shrink-0"
+                  class="text-highlight shrink-0"
                 />
               </button>
             </li>

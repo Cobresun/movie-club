@@ -49,7 +49,7 @@
         :step="SCORE_STEP"
         placeholder="8.5"
         aria-label="Score"
-        class="duration-fast ease-standard pointer-events-auto w-24 [appearance:textfield] border-b-2 border-dotted border-gray-500 bg-transparent text-center !text-4xl font-bold text-gray-500 tabular-nums transition-colors outline-none placeholder:text-gray-600 focus:border-gray-300 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+        class="duration-fast ease-standard pointer-events-auto w-24 [appearance:textfield] border-b-2 border-dotted border-gray-500 bg-transparent text-center text-4xl! font-bold text-gray-500 tabular-nums outline-hidden transition-colors placeholder:text-gray-600 focus:border-gray-300 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
         :style="hasScore ? { color: band.color } : undefined"
         @input="onInput"
         @keydown.enter="emit('save')"

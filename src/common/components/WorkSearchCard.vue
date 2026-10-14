@@ -8,7 +8,7 @@
       <div v-else class="flex h-56 items-center justify-center rounded-t-lg bg-slate-600">
         <mdicon :name="fallbackIcon" :size="48" class="text-slate-400" />
       </div>
-      <div class="flex flex-grow flex-col items-center justify-center px-2 py-2">
+      <div class="flex grow flex-col items-center justify-center px-2 py-2">
         <h3 class="text-center font-semibold" style="height: min-content">
           {{ title }}
         </h3>

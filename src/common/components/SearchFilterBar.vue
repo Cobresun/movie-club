@@ -9,7 +9,7 @@
         <input
           v-model="searchTerm"
           type="text"
-          class="bg-background focus:border-primary w-full rounded-md border-2 border-slate-600 p-2 pl-10 text-base text-white outline-none"
+          class="bg-background focus:border-primary w-full rounded-md border-2 border-slate-600 p-2 pl-10 text-base text-white outline-hidden"
           :class="{ 'pr-10': hasValue(searchTerm) }"
           :placeholder="searchPlaceholder"
           :aria-label="searchPlaceholder"

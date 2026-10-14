@@ -23,7 +23,7 @@ import WorkGridSkeleton from "@/common/components/WorkGridSkeleton.vue";
             <SkeletonBlock class="h-9 w-9 rounded-md" />
             <SkeletonBlock class="h-6 w-40 max-w-full rounded" />
           </div>
-          <div class="flex flex-shrink-0 items-center gap-2">
+          <div class="flex shrink-0 items-center gap-2">
             <SkeletonBlock v-for="action in 3" :key="action" class="h-9 w-9 rounded-md" />
           </div>
         </div>

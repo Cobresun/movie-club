@@ -6,7 +6,7 @@
       :class="{ 'translate-y-[150%]': isHidden }"
     >
       <div
-        class="from-secondary to-lowBackground mx-auto flex max-w-3xl items-center justify-between gap-4 rounded-xl border border-slate-700 bg-gradient-to-r px-5 py-3 shadow-lg"
+        class="from-secondary to-lowBackground mx-auto flex max-w-3xl items-center justify-between gap-4 rounded-xl border border-slate-700 bg-linear-to-r px-5 py-3 shadow-lg"
       >
         <div class="text-left">
           <div class="text-highlight flex items-center gap-1.5">

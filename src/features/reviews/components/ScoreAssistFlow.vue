@@ -8,7 +8,7 @@
       <div class="flex justify-center gap-4">
         <button
           type="button"
-          class="duration-fast ease-standard hover:ring-primary focus-visible:ring-primary w-40 rounded-lg transition hover:scale-[1.03] hover:ring-4 focus-visible:ring-4 focus-visible:outline-none active:scale-[0.98]"
+          class="duration-fast ease-standard hover:ring-primary focus-visible:ring-primary w-40 rounded-lg transition hover:scale-[1.03] hover:ring-4 focus-visible:ring-4 focus-visible:outline-hidden active:scale-[0.98]"
           :aria-label="`I liked ${target.title} more`"
           @click="answer('more')"
         >
@@ -18,7 +18,7 @@
           <button
             :key="pivot.workId"
             type="button"
-            class="duration-fast ease-standard hover:ring-primary focus-visible:ring-primary w-40 rounded-lg transition hover:scale-[1.03] hover:ring-4 focus-visible:ring-4 focus-visible:outline-none active:scale-[0.98]"
+            class="duration-fast ease-standard hover:ring-primary focus-visible:ring-primary w-40 rounded-lg transition hover:scale-[1.03] hover:ring-4 focus-visible:ring-4 focus-visible:outline-hidden active:scale-[0.98]"
             :aria-label="`I liked ${pivot.title} more`"
             @click="answer('less')"
           >

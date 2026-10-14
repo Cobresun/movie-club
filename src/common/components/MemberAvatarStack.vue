@@ -1,5 +1,5 @@
 <template>
-  <div v-if="hasElements(shown)" class="flex flex-shrink-0 items-center">
+  <div v-if="hasElements(shown)" class="flex shrink-0 items-center">
     <div
       v-for="(member, index) in shown"
       :key="member.id"

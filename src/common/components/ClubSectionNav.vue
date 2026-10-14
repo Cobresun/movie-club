@@ -37,7 +37,7 @@
       v-for="section in sections"
       :key="section.name"
       :to="{ name: section.name, params: { clubSlug } }"
-      class="duration-fast ease-standard flex flex-grow flex-col items-center justify-center gap-[3px] transition-colors"
+      class="duration-fast ease-standard flex grow flex-col items-center justify-center gap-[3px] transition-colors"
       :class="section.name === activeSection ? 'text-highlight' : 'text-white/55'"
       :aria-current="section.name === activeSection ? 'page' : undefined"
     >

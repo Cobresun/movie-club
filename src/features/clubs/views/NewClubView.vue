@@ -19,7 +19,7 @@
           v-model="clubName"
           placeholder="Club name"
           type="text"
-          class="bg-background focus:border-primary min-h-[44px] w-full rounded-md border-2 border-slate-600 px-3 text-base outline-none"
+          class="bg-background focus:border-primary min-h-[44px] w-full rounded-md border-2 border-slate-600 px-3 text-base outline-hidden"
           :class="{ 'border-red-500': showErrors && !isClubNameValid }"
         />
         <span v-if="showErrors && !isClubNameValid" class="text-sm text-red-500">
@@ -32,7 +32,7 @@
             v-for="option in clubTypeOptions"
             :key="option.value"
             type="button"
-            class="duration-fast ease-standard flex min-h-[44px] flex-grow flex-col items-center gap-1.5 rounded-lg p-3 text-[15px] font-medium ring-2 transition-colors ring-inset"
+            class="duration-fast ease-standard flex min-h-[44px] grow flex-col items-center gap-1.5 rounded-lg p-3 text-[15px] font-medium ring-2 transition-colors ring-inset"
             :class="
               clubType === option.value
                 ? 'bg-primary/[0.14] text-highlight ring-primary'
@@ -55,9 +55,9 @@
       </div>
 
       <div class="flex items-center gap-3">
-        <div class="h-px flex-grow bg-white/10" />
+        <div class="h-px grow bg-white/10" />
         <span class="text-[13px] text-white/45">or</span>
-        <div class="h-px flex-grow bg-white/10" />
+        <div class="h-px grow bg-white/10" />
       </div>
 
       <div class="bg-lowBackground flex flex-col gap-3 rounded-xl p-4">
@@ -71,7 +71,7 @@
             placeholder="Paste invite link"
             type="text"
             aria-label="Invite link"
-            class="bg-background focus:border-primary min-h-[44px] min-w-0 flex-grow rounded-md border-2 border-slate-600 px-3 text-[15px] outline-none"
+            class="bg-background focus:border-primary min-h-[44px] min-w-0 grow rounded-md border-2 border-slate-600 px-3 text-[15px] outline-hidden"
             @keyup.enter="joinClub()"
           />
           <v-btn class="min-h-[44px] bg-gray-600 hover:bg-gray-700" @click="joinClub()">Join</v-btn>

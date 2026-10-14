@@ -11,8 +11,8 @@
           :key="element.title"
           class="bg-lowBackground mb-2 flex min-h-12 items-center justify-between gap-2 rounded-xl py-2 pr-2 pl-4"
         >
-          <span class="min-w-0 break-words">{{ element.title }}</span>
-          <div class="flex flex-shrink-0 items-center">
+          <span class="min-w-0 wrap-break-word">{{ element.title }}</span>
+          <div class="flex shrink-0 items-center">
             <button
               v-if="index > 0"
               type="button"
@@ -47,7 +47,7 @@
       <form class="mt-2 flex items-start gap-2" @submit.prevent="submitNewCategory">
         <v-text-field
           v-model="newCategory"
-          class="flex-grow"
+          class="grow"
           label="New category"
           placeholder="e.g. Best Soundtrack"
           :maxlength="AWARD_TITLE_MAX_LENGTH"

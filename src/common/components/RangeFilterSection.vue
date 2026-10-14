@@ -207,6 +207,10 @@ function togglePreset(preset: RangePreset) {
 </script>
 
 <style scoped>
+/* v4: SFC styles are compiled in isolation, so @apply needs a reference to
+   the sheet that defines the theme and utilities. */
+@reference "../../assets/styles/tailwind.css";
+
 /* Stacked range inputs: the tracks are transparent so the shared rail shows
    through, and only the thumbs take pointer events so both stay grabbable. */
 .range-slider input[type="range"] {

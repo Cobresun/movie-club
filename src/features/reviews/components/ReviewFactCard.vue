@@ -3,7 +3,7 @@
        glow gives the fact "special event" treatment without stealing the
        whole drawer's attention. -->
   <div
-    class="from-primary/80 rounded-xl bg-gradient-to-r via-sky-300/60 to-violet-400/80 p-px shadow-[0_0_24px_rgba(33,150,243,0.18)]"
+    class="from-primary/80 rounded-xl bg-linear-to-r via-sky-300/60 to-violet-400/80 p-px shadow-[0_0_24px_rgba(33,150,243,0.18)]"
   >
     <div class="bg-background flex items-center gap-3 rounded-[calc(0.75rem-1px)] px-4 py-3">
       <div

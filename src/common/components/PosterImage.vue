@@ -1,6 +1,6 @@
 <template>
   <div
-    class="bg-lowBackground aspect-[2/3] overflow-hidden rounded-lg"
+    class="bg-lowBackground aspect-2/3 overflow-hidden rounded-lg"
     :class="{ 'animate-pulse': !loaded && hasImage }"
   >
     <img
