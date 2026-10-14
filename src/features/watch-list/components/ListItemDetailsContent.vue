@@ -1,5 +1,5 @@
 <template>
-  <div class="flex-grow text-left">
+  <div class="grow text-left">
     <delete-confirmation-modal
       :show="showDeleteConfirmation"
       title="Remove from list"
@@ -44,7 +44,7 @@
             <mdicon name="chevron-down" size="16" />
           </ListboxButton>
           <ListboxOptions
-            class="bg-background absolute top-full left-0 z-20 mt-1 max-h-64 w-56 overflow-y-auto rounded-lg border border-gray-700 py-1 shadow-lg focus:outline-none"
+            class="bg-background absolute top-full left-0 z-20 mt-1 max-h-64 w-56 overflow-y-auto rounded-lg border border-gray-700 py-1 shadow-lg focus:outline-hidden"
           >
             <ListboxOption
               v-for="list in otherLists"

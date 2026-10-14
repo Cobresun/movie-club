@@ -42,7 +42,7 @@
         <label
           v-for="option in startOptions"
           :key="option.value"
-          class="bg-lowBackground has-[:checked]:ring-primary flex cursor-pointer items-start gap-3 rounded-[10px] p-3 ring-1 ring-white/[0.12] ring-inset has-[:checked]:ring-2"
+          class="bg-lowBackground has-[:checked]:ring-primary flex cursor-pointer items-start gap-3 rounded-[10px] p-3 ring-1 ring-white/[0.12] ring-inset has-checked:ring-2"
         >
           <input
             v-model="start"

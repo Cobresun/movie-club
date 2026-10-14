@@ -5,7 +5,7 @@
     class="border-highlightBackground bg-lowBackground mb-4 flex items-center gap-3 rounded-lg border-2 p-3 text-left md:mx-6"
   >
     <PosterImage :image-url="upNext.imageUrl" :alt="upNext.title" class="w-14 shrink-0" />
-    <div class="min-w-0 flex-grow">
+    <div class="min-w-0 grow">
       <p
         class="text-highlightBackground flex items-center gap-1 text-xs font-semibold tracking-wide uppercase"
       >

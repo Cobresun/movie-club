@@ -4,7 +4,7 @@
     <div
       class="flex flex-col space-y-10 md:flex-row-reverse md:items-center md:space-y-0 md:space-x-14"
     >
-      <div class="flex-grow-0">
+      <div class="grow-0">
         <img :src="homeCinemaSvg" alt="Friends watching a movie together" />
       </div>
 

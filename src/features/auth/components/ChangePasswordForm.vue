@@ -27,7 +27,7 @@
       <label
         class="duration-fast ease-standard -mx-2 flex min-h-[56px] cursor-pointer items-center gap-3 rounded-lg border-t border-white/10 px-2 transition-colors hover:bg-white/5"
       >
-        <span class="flex flex-grow flex-col gap-0.5">
+        <span class="flex grow flex-col gap-0.5">
           <span class="text-text text-[15px] font-medium">Sign out of all other devices</span>
           <span class="text-xs text-white/40">Ends every session except this one</span>
         </span>
@@ -38,7 +38,7 @@
           aria-label="Sign out of all other devices"
         />
         <span
-          class="duration-base ease-standard peer-checked:bg-primary peer-focus-visible:ring-highlight relative h-[22px] w-11 flex-shrink-0 rounded-full py-0.5 pl-1 transition-colors peer-focus-visible:ring-2"
+          class="duration-base ease-standard peer-checked:bg-primary peer-focus-visible:ring-highlight relative h-[22px] w-11 shrink-0 rounded-full py-0.5 pl-1 transition-colors peer-focus-visible:ring-2"
           :class="revokeOtherSessions ? 'bg-primary' : 'bg-gray-600'"
         >
           <span

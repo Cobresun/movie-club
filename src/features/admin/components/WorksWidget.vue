@@ -18,9 +18,9 @@
           :src="row.imageUrl"
           alt=""
           loading="lazy"
-          class="bg-background/60 aspect-[2/3] w-9 shrink-0 rounded object-cover"
+          class="bg-background/60 aspect-2/3 w-9 shrink-0 rounded object-cover"
         />
-        <div v-else class="bg-background/60 aspect-[2/3] w-9 shrink-0 rounded" />
+        <div v-else class="bg-background/60 aspect-2/3 w-9 shrink-0 rounded" />
         <div class="min-w-0 flex-1">
           <p class="truncate text-sm font-medium text-white">{{ row.title }}</p>
           <p class="truncate text-xs text-slate-400">{{ row.detail }}</p>

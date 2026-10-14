@@ -31,7 +31,7 @@
       :class="row ? 'gap-2 pr-3' : ''"
     >
       <ScoreLabel :entry="entry" :show-name="showNames" />
-      <div class="flex-grow text-sm">
+      <div class="grow text-sm">
         <!-- Cards never reveal on click: reveal flows through the
              details drawer's own pill. -->
         <span

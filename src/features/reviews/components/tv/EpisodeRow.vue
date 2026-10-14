@@ -26,7 +26,7 @@
         </span>
       </div>
 
-      <div class="flex min-w-0 flex-grow flex-col gap-0.5">
+      <div class="flex min-w-0 grow flex-col gap-0.5">
         <!-- The title is the row's button; its ::after stretches over the
              whole row, scores included, so anywhere on it opens the episode's
              details. It sits at z-10, over the blurred average and still that
@@ -54,7 +54,7 @@
             :aria-hidden="!revealed"
           >
             Club<span class="sr-only"> average</span>
-            <span class="text-primary font-semibold" :class="revealed ? '' : 'blur-sm'">{{
+            <span class="text-primary font-semibold" :class="revealed ? '' : 'blur-xs'">{{
               average
             }}</span>
           </span>

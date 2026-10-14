@@ -51,7 +51,7 @@
           <div v-for="row in 4" :key="row" class="flex items-center gap-3 py-2.5">
             <SkeletonBlock
               v-if="card.leading === 'poster'"
-              class="aspect-[2/3] w-9 shrink-0 rounded"
+              class="aspect-2/3 w-9 shrink-0 rounded"
             />
             <SkeletonBlock v-else class="size-8 shrink-0 rounded-full" />
             <div class="flex min-w-0 flex-1 flex-col gap-2">

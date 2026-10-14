@@ -14,7 +14,7 @@
       :aria-label="`${season.title} scores`"
       class="bg-primary/10 ring-primary/20 mx-3 mb-3 flex flex-wrap items-center gap-x-4 gap-y-2.5 rounded-lg px-3 py-2.5 ring-1 ring-inset md:mx-4 md:px-4"
     >
-      <div class="flex min-w-0 flex-grow items-center gap-3">
+      <div class="flex min-w-0 grow items-center gap-3">
         <span
           class="text-3xl leading-none font-bold"
           :class="isDefined(average) ? 'text-primary' : 'text-gray-500'"

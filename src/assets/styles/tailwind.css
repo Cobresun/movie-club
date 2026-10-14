@@ -1,19 +1,46 @@
-@tailwind base;
+@import "tailwindcss";
 
-@tailwind components;
+/* Theme — the v4 replacement for tailwind.config.cjs. Each entry is also
+   emitted as a CSS variable on :root, so SFC <style> blocks keep consuming
+   them via var() exactly as before. */
+@theme {
+  --color-primary: #2196f3;
+  --color-highlight: #6fbaff;
+  --color-secondary: #394b68;
+  --color-background: #222831;
+  --color-lowBackground: #393e46;
+  --color-highlightBackground: #b1a005;
+  --color-text: #ffffff;
 
-@tailwind utilities;
+  --grid-template-columns-auto: repeat(auto-fill, minmax(160px, 1fr));
+  --grid-template-columns-centerHeader: 1fr auto 1fr;
+  --grid-template-columns-leftHeader: auto 1fr;
 
-/* Motion tokens — the single source of truth for animation timing.
-   Exposed as Tailwind utilities (duration-fast, ease-standard, ...) via
-   tailwind.config.cjs, and consumed directly in SFC <style> via var(). */
-:root {
+  --font-default: "Poppins", sans-serif;
+
+  /* Motion tokens — the single source of truth for animation timing.
+     Utilities (duration-fast, ...) reference them; SFC <style> blocks use
+     them directly via var(). */
   --motion-fast: 150ms; /* micro-interactions: press, hover, inline swaps */
   --motion-base: 200ms; /* fades: route changes, backdrops, modals, list enter/leave */
   --motion-slow: 300ms; /* spatial overlays: drawers, sheets, reveals */
   --motion-shimmer: 1400ms; /* looping loading-skeleton sweep */
+
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
   --ease-emphasized: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* v4's duration-* utility only takes numbers, so the named motion durations
+   are registered as custom utilities instead (the v3 transitionDuration
+   theme extension had no direct CSS equivalent). */
+@utility duration-fast {
+  transition-duration: var(--motion-fast);
+}
+@utility duration-base {
+  transition-duration: var(--motion-base);
+}
+@utility duration-slow {
+  transition-duration: var(--motion-slow);
 }
 
 /* Reduced-motion layer: durations collapse to near-zero rather than
@@ -144,7 +171,7 @@ input[type="date"] {
    maximum-scale, which would also take pinch-zoom away from Android users.
    `!important` is needed because the sizes come from Tailwind utilities on the
    elements themselves; a field that is deliberately larger opts out with the
-   important modifier (`!text-4xl` on ScoreDial's input). */
+   important modifier (`text-4xl!` on ScoreDial's input). */
 @media (pointer: coarse) {
   input:not([type="checkbox"], [type="radio"], [type="range"]),
   select,

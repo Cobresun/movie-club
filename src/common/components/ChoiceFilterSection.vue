@@ -11,7 +11,7 @@
         type="search"
         :aria-label="option.searchPlaceholder"
         :placeholder="option.searchPlaceholder"
-        class="bg-lowBackground/60 focus:border-primary w-full rounded-full border border-slate-600 py-1.5 pr-3 pl-9 text-base text-white outline-none md:text-sm"
+        class="bg-lowBackground/60 focus:border-primary w-full rounded-full border border-slate-600 py-1.5 pr-3 pl-9 text-base text-white outline-hidden md:text-sm"
       />
     </div>
 

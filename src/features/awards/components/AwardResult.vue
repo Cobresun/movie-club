@@ -40,7 +40,7 @@
                   :aria-label="`${voter.name} ranked it ${rankLabel(result.nomination, voter.id)}`"
                 >
                   <v-avatar :size="32" :name="voter.name" :src="voter.image" />
-                  <span class="flex flex-grow justify-center text-sm" aria-hidden="true">
+                  <span class="flex grow justify-center text-sm" aria-hidden="true">
                     <template v-if="isDefined(result.nomination.ranking[voter.id])">
                       {{ result.nomination.ranking[voter.id] }}
                     </template>

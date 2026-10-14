@@ -17,13 +17,13 @@
             :style="`background-image: url(https://image.tmdb.org/t/p/w1280${movieData.backdrop_path}); background-size: cover; background-position: center; filter: blur(8px);`"
           />
 
-          <div class="relative rounded-lg bg-slate-600/60 p-8 backdrop-blur-sm">
+          <div class="relative rounded-lg bg-slate-600/60 p-8 backdrop-blur-xs">
             <div class="flex flex-col gap-8">
               <div class="flex flex-col gap-8 sm:flex-row">
-                <div class="flex flex-shrink-0 flex-col sm:w-1/3">
+                <div class="flex shrink-0 flex-col sm:w-1/3">
                   <!-- Title and Tagline Section positioned over poster -->
                   <div class="mb-4">
-                    <h1 class="mb-1 text-4xl font-bold break-words text-white">
+                    <h1 class="mb-1 text-4xl font-bold wrap-break-word text-white">
                       {{ workTitle(data.work) }}
                     </h1>
                     <p v-if="movieData?.tagline" class="text-lg text-gray-300 italic">
@@ -35,7 +35,7 @@
                   <div>
                     <img
                       :src="posterSrc"
-                      class="aspect-[2/3] w-full rounded-lg object-cover shadow-lg transition-transform"
+                      class="aspect-2/3 w-full rounded-lg object-cover shadow-lg transition-transform"
                     />
                   </div>
                 </div>

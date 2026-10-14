@@ -72,7 +72,7 @@
           v-model="name"
           type="text"
           required
-          class="focus:border-primary focus:ring-primary w-full rounded border border-gray-600 bg-gray-700 px-3 py-2 text-white placeholder-gray-400 focus:ring-1 focus:outline-none"
+          class="focus:border-primary focus:ring-primary w-full rounded border border-gray-600 bg-gray-700 px-3 py-2 text-white placeholder-gray-400 focus:ring-1 focus:outline-hidden"
           placeholder="Your name"
         />
       </div>
@@ -85,7 +85,7 @@
           v-model="email"
           type="email"
           required
-          class="focus:border-primary focus:ring-primary w-full rounded border border-gray-600 bg-gray-700 px-3 py-2 text-white placeholder-gray-400 focus:ring-1 focus:outline-none"
+          class="focus:border-primary focus:ring-primary w-full rounded border border-gray-600 bg-gray-700 px-3 py-2 text-white placeholder-gray-400 focus:ring-1 focus:outline-hidden"
           placeholder="your@email.com"
         />
       </div>
@@ -99,7 +99,7 @@
           type="password"
           required
           minlength="8"
-          class="focus:border-primary focus:ring-primary w-full rounded border border-gray-600 bg-gray-700 px-3 py-2 text-white placeholder-gray-400 focus:ring-1 focus:outline-none"
+          class="focus:border-primary focus:ring-primary w-full rounded border border-gray-600 bg-gray-700 px-3 py-2 text-white placeholder-gray-400 focus:ring-1 focus:outline-hidden"
           placeholder="Min 8 characters"
         />
         <!-- Forgot Password Link (Sign In only) -->

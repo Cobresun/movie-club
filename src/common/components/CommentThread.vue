@@ -53,7 +53,7 @@
             <textarea
               v-model="editContent"
               :maxlength="MAX_LENGTH"
-              class="bg-background focus:border-primary focus:ring-primary w-full resize-none rounded-lg border border-gray-600 px-3 py-2 text-left text-base text-white placeholder-gray-400 focus:ring-1 focus:outline-none md:text-sm"
+              class="bg-background focus:border-primary focus:ring-primary w-full resize-none rounded-lg border border-gray-600 px-3 py-2 text-left text-base text-white placeholder-gray-400 focus:ring-1 focus:outline-hidden md:text-sm"
               rows="3"
             />
             <div class="mt-2 flex items-center justify-between">
@@ -89,14 +89,14 @@
 
           <!-- Display mode -->
           <div v-else class="mt-2">
-            <!-- `blur-sm` is a purely visual filter, so while hidden it also
+            <!-- `blur-xs` is a purely visual filter, so while hidden it also
                carries aria-hidden: without it the spoiler is read out in full
                to a screen reader that cannot see the blur. One element for
                both states, so the blur can transition away. -->
             <p
               :aria-hidden="isSpoilerHidden(comment) || undefined"
               class="duration-slow ease-standard text-left text-sm whitespace-pre-wrap text-gray-200 transition-[filter]"
-              :class="isSpoilerHidden(comment) ? 'cursor-pointer blur-sm select-none' : 'blur-none'"
+              :class="isSpoilerHidden(comment) ? 'cursor-pointer blur-xs select-none' : 'blur-none'"
               @click="revealedSpoilers.add(comment.id)"
             >
               {{ comment.content }}
@@ -115,7 +115,7 @@
         v-model="newComment"
         :maxlength="MAX_LENGTH"
         placeholder="Write a comment…"
-        class="bg-lowBackground focus:border-primary focus:ring-primary w-full resize-none rounded-lg border border-gray-600 px-3 py-2 text-left text-base text-white placeholder-gray-400 focus:ring-1 focus:outline-none md:text-sm"
+        class="bg-lowBackground focus:border-primary focus:ring-primary w-full resize-none rounded-lg border border-gray-600 px-3 py-2 text-left text-base text-white placeholder-gray-400 focus:ring-1 focus:outline-hidden md:text-sm"
         rows="3"
       />
       <div class="mt-2 flex items-center justify-between">

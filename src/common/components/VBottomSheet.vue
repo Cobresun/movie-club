@@ -18,7 +18,7 @@
         role="dialog"
         aria-modal="true"
         tabindex="-1"
-        class="sheet bg-background duration-slow ease-emphasized fixed inset-x-0 bottom-0 w-full overflow-y-auto overscroll-contain rounded-t-2xl transition-[transform,height,bottom] outline-none"
+        class="sheet bg-background duration-slow ease-emphasized fixed inset-x-0 bottom-0 w-full overflow-y-auto overscroll-contain rounded-t-2xl outline-hidden transition-[transform,height,bottom]"
         :class="contentZIndexClass"
         :style="sheetStyle"
         @click.stop=""

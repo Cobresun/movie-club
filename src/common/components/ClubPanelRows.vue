@@ -1,7 +1,7 @@
 <template>
   <div class="flex flex-col">
     <div v-if="showIdentity" class="flex items-center gap-3 px-4 pt-1 pb-3">
-      <v-avatar :name="clubName" :size="48" class="flex-shrink-0" />
+      <v-avatar :name="clubName" :size="48" class="shrink-0" />
       <span class="flex min-w-0 flex-col gap-0.5">
         <span class="truncate text-xl leading-tight font-semibold">{{ clubName }}</span>
         <span v-if="hasValue(meta)" class="truncate text-[13px] text-white/55">{{ meta }}</span>
@@ -13,8 +13,8 @@
       :role="rowRole"
       @click="goTo('Club')"
     >
-      <mdicon name="account-group-outline" :size="22" class="flex-shrink-0 text-white/60" />
-      <span class="flex-grow text-[15px] font-medium">Members &amp; settings</span>
+      <mdicon name="account-group-outline" :size="22" class="shrink-0 text-white/60" />
+      <span class="grow text-[15px] font-medium">Members &amp; settings</span>
       <mdicon name="chevron-right" :size="20" class="text-white/35" />
     </button>
   </div>

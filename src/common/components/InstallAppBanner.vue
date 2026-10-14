@@ -5,7 +5,7 @@
       class="bg-lowBackground flex items-center gap-3 rounded-xl p-3"
     >
       <img src="/apple-touch-icon.png" alt="" class="h-10 w-10 shrink-0 rounded-lg" />
-      <div class="min-w-0 flex-grow">
+      <div class="min-w-0 grow">
         <h2 id="install-app-heading" class="text-sm font-semibold">
           Add Movie Club to your home screen
         </h2>

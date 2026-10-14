@@ -1,6 +1,6 @@
 <template>
   <div
-    class="flex h-full w-full flex-col overflow-hidden bg-gradient-to-br p-6 text-left text-white"
+    class="flex h-full w-full flex-col overflow-hidden bg-linear-to-br p-6 text-left text-white"
     :class="{
       'from-violet-600 via-fuchsia-800 to-slate-900': tone === 'violet',
       'from-primary via-blue-800 to-slate-900': tone === 'blue',

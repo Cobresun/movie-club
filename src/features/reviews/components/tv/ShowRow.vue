@@ -19,7 +19,7 @@
         <mdicon name="television-classic" class="text-slate-500" />
       </div>
 
-      <div class="flex min-w-0 flex-grow flex-col gap-1">
+      <div class="flex min-w-0 grow flex-col gap-1">
         <!-- The title is the row's button; its ::after stretches over the
              whole header so anywhere on it opens the show. It sits at z-10
              because the rotated chevron, blurred score and fading poster

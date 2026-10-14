@@ -14,7 +14,7 @@
         <SkeletonBlock v-else class="h-full w-full" />
       </div>
 
-      <div class="flex min-w-0 flex-grow flex-col gap-1.5">
+      <div class="flex min-w-0 grow flex-col gap-1.5">
         <h2 class="line-clamp-2 text-base leading-snug font-semibold md:text-lg">
           {{ review.title }}
         </h2>
