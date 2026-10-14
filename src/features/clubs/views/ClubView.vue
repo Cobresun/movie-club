@@ -1,9 +1,9 @@
 <template>
-  <div class="mx-auto flex max-w-3xl flex-col gap-6 px-4 pb-8 pt-6">
+  <div class="mx-auto flex max-w-3xl flex-col gap-6 px-4 pt-6 pb-8">
     <header class="flex items-center gap-3.5">
-      <v-avatar :name="club?.clubName ?? ''" :size="56" class="flex-shrink-0" />
+      <v-avatar :name="club?.clubName ?? ''" :size="56" class="shrink-0" />
       <div class="flex min-w-0 flex-col gap-0.5">
-        <h1 class="truncate text-2xl font-semibold leading-tight">{{ club?.clubName }}</h1>
+        <h1 class="truncate text-2xl leading-tight font-semibold">{{ club?.clubName }}</h1>
         <span v-if="hasValue(meta)" class="truncate text-[13px] text-white/55">{{ meta }}</span>
       </div>
     </header>
@@ -12,13 +12,13 @@
 
     <ClubSettingsCard :club-slug="clubSlug" />
 
-    <section class="flex flex-col overflow-hidden rounded-xl bg-lowBackground">
+    <section class="bg-lowBackground flex flex-col overflow-hidden rounded-xl">
       <button
-        class="flex min-h-[56px] items-center gap-3 px-4 py-3.5 text-left transition-colors duration-fast ease-standard hover:bg-white/10"
+        class="duration-fast ease-standard flex min-h-[56px] items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-white/10"
         @click="showLeaveConfirm = true"
       >
-        <mdicon name="logout" :size="22" class="flex-shrink-0 text-white/60" />
-        <span class="flex-grow text-[15px] font-medium text-orange-300">Leave club</span>
+        <mdicon name="logout" :size="22" class="shrink-0 text-white/60" />
+        <span class="grow text-[15px] font-medium text-orange-300">Leave club</span>
         <mdicon name="chevron-right" :size="20" class="text-white/35" />
       </button>
     </section>

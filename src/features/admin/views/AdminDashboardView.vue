@@ -21,7 +21,7 @@
     <template v-else>
       <!-- The range drives every section below, so it stays in reach while
            scrolling rather than living at the top of one card. -->
-      <div class="sticky top-0 z-10 bg-background/90 py-2 backdrop-blur">
+      <div class="bg-background/90 sticky top-0 z-10 py-2 backdrop-blur">
         <div class="mx-auto flex w-11/12 max-w-6xl items-center justify-between gap-3">
           <SegmentedToggle v-model="range" :options="RANGE_OPTIONS" />
           <div class="flex shrink-0 items-center gap-2">
@@ -80,7 +80,7 @@
         </div>
 
         <section aria-labelledby="health-heading" class="space-y-3 pt-4">
-          <h2 id="health-heading" class="text-sm font-bold uppercase tracking-wide text-slate-400">
+          <h2 id="health-heading" class="text-sm font-bold tracking-wide text-slate-400 uppercase">
             Health
           </h2>
           <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">

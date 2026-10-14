@@ -8,7 +8,7 @@
       :aria-pressed="!isDefined(modelValue)"
       :class="
         !isDefined(modelValue)
-          ? 'bg-primary text-white shadow-md shadow-primary/25'
+          ? 'bg-primary shadow-primary/25 text-white shadow-md'
           : 'bg-background/60 text-gray-400 hover:bg-gray-600/60 hover:text-white'
       "
       @click="emit('update:modelValue', undefined)"
@@ -18,11 +18,11 @@
     <button
       v-for="member in members"
       :key="member.id"
-      class="inline-flex items-center gap-1.5 rounded-full py-1 pl-1 pr-3 text-sm font-medium transition-all"
+      class="inline-flex items-center gap-1.5 rounded-full py-1 pr-3 pl-1 text-sm font-medium transition-all"
       :aria-pressed="modelValue === member.id"
       :class="
         modelValue === member.id
-          ? 'bg-primary text-white shadow-md shadow-primary/25'
+          ? 'bg-primary shadow-primary/25 text-white shadow-md'
           : 'bg-background/60 text-gray-400 hover:bg-gray-600/60 hover:text-white'
       "
       @click="emit('update:modelValue', member.id)"

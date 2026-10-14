@@ -1,9 +1,9 @@
 <template>
-  <div class="relative min-w-0 flex-grow md:flex-grow-0">
+  <div class="relative min-w-0 grow md:grow-0">
     <!-- Desktop: Headless UI Menu -->
     <Menu v-if="isDesktop" v-slot="{ close }" as="div">
       <MenuButton
-        class="flex min-h-[44px] items-center gap-2 rounded-lg bg-lowBackground py-1.5 pl-1.5 pr-2 ring-1 ring-inset ring-white/[0.08] transition-colors duration-fast ease-standard hover:bg-white/10"
+        class="bg-lowBackground duration-fast ease-standard flex min-h-[44px] items-center gap-2 rounded-lg py-1.5 pr-2 pl-1.5 ring-1 ring-white/[0.08] transition-colors ring-inset hover:bg-white/10"
         :aria-label="`Club menu. Current: ${activeClubName}`"
       >
         <ClubChipBody :club-name="activeClubName" :meta="activeClubMeta" />
@@ -13,7 +13,7 @@
           ring-class="shadow-[0_0_0_2px_#393E46]"
           class="mr-0.5"
         />
-        <mdicon name="chevron-down" :size="18" class="flex-shrink-0 text-white/70" />
+        <mdicon name="chevron-down" :size="18" class="shrink-0 text-white/70" />
       </MenuButton>
 
       <transition
@@ -23,7 +23,7 @@
         leave-to-class="-translate-y-1 scale-95 opacity-0"
       >
         <MenuItems
-          class="absolute left-0 top-full z-50 mt-1 min-w-[300px] origin-top-left overflow-hidden rounded-xl bg-lowBackground shadow-lg"
+          class="bg-lowBackground absolute top-full left-0 z-50 mt-1 min-w-[300px] origin-top-left overflow-hidden rounded-xl shadow-lg"
         >
           <ClubPanelRows
             :club-slug="currentSlug"
@@ -35,7 +35,7 @@
 
           <template v-if="hasMultipleClubs">
             <div
-              class="border-t border-white/[0.08] px-4 pb-1.5 pt-3 text-[11px] font-semibold uppercase tracking-widest text-white/45"
+              class="border-t border-white/[0.08] px-4 pt-3 pb-1.5 text-[11px] font-semibold tracking-widest text-white/45 uppercase"
             >
               Your clubs
             </div>
@@ -47,9 +47,9 @@
                   @click="selectClub(club)"
                 >
                   <v-avatar :name="club.clubName" :size="30" />
-                  <span class="flex min-w-0 flex-grow flex-col">
+                  <span class="flex min-w-0 grow flex-col">
                     <span
-                      class="truncate text-sm font-medium leading-tight"
+                      class="truncate text-sm leading-tight font-medium"
                       :class="club.slug === currentSlug ? 'text-highlight' : 'text-white/85'"
                     >
                       {{ club.clubName }}
@@ -62,7 +62,7 @@
                     v-if="club.slug === currentSlug"
                     name="check"
                     :size="16"
-                    class="flex-shrink-0 text-highlight"
+                    class="text-highlight shrink-0"
                   />
                 </button>
               </MenuItem>
@@ -88,7 +88,7 @@
     <!-- Mobile: custom button + bottom sheet -->
     <template v-else>
       <button
-        class="flex min-h-[44px] w-full items-center gap-2 rounded-lg bg-lowBackground py-1.5 pl-1.5 pr-2 ring-1 ring-inset ring-white/[0.08] transition-colors duration-fast ease-standard hover:bg-white/10"
+        class="bg-lowBackground duration-fast ease-standard flex min-h-[44px] w-full items-center gap-2 rounded-lg py-1.5 pr-2 pl-1.5 ring-1 ring-white/[0.08] transition-colors ring-inset hover:bg-white/10"
         :aria-label="`Club menu. Current: ${activeClubName}`"
         @click="isMobileOpen = true"
       >
@@ -99,7 +99,7 @@
           ring-class="shadow-[0_0_0_2px_#393E46]"
           class="mr-0.5"
         />
-        <mdicon name="chevron-down" :size="18" class="flex-shrink-0 text-white/70" />
+        <mdicon name="chevron-down" :size="18" class="shrink-0 text-white/70" />
       </button>
 
       <VBottomSheet v-if="isMobileOpen" content-class="pb-6" @close="isMobileOpen = false">
@@ -113,7 +113,7 @@
 
         <template v-if="hasMultipleClubs">
           <div
-            class="border-t border-white/[0.08] px-4 pb-2 pt-3 text-[11px] font-semibold uppercase tracking-widest text-white/45"
+            class="border-t border-white/[0.08] px-4 pt-3 pb-2 text-[11px] font-semibold tracking-widest text-white/45 uppercase"
           >
             Your clubs
           </div>
@@ -124,9 +124,9 @@
                 @click="selectClub(club)"
               >
                 <v-avatar :name="club.clubName" :size="34" />
-                <span class="flex min-w-0 flex-grow flex-col">
+                <span class="flex min-w-0 grow flex-col">
                   <span
-                    class="truncate text-[15px] font-medium leading-tight"
+                    class="truncate text-[15px] leading-tight font-medium"
                     :class="club.slug === currentSlug ? 'text-highlight' : 'text-white/85'"
                   >
                     {{ club.clubName }}
@@ -139,7 +139,7 @@
                   v-if="club.slug === currentSlug"
                   name="check"
                   :size="20"
-                  class="flex-shrink-0 text-highlight"
+                  class="text-highlight shrink-0"
                 />
               </button>
             </li>

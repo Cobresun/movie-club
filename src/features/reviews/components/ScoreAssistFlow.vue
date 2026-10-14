@@ -8,7 +8,7 @@
       <div class="flex justify-center gap-4">
         <button
           type="button"
-          class="w-40 rounded-lg transition duration-fast ease-standard hover:scale-[1.03] hover:ring-4 hover:ring-primary focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary active:scale-[0.98]"
+          class="duration-fast ease-standard hover:ring-primary focus-visible:ring-primary w-40 rounded-lg transition hover:scale-[1.03] hover:ring-4 focus-visible:ring-4 focus-visible:outline-hidden active:scale-[0.98]"
           :aria-label="`I liked ${target.title} more`"
           @click="answer('more')"
         >
@@ -18,7 +18,7 @@
           <button
             :key="pivot.workId"
             type="button"
-            class="w-40 rounded-lg transition duration-fast ease-standard hover:scale-[1.03] hover:ring-4 hover:ring-primary focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary active:scale-[0.98]"
+            class="duration-fast ease-standard hover:ring-primary focus-visible:ring-primary w-40 rounded-lg transition hover:scale-[1.03] hover:ring-4 focus-visible:ring-4 focus-visible:outline-hidden active:scale-[0.98]"
             :aria-label="`I liked ${pivot.title} more`"
             @click="answer('less')"
           >
@@ -35,7 +35,7 @@
       </div>
       <div class="flex items-center gap-4">
         <button
-          class="rounded-full bg-lowBackground px-4 py-1.5 text-sm text-gray-300 transition hover:brightness-110"
+          class="bg-lowBackground rounded-full px-4 py-1.5 text-sm text-gray-300 transition hover:brightness-110"
           @click="answer('same')"
         >
           Too close to call

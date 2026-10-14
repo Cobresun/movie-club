@@ -7,7 +7,7 @@
       <div class="flex items-center gap-2">
         <input
           v-model="newListTitle"
-          class="min-w-0 flex-1 rounded-md border-2 border-slate-600 bg-background p-2 text-sm text-white outline-none focus:border-primary"
+          class="bg-background focus:border-primary min-w-0 flex-1 rounded-md border-2 border-slate-600 p-2 text-sm text-white outline-hidden"
           placeholder="New list name…"
           @keyup.enter="confirmCreateList"
         />
@@ -37,7 +37,7 @@
           <template v-if="renamingListId === list.id">
             <input
               v-model="renameTitle"
-              class="min-w-0 flex-1 rounded-md border-2 border-slate-600 bg-background p-1 text-sm text-white outline-none focus:border-primary"
+              class="bg-background focus:border-primary min-w-0 flex-1 rounded-md border-2 border-slate-600 p-1 text-sm text-white outline-hidden"
               @keyup.enter="confirmRename(list.id)"
               @keyup.escape="cancelRename"
             />

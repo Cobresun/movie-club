@@ -1,7 +1,7 @@
 <template>
   <section v-if="hasElements(allActors)">
     <SectionHeader title="Cast">
-      <button v-if="hasMore" class="text-xs text-primary hover:underline" @click="showAll = true">
+      <button v-if="hasMore" class="text-primary text-xs hover:underline" @click="showAll = true">
         See all ({{ allActors.length }})
       </button>
     </SectionHeader>
@@ -26,7 +26,7 @@
 
       <li v-if="hasMore" class="flex w-16 shrink-0 flex-col items-center gap-1.5 text-center">
         <button
-          class="flex h-16 w-16 items-center justify-center rounded-full bg-lowBackground text-sm font-medium text-gray-300 transition hover:brightness-110"
+          class="bg-lowBackground flex h-16 w-16 items-center justify-center rounded-full text-sm font-medium text-gray-300 transition hover:brightness-110"
           @click="showAll = true"
         >
           +{{ remainingCount }}

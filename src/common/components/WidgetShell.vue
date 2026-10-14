@@ -1,6 +1,6 @@
 <template>
   <div v-reveal :class="outerClass ?? 'mx-auto w-11/12'">
-    <div :class="innerClass ?? 'rounded-xl bg-lowBackground p-4 sm:p-5'">
+    <div :class="innerClass ?? 'bg-lowBackground rounded-xl p-4 sm:p-5'">
       <div
         v-if="hasValue(title) || $slots.controls"
         class="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-3"

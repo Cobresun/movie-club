@@ -2,25 +2,25 @@
   <div class="border-t border-white/[0.08] first:border-t-0">
     <button
       v-if="!editing"
-      class="flex min-h-[56px] w-full items-center gap-3 px-4 py-3.5 text-left transition-colors duration-fast ease-standard hover:bg-white/10"
+      class="duration-fast ease-standard flex min-h-[56px] w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-white/10"
       @click="startEditing"
     >
-      <span class="flex min-w-0 flex-grow flex-col gap-0.5">
+      <span class="flex min-w-0 grow flex-col gap-0.5">
         <span class="text-xs text-white/50">{{ label }}</span>
         <span class="truncate text-[15px] font-medium">
           <span v-if="hasValue(prefix)" class="text-white/50">{{ prefix }}</span>
           <span :class="highlightValue ? 'text-highlight' : ''">{{ value }}</span>
         </span>
       </span>
-      <mdicon name="pencil" :size="20" class="flex-shrink-0 text-white/50" />
+      <mdicon name="pencil" :size="20" class="shrink-0 text-white/50" />
     </button>
 
     <!-- Unfocused on purpose: auto-focusing throws the phone keyboard up over
          the row before the user has decided they want to type. -->
-    <div v-else class="flex flex-col gap-2.5 px-4 pb-3.5 pt-3">
+    <div v-else class="flex flex-col gap-2.5 px-4 pt-3 pb-3.5">
       <label class="text-[13px] font-medium text-white/60" :for="inputId">{{ label }}</label>
       <div class="flex items-center gap-2">
-        <span v-if="hasValue(prefix)" class="flex-shrink-0 text-sm text-white/40">
+        <span v-if="hasValue(prefix)" class="shrink-0 text-sm text-white/40">
           {{ prefix }}
         </span>
         <input
@@ -30,7 +30,7 @@
           :maxlength="maxlength"
           :placeholder="placeholder"
           :disabled="saving"
-          class="min-h-[50px] min-w-0 flex-grow rounded-[10px] bg-background px-3.5 text-[15px] text-white placeholder-white/35 ring-1 ring-inset ring-white/[0.12] focus:outline-none focus:ring-2 focus:ring-primary"
+          class="bg-background focus:ring-primary min-h-[50px] min-w-0 grow rounded-[10px] px-3.5 text-[15px] text-white placeholder-white/35 ring-1 ring-white/[0.12] ring-inset focus:ring-2 focus:outline-hidden"
           @input="emit('dirty')"
           @keyup.enter="save"
           @keyup.escape="cancel"
@@ -43,9 +43,9 @@
           <span>{{ hint }}</span>
         </span>
         <span v-else />
-        <div class="flex flex-shrink-0 gap-2">
+        <div class="flex shrink-0 gap-2">
           <button
-            class="min-h-[44px] rounded-md px-3.5 text-[15px] font-semibold text-white/60 ring-1 ring-inset ring-white/[0.12] transition-colors duration-fast ease-standard hover:bg-white/10"
+            class="duration-fast ease-standard min-h-[44px] rounded-md px-3.5 text-[15px] font-semibold text-white/60 ring-1 ring-white/[0.12] transition-colors ring-inset hover:bg-white/10"
             @click="cancel"
           >
             Cancel

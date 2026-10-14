@@ -1,6 +1,6 @@
 <template>
   <button
-    class="mb-4 w-32 rounded-lg text-left transition-all duration-fast ease-standard hover:ring-2 hover:ring-primary"
+    class="duration-fast ease-standard hover:ring-primary mb-4 w-32 rounded-lg text-left transition-all hover:ring-2"
     @click="emit('select')"
   >
     <div class="flex h-full flex-col rounded-lg bg-slate-700">
@@ -8,11 +8,11 @@
       <div v-else class="flex h-56 items-center justify-center rounded-t-lg bg-slate-600">
         <mdicon :name="fallbackIcon" :size="48" class="text-slate-400" />
       </div>
-      <div class="flex flex-grow flex-col items-center justify-center px-2 py-2">
+      <div class="flex grow flex-col items-center justify-center px-2 py-2">
         <h3 class="text-center font-semibold" style="height: min-content">
           {{ title }}
         </h3>
-        <p v-if="hasValue(subtitle)" class="text-sm italic text-gray-400">
+        <p v-if="hasValue(subtitle)" class="text-sm text-gray-400 italic">
           {{ subtitle }}
         </p>
         <p v-if="hasValue(reason)" class="mt-1 text-center text-xs text-gray-400">

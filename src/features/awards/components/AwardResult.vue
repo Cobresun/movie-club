@@ -14,7 +14,7 @@
         <p v-if="!hasElements(award.nominations)" class="text-left text-gray-400">
           Nobody was nominated for this category.
         </p>
-        <ol class="grid grid-cols-auto justify-items-center gap-4">
+        <ol class="grid-cols-auto grid justify-items-center gap-4">
           <li
             v-for="result in scored.results"
             :key="result.nomination.movieId"
@@ -36,11 +36,11 @@
                 <li
                   v-for="voter in voters"
                   :key="voter.id"
-                  class="flex items-center rounded-3xl bg-lowBackground"
+                  class="bg-lowBackground flex items-center rounded-3xl"
                   :aria-label="`${voter.name} ranked it ${rankLabel(result.nomination, voter.id)}`"
                 >
                   <v-avatar :size="32" :name="voter.name" :src="voter.image" />
-                  <span class="flex flex-grow justify-center text-sm" aria-hidden="true">
+                  <span class="flex grow justify-center text-sm" aria-hidden="true">
                     <template v-if="isDefined(result.nomination.ranking[voter.id])">
                       {{ result.nomination.ranking[voter.id] }}
                     </template>

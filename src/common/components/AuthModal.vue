@@ -1,6 +1,6 @@
 <template>
   <v-modal size="sm" @close="handleClose">
-    <h2 class="mb-6 text-2xl font-bold text-text">
+    <h2 class="text-text mb-6 text-2xl font-bold">
       {{ isSignUp ? "Sign Up" : "Sign In" }}
     </h2>
 
@@ -10,7 +10,7 @@
         :class="[
           'flex-1 pb-3 font-medium transition-colors',
           !isSignUp
-            ? 'border-b-2 border-primary text-primary'
+            ? 'border-primary text-primary border-b-2'
             : 'text-gray-400 hover:text-gray-300',
         ]"
         @click="isSignUp = false"
@@ -20,7 +20,7 @@
       <button
         :class="[
           'flex-1 pb-3 font-medium transition-colors',
-          isSignUp ? 'border-b-2 border-primary text-primary' : 'text-gray-400 hover:text-gray-300',
+          isSignUp ? 'border-primary text-primary border-b-2' : 'text-gray-400 hover:text-gray-300',
         ]"
         @click="isSignUp = true"
       >
@@ -32,7 +32,7 @@
     <button
       type="button"
       :disabled="loading"
-      class="mb-4 flex w-full items-center justify-center gap-3 rounded border border-gray-600 bg-gray-700 px-4 py-2 font-medium text-text transition-all hover:bg-gray-600 disabled:cursor-not-allowed disabled:opacity-50"
+      class="text-text mb-4 flex w-full items-center justify-center gap-3 rounded border border-gray-600 bg-gray-700 px-4 py-2 font-medium transition-all hover:bg-gray-600 disabled:cursor-not-allowed disabled:opacity-50"
       @click="handleGoogleLogin"
     >
       <img :src="googleLogo" alt="Google" class="h-5 w-5" />
@@ -55,7 +55,7 @@
       <button
         v-if="showResendVerification"
         type="button"
-        class="mt-2 block text-primary hover:underline"
+        class="text-primary mt-2 block hover:underline"
         @click="handleResendVerification"
       >
         Resend verification email
@@ -72,7 +72,7 @@
           v-model="name"
           type="text"
           required
-          class="w-full rounded border border-gray-600 bg-gray-700 px-3 py-2 text-white placeholder-gray-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+          class="focus:border-primary focus:ring-primary w-full rounded border border-gray-600 bg-gray-700 px-3 py-2 text-white placeholder-gray-400 focus:ring-1 focus:outline-hidden"
           placeholder="Your name"
         />
       </div>
@@ -85,7 +85,7 @@
           v-model="email"
           type="email"
           required
-          class="w-full rounded border border-gray-600 bg-gray-700 px-3 py-2 text-white placeholder-gray-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+          class="focus:border-primary focus:ring-primary w-full rounded border border-gray-600 bg-gray-700 px-3 py-2 text-white placeholder-gray-400 focus:ring-1 focus:outline-hidden"
           placeholder="your@email.com"
         />
       </div>
@@ -99,14 +99,14 @@
           type="password"
           required
           minlength="8"
-          class="w-full rounded border border-gray-600 bg-gray-700 px-3 py-2 text-white placeholder-gray-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+          class="focus:border-primary focus:ring-primary w-full rounded border border-gray-600 bg-gray-700 px-3 py-2 text-white placeholder-gray-400 focus:ring-1 focus:outline-hidden"
           placeholder="Min 8 characters"
         />
         <!-- Forgot Password Link (Sign In only) -->
         <div v-if="!isSignUp" class="mt-1 text-right">
           <router-link
             to="/forgot-password"
-            class="text-sm text-primary hover:underline"
+            class="text-primary text-sm hover:underline"
             @click="handleClose"
           >
             Forgot password?
@@ -118,7 +118,7 @@
       <button
         type="submit"
         :disabled="loading"
-        class="w-full rounded bg-primary px-4 py-2 font-medium text-text transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+        class="bg-primary text-text w-full rounded px-4 py-2 font-medium transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {{ loading ? "Loading..." : isSignUp ? "Sign Up" : "Sign In" }}
       </button>
