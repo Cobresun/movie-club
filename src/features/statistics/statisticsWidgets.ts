@@ -116,7 +116,7 @@ const clubConsensusWidget: StatWidgetDef = {
  * The ordered widget list per club type. Adding a club type means adding one
  * entry here (and filling any media-specific slots) rather than sprinkling
  * `v-if="isMovieClub"` branches through InsightsView. Feature-local — it wires
- * up statistics components, so it must not live in `src/common/clubType.ts`
+ * up statistics components, so it must not live in `src/common/clubType/`
  * (that would invert the common → feature dependency; see code-quality.md).
  */
 export const STAT_WIDGETS: Record<ClubType, StatWidgetDef[]> = {
