@@ -76,4 +76,14 @@ describe("SharedStatisticsView", () => {
 
     expect(await screen.findByText("test-club")).toBeInTheDocument();
   });
+
+  it("invites a logged-out visitor to start their own club", async () => {
+    server.use(scoredReviews());
+    render(SharedStatisticsView);
+
+    expect(await screen.findByRole("link", { name: "Start your own club" })).toHaveAttribute(
+      "href",
+      "/newClub?utm_source=share&utm_medium=statistics&utm_campaign=start_club",
+    );
+  });
 });

@@ -1,168 +1,433 @@
 {
-  "generatedAt": "2026-07-29T13:16:21.790Z",
-  "totals": {
-    "users": 83,
-    "verifiedUsers": 69,
-    "clubs": 22,
-    "movieClubs": 21,
-    "bookClubs": 1,
-    "memberships": 26,
-    "reviews": 1186,
-    "comments": 14,
-    "works": 713,
-    "lists": 79
+  "generatedAt": "2026-09-26T06:38:00.000Z",
+  "range": "30d",
+  "pulse": {
+    "activeClubs": {
+      "current": 3,
+      "previous": 1
+    },
+    "activeUsers": {
+      "current": 5,
+      "previous": 5
+    },
+    "reviews": {
+      "current": 32,
+      "previous": 40
+    },
+    "comments": {
+      "current": 5,
+      "previous": 0
+    },
+    "newUsers": {
+      "current": 1,
+      "previous": 4
+    },
+    "newClubs": {
+      "current": 2,
+      "previous": 2
+    }
   },
-  "newUsers": {
-    "last7Days": 2,
-    "last30Days": 6
-  },
-  "newClubs": {
-    "last7Days": 1,
-    "last30Days": 3
-  },
-  "engagedUsers": {
-    "last7Days": 5,
-    "last30Days": 12
-  },
-  "loggedInUsers": {
-    "last7Days": 6,
-    "last30Days": 14
-  },
-  "activeClubs": {
-    "last7Days": 3,
-    "last30Days": 7
-  },
-  "weekly": {
-    "users": [
+  "activity": {
+    "unit": "day",
+    "buckets": [
       {
-        "weekStart": "2026-07-13",
-        "count": 1
+        "bucket": "2026-08-27",
+        "reviews": 0,
+        "comments": 0,
+        "listAdds": 0
       },
       {
-        "weekStart": "2026-07-27",
-        "count": 2
-      }
-    ],
-    "clubs": [
-      {
-        "weekStart": "2026-07-27",
-        "count": 1
-      }
-    ],
-    "reviews": [
-      {
-        "weekStart": "2026-07-13",
-        "count": 9
+        "bucket": "2026-08-28",
+        "reviews": 0,
+        "comments": 0,
+        "listAdds": 0
       },
       {
-        "weekStart": "2026-07-20",
-        "count": 4
+        "bucket": "2026-08-29",
+        "reviews": 3,
+        "comments": 0,
+        "listAdds": 2
       },
       {
-        "weekStart": "2026-07-27",
-        "count": 11
+        "bucket": "2026-08-30",
+        "reviews": 0,
+        "comments": 0,
+        "listAdds": 0
+      },
+      {
+        "bucket": "2026-08-31",
+        "reviews": 0,
+        "comments": 0,
+        "listAdds": 0
+      },
+      {
+        "bucket": "2026-09-01",
+        "reviews": 0,
+        "comments": 0,
+        "listAdds": 0
+      },
+      {
+        "bucket": "2026-09-02",
+        "reviews": 5,
+        "comments": 1,
+        "listAdds": 2
+      },
+      {
+        "bucket": "2026-09-03",
+        "reviews": 0,
+        "comments": 0,
+        "listAdds": 0
+      },
+      {
+        "bucket": "2026-09-04",
+        "reviews": 0,
+        "comments": 0,
+        "listAdds": 0
+      },
+      {
+        "bucket": "2026-09-05",
+        "reviews": 1,
+        "comments": 0,
+        "listAdds": 2
+      },
+      {
+        "bucket": "2026-09-06",
+        "reviews": 0,
+        "comments": 0,
+        "listAdds": 0
+      },
+      {
+        "bucket": "2026-09-07",
+        "reviews": 0,
+        "comments": 0,
+        "listAdds": 0
+      },
+      {
+        "bucket": "2026-09-08",
+        "reviews": 0,
+        "comments": 0,
+        "listAdds": 0
+      },
+      {
+        "bucket": "2026-09-09",
+        "reviews": 8,
+        "comments": 1,
+        "listAdds": 2
+      },
+      {
+        "bucket": "2026-09-10",
+        "reviews": 0,
+        "comments": 0,
+        "listAdds": 0
+      },
+      {
+        "bucket": "2026-09-11",
+        "reviews": 0,
+        "comments": 0,
+        "listAdds": 0
+      },
+      {
+        "bucket": "2026-09-12",
+        "reviews": 0,
+        "comments": 0,
+        "listAdds": 0
+      },
+      {
+        "bucket": "2026-09-13",
+        "reviews": 2,
+        "comments": 0,
+        "listAdds": 2
+      },
+      {
+        "bucket": "2026-09-14",
+        "reviews": 0,
+        "comments": 0,
+        "listAdds": 0
+      },
+      {
+        "bucket": "2026-09-15",
+        "reviews": 0,
+        "comments": 0,
+        "listAdds": 0
+      },
+      {
+        "bucket": "2026-09-16",
+        "reviews": 0,
+        "comments": 0,
+        "listAdds": 0
+      },
+      {
+        "bucket": "2026-09-17",
+        "reviews": 0,
+        "comments": 0,
+        "listAdds": 0
+      },
+      {
+        "bucket": "2026-09-18",
+        "reviews": 4,
+        "comments": 0,
+        "listAdds": 2
+      },
+      {
+        "bucket": "2026-09-19",
+        "reviews": 0,
+        "comments": 0,
+        "listAdds": 0
+      },
+      {
+        "bucket": "2026-09-20",
+        "reviews": 0,
+        "comments": 0,
+        "listAdds": 0
+      },
+      {
+        "bucket": "2026-09-21",
+        "reviews": 0,
+        "comments": 0,
+        "listAdds": 0
+      },
+      {
+        "bucket": "2026-09-22",
+        "reviews": 6,
+        "comments": 1,
+        "listAdds": 2
+      },
+      {
+        "bucket": "2026-09-23",
+        "reviews": 0,
+        "comments": 0,
+        "listAdds": 0
+      },
+      {
+        "bucket": "2026-09-24",
+        "reviews": 0,
+        "comments": 0,
+        "listAdds": 0
+      },
+      {
+        "bucket": "2026-09-25",
+        "reviews": 0,
+        "comments": 0,
+        "listAdds": 0
+      },
+      {
+        "bucket": "2026-09-26",
+        "reviews": 3,
+        "comments": 0,
+        "listAdds": 2
       }
     ]
   },
   "health": {
+    "contribution": {
+      "numerator": 5,
+      "denominator": 13
+    },
     "newUserActivation": {
+      "numerator": 1,
+      "denominator": 1
+    },
+    "discussion": {
       "numerator": 4,
-      "denominator": 6
+      "denominator": 18
     },
-    "unverifiedUsers": 14,
-    "dormantClubs": {
-      "numerator": 9,
-      "denominator": 20
-    },
-    "medianDaysToFirstReview": 2.5,
-    "daysToFirstReviewSample": 5,
-    "customListAdoption": {
-      "numerator": 11,
-      "denominator": 22
-    },
-    "commentedWorks": {
-      "numerator": 8,
-      "denominator": 640
-    },
-    "clubSizes": [
+    "clubStatus": {
+      "active": 3,
+      "quiet": 10,
+      "dormant": 23,
+      "neverStarted": 58,
+      "empty": 29
+    }
+  },
+  "works": {
+    "mostReviewed": [
       {
-        "label": "No members",
-        "clubs": 2
+        "key": "movie:603",
+        "title": "The Matrix",
+        "type": "movie",
+        "imageUrl": "https://image.tmdb.org/t/p/w154/603.jpg",
+        "clubs": 2,
+        "reviews": 6,
+        "averageScore": 7.8,
+        "spread": 1.2
       },
       {
-        "label": "1",
-        "clubs": 9
+        "key": "movie:438631",
+        "title": "Dune: Part Two",
+        "type": "movie",
+        "imageUrl": "https://image.tmdb.org/t/p/w154/438631.jpg",
+        "clubs": 1,
+        "reviews": 4,
+        "averageScore": 8.5,
+        "spread": 0.5
       },
       {
-        "label": "2–3",
-        "clubs": 7
-      },
-      {
-        "label": "4–6",
-        "clubs": 3
-      },
-      {
-        "label": "7+",
-        "clubs": 1
+        "key": "movie:x1",
+        "title": "Custom Screening",
+        "type": "movie",
+        "imageUrl": null,
+        "clubs": 1,
+        "reviews": 2,
+        "averageScore": 6,
+        "spread": 2
       }
     ],
-    "signupMethods": [
+    "highestRated": [
       {
-        "provider": "google",
-        "users": 51
+        "key": "movie:438631",
+        "title": "Dune: Part Two",
+        "type": "movie",
+        "imageUrl": "https://image.tmdb.org/t/p/w154/438631.jpg",
+        "clubs": 1,
+        "reviews": 4,
+        "averageScore": 8.5,
+        "spread": 0.5
       },
       {
-        "provider": "credential",
-        "users": 34
+        "key": "movie:603",
+        "title": "The Matrix",
+        "type": "movie",
+        "imageUrl": "https://image.tmdb.org/t/p/w154/603.jpg",
+        "clubs": 2,
+        "reviews": 6,
+        "averageScore": 7.8,
+        "spread": 1.2
+      }
+    ],
+    "mostDivisive": [
+      {
+        "key": "movie:tenet",
+        "title": "Tenet",
+        "type": "movie",
+        "imageUrl": "https://image.tmdb.org/t/p/w154/tenet.jpg",
+        "clubs": 1,
+        "reviews": 3,
+        "averageScore": 5.7,
+        "spread": 3.1
+      }
+    ],
+    "mostWanted": [
+      {
+        "key": "movie:872585",
+        "title": "Oppenheimer",
+        "type": "movie",
+        "imageUrl": null,
+        "clubs": 3,
+        "adds": 4
       }
     ]
   },
-  "topUsers": [
+  "clubs": {
+    "busiest": [
+      {
+        "clubId": "1",
+        "name": "Cobresun",
+        "slug": "cobresun",
+        "type": "movie",
+        "memberNames": ["Brian Norman", "Kevin", "sunny", "Zed"],
+        "reviews": 28,
+        "events": 40,
+        "lastActiveAt": "2026-09-25T20:00:00.000Z",
+        "createdAt": "2020-04-28T00:00:00.000Z"
+      },
+      {
+        "clubId": "2",
+        "name": "Page Turners",
+        "slug": "page-turners",
+        "type": "book",
+        "memberNames": ["Ada", "Grace"],
+        "reviews": 1,
+        "events": 3,
+        "lastActiveAt": "2026-09-20T12:00:00.000Z",
+        "createdAt": "2026-09-10T00:00:00.000Z"
+      }
+    ],
+    "newest": [
+      {
+        "clubId": "3",
+        "name": "Undated Club",
+        "slug": "undated-club",
+        "type": "movie",
+        "memberNames": ["Solo"],
+        "reviews": 0,
+        "events": 0,
+        "lastActiveAt": null,
+        "createdAt": "2026-09-24T00:00:00.000Z"
+      },
+      {
+        "clubId": "2",
+        "name": "Page Turners",
+        "slug": "page-turners",
+        "type": "book",
+        "memberNames": ["Ada", "Grace"],
+        "reviews": 1,
+        "events": 3,
+        "lastActiveAt": "2026-09-20T12:00:00.000Z",
+        "createdAt": "2026-09-10T00:00:00.000Z"
+      }
+    ]
+  },
+  "people": {
+    "mostActive": [
+      {
+        "userId": "10",
+        "name": "Cobresun Official",
+        "image": null,
+        "reviews": 21,
+        "comments": 4,
+        "listAdds": 9,
+        "clubs": 3,
+        "lastActiveAt": "2026-09-25T20:00:00.000Z",
+        "joinedAt": "2020-04-28T00:00:00.000Z"
+      },
+      {
+        "userId": "11",
+        "name": "Quiet Commenter",
+        "image": null,
+        "reviews": 0,
+        "comments": 1,
+        "listAdds": 0,
+        "clubs": 1,
+        "lastActiveAt": "2026-09-12T10:00:00.000Z",
+        "joinedAt": "2025-01-02T00:00:00.000Z"
+      }
+    ],
+    "newest": [
+      {
+        "userId": "12",
+        "name": "Fresh Face",
+        "image": null,
+        "reviews": 0,
+        "comments": 0,
+        "listAdds": 0,
+        "clubs": 0,
+        "lastActiveAt": null,
+        "joinedAt": "2026-09-22T00:00:00.000Z"
+      }
+    ]
+  },
+  "feed": [
     {
-      "userId": "1",
-      "name": "Cobresun Official",
-      "image": null,
-      "reviews": 21,
-      "comments": 4,
-      "listAdds": 9,
-      "total": 34,
-      "clubs": 3,
-      "lastActive": "2026-07-29T11:02:00.000Z"
+      "kind": "review",
+      "at": "2026-09-25T20:00:00.000Z",
+      "userName": "Brian Norman",
+      "userImage": null,
+      "clubName": "Cobresun",
+      "clubSlug": "cobresun",
+      "workTitle": "The Matrix",
+      "workImageUrl": null,
+      "score": 8.5
     },
     {
-      "userId": "2",
-      "name": "Quiet Commenter",
-      "image": null,
-      "reviews": 0,
-      "comments": 12,
-      "listAdds": 1,
-      "total": 13,
-      "clubs": 1,
-      "lastActive": "2026-07-27T08:30:00.000Z"
-    }
-  ],
-  "topClubs": [
-    {
-      "clubId": "940036320161660929",
-      "name": "Cobresun",
-      "slug": "cobresun",
-      "type": "movie",
-      "memberCount": 4,
-      "reviewCount": 819,
-      "createdAt": "2020-04-28",
-      "lastReviewAt": "2026-07-30",
-      "memberNames": ["Brian Norman", "Kevin", "sunny", "wes"]
-    },
-    {
-      "clubId": "940036320128499713",
-      "name": "Undated Club",
-      "slug": "undated-club",
-      "type": "book",
-      "memberCount": 2,
-      "reviewCount": 3,
-      "createdAt": null,
-      "lastReviewAt": null,
-      "memberNames": ["Ada", "Grace"]
+      "kind": "comment",
+      "at": "2026-09-25T19:00:00.000Z",
+      "userName": "Kevin",
+      "userImage": null,
+      "clubName": "Cobresun",
+      "clubSlug": "cobresun",
+      "workTitle": "The Matrix",
+      "workImageUrl": null,
+      "score": null
     }
   ]
 }

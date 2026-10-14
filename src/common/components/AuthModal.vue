@@ -144,7 +144,7 @@ const toast = useToast();
 const route = useRoute();
 const authStore = useAuthStore();
 
-const isSignUp = ref(false);
+const isSignUp = ref(authStore.authModalOpensOnSignUp);
 const email = ref("");
 const password = ref("");
 const name = ref("");
@@ -170,8 +170,10 @@ const getRedirectUrl = (): string | undefined => {
     return redirectParam;
   }
   // A club invite page is itself the destination to return to: users often
-  // authenticate mid-flow there, and losing the page loses the invite.
-  if (route.name === "JoinClub") {
+  // authenticate mid-flow there, and losing the page loses the invite. The new
+  // club page likewise: share pages send visitors there to sign up, and the
+  // point of signing up was to start the club.
+  if (route.name === "JoinClub" || route.name === "NewClub") {
     return route.fullPath;
   }
   return undefined;

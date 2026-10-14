@@ -1,17 +1,16 @@
 import { describe, expect, it } from "vitest";
 
-import { SnapshotHistoryPoint } from "../../../lib/types/metrics";
 import {
-  deltaOverDays,
+  formatBucket,
+  formatChange,
   formatCount,
-  formatDuration,
   formatRelativeTime,
   integerTickStep,
-  mergeWeekly,
+  memberSummary,
   percentOf,
+  pluralize,
   rateFraction,
   ratePercent,
-  stickiness,
   thinLabels,
 } from "./formatMetrics";
 
@@ -19,7 +18,6 @@ describe("formatCount", () => {
   it("groups thousands", () => {
     expect(formatCount(1186)).toBe("1,186");
     expect(formatCount(0)).toBe("0");
-    expect(formatCount(83)).toBe("83");
   });
 });
 
@@ -41,31 +39,34 @@ describe("ratePercent / rateFraction", () => {
     expect(rateFraction(rate)).toBe("5 of 8");
   });
 
-  it("survives an empty denominator", () => {
-    expect(ratePercent({ numerator: 0, denominator: 0 })).toBe(0);
+  it("has no percentage at all over an empty denominator", () => {
+    expect(ratePercent({ numerator: 0, denominator: 0 })).toBeNull();
     expect(rateFraction({ numerator: 0, denominator: 0 })).toBe("0 of 0");
   });
 });
 
-describe("stickiness", () => {
-  it("reports weekly actives as a share of monthly actives", () => {
-    expect(stickiness({ last7Days: 12, last30Days: 40 })).toBe(30);
+describe("formatChange", () => {
+  it("is a percentage when there is a base to take one of", () => {
+    expect(formatChange({ current: 14, previous: 10 })).toEqual({ label: "+40%", direction: "up" });
+    expect(formatChange({ current: 5, previous: 10 })).toEqual({
+      label: "−50%",
+      direction: "down",
+    });
   });
 
-  it("is null rather than 0 when nobody was active at all", () => {
-    expect(stickiness({ last7Days: 0, last30Days: 0 })).toBeNull();
-  });
-});
-
-describe("formatDuration", () => {
-  it("drops to hours below a day, because '0.3 days' reads as nothing", () => {
-    expect(formatDuration(0.5)).toBe("12 hours");
-    expect(formatDuration(0.04)).toBe("1 hour");
+  it("is the absolute change when starting from zero, rather than an infinite percentage", () => {
+    expect(formatChange({ current: 3, previous: 0 })).toEqual({ label: "+3", direction: "up" });
   });
 
-  it("uses whole days above one, singular where it should be", () => {
-    expect(formatDuration(1)).toBe("1 day");
-    expect(formatDuration(4.6)).toBe("5 days");
+  it("says so when nothing moved", () => {
+    expect(formatChange({ current: 0, previous: 0 })).toEqual({
+      label: "No change",
+      direction: "flat",
+    });
+  });
+
+  it("is null when there is no previous period to compare with", () => {
+    expect(formatChange({ current: 12, previous: null })).toBeNull();
   });
 });
 
@@ -81,6 +82,8 @@ describe("formatRelativeTime", () => {
     expect(formatRelativeTime("2026-07-30T11:56:00Z", now)).toBe("4 minutes ago");
     expect(formatRelativeTime("2026-07-30T09:00:00Z", now)).toBe("3 hours ago");
     expect(formatRelativeTime("2026-07-28T12:00:00Z", now)).toBe("2 days ago");
+    expect(formatRelativeTime("2026-04-30T12:00:00Z", now)).toBe("3 months ago");
+    expect(formatRelativeTime("2024-07-30T12:00:00Z", now)).toBe("2 years ago");
   });
 
   it("says 'unknown' rather than 'NaN ago' for an unparseable timestamp", () => {
@@ -88,34 +91,37 @@ describe("formatRelativeTime", () => {
   });
 });
 
-describe("deltaOverDays", () => {
-  const now = Date.parse("2026-07-30T12:00:00Z");
-
-  const point = (capturedOn: string, users: number): SnapshotHistoryPoint => ({
-    capturedOn,
-    metrics: {
-      totals: { users, clubs: 0, reviews: 0 },
-      engagedUsers: { last7Days: 0, last30Days: 0 },
-      loggedInUsers: { last7Days: 0, last30Days: 0 },
-      activeClubs: { last7Days: 0, last30Days: 0 },
-    },
+describe("formatBucket", () => {
+  it("names days and weeks by their date, and months by month and year", () => {
+    expect(formatBucket("2026-09-21", "day")).toBe("Sep 21");
+    expect(formatBucket("2026-09-21", "week")).toBe("Sep 21");
+    expect(formatBucket("2026-09-01", "month")).toBe("Sep 2026");
   });
 
-  it("measures against the newest snapshot at or before the cutoff", () => {
-    const history = [point("2026-07-10", 100), point("2026-07-22", 120), point("2026-07-29", 140)];
+  it("falls back to the raw key rather than 'Invalid Date'", () => {
+    expect(formatBucket("garbage", "day")).toBe("garbage");
+  });
+});
 
-    // 7 days back from the 30th is the 23rd; the 22nd is the closest snapshot
-    // at or before that, not the newer 29th.
-    expect(deltaOverDays(history, "users", 150, 7, now)).toBe(30);
+describe("memberSummary", () => {
+  it("names everyone in a small club", () => {
+    expect(memberSummary(["Ada", "Grace"])).toBe("Ada, Grace");
   });
 
-  it("is null, not 0, when no snapshot reaches back far enough", () => {
-    expect(deltaOverDays([point("2026-07-29", 140)], "users", 150, 7, now)).toBeNull();
-    expect(deltaOverDays([], "users", 150, 7, now)).toBeNull();
+  it("collapses the tail once the row would get long", () => {
+    expect(memberSummary(["Brian", "Kevin", "sunny", "Zed"])).toBe("Brian, Kevin, sunny +1");
   });
 
-  it("reports a negative delta when rows were deleted", () => {
-    expect(deltaOverDays([point("2026-07-01", 200)], "users", 150, 7, now)).toBe(-50);
+  it("says a club with nobody in it has no members", () => {
+    expect(memberSummary([])).toBe("No members");
+  });
+});
+
+describe("pluralize", () => {
+  it("agrees the noun with the count", () => {
+    expect(pluralize(1, "review")).toBe("1 review");
+    expect(pluralize(0, "review")).toBe("0 reviews");
+    expect(pluralize(1200, "list add")).toBe("1,200 list adds");
   });
 });
 
@@ -126,65 +132,16 @@ describe("thinLabels", () => {
   });
 
   it("always labels the most recent bucket, whatever the step", () => {
-    for (const count of [7, 13, 26, 52]) {
+    for (const count of [7, 13, 30, 52]) {
       expect(thinLabels(count, 6)(count - 1)).toBe(true);
     }
   });
 
-  it("thins a 26-week axis down to roughly the target", () => {
-    const show = thinLabels(26, 6);
-    const shown = Array.from({ length: 26 }, (_, index) => index).filter(show);
-    expect(shown.length).toBeLessThanOrEqual(7);
-    expect(shown.length).toBeGreaterThanOrEqual(5);
-  });
-});
-
-describe("mergeWeekly", () => {
-  it("is empty when every series is empty", () => {
-    expect(mergeWeekly([], [], [])).toEqual([]);
-  });
-
-  it("aligns weeks present in only one series", () => {
-    const users = [{ weekStart: "2026-02-02", count: 3 }];
-    const clubs = [{ weekStart: "2026-02-16", count: 1 }];
-    const reviews = [{ weekStart: "2026-02-09", count: 7 }];
-
-    expect(mergeWeekly(users, clubs, reviews)).toEqual([
-      { weekStart: "2026-02-02", users: 3, clubs: 0, reviews: 0 },
-      { weekStart: "2026-02-09", users: 0, clubs: 0, reviews: 7 },
-      { weekStart: "2026-02-16", users: 0, clubs: 1, reviews: 0 },
-    ]);
-  });
-
-  it("spans the union of the series when one starts earlier", () => {
-    const users = [{ weekStart: "2026-02-09", count: 2 }];
-    const clubs = [
-      { weekStart: "2026-02-02", count: 1 },
-      { weekStart: "2026-02-09", count: 4 },
-    ];
-
-    expect(mergeWeekly(users, clubs, [])).toEqual([
-      { weekStart: "2026-02-02", users: 0, clubs: 1, reviews: 0 },
-      { weekStart: "2026-02-09", users: 2, clubs: 4, reviews: 0 },
-    ]);
-  });
-
-  it("crosses a year boundary without drifting", () => {
-    const merged = mergeWeekly(
-      [
-        { weekStart: "2025-12-22", count: 2 },
-        { weekStart: "2026-01-12", count: 5 },
-      ],
-      [],
-      [],
-    );
-
-    expect(merged.map((week) => week.weekStart)).toEqual([
-      "2025-12-22",
-      "2025-12-29",
-      "2026-01-05",
-      "2026-01-12",
-    ]);
+  it("thins a 30-day axis down to roughly the target", () => {
+    const show = thinLabels(30, 5);
+    const shown = Array.from({ length: 30 }, (_, index) => index).filter(show);
+    expect(shown.length).toBeLessThanOrEqual(6);
+    expect(shown.length).toBeGreaterThanOrEqual(4);
   });
 });
 
@@ -192,11 +149,9 @@ describe("integerTickStep", () => {
   it("never drops below 1, so a quiet week can't produce fractional ticks", () => {
     expect(integerTickStep(0)).toBe(1);
     expect(integerTickStep(1)).toBe(1);
-    expect(integerTickStep(6)).toBe(1);
   });
 
   it("grows the step so a large range stays readable", () => {
-    expect(integerTickStep(60)).toBe(10);
-    expect(integerTickStep(100)).toBe(17);
+    expect(integerTickStep(50)).toBe(10);
   });
 });

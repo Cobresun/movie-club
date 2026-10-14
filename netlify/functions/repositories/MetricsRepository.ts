@@ -1,42 +1,58 @@
-import { Expression, QueryCreator, sql } from "kysely";
+import { Expression, ExpressionBuilder, InferResult, QueryCreator, sql } from "kysely";
 
 import { isDefined } from "../../../lib/checks/checks.js";
-import { ClubType, DB, Json } from "../../../lib/types/generated/db.js";
+import { DB, Json, WorkType } from "../../../lib/types/generated/db.js";
 import {
-  ActiveUser,
-  SiteHealth,
-  SiteMetrics,
+  ActivityBucket,
+  AdminDashboard,
+  BucketUnit,
+  ClubRow,
+  ClubStatus,
+  clubRowSchema,
+  FeedEvent,
+  MetricsRange,
+  PeriodCount,
+  PersonRow,
+  RANGE_BUCKET,
+  RANGE_DAYS,
+  Rate,
+  ReviewedWork,
+  reviewedWorkSchema,
   SnapshotHistoryPoint,
+  SnapshotMetrics,
   snapshotHistoryMetricsSchema,
-  TimeSeriesPoint,
-  topClubSchema,
-  TRUSTED_CREATED_AT_SINCE,
+  WantedWork,
+  wantedWorkSchema,
 } from "../../../lib/types/metrics.js";
 import { db } from "../utils/database";
+import { fillBuckets } from "../utils/timeBuckets";
 
-/** How far back the weekly growth charts reach. */
-const WEEKS_OF_HISTORY = 26;
+/** Rows per leaderboard. */
+const LEADERBOARD_LIMIT = 10;
 
-/** How many clubs the leaderboard shows. */
-const TOP_CLUB_LIMIT = 10;
-
-/** How many people the most-active leaderboard shows. */
-const TOP_USER_LIMIT = 10;
+/** Entries in the latest-activity feed. */
+const FEED_LIMIT = 12;
 
 /**
- * Silence after which an active club counts as dormant. Deliberately longer
- * than the 30-day activity windows: clubs meet on their own cadence, and a club
- * that skips a month is on a break, not lost.
+ * Fewer reviews than this and an average or a spread says more about one
+ * person's taste than about the title, so the rated and divisive boards skip it.
+ */
+const MIN_REVIEWS_TO_RANK = 3;
+
+/** A club with activity this recently is active; the metric the dashboard leads with. */
+const ACTIVE_DAYS = 30;
+
+/**
+ * Silence after which a club counts as dormant. Deliberately longer than the
+ * active window: clubs meet on their own cadence, and a club that skips a
+ * month is on a break, not lost — those are "quiet".
  */
 const DORMANCY_DAYS = 90;
 
-/**
- * Fewer datable clubs than this and the time-to-first-review median is noise,
- * so the dashboard shows the sample size instead of a number.
- */
-const MIN_MEDIAN_SAMPLE = 3;
-
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Stands in for "no lower bound" so the `all` range runs the same queries as the rest. */
+const BEGINNING_OF_TIME = new Date(0);
 
 /**
  * Postgres `count()` is `int8`, and node-postgres hands `int8` back as a
@@ -49,13 +65,45 @@ function toCount(value: string | number | bigint | null | undefined): number {
   return isDefined(value) ? Number(value) : 0;
 }
 
-function daysAgo(days: number): Date {
-  return new Date(Date.now() - days * DAY_MS);
+function daysAgo(days: number, now: number = Date.now()): Date {
+  return new Date(now - days * DAY_MS);
 }
 
 /** UTC calendar date, `YYYY-MM-DD`. */
 function toIsoDate(value: Date): string {
   return value.toISOString().slice(0, 10);
+}
+
+/** Aggregates over a union can come back as a string rather than a Date. */
+function toIsoTimestamp(value: Date | string | null | undefined): string | null {
+  return isDefined(value) ? new Date(value).toISOString() : null;
+}
+
+/**
+ * The selected range, resolved against one `now` so every query in a request
+ * agrees on where it starts. `previousSince` opens the equally long range just
+ * before it, for the period-over-period comparison; `all` has none.
+ */
+interface RangeWindow {
+  unit: BucketUnit;
+  now: Date;
+  since: Date;
+  previousSince: Date | undefined;
+}
+
+function rangeWindow(range: MetricsRange): RangeWindow {
+  const now = Date.now();
+  const unit = RANGE_BUCKET[range];
+  if (range === "all") {
+    return { unit, now: new Date(now), since: BEGINNING_OF_TIME, previousSince: undefined };
+  }
+  const days = RANGE_DAYS[range];
+  return {
+    unit,
+    now: new Date(now),
+    since: daysAgo(days, now),
+    previousSince: daysAgo(days * 2, now),
+  };
 }
 
 type ActivityKind = "review" | "comment" | "list_add";
@@ -79,8 +127,8 @@ type ActivityKind = "review" | "comment" | "list_add";
  *   with it gives the CTE an honestly nullable column instead of a cast that
  *   would hide the NULLs from the type system.
  * - `kind` needs an explicit `::text`; an uncast string literal in the leading
- *   branch is `unknown` rather than `text`, which makes the `filterWhere` on
- *   `kind` in {@link MetricsRepository.getTopUsers} ambiguous.
+ *   branch is `unknown` rather than `text`, which makes a `filterWhere` on
+ *   `kind` ambiguous.
  */
 function activityEvents(qc: QueryCreator<DB>) {
   return qc
@@ -116,200 +164,273 @@ function activityEvents(qc: QueryCreator<DB>) {
 }
 
 /**
- * `to_char(date_trunc('week', …))`, with the column reference passed in as a
- * checked expression rather than spliced in as text. Formatting in the database
- * keeps the bucket key clear of any JS timezone conversion on the way out.
+ * `to_char(date_trunc(unit, …))`, with the column passed in as a checked
+ * expression. Formatting in the database keeps the bucket key clear of any JS
+ * timezone conversion on the way out. `unit` is inlined as a literal rather
+ * than bound, so the expression is textually identical wherever it appears.
  */
-function weekStart(column: Expression<Date | null>) {
-  return sql<string>`to_char(date_trunc('week', ${column}), 'YYYY-MM-DD')`;
+function bucketOf(unit: BucketUnit, column: Expression<Date>) {
+  return sql<string>`to_char(date_trunc(${sql.lit(unit)}, ${column}), 'YYYY-MM-DD')`;
 }
 
 /**
- * Median of an unsorted list, or null when empty. Averages the middle pair on
- * even counts.
+ * The identity a title shares across clubs. Every club holds its own `work`
+ * row, so the same film in three clubs is three rows with one external id;
+ * grouping on this collapses them. A work with no external id is only ever
+ * itself.
  */
-function median(values: number[]): number | null {
-  if (values.length === 0) {
-    return null;
-  }
-  const sorted = [...values].sort((a, b) => a - b);
-  const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
+function workKey(eb: ExpressionBuilder<DB, "work">) {
+  return eb.fn.coalesce("work.external_id", eb.cast<string>("work.id", "text"));
 }
+
+/** The row shape of {@link activityEvents}, for the CTEs built on top of it. */
+type ActivityRow = InferResult<ReturnType<typeof activityEvents>>[number];
 
 class MetricsRepository {
   /**
-   * Every scalar count in a single round trip, via correlated subqueries in one
-   * `SELECT`. Ten separate `count()` queries would be ten round trips to
-   * CockroachDB for a page that renders them all at once.
+   * Distinct clubs and people active in `[from, until)`, plus reviews and
+   * comments, from one pass over the activity union.
+   *
+   * One query per window, with the window in `WHERE`, on purpose: CockroachDB
+   * returns wrong answers — often 0 — when a single SELECT holds several
+   * `count(DISTINCT x)` over the same column with different `FILTER` clauses
+   * (or one filtered and one not). Two windows in one SELECT is exactly that
+   * shape, and it is how the dashboard once reported one active club while
+   * its own leaderboard listed four. Never pair `.distinct()` with
+   * `.filterWhere()`.
    */
-  private async getScalars() {
-    const since7 = daysAgo(7);
-    const since30 = daysAgo(30);
+  private async countActivity(from: Date, until: Date) {
+    const row = await db
+      .with("activity", activityEvents)
+      .selectFrom("activity")
+      .where("ts", ">=", from)
+      .where("ts", "<", until)
+      .select((eb) => [
+        eb.fn.count<string>("club_id").distinct().as("clubs"),
+        eb.fn.count<string>("user_id").distinct().as("users"),
+        eb.fn.countAll<string>().filterWhere("kind", "=", "review").as("reviews"),
+        eb.fn.countAll<string>().filterWhere("kind", "=", "comment").as("comments"),
+      ])
+      .executeTakeFirstOrThrow();
 
-    return await db
+    return {
+      clubs: toCount(row.clubs),
+      users: toCount(row.users),
+      reviews: toCount(row.reviews),
+      comments: toCount(row.comments),
+    };
+  }
+
+  /** The headline counts for the range and for the range before it. */
+  private async getPulse(window: RangeWindow) {
+    const { since } = window;
+    const previousSince = window.previousSince ?? since;
+
+    const [current, previous, signups] = await Promise.all([
+      this.countActivity(since, window.now),
+      window.previousSince === undefined ? undefined : this.countActivity(previousSince, since),
+      db
+        .selectNoFrom((eb) => [
+          eb
+            .selectFrom("user")
+            .where("createdAt", ">=", since)
+            .select((e) => e.fn.countAll<string>().as("c"))
+            .as("users_now"),
+          eb
+            .selectFrom("user")
+            .where("createdAt", ">=", previousSince)
+            .where("createdAt", "<", since)
+            .select((e) => e.fn.countAll<string>().as("c"))
+            .as("users_before"),
+          eb
+            .selectFrom("club")
+            .where("created_at", ">=", since)
+            .select((e) => e.fn.countAll<string>().as("c"))
+            .as("clubs_now"),
+          eb
+            .selectFrom("club")
+            .where("created_at", ">=", previousSince)
+            .where("created_at", "<", since)
+            .select((e) => e.fn.countAll<string>().as("c"))
+            .as("clubs_before"),
+        ])
+        .executeTakeFirstOrThrow(),
+    ]);
+
+    const hasPrevious = previous !== undefined;
+    const period = (now: number, before: number | undefined): PeriodCount => ({
+      current: now,
+      previous: hasPrevious ? (before ?? 0) : null,
+    });
+
+    return {
+      activeClubs: period(current.clubs, previous?.clubs),
+      activeUsers: period(current.users, previous?.users),
+      newUsers: period(toCount(signups.users_now), toCount(signups.users_before)),
+      newClubs: period(toCount(signups.clubs_now), toCount(signups.clubs_before)),
+      reviews: period(current.reviews, previous?.reviews),
+      comments: period(current.comments, previous?.comments),
+    };
+  }
+
+  /** Reviews, comments, and list adds per day, week, or month across the range. */
+  private async getActivityBuckets(window: RangeWindow): Promise<ActivityBucket[]> {
+    const rows = await db
+      .with("activity", activityEvents)
+      .selectFrom("activity")
+      .where("ts", ">=", window.since)
+      .select((eb) => [
+        bucketOf(window.unit, eb.ref("ts")).as("bucket"),
+        eb.fn.countAll<string>().filterWhere("kind", "=", "review").as("reviews"),
+        eb.fn.countAll<string>().filterWhere("kind", "=", "comment").as("comments"),
+        eb.fn.countAll<string>().filterWhere("kind", "=", "list_add").as("list_adds"),
+      ])
+      .groupBy("bucket")
+      .orderBy("bucket")
+      .execute();
+
+    const buckets = rows.map((row) => ({
+      bucket: row.bucket,
+      reviews: toCount(row.reviews),
+      comments: toCount(row.comments),
+      listAdds: toCount(row.list_adds),
+    }));
+
+    // `all` starts wherever the data does; the bounded ranges start at their
+    // own edge so a quiet opening stretch still draws as empty bars.
+    const from =
+      window.previousSince === undefined && buckets.length > 0
+        ? new Date(`${buckets[0].bucket}T00:00:00Z`)
+        : window.previousSince === undefined
+          ? window.now
+          : window.since;
+
+    return fillBuckets(window.unit, from, window.now, buckets, (bucket) => ({
+      bucket,
+      reviews: 0,
+      comments: 0,
+      listAdds: 0,
+    }));
+  }
+
+  /**
+   * Every club placed by how recently anything happened in it.
+   *
+   * Measured over all activity rather than reviews alone: a club still adding
+   * to its watchlist is alive even if nobody has scored anything.
+   */
+  private async getClubStatus(): Promise<ClubStatus> {
+    const activeSince = daysAgo(ACTIVE_DAYS);
+    const dormantBefore = daysAgo(DORMANCY_DAYS);
+
+    const [status, empty] = await Promise.all([
+      db
+        .with("activity", activityEvents)
+        .with("club_last_seen", (qc) =>
+          qc
+            .selectFrom("activity")
+            .select((eb) => ["club_id", eb.fn.max("ts").as("last_ts")])
+            .where("club_id", "is not", null)
+            .groupBy("club_id"),
+        )
+        .selectFrom("club")
+        .leftJoin("club_last_seen", "club_last_seen.club_id", "club.id")
+        .select((eb) => [
+          eb.fn
+            .countAll<string>()
+            .filterWhere("club_last_seen.last_ts", ">=", activeSince)
+            .as("active"),
+          eb.fn
+            .countAll<string>()
+            .filterWhere(
+              eb.and([
+                eb("club_last_seen.last_ts", "<", activeSince),
+                eb("club_last_seen.last_ts", ">=", dormantBefore),
+              ]),
+            )
+            .as("quiet"),
+          eb.fn
+            .countAll<string>()
+            .filterWhere("club_last_seen.last_ts", "<", dormantBefore)
+            .as("dormant"),
+          eb.fn
+            .countAll<string>()
+            .filterWhere("club_last_seen.last_ts", "is", null)
+            .as("never_started"),
+        ])
+        .executeTakeFirstOrThrow(),
+      db
+        .selectFrom("club")
+        .leftJoin("club_member", "club_member.club_id", "club.id")
+        .where("club_member.user_id", "is", null)
+        .select((eb) => eb.fn.countAll<string>().as("c"))
+        .executeTakeFirstOrThrow(),
+    ]);
+
+    return {
+      active: toCount(status.active),
+      quiet: toCount(status.quiet),
+      dormant: toCount(status.dormant),
+      neverStarted: toCount(status.never_started),
+      empty: toCount(empty.c),
+    };
+  }
+
+  /**
+   * Of the people who showed up in the last 30 days, how many wrote anything.
+   *
+   * A session counts if it was created or refreshed in the window, so someone
+   * who has stayed signed in all month is still a visitor.
+   */
+  private async getContribution(): Promise<Rate> {
+    const since = daysAgo(ACTIVE_DAYS);
+
+    const row = await db
+      .with("activity", activityEvents)
+      .with("visitors", (qc) =>
+        qc
+          .selectFrom("session")
+          .select("userId")
+          .where((eb) => eb.or([eb("createdAt", ">=", since), eb("updatedAt", ">=", since)]))
+          .distinct(),
+      )
       .selectNoFrom((eb) => [
         eb
-          .selectFrom("user")
+          .selectFrom("visitors")
           .select((e) => e.fn.countAll<string>().as("c"))
-          .as("users"),
+          .as("visitors"),
         eb
-          .selectFrom("user")
-          .where("emailVerified", "=", true)
-          .select((e) => e.fn.countAll<string>().as("c"))
-          .as("verifiedUsers"),
-        eb
-          .selectFrom("club")
-          .select((e) => e.fn.countAll<string>().as("c"))
-          .as("clubs"),
-        eb
-          .selectFrom("club")
-          .where("type", "=", ClubType.movie)
-          .select((e) => e.fn.countAll<string>().as("c"))
-          .as("movieClubs"),
-        eb
-          .selectFrom("club")
-          .where("type", "=", ClubType.book)
-          .select((e) => e.fn.countAll<string>().as("c"))
-          .as("bookClubs"),
-        eb
-          .selectFrom("club_member")
-          .select((e) => e.fn.countAll<string>().as("c"))
-          .as("memberships"),
-        eb
-          .selectFrom("review")
-          .select((e) => e.fn.countAll<string>().as("c"))
-          .as("reviews"),
-        eb
-          .selectFrom("work_comment")
-          .select((e) => e.fn.countAll<string>().as("c"))
-          .as("comments"),
-        eb
-          .selectFrom("work")
-          .select((e) => e.fn.countAll<string>().as("c"))
-          .as("works"),
-        eb
-          .selectFrom("work_list")
-          .select((e) => e.fn.countAll<string>().as("c"))
-          .as("lists"),
-
-        eb
-          .selectFrom("user")
-          .where("createdAt", ">=", since7)
-          .select((e) => e.fn.countAll<string>().as("c"))
-          .as("newUsers7"),
-        eb
-          .selectFrom("user")
-          .where("createdAt", ">=", since30)
-          .select((e) => e.fn.countAll<string>().as("c"))
-          .as("newUsers30"),
-        eb
-          .selectFrom("club")
-          .where("created_at", ">=", since7)
-          .select((e) => e.fn.countAll<string>().as("c"))
-          .as("newClubs7"),
-        eb
-          .selectFrom("club")
-          .where("created_at", ">=", since30)
-          .select((e) => e.fn.countAll<string>().as("c"))
-          .as("newClubs30"),
-
-        // Distinct users who started a session in the window. Better Auth
-        // deletes expired sessions, so this figure erodes as it ages — the
-        // daily metric_snapshot is what preserves it.
-        eb
-          .selectFrom("session")
-          .where("createdAt", ">=", since7)
-          .select((e) => e.fn.count<string>("userId").distinct().as("c"))
-          .as("loggedInUsers7"),
-        eb
-          .selectFrom("session")
-          .where("createdAt", ">=", since30)
-          .select((e) => e.fn.count<string>("userId").distinct().as("c"))
-          .as("loggedInUsers30"),
-
-        // --- Health denominators ---------------------------------------------
-        // Each is a proportion's bottom half; the top halves live alongside so
-        // the dashboard can show "5 of 8" rather than a bare percentage.
-
-        // Clubs using the arbitrary-lists feature at all. System lists (the
-        // reviews list) are created for every club, so they'd make adoption 100%.
-        eb
-          .selectFrom("work_list")
-          .where("system_type", "is", null)
-          .select((e) => e.fn.count<string>("club_id").distinct().as("c"))
-          .as("clubsWithCustomLists"),
-
-        // Works that have been reviewed — the denominator for comment rate.
-        // A work nobody reviewed was never really "discussed" to begin with.
-        eb
-          .selectFrom("review")
-          .select((e) => e.fn.count<string>("work_id").distinct().as("c"))
-          .as("reviewedWorks"),
-
-        // Reviewed works that also drew at least one comment.
-        eb
-          .selectFrom("review")
+          .selectFrom("visitors")
           .where((e) =>
             e.exists(
               e
-                .selectFrom("work_comment")
-                .whereRef("work_comment.work_id", "=", "review.work_id")
+                .selectFrom("activity")
+                .whereRef("activity.user_id", "=", "visitors.userId")
+                .where("activity.ts", ">=", since)
                 .select(e.lit(1).as("one")),
             ),
           )
-          .select((e) => e.fn.count<string>("work_id").distinct().as("c"))
-          .as("commentedWorks"),
+          .select((e) => e.fn.countAll<string>().as("c"))
+          .as("contributors"),
       ])
       .executeTakeFirstOrThrow();
+
+    return { numerator: toCount(row.contributors), denominator: toCount(row.visitors) };
   }
 
   /**
-   * Engaged users and active clubs, both windows, from one pass over the
-   * unioned activity events. `FILTER` lets a single scan serve both windows.
-   */
-  private async getActivity() {
-    const since7 = daysAgo(7);
-    const since30 = daysAgo(30);
-
-    // An ungrouped aggregate always returns exactly one row, here and in the
-    // other single-row aggregates below — hence OrThrow rather than a zeroed
-    // fallback for a case that cannot happen.
-    return await db
-      .with("activity", activityEvents)
-      .selectFrom("activity")
-      .select((eb) => [
-        eb.fn.count<string>("user_id").distinct().filterWhere("ts", ">=", since7).as("engaged_7"),
-        eb.fn.count<string>("user_id").distinct().filterWhere("ts", ">=", since30).as("engaged_30"),
-        eb.fn
-          .count<string>("club_id")
-          .distinct()
-          .filterWhere("ts", ">=", since7)
-          .as("active_clubs_7"),
-        eb.fn
-          .count<string>("club_id")
-          .distinct()
-          .filterWhere("ts", ">=", since30)
-          .as("active_clubs_30"),
-      ])
-      .executeTakeFirstOrThrow();
-  }
-
-  /**
-   * Do signups become users? Counts people who joined in the last 30 days and
-   * how many of them have since done anything at all.
+   * Do signups become users? Counts people who joined since `since` and how
+   * many of them have done anything at all.
    *
    * `EXISTS` rather than a join or an `IN`: the question is only whether a user
    * appears in the activity set, and stopping at the first match avoids
    * aggregating every event belonging to a prolific new member.
    */
-  private async getActivation() {
-    const since30 = daysAgo(30);
-
-    return await db
+  private async getActivation(since: Date): Promise<Rate> {
+    const row = await db
       .with("activity", activityEvents)
       .with("recent_users", (qc) =>
-        qc.selectFrom("user").select("id").where("createdAt", ">=", since30),
+        qc.selectFrom("user").select("id").where("createdAt", ">=", since),
       )
       .selectNoFrom((eb) => [
         eb
@@ -330,278 +451,243 @@ class MetricsRepository {
           .as("activated"),
       ])
       .executeTakeFirstOrThrow();
+
+    return { numerator: toCount(row.activated), denominator: toCount(row.signups) };
   }
 
-  /**
-   * Clubs that went quiet. A club counts as dormant once it has a history of
-   * activity but nothing within {@link DORMANCY_DAYS}.
-   *
-   * Deliberately measured over all activity rather than reviews alone: a club
-   * still adding to its watchlist is alive even if nobody has scored anything.
-   * Clubs that never did anything are excluded from both halves — they never
-   * became active, so they cannot have lapsed.
-   */
-  private async getDormancy() {
-    const cutoff = daysAgo(DORMANCY_DAYS);
-
-    return await db
-      .with("activity", activityEvents)
-      .with("club_last_seen", (qc) =>
-        qc
-          .selectFrom("activity")
-          .select((eb) => ["club_id", eb.fn.max("ts").as("last_ts")])
-          .where("club_id", "is not", null)
-          .groupBy("club_id"),
+  /** Works reviewed in the range, and how many of them anybody talked about. */
+  private async getDiscussion(since: Date): Promise<Rate> {
+    const row = await db
+      .with("reviewed", (qc) =>
+        qc.selectFrom("review").select("work_id").where("created_date", ">=", since).distinct(),
       )
-      .selectFrom("club_last_seen")
-      .select((eb) => [
-        eb.fn.countAll<string>().as("ever_active"),
-        eb.fn.countAll<string>().filterWhere("last_ts", "<", cutoff).as("dormant"),
+      .selectNoFrom((eb) => [
+        eb
+          .selectFrom("reviewed")
+          .select((e) => e.fn.countAll<string>().as("c"))
+          .as("reviewed"),
+        eb
+          .selectFrom("reviewed")
+          .where((e) =>
+            e.exists(
+              e
+                .selectFrom("work_comment")
+                .whereRef("work_comment.work_id", "=", "reviewed.work_id")
+                .select(e.lit(1).as("one")),
+            ),
+          )
+          .select((e) => e.fn.countAll<string>().as("c"))
+          .as("discussed"),
       ])
       .executeTakeFirstOrThrow();
+
+    return { numerator: toCount(row.discussed), denominator: toCount(row.reviewed) };
   }
 
-  /**
-   * Days from club creation to first review, one row per club.
-   *
-   * Restricted to clubs created after {@link TRUSTED_CREATED_AT_SINCE}: earlier
-   * clubs had `created_at` backfilled *from* their first review, so they would
-   * all score ~0 days and produce a median describing the migration rather than
-   * how quickly new clubs get going.
-   *
-   * The median is taken in TypeScript rather than with `percentile_cont`, whose
-   * `WITHIN GROUP` ordered-set syntax CockroachDB does not implement. The row
-   * count is bounded by the number of clubs, so there is nothing to stream.
-   */
-  private async getDaysToFirstReview(): Promise<number[]> {
-    const rows = await db
-      .selectFrom("club")
-      .innerJoin("work_list", "work_list.club_id", "club.id")
-      .innerJoin("review", "review.list_id", "work_list.id")
-      // Pinned to UTC midnight rather than handed over as a bare date string,
-      // which the server would resolve in its own session timezone.
-      .where("club.created_at", ">=", new Date(`${TRUSTED_CREATED_AT_SINCE}T00:00:00Z`))
-      .groupBy(["club.id", "club.created_at"])
-      .select((eb) =>
-        sql<string>`extract(epoch from (${eb.fn.min("review.created_date")} - ${eb.ref("club.created_at")})) / 86400`.as(
-          "days",
-        ),
-      )
-      .execute();
-
-    // A review predating its club's created_at would give a negative interval.
-    // Clamp rather than drop: it is a data artefact, not a club that took
-    // negative time to get started.
-    return rows.map((row) => Math.max(0, Number(row.days))).filter(Number.isFinite);
-  }
-
-  /**
-   * How many clubs are solo, small, or genuinely group-sized.
-   *
-   * `LEFT JOIN` so clubs with no members at all land in the `empty` bucket —
-   * an inner join would drop them, and a club nobody joined is precisely the
-   * kind of thing this histogram exists to expose.
-   *
-   * Bucketed here rather than with `FILTER (WHERE members BETWEEN …)` in SQL:
-   * the bucket boundaries would have to compare against a `count()`, whose
-   * honest type is the string node-postgres returns, and typing it as a number
-   * to make the comparison compile is exactly the lie {@link toCount} exists to
-   * prevent. The database still does the counting; this only sorts one row per
-   * club into five bins.
-   */
-  private async getClubSizes() {
-    const rows = await db
-      .selectFrom("club")
-      .leftJoin("club_member", "club_member.club_id", "club.id")
-      .select((eb) => ["club.id", eb.fn.count<string>("club_member.user_id").as("members")])
-      .groupBy("club.id")
-      .execute();
-
-    const sizes = { empty: 0, solo: 0, small: 0, medium: 0, large: 0 };
-    for (const row of rows) {
-      const members = toCount(row.members);
-      if (members === 0) {
-        sizes.empty++;
-      } else if (members === 1) {
-        sizes.solo++;
-      } else if (members <= 3) {
-        sizes.small++;
-      } else if (members <= 6) {
-        sizes.medium++;
-      } else {
-        sizes.large++;
-      }
-    }
-    return sizes;
-  }
-
-  /**
-   * Which auth providers people actually sign up with.
-   *
-   * Counted per provider, not per user: linking Google to an existing password
-   * account creates a second `account` row, so a user can appear in two buckets
-   * and the buckets do not sum to the user total. That is the useful reading
-   * anyway — the question is which providers need to keep working.
-   */
-  private async getSignupMethods() {
-    const rows = await db
-      .selectFrom("account")
-      .select((eb) => ["providerId", eb.fn.count<string>("userId").distinct().as("users")])
-      .groupBy("providerId")
-      .orderBy("users", "desc")
-      .execute();
-
-    return rows.map((row) => ({ provider: row.providerId, users: toCount(row.users) }));
-  }
-
-  /**
-   * The busiest people over the last 30 days, broken down by what they did.
-   *
-   * The breakdown matters more than the total: someone with forty comments and
-   * no reviews is a different kind of user from the reverse, and a single
-   * "events" column hides that entirely.
-   */
-  private async getTopUsers(): Promise<ActiveUser[]> {
-    const since30 = daysAgo(30);
-
-    const rows = await db
-      .with("activity", activityEvents)
-      .selectFrom("activity")
-      // The join drops the NULL-attribution list adds described on
-      // {@link activityEvents}, which is what keeps them out of this leaderboard.
-      .innerJoin("user", "user.id", "activity.user_id")
+  /** Reviews in the range grouped by title across clubs; each board orders and trims it. */
+  private reviewedWorks(since: Date) {
+    return db
+      .selectFrom("review")
+      .innerJoin("work", "work.id", "review.work_id")
+      .where("review.created_date", ">=", since)
       .select((eb) => [
-        "activity.user_id as user_id",
-        "user.name as name",
-        "user.image as image",
-        eb.fn.countAll<string>().as("total"),
-        eb.fn.countAll<string>().filterWhere("kind", "=", "review").as("reviews"),
-        eb.fn.countAll<string>().filterWhere("kind", "=", "comment").as("comments"),
-        eb.fn.countAll<string>().filterWhere("kind", "=", "list_add").as("list_adds"),
-        eb.fn.count<string>("activity.club_id").distinct().as("clubs"),
-        eb.fn.max("activity.ts").as("last_active"),
+        "work.type",
+        workKey(eb).as("work_key"),
+        eb.fn.max("work.title").as("title"),
+        eb.fn.max("work.image_url").as("image_url"),
+        eb.fn.count<string>("work.club_id").distinct().as("clubs"),
+        eb.fn.countAll<string>().as("reviews"),
+        eb.fn.avg<string>("review.score").as("average_score"),
+        eb.fn<string | null>("stddev_pop", ["review.score"]).as("spread"),
       ])
-      .where("activity.ts", ">=", since30)
-      .groupBy(["activity.user_id", "user.name", "user.image"])
-      // A select alias, not a column, so there is nothing for Kysely to check
-      // against the schema — the same reason getTopClubs orders this way.
-      .orderBy(sql`total`, "desc")
-      .limit(TOP_USER_LIMIT)
-      .execute();
+      .groupBy(["work.type", "work_key"]);
+  }
 
-    return rows.map((row) => ({
-      userId: String(row.user_id),
-      name: row.name,
-      image: row.image,
-      reviews: toCount(row.reviews),
-      comments: toCount(row.comments),
-      listAdds: toCount(row.list_adds),
-      total: toCount(row.total),
+  private toReviewedWork(row: {
+    type: WorkType;
+    work_key: string;
+    title: string;
+    image_url: string | null;
+    clubs: string;
+    reviews: string;
+    average_score: string;
+    spread: string | null;
+  }): ReviewedWork {
+    return reviewedWorkSchema.parse({
+      key: `${row.type}:${row.work_key}`,
+      title: row.title,
+      type: row.type,
+      imageUrl: row.image_url,
       clubs: toCount(row.clubs),
-      lastActive: new Date(row.last_active).toISOString(),
-    }));
+      reviews: toCount(row.reviews),
+      averageScore: Number(row.average_score),
+      spread: toCount(row.spread),
+    });
   }
 
-  private toSeries(rows: { week_start: string; count: string }[]): TimeSeriesPoint[] {
-    return rows.map((row) => ({ weekStart: row.week_start, count: toCount(row.count) }));
-  }
+  private async getWorkLeaderboards(since: Date) {
+    const base = this.reviewedWorks(since);
+    const rankable = base.having((eb) => eb.fn.countAll(), ">=", MIN_REVIEWS_TO_RANK);
 
-  /** Weekly buckets for the three growth charts. */
-  private async getWeeklySeries() {
-    const since = daysAgo(WEEKS_OF_HISTORY * 7);
-
-    const [users, clubs, reviews] = await Promise.all([
-      db
-        .selectFrom("user")
-        .select((eb) => [
-          weekStart(eb.ref("createdAt")).as("week_start"),
-          eb.fn.countAll<string>().as("count"),
-        ])
-        .where("createdAt", ">=", since)
-        .groupBy((eb) => weekStart(eb.ref("createdAt")))
-        .orderBy((eb) => weekStart(eb.ref("createdAt")))
+    const [mostReviewed, highestRated, mostDivisive, mostWanted] = await Promise.all([
+      base
+        .orderBy("reviews", "desc")
+        .orderBy("average_score", "desc")
+        .limit(LEADERBOARD_LIMIT)
         .execute(),
-      db
-        .selectFrom("club")
-        .select((eb) => [
-          weekStart(eb.ref("created_at")).as("week_start"),
-          eb.fn.countAll<string>().as("count"),
-        ])
-        .where("created_at", ">=", since)
-        .groupBy((eb) => weekStart(eb.ref("created_at")))
-        .orderBy((eb) => weekStart(eb.ref("created_at")))
+      rankable
+        .orderBy("average_score", "desc")
+        .orderBy("reviews", "desc")
+        .limit(LEADERBOARD_LIMIT)
         .execute(),
-      db
-        .selectFrom("review")
-        .select((eb) => [
-          weekStart(eb.ref("created_date")).as("week_start"),
-          eb.fn.countAll<string>().as("count"),
-        ])
-        .where("created_date", ">=", since)
-        .groupBy((eb) => weekStart(eb.ref("created_date")))
-        .orderBy((eb) => weekStart(eb.ref("created_date")))
+      rankable
+        .orderBy("spread", "desc")
+        .orderBy("reviews", "desc")
+        .limit(LEADERBOARD_LIMIT)
         .execute(),
+      this.getMostWanted(since),
     ]);
 
     return {
-      users: this.toSeries(users),
-      clubs: this.toSeries(clubs),
-      reviews: this.toSeries(reviews),
+      mostReviewed: mostReviewed.map((row) => this.toReviewedWork(row)),
+      highestRated: highestRated.map((row) => this.toReviewedWork(row)),
+      mostDivisive: mostDivisive.map((row) => this.toReviewedWork(row)),
+      mostWanted,
     };
   }
 
   /**
-   * Busiest clubs by review count. Member and review counts are correlated
-   * subqueries rather than joins: joining both tables would multiply rows and
-   * inflate each count by the other's cardinality.
+   * Titles clubs queued up in the range. Only a club's own lists count — a
+   * work lands on the reviews list when it is watched, which is the other
+   * leaderboards' business — and a title moves off its watch list once it is
+   * reviewed, so this reads as "wanted and not yet seen".
    */
-  private async getTopClubs() {
+  private async getMostWanted(since: Date): Promise<WantedWork[]> {
     const rows = await db
-      .selectFrom("club")
+      .selectFrom("work_list_item")
+      .innerJoin("work_list", "work_list.id", "work_list_item.list_id")
+      .innerJoin("work", "work.id", "work_list_item.work_id")
+      .where("work_list.system_type", "is", null)
+      .where("work_list_item.time_added", ">=", since)
       .select((eb) => [
+        "work.type",
+        workKey(eb).as("work_key"),
+        eb.fn.max("work.title").as("title"),
+        eb.fn.max("work.image_url").as("image_url"),
+        eb.fn.count<string>("work.club_id").distinct().as("clubs"),
+        eb.fn.countAll<string>().as("adds"),
+      ])
+      .groupBy(["work.type", "work_key"])
+      .orderBy("clubs", "desc")
+      .orderBy("adds", "desc")
+      .limit(LEADERBOARD_LIMIT)
+      .execute();
+
+    return rows.map((row) =>
+      wantedWorkSchema.parse({
+        key: `${row.type}:${row.work_key}`,
+        title: row.title,
+        type: row.type,
+        imageUrl: row.image_url,
+        clubs: toCount(row.clubs),
+        adds: toCount(row.adds),
+      }),
+    );
+  }
+
+  /** Per-club activity since `since`, as a CTE the club leaderboards join against. */
+  private clubActivity(since: Date) {
+    return (qc: QueryCreator<DB & { activity: ActivityRow }>) =>
+      qc
+        .selectFrom("activity")
+        .where("club_id", "is not", null)
+        .where("ts", ">=", since)
+        .select((eb) => [
+          "club_id",
+          eb.fn.countAll<string>().filterWhere("kind", "=", "review").as("reviews"),
+          eb.fn.countAll<string>().as("events"),
+          eb.fn.max("ts").as("last_ts"),
+        ])
+        .groupBy("club_id");
+  }
+
+  /** Clubs ranked by reviews in the range, then by everything else they did. */
+  private async getBusiestClubs(since: Date): Promise<ClubRow[]> {
+    const rows = await db
+      .with("activity", activityEvents)
+      .with("club_activity", this.clubActivity(since))
+      .selectFrom("club_activity")
+      .innerJoin("club", "club.id", "club_activity.club_id")
+      .select([
         "club.id",
         "club.name",
         "club.slug",
         "club.type",
         "club.created_at",
-        eb
-          .selectFrom("club_member")
-          .whereRef("club_member.club_id", "=", "club.id")
-          .select((e) => e.fn.countAll<string>().as("c"))
-          .as("member_count"),
-        eb
-          .selectFrom("review")
-          .innerJoin("work_list", "work_list.id", "review.list_id")
-          .whereRef("work_list.club_id", "=", "club.id")
-          .select((e) => e.fn.countAll<string>().as("c"))
-          .as("review_count"),
-        eb
-          .selectFrom("review")
-          .innerJoin("work_list", "work_list.id", "review.list_id")
-          .whereRef("work_list.club_id", "=", "club.id")
-          .select((e) => e.fn.max("review.created_date").as("d"))
-          .as("last_review_at"),
+        "club_activity.reviews",
+        "club_activity.events",
+        "club_activity.last_ts",
       ])
-      .orderBy(sql`review_count`, "desc")
-      .limit(TOP_CLUB_LIMIT)
+      .orderBy("club_activity.reviews", "desc")
+      .orderBy("club_activity.events", "desc")
+      .limit(LEADERBOARD_LIMIT)
       .execute();
 
+    return this.toClubRows(rows);
+  }
+
+  /** Clubs created in the range, with everything they have done since. */
+  private async getNewestClubs(since: Date): Promise<ClubRow[]> {
+    const rows = await db
+      .with("activity", activityEvents)
+      .with("club_activity", this.clubActivity(BEGINNING_OF_TIME))
+      .selectFrom("club")
+      .leftJoin("club_activity", "club_activity.club_id", "club.id")
+      .where("club.created_at", ">=", since)
+      .select([
+        "club.id",
+        "club.name",
+        "club.slug",
+        "club.type",
+        "club.created_at",
+        "club_activity.reviews",
+        "club_activity.events",
+        "club_activity.last_ts",
+      ])
+      .orderBy("club.created_at", "desc")
+      .limit(LEADERBOARD_LIMIT)
+      .execute();
+
+    return this.toClubRows(rows);
+  }
+
+  private async toClubRows(
+    rows: {
+      id: string;
+      name: string;
+      slug: string;
+      type: string;
+      created_at: Date | null;
+      reviews: string | null;
+      events: string | null;
+      last_ts: Date | string | null;
+    }[],
+  ): Promise<ClubRow[]> {
     const memberNames = await this.getMemberNames(rows.map((row) => row.id));
 
     // Parsed rather than cast: `club.type` arrives as a plain string and
-    // topClubSchema's nativeEnum check is what makes it a ClubType.
+    // clubRowSchema's nativeEnum check is what makes it a ClubType.
     return rows.map((row) =>
-      topClubSchema.parse({
-        clubId: row.id,
+      clubRowSchema.parse({
+        clubId: String(row.id),
         name: row.name,
         slug: row.slug,
         type: row.type,
-        memberCount: toCount(row.member_count),
         memberNames: memberNames.get(String(row.id)) ?? [],
-        reviewCount: toCount(row.review_count),
-        createdAt: isDefined(row.created_at) ? toIsoDate(row.created_at) : null,
-        // Null for a club with no reviews at all — max() over an empty set.
-        lastReviewAt: isDefined(row.last_review_at) ? toIsoDate(row.last_review_at) : null,
+        reviews: toCount(row.reviews),
+        events: toCount(row.events),
+        lastActiveAt: toIsoTimestamp(row.last_ts),
+        createdAt: toIsoTimestamp(row.created_at),
       }),
     );
   }
@@ -610,9 +696,9 @@ class MetricsRepository {
    * Member names for the leaderboard clubs, grouped by club.
    *
    * A follow-up query keyed on the ids the previous one returned, rather than a
-   * join or an `array_agg` correlated subquery: the leaderboard is ten clubs, so
-   * this is one small indexed lookup, and joining members into the club query
-   * would multiply its rows and break the review count it already computes.
+   * join: the leaderboard is ten clubs, so this is one small indexed lookup, and
+   * joining members into the club query would multiply its rows and break the
+   * counts it already computes.
    */
   private async getMemberNames(clubIds: string[]): Promise<Map<string, string[]>> {
     const grouped = new Map<string, string[]>();
@@ -644,106 +730,293 @@ class MetricsRepository {
     return grouped;
   }
 
-  async getMetrics(): Promise<SiteMetrics> {
-    const [
-      scalars,
-      activity,
-      weekly,
-      topClubs,
-      topUsers,
-      activation,
-      dormancy,
-      daysToFirstReview,
-      clubSizes,
-      signupMethods,
-    ] = await Promise.all([
-      this.getScalars(),
-      this.getActivity(),
-      this.getWeeklySeries(),
-      this.getTopClubs(),
-      this.getTopUsers(),
-      this.getActivation(),
-      this.getDormancy(),
-      this.getDaysToFirstReview(),
-      this.getClubSizes(),
-      this.getSignupMethods(),
+  /**
+   * Per-person activity since `since`, as a CTE the people leaderboards join
+   * against. Broken down by kind because the breakdown matters more than the
+   * total: forty comments and no reviews is a different person from the reverse.
+   */
+  private userActivity(since: Date) {
+    return (qc: QueryCreator<DB & { activity: ActivityRow }>) =>
+      qc
+        .selectFrom("activity")
+        // Drops the NULL-attribution list adds described on activityEvents.
+        .where("user_id", "is not", null)
+        .where("ts", ">=", since)
+        .select((eb) => [
+          "user_id",
+          eb.fn.countAll<string>().as("events"),
+          eb.fn.countAll<string>().filterWhere("kind", "=", "review").as("reviews"),
+          eb.fn.countAll<string>().filterWhere("kind", "=", "comment").as("comments"),
+          eb.fn.countAll<string>().filterWhere("kind", "=", "list_add").as("list_adds"),
+          eb.fn.max("ts").as("last_ts"),
+        ])
+        .groupBy("user_id");
+  }
+
+  private async getMostActivePeople(since: Date): Promise<PersonRow[]> {
+    const rows = await db
+      .with("activity", activityEvents)
+      .with("user_activity", this.userActivity(since))
+      .selectFrom("user_activity")
+      .innerJoin("user", "user.id", "user_activity.user_id")
+      .select((eb) => [
+        "user.id",
+        "user.name",
+        "user.image",
+        "user.createdAt",
+        "user_activity.reviews",
+        "user_activity.comments",
+        "user_activity.list_adds",
+        "user_activity.last_ts",
+        eb
+          .selectFrom("club_member")
+          .whereRef("club_member.user_id", "=", "user.id")
+          .select((e) => e.fn.countAll<string>().as("c"))
+          .as("clubs"),
+      ])
+      .orderBy("user_activity.events", "desc")
+      .orderBy("user_activity.last_ts", "desc")
+      .limit(LEADERBOARD_LIMIT)
+      .execute();
+
+    return rows.map((row) => this.toPersonRow(row));
+  }
+
+  /** People who signed up in the range, with everything they have done since. */
+  private async getNewestPeople(since: Date): Promise<PersonRow[]> {
+    const rows = await db
+      .with("activity", activityEvents)
+      .with("user_activity", this.userActivity(BEGINNING_OF_TIME))
+      .selectFrom("user")
+      .leftJoin("user_activity", "user_activity.user_id", "user.id")
+      .where("user.createdAt", ">=", since)
+      .select((eb) => [
+        "user.id",
+        "user.name",
+        "user.image",
+        "user.createdAt",
+        "user_activity.reviews",
+        "user_activity.comments",
+        "user_activity.list_adds",
+        "user_activity.last_ts",
+        eb
+          .selectFrom("club_member")
+          .whereRef("club_member.user_id", "=", "user.id")
+          .select((e) => e.fn.countAll<string>().as("c"))
+          .as("clubs"),
+      ])
+      .orderBy("user.createdAt", "desc")
+      .limit(LEADERBOARD_LIMIT)
+      .execute();
+
+    return rows.map((row) => this.toPersonRow(row));
+  }
+
+  private toPersonRow(row: {
+    id: string;
+    name: string;
+    image: string | null;
+    createdAt: Date;
+    reviews: string | null;
+    comments: string | null;
+    list_adds: string | null;
+    last_ts: Date | string | null;
+    clubs: string | null;
+  }): PersonRow {
+    return {
+      userId: String(row.id),
+      name: row.name,
+      image: row.image,
+      reviews: toCount(row.reviews),
+      comments: toCount(row.comments),
+      listAdds: toCount(row.list_adds),
+      clubs: toCount(row.clubs),
+      lastActiveAt: toIsoTimestamp(row.last_ts),
+      joinedAt: new Date(row.createdAt).toISOString(),
+    };
+  }
+
+  /**
+   * The latest reviews and comments, newest first. Two small ordered queries
+   * merged here rather than a UNION: the score column exists on only one side,
+   * and each query stops after {@link FEED_LIMIT} rows either way.
+   *
+   * Comment text is left out on purpose — this is a pulse on what is being
+   * discussed, not a window into clubs' conversations.
+   */
+  private async getFeed(): Promise<FeedEvent[]> {
+    const [reviews, comments] = await Promise.all([
+      db
+        .selectFrom("review")
+        .innerJoin("work", "work.id", "review.work_id")
+        .innerJoin("club", "club.id", "work.club_id")
+        .innerJoin("user", "user.id", "review.user_id")
+        .select([
+          "review.created_date as at",
+          "review.score",
+          "user.name as user_name",
+          "user.image as user_image",
+          "club.name as club_name",
+          "club.slug as club_slug",
+          "work.title as work_title",
+          "work.image_url as work_image_url",
+        ])
+        .orderBy("review.created_date", "desc")
+        .limit(FEED_LIMIT)
+        .execute(),
+      db
+        .selectFrom("work_comment")
+        .innerJoin("work", "work.id", "work_comment.work_id")
+        .innerJoin("club", "club.id", "work_comment.club_id")
+        .innerJoin("user", "user.id", "work_comment.user_id")
+        .select([
+          "work_comment.created_date as at",
+          "user.name as user_name",
+          "user.image as user_image",
+          "club.name as club_name",
+          "club.slug as club_slug",
+          "work.title as work_title",
+          "work.image_url as work_image_url",
+        ])
+        .orderBy("work_comment.created_date", "desc")
+        .limit(FEED_LIMIT)
+        .execute(),
     ]);
 
-    const totalUsers = toCount(scalars.users);
-    const totalClubs = toCount(scalars.clubs);
+    const shared = (row: (typeof comments)[number]) => ({
+      at: new Date(row.at).toISOString(),
+      userName: row.user_name,
+      userImage: row.user_image,
+      clubName: row.club_name,
+      clubSlug: row.club_slug,
+      workTitle: row.work_title,
+      workImageUrl: row.work_image_url,
+    });
 
-    const health: SiteHealth = {
-      newUserActivation: {
-        numerator: toCount(activation.activated),
-        denominator: toCount(activation.signups),
-      },
-      unverifiedUsers: totalUsers - toCount(scalars.verifiedUsers),
-      dormantClubs: {
-        numerator: toCount(dormancy.dormant),
-        denominator: toCount(dormancy.ever_active),
-      },
-      // Withheld rather than shown as a shaky number: a median over one or two
-      // clubs says nothing, and the sample size travels alongside so the UI can
-      // explain the blank instead of rendering an empty stat.
-      medianDaysToFirstReview:
-        daysToFirstReview.length >= MIN_MEDIAN_SAMPLE ? median(daysToFirstReview) : null,
-      daysToFirstReviewSample: daysToFirstReview.length,
-      customListAdoption: {
-        numerator: toCount(scalars.clubsWithCustomLists),
-        denominator: totalClubs,
-      },
-      commentedWorks: {
-        numerator: toCount(scalars.commentedWorks),
-        denominator: toCount(scalars.reviewedWorks),
-      },
-      clubSizes: [
-        { label: "No members", clubs: clubSizes.empty },
-        { label: "1", clubs: clubSizes.solo },
-        { label: "2–3", clubs: clubSizes.small },
-        { label: "4–6", clubs: clubSizes.medium },
-        { label: "7+", clubs: clubSizes.large },
-      ],
-      signupMethods,
-    };
+    const events: FeedEvent[] = [
+      ...reviews.map((row) => ({
+        ...shared(row),
+        kind: "review" as const,
+        score: Number(row.score),
+      })),
+      ...comments.map((row) => ({ ...shared(row), kind: "comment" as const, score: null })),
+    ];
+
+    return events.sort((a, b) => b.at.localeCompare(a.at)).slice(0, FEED_LIMIT);
+  }
+
+  async getDashboard(range: MetricsRange): Promise<AdminDashboard> {
+    const window = rangeWindow(range);
+
+    const [
+      pulse,
+      buckets,
+      clubStatus,
+      contribution,
+      newUserActivation,
+      discussion,
+      works,
+      busiestClubs,
+      newestClubs,
+      mostActivePeople,
+      newestPeople,
+      feed,
+    ] = await Promise.all([
+      this.getPulse(window),
+      this.getActivityBuckets(window),
+      this.getClubStatus(),
+      this.getContribution(),
+      this.getActivation(window.since),
+      this.getDiscussion(window.since),
+      this.getWorkLeaderboards(window.since),
+      this.getBusiestClubs(window.since),
+      this.getNewestClubs(window.since),
+      this.getMostActivePeople(window.since),
+      this.getNewestPeople(window.since),
+      this.getFeed(),
+    ]);
 
     return {
-      generatedAt: new Date().toISOString(),
+      generatedAt: window.now.toISOString(),
+      range,
+      pulse,
+      activity: { unit: window.unit, buckets },
+      health: { contribution, newUserActivation, discussion, clubStatus },
+      works,
+      clubs: { busiest: busiestClubs, newest: newestClubs },
+      people: { mostActive: mostActivePeople, newest: newestPeople },
+      feed,
+    };
+  }
+
+  /**
+   * The fixed-window numbers the daily snapshot preserves. Sign-ins and
+   * unverified accounts are not reconstructible after the fact — sessions are
+   * deleted as they expire — so anything not captured on the day is gone.
+   */
+  private async getSnapshotMetrics(): Promise<SnapshotMetrics> {
+    const now = new Date();
+    const since7 = daysAgo(7, now.getTime());
+    const since30 = daysAgo(30, now.getTime());
+
+    const [scalars, week, month, newUserActivation, clubStatus] = await Promise.all([
+      db
+        .selectNoFrom((eb) => [
+          eb
+            .selectFrom("user")
+            .select((e) => e.fn.countAll<string>().as("c"))
+            .as("users"),
+          eb
+            .selectFrom("user")
+            .where("emailVerified", "=", true)
+            .select((e) => e.fn.countAll<string>().as("c"))
+            .as("verified_users"),
+          eb
+            .selectFrom("club")
+            .select((e) => e.fn.countAll<string>().as("c"))
+            .as("clubs"),
+          eb
+            .selectFrom("review")
+            .select((e) => e.fn.countAll<string>().as("c"))
+            .as("reviews"),
+          eb
+            .selectFrom("session")
+            .where("createdAt", ">=", since7)
+            .select((e) => e.fn.count<string>("userId").distinct().as("c"))
+            .as("logged_in_7"),
+          eb
+            .selectFrom("session")
+            .where("createdAt", ">=", since30)
+            .select((e) => e.fn.count<string>("userId").distinct().as("c"))
+            .as("logged_in_30"),
+        ])
+        .executeTakeFirstOrThrow(),
+      this.countActivity(since7, now),
+      this.countActivity(since30, now),
+      this.getActivation(since30),
+      this.getClubStatus(),
+    ]);
+
+    return {
       totals: {
-        users: totalUsers,
-        verifiedUsers: toCount(scalars.verifiedUsers),
-        clubs: totalClubs,
-        movieClubs: toCount(scalars.movieClubs),
-        bookClubs: toCount(scalars.bookClubs),
-        memberships: toCount(scalars.memberships),
+        users: toCount(scalars.users),
+        clubs: toCount(scalars.clubs),
         reviews: toCount(scalars.reviews),
-        comments: toCount(scalars.comments),
-        works: toCount(scalars.works),
-        lists: toCount(scalars.lists),
       },
-      newUsers: {
-        last7Days: toCount(scalars.newUsers7),
-        last30Days: toCount(scalars.newUsers30),
-      },
-      newClubs: {
-        last7Days: toCount(scalars.newClubs7),
-        last30Days: toCount(scalars.newClubs30),
-      },
-      engagedUsers: {
-        last7Days: toCount(activity.engaged_7),
-        last30Days: toCount(activity.engaged_30),
-      },
+      engagedUsers: { last7Days: week.users, last30Days: month.users },
       loggedInUsers: {
-        last7Days: toCount(scalars.loggedInUsers7),
-        last30Days: toCount(scalars.loggedInUsers30),
+        last7Days: toCount(scalars.logged_in_7),
+        last30Days: toCount(scalars.logged_in_30),
       },
-      activeClubs: {
-        last7Days: toCount(activity.active_clubs_7),
-        last30Days: toCount(activity.active_clubs_30),
+      activeClubs: { last7Days: week.clubs, last30Days: month.clubs },
+      health: {
+        newUserActivation,
+        unverifiedUsers: toCount(scalars.users) - toCount(scalars.verified_users),
+        dormantClubs: {
+          numerator: clubStatus.dormant,
+          denominator: clubStatus.active + clubStatus.quiet + clubStatus.dormant,
+        },
       },
-      weekly,
-      health,
-      topClubs,
-      topUsers,
     };
   }
 
@@ -751,8 +1024,8 @@ class MetricsRepository {
    * Records today's metrics. Keyed on `captured_on` with an upsert, so a retried
    * or manually re-triggered run overwrites the day rather than duplicating it.
    */
-  async captureSnapshot(): Promise<{ capturedOn: string; metrics: SiteMetrics }> {
-    const metrics = await this.getMetrics();
+  async captureSnapshot(): Promise<{ capturedOn: string; metrics: SnapshotMetrics }> {
+    const metrics = await this.getSnapshotMetrics();
     const capturedOn = toIsoDate(new Date());
 
     // The jsonb payload is serialised and cast explicitly: the generated `Json`
@@ -771,13 +1044,15 @@ class MetricsRepository {
   }
 
   /**
-   * Snapshot history, oldest first.
+   * Snapshot history over the range, oldest first.
    *
    * Rows are parsed with the deliberately narrow {@link snapshotHistoryMetricsSchema}
    * and any row that fails is skipped rather than failing the request — one
    * malformed historical snapshot should not take down the dashboard.
    */
-  async getSnapshots(days: number): Promise<SnapshotHistoryPoint[]> {
+  async getSnapshots(range: MetricsRange): Promise<SnapshotHistoryPoint[]> {
+    const { since } = rangeWindow(range);
+
     const rows = await db
       .selectFrom("metric_snapshot")
       // Formatted in the database on purpose: node-postgres returns a `date`
@@ -787,7 +1062,7 @@ class MetricsRepository {
         sql<string>`to_char(${eb.ref("captured_on")}, 'YYYY-MM-DD')`.as("captured_on"),
         "metrics",
       ])
-      .where("captured_on", ">=", daysAgo(days))
+      .where("captured_on", ">=", since)
       .orderBy("captured_on", "asc")
       .execute();
 
