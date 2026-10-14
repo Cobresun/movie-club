@@ -17,7 +17,7 @@ So: when you add or change an icon name, register the matching `mdiPascalCase` e
 
 `icons.test.ts` enforces this, but its scan is **static** — it only sees literal names in `.vue` templates (`name="..."` and ternary literals). Names produced by a function or computed are invisible to it:
 
-- Names from `CLUB_TYPE_CONFIG` (`src/common/clubType.ts`) are covered by a dedicated registry test in `icons.test.ts`. A new club type needs its `icon` there **and** in `src/icons.ts`.
+- Names from `CLUB_TYPE_CONFIG` (`src/common/clubType/`) are covered by a dedicated registry test in `icons.test.ts`. A new club type needs its `icon` there **and** in `src/icons.ts`.
 - Any other computed/ref name (`copyIcon`, default `fallback-icon` props) is covered by nothing. Register those by hand.
 
 ## UI conventions
