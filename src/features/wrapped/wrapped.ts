@@ -113,24 +113,40 @@ export interface ClosestMatch {
   member: { id: string; name: string; image?: string };
   match: { id: string; name: string; image?: string };
   similarityPercent: number;
+  /** Both members are each other's closest match, so the pair is listed once. */
+  mutual: boolean;
 }
 
-/** Each member's most like-minded clubmate, closest pairs first. */
+/**
+ * Each member's most like-minded clubmate, closest pairs first. A pair who
+ * picked each other collapses into a single mutual entry rather than appearing
+ * once from each side.
+ */
 export function computeClosestMatches(
   workData: WorkStatsData[],
   members: Member[],
 ): ClosestMatch[] {
-  return members
-    .map((member) => {
-      const { mostSimilar } = computeTasteSimilarity(workData, members, member.id);
-      if (!isDefined(mostSimilar)) return undefined;
-      return {
-        member: mostSimilar.memberA,
-        match: mostSimilar.memberB,
-        similarityPercent: mostSimilar.similarityPercent,
-      };
+  const closest = new Map(
+    members
+      .map((member) => computeTasteSimilarity(workData, members, member.id).mostSimilar)
+      .filter(isDefined)
+      .map((pair) => [pair.memberA.id, pair] as const),
+  );
+
+  return [...closest.values()]
+    .flatMap((pair) => {
+      const mutual = closest.get(pair.memberB.id)?.memberB.id === pair.memberA.id;
+      // Keep one side of a mutual pair.
+      if (mutual && pair.memberA.id > pair.memberB.id) return [];
+      return [
+        {
+          member: pair.memberA,
+          match: pair.memberB,
+          similarityPercent: pair.similarityPercent,
+          mutual,
+        },
+      ];
     })
-    .filter(isDefined)
     .sort((a, b) => b.similarityPercent - a.similarityPercent);
 }
 

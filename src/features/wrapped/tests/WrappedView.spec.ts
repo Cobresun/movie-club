@@ -6,6 +6,7 @@ import { useRouter } from "vue-router";
 
 import WrappedView from "../views/WrappedView.vue";
 import { mockCanvas } from "@/mocks/canvas";
+import members from "@/mocks/data/members.json";
 import { mockDownloads } from "@/mocks/downloads";
 import { server } from "@/mocks/server";
 import { render } from "@/tests/utils";
@@ -214,11 +215,33 @@ describe("WrappedView", () => {
       within(matches)
         .getAllByRole("listitem")
         .map((item) => item.textContent),
-    ).toEqual([
-      expect.stringContaining("dev is closest to user"),
-      expect.stringContaining("user is closest to dev"),
-      expect.stringContaining("cole is closest to dev"),
-    ]);
+    ).toEqual([expect.stringContaining("cole is closest to dev")]);
+  });
+
+  it("lists a pair who are each other's closest match once", async () => {
+    const wes = { id: "4", email: "wes@test.com", name: "wes" };
+    server.use(
+      http.get("/api/club/:id/members", () => HttpResponse.json([...members, wes])),
+      reviews(
+        ["Dune", "Arrival", "Morbius", "Cats"].map((title, index) =>
+          movieReview(String(index + 1), title, `2025-0${index + 1}-10`, {
+            1: 9,
+            2: 9,
+            3: 4,
+            4: 5,
+          }),
+        ),
+      ),
+    );
+    const { user } = renderWrapped();
+
+    await user.click(await screen.findByRole("button", { name: /Closest matches/ }));
+    const matches = await screen.findByRole("group", { name: /Closest matches/ });
+    expect(
+      within(matches)
+        .getAllByRole("listitem")
+        .map((item) => item.textContent),
+    ).toEqual([expect.stringContaining("cole and wes are each other's closest")]);
   });
 
   it("steps through the cards with the arrow keys", async () => {
