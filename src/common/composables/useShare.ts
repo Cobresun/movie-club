@@ -25,7 +25,7 @@ const isMobileDevice = (): boolean => {
  * Detects iOS devices (iPhone/iPad/iPod), including iPadOS reporting a
  * Mac user agent.
  */
-const isIosDevice = (): boolean => {
+export const isIosDevice = (): boolean => {
   if (typeof navigator === "undefined") return false;
 
   return (
