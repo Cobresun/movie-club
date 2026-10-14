@@ -18,12 +18,12 @@
         <p
           v-if="comment.spoiler && !revealedSpoilers.has(comment.id)"
           aria-hidden="true"
-          class="cursor-pointer select-none whitespace-pre-wrap text-left text-sm text-gray-200 blur-sm transition-all"
+          class="cursor-pointer text-left text-sm whitespace-pre-wrap text-gray-200 blur-sm transition-all select-none"
           @click="revealedSpoilers.add(comment.id)"
         >
           {{ comment.content }}
         </p>
-        <p v-else class="whitespace-pre-wrap text-left text-sm text-gray-200">
+        <p v-else class="text-left text-sm whitespace-pre-wrap text-gray-200">
           {{ comment.content }}
         </p>
       </div>

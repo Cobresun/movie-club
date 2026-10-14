@@ -1,11 +1,11 @@
 <template>
   <li class="border-t border-white/5">
     <div
-      class="relative isolate flex items-center gap-3 px-3 py-2.5 transition-colors duration-fast ease-standard md:gap-4 md:px-4"
+      class="duration-fast ease-standard relative isolate flex items-center gap-3 px-3 py-2.5 transition-colors md:gap-4 md:px-4"
       :class="card.aired ? 'hover:bg-white/5' : ''"
     >
       <div
-        class="relative h-[54px] w-24 shrink-0 overflow-hidden rounded-md bg-lowBackground md:h-16 md:w-28"
+        class="bg-lowBackground relative h-[54px] w-24 shrink-0 overflow-hidden rounded-md md:h-16 md:w-28"
       >
         <img
           v-if="hasValue(card.stillUrl)"
@@ -19,7 +19,7 @@
           <mdicon name="television-classic" :size="20" class="text-slate-500" />
         </div>
         <span
-          class="absolute bottom-1 left-1 rounded bg-black/70 px-1.5 py-px text-[11px] font-semibold leading-4 text-white/90"
+          class="absolute bottom-1 left-1 rounded bg-black/70 px-1.5 py-px text-[11px] leading-4 font-semibold text-white/90"
           aria-hidden="true"
         >
           {{ number }}
@@ -32,7 +32,7 @@
              details. It sits at z-10, over the blurred average and still that
              would otherwise swallow the click, and the Score button at z-20
              above it. -->
-        <h4 class="text-sm font-medium leading-snug" :class="card.aired ? '' : 'text-gray-400'">
+        <h4 class="text-sm leading-snug font-medium" :class="card.aired ? '' : 'text-gray-400'">
           <button
             type="button"
             class="line-clamp-2 text-left after:absolute after:inset-0 after:z-10 after:content-[''] disabled:cursor-default"
@@ -54,7 +54,7 @@
             :aria-hidden="!revealed"
           >
             Club<span class="sr-only"> average</span>
-            <span class="font-semibold text-primary" :class="revealed ? '' : 'blur-sm'">{{
+            <span class="text-primary font-semibold" :class="revealed ? '' : 'blur-sm'">{{
               average
             }}</span>
           </span>
@@ -77,7 +77,7 @@
       <button
         v-if="canScore"
         type="button"
-        class="relative z-20 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-primary ring-1 ring-inset ring-primary/30 transition duration-fast ease-standard hover:bg-primary/15 hover:ring-primary/50 active:scale-95"
+        class="text-primary ring-primary/30 duration-fast ease-standard hover:bg-primary/15 hover:ring-primary/50 relative z-20 flex h-9 w-9 shrink-0 items-center justify-center rounded-full ring-1 transition ring-inset active:scale-95"
         :aria-label="`Score ${card.title}`"
         @click="scoring = true"
       >

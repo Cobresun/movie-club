@@ -4,7 +4,7 @@
        the poster/backdrop scale up slightly on desktop. The negative margins
        bleed the backdrop to the drawer edges (both containers pad px-4 pt-8). -->
   <div class="-mx-4 -mt-8 mb-5">
-    <div class="relative overflow-hidden bg-lowBackground" :class="isDesktop ? 'h-52' : 'h-44'">
+    <div class="bg-lowBackground relative overflow-hidden" :class="isDesktop ? 'h-52' : 'h-44'">
       <img
         v-if="hasBackdrop"
         :src="`https://image.tmdb.org/t/p/w780/${backdropPath}`"
@@ -16,7 +16,7 @@
         @load="backdropLoaded = true"
       />
       <div
-        class="absolute inset-0 bg-gradient-to-b from-black/30 via-background/40 to-background"
+        class="via-background/40 to-background absolute inset-0 bg-gradient-to-b from-black/30"
       ></div>
     </div>
 
@@ -28,7 +28,7 @@
         <PosterImage :image-url="posterUrl" />
       </div>
       <div class="flex min-w-0 flex-col pb-0.5">
-        <h2 class="font-bold leading-tight" :class="isDesktop ? 'text-2xl' : 'text-xl'">
+        <h2 class="leading-tight font-bold" :class="isDesktop ? 'text-2xl' : 'text-xl'">
           {{ title }}<span v-if="year" class="font-normal text-gray-400"> ({{ year }})</span>
         </h2>
         <!-- Media facts: runtime · genres for movies, authors · pages for books -->

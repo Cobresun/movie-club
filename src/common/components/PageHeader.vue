@@ -1,10 +1,10 @@
 <template>
-  <div class="grid grid-cols-centerHeader items-center gap-x-2 sm:gap-x-8">
+  <div class="grid-cols-centerHeader grid items-center gap-x-2 sm:gap-x-8">
     <router-link v-if="hasBack" class="flex justify-end" :to="{ name: backRoute }">
       <mdicon class="cursor-pointer" name="arrow-left" size="40" />
     </router-link>
     <div v-else />
-    <h1 class="m-2 min-w-0 break-words text-2xl font-bold sm:m-4 sm:text-3xl">
+    <h1 class="m-2 min-w-0 text-2xl font-bold break-words sm:m-4 sm:text-3xl">
       {{ hideClub ? "" : club?.clubName }} {{ pageName }}
     </h1>
     <slot />

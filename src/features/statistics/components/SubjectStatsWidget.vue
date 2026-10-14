@@ -36,21 +36,21 @@
         class="flex items-center justify-between gap-3"
       >
         <div class="flex min-w-0 items-center gap-3">
-          <span class="text-2xl font-bold text-primary">
+          <span class="text-primary text-2xl font-bold">
             {{ index + 1 }}
           </span>
           <div class="flex min-w-0 flex-col">
             <span class="truncate text-left text-white">{{ subject.subject }}</span>
             <div class="mt-1 h-1.5 w-24 overflow-hidden rounded-full bg-gray-700">
               <div
-                class="h-full rounded-full bg-primary"
+                class="bg-primary h-full rounded-full"
                 :style="{ width: barWidth(subject.count) }"
               />
             </div>
           </div>
         </div>
         <span
-          class="min-w-[3rem] rounded bg-primary/20 px-2 py-1 text-center text-sm font-semibold text-highlight"
+          class="bg-primary/20 text-highlight min-w-[3rem] rounded px-2 py-1 text-center text-sm font-semibold"
         >
           {{ subject.count }}
         </span>

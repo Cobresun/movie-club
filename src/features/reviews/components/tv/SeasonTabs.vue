@@ -15,7 +15,7 @@
       :aria-selected="season.seasonNumber === selected"
       :aria-controls="seasonPanelId(showId, season.seasonNumber)"
       :tabindex="season.seasonNumber === selected ? 0 : -1"
-      class="shrink-0 rounded-full px-3.5 py-1.5 text-sm font-medium transition duration-fast ease-standard"
+      class="duration-fast ease-standard shrink-0 rounded-full px-3.5 py-1.5 text-sm font-medium transition"
       :class="
         season.seasonNumber === selected
           ? 'bg-primary text-white'

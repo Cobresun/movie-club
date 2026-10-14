@@ -8,7 +8,7 @@
       <div
         v-for="entry in activeEntries"
         :key="entry.title"
-        class="flex items-center gap-3 rounded-lg border border-slate-700/30 bg-background/50 px-3 py-2"
+        class="bg-background/50 flex items-center gap-3 rounded-lg border border-slate-700/30 px-3 py-2"
       >
         <img
           v-if="entry.imageUrl"

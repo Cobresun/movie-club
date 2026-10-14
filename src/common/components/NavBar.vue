@@ -6,7 +6,7 @@
         class="flex-shrink-0"
         :class="{ 'hidden md:block': showClubSwitcher }"
       >
-        <h3 class="text-2xl font-bold text-highlight">MovieClub</h3>
+        <h3 class="text-highlight text-2xl font-bold">MovieClub</h3>
       </router-link>
       <ClubSwitcher v-if="showClubSwitcher" />
     </div>

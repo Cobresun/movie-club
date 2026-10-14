@@ -1,18 +1,18 @@
 <template>
   <div class="mx-auto flex w-11/12 gap-3 pt-4">
     <div
-      class="flex flex-1 flex-col items-center rounded-xl border border-slate-700 bg-lowBackground py-5"
+      class="bg-lowBackground flex flex-1 flex-col items-center rounded-xl border border-slate-700 py-5"
     >
-      <mdicon :name="countIcon" class="mb-2 text-primary" :size="20" />
-      <p ref="worksEl" class="text-3xl font-bold tabular-nums text-white">{{ shownWorks }}</p>
+      <mdicon :name="countIcon" class="text-primary mb-2" :size="20" />
+      <p ref="worksEl" class="text-3xl font-bold text-white tabular-nums">{{ shownWorks }}</p>
       <p class="text-xs tracking-wide text-slate-400">{{ countLabel }}</p>
     </div>
     <div
       v-if="isMovieClub"
-      class="flex flex-1 flex-col items-center rounded-xl border border-slate-700 bg-lowBackground py-5"
+      class="bg-lowBackground flex flex-1 flex-col items-center rounded-xl border border-slate-700 py-5"
     >
-      <mdicon name="clock-outline" class="mb-2 text-primary" :size="20" />
-      <p ref="timeEl" class="text-3xl font-bold tabular-nums text-white">{{ formattedTime }}</p>
+      <mdicon name="clock-outline" class="text-primary mb-2" :size="20" />
+      <p ref="timeEl" class="text-3xl font-bold text-white tabular-nums">{{ formattedTime }}</p>
       <p class="text-xs tracking-wide text-slate-400">
         watch time<template v-if="totalDays > 0">
           ({{ totalDays }} {{ totalDays === 1 ? "day" : "days" }})</template
@@ -21,10 +21,10 @@
     </div>
     <div
       v-if="isBookClub && totalPages > 0"
-      class="flex flex-1 flex-col items-center rounded-xl border border-slate-700 bg-lowBackground py-5"
+      class="bg-lowBackground flex flex-1 flex-col items-center rounded-xl border border-slate-700 py-5"
     >
-      <mdicon name="file-document-outline" class="mb-2 text-primary" :size="20" />
-      <p ref="pagesEl" class="text-3xl font-bold tabular-nums text-white">{{ formattedPages }}</p>
+      <mdicon name="file-document-outline" class="text-primary mb-2" :size="20" />
+      <p ref="pagesEl" class="text-3xl font-bold text-white tabular-nums">{{ formattedPages }}</p>
       <p class="text-xs tracking-wide text-slate-400">pages read</p>
     </div>
   </div>

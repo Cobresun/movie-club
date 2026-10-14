@@ -1,6 +1,6 @@
 <template>
   <div class="flex min-h-[60vh] items-center justify-center p-8">
-    <div class="w-full max-w-md rounded-lg bg-lowBackground p-8 text-center shadow-lg">
+    <div class="bg-lowBackground w-full max-w-md rounded-lg p-8 text-center shadow-lg">
       <!-- Loading State -->
       <div v-if="isVerifying" class="space-y-4">
         <loading-spinner />
@@ -14,7 +14,7 @@
         >
           <mdicon name="check" size="32" class="text-green-400" />
         </div>
-        <h1 class="text-2xl font-bold text-text">Email Verified!</h1>
+        <h1 class="text-text text-2xl font-bold">Email Verified!</h1>
         <p class="text-gray-300">
           Your email has been verified successfully. You're now signed in.
         </p>
@@ -26,7 +26,7 @@
         <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-900/50">
           <mdicon name="alert-circle" size="32" class="text-red-400" />
         </div>
-        <h1 class="text-2xl font-bold text-text">Verification Failed</h1>
+        <h1 class="text-text text-2xl font-bold">Verification Failed</h1>
         <p class="text-gray-300">{{ errorMessage }}</p>
         <div class="mt-4 space-y-2">
           <v-btn @click="resendVerification">Resend Verification Email</v-btn>

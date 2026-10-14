@@ -37,14 +37,14 @@
       >
         <div class="relative">
           <ListboxButton
-            class="flex items-center gap-1.5 rounded-full bg-lowBackground px-3 py-1.5 text-sm text-gray-200 transition hover:brightness-110"
+            class="bg-lowBackground flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm text-gray-200 transition hover:brightness-110"
           >
             <mdicon name="swap-horizontal" size="16" />
             <span>Move to list</span>
             <mdicon name="chevron-down" size="16" />
           </ListboxButton>
           <ListboxOptions
-            class="absolute left-0 top-full z-20 mt-1 max-h-64 w-56 overflow-y-auto rounded-lg border border-gray-700 bg-background py-1 shadow-lg focus:outline-none"
+            class="bg-background absolute top-full left-0 z-20 mt-1 max-h-64 w-56 overflow-y-auto rounded-lg border border-gray-700 py-1 shadow-lg focus:outline-none"
           >
             <ListboxOption
               v-for="list in otherLists"
@@ -115,13 +115,13 @@
     <CommentThread :work-id="movie.id" :club-slug="clubSlug" />
 
     <div
-      class="sticky bottom-0 -mx-4 mt-6 border-t border-gray-700/60 bg-background px-4 pb-2 pt-3"
+      class="bg-background sticky bottom-0 -mx-4 mt-6 border-t border-gray-700/60 px-4 pt-3 pb-2"
     >
       <div class="flex items-center gap-2">
         <button
           v-if="canReview"
           type="button"
-          class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary py-3 font-bold tracking-wide text-text transition hover:brightness-110 active:scale-[0.98]"
+          class="bg-primary text-text flex flex-1 items-center justify-center gap-2 rounded-lg py-3 font-bold tracking-wide transition hover:brightness-110 active:scale-[0.98]"
           :aria-describedby="reviewHintId"
           @click="emit('review')"
         >

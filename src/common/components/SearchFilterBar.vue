@@ -1,15 +1,15 @@
 <template>
   <div class="flex flex-col items-center gap-2" :class="className">
     <div class="flex w-full items-center justify-center gap-2">
-      <div class="relative min-w-0 max-w-[720px] flex-1">
+      <div class="relative max-w-[720px] min-w-0 flex-1">
         <mdicon
           name="magnify"
-          class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-200"
+          class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-slate-200"
         />
         <input
           v-model="searchTerm"
           type="text"
-          class="w-full rounded-md border-2 border-slate-600 bg-background p-2 pl-10 text-base text-white outline-none focus:border-primary"
+          class="bg-background focus:border-primary w-full rounded-md border-2 border-slate-600 p-2 pl-10 text-base text-white outline-none"
           :class="{ 'pr-10': hasValue(searchTerm) }"
           :placeholder="searchPlaceholder"
           :aria-label="searchPlaceholder"
@@ -18,7 +18,7 @@
           v-if="hasValue(searchTerm)"
           type="button"
           aria-label="Clear search"
-          class="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-400 hover:text-white"
+          class="absolute top-1/2 right-2 -translate-y-1/2 rounded-full p-1 text-slate-400 hover:text-white"
           @click="searchTerm = ''"
         >
           <mdicon name="close" :size="18" />
@@ -30,7 +30,7 @@
         type="button"
         :aria-label="filtersLabel"
         :aria-expanded="panelOpen"
-        class="relative flex h-11 shrink-0 items-center gap-2 rounded-md border-2 px-2.5 transition-colors duration-fast md:px-3"
+        class="duration-fast relative flex h-11 shrink-0 items-center gap-2 rounded-md border-2 px-2.5 transition-colors md:px-3"
         :class="
           hasElements(activeChips)
             ? 'border-primary bg-primary/15 text-white'
@@ -43,7 +43,7 @@
         <span
           v-if="hasElements(activeChips)"
           aria-hidden="true"
-          class="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-xs font-bold text-white"
+          class="bg-primary absolute -top-2 -right-2 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-xs font-bold text-white"
         >
           {{ activeChips.length }}
         </span>
@@ -61,7 +61,7 @@
         :key="chip.id"
         type="button"
         :aria-label="`Remove ${chip.label}: ${chip.text}`"
-        class="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-primary bg-primary/20 py-1 pl-2.5 pr-2 text-sm text-white hover:bg-primary/30"
+        class="border-primary bg-primary/20 hover:bg-primary/30 inline-flex shrink-0 items-center gap-1.5 rounded-full border py-1 pr-2 pl-2.5 text-sm whitespace-nowrap text-white"
         @click="chip.remove()"
       >
         <mdicon :name="chip.icon" :size="16" class="text-highlight" />
@@ -70,7 +70,7 @@
       </button>
       <button
         type="button"
-        class="shrink-0 whitespace-nowrap px-1 text-sm text-slate-400 hover:text-white"
+        class="shrink-0 px-1 text-sm whitespace-nowrap text-slate-400 hover:text-white"
         @click="clearFilters"
       >
         Clear all

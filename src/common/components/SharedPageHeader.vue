@@ -1,9 +1,9 @@
 <template>
-  <header class="px-6 pb-10 pt-6">
+  <header class="px-6 pt-6 pb-10">
     <div class="mx-auto max-w-6xl">
       <a
         href="/"
-        class="mx-auto flex w-fit items-center gap-1.5 text-highlight transition hover:brightness-110"
+        class="text-highlight mx-auto flex w-fit items-center gap-1.5 transition hover:brightness-110"
       >
         <span aria-hidden="true">🍿</span>
         <span class="font-semibold tracking-wide">MovieClub</span>
@@ -12,7 +12,7 @@
       <div class="mt-8 flex flex-col items-center text-center">
         <p
           v-if="hasValue(eyebrow)"
-          class="text-xs font-semibold uppercase tracking-widest text-primary"
+          class="text-primary text-xs font-semibold tracking-widest uppercase"
         >
           {{ eyebrow }}
         </p>
@@ -30,11 +30,11 @@
             :src="member.image"
             :name="member.name"
             :size="32"
-            class="rounded-full ring-2 ring-background"
+            class="ring-background rounded-full ring-2"
           />
           <div
             v-if="extraMemberCount > 0"
-            class="flex h-8 w-8 items-center justify-center rounded-full bg-lowBackground text-xs font-semibold text-slate-300 ring-2 ring-background"
+            class="bg-lowBackground ring-background flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold text-slate-300 ring-2"
           >
             +{{ extraMemberCount }}
           </div>

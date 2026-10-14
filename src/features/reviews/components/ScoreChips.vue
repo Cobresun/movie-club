@@ -35,10 +35,10 @@
         <!-- Cards never reveal on click: reveal flows through the
              details drawer's own pill. -->
         <span
-          class="transition-[filter] duration-500 ease-standard"
+          class="ease-standard transition-[filter] duration-500"
           :class="[
-            isDefined(entry.memberId) ? '' : 'text-lg font-bold text-primary',
-            entry.averaged ? 'italic text-gray-300' : '',
+            isDefined(entry.memberId) ? '' : 'text-primary text-lg font-bold',
+            entry.averaged ? 'text-gray-300 italic' : '',
             isScoreBlurred(entry, currentUserId, revealed) ? 'blur filter' : 'blur-none',
           ]"
           :style="{ transitionDelay: `${index * 80}ms` }"

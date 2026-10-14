@@ -5,7 +5,7 @@
       <button
         v-if="hasActiveFilters"
         type="button"
-        class="ml-auto text-sm font-medium text-primary hover:underline"
+        class="text-primary ml-auto text-sm font-medium hover:underline"
         @click="emit('clear')"
       >
         Clear all
@@ -14,7 +14,7 @@
         ref="closeButton"
         type="button"
         aria-label="Close filters"
-        class="rounded-full p-1 text-slate-300 hover:bg-lowBackground hover:text-white"
+        class="hover:bg-lowBackground rounded-full p-1 text-slate-300 hover:text-white"
         :class="{ 'ml-auto': !hasActiveFilters }"
         @click="emit('close')"
       >
@@ -67,7 +67,7 @@
       />
     </section>
 
-    <div class="sticky bottom-0 -mx-4 mt-auto border-t border-slate-700 bg-background px-4 py-3">
+    <div class="bg-background sticky bottom-0 -mx-4 mt-auto border-t border-slate-700 px-4 py-3">
       <v-btn class="w-full py-1.5" @click="emit('close')">{{ resultLabel }}</v-btn>
     </div>
   </div>

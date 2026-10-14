@@ -15,7 +15,7 @@
           <p class="truncate text-xs text-slate-400">{{ row.description }}</p>
         </div>
         <p class="shrink-0 text-right">
-          <span class="text-sm font-semibold tabular-nums text-white">
+          <span class="text-sm font-semibold text-white tabular-nums">
             {{ pluralize(row.signups, "signup") }}
           </span>
           <span class="block text-xs text-slate-500">

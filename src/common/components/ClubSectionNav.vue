@@ -9,7 +9,7 @@
       v-for="section in sections"
       :key="section.name"
       :to="{ name: section.name, params: { clubSlug } }"
-      class="relative px-3.5 pb-3 pt-2 text-[15px] font-medium transition-colors duration-fast ease-standard"
+      class="duration-fast ease-standard relative px-3.5 pt-2 pb-3 text-[15px] font-medium transition-colors"
       :class="section.name === activeSection ? 'text-highlight' : 'text-white/70 hover:text-white'"
       :aria-current="section.name === activeSection ? 'page' : undefined"
     >
@@ -18,7 +18,7 @@
            tab (see tailwind.css). -->
       <span
         v-if="section.name === activeSection"
-        class="absolute inset-x-0 -bottom-px h-0.5 bg-highlight [view-transition-name:club-section-indicator]"
+        class="bg-highlight absolute inset-x-0 -bottom-px h-0.5 [view-transition-name:club-section-indicator]"
       />
     </router-link>
   </nav>
@@ -29,7 +29,7 @@
   <nav
     v-else
     aria-label="Club sections"
-    class="fixed inset-x-0 bottom-0 z-20 flex h-[62px] items-stretch border-t border-white/10 bg-background transition-transform duration-slow ease-emphasized"
+    class="bg-background duration-slow ease-emphasized fixed inset-x-0 bottom-0 z-20 flex h-[62px] items-stretch border-t border-white/10 transition-transform"
     :class="{ 'translate-y-full': isHidden }"
     @focusin="reveal"
   >
@@ -37,7 +37,7 @@
       v-for="section in sections"
       :key="section.name"
       :to="{ name: section.name, params: { clubSlug } }"
-      class="flex flex-grow flex-col items-center justify-center gap-[3px] transition-colors duration-fast ease-standard"
+      class="duration-fast ease-standard flex flex-grow flex-col items-center justify-center gap-[3px] transition-colors"
       :class="section.name === activeSection ? 'text-highlight' : 'text-white/55'"
       :aria-current="section.name === activeSection ? 'page' : undefined"
     >

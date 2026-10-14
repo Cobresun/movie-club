@@ -1,7 +1,7 @@
 <template>
   <div
     v-if="showImage"
-    class="overflow-hidden rounded-full bg-lowBackground"
+    class="bg-lowBackground overflow-hidden rounded-full"
     :class="{ 'animate-pulse': !loaded }"
     :style="{ width: `${size}px`, height: `${size}px` }"
   >
@@ -9,7 +9,7 @@
       :src="src"
       :alt="name"
       decoding="async"
-      class="h-full w-full rounded-full object-cover transition-opacity duration-slow ease-standard"
+      class="duration-slow ease-standard h-full w-full rounded-full object-cover transition-opacity"
       :class="loaded ? 'opacity-100' : 'opacity-0'"
       @load="loaded = true"
       @error="errored = true"

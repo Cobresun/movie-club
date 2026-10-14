@@ -13,7 +13,7 @@
       <li
         v-for="(entry, index) in leaderboard"
         :key="entry.member.id"
-        class="rounded-lg border border-slate-700/30 bg-background/50 px-3 py-2.5"
+        class="bg-background/50 rounded-lg border border-slate-700/30 px-3 py-2.5"
       >
         <div class="flex items-center justify-between gap-3">
           <div class="flex min-w-0 items-center gap-3">

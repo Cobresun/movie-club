@@ -4,14 +4,14 @@
       <mdicon
         name="magnify"
         :size="18"
-        class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+        class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-slate-400"
       />
       <input
         v-model="query"
         type="search"
         :aria-label="option.searchPlaceholder"
         :placeholder="option.searchPlaceholder"
-        class="w-full rounded-full border border-slate-600 bg-lowBackground/60 py-1.5 pl-9 pr-3 text-base text-white outline-none focus:border-primary md:text-sm"
+        class="bg-lowBackground/60 focus:border-primary w-full rounded-full border border-slate-600 py-1.5 pr-3 pl-9 text-base text-white outline-none md:text-sm"
       />
     </div>
 
@@ -22,7 +22,7 @@
         type="button"
         :aria-pressed="isSelected(value)"
         :disabled="!isSelected(value) && countOf(value) === 0"
-        class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors duration-fast disabled:cursor-not-allowed disabled:opacity-35"
+        class="duration-fast inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-35"
         :class="
           isSelected(value)
             ? 'border-primary bg-primary text-white'
@@ -40,7 +40,7 @@
     <button
       v-if="isLong && !hasValue(query.trim())"
       type="button"
-      class="self-start text-sm font-medium text-primary hover:underline"
+      class="text-primary self-start text-sm font-medium hover:underline"
       @click="expanded = !expanded"
     >
       {{ expanded ? "Show fewer" : `Show all ${orderedValues.length}` }}
