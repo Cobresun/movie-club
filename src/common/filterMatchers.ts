@@ -1,114 +1,49 @@
-import { hasValue } from "@/../lib/checks/checks";
-import {
-  DetailedReviewListItem,
-  DetailedWorkListItem,
-  Review,
-  WorkDataSummary,
-} from "@/../lib/types/lists";
-import type { YearRange } from "@/common/components/filterTypes";
-
-/** Comparison operator for numeric/date filters. */
-export type Comparator = ">" | "<" | "=";
-
-/**
- * A single applied filter: a display value plus, depending on the option's
- * type, a comparator (number/date) or an inclusive year span (year).
- */
-export interface FilterQuery {
-  operator?: Comparator;
-  value: string;
-  range?: YearRange;
-}
-
-/**
- * Decides whether one work row satisfies an applied filter. Each
- * {@link import("./clubType").FilterOption} owns its matcher, so all field-level
- * filtering logic lives in the club-type registry rather than in `filterWorks`.
- */
-export type WorkMatcher = (work: DetailedWorkListItem, query: FilterQuery) => boolean;
-
-export function satisfiesComparator(lhs: number, op: Comparator, rhs: number): boolean {
-  if (!isFinite(lhs) || !isFinite(rhs)) return false;
-  switch (op) {
-    case ">":
-      return lhs > rhs;
-    case "<":
-      return lhs < rhs;
-    case "=":
-    default:
-      return lhs === rhs;
-  }
-}
-
-export function satisfiesDateComparator(
-  lhsDate: string | Date,
-  op: Comparator,
-  rhsDate: string | Date,
-): boolean {
-  const lhs = new Date(lhsDate);
-  const rhs = new Date(rhsDate);
-  if (lhs.getTime() === 0 || rhs.getTime() === 0) return false;
-  switch (op) {
-    case ">":
-      return lhs > rhs;
-    case "<":
-      return lhs < rhs;
-    case "=":
-    default:
-      return lhs.getTime() === rhs.getTime();
-  }
-}
+import { DetailedReviewListItem, DetailedWorkListItem, Review } from "@/../lib/types/lists";
+import type { FilterOption } from "@/common/clubType";
+import type {
+  ChoiceSelection,
+  FilterSelection,
+  RangeSelection,
+} from "@/common/components/filterTypes";
 
 export function includesCaseInsensitive(haystack?: string, needle?: string): boolean {
   return haystack?.toLowerCase().includes(needle?.toLowerCase() ?? "") ?? false;
 }
 
-/**
- * Enum matcher: matches when any of the work's aggregatable values (e.g. genres,
- * authors) contains the query text. `select` is the same selector an enum
- * {@link import("./clubType").FilterOption} uses for its suggestions.
- */
-export function enumMatcher(select: (data: WorkDataSummary | undefined) => string[]): WorkMatcher {
-  return (work, query) =>
-    select(work.externalData).some((value) => includesCaseInsensitive(value, query.value));
+/** Picking several values from one filter widens it: any of them will do. */
+function choiceIncludes(values: string[], selection: ChoiceSelection): boolean {
+  return values.some((value) => selection.values.includes(value));
 }
 
-/** Numeric matcher honouring the `> = <` operators. */
-export function numberMatcher(
-  select: (work: DetailedWorkListItem) => number | string | undefined,
-): WorkMatcher {
-  return (work, query) => {
-    const raw = select(work);
-    const lhs = typeof raw === "string" ? parseFloat(raw) : Number(raw ?? NaN);
-    return satisfiesComparator(lhs, query.operator ?? "=", parseFloat(query.value));
-  };
+/** A work with no value for a range filter never matches an active one. */
+export function rangeIncludes(value: number | undefined, selection: RangeSelection): boolean {
+  if (value === undefined) return false;
+  return (
+    (selection.from === undefined || value >= selection.from) &&
+    (selection.to === undefined || value <= selection.to)
+  );
 }
 
-/** Date matcher honouring the `> = <` operators. */
-export function dateMatcher(
-  select: (work: DetailedWorkListItem) => string | undefined,
-): WorkMatcher {
-  return (work, query) => {
-    const lhs = select(work);
-    if (!hasValue(lhs)) return false;
-    return satisfiesDateComparator(lhs, query.operator ?? "=", query.value);
-  };
+export function matchesSelection(
+  option: FilterOption,
+  work: DetailedWorkListItem,
+  selection: FilterSelection,
+): boolean {
+  if (option.kind === "choice") {
+    return selection.kind === "choice" && choiceIncludes(option.values(work), selection);
+  }
+  return selection.kind === "range" && rangeIncludes(option.value(work), selection);
 }
 
-/**
- * Year matcher: the work's year must fall inside the applied span, both ends
- * included. A single year is the span `{ from: y, to: y }`, so one predicate
- * serves both "one year" and "range" without a comparator.
- */
-export function yearMatcher(
-  select: (work: DetailedWorkListItem) => number | undefined,
-): WorkMatcher {
-  return (work, query) => {
-    const year = select(work);
-    const range = query.range;
-    if (year === undefined || range === undefined) return false;
-    return year >= range.from && year <= range.to;
-  };
+/** "1990 – 1999", "8+", "Up to 1h 30m" — how an applied range reads back. */
+export function describeRange(selection: RangeSelection, format: (value: number) => string) {
+  const { from, to } = selection;
+  if (from !== undefined && to !== undefined) {
+    return from === to ? format(from) : `${format(from)} – ${format(to)}`;
+  }
+  if (from !== undefined) return `${format(from)}+`;
+  if (to !== undefined) return `Up to ${format(to)}`;
+  return "Any";
 }
 
 function hasScores(work: DetailedWorkListItem): work is DetailedReviewListItem {
