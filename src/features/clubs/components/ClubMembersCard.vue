@@ -13,10 +13,10 @@
       avatar
       :lines="2"
       row-class="min-h-[56px] border-t border-white/[0.08] px-4 py-3.5 first:border-t-0"
-      class="gap-0 overflow-hidden rounded-xl bg-lowBackground"
+      class="bg-lowBackground gap-0 overflow-hidden rounded-xl"
     />
 
-    <div v-else class="flex flex-col overflow-hidden rounded-xl bg-lowBackground">
+    <div v-else class="bg-lowBackground flex flex-col overflow-hidden rounded-xl">
       <div
         v-for="member in members"
         :key="member.id"
@@ -24,18 +24,18 @@
       >
         <v-avatar :src="member.image" :name="member.name" :size="34" class="flex-shrink-0" />
         <span class="flex min-w-0 flex-grow flex-col gap-0.5">
-          <span class="truncate text-[15px] font-medium leading-tight">{{ member.name }}</span>
+          <span class="truncate text-[15px] leading-tight font-medium">{{ member.name }}</span>
           <span class="truncate text-xs leading-tight text-white/45">{{ member.email }}</span>
         </span>
         <span
           v-if="member.role === 'admin'"
-          class="flex-shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-semibold tracking-wide text-highlightBackground ring-1 ring-inset ring-highlightBackground/60"
+          class="text-highlightBackground ring-highlightBackground/60 flex-shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-semibold tracking-wide ring-1 ring-inset"
         >
           ADMIN
         </span>
         <button
           v-else-if="member.email !== currentUserEmail"
-          class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full text-white/35 transition-colors duration-fast ease-standard hover:bg-white/10 hover:text-red-400"
+          class="duration-fast ease-standard flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full text-white/35 transition-colors hover:bg-white/10 hover:text-red-400"
           :aria-label="`Remove ${member.name}`"
           @click="memberToRemove = member"
         >
@@ -44,7 +44,7 @@
       </div>
 
       <button
-        class="flex min-h-[56px] items-center gap-3 border-t border-white/[0.08] px-4 py-3.5 text-left transition-colors duration-fast ease-standard hover:bg-white/10"
+        class="duration-fast ease-standard flex min-h-[56px] items-center gap-3 border-t border-white/[0.08] px-4 py-3.5 text-left transition-colors hover:bg-white/10"
         @click="copyInviteLink()"
       >
         <mdicon name="link-variant" :size="22" class="flex-shrink-0 text-white/60" />

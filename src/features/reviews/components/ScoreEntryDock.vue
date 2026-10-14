@@ -8,7 +8,7 @@
          WorkDetailsContent) so the collapse can animate — a v-if would empty
          the row and snap it shut. -->
     <div
-      class="grid transition-[grid-template-rows] duration-slow ease-emphasized"
+      class="duration-slow ease-emphasized grid transition-[grid-template-rows]"
       :class="expanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'"
     >
       <!-- overflow-hidden also zeroes the row's automatic minimum size, which
@@ -16,7 +16,7 @@
       <div
         :inert="!expanded"
         :aria-hidden="!expanded || undefined"
-        class="overflow-hidden transition-opacity duration-base ease-standard"
+        class="duration-base ease-standard overflow-hidden transition-opacity"
         :class="expanded ? 'opacity-100' : 'opacity-0'"
       >
         <!-- Re-keyed per expansion so each open starts fresh: entry mode's
@@ -38,7 +38,7 @@
             <button
               type="button"
               aria-label="Close score entry"
-              class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-gray-400 transition hover:bg-lowBackground hover:text-gray-200"
+              class="hover:bg-lowBackground flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-gray-400 transition hover:text-gray-200"
               @click="collapse"
             >
               <mdicon name="chevron-down" size="20" />
@@ -80,13 +80,13 @@
 
     <!-- CTA row: mirrors the panel's grid animation in reverse. -->
     <div
-      class="grid transition-[grid-template-rows] duration-slow ease-emphasized"
+      class="duration-slow ease-emphasized grid transition-[grid-template-rows]"
       :class="expanded ? 'grid-rows-[0fr]' : 'grid-rows-[1fr]'"
     >
       <div
         :inert="expanded"
         :aria-hidden="expanded || undefined"
-        class="overflow-hidden transition-opacity duration-base ease-standard"
+        class="duration-base ease-standard overflow-hidden transition-opacity"
         :class="expanded ? 'opacity-0' : 'opacity-100'"
       >
         <!-- The CTA shares its row with an optional secondary action (e.g.

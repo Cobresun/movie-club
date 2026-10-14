@@ -1,6 +1,6 @@
 <template>
   <div class="flex min-h-[60vh] items-center justify-center p-8">
-    <div class="w-full max-w-md rounded-lg bg-lowBackground p-8 shadow-lg">
+    <div class="bg-lowBackground w-full max-w-md rounded-lg p-8 shadow-lg">
       <!-- Success State -->
       <div v-if="isSuccess" class="space-y-4 text-center">
         <div
@@ -8,7 +8,7 @@
         >
           <mdicon name="check" size="32" class="text-green-400" />
         </div>
-        <h1 class="text-2xl font-bold text-text">Password Reset!</h1>
+        <h1 class="text-text text-2xl font-bold">Password Reset!</h1>
         <p class="text-gray-300">
           Your password has been reset successfully. You can now sign in with your new password.
         </p>
@@ -20,7 +20,7 @@
         <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-900/50">
           <mdicon name="alert-circle" size="32" class="text-red-400" />
         </div>
-        <h1 class="text-2xl font-bold text-text">Invalid or Expired Link</h1>
+        <h1 class="text-text text-2xl font-bold">Invalid or Expired Link</h1>
         <p class="text-gray-300">
           This password reset link is invalid or has expired. Please request a new one.
         </p>
@@ -31,7 +31,7 @@
 
       <!-- Form State -->
       <form v-else class="space-y-4" @submit.prevent="handleSubmit">
-        <h1 class="mb-6 text-center text-2xl font-bold text-text">Reset Password</h1>
+        <h1 class="text-text mb-6 text-center text-2xl font-bold">Reset Password</h1>
 
         <p class="mb-4 text-gray-300">Enter your new password below.</p>
 
@@ -51,7 +51,7 @@
             type="password"
             required
             minlength="8"
-            class="w-full rounded border border-gray-600 bg-gray-700 px-3 py-2 text-white placeholder-gray-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            class="focus:border-primary focus:ring-primary w-full rounded border border-gray-600 bg-gray-700 px-3 py-2 text-white placeholder-gray-400 focus:ring-1 focus:outline-none"
             placeholder="Min 8 characters"
           />
         </div>
@@ -67,7 +67,7 @@
             type="password"
             required
             minlength="8"
-            class="w-full rounded border border-gray-600 bg-gray-700 px-3 py-2 text-white placeholder-gray-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            class="focus:border-primary focus:ring-primary w-full rounded border border-gray-600 bg-gray-700 px-3 py-2 text-white placeholder-gray-400 focus:ring-1 focus:outline-none"
             placeholder="Confirm your password"
           />
         </div>
@@ -76,7 +76,7 @@
         <button
           type="submit"
           :disabled="isLoading"
-          class="w-full rounded bg-primary px-4 py-2 font-medium text-text transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+          class="bg-primary text-text w-full rounded px-4 py-2 font-medium transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {{ isLoading ? "Resetting..." : "Reset Password" }}
         </button>

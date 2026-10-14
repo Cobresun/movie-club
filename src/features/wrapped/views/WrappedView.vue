@@ -1,6 +1,6 @@
 <template>
   <!-- Covers the app chrome, story-style, so the card can use the whole screen. -->
-  <div class="fixed inset-0 z-40 flex flex-col bg-background">
+  <div class="bg-background fixed inset-0 z-40 flex flex-col">
     <h1 class="sr-only">{{ club?.clubName }} Wrapped</h1>
     <div class="flex items-center gap-2 px-3 pt-3">
       <router-link
@@ -22,7 +22,7 @@
             :key="year"
             :to="{ name: 'Wrapped', params: { clubSlug, year } }"
             :aria-current="year === selectedYear ? 'page' : undefined"
-            class="rounded-full px-3 py-1 text-sm font-semibold transition-colors duration-fast ease-standard"
+            class="duration-fast ease-standard rounded-full px-3 py-1 text-sm font-semibold transition-colors"
             :class="
               year === selectedYear
                 ? 'bg-primary text-white'
@@ -35,7 +35,7 @@
       </nav>
     </div>
 
-    <div class="flex min-h-0 flex-1 flex-col px-4 pb-4 pt-2">
+    <div class="flex min-h-0 flex-1 flex-col px-4 pt-2 pb-4">
       <SkeletonBlock
         v-if="isLoading"
         class="mx-auto mt-8 aspect-[9/16] max-h-[640px] max-w-full flex-1 rounded-2xl"

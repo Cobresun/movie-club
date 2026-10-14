@@ -5,7 +5,7 @@
         <Listbox v-model="selectedSort">
           <div class="relative">
             <ListboxButton
-              class="flex items-center gap-1 whitespace-nowrap rounded-full border border-white px-4 py-1"
+              class="flex items-center gap-1 rounded-full border border-white px-4 py-1 whitespace-nowrap"
             >
               <span>{{ activeSortOption ? "Sorted by" : "Sort by" }}</span>
               <span v-if="activeSortOption" class="font-semibold">{{
@@ -14,7 +14,7 @@
               <mdicon name="chevron-down" />
             </ListboxButton>
             <ListboxOptions
-              class="absolute z-10 mt-1 max-h-80 overflow-auto rounded-md border border-white bg-background py-1"
+              class="bg-background absolute z-10 mt-1 max-h-80 overflow-auto rounded-md border border-white py-1"
             >
               <p class="px-3 py-1 text-left text-sm text-gray-400">Sort reviews by</p>
               <ListboxOption
@@ -24,7 +24,7 @@
                 :value="option.id"
               >
                 <div
-                  class="flex min-w-52 cursor-pointer items-center gap-2 px-3 py-2 text-left hover:bg-lowBackground"
+                  class="hover:bg-lowBackground flex min-w-52 cursor-pointer items-center gap-2 px-3 py-2 text-left"
                 >
                   <VAvatar
                     v-if="option.type === 'member'"
@@ -49,7 +49,7 @@
         <button
           v-if="activeSortOption"
           type="button"
-          class="flex items-center gap-2 whitespace-nowrap rounded-full border border-white px-4 py-1 hover:bg-lowBackground"
+          class="hover:bg-lowBackground flex items-center gap-2 rounded-full border border-white px-4 py-1 whitespace-nowrap"
           :title="`Currently ${directionLabel.toLowerCase()}. Click to reverse.`"
           @click="reverseSort"
         >
@@ -59,7 +59,7 @@
         <button
           v-if="activeSortOption"
           type="button"
-          class="flex cursor-pointer items-center gap-1 whitespace-nowrap rounded-full border border-white px-4 py-1 hover:bg-lowBackground"
+          class="hover:bg-lowBackground flex cursor-pointer items-center gap-1 rounded-full border border-white px-4 py-1 whitespace-nowrap"
           @click="selectedSort = undefined"
         >
           Clear
@@ -84,7 +84,7 @@
           :highlighted="selectedMovieId === review.id"
           :loading="isPendingReview(review.id)"
           :selectable="!isPendingReview(review.id)"
-          class="transition-all duration-fast ease-standard md:cursor-pointer"
+          class="duration-fast ease-standard transition-all md:cursor-pointer"
           @select="openMovieDetails(review)"
         >
           <div class="mb-2 text-sm text-gray-400">
@@ -101,9 +101,9 @@
                 <!-- Cards never reveal on click: reveal flows through the
                      details drawer's own pill. -->
                 <span
-                  class="transition-[filter] duration-500 ease-standard"
+                  class="ease-standard transition-[filter] duration-500"
                   :class="[
-                    isDefined(entry.memberId) ? '' : 'text-lg font-bold text-primary',
+                    isDefined(entry.memberId) ? '' : 'text-primary text-lg font-bold',
                     isScoreBlurred(entry, currentUserId, isRevealed(review.id))
                       ? 'blur filter'
                       : 'blur-none',

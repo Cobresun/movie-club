@@ -18,11 +18,11 @@
         description="This list is empty."
       />
 
-      <div v-else class="grid grid-cols-auto justify-items-center gap-4">
+      <div v-else class="grid-cols-auto grid justify-items-center gap-4">
         <div v-for="item in sortedItems" :key="item.id" class="relative">
           <div
             v-if="item.id === nextWorkId"
-            class="absolute -top-3 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-full bg-highlightBackground px-3 py-0.5 text-xs font-semibold text-white shadow"
+            class="bg-highlightBackground absolute -top-3 left-1/2 z-10 -translate-x-1/2 rounded-full px-3 py-0.5 text-xs font-semibold whitespace-nowrap text-white shadow"
           >
             Next Up
           </div>

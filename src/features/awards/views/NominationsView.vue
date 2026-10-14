@@ -59,7 +59,7 @@
     </div>
     <div v-for="award in userOnlyAwards" :key="award.title">
       <h3 class="mb-2 text-left text-xl font-bold">{{ award.title }}</h3>
-      <div class="grid grid-cols-auto">
+      <div class="grid-cols-auto grid">
         <WorkPosterCard
           v-for="nomination in award.nominations"
           :key="nomination.movieId"

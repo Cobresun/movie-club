@@ -9,7 +9,7 @@
         <li
           v-for="(element, index) in categories"
           :key="element.title"
-          class="mb-2 flex min-h-12 items-center justify-between gap-2 rounded-xl bg-lowBackground py-2 pl-4 pr-2"
+          class="bg-lowBackground mb-2 flex min-h-12 items-center justify-between gap-2 rounded-xl py-2 pr-2 pl-4"
         >
           <span class="min-w-0 break-words">{{ element.title }}</span>
           <div class="flex flex-shrink-0 items-center">
@@ -62,7 +62,7 @@
           <li v-for="suggestion in suggestions" :key="suggestion">
             <button
               type="button"
-              class="flex items-center gap-1 rounded-full bg-lowBackground py-1 pl-2 pr-3 text-sm hover:brightness-125"
+              class="bg-lowBackground flex items-center gap-1 rounded-full py-1 pr-3 pl-2 text-sm hover:brightness-125"
               :aria-label="`Add ${suggestion}`"
               @click="addCategory(suggestion)"
             >

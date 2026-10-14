@@ -1,6 +1,6 @@
 <template>
   <div
-    class="aspect-[2/3] overflow-hidden rounded-lg bg-lowBackground"
+    class="bg-lowBackground aspect-[2/3] overflow-hidden rounded-lg"
     :class="{ 'animate-pulse': !loaded && hasImage }"
   >
     <img
@@ -9,7 +9,7 @@
       :alt="alt"
       decoding="async"
       loading="eager"
-      class="h-full w-full object-cover transition-opacity duration-slow ease-standard"
+      class="duration-slow ease-standard h-full w-full object-cover transition-opacity"
       :class="loaded ? 'opacity-100' : 'opacity-0'"
       @load="loaded = true"
     />

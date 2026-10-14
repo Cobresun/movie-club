@@ -15,7 +15,7 @@
         <router-link
           :to="{ name: 'Wrapped', params: { clubSlug, year } }"
           :aria-label="`${year} Wrapped`"
-          class="block rounded-full bg-white/15 px-3 py-1 text-sm font-semibold transition-colors duration-fast ease-standard hover:bg-white/25"
+          class="duration-fast ease-standard block rounded-full bg-white/15 px-3 py-1 text-sm font-semibold transition-colors hover:bg-white/25"
         >
           {{ year }}
         </router-link>

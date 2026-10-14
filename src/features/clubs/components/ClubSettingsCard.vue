@@ -2,7 +2,7 @@
   <section class="flex flex-col">
     <SectionHeader title="Club settings" />
 
-    <div class="flex flex-col overflow-hidden rounded-xl bg-lowBackground">
+    <div class="bg-lowBackground flex flex-col overflow-hidden rounded-xl">
       <ClubEditableRow
         v-model:editing="isEditingName"
         label="Club name"

@@ -1,25 +1,25 @@
 <template>
-  <div class="px-4 pb-10 pt-2">
+  <div class="px-4 pt-2 pb-10">
     <div v-if="isLoggedIn" class="mx-auto flex max-w-lg flex-col gap-5">
       <div class="flex flex-col gap-2">
-        <h1 class="text-3xl font-bold leading-tight">{{ heading }}</h1>
-        <p v-if="isFirstClub" class="text-[15px] font-light leading-relaxed text-white/65">
+        <h1 class="text-3xl leading-tight font-bold">{{ heading }}</h1>
+        <p v-if="isFirstClub" class="text-[15px] leading-relaxed font-light text-white/65">
           A club is a handful of friends who watch the same films — or read the same books — and
           score them together.
         </p>
-        <p v-else class="text-[15px] font-light leading-relaxed text-white/65">
+        <p v-else class="text-[15px] leading-relaxed font-light text-white/65">
           Start a second club, or join one you were invited to.
         </p>
       </div>
 
-      <div class="flex flex-col gap-3 rounded-xl bg-lowBackground p-4">
+      <div class="bg-lowBackground flex flex-col gap-3 rounded-xl p-4">
         <h2 class="text-lg font-semibold">Start a club</h2>
         <input
           id="club-name"
           v-model="clubName"
           placeholder="Club name"
           type="text"
-          class="min-h-[44px] w-full rounded-md border-2 border-slate-600 bg-background px-3 text-base outline-none focus:border-primary"
+          class="bg-background focus:border-primary min-h-[44px] w-full rounded-md border-2 border-slate-600 px-3 text-base outline-none"
           :class="{ 'border-red-500': showErrors && !isClubNameValid }"
         />
         <span v-if="showErrors && !isClubNameValid" class="text-sm text-red-500">
@@ -32,7 +32,7 @@
             v-for="option in clubTypeOptions"
             :key="option.value"
             type="button"
-            class="flex min-h-[44px] flex-grow flex-col items-center gap-1.5 rounded-lg p-3 text-[15px] font-medium ring-2 ring-inset transition-colors duration-fast ease-standard"
+            class="duration-fast ease-standard flex min-h-[44px] flex-grow flex-col items-center gap-1.5 rounded-lg p-3 text-[15px] font-medium ring-2 transition-colors ring-inset"
             :class="
               clubType === option.value
                 ? 'bg-primary/[0.14] text-highlight ring-primary'
@@ -49,7 +49,7 @@
         <v-btn class="min-h-[44px] w-full" :disabled="isCreating" @click="submit()">
           Create club
         </v-btn>
-        <p class="text-xs font-light leading-relaxed text-white/45">
+        <p class="text-xs leading-relaxed font-light text-white/45">
           You'll get an invite link to send your friends.
         </p>
       </div>
@@ -60,9 +60,9 @@
         <div class="h-px flex-grow bg-white/10" />
       </div>
 
-      <div class="flex flex-col gap-3 rounded-xl bg-lowBackground p-4">
+      <div class="bg-lowBackground flex flex-col gap-3 rounded-xl p-4">
         <h2 class="text-lg font-semibold">Join one you were invited to</h2>
-        <p class="text-sm font-light leading-relaxed text-white/60">
+        <p class="text-sm leading-relaxed font-light text-white/60">
           Someone already in the club sends you a link. Open it on this device, or paste it here.
         </p>
         <div class="flex gap-2.5">
@@ -71,7 +71,7 @@
             placeholder="Paste invite link"
             type="text"
             aria-label="Invite link"
-            class="min-h-[44px] min-w-0 flex-grow rounded-md border-2 border-slate-600 bg-background px-3 text-[15px] outline-none focus:border-primary"
+            class="bg-background focus:border-primary min-h-[44px] min-w-0 flex-grow rounded-md border-2 border-slate-600 px-3 text-[15px] outline-none"
             @keyup.enter="joinClub()"
           />
           <v-btn class="min-h-[44px] bg-gray-600 hover:bg-gray-700" @click="joinClub()">Join</v-btn>
@@ -81,8 +81,8 @@
     </div>
     <div v-else class="mx-auto flex max-w-lg flex-col gap-5">
       <div class="flex flex-col gap-2">
-        <h1 class="text-3xl font-bold leading-tight">Start your own club</h1>
-        <p class="text-[15px] font-light leading-relaxed text-white/65">
+        <h1 class="text-3xl leading-tight font-bold">Start your own club</h1>
+        <p class="text-[15px] leading-relaxed font-light text-white/65">
           A club is a handful of friends who watch the same films — or read the same books — and
           score them together. Sign up, name your club, and invite them with one link.
         </p>

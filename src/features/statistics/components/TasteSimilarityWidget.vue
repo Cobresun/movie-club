@@ -35,7 +35,7 @@
       </div>
 
       <div v-if="highlightMovies.length > 0">
-        <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+        <p class="mb-2 text-xs font-semibold tracking-wide text-slate-400 uppercase">
           {{ mode === "most" ? "Top agreements" : "Biggest disagreements" }}
         </p>
         <ul class="space-y-1">

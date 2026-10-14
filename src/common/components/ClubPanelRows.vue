@@ -1,15 +1,15 @@
 <template>
   <div class="flex flex-col">
-    <div v-if="showIdentity" class="flex items-center gap-3 px-4 pb-3 pt-1">
+    <div v-if="showIdentity" class="flex items-center gap-3 px-4 pt-1 pb-3">
       <v-avatar :name="clubName" :size="48" class="flex-shrink-0" />
       <span class="flex min-w-0 flex-col gap-0.5">
-        <span class="truncate text-xl font-semibold leading-tight">{{ clubName }}</span>
+        <span class="truncate text-xl leading-tight font-semibold">{{ clubName }}</span>
         <span v-if="hasValue(meta)" class="truncate text-[13px] text-white/55">{{ meta }}</span>
       </span>
     </div>
 
     <button
-      class="flex min-h-[56px] items-center gap-3 border-t border-white/[0.08] px-4 py-3.5 text-left transition-colors duration-fast ease-standard hover:bg-white/10"
+      class="duration-fast ease-standard flex min-h-[56px] items-center gap-3 border-t border-white/[0.08] px-4 py-3.5 text-left transition-colors hover:bg-white/10"
       :role="rowRole"
       @click="goTo('Club')"
     >

@@ -25,7 +25,7 @@
         <div class="min-w-0 flex-1">
           <router-link
             :to="{ name: 'ClubHome', params: { clubSlug: club.slug } }"
-            class="block truncate text-sm font-medium text-primary hover:underline"
+            class="text-primary block truncate text-sm font-medium hover:underline"
           >
             {{ club.name }}
             <span class="sr-only">({{ clubTypeLabel(club.type) }})</span>
@@ -41,7 +41,7 @@
           Not started
         </span>
         <div v-else class="shrink-0 text-right">
-          <p class="text-sm font-semibold tabular-nums text-white">
+          <p class="text-sm font-semibold text-white tabular-nums">
             {{ formatCount(club.reviews) }}
           </p>
           <p class="text-xs text-slate-500">{{ club.reviews === 1 ? "review" : "reviews" }}</p>

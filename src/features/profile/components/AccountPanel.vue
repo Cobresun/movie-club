@@ -3,7 +3,7 @@
        can change lives on the profile screen, which is a route with a header
        and a back arrow rather than a 300px column floating over the page. -->
   <div>
-    <div class="flex items-center px-4" :class="dense ? 'gap-3 py-3.5' : 'gap-3.5 pb-4 pt-0.5'">
+    <div class="flex items-center px-4" :class="dense ? 'gap-3 py-3.5' : 'gap-3.5 pt-0.5 pb-4'">
       <v-avatar
         class="flex-shrink-0"
         :src="user?.image"
@@ -13,7 +13,7 @@
 
       <div class="flex min-w-0 flex-col gap-0.5">
         <span
-          class="truncate font-semibold leading-tight"
+          class="truncate leading-tight font-semibold"
           :class="dense ? 'text-[15px]' : 'text-[17px]'"
         >
           {{ user?.name }}
@@ -30,7 +30,7 @@
     <div class="border-t border-white/10" />
 
     <button
-      class="mt-1 flex w-full items-center text-left transition-colors duration-fast ease-standard hover:bg-white/10"
+      class="duration-fast ease-standard mt-1 flex w-full items-center text-left transition-colors hover:bg-white/10"
       :class="
         dense
           ? 'min-h-[40px] gap-2.5 px-4 py-2 text-sm'
@@ -45,7 +45,7 @@
 
     <div class="mt-1 border-t border-white/10">
       <button
-        class="flex w-full items-center text-left transition-colors duration-fast ease-standard hover:bg-white/10"
+        class="duration-fast ease-standard flex w-full items-center text-left transition-colors hover:bg-white/10"
         :class="
           dense
             ? 'min-h-[40px] gap-2.5 px-4 py-2 text-sm'

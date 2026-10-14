@@ -5,7 +5,7 @@
     are no providers the element is display:none, so it adds no grid gap.
   -->
   <div v-show="hasElements(providers)" class="flex flex-col gap-1.5">
-    <span class="block text-xs font-medium uppercase tracking-wide text-gray-500"
+    <span class="block text-xs font-medium tracking-wide text-gray-500 uppercase"
       >Where to watch</span
     >
     <a

@@ -12,7 +12,7 @@
     <button
       v-if="showAssist"
       type="button"
-      class="flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary ring-1 ring-inset ring-primary/20 transition duration-fast ease-standard hover:bg-primary/20 active:scale-[0.98]"
+      class="bg-primary/10 text-primary ring-primary/20 duration-fast ease-standard hover:bg-primary/20 flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium ring-1 transition ring-inset active:scale-[0.98]"
       @click="openAssist"
     >
       <mdicon name="creation" size="16" />
@@ -25,7 +25,7 @@
     <button
       type="button"
       :disabled="!canSave"
-      class="w-full rounded-lg py-3 text-center font-bold tracking-wide text-text transition duration-fast ease-standard"
+      class="text-text duration-fast ease-standard w-full rounded-lg py-3 text-center font-bold tracking-wide transition"
       :class="canSave ? 'bg-primary hover:brightness-110 active:scale-[0.98]' : 'bg-gray-600'"
       @click="save"
     >
@@ -38,7 +38,7 @@
       <button
         v-if="!confirmingRemove"
         type="button"
-        class="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm text-red-400/80 transition duration-fast ease-standard hover:bg-red-500/10 hover:text-red-400"
+        class="duration-fast ease-standard flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm text-red-400/80 transition hover:bg-red-500/10 hover:text-red-400"
         @click="confirmingRemove = true"
       >
         <mdicon name="delete-outline" size="16" />
@@ -49,14 +49,14 @@
         <div class="flex w-full gap-2">
           <button
             type="button"
-            class="flex-1 rounded-lg bg-gray-600 py-2 text-sm font-bold text-white transition duration-fast ease-standard hover:brightness-110 active:scale-[0.98]"
+            class="duration-fast ease-standard flex-1 rounded-lg bg-gray-600 py-2 text-sm font-bold text-white transition hover:brightness-110 active:scale-[0.98]"
             @click="confirmingRemove = false"
           >
             Keep it
           </button>
           <button
             type="button"
-            class="flex-1 rounded-lg bg-red-500 py-2 text-sm font-bold text-white transition duration-fast ease-standard hover:brightness-110 active:scale-[0.98]"
+            class="duration-fast ease-standard flex-1 rounded-lg bg-red-500 py-2 text-sm font-bold text-white transition hover:brightness-110 active:scale-[0.98]"
             @click="removeScore"
           >
             Remove

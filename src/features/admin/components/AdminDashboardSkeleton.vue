@@ -7,7 +7,7 @@
       <div
         v-for="i in 6"
         :key="i"
-        class="flex flex-col gap-2.5 rounded-xl bg-lowBackground p-3.5 sm:p-4"
+        class="bg-lowBackground flex flex-col gap-2.5 rounded-xl p-3.5 sm:p-4"
         :style="{ '--skeleton-index': i - 1 }"
       >
         <SkeletonBlock class="h-3 w-20 rounded" />
@@ -16,7 +16,7 @@
       </div>
     </div>
 
-    <div class="rounded-xl bg-lowBackground p-4 sm:p-5" :style="{ '--skeleton-index': 2 }">
+    <div class="bg-lowBackground rounded-xl p-4 sm:p-5" :style="{ '--skeleton-index': 2 }">
       <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
         <SkeletonBlock class="h-6 w-24 rounded" />
         <SkeletonBlock class="h-9 w-52 rounded-full" />
@@ -40,7 +40,7 @@
       <div
         v-for="(card, i) in LIST_CARDS"
         :key="i"
-        class="rounded-xl bg-lowBackground p-4 sm:p-5"
+        class="bg-lowBackground rounded-xl p-4 sm:p-5"
         :style="{ '--skeleton-index': i + 3 }"
       >
         <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -73,7 +73,7 @@
         <div
           v-for="i in 3"
           :key="i"
-          class="flex items-center gap-4 rounded-xl bg-lowBackground p-3.5 sm:flex-col sm:items-start sm:gap-2 sm:p-4"
+          class="bg-lowBackground flex items-center gap-4 rounded-xl p-3.5 sm:flex-col sm:items-start sm:gap-2 sm:p-4"
         >
           <SkeletonBlock class="h-7 w-14 shrink-0 rounded sm:order-2" />
           <div class="flex flex-1 flex-col gap-2 sm:contents">
@@ -82,7 +82,7 @@
           </div>
         </div>
       </div>
-      <div class="rounded-xl bg-lowBackground p-4 sm:p-5">
+      <div class="bg-lowBackground rounded-xl p-4 sm:p-5">
         <SkeletonBlock class="h-6 w-44 rounded" />
         <SkeletonBlock class="mt-2 h-3.5 w-72 max-w-full rounded" />
         <SkeletonBlock class="mt-4 h-3 w-full rounded-full" />

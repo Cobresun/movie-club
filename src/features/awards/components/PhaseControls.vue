@@ -1,7 +1,7 @@
 <template>
   <section
     aria-label="Phase controls"
-    class="mx-auto mt-8 flex w-11/12 max-w-lg flex-col gap-3 rounded-xl bg-lowBackground p-4 text-left"
+    class="bg-lowBackground mx-auto mt-8 flex w-11/12 max-w-lg flex-col gap-3 rounded-xl p-4 text-left"
   >
     <p v-if="hasValue(progress)" class="font-semibold">{{ progress }}</p>
     <p v-if="hasElements(waitingOn)" class="text-sm text-gray-300">

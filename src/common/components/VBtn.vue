@@ -1,9 +1,9 @@
 <template>
   <button
-    class="rounded-md text-center text-base font-bold tracking-wide text-text transition duration-fast ease-standard"
+    class="text-text duration-fast ease-standard rounded-md text-center text-base font-bold tracking-wide transition"
     :class="{
       'bg-gray-600': disabled,
-      'cursor-pointer bg-primary hover:brightness-110 active:scale-[0.97] active:brightness-105':
+      'bg-primary cursor-pointer hover:brightness-110 active:scale-[0.97] active:brightness-105':
         !disabled,
     }"
     :disabled="disabled"

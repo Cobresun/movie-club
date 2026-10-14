@@ -4,7 +4,7 @@
       <div
         v-for="tile in tiles"
         :key="tile.label"
-        class="flex items-center gap-3 rounded-lg border border-slate-700/30 bg-background/50 p-3 text-left"
+        class="bg-background/50 flex items-center gap-3 rounded-lg border border-slate-700/30 p-3 text-left"
       >
         <img
           v-if="tile.entry.imageUrl"
@@ -19,7 +19,7 @@
           ?
         </div>
         <div class="min-w-0 flex-1">
-          <p class="text-xs font-semibold uppercase tracking-wide" :class="tile.labelClass">
+          <p class="text-xs font-semibold tracking-wide uppercase" :class="tile.labelClass">
             {{ tile.label }}
           </p>
           <p class="mt-0.5 truncate text-sm font-medium text-white" :title="tile.entry.title">
