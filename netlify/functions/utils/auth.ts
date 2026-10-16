@@ -15,6 +15,7 @@ import {
 } from "../../../lib/checks/checks.js";
 import ClubRepository from "../repositories/ClubRepository";
 import UserRepository from "../repositories/UserRepository";
+import { APPLE_ORIGIN, appleProviderOptions } from "./appleProvider";
 import { dialect } from "./database.js";
 import { toDeployLink } from "./deployLinks.js";
 import { sendPasswordResetEmail, sendVerificationEmail } from "./email.js";
@@ -27,6 +28,8 @@ const googleClientSecret = ensure(
   process.env.GOOGLE_CLIENT_SECRET,
   "GOOGLE_CLIENT_SECRET is not set",
 );
+
+const appleOptions = appleProviderOptions(process.env);
 
 const authConfigSchema = z.object({
   siteURL: z.string().url().optional(),
@@ -58,13 +61,14 @@ function readAuthConfig(): AuthConfig | undefined {
 const authConfig = readAuthConfig();
 
 function getTrustedOrigins(): string[] {
-  if (isDefined(authConfig)) {
-    return authConfig.trustedOrigins;
-  }
+  const origins = isDefined(authConfig)
+    ? authConfig.trustedOrigins
+    : [process.env.URL, process.env.DEPLOY_PRIME_URL, process.env.BETTER_AUTH_URL].filter(
+        isDefined,
+      );
 
-  return [process.env.URL, process.env.DEPLOY_PRIME_URL, process.env.BETTER_AUTH_URL].filter(
-    isDefined,
-  );
+  // Apple's web flow posts its callback from appleid.apple.com.
+  return isDefined(appleOptions) ? [...origins, APPLE_ORIGIN] : origins;
 }
 
 /**
@@ -114,6 +118,7 @@ export const auth = betterAuth({
       clientSecret: googleClientSecret,
       redirectURI: `${process.env.BETTER_AUTH_URL}/api/auth/callback/google`,
     },
+    ...(isDefined(appleOptions) ? { apple: appleOptions } : {}),
   },
   trustedOrigins: getTrustedOrigins(),
   session: {
