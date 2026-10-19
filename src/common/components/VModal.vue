@@ -10,7 +10,7 @@
       <Transition name="fade" appear @after-leave="onTransitionEnd">
         <div
           v-if="isVisible"
-          class="fixed bg-background p-8"
+          class="bg-background fixed p-8"
           :class="[desktopClasses, zIndexClass]"
           @click.stop=""
         >

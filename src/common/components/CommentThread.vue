@@ -21,7 +21,7 @@
         leave-active-class="transition-opacity duration-base ease-standard"
         leave-to-class="opacity-0"
       >
-        <div v-for="comment in comments" :key="comment.id" class="rounded-lg bg-lowBackground p-3">
+        <div v-for="comment in comments" :key="comment.id" class="bg-lowBackground rounded-lg p-3">
           <div class="flex items-center gap-2">
             <v-avatar :name="comment.userName" :src="comment.userImage" :size="28" />
             <div class="flex flex-1 items-center gap-1 text-xs text-gray-400">
@@ -33,7 +33,7 @@
             <template v-if="comment.userId === currentUserId">
               <button
                 aria-label="Edit comment"
-                class="text-gray-500 hover:text-primary"
+                class="hover:text-primary text-gray-500"
                 @click="startEditing(comment)"
               >
                 <mdicon name="pencil-outline" :size="14" />
@@ -53,7 +53,7 @@
             <textarea
               v-model="editContent"
               :maxlength="MAX_LENGTH"
-              class="w-full resize-none rounded-lg border border-gray-600 bg-background px-3 py-2 text-left text-base text-white placeholder-gray-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary md:text-sm"
+              class="bg-background focus:border-primary focus:ring-primary w-full resize-none rounded-lg border border-gray-600 px-3 py-2 text-left text-base text-white placeholder-gray-400 focus:ring-1 focus:outline-hidden md:text-sm"
               rows="3"
             />
             <div class="mt-2 flex items-center justify-between">
@@ -77,7 +77,7 @@
                   Cancel
                 </button>
                 <button
-                  class="rounded bg-primary px-3 py-1 text-xs text-white"
+                  class="bg-primary rounded px-3 py-1 text-xs text-white"
                   :disabled="!hasValue(editContent.trim()) || editContent.length > MAX_LENGTH"
                   @click="saveEdit(comment.id)"
                 >
@@ -89,14 +89,14 @@
 
           <!-- Display mode -->
           <div v-else class="mt-2">
-            <!-- `blur-sm` is a purely visual filter, so while hidden it also
+            <!-- `blur-xs` is a purely visual filter, so while hidden it also
                carries aria-hidden: without it the spoiler is read out in full
                to a screen reader that cannot see the blur. One element for
                both states, so the blur can transition away. -->
             <p
               :aria-hidden="isSpoilerHidden(comment) || undefined"
-              class="whitespace-pre-wrap text-left text-sm text-gray-200 transition-[filter] duration-slow ease-standard"
-              :class="isSpoilerHidden(comment) ? 'cursor-pointer select-none blur-sm' : 'blur-none'"
+              class="duration-slow ease-standard text-left text-sm whitespace-pre-wrap text-gray-200 transition-[filter]"
+              :class="isSpoilerHidden(comment) ? 'cursor-pointer blur-xs select-none' : 'blur-none'"
               @click="revealedSpoilers.add(comment.id)"
             >
               {{ comment.content }}
@@ -115,7 +115,7 @@
         v-model="newComment"
         :maxlength="MAX_LENGTH"
         placeholder="Write a comment…"
-        class="w-full resize-none rounded-lg border border-gray-600 bg-lowBackground px-3 py-2 text-left text-base text-white placeholder-gray-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary md:text-sm"
+        class="bg-lowBackground focus:border-primary focus:ring-primary w-full resize-none rounded-lg border border-gray-600 px-3 py-2 text-left text-base text-white placeholder-gray-400 focus:ring-1 focus:outline-hidden md:text-sm"
         rows="3"
       />
       <div class="mt-2 flex items-center justify-between">

@@ -37,7 +37,7 @@
         <input
           v-model.number="zoom"
           type="range"
-          class="flex-1 accent-primary"
+          class="accent-primary flex-1"
           :min="MIN_ZOOM"
           :max="MAX_ZOOM"
           step="0.01"

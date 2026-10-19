@@ -29,7 +29,7 @@
       />
       <button
         type="button"
-        class="mx-auto mb-8 mt-6 flex items-center gap-1 text-sm text-gray-400 hover:text-red-400"
+        class="mx-auto mt-6 mb-8 flex items-center gap-1 text-sm text-gray-400 hover:text-red-400"
         @click="confirmingDelete = true"
       >
         <mdicon name="delete-outline" :size="18" />Delete {{ year }} awards

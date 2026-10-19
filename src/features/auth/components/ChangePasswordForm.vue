@@ -25,10 +25,10 @@
       />
 
       <label
-        class="-mx-2 flex min-h-[56px] cursor-pointer items-center gap-3 rounded-lg border-t border-white/10 px-2 transition-colors duration-fast ease-standard hover:bg-white/5"
+        class="duration-fast ease-standard -mx-2 flex min-h-[56px] cursor-pointer items-center gap-3 rounded-lg border-t border-white/10 px-2 transition-colors hover:bg-white/5"
       >
-        <span class="flex flex-grow flex-col gap-0.5">
-          <span class="text-[15px] font-medium text-text">Sign out of all other devices</span>
+        <span class="flex grow flex-col gap-0.5">
+          <span class="text-text text-[15px] font-medium">Sign out of all other devices</span>
           <span class="text-xs text-white/40">Ends every session except this one</span>
         </span>
         <input
@@ -38,11 +38,11 @@
           aria-label="Sign out of all other devices"
         />
         <span
-          class="relative h-[22px] w-11 flex-shrink-0 rounded-full py-0.5 pl-1 transition-colors duration-base ease-standard peer-checked:bg-primary peer-focus-visible:ring-2 peer-focus-visible:ring-highlight"
+          class="duration-base ease-standard peer-checked:bg-primary peer-focus-visible:ring-highlight relative h-[22px] w-11 shrink-0 rounded-full py-0.5 pl-1 transition-colors peer-focus-visible:ring-2"
           :class="revokeOtherSessions ? 'bg-primary' : 'bg-gray-600'"
         >
           <span
-            class="block h-[18px] w-[18px] transform rounded-full bg-white shadow transition-transform duration-base ease-standard"
+            class="duration-base ease-standard block h-[18px] w-[18px] transform rounded-full bg-white shadow transition-transform"
             :class="{ 'translate-x-full': revokeOtherSessions }"
           />
         </span>
@@ -51,7 +51,7 @@
       <button
         type="submit"
         :disabled="isLoading"
-        class="flex min-h-[52px] w-full items-center justify-center rounded-md bg-primary text-base font-bold tracking-wide text-text transition duration-fast ease-standard hover:brightness-110 active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-gray-600"
+        class="bg-primary text-text duration-fast ease-standard flex min-h-[52px] w-full items-center justify-center rounded-md text-base font-bold tracking-wide transition hover:brightness-110 active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-gray-600"
       >
         {{ isLoading ? "Updating…" : "Update password" }}
       </button>

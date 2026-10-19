@@ -8,7 +8,7 @@
         class="h-36 w-24 shrink-0 rounded-lg object-cover shadow-lg"
       />
       <div class="min-w-0">
-        <p class="line-clamp-3 text-2xl font-bold leading-tight">{{ title }}</p>
+        <p class="line-clamp-3 text-2xl leading-tight font-bold">{{ title }}</p>
         <p class="mt-2 text-sm text-white/80">
           ±{{ spread.toFixed(1) }} spread · {{ average.toFixed(1) }} avg
         </p>

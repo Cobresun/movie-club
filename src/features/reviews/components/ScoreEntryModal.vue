@@ -17,7 +17,7 @@
     <template v-else>
       <button
         type="button"
-        class="-ml-2 -mt-2 mb-2 flex items-center gap-1 text-sm text-gray-400 transition hover:text-gray-200"
+        class="-mt-2 mb-2 -ml-2 flex items-center gap-1 text-sm text-gray-400 transition hover:text-gray-200"
         @click="mode = 'entry'"
       >
         <mdicon name="arrow-left" size="18" />

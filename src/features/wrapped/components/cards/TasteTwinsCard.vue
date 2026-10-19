@@ -3,7 +3,7 @@
     <section aria-labelledby="wrapped-taste-twins">
       <h3
         id="wrapped-taste-twins"
-        class="text-xs font-semibold uppercase tracking-widest text-white/70"
+        class="text-xs font-semibold tracking-widest text-white/70 uppercase"
       >
         Taste twins
       </h3>
@@ -12,11 +12,11 @@
           <v-avatar :src="twins.memberA.image" :name="twins.memberA.name" :size="56" />
           <v-avatar :src="twins.memberB.image" :name="twins.memberB.name" :size="56" />
         </div>
-        <p class="min-w-0 text-lg font-semibold leading-tight">
+        <p class="min-w-0 text-lg leading-tight font-semibold">
           {{ firstName(twins.memberA.name) }} & {{ firstName(twins.memberB.name) }}
         </p>
       </div>
-      <p class="mt-3 text-6xl font-bold tabular-nums leading-none">
+      <p class="mt-3 text-6xl leading-none font-bold tabular-nums">
         {{ Math.round(twins.similarityPercent) }}%
       </p>
       <p class="mt-1 text-sm text-white/80">
@@ -27,7 +27,7 @@
     <section v-if="isDefined(opposites)" aria-labelledby="wrapped-most-at-odds">
       <h3
         id="wrapped-most-at-odds"
-        class="text-xs font-semibold uppercase tracking-widest text-white/70"
+        class="text-xs font-semibold tracking-widest text-white/70 uppercase"
       >
         Most at odds
       </h3>
@@ -36,14 +36,14 @@
           <v-avatar :src="opposites.memberA.image" :name="opposites.memberA.name" :size="40" />
           <v-avatar :src="opposites.memberB.image" :name="opposites.memberB.name" :size="40" />
         </div>
-        <p class="min-w-0 flex-1 text-base font-semibold leading-tight">
+        <p class="min-w-0 flex-1 text-base leading-tight font-semibold">
           {{ firstName(opposites.memberA.name) }} & {{ firstName(opposites.memberB.name) }}
         </p>
         <p class="flex shrink-0 flex-col items-end">
           <span class="text-2xl font-bold tabular-nums">
             {{ Math.round(opposites.similarityPercent) }}%
           </span>
-          <span class="text-[10px] font-semibold uppercase tracking-widest text-white/60">
+          <span class="text-[10px] font-semibold tracking-widest text-white/60 uppercase">
             in sync
           </span>
         </p>

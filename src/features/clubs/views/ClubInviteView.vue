@@ -1,8 +1,8 @@
 <template>
-  <div class="px-4 pb-10 pt-2">
+  <div class="px-4 pt-2 pb-10">
     <div class="mx-auto flex max-w-lg flex-col gap-5">
       <!-- The club was just created: a check draws itself in to mark it. -->
-      <svg viewBox="0 0 52 52" class="h-14 w-14 text-highlight" aria-hidden="true">
+      <svg viewBox="0 0 52 52" class="text-highlight h-14 w-14" aria-hidden="true">
         <circle
           class="draw-in"
           cx="26"
@@ -24,9 +24,9 @@
           pathLength="1"
         />
       </svg>
-      <h1 class="animate-fade-up text-3xl font-bold leading-tight">{{ clubName }} needs people</h1>
+      <h1 class="animate-fade-up text-3xl leading-tight font-bold">{{ clubName }} needs people</h1>
 
-      <div class="flex flex-col gap-3 rounded-xl bg-lowBackground p-4">
+      <div class="bg-lowBackground flex flex-col gap-3 rounded-xl p-4">
         <h2 class="text-lg font-semibold">Invite link</h2>
         <div class="flex gap-2.5">
           <input
@@ -34,7 +34,7 @@
             :value="inviteLink"
             readonly
             aria-label="Invite link"
-            class="min-h-[44px] min-w-0 flex-grow rounded-md border-2 border-slate-600 bg-background px-3 text-sm text-white/70"
+            class="bg-background min-h-[44px] min-w-0 grow rounded-md border-2 border-slate-600 px-3 text-sm text-white/70"
           />
           <v-btn class="h-[44px] min-w-[44px]" :aria-label="copyLabel" @click="copyInviteLink">
             <mdicon :name="copyIcon" />

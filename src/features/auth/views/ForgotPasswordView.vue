@@ -1,7 +1,7 @@
 <template>
   <div class="flex min-h-[60vh] items-center justify-center p-8">
-    <div class="w-full max-w-md rounded-lg bg-lowBackground p-8 shadow-lg">
-      <h1 class="mb-6 text-center text-2xl font-bold text-text">Forgot Password</h1>
+    <div class="bg-lowBackground w-full max-w-md rounded-lg p-8 shadow-lg">
+      <h1 class="text-text mb-6 text-center text-2xl font-bold">Forgot Password</h1>
 
       <!-- Success State -->
       <div v-if="isSubmitted" class="space-y-4 text-center">
@@ -10,7 +10,7 @@
         >
           <mdicon name="email-check" size="32" class="text-green-400" />
         </div>
-        <h2 class="text-xl font-semibold text-text">Check your email</h2>
+        <h2 class="text-text text-xl font-semibold">Check your email</h2>
         <p class="text-gray-300">
           If an account exists for {{ email }}, we've sent a password reset link.
         </p>
@@ -19,7 +19,7 @@
         </p>
         <div class="mt-4 space-y-2">
           <v-btn variant="secondary" @click="resetForm">Try Again</v-btn>
-          <router-link to="/" class="block text-sm text-primary hover:underline">
+          <router-link to="/" class="text-primary block text-sm hover:underline">
             Back to Home
           </router-link>
         </div>
@@ -44,7 +44,7 @@
             v-model="email"
             type="email"
             required
-            class="w-full rounded border border-gray-600 bg-gray-700 px-3 py-2 text-white placeholder-gray-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            class="focus:border-primary focus:ring-primary w-full rounded border border-gray-600 bg-gray-700 px-3 py-2 text-white placeholder-gray-400 focus:ring-1 focus:outline-hidden"
             placeholder="your@email.com"
           />
         </div>
@@ -53,12 +53,12 @@
         <button
           type="submit"
           :disabled="isLoading"
-          class="w-full rounded bg-primary px-4 py-2 font-medium text-text transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+          class="bg-primary text-text w-full rounded px-4 py-2 font-medium transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {{ isLoading ? "Sending..." : "Send Reset Link" }}
         </button>
 
-        <router-link to="/" class="block text-center text-sm text-primary hover:underline">
+        <router-link to="/" class="text-primary block text-center text-sm hover:underline">
           Back to Home
         </router-link>
       </form>

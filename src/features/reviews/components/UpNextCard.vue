@@ -2,12 +2,12 @@
   <section
     v-if="isDefined(upNext)"
     aria-label="Up next"
-    class="mb-4 flex items-center gap-3 rounded-lg border-2 border-highlightBackground bg-lowBackground p-3 text-left md:mx-6"
+    class="border-highlightBackground bg-lowBackground mb-4 flex items-center gap-3 rounded-lg border-2 p-3 text-left md:mx-6"
   >
     <PosterImage :image-url="upNext.imageUrl" :alt="upNext.title" class="w-14 shrink-0" />
-    <div class="min-w-0 flex-grow">
+    <div class="min-w-0 grow">
       <p
-        class="flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-highlightBackground"
+        class="text-highlightBackground flex items-center gap-1 text-xs font-semibold tracking-wide uppercase"
       >
         <mdicon name="arrow-collapse-up" size="14" />
         <span>Up next</span>

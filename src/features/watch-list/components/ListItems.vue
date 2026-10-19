@@ -78,7 +78,7 @@
             </WorkPosterCard>
             <span
               v-if="item.id === nextWorkId"
-              class="pointer-events-none absolute left-2 top-2 z-10 flex items-center gap-1 rounded-full bg-highlightBackground px-2 py-0.5 text-xs font-bold text-slate-900 shadow"
+              class="bg-highlightBackground pointer-events-none absolute top-2 left-2 z-10 flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-bold text-slate-900 shadow"
             >
               <mdicon name="pin" :size="14" />
               Up next

@@ -6,7 +6,7 @@
   >
     <div
       v-if="total > 0"
-      class="flex h-3 gap-0.5 overflow-hidden rounded-full bg-background/60"
+      class="bg-background/60 flex h-3 gap-0.5 overflow-hidden rounded-full"
       aria-hidden="true"
     >
       <div

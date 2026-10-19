@@ -1,7 +1,7 @@
 <template>
   <div class="flex flex-1 flex-col items-center justify-center text-center">
     <v-avatar :src="imageUrl" :name="name" :size="128" />
-    <p class="mt-5 text-3xl font-bold leading-tight">{{ name }}</p>
+    <p class="mt-5 text-3xl leading-tight font-bold">{{ name }}</p>
     <p class="mt-1 text-base text-white/80">
       {{ workCount }} {{ countNoun }} · {{ averageScore.toFixed(1) }} avg
     </p>
