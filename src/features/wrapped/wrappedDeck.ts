@@ -20,13 +20,20 @@ import RankedWorksCard from "./components/cards/RankedWorksCard.vue";
 import TasteTwinsCard from "./components/cards/TasteTwinsCard.vue";
 import VolumeCard from "./components/cards/VolumeCard.vue";
 import {
+  hotTakeTrivia,
+  numberTrivia,
+  tasteTwinsTrivia,
+  topPickTrivia,
+  type Trivia,
+} from "./trivia";
+import {
   activeMemberCount,
   chunk,
   computeClosestMatches,
   computeHotTakes,
   computePicks,
 } from "./wrapped";
-import { clubTypeIcon, clubTypeStats } from "@/common/clubType";
+import { clubTypeConfig, clubTypeIcon, clubTypeStats } from "@/common/clubType";
 
 export type WrappedTone = "violet" | "blue" | "emerald" | "rose" | "amber" | "sky";
 
@@ -45,7 +52,7 @@ export interface WrappedContext {
  * slot contributes: none when the year lacks the data for it, several when a
  * list is too long for one card.
  */
-interface WrappedCardDef {
+interface StatCardDef {
   key: string;
   label: string;
   tone: WrappedTone;
@@ -53,13 +60,28 @@ interface WrappedCardDef {
   cards: (ctx: WrappedContext) => Record<string, unknown>[];
 }
 
-export interface WrappedCard {
+/** A question asked just before the card that answers it; skipped when it can't be asked fairly. */
+interface TriviaCardDef {
+  key: string;
+  label: string;
+  tone: WrappedTone;
+  trivia: (ctx: WrappedContext, seed: string) => Trivia | undefined;
+}
+
+type WrappedCardDef = StatCardDef | TriviaCardDef;
+
+interface CardBase {
   id: string;
   label: string;
   tone: WrappedTone;
-  component: Component;
-  props: Record<string, unknown>;
 }
+
+export type WrappedCard = CardBase &
+  (
+    | { kind: "stat"; component: Component; props: Record<string, unknown> }
+    | { kind: "trivia"; trivia: Trivia }
+    | { kind: "score"; questionCount: number }
+  );
 
 // How many rows of each list fit on one card before it continues on the next.
 const HOT_TAKES_PER_CARD = 4;
@@ -71,6 +93,12 @@ const MIN_PERSON_WORKS = 2;
 
 const countNoun = (ctx: WrappedContext): string =>
   clubTypeStats(ctx.clubType).pluralNoun.toLowerCase();
+
+const minutesWatched = (ctx: WrappedContext): number =>
+  ctx.movieData.reduce((sum, movie) => sum + (movie.externalData.runtime ?? 0), 0);
+
+const pagesInYear = (ctx: WrappedContext): number =>
+  ctx.bookData.reduce((sum, book) => sum + (book.externalData?.numberOfPages ?? 0), 0);
 
 const intro: WrappedCardDef = {
   key: "intro",
@@ -202,10 +230,7 @@ const hoursWatched: WrappedCardDef = {
   tone: "blue",
   component: VolumeCard,
   cards: (ctx) => {
-    const minutes = ctx.movieData.reduce(
-      (sum, movie) => sum + (movie.externalData.runtime ?? 0),
-      0,
-    );
+    const minutes = minutesWatched(ctx);
     if (minutes === 0) return [];
     const days = minutes / (60 * 24);
     return [
@@ -228,10 +253,7 @@ const pagesRead: WrappedCardDef = {
   tone: "blue",
   component: VolumeCard,
   cards: (ctx) => {
-    const pages = ctx.bookData.reduce(
-      (sum, book) => sum + (book.externalData?.numberOfPages ?? 0),
-      0,
-    );
+    const pages = pagesInYear(ctx);
     if (pages === 0) return [];
     return [
       {
@@ -260,6 +282,60 @@ const topAuthor: WrappedCardDef = {
   cards: (ctx) => personCard(computeTopAuthors(ctx.bookData).at(0), countNoun(ctx)),
 };
 
+const hoursTrivia: TriviaCardDef = {
+  key: "hours-trivia",
+  label: "Guess the hours",
+  tone: "blue",
+  trivia: (ctx, seed) => {
+    const minutes = minutesWatched(ctx);
+    const hours = Math.round(minutes / 60);
+    return numberTrivia(
+      seed,
+      hours,
+      "hours",
+      `How many hours of movies did the club watch in ${ctx.year}?`,
+      `${hours.toLocaleString("en-US")} hours across ${ctx.movieData.length} movies.`,
+    );
+  },
+};
+
+const pagesTrivia: TriviaCardDef = {
+  key: "pages-trivia",
+  label: "Guess the pages",
+  tone: "blue",
+  trivia: (ctx, seed) => {
+    const pages = pagesInYear(ctx);
+    return numberTrivia(
+      seed,
+      pages,
+      "pages",
+      `How many pages did the club read in ${ctx.year}?`,
+      `${pages.toLocaleString("en-US")} pages across ${ctx.bookData.length} books.`,
+    );
+  },
+};
+
+const topPickTriviaCard: TriviaCardDef = {
+  key: "top-pick-trivia",
+  label: "Guess the top pick",
+  tone: "emerald",
+  trivia: (ctx, seed) => topPickTrivia(seed, ctx.workData, clubTypeConfig(ctx.clubType).noun),
+};
+
+const hotTakeTriviaCard: TriviaCardDef = {
+  key: "hot-take-trivia",
+  label: "Guess the hot take",
+  tone: "rose",
+  trivia: (ctx, seed) => hotTakeTrivia(seed, ctx.workData, ctx.members),
+};
+
+const tasteTwinsTriviaCard: TriviaCardDef = {
+  key: "taste-twins-trivia",
+  label: "Guess the taste twins",
+  tone: "sky",
+  trivia: (ctx, seed) => tasteTwinsTrivia(seed, ctx.workData, ctx.members),
+};
+
 /**
  * The card order per club type. The slots that differ — how much the club
  * got through, and whose work it kept coming back to — are the only
@@ -268,37 +344,60 @@ const topAuthor: WrappedCardDef = {
 const WRAPPED_DECKS: Record<ClubType, WrappedCardDef[]> = {
   [ClubType.movie]: [
     intro,
+    hoursTrivia,
     hoursWatched,
+    topPickTriviaCard,
     topPicks,
     bottomPicks,
     mostDivisive,
     topDirector,
+    hotTakeTriviaCard,
     hotTakes,
+    tasteTwinsTriviaCard,
     tasteTwins,
     closestMatches,
   ],
   [ClubType.book]: [
     intro,
+    pagesTrivia,
     pagesRead,
+    topPickTriviaCard,
     topPicks,
     bottomPicks,
     mostDivisive,
     topAuthor,
+    hotTakeTriviaCard,
     hotTakes,
+    tasteTwinsTriviaCard,
     tasteTwins,
     closestMatches,
   ],
 };
 
+function buildCards(def: WrappedCardDef, ctx: WrappedContext): WrappedCard[] {
+  if ("trivia" in def) {
+    const trivia = def.trivia(ctx, `${ctx.year}-${def.key}`);
+    return isDefined(trivia)
+      ? [{ kind: "trivia", id: def.key, label: def.label, tone: def.tone, trivia }]
+      : [];
+  }
+  const cards = def.cards(ctx);
+  return cards.map((props, index) => ({
+    kind: "stat",
+    id: cards.length > 1 ? `${def.key}-${index + 1}` : def.key,
+    label: cards.length > 1 ? `${def.label} (${index + 1} of ${cards.length})` : def.label,
+    tone: def.tone,
+    component: def.component,
+    props,
+  }));
+}
+
 export function buildWrappedDeck(ctx: WrappedContext): WrappedCard[] {
-  return WRAPPED_DECKS[ctx.clubType].flatMap((def) => {
-    const cards = def.cards(ctx);
-    return cards.map((props, index) => ({
-      id: cards.length > 1 ? `${def.key}-${index + 1}` : def.key,
-      label: cards.length > 1 ? `${def.label} (${index + 1} of ${cards.length})` : def.label,
-      tone: def.tone,
-      component: def.component,
-      props,
-    }));
-  });
+  const cards = WRAPPED_DECKS[ctx.clubType].flatMap((def) => buildCards(def, ctx));
+  const questionCount = cards.filter((card) => card.kind === "trivia").length;
+  if (questionCount === 0) return cards;
+  return [
+    ...cards,
+    { kind: "score", id: "trivia-score", label: "Trivia score", tone: "violet", questionCount },
+  ];
 }
