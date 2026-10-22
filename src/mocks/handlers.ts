@@ -12,7 +12,11 @@ import {
   UserListItemWithSource,
   WorkCommentDto,
 } from "../../lib/types/lists";
-import { SiteMetrics, SnapshotHistoryPoint, siteMetricsSchema } from "../../lib/types/metrics";
+import {
+  AdminDashboard,
+  adminDashboardSchema,
+  SnapshotHistoryPoint,
+} from "../../lib/types/metrics";
 import { MovieCastMember, TMDBWatchProvidersResponse } from "../../lib/types/movie";
 import adminMetrics from "./data/adminMetrics.json";
 import club from "./data/club";
@@ -27,7 +31,7 @@ export const handlers = [
     return HttpResponse.json(null);
   }),
   http.get("/api/admin/metrics", () => {
-    return HttpResponse.json<SiteMetrics>(siteMetricsSchema.parse(adminMetrics));
+    return HttpResponse.json<AdminDashboard>(adminDashboardSchema.parse(adminMetrics));
   }),
   http.get("/api/admin/metrics/history", () => {
     return HttpResponse.json<SnapshotHistoryPoint[]>([]);
