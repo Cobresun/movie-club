@@ -1,8 +1,8 @@
-import { isDefined } from "@/../lib/checks/checks";
-import { WorkDataSummary } from "@/../lib/types/lists";
+import { isDefined } from "./checks/checks.js";
 
 // Score Assist ranks comparison candidates by how "alike" they feel to the work
-// being reviewed, so the user compares familiar things. A scorer returns a value
+// being reviewed, so the user compares familiar things, and the daily game ranks
+// every guess against the day's answer the same way. A scorer returns a value
 // in [0,1] (0 = nothing in common, 1 = identical on every measured axis): a
 // weighted average of per-field overlaps. Per-field weights encode that a shared
 // director/author counts far more than a shared genre/subject. Set overlaps use
@@ -25,9 +25,9 @@ export const sum = (values: readonly number[]): number =>
  * Smoothed so an empty corpus (or a tag no work has) weighs 1 — i.e. the scorer
  * degrades to a plain Jaccard — while rarer tags weigh above 1.
  */
-export function buildIdf(
-  corpus: readonly (WorkDataSummary | undefined)[],
-  extract: (data: WorkDataSummary | undefined) => readonly string[],
+export function buildIdf<T>(
+  corpus: readonly T[],
+  extract: (data: T) => readonly string[],
 ): (tag: string) => number {
   const documentFrequency = new Map<string, number>();
   for (const data of corpus) {
