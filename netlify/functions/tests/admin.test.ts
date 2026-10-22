@@ -2,16 +2,18 @@
  * Integration tests for `netlify/functions/admin.ts`.
  *
  * Every dashboard query runs against the real schema, seeded through the same
- * endpoints a club uses. Signups are left unasserted: the auth tables survive
- * between tests (see `helpers/database.ts`), so user counts depend on which
- * files ran first.
+ * endpoints a club uses. Signups are asserted only as the change one sign-up
+ * makes: the auth tables survive between tests (see `helpers/database.ts`), so
+ * absolute user counts depend on which files ran first.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { SIGNUP_CAMPAIGN_COOKIE, SIGNUP_SOURCE_COOKIE } from "../../../lib/signupSource";
+import { SignupSource } from "../../../lib/types/generated/db";
 import { AdminDashboard, SnapshotHistoryPoint } from "../../../lib/types/metrics";
 import { handler } from "../admin";
 import captureSnapshot from "../scheduled-metrics-snapshot";
-import { FIXTURE_USERS, signIn, TestSession } from "./helpers/auth";
+import { FIXTURE_USERS, signIn, signUpNewUser, TestSession } from "./helpers/auth";
 import {
   addComment,
   addReviewedWork,
@@ -317,5 +319,84 @@ describe("GET /api/admin/metrics/history", () => {
     expect(res.body[0].metrics.totals).toMatchObject({ clubs: 1, reviews: 1 });
     expect(res.body[0].metrics.activeClubs).toEqual({ last7Days: 1, last30Days: 1 });
     expect(res.body[0].metrics.health?.dormantClubs).toEqual({ numerator: 0, denominator: 1 });
+  });
+});
+
+describe("signup acquisition", () => {
+  const channel = async (source: SignupSource | null) =>
+    (await dashboard()).acquisition.channels.find((row) => row.source === source) ?? {
+      source,
+      signups: 0,
+      activated: 0,
+    };
+
+  it("reports every channel, even before anyone has signed up through it", async () => {
+    const sources = (await dashboard()).acquisition.channels.map((row) => row.source);
+
+    expect(sources).toEqual(expect.arrayContaining(Object.values(SignupSource)));
+  });
+
+  it("credits a signup to the channel its browser arrived through", async () => {
+    const before = await channel(SignupSource.invite);
+
+    await signUpNewUser("invited@movie.club", "Invited", {
+      cookie: `${SIGNUP_SOURCE_COOKIE}=${SignupSource.invite}`,
+    });
+
+    expect(await channel(SignupSource.invite)).toEqual({
+      source: SignupSource.invite,
+      signups: before.signups + 1,
+      activated: before.activated,
+    });
+  });
+
+  it("counts a signup with no recognisable channel as not recorded", async () => {
+    const before = await channel(null);
+
+    await signUpNewUser("mystery@movie.club", "Mystery", {
+      cookie: `${SIGNUP_SOURCE_COOKIE}=carrier-pigeon`,
+    });
+
+    expect((await channel(null)).signups).toBe(before.signups + 1);
+  });
+
+  it("names the referrer a referral signup was tagged with", async () => {
+    const referrer = async () =>
+      (await dashboard()).acquisition.referrers.find((row) => row.referrer === "birthdaybot")
+        ?.signups ?? 0;
+    const before = await referrer();
+
+    await signUpNewUser("birthday@movie.club", "Birthday", {
+      cookie: `${SIGNUP_SOURCE_COOKIE}=${SignupSource.referral}:birthdaybot`,
+    });
+
+    expect(await referrer()).toBe(before + 1);
+  });
+
+  it("credits a signup from a tagged ad to its source and campaign", async () => {
+    await signUpNewUser("from-reddit@movie.club", "From Reddit", {
+      cookie: `${SIGNUP_SOURCE_COOKIE}=${SignupSource.referral}; ${SIGNUP_CAMPAIGN_COOKIE}=reddit~test1_bookclub`,
+    });
+
+    expect((await dashboard()).acquisition.campaigns).toContainEqual({
+      utmSource: "reddit",
+      utmCampaign: "test1_bookclub",
+      signups: 1,
+      activated: 0,
+    });
+  });
+
+  it("still credits the channel when the campaign cookie was tampered with", async () => {
+    const campaignSignups = async () =>
+      (await dashboard()).acquisition.campaigns.reduce((sum, row) => sum + row.signups, 0);
+    const referralsBefore = (await channel(SignupSource.referral)).signups;
+    const campaignSignupsBefore = await campaignSignups();
+
+    await signUpNewUser("tampered@movie.club", "Tampered", {
+      cookie: `${SIGNUP_SOURCE_COOKIE}=${SignupSource.referral}; ${SIGNUP_CAMPAIGN_COOKIE}=<script>`,
+    });
+
+    expect((await channel(SignupSource.referral)).signups).toBe(referralsBefore + 1);
+    expect(await campaignSignups()).toBe(campaignSignupsBefore);
   });
 });

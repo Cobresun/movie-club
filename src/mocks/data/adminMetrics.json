@@ -429,5 +429,22 @@
       "workImageUrl": null,
       "score": null
     }
-  ]
+  ],
+  "acquisition": {
+    "channels": [
+      { "source": "invite", "signups": 5, "activated": 4 },
+      { "source": "share", "signups": 0, "activated": 0 },
+      { "source": "referral", "signups": 16, "activated": 6 },
+      { "source": "direct", "signups": 1, "activated": 0 },
+      { "source": null, "signups": 2, "activated": 1 }
+    ],
+    "referrers": [
+      { "referrer": "birthdaybot", "signups": 2, "activated": 1 },
+      { "referrer": "reddit.com", "signups": 1, "activated": 0 }
+    ],
+    "campaigns": [
+      { "utmSource": "reddit", "utmCampaign": "test1_bookclub", "signups": 14, "activated": 5 },
+      { "utmSource": "share", "utmCampaign": null, "signups": 3, "activated": 1 }
+    ]
+  }
 }
