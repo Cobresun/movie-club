@@ -41,7 +41,8 @@
         @mousedown.prevent="pick(index)"
         @mouseenter="activeIndex = index"
       >
-        {{ movie.title }} <span class="text-white/60">({{ movie.year }})</span>
+        {{ movie.title }}
+        <span v-if="isDefined(movie.year)" class="text-white/60">({{ movie.year }})</span>
       </li>
     </ul>
     <p v-if="query.trim().length > 1 && !hasElements(matches)" class="text-sm text-white/60">
@@ -54,11 +55,13 @@
 import { computed, ref, useId, watch } from "vue";
 
 import { hasElements, isDefined } from "@/../lib/checks/checks";
+import type { DailyGameMovie } from "@/../lib/types/dailyGame";
 import { searchMovies } from "@/features/daily-game/game";
-import type { GameMovie } from "@/features/daily-game/movies";
+
+const { pool } = defineProps<{ pool: readonly DailyGameMovie[] }>();
 
 const emit = defineEmits<{
-  (e: "pick", movie: GameMovie): void;
+  (e: "pick", movie: DailyGameMovie): void;
 }>();
 
 const inputId = useId();
@@ -68,7 +71,7 @@ const optionId = (index: number) => `${listId}-option-${index}`;
 const query = ref("");
 const activeIndex = ref(0);
 
-const matches = computed(() => searchMovies(query.value));
+const matches = computed(() => searchMovies(query.value, pool));
 const isOpen = computed(() => hasElements(matches.value));
 
 watch(query, () => {

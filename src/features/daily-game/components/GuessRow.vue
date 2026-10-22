@@ -18,7 +18,9 @@
       <div class="flex items-baseline justify-between gap-3">
         <p :id="titleId" class="min-w-0 font-semibold">
           {{ guess.movie.title }}
-          <span class="font-normal text-white/60">({{ guess.movie.year }})</span>
+          <span v-if="isDefined(guess.movie.year)" class="font-normal text-white/60"
+            >({{ guess.movie.year }})</span
+          >
           <span
             v-if="guess.hint"
             class="ml-1 rounded bg-highlight/20 px-1.5 py-0.5 text-xs font-medium text-highlight"
@@ -28,16 +30,16 @@
         </p>
         <p class="flex-shrink-0 whitespace-nowrap text-right">
           <span class="text-xs uppercase tracking-wide text-white/60">{{ temperatureLabel }}</span>
-          <span class="ml-2 text-lg font-bold">#{{ guess.rank }}</span>
+          <span class="ml-2 text-lg font-bold">#{{ guess.movie.rank }}</span>
         </p>
       </div>
       <ul
-        v-if="hasElements(guess.clues)"
+        v-if="hasElements(guess.movie.clues)"
         :aria-label="`What ${guess.movie.title} has in common with the answer`"
         class="flex flex-wrap gap-1.5"
       >
         <li
-          v-for="clue in guess.clues"
+          v-for="clue in guess.movie.clues"
           :key="clue"
           class="rounded-full bg-background/70 px-2 py-0.5 text-xs text-white/80"
         >
@@ -51,7 +53,7 @@
 <script setup lang="ts">
 import { computed, useId } from "vue";
 
-import { hasElements } from "@/../lib/checks/checks";
+import { hasElements, isDefined } from "@/../lib/checks/checks";
 import type { Temperature } from "@/features/daily-game/game";
 import type { RankedGuess } from "@/features/daily-game/useDailyGame";
 
@@ -69,6 +71,6 @@ const TEMPERATURE_LABELS: Record<Temperature, string> = {
 };
 
 const temperatureLabel = computed(() =>
-  guess.rank === 1 ? "Got it" : TEMPERATURE_LABELS[guess.temperature],
+  guess.movie.rank === 1 ? "Got it" : TEMPERATURE_LABELS[guess.temperature],
 );
 </script>

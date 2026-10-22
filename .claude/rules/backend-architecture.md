@@ -16,7 +16,7 @@ router.get("/:clubSlug", validClubSlug, async ({ clubSlug }, res) =>
 );
 ```
 
-Routers are mounted from `netlify/functions/club/index.ts` and `member.ts` — read those for the current route surface rather than relying on a list here.
+Routers are mounted from `netlify/functions/club/index.ts` and `member.ts`, with a few single-purpose functions alongside them (`admin.ts`, `daily-game.ts`, `og-image.ts`) — read those for the current route surface rather than relying on a list here.
 
 ## Request pipeline
 

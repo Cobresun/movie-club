@@ -1,61 +1,48 @@
 import { computed, ref, watch } from "vue";
 import { z } from "zod";
 
-import {
-  answerFor,
-  connections,
-  hintRank,
-  puzzleNumber,
-  rankPool,
-  shareText,
-  temperature,
-  type Temperature,
-} from "./game";
-import { GAME_MOVIES, type GameMovie } from "./movies";
+import { hintRank, previousDate, shareText, temperature, type Temperature } from "./game";
 import { isDefined } from "@/../lib/checks/checks";
+import type { DailyGameMovie, DailyGamePuzzle } from "@/../lib/types/dailyGame";
 
 const STORAGE_KEY = "movieclub:closer";
 
 const entrySchema = z.object({ id: z.string(), hint: z.boolean() });
-const puzzleSchema = z.object({ entries: z.array(entrySchema), gaveUp: z.boolean() });
-const storedSchema = z.object({ puzzles: z.record(z.string(), puzzleSchema) });
+const daySchema = z.object({
+  entries: z.array(entrySchema),
+  solved: z.boolean(),
+  gaveUp: z.boolean(),
+});
+const storedSchema = z.object({ days: z.record(z.string(), daySchema) });
 
-type PuzzleRecord = z.infer<typeof puzzleSchema>;
+type DayRecord = z.infer<typeof daySchema>;
 type Stored = z.infer<typeof storedSchema>;
 
 const readStored = (): Stored => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw === null) return { puzzles: {} };
+    if (raw === null) return { days: {} };
     const result = storedSchema.safeParse(JSON.parse(raw));
-    return result.success ? result.data : { puzzles: {} };
+    return result.success ? result.data : { days: {} };
   } catch {
-    return { puzzles: {} };
+    return { days: {} };
   }
 };
 
-const MOVIES_BY_ID = new Map(GAME_MOVIES.map((movie) => [movie.id, movie]));
-
 export interface RankedGuess {
-  movie: GameMovie;
-  rank: number;
+  movie: DailyGameMovie;
   temperature: Temperature;
   /** 1 for the answer, falling to 0 for the least alike movie in the pool. */
   closeness: number;
   hint: boolean;
-  clues: string[];
 }
 
 export type GuessOutcome = "added" | "duplicate";
 
-const isSolved = (record: PuzzleRecord | undefined, puzzle: number): boolean =>
-  record?.entries.some((entry) => entry.id === answerFor(puzzle).id) ?? false;
-
-export function useDailyGame(now: Date = new Date()) {
-  const puzzle = puzzleNumber(now);
-  const answer = answerFor(puzzle);
-  const ranks = rankPool(answer);
-  const poolSize = GAME_MOVIES.length;
+export function useDailyGame(puzzle: DailyGamePuzzle) {
+  const poolSize = puzzle.movies.length;
+  const moviesById = new Map(puzzle.movies.map((movie) => [movie.id, movie]));
+  const answer = puzzle.movies.find((movie) => movie.rank === 1);
 
   const stored = ref<Stored>(readStored());
 
@@ -71,56 +58,59 @@ export function useDailyGame(now: Date = new Date()) {
     { deep: true },
   );
 
-  const record = computed<PuzzleRecord>(
-    () => stored.value.puzzles[String(puzzle)] ?? { entries: [], gaveUp: false },
+  const record = computed<DayRecord>(
+    () => stored.value.days[puzzle.date] ?? { entries: [], solved: false, gaveUp: false },
   );
 
-  const update = (next: PuzzleRecord) => {
-    stored.value = { puzzles: { ...stored.value.puzzles, [String(puzzle)]: next } };
+  const update = (next: DayRecord) => {
+    stored.value = { days: { ...stored.value.days, [puzzle.date]: next } };
   };
 
   const toGuess = (id: string, hint: boolean): RankedGuess | undefined => {
-    const movie = MOVIES_BY_ID.get(id);
-    const rank = ranks.get(id);
-    if (!isDefined(movie) || !isDefined(rank)) return undefined;
+    const movie = moviesById.get(id);
+    if (!isDefined(movie)) return undefined;
     return {
       movie,
-      rank,
-      temperature: temperature(rank),
-      closeness: 1 - (rank - 1) / (poolSize - 1),
+      temperature: temperature(movie.rank, poolSize),
+      closeness: poolSize < 2 ? 1 : 1 - (movie.rank - 1) / (poolSize - 1),
       hint,
-      clues: connections(movie, answer),
     };
   };
 
   const guesses = computed(() =>
     record.value.entries.map((entry) => toGuess(entry.id, entry.hint)).filter(isDefined),
   );
-  const guessesByRank = computed(() => [...guesses.value].sort((a, b) => a.rank - b.rank));
+  const guessesByRank = computed(() =>
+    [...guesses.value].sort((a, b) => a.movie.rank - b.movie.rank),
+  );
   const latestGuess = computed(() => guesses.value.at(-1));
   const hintCount = computed(() => guesses.value.filter((guess) => guess.hint).length);
 
-  const solved = computed(() => isSolved(record.value, puzzle));
+  const solved = computed(() => record.value.solved);
   const gaveUp = computed(() => record.value.gaveUp && !solved.value);
   const finished = computed(() => solved.value || gaveUp.value);
 
-  const hasGuessed = (id: string) => record.value.entries.some((entry) => entry.id === id);
+  const addEntry = (id: string, hint: boolean) => {
+    update({
+      ...record.value,
+      entries: [...record.value.entries, { id, hint }],
+      solved: record.value.solved || id === answer?.id,
+    });
+  };
 
   const guess = (id: string): GuessOutcome => {
-    if (hasGuessed(id)) return "duplicate";
-    update({ ...record.value, entries: [...record.value.entries, { id, hint: false }] });
+    if (record.value.entries.some((entry) => entry.id === id)) return "duplicate";
+    addEntry(id, false);
     return "added";
   };
 
   const nextHint = computed(() => {
-    const rank = hintRank(new Set(guesses.value.map((g) => g.rank)), poolSize);
-    return isDefined(rank) ? [...ranks].find(([, r]) => r === rank)?.[0] : undefined;
+    const rank = hintRank(new Set(guesses.value.map((g) => g.movie.rank)), poolSize);
+    return isDefined(rank) ? puzzle.movies.find((movie) => movie.rank === rank) : undefined;
   });
 
   const takeHint = () => {
-    const id = nextHint.value;
-    if (!isDefined(id)) return;
-    update({ ...record.value, entries: [...record.value.entries, { id, hint: true }] });
+    if (isDefined(nextHint.value)) addEntry(nextHint.value.id, true);
   };
 
   const giveUp = () => {
@@ -128,32 +118,33 @@ export function useDailyGame(now: Date = new Date()) {
   };
 
   const stats = computed(() => {
-    const played = Object.entries(stored.value.puzzles).filter(
-      ([number, entry]) => entry.gaveUp || isSolved(entry, Number(number)),
-    );
-    const won = played.filter(([number, entry]) => isSolved(entry, Number(number))).length;
+    const days = Object.values(stored.value.days);
+    const played = days.filter((day) => day.solved || day.gaveUp).length;
+    const won = days.filter((day) => day.solved).length;
     // Today's unfinished puzzle doesn't break a streak that ran through yesterday.
-    let day = finished.value ? puzzle : puzzle - 1;
+    let date = finished.value ? puzzle.date : previousDate(puzzle.date);
     let streak = 0;
-    while (day >= 1 && isSolved(stored.value.puzzles[String(day)], day)) {
+    while (stored.value.days[date]?.solved === true) {
       streak++;
-      day--;
+      date = previousDate(date);
     }
-    return { played: played.length, won, streak };
+    return { played, won, streak };
   });
 
   const share = (url: string) =>
     shareText({
-      puzzle,
-      guessRanks: guesses.value.map((g) => g.rank),
+      puzzle: puzzle.puzzle,
+      guessRanks: guesses.value.map((g) => g.movie.rank),
+      poolSize,
       hints: hintCount.value,
       solved: solved.value,
       url,
     });
 
   return {
-    puzzle,
+    puzzle: puzzle.puzzle,
     answer,
+    pool: puzzle.movies,
     poolSize,
     guesses,
     guessesByRank,

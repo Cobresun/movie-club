@@ -1,8 +1,9 @@
 import { clubScoreFilter, decadePresets, reviewedInFilter } from "../filterOptions";
 import type { ClubTypeConfig } from "../types";
-import { movieDisplay, releaseYear } from "./display";
+import { movieDisplay } from "./display";
 import { browseMovies, searchMovies } from "./search";
 import { makeMovieSimilarity } from "./similarity";
+import { releaseYear } from "@/../lib/movie/releaseYear";
 import { ClubType, WorkType } from "@/../lib/types/generated/db";
 import { asMovie, formatRuntime } from "@/common/workDisplay";
 
