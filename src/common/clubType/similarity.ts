@@ -1,5 +1,4 @@
 import { isDefined } from "@/../lib/checks/checks";
-import { WorkDataSummary } from "@/../lib/types/lists";
 
 // Score Assist ranks comparison candidates by how "alike" they feel to the work
 // being reviewed, so the user compares familiar things. A scorer returns a value
@@ -25,9 +24,9 @@ export const sum = (values: readonly number[]): number =>
  * Smoothed so an empty corpus (or a tag no work has) weighs 1 — i.e. the scorer
  * degrades to a plain Jaccard — while rarer tags weigh above 1.
  */
-export function buildIdf(
-  corpus: readonly (WorkDataSummary | undefined)[],
-  extract: (data: WorkDataSummary | undefined) => readonly string[],
+export function buildIdf<T>(
+  corpus: readonly T[],
+  extract: (data: T) => readonly string[],
 ): (tag: string) => number {
   const documentFrequency = new Map<string, number>();
   for (const data of corpus) {
