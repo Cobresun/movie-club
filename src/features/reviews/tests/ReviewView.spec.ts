@@ -2,7 +2,7 @@ import { screen, waitFor } from "@testing-library/vue";
 import { http, HttpResponse } from "msw";
 
 import ReviewView from "../views/ReviewView.vue";
-import reviews from "@/mocks/data/reviews.json";
+import reviews from "@/mocks/data/reviews";
 import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
 import { server } from "@/mocks/server";
 import { logIn, render } from "@/tests/utils";
