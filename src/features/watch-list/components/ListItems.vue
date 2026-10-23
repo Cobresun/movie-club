@@ -93,6 +93,7 @@
         :is-next-work="selectedItem.id === nextWorkId"
         :can-review="canReview && listId !== reviewsListId"
         :other-lists="otherLists"
+        :members="members"
         :added-by-member="adderFor(selectedItem)"
         @close="emit('deselect')"
         @review="
@@ -106,6 +107,7 @@
           emit('deselect');
         "
         @move-to-list="(destId) => onMoveFromDrawer(destId)"
+        @change-added-by="onChangeAddedBy"
       />
     </template>
   </div>
@@ -133,6 +135,7 @@ import {
   useNextWork,
   useReorderList,
   useSetNextWork,
+  useUpdateAddedBy,
 } from "@/service/useList";
 
 // A freshly-added item is optimistic until the add settles and the list
@@ -186,6 +189,7 @@ watch(
 
 const { mutate: deleteItem } = useDeleteListItem(props.clubSlug, props.listId);
 const { mutate: moveItem } = useMoveListItem(props.clubSlug);
+const { mutate: updateAddedBy } = useUpdateAddedBy(props.clubSlug, props.listId);
 const router = useRouter();
 
 // The card just promoted to next up, or just dropped after a drag, glows once
@@ -237,6 +241,11 @@ const onMove = (workId: string, destinationListId: string) => {
     destinationListId,
     workId,
   });
+};
+
+const onChangeAddedBy = (userId: string) => {
+  if (selectedItem.value === undefined || isPending(selectedItem.value.id)) return;
+  updateAddedBy({ workId: selectedItem.value.id, userId });
 };
 
 const randomPickerOpen = computed({

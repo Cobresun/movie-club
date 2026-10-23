@@ -10,6 +10,7 @@ import {
   WorkDataSummary,
 } from "../../../lib/types/lists.js";
 import { listInsertDtoSchema } from "../../../lib/types/lists.js";
+import ClubRepository from "../repositories/ClubRepository";
 import ListRepository from "../repositories/ListRepository";
 import ReviewRepository from "../repositories/ReviewRepository";
 import UserRepository from "../repositories/UserRepository";
@@ -248,6 +249,35 @@ router.put(
       return res(badRequest("This work does not exist in the list"));
     }
     await ListRepository.updateAddedDate(listId, workId, new Date(body.addedDate));
+    return res(ok());
+  },
+);
+
+const updateAddedBySchema = z.object({
+  userId: z.string().min(1),
+});
+
+router.put(
+  "/:listId/items/:workId/added-by",
+  validListId,
+  secured<ListRequest>,
+  async ({ listId, clubId, params, event }, res) => {
+    const workId = requireParam(params, "workId", res);
+    if (isRouterResponse(workId)) return workId;
+    const body = parseBody(event, updateAddedBySchema, res);
+    if (isRouterResponse(body)) return body;
+
+    const [exists, isMember] = await Promise.all([
+      ListRepository.isItemInList(listId, workId),
+      ClubRepository.isUserInClub(clubId, body.userId),
+    ]);
+    if (!exists) {
+      return res(badRequest("This work does not exist in the list"));
+    }
+    if (!isMember) {
+      return res(badRequest("That user is not a member of this club"));
+    }
+    await ListRepository.updateAddedBy(listId, workId, body.userId);
     return res(ok());
   },
 );

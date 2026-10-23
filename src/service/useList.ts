@@ -422,6 +422,24 @@ export function useDeleteListItem(clubSlug: string, listId: string) {
   });
 }
 
+export function useUpdateAddedBy(clubSlug: string, listId: string) {
+  const auth = useAuthStore();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ workId, userId }: { workId: string; userId: string }) =>
+      auth.request.put(`/api/club/${clubSlug}/list/${listId}/items/${workId}/added-by`, {
+        userId,
+      }),
+    onMutate: async ({ workId, userId }) => {
+      await queryClient.cancelQueries({ queryKey: listKey(clubSlug, listId) });
+      queryClient.setQueryData<DetailedWorkListItem[]>(listKey(clubSlug, listId), (currentList) =>
+        currentList?.map((item) => (item.id === workId ? { ...item, addedBy: userId } : item)),
+      );
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: listKey(clubSlug, listId) }),
+  });
+}
+
 export function useReorderList(clubSlug: string, listId: string) {
   const auth = useAuthStore();
   const queryClient = useQueryClient();
