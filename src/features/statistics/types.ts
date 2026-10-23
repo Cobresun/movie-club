@@ -15,6 +15,8 @@ export interface WorkStatsBase {
   /** Provider id of the work — the join key for the bulk cast endpoint. */
   externalId: string | undefined;
   imageUrl: string | undefined;
+  /** Member who put the work on a club list, when that was recorded. */
+  addedBy?: string;
   average: number;
   userScores: Record<string, number | undefined>;
   scores: Record<string, { id: string; created_date: string; score: number }>;
@@ -140,6 +142,15 @@ export interface ClubRecordEntry {
   imageUrl: string | undefined;
   /** The record's headline number (average score, or score spread). */
   value: number;
+}
+
+export interface PickerLeaderboardEntry {
+  member: { id: string; name: string; image?: string };
+  /** Mean club average across the works this member added. */
+  averageScore: number;
+  pickCount: number;
+  best: ClubRecordEntry;
+  worst: ClubRecordEntry;
 }
 
 export interface ClubRecords {
