@@ -9,6 +9,7 @@ import ClubRecordsWidget from "./components/ClubRecordsWidget.vue";
 import GenresWidget from "./components/GenresWidget.vue";
 import MemberOutliersWidget from "./components/MemberOutliersWidget.vue";
 import PeopleWidget from "./components/PeopleWidget.vue";
+import PickerLeaderboardWidget from "./components/PickerLeaderboardWidget.vue";
 import ReviewerLeaderboardWidget from "./components/ReviewerLeaderboardWidget.vue";
 import ScoreChartsWidget from "./components/ScoreChartsWidget.vue";
 import StatsWidget from "./components/StatsWidget.vue";
@@ -86,6 +87,12 @@ const reviewerLeaderboardWidget: StatWidgetDef = {
   props: (ctx) => ({ workData: ctx.workData, members: ctx.members }),
   visible: hasMoreThan(1),
 };
+const pickerLeaderboardWidget: StatWidgetDef = {
+  key: "picker-leaderboard",
+  component: PickerLeaderboardWidget,
+  props: (ctx) => ({ workData: ctx.workData, members: ctx.members, clubType: ctx.clubType }),
+  visible: hasMoreThan(1),
+};
 const tasteSimilarityWidget: StatWidgetDef = {
   key: "taste-similarity",
   component: TasteSimilarityWidget,
@@ -136,6 +143,7 @@ export const STAT_WIDGETS: Record<ClubType, StatWidgetDef[]> = {
       props: (ctx) => ({ movieData: ctx.movieData }),
     },
     reviewerLeaderboardWidget,
+    pickerLeaderboardWidget,
     tasteSimilarityWidget,
     memberOutliersWidget,
     clubConsensusWidget,
@@ -161,6 +169,7 @@ export const STAT_WIDGETS: Record<ClubType, StatWidgetDef[]> = {
       props: (ctx) => ({ bookData: ctx.bookData }),
     },
     reviewerLeaderboardWidget,
+    pickerLeaderboardWidget,
     tasteSimilarityWidget,
     memberOutliersWidget,
     clubConsensusWidget,
