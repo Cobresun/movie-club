@@ -9,6 +9,7 @@
         :is-desktop="isDesktop"
         :can-review="canReview"
         :other-lists="otherLists"
+        :members="members"
         :added-by-member="addedByMember"
         @close="close"
         @review="emit('review')"
@@ -16,6 +17,7 @@
         @clear-next-work="emit('clear-next-work')"
         @delete="emit('delete')"
         @move-to-list="(id) => emit('move-to-list', id)"
+        @change-added-by="(userId) => emit('change-added-by', userId)"
       />
     </v-bottom-sheet>
 
@@ -28,6 +30,7 @@
         :is-desktop="isDesktop"
         :can-review="canReview"
         :other-lists="otherLists"
+        :members="members"
         :added-by-member="addedByMember"
         @close="close"
         @review="emit('review')"
@@ -35,6 +38,7 @@
         @clear-next-work="emit('clear-next-work')"
         @delete="emit('delete')"
         @move-to-list="(id) => emit('move-to-list', id)"
+        @change-added-by="(userId) => emit('change-added-by', userId)"
       />
     </VSideDrawer>
   </div>
@@ -54,12 +58,14 @@ defineProps<{
   isNextWork: boolean;
   canReview: boolean;
   otherLists: { id: string; title: string }[];
+  members: Member[];
   addedByMember?: Member;
 }>();
 
 const emit = defineEmits<{
   (e: "close" | "review" | "set-next-work" | "clear-next-work" | "delete"): void;
   (e: "move-to-list", listId: string): void;
+  (e: "change-added-by", userId: string): void;
 }>();
 
 const isDesktop = useIsDesktop();

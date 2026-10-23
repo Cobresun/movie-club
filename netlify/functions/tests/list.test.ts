@@ -614,6 +614,69 @@ describe("PUT /api/club/:clubSlug/list/:listId/items/:workId/added-date", () => 
   });
 });
 
+describe("PUT /api/club/:clubSlug/list/:listId/items/:workId/added-by", () => {
+  it("reattributes the item to another member", async () => {
+    const alice = await signIn("alice");
+    const bob = await signIn("bob");
+    const club = await createClub(alice, { members: [alice, bob] });
+    const work = await addWork(club, alice, { externalId: null });
+
+    const res = await api.put(
+      `/api/club/${club.slug}/list/${club.listId}/items/${work.id}/added-by`,
+      { body: { userId: bob.userId }, as: alice },
+    );
+
+    expect(res.statusCode).toBe(200);
+    const items = await itemsOf(club.slug, club.listId);
+    expect(items.body[0].addedBy).toBe(bob.userId);
+  });
+
+  it("returns 400 when the user is not a member of the club", async () => {
+    const alice = await signIn("alice");
+    const bob = await signIn("bob");
+    const club = await createClub(alice, { members: [alice] });
+    const work = await addWork(club, alice, { externalId: null });
+
+    const res = await api.put<{ error: string }>(
+      `/api/club/${club.slug}/list/${club.listId}/items/${work.id}/added-by`,
+      { body: { userId: bob.userId }, as: alice },
+    );
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.error).toBe("That user is not a member of this club");
+    expect((await itemsOf(club.slug, club.listId)).body[0].addedBy).toBe(alice.userId);
+  });
+
+  it("returns 400 when the work is not on the list", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub(alice);
+    const other = await createList(club, alice, "Other");
+    const work = await addWork(club, alice, { externalId: null, listId: other });
+
+    const res = await api.put<{ error: string }>(
+      `/api/club/${club.slug}/list/${club.listId}/items/${work.id}/added-by`,
+      { body: { userId: alice.userId }, as: alice },
+    );
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.error).toBe("This work does not exist in the list");
+  });
+
+  it("returns 401 for a non-member", async () => {
+    const alice = await signIn("alice");
+    const bob = await signIn("bob");
+    const club = await createClub(alice);
+    const work = await addWork(club, alice, { externalId: null });
+
+    const res = await api.put(
+      `/api/club/${club.slug}/list/${club.listId}/items/${work.id}/added-by`,
+      { body: { userId: bob.userId }, as: bob },
+    );
+
+    expect(res.statusCode).toBe(401);
+  });
+});
+
 describe("POST /api/club/:clubSlug/list/:listId/items/:workId/move", () => {
   it("moves the work between lists, carrying its attribution forward", async () => {
     const alice = await signIn("alice");

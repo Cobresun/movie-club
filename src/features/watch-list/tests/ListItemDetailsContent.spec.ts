@@ -37,6 +37,7 @@ const baseProps = {
   isDesktop: true,
   canReview: true,
   otherLists: [],
+  members: [],
 };
 
 // The panel embeds CommentThread and WatchProviders, which both fetch.
@@ -192,6 +193,39 @@ describe("ListItemDetailsContent", () => {
     await rendered.user.click(await screen.findByRole("option", { name: "Someday" }));
 
     expect(rendered.emitted()["move-to-list"]).toStrictEqual([["l2"]]);
+  });
+
+  it("emits change-added-by with the chosen member", async () => {
+    const alice: Member = { id: "u1", name: "Alice", email: "a@test.com" };
+    const bob: Member = { id: "u2", name: "Bob", email: "b@test.com" };
+    const rendered = render(ListItemDetailsContent, {
+      props: {
+        ...baseProps,
+        movie: { ...movie, addedBy: alice.id },
+        members: [alice, bob],
+        addedByMember: alice,
+      },
+    });
+
+    await rendered.user.click(screen.getByRole("button", { name: "Change who added" }));
+    expect(
+      await screen.findByRole("option", { name: "Alice", selected: true }),
+    ).toBeInTheDocument();
+    await rendered.user.click(screen.getByRole("option", { name: "Bob" }));
+
+    expect(rendered.emitted()["change-added-by"]).toEqual([["u2"]]);
+  });
+
+  it("does not emit change-added-by when the current adder is picked again", async () => {
+    const alice: Member = { id: "u1", name: "Alice", email: "a@test.com" };
+    const rendered = render(ListItemDetailsContent, {
+      props: { ...baseProps, movie: { ...movie, addedBy: alice.id }, members: [alice] },
+    });
+
+    await rendered.user.click(screen.getByRole("button", { name: "Change who added" }));
+    await rendered.user.click(await screen.findByRole("option", { name: "Alice" }));
+
+    expect(rendered.emitted()["change-added-by"]).toBeUndefined();
   });
 
   it("hides 'Move to list' when there is no other list", () => {

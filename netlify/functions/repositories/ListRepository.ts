@@ -395,6 +395,15 @@ class ListRepository {
       .execute();
   }
 
+  async updateAddedBy(listId: string, workId: string, userId: string) {
+    return db
+      .updateTable("work_list_item")
+      .set("added_by_user_id", userId)
+      .where("work_id", "=", workId)
+      .where("list_id", "=", listId)
+      .execute();
+  }
+
   // -- Misc -------------------------------------------------------------
 
   // Media-agnostic work columns for a single work. Callers enrich with
