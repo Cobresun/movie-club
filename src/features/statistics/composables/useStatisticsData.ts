@@ -85,6 +85,7 @@ function statsBase(review: DetailedReviewListItem): WorkStatsBase {
     id: review.id,
     title: review.title,
     externalId: review.externalId,
+    addedBy: review.addedBy,
     dateWatched: DateTime.fromISO(review.createdDate).toLocaleString(),
     userScores: Object.keys(review.scores).reduce<Record<string, number | undefined>>(
       (acc, key) => {
