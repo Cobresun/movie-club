@@ -1,6 +1,6 @@
 import { hasValue, isDefined, hasElements } from "../../../lib/checks/checks.js";
 import { Member } from "../../../lib/types/club.js";
-import { MovieCastMember } from "../../../lib/types/movie.js";
+import { CastMember } from "../../../lib/types/movie.js";
 import type {
   BookData,
   ClubConsensusEntry,
@@ -429,7 +429,7 @@ export function computeTopDirectors(movieData: MovieData[]): PersonStats[] {
  */
 export function computeTopActors(
   movieData: MovieData[],
-  castByExternalId: Record<string, MovieCastMember[]> | undefined,
+  castByExternalId: Record<string, CastMember[]> | undefined,
 ): PersonStats[] {
   if (!isDefined(castByExternalId)) return [];
   return computeTopPeople(movieData, (m) =>

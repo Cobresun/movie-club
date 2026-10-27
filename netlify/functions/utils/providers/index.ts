@@ -1,5 +1,5 @@
 import { hasValue } from "../../../../lib/checks/checks.js";
-import { WorkType } from "../../../../lib/types/generated/db";
+import { ClubType, WorkType } from "../../../../lib/types/generated/db";
 import { DetailedWorkData, WorkDataSummary } from "../../../../lib/types/lists";
 import { SimilarWork } from "../../../../lib/types/recommendations";
 import bookProvider from "./bookProvider";
@@ -20,6 +20,18 @@ const providers: Record<WorkType, MediaProvider> = {
 
 export function getProvider(type: WorkType): MediaProvider {
   return providers[type];
+}
+
+// A club's type maps 1:1 to the work type its works use.
+const providersByClubType: Record<ClubType, MediaProvider> = {
+  [ClubType.movie]: movieProvider,
+  [ClubType.book]: bookProvider,
+  [ClubType.tv]: tvProvider,
+};
+
+/** The provider for the works a club of `type` reviews. */
+export function providerForClub(type: ClubType): MediaProvider {
+  return providersByClubType[type];
 }
 
 /** Every registered provider — used by the scheduled refresh to sweep all types. */

@@ -13,9 +13,9 @@ Kysely with the CockroachDB dialect (PostgreSQL-compatible). See the `kysely` sk
 - **Schema of record: `lib/types/generated/db.ts`** — every table, column, and enum. Read it rather than trusting any prose summary; run `npm run codegen` after schema changes to regenerate it.
 - Migrations: `migrations/schema/`, named `YYYYMMDD_Description.ts`
 
-The shape worth knowing before you read: a `work` is a movie, a book, or one level of a TV show; `work_list` holds a club's lists, either user-defined (`system_type IS NULL`, free-form title) or system (`system_type = 'reviews'`), with a partial unique index enforcing at most one of each system list per club. Movie, book and TV metadata are cached in separate `*_details` tables with their own junction tables.
+The shape worth knowing before you read: a `work` is a movie, a book, a TV show, or one of a TV show's episodes; `work_list` holds a club's lists, either user-defined (`system_type IS NULL`, free-form title) or system (`system_type = 'reviews'`), with a partial unique index enforcing at most one of each system list per club. Movie, book and TV metadata are cached in separate `*_details` tables with their own junction tables.
 
-**TV works are addressed, not parented.** A TV `work.external_id` is an address — `"95396"` is the show, `"95396:1"` a season, `"95396:1:4"` an episode — and that address is the entire hierarchy: there is no `parent_work_id`, so a work can never disagree with TMDB about what it belongs to. The show and each episode carry their own reviews: the show work exists from the moment it is added, an episode work once someone scores it, and a show score is never written to the episodes beneath it. A season is never a work: it is each member's average over their episodes, and a member with no direct show score is shown the average of their seasons, both computed in the client (`reviewTree.ts`). The `tv_season_details` cache still exists, for a show's season list and the episodes the provider resolves. Parse an address with `parseTvAddress` (`lib/types/tv.ts`) and **only inside the TV provider** — to every shared query `external_id` stays an opaque string.
+**TV works are addressed, not parented.** A TV `work.external_id` is an address — `"95396"` is the show, `"95396:1:4"` an episode of its first season — and that address is the entire hierarchy: there is no `parent_work_id`, so a work can never disagree with TMDB about what it belongs to. The show and each episode carry their own reviews: the show work exists from the moment it is added, an episode work once someone scores it, and a show score is never written to the episodes beneath it. A season is never a work: it is each member's average over their episodes, and a member with no direct show score is shown the average of their seasons, both computed in the client (`reviewTree.ts`). `tv_season_details` caches TMDB's season listings, keyed by a season address (`"95396:1"`) that no work carries; it is what a show's season list and the provider's episode lookups read. Parse an address with `parseTvAddress` (`lib/types/tv.ts`) and **only inside the TV provider** — to every shared query `external_id` stays an opaque string.
 
 ## Every query is a typed Kysely query
 
@@ -27,7 +27,7 @@ This is the single most repeated piece of review feedback in this repository, an
 
 The narrow legitimate uses of raw `sql`, all of them present in the codebase:
 
-- DDL the builder cannot express — `ADD COLUMN IF NOT EXISTS`, `DROP INDEX ... CASCADE`, `CREATE`/`DROP DATABASE` (`DatabaseCleanupRepository`).
+- DDL the builder cannot express — `ALTER TYPE ... ADD VALUE` (Kysely 0.27 has no `alterType`; see `20260526_AddBookWorkType`), `ADD COLUMN IF NOT EXISTS`, `DROP INDEX ... CASCADE`, `CREATE`/`DROP DATABASE` (`DatabaseCleanupRepository`).
 - Ordering by a computed alias that is not a column (``.orderBy(sql`total`, "desc")``).
 - A `CASE` over a caller-supplied id list to reorder rows in one statement (`ListRepository.moveItem` and friends), where the number of branches is dynamic.
 

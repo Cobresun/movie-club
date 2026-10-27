@@ -1,7 +1,7 @@
 import { isDefined } from "../../../../lib/checks/checks.js";
 import { WorkType } from "../../../../lib/types/generated/db";
 import { DetailedWorkData, ListInsertDto, WorkDataSummary } from "../../../../lib/types/lists";
-import { MovieCastMember } from "../../../../lib/types/movie";
+import { CastMember } from "../../../../lib/types/movie";
 import { SimilarWork } from "../../../../lib/types/recommendations";
 
 /** Coerce a nullable Int8/decimal column (string | null) to number | undefined. */
@@ -27,6 +27,9 @@ export interface RefreshResult {
  */
 export interface MediaProvider {
   readonly type: WorkType;
+
+  /** Title of the user-facing list a new club starts with ("Watch List"). */
+  readonly defaultListTitle: string;
 
   /**
    * Fetch external metadata for a freshly-added work and cache it in this
@@ -54,7 +57,7 @@ export interface MediaProvider {
    * meaningful for providers whose works have a cast (movies); others return
    * an empty map. Serves the statistics leaderboards' bulk cast fetch.
    */
-  getCast: (externalIds: string[]) => Promise<Map<string, MovieCastMember[]>>;
+  getCast: (externalIds: string[]) => Promise<Map<string, CastMember[]>>;
 
   /**
    * Re-fetch the `limit` works whose cached details are stalest (oldest
@@ -73,30 +76,16 @@ export interface MediaProvider {
   getDiscussionPrompt: (work: { title: string; externalId: string | null }) => Promise<string>;
 
   /**
-   * The one work a score on `work` lands on. A score is always written to a
-   * single work: scoring a TV show stores a number on the show and never
-   * touches the episodes beneath it. A TV season is never scored — it is its
-   * members' averages over their episodes.
-   *
-   * `seasonNumber` and `episodeNumber` together narrow a TV show to one
-   * episode, which need not be a work yet — `{ kind: "work" }` carries what
-   * the caller upserts before writing the review. Media that take no narrowing
-   * return `{ kind: "self" }`; `{ kind: "missing" }` means the target is not
-   * something that can be scored (a season, or an episode the provider does
-   * not list), and nothing is written.
+   * The child of `parent` that `childExternalId` names — a TV episode of its
+   * show — as the work to upsert under it, or undefined when there is no such
+   * child (media without children, a season, an episode the source does not
+   * list). The client chooses only the id: whether the child exists, and what
+   * it is called, is read from the provider's own data.
    */
-  resolveScoreTarget: (
-    work: { title: string; externalId: string | null },
-    options: { seasonNumber?: number; episodeNumber?: number },
-  ) => Promise<ScoreTarget>;
-
-  /**
-   * The `external_id` prefix shared by every work that belongs to this one —
-   * a TV show's seasons and episodes — so removing the work from a list takes
-   * its parts with it rather than leaving them counted in statistics with
-   * nothing to hang from. Undefined for a work with no parts.
-   */
-  partsPrefix: (externalId: string) => string | undefined;
+  resolveChild: (
+    parent: { externalId: string | null },
+    childExternalId: string,
+  ) => Promise<ListInsertDto | undefined>;
 
   /**
    * Works this provider's source considers similar to each of `externalIds`,
@@ -112,8 +101,3 @@ export interface MediaProvider {
     excludedIds: ReadonlySet<string>,
   ) => Promise<Map<string, SimilarWork[]>>;
 }
-
-export type ScoreTarget =
-  | { kind: "self" }
-  | { kind: "work"; work: ListInsertDto }
-  | { kind: "missing" };

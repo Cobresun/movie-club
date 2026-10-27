@@ -1,11 +1,12 @@
-import { MovieCastMember } from "./movie";
+import { hasValue } from "../checks/checks.js";
+import { CastMember } from "./movie";
 
 /**
- * A TV work's address, and the whole of its hierarchy. `work.external_id`
- * carries it as a string — `"95396"` is the show, `"95396:1"` its first
- * season, `"95396:1:4"` the fourth episode of that season — so an episode
- * always knows what it belongs to without a parent pointer that could
- * disagree with TMDB.
+ * A TV address, and the whole of its hierarchy. `work.external_id` carries it
+ * as a string — `"95396"` is the show, `"95396:1:4"` the fourth episode of its
+ * first season — so an episode always knows what it belongs to without a
+ * parent pointer that could disagree with TMDB. A season is never a work:
+ * `"95396:1"` only keys the cached season listing.
  *
  * The show and each episode are scored on their own, and a score at one level
  * is never written to another. A season is never scored: it is each member's
@@ -43,7 +44,7 @@ export function formatTvAddress(address: TvAddress): string {
  * than throwing halfway through a bulk list query.
  */
 export function parseTvAddress(externalId: string | null | undefined): TvAddress | undefined {
-  if (externalId === null || externalId === undefined || externalId === "") return undefined;
+  if (!hasValue(externalId)) return undefined;
   const parts = externalId.split(ADDRESS_SEPARATOR);
   if (parts.length > 3) return undefined;
 
@@ -82,29 +83,29 @@ export interface TvSeasonSummary {
  * TV metadata in the bulk-payload shape: everything except the show's cast
  * list, which rides the full shape for the same reason movie casts do.
  *
- * One interface covers all three levels — a season carries its show's genres
- * and its own episode count, an episode its own still and runtime — so the
- * display registry reads the same fields whatever the work is.
+ * One interface covers a show and its episodes — an episode carries its
+ * show's genres alongside its own still and runtime — so the display registry
+ * reads the same fields whatever the work is.
  */
 export interface TvDataSummary {
   kind: "tv";
   level: TvLevel;
   /** TMDB show id, shared by every work under the same show. */
   showId: string;
-  /** The show's name, on all three levels — an episode title alone is
+  /** The show's name, on an episode too — an episode title alone is
    * meaningless in a cross-club list ("Half Loop"). */
   showTitle: string;
   seasonNumber?: number;
   episodeNumber?: number;
-  /** This work's own name: the episode title, the season name, or the show. */
+  /** This work's own name: the episode title or the show's. */
   title: string;
   overview?: string;
-  /** Show or season poster path (TMDB, relative). */
+  /** The show's poster path (TMDB, relative). */
   posterPath?: string;
   /** Episode still path (TMDB, relative). */
   stillPath?: string;
   backdropPath?: string;
-  /** First air date for a show or season, the air date for an episode. */
+  /** First air date for a show, the air date for an episode. */
   airDate?: string;
   /** Episode runtime in minutes. */
   runtime?: number;
@@ -118,8 +119,6 @@ export interface TvDataSummary {
   numberOfSeasons?: number;
   /** Episodes across the whole show. */
   numberOfEpisodes?: number;
-  /** Episodes TMDB lists for this season — the coverage denominator. */
-  episodeCount?: number;
   /** Show level only: every season TMDB lists, so a club can open a season it
    * has not scored yet without an episode of it existing as a work. */
   seasons?: TvSeasonSummary[];
@@ -128,7 +127,7 @@ export interface TvDataSummary {
 
 /** Full TV metadata: the summary plus the show's recurring cast. */
 export interface DetailedTvData extends TvDataSummary {
-  actors: MovieCastMember[];
+  actors: CastMember[];
 }
 
 // --- TMDB response shapes ---------------------------------------------------

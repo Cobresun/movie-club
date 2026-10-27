@@ -7,7 +7,7 @@ import {
   SharedReviewResponse,
   WorkCommentDto,
 } from "../../../lib/types/lists";
-import { MovieCastMember } from "../../../lib/types/movie";
+import { CastMember } from "../../../lib/types/movie";
 import ListRepository from "../repositories/ListRepository";
 import ReviewRepository from "../repositories/ReviewRepository";
 import SettingsRepository from "../repositories/SettingsRepository";
@@ -31,8 +31,8 @@ const router = new Router<ClubRequest>("/api/club/:clubSlug/reviews");
 // payload deliberately omits casts (they dominated its size); the statistics
 // leaderboards fetch this endpoint instead, only when that page is open.
 router.get("/cast", async ({ clubId }, res) => {
-  const reviewsListId = await ListRepository.getReviewsListId(clubId);
-  const items = await ListRepository.getListItems(reviewsListId);
+  const rows = await ReviewRepository.getReviewList(clubId);
+  const items = [...new Map(rows.map((row) => [row.id, row])).values()];
 
   const castByType = await Promise.all(
     [...new Set(items.map((item) => item.type))].map((type) =>
@@ -45,35 +45,29 @@ router.get("/cast", async ({ clubId }, res) => {
     ),
   );
 
-  const result: Record<string, MovieCastMember[]> = {};
+  const result: Record<string, CastMember[]> = {};
   for (const map of castByType) {
     for (const [externalId, cast] of map) {
       result[externalId] = cast;
     }
   }
-  return res(ok<Record<string, MovieCastMember[]>>(result));
+  return res(ok<Record<string, CastMember[]>>(result));
 });
 
-const addReviewSchema = z
-  .object({
-    score: z.number().min(0).max(10),
-    workId: z.string(),
-    /** With `episodeNumber`, narrows a TV show to one episode, which need not
-     * be a work yet. Whether TMDB lists it is still resolved server-side. */
-    seasonNumber: z.number().int().min(0).optional(),
-    episodeNumber: z.number().int().min(0).optional(),
-  })
-  // Only an episode can be narrowed to: a season is never scored on its own.
-  .refine((body) => (body.seasonNumber === undefined) === (body.episodeNumber === undefined), {
-    message: "seasonNumber and episodeNumber come together",
-    path: ["episodeNumber"],
-  });
+const addReviewSchema = z.object({
+  score: z.number().min(0).max(10),
+  workId: z.string(),
+  /** Scores the child of `workId` this names instead (a TV episode of its
+   * show), which need not be a work yet. Its provider decides whether it
+   * exists. */
+  childExternalId: z.string().min(1).optional(),
+});
 
 router.post("/", secured, async ({ clubId, userId, event }, res) => {
   const body = parseBody(event, addReviewSchema, res);
   if (isRouterResponse(body)) return body;
 
-  const { score, workId, seasonNumber, episodeNumber } = body;
+  const { score, workId, childExternalId } = body;
 
   const work = await WorkRepository.getById(clubId, workId);
   if (!isDefined(work)) {
@@ -81,29 +75,23 @@ router.post("/", secured, async ({ clubId, userId, event }, res) => {
   }
 
   const reviewsListId = await ListRepository.getReviewsListId(clubId);
-  const exists = await ListRepository.isItemInList(reviewsListId, workId);
-  if (!exists) {
+  if (!(await ListRepository.isOnList(reviewsListId, workId))) {
     return res(badRequest("This work is not on the reviews list"));
   }
 
-  // A score lands on exactly one work. A narrowed TV show resolves to the
-  // episode it names, which may not be a work yet — scoring it is what creates
-  // it and puts it on the reviews list.
-  const target = await getProvider(work.type).resolveScoreTarget(
-    { title: work.title, externalId: work.external_id },
-    { seasonNumber, episodeNumber },
-  );
-  if (target.kind === "missing") {
-    return res(badRequest("There is nothing to score there"));
-  }
-
   let scoredWorkId = workId;
-  if (target.kind === "work") {
-    scoredWorkId = (await WorkRepository.insert(clubId, target.work)).id;
-    await ListRepository.insertItemInList(reviewsListId, scoredWorkId, userId);
+  if (hasValue(childExternalId)) {
+    const child = await getProvider(work.type).resolveChild(
+      { externalId: work.external_id },
+      childExternalId,
+    );
+    if (!isDefined(child)) {
+      return res(badRequest("There is nothing to score there"));
+    }
+    scoredWorkId = (await WorkRepository.insertChild(clubId, workId, child)).id;
   }
 
-  await ReviewRepository.replaceScore(reviewsListId, scoredWorkId, userId, score);
+  await ReviewRepository.setScore(reviewsListId, scoredWorkId, userId, score);
   return res(ok());
 });
 

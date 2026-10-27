@@ -16,7 +16,7 @@ import {
   SharedReviewResponse,
   WorkCommentDto,
 } from "../../../lib/types/lists";
-import { MovieCastMember } from "../../../lib/types/movie";
+import { CastMember } from "../../../lib/types/movie";
 import { handler } from "../club/index";
 import { geminiJsonResponse } from "./fixtures/external";
 import { signIn, TestSession } from "./helpers/auth";
@@ -67,6 +67,20 @@ describe("POST /api/club/:clubSlug/reviews", () => {
 
     expect(res.statusCode).toBe(400);
     expect(res.body.error).toBe("This work is not on the reviews list");
+  });
+
+  it("refuses to score a child of a work whose media has none", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub(alice);
+    const work = await addReviewedWork(club, alice, { externalId: "550" });
+
+    const res = await api.post(`/api/club/${club.slug}/reviews`, {
+      body: { workId: work.id, score: 5, childExternalId: "550:1:1" },
+      as: alice,
+    });
+
+    expect(res.statusCode).toBe(400);
+    expect((await scoresOf(club, work.id, alice)).body).toEqual({});
   });
 
   it.each([
@@ -314,9 +328,7 @@ describe("GET /api/club/:clubSlug/reviews/cast", () => {
     const club = await createClub(alice);
     await addReviewedWork(club, alice, { externalId: "77" });
 
-    const res = await api.get<Record<string, MovieCastMember[]>>(
-      `/api/club/${club.slug}/reviews/cast`,
-    );
+    const res = await api.get<Record<string, CastMember[]>>(`/api/club/${club.slug}/reviews/cast`);
 
     expect(res.statusCode).toBe(200);
     expect(res.body["77"]).toEqual([

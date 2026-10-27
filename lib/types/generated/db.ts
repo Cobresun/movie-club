@@ -309,6 +309,7 @@ export interface Work {
   external_id: string | null;
   id: Generated<Int8>;
   image_url: string | null;
+  parent_work_id: Int8 | null;
   title: string;
   type: WorkType;
 }

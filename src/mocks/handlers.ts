@@ -17,7 +17,7 @@ import {
   adminDashboardSchema,
   SnapshotHistoryPoint,
 } from "../../lib/types/metrics";
-import { MovieCastMember, TMDBWatchProvidersResponse } from "../../lib/types/movie";
+import { CastMember, TMDBWatchProvidersResponse } from "../../lib/types/movie";
 import adminMetrics from "./data/adminMetrics.json";
 import club from "./data/club";
 import googleBooksSearch from "./data/googleBooksSearch.json";
@@ -112,7 +112,7 @@ export const handlers = [
     return HttpResponse.json<DetailedWorkData | null>(null);
   }),
   http.get("/api/club/:id/reviews/cast", () => {
-    return HttpResponse.json<Record<string, MovieCastMember[]>>({});
+    return HttpResponse.json<Record<string, CastMember[]>>({});
   }),
   http.get(`https://api.themoviedb.org/3/search/movie`, () => {
     return HttpResponse.json(TMDBSearch);

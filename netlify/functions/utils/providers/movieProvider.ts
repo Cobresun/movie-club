@@ -4,13 +4,13 @@ import { jsonBuildObject } from "kysely/helpers/postgres";
 import { isDefined, hasValue } from "../../../../lib/checks/checks.js";
 import { MAJOR_CAST_SIZE, STAR_POPULARITY } from "../../../../lib/movie/majorCast.js";
 import { WorkType } from "../../../../lib/types/generated/db";
-import { DetailedWorkData, WorkDataSummary } from "../../../../lib/types/lists";
-import { MovieCastMember, MovieDataSummary } from "../../../../lib/types/movie";
+import { DetailedWorkData, ListInsertDto, WorkDataSummary } from "../../../../lib/types/lists";
+import { CastMember, MovieDataSummary } from "../../../../lib/types/movie";
 import { SimilarWork } from "../../../../lib/types/recommendations";
 import { db } from "../database";
 import { insertMovieDetails, updateMovieDetails } from "../movieDetailsUpdater";
 import { getTMDBMovieData, getTMDBPosterUrlBuilder, getTMDBRecommendations } from "../tmdb";
-import { MediaProvider, numOrUndefined, RefreshResult, ScoreTarget } from "./types";
+import { MediaProvider, numOrUndefined, RefreshResult } from "./types";
 
 /**
  * Builds the `movie_details` + junction aggregates for a set of external IDs,
@@ -186,6 +186,7 @@ export function toMovieDataSummary(row: MovieSummaryRow): MovieDataSummary {
 
 class MovieProvider implements MediaProvider {
   readonly type = WorkType.movie;
+  readonly defaultListTitle = "Watch List";
 
   async fetchAndCacheDetails(externalId: string): Promise<void> {
     // Details are immutable enough that a cached row means the TMDB round
@@ -233,8 +234,8 @@ class MovieProvider implements MediaProvider {
     return map;
   }
 
-  async getCast(externalIds: string[]): Promise<Map<string, MovieCastMember[]>> {
-    const map = new Map<string, MovieCastMember[]>();
+  async getCast(externalIds: string[]): Promise<Map<string, CastMember[]>> {
+    const map = new Map<string, CastMember[]>();
     if (externalIds.length === 0) return map;
 
     const rows = await db
@@ -256,12 +257,8 @@ class MovieProvider implements MediaProvider {
     return map;
   }
 
-  async resolveScoreTarget(): Promise<ScoreTarget> {
-    return { kind: "self" };
-  }
-
-  partsPrefix(): undefined {
-    return undefined;
+  resolveChild(): Promise<ListInsertDto | undefined> {
+    return Promise.resolve(undefined);
   }
 
   async getDiscussionPrompt(work: { title: string; externalId: string | null }): Promise<string> {

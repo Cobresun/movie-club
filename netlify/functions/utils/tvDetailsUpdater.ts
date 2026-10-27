@@ -106,15 +106,14 @@ export async function upsertTvShowDetails(showId: string, data: TMDBTvShowData, 
     );
   }
 
-  // TMDB's season 0 is specials — recaps, webisodes and Christmas episodes the
-  // club did not sit down to watch. It is cached so a club can reach it
-  // deliberately, but never filled by a show-level score (see tvProvider).
   const seasons = data.seasons ?? [];
   if (seasons.length > 0) {
     junctionInserts.push(
-      Promise.all(
-        seasons.map((season) => {
-          const seasonValues = {
+      dbOrTrx
+        .insertInto("tv_season_details")
+        .values(
+          seasons.map((season) => ({
+            external_id: formatTvAddress({ showId, seasonNumber: season.season_number }),
             show_external_id: showId,
             season_number: season.season_number,
             name: season.name,
@@ -122,22 +121,19 @@ export async function upsertTvShowDetails(showId: string, data: TMDBTvShowData, 
             poster_path: season.poster_path,
             air_date: toDate(season.air_date),
             episode_count: season.episode_count ?? 0,
-          };
-          return dbOrTrx
-            .insertInto("tv_season_details")
-            .values({
-              external_id: formatTvAddress({
-                showId,
-                seasonNumber: season.season_number,
-              }),
-              ...seasonValues,
-            })
-            .onConflict((oc) =>
-              oc.column("external_id").doUpdateSet({ ...seasonValues, updated_date: new Date() }),
-            )
-            .execute();
-        }),
-      ),
+          })),
+        )
+        .onConflict((oc) =>
+          oc.column("external_id").doUpdateSet((eb) => ({
+            name: eb.ref("excluded.name"),
+            overview: eb.ref("excluded.overview"),
+            poster_path: eb.ref("excluded.poster_path"),
+            air_date: eb.ref("excluded.air_date"),
+            episode_count: eb.ref("excluded.episode_count"),
+            updated_date: new Date(),
+          })),
+        )
+        .execute(),
     );
   }
 

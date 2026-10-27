@@ -3,7 +3,12 @@ import { z } from "zod";
 
 import { WorkType } from "../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../lib/types/lists";
-import { formatTvAddress, TMDBTvEpisodeData, TvDataSummary } from "../../lib/types/tv";
+import {
+  formatTvAddress,
+  parseTvAddress,
+  TMDBTvEpisodeData,
+  TvDataSummary,
+} from "../../lib/types/tv";
 import { asTv } from "../common/clubType/tv/data";
 import { withMemberScore } from "../features/reviews/episodeCards";
 
@@ -12,8 +17,7 @@ const addBodySchema = z.object({ externalId: z.string() });
 const scoreBodySchema = z.object({
   workId: z.string(),
   score: z.number(),
-  seasonNumber: z.number().optional(),
-  episodeNumber: z.number().optional(),
+  childExternalId: z.string().optional(),
 });
 
 /**
@@ -57,17 +61,16 @@ export const tvReviewsApi = ({
     return created;
   };
 
-  /** What a score on `work`, narrowed by the body's numbers, lands on. */
-  const resolveTarget = (
-    work: DetailedReviewListItem,
-    seasonNumber: number | undefined,
-    episodeNumber: number | undefined,
-  ) => {
+  /** What a score on `work`, or on the child of it the body names, lands on. */
+  const resolveTarget = (work: DetailedReviewListItem, childExternalId: string | undefined) => {
+    if (childExternalId === undefined) return work;
     const show = asTv(work.externalData);
-    if (show?.level !== "show" || seasonNumber === undefined) return work;
+    const child = parseTvAddress(childExternalId);
+    if (show?.level !== "show" || child?.showId !== show.showId) return undefined;
 
     // A season is never scored on its own, so only an episode can be named.
-    if (episodeNumber === undefined) return undefined;
+    const { seasonNumber, episodeNumber } = child;
+    if (seasonNumber === undefined || episodeNumber === undefined) return undefined;
     const series = { ...show, seasons: undefined, numberOfSeasons: undefined };
 
     const episode = seasons[seasonNumber]?.find(
@@ -96,8 +99,7 @@ export const tvReviewsApi = ({
     http.post("/api/club/:id/reviews", async ({ request }) => {
       const body = scoreBodySchema.parse(await request.json());
       const work = list.find((item) => item.id === body.workId);
-      const target =
-        work === undefined ? undefined : resolveTarget(work, body.seasonNumber, body.episodeNumber);
+      const target = work === undefined ? undefined : resolveTarget(work, body.childExternalId);
       if (target === undefined) return new HttpResponse(null, { status: 400 });
 
       list = list.map((item) =>

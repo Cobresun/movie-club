@@ -10,7 +10,7 @@ import axios, { AxiosError, AxiosInstance } from "axios";
 import { hasValue, isDefined } from "../../lib/checks/checks.js";
 import { Member } from "../../lib/types/club";
 import { DetailedReviewListItem, ReviewScores, WorkCommentDto } from "../../lib/types/lists";
-import { MovieCastMember } from "../../lib/types/movie";
+import { CastMember } from "../../lib/types/movie";
 import { reviewsListKey } from "./useList";
 import { memberScoresKey, useUser } from "./useUser";
 import { useAuthStore } from "@/stores/auth";
@@ -22,12 +22,11 @@ import { useAuthStore } from "@/stores/auth";
  */
 export function useReviewsCast(
   clubSlug: string,
-): UseQueryReturnType<Record<string, MovieCastMember[]>, AxiosError> {
+): UseQueryReturnType<Record<string, CastMember[]>, AxiosError> {
   return useQuery({
     queryKey: ["reviewsCast", clubSlug] as const,
     queryFn: async () =>
-      (await axios.get<Record<string, MovieCastMember[]>>(`/api/club/${clubSlug}/reviews/cast`))
-        .data,
+      (await axios.get<Record<string, CastMember[]>>(`/api/club/${clubSlug}/reviews/cast`)).data,
   });
 }
 
@@ -104,27 +103,24 @@ function useReviewWork(clubSlug: string) {
       workId,
       score,
       sourceListId,
-      seasonNumber,
-      episodeNumber,
+      childExternalId,
     }: {
       workId: string;
       score: number;
       sourceListId?: string;
-      seasonNumber?: number;
-      episodeNumber?: number;
+      childExternalId?: string;
     }) =>
       auth.request.post(`/api/club/${clubSlug}/reviews`, {
         score,
         workId,
         sourceListId,
-        seasonNumber,
-        episodeNumber,
+        childExternalId,
       }),
-    // A narrowed save lands on a season or episode that may not be a work
-    // yet, not on `workId` (the show), so there is no list item to write the
-    // score onto or poll. Its caller shows the save as pending instead.
-    onMutate: async ({ workId, score, seasonNumber }) => {
-      if (!workId || isDefined(seasonNumber)) return;
+    // A save on a child lands on a work that may not exist yet, not on
+    // `workId`, so there is no list item to write the score onto or poll. Its
+    // caller shows the save as pending instead.
+    onMutate: async ({ workId, score, childExternalId }) => {
+      if (!workId || hasValue(childExternalId)) return;
       await queryClient.cancelQueries({ queryKey: reviewsListKey(clubSlug) });
       queryClient.setQueryData<DetailedReviewListItem[]>(
         reviewsListKey(clubSlug),
@@ -149,8 +145,8 @@ function useReviewWork(clubSlug: string) {
         },
       );
     },
-    onSuccess: (_data, { workId, seasonNumber }) => {
-      if (isDefined(seasonNumber)) return;
+    onSuccess: (_data, { workId, childExternalId }) => {
+      if (hasValue(childExternalId)) return;
       startScorePoll(auth.request, queryClient, clubSlug, workId);
     },
     onSettled: async () => {
@@ -228,23 +224,21 @@ export function useSubmitScore(clubSlug: string) {
       workId,
       reviewId,
       score,
-      seasonNumber,
-      episodeNumber,
+      childExternalId,
     }: {
       workId: string;
       reviewId?: string;
       score: number;
-      /** Narrows the TV show `workId` names to one season, which need not be a work yet. */
-      seasonNumber?: number;
-      /** Narrows `seasonNumber` to one episode, which need not be a work yet. */
-      episodeNumber?: number;
+      /** Scores the child of `workId` this names instead (a TV episode of its
+       * show), which need not be a work yet. */
+      childExternalId?: string;
     },
     /** Runs once the save has settled and the reviews list has refetched. */
     options?: { onSettled?: () => void },
   ) => {
     const saving = hasValue(reviewId)
       ? update({ reviewId, workId, score })
-      : create({ workId, score, seasonNumber, episodeNumber });
+      : create({ workId, score, childExternalId });
     // A failed save surfaces through the refetch putting the old score back.
     void saving.catch(() => undefined).finally(() => options?.onSettled?.());
   };

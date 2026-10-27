@@ -4,13 +4,13 @@
  * never scored — it is its members' averages over their episodes.
  *
  * TMDB is faked at the network boundary, so the provider's real address
- * parsing, season caching and target resolution all run.
+ * parsing, season caching and child resolution all run.
  */
 import { http, HttpResponse } from "msw";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { ClubType, WorkType } from "../../../lib/types/generated/db";
-import { DetailedReviewListItem } from "../../../lib/types/lists";
+import { DetailedReviewListItem, DetailedWorkListItem } from "../../../lib/types/lists";
 import { TvDataSummary } from "../../../lib/types/tv";
 import { handler } from "../club/index";
 import { TV_SEASON_EPISODE_COUNTS, tmdbTvSeason, tmdbTvShow } from "./fixtures/external";
@@ -47,7 +47,7 @@ async function scoreOf(club: SeededClub, externalId: string, session: TestSessio
 async function score(
   club: SeededClub,
   session: TestSession,
-  body: { workId: string; score: number; seasonNumber?: number; episodeNumber?: number },
+  body: { workId: string; score: number; childExternalId?: string },
 ) {
   return api.post(`/api/club/${club.slug}/reviews`, { body, as: session });
 }
@@ -58,7 +58,11 @@ describe("scoring a TV show", () => {
     const club = await createClub(alice, { type: ClubType.tv });
     const show = await seedShow(club, alice);
 
-    const res = await score(club, alice, { workId: show.id, score: 8, seasonNumber: 1 });
+    const res = await score(club, alice, {
+      workId: show.id,
+      score: 8,
+      childExternalId: `${SHOW_ID}:1`,
+    });
 
     expect(res.statusCode).toBe(400);
     const reviews = await reviewsOf(club);
@@ -70,7 +74,7 @@ describe("scoring a TV show", () => {
     const alice = await signIn("alice");
     const club = await createClub(alice, { type: ClubType.tv });
     const show = await seedShow(club, alice);
-    await score(club, alice, { workId: show.id, score: 9, seasonNumber: 1, episodeNumber: 1 });
+    await score(club, alice, { workId: show.id, score: 9, childExternalId: `${SHOW_ID}:1:1` });
 
     const res = await score(club, alice, { workId: show.id, score: 7 });
 
@@ -85,7 +89,7 @@ describe("scoring a TV show", () => {
     const show = await seedShow(club, alice);
 
     await score(club, alice, { workId: show.id, score: 4 });
-    await score(club, alice, { workId: show.id, score: 10, seasonNumber: 1, episodeNumber: 2 });
+    await score(club, alice, { workId: show.id, score: 10, childExternalId: `${SHOW_ID}:1:2` });
 
     expect(await scoreOf(club, SHOW_ID, alice)).toBe(4);
     expect(await scoreOf(club, `${SHOW_ID}:1:2`, alice)).toBe(10);
@@ -96,8 +100,8 @@ describe("scoring a TV show", () => {
     const club = await createClub(alice, { type: ClubType.tv });
     const show = await seedShow(club, alice);
 
-    await score(club, alice, { workId: show.id, score: 8, seasonNumber: 1, episodeNumber: 1 });
-    await score(club, alice, { workId: show.id, score: 6, seasonNumber: 1, episodeNumber: 1 });
+    await score(club, alice, { workId: show.id, score: 8, childExternalId: `${SHOW_ID}:1:1` });
+    await score(club, alice, { workId: show.id, score: 6, childExternalId: `${SHOW_ID}:1:1` });
 
     expect(await scoreOf(club, EPISODE_1, alice)).toBe(6);
   });
@@ -106,7 +110,7 @@ describe("scoring a TV show", () => {
     const alice = await signIn("alice");
     const club = await createClub(alice, { type: ClubType.tv });
     const show = await seedShow(club, alice);
-    await score(club, alice, { workId: show.id, score: 8, seasonNumber: 1, episodeNumber: 1 });
+    await score(club, alice, { workId: show.id, score: 8, childExternalId: `${SHOW_ID}:1:1` });
     const episode = (await reviewsOf(club)).find((review) => review.externalId === EPISODE_1);
 
     const res = await score(club, alice, { workId: episode?.id ?? "", score: 5 });
@@ -115,14 +119,43 @@ describe("scoring a TV show", () => {
     expect(await scoreOf(club, EPISODE_1, alice)).toBe(5);
   });
 
+  it("lists a scored episode through its show, not on the reviews list itself", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub(alice, { type: ClubType.tv });
+    const show = await seedShow(club, alice);
+
+    await score(club, alice, { workId: show.id, score: 8, childExternalId: EPISODE_1 });
+
+    const listed = await api.get<DetailedWorkListItem[]>(
+      `/api/club/${club.slug}/list/${club.reviewsListId}`,
+    );
+    expect(listed.body.map((item) => item.externalId)).toEqual([SHOW_ID]);
+    expect(await scoreOf(club, EPISODE_1, alice)).toBe(8);
+  });
+
+  it("refuses an episode of another show", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub(alice, { type: ClubType.tv });
+    const show = await seedShow(club, alice);
+
+    const res = await score(club, alice, {
+      workId: show.id,
+      score: 8,
+      childExternalId: `${SHOW_ID}0:1:1`,
+    });
+
+    expect(res.statusCode).toBe(400);
+    expect((await reviewsOf(club)).map((review) => review.externalId)).toEqual([SHOW_ID]);
+  });
+
   it("leaves another member's episode score untouched", async () => {
     const alice = await signIn("alice");
     const bob = await signIn("bob");
     const club = await createClub(alice, { type: ClubType.tv, members: [alice, bob] });
     const show = await seedShow(club, alice);
 
-    await score(club, bob, { workId: show.id, score: 9, seasonNumber: 1, episodeNumber: 1 });
-    await score(club, alice, { workId: show.id, score: 4, seasonNumber: 1, episodeNumber: 1 });
+    await score(club, bob, { workId: show.id, score: 9, childExternalId: `${SHOW_ID}:1:1` });
+    await score(club, alice, { workId: show.id, score: 4, childExternalId: `${SHOW_ID}:1:1` });
 
     expect(await scoreOf(club, EPISODE_1, bob)).toBe(9);
     expect(await scoreOf(club, EPISODE_1, alice)).toBe(4);
@@ -153,8 +186,7 @@ describe("scoring a TV show", () => {
     const res = await score(club, alice, {
       workId: show.id,
       score: 9,
-      seasonNumber: 2,
-      episodeNumber: 2,
+      childExternalId: `${SHOW_ID}:2:2`,
     });
 
     expect(res.statusCode).toBe(200);
@@ -175,8 +207,7 @@ describe("scoring a TV show", () => {
     const res = await score(club, alice, {
       workId: show.id,
       score: 9,
-      seasonNumber: 1,
-      episodeNumber: 99,
+      childExternalId: `${SHOW_ID}:1:99`,
     });
 
     expect(res.statusCode).toBe(400);
@@ -192,8 +223,7 @@ describe("scoring a TV show", () => {
     const res = await score(club, alice, {
       workId: show.id,
       score: 9,
-      seasonNumber: 9,
-      episodeNumber: 1,
+      childExternalId: `${SHOW_ID}:9:1`,
     });
 
     expect(res.statusCode).toBe(400);
@@ -217,7 +247,7 @@ describe("scoring what aired after it was cached", () => {
     const alice = await signIn("alice");
     const club = await createClub(alice, { type: ClubType.tv });
     const show = await seedShow(club, alice);
-    await score(club, alice, { workId: show.id, score: 8, seasonNumber: 1, episodeNumber: 1 });
+    await score(club, alice, { workId: show.id, score: 8, childExternalId: `${SHOW_ID}:1:1` });
 
     const cached = tmdbTvSeason(Number(SHOW_ID), 1);
     const newEpisodeNumber = (cached.episodes?.length ?? 0) + 1;
@@ -242,8 +272,7 @@ describe("scoring what aired after it was cached", () => {
     const res = await score(club, alice, {
       workId: show.id,
       score: 9,
-      seasonNumber: 1,
-      episodeNumber: newEpisodeNumber,
+      childExternalId: `${SHOW_ID}:1:${newEpisodeNumber}`,
     });
 
     expect(res.statusCode).toBe(200);
@@ -269,7 +298,7 @@ describe("scoring what aired after it was cached", () => {
     const alice = await signIn("alice");
     const club = await createClub(alice, { type: ClubType.tv });
     const show = await seedShow(club, alice);
-    const premiere = { workId: show.id, score: 9, seasonNumber: 3, episodeNumber: 1 };
+    const premiere = { workId: show.id, score: 9, childExternalId: `${SHOW_ID}:3:1` };
     expect((await score(club, alice, premiere)).statusCode).toBe(400);
 
     failOnRequest("get", `${TMDB}/tv/:showId/season/3`);
@@ -322,8 +351,7 @@ describe("scoring what aired after it was cached", () => {
     const res = await score(club, alice, {
       workId: show.id,
       score: 7,
-      seasonNumber: 3,
-      episodeNumber: 1,
+      childExternalId: `${SHOW_ID}:3:1`,
     });
 
     expect(res.statusCode).toBe(200);
@@ -336,8 +364,8 @@ describe("removing a TV show", () => {
     const alice = await signIn("alice");
     const club = await createClub(alice, { type: ClubType.tv });
     const show = await seedShow(club, alice);
-    await score(club, alice, { workId: show.id, score: 8, seasonNumber: 1, episodeNumber: 1 });
-    await score(club, alice, { workId: show.id, score: 9, seasonNumber: 1, episodeNumber: 2 });
+    await score(club, alice, { workId: show.id, score: 8, childExternalId: `${SHOW_ID}:1:1` });
+    await score(club, alice, { workId: show.id, score: 9, childExternalId: `${SHOW_ID}:1:2` });
 
     const res = await api.delete(
       `/api/club/${club.slug}/list/${club.reviewsListId}/items/${show.id}`,
@@ -358,7 +386,7 @@ describe("removing a TV show", () => {
       externalId: `${SHOW_ID}0`,
       title: "Another show",
     });
-    await score(club, alice, { workId: other.id, score: 6, seasonNumber: 1, episodeNumber: 1 });
+    await score(club, alice, { workId: other.id, score: 6, childExternalId: `${SHOW_ID}0:1:1` });
 
     await api.delete(`/api/club/${club.slug}/list/${club.reviewsListId}/items/${show.id}`, {
       as: alice,

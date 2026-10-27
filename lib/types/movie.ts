@@ -65,7 +65,7 @@ export interface TMDBMovieData {
   vote_count: number;
 }
 
-export interface MovieCastMember {
+export interface CastMember {
   name: string;
   character: string | null;
   profilePath: string | null;
@@ -125,7 +125,7 @@ export interface MovieDataSummary {
  * the per-work details endpoint and the shared-review page, never by bulk
  * list endpoints. */
 export interface DetailedMovieData extends MovieDataSummary {
-  actors: MovieCastMember[];
+  actors: CastMember[];
 }
 
 export interface TMDBWatchProvider {

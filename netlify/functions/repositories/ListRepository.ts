@@ -1,17 +1,30 @@
-import { sql } from "kysely";
+import { sql, Transaction } from "kysely";
 
 import { isDefined } from "../../../lib/checks/checks";
-import { ClubType, WorkListSystemType } from "../../../lib/types/generated/db";
+import { ClubType, DB, WorkListSystemType } from "../../../lib/types/generated/db";
 import { db } from "../utils/database";
+import { providerForClub } from "../utils/providers";
 
-// The name of a club's default user-facing list, keyed by club type — a
-// feature-local registry (see code-quality.md) so a new club type won't
-// compile until it has a title here.
-const DEFAULT_LIST_TITLE: Record<ClubType, string> = {
-  [ClubType.movie]: "Watch List",
-  [ClubType.book]: "Reading List",
-  [ClubType.tv]: "Watch List",
-};
+/**
+ * A list's reviews of a work and of the work's children: a review references
+ * its work and its list separately, so leaving the list does not cascade.
+ */
+async function deleteReviewsOfItem(trx: Transaction<DB>, listId: string, workId: string) {
+  await trx
+    .deleteFrom("review")
+    .where("list_id", "=", listId)
+    .where((eb) =>
+      eb.or([
+        eb("work_id", "=", workId),
+        eb(
+          "work_id",
+          "in",
+          eb.selectFrom("work").select("id").where("parent_work_id", "=", workId),
+        ),
+      ]),
+    )
+    .execute();
+}
 
 class ListRepository {
   // -- List CRUD --------------------------------------------------------
@@ -83,7 +96,7 @@ class ListRepository {
     return db
       .insertInto("work_list")
       .values([
-        { club_id: clubId, title: DEFAULT_LIST_TITLE[clubType] },
+        { club_id: clubId, title: providerForClub(clubType).defaultListTitle },
         {
           club_id: clubId,
           title: "Reviews",
@@ -159,6 +172,26 @@ class ListRepository {
       .execute();
   }
 
+  /** Whether `workId` is on the list, either itself or through its parent. */
+  async isOnList(listId: string, workId: string) {
+    return isDefined(
+      await db
+        .selectFrom("work")
+        .innerJoin("work_list_item", (join) =>
+          join.on((eb) =>
+            eb.or([
+              eb("work_list_item.work_id", "=", eb.ref("work.id")),
+              eb("work_list_item.work_id", "=", eb.ref("work.parent_work_id")),
+            ]),
+          ),
+        )
+        .where("work.id", "=", workId)
+        .where("work_list_item.list_id", "=", listId)
+        .select("work_list_item.list_id")
+        .executeTakeFirst(),
+    );
+  }
+
   async isItemInList(listId: string, workId: string) {
     return !!(await db
       .selectFrom("work_list_item")
@@ -194,21 +227,16 @@ class ListRepository {
     return (result.numInsertedOrUpdatedRows ?? 0n) > 0n;
   }
 
+  /** Take a work off a list, along with the list's reviews of it and of its children. */
   async deleteItemFromList(listId: string, workId: string) {
-    return db
-      .deleteFrom("work_list_item")
-      .where("work_id", "=", workId)
-      .where("list_id", "=", listId)
-      .execute();
-  }
-
-  async deleteItemsFromList(listId: string, workIds: string[]) {
-    if (workIds.length === 0) return;
-    await db
-      .deleteFrom("work_list_item")
-      .where("work_id", "in", workIds)
-      .where("list_id", "=", listId)
-      .execute();
+    return db.transaction().execute(async (trx) => {
+      await deleteReviewsOfItem(trx, listId, workId);
+      await trx
+        .deleteFrom("work_list_item")
+        .where("work_id", "=", workId)
+        .where("list_id", "=", listId)
+        .execute();
+    });
   }
 
   /**
@@ -273,6 +301,7 @@ class ListRepository {
         .onConflict((oc) => oc.columns(["list_id", "work_id"]).doNothing())
         .execute();
 
+      await deleteReviewsOfItem(trx, sourceListId, workId);
       await trx
         .deleteFrom("work_list_item")
         .where("list_id", "=", sourceListId)

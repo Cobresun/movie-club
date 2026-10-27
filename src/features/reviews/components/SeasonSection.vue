@@ -118,6 +118,7 @@ import { computed, ref } from "vue";
 import { isDefined } from "../../../../lib/checks/checks.js";
 import { Member } from "../../../../lib/types/club";
 import { DetailedReviewListItem, ReviewScores } from "../../../../lib/types/lists";
+import { formatTvAddress } from "../../../../lib/types/tv";
 import { buildEpisodeCards, episodePreview, ScoreTarget, withMemberScore } from "../episodeCards";
 import { hasOwnScore, isOthersScore, scoreEntries } from "../reviewScores";
 import {
@@ -209,8 +210,11 @@ const scoreThroughShow = (episodeNumber: number) => (score: number) => {
     {
       workId: props.show.workId,
       score,
-      seasonNumber: props.season.seasonNumber,
-      episodeNumber,
+      childExternalId: formatTvAddress({
+        showId: props.show.showId,
+        seasonNumber: props.season.seasonNumber,
+        episodeNumber,
+      }),
     },
     { onSettled: settle },
   );

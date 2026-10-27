@@ -2,7 +2,8 @@ import { WorkListSystemType } from "../../../lib/types/generated/db";
 import { db } from "../utils/database";
 
 class ReviewRepository {
-  // Media-agnostic: one row per (work, review). The handler groups by work and
+  // Media-agnostic: one row per (work, review), for every work on the
+  // reviews list and every child of one. The handler groups by work and
   // assembles per-user scores, then enriches with MediaProvider.getExternalData.
   async getReviewList(clubId: string) {
     return db
@@ -10,11 +11,21 @@ class ReviewRepository {
       .where("work_list.club_id", "=", clubId)
       .where("work_list.system_type", "=", WorkListSystemType.reviews)
       .innerJoin("work_list_item", "work_list_item.list_id", "work_list.id")
-      .innerJoin("work", "work.id", "work_list_item.work_id")
-      .leftJoin("review", "review.work_id", "work.id")
+      .innerJoin("work", (join) =>
+        join.on((eb) =>
+          eb.or([
+            eb("work.id", "=", eb.ref("work_list_item.work_id")),
+            eb("work.parent_work_id", "=", eb.ref("work_list_item.work_id")),
+          ]),
+        ),
+      )
+      .leftJoin("review", (join) =>
+        join.onRef("review.work_id", "=", "work.id").onRef("review.list_id", "=", "work_list.id"),
+      )
       .select([
         "review.id as review_id",
         "work.id",
+        "work.parent_work_id",
         "work.title",
         "work.type",
         "work.image_url",
@@ -72,19 +83,21 @@ class ReviewRepository {
   }
 
   /**
-   * Write `userId`'s score to `workId`, replacing any score they had on it.
-   * A work created by the score itself has no review id the client could
-   * update, so two quick saves both arrive here; dropping the caller's old row
-   * first keeps them from stacking up. Only the caller's own review is touched.
+   * Write `userId`'s score to `workId`, updating the score they already gave
+   * it if any. A child work created by the score itself has no review id the
+   * client could update, so two quick saves both arrive here; they leave one
+   * row, which keeps the date of the first.
    */
-  async replaceScore(listId: string, workId: string, userId: string, score: number) {
+  async setScore(listId: string, workId: string, userId: string, score: number) {
     return db.transaction().execute(async (trx) => {
-      await trx
-        .deleteFrom("review")
+      const updated = await trx
+        .updateTable("review")
+        .set({ score })
         .where("list_id", "=", listId)
         .where("user_id", "=", userId)
         .where("work_id", "=", workId)
-        .execute();
+        .executeTakeFirst();
+      if (updated.numUpdatedRows > 0n) return;
 
       await trx
         .insertInto("review")
@@ -126,9 +139,18 @@ class ReviewRepository {
       .where("work_list.club_id", "=", clubId)
       .where("work_list.system_type", "=", WorkListSystemType.reviews)
       .innerJoin("work_list_item", "work_list_item.list_id", "work_list.id")
-      .innerJoin("work", "work.id", "work_list_item.work_id")
+      .innerJoin("work", (join) =>
+        join.on((eb) =>
+          eb.or([
+            eb("work.id", "=", eb.ref("work_list_item.work_id")),
+            eb("work.parent_work_id", "=", eb.ref("work_list_item.work_id")),
+          ]),
+        ),
+      )
       .where("work.id", "=", workId)
-      .leftJoin("review", "review.work_id", "work.id")
+      .leftJoin("review", (join) =>
+        join.onRef("review.work_id", "=", "work.id").onRef("review.list_id", "=", "work_list.id"),
+      )
       .select(["review.id as review_id", "review.score", "review.user_id", "review.created_date"])
       .groupBy(["review.id", "work.id", "work_list_item.time_added"])
       .execute();
