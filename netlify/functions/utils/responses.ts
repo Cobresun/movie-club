@@ -1,10 +1,22 @@
-export const ok = (body?: string) => ({
-  statusCode: 200,
-  body,
-  headers: {
-    "Content-Type": "application/json",
-  },
-});
+import { HandlerResponse } from "@netlify/functions";
+
+/**
+ * `T` is the response contract the frontend reads, from `lib/types`, and has to
+ * be written out — `ok<ClubPreview>(club)`. It is never inferred from `data`
+ * (the `never` default rejects an untyped call), so a handler cannot quietly
+ * send a shape other than the one its caller asks for.
+ */
+export function ok(): HandlerResponse;
+export function ok<T = never>(data: NoInfer<T>): HandlerResponse;
+export function ok(data?: unknown): HandlerResponse {
+  return {
+    statusCode: 200,
+    body: data === undefined ? undefined : JSON.stringify(data),
+    headers: {
+      "Content-Type": "application/json",
+    },
+  };
+}
 
 export const svg = (body: string, cacheControl?: string) => ({
   statusCode: 200,

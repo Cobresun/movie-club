@@ -4,6 +4,7 @@ import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import { WorkType } from "../../../../lib/types/generated/db";
 import { DetailedWorkData, ListInsertDto, WorkDataSummary } from "../../../../lib/types/lists";
 import { MovieCastMember } from "../../../../lib/types/movie";
+import { SimilarWork } from "../../../../lib/types/recommendations";
 import {
   DetailedTvData,
   episodeCode,
@@ -495,6 +496,10 @@ If you do not recognize this series or cannot confirm it is real, return 0 quest
    * show's new episodes, so a season the club finished mid-run reopens with a
    * larger denominator rather than silently staying at 9/9.
    */
+  getSimilarWorks(): Promise<Map<string, SimilarWork[]>> {
+    return Promise.resolve(new Map());
+  }
+
   async refreshStaleDetails(limit: number): Promise<RefreshResult> {
     const stale = await db
       .selectFrom("tv_show_details")

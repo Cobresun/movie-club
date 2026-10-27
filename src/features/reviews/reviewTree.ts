@@ -1,7 +1,7 @@
 import { hasValue, isDefined } from "../../../lib/checks/checks.js";
 import { DetailedReviewListItem, ReviewScores } from "../../../lib/types/lists";
 import { formatTvAddress, TvDataSummary, TvSeasonSummary } from "../../../lib/types/tv";
-import { asTv } from "@/common/workDisplay";
+import { asTv } from "@/common/clubType/tv/data";
 import { OPTIMISTIC_WORK_ID } from "@/service/useList";
 
 /** One episode on the reviews list. */

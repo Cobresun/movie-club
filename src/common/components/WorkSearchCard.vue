@@ -15,6 +15,9 @@
         <p v-if="hasValue(subtitle)" class="text-sm italic text-gray-400">
           {{ subtitle }}
         </p>
+        <p v-if="hasValue(reason)" class="mt-1 text-center text-xs text-gray-400">
+          {{ reason }}
+        </p>
       </div>
     </div>
   </button>
@@ -26,6 +29,7 @@ import { hasValue } from "../../../lib/checks/checks";
 const { fallbackIcon = "image-outline" } = defineProps<{
   title: string;
   subtitle?: string;
+  reason?: string;
   posterUrl?: string;
   fallbackIcon?: string;
 }>();

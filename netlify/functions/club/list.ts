@@ -3,8 +3,11 @@ import { z } from "zod";
 import { hasValue, isDefined } from "../../../lib/checks/checks.js";
 import { WorkType } from "../../../lib/types/generated/db";
 import {
+  ClubListSummary,
   DetailedReviewListItem,
   DetailedWorkListItem,
+  ReviewsListIdResponse,
+  UserListItemWithSource,
   WorkDataSummary,
 } from "../../../lib/types/lists.js";
 import { listInsertDtoSchema } from "../../../lib/types/lists.js";
@@ -35,7 +38,7 @@ const router = new Router<ClubRequest>("/api/club/:clubSlug/list");
 
 router.get("/reviews", async ({ clubId }, res) => {
   const workList = await getReviewList(clubId);
-  return res(ok(JSON.stringify(workList)));
+  return res(ok<DetailedReviewListItem[]>(workList));
 });
 
 // ---------------------------------------------------------------------------
@@ -45,22 +48,20 @@ router.get("/reviews", async ({ clubId }, res) => {
 router.get("/", async ({ clubId }, res) => {
   const lists = await ListRepository.getListsForClub(clubId);
   return res(
-    ok(
-      JSON.stringify(
-        lists.map((row) => ({
-          id: String(row.id),
-          title: row.title,
-          systemType: row.system_type,
-          itemCount: Number(row.item_count),
-        })),
-      ),
+    ok<ClubListSummary[]>(
+      lists.map((row) => ({
+        id: String(row.id),
+        title: row.title,
+        systemType: row.system_type,
+        itemCount: Number(row.item_count),
+      })),
     ),
   );
 });
 
 router.get("/reviews-id", secured, async ({ clubId }, res) => {
   const id = await ListRepository.getReviewsListId(clubId);
-  return res(ok(JSON.stringify({ id })));
+  return res(ok<ReviewsListIdResponse>({ id }));
 });
 
 const createListSchema = z.object({
@@ -85,14 +86,12 @@ router.post("/", secured, async ({ clubId, event }, res) => {
 
   const created = await ListRepository.createList(clubId, body.title);
   return res(
-    ok(
-      JSON.stringify({
-        id: String(created.id),
-        title: created.title,
-        systemType: created.system_type,
-        itemCount: 0,
-      }),
-    ),
+    ok<ClubListSummary>({
+      id: String(created.id),
+      title: created.title,
+      systemType: created.system_type,
+      itemCount: 0,
+    }),
   );
 });
 
@@ -119,7 +118,7 @@ router.get("/all-items", async ({ clubId }, res) => {
     sourceListId: String(item.list_id),
     sourceListTitle: item.list_title,
   }));
-  return res(ok(JSON.stringify(mapped)));
+  return res(ok<UserListItemWithSource[]>(mapped));
 });
 
 router.get("/:listId", validListId, async ({ listId }, res) => {
@@ -129,7 +128,7 @@ router.get("/:listId", validListId, async ({ listId }, res) => {
   );
 
   const mapped = items.map((item) => toDetailedListItem(item, externalData));
-  return res(ok(JSON.stringify(mapped)));
+  return res(ok<DetailedWorkListItem[]>(mapped));
 });
 
 const renameSchema = z.object({

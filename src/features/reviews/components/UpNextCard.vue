@@ -36,10 +36,10 @@ import { computed, ref } from "vue";
 import { useToast } from "vue-toastification";
 
 import { hasValue, isDefined } from "../../../../lib/checks/checks";
+import { UserListItemWithSource } from "../../../../lib/types/lists";
 import { workSubtitle } from "@/common/clubType";
 import PosterImage from "@/common/components/PosterImage.vue";
 import {
-  UserListItemWithSource,
   useAllUserListItems,
   useNextWork,
   useQueueReview,

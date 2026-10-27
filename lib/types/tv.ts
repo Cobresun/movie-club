@@ -201,4 +201,6 @@ export interface TMDBTvSeasonData {
 
 export interface TMDBTvPageResponse {
   results: TMDBTvSearchResult[];
+  page: number;
+  total_pages: number;
 }

@@ -63,6 +63,8 @@ npm run db:cleanup arbitrary_lists
 
 **Deploy previews migrate forward from a fresh copy, never up → down → up.** A preview exists to look like production, and production only ever runs `up()`. Reusing a preview database by rolling it back through `down()` first assumes the down migration perfectly inverts the up one — for many migrations that is difficult and for some impossible (a dropped column's data is gone), so the preview ends up on a schema production will never have. Do not add optimizations that reuse a preview database across incompatible migration states; spawn a fresh one.
 
+**Never hardcode row IDs in a migration.** Shared `dev` (and every snapshot spawned from it) has different club and user IDs from production, so an ID read off dev matches nothing on prod and the migration silently no-ops there. Resolve rows by a natural key (slug, email, name within a club) inside the migration instead.
+
 **Shared `dev` self-syncs after merge.** The plugin's `onSuccess` hook migrates shared `dev` on every production deploy, so it tracks `main` unattended. Running `migrate:dev` against `dev` yourself is a fallback for when that hook failed.
 
 ## CockroachDB gotchas
@@ -71,4 +73,5 @@ npm run db:cleanup arbitrary_lists
 - **`ALTER TABLE DROP CONSTRAINT` can't drop UNIQUE** — CockroachDB stores those as unique indexes. Use `DROP INDEX <name> CASCADE` (crdb #42840).
 - **An enum can't be dropped while a column references it.** Drop the column first.
 - **`up()`/`down()` already run inside a transaction** — don't open another with `db.transaction()`.
+- **Never pair `.distinct()` with `.filterWhere()`.** When one SELECT holds several `count(DISTINCT x)` over the same column with different `FILTER` clauses (or one filtered and one not), CockroachDB returns wrong counts — often 0 — with no error. It is data- and plan-dependent, so a small test fixture can pass while production is wrong; it had the admin dashboard reporting one active club while its own leaderboard listed four. Put each window in its own query's `WHERE` instead (`MetricsRepository.countActivity`). A `FILTER` on a non-distinct `countAll()` is fine.
 - **Migrations here aren't pure schema.** Some embed data backfills that call external APIs and need the matching env var (`20260315_AddPersonProfilePaths.ts` calls TMDB and 401s without `TMDB_API_KEY`).

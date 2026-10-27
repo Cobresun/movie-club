@@ -103,14 +103,7 @@ export function makeMember(overrides: Partial<Member> = {}): Member {
   };
 }
 
-/**
- * One scored movie review, in the shape `/api/club/:id/list/reviews` returns.
- *
- * The shared `src/mocks/data/reviews.json` fixture predates the `kind`
- * discriminant on `externalData`, and `useStatisticsData` drops any movie whose
- * metadata it cannot narrow — so view tests that need statistics to actually
- * appear serve this instead.
- */
+/** One scored movie review, in the shape `/api/club/:id/list/reviews` returns. */
 export const SCORED_MOVIE_REVIEW = {
   id: "1",
   title: "Dune",

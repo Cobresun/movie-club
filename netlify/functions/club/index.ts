@@ -2,8 +2,9 @@ import { Handler, HandlerContext, HandlerEvent } from "@netlify/functions";
 import { z } from "zod";
 
 import { hasValue } from "../../../lib/checks/checks.js";
-import { ClubPreview } from "../../../lib/types/club";
+import { ClubPreview, ClubSlugResponse, CreatedClubResponse } from "../../../lib/types/club";
 import { ClubType } from "../../../lib/types/generated/db.js";
+import { DetailedWorkData, NextWorkResponse } from "../../../lib/types/lists";
 import ClubRepository from "../repositories/ClubRepository";
 import ListRepository from "../repositories/ListRepository";
 import SettingsRepository from "../repositories/SettingsRepository";
@@ -22,6 +23,7 @@ import inviteRouter from "./invite";
 import listRouter from "./list";
 import membersRouter from "./members";
 import joinRouter from "./members/join";
+import recommendationsRouter from "./recommendations";
 import reviewsRouter from "./reviews";
 import settingsRouter from "./settings";
 
@@ -32,6 +34,7 @@ router.use("/:clubSlug/members", validClubSlug, membersRouter);
 router.use("/:clubSlug/awards", validClubSlug, awardsRouter);
 router.use("/:clubSlug/invite", validClubSlug, inviteRouter);
 router.use("/:clubSlug/settings", validClubSlug, settingsRouter);
+router.use("/:clubSlug/recommendations", validClubSlug, recommendationsRouter);
 router.get("/:clubSlug", validClubSlug, (req, res) => {
   // validClubSlug already fetched the club row; no second lookup needed.
   const result: ClubPreview = {
@@ -41,7 +44,7 @@ router.get("/:clubSlug", validClubSlug, (req, res) => {
     slugUpdatedAt: req.clubSlugUpdatedAt ? String(req.clubSlugUpdatedAt) : undefined,
     type: req.clubType,
   };
-  return Promise.resolve(res(ok(JSON.stringify(result))));
+  return Promise.resolve(res(ok<ClubPreview>(result)));
 });
 
 // Full external metadata (including the cast list) for a single work. Bulk
@@ -55,7 +58,7 @@ router.get("/:clubSlug/work/:workId/details", validClubSlug, async ({ clubId, pa
   const externalData = hasValue(work.external_id)
     ? (await getProvider(work.type).getExternalData([work.external_id])).get(work.external_id)
     : undefined;
-  return res(ok(JSON.stringify(externalData ?? null)));
+  return res(ok<DetailedWorkData | null>(externalData ?? null));
 });
 
 const clubNameUpdateSchema = z.object({
@@ -122,13 +125,13 @@ router.post("/", loggedIn, async ({ event }, res) => {
   return res(
     hasErrors
       ? badRequest("Error creating club")
-      : ok(JSON.stringify({ clubId: newClub.id, slug: String(newClub.slug) })),
+      : ok<CreatedClubResponse>({ clubId: newClub.id, slug: String(newClub.slug) }),
   );
 });
 
 router.get("/:clubSlug/nextWork", validClubSlug, async ({ clubId }, res) => {
   const nextWork = await WorkRepository.getNextWork(clubId);
-  return res(ok(JSON.stringify({ workId: nextWork?.work_id })));
+  return res(ok<NextWorkResponse>({ workId: nextWork?.work_id }));
 });
 
 const nextWorkSchema = z.object({
@@ -173,7 +176,7 @@ router.put("/:clubSlug/slug", validClubSlug, secured, async ({ clubId, event }, 
 
   await ClubRepository.updateSlug(clubId, newSlug);
 
-  return res(ok(JSON.stringify({ slug: newSlug })));
+  return res(ok<ClubSlugResponse>({ slug: newSlug }));
 });
 
 const handler: Handler = async (event: HandlerEvent, context: HandlerContext) => {

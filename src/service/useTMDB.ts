@@ -1,28 +1,12 @@
-import { useInfiniteQuery, useQuery } from "@tanstack/vue-query";
+import { useQuery } from "@tanstack/vue-query";
 import axios from "axios";
 import { computed, Ref } from "vue";
 
 import { hasValue, isDefined } from "../../lib/checks/checks.js";
-import { TMDBPageResponse, TMDBWatchProvidersResponse } from "../../lib/types/movie";
+import { TMDBWatchProvidersResponse } from "../../lib/types/movie";
 import { TMDBTvSeasonData } from "../../lib/types/tv";
 
 const key = import.meta.env.VITE_TMDB_API_KEY;
-
-export type TMDBCollection = "popular" | "now_playing" | "upcoming" | "top_rated";
-
-export function useInfiniteCollection(collection: Ref<TMDBCollection>) {
-  return useInfiniteQuery<TMDBPageResponse>({
-    queryKey: ["tmdb", "collection", "infinite", collection],
-    queryFn: async ({ pageParam = 1 }) =>
-      (
-        await axios.get<TMDBPageResponse>(
-          `https://api.themoviedb.org/3/movie/${collection.value}?api_key=${key}&language=en-US&page=${pageParam}`,
-        )
-      ).data,
-    getNextPageParam: (lastPage) =>
-      lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined,
-  });
-}
 
 /**
  * Every episode TMDB lists for one season of a show. The reviews list only

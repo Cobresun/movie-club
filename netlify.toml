@@ -36,6 +36,30 @@
     to = "/.netlify/functions/:splat"
     status = 200
 
+# Same-origin copies of the image hosts Wrapped cards show. A saved card is
+# drawn on a canvas, which can only read a cross-origin image whose host sends
+# CORS headers, so cardImage.ts fetches posters and avatars through these.
+# Keep the prefixes in step with IMAGE_PROXIES there.
+[[redirects]]
+    from = "/image-proxy/tmdb/*"
+    to = "https://image.tmdb.org/:splat"
+    status = 200
+
+[[redirects]]
+    from = "/image-proxy/google-books/*"
+    to = "https://books.google.com/:splat"
+    status = 200
+
+[[redirects]]
+    from = "/image-proxy/google-avatars/*"
+    to = "https://lh3.googleusercontent.com/:splat"
+    status = 200
+
+[[redirects]]
+    from = "/image-proxy/cloudinary/*"
+    to = "https://res.cloudinary.com/:splat"
+    status = 200
+
 [[redirects]]
     from = "/*"
     to = "/index.html"

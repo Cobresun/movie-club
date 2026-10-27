@@ -59,12 +59,23 @@ class ReviewRepository {
       .execute();
   }
 
+  /** Every score given in the club's reviews — the taste signal recommendations are ranked from. */
+  async getClubScores(clubId: string) {
+    return db
+      .selectFrom("work_list")
+      .where("work_list.club_id", "=", clubId)
+      .where("work_list.system_type", "=", WorkListSystemType.reviews)
+      .innerJoin("review", "review.list_id", "work_list.id")
+      .innerJoin("work", "work.id", "review.work_id")
+      .select(["review.user_id", "review.score", "work.external_id", "work.title", "work.type"])
+      .execute();
+  }
+
   /**
    * Write `userId`'s score to `workId`, replacing any score they had on it.
-   * A TV season or episode nobody has scored has no work yet, so the client
-   * cannot know a review id to update — two quick saves both arrive here, and
-   * dropping the caller's old row first keeps them from stacking up. Only the
-   * caller's own review is touched.
+   * A work created by the score itself has no review id the client could
+   * update, so two quick saves both arrive here; dropping the caller's old row
+   * first keeps them from stacking up. Only the caller's own review is touched.
    */
   async replaceScore(listId: string, workId: string, userId: string, score: number) {
     return db.transaction().execute(async (trx) => {

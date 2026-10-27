@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { DetailedBookData } from "./book";
-import { WorkType } from "./generated/db";
+import { WorkListSystemType, WorkType } from "./generated/db";
 import { DetailedMovieData, MovieDataSummary } from "./movie";
 import { DetailedTvData, TvDataSummary } from "./tv";
 
@@ -19,6 +19,22 @@ export type DetailedWorkData = DetailedMovieData | DetailedBookData | DetailedTv
  * full shape. Book metadata is small enough to double as its own summary.
  */
 export type WorkDataSummary = MovieDataSummary | DetailedBookData | TvDataSummary;
+
+/** One entry in a club's list collection (`GET /api/club/:clubSlug/list`). */
+export interface ClubListSummary {
+  id: string;
+  title: string;
+  systemType: WorkListSystemType | null;
+  itemCount: number;
+}
+
+export interface ReviewsListIdResponse {
+  id: string;
+}
+
+export interface NextWorkResponse {
+  workId?: string;
+}
 
 export interface WorkListItem {
   id: string;
@@ -57,6 +73,12 @@ export type DetailedWorkListItem<T extends WorkDataSummary = WorkDataSummary> = 
 export type DetailedReviewListItem<T extends WorkDataSummary = WorkDataSummary> = ReviewListItem &
   ExternalWorkData<T>;
 
+/** An item from any of the club's user lists, tagged with the list it came from. */
+export interface UserListItemWithSource extends DetailedWorkListItem {
+  sourceListId: string;
+  sourceListTitle: string;
+}
+
 /**
  * One work the signed-in member has scored, in any club they belong to.
  * Returned by `GET /api/member/scores` and fed to Score Assist so its
@@ -89,6 +111,10 @@ export interface WorkCommentDto {
   spoiler: boolean;
 }
 
+export interface DiscussionQuestionsResponse {
+  questions: string[];
+}
+
 export const listInsertDtoSchema = z.object({
   type: z.nativeEnum(WorkType),
   title: z.string(),
@@ -102,7 +128,7 @@ export interface SharedReviewResponse {
   members: {
     id: string;
     name: string;
-    image: string;
+    image?: string;
   }[];
   reviews: {
     user_id: string;
@@ -112,6 +138,7 @@ export interface SharedReviewResponse {
   comments: WorkCommentDto[];
   // The shared-review page is a single work, so it keeps the full metadata
   // shape (including cast) rather than the bulk summary.
-  work: DetailedReviewListItem<DetailedWorkData>;
+  work: Pick<WorkListItem, "id" | "type" | "title" | "imageUrl" | "externalId"> &
+    ExternalWorkData<DetailedWorkData>;
   clubName: string;
 }

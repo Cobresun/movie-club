@@ -4,7 +4,7 @@ import { z } from "zod";
 import { WorkType } from "../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../lib/types/lists";
 import { formatTvAddress, TMDBTvEpisodeData, TvDataSummary } from "../../lib/types/tv";
-import { asTv } from "../common/workDisplay";
+import { asTv } from "../common/clubType/tv/data";
 import { withMemberScore } from "../features/reviews/episodeCards";
 
 const addBodySchema = z.object({ externalId: z.string() });

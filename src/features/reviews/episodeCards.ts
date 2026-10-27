@@ -8,7 +8,7 @@ import {
   TvDataSummary,
 } from "../../../lib/types/tv";
 import { EpisodeNode } from "./reviewTree";
-import { tmdbStillUrl } from "@/common/workDisplay";
+import { tmdbStillUrl } from "@/common/clubType/tv/data";
 import { OPTIMISTIC_WORK_ID } from "@/service/useList";
 
 /** One episode in a season's list, scored or not. */

@@ -7,7 +7,8 @@ import { DetailedReviewListItem } from "../../../../lib/types/lists";
 import { createHistogramData } from "../scoring";
 import type { WorkStatsBase, WorkStatsData, HistogramData } from "../types";
 import { isScoredUnit } from "@/common/clubType";
-import { asBook, asTv, isMovieData } from "@/common/workDisplay";
+import { asTv } from "@/common/clubType/tv/data";
+import { asBook, isMovieData } from "@/common/workDisplay";
 import { useMembers, useClubSlug } from "@/service/useClub";
 import { useReviewsList } from "@/service/useList";
 

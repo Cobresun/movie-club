@@ -11,16 +11,20 @@ import { useToast } from "vue-toastification";
 
 import { hasValue, isDefined } from "../../lib/checks/checks.js";
 import {
+  ClubListSummary,
   DetailedReviewListItem,
   DetailedWorkData,
   DetailedWorkListItem,
   ListInsertDto,
+  NextWorkResponse,
+  ReviewsListIdResponse,
   SharedReviewResponse,
+  UserListItemWithSource,
 } from "../../lib/types/lists.js";
+import { recommendationsKey } from "./useRecommendations";
 import { memberScoresKey } from "./useUser";
 import { useAuthStore } from "@/stores/auth";
 
-export const BASE_IMAGE_URL = "https://image.tmdb.org/t/p/w154/";
 export const OPTIMISTIC_WORK_ID = "temp";
 
 // ---------------------------------------------------------------------------
@@ -71,13 +75,6 @@ async function addPendingReview(
 // Club lists collection (the user lists shown in the list switcher)
 // ---------------------------------------------------------------------------
 
-export interface ClubListSummary {
-  id: string;
-  title: string;
-  systemType: "reviews" | null;
-  itemCount: number;
-}
-
 export function useClubLists(clubSlug: string): UseQueryReturnType<ClubListSummary[], AxiosError> {
   return useQuery({
     queryKey: clubListsKey(clubSlug),
@@ -89,7 +86,7 @@ export function useReviewsListId(clubSlug: string): UseQueryReturnType<string, A
   return useQuery({
     queryKey: reviewsListIdKey(clubSlug),
     queryFn: async () =>
-      (await axios.get<{ id: string }>(`/api/club/${clubSlug}/list/reviews-id`)).data.id,
+      (await axios.get<ReviewsListIdResponse>(`/api/club/${clubSlug}/list/reviews-id`)).data.id,
   });
 }
 
@@ -206,11 +203,6 @@ export function useList(
         .data,
     enabled: () => listIdRef.value !== "",
   });
-}
-
-export interface UserListItemWithSource extends DetailedWorkListItem {
-  sourceListId: string;
-  sourceListTitle: string;
 }
 
 export function useAllUserListItems(
@@ -402,6 +394,7 @@ export function useAddListItem(clubSlug: string, listId: string) {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: listKey(clubSlug, listId) }),
         queryClient.invalidateQueries({ queryKey: clubListsKey(clubSlug) }),
+        queryClient.invalidateQueries({ queryKey: recommendationsKey(clubSlug) }),
       ]);
     },
   });
@@ -531,7 +524,7 @@ export function useNextWork(clubSlug: string) {
   return useQuery({
     queryKey: ["nextWork", clubSlug],
     queryFn: async () => {
-      const response = await axios.get<{ workId?: string }>(`/api/club/${clubSlug}/nextWork`);
+      const response = await axios.get<NextWorkResponse>(`/api/club/${clubSlug}/nextWork`);
       return response.data.workId ?? null;
     },
   });
@@ -571,11 +564,8 @@ export function useSharedReview(
   return useQuery({
     queryKey: ["sharedReview", clubSlug, workId],
     queryFn: async () =>
-      (
-        await axios.get<{ data: SharedReviewResponse }>(
-          `/api/club/${clubSlug}/reviews/${workId}/shared`,
-        )
-      ).data,
+      (await axios.get<SharedReviewResponse>(`/api/club/${clubSlug}/reviews/${workId}/shared`))
+        .data,
   });
 }
 

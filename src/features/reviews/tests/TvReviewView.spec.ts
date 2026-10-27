@@ -1,5 +1,5 @@
 import { UserEvent } from "@testing-library/user-event";
-import { screen, within } from "@testing-library/vue";
+import { fireEvent, screen, within } from "@testing-library/vue";
 import { http, HttpResponse } from "msw";
 
 import { WorkType } from "../../../../lib/types/generated/db";
@@ -368,12 +368,12 @@ describe("TV reviews", () => {
   it("keeps a show when a filter only its episodes carry matches", async () => {
     const { user } = await renderSeverance();
 
-    await user.click(screen.getByRole("button", { name: "Season" }));
-    await user.type(await screen.findByPlaceholderText("Enter a season number"), "1");
-    await user.click(screen.getByRole("button", { name: "=" }));
-    await user.click(screen.getByRole("button", { name: "Apply" }));
+    await user.click(screen.getByRole("button", { name: "Filters" }));
+    const panel = within(await screen.findByRole("dialog"));
+    await fireEvent.update(panel.getByRole("slider", { name: "Maximum season" }), "1");
+    await user.click(panel.getByRole("button", { name: /^Show \d/ }));
 
-    expect(await screen.findByRole("button", { name: /^Season\W*1$/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Filters, 1 active" })).toBeInTheDocument();
 
     expect(
       await screen.findByRole("button", { name: "Severance, average 8.0" }),

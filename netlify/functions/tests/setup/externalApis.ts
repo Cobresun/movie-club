@@ -10,6 +10,7 @@ import {
   tmdbTvSeason,
   tmdbTvShow,
   TV_SEASON_EPISODE_COUNTS,
+  tmdbPage,
 } from "../fixtures/external";
 
 /**
@@ -77,6 +78,7 @@ export const server = setupServer(
   http.get(`${TMDB}/tv/:showId`, ({ params }) =>
     HttpResponse.json(tmdbTvShow(Number(params.showId))),
   ),
+  http.get(`${TMDB}/movie/:movieId/recommendations`, () => HttpResponse.json(tmdbPage([]))),
 
   http.get(`${GOOGLE_BOOKS}/volumes/:volumeId`, ({ params }) =>
     HttpResponse.json(googleBooksVolume(String(params.volumeId))),
