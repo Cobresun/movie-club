@@ -1,9 +1,10 @@
 /**
- * Integration tests for `netlify/functions/daily-game.ts`.
+ * Integration tests for `netlify/functions/daily-game.ts` and the scheduled
+ * catalog top-up that feeds it.
  *
- * The pool is whatever clubs have added, so movies are added through the real
- * list endpoints; only TMDB is faked, with credits chosen so the ranking has a
- * known shape.
+ * The pool is whatever clubs have added plus the catalog, so movies get there
+ * through the real list endpoints and the real scheduled function; only TMDB
+ * is faked, with credits chosen so the ranking has a known shape.
  */
 import { http, HttpResponse } from "msw";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -11,11 +12,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DailyGameMovie, DailyGamePuzzle } from "../../../lib/types/dailyGame";
 import { ClubType, WorkType } from "../../../lib/types/generated/db";
 import { handler } from "../daily-game";
-import { tmdbMovie } from "./fixtures/external";
+import topUpCatalog from "../scheduled-daily-game-catalog";
+import { tmdbMovie, tmdbPage } from "./fixtures/external";
 import { signIn, TestSession } from "./helpers/auth";
 import { addWork, createClub, SeededClub } from "./helpers/factories";
 import { requester } from "./helpers/http";
-import { server, TMDB } from "./setup/externalApis";
+import { failOnRequest, server, TMDB } from "./setup/externalApis";
 
 const api = requester(handler);
 
@@ -57,6 +59,27 @@ async function addMovies(club: SeededClub, session: TestSession, ids: number[]) 
   for (const id of ids) {
     await addWork(club, session, { externalId: String(id), title: `Movie ${id}` });
   }
+}
+
+/** TMDB's most-rated list: `perPage` movies on each of the first `pages` pages, then nothing. */
+function mostRated(pages: number, perPage: number, firstId = 500) {
+  server.use(
+    http.get(`${TMDB}/discover/movie`, ({ request }) => {
+      const page = Number(new URL(request.url).searchParams.get("page"));
+      const ids = page <= pages ? range(firstId + (page - 1) * perPage, perPage) : [];
+      return HttpResponse.json(tmdbPage(ids.map((id) => tmdbMovie(id))));
+    }),
+  );
+}
+
+async function runCatalogTopUp() {
+  const response = await topUpCatalog(
+    new Request("https://localhost/.netlify/functions/scheduled-daily-game-catalog", {
+      method: "POST",
+      body: JSON.stringify({ next_run: "2026-10-22T13:00:00Z" }),
+    }),
+  );
+  expect(response.status).toBe(200);
 }
 
 const range = (from: number, count: number) => Array.from({ length: count }, (_, i) => from + i);
@@ -171,5 +194,60 @@ describe("GET /api/daily-game/:date", () => {
     const res = await api.get(`/api/daily-game/${TODAY}`);
 
     expect(res.statusCode).toBe(404);
+  });
+
+  describe("with the catalog topped up from TMDB", () => {
+    it("plays from TMDB's most-rated movies before any club has added one", async () => {
+      mostRated(1, 12);
+      await runCatalogTopUp();
+
+      const res = await api.get<DailyGamePuzzle>(`/api/daily-game/${TODAY}`);
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.movies.map((movie) => movie.id).sort()).toEqual(range(500, 12).map(String));
+    });
+
+    it("pools the catalog with the clubs' movies, once each", async () => {
+      const alice = await signIn("alice");
+      await addMovies(await createClub(alice), alice, range(100, 4));
+      mostRated(1, 10, 102);
+      await runCatalogTopUp();
+
+      const { movies } = (await api.get<DailyGamePuzzle>(`/api/daily-game/${TODAY}`)).body;
+
+      expect(movies.map((movie) => movie.id).sort()).toEqual(range(100, 12).map(String));
+    });
+
+    it("fills a large catalog over several runs without fetching a movie twice", async () => {
+      mostRated(4, 20);
+
+      await runCatalogTopUp();
+      const first = (await api.get<DailyGamePuzzle>(`/api/daily-game/${TODAY}`)).body;
+      expect(first.movies).toHaveLength(50);
+
+      failOnRequest(
+        "get",
+        new RegExp(`${TMDB}/movie/(${first.movies.map((m) => m.id).join("|")})$`),
+      );
+      await runCatalogTopUp();
+      const second = (await api.get<DailyGamePuzzle>(`/api/daily-game/${TODAY}`)).body;
+      expect(second.movies).toHaveLength(80);
+      expect(answerOf(second.movies)?.id).toBe(answerOf(first.movies)?.id);
+    });
+
+    it("skips a movie TMDB fails to return and adds it on a later run", async () => {
+      mostRated(1, 12);
+      server.use(http.get(`${TMDB}/movie/505`, () => new HttpResponse(null, { status: 500 })));
+      await runCatalogTopUp();
+      const before = (await api.get<DailyGamePuzzle>(`/api/daily-game/${TODAY}`)).body;
+      expect(before.movies.map((movie) => movie.id)).not.toContain("505");
+
+      server.resetHandlers();
+      tmdbPairs();
+      mostRated(1, 12);
+      await runCatalogTopUp();
+      const after = (await api.get<DailyGamePuzzle>(`/api/daily-game/${TODAY}`)).body;
+      expect(after.movies.map((movie) => movie.id)).toContain("505");
+    });
   });
 });

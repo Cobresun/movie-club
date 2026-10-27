@@ -8,7 +8,7 @@
       :title="notEnoughMovies ? 'Closer is still warming up' : 'Couldn\'t load today\'s movie'"
       :description="
         notEnoughMovies
-          ? 'The daily game draws from the movies clubs add to Movie Club. Check back once a few more are in.'
+          ? 'Today\'s movie list is still being put together. Check back in a little while.'
           : 'Something went wrong fetching the puzzle. Give it another try in a moment.'
       "
     />

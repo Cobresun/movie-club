@@ -15,7 +15,7 @@ export function previousDate(date: string): string {
 }
 
 // Cutoffs scale with the pool, so "hot" means the same share of the field
-// whether the clubs have added fifty movies or five thousand.
+// whether the pool holds fifty movies or five thousand.
 const HOT_SHARE = 0.04;
 const WARM_SHARE = 0.18;
 const FIRST_HINT_SHARE = 0.12;

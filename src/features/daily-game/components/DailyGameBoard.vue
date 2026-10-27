@@ -102,8 +102,8 @@
       <summary class="cursor-pointer font-semibold text-white">How to play</summary>
       <ul class="mt-2 list-disc space-y-1.5 pl-5">
         <li>
-          There is one mystery movie a day, drawn from the {{ game.poolSize }} movies Movie Club's
-          clubs have added. You can guess any of them.
+          There is one mystery movie a day, drawn from {{ game.poolSize }} well-known films and
+          everything Movie Club's clubs have added. You can guess any of them.
         </li>
         <li>
           Each guess gets a rank: #1 is the answer, #2 the next most similar film, and so on down to

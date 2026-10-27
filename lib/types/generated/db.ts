@@ -109,6 +109,11 @@ export interface ClubSettings {
   value: Json;
 }
 
+export interface DailyGameCatalog {
+  created_at: Generated<Timestamp>;
+  external_id: string;
+}
+
 export interface DailyGamePuzzle {
   created_at: Generated<Timestamp>;
   external_id: string;
@@ -276,6 +281,7 @@ export interface DB {
   club_invite: ClubInvite;
   club_member: ClubMember;
   club_settings: ClubSettings;
+  daily_game_catalog: DailyGameCatalog;
   daily_game_puzzle: DailyGamePuzzle;
   metric_snapshot: MetricSnapshot;
   movie_actors: MovieActors;

@@ -57,6 +57,22 @@ export async function getTMDBRecommendations(
   return data;
 }
 
+/**
+ * One page of every movie on TMDB, most rated first. Vote count tracks how
+ * widely a film has been seen rather than how well it is liked, so the top
+ * pages are the movies most people would recognise, and new releases climb in
+ * as they are watched.
+ */
+export async function getTMDBMostRated(page: number): Promise<TMDBPageResponse> {
+  const { data } = await makeTMDBApiCall<TMDBPageResponse>("/discover/movie", {
+    sort_by: "vote_count.desc",
+    include_adult: "false",
+    include_video: "false",
+    page: String(page),
+  });
+  return data;
+}
+
 /** Turns a TMDB `poster_path` into a w154 poster URL. */
 export async function getTMDBPosterUrlBuilder(): Promise<(posterPath: string) => string> {
   const configuration = await getTMDBConfig();

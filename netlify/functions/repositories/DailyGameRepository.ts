@@ -6,14 +6,25 @@ const asDay = (date: string) => new Date(`${date}T00:00:00Z`);
 
 class DailyGameRepository {
   /**
-   * Every movie any club has added that has cached details, once each. A
-   * movie's own TMDB title wins over a club's spelling of it.
+   * Every movie with cached details that a club has added or the catalog
+   * holds, once each. A movie's own TMDB title wins over a club's spelling of
+   * it; a movie with neither is left out.
    */
   async getMoviePool(): Promise<{ externalId: string; title: string }[]> {
     const rows = await db
-      .selectFrom("work")
-      .innerJoin("movie_details", "movie_details.external_id", "work.external_id")
-      .where("work.type", "=", WorkType.movie)
+      .selectFrom("movie_details")
+      .leftJoin("work", (join) =>
+        join
+          .onRef("work.external_id", "=", "movie_details.external_id")
+          .on("work.type", "=", WorkType.movie),
+      )
+      .leftJoin("daily_game_catalog", "daily_game_catalog.external_id", "movie_details.external_id")
+      .where((eb) =>
+        eb.or([
+          eb("work.id", "is not", null),
+          eb("daily_game_catalog.external_id", "is not", null),
+        ]),
+      )
       .select([
         "movie_details.external_id",
         "movie_details.title as details_title",
@@ -22,10 +33,30 @@ class DailyGameRepository {
       .distinctOn("movie_details.external_id")
       .orderBy("movie_details.external_id")
       .execute();
-    return rows.map((row) => ({
-      externalId: row.external_id,
-      title: row.details_title ?? row.work_title,
-    }));
+    return rows.flatMap((row) => {
+      const title = row.details_title ?? row.work_title;
+      return title === null ? [] : [{ externalId: row.external_id, title }];
+    });
+  }
+
+  /** Which of `externalIds` the catalog already holds. */
+  async getCatalogued(externalIds: string[]): Promise<Set<string>> {
+    if (externalIds.length === 0) return new Set();
+    const rows = await db
+      .selectFrom("daily_game_catalog")
+      .select("external_id")
+      .where("external_id", "in", externalIds)
+      .execute();
+    return new Set(rows.map((row) => row.external_id));
+  }
+
+  /** Adds a movie whose details are already cached to the catalog. */
+  async addToCatalog(externalId: string): Promise<void> {
+    await db
+      .insertInto("daily_game_catalog")
+      .values({ external_id: externalId })
+      .onConflict((oc) => oc.column("external_id").doNothing())
+      .execute();
   }
 
   async getAnswer(date: string): Promise<string | undefined> {
