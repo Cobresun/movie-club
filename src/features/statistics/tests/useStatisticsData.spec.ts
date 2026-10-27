@@ -75,8 +75,8 @@ describe("useStatisticsData", () => {
     const stats = await renderStats([]);
 
     expect(stats.hasReviews.value).toBe(false);
-    expect(stats.workData.value).toEqual([]);
-    expect(stats.histogramData.value).toEqual([]);
+    expect(stats.workData.value).toStrictEqual([]);
+    expect(stats.histogramData.value).toStrictEqual([]);
   });
 
   it("carries a movie's genres and metadata onto its stats row", async () => {
@@ -85,20 +85,22 @@ describe("useStatisticsData", () => {
     const [work] = stats.workData.value;
     expect(work?.title).toBe("Inception");
     expect(isDefined(work) && isMovieStats(work)).toBe(true);
-    expect(isDefined(work) && isMovieStats(work) ? work.genres : []).toEqual(["Science Fiction"]);
+    expect(isDefined(work) && isMovieStats(work) ? work.genres : []).toStrictEqual([
+      "Science Fiction",
+    ]);
     expect(work?.average).toBe(7);
   });
 
   it("keeps a book with no external metadata — book stats are score-only", async () => {
     const stats = await renderStats([bookReview({ externalData: undefined })]);
 
-    expect(stats.workData.value.map((w: WorkStatsData) => w.title)).toEqual(["Dune"]);
+    expect(stats.workData.value.map((w: WorkStatsData) => w.title)).toStrictEqual(["Dune"]);
   });
 
   it("drops a movie with no external metadata, which movie stats depend on", async () => {
     const stats = await renderStats([movieReview({ externalData: undefined }), bookReview()]);
 
-    expect(stats.workData.value.map((w: WorkStatsData) => w.title)).toEqual(["Dune"]);
+    expect(stats.workData.value.map((w: WorkStatsData) => w.title)).toStrictEqual(["Dune"]);
   });
 
   it("drops works nobody has scored", async () => {
@@ -110,7 +112,7 @@ describe("useStatisticsData", () => {
   it("excludes the synthetic average from per-member scores", async () => {
     const stats = await renderStats([movieReview()]);
 
-    expect(stats.workData.value[0]?.userScores).toEqual({ "1": 8, "2": 6 });
+    expect(stats.workData.value[0]?.userScores).toStrictEqual({ "1": 8, "2": 6 });
   });
 
   it("builds an 11-bin histogram counting each member's scores by whole number", async () => {
@@ -121,7 +123,7 @@ describe("useStatisticsData", () => {
 
     const histogram = stats.histogramData.value;
     expect(histogram).toHaveLength(11);
-    expect(histogram.map((bin) => bin.bin)).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    expect(histogram.map((bin) => bin.bin)).toStrictEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
     // dev scored 8 and 8.4 — both floor into bin 8.
     expect(histogram[8]?.["1"]).toBe(2);
     // user scored only the movie, a 6.
@@ -132,6 +134,6 @@ describe("useStatisticsData", () => {
   it("exposes the club's members alongside the work data", async () => {
     const stats = await renderStats([movieReview()]);
 
-    expect(stats.members.value.map((m) => m.name)).toEqual(["dev", "user"]);
+    expect(stats.members.value.map((m) => m.name)).toStrictEqual(["dev", "user"]);
   });
 });

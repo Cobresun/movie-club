@@ -1,6 +1,6 @@
 import { type Component } from "vue";
 
-import { Member } from "../../../lib/types/club.js";
+import { type Member } from "../../../lib/types/club.js";
 import { ClubType } from "../../../lib/types/generated/db";
 import ActivityWidget from "./components/ActivityWidget.vue";
 import AuthorLeaderboardWidget from "./components/AuthorLeaderboardWidget.vue";

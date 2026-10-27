@@ -57,9 +57,9 @@ import { computed } from "vue";
 import { useToast } from "vue-toastification";
 
 import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
-import { ClubType } from "../../../../lib/types/generated/db";
-import { DetailedReviewListItem } from "../../../../lib/types/lists";
-import { ComparisonAnswer, ScoredCandidate } from "../composables/scoreAssistLogic";
+import { type ClubType } from "../../../../lib/types/generated/db";
+import { type DetailedReviewListItem } from "../../../../lib/types/lists";
+import { type ComparisonAnswer, type ScoredCandidate } from "../composables/scoreAssistLogic";
 import { useScoreAssist } from "../composables/useScoreAssist";
 import { formatScore } from "../scoreScale";
 import { clubTypeConfig, workNoun, workTitle } from "@/common/clubType";
@@ -71,7 +71,12 @@ import { workPosterUrl } from "@/common/workDisplay";
 // drawer's ScoreEntryDock replace their dial with this; ScoreAssistModal
 // wraps it in a fresh v-modal) instead of stacking a second modal/sheet on
 // top.
-const props = defineProps<{
+const {
+  target,
+  candidates,
+  clubType,
+  currentClubId = undefined,
+} = defineProps<{
   target: DetailedReviewListItem;
   candidates: ScoredCandidate[];
   clubType: ClubType;
@@ -86,36 +91,26 @@ const emit = defineEmits<{
   (e: "suggest", score: number): void;
 }>();
 
-const {
-  pivot,
-  result,
-  answer: answerSession,
-  progressLabel,
-} = useScoreAssist(props.target, props.candidates);
+const { pivot, result, answer: answerSession, progressLabel } = useScoreAssist(target, candidates);
 
-const targetTitle = computed(() => workTitle(props.target));
+const targetTitle = computed(() => workTitle(target));
 
 // Candidates are always the club's own unit (an episode, for TV), so a target
 // at another level — a show — is compared without naming either.
 const question = computed(() => {
-  const noun = clubTypeConfig(props.clubType).noun;
-  const targetNoun = workNoun(props.target.externalData) ?? noun;
+  const noun = clubTypeConfig(clubType).noun;
+  const targetNoun = workNoun(target.externalData) ?? noun;
   return targetNoun === noun ? `Which ${noun} did you like more?` : "Which did you like more?";
 });
 
-const targetPosterUrl = computed(
-  () => workPosterUrl(props.target.externalData, props.target.imageUrl) ?? "",
-);
+const targetPosterUrl = computed(() => workPosterUrl(target.externalData, target.imageUrl) ?? "");
 const pivotPosterUrl = computed(() =>
   isDefined(pivot.value)
     ? (workPosterUrl(pivot.value.externalData, pivot.value.imageUrl) ?? "")
     : "",
 );
 const isFromAnotherClub = computed(
-  () =>
-    isDefined(pivot.value) &&
-    hasValue(props.currentClubId) &&
-    pivot.value.clubId !== props.currentClubId,
+  () => isDefined(pivot.value) && hasValue(currentClubId) && pivot.value.clubId !== currentClubId,
 );
 
 const toast = useToast();

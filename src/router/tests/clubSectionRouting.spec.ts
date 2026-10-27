@@ -1,4 +1,4 @@
-import type { RouteLocationNamedRaw, Router } from "vue-router";
+import { type RouteLocationNamedRaw, type Router } from "vue-router";
 
 import { setLastClubSection } from "@/common/composables/useLastClubSlug";
 
@@ -16,7 +16,11 @@ const redirectTargetOf = (router: Router, path: string): RouteLocationNamedRaw =
   if (typeof record.redirect !== "function") {
     throw new Error(`${path} resolved to ${String(record.name)}, which does not redirect`);
   }
-  return record.redirect(resolved, router.currentRoute.value) as RouteLocationNamedRaw;
+  const target = record.redirect(resolved, router.currentRoute.value);
+  if (typeof target === "object" && target !== null && "name" in target) {
+    return target;
+  }
+  throw new Error(`Expected RouteLocationNamedRaw, got ${JSON.stringify(target)}`);
 };
 
 beforeEach(() => {
@@ -27,7 +31,7 @@ describe("club section routing", () => {
   it("sends a bare club URL to reviews by default", async () => {
     const router = await loadRouter();
 
-    expect(redirectTargetOf(router, "/club/test-club")).toEqual({
+    expect(redirectTargetOf(router, "/club/test-club")).toStrictEqual({
       name: "Reviews",
       params: { clubSlug: "test-club" },
     });

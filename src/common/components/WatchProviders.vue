@@ -30,13 +30,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed, toRef } from "vue";
+import { computed } from "vue";
 
 import { hasElements, hasValue } from "../../../lib/checks/checks";
 import { TMDBWatchProvider } from "../../../lib/types/movie";
 import { useWatchProviders } from "@/service/useTMDB";
 
-const props = defineProps<{
+const { externalId = "" } = defineProps<{
   externalId?: string;
 }>();
 
@@ -56,7 +56,7 @@ function detectRegion(): string | undefined {
   }
 }
 
-const { data } = useWatchProviders(toRef(props, "externalId"));
+const { data } = useWatchProviders(computed(() => externalId));
 
 const regionData = computed(() => (hasValue(region) ? data.value?.results[region] : undefined));
 

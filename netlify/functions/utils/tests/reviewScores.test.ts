@@ -6,9 +6,8 @@
  * endpoint cannot drift), so its filtering and averaging rules are worth
  * pinning down.
  */
-import { describe, expect, it } from "vitest";
 
-import { buildReviewScores, ScoreEntry } from "../reviewScores";
+import { buildReviewScores, type ScoreEntry } from "../reviewScores";
 
 function entry(overrides: Partial<ScoreEntry> = {}): ScoreEntry {
   return {
@@ -22,13 +21,13 @@ function entry(overrides: Partial<ScoreEntry> = {}): ScoreEntry {
 
 describe("buildReviewScores", () => {
   it("returns an empty map when nobody has scored", () => {
-    expect(buildReviewScores([], new Set(["user-1"]))).toEqual({});
+    expect(buildReviewScores([], new Set(["user-1"]))).toStrictEqual({});
   });
 
   it("keys each score by its member and parses the numeric score", () => {
     const scores = buildReviewScores([entry()], new Set(["user-1"]));
 
-    expect(scores["user-1"]).toEqual({
+    expect(scores["user-1"]).toStrictEqual({
       id: "review-1",
       created_date: "2024-05-01T00:00:00.000Z",
       score: 8,
@@ -71,7 +70,7 @@ describe("buildReviewScores", () => {
   it("returns an empty map when every scorer has left the club", () => {
     const scores = buildReviewScores([entry({ user_id: "departed" })], new Set(["member"]));
 
-    expect(scores).toEqual({});
+    expect(scores).toStrictEqual({});
   });
 
   it("ignores rows left null by the outer join for unscored works", () => {
@@ -80,12 +79,12 @@ describe("buildReviewScores", () => {
       new Set(["user-1"]),
     );
 
-    expect(scores).toEqual({});
+    expect(scores).toStrictEqual({});
   });
 
   it("ignores a row whose score is missing even when the reviewer is present", () => {
     const scores = buildReviewScores([entry({ score: null })], new Set(["user-1"]));
 
-    expect(scores).toEqual({});
+    expect(scores).toStrictEqual({});
   });
 });

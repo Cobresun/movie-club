@@ -77,11 +77,11 @@
 import { computed, onMounted, ref, useId } from "vue";
 
 import { isDefined } from "../../../lib/checks/checks";
-import type { DetailedWorkListItem } from "../../../lib/types/lists";
-import type { FilterOption, RangeFilterOption } from "../clubType";
+import { type DetailedWorkListItem } from "../../../lib/types/lists";
+import { type FilterOption, type RangeFilterOption } from "../clubType";
 import { describeRange } from "../filterMatchers";
 import ChoiceFilterSection from "./ChoiceFilterSection.vue";
-import type { ChoiceSelection, FilterSelection, RangeSelection } from "./filterTypes";
+import { type ChoiceSelection, type FilterSelection, type RangeSelection } from "./filterTypes";
 import RangeFilterSection from "./RangeFilterSection.vue";
 
 const props = defineProps<{
@@ -96,8 +96,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: "update", key: string, selection: FilterSelection | undefined): void;
-  (e: "clear"): void;
-  (e: "close"): void;
+  (e: "clear" | "close"): void;
 }>();
 
 const headingId = useId();

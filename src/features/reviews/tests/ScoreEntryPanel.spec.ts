@@ -1,6 +1,5 @@
 import { screen, waitFor } from "@testing-library/vue";
 import { http, HttpResponse } from "msw";
-import { vi } from "vitest";
 
 import { WorkType } from "../../../../lib/types/generated/db";
 import ScoreEntryPanel from "../components/ScoreEntryPanel.vue";
@@ -18,7 +17,7 @@ function withAssist(isEligible: boolean) {
   return {
     global: {
       provide: {
-        [ScoreAssistKey]: { isEligible: () => isEligible, open: vi.fn() },
+        [ScoreAssistKey]: { isEligible: () => isEligible, open: vi.fn<() => void>() },
       },
     },
   };
@@ -83,7 +82,9 @@ describe("ScoreEntryPanel", () => {
     await user.type(screen.getByRole("spinbutton", { name: "Score" }), "8.5");
     await user.click(screen.getByRole("button", { name: "Save score" }));
 
-    await waitFor(() => expect(posted).toEqual({ workId: "target", score: 8.5 }));
+    await waitFor(() => {
+      expect(posted).toStrictEqual({ workId: "target", score: 8.5 });
+    });
     expect(rendered.emitted().submit).toHaveLength(1);
   });
 
@@ -106,7 +107,9 @@ describe("ScoreEntryPanel", () => {
     await user.type(input, "7");
     await user.click(screen.getByRole("button", { name: "Save score" }));
 
-    await waitFor(() => expect(put).toEqual({ score: 7 }));
+    await waitFor(() => {
+      expect(put).toStrictEqual({ score: 7 });
+    });
   });
 
   it("autofocuses a prefilled field with the caret at the end, not selecting it", async () => {
@@ -121,7 +124,9 @@ describe("ScoreEntryPanel", () => {
     });
 
     const input = screen.getByRole("spinbutton", { name: "Score" });
-    await waitFor(() => expect(input).toHaveFocus());
+    await waitFor(() => {
+      expect(input).toHaveFocus();
+    });
 
     // "8.5" — caret past the last character, so a keystroke appends instead of
     // replacing the whole score.
@@ -169,7 +174,9 @@ describe("ScoreEntryPanel", () => {
 
     await user.click(screen.getByRole("button", { name: "Remove" }));
 
-    await waitFor(() => expect(deleted).toBe(true));
+    await waitFor(() => {
+      expect(deleted).toBe(true);
+    });
     // The panel closes without the saved-score animation.
     expect(rendered.emitted().submit).toHaveLength(1);
     expect(rendered.emitted().saved).toBeUndefined();
@@ -207,7 +214,7 @@ describe("ScoreEntryPanel", () => {
     const { user } = rendered;
 
     const assist = await screen.findByRole("button", {
-      name: /Compare to decide/,
+      name: /Compare to decide/u,
     });
     await user.click(assist);
     expect(rendered.emitted().assist).toHaveLength(1);
@@ -219,6 +226,6 @@ describe("ScoreEntryPanel", () => {
       ...withAssist(false),
     });
 
-    expect(screen.queryByRole("button", { name: /Compare to decide/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Compare to decide/u })).not.toBeInTheDocument();
   });
 });

@@ -7,7 +7,7 @@ import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
 import { server } from "@/mocks/server";
 import { render } from "@/tests/utils";
 
-vi.mock("ag-charts-vue3", async () => await import("@/mocks/agCharts"));
+vi.mock("ag-charts-vue3", () => import("@/mocks/agCharts"));
 
 mockIntersectionObserver();
 
@@ -26,7 +26,7 @@ describe("SharedStatisticsView", () => {
     server.use(scoredReviews());
     render(SharedStatisticsView);
 
-    expect(await screen.findByText("Test club")).toBeInTheDocument();
+    await expect(screen.findByText("Test club")).resolves.toBeInTheDocument();
     expect(screen.getByText("Statistics")).toBeInTheDocument();
   });
 
@@ -34,7 +34,7 @@ describe("SharedStatisticsView", () => {
     server.use(scoredReviews());
     render(SharedStatisticsView);
 
-    expect(await screen.findByText("movies watched")).toBeInTheDocument();
+    await expect(screen.findByText("movies watched")).resolves.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Scores" })).toBeInTheDocument();
   });
 
@@ -50,7 +50,7 @@ describe("SharedStatisticsView", () => {
     server.use(noReviews());
     render(SharedStatisticsView);
 
-    expect(await screen.findByText("No Statistics Yet")).toBeInTheDocument();
+    await expect(screen.findByText("No Statistics Yet")).resolves.toBeInTheDocument();
     expect(
       screen.getByText("Statistics will appear once this club has reviewed some movies."),
     ).toBeInTheDocument();
@@ -62,9 +62,9 @@ describe("SharedStatisticsView", () => {
     server.use(noReviews(), bookClub());
     render(SharedStatisticsView);
 
-    expect(
-      await screen.findByText("Statistics will appear once this club has reviewed some books."),
-    ).toBeInTheDocument();
+    await expect(
+      screen.findByText("Statistics will appear once this club has reviewed some books."),
+    ).resolves.toBeInTheDocument();
   });
 
   it("falls back to the slug when the club fails to load", async () => {
@@ -74,7 +74,7 @@ describe("SharedStatisticsView", () => {
     );
     render(SharedStatisticsView);
 
-    expect(await screen.findByText("test-club")).toBeInTheDocument();
+    await expect(screen.findByText("test-club")).resolves.toBeInTheDocument();
   });
 
   it("invites a logged-out visitor to start their own club", async () => {

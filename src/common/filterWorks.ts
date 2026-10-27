@@ -1,8 +1,8 @@
 import { hasValue } from "@/../lib/checks/checks";
-import { ClubType } from "@/../lib/types/generated/db";
-import { DetailedWorkListItem } from "@/../lib/types/lists";
+import { type ClubType } from "@/../lib/types/generated/db";
+import { type DetailedWorkListItem } from "@/../lib/types/lists";
 import { clubTypeConfig } from "@/common/clubType";
-import type { FilterSelection } from "@/common/components/filterTypes";
+import { type FilterSelection } from "@/common/components/filterTypes";
 import { includesCaseInsensitive, matchesSelection } from "@/common/filterMatchers";
 
 /**

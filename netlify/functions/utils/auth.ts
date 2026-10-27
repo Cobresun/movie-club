@@ -1,4 +1,4 @@
-import { HandlerResponse } from "@netlify/functions";
+import { type HandlerResponse } from "@netlify/functions";
 import bcrypt from "bcrypt";
 import { betterAuth } from "better-auth";
 import { oAuthProxy } from "better-auth/plugins";
@@ -25,8 +25,8 @@ import { dialect } from "./database.js";
 import { toDeployLink } from "./deployLinks.js";
 import { sendPasswordResetEmail, sendVerificationEmail } from "./email.js";
 import { unauthorized } from "./responses";
-import { isRouterResponse, Request, RouterResponse } from "./router";
-import { ClubRequest } from "./validation";
+import { isRouterResponse, type Request, type RouterResponse } from "./router";
+import { type ClubRequest } from "./validation";
 
 const googleClientId = ensure(process.env.GOOGLE_CLIENT_ID, "GOOGLE_CLIENT_ID is not set");
 const googleClientSecret = ensure(
@@ -99,12 +99,8 @@ export const auth = betterAuth({
       await sendPasswordResetEmail(user.email, toDeployLink(url, deployURL), user.name);
     },
     password: {
-      hash: async (password: string) => {
-        return await bcrypt.hash(password, 10);
-      },
-      verify: async ({ password, hash }) => {
-        return await bcrypt.compare(password, hash);
-      },
+      hash: (password: string) => bcrypt.hash(password, 10),
+      verify: ({ password, hash }) => bcrypt.compare(password, hash),
     },
   },
   emailVerification: {

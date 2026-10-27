@@ -1,5 +1,5 @@
 import { WorkType } from "../../../lib/types/generated/db";
-import { DetailedWorkListItem } from "../../../lib/types/lists";
+import { type DetailedWorkListItem } from "../../../lib/types/lists";
 
 const watchlist: DetailedWorkListItem[] = [
   {

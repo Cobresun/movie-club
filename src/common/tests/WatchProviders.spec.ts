@@ -66,7 +66,7 @@ describe("WatchProviders", () => {
     render(WatchProviders, { props: { externalId: "27205" } });
 
     const logos = await screen.findAllByRole("img");
-    expect(logos.map((img) => img.getAttribute("alt"))).toEqual([
+    expect(logos.map((img) => img.getAttribute("alt"))).toStrictEqual([
       "Disney Plus",
       "Paramount Plus Premium",
     ]);

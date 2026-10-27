@@ -46,7 +46,7 @@ export async function renderCardImage(element: HTMLElement): Promise<Blob> {
       scale: EXPORT_SCALE,
       // The on-screen fit-to-viewport scaling is not part of the image.
       style: { transform: "none" },
-      fetchFn: async () => BLANK_IMAGE,
+      fetchFn: () => Promise.resolve(BLANK_IMAGE),
       onCloneEachNode: (cloned) => {
         if (cloned instanceof HTMLImageElement) cloned.style.visibility = "hidden";
       },

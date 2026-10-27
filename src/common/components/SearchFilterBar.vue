@@ -114,13 +114,13 @@ import { computed, ref, watchEffect } from "vue";
 
 import { hasElements, hasValue } from "../../../lib/checks/checks";
 import { ClubType } from "../../../lib/types/generated/db";
-import type { DetailedWorkListItem } from "../../../lib/types/lists";
+import { type DetailedWorkListItem } from "../../../lib/types/lists";
 import { clubTypeConfig, type FilterOption } from "../clubType";
 import { useIsDesktop } from "../composables/useIsDesktop.js";
 import { describeRange } from "../filterMatchers";
 import { filterWorks } from "../filterWorks";
 import FilterPanel from "./FilterPanel.vue";
-import type { FilterSelection } from "./filterTypes";
+import { type FilterSelection } from "./filterTypes";
 import VBottomSheet from "./VBottomSheet.vue";
 import VSideDrawer from "./VSideDrawer.vue";
 

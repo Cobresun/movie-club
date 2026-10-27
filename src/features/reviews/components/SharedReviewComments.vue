@@ -44,7 +44,6 @@ defineProps<{
 
 const revealedSpoilers = reactive(new Set<string>());
 
-const formatRelativeTime = (dateString: string) => {
-  return DateTime.fromISO(dateString).toRelative() ?? dateString;
-};
+const formatRelativeTime = (dateString: string) =>
+  DateTime.fromISO(dateString).toRelative() ?? dateString;
 </script>

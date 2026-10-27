@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import { ColumnType, Kysely, sql } from "kysely";
+import { type ColumnType, type Kysely, sql } from "kysely";
 
 export type Int8 = ColumnType<string, bigint | number | string, bigint | number | string>;
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
@@ -11,10 +11,10 @@ function generateSlugFromName(name: string): string {
   return name
     .toLowerCase()
     .trim()
-    .replace(/[^a-z0-9\s-]/g, "") // Remove special characters
-    .replace(/\s+/g, "-") // Replace spaces with hyphens
-    .replace(/-+/g, "-") // Replace multiple hyphens with single hyphen
-    .replace(/^-|-$/g, "") // Remove leading/trailing hyphens
+    .replace(/[^a-z0-9\s-]/gu, "") // Remove special characters
+    .replace(/\s+/gu, "-") // Replace spaces with hyphens
+    .replace(/-+/gu, "-") // Replace multiple hyphens with single hyphen
+    .replace(/^-|-$/gu, "") // Remove leading/trailing hyphens
     .substring(0, 50); // Max length 50
 }
 
@@ -56,8 +56,8 @@ export async function up(db: Kysely<unknown>) {
   const clubSlugs = new Map<string, string>(); // clubId -> slug
 
   for (const club of clubs) {
-    const clubId = String(club.id);
-    let baseSlug = generateSlugFromName(String(club.name));
+    const clubId = club.id;
+    let baseSlug = generateSlugFromName(club.name);
 
     // Ensure minimum length of 3
     if (baseSlug.length < 3) {
@@ -76,7 +76,7 @@ export async function up(db: Kysely<unknown>) {
       }
     }
 
-    slugMap.set(finalSlug, [...(slugMap.get(finalSlug) || []), clubId]);
+    slugMap.set(finalSlug, [...(slugMap.get(finalSlug) ?? []), clubId]);
     clubSlugs.set(clubId, finalSlug);
   }
 

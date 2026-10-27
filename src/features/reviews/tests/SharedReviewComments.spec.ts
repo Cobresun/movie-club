@@ -1,6 +1,6 @@
 import { screen } from "@testing-library/vue";
 
-import { WorkCommentDto } from "../../../../lib/types/lists";
+import { type WorkCommentDto } from "../../../../lib/types/lists";
 import SharedReviewComments from "../components/SharedReviewComments.vue";
 import { render } from "@/tests/utils";
 

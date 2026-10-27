@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, vi, type Mock } from "vitest";
+import { type Mock } from "vitest";
 import { ref } from "vue";
 
 import { useRandomPicker } from "../composables/useRandomPicker";

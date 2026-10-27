@@ -120,9 +120,9 @@ const userOnlyAwards = computed(() => {
 
 const totalCategories = computed(() => clubAward.awards.length);
 
-const completedCategoriesCount = computed(() => {
-  return userOnlyAwards.value.filter((award) => award.nominations.length > 0).length;
-});
+const completedCategoriesCount = computed(
+  () => userOnlyAwards.value.filter((award) => award.nominations.length > 0).length,
+);
 
 const progressPercentage = computed(() => {
   if (totalCategories.value === 0) return 0;
@@ -144,7 +144,8 @@ const reviewsForYear = computed(() => {
   if (!reviews.value) return [];
   return reviews.value
     .filter(
-      (review) => DateTime.fromISO(review.createdDate, { zone: "utc" }).year === parseInt(year),
+      (review) =>
+        DateTime.fromISO(review.createdDate, { zone: "utc" }).year === Number.parseInt(year, 10),
     )
     .map<WorkSearchResult>((review) => ({
       externalId: review.externalId ?? "",
@@ -166,7 +167,7 @@ const candidates = computed(() => {
 const { mutate } = useAddNomination(clubSlug, year);
 
 const addNomination = (work: WorkSearchResult) => {
-  const review = reviews.value?.find((review) => (review.externalId ?? "") === work.externalId);
+  const review = reviews.value?.find((r) => (r.externalId ?? "") === work.externalId);
   if (!currentAward.value || !review) return;
   mutate({ awardTitle: currentAward.value.title, review });
   closePrompt();

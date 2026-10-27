@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/vue-query";
 
-import { DiscussionQuestionsResponse } from "../../lib/types/lists";
+import { type DiscussionQuestionsResponse } from "../../lib/types/lists";
 import { useAuthStore } from "@/stores/auth";
 
 export function useDiscussionQuestions(clubSlug: string, workId: string) {

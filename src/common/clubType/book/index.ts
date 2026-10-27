@@ -1,5 +1,5 @@
 import { clubScoreFilter, reviewedInFilter } from "../filterOptions";
-import type { ClubTypeConfig } from "../types";
+import { type ClubTypeConfig } from "../types";
 import { bookDisplay } from "./display";
 import { browseBooks, searchBooks } from "./search";
 import { makeBookSimilarity } from "./similarity";

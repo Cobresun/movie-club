@@ -32,16 +32,10 @@ import VBottomSheet from "./VBottomSheet.vue";
 
 type ModalSize = "default" | "sm" | "lg" | "full";
 
-const props = withDefaults(
-  defineProps<{
-    size?: ModalSize;
-    zIndex?: ZIndex;
-  }>(),
-  {
-    size: "default",
-    zIndex: "50",
-  },
-);
+const { size = "default", zIndex = "50" } = defineProps<{
+  size?: ModalSize;
+  zIndex?: ZIndex;
+}>();
 
 const emit = defineEmits<{
   (e: "close"): void;
@@ -81,11 +75,11 @@ const desktopSizeMap: Record<ModalSize, string> = {
 };
 
 const desktopClasses = computed(() => {
-  const sizeClass = desktopSizeMap[props.size ?? "default"];
+  const sizeClass = desktopSizeMap[size ?? "default"];
   return `left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-lg ${sizeClass}`;
 });
 
-const zIndexClass = computed(() => zIndexClassOf(props.zIndex));
+const zIndexClass = computed(() => zIndexClassOf(zIndex));
 </script>
 
 <style scoped>

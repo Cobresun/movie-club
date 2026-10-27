@@ -6,13 +6,18 @@
  * which movie ids TMDB says resemble which.
  */
 import { http, HttpResponse } from "msw";
-import { describe, expect, it } from "vitest";
 
-import { WorkRecommendation } from "../../../lib/types/recommendations";
+import { type WorkRecommendation } from "../../../lib/types/recommendations";
 import { handler } from "../club/index";
 import { tmdbMovie, tmdbPage } from "./fixtures/external";
-import { signIn, TestSession } from "./helpers/auth";
-import { addReviewedWork, addWork, createClub, scoreWork, SeededClub } from "./helpers/factories";
+import { signIn, type TestSession } from "./helpers/auth";
+import {
+  addReviewedWork,
+  addWork,
+  createClub,
+  scoreWork,
+  type SeededClub,
+} from "./helpers/factories";
 import { requester } from "./helpers/http";
 import { failOnRequest, server, TMDB } from "./setup/externalApis";
 
@@ -61,8 +66,8 @@ describe("GET /api/club/:clubSlug/recommendations", () => {
     const res = await recommendationsFor(club, alice);
 
     expect(res.statusCode).toBe(200);
-    expect(titles(res.body)).toEqual(["Movie 10", "Movie 11"]);
-    expect(res.body[0]).toEqual({
+    expect(titles(res.body)).toStrictEqual(["Movie 10", "Movie 11"]);
+    expect(res.body[0]).toStrictEqual({
       externalId: "10",
       title: "Movie 10",
       subtitle: "2001",
@@ -87,7 +92,7 @@ describe("GET /api/club/:clubSlug/recommendations", () => {
 
     const res = await recommendationsFor(club, alice);
 
-    expect(titles(res.body)).toEqual(["Movie 11", "Movie 10"]);
+    expect(titles(res.body)).toStrictEqual(["Movie 11", "Movie 10"]);
   });
 
   it("leaves out movies the club already has", async () => {
@@ -100,7 +105,7 @@ describe("GET /api/club/:clubSlug/recommendations", () => {
 
     const res = await recommendationsFor(club, alice);
 
-    expect(titles(res.body)).toEqual(["Movie 21"]);
+    expect(titles(res.body)).toStrictEqual(["Movie 21"]);
   });
 
   it("looks further down TMDB's list when the club already has the top of it", async () => {
@@ -125,7 +130,7 @@ describe("GET /api/club/:clubSlug/recommendations", () => {
 
     const res = await recommendationsFor(club, alice);
 
-    expect(titles(res.body)).toEqual(["Movie 200"]);
+    expect(titles(res.body)).toStrictEqual(["Movie 200"]);
   });
 
   it("ignores what members have scored in their other clubs", async () => {
@@ -140,7 +145,7 @@ describe("GET /api/club/:clubSlug/recommendations", () => {
     const res = await recommendationsFor(club, alice);
 
     expect(res.statusCode).toBe(200);
-    expect(res.body).toEqual([]);
+    expect(res.body).toStrictEqual([]);
   });
 
   it("still recommends when TMDB fails for one of the movies it starts from", async () => {
@@ -160,7 +165,7 @@ describe("GET /api/club/:clubSlug/recommendations", () => {
     const res = await recommendationsFor(club, alice);
 
     expect(res.statusCode).toBe(200);
-    expect(titles(res.body)).toEqual(["Movie 20"]);
+    expect(titles(res.body)).toStrictEqual(["Movie 20"]);
   });
 
   it("recommends nothing, without asking TMDB, when the club has scored nothing", async () => {
@@ -172,7 +177,7 @@ describe("GET /api/club/:clubSlug/recommendations", () => {
     const res = await recommendationsFor(club, alice);
 
     expect(res.statusCode).toBe(200);
-    expect(res.body).toEqual([]);
+    expect(res.body).toStrictEqual([]);
   });
 
   it("is only for the club's members", async () => {

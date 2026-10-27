@@ -1,4 +1,4 @@
-import type { WorkDisplay } from "../types";
+import { type WorkDisplay } from "../types";
 import { hasValue } from "@/../lib/checks/checks";
 import { asMovie, formatRuntime } from "@/common/workDisplay";
 

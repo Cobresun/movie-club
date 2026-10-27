@@ -30,7 +30,7 @@ const RESERVED_SLUGS = [
 // Slug constraints
 export const SLUG_MIN_LENGTH = 3;
 export const SLUG_MAX_LENGTH = 50;
-export const SLUG_PATTERN = /^[a-z0-9][a-z0-9-]{1,48}[a-z0-9]$/;
+export const SLUG_PATTERN = /^[a-z0-9][a-z0-9-]{1,48}[a-z0-9]$/u;
 
 /**
  * Generate a URL-friendly slug from a club name
@@ -39,10 +39,10 @@ export function generateSlugFromName(name: string): string {
   const slug = name
     .toLowerCase()
     .trim()
-    .replace(/[^a-z0-9\s-]/g, "") // Remove special characters
-    .replace(/\s+/g, "-") // Replace spaces with hyphens
-    .replace(/-+/g, "-") // Replace multiple hyphens with single hyphen
-    .replace(/^-|-$/g, "") // Remove leading/trailing hyphens
+    .replace(/[^a-z0-9\s-]/gu, "") // Remove special characters
+    .replace(/\s+/gu, "-") // Replace spaces with hyphens
+    .replace(/-+/gu, "-") // Replace multiple hyphens with single hyphen
+    .replace(/^-|-$/gu, "") // Remove leading/trailing hyphens
     .substring(0, SLUG_MAX_LENGTH); // Max length 50
 
   // Ensure minimum length of 3

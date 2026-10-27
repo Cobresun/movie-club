@@ -68,7 +68,7 @@ import { computed, nextTick, ref, provide, useTemplateRef } from "vue";
 
 import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import { ClubType } from "../../../../lib/types/generated/db";
-import { DetailedReviewListItem } from "../../../../lib/types/lists";
+import { type DetailedReviewListItem } from "../../../../lib/types/lists";
 import ReviewsSkeleton from "../components/ReviewsSkeleton.vue";
 import ScoreAssistModal from "../components/ScoreAssistModal.vue";
 import UpNextCard from "../components/UpNextCard.vue";
@@ -174,7 +174,7 @@ const hasUserRated = computed(() => {
   if (userId.value === undefined) return () => false;
 
   return (movieId: string) => {
-    const review = shownReviews.value.find((review) => review.id === movieId);
+    const review = shownReviews.value.find((r) => r.id === movieId);
     return Boolean(review?.scores[userId.value ?? ""]?.score !== undefined);
   };
 });

@@ -8,16 +8,14 @@
  * where the refreshed metadata actually reaches a client.
  */
 import { http, HttpResponse } from "msw";
-import { describe, expect, it } from "vitest";
 
 import { ClubType, WorkType } from "../../../lib/types/generated/db";
-import { DetailedWorkListItem } from "../../../lib/types/lists";
-import { MovieDataSummary } from "../../../lib/types/movie";
+import { type DetailedWorkListItem } from "../../../lib/types/lists";
 import { handler as clubHandler } from "../club/index";
 import refreshHandler from "../scheduled-work-refresh";
 import { googleBooksVolume, tmdbMovie } from "./fixtures/external";
 import { signIn } from "./helpers/auth";
-import { addWork, createClub, SeededClub } from "./helpers/factories";
+import { addWork, createClub, type SeededClub } from "./helpers/factories";
 import { requester } from "./helpers/http";
 import { failOnRequest, GOOGLE_BOOKS, server } from "./setup/externalApis";
 
@@ -34,6 +32,18 @@ function run() {
   return refreshHandler(scheduledRequest({ next_run: "2026-01-01T00:00:00Z" }));
 }
 
+// `JSON.parse` typed to what the caller expects — mirrors helpers/http.ts.
+const parseJson: <T>(input: string) => T = JSON.parse;
+
+type RefreshBody = {
+  next_run: string;
+  processed: number;
+  updated: number;
+  skipped: number;
+  success: boolean;
+  errors: { type: string; externalId: string; error: string }[];
+};
+
 const metadataOf = async (club: SeededClub) => {
   const items = await api.get<DetailedWorkListItem[]>(`/api/club/${club.slug}/list/${club.listId}`);
   return items.body.map((item) => item.externalData);
@@ -44,7 +54,7 @@ describe("scheduled work refresh", () => {
     const alice = await signIn("alice");
     const club = await createClub(alice);
     await addWork(club, alice, { title: "Stale", externalId: "42" });
-    expect(await metadataOf(club)).toMatchObject([
+    await expect(metadataOf(club)).resolves.toMatchObject([
       { tagline: "Tagline 42", overview: "Overview for movie 42" },
     ]);
 
@@ -59,8 +69,12 @@ describe("scheduled work refresh", () => {
     const response = await run();
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toMatchObject({ success: true, processed: 1, updated: 1 });
-    expect(await metadataOf(club)).toMatchObject([
+    await expect(response.json()).resolves.toMatchObject({
+      success: true,
+      processed: 1,
+      updated: 1,
+    });
+    await expect(metadataOf(club)).resolves.toMatchObject([
       { tagline: "Fresh tagline", overview: "A freshly fetched overview" },
     ]);
   });
@@ -95,7 +109,7 @@ describe("scheduled work refresh", () => {
     await run();
 
     const [metadata] = await metadataOf(club);
-    expect((metadata as MovieDataSummary).castNames).toEqual(["Only Actor"]);
+    expect(metadata).toMatchObject({ kind: "movie", castNames: ["Only Actor"] });
   });
 
   it("refreshes book details and their authors", async () => {
@@ -113,8 +127,12 @@ describe("scheduled work refresh", () => {
 
     const response = await run();
 
-    expect(await response.json()).toMatchObject({ success: true, processed: 1, updated: 1 });
-    expect(await metadataOf(club)).toMatchObject([
+    await expect(response.json()).resolves.toMatchObject({
+      success: true,
+      processed: 1,
+      updated: 1,
+    });
+    await expect(metadataOf(club)).resolves.toMatchObject([
       { kind: "book", title: "Fresh Book", authors: ["Fresh Author"] },
     ]);
   });
@@ -136,7 +154,7 @@ describe("scheduled work refresh", () => {
 
     const response = await run();
 
-    expect(await response.json()).toMatchObject({ processed: 0 });
+    await expect(response.json()).resolves.toMatchObject({ processed: 0 });
   });
 
   it("keeps going and reports the failure when one work's fetch errors", async () => {
@@ -153,7 +171,7 @@ describe("scheduled work refresh", () => {
     );
 
     const response = await run();
-    const body = await response.json();
+    const body = parseJson<RefreshBody>(await response.text());
 
     expect(body).toMatchObject({ success: true, processed: 2, updated: 1, skipped: 1 });
     expect(body.errors).toHaveLength(1);
@@ -164,13 +182,13 @@ describe("scheduled work refresh", () => {
     const response = await run();
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toMatchObject({ processed: 0, updated: 0, skipped: 0 });
+    await expect(response.json()).resolves.toMatchObject({ processed: 0, updated: 0, skipped: 0 });
   });
 
   it("returns 500 when the scheduled payload is not the expected shape", async () => {
     const response = await refreshHandler(scheduledRequest({ wrong: "shape" }));
 
     expect(response.status).toBe(500);
-    expect(await response.json()).toMatchObject({ success: false });
+    await expect(response.json()).resolves.toMatchObject({ success: false });
   });
 });

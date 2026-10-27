@@ -23,7 +23,9 @@ const Harness = defineComponent({
       h(
         "button",
         {
-          onClick: () => mutate({ type: WorkType.movie, title: "Inception", externalId: "1" }),
+          onClick: () => {
+            mutate({ type: WorkType.movie, title: "Inception", externalId: "1" });
+          },
         },
         "add",
       );
@@ -59,8 +61,8 @@ describe("useAddListItem", () => {
     // Only now does the in-flight POST resolve.
     release();
 
-    expect(await findToast('Added "Inception" to the list')).not.toHaveLength(0);
-    expect(posted).toEqual({ type: WorkType.movie, title: "Inception", externalId: "1" });
+    await expect(findToast('Added "Inception" to the list')).resolves.not.toHaveLength(0);
+    expect(posted).toStrictEqual({ type: WorkType.movie, title: "Inception", externalId: "1" });
   });
 
   it("shows an error toast when the request fails", async () => {
@@ -73,6 +75,8 @@ describe("useAddListItem", () => {
     const { user } = render(Harness);
     await user.click(screen.getByRole("button", { name: "add" }));
 
-    expect(await findToast('Failed to add "Inception". Please try again.')).not.toHaveLength(0);
+    await expect(
+      findToast('Failed to add "Inception". Please try again.'),
+    ).resolves.not.toHaveLength(0);
   });
 });

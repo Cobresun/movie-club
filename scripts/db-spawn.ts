@@ -1,10 +1,11 @@
 #!/usr/bin/env tsx
 
 import { execSync } from "child_process";
-import { writeFileSync, readFileSync } from "fs";
+import { readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { Pool } from "pg";
 import * as readline from "readline/promises";
+import { z } from "zod";
 
 import { ensure, hasValue } from "../lib/checks/checks.js";
 
@@ -21,6 +22,13 @@ interface DbMetadata {
   pr_number?: number;
   branch?: string;
 }
+
+const dbMetadataSchema = z.object({
+  created_at: z.string(),
+  created_by: z.string(),
+  pr_number: z.number(),
+  branch: z.string(),
+});
 
 const PROTECTED_DATABASES = ["dev", "prod", "defaultdb", "postgres", "system"];
 const S3_BUCKET = ensure(
@@ -73,7 +81,7 @@ function validateDatabaseName(name: string): void {
     );
   }
 
-  if (!/^[a-z0-9_]+$/.test(name)) {
+  if (!/^[a-z0-9_]+$/u.test(name)) {
     throw new Error(
       `Invalid database name: ${name}. Must contain only lowercase letters, numbers, and underscores.`,
     );
@@ -116,10 +124,10 @@ async function findLatestSnapshot(pool: Pool, s3Uri: string): Promise<string | u
   try {
     const result = await pool.query<{ path: string }>(`SHOW BACKUPS IN '${s3Uri}'`);
     const snapshots = result.rows.map((row) => row.path);
-    return snapshots[snapshots.length - 1]; // Latest is last
+    return snapshots.at(-1); // Latest is last
   } catch (error) {
     // If no backups exist, return undefined
-    if ((error as Error).message.includes("no backup")) {
+    if (error instanceof Error && error.message.includes("no backup")) {
       return undefined;
     }
     throw error;
@@ -211,8 +219,10 @@ async function spawnDatabase(options: SpawnOptions): Promise<string> {
 
     if (hasValue(metadataArg)) {
       try {
-        const parsed = JSON.parse(metadataArg) as Partial<DbMetadata>;
-        Object.assign(metadata, parsed);
+        const parsed = dbMetadataSchema.partial().passthrough().safeParse(JSON.parse(metadataArg));
+        if (parsed.success) {
+          Object.assign(metadata, parsed.data);
+        }
       } catch {
         // If metadata is not JSON, ignore it
       }
@@ -236,10 +246,10 @@ async function spawnDatabase(options: SpawnOptions): Promise<string> {
  */
 function getUsername(): string {
   try {
-    const gitUser = execSync("git config user.name", { encoding: "utf-8" })
+    const gitUser = execSync("git config user.name", { encoding: "utf8" })
       .trim()
       .toLowerCase()
-      .replace(/[^a-z0-9]/g, "");
+      .replaceAll(/[^a-z0-9]/gu, "");
     if (gitUser) return gitUser;
   } catch {
     // Git config not available
@@ -272,7 +282,7 @@ function updateEnvFile(newDatabaseUrl: string): void {
   const envPath = join(process.cwd(), ".env");
 
   try {
-    const envContent = readFileSync(envPath, "utf-8");
+    const envContent = readFileSync(envPath, "utf8");
 
     // Replace DATABASE_URL line
     const lines = envContent.split("\n");
@@ -315,12 +325,13 @@ async function main() {
 
   if (args.length >= 2 && !args[1].startsWith("--")) {
     // CI/Script mode: tsx scripts/db-spawn.ts <source> <target>
-    sourceDb = args[0];
-    targetDb = args[1];
+    const [sourceArg, targetArg] = args;
+    sourceDb = sourceArg;
+    targetDb = targetArg;
     metadata = metadataArg?.split("=")[1];
   } else {
     // Developer mode: npm run db:spawn <feature-name>
-    const featureName = args[0].replace(/^--/, "");
+    const featureName = args[0].replace(/^--/u, "");
     const username = getUsername();
 
     sourceDb = "dev";
@@ -354,12 +365,12 @@ async function main() {
       console.log(`\nDATABASE_URL=${newConnString}`);
     }
   } catch (error) {
-    console.error("\n✗ Error:", (error as Error).message);
+    console.error("\n✗ Error:", error instanceof Error ? error.message : String(error));
     process.exit(1);
   }
 }
 
 // Run if called directly
 if (import.meta.url === `file://${process.argv[1]}`) {
-  void main();
+  await main();
 }

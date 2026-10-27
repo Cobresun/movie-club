@@ -1,7 +1,11 @@
-import { ClubType, WorkType } from "@/../lib/types/generated/db";
-import { DetailedWorkData, DetailedWorkListItem, WorkDataSummary } from "@/../lib/types/lists";
-import { CastMember } from "@/../lib/types/tmdb";
-import type { RangePreset } from "@/common/components/filterTypes";
+import { type ClubType, type WorkType } from "@/../lib/types/generated/db";
+import {
+  type DetailedWorkData,
+  type DetailedWorkListItem,
+  type WorkDataSummary,
+} from "@/../lib/types/lists";
+import { type CastMember } from "@/../lib/types/tmdb";
+import { type RangePreset } from "@/common/components/filterTypes";
 
 /**
  * A media-agnostic search result. `externalId` is the provider's stable

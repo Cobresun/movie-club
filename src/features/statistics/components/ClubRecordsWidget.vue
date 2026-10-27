@@ -42,14 +42,14 @@ import { computed } from "vue";
 
 import { isDefined } from "../../../../lib/checks/checks.js";
 import { computeClubRecords } from "../statsComputers";
-import type { ClubRecordEntry, WorkStatsData } from "../types";
+import { type ClubRecordEntry, type WorkStatsData } from "../types";
 import WidgetShell from "@/common/components/WidgetShell.vue";
 
-const props = defineProps<{
+const { workData } = defineProps<{
   workData: WorkStatsData[];
 }>();
 
-const records = computed(() => computeClubRecords(props.workData));
+const records = computed(() => computeClubRecords(workData));
 
 interface RecordTile {
   label: string;

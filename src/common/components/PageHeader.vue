@@ -13,14 +13,17 @@
 <script setup lang="ts">
 import { useClub, useClubSlug } from "@/service/useClub";
 
-const props = defineProps<{
+const {
+  hasBack,
+  backRoute = "",
+  pageName,
+  hideClub = false,
+} = defineProps<{
   hasBack: boolean;
   backRoute?: string;
   pageName: string;
   hideClub?: boolean;
 }>();
-
-const { hideClub = false } = props;
 
 // Only fetch club data if not hiding club
 const clubId = hideClub ? "" : useClubSlug();

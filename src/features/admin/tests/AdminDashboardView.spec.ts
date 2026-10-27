@@ -1,6 +1,5 @@
 import { screen, waitFor, within } from "@testing-library/vue";
 import { delay, http, HttpResponse } from "msw";
-import { describe, expect, it, vi } from "vitest";
 
 import AdminDashboardView from "../views/AdminDashboardView.vue";
 import adminMetrics from "@/mocks/data/adminMetrics.json";
@@ -12,7 +11,7 @@ import { render } from "@/tests/utils";
 // IntersectionObserver — absent in jsdom.
 mockIntersectionObserver();
 
-vi.mock("ag-charts-vue3", async () => await import("@/mocks/agCharts"));
+vi.mock("ag-charts-vue3", async () => import("@/mocks/agCharts"));
 
 /** The Pulse tile for `label`, once the dashboard has loaded. */
 const pulseTile = async (label: string) =>

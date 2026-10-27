@@ -47,7 +47,7 @@ import CastAvatar from "./CastAvatar.vue";
 import CastModal from "./CastModal.vue";
 import SectionHeader from "./SectionHeader.vue";
 
-const props = defineProps<{
+const { actors = [] } = defineProps<{
   actors?: {
     name: string;
     character: string | null;
@@ -57,7 +57,7 @@ const props = defineProps<{
 
 const VISIBLE_ACTORS_COUNT = 5;
 
-const allActors = computed(() => props.actors ?? []);
+const allActors = computed(() => actors ?? []);
 const visibleActors = computed(() => allActors.value.slice(0, VISIBLE_ACTORS_COUNT));
 const hasMore = computed(() => allActors.value.length > VISIBLE_ACTORS_COUNT);
 const remainingCount = computed(() => allActors.value.length - VISIBLE_ACTORS_COUNT);

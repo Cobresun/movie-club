@@ -1,9 +1,9 @@
 import { hasValue } from "../../../lib/checks/checks.js";
-import { ClubType, WorkListSystemType } from "../../../lib/types/generated/db.js";
+import { type ClubType, type WorkListSystemType } from "../../../lib/types/generated/db.js";
 import ClubRepository from "../repositories/ClubRepository";
 import ListRepository from "../repositories/ListRepository";
 import { notFound } from "./responses";
-import { MiddlewareCallback, Request } from "./router";
+import { type MiddlewareCallback, type Request } from "./router";
 
 export type ClubRequest<T extends Request = Request> = T & {
   clubId: string;
@@ -36,7 +36,7 @@ export const validClubSlug: MiddlewareCallback<Request, ClubRequest> = async (re
     return res(notFound("Club not found"));
   }
 
-  const clubId = String(club.id);
+  const clubId = club.id;
   const clubSlug = club.slug;
 
   return {
@@ -57,7 +57,7 @@ export const validClubSlug: MiddlewareCallback<Request, ClubRequest> = async (re
  * would be a horizontal-access vector since list IDs are just integers.
  */
 export const validListId: MiddlewareCallback<ClubRequest, ListRequest> = async (req, res) => {
-  const listId = req.params.listId;
+  const { listId } = req.params;
   if (!hasValue(listId)) {
     return res(notFound("List not found"));
   }
@@ -67,7 +67,7 @@ export const validListId: MiddlewareCallback<ClubRequest, ListRequest> = async (
   }
   return {
     ...req,
-    listId: String(list.id),
+    listId: list.id,
     listSystemType: list.system_type,
   };
 };

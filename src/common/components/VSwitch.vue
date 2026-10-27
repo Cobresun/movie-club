@@ -21,7 +21,11 @@
 </template>
 
 <script setup lang="ts">
-const { modelValue, color, disabled } = defineProps<{
+const {
+  modelValue,
+  color = "",
+  disabled,
+} = defineProps<{
   modelValue: boolean;
   color?: string;
   disabled?: boolean;

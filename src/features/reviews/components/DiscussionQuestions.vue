@@ -79,14 +79,14 @@ import { computed } from "vue";
 
 import { useDiscussionQuestions } from "@/service/useDiscussionQuestions";
 
-const props = defineProps<{
+const { clubSlug, workId, mediaNoun } = defineProps<{
   clubSlug: string;
   workId: string;
   /** Singular media noun from the club-type registry ("movie", "book"). */
   mediaNoun: string;
 }>();
 
-const { data, isFetching, isError, refetch } = useDiscussionQuestions(props.clubSlug, props.workId);
+const { data, isFetching, isError, refetch } = useDiscussionQuestions(clubSlug, workId);
 
 const questions = computed(() => data.value ?? []);
 const hasQuestions = computed(() => questions.value.length > 0);

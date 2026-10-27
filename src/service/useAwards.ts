@@ -1,24 +1,45 @@
-import { useMutation, useQuery, useQueryClient, UseQueryReturnType } from "@tanstack/vue-query";
-import axios, { AxiosError } from "axios";
-import { computed, Ref } from "vue";
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type UseQueryReturnType,
+} from "@tanstack/vue-query";
+import axios, { type AxiosError, isAxiosError } from "axios";
+import { computed, type Ref } from "vue";
 import { useToast } from "vue-toastification";
 
 import { hasValue, isDefined } from "../../lib/checks/checks.js";
-import { AwardsStep, ClubAwards } from "../../lib/types/awards";
-import { DetailedReviewListItem } from "../../lib/types/lists";
-import { DetailedMovieData } from "../../lib/types/movie";
+import { type AwardsStep, type ClubAwards } from "../../lib/types/awards";
+import { type DetailedReviewListItem, type WorkDataSummary } from "../../lib/types/lists";
+import { type DetailedMovieData } from "../../lib/types/movie";
 import { useUser } from "./useUser";
+import { asMovie } from "@/common/workDisplay";
 import { useAuthStore } from "@/stores/auth";
 
 const awardYearsKey = (clubSlug: string) => ["awards-years", clubSlug];
 const availableYearsKey = (clubSlug: string) => ["awards-available-years", clubSlug];
 const awardsKey = (clubSlug: string, year: string) => ["awards", clubSlug, year];
 
+function toDetailedMovieData(data: WorkDataSummary | undefined): DetailedMovieData {
+  const movie = asMovie(data);
+  return {
+    kind: "movie",
+    castNames: movie?.castNames ?? [],
+    majorCastNames: movie?.majorCastNames ?? [],
+    directors: movie?.directors ?? [],
+    genres: movie?.genres ?? [],
+    production_companies: movie?.production_companies ?? [],
+    production_countries: movie?.production_countries ?? [],
+    actors: [],
+    ...(movie ?? {}),
+  };
+}
+
 /** Toasts the reason the server refused an awards change. */
 function useAwardsErrorToast() {
   const toast = useToast();
   return (error: unknown) => {
-    const message = axios.isAxiosError<{ error?: string }>(error)
+    const message = isAxiosError<{ error?: string }>(error)
       ? error.response?.data?.error
       : undefined;
     toast.error(message ?? "Something went wrong. Please try again.");
@@ -217,7 +238,7 @@ export function useAddNomination(clubSlug: string, year: string) {
       }
       return auth.request.post(`/api/club/${clubSlug}/awards/${year}/nomination`, {
         awardTitle,
-        movieId: parseInt(review.externalId),
+        movieId: Number.parseInt(review.externalId, 10),
       });
     },
     onMutate: async ({ awardTitle, review }) => {
@@ -227,7 +248,7 @@ export function useAddNomination(clubSlug: string, year: string) {
         if (!currentClubAwards || !hasValue(userId) || !isDefined(review.externalId)) {
           return currentClubAwards;
         }
-        const movieId = parseInt(review.externalId);
+        const movieId = Number.parseInt(review.externalId, 10);
         return {
           ...currentClubAwards,
           awards: currentClubAwards.awards.map((award) => {
@@ -250,7 +271,7 @@ export function useAddNomination(clubSlug: string, year: string) {
                   movieId,
                   movieTitle: review.title,
                   posterUrl: review.imageUrl ?? "",
-                  movieData: review.externalData as DetailedMovieData,
+                  movieData: toDetailedMovieData(review.externalData),
                   nominatedBy: [userId],
                   ranking: {},
                 },

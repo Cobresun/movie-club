@@ -25,6 +25,14 @@ export function isString(s: unknown): s is string {
 }
 
 /**
+ * Returns true if the value is a non-null, non-array object
+ * @param value
+ */
+export function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/**
  * Returns true if the object specified is a boolean
  * @param b
  */
@@ -36,7 +44,7 @@ export function isTrue(b: unknown): b is true {
  * Return true if the object specified is an array and is not empty.
  * @param arr
  */
-export function hasElements<T>(arr: ReadonlyArray<T> | null | undefined): arr is NonEmptyArray<T> {
+export function hasElements<T>(arr: readonly T[] | null | undefined): arr is NonEmptyArray<T> {
   return isDefined(arr) && Array.isArray(arr) && arr.length > 0;
 }
 
@@ -45,6 +53,7 @@ export function filterUndefinedProperties(
 ): Record<string, string> {
   const result: Record<string, string> = {};
   for (const key in obj) {
+    if (!Object.hasOwn(obj, key)) continue;
     const value = obj[key];
     if (isDefined(value)) {
       result[key] = value;

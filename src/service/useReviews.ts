@@ -1,16 +1,20 @@
 import {
-  QueryClient,
-  UseQueryReturnType,
+  type QueryClient,
+  type UseQueryReturnType,
   useMutation,
   useQuery,
   useQueryClient,
 } from "@tanstack/vue-query";
-import axios, { AxiosError, AxiosInstance } from "axios";
+import axios, { type AxiosError, type AxiosInstance } from "axios";
 
 import { hasValue, isDefined } from "../../lib/checks/checks.js";
-import { Member } from "../../lib/types/club";
-import { DetailedReviewListItem, ReviewScores, WorkCommentDto } from "../../lib/types/lists";
-import { CastMember } from "../../lib/types/tmdb";
+import { type Member } from "../../lib/types/club";
+import {
+  type DetailedReviewListItem,
+  type ReviewScores,
+  type WorkCommentDto,
+} from "../../lib/types/lists";
+import { type CastMember } from "../../lib/types/tmdb";
 import { reviewsListKey } from "./useList";
 import { memberScoresKey, useUser } from "./useUser";
 import { useAuthStore } from "@/stores/auth";
@@ -195,7 +199,9 @@ function useUpdateReviewScore(clubSlug: string) {
         },
       );
     },
-    onSuccess: (_data, { workId }) => startScorePoll(auth.request, queryClient, clubSlug, workId),
+    onSuccess: (_data, { workId }) => {
+      startScorePoll(auth.request, queryClient, clubSlug, workId);
+    },
     onSettled: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: reviewsListKey(clubSlug) }),

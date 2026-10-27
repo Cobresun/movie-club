@@ -1,7 +1,7 @@
 import { screen } from "@testing-library/vue";
 
 import InstallAppBanner from "../components/InstallAppBanner.vue";
-import { render } from "@/tests/utils";
+import { MockMediaQueryList, render } from "@/tests/utils";
 
 const IPHONE_UA =
   "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1";
@@ -16,16 +16,9 @@ const offerInstall = () => {
 };
 
 const matchOnly = (query: string) => {
-  vi.mocked(window.matchMedia).mockImplementation((media: string) => ({
-    matches: media === query,
-    media,
-    onchange: null,
-    addListener: vi.fn(),
-    removeListener: vi.fn(),
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    dispatchEvent: vi.fn(() => true),
-  }));
+  vi.mocked(window.matchMedia).mockImplementation(
+    (media: string) => new MockMediaQueryList(media === query, media),
+  );
 };
 
 const useUserAgent = (ua: string) => {

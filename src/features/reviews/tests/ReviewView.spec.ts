@@ -29,7 +29,7 @@ describe("ReviewView", () => {
   });
   it("should render searchbox", async () => {
     render(ReviewView, { props: { clubSlug: "1" } });
-    expect(await screen.findByRole("textbox")).toBeInTheDocument();
+    await expect(screen.findByRole("textbox")).resolves.toBeInTheDocument();
   });
 
   it("should open and close add review prompt", async () => {
@@ -39,7 +39,7 @@ describe("ReviewView", () => {
       name: "Add review",
     });
     await user.click(openButton);
-    expect(await screen.findByText("From your lists")).toBeInTheDocument();
+    await expect(screen.findByText("From your lists")).resolves.toBeInTheDocument();
 
     await user.keyboard("{Escape}");
     expect(screen.queryByText("From your lists")).not.toBeInTheDocument();
@@ -49,30 +49,34 @@ describe("ReviewView", () => {
     const { user } = render(ReviewView, { props: { clubSlug: "1" } });
 
     // Gallery view is the default; open the "Sort by" menu.
-    const sortButton = await screen.findByRole("button", { name: /sort by/i });
+    const sortButton = await screen.findByRole("button", { name: /sort by/iu });
     await user.click(sortButton);
 
     // Members are spelled out as "<name>'s rating" instead of a bare avatar,
     // and the aggregate/date columns get plain-language labels too.
-    expect(await screen.findByRole("option", { name: /dev's rating/i })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: /average rating/i })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: /date reviewed/i })).toBeInTheDocument();
+    await expect(
+      screen.findByRole("option", { name: /dev's rating/iu }),
+    ).resolves.toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /average rating/iu })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /date reviewed/iu })).toBeInTheDocument();
   });
 
   it("should describe the sort direction in words once a sort is chosen", async () => {
     const { user } = render(ReviewView, { props: { clubSlug: "1" } });
 
-    const sortButton = await screen.findByRole("button", { name: /sort by/i });
+    const sortButton = await screen.findByRole("button", { name: /sort by/iu });
     await user.click(sortButton);
 
-    await user.click(await screen.findByRole("option", { name: /average rating/i }));
+    await user.click(await screen.findByRole("option", { name: /average rating/iu }));
 
     // Direction reads as words rather than a bare chevron, and reverses on click.
     const directionButton = await screen.findByRole("button", {
-      name: /highest first/i,
+      name: /highest first/iu,
     });
     await user.click(directionButton);
-    expect(await screen.findByRole("button", { name: /lowest first/i })).toBeInTheDocument();
+    await expect(
+      screen.findByRole("button", { name: /lowest first/iu }),
+    ).resolves.toBeInTheDocument();
   });
 
   it("should filter reviews when using search bar", async () => {
@@ -96,7 +100,7 @@ describe("ReviewView", () => {
 
     // Score entry lives in the details drawer; open it for an unrated work.
     await user.click(await screen.findByRole("button", { name: "The Empire Strikes Back" }));
-    await user.click(await screen.findByRole("button", { name: /rate this/i }));
+    await user.click(await screen.findByRole("button", { name: /rate this/iu }));
 
     const scoreInput = await screen.findByRole("spinbutton", { name: "Score" });
     expect(scoreInput).toBeInTheDocument();
@@ -124,11 +128,7 @@ describe("ReviewView", () => {
         },
       },
     ];
-    server.use(
-      http.get("/api/club/:clubSlug/list/reviews", () => {
-        return HttpResponse.json(newReviews);
-      }),
-    );
+    server.use(http.get("/api/club/:clubSlug/list/reviews", () => HttpResponse.json(newReviews)));
 
     await user.type(scoreInput, "10");
     await user.click(screen.getByRole("button", { name: "Save score" }));
@@ -136,7 +136,9 @@ describe("ReviewView", () => {
     // Entry closes, and the drawer flips to the edit affordance now that the
     // user has a saved score for this work.
     expect(screen.queryByRole("spinbutton", { name: "Score" })).not.toBeInTheDocument();
-    expect(await screen.findByRole("button", { name: /edit score/i })).toBeInTheDocument();
+    await expect(
+      screen.findByRole("button", { name: /edit score/iu }),
+    ).resolves.toBeInTheDocument();
   });
 
   it("removes only the user's own score, leaving the work on the reviews list", async () => {
@@ -163,11 +165,13 @@ describe("ReviewView", () => {
     await user.click(screen.getByRole("button", { name: "Remove my score" }));
     await user.click(screen.getByRole("button", { name: "Remove" }));
 
-    await waitFor(() => expect(deletedReviewId).toBe("test"));
+    await waitFor(() => {
+      expect(deletedReviewId).toBe("test");
+    });
 
     // The work is still on the list, unlike the club-wide "Delete review".
     expect(screen.queryByRole("spinbutton", { name: "Score" })).not.toBeInTheDocument();
-    expect(await screen.findByRole("button", { name: /rate this/i })).toBeInTheDocument();
+    await expect(screen.findByRole("button", { name: /rate this/i })).resolves.toBeInTheDocument();
     expect(screen.getByText(/No scores yet/)).toBeInTheDocument();
     expect(screen.getAllByText("12 Angry Men").length).toBeGreaterThan(0);
   });
@@ -205,7 +209,9 @@ describe("ReviewView", () => {
     await user.click(await screen.findByRole("button", { name: "Flop" }));
     const reveal = await screen.findByRole("button", { name: "Reveal club scores" });
     // The fact arms on idle after the drawer opens; give it the chance to.
-    await new Promise((resolve) => setTimeout(resolve, 400));
+    await new Promise((resolve) => {
+      setTimeout(resolve, 400);
+    });
     expect(screen.queryByText(/lowest-rated/)).not.toBeInTheDocument();
 
     await user.click(reveal);
@@ -221,11 +227,11 @@ describe("ReviewView", () => {
 
     // Open the drawer for an unrated work and start score entry.
     await user.click(await screen.findByRole("button", { name: "The Empire Strikes Back" }));
-    await user.click(await screen.findByRole("button", { name: /rate this/i }));
+    await user.click(await screen.findByRole("button", { name: /rate this/iu }));
 
     // The entry panel opens, but the assist button is absent (not eligible).
-    expect(await screen.findByRole("spinbutton", { name: "Score" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Compare to decide/ })).not.toBeInTheDocument();
+    await expect(screen.findByRole("spinbutton", { name: "Score" })).resolves.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Compare to decide/u })).not.toBeInTheDocument();
   });
 
   it("opens score assist from the entry panel once the user has five scored works", async () => {
@@ -251,14 +257,14 @@ describe("ReviewView", () => {
 
     // Open the drawer for the only unscored work and start score entry.
     await user.click(await screen.findByRole("button", { name: "Unscored Movie" }));
-    await user.click(await screen.findByRole("button", { name: /rate this/i }));
+    await user.click(await screen.findByRole("button", { name: /rate this/iu }));
 
     const trigger = await screen.findByRole("button", {
-      name: /Compare to decide/,
+      name: /Compare to decide/u,
     });
     await user.click(trigger);
 
-    expect(await screen.findByText("Which movie did you like more?")).toBeInTheDocument();
+    await expect(screen.findByText("Which movie did you like more?")).resolves.toBeInTheDocument();
     // The entry panel closed when the assist flow took over the modal.
     expect(screen.queryByRole("spinbutton", { name: "Score" })).not.toBeInTheDocument();
   });

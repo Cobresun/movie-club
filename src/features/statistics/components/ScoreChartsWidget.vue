@@ -17,7 +17,7 @@ import {
   createScoreVarianceChartOptions,
 } from "../scoring";
 import { computeScoreTrend, computeScoreVariance } from "../statsComputers";
-import type { HistogramData, WorkStatsData } from "../types";
+import { type HistogramData, type WorkStatsData } from "../types";
 import SegmentedToggle from "./SegmentedToggle.vue";
 import VChart from "@/common/components/VChart.vue";
 import WidgetShell from "@/common/components/WidgetShell.vue";
@@ -25,7 +25,7 @@ import { useIsDesktop } from "@/common/composables/useIsDesktop";
 
 type Mode = "distribution" | "trend" | "spread";
 
-const props = defineProps<{
+const { workData, members, histogramData } = defineProps<{
   workData: WorkStatsData[];
   members: Member[];
   histogramData: HistogramData[];
@@ -34,8 +34,8 @@ const props = defineProps<{
 const isDesktop = useIsDesktop();
 const compact = computed(() => !isDesktop.value);
 
-const trendData = computed(() => computeScoreTrend(props.workData, props.members));
-const variancePoints = computed(() => computeScoreVariance(props.workData));
+const trendData = computed(() => computeScoreTrend(workData, members));
+const variancePoints = computed(() => computeScoreVariance(workData));
 
 const modeOptions = computed(() => {
   const options: { value: Mode; label: string }[] = [
@@ -73,15 +73,15 @@ const subtitle = computed(() => SUBTITLES[mode.value]);
 
 const chartOptions = computed(() => {
   if (mode.value === "trend") {
-    return createScoreTrendChartOptions(trendData.value, props.members, compact.value);
+    return createScoreTrendChartOptions(trendData.value, members, compact.value);
   }
   if (mode.value === "spread") {
     return createScoreVarianceChartOptions(variancePoints.value, compact.value);
   }
   return createHistogramOptions({
-    filteredWorkData: props.workData,
-    histogramData: props.histogramData,
-    members: props.members,
+    filteredWorkData: workData,
+    histogramData,
+    members,
     compact: compact.value,
   });
 });

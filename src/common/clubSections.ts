@@ -1,7 +1,7 @@
-import type { RouteRecordNormalized } from "vue-router";
+import { type RouteRecordNormalized } from "vue-router";
 
 import { isDefined } from "@/../lib/checks/checks";
-import { ClubType } from "@/../lib/types/generated/db";
+import { type ClubType } from "@/../lib/types/generated/db";
 import { clubTypeSupportsAwards } from "@/common/clubType";
 
 /**
@@ -67,7 +67,7 @@ export function isSectionVisible(
 
 /** The part of a route the section lookup reads. */
 export interface SectionRoute {
-  readonly matched: ReadonlyArray<Pick<RouteRecordNormalized, "name">>;
+  readonly matched: readonly Pick<RouteRecordNormalized, "name">[];
 }
 
 /**

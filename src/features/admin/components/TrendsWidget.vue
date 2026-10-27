@@ -34,7 +34,7 @@
 </template>
 
 <script setup lang="ts">
-import type { AgCartesianChartOptions } from "ag-charts-community";
+import { type AgCartesianChartOptions } from "ag-charts-community";
 import { computed, ref } from "vue";
 
 import {

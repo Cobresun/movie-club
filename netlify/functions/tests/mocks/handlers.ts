@@ -19,7 +19,7 @@ const TMDB = "https://api.themoviedb.org/3";
 const GOOGLE_BOOKS = "https://www.googleapis.com/books/v1";
 // The Gemini path ends in `models/<model>:generateContent`; the colon would be
 // read as a path parameter by MSW's matcher, so match the host instead.
-const GEMINI = /generativelanguage\.googleapis\.com/;
+const GEMINI = /generativelanguage\.googleapis\.com/u;
 
 /** The questions the default Gemini handler answers `generateJson` with. */
 export const GEMINI_QUESTIONS = ["What did you make of the ending?", "Who was the villain?"];

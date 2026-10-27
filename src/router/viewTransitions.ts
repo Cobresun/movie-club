@@ -1,5 +1,5 @@
 import { nextTick } from "vue";
-import type { Router } from "vue-router";
+import { type Router } from "vue-router";
 
 import { isDefined, isTrue } from "../../lib/checks/checks.js";
 
@@ -40,7 +40,7 @@ export function installViewTransitions(router: Router) {
       window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     browserAnimatedTraversal = false;
     finish();
-    if (skip) return;
+    if (skip) return undefined;
 
     // Resolving once the update callback runs lets the navigation commit only
     // after the old page has been captured; the returned promise holds the

@@ -37,7 +37,7 @@ describe("CommentThread", () => {
   it("shows empty state message when there are no comments", async () => {
     renderThread();
 
-    expect(await screen.findByText(/No comments yet/i)).toBeInTheDocument();
+    await expect(screen.findByText(/No comments yet/i)).resolves.toBeInTheDocument();
   });
 
   it("renders existing comments", async () => {
@@ -45,7 +45,7 @@ describe("CommentThread", () => {
 
     renderThread();
 
-    expect(await screen.findByText("Great movie!")).toBeInTheDocument();
+    await expect(screen.findByText("Great movie!")).resolves.toBeInTheDocument();
     expect(screen.getByText("Alice")).toBeInTheDocument();
   });
 
@@ -68,7 +68,7 @@ describe("CommentThread", () => {
     await rendered.user.type(textarea, "Hello world");
     await rendered.user.click(screen.getByRole("button", { name: /send/i }));
 
-    expect(await screen.findByText("Hello world")).toBeInTheDocument();
+    await expect(screen.findByText("Hello world")).resolves.toBeInTheDocument();
     expect(textarea).toHaveValue("");
   });
 
@@ -77,7 +77,7 @@ describe("CommentThread", () => {
 
     renderThread();
 
-    expect(await screen.findByText("Spoiler")).toBeInTheDocument();
+    await expect(screen.findByText("Spoiler")).resolves.toBeInTheDocument();
   });
 
   it("hides spoiler content from assistive tech until it is revealed", async () => {
@@ -101,7 +101,7 @@ describe("CommentThread", () => {
     const rendered = renderThread();
     logIn(rendered.pinia);
 
-    expect(await screen.findByText("My own spoiler")).toBeInTheDocument();
+    await expect(screen.findByText("My own spoiler")).resolves.toBeInTheDocument();
   });
 
   it("shows edit and delete buttons only for the current user's comments", async () => {
@@ -111,7 +111,7 @@ describe("CommentThread", () => {
     logIn(rendered.pinia);
 
     // Only the owned comment gets an edit/delete pair.
-    expect(await screen.findAllByRole("button", { name: "Edit comment" })).toHaveLength(1);
+    await expect(screen.findAllByRole("button", { name: "Edit comment" })).resolves.toHaveLength(1);
     expect(screen.getAllByRole("button", { name: "Delete comment" })).toHaveLength(1);
   });
 
@@ -128,7 +128,7 @@ describe("CommentThread", () => {
     await rendered.user.type(editBox, "Edited after all");
     await rendered.user.click(screen.getByRole("button", { name: /save/i }));
 
-    expect(await screen.findByText("Edited after all")).toBeInTheDocument();
+    await expect(screen.findByText("Edited after all")).resolves.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /save/i })).not.toBeInTheDocument();
   });
 
@@ -169,7 +169,7 @@ describe("CommentThread", () => {
     logIn(rendered.pinia);
 
     await rendered.user.click(await screen.findByRole("button", { name: "Delete comment" }));
-    expect(await screen.findByText("Delete Comment")).toBeInTheDocument();
+    await expect(screen.findByText("Delete Comment")).resolves.toBeInTheDocument();
 
     await rendered.user.click(screen.getByRole("button", { name: /cancel/i }));
 

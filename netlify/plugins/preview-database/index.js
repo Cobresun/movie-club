@@ -232,7 +232,7 @@ function checkForMigrations() {
       console.log(
         `  Found ${migrationFiles.length} changed migration file(s):`,
       );
-      migrationFiles.forEach((file) => console.log(`    - ${file}`));
+      migrationFiles.forEach((file) =>{  console.log(`    - ${file}`); });
     }
 
     return hasChanges;

@@ -1,5 +1,3 @@
-import { describe, expect, it } from "vitest";
-
 import { toMovieDataSummary } from "../movieProvider";
 
 // ---------------------------------------------------------------------------
@@ -157,19 +155,19 @@ describe("toMovieDataSummary — field mapping", () => {
 describe("toMovieDataSummary — array handling", () => {
   it("includes genres when present", () => {
     const row = makeMovieRow({ genres: ["Drama", "Thriller"] });
-    expect(toMovieDataSummary(row).genres).toEqual(["Drama", "Thriller"]);
+    expect(toMovieDataSummary(row).genres).toStrictEqual(["Drama", "Thriller"]);
   });
 
   it("returns an empty array for genres when null", () => {
     const row = makeMovieRow({ genres: null });
-    expect(toMovieDataSummary(row).genres).toEqual([]);
+    expect(toMovieDataSummary(row).genres).toStrictEqual([]);
   });
 
   it("keeps cast names in billed order", () => {
     const row = makeMovieRow({
       cast_names: ["Leonardo DiCaprio", "Joseph Gordon-Levitt", "Elliot Page"],
     });
-    expect(toMovieDataSummary(row).castNames).toEqual([
+    expect(toMovieDataSummary(row).castNames).toStrictEqual([
       "Leonardo DiCaprio",
       "Joseph Gordon-Levitt",
       "Elliot Page",
@@ -178,12 +176,12 @@ describe("toMovieDataSummary — array handling", () => {
 
   it("returns an empty array for cast names when null", () => {
     const row = makeMovieRow({ cast_names: null });
-    expect(toMovieDataSummary(row).castNames).toEqual([]);
+    expect(toMovieDataSummary(row).castNames).toStrictEqual([]);
   });
 
   it("drops empty cast names left by the aggregate join", () => {
     const row = makeMovieRow({ cast_names: ["Leonardo DiCaprio", ""] });
-    expect(toMovieDataSummary(row).castNames).toEqual(["Leonardo DiCaprio"]);
+    expect(toMovieDataSummary(row).castNames).toStrictEqual(["Leonardo DiCaprio"]);
   });
 
   it("passes through a populated directors array", () => {
@@ -197,30 +195,35 @@ describe("toMovieDataSummary — array handling", () => {
 
   it("returns an empty array for directors when null", () => {
     const row = makeMovieRow({ directors: null });
-    expect(toMovieDataSummary(row).directors).toEqual([]);
+    expect(toMovieDataSummary(row).directors).toStrictEqual([]);
   });
 
   it("passes through populated production_companies", () => {
     const row = makeMovieRow({
       production_companies: ["Warner Bros.", "Legendary"],
     });
-    expect(toMovieDataSummary(row).production_companies).toEqual(["Warner Bros.", "Legendary"]);
+    expect(toMovieDataSummary(row).production_companies).toStrictEqual([
+      "Warner Bros.",
+      "Legendary",
+    ]);
   });
 
   it("returns an empty array for production_companies when null", () => {
     const row = makeMovieRow({ production_companies: null });
-    expect(toMovieDataSummary(row).production_companies).toEqual([]);
+    expect(toMovieDataSummary(row).production_companies).toStrictEqual([]);
   });
 
   it("passes through populated production_countries", () => {
     const row = makeMovieRow({
       production_countries: ["United States of America"],
     });
-    expect(toMovieDataSummary(row).production_countries).toEqual(["United States of America"]);
+    expect(toMovieDataSummary(row).production_countries).toStrictEqual([
+      "United States of America",
+    ]);
   });
 
   it("returns an empty array for production_countries when null", () => {
     const row = makeMovieRow({ production_countries: null });
-    expect(toMovieDataSummary(row).production_countries).toEqual([]);
+    expect(toMovieDataSummary(row).production_countries).toStrictEqual([]);
   });
 });

@@ -2,12 +2,12 @@ import { z } from "zod";
 
 import { hasValue, isDefined } from "../../../lib/checks/checks.js";
 import {
-  DiscussionQuestionsResponse,
-  ReviewScores,
-  SharedReviewResponse,
-  WorkCommentDto,
+  type DiscussionQuestionsResponse,
+  type ReviewScores,
+  type SharedReviewResponse,
+  type WorkCommentDto,
 } from "../../../lib/types/lists";
-import { CastMember } from "../../../lib/types/tmdb";
+import { type CastMember } from "../../../lib/types/tmdb";
 import ListRepository from "../repositories/ListRepository";
 import ReviewRepository from "../repositories/ReviewRepository";
 import SettingsRepository from "../repositories/SettingsRepository";
@@ -23,7 +23,7 @@ import { requireParam } from "../utils/requireParam";
 import { badRequest, notFound, ok, unauthorized } from "../utils/responses";
 import { buildReviewScores } from "../utils/reviewScores";
 import { isRouterResponse, Router } from "../utils/router";
-import { ClubRequest } from "../utils/validation";
+import { type ClubRequest } from "../utils/validation";
 
 const router = new Router<ClubRequest>("/api/club/:clubSlug/reviews");
 
@@ -209,7 +209,7 @@ router.post("/:workId/discussion-questions", secured, async ({ clubId, params },
   if (isRouterResponse(workId)) return workId;
 
   const settings = await SettingsRepository.getSettings(clubId);
-  if (settings.features.discussionQuestions !== true) {
+  if (!settings.features.discussionQuestions) {
     return res(badRequest("Feature not enabled"));
   }
 

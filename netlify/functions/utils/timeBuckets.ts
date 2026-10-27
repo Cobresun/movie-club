@@ -1,4 +1,4 @@
-import { BucketUnit } from "../../../lib/types/metrics.js";
+import { type BucketUnit } from "../../../lib/types/metrics.js";
 
 /** Guards against a malformed range sending the fill loop unbounded. */
 const MAX_BUCKETS = 1000;

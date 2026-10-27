@@ -1,5 +1,5 @@
 import axios from "axios";
-import { AliasedRawBuilder, Kysely, sql } from "kysely";
+import { type AliasedRawBuilder, type Kysely, sql } from "kysely";
 
 import { hasElements } from "../../lib/checks/checks";
 
@@ -151,7 +151,9 @@ export async function up(db: Kysely<unknown>) {
 
     // Delay between batches to respect TMDB rate limits
     if (i + BATCH_SIZE < movies.length) {
-      await new Promise((resolve) => setTimeout(resolve, BATCH_DELAY_MS));
+      await new Promise((resolve) => {
+        setTimeout(resolve, BATCH_DELAY_MS);
+      });
     }
 
     console.log(`Progress: ${Math.min(i + BATCH_SIZE, movies.length)}/${movies.length}`);

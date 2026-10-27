@@ -61,7 +61,7 @@ interface Props {
   eyebrow?: string;
   subtitle?: string;
 }
-const { clubName, members = [], eyebrow, subtitle } = defineProps<Props>();
+const { clubName, members = [], eyebrow = "", subtitle = "" } = defineProps<Props>();
 
 const MAX_VISIBLE_MEMBERS = 6;
 const visibleMembers = computed(() => members.slice(0, MAX_VISIBLE_MEMBERS));

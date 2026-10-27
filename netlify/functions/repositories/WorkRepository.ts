@@ -1,5 +1,5 @@
 import { hasValue } from "../../../lib/checks/checks.js";
-import { ListInsertDto } from "../../../lib/types/lists.js";
+import { type ListInsertDto } from "../../../lib/types/lists.js";
 import { db } from "../utils/database";
 import { getProvider } from "../utils/providers";
 

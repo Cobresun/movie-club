@@ -31,7 +31,7 @@ describe("JoinClubView", () => {
     const { pinia } = render(JoinClubView);
     logIn(pinia);
 
-    expect(await screen.findByText(/Science Fiction Book Club/)).toBeInTheDocument();
+    await expect(screen.findByText(/Science Fiction Book Club/)).resolves.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Join Club" })).toBeInTheDocument();
     expect(screen.queryByText("Please log in to join this club")).not.toBeInTheDocument();
   });
@@ -44,7 +44,9 @@ describe("JoinClubView", () => {
     const { pinia } = render(JoinClubView);
     logIn(pinia);
 
-    expect(await screen.findByText("The invite token is invalid or expired.")).toBeInTheDocument();
+    await expect(
+      screen.findByText("The invite token is invalid or expired."),
+    ).resolves.toBeInTheDocument();
   });
 
   it("sends a join request to the API when 'Join Club' is clicked", async () => {

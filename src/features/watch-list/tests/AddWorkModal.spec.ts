@@ -1,7 +1,7 @@
 import { screen } from "@testing-library/vue";
 import { http, HttpResponse } from "msw";
 
-import { WorkRecommendation } from "../../../../lib/types/recommendations";
+import { type WorkRecommendation } from "../../../../lib/types/recommendations";
 import AddWorkModal from "../components/AddWorkModal.vue";
 import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
 import { server } from "@/mocks/server";

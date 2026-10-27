@@ -1,7 +1,5 @@
-import { describe, expect, it } from "vitest";
-
 import { authorsMatch, normalizeTitle, selectBestVolume, titlesMatch } from "@/../lib/bookMatching";
-import { GoogleBooksVolume } from "@/../lib/types/book";
+import { type GoogleBooksVolume } from "@/../lib/types/book";
 
 describe("normalizeTitle", () => {
   it("lowercases, strips punctuation and articles", () => {

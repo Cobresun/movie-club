@@ -1,6 +1,11 @@
 import { z } from "zod";
 
-import { AwardsData, AwardsStep, BaseAward, BaseAwardNomination } from "./types/awards";
+import {
+  type AwardsData,
+  AwardsStep,
+  type BaseAward,
+  type BaseAwardNomination,
+} from "./types/awards";
 
 export const NOMINATIONS_PER_AWARD = 2;
 export const AWARD_TITLE_MAX_LENGTH = 60;
@@ -66,6 +71,7 @@ export function membersYetToFinish(data: AwardsData, memberIds: string[]): strin
     case AwardsStep.CategorySelect:
     case AwardsStep.Presentation:
     case AwardsStep.Completed:
+    default:
       return [];
   }
 }
@@ -87,7 +93,8 @@ export function stepChangeError(
   target: AwardsStep,
   memberIds: string[],
 ): string | undefined {
-  if (target !== data.step + 1) {
+  const nextStep: AwardsStep = data.step + 1;
+  if (target !== nextStep) {
     return "Awards only move forward, one step at a time";
   }
   if (data.step === AwardsStep.CategorySelect && data.awards.length === 0) {

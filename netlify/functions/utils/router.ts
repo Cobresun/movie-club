@@ -1,10 +1,10 @@
-import { HandlerContext, HandlerEvent, HandlerResponse } from "@netlify/functions";
+import { type HandlerContext, type HandlerEvent, type HandlerResponse } from "@netlify/functions";
 import { Path } from "path-parser";
 
 import { internalServerError, methodNotAllowed, notFound } from "./responses";
-import { StringRecord } from "./types";
+import { type StringRecord } from "./types";
 
-const RouterResponseSym = Symbol();
+const RouterResponseSym = Symbol("router-response");
 
 export type RouterResponse = {
   type: typeof RouterResponseSym;
@@ -36,7 +36,7 @@ export interface Request {
 export type MiddlewareCallback<T, R> = (
   req: T,
   res: (data: HandlerResponse) => RouterResponse,
-) => Promise<RouterResponse | R>;
+) => RouterResponse | R | Promise<RouterResponse | R>;
 
 /**
  * A single chain “item” can be either a middleware or a Router.
@@ -50,11 +50,8 @@ export type UseItem<In extends Request, Out> = MiddlewareCallback<In, Out> | Rou
  * Each overload ensures the final item returns a RouterResponse.
  */
 export interface ChainMethod<TInput extends Request> {
-  // Overload 0: no middlewares
-  (path: string): void;
-
-  // Overload 1: just one item, must produce RouterResponse from TInput
-  (path: string, c1: UseItem<TInput, RouterResponse>): void;
+  // Overload 0+1: no middlewares, or a single item producing RouterResponse
+  (path: string, c1?: UseItem<TInput, RouterResponse>): void;
 
   <A extends Request>(path: string, c1: UseItem<TInput, A>, c2: UseItem<A, RouterResponse>): void;
 
@@ -175,14 +172,14 @@ export interface ChainMethod<TInput extends Request> {
     c8: UseItem<G, H>,
     c9: UseItem<H, I>,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- we can't keep enumerating
-    ...rest: Array<UseItem<any, RouterResponse>>
+    ...rest: UseItem<any, RouterResponse>[]
   ): void;
 }
 
 interface Route {
   path: Path<StringRecord>;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- storing as any. type is checked on setting up chain
-  callbacks: ReadonlyArray<MiddlewareCallback<any, any>>;
+  callbacks: readonly MiddlewareCallback<any, any>[];
 }
 
 enum HTTPMethod {
@@ -191,6 +188,17 @@ enum HTTPMethod {
   PUT = "PUT",
   DELETE = "DELETE",
 }
+
+function isHTTPMethod(value: string): value is HTTPMethod {
+  return HTTP_METHODS.has(value);
+}
+
+const HTTP_METHODS: ReadonlySet<string> = new Set([
+  HTTPMethod.GET,
+  HTTPMethod.POST,
+  HTTPMethod.PUT,
+  HTTPMethod.DELETE,
+]);
 
 function wrapRouterAsMiddleware<In extends Request>(
   router: Router<In>,
@@ -201,9 +209,9 @@ function wrapRouterAsMiddleware<In extends Request>(
   };
 }
 export class Router<T extends Request = Request> {
-  private subRoutes: Route[];
-  private routes: Record<HTTPMethod, Route[]>;
-  private baseUrl: string;
+  private readonly subRoutes: Route[];
+  private readonly routes: Record<HTTPMethod, Route[]>;
+  private readonly baseUrl: string;
 
   public get: ChainMethod<T>;
   public post: ChainMethod<T>;
@@ -228,7 +236,8 @@ export class Router<T extends Request = Request> {
     this.delete = this.createChainMethod(HTTPMethod.DELETE);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- type checking is done on setting up chain
-    this.use = ((path: string, ...items: Array<UseItem<any, unknown>>) => {
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- the rest-param implementation cannot match the overloaded ChainMethod interface without a cast
+    this.use = ((path: string, ...items: UseItem<any, unknown>[]) => {
       const callbacks: MiddlewareCallback<unknown, unknown>[] = items.map((item) =>
         item instanceof Router ? wrapRouterAsMiddleware(item) : item,
       );
@@ -236,12 +245,13 @@ export class Router<T extends Request = Request> {
         path: this.getPath(path),
         callbacks,
       });
-    }) as ChainMethod<T>;
+    }) as unknown as ChainMethod<T>;
   }
 
   private createChainMethod(method: HTTPMethod): ChainMethod<T> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- type checking is done on setting up chain
-    return ((path: string, ...items: Array<UseItem<any, unknown>>) => {
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- the rest-param implementation cannot match the overloaded ChainMethod interface without a cast
+    return ((path: string, ...items: UseItem<any, unknown>[]) => {
       const callbacks: MiddlewareCallback<unknown, unknown>[] = items.map((item) =>
         item instanceof Router ? wrapRouterAsMiddleware(item) : item,
       );
@@ -249,15 +259,15 @@ export class Router<T extends Request = Request> {
         path: this.getPath(path),
         callbacks,
       });
-    }) as ChainMethod<T>;
+    }) as unknown as ChainMethod<T>;
   }
 
   private getPath(pathStr: string) {
     return new Path<StringRecord>(`${this.baseUrl}${pathStr}`);
   }
 
-  async route(req: T): Promise<HandlerResponse> {
-    const path = req.event.path;
+  route(req: T): Promise<HandlerResponse> {
+    const { path } = req.event;
 
     // 1) Try sub-routes
     for (const subRoute of this.subRoutes) {
@@ -268,8 +278,8 @@ export class Router<T extends Request = Request> {
     }
 
     // 2) Try main routes for the actual HTTP method
-    const httpMethod = req.event.httpMethod as HTTPMethod;
-    for (const route of this.routes[httpMethod]) {
+    const method = isHTTPMethod(req.event.httpMethod) ? req.event.httpMethod : HTTPMethod.GET;
+    for (const route of this.routes[method]) {
       const pathTest = route.path.test(path);
       if (pathTest) {
         return this.dispatch({ ...req, params: pathTest }, route.callbacks);
@@ -278,16 +288,17 @@ export class Router<T extends Request = Request> {
 
     // 3) If the path matches but method is different => 405
     for (const methodKey of Object.keys(this.routes)) {
-      for (const route of this.routes[methodKey as HTTPMethod]) {
+      if (!isHTTPMethod(methodKey)) continue;
+      for (const route of this.routes[methodKey]) {
         const pathTest = route.path.test(path);
         if (pathTest) {
-          return methodNotAllowed();
+          return Promise.resolve(methodNotAllowed());
         }
       }
     }
 
     // 4) Else => 404
-    return notFound();
+    return Promise.resolve(notFound());
   }
 
   /**
@@ -296,13 +307,13 @@ export class Router<T extends Request = Request> {
    */
   private async dispatch(
     req: T,
-    callbacks: ReadonlyArray<MiddlewareCallback<unknown, unknown>>,
+    callbacks: readonly MiddlewareCallback<unknown, unknown>[],
   ): Promise<HandlerResponse> {
     let current: unknown = req;
 
-    for (const callback of callbacks) {
+    for (const middleware of callbacks) {
       try {
-        const result = await callback(current, createRouterResponse);
+        const result = await middleware(current, createRouterResponse);
 
         if (isRouterResponse(result)) {
           return result.response;

@@ -71,7 +71,7 @@ describe("watchUntil", () => {
     value.value = 2;
     await Promise.resolve();
 
-    expect(predicate.mock.calls.length).toBe(callsAtResolution);
+    expect(predicate).toHaveBeenCalledTimes(callsAtResolution);
   });
 
   it("does not leak a watcher into the surrounding effect scope", async () => {
@@ -84,6 +84,8 @@ describe("watchUntil", () => {
 
     // Stopping the scope after resolution must not throw on an already-stopped
     // watcher.
-    expect(() => scope.stop()).not.toThrow();
+    expect(() => {
+      scope.stop();
+    }).not.toThrow();
   });
 });

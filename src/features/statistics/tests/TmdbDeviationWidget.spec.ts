@@ -49,7 +49,7 @@ describe("TmdbDeviationWidget", () => {
   it("offers only the tab that has movies", () => {
     render(TmdbDeviationWidget, { props: { movieData: [rated("1", "Underrated Gem", 9, 6)] } });
 
-    expect(screen.getAllByRole("tab").map((tab) => tab.textContent?.trim())).toEqual([
+    expect(screen.getAllByRole("tab").map((tab) => tab.textContent?.trim())).toStrictEqual([
       "We Liked More",
     ]);
   });

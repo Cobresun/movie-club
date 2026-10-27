@@ -1,6 +1,6 @@
 import { screen, within } from "@testing-library/vue";
 
-import { AwardsStep, ClubAwards } from "../../../../lib/types/awards";
+import { AwardsStep, type ClubAwards } from "../../../../lib/types/awards";
 import CategoriesView from "../views/CategoriesView.vue";
 import { awardsApi } from "@/mocks/awards";
 import { server } from "@/mocks/server";

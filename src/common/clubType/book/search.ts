@@ -1,9 +1,9 @@
 import axios from "axios";
 
-import type { BrowsePage, WorkSearchResult } from "../types";
+import { type BrowsePage, type WorkSearchResult } from "../types";
 import { hasValue } from "@/../lib/checks/checks";
 import { secureImageUrl, sortVolumesByPopularity } from "@/../lib/googleBooks";
-import { GoogleBooksSearchResponse, GoogleBooksVolume } from "@/../lib/types/book";
+import { type GoogleBooksSearchResponse, type GoogleBooksVolume } from "@/../lib/types/book";
 
 const GOOGLE_BOOKS_KEY = import.meta.env.VITE_GOOGLE_BOOKS_API_KEY;
 const GOOGLE_BOOKS_BASE_URL = "https://www.googleapis.com/books/v1";

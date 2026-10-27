@@ -6,21 +6,20 @@
  * makes: the auth tables survive between tests (see `helpers/database.ts`), so
  * absolute user counts depend on which files ran first.
  */
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { SIGNUP_CAMPAIGN_COOKIE, SIGNUP_SOURCE_COOKIE } from "../../../lib/signupSource";
 import { SignupSource } from "../../../lib/types/generated/db";
-import { AdminDashboard, SnapshotHistoryPoint } from "../../../lib/types/metrics";
+import { type AdminDashboard, type SnapshotHistoryPoint } from "../../../lib/types/metrics";
 import { handler } from "../admin";
 import captureSnapshot from "../scheduled-metrics-snapshot";
-import { FIXTURE_USERS, signIn, signUpNewUser, TestSession } from "./helpers/auth";
+import { FIXTURE_USERS, signIn, signUpNewUser, type TestSession } from "./helpers/auth";
 import {
   addComment,
   addReviewedWork,
   addWork,
   createClub,
   scoreWork,
-  SeededClub,
+  type SeededClub,
 } from "./helpers/factories";
 import { requester } from "./helpers/http";
 
@@ -91,11 +90,11 @@ describe("GET /api/admin/metrics", () => {
 
     const { pulse } = await dashboard("30d");
 
-    expect(pulse.activeClubs).toEqual({ current: 1, previous: 0 });
-    expect(pulse.activeUsers).toEqual({ current: 2, previous: 0 });
-    expect(pulse.reviews).toEqual({ current: 2, previous: 0 });
-    expect(pulse.comments).toEqual({ current: 1, previous: 0 });
-    expect(pulse.newClubs).toEqual({ current: 1, previous: 0 });
+    expect(pulse.activeClubs).toStrictEqual({ current: 1, previous: 0 });
+    expect(pulse.activeUsers).toStrictEqual({ current: 2, previous: 0 });
+    expect(pulse.reviews).toStrictEqual({ current: 2, previous: 0 });
+    expect(pulse.comments).toStrictEqual({ current: 1, previous: 0 });
+    expect(pulse.newClubs).toStrictEqual({ current: 1, previous: 0 });
   });
 
   it("counts a club in every window it was active in", async () => {
@@ -118,9 +117,9 @@ describe("GET /api/admin/metrics", () => {
     const week = await dashboard("7d");
     const month = await dashboard("30d");
 
-    expect(week.pulse.activeClubs).toEqual({ current: 1, previous: 2 });
-    expect(week.pulse.activeUsers).toEqual({ current: 1, previous: 1 });
-    expect(month.pulse.activeClubs).toEqual({ current: 2, previous: 0 });
+    expect(week.pulse.activeClubs).toStrictEqual({ current: 1, previous: 2 });
+    expect(week.pulse.activeUsers).toStrictEqual({ current: 1, previous: 1 });
+    expect(month.pulse.activeClubs).toStrictEqual({ current: 2, previous: 0 });
   });
 
   it("has nothing to compare against over all time", async () => {
@@ -129,7 +128,7 @@ describe("GET /api/admin/metrics", () => {
 
     const { pulse } = await dashboard("all");
 
-    expect(pulse.reviews).toEqual({ current: 1, previous: null });
+    expect(pulse.reviews).toStrictEqual({ current: 1, previous: null });
     expect(pulse.activeClubs.previous).toBeNull();
   });
 
@@ -181,7 +180,7 @@ describe("GET /api/admin/metrics", () => {
 
     const { works } = await dashboard("30d");
 
-    expect(works.mostReviewed.map((work) => work.title)).toEqual([
+    expect(works.mostReviewed.map((work) => work.title)).toStrictEqual([
       "The Matrix",
       "Two Reviews Only",
     ]);
@@ -189,8 +188,8 @@ describe("GET /api/admin/metrics", () => {
     expect(works.mostReviewed[0].spread).toBeCloseTo(Math.sqrt(2));
 
     // Two reviews are not enough to call anything the best or most divisive.
-    expect(works.highestRated.map((work) => work.title)).toEqual(["The Matrix"]);
-    expect(works.mostDivisive.map((work) => work.title)).toEqual(["The Matrix"]);
+    expect(works.highestRated.map((work) => work.title)).toStrictEqual(["The Matrix"]);
+    expect(works.mostDivisive.map((work) => work.title)).toStrictEqual(["The Matrix"]);
   });
 
   it("keeps a watch-list add inside the range it was made in", async () => {
@@ -205,12 +204,12 @@ describe("GET /api/admin/metrics", () => {
     const recent = await dashboard("30d");
     const quarter = await dashboard("90d");
 
-    expect(recent.works.mostWanted).toEqual([]);
-    expect(quarter.works.mostWanted).toEqual([
+    expect(recent.works.mostWanted).toStrictEqual([]);
+    expect(quarter.works.mostWanted).toStrictEqual([
       expect.objectContaining({ title: "Dune", clubs: 2, adds: 2 }),
     ]);
     expect(quarter.pulse.activeClubs.current).toBe(2);
-    expect(recent.pulse.activeClubs).toEqual({ current: 0, previous: 2 });
+    expect(recent.pulse.activeClubs).toStrictEqual({ current: 0, previous: 2 });
   });
 
   it("sorts every club by how recently it did anything", async () => {
@@ -228,7 +227,7 @@ describe("GET /api/admin/metrics", () => {
 
     const { health } = await dashboard("30d");
 
-    expect(health.clubStatus).toEqual({
+    expect(health.clubStatus).toStrictEqual({
       active: 1,
       quiet: 1,
       dormant: 1,
@@ -245,7 +244,7 @@ describe("GET /api/admin/metrics", () => {
 
     const { health } = await dashboard("30d");
 
-    expect(health.discussion).toEqual({ numerator: 1, denominator: 2 });
+    expect(health.discussion).toStrictEqual({ numerator: 1, denominator: 2 });
     // Alice's session is from this test run, and she wrote something.
     expect(health.contribution.numerator).toBeGreaterThanOrEqual(1);
   });
@@ -264,12 +263,12 @@ describe("GET /api/admin/metrics", () => {
 
     const { clubs, people } = await dashboard("7d");
 
-    expect(clubs.busiest.map((club) => club.name)).toEqual(["Busy Club", "Light Club"]);
+    expect(clubs.busiest.map((club) => club.name)).toStrictEqual(["Busy Club", "Light Club"]);
     expect(clubs.busiest[0]).toMatchObject({ reviews: 3, memberNames: ["Alice", "Bob"] });
     expect(clubs.busiest[0].lastActiveAt).not.toBeNull();
-    expect(clubs.newest.map((club) => club.name).sort()).toEqual(["Busy Club", "Light Club"]);
+    expect(clubs.newest.map((club) => club.name).sort()).toStrictEqual(["Busy Club", "Light Club"]);
 
-    expect(people.mostActive.map((person) => person.name)).toEqual(["Alice", "Bob"]);
+    expect(people.mostActive.map((person) => person.name)).toStrictEqual(["Alice", "Bob"]);
     expect(people.mostActive[0]).toMatchObject({ reviews: 2, listAdds: 2, comments: 0, clubs: 1 });
     expect(people.mostActive[1]).toMatchObject({ reviews: 2, listAdds: 1, clubs: 2 });
   });
@@ -281,7 +280,7 @@ describe("GET /api/admin/metrics", () => {
 
     const { feed } = await dashboard("7d");
 
-    expect(feed).toEqual([
+    expect(feed).toStrictEqual([
       expect.objectContaining({ kind: "comment", workTitle: "Arrival", score: null }),
       expect.objectContaining({
         kind: "review",
@@ -317,8 +316,11 @@ describe("GET /api/admin/metrics/history", () => {
     expect(res.body).toHaveLength(1);
     expect(res.body[0].capturedOn).toBe(new Date().toISOString().slice(0, 10));
     expect(res.body[0].metrics.totals).toMatchObject({ clubs: 1, reviews: 1 });
-    expect(res.body[0].metrics.activeClubs).toEqual({ last7Days: 1, last30Days: 1 });
-    expect(res.body[0].metrics.health?.dormantClubs).toEqual({ numerator: 0, denominator: 1 });
+    expect(res.body[0].metrics.activeClubs).toStrictEqual({ last7Days: 1, last30Days: 1 });
+    expect(res.body[0].metrics.health?.dormantClubs).toStrictEqual({
+      numerator: 0,
+      denominator: 1,
+    });
   });
 });
 

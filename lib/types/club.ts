@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { ClubType } from "./generated/db";
+import { type ClubType } from "./generated/db";
 
 export interface User {
   id: string;

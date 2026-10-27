@@ -6,9 +6,8 @@
  * mocked repository cannot check. Each write is asserted by reading the year
  * back through `GET /awards/:year`, which is the only view a client has.
  */
-import { describe, expect, it } from "vitest";
 
-import { AwardsStep, ClubAwards } from "../../../lib/types/awards";
+import { AwardsStep, type ClubAwards } from "../../../lib/types/awards";
 import { handler } from "../club/index";
 import { signIn } from "./helpers/auth";
 import {
@@ -18,7 +17,7 @@ import {
   nominate,
   rankAward,
   reviewMovieIn,
-  SeededClub,
+  type SeededClub,
   setAwardsStep,
 } from "./helpers/factories";
 import { requester } from "./helpers/http";
@@ -66,7 +65,7 @@ describe("GET /api/club/:clubSlug/awards/years", () => {
     const res = await api.get<number[]>(`/api/club/${club.slug}/awards/years`);
 
     expect(res.statusCode).toBe(200);
-    expect(res.body).toEqual([2024, 2023, 2022]);
+    expect(res.body).toStrictEqual([2024, 2023, 2022]);
   });
 
   it("returns an empty array for a club with no awards", async () => {
@@ -75,7 +74,7 @@ describe("GET /api/club/:clubSlug/awards/years", () => {
 
     const res = await api.get<number[]>(`/api/club/${club.slug}/awards/years`);
 
-    expect(res.body).toEqual([]);
+    expect(res.body).toStrictEqual([]);
   });
 
   it("does not see another club's years", async () => {
@@ -86,7 +85,7 @@ describe("GET /api/club/:clubSlug/awards/years", () => {
 
     const res = await api.get<number[]>(`/api/club/${club.slug}/awards/years`);
 
-    expect(res.body).toEqual([]);
+    expect(res.body).toStrictEqual([]);
   });
 });
 
@@ -104,7 +103,7 @@ describe("GET /api/club/:clubSlug/awards/available-years", () => {
     const res = await availableYears(club);
 
     expect(res.statusCode).toBe(200);
-    expect(res.body).toEqual([2024, 2022]);
+    expect(res.body).toStrictEqual([2024, 2022]);
   });
 
   it("leaves out years that already have awards", async () => {
@@ -113,7 +112,7 @@ describe("GET /api/club/:clubSlug/awards/available-years", () => {
     await reviewMovieIn(club, alice, 2023);
     await createAwardsYear(club, alice, 2024);
 
-    expect((await availableYears(club)).body).toEqual([2023]);
+    expect((await availableYears(club)).body).toStrictEqual([2023]);
   });
 
   it("ignores movies still on a watch list and other clubs' reviews", async () => {
@@ -123,7 +122,7 @@ describe("GET /api/club/:clubSlug/awards/available-years", () => {
     await addWork(club, alice, { addedDate: new Date(Date.UTC(2021, 5, 15)) });
     await reviewMovieIn(other, alice, 2020);
 
-    expect((await availableYears(club)).body).toEqual([]);
+    expect((await availableYears(club)).body).toStrictEqual([]);
   });
 });
 
@@ -141,7 +140,7 @@ describe("POST /api/club/:clubSlug/awards", () => {
     expect(res.statusCode).toBe(200);
     const awards = await awardsOf(club);
     expect(awards.body.step).toBe(AwardsStep.CategorySelect);
-    expect(awards.body.awards).toEqual([
+    expect(awards.body.awards).toStrictEqual([
       { title: "Best Picture", nominations: [] },
       { title: "Funniest Movie", nominations: [] },
     ]);
@@ -158,7 +157,7 @@ describe("POST /api/club/:clubSlug/awards", () => {
     });
 
     expect(res.statusCode).toBe(400);
-    expect(await categoryTitles(club)).toEqual(["Best Picture"]);
+    expect(await categoryTitles(club)).toStrictEqual(["Best Picture"]);
   });
 
   it.each([
@@ -174,7 +173,7 @@ describe("POST /api/club/:clubSlug/awards", () => {
     const res = await api.post(`/api/club/${club.slug}/awards`, { body, as: alice });
 
     expect(res.statusCode).toBe(400);
-    expect((await api.get<number[]>(`/api/club/${club.slug}/awards/years`)).body).toEqual([]);
+    expect((await api.get<number[]>(`/api/club/${club.slug}/awards/years`)).body).toStrictEqual([]);
   });
 
   it("refuses a year the club did not review a movie in", async () => {
@@ -188,7 +187,7 @@ describe("POST /api/club/:clubSlug/awards", () => {
     });
 
     expect(res.statusCode).toBe(400);
-    expect((await api.get<number[]>(`/api/club/${club.slug}/awards/years`)).body).toEqual([]);
+    expect((await api.get<number[]>(`/api/club/${club.slug}/awards/years`)).body).toStrictEqual([]);
   });
 
   it("returns 401 for a non-member", async () => {
@@ -203,7 +202,7 @@ describe("POST /api/club/:clubSlug/awards", () => {
     });
 
     expect(res.statusCode).toBe(401);
-    expect((await api.get<number[]>(`/api/club/${club.slug}/awards/years`)).body).toEqual([]);
+    expect((await api.get<number[]>(`/api/club/${club.slug}/awards/years`)).body).toStrictEqual([]);
   });
 });
 
@@ -217,7 +216,9 @@ describe("DELETE /api/club/:clubSlug/awards/:year", () => {
     const res = await api.delete(`/api/club/${club.slug}/awards/2024`, { as: alice });
 
     expect(res.statusCode).toBe(200);
-    expect((await api.get<number[]>(`/api/club/${club.slug}/awards/years`)).body).toEqual([2023]);
+    expect((await api.get<number[]>(`/api/club/${club.slug}/awards/years`)).body).toStrictEqual([
+      2023,
+    ]);
   });
 
   it("returns 404 for a year the club does not have", async () => {
@@ -238,7 +239,9 @@ describe("DELETE /api/club/:clubSlug/awards/:year", () => {
     const res = await api.delete(`/api/club/${club.slug}/awards/${YEAR}`, { as: bob });
 
     expect(res.statusCode).toBe(401);
-    expect((await api.get<number[]>(`/api/club/${club.slug}/awards/years`)).body).toEqual([YEAR]);
+    expect((await api.get<number[]>(`/api/club/${club.slug}/awards/years`)).body).toStrictEqual([
+      YEAR,
+    ]);
   });
 });
 
@@ -292,8 +295,11 @@ describe("POST /api/club/:clubSlug/awards/:year/category", () => {
 
     expect(res.statusCode).toBe(200);
     const awards = await awardsOf(club);
-    expect(awards.body.awards.map((award) => award.title)).toEqual(["Best Score", "Best Picture"]);
-    expect(awards.body.awards[1].nominations).toEqual([]);
+    expect(awards.body.awards.map((award) => award.title)).toStrictEqual([
+      "Best Score",
+      "Best Picture",
+    ]);
+    expect(awards.body.awards[1].nominations).toStrictEqual([]);
   });
 
   it.each([
@@ -312,7 +318,7 @@ describe("POST /api/club/:clubSlug/awards/:year/category", () => {
     });
 
     expect(res.statusCode).toBe(400);
-    expect(await categoryTitles(club)).toEqual(["Best Score"]);
+    expect(await categoryTitles(club)).toStrictEqual(["Best Score"]);
   });
 
   it("returns 400 once nominations are open", async () => {
@@ -327,7 +333,7 @@ describe("POST /api/club/:clubSlug/awards/:year/category", () => {
     });
 
     expect(res.statusCode).toBe(400);
-    expect(await categoryTitles(club)).toEqual(["Best Score"]);
+    expect(await categoryTitles(club)).toStrictEqual(["Best Score"]);
   });
 
   it("returns 401 for a non-member", async () => {
@@ -342,7 +348,7 @@ describe("POST /api/club/:clubSlug/awards/:year/category", () => {
     });
 
     expect(res.statusCode).toBe(401);
-    expect(await categoryTitles(club)).toEqual([]);
+    expect(await categoryTitles(club)).toStrictEqual([]);
   });
 });
 
@@ -358,7 +364,7 @@ describe("PUT /api/club/:clubSlug/awards/:year/category", () => {
     });
 
     expect(res.statusCode).toBe(200);
-    expect(await categoryTitles(club)).toEqual(["C", "A", "B"]);
+    expect(await categoryTitles(club)).toStrictEqual(["C", "A", "B"]);
   });
 
   it.each([
@@ -376,7 +382,7 @@ describe("PUT /api/club/:clubSlug/awards/:year/category", () => {
     });
 
     expect(res.statusCode).toBe(400);
-    expect(await categoryTitles(club)).toEqual(["A", "B"]);
+    expect(await categoryTitles(club)).toStrictEqual(["A", "B"]);
   });
 
   it.each([
@@ -407,7 +413,7 @@ describe("DELETE /api/club/:clubSlug/awards/:year/category/:awardTitle", () => {
     });
 
     expect(res.statusCode).toBe(200);
-    expect(await categoryTitles(club)).toEqual(["Keep"]);
+    expect(await categoryTitles(club)).toStrictEqual(["Keep"]);
   });
 
   it("returns 400 once nominations are open", async () => {
@@ -421,7 +427,7 @@ describe("DELETE /api/club/:clubSlug/awards/:year/category/:awardTitle", () => {
     });
 
     expect(res.statusCode).toBe(400);
-    expect(await categoryTitles(club)).toEqual(["Keep", "Drop"]);
+    expect(await categoryTitles(club)).toStrictEqual(["Keep", "Drop"]);
   });
 });
 
@@ -455,7 +461,7 @@ describe("POST /api/club/:clubSlug/awards/:year/nomination", () => {
 
     await nominate(club, alice, YEAR, "Best Picture", 27);
 
-    expect(await nominees(club)).toEqual({ 27: [bob.userId, alice.userId] });
+    expect(await nominees(club)).toStrictEqual({ 27: [bob.userId, alice.userId] });
   });
 
   it("leaves other categories untouched", async () => {
@@ -467,7 +473,7 @@ describe("POST /api/club/:clubSlug/awards/:year/nomination", () => {
     await nominate(club, alice, YEAR, "Best Picture", 27);
 
     const awards = await awardsOf(club);
-    expect(awards.body.awards[1].nominations).toEqual([]);
+    expect(awards.body.awards[1].nominations).toStrictEqual([]);
   });
 
   it("refuses a movie the member already nominated in that category", async () => {
@@ -483,7 +489,7 @@ describe("POST /api/club/:clubSlug/awards/:year/nomination", () => {
     });
 
     expect(res.statusCode).toBe(400);
-    expect(await nominees(club)).toEqual({ 27: [alice.userId] });
+    expect(await nominees(club)).toStrictEqual({ 27: [alice.userId] });
   });
 
   it("refuses a nomination past the per-member limit", async () => {
@@ -500,7 +506,7 @@ describe("POST /api/club/:clubSlug/awards/:year/nomination", () => {
     });
 
     expect(res.statusCode).toBe(400);
-    expect(Object.keys(await nominees(club))).toEqual(["1", "2"]);
+    expect(Object.keys(await nominees(club))).toStrictEqual(["1", "2"]);
   });
 
   it("returns 400 before nominations open", async () => {
@@ -514,7 +520,7 @@ describe("POST /api/club/:clubSlug/awards/:year/nomination", () => {
     });
 
     expect(res.statusCode).toBe(400);
-    expect(await nominees(club)).toEqual({});
+    expect(await nominees(club)).toStrictEqual({});
   });
 
   it.each([
@@ -533,7 +539,7 @@ describe("POST /api/club/:clubSlug/awards/:year/nomination", () => {
     });
 
     expect(res.statusCode).toBe(400);
-    expect((await awardsOf(club)).body.awards[0].nominations).toEqual([]);
+    expect((await awardsOf(club)).body.awards[0].nominations).toStrictEqual([]);
   });
 });
 
@@ -551,7 +557,7 @@ describe("DELETE /api/club/:clubSlug/awards/:year/nomination/:movieId", () => {
     });
 
     expect(res.statusCode).toBe(200);
-    expect(await nominees(club)).toEqual({ 27: [bob.userId] });
+    expect(await nominees(club)).toStrictEqual({ 27: [bob.userId] });
   });
 
   it("removes the nomination entirely once its last nominator leaves", async () => {
@@ -566,7 +572,7 @@ describe("DELETE /api/club/:clubSlug/awards/:year/nomination/:movieId", () => {
       as: alice,
     });
 
-    expect(await nominees(club)).toEqual({});
+    expect(await nominees(club)).toStrictEqual({});
   });
 
   it("cannot withdraw another member's nomination", async () => {
@@ -580,7 +586,7 @@ describe("DELETE /api/club/:clubSlug/awards/:year/nomination/:movieId", () => {
       as: bob,
     });
 
-    expect(await nominees(club)).toEqual({ 27: [alice.userId] });
+    expect(await nominees(club)).toStrictEqual({ 27: [alice.userId] });
   });
 
   it("returns 400 when the awardTitle query parameter is missing", async () => {
@@ -595,7 +601,7 @@ describe("DELETE /api/club/:clubSlug/awards/:year/nomination/:movieId", () => {
     });
 
     expect(res.statusCode).toBe(400);
-    expect(await nominees(club)).toEqual({ 27: [alice.userId] });
+    expect(await nominees(club)).toStrictEqual({ 27: [alice.userId] });
   });
 
   it("returns 400 once voting has started", async () => {
@@ -612,7 +618,7 @@ describe("DELETE /api/club/:clubSlug/awards/:year/nomination/:movieId", () => {
     });
 
     expect(res.statusCode).toBe(400);
-    expect(await nominees(club)).toEqual({ 27: [alice.userId] });
+    expect(await nominees(club)).toStrictEqual({ 27: [alice.userId] });
   });
 });
 
@@ -639,11 +645,9 @@ describe("POST /api/club/:clubSlug/awards/:year/ranking", () => {
 
     expect(res.statusCode).toBe(200);
     const awards = await awardsOf(club);
-    expect(awards.body.awards[0].nominations.map((nomination) => nomination.ranking)).toEqual([
-      { [alice.userId]: 2 },
-      { [alice.userId]: 3 },
-      { [alice.userId]: 1 },
-    ]);
+    expect(awards.body.awards[0].nominations.map((nomination) => nomination.ranking)).toStrictEqual(
+      [{ [alice.userId]: 2 }, { [alice.userId]: 3 }, { [alice.userId]: 1 }],
+    );
   });
 
   it("keeps other voters' rankings", async () => {
@@ -653,7 +657,7 @@ describe("POST /api/club/:clubSlug/awards/:year/ranking", () => {
     await rankAward(club, alice, YEAR, "Best Picture", [3, 2, 1]);
 
     const awards = await awardsOf(club);
-    expect(awards.body.awards[0].nominations[0].ranking).toEqual({
+    expect(awards.body.awards[0].nominations[0].ranking).toStrictEqual({
       [bob.userId]: 1,
       [alice.userId]: 3,
     });
@@ -675,11 +679,9 @@ describe("POST /api/club/:clubSlug/awards/:year/ranking", () => {
 
     expect(res.statusCode).toBe(400);
     const awards = await awardsOf(club);
-    expect(awards.body.awards[0].nominations.map((nomination) => nomination.ranking)).toEqual([
-      {},
-      {},
-      {},
-    ]);
+    expect(awards.body.awards[0].nominations.map((nomination) => nomination.ranking)).toStrictEqual(
+      [{}, {}, {}],
+    );
   });
 
   it("returns 400 outside of voting", async () => {

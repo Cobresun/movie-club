@@ -15,7 +15,7 @@ import {
   computeTopAuthors,
   computeTopDirectors,
 } from "../statsComputers";
-import type { MovieData } from "../types";
+import { type MovieData } from "../types";
 import {
   makeBook,
   makeExternalBook as makeBookData,
@@ -30,8 +30,8 @@ import {
 describe("computeGenreStats", () => {
   it("returns empty arrays for empty movie list", () => {
     const result = computeGenreStats([]);
-    expect(result.mostLoved).toEqual([]);
-    expect(result.leastLoved).toEqual([]);
+    expect(result.mostLoved).toStrictEqual([]);
+    expect(result.leastLoved).toStrictEqual([]);
   });
 
   it("excludes genres with fewer than 2 movies", () => {
@@ -40,8 +40,8 @@ describe("computeGenreStats", () => {
       makeMovie({ genres: ["Comedy"], average: 5 }),
     ];
     const result = computeGenreStats(movies);
-    expect(result.mostLoved).toEqual([]);
-    expect(result.leastLoved).toEqual([]);
+    expect(result.mostLoved).toStrictEqual([]);
+    expect(result.leastLoved).toStrictEqual([]);
   });
 
   it("includes genres with 2 or more movies", () => {
@@ -144,9 +144,9 @@ describe("computeGenreStats", () => {
     const genreMap = Object.fromEntries(
       [...result.mostLoved, ...result.leastLoved].map((g) => [g.genre, g.averageScore]),
     );
-    expect(genreMap["Action"]).toBe(7);
-    expect(genreMap["Comedy"]).toBe(6);
-    expect(genreMap["Drama"]).toBe(5);
+    expect(genreMap.Action).toBe(7);
+    expect(genreMap.Comedy).toBe(6);
+    expect(genreMap.Drama).toBe(5);
   });
 });
 
@@ -156,13 +156,13 @@ describe("computeMemberLeaderboard", () => {
   it("returns empty array for empty movie data", () => {
     const members = [makeMember({ id: "m1" })];
     const result = computeMemberLeaderboard([], members);
-    expect(result).toEqual([]);
+    expect(result).toStrictEqual([]);
   });
 
   it("returns empty array for empty members", () => {
     const movies = [makeMovie({ userScores: { m1: 8 } })];
     const result = computeMemberLeaderboard(movies, []);
-    expect(result).toEqual([]);
+    expect(result).toStrictEqual([]);
   });
 
   it("calculates average scores correctly", () => {
@@ -252,7 +252,7 @@ describe("computeMemberLeaderboard", () => {
       makeMovie({ userScores: { m1: 4, m2: 8, m3: 5 } }),
     ];
     const result = computeMemberLeaderboard(movies, members);
-    expect(result.map((e) => e.member.name)).toEqual(["High", "Mid", "Low"]);
+    expect(result.map((e) => e.member.name)).toStrictEqual(["High", "Mid", "Low"]);
   });
 });
 
@@ -435,7 +435,7 @@ describe("computeTasteSimilarity", () => {
 
 describe("computeTopDirectors", () => {
   it("returns empty for empty movie list", () => {
-    expect(computeTopDirectors([])).toEqual([]);
+    expect(computeTopDirectors([])).toStrictEqual([]);
   });
 
   it("includes movies with average 0 (legitimate score)", () => {
@@ -458,7 +458,7 @@ describe("computeTopDirectors", () => {
         externalData: makeExternalData({ directors: [] }),
       }),
     ];
-    expect(computeTopDirectors(movies)).toEqual([]);
+    expect(computeTopDirectors(movies)).toStrictEqual([]);
   });
 
   it("accumulates movies per director correctly", () => {
@@ -479,7 +479,7 @@ describe("computeTopDirectors", () => {
     expect(result[0].name).toBe("Nolan");
     expect(result[0].workCount).toBe(2);
     expect(result[0].averageScore).toBe(7);
-    expect(result[0].works).toEqual(["Movie A", "Movie B"]);
+    expect(result[0].works).toStrictEqual(["Movie A", "Movie B"]);
   });
 
   it("returns max 5 directors", () => {
@@ -566,7 +566,7 @@ describe("computeGuiltyPleasures", () => {
   it("returns empty array for empty movie list", () => {
     const members = [makeMember({ id: "m1" })];
     const result = computeGuiltyPleasures([], members);
-    expect(result).toEqual([]);
+    expect(result).toStrictEqual([]);
   });
 
   it("returns empty array when no scores are 2+ above average", () => {
@@ -579,7 +579,7 @@ describe("computeGuiltyPleasures", () => {
       makeMovie({ average: 5, userScores: { m1: 5.5, m2: 4.5 } }),
     ];
     const result = computeGuiltyPleasures(movies, members);
-    expect(result).toEqual([]);
+    expect(result).toStrictEqual([]);
   });
 
   it("includes movie where exactly one member is 2+ above average", () => {
@@ -618,7 +618,7 @@ describe("computeGuiltyPleasures", () => {
       }),
     ];
     const result = computeGuiltyPleasures(movies, members);
-    expect(result).toEqual([]);
+    expect(result).toStrictEqual([]);
   });
 
   it("skips movies with fewer than 2 scores", () => {
@@ -634,7 +634,7 @@ describe("computeGuiltyPleasures", () => {
       }),
     ];
     const result = computeGuiltyPleasures(movies, members);
-    expect(result).toEqual([]);
+    expect(result).toStrictEqual([]);
   });
 
   it("skips members with undefined or NaN scores", () => {
@@ -652,7 +652,7 @@ describe("computeGuiltyPleasures", () => {
     ];
     const result = computeGuiltyPleasures(movies, members);
     // Only m3 has a valid score, but need 2+ valid scores
-    expect(result).toEqual([]);
+    expect(result).toStrictEqual([]);
   });
 
   it("sorts movies by difference descending within each member", () => {
@@ -750,7 +750,7 @@ describe("computeClubCurmudgeons", () => {
   it("returns empty array for empty movie list", () => {
     const members = [makeMember({ id: "m1" })];
     const result = computeClubCurmudgeons([], members);
-    expect(result).toEqual([]);
+    expect(result).toStrictEqual([]);
   });
 
   it("returns empty array when no scores are 2+ below average", () => {
@@ -763,7 +763,7 @@ describe("computeClubCurmudgeons", () => {
       makeMovie({ average: 5, userScores: { m1: 5.5, m2: 4.5 } }),
     ];
     const result = computeClubCurmudgeons(movies, members);
-    expect(result).toEqual([]);
+    expect(result).toStrictEqual([]);
   });
 
   it("includes movie where exactly one member is 2+ below average", () => {
@@ -802,7 +802,7 @@ describe("computeClubCurmudgeons", () => {
       }),
     ];
     const result = computeClubCurmudgeons(movies, members);
-    expect(result).toEqual([]);
+    expect(result).toStrictEqual([]);
   });
 
   it("skips movies with fewer than 2 scores", () => {
@@ -818,7 +818,7 @@ describe("computeClubCurmudgeons", () => {
       }),
     ];
     const result = computeClubCurmudgeons(movies, members);
-    expect(result).toEqual([]);
+    expect(result).toStrictEqual([]);
   });
 
   it("skips members with undefined or NaN scores", () => {
@@ -836,7 +836,7 @@ describe("computeClubCurmudgeons", () => {
     ];
     const result = computeClubCurmudgeons(movies, members);
     // Only m3 has a valid score, but need 2+ valid scores
-    expect(result).toEqual([]);
+    expect(result).toStrictEqual([]);
   });
 
   it("sorts movies by difference ascending (most negative first) within each member", () => {
@@ -948,7 +948,7 @@ describe("computeScoreVariance", () => {
   }
 
   it("returns empty array for empty movie list", () => {
-    expect(computeScoreVariance([])).toEqual([]);
+    expect(computeScoreVariance([])).toStrictEqual([]);
   });
 
   it("returns empty array when no movie has at least 2 scores", () => {
@@ -959,7 +959,7 @@ describe("computeScoreVariance", () => {
       makeReviewedMovie(4, { m1: 9 }),
       makeReviewedMovie(5, { m1: 5 }),
     ];
-    expect(computeScoreVariance(movies)).toEqual([]);
+    expect(computeScoreVariance(movies)).toStrictEqual([]);
   });
 
   it("skips movies missing createdDate or with invalid date", () => {
@@ -977,7 +977,7 @@ describe("computeScoreVariance", () => {
       }),
     ];
     // Only one valid movie => below the 5-point minimum window, so no points
-    expect(computeScoreVariance(movies)).toEqual([]);
+    expect(computeScoreVariance(movies)).toStrictEqual([]);
   });
 
   it("produces a rolling spread that drops when members agree more", () => {
@@ -990,7 +990,7 @@ describe("computeScoreVariance", () => {
     const points = computeScoreVariance(movies);
 
     expect(points.length).toBeGreaterThan(0);
-    const first = points[0];
+    const [first] = points;
     const last = points[points.length - 1];
     // Population std dev for {8,2} is 3; for {7,7} is 0.
     expect(first.rollingStdDev).toBeGreaterThan(last.rollingStdDev);
@@ -1027,7 +1027,7 @@ describe("computeScoreVariance", () => {
 
 describe("computeHighestRatedByYear", () => {
   it("returns an empty array for an empty movie list", () => {
-    expect(computeHighestRatedByYear([])).toEqual([]);
+    expect(computeHighestRatedByYear([])).toStrictEqual([]);
   });
 
   it("picks the highest-rated movie for each watched year", () => {
@@ -1075,7 +1075,7 @@ describe("computeHighestRatedByYear", () => {
 
     const years = computeHighestRatedByYear(movies).map((e) => e.year);
 
-    expect(years).toEqual([2025, 2023, 2021]);
+    expect(years).toStrictEqual([2025, 2023, 2021]);
   });
 
   it("skips movies with an invalid watched date", () => {
@@ -1157,12 +1157,12 @@ describe("score-based computers with book data", () => {
 
 describe("computeTopAuthors", () => {
   it("returns empty for an empty book list", () => {
-    expect(computeTopAuthors([])).toEqual([]);
+    expect(computeTopAuthors([])).toStrictEqual([]);
   });
 
   it("skips books without external metadata", () => {
     const books = [makeBook({ average: 8 })];
-    expect(computeTopAuthors(books)).toEqual([]);
+    expect(computeTopAuthors(books)).toStrictEqual([]);
   });
 
   it("accumulates books per author with no avatar", () => {
@@ -1183,7 +1183,7 @@ describe("computeTopAuthors", () => {
     expect(result[0].name).toBe("Le Guin");
     expect(result[0].workCount).toBe(2);
     expect(result[0].averageScore).toBe(7);
-    expect(result[0].works).toEqual(["Book A", "Book B"]);
+    expect(result[0].works).toStrictEqual(["Book A", "Book B"]);
     expect(result[0].profileImageUrl).toBeUndefined();
   });
 
@@ -1228,7 +1228,7 @@ describe("computeTopAuthors", () => {
 
 describe("computeSubjectStats", () => {
   it("returns empty for an empty book list", () => {
-    expect(computeSubjectStats([])).toEqual([]);
+    expect(computeSubjectStats([])).toStrictEqual([]);
   });
 
   it("excludes subjects read fewer than twice", () => {
@@ -1242,7 +1242,7 @@ describe("computeSubjectStats", () => {
         externalData: makeBookData({ subjects: ["History"] }),
       }),
     ];
-    expect(computeSubjectStats(books)).toEqual([]);
+    expect(computeSubjectStats(books)).toStrictEqual([]);
   });
 
   it("averages scores for subjects read at least twice", () => {
@@ -1301,7 +1301,7 @@ describe("computeSubjectStats", () => {
 
 describe("computeSubjectReadCounts", () => {
   it("returns empty for an empty book list", () => {
-    expect(computeSubjectReadCounts([])).toEqual([]);
+    expect(computeSubjectReadCounts([])).toStrictEqual([]);
   });
 
   it("counts every subject occurrence, ranked by count", () => {
@@ -1314,8 +1314,8 @@ describe("computeSubjectReadCounts", () => {
       makeBook({ externalData: makeBookData({ subjects: ["Fantasy"] }) }),
     ];
     const result = computeSubjectReadCounts(books);
-    expect(result[0]).toEqual({ subject: "Fantasy", count: 3 });
-    expect(result[1]).toEqual({ subject: "Epic", count: 2 });
+    expect(result[0]).toStrictEqual({ subject: "Fantasy", count: 3 });
+    expect(result[1]).toStrictEqual({ subject: "Epic", count: 2 });
   });
 
   it("caps the result at the top 5 subjects by count", () => {
@@ -1336,7 +1336,7 @@ describe("computeSubjectReadCounts", () => {
 
 describe("computeClubRecords", () => {
   it("returns no records for fewer than two works", () => {
-    expect(computeClubRecords([makeMovie()])).toEqual({
+    expect(computeClubRecords([makeMovie()])).toStrictEqual({
       highest: null,
       lowest: null,
       mostDivisive: null,
@@ -1383,7 +1383,7 @@ describe("computeClubRecords", () => {
 
 describe("computeMonthlyActivity", () => {
   it("returns an empty array for no works", () => {
-    expect(computeMonthlyActivity([])).toEqual([]);
+    expect(computeMonthlyActivity([])).toStrictEqual([]);
   });
 
   it("counts reviews per month and fills gap months with zero", () => {
@@ -1396,7 +1396,7 @@ describe("computeMonthlyActivity", () => {
     const points = computeMonthlyActivity(movies);
 
     expect(points).toHaveLength(3);
-    expect(points.map((p) => p.count)).toEqual([2, 0, 1]);
+    expect(points.map((point) => point.count)).toStrictEqual([2, 0, 1]);
     expect(points[0].label).toBe("Jan 2024");
     expect(points[1].label).toBe("Feb 2024");
     expect(points[2].label).toBe("Mar 2024");
@@ -1427,8 +1427,8 @@ describe("computeCumulativeCounts", () => {
 
     const points = computeCumulativeCounts(movies);
 
-    expect(points.map((p) => p.title)).toEqual(["First", "Second", "Third"]);
-    expect(points.map((p) => p.total)).toEqual([1, 2, 3]);
+    expect(points.map((point) => point.title)).toStrictEqual(["First", "Second", "Third"]);
+    expect(points.map((point) => point.total)).toStrictEqual([1, 2, 3]);
   });
 
   it("skips works with invalid dates", () => {

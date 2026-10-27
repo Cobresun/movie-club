@@ -1,4 +1,4 @@
-import type { AgCartesianChartOptions } from "ag-charts-community";
+import { type AgCartesianChartOptions } from "ag-charts-community";
 
 import { WorkType } from "../../../../lib/types/generated/db";
 import {
@@ -6,7 +6,7 @@ import {
   createHistogramOptions,
   createMonthlyActivityChartOptions,
 } from "../scoring";
-import type { HistogramData, MovieData } from "../types";
+import { type HistogramData, type MovieData } from "../types";
 
 /**
  * ag-charts' options are wide unions that TypeScript cannot narrow from a
@@ -101,7 +101,7 @@ describe("createHistogramOptions", () => {
   it("draws one stacked series per member, named for the legend", () => {
     const series = seriesOf(createHistogramOptions(params));
 
-    expect(series.map((s) => s.yName)).toEqual(["dev", "user"]);
+    expect(series.map((s) => s.yName)).toStrictEqual(["dev", "user"]);
     expect(series.every((s) => s.stacked === true)).toBe(true);
   });
 

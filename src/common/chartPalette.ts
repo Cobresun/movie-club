@@ -15,7 +15,7 @@
  *    (decade averages, activity, score spread) use {@link CLUB_SERIES_COLOR},
  *    the brand primary.
  */
-import type { AgCartesianChartOptions, AgChartLegendOptions } from "ag-charts-community";
+import { type AgCartesianChartOptions, type AgChartLegendOptions } from "ag-charts-community";
 
 /** Fixed-order categorical slots for member series. Never reordered. */
 export const MEMBER_SERIES_COLORS = [

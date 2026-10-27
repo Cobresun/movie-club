@@ -1,7 +1,7 @@
 import { screen } from "@testing-library/vue";
 
-import { AwardsStep, ClubAwards } from "../../../../lib/types/awards";
-import { DetailedMovieData } from "../../../../lib/types/movie";
+import { AwardsStep, type ClubAwards } from "../../../../lib/types/awards";
+import { type DetailedMovieData } from "../../../../lib/types/movie";
 import NominationsView from "../views/NominationsView.vue";
 import memberData from "@/mocks/data/member.json";
 import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
@@ -55,7 +55,9 @@ describe("NominationsView", () => {
     const { pinia } = render(NominationsView, { props });
     logIn(pinia);
 
-    expect(await screen.findByRole("heading", { name: "Best Picture" })).toBeInTheDocument();
+    await expect(
+      screen.findByRole("heading", { name: "Best Picture" }),
+    ).resolves.toBeInTheDocument();
     // Nominations are attributed by user id: I nominated Inception, another
     // member nominated Tenet — only mine shows.
     expect(screen.getByText("Inception")).toBeInTheDocument();
@@ -66,7 +68,7 @@ describe("NominationsView", () => {
     const { pinia } = render(NominationsView, { props });
     logIn(pinia);
 
-    expect(await screen.findByText("1 / 1 categories")).toBeInTheDocument();
+    await expect(screen.findByText("1 / 1 categories")).resolves.toBeInTheDocument();
   });
 
   it("shows no categories and zero progress when logged out", () => {

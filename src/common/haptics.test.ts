@@ -1,5 +1,3 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
-
 import { hapticTick } from "./haptics";
 
 describe("hapticTick", () => {
@@ -11,17 +9,18 @@ describe("hapticTick", () => {
   });
 
   it("uses the Vibration API when the browser supports it", () => {
-    const vibrate = vi.fn(() => true);
+    const vibrate = vi.fn<(pattern: VibratePattern) => boolean>(() => true);
     navigator.vibrate = vibrate;
 
     hapticTick();
 
-    expect(vibrate).toHaveBeenCalledTimes(1);
-    expect(vibrate).toHaveBeenCalledWith(10);
+    expect(vibrate).toHaveBeenCalledExactlyOnceWith(10);
   });
 
   it("no-ops when the browser has no Vibration API (iOS Safari, desktop)", () => {
     // jsdom's navigator has no vibrate, so this is the unsupported path.
-    expect(() => hapticTick()).not.toThrow();
+    expect(() => {
+      hapticTick();
+    }).not.toThrow();
   });
 });

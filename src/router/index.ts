@@ -1,9 +1,9 @@
 import {
   createRouter,
   createWebHistory,
-  RouteRecordRaw,
-  NavigationGuardNext,
-  RouteLocationNormalized,
+  type RouteRecordRaw,
+  type NavigationGuardNext,
+  type RouteLocationNormalized,
 } from "vue-router";
 
 import { hasElements, isDefined, isString } from "../../lib/checks/checks.js";
@@ -29,22 +29,25 @@ const checkClubAccess = async (
   const auth = useAuthStore();
   await auth.waitForAuthReady();
   if (!auth.isLoggedIn) {
-    return next({
+    next({
       name: "ClubNotFound",
       query: { redirect: to.fullPath },
     });
+    return;
   }
 
   const clubSlug = to.params.clubSlug;
   if (!isString(clubSlug)) {
-    return next({ name: "ClubNotFound" });
+    next({ name: "ClubNotFound" });
+    return;
   }
 
   // Membership the cache already confirms lets the navigation through without
   // waiting on a background refetch of the clubs list. Only a club the cache
   // does not know about waits for the list to settle.
   if (auth.isClubMember(clubSlug)) {
-    return next();
+    next();
+    return;
   }
 
   // waitForClubsReady waits out any in-flight refetch (e.g. the one triggered
@@ -52,7 +55,8 @@ const checkClubAccess = async (
   // the fresh list rather than a stale cache.
   await auth.waitForClubsReady();
   if (auth.isClubMember(clubSlug)) {
-    return next();
+    next();
+    return;
   }
 
   // Safety net: if the create/join invalidation hadn't started its refetch when
@@ -60,11 +64,12 @@ const checkClubAccess = async (
   // and re-check before declaring the club inaccessible.
   await auth.refreshClubs();
   if (auth.isClubMember(clubSlug)) {
-    return next();
+    next();
+    return;
   }
 
   // User is genuinely not a member of this club
-  return next({ name: "ClubNotFound" });
+  next({ name: "ClubNotFound" });
 };
 
 /**
@@ -77,10 +82,10 @@ const clubGuard = async (
   next: NavigationGuardNext,
 ) => {
   const auth = useAuthStore();
-  const clubSlug = to.params.clubSlug as string;
+  const { clubSlug } = to.params;
 
   // First, check if we need to redirect numeric ID to slug
-  if (clubSlug && /^\d+$/.test(clubSlug)) {
+  if (isString(clubSlug) && /^\d+$/.test(clubSlug)) {
     // Wait for clubs to be ready
     await auth.waitForAuthReady();
     await auth.waitForClubsReady();
@@ -93,12 +98,13 @@ const clubGuard = async (
       const newPath = to.path.replace(`/club/${clubSlug}`, `/club/${club.slug}`);
 
       // Redirect to slug-based URL, replacing history entry
-      return next({
+      next({
         path: newPath,
         query: to.query, // Preserve query params
         hash: to.hash, // Preserve hash
         replace: true, // Don't add to history
       });
+      return;
     }
     // If club not found, continue to access check which will show ClubNotFound
   }
@@ -119,7 +125,8 @@ const movieClubOnly = async (
   const auth = useAuthStore();
   const clubSlug = to.params.clubSlug;
   if (!isString(clubSlug)) {
-    return next();
+    next();
+    return;
   }
   const findClub = () => auth.userClubs?.find((c) => c.slug === clubSlug);
 
@@ -130,12 +137,13 @@ const movieClubOnly = async (
 
   const club = findClub();
   if (club && club.type !== ClubType.movie) {
-    return next({ name: DEFAULT_CLUB_SECTION, params: { clubSlug } });
+    next({ name: DEFAULT_CLUB_SECTION, params: { clubSlug } });
+    return;
   }
-  return next();
+  next();
 };
 
-const routes: Array<RouteRecordRaw> = [
+const routes: RouteRecordRaw[] = [
   {
     path: "/",
     name: "Clubs",
@@ -143,7 +151,7 @@ const routes: Array<RouteRecordRaw> = [
     beforeEnter: async () => {
       const auth = useAuthStore();
       await auth.waitForAuthReady();
-      if (!auth.isLoggedIn) return;
+      if (!auth.isLoggedIn) return undefined;
 
       await auth.waitForClubsReady();
       const clubs = auth.userClubs;

@@ -74,7 +74,9 @@ async function post(
   } catch (error) {
     const delay = RETRY_DELAYS_MS[attempt];
     if (isAxiosError(error) && error.response?.status === 503 && delay !== undefined) {
-      await new Promise((resolve) => setTimeout(resolve, delay));
+      await new Promise((resolve) => {
+        setTimeout(resolve, delay);
+      });
       return post(apiKey, body, attempt + 1);
     }
     throw toGeminiError(error);

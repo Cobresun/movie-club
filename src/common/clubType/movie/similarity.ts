@@ -1,8 +1,8 @@
 import { buildIdf, ERA_HALF_LIFE_YEARS, proximityDecay, sum, weightedJaccard } from "../similarity";
-import type { WorkSimilarityScorer } from "../types";
+import { type WorkSimilarityScorer } from "../types";
 import { releaseYear } from "./display";
 import { hasValue } from "@/../lib/checks/checks";
-import { WorkDataSummary } from "@/../lib/types/lists";
+import { type WorkDataSummary } from "@/../lib/types/lists";
 import { asMovie } from "@/common/workDisplay";
 
 // A shared director dominates, cast/studio/genre are secondary, era/language

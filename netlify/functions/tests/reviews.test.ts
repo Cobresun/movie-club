@@ -7,26 +7,25 @@
  * real prompt and parses a real Gemini response envelope.
  */
 import { http, HttpResponse } from "msw";
-import { describe, expect, it } from "vitest";
 
 import { WorkType } from "../../../lib/types/generated/db";
 import {
-  DetailedReviewListItem,
-  ReviewScores,
-  SharedReviewResponse,
-  WorkCommentDto,
+  type DetailedReviewListItem,
+  type ReviewScores,
+  type SharedReviewResponse,
+  type WorkCommentDto,
 } from "../../../lib/types/lists";
-import { CastMember } from "../../../lib/types/tmdb";
+import { type CastMember } from "../../../lib/types/tmdb";
 import { handler } from "../club/index";
 import { geminiJsonResponse } from "./fixtures/external";
-import { signIn, TestSession } from "./helpers/auth";
+import { signIn, type TestSession } from "./helpers/auth";
 import {
   addComment,
   addReviewedWork,
   addWork,
   createClub,
   scoreWork,
-  SeededClub,
+  type SeededClub,
 } from "./helpers/factories";
 import { requester } from "./helpers/http";
 import { server } from "./setup/externalApis";
@@ -97,7 +96,7 @@ describe("POST /api/club/:clubSlug/reviews", () => {
     });
 
     expect(res.statusCode).toBe(400);
-    expect((await scoresOf(club, work.id, alice)).body).toEqual({});
+    expect((await scoresOf(club, work.id, alice)).body).toStrictEqual({});
   });
 
   it("returns 400 without a body", async () => {
@@ -233,7 +232,7 @@ describe("DELETE /api/club/:clubSlug/reviews/:reviewId", () => {
       as: alice,
     });
 
-    expect((await scoresOf(club, work.id, alice)).body).toEqual({});
+    expect((await scoresOf(club, work.id, alice)).body).toStrictEqual({});
     expect(await reviewedWorkIds(club)).toContain(work.id);
   });
 
@@ -318,7 +317,7 @@ describe("GET /api/club/:clubSlug/reviews/:workId/scores", () => {
 
     const res = await scoresOf(club, work.id, alice);
 
-    expect(res.body).toEqual({});
+    expect(res.body).toStrictEqual({});
   });
 });
 
@@ -331,7 +330,7 @@ describe("GET /api/club/:clubSlug/reviews/cast", () => {
     const res = await api.get<Record<string, CastMember[]>>(`/api/club/${club.slug}/reviews/cast`);
 
     expect(res.statusCode).toBe(200);
-    expect(res.body["77"]).toEqual([
+    expect(res.body["77"]).toStrictEqual([
       { name: "Lead 77", character: "Hero 77", profilePath: "/lead-77.jpg" },
       { name: "Support 77", character: "Sidekick 77", profilePath: null },
     ]);
@@ -343,7 +342,7 @@ describe("GET /api/club/:clubSlug/reviews/cast", () => {
 
     const res = await api.get(`/api/club/${club.slug}/reviews/cast`);
 
-    expect(res.body).toEqual({});
+    expect(res.body).toStrictEqual({});
   });
 });
 
@@ -358,7 +357,7 @@ describe("comments on a reviewed work", () => {
     const res = await commentsOn(club, work.id, alice);
 
     expect(res.statusCode).toBe(200);
-    expect(res.body.map((comment) => [comment.content, comment.spoiler])).toEqual([
+    expect(res.body.map((comment) => [comment.content, comment.spoiler])).toStrictEqual([
       ["First", false],
       ["Second", true],
     ]);
@@ -413,7 +412,7 @@ describe("comments on a reviewed work", () => {
     });
 
     expect(res.statusCode).toBe(400);
-    expect((await commentsOn(club, work.id, alice)).body).toEqual([]);
+    expect((await commentsOn(club, work.id, alice)).body).toStrictEqual([]);
   });
 
   it("lets the author edit their comment", async () => {
@@ -475,7 +474,7 @@ describe("comments on a reviewed work", () => {
     );
 
     expect(res.statusCode).toBe(200);
-    expect((await commentsOn(club, work.id, alice)).body).toEqual([]);
+    expect((await commentsOn(club, work.id, alice)).body).toStrictEqual([]);
   });
 
   it("returns 401 when deleting someone else's comment", async () => {
@@ -542,7 +541,7 @@ describe("POST /api/club/:clubSlug/reviews/:workId/discussion-questions", () => 
     );
 
     expect(res.statusCode).toBe(200);
-    expect(res.body.questions).toEqual(["Why the eagles?"]);
+    expect(res.body.questions).toStrictEqual(["Why the eagles?"]);
     // The prompt is built server-side from the stored work, including the
     // release year from the cached TMDB details — a client cannot poison it.
     expect(prompt).toContain("The Lord of the Rings (2001)");
@@ -620,9 +619,9 @@ describe("GET /api/club/:clubSlug/reviews/:workId/shared", () => {
     });
     // The shared payload carries the full metadata, cast included.
     expect(res.body.work.externalData).toMatchObject({ kind: "movie" });
-    expect(res.body.members.map((member) => member.name)).toEqual(["Alice"]);
-    expect(res.body.comments.map((comment) => comment.content)).toEqual(["A classic"]);
-    expect(res.body.reviews.map((review) => review.score)).toEqual([9]);
+    expect(res.body.members.map((member) => member.name)).toStrictEqual(["Alice"]);
+    expect(res.body.comments.map((comment) => comment.content)).toStrictEqual(["A classic"]);
+    expect(res.body.reviews.map((review) => review.score)).toStrictEqual([9]);
   });
 
   it("does not expose member email addresses to an anonymous viewer", async () => {
@@ -649,7 +648,7 @@ describe("GET /api/club/:clubSlug/reviews/:workId/shared", () => {
     );
 
     expect(res.statusCode).toBe(200);
-    expect(res.body.reviews).toEqual([]);
+    expect(res.body.reviews).toStrictEqual([]);
   });
 
   it("omits external metadata for a work with no external id", async () => {

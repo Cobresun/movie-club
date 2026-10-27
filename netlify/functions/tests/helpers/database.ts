@@ -1,4 +1,4 @@
-import { DB } from "../../../../lib/types/generated/db";
+import { type DB } from "../../../../lib/types/generated/db";
 import { pool } from "../../utils/database";
 
 /**

@@ -3,9 +3,9 @@ import { computed } from "vue";
 
 import { isDefined } from "../../../../lib/checks/checks.js";
 import { WorkType } from "../../../../lib/types/generated/db";
-import { DetailedReviewListItem } from "../../../../lib/types/lists";
+import { type DetailedReviewListItem } from "../../../../lib/types/lists";
 import { createHistogramData } from "../scoring";
-import type { WorkStatsBase, WorkStatsData, HistogramData } from "../types";
+import { type HistogramData, type WorkStatsBase, type WorkStatsData } from "../types";
 import { isScoredUnit } from "@/common/clubType";
 import { asTv } from "@/common/clubType/tv/data";
 import { asBook, isMovieData } from "@/common/workDisplay";
@@ -76,7 +76,7 @@ const WORK_STATS_BUILDERS: Record<
   }),
   [WorkType.movie]: (base, review) => {
     // Movie stats read external metadata; skip works without it.
-    const externalData = review.externalData;
+    const { externalData } = review;
     if (!isMovieData(externalData)) return null;
     return {
       ...base,

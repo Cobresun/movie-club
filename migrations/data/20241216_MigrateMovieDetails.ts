@@ -1,9 +1,58 @@
 import { isDefined } from "../../lib/checks/checks.js";
 import { WorkType } from "../../lib/types/generated/db.js";
+import { type ExternalWorkData } from "../../lib/types/lists.js";
+import { type TMDBMovieData } from "../../lib/types/movie.js";
 import { db } from "../../netlify/functions/utils/database";
 import { getDetailedWorks } from "../../netlify/functions/utils/tmdb";
 
 const BATCH_SIZE = 50; // Using the same batch size as getDetailedWorks
+
+type MovieWithDetails = MovieWork & ExternalWorkData<TMDBMovieData>;
+
+const insertGenres = async (movie: MovieWithDetails): Promise<void> => {
+  if (movie.externalData?.genres.length === 0) return;
+  await db
+    .insertInto("movie_genres")
+    .values(
+      movie.externalData?.genres.map((g) => ({
+        external_id: movie.externalId,
+        genre_name: g.name,
+      })) ?? [],
+    )
+    .onConflict((oc) => oc.columns(["external_id", "genre_name"]).doNothing())
+    .execute();
+};
+
+const insertProductionCompanies = async (movie: MovieWithDetails): Promise<void> => {
+  if (movie.externalData?.production_companies.length === 0) return;
+  await db
+    .insertInto("movie_production_companies")
+    .values(
+      movie.externalData?.production_companies.map((c) => ({
+        external_id: movie.externalId,
+        company_name: c.name,
+        logo_path: c.logo_path,
+        origin_country: c.origin_country,
+      })) ?? [],
+    )
+    .onConflict((oc) => oc.columns(["external_id", "company_name"]).doNothing())
+    .execute();
+};
+
+const insertProductionCountries = async (movie: MovieWithDetails): Promise<void> => {
+  if (movie.externalData?.production_countries.length === 0) return;
+  await db
+    .insertInto("movie_production_countries")
+    .values(
+      movie.externalData?.production_countries.map((c) => ({
+        external_id: movie.externalId,
+        country_code: c.iso_3166_1,
+        country_name: c.name,
+      })) ?? [],
+    )
+    .onConflict((oc) => oc.columns(["external_id", "country_code"]).doNothing())
+    .execute();
+};
 
 type Work = {
   id: string;
@@ -63,7 +112,7 @@ const populateMovieDetails = async () => {
       )
       .execute();
 
-    const existingIds = new Set(existingDetails.map((d) => d.external_id.toString()));
+    const existingIds = new Set(existingDetails.map((d) => d.external_id));
     const moviesToProcess = batch.filter((m) => !existingIds.has(m.externalId));
 
     if (moviesToProcess.length === 0) {
@@ -109,49 +158,13 @@ const populateMovieDetails = async () => {
             .execute();
 
           // Process genres
-          if (movie.externalData.genres.length > 0) {
-            await db
-              .insertInto("movie_genres")
-              .values(
-                movie.externalData.genres.map((g) => ({
-                  external_id: movie.externalId,
-                  genre_name: g.name,
-                })),
-              )
-              .onConflict((oc) => oc.columns(["external_id", "genre_name"]).doNothing())
-              .execute();
-          }
+          await insertGenres(movie);
 
           // Process production companies
-          if (movie.externalData.production_companies.length > 0) {
-            await db
-              .insertInto("movie_production_companies")
-              .values(
-                movie.externalData.production_companies.map((c) => ({
-                  external_id: movie.externalId,
-                  company_name: c.name,
-                  logo_path: c.logo_path,
-                  origin_country: c.origin_country,
-                })),
-              )
-              .onConflict((oc) => oc.columns(["external_id", "company_name"]).doNothing())
-              .execute();
-          }
+          await insertProductionCompanies(movie);
 
           // Process production countries
-          if (movie.externalData.production_countries.length > 0) {
-            await db
-              .insertInto("movie_production_countries")
-              .values(
-                movie.externalData.production_countries.map((c) => ({
-                  external_id: movie.externalId,
-                  country_code: c.iso_3166_1,
-                  country_name: c.name,
-                })),
-              )
-              .onConflict((oc) => oc.columns(["external_id", "country_code"]).doNothing())
-              .execute();
-          }
+          await insertProductionCountries(movie);
 
           processed++;
           console.log(`Successfully processed: ${movie.title}`);
@@ -162,7 +175,9 @@ const populateMovieDetails = async () => {
       }
 
       // Add a small delay between batches to avoid rate limiting
-      await new Promise((resolve) => setTimeout(resolve, 250));
+      await new Promise((resolve) => {
+        setTimeout(resolve, 250);
+      });
     } catch (error) {
       console.error(`Error processing batch:`, error);
       errors += moviesToProcess.length;
@@ -178,5 +193,7 @@ const populateMovieDetails = async () => {
 };
 
 populateMovieDetails()
-  .then(() => console.log("Movie details population completed"))
+  .then(() => {
+    console.log("Movie details population completed");
+  })
   .catch(console.error);

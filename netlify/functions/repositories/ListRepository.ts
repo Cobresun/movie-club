@@ -128,7 +128,7 @@ class ListRepository {
   // (movie_details, book_details, …) is layered on by the caller via the
   // appropriate MediaProvider.getExternalData, keyed by external_id.
   async getListItems(listId: string) {
-    return await db
+    return db
       .selectFrom("work_list_item")
       .where("work_list_item.list_id", "=", listId)
       .innerJoin("work", "work.id", "work_list_item.work_id")
@@ -149,7 +149,7 @@ class ListRepository {
   // source list, in one query. Ordered by list position then item position so
   // the response groups naturally by list.
   async getAllUserListItems(clubId: string) {
-    return await db
+    return db
       .selectFrom("work_list_item")
       .innerJoin("work_list", "work_list.id", "work_list_item.list_id")
       .innerJoin("work", "work.id", "work_list_item.work_id")
@@ -331,7 +331,7 @@ class ListRepository {
         .where("system_type", "is", null)
         .execute();
 
-      const ownedIds = new Set(owned.map((r) => String(r.id)));
+      const ownedIds = new Set(owned.map((r) => r.id));
       const valid = listIds.filter((id) => ownedIds.has(id));
 
       // Payload must include every user list — partial reorders are rejected.
@@ -400,7 +400,7 @@ class ListRepository {
   // Media-agnostic work columns for a single work. Callers enrich with
   // MediaProvider.getExternalData using the returned `type` + `external_id`.
   async getWorkDetails(workId: string) {
-    return await db
+    return db
       .selectFrom("work")
       .where("work.id", "=", workId)
       .select(["work.id", "work.title", "work.type", "work.image_url", "work.external_id"])

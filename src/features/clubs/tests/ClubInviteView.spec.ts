@@ -71,7 +71,7 @@ describe("ClubInviteView", () => {
     await user.click(screen.getByRole("button", { name: /Share link/i }));
 
     expect(share).toHaveBeenCalledWith({
-      url: expect.stringContaining("/join-club/invite-abc123"),
+      url: `${window.location.origin}/join-club/invite-abc123`,
       title: "Join Test club",
       text: "Join my club and score the movies we watch together.",
     });

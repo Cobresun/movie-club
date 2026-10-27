@@ -1,7 +1,7 @@
 import { isDefined } from "../../../lib/checks/checks.js";
-import type { Member } from "../../../lib/types/club";
+import { type Member } from "../../../lib/types/club";
 import { computeTasteSimilarity } from "../statistics/statsComputers";
-import type { WorkStatsData } from "../statistics/types";
+import { type WorkStatsData } from "../statistics/types";
 
 /**
  * The calendar year a work belongs to in Wrapped: the UTC year it was added to

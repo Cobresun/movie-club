@@ -11,16 +11,16 @@ const CRAWLER_USER_AGENTS = [
 ];
 
 interface ReviewData {
-  reviews: Array<{
+  reviews: {
     user_id: string;
     score: number;
     created_date: string;
-  }>;
-  members: Array<{
+  }[];
+  members: {
     id: string;
     name: string;
     image: string;
-  }>;
+  }[];
   work: {
     id: string;
     title: string;
@@ -125,7 +125,7 @@ export default async (request: Request) => {
 
   // Extract clubSlug and workId from URL
   const url = new URL(request.url);
-  const pathMatch = url.pathname.match(/\/share\/club\/([^/]+)\/review\/(\d+)/);
+  const pathMatch = /\/share\/club\/([^/]+)\/review\/(\d+)/.exec(url.pathname);
 
   if (!pathMatch) {
     return; // Not a matching route

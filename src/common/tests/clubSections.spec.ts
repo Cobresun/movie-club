@@ -27,7 +27,7 @@ describe("clubSections", () => {
   });
 
   it("is the four tabs of the bar, in order", () => {
-    expect(CLUB_SECTIONS.map((candidate) => candidate.name)).toEqual([
+    expect(CLUB_SECTIONS.map((candidate) => candidate.name)).toStrictEqual([
       "Reviews",
       "Watchlists",
       "Statistics",

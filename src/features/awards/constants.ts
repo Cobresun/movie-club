@@ -1,4 +1,4 @@
-import { Component, defineAsyncComponent } from "vue";
+import { type Component, defineAsyncComponent } from "vue";
 
 import { NOMINATIONS_PER_AWARD } from "../../../lib/awards";
 import { AwardsStep } from "../../../lib/types/awards";

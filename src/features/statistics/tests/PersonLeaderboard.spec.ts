@@ -1,7 +1,7 @@
 import { screen } from "@testing-library/vue";
 
 import PersonLeaderboard from "../components/PersonLeaderboard.vue";
-import type { PersonStats } from "../statsComputers";
+import { type PersonStats } from "../statsComputers";
 import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
 import { render } from "@/tests/utils";
 

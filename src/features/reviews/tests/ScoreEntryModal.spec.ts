@@ -1,9 +1,8 @@
 import { screen, waitFor } from "@testing-library/vue";
 import { http, HttpResponse } from "msw";
-import { vi } from "vitest";
 
 import { WorkType } from "../../../../lib/types/generated/db";
-import { DetailedReviewListItem } from "../../../../lib/types/lists";
+import { type DetailedReviewListItem } from "../../../../lib/types/lists";
 import ScoreEntryModal from "../components/ScoreEntryModal.vue";
 import { ScoreAssistKey } from "../scoreAssist";
 import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
@@ -41,7 +40,7 @@ function withAssist(isEligible: boolean) {
   return {
     global: {
       provide: {
-        [ScoreAssistKey]: { isEligible: () => isEligible, open: vi.fn() },
+        [ScoreAssistKey]: { isEligible: () => isEligible, open: vi.fn<() => void>() },
       },
     },
   };
@@ -68,7 +67,9 @@ describe("ScoreEntryModal", () => {
     await user.type(screen.getByRole("spinbutton", { name: "Score" }), "8.5");
     await user.click(screen.getByRole("button", { name: "Save score" }));
 
-    await waitFor(() => expect(posted).toEqual({ workId: "target", score: 8.5 }));
+    await waitFor(() => {
+      expect(posted).toStrictEqual({ workId: "target", score: 8.5 });
+    });
     expect(rendered.emitted().close).toHaveLength(1);
   });
 
@@ -91,10 +92,10 @@ describe("ScoreEntryModal", () => {
     const { user, pinia } = rendered;
     logIn(pinia);
 
-    await user.click(await screen.findByRole("button", { name: /Compare to decide/ }));
+    await user.click(await screen.findByRole("button", { name: /Compare to decide/u }));
 
     // The dial gave way to the comparison flow inside the same overlay.
-    expect(await screen.findByText("Which movie did you like more?")).toBeInTheDocument();
+    await expect(screen.findByText("Which movie did you like more?")).resolves.toBeInTheDocument();
     expect(screen.queryByRole("spinbutton")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Save score" })).not.toBeInTheDocument();
 
@@ -102,12 +103,14 @@ describe("ScoreEntryModal", () => {
     // suggestion (the first pivot's score, 5); the modal stays open and
     // nothing is saved until the user says so.
     await user.click(screen.getByRole("button", { name: "Too close to call" }));
-    expect(await screen.findByRole("spinbutton", { name: "Score" })).toHaveValue(5);
+    await expect(screen.findByRole("spinbutton", { name: "Score" })).resolves.toHaveValue(5);
     expect(posted).toBeUndefined();
     expect(rendered.emitted().close).toBeUndefined();
 
     await user.click(screen.getByRole("button", { name: "Save score" }));
-    await waitFor(() => expect(posted).toEqual({ workId: "target", score: 5 }));
+    await waitFor(() => {
+      expect(posted).toStrictEqual({ workId: "target", score: 5 });
+    });
     expect(rendered.emitted().close).toHaveLength(1);
   });
 });

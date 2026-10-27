@@ -9,7 +9,6 @@
  * module reset is needed).
  */
 import { HttpResponse, http, type JsonBodyType } from "msw";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 
 import { geminiJsonResponse } from "../../tests/fixtures/external";
@@ -67,7 +66,7 @@ describe("generateJson", () => {
   it("returns the parsed payload from a well-formed Gemini response", async () => {
     const result = await callGenerateJson();
 
-    expect(result.questions).toEqual(GEMINI_QUESTIONS);
+    expect(result.questions).toStrictEqual(GEMINI_QUESTIONS);
   });
 
   it("accepts an empty collection when the caller's schema allows it", async () => {
@@ -75,7 +74,7 @@ describe("generateJson", () => {
 
     const result = await callGenerateJson();
 
-    expect(result.questions).toEqual([]);
+    expect(result.questions).toStrictEqual([]);
   });
 
   it("throws when GEMINI_API_KEY is not set", async () => {
@@ -114,7 +113,7 @@ describe("generateJson", () => {
 
     const result = await callGenerateJson();
 
-    expect(result.questions).toEqual(GEMINI_QUESTIONS);
+    expect(result.questions).toStrictEqual(GEMINI_QUESTIONS);
   });
 
   it("gives up with Google's reason when Gemini stays overloaded", async () => {
@@ -142,6 +141,6 @@ describe("generateJson", () => {
   it("propagates transport failures", async () => {
     server.use(http.post(GEMINI_URL, () => HttpResponse.error()));
 
-    await expect(callGenerateJson()).rejects.toThrow();
+    await expect(callGenerateJson()).rejects.toThrow("Network error");
   });
 });

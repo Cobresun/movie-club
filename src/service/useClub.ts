@@ -1,22 +1,22 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
-import type { UseQueryReturnType } from "@tanstack/vue-query";
+import { type UseQueryReturnType } from "@tanstack/vue-query";
 import axios from "axios";
 import { computed, unref } from "vue";
-import type { MaybeRef } from "vue";
+import { type MaybeRef } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 import { hasValue, isDefined } from "../../lib/checks/checks.js";
 import {
-  ClubInviteDetails,
-  ClubPreview,
-  ClubSettings,
-  ClubSettingsUpdate,
-  ClubSlugResponse,
-  CreatedClubResponse,
-  InviteTokenResponse,
-  Member,
+  type ClubInviteDetails,
+  type ClubPreview,
+  type ClubSettings,
+  type ClubSettingsUpdate,
+  type ClubSlugResponse,
+  type CreatedClubResponse,
+  type InviteTokenResponse,
+  type Member,
 } from "../../lib/types/club";
-import { ClubType } from "../../lib/types/generated/db";
+import { type ClubType } from "../../lib/types/generated/db";
 import { clearLastClubSlug, getLastClubSlug } from "../common/composables/useLastClubSlug";
 import { reviewsListKey } from "./useList";
 import { useUserClubs } from "./useUser";
@@ -30,7 +30,7 @@ const fetchClub = async (clubSlug: string) =>
 export function useClub(clubSlug: string) {
   return useQuery<ClubPreview>({
     queryKey: ["club", clubSlug],
-    queryFn: async () => await fetchClub(clubSlug),
+    queryFn: async () => fetchClub(clubSlug),
   });
 }
 

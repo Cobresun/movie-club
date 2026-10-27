@@ -26,7 +26,7 @@
 </template>
 
 <script setup lang="ts">
-import type { ClosestMatch } from "../../wrapped";
+import { type ClosestMatch } from "../../wrapped";
 import { firstName } from "@/common/memberName";
 
 defineProps<{ matches: ClosestMatch[] }>();

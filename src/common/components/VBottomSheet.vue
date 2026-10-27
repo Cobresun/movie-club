@@ -55,26 +55,23 @@ import { useKeyboardInset } from "../composables/useKeyboardInset.js";
 import { type ZIndex, lowerZIndex, zIndexClass } from "../zIndex.js";
 import VBackdrop from "./VBackdrop.vue";
 
-const props = withDefaults(
-  defineProps<{
-    contentClass?: string;
-    zIndex?: ZIndex;
-    transparentHandle?: boolean;
-  }>(),
-  {
-    contentClass: "px-4 pb-8",
-    zIndex: "50",
-    transparentHandle: false,
-  },
-);
+const {
+  contentClass = "px-4 pb-8",
+  zIndex = "50",
+  transparentHandle = false,
+} = defineProps<{
+  contentClass?: string;
+  zIndex?: ZIndex;
+  transparentHandle?: boolean;
+}>();
 
 const emit = defineEmits<{
   (e: "close"): void;
 }>();
 
-const backdropZIndex = computed(() => lowerZIndex(props.zIndex));
+const backdropZIndex = computed(() => lowerZIndex(zIndex));
 
-const contentZIndexClass = computed(() => zIndexClass(props.zIndex));
+const contentZIndexClass = computed(() => zIndexClass(zIndex));
 
 const sheetRef = ref<HTMLElement>();
 const handleRef = ref<HTMLElement>();

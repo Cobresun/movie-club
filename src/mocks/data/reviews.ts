@@ -1,5 +1,5 @@
 import { WorkType } from "../../../lib/types/generated/db";
-import { DetailedReviewListItem } from "../../../lib/types/lists";
+import { type DetailedReviewListItem } from "../../../lib/types/lists";
 
 const reviews: DetailedReviewListItem[] = [
   {

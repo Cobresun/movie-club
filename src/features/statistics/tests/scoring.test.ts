@@ -4,7 +4,7 @@ import { createHistogramData } from "../scoring";
 
 describe("createHistogramData", () => {
   it("returns empty array for empty scores", () => {
-    expect(createHistogramData([])).toEqual([]);
+    expect(createHistogramData([])).toStrictEqual([]);
   });
 
   it("creates 11 bins (0-10)", () => {

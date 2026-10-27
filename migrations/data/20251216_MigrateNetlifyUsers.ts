@@ -2,29 +2,32 @@ import * as crypto from "crypto";
 import * as fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import { z } from "zod";
 
 import { hasValue } from "../../lib/checks/checks.js";
 import { db } from "../../netlify/functions/utils/database";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const currentFilename = fileURLToPath(import.meta.url);
+const currentDirname = path.dirname(currentFilename);
 
-interface NetlifyUser {
-  id: string;
-  email: string;
-  encrypted_password: string;
-  confirmed_at?: string;
-  confirmation_sent_at?: string;
-  app_metadata: {
-    provider: string;
-  };
-  user_metadata: {
-    full_name?: string;
-    avatar_url?: string;
-  };
-  created_at: string;
-  updated_at: string;
-}
+const netlifyUserSchema = z.object({
+  id: z.string().default(""),
+  email: z.string().optional(),
+  encrypted_password: z.string().default(""),
+  confirmed_at: z.string().optional(),
+  confirmation_sent_at: z.string().optional(),
+  app_metadata: z.object({ provider: z.string().default("email") }).default({}),
+  user_metadata: z
+    .object({
+      full_name: z.string().optional(),
+      avatar_url: z.string().optional(),
+    })
+    .default({}),
+  created_at: z.string().default(new Date(0).toISOString()),
+  updated_at: z.string().default(new Date().toISOString()),
+});
+
+type NetlifyUser = z.infer<typeof netlifyUserSchema>;
 
 interface MigrationStats {
   total: number;
@@ -34,7 +37,7 @@ interface MigrationStats {
   accountsCreated: number;
   unconfirmed: number;
   errors: number;
-  errorDetails: Array<{ email: string; error: string }>;
+  errorDetails: { email: string; error: string }[];
 }
 
 /**
@@ -54,7 +57,7 @@ function generateRandomPasswordHash(): string {
 async function migrateUser(netlifyUser: NetlifyUser, stats: MigrationStats): Promise<void> {
   const email = netlifyUser.email?.trim();
 
-  if (!email) {
+  if (!hasValue(email)) {
     stats.errors++;
     stats.errorDetails.push({
       email: "MISSING_EMAIL",
@@ -113,7 +116,7 @@ async function migrateUser(netlifyUser: NetlifyUser, stats: MigrationStats): Pro
         console.log(`⏭️  Skipped (no changes needed): ${email}`);
       }
 
-      userId = existingUser.id.toString();
+      userId = existingUser.id;
     } else {
       // Create new user
       const result = await db
@@ -130,7 +133,7 @@ async function migrateUser(netlifyUser: NetlifyUser, stats: MigrationStats): Pro
         .returning("id")
         .executeTakeFirstOrThrow();
 
-      userId = result.id.toString();
+      userId = result.id;
       stats.created++;
       console.log(`✨ Created new user: ${email} (${fullName})`);
     }
@@ -187,6 +190,10 @@ async function migrateUser(netlifyUser: NetlifyUser, stats: MigrationStats): Pro
   }
 }
 
+function parseNetlifyUsers(raw: string): NetlifyUser[] {
+  return netlifyUserSchema.array().parse(JSON.parse(raw));
+}
+
 /**
  * Main migration function
  */
@@ -194,14 +201,14 @@ async function migrateNetlifyUsers() {
   console.log("🚀 Starting Netlify Identity → Better Auth migration\n");
 
   // Read users.json file
-  const usersPath = path.join(__dirname, "..", "users.json");
+  const usersPath = path.join(currentDirname, "..", "users.json");
 
   if (!fs.existsSync(usersPath)) {
     console.error(`❌ Error: users.json not found at ${usersPath}`);
     process.exit(1);
   }
 
-  const usersData = JSON.parse(fs.readFileSync(usersPath, "utf-8")) as NetlifyUser[];
+  const usersData = parseNetlifyUsers(fs.readFileSync(usersPath, "utf-8"));
 
   const stats: MigrationStats = {
     total: usersData.length,
@@ -222,7 +229,7 @@ async function migrateNetlifyUsers() {
   }
 
   // Print summary
-  console.log("\n" + "=".repeat(50));
+  console.log(`\n${"=".repeat(50)}`);
   console.log("📈 MIGRATION SUMMARY");
   console.log("=".repeat(50));
   console.log(`Total users in JSON:       ${stats.total}`);

@@ -1,7 +1,7 @@
-import { computed, MaybeRefOrGetter, toValue } from "vue";
+import { computed, type MaybeRefOrGetter, toValue } from "vue";
 
 import { ClubType } from "../../../../lib/types/generated/db";
-import { buildCandidatePool, ScoreAssistTarget } from "./scoreAssistLogic";
+import { buildCandidatePool, type ScoreAssistTarget } from "./scoreAssistLogic";
 import { useClub, useClubSlug } from "@/service/useClub";
 import { useMemberScores } from "@/service/useUser";
 

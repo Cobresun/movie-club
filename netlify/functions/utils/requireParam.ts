@@ -1,9 +1,9 @@
-import { HandlerResponse } from "@netlify/functions";
+import { type HandlerResponse } from "@netlify/functions";
 
 import { hasValue } from "../../../lib/checks/checks.js";
 import { badRequest } from "./responses";
-import { RouterResponse } from "./router";
-import { StringRecord } from "./types";
+import { type RouterResponse } from "./router";
+import { type StringRecord } from "./types";
 
 /**
  * path-parser resolves an unmatched or empty path segment to `undefined` in
@@ -12,9 +12,9 @@ import { StringRecord } from "./types";
  * check. Centralizes the hasValue-guard-and-400 that was hand-rolled per
  * param per route, with one consistent message.
  */
-export function requireParam<K extends string>(
+export function requireParam(
   params: StringRecord,
-  name: K,
+  name: string,
   res: (data: HandlerResponse) => RouterResponse,
 ): string | RouterResponse {
   const value = params[name];

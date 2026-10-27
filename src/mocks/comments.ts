@@ -1,6 +1,12 @@
 import { http, HttpResponse } from "msw";
+import { z } from "zod";
 
-import { WorkCommentDto } from "../../lib/types/lists";
+import { type WorkCommentDto } from "../../lib/types/lists";
+
+const commentPayloadSchema = z.object({
+  content: z.string(),
+  spoiler: z.boolean(),
+});
 
 export const comment = (overrides: Partial<WorkCommentDto> & { id: string }): WorkCommentDto => ({
   workId: "work-1",
@@ -24,12 +30,12 @@ export const commentsApi = (initial: WorkCommentDto[] = []) => {
   return [
     http.get(base, () => HttpResponse.json<WorkCommentDto[]>(thread)),
     http.post(base, async ({ request }) => {
-      const { content, spoiler } = (await request.json()) as { content: string; spoiler: boolean };
+      const { content, spoiler } = commentPayloadSchema.parse(await request.json());
       thread = [...thread, comment({ id: `c-${thread.length + 1}`, content, spoiler })];
       return HttpResponse.json({});
     }),
     http.put(`${base}/:commentId`, async ({ request, params }) => {
-      const { content, spoiler } = (await request.json()) as { content: string; spoiler: boolean };
+      const { content, spoiler } = commentPayloadSchema.parse(await request.json());
       thread = thread.map((existing) =>
         existing.id === params.commentId ? { ...existing, content, spoiler } : existing,
       );

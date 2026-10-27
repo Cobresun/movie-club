@@ -1,7 +1,40 @@
 import { http, HttpResponse } from "msw";
+import { z } from "zod";
 
-import { Award, AwardNomination, AwardsStep, ClubAwards } from "../../lib/types/awards";
+import {
+  type Award,
+  type AwardNomination,
+  AwardsStep,
+  type ClubAwards,
+} from "../../lib/types/awards";
 import memberData from "@/mocks/data/member.json";
+
+const createYearPayloadSchema = z.object({
+  year: z.number(),
+  categories: z.array(z.string()),
+});
+
+const stepPayloadSchema = z.object({
+  step: z.nativeEnum(AwardsStep),
+});
+
+const titlePayloadSchema = z.object({
+  title: z.string(),
+});
+
+const categoriesPayloadSchema = z.object({
+  categories: z.array(z.string()),
+});
+
+const nominationPayloadSchema = z.object({
+  awardTitle: z.string(),
+  movieId: z.number(),
+});
+
+const rankingPayloadSchema = z.object({
+  awardTitle: z.string(),
+  movies: z.array(z.number()),
+});
 
 export const awardNominee = (
   movieId: number,
@@ -56,10 +89,7 @@ export const awardsApi = (initial: ClubAwards[] = [], reviewedYears: number[] = 
     http.get(`${base}/years`, () => HttpResponse.json([...years.keys()].sort((a, b) => b - a))),
     http.get(`${base}/available-years`, () => HttpResponse.json(available())),
     http.post(base, async ({ request }) => {
-      const { year, categories } = (await request.json()) as {
-        year: number;
-        categories: string[];
-      };
+      const { year, categories } = createYearPayloadSchema.parse(await request.json());
       if (!available().includes(year)) return badRequest(`${year} isn't available`);
       years.set(
         year,
@@ -78,20 +108,20 @@ export const awardsApi = (initial: ClubAwards[] = [], reviewedYears: number[] = 
     http.put(`${base}/:year/step`, async ({ request, params }) => {
       const entry = yearOf(params);
       if (!entry) return new HttpResponse(null, { status: 404 });
-      ({ step: entry.step } = (await request.json()) as { step: AwardsStep });
+      ({ step: entry.step } = stepPayloadSchema.parse(await request.json()));
       return ok();
     }),
     http.post(`${base}/:year/category`, async ({ request, params }) => {
       const entry = yearOf(params);
       if (!entry) return new HttpResponse(null, { status: 404 });
-      const { title } = (await request.json()) as { title: string };
+      const { title } = titlePayloadSchema.parse(await request.json());
       entry.awards.push({ title, nominations: [] });
       return ok();
     }),
     http.put(`${base}/:year/category`, async ({ request, params }) => {
       const entry = yearOf(params);
       if (!entry) return new HttpResponse(null, { status: 404 });
-      const { categories } = (await request.json()) as { categories: string[] };
+      const { categories } = categoriesPayloadSchema.parse(await request.json());
       entry.awards = categories.flatMap((title) => awardOf(entry, title) ?? []);
       return ok();
     }),
@@ -105,10 +135,7 @@ export const awardsApi = (initial: ClubAwards[] = [], reviewedYears: number[] = 
     http.post(`${base}/:year/nomination`, async ({ request, params }) => {
       const entry = yearOf(params);
       if (!entry) return new HttpResponse(null, { status: 404 });
-      const { awardTitle, movieId } = (await request.json()) as {
-        awardTitle: string;
-        movieId: number;
-      };
+      const { awardTitle, movieId } = nominationPayloadSchema.parse(await request.json());
       const award = awardOf(entry, awardTitle);
       const existing = award?.nominations.find((nomination) => nomination.movieId === movieId);
       if (existing) existing.nominatedBy.push(memberData.id);
@@ -136,10 +163,7 @@ export const awardsApi = (initial: ClubAwards[] = [], reviewedYears: number[] = 
     http.post(`${base}/:year/ranking`, async ({ request, params }) => {
       const entry = yearOf(params);
       if (!entry) return new HttpResponse(null, { status: 404 });
-      const { awardTitle, movies } = (await request.json()) as {
-        awardTitle: string;
-        movies: number[];
-      };
+      const { awardTitle, movies } = rankingPayloadSchema.parse(await request.json());
       for (const nomination of awardOf(entry, awardTitle)?.nominations ?? []) {
         nomination.ranking[memberData.id] = movies.indexOf(nomination.movieId) + 1;
       }

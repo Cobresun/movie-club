@@ -40,7 +40,13 @@ import { computed } from "vue";
 import { hasElements } from "../../../lib/checks/checks.js";
 import { formatDate, formatRuntime } from "@/common/workDisplay";
 
-const props = defineProps<{
+const {
+  releaseDate = "",
+  runtime = 0,
+  genres = [],
+  directors = [],
+  voteAverage = 0,
+} = defineProps<{
   releaseDate?: string;
   runtime?: number;
   genres?: string[];
@@ -49,6 +55,6 @@ const props = defineProps<{
 }>();
 
 const roundedVote = computed(() =>
-  props.voteAverage === undefined ? undefined : Math.round(props.voteAverage * 10) / 10,
+  voteAverage === undefined ? undefined : Math.round(voteAverage * 10) / 10,
 );
 </script>
