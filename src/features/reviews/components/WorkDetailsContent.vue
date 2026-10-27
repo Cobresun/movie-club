@@ -13,7 +13,7 @@
     <WorkPosterHero
       :poster-url="posterUrl"
       :backdrop-path="movieData?.backdrop_path"
-      :title="movie.title"
+      :title="displayTitle"
       :year="displayYear"
       :is-desktop="isDesktop"
     >
@@ -132,7 +132,7 @@
       <WorkDescription :key="movie.id" :overview="overview" />
     </section>
 
-    <CastList v-if="movieData" :actors="castActors" class="mt-6" />
+    <CastList v-if="hasElements(castActors)" :actors="castActors" class="mt-6" />
 
     <!-- Details: factual metadata, external ratings and links -->
     <section v-if="hasDetails" class="mt-6">
@@ -147,6 +147,14 @@
           v-else-if="bookData"
           :first-publish-year="bookData.firstPublishYear"
           :subjects="bookData.subjects"
+        />
+        <TvMetadataGrid
+          v-else-if="tvData"
+          :air-date="tvData.airDate"
+          :is-episode="tvData.level === 'episode'"
+          :creators="tvData.creators"
+          :networks="tvData.networks"
+          :status="tvData.status"
         />
         <div
           v-if="isDefined(tmdbScore)"
@@ -267,7 +275,7 @@
 import { DateTime } from "luxon";
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 
-import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
+import { hasElements, hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import { Member } from "../../../../lib/types/club";
 import { ClubType } from "../../../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
@@ -283,8 +291,11 @@ import {
   workMetaLine,
   workNoun,
   workOverview,
+  workActors,
   workSubtitle,
+  workTitle,
 } from "@/common/clubType";
+import { asTv } from "@/common/clubType/tv/data";
 import BookMetadataGrid from "@/common/components/BookMetadataGrid.vue";
 import CastList from "@/common/components/CastList.vue";
 import CommentThread from "@/common/components/CommentThread.vue";
@@ -292,6 +303,7 @@ import DeleteConfirmationModal from "@/common/components/DeleteConfirmationModal
 import ExternalLink from "@/common/components/ExternalLink.vue";
 import MovieMetadataGrid from "@/common/components/MovieMetadataGrid.vue";
 import SectionHeader from "@/common/components/SectionHeader.vue";
+import TvMetadataGrid from "@/common/components/TvMetadataGrid.vue";
 import WatchProviders from "@/common/components/WatchProviders.vue";
 import WorkDescription from "@/common/components/WorkDescription.vue";
 import WorkPosterHero from "@/common/components/WorkPosterHero.vue";
@@ -318,6 +330,9 @@ const props = defineProps<{
   /** Set when the work is not on the reviews list yet, so has no id to score
    * against: the drawer previews it, and a score saves through this. */
   saveScore?: (score: number) => void;
+  /** What the scores section lists, when it is more than the work's own
+   * reviews — a TV show's, rolled up from its members' episodes. */
+  shownEntries?: ScoreEntry[];
 }>();
 
 const emit = defineEmits<{
@@ -423,6 +438,7 @@ const reviewFact = computed(() =>
 
 const movieData = computed(() => asMovie(props.movie.externalData));
 const bookData = computed(() => asBook(props.movie.externalData));
+const tvData = computed(() => asTv(props.movie.externalData));
 
 // The bulk reviews payload carries only summary metadata; the cast list is
 // fetched on demand when this drawer opens (cached per work for the session).
@@ -430,7 +446,7 @@ const { data: workDetails } = useWorkDetails(
   clubId,
   computed(() => props.movie.id),
 );
-const castActors = computed(() => asMovie(workDetails.value ?? undefined)?.actors);
+const castActors = computed(() => workActors(workDetails.value ?? undefined));
 // Drives book/movie wording in child components (e.g. the discussion-questions
 // "couldn't recognize this ___" message).
 const mediaNoun = computed(
@@ -440,6 +456,7 @@ const mediaNoun = computed(
 const posterUrl = computed(() => workPosterUrl(props.movie.externalData, props.movie.imageUrl));
 
 // Release year (movies) or first-published year (books), via the shared helper.
+const displayTitle = computed(() => workTitle(props.movie));
 const displayYear = computed(() => workSubtitle(props.movie.externalData));
 
 // "2h 35m · Adventure, Science Fiction" (movies) / "Frank Herbert · 412 pages"
@@ -459,7 +476,7 @@ const tmdbScore = computed(() =>
 // Movies always have external links (Rotten Tomatoes is a title search);
 // books only warrant the section when they have any facts to show.
 const hasDetails = computed(() => {
-  if (isDefined(movieData.value)) return true;
+  if (isDefined(movieData.value) || isDefined(tvData.value)) return true;
   const book = bookData.value;
   return isDefined(book) && (book.firstPublishYear !== undefined || book.subjects.length > 0);
 });
@@ -482,7 +499,9 @@ const rottenTomatoesUrl = computed(() => {
     : undefined;
 });
 
-const scoreEntries = computed(() => workScoreEntries(props.movie, props.members));
+const scoreEntries = computed(
+  () => props.shownEntries ?? workScoreEntries(props.movie, props.members),
+);
 
 // The current user's own review for this work, if any — prefills the panel and
 // tells it whether to create (POST) or update (PUT).

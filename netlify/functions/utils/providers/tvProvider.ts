@@ -79,7 +79,6 @@ function showQuery(showIds: string[]) {
       "tv_show_details.status",
       "tv_show_details.original_language",
       "tv_show_details.number_of_seasons",
-      "tv_show_details.number_of_episodes",
       "tv_show_details.tmdb_score",
       "genres_agg.genres",
       "creators_agg.creators",
@@ -99,7 +98,6 @@ interface ShowRow {
   status: string | null;
   original_language: string | null;
   number_of_seasons: string | null;
-  number_of_episodes: string | null;
   tmdb_score: string | null;
   genres: string[] | null;
   creators: string[] | null;
@@ -127,7 +125,7 @@ function showContext(row: ShowRow): ShowContext {
   };
 }
 
-/** The fields every level shares, so a season or episode still filters and
+/** The fields a show and its episodes share, so an episode still filters and
  * searches by the series it belongs to. */
 function seriesFields(context: ShowContext) {
   return {
@@ -154,7 +152,6 @@ function toShowSummary(context: ShowContext): TvDataSummary {
     status: row.status ?? undefined,
     originalLanguage: row.original_language ?? undefined,
     numberOfSeasons: numOrUndefined(row.number_of_seasons),
-    numberOfEpisodes: numOrUndefined(row.number_of_episodes),
     voteAverage: numOrUndefined(row.tmdb_score),
   };
 }

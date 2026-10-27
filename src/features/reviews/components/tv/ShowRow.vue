@@ -30,7 +30,11 @@
             type="button"
             class="line-clamp-2 text-left after:absolute after:inset-0 after:z-10 after:content-['']"
             :aria-expanded="open"
-            :aria-label="`${show.title}, ${rollupLabel(show.scores)}`"
+            :aria-label="
+              isScoreHidden
+                ? `${show.title}, scores hidden`
+                : `${show.title}, ${rollupLabel(show.scores)}`
+            "
             @click="emit('toggle')"
           >
             {{ show.title }}
@@ -105,8 +109,9 @@
           class="text-2xl font-bold leading-tight"
           :class="[
             isDefined(show.scores.average) ? 'text-primary' : 'text-gray-500',
-            revealed || !isDefined(show.scores.average) ? '' : 'blur filter',
+            isScoreHidden ? 'blur filter' : '',
           ]"
+          :aria-hidden="isScoreHidden"
         >
           {{ formatRollup(show.scores) }}
         </div>
@@ -155,8 +160,9 @@
         :members="members"
         :delete-review="deleteReview"
         :revealed-movie-ids="revealedMovieIds"
-        :has-rated="hasRated"
+        :has-rated="hasRatedShow"
         :current-user-id="currentUserId"
+        :shown-entries="entries"
         @toggle-reveal="emit('toggle-reveal', $event)"
         @close="detailsOpen = false"
       />
@@ -174,9 +180,9 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, useTemplateRef } from "vue";
 
-import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
-import { Member } from "../../../../lib/types/club";
-import { hasOwnScore, scoreEntries } from "../reviewScores";
+import { hasValue, isDefined } from "../../../../../lib/checks/checks.js";
+import { Member } from "../../../../../lib/types/club";
+import { hasOwnScore, scoreEntries } from "../../reviewScores";
 import {
   coverageLabel,
   coveragePercent,
@@ -184,12 +190,12 @@ import {
   formatRollup,
   rollupLabel,
   ShowNode,
-} from "../reviewTree";
-import ScoreChips from "./ScoreChips.vue";
-import ScoreEntryModal from "./ScoreEntryModal.vue";
+} from "../../reviewTree";
+import ScoreChips from "../ScoreChips.vue";
+import ScoreEntryModal from "../ScoreEntryModal.vue";
+import WorkDetailsDrawer from "../WorkDetailsDrawer.vue";
 import SeasonSection from "./SeasonSection.vue";
 import SeasonTabs from "./SeasonTabs.vue";
-import WorkDetailsDrawer from "./WorkDetailsDrawer.vue";
 import { useIsDesktop } from "@/common/composables/useIsDesktop";
 
 const props = defineProps<{
@@ -213,6 +219,13 @@ const isDesktop = useIsDesktop();
 
 const detailsOpen = ref(false);
 const rating = ref(false);
+
+defineExpose({
+  workId: computed(() => props.show.workId),
+  openDetails: () => {
+    detailsOpen.value = true;
+  },
+});
 
 /** The score the reader set on the show itself, not one averaged from their
  * episodes. */
@@ -245,4 +258,12 @@ const revealed = computed(
     hasOwnScore(props.show.scores, props.currentUserId) ||
     props.revealedMovieIds.has(props.show.workId),
 );
+const isScoreHidden = computed(() => !revealed.value && isDefined(props.show.scores.average));
+
+/** The drawer reveals the show on the same terms as its card: a score of the
+ * reader's anywhere in the show, not only one set on the show itself. */
+const hasRatedShow = (workId: string) =>
+  workId === props.show.workId
+    ? hasOwnScore(props.show.scores, props.currentUserId)
+    : props.hasRated(workId);
 </script>

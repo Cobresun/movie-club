@@ -2,11 +2,12 @@ import { Kysely } from "kysely";
 
 /**
  * TV metadata cache (TMDB), mirroring the `movie_details` family. Three levels
- * of detail, each keyed by the same address string its `work.external_id`
- * carries: a show is `"95396"`, a season `"95396:1"`, an episode `"95396:1:4"`.
- * That address is the whole hierarchy — there is no parent pointer on `work`,
- * and `show_external_id` here is what joins a season or episode back to its
- * show.
+ * of detail, each keyed by an address: a show is `"95396"`, a season
+ * `"95396:1"`, an episode `"95396:1:4"` — the show's and an episode's are the
+ * `work.external_id` of their works; a season is never a work. Everything the
+ * series shares (genres, creators, networks, cast) is stored once, against the
+ * show; a season or episode row holds only what is its own, and
+ * `show_external_id` joins it back to the show.
  *
  * The enum values these rows hang off land separately, in
  * `20260914_AddTvClubType` and `20260914_AddTvWorkType` (CockroachDB
@@ -89,7 +90,7 @@ export async function up(db: Kysely<unknown>) {
     .addColumn("poster_path", "varchar(255)")
     .addColumn("air_date", "timestamptz")
     // The number of episodes TMDB lists for the season — the denominator of
-    // every coverage count, and what a season-level score fills.
+    // every coverage count.
     .addColumn("episode_count", "int8", (col) => col.notNull().defaultTo(0))
     .addColumn("updated_date", "timestamptz", (col) => col.notNull().defaultTo("now()"))
     .execute();

@@ -10,7 +10,8 @@ import type {
 } from "./types";
 import { isDefined } from "@/../lib/checks/checks";
 import { ClubType, WorkType } from "@/../lib/types/generated/db";
-import { WorkDataSummary } from "@/../lib/types/lists";
+import { DetailedWorkData, WorkDataSummary } from "@/../lib/types/lists";
+import { CastMember } from "@/../lib/types/movie";
 
 export type * from "./types";
 
@@ -127,6 +128,16 @@ export function workMetaLine(data: WorkDataSummary | undefined): string | undefi
 /** The long-form blurb (TMDB overview / book description). */
 export function workOverview(data: WorkDataSummary | undefined): string | undefined {
   return workDisplay(data)?.overview(data);
+}
+
+/** The recurring cast from a work's full details, when its media has one. */
+export function workActors(details: DetailedWorkData | undefined): CastMember[] | undefined {
+  return workDisplay(details)?.actors?.(details);
+}
+
+/** The work's title where it stands alone, e.g. "Severance: Half Loop". */
+export function workTitle(work: { title: string; externalData?: WorkDataSummary }): string {
+  return workDisplay(work.externalData)?.title?.(work.externalData) ?? work.title;
 }
 
 /** What this one work is called, when its media has more than one level. */

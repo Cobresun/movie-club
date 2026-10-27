@@ -31,8 +31,8 @@
 <script setup lang="ts">
 import { useTemplateRef } from "vue";
 
-import { isDefined } from "../../../../lib/checks/checks.js";
-import { SeasonNode, seasonPanelId, seasonTabId } from "../reviewTree";
+import { isDefined } from "../../../../../lib/checks/checks.js";
+import { SeasonNode, seasonPanelId, seasonTabId } from "../../reviewTree";
 
 const props = defineProps<{
   showId: string;

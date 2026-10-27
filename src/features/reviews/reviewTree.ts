@@ -39,8 +39,8 @@ export interface ShowNode extends LevelScores {
   workId: string;
   review: DetailedReviewListItem;
   showId: string;
-  /** The show's own metadata, whose series fields a season or episode not yet
-   * on the reviews list borrows. */
+  /** The show's own metadata, whose series fields an episode nobody has
+   * scored yet borrows. */
   data: TvDataSummary;
   title: string;
   imageUrl?: string;
@@ -50,9 +50,6 @@ export interface ShowNode extends LevelScores {
   scoredCount: number;
   /** Most recent score anywhere in the show. */
   lastScoredAt?: string;
-  /** The date the show's card carries: when its latest season or episode
-   * joined the reviews list, or the show itself before any has. */
-  reviewedDate: string;
 }
 
 /**
@@ -104,10 +101,9 @@ function isScored(review: DetailedReviewListItem): boolean {
 }
 
 /**
- * Group a flat reviews list into shows, seasons and episodes. The hierarchy
- * comes from each work's own address, so a season needs no work of its own
- * until someone scores it: its row is built from the show's cached season
- * list and whichever of its episodes are on the list.
+ * Group a flat reviews list into shows, seasons and episodes. A season is
+ * never a work: its row is built from the show's cached season list and
+ * whichever of its episodes have been scored.
  *
  * Pending shows ({@link isPendingShow}) are left out: they have no seasons
  * to build a row from, so the list draws them as placeholders instead.
@@ -158,13 +154,11 @@ export function buildShowTree(reviews: DetailedReviewListItem[]): ShowNode[] {
       imageUrl: showReview.imageUrl,
       metaLine: showMetaLine(tv),
       seasons,
-      episodeCount:
-        tv.numberOfEpisodes ?? seasons.reduce((total, season) => total + season.episodeCount, 0),
+      // Summed from the seasons rather than read off the show: a season's count
+      // is refreshed whenever one of its episodes is scored, the show's is not.
+      episodeCount: seasons.reduce((total, season) => total + season.episodeCount, 0),
       scoredCount: allEpisodes.filter((episode) => episode.scored).length,
       lastScoredAt: latestScoreDate([showReview, ...reviewsUnder]),
-      reviewedDate: reviewsUnder
-        .map((review) => review.createdDate)
-        .reduce((a, b) => (a > b ? a : b), showReview.createdDate),
     });
   }
 

@@ -3,7 +3,7 @@ import { Component } from "vue";
 import { ClubType } from "../../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../../lib/types/lists";
 import GalleryView from "./components/GalleryView.vue";
-import ShowListView from "./components/ShowListView.vue";
+import ShowListView from "./components/tv/ShowListView.vue";
 import { wholeShows } from "./reviewTree";
 
 interface ReviewLayout {

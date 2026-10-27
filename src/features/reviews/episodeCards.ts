@@ -14,7 +14,6 @@ import { OPTIMISTIC_WORK_ID } from "@/service/useList";
 /** One episode in a season's list, scored or not. */
 export interface EpisodeCard {
   episodeNumber: number;
-  code: string;
   title: string;
   stillUrl?: string;
   /** When it airs or aired, as TMDB's ISO date. */
@@ -60,7 +59,6 @@ export function buildEpisodeCards(
     const node = listedByNumber.get(episode.episode_number);
     cards.set(episode.episode_number, {
       episodeNumber: episode.episode_number,
-      code: episodeCode(seasonNumber, episode.episode_number),
       title: node?.title ?? episode.name ?? episodeCode(seasonNumber, episode.episode_number),
       stillUrl:
         node?.review.imageUrl ??
@@ -76,7 +74,6 @@ export function buildEpisodeCards(
     if (cards.has(node.episodeNumber)) continue;
     cards.set(node.episodeNumber, {
       episodeNumber: node.episodeNumber,
-      code: episodeCode(seasonNumber, node.episodeNumber),
       title: node.title,
       stillUrl: node.review.imageUrl,
       airDate: node.airDate,

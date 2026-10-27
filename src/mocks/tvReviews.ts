@@ -28,8 +28,8 @@ const scoreBodySchema = z.object({
  *
  * `seasons` stands in for both TMDB's season endpoint and the server's cached
  * copy of it: which episodes exist, and so what a score on a show can name.
- * `catalog` holds the shows the club can add, as the server returns them once
- * added.
+ * `catalog` holds the shows the club can add, or move onto the reviews list
+ * from another list, as the server returns them once there.
  */
 export const tvReviewsApi = ({
   reviews,
@@ -92,6 +92,12 @@ export const tvReviewsApi = ({
     http.post("/api/club/:id/list/:listId/items", async ({ request }) => {
       const { externalId } = addBodySchema.parse(await request.json());
       const show = catalog.find((item) => item.externalId === externalId);
+      if (show === undefined) return new HttpResponse(null, { status: 400 });
+      list = [{ ...show, createdDate: new Date().toISOString() }, ...list];
+      return new HttpResponse(null, { status: 200 });
+    }),
+    http.post("/api/club/:id/list/:listId/items/:workId/move", ({ params }) => {
+      const show = catalog.find((item) => item.id === params.workId);
       if (show === undefined) return new HttpResponse(null, { status: 400 });
       list = [{ ...show, createdDate: new Date().toISOString() }, ...list];
       return new HttpResponse(null, { status: 200 });

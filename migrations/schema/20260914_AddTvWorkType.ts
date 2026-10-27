@@ -2,7 +2,7 @@ import { Kysely, sql } from "kysely";
 
 /**
  * Adds the `tv` value to the existing `work_type` enum so a `work` row can
- * represent a television show, season or episode.
+ * represent a television show or one of its episodes.
  *
  * This is intentionally the ONLY statement in the migration: CockroachDB does
  * not allow `ALTER TYPE ... ADD VALUE` to be combined with other schema

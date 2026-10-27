@@ -42,8 +42,8 @@
 <script setup lang="ts">
 import { computed } from "vue";
 
-import { hasValue } from "../../../../lib/checks/checks.js";
-import { DetailedReviewListItem } from "../../../../lib/types/lists";
+import { hasValue } from "../../../../../lib/checks/checks.js";
+import { DetailedReviewListItem } from "../../../../../lib/types/lists";
 import SkeletonBlock from "@/common/components/SkeletonBlock.vue";
 import { OPTIMISTIC_WORK_ID } from "@/service/useList";
 

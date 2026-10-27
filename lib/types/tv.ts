@@ -2,11 +2,12 @@ import { hasValue } from "../checks/checks.js";
 import { CastMember } from "./movie";
 
 /**
- * A TV address, and the whole of its hierarchy. `work.external_id` carries it
- * as a string — `"95396"` is the show, `"95396:1:4"` the fourth episode of its
- * first season — so an episode always knows what it belongs to without a
- * parent pointer that could disagree with TMDB. A season is never a work:
- * `"95396:1"` only keys the cached season listing.
+ * A TV address: where something sits in a show, as TMDB numbers it.
+ * `work.external_id` carries it as a string — `"95396"` is the show,
+ * `"95396:1:4"` the fourth episode of its first season — and it is what keys
+ * the cached TMDB metadata. (Which work an episode belongs to is
+ * `work.parent_work_id`.) A season is never a work: `"95396:1"` only keys the
+ * cached season listing.
  *
  * The show and each episode are scored on their own, and a score at one level
  * is never written to another. A season is never scored: it is each member's
@@ -117,8 +118,6 @@ export interface TvDataSummary {
   status?: string;
   originalLanguage?: string;
   numberOfSeasons?: number;
-  /** Episodes across the whole show. */
-  numberOfEpisodes?: number;
   /** Show level only: every season TMDB lists, so a club can open a season it
    * has not scored yet without an episode of it existing as a work. */
   seasons?: TvSeasonSummary[];

@@ -1,5 +1,6 @@
 import { ClubType, WorkType } from "@/../lib/types/generated/db";
-import { DetailedWorkListItem, WorkDataSummary } from "@/../lib/types/lists";
+import { DetailedWorkData, DetailedWorkListItem, WorkDataSummary } from "@/../lib/types/lists";
+import { CastMember } from "@/../lib/types/movie";
 import type { RangePreset } from "@/common/components/filterTypes";
 
 /**
@@ -147,6 +148,13 @@ export interface WorkDisplay {
   readonly metaLine: (data: WorkDataSummary | undefined) => string | undefined;
   /** Long-form blurb: the TMDB overview / the book description. */
   readonly overview: (data: WorkDataSummary | undefined) => string | undefined;
+  /** The recurring cast from a work's full details (fetched per work), for
+   * media that have one. */
+  readonly actors?: (details: DetailedWorkData | undefined) => CastMember[] | undefined;
+  /** The work's title where it stands alone (a details drawer, Score Assist,
+   * a shared page), for media whose own titles need context there. Others
+   * show the work's title as stored. */
+  readonly title?: (data: WorkDataSummary | undefined) => string | undefined;
   /** What one work is called ("Rate this show"), for media whose works come
    * at more than one level. Others fall back to the club type's `noun`. */
   readonly noun?: (data: WorkDataSummary | undefined) => string | undefined;

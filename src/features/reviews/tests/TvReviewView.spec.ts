@@ -77,7 +77,6 @@ const show: DetailedReviewListItem = {
     level: "show",
     title: "Severance",
     numberOfSeasons: 2,
-    numberOfEpisodes: 19,
     seasons: [
       { seasonNumber: 1, name: "Season 1", episodeCount: 9 },
       { seasonNumber: 2, name: "Season 2", episodeCount: 10 },
@@ -147,7 +146,6 @@ const theBear: DetailedReviewListItem = {
     level: "show",
     title: "The Bear",
     numberOfSeasons: 1,
-    numberOfEpisodes: 8,
     seasons: [{ seasonNumber: 1, name: "Season 1", episodeCount: 8 }],
   },
 };
@@ -221,6 +219,49 @@ describe("TV reviews", () => {
     expect(screen.getByText("2/19 episodes")).toBeInTheDocument();
   });
 
+  it("opens the newest show on a first visit, before anyone has scored", async () => {
+    await renderSeverance([show]);
+
+    expect(screen.getByRole("tab", { name: /^Season 1/ })).toHaveAttribute("aria-selected", "true");
+  });
+
+  it("keeps the show's score from a screen reader until you have scored", async () => {
+    await renderSeverance([
+      show,
+      episode(1, "Good News About Hell", [{ memberId: "1", score: 6 }]),
+    ]);
+
+    expect(screen.getByRole("button", { name: "Severance, scores hidden" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /average/ })).not.toBeInTheDocument();
+  });
+
+  it("lists the show's scores in its details, averaged where a member scored only episodes", async () => {
+    const { user } = await renderSeverance();
+
+    await user.click(screen.getByRole("button", { name: "Severance details" }));
+
+    expect(await screen.findByRole("button", { name: "Rate this show" })).toBeInTheDocument();
+    expect(screen.queryByText(/No scores yet/)).not.toBeInTheDocument();
+  });
+
+  it("shows a show's creators, networks and recurring cast in its details", async () => {
+    const { user } = await renderSeverance();
+    server.use(
+      http.get("/api/club/:id/work/:workId/details", () =>
+        HttpResponse.json({
+          ...show.externalData,
+          actors: [{ name: "Adam Scott", character: "Mark Scout", profilePath: null }],
+        }),
+      ),
+    );
+
+    await user.click(screen.getByRole("button", { name: "Severance details" }));
+
+    expect(await screen.findByText("Adam Scott")).toBeInTheDocument();
+    expect(screen.getByText("Dan Erickson")).toBeInTheDocument();
+    expect(screen.getByText("Apple TV+")).toBeInTheDocument();
+  });
+
   it("opens on the season the club is in, listing every episode scored or not", async () => {
     await renderSeverance();
 
@@ -270,7 +311,7 @@ describe("TV reviews", () => {
     await user.click(screen.getByRole("button", { name: "Good News About Hell" }));
 
     expect(
-      await screen.findByRole("heading", { name: /^Good News About Hell/, level: 2 }),
+      await screen.findByRole("heading", { name: /^Severance: Good News About Hell/, level: 2 }),
     ).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Reveal club scores" }));
 
@@ -312,7 +353,7 @@ describe("TV reviews", () => {
     await user.click(screen.getByRole("button", { name: "Half Loop" }));
 
     expect(
-      await screen.findByRole("heading", { name: /^Half Loop/, level: 2 }),
+      await screen.findByRole("heading", { name: /^Severance: Half Loop/, level: 2 }),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /edit score/i })).toBeInTheDocument();
   });
@@ -323,7 +364,7 @@ describe("TV reviews", () => {
     await user.click(screen.getByRole("button", { name: "In Perpetuity" }));
 
     expect(
-      await screen.findByRole("heading", { name: /^In Perpetuity/, level: 2 }),
+      await screen.findByRole("heading", { name: /^Severance: In Perpetuity/, level: 2 }),
     ).toBeInTheDocument();
     expect(screen.getByText(/field trip to the Perpetuity Wing/)).toBeInTheDocument();
     expect(screen.getByText(/No scores yet/)).toBeInTheDocument();
@@ -488,5 +529,21 @@ describe("TV reviews", () => {
 
     expect(await screen.findByText(/No Reviews Yet/)).toBeInTheDocument();
     expect(screen.getByText(/episode collection/)).toBeInTheDocument();
+  });
+
+  it("moves the next show into reviews and opens it ready to score", async () => {
+    useTvClub();
+    server.use(
+      http.get("/api/club/:id/nextWork", () => HttpResponse.json({ workId: theBear.id })),
+      http.get("/api/club/:id/list/all-items", () =>
+        HttpResponse.json([{ ...theBear, sourceListId: "1", sourceListTitle: "Watch List" }]),
+      ),
+    );
+    const { user, pinia } = render(ReviewView, { props: { clubSlug: CLUB_SLUG } });
+    logIn(pinia);
+
+    await user.click(await screen.findByRole("button", { name: "Review The Bear" }));
+
+    expect(await screen.findByRole("button", { name: "Rate this show" })).toBeInTheDocument();
   });
 });

@@ -18,6 +18,7 @@
             isScoreBlurred(entry, currentUserId, revealed) ? 'blur filter' : 'blur-none',
           ]"
           :style="{ transitionDelay: `${index * 80}ms` }"
+          :aria-hidden="isScoreBlurred(entry, currentUserId, revealed) || undefined"
           ><template v-if="entry.averaged"
             ><mdicon
               name="approximately-equal"

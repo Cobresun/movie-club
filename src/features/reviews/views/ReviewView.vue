@@ -46,7 +46,7 @@
       </div>
       <component
         :is="reviewLayout.component"
-        v-else
+        v-else-if="isDefined(reviewLayout)"
         ref="gallery"
         :reviews="shownReviews"
         :delete-review="deleteReview"
@@ -87,7 +87,11 @@ const { data: club } = useClub(clubSlug);
 const { isLoading: loadingReviews, data: reviews } = useReviewsList(clubSlug);
 const { isLoading: loadingMembers, data: membersResponse } = useMembers(clubSlug);
 
-const loading = computed(() => loadingReviews.value || loadingMembers.value);
+// The layout depends on the club's type, so nothing renders until the club has
+// loaded rather than guessing one.
+const loading = computed(
+  () => loadingReviews.value || loadingMembers.value || !isDefined(club.value),
+);
 
 const modalOpen = ref(false);
 const openPrompt = () => {
@@ -101,9 +105,11 @@ const closePrompt = () => {
 const filteredReviews = ref<DetailedReviewListItem[]>([]);
 const hasActiveFilters = ref(false);
 
-const reviewLayout = computed(() => REVIEW_LAYOUTS[club.value?.type ?? ClubType.movie]);
-const shownReviews = computed(() =>
-  reviewLayout.value.select(reviews.value ?? [], filteredReviews.value),
+const reviewLayout = computed(() =>
+  isDefined(club.value) ? REVIEW_LAYOUTS[club.value.type] : undefined,
+);
+const shownReviews = computed(
+  () => reviewLayout.value?.select(reviews.value ?? [], filteredReviews.value) ?? [],
 );
 
 const hasSearchTerm = computed(() => hasActiveFilters.value);
@@ -122,12 +128,12 @@ const members = computed(() => membersResponse.value ?? []);
 
 // Starting the up-next review lands straight in its details drawer, where the
 // score entry lives. The gallery may only just have mounted (the first review
-// replaces the empty state), so wait a tick for its ref. Only the flat gallery
-// layout exposes `openReview`.
-const gallery = useTemplateRef<{ openReview?: (workId: string) => void }>("gallery");
+// replaces the empty state), so wait a tick for its ref. Every layout exposes
+// `openReview`.
+const gallery = useTemplateRef<{ openReview: (workId: string) => void }>("gallery");
 const openStartedReview = async (workId: string) => {
   await nextTick();
-  gallery.value?.openReview?.(workId);
+  gallery.value?.openReview(workId);
 };
 
 const { data: reviewsListId } = useReviewsListId(clubSlug);

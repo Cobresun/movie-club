@@ -115,12 +115,17 @@
 import { DateTime } from "luxon";
 import { computed, ref } from "vue";
 
-import { isDefined } from "../../../../lib/checks/checks.js";
-import { Member } from "../../../../lib/types/club";
-import { DetailedReviewListItem, ReviewScores } from "../../../../lib/types/lists";
-import { formatTvAddress } from "../../../../lib/types/tv";
-import { buildEpisodeCards, episodePreview, ScoreTarget, withMemberScore } from "../episodeCards";
-import { hasOwnScore, isOthersScore, scoreEntries } from "../reviewScores";
+import { isDefined } from "../../../../../lib/checks/checks.js";
+import { Member } from "../../../../../lib/types/club";
+import { DetailedReviewListItem, ReviewScores } from "../../../../../lib/types/lists";
+import { formatTvAddress } from "../../../../../lib/types/tv";
+import {
+  buildEpisodeCards,
+  episodePreview,
+  ScoreTarget,
+  withMemberScore,
+} from "../../episodeCards";
+import { hasOwnScore, isOthersScore, scoreEntries } from "../../reviewScores";
 import {
   coverageLabel,
   coveragePercent,
@@ -130,10 +135,10 @@ import {
   seasonRevealKey,
   seasonTabId,
   ShowNode,
-} from "../reviewTree";
+} from "../../reviewTree";
+import ScoreChips from "../ScoreChips.vue";
+import WorkDetailsDrawer from "../WorkDetailsDrawer.vue";
 import EpisodeRow from "./EpisodeRow.vue";
-import ScoreChips from "./ScoreChips.vue";
-import WorkDetailsDrawer from "./WorkDetailsDrawer.vue";
 import { useClubSlug } from "@/service/useClub";
 import { useSubmitScore } from "@/service/useReviews";
 import { useTvSeason } from "@/service/useTMDB";

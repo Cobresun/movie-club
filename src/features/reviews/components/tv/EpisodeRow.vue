@@ -99,11 +99,11 @@
 import { DateTime } from "luxon";
 import { computed, ref } from "vue";
 
-import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
-import { EpisodeCard, ScoreTarget } from "../episodeCards";
-import { ScoreEntry } from "../reviewScores";
-import ScoreChips from "./ScoreChips.vue";
-import ScoreEntryModal from "./ScoreEntryModal.vue";
+import { hasValue, isDefined } from "../../../../../lib/checks/checks.js";
+import { EpisodeCard, ScoreTarget } from "../../episodeCards";
+import { ScoreEntry } from "../../reviewScores";
+import ScoreChips from "../ScoreChips.vue";
+import ScoreEntryModal from "../ScoreEntryModal.vue";
 import { useIsDesktop } from "@/common/composables/useIsDesktop";
 
 const props = defineProps<{
