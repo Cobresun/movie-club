@@ -16,7 +16,7 @@ router.get("/:clubSlug", validClubSlug, async ({ clubSlug }, res) =>
 );
 ```
 
-Routers are mounted from `netlify/functions/club/index.ts` and `member.ts` — read those for the current route surface rather than relying on a list here.
+Routers are mounted from `netlify/functions/club/index.ts` and `member.ts`, with a few single-purpose functions alongside them (`admin.ts`, `daily-game.ts`, `og-image.ts`) — read those for the current route surface rather than relying on a list here.
 
 ## Request pipeline
 
@@ -66,7 +66,7 @@ The year moves forward through `AwardsStep` one phase at a time and never back �
 
 Repository classes in `netlify/functions/repositories/` own all queries — one per aggregate, named `<Thing>Repository`. Kysely with generated types throughout.
 
-Stale-metadata refresh is deliberately _not_ a repository: each `MediaProvider` in `netlify/functions/utils/providers/` implements `refreshStaleDetails(limit)` for its own source (TMDB, Google Books), and `scheduled-work-refresh.ts` sweeps them. `scheduled-db-cleanup.ts` reaps stale preview databases, and `scheduled-metrics-snapshot.ts` records the observability rollups `MetricsRepository` reads.
+Stale-metadata refresh is deliberately _not_ a repository: each `MediaProvider` in `netlify/functions/utils/providers/` implements `refreshStaleDetails(limit)` for its own source (TMDB, Google Books), and `scheduled-work-refresh.ts` sweeps them. `scheduled-daily-game-catalog.ts` tops up the daily game's pool with TMDB's most-rated movies every hour (it adds rows to `movie_details` that no club references, so those are refreshed too), `scheduled-db-cleanup.ts` reaps stale preview databases, and `scheduled-metrics-snapshot.ts` records the observability rollups `MetricsRepository` reads.
 
 Deploy-time behavior lives in Netlify plugins: `netlify/plugins/preview-database/` (per-PR database selection, plus the shared-`dev` migration sync on production deploys) and `netlify/plugins/auth-config/`.
 
