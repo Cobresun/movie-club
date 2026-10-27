@@ -1,4 +1,4 @@
-import  { type ColumnType } from "kysely";
+import type { ColumnType } from "kysely";
 
 export enum ClubType {
   book = "book",
