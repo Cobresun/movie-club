@@ -49,6 +49,7 @@ function episode(
 ): DetailedReviewListItem {
   return {
     id: `e${episodeNumber}`,
+    parentId: "show-1",
     title,
     type: WorkType.tv,
     createdDate: "2026-03-04T00:00:00.000Z",
@@ -356,6 +357,27 @@ describe("TV reviews", () => {
       await screen.findByRole("heading", { name: /^Severance: Half Loop/, level: 2 }),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /edit score/i })).toBeInTheDocument();
+  });
+
+  it("dates a scored episode by its first score, with nothing to change", async () => {
+    const { user } = await renderSeverance();
+
+    await user.click(screen.getByRole("button", { name: "Half Loop" }));
+
+    expect(await screen.findByText("Reviewed Mar 4, 2026")).toBeInTheDocument();
+    await user.click(screen.getByText("Reviewed Mar 4, 2026"));
+    expect(screen.queryByRole("button", { name: "Save" })).not.toBeInTheDocument();
+  });
+
+  it("deletes an episode's review from its details, keeping the show", async () => {
+    const { user } = await renderSeverance();
+
+    await user.click(screen.getByRole("button", { name: "Half Loop" }));
+    await user.click(await screen.findByRole("button", { name: "Delete review" }));
+    await user.click(screen.getByRole("button", { name: "Delete" }));
+
+    expect(await screen.findByText("1/19 episodes")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /^Severance/, level: 2 })).toBeInTheDocument();
   });
 
   it("opens an episode nobody has scored onto its details", async () => {

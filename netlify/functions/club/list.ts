@@ -197,6 +197,12 @@ router.delete(
     if (isRouterResponse(workId)) return workId;
     const exists = await ListRepository.isItemInList(listId, workId);
     if (!exists) {
+      // A child work (a TV episode) is on the list only through its parent:
+      // taking it off the list deletes it, and with it every score it has.
+      if (await ListRepository.isOnList(listId, workId)) {
+        await WorkRepository.delete(clubId, workId);
+        return res(ok());
+      }
       return res(badRequest("This movie does not exist in the list"));
     }
     await ListRepository.deleteItemFromList(listId, workId);
@@ -355,6 +361,7 @@ async function getReviewList(clubId: string): Promise<DetailedReviewListItem[]> 
 
       return {
         id: key,
+        parentId: review.parent_work_id ?? undefined,
         title: review.title,
         createdDate: reviewedDate(items).toISOString(),
         type: review.type,

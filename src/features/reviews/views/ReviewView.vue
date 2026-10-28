@@ -11,7 +11,11 @@
       @close="scoreAssistWorkId = undefined"
     />
     <page-header :has-back="false" page-name="Reviews" />
-    <ReviewsSkeleton v-if="loading" />
+    <template v-if="loading">
+      <!-- Until the club arrives its type is unknown, so the skeleton is the
+           app's default, the one the app shell paints for a club page too. -->
+      <component :is="reviewLayout?.skeleton ?? ReviewsSkeleton" />
+    </template>
     <div v-else>
       <UpNextCard :club-slug="clubSlug" @started="openStartedReview" />
       <!-- Search Filter Bar -->

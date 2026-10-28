@@ -7,7 +7,7 @@ import {
   SharedReviewResponse,
   WorkCommentDto,
 } from "../../../lib/types/lists";
-import { CastMember } from "../../../lib/types/movie";
+import { CastMember } from "../../../lib/types/tmdb";
 import ListRepository from "../repositories/ListRepository";
 import ReviewRepository from "../repositories/ReviewRepository";
 import SettingsRepository from "../repositories/SettingsRepository";

@@ -3,11 +3,15 @@ import { Component } from "vue";
 import { ClubType } from "../../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../../lib/types/lists";
 import GalleryView from "./components/GalleryView.vue";
+import ReviewsSkeleton from "./components/ReviewsSkeleton.vue";
+import ShowListSkeleton from "./components/tv/ShowListSkeleton.vue";
 import ShowListView from "./components/tv/ShowListView.vue";
 import { wholeShows } from "./reviewTree";
 
 interface ReviewLayout {
   component: Component;
+  /** What the page shows while the reviews load, shaped like the layout. */
+  skeleton: Component;
   /** The reviews the layout renders, given every review and the ones the
    * search and filters matched. */
   select: (
@@ -16,7 +20,11 @@ interface ReviewLayout {
   ) => DetailedReviewListItem[];
 }
 
-const gallery: ReviewLayout = { component: GalleryView, select: (_all, matched) => matched };
+const gallery: ReviewLayout = {
+  component: GalleryView,
+  skeleton: ReviewsSkeleton,
+  select: (_all, matched) => matched,
+};
 
 /**
  * How a club type lays its reviews out. Movies and books are a flat grid of
@@ -32,5 +40,5 @@ const gallery: ReviewLayout = { component: GalleryView, select: (_all, matched) 
 export const REVIEW_LAYOUTS: Record<ClubType, ReviewLayout> = {
   [ClubType.movie]: gallery,
   [ClubType.book]: gallery,
-  [ClubType.tv]: { component: ShowListView, select: wholeShows },
+  [ClubType.tv]: { component: ShowListView, skeleton: ShowListSkeleton, select: wholeShows },
 };

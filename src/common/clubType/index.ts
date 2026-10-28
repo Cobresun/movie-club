@@ -11,7 +11,7 @@ import type {
 import { isDefined } from "@/../lib/checks/checks";
 import { ClubType, WorkType } from "@/../lib/types/generated/db";
 import { DetailedWorkData, WorkDataSummary } from "@/../lib/types/lists";
-import { CastMember } from "@/../lib/types/movie";
+import { CastMember } from "@/../lib/types/tmdb";
 
 export type * from "./types";
 

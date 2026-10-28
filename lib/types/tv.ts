@@ -1,5 +1,5 @@
 import { hasValue } from "../checks/checks.js";
-import { CastMember } from "./movie";
+import { CastMember } from "./tmdb";
 
 /**
  * A TV address: where something sits in a show, as TMDB numbers it.

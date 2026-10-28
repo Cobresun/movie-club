@@ -1,6 +1,6 @@
 import { ClubType, WorkType } from "@/../lib/types/generated/db";
 import { DetailedWorkData, DetailedWorkListItem, WorkDataSummary } from "@/../lib/types/lists";
-import { CastMember } from "@/../lib/types/movie";
+import { CastMember } from "@/../lib/types/tmdb";
 import type { RangePreset } from "@/common/components/filterTypes";
 
 /**

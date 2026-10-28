@@ -19,7 +19,10 @@
     >
       <template v-if="hasValue(metaLine)" #meta>{{ metaLine }}</template>
       <template v-if="isListed" #date>
-        <template v-if="!isEditingDate">
+        <template v-if="hasValue(movie.parentId)">
+          Reviewed {{ formatDate(movie.createdDate) }}
+        </template>
+        <template v-else-if="!isEditingDate">
           <span
             class="inline-flex cursor-pointer items-center gap-1 hover:text-primary hover:underline"
             @click="openDateEditor"

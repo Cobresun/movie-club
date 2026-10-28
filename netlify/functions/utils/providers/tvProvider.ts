@@ -3,8 +3,8 @@ import { isAxiosError } from "axios";
 import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import { WorkType } from "../../../../lib/types/generated/db";
 import { DetailedWorkData, ListInsertDto, WorkDataSummary } from "../../../../lib/types/lists";
-import { CastMember } from "../../../../lib/types/movie";
 import { SimilarWork } from "../../../../lib/types/recommendations";
+import { CastMember } from "../../../../lib/types/tmdb";
 import {
   DetailedTvData,
   episodeCode,

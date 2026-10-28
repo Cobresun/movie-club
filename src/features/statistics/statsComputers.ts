@@ -1,6 +1,6 @@
 import { hasValue, isDefined, hasElements } from "../../../lib/checks/checks.js";
 import { Member } from "../../../lib/types/club.js";
-import { CastMember } from "../../../lib/types/movie.js";
+import { CastMember } from "../../../lib/types/tmdb.js";
 import type {
   BookData,
   ClubConsensusEntry,

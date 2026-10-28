@@ -1,8 +1,8 @@
 import { isDefined } from "../../../../lib/checks/checks.js";
 import { WorkType } from "../../../../lib/types/generated/db";
 import { DetailedWorkData, ListInsertDto, WorkDataSummary } from "../../../../lib/types/lists";
-import { CastMember } from "../../../../lib/types/movie";
 import { SimilarWork } from "../../../../lib/types/recommendations";
+import { CastMember } from "../../../../lib/types/tmdb";
 
 /** Coerce a nullable Int8/decimal column (string | null) to number | undefined. */
 export function numOrUndefined(value: string | null): number | undefined {

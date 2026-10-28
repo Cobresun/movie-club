@@ -17,7 +17,8 @@ import {
   adminDashboardSchema,
   SnapshotHistoryPoint,
 } from "../../lib/types/metrics";
-import { CastMember, TMDBWatchProvidersResponse } from "../../lib/types/movie";
+import { TMDBWatchProvidersResponse } from "../../lib/types/movie";
+import { CastMember } from "../../lib/types/tmdb";
 import adminMetrics from "./data/adminMetrics.json";
 import club from "./data/club";
 import googleBooksSearch from "./data/googleBooksSearch.json";

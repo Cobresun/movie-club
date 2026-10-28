@@ -1,3 +1,5 @@
+import { CastMember } from "./tmdb";
+
 export interface BaseMovie {
   movieId: number;
 }
@@ -63,12 +65,6 @@ export interface TMDBMovieData {
   video: boolean;
   vote_average: string;
   vote_count: number;
-}
-
-export interface CastMember {
-  name: string;
-  character: string | null;
-  profilePath: string | null;
 }
 
 /**

@@ -10,7 +10,7 @@ import axios, { AxiosError, AxiosInstance } from "axios";
 import { hasValue, isDefined } from "../../lib/checks/checks.js";
 import { Member } from "../../lib/types/club";
 import { DetailedReviewListItem, ReviewScores, WorkCommentDto } from "../../lib/types/lists";
-import { CastMember } from "../../lib/types/movie";
+import { CastMember } from "../../lib/types/tmdb";
 import { reviewsListKey } from "./useList";
 import { memberScoresKey, useUser } from "./useUser";
 import { useAuthStore } from "@/stores/auth";

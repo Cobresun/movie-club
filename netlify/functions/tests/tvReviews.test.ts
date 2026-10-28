@@ -376,6 +376,27 @@ describe("removing a TV show", () => {
     expect(await reviewsOf(club)).toEqual([]);
   });
 
+  it("removes one scored episode, leaving the show and its other episodes", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub(alice, { type: ClubType.tv });
+    const show = await seedShow(club, alice);
+    await score(club, alice, { workId: show.id, score: 7 });
+    await score(club, alice, { workId: show.id, score: 8, childExternalId: EPISODE_1 });
+    await score(club, alice, { workId: show.id, score: 9, childExternalId: `${SHOW_ID}:1:2` });
+    const episode = (await reviewsOf(club)).find((review) => review.externalId === EPISODE_1);
+
+    const res = await api.delete(
+      `/api/club/${club.slug}/list/${club.reviewsListId}/items/${episode?.id ?? ""}`,
+      { as: alice },
+    );
+
+    expect(res.statusCode).toBe(200);
+    expect(new Set((await reviewsOf(club)).map((review) => review.externalId))).toEqual(
+      new Set([SHOW_ID, `${SHOW_ID}:1:2`]),
+    );
+    expect(await scoreOf(club, SHOW_ID, alice)).toBe(7);
+  });
+
   it("keeps another show's works when one is removed", async () => {
     const alice = await signIn("alice");
     const club = await createClub(alice, { type: ClubType.tv });

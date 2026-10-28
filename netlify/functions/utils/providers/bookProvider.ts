@@ -10,8 +10,8 @@ import {
 import { DetailedBookData } from "../../../../lib/types/book";
 import { WorkType } from "../../../../lib/types/generated/db";
 import { DetailedWorkData, ListInsertDto, WorkDataSummary } from "../../../../lib/types/lists";
-import { CastMember } from "../../../../lib/types/movie";
 import { SimilarWork } from "../../../../lib/types/recommendations";
+import { CastMember } from "../../../../lib/types/tmdb";
 import { db } from "../database";
 import { getGoogleBooksVolume } from "./googleBooks";
 import { MediaProvider, numOrUndefined, RefreshResult } from "./types";

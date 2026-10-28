@@ -44,12 +44,13 @@ export const tvReviewsApi = ({
 }) => {
   let list = [...reviews];
 
-  /** The work at `externalId`, created from `data` if nobody has scored it. */
-  const workAt = (externalId: string, data: TvDataSummary) => {
+  /** The child of `parentId` at `externalId`, created from `data` if nobody has scored it. */
+  const workAt = (parentId: string, externalId: string, data: TvDataSummary) => {
     const existing = list.find((item) => item.externalId === externalId);
     if (existing !== undefined) return existing;
     const created: DetailedReviewListItem = {
       id: `work-${externalId}`,
+      parentId,
       type: WorkType.tv,
       title: data.title,
       createdDate: new Date().toISOString(),
@@ -78,7 +79,7 @@ export const tvReviewsApi = ({
     );
     if (episode === undefined) return undefined;
     const externalId = formatTvAddress({ showId: show.showId, seasonNumber, episodeNumber });
-    return workAt(externalId, {
+    return workAt(work.id, externalId, {
       ...series,
       level: "episode",
       seasonNumber,
@@ -94,6 +95,10 @@ export const tvReviewsApi = ({
       const show = catalog.find((item) => item.externalId === externalId);
       if (show === undefined) return new HttpResponse(null, { status: 400 });
       list = [{ ...show, createdDate: new Date().toISOString() }, ...list];
+      return new HttpResponse(null, { status: 200 });
+    }),
+    http.delete("/api/club/:id/list/:listId/items/:workId", ({ params }) => {
+      list = list.filter((item) => item.id !== params.workId && item.parentId !== params.workId);
       return new HttpResponse(null, { status: 200 });
     }),
     http.post("/api/club/:id/list/:listId/items/:workId/move", ({ params }) => {

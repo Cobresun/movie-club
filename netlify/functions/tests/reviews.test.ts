@@ -16,7 +16,7 @@ import {
   SharedReviewResponse,
   WorkCommentDto,
 } from "../../../lib/types/lists";
-import { CastMember } from "../../../lib/types/movie";
+import { CastMember } from "../../../lib/types/tmdb";
 import { handler } from "../club/index";
 import { geminiJsonResponse } from "./fixtures/external";
 import { signIn, TestSession } from "./helpers/auth";

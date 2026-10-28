@@ -48,6 +48,10 @@ export interface WorkListItem {
 
 export interface ReviewListItem extends WorkListItem {
   scores: ReviewScores;
+  /** The work this one is a child of (a TV episode's show). A child is on the
+   * reviews list only through its parent, and its reviewed date is when it
+   * was first scored rather than a list item's added date. */
+  parentId?: string;
 }
 
 /**
