@@ -53,10 +53,8 @@ export function filterUndefinedProperties(
 ): Record<string, string> {
   const result: Record<string, string> = {};
   for (const key in obj) {
-    if (!Object.hasOwn(obj, key)) continue;
-    const value = obj[key];
-    if (isDefined(value)) {
-      result[key] = value;
+    if (isDefined(obj[key])) {
+      result[key] = obj[key];
     }
   }
   return result;

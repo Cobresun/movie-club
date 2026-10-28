@@ -42,11 +42,7 @@ function isCrawler(userAgent: string): boolean {
   return CRAWLER_USER_AGENTS.some((bot) => ua.includes(bot.toLowerCase()));
 }
 
-function generateOGImageUrl(
-  origin: string,
-  clubSlug: string,
-  workId: string,
-): string {
+function generateOGImageUrl(origin: string, clubSlug: string, workId: string): string {
   // Use the OG image generation function
   // This will redirect to TMDB poster or generate SVG
   return `${origin}/api/og-image?clubSlug=${clubSlug}&workId=${workId}`;
@@ -115,12 +111,27 @@ function escapeHtml(text: string): string {
   return text.replace(/[&<>"']/g, (m) => map[m]);
 }
 
-export default async (request: Request) => {
+function isReviewData(value: unknown): value is ReviewData {
+  if (typeof value !== "object" || value === null) return false;
+  if (!("reviews" in value) || !Array.isArray(value.reviews)) return false;
+  if (
+    !("work" in value) ||
+    typeof value.work !== "object" ||
+    value.work === null ||
+    !("title" in value.work) ||
+    typeof value.work.title !== "string"
+  ) {
+    return false;
+  }
+  return "clubName" in value && typeof value.clubName === "string";
+}
+
+export default async (request: Request): Promise<Response | undefined> => {
   const userAgent = request.headers.get("user-agent") ?? "";
 
   // Only intercept for crawlers/bots
   if (!isCrawler(userAgent)) {
-    return; // Pass through to normal SPA
+    return undefined; // Pass through to normal SPA
   }
 
   // Extract clubSlug and workId from URL
@@ -128,7 +139,7 @@ export default async (request: Request) => {
   const pathMatch = /\/share\/club\/([^/]+)\/review\/(\d+)/.exec(url.pathname);
 
   if (!pathMatch) {
-    return; // Not a matching route
+    return undefined; // Not a matching route
   }
 
   const [, clubSlug, workId] = pathMatch;
@@ -141,22 +152,19 @@ export default async (request: Request) => {
     const response = await fetch(apiUrl);
 
     if (!response.ok) {
-      console.error(
-        `[Edge Function] API returned ${response.status}: ${response.statusText}`,
-      );
-      return; // Pass through on error
+      console.error(`[Edge Function] API returned ${response.status}: ${response.statusText}`);
+      return undefined; // Pass through on error
     }
 
-    const data = (await response.json()) as ReviewData;
+    const data: unknown = await response.json();
+    if (!isReviewData(data)) {
+      return undefined;
+    }
 
     // Calculate average score
-    const scores = data.reviews
-      .map((r) => Number(r.score))
-      .filter((s) => !isNaN(s) && s > 0);
+    const scores = data.reviews.map((r) => r.score).filter((s) => !isNaN(s) && s > 0);
     const avgScore =
-      scores.length > 0
-        ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1)
-        : "N/A";
+      scores.length > 0 ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1) : "N/A";
 
     // Generate OG image URL
     const ogImageUrl = generateOGImageUrl(url.origin, clubSlug, workId);
@@ -176,9 +184,7 @@ export default async (request: Request) => {
       siteName: "Movie Club",
     });
 
-    console.log(
-      `[Edge Function] Serving OG meta tags for crawler: ${userAgent.substring(0, 50)}`,
-    );
+    console.log(`[Edge Function] Serving OG meta tags for crawler: ${userAgent.substring(0, 50)}`);
 
     return new Response(html, {
       headers: {
@@ -188,6 +194,6 @@ export default async (request: Request) => {
     });
   } catch (error) {
     console.error("[Edge Function] Error:", error);
-    return; // Pass through on error
+    return undefined; // Pass through on error
   }
 };

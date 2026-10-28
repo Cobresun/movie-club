@@ -1,58 +1,9 @@
 import { isDefined } from "../../lib/checks/checks.js";
 import { WorkType } from "../../lib/types/generated/db.js";
-import { type ExternalWorkData } from "../../lib/types/lists.js";
-import { type TMDBMovieData } from "../../lib/types/movie.js";
 import { db } from "../../netlify/functions/utils/database";
 import { getDetailedWorks } from "../../netlify/functions/utils/tmdb";
 
 const BATCH_SIZE = 50; // Using the same batch size as getDetailedWorks
-
-type MovieWithDetails = MovieWork & ExternalWorkData<TMDBMovieData>;
-
-const insertGenres = async (movie: MovieWithDetails): Promise<void> => {
-  if (movie.externalData?.genres.length === 0) return;
-  await db
-    .insertInto("movie_genres")
-    .values(
-      movie.externalData?.genres.map((g) => ({
-        external_id: movie.externalId,
-        genre_name: g.name,
-      })) ?? [],
-    )
-    .onConflict((oc) => oc.columns(["external_id", "genre_name"]).doNothing())
-    .execute();
-};
-
-const insertProductionCompanies = async (movie: MovieWithDetails): Promise<void> => {
-  if (movie.externalData?.production_companies.length === 0) return;
-  await db
-    .insertInto("movie_production_companies")
-    .values(
-      movie.externalData?.production_companies.map((c) => ({
-        external_id: movie.externalId,
-        company_name: c.name,
-        logo_path: c.logo_path,
-        origin_country: c.origin_country,
-      })) ?? [],
-    )
-    .onConflict((oc) => oc.columns(["external_id", "company_name"]).doNothing())
-    .execute();
-};
-
-const insertProductionCountries = async (movie: MovieWithDetails): Promise<void> => {
-  if (movie.externalData?.production_countries.length === 0) return;
-  await db
-    .insertInto("movie_production_countries")
-    .values(
-      movie.externalData?.production_countries.map((c) => ({
-        external_id: movie.externalId,
-        country_code: c.iso_3166_1,
-        country_name: c.name,
-      })) ?? [],
-    )
-    .onConflict((oc) => oc.columns(["external_id", "country_code"]).doNothing())
-    .execute();
-};
 
 type Work = {
   id: string;
@@ -158,13 +109,48 @@ const populateMovieDetails = async () => {
             .execute();
 
           // Process genres
-          await insertGenres(movie);
+          if (movie.externalData?.genres.length > 0) {
+            await db
+              .insertInto("movie_genres")
+              .values(
+                movie.externalData?.genres.map((g) => ({
+                  external_id: movie.externalId,
+                  genre_name: g.name,
+                })) ?? [],
+              )
+              .onConflict((oc) => oc.columns(["external_id", "genre_name"]).doNothing())
+              .execute();
+          }
 
           // Process production companies
-          await insertProductionCompanies(movie);
+          if (movie.externalData?.production_companies.length > 0) {
+            await db
+              .insertInto("movie_production_companies")
+              .values(
+                movie.externalData?.production_companies.map((c) => ({
+                  external_id: movie.externalId,
+                  company_name: c.name,
+                  logo_path: c.logo_path,
+                  origin_country: c.origin_country,
+                })) ?? [],
+              )
+              .onConflict((oc) => oc.columns(["external_id", "company_name"]).doNothing())
+              .execute();
+          }
 
           // Process production countries
-          await insertProductionCountries(movie);
+          if (movie.externalData?.production_countries.length === 0) return;
+          await db
+            .insertInto("movie_production_countries")
+            .values(
+              movie.externalData?.production_countries.map((c) => ({
+                external_id: movie.externalId,
+                country_code: c.iso_3166_1,
+                country_name: c.name,
+              })) ?? [],
+            )
+            .onConflict((oc) => oc.columns(["external_id", "country_code"]).doNothing())
+            .execute();
 
           processed++;
           console.log(`Successfully processed: ${movie.title}`);
