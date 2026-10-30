@@ -63,6 +63,8 @@ npm run db:cleanup arbitrary_lists
 
 **Deploy previews migrate forward from a fresh copy, never up → down → up.** A preview exists to look like production, and production only ever runs `up()`. Reusing a preview database by rolling it back through `down()` first assumes the down migration perfectly inverts the up one — for many migrations that is difficult and for some impossible (a dropped column's data is gone), so the preview ends up on a schema production will never have. Do not add optimizations that reuse a preview database across incompatible migration states; spawn a fresh one.
 
+**A new migration must sort after the newest one on `main`.** Kysely refuses to migrate when a new name sorts before one already executed, which breaks every production deploy, so the `checks` job fails a PR whose added file sorts at or before main's newest (`scripts/check-migration-order.ts`); rename it to a later date.
+
 **Never hardcode row IDs in a migration.** Shared `dev` (and every snapshot spawned from it) has different club and user IDs from production, so an ID read off dev matches nothing on prod and the migration silently no-ops there. Resolve rows by a natural key (slug, email, name within a club) inside the migration instead.
 
 **Shared `dev` self-syncs after merge.** The plugin's `onSuccess` hook migrates shared `dev` on every production deploy, so it tracks `main` unattended. Running `migrate:dev` against `dev` yourself is a fallback for when that hook failed.

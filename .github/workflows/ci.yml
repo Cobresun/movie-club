@@ -24,6 +24,13 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      # Kysely refuses to migrate out of order, and the deploy preview does not
+      # catch it. The default checkout is shallow and has no origin/main.
+      - name: Check migration order
+        if: github.event_name == 'pull_request'
+        run: |
+          git fetch --no-tags --depth=1 origin +refs/heads/main:refs/remotes/origin/main
+          npm run migrate:check-order
       - run: npm run format:check
       - run: npm run type-check
       - run: npm run lint

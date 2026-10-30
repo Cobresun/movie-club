@@ -11,7 +11,7 @@ paths:
 Three Vitest projects (`vite.config.ts`), all run by `npm test`:
 
 - **client** — jsdom, `src/**`. Feature tests in `src/features/<feature>/tests/`, render helpers in `src/tests/utils.ts`.
-- **server** — node, `lib/**` and `netlify/functions/utils/**`. Pure functions only; no database.
+- **server** — node, `lib/**`, `netlify/functions/utils/**` and `scripts/**`. Pure functions only; no database.
 - **integration** — node, `netlify/functions/tests/**`. Every Netlify handler against a real CockroachDB.
 
 `npm run test:unit` skips the integration project — **the rest of `npm test` needs Docker running**, because integration starts a container.
