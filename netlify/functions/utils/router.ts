@@ -278,11 +278,12 @@ export class Router<T extends Request = Request> {
     }
 
     // 2) Try main routes for the actual HTTP method
-    const method = isHTTPMethod(req.event.httpMethod) ? req.event.httpMethod : HTTPMethod.GET;
-    for (const route of this.routes[method]) {
-      const pathTest = route.path.test(path);
-      if (pathTest) {
-        return this.dispatch({ ...req, params: pathTest }, route.callbacks);
+    if (isHTTPMethod(req.event.httpMethod)) {
+      for (const route of this.routes[req.event.httpMethod]) {
+        const pathTest = route.path.test(path);
+        if (pathTest) {
+          return this.dispatch({ ...req, params: pathTest }, route.callbacks);
+        }
       }
     }
 

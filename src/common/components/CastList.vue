@@ -57,10 +57,9 @@ const { actors = [] } = defineProps<{
 
 const VISIBLE_ACTORS_COUNT = 5;
 
-const allActors = computed(() => actors ?? []);
-const visibleActors = computed(() => allActors.value.slice(0, VISIBLE_ACTORS_COUNT));
-const hasMore = computed(() => allActors.value.length > VISIBLE_ACTORS_COUNT);
-const remainingCount = computed(() => allActors.value.length - VISIBLE_ACTORS_COUNT);
+const visibleActors = computed(() => actors.slice(0, VISIBLE_ACTORS_COUNT));
+const hasMore = computed(() => actors.length > VISIBLE_ACTORS_COUNT);
+const remainingCount = computed(() => actors.length - VISIBLE_ACTORS_COUNT);
 
 const showAll = ref(false);
 </script>

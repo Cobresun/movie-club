@@ -44,7 +44,7 @@ async function cleanupDatabases(options: CleanupOptions): Promise<void> {
     }
     toDelete = [db];
   } else if (hasValue(options.pattern)) {
-    const regex = new RegExp(options.pattern, "u");
+    const regex = new RegExp(options.pattern);
     toDelete = databases.filter((db) => regex.test(db.name));
   } else if (typeof options.olderThanDays === "number") {
     toDelete = await DatabaseCleanupRepository.listDatabasesOlderThan(options.olderThanDays);

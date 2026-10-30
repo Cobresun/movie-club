@@ -75,7 +75,7 @@ const desktopSizeMap: Record<ModalSize, string> = {
 };
 
 const desktopClasses = computed(() => {
-  const sizeClass = desktopSizeMap[size ?? "default"];
+  const sizeClass = desktopSizeMap[size];
   return `left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-lg ${sizeClass}`;
 });
 
