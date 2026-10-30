@@ -26,7 +26,7 @@ These are the nits that come back every review; none of them are negotiable in a
 
 - **Use the globally registered components.** `v-btn`, `v-modal`, `page-header` and friends exist — a hand-rolled `<button class="...">` in a view is a review comment. Check `src/main.ts` first.
 - **Icons are `<mdicon>`, not characters.** `▶`, `▼`, `×`, `…` typed into a template get replaced with the registered icon (and `…` where an ellipsis genuinely is text, not three periods).
-- **Tailwind utilities, not inline or arbitrary CSS.** If a sibling component expresses the same thing with a utility (`aspect-[2/3]` over a hand-written `padding-top` ratio), match the sibling.
+- **Tailwind utilities, not inline or arbitrary CSS.** If a sibling component expresses the same thing with a utility (`aspect-2/3` over a hand-written `padding-top` ratio), match the sibling.
 - **No Tailwind class-list variables.** Assigning a string of classes to a `const` and binding it is treated as an anti-pattern here: inline the classes at both call sites, or, if they genuinely must stay in sync, extract a component.
 - **Charts go through `VChart`**, not `<ag-charts>` directly. It closes the tooltip when the page scrolls — one opened by tapping a series otherwise stays up until the whole chart has left the viewport.
 - **Poster grids use `grid grid-cols-auto`** with `justify-items-center gap-4`, the way `ListItems.vue`, `SharedListView.vue` and the awards views do. Don't invent a breakpoint set — changing grid sizing has broken the watch-list desktop layout before.

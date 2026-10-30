@@ -14,7 +14,7 @@
     <div
       v-for="(entry, index) in entries"
       :key="entry.name"
-      class="overflow-hidden rounded-lg border border-slate-700/30 bg-background/50 px-4 py-3 transition-colors hover:border-slate-600/50 hover:bg-background/80"
+      class="bg-background/50 hover:bg-background/80 overflow-hidden rounded-lg border border-slate-700/30 px-4 py-3 transition-colors hover:border-slate-600/50"
     >
       <div
         role="button"
@@ -42,7 +42,7 @@
           </div>
           <div
             v-if="entry.profileImageUrl"
-            class="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full text-[0.6rem] font-bold"
+            class="absolute -right-1 -bottom-1 flex h-5 w-5 items-center justify-center rounded-full text-[0.6rem] font-bold"
             :class="rankClass(index)"
           >
             {{ index + 1 }}

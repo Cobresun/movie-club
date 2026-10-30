@@ -33,7 +33,7 @@ const {
       :style="{ '--skeleton-index': Math.min(i - 1, 8) }"
     >
       <div class="flex flex-col overflow-hidden rounded-lg bg-slate-700/40">
-        <SkeletonBlock class="aspect-[2/3] w-full" />
+        <SkeletonBlock class="aspect-2/3 w-full" />
         <div class="flex flex-col items-center gap-2 px-2 py-3">
           <SkeletonBlock class="h-4 w-3/4 rounded" />
           <SkeletonBlock v-for="line in lines" :key="line" class="h-3 w-1/2 rounded" />

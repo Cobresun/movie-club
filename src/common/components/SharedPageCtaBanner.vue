@@ -2,25 +2,25 @@
   <div v-if="!isLoggedIn">
     <div class="h-20" />
     <div
-      class="fixed inset-x-0 bottom-0 px-4 pb-4 transition-transform duration-slow ease-emphasized"
+      class="duration-slow ease-emphasized fixed inset-x-0 bottom-0 px-4 pb-4 transition-transform"
       :class="{ 'translate-y-[150%]': isHidden }"
     >
       <div
-        class="mx-auto flex max-w-3xl items-center justify-between gap-4 rounded-xl border border-slate-700 bg-gradient-to-r from-secondary to-lowBackground px-5 py-3 shadow-lg"
+        class="from-secondary to-lowBackground mx-auto flex max-w-3xl items-center justify-between gap-4 rounded-xl border border-slate-700 bg-linear-to-r px-5 py-3 shadow-lg"
       >
         <div class="text-left">
-          <div class="flex items-center gap-1.5 text-highlight">
+          <div class="text-highlight flex items-center gap-1.5">
             <span aria-hidden="true">🍿</span>
             <span class="text-sm font-semibold tracking-wide">MovieClub</span>
           </div>
-          <h2 class="mt-1 text-lg font-bold leading-tight text-white">
+          <h2 class="mt-1 text-lg leading-tight font-bold text-white">
             Want one for your friends?
           </h2>
           <p class="text-xs text-gray-200">Score movies or books together. It's free.</p>
         </div>
         <a
           :href="startClubHref"
-          class="whitespace-nowrap rounded-md bg-primary px-4 py-2 text-sm font-bold tracking-wide text-white transition hover:brightness-110 active:brightness-105"
+          class="bg-primary rounded-md px-4 py-2 text-sm font-bold tracking-wide whitespace-nowrap text-white transition hover:brightness-110 active:brightness-105"
         >
           Start your own club
         </a>

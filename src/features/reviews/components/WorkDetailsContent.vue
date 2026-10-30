@@ -1,5 +1,5 @@
 <template>
-  <div class="relative flex-grow text-left">
+  <div class="relative grow text-left">
     <delete-confirmation-modal
       :show="showDeleteConfirmation"
       title="Delete Review"
@@ -21,7 +21,7 @@
       <template #date>
         <template v-if="!isEditingDate">
           <span
-            class="inline-flex cursor-pointer items-center gap-1 hover:text-primary hover:underline"
+            class="hover:text-primary inline-flex cursor-pointer items-center gap-1 hover:underline"
             @click="openDateEditor"
           >
             Reviewed {{ formatDate(movie.createdDate) }}
@@ -33,17 +33,17 @@
             <input
               v-model="editedDate"
               type="date"
-              class="rounded border border-gray-600 bg-background px-1.5 py-0.5 text-xs text-white"
+              class="bg-background rounded border border-gray-600 px-1.5 py-0.5 text-xs text-white"
               @keypress.enter="saveDateChange"
             />
             <button
-              class="whitespace-nowrap rounded bg-primary px-1.5 py-0.5 text-xs text-white"
+              class="bg-primary rounded px-1.5 py-0.5 text-xs whitespace-nowrap text-white"
               @click="saveDateChange"
             >
               Save
             </button>
             <button
-              class="whitespace-nowrap rounded bg-gray-600 px-1.5 py-0.5 text-xs text-white"
+              class="rounded bg-gray-600 px-1.5 py-0.5 text-xs whitespace-nowrap text-white"
               @click="cancelDateEdit"
             >
               Cancel
@@ -60,7 +60,7 @@
       <div
         :inert="!showRevealPill"
         :aria-hidden="!showRevealPill || undefined"
-        class="overflow-hidden transition-all duration-slow ease-standard"
+        class="duration-slow ease-standard overflow-hidden transition-all"
         :style="{
           maxHeight: showRevealPill ? '4rem' : '0px',
           marginBottom: showRevealPill ? '0.75rem' : '0px',
@@ -69,7 +69,7 @@
       >
         <div class="flex justify-center">
           <button
-            class="flex items-center gap-2 rounded-full bg-lowBackground px-4 py-1.5 text-sm text-gray-300 transition hover:brightness-110"
+            class="bg-lowBackground flex items-center gap-2 rounded-full px-4 py-1.5 text-sm text-gray-300 transition hover:brightness-110"
             @click="toggleMovieReveal(movie.id)"
           >
             <mdicon name="eye-outline" size="16" />
@@ -86,7 +86,7 @@
           :class="[
             isDefined(entry.memberId)
               ? 'bg-lowBackground'
-              : 'col-span-2 bg-primary/10 ring-1 ring-primary/25',
+              : 'bg-primary/10 ring-primary/25 col-span-2 ring-1',
             { 'score-just-saved': isJustSavedEntry(entry) },
           ]"
         >
@@ -96,9 +96,9 @@
           <!-- Revealed scores un-blur one after another rather than all at
                once, settling from a slight shrink as they come into focus. -->
           <div
-            class="shrink-0 text-base font-semibold transition-[filter,transform] duration-500 ease-emphasized"
+            class="ease-emphasized shrink-0 text-base font-semibold transition-[filter,transform] duration-500"
             :class="[
-              isDefined(entry.memberId) ? '' : 'text-lg font-bold text-primary',
+              isDefined(entry.memberId) ? '' : 'text-primary text-lg font-bold',
               isScoreBlurred(entry, currentUserId, isRevealed)
                 ? 'scale-90 blur'
                 : 'scale-100 blur-none',
@@ -153,13 +153,13 @@
           :class="{ 'cursor-pointer hover:opacity-80': shouldBlurTmdbScore }"
           @click="revealTmdb"
         >
-          <span class="block text-xs font-medium uppercase tracking-wide text-gray-500"
+          <span class="block text-xs font-medium tracking-wide text-gray-500 uppercase"
             >TMDB rating</span
           >
           <span class="inline-flex items-center gap-1.5 text-sm text-gray-200">
             <span
-              class="transition-[filter] duration-500 ease-standard"
-              :class="shouldBlurTmdbScore ? 'select-none blur' : 'select-auto blur-none'"
+              class="ease-standard transition-[filter] duration-500"
+              :class="shouldBlurTmdbScore ? 'blur select-none' : 'blur-none select-auto'"
               >{{ tmdbScore }}<span class="text-gray-500">/10</span></span
             >
             <mdicon v-if="shouldBlurTmdbScore" name="eye-outline" size="14" class="text-gray-400" />
@@ -201,7 +201,7 @@
          on mobile the CTA opens score entry in its own overlay. -->
     <div
       v-if="isDefined(currentUserId)"
-      class="sticky bottom-0 -mx-4 mt-4 border-t border-gray-700/60 bg-background px-4 pb-2 pt-3"
+      class="bg-background sticky bottom-0 -mx-4 mt-4 border-t border-gray-700/60 px-4 pt-3 pb-2"
     >
       <ScoreEntryDock
         v-if="isDesktop"
@@ -216,7 +216,7 @@
         <template v-if="isDefined(myReview)" #secondary-action>
           <button
             type="button"
-            class="flex shrink-0 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 font-bold tracking-wide text-text transition hover:brightness-110 active:scale-[0.98]"
+            class="bg-primary text-text flex shrink-0 items-center justify-center gap-2 rounded-lg px-4 py-3 font-bold tracking-wide transition hover:brightness-110 active:scale-[0.98]"
             @click="shareReview(movie.id)"
           >
             <mdicon name="share" size="20" />
@@ -239,7 +239,7 @@
         <button
           v-if="isDefined(myReview)"
           type="button"
-          class="flex shrink-0 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 font-bold tracking-wide text-text transition hover:brightness-110 active:scale-[0.98]"
+          class="bg-primary text-text flex shrink-0 items-center justify-center gap-2 rounded-lg px-4 py-3 font-bold tracking-wide transition hover:brightness-110 active:scale-[0.98]"
           @click="shareReview(movie.id)"
         >
           <mdicon name="share" size="20" />

@@ -2,10 +2,10 @@
   <div
     role="group"
     :aria-label="label"
-    class="flex flex-col rounded-xl bg-lowBackground p-3.5 sm:p-4"
+    class="bg-lowBackground flex flex-col rounded-xl p-3.5 sm:p-4"
   >
-    <p class="text-xs font-medium uppercase tracking-wide text-slate-400">{{ label }}</p>
-    <p ref="valueEl" class="mt-1 text-2xl font-bold tabular-nums text-white sm:text-3xl">
+    <p class="text-xs font-medium tracking-wide text-slate-400 uppercase">{{ label }}</p>
+    <p ref="valueEl" class="mt-1 text-2xl font-bold text-white tabular-nums sm:text-3xl">
       {{ formatCount(shownValue) }}
     </p>
     <p v-if="change" class="mt-1 text-xs">

@@ -5,7 +5,7 @@
        without ResizeObserver, e.g. jsdom) the height stays auto, which
        degrades to instant resizes. -->
   <div
-    class="overflow-hidden transition-[height] duration-slow ease-emphasized"
+    class="duration-slow ease-emphasized overflow-hidden transition-[height]"
     :style="isDefined(height) ? { height: `${height}px` } : undefined"
   >
     <!-- flow-root keeps child margins from collapsing out of the measured

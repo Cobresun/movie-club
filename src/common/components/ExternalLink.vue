@@ -4,7 +4,7 @@
     :href="href"
     target="_blank"
     rel="noopener noreferrer"
-    class="inline-flex items-center gap-1.5 rounded-full bg-lowBackground px-3 py-1.5 text-sm text-gray-200 transition hover:text-primary"
+    class="bg-lowBackground hover:text-primary inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm text-gray-200 transition"
   >
     <span>{{ label }}</span>
     <mdicon name="open-in-new" size="13" class="text-gray-400" />

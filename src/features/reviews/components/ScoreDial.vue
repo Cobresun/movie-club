@@ -2,7 +2,7 @@
   <div class="relative w-full max-w-[240px] select-none">
     <svg
       ref="dialSvg"
-      class="block w-full cursor-pointer touch-none text-lowBackground"
+      class="text-lowBackground block w-full cursor-pointer touch-none"
       :viewBox="`0 0 ${DIAL_VIEWBOX_WIDTH} ${DIAL_VIEWBOX_HEIGHT}`"
       aria-hidden="true"
       @pointerdown="onPointerDown"
@@ -26,7 +26,7 @@
         stroke-linecap="round"
         pathLength="1"
         :stroke-dasharray="`${fraction} 1`"
-        :class="isDragging ? undefined : 'transition-all duration-fast ease-standard'"
+        :class="isDragging ? undefined : 'duration-fast ease-standard transition-all'"
       />
       <circle
         :cx="handle.x"
@@ -34,7 +34,7 @@
         r="11"
         fill="#fff"
         class="cursor-grab drop-shadow"
-        :class="isDragging ? undefined : 'transition-all duration-fast ease-standard'"
+        :class="isDragging ? undefined : 'duration-fast ease-standard transition-all'"
       />
     </svg>
 
@@ -49,7 +49,7 @@
         :step="SCORE_STEP"
         placeholder="8.5"
         aria-label="Score"
-        class="pointer-events-auto w-24 border-b-2 border-dotted border-gray-500 bg-transparent text-center !text-4xl font-bold tabular-nums text-gray-500 outline-none transition-colors duration-fast ease-standard [appearance:textfield] placeholder:text-gray-600 focus:border-gray-300 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+        class="duration-fast ease-standard pointer-events-auto w-24 [appearance:textfield] border-b-2 border-dotted border-gray-500 bg-transparent text-center text-4xl! font-bold text-gray-500 tabular-nums outline-hidden transition-colors placeholder:text-gray-600 focus:border-gray-300 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
         :style="hasScore ? { color: band.color } : undefined"
         @input="onInput"
         @keydown.enter="emit('save')"
@@ -64,7 +64,7 @@
         </span>
         <span
           v-else-if="hasScore"
-          class="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400"
+          class="text-xs font-semibold tracking-[0.2em] text-gray-400 uppercase"
         >
           {{ band.label }}
         </span>

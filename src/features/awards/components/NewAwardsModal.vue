@@ -42,7 +42,7 @@
         <label
           v-for="option in startOptions"
           :key="option.value"
-          class="flex cursor-pointer items-start gap-3 rounded-[10px] bg-lowBackground p-3 ring-1 ring-inset ring-white/[0.12] has-[:checked]:ring-2 has-[:checked]:ring-primary"
+          class="bg-lowBackground has-[:checked]:ring-primary flex cursor-pointer items-start gap-3 rounded-[10px] p-3 ring-1 ring-white/[0.12] ring-inset has-checked:ring-2"
         >
           <input
             v-model="start"
@@ -51,7 +51,7 @@
             :value="option.value"
             :aria-labelledby="`${id}-${option.value}-label`"
             :aria-describedby="`${id}-${option.value}-detail`"
-            class="mt-1 accent-primary"
+            class="accent-primary mt-1"
           />
           <span class="flex flex-col">
             <span :id="`${id}-${option.value}-label`" class="font-semibold">{{

@@ -1,8 +1,8 @@
 <template>
   <div ref="root" class="relative">
     <button
-      class="block rounded-full transition-shadow duration-fast ease-standard"
-      :class="{ 'ring-2 ring-highlight ring-offset-2 ring-offset-background': isOpen }"
+      class="duration-fast ease-standard block rounded-full transition-shadow"
+      :class="{ 'ring-highlight ring-offset-background ring-2 ring-offset-2': isOpen }"
       aria-label="Account"
       aria-haspopup="dialog"
       :aria-expanded="isOpen"
@@ -23,7 +23,7 @@
         v-if="isDesktop && isOpen"
         role="dialog"
         aria-label="Account"
-        class="absolute right-0 top-full z-50 mt-1 w-[300px] origin-top-right overflow-hidden rounded-xl bg-lowBackground pb-1 shadow-lg"
+        class="bg-lowBackground absolute top-full right-0 z-50 mt-1 w-[300px] origin-top-right overflow-hidden rounded-xl pb-1 shadow-lg"
       >
         <AccountPanel dense @close="close" />
       </div>

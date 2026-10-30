@@ -8,10 +8,10 @@ import SkeletonBlock from "@/common/components/SkeletonBlock.vue";
   <div class="mx-auto max-w-6xl" role="status" aria-label="Loading review">
     <div class="rounded-lg bg-slate-700/30 p-8">
       <div class="flex flex-col gap-8 sm:flex-row">
-        <div class="flex flex-shrink-0 flex-col gap-4 sm:w-1/3">
+        <div class="flex shrink-0 flex-col gap-4 sm:w-1/3">
           <SkeletonBlock class="h-10 w-3/4 rounded-lg" />
           <SkeletonBlock class="h-4 w-1/2 rounded" />
-          <SkeletonBlock class="aspect-[2/3] w-full rounded-lg" />
+          <SkeletonBlock class="aspect-2/3 w-full rounded-lg" />
         </div>
 
         <div class="flex-1 space-y-4 self-center">

@@ -9,12 +9,12 @@
         class="h-24 w-16 shrink-0 rounded-md object-cover shadow-lg"
       />
       <div v-else class="h-24 w-16 shrink-0 rounded-md bg-white/10" />
-      <p class="line-clamp-3 min-w-0 flex-1 text-lg font-semibold leading-tight">
+      <p class="line-clamp-3 min-w-0 flex-1 text-lg leading-tight font-semibold">
         {{ work.title }}
       </p>
       <p class="flex shrink-0 flex-col items-end">
         <span class="text-3xl font-bold tabular-nums">{{ work.average.toFixed(1) }}</span>
-        <span class="text-[10px] font-semibold uppercase tracking-widest text-white/60">avg</span>
+        <span class="text-[10px] font-semibold tracking-widest text-white/60 uppercase">avg</span>
       </p>
     </li>
   </ol>
