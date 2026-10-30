@@ -11,7 +11,7 @@ Kysely with the CockroachDB dialect (PostgreSQL-compatible). See the `kysely` sk
 
 - Connection: `netlify/functions/utils/database.ts` (singleton `Kysely<DB>`)
 - **Schema of record: `lib/types/generated/db.ts`** — every table, column, and enum. Read it rather than trusting any prose summary; run `npm run codegen` after schema changes to regenerate it.
-- Migrations: `migrations/schema/`, named `YYYYMMDD_Description.ts`
+- Migrations: `migrations/schema/`, named `YYYYMMDD_Description.ts` and appended to `migrations/orderedMigrations.ts`
 
 The shape worth knowing before you read: a `work` is a movie, a book, a TV show, or one of a TV show's episodes; `work_list` holds a club's lists, either user-defined (`system_type IS NULL`, free-form title) or system (`system_type = 'reviews'`), with a partial unique index enforcing at most one of each system list per club. Movie, book and TV metadata are cached in separate `*_details` tables with their own junction tables.
 
@@ -63,7 +63,7 @@ npm run db:cleanup arbitrary_lists
 
 **Deploy previews migrate forward from a fresh copy, never up → down → up.** A preview exists to look like production, and production only ever runs `up()`. Reusing a preview database by rolling it back through `down()` first assumes the down migration perfectly inverts the up one — for many migrations that is difficult and for some impossible (a dropped column's data is gone), so the preview ends up on a schema production will never have. Do not add optimizations that reuse a preview database across incompatible migration states; spawn a fresh one.
 
-**A new migration must sort after the newest one on `main`.** Kysely refuses to migrate when a new name sorts before one already executed, which breaks every production deploy, so the `checks` job fails a PR whose added file sorts at or before main's newest (`scripts/check-migration-order.ts`); rename it to a later date.
+**A new migration goes at the end of `migrations/orderedMigrations.ts`, and must sort after every migration on `main`.** Kysely refuses to run a new migration whose name sorts before one already executed, which breaks every production deploy. The list is append-only, so a branch missing a migration from `main` conflicts there; resolve by keeping `main`'s entries first and yours after, and rename your file to a later date if it now sorts before the entry above it. `schemaMigrator.ts` refuses to run while the list is out of name order or disagrees with `migrations/schema/`.
 
 **Never hardcode row IDs in a migration.** Shared `dev` (and every snapshot spawned from it) has different club and user IDs from production, so an ID read off dev matches nothing on prod and the migration silently no-ops there. Resolve rows by a natural key (slug, email, name within a club) inside the migration instead.
 

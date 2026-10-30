@@ -20,7 +20,6 @@
     "migrate:dev": "tsx --env-file=.env ./migrations/schemaMigrator.ts && npm run codegen",
     "migrate:down": "tsx --env-file=.env ./migrations/schemaMigrator.ts down && npm run codegen",
     "migrate:data": "tsx --env-file=.env ./migrations/dataMigrator.ts",
-    "migrate:check-order": "tsx scripts/check-migration-order.ts",
     "codegen": "kysely-codegen --dialect postgres --runtime-enums --out-file lib/types/generated/db.ts --exclude-pattern crdb_internal.*",
     "db:snapshot": "tsx --env-file=.env scripts/db-snapshot.ts",
     "db:spawn": "tsx --env-file=.env scripts/db-spawn.ts",

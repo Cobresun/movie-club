@@ -213,7 +213,7 @@ await sql`ALTER TABLE club ADD CONSTRAINT club_slug_format_check CHECK (slug ~ '
 
 ## Migration Patterns
 
-**Location:** `migrations/schema/`. Naming: `YYYYMMDD_Description.ts`.
+**Location:** `migrations/schema/`. Naming: `YYYYMMDD_Description.ts`, appended to `migrations/orderedMigrations.ts`.
 
 **Structure:**
 
