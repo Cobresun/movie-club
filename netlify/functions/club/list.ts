@@ -367,6 +367,7 @@ async function getReviewList(clubId: string): Promise<DetailedReviewListItem[]> 
         type: review.type,
         imageUrl: review.image_url ?? undefined,
         externalId: review.external_id ?? undefined,
+        addedBy: review.added_by_user_id ?? undefined,
         scores,
         externalData: hasValue(review.external_id)
           ? externalData.get(review.external_id)

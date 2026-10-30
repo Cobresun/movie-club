@@ -31,6 +31,7 @@ class ReviewRepository {
         "work.image_url",
         "work.external_id",
         "work_list_item.time_added",
+        "work_list_item.added_by_user_id",
         "review.score",
         "review.user_id",
         "review.created_date",

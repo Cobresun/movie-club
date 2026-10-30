@@ -5,6 +5,7 @@ import type {
   BookData,
   ClubConsensusEntry,
   ClubCurmudgeonEntry,
+  ClubRecordEntry,
   ClubRecords,
   CumulativeCountPoint,
   GenreStats,
@@ -16,6 +17,7 @@ import type {
   MonthlyActivityPoint,
   MovieAgreement,
   MovieData,
+  PickerLeaderboardEntry,
   ScoreTrendPoint,
   ScoreVariancePoint,
   SubjectReadCount,
@@ -845,4 +847,41 @@ export function computeClubRecords(workData: WorkStatsData[]): ClubRecords {
     },
     mostDivisive,
   };
+}
+
+function toRecordEntry(work: WorkStatsData): ClubRecordEntry {
+  return {
+    title: work.title,
+    imageUrl: work.imageUrl,
+    value: Math.round(work.average * 100) / 100,
+  };
+}
+
+/**
+ * Ranks members by how well the club scored the works they added, with each
+ * member's best and worst pick. Works with no recorded adder, or added by
+ * someone who has since left, are skipped.
+ */
+export function computePickerLeaderboard(
+  workData: WorkStatsData[],
+  members: Member[],
+): PickerLeaderboardEntry[] {
+  return members
+    .map((member) => {
+      const picks = workData
+        .filter((work) => work.addedBy === member.id)
+        .sort((a, b) => b.average - a.average);
+      if (!hasElements(picks)) return undefined;
+
+      const total = picks.reduce((sum, work) => sum + work.average, 0);
+      return {
+        member,
+        averageScore: Math.round((total / picks.length) * 100) / 100,
+        pickCount: picks.length,
+        best: toRecordEntry(picks[0]),
+        worst: toRecordEntry(picks[picks.length - 1]),
+      };
+    })
+    .filter(isDefined)
+    .sort((a, b) => b.averageScore - a.averageScore);
 }

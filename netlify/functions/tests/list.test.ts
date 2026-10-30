@@ -721,6 +721,21 @@ describe("GET /api/club/:clubSlug/list/reviews", () => {
     expect(res.body[0].externalData?.overview).toBe("Overview for movie 13");
   });
 
+  it("credits each reviewed work to the member who added it", async () => {
+    const alice = await signIn("alice");
+    const bob = await signIn("bob");
+    const club = await createClub(alice, { members: [alice, bob] });
+    const work = await addWork(club, bob, { title: "Bob's Pick", externalId: null });
+    await api.post(`/api/club/${club.slug}/list/${club.listId}/items/${work.id}/move`, {
+      body: { destinationListId: club.reviewsListId },
+      as: alice,
+    });
+
+    const res = await api.get<DetailedReviewListItem[]>(`/api/club/${club.slug}/list/reviews`);
+
+    expect(res.body[0]).toMatchObject({ title: "Bob's Pick", addedBy: bob.userId });
+  });
+
   it("excludes the scores of members who have left the club", async () => {
     const alice = await signIn("alice");
     const bob = await signIn("bob");
