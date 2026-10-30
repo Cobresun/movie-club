@@ -7,8 +7,8 @@ import { Kysely, sql } from "kysely";
  * This is intentionally the ONLY statement in the migration: CockroachDB does
  * not allow `ALTER TYPE ... ADD VALUE` to be combined with other schema
  * changes in the same transaction (and Kysely wraps each migration in one).
- * The matching `work_type` value lands in `20260914_AddTvWorkType`, and the
- * metadata tables in `20260914_AddTvDetails`.
+ * The matching `work_type` value lands in `20261020_AddTvWorkType`, and the
+ * metadata tables in `20261020_AddTvDetails`.
  */
 export async function up(db: Kysely<unknown>) {
   await sql`ALTER TYPE "club_type" ADD VALUE IF NOT EXISTS 'tv'`.execute(db);

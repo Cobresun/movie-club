@@ -10,7 +10,7 @@ import { Kysely } from "kysely";
  * `show_external_id` joins it back to the show.
  *
  * The enum values these rows hang off land separately, in
- * `20260914_AddTvClubType` and `20260914_AddTvWorkType` (CockroachDB
+ * `20261020_AddTvClubType` and `20261020_AddTvWorkType` (CockroachDB
  * enum-value restriction).
  */
 export async function up(db: Kysely<unknown>) {
