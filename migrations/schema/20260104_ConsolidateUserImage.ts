@@ -1,6 +1,6 @@
 import { type Kysely, sql } from "kysely";
 
-export async function up(db: Kysely<unknown>) {
+async function up(db: Kysely<unknown>) {
   // Migrate any existing image_url values to the image column
   // Prioritize user-uploaded images (image_url) over OAuth images (image)
   await sql`
@@ -13,7 +13,7 @@ export async function up(db: Kysely<unknown>) {
   await db.schema.alterTable("user").dropColumn("image_url").execute();
 }
 
-export async function down(db: Kysely<unknown>) {
+async function down(db: Kysely<unknown>) {
   // Re-add the image_url column
   await db.schema.alterTable("user").addColumn("image_url", "varchar(255)").execute();
 
@@ -26,3 +26,5 @@ export async function down(db: Kysely<unknown>) {
     WHERE image IS NOT NULL
   `.execute(db);
 }
+
+export default { name: "20260104_ConsolidateUserImage", up, down };

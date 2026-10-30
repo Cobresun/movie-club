@@ -23,7 +23,7 @@ When a correction lands here a second time, write it into these files as part of
 
 ## Database workflow
 
-Schema migrations live in `migrations/schema/`. A new one is named `<Description>.ts`, with no date, and appended to the end of `migrations/orderedMigrations.ts`. That list sets the run order; the dated files are from before it existed. (`migrations/data/` and `npm run migrate:data -- <Name>` are the legacy path; new data rewrites go in schema migrations.)
+Schema migrations live in `migrations/schema/`. A new one is named `<Description>.ts`, with no date, default-exports `{ name, up, down }`, and is appended to the end of `migrations/orderedMigrations.ts`. That list sets the run order; the dated files are from before it existed. (`migrations/data/` and `npm run migrate:data -- <Name>` are the legacy path; new data rewrites go in schema migrations.)
 
 `npm run db:snapshot | db:spawn | db:list | db:cleanup` back a snapshot/restore workflow that gives you a throwaway CockroachDB from a copy of dev data — see the scripts in `package.json`. Spawned names take underscores, not hyphens.
 

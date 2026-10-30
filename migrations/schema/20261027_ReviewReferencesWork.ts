@@ -7,7 +7,7 @@ import { type Kysely } from "kysely";
  * list separately. Removing a work from a list deletes that list's reviews of
  * it explicitly (`ListRepository`), which the old composite key cascaded.
  */
-export async function up(db: Kysely<unknown>) {
+async function up(db: Kysely<unknown>) {
   await db.schema.alterTable("review").dropConstraint("fk_review_work_list_item_id").execute();
 
   await db.schema
@@ -23,7 +23,7 @@ export async function up(db: Kysely<unknown>) {
     .execute();
 }
 
-export async function down(db: Kysely<unknown>) {
+async function down(db: Kysely<unknown>) {
   await db.schema.alterTable("review").dropConstraint("fk_review_list_id").execute();
   await db.schema.alterTable("review").dropConstraint("fk_review_work_id").execute();
   await db.schema
@@ -37,3 +37,5 @@ export async function down(db: Kysely<unknown>) {
     .onDelete("cascade")
     .execute();
 }
+
+export default { name: "20261027_ReviewReferencesWork", up, down };

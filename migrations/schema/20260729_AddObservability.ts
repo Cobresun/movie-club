@@ -49,7 +49,7 @@ type MigrationTables = {
  *    adding a metric is a code change, not a migration. Precedent:
  *    `awards_temp.data` and `club_settings.value`.
  */
-export async function up(db: Kysely<unknown>) {
+async function up(db: Kysely<unknown>) {
   await db.schema.alterTable("club").addColumn("created_at", "timestamptz").execute();
   await db.schema.alterTable("club_member").addColumn("created_at", "timestamptz").execute();
 
@@ -102,8 +102,10 @@ export async function up(db: Kysely<unknown>) {
     .execute();
 }
 
-export async function down(db: Kysely<unknown>) {
+async function down(db: Kysely<unknown>) {
   await db.schema.dropTable("metric_snapshot").execute();
   await db.schema.alterTable("club_member").dropColumn("created_at").execute();
   await db.schema.alterTable("club").dropColumn("created_at").execute();
 }
+
+export default { name: "20260729_AddObservability", up, down };

@@ -8,11 +8,13 @@ import { type Kysely, sql } from "kysely";
  * not allow `ALTER TYPE ... ADD VALUE` to be combined with other schema
  * changes in the same transaction (and Kysely wraps each migration in one).
  */
-export async function up(db: Kysely<unknown>) {
+async function up(db: Kysely<unknown>) {
   await sql`ALTER TYPE "work_type" ADD VALUE IF NOT EXISTS 'tv'`.execute(db);
 }
 
-export async function down() {
+async function down() {
   // No-op: PostgreSQL/CockroachDB cannot remove a value from an enum type.
   // `up()` is idempotent via `IF NOT EXISTS`, so re-running forward is safe.
 }
+
+export default { name: "20260914_AddTvWorkType", up, down };

@@ -10,7 +10,7 @@ import { type Kysely, sql } from "kysely";
  * The `work_type` enum gains its 'book' value separately in
  * `20260526_AddBookWorkType` (CockroachDB enum-value restriction).
  */
-export async function up(db: Kysely<unknown>) {
+async function up(db: Kysely<unknown>) {
   // Club type enum + column. Existing clubs backfill to 'movie' via the default.
   await db.schema.createType("club_type").asEnum(["movie", "book"]).execute();
 
@@ -51,10 +51,12 @@ export async function up(db: Kysely<unknown>) {
     .execute();
 }
 
-export async function down(db: Kysely<unknown>) {
+async function down(db: Kysely<unknown>) {
   await db.schema.dropTable("book_subjects").execute();
   await db.schema.dropTable("book_authors").execute();
   await db.schema.dropTable("book_details").execute();
   await db.schema.alterTable("club").dropColumn("type").execute();
   await db.schema.dropType("club_type").execute();
 }
+
+export default { name: "20260526_AddBookClubs", up, down };

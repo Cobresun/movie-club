@@ -6,13 +6,15 @@ import { type Kysely } from "kysely";
 // last query path that read it. It was created as a plain nullable integer
 // (20240126_AddClubTable) with no index, so a straight drop is enough — no
 // unique-index CASCADE dance required.
-export async function up(db: Kysely<unknown>) {
+async function up(db: Kysely<unknown>) {
   await db.schema.alterTable("club").dropColumn("legacy_id").execute();
 }
 
-export async function down(db: Kysely<unknown>) {
+async function down(db: Kysely<unknown>) {
   // Re-add the column in its original shape (nullable integer, no index).
   // The historical values were random throwaways, so there is nothing to
   // restore — new rows simply get NULL.
   await db.schema.alterTable("club").addColumn("legacy_id", "integer").execute();
 }
+
+export default { name: "20260720_DropClubLegacyId", up, down };

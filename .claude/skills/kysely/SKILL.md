@@ -218,10 +218,12 @@ await sql`ALTER TABLE club ADD CONSTRAINT club_slug_format_check CHECK (slug ~ '
 **Structure:**
 
 ```typescript
-import { Kysely } from "kysely";
+import { type Kysely } from "kysely";
 
-export async function up(db: Kysely<unknown>) { ... }
-export async function down(db: Kysely<unknown>) { ... }
+async function up(db: Kysely<unknown>) { ... }
+async function down(db: Kysely<unknown>) { ... }
+
+export default { name: "AddFoo", up, down }; // `name` is the filename
 ```
 
 **Create table:**

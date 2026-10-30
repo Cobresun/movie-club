@@ -48,7 +48,7 @@ const awardsDataSchema = z
 
 const normalize = (name: string) => name.trim().toLowerCase();
 
-export async function up(db: Kysely<unknown>) {
+async function up(db: Kysely<unknown>) {
   const typedDb = db.withTables<MigrationTables>();
 
   const memberRows = await typedDb
@@ -158,4 +158,6 @@ export async function up(db: Kysely<unknown>) {
 
 // No inverse: the original name spelling isn't recorded, and the remapped
 // keys are exactly what 20260706_RekeyAwardsToUserIds would have produced.
-export async function down() {}
+async function down() {}
+
+export default { name: "20261019_RekeyAwardsCaseInsensitiveNames", up, down };

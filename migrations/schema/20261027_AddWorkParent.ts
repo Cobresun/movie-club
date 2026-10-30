@@ -4,7 +4,7 @@ import { type Kysely } from "kysely";
  * A work can belong to another work: a TV episode to its show. Deleting the
  * parent deletes its children (and, through `review.work_id`, their scores).
  */
-export async function up(db: Kysely<unknown>) {
+async function up(db: Kysely<unknown>) {
   await db.schema
     .alterTable("work")
     .addColumn("parent_work_id", "int8", (col) => col.references("work.id").onDelete("cascade"))
@@ -17,7 +17,9 @@ export async function up(db: Kysely<unknown>) {
     .execute();
 }
 
-export async function down(db: Kysely<unknown>) {
+async function down(db: Kysely<unknown>) {
   await db.schema.dropIndex("work_parent_work_id_idx").execute();
   await db.schema.alterTable("work").dropColumn("parent_work_id").execute();
 }
+
+export default { name: "20261027_AddWorkParent", up, down };

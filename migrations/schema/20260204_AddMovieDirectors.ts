@@ -1,6 +1,6 @@
 import { type Kysely } from "kysely";
 
-export async function up(db: Kysely<unknown>) {
+async function up(db: Kysely<unknown>) {
   await db.schema
     .createTable("movie_directors")
     .addColumn("external_id", "varchar(255)", (col) =>
@@ -11,6 +11,8 @@ export async function up(db: Kysely<unknown>) {
     .execute();
 }
 
-export async function down(db: Kysely<unknown>) {
+async function down(db: Kysely<unknown>) {
   await db.schema.dropTable("movie_directors").execute();
 }
+
+export default { name: "20260204_AddMovieDirectors", up, down };

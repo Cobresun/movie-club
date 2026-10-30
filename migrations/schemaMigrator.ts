@@ -21,8 +21,6 @@ const migrationFolder = path.join(currentDirname, "/schema");
  */
 const LEGACY_MIGRATION_COUNT = 34;
 
-const datedName = /^\d{8}_/;
-
 /**
  * Names each migration by its position in `orderedMigrations` (`m0035_AddFoo`),
  * so Kysely, which always runs migrations in name order, runs them in list
@@ -30,50 +28,6 @@ const datedName = /^\d{8}_/;
  */
 function migrationName(name: string, index: number): string {
   return index < LEGACY_MIGRATION_COUNT ? name : `m${String(index + 1).padStart(4, "0")}_${name}`;
-}
-
-/**
- * Problems with `orderedMigrations` that would make it run something other
- * than what it says: a file it leaves out, an entry with no file, a duplicate,
- * or a legacy entry added, removed or moved.
- */
-function findMigrationListProblems(): string[] {
-  const names = orderedMigrations.map(({ name }) => name);
-  const files = readdirSync(migrationFolder)
-    .filter((file) => file.endsWith(".ts"))
-    .map((file) => path.parse(file).name);
-  const listed = new Set(names);
-  const onDisk = new Set(files);
-
-  return [
-    ...files
-      .filter((name) => !listed.has(name))
-      .map((name) => `${name} is in migrations/schema/ but not in orderedMigrations`),
-    ...names
-      .filter((name) => !onDisk.has(name))
-      .map((name) => `${name} is in orderedMigrations but has no file in migrations/schema/`),
-    ...names
-      .filter((name, index) => names.indexOf(name) !== index)
-      .map((name) => `${name} is in orderedMigrations more than once`),
-    ...names
-      .filter((name, index) => datedName.test(name) !== index < LEGACY_MIGRATION_COUNT)
-      .map(
-        (name) =>
-          `${name} breaks the ${LEGACY_MIGRATION_COUNT} dated entries at the head of orderedMigrations; ` +
-          "append new migrations to the end, named without a date",
-      ),
-  ];
-}
-
-function assertMigrationListValid() {
-  const problems = findMigrationListProblems();
-  if (!hasElements(problems)) {
-    return;
-  }
-
-  console.error("Refusing to migrate: migrations/orderedMigrations.ts is out of step:");
-  problems.forEach((problem) => console.error(`  - ${problem}`));
-  process.exit(1);
 }
 
 const namedMigrationProvider: MigrationProvider = {
@@ -224,8 +178,6 @@ async function downgrade(migrator: Migrator) {
     process.exit(1);
   }
 }
-
-assertMigrationListValid();
 
 if (process.argv[2] === "down") {
   withMigrator(downgrade).catch(console.error);

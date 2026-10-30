@@ -1,6 +1,6 @@
 import { type Kysely } from "kysely";
 
-export async function up(db: Kysely<unknown>) {
+async function up(db: Kysely<unknown>) {
   await db.schema
     .createTable("movie_details")
     .addColumn("id", "serial", (col) => col.primaryKey())
@@ -56,9 +56,11 @@ export async function up(db: Kysely<unknown>) {
     .execute();
 }
 
-export async function down(db: Kysely<unknown>) {
+async function down(db: Kysely<unknown>) {
   await db.schema.dropTable("movie_production_countries").execute();
   await db.schema.dropTable("movie_production_companies").execute();
   await db.schema.dropTable("movie_genres").execute();
   await db.schema.dropTable("movie_details").execute();
 }
+
+export default { name: "20241216_AddMovieDetails", up, down };
