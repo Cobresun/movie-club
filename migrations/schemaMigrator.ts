@@ -1,7 +1,7 @@
 import { CockroachDialect } from "@cubos/kysely-cockroach";
 import { execSync } from "child_process";
 import { readdirSync } from "fs";
-import { Kysely, Migrator, type Migration, type MigrationProvider } from "kysely";
+import { Kysely, Migrator, type MigrationProvider } from "kysely";
 import path from "path";
 import { Pool } from "pg";
 import { fileURLToPath } from "url";
@@ -15,30 +15,52 @@ const currentDirname = path.dirname(currentFilename);
 const migrationFolder = path.join(currentDirname, "/schema");
 
 /**
- * Problems with `orderedMigrations` that would make it lie about what runs:
- * a file it leaves out, an entry with no file, or an entry out of name order.
- * Kysely 0.27 always runs migrations in name order, so the list cannot reorder
- * them — it can only refuse to run while its order and Kysely's disagree.
+ * How many entries at the head of `orderedMigrations` predate it. Production
+ * recorded these under their dated filenames, so they keep them; every later
+ * entry is named by its position, which sorts after every dated name.
+ */
+const LEGACY_MIGRATION_COUNT = 34;
+
+const datedName = /^\d{8}_/;
+
+/**
+ * Names each migration by its position in `orderedMigrations` (`m0035_AddFoo`),
+ * so Kysely, which always runs migrations in name order, runs them in list
+ * order.
+ */
+function migrationName(name: string, index: number): string {
+  return index < LEGACY_MIGRATION_COUNT ? name : `m${String(index + 1).padStart(4, "0")}_${name}`;
+}
+
+/**
+ * Problems with `orderedMigrations` that would make it run something other
+ * than what it says: a file it leaves out, an entry with no file, a duplicate,
+ * or a legacy entry added, removed or moved.
  */
 function findMigrationListProblems(): string[] {
+  const names = orderedMigrations.map(({ name }) => name);
   const files = readdirSync(migrationFolder)
     .filter((file) => file.endsWith(".ts"))
     .map((file) => path.parse(file).name);
-  const listed = new Set(orderedMigrations);
+  const listed = new Set(names);
   const onDisk = new Set(files);
 
   return [
     ...files
       .filter((name) => !listed.has(name))
       .map((name) => `${name} is in migrations/schema/ but not in orderedMigrations`),
-    ...orderedMigrations
+    ...names
       .filter((name) => !onDisk.has(name))
       .map((name) => `${name} is in orderedMigrations but has no file in migrations/schema/`),
-    ...orderedMigrations
-      .filter((name, index) => index > 0 && name <= orderedMigrations[index - 1])
+    ...names
+      .filter((name, index) => names.indexOf(name) !== index)
+      .map((name) => `${name} is in orderedMigrations more than once`),
+    ...names
+      .filter((name, index) => datedName.test(name) !== index < LEGACY_MIGRATION_COUNT)
       .map(
         (name) =>
-          `${name} sorts before the entry above it; rename it to a later date than every migration on main`,
+          `${name} breaks the ${LEGACY_MIGRATION_COUNT} dated entries at the head of orderedMigrations; ` +
+          "append new migrations to the end, named without a date",
       ),
   ];
 }
@@ -54,20 +76,16 @@ function assertMigrationListValid() {
   process.exit(1);
 }
 
-/**
- * Reads migrations from `orderedMigrations` rather than the folder, so a
- * migration only exists once it is listed there.
- */
-const listedMigrationProvider: MigrationProvider = {
-  async getMigrations() {
-    const entries = await Promise.all(
-      orderedMigrations.map(async (name): Promise<[string, Migration]> => [
-        name,
-        (await import(path.join(migrationFolder, `${name}.ts`))) as Migration,
-      ]),
-    );
-    return Object.fromEntries(entries);
-  },
+const namedMigrationProvider: MigrationProvider = {
+  getMigrations: () =>
+    Promise.resolve(
+      Object.fromEntries(
+        orderedMigrations.map((migration, index) => [
+          migrationName(migration.name, index),
+          migration,
+        ]),
+      ),
+    ),
 };
 
 /**
@@ -165,7 +183,7 @@ async function withMigrator(run: (migrator: Migrator) => Promise<void>) {
 
   const migrator = new Migrator({
     db,
-    provider: listedMigrationProvider,
+    provider: namedMigrationProvider,
   });
 
   await run(migrator);
