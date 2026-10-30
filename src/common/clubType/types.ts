@@ -1,5 +1,6 @@
 import { ClubType, WorkType } from "@/../lib/types/generated/db";
-import { DetailedWorkListItem, WorkDataSummary } from "@/../lib/types/lists";
+import { DetailedWorkData, DetailedWorkListItem, WorkDataSummary } from "@/../lib/types/lists";
+import { CastMember } from "@/../lib/types/tmdb";
 import type { RangePreset } from "@/common/components/filterTypes";
 
 /**
@@ -78,6 +79,9 @@ export interface ClubTypeConfig {
   readonly icon: string;
   /** Human label, e.g. for tooltips/aria ("Movie club"). */
   readonly label: string;
+  /** What a club of this type reviews, in the plural — the club-type picker's
+   * option ("Movies", "Books", "TV shows"). */
+  readonly pluralLabel: string;
   /** Singular noun for one item of the media ("movie", "book"). */
   readonly noun: string;
   /** Past-tense verb for having finished one work ("watched", "read"). */
@@ -116,6 +120,12 @@ export interface ClubTypeConfig {
   /** Per-type extraction of the strings shown in the details drawers. */
   readonly display: WorkDisplay;
   /**
+   * Whether a reviewed work is one of the units statistics and review facts
+   * count. Every movie and book is. A TV club counts episodes: a show it
+   * scored on its own would otherwise count the same series again.
+   */
+  readonly isScoredUnit: (data: WorkDataSummary | undefined) => boolean;
+  /**
    * Build a similarity scorer for Score Assist's pivot selection, calibrated to
    * a candidate pool (its tag frequencies weight the overlaps). The returned
    * scorer maps a (target, candidate) pair to [0,1]; missing or mismatched-kind
@@ -138,6 +148,16 @@ export interface WorkDisplay {
   readonly metaLine: (data: WorkDataSummary | undefined) => string | undefined;
   /** Long-form blurb: the TMDB overview / the book description. */
   readonly overview: (data: WorkDataSummary | undefined) => string | undefined;
+  /** The recurring cast from a work's full details (fetched per work), for
+   * media that have one. */
+  readonly actors?: (details: DetailedWorkData | undefined) => CastMember[] | undefined;
+  /** The work's title where it stands alone (a details drawer, Score Assist,
+   * a shared page), for media whose own titles need context there. Others
+   * show the work's title as stored. */
+  readonly title?: (data: WorkDataSummary | undefined) => string | undefined;
+  /** What one work is called ("Rate this show"), for media whose works come
+   * at more than one level. Others fall back to the club type's `noun`. */
+  readonly noun?: (data: WorkDataSummary | undefined) => string | undefined;
 }
 
 /**

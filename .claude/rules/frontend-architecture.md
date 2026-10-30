@@ -30,6 +30,7 @@ These are the nits that come back every review; none of them are negotiable in a
 - **No Tailwind class-list variables.** Assigning a string of classes to a `const` and binding it is treated as an anti-pattern here: inline the classes at both call sites, or, if they genuinely must stay in sync, extract a component.
 - **Charts go through `VChart`**, not `<ag-charts>` directly. It closes the tooltip when the page scrolls — one opened by tapping a series otherwise stays up until the whole chart has left the viewport.
 - **Poster grids use `grid grid-cols-auto`** with `justify-items-center gap-4`, the way `ListItems.vue`, `SharedListView.vue` and the awards views do. Don't invent a breakpoint set — changing grid sizing has broken the watch-list desktop layout before.
+- **Teleport overlays out of animated content.** `animate-fade-up` (and any `transform`) makes its element the containing block for `position: fixed` descendants, so a `VModal`, bottom sheet or drawer mounted inside an expanded row covers that row instead of the screen. Wrap it in `<Teleport to="body">`, as `ShowRow` and `EpisodeRow` do.
 - **Template above script in every SFC.** Every component in the codebase is ordered that way.
 - **Match the sibling.** Most of the above collapses into one habit: before writing a component, open the one next to it and do what it does.
 

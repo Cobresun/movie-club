@@ -479,6 +479,22 @@ describe("DELETE /api/club/:clubSlug/list/:listId/items/:workId", () => {
     expect((await itemsOf(club.slug, other)).body.map((item) => item.id)).toEqual([work.id]);
   });
 
+  it("drops the reviews list's scores of a work that stays on another list", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub(alice);
+    const work = await addReviewedWork(club, alice, { externalId: "77" });
+    await addWork(club, alice, { externalId: "77" });
+    await scoreWork(club, alice, work.id, 8);
+
+    await api.delete(`/api/club/${club.slug}/list/${club.reviewsListId}/items/${work.id}`, {
+      as: alice,
+    });
+    await addReviewedWork(club, alice, { externalId: "77" });
+
+    const reviews = await api.get<DetailedReviewListItem[]>(`/api/club/${club.slug}/list/reviews`);
+    expect(reviews.body.map((review) => review.scores)).toEqual([{}]);
+  });
+
   it("returns 400 when the work is not on the list", async () => {
     const alice = await signIn("alice");
     const club = await createClub(alice);
@@ -634,6 +650,24 @@ describe("POST /api/club/:clubSlug/list/:listId/items/:workId/move", () => {
     expect(res.statusCode).toBe(200);
     const reviewed = await itemsOf(club.slug, club.reviewsListId);
     expect(Date.parse(reviewed.body[0].createdDate)).toBeGreaterThan(longAgo.getTime());
+  });
+
+  it("leaves the work's scores behind when it moves off the reviews list", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub(alice);
+    const work = await addReviewedWork(club, alice, { externalId: null });
+    await scoreWork(club, alice, work.id, 8);
+    const move = (from: string, to: string) =>
+      api.post(`/api/club/${club.slug}/list/${from}/items/${work.id}/move`, {
+        body: { destinationListId: to },
+        as: alice,
+      });
+
+    await move(club.reviewsListId, club.listId);
+    await move(club.listId, club.reviewsListId);
+
+    const reviews = await api.get<DetailedReviewListItem[]>(`/api/club/${club.slug}/list/reviews`);
+    expect(reviews.body.map((review) => review.scores)).toEqual([{}]);
   });
 
   it("returns 400 when the destination belongs to another club", async () => {

@@ -29,4 +29,5 @@ export const movieDisplay: WorkDisplay = {
     return parts.length > 0 ? parts.join(" · ") : undefined;
   },
   overview: (data) => asMovie(data)?.overview,
+  actors: (details) => asMovie(details)?.actors,
 };

@@ -288,6 +288,7 @@ const WRAPPED_DECKS: Record<ClubType, WrappedCardDef[]> = {
     tasteTwins,
     closestMatches,
   ],
+  [ClubType.tv]: [intro, topPicks, bottomPicks, mostDivisive, hotTakes, tasteTwins, closestMatches],
 };
 
 export function buildWrappedDeck(ctx: WrappedContext): WrappedCard[] {

@@ -3,6 +3,7 @@ import { DateTime } from "luxon";
 import { hasValue } from "@/../lib/checks/checks";
 import { DetailedBookData } from "@/../lib/types/book";
 import { WorkDataSummary } from "@/../lib/types/lists";
+import { asTv } from "@/common/clubType/tv/data";
 
 // Movies cache only a bare TMDB poster path; expand it here (w500 — higher res
 // than the w154 url stored on the work). Books store an absolute cover url.
@@ -57,6 +58,10 @@ export function workPosterUrl(
   if (hasValue(movie?.poster_path)) {
     return `${TMDB_POSTER_BASE}${movie.poster_path}`;
   }
+  // Every caller renders a portrait poster frame, so an episode shows its
+  // show's poster here; the landscape still belongs to the episode row alone.
+  const tv = asTv(data);
+  if (hasValue(tv?.posterPath)) return `${TMDB_POSTER_BASE}${tv.posterPath}`;
   return fallbackImageUrl ?? undefined;
 }
 
@@ -71,4 +76,9 @@ export function formatRuntime(minutes: number): string {
 /** ISO date string → medium-length localized date (e.g. "Jan 5, 2024"). */
 export function formatDate(dateString: string): string {
   return DateTime.fromISO(dateString).toLocaleString(DateTime.DATE_MED);
+}
+
+/** The compact numeric date a gallery card carries; the details drawer spells it out. */
+export function formatCardDate(dateString: string): string {
+  return DateTime.fromISO(dateString).toLocaleString();
 }

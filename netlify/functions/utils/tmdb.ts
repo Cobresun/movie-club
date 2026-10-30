@@ -11,6 +11,7 @@ import {
   TMDBMovieData,
   TMDBPageResponse,
 } from "../../../lib/types/movie";
+import { TMDBTvSeasonData, TMDBTvShowData } from "../../../lib/types/tv";
 
 async function makeTMDBApiCall<T>(path: string, params?: Record<string, string>) {
   const tmdbApiKey = process.env.TMDB_API_KEY;
@@ -44,6 +45,24 @@ export async function getTMDBMovieData(movieId: number): Promise<AxiosResponse<T
   return makeTMDBApiCall<TMDBMovieData>(`/movie/${movieId}`, {
     append_to_response: "credits",
   });
+}
+
+/**
+ * A show and its season list, plus the recurring cast. One call covers
+ * everything cached at show level; episodes come from {@link getTMDBTvSeason}.
+ */
+export async function getTMDBTvShowData(showId: number): Promise<AxiosResponse<TMDBTvShowData>> {
+  return makeTMDBApiCall<TMDBTvShowData>(`/tv/${showId}`, {
+    append_to_response: "aggregate_credits",
+  });
+}
+
+/** One season and every episode TMDB lists for it, in a single response. */
+export async function getTMDBTvSeason(
+  showId: number,
+  seasonNumber: number,
+): Promise<AxiosResponse<TMDBTvSeasonData>> {
+  return makeTMDBApiCall<TMDBTvSeasonData>(`/tv/${showId}/season/${seasonNumber}`);
 }
 
 /** One page of TMDB's "if you liked this" list for a movie, most relevant first. */

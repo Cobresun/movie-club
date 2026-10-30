@@ -13,13 +13,16 @@
     <WorkPosterHero
       :poster-url="posterUrl"
       :backdrop-path="movieData?.backdrop_path"
-      :title="movie.title"
+      :title="displayTitle"
       :year="displayYear"
       :is-desktop="isDesktop"
     >
       <template v-if="hasValue(metaLine)" #meta>{{ metaLine }}</template>
-      <template #date>
-        <template v-if="!isEditingDate">
+      <template v-if="isListed" #date>
+        <template v-if="hasValue(movie.parentId)">
+          Reviewed {{ formatDate(movie.createdDate) }}
+        </template>
+        <template v-else-if="!isEditingDate">
           <span
             class="inline-flex cursor-pointer items-center gap-1 hover:text-primary hover:underline"
             @click="openDateEditor"
@@ -132,7 +135,7 @@
       <WorkDescription :key="movie.id" :overview="overview" />
     </section>
 
-    <CastList v-if="movieData" :actors="castActors" class="mt-6" />
+    <CastList v-if="hasElements(castActors)" :actors="castActors" class="mt-6" />
 
     <!-- Details: factual metadata, external ratings and links -->
     <section v-if="hasDetails" class="mt-6">
@@ -147,6 +150,14 @@
           v-else-if="bookData"
           :first-publish-year="bookData.firstPublishYear"
           :subjects="bookData.subjects"
+        />
+        <TvMetadataGrid
+          v-else-if="tvData"
+          :air-date="tvData.airDate"
+          :is-episode="tvData.level === 'episode'"
+          :creators="tvData.creators"
+          :networks="tvData.networks"
+          :status="tvData.status"
         />
         <div
           v-if="isDefined(tmdbScore)"
@@ -176,10 +187,10 @@
       <WatchProviders v-if="movieData" :external-id="movie.externalId" class="mt-4" />
     </section>
 
-    <CommentThread :work-id="movie.id" :club-slug="clubId" />
+    <CommentThread v-if="isListed" :work-id="movie.id" :club-slug="clubId" />
 
     <DiscussionQuestions
-      v-if="discussionQuestionsEnabled"
+      v-if="isListed && discussionQuestionsEnabled"
       :club-slug="clubId"
       :work-id="movie.id"
       :media-noun="mediaNoun"
@@ -188,6 +199,7 @@
     <!-- Delete is deliberately tucked at the end of the content: it's a rare,
          destructive action and doesn't warrant sticky-footer prominence. -->
     <button
+      v-if="isListed"
       type="button"
       class="mx-auto mt-8 flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm text-red-400/80 transition hover:bg-red-500/10 hover:text-red-400"
       @click="showDeleteConfirmation = true"
@@ -207,13 +219,14 @@
         v-if="isDesktop"
         :target="movie"
         :score="myReview?.score"
-        :review-id="myReview?.id"
+        :review-id="myReviewId"
+        :save-score="saveScore"
         @saved="onScoreSaved"
       >
         <!-- Share graduates to a primary action beside "Edit score" once the
              user has a score to share. It lives in the dock's CTA row so it
              collapses in step when the score panel expands. -->
-        <template v-if="isDefined(myReview)" #secondary-action>
+        <template v-if="isDefined(myReviewId)" #secondary-action>
           <button
             type="button"
             class="flex shrink-0 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 font-bold tracking-wide text-text transition hover:brightness-110 active:scale-[0.98]"
@@ -237,7 +250,7 @@
           <span>{{ isDefined(myReview) ? "Edit score" : `Rate this ${mediaNoun}` }}</span>
         </button>
         <button
-          v-if="isDefined(myReview)"
+          v-if="isDefined(myReviewId)"
           type="button"
           class="flex shrink-0 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 font-bold tracking-wide text-text transition hover:brightness-110 active:scale-[0.98]"
           @click="shareReview(movie.id)"
@@ -253,7 +266,8 @@
       :key="movie.id"
       :target="movie"
       :score="myReview?.score"
-      :review-id="myReview?.id"
+      :review-id="myReviewId"
+      :save-score="saveScore"
       @close="showScoreEntry = false"
       @saved="onScoreSaved"
     />
@@ -264,7 +278,7 @@
 import { DateTime } from "luxon";
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 
-import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
+import { hasElements, hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import { Member } from "../../../../lib/types/club";
 import { ClubType } from "../../../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
@@ -275,7 +289,16 @@ import ReviewFactCard from "./ReviewFactCard.vue";
 import ScoreEntryDock from "./ScoreEntryDock.vue";
 import ScoreEntryModal from "./ScoreEntryModal.vue";
 import ScoreLabel from "./ScoreLabel.vue";
-import { clubTypeConfig, workMetaLine, workOverview, workSubtitle } from "@/common/clubType";
+import {
+  clubTypeConfig,
+  workMetaLine,
+  workNoun,
+  workOverview,
+  workActors,
+  workSubtitle,
+  workTitle,
+} from "@/common/clubType";
+import { asTv } from "@/common/clubType/tv/data";
 import BookMetadataGrid from "@/common/components/BookMetadataGrid.vue";
 import CastList from "@/common/components/CastList.vue";
 import CommentThread from "@/common/components/CommentThread.vue";
@@ -283,6 +306,7 @@ import DeleteConfirmationModal from "@/common/components/DeleteConfirmationModal
 import ExternalLink from "@/common/components/ExternalLink.vue";
 import MovieMetadataGrid from "@/common/components/MovieMetadataGrid.vue";
 import SectionHeader from "@/common/components/SectionHeader.vue";
+import TvMetadataGrid from "@/common/components/TvMetadataGrid.vue";
 import WatchProviders from "@/common/components/WatchProviders.vue";
 import WorkDescription from "@/common/components/WorkDescription.vue";
 import WorkPosterHero from "@/common/components/WorkPosterHero.vue";
@@ -306,6 +330,12 @@ const props = defineProps<{
   isDesktop: boolean;
   /** True once the host drawer/sheet has started its dismiss animation. */
   dismissing?: boolean;
+  /** Set when the work is not on the reviews list yet, so has no id to score
+   * against: the drawer previews it, and a score saves through this. */
+  saveScore?: (score: number) => void;
+  /** What the scores section lists, when it is more than the work's own
+   * reviews — a TV show's, rolled up from its members' episodes. */
+  shownEntries?: ScoreEntry[];
 }>();
 
 const emit = defineEmits<{
@@ -411,6 +441,7 @@ const reviewFact = computed(() =>
 
 const movieData = computed(() => asMovie(props.movie.externalData));
 const bookData = computed(() => asBook(props.movie.externalData));
+const tvData = computed(() => asTv(props.movie.externalData));
 
 // The bulk reviews payload carries only summary metadata; the cast list is
 // fetched on demand when this drawer opens (cached per work for the session).
@@ -418,13 +449,17 @@ const { data: workDetails } = useWorkDetails(
   clubId,
   computed(() => props.movie.id),
 );
-const castActors = computed(() => asMovie(workDetails.value ?? undefined)?.actors);
+const castActors = computed(() => workActors(workDetails.value ?? undefined));
 // Drives book/movie wording in child components (e.g. the discussion-questions
 // "couldn't recognize this ___" message).
-const mediaNoun = computed(() => clubTypeConfig(club.value?.type ?? ClubType.movie).noun);
+const mediaNoun = computed(
+  () =>
+    workNoun(props.movie.externalData) ?? clubTypeConfig(club.value?.type ?? ClubType.movie).noun,
+);
 const posterUrl = computed(() => workPosterUrl(props.movie.externalData, props.movie.imageUrl));
 
 // Release year (movies) or first-published year (books), via the shared helper.
+const displayTitle = computed(() => workTitle(props.movie));
 const displayYear = computed(() => workSubtitle(props.movie.externalData));
 
 // "2h 35m · Adventure, Science Fiction" (movies) / "Frank Herbert · 412 pages"
@@ -444,7 +479,7 @@ const tmdbScore = computed(() =>
 // Movies always have external links (Rotten Tomatoes is a title search);
 // books only warrant the section when they have any facts to show.
 const hasDetails = computed(() => {
-  if (isDefined(movieData.value)) return true;
+  if (isDefined(movieData.value) || isDefined(tvData.value)) return true;
   const book = bookData.value;
   return isDefined(book) && (book.firstPublishYear !== undefined || book.subjects.length > 0);
 });
@@ -467,13 +502,20 @@ const rottenTomatoesUrl = computed(() => {
     : undefined;
 });
 
-const scoreEntries = computed(() => workScoreEntries(props.movie, props.members));
+const scoreEntries = computed(
+  () => props.shownEntries ?? workScoreEntries(props.movie, props.members),
+);
 
 // The current user's own review for this work, if any — prefills the panel and
 // tells it whether to create (POST) or update (PUT).
 const myReview = computed(() =>
   isDefined(props.currentUserId) ? props.movie.scores[props.currentUserId] : undefined,
 );
+
+// Everything addressed by the work's id — its date, comments, questions,
+// share link and delete — waits until the work is on the reviews list.
+const isListed = computed(() => !isDefined(props.saveScore));
+const myReviewId = computed(() => (isListed.value ? myReview.value?.id : undefined));
 
 // Mobile-only: score entry lives in its own overlay (ScoreEntryModal), opened
 // from the sticky CTA. Desktop entry is inline via ScoreEntryDock instead.

@@ -52,6 +52,28 @@ class WorkRepository {
     return insertedWork;
   }
 
+  /**
+   * Upsert `child` as a part of `parentId` (a TV episode of its show). The
+   * child is listed through its parent, never on a list of its own.
+   */
+  async insertChild(clubId: string, parentId: string, child: ListInsertDto) {
+    return db
+      .insertInto("work")
+      .values({
+        club_id: clubId,
+        parent_work_id: parentId,
+        title: child.title,
+        type: child.type,
+        external_id: child.externalId,
+        image_url: child.imageUrl,
+      })
+      .onConflict((oc) =>
+        oc.constraint("uq_club_id_type_external_id").doUpdateSet({ parent_work_id: parentId }),
+      )
+      .returning("id")
+      .executeTakeFirstOrThrow();
+  }
+
   async getById(clubId: string, workId: string) {
     return db
       .selectFrom("work")

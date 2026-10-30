@@ -3,13 +3,14 @@ import { z } from "zod";
 import { DetailedBookData } from "./book";
 import { WorkListSystemType, WorkType } from "./generated/db";
 import { DetailedMovieData, MovieDataSummary } from "./movie";
+import { DetailedTvData, TvDataSummary } from "./tv";
 
 /**
  * Discriminated union of all media metadata shapes. Discriminate on `.kind`
  * (or on the sibling `WorkListItem.type`). Add a member here when introducing
  * a new club type.
  */
-export type DetailedWorkData = DetailedMovieData | DetailedBookData;
+export type DetailedWorkData = DetailedMovieData | DetailedBookData | DetailedTvData;
 
 /**
  * The bulk-payload variant of {@link DetailedWorkData}: each member may omit
@@ -17,7 +18,7 @@ export type DetailedWorkData = DetailedMovieData | DetailedBookData;
  * reviews endpoints return this; the per-work details endpoint returns the
  * full shape. Book metadata is small enough to double as its own summary.
  */
-export type WorkDataSummary = MovieDataSummary | DetailedBookData;
+export type WorkDataSummary = MovieDataSummary | DetailedBookData | TvDataSummary;
 
 /** One entry in a club's list collection (`GET /api/club/:clubSlug/list`). */
 export interface ClubListSummary {
@@ -47,6 +48,10 @@ export interface WorkListItem {
 
 export interface ReviewListItem extends WorkListItem {
   scores: ReviewScores;
+  /** The work this one is a child of (a TV episode's show). A child is on the
+   * reviews list only through its parent, and its reviewed date is when it
+   * was first scored rather than a list item's added date. */
+  parentId?: string;
 }
 
 /**

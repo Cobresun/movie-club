@@ -2,27 +2,27 @@
   <div class="flex flex-col items-center gap-4 text-center">
     <template v-if="isDefined(pivot)">
       <div class="flex flex-col gap-1">
-        <h2 class="text-xl font-bold">Which {{ noun }} did you like more?</h2>
+        <h2 class="text-xl font-bold">{{ question }}</h2>
         <p class="text-sm text-gray-400">Tap the one you liked more</p>
       </div>
       <div class="flex justify-center gap-4">
         <button
           type="button"
           class="w-40 rounded-lg transition duration-fast ease-standard hover:scale-[1.03] hover:ring-4 hover:ring-primary focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary active:scale-[0.98]"
-          :aria-label="`I liked ${target.title} more`"
+          :aria-label="`I liked ${targetTitle} more`"
           @click="answer('more')"
         >
-          <WorkPosterCard :title="target.title" :poster-url="targetPosterUrl" />
+          <WorkPosterCard :title="targetTitle" :poster-url="targetPosterUrl" />
         </button>
         <Transition name="pivot-swap" mode="out-in">
           <button
             :key="pivot.workId"
             type="button"
             class="w-40 rounded-lg transition duration-fast ease-standard hover:scale-[1.03] hover:ring-4 hover:ring-primary focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary active:scale-[0.98]"
-            :aria-label="`I liked ${pivot.title} more`"
+            :aria-label="`I liked ${workTitle(pivot)} more`"
             @click="answer('less')"
           >
-            <WorkPosterCard :title="pivot.title" :poster-url="pivotPosterUrl">
+            <WorkPosterCard :title="workTitle(pivot)" :poster-url="pivotPosterUrl">
               <!-- The pool spans every club the user belongs to, so a pivot
                    they scored elsewhere says where it came from. Clubs can
                    share a name, so the comparison is by id. -->
@@ -62,7 +62,7 @@ import { DetailedReviewListItem } from "../../../../lib/types/lists";
 import { ComparisonAnswer, ScoredCandidate } from "../composables/scoreAssistLogic";
 import { useScoreAssist } from "../composables/useScoreAssist";
 import { formatScore } from "../scoreScale";
-import { clubTypeConfig } from "@/common/clubType";
+import { clubTypeConfig, workNoun, workTitle } from "@/common/clubType";
 import WorkPosterCard from "@/common/components/WorkPosterCard.vue";
 import { workPosterUrl } from "@/common/workDisplay";
 
@@ -93,7 +93,15 @@ const {
   progressLabel,
 } = useScoreAssist(props.target, props.candidates);
 
-const noun = computed(() => clubTypeConfig(props.clubType).noun);
+const targetTitle = computed(() => workTitle(props.target));
+
+// Candidates are always the club's own unit (an episode, for TV), so a target
+// at another level — a show — is compared without naming either.
+const question = computed(() => {
+  const noun = clubTypeConfig(props.clubType).noun;
+  const targetNoun = workNoun(props.target.externalData) ?? noun;
+  return targetNoun === noun ? `Which ${noun} did you like more?` : "Which did you like more?";
+});
 
 const targetPosterUrl = computed(
   () => workPosterUrl(props.target.externalData, props.target.imageUrl) ?? "",

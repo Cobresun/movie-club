@@ -11,6 +11,7 @@ export const movieClubConfig: ClubTypeConfig = {
   workType: WorkType.movie,
   icon: "movie-open-outline",
   label: "Movie club",
+  pluralLabel: "Movies",
   noun: "movie",
   finishedVerb: "watched",
   searchHint: "Search for a movie to add.",
@@ -107,5 +108,6 @@ export const movieClubConfig: ClubTypeConfig = {
     shareText: "Join my club and score the movies we watch together.",
   },
   display: movieDisplay,
+  isScoredUnit: () => true,
   makeSimilarity: makeMovieSimilarity,
 };

@@ -82,7 +82,7 @@
     <CastList :actors="castActors" class="mt-6" />
 
     <!-- Details: factual metadata -->
-    <section v-if="movieData || bookData" class="mt-6">
+    <section v-if="movieData || bookData || tvData" class="mt-6">
       <SectionHeader title="Details" />
       <div class="grid grid-cols-2 gap-x-4 gap-y-3">
         <MovieMetadataGrid
@@ -95,6 +95,14 @@
           v-else-if="bookData"
           :first-publish-year="bookData.firstPublishYear"
           :subjects="bookData.subjects"
+        />
+        <TvMetadataGrid
+          v-else-if="tvData"
+          :air-date="tvData.airDate"
+          :is-episode="tvData.level === 'episode'"
+          :creators="tvData.creators"
+          :networks="tvData.networks"
+          :status="tvData.status"
         />
       </div>
     </section>
@@ -153,15 +161,18 @@ import {
   clubTypeConfig,
   workMetaLine,
   workOverview,
+  workActors,
   workSubtitle,
   workTypeSupportsWatchProviders,
 } from "@/common/clubType";
+import { asTv } from "@/common/clubType/tv/data";
 import BookMetadataGrid from "@/common/components/BookMetadataGrid.vue";
 import CastList from "@/common/components/CastList.vue";
 import CommentThread from "@/common/components/CommentThread.vue";
 import DeleteConfirmationModal from "@/common/components/DeleteConfirmationModal.vue";
 import MovieMetadataGrid from "@/common/components/MovieMetadataGrid.vue";
 import SectionHeader from "@/common/components/SectionHeader.vue";
+import TvMetadataGrid from "@/common/components/TvMetadataGrid.vue";
 import VAvatar from "@/common/components/VAvatar.vue";
 import WatchProviders from "@/common/components/WatchProviders.vue";
 import WorkDescription from "@/common/components/WorkDescription.vue";
@@ -221,6 +232,7 @@ const onMoveSelect = async (value: string | null) => {
 
 const movieData = computed(() => asMovie(props.movie.externalData));
 const bookData = computed(() => asBook(props.movie.externalData));
+const tvData = computed(() => asTv(props.movie.externalData));
 
 // Bulk list payloads carry only summary metadata; fetch the full cast on
 // demand when this drawer opens (skipped for optimistic temp rows).
@@ -228,7 +240,7 @@ const { data: workDetails } = useWorkDetails(
   props.clubSlug,
   computed(() => props.movie.id),
 );
-const castActors = computed(() => asMovie(workDetails.value ?? undefined)?.actors);
+const castActors = computed(() => workActors(workDetails.value ?? undefined));
 
 // Cover/poster and year are sourced per media type; workPosterUrl prefers the
 // movie's TMDB poster and falls back to the work's stored imageUrl (book cover).

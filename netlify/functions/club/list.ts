@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { hasValue } from "../../../lib/checks/checks.js";
+import { hasValue, isDefined } from "../../../lib/checks/checks.js";
 import {
   ClubListSummary,
   DetailedReviewListItem,
@@ -197,6 +197,12 @@ router.delete(
     if (isRouterResponse(workId)) return workId;
     const exists = await ListRepository.isItemInList(listId, workId);
     if (!exists) {
+      // A child work (a TV episode) is on the list only through its parent:
+      // taking it off the list deletes it, and with it every score it has.
+      if (await ListRepository.isOnList(listId, workId)) {
+        await WorkRepository.delete(clubId, workId);
+        return res(ok());
+      }
       return res(badRequest("This movie does not exist in the list"));
     }
     await ListRepository.deleteItemFromList(listId, workId);
@@ -306,6 +312,22 @@ function toDetailedListItem(
   };
 }
 
+/**
+ * When a work joined the reviews: when it was put on the list, or, for a child
+ * work (which is on the list only through its parent), when it was first
+ * scored.
+ */
+function reviewedDate(
+  rows: { parent_work_id: string | null; time_added: Date; created_date: Date | null }[],
+): Date {
+  const [first] = rows;
+  if (!hasValue(first.parent_work_id)) return first.time_added;
+  const scored = rows.map((row) => row.created_date).filter(isDefined);
+  return scored.length > 0
+    ? new Date(Math.min(...scored.map((date) => date.getTime())))
+    : first.time_added;
+}
+
 async function getReviewList(clubId: string): Promise<DetailedReviewListItem[]> {
   const [reviews, members] = await Promise.all([
     ReviewRepository.getReviewList(clubId),
@@ -339,8 +361,9 @@ async function getReviewList(clubId: string): Promise<DetailedReviewListItem[]> 
 
       return {
         id: key,
+        parentId: review.parent_work_id ?? undefined,
         title: review.title,
-        createdDate: review.time_added.toISOString(),
+        createdDate: reviewedDate(items).toISOString(),
         type: review.type,
         imageUrl: review.image_url ?? undefined,
         externalId: review.external_id ?? undefined,

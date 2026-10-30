@@ -1,8 +1,8 @@
 import { isDefined } from "../../../../lib/checks/checks.js";
 import { WorkType } from "../../../../lib/types/generated/db";
-import { DetailedWorkData, WorkDataSummary } from "../../../../lib/types/lists";
-import { MovieCastMember } from "../../../../lib/types/movie";
+import { DetailedWorkData, ListInsertDto, WorkDataSummary } from "../../../../lib/types/lists";
 import { SimilarWork } from "../../../../lib/types/recommendations";
+import { CastMember } from "../../../../lib/types/tmdb";
 
 /** Coerce a nullable Int8/decimal column (string | null) to number | undefined. */
 export function numOrUndefined(value: string | null): number | undefined {
@@ -27,6 +27,9 @@ export interface RefreshResult {
  */
 export interface MediaProvider {
   readonly type: WorkType;
+
+  /** Title of the user-facing list a new club starts with ("Watch List"). */
+  readonly defaultListTitle: string;
 
   /**
    * Fetch external metadata for a freshly-added work and cache it in this
@@ -54,7 +57,7 @@ export interface MediaProvider {
    * meaningful for providers whose works have a cast (movies); others return
    * an empty map. Serves the statistics leaderboards' bulk cast fetch.
    */
-  getCast: (externalIds: string[]) => Promise<Map<string, MovieCastMember[]>>;
+  getCast: (externalIds: string[]) => Promise<Map<string, CastMember[]>>;
 
   /**
    * Re-fetch the `limit` works whose cached details are stalest (oldest
@@ -71,6 +74,18 @@ export interface MediaProvider {
    * server-resolved data — never from client input.
    */
   getDiscussionPrompt: (work: { title: string; externalId: string | null }) => Promise<string>;
+
+  /**
+   * The child of `parent` that `childExternalId` names — a TV episode of its
+   * show — as the work to upsert under it, or undefined when there is no such
+   * child (media without children, a season, an episode the source does not
+   * list). The client chooses only the id: whether the child exists, and what
+   * it is called, is read from the provider's own data.
+   */
+  resolveChild: (
+    parent: { externalId: string | null },
+    childExternalId: string,
+  ) => Promise<ListInsertDto | undefined>;
 
   /**
    * Works this provider's source considers similar to each of `externalIds`,

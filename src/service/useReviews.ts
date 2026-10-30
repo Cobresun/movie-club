@@ -10,7 +10,7 @@ import axios, { AxiosError, AxiosInstance } from "axios";
 import { hasValue, isDefined } from "../../lib/checks/checks.js";
 import { Member } from "../../lib/types/club";
 import { DetailedReviewListItem, ReviewScores, WorkCommentDto } from "../../lib/types/lists";
-import { MovieCastMember } from "../../lib/types/movie";
+import { CastMember } from "../../lib/types/tmdb";
 import { reviewsListKey } from "./useList";
 import { memberScoresKey, useUser } from "./useUser";
 import { useAuthStore } from "@/stores/auth";
@@ -22,12 +22,11 @@ import { useAuthStore } from "@/stores/auth";
  */
 export function useReviewsCast(
   clubSlug: string,
-): UseQueryReturnType<Record<string, MovieCastMember[]>, AxiosError> {
+): UseQueryReturnType<Record<string, CastMember[]>, AxiosError> {
   return useQuery({
     queryKey: ["reviewsCast", clubSlug] as const,
     queryFn: async () =>
-      (await axios.get<Record<string, MovieCastMember[]>>(`/api/club/${clubSlug}/reviews/cast`))
-        .data,
+      (await axios.get<Record<string, CastMember[]>>(`/api/club/${clubSlug}/reviews/cast`)).data,
   });
 }
 
@@ -104,18 +103,24 @@ function useReviewWork(clubSlug: string) {
       workId,
       score,
       sourceListId,
+      childExternalId,
     }: {
       workId: string;
       score: number;
       sourceListId?: string;
+      childExternalId?: string;
     }) =>
       auth.request.post(`/api/club/${clubSlug}/reviews`, {
         score,
         workId,
         sourceListId,
+        childExternalId,
       }),
-    onMutate: async ({ workId, score }) => {
-      if (!workId) return;
+    // A save on a child lands on a work that may not exist yet, not on
+    // `workId`, so there is no list item to write the score onto or poll. Its
+    // caller shows the save as pending instead.
+    onMutate: async ({ workId, score, childExternalId }) => {
+      if (!workId || hasValue(childExternalId)) return;
       await queryClient.cancelQueries({ queryKey: reviewsListKey(clubSlug) });
       queryClient.setQueryData<DetailedReviewListItem[]>(
         reviewsListKey(clubSlug),
@@ -140,7 +145,10 @@ function useReviewWork(clubSlug: string) {
         },
       );
     },
-    onSuccess: (_data, { workId }) => startScorePoll(auth.request, queryClient, clubSlug, workId),
+    onSuccess: (_data, { workId, childExternalId }) => {
+      if (hasValue(childExternalId)) return;
+      startScorePoll(auth.request, queryClient, clubSlug, workId);
+    },
     onSettled: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: reviewsListKey(clubSlug) }),
@@ -205,15 +213,34 @@ function useUpdateReviewScore(clubSlug: string) {
  * the score (see `isValidScore` in scoreScale.ts) before calling.
  */
 export function useSubmitScore(clubSlug: string) {
-  const { mutate: create } = useReviewWork(clubSlug);
-  const { mutate: update } = useUpdateReviewScore(clubSlug);
+  // mutateAsync rather than mutate: a mutate-level callback only fires for the
+  // latest call, so two saves in quick succession would drop the first one's
+  // onSettled. Each promise settles on its own.
+  const { mutateAsync: create } = useReviewWork(clubSlug);
+  const { mutateAsync: update } = useUpdateReviewScore(clubSlug);
 
-  return ({ workId, reviewId, score }: { workId: string; reviewId?: string; score: number }) => {
-    if (hasValue(reviewId)) {
-      update({ reviewId, workId, score });
-    } else {
-      create({ workId, score });
-    }
+  return (
+    {
+      workId,
+      reviewId,
+      score,
+      childExternalId,
+    }: {
+      workId: string;
+      reviewId?: string;
+      score: number;
+      /** Scores the child of `workId` this names instead (a TV episode of its
+       * show), which need not be a work yet. */
+      childExternalId?: string;
+    },
+    /** Runs once the save has settled and the reviews list has refetched. */
+    options?: { onSettled?: () => void },
+  ) => {
+    const saving = hasValue(reviewId)
+      ? update({ reviewId, workId, score })
+      : create({ workId, score, childExternalId });
+    // A failed save surfaces through the refetch putting the old score back.
+    void saving.catch(() => undefined).finally(() => options?.onSettled?.());
   };
 }
 

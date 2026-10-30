@@ -9,9 +9,9 @@ import {
 } from "../../../../lib/googleBooks";
 import { DetailedBookData } from "../../../../lib/types/book";
 import { WorkType } from "../../../../lib/types/generated/db";
-import { DetailedWorkData, WorkDataSummary } from "../../../../lib/types/lists";
-import { MovieCastMember } from "../../../../lib/types/movie";
+import { DetailedWorkData, ListInsertDto, WorkDataSummary } from "../../../../lib/types/lists";
 import { SimilarWork } from "../../../../lib/types/recommendations";
+import { CastMember } from "../../../../lib/types/tmdb";
 import { db } from "../database";
 import { getGoogleBooksVolume } from "./googleBooks";
 import { MediaProvider, numOrUndefined, RefreshResult } from "./types";
@@ -90,6 +90,7 @@ function detailsQuery(externalIds: string[]) {
 
 class BookProvider implements MediaProvider {
   readonly type = WorkType.book;
+  readonly defaultListTitle = "Reading List";
 
   async fetchAndCacheDetails(externalId: string): Promise<void> {
     // Skip the Google Books round trip when details are already cached — the
@@ -171,8 +172,12 @@ class BookProvider implements MediaProvider {
 
   // Books have no cast; the statistics equivalent (authors) already ships in
   // the summary payload.
-  getCast(): Promise<Map<string, MovieCastMember[]>> {
-    return Promise.resolve(new Map<string, MovieCastMember[]>());
+  getCast(): Promise<Map<string, CastMember[]>> {
+    return Promise.resolve(new Map<string, CastMember[]>());
+  }
+
+  resolveChild(): Promise<ListInsertDto | undefined> {
+    return Promise.resolve(undefined);
   }
 
   async getDiscussionPrompt(work: { title: string; externalId: string | null }): Promise<string> {

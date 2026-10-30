@@ -11,6 +11,7 @@ export const bookClubConfig: ClubTypeConfig = {
   workType: WorkType.book,
   icon: "book-open-page-variant-outline",
   label: "Book club",
+  pluralLabel: "Books",
   noun: "book",
   finishedVerb: "read",
   searchHint: "Search for a book to add.",
@@ -88,5 +89,6 @@ export const bookClubConfig: ClubTypeConfig = {
     shareText: "Join my club and score the books we read together.",
   },
   display: bookDisplay,
+  isScoredUnit: () => true,
   makeSimilarity: makeBookSimilarity,
 };

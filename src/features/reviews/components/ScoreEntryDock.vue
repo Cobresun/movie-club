@@ -54,12 +54,13 @@
             <Transition name="mode-swap" mode="out-in">
               <ScoreEntryPanel
                 v-if="mode === 'entry'"
-                :work-id="target.id"
+                :work="target"
                 :score="score"
                 :review-id="reviewId"
                 :draft-score="suggestedScore"
                 :autofocus="openCount > 0"
                 :autofocus-delay="AUTOFOCUS_DELAY_MS"
+                :save-score="saveScore"
                 @submit="collapse"
                 @saved="emit('saved')"
                 @assist="mode = 'assist'"
@@ -128,6 +129,7 @@ const props = defineProps<{
   target: DetailedReviewListItem;
   score?: number;
   reviewId?: string;
+  saveScore?: (score: number) => void;
 }>();
 
 // Bubbles up when a score is persisted so the drawer can animate the tile.
