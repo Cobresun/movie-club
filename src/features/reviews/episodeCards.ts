@@ -1,13 +1,13 @@
 import { hasValue } from "../../../lib/checks/checks.js";
 import { WorkType } from "../../../lib/types/generated/db";
-import { DetailedReviewListItem, ReviewScores } from "../../../lib/types/lists";
+import { type DetailedReviewListItem, type ReviewScores } from "../../../lib/types/lists";
 import {
   episodeCode,
   formatTvAddress,
-  TMDBTvEpisodeData,
-  TvDataSummary,
+  type TMDBTvEpisodeData,
+  type TvDataSummary,
 } from "../../../lib/types/tv";
-import { EpisodeNode } from "./reviewTree";
+import { type EpisodeNode } from "./reviewTree";
 import { tmdbStillUrl } from "@/common/clubType/tv/data";
 import { OPTIMISTIC_WORK_ID } from "@/service/useList";
 

@@ -2,9 +2,8 @@
  * Integration tests for `netlify/functions/club/settings.ts` — the club feature
  * flags, stored as a JSON blob in `club_settings` and merged on write.
  */
-import { describe, expect, it } from "vitest";
 
-import { ClubSettings } from "../../../lib/types/club";
+import { type ClubSettings } from "../../../lib/types/club";
 import { handler } from "../club/index";
 import { signIn } from "./helpers/auth";
 import { addReviewedWork, createClub } from "./helpers/factories";
@@ -20,7 +19,7 @@ describe("GET /api/club/:clubSlug/settings", () => {
     const res = await api.get<ClubSettings>(`/api/club/${club.slug}/settings`, { as: alice });
 
     expect(res.statusCode).toBe(200);
-    expect(res.body).toEqual({ features: { awards: true, discussionQuestions: false } });
+    expect(res.body).toStrictEqual({ features: { awards: true, discussionQuestions: false } });
   });
 
   it("returns 401 for a non-member", async () => {
@@ -53,7 +52,7 @@ describe("POST /api/club/:clubSlug/settings", () => {
     });
 
     expect(res.statusCode).toBe(200);
-    expect(res.body).toEqual({ features: { awards: true, discussionQuestions: false } });
+    expect(res.body).toStrictEqual({ features: { awards: true, discussionQuestions: false } });
 
     const reread = await api.get<ClubSettings>(`/api/club/${club.slug}/settings`, { as: alice });
     expect(reread.body.features.awards).toBe(true);
@@ -68,7 +67,7 @@ describe("POST /api/club/:clubSlug/settings", () => {
       as: alice,
     });
 
-    expect(res.body).toEqual({ features: { awards: true, discussionQuestions: true } });
+    expect(res.body).toStrictEqual({ features: { awards: true, discussionQuestions: true } });
   });
 
   it("treats an empty body object as a no-op", async () => {
@@ -81,7 +80,7 @@ describe("POST /api/club/:clubSlug/settings", () => {
     });
 
     expect(res.statusCode).toBe(200);
-    expect(res.body).toEqual({ features: { awards: true, discussionQuestions: false } });
+    expect(res.body).toStrictEqual({ features: { awards: true, discussionQuestions: false } });
   });
 
   it("gates the feature it names — turning discussion questions off closes the route", async () => {

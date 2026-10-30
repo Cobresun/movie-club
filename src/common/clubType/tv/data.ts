@@ -1,5 +1,5 @@
-import { WorkDataSummary } from "@/../lib/types/lists";
-import { TvDataSummary } from "@/../lib/types/tv";
+import { type WorkDataSummary } from "@/../lib/types/lists";
+import { type TvDataSummary } from "@/../lib/types/tv";
 
 const TMDB_STILL_BASE = "https://image.tmdb.org/t/p/w300";
 

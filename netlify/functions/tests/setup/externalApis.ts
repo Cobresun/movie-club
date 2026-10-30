@@ -31,7 +31,7 @@ export const TMDB = "https://api.themoviedb.org/3";
 export const GOOGLE_BOOKS = "https://www.googleapis.com/books/v1";
 // The Gemini path ends in `models/<model>:generateContent`; the colon would be
 // read as a path parameter by MSW's matcher, so match the host instead.
-const GEMINI = /generativelanguage\.googleapis\.com/;
+const GEMINI = /generativelanguage\.googleapis\.com/u;
 
 const CLOUDINARY = "https://api.cloudinary.com/v1_1/:cloud";
 export const CLOUDINARY_UPLOAD = `${CLOUDINARY}/image/upload`;

@@ -12,7 +12,7 @@ export interface ScoreBand {
   color: string;
 }
 
-export const SCORE_BANDS: ReadonlyArray<ScoreBand> = [
+export const SCORE_BANDS: readonly ScoreBand[] = [
   { min: 0, label: "Awful", color: "#ef4444" },
   { min: 2, label: "Bad", color: "#f97316" },
   { min: 4, label: "Meh", color: "#eab308" },

@@ -8,10 +8,9 @@
  * is also what proves the right id was fetched.
  */
 import { HttpResponse, http } from "msw";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { WorkType } from "../../../../lib/types/generated/db";
-import { TMDBMovieData } from "../../../../lib/types/movie";
+import { type TMDBMovieData } from "../../../../lib/types/movie";
 import { TMDB_IMAGE_BASE_URL, tmdbMovie } from "../../tests/fixtures/external";
 import { server } from "../../tests/mocks/server";
 
@@ -62,7 +61,7 @@ describe("getTMDBMovieData", () => {
 
     const result = await getTMDBMovieData(27205);
 
-    expect(result.data).toEqual(tmdbMovie(27205));
+    expect(result.data).toStrictEqual(tmdbMovie(27205));
   });
 
   it("propagates TMDB errors", async () => {
@@ -80,7 +79,7 @@ describe("getTMDBMovieData", () => {
     const { getTMDBMovieData } = await importTmdb();
     server.use(http.get(MOVIE_URL, () => HttpResponse.error()));
 
-    await expect(getTMDBMovieData(27205)).rejects.toThrow();
+    await expect(getTMDBMovieData(27205)).rejects.toThrow("Network error");
   });
 });
 
@@ -94,7 +93,7 @@ describe("getDetailedMovie", () => {
 
     const result = await getDetailedMovie([]);
 
-    expect(result).toEqual([]);
+    expect(result).toStrictEqual([]);
   });
 
   it("merges TMDB data into each movie object", async () => {
@@ -119,22 +118,22 @@ describe("getDetailedMovie", () => {
     const { getDetailedMovie } = await importTmdb();
 
     const result = await getDetailedMovie([{ movieId: 27205 }]);
-    const actors = result[0]?.movieData.actors ?? [];
+    const actors = result[0]?.movieData.actors;
 
-    expect(actors[0]?.name).toBe("Lead 27205");
-    expect(actors[0]?.profilePath).toBe("/lead-27205.jpg");
-    expect(actors[1]?.name).toBe("Support 27205");
-    expect(actors[1]?.profilePath).toBeNull();
+    expect(actors?.[0]?.name).toBe("Lead 27205");
+    expect(actors?.[0]?.profilePath).toBe("/lead-27205.jpg");
+    expect(actors?.[1]?.name).toBe("Support 27205");
+    expect(actors?.[1]?.profilePath).toBeNull();
   });
 
   it("filters crew to only Directors", async () => {
     const { getDetailedMovie } = await importTmdb();
 
     const result = await getDetailedMovie([{ movieId: 27205 }]);
-    const directors = result[0]?.movieData.directors ?? [];
+    const directors = result[0]?.movieData.directors;
 
     expect(directors).toHaveLength(1);
-    expect(directors[0]?.name).toBe("Director 27205");
+    expect(directors?.[0]?.name).toBe("Director 27205");
   });
 
   it("maps genres to string array", async () => {
@@ -148,7 +147,7 @@ describe("getDetailedMovie", () => {
 
     const result = await getDetailedMovie([{ movieId: 27205 }]);
 
-    expect(result[0]?.movieData.genres).toEqual(["Action", "Science Fiction"]);
+    expect(result[0]?.movieData.genres).toStrictEqual(["Action", "Science Fiction"]);
   });
 
   it("maps production_companies to name strings", async () => {
@@ -156,7 +155,7 @@ describe("getDetailedMovie", () => {
 
     const result = await getDetailedMovie([{ movieId: 27205 }]);
 
-    expect(result[0]?.movieData.production_companies).toEqual(["Studio 27205"]);
+    expect(result[0]?.movieData.production_companies).toStrictEqual(["Studio 27205"]);
   });
 
   it("maps production_countries to name strings", async () => {
@@ -164,7 +163,7 @@ describe("getDetailedMovie", () => {
 
     const result = await getDetailedMovie([{ movieId: 27205 }]);
 
-    expect(result[0]?.movieData.production_countries).toEqual(["United States of America"]);
+    expect(result[0]?.movieData.production_countries).toStrictEqual(["United States of America"]);
   });
 
   it("parses vote_average string to float", async () => {
@@ -190,8 +189,8 @@ describe("getDetailedMovie", () => {
 
     const result = await getDetailedMovie([{ movieId: 27205 }]);
 
-    expect(result[0]?.movieData.actors).toEqual([]);
-    expect(result[0]?.movieData.directors).toEqual([]);
+    expect(result[0]?.movieData.actors).toStrictEqual([]);
+    expect(result[0]?.movieData.directors).toStrictEqual([]);
   });
 });
 
@@ -205,7 +204,7 @@ describe("getDetailedWorks", () => {
 
     const result = await getDetailedWorks([]);
 
-    expect(result).toEqual([]);
+    expect(result).toStrictEqual([]);
   });
 
   it("attaches externalData to works that have an externalId", async () => {
@@ -214,7 +213,7 @@ describe("getDetailedWorks", () => {
     const result = await getDetailedWorks([movieWork("27205")]);
 
     expect(result).toHaveLength(1);
-    expect(result[0]?.externalData).toEqual(tmdbMovie(27205));
+    expect(result[0]?.externalData).toStrictEqual(tmdbMovie(27205));
   });
 
   it("leaves works without an externalId unchanged", async () => {
@@ -223,7 +222,7 @@ describe("getDetailedWorks", () => {
 
     const result = await getDetailedWorks([work]);
 
-    expect(result).toEqual([work]);
+    expect(result).toStrictEqual([work]);
   });
 
   it("leaves works with an empty externalId unchanged", async () => {
@@ -232,7 +231,7 @@ describe("getDetailedWorks", () => {
 
     const result = await getDetailedWorks([work]);
 
-    expect(result).toEqual([work]);
+    expect(result).toStrictEqual([work]);
   });
 
   it("processes multiple works in parallel", async () => {
@@ -249,6 +248,6 @@ describe("getDetailedWorks", () => {
     const { getDetailedWorks } = await importTmdb();
     server.use(http.get(MOVIE_URL, () => HttpResponse.error()));
 
-    await expect(getDetailedWorks([movieWork("27205")])).rejects.toThrow();
+    await expect(getDetailedWorks([movieWork("27205")])).rejects.toThrow("Network error");
   });
 });

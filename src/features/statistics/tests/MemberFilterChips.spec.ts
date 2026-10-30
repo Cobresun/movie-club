@@ -33,7 +33,7 @@ describe("MemberFilterChips", () => {
 
     await rendered.user.click(screen.getByRole("button", { name: /dev/ }));
 
-    expect(rendered.emitted()["update:modelValue"]).toEqual([["1"]]);
+    expect(rendered.emitted()["update:modelValue"]).toStrictEqual([["1"]]);
   });
 
   it("clears the selection by emitting undefined from the All chip", async () => {
@@ -43,7 +43,7 @@ describe("MemberFilterChips", () => {
 
     await rendered.user.click(screen.getByRole("button", { name: "All" }));
 
-    expect(rendered.emitted()["update:modelValue"]).toEqual([[undefined]]);
+    expect(rendered.emitted()["update:modelValue"]).toStrictEqual([[undefined]]);
   });
 
   it("marks the selected member's chip as the active one", () => {
@@ -77,7 +77,7 @@ describe("SegmentedToggle", () => {
   it("renders one tab per option", () => {
     render(SegmentedToggle, { props: { options, modelValue: "scores" } });
 
-    expect(screen.getAllByRole("tab").map((tab) => tab.textContent?.trim())).toEqual([
+    expect(screen.getAllByRole("tab").map((tab) => tab.textContent?.trim())).toStrictEqual([
       "Scores",
       "Counts",
     ]);
@@ -97,7 +97,7 @@ describe("SegmentedToggle", () => {
 
     await rendered.user.click(screen.getByRole("tab", { name: "Counts" }));
 
-    expect(rendered.emitted()["update:modelValue"]).toEqual([["counts"]]);
+    expect(rendered.emitted()["update:modelValue"]).toStrictEqual([["counts"]]);
   });
 
   it("still emits when the current option is re-clicked, leaving dedupe to v-model", async () => {
@@ -107,6 +107,6 @@ describe("SegmentedToggle", () => {
 
     await rendered.user.click(screen.getByRole("tab", { name: "Scores" }));
 
-    expect(rendered.emitted()["update:modelValue"]).toEqual([["scores"]]);
+    expect(rendered.emitted()["update:modelValue"]).toStrictEqual([["scores"]]);
   });
 });

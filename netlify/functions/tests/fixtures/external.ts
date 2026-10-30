@@ -1,6 +1,10 @@
-import { GoogleBooksVolume } from "../../../../lib/types/book";
-import { TMDBConfig, TMDBMovieData, TMDBPageResponse } from "../../../../lib/types/movie";
-import { TMDBTvSeasonData, TMDBTvShowData } from "../../../../lib/types/tv";
+import { type GoogleBooksVolume } from "../../../../lib/types/book";
+import {
+  type TMDBConfig,
+  type TMDBMovieData,
+  type TMDBPageResponse,
+} from "../../../../lib/types/movie";
+import { type TMDBTvSeasonData, type TMDBTvShowData } from "../../../../lib/types/tv";
 
 /**
  * Payload builders for the third-party APIs the backend talks to.

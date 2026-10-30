@@ -1,8 +1,8 @@
 import { hasValue } from "../../../../lib/checks/checks.js";
 import AwardsRepository from "../../repositories/AwardsRepository";
 import { badRequest, notFound } from "../../utils/responses";
-import { MiddlewareCallback } from "../../utils/router";
-import { ClubRequest } from "../../utils/validation";
+import { type MiddlewareCallback } from "../../utils/router";
+import { type ClubRequest } from "../../utils/validation";
 
 export interface ClubAwardRequest extends ClubRequest {
   year: number;
@@ -10,7 +10,7 @@ export interface ClubAwardRequest extends ClubRequest {
 
 export const validYear: MiddlewareCallback<ClubRequest, ClubAwardRequest> = async (req, res) => {
   if (!hasValue(req.params.year)) return res(notFound());
-  const year = parseInt(req.params.year);
+  const year = parseInt(req.params.year, 10);
   if (isNaN(year)) return res(badRequest());
 
   const exists = await AwardsRepository.existsByYear(req.clubId, year);
@@ -20,7 +20,6 @@ export const validYear: MiddlewareCallback<ClubRequest, ClubAwardRequest> = asyn
       ...req,
       year,
     };
-  } else {
-    return res(notFound("Awards year not found"));
   }
+  return res(notFound("Awards year not found"));
 };

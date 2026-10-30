@@ -20,7 +20,7 @@ describe("wrappedYears", () => {
       makeMovie({ id: "3", createdDate: "2024-11-01T00:00:00.000Z" }),
     ];
 
-    expect(wrappedYears(works)).toEqual([2025, 2024]);
+    expect(wrappedYears(works)).toStrictEqual([2025, 2024]);
   });
 
   it("holds back the current year until its Wrapped comes out on January 1", () => {
@@ -29,15 +29,15 @@ describe("wrappedYears", () => {
       makeMovie({ id: "2", createdDate: "2026-03-01T00:00:00.000Z" }),
     ];
 
-    expect(wrappedYears(works, new Date("2026-12-31T23:59:59.000Z"))).toEqual([2025]);
-    expect(wrappedYears(works, new Date("2027-01-01T00:00:00.000Z"))).toEqual([2026, 2025]);
+    expect(wrappedYears(works, new Date("2026-12-31T23:59:59.000Z"))).toStrictEqual([2025]);
+    expect(wrappedYears(works, new Date("2027-01-01T00:00:00.000Z"))).toStrictEqual([2026, 2025]);
   });
 
   it("files a review made at midnight UTC on New Year's Day under the new year", () => {
     const newYear = makeMovie({ id: "1", createdDate: "2025-01-01T00:00:00.000Z" });
 
-    expect(worksInYear([newYear], 2025)).toEqual([newYear]);
-    expect(worksInYear([newYear], 2024)).toEqual([]);
+    expect(worksInYear([newYear], 2025)).toStrictEqual([newYear]);
+    expect(worksInYear([newYear], 2024)).toStrictEqual([]);
   });
 });
 
@@ -60,19 +60,19 @@ describe("computePicks", () => {
   it("takes the three best and three worst of a full year", () => {
     const { top, bottom } = computePicks(works([5, 9, 1, 7, 3, 8, 2]));
 
-    expect(top.map((work) => work.average)).toEqual([9, 8, 7]);
-    expect(bottom.map((work) => work.average)).toEqual([1, 2, 3]);
+    expect(top.map((work) => work.average)).toStrictEqual([9, 8, 7]);
+    expect(bottom.map((work) => work.average)).toStrictEqual([1, 2, 3]);
   });
 
   it("never shows the same work as both a top and a bottom pick", () => {
     const { top, bottom } = computePicks(works([4, 8, 6]));
 
-    expect(top.map((work) => work.average)).toEqual([8]);
-    expect(bottom.map((work) => work.average)).toEqual([4]);
+    expect(top.map((work) => work.average)).toStrictEqual([8]);
+    expect(bottom.map((work) => work.average)).toStrictEqual([4]);
   });
 
   it("has no picks for a single work", () => {
-    expect(computePicks(works([7]))).toEqual({ top: [], bottom: [] });
+    expect(computePicks(works([7]))).toStrictEqual({ top: [], bottom: [] });
   });
 });
 
@@ -85,7 +85,7 @@ describe("computeHotTakes", () => {
 
     const takes = computeHotTakes(works, [alice, bob, cara]);
 
-    expect(takes.map((take) => [take.member.name, take.title, take.gap])).toEqual([
+    expect(takes.map((take) => [take.member.name, take.title, take.gap])).toStrictEqual([
       ["Alice Smith", "Cats", 6.5],
       ["Cara Lee", "Heat", -5],
       ["Bob Jones", "Cats", -4],
@@ -95,13 +95,13 @@ describe("computeHotTakes", () => {
   it("gives no hot take to a member who always agreed", () => {
     const works = [makeMovie({ id: "1", userScores: { a: 7, b: 7 } })];
 
-    expect(computeHotTakes(works, [alice, bob])).toEqual([]);
+    expect(computeHotTakes(works, [alice, bob])).toStrictEqual([]);
   });
 
   it("skips works nobody else scored", () => {
     const works = [makeMovie({ id: "1", userScores: { a: 1 } })];
 
-    expect(computeHotTakes(works, [alice, bob])).toEqual([]);
+    expect(computeHotTakes(works, [alice, bob])).toStrictEqual([]);
   });
 });
 
@@ -111,7 +111,7 @@ describe("computeClosestMatches", () => {
 
     const matches = computeClosestMatches(works, [alice, bob, cara]);
 
-    expect(matches.map((m) => [m.member.name, m.match.name, m.mutual])).toEqual([
+    expect(matches.map((m) => [m.member.name, m.match.name, m.mutual])).toStrictEqual([
       ["Alice Smith", "Bob Jones", true],
       ["Cara Lee", "Bob Jones", false],
     ]);

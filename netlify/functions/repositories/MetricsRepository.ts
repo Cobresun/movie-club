@@ -1,28 +1,39 @@
-import { Expression, ExpressionBuilder, InferResult, QueryCreator, sql } from "kysely";
+import {
+  type Expression,
+  type ExpressionBuilder,
+  type InferResult,
+  type QueryCreator,
+  sql,
+} from "kysely";
 
 import { isDefined } from "../../../lib/checks/checks.js";
-import { DB, Json, SignupSource, WorkType } from "../../../lib/types/generated/db.js";
 import {
-  Acquisition,
-  ActivityBucket,
-  AdminDashboard,
-  BucketUnit,
-  ClubRow,
-  ClubStatus,
+  type DB,
+  type Json,
+  SignupSource,
+  type WorkType,
+} from "../../../lib/types/generated/db.js";
+import {
+  type Acquisition,
+  type ActivityBucket,
+  type AdminDashboard,
+  type BucketUnit,
+  type ClubRow,
+  type ClubStatus,
   clubRowSchema,
-  FeedEvent,
-  MetricsRange,
-  PeriodCount,
-  PersonRow,
+  type FeedEvent,
+  type MetricsRange,
+  type PeriodCount,
+  type PersonRow,
   RANGE_BUCKET,
   RANGE_DAYS,
-  Rate,
-  ReviewedWork,
+  type Rate,
+  type ReviewedWork,
   reviewedWorkSchema,
-  SnapshotHistoryPoint,
-  SnapshotMetrics,
+  type SnapshotHistoryPoint,
+  type SnapshotMetrics,
   snapshotHistoryMetricsSchema,
-  WantedWork,
+  type WantedWork,
   wantedWorkSchema,
 } from "../../../lib/types/metrics.js";
 import { db } from "../utils/database";
@@ -714,11 +725,11 @@ class MetricsRepository {
     // clubRowSchema's nativeEnum check is what makes it a ClubType.
     return rows.map((row) =>
       clubRowSchema.parse({
-        clubId: String(row.id),
+        clubId: row.id,
         name: row.name,
         slug: row.slug,
         type: row.type,
-        memberNames: memberNames.get(String(row.id)) ?? [],
+        memberNames: memberNames.get(row.id) ?? [],
         reviews: toCount(row.reviews),
         events: toCount(row.events),
         lastActiveAt: toIsoTimestamp(row.last_ts),
@@ -753,7 +764,7 @@ class MetricsRepository {
       .execute();
 
     for (const row of rows) {
-      const key = String(row.club_id);
+      const key = row.club_id;
       const names = grouped.get(key);
       if (names === undefined) {
         grouped.set(key, [row.name]);
@@ -859,7 +870,7 @@ class MetricsRepository {
     clubs: string | null;
   }): PersonRow {
     return {
-      userId: String(row.id),
+      userId: row.id,
       name: row.name,
       image: row.image,
       reviews: toCount(row.reviews),

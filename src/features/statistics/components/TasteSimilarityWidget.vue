@@ -61,7 +61,7 @@ import { computed, ref } from "vue";
 import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import { Member } from "../../../../lib/types/club";
 import { computeTasteSimilarity } from "../statsComputers";
-import type { WorkStatsData } from "../types";
+import { type WorkStatsData } from "../types";
 import SegmentedToggle from "./SegmentedToggle.vue";
 import VAvatar from "@/common/components/VAvatar.vue";
 import WidgetShell from "@/common/components/WidgetShell.vue";
@@ -70,20 +70,24 @@ import { firstName } from "@/common/memberName";
 type Mode = "most" | "least";
 type Scope = "club" | "you";
 
-const props = defineProps<{
+const {
+  workData,
+  members,
+  currentUserId = "",
+} = defineProps<{
   workData: WorkStatsData[];
   members: Member[];
   /** Set when the viewer is signed in; unlocks the "You" scope if they're a club member. */
   currentUserId?: string;
 }>();
 
-const clubSimilarity = computed(() => computeTasteSimilarity(props.workData, props.members));
+const clubSimilarity = computed(() => computeTasteSimilarity(workData, members));
 
 // Only worth computing when the viewer is actually one of this club's members
 // — an anonymous or non-member viewer has no pairs of their own.
 const userSimilarity = computed(() => {
-  if (!hasValue(props.currentUserId)) return { mostSimilar: null, leastSimilar: null };
-  return computeTasteSimilarity(props.workData, props.members, props.currentUserId);
+  if (!hasValue(currentUserId)) return { mostSimilar: null, leastSimilar: null };
+  return computeTasteSimilarity(workData, members, currentUserId);
 });
 
 const scopeOptions = computed(() => {
@@ -162,7 +166,7 @@ const SUBTITLES: Record<Scope, Record<Mode, string>> = {
 const subtitle = computed(() => SUBTITLES[scope.value][mode.value]);
 
 function memberLabel(member: { id: string; name: string }): string {
-  if (scope.value === "you" && member.id === props.currentUserId) return "You";
+  if (scope.value === "you" && member.id === currentUserId) return "You";
   return firstName(member.name);
 }
 </script>

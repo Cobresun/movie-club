@@ -1,4 +1,4 @@
-import { Handler, HandlerEvent } from "@netlify/functions";
+import { type Handler, type HandlerEvent } from "@netlify/functions";
 
 import { hasValue, isDefined } from "../../lib/checks/checks.js";
 import { auth } from "./utils/auth";
@@ -11,10 +11,17 @@ const handler: Handler = async (event: HandlerEvent) => {
     hasValue(event.rawQuery) ? `?${event.rawQuery}` : ""
   }`;
 
-  // Create a Web Request from the Netlify event
+  // Create a Web Request from the Netlify event. Undefined-valued headers are
+  // dropped: the Fetch Headers API rejects them anyway.
+  const headersRecord: Record<string, string> = {};
+  for (const key of Object.keys(event.headers)) {
+    const value = event.headers[key];
+    if (isDefined(value)) headersRecord[key] = value;
+  }
+
   const request = new Request(url, {
     method: event.httpMethod,
-    headers: new Headers(event.headers as Record<string, string>),
+    headers: headersRecord,
     body:
       event.httpMethod !== "GET" && event.httpMethod !== "HEAD" && isDefined(event.body)
         ? event.body

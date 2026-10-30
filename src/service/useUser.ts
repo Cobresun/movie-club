@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
 import { computed } from "vue";
 
-import { ClubPreview, User } from "../../lib/types/club";
-import { MemberScoredWork } from "../../lib/types/lists";
+import { type ClubPreview, type User } from "../../lib/types/club";
+import { type MemberScoredWork } from "../../lib/types/lists";
 import { useAuthStore } from "@/stores/auth";
 
 export function useUser() {
@@ -14,7 +14,7 @@ export function useUser() {
     if (!user) return undefined;
 
     return {
-      id: String(user.id),
+      id: user.id,
       email: user.email,
       name: user.name,
       image: user.image ?? undefined,
@@ -71,7 +71,7 @@ export function useUpdateAvatar() {
   const refreshProfile = useProfileRefresh();
   return useMutation({
     mutationFn: async (formData: FormData) =>
-      await auth.request.post(`/api/member/avatar`, formData, {
+      auth.request.post(`/api/member/avatar`, formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
@@ -84,7 +84,7 @@ export function useDeleteAvatar() {
   const auth = useAuthStore();
   const refreshProfile = useProfileRefresh();
   return useMutation({
-    mutationFn: async () => await auth.request.delete(`/api/member/avatar`),
+    mutationFn: async () => auth.request.delete(`/api/member/avatar`),
     onSettled: refreshProfile,
   });
 }
@@ -93,7 +93,7 @@ export function useUpdateName() {
   const auth = useAuthStore();
   const refreshProfile = useProfileRefresh();
   return useMutation({
-    mutationFn: async (name: string) => await auth.request.put(`/api/member/name`, { name }),
+    mutationFn: async (name: string) => auth.request.put(`/api/member/name`, { name }),
     onSettled: refreshProfile,
   });
 }

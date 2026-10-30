@@ -118,14 +118,19 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 
 import { isDefined } from "../../../../lib/checks/checks.js";
-import { DetailedReviewListItem } from "../../../../lib/types/lists";
+import { type DetailedReviewListItem } from "../../../../lib/types/lists";
 import { useScoreAssistCandidates } from "../composables/useScoreAssistCandidates";
 import ScoreAssistFlow from "./ScoreAssistFlow.vue";
 import ScoreEntryPanel from "./ScoreEntryPanel.vue";
 import { clubTypeConfig } from "@/common/clubType";
 import AnimatedHeight from "@/common/components/AnimatedHeight.vue";
 
-const props = defineProps<{
+const {
+  target,
+  score = undefined,
+  reviewId = undefined,
+  saveScore = undefined,
+} = defineProps<{
   target: DetailedReviewListItem;
   score?: number;
   reviewId?: string;
@@ -152,8 +157,8 @@ const ctaButton = ref<HTMLButtonElement | null>(null);
 // The assist flow doesn't save; it hands its suggestion back so the panel
 // swaps back to the dial pre-filled, leaving the actual save to the user.
 const suggestedScore = ref<number>();
-const applySuggestion = (score: number) => {
-  suggestedScore.value = score;
+const applySuggestion = (newScore: number) => {
+  suggestedScore.value = newScore;
   mode.value = "entry";
 };
 
@@ -179,7 +184,7 @@ const onKeydownCapture = (event: KeyboardEvent) => {
   // Collapsing makes the panel inert, which drops focus to <body>; hand it to
   // the CTA (after the patch removes its inert flag) so keyboard users stay
   // anchored in the footer.
-  void nextTick(() => ctaButton.value?.focus());
+  void nextTick().then(() => ctaButton.value?.focus());
 };
 
 onMounted(() => window.addEventListener("keydown", onKeydownCapture, true));
@@ -188,13 +193,13 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydownCapture, tr
 // Assist inputs are derived here (from the cached reviews query) rather than
 // prop-drilled, mirroring ScoreEntryModal, so the drawer only hands the dock
 // its target work.
-const { clubType, clubId, candidates } = useScoreAssistCandidates(() => props.target);
+const { clubType, clubId, candidates } = useScoreAssistCandidates(() => target);
 const noun = computed(() => clubTypeConfig(clubType.value).noun);
 
 // The work's title is already in the drawer hero right above, so the heading
 // names the action rather than repeating it.
 const heading = computed(() =>
-  isDefined(props.reviewId) ? "Edit your score" : `Score this ${noun.value}`,
+  isDefined(reviewId) ? "Edit your score" : `Score this ${noun.value}`,
 );
 </script>
 

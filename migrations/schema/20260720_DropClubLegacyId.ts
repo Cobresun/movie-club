@@ -1,4 +1,4 @@
-import { Kysely } from "kysely";
+import { type Kysely } from "kysely";
 
 // Drops the vestigial `club.legacy_id` column. It dates back to the
 // pre-CockroachDB club ids and became write-only dead weight: the only writer

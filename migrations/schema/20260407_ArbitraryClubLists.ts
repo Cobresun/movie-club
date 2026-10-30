@@ -1,4 +1,4 @@
-import { Kysely, sql } from "kysely";
+import { type Kysely, sql } from "kysely";
 
 // Moves clubs from the rigid (watchlist | backlog | reviews | award_nominations)
 // list model to a model where each club can have an arbitrary number of

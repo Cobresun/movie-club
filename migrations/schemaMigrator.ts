@@ -9,10 +9,10 @@ import { fileURLToPath } from "url";
 import { hasElements, hasValue, isDefined } from "../lib/checks/checks.js";
 import { orderedMigrations } from "./orderedMigrations.js";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const currentFilename = fileURLToPath(import.meta.url);
+const currentDirname = path.dirname(currentFilename);
 
-const migrationFolder = path.join(__dirname, "/schema");
+const migrationFolder = path.join(currentDirname, "/schema");
 
 /**
  * Problems with `orderedMigrations` that would make it lie about what runs:
@@ -105,12 +105,13 @@ function assertSafeToMigrate() {
     return;
   }
 
-  let pathname: string;
+  let parsedUrl: URL;
   try {
-    pathname = new URL(databaseUrl).pathname;
+    parsedUrl = new URL(databaseUrl);
   } catch {
     return;
   }
+  const { pathname } = parsedUrl;
 
   if (pathname !== "/dev") {
     return;
@@ -137,7 +138,9 @@ function assertSafeToMigrate() {
 
   console.error("Refusing to migrate: DATABASE_URL points at the shared `dev` database,");
   console.error("but these migrations do not exist on origin/main:");
-  newMigrations.forEach((file) => console.error(`  - ${file}`));
+  newMigrations.forEach((file) => {
+    console.error(`  - ${file}`);
+  });
   console.error("");
   console.error("Applying them would break deploy previews for every other open PR.");
   console.error("Test new migrations against a spawned database instead:");
@@ -151,7 +154,7 @@ function assertSafeToMigrate() {
   process.exit(1);
 }
 
-async function withMigrator(next: (migrator: Migrator) => Promise<void>) {
+async function withMigrator(run: (migrator: Migrator) => Promise<void>) {
   const db = new Kysely<unknown>({
     dialect: new CockroachDialect({
       pool: new Pool({
@@ -165,7 +168,7 @@ async function withMigrator(next: (migrator: Migrator) => Promise<void>) {
     provider: listedMigrationProvider,
   });
 
-  await next(migrator);
+  await run(migrator);
   await db.destroy();
 }
 

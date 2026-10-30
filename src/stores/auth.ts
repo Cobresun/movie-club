@@ -1,11 +1,11 @@
 import { useQuery, useQueryClient } from "@tanstack/vue-query";
-import axios from "axios";
+import { create } from "axios";
 import { defineStore } from "pinia";
 import { ref, computed, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 import { hasValue, isDefined, isTrue } from "../../lib/checks/checks.js";
-import { ClubPreview } from "../../lib/types/club";
+import { type ClubPreview } from "../../lib/types/club";
 import { resolveDefaultClubSlug } from "../common/composables/useLastClubSlug";
 import { getSignedInHint, setSignedInHint } from "../common/composables/useSessionHint";
 import { watchUntil } from "../common/composables/watchUntil";
@@ -24,8 +24,8 @@ export const useAuthStore = defineStore("auth", () => {
   // Derived state from session
   const user = computed(() => session.value.data?.user);
   const isLoggedIn = computed(() => isDefined(session.value.data?.session));
-  const ready = computed(() => session.value.isPending === false);
-  const isInitialLoading = computed(() => session.value.isPending === true);
+  const ready = computed(() => !session.value.isPending);
+  const isInitialLoading = computed(() => session.value.isPending);
 
   // Read once, before the session check comes back: it describes the PREVIOUS
   // session, so nothing that happens now can change what it should have said.
@@ -52,7 +52,7 @@ export const useAuthStore = defineStore("auth", () => {
 
   // Axios instance for authenticated requests
   // Better Auth handles cookies automatically, so we don't need to manually add auth headers
-  const request = computed(() => axios.create());
+  const request = computed(() => create());
 
   // A browser whose last session was signed in asks for its clubs alongside
   // the session check rather than after it. Both are slow round trips, and
@@ -77,9 +77,8 @@ export const useAuthStore = defineStore("auth", () => {
     retry: (failureCount) => isLoggedIn.value && failureCount < 3,
   });
 
-  const isClubMember = (clubSlug: string) => {
-    return userClubs.value?.some((club) => club.slug === clubSlug) ?? false;
-  };
+  const isClubMember = (clubSlug: string) =>
+    userClubs.value?.some((club) => club.slug === clubSlug) ?? false;
 
   // Force a fresh fetch of the user's clubs and wait for it. Used as a safety
   // net by the route guard: waitForClubsReady awaits any in-flight refetch, but

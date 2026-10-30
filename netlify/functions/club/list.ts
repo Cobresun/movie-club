@@ -2,14 +2,14 @@ import { z } from "zod";
 
 import { hasValue, isDefined } from "../../../lib/checks/checks.js";
 import {
-  ClubListSummary,
-  DetailedReviewListItem,
-  DetailedWorkListItem,
-  ReviewsListIdResponse,
-  UserListItemWithSource,
-  WorkDataSummary,
+  type ClubListSummary,
+  type DetailedReviewListItem,
+  type DetailedWorkListItem,
+  type ReviewsListIdResponse,
+  type UserListItemWithSource,
+  type WorkDataSummary,
+  listInsertDtoSchema,
 } from "../../../lib/types/lists.js";
-import { listInsertDtoSchema } from "../../../lib/types/lists.js";
 import ListRepository from "../repositories/ListRepository";
 import ReviewRepository from "../repositories/ReviewRepository";
 import UserRepository from "../repositories/UserRepository";
@@ -21,7 +21,7 @@ import { requireParam } from "../utils/requireParam";
 import { badRequest, internalServerError, ok } from "../utils/responses";
 import { buildReviewScores } from "../utils/reviewScores";
 import { isRouterResponse, Router } from "../utils/router";
-import { ClubRequest, ListRequest, validListId } from "../utils/validation";
+import { type ClubRequest, type ListRequest, validListId } from "../utils/validation";
 import { BadRequest } from "@/common/errorCodes";
 
 const router = new Router<ClubRequest>("/api/club/:clubSlug/list");
@@ -49,7 +49,7 @@ router.get("/", async ({ clubId }, res) => {
   return res(
     ok<ClubListSummary[]>(
       lists.map((row) => ({
-        id: String(row.id),
+        id: row.id,
         title: row.title,
         systemType: row.system_type,
         itemCount: Number(row.item_count),
@@ -86,7 +86,7 @@ router.post("/", secured, async ({ clubId, event }, res) => {
   const created = await ListRepository.createList(clubId, body.title);
   return res(
     ok<ClubListSummary>({
-      id: String(created.id),
+      id: created.id,
       title: created.title,
       systemType: created.system_type,
       itemCount: 0,
@@ -114,7 +114,7 @@ router.get("/all-items", async ({ clubId }, res) => {
 
   const mapped = items.map((item) => ({
     ...toDetailedListItem(item, externalData),
-    sourceListId: String(item.list_id),
+    sourceListId: item.list_id,
     sourceListTitle: item.list_title,
   }));
   return res(ok<UserListItemWithSource[]>(mapped));
@@ -209,8 +209,12 @@ router.delete(
     try {
       await WorkRepository.delete(clubId, workId);
     } catch (e) {
-      const error = e as { constraint?: string };
-      if (error?.constraint !== "fk_work_list_item_work_id") {
+      if (
+        typeof e !== "object" ||
+        e === null ||
+        !("constraint" in e) ||
+        e.constraint !== "fk_work_list_item_work_id"
+      ) {
         return res(internalServerError("Failed to delete work"));
       }
     }

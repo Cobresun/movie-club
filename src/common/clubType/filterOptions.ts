@@ -1,5 +1,5 @@
-import type { ChoiceFilterOption, RangeFilterOption } from "./types";
-import type { RangePreset } from "@/common/components/filterTypes";
+import { type ChoiceFilterOption, type RangeFilterOption } from "./types";
+import { type RangePreset } from "@/common/components/filterTypes";
 import { reviewAverageScore } from "@/common/filterMatchers";
 
 const formatScore = (score: number) => String(Math.round(score * 100) / 100);

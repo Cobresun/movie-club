@@ -1,4 +1,4 @@
-import { Kysely, sql } from "kysely";
+import { type Kysely, sql } from "kysely";
 
 /**
  * Adds the `tv` value to the existing `club_type` enum so a club can be a TV

@@ -1,5 +1,5 @@
 import axios from "axios";
-import { Kysely, sql } from "kysely";
+import { type Kysely, sql } from "kysely";
 
 interface TMDBCastMember {
   id: number;
@@ -147,7 +147,9 @@ export async function up(db: Kysely<unknown>) {
 
     // Delay between batches to respect TMDB rate limits
     if (i + BATCH_SIZE < movies.length) {
-      await new Promise((resolve) => setTimeout(resolve, BATCH_DELAY_MS));
+      await new Promise((resolve) => {
+        setTimeout(resolve, BATCH_DELAY_MS);
+      });
     }
 
     console.log(`Progress: ${Math.min(i + BATCH_SIZE, movies.length)}/${movies.length}`);

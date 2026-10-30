@@ -30,7 +30,7 @@ function castResponse(cast: Record<string, { name: string; profilePath: string |
 }
 
 describe("PeopleWidget", () => {
-  it("opens on the directors leaderboard", async () => {
+  it("opens on the directors leaderboard", () => {
     render(PeopleWidget, { props: { movieData } });
 
     expect(screen.getByRole("heading", { name: "Filmmakers" })).toBeInTheDocument();
@@ -43,7 +43,7 @@ describe("PeopleWidget", () => {
     render(PeopleWidget, { props: { movieData } });
 
     await waitFor(() => {
-      expect(screen.getAllByRole("tab").map((tab) => tab.textContent?.trim())).toEqual([
+      expect(screen.getAllByRole("tab").map((tab) => tab.textContent?.trim())).toStrictEqual([
         "Directors",
       ]);
     });
@@ -84,7 +84,9 @@ describe("PeopleWidget", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getAllByRole("tab").map((tab) => tab.textContent?.trim())).toEqual(["Actors"]);
+      expect(screen.getAllByRole("tab").map((tab) => tab.textContent?.trim())).toStrictEqual([
+        "Actors",
+      ]);
     });
     expect(screen.getByText("Timothée Chalamet")).toBeInTheDocument();
   });

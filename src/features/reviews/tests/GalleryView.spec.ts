@@ -62,7 +62,7 @@ describe("GalleryView", () => {
   it("renders a card per review, with its date and score pills", async () => {
     renderGallery();
 
-    expect(await screen.findByRole("heading", { name: "Dune" })).toBeInTheDocument();
+    await expect(screen.findByRole("heading", { name: "Dune" })).resolves.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Arrival" })).toBeInTheDocument();
     expect(screen.getByText("5/28/2024")).toBeInTheDocument();
     expect(screen.getByText("6/30/2024")).toBeInTheDocument();
@@ -88,7 +88,9 @@ describe("GalleryView", () => {
     await user.click(await screen.findByRole("button", { name: /Sort by/ }));
     await user.click(screen.getByRole("option", { name: /Average rating/ }));
 
-    await waitFor(() => expect(cardTitles()).toEqual(["Dune", "Arrival"]));
+    await waitFor(() => {
+      expect(cardTitles()).toStrictEqual(["Dune", "Arrival"]);
+    });
     expect(screen.getByRole("button", { name: /Sorted by.*Average rating/ })).toBeInTheDocument();
   });
 
@@ -99,7 +101,9 @@ describe("GalleryView", () => {
     await user.click(screen.getByRole("option", { name: /dev's rating/ }));
 
     // dev gave Arrival a 9 and Dune a 7 — the opposite of the club average.
-    await waitFor(() => expect(cardTitles()).toEqual(["Arrival", "Dune"]));
+    await waitFor(() => {
+      expect(cardTitles()).toStrictEqual(["Arrival", "Dune"]);
+    });
   });
 
   it("reverses the order on demand, and says which way it runs", async () => {
@@ -107,11 +111,15 @@ describe("GalleryView", () => {
 
     await user.click(await screen.findByRole("button", { name: /Sort by/ }));
     await user.click(screen.getByRole("option", { name: /Average rating/ }));
-    await waitFor(() => expect(cardTitles()).toEqual(["Dune", "Arrival"]));
+    await waitFor(() => {
+      expect(cardTitles()).toStrictEqual(["Dune", "Arrival"]);
+    });
 
     await user.click(screen.getByRole("button", { name: /Highest first/ }));
 
-    await waitFor(() => expect(cardTitles()).toEqual(["Arrival", "Dune"]));
+    await waitFor(() => {
+      expect(cardTitles()).toStrictEqual(["Arrival", "Dune"]);
+    });
     expect(screen.getByRole("button", { name: /Lowest first/ })).toBeInTheDocument();
   });
 
@@ -125,12 +133,12 @@ describe("GalleryView", () => {
 
     await user.click(await screen.findByRole("button", { name: /Sort by/ }));
     await user.click(screen.getByRole("option", { name: /Average rating/ }));
-    await waitFor(() => expect(cardTitles()).toEqual(["Dune", "Arrival", "Solaris"]));
+    await waitFor(() => expect(cardTitles()).toStrictEqual(["Dune", "Arrival", "Solaris"]));
 
     // Reversing promotes the lowest score, not the work that has none.
     await user.click(screen.getByRole("button", { name: /Highest first/ }));
 
-    await waitFor(() => expect(cardTitles()).toEqual(["Arrival", "Dune", "Solaris"]));
+    await waitFor(() => expect(cardTitles()).toStrictEqual(["Arrival", "Dune", "Solaris"]));
   });
 
   it("describes a date sort as newest-first instead of highest-first", async () => {
@@ -139,7 +147,9 @@ describe("GalleryView", () => {
     await user.click(await screen.findByRole("button", { name: /Sort by/ }));
     await user.click(screen.getByRole("option", { name: /Date reviewed/ }));
 
-    await waitFor(() => expect(cardTitles()).toEqual(["Arrival", "Dune"]));
+    await waitFor(() => {
+      expect(cardTitles()).toStrictEqual(["Arrival", "Dune"]);
+    });
     expect(screen.getByRole("button", { name: /Newest first/ })).toBeInTheDocument();
   });
 
@@ -150,7 +160,9 @@ describe("GalleryView", () => {
     await user.click(screen.getByRole("option", { name: /Average rating/ }));
     await user.click(screen.getByRole("button", { name: /Clear/ }));
 
-    await waitFor(() => expect(cardTitles()).toEqual(["Dune", "Arrival"]));
+    await waitFor(() => {
+      expect(cardTitles()).toStrictEqual(["Dune", "Arrival"]);
+    });
     expect(screen.getByRole("button", { name: /Sort by/ })).toBeInTheDocument();
   });
 
@@ -180,7 +192,7 @@ describe("GalleryView", () => {
     // each work the entry point that matches — something no card shows.
     await user.click(await screen.findByRole("button", { name: "Arrival" }));
 
-    expect(await screen.findByRole("button", { name: /rate this/i })).toBeInTheDocument();
+    await expect(screen.findByRole("button", { name: /rate this/i })).resolves.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /edit score/i })).not.toBeInTheDocument();
   });
 
@@ -207,7 +219,7 @@ describe("GalleryView", () => {
 
     render(ReviewView, { props: { clubSlug: "test-club" } });
 
-    expect(await screen.findByText("No Reviews Yet")).toBeInTheDocument();
+    await expect(screen.findByText("No Reviews Yet")).resolves.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Sort by/ })).not.toBeInTheDocument();
   });
 });

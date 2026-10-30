@@ -1,5 +1,6 @@
 import { http, HttpResponse } from "msw";
 import { ref } from "vue";
+import { z } from "zod";
 
 import {
   useAddListItem,
@@ -18,6 +19,11 @@ import {
 import { WorkType } from "@/../lib/types/generated/db";
 import { server } from "@/mocks/server";
 import { withSetup } from "@/tests/utils";
+
+const listTitleSchema = z.object({ title: z.string() });
+const moveSchema = z.object({ destinationListId: z.string() });
+const reorderSchema = z.object({ workIds: z.array(z.string()) });
+const addedDateSchema = z.object({ addedDate: z.string() });
 
 function item(id: string, title: string) {
   return { id, title, type: "movie", createdDate: "2024-01-01T00:00:00.000Z" };
@@ -50,7 +56,7 @@ function listsApi(initial: ReturnType<typeof list>[]) {
       HttpResponse.json(find(params.listId)?.items ?? []),
     ),
     http.post("/api/club/:id/list", async ({ request }) => {
-      const { title } = (await request.json()) as { title: string };
+      const { title } = listTitleSchema.parse(await request.json());
       const created = list(`list-${lists.length + 1}`, title);
       lists = [...lists, created];
       return HttpResponse.json({ ...created, systemType: null, itemCount: 0 });
@@ -60,13 +66,13 @@ function listsApi(initial: ReturnType<typeof list>[]) {
       return ok();
     }),
     http.post("/api/club/:id/list/:listId/items", async ({ request, params }) => {
-      const { title } = (await request.json()) as { title: string };
+      const { title } = listTitleSchema.parse(await request.json());
       const target = find(params.listId);
       target?.items.push(item(`work-${(target.items.length + 1).toString()}`, title));
       return ok();
     }),
     http.post("/api/club/:id/list/:listId/items/:workId/move", async ({ request, params }) => {
-      const { destinationListId } = (await request.json()) as { destinationListId: string };
+      const { destinationListId } = moveSchema.parse(await request.json());
       const source = find(params.listId);
       const moved = source?.items.find((entry) => entry.id === String(params.workId));
       if (!source || !moved) return new HttpResponse(null, { status: 404 });
@@ -82,7 +88,7 @@ function listsApi(initial: ReturnType<typeof list>[]) {
       return ok();
     }),
     http.put("/api/club/:id/list/:listId/reorder", async ({ request, params }) => {
-      const { workIds } = (await request.json()) as { workIds: string[] };
+      const { workIds } = reorderSchema.parse(await request.json());
       const target = find(params.listId);
       if (target) {
         target.items = workIds.flatMap(
@@ -92,7 +98,7 @@ function listsApi(initial: ReturnType<typeof list>[]) {
       return ok();
     }),
     http.put("/api/club/:id/list/:listId/items/:workId/added-date", async ({ request, params }) => {
-      const { addedDate } = (await request.json()) as { addedDate: string };
+      const { addedDate } = addedDateSchema.parse(await request.json());
       const target = find(params.listId);
       const entry = target?.items.find((candidate) => candidate.id === String(params.workId));
       if (entry) entry.createdDate = addedDate;
@@ -139,13 +145,13 @@ describe("useList", () => {
     const { result } = withSetup(() => useList("test-club", listId));
 
     await vi.waitFor(() => {
-      expect(titles(result)).toEqual(["Item of list-a"]);
+      expect(titles(result)).toStrictEqual(["Item of list-a"]);
     });
 
     listId.value = "list-b";
 
     await vi.waitFor(() => {
-      expect(titles(result)).toEqual(["Item of list-b"]);
+      expect(titles(result)).toStrictEqual(["Item of list-b"]);
     });
   });
 });
@@ -177,7 +183,7 @@ describe("useAllUserListItems", () => {
     const { result } = withSetup(() => useAllUserListItems("test-club"));
 
     await vi.waitFor(() => {
-      expect(result.data.value?.map((i) => [i.title, i.sourceListTitle])).toEqual([
+      expect(result.data.value?.map((i) => [i.title, i.sourceListTitle])).toStrictEqual([
         ["Dune", "Watchlist"],
         ["Solaris", "Backlog"],
       ]);
@@ -199,13 +205,13 @@ describe("useCreateList", () => {
     }));
 
     await vi.waitFor(() => {
-      expect(titles(result.lists)).toEqual(["Watch List"]);
+      expect(titles(result.lists)).toStrictEqual(["Watch List"]);
     });
 
     result.create.mutate("Top Picks");
 
     await vi.waitFor(() => {
-      expect(titles(result.lists)).toEqual(["Watch List", "Top Picks"]);
+      expect(titles(result.lists)).toStrictEqual(["Watch List", "Top Picks"]);
     });
   });
 });
@@ -224,13 +230,13 @@ describe("useDeleteList", () => {
     }));
 
     await vi.waitFor(() => {
-      expect(titles(result.lists)).toEqual(["Doomed", "Keeper"]);
+      expect(titles(result.lists)).toStrictEqual(["Doomed", "Keeper"]);
     });
 
     result.remove.mutate("list-77");
 
     await vi.waitFor(() => {
-      expect(titles(result.lists)).toEqual(["Keeper"]);
+      expect(titles(result.lists)).toStrictEqual(["Keeper"]);
     });
   });
 });
@@ -249,7 +255,7 @@ describe("useAddListItem", () => {
     }));
 
     await vi.waitFor(() => {
-      expect(titles(result.items)).toEqual([]);
+      expect(titles(result.items)).toStrictEqual([]);
     });
 
     result.add.mutate({
@@ -260,7 +266,7 @@ describe("useAddListItem", () => {
     });
 
     await vi.waitFor(() => {
-      expect(titles(result.items)).toEqual(["Blade Runner"]);
+      expect(titles(result.items)).toStrictEqual(["Blade Runner"]);
     });
   });
 });
@@ -283,13 +289,13 @@ describe("useDeleteListItem", () => {
     }));
 
     await vi.waitFor(() => {
-      expect(titles(result.items)).toEqual(["Doomed", "Keeper"]);
+      expect(titles(result.items)).toStrictEqual(["Doomed", "Keeper"]);
     });
 
     result.remove.mutate("work-99");
 
     await vi.waitFor(() => {
-      expect(titles(result.items)).toEqual(["Keeper"]);
+      expect(titles(result.items)).toStrictEqual(["Keeper"]);
     });
   });
 });
@@ -310,13 +316,13 @@ describe("useDeleteReview", () => {
     }));
 
     await vi.waitFor(() => {
-      expect(titles(result.items)).toEqual(["Doomed", "Keeper"]);
+      expect(titles(result.items)).toStrictEqual(["Doomed", "Keeper"]);
     });
 
     result.remove.mutate({ workId: "w-1", reviewsListId: "rev-list" });
 
     await vi.waitFor(() => {
-      expect(titles(result.items)).toEqual(["Keeper"]);
+      expect(titles(result.items)).toStrictEqual(["Keeper"]);
     });
   });
 });
@@ -337,13 +343,13 @@ describe("useReorderList", () => {
     }));
 
     await vi.waitFor(() => {
-      expect(titles(result.items)).toEqual(["Alien", "Barbie"]);
+      expect(titles(result.items)).toStrictEqual(["Alien", "Barbie"]);
     });
 
     result.reorder.mutate(["b", "a"]);
 
     await vi.waitFor(() => {
-      expect(titles(result.items)).toEqual(["Barbie", "Alien"]);
+      expect(titles(result.items)).toStrictEqual(["Barbie", "Alien"]);
     });
   });
 });
@@ -368,8 +374,8 @@ describe("useMoveListItem", () => {
     }));
 
     await vi.waitFor(() => {
-      expect(titles(result.source)).toEqual(["Solaris"]);
-      expect(titles(result.destination)).toEqual([]);
+      expect(titles(result.source)).toStrictEqual(["Solaris"]);
+      expect(titles(result.destination)).toStrictEqual([]);
     });
 
     result.move.mutate({
@@ -379,8 +385,8 @@ describe("useMoveListItem", () => {
     });
 
     await vi.waitFor(() => {
-      expect(titles(result.source)).toEqual([]);
-      expect(titles(result.destination)).toEqual(["Solaris"]);
+      expect(titles(result.source)).toStrictEqual([]);
+      expect(titles(result.destination)).toStrictEqual(["Solaris"]);
     });
   });
 });

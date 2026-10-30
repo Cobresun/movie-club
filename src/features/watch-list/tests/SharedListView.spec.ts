@@ -25,7 +25,7 @@ describe("SharedListView", () => {
 
     render(SharedListView);
 
-    expect(await screen.findByText("Dune")).toBeInTheDocument();
+    await expect(screen.findByText("Dune")).resolves.toBeInTheDocument();
     expect(screen.getByText("Arrival")).toBeInTheDocument();
   });
 
@@ -37,7 +37,7 @@ describe("SharedListView", () => {
 
     render(SharedListView);
 
-    expect(await screen.findByText("List is Empty")).toBeInTheDocument();
+    await expect(screen.findByText("List is Empty")).resolves.toBeInTheDocument();
   });
 
   it("shows an error state when the list fails to load", async () => {
@@ -48,7 +48,7 @@ describe("SharedListView", () => {
 
     render(SharedListView);
 
-    expect(await screen.findByText("Failed to load list")).toBeInTheDocument();
+    await expect(screen.findByText("Failed to load list")).resolves.toBeInTheDocument();
   });
 
   it("invites a logged-out visitor to start their own club", async () => {

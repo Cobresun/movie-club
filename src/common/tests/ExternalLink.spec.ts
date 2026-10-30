@@ -9,7 +9,7 @@ describe("ExternalLink", () => {
       props: { label: "IMDb", href: "https://www.imdb.com/title/tt0137523/" },
     });
 
-    const link = screen.getByRole("link", { name: /imdb/i });
+    const link = screen.getByRole("link", { name: /imdb/iu });
     expect(link).toHaveAttribute("href", "https://www.imdb.com/title/tt0137523/");
     expect(link).toHaveAttribute("target", "_blank");
     expect(link).toHaveAttribute("rel", "noopener noreferrer");

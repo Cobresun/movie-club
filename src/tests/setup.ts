@@ -31,15 +31,15 @@ vi.mock("vue-router", () => ({
 // jsdom doesn't implement scrollIntoView, which Wrapped's year picker calls to
 // keep the current year in view, nor pointer capture, which the Wrapped story
 // takes while a card is dragged.
-window.HTMLElement.prototype.scrollIntoView = vi.fn();
-window.HTMLElement.prototype.setPointerCapture = vi.fn();
+window.HTMLElement.prototype.scrollIntoView = () => {};
+window.HTMLElement.prototype.setPointerCapture = () => {};
 
 // jsdom has no matchMedia; `useIsDesktop` calls it on mount. Tests default to
 // mobile and opt into desktop with `setViewport(true)`.
 Object.defineProperty(window, "matchMedia", { writable: true, value: vi.fn() });
 
 // Nor scrolling: a show the reader has just added scrolls itself into view.
-Element.prototype.scrollIntoView = vi.fn();
+Element.prototype.scrollIntoView = () => {};
 
 beforeAll(() => {
   server.listen({ onUnhandledRequest: "error" });

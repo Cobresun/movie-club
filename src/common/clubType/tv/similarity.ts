@@ -1,7 +1,7 @@
 import { buildIdf, ERA_HALF_LIFE_YEARS, proximityDecay, sum, weightedJaccard } from "../similarity";
-import type { WorkSimilarityScorer } from "../types";
+import { type WorkSimilarityScorer } from "../types";
 import { asTv, tvAirYear } from "./data";
-import { WorkDataSummary } from "@/../lib/types/lists";
+import { type WorkDataSummary } from "@/../lib/types/lists";
 
 // Two episodes of the same series are the comparison a member actually wants
 // when scoring one — the show they are watching is the yardstick — so shared

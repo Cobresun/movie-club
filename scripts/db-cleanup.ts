@@ -92,7 +92,10 @@ async function cleanupDatabases(options: CleanupOptions): Promise<void> {
       await DatabaseCleanupRepository.dropDatabase(db.name);
       deletedCount++;
     } catch (error) {
-      console.error(`Failed to drop database ${db.name}:`, (error as Error).message);
+      console.error(
+        `Failed to drop database ${db.name}:`,
+        error instanceof Error ? error.message : String(error),
+      );
     }
   }
 
@@ -111,10 +114,10 @@ function restoreEnvToDev(): void {
 
     const updatedLines = lines.map((line: string) => {
       if (line.startsWith("DATABASE_URL=")) {
-        const match = line.match(/^DATABASE_URL=(.+)$/);
+        const match = /^DATABASE_URL=(?<value>.+)$/u.exec(line);
         if (match) {
-          const url = match[1];
-          const replaced = url.replace(/\/[^/?]+(\?|$)/, "/dev$1");
+          const [, url] = match;
+          const replaced = url.replace(/\/[^/?]+(?<suffix>\?|$)/u, "/dev$<suffix>");
           return `DATABASE_URL=${replaced}`;
         }
       }
@@ -171,7 +174,7 @@ async function main() {
   }
 
   if (args.length > 0 && !args[0].startsWith("--")) {
-    const featureName = args[0];
+    const [featureName] = args;
 
     // Try to match dev_{username}_{feature} pattern
     // For simplicity, just use the provided name
@@ -201,7 +204,7 @@ async function main() {
       }
     }
   } catch (error) {
-    console.error("\n✗ Error:", (error as Error).message);
+    console.error("\n✗ Error:", error instanceof Error ? error.message : String(error));
     process.exit(1);
   }
 }

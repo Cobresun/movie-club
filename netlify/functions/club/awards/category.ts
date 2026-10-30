@@ -2,14 +2,17 @@ import { z } from "zod";
 
 import { awardTitleSchema, isSameCategoryTitle } from "../../../../lib/awards";
 import { isDefined } from "../../../../lib/checks/checks.js";
-import { AwardsData, AwardsStep } from "../../../../lib/types/awards";
-import AwardsRepository, { AwardsRejection, reject } from "../../repositories/AwardsRepository";
+import { type AwardsData, AwardsStep } from "../../../../lib/types/awards";
+import AwardsRepository, {
+  type AwardsRejection,
+  reject,
+} from "../../repositories/AwardsRepository";
 import { secured } from "../../utils/auth";
 import { parseBody } from "../../utils/parseBody";
 import { requireParam } from "../../utils/requireParam";
 import { badRequest, ok } from "../../utils/responses";
 import { isRouterResponse, Router } from "../../utils/router";
-import { ClubAwardRequest } from "./utils";
+import { type ClubAwardRequest } from "./utils";
 
 const router = new Router<ClubAwardRequest>("/api/club/:clubSlug/awards/:year<\\d+>/category");
 

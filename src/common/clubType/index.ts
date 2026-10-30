@@ -1,17 +1,17 @@
 import { bookClubConfig } from "./book";
 import { movieClubConfig } from "./movie";
 import { tvClubConfig } from "./tv";
-import type {
-  ClubTypeConfig,
-  InviteConfig,
-  StatsConfig,
-  WorkDisplay,
-  WorkSimilarityScorer,
+import {
+  type ClubTypeConfig,
+  type InviteConfig,
+  type StatsConfig,
+  type WorkDisplay,
+  type WorkSimilarityScorer,
 } from "./types";
 import { isDefined } from "@/../lib/checks/checks";
 import { ClubType, WorkType } from "@/../lib/types/generated/db";
-import { DetailedWorkData, WorkDataSummary } from "@/../lib/types/lists";
-import { CastMember } from "@/../lib/types/tmdb";
+import { type DetailedWorkData, type WorkDataSummary } from "@/../lib/types/lists";
+import { type CastMember } from "@/../lib/types/tmdb";
 
 export type * from "./types";
 

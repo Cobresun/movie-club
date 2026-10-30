@@ -1,9 +1,9 @@
 import { screen } from "@testing-library/vue";
-import type { Router } from "vue-router";
-import { useRouter } from "vue-router";
+import type * as VueRouter from "vue-router";
+import { type Router, useRouter } from "vue-router";
 
 import ClubSwitcher from "../components/ClubSwitcher.vue";
-import { ClubPreview } from "@/../lib/types/club";
+import { type ClubPreview } from "@/../lib/types/club";
 import { ClubType } from "@/../lib/types/generated/db";
 import { render, setRouteMatched } from "@/tests/utils";
 
@@ -34,7 +34,7 @@ vi.mock("@/common/composables/useLastClubSlug", () => ({
 // depends on to detect that the overlay closed because of a navigation).
 const makeRealRouter = async () => {
   const { createMemoryHistory, createRouter } =
-    await vi.importActual<typeof import("vue-router")>("vue-router");
+    await vi.importActual<typeof VueRouter>("vue-router");
   const stub = { template: "<div />" };
   const router = createRouter({
     history: createMemoryHistory(),

@@ -31,9 +31,9 @@ describe("DiscussionQuestions", () => {
 
     await user.click(screen.getByRole("button", { name: /Generate discussion questions/ }));
 
-    expect(await screen.findByText("Discussion questions")).toBeInTheDocument();
+    await expect(screen.findByText("Discussion questions")).resolves.toBeInTheDocument();
     const questions = screen.getAllByRole("listitem").map((item) => item.textContent?.trim());
-    expect(questions).toEqual(["1.What is the theme?", "2.Who is the hero?"]);
+    expect(questions).toStrictEqual(["1.What is the theme?", "2.Who is the hero?"]);
   });
 
   it("swaps the prompt for a regenerate control once questions exist", async () => {
@@ -42,7 +42,7 @@ describe("DiscussionQuestions", () => {
 
     await user.click(screen.getByRole("button", { name: /Generate discussion questions/ }));
 
-    expect(await screen.findByRole("button", { name: "Regenerate" })).toBeInTheDocument();
+    await expect(screen.findByRole("button", { name: "Regenerate" })).resolves.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: /Generate discussion questions/ }),
     ).not.toBeInTheDocument();
@@ -58,7 +58,7 @@ describe("DiscussionQuestions", () => {
     server.use(questionsHandler(["Second pass"]));
     await user.click(screen.getByRole("button", { name: "Regenerate" }));
 
-    expect(await screen.findByText("Second pass")).toBeInTheDocument();
+    await expect(screen.findByText("Second pass")).resolves.toBeInTheDocument();
     expect(screen.queryByText("First pass")).not.toBeInTheDocument();
   });
 
@@ -68,11 +68,11 @@ describe("DiscussionQuestions", () => {
 
     await user.click(screen.getByRole("button", { name: /Generate discussion questions/ }));
 
-    expect(
-      await screen.findByText(
+    await expect(
+      screen.findByText(
         /We couldn't recognize this movie, so we couldn't generate discussion questions/,
       ),
-    ).toBeInTheDocument();
+    ).resolves.toBeInTheDocument();
   });
 
   it("uses the club's own media noun in the unrecognized message", async () => {
@@ -81,7 +81,7 @@ describe("DiscussionQuestions", () => {
 
     await user.click(screen.getByRole("button", { name: /Generate discussion questions/ }));
 
-    expect(await screen.findByText(/We couldn't recognize this book/)).toBeInTheDocument();
+    await expect(screen.findByText(/We couldn't recognize this book/)).resolves.toBeInTheDocument();
   });
 
   it("shows a disabled progress label while a request is in flight", async () => {
@@ -97,7 +97,7 @@ describe("DiscussionQuestions", () => {
 
     const generating = await screen.findByRole("button", { name: /Generating questions…/ });
     expect(generating).toBeDisabled();
-    expect(await screen.findByText("Eventually")).toBeInTheDocument();
+    await expect(screen.findByText("Eventually")).resolves.toBeInTheDocument();
   });
 
   it("offers a retry when the request fails", async () => {
@@ -111,9 +111,9 @@ describe("DiscussionQuestions", () => {
 
     await user.click(screen.getByRole("button", { name: /Generate discussion questions/ }));
 
-    expect(
-      await screen.findByText("Couldn't generate questions. Please try again."),
-    ).toBeInTheDocument();
+    await expect(
+      screen.findByText("Couldn't generate questions. Please try again."),
+    ).resolves.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Try again/ })).toBeInTheDocument();
   });
 
@@ -132,7 +132,7 @@ describe("DiscussionQuestions", () => {
     server.use(questionsHandler(["Recovered question"]));
     await user.click(screen.getByRole("button", { name: /Try again/ }));
 
-    expect(await screen.findByText("Recovered question")).toBeInTheDocument();
+    await expect(screen.findByText("Recovered question")).resolves.toBeInTheDocument();
   });
 
   it("keeps the previous questions and warns when a regenerate fails", async () => {
@@ -150,9 +150,9 @@ describe("DiscussionQuestions", () => {
     );
     await user.click(screen.getByRole("button", { name: "Regenerate" }));
 
-    expect(
-      await screen.findByText("Couldn't regenerate. Showing the previous questions."),
-    ).toBeInTheDocument();
+    await expect(
+      screen.findByText("Couldn't regenerate. Showing the previous questions."),
+    ).resolves.toBeInTheDocument();
     expect(screen.getByText("Original question")).toBeInTheDocument();
   });
 });

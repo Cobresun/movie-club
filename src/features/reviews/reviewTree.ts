@@ -1,6 +1,6 @@
 import { hasValue, isDefined } from "../../../lib/checks/checks.js";
-import { DetailedReviewListItem, ReviewScores } from "../../../lib/types/lists";
-import { formatTvAddress, TvDataSummary, TvSeasonSummary } from "../../../lib/types/tv";
+import { type DetailedReviewListItem, type ReviewScores } from "../../../lib/types/lists";
+import { formatTvAddress, type TvDataSummary, type TvSeasonSummary } from "../../../lib/types/tv";
 import { asTv } from "@/common/clubType/tv/data";
 import { OPTIMISTIC_WORK_ID } from "@/service/useList";
 

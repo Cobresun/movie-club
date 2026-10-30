@@ -1,12 +1,13 @@
 import { render } from "@testing-library/vue";
 import { defineComponent, h } from "vue";
+import type * as vueRouter from "vue-router";
 import { useRouter } from "vue-router";
 
 import { useBackButtonClose } from "../composables/useBackButtonClose";
 
 // Minimal host component so the composable runs inside a real mount/unmount
 // lifecycle. `onDismiss` is forwarded so each test can observe dismissals.
-const Harness = (onDismiss: () => void) =>
+const harness = (onDismiss: () => void) =>
   defineComponent({
     setup() {
       useBackButtonClose(onDismiss);
@@ -18,7 +19,7 @@ const Harness = (onDismiss: () => void) =>
 // navigation guards) and point the mocked `useRouter` at it for a given test.
 const makeRealRouter = async () => {
   const { createMemoryHistory, createRouter } =
-    await vi.importActual<typeof import("vue-router")>("vue-router");
+    await vi.importActual<typeof vueRouter>("vue-router");
   const router = createRouter({
     history: createMemoryHistory(),
     routes: [
@@ -46,33 +47,35 @@ describe("useBackButtonClose", () => {
   });
 
   it("pushes a history entry on mount without changing the URL", () => {
-    render(Harness(vi.fn()));
+    render(harness(vi.fn<() => void>()));
 
-    expect(pushState).toHaveBeenCalledTimes(1);
     // Pushed with our overlay marker and an empty title, and no URL argument so
     // the address bar / current route is left untouched.
-    expect(pushState).toHaveBeenCalledWith(expect.objectContaining({ vOverlay: true }), "");
+    expect(pushState).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ vOverlay: true }),
+      "",
+    );
   });
 
   it("calls onDismiss when the back button (popstate) fires", () => {
-    const onDismiss = vi.fn();
-    render(Harness(onDismiss));
+    const onDismiss = vi.fn<() => void>();
+    render(harness(onDismiss));
 
     window.dispatchEvent(new PopStateEvent("popstate"));
 
-    expect(onDismiss).toHaveBeenCalledTimes(1);
+    expect(onDismiss).toHaveBeenCalledExactlyOnceWith();
   });
 
   it("pops the pushed entry on unmount when closed another way", () => {
-    const view = render(Harness(vi.fn()));
+    const view = render(harness(vi.fn<() => void>()));
 
     view.unmount();
 
-    expect(back).toHaveBeenCalledTimes(1);
+    expect(back).toHaveBeenCalledExactlyOnceWith();
   });
 
   it("does not pop history again after a back-button dismissal", () => {
-    const view = render(Harness(vi.fn()));
+    const view = render(harness(vi.fn<() => void>()));
 
     // The browser already consumed our entry via popstate...
     window.dispatchEvent(new PopStateEvent("popstate"));
@@ -83,8 +86,8 @@ describe("useBackButtonClose", () => {
   });
 
   it("stops responding to popstate after unmount", () => {
-    const onDismiss = vi.fn();
-    const view = render(Harness(onDismiss));
+    const onDismiss = vi.fn<() => void>();
+    const view = render(harness(onDismiss));
     view.unmount();
 
     window.dispatchEvent(new PopStateEvent("popstate"));
@@ -93,30 +96,30 @@ describe("useBackButtonClose", () => {
   });
 
   it("dismisses only the topmost overlay on a real back press", () => {
-    const dismissLower = vi.fn();
-    const dismissUpper = vi.fn();
-    render(Harness(dismissLower)); // lower overlay (e.g. the details drawer)
-    render(Harness(dismissUpper)); // higher overlay (e.g. the score sheet)
+    const dismissLower = vi.fn<() => void>();
+    const dismissUpper = vi.fn<() => void>();
+    render(harness(dismissLower)); // lower overlay (e.g. the details drawer)
+    render(harness(dismissUpper)); // higher overlay (e.g. the score sheet)
 
     // Back peels one layer at a time: first press closes only the top sheet...
     window.dispatchEvent(new PopStateEvent("popstate"));
-    expect(dismissUpper).toHaveBeenCalledTimes(1);
+    expect(dismissUpper).toHaveBeenCalledExactlyOnceWith();
     expect(dismissLower).not.toHaveBeenCalled();
 
     // ...and the next press reaches the drawer beneath it.
     window.dispatchEvent(new PopStateEvent("popstate"));
-    expect(dismissLower).toHaveBeenCalledTimes(1);
-    expect(dismissUpper).toHaveBeenCalledTimes(1);
+    expect(dismissLower).toHaveBeenCalledExactlyOnceWith();
+    expect(dismissUpper).toHaveBeenCalledExactlyOnceWith();
   });
 
   it("keeps a lower overlay open when a higher overlay closes via cleanup", () => {
-    const dismissLower = vi.fn();
-    render(Harness(dismissLower)); // lower overlay (e.g. the details drawer)
-    const upper = render(Harness(vi.fn())); // higher overlay (e.g. a modal)
+    const dismissLower = vi.fn<() => void>();
+    render(harness(dismissLower)); // lower overlay (e.g. the details drawer)
+    const upper = render(harness(vi.fn<() => void>())); // higher overlay (e.g. a modal)
 
     // The modal closes via a non-back action (Save), popping its own entry.
     upper.unmount();
-    expect(back).toHaveBeenCalledTimes(1);
+    expect(back).toHaveBeenCalledExactlyOnceWith();
 
     // That synthetic popstate must NOT dismiss the drawer beneath it.
     window.dispatchEvent(new PopStateEvent("popstate"));
@@ -124,14 +127,14 @@ describe("useBackButtonClose", () => {
 
     // A subsequent real back press still dismisses the drawer.
     window.dispatchEvent(new PopStateEvent("popstate"));
-    expect(dismissLower).toHaveBeenCalledTimes(1);
+    expect(dismissLower).toHaveBeenCalledExactlyOnceWith();
   });
 
   it("does not pop history on unmount when the app navigated while open", async () => {
     const router = await makeRealRouter();
     vi.mocked(useRouter).mockReturnValue(router);
 
-    const view = render(Harness(vi.fn()));
+    const view = render(harness(vi.fn<() => void>()));
 
     // Navigating away (e.g. the club switcher routing to the chosen club)
     // pushes a real entry above our synthetic one; popping ours would undo it.

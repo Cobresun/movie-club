@@ -22,7 +22,7 @@
 </template>
 
 <script setup lang="ts">
-import type { ReviewFact } from "../reviewFacts";
+import { type ReviewFact } from "../reviewFacts";
 
 defineProps<{ fact: ReviewFact }>();
 </script>

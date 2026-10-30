@@ -1,10 +1,10 @@
 import { useQuery } from "@tanstack/vue-query";
 import axios from "axios";
-import { computed, Ref } from "vue";
+import { computed, type Ref } from "vue";
 
 import { hasValue, isDefined } from "../../lib/checks/checks.js";
-import { TMDBWatchProvidersResponse } from "../../lib/types/movie";
-import { TMDBTvSeasonData } from "../../lib/types/tv";
+import { type TMDBWatchProvidersResponse } from "../../lib/types/movie";
+import { type TMDBTvSeasonData } from "../../lib/types/tv";
 
 const key = import.meta.env.VITE_TMDB_API_KEY;
 

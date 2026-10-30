@@ -1,8 +1,9 @@
 import { render } from "@testing-library/vue";
 import { defineComponent, h, nextTick } from "vue";
-import type { Ref } from "vue";
+import { type Ref } from "vue";
 
 import { useHideOnScroll } from "../composables/useHideOnScroll";
+import { MockMediaQueryList } from "@/tests/utils";
 
 // Minimal host so the composable runs inside a real mount/unmount lifecycle.
 const mountComposable = (options?: Parameters<typeof useHideOnScroll>[0]) => {
@@ -29,7 +30,7 @@ const scrollTo = async (y: number) => {
 };
 
 const prefersReducedMotion = (reduce: boolean) =>
-  vi.mocked(window.matchMedia).mockReturnValue({ matches: reduce } as MediaQueryList);
+  vi.mocked(window.matchMedia).mockReturnValue(new MockMediaQueryList(reduce, ""));
 
 describe("useHideOnScroll", () => {
   let isHidden: Ref<boolean>;

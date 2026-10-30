@@ -56,7 +56,7 @@
 </template>
 
 <script setup lang="ts">
-import type { AxiosError } from "axios";
+import { type AxiosError } from "axios";
 import { computed, ref } from "vue";
 import { useToast } from "vue-toastification";
 

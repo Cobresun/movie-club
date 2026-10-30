@@ -8,7 +8,7 @@ import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
 import { server } from "@/mocks/server";
 import { render } from "@/tests/utils";
 
-vi.mock("ag-charts-vue3", async () => await import("@/mocks/agCharts"));
+vi.mock("ag-charts-vue3", () => import("@/mocks/agCharts"));
 
 mockIntersectionObserver();
 
@@ -27,7 +27,7 @@ describe("StatisticsView", () => {
     server.use(scoredReviews());
     render(StatisticsView);
 
-    expect(await screen.findByText("movies watched")).toBeInTheDocument();
+    await expect(screen.findByText("movies watched")).resolves.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Scores" })).toBeInTheDocument();
   });
 
@@ -50,7 +50,7 @@ describe("StatisticsView", () => {
     server.use(noReviews());
     render(StatisticsView);
 
-    expect(await screen.findByText("No Statistics Yet")).toBeInTheDocument();
+    await expect(screen.findByText("No Statistics Yet")).resolves.toBeInTheDocument();
     expect(
       screen.getByText(/Statistics will appear once your club has reviewed some movies/),
     ).toBeInTheDocument();
@@ -60,9 +60,9 @@ describe("StatisticsView", () => {
     server.use(noReviews(), bookClub());
     render(StatisticsView);
 
-    expect(
-      await screen.findByText(/Statistics will appear once your club has reviewed some books/),
-    ).toBeInTheDocument();
+    await expect(
+      screen.findByText(/Statistics will appear once your club has reviewed some books/),
+    ).resolves.toBeInTheDocument();
   });
 
   it("sends an empty club to the reviews page", async () => {
@@ -103,6 +103,6 @@ describe("StatisticsView", () => {
     );
     render(StatisticsView);
 
-    expect(await screen.findByText("No Statistics Yet")).toBeInTheDocument();
+    await expect(screen.findByText("No Statistics Yet")).resolves.toBeInTheDocument();
   });
 });

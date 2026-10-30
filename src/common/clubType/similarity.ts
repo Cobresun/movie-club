@@ -1,5 +1,5 @@
 import { isDefined } from "@/../lib/checks/checks";
-import { WorkDataSummary } from "@/../lib/types/lists";
+import { type WorkDataSummary } from "@/../lib/types/lists";
 
 // Score Assist ranks comparison candidates by how "alike" they feel to the work
 // being reviewed, so the user compares familiar things. A scorer returns a value

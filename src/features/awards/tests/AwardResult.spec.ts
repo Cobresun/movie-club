@@ -1,7 +1,7 @@
 import { screen } from "@testing-library/vue";
 
-import { Award, AwardsStep } from "../../../../lib/types/awards";
-import { DetailedMovieData } from "../../../../lib/types/movie";
+import { type Award, AwardsStep } from "../../../../lib/types/awards";
+import { type DetailedMovieData } from "../../../../lib/types/movie";
 import AwardResult from "../components/AwardResult.vue";
 import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
 import { render } from "@/tests/utils";
@@ -89,7 +89,7 @@ describe("AwardResult", () => {
 
     await user.click(screen.getByRole("button", { name: "Reveal" }));
 
-    expect(await screen.findByText("Inception")).toBeInTheDocument();
+    await expect(screen.findByText("Inception")).resolves.toBeInTheDocument();
     expect(screen.getByText("The Dark Knight")).toBeInTheDocument();
   });
 

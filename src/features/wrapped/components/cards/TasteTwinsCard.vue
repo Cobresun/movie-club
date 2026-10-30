@@ -54,7 +54,7 @@
 
 <script setup lang="ts">
 import { isDefined } from "../../../../../lib/checks/checks.js";
-import type { MemberPairSimilarity } from "../../../statistics/types";
+import { type MemberPairSimilarity } from "../../../statistics/types";
 import { firstName } from "@/common/memberName";
 
 defineProps<{

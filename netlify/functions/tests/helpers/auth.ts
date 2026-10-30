@@ -63,7 +63,7 @@ async function confirmEmailAddress(email: string) {
     throw new Error(`No verification email was sent to ${email}`);
   }
 
-  const link = /href="([^"]*verify-email[^"]*)"/.exec(message.html)?.[1];
+  const link = /href="(?<href>[^"]*verify-email[^"]*)"/u.exec(message.html)?.[1];
   if (link === undefined) {
     throw new Error(`The email sent to ${email} carried no verification link`);
   }

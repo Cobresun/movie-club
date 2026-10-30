@@ -1,5 +1,4 @@
-import { onUnmounted, watch } from "vue";
-import type { Ref } from "vue";
+import { onUnmounted, watch, type Ref } from "vue";
 
 // Overlays stack (the score-entry sheet opens over the work-details sheet), so
 // the lock is counted: the page only scrolls again once the last overlay

@@ -8,15 +8,14 @@
  * ones must not.
  */
 import { http, HttpResponse } from "msw";
-import { describe, expect, it } from "vitest";
 
 import { ClubType, WorkType } from "../../../lib/types/generated/db";
 import {
-  ClubListSummary,
-  DetailedReviewListItem,
-  DetailedWorkListItem,
+  type ClubListSummary,
+  type DetailedReviewListItem,
+  type DetailedWorkListItem,
 } from "../../../lib/types/lists";
-import { MovieDataSummary } from "../../../lib/types/movie";
+import { type MovieDataSummary } from "../../../lib/types/movie";
 import { handler } from "../club/index";
 import { signIn } from "./helpers/auth";
 import {
@@ -48,7 +47,7 @@ describe("GET /api/club/:clubSlug/list", () => {
     const res = await listsOf(club.slug);
 
     expect(res.statusCode).toBe(200);
-    expect(res.body).toEqual([
+    expect(res.body).toStrictEqual([
       { id: club.listId, title: "Watch List", systemType: null, itemCount: 1 },
       { id: shortlist, title: "Shortlist", systemType: null, itemCount: 0 },
     ]);
@@ -102,7 +101,11 @@ describe("POST /api/club/:clubSlug/list", () => {
     expect(res.statusCode).toBe(200);
     expect(res.body).toMatchObject({ title: "Halloween", systemType: null, itemCount: 0 });
     const lists = await listsOf(club.slug);
-    expect(lists.body.map((list) => list.title)).toEqual(["Watch List", "Shortlist", "Halloween"]);
+    expect(lists.body.map((list) => list.title)).toStrictEqual([
+      "Watch List",
+      "Shortlist",
+      "Halloween",
+    ]);
   });
 
   it.each([
@@ -142,7 +145,7 @@ describe("PUT /api/club/:clubSlug/list/reorder", () => {
 
     expect(res.statusCode).toBe(200);
     const lists = await listsOf(club.slug);
-    expect(lists.body.map((list) => list.title)).toEqual(["Second", "Watch List"]);
+    expect(lists.body.map((list) => list.title)).toStrictEqual(["Second", "Watch List"]);
   });
 
   it("rejects a payload that omits one of the club's lists", async () => {
@@ -157,7 +160,7 @@ describe("PUT /api/club/:clubSlug/list/reorder", () => {
 
     expect(res.statusCode).toBe(500);
     const lists = await listsOf(club.slug);
-    expect(lists.body.map((list) => list.title)).toEqual(["Watch List", "Second"]);
+    expect(lists.body.map((list) => list.title)).toStrictEqual(["Watch List", "Second"]);
   });
 
   it.each([
@@ -184,11 +187,11 @@ describe("GET /api/club/:clubSlug/list/:listId", () => {
     const res = await itemsOf(club.slug, club.listId);
 
     expect(res.statusCode).toBe(200);
-    expect(res.body.map((item) => item.title)).toEqual(["Star Wars", "Untracked"]);
+    expect(res.body.map((item) => item.title)).toStrictEqual(["Star Wars", "Untracked"]);
     expect(res.body[0].externalData?.overview).toBe("Overview for movie 11");
     // The bulk payload omits cast lists; only `castNames` rides along.
     expect(res.body[0].externalData).not.toHaveProperty("actors");
-    expect(res.body[0].externalData?.castNames).toEqual(["Lead 11", "Support 11"]);
+    expect(res.body[0].externalData?.castNames).toStrictEqual(["Lead 11", "Support 11"]);
     expect(res.body[1].externalData).toBeUndefined();
   });
 
@@ -230,7 +233,7 @@ describe("GET /api/club/:clubSlug/list/all-items", () => {
     );
 
     expect(res.statusCode).toBe(200);
-    expect(res.body.map((item) => [item.title, item.sourceListTitle])).toEqual([
+    expect(res.body.map((item) => [item.title, item.sourceListTitle])).toStrictEqual([
       ["On Watch List", "Watch List"],
       ["On Shortlist", "Shortlist"],
     ]);
@@ -265,7 +268,7 @@ describe("PUT /api/club/:clubSlug/list/:listId", () => {
     expect(res.body.error).toBe("Cannot rename a system list");
     // Still hidden from the collection, so nothing about it changed.
     const lists = await listsOf(club.slug);
-    expect(lists.body.map((list) => list.title)).toEqual(["Watch List"]);
+    expect(lists.body.map((list) => list.title)).toStrictEqual(["Watch List"]);
   });
 
   it("returns 400 without a body", async () => {
@@ -287,7 +290,7 @@ describe("DELETE /api/club/:clubSlug/list/:listId", () => {
     const res = await api.delete(`/api/club/${club.slug}/list/${club.listId}`, { as: alice });
 
     expect(res.statusCode).toBe(200);
-    expect((await listsOf(club.slug)).body).toEqual([]);
+    expect((await listsOf(club.slug)).body).toStrictEqual([]);
     expect((await itemsOf(club.slug, club.listId)).statusCode).toBe(404);
   });
 
@@ -329,7 +332,7 @@ describe("POST /api/club/:clubSlug/list/:listId/items", () => {
       imageUrl: "/alien.jpg",
       addedBy: alice.userId,
     });
-    expect(items.body[0].externalData?.genres).toEqual(["Drama"]);
+    expect(items.body[0].externalData?.genres).toStrictEqual(["Drama"]);
   });
 
   it("reuses the cached metadata rather than calling TMDB again", async () => {
@@ -344,7 +347,7 @@ describe("POST /api/club/:clubSlug/list/:listId/items", () => {
     await addWork(club, alice, { title: "Alien", externalId: "348", listId: other });
 
     const items = await itemsOf(club.slug, other);
-    expect(items.body[0].externalData?.genres).toEqual(["Drama"]);
+    expect(items.body[0].externalData?.genres).toStrictEqual(["Drama"]);
   });
 
   it("reuses the existing work when the same external id is added twice", async () => {
@@ -357,7 +360,7 @@ describe("POST /api/club/:clubSlug/list/:listId/items", () => {
 
     expect(second.id).toBe(first.id);
     const all = await api.get<DetailedWorkListItem[]>(`/api/club/${club.slug}/list/all-items`);
-    expect(all.body.map((item) => item.id)).toEqual([first.id, first.id]);
+    expect(all.body.map((item) => item.id)).toStrictEqual([first.id, first.id]);
   });
 
   it("rejects a work that is already on the list", async () => {
@@ -385,7 +388,7 @@ describe("POST /api/club/:clubSlug/list/:listId/items", () => {
     }
 
     const items = await itemsOf(club.slug, club.listId);
-    expect(items.body.map((item) => item.title)).toEqual(["Movie 1", "Movie 2", "Movie 3"]);
+    expect(items.body.map((item) => item.title)).toStrictEqual(["Movie 1", "Movie 2", "Movie 3"]);
   });
 
   it("still adds the work when the metadata provider fails", async () => {
@@ -459,7 +462,7 @@ describe("DELETE /api/club/:clubSlug/list/:listId/items/:workId", () => {
     });
 
     expect(res.statusCode).toBe(200);
-    expect((await itemsOf(club.slug, club.listId)).body).toEqual([]);
+    expect((await itemsOf(club.slug, club.listId)).body).toStrictEqual([]);
     expect((await api.get(`/api/club/${club.slug}/work/${work.id}/details`)).statusCode).toBe(404);
   });
 
@@ -475,8 +478,8 @@ describe("DELETE /api/club/:clubSlug/list/:listId/items/:workId", () => {
     });
 
     expect(res.statusCode).toBe(200);
-    expect((await itemsOf(club.slug, club.listId)).body).toEqual([]);
-    expect((await itemsOf(club.slug, other)).body.map((item) => item.id)).toEqual([work.id]);
+    expect((await itemsOf(club.slug, club.listId)).body).toStrictEqual([]);
+    expect((await itemsOf(club.slug, other)).body.map((item) => item.id)).toStrictEqual([work.id]);
   });
 
   it("drops the reviews list's scores of a work that stays on another list", async () => {
@@ -492,7 +495,7 @@ describe("DELETE /api/club/:clubSlug/list/:listId/items/:workId", () => {
     await addReviewedWork(club, alice, { externalId: "77" });
 
     const reviews = await api.get<DetailedReviewListItem[]>(`/api/club/${club.slug}/list/reviews`);
-    expect(reviews.body.map((review) => review.scores)).toEqual([{}]);
+    expect(reviews.body.map((review) => review.scores)).toStrictEqual([{}]);
   });
 
   it("returns 400 when the work is not on the list", async () => {
@@ -528,7 +531,7 @@ describe("PUT /api/club/:clubSlug/list/:listId/reorder", () => {
 
     expect(res.statusCode).toBe(200);
     const items = await itemsOf(club.slug, club.listId);
-    expect(items.body.map((item) => item.title)).toEqual(["C", "A", "B"]);
+    expect(items.body.map((item) => item.title)).toStrictEqual(["C", "A", "B"]);
   });
 
   it("leaves works outside the payload in their own slots", async () => {
@@ -546,7 +549,7 @@ describe("PUT /api/club/:clubSlug/list/:listId/reorder", () => {
     });
 
     const items = await itemsOf(club.slug, club.listId);
-    expect(items.body.map((item) => item.title)).toEqual(["C", "B", "A"]);
+    expect(items.body.map((item) => item.title)).toStrictEqual(["C", "B", "A"]);
   });
 
   it.each([
@@ -626,7 +629,7 @@ describe("POST /api/club/:clubSlug/list/:listId/items/:workId/move", () => {
     });
 
     expect(res.statusCode).toBe(200);
-    expect((await itemsOf(club.slug, club.listId)).body).toEqual([]);
+    expect((await itemsOf(club.slug, club.listId)).body).toStrictEqual([]);
 
     const moved = await itemsOf(club.slug, destination);
     expect(moved.body[0]).toMatchObject({
@@ -667,7 +670,7 @@ describe("POST /api/club/:clubSlug/list/:listId/items/:workId/move", () => {
     await move(club.listId, club.reviewsListId);
 
     const reviews = await api.get<DetailedReviewListItem[]>(`/api/club/${club.slug}/list/reviews`);
-    expect(reviews.body.map((review) => review.scores)).toEqual([{}]);
+    expect(reviews.body.map((review) => review.scores)).toStrictEqual([{}]);
   });
 
   it("returns 400 when the destination belongs to another club", async () => {
@@ -683,7 +686,9 @@ describe("POST /api/club/:clubSlug/list/:listId/items/:workId/move", () => {
 
     expect(res.statusCode).toBe(400);
     expect(res.body.error).toBe("Destination list not found");
-    expect((await itemsOf(club.slug, club.listId)).body.map((item) => item.id)).toEqual([work.id]);
+    expect((await itemsOf(club.slug, club.listId)).body.map((item) => item.id)).toStrictEqual([
+      work.id,
+    ]);
   });
 
   it("returns 400 without a body", async () => {
@@ -733,7 +738,7 @@ describe("GET /api/club/:clubSlug/list/reviews", () => {
 
     const res = await api.get<DetailedReviewListItem[]>(`/api/club/${club.slug}/list/reviews`);
 
-    expect(Object.keys(res.body[0].scores).sort()).toEqual([alice.userId, "average"].sort());
+    expect(Object.keys(res.body[0].scores).sort()).toStrictEqual([alice.userId, "average"].sort());
     expect(res.body[0].scores.average.score).toBe(9);
   });
 
@@ -759,7 +764,7 @@ describe("GET /api/club/:clubSlug/list/reviews", () => {
 
     const res = await api.get<DetailedReviewListItem[]>(`/api/club/${club.slug}/list/reviews`);
 
-    expect(res.body[0].scores).toEqual({});
+    expect(res.body[0].scores).toStrictEqual({});
   });
 
   it("returns the most recently added work first", async () => {
@@ -772,6 +777,6 @@ describe("GET /api/club/:clubSlug/list/reviews", () => {
 
     const res = await api.get<DetailedReviewListItem[]>(`/api/club/${club.slug}/list/reviews`);
 
-    expect(res.body.map((item) => item.title)).toEqual(["Newer", "Older"]);
+    expect(res.body.map((item) => item.title)).toStrictEqual(["Newer", "Older"]);
   });
 });

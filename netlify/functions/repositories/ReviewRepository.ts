@@ -5,7 +5,7 @@ class ReviewRepository {
   // Media-agnostic: one row per (work, review), for every work on the
   // reviews list and every child of one. The handler groups by work and
   // assembles per-user scores, then enriches with MediaProvider.getExternalData.
-  async getReviewList(clubId: string) {
+  getReviewList(clubId: string) {
     return db
       .selectFrom("work_list")
       .where("work_list.club_id", "=", clubId)
@@ -120,7 +120,7 @@ class ReviewRepository {
       .executeTakeFirst();
   }
 
-  async updateScore(id: string, score: number) {
+  updateScore(id: string, score: number) {
     return db
       .updateTable("review")
       .set("score", score)
@@ -157,4 +157,6 @@ class ReviewRepository {
   }
 }
 
-export default new ReviewRepository();
+const reviewRepository = new ReviewRepository();
+
+export default reviewRepository;

@@ -2,7 +2,7 @@ import { screen, waitFor, within } from "@testing-library/vue";
 import { http, HttpResponse } from "msw";
 import { useRouter } from "vue-router";
 
-import { AwardsStep, ClubAwards } from "../../../../lib/types/awards";
+import { AwardsStep, type ClubAwards } from "../../../../lib/types/awards";
 import YearView from "../views/YearView.vue";
 import { awardNominee, awardsApi, awardsYear } from "@/mocks/awards";
 import { server } from "@/mocks/server";

@@ -56,12 +56,12 @@ const {
   label,
   modelValue,
   type = "text",
-  placeholder,
+  placeholder = undefined,
   required = false,
-  minlength,
-  maxlength,
-  hint,
-  error,
+  minlength = undefined,
+  maxlength = undefined,
+  hint = undefined,
+  error = undefined,
   revealable = false,
 } = defineProps<{
   label: string;

@@ -1,5 +1,5 @@
 import { clubScoreFilter, decadePresets, reviewedInFilter } from "../filterOptions";
-import type { ClubTypeConfig } from "../types";
+import { type ClubTypeConfig } from "../types";
 import { movieDisplay, releaseYear } from "./display";
 import { browseMovies, searchMovies } from "./search";
 import { makeMovieSimilarity } from "./similarity";

@@ -1,4 +1,4 @@
-import type { WorkDisplay } from "../types";
+import { type WorkDisplay } from "../types";
 import { asTv, isTvData, tvAirYear } from "./data";
 import { isDefined } from "@/../lib/checks/checks";
 import { episodeCode } from "@/../lib/types/tv";

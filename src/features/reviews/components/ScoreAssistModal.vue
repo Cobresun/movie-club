@@ -38,12 +38,17 @@ import { useUser } from "@/service/useUser";
 // Standalone overlay for hosts that have no open surface of their own (the
 // reviews-table popover path). Surfaces that are already an overlay swap
 // ScoreAssistFlow into themselves instead — never stack a modal on a modal.
-const props = defineProps<{
-  target: DetailedReviewListItem;
-  candidates: ScoredCandidate[];
-  clubType: ClubType;
-  currentClubId?: string;
-}>();
+const props = withDefaults(
+  defineProps<{
+    target: DetailedReviewListItem;
+    candidates: ScoredCandidate[];
+    clubType: ClubType;
+    currentClubId?: string;
+  }>(),
+  {
+    currentClubId: undefined,
+  },
+);
 
 const emit = defineEmits<{
   (e: "close"): void;

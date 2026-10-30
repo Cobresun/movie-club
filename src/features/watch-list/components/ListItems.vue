@@ -194,7 +194,7 @@ const pulseId = ref<string>();
 
 const pulse = (workId: string | undefined) => {
   pulseId.value = undefined;
-  void nextTick(() => {
+  void nextTick().then(() => {
     pulseId.value = workId;
   });
 };
@@ -261,8 +261,14 @@ const onMakeNext = (item: DetailedWorkListItem) => {
   randomPickerOpen.value = false;
 };
 
-const onMoveToList = ({ item, listId }: { item: DetailedWorkListItem; listId: string }) => {
-  onMove(item.id, listId);
+const onMoveToList = ({
+  item,
+  listId: destinationListId,
+}: {
+  item: DetailedWorkListItem;
+  listId: string;
+}) => {
+  onMove(item.id, destinationListId);
   randomPickerOpen.value = false;
 };
 

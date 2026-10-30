@@ -11,7 +11,7 @@ import { mockDownloads } from "@/mocks/downloads";
 import { server } from "@/mocks/server";
 import { render } from "@/tests/utils";
 
-vi.mock("modern-screenshot", async () => await import("@/mocks/modernScreenshot"));
+vi.mock("modern-screenshot", async () => import("@/mocks/modernScreenshot"));
 
 // vue-toastification renders inside a <transition-group>, whose default VTU
 // stub drops the toast text; un-stub it so the save toasts can be read.
@@ -143,7 +143,7 @@ describe("WrappedView", () => {
       within(top)
         .getAllByRole("listitem")
         .map((item) => item.textContent),
-    ).toEqual([expect.stringContaining("Arrival"), expect.stringContaining("Dune")]);
+    ).toStrictEqual([expect.stringContaining("Arrival"), expect.stringContaining("Dune")]);
 
     await user.click(screen.getByRole("button", { name: "Next card" }));
     const bottom = await screen.findByRole("group", { name: "4 of 9: Bottom picks" });
@@ -151,7 +151,7 @@ describe("WrappedView", () => {
       within(bottom)
         .getAllByRole("listitem")
         .map((item) => item.textContent),
-    ).toEqual([expect.stringContaining("Cats"), expect.stringContaining("Morbius")]);
+    ).toStrictEqual([expect.stringContaining("Cats"), expect.stringContaining("Morbius")]);
   });
 
   it("names the most divisive movie with everyone's score", async () => {
@@ -166,7 +166,7 @@ describe("WrappedView", () => {
       within(card)
         .getAllByRole("listitem")
         .map((item) => item.textContent),
-    ).toEqual(["cole8", "user2", "dev1"]);
+    ).toStrictEqual(["cole8", "user2", "dev1"]);
   });
 
   it("names the most-watched director", async () => {
@@ -215,7 +215,7 @@ describe("WrappedView", () => {
       within(matches)
         .getAllByRole("listitem")
         .map((item) => item.textContent),
-    ).toEqual([expect.stringContaining("cole is closest to dev")]);
+    ).toStrictEqual([expect.stringContaining("cole is closest to dev")]);
   });
 
   it("lists a pair who are each other's closest match once", async () => {
@@ -241,7 +241,7 @@ describe("WrappedView", () => {
       within(matches)
         .getAllByRole("listitem")
         .map((item) => item.textContent),
-    ).toEqual([expect.stringContaining("cole and wes are each other's closest")]);
+    ).toStrictEqual([expect.stringContaining("cole and wes are each other's closest")]);
   });
 
   it("steps through the cards with the arrow keys", async () => {
@@ -288,7 +288,7 @@ describe("WrappedView", () => {
 
     await slide();
     const cards = screen.getAllByRole("button", { name: /^Card \d+:/ });
-    expect(cards.map((card) => card.getAttribute("aria-label"))).toEqual([
+    expect(cards.map((card) => card.getAttribute("aria-label"))).toStrictEqual([
       "Card 1: Club Wrapped",
       "Card 2: Time together",
       "Card 3: Hot takes",
@@ -404,7 +404,7 @@ describe("WrappedView", () => {
   });
 
   it("tells the member when a card can't be turned into an image", async () => {
-    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    vi.spyOn(console, "error").mockReturnValue(undefined);
     vi.mocked(domToCanvas).mockRejectedValueOnce(new Error("Tainted canvas"));
     server.use(reviews(MOVIE_REVIEWS));
     const { user } = renderWrapped();

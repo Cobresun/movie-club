@@ -1,10 +1,14 @@
-import { Handler, HandlerContext, HandlerEvent } from "@netlify/functions";
+import { type Handler, type HandlerContext, type HandlerEvent } from "@netlify/functions";
 import { z } from "zod";
 
 import { hasValue } from "../../../lib/checks/checks.js";
-import { ClubPreview, ClubSlugResponse, CreatedClubResponse } from "../../../lib/types/club";
+import {
+  type ClubPreview,
+  type ClubSlugResponse,
+  type CreatedClubResponse,
+} from "../../../lib/types/club";
 import { ClubType } from "../../../lib/types/generated/db.js";
-import { DetailedWorkData, NextWorkResponse } from "../../../lib/types/lists";
+import { type DetailedWorkData, type NextWorkResponse } from "../../../lib/types/lists";
 import ClubRepository from "../repositories/ClubRepository";
 import ListRepository from "../repositories/ListRepository";
 import SettingsRepository from "../repositories/SettingsRepository";
@@ -125,7 +129,7 @@ router.post("/", loggedIn, async ({ event }, res) => {
   return res(
     hasErrors
       ? badRequest("Error creating club")
-      : ok<CreatedClubResponse>({ clubId: newClub.id, slug: String(newClub.slug) }),
+      : ok<CreatedClubResponse>({ clubId: newClub.id, slug: newClub.slug }),
   );
 });
 
@@ -179,8 +183,7 @@ router.put("/:clubSlug/slug", validClubSlug, secured, async ({ clubId, event }, 
   return res(ok<ClubSlugResponse>({ slug: newSlug }));
 });
 
-const handler: Handler = async (event: HandlerEvent, context: HandlerContext) => {
-  return router.route({ event, context, params: {} });
-};
+const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
+  router.route({ event, context, params: {} });
 
 export { handler };

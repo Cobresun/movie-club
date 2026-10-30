@@ -40,7 +40,9 @@ export function useRandomPicker<T>(items: Ref<T[]>) {
           currentItem.value = winner;
           isRevealed.value = true;
           vibrate([50, 30, 100]);
-          setTimeout(() => resolve(winner), REVEAL_PAUSE_MS);
+          setTimeout(() => {
+            resolve(winner);
+          }, REVEAL_PAUSE_MS);
           return;
         }
 

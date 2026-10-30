@@ -1,6 +1,6 @@
 import { isDefined } from "../../../lib/checks/checks.js";
-import { Member } from "../../../lib/types/club";
-import { DetailedReviewListItem, ReviewScores } from "../../../lib/types/lists";
+import { type Member } from "../../../lib/types/club";
+import { type DetailedReviewListItem, type ReviewScores } from "../../../lib/types/lists";
 
 /** One score to show for a work: a member's, or the club's average. */
 export interface ScoreEntry {

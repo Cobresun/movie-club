@@ -1,5 +1,4 @@
 import userEvent from "@testing-library/user-event";
-import { afterEach, beforeEach, vi } from "vitest";
 
 import { useShare } from "@/common/composables/useShare";
 
@@ -66,7 +65,7 @@ describe("useShare", () => {
 
     await useShare().share(payload);
 
-    expect(await navigator.clipboard.readText()).toBe(payload.url);
+    await expect(navigator.clipboard.readText()).resolves.toBe(payload.url);
   });
 
   it("passes the text along to the share sheet on Android", async () => {
@@ -103,7 +102,7 @@ describe("useShare", () => {
 
     await useShare().share(payload);
 
-    expect(await navigator.clipboard.readText()).toBe("");
+    await expect(navigator.clipboard.readText()).resolves.toBe("");
   });
 
   it("falls back to the clipboard when the share sheet genuinely fails", async () => {
@@ -114,6 +113,6 @@ describe("useShare", () => {
 
     await useShare().share(payload);
 
-    expect(await navigator.clipboard.readText()).toBe(payload.url);
+    await expect(navigator.clipboard.readText()).resolves.toBe(payload.url);
   });
 });

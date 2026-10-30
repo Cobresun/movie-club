@@ -1,11 +1,11 @@
 import { hasValue } from "../../../../lib/checks/checks.js";
 import { ClubType, WorkType } from "../../../../lib/types/generated/db";
-import { DetailedWorkData, WorkDataSummary } from "../../../../lib/types/lists";
-import { SimilarWork } from "../../../../lib/types/recommendations";
+import { type DetailedWorkData, type WorkDataSummary } from "../../../../lib/types/lists";
+import { type SimilarWork } from "../../../../lib/types/recommendations";
 import bookProvider from "./bookProvider";
 import movieProvider from "./movieProvider";
 import tvProvider from "./tvProvider";
-import { MediaProvider } from "./types";
+import { type MediaProvider } from "./types";
 
 /**
  * The provider registry. To support a new club type: add the enum value

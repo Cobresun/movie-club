@@ -1,8 +1,8 @@
-import type { DetailedBookData } from "../../../../lib/types/book";
-import type { Member } from "../../../../lib/types/club";
+import { type DetailedBookData } from "../../../../lib/types/book";
+import { type Member } from "../../../../lib/types/club";
 import { WorkType } from "../../../../lib/types/generated/db";
-import type { DetailedMovieData } from "../../../../lib/types/movie";
-import type { BookData, HistogramData, MovieData } from "../types";
+import { type DetailedMovieData } from "../../../../lib/types/movie";
+import { type BookData, type HistogramData, type MovieData } from "../types";
 
 /** Shorthand for the `{ name, profilePath }` shape TMDB people arrive in. */
 export function person(name: string): { name: string; profilePath: string | null } {

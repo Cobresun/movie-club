@@ -21,7 +21,9 @@ describe("ResetPasswordView", () => {
     render(ResetPasswordView);
 
     // Wait for onMounted to run and set the token
-    expect(await screen.findByRole("button", { name: /Reset Password/i })).toBeInTheDocument();
+    await expect(
+      screen.findByRole("button", { name: /Reset Password/i }),
+    ).resolves.toBeInTheDocument();
     expect(screen.getByLabelText("New Password")).toBeInTheDocument();
     expect(screen.getByLabelText("Confirm Password")).toBeInTheDocument();
   });
@@ -49,7 +51,7 @@ describe("ResetPasswordView", () => {
 
     await user.click(screen.getByRole("button", { name: /Reset Password/i }));
 
-    expect(await screen.findByText("Password Reset!")).toBeInTheDocument();
+    await expect(screen.findByText("Password Reset!")).resolves.toBeInTheDocument();
     expect(screen.getByText(/password has been reset successfully/i)).toBeInTheDocument();
   });
 
@@ -81,6 +83,6 @@ describe("ResetPasswordView", () => {
     await user.type(screen.getByLabelText("Confirm Password"), "newpass123");
     await user.click(screen.getByRole("button", { name: /Reset Password/i }));
 
-    expect(await screen.findByText("Invalid or Expired Link")).toBeInTheDocument();
+    await expect(screen.findByText("Invalid or Expired Link")).resolves.toBeInTheDocument();
   });
 });

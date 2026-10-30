@@ -1,4 +1,4 @@
-import { Kysely } from "kysely";
+import { type Kysely } from "kysely";
 
 /**
  * A work can belong to another work: a TV episode to its show. Deleting the

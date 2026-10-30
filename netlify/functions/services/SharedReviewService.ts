@@ -1,5 +1,5 @@
 import { hasValue, isDefined } from "../../../lib/checks/checks.js";
-import { SharedReviewResponse } from "../../../lib/types/lists";
+import { type SharedReviewResponse } from "../../../lib/types/lists";
 import ClubRepository from "../repositories/ClubRepository";
 import ListRepository from "../repositories/ListRepository";
 import ReviewRepository from "../repositories/ReviewRepository";
@@ -76,4 +76,6 @@ class SharedReviewService {
   }
 }
 
-export default new SharedReviewService();
+const sharedReviewService = new SharedReviewService();
+
+export default sharedReviewService;

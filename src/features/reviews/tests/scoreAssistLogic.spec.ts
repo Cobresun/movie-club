@@ -1,17 +1,18 @@
-import { DetailedBookData } from "../../../../lib/types/book";
+import { type DetailedBookData } from "../../../../lib/types/book";
 import { WorkType } from "../../../../lib/types/generated/db";
 import {
-  DetailedReviewListItem,
-  DetailedWorkData,
-  MemberScoredWork,
+  type DetailedReviewListItem,
+  type DetailedWorkData,
+  type MemberScoredWork,
 } from "../../../../lib/types/lists";
-import { DetailedMovieData } from "../../../../lib/types/movie";
+import { type DetailedMovieData } from "../../../../lib/types/movie";
 import {
   answerComparison,
   buildCandidatePool,
+  type ComparisonAnswer,
   isScoreAssistEligible,
   MAX_COMPARISONS,
-  ScoredCandidate,
+  type ScoredCandidate,
   startSession,
 } from "../composables/scoreAssistLogic";
 import { makeWorkSimilarity, workSimilarity } from "@/common/clubType";
@@ -138,6 +139,30 @@ function target(externalData?: DetailedWorkData): DetailedReviewListItem {
 /** Candidates scored 1..9, no metadata — the workhorse pool. */
 const ladder = () => [1, 2, 3, 4, 5, 6, 7, 8, 9].map((score) => candidate(`w${score}`, score));
 
+// Pool-building and session-driving helpers. The conditionals they contain (a
+// metadata swap, a while-loop safety guard) live at module scope so the tests
+// themselves are free of conditionals that could skip their assertions.
+function withExternalData(
+  pool: ScoredCandidate[],
+  workIds: string[],
+  externalData: DetailedWorkData,
+): ScoredCandidate[] {
+  return pool.map((item) => (workIds.includes(item.workId) ? { ...item, externalData } : item));
+}
+
+function runToCompletion(pool: ScoredCandidate[], answer: ComparisonAnswer) {
+  let session = startSession(target(), pool);
+  const seen = new Set<string>();
+  let guard = 0;
+  while (session.pivot !== undefined && guard < 100) {
+    expect(seen.has(session.pivot.workId)).toBe(false);
+    seen.add(session.pivot.workId);
+    session = answerComparison(session, answer);
+    guard += 1;
+  }
+  return session;
+}
+
 describe("buildCandidatePool", () => {
   const targetItem = reviewItem("target", { externalId: "tt-target" });
 
@@ -149,7 +174,7 @@ describe("buildCandidatePool", () => {
       ],
       targetItem,
     );
-    expect(pool.map((item) => [item.workId, item.clubId, item.clubName])).toEqual([
+    expect(pool.map((item) => [item.workId, item.clubId, item.clubName])).toStrictEqual([
       ["elsewhere", "club-2", "Sunday Cinema"],
       ["here", CURRENT_CLUB_ID, "Movie Night"],
     ]);
@@ -163,7 +188,7 @@ describe("buildCandidatePool", () => {
       ],
       targetItem,
     );
-    expect(pool.map((item) => item.workId)).toEqual(["a"]);
+    expect(pool.map((item) => item.workId)).toStrictEqual(["a"]);
   });
 
   it("sorts ascending by score with a title tie-break", () => {
@@ -175,7 +200,7 @@ describe("buildCandidatePool", () => {
       ],
       targetItem,
     );
-    expect(pool.map((item) => item.workId)).toEqual(["c", "b", "a"]);
+    expect(pool.map((item) => item.workId)).toStrictEqual(["c", "b", "a"]);
   });
 
   it("drops non-finite scores", () => {
@@ -183,7 +208,7 @@ describe("buildCandidatePool", () => {
       [memberScore("a", Number.NaN), memberScore("b", 5)],
       targetItem,
     );
-    expect(pool.map((item) => item.workId)).toEqual(["b"]);
+    expect(pool.map((item) => item.workId)).toStrictEqual(["b"]);
   });
 
   it("ignores works of a different media type than the target", () => {
@@ -194,7 +219,7 @@ describe("buildCandidatePool", () => {
       ],
       targetItem,
     );
-    expect(pool.map((item) => item.workId)).toEqual(["a-movie"]);
+    expect(pool.map((item) => item.workId)).toStrictEqual(["a-movie"]);
   });
 
   it("keeps the most recent score when two clubs scored the same work", () => {
@@ -205,7 +230,7 @@ describe("buildCandidatePool", () => {
       ],
       targetItem,
     );
-    expect(pool.map((item) => item.workId)).toEqual(["new"]);
+    expect(pool.map((item) => item.workId)).toStrictEqual(["new"]);
   });
 
   it("never offers another club's copy of the target back", () => {
@@ -213,7 +238,7 @@ describe("buildCandidatePool", () => {
       [memberScore("target-elsewhere", 6, { externalId: "tt-target" })],
       targetItem,
     );
-    expect(pool).toEqual([]);
+    expect(pool).toStrictEqual([]);
   });
 
   it("keeps works that carry no external id", () => {
@@ -221,7 +246,7 @@ describe("buildCandidatePool", () => {
       [memberScore("no-id-1", 2), memberScore("no-id-2", 5)],
       targetItem,
     );
-    expect(pool.map((item) => item.workId)).toEqual(["no-id-1", "no-id-2"]);
+    expect(pool.map((item) => item.workId)).toStrictEqual(["no-id-1", "no-id-2"]);
   });
 });
 
@@ -249,20 +274,14 @@ describe("pivot selection", () => {
 
   it("prefers a similar work over the score-midpoint within the window", () => {
     const nolan = movieData({ directors: ["Nolan"] });
-    const pool = ladder().map((item) =>
-      item.workId === "w4" ? candidate("w4", 4, { externalData: nolan }) : item,
-    );
+    const pool = withExternalData(ladder(), ["w4"], nolan);
     const session = startSession(target(nolan), pool);
     expect(session.pivot?.workId).toBe("w4");
   });
 
   it("breaks similarity ties towards the bracket's score midpoint", () => {
     const drama = movieData({ genres: ["Drama"] });
-    const pool = ladder().map((item) =>
-      item.workId === "w4" || item.workId === "w5"
-        ? candidate(item.workId, item.score, { externalData: drama })
-        : item,
-    );
+    const pool = withExternalData(ladder(), ["w4", "w5"], drama);
     const session = startSession(target(drama), pool);
     expect(session.pivot?.workId).toBe("w5");
   });
@@ -329,15 +348,7 @@ describe("termination and suggestions", () => {
       candidate(`w${i}`, score),
     );
     for (const answer of ["more", "less", "skip", "same"] as const) {
-      let session = startSession(target(), pool);
-      const seen = new Set<string>();
-      let guard = 0;
-      while (session.pivot !== undefined && guard < 100) {
-        expect(seen.has(session.pivot.workId)).toBe(false);
-        seen.add(session.pivot.workId);
-        session = answerComparison(session, answer);
-        guard++;
-      }
+      const session = runToCompletion(pool, answer);
       expect(session.result).toBeDefined();
       expect(session.comparisons).toBeLessThanOrEqual(MAX_COMPARISONS);
     }
@@ -525,19 +536,19 @@ describe("makeWorkSimilarity IDF weighting", () => {
       movieData({ genres: ["Drama", "Film-Noir"] }),
     ];
     const scorer = makeWorkSimilarity(WorkType.movie, corpus);
-    const target = movieData({ genres: ["Drama", "Film-Noir"] });
+    const targetFilm = movieData({ genres: ["Drama", "Film-Noir"] });
 
-    const sharedRare = scorer(target, movieData({ genres: ["Film-Noir"] }));
-    const sharedCommon = scorer(target, movieData({ genres: ["Drama"] }));
+    const sharedRare = scorer(targetFilm, movieData({ genres: ["Film-Noir"] }));
+    const sharedCommon = scorer(targetFilm, movieData({ genres: ["Drama"] }));
     expect(sharedRare).toBeGreaterThan(sharedCommon);
   });
 
   it("falls back to equal weighting with an empty catalogue", () => {
     const scorer = makeWorkSimilarity(WorkType.movie, []);
-    const target = movieData({ genres: ["Drama"] });
+    const targetMovie = movieData({ genres: ["Drama"] });
     // With no corpus, IDF is 1 for every tag, matching the workSimilarity helper.
-    expect(scorer(target, movieData({ genres: ["Drama"] }))).toBeCloseTo(
-      workSimilarity(WorkType.movie, target, movieData({ genres: ["Drama"] })),
+    expect(scorer(targetMovie, movieData({ genres: ["Drama"] }))).toBeCloseTo(
+      workSimilarity(WorkType.movie, targetMovie, movieData({ genres: ["Drama"] })),
     );
   });
 });

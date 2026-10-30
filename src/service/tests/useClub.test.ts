@@ -1,5 +1,6 @@
 import { http, HttpResponse } from "msw";
 import { watch } from "vue";
+import { z } from "zod";
 
 import { useClubSettings, useCreateClub, useIsInClub, useUpdateClubSettings } from "../useClub";
 import { ClubType } from "@/../lib/types/generated/db";
@@ -29,6 +30,21 @@ function trackAwards() {
 }
 
 /** Club settings the POST actually stores, so a refetch reports the new value. */
+const settingsBodySchema = z.object({
+  features: z
+    .object({
+      awards: z.boolean(),
+      discussionQuestions: z.boolean(),
+    })
+    .partial()
+    .optional(),
+});
+
+const createClubBodySchema = z.object({
+  name: z.string().optional(),
+  type: z.nativeEnum(ClubType),
+});
+
 function settingsApi(hold?: { until: Promise<void> }) {
   const stored = { features: { awards: false, discussionQuestions: false } };
 
@@ -37,9 +53,9 @@ function settingsApi(hold?: { until: Promise<void> }) {
     handlers: [
       http.get("/api/club/:id/settings", () => HttpResponse.json(stored)),
       http.post("/api/club/:id/settings", async ({ request }) => {
-        const body = (await request.json()) as { features?: Partial<typeof stored.features> };
+        const { features } = settingsBodySchema.parse(await request.json());
         await hold?.until;
-        Object.assign(stored.features, body.features);
+        Object.assign(stored.features, features);
         return new HttpResponse(null, { status: 200 });
       }),
     ],
@@ -61,8 +77,8 @@ describe("useCreateClub", () => {
     server.use(
       http.post("/api/club", async ({ request }) => {
         // The API names the field `name`; the composable takes `clubName`.
-        const { name, type } = (await request.json()) as { name?: string; type: ClubType };
-        return HttpResponse.json({ clubId: "new-1", slug: `${type}-${name ?? "unnamed"}` });
+        const { name, type } = createClubBodySchema.parse(await request.json());
+        return HttpResponse.json({ clubId: "new-1", slug: `${type}-${name}` });
       }),
     );
 
@@ -83,7 +99,11 @@ describe("useCreateClub", () => {
 describe("useUpdateClubSettings", () => {
   it("shows the new value before the server responds, then keeps it on success", async () => {
     let release!: () => void;
-    const api = settingsApi({ until: new Promise<void>((resolve) => (release = resolve)) });
+    const api = settingsApi({
+      until: new Promise<void>((resolve) => {
+        release = resolve;
+      }),
+    });
     server.use(...api.handlers);
 
     const { result } = withSetup(trackAwards);
@@ -107,7 +127,7 @@ describe("useUpdateClubSettings", () => {
       expect(result.update.isSuccess.value).toBe(true);
       expect(result.settings.isFetching.value).toBe(false);
     });
-    expect(result.seen).toEqual([false, true]);
+    expect(result.seen).toStrictEqual([false, true]);
   });
 
   it("rolls back to the previous settings when the request fails", async () => {
@@ -130,7 +150,7 @@ describe("useUpdateClubSettings", () => {
       expect(result.update.isError.value).toBe(true);
     });
     // The optimistic true was shown, then onError restored the snapshot.
-    expect(result.seen).toEqual([false, true, false]);
+    expect(result.seen).toStrictEqual([false, true, false]);
   });
 
   it("merges a partial update, leaving the other features alone", async () => {
@@ -143,7 +163,7 @@ describe("useUpdateClubSettings", () => {
     }));
 
     await vi.waitFor(() => {
-      expect(result.settings.data.value?.features).toEqual({
+      expect(result.settings.data.value?.features).toStrictEqual({
         awards: false,
         discussionQuestions: false,
       });
@@ -154,7 +174,7 @@ describe("useUpdateClubSettings", () => {
     // The invalidated query re-reads what the server actually stored.
     await vi.waitFor(() => {
       expect(result.update.isSuccess.value).toBe(true);
-      expect(result.settings.data.value?.features).toEqual({
+      expect(result.settings.data.value?.features).toStrictEqual({
         awards: false,
         discussionQuestions: true,
       });

@@ -3,7 +3,6 @@
  * invite tokens, including the reuse and expiry-cleanup behaviour that lives in
  * `ClubRepository.createClubInvite`.
  */
-import { describe, expect, it } from "vitest";
 
 import { handler } from "../club/index";
 import { signIn } from "./helpers/auth";
@@ -20,7 +19,7 @@ describe("POST /api/club/:clubSlug/invite", () => {
     const res = await api.post<{ token: string }>(`/api/club/${club.slug}/invite`);
 
     expect(res.statusCode).toBe(200);
-    expect(res.body.token).toMatch(/^[0-9a-f]{32}$/);
+    expect(res.body.token).toMatch(/^[0-9a-f]{32}$/u);
 
     const info = await api.get<{ clubName: string }>(`/api/club/joinInfo/${res.body.token}`);
     expect(info.body.clubName).toBe("Invite Club");

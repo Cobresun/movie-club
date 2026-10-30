@@ -1,8 +1,8 @@
 <template>
-  <section v-if="hasElements(allActors)">
+  <section v-if="hasElements(actors)">
     <SectionHeader title="Cast">
       <button v-if="hasMore" class="text-xs text-primary hover:underline" @click="showAll = true">
-        See all ({{ allActors.length }})
+        See all ({{ actors.length }})
       </button>
     </SectionHeader>
 
@@ -35,7 +35,7 @@
       </li>
     </ul>
 
-    <CastModal v-if="showAll" :actors="allActors" @close="showAll = false" />
+    <CastModal v-if="showAll" :actors="actors" @close="showAll = false" />
   </section>
 </template>
 
@@ -47,7 +47,7 @@ import CastAvatar from "./CastAvatar.vue";
 import CastModal from "./CastModal.vue";
 import SectionHeader from "./SectionHeader.vue";
 
-const props = defineProps<{
+const { actors = [] } = defineProps<{
   actors?: {
     name: string;
     character: string | null;
@@ -57,10 +57,9 @@ const props = defineProps<{
 
 const VISIBLE_ACTORS_COUNT = 5;
 
-const allActors = computed(() => props.actors ?? []);
-const visibleActors = computed(() => allActors.value.slice(0, VISIBLE_ACTORS_COUNT));
-const hasMore = computed(() => allActors.value.length > VISIBLE_ACTORS_COUNT);
-const remainingCount = computed(() => allActors.value.length - VISIBLE_ACTORS_COUNT);
+const visibleActors = computed(() => actors.slice(0, VISIBLE_ACTORS_COUNT));
+const hasMore = computed(() => actors.length > VISIBLE_ACTORS_COUNT);
+const remainingCount = computed(() => actors.length - VISIBLE_ACTORS_COUNT);
 
 const showAll = ref(false);
 </script>

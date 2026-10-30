@@ -43,16 +43,16 @@ export const sanitizeScoreInput = (raw: string): ScoreInputSanitization => {
 
   // A leading zero before another digit is never how you type a 0-10 score.
   // Preserve a lone "0" and the "0" in "0.5"; drop the rest ("00" -> "0").
-  const withoutLeadingZeros = value.replace(/^(-?)0+(\d)/, "$1$2");
+  const withoutLeadingZeros = value.replace(/^(?<sign>-?)0+(?<digit>\d)/u, "$<sign>$<digit>");
   if (withoutLeadingZeros !== value) {
     value = withoutLeadingZeros;
     corrected = true;
   }
 
   // Keep at most two decimals — the precision every score display rounds to.
-  const excessDecimals = /^(-?\d*\.\d{2})\d/.exec(value);
+  const excessDecimals = /^(?<excess>-?\d*\.\d{2})\d/u.exec(value);
   if (excessDecimals !== null) {
-    value = excessDecimals[1];
+    [, value] = excessDecimals;
     corrected = true;
   }
 

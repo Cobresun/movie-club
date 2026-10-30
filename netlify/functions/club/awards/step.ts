@@ -8,7 +8,7 @@ import { secured } from "../../utils/auth";
 import { parseBody } from "../../utils/parseBody";
 import { badRequest, ok } from "../../utils/responses";
 import { isRouterResponse, Router } from "../../utils/router";
-import { ClubAwardRequest } from "./utils";
+import { type ClubAwardRequest } from "./utils";
 
 const router = new Router<ClubAwardRequest>("/api/club/:clubSlug/awards/:year<\\d+>/step");
 

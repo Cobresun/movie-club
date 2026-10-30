@@ -17,7 +17,6 @@
  * and the admin pool is the subject's own internal detail.
  */
 import { sql } from "kysely";
-import { afterAll, afterEach, describe, expect, it } from "vitest";
 
 import DatabaseCleanupRepository from "../repositories/DatabaseCleanupRepository";
 import cleanupHandler from "../scheduled-db-cleanup";
@@ -44,6 +43,15 @@ function scheduledRequest(body: unknown) {
   });
 }
 
+// `JSON.parse` typed to what the caller expects — mirrors helpers/http.ts.
+const parseJson: <T>(input: string) => T = JSON.parse;
+
+type CleanupBody = {
+  success?: boolean;
+  count: number;
+  deleted: string[];
+};
+
 afterEach(async () => {
   for (const name of created.splice(0)) {
     await sql`DROP DATABASE IF EXISTS ${sql.id(name)}`.execute(db);
@@ -64,7 +72,7 @@ describe("scheduled database cleanup", () => {
     const response = await cleanupHandler(scheduledRequest({ next_run: "2026-01-01T00:00:00Z" }));
 
     expect(response.status).toBe(200);
-    const body = await response.json();
+    const body = parseJson<CleanupBody>(await response.text());
     expect(body).toMatchObject({ success: true, count: 1, deleted: ["pr_stale_cleanup_test"] });
 
     const remaining = await DatabaseCleanupRepository.listDatabases();
@@ -79,7 +87,7 @@ describe("scheduled database cleanup", () => {
 
     const response = await cleanupHandler(scheduledRequest({ next_run: "2026-01-01T00:00:00Z" }));
 
-    const body = await response.json();
+    const body = parseJson<CleanupBody>(await response.text());
     expect(body).toMatchObject({ count: 0, deleted: [] });
   });
 
@@ -87,7 +95,7 @@ describe("scheduled database cleanup", () => {
     const response = await cleanupHandler(scheduledRequest({ next_run: "2026-01-01T00:00:00Z" }));
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toMatchObject({
+    await expect(response.json()).resolves.toMatchObject({
       success: true,
       count: 0,
       deleted: [],
@@ -99,7 +107,7 @@ describe("scheduled database cleanup", () => {
     const response = await cleanupHandler(scheduledRequest({ wrong: "shape" }));
 
     expect(response.status).toBe(500);
-    expect(await response.json()).toMatchObject({ success: false });
+    await expect(response.json()).resolves.toMatchObject({ success: false });
   });
 });
 
@@ -119,7 +127,7 @@ describe("DatabaseCleanupRepository.canDeleteDatabase", () => {
 
   it("refuses to drop a protected database even when asked directly", async () => {
     await expect(DatabaseCleanupRepository.dropDatabase("prod")).rejects.toThrow(
-      /Cannot delete protected database/,
+      /Cannot delete protected database/u,
     );
   });
 });

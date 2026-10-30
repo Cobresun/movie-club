@@ -56,7 +56,7 @@ import { computed, ref } from "vue";
 
 import { Member } from "../../../../lib/types/club";
 import { computeClubConsensus } from "../statsComputers";
-import type { WorkStatsData } from "../types";
+import { type WorkStatsData } from "../types";
 import SegmentedToggle from "./SegmentedToggle.vue";
 import WidgetShell from "@/common/components/WidgetShell.vue";
 import { firstName } from "@/common/memberName";
@@ -68,14 +68,14 @@ const MODE_OPTIONS: { value: Mode; label: string }[] = [
   { value: "divisive", label: "Most Divisive" },
 ];
 
-const props = defineProps<{
+const { workData, members } = defineProps<{
   workData: WorkStatsData[];
   members: Member[];
 }>();
 
 const mode = ref<Mode>("agreed");
 
-const consensus = computed(() => computeClubConsensus(props.workData, props.members));
+const consensus = computed(() => computeClubConsensus(workData, members));
 
 const hasData = computed(() => consensus.value.mostAgreed.length > 0);
 

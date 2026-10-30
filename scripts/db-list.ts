@@ -1,6 +1,7 @@
 #!/usr/bin/env tsx
 
 import { Pool } from "pg";
+import { z } from "zod";
 
 import { hasValue } from "../lib/checks/checks.js";
 
@@ -14,6 +15,19 @@ interface DatabaseInfo {
     branch?: string;
   };
 }
+
+/**
+ * The metadata embedded in a database's SHOW DATABASES WITH COMMENT value.
+ * Parsing validates the shape instead of casting it.
+ */
+const databaseMetadataSchema = z
+  .object({
+    created_at: z.string(),
+    created_by: z.string(),
+    pr_number: z.number(),
+    branch: z.string(),
+  })
+  .partial();
 
 const PROTECTED_DATABASES = ["defaultdb", "postgres", "system"];
 
@@ -61,10 +75,10 @@ async function listDatabases(): Promise<DatabaseInfo[]> {
     return filteredRows.map((row) => {
       let metadata: DatabaseInfo["metadata"];
 
-      const comment = row.comment;
+      const { comment } = row;
       if (hasValue(comment)) {
         try {
-          metadata = JSON.parse(comment) as DatabaseInfo["metadata"];
+          metadata = pickMetadata(JSON.parse(comment));
         } catch {
           // Not JSON, ignore
         }
@@ -79,6 +93,14 @@ async function listDatabases(): Promise<DatabaseInfo[]> {
   } finally {
     await pool.end();
   }
+}
+
+/**
+ * Parses the known metadata fields out of a database comment, ignoring
+ * anything unexpected.
+ */
+function pickMetadata(value: unknown): DatabaseInfo["metadata"] {
+  return databaseMetadataSchema.parse(value);
 }
 
 /**
@@ -109,34 +131,44 @@ function displayDatabases(databases: DatabaseInfo[]): void {
   // Display production database
   if (prodDatabases.length > 0) {
     console.log("\n🚀 Production Database:");
-    prodDatabases.forEach((db) => displayDatabase(db));
+    prodDatabases.forEach((db) => {
+      displayDatabase(db);
+    });
   }
 
   // Display main dev database
   if (devDatabases.length > 0) {
     console.log("\n🔧 Main Development Database:");
-    devDatabases.forEach((db) => displayDatabase(db));
+    devDatabases.forEach((db) => {
+      displayDatabase(db);
+    });
   }
 
   // Display PR preview databases
   if (prDatabases.length > 0) {
     console.log("\n🔀 PR Preview Databases:");
-    prDatabases.forEach((db) => displayDatabase(db));
+    prDatabases.forEach((db) => {
+      displayDatabase(db);
+    });
   }
 
   // Display personal dev databases
   if (personalDatabases.length > 0) {
     console.log("\n👤 Personal Development Databases:");
-    personalDatabases.forEach((db) => displayDatabase(db));
+    personalDatabases.forEach((db) => {
+      displayDatabase(db);
+    });
   }
 
   // Display other databases
   if (otherDatabases.length > 0) {
     console.log("\n📦 Other Databases:");
-    otherDatabases.forEach((db) => displayDatabase(db));
+    otherDatabases.forEach((db) => {
+      displayDatabase(db);
+    });
   }
 
-  console.log("\n" + "─".repeat(80) + "\n");
+  console.log(`\n${"─".repeat(80)}\n`);
 
   // Display summary
   console.log(`Total: ${databases.length} databases`);
@@ -188,7 +220,7 @@ async function main() {
       displayDatabases(databases);
     }
   } catch (error) {
-    console.error("✗ Error:", (error as Error).message);
+    console.error("✗ Error:", error instanceof Error ? error.message : String(error));
     process.exit(1);
   }
 }

@@ -45,15 +45,16 @@ interface ChipMember {
   image?: string;
 }
 
-withDefaults(
-  defineProps<{
-    members: ChipMember[];
-    modelValue: string | undefined;
-    /** Show the "All" chip that clears the selection. */
-    includeAll?: boolean;
-  }>(),
-  { includeAll: true },
-);
+const {
+  members,
+  modelValue,
+  includeAll = true,
+} = defineProps<{
+  members: ChipMember[];
+  modelValue: string | undefined;
+  /** Show the "All" chip that clears the selection. */
+  includeAll?: boolean;
+}>();
 
 const emit = defineEmits<{
   (e: "update:modelValue", memberId: string | undefined): void;

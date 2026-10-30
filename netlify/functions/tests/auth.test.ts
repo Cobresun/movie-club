@@ -7,7 +7,6 @@
  * email leaves the process, and MSW catches that at Resend's endpoint — which
  * is also how these tests read the confirmation link, exactly as a user would.
  */
-import { describe, expect, it, vi } from "vitest";
 
 import { handler } from "../auth";
 import { handler as clubHandler } from "../club/index";

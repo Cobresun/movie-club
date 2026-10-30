@@ -63,18 +63,18 @@
 import { computed, ref } from "vue";
 
 import { computeSubjectReadCounts, computeSubjectStats } from "../statsComputers";
-import type { BookData } from "../types";
+import { type BookData } from "../types";
 import SegmentedToggle from "./SegmentedToggle.vue";
 import WidgetShell from "@/common/components/WidgetShell.vue";
 
 type Mode = "rated" | "read";
 
-const props = defineProps<{
+const { bookData } = defineProps<{
   bookData: BookData[];
 }>();
 
-const subjectScores = computed(() => computeSubjectStats(props.bookData));
-const subjectCounts = computed(() => computeSubjectReadCounts(props.bookData));
+const subjectScores = computed(() => computeSubjectStats(bookData));
+const subjectCounts = computed(() => computeSubjectReadCounts(bookData));
 
 const modeOptions = computed(() => {
   const options: { value: Mode; label: string }[] = [];

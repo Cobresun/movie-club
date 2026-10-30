@@ -1,7 +1,7 @@
-import { Component } from "vue";
+import { type Component } from "vue";
 
 import { ClubType } from "../../../lib/types/generated/db";
-import { DetailedReviewListItem } from "../../../lib/types/lists";
+import { type DetailedReviewListItem } from "../../../lib/types/lists";
 import GalleryView from "./components/GalleryView.vue";
 import ReviewsSkeleton from "./components/ReviewsSkeleton.vue";
 import ShowListSkeleton from "./components/tv/ShowListSkeleton.vue";

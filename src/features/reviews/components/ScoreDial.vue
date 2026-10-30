@@ -149,7 +149,7 @@ const shakeInput = () => {
 // and the DOM directly, since Vue won't re-patch when two inputs in a row
 // correct to the same model value (e.g. "12" then "120").
 const onInput = (event: Event) => {
-  const target = event.target;
+  const { target } = event;
   if (!(target instanceof HTMLInputElement)) return;
   const { value, corrected, clampedTo } = sanitizeScoreInput(target.value);
   if (!corrected) return;

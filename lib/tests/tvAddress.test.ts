@@ -1,20 +1,18 @@
-import { describe, expect, it } from "vitest";
-
 import { episodeCode, formatTvAddress, parseTvAddress, tvLevel } from "../types/tv";
 
 describe("TV addresses", () => {
   it("reads a show, a season and an episode out of one id", () => {
-    expect(parseTvAddress("95396")).toEqual({
+    expect(parseTvAddress("95396")).toStrictEqual({
       showId: "95396",
       seasonNumber: undefined,
       episodeNumber: undefined,
     });
-    expect(parseTvAddress("95396:1")).toEqual({
+    expect(parseTvAddress("95396:1")).toStrictEqual({
       showId: "95396",
       seasonNumber: 1,
       episodeNumber: undefined,
     });
-    expect(parseTvAddress("95396:1:4")).toEqual({
+    expect(parseTvAddress("95396:1:4")).toStrictEqual({
       showId: "95396",
       seasonNumber: 1,
       episodeNumber: 4,
@@ -29,11 +27,11 @@ describe("TV addresses", () => {
 
   it("round-trips an address through its stored form", () => {
     const address = { showId: "95396", seasonNumber: 1, episodeNumber: 4 };
-    expect(parseTvAddress(formatTvAddress(address))).toEqual(address);
+    expect(parseTvAddress(formatTvAddress(address))).toStrictEqual(address);
   });
 
   it("keeps season 0 addressable, so specials are not mistaken for a show", () => {
-    expect(parseTvAddress("95396:0")).toEqual({
+    expect(parseTvAddress("95396:0")).toStrictEqual({
       showId: "95396",
       seasonNumber: 0,
       episodeNumber: undefined,

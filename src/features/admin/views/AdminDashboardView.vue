@@ -118,7 +118,7 @@
 </template>
 
 <script setup lang="ts">
-import axios from "axios";
+import { isAxiosError } from "axios";
 import { computed, ref } from "vue";
 
 import { DEFAULT_METRICS_RANGE, MetricsRange } from "../../../../lib/types/metrics";
@@ -159,7 +159,7 @@ const refresh = () => Promise.all([refetch(), refetchHistory()]);
  * is where a non-admin finds out.
  */
 const isUnauthorized = computed(
-  () => axios.isAxiosError(error.value) && error.value.response?.status === 401,
+  () => isAxiosError(error.value) && error.value.response?.status === 401,
 );
 
 const pulseTiles = computed(() => {

@@ -1,8 +1,8 @@
 import { DateTime } from "luxon";
 
 import { isDefined } from "../../../lib/checks/checks.js";
-import { Member } from "../../../lib/types/club";
-import { DetailedReviewListItem } from "../../../lib/types/lists";
+import { type Member } from "../../../lib/types/club";
+import { type DetailedReviewListItem } from "../../../lib/types/lists";
 import { AVERAGE_SCORE_ID, memberScoreId, scoreIdMemberId } from "./reviewScores";
 
 const DATE_SORT_ID = "createdDate";

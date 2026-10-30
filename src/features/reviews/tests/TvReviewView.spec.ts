@@ -1,10 +1,10 @@
-import { UserEvent } from "@testing-library/user-event";
+import { type UserEvent } from "@testing-library/user-event";
 import { fireEvent, screen, within } from "@testing-library/vue";
 import { http, HttpResponse } from "msw";
 
 import { WorkType } from "../../../../lib/types/generated/db";
-import { DetailedReviewListItem } from "../../../../lib/types/lists";
-import { TMDBTvEpisodeData } from "../../../../lib/types/tv";
+import { type DetailedReviewListItem, type ReviewScores } from "../../../../lib/types/lists";
+import { type TMDBTvEpisodeData } from "../../../../lib/types/tv";
 import ReviewView from "../views/ReviewView.vue";
 import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
 import { server } from "@/mocks/server";
@@ -18,18 +18,19 @@ const SHOW_ID = "95396";
 /** The signed-in member in `logIn`. */
 const SIGNED_IN = "2";
 
-function score(memberId: string, value: number) {
-  return {
-    [memberId]: { id: `r-${memberId}`, created_date: "2026-03-04T00:00:00.000Z", score: value },
-  };
-}
-
-function scores(...entries: { memberId: string; score: number }[]) {
+function scores(...entries: { memberId: string; score: number }[]): ReviewScores {
   const average = entries.reduce((total, entry) => total + entry.score, 0) / entries.length;
-  return {
-    ...Object.assign({}, ...entries.map((entry) => score(entry.memberId, entry.score))),
+  const result: ReviewScores = {
     average: { id: "average", created_date: "2026-03-04T00:00:00.000Z", score: average },
   };
+  for (const entry of entries) {
+    result[entry.memberId] = {
+      id: `r-${entry.memberId}`,
+      created_date: "2026-03-04T00:00:00.000Z",
+      score: entry.score,
+    };
+  }
+  return result;
 }
 
 const seriesFields = {

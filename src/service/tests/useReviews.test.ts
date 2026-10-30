@@ -1,6 +1,7 @@
 import { http, HttpResponse } from "msw";
+import { z } from "zod";
 
-import { ReviewScores } from "../../../lib/types/lists";
+import { type ReviewScores } from "../../../lib/types/lists";
 import { useReviewsList } from "../useList";
 import {
   useAddReviewComment,
@@ -14,6 +15,15 @@ import { comment, commentsApi } from "@/mocks/comments";
 import memberData from "@/mocks/data/member.json";
 import { server } from "@/mocks/server";
 import { logIn, withSetup } from "@/tests/utils";
+
+const createReviewSchema = z.object({
+  workId: z.string(),
+  score: z.number(),
+});
+
+const scoreSchema = z.object({
+  score: z.number(),
+});
 
 /** Runs the comment thread query alongside the mutation under test. */
 function withThread<T>(mutation: () => T) {
@@ -56,7 +66,7 @@ describe("useSubmitScore", () => {
       http.get("/api/club/:id/list/reviews", () => HttpResponse.json([work])),
       http.get("/api/club/:id/reviews/:workId/scores", () => HttpResponse.json(work.scores)),
       http.post("/api/club/:id/reviews", async ({ request }) => {
-        const { workId, score } = (await request.json()) as { workId: string; score: number };
+        const { workId, score } = createReviewSchema.parse(await request.json());
         if (workId !== work.id) return new HttpResponse(null, { status: 404 });
         if (work.reviewId !== undefined) return new HttpResponse(null, { status: 409 });
         work.reviewId = "rev-42";
@@ -65,7 +75,7 @@ describe("useSubmitScore", () => {
       }),
       http.put("/api/club/:id/reviews/:reviewId", async ({ request, params }) => {
         if (params.reviewId !== work.reviewId) return new HttpResponse(null, { status: 404 });
-        const { score } = (await request.json()) as { score: number };
+        const { score } = scoreSchema.parse(await request.json());
         work.scores = scoresOf(score);
         return HttpResponse.json({});
       }),
@@ -139,7 +149,9 @@ describe("useDeleteScore", () => {
       scores,
     };
     let release!: () => void;
-    const answered = new Promise<void>((resolve) => (release = resolve));
+    const answered = new Promise<void>((resolve) => {
+      release = resolve;
+    });
 
     return {
       handlers: [
@@ -211,7 +223,7 @@ describe("useDeleteScore", () => {
     // The server's own answer for a work nobody has scored, so the work reads
     // as unrated rather than as rated with an average of nothing.
     await vi.waitFor(() => {
-      expect(scoresOnList(result.reviews)).toEqual({});
+      expect(scoresOnList(result.reviews)).toStrictEqual({});
     });
 
     finish({});
@@ -229,13 +241,13 @@ describe("useAddReviewComment", () => {
     const { result } = withSetup(withThread(() => useAddReviewComment("test-club", "work-1")));
 
     await vi.waitFor(() => {
-      expect(contents(result.thread)).toEqual([]);
+      expect(contents(result.thread)).toStrictEqual([]);
     });
 
     result.mutation.mutate({ content: "Loved it", spoiler: false });
 
     await vi.waitFor(() => {
-      expect(contents(result.thread)).toEqual(["Loved it"]);
+      expect(contents(result.thread)).toStrictEqual(["Loved it"]);
     });
   });
 });
@@ -251,13 +263,13 @@ describe("useEditReviewComment", () => {
     const { result } = withSetup(withThread(() => useEditReviewComment("test-club", "work-1")));
 
     await vi.waitFor(() => {
-      expect(contents(result.thread)).toEqual(["First thoughts"]);
+      expect(contents(result.thread)).toStrictEqual(["First thoughts"]);
     });
 
     result.mutation.mutate({ commentId: "c-7", content: "Edited", spoiler: true });
 
     await vi.waitFor(() => {
-      expect(contents(result.thread)).toEqual(["Edited (spoiler)"]);
+      expect(contents(result.thread)).toStrictEqual(["Edited (spoiler)"]);
     });
   });
 });
@@ -278,13 +290,13 @@ describe("useDeleteReviewComment", () => {
     const { result } = withSetup(withThread(() => useDeleteReviewComment("test-club", "work-1")));
 
     await vi.waitFor(() => {
-      expect(contents(result.thread)).toEqual(["Delete me", "Keep me"]);
+      expect(contents(result.thread)).toStrictEqual(["Delete me", "Keep me"]);
     });
 
     result.mutation.mutate("c-99");
 
     await vi.waitFor(() => {
-      expect(contents(result.thread)).toEqual(["Keep me"]);
+      expect(contents(result.thread)).toStrictEqual(["Keep me"]);
     });
   });
 });

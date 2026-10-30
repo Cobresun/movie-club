@@ -33,7 +33,7 @@ describe("useDiscussionQuestions", () => {
 
     await result.refetch();
 
-    expect(result.data.value).toEqual(["What is the theme?", "Who is the hero?"]);
+    expect(result.data.value).toStrictEqual(["What is the theme?", "Who is the hero?"]);
   });
 
   it("does not retry on failure (retry: false)", async () => {

@@ -1,10 +1,10 @@
-import { Handler, HandlerContext, HandlerEvent } from "@netlify/functions";
+import { type Handler, type HandlerContext, type HandlerEvent } from "@netlify/functions";
 import { parse } from "lambda-multipart-parser";
 import { z } from "zod";
 
 import { hasValue, isDefined } from "../../lib/checks/checks.js";
-import { ClubPreview } from "../../lib/types/club";
-import { MemberScoredWork } from "../../lib/types/lists";
+import { type ClubPreview } from "../../lib/types/club";
+import { type MemberScoredWork } from "../../lib/types/lists";
 import ClubRepository from "./repositories/ClubRepository";
 import ImageRepository from "./repositories/ImageRepository";
 import ReviewRepository from "./repositories/ReviewRepository";
@@ -63,7 +63,7 @@ router.post("/avatar", loggedIn, async (req, res) => {
     const parsed = await parse(req.event);
     if (parsed.files.length === 0) return res(badRequest("No file uploaded"));
 
-    const avatarFile = parsed.files[0];
+    const [avatarFile] = parsed.files;
 
     const user = await UserRepository.getUserById(req.userId);
     const { url, id } = await ImageRepository.upload(avatarFile.content);
@@ -115,8 +115,7 @@ router.put("/name", loggedIn, async (req, res) => {
   return res(ok());
 });
 
-const handler: Handler = async (event: HandlerEvent, context: HandlerContext) => {
-  return router.route({ event, context, params: {} });
-};
+const handler: Handler = (event: HandlerEvent, context: HandlerContext) =>
+  router.route({ event, context, params: {} });
 
 export { handler };

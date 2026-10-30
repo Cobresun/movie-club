@@ -1,11 +1,13 @@
-import { describe, expect, it } from "vitest";
-
 import { isDefined } from "../../../../lib/checks/checks";
 import { isMajorCastMember } from "../../../../lib/movie/majorCast";
-import { DetailedBookData } from "../../../../lib/types/book";
+import { type DetailedBookData } from "../../../../lib/types/book";
 import { WorkType } from "../../../../lib/types/generated/db";
-import { DetailedReviewListItem, DetailedWorkData, Review } from "../../../../lib/types/lists";
-import { DetailedMovieData } from "../../../../lib/types/movie";
+import {
+  type DetailedReviewListItem,
+  type DetailedWorkData,
+  type Review,
+} from "../../../../lib/types/lists";
+import { type DetailedMovieData } from "../../../../lib/types/movie";
 import { computeReviewFact } from "../reviewFacts";
 
 const MEMBER_A = "member-a";

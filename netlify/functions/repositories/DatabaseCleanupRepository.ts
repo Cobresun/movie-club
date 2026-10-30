@@ -204,10 +204,11 @@ class DatabaseCleanupRepository {
       await sql`DROP DATABASE IF EXISTS ${sql.id(dbName)}`.execute(rootDb);
       console.log(`✓ Dropped database: ${dbName}`);
     } catch (error) {
-      const errorMessage = (error as Error).message;
+      const errorMessage = error instanceof Error ? error.message : String(error);
       if (errorMessage.includes("cannot drop the currently open database")) {
         throw new Error(
           `Cannot drop database ${dbName}: it's currently in use. Close all connections and try again.`,
+          { cause: error },
         );
       }
       throw error;
@@ -245,7 +246,10 @@ class DatabaseCleanupRepository {
         await this.dropDatabase(db.name);
         deleted.push(db.name);
       } catch (error) {
-        console.error(`Failed to drop database ${db.name}:`, (error as Error).message);
+        console.error(
+          `Failed to drop database ${db.name}:`,
+          error instanceof Error ? error.message : String(error),
+        );
         // Continue with other databases
       }
     }
@@ -259,4 +263,6 @@ class DatabaseCleanupRepository {
   }
 }
 
-export default new DatabaseCleanupRepository();
+const databaseCleanupRepository = new DatabaseCleanupRepository();
+
+export default databaseCleanupRepository;

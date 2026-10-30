@@ -1,9 +1,9 @@
 import { z } from "zod";
 
-import { DetailedBookData } from "./book";
-import { WorkListSystemType, WorkType } from "./generated/db";
-import { DetailedMovieData, MovieDataSummary } from "./movie";
-import { DetailedTvData, TvDataSummary } from "./tv";
+import { type DetailedBookData } from "./book";
+import { type WorkListSystemType, WorkType } from "./generated/db";
+import { type DetailedMovieData, type MovieDataSummary } from "./movie";
+import { type DetailedTvData, type TvDataSummary } from "./tv";
 
 /**
  * Discriminated union of all media metadata shapes. Discriminate on `.kind`

@@ -1,4 +1,4 @@
-import { AwardsData, awardsDataSchema } from "../../../lib/types/awards";
+import { type AwardsData, awardsDataSchema } from "../../../lib/types/awards";
 import { WorkListSystemType, WorkType } from "../../../lib/types/generated/db";
 import { db } from "../utils/database";
 

@@ -18,6 +18,7 @@ export function useCopyInviteLink(clubSlug: string) {
     } catch {
       if (inviteLinkInput.value) {
         inviteLinkInput.value.select();
+        // oxlint-disable-next-line typescript/no-deprecated -- legacy clipboard fallback when navigator.clipboard is unavailable
         document.execCommand("copy");
       }
     }
