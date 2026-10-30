@@ -38,4 +38,4 @@ async function down(db: Kysely<unknown>) {
     .execute();
 }
 
-export default { name: "20261027_ReviewReferencesWork", up, down };
+export default { name: "ReviewReferencesWork", up, down };

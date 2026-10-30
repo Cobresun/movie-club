@@ -27,13 +27,13 @@ import RekeyAwardsToUserIds from "./schema/20260706_RekeyAwardsToUserIds.js";
 import DropClubLegacyId from "./schema/20260720_DropClubLegacyId.js";
 import AddActorPopularity from "./schema/20260721_AddActorPopularity.js";
 import AddObservability from "./schema/20260729_AddObservability.js";
-import AddTvClubType from "./schema/20260914_AddTvClubType.js";
-import AddTvDetails from "./schema/20260914_AddTvDetails.js";
-import AddTvWorkType from "./schema/20260914_AddTvWorkType.js";
 import RekeyAwardsCaseInsensitiveNames from "./schema/20261019_RekeyAwardsCaseInsensitiveNames.js";
-import AddUserSignupSource from "./schema/20261022_AddUserSignupSource.js";
-import AddWorkParent from "./schema/20261027_AddWorkParent.js";
-import ReviewReferencesWork from "./schema/20261027_ReviewReferencesWork.js";
+import AddTvClubType from "./schema/AddTvClubType.js";
+import AddTvDetails from "./schema/AddTvDetails.js";
+import AddTvWorkType from "./schema/AddTvWorkType.js";
+import AddUserSignupSource from "./schema/AddUserSignupSource.js";
+import AddWorkParent from "./schema/AddWorkParent.js";
+import ReviewReferencesWork from "./schema/ReviewReferencesWork.js";
 
 /** What each file in `migrations/schema/` default-exports. */
 export interface NamedMigration extends Migration {
@@ -51,8 +51,9 @@ export interface NamedMigration extends Migration {
  * and Kysely refuses to run against a database that recorded the old names.
  *
  * New migrations are named without a date (`migrations/schema/AddFoo.ts`,
- * `name: "AddFoo"`). The dated entries at the head predate this list and keep
- * the names production already recorded for them (`LEGACY_MIGRATION_COUNT`).
+ * `name: "AddFoo"`). The dated entries at the head are the ones production had
+ * run when this list was introduced, and keep the names it recorded for them
+ * (`LEGACY_MIGRATION_COUNT`).
  */
 export const orderedMigrations: NamedMigration[] = [
   AddClubTable,
@@ -82,10 +83,10 @@ export const orderedMigrations: NamedMigration[] = [
   DropClubLegacyId,
   AddActorPopularity,
   AddObservability,
+  RekeyAwardsCaseInsensitiveNames,
   AddTvClubType,
   AddTvDetails,
   AddTvWorkType,
-  RekeyAwardsCaseInsensitiveNames,
   AddUserSignupSource,
   AddWorkParent,
   ReviewReferencesWork,

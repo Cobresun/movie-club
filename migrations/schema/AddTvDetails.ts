@@ -10,7 +10,7 @@ import { type Kysely } from "kysely";
  * `show_external_id` joins it back to the show.
  *
  * The enum values these rows hang off land separately, in
- * `20260914_AddTvClubType` and `20260914_AddTvWorkType` (CockroachDB
+ * `AddTvClubType` and `AddTvWorkType` (CockroachDB
  * enum-value restriction).
  */
 async function up(db: Kysely<unknown>) {
@@ -139,4 +139,4 @@ async function down(db: Kysely<unknown>) {
   await db.schema.dropTable("tv_show_details").execute();
 }
 
-export default { name: "20260914_AddTvDetails", up, down };
+export default { name: "AddTvDetails", up, down };

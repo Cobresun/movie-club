@@ -15,11 +15,13 @@ const currentDirname = path.dirname(currentFilename);
 const migrationFolder = path.join(currentDirname, "/schema");
 
 /**
- * How many entries at the head of `orderedMigrations` predate it. Production
- * recorded these under their dated filenames, so they keep them; every later
- * entry is named by its position, which sorts after every dated name.
+ * How many entries at the head of `orderedMigrations` production had run when
+ * the list was introduced (through `20261019_RekeyAwardsCaseInsensitiveNames`).
+ * Production recorded these under their dated filenames, so they keep them;
+ * every later entry is named by its position, which sorts after every dated
+ * name.
  */
-const LEGACY_MIGRATION_COUNT = 34;
+const LEGACY_MIGRATION_COUNT = 28;
 
 /**
  * Names each migration by its position in `orderedMigrations` (`m0035_AddFoo`),

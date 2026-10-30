@@ -38,4 +38,4 @@ async function down(db: Kysely<unknown>) {
   await db.schema.dropType("signup_source").execute();
 }
 
-export default { name: "20261022_AddUserSignupSource", up, down };
+export default { name: "AddUserSignupSource", up, down };

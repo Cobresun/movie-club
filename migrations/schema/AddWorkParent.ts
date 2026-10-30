@@ -22,4 +22,4 @@ async function down(db: Kysely<unknown>) {
   await db.schema.alterTable("work").dropColumn("parent_work_id").execute();
 }
 
-export default { name: "20261027_AddWorkParent", up, down };
+export default { name: "AddWorkParent", up, down };
