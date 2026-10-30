@@ -1,7 +1,12 @@
-import { Handler, HandlerContext, HandlerEvent, HandlerResponse } from "@netlify/functions";
+import {
+  type Handler,
+  type HandlerContext,
+  type HandlerEvent,
+  type HandlerResponse,
+} from "@netlify/functions";
 
 import { ensure } from "../../../../lib/checks/checks";
-import type { TestSession } from "./auth";
+import { type TestSession } from "./auth";
 
 /** A stub HandlerContext — Netlify's context carries nothing the routers read. */
 export const stubContext: HandlerContext = {
@@ -14,8 +19,11 @@ export const stubContext: HandlerContext = {
   logGroupName: "test",
   logStreamName: "test",
   getRemainingTimeInMillis: () => 30000,
+  // oxlint-disable-next-line typescript/no-deprecated -- required by HandlerContext; never used by routers
   done: () => undefined,
+  // oxlint-disable-next-line typescript/no-deprecated -- required by HandlerContext; never used by routers
   fail: () => undefined,
+  // oxlint-disable-next-line typescript/no-deprecated -- required by HandlerContext; never used by routers
   succeed: () => undefined,
 };
 

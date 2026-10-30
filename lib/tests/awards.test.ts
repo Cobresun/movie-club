@@ -1,7 +1,5 @@
-import { describe, expect, it } from "vitest";
-
 import { scoreAward, stepChangeError } from "../awards";
-import { AwardsStep, BaseAward, BaseAwardNomination } from "../types/awards";
+import { AwardsStep, type BaseAward, type BaseAwardNomination } from "../types/awards";
 
 const nominee = (movieId: number, ranking: Record<string, number>): BaseAwardNomination => ({
   movieId,
@@ -22,32 +20,32 @@ describe("scoreAward", () => {
       nominee(3, { a: 3, b: 3 }),
     ]);
 
-    expect(results.map((result) => [result.nomination.movieId, result.score])).toEqual([
+    expect(results.map((result) => [result.nomination.movieId, result.score])).toStrictEqual([
       [2, 2],
       [1, 4],
       [3, 6],
     ]);
-    expect(results.map((result) => result.winner)).toEqual([true, false, false]);
+    expect(results.map((result) => result.winner)).toStrictEqual([true, false, false]);
   });
 
   it("counts a nominee a voter never ranked as their last place, not as zero", () => {
     // `b` voted before nominee 3 existed; it must not win on b's empty column.
     expect(
       winners([nominee(1, { a: 2, b: 1 }), nominee(2, { a: 3, b: 2 }), nominee(3, { a: 1 })]),
-    ).toEqual([1]);
+    ).toStrictEqual([1]);
   });
 
   it("shares the win on a tie", () => {
-    expect(winners([nominee(1, { a: 1, b: 2 }), nominee(2, { a: 2, b: 1 })])).toEqual([1, 2]);
+    expect(winners([nominee(1, { a: 1, b: 2 }), nominee(2, { a: 2, b: 1 })])).toStrictEqual([1, 2]);
   });
 
   it("only counts the members who voted in the category", () => {
-    expect(scoreAward([nominee(1, { a: 1 }), nominee(2, { a: 2 })]).voters).toEqual(["a"]);
+    expect(scoreAward([nominee(1, { a: 1 }), nominee(2, { a: 2 })]).voters).toStrictEqual(["a"]);
   });
 
   it("declares no winner when nobody voted, unless there was only one nominee", () => {
-    expect(winners([nominee(1, {}), nominee(2, {})])).toEqual([]);
-    expect(winners([nominee(1, {})])).toEqual([1]);
+    expect(winners([nominee(1, {}), nominee(2, {})])).toStrictEqual([]);
+    expect(winners([nominee(1, {})])).toStrictEqual([1]);
   });
 });
 

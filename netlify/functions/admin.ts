@@ -1,10 +1,10 @@
-import { Handler } from "@netlify/functions";
+import { type Handler } from "@netlify/functions";
 
 import {
-  AdminDashboard,
+  type AdminDashboard,
   DEFAULT_METRICS_RANGE,
   metricsRangeSchema,
-  SnapshotHistoryPoint,
+  type SnapshotHistoryPoint,
 } from "../../lib/types/metrics.js";
 import MetricsRepository from "./repositories/MetricsRepository.js";
 import { siteAdmin } from "./utils/auth";

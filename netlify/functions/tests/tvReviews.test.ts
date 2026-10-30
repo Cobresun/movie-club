@@ -7,15 +7,13 @@
  * parsing, season caching and child resolution all run.
  */
 import { http, HttpResponse } from "msw";
-import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { ClubType, WorkType } from "../../../lib/types/generated/db";
-import { DetailedReviewListItem, DetailedWorkListItem } from "../../../lib/types/lists";
-import { TvDataSummary } from "../../../lib/types/tv";
+import { type DetailedReviewListItem, type DetailedWorkListItem } from "../../../lib/types/lists";
 import { handler } from "../club/index";
 import { TV_SEASON_EPISODE_COUNTS, tmdbTvSeason, tmdbTvShow } from "./fixtures/external";
-import { signIn, TestSession } from "./helpers/auth";
-import { addWork, createClub, SeededClub } from "./helpers/factories";
+import { signIn, type TestSession } from "./helpers/auth";
+import { addWork, createClub, type SeededClub } from "./helpers/factories";
 import { requester } from "./helpers/http";
 import { failOnRequest, server, TMDB } from "./setup/externalApis";
 
@@ -66,7 +64,7 @@ describe("scoring a TV show", () => {
 
     expect(res.statusCode).toBe(400);
     const reviews = await reviewsOf(club);
-    expect(reviews.map((review) => review.externalId)).toEqual([SHOW_ID]);
+    expect(reviews.map((review) => review.externalId)).toStrictEqual([SHOW_ID]);
     expect(reviews.every((review) => Object.keys(review.scores).length === 0)).toBe(true);
   });
 
@@ -129,7 +127,7 @@ describe("scoring a TV show", () => {
     const listed = await api.get<DetailedWorkListItem[]>(
       `/api/club/${club.slug}/list/${club.reviewsListId}`,
     );
-    expect(listed.body.map((item) => item.externalId)).toEqual([SHOW_ID]);
+    expect(listed.body.map((item) => item.externalId)).toStrictEqual([SHOW_ID]);
     expect(await scoreOf(club, EPISODE_1, alice)).toBe(8);
   });
 
@@ -145,7 +143,7 @@ describe("scoring a TV show", () => {
     });
 
     expect(res.statusCode).toBe(400);
-    expect((await reviewsOf(club)).map((review) => review.externalId)).toEqual([SHOW_ID]);
+    expect((await reviewsOf(club)).map((review) => review.externalId)).toStrictEqual([SHOW_ID]);
   });
 
   it("leaves another member's episode score untouched", async () => {
@@ -168,11 +166,11 @@ describe("scoring a TV show", () => {
 
     const reviews = await reviewsOf(club);
     const showItem = reviews.find((review) => review.externalId === SHOW_ID);
-    const data = showItem?.externalData as TvDataSummary | undefined;
+    const data = showItem?.externalData?.kind === "tv" ? showItem.externalData : undefined;
 
     expect(data?.level).toBe("show");
-    expect(data?.seasons?.map((season) => season.seasonNumber)).toEqual([1, 2]);
-    expect(data?.seasons?.map((season) => season.episodeCount)).toEqual([
+    expect(data?.seasons?.map((season) => season.seasonNumber)).toStrictEqual([1, 2]);
+    expect(data?.seasons?.map((season) => season.episodeCount)).toStrictEqual([
       TV_SEASON_EPISODE_COUNTS[1],
       TV_SEASON_EPISODE_COUNTS[2],
     ]);
@@ -191,7 +189,7 @@ describe("scoring a TV show", () => {
 
     expect(res.statusCode).toBe(200);
     const reviews = await reviewsOf(club);
-    expect(new Set(reviews.map((review) => review.externalId))).toEqual(
+    expect(new Set(reviews.map((review) => review.externalId))).toStrictEqual(
       new Set([SHOW_ID, `${SHOW_ID}:2:2`]),
     );
     const episode = reviews.find((review) => review.externalId === `${SHOW_ID}:2:2`);
@@ -228,8 +226,8 @@ describe("scoring a TV show", () => {
 
     expect(res.statusCode).toBe(400);
     const showItem = (await reviewsOf(club)).find((review) => review.externalId === SHOW_ID);
-    const data = showItem?.externalData as TvDataSummary | undefined;
-    expect(data?.seasons?.map((season) => season.seasonNumber)).toEqual([1, 2]);
+    const data = showItem?.externalData?.kind === "tv" ? showItem.externalData : undefined;
+    expect(data?.seasons?.map((season) => season.seasonNumber)).toStrictEqual([1, 2]);
   });
 });
 
@@ -373,7 +371,7 @@ describe("removing a TV show", () => {
     );
 
     expect(res.statusCode).toBe(200);
-    expect(await reviewsOf(club)).toEqual([]);
+    expect(await reviewsOf(club)).toStrictEqual([]);
   });
 
   it("removes one scored episode, leaving the show and its other episodes", async () => {
@@ -391,7 +389,7 @@ describe("removing a TV show", () => {
     );
 
     expect(res.statusCode).toBe(200);
-    expect(new Set((await reviewsOf(club)).map((review) => review.externalId))).toEqual(
+    expect(new Set((await reviewsOf(club)).map((review) => review.externalId))).toStrictEqual(
       new Set([SHOW_ID, `${SHOW_ID}:1:2`]),
     );
     expect(await scoreOf(club, SHOW_ID, alice)).toBe(7);

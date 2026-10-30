@@ -21,8 +21,8 @@ const value = computed({
   get() {
     return modelValue;
   },
-  set(value) {
-    emit("update:modelValue", value);
+  set(newValue) {
+    emit("update:modelValue", newValue);
   },
 });
 </script>

@@ -1,4 +1,4 @@
-import type { Config } from "@netlify/functions";
+import { type Config } from "@netlify/functions";
 import { z } from "zod";
 
 import { allProviders } from "./utils/providers";
@@ -15,7 +15,7 @@ const BATCH_SIZE = 50;
  * sources. Runs daily and sweeps every registered media provider (TMDB movies,
  * Google Books books, …), refreshing the oldest BATCH_SIZE works of each.
  */
-export default async (req: Request) => {
+const scheduledWorkRefresh = async (req: Request) => {
   try {
     const body: unknown = await req.json();
     const { next_run } = ScheduledFunctionPayloadSchema.parse(body);
@@ -27,7 +27,7 @@ export default async (req: Request) => {
       processed: 0,
       updated: 0,
       skipped: 0,
-      errors: [] as Array<{ type: string; externalId: string; error: string }>,
+      errors: [] as { type: string; externalId: string; error: string }[],
     };
 
     for (const provider of allProviders()) {
@@ -75,7 +75,7 @@ export default async (req: Request) => {
     return new Response(
       JSON.stringify({
         success: false,
-        error: (error as Error).message,
+        error: error instanceof Error ? error.message : String(error),
       }),
       {
         status: 500,
@@ -86,6 +86,8 @@ export default async (req: Request) => {
     );
   }
 };
+
+export default scheduledWorkRefresh;
 
 export const config: Config = {
   schedule: "@daily",

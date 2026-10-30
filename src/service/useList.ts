@@ -1,25 +1,25 @@
 import {
-  QueryClient,
-  UseQueryReturnType,
+  type QueryClient,
+  type UseQueryReturnType,
   useMutation,
   useQuery,
   useQueryClient,
 } from "@tanstack/vue-query";
-import axios, { AxiosError } from "axios";
+import axios, { type AxiosError } from "axios";
 import { computed, unref, type MaybeRef } from "vue";
 import { useToast } from "vue-toastification";
 
 import { hasValue, isDefined } from "../../lib/checks/checks.js";
 import {
-  ClubListSummary,
-  DetailedReviewListItem,
-  DetailedWorkData,
-  DetailedWorkListItem,
-  ListInsertDto,
-  NextWorkResponse,
-  ReviewsListIdResponse,
-  SharedReviewResponse,
-  UserListItemWithSource,
+  type ClubListSummary,
+  type DetailedReviewListItem,
+  type DetailedWorkData,
+  type DetailedWorkListItem,
+  type ListInsertDto,
+  type NextWorkResponse,
+  type ReviewsListIdResponse,
+  type SharedReviewResponse,
+  type UserListItemWithSource,
 } from "../../lib/types/lists.js";
 import { recommendationsKey } from "./useRecommendations";
 import { memberScoresKey } from "./useUser";
@@ -253,8 +253,8 @@ export function useQueueReview(clubSlug: string) {
       sourceListId?: string;
       reviewsListId: string;
     }) => {
-      if (!hasValue(sourceListId)) return;
-      if (sourceListId === reviewsListId) return;
+      if (!hasValue(sourceListId)) return undefined;
+      if (sourceListId === reviewsListId) return undefined;
       return auth.request.post(`/api/club/${clubSlug}/list/${sourceListId}/items/${workId}/move`, {
         destinationListId: reviewsListId,
       });

@@ -18,7 +18,7 @@ import { STAT_WIDGETS, type StatWidgetContext } from "../statisticsWidgets";
 import { isBookStats, isMovieStats, type HistogramData, type WorkStatsData } from "../types";
 import { useUser } from "@/service/useUser";
 
-const props = defineProps<{
+const { workData, members, histogramData, clubType } = defineProps<{
   workData: WorkStatsData[];
   members: Member[];
   histogramData: HistogramData[];
@@ -35,17 +35,17 @@ const currentUser = useUser();
 // media-agnostic and takes workData. Which widgets appear (and in what order)
 // is driven by the per-club-type STAT_WIDGETS registry.
 const context = computed<StatWidgetContext>(() => ({
-  workData: props.workData,
-  movieData: props.workData.filter(isMovieStats),
-  bookData: props.workData.filter(isBookStats),
-  members: props.members,
-  histogramData: props.histogramData,
-  clubType: props.clubType,
+  workData,
+  movieData: workData.filter(isMovieStats),
+  bookData: workData.filter(isBookStats),
+  members,
+  histogramData,
+  clubType,
   currentUserId: currentUser.value?.id,
 }));
 
 const widgets = computed(() =>
-  STAT_WIDGETS[props.clubType]
+  STAT_WIDGETS[clubType]
     .filter((widget) => widget.visible?.(context.value) ?? true)
     .map((widget) => ({
       key: widget.key,

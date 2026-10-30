@@ -13,7 +13,7 @@ describe("memberSeriesColor", () => {
   it("gives each member their own slot, in fixed order", () => {
     const colors = MEMBER_SERIES_COLORS.map((_, index) => memberSeriesColor(index));
 
-    expect(colors).toEqual([...MEMBER_SERIES_COLORS]);
+    expect(colors).toStrictEqual([...MEMBER_SERIES_COLORS]);
     expect(new Set(colors).size).toBe(colors.length);
   });
 

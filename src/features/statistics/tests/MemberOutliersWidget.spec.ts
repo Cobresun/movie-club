@@ -112,7 +112,7 @@ describe("MemberOutliersWidget", () => {
   it("offers only the curmudgeon tab when nobody has a guilty pleasure", () => {
     render(MemberOutliersWidget, { props: { ...props, workData: [workData[2]] } });
 
-    expect(screen.getAllByRole("tab").map((tab) => tab.textContent?.trim())).toEqual([
+    expect(screen.getAllByRole("tab").map((tab) => tab.textContent?.trim())).toStrictEqual([
       "Curmudgeons",
     ]);
   });

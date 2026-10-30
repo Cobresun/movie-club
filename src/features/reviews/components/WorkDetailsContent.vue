@@ -365,9 +365,9 @@ const editedDate = ref("");
 const discussionQuestionsEnabled = computed(
   () => clubSettings.value?.features?.discussionQuestions === true,
 );
-const formattedDateForInput = computed(() => {
-  return DateTime.fromISO(props.movie.createdDate).toFormat("yyyy-MM-dd");
-});
+const formattedDateForInput = computed(() =>
+  DateTime.fromISO(props.movie.createdDate).toFormat("yyyy-MM-dd"),
+);
 
 const openDateEditor = () => {
   editedDate.value = formattedDateForInput.value;
@@ -534,7 +534,7 @@ let justSavedTimer: ReturnType<typeof setTimeout> | undefined;
 
 const onScoreSaved = () => {
   justSaved.value = false;
-  void nextTick(() => {
+  void nextTick().then(() => {
     justSaved.value = true;
     if (isDefined(justSavedTimer)) clearTimeout(justSavedTimer);
     justSavedTimer = setTimeout(() => {

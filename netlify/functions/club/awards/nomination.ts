@@ -3,18 +3,21 @@ import { z } from "zod";
 import { NOMINATIONS_PER_AWARD } from "../../../../lib/awards";
 import { hasValue } from "../../../../lib/checks/checks.js";
 import {
-  AwardsData,
+  type AwardsData,
   AwardsStep,
-  BaseAward,
-  BaseAwardNomination,
+  type BaseAward,
+  type BaseAwardNomination,
 } from "../../../../lib/types/awards";
-import AwardsRepository, { AwardsRejection, reject } from "../../repositories/AwardsRepository";
+import AwardsRepository, {
+  type AwardsRejection,
+  reject,
+} from "../../repositories/AwardsRepository";
 import { secured } from "../../utils/auth";
 import { parseBody } from "../../utils/parseBody";
 import { requireParam } from "../../utils/requireParam";
 import { badRequest, ok } from "../../utils/responses";
 import { isRouterResponse, Router } from "../../utils/router";
-import { ClubAwardRequest } from "./utils";
+import { type ClubAwardRequest } from "./utils";
 
 const router = new Router<ClubAwardRequest>("/api/club/:clubSlug/awards/:year<\\d+>/nomination");
 
@@ -79,7 +82,7 @@ router.delete(
     const awardTitle = event.queryStringParameters?.awardTitle;
     const movieIdParam = requireParam(params, "movieId", res);
     if (isRouterResponse(movieIdParam)) return movieIdParam;
-    const movieId = parseInt(movieIdParam);
+    const movieId = Number.parseInt(movieIdParam, 10);
 
     if (!hasValue(awardTitle)) return res(badRequest("Missing award title in query parameters"));
 

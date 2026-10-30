@@ -1,8 +1,8 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/vue-query";
-import { Ref } from "vue";
+import { type Ref } from "vue";
 
-import { ClubType } from "@/../lib/types/generated/db";
-import { BrowsePage, clubTypeConfig, WorkSearchResult } from "@/common/clubType";
+import { type ClubType } from "@/../lib/types/generated/db";
+import { type BrowsePage, clubTypeConfig, type WorkSearchResult } from "@/common/clubType";
 
 export type { WorkSearchResult } from "@/common/clubType";
 

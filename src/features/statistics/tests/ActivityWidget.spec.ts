@@ -7,7 +7,7 @@ import { chartSeriesNames } from "@/mocks/agCharts";
 import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
 import { render } from "@/tests/utils";
 
-vi.mock("ag-charts-vue3", async () => await import("@/mocks/agCharts"));
+vi.mock("ag-charts-vue3", () => import("@/mocks/agCharts"));
 
 mockIntersectionObserver();
 
@@ -42,7 +42,7 @@ describe("ActivityWidget", () => {
     expect(screen.getByRole("heading", { name: "Club Activity" })).toBeInTheDocument();
     expect(screen.getByText("Movies reviewed per month")).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Monthly" })).toHaveAttribute("aria-selected", "true");
-    expect(chartSeriesNames(screen.getByRole("img", { name: "chart" }))).toEqual(["Movies"]);
+    expect(chartSeriesNames(screen.getByRole("img", { name: "chart" }))).toStrictEqual(["Movies"]);
   });
 
   it("switches to the all-time cumulative chart", async () => {

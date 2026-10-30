@@ -1,5 +1,3 @@
-import { describe, expect, it } from "vitest";
-
 import { bucketStart, fillBuckets } from "../timeBuckets";
 
 const at = (iso: string) => new Date(iso);
@@ -43,7 +41,7 @@ describe("fillBuckets", () => {
       empty,
     );
 
-    expect(filled).toEqual([
+    expect(filled).toStrictEqual([
       { bucket: "2026-09-01", count: 0 },
       { bucket: "2026-09-02", count: 5 },
       { bucket: "2026-09-03", count: 0 },
@@ -60,7 +58,7 @@ describe("fillBuckets", () => {
       empty,
     );
 
-    expect(filled.map((row) => row.bucket)).toEqual([
+    expect(filled.map((row) => row.bucket)).toStrictEqual([
       "2025-12-01",
       "2026-01-01",
       "2026-02-01",
@@ -77,7 +75,7 @@ describe("fillBuckets", () => {
       empty,
     );
 
-    expect(filled.map((row) => row.bucket)).toEqual([
+    expect(filled.map((row) => row.bucket)).toStrictEqual([
       "2025-12-22",
       "2025-12-29",
       "2026-01-05",

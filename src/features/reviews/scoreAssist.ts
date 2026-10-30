@@ -1,6 +1,6 @@
-import type { InjectionKey } from "vue";
+import { type InjectionKey } from "vue";
 
-import { ScoreAssistTarget } from "./composables/scoreAssistLogic";
+import { type ScoreAssistTarget } from "./composables/scoreAssistLogic";
 
 /**
  * Score Assist: the "not sure what to score this?" comparison flow. Provided

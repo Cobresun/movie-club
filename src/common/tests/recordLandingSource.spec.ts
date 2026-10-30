@@ -1,5 +1,3 @@
-import { afterEach, describe, expect, it } from "vitest";
-
 import { SIGNUP_CAMPAIGN_COOKIE, SIGNUP_SOURCE_COOKIE } from "../../../lib/signupSource";
 import { recordLandingSource } from "../recordLandingSource";
 

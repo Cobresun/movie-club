@@ -1,4 +1,4 @@
-import { HandlerResponse } from "@netlify/functions";
+import { type HandlerResponse } from "@netlify/functions";
 
 /**
  * `T` is the response contract the frontend reads, from `lib/types`, and has to

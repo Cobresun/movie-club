@@ -1,8 +1,7 @@
 import { screen, waitFor } from "@testing-library/vue";
-import { afterEach, beforeEach } from "vitest";
 
 import { WorkType } from "../../../../lib/types/generated/db";
-import { DetailedWorkListItem } from "../../../../lib/types/lists";
+import { type DetailedWorkListItem } from "../../../../lib/types/lists";
 import RandomPickerModal from "../components/RandomPickerModal.vue";
 import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
 import { render } from "@/tests/utils";
@@ -42,7 +41,7 @@ describe("RandomPickerModal", () => {
   it("lands on the only candidate and offers what to do with it", async () => {
     await pickFrom([item("1", "Solaris")]);
 
-    expect(await screen.findByText("Solaris")).toBeInTheDocument();
+    await expect(screen.findByText("Solaris")).resolves.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Make up next" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Never Mind" })).toBeInTheDocument();
   });
@@ -61,23 +60,22 @@ describe("RandomPickerModal", () => {
     await rendered.user.click(await screen.findByRole("button", { name: "Make up next" }));
 
     await waitFor(() => {
-      expect(rendered.emitted()["makeNext"]).toEqual([[expect.objectContaining({ id: "1" })]]);
+      expect(rendered.emitted().makeNext).toStrictEqual([[expect.objectContaining({ id: "1" })]]);
     });
-    expect(rendered.emitted()["close"]).toHaveLength(1);
+    expect(rendered.emitted().close).toHaveLength(1);
   });
 
   it("moves the winner to another list and closes", async () => {
-    const rendered = await pickFrom([item("1", "Solaris")], [{ id: "9", title: "Sci-Fi" }]);
+    const targetItem = item("1", "Solaris");
+    const rendered = await pickFrom([targetItem], [{ id: "9", title: "Sci-Fi" }]);
 
     await screen.findByRole("button", { name: "Make up next" });
     await rendered.user.selectOptions(screen.getByRole("combobox"), "9");
 
     await waitFor(() => {
-      expect(rendered.emitted()["moveToList"]).toEqual([
-        [{ item: expect.objectContaining({ id: "1" }), listId: "9" }],
-      ]);
+      expect(rendered.emitted().moveToList).toStrictEqual([[{ item: targetItem, listId: "9" }]]);
     });
-    expect(rendered.emitted()["close"]).toHaveLength(1);
+    expect(rendered.emitted().close).toHaveLength(1);
   });
 
   it("offers no list picker when the club has no other lists", async () => {
@@ -92,7 +90,7 @@ describe("RandomPickerModal", () => {
 
     await rendered.user.click(await screen.findByRole("button", { name: "Never Mind" }));
 
-    expect(rendered.emitted()["close"]).toHaveLength(1);
-    expect(rendered.emitted()["makeNext"]).toBeUndefined();
+    expect(rendered.emitted().close).toHaveLength(1);
+    expect(rendered.emitted().makeNext).toBeUndefined();
   });
 });

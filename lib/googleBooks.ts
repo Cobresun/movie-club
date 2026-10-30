@@ -1,5 +1,5 @@
 import { hasValue } from "./checks/checks.js";
-import { GoogleBooksImageLinks, GoogleBooksVolume } from "./types/book";
+import { type GoogleBooksImageLinks, type GoogleBooksVolume } from "./types/book";
 
 /**
  * Pure helpers for normalizing Google Books volume data, shared by the
@@ -18,8 +18,8 @@ const MAX_COVER_URL_LENGTH = 255;
  * http://) and strip the `edge=curl` page-curl effect param.
  */
 export function secureImageUrl(url: string): string {
-  const secured = url.replace(/^http:\/\//, "https://");
-  return secured.replace(/([?&])edge=curl&/, "$1").replace(/[?&]edge=curl$/, "");
+  const secured = url.replace(/^http:\/\//u, "https://");
+  return secured.replace(/(?<delim>[?&])edge=curl&/u, "$<delim>").replace(/[?&]edge=curl$/u, "");
 }
 
 /** Pick the best available cover image from a volume's imageLinks. */
@@ -34,7 +34,7 @@ export function bestCoverUrl(imageLinks: GoogleBooksImageLinks | undefined): str
 /** Extract the year from a Google Books publishedDate ("YYYY[-MM[-DD]]"). */
 export function parsePublishedYear(publishedDate: string | undefined): number | undefined {
   if (!hasValue(publishedDate)) return undefined;
-  const match = /^\d{4}/.exec(publishedDate);
+  const match = /^\d{4}/u.exec(publishedDate);
   return match ? Number(match[0]) : undefined;
 }
 
@@ -55,11 +55,11 @@ const HTML_ENTITIES: Record<string, string> = {
  */
 export function stripHtml(html: string): string {
   return html
-    .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<\/p>/gi, "\n\n")
-    .replace(/<[^>]*>/g, "")
-    .replace(/&(?:amp|lt|gt|quot|#39|apos|nbsp);/g, (entity) => HTML_ENTITIES[entity] ?? entity)
-    .replace(/\n{3,}/g, "\n\n")
+    .replace(/<br\s*\/?>/giu, "\n")
+    .replace(/<\/p>/giu, "\n\n")
+    .replace(/<[^>]*>/gu, "")
+    .replace(/&(?:amp|lt|gt|quot|#39|apos|nbsp);/gu, (entity) => HTML_ENTITIES[entity] ?? entity)
+    .replace(/\n{3,}/gu, "\n\n")
     .trim();
 }
 

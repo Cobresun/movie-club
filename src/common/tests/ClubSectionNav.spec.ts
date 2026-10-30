@@ -31,7 +31,7 @@ describe("ClubSectionNav", () => {
     render(ClubSectionNav, { props: { clubSlug: "test-club" } });
 
     expect(await screen.findByRole("link", { name: "Awards" })).toBeInTheDocument();
-    expect(screen.getAllByRole("link").map((link) => link.textContent?.trim())).toEqual([
+    expect(screen.getAllByRole("link").map((link) => link.textContent?.trim())).toStrictEqual([
       "Reviews",
       "Lists",
       "Stats",

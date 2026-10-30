@@ -1,4 +1,4 @@
-import type { Config } from "@netlify/functions";
+import { type Config } from "@netlify/functions";
 import { z } from "zod";
 
 import DatabaseCleanupRepository from "./repositories/DatabaseCleanupRepository.js";
@@ -11,7 +11,7 @@ const ScheduledFunctionPayloadSchema = z.object({
  * Scheduled function to clean up stale preview databases
  * Runs daily at midnight UTC
  */
-export default async (req: Request) => {
+const scheduledDatabaseCleanup = async (req: Request) => {
   try {
     const body: unknown = await req.json();
     const { next_run } = ScheduledFunctionPayloadSchema.parse(body);
@@ -48,7 +48,7 @@ export default async (req: Request) => {
     return new Response(
       JSON.stringify({
         success: false,
-        error: (error as Error).message,
+        error: error instanceof Error ? error.message : String(error),
       }),
       {
         status: 500,
@@ -59,6 +59,8 @@ export default async (req: Request) => {
     );
   }
 };
+
+export default scheduledDatabaseCleanup;
 
 export const config: Config = {
   schedule: "@daily",

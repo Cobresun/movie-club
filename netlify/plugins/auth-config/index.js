@@ -27,11 +27,9 @@ function writeAuthConfigToFile() {
   // BETTER_AUTH_URL (pinned to production for Google OAuth), so the functions
   // need this to point password-reset and verification links back at the deploy
   // whose database actually holds the token.
-  const siteURL = [
-    process.env.DEPLOY_PRIME_URL,
-    process.env.URL,
-    process.env.BETTER_AUTH_URL,
-  ].find(hasValue);
+  const siteURL = [process.env.DEPLOY_PRIME_URL, process.env.URL, process.env.BETTER_AUTH_URL].find(
+    hasValue,
+  );
 
   const configContent = JSON.stringify(
     {
@@ -51,9 +49,7 @@ const onPreBuild = () => {
     writeAuthConfigToFile();
   } catch (error) {
     console.warn("Warning: Could not write auth config file:", error.message);
-    console.warn(
-      "Netlify Functions may not have correct trusted origins for authentication",
-    );
+    console.warn("Netlify Functions may not have correct trusted origins for authentication");
   }
 };
 

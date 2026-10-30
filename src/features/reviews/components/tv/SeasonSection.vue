@@ -278,12 +278,12 @@ const cardViews = computed(() =>
     const entries = scoreEntries(scores, props.members);
     // Everyone else's scores stay hidden until you have scored the episode
     // yourself, or revealed them.
-    const revealed =
+    const isRevealed =
       ownScore || (isDefined(card.node) && props.revealedMovieIds.has(card.node.workId));
     return {
       card,
       entries,
-      revealed,
+      revealed: isRevealed,
       scores,
       canScore: card.aired && isDefined(props.currentUserId) && !ownScore,
       pending: pendingScores.value.has(card.episodeNumber),

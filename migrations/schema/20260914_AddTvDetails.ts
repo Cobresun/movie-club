@@ -1,4 +1,4 @@
-import { Kysely } from "kysely";
+import { type Kysely } from "kysely";
 
 /**
  * TV metadata cache (TMDB), mirroring the `movie_details` family. Three levels

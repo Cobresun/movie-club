@@ -1,5 +1,5 @@
 import { isDefined } from "../../../lib/checks/checks.js";
-import type { CropRect } from "./cropGeometry";
+import { type CropRect } from "./cropGeometry";
 
 /**
  * A phone photo decodes to tens of megapixels. Scaling it down once, up front,
@@ -46,7 +46,7 @@ export async function exportCrop(image: ImageBitmap, rect: CropRect): Promise<Bl
   canvas.height = AVATAR_SIZE;
   drawCrop(canvas, image, rect);
 
-  return await new Promise((resolve, reject) => {
+  return new Promise((resolve, reject) => {
     canvas.toBlob(
       (blob) => {
         if (isDefined(blob)) resolve(blob);

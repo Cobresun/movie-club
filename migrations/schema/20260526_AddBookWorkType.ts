@@ -1,4 +1,4 @@
-import { Kysely, sql } from "kysely";
+import { type Kysely, sql } from "kysely";
 
 /**
  * Adds the `book` value to the existing `work_type` enum so a `work` row can

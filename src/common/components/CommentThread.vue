@@ -250,7 +250,6 @@ const confirmDelete = () => {
   pendingDeleteId.value = null;
 };
 
-const formatRelativeTime = (dateString: string) => {
-  return DateTime.fromISO(dateString).toRelative() ?? dateString;
-};
+const formatRelativeTime = (dateString: string) =>
+  DateTime.fromISO(dateString).toRelative() ?? dateString;
 </script>

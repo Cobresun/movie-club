@@ -1,5 +1,4 @@
 import { screen } from "@testing-library/vue";
-import { vi } from "vitest";
 
 import WorkDescription from "../components/WorkDescription.vue";
 import { render } from "@/tests/utils";
@@ -37,7 +36,7 @@ describe("WorkDescription", () => {
 
     render(WorkDescription, { props: { overview: "Short text." } });
 
-    expect(await screen.findByText("Short text.")).toBeInTheDocument();
+    await expect(screen.findByText("Short text.")).resolves.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /read more/i })).not.toBeInTheDocument();
   });
 
@@ -53,6 +52,6 @@ describe("WorkDescription", () => {
     const showLess = await screen.findByRole("button", { name: "Show less" });
     await rendered.user.click(showLess);
 
-    expect(await screen.findByRole("button", { name: "Read more" })).toBeInTheDocument();
+    await expect(screen.findByRole("button", { name: "Read more" })).resolves.toBeInTheDocument();
   });
 });

@@ -13,7 +13,7 @@ describe("ManageListsModal", () => {
 
     render(ManageListsModal, { props });
 
-    expect(await screen.findByText("Watch List")).toBeInTheDocument();
+    await expect(screen.findByText("Watch List")).resolves.toBeInTheDocument();
     expect(screen.getByText("(3)")).toBeInTheDocument();
   });
 
@@ -26,7 +26,7 @@ describe("ManageListsModal", () => {
     await user.type(screen.getByPlaceholderText("New list name…"), "Sci-Fi");
     await user.click(screen.getByRole("button", { name: "+ Create" }));
 
-    expect(await screen.findByText("Sci-Fi")).toBeInTheDocument();
+    await expect(screen.findByText("Sci-Fi")).resolves.toBeInTheDocument();
     expect(screen.getByText("Watch List")).toBeInTheDocument();
   });
 
@@ -42,7 +42,7 @@ describe("ManageListsModal", () => {
     await user.type(renameInput, "Favorites");
     await user.click(screen.getByRole("button", { name: "Save" }));
 
-    expect(await screen.findByText("Favorites")).toBeInTheDocument();
+    await expect(screen.findByText("Favorites")).resolves.toBeInTheDocument();
     expect(screen.queryByText("Watch List")).not.toBeInTheDocument();
   });
 
@@ -58,7 +58,7 @@ describe("ManageListsModal", () => {
     await user.type(renameInput, "Favorites");
     await user.click(screen.getByRole("button", { name: "Cancel" }));
 
-    expect(await screen.findByText("Watch List")).toBeInTheDocument();
+    await expect(screen.findByText("Watch List")).resolves.toBeInTheDocument();
     expect(screen.queryByText("Favorites")).not.toBeInTheDocument();
   });
 
@@ -74,7 +74,7 @@ describe("ManageListsModal", () => {
     await screen.findByText("Watch List");
 
     await user.click(screen.getByRole("button", { name: "Delete Watch List" }));
-    expect(await screen.findByText("Delete list")).toBeInTheDocument();
+    await expect(screen.findByText("Delete list")).resolves.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Delete" }));
 
     await waitFor(() => {

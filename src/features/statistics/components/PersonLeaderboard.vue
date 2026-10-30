@@ -104,19 +104,21 @@
 import { ref } from "vue";
 
 import { hasValue } from "../../../../lib/checks/checks.js";
-import type { PersonStats } from "../statsComputers";
+import { type PersonStats } from "../statsComputers";
 
-withDefaults(
-  defineProps<{
-    /** Optional heading — omit when the surrounding card already has one. */
-    title?: string;
-    entries: PersonStats[];
-    emptyMessage: string;
-    /** Singular noun for the per-person count ("film", "book"). */
-    itemNoun?: string;
-  }>(),
-  { title: undefined, itemNoun: "film" },
-);
+const {
+  title = undefined,
+  entries,
+  emptyMessage,
+  itemNoun = "film",
+} = defineProps<{
+  /** Optional heading — omit when the surrounding card already has one. */
+  title?: string;
+  entries: PersonStats[];
+  emptyMessage: string;
+  /** Singular noun for the per-person count ("film", "book"). */
+  itemNoun?: string;
+}>();
 
 const expanded = ref(new Set<number>());
 

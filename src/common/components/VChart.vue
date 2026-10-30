@@ -5,7 +5,7 @@
 </template>
 
 <script setup lang="ts">
-import type { AgChartOptions } from "ag-charts-community";
+import { type AgChartOptions } from "ag-charts-community";
 import { AgCharts } from "ag-charts-vue3";
 import { onMounted, onUnmounted, ref } from "vue";
 

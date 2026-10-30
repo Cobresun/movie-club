@@ -12,7 +12,6 @@
  * make the keyless case flaky.
  */
 import { HttpResponse, http } from "msw";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { googleBooksVolume } from "../../../tests/fixtures/external";
 import { server } from "../../../tests/mocks/server";
@@ -33,7 +32,7 @@ describe("getGoogleBooksVolume", () => {
   it("returns the volume payload for the requested id", async () => {
     const volume = await getGoogleBooksVolume("zyTCAlFPjgYC");
 
-    expect(volume).toEqual(googleBooksVolume("zyTCAlFPjgYC"));
+    expect(volume).toStrictEqual(googleBooksVolume("zyTCAlFPjgYC"));
   });
 
   it("still fetches the volume when no API key is configured", async () => {
@@ -42,7 +41,7 @@ describe("getGoogleBooksVolume", () => {
     // rejects if the provider stops omitting the param.
     vi.stubEnv("GOOGLE_BOOKS_API_KEY", "");
 
-    await expect(getGoogleBooksVolume("abc")).resolves.toEqual(googleBooksVolume("abc"));
+    await expect(getGoogleBooksVolume("abc")).resolves.toStrictEqual(googleBooksVolume("abc"));
   });
 
   it("propagates API errors to the caller", async () => {
@@ -69,21 +68,21 @@ describe("searchGoogleBooksVolumes", () => {
 
     const volumes = await searchGoogleBooksVolumes("dune");
 
-    expect(volumes.map((v) => v.id)).toEqual(["a", "b"]);
+    expect(volumes.map((v) => v.id)).toStrictEqual(["a", "b"]);
   });
 
   it("searches for the caller's query", async () => {
     // The default handler echoes `q` back in the volume it returns.
     const volumes = await searchGoogleBooksVolumes('intitle:"The Left Hand of Darkness"');
 
-    expect(volumes.map((v) => v.id)).toEqual(['vol-intitle:"The Left Hand of Darkness"']);
+    expect(volumes.map((v) => v.id)).toStrictEqual(['vol-intitle:"The Left Hand of Darkness"']);
   });
 
   it("returns an empty array when the response omits items on no results", async () => {
     // The API leaves `items` absent rather than sending [].
     server.use(http.get(SEARCH_URL, () => HttpResponse.json({ totalItems: 0 })));
 
-    await expect(searchGoogleBooksVolumes("no such book")).resolves.toEqual([]);
+    await expect(searchGoogleBooksVolumes("no such book")).resolves.toStrictEqual([]);
   });
 
   it("still searches when no API key is configured", async () => {

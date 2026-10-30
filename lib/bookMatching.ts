@@ -1,5 +1,5 @@
 import { hasValue } from "./checks/checks.js";
-import { GoogleBooksVolume } from "./types/book";
+import { type GoogleBooksVolume } from "./types/book";
 
 /**
  * Pure matching helpers for the OpenLibrary → Google Books data migration:
@@ -7,7 +7,7 @@ import { GoogleBooksVolume } from "./types/book";
  * any) is the same book.
  */
 
-const LEADING_ARTICLES = /^(the|a|an)\s+/;
+const LEADING_ARTICLES = /^(?<article>the|a|an)\s+/u;
 
 /**
  * Normalize a title for comparison: lowercase, strip diacritics, punctuation,
@@ -17,9 +17,9 @@ export function normalizeTitle(title: string): string {
   return title
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9\s]/g, " ")
-    .replace(/\s+/g, " ")
+    .replace(/[\u0300-\u036f]/gu, "")
+    .replace(/[^a-z0-9\s]/gu, " ")
+    .replace(/\s+/gu, " ")
     .trim()
     .replace(LEADING_ARTICLES, "");
 }

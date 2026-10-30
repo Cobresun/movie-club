@@ -1,11 +1,11 @@
 import * as mdijs from "@mdi/js";
-import { TestingPinia, createTestingPinia } from "@pinia/testing";
+import { type TestingPinia, createTestingPinia } from "@pinia/testing";
 import { VueQueryPlugin } from "@tanstack/vue-query";
 import userEvent from "@testing-library/user-event";
-import { RenderOptions, render as testingLibraryRender } from "@testing-library/vue";
+import { type RenderOptions, render as testingLibraryRender } from "@testing-library/vue";
 import mdiVue from "mdi-vue/v3";
 import { TransitionGroup, createApp } from "vue";
-import type { RouteLocationMatched } from "vue-router";
+import { type RouteLocationMatched } from "vue-router";
 import { useRoute } from "vue-router";
 import Toast from "vue-toastification";
 
@@ -85,22 +85,27 @@ export const render = <C>(component: C, options: Partial<RenderOptions<C>> = {})
   };
 };
 
+export class MockMediaQueryList extends EventTarget implements MediaQueryList {
+  onchange: ((this: MediaQueryList, ev: MediaQueryListEvent) => unknown) | null = null;
+  constructor(
+    public readonly matches: boolean,
+    public readonly media: string,
+  ) {
+    super();
+  }
+  addListener(): void {}
+  removeListener(): void {}
+}
+
 /**
  * Points `useIsDesktop`'s media query at a viewport. It reads `matchMedia` in
  * `onMounted`, so call this before `render` — the shared setup resets it to
  * mobile between tests.
  */
 export const setViewport = (isDesktop: boolean) => {
-  vi.mocked(window.matchMedia).mockImplementation((media: string) => ({
-    matches: isDesktop,
-    media,
-    onchange: null,
-    addListener: vi.fn(),
-    removeListener: vi.fn(),
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    dispatchEvent: vi.fn(() => true),
-  }));
+  vi.mocked(window.matchMedia).mockImplementation(
+    (media: string) => new MockMediaQueryList(isDesktop, media),
+  );
 };
 
 /**
@@ -161,18 +166,38 @@ export const withSetup = <T>(composable: () => T) => {
   app.use(Toast);
   app.mount(document.createElement("div"));
 
-  return { result, pinia, unmount: () => app.unmount() };
+  return {
+    result,
+    pinia,
+    unmount: () => {
+      app.unmount();
+    },
+  };
 };
+
+const createMatchedRoute = (name: string | undefined): RouteLocationMatched => ({
+  path: "",
+  redirect: undefined,
+  name,
+  meta: {},
+  aliasOf: undefined,
+  beforeEnter: undefined,
+  props: { default: false },
+  children: [],
+  instances: {},
+  leaveGuards: new Set(),
+  updateGuards: new Set(),
+  enterCallbacks: {},
+  components: {},
+  mods: {},
+});
 
 /**
  * Points the mocked `useRoute()` at a club section, for the components that
  * resolve the active tab from `matched` (see `common/clubSections`). Pass the
  * matched record names outermost-first — the club router view, then the
  * section, then any nested route.
- *
- * The cast is the mock boundary: setup.ts's route fixture carries names only,
- * while `useRoute()` is typed with vue-router's full record.
  */
 export const setRouteMatched = (...names: (string | undefined)[]) => {
-  useRoute().matched = names.map((name) => ({ name })) as RouteLocationMatched[];
+  useRoute().matched = names.map(createMatchedRoute);
 };

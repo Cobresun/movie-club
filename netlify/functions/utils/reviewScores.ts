@@ -1,5 +1,5 @@
 import { hasValue, isDefined } from "../../../lib/checks/checks.js";
-import { ReviewScores } from "../../../lib/types/lists.js";
+import { type ReviewScores } from "../../../lib/types/lists.js";
 
 // A single review row, as surfaced by the queries that feed the scores map
 // (`getReviewList` and `getReviewsByWorkId`). Both select these columns

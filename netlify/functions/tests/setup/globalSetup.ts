@@ -1,6 +1,9 @@
-import { CockroachDbContainer, StartedCockroachDbContainer } from "@testcontainers/cockroachdb";
+import {
+  CockroachDbContainer,
+  type StartedCockroachDbContainer,
+} from "@testcontainers/cockroachdb";
 import { execFileSync } from "child_process";
-import type { TestProject } from "vitest/node";
+import { type TestProject } from "vitest/node";
 
 /**
  * The CockroachDB build the integration suite runs against.
@@ -49,7 +52,7 @@ export default async function setup({ provide }: TestProject) {
     });
   } catch (error) {
     const failure = error instanceof Error && "stdout" in error ? String(error.stdout) : "";
-    throw new Error(`Failed to migrate the test database.\n${failure}`);
+    throw new Error(`Failed to migrate the test database.\n${failure}`, { cause: error });
   }
 
   provide("databaseUrl", databaseUrl);

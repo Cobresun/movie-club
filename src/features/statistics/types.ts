@@ -1,7 +1,7 @@
-import { DetailedBookData } from "../../../lib/types/book";
+import { type DetailedBookData } from "../../../lib/types/book";
 import { WorkType } from "../../../lib/types/generated/db";
-import { MovieDataSummary } from "../../../lib/types/movie";
-import { TvDataSummary } from "../../../lib/types/tv";
+import { type MovieDataSummary } from "../../../lib/types/movie";
+import { type TvDataSummary } from "../../../lib/types/tv";
 
 /**
  * Score and review metadata shared by every reviewed work, regardless of

@@ -1,5 +1,5 @@
-import { WorkType } from "../../../lib/types/generated/db";
-import { SimilarWork, WorkRecommendation } from "../../../lib/types/recommendations";
+import { type WorkType } from "../../../lib/types/generated/db";
+import { type SimilarWork, type WorkRecommendation } from "../../../lib/types/recommendations";
 
 /**
  * Club recommendations, in two steps.

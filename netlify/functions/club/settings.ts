@@ -1,10 +1,10 @@
-import { ClubSettings, clubSettingsUpdateSchema } from "../../../lib/types/club";
+import { type ClubSettings, clubSettingsUpdateSchema } from "../../../lib/types/club";
 import SettingsRepository from "../repositories/SettingsRepository.js";
 import { secured } from "../utils/auth";
 import { parseBody } from "../utils/parseBody";
 import { ok } from "../utils/responses";
 import { isRouterResponse, Router } from "../utils/router";
-import { ClubRequest } from "../utils/validation";
+import { type ClubRequest } from "../utils/validation";
 
 const router = new Router<ClubRequest>("/api/club/:clubSlug/settings");
 

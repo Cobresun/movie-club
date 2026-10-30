@@ -1,8 +1,8 @@
 import { screen, waitFor } from "@testing-library/vue";
 import { http, HttpResponse } from "msw";
 
-import { AwardsStep, ClubAwards } from "../../../../lib/types/awards";
-import { DetailedMovieData } from "../../../../lib/types/movie";
+import { AwardsStep, type ClubAwards } from "../../../../lib/types/awards";
+import { type DetailedMovieData } from "../../../../lib/types/movie";
 import ResultView from "../views/ResultView.vue";
 import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
 import { server } from "@/mocks/server";

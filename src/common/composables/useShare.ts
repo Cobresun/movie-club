@@ -22,7 +22,7 @@ const isMobileDevice = (): boolean => {
   const ua = navigator.userAgent;
 
   // Check for mobile device indicators in user agent
-  const mobileRegex = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
+  const mobileRegex = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/iu;
 
   return mobileRegex.test(ua);
 };
@@ -35,7 +35,7 @@ export const isIosDevice = (): boolean => {
   if (typeof navigator === "undefined") return false;
 
   return (
-    /iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+    /iPhone|iPad|iPod/iu.test(navigator.userAgent) ||
     (navigator.userAgent.includes("Mac") &&
       typeof document !== "undefined" &&
       "ontouchend" in document)

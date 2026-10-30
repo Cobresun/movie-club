@@ -1,5 +1,3 @@
-import { describe, expect, it } from "vitest";
-
 import { toDeployLink } from "../deployLinks";
 
 const PRODUCTION = "https://movie-club.app";

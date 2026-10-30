@@ -42,7 +42,12 @@ import { computed, ref } from "vue";
 
 import { hasElements } from "../../../lib/checks/checks.js";
 
-const props = defineProps<{
+const {
+  authors = [],
+  firstPublishYear = 0,
+  numberOfPages = 0,
+  subjects = [],
+} = defineProps<{
   authors?: string[];
   firstPublishYear?: number;
   numberOfPages?: number;
@@ -52,10 +57,9 @@ const props = defineProps<{
 const VISIBLE_SUBJECTS_COUNT = 6;
 const showAllSubjects = ref(false);
 
-const allSubjects = computed(() => props.subjects ?? []);
 const displayedSubjects = computed(() =>
-  showAllSubjects.value ? allSubjects.value : allSubjects.value.slice(0, VISIBLE_SUBJECTS_COUNT),
+  showAllSubjects.value ? subjects : subjects.slice(0, VISIBLE_SUBJECTS_COUNT),
 );
-const hasMoreSubjects = computed(() => allSubjects.value.length > VISIBLE_SUBJECTS_COUNT);
-const remainingSubjectsCount = computed(() => allSubjects.value.length - VISIBLE_SUBJECTS_COUNT);
+const hasMoreSubjects = computed(() => subjects.length > VISIBLE_SUBJECTS_COUNT);
+const remainingSubjectsCount = computed(() => subjects.length - VISIBLE_SUBJECTS_COUNT);
 </script>

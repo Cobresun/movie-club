@@ -1,11 +1,11 @@
 import axios from "axios";
 
 import { hasValue } from "../../../../lib/checks/checks.js";
-import { GoogleBooksSearchResponse, GoogleBooksVolume } from "../../../../lib/types/book";
+import { type GoogleBooksSearchResponse, type GoogleBooksVolume } from "../../../../lib/types/book";
 
 const BASE_URL = "https://www.googleapis.com/books/v1";
 
-async function makeGoogleBooksApiCall<T>(path: string, params?: Record<string, string>) {
+function makeGoogleBooksApiCall<T>(path: string, params?: Record<string, string>) {
   const apiKey = process.env.GOOGLE_BOOKS_API_KEY;
   const searchParams = new URLSearchParams({
     // Keyless requests work at low rate limits; an empty key param is a 400.

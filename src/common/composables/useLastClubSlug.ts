@@ -1,8 +1,8 @@
-import type { RouteParamsGeneric } from "vue-router";
+import { type RouteParamsGeneric } from "vue-router";
 import { z } from "zod";
 
 import { hasElements, hasValue, isDefined } from "../../../lib/checks/checks.js";
-import { ClubPreview } from "../../../lib/types/club";
+import { type ClubPreview } from "../../../lib/types/club";
 import {
   DEFAULT_CLUB_SECTION,
   isClubSection,
@@ -73,9 +73,7 @@ export function rememberClubSection(route: SectionRoute & { params: RouteParamsG
   }
 }
 
-export function resolveDefaultClubSlug(
-  clubs: ReadonlyArray<ClubPreview> | undefined,
-): string | null {
+export function resolveDefaultClubSlug(clubs: readonly ClubPreview[] | undefined): string | null {
   if (!hasElements(clubs)) return null;
 
   const lastSlug = getLastClubSlug();

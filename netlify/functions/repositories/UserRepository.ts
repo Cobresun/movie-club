@@ -1,25 +1,17 @@
-import { LandingSource, SignupCampaign } from "../../../lib/signupSource.js";
+import { type LandingSource, type SignupCampaign } from "../../../lib/signupSource.js";
 import { db } from "../utils/database";
 
 class UserRepository {
-  async getByEmail(email: string) {
-    return await db
-      .selectFrom("user")
-      .selectAll()
-      .where("email", "=", email)
-      .executeTakeFirstOrThrow();
+  getByEmail(email: string) {
+    return db.selectFrom("user").selectAll().where("email", "=", email).executeTakeFirstOrThrow();
   }
 
-  async getUserById(userId: string) {
-    return await db
-      .selectFrom("user")
-      .selectAll()
-      .where("id", "=", userId)
-      .executeTakeFirstOrThrow();
+  getUserById(userId: string) {
+    return db.selectFrom("user").selectAll().where("id", "=", userId).executeTakeFirstOrThrow();
   }
 
-  async getMembersByClubId(clubId: string) {
-    return await db
+  getMembersByClubId(clubId: string) {
+    return db
       .selectFrom("club")
       .where("club.id", "=", clubId)
       .innerJoin("club_member", "club_member.club_id", "club.id")
@@ -28,8 +20,8 @@ class UserRepository {
       .execute();
   }
 
-  async updateImage(userId: string, imageUrl?: string | null, imageId?: string | null) {
-    return await db
+  updateImage(userId: string, imageUrl?: string | null, imageId?: string | null) {
+    return db
       .updateTable("user")
       .set({ image_id: imageId, image: imageUrl })
       .where("id", "=", userId)
@@ -53,23 +45,23 @@ class UserRepository {
       .execute();
   }
 
-  async updateName(userId: string, name: string) {
-    return await db.updateTable("user").set({ name }).where("id", "=", userId).execute();
+  updateName(userId: string, name: string) {
+    return db.updateTable("user").set({ name }).where("id", "=", userId).execute();
   }
 
-  async addClubMemberByUserId(clubId: string, userId: string, role: string = "member") {
+  async addClubMemberByUserId(clubId: string, userId: string, role = "member") {
     await db
       .insertInto("club_member")
       .values({
         club_id: clubId,
         user_id: userId,
-        role: role,
+        role,
       })
       .execute();
   }
 
-  async removeClubMember(clubId: string, userId: string) {
-    return await db
+  removeClubMember(clubId: string, userId: string) {
+    return db
       .deleteFrom("club_member")
       .where("club_id", "=", clubId)
       .where("user_id", "=", userId)
@@ -77,4 +69,6 @@ class UserRepository {
   }
 }
 
-export default new UserRepository();
+const userRepository = new UserRepository();
+
+export default userRepository;

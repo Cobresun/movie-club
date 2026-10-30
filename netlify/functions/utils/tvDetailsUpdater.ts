@@ -1,8 +1,8 @@
-import { Kysely, Transaction } from "kysely";
+import { type Kysely, type Transaction } from "kysely";
 
 import { hasValue } from "../../../lib/checks/checks.js";
-import { DB } from "../../../lib/types/generated/db";
-import { formatTvAddress, TMDBTvSeasonData, TMDBTvShowData } from "../../../lib/types/tv";
+import { type DB } from "../../../lib/types/generated/db";
+import { formatTvAddress, type TMDBTvSeasonData, type TMDBTvShowData } from "../../../lib/types/tv";
 
 type Db = Kysely<DB> | Transaction<DB>;
 

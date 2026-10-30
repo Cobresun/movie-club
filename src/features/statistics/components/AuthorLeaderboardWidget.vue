@@ -16,13 +16,13 @@
 import { computed } from "vue";
 
 import { computeTopAuthors } from "../statsComputers";
-import type { BookData } from "../types";
+import { type BookData } from "../types";
 import PersonLeaderboard from "./PersonLeaderboard.vue";
 import WidgetShell from "@/common/components/WidgetShell.vue";
 
-const props = defineProps<{
+const { bookData } = defineProps<{
   bookData: BookData[];
 }>();
 
-const topAuthors = computed(() => computeTopAuthors(props.bookData));
+const topAuthors = computed(() => computeTopAuthors(bookData));
 </script>

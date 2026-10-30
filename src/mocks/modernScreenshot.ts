@@ -12,4 +12,4 @@
  *
  * and make a capture fail with `vi.mocked(domToCanvas).mockRejectedValueOnce(…)`.
  */
-export const domToCanvas = vi.fn(async () => document.createElement("canvas"));
+export const domToCanvas = vi.fn(() => Promise.resolve(document.createElement("canvas")));

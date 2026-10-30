@@ -54,7 +54,7 @@ import { computed, ref } from "vue";
 import { Member } from "../../../../lib/types/club";
 import { ClubType } from "../../../../lib/types/generated/db";
 import { computeClubCurmudgeons, computeGuiltyPleasures } from "../statsComputers";
-import type { WorkStatsData } from "../types";
+import { type WorkStatsData } from "../types";
 import MemberFilterChips from "./MemberFilterChips.vue";
 import SegmentedToggle from "./SegmentedToggle.vue";
 import { clubTypeStats } from "@/common/clubType";
@@ -94,16 +94,16 @@ const MODE_CONFIG: Record<
   },
 };
 
-const props = defineProps<{
+const { workData, members, clubType } = defineProps<{
   workData: WorkStatsData[];
   members: Member[];
   clubType: ClubType;
 }>();
 
-const workNoun = computed(() => clubTypeStats(props.clubType).pluralNoun);
+const workNoun = computed(() => clubTypeStats(clubType).pluralNoun);
 
-const guiltyEntries = computed(() => computeGuiltyPleasures(props.workData, props.members));
-const curmudgeonEntries = computed(() => computeClubCurmudgeons(props.workData, props.members));
+const guiltyEntries = computed(() => computeGuiltyPleasures(workData, members));
+const curmudgeonEntries = computed(() => computeClubCurmudgeons(workData, members));
 
 const modeOptions = computed(() => {
   const options: { value: Mode; label: string }[] = [];

@@ -95,7 +95,7 @@ import {
   useReorderClubLists,
 } from "@/service/useList";
 
-const props = defineProps<{
+const { show, clubSlug } = defineProps<{
   show: boolean;
   clubSlug: string;
 }>();
@@ -104,7 +104,7 @@ const emit = defineEmits<{
   (e: "close"): void;
 }>();
 
-const { data: lists } = useClubLists(props.clubSlug);
+const { data: lists } = useClubLists(clubSlug);
 
 // Local mirror for VueDraggableNext — it needs to own the array to mutate it.
 const draggableLists = ref<ClubListSummary[]>([]);
@@ -117,14 +117,14 @@ watch(
 );
 
 // -- reorder --
-const { mutate: reorderClubLists } = useReorderClubLists(props.clubSlug);
+const { mutate: reorderClubLists } = useReorderClubLists(clubSlug);
 const onListsReordered = () => {
   reorderClubLists(draggableLists.value.map((l) => l.id));
 };
 
 // -- create --
 const newListTitle = shallowRef("");
-const { mutate: createList } = useCreateList(props.clubSlug);
+const { mutate: createList } = useCreateList(clubSlug);
 const confirmCreateList = () => {
   const title = newListTitle.value.trim();
   if (title === "") return;
@@ -135,7 +135,7 @@ const confirmCreateList = () => {
 // -- rename --
 const renamingListId = shallowRef<string | null>(null);
 const renameTitle = shallowRef("");
-const { mutate: renameList } = useRenameList(props.clubSlug);
+const { mutate: renameList } = useRenameList(clubSlug);
 const startRename = (list: ClubListSummary) => {
   renamingListId.value = list.id;
   renameTitle.value = list.title;
@@ -152,7 +152,7 @@ const cancelRename = () => {
 
 // -- delete --
 const deletingListId = shallowRef<string | null>(null);
-const { mutate: deleteList } = useDeleteList(props.clubSlug);
+const { mutate: deleteList } = useDeleteList(clubSlug);
 const confirmDeleteList = () => {
   if (deletingListId.value === null) return;
   deleteList(deletingListId.value);

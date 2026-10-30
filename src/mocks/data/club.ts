@@ -1,4 +1,4 @@
-import { ClubPreview } from "../../../lib/types/club";
+import { type ClubPreview } from "../../../lib/types/club";
 import { ClubType } from "../../../lib/types/generated/db";
 
 const club: ClubPreview = {

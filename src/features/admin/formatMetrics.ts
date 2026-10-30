@@ -1,4 +1,4 @@
-import { BucketUnit, PeriodCount, Rate } from "../../../lib/types/metrics";
+import { type BucketUnit, type PeriodCount, type Rate } from "../../../lib/types/metrics";
 
 const numberFormatter = new Intl.NumberFormat("en-US");
 

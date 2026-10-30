@@ -2,7 +2,7 @@ import { sql } from "kysely";
 
 import { selectBestVolume } from "../../lib/bookMatching";
 import { hasValue } from "../../lib/checks/checks.js";
-import { GoogleBooksVolume } from "../../lib/types/book";
+import { type GoogleBooksVolume } from "../../lib/types/book";
 import { WorkType } from "../../lib/types/generated/db.js";
 import { db } from "../../netlify/functions/utils/database";
 import bookProvider, {
@@ -34,7 +34,10 @@ interface Miss {
   detail?: string;
 }
 
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const sleep = (ms: number) =>
+  new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
 
 async function findMatch(
   title: string,
@@ -179,6 +182,8 @@ async function migrateBooksToGoogleBooks() {
 }
 
 migrateBooksToGoogleBooks()
-  .then(() => console.log("Books-to-Google migration completed"))
+  .then(() => {
+    console.log("Books-to-Google migration completed");
+  })
   .catch(console.error)
-  .finally(() => db.destroy());
+  .finally(() => void db.destroy());

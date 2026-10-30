@@ -6,7 +6,7 @@ import { chartSeriesNames } from "@/mocks/agCharts";
 import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
 import { render } from "@/tests/utils";
 
-vi.mock("ag-charts-vue3", async () => await import("@/mocks/agCharts"));
+vi.mock("ag-charts-vue3", () => import("@/mocks/agCharts"));
 
 mockIntersectionObserver();
 
@@ -49,7 +49,10 @@ describe("ScoreChartsWidget", () => {
   it("plots one histogram series per member", () => {
     render(ScoreChartsWidget, { props });
 
-    expect(chartSeriesNames(screen.getByRole("img", { name: "chart" }))).toEqual(["Ada", "Alan"]);
+    expect(chartSeriesNames(screen.getByRole("img", { name: "chart" }))).toStrictEqual([
+      "Ada",
+      "Alan",
+    ]);
   });
 
   it("switches to the rolling trend chart", async () => {
@@ -58,7 +61,10 @@ describe("ScoreChartsWidget", () => {
     await user.click(screen.getByRole("tab", { name: "Trend" }));
 
     expect(screen.getByText("Rolling average score per member over time")).toBeInTheDocument();
-    expect(chartSeriesNames(screen.getByRole("img", { name: "chart" }))).toEqual(["Ada", "Alan"]);
+    expect(chartSeriesNames(screen.getByRole("img", { name: "chart" }))).toStrictEqual([
+      "Ada",
+      "Alan",
+    ]);
   });
 
   it("switches to the score spread chart", async () => {
@@ -69,7 +75,7 @@ describe("ScoreChartsWidget", () => {
     expect(
       screen.getByText("Rolling score spread — lower means more agreement"),
     ).toBeInTheDocument();
-    expect(chartSeriesNames(screen.getByRole("img", { name: "chart" }))).not.toEqual([
+    expect(chartSeriesNames(screen.getByRole("img", { name: "chart" }))).not.toStrictEqual([
       "Ada",
       "Alan",
     ]);
@@ -78,7 +84,7 @@ describe("ScoreChartsWidget", () => {
   it("offers only the distribution tab when there is nothing to trend or spread", () => {
     render(ScoreChartsWidget, { props: { workData: [], members, histogramData } });
 
-    expect(screen.getAllByRole("tab").map((tab) => tab.textContent?.trim())).toEqual([
+    expect(screen.getAllByRole("tab").map((tab) => tab.textContent?.trim())).toStrictEqual([
       "Distribution",
     ]);
   });

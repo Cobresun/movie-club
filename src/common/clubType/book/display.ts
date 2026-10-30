@@ -1,4 +1,4 @@
-import type { WorkDisplay } from "../types";
+import { type WorkDisplay } from "../types";
 import { asBook } from "@/common/workDisplay";
 
 export const bookDisplay: WorkDisplay = {

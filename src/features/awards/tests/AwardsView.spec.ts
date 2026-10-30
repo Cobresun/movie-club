@@ -40,7 +40,7 @@ describe("AwardsView", () => {
     render(AwardsView);
 
     expect(await screen.findByRole("combobox", { name: "Awards year" })).toHaveValue("2023");
-    expect(vi.mocked(useRouter()).replace.mock.calls).toHaveLength(0);
+    expect(vi.mocked(useRouter()).replace).toHaveBeenCalledTimes(0);
   });
 
   it("explains itself when the club has no awards years yet", async () => {
@@ -50,7 +50,7 @@ describe("AwardsView", () => {
 
     expect(await screen.findByText("No awards yet")).toBeInTheDocument();
     expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
-    expect(vi.mocked(useRouter()).replace.mock.calls).toHaveLength(0);
+    expect(vi.mocked(useRouter()).replace).toHaveBeenCalledTimes(0);
   });
 
   it("opens a year the club reviewed movies in and takes the club to it", async () => {
@@ -65,7 +65,7 @@ describe("AwardsView", () => {
       within(year)
         .getAllByRole("option")
         .map((option) => option.textContent?.trim()),
-    ).toEqual(["2025", "2023"]);
+    ).toStrictEqual(["2025", "2023"]);
     expect(screen.getByRole("radio", { name: "Suggested categories" })).toBeChecked();
 
     await user.selectOptions(year, "2023");
@@ -90,7 +90,7 @@ describe("AwardsView", () => {
       within(year)
         .getAllByRole("option")
         .map((option) => option.textContent?.trim()),
-    ).toEqual(["2023"]);
+    ).toStrictEqual(["2023"]);
   });
 
   it("explains that there is nothing to open before the club has reviewed a movie", async () => {

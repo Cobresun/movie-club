@@ -26,7 +26,12 @@
 <script setup lang="ts">
 import { hasValue } from "../../../lib/checks/checks";
 
-const { fallbackIcon = "image-outline" } = defineProps<{
+const {
+  fallbackIcon = "image-outline",
+  subtitle = "",
+  reason = undefined,
+  posterUrl = "",
+} = defineProps<{
   title: string;
   subtitle?: string;
   reason?: string;

@@ -1,5 +1,3 @@
-import { describe, expect, it } from "vitest";
-
 import {
   bestCoverUrl,
   parsePublishedYear,
@@ -8,7 +6,7 @@ import {
   splitCategories,
   stripHtml,
 } from "@/../lib/googleBooks";
-import { GoogleBooksVolume } from "@/../lib/types/book";
+import { type GoogleBooksVolume } from "@/../lib/types/book";
 
 describe("secureImageUrl", () => {
   it("rewrites http to https", () => {
@@ -101,24 +99,24 @@ describe("sortVolumesByPopularity", () => {
 
   it("orders by ratingsCount descending", () => {
     const sorted = sortVolumesByPopularity([volume("a", 5), volume("b", 200), volume("c", 40)]);
-    expect(sorted.map((v) => v.id)).toEqual(["b", "c", "a"]);
+    expect(sorted.map((v) => v.id)).toStrictEqual(["b", "c", "a"]);
   });
 
   it("keeps relevance order among unrated volumes and ranks them last", () => {
     const sorted = sortVolumesByPopularity([volume("a"), volume("b", 3), { id: "c" }, volume("d")]);
-    expect(sorted.map((v) => v.id)).toEqual(["b", "a", "c", "d"]);
+    expect(sorted.map((v) => v.id)).toStrictEqual(["b", "a", "c", "d"]);
   });
 
   it("does not mutate the input array", () => {
     const input = [volume("a", 1), volume("b", 2)];
     sortVolumesByPopularity(input);
-    expect(input.map((v) => v.id)).toEqual(["a", "b"]);
+    expect(input.map((v) => v.id)).toStrictEqual(["a", "b"]);
   });
 });
 
 describe("splitCategories", () => {
   it("splits BISAC paths into deduped terms", () => {
-    expect(splitCategories(["Fiction / Thrillers / Suspense", "Fiction / Legal"])).toEqual([
+    expect(splitCategories(["Fiction / Thrillers / Suspense", "Fiction / Legal"])).toStrictEqual([
       "Fiction",
       "Thrillers",
       "Suspense",
@@ -127,6 +125,6 @@ describe("splitCategories", () => {
   });
 
   it("returns empty for no categories", () => {
-    expect(splitCategories([])).toEqual([]);
+    expect(splitCategories([])).toStrictEqual([]);
   });
 });

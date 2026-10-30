@@ -1,4 +1,3 @@
-import { describe, expect, it } from "vitest";
 import { z } from "zod";
 
 import { requireParam } from "../requireParam";
@@ -21,25 +20,20 @@ describe("requireParam", () => {
 
   it("returns a 400 RouterResponse when the param is missing", () => {
     const result = requireParam({}, "workId", res);
-    expect(isRouterResponse(result)).toBe(true);
-    if (isRouterResponse(result)) {
-      expect(result.response.statusCode).toBe(400);
-      expect(parseErrorBody(result.response.body).error).toBe("No workId provided");
-    }
+    assert(isRouterResponse(result));
+    expect(result.response.statusCode).toBe(400);
+    expect(parseErrorBody(result.response.body).error).toBe("No workId provided");
   });
 
   it("returns a 400 RouterResponse when the param is an empty string", () => {
     const result = requireParam({ workId: "" }, "workId", res);
-    expect(isRouterResponse(result)).toBe(true);
-    if (isRouterResponse(result)) {
-      expect(result.response.statusCode).toBe(400);
-    }
+    assert(isRouterResponse(result));
+    expect(result.response.statusCode).toBe(400);
   });
 
   it("names the missing param in the error message", () => {
     const result = requireParam({}, "commentId", res);
-    if (isRouterResponse(result)) {
-      expect(parseErrorBody(result.response.body).error).toBe("No commentId provided");
-    }
+    assert(isRouterResponse(result));
+    expect(parseErrorBody(result.response.body).error).toBe("No commentId provided");
   });
 });

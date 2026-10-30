@@ -77,7 +77,7 @@ describe("AddReviewPrompt", () => {
     server.use(allItems());
     render(AddReviewPrompt);
 
-    expect(await screen.findByText("From your lists")).toBeInTheDocument();
+    await expect(screen.findByText("From your lists")).resolves.toBeInTheDocument();
     expect(screen.getByText("The Super Mario Bros. Movie")).toBeInTheDocument();
   });
 
@@ -85,7 +85,9 @@ describe("AddReviewPrompt", () => {
     server.use(allItems());
     render(AddReviewPrompt);
 
-    expect(await screen.findByPlaceholderText("Type to filter or search")).toBeInTheDocument();
+    await expect(
+      screen.findByPlaceholderText("Type to filter or search"),
+    ).resolves.toBeInTheDocument();
   });
 
   it("filters the list as the user types", async () => {
@@ -111,7 +113,7 @@ describe("AddReviewPrompt", () => {
     await rendered.user.click(await screen.findByText("The Super Mario Bros. Movie"));
 
     await waitFor(() => {
-      expect(rendered.emitted().close).toBeTruthy();
+      expect(rendered.emitted().close).toHaveLength(1);
     });
   });
 
@@ -122,7 +124,7 @@ describe("AddReviewPrompt", () => {
     await screen.findByText("From your lists");
     await rendered.user.keyboard("{Escape}");
 
-    expect(rendered.emitted().close).toBeTruthy();
+    expect(rendered.emitted().close).toHaveLength(1);
   });
 
   it("spins while the club's lists are still loading", () => {
@@ -140,9 +142,9 @@ describe("queuing a review from the prompt", () => {
     await user.click(await screen.findByRole("button", { name: "Add review" }));
     await user.click(await screen.findByText("The Super Mario Bros. Movie"));
 
-    expect(
-      await screen.findByRole("heading", { name: "The Super Mario Bros. Movie" }),
-    ).toBeInTheDocument();
+    await expect(
+      screen.findByRole("heading", { name: "The Super Mario Bros. Movie" }),
+    ).resolves.toBeInTheDocument();
   });
 
   it("puts a work found through search onto the reviews page", async () => {
@@ -155,7 +157,7 @@ describe("queuing a review from the prompt", () => {
     await user.type(await screen.findByPlaceholderText("Type to filter or search"), "Fight Club");
     await user.click(await screen.findByText("Fight Club"));
 
-    expect(await screen.findByRole("heading", { name: "Fight Club" })).toBeInTheDocument();
+    await expect(screen.findByRole("heading", { name: "Fight Club" })).resolves.toBeInTheDocument();
   });
 
   it("shows the work on the reviews page, pending, before the server answers", async () => {

@@ -50,13 +50,13 @@ describe("route view transitions", () => {
     await vi.waitFor(() => expect(pagesCaptured).toHaveLength(2));
 
     expect(router.currentRoute.value.name).toBe("Watchlists");
-    expect(pagesCaptured).toEqual(["Reviews", "Watchlists"]);
+    expect(pagesCaptured).toStrictEqual(["Reviews", "Watchlists"]);
   });
 
   it("leaves a query change on the same page unanimated", async () => {
     await router.push({ path: "/reviews", query: { sort: "score" } });
 
     expect(router.currentRoute.value.query.sort).toBe("score");
-    expect(pagesCaptured).toEqual([]);
+    expect(pagesCaptured).toStrictEqual([]);
   });
 });

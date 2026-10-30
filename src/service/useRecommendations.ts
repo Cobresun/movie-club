@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/vue-query";
 import axios from "axios";
-import { MaybeRef } from "vue";
+import { type MaybeRef } from "vue";
 
-import { WorkRecommendation } from "../../lib/types/recommendations";
+import { type WorkRecommendation } from "../../lib/types/recommendations";
 
 export const recommendationsKey = (clubSlug: string) => ["recommendations", clubSlug] as const;
 

@@ -53,17 +53,17 @@
 import { computed, ref } from "vue";
 
 import { computeTmdbDeviation } from "../statsComputers";
-import type { MovieData } from "../types";
+import { type MovieData } from "../types";
 import SegmentedToggle from "./SegmentedToggle.vue";
 import WidgetShell from "@/common/components/WidgetShell.vue";
 
 type Mode = "higher" | "lower";
 
-const props = defineProps<{
+const { movieData } = defineProps<{
   movieData: MovieData[];
 }>();
 
-const deviation = computed(() => computeTmdbDeviation(props.movieData));
+const deviation = computed(() => computeTmdbDeviation(movieData));
 
 const modeOptions = computed(() => {
   const options: { value: Mode; label: string }[] = [];

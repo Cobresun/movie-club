@@ -1,9 +1,9 @@
 import { screen } from "@testing-library/vue";
 
-import { Member } from "../../../../lib/types/club";
+import { type Member } from "../../../../lib/types/club";
 import { WorkType } from "../../../../lib/types/generated/db";
 import TasteSimilarityWidget from "../components/TasteSimilarityWidget.vue";
-import type { BookData } from "../types";
+import { type BookData } from "../types";
 import { makeMember, makeMovie } from "./fixtures";
 import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
 import { render } from "@/tests/utils";
@@ -43,7 +43,7 @@ const workData: BookData[] = scoresByWork.map((userScores, index) => ({
 /** The two names flanking the similarity percentage, in render order. */
 function pairLabels(): string[] {
   return screen
-    .getAllByText(/.+/, { selector: "span.mt-1" })
+    .getAllByText(/.+/u, { selector: "span.mt-1" })
     .map((element) => element.textContent ?? "");
 }
 
@@ -97,7 +97,7 @@ describe("TasteSimilarityWidget", () => {
 
     // Cal's closest is Ann at 60%, even though Ann's own closest is Bo.
     expect(screen.getByText("60%")).toBeInTheDocument();
-    expect(pairLabels()).toEqual(["You", "Ann"]);
+    expect(pairLabels()).toStrictEqual(["You", "Ann"]);
     expect(
       screen.getByText("The member whose scores line up closest with yours"),
     ).toBeInTheDocument();
@@ -114,7 +114,7 @@ describe("TasteSimilarityWidget", () => {
     await user.click(screen.getByRole("tab", { name: "You" }));
 
     // Cal's furthest is Bo at 50% — same number here, so assert on the pair.
-    expect(pairLabels()).toEqual(["You", "Bo"]);
+    expect(pairLabels()).toStrictEqual(["You", "Bo"]);
   });
 
   it("opens on the closest-matching pair", () => {

@@ -1,4 +1,3 @@
-import { describe, expect, it } from "vitest";
 import { z } from "zod";
 
 import {
@@ -66,7 +65,7 @@ describe("redirect", () => {
   });
 
   it("sets the Location header", () => {
-    expect(redirect("/home").headers?.["Location"]).toBe("/home");
+    expect(redirect("/home").headers?.Location).toBe("/home");
   });
 
   it("uses the default Cache-Control when none supplied", () => {

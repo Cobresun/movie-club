@@ -1,6 +1,6 @@
 import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
 import { persistQueryClient } from "@tanstack/query-persist-client-core";
-import { VueQueryPlugin, VueQueryPluginOptions } from "@tanstack/vue-query";
+import { VueQueryPlugin, type VueQueryPluginOptions } from "@tanstack/vue-query";
 import { del, get, set } from "idb-keyval";
 import mdiVue from "mdi-vue/v3";
 import { createPinia } from "pinia";
@@ -50,17 +50,16 @@ const vueQueryOptions: VueQueryPluginOptions = {
           const refetchTimes = fetchedMap.get(query.queryHash);
           if (isDefined(refetchTimes) && refetchTimes > 1) {
             return false;
-          } else {
-            fetchedMap.set(query.queryHash, (refetchTimes ?? 0) + 1);
-            return true;
           }
+          fetchedMap.set(query.queryHash, (refetchTimes ?? 0) + 1);
+          return true;
         },
         cacheTime: 1000 * 60 * 60 * 24 * 7, // One week,
       },
     },
   },
-  clientPersister: (queryClient) => {
-    return persistQueryClient({
+  clientPersister: (queryClient) =>
+    persistQueryClient({
       queryClient,
       // IndexedDB rather than localStorage: no ~5MB quota (which a large
       // club's cached lists could exceed, silently disabling persistence)
@@ -83,8 +82,7 @@ const vueQueryOptions: VueQueryPluginOptions = {
         shouldDehydrateQuery: (query) =>
           query.queryKey[0] !== "user" && query.queryKey[0] !== "admin",
       },
-    });
-  },
+    }),
 };
 
 recordLandingSource(window.location.href, document.referrer);

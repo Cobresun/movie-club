@@ -18,11 +18,13 @@ type SessionResponse = typeof signedInSession | null;
  * looks `fetch` up per call), so these tests answer the session check like any
  * other API call rather than mocking the client module.
  */
-const answerSessionCheck = (body: SessionResponse) =>
+const answerSessionCheck = (body: SessionResponse) => {
   server.use(http.get("/api/auth/get-session", () => HttpResponse.json(body)));
+};
 
-const leaveSessionCheckPending = () =>
+const leaveSessionCheckPending = () => {
   server.use(http.get("/api/auth/get-session", () => delay("infinite")));
+};
 
 /**
  * A real pinia, not createTestingPinia: these tests are about the store's own
@@ -157,7 +159,9 @@ describe("navigateAfterAuth", () => {
     expect(store.isNavigatingAfterAuth).toBe(true);
 
     // Being called at all means the clubs query has already resolved.
-    await vi.waitFor(() => expect(router().push.mock.calls).toHaveLength(1));
+    await vi.waitFor(() => {
+      expect(router().push).toHaveBeenCalledOnce();
+    });
     expect(router().push.mock.calls).toContainEqual([
       { name: "ClubHome", params: { clubSlug: "test-club" } },
     ]);
@@ -183,7 +187,7 @@ describe("navigateAfterAuth", () => {
   });
 
   it("releases the gate when the navigation fails", async () => {
-    router().push.mockImplementationOnce(() => Promise.reject(new Error("guard rejected")));
+    router().push.mockRejectedValueOnce(new Error("guard rejected"));
 
     const store = await mountWithResolvedSession(signedInSession);
     await store.navigateAfterAuth();
@@ -207,7 +211,7 @@ describe("a cold load whose last session was signed in", () => {
     const store = await mountWithPendingSession();
 
     await waitFor(() => {
-      expect(store.userClubs?.map((club) => club.slug)).toEqual(["film"]);
+      expect(store.userClubs?.map((club) => club.slug)).toStrictEqual(["film"]);
     });
     expect(store.isInitialLoading).toBe(true);
 

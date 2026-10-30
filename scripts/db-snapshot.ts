@@ -85,7 +85,9 @@ async function snapshotDatabase(dbName: string): Promise<void> {
 
     const snapshots = await listSnapshots(pool, s3Uri);
     console.log(`\nCurrent snapshots (${snapshots.length}):`);
-    snapshots.forEach((s) => console.log(`  - ${s}`));
+    snapshots.forEach((s) => {
+      console.log(`  - ${s}`);
+    });
 
     if (snapshots.length > MAX_SNAPSHOTS) {
       console.log(
@@ -113,7 +115,7 @@ async function main() {
   try {
     await snapshotDatabase(dbName);
   } catch (error) {
-    console.error("\n✗ Error:", (error as Error).message);
+    console.error("\n✗ Error:", error instanceof Error ? error.message : String(error));
     process.exit(1);
   }
 }

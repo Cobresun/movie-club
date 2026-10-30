@@ -39,24 +39,24 @@ import { isBookStats, isMovieStats, type WorkStatsData } from "../types";
 import { clubTypeStats } from "@/common/clubType";
 import { useCountUp } from "@/common/composables/useCountUp";
 
-const props = defineProps<{
+const { workData, clubType } = defineProps<{
   workData: WorkStatsData[];
   clubType: ClubType;
 }>();
 
-const isMovieClub = computed(() => props.clubType === ClubType.movie);
-const isBookClub = computed(() => props.clubType === ClubType.book);
+const isMovieClub = computed(() => clubType === ClubType.movie);
+const isBookClub = computed(() => clubType === ClubType.book);
 
-const stats = computed(() => clubTypeStats(props.clubType));
+const stats = computed(() => clubTypeStats(clubType));
 
-const totalWorks = computed(() => props.workData.length);
+const totalWorks = computed(() => workData.length);
 
 const countLabel = computed(() => stats.value.countLabel);
 
 const countIcon = computed(() => stats.value.countIcon);
 
 const totalRuntimeMinutes = computed(() =>
-  props.workData.filter(isMovieStats).reduce((sum, movie) => {
+  workData.filter(isMovieStats).reduce((sum, movie) => {
     const runtime = Number(movie.externalData.runtime);
     return sum + (isNaN(runtime) ? 0 : runtime);
   }, 0),
@@ -78,7 +78,7 @@ const formattedTime = computed(
 const totalDays = computed(() => (totalHours.value > 24 ? Math.round(totalHours.value / 24) : 0));
 
 const totalPages = computed(() =>
-  props.workData.filter(isBookStats).reduce((sum, book) => {
+  workData.filter(isBookStats).reduce((sum, book) => {
     const pages = book.externalData?.numberOfPages;
     return sum + (isDefined(pages) && !isNaN(pages) ? pages : 0);
   }, 0),

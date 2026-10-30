@@ -1,8 +1,8 @@
 import { DateTime } from "luxon";
 
 import { hasValue } from "@/../lib/checks/checks";
-import { DetailedBookData } from "@/../lib/types/book";
-import { WorkDataSummary } from "@/../lib/types/lists";
+import { type DetailedBookData } from "@/../lib/types/book";
+import { type WorkDataSummary } from "@/../lib/types/lists";
 import { asTv } from "@/common/clubType/tv/data";
 
 // Movies cache only a bare TMDB poster path; expand it here (w500 — higher res
@@ -38,9 +38,7 @@ export function asMovie<T extends WorkDataSummary>(
   return isMovieData(data) ? data : undefined;
 }
 
-export function asBook<T extends WorkDataSummary>(
-  data: T | undefined,
-): DetailedBookData | undefined {
+export function asBook(data: WorkDataSummary | undefined): DetailedBookData | undefined {
   return isBookData(data) ? data : undefined;
 }
 

@@ -1,7 +1,7 @@
 import { screen } from "@testing-library/vue";
 
-import { AwardsStep, ClubAwards } from "../../../../lib/types/awards";
-import { DetailedMovieData } from "../../../../lib/types/movie";
+import { AwardsStep, type ClubAwards } from "../../../../lib/types/awards";
+import { type DetailedMovieData } from "../../../../lib/types/movie";
 import RankingsView from "../views/RankingsView.vue";
 import { awardsApi } from "@/mocks/awards";
 import memberData from "@/mocks/data/member.json";

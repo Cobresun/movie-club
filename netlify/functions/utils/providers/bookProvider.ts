@@ -7,14 +7,18 @@ import {
   splitCategories,
   stripHtml,
 } from "../../../../lib/googleBooks";
-import { DetailedBookData } from "../../../../lib/types/book";
+import { type DetailedBookData } from "../../../../lib/types/book";
 import { WorkType } from "../../../../lib/types/generated/db";
-import { DetailedWorkData, ListInsertDto, WorkDataSummary } from "../../../../lib/types/lists";
-import { SimilarWork } from "../../../../lib/types/recommendations";
-import { CastMember } from "../../../../lib/types/tmdb";
+import {
+  type DetailedWorkData,
+  type ListInsertDto,
+  type WorkDataSummary,
+} from "../../../../lib/types/lists";
+import { type SimilarWork } from "../../../../lib/types/recommendations";
+import { type CastMember } from "../../../../lib/types/tmdb";
 import { db } from "../database";
 import { getGoogleBooksVolume } from "./googleBooks";
-import { MediaProvider, numOrUndefined, RefreshResult } from "./types";
+import { type MediaProvider, numOrUndefined, type RefreshResult } from "./types";
 
 /**
  * Matches legacy OpenLibrary work keys (e.g. "OL45804W") that the
@@ -211,7 +215,7 @@ If you do not recognize this book or cannot confirm it is a real book, return 0 
 
   // Google Books has no similar-volumes endpoint to draw candidates from.
   getSimilarWorks(): Promise<Map<string, SimilarWork[]>> {
-    return Promise.resolve(new Map());
+    return Promise.resolve(new Map<string, SimilarWork[]>());
   }
 
   async refreshStaleDetails(limit: number): Promise<RefreshResult> {

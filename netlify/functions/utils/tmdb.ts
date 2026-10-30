@@ -1,17 +1,17 @@
-import axios, { AxiosResponse } from "axios";
+import axios, { type AxiosResponse } from "axios";
 
 import { hasValue } from "../../../lib/checks/checks.js";
 import { selectMajorCastNames } from "../../../lib/movie/majorCast.js";
-import { ExternalWorkData, WorkListItem } from "../../../lib/types/lists";
+import { type ExternalWorkData, type WorkListItem } from "../../../lib/types/lists";
 import {
-  BaseMovie,
-  DetailedMovie,
-  DetailedMovieData,
-  TMDBConfig,
-  TMDBMovieData,
-  TMDBPageResponse,
+  type BaseMovie,
+  type DetailedMovie,
+  type DetailedMovieData,
+  type TMDBConfig,
+  type TMDBMovieData,
+  type TMDBPageResponse,
 } from "../../../lib/types/movie";
-import { TMDBTvSeasonData, TMDBTvShowData } from "../../../lib/types/tv";
+import { type TMDBTvSeasonData, type TMDBTvShowData } from "../../../lib/types/tv";
 
 async function makeTMDBApiCall<T>(path: string, params?: Record<string, string>) {
   const tmdbApiKey = process.env.TMDB_API_KEY;
@@ -32,12 +32,10 @@ async function makeTMDBApiCall<T>(path: string, params?: Record<string, string>)
 let tmdbConfigPromise: Promise<AxiosResponse<TMDBConfig>> | undefined;
 
 async function getTMDBConfig() {
-  if (!tmdbConfigPromise) {
-    tmdbConfigPromise = makeTMDBApiCall<TMDBConfig>("/configuration").catch((error) => {
-      tmdbConfigPromise = undefined;
-      throw error;
-    });
-  }
+  tmdbConfigPromise ??= makeTMDBApiCall<TMDBConfig>("/configuration").catch((error) => {
+    tmdbConfigPromise = undefined;
+    throw error;
+  });
   return tmdbConfigPromise;
 }
 
@@ -86,7 +84,7 @@ export async function getDetailedMovie<T extends BaseMovie>(
   movies: T[],
 ): Promise<(T & DetailedMovie)[]> {
   const posterUrl = await getTMDBPosterUrlBuilder();
-  return await Promise.all(
+  return Promise.all(
     movies.map(async (movie) => {
       const response = await getTMDBMovieData(movie.movieId);
       const tmdbData = response.data;
@@ -152,7 +150,7 @@ export async function getDetailedMovie<T extends BaseMovie>(
 export async function getDetailedWorks<T extends WorkListItem>(
   works: T[],
 ): Promise<(T & ExternalWorkData<TMDBMovieData>)[]> {
-  const chunkArray = <T>(array: T[], chunkSize: number): T[][] => {
+  const chunkArray = <Item>(array: Item[], chunkSize: number): Item[][] => {
     const result = [];
     for (let i = 0; i < array.length; i += chunkSize) {
       result.push(array.slice(i, i + chunkSize));
@@ -163,20 +161,20 @@ export async function getDetailedWorks<T extends WorkListItem>(
   const chunks = chunkArray(works, 50);
 
   const processedChunks = await Promise.all(
-    chunks.map(async (chunk) => {
-      return await Promise.all(
+    chunks.map(async (chunk) =>
+      Promise.all(
         chunk.map(async (work) => {
           if (!hasValue(work.externalId)) {
             return work;
           }
-          const response = await getTMDBMovieData(parseInt(work.externalId));
+          const response = await getTMDBMovieData(Number.parseInt(work.externalId, 10));
           return {
             ...work,
             externalData: response.data,
           };
         }),
-      );
-    }),
+      ),
+    ),
   );
 
   return processedChunks.flat();

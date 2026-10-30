@@ -1,9 +1,9 @@
 import { hasValue } from "../../../lib/checks/checks.js";
-import { WorkRecommendation } from "../../../lib/types/recommendations";
+import { type WorkRecommendation } from "../../../lib/types/recommendations";
 import ReviewRepository from "../repositories/ReviewRepository";
 import WorkRepository from "../repositories/WorkRepository";
 import { getSimilarWorksForWorks } from "../utils/providers";
-import { MemberScore, rankRecommendations, selectSeeds } from "../utils/recommendations";
+import { type MemberScore, rankRecommendations, selectSeeds } from "../utils/recommendations";
 
 class RecommendationService {
   /**

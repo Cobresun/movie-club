@@ -1,11 +1,11 @@
 import { screen, waitFor } from "@testing-library/vue";
 import { http, HttpResponse } from "msw";
-import { vi } from "vitest";
+import type * as vueToastification from "vue-toastification";
 
 import { ClubType, WorkType } from "../../../../lib/types/generated/db";
-import { DetailedReviewListItem, Review } from "../../../../lib/types/lists";
+import { type DetailedReviewListItem, type Review } from "../../../../lib/types/lists";
 import ScoreAssistModal from "../components/ScoreAssistModal.vue";
-import { ScoredCandidate } from "../composables/scoreAssistLogic";
+import { type ScoredCandidate } from "../composables/scoreAssistLogic";
 import memberData from "@/mocks/data/member.json";
 import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
 import { server } from "@/mocks/server";
@@ -16,12 +16,13 @@ mockIntersectionObserver();
 // VTU stubs transitions process-wide in jsdom, so vue-toastification's
 // transition-group container never renders toast content into the DOM;
 // spy on useToast instead while keeping the plugin's default export intact.
-const toastSuccess = vi.fn();
-vi.mock("vue-toastification", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("vue-toastification")>();
+const toastSuccess = vi.fn<(message: string) => void>();
+vi.mock(import("vue-toastification"), async (importOriginal) => {
+  const actual = await importOriginal<typeof vueToastification>();
   return {
     ...actual,
-    useToast: () => ({ success: toastSuccess }),
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- the stub only implements the success call the SUT uses; the real useToast surface is much larger
+    useToast: (() => ({ success: toastSuccess }) as unknown) as typeof vueToastification.useToast,
   };
 });
 
@@ -139,13 +140,15 @@ describe("ScoreAssistModal", () => {
     await user.click(screen.getByRole("button", { name: "I liked Target Movie more" }));
 
     expect(toastSuccess).toHaveBeenCalledWith("We picked 5.5/10");
-    expect(await screen.findByRole("spinbutton", { name: "Score" })).toHaveValue(5.5);
+    await expect(screen.findByRole("spinbutton", { name: "Score" })).resolves.toHaveValue(5.5);
     expect(postedBody).toBeUndefined();
     expect(rendered.emitted().close).toBeUndefined();
 
     await user.click(screen.getByRole("button", { name: "Save score" }));
 
-    await waitFor(() => expect(postedBody).toEqual({ workId: "target", score: 5.5 }));
+    await waitFor(() => {
+      expect(postedBody).toStrictEqual({ workId: "target", score: 5.5 });
+    });
     expect(rendered.emitted().close).toHaveLength(1);
   });
 
@@ -166,12 +169,14 @@ describe("ScoreAssistModal", () => {
 
     await user.click(screen.getByRole("button", { name: "Too close to call" }));
 
-    expect(await screen.findByRole("spinbutton", { name: "Score" })).toHaveValue(4);
+    await expect(screen.findByRole("spinbutton", { name: "Score" })).resolves.toHaveValue(4);
     expect(postedBody).toBeUndefined();
 
     await user.click(screen.getByRole("button", { name: "Save score" }));
 
-    await waitFor(() => expect(postedBody).toEqual({ workId: "target", score: 4 }));
+    await waitFor(() => {
+      expect(postedBody).toStrictEqual({ workId: "target", score: 4 });
+    });
     expect(rendered.emitted().close).toHaveLength(1);
   });
 
@@ -200,7 +205,9 @@ describe("ScoreAssistModal", () => {
     await user.click(screen.getByRole("button", { name: "Too close to call" }));
     await user.click(await screen.findByRole("button", { name: "Save score" }));
 
-    await waitFor(() => expect(putBody).toEqual({ score: 4 }));
+    await waitFor(() => {
+      expect(putBody).toStrictEqual({ score: 4 });
+    });
     expect(rendered.emitted().close).toHaveLength(1);
   });
 });

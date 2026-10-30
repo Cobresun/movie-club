@@ -1,5 +1,3 @@
-import { describe, expect, it } from "vitest";
-
 import { lowerZIndex, zIndexClass } from "./zIndex";
 
 describe("zIndexClass", () => {

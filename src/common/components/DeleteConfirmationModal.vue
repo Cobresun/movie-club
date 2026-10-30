@@ -26,24 +26,21 @@
 </template>
 
 <script setup lang="ts">
-withDefaults(
-  defineProps<{
-    show: boolean;
-    title?: string;
-    message?: string;
-    confirmLabel?: string;
-    loading?: boolean;
-  }>(),
-  {
-    title: "Remove from List",
-    message: "Are you sure you want to remove this item from the list?",
-    confirmLabel: "Delete",
-    loading: false,
-  },
-);
+const {
+  show,
+  title = "Remove from List",
+  message = "Are you sure you want to remove this item from the list?",
+  confirmLabel = "Delete",
+  loading = false,
+} = defineProps<{
+  show: boolean;
+  title?: string;
+  message?: string;
+  confirmLabel?: string;
+  loading?: boolean;
+}>();
 
 const emit = defineEmits<{
-  (e: "confirm"): void;
-  (e: "cancel"): void;
+  (e: "confirm" | "cancel"): void;
 }>();
 </script>

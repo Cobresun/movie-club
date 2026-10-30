@@ -20,7 +20,7 @@
 </template>
 
 <script setup lang="ts">
-import type { HotTake } from "../../wrapped";
+import { type HotTake } from "../../wrapped";
 import { firstName } from "@/common/memberName";
 
 defineProps<{ takes: HotTake[] }>();

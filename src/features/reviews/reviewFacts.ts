@@ -2,7 +2,7 @@ import { DateTime } from "luxon";
 
 import { hasElements, hasValue, isDefined } from "../../../lib/checks/checks.js";
 import { WorkType } from "../../../lib/types/generated/db";
-import { DetailedReviewListItem } from "../../../lib/types/lists";
+import { type DetailedReviewListItem } from "../../../lib/types/lists";
 import { CLUB_TYPE_CONFIG, isScoredUnit } from "@/common/clubType";
 import { asBook, asMovie, formatRuntime } from "@/common/workDisplay";
 
@@ -246,7 +246,7 @@ const divisiveRecord: FactGenerator = (ctx) => {
 const MIN_WORKS_FOR_YEAR_RECORD = 5;
 
 const yearRecord: FactGenerator = (ctx) => {
-  const year = ctx.targetDate.year;
+  const { year } = ctx.targetDate;
   const cohort = ctx.scored.filter((work) => utcDate(work.createdDate).year === year);
   if (cohort.length < MIN_WORKS_FOR_YEAR_RECORD) return undefined;
   const others = cohort
@@ -283,7 +283,7 @@ function personRecord(
   ctx: FactContext,
   targetPeople: readonly string[],
   peopleOf: (work: DetailedReviewListItem) => readonly string[],
-  describe: (count: number, name: string) => { high: string; low: string },
+  phraseFor: (count: number, name: string) => { high: string; low: string },
 ): ReviewFact | undefined {
   for (const name of targetPeople) {
     const others = ctx.scored
@@ -291,7 +291,7 @@ function personRecord(
       .map(averageOf)
       .filter(isDefined);
     if (others.length + 1 < MIN_WORKS_FOR_PERSON_RECORD) continue;
-    const phrasing = describe(others.length + 1, name);
+    const phrasing = phraseFor(others.length + 1, name);
     if (ctx.targetAverage > Math.max(...others)) {
       return fact("personHigh", "A new favorite", phrasing.high);
     }

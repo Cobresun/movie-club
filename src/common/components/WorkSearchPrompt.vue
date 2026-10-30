@@ -88,11 +88,11 @@ const {
   defaultList,
   defaultListTitle,
   includeSearch = true,
-  onLoadMore,
+  onLoadMore = undefined,
   loadingMore = false,
   hasMore = false,
   loadingDefault = false,
-  emptyHint,
+  emptyHint = undefined,
 } = defineProps<{
   clubType: ClubType;
   defaultList: WorkSearchResult[];
@@ -107,8 +107,7 @@ const {
 }>();
 
 const emit = defineEmits<{
-  (e: "select-from-default", work: WorkSearchResult): void;
-  (e: "select-from-search", work: WorkSearchResult): void;
+  (e: "select-from-default" | "select-from-search", work: WorkSearchResult): void;
 }>();
 
 const searchText = ref("");
@@ -144,9 +143,8 @@ const noResults = computed(() => {
       filteredDefaultList.value.length === 0 &&
       searchResults.value.length === 0
     );
-  } else {
-    return hasSearched && filteredDefaultList.value.length === 0;
   }
+  return hasSearched && filteredDefaultList.value.length === 0;
 });
 
 // Hint shown when nothing is on screen yet (no default items, nothing typed).

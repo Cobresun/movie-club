@@ -1,6 +1,15 @@
 import { http, HttpResponse } from "msw";
+import { z } from "zod";
 
-import { ClubListSummary } from "../../lib/types/lists";
+import { type ClubListSummary } from "../../lib/types/lists";
+
+const titlePayloadSchema = z.object({
+  title: z.string(),
+});
+
+const reorderPayloadSchema = z.object({
+  listIds: z.array(z.string()),
+});
 
 export const clubList = (
   overrides: Partial<ClubListSummary> & { id: string },
@@ -29,18 +38,18 @@ export const clubListsApi = (
   return [
     http.get(base, () => HttpResponse.json<ClubListSummary[]>(lists)),
     http.post(base, async ({ request }) => {
-      const { title } = (await request.json()) as { title: string };
+      const { title } = titlePayloadSchema.parse(await request.json());
       const created = clubList({ id: `list-${lists.length + 1}`, title });
       lists = [...lists, created];
       return HttpResponse.json<ClubListSummary>(created);
     }),
     http.put(`${base}/reorder`, async ({ request }) => {
-      const { listIds } = (await request.json()) as { listIds: string[] };
+      const { listIds } = reorderPayloadSchema.parse(await request.json());
       lists = listIds.flatMap((id) => lists.filter((list) => list.id === id));
       return new HttpResponse(null, { status: 200 });
     }),
     http.put(`${base}/:listId`, async ({ request, params }) => {
-      const { title } = (await request.json()) as { title: string };
+      const { title } = titlePayloadSchema.parse(await request.json());
       lists = lists.map((list) => (list.id === params.listId ? { ...list, title } : list));
       return new HttpResponse(null, { status: 200 });
     }),

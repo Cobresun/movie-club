@@ -1,4 +1,3 @@
-import { assert, describe, expect, it } from "vitest";
 import { z } from "zod";
 
 import { makeEvent } from "../../tests/helpers/http";
@@ -14,7 +13,7 @@ describe("parseBody", () => {
   it("returns the parsed data for a valid body", () => {
     const result = parseBody(post({ name: "club" }), schema, createRouterResponse);
     expect(isRouterResponse(result)).toBe(false);
-    expect(result).toEqual({ name: "club" });
+    expect(result).toStrictEqual({ name: "club" });
   });
 
   it("returns a 400 when the body is missing", () => {
@@ -44,6 +43,6 @@ describe("parseBody", () => {
   it("applies schema defaults to the parsed output", () => {
     const withDefault = z.object({ type: z.enum(["a", "b"]).default("a") });
     const result = parseBody(post({}), withDefault, createRouterResponse);
-    expect(result).toEqual({ type: "a" });
+    expect(result).toStrictEqual({ type: "a" });
   });
 });

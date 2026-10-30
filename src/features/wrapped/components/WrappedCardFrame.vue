@@ -25,7 +25,7 @@
 </template>
 
 <script setup lang="ts">
-import type { WrappedTone } from "../wrappedDeck";
+import { type WrappedTone } from "../wrappedDeck";
 
 defineProps<{
   tone: WrappedTone;

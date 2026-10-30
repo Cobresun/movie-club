@@ -1,12 +1,12 @@
 import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
-import { WorkType } from "../../../../lib/types/generated/db";
+import { type WorkType } from "../../../../lib/types/generated/db";
 import {
-  DetailedReviewListItem,
-  MemberScoredWork,
-  WorkDataSummary,
-  WorkListItem,
+  type DetailedReviewListItem,
+  type MemberScoredWork,
+  type WorkDataSummary,
+  type WorkListItem,
 } from "../../../../lib/types/lists";
-import { isScoredUnit, makeWorkSimilarity, WorkSimilarityScorer } from "@/common/clubType";
+import { isScoredUnit, makeWorkSimilarity, type WorkSimilarityScorer } from "@/common/clubType";
 
 /**
  * Score Assist: converge on a 0-10 score suggestion for a target work by
@@ -164,7 +164,7 @@ export function answerComparison(
   session: ScoreAssistSession,
   answer: ComparisonAnswer,
 ): ScoreAssistSession {
-  const pivot = session.pivot;
+  const { pivot } = session;
   if (!isDefined(pivot) || isDefined(session.result)) return session;
   const askedWorkIds = [...session.askedWorkIds, pivot.workId];
   switch (answer) {
@@ -199,6 +199,8 @@ export function answerComparison(
       };
     case "skip":
       return withNextStep({ ...session, askedWorkIds, pivot: undefined });
+    default:
+      return session;
   }
 }
 

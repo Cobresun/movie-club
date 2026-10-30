@@ -55,7 +55,7 @@ import {
   computeHighestRatedByYear,
   computeMonthlyActivity,
 } from "../statsComputers";
-import type { WorkStatsData } from "../types";
+import { type WorkStatsData } from "../types";
 import SegmentedToggle from "./SegmentedToggle.vue";
 import { clubTypeConfig, clubTypeStats } from "@/common/clubType";
 import VChart from "@/common/components/VChart.vue";
@@ -70,7 +70,7 @@ const MODE_OPTIONS: { value: Mode; label: string }[] = [
   { value: "years", label: "Best of Year" },
 ];
 
-const props = defineProps<{
+const { workData, clubType } = defineProps<{
   workData: WorkStatsData[];
   clubType: ClubType;
 }>();
@@ -80,8 +80,8 @@ const compact = computed(() => !isDesktop.value);
 
 const mode = ref<Mode>("monthly");
 
-const noun = computed(() => clubTypeConfig(props.clubType).noun);
-const pluralNoun = computed(() => clubTypeStats(props.clubType).pluralNoun);
+const noun = computed(() => clubTypeConfig(clubType).noun);
+const pluralNoun = computed(() => clubTypeStats(clubType).pluralNoun);
 
 const subtitle = computed(() => {
   if (mode.value === "monthly") return `${pluralNoun.value} reviewed per month`;
@@ -89,9 +89,9 @@ const subtitle = computed(() => {
   return `The top-rated ${noun.value} from each year your club reviewed`;
 });
 
-const monthlyPoints = computed(() => computeMonthlyActivity(props.workData));
-const cumulativePoints = computed(() => computeCumulativeCounts(props.workData));
-const yearlyBest = computed(() => computeHighestRatedByYear(props.workData));
+const monthlyPoints = computed(() => computeMonthlyActivity(workData));
+const cumulativePoints = computed(() => computeCumulativeCounts(workData));
+const yearlyBest = computed(() => computeHighestRatedByYear(workData));
 
 const chartOptions = computed(() =>
   mode.value === "monthly"

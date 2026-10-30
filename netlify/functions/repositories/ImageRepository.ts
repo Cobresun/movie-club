@@ -1,4 +1,4 @@
-import { v2 as cloudinary, UploadApiResponse } from "cloudinary";
+import { v2 as cloudinary, type UploadApiResponse } from "cloudinary";
 
 class ImageRepository {
   async upload(file: Buffer) {
@@ -15,7 +15,7 @@ class ImageRepository {
             },
           },
           (error, uploadResult) => {
-            return resolve(uploadResult);
+            resolve(uploadResult);
           },
         )
         .end(file);
@@ -32,4 +32,6 @@ class ImageRepository {
   }
 }
 
-export default new ImageRepository();
+const imageRepository = new ImageRepository();
+
+export default imageRepository;

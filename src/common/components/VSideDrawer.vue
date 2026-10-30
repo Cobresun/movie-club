@@ -24,15 +24,13 @@ import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 
 import { type ZIndex, lowerZIndex } from "../zIndex.js";
 
-const props = withDefaults(defineProps<{ zIndex?: ZIndex }>(), {
-  zIndex: "50",
-});
+const { zIndex = "50" } = defineProps<{ zIndex?: ZIndex }>();
 
 const emit = defineEmits<{
   (e: "close"): void;
 }>();
 
-const backdropZIndex = computed<ZIndex>(() => lowerZIndex(props.zIndex));
+const backdropZIndex = computed<ZIndex>(() => lowerZIndex(zIndex));
 
 const isVisible = ref(true);
 

@@ -1,4 +1,4 @@
-import type { Config } from "@netlify/functions";
+import { type Config } from "@netlify/functions";
 import { z } from "zod";
 
 import MetricsRepository from "./repositories/MetricsRepository.js";
@@ -17,7 +17,7 @@ const ScheduledFunctionPayloadSchema = z.object({
  * Writes are keyed on the UTC date and upsert, so a retry or a manual trigger
  * refreshes the day rather than duplicating it.
  */
-export default async (req: Request) => {
+const scheduledMetricsSnapshot = async (req: Request) => {
   try {
     const body: unknown = await req.json();
     const { next_run } = ScheduledFunctionPayloadSchema.parse(body);
@@ -67,6 +67,8 @@ export default async (req: Request) => {
     );
   }
 };
+
+export default scheduledMetricsSnapshot;
 
 export const config: Config = {
   schedule: "@daily",

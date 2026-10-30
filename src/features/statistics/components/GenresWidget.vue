@@ -134,7 +134,7 @@ import { computed, ref } from "vue";
 
 import { type Member } from "../../../../lib/types/club.js";
 import { computeGenreStats, computeGenreWatchCounts } from "../statsComputers";
-import type { MovieData } from "../types";
+import { type MovieData } from "../types";
 import MemberFilterChips from "./MemberFilterChips.vue";
 import SegmentedToggle from "./SegmentedToggle.vue";
 import WidgetShell from "@/common/components/WidgetShell.vue";
@@ -146,7 +146,7 @@ const MODE_OPTIONS: { value: Mode; label: string }[] = [
   { value: "watched", label: "Most Watched" },
 ];
 
-const props = defineProps<{
+const { members, movieData } = defineProps<{
   members: Member[];
   movieData: MovieData[];
 }>();
@@ -154,9 +154,9 @@ const props = defineProps<{
 const mode = ref<Mode>("rated");
 const selectedMemberId = ref<string | undefined>(undefined);
 
-const genreStats = computed(() => computeGenreStats(props.movieData, selectedMemberId.value));
+const genreStats = computed(() => computeGenreStats(movieData, selectedMemberId.value));
 
-const watchCounts = computed(() => computeGenreWatchCounts(props.movieData));
+const watchCounts = computed(() => computeGenreWatchCounts(movieData));
 
 const hasData = computed(
   () =>

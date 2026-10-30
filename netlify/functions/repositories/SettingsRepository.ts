@@ -1,6 +1,6 @@
 import {
-  ClubSettings,
-  ClubSettingsUpdate,
+  type ClubSettings,
+  type ClubSettingsUpdate,
   clubSettingsUpdateSchema,
 } from "../../../lib/types/club";
 import { db } from "../utils/database";

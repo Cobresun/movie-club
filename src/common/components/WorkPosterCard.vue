@@ -88,7 +88,6 @@ const {
 }>();
 
 const emit = defineEmits<{
-  (e: "delete"): void;
-  (e: "select"): void;
+  (e: "delete" | "select"): void;
 }>();
 </script>

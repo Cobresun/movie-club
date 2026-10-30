@@ -1,4 +1,4 @@
-import { Kysely } from "kysely";
+import { type Kysely } from "kysely";
 import { z } from "zod";
 
 /**
@@ -96,8 +96,8 @@ async function rekeyAllRows(
   const stats: RekeyStats = { rewritten: 0, unchanged: 0, unresolved: [] };
 
   for (const row of rows) {
-    const clubId = String(row.club_id);
-    const year = String(row.year);
+    const clubId = row.club_id;
+    const { year } = row;
     const resolve = makeResolver(
       clubId,
       stats.unresolved,
@@ -184,14 +184,14 @@ async function loadMembersByClub(db: Kysely<MigrationTables>) {
     { nameToId: Map<string, string>; idToName: Map<string, string> }
   >();
   for (const m of memberRows) {
-    const clubId = String(m.club_id);
+    const clubId = m.club_id;
     let entry = perClub.get(clubId);
     if (entry === undefined) {
       entry = { nameToId: new Map(), idToName: new Map() };
       perClub.set(clubId, entry);
     }
-    entry.nameToId.set(m.name, String(m.userId));
-    entry.idToName.set(String(m.userId), m.name);
+    entry.nameToId.set(m.name, m.userId);
+    entry.idToName.set(m.userId, m.name);
   }
   return perClub;
 }

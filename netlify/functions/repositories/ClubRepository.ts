@@ -1,7 +1,7 @@
 import crypto from "crypto";
 
 import { isDefined } from "../../../lib/checks/checks.js";
-import { ClubType } from "../../../lib/types/generated/db.js";
+import { type ClubType } from "../../../lib/types/generated/db.js";
 import { db } from "../utils/database";
 import { generateSlugFromName, generateUniqueSlug } from "../utils/slug";
 
@@ -11,8 +11,8 @@ interface JoinClubResult {
 }
 
 class ClubRepository {
-  async getById(clubId: string) {
-    return db.selectFrom("club").selectAll().where("id", "=", clubId.toString()).executeTakeFirst();
+  getById(clubId: string) {
+    return db.selectFrom("club").selectAll().where("id", "=", clubId).executeTakeFirst();
   }
 
   async getBySlug(slug: string) {
@@ -76,12 +76,14 @@ class ClubRepository {
   async isUserInClub(clubId: string, userId: string) {
     // `secured` resolves the real club id before this runs, so membership is a
     // single index lookup on club_member (no legacy_id join path anymore).
-    return !!(await db
-      .selectFrom("club_member")
-      .where("club_member.user_id", "=", userId)
-      .where("club_member.club_id", "=", clubId)
-      .select("club_member.user_id")
-      .executeTakeFirst());
+    return Boolean(
+      await db
+        .selectFrom("club_member")
+        .where("club_member.user_id", "=", userId)
+        .where("club_member.club_id", "=", clubId)
+        .select("club_member.user_id")
+        .executeTakeFirst(),
+    );
   }
 
   async joinClubWithInvite(token: string, userId: string): Promise<JoinClubResult> {
@@ -119,8 +121,8 @@ class ClubRepository {
     return { success: true };
   }
 
-  async getClubDetailsByInvite(token: string) {
-    return await db
+  getClubDetailsByInvite(token: string) {
+    return db
       .selectFrom("club_invite")
       .innerJoin("club", "club.id", "club_invite.club_id")
       .select([
@@ -157,7 +159,7 @@ class ClubRepository {
         .set({ expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000) })
         .where("club_id", "=", clubId)
         .execute();
-      return String(existingInvite.token);
+      return existingInvite.token;
     }
 
     const token = crypto.randomBytes(16).toString("hex");
@@ -180,4 +182,6 @@ class ClubRepository {
   }
 }
 
-export default new ClubRepository();
+const clubRepository = new ClubRepository();
+
+export default clubRepository;

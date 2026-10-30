@@ -1,4 +1,4 @@
-import type { AgChartOptions } from "ag-charts-community";
+import { type AgChartOptions } from "ag-charts-community";
 import { defineComponent, ref, watchEffect, h, type PropType } from "vue";
 
 import { ensure } from "@/../lib/checks/checks";

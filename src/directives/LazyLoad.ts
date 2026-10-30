@@ -3,8 +3,10 @@
 // only once the real URL is in place: clearing `src` to park it fires an error
 // event of its own.
 const markLoaded = (event: Event) => {
-  const img = event.currentTarget as HTMLImageElement;
-  if (img.dataset.loaded === "true") img.classList.add("lazy-loaded");
+  const img = event.currentTarget;
+  if (img instanceof HTMLImageElement && img.dataset.loaded === "true") {
+    img.classList.add("lazy-loaded");
+  }
 };
 
 export default {

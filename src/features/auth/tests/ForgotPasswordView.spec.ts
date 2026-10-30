@@ -36,7 +36,7 @@ describe("ForgotPasswordView", () => {
     await user.type(screen.getByLabelText("Email"), "user@example.com");
     await user.click(screen.getByRole("button", { name: /Send Reset Link/i }));
 
-    expect(await screen.findByText("Check your email")).toBeInTheDocument();
+    await expect(screen.findByText("Check your email")).resolves.toBeInTheDocument();
     expect(screen.getByText(/user@example\.com/)).toBeInTheDocument();
   });
 
@@ -75,6 +75,6 @@ describe("ForgotPasswordView", () => {
     await user.type(screen.getByLabelText("Email"), "user@example.com");
     await user.click(screen.getByRole("button", { name: /Send Reset Link/i }));
 
-    expect(await screen.findByText("Rate limit exceeded")).toBeInTheDocument();
+    await expect(screen.findByText("Rate limit exceeded")).resolves.toBeInTheDocument();
   });
 });

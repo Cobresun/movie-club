@@ -72,10 +72,10 @@
 import { computed } from "vue";
 
 import { hasElements, isDefined } from "../../../lib/checks/checks";
-import type { DetailedWorkListItem } from "../../../lib/types/lists";
-import type { RangeFilterOption } from "../clubType";
+import { type DetailedWorkListItem } from "../../../lib/types/lists";
+import { type RangeFilterOption } from "../clubType";
 import { rangeIncludes } from "../filterMatchers";
-import type { RangePreset, RangeSelection } from "./filterTypes";
+import { type RangePreset, type RangeSelection } from "./filterTypes";
 
 const props = defineProps<{
   option: RangeFilterOption;

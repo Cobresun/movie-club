@@ -28,7 +28,7 @@ describe("VerifyEmailView", () => {
   it("shows success state after successful email verification", async () => {
     render(VerifyEmailView);
 
-    expect(await screen.findByText("Email Verified!")).toBeInTheDocument();
+    await expect(screen.findByText("Email Verified!")).resolves.toBeInTheDocument();
     expect(screen.getByText(/email has been verified successfully/i)).toBeInTheDocument();
   });
 
@@ -44,7 +44,7 @@ describe("VerifyEmailView", () => {
 
     render(VerifyEmailView);
 
-    expect(await screen.findByText("Verification Failed")).toBeInTheDocument();
+    await expect(screen.findByText("Verification Failed")).resolves.toBeInTheDocument();
     expect(screen.getByText(/verification link has expired/i)).toBeInTheDocument();
   });
 
@@ -53,7 +53,7 @@ describe("VerifyEmailView", () => {
 
     render(VerifyEmailView);
 
-    expect(await screen.findByText("Verification Failed")).toBeInTheDocument();
+    await expect(screen.findByText("Verification Failed")).resolves.toBeInTheDocument();
     expect(screen.getByText(/verification link is invalid/i)).toBeInTheDocument();
   });
 

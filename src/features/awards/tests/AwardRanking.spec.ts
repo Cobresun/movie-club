@@ -1,7 +1,7 @@
 import { screen } from "@testing-library/vue";
 
-import { Award } from "../../../../lib/types/awards";
-import { DetailedMovieData } from "../../../../lib/types/movie";
+import { type Award } from "../../../../lib/types/awards";
+import { type DetailedMovieData } from "../../../../lib/types/movie";
 import AwardRanking from "../components/AwardRanking.vue";
 import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
 import { render } from "@/tests/utils";
@@ -107,7 +107,7 @@ describe("AwardRanking", () => {
     await rendered.user.click(screen.getByRole("button", { name: "Update ranking" }));
 
     // For "dev" the initial order is Parasite (10) then Moonlight (20).
-    expect(rendered.emitted()["submit-ranking"]).toEqual([[[10, 20]]]);
+    expect(rendered.emitted()["submit-ranking"]).toStrictEqual([[[10, 20]]]);
   });
 
   it("resolves each nominator's avatar from the member id, so a rename follows", () => {
@@ -159,6 +159,6 @@ describe("AwardRanking", () => {
     // Submitting now should report the swapped order.
     await rendered.user.click(screen.getByRole("button", { name: "Update ranking" }));
 
-    expect(rendered.emitted()["submit-ranking"]).toEqual([[[20, 10]]]);
+    expect(rendered.emitted()["submit-ranking"]).toStrictEqual([[[20, 10]]]);
   });
 });

@@ -1,4 +1,4 @@
-import { MetricsRange } from "../../../lib/types/metrics";
+import { type MetricsRange } from "../../../lib/types/metrics";
 
 /**
  * The time frames the dashboard's picker offers, and how each reads in a
