@@ -11,7 +11,7 @@ import {
   type TMDBMovieData,
   type TMDBPageResponse,
 } from "../../../lib/types/movie";
-import { TMDBTvSeasonData, TMDBTvShowData } from "../../../lib/types/tv";
+import { type TMDBTvSeasonData, type TMDBTvShowData } from "../../../lib/types/tv";
 
 async function makeTMDBApiCall<T>(path: string, params?: Record<string, string>) {
   const tmdbApiKey = process.env.TMDB_API_KEY;

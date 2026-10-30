@@ -2,12 +2,12 @@ import { http, HttpResponse } from "msw";
 import { z } from "zod";
 
 import { WorkType } from "../../lib/types/generated/db";
-import { DetailedReviewListItem } from "../../lib/types/lists";
+import { type DetailedReviewListItem } from "../../lib/types/lists";
 import {
   formatTvAddress,
   parseTvAddress,
-  TMDBTvEpisodeData,
-  TvDataSummary,
+  type TMDBTvEpisodeData,
+  type TvDataSummary,
 } from "../../lib/types/tv";
 import { asTv } from "../common/clubType/tv/data";
 import { withMemberScore } from "../features/reviews/episodeCards";

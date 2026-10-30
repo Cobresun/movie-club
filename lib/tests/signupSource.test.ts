@@ -1,5 +1,3 @@
-import { describe, expect, it } from "vitest";
-
 import {
   campaignFromLanding,
   classifyLanding,
@@ -55,18 +53,18 @@ describe("classifyLanding", () => {
   });
 
   it("names a referral by its tag, or failing that by the referring site", () => {
-    expect(classifyLanding(at("/?ref=BirthdayBot"), "")).toEqual({
+    expect(classifyLanding(at("/?ref=BirthdayBot"), "")).toStrictEqual({
       source: SignupSource.referral,
       detail: "birthdaybot",
     });
-    expect(classifyLanding(at("/"), "https://www.reddit.com/r/movies")).toEqual({
+    expect(classifyLanding(at("/"), "https://www.reddit.com/r/movies")).toStrictEqual({
       source: SignupSource.referral,
       detail: "reddit.com",
     });
   });
 
   it("keeps a referral but drops a tag that isn't a short slug", () => {
-    expect(classifyLanding(at("/?ref=<script>alert(1)</script>"), "")).toEqual({
+    expect(classifyLanding(at("/?ref=<script>alert(1)</script>"), "")).toStrictEqual({
       source: SignupSource.referral,
       detail: null,
     });
@@ -76,18 +74,18 @@ describe("classifyLanding", () => {
 
 describe("parseSignupSourceCookie", () => {
   it("reads back a channel with or without a referrer name", () => {
-    expect(parseSignupSourceCookie("invite")).toEqual({
+    expect(parseSignupSourceCookie("invite")).toStrictEqual({
       source: SignupSource.invite,
       detail: null,
     });
-    expect(parseSignupSourceCookie("referral:birthdaybot")).toEqual({
+    expect(parseSignupSourceCookie("referral:birthdaybot")).toStrictEqual({
       source: SignupSource.referral,
       detail: "birthdaybot",
     });
   });
 
   it("ignores a name on any channel but referral, and rejects an unknown channel", () => {
-    expect(parseSignupSourceCookie("invite:birthdaybot")).toEqual({
+    expect(parseSignupSourceCookie("invite:birthdaybot")).toStrictEqual({
       source: SignupSource.invite,
       detail: null,
     });
@@ -98,7 +96,9 @@ describe("parseSignupSourceCookie", () => {
 
 describe("campaigns", () => {
   it("reads the source and campaign an ad link is tagged with", () => {
-    expect(campaignFromLanding(at("/?utm_source=reddit&utm_campaign=test1_bookclub"))).toEqual({
+    expect(
+      campaignFromLanding(at("/?utm_source=reddit&utm_campaign=test1_bookclub")),
+    ).toStrictEqual({
       utmSource: "reddit",
       utmCampaign: "test1_bookclub",
     });
@@ -114,10 +114,10 @@ describe("campaigns", () => {
 
   it("reads back the campaign it stored, with or without a campaign name", () => {
     const tagged = { utmSource: "reddit", utmCampaign: "test1_bookclub" };
-    const sourceOnly = { utmSource: "newsletter" };
+    const sourceOnly = { utmSource: "newsletter", utmCampaign: undefined };
 
-    expect(parseCampaign(serializeCampaign(tagged))).toEqual(tagged);
-    expect(parseCampaign(serializeCampaign(sourceOnly))).toEqual(sourceOnly);
+    expect(parseCampaign(serializeCampaign(tagged))).toStrictEqual(tagged);
+    expect(parseCampaign(serializeCampaign(sourceOnly))).toStrictEqual(sourceOnly);
   });
 
   it("rejects a stored value it did not write", () => {

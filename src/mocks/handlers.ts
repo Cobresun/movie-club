@@ -87,9 +87,7 @@ export const handlers = [
   http.get("/api/club/:id/work/:workId/details", () =>
     HttpResponse.json<DetailedWorkData | null>(null),
   ),
-  http.get("/api/club/:id/reviews/cast", () =>
-    HttpResponse.json<Record<string, CastMember[]>>({}),
-  ),
+  http.get("/api/club/:id/reviews/cast", () => HttpResponse.json<Record<string, CastMember[]>>({})),
   http.get(`https://api.themoviedb.org/3/search/movie`, () => HttpResponse.json(TMDBSearch)),
   http.get(`https://api.themoviedb.org/3/movie/:movieId/watch/providers`, ({ params }) =>
     HttpResponse.json<TMDBWatchProvidersResponse>({

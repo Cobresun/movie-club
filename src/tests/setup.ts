@@ -39,7 +39,7 @@ window.HTMLElement.prototype.setPointerCapture = () => {};
 Object.defineProperty(window, "matchMedia", { writable: true, value: vi.fn() });
 
 // Nor scrolling: a show the reader has just added scrolls itself into view.
-Element.prototype.scrollIntoView = vi.fn();
+Element.prototype.scrollIntoView = () => {};
 
 beforeAll(() => {
   server.listen({ onUnhandledRequest: "error" });

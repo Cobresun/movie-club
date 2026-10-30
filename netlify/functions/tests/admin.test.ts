@@ -335,7 +335,7 @@ describe("signup acquisition", () => {
   it("reports every channel, even before anyone has signed up through it", async () => {
     const sources = (await dashboard()).acquisition.channels.map((row) => row.source);
 
-    expect(sources).toEqual(expect.arrayContaining(Object.values(SignupSource)));
+    expect(sources).toStrictEqual(expect.arrayContaining(Object.values(SignupSource)));
   });
 
   it("credits a signup to the channel its browser arrived through", async () => {
@@ -345,7 +345,7 @@ describe("signup acquisition", () => {
       cookie: `${SIGNUP_SOURCE_COOKIE}=${SignupSource.invite}`,
     });
 
-    expect(await channel(SignupSource.invite)).toEqual({
+    expect(await channel(SignupSource.invite)).toStrictEqual({
       source: SignupSource.invite,
       signups: before.signups + 1,
       activated: before.activated,

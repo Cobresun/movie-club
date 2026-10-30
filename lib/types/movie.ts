@@ -1,4 +1,4 @@
-import { CastMember } from "./tmdb";
+import { type CastMember } from "./tmdb";
 
 export interface BaseMovie {
   movieId: number;

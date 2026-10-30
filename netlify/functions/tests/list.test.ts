@@ -495,7 +495,7 @@ describe("DELETE /api/club/:clubSlug/list/:listId/items/:workId", () => {
     await addReviewedWork(club, alice, { externalId: "77" });
 
     const reviews = await api.get<DetailedReviewListItem[]>(`/api/club/${club.slug}/list/reviews`);
-    expect(reviews.body.map((review) => review.scores)).toEqual([{}]);
+    expect(reviews.body.map((review) => review.scores)).toStrictEqual([{}]);
   });
 
   it("returns 400 when the work is not on the list", async () => {
@@ -670,7 +670,7 @@ describe("POST /api/club/:clubSlug/list/:listId/items/:workId/move", () => {
     await move(club.listId, club.reviewsListId);
 
     const reviews = await api.get<DetailedReviewListItem[]>(`/api/club/${club.slug}/list/reviews`);
-    expect(reviews.body.map((review) => review.scores)).toEqual([{}]);
+    expect(reviews.body.map((review) => review.scores)).toStrictEqual([{}]);
   });
 
   it("returns 400 when the destination belongs to another club", async () => {

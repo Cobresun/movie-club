@@ -79,7 +79,7 @@ describe("POST /api/club/:clubSlug/reviews", () => {
     });
 
     expect(res.statusCode).toBe(400);
-    expect((await scoresOf(club, work.id, alice)).body).toEqual({});
+    expect((await scoresOf(club, work.id, alice)).body).toStrictEqual({});
   });
 
   it.each([

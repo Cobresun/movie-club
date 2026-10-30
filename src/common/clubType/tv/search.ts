@@ -1,8 +1,8 @@
 import axios from "axios";
 
-import type { BrowsePage, WorkSearchResult } from "../types";
+import { type BrowsePage, type WorkSearchResult } from "../types";
 import { hasValue } from "@/../lib/checks/checks";
-import { TMDBTvPageResponse, TMDBTvSearchResult } from "@/../lib/types/tv";
+import { type TMDBTvPageResponse, type TMDBTvSearchResult } from "@/../lib/types/tv";
 
 const TMDB_KEY = import.meta.env.VITE_TMDB_API_KEY;
 const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w154";

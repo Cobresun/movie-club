@@ -1,4 +1,4 @@
-import { Kysely } from "kysely";
+import { type Kysely } from "kysely";
 
 /**
  * A review used to require its work to be an item on the review's list. A

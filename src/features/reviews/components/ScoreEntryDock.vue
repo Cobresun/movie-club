@@ -129,6 +129,7 @@ const {
   target,
   score = undefined,
   reviewId = undefined,
+  saveScore = undefined,
 } = defineProps<{
   target: DetailedReviewListItem;
   score?: number;

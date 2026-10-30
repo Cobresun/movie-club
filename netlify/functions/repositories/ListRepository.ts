@@ -1,7 +1,7 @@
-import { sql, Transaction } from "kysely";
+import { sql, type Transaction } from "kysely";
 
 import { isDefined } from "../../../lib/checks/checks";
-import { ClubType, DB, WorkListSystemType } from "../../../lib/types/generated/db";
+import { type ClubType, type DB, WorkListSystemType } from "../../../lib/types/generated/db";
 import { db } from "../utils/database";
 import { providerForClub } from "../utils/providers";
 

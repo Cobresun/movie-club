@@ -2,23 +2,27 @@ import { isAxiosError } from "axios";
 
 import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import { WorkType } from "../../../../lib/types/generated/db";
-import { DetailedWorkData, ListInsertDto, WorkDataSummary } from "../../../../lib/types/lists";
-import { SimilarWork } from "../../../../lib/types/recommendations";
-import { CastMember } from "../../../../lib/types/tmdb";
 import {
-  DetailedTvData,
+  type DetailedWorkData,
+  type ListInsertDto,
+  type WorkDataSummary,
+} from "../../../../lib/types/lists";
+import { type SimilarWork } from "../../../../lib/types/recommendations";
+import { type CastMember } from "../../../../lib/types/tmdb";
+import {
+  type DetailedTvData,
   episodeCode,
   formatTvAddress,
   parseTvAddress,
-  TvAddress,
-  TvDataSummary,
+  type TvAddress,
+  type TvDataSummary,
   tvLevel,
-  TvSeasonSummary,
+  type TvSeasonSummary,
 } from "../../../../lib/types/tv";
 import { db } from "../database";
 import { getTMDBTvSeason, getTMDBTvShowData } from "../tmdb";
 import { upsertTvSeasonDetails, upsertTvShowDetails } from "../tvDetailsUpdater";
-import { MediaProvider, numOrUndefined, RefreshResult } from "./types";
+import { type MediaProvider, numOrUndefined, type RefreshResult } from "./types";
 
 /** TMDB's season 0 holds specials, which the show's season list leaves out. */
 const SPECIALS_SEASON = "0";
@@ -497,7 +501,7 @@ If you do not recognize this series or cannot confirm it is real, return 0 quest
   }
 
   getSimilarWorks(): Promise<Map<string, SimilarWork[]>> {
-    return Promise.resolve(new Map());
+    return Promise.resolve(new Map<string, SimilarWork[]>());
   }
 
   /**

@@ -7,7 +7,12 @@ import {
 } from "kysely";
 
 import { isDefined } from "../../../lib/checks/checks.js";
-import { type DB, type Json, SignupSource, type WorkType } from "../../../lib/types/generated/db.js";
+import {
+  type DB,
+  type Json,
+  SignupSource,
+  type WorkType,
+} from "../../../lib/types/generated/db.js";
 import {
   type Acquisition,
   type ActivityBucket,

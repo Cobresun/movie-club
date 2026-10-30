@@ -1,5 +1,5 @@
 import { clubScoreFilter, decadePresets, reviewedInFilter } from "../filterOptions";
-import type { ClubTypeConfig } from "../types";
+import { type ClubTypeConfig } from "../types";
 import { asTv, tvAirYear } from "./data";
 import { tvDisplay } from "./display";
 import { browseTvShows, searchTvShows } from "./search";

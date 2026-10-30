@@ -1,8 +1,8 @@
 <template>
-  <section v-if="hasElements(allActors)">
+  <section v-if="hasElements(actors)">
     <SectionHeader title="Cast">
       <button v-if="hasMore" class="text-xs text-primary hover:underline" @click="showAll = true">
-        See all ({{ allActors.length }})
+        See all ({{ actors.length }})
       </button>
     </SectionHeader>
 
@@ -35,7 +35,7 @@
       </li>
     </ul>
 
-    <CastModal v-if="showAll" :actors="allActors" @close="showAll = false" />
+    <CastModal v-if="showAll" :actors="actors" @close="showAll = false" />
   </section>
 </template>
 
