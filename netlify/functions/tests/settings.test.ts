@@ -4,8 +4,8 @@
  */
 import { describe, expect, it } from "vitest";
 
+import { ClubSettings } from "../../../lib/types/club";
 import { handler } from "../club/index";
-import { ClubSettings } from "../repositories/SettingsRepository";
 import { signIn } from "./helpers/auth";
 import { addReviewedWork, createClub } from "./helpers/factories";
 import { requester } from "./helpers/http";

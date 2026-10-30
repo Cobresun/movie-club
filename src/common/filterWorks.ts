@@ -10,7 +10,7 @@ import { includesCaseInsensitive, matchesSelection } from "@/common/filterMatche
  * the optional free-text title search.
  *
  * Which filters exist — and what each one reads from a work — is defined by the
- * club type's `filterOptions` registry (see `clubType.ts`), so this function
+ * club type's `filterOptions` registry (see `clubType/`), so this function
  * never grows a branch when a new club type or field is added.
  *
  * Filters AND together; the values picked within one choice filter OR together,

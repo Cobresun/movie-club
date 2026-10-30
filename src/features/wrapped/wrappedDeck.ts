@@ -170,15 +170,16 @@ const closestMatches: WrappedCardDef = {
   label: "Closest matches",
   tone: "violet",
   component: ClosestMatchesCard,
-  // With two members the taste-twins card already says everything this would.
-  cards: (ctx) =>
-    ctx.members.length > 2
-      ? chunk(computeClosestMatches(ctx.workData, ctx.members), MATCHES_PER_CARD).map(
-          (matches) => ({
-            matches,
-          }),
-        )
-      : [],
+  // Leave out the pair the taste-twins card just showed; in a two-member club
+  // that is the only pair, so the card disappears.
+  cards: (ctx) => {
+    const { mostSimilar: twins } = computeTasteSimilarity(ctx.workData, ctx.members);
+    const twinIds = new Set([twins?.memberA.id, twins?.memberB.id]);
+    const matches = computeClosestMatches(ctx.workData, ctx.members).filter(
+      (match) => !(twinIds.has(match.member.id) && twinIds.has(match.match.id)),
+    );
+    return chunk(matches, MATCHES_PER_CARD).map((matches) => ({ matches }));
+  },
 };
 
 function personCard(person: PersonStats | undefined, noun: string): Record<string, unknown>[] {

@@ -8,6 +8,10 @@ import { defineConfig } from "vite";
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [tailwindcss(), vue()],
+  define: {
+    // Netlify sets COMMIT_REF during a deploy build.
+    __BUILD_ID__: JSON.stringify(process.env.COMMIT_REF ?? "dev"),
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

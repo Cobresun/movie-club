@@ -106,15 +106,14 @@ describe("computeHotTakes", () => {
 });
 
 describe("computeClosestMatches", () => {
-  it("pairs each member with the clubmate they scored most like", () => {
+  it("lists a pair who picked each other once", () => {
     const works = ["1", "2", "3"].map((id) => makeMovie({ id, userScores: { a: 8, b: 7, c: 2 } }));
 
     const matches = computeClosestMatches(works, [alice, bob, cara]);
 
-    expect(matches.map((m) => [m.member.name, m.match.name])).toEqual([
-      ["Alice Smith", "Bob Jones"],
-      ["Bob Jones", "Alice Smith"],
-      ["Cara Lee", "Bob Jones"],
+    expect(matches.map((m) => [m.member.name, m.match.name, m.mutual])).toEqual([
+      ["Alice Smith", "Bob Jones", true],
+      ["Cara Lee", "Bob Jones", false],
     ]);
   });
 });

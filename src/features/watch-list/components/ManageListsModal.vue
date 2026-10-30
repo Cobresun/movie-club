@@ -85,9 +85,9 @@
 import { ref, shallowRef, watch } from "vue";
 import { VueDraggableNext } from "vue-draggable-next";
 
+import { ClubListSummary } from "../../../../lib/types/lists";
 import DeleteConfirmationModal from "@/common/components/DeleteConfirmationModal.vue";
 import {
-  ClubListSummary,
   useClubLists,
   useCreateList,
   useDeleteList,

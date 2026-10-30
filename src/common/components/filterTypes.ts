@@ -1,5 +1,5 @@
 // Shared types for the search-filter UI (SearchFilterBar, FilterPanel and its
-// sections). Kept in a plain .ts module so the registry in clubType.ts can use
+// sections). Kept in a plain .ts module so the registry in clubType/ can use
 // them without importing a .vue file.
 
 /** The values picked from a choice filter; a work matches if it has any of them. */

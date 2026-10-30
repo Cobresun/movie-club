@@ -17,7 +17,7 @@ So: when you add or change an icon name, register the matching `mdiPascalCase` e
 
 `icons.test.ts` enforces this, but its scan is **static** — it only sees literal names in `.vue` templates (`name="..."` and ternary literals). Names produced by a function or computed are invisible to it:
 
-- Names from `CLUB_TYPE_CONFIG` (`src/common/clubType.ts`) are covered by a dedicated registry test in `icons.test.ts`. A new club type needs its `icon` there **and** in `src/icons.ts`.
+- Names from `CLUB_TYPE_CONFIG` (`src/common/clubType/`) are covered by a dedicated registry test in `icons.test.ts`. A new club type needs its `icon` there **and** in `src/icons.ts`.
 - Any other computed/ref name (`copyIcon`, default `fallback-icon` props) is covered by nothing. Register those by hand.
 
 ## UI conventions
@@ -50,7 +50,7 @@ The test suite is how this gets enforced — a spec that cannot find an element 
 
 ## Service layer
 
-`src/service/use<Feature>.ts` wraps every API call in TanStack Query hooks — components should not fetch directly. Several accept `MaybeRef` so IDs can be reactive (e.g. `useList(slug, listIdRef)`).
+`src/service/use<Feature>.ts` wraps every API call in TanStack Query hooks — components should not fetch directly. Response types come from `lib/types/`, the same ones the handler passes to `ok<T>()`; don't declare a response interface in the service. Several accept `MaybeRef` so IDs can be reactive (e.g. `useList(slug, listIdRef)`).
 
 See the `tanstack-query-vue` skill for query-key conventions, mutation patterns, caching config, and optimistic updates.
 
