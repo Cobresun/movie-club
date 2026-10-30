@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { ClubType, WorkType } from "./generated/db";
+import { ClubType, SignupSource, WorkType } from "./generated/db";
 
 /**
  * Shapes for the site-wide observability dashboard (`/admin`).
@@ -220,6 +220,52 @@ export const feedEventSchema = z.object({
 });
 export type FeedEvent = z.infer<typeof feedEventSchema>;
 
+/**
+ * People who signed up in the selected range, and how many of them have since
+ * reviewed, commented, or added to a list. Shared by every acquisition table so
+ * channels, referrers, and campaigns are judged on the same measure.
+ */
+const signupCountsSchema = z.object({
+  signups: z.number(),
+  activated: z.number(),
+});
+
+/**
+ * Signups through one acquisition channel. `source` is null for accounts with
+ * nothing recorded: everyone who signed up before tracking began, and anyone
+ * whose browser blocked the attribution cookie.
+ */
+export const channelSignupsSchema = signupCountsSchema.extend({
+  source: z.nativeEnum(SignupSource).nullable(),
+});
+export type ChannelSignups = z.infer<typeof channelSignupsSchema>;
+
+/** Referral signups credited to one named referrer: a `?ref=` tag or a referring site. */
+export const referrerSignupsSchema = signupCountsSchema.extend({
+  referrer: z.string(),
+});
+export type ReferrerSignups = z.infer<typeof referrerSignupsSchema>;
+
+/**
+ * Signups whose landing link carried a `utm_source`, per source and campaign —
+ * the breakdown that tells one ad or post from another inside a channel.
+ */
+export const campaignSignupsSchema = signupCountsSchema.extend({
+  utmSource: z.string(),
+  utmCampaign: z.string().nullable(),
+});
+export type CampaignSignups = z.infer<typeof campaignSignupsSchema>;
+
+export const acquisitionSchema = z.object({
+  /** One row per channel, every channel present even at zero. */
+  channels: z.array(channelSignupsSchema),
+  /** The busiest named referrers within the referral channel, most signups first. */
+  referrers: z.array(referrerSignupsSchema),
+  /** Tagged campaigns, most signups first. */
+  campaigns: z.array(campaignSignupsSchema),
+});
+export type Acquisition = z.infer<typeof acquisitionSchema>;
+
 export const adminDashboardSchema = z.object({
   generatedAt: z.string(),
   range: metricsRangeSchema,
@@ -244,6 +290,8 @@ export const adminDashboardSchema = z.object({
   }),
   /** The latest reviews and comments, regardless of range. */
   feed: z.array(feedEventSchema),
+  /** Where people who signed up in the range came from. */
+  acquisition: acquisitionSchema,
 });
 export type AdminDashboard = z.infer<typeof adminDashboardSchema>;
 
