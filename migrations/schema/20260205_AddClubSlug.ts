@@ -28,7 +28,7 @@ function generateUniqueSlug(baseSlug: string): string {
   return `${truncatedBase}-${randomSuffix}`;
 }
 
-export async function up(db: Kysely<unknown>) {
+async function up(db: Kysely<unknown>) {
   // Step 1: Add slug column (nullable initially)
   await db.schema.alterTable("club").addColumn("slug", "varchar(50)").execute();
 
@@ -104,7 +104,7 @@ export async function up(db: Kysely<unknown>) {
   `.execute(db);
 }
 
-export async function down(db: Kysely<unknown>) {
+async function down(db: Kysely<unknown>) {
   // Drop constraint
   await sql`ALTER TABLE club DROP CONSTRAINT IF EXISTS club_slug_format_check`.execute(db);
 
@@ -115,3 +115,5 @@ export async function down(db: Kysely<unknown>) {
   await db.schema.alterTable("club").dropColumn("slug").execute();
   await db.schema.alterTable("club").dropColumn("slug_updated_at").execute();
 }
+
+export default { name: "20260205_AddClubSlug", up, down };

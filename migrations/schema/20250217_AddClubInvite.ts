@@ -1,6 +1,6 @@
 import { type Kysely } from "kysely";
 
-export async function up(db: Kysely<unknown>) {
+async function up(db: Kysely<unknown>) {
   await db.schema
     .createTable("club_invite")
     .addColumn("token", "text", (col) => col.primaryKey())
@@ -11,6 +11,8 @@ export async function up(db: Kysely<unknown>) {
     .execute();
 }
 
-export async function down(db: Kysely<unknown>) {
+async function down(db: Kysely<unknown>) {
   await db.schema.dropTable("club_invite").execute();
 }
+
+export default { name: "20250217_AddClubInvite", up, down };

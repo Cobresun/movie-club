@@ -31,9 +31,8 @@ let container: StartedCockroachDbContainer | undefined;
  * between tests instead — see `helpers/database.ts`.
  *
  * Migrations run as a subprocess through `tsx`, exactly as `npm run migrate`
- * does, rather than by importing the migrator here. Kysely's
- * `FileMigrationProvider` `import()`s the migration files through Node's
- * loader, which cannot resolve the extensionless specifiers they use — only
+ * does, rather than by importing the migrator here. The migration files use
+ * extensionless import specifiers, which Node's loader cannot resolve — only
  * esbuild (via tsx) can. Shelling out also guarantees the suite is testing the
  * same schema the deploy applies.
  */

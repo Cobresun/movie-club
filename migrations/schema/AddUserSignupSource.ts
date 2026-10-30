@@ -12,7 +12,7 @@ import { type Kysely, sql } from "kysely";
  * Nullable with no backfill: nothing recorded where existing users came from,
  * and NULL ("not recorded") is the honest value for them.
  */
-export async function up(db: Kysely<unknown>) {
+async function up(db: Kysely<unknown>) {
   await db.schema
     .createType("signup_source")
     .asEnum(["invite", "share", "referral", "direct"])
@@ -27,7 +27,7 @@ export async function up(db: Kysely<unknown>) {
     .execute();
 }
 
-export async function down(db: Kysely<unknown>) {
+async function down(db: Kysely<unknown>) {
   await db.schema
     .alterTable("user")
     .dropColumn("signup_utm_campaign")
@@ -37,3 +37,5 @@ export async function down(db: Kysely<unknown>) {
     .execute();
   await db.schema.dropType("signup_source").execute();
 }
+
+export default { name: "AddUserSignupSource", up, down };

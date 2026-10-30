@@ -78,7 +78,7 @@ async function characterNameColumnExists(db: Kysely<unknown>): Promise<boolean> 
   );
 }
 
-export async function up(db: Kysely<unknown>) {
+async function up(db: Kysely<unknown>) {
   if (!(await characterNameColumnExists(db))) {
     await db.schema.alterTable("movie_actors").addColumn("character_name", "varchar").execute();
   }
@@ -165,8 +165,10 @@ export async function up(db: Kysely<unknown>) {
   console.log(`Errors: ${errors}`);
 }
 
-export async function down(db: Kysely<unknown>) {
+async function down(db: Kysely<unknown>) {
   if (await characterNameColumnExists(db)) {
     await db.schema.alterTable("movie_actors").dropColumn("character_name").execute();
   }
 }
+
+export default { name: "20260615_AddMovieActorCharacterNames", up, down };

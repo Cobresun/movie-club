@@ -57,7 +57,7 @@ type MigrationTables = {
  * major presence. Mirrors the profile_path backfill in
  * 20260315_AddPersonProfilePaths.ts.
  */
-export async function up(db: Kysely<unknown>) {
+async function up(db: Kysely<unknown>) {
   // Kysely's addColumn can't express ADD COLUMN IF NOT EXISTS, which we rely on
   // for idempotent re-runs (CockroachDB has no transactional DDL, so a mid-run
   // failure leaves the column behind). Keep this one step as raw DDL; the data
@@ -172,6 +172,8 @@ export async function up(db: Kysely<unknown>) {
   console.log(`Errors: ${errors}`);
 }
 
-export async function down(db: Kysely<unknown>) {
+async function down(db: Kysely<unknown>) {
   await sql`ALTER TABLE movie_actors DROP COLUMN IF EXISTS popularity`.execute(db);
 }
+
+export default { name: "20260721_AddActorPopularity", up, down };

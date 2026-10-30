@@ -213,15 +213,17 @@ await sql`ALTER TABLE club ADD CONSTRAINT club_slug_format_check CHECK (slug ~ '
 
 ## Migration Patterns
 
-**Location:** `migrations/schema/`. Naming: `YYYYMMDD_Description.ts`.
+**Location:** `migrations/schema/`. Naming: `Description.ts` (no date), appended to the end of `migrations/orderedMigrations.ts`, which sets run order.
 
 **Structure:**
 
 ```typescript
-import { Kysely } from "kysely";
+import { type Kysely } from "kysely";
 
-export async function up(db: Kysely<unknown>) { ... }
-export async function down(db: Kysely<unknown>) { ... }
+async function up(db: Kysely<unknown>) { ... }
+async function down(db: Kysely<unknown>) { ... }
+
+export default { name: "AddFoo", up, down }; // `name` is the filename
 ```
 
 **Create table:**

@@ -10,10 +10,10 @@ import { type Kysely } from "kysely";
  * `show_external_id` joins it back to the show.
  *
  * The enum values these rows hang off land separately, in
- * `20260914_AddTvClubType` and `20260914_AddTvWorkType` (CockroachDB
+ * `AddTvClubType` and `AddTvWorkType` (CockroachDB
  * enum-value restriction).
  */
-export async function up(db: Kysely<unknown>) {
+async function up(db: Kysely<unknown>) {
   await db.schema
     .createTable("tv_show_details")
     .addColumn("id", "serial", (col) => col.primaryKey())
@@ -129,7 +129,7 @@ export async function up(db: Kysely<unknown>) {
     .execute();
 }
 
-export async function down(db: Kysely<unknown>) {
+async function down(db: Kysely<unknown>) {
   await db.schema.dropTable("tv_episode_details").execute();
   await db.schema.dropTable("tv_season_details").execute();
   await db.schema.dropTable("tv_show_cast").execute();
@@ -138,3 +138,5 @@ export async function down(db: Kysely<unknown>) {
   await db.schema.dropTable("tv_show_genres").execute();
   await db.schema.dropTable("tv_show_details").execute();
 }
+
+export default { name: "AddTvDetails", up, down };

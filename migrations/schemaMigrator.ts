@@ -1,17 +1,48 @@
 import { CockroachDialect } from "@cubos/kysely-cockroach";
 import { execSync } from "child_process";
-import { promises as fs, readdirSync } from "fs";
-import { Kysely, Migrator, FileMigrationProvider } from "kysely";
+import { readdirSync } from "fs";
+import { Kysely, Migrator, type MigrationProvider } from "kysely";
 import path from "path";
 import { Pool } from "pg";
 import { fileURLToPath } from "url";
 
 import { hasElements, hasValue, isDefined } from "../lib/checks/checks.js";
+import { orderedMigrations } from "./orderedMigrations.js";
 
 const currentFilename = fileURLToPath(import.meta.url);
 const currentDirname = path.dirname(currentFilename);
 
 const migrationFolder = path.join(currentDirname, "/schema");
+
+/**
+ * How many entries at the head of `orderedMigrations` production had run when
+ * the list was introduced (through `20261019_RekeyAwardsCaseInsensitiveNames`).
+ * Production recorded these under their dated filenames, so they keep them;
+ * every later entry is named by its position, which sorts after every dated
+ * name.
+ */
+const LEGACY_MIGRATION_COUNT = 28;
+
+/**
+ * Names each migration by its position in `orderedMigrations` (`m0035_AddFoo`),
+ * so Kysely, which always runs migrations in name order, runs them in list
+ * order.
+ */
+function migrationName(name: string, index: number): string {
+  return index < LEGACY_MIGRATION_COUNT ? name : `m${String(index + 1).padStart(4, "0")}_${name}`;
+}
+
+const namedMigrationProvider: MigrationProvider = {
+  getMigrations: () =>
+    Promise.resolve(
+      Object.fromEntries(
+        orderedMigrations.map((migration, index) => [
+          migrationName(migration.name, index),
+          migration,
+        ]),
+      ),
+    ),
+};
 
 /**
  * Lists migration files that exist locally but not on origin/main.
@@ -108,11 +139,7 @@ async function withMigrator(run: (migrator: Migrator) => Promise<void>) {
 
   const migrator = new Migrator({
     db,
-    provider: new FileMigrationProvider({
-      fs,
-      path,
-      migrationFolder,
-    }),
+    provider: namedMigrationProvider,
   });
 
   await run(migrator);
