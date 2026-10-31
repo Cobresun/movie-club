@@ -9,7 +9,7 @@ class ReviewRepository {
     return db
       .selectFrom("work_list")
       .where("work_list.club_id", "=", clubId)
-      .where("work_list.system_type", "=", WorkListSystemType.reviews)
+      .where("work_list.system_type", "=", WorkListSystemType.REVIEWS)
       .innerJoin("work_list_item", "work_list_item.list_id", "work_list.id")
       .innerJoin("work", (join) =>
         join.on((eb) =>
@@ -49,7 +49,7 @@ class ReviewRepository {
       .selectFrom("review")
       .where("review.user_id", "=", userId)
       .innerJoin("work_list", "work_list.id", "review.list_id")
-      .where("work_list.system_type", "=", WorkListSystemType.reviews)
+      .where("work_list.system_type", "=", WorkListSystemType.REVIEWS)
       .innerJoin("club", "club.id", "work_list.club_id")
       .innerJoin("club_member", (join) =>
         join.onRef("club_member.club_id", "=", "club.id").on("club_member.user_id", "=", userId),
@@ -75,7 +75,7 @@ class ReviewRepository {
     return db
       .selectFrom("work_list")
       .where("work_list.club_id", "=", clubId)
-      .where("work_list.system_type", "=", WorkListSystemType.reviews)
+      .where("work_list.system_type", "=", WorkListSystemType.REVIEWS)
       .innerJoin("review", "review.list_id", "work_list.id")
       .innerJoin("work", "work.id", "review.work_id")
       .select(["review.user_id", "review.score", "work.external_id", "work.title", "work.type"])
@@ -137,7 +137,7 @@ class ReviewRepository {
     return db
       .selectFrom("work_list")
       .where("work_list.club_id", "=", clubId)
-      .where("work_list.system_type", "=", WorkListSystemType.reviews)
+      .where("work_list.system_type", "=", WorkListSystemType.REVIEWS)
       .innerJoin("work_list_item", "work_list_item.list_id", "work_list.id")
       .innerJoin("work", (join) =>
         join.on((eb) =>

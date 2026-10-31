@@ -7,8 +7,8 @@ import { ClubType, WorkType } from "@/../lib/types/generated/db";
 import { asBook } from "@/common/workDisplay";
 
 export const bookClubConfig: ClubTypeConfig = {
-  clubType: ClubType.book,
-  workType: WorkType.book,
+  clubType: ClubType.BOOK,
+  workType: WorkType.BOOK,
   icon: "book-open-page-variant-outline",
   label: "Book club",
   pluralLabel: "Books",

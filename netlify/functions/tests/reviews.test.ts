@@ -613,7 +613,7 @@ describe("GET /api/club/:clubSlug/reviews/:workId/shared", () => {
     expect(res.body.work).toMatchObject({
       id: work.id,
       title: "Reservoir Dogs",
-      type: WorkType.movie,
+      type: WorkType.MOVIE,
       imageUrl: "/dogs.jpg",
       externalId: "500",
     });

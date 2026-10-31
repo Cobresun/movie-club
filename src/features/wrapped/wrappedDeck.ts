@@ -266,7 +266,7 @@ const topAuthor: WrappedCardDef = {
  * type-specific entries; everything score-based is shared.
  */
 const WRAPPED_DECKS: Record<ClubType, WrappedCardDef[]> = {
-  [ClubType.movie]: [
+  [ClubType.MOVIE]: [
     intro,
     hoursWatched,
     topPicks,
@@ -277,7 +277,7 @@ const WRAPPED_DECKS: Record<ClubType, WrappedCardDef[]> = {
     tasteTwins,
     closestMatches,
   ],
-  [ClubType.book]: [
+  [ClubType.BOOK]: [
     intro,
     pagesRead,
     topPicks,
@@ -288,7 +288,7 @@ const WRAPPED_DECKS: Record<ClubType, WrappedCardDef[]> = {
     tasteTwins,
     closestMatches,
   ],
-  [ClubType.tv]: [intro, topPicks, bottomPicks, mostDivisive, hotTakes, tasteTwins, closestMatches],
+  [ClubType.TV]: [intro, topPicks, bottomPicks, mostDivisive, hotTakes, tasteTwins, closestMatches],
 };
 
 export function buildWrappedDeck(ctx: WrappedContext): WrappedCard[] {

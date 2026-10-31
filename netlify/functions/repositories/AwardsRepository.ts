@@ -37,8 +37,8 @@ class AwardsRepository {
         .innerJoin("work", "work.id", "work_list_item.work_id")
         .select("work_list_item.time_added")
         .where("work_list.club_id", "=", clubId)
-        .where("work_list.system_type", "=", WorkListSystemType.reviews)
-        .where("work.type", "=", WorkType.movie)
+        .where("work_list.system_type", "=", WorkListSystemType.REVIEWS)
+        .where("work.type", "=", WorkType.MOVIE)
         .where("work.external_id", "is not", null)
         .execute(),
       this.getYears(clubId),

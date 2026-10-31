@@ -34,7 +34,7 @@ async function up(db: Kysely<unknown>) {
     title: string | null;
     position: number;
   }
-  const typedDb = db.withTables<{ work_list: MigrationWorkListTable }>();
+  const typedDb = db.$extendTables<{ work_list: MigrationWorkListTable }>();
   await typedDb
     .updateTable("work_list")
     .set({ system_type: "reviews" })
@@ -151,7 +151,7 @@ async function down(db: Kysely<unknown>) {
     system_type: "reviews" | null;
     type: "backlog" | "watchlist" | "reviews" | "award_nominations" | null;
   }
-  const typedDb = db.withTables<{ work_list: RollbackWorkListTable }>();
+  const typedDb = db.$extendTables<{ work_list: RollbackWorkListTable }>();
 
   // Restore the reviews system list type.
   await typedDb

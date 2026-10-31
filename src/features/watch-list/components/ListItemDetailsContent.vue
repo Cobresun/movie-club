@@ -198,7 +198,7 @@ const emit = defineEmits<{
 
 const { data: club } = useClub(props.clubSlug);
 const finishedVerb = computed(
-  () => clubTypeConfig(club.value?.type ?? ClubType.movie).finishedVerb,
+  () => clubTypeConfig(club.value?.type ?? ClubType.MOVIE).finishedVerb,
 );
 const reviewHintId = useId();
 

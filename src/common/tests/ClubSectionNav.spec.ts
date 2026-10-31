@@ -25,7 +25,7 @@ describe("ClubSectionNav", () => {
   });
 
   it("shows four tabs and nothing else once awards is on", async () => {
-    withClubType(ClubType.movie);
+    withClubType(ClubType.MOVIE);
     withAwards(true);
 
     render(ClubSectionNav, { props: { clubSlug: "test-club" } });
@@ -54,7 +54,7 @@ describe("ClubSectionNav", () => {
   });
 
   it("hides awards when the feature is off", async () => {
-    withClubType(ClubType.movie);
+    withClubType(ClubType.MOVIE);
     withAwards(false);
 
     render(ClubSectionNav, { props: { clubSlug: "test-club" } });
@@ -64,7 +64,7 @@ describe("ClubSectionNav", () => {
   });
 
   it("hides awards for a book club even with the feature on", async () => {
-    withClubType(ClubType.book);
+    withClubType(ClubType.BOOK);
     withAwards(true);
 
     render(ClubSectionNav, { props: { clubSlug: "test-club" } });
@@ -74,7 +74,7 @@ describe("ClubSectionNav", () => {
   });
 
   it("shows awards for a movie club with the feature on", async () => {
-    withClubType(ClubType.movie);
+    withClubType(ClubType.MOVIE);
     withAwards(true);
 
     render(ClubSectionNav, { props: { clubSlug: "test-club" } });
@@ -95,7 +95,7 @@ describe("ClubSectionNav", () => {
   });
 
   it("marks the parent section current on a nested route", async () => {
-    withClubType(ClubType.movie);
+    withClubType(ClubType.MOVIE);
     withAwards(true);
     setRouteMatched(undefined, "Awards", "AwardsYear");
 

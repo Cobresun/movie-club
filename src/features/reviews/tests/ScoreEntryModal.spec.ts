@@ -14,7 +14,7 @@ mockIntersectionObserver();
 function makeTarget(): DetailedReviewListItem {
   return {
     id: "target",
-    type: WorkType.movie,
+    type: WorkType.MOVIE,
     title: "Target Movie",
     createdDate: "2024-01-01",
     scores: {},

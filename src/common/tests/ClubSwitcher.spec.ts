@@ -8,7 +8,7 @@ import { ClubType } from "@/../lib/types/generated/db";
 import { render, setRouteMatched } from "@/tests/utils";
 
 // useRoute is mocked (setup.ts) to report the current club as "test-club".
-const makeClub = (slug: string, name: string, type = ClubType.movie): ClubPreview => ({
+const makeClub = (slug: string, name: string, type = ClubType.MOVIE): ClubPreview => ({
   clubId: slug,
   clubName: name,
   slug,
@@ -18,7 +18,7 @@ const makeClub = (slug: string, name: string, type = ClubType.movie): ClubPrevie
 
 const testClub = makeClub("test-club", "Test Club");
 const otherClub = makeClub("other-club", "Other Club");
-const bookClub = makeClub("book-club", "Book Club", ClubType.book);
+const bookClub = makeClub("book-club", "Book Club", ClubType.BOOK);
 
 const state = vi.hoisted((): { userClubs: ClubPreview[] } => ({ userClubs: [] }));
 

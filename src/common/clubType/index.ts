@@ -23,9 +23,9 @@ export type * from "./types";
  * flow from this registry rather than scattered `if (clubType === ...)` branches.
  */
 export const CLUB_TYPE_CONFIG: Record<ClubType, ClubTypeConfig> = {
-  [ClubType.movie]: movieClubConfig,
-  [ClubType.book]: bookClubConfig,
-  [ClubType.tv]: tvClubConfig,
+  [ClubType.MOVIE]: movieClubConfig,
+  [ClubType.BOOK]: bookClubConfig,
+  [ClubType.TV]: tvClubConfig,
 };
 
 export function clubTypeConfig(type: ClubType): ClubTypeConfig {
@@ -92,15 +92,15 @@ export function clubTypeInvite(type: ClubType): InviteConfig {
 // helpers can route to the right registry entry without their callers knowing
 // the club type. Both maps are exhaustive (a new type won't compile until added).
 const CLUB_TYPE_BY_KIND: Record<WorkDataSummary["kind"], ClubType> = {
-  movie: ClubType.movie,
-  book: ClubType.book,
-  tv: ClubType.tv,
+  movie: ClubType.MOVIE,
+  book: ClubType.BOOK,
+  tv: ClubType.TV,
 };
 
 const CLUB_TYPE_BY_WORK_TYPE: Record<WorkType, ClubType> = {
-  [WorkType.movie]: ClubType.movie,
-  [WorkType.book]: ClubType.book,
-  [WorkType.tv]: ClubType.tv,
+  [WorkType.MOVIE]: ClubType.MOVIE,
+  [WorkType.BOOK]: ClubType.BOOK,
+  [WorkType.TV]: ClubType.TV,
 };
 
 function workDisplay(data: WorkDataSummary | undefined): WorkDisplay | undefined {

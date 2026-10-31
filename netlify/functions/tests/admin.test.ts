@@ -339,14 +339,14 @@ describe("signup acquisition", () => {
   });
 
   it("credits a signup to the channel its browser arrived through", async () => {
-    const before = await channel(SignupSource.invite);
+    const before = await channel(SignupSource.INVITE);
 
     await signUpNewUser("invited@movie.club", "Invited", {
-      cookie: `${SIGNUP_SOURCE_COOKIE}=${SignupSource.invite}`,
+      cookie: `${SIGNUP_SOURCE_COOKIE}=${SignupSource.INVITE}`,
     });
 
-    expect(await channel(SignupSource.invite)).toStrictEqual({
-      source: SignupSource.invite,
+    expect(await channel(SignupSource.INVITE)).toStrictEqual({
+      source: SignupSource.INVITE,
       signups: before.signups + 1,
       activated: before.activated,
     });
@@ -369,7 +369,7 @@ describe("signup acquisition", () => {
     const before = await referrer();
 
     await signUpNewUser("birthday@movie.club", "Birthday", {
-      cookie: `${SIGNUP_SOURCE_COOKIE}=${SignupSource.referral}:birthdaybot`,
+      cookie: `${SIGNUP_SOURCE_COOKIE}=${SignupSource.REFERRAL}:birthdaybot`,
     });
 
     expect(await referrer()).toBe(before + 1);
@@ -377,7 +377,7 @@ describe("signup acquisition", () => {
 
   it("credits a signup from a tagged ad to its source and campaign", async () => {
     await signUpNewUser("from-reddit@movie.club", "From Reddit", {
-      cookie: `${SIGNUP_SOURCE_COOKIE}=${SignupSource.referral}; ${SIGNUP_CAMPAIGN_COOKIE}=reddit~test1_bookclub`,
+      cookie: `${SIGNUP_SOURCE_COOKIE}=${SignupSource.REFERRAL}; ${SIGNUP_CAMPAIGN_COOKIE}=reddit~test1_bookclub`,
     });
 
     expect((await dashboard()).acquisition.campaigns).toContainEqual({
@@ -391,14 +391,14 @@ describe("signup acquisition", () => {
   it("still credits the channel when the campaign cookie was tampered with", async () => {
     const campaignSignups = async () =>
       (await dashboard()).acquisition.campaigns.reduce((sum, row) => sum + row.signups, 0);
-    const referralsBefore = (await channel(SignupSource.referral)).signups;
+    const referralsBefore = (await channel(SignupSource.REFERRAL)).signups;
     const campaignSignupsBefore = await campaignSignups();
 
     await signUpNewUser("tampered@movie.club", "Tampered", {
-      cookie: `${SIGNUP_SOURCE_COOKIE}=${SignupSource.referral}; ${SIGNUP_CAMPAIGN_COOKIE}=<script>`,
+      cookie: `${SIGNUP_SOURCE_COOKIE}=${SignupSource.REFERRAL}; ${SIGNUP_CAMPAIGN_COOKIE}=<script>`,
     });
 
-    expect((await channel(SignupSource.referral)).signups).toBe(referralsBefore + 1);
+    expect((await channel(SignupSource.REFERRAL)).signups).toBe(referralsBefore + 1);
     expect(await campaignSignups()).toBe(campaignSignupsBefore);
   });
 });

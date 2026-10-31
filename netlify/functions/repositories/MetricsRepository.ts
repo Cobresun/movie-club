@@ -971,7 +971,7 @@ class MetricsRepository {
         .groupBy("signups.signup_source")
         .execute(),
       signupsSince(since)
-        .where("signups.signup_source", "=", SignupSource.referral)
+        .where("signups.signup_source", "=", SignupSource.REFERRAL)
         .where("signups.signup_source_detail", "is not", null)
         .select((eb) => [
           "signups.signup_source_detail",

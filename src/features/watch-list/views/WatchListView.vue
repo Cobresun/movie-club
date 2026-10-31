@@ -16,7 +16,7 @@ import { useAllUserListItems, useClubLists, useReviewsListId } from "@/service/u
 
 const clubSlug = useClubSlug();
 const { data: club } = useClub(clubSlug);
-const clubType = computed(() => club.value?.type ?? ClubType.movie);
+const clubType = computed(() => club.value?.type ?? ClubType.MOVIE);
 const { data: lists, isLoading } = useClubLists(clubSlug);
 const { data: reviewsListIdData } = useReviewsListId(clubSlug);
 const { data: membersData } = useMembers(clubSlug);

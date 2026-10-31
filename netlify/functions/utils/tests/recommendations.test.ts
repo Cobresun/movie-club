@@ -11,11 +11,11 @@ import { type SimilarWork } from "../../../../lib/types/recommendations";
 import { type MemberScore, rankRecommendations, type Seed, selectSeeds } from "../recommendations";
 
 function score(userId: string, externalId: string, value: number): MemberScore {
-  return { userId, type: WorkType.movie, externalId, title: `Title ${externalId}`, score: value };
+  return { userId, type: WorkType.MOVIE, externalId, title: `Title ${externalId}`, score: value };
 }
 
 function seed(externalId: string, affinity: number): Seed {
-  return { externalId, type: WorkType.movie, title: `Title ${externalId}`, affinity };
+  return { externalId, type: WorkType.MOVIE, title: `Title ${externalId}`, affinity };
 }
 
 function works(...ids: string[]): SimilarWork[] {

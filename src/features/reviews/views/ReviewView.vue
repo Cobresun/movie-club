@@ -6,7 +6,7 @@
       :key="scoreAssistTarget.id"
       :target="scoreAssistTarget"
       :candidates="scoreAssistCandidates"
-      :club-type="club?.type ?? ClubType.movie"
+      :club-type="club?.type ?? ClubType.MOVIE"
       :current-club-id="club?.clubId"
       @close="scoreAssistWorkId = undefined"
     />
@@ -23,7 +23,7 @@
         v-model:filtered-data="filteredReviews"
         v-model:has-active-filters="hasActiveFilters"
         :data="reviews ?? []"
-        :club-type="club?.type ?? ClubType.movie"
+        :club-type="club?.type ?? ClubType.MOVIE"
         search-placeholder="Search reviews"
         class-name="mb-4"
       >
@@ -120,11 +120,11 @@ const hasSearchTerm = computed(() => hasActiveFilters.value);
 const showEmptyState = computed(() => !loading.value && shownReviews.value.length === 0);
 
 const searchEmptyDescription = computed(() => {
-  const fields = clubTypeConfig(club.value?.type ?? ClubType.movie).searchableFieldsHint;
+  const fields = clubTypeConfig(club.value?.type ?? ClubType.MOVIE).searchableFieldsHint;
   return `Try adjusting your search or filters. You can search by ${fields}`;
 });
 const noReviewsDescription = computed(() => {
-  const noun = clubTypeConfig(club.value?.type ?? ClubType.movie).noun;
+  const noun = clubTypeConfig(club.value?.type ?? ClubType.MOVIE).noun;
   return `Start building your club's ${noun} collection by adding your first review`;
 });
 

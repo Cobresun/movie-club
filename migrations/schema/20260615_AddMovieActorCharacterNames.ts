@@ -83,7 +83,7 @@ async function up(db: Kysely<unknown>) {
     await db.schema.alterTable("movie_actors").addColumn("character_name", "varchar").execute();
   }
 
-  const typedDb = db.withTables<MigrationTables>();
+  const typedDb = db.$extendTables<MigrationTables>();
 
   // Backfill character names for movies whose actor rows predate this column.
   // Mirrors 20260315_AddPersonProfilePaths.ts: batch TMDB credits requests

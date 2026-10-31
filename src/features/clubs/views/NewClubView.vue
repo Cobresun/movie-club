@@ -105,7 +105,7 @@ import { useAuthStore } from "@/stores/auth";
 
 const router = useRouter();
 const clubName = ref("");
-const clubType = ref<ClubType>(ClubType.movie);
+const clubType = ref<ClubType>(ClubType.MOVIE);
 const showErrors = ref(false);
 
 const typeOptions = clubTypeOptions();

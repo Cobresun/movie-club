@@ -72,7 +72,7 @@ function work(id: string, userScores: Record<string, number>): MovieData {
     userScores,
     scores: {},
     dateWatched: "May 1, 2024",
-    type: WorkType.movie,
+    type: WorkType.MOVIE,
     genres: [],
     production_companies: [],
     production_countries: [],

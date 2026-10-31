@@ -87,7 +87,7 @@ describe("useCreateClub", () => {
     result.mutate({
       clubName: "New Club",
       members: ["alice@test.com"],
-      type: ClubType.movie,
+      type: ClubType.MOVIE,
     });
 
     await vi.waitFor(() => {

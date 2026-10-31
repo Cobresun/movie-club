@@ -29,7 +29,7 @@ const scoresByWork: Record<string, number>[] = [
 
 const workData: BookData[] = scoresByWork.map((userScores, index) => ({
   id: `b${index}`,
-  type: WorkType.book,
+  type: WorkType.BOOK,
   title: `Book ${index}`,
   createdDate: "2024-01-01T00:00:00.000Z",
   externalId: undefined,

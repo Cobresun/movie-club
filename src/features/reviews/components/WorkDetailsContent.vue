@@ -454,7 +454,7 @@ const castActors = computed(() => workActors(workDetails.value ?? undefined));
 // "couldn't recognize this ___" message).
 const mediaNoun = computed(
   () =>
-    workNoun(props.movie.externalData) ?? clubTypeConfig(club.value?.type ?? ClubType.movie).noun,
+    workNoun(props.movie.externalData) ?? clubTypeConfig(club.value?.type ?? ClubType.MOVIE).noun,
 );
 const posterUrl = computed(() => workPosterUrl(props.movie.externalData, props.movie.imageUrl));
 

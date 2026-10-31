@@ -25,7 +25,7 @@ const EPISODE_1 = `${SHOW_ID}:1:1`;
 async function seedShow(club: SeededClub, session: TestSession) {
   return addWork(club, session, {
     listId: club.reviewsListId,
-    type: WorkType.tv,
+    type: WorkType.TV,
     externalId: SHOW_ID,
     title: "Severance",
   });
@@ -53,7 +53,7 @@ async function score(
 describe("scoring a TV show", () => {
   it("refuses a score on a season, which is only ever its members' episode averages", async () => {
     const alice = await signIn("alice");
-    const club = await createClub(alice, { type: ClubType.tv });
+    const club = await createClub(alice, { type: ClubType.TV });
     const show = await seedShow(club, alice);
 
     const res = await score(club, alice, {
@@ -70,7 +70,7 @@ describe("scoring a TV show", () => {
 
   it("stores a show score on the show itself, touching no episode", async () => {
     const alice = await signIn("alice");
-    const club = await createClub(alice, { type: ClubType.tv });
+    const club = await createClub(alice, { type: ClubType.TV });
     const show = await seedShow(club, alice);
     await score(club, alice, { workId: show.id, score: 9, childExternalId: `${SHOW_ID}:1:1` });
 
@@ -83,7 +83,7 @@ describe("scoring a TV show", () => {
 
   it("leaves the show score alone when the member scores one of its episodes", async () => {
     const alice = await signIn("alice");
-    const club = await createClub(alice, { type: ClubType.tv });
+    const club = await createClub(alice, { type: ClubType.TV });
     const show = await seedShow(club, alice);
 
     await score(club, alice, { workId: show.id, score: 4 });
@@ -95,7 +95,7 @@ describe("scoring a TV show", () => {
 
   it("replaces the member's episode score when they score it again", async () => {
     const alice = await signIn("alice");
-    const club = await createClub(alice, { type: ClubType.tv });
+    const club = await createClub(alice, { type: ClubType.TV });
     const show = await seedShow(club, alice);
 
     await score(club, alice, { workId: show.id, score: 8, childExternalId: `${SHOW_ID}:1:1` });
@@ -106,7 +106,7 @@ describe("scoring a TV show", () => {
 
   it("scores an episode through its own work once it exists", async () => {
     const alice = await signIn("alice");
-    const club = await createClub(alice, { type: ClubType.tv });
+    const club = await createClub(alice, { type: ClubType.TV });
     const show = await seedShow(club, alice);
     await score(club, alice, { workId: show.id, score: 8, childExternalId: `${SHOW_ID}:1:1` });
     const episode = (await reviewsOf(club)).find((review) => review.externalId === EPISODE_1);
@@ -119,7 +119,7 @@ describe("scoring a TV show", () => {
 
   it("lists a scored episode through its show, not on the reviews list itself", async () => {
     const alice = await signIn("alice");
-    const club = await createClub(alice, { type: ClubType.tv });
+    const club = await createClub(alice, { type: ClubType.TV });
     const show = await seedShow(club, alice);
 
     await score(club, alice, { workId: show.id, score: 8, childExternalId: EPISODE_1 });
@@ -133,7 +133,7 @@ describe("scoring a TV show", () => {
 
   it("refuses an episode of another show", async () => {
     const alice = await signIn("alice");
-    const club = await createClub(alice, { type: ClubType.tv });
+    const club = await createClub(alice, { type: ClubType.TV });
     const show = await seedShow(club, alice);
 
     const res = await score(club, alice, {
@@ -149,7 +149,7 @@ describe("scoring a TV show", () => {
   it("leaves another member's episode score untouched", async () => {
     const alice = await signIn("alice");
     const bob = await signIn("bob");
-    const club = await createClub(alice, { type: ClubType.tv, members: [alice, bob] });
+    const club = await createClub(alice, { type: ClubType.TV, members: [alice, bob] });
     const show = await seedShow(club, alice);
 
     await score(club, bob, { workId: show.id, score: 9, childExternalId: `${SHOW_ID}:1:1` });
@@ -161,7 +161,7 @@ describe("scoring a TV show", () => {
 
   it("carries the show's season list so a club can open a season it has not scored", async () => {
     const alice = await signIn("alice");
-    const club = await createClub(alice, { type: ClubType.tv });
+    const club = await createClub(alice, { type: ClubType.TV });
     await seedShow(club, alice);
 
     const reviews = await reviewsOf(club);
@@ -178,7 +178,7 @@ describe("scoring a TV show", () => {
 
   it("scores one episode of a season the club has not opened yet", async () => {
     const alice = await signIn("alice");
-    const club = await createClub(alice, { type: ClubType.tv });
+    const club = await createClub(alice, { type: ClubType.TV });
     const show = await seedShow(club, alice);
 
     const res = await score(club, alice, {
@@ -199,7 +199,7 @@ describe("scoring a TV show", () => {
 
   it("refuses an episode TMDB does not list, rather than scoring the show", async () => {
     const alice = await signIn("alice");
-    const club = await createClub(alice, { type: ClubType.tv });
+    const club = await createClub(alice, { type: ClubType.TV });
     const show = await seedShow(club, alice);
 
     const res = await score(club, alice, {
@@ -215,7 +215,7 @@ describe("scoring a TV show", () => {
 
   it("refuses an episode of a season TMDB does not list, leaving no season behind", async () => {
     const alice = await signIn("alice");
-    const club = await createClub(alice, { type: ClubType.tv });
+    const club = await createClub(alice, { type: ClubType.TV });
     const show = await seedShow(club, alice);
 
     const res = await score(club, alice, {
@@ -243,7 +243,7 @@ describe("scoring what aired after it was cached", () => {
 
   it("scores an episode that aired after its season was cached", async () => {
     const alice = await signIn("alice");
-    const club = await createClub(alice, { type: ClubType.tv });
+    const club = await createClub(alice, { type: ClubType.TV });
     const show = await seedShow(club, alice);
     await score(club, alice, { workId: show.id, score: 8, childExternalId: `${SHOW_ID}:1:1` });
 
@@ -294,7 +294,7 @@ describe("scoring what aired after it was cached", () => {
       http.get(`${TMDB}/tv/:showId/season/3`, () => HttpResponse.json(announced)),
     );
     const alice = await signIn("alice");
-    const club = await createClub(alice, { type: ClubType.tv });
+    const club = await createClub(alice, { type: ClubType.TV });
     const show = await seedShow(club, alice);
     const premiere = { workId: show.id, score: 9, childExternalId: `${SHOW_ID}:3:1` };
     expect((await score(club, alice, premiere)).statusCode).toBe(400);
@@ -320,7 +320,7 @@ describe("scoring what aired after it was cached", () => {
 
   it("scores an episode of a season announced after the show was cached", async () => {
     const alice = await signIn("alice");
-    const club = await createClub(alice, { type: ClubType.tv });
+    const club = await createClub(alice, { type: ClubType.TV });
     const show = await seedShow(club, alice);
 
     const cached = tmdbTvShow(Number(SHOW_ID));
@@ -360,7 +360,7 @@ describe("scoring what aired after it was cached", () => {
 describe("removing a TV show", () => {
   it("takes the show's episodes off the reviews list with it", async () => {
     const alice = await signIn("alice");
-    const club = await createClub(alice, { type: ClubType.tv });
+    const club = await createClub(alice, { type: ClubType.TV });
     const show = await seedShow(club, alice);
     await score(club, alice, { workId: show.id, score: 8, childExternalId: `${SHOW_ID}:1:1` });
     await score(club, alice, { workId: show.id, score: 9, childExternalId: `${SHOW_ID}:1:2` });
@@ -376,7 +376,7 @@ describe("removing a TV show", () => {
 
   it("removes one scored episode, leaving the show and its other episodes", async () => {
     const alice = await signIn("alice");
-    const club = await createClub(alice, { type: ClubType.tv });
+    const club = await createClub(alice, { type: ClubType.TV });
     const show = await seedShow(club, alice);
     await score(club, alice, { workId: show.id, score: 7 });
     await score(club, alice, { workId: show.id, score: 8, childExternalId: EPISODE_1 });
@@ -397,11 +397,11 @@ describe("removing a TV show", () => {
 
   it("keeps another show's works when one is removed", async () => {
     const alice = await signIn("alice");
-    const club = await createClub(alice, { type: ClubType.tv });
+    const club = await createClub(alice, { type: ClubType.TV });
     const show = await seedShow(club, alice);
     const other = await addWork(club, alice, {
       listId: club.reviewsListId,
-      type: WorkType.tv,
+      type: WorkType.TV,
       externalId: `${SHOW_ID}0`,
       title: "Another show",
     });

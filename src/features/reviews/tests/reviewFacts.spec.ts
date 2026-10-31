@@ -93,7 +93,7 @@ function work(
   }
   return {
     id,
-    type: opts.type ?? WorkType.movie,
+    type: opts.type ?? WorkType.MOVIE,
     title: `Work ${id}`,
     createdDate: date,
     scores,
@@ -122,7 +122,7 @@ function filler(
       `${year}-${String(month).padStart(2, "0")}-03T12:00:00.000Z`,
       { [MEMBER_A]: score, [MEMBER_B]: score },
       isDefined(opts.book)
-        ? { type: WorkType.book, externalData: bookData(opts.book) }
+        ? { type: WorkType.BOOK, externalData: bookData(opts.book) }
         : { externalData: movieData({ genres: ["Drama"], ...opts.movie }) },
     );
   });
@@ -452,7 +452,7 @@ describe("computeReviewFact", () => {
       "t",
       "2025-06-01T12:00:00.000Z",
       { [MEMBER_A]: 6, [MEMBER_B]: 6 },
-      { type: WorkType.book, externalData: bookData({ pages: 500 }) },
+      { type: WorkType.BOOK, externalData: bookData({ pages: 500 }) },
     );
     const reviews = [...filler(11, { book: { pages: 420 } }), target];
 
@@ -467,7 +467,7 @@ describe("computeReviewFact", () => {
       "t",
       "2025-06-01T12:00:00.000Z",
       { [MEMBER_A]: 6, [MEMBER_B]: 6 },
-      { type: WorkType.book, externalData: bookData({ pages: 1178 }) },
+      { type: WorkType.BOOK, externalData: bookData({ pages: 1178 }) },
     );
     // 11 priors at 300 pages keep total pages under the 5,000 milestone.
     const reviews = [...filler(11, { book: { pages: 300 } }), target];
@@ -484,7 +484,7 @@ describe("computeReviewFact", () => {
       "2025-06-01T12:00:00.000Z",
       { [MEMBER_A]: 6, [MEMBER_B]: 6 },
       {
-        type: WorkType.book,
+        type: WorkType.BOOK,
         externalData: bookData({ firstPublishYear: 1847 }),
       },
     );
@@ -503,7 +503,7 @@ describe("computeReviewFact", () => {
         date,
         { [MEMBER_A]: score, [MEMBER_B]: score },
         {
-          type: WorkType.book,
+          type: WorkType.BOOK,
           externalData: bookData({ authors: ["Ursula K. Le Guin"] }),
         },
       );
@@ -531,7 +531,7 @@ describe("computeReviewFact in a TV club", () => {
       date,
       { [MEMBER_A]: score, [MEMBER_B]: score },
       {
-        type: WorkType.tv,
+        type: WorkType.TV,
         externalData: {
           kind: "tv",
           level,

@@ -14,7 +14,7 @@ mockIntersectionObserver();
 
 const movie: DetailedWorkListItem = {
   id: "w1",
-  type: WorkType.movie,
+  type: WorkType.MOVIE,
   title: "Inception",
   createdDate: "2024-05-01T00:00:00.000Z",
   externalId: "27205",

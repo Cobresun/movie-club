@@ -44,7 +44,7 @@ async function up(db: Kysely<unknown>) {
     slug_updated_at: Date | null;
   }
 
-  const typedDb = db.withTables<{
+  const typedDb = db.$extendTables<{
     club: MigrationClubTable;
   }>();
 

@@ -64,7 +64,7 @@ async function up(db: Kysely<unknown>) {
   // queries below run through a typed handle.
   await sql`ALTER TABLE movie_actors ADD COLUMN IF NOT EXISTS popularity NUMERIC`.execute(db);
 
-  const typedDb = db.withTables<MigrationTables>();
+  const typedDb = db.$extendTables<MigrationTables>();
 
   const movies = await typedDb
     .selectFrom("movie_details")

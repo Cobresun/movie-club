@@ -74,7 +74,7 @@ describe("GET /api/member/clubs", () => {
   it("returns a preview of every club the user belongs to", async () => {
     const alice = await signIn("alice");
     const movies = await createClub(alice, { name: "Movie Night" });
-    await createClub(alice, { name: "Books", type: ClubType.book });
+    await createClub(alice, { name: "Books", type: ClubType.BOOK });
     await createClub(alice, { name: "Not Mine", members: [] });
 
     const res = await api.get<ClubPreview[]>("/api/member/clubs", { as: alice });
@@ -85,7 +85,7 @@ describe("GET /api/member/clubs", () => {
       clubId: movies.id,
       clubName: "Movie Night",
       slug: movies.slug,
-      type: ClubType.movie,
+      type: ClubType.MOVIE,
     });
     expect(res.body.map((club) => club.clubName).sort()).toStrictEqual(["Books", "Movie Night"]);
   });
@@ -109,11 +109,11 @@ describe("GET /api/member/scores", () => {
   it("returns the member's own scores from every club they belong to", async () => {
     const alice = await signIn("alice");
     const movies = await createClub(alice, { name: "Movie Night" });
-    const books = await createClub(alice, { name: "Books", type: ClubType.book });
+    const books = await createClub(alice, { name: "Books", type: ClubType.BOOK });
     const movie = await addReviewedWork(movies, alice, { title: "Heat", externalId: "77" });
     const book = await addReviewedWork(books, alice, {
       title: "Dune",
-      type: WorkType.book,
+      type: WorkType.BOOK,
       externalId: "vol-1",
     });
     await scoreWork(movies, alice, movie.id, 8.5);
@@ -128,7 +128,7 @@ describe("GET /api/member/scores", () => {
         workId: movie.id,
         clubName: "Movie Night",
         clubSlug: movies.slug,
-        type: WorkType.movie,
+        type: WorkType.MOVIE,
         title: "Heat",
         externalId: "77",
         score: 8.5,
@@ -138,7 +138,7 @@ describe("GET /api/member/scores", () => {
       expect.objectContaining({
         workId: book.id,
         clubName: "Books",
-        type: WorkType.book,
+        type: WorkType.BOOK,
         score: 6,
       }),
     );

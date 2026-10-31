@@ -190,7 +190,7 @@ export function toMovieDataSummary(row: MovieSummaryRow): MovieDataSummary {
 }
 
 class MovieProvider implements MediaProvider {
-  readonly type = WorkType.movie;
+  readonly type = WorkType.MOVIE;
   readonly defaultListTitle = "Watch List";
 
   async fetchAndCacheDetails(externalId: string): Promise<void> {

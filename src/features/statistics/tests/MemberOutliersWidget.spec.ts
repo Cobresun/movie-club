@@ -38,7 +38,7 @@ const workData = [
   }),
 ];
 
-const props = { workData, members, clubType: ClubType.movie };
+const props = { workData, members, clubType: ClubType.MOVIE };
 
 describe("MemberOutliersWidget", () => {
   it("opens on guilty pleasures with the club's media noun", () => {
@@ -102,7 +102,7 @@ describe("MemberOutliersWidget", () => {
   });
 
   it("uses the book club's noun in its subtitle", () => {
-    render(MemberOutliersWidget, { props: { ...props, clubType: ClubType.book } });
+    render(MemberOutliersWidget, { props: { ...props, clubType: ClubType.BOOK } });
 
     expect(
       screen.getByText("Books where only one member loved it (2+ points above club average)"),

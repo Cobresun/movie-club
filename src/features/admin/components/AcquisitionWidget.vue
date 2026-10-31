@@ -70,19 +70,19 @@ const props = defineProps<{
 const board = ref<Board>("channels");
 
 const CHANNELS: Record<SignupSource, { label: string; description: string }> = {
-  [SignupSource.invite]: {
+  [SignupSource.INVITE]: {
     label: "Club invite",
     description: "Opened a club's invite link",
   },
-  [SignupSource.share]: {
+  [SignupSource.SHARE]: {
     label: "Shared page",
     description: "A shared review, list, or statistics page",
   },
-  [SignupSource.referral]: {
+  [SignupSource.REFERRAL]: {
     label: "Referral",
     description: "Another site, or a link tagged with ?ref= or utm_source",
   },
-  [SignupSource.direct]: {
+  [SignupSource.DIRECT]: {
     label: "Direct",
     description: "Typed in, bookmarked, or no referrer",
   },

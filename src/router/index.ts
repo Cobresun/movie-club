@@ -136,7 +136,7 @@ const movieClubOnly = async (
   }
 
   const club = findClub();
-  if (club && club.type !== ClubType.movie) {
+  if (club && club.type !== ClubType.MOVIE) {
     next({ name: DEFAULT_CLUB_SECTION, params: { clubSlug } });
     return;
   }

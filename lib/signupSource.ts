@@ -15,7 +15,7 @@ export const signupSourceSchema = z.nativeEnum(SignupSource);
 /**
  * Where a visit came from, as remembered for the sign-up that may follow.
  * `detail` names the referrer — the `ref`/`utm_source` tag, or the referring
- * site's host — and is only ever set for {@link SignupSource.referral}, the one
+ * site's host — and is only ever set for {@link SignupSource.REFERRAL}, the one
  * channel that lumps unrelated sources together.
  */
 export interface LandingSource {
@@ -50,7 +50,7 @@ export function parseSignupSourceCookie(value: string | undefined): LandingSourc
   if (!source.success) {
     return undefined;
   }
-  const detail = source.data === SignupSource.referral ? normaliseDetail(rawDetail) : null;
+  const detail = source.data === SignupSource.REFERRAL ? normaliseDetail(rawDetail) : null;
   return { source: source.data, detail };
 }
 
@@ -106,7 +106,7 @@ const REFERRAL_PARAMS = ["ref", "utm_source"];
  */
 export function classifyLanding(landing: URL, referrer: string): LandingSource {
   if (landing.pathname.startsWith("/join-club/")) {
-    return { source: SignupSource.invite, detail: null };
+    return { source: SignupSource.INVITE, detail: null };
   }
   // The shared pages' own calls to action tag themselves this way, so a click
   // from one into a fresh page load is still the share.
@@ -114,20 +114,20 @@ export function classifyLanding(landing: URL, referrer: string): LandingSource {
     landing.pathname.startsWith("/share/") ||
     landing.searchParams.get("utm_source") === "share"
   ) {
-    return { source: SignupSource.share, detail: null };
+    return { source: SignupSource.SHARE, detail: null };
   }
   const tag = REFERRAL_PARAMS.find((param) => landing.searchParams.has(param));
   if (tag !== undefined) {
     return {
-      source: SignupSource.referral,
+      source: SignupSource.REFERRAL,
       detail: normaliseDetail(landing.searchParams.get(tag)),
     };
   }
   if (URL.canParse(referrer) && new URL(referrer).host !== landing.host) {
     return {
-      source: SignupSource.referral,
+      source: SignupSource.REFERRAL,
       detail: normaliseDetail(new URL(referrer).hostname.replace(/^www\./, "")),
     };
   }
-  return { source: SignupSource.direct, detail: null };
+  return { source: SignupSource.DIRECT, detail: null };
 }
