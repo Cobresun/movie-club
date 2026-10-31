@@ -143,6 +143,7 @@ export const auth = betterAuth({
     },
   },
   session: {
+    expiresIn: 60 * 60 * 24 * 30,
     // Cache the session in a short-lived signed cookie so getSession() —
     // which runs on every secured request — usually skips its database
     // round trip. Sign-out still clears the cookie immediately; the tradeoff
@@ -176,7 +177,7 @@ export const loggedIn = async <T extends Request>(
   // leaves renewing the session to the client's own get-session call: a
   // renewal here would push the database expiry out but drop the Set-Cookie
   // that goes with it, after which get-session sees nothing left to renew and
-  // the browser's cookie lapses a week after sign-in.
+  // the browser's cookie lapses a month after sign-in.
   const session = await auth.api.getSession({
     headers: new Headers(filterUndefinedProperties(req.event.headers)),
     query: { disableRefresh: true },
