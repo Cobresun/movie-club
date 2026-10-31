@@ -12,7 +12,11 @@
           :aria-label="`I liked ${targetTitle} more`"
           @click="answer('more')"
         >
-          <WorkPosterCard :title="targetTitle" :poster-url="targetPosterUrl" />
+          <WorkPosterCard
+            :title="targetTitle"
+            :poster-url="targetImage.url"
+            :landscape="targetImage.landscape"
+          />
         </button>
         <Transition name="pivot-swap" mode="out-in">
           <button
@@ -22,7 +26,11 @@
             :aria-label="`I liked ${workTitle(pivot)} more`"
             @click="answer('less')"
           >
-            <WorkPosterCard :title="workTitle(pivot)" :poster-url="pivotPosterUrl">
+            <WorkPosterCard
+              :title="workTitle(pivot)"
+              :poster-url="pivotImage.url"
+              :landscape="pivotImage.landscape"
+            >
               <!-- The pool spans every club the user belongs to, so a pivot
                    they scored elsewhere says where it came from. Clubs can
                    share a name, so the comparison is by id. -->
@@ -58,11 +66,11 @@ import { useToast } from "vue-toastification";
 
 import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import { type ClubType } from "../../../../lib/types/generated/db";
-import { type DetailedReviewListItem } from "../../../../lib/types/lists";
+import { type DetailedReviewListItem, type WorkDataSummary } from "../../../../lib/types/lists";
 import { type ComparisonAnswer, type ScoredCandidate } from "../composables/scoreAssistLogic";
 import { useScoreAssist } from "../composables/useScoreAssist";
 import { formatScore } from "../scoreScale";
-import { clubTypeConfig, workNoun, workTitle } from "@/common/clubType";
+import { clubTypeConfig, workNoun, workStillUrl, workTitle } from "@/common/clubType";
 import WorkPosterCard from "@/common/components/WorkPosterCard.vue";
 import { workPosterUrl } from "@/common/workDisplay";
 
@@ -103,11 +111,18 @@ const question = computed(() => {
   return targetNoun === noun ? `Which ${noun} did you like more?` : "Which did you like more?";
 });
 
-const targetPosterUrl = computed(() => workPosterUrl(target.externalData, target.imageUrl) ?? "");
-const pivotPosterUrl = computed(() =>
-  isDefined(pivot.value)
-    ? (workPosterUrl(pivot.value.externalData, pivot.value.imageUrl) ?? "")
-    : "",
+// Every episode of a show shares its poster, so an episode is shown by its
+// own still: two posters side by side would be indistinguishable.
+const cardImage = (work: { imageUrl?: string; externalData?: WorkDataSummary }) => {
+  const still = workStillUrl(work.externalData);
+  return isDefined(still)
+    ? { url: still, landscape: true }
+    : { url: workPosterUrl(work.externalData, work.imageUrl) ?? "", landscape: false };
+};
+
+const targetImage = computed(() => cardImage(target));
+const pivotImage = computed(() =>
+  isDefined(pivot.value) ? cardImage(pivot.value) : { url: "", landscape: false },
 );
 const isFromAnotherClub = computed(
   () => isDefined(pivot.value) && hasValue(currentClubId) && pivot.value.clubId !== currentClubId,
