@@ -47,7 +47,8 @@
           v-lazy-load
           :src="posterUrl"
           :alt="title"
-          class="aspect-[2/3] w-full rounded-t-lg object-cover [@media(hover:hover)]:group-hover:scale-105"
+          class="w-full rounded-t-lg object-cover [@media(hover:hover)]:group-hover:scale-105"
+          :class="landscape ? 'aspect-video' : 'aspect-[2/3]'"
         />
       </button>
       <img
@@ -55,7 +56,8 @@
         v-lazy-load
         :src="posterUrl"
         :alt="title"
-        class="aspect-[2/3] w-full rounded-t-lg object-cover"
+        class="w-full rounded-t-lg object-cover"
+        :class="landscape ? 'aspect-video' : 'aspect-[2/3]'"
       />
       <div class="flex h-auto flex-grow flex-col px-2 pb-2">
         <div class="my-2 flex flex-grow items-center justify-center">
@@ -77,6 +79,7 @@ const {
   showDelete = false,
   showDragHandle = false,
   selectable = false,
+  landscape = false,
 } = defineProps<{
   title: string;
   posterUrl: string;
@@ -85,6 +88,8 @@ const {
   showDragHandle?: boolean;
   loading?: boolean;
   selectable?: boolean;
+  /** A 16:9 frame for an image that isn't a poster, e.g. an episode still. */
+  landscape?: boolean;
 }>();
 
 const emit = defineEmits<{

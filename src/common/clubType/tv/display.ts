@@ -1,6 +1,6 @@
 import { type WorkDisplay } from "../types";
-import { asTv, isTvData, tvAirYear } from "./data";
-import { isDefined } from "@/../lib/checks/checks";
+import { asTv, isTvData, tmdbStillUrl, tvAirYear } from "./data";
+import { hasValue, isDefined } from "@/../lib/checks/checks";
 import { episodeCode } from "@/../lib/types/tv";
 import { formatRuntime } from "@/common/workDisplay";
 
@@ -40,4 +40,10 @@ export const tvDisplay: WorkDisplay = {
   overview: (data) => asTv(data)?.overview,
   actors: (details) => (isTvData(details) ? details.actors : undefined),
   noun: (data) => asTv(data)?.level,
+  still: (data) => {
+    const tv = asTv(data);
+    return tv?.level === "episode" && hasValue(tv.stillPath)
+      ? tmdbStillUrl(tv.stillPath)
+      : undefined;
+  },
 };
