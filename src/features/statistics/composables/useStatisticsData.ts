@@ -61,26 +61,26 @@ const WORK_STATS_BUILDERS: Record<
   WorkType,
   (base: WorkStatsBase, review: DetailedReviewListItem) => WorkStatsData | null
 > = {
-  [WorkType.book]: (base, review) => ({
+  [WorkType.BOOK]: (base, review) => ({
     // Book stats are score-only, so a book still counts without metadata.
     ...base,
-    type: WorkType.book,
+    type: WorkType.BOOK,
     externalData: asBook(review.externalData),
   }),
-  [WorkType.tv]: (base, review) => ({
+  [WorkType.TV]: (base, review) => ({
     // One scored episode counts like one scored movie, so an episode stands on
     // its scores alone.
     ...base,
-    type: WorkType.tv,
+    type: WorkType.TV,
     externalData: asTv(review.externalData),
   }),
-  [WorkType.movie]: (base, review) => {
+  [WorkType.MOVIE]: (base, review) => {
     // Movie stats read external metadata; skip works without it.
     const { externalData } = review;
     if (!isMovieData(externalData)) return null;
     return {
       ...base,
-      type: WorkType.movie,
+      type: WorkType.MOVIE,
       genres: externalData.genres,
       production_companies: externalData.production_companies,
       production_countries: externalData.production_countries,

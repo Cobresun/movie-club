@@ -7,8 +7,8 @@ import { ClubType, WorkType } from "@/../lib/types/generated/db";
 import { asMovie, formatRuntime } from "@/common/workDisplay";
 
 export const movieClubConfig: ClubTypeConfig = {
-  clubType: ClubType.movie,
-  workType: WorkType.movie,
+  clubType: ClubType.MOVIE,
+  workType: WorkType.MOVIE,
   icon: "movie-open-outline",
   label: "Movie club",
   pluralLabel: "Movies",

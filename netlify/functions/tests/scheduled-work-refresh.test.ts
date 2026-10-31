@@ -114,8 +114,8 @@ describe("scheduled work refresh", () => {
 
   it("refreshes book details and their authors", async () => {
     const alice = await signIn("alice");
-    const club = await createClub(alice, { type: ClubType.book });
-    await addWork(club, alice, { type: WorkType.book, externalId: "bookvolume" });
+    const club = await createClub(alice, { type: ClubType.BOOK });
+    await addWork(club, alice, { type: WorkType.BOOK, externalId: "bookvolume" });
 
     server.use(
       http.get("https://www.googleapis.com/books/v1/volumes/bookvolume", () =>
@@ -139,13 +139,13 @@ describe("scheduled work refresh", () => {
 
   it("skips legacy OpenLibrary ids that Google Books cannot resolve", async () => {
     const alice = await signIn("alice");
-    const club = await createClub(alice, { type: ClubType.book });
+    const club = await createClub(alice, { type: ClubType.BOOK });
     server.use(
       http.get("https://www.googleapis.com/books/v1/volumes/OL45804W", () =>
         HttpResponse.json(googleBooksVolume("OL45804W")),
       ),
     );
-    await addWork(club, alice, { type: WorkType.book, externalId: "OL45804W" });
+    await addWork(club, alice, { type: WorkType.BOOK, externalId: "OL45804W" });
 
     // The id is unresolvable, so the sweep must leave it alone rather than
     // spend a Google Books call on it.

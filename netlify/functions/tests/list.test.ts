@@ -318,7 +318,7 @@ describe("POST /api/club/:clubSlug/list/:listId/items", () => {
     const club = await createClub(alice);
 
     const res = await api.post(`/api/club/${club.slug}/list/${club.listId}/items`, {
-      body: { type: WorkType.movie, title: "Alien", externalId: "348", imageUrl: "/alien.jpg" },
+      body: { type: WorkType.MOVIE, title: "Alien", externalId: "348", imageUrl: "/alien.jpg" },
       as: alice,
     });
 
@@ -366,7 +366,7 @@ describe("POST /api/club/:clubSlug/list/:listId/items", () => {
   it("rejects a work that is already on the list", async () => {
     const alice = await signIn("alice");
     const club = await createClub(alice);
-    const body = { type: WorkType.movie, title: "Alien", externalId: "348" };
+    const body = { type: WorkType.MOVIE, title: "Alien", externalId: "348" };
 
     await api.post(`/api/club/${club.slug}/list/${club.listId}/items`, { body, as: alice });
     const res = await api.post<{ error: string }>(
@@ -402,7 +402,7 @@ describe("POST /api/club/:clubSlug/list/:listId/items", () => {
     );
 
     const res = await api.post(`/api/club/${club.slug}/list/${club.listId}/items`, {
-      body: { type: WorkType.movie, title: "Flaky", externalId: "999" },
+      body: { type: WorkType.MOVIE, title: "Flaky", externalId: "999" },
       as: alice,
     });
 
@@ -414,9 +414,9 @@ describe("POST /api/club/:clubSlug/list/:listId/items", () => {
 
   it("caches Google Books metadata for a book club", async () => {
     const alice = await signIn("alice");
-    const club = await createClub(alice, { type: ClubType.book });
+    const club = await createClub(alice, { type: ClubType.BOOK });
 
-    await addWork(club, alice, { type: WorkType.book, title: "Dune", externalId: "voldune" });
+    await addWork(club, alice, { type: WorkType.BOOK, title: "Dune", externalId: "voldune" });
 
     const items = await itemsOf(club.slug, club.listId);
     expect(items.body[0].externalData).toMatchObject({
@@ -443,7 +443,7 @@ describe("POST /api/club/:clubSlug/list/:listId/items", () => {
     const club = await createClub(alice, { members: [alice] });
 
     const res = await api.post(`/api/club/${club.slug}/list/${club.listId}/items`, {
-      body: { type: WorkType.movie, title: "Alien", externalId: "348" },
+      body: { type: WorkType.MOVIE, title: "Alien", externalId: "348" },
       as: bob,
     });
 

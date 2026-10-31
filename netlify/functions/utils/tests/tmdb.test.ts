@@ -35,7 +35,7 @@ function respondWithMovie(overrides: Partial<TMDBMovieData>) {
 function movieWork(externalId?: string) {
   return {
     id: `work-${externalId ?? "none"}`,
-    type: WorkType.movie,
+    type: WorkType.MOVIE,
     title: "Inception",
     createdDate: "2024-01-01",
     ...(externalId === undefined ? {} : { externalId }),

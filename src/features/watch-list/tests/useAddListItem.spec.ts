@@ -24,7 +24,7 @@ const Harness = defineComponent({
         "button",
         {
           onClick: () => {
-            mutate({ type: WorkType.movie, title: "Inception", externalId: "1" });
+            mutate({ type: WorkType.MOVIE, title: "Inception", externalId: "1" });
           },
         },
         "add",
@@ -62,7 +62,7 @@ describe("useAddListItem", () => {
     release();
 
     await expect(findToast('Added "Inception" to the list')).resolves.not.toHaveLength(0);
-    expect(posted).toStrictEqual({ type: WorkType.movie, title: "Inception", externalId: "1" });
+    expect(posted).toStrictEqual({ type: WorkType.MOVIE, title: "Inception", externalId: "1" });
   });
 
   it("shows an error toast when the request fails", async () => {

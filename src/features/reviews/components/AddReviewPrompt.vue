@@ -36,7 +36,7 @@ const emit = defineEmits<{
 
 const clubId = useClubSlug();
 const { data: club } = useClub(clubId);
-const clubType = computed(() => club.value?.type ?? ClubType.movie);
+const clubType = computed(() => club.value?.type ?? ClubType.MOVIE);
 
 const { data: listItems, isLoading: listsLoading } = useAllUserListItems(clubId);
 const { data: reviewsListId } = useReviewsListId(clubId);

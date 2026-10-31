@@ -14,12 +14,12 @@ type Work = {
 };
 
 type MovieWork = Omit<Work, "type" | "externalId"> & {
-  type: WorkType.movie;
+  type: WorkType.MOVIE;
   externalId: string;
 };
 
 function isMovieWork(item: Work): item is MovieWork {
-  return isDefined(item.externalId) && item.type === WorkType.movie;
+  return isDefined(item.externalId) && item.type === WorkType.MOVIE;
 }
 
 const populateMovieDetails = async () => {
@@ -27,7 +27,7 @@ const populateMovieDetails = async () => {
   const movies = await db
     .selectFrom("work")
     .select(["external_id", "title", "type", "id"])
-    .where("type", "=", WorkType.movie)
+    .where("type", "=", WorkType.MOVIE)
     .where("external_id", "is not", null)
     .distinct()
     .execute();

@@ -57,7 +57,7 @@ export function makeExternalBook(overrides: Partial<DetailedBookData> = {}): Det
 export function makeMovie(overrides: Partial<MovieData> = {}): MovieData {
   return {
     id: "1",
-    type: WorkType.movie,
+    type: WorkType.MOVIE,
     title: "Test Movie",
     createdDate: "2024-01-01T00:00:00.000Z",
     externalId: undefined,
@@ -79,7 +79,7 @@ export function makeMovie(overrides: Partial<MovieData> = {}): MovieData {
 export function makeBook(overrides: Partial<BookData> = {}): BookData {
   return {
     id: "b1",
-    type: WorkType.book,
+    type: WorkType.BOOK,
     title: "Test Book",
     createdDate: "2024-01-01T00:00:00.000Z",
     externalId: undefined,

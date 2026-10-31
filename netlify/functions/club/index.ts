@@ -85,7 +85,7 @@ router.use("/joinInfo/:token", joinRouter);
 const clubCreateSchema = z.object({
   name: z.string(),
   members: z.array(z.string()),
-  type: z.nativeEnum(ClubType).default(ClubType.movie),
+  type: z.nativeEnum(ClubType).default(ClubType.MOVIE),
 });
 
 router.post("/", loggedIn, async ({ event }, res) => {

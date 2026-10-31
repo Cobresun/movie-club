@@ -21,7 +21,7 @@ function movieReview(
   return {
     id,
     title,
-    type: WorkType.movie,
+    type: WorkType.MOVIE,
     createdDate,
     scores: { average: { id: "average", created_date: createdDate, score } },
     externalData: {

@@ -33,7 +33,7 @@ const workData = [
   }),
 ];
 
-const props = { workData, clubType: ClubType.movie };
+const props = { workData, clubType: ClubType.MOVIE };
 
 describe("ActivityWidget", () => {
   it("opens on the monthly chart", () => {
@@ -104,7 +104,7 @@ describe("ActivityWidget", () => {
     render(ActivityWidget, {
       props: {
         workData: [makeBook({ id: "b1", createdDate: "2023-01-15T00:00:00.000Z" })],
-        clubType: ClubType.book,
+        clubType: ClubType.BOOK,
       },
     });
 
@@ -112,7 +112,7 @@ describe("ActivityWidget", () => {
   });
 
   it("renders nothing for a club with no reviews", () => {
-    render(ActivityWidget, { props: { workData: [], clubType: ClubType.movie } });
+    render(ActivityWidget, { props: { workData: [], clubType: ClubType.MOVIE } });
 
     expect(screen.queryByText("Club Activity")).not.toBeInTheDocument();
   });

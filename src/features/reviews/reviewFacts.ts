@@ -478,7 +478,7 @@ const tmdbDeviation: FactGenerator = (ctx) => {
  * pattern as WORK_STATS_BUILDERS) so a new club type must declare its list.
  */
 const FACT_GENERATORS: Record<WorkType, FactGenerator[]> = {
-  [WorkType.movie]: [
+  [WorkType.MOVIE]: [
     allTimeRecord,
     clubMilestone,
     watchTimeMilestone,
@@ -492,7 +492,7 @@ const FACT_GENERATORS: Record<WorkType, FactGenerator[]> = {
     firstGenre,
     tmdbDeviation,
   ],
-  [WorkType.book]: [
+  [WorkType.BOOK]: [
     allTimeRecord,
     clubMilestone,
     pagesMilestone,
@@ -504,7 +504,7 @@ const FACT_GENERATORS: Record<WorkType, FactGenerator[]> = {
   ],
   // The media-agnostic generators only: the movie and book ones read metadata
   // an episode does not carry.
-  [WorkType.tv]: [allTimeRecord, clubMilestone, divisiveRecord, yearRecord],
+  [WorkType.TV]: [allTimeRecord, clubMilestone, divisiveRecord, yearRecord],
 };
 
 const nounFor = (type: WorkType): string =>

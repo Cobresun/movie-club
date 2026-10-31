@@ -31,7 +31,7 @@ export function recordLandingSource(href: string, referrer: string): void {
   const landing = new URL(href);
   const landingSource = classifyLanding(landing, referrer);
   if (
-    landingSource.source === SignupSource.direct &&
+    landingSource.source === SignupSource.DIRECT &&
     readCookie(SIGNUP_SOURCE_COOKIE) !== undefined
   ) {
     return;

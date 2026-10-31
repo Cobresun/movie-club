@@ -100,7 +100,7 @@ class ListRepository {
         {
           club_id: clubId,
           title: "Reviews",
-          system_type: WorkListSystemType.reviews,
+          system_type: WorkListSystemType.REVIEWS,
         },
       ])
       .execute();
@@ -119,7 +119,7 @@ class ListRepository {
   }
 
   async getReviewsListId(clubId: string) {
-    return this.getSystemListId(clubId, WorkListSystemType.reviews);
+    return this.getSystemListId(clubId, WorkListSystemType.REVIEWS);
   }
 
   // -- List item operations (now keyed by listId) -----------------------
@@ -285,7 +285,7 @@ class ListRepository {
         return false;
       }
 
-      const isMoveIntoReviews = destination.system_type === WorkListSystemType.reviews;
+      const isMoveIntoReviews = destination.system_type === WorkListSystemType.REVIEWS;
 
       await trx
         .insertInto("work_list_item")

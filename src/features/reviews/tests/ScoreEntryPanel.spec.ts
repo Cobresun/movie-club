@@ -10,7 +10,7 @@ import { render } from "@/tests/utils";
 
 mockIntersectionObserver();
 
-const TARGET = { id: "target", type: WorkType.movie };
+const TARGET = { id: "target", type: WorkType.MOVIE };
 
 /** Provide a Score Assist stub so the assist button's gating can be exercised. */
 function withAssist(isEligible: boolean) {

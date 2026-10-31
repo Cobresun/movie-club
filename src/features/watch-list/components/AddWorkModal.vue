@@ -16,7 +16,7 @@ const emit = defineEmits<{ (e: "close"): void }>();
 
 const clubSlug = useClubSlug();
 const { data: club } = useClub(clubSlug);
-const clubType = computed(() => club.value?.type ?? ClubType.movie);
+const clubType = computed(() => club.value?.type ?? ClubType.MOVIE);
 const config = computed(() => clubTypeConfig(clubType.value));
 
 const { mutate } = useAddListItem(clubSlug, listId);

@@ -95,7 +95,7 @@ function reviewItem(
 ): DetailedReviewListItem {
   return {
     id,
-    type: opts.type ?? WorkType.movie,
+    type: opts.type ?? WorkType.MOVIE,
     title: opts.title ?? `Work ${id}`,
     createdDate: "2024-01-01",
     externalId: opts.externalId,
@@ -123,7 +123,7 @@ function memberScore(
     clubId: opts.clubId ?? "club-2",
     clubName: opts.clubName ?? "Other Club",
     clubSlug: "other-club",
-    type: opts.type ?? WorkType.movie,
+    type: opts.type ?? WorkType.MOVIE,
     title: opts.title ?? `Work ${workId}`,
     externalId: opts.externalId,
     externalData: opts.externalData,
@@ -214,7 +214,7 @@ describe("buildCandidatePool", () => {
   it("ignores works of a different media type than the target", () => {
     const pool = buildCandidatePool(
       [
-        memberScore("a-book", 9, { type: WorkType.book, externalId: "vol-1" }),
+        memberScore("a-book", 9, { type: WorkType.BOOK, externalId: "vol-1" }),
         memberScore("a-movie", 4, { externalId: "tt-1" }),
       ],
       targetItem,
@@ -420,7 +420,7 @@ describe("termination and suggestions", () => {
 describe("workSimilarity", () => {
   it("normalises every score into [0,1]", () => {
     const nolan = movieData({ directors: ["Nolan"] });
-    const score = workSimilarity(WorkType.movie, nolan, nolan);
+    const score = workSimilarity(WorkType.MOVIE, nolan, nolan);
     expect(score).toBeGreaterThan(0);
     expect(score).toBeLessThanOrEqual(1);
   });
@@ -430,9 +430,9 @@ describe("workSimilarity", () => {
       directors: ["Nolan"],
       genres: ["Drama", "Thriller"],
     });
-    const sharedDirector = workSimilarity(WorkType.movie, t, movieData({ directors: ["Nolan"] }));
+    const sharedDirector = workSimilarity(WorkType.MOVIE, t, movieData({ directors: ["Nolan"] }));
     const sharedGenres = workSimilarity(
-      WorkType.movie,
+      WorkType.MOVIE,
       t,
       movieData({ genres: ["Drama", "Thriller"] }),
     );
@@ -443,19 +443,19 @@ describe("workSimilarity", () => {
   it("accumulates independent signals - director plus genre beats either alone", () => {
     const t = movieData({ directors: ["Nolan"], genres: ["Drama"] });
     const both = workSimilarity(
-      WorkType.movie,
+      WorkType.MOVIE,
       t,
       movieData({ directors: ["Nolan"], genres: ["Drama"] }),
     );
-    const directorOnly = workSimilarity(WorkType.movie, t, movieData({ directors: ["Nolan"] }));
+    const directorOnly = workSimilarity(WorkType.MOVIE, t, movieData({ directors: ["Nolan"] }));
     expect(both).toBeGreaterThan(directorOnly);
   });
 
   it("uses Jaccard overlap, so a broad tag set is not spuriously similar", () => {
     const t = movieData({ genres: ["Drama"] });
-    const focused = workSimilarity(WorkType.movie, t, movieData({ genres: ["Drama"] }));
+    const focused = workSimilarity(WorkType.MOVIE, t, movieData({ genres: ["Drama"] }));
     const diluted = workSimilarity(
-      WorkType.movie,
+      WorkType.MOVIE,
       t,
       movieData({ genres: ["Drama", "Action", "Comedy", "Horror"] }),
     );
@@ -465,25 +465,25 @@ describe("workSimilarity", () => {
 
   it("rewards a shared lead actor, but less than a shared director", () => {
     const t = movieData({ directors: ["Nolan"], actors: ["Bale"] });
-    const sharedActor = workSimilarity(WorkType.movie, t, movieData({ actors: ["Bale"] }));
-    const sharedDirector = workSimilarity(WorkType.movie, t, movieData({ directors: ["Nolan"] }));
+    const sharedActor = workSimilarity(WorkType.MOVIE, t, movieData({ actors: ["Bale"] }));
+    const sharedDirector = workSimilarity(WorkType.MOVIE, t, movieData({ directors: ["Nolan"] }));
     expect(sharedActor).toBeGreaterThan(0);
     expect(sharedActor).toBeLessThan(sharedDirector);
   });
 
   it("decays the era signal continuously with release-year distance", () => {
     const t = movieData({ releaseDate: "2000-01-01" });
-    const sameYear = workSimilarity(WorkType.movie, t, movieData({ releaseDate: "2000-06-01" }));
-    const nearYear = workSimilarity(WorkType.movie, t, movieData({ releaseDate: "2005-01-01" }));
-    const farYear = workSimilarity(WorkType.movie, t, movieData({ releaseDate: "1960-01-01" }));
+    const sameYear = workSimilarity(WorkType.MOVIE, t, movieData({ releaseDate: "2000-06-01" }));
+    const nearYear = workSimilarity(WorkType.MOVIE, t, movieData({ releaseDate: "2005-01-01" }));
+    const farYear = workSimilarity(WorkType.MOVIE, t, movieData({ releaseDate: "1960-01-01" }));
     expect(sameYear).toBeGreaterThan(nearYear);
     expect(nearYear).toBeGreaterThan(farYear);
   });
 
   it("adds a small bump for a shared original language", () => {
     const t = movieData({ language: "ja" });
-    const sameLanguage = workSimilarity(WorkType.movie, t, movieData({ language: "ja" }));
-    const otherLanguage = workSimilarity(WorkType.movie, t, movieData({ language: "en" }));
+    const sameLanguage = workSimilarity(WorkType.MOVIE, t, movieData({ language: "ja" }));
+    const otherLanguage = workSimilarity(WorkType.MOVIE, t, movieData({ language: "en" }));
     expect(sameLanguage).toBeGreaterThan(otherLanguage);
   });
 
@@ -493,12 +493,12 @@ describe("workSimilarity", () => {
       subjects: ["Science Fiction"],
     });
     const sharedSubject = workSimilarity(
-      WorkType.book,
+      WorkType.BOOK,
       t,
       bookData({ subjects: ["science fiction"] }),
     );
     const sharedAuthor = workSimilarity(
-      WorkType.book,
+      WorkType.BOOK,
       t,
       bookData({ authors: ["ursula k. le guin"] }),
     );
@@ -508,21 +508,21 @@ describe("workSimilarity", () => {
 
   it("decays book era and length signals with distance", () => {
     const t = bookData({ firstPublishYear: 1990, numberOfPages: 300 });
-    const closeEra = workSimilarity(WorkType.book, t, bookData({ firstPublishYear: 1992 }));
-    const farEra = workSimilarity(WorkType.book, t, bookData({ firstPublishYear: 1900 }));
+    const closeEra = workSimilarity(WorkType.BOOK, t, bookData({ firstPublishYear: 1992 }));
+    const farEra = workSimilarity(WorkType.BOOK, t, bookData({ firstPublishYear: 1900 }));
     expect(closeEra).toBeGreaterThan(farEra);
 
-    const closeLength = workSimilarity(WorkType.book, t, bookData({ numberOfPages: 320 }));
-    const farLength = workSimilarity(WorkType.book, t, bookData({ numberOfPages: 900 }));
+    const closeLength = workSimilarity(WorkType.BOOK, t, bookData({ numberOfPages: 320 }));
+    const farLength = workSimilarity(WorkType.BOOK, t, bookData({ numberOfPages: 900 }));
     expect(closeLength).toBeGreaterThan(farLength);
   });
 
   it("scores 0 for missing or mismatched metadata", () => {
-    expect(workSimilarity(WorkType.movie, undefined, movieData())).toBe(0);
-    expect(workSimilarity(WorkType.movie, movieData(), bookData())).toBe(0);
-    expect(workSimilarity(WorkType.book, bookData(), undefined)).toBe(0);
+    expect(workSimilarity(WorkType.MOVIE, undefined, movieData())).toBe(0);
+    expect(workSimilarity(WorkType.MOVIE, movieData(), bookData())).toBe(0);
+    expect(workSimilarity(WorkType.BOOK, bookData(), undefined)).toBe(0);
     // Two works that each list no genres share no signal - not "identical".
-    expect(workSimilarity(WorkType.movie, movieData(), movieData())).toBe(0);
+    expect(workSimilarity(WorkType.MOVIE, movieData(), movieData())).toBe(0);
   });
 });
 
@@ -535,7 +535,7 @@ describe("makeWorkSimilarity IDF weighting", () => {
       movieData({ genres: ["Drama"] }),
       movieData({ genres: ["Drama", "Film-Noir"] }),
     ];
-    const scorer = makeWorkSimilarity(WorkType.movie, corpus);
+    const scorer = makeWorkSimilarity(WorkType.MOVIE, corpus);
     const targetFilm = movieData({ genres: ["Drama", "Film-Noir"] });
 
     const sharedRare = scorer(targetFilm, movieData({ genres: ["Film-Noir"] }));
@@ -544,11 +544,11 @@ describe("makeWorkSimilarity IDF weighting", () => {
   });
 
   it("falls back to equal weighting with an empty catalogue", () => {
-    const scorer = makeWorkSimilarity(WorkType.movie, []);
+    const scorer = makeWorkSimilarity(WorkType.MOVIE, []);
     const targetMovie = movieData({ genres: ["Drama"] });
     // With no corpus, IDF is 1 for every tag, matching the workSimilarity helper.
     expect(scorer(targetMovie, movieData({ genres: ["Drama"] }))).toBeCloseTo(
-      workSimilarity(WorkType.movie, targetMovie, movieData({ genres: ["Drama"] })),
+      workSimilarity(WorkType.MOVIE, targetMovie, movieData({ genres: ["Drama"] })),
     );
   });
 });

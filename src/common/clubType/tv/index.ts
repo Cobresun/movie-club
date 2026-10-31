@@ -8,8 +8,8 @@ import { ClubType, WorkType } from "@/../lib/types/generated/db";
 import { formatRuntime } from "@/common/workDisplay";
 
 export const tvClubConfig: ClubTypeConfig = {
-  clubType: ClubType.tv,
-  workType: WorkType.tv,
+  clubType: ClubType.TV,
+  workType: WorkType.TV,
   icon: "television-classic",
   label: "TV club",
   pluralLabel: "TV shows",

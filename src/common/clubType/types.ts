@@ -167,7 +167,7 @@ export interface WorkDisplay {
 /**
  * Everything the statistics widgets need to render club-type-specific copy and
  * icons. Lives on the registry so a widget reads `config.stats.countLabel`
- * instead of branching on `clubType === ClubType.movie` — a new club type only
+ * instead of branching on `clubType === ClubType.MOVIE` — a new club type only
  * has to fill this in.
  */
 export interface StatsConfig {

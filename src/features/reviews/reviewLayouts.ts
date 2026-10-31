@@ -38,7 +38,7 @@ const gallery: ReviewLayout = {
  * code-quality.md).
  */
 export const REVIEW_LAYOUTS: Record<ClubType, ReviewLayout> = {
-  [ClubType.movie]: gallery,
-  [ClubType.book]: gallery,
-  [ClubType.tv]: { component: ShowListView, skeleton: ShowListSkeleton, select: wholeShows },
+  [ClubType.MOVIE]: gallery,
+  [ClubType.BOOK]: gallery,
+  [ClubType.TV]: { component: ShowListView, skeleton: ShowListSkeleton, select: wholeShows },
 };

@@ -259,7 +259,7 @@ describe("useAddListItem", () => {
     });
 
     result.add.mutate({
-      type: WorkType.movie,
+      type: WorkType.MOVIE,
       title: "Blade Runner",
       externalId: "78",
       imageUrl: "https://img.test/br.jpg",

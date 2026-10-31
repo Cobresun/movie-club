@@ -11,7 +11,7 @@
       </p>
       <div class="flex-grow overflow-auto">
         <WorkSearchPrompt
-          :club-type="ClubType.movie"
+          :club-type="ClubType.MOVIE"
           :default-list="candidates"
           :default-list-title="`${year} Reviews`"
           :include-search="false"

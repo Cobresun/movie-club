@@ -38,7 +38,7 @@ describe("NewClubView", () => {
         clubName: "Test Club",
         slug: "test-club",
         slugUpdatedAt: undefined,
-        type: ClubType.movie,
+        type: ClubType.MOVIE,
       },
     ];
 

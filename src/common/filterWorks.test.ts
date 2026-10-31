@@ -11,7 +11,7 @@ function bookItem(
 ): DetailedWorkListItem<DetailedBookData> {
   return {
     id,
-    type: WorkType.book,
+    type: WorkType.BOOK,
     title: data.title ?? id,
     createdDate: "2026-01-01",
     externalData: {
@@ -31,7 +31,7 @@ function movieItem(
 ): DetailedWorkListItem<DetailedMovieData> {
   return {
     id,
-    type: WorkType.movie,
+    type: WorkType.MOVIE,
     title: data.title ?? id,
     createdDate: "2026-01-01",
     externalData: {
@@ -72,14 +72,14 @@ const range = (from?: number, to?: number): FilterSelection => ({ kind: "range",
 
 describe("filterWorks range filters", () => {
   it("keeps works inside the span, both ends included", () => {
-    expect(filtered(items, { first_publish_year: range(1949, 2005) }, ClubType.book)).toStrictEqual(
+    expect(filtered(items, { first_publish_year: range(1949, 2005) }, ClubType.BOOK)).toStrictEqual(
       ["a", "b"],
     );
   });
 
   it("treats a missing end as open", () => {
-    expect(filtered(items, { pages: range(300) }, ClubType.book)).toStrictEqual(["a", "b"]);
-    expect(filtered(items, { pages: range(undefined, 200) }, ClubType.book)).toStrictEqual(["c"]);
+    expect(filtered(items, { pages: range(300) }, ClubType.BOOK)).toStrictEqual(["a", "b"]);
+    expect(filtered(items, { pages: range(undefined, 200) }, ClubType.BOOK)).toStrictEqual(["c"]);
   });
 
   it("excludes works missing the value", () => {
@@ -87,7 +87,7 @@ describe("filterWorks range filters", () => {
       ...items,
       bookItem("d", { firstPublishYear: undefined, numberOfPages: undefined }),
     ];
-    expect(filtered(withMissing, { pages: range(0) }, ClubType.book)).toStrictEqual([
+    expect(filtered(withMissing, { pages: range(0) }, ClubType.BOOK)).toStrictEqual([
       "a",
       "b",
       "c",
@@ -103,19 +103,19 @@ describe("filterWorks choice and free-text filters", () => {
   ];
 
   it("filters books by author", () => {
-    expect(filtered(books, { author: choice("George Orwell") }, ClubType.book)).toStrictEqual([
+    expect(filtered(books, { author: choice("George Orwell") }, ClubType.BOOK)).toStrictEqual([
       "orwell",
     ]);
   });
 
   it("keeps a work matching any of the values picked in one filter", () => {
     expect(
-      filtered(books, { author: choice("George Orwell", "J.R.R. Tolkien") }, ClubType.book),
+      filtered(books, { author: choice("George Orwell", "J.R.R. Tolkien") }, ClubType.BOOK),
     ).toStrictEqual(["orwell", "tolkien"]);
   });
 
   it("filters books by subject", () => {
-    expect(filtered(books, { subject: choice("Dystopia") }, ClubType.book)).toStrictEqual([
+    expect(filtered(books, { subject: choice("Dystopia") }, ClubType.BOOK)).toStrictEqual([
       "orwell",
       "huxley",
     ]);
@@ -128,12 +128,12 @@ describe("filterWorks choice and free-text filters", () => {
       movieItem("comedy", { genres: ["Comedy"], runtime: 100 }),
     ];
     expect(
-      filtered(movies, { genre: choice("Drama"), runtime: range(120) }, ClubType.movie),
+      filtered(movies, { genre: choice("Drama"), runtime: range(120) }, ClubType.MOVIE),
     ).toStrictEqual(["epic"]);
   });
 
   it("matches free text against the title", () => {
-    expect(filtered(books, {}, ClubType.book, "tolkien")).toStrictEqual(["tolkien"]);
+    expect(filtered(books, {}, ClubType.BOOK, "tolkien")).toStrictEqual(["tolkien"]);
   });
 });
 
@@ -159,21 +159,21 @@ describe("filterWorks movie cast filter", () => {
   ];
 
   it("keeps movies the actor appears in", () => {
-    expect(filtered(movies, { actor: choice("Tom Hanks") }, ClubType.movie)).toStrictEqual([
+    expect(filtered(movies, { actor: choice("Tom Hanks") }, ClubType.MOVIE)).toStrictEqual([
       "forrest",
     ]);
   });
 
   it("excludes movies with no matching actor", () => {
-    expect(filtered(movies, { actor: choice("Meryl Streep") }, ClubType.movie)).toStrictEqual([]);
+    expect(filtered(movies, { actor: choice("Meryl Streep") }, ClubType.MOVIE)).toStrictEqual([]);
   });
 
   it("ANDs the cast filter with other filters", () => {
     expect(
-      filtered(movies, { actor: choice("Tom Hanks"), genre: choice("Drama") }, ClubType.movie),
+      filtered(movies, { actor: choice("Tom Hanks"), genre: choice("Drama") }, ClubType.MOVIE),
     ).toStrictEqual(["forrest"]);
     expect(
-      filtered(movies, { actor: choice("Tom Hanks"), genre: choice("Action") }, ClubType.movie),
+      filtered(movies, { actor: choice("Tom Hanks"), genre: choice("Action") }, ClubType.MOVIE),
     ).toStrictEqual([]);
   });
 });
@@ -182,7 +182,7 @@ describe("filterWorks club-type scoping", () => {
   it("ignores filter keys the club type does not offer", () => {
     // `genre` is a movie-only filter; applying it to a book club is a no-op
     // because book clubs do not register a `genre` option.
-    expect(filtered(items, { genre: choice("Drama") }, ClubType.book)).toStrictEqual([
+    expect(filtered(items, { genre: choice("Drama") }, ClubType.BOOK)).toStrictEqual([
       "a",
       "b",
       "c",

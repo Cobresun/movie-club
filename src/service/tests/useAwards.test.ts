@@ -145,7 +145,7 @@ describe("useAddNomination", () => {
       review: {
         id: "r-1",
         title: "The Shawshank Redemption",
-        type: WorkType.movie,
+        type: WorkType.MOVIE,
         createdDate: "2024-01-01T00:00:00.000Z",
         // The nomination is keyed by TMDB id, so this is what lands.
         externalId: "278",
@@ -167,7 +167,7 @@ describe("useAddNomination", () => {
       review: {
         id: "r-bad",
         title: "Mystery Film",
-        type: WorkType.movie,
+        type: WorkType.MOVIE,
         createdDate: "2024-01-01T00:00:00.000Z",
         scores: {},
       },

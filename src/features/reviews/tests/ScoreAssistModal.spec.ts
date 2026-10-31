@@ -29,7 +29,7 @@ vi.mock(import("vue-toastification"), async (importOriginal) => {
 function makeTarget(scores: Record<string, Review> = {}): DetailedReviewListItem {
   return {
     id: "target",
-    type: WorkType.movie,
+    type: WorkType.MOVIE,
     title: "Target Movie",
     createdDate: "2024-01-01",
     scores,
@@ -50,7 +50,7 @@ const candidates: ScoredCandidate[] = [1, 2, 3, 4, 5].map((n) => ({
 describe("ScoreAssistModal", () => {
   it("asks the comparison question with the club-type noun", () => {
     render(ScoreAssistModal, {
-      props: { target: makeTarget(), candidates, clubType: ClubType.movie },
+      props: { target: makeTarget(), candidates, clubType: ClubType.MOVIE },
     });
     expect(screen.getByText("Which movie did you like more?")).toBeInTheDocument();
     expect(screen.getByText("Tap the one you liked more")).toBeInTheDocument();
@@ -59,7 +59,7 @@ describe("ScoreAssistModal", () => {
 
   it("answers through the poster buttons, with no separate choice buttons", () => {
     render(ScoreAssistModal, {
-      props: { target: makeTarget(), candidates, clubType: ClubType.movie },
+      props: { target: makeTarget(), candidates, clubType: ClubType.MOVIE },
     });
     expect(screen.getByRole("button", { name: "I liked Target Movie more" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "I liked Movie 4 more" })).toBeInTheDocument();
@@ -76,7 +76,7 @@ describe("ScoreAssistModal", () => {
       props: {
         target: makeTarget(),
         candidates: fromElsewhere,
-        clubType: ClubType.movie,
+        clubType: ClubType.MOVIE,
         currentClubId: CURRENT_CLUB_ID,
       },
     });
@@ -88,7 +88,7 @@ describe("ScoreAssistModal", () => {
       props: {
         target: makeTarget(),
         candidates,
-        clubType: ClubType.movie,
+        clubType: ClubType.MOVIE,
         currentClubId: CURRENT_CLUB_ID,
       },
     });
@@ -104,7 +104,7 @@ describe("ScoreAssistModal", () => {
       props: {
         target: makeTarget(),
         candidates: sameName,
-        clubType: ClubType.movie,
+        clubType: ClubType.MOVIE,
         currentClubId: CURRENT_CLUB_ID,
       },
     });
@@ -113,7 +113,7 @@ describe("ScoreAssistModal", () => {
 
   it("uses the book noun for book clubs", () => {
     render(ScoreAssistModal, {
-      props: { target: makeTarget(), candidates, clubType: ClubType.book },
+      props: { target: makeTarget(), candidates, clubType: ClubType.BOOK },
     });
     expect(screen.getByText("Which book did you like more?")).toBeInTheDocument();
   });
@@ -128,7 +128,7 @@ describe("ScoreAssistModal", () => {
     );
 
     const rendered = render(ScoreAssistModal, {
-      props: { target: makeTarget(), candidates, clubType: ClubType.movie },
+      props: { target: makeTarget(), candidates, clubType: ClubType.MOVIE },
     });
     const { user, pinia } = rendered;
     logIn(pinia);
@@ -162,7 +162,7 @@ describe("ScoreAssistModal", () => {
     );
 
     const rendered = render(ScoreAssistModal, {
-      props: { target: makeTarget(), candidates, clubType: ClubType.movie },
+      props: { target: makeTarget(), candidates, clubType: ClubType.MOVIE },
     });
     const { user, pinia } = rendered;
     logIn(pinia);
@@ -197,7 +197,7 @@ describe("ScoreAssistModal", () => {
       },
     });
     const rendered = render(ScoreAssistModal, {
-      props: { target, candidates, clubType: ClubType.movie },
+      props: { target, candidates, clubType: ClubType.MOVIE },
     });
     const { user, pinia } = rendered;
     logIn(pinia);

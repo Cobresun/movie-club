@@ -44,8 +44,8 @@ const { workData, clubType } = defineProps<{
   clubType: ClubType;
 }>();
 
-const isMovieClub = computed(() => clubType === ClubType.movie);
-const isBookClub = computed(() => clubType === ClubType.book);
+const isMovieClub = computed(() => clubType === ClubType.MOVIE);
+const isBookClub = computed(() => clubType === ClubType.BOOK);
 
 const stats = computed(() => clubTypeStats(clubType));
 

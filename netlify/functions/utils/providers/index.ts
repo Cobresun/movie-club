@@ -13,9 +13,9 @@ import { type MediaProvider } from "./types";
  * other part of the review/list/club core needs to change.
  */
 const providers: Record<WorkType, MediaProvider> = {
-  [WorkType.movie]: movieProvider,
-  [WorkType.book]: bookProvider,
-  [WorkType.tv]: tvProvider,
+  [WorkType.MOVIE]: movieProvider,
+  [WorkType.BOOK]: bookProvider,
+  [WorkType.TV]: tvProvider,
 };
 
 export function getProvider(type: WorkType): MediaProvider {
@@ -24,9 +24,9 @@ export function getProvider(type: WorkType): MediaProvider {
 
 // A club's type maps 1:1 to the work type its works use.
 const providersByClubType: Record<ClubType, MediaProvider> = {
-  [ClubType.movie]: movieProvider,
-  [ClubType.book]: bookProvider,
-  [ClubType.tv]: tvProvider,
+  [ClubType.MOVIE]: movieProvider,
+  [ClubType.BOOK]: bookProvider,
+  [ClubType.TV]: tvProvider,
 };
 
 /** The provider for the works a club of `type` reviews. */

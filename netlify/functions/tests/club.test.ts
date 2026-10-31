@@ -30,26 +30,26 @@ describe("GET /api/club/:clubSlug", () => {
       clubId: club.id,
       clubName: "Film Buffs",
       slug: club.slug,
-      type: ClubType.movie,
+      type: ClubType.MOVIE,
     });
   });
 
   it("reports the club type for a book club", async () => {
     const alice = await signIn("alice");
-    const club = await createClub(alice, { type: ClubType.book });
+    const club = await createClub(alice, { type: ClubType.BOOK });
 
     const res = await api.get<ClubPreview>(`/api/club/${club.slug}`);
 
-    expect(res.body.type).toBe(ClubType.book);
+    expect(res.body.type).toBe(ClubType.BOOK);
   });
 
   it("reports the club type for a TV club", async () => {
     const alice = await signIn("alice");
-    const club = await createClub(alice, { type: ClubType.tv });
+    const club = await createClub(alice, { type: ClubType.TV });
 
     const res = await api.get<ClubPreview>(`/api/club/${club.slug}`);
 
-    expect(res.body.type).toBe(ClubType.tv);
+    expect(res.body.type).toBe(ClubType.TV);
   });
 
   it("returns 404 for an unknown slug", async () => {
@@ -84,7 +84,7 @@ describe("POST /api/club", () => {
     expect(club.body).toMatchObject({
       clubId: res.body.clubId,
       clubName: "The Late Night Crew",
-      type: ClubType.movie,
+      type: ClubType.MOVIE,
     });
     // Left unset on creation so a brand-new club can still change its URL.
     expect(club.body.slugUpdatedAt).toBeUndefined();
@@ -115,7 +115,7 @@ describe("POST /api/club", () => {
     const alice = await signIn("alice");
 
     const res = await api.post<{ slug: string }>("/api/club", {
-      body: { name: "Book Club", members: [alice.email], type: ClubType.book },
+      body: { name: "Book Club", members: [alice.email], type: ClubType.BOOK },
       as: alice,
     });
 
@@ -448,7 +448,7 @@ describe("GET /api/club/:clubSlug/work/:workId/details", () => {
     const alice = await signIn("alice");
     const club = await createClub(alice);
     const otherClub = await createClub(alice);
-    const work = await addWork(otherClub, alice, { type: WorkType.movie });
+    const work = await addWork(otherClub, alice, { type: WorkType.MOVIE });
 
     const res = await api.get(`/api/club/${club.slug}/work/${work.id}/details`);
 

@@ -206,7 +206,7 @@ function stillUrl(stillPath: string): string {
 }
 
 class TvProvider implements MediaProvider {
-  readonly type = WorkType.tv;
+  readonly type = WorkType.TV;
   readonly defaultListTitle = "Watch List";
 
   /**
@@ -412,7 +412,7 @@ class TvProvider implements MediaProvider {
     }
     if (!isDefined(row)) return undefined;
     return {
-      type: WorkType.tv,
+      type: WorkType.TV,
       title: row.name ?? episodeCode(Number(row.season_number), Number(row.episode_number)),
       externalId: formatTvAddress(address),
       imageUrl: hasValue(row.still_path) ? stillUrl(row.still_path) : undefined,

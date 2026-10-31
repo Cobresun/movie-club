@@ -51,7 +51,7 @@ export const tvReviewsApi = ({
     const created: DetailedReviewListItem = {
       id: `work-${externalId}`,
       parentId,
-      type: WorkType.tv,
+      type: WorkType.TV,
       title: data.title,
       createdDate: new Date().toISOString(),
       externalId,

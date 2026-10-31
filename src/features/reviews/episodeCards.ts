@@ -114,7 +114,7 @@ export function episodePreview(
   const episode = card.tmdb;
   return {
     id: OPTIMISTIC_WORK_ID,
-    type: WorkType.tv,
+    type: WorkType.TV,
     title: card.title,
     createdDate: new Date().toISOString(),
     externalId: formatTvAddress({

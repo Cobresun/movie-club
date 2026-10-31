@@ -74,7 +74,7 @@ const bookData = [
 describe("InsightsView", () => {
   it("renders the movie club's widget set", () => {
     render(InsightsView, {
-      props: { workData: movieData, members, histogramData, clubType: ClubType.movie },
+      props: { workData: movieData, members, histogramData, clubType: ClubType.MOVIE },
     });
 
     expect(screen.getByText("movies watched")).toBeInTheDocument();
@@ -92,7 +92,7 @@ describe("InsightsView", () => {
 
   it("omits the book-only widgets from a movie club", () => {
     render(InsightsView, {
-      props: { workData: movieData, members, histogramData, clubType: ClubType.movie },
+      props: { workData: movieData, members, histogramData, clubType: ClubType.MOVIE },
     });
 
     expect(screen.queryByRole("heading", { name: /Subjects/ })).not.toBeInTheDocument();
@@ -102,7 +102,7 @@ describe("InsightsView", () => {
 
   it("renders the book club's widget set", () => {
     render(InsightsView, {
-      props: { workData: bookData, members, histogramData, clubType: ClubType.book },
+      props: { workData: bookData, members, histogramData, clubType: ClubType.BOOK },
     });
 
     expect(screen.getByText("books read")).toBeInTheDocument();
@@ -112,7 +112,7 @@ describe("InsightsView", () => {
 
   it("omits the movie-only widgets from a book club", () => {
     render(InsightsView, {
-      props: { workData: bookData, members, histogramData, clubType: ClubType.book },
+      props: { workData: bookData, members, histogramData, clubType: ClubType.BOOK },
     });
 
     expect(screen.queryByRole("heading", { name: /Genres/ })).not.toBeInTheDocument();
@@ -126,7 +126,7 @@ describe("InsightsView", () => {
         workData: movieData,
         members: [members[0]],
         histogramData,
-        clubType: ClubType.movie,
+        clubType: ClubType.MOVIE,
       },
     });
 
@@ -143,7 +143,7 @@ describe("InsightsView", () => {
         workData: movieData,
         members: members.slice(0, 2),
         histogramData,
-        clubType: ClubType.movie,
+        clubType: ClubType.MOVIE,
       },
     });
 
@@ -153,7 +153,7 @@ describe("InsightsView", () => {
 
   it("renders the always-on widgets even with no reviews", () => {
     render(InsightsView, {
-      props: { workData: [], members, histogramData, clubType: ClubType.movie },
+      props: { workData: [], members, histogramData, clubType: ClubType.MOVIE },
     });
 
     expect(screen.getByText("movies watched")).toBeInTheDocument();

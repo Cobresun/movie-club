@@ -120,7 +120,7 @@ const clubConsensusWidget: StatWidgetDef = {
  * (that would invert the common → feature dependency; see code-quality.md).
  */
 export const STAT_WIDGETS: Record<ClubType, StatWidgetDef[]> = {
-  [ClubType.movie]: [
+  [ClubType.MOVIE]: [
     statsWidget,
     clubRecordsWidget,
     scoreChartsWidget,
@@ -145,7 +145,7 @@ export const STAT_WIDGETS: Record<ClubType, StatWidgetDef[]> = {
       props: (ctx) => ({ movieData: ctx.movieData }),
     },
   ],
-  [ClubType.book]: [
+  [ClubType.BOOK]: [
     statsWidget,
     clubRecordsWidget,
     scoreChartsWidget,
@@ -168,7 +168,7 @@ export const STAT_WIDGETS: Record<ClubType, StatWidgetDef[]> = {
   // Score-based widgets only: every media-specific widget here reads movie or
   // book metadata. The TV equivalents (best and worst episode, score across a
   // season, guest-star leaderboards) are their own piece of work.
-  [ClubType.tv]: [
+  [ClubType.TV]: [
     statsWidget,
     clubRecordsWidget,
     scoreChartsWidget,
