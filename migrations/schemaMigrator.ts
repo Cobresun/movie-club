@@ -1,7 +1,8 @@
 import { CockroachDialect } from "@cubos/kysely-cockroach";
 import { execSync } from "child_process";
 import { readdirSync } from "fs";
-import { Kysely, Migrator, type MigrationProvider } from "kysely";
+import { Kysely } from "kysely";
+import { Migrator, type MigrationProvider } from "kysely/migration";
 import path from "path";
 import { Pool } from "pg";
 import { fileURLToPath } from "url";

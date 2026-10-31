@@ -49,7 +49,7 @@ const awardsDataSchema = z
 const normalize = (name: string) => name.trim().toLowerCase();
 
 async function up(db: Kysely<unknown>) {
-  const typedDb = db.withTables<MigrationTables>();
+  const typedDb = db.$extendTables<MigrationTables>();
 
   const memberRows = await typedDb
     .selectFrom("club_member")

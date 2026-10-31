@@ -1,4 +1,4 @@
-import { type Migration } from "kysely";
+import { type Migration } from "kysely/migration";
 
 import AddClubTable from "./schema/20240126_AddClubTable.js";
 import AddUserTable from "./schema/20240203_AddUserTable.js";

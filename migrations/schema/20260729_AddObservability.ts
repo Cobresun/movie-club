@@ -53,7 +53,7 @@ async function up(db: Kysely<unknown>) {
   await db.schema.alterTable("club").addColumn("created_at", "timestamptz").execute();
   await db.schema.alterTable("club_member").addColumn("created_at", "timestamptz").execute();
 
-  const typedDb = db.withTables<MigrationTables>();
+  const typedDb = db.$extendTables<MigrationTables>();
 
   // Earliest activity per club, across both signals that carry a timestamp.
   // Clubs with no reviews and no list items match nothing here and stay NULL.

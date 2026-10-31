@@ -211,7 +211,7 @@ function logSummary(direction: string, stats: RekeyStats) {
 }
 
 async function up(db: Kysely<unknown>) {
-  const typedDb = db.withTables<MigrationTables>();
+  const typedDb = db.$extendTables<MigrationTables>();
   const perClub = await loadMembersByClub(typedDb);
 
   const stats = await rekeyAllRows(typedDb, (clubId, unresolved, context) => {
@@ -232,7 +232,7 @@ async function up(db: Kysely<unknown>) {
 // Best-effort inverse for dev use (migrate:down): maps IDs back to *current*
 // display names. Keys that don't resolve to a current member stay untouched.
 async function down(db: Kysely<unknown>) {
-  const typedDb = db.withTables<MigrationTables>();
+  const typedDb = db.$extendTables<MigrationTables>();
   const perClub = await loadMembersByClub(typedDb);
 
   const stats = await rekeyAllRows(typedDb, (clubId, unresolved, context) => {
