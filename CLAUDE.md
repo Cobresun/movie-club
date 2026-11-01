@@ -28,3 +28,7 @@ Schema migrations live in `migrations/schema/`. A new one is named `<Description
 `npm run db:snapshot | db:spawn | db:list | db:cleanup` back a snapshot/restore workflow that gives you a throwaway CockroachDB from a copy of dev data — see the scripts in `package.json`. Spawned names take underscores, not hyphens.
 
 **Never point `migrate:dev` at shared `dev`.** Spawn first. `.claude/rules/database.md` explains the blast radius; there is a guard rail, but it fails open.
+
+## Working on an existing PR
+
+When asked to update a PR, address its review comments, fix its CI, or anything similar, push the changes to **that PR's own branch**. Never open a new PR (stacked or otherwise) for that work.
