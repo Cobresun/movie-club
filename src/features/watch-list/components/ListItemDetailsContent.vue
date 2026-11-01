@@ -229,8 +229,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: "close" | "review" | "set-next-work" | "clear-next-work" | "delete"): void;
-  (e: "move-to-list", listId: string): void;
-  (e: "change-added-by", userId: string): void;
+  (e: "move-to-list" | "change-added-by", id: string): void;
 }>();
 
 const { data: club } = useClub(props.clubSlug);

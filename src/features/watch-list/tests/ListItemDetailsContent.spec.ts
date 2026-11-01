@@ -213,7 +213,7 @@ describe("ListItemDetailsContent", () => {
     ).toBeInTheDocument();
     await rendered.user.click(screen.getByRole("option", { name: "Bob" }));
 
-    expect(rendered.emitted()["change-added-by"]).toEqual([["u2"]]);
+    expect(rendered.emitted()["change-added-by"]).toStrictEqual([["u2"]]);
   });
 
   it("does not emit change-added-by when the current adder is picked again", async () => {

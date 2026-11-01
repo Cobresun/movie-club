@@ -2,7 +2,7 @@ import { screen, waitFor } from "@testing-library/vue";
 import { http, HttpResponse } from "msw";
 import { z } from "zod";
 
-import { DetailedWorkListItem } from "../../../../lib/types/lists";
+import { type DetailedWorkListItem } from "../../../../lib/types/lists";
 import ListItems from "../components/ListItems.vue";
 import members from "@/mocks/data/members.json";
 import watchlist from "@/mocks/data/watchlist";
