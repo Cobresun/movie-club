@@ -162,6 +162,9 @@ export interface WorkDisplay {
   /** What one work is called ("Rate this show"), for media whose works come
    * at more than one level. Others fall back to the club type's `noun`. */
   readonly noun?: (data: WorkDataSummary | undefined) => string | undefined;
+  /** A landscape frame from the work itself, for media whose poster is shared
+   * by many works (every episode of a show has the same one). */
+  readonly still?: (data: WorkDataSummary | undefined) => string | undefined;
 }
 
 /**

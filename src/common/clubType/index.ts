@@ -145,6 +145,11 @@ export function workNoun(data: WorkDataSummary | undefined): string | undefined 
   return workDisplay(data)?.noun?.(data);
 }
 
+/** The work's own still, for media whose poster is shared across works. */
+export function workStillUrl(data: WorkDataSummary | undefined): string | undefined {
+  return workDisplay(data)?.still?.(data);
+}
+
 /** Whether statistics and review facts count this work (see `isScoredUnit`). */
 export function isScoredUnit(work: { type: WorkType; externalData?: WorkDataSummary }): boolean {
   return clubTypeConfig(CLUB_TYPE_BY_WORK_TYPE[work.type]).isScoredUnit(work.externalData);

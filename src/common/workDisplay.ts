@@ -56,8 +56,8 @@ export function workPosterUrl(
   if (hasValue(movie?.poster_path)) {
     return `${TMDB_POSTER_BASE}${movie.poster_path}`;
   }
-  // Every caller renders a portrait poster frame, so an episode shows its
-  // show's poster here; the landscape still belongs to the episode row alone.
+  // This is a portrait poster frame, so an episode shows its show's poster
+  // here; callers that want the episode's own still read `workStillUrl`.
   const tv = asTv(data);
   if (hasValue(tv?.posterPath)) return `${TMDB_POSTER_BASE}${tv.posterPath}`;
   return fallbackImageUrl ?? undefined;

@@ -4,6 +4,7 @@ import type * as vueToastification from "vue-toastification";
 
 import { ClubType, WorkType } from "../../../../lib/types/generated/db";
 import { type DetailedReviewListItem, type Review } from "../../../../lib/types/lists";
+import { type TvDataSummary } from "../../../../lib/types/tv";
 import ScoreAssistModal from "../components/ScoreAssistModal.vue";
 import { type ScoredCandidate } from "../composables/scoreAssistLogic";
 import memberData from "@/mocks/data/member.json";
@@ -116,6 +117,54 @@ describe("ScoreAssistModal", () => {
       props: { target: makeTarget(), candidates, clubType: ClubType.BOOK },
     });
     expect(screen.getByText("Which book did you like more?")).toBeInTheDocument();
+  });
+
+  it("shows episodes by their own stills, since they share their show's poster", () => {
+    mockIntersectionObserver({ intersecting: true });
+    const episode = (episodeNumber: number, title: string): TvDataSummary => ({
+      kind: "tv",
+      level: "episode",
+      showId: "1",
+      showTitle: "Nobody Wants This",
+      seasonNumber: 3,
+      episodeNumber,
+      title,
+      posterPath: "/show-poster.jpg",
+      stillPath: `/still-${episodeNumber}.jpg`,
+      genres: [],
+      creators: [],
+      networks: [],
+      castNames: [],
+    });
+    const target: DetailedReviewListItem = {
+      id: "target",
+      type: WorkType.tv,
+      title: "Heatwave",
+      createdDate: "2024-01-01",
+      scores: {},
+      externalData: episode(1, "Heatwave"),
+    };
+    const episodes = [2, 3, 4, 5, 6].map((n, index) => ({
+      workId: `e${n}`,
+      title: `Episode ${n}`,
+      score: index + 1,
+      clubId: CURRENT_CLUB_ID,
+      clubName: "TV Night",
+      externalData: episode(n, `Episode ${n}`),
+    }));
+
+    render(ScoreAssistModal, {
+      props: { target, candidates: episodes, clubType: ClubType.tv },
+    });
+
+    expect(screen.getByRole("img", { name: "Nobody Wants This: Heatwave" })).toHaveAttribute(
+      "src",
+      "https://image.tmdb.org/t/p/w300/still-1.jpg",
+    );
+    expect(screen.getByRole("img", { name: "Nobody Wants This: Episode 5" })).toHaveAttribute(
+      "src",
+      "https://image.tmdb.org/t/p/w300/still-5.jpg",
+    );
   });
 
   it("prefills the entry panel with the converged suggestion, with a toast", async () => {
