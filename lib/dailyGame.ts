@@ -83,3 +83,22 @@ export function isSomebodysToday(date: string, now: Date): boolean {
   const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
   return Math.abs(Date.parse(`${date}T00:00:00Z`) - today) <= DAY_MS;
 }
+
+const isoDate = (time: number) => new Date(time).toISOString().slice(0, 10);
+
+/**
+ * Today and tomorrow in UTC, the days a scheduled run records an answer for.
+ * Tomorrow is already today east of UTC.
+ */
+export function upcomingPuzzleDates(now: Date): string[] {
+  const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  return [isoDate(today), isoDate(today + DAY_MS)];
+}
+
+/**
+ * The puzzle's number: calendar days since the game's first puzzle, which is
+ * #1. A day nobody played still counts.
+ */
+export function puzzleNumber(firstDate: string, date: string): number {
+  return Math.round((Date.parse(date) - Date.parse(firstDate)) / DAY_MS) + 1;
+}

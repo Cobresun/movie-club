@@ -2,7 +2,9 @@ import { type Config } from "@netlify/functions";
 import { z } from "zod";
 
 import { isDefined } from "../../lib/checks/checks.js";
+import { upcomingPuzzleDates } from "../../lib/dailyGame.js";
 import DailyGameRepository from "./repositories/DailyGameRepository.js";
+import { answerFor, loadPool, MIN_POOL_SIZE } from "./utils/dailyGamePuzzle";
 import { allProviders } from "./utils/providers";
 import { type CatalogCandidate, type DailyGame, type MediaProvider } from "./utils/providers/types";
 
@@ -36,6 +38,10 @@ interface TopUpResult {
   skipped: boolean;
   added: number;
   errors: { externalId: string; error: string }[];
+}
+
+interface GameRunResult extends TopUpResult {
+  recorded: string[];
 }
 
 function isDue(lastAddition: Date | undefined, now: Date): boolean {
@@ -103,8 +109,38 @@ async function topUp(provider: MediaProvider, game: DailyGame, now: Date): Promi
 }
 
 /**
+ * Draws and records the answer for each upcoming day that has none, so every
+ * day is a puzzle whether or not anyone plays it. Returns the dates recorded.
+ */
+async function recordPuzzles(provider: MediaProvider, game: DailyGame, now: Date) {
+  const dates: string[] = [];
+  for (const date of upcomingPuzzleDates(now)) {
+    if (!isDefined(await DailyGameRepository.getAnswer(provider.type, date))) dates.push(date);
+  }
+  if (dates.length === 0) return [];
+  const pool = await loadPool(provider);
+  if (pool.length < MIN_POOL_SIZE) return [];
+  const recorded: string[] = [];
+  // One at a time and oldest first, so each draw avoids the one before it.
+  for (const date of dates) {
+    if (isDefined(await answerFor(provider, game, date, pool))) recorded.push(date);
+  }
+  return recorded;
+}
+
+async function runGame(
+  provider: MediaProvider,
+  game: DailyGame,
+  now: Date,
+): Promise<GameRunResult> {
+  const result = await topUp(provider, game, now);
+  return { ...result, recorded: await recordPuzzles(provider, game, now) };
+}
+
+/**
  * Tops up each daily game's catalog with its source's best-known works, so a
- * game has a broad pool without anyone keeping a list by hand. Works already
+ * game has a broad pool without anyone keeping a list by hand, then records
+ * the coming days' answers. Works already
  * in the catalog are skipped, and ones that later fall out of the top pages
  * stay in it, so the pool only grows as new releases climb the rankings.
  */
@@ -119,7 +155,7 @@ export default async (req: Request) => {
     const now = new Date();
     const results = await Promise.all(
       allProviders().flatMap((provider) =>
-        isDefined(provider.dailyGame) ? [topUp(provider, provider.dailyGame, now)] : [],
+        isDefined(provider.dailyGame) ? [runGame(provider, provider.dailyGame, now)] : [],
       ),
     );
 
@@ -129,6 +165,9 @@ export default async (req: Request) => {
           ? `${result.type}: catalog is full; next sweep at ${DAILY_SWEEP_HOUR}:00 UTC`
           : `${result.type}: added ${result.added}`,
       );
+      if (result.recorded.length > 0) {
+        console.log(`  recorded puzzles for ${result.recorded.join(", ")}`);
+      }
       result.errors.forEach((e) => console.log(`  - ${e.externalId}: ${e.error}`));
     }
 

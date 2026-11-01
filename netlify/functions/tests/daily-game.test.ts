@@ -188,24 +188,35 @@ describe("GET /api/daily-game/:clubType/:date", () => {
     expect(answerOf(after.body.works)?.id).toBe(before?.id);
   });
 
-  it("numbers each new day and doesn't repeat an answer", async () => {
+  it("numbers every calendar day, including days nobody played", async () => {
     await seedCatalog(12);
     const first = (await api.get<DailyGamePuzzle>(`/api/daily-game/movie/${TODAY}`)).body;
 
-    vi.setSystemTime(new Date("2026-10-23T12:00:00Z"));
-    const second = (await api.get<DailyGamePuzzle>("/api/daily-game/movie/2026-10-23")).body;
+    vi.setSystemTime(new Date("2026-10-25T12:00:00Z"));
+    const later = (await api.get<DailyGamePuzzle>("/api/daily-game/movie/2026-10-25")).body;
 
-    expect(second.puzzle).toBe(2);
-    expect(answerOf(second.works)?.id).not.toBe(answerOf(first.works)?.id);
+    expect(first.puzzle).toBe(1);
+    expect(later.puzzle).toBe(4);
+    expect(answerOf(later.works)?.id).not.toBe(answerOf(first.works)?.id);
   });
 
   it("serves the dates a player somewhere could be on, and no further ahead", async () => {
+    vi.setSystemTime(new Date("2026-10-21T12:00:00Z"));
     await seedCatalog(12);
+    vi.setSystemTime(new Date(`${TODAY}T12:00:00Z`));
 
     expect((await api.get(`/api/daily-game/movie/2026-10-23`)).statusCode).toBe(200);
     expect((await api.get(`/api/daily-game/movie/2026-10-21`)).statusCode).toBe(200);
     expect((await api.get(`/api/daily-game/movie/2026-10-24`)).statusCode).toBe(400);
     expect((await api.get(`/api/daily-game/movie/yesterday`)).statusCode).toBe(400);
+  });
+
+  it("has no puzzle for the day before the game began", async () => {
+    await seedCatalog(12);
+
+    expect((await api.get(`/api/daily-game/movie/2026-10-21`)).statusCode).toBe(404);
+    const today = await api.get<DailyGamePuzzle>(`/api/daily-game/movie/${TODAY}`);
+    expect(today.body.puzzle).toBe(1);
   });
 
   it("refuses a date that isn't on the calendar", async () => {
