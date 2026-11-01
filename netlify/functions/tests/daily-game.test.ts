@@ -2,14 +2,13 @@
  * Integration tests for `netlify/functions/daily-game.ts` and the scheduled
  * catalog top-up that feeds it.
  *
- * The pool is whatever clubs have added plus the catalog, so movies get there
- * through the real list endpoints and the real scheduled function; only TMDB
- * is faked, with credits chosen so the ranking has a known shape.
+ * The pool is the catalog alone, so movies get there through the real
+ * scheduled function; only TMDB is faked, with credits chosen so the ranking
+ * has a known shape.
  */
 import { http, HttpResponse } from "msw";
 
 import { type DailyGamePuzzle, type DailyGameWork } from "../../../lib/types/dailyGame";
-import { ClubType, WorkType } from "../../../lib/types/generated/db";
 import { handler } from "../daily-game";
 import topUpCatalog from "../scheduled-daily-game-catalog";
 import { tmdbMovie, tmdbPage } from "./fixtures/external";
@@ -81,6 +80,12 @@ async function runCatalogTopUp() {
   expect(response.status).toBe(200);
 }
 
+/** Fills the catalog with TMDB's `count` most-rated movies, ids from `firstId` up. */
+async function seedCatalog(count: number, firstId = 100) {
+  mostRated(1, count, firstId);
+  await runCatalogTopUp();
+}
+
 const range = (from: number, count: number) => Array.from({ length: count }, (_, i) => from + i);
 
 const answerOf = (movies: DailyGameWork[]) => movies.find((movie) => movie.rank === 1);
@@ -96,9 +101,8 @@ describe("GET /api/daily-game/:clubType/:date", () => {
     vi.useRealTimers();
   });
 
-  it("ranks every movie the clubs have added against one answer, without an account", async () => {
-    const alice = await signIn("alice");
-    await addMovies(await createClub(alice), alice, range(100, 12));
+  it("ranks every movie in the catalog against one answer, without an account", async () => {
+    await seedCatalog(12);
 
     const res = await api.get<DailyGamePuzzle>(`/api/daily-game/movie/${TODAY}`);
 
@@ -114,8 +118,7 @@ describe("GET /api/daily-game/:clubType/:date", () => {
   });
 
   it("ranks the answer's closest relative second, and says why", async () => {
-    const alice = await signIn("alice");
-    await addMovies(await createClub(alice), alice, range(100, 12));
+    await seedCatalog(12);
 
     const { works: movies } = (await api.get<DailyGamePuzzle>(`/api/daily-game/movie/${TODAY}`))
       .body;
@@ -154,19 +157,17 @@ describe("GET /api/daily-game/:clubType/:date", () => {
         );
       }),
     );
-    const alice = await signIn("alice");
-    await addMovies(await createClub(alice), alice, range(100, 12));
+    await seedCatalog(12);
 
     const { works } = (await api.get<DailyGamePuzzle>(`/api/daily-game/movie/${TODAY}`)).body;
 
     expect(works.flatMap((work) => work.clues)).not.toContain("Also stars Background Extra");
   });
 
-  it("pools movies across clubs, once each", async () => {
+  it("leaves out movies clubs have added that aren't in the catalog", async () => {
+    await seedCatalog(12);
     const alice = await signIn("alice");
-    const bob = await signIn("bob");
-    await addMovies(await createClub(alice), alice, range(100, 10));
-    await addMovies(await createClub(bob), bob, range(106, 6));
+    await addMovies(await createClub(alice), alice, range(200, 4));
 
     const { works: movies } = (await api.get<DailyGamePuzzle>(`/api/daily-game/movie/${TODAY}`))
       .body;
@@ -174,27 +175,13 @@ describe("GET /api/daily-game/:clubType/:date", () => {
     expect(movies.map((movie) => movie.id).sort()).toStrictEqual(range(100, 12).map(String));
   });
 
-  it("leaves books out of the pool", async () => {
-    const alice = await signIn("alice");
-    await addMovies(await createClub(alice), alice, range(100, 10));
-    const bookClub = await createClub(alice, { type: ClubType.BOOK });
-    await addWork(bookClub, alice, { type: WorkType.BOOK, externalId: "book-1", title: "A Book" });
-
-    const { works: movies } = (await api.get<DailyGamePuzzle>(`/api/daily-game/movie/${TODAY}`))
-      .body;
-
-    expect(movies.map((movie) => movie.title)).not.toContain("A Book");
-  });
-
-  it("keeps the day's answer while clubs keep adding movies", async () => {
-    const alice = await signIn("alice");
-    const club = await createClub(alice);
-    await addMovies(club, alice, range(100, 12));
+  it("keeps the day's answer while the catalog grows", async () => {
+    await seedCatalog(12);
     const before = answerOf(
       (await api.get<DailyGamePuzzle>(`/api/daily-game/movie/${TODAY}`)).body.works,
     );
 
-    await addMovies(club, alice, range(112, 8));
+    await seedCatalog(20);
     const after = await api.get<DailyGamePuzzle>(`/api/daily-game/movie/${TODAY}`);
 
     expect(after.body.works).toHaveLength(20);
@@ -202,8 +189,7 @@ describe("GET /api/daily-game/:clubType/:date", () => {
   });
 
   it("numbers each new day and doesn't repeat an answer", async () => {
-    const alice = await signIn("alice");
-    await addMovies(await createClub(alice), alice, range(100, 12));
+    await seedCatalog(12);
     const first = (await api.get<DailyGamePuzzle>(`/api/daily-game/movie/${TODAY}`)).body;
 
     vi.setSystemTime(new Date("2026-10-23T12:00:00Z"));
@@ -214,8 +200,7 @@ describe("GET /api/daily-game/:clubType/:date", () => {
   });
 
   it("serves the dates a player somewhere could be on, and no further ahead", async () => {
-    const alice = await signIn("alice");
-    await addMovies(await createClub(alice), alice, range(100, 12));
+    await seedCatalog(12);
 
     expect((await api.get(`/api/daily-game/movie/2026-10-23`)).statusCode).toBe(200);
     expect((await api.get(`/api/daily-game/movie/2026-10-21`)).statusCode).toBe(200);
@@ -225,63 +210,35 @@ describe("GET /api/daily-game/:clubType/:date", () => {
 
   it("refuses a date that isn't on the calendar", async () => {
     vi.setSystemTime(new Date("2026-03-02T12:00:00Z"));
-    const alice = await signIn("alice");
-    await addMovies(await createClub(alice), alice, range(100, 12));
+    await seedCatalog(12);
 
     expect((await api.get(`/api/daily-game/movie/2026-02-31`)).statusCode).toBe(400);
   });
 
   it("only serves the club types that have a game", async () => {
-    const alice = await signIn("alice");
-    await addMovies(await createClub(alice), alice, range(100, 12));
+    await seedCatalog(12);
 
     expect((await api.get(`/api/daily-game/book/${TODAY}`)).statusCode).toBe(404);
     expect((await api.get(`/api/daily-game/opera/${TODAY}`)).statusCode).toBe(400);
   });
 
   it("lets the CDN answer repeat requests for the day", async () => {
-    const alice = await signIn("alice");
-    await addMovies(await createClub(alice), alice, range(100, 12));
+    await seedCatalog(12);
 
     const res = await api.get(`/api/daily-game/movie/${TODAY}`);
 
     expect(res.headers?.["Netlify-CDN-Cache-Control"]).toContain("s-maxage");
   });
 
-  it("waits until clubs have added enough movies to play", async () => {
-    const alice = await signIn("alice");
-    await addMovies(await createClub(alice), alice, range(100, 3));
+  it("waits until the catalog holds enough movies to play", async () => {
+    await seedCatalog(3);
 
     const res = await api.get(`/api/daily-game/movie/${TODAY}`);
 
     expect(res.statusCode).toBe(404);
   });
 
-  describe("with the catalog topped up from TMDB", () => {
-    it("plays from TMDB's most-rated movies before any club has added one", async () => {
-      mostRated(1, 12);
-      await runCatalogTopUp();
-
-      const res = await api.get<DailyGamePuzzle>(`/api/daily-game/movie/${TODAY}`);
-
-      expect(res.statusCode).toBe(200);
-      expect(res.body.works.map((movie) => movie.id).sort()).toStrictEqual(
-        range(500, 12).map(String),
-      );
-    });
-
-    it("pools the catalog with the clubs' movies, once each", async () => {
-      const alice = await signIn("alice");
-      await addMovies(await createClub(alice), alice, range(100, 4));
-      mostRated(1, 10, 102);
-      await runCatalogTopUp();
-
-      const { works: movies } = (await api.get<DailyGamePuzzle>(`/api/daily-game/movie/${TODAY}`))
-        .body;
-
-      expect(movies.map((movie) => movie.id).sort()).toStrictEqual(range(100, 12).map(String));
-    });
-
+  describe("topping up the catalog from TMDB", () => {
     it("fills a large catalog over several runs without fetching a movie twice", async () => {
       mostRated(4, 20);
 

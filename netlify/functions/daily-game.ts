@@ -38,7 +38,7 @@ async function loadPool(provider: MediaProvider): Promise<DailyGamePoolEntry[]> 
 }
 
 // Public: the game is for anyone who lands on /play, signed in or not. The
-// pool is titles and credits only — nothing says which club added a work.
+// pool is the catalog of well-known works, so nothing in it comes from a club.
 router.get("/:clubType/:date", async ({ params }, res) => {
   const parsed = paramsSchema.safeParse(params);
   if (!parsed.success) return res(badRequest("Expected a club type and a date like 2026-10-22"));

@@ -27,7 +27,7 @@ export interface CatalogCandidate {
   title: string;
 }
 
-/** A guessable work: one a club has added or the catalog holds. */
+/** A guessable work: one the catalog holds. */
 export interface DailyGamePoolEntry {
   externalId: string;
   title: string;
@@ -44,8 +44,7 @@ export interface DailyGame {
   readonly catalogPages: number;
   /**
    * One page of the source's best-known works, best known first (pages count
-   * from 1). The catalog is drawn from these so the game has a broad pool
-   * before any club has added much.
+   * from 1). The catalog, and so the game's whole pool, is drawn from these.
    */
   catalogPage: (page: number) => Promise<CatalogCandidate[]>;
   /**

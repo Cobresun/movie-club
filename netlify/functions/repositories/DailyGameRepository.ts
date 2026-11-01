@@ -6,35 +6,14 @@ import { type CatalogCandidate } from "../utils/providers/types";
 const asDay = (date: string) => new Date(`${date}T00:00:00Z`);
 
 class DailyGameRepository {
-  /**
-   * Every work of `type` that a club has added or the catalog holds, once
-   * each. The catalog's title, read from the source, wins over a club's
-   * spelling of it. Episodes and other child works are never guessable.
-   */
+  /** Every work in the catalog of `type`: the game's whole pool. */
   async getPool(type: WorkType): Promise<CatalogCandidate[]> {
-    const [clubWorks, catalog] = await Promise.all([
-      db
-        .selectFrom("work")
-        .select(["external_id", "title"])
-        .where("type", "=", type)
-        .where("parent_work_id", "is", null)
-        .where("external_id", "is not", null)
-        .distinctOn("external_id")
-        .orderBy("external_id")
-        .orderBy("id")
-        .execute(),
-      db
-        .selectFrom("daily_game_catalog")
-        .select(["external_id", "title"])
-        .where("work_type", "=", type)
-        .execute(),
-    ]);
-    const titles = new Map<string, string>();
-    for (const row of clubWorks) {
-      if (row.external_id !== null) titles.set(row.external_id, row.title);
-    }
-    for (const row of catalog) titles.set(row.external_id, row.title);
-    return Array.from(titles, ([externalId, title]) => ({ externalId, title }));
+    const rows = await db
+      .selectFrom("daily_game_catalog")
+      .select(["external_id", "title"])
+      .where("work_type", "=", type)
+      .execute();
+    return rows.map((row) => ({ externalId: row.external_id, title: row.title }));
   }
 
   /** Which of `externalIds` the catalog of `type` already holds. */
