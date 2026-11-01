@@ -1,5 +1,5 @@
 <template>
-  <div class="mx-auto max-w-2xl px-4 pb-16 pt-2">
+  <div class="mx-auto max-w-2xl px-4 pt-2 pb-16">
     <empty-state
       v-if="!isDefined(dailyGame)"
       title="There's no daily game here"

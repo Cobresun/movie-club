@@ -39,7 +39,7 @@
     <div
       v-for="game in dailyGames"
       :key="game.clubType"
-      class="mx-auto mt-16 flex max-w-4xl flex-col items-center gap-4 rounded-xl bg-gradient-to-r from-secondary to-lowBackground p-6 text-center md:flex-row md:justify-between md:text-left"
+      class="from-secondary to-lowBackground mx-auto mt-16 flex max-w-4xl flex-col items-center gap-4 rounded-xl bg-linear-to-r p-6 text-center md:flex-row md:justify-between md:text-left"
     >
       <div>
         <h2 class="text-2xl font-bold">Play {{ game.name }}, the daily {{ game.noun }} game</h2>
@@ -47,7 +47,7 @@
       </div>
       <router-link
         :to="{ name: 'DailyGame', params: { clubType: game.clubType } }"
-        class="whitespace-nowrap rounded-md bg-primary px-4 py-2 text-lg font-bold tracking-wide transition hover:brightness-110 active:brightness-105"
+        class="bg-primary rounded-md px-4 py-2 text-lg font-bold tracking-wide whitespace-nowrap transition hover:brightness-110 active:brightness-105"
       >
         Play today's {{ game.noun }}
       </router-link>

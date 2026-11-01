@@ -14,7 +14,7 @@
       <router-link
         :to="{ name: 'DailyGames' }"
         aria-label="Play today's daily game"
-        class="flex items-center gap-1.5 rounded-md px-2 py-1 text-highlight transition-colors duration-fast ease-standard hover:bg-white/10"
+        class="text-highlight duration-fast ease-standard flex items-center gap-1.5 rounded-md px-2 py-1 transition-colors hover:bg-white/10"
       >
         <mdicon name="lightbulb-on-outline" :size="22" />
         <span class="hidden text-sm font-semibold sm:inline">Daily game</span>

@@ -2,7 +2,7 @@
   <div class="relative flex flex-col gap-1.5 text-left">
     <label :for="inputId" class="text-[13px] font-medium text-white/60">Guess a {{ noun }}</label>
     <div
-      class="flex items-center rounded-[10px] bg-lowBackground ring-1 ring-inset ring-white/[0.12] focus-within:ring-2 focus-within:ring-primary"
+      class="bg-lowBackground focus-within:ring-primary flex items-center rounded-[10px] ring-1 ring-white/[0.12] ring-inset focus-within:ring-2"
     >
       <mdicon name="magnify" :size="21" class="ml-3 text-white/40" aria-hidden="true" />
       <input
@@ -16,7 +16,7 @@
         :aria-expanded="isOpen"
         :aria-controls="listId"
         :aria-activedescendant="isOpen ? optionId(activeIndex) : undefined"
-        class="min-h-[50px] min-w-0 flex-grow bg-transparent px-3 text-[15px] text-white placeholder-white/35 focus:outline-none"
+        class="min-h-[50px] min-w-0 grow bg-transparent px-3 text-[15px] text-white placeholder-white/35 focus:outline-hidden"
         @focus="open = true"
         @blur="open = false"
         @keydown.down.prevent="move(1)"
@@ -30,7 +30,7 @@
       :id="listId"
       role="listbox"
       :aria-label="`Matching ${noun}s`"
-      class="absolute inset-x-0 top-full z-10 mt-1 overflow-hidden rounded-[10px] bg-secondary shadow-lg ring-1 ring-white/[0.12]"
+      class="bg-secondary absolute inset-x-0 top-full z-10 mt-1 overflow-hidden rounded-[10px] shadow-lg ring-1 ring-white/[0.12]"
     >
       <!-- mousedown is prevented so the input keeps focus (and the list stays open) until the click lands. -->
       <li

@@ -1,5 +1,5 @@
 <template>
-  <div class="mx-auto flex max-w-2xl flex-col gap-6 px-4 pb-16 pt-2 text-left">
+  <div class="mx-auto flex max-w-2xl flex-col gap-6 px-4 pt-2 pb-16 text-left">
     <header class="text-center">
       <h1 class="text-3xl font-bold sm:text-4xl">
         {{ dailyGame.name }} <span class="text-highlight">#{{ game.puzzle }}</span>
@@ -13,7 +13,7 @@
     <section
       v-if="game.finished.value"
       aria-labelledby="daily-game-result"
-      class="flex flex-col items-center gap-3 rounded-xl bg-gradient-to-br from-secondary to-lowBackground p-6 text-center shadow-lg"
+      class="from-secondary to-lowBackground flex flex-col items-center gap-3 rounded-xl bg-linear-to-br p-6 text-center shadow-lg"
     >
       <h2 id="daily-game-result" class="text-xl font-bold">
         {{ game.solved.value ? "You got it!" : "Better luck tomorrow" }}
@@ -33,7 +33,7 @@
           :aria-label="stat.label"
           class="flex flex-col-reverse"
         >
-          <dt class="text-xs uppercase tracking-wide text-white/60">{{ stat.label }}</dt>
+          <dt class="text-xs tracking-wide text-white/60 uppercase">{{ stat.label }}</dt>
           <dd class="text-2xl font-bold">{{ stat.value }}</dd>
         </div>
       </dl>
@@ -46,7 +46,7 @@
 
     <template v-else>
       <GuessInput :pool="game.pool" :noun="noun" @pick="onPick" />
-      <p v-if="hasValue(notice)" role="status" class="-mt-3 text-sm text-highlight">
+      <p v-if="hasValue(notice)" role="status" class="text-highlight -mt-3 text-sm">
         {{ notice }}
       </p>
     </template>
@@ -54,7 +54,7 @@
     <section v-if="isDefined(spotlight)" aria-labelledby="daily-game-latest">
       <h2
         id="daily-game-latest"
-        class="mb-2 text-sm font-semibold uppercase tracking-wide text-white/60"
+        class="mb-2 text-sm font-semibold tracking-wide text-white/60 uppercase"
       >
         Latest guess
       </h2>
@@ -67,7 +67,7 @@
       <div class="mb-2 flex items-baseline justify-between">
         <h2
           id="daily-game-guesses"
-          class="text-sm font-semibold uppercase tracking-wide text-white/60"
+          class="text-sm font-semibold tracking-wide text-white/60 uppercase"
         >
           Your guesses, closest first
         </h2>
@@ -98,7 +98,7 @@
       </v-btn>
     </div>
 
-    <details class="rounded-xl bg-lowBackground px-4 py-3 text-sm text-white/80">
+    <details class="bg-lowBackground rounded-xl px-4 py-3 text-sm text-white/80">
       <summary class="cursor-pointer font-semibold text-white">How to play</summary>
       <ul class="mt-2 list-disc space-y-1.5 pl-5">
         <li>

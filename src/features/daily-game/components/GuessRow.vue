@@ -1,12 +1,12 @@
 <template>
   <li
     :aria-labelledby="titleId"
-    class="relative overflow-hidden rounded-lg bg-lowBackground"
-    :class="{ 'ring-2 ring-highlight': highlighted }"
+    class="bg-lowBackground relative overflow-hidden rounded-lg"
+    :class="{ 'ring-highlight ring-2': highlighted }"
   >
     <div
       aria-hidden="true"
-      class="absolute inset-y-0 left-0 transition-[width] duration-slow ease-emphasized"
+      class="duration-slow ease-emphasized absolute inset-y-0 left-0 transition-[width]"
       :class="{
         'bg-green-600/40': guess.temperature === 'hot',
         'bg-yellow-500/30': guess.temperature === 'warm',
@@ -23,13 +23,13 @@
           >
           <span
             v-if="guess.hint"
-            class="ml-1 rounded bg-highlight/20 px-1.5 py-0.5 text-xs font-medium text-highlight"
+            class="bg-highlight/20 text-highlight ml-1 rounded px-1.5 py-0.5 text-xs font-medium"
           >
             Hint
           </span>
         </p>
-        <p class="flex-shrink-0 whitespace-nowrap text-right">
-          <span class="text-xs uppercase tracking-wide text-white/60">{{ temperatureLabel }}</span>
+        <p class="shrink-0 text-right whitespace-nowrap">
+          <span class="text-xs tracking-wide text-white/60 uppercase">{{ temperatureLabel }}</span>
           <span class="ml-2 text-lg font-bold">#{{ guess.work.rank }}</span>
         </p>
       </div>
@@ -41,7 +41,7 @@
         <li
           v-for="clue in guess.work.clues"
           :key="clue"
-          class="rounded-full bg-background/70 px-2 py-0.5 text-xs text-white/80"
+          class="bg-background/70 rounded-full px-2 py-0.5 text-xs text-white/80"
         >
           {{ clue }}
         </li>
