@@ -35,6 +35,24 @@
       />
     </div>
 
+    <!-- Daily game -->
+    <div
+      class="mx-auto mt-16 flex max-w-4xl flex-col items-center gap-4 rounded-xl bg-gradient-to-r from-secondary to-lowBackground p-6 text-center md:flex-row md:justify-between md:text-left"
+    >
+      <div>
+        <h2 class="text-2xl font-bold">Play Closer, the daily movie game</h2>
+        <p class="mt-1 font-light">
+          One mystery movie a day. Every guess tells you how close you are. No account needed.
+        </p>
+      </div>
+      <router-link
+        :to="{ name: 'DailyGame' }"
+        class="whitespace-nowrap rounded-md bg-primary px-4 py-2 text-lg font-bold tracking-wide transition hover:brightness-110 active:brightness-105"
+      >
+        Play today's movie
+      </router-link>
+    </div>
+
     <!-- Closing CTA -->
     <div class="mt-16 flex flex-col items-center space-y-6 text-center">
       <p class="max-w-2xl text-xl font-light">

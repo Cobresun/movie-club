@@ -10,7 +10,15 @@
       </router-link>
       <ClubSwitcher v-if="showClubSwitcher" />
     </div>
-    <div v-if="authReady" class="flex shrink-0 items-center">
+    <div v-if="authReady" class="flex shrink-0 items-center gap-2 sm:gap-4">
+      <router-link
+        :to="{ name: 'DailyGame' }"
+        aria-label="Play Closer, the daily movie game"
+        class="flex items-center gap-1.5 rounded-md px-2 py-1 text-highlight transition-colors duration-fast ease-standard hover:bg-white/10"
+      >
+        <mdicon name="lightbulb-on-outline" :size="22" />
+        <span class="hidden text-sm font-semibold sm:inline">Daily game</span>
+      </router-link>
       <AccountMenu v-if="isLoggedIn" />
       <v-btn v-else @click="login"> Login </v-btn>
     </div>
