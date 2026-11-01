@@ -1,5 +1,3 @@
-import { describe, expect, it } from "vitest";
-
 import { CLUB_SECTIONS } from "./common/clubSections";
 import { CLUB_TYPE_CONFIG } from "./common/clubType";
 import { FACT_ICONS } from "./features/reviews/reviewFacts";
@@ -14,11 +12,10 @@ const vueFiles = import.meta.glob<string>("./**/*.vue", {
 
 // mdi-vue maps a kebab-case name to a `mdiPascalCase` export key.
 const toKey = (name: string): string =>
-  "mdi" +
-  name
+  `mdi${name
     .split("-")
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join("");
+    .join("")}`;
 
 /**
  * Collect every statically-determinable icon name a template references:
@@ -33,9 +30,9 @@ function collectIconNames(source: string): Set<string> {
   const names = new Set<string>();
 
   for (const [tag] of source.matchAll(/<mdicon\b[\s\S]*?\/?>/g)) {
-    const staticName = tag.match(/\bname="([a-z][a-z0-9-]*)"/);
+    const staticName = /\bname="([a-z][a-z0-9-]*)"/.exec(tag);
     if (staticName) names.add(staticName[1]);
-    const dynamic = tag.match(/:name="([^"]*)"/);
+    const dynamic = /:name="([^"]*)"/.exec(tag);
     if (dynamic) {
       for (const literal of ternaryLiterals(dynamic[1])) names.add(literal);
     }
@@ -76,7 +73,7 @@ describe("mdi icon registration", () => {
     expect(
       missing,
       `Unregistered icons — add their mdiPascalCase export to src/icons.ts:\n${missing.join("\n")}`,
-    ).toEqual([]);
+    ).toStrictEqual([]);
   });
 
   it("found a meaningful number of icon references", () => {
@@ -104,7 +101,7 @@ describe("mdi icon registration", () => {
     expect(
       missing,
       `Unregistered club-type icons — add their mdiPascalCase export to src/icons.ts:\n${missing.join("\n")}`,
-    ).toEqual([]);
+    ).toStrictEqual([]);
   });
 
   // ClubSectionNav renders its tabs from CLUB_SECTIONS via `:name="section.icon"`,
@@ -117,7 +114,7 @@ describe("mdi icon registration", () => {
     expect(
       missing,
       `Unregistered club-section icons — add their mdiPascalCase export to src/icons.ts:\n${missing.join("\n")}`,
-    ).toEqual([]);
+    ).toStrictEqual([]);
   });
 
   // Review-fact icons reach ReviewFactCard through `:name="fact.icon"`, so the
@@ -130,6 +127,6 @@ describe("mdi icon registration", () => {
     expect(
       missing,
       `Unregistered review-fact icons — add their mdiPascalCase export to src/icons.ts:\n${missing.join("\n")}`,
-    ).toEqual([]);
+    ).toStrictEqual([]);
   });
 });

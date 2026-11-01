@@ -52,10 +52,10 @@
 import { computed, ref } from "vue";
 
 import { hasElements, hasValue } from "../../../lib/checks/checks";
-import type { DetailedWorkListItem } from "../../../lib/types/lists";
-import type { ChoiceFilterOption } from "../clubType";
+import { type DetailedWorkListItem } from "../../../lib/types/lists";
+import { type ChoiceFilterOption } from "../clubType";
 import { includesCaseInsensitive } from "../filterMatchers";
-import type { ChoiceSelection } from "./filterTypes";
+import { type ChoiceSelection } from "./filterTypes";
 
 const props = defineProps<{
   option: ChoiceFilterOption;

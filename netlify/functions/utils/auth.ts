@@ -1,4 +1,4 @@
-import { HandlerResponse } from "@netlify/functions";
+import { type HandlerResponse } from "@netlify/functions";
 import bcrypt from "bcrypt";
 import { betterAuth } from "better-auth";
 import { oAuthProxy } from "better-auth/plugins";
@@ -13,14 +13,20 @@ import {
   hasValue,
   isDefined,
 } from "../../../lib/checks/checks.js";
+import {
+  parseCampaign,
+  parseSignupSourceCookie,
+  SIGNUP_CAMPAIGN_COOKIE,
+  SIGNUP_SOURCE_COOKIE,
+} from "../../../lib/signupSource.js";
 import ClubRepository from "../repositories/ClubRepository";
 import UserRepository from "../repositories/UserRepository";
 import { dialect } from "./database.js";
 import { toDeployLink } from "./deployLinks.js";
 import { sendPasswordResetEmail, sendVerificationEmail } from "./email.js";
 import { unauthorized } from "./responses";
-import { isRouterResponse, Request, RouterResponse } from "./router";
-import { ClubRequest } from "./validation";
+import { isRouterResponse, type Request, type RouterResponse } from "./router";
+import { type ClubRequest } from "./validation";
 
 const googleClientId = ensure(process.env.GOOGLE_CLIENT_ID, "GOOGLE_CLIENT_ID is not set");
 const googleClientSecret = ensure(
@@ -93,12 +99,8 @@ export const auth = betterAuth({
       await sendPasswordResetEmail(user.email, toDeployLink(url, deployURL), user.name);
     },
     password: {
-      hash: async (password: string) => {
-        return await bcrypt.hash(password, 10);
-      },
-      verify: async ({ password, hash }) => {
-        return await bcrypt.compare(password, hash);
-      },
+      hash: (password: string) => bcrypt.hash(password, 10),
+      verify: ({ password, hash }) => bcrypt.compare(password, hash),
     },
   },
   emailVerification: {
@@ -116,7 +118,32 @@ export const auth = betterAuth({
     },
   },
   trustedOrigins: getTrustedOrigins(),
+  databaseHooks: {
+    user: {
+      create: {
+        // An `after` hook writing through the repository, rather than a
+        // BetterAuth additionalField, keeps the column out of the session user
+        // every client receives. A failure is logged, not thrown: losing one
+        // signup's attribution is better than losing the signup.
+        after: async (user, context) => {
+          const landing = parseSignupSourceCookie(
+            context?.getCookie(SIGNUP_SOURCE_COOKIE) ?? undefined,
+          );
+          if (landing === undefined) {
+            return;
+          }
+          const campaign = parseCampaign(context?.getCookie(SIGNUP_CAMPAIGN_COOKIE));
+          try {
+            await UserRepository.setSignupSource(user.id, landing, campaign);
+          } catch (error) {
+            console.error("Failed to record signup source", error);
+          }
+        },
+      },
+    },
+  },
   session: {
+    expiresIn: 60 * 60 * 24 * 30,
     // Cache the session in a short-lived signed cookie so getSession() —
     // which runs on every secured request — usually skips its database
     // round trip. Sign-out still clears the cookie immediately; the tradeoff
@@ -150,7 +177,7 @@ export const loggedIn = async <T extends Request>(
   // leaves renewing the session to the client's own get-session call: a
   // renewal here would push the database expiry out but drop the Set-Cookie
   // that goes with it, after which get-session sees nothing left to renew and
-  // the browser's cookie lapses a week after sign-in.
+  // the browser's cookie lapses a month after sign-in.
   const session = await auth.api.getSession({
     headers: new Headers(filterUndefinedProperties(req.event.headers)),
     query: { disableRefresh: true },

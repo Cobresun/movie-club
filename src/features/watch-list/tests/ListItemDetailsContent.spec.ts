@@ -1,9 +1,9 @@
 import { screen } from "@testing-library/vue";
 import { http, HttpResponse } from "msw";
 
-import { Member } from "../../../../lib/types/club";
+import { type Member } from "../../../../lib/types/club";
 import { WorkType } from "../../../../lib/types/generated/db";
-import { DetailedWorkListItem } from "../../../../lib/types/lists";
+import { type DetailedWorkListItem } from "../../../../lib/types/lists";
 import ListItemDetailsContent from "../components/ListItemDetailsContent.vue";
 import club from "@/mocks/data/club";
 import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
@@ -14,7 +14,7 @@ mockIntersectionObserver();
 
 const movie: DetailedWorkListItem = {
   id: "w1",
-  type: WorkType.movie,
+  type: WorkType.MOVIE,
   title: "Inception",
   createdDate: "2024-05-01T00:00:00.000Z",
   externalId: "27205",
@@ -80,7 +80,7 @@ describe("ListItemDetailsContent", () => {
   it("renders the work title", async () => {
     render(ListItemDetailsContent, { props: baseProps });
 
-    expect(await screen.findByText("Inception")).toBeInTheDocument();
+    await expect(screen.findByText("Inception")).resolves.toBeInTheDocument();
   });
 
   it("shows who added the item when addedByMember is provided", async () => {
@@ -95,7 +95,7 @@ describe("ListItemDetailsContent", () => {
       props: { ...baseProps, addedByMember: adder },
     });
 
-    expect(await screen.findByText(/Added by Alice on/)).toBeInTheDocument();
+    await expect(screen.findByText(/Added by Alice on/)).resolves.toBeInTheDocument();
   });
 
   it("omits the attribution line when no addedByMember is provided", async () => {
@@ -144,7 +144,7 @@ describe("ListItemDetailsContent", () => {
 
     await rendered.user.click(await screen.findByRole("button", { name: "Mark as watched" }));
 
-    expect(rendered.emitted()["review"]).toHaveLength(1);
+    expect(rendered.emitted().review).toHaveLength(1);
   });
 
   it("shows where to watch the movie", async () => {
@@ -191,7 +191,7 @@ describe("ListItemDetailsContent", () => {
     await rendered.user.click(screen.getByRole("button", { name: "Move to list" }));
     await rendered.user.click(await screen.findByRole("option", { name: "Someday" }));
 
-    expect(rendered.emitted()["move-to-list"]).toEqual([["l2"]]);
+    expect(rendered.emitted()["move-to-list"]).toStrictEqual([["l2"]]);
   });
 
   it("hides 'Move to list' when there is no other list", () => {
@@ -204,10 +204,10 @@ describe("ListItemDetailsContent", () => {
     const rendered = render(ListItemDetailsContent, { props: baseProps });
 
     await rendered.user.click(screen.getByRole("button", { name: "Remove from list" }));
-    expect(rendered.emitted()["delete"]).toBeUndefined();
+    expect(rendered.emitted().delete).toBeUndefined();
 
     await rendered.user.click(await screen.findByRole("button", { name: "Remove" }));
 
-    expect(rendered.emitted()["delete"]).toHaveLength(1);
+    expect(rendered.emitted().delete).toHaveLength(1);
   });
 });

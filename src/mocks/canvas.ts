@@ -7,9 +7,10 @@
  * file the browser can't read, such as HEIC outside Safari.
  */
 export function mockCanvas({ width = 1600, height = 1200, decodable = true } = {}): void {
-  vi.stubGlobal("createImageBitmap", async (): Promise<ImageBitmap> => {
-    if (!decodable) throw new DOMException("The source image could not be decoded.");
-    return { width, height, close: () => undefined };
+  vi.stubGlobal("createImageBitmap", (): Promise<ImageBitmap> => {
+    if (!decodable)
+      return Promise.reject(new DOMException("The source image could not be decoded."));
+    return Promise.resolve({ width, height, close: () => undefined });
   });
 
   vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);

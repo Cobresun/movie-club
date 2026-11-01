@@ -27,7 +27,7 @@ describe("clubSections", () => {
   });
 
   it("is the four tabs of the bar, in order", () => {
-    expect(CLUB_SECTIONS.map((candidate) => candidate.name)).toEqual([
+    expect(CLUB_SECTIONS.map((candidate) => candidate.name)).toStrictEqual([
       "Reviews",
       "Watchlists",
       "Statistics",
@@ -42,13 +42,13 @@ describe("clubSections", () => {
   describe("isSectionVisible", () => {
     it("always shows unconditional sections", () => {
       expect(isSectionVisible(reviews, undefined, undefined)).toBe(true);
-      expect(isSectionVisible(reviews, ClubType.book, false)).toBe(true);
+      expect(isSectionVisible(reviews, ClubType.BOOK, false)).toBe(true);
     });
 
     it("shows awards only to movie clubs with the feature on", () => {
-      expect(isSectionVisible(awards, ClubType.movie, true)).toBe(true);
-      expect(isSectionVisible(awards, ClubType.movie, false)).toBe(false);
-      expect(isSectionVisible(awards, ClubType.book, true)).toBe(false);
+      expect(isSectionVisible(awards, ClubType.MOVIE, true)).toBe(true);
+      expect(isSectionVisible(awards, ClubType.MOVIE, false)).toBe(false);
+      expect(isSectionVisible(awards, ClubType.BOOK, true)).toBe(false);
     });
 
     it("hides awards while the club is still loading", () => {

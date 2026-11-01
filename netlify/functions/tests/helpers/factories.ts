@@ -1,9 +1,9 @@
-import { AwardsStep, ClubAwards } from "../../../../lib/types/awards";
+import { type AwardsStep, type ClubAwards } from "../../../../lib/types/awards";
 import { ClubType, WorkType } from "../../../../lib/types/generated/db";
-import { ClubListSummary, DetailedWorkListItem } from "../../../../lib/types/lists";
+import { type ClubListSummary, type DetailedWorkListItem } from "../../../../lib/types/lists";
 import { handler as clubHandler } from "../../club/index";
 import { db } from "../../utils/database";
-import { TestSession } from "./auth";
+import { type TestSession } from "./auth";
 import { requester } from "./http";
 
 /**
@@ -64,7 +64,7 @@ export async function createClub(
   const created = await api.post<{ clubId: string; slug: string }>("/api/club", {
     body: {
       name,
-      type: options.type ?? ClubType.movie,
+      type: options.type ?? ClubType.MOVIE,
       members: members.map((member) => member.email),
     },
     as: owner,
@@ -101,7 +101,7 @@ export async function createClub(
     id: created.body.clubId,
     slug,
     name,
-    type: options.type ?? ClubType.movie,
+    type: options.type ?? ClubType.MOVIE,
     listId: lists.body[0].id,
     reviewsListId: reviews.body.id,
   };
@@ -155,7 +155,7 @@ export async function addWork(
   } = {},
 ): Promise<SeededWork> {
   const listId = options.listId ?? club.listId;
-  const type = options.type ?? WorkType.movie;
+  const type = options.type ?? WorkType.MOVIE;
   const externalId =
     options.externalId === null ? undefined : (options.externalId ?? String(1000 + (counter += 1)));
   const title = options.title ?? `Work ${externalId ?? unique()}`;
@@ -295,7 +295,7 @@ export async function setAwardsStep(
   const current = await api.get<ClubAwards>(`/api/club/${club.slug}/awards/${year}`);
   assertOk(`Reading ${year} awards for "${club.slug}"`, current);
 
-  for (let next = current.body.step + 1; next <= step; next += 1) {
+  for (let next: AwardsStep = current.body.step + 1; next <= step; next += 1) {
     const moved = await api.put(`/api/club/${club.slug}/awards/${year}/step`, {
       body: { step: next },
       as: session,

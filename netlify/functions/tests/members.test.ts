@@ -3,12 +3,11 @@
  * `club/members/join.ts` — membership listing, leaving, removal, and the
  * invite-token join flow.
  */
-import { describe, expect, it } from "vitest";
 
-import { Member } from "../../../lib/types/club";
+import { type Member } from "../../../lib/types/club";
 import { handler as clubHandler } from "../club/index";
 import { handler as memberHandler } from "../member";
-import { signIn, TestSession } from "./helpers/auth";
+import { signIn, type TestSession } from "./helpers/auth";
 import { createClub, createInvite, expireInvite, joinClub } from "./helpers/factories";
 import { makeEvent, requester } from "./helpers/http";
 
@@ -18,7 +17,7 @@ const memberApi = requester(memberHandler);
 const membersOf = (slug: string) => api.get<Member[]>(`/api/club/${slug}/members`);
 
 /** Upload an avatar as `session`, so a test can assert the image comes back. */
-async function uploadAvatar(session: TestSession) {
+function uploadAvatar(session: TestSession) {
   const boundary = "----movieclubtestboundary";
   const body = [
     `--${boundary}`,
@@ -73,7 +72,7 @@ describe("GET /api/club/:clubSlug/members", () => {
 
     const res = await membersOf(club.slug);
 
-    expect(res.body).toEqual([]);
+    expect(res.body).toStrictEqual([]);
   });
 
   it("does not leak another club's members", async () => {
@@ -84,7 +83,7 @@ describe("GET /api/club/:clubSlug/members", () => {
 
     const res = await membersOf(club.slug);
 
-    expect(res.body).toEqual([]);
+    expect(res.body).toStrictEqual([]);
   });
 
   it("returns 404 for an unknown club", async () => {
@@ -102,7 +101,7 @@ describe("DELETE /api/club/:clubSlug/members/self", () => {
     const res = await api.delete(`/api/club/${club.slug}/members/self`, { as: alice });
 
     expect(res.statusCode).toBe(200);
-    expect((await membersOf(club.slug)).body).toEqual([]);
+    expect((await membersOf(club.slug)).body).toStrictEqual([]);
   });
 
   it("returns 401 without a session", async () => {
@@ -125,7 +124,9 @@ describe("DELETE /api/club/:clubSlug/members/:memberId", () => {
     const res = await api.delete(`/api/club/${club.slug}/members/${bob.userId}`, { as: alice });
 
     expect(res.statusCode).toBe(200);
-    expect((await membersOf(club.slug)).body.map((member) => member.id)).toEqual([alice.userId]);
+    expect((await membersOf(club.slug)).body.map((member) => member.id)).toStrictEqual([
+      alice.userId,
+    ]);
   });
 
   it("returns 401 for a signed-in user outside the club", async () => {
@@ -149,7 +150,7 @@ describe("GET /api/club/:clubSlug/members/join", () => {
     const res = await api.get(`/api/club/${club.slug}/members/join`, { as: bob });
 
     expect(res.statusCode).toBe(200);
-    expect((await membersOf(club.slug)).body.map((member) => member.id).sort()).toEqual(
+    expect((await membersOf(club.slug)).body.map((member) => member.id).sort()).toStrictEqual(
       [alice.userId, bob.userId].sort(),
     );
   });
@@ -161,7 +162,7 @@ describe("GET /api/club/:clubSlug/members/join", () => {
     const res = await api.get(`/api/club/${club.slug}/members/join`);
 
     expect(res.statusCode).toBe(401);
-    expect((await membersOf(club.slug)).body).toEqual([]);
+    expect((await membersOf(club.slug)).body).toStrictEqual([]);
   });
 });
 
@@ -190,7 +191,7 @@ describe("POST /api/club/join", () => {
     await api.post(`/api/club/join`, { body: { token }, as: bob });
 
     const clubs = await memberApi.get<{ clubName: string }[]>("/api/member/clubs", { as: bob });
-    expect(clubs.body.map((entry) => entry.clubName)).toEqual(["Joinable"]);
+    expect(clubs.body.map((entry) => entry.clubName)).toStrictEqual(["Joinable"]);
   });
 
   it("rejects an unknown token", async () => {
@@ -290,10 +291,12 @@ describe("leaving and rejoining", () => {
     const club = await createClub(alice, { name: "Revolving Door", members: [alice, bob] });
 
     await api.delete(`/api/club/${club.slug}/members/self`, { as: bob });
-    expect((await memberApi.get<unknown[]>("/api/member/clubs", { as: bob })).body).toEqual([]);
+    expect((await memberApi.get<unknown[]>("/api/member/clubs", { as: bob })).body).toStrictEqual(
+      [],
+    );
 
     await joinClub(club, bob);
     const clubs = await memberApi.get<{ clubName: string }[]>("/api/member/clubs", { as: bob });
-    expect(clubs.body.map((entry) => entry.clubName)).toEqual(["Revolving Door"]);
+    expect(clubs.body.map((entry) => entry.clubName)).toStrictEqual(["Revolving Door"]);
   });
 });

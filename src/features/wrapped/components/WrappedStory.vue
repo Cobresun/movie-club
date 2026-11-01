@@ -122,7 +122,7 @@ import { useToast } from "vue-toastification";
 
 import { isDefined } from "../../../../lib/checks/checks.js";
 import { CARD_HEIGHT, CARD_WIDTH, renderCardImage } from "../cardImage";
-import type { WrappedCard } from "../wrappedDeck";
+import { type WrappedCard } from "../wrappedDeck";
 import WrappedCardFrame from "./WrappedCardFrame.vue";
 import { useShare } from "@/common/composables/useShare";
 

@@ -1,17 +1,17 @@
 import { createAwardsYearSchema } from "../../../../lib/awards";
-import { AwardsStep, BaseAward, ClubAwards } from "../../../../lib/types/awards";
+import { AwardsStep, type BaseAward, type ClubAwards } from "../../../../lib/types/awards";
 import AwardsRepository from "../../repositories/AwardsRepository";
 import { secured } from "../../utils/auth";
 import { parseBody } from "../../utils/parseBody";
 import { badRequest, notFound, ok } from "../../utils/responses";
 import { isRouterResponse, Router } from "../../utils/router";
 import { getDetailedMovie } from "../../utils/tmdb";
-import { ClubRequest } from "../../utils/validation";
+import { type ClubRequest } from "../../utils/validation";
 import categoryRouter from "./category";
 import nominationRouter from "./nomination";
 import rankingRouter from "./ranking";
 import stepHandler from "./step";
-import { ClubAwardRequest, validYear } from "./utils";
+import { type ClubAwardRequest, validYear } from "./utils";
 
 const router = new Router<ClubRequest>("/api/club/:clubSlug/awards");
 router.use("/:year<\\d+>/category", validYear, categoryRouter);

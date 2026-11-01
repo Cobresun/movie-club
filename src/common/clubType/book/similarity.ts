@@ -1,12 +1,6 @@
-import type { WorkSimilarityScorer } from "../types";
-import {
-  buildIdf,
-  ERA_HALF_LIFE_YEARS,
-  proximityDecay,
-  sum,
-  weightedJaccard,
-} from "@/../lib/similarity";
-import { WorkDataSummary } from "@/../lib/types/lists";
+import { buildIdf, ERA_HALF_LIFE_YEARS, proximityDecay, sum, weightedJaccard } from "@/../lib/similarity";
+import { type WorkSimilarityScorer } from "../types";
+import { type WorkDataSummary } from "@/../lib/types/lists";
 import { asBook } from "@/common/workDisplay";
 
 /** Page-count difference at which the book-length signal halves. */

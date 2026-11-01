@@ -2,8 +2,8 @@ import { fireEvent, screen, within } from "@testing-library/vue";
 import { http, HttpResponse } from "msw";
 
 import { WorkType } from "../../../../lib/types/generated/db";
-import type { DetailedReviewListItem } from "../../../../lib/types/lists";
-import type { MovieDataSummary } from "../../../../lib/types/movie";
+import { type DetailedReviewListItem } from "../../../../lib/types/lists";
+import { type MovieDataSummary } from "../../../../lib/types/movie";
 import ReviewView from "../views/ReviewView.vue";
 import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
 import { server } from "@/mocks/server";
@@ -21,7 +21,7 @@ function movieReview(
   return {
     id,
     title,
-    type: WorkType.movie,
+    type: WorkType.MOVIE,
     createdDate,
     scores: { average: { id: "average", created_date: createdDate, score } },
     externalData: {
@@ -103,7 +103,7 @@ describe("Review filters", () => {
 
     await user.click(panel.getByRole("button", { name: /^Horror/ }));
 
-    expect(shownTitles()).toEqual(["Get Out", "Nope"]);
+    expect(shownTitles()).toStrictEqual(["Get Out", "Nope"]);
     expect(panel.getByRole("button", { name: /^Horror/ })).toHaveAttribute("aria-pressed", "true");
     expect(panel.getByRole("button", { name: "Show 2 movies" })).toBeInTheDocument();
   });
@@ -114,7 +114,7 @@ describe("Review filters", () => {
     await user.click(panel.getByRole("button", { name: /^Horror/ }));
     await user.click(panel.getByRole("button", { name: /^Drama/ }));
 
-    expect(shownTitles()).toEqual(["12 Angry Men", "Get Out", "Nope"]);
+    expect(shownTitles()).toStrictEqual(["12 Angry Men", "Get Out", "Nope"]);
   });
 
   it("combines different filters, dimming choices that would leave nothing", async () => {
@@ -139,7 +139,7 @@ describe("Review filters", () => {
 
     await user.click(screen.getByRole("button", { name: "Remove Genre: Horror" }));
 
-    expect(shownTitles()).toEqual(TITLES);
+    expect(shownTitles()).toStrictEqual(TITLES);
     expect(screen.getByRole("button", { name: "Filters" })).toBeInTheDocument();
   });
 
@@ -149,7 +149,7 @@ describe("Review filters", () => {
     await user.click(panel.getByRole("button", { name: "’50s" }));
     await user.click(panel.getByRole("button", { name: "Show 1 movie" }));
 
-    expect(shownTitles()).toEqual(["12 Angry Men"]);
+    expect(shownTitles()).toStrictEqual(["12 Angry Men"]);
     expect(
       screen.getByRole("button", { name: "Remove Release year: 1950 – 1959" }),
     ).toBeInTheDocument();
@@ -160,7 +160,7 @@ describe("Review filters", () => {
 
     await fireEvent.update(panel.getByRole("slider", { name: "Minimum release year" }), "2000");
 
-    expect(shownTitles()).toEqual(["Get Out", "Nope"]);
+    expect(shownTitles()).toStrictEqual(["Get Out", "Nope"]);
     expect(panel.getByText("2000+")).toBeInTheDocument();
   });
 
@@ -171,7 +171,7 @@ describe("Review filters", () => {
     await fireEvent.update(panel.getByRole("slider", { name: "Minimum release year" }), "2010");
 
     expect(panel.getByRole("slider", { name: "Minimum release year" })).toHaveValue("1980");
-    expect(shownTitles()).toEqual(["The Empire Strikes Back"]);
+    expect(shownTitles()).toStrictEqual(["The Empire Strikes Back"]);
   });
 
   it("offers score shortcuts in plain words", async () => {
@@ -179,11 +179,11 @@ describe("Review filters", () => {
 
     await user.click(panel.getByRole("button", { name: /^Loved it/ }));
 
-    expect(shownTitles()).toEqual(["12 Angry Men", "The Empire Strikes Back"]);
+    expect(shownTitles()).toStrictEqual(["12 Angry Men", "The Empire Strikes Back"]);
 
     await user.click(panel.getByRole("button", { name: /^Loved it/ }));
 
-    expect(shownTitles()).toEqual(TITLES);
+    expect(shownTitles()).toStrictEqual(TITLES);
   });
 
   it("clears every filter at once", async () => {
@@ -191,11 +191,11 @@ describe("Review filters", () => {
 
     await user.click(panel.getByRole("button", { name: /^Horror/ }));
     await user.click(panel.getByRole("button", { name: /^Liked it/ }));
-    expect(shownTitles()).toEqual(["Get Out"]);
+    expect(shownTitles()).toStrictEqual(["Get Out"]);
 
     await user.click(panel.getByRole("button", { name: "Clear all" }));
 
-    expect(shownTitles()).toEqual(TITLES);
+    expect(shownTitles()).toStrictEqual(TITLES);
   });
 
   it("opens the same panel beside the results on desktop", async () => {
@@ -204,17 +204,17 @@ describe("Review filters", () => {
 
     await user.click(panel.getByRole("button", { name: /^Horror/ }));
 
-    expect(shownTitles()).toEqual(["Get Out", "Nope"]);
+    expect(shownTitles()).toStrictEqual(["Get Out", "Nope"]);
   });
 
   it("clears the search in one tap", async () => {
     const { user } = render(ReviewView, { props: { clubSlug: "1" } });
 
     await user.type(await screen.findByRole("textbox", { name: "Search reviews" }), "nope");
-    expect(shownTitles()).toEqual(["Nope"]);
+    expect(shownTitles()).toStrictEqual(["Nope"]);
 
     await user.click(screen.getByRole("button", { name: "Clear search" }));
 
-    expect(shownTitles()).toEqual(TITLES);
+    expect(shownTitles()).toStrictEqual(TITLES);
   });
 });

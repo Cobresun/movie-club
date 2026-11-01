@@ -2,34 +2,41 @@ import * as fs from "fs";
 import { sql } from "kysely";
 import path from "path";
 import { fileURLToPath } from "url";
+import { z } from "zod";
 
 import { db } from "../../netlify/functions/utils/database";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const currentFilename = fileURLToPath(import.meta.url);
+const currentDirname = path.dirname(currentFilename);
 
-interface AwardYear {
-  year: number;
-  step: number;
-  awards: unknown[];
-}
+const awardsBackupSchema = z.object({
+  clubAwards: z.array(
+    z.object({
+      year: z.number(),
+      step: z.number().default(0),
+      awards: z.array(z.unknown()).default([]),
+    }),
+  ),
+});
 
-interface ClubAwardsBackup {
-  clubAwards: AwardYear[];
+type ClubAwardsBackup = z.infer<typeof awardsBackupSchema>;
+
+function parseBackup(raw: string): ClubAwardsBackup {
+  return awardsBackupSchema.parse(JSON.parse(raw));
 }
 
 async function migrateAwardsData() {
   console.log("🚀 Starting Awards Data Migration\n");
 
   // Read clubAwardsBackup.json file
-  const backupPath = path.join(__dirname, "..", "clubAwardsBackup.json");
+  const backupPath = path.join(currentDirname, "..", "clubAwardsBackup.json");
 
   if (!fs.existsSync(backupPath)) {
     console.error(`❌ Error: clubAwardsBackup.json not found at ${backupPath}`);
     process.exit(1);
   }
 
-  const backupData = JSON.parse(fs.readFileSync(backupPath, "utf-8")) as ClubAwardsBackup;
+  const backupData = parseBackup(fs.readFileSync(backupPath, "utf-8"));
 
   console.log(`📊 Found ${backupData.clubAwards.length} award years to migrate\n`);
 
@@ -85,7 +92,7 @@ async function migrateAwardsData() {
   }
 
   // Print summary
-  console.log("\n" + "=".repeat(50));
+  console.log(`\n${"=".repeat(50)}`);
   console.log("📈 MIGRATION SUMMARY");
   console.log("=".repeat(50));
   console.log(`Total years in backup:     ${backupData.clubAwards.length}`);

@@ -1,4 +1,4 @@
-import { WorkCommentDto } from "../../../lib/types/lists";
+import { type WorkCommentDto } from "../../../lib/types/lists";
 import { db } from "../utils/database";
 
 class WorkCommentRepository {
@@ -22,9 +22,9 @@ class WorkCommentRepository {
       .execute();
 
     return rows.map((row) => ({
-      id: String(row.id),
-      workId: String(row.work_id),
-      userId: String(row.user_id),
+      id: row.id,
+      workId: row.work_id,
+      userId: row.user_id,
       userName: row.user_name,
       userImage: row.user_image ?? undefined,
       content: row.content,
@@ -33,7 +33,7 @@ class WorkCommentRepository {
     }));
   }
 
-  async insert(workId: string, clubId: string, userId: string, content: string, spoiler: boolean) {
+  insert(workId: string, clubId: string, userId: string, content: string, spoiler: boolean) {
     return db
       .insertInto("work_comment")
       .values({
@@ -46,7 +46,7 @@ class WorkCommentRepository {
       .execute();
   }
 
-  async updateContent(commentId: string, userId: string, content: string, spoiler?: boolean) {
+  updateContent(commentId: string, userId: string, content: string, spoiler?: boolean) {
     let query = db
       .updateTable("work_comment")
       .set("content", content)
@@ -58,7 +58,7 @@ class WorkCommentRepository {
     return query.execute();
   }
 
-  async getById(commentId: string) {
+  getById(commentId: string) {
     return db
       .selectFrom("work_comment")
       .select(["id", "user_id"])
@@ -66,9 +66,11 @@ class WorkCommentRepository {
       .executeTakeFirst();
   }
 
-  async deleteById(commentId: string) {
+  deleteById(commentId: string) {
     return db.deleteFrom("work_comment").where("id", "=", commentId).execute();
   }
 }
 
-export default new WorkCommentRepository();
+const workCommentRepository = new WorkCommentRepository();
+
+export default workCommentRepository;

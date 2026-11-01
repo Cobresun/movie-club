@@ -2,8 +2,6 @@
 // globalSetup before any module below reaches `utils/database.ts`, which builds
 // its connection pool at import time.
 import "./env";
-import { afterAll, afterEach, beforeAll, beforeEach } from "vitest";
-
 import { restoreFixtureUsers } from "../helpers/auth";
 import { closeDatabase, resetDatabase } from "../helpers/database";
 import { sentEmails, server } from "./externalApis";

@@ -12,7 +12,7 @@ const movies = (...runtimes: number[]) =>
 
 describe("StatsWidget", () => {
   it("counts the works with the movie club's label and icon", () => {
-    render(StatsWidget, { props: { workData: movies(90, 120), clubType: ClubType.movie } });
+    render(StatsWidget, { props: { workData: movies(90, 120), clubType: ClubType.MOVIE } });
 
     expect(screen.getByText("2")).toBeInTheDocument();
     expect(screen.getByText("movies watched")).toBeInTheDocument();
@@ -20,7 +20,7 @@ describe("StatsWidget", () => {
 
   it("counts the works with the book club's label", () => {
     render(StatsWidget, {
-      props: { workData: [makeBook({ id: "a" }), makeBook({ id: "b" })], clubType: ClubType.book },
+      props: { workData: [makeBook({ id: "a" }), makeBook({ id: "b" })], clubType: ClubType.BOOK },
     });
 
     expect(screen.getByText("2")).toBeInTheDocument();
@@ -28,13 +28,13 @@ describe("StatsWidget", () => {
   });
 
   it("sums runtimes into hours and minutes for a movie club", () => {
-    render(StatsWidget, { props: { workData: movies(90, 45), clubType: ClubType.movie } });
+    render(StatsWidget, { props: { workData: movies(90, 45), clubType: ClubType.MOVIE } });
 
     expect(screen.getByText("2h 15m")).toBeInTheDocument();
   });
 
   it("omits the day count until the club passes 24 hours of watch time", () => {
-    render(StatsWidget, { props: { workData: movies(120), clubType: ClubType.movie } });
+    render(StatsWidget, { props: { workData: movies(120), clubType: ClubType.MOVIE } });
 
     expect(screen.getByText("watch time")).toBeInTheDocument();
     expect(screen.queryByText(/day/)).not.toBeInTheDocument();
@@ -43,7 +43,7 @@ describe("StatsWidget", () => {
   it("adds a rounded day count once watch time exceeds 24 hours", () => {
     // 30 × 120 min = 60h → 3 days (rounded from 2.5).
     render(StatsWidget, {
-      props: { workData: movies(...Array<number>(30).fill(120)), clubType: ClubType.movie },
+      props: { workData: movies(...Array<number>(30).fill(120)), clubType: ClubType.MOVIE },
     });
 
     expect(screen.getByText("60h 0m")).toBeInTheDocument();
@@ -53,7 +53,7 @@ describe("StatsWidget", () => {
   it("singularizes a one-day watch time", () => {
     // 13 × 120 min = 26h → "1 day", the boundary just past 24 hours.
     render(StatsWidget, {
-      props: { workData: movies(...Array<number>(13).fill(120)), clubType: ClubType.movie },
+      props: { workData: movies(...Array<number>(13).fill(120)), clubType: ClubType.MOVIE },
     });
 
     expect(screen.getByText(/\(1 day\)/)).toBeInTheDocument();
@@ -66,7 +66,7 @@ describe("StatsWidget", () => {
           makeMovie({ id: "1", externalData: makeExternalMovie({ runtime: undefined }) }),
           makeMovie({ id: "2", externalData: makeExternalMovie({ runtime: 100 }) }),
         ],
-        clubType: ClubType.movie,
+        clubType: ClubType.MOVIE,
       },
     });
 
@@ -74,7 +74,7 @@ describe("StatsWidget", () => {
   });
 
   it("shows no watch-time tile for a book club", () => {
-    render(StatsWidget, { props: { workData: [makeBook()], clubType: ClubType.book } });
+    render(StatsWidget, { props: { workData: [makeBook()], clubType: ClubType.BOOK } });
 
     expect(screen.queryByText("watch time")).not.toBeInTheDocument();
   });
@@ -86,7 +86,7 @@ describe("StatsWidget", () => {
           makeBook({ id: "1", externalData: makeExternalBook({ numberOfPages: 800 }) }),
           makeBook({ id: "2", externalData: makeExternalBook({ numberOfPages: 450 }) }),
         ],
-        clubType: ClubType.book,
+        clubType: ClubType.BOOK,
       },
     });
 
@@ -96,14 +96,14 @@ describe("StatsWidget", () => {
 
   it("hides the pages tile when no book carries a page count", () => {
     render(StatsWidget, {
-      props: { workData: [makeBook(), makeBook({ id: "b2" })], clubType: ClubType.book },
+      props: { workData: [makeBook(), makeBook({ id: "b2" })], clubType: ClubType.BOOK },
     });
 
     expect(screen.queryByText("pages read")).not.toBeInTheDocument();
   });
 
   it("reports zero works for an empty club", () => {
-    render(StatsWidget, { props: { workData: [], clubType: ClubType.movie } });
+    render(StatsWidget, { props: { workData: [], clubType: ClubType.MOVIE } });
 
     expect(screen.getByText("0")).toBeInTheDocument();
     expect(screen.getByText("0h 0m")).toBeInTheDocument();

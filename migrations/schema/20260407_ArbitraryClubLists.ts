@@ -1,4 +1,4 @@
-import { Kysely, sql } from "kysely";
+import { type Kysely, sql } from "kysely";
 
 // Moves clubs from the rigid (watchlist | backlog | reviews | award_nominations)
 // list model to a model where each club can have an arbitrary number of
@@ -15,7 +15,7 @@ import { Kysely, sql } from "kysely";
 // well enough for local rollback during development, but any user-created
 // lists beyond the first will be coalesced (we have nowhere to put them in
 // the old enum).
-export async function up(db: Kysely<unknown>) {
+async function up(db: Kysely<unknown>) {
   // 1. New enum for system list identification.
   await db.schema.createType("work_list_system_type").asEnum(["reviews"]).execute();
 
@@ -34,7 +34,7 @@ export async function up(db: Kysely<unknown>) {
     title: string | null;
     position: number;
   }
-  const typedDb = db.withTables<{ work_list: MigrationWorkListTable }>();
+  const typedDb = db.$extendTables<{ work_list: MigrationWorkListTable }>();
   await typedDb
     .updateTable("work_list")
     .set({ system_type: "reviews" })
@@ -132,7 +132,7 @@ export async function up(db: Kysely<unknown>) {
     .execute();
 }
 
-export async function down(db: Kysely<unknown>) {
+async function down(db: Kysely<unknown>) {
   // Best-effort rollback. User lists beyond the first per club cannot be
   // represented in the old enum and will be dropped.
   await db.schema
@@ -151,7 +151,7 @@ export async function down(db: Kysely<unknown>) {
     system_type: "reviews" | null;
     type: "backlog" | "watchlist" | "reviews" | "award_nominations" | null;
   }
-  const typedDb = db.withTables<{ work_list: RollbackWorkListTable }>();
+  const typedDb = db.$extendTables<{ work_list: RollbackWorkListTable }>();
 
   // Restore the reviews system list type.
   await typedDb
@@ -203,3 +203,5 @@ export async function down(db: Kysely<unknown>) {
     .alterColumn("title", (col) => col.dropNotNull())
     .execute();
 }
+
+export default { name: "20260407_ArbitraryClubLists", up, down };

@@ -149,7 +149,7 @@ const shakeInput = () => {
 // and the DOM directly, since Vue won't re-patch when two inputs in a row
 // correct to the same model value (e.g. "12" then "120").
 const onInput = (event: Event) => {
-  const target = event.target;
+  const { target } = event;
   if (!(target instanceof HTMLInputElement)) return;
   const { value, corrected, clampedTo } = sanitizeScoreInput(target.value);
   if (!corrected) return;
@@ -212,9 +212,11 @@ defineExpose({
   // keystroke wipe the value. `setSelectionRange` throws on `type="number"`,
   // so the field is flipped to text for the one call — the caret survives the
   // flip back, and the value never changes, so no input event fires.
+  // Already focused means the user got there first (the dock's autofocus is
+  // delayed); the flip would reset their caret to the start mid-typing.
   focusInput: () => {
     const input = scoreInput.value;
-    if (!isDefined(input)) return;
+    if (!isDefined(input) || document.activeElement === input) return;
     const end = input.value.length;
     input.type = "text";
     input.focus();

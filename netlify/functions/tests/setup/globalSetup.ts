@@ -1,6 +1,9 @@
-import { CockroachDbContainer, StartedCockroachDbContainer } from "@testcontainers/cockroachdb";
+import {
+  CockroachDbContainer,
+  type StartedCockroachDbContainer,
+} from "@testcontainers/cockroachdb";
 import { execFileSync } from "child_process";
-import type { TestProject } from "vitest/node";
+import { type TestProject } from "vitest/node";
 
 /**
  * The CockroachDB build the integration suite runs against.
@@ -28,9 +31,8 @@ let container: StartedCockroachDbContainer | undefined;
  * between tests instead — see `helpers/database.ts`.
  *
  * Migrations run as a subprocess through `tsx`, exactly as `npm run migrate`
- * does, rather than by importing the migrator here. Kysely's
- * `FileMigrationProvider` `import()`s the migration files through Node's
- * loader, which cannot resolve the extensionless specifiers they use — only
+ * does, rather than by importing the migrator here. The migration files use
+ * extensionless import specifiers, which Node's loader cannot resolve — only
  * esbuild (via tsx) can. Shelling out also guarantees the suite is testing the
  * same schema the deploy applies.
  */
@@ -49,7 +51,7 @@ export default async function setup({ provide }: TestProject) {
     });
   } catch (error) {
     const failure = error instanceof Error && "stdout" in error ? String(error.stdout) : "";
-    throw new Error(`Failed to migrate the test database.\n${failure}`);
+    throw new Error(`Failed to migrate the test database.\n${failure}`, { cause: error });
   }
 
   provide("databaseUrl", databaseUrl);

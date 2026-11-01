@@ -1,6 +1,6 @@
-import { Kysely } from "kysely";
+import { type Kysely } from "kysely";
 
-export async function up(db: Kysely<unknown>) {
+async function up(db: Kysely<unknown>) {
   // Rename username column to name
   await db.schema.alterTable("user").renameColumn("username", "name").execute();
 
@@ -78,7 +78,7 @@ export async function up(db: Kysely<unknown>) {
     .execute();
 }
 
-export async function down(db: Kysely<unknown>) {
+async function down(db: Kysely<unknown>) {
   // Drop tables in reverse order
   await db.schema.dropTable("verification").execute();
   await db.schema.dropTable("account").execute();
@@ -102,3 +102,5 @@ export async function down(db: Kysely<unknown>) {
     .addUniqueConstraint("user_username_key", ["username"])
     .execute();
 }
+
+export default { name: "20251216_AddBetterAuth", up, down };

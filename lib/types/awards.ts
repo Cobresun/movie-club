@@ -1,13 +1,13 @@
 import { z } from "zod";
 
-import { DetailedMovie } from "./movie";
+import { type DetailedMovie } from "./movie";
 
 export enum AwardsStep {
-  CategorySelect,
-  Nominations,
-  Ratings,
-  Presentation,
-  Completed,
+  CategorySelect = 0,
+  Nominations = 1,
+  Ratings = 2,
+  Presentation = 3,
+  Completed = 4,
 }
 
 // Zod schemas - source of truth for validation

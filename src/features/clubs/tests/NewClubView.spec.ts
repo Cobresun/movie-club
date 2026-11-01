@@ -1,6 +1,7 @@
 import { screen } from "@testing-library/vue";
 import { http, HttpResponse } from "msw";
 import { useRouter } from "vue-router";
+import { z } from "zod";
 
 import NewClubView from "../views/NewClubView.vue";
 import { ClubType } from "@/../lib/types/generated/db";
@@ -15,7 +16,7 @@ describe("NewClubView", () => {
     expect(screen.getByRole("heading", { name: "Start your own club" })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Sign up to start a club" }));
 
-    expect(vi.mocked(useAuthStore(pinia).signUp)).toHaveBeenCalled();
+    expect(vi.mocked(useAuthStore(pinia).signUp)).toHaveBeenCalledWith();
   });
 
   it("explains what a club is and names both ways in", async () => {
@@ -37,7 +38,7 @@ describe("NewClubView", () => {
         clubName: "Test Club",
         slug: "test-club",
         slugUpdatedAt: undefined,
-        type: ClubType.movie,
+        type: ClubType.MOVIE,
       },
     ];
 
@@ -49,7 +50,7 @@ describe("NewClubView", () => {
     const { pinia } = render(NewClubView);
     logIn(pinia);
 
-    expect(await screen.findByPlaceholderText("Club name")).toBeInTheDocument();
+    await expect(screen.findByPlaceholderText("Club name")).resolves.toBeInTheDocument();
   });
 
   it("shows a validation error when submitting with no club name", async () => {
@@ -61,10 +62,35 @@ describe("NewClubView", () => {
     expect(screen.getByText("Club name is required")).toBeInTheDocument();
   });
 
+  it("offers every club type a club can be created as", async () => {
+    const { pinia } = render(NewClubView);
+    logIn(pinia);
+
+    expect(await screen.findByRole("button", { name: "Movies" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Books" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "TV shows" })).toBeInTheDocument();
+  });
+
+  it("moves the selection to the club type you pick", async () => {
+    const { pinia, user } = render(NewClubView);
+    logIn(pinia);
+
+    // Movies is the default, so picking TV has to deselect it — the selected
+    // state is what tells you which type the club will be created as.
+    expect(
+      await screen.findByRole("button", { name: "Movies", pressed: true }),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "TV shows" }));
+
+    expect(screen.getByRole("button", { name: "TV shows", pressed: true })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Movies", pressed: false })).toBeInTheDocument();
+  });
+
   it("hands the new club's invite link over before the club itself", async () => {
     server.use(
       http.post("/api/club", async ({ request }) => {
-        const { name } = (await request.json()) as { name: string };
+        const { name } = z.object({ name: z.string() }).parse(await request.json());
         return HttpResponse.json({ clubId: "123", slug: name.toLowerCase().replace(/ /g, "-") });
       }),
     );
@@ -112,7 +138,7 @@ describe("NewClubView", () => {
       const router = await paste("not an invite");
 
       expect(screen.getByText("That doesn't look like an invite link.")).toBeInTheDocument();
-      expect(router.push.mock.calls).toEqual([]);
+      expect(router.push.mock.calls).toStrictEqual([]);
     });
   });
 });

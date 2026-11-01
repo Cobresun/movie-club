@@ -8,21 +8,20 @@
  * read back off the club members endpoint, which is where a client sees it.
  */
 import { http, HttpResponse } from "msw";
-import { describe, expect, it } from "vitest";
 
-import { ClubPreview, Member } from "../../../lib/types/club";
+import { type ClubPreview, type Member } from "../../../lib/types/club";
 import { ClubType, WorkType } from "../../../lib/types/generated/db";
-import { MemberScoredWork } from "../../../lib/types/lists";
+import { type MemberScoredWork } from "../../../lib/types/lists";
 import { handler as clubHandler } from "../club/index";
 import { handler } from "../member";
-import { signIn, TestSession } from "./helpers/auth";
+import { signIn, type TestSession } from "./helpers/auth";
 import {
   addReviewedWork,
   createClub,
   joinClub,
   leaveClub,
   scoreWork,
-  SeededClub,
+  type SeededClub,
 } from "./helpers/factories";
 import { makeEvent, requester } from "./helpers/http";
 import { CLOUDINARY_DESTROY, CLOUDINARY_UPLOAD, failOnRequest, server } from "./setup/externalApis";
@@ -75,7 +74,7 @@ describe("GET /api/member/clubs", () => {
   it("returns a preview of every club the user belongs to", async () => {
     const alice = await signIn("alice");
     const movies = await createClub(alice, { name: "Movie Night" });
-    await createClub(alice, { name: "Books", type: ClubType.book });
+    await createClub(alice, { name: "Books", type: ClubType.BOOK });
     await createClub(alice, { name: "Not Mine", members: [] });
 
     const res = await api.get<ClubPreview[]>("/api/member/clubs", { as: alice });
@@ -86,9 +85,9 @@ describe("GET /api/member/clubs", () => {
       clubId: movies.id,
       clubName: "Movie Night",
       slug: movies.slug,
-      type: ClubType.movie,
+      type: ClubType.MOVIE,
     });
-    expect(res.body.map((club) => club.clubName).sort()).toEqual(["Books", "Movie Night"]);
+    expect(res.body.map((club) => club.clubName).sort()).toStrictEqual(["Books", "Movie Night"]);
   });
 
   it("returns an empty list for a user in no clubs", async () => {
@@ -96,7 +95,7 @@ describe("GET /api/member/clubs", () => {
 
     const res = await api.get<ClubPreview[]>("/api/member/clubs", { as: bob });
 
-    expect(res.body).toEqual([]);
+    expect(res.body).toStrictEqual([]);
   });
 
   it("returns 401 without a session", async () => {
@@ -110,11 +109,11 @@ describe("GET /api/member/scores", () => {
   it("returns the member's own scores from every club they belong to", async () => {
     const alice = await signIn("alice");
     const movies = await createClub(alice, { name: "Movie Night" });
-    const books = await createClub(alice, { name: "Books", type: ClubType.book });
+    const books = await createClub(alice, { name: "Books", type: ClubType.BOOK });
     const movie = await addReviewedWork(movies, alice, { title: "Heat", externalId: "77" });
     const book = await addReviewedWork(books, alice, {
       title: "Dune",
-      type: WorkType.book,
+      type: WorkType.BOOK,
       externalId: "vol-1",
     });
     await scoreWork(movies, alice, movie.id, 8.5);
@@ -129,7 +128,7 @@ describe("GET /api/member/scores", () => {
         workId: movie.id,
         clubName: "Movie Night",
         clubSlug: movies.slug,
-        type: WorkType.movie,
+        type: WorkType.MOVIE,
         title: "Heat",
         externalId: "77",
         score: 8.5,
@@ -139,7 +138,7 @@ describe("GET /api/member/scores", () => {
       expect.objectContaining({
         workId: book.id,
         clubName: "Books",
-        type: WorkType.book,
+        type: WorkType.BOOK,
         score: 6,
       }),
     );
@@ -156,7 +155,7 @@ describe("GET /api/member/scores", () => {
 
     const res = await api.get<MemberScoredWork[]>("/api/member/scores", { as: alice });
 
-    expect(res.body.map((work) => work.workId)).toEqual([scored.id]);
+    expect(res.body.map((work) => work.workId)).toStrictEqual([scored.id]);
   });
 
   it("drops scores left behind in a club the member has left", async () => {
@@ -170,7 +169,7 @@ describe("GET /api/member/scores", () => {
 
     const res = await api.get<MemberScoredWork[]>("/api/member/scores", { as: bob });
 
-    expect(res.body).toEqual([]);
+    expect(res.body).toStrictEqual([]);
   });
 
   it("returns 401 without a session", async () => {
@@ -188,7 +187,7 @@ describe("PUT /api/member/name", () => {
     const res = await api.put("/api/member/name", { body: { name: "  Alice B  " }, as: alice });
 
     expect(res.statusCode).toBe(200);
-    expect(await profileIn(club, alice)).toMatchObject({ name: "Alice B" });
+    await expect(profileIn(club, alice)).resolves.toMatchObject({ name: "Alice B" });
   });
 
   it.each([
@@ -202,7 +201,7 @@ describe("PUT /api/member/name", () => {
 
     expect(res.statusCode).toBe(400);
     expect(res.body.error).toBe(message);
-    expect(await profileIn(club, alice)).toMatchObject({ name: "Alice" });
+    await expect(profileIn(club, alice)).resolves.toMatchObject({ name: "Alice" });
   });
 
   it("returns 401 without a session", async () => {
@@ -220,7 +219,7 @@ describe("POST /api/member/avatar", () => {
     const res = await uploadAvatar(alice);
 
     expect(res.statusCode).toBe(200);
-    expect(await profileIn(club, alice)).toMatchObject({ image: AVATAR_URL });
+    await expect(profileIn(club, alice)).resolves.toMatchObject({ image: AVATAR_URL });
   });
 
   it("replaces an existing avatar with the newly uploaded one", async () => {
@@ -237,7 +236,7 @@ describe("POST /api/member/avatar", () => {
     const res = await uploadAvatar(alice);
 
     expect(res.statusCode).toBe(200);
-    expect(await profileIn(club, alice)).toMatchObject({ image: REPLACEMENT_AVATAR_URL });
+    await expect(profileIn(club, alice)).resolves.toMatchObject({ image: REPLACEMENT_AVATAR_URL });
   });
 
   it("returns 400 when the request carries no file", async () => {
@@ -247,7 +246,7 @@ describe("POST /api/member/avatar", () => {
     const res = await uploadAvatar(alice, { note: "no file here" });
 
     expect(res.statusCode).toBe(400);
-    expect(await profileIn(club, alice)).not.toHaveProperty("image");
+    await expect(profileIn(club, alice)).resolves.not.toHaveProperty("image");
   });
 });
 
@@ -260,7 +259,7 @@ describe("DELETE /api/member/avatar", () => {
     const res = await api.delete("/api/member/avatar", { as: alice });
 
     expect(res.statusCode).toBe(200);
-    expect(await profileIn(club, alice)).not.toHaveProperty("image");
+    await expect(profileIn(club, alice)).resolves.not.toHaveProperty("image");
   });
 
   it("succeeds when the user has no stored avatar", async () => {

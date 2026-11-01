@@ -5,18 +5,17 @@
  * scoring rules that are awkward to reach through it — per-member
  * normalisation, agreement, which seeds are drawn, and which are named.
  */
-import { describe, expect, it } from "vitest";
 
 import { WorkType } from "../../../../lib/types/generated/db";
-import { SimilarWork } from "../../../../lib/types/recommendations";
-import { MemberScore, rankRecommendations, Seed, selectSeeds } from "../recommendations";
+import { type SimilarWork } from "../../../../lib/types/recommendations";
+import { type MemberScore, rankRecommendations, type Seed, selectSeeds } from "../recommendations";
 
 function score(userId: string, externalId: string, value: number): MemberScore {
-  return { userId, type: WorkType.movie, externalId, title: `Title ${externalId}`, score: value };
+  return { userId, type: WorkType.MOVIE, externalId, title: `Title ${externalId}`, score: value };
 }
 
 function seed(externalId: string, affinity: number): Seed {
-  return { externalId, type: WorkType.movie, title: `Title ${externalId}`, affinity };
+  return { externalId, type: WorkType.MOVIE, title: `Title ${externalId}`, affinity };
 }
 
 function works(...ids: string[]): SimilarWork[] {
@@ -83,7 +82,7 @@ describe("selectSeeds", () => {
         return () => 1 - ++call / 100;
       })();
 
-      expect(likedIds(selectSeeds(manyLikes, ascending))).not.toEqual(
+      expect(likedIds(selectSeeds(manyLikes, ascending))).not.toStrictEqual(
         likedIds(selectSeeds(manyLikes, descending)),
       );
     });
@@ -102,7 +101,7 @@ describe("selectSeeds", () => {
   });
 
   it("returns no seeds when nobody has scored anything", () => {
-    expect(selectSeeds([])).toEqual([]);
+    expect(selectSeeds([])).toStrictEqual([]);
   });
 });
 
@@ -115,7 +114,7 @@ describe("rankRecommendations", () => {
       { seed: seed("b", 1), works: works("shared") },
     ]);
 
-    expect(titles(ranked)).toEqual(["Title shared", "Title single"]);
+    expect(titles(ranked)).toStrictEqual(["Title shared", "Title single"]);
   });
 
   it("ranks a work nearer the top of a seed's list above one further down", () => {
@@ -123,7 +122,7 @@ describe("rankRecommendations", () => {
       { seed: seed("a", 1), works: works("first", "second", "third") },
     ]);
 
-    expect(titles(ranked)).toEqual(["Title first", "Title second", "Title third"]);
+    expect(titles(ranked)).toStrictEqual(["Title first", "Title second", "Title third"]);
   });
 
   it("drops a work that resembles a disliked seed as much as a liked one", () => {
@@ -132,7 +131,7 @@ describe("rankRecommendations", () => {
       { seed: seed("disliked", -1), works: works("both") },
     ]);
 
-    expect(titles(ranked)).toEqual(["Title liked-only"]);
+    expect(titles(ranked)).toStrictEqual(["Title liked-only"]);
   });
 
   it("cites the two liked seeds that pulled hardest", () => {
@@ -143,6 +142,6 @@ describe("rankRecommendations", () => {
       { seed: seed("disliked", -0.3), works: works("x") },
     ]);
 
-    expect(recommendation.similarTo).toEqual(["Title strong", "Title medium"]);
+    expect(recommendation.similarTo).toStrictEqual(["Title strong", "Title medium"]);
   });
 });

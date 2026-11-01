@@ -65,20 +65,20 @@ import { computed } from "vue";
 
 import { Member } from "../../../../lib/types/club";
 import { computeMemberLeaderboard } from "../statsComputers";
-import type { WorkStatsData } from "../types";
+import { type WorkStatsData } from "../types";
 import { memberSeriesColor } from "@/common/chartPalette";
 import WidgetShell from "@/common/components/WidgetShell.vue";
 
-const props = defineProps<{
+const { workData, members } = defineProps<{
   workData: WorkStatsData[];
   members: Member[];
 }>();
 
-const leaderboard = computed(() => computeMemberLeaderboard(props.workData, props.members));
+const leaderboard = computed(() => computeMemberLeaderboard(workData, members));
 
 // Same color the member wears in every chart: their slot in the member list.
 function memberColor(memberId: string): string {
-  const index = props.members.findIndex((member) => member.id === memberId);
+  const index = members.findIndex((member) => member.id === memberId);
   return memberSeriesColor(Math.max(0, index));
 }
 

@@ -1,7 +1,7 @@
 import axios from "axios";
-import { Kysely, sql } from "kysely";
+import { type Kysely, sql } from "kysely";
 
-import { hasElements, NonEmptyArray } from "../../lib/checks/checks";
+import { hasElements, type NonEmptyArray } from "../../lib/checks/checks";
 
 interface TMDBCastMember {
   id: number;
@@ -57,14 +57,14 @@ type MigrationTables = {
  * major presence. Mirrors the profile_path backfill in
  * 20260315_AddPersonProfilePaths.ts.
  */
-export async function up(db: Kysely<unknown>) {
+async function up(db: Kysely<unknown>) {
   // Kysely's addColumn can't express ADD COLUMN IF NOT EXISTS, which we rely on
   // for idempotent re-runs (CockroachDB has no transactional DDL, so a mid-run
   // failure leaves the column behind). Keep this one step as raw DDL; the data
   // queries below run through a typed handle.
   await sql`ALTER TABLE movie_actors ADD COLUMN IF NOT EXISTS popularity NUMERIC`.execute(db);
 
-  const typedDb = db.withTables<MigrationTables>();
+  const typedDb = db.$extendTables<MigrationTables>();
 
   const movies = await typedDb
     .selectFrom("movie_details")
@@ -158,7 +158,9 @@ export async function up(db: Kysely<unknown>) {
 
     // Delay between batches to respect TMDB rate limits
     if (i + BATCH_SIZE < movies.length) {
-      await new Promise((resolve) => setTimeout(resolve, BATCH_DELAY_MS));
+      await new Promise((resolve) => {
+        setTimeout(resolve, BATCH_DELAY_MS);
+      });
     }
 
     console.log(`Progress: ${Math.min(i + BATCH_SIZE, movies.length)}/${movies.length}`);
@@ -170,6 +172,8 @@ export async function up(db: Kysely<unknown>) {
   console.log(`Errors: ${errors}`);
 }
 
-export async function down(db: Kysely<unknown>) {
+async function down(db: Kysely<unknown>) {
   await sql`ALTER TABLE movie_actors DROP COLUMN IF EXISTS popularity`.execute(db);
 }
+
+export default { name: "20260721_AddActorPopularity", up, down };

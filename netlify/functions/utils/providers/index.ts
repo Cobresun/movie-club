@@ -1,10 +1,11 @@
 import { hasValue } from "../../../../lib/checks/checks.js";
-import { WorkType } from "../../../../lib/types/generated/db";
-import { DetailedWorkData, WorkDataSummary } from "../../../../lib/types/lists";
-import { SimilarWork } from "../../../../lib/types/recommendations";
+import { ClubType, WorkType } from "../../../../lib/types/generated/db";
+import { type DetailedWorkData, type WorkDataSummary } from "../../../../lib/types/lists";
+import { type SimilarWork } from "../../../../lib/types/recommendations";
 import bookProvider from "./bookProvider";
 import movieProvider from "./movieProvider";
-import { MediaProvider } from "./types";
+import tvProvider from "./tvProvider";
+import { type MediaProvider } from "./types";
 
 /**
  * The provider registry. To support a new club type: add the enum value
@@ -12,12 +13,25 @@ import { MediaProvider } from "./types";
  * other part of the review/list/club core needs to change.
  */
 const providers: Record<WorkType, MediaProvider> = {
-  [WorkType.movie]: movieProvider,
-  [WorkType.book]: bookProvider,
+  [WorkType.MOVIE]: movieProvider,
+  [WorkType.BOOK]: bookProvider,
+  [WorkType.TV]: tvProvider,
 };
 
 export function getProvider(type: WorkType): MediaProvider {
   return providers[type];
+}
+
+// A club's type maps 1:1 to the work type its works use.
+const providersByClubType: Record<ClubType, MediaProvider> = {
+  [ClubType.MOVIE]: movieProvider,
+  [ClubType.BOOK]: bookProvider,
+  [ClubType.TV]: tvProvider,
+};
+
+/** The provider for the works a club of `type` reviews. */
+export function providerForClub(type: ClubType): MediaProvider {
+  return providersByClubType[type];
 }
 
 /** Every registered provider — used by the scheduled refresh to sweep all types. */

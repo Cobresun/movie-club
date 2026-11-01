@@ -2,7 +2,7 @@ import { sql } from "kysely";
 
 import { selectBestVolume } from "../../lib/bookMatching";
 import { hasValue } from "../../lib/checks/checks.js";
-import { GoogleBooksVolume } from "../../lib/types/book";
+import { type GoogleBooksVolume } from "../../lib/types/book";
 import { WorkType } from "../../lib/types/generated/db.js";
 import { db } from "../../netlify/functions/utils/database";
 import bookProvider, {
@@ -34,7 +34,10 @@ interface Miss {
   detail?: string;
 }
 
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const sleep = (ms: number) =>
+  new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
 
 async function findMatch(
   title: string,
@@ -68,7 +71,7 @@ async function migrateBooksToGoogleBooks() {
     .selectFrom("work")
     .select("external_id")
     .distinct()
-    .where("type", "=", WorkType.book)
+    .where("type", "=", WorkType.BOOK)
     .where(sql<boolean>`external_id ~ ${OPEN_LIBRARY_ID_PATTERN}`)
     .execute();
 
@@ -92,7 +95,7 @@ async function migrateBooksToGoogleBooks() {
       .selectFrom("work")
       .select("title")
       .where("external_id", "=", oldId)
-      .where("type", "=", WorkType.book)
+      .where("type", "=", WorkType.BOOK)
       .executeTakeFirst();
     const title = details?.title ?? workRow?.title;
     if (!hasValue(title)) {
@@ -138,7 +141,7 @@ async function migrateBooksToGoogleBooks() {
           await trx
             .updateTable("work")
             .set({ external_id: match.id })
-            .where("type", "=", WorkType.book)
+            .where("type", "=", WorkType.BOOK)
             .where("external_id", "=", oldId)
             .execute();
           await trx.deleteFrom("book_details").where("external_id", "=", oldId).execute();
@@ -179,6 +182,8 @@ async function migrateBooksToGoogleBooks() {
 }
 
 migrateBooksToGoogleBooks()
-  .then(() => console.log("Books-to-Google migration completed"))
+  .then(() => {
+    console.log("Books-to-Google migration completed");
+  })
   .catch(console.error)
-  .finally(() => db.destroy());
+  .finally(() => void db.destroy());

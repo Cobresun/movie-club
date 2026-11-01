@@ -1,6 +1,7 @@
-import { DetailedBookData } from "../../../lib/types/book";
+import { type DetailedBookData } from "../../../lib/types/book";
 import { WorkType } from "../../../lib/types/generated/db";
-import { MovieDataSummary } from "../../../lib/types/movie";
+import { type MovieDataSummary } from "../../../lib/types/movie";
+import { type TvDataSummary } from "../../../lib/types/tv";
 
 /**
  * Score and review metadata shared by every reviewed work, regardless of
@@ -21,7 +22,7 @@ export interface WorkStatsBase {
 }
 
 export interface MovieData extends WorkStatsBase {
-  type: WorkType.movie;
+  type: WorkType.MOVIE;
   genres: string[];
   production_companies: string[];
   production_countries: string[];
@@ -29,20 +30,27 @@ export interface MovieData extends WorkStatsBase {
 }
 
 export interface BookData extends WorkStatsBase {
-  type: WorkType.book;
+  type: WorkType.BOOK;
   // Optional: book stats are score-only in Phase 1, so a book review without
   // OpenLibrary metadata still counts toward statistics.
   externalData?: DetailedBookData;
 }
 
-export type WorkStatsData = MovieData | BookData;
+export interface TvData extends WorkStatsBase {
+  type: WorkType.TV;
+  // Only episodes count (`isScoredUnit`), and a work reads as one only once
+  // its metadata has cached — the same rule movie stats apply.
+  externalData?: TvDataSummary;
+}
+
+export type WorkStatsData = MovieData | BookData | TvData;
 
 export function isMovieStats(work: WorkStatsData): work is MovieData {
-  return work.type === WorkType.movie;
+  return work.type === WorkType.MOVIE;
 }
 
 export function isBookStats(work: WorkStatsData): work is BookData {
-  return work.type === WorkType.book;
+  return work.type === WorkType.BOOK;
 }
 
 export type HistogramData = {

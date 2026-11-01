@@ -7,7 +7,6 @@
  * email leaves the process, and MSW catches that at Resend's endpoint — which
  * is also how these tests read the confirmation link, exactly as a user would.
  */
-import { describe, expect, it, vi } from "vitest";
 
 import { handler } from "../auth";
 import { handler as clubHandler } from "../club/index";
@@ -170,7 +169,7 @@ describe("GET /api/auth/get-session", () => {
     expect(res.body).toBeNull();
   });
 
-  // The browser's session cookie lasts a week from the last time it was
+  // The browser's session cookie lasts a month from the last time it was
   // issued, so a regular user stays signed in only if get-session keeps
   // reissuing it. A phone returning to a backgrounded tab fires get-session and
   // the app's own refetches at once, so API routes must not renew the session
@@ -203,7 +202,7 @@ describe("GET /api/auth/get-session", () => {
       const reissued = (session.multiValueHeaders["Set-Cookie"] ?? []).find((setCookie) =>
         setCookie.startsWith("better-auth.session_token="),
       );
-      expect(reissued).toMatch(/Max-Age=604800/);
+      expect(reissued).toMatch(/Max-Age=2592000/);
     } finally {
       vi.useRealTimers();
     }

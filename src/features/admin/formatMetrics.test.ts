@@ -1,5 +1,3 @@
-import { describe, expect, it } from "vitest";
-
 import {
   formatBucket,
   formatChange,
@@ -47,19 +45,25 @@ describe("ratePercent / rateFraction", () => {
 
 describe("formatChange", () => {
   it("is a percentage when there is a base to take one of", () => {
-    expect(formatChange({ current: 14, previous: 10 })).toEqual({ label: "+40%", direction: "up" });
-    expect(formatChange({ current: 5, previous: 10 })).toEqual({
+    expect(formatChange({ current: 14, previous: 10 })).toStrictEqual({
+      label: "+40%",
+      direction: "up",
+    });
+    expect(formatChange({ current: 5, previous: 10 })).toStrictEqual({
       label: "−50%",
       direction: "down",
     });
   });
 
   it("is the absolute change when starting from zero, rather than an infinite percentage", () => {
-    expect(formatChange({ current: 3, previous: 0 })).toEqual({ label: "+3", direction: "up" });
+    expect(formatChange({ current: 3, previous: 0 })).toStrictEqual({
+      label: "+3",
+      direction: "up",
+    });
   });
 
   it("says so when nothing moved", () => {
-    expect(formatChange({ current: 0, previous: 0 })).toEqual({
+    expect(formatChange({ current: 0, previous: 0 })).toStrictEqual({
       label: "No change",
       direction: "flat",
     });
@@ -128,7 +132,7 @@ describe("pluralize", () => {
 describe("thinLabels", () => {
   it("keeps every label when they all fit", () => {
     const show = thinLabels(5, 6);
-    expect([0, 1, 2, 3, 4].map(show)).toEqual([true, true, true, true, true]);
+    expect([0, 1, 2, 3, 4].map(show)).toStrictEqual([true, true, true, true, true]);
   });
 
   it("always labels the most recent bucket, whatever the step", () => {

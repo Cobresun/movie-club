@@ -1,4 +1,4 @@
-import type { WorkDisplay } from "../types";
+import { type WorkDisplay } from "../types";
 import { asMovie, formatRuntime } from "@/common/workDisplay";
 
 export const movieDisplay: WorkDisplay = {
@@ -21,4 +21,5 @@ export const movieDisplay: WorkDisplay = {
     return parts.length > 0 ? parts.join(" · ") : undefined;
   },
   overview: (data) => asMovie(data)?.overview,
+  actors: (details) => asMovie(details)?.actors,
 };

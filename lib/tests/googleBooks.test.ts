@@ -3,7 +3,6 @@
  * book search/browse code and the backend book provider (#396, the
  * OpenLibrary → Google Books migration).
  */
-import { describe, expect, it } from "vitest";
 
 import {
   bestCoverUrl,
@@ -13,7 +12,7 @@ import {
   splitCategories,
   stripHtml,
 } from "../googleBooks";
-import { GoogleBooksVolume } from "../types/book";
+import { type GoogleBooksVolume } from "../types/book";
 
 // ─── secureImageUrl ───────────────────────────────────────────────────────────
 
@@ -160,19 +159,19 @@ describe("sortVolumesByPopularity", () => {
   it("puts the most-rated volume first", () => {
     const sorted = sortVolumesByPopularity([volume("a", 3), volume("b", 90), volume("c", 12)]);
 
-    expect(sorted.map((v) => v.id)).toEqual(["b", "c", "a"]);
+    expect(sorted.map((v) => v.id)).toStrictEqual(["b", "c", "a"]);
   });
 
   it("treats a volume with no ratings as zero", () => {
     const sorted = sortVolumesByPopularity([volume("unrated"), volume("rated", 1)]);
 
-    expect(sorted.map((v) => v.id)).toEqual(["rated", "unrated"]);
+    expect(sorted.map((v) => v.id)).toStrictEqual(["rated", "unrated"]);
   });
 
   it("keeps Google's relevance order among equally rated volumes", () => {
     const sorted = sortVolumesByPopularity([volume("first"), volume("second"), volume("third")]);
 
-    expect(sorted.map((v) => v.id)).toEqual(["first", "second", "third"]);
+    expect(sorted.map((v) => v.id)).toStrictEqual(["first", "second", "third"]);
   });
 
   it("does not mutate the caller's array", () => {
@@ -180,7 +179,7 @@ describe("sortVolumesByPopularity", () => {
 
     sortVolumesByPopularity(volumes);
 
-    expect(volumes.map((v) => v.id)).toEqual(["a", "b"]);
+    expect(volumes.map((v) => v.id)).toStrictEqual(["a", "b"]);
   });
 });
 
@@ -188,11 +187,11 @@ describe("sortVolumesByPopularity", () => {
 
 describe("splitCategories", () => {
   it("returns nothing for a volume with no categories", () => {
-    expect(splitCategories([])).toEqual([]);
+    expect(splitCategories([])).toStrictEqual([]);
   });
 
   it("flattens a BISAC path into its individual terms", () => {
-    expect(splitCategories(["Fiction / Thrillers / Suspense"])).toEqual([
+    expect(splitCategories(["Fiction / Thrillers / Suspense"])).toStrictEqual([
       "Fiction",
       "Thrillers",
       "Suspense",
@@ -200,7 +199,7 @@ describe("splitCategories", () => {
   });
 
   it("dedupes terms repeated across paths", () => {
-    expect(splitCategories(["Fiction / Thrillers", "Fiction / Science Fiction"])).toEqual([
+    expect(splitCategories(["Fiction / Thrillers", "Fiction / Science Fiction"])).toStrictEqual([
       "Fiction",
       "Thrillers",
       "Science Fiction",
@@ -208,10 +207,10 @@ describe("splitCategories", () => {
   });
 
   it("trims stray whitespace around terms", () => {
-    expect(splitCategories(["  Fiction  /  Horror  "])).toEqual(["Fiction", "Horror"]);
+    expect(splitCategories(["  Fiction  /  Horror  "])).toStrictEqual(["Fiction", "Horror"]);
   });
 
   it("drops the empty segment left by a trailing separator", () => {
-    expect(splitCategories(["Fiction / Horror / "])).toEqual(["Fiction", "Horror"]);
+    expect(splitCategories(["Fiction / Horror / "])).toStrictEqual(["Fiction", "Horror"]);
   });
 });

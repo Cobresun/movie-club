@@ -5,7 +5,10 @@
  * The tests verify that the correct email fields are assembled and that errors
  * from the Resend client are re-thrown.
  */
-import { vi, describe, it, expect, beforeEach } from "vitest";
+
+import { type Resend } from "resend";
+
+import { sendPasswordResetEmail, sendVerificationEmail } from "../email";
 
 // ─── Mock: resend ─────────────────────────────────────────────────────────────
 // vi.mock factories are hoisted above all variable declarations by Vitest's
@@ -26,13 +29,12 @@ const { mockSend } = vi.hoisted(() => ({
   mockSend: vi.fn<(payload: SendPayload) => Promise<SendResult>>(),
 }));
 
-vi.mock("resend", () => ({
+vi.mock(import("resend"), () => ({
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- a stub class can't structurally match the real Resend constructor; the SUT only calls emails.send
   Resend: class {
     emails = { send: mockSend };
-  },
+  } as unknown as typeof Resend,
 }));
-
-import { sendPasswordResetEmail, sendVerificationEmail } from "../email";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -48,7 +50,7 @@ describe("sendVerificationEmail", () => {
 
     expect(mockSend).toHaveBeenCalledOnce();
     const call = mockSend.mock.calls[0]?.[0];
-    expect(call?.to).toEqual(["user@example.com"]);
+    expect(call?.to).toStrictEqual(["user@example.com"]);
   });
 
   it("uses the verification email subject", async () => {
@@ -117,7 +119,7 @@ describe("sendPasswordResetEmail", () => {
 
     expect(mockSend).toHaveBeenCalledOnce();
     const call = mockSend.mock.calls[0]?.[0];
-    expect(call?.to).toEqual(["user@example.com"]);
+    expect(call?.to).toStrictEqual(["user@example.com"]);
   });
 
   it("uses the password reset subject", async () => {

@@ -7,14 +7,18 @@ import {
   splitCategories,
   stripHtml,
 } from "../../../../lib/googleBooks";
-import { DetailedBookData } from "../../../../lib/types/book";
+import { type DetailedBookData } from "../../../../lib/types/book";
 import { WorkType } from "../../../../lib/types/generated/db";
-import { DetailedWorkData, WorkDataSummary } from "../../../../lib/types/lists";
-import { MovieCastMember } from "../../../../lib/types/movie";
-import { SimilarWork } from "../../../../lib/types/recommendations";
+import {
+  type DetailedWorkData,
+  type ListInsertDto,
+  type WorkDataSummary,
+} from "../../../../lib/types/lists";
+import { type SimilarWork } from "../../../../lib/types/recommendations";
+import { type CastMember } from "../../../../lib/types/tmdb";
 import { db } from "../database";
 import { getGoogleBooksVolume } from "./googleBooks";
-import { MediaProvider, numOrUndefined, RefreshResult } from "./types";
+import { type MediaProvider, numOrUndefined, type RefreshResult } from "./types";
 
 /**
  * Matches legacy OpenLibrary work keys (e.g. "OL45804W") that the
@@ -89,7 +93,8 @@ function detailsQuery(externalIds: string[]) {
 }
 
 class BookProvider implements MediaProvider {
-  readonly type = WorkType.book;
+  readonly type = WorkType.BOOK;
+  readonly defaultListTitle = "Reading List";
 
   async fetchAndCacheDetails(externalId: string): Promise<void> {
     // Skip the Google Books round trip when details are already cached — the
@@ -171,8 +176,12 @@ class BookProvider implements MediaProvider {
 
   // Books have no cast; the statistics equivalent (authors) already ships in
   // the summary payload.
-  getCast(): Promise<Map<string, MovieCastMember[]>> {
-    return Promise.resolve(new Map<string, MovieCastMember[]>());
+  getCast(): Promise<Map<string, CastMember[]>> {
+    return Promise.resolve(new Map<string, CastMember[]>());
+  }
+
+  resolveChild(): Promise<ListInsertDto | undefined> {
+    return Promise.resolve(undefined);
   }
 
   async getDiscussionPrompt(work: { title: string; externalId: string | null }): Promise<string> {
@@ -206,7 +215,7 @@ If you do not recognize this book or cannot confirm it is a real book, return 0 
 
   // Google Books has no similar-volumes endpoint to draw candidates from.
   getSimilarWorks(): Promise<Map<string, SimilarWork[]>> {
-    return Promise.resolve(new Map());
+    return Promise.resolve(new Map<string, SimilarWork[]>());
   }
 
   async refreshStaleDetails(limit: number): Promise<RefreshResult> {

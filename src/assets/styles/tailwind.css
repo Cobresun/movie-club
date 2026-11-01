@@ -75,6 +75,20 @@
   animation: fade-up var(--motion-slow) var(--ease-standard) both;
 }
 
+/* One-shot glow for a row that has just arrived (a show the reader added),
+   so the eye finds it; it fades back to the row's own border. */
+@keyframes just-added {
+  from {
+    box-shadow: 0 0 0 2px rgb(33 150 243 / 0.7);
+  }
+  to {
+    box-shadow: 0 0 0 2px rgb(33 150 243 / 0);
+  }
+}
+.animate-just-added {
+  animation: just-added 2.4s var(--ease-standard) both;
+}
+
 /* Lazy-loaded images (v-lazy-load, src/directives/LazyLoad.ts) fade in once
    they finish loading instead of popping in. Transform is listed too so a
    hover zoom on the same image keeps its own transition. */

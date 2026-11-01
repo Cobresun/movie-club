@@ -2,8 +2,8 @@ import { DateTime } from "luxon";
 
 import { hasElements, hasValue, isDefined } from "../../../lib/checks/checks.js";
 import { WorkType } from "../../../lib/types/generated/db";
-import { DetailedReviewListItem } from "../../../lib/types/lists";
-import { CLUB_TYPE_CONFIG } from "@/common/clubType";
+import { type DetailedReviewListItem } from "../../../lib/types/lists";
+import { CLUB_TYPE_CONFIG, isScoredUnit } from "@/common/clubType";
 import { asBook, asMovie, formatRuntime } from "@/common/workDisplay";
 
 /**
@@ -246,7 +246,7 @@ const divisiveRecord: FactGenerator = (ctx) => {
 const MIN_WORKS_FOR_YEAR_RECORD = 5;
 
 const yearRecord: FactGenerator = (ctx) => {
-  const year = ctx.targetDate.year;
+  const { year } = ctx.targetDate;
   const cohort = ctx.scored.filter((work) => utcDate(work.createdDate).year === year);
   if (cohort.length < MIN_WORKS_FOR_YEAR_RECORD) return undefined;
   const others = cohort
@@ -283,7 +283,7 @@ function personRecord(
   ctx: FactContext,
   targetPeople: readonly string[],
   peopleOf: (work: DetailedReviewListItem) => readonly string[],
-  describe: (count: number, name: string) => { high: string; low: string },
+  phraseFor: (count: number, name: string) => { high: string; low: string },
 ): ReviewFact | undefined {
   for (const name of targetPeople) {
     const others = ctx.scored
@@ -291,7 +291,7 @@ function personRecord(
       .map(averageOf)
       .filter(isDefined);
     if (others.length + 1 < MIN_WORKS_FOR_PERSON_RECORD) continue;
-    const phrasing = describe(others.length + 1, name);
+    const phrasing = phraseFor(others.length + 1, name);
     if (ctx.targetAverage > Math.max(...others)) {
       return fact("personHigh", "A new favorite", phrasing.high);
     }
@@ -478,7 +478,7 @@ const tmdbDeviation: FactGenerator = (ctx) => {
  * pattern as WORK_STATS_BUILDERS) so a new club type must declare its list.
  */
 const FACT_GENERATORS: Record<WorkType, FactGenerator[]> = {
-  [WorkType.movie]: [
+  [WorkType.MOVIE]: [
     allTimeRecord,
     clubMilestone,
     watchTimeMilestone,
@@ -492,7 +492,7 @@ const FACT_GENERATORS: Record<WorkType, FactGenerator[]> = {
     firstGenre,
     tmdbDeviation,
   ],
-  [WorkType.book]: [
+  [WorkType.BOOK]: [
     allTimeRecord,
     clubMilestone,
     pagesMilestone,
@@ -502,6 +502,9 @@ const FACT_GENERATORS: Record<WorkType, FactGenerator[]> = {
     oldestBook,
     longestBook,
   ],
+  // The media-agnostic generators only: the movie and book ones read metadata
+  // an episode does not carry.
+  [WorkType.TV]: [allTimeRecord, clubMilestone, divisiveRecord, yearRecord],
 };
 
 const nounFor = (type: WorkType): string =>
@@ -521,12 +524,14 @@ export function computeReviewFact(
   workId: string,
 ): ReviewFact | undefined {
   const target = reviews.find((review) => review.id === workId);
-  if (!isDefined(target)) return undefined;
+  if (!isDefined(target) || !isScoredUnit(target)) return undefined;
 
   const targetAverage = averageOf(target);
   if (!isDefined(targetAverage)) return undefined;
 
-  const works = [...reviews].sort((a, b) => a.createdDate.localeCompare(b.createdDate));
+  const works = reviews
+    .filter(isScoredUnit)
+    .sort((a, b) => a.createdDate.localeCompare(b.createdDate));
   const position = works.findIndex((work) => work.id === target.id) + 1;
 
   const ctx: FactContext = {

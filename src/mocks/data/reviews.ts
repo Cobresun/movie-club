@@ -1,12 +1,12 @@
 import { WorkType } from "../../../lib/types/generated/db";
-import { DetailedReviewListItem } from "../../../lib/types/lists";
+import { type DetailedReviewListItem } from "../../../lib/types/lists";
 
 const reviews: DetailedReviewListItem[] = [
   {
     id: "1",
     title: "12 Angry Men",
     createdDate: "2024-05-28T04:46:37.751Z",
-    type: WorkType.movie,
+    type: WorkType.MOVIE,
     imageUrl: "https://image.tmdb.org/t/p/w154//ow3wq89wM8qd5X7hWKxiRfsFf9C.jpg",
     externalId: "389",
     scores: {
@@ -57,7 +57,7 @@ const reviews: DetailedReviewListItem[] = [
     id: "2",
     title: "The Empire Strikes Back",
     createdDate: "2024-05-28T04:47:16.601Z",
-    type: WorkType.movie,
+    type: WorkType.MOVIE,
     imageUrl: "https://image.tmdb.org/t/p/w154//nNAeTmF4CtdSgMDplXTDPOpYzsX.jpg",
     externalId: "1891",
     scores: {

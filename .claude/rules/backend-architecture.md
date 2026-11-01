@@ -16,7 +16,7 @@ router.get("/:clubSlug", validClubSlug, async ({ clubSlug }, res) =>
 );
 ```
 
-Routers are mounted from `netlify/functions/club/index.ts` and `member.ts`, with a few single-purpose functions alongside them (`admin.ts`, `daily-game.ts`, `og-image.ts`) — read those for the current route surface rather than relying on a list here.
+Routers are mounted from `netlify/functions/club/index.ts` and `member.ts` — read those for the current route surface rather than relying on a list here.
 
 ## Request pipeline
 
@@ -66,7 +66,13 @@ The year moves forward through `AwardsStep` one phase at a time and never back �
 
 Repository classes in `netlify/functions/repositories/` own all queries — one per aggregate, named `<Thing>Repository`. Kysely with generated types throughout.
 
-Stale-metadata refresh is deliberately _not_ a repository: each `MediaProvider` in `netlify/functions/utils/providers/` implements `refreshStaleDetails(limit)` for its own source (TMDB, Google Books), and `scheduled-work-refresh.ts` sweeps them. `scheduled-daily-game-catalog.ts` tops up the daily game's pool with TMDB's most-rated movies every hour (it adds rows to `movie_details` that no club references, so those are refreshed too), `scheduled-db-cleanup.ts` reaps stale preview databases, and `scheduled-metrics-snapshot.ts` records the observability rollups `MetricsRepository` reads.
+A score always lands on exactly one work. A work can have children (`work.parent_work_id` — a TV show's episodes), which are on a list only through their parent: they are never `work_list_item` rows, the reviews queries reach them through the parent's item, and deleting the parent cascades to them. `POST /reviews` scores `workId`, or, given an opaque `childExternalId`, the child of `workId` that `MediaProvider.resolveChild(parent, childExternalId)` resolves — upserted under the parent the first time it is scored. A provider with no children, or a child its source does not list (a season, an episode TMDB does not have), returns undefined and the handler refuses it with a 400; so there is no per-level score endpoint and no club-type field or branch in the handler. A TV show score is its own review — it is never written down to the episodes beneath it, and a fan-out that did so is the mistake this design exists to prevent. A season is never scored at all: it is each member's average over their episodes, computed in the client.
+
+The TV provider resolves an episode from its own TMDB cache. When that cache lacks what the client (which reads TMDB live) offered — an episode that aired tonight, a newly announced season — it re-reads TMDB once, and only if the cached listing is over 15 minutes old; a season TMDB 404s is refused, never a 500 or an empty cached season.
+
+A review references its work and its list separately (`fk_review_work_id`, `fk_review_list_id`) rather than the list item, so a child can be reviewed without being an item. Taking a work off a list — deleting the item or moving it to another list — therefore deletes that list's reviews of the work and its children explicitly (`ListRepository`); nothing cascades from the item.
+
+Stale-metadata refresh is deliberately _not_ a repository: each `MediaProvider` in `netlify/functions/utils/providers/` implements `refreshStaleDetails(limit)` for its own source (TMDB, Google Books), and `scheduled-work-refresh.ts` sweeps them. `scheduled-db-cleanup.ts` reaps stale preview databases, and `scheduled-metrics-snapshot.ts` records the observability rollups `MetricsRepository` reads.
 
 Deploy-time behavior lives in Netlify plugins: `netlify/plugins/preview-database/` (per-PR database selection, plus the shared-`dev` migration sync on production deploys) and `netlify/plugins/auth-config/`.
 
@@ -76,4 +82,4 @@ Deploy-time behavior lives in Netlify plugins: `netlify/plugins/preview-database
 
 **Set-Cookie gotcha:** `Headers.forEach` folds repeated `Set-Cookie` values into one malformed header. Use `getSetCookie()` and return them via Netlify's `multiValueHeaders`.
 
-**Only the auth endpoint renews sessions.** `loggedIn` reads the session with `disableRefresh`, because `auth.api.getSession` has nowhere to send a Set-Cookie: a renewal there extends the database row while the browser's cookie still lapses a week after it was issued.
+**Only the auth endpoint renews sessions.** `loggedIn` reads the session with `disableRefresh`, because `auth.api.getSession` has nowhere to send a Set-Cookie: a renewal there extends the database row while the browser's cookie still lapses a month after it was issued.

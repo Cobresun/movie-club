@@ -7,6 +7,9 @@ import {
   googleBooksVolume,
   tmdbConfig,
   tmdbMovie,
+  tmdbTvSeason,
+  tmdbTvShow,
+  TV_SEASON_EPISODE_COUNTS,
   tmdbPage,
 } from "../fixtures/external";
 
@@ -28,7 +31,7 @@ export const TMDB = "https://api.themoviedb.org/3";
 export const GOOGLE_BOOKS = "https://www.googleapis.com/books/v1";
 // The Gemini path ends in `models/<model>:generateContent`; the colon would be
 // read as a path parameter by MSW's matcher, so match the host instead.
-const GEMINI = /generativelanguage\.googleapis\.com/;
+const GEMINI = /generativelanguage\.googleapis\.com/u;
 
 const CLOUDINARY = "https://api.cloudinary.com/v1_1/:cloud";
 export const CLOUDINARY_UPLOAD = `${CLOUDINARY}/image/upload`;
@@ -63,6 +66,18 @@ export const server = setupServer(
     HttpResponse.json(tmdbMovie(Number(params.movieId))),
   ),
 
+  // TMDB 404s a season the show does not have, rather than listing it empty.
+  http.get(`${TMDB}/tv/:showId/season/:seasonNumber`, ({ params }) => {
+    const seasonNumber = Number(params.seasonNumber);
+    if (!(seasonNumber in TV_SEASON_EPISODE_COUNTS)) {
+      return HttpResponse.json({ status_code: 34 }, { status: 404 });
+    }
+    return HttpResponse.json(tmdbTvSeason(Number(params.showId), seasonNumber));
+  }),
+
+  http.get(`${TMDB}/tv/:showId`, ({ params }) =>
+    HttpResponse.json(tmdbTvShow(Number(params.showId))),
+  ),
   http.get(`${TMDB}/movie/:movieId/recommendations`, () => HttpResponse.json(tmdbPage([]))),
 
   http.get(`${GOOGLE_BOOKS}/volumes/:volumeId`, ({ params }) =>

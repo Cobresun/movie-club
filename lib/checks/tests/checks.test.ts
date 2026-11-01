@@ -1,5 +1,3 @@
-import { describe, expect, it } from "vitest";
-
 import {
   ensure,
   filterUndefinedProperties,
@@ -8,7 +6,43 @@ import {
   isDefined,
   isString,
   isTrue,
+  type NonEmptyArray,
 } from "../checks";
+
+// The "narrows the type inside the guard" tests let the guard's `asserts`
+// signature drive TypeScript's narrowing. The conditionals that provide it are
+// declared here (module scope) rather than inside the test bodies.
+function guardDefined<T>(value: T | null | undefined): asserts value is T {
+  if (!isDefined(value)) {
+    throw new Error("Expected value to be defined");
+  }
+}
+
+function guardHasValue(value: string | null | undefined): asserts value is string {
+  if (!hasValue(value)) {
+    throw new Error("Expected value to be present");
+  }
+}
+
+function guardIsString(value: unknown): asserts value is string {
+  if (!isString(value)) {
+    throw new Error("Expected value to be a string");
+  }
+}
+
+function guardIsTrue(value: unknown): asserts value is true {
+  if (!isTrue(value)) {
+    throw new Error("Expected value to be true");
+  }
+}
+
+function guardHasElements<T>(
+  arr: readonly T[] | null | undefined,
+): asserts arr is NonEmptyArray<T> {
+  if (!hasElements(arr)) {
+    throw new Error("Expected array to have elements");
+  }
+}
 
 // ---------- isDefined ----------
 
@@ -44,6 +78,13 @@ describe("isDefined", () => {
   it("returns false for undefined", () => {
     expect(isDefined(undefined)).toBe(false);
   });
+
+  it("narrows the type to non-nullable T", () => {
+    const value: string | null = "test";
+    guardDefined(value);
+    // TypeScript should infer value as string here
+    expect(value.toUpperCase()).toBe("TEST");
+  });
 });
 
 // ---------- hasValue ----------
@@ -72,6 +113,12 @@ describe("hasValue", () => {
 
   it("returns false for a string of length 0 created via constructor", () => {
     expect(hasValue(String())).toBe(false);
+  });
+
+  it("narrows the type to string inside the guard", () => {
+    const value: string | undefined = "movie";
+    guardHasValue(value);
+    expect(value.length).toBeGreaterThan(0);
   });
 });
 
@@ -109,6 +156,12 @@ describe("isString", () => {
   it("returns false for an array", () => {
     expect(isString([])).toBe(false);
   });
+
+  it("narrows unknown to string inside the guard", () => {
+    const value: unknown = "test";
+    guardIsString(value);
+    expect(value.toUpperCase()).toBe("TEST");
+  });
 });
 
 // ---------- isTrue ----------
@@ -137,6 +190,13 @@ describe("isTrue", () => {
   it("returns false for undefined", () => {
     expect(isTrue(undefined)).toBe(false);
   });
+
+  it("narrows unknown to true inside the guard", () => {
+    const value: unknown = true;
+    guardIsTrue(value);
+    // TypeScript should see value as `true`
+    expect(value).toBe(true);
+  });
 });
 
 // ---------- hasElements ----------
@@ -163,13 +223,20 @@ describe("hasElements", () => {
   });
 
   it("works with readonly arrays", () => {
-    const arr: ReadonlyArray<number> = [1, 2];
+    const arr: readonly number[] = [1, 2];
     expect(hasElements(arr)).toBe(true);
   });
 
   it("works with an empty readonly array", () => {
-    const arr: ReadonlyArray<number> = [];
+    const arr: readonly number[] = [];
     expect(hasElements(arr)).toBe(false);
+  });
+
+  it("narrows to NonEmptyArray inside the guard", () => {
+    const arr: string[] | null = ["a", "b"];
+    guardHasElements(arr);
+    // The first element is guaranteed to exist by the NonEmptyArray type
+    expect(arr[0]).toBe("a");
   });
 });
 
@@ -198,7 +265,9 @@ describe("ensure", () => {
   });
 
   it("throws TypeError when value is undefined", () => {
-    expect(() => ensure(undefined)).toThrow(TypeError);
+    expect(() => {
+      ensure(undefined);
+    }).toThrow(TypeError);
   });
 
   it("throws the default message when none provided", () => {
@@ -206,7 +275,9 @@ describe("ensure", () => {
   });
 
   it("throws a custom message when provided", () => {
-    expect(() => ensure(undefined, "Custom error message")).toThrow("Custom error message");
+    expect(() => {
+      ensure(undefined, "Custom error message");
+    }).toThrow("Custom error message");
   });
 
   it("does not throw for an empty string", () => {
@@ -223,28 +294,28 @@ describe("ensure", () => {
 
 describe("filterUndefinedProperties", () => {
   it("returns the same key-value pairs when all values are defined", () => {
-    expect(filterUndefinedProperties({ a: "1", b: "2" })).toEqual({
+    expect(filterUndefinedProperties({ a: "1", b: "2" })).toStrictEqual({
       a: "1",
       b: "2",
     });
   });
 
   it("removes properties with undefined values", () => {
-    expect(filterUndefinedProperties({ a: "1", b: undefined })).toEqual({
+    expect(filterUndefinedProperties({ a: "1", b: undefined })).toStrictEqual({
       a: "1",
     });
   });
 
   it("returns an empty object when all values are undefined", () => {
-    expect(filterUndefinedProperties({ a: undefined, b: undefined })).toEqual({});
+    expect(filterUndefinedProperties({ a: undefined, b: undefined })).toStrictEqual({});
   });
 
   it("returns an empty object for an empty input", () => {
-    expect(filterUndefinedProperties({})).toEqual({});
+    expect(filterUndefinedProperties({})).toStrictEqual({});
   });
 
   it("preserves empty string values", () => {
-    expect(filterUndefinedProperties({ a: "", b: undefined })).toEqual({
+    expect(filterUndefinedProperties({ a: "", b: undefined })).toStrictEqual({
       a: "",
     });
   });
@@ -255,7 +326,7 @@ describe("filterUndefinedProperties", () => {
       y: undefined,
       z: "world",
     };
-    expect(filterUndefinedProperties(input)).toEqual({
+    expect(filterUndefinedProperties(input)).toStrictEqual({
       x: "hello",
       z: "world",
     });

@@ -1,4 +1,4 @@
-import { Handler, HandlerContext, HandlerEvent } from "@netlify/functions";
+import { type Handler, type HandlerContext, type HandlerEvent } from "@netlify/functions";
 
 import { hasValue, isDefined } from "../../lib/checks/checks.js";
 import ClubRepository from "./repositories/ClubRepository";
@@ -22,7 +22,7 @@ router.get("/", async ({ event }, res) => {
       return res(notFound("Club not found"));
     }
 
-    const clubId = String(club.id);
+    const clubId = club.id;
 
     // Fetch review data using the shared service
     const reviewData = await SharedReviewService.getSharedReviewData(clubId, workId);
@@ -33,14 +33,14 @@ router.get("/", async ({ event }, res) => {
     }
 
     const movieTitle = reviewData.work.title;
-    const scores = reviewData.reviews.map((r) => Number(r.score)).filter((s) => !isNaN(s) && s > 0);
+    const scores = reviewData.reviews.map((r) => r.score).filter((s) => !isNaN(s) && s > 0);
     const avgScore =
       scores.length > 0 ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1) : "N/A";
     const reviewCount = scores.length;
 
     // Use the work's stored image URL (TMDB poster for movies, Google Books
     // cover for books) so OG images are generic across club types.
-    const imageUrl = reviewData.work.imageUrl;
+    const { imageUrl } = reviewData.work;
 
     if (imageUrl !== undefined) {
       return res(redirect(imageUrl));
@@ -57,7 +57,7 @@ router.get("/", async ({ event }, res) => {
  * Generate a simple SVG image as fallback
  */
 function generateFallbackSVG(title: string, score: string, count: number) {
-  const truncatedTitle = title.length > 40 ? title.substring(0, 37) + "..." : title;
+  const truncatedTitle = title.length > 40 ? `${title.substring(0, 37)}...` : title;
 
   const svgContent = `<?xml version="1.0" encoding="UTF-8"?>
 <svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
@@ -107,15 +107,14 @@ function generateFallbackSVG(title: string, score: string, count: number) {
 
 function escapeXml(text: string): string {
   return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
+    .replace(/&/gu, "&amp;")
+    .replace(/</gu, "&lt;")
+    .replace(/>/gu, "&gt;")
+    .replace(/"/gu, "&quot;")
+    .replace(/'/gu, "&apos;");
 }
 
-const handler: Handler = async (event: HandlerEvent, context: HandlerContext) => {
-  return router.route({ event, context, params: {} });
-};
+const handler: Handler = (event: HandlerEvent, context: HandlerContext) =>
+  router.route({ event, context, params: {} });
 
 export { handler };

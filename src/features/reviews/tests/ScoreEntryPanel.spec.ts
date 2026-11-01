@@ -1,7 +1,7 @@
 import { screen, waitFor } from "@testing-library/vue";
 import { http, HttpResponse } from "msw";
-import { vi } from "vitest";
 
+import { WorkType } from "../../../../lib/types/generated/db";
 import ScoreEntryPanel from "../components/ScoreEntryPanel.vue";
 import { ScoreAssistKey } from "../scoreAssist";
 import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
@@ -10,12 +10,14 @@ import { render } from "@/tests/utils";
 
 mockIntersectionObserver();
 
+const TARGET = { id: "target", type: WorkType.MOVIE };
+
 /** Provide a Score Assist stub so the assist button's gating can be exercised. */
 function withAssist(isEligible: boolean) {
   return {
     global: {
       provide: {
-        [ScoreAssistKey]: { isEligible: () => isEligible, open: vi.fn() },
+        [ScoreAssistKey]: { isEligible: () => isEligible, open: vi.fn<() => void>() },
       },
     },
   };
@@ -23,7 +25,7 @@ function withAssist(isEligible: boolean) {
 
 describe("ScoreEntryPanel", () => {
   it("renders the score field and disables Save until a value is entered", async () => {
-    const { user } = render(ScoreEntryPanel, { props: { workId: "target" } });
+    const { user } = render(ScoreEntryPanel, { props: { work: TARGET } });
 
     expect(screen.getByRole("spinbutton", { name: "Score" })).toBeInTheDocument();
 
@@ -37,7 +39,7 @@ describe("ScoreEntryPanel", () => {
 
   it("shows the verdict band for a prefilled score", () => {
     render(ScoreEntryPanel, {
-      props: { workId: "target", reviewId: "rev1", score: 4.4 },
+      props: { work: TARGET, reviewId: "rev1", score: 4.4 },
     });
 
     expect(screen.getByRole("spinbutton", { name: "Score" })).toHaveValue(4.4);
@@ -45,7 +47,7 @@ describe("ScoreEntryPanel", () => {
   });
 
   it("clamps typed scores above the max, explains it, and shakes the input", async () => {
-    const { user } = render(ScoreEntryPanel, { props: { workId: "target" } });
+    const { user } = render(ScoreEntryPanel, { props: { work: TARGET } });
 
     const input = screen.getByRole("spinbutton", { name: "Score" });
     await user.type(input, "12");
@@ -56,7 +58,7 @@ describe("ScoreEntryPanel", () => {
   });
 
   it("truncates typing beyond two decimals and shakes the input", async () => {
-    const { user } = render(ScoreEntryPanel, { props: { workId: "target" } });
+    const { user } = render(ScoreEntryPanel, { props: { work: TARGET } });
 
     const input = screen.getByRole("spinbutton", { name: "Score" });
     await user.type(input, "8.555");
@@ -74,13 +76,15 @@ describe("ScoreEntryPanel", () => {
       }),
     );
 
-    const rendered = render(ScoreEntryPanel, { props: { workId: "target" } });
+    const rendered = render(ScoreEntryPanel, { props: { work: TARGET } });
     const { user } = rendered;
 
     await user.type(screen.getByRole("spinbutton", { name: "Score" }), "8.5");
     await user.click(screen.getByRole("button", { name: "Save score" }));
 
-    await waitFor(() => expect(posted).toEqual({ workId: "target", score: 8.5 }));
+    await waitFor(() => {
+      expect(posted).toStrictEqual({ workId: "target", score: 8.5 });
+    });
     expect(rendered.emitted().submit).toHaveLength(1);
   });
 
@@ -94,7 +98,7 @@ describe("ScoreEntryPanel", () => {
     );
 
     const { user } = render(ScoreEntryPanel, {
-      props: { workId: "target", reviewId: "rev1", score: 6 },
+      props: { work: TARGET, reviewId: "rev1", score: 6 },
     });
 
     const input = screen.getByRole("spinbutton", { name: "Score" });
@@ -103,7 +107,9 @@ describe("ScoreEntryPanel", () => {
     await user.type(input, "7");
     await user.click(screen.getByRole("button", { name: "Save score" }));
 
-    await waitFor(() => expect(put).toEqual({ score: 7 }));
+    await waitFor(() => {
+      expect(put).toStrictEqual({ score: 7 });
+    });
   });
 
   it("autofocuses a prefilled field with the caret at the end, not selecting it", async () => {
@@ -114,11 +120,13 @@ describe("ScoreEntryPanel", () => {
     const select = vi.spyOn(HTMLInputElement.prototype, "select");
 
     render(ScoreEntryPanel, {
-      props: { workId: "target", reviewId: "rev1", score: 8.5, autofocus: true },
+      props: { work: TARGET, reviewId: "rev1", score: 8.5, autofocus: true },
     });
 
     const input = screen.getByRole("spinbutton", { name: "Score" });
-    await waitFor(() => expect(input).toHaveFocus());
+    await waitFor(() => {
+      expect(input).toHaveFocus();
+    });
 
     // "8.5" — caret past the last character, so a keystroke appends instead of
     // replacing the whole score.
@@ -131,18 +139,18 @@ describe("ScoreEntryPanel", () => {
     // `score` prop, and the (mount-seeded) field must follow it rather than keep
     // the pre-assist value.
     const rendered = render(ScoreEntryPanel, {
-      props: { workId: "target", reviewId: "rev1", score: 6 },
+      props: { work: TARGET, reviewId: "rev1", score: 6 },
     });
 
     const input = screen.getByRole("spinbutton", { name: "Score" });
     expect(input).toHaveValue(6);
 
-    await rendered.rerender({ workId: "target", reviewId: "rev1", score: 8 });
+    await rendered.rerender({ work: TARGET, reviewId: "rev1", score: 8 });
     expect(input).toHaveValue(8);
   });
 
   it("offers no removal until a score has actually been saved", () => {
-    render(ScoreEntryPanel, { props: { workId: "target" } });
+    render(ScoreEntryPanel, { props: { work: TARGET } });
 
     expect(screen.queryByRole("button", { name: "Remove my score" })).not.toBeInTheDocument();
   });
@@ -157,7 +165,7 @@ describe("ScoreEntryPanel", () => {
     );
 
     const rendered = render(ScoreEntryPanel, {
-      props: { workId: "target", reviewId: "rev1", score: 6 },
+      props: { work: TARGET, reviewId: "rev1", score: 6 },
     });
     const { user } = rendered;
 
@@ -166,7 +174,9 @@ describe("ScoreEntryPanel", () => {
 
     await user.click(screen.getByRole("button", { name: "Remove" }));
 
-    await waitFor(() => expect(deleted).toBe(true));
+    await waitFor(() => {
+      expect(deleted).toBe(true);
+    });
     // The panel closes without the saved-score animation.
     expect(rendered.emitted().submit).toHaveLength(1);
     expect(rendered.emitted().saved).toBeUndefined();
@@ -182,7 +192,7 @@ describe("ScoreEntryPanel", () => {
     );
 
     const rendered = render(ScoreEntryPanel, {
-      props: { workId: "target", reviewId: "rev1", score: 6 },
+      props: { work: TARGET, reviewId: "rev1", score: 6 },
     });
     const { user } = rendered;
 
@@ -198,13 +208,13 @@ describe("ScoreEntryPanel", () => {
     // The panel doesn't open the flow itself: the host decides whether to swap
     // its own overlay content or open the standalone modal.
     const rendered = render(ScoreEntryPanel, {
-      props: { workId: "target" },
+      props: { work: TARGET },
       ...withAssist(true),
     });
     const { user } = rendered;
 
     const assist = await screen.findByRole("button", {
-      name: /Compare to decide/,
+      name: /Compare to decide/u,
     });
     await user.click(assist);
     expect(rendered.emitted().assist).toHaveLength(1);
@@ -212,10 +222,10 @@ describe("ScoreEntryPanel", () => {
 
   it("hides the assist button when the user is not eligible", () => {
     render(ScoreEntryPanel, {
-      props: { workId: "target" },
+      props: { work: TARGET },
       ...withAssist(false),
     });
 
-    expect(screen.queryByRole("button", { name: /Compare to decide/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Compare to decide/u })).not.toBeInTheDocument();
   });
 });

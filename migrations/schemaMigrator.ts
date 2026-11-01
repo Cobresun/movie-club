@@ -1,17 +1,49 @@
 import { CockroachDialect } from "@cubos/kysely-cockroach";
 import { execSync } from "child_process";
-import { promises as fs, readdirSync } from "fs";
-import { Kysely, Migrator, FileMigrationProvider } from "kysely";
+import { readdirSync } from "fs";
+import { Kysely } from "kysely";
+import { Migrator, type MigrationProvider } from "kysely/migration";
 import path from "path";
 import { Pool } from "pg";
 import { fileURLToPath } from "url";
 
 import { hasElements, hasValue, isDefined } from "../lib/checks/checks.js";
+import { orderedMigrations } from "./orderedMigrations.js";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const currentFilename = fileURLToPath(import.meta.url);
+const currentDirname = path.dirname(currentFilename);
 
-const migrationFolder = path.join(__dirname, "/schema");
+const migrationFolder = path.join(currentDirname, "/schema");
+
+/**
+ * How many entries at the head of `orderedMigrations` production had run when
+ * the list was introduced (through `20261019_RekeyAwardsCaseInsensitiveNames`).
+ * Production recorded these under their dated filenames, so they keep them;
+ * every later entry is named by its position, which sorts after every dated
+ * name.
+ */
+const LEGACY_MIGRATION_COUNT = 28;
+
+/**
+ * Names each migration by its position in `orderedMigrations` (`m0035_AddFoo`),
+ * so Kysely, which always runs migrations in name order, runs them in list
+ * order.
+ */
+function migrationName(name: string, index: number): string {
+  return index < LEGACY_MIGRATION_COUNT ? name : `m${String(index + 1).padStart(4, "0")}_${name}`;
+}
+
+const namedMigrationProvider: MigrationProvider = {
+  getMigrations: () =>
+    Promise.resolve(
+      Object.fromEntries(
+        orderedMigrations.map((migration, index) => [
+          migrationName(migration.name, index),
+          migration,
+        ]),
+      ),
+    ),
+};
 
 /**
  * Lists migration files that exist locally but not on origin/main.
@@ -48,12 +80,13 @@ function assertSafeToMigrate() {
     return;
   }
 
-  let pathname: string;
+  let parsedUrl: URL;
   try {
-    pathname = new URL(databaseUrl).pathname;
+    parsedUrl = new URL(databaseUrl);
   } catch {
     return;
   }
+  const { pathname } = parsedUrl;
 
   if (pathname !== "/dev") {
     return;
@@ -80,7 +113,9 @@ function assertSafeToMigrate() {
 
   console.error("Refusing to migrate: DATABASE_URL points at the shared `dev` database,");
   console.error("but these migrations do not exist on origin/main:");
-  newMigrations.forEach((file) => console.error(`  - ${file}`));
+  newMigrations.forEach((file) => {
+    console.error(`  - ${file}`);
+  });
   console.error("");
   console.error("Applying them would break deploy previews for every other open PR.");
   console.error("Test new migrations against a spawned database instead:");
@@ -94,7 +129,7 @@ function assertSafeToMigrate() {
   process.exit(1);
 }
 
-async function withMigrator(next: (migrator: Migrator) => Promise<void>) {
+async function withMigrator(run: (migrator: Migrator) => Promise<void>) {
   const db = new Kysely<unknown>({
     dialect: new CockroachDialect({
       pool: new Pool({
@@ -105,14 +140,10 @@ async function withMigrator(next: (migrator: Migrator) => Promise<void>) {
 
   const migrator = new Migrator({
     db,
-    provider: new FileMigrationProvider({
-      fs,
-      path,
-      migrationFolder,
-    }),
+    provider: namedMigrationProvider,
   });
 
-  await next(migrator);
+  await run(migrator);
   await db.destroy();
 }
 

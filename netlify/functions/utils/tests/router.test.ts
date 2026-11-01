@@ -1,7 +1,6 @@
-import { HandlerContext, HandlerEvent } from "@netlify/functions";
-import { describe, expect, it, vi } from "vitest";
+import { type HandlerContext, type HandlerEvent } from "@netlify/functions";
 
-import { Request, Router, createRouterResponse, isRouterResponse } from "../router";
+import { type Request, Router, createRouterResponse, isRouterResponse } from "../router";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -34,8 +33,11 @@ const stubContext: HandlerContext = {
   clientContext: undefined,
   identity: undefined,
   getRemainingTimeInMillis: () => 0,
+  // oxlint-disable-next-line typescript/no-deprecated -- required by HandlerContext; never used by routers
   done: () => {},
+  // oxlint-disable-next-line typescript/no-deprecated -- required by HandlerContext; never used by routers
   fail: () => {},
+  // oxlint-disable-next-line typescript/no-deprecated -- required by HandlerContext; never used by routers
   succeed: () => {},
 };
 
@@ -81,7 +83,7 @@ describe("isRouterResponse", () => {
 describe("Router — GET route matching", () => {
   it("responds 200 when path and method match", async () => {
     const router = new Router();
-    router.get("/items", async (_req, res) => res({ statusCode: 200 }));
+    router.get("/items", (_req, res) => res({ statusCode: 200 }));
 
     const result = await router.route(makeRequest("/items", "GET"));
     expect(result.statusCode).toBe(200);
@@ -89,7 +91,7 @@ describe("Router — GET route matching", () => {
 
   it("responds 404 for an unregistered path", async () => {
     const router = new Router();
-    router.get("/items", async (_req, res) => res({ statusCode: 200 }));
+    router.get("/items", (_req, res) => res({ statusCode: 200 }));
 
     const result = await router.route(makeRequest("/unknown", "GET"));
     expect(result.statusCode).toBe(404);
@@ -97,7 +99,7 @@ describe("Router — GET route matching", () => {
 
   it("responds 405 when path is known but method differs", async () => {
     const router = new Router();
-    router.get("/items", async (_req, res) => res({ statusCode: 200 }));
+    router.get("/items", (_req, res) => res({ statusCode: 200 }));
 
     const result = await router.route(makeRequest("/items", "POST"));
     expect(result.statusCode).toBe(405);
@@ -111,7 +113,7 @@ describe("Router — GET route matching", () => {
 describe("Router — HTTP methods", () => {
   it("routes POST correctly", async () => {
     const router = new Router();
-    router.post("/items", async (_req, res) => res({ statusCode: 201 }));
+    router.post("/items", (_req, res) => res({ statusCode: 201 }));
 
     const result = await router.route(makeRequest("/items", "POST"));
     expect(result.statusCode).toBe(201);
@@ -119,7 +121,7 @@ describe("Router — HTTP methods", () => {
 
   it("routes PUT correctly", async () => {
     const router = new Router();
-    router.put("/items/1", async (_req, res) => res({ statusCode: 200 }));
+    router.put("/items/1", (_req, res) => res({ statusCode: 200 }));
 
     const result = await router.route(makeRequest("/items/1", "PUT"));
     expect(result.statusCode).toBe(200);
@@ -127,7 +129,7 @@ describe("Router — HTTP methods", () => {
 
   it("routes DELETE correctly", async () => {
     const router = new Router();
-    router.delete("/items/1", async (_req, res) => res({ statusCode: 204 }));
+    router.delete("/items/1", (_req, res) => res({ statusCode: 204 }));
 
     const result = await router.route(makeRequest("/items/1", "DELETE"));
     expect(result.statusCode).toBe(204);
@@ -143,27 +145,27 @@ describe("Router — path parameters", () => {
     const router = new Router();
     let capturedParams: Record<string, string | undefined> = {};
 
-    router.get("/:id", async (req, res) => {
+    router.get("/:id", (req, res) => {
       capturedParams = req.params;
       return res({ statusCode: 200 });
     });
 
     await router.route(makeRequest("/42", "GET"));
-    expect(capturedParams["id"]).toBe("42");
+    expect(capturedParams.id).toBe("42");
   });
 
   it("extracts multiple path params", async () => {
     const router = new Router();
     let capturedParams: Record<string, string | undefined> = {};
 
-    router.get("/:clubSlug/items/:itemId", async (req, res) => {
+    router.get("/:clubSlug/items/:itemId", (req, res) => {
       capturedParams = req.params;
       return res({ statusCode: 200 });
     });
 
     await router.route(makeRequest("/my-club/items/99", "GET"));
-    expect(capturedParams["clubSlug"]).toBe("my-club");
-    expect(capturedParams["itemId"]).toBe("99");
+    expect(capturedParams.clubSlug).toBe("my-club");
+    expect(capturedParams.itemId).toBe("99");
   });
 });
 
@@ -174,7 +176,7 @@ describe("Router — path parameters", () => {
 describe("Router — baseUrl prefix", () => {
   it("matches when path includes the base URL prefix", async () => {
     const router = new Router("/api");
-    router.get("/items", async (_req, res) => res({ statusCode: 200 }));
+    router.get("/items", (_req, res) => res({ statusCode: 200 }));
 
     const result = await router.route(makeRequest("/api/items", "GET"));
     expect(result.statusCode).toBe(200);
@@ -182,7 +184,7 @@ describe("Router — baseUrl prefix", () => {
 
   it("does not match when path is missing the base URL prefix", async () => {
     const router = new Router("/api");
-    router.get("/items", async (_req, res) => res({ statusCode: 200 }));
+    router.get("/items", (_req, res) => res({ statusCode: 200 }));
 
     const result = await router.route(makeRequest("/items", "GET"));
     expect(result.statusCode).toBe(404);
@@ -199,12 +201,10 @@ describe("Router — middleware chaining", () => {
 
     type EnrichedRequest = Request & { userId: string };
 
-    const addUser = async (req: Request): Promise<EnrichedRequest> => {
-      return { ...req, userId: "user-123" };
-    };
+    const addUser = (req: Request): EnrichedRequest => ({ ...req, userId: "user-123" });
 
     let capturedUserId = "";
-    router.get("/profile", addUser, async (req: EnrichedRequest, res) => {
+    router.get("/profile", addUser, (req: EnrichedRequest, res) => {
       capturedUserId = req.userId;
       return res({ statusCode: 200 });
     });
@@ -215,12 +215,12 @@ describe("Router — middleware chaining", () => {
 
   it("short-circuits the chain when middleware returns a RouterResponse", async () => {
     const router = new Router();
-    const secondMiddlewareCalled = vi.fn();
+    const secondMiddlewareCalled = vi.fn<() => void>();
 
     router.get(
       "/protected",
-      async (_req, res) => res({ statusCode: 401 }),
-      async (_req, res) => {
+      (_req, res) => res({ statusCode: 401 }),
+      (_req, res) => {
         secondMiddlewareCalled();
         return res({ statusCode: 200 });
       },
@@ -249,7 +249,7 @@ describe("Router — middleware chaining", () => {
 describe("Router — error handling", () => {
   it("returns 500 when a middleware throws an error", async () => {
     const router = new Router();
-    router.get("/boom", async () => {
+    router.get("/boom", () => {
       throw new Error("Unexpected failure");
     });
 
@@ -260,8 +260,8 @@ describe("Router — error handling", () => {
   it("returns 500 when a middleware throws a non-Error value", async () => {
     const router = new Router();
 
-    router.get("/boom", async () => {
-      // eslint-disable-next-line @typescript-eslint/only-throw-error -- this test exercises the dispatcher's handling of non-Error throws
+    router.get("/boom", () => {
+      // oxlint-disable-next-line no-throw-literal, only-throw-error -- this test exercises the dispatcher's handling of non-Error throws
       throw "string error";
     });
 
@@ -281,7 +281,7 @@ describe("Router — use() sub-routers", () => {
     const parent = new Router();
     const child = new Router("/api");
 
-    child.get("/items", async (_req, res) => res({ statusCode: 200 }));
+    child.get("/items", (_req, res) => res({ statusCode: 200 }));
 
     parent.use("/api", child);
 
@@ -293,7 +293,7 @@ describe("Router — use() sub-routers", () => {
     const parent = new Router();
     const child = new Router("/api");
 
-    child.get("/items", async (_req, res) => res({ statusCode: 200 }));
+    child.get("/items", (_req, res) => res({ statusCode: 200 }));
 
     parent.use("/api", child);
 
@@ -307,13 +307,13 @@ describe("Router — use() sub-routers", () => {
     const parent = new Router();
     const child = new Router<TaggedRequest>("/api");
 
-    const addTag = async (req: Request): Promise<TaggedRequest> => ({
+    const addTag = (req: Request): TaggedRequest => ({
       ...req,
       tag: "enriched",
     });
 
     let capturedTag = "";
-    child.get("/data", async (req, res) => {
+    child.get("/data", (req, res) => {
       capturedTag = req.tag;
       return res({ statusCode: 200 });
     });

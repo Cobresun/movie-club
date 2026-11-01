@@ -1,7 +1,7 @@
-import type { Component } from "vue";
+import { type Component } from "vue";
 
 import { isDefined } from "../../../lib/checks/checks.js";
-import type { Member } from "../../../lib/types/club";
+import { type Member } from "../../../lib/types/club";
 import { ClubType } from "../../../lib/types/generated/db";
 import {
   computeClubConsensus,
@@ -10,7 +10,7 @@ import {
   computeTopDirectors,
   type PersonStats,
 } from "../statistics/statsComputers";
-import type { BookData, MovieData, WorkStatsData } from "../statistics/types";
+import { type BookData, type MovieData, type WorkStatsData } from "../statistics/types";
 import ClosestMatchesCard from "./components/cards/ClosestMatchesCard.vue";
 import DivisiveCard from "./components/cards/DivisiveCard.vue";
 import HotTakesCard from "./components/cards/HotTakesCard.vue";
@@ -178,7 +178,7 @@ const closestMatches: WrappedCardDef = {
     const matches = computeClosestMatches(ctx.workData, ctx.members).filter(
       (match) => !(twinIds.has(match.member.id) && twinIds.has(match.match.id)),
     );
-    return chunk(matches, MATCHES_PER_CARD).map((matches) => ({ matches }));
+    return chunk(matches, MATCHES_PER_CARD).map((cardMatches) => ({ matches: cardMatches }));
   },
 };
 
@@ -266,7 +266,7 @@ const topAuthor: WrappedCardDef = {
  * type-specific entries; everything score-based is shared.
  */
 const WRAPPED_DECKS: Record<ClubType, WrappedCardDef[]> = {
-  [ClubType.movie]: [
+  [ClubType.MOVIE]: [
     intro,
     hoursWatched,
     topPicks,
@@ -277,7 +277,7 @@ const WRAPPED_DECKS: Record<ClubType, WrappedCardDef[]> = {
     tasteTwins,
     closestMatches,
   ],
-  [ClubType.book]: [
+  [ClubType.BOOK]: [
     intro,
     pagesRead,
     topPicks,
@@ -288,6 +288,7 @@ const WRAPPED_DECKS: Record<ClubType, WrappedCardDef[]> = {
     tasteTwins,
     closestMatches,
   ],
+  [ClubType.TV]: [intro, topPicks, bottomPicks, mostDivisive, hotTakes, tasteTwins, closestMatches],
 };
 
 export function buildWrappedDeck(ctx: WrappedContext): WrappedCard[] {

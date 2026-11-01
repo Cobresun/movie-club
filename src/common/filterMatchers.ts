@@ -1,9 +1,13 @@
-import { DetailedReviewListItem, DetailedWorkListItem, Review } from "@/../lib/types/lists";
-import type { FilterOption } from "@/common/clubType";
-import type {
-  ChoiceSelection,
-  FilterSelection,
-  RangeSelection,
+import {
+  type DetailedReviewListItem,
+  type DetailedWorkListItem,
+  type Review,
+} from "@/../lib/types/lists";
+import { type FilterOption } from "@/common/clubType";
+import {
+  type ChoiceSelection,
+  type FilterSelection,
+  type RangeSelection,
 } from "@/common/components/filterTypes";
 
 export function includesCaseInsensitive(haystack?: string, needle?: string): boolean {

@@ -1,27 +1,39 @@
-import { Expression, ExpressionBuilder, InferResult, QueryCreator, sql } from "kysely";
+import {
+  type Expression,
+  type ExpressionBuilder,
+  type InferResult,
+  type QueryCreator,
+  sql,
+} from "kysely";
 
 import { isDefined } from "../../../lib/checks/checks.js";
-import { DB, Json, WorkType } from "../../../lib/types/generated/db.js";
 import {
-  ActivityBucket,
-  AdminDashboard,
-  BucketUnit,
-  ClubRow,
-  ClubStatus,
+  type DB,
+  type Json,
+  SignupSource,
+  type WorkType,
+} from "../../../lib/types/generated/db.js";
+import {
+  type Acquisition,
+  type ActivityBucket,
+  type AdminDashboard,
+  type BucketUnit,
+  type ClubRow,
+  type ClubStatus,
   clubRowSchema,
-  FeedEvent,
-  MetricsRange,
-  PeriodCount,
-  PersonRow,
+  type FeedEvent,
+  type MetricsRange,
+  type PeriodCount,
+  type PersonRow,
   RANGE_BUCKET,
   RANGE_DAYS,
-  Rate,
-  ReviewedWork,
+  type Rate,
+  type ReviewedWork,
   reviewedWorkSchema,
-  SnapshotHistoryPoint,
-  SnapshotMetrics,
+  type SnapshotHistoryPoint,
+  type SnapshotMetrics,
   snapshotHistoryMetricsSchema,
-  WantedWork,
+  type WantedWork,
   wantedWorkSchema,
 } from "../../../lib/types/metrics.js";
 import { db } from "../utils/database";
@@ -29,6 +41,9 @@ import { fillBuckets } from "../utils/timeBuckets";
 
 /** Rows per leaderboard. */
 const LEADERBOARD_LIMIT = 10;
+
+/** Named referrers and campaigns listed under the acquisition channels. */
+const ACQUISITION_LIMIT = 10;
 
 /** Entries in the latest-activity feed. */
 const FEED_LIMIT = 12;
@@ -181,6 +196,37 @@ function bucketOf(unit: BucketUnit, column: Expression<Date>) {
  */
 function workKey(eb: ExpressionBuilder<DB, "work">) {
   return eb.fn.coalesce("work.external_id", eb.cast<string>("work.id", "text"));
+}
+
+/**
+ * People who signed up since `since`, each with whether they have done anything
+ * at all, as the `signups` table the acquisition queries group. Activation is
+ * the same "did anything, ever" measure as the new-user activation rate, so a
+ * channel and the site as a whole are judged alike.
+ */
+function signupsSince(since: Date) {
+  return db
+    .with("activity", activityEvents)
+    .with("signups", (qc) =>
+      qc
+        .selectFrom("user")
+        .where("user.createdAt", ">=", since)
+        .select((eb) => [
+          "user.signup_source",
+          "user.signup_source_detail",
+          "user.signup_utm_source",
+          "user.signup_utm_campaign",
+          eb
+            .exists(
+              eb
+                .selectFrom("activity")
+                .whereRef("activity.user_id", "=", "user.id")
+                .select(eb.lit(1).as("one")),
+            )
+            .as("activated"),
+        ]),
+    )
+    .selectFrom("signups");
 }
 
 /** The row shape of {@link activityEvents}, for the CTEs built on top of it. */
@@ -679,11 +725,11 @@ class MetricsRepository {
     // clubRowSchema's nativeEnum check is what makes it a ClubType.
     return rows.map((row) =>
       clubRowSchema.parse({
-        clubId: String(row.id),
+        clubId: row.id,
         name: row.name,
         slug: row.slug,
         type: row.type,
-        memberNames: memberNames.get(String(row.id)) ?? [],
+        memberNames: memberNames.get(row.id) ?? [],
         reviews: toCount(row.reviews),
         events: toCount(row.events),
         lastActiveAt: toIsoTimestamp(row.last_ts),
@@ -718,7 +764,7 @@ class MetricsRepository {
       .execute();
 
     for (const row of rows) {
-      const key = String(row.club_id);
+      const key = row.club_id;
       const names = grouped.get(key);
       if (names === undefined) {
         grouped.set(key, [row.name]);
@@ -824,7 +870,7 @@ class MetricsRepository {
     clubs: string | null;
   }): PersonRow {
     return {
-      userId: String(row.id),
+      userId: row.id,
       name: row.name,
       image: row.image,
       reviews: toCount(row.reviews),
@@ -905,6 +951,93 @@ class MetricsRepository {
     return events.sort((a, b) => b.at.localeCompare(a.at)).slice(0, FEED_LIMIT);
   }
 
+  /**
+   * Where people who signed up in the range came from: per channel, per named
+   * referrer within the referral channel, and per tagged campaign — each with
+   * how many went on to do anything, since a channel that brings people who
+   * never review is not one worth growing.
+   *
+   * Every channel gets a row even at zero, so the dashboard compares the same
+   * set from day one; the not-recorded row appears only when it has members.
+   */
+  private async getAcquisition(since: Date): Promise<Acquisition> {
+    const [channelRows, referrerRows, campaignRows] = await Promise.all([
+      signupsSince(since)
+        .select((eb) => [
+          "signups.signup_source",
+          eb.fn.countAll<string>().as("signups"),
+          eb.fn.countAll<string>().filterWhere("signups.activated", "=", true).as("activated"),
+        ])
+        .groupBy("signups.signup_source")
+        .execute(),
+      signupsSince(since)
+        .where("signups.signup_source", "=", SignupSource.REFERRAL)
+        .where("signups.signup_source_detail", "is not", null)
+        .select((eb) => [
+          "signups.signup_source_detail",
+          eb.fn.countAll<string>().as("signups"),
+          eb.fn.countAll<string>().filterWhere("signups.activated", "=", true).as("activated"),
+        ])
+        .groupBy("signups.signup_source_detail")
+        .orderBy("signups", "desc")
+        .orderBy("signups.signup_source_detail")
+        .limit(ACQUISITION_LIMIT)
+        .execute(),
+      signupsSince(since)
+        .where("signups.signup_utm_source", "is not", null)
+        .select((eb) => [
+          "signups.signup_utm_source",
+          "signups.signup_utm_campaign",
+          eb.fn.countAll<string>().as("signups"),
+          eb.fn.countAll<string>().filterWhere("signups.activated", "=", true).as("activated"),
+        ])
+        .groupBy(["signups.signup_utm_source", "signups.signup_utm_campaign"])
+        .orderBy("signups", "desc")
+        .orderBy("signups.signup_utm_source")
+        .orderBy("signups.signup_utm_campaign")
+        .limit(ACQUISITION_LIMIT)
+        .execute(),
+    ]);
+
+    const counts = channelRows.map((row) => ({
+      source: row.signup_source,
+      signups: toCount(row.signups),
+      activated: toCount(row.activated),
+    }));
+    const channels = Object.values(SignupSource).map(
+      (source) =>
+        counts.find((count) => count.source === source) ?? { source, signups: 0, activated: 0 },
+    );
+    const notRecorded = counts.filter((count) => count.source === null);
+
+    return {
+      channels: [...channels, ...notRecorded],
+      referrers: referrerRows.flatMap((row) =>
+        isDefined(row.signup_source_detail)
+          ? [
+              {
+                referrer: row.signup_source_detail,
+                signups: toCount(row.signups),
+                activated: toCount(row.activated),
+              },
+            ]
+          : [],
+      ),
+      campaigns: campaignRows.flatMap((row) =>
+        isDefined(row.signup_utm_source)
+          ? [
+              {
+                utmSource: row.signup_utm_source,
+                utmCampaign: row.signup_utm_campaign,
+                signups: toCount(row.signups),
+                activated: toCount(row.activated),
+              },
+            ]
+          : [],
+      ),
+    };
+  }
+
   async getDashboard(range: MetricsRange): Promise<AdminDashboard> {
     const window = rangeWindow(range);
 
@@ -921,6 +1054,7 @@ class MetricsRepository {
       mostActivePeople,
       newestPeople,
       feed,
+      acquisition,
     ] = await Promise.all([
       this.getPulse(window),
       this.getActivityBuckets(window),
@@ -934,6 +1068,7 @@ class MetricsRepository {
       this.getMostActivePeople(window.since),
       this.getNewestPeople(window.since),
       this.getFeed(),
+      this.getAcquisition(window.since),
     ]);
 
     return {
@@ -946,6 +1081,7 @@ class MetricsRepository {
       clubs: { busiest: busiestClubs, newest: newestClubs },
       people: { mostActive: mostActivePeople, newest: newestPeople },
       feed,
+      acquisition,
     };
   }
 

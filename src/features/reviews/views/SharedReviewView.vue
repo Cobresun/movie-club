@@ -24,7 +24,7 @@
                   <!-- Title and Tagline Section positioned over poster -->
                   <div class="mb-4">
                     <h1 class="mb-1 break-words text-4xl font-bold text-white">
-                      {{ data.work.title }}
+                      {{ workTitle(data.work) }}
                     </h1>
                     <p v-if="movieData?.tagline" class="text-lg italic text-gray-300">
                       "{{ movieData.tagline }}"
@@ -126,6 +126,7 @@ import { useRoute } from "vue-router";
 import { hasElements, isDefined } from "../../../../lib/checks/checks.js";
 import ReviewFactCard from "../components/ReviewFactCard.vue";
 import { computeReviewFact } from "../reviewFacts";
+import { workTitle } from "@/common/clubType";
 import SharedPageCtaBanner from "@/common/components/SharedPageCtaBanner.vue";
 import SharedPageHeader from "@/common/components/SharedPageHeader.vue";
 import VAvatar from "@/common/components/VAvatar.vue";

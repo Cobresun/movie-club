@@ -24,7 +24,7 @@ describe("VBottomSheet", () => {
 
     render(VBottomSheet);
 
-    expect(pushState).toHaveBeenCalledTimes(1);
+    expect(pushState).toHaveBeenCalledOnce();
 
     pushState.mockRestore();
   });

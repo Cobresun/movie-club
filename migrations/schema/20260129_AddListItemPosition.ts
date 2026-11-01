@@ -1,6 +1,6 @@
-import { Kysely, sql } from "kysely";
+import { type Kysely, sql } from "kysely";
 
-export async function up(db: Kysely<unknown>) {
+async function up(db: Kysely<unknown>) {
   await db.schema.alterTable("work_list_item").addColumn("position", "integer").execute();
 
   await sql`
@@ -24,6 +24,8 @@ export async function up(db: Kysely<unknown>) {
     .execute();
 }
 
-export async function down(db: Kysely<unknown>) {
+async function down(db: Kysely<unknown>) {
   await db.schema.alterTable("work_list_item").dropColumn("position").execute();
 }
+
+export default { name: "20260129_AddListItemPosition", up, down };

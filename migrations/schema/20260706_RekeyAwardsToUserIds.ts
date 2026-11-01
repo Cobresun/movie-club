@@ -1,4 +1,4 @@
-import { Kysely } from "kysely";
+import { type Kysely } from "kysely";
 import { z } from "zod";
 
 /**
@@ -96,8 +96,8 @@ async function rekeyAllRows(
   const stats: RekeyStats = { rewritten: 0, unchanged: 0, unresolved: [] };
 
   for (const row of rows) {
-    const clubId = String(row.club_id);
-    const year = String(row.year);
+    const clubId = row.club_id;
+    const { year } = row;
     const resolve = makeResolver(
       clubId,
       stats.unresolved,
@@ -184,14 +184,14 @@ async function loadMembersByClub(db: Kysely<MigrationTables>) {
     { nameToId: Map<string, string>; idToName: Map<string, string> }
   >();
   for (const m of memberRows) {
-    const clubId = String(m.club_id);
+    const clubId = m.club_id;
     let entry = perClub.get(clubId);
     if (entry === undefined) {
       entry = { nameToId: new Map(), idToName: new Map() };
       perClub.set(clubId, entry);
     }
-    entry.nameToId.set(m.name, String(m.userId));
-    entry.idToName.set(String(m.userId), m.name);
+    entry.nameToId.set(m.name, m.userId);
+    entry.idToName.set(m.userId, m.name);
   }
   return perClub;
 }
@@ -210,8 +210,8 @@ function logSummary(direction: string, stats: RekeyStats) {
   }
 }
 
-export async function up(db: Kysely<unknown>) {
-  const typedDb = db.withTables<MigrationTables>();
+async function up(db: Kysely<unknown>) {
+  const typedDb = db.$extendTables<MigrationTables>();
   const perClub = await loadMembersByClub(typedDb);
 
   const stats = await rekeyAllRows(typedDb, (clubId, unresolved, context) => {
@@ -231,8 +231,8 @@ export async function up(db: Kysely<unknown>) {
 
 // Best-effort inverse for dev use (migrate:down): maps IDs back to *current*
 // display names. Keys that don't resolve to a current member stay untouched.
-export async function down(db: Kysely<unknown>) {
-  const typedDb = db.withTables<MigrationTables>();
+async function down(db: Kysely<unknown>) {
+  const typedDb = db.$extendTables<MigrationTables>();
   const perClub = await loadMembersByClub(typedDb);
 
   const stats = await rekeyAllRows(typedDb, (clubId, unresolved, context) => {
@@ -248,3 +248,5 @@ export async function down(db: Kysely<unknown>) {
 
   logSummary("down", stats);
 }
+
+export default { name: "20260706_RekeyAwardsToUserIds", up, down };

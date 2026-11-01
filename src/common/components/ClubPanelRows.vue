@@ -25,7 +25,11 @@ import { useRouter } from "vue-router";
 
 import { hasValue } from "../../../lib/checks/checks.js";
 
-const { clubSlug, showIdentity = false } = defineProps<{
+const {
+  clubSlug,
+  showIdentity = false,
+  rowRole = undefined,
+} = defineProps<{
   clubSlug: string;
   clubName: string;
   meta: string;

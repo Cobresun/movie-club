@@ -71,14 +71,23 @@
 import { computed, inject, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 
 import { hasValue, isDefined, isTrue } from "../../../../lib/checks/checks.js";
+import { type ScoreAssistTarget } from "../composables/scoreAssistLogic";
 import { ScoreAssistKey } from "../scoreAssist";
 import { clampScore, isValidScore } from "../scoreScale";
 import ScoreDial from "./ScoreDial.vue";
 import { useClubSlug } from "@/service/useClub";
 import { useDeleteScore, useSubmitScore } from "@/service/useReviews";
 
-const props = defineProps<{
-  workId: string;
+const {
+  work,
+  score = undefined,
+  reviewId = undefined,
+  draftScore = undefined,
+  autofocus,
+  autofocusDelay = undefined,
+  saveScore = undefined,
+} = defineProps<{
+  work: ScoreAssistTarget;
   score?: number;
   reviewId?: string;
   // Pre-fills the input with a not-yet-saved value (Score Assist's suggestion)
@@ -91,24 +100,25 @@ const props = defineProps<{
   // mid-transition.
   autofocus?: boolean;
   autofocusDelay?: number;
+  // Saves in place of scoring `work`, for a work not on the reviews list yet.
+  saveScore?: (score: number) => void;
 }>();
 
 const emit = defineEmits<{
-  (e: "submit"): void;
-  // Emitted only when the save actually persists a new/changed score (not when
-  // the user re-confirms their existing value). Lets the host animate the
-  // freshly-saved score; "submit" still fires unconditionally to close the panel.
-  (e: "saved"): void;
-  // The user tapped "Not sure?". The panel only gates the button (via the
-  // injected eligibility check); the host decides how to present the assist
-  // flow — an already-open overlay swaps ScoreAssistFlow into itself, while
-  // non-overlay hosts open the standalone ScoreAssistModal.
-  (e: "assist"): void;
+  // "submit" fires unconditionally to close the panel; "saved" is emitted only
+  // when the save actually persists a new/changed score (not when the user
+  // re-confirms their existing value). Lets the host animate the
+  // freshly-saved score.
+  // "assist" fires when the user tapped "Not sure?". The panel only gates the
+  // button (via the injected eligibility check); the host decides how to
+  // present the assist flow — an already-open overlay swaps ScoreAssistFlow
+  // into itself, while non-overlay hosts open the standalone ScoreAssistModal.
+  (e: "submit" | "saved" | "assist"): void;
 }>();
 
 const clubSlug = useClubSlug();
 
-const scoreModel = ref(props.draftScore?.toString() ?? props.score?.toString() ?? "");
+const scoreModel = ref(draftScore?.toString() ?? score?.toString() ?? "");
 
 // Typed by the dial's exposed surface rather than InstanceType<typeof ScoreDial>:
 // ESLint's type-aware program cannot resolve .vue module types, so the latter
@@ -125,31 +135,35 @@ const scoreDial = ref<ScoreDialExposed | null>(null);
 // writer of the current user's score, so replacing the draft on every change
 // is always correct and never discards real in-progress typing.
 watch(
-  () => props.score,
-  (score) => {
-    scoreModel.value = score?.toString() ?? "";
+  () => score,
+  (newScore) => {
+    scoreModel.value = newScore?.toString() ?? "";
   },
 );
 
 const canSave = computed(() => isValidScore(Number.parseFloat(scoreModel.value)));
 
 const scoreAssist = inject(ScoreAssistKey, undefined);
-const showAssist = computed(() => isDefined(scoreAssist) && scoreAssist.isEligible(props.workId));
+const showAssist = computed(() => isDefined(scoreAssist) && scoreAssist.isEligible(work));
 
 const submitScore = useSubmitScore(clubSlug);
 
 const save = () => {
-  const score = Number.parseFloat(scoreModel.value);
-  if (!isValidScore(score)) return;
+  const parsedScore = Number.parseFloat(scoreModel.value);
+  if (!isValidScore(parsedScore)) return;
   // Typed input allows arbitrary decimals; persist at most two, matching the
   // precision every score display rounds to (formatScore).
-  const clamped = clampScore(Math.round(score * 100) / 100);
-  if (clamped !== props.score) {
-    submitScore({
-      workId: props.workId,
-      reviewId: props.reviewId,
-      score: clamped,
-    });
+  const clamped = clampScore(Math.round(parsedScore * 100) / 100);
+  if (clamped !== score) {
+    if (isDefined(saveScore)) {
+      saveScore(clamped);
+    } else {
+      submitScore({
+        workId: work.id,
+        reviewId,
+        score: clamped,
+      });
+    }
     emit("saved");
   }
   emit("submit");
@@ -160,9 +174,8 @@ const deleteScore = useDeleteScore(clubSlug);
 const confirmingRemove = ref(false);
 
 const removeScore = () => {
-  const reviewId = props.reviewId;
   if (!hasValue(reviewId)) return;
-  deleteScore.mutate({ reviewId, workId: props.workId });
+  deleteScore.mutate({ reviewId, workId: work.id });
   // "submit" and not "saved": the host closes the panel without running the
   // saved-score animation for a score that no longer exists.
   emit("submit");
@@ -175,12 +188,14 @@ const openAssist = () => {
 let autofocusTimer: ReturnType<typeof setTimeout> | undefined;
 
 onMounted(() => {
-  if (!isTrue(props.autofocus)) return;
+  if (!isTrue(autofocus)) return;
   const focus = () =>
-    nextTick(() => {
-      scoreDial.value?.focusInput();
-    }).catch(console.error);
-  const delay = props.autofocusDelay ?? 0;
+    nextTick()
+      .then(() => {
+        scoreDial.value?.focusInput();
+      })
+      .catch(console.error);
+  const delay = autofocusDelay ?? 0;
   if (delay > 0) {
     autofocusTimer = setTimeout(() => void focus(), delay);
   } else {

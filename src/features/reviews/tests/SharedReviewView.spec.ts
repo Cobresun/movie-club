@@ -36,7 +36,7 @@ describe("SharedReviewView", () => {
 
     render(SharedReviewView);
 
-    expect(await screen.findByRole("heading", { name: "Inception" })).toBeInTheDocument();
+    await expect(screen.findByRole("heading", { name: "Inception" })).resolves.toBeInTheDocument();
     expect(
       screen.getByText("Your mind is the scene of the crime.", {
         exact: false,
@@ -54,7 +54,7 @@ describe("SharedReviewView", () => {
 
     render(SharedReviewView);
 
-    expect(await screen.findByText("Failed to load review")).toBeInTheDocument();
+    await expect(screen.findByText("Failed to load review")).resolves.toBeInTheDocument();
   });
 
   it("invites a logged-out visitor to start their own club", async () => {

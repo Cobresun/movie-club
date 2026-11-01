@@ -5,10 +5,11 @@
     <template v-if="mode === 'entry'">
       <h2 class="mb-4 text-center text-xl font-bold">{{ target.title }}</h2>
       <ScoreEntryPanel
-        :work-id="target.id"
+        :work="target"
         :score="score"
         :review-id="reviewId"
         :draft-score="suggestedScore"
+        :save-score="saveScore"
         @submit="emit('close')"
         @saved="emit('saved')"
         @assist="mode = 'assist'"
@@ -37,20 +38,25 @@
 <script setup lang="ts">
 import { ref } from "vue";
 
-import { DetailedReviewListItem } from "../../../../lib/types/lists";
+import { type DetailedReviewListItem } from "../../../../lib/types/lists";
 import { useScoreAssistCandidates } from "../composables/useScoreAssistCandidates";
 import ScoreAssistFlow from "./ScoreAssistFlow.vue";
 import ScoreEntryPanel from "./ScoreEntryPanel.vue";
 
-const props = defineProps<{
+const {
+  target,
+  score = undefined,
+  reviewId = undefined,
+  saveScore = undefined,
+} = defineProps<{
   target: DetailedReviewListItem;
   score?: number;
   reviewId?: string;
+  saveScore?: (score: number) => void;
 }>();
 
 const emit = defineEmits<{
-  (e: "close"): void;
-  (e: "saved"): void;
+  (e: "close" | "saved"): void;
 }>();
 
 const mode = ref<"entry" | "assist">("entry");
@@ -58,13 +64,13 @@ const mode = ref<"entry" | "assist">("entry");
 // The assist flow doesn't save; it hands its suggestion back so the dial is
 // pre-filled and the user decides whether to hit "Save score".
 const suggestedScore = ref<number>();
-const applySuggestion = (score: number) => {
-  suggestedScore.value = score;
+const applySuggestion = (newScore: number) => {
+  suggestedScore.value = newScore;
   mode.value = "entry";
 };
 
 // Assist inputs are derived here (from the cached reviews query) rather than
 // prop-drilled through the drawer, so any surface can host this modal with
 // just the target work.
-const { clubType, clubId, candidates } = useScoreAssistCandidates(() => props.target);
+const { clubType, clubId, candidates } = useScoreAssistCandidates(() => target);
 </script>

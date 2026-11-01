@@ -22,7 +22,7 @@ const getObserver = () => {
   return observer;
 };
 
-export default {
+const revealDirective = {
   mounted(el: HTMLElement) {
     el.classList.add("reveal-init");
     getObserver().observe(el);
@@ -32,3 +32,5 @@ export default {
     getObserver().unobserve(el);
   },
 };
+
+export default revealDirective;

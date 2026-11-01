@@ -1,14 +1,14 @@
 import { screen } from "@testing-library/vue";
-import type { Router } from "vue-router";
-import { useRouter } from "vue-router";
+import type * as VueRouter from "vue-router";
+import { type Router, useRouter } from "vue-router";
 
 import ClubSwitcher from "../components/ClubSwitcher.vue";
-import { ClubPreview } from "@/../lib/types/club";
+import { type ClubPreview } from "@/../lib/types/club";
 import { ClubType } from "@/../lib/types/generated/db";
 import { render, setRouteMatched } from "@/tests/utils";
 
 // useRoute is mocked (setup.ts) to report the current club as "test-club".
-const makeClub = (slug: string, name: string, type = ClubType.movie): ClubPreview => ({
+const makeClub = (slug: string, name: string, type = ClubType.MOVIE): ClubPreview => ({
   clubId: slug,
   clubName: name,
   slug,
@@ -18,7 +18,7 @@ const makeClub = (slug: string, name: string, type = ClubType.movie): ClubPrevie
 
 const testClub = makeClub("test-club", "Test Club");
 const otherClub = makeClub("other-club", "Other Club");
-const bookClub = makeClub("book-club", "Book Club", ClubType.book);
+const bookClub = makeClub("book-club", "Book Club", ClubType.BOOK);
 
 const state = vi.hoisted((): { userClubs: ClubPreview[] } => ({ userClubs: [] }));
 
@@ -34,7 +34,7 @@ vi.mock("@/common/composables/useLastClubSlug", () => ({
 // depends on to detect that the overlay closed because of a navigation).
 const makeRealRouter = async () => {
   const { createMemoryHistory, createRouter } =
-    await vi.importActual<typeof import("vue-router")>("vue-router");
+    await vi.importActual<typeof VueRouter>("vue-router");
   const stub = { template: "<div />" };
   const router = createRouter({
     history: createMemoryHistory(),

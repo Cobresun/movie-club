@@ -5,7 +5,7 @@ import path from "path";
 import { Pool } from "pg";
 import z from "zod";
 
-import { DB } from "../../../lib/types/generated/db";
+import { type DB } from "../../../lib/types/generated/db";
 
 const configFileSchema = z.object({
   DATABASE_URL: z.string().url().optional(),

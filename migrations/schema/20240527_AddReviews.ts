@@ -1,6 +1,6 @@
-import { Kysely } from "kysely";
+import { type Kysely } from "kysely";
 
-export async function up(db: Kysely<unknown>) {
+async function up(db: Kysely<unknown>) {
   await db.schema
     .createTable("review")
     .addColumn("id", "serial", (col) => col.primaryKey())
@@ -24,7 +24,9 @@ export async function up(db: Kysely<unknown>) {
   await db.schema.alterTable("work_list_item").dropColumn("created_date").execute();
 }
 
-export async function down(db: Kysely<unknown>) {
+async function down(db: Kysely<unknown>) {
   await db.schema.dropTable("review").execute();
   await db.schema.alterTable("work_list_item").addColumn("created_date", "date").execute();
 }
+
+export default { name: "20240527_AddReviews", up, down };

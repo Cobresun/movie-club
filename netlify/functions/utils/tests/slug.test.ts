@@ -1,5 +1,3 @@
-import { describe, expect, it } from "vitest";
-
 import {
   SLUG_MAX_LENGTH,
   generateSlugFromName,
@@ -72,7 +70,7 @@ describe("generateUniqueSlug", () => {
   it("appends a 6-character hex suffix separated by hyphen", () => {
     const result = generateUniqueSlug("my-club");
     // pattern: base-XXXXXX where X is hex
-    expect(result).toMatch(/^my-club-[0-9a-f]{6}$/);
+    expect(result).toMatch(/^my-club-[0-9a-f]{6}$/u);
   });
 
   it("truncates the base slug so total length stays at or below 50", () => {
@@ -136,7 +134,7 @@ describe("validateSlugFormat", () => {
 
   it("accepts a 50-character slug", () => {
     // 50 chars: starts with 'a', ends with 'a', all alphanumeric in between
-    const slug = "a" + "b".repeat(48) + "a";
+    const slug = `a${"b".repeat(48)}a`;
     expect(validateSlugFormat(slug)).toBe(true);
   });
 });
@@ -186,28 +184,28 @@ describe("validateSlug", () => {
 
   it("returns an error message for an invalid format (too short)", () => {
     const result = validateSlug("ab");
-    expect(typeof result).toBe("string");
+    expect(result).toBeTypeOf("string");
     expect(result).toContain("3");
   });
 
   it("returns an error message for a slug starting with a hyphen", () => {
     const result = validateSlug("-bad-slug");
-    expect(typeof result).toBe("string");
+    expect(result).toBeTypeOf("string");
   });
 
   it("returns an error message for a reserved slug", () => {
     const result = validateSlug("new");
-    expect(typeof result).toBe("string");
+    expect(result).toBeTypeOf("string");
     expect(result).toContain("/new");
   });
 
   it("returns an error message when the slug is too long", () => {
     const result = validateSlug("a".repeat(51));
-    expect(typeof result).toBe("string");
+    expect(result).toBeTypeOf("string");
   });
 
   it("returns an error message for a slug with uppercase letters", () => {
     const result = validateSlug("MyClub-here");
-    expect(typeof result).toBe("string");
+    expect(result).toBeTypeOf("string");
   });
 });

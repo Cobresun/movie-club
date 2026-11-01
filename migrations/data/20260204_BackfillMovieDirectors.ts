@@ -71,7 +71,9 @@ const backfillMovieDirectors = async () => {
 
     // Delay between batches to respect TMDB rate limits
     if (i + BATCH_SIZE < movies.length) {
-      await new Promise((resolve) => setTimeout(resolve, BATCH_DELAY_MS));
+      await new Promise((resolve) => {
+        setTimeout(resolve, BATCH_DELAY_MS);
+      });
     }
 
     console.log(`Progress: ${Math.min(i + BATCH_SIZE, movies.length)}/${movies.length}`);
@@ -85,5 +87,7 @@ const backfillMovieDirectors = async () => {
 };
 
 backfillMovieDirectors()
-  .then(() => console.log("Movie directors backfill completed"))
+  .then(() => {
+    console.log("Movie directors backfill completed");
+  })
   .catch(console.error);

@@ -1,6 +1,6 @@
-import { Kysely } from "kysely";
+import { type Kysely } from "kysely";
 
-export async function up(db: Kysely<unknown>) {
+async function up(db: Kysely<unknown>) {
   await db.schema
     .alterTable("work_list_item")
     .alterColumn("created_date", (col) => col.dropNotNull())
@@ -12,7 +12,7 @@ export async function up(db: Kysely<unknown>) {
     .execute();
 }
 
-export async function down(db: Kysely<unknown>) {
+async function down(db: Kysely<unknown>) {
   await db.schema
     .alterTable("work_list_item")
     .alterColumn("created_date", (col) => col.setNotNull())
@@ -20,3 +20,5 @@ export async function down(db: Kysely<unknown>) {
 
   await db.schema.alterTable("work_list_item").dropColumn("time_added").execute();
 }
+
+export default { name: "20240511_ListDateColumn", up, down };

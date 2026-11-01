@@ -1,5 +1,5 @@
 import axios from "axios";
-import { Kysely, sql } from "kysely";
+import { type Kysely, sql } from "kysely";
 
 interface TMDBCastMember {
   id: number;
@@ -37,7 +37,7 @@ interface MovieRow {
   title: string | null;
 }
 
-export async function up(db: Kysely<unknown>) {
+async function up(db: Kysely<unknown>) {
   await sql`ALTER TABLE movie_actors ADD COLUMN IF NOT EXISTS profile_path VARCHAR`.execute(db);
 
   await sql`ALTER TABLE movie_directors ADD COLUMN IF NOT EXISTS director_id INT8`.execute(db);
@@ -147,7 +147,9 @@ export async function up(db: Kysely<unknown>) {
 
     // Delay between batches to respect TMDB rate limits
     if (i + BATCH_SIZE < movies.length) {
-      await new Promise((resolve) => setTimeout(resolve, BATCH_DELAY_MS));
+      await new Promise((resolve) => {
+        setTimeout(resolve, BATCH_DELAY_MS);
+      });
     }
 
     console.log(`Progress: ${Math.min(i + BATCH_SIZE, movies.length)}/${movies.length}`);
@@ -159,8 +161,10 @@ export async function up(db: Kysely<unknown>) {
   console.log(`Errors: ${errors}`);
 }
 
-export async function down(db: Kysely<unknown>) {
+async function down(db: Kysely<unknown>) {
   await sql`ALTER TABLE movie_directors DROP COLUMN IF EXISTS profile_path`.execute(db);
   await sql`ALTER TABLE movie_directors DROP COLUMN IF EXISTS director_id`.execute(db);
   await sql`ALTER TABLE movie_actors DROP COLUMN IF EXISTS profile_path`.execute(db);
 }
+
+export default { name: "20260315_AddPersonProfilePaths", up, down };

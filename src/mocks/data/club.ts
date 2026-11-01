@@ -1,4 +1,4 @@
-import { ClubPreview } from "../../../lib/types/club";
+import { type ClubPreview } from "../../../lib/types/club";
 import { ClubType } from "../../../lib/types/generated/db";
 
 const club: ClubPreview = {
@@ -6,7 +6,7 @@ const club: ClubPreview = {
   clubName: "Test club",
   slug: "test-club",
   slugUpdatedAt: undefined,
-  type: ClubType.movie,
+  type: ClubType.MOVIE,
 };
 
 export default club;

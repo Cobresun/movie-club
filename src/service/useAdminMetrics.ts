@@ -1,8 +1,12 @@
 import { useQuery } from "@tanstack/vue-query";
 import axios from "axios";
-import { computed, MaybeRef, unref } from "vue";
+import { computed, type MaybeRef, unref } from "vue";
 
-import { AdminDashboard, MetricsRange, SnapshotHistoryPoint } from "../../lib/types/metrics";
+import {
+  type AdminDashboard,
+  type MetricsRange,
+  type SnapshotHistoryPoint,
+} from "../../lib/types/metrics";
 
 /**
  * The dashboard over a time frame the caller can change.

@@ -1,6 +1,6 @@
-import { Kysely, sql } from "kysely";
+import { type Kysely, sql } from "kysely";
 
-export async function up(db: Kysely<unknown>) {
+async function up(db: Kysely<unknown>) {
   // Work type enum
   await db.schema.createType("work_type").asEnum(["movie"]).execute();
 
@@ -56,10 +56,12 @@ export async function up(db: Kysely<unknown>) {
   await db.schema.createIndex("idx_work_list_type").on("work_list").column("type").execute();
 }
 
-export async function down(db: Kysely<unknown>) {
+async function down(db: Kysely<unknown>) {
   await db.schema.dropTable("work_list_item").execute();
   await db.schema.dropTable("work_list").execute();
   await db.schema.dropTable("work").execute();
   await db.schema.dropType("work_list_type").execute();
   await db.schema.dropType("work_type").execute();
 }
+
+export default { name: "20240227_AddLists", up, down };

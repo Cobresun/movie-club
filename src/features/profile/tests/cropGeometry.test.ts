@@ -5,14 +5,18 @@ const portrait = { width: 900, height: 1600 };
 
 describe("cropRect", () => {
   it("starts as the largest square centred on the photo", () => {
-    expect(cropRect(landscape, centeredCrop(landscape))).toEqual({ x: 200, y: 0, size: 1200 });
-    expect(cropRect(portrait, centeredCrop(portrait))).toEqual({ x: 0, y: 350, size: 900 });
+    expect(cropRect(landscape, centeredCrop(landscape))).toStrictEqual({
+      x: 200,
+      y: 0,
+      size: 1200,
+    });
+    expect(cropRect(portrait, centeredCrop(portrait))).toStrictEqual({ x: 0, y: 350, size: 900 });
   });
 
   it("shrinks the square around its centre as the zoom grows", () => {
     const crop = { ...centeredCrop(landscape), zoom: 2 };
 
-    expect(cropRect(landscape, crop)).toEqual({ x: 500, y: 300, size: 600 });
+    expect(cropRect(landscape, crop)).toStrictEqual({ x: 500, y: 300, size: 600 });
   });
 });
 
@@ -27,7 +31,7 @@ describe("panCrop", () => {
   it("stops at the photo's edge", () => {
     const moved = panCrop(landscape, centeredCrop(landscape), -1000, 1000, 300);
 
-    expect(cropRect(landscape, moved)).toEqual({ x: 400, y: 0, size: 1200 });
+    expect(cropRect(landscape, moved)).toStrictEqual({ x: 400, y: 0, size: 1200 });
   });
 
   it("moves a shorter way across the photo per preview pixel when zoomed in", () => {
@@ -50,6 +54,6 @@ describe("clampCrop", () => {
 
     const zoomedOut = clampCrop(landscape, { ...corner, zoom: 1 });
 
-    expect(cropRect(landscape, zoomedOut)).toEqual({ x: 0, y: 0, size: 1200 });
+    expect(cropRect(landscape, zoomedOut)).toStrictEqual({ x: 0, y: 0, size: 1200 });
   });
 });

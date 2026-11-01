@@ -1,5 +1,5 @@
 import { clubScoreFilter, reviewedInFilter } from "../filterOptions";
-import type { ClubTypeConfig } from "../types";
+import { type ClubTypeConfig } from "../types";
 import { bookDisplay } from "./display";
 import { browseBooks, searchBooks } from "./search";
 import { makeBookSimilarity } from "./similarity";
@@ -7,10 +7,11 @@ import { ClubType, WorkType } from "@/../lib/types/generated/db";
 import { asBook } from "@/common/workDisplay";
 
 export const bookClubConfig: ClubTypeConfig = {
-  clubType: ClubType.book,
-  workType: WorkType.book,
+  clubType: ClubType.BOOK,
+  workType: WorkType.BOOK,
   icon: "book-open-page-variant-outline",
   label: "Book club",
+  pluralLabel: "Books",
   noun: "book",
   finishedVerb: "read",
   searchHint: "Search for a book to add.",
@@ -88,5 +89,6 @@ export const bookClubConfig: ClubTypeConfig = {
     shareText: "Join my club and score the books we read together.",
   },
   display: bookDisplay,
+  isScoredUnit: () => true,
   makeSimilarity: makeBookSimilarity,
 };

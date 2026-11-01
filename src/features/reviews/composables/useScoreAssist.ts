@@ -1,11 +1,11 @@
 import { computed, shallowRef } from "vue";
 
-import { DetailedReviewListItem } from "../../../../lib/types/lists";
+import { type DetailedReviewListItem } from "../../../../lib/types/lists";
 import {
   answerComparison,
-  ComparisonAnswer,
+  type ComparisonAnswer,
   MAX_COMPARISONS,
-  ScoredCandidate,
+  type ScoredCandidate,
   startSession,
 } from "./scoreAssistLogic";
 

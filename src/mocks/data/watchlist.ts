@@ -1,11 +1,11 @@
 import { WorkType } from "../../../lib/types/generated/db";
-import { DetailedWorkListItem } from "../../../lib/types/lists";
+import { type DetailedWorkListItem } from "../../../lib/types/lists";
 
 const watchlist: DetailedWorkListItem[] = [
   {
     id: "962659277774159873",
     title: "The Super Mario Bros. Movie",
-    type: WorkType.movie,
+    type: WorkType.MOVIE,
     createdDate: "2023-06-17T06:00:00.000Z",
     imageUrl: "https://image.tmdb.org/t/p/w154/qNBAXBIQlnOThrVvA6mA2B5ggV6.jpg",
     externalId: "502356",

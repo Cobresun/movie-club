@@ -16,7 +16,7 @@
 import { computed, ref } from "vue";
 
 import { computeTopActors, computeTopDirectors } from "../statsComputers";
-import type { MovieData } from "../types";
+import { type MovieData } from "../types";
 import PersonLeaderboard from "./PersonLeaderboard.vue";
 import SegmentedToggle from "./SegmentedToggle.vue";
 import WidgetShell from "@/common/components/WidgetShell.vue";
@@ -25,7 +25,7 @@ import { useReviewsCast } from "@/service/useReviews";
 
 type Mode = "directors" | "actors";
 
-const props = defineProps<{
+const { movieData } = defineProps<{
   movieData: MovieData[];
 }>();
 
@@ -34,8 +34,8 @@ const props = defineProps<{
 const clubSlug = useClubSlug();
 const { data: reviewsCast } = useReviewsCast(clubSlug);
 
-const topDirectors = computed(() => computeTopDirectors(props.movieData));
-const topActors = computed(() => computeTopActors(props.movieData, reviewsCast.value));
+const topDirectors = computed(() => computeTopDirectors(movieData));
+const topActors = computed(() => computeTopActors(movieData, reviewsCast.value));
 
 const modeOptions = computed(() => {
   const options: { value: Mode; label: string }[] = [];

@@ -2,7 +2,6 @@
  * Integration tests for `netlify/functions/og-image.ts` — the Open Graph image
  * a shared review link unfurls to.
  */
-import { describe, expect, it } from "vitest";
 
 import { handler } from "../og-image";
 import { signIn } from "./helpers/auth";

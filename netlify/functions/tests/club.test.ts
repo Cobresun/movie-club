@@ -5,12 +5,11 @@
  * BetterAuth's `loggedIn` / `secured`, the repositories and CockroachDB. Only
  * TMDB is faked, and that at the network level (MSW).
  */
-import { describe, expect, it } from "vitest";
 
-import { ClubPreview, ClubSettings, Member } from "../../../lib/types/club";
+import { type ClubPreview, type ClubSettings, type Member } from "../../../lib/types/club";
 import { ClubType, WorkType } from "../../../lib/types/generated/db";
-import { ClubListSummary } from "../../../lib/types/lists";
-import { DetailedMovieData } from "../../../lib/types/movie";
+import { type ClubListSummary } from "../../../lib/types/lists";
+import { type DetailedMovieData } from "../../../lib/types/movie";
 import { handler } from "../club/index";
 import { signIn } from "./helpers/auth";
 import { addWork, createClub, setNextWork } from "./helpers/factories";
@@ -27,21 +26,30 @@ describe("GET /api/club/:clubSlug", () => {
     const res = await api.get<ClubPreview>(`/api/club/${club.slug}`);
 
     expect(res.statusCode).toBe(200);
-    expect(res.body).toEqual({
+    expect(res.body).toStrictEqual({
       clubId: club.id,
       clubName: "Film Buffs",
       slug: club.slug,
-      type: ClubType.movie,
+      type: ClubType.MOVIE,
     });
   });
 
   it("reports the club type for a book club", async () => {
     const alice = await signIn("alice");
-    const club = await createClub(alice, { type: ClubType.book });
+    const club = await createClub(alice, { type: ClubType.BOOK });
 
     const res = await api.get<ClubPreview>(`/api/club/${club.slug}`);
 
-    expect(res.body.type).toBe(ClubType.book);
+    expect(res.body.type).toBe(ClubType.BOOK);
+  });
+
+  it("reports the club type for a TV club", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub(alice, { type: ClubType.TV });
+
+    const res = await api.get<ClubPreview>(`/api/club/${club.slug}`);
+
+    expect(res.body.type).toBe(ClubType.TV);
   });
 
   it("returns 404 for an unknown slug", async () => {
@@ -76,7 +84,7 @@ describe("POST /api/club", () => {
     expect(club.body).toMatchObject({
       clubId: res.body.clubId,
       clubName: "The Late Night Crew",
-      type: ClubType.movie,
+      type: ClubType.MOVIE,
     });
     // Left unset on creation so a brand-new club can still change its URL.
     expect(club.body.slugUpdatedAt).toBeUndefined();
@@ -91,9 +99,10 @@ describe("POST /api/club", () => {
     });
 
     const lists = await api.get<ClubListSummary[]>(`/api/club/${res.body.slug}/list`);
-    expect(lists.body).toEqual([
-      { id: expect.any(String), title: "Watch List", systemType: null, itemCount: 0 },
+    expect(lists.body).toStrictEqual([
+      { id: lists.body[0].id, title: "Watch List", systemType: null, itemCount: 0 },
     ]);
+    expect(lists.body[0].id).toBeTypeOf("string");
 
     const reviews = await api.get<{ id: string }>(`/api/club/${res.body.slug}/list/reviews-id`, {
       as: alice,
@@ -106,7 +115,7 @@ describe("POST /api/club", () => {
     const alice = await signIn("alice");
 
     const res = await api.post<{ slug: string }>("/api/club", {
-      body: { name: "Book Club", members: [alice.email], type: ClubType.book },
+      body: { name: "Book Club", members: [alice.email], type: ClubType.BOOK },
       as: alice,
     });
 
@@ -125,7 +134,9 @@ describe("POST /api/club", () => {
     const settings = await api.get<ClubSettings>(`/api/club/${res.body.slug}/settings`, {
       as: alice,
     });
-    expect(settings.body).toEqual({ features: { awards: false, discussionQuestions: false } });
+    expect(settings.body).toStrictEqual({
+      features: { awards: false, discussionQuestions: false },
+    });
   });
 
   it("adds the listed members, making the first one an admin", async () => {
@@ -267,7 +278,7 @@ describe("PUT /api/club/:clubSlug/slug", () => {
 
     const moved = await api.get<ClubPreview>("/api/club/new-slug");
     expect(moved.statusCode).toBe(200);
-    expect(moved.body.slugUpdatedAt).toEqual(expect.any(String));
+    expect(moved.body.slugUpdatedAt).toStrictEqual(expect.any(String));
     expect((await api.get(`/api/club/${club.slug}`)).statusCode).toBe(404);
   });
 
@@ -413,10 +424,10 @@ describe("GET /api/club/:clubSlug/work/:workId/details", () => {
     expect(res.statusCode).toBe(200);
     expect(res.body.kind).toBe("movie");
     expect(res.body.overview).toBe("Overview for movie 550");
-    expect(res.body.directors).toEqual([
+    expect(res.body.directors).toStrictEqual([
       { name: "Director 550", profilePath: "/director-550.jpg" },
     ]);
-    expect(res.body.actors).toEqual([
+    expect(res.body.actors).toStrictEqual([
       { name: "Lead 550", character: "Hero 550", profilePath: "/lead-550.jpg" },
       { name: "Support 550", character: "Sidekick 550", profilePath: null },
     ]);
@@ -437,7 +448,7 @@ describe("GET /api/club/:clubSlug/work/:workId/details", () => {
     const alice = await signIn("alice");
     const club = await createClub(alice);
     const otherClub = await createClub(alice);
-    const work = await addWork(otherClub, alice, { type: WorkType.movie });
+    const work = await addWork(otherClub, alice, { type: WorkType.MOVIE });
 
     const res = await api.get(`/api/club/${club.slug}/work/${work.id}/details`);
 

@@ -4,12 +4,12 @@ import VChart from "../components/VChart.vue";
 import { chartSeriesArea } from "@/mocks/agCharts";
 import { render } from "@/tests/utils";
 
-vi.mock("ag-charts-vue3", async () => await import("@/mocks/agCharts"));
+vi.mock("ag-charts-vue3", () => import("@/mocks/agCharts"));
 
 const props = { options: { series: [] } };
 
 const listenForDismissal = () => {
-  const dismissed = vi.fn();
+  const dismissed = vi.fn(() => {});
   chartSeriesArea(screen.getByRole("img", { name: "chart" })).addEventListener(
     "mouseleave",
     dismissed,
@@ -24,7 +24,7 @@ describe("VChart", () => {
 
     window.dispatchEvent(new Event("scroll"));
 
-    expect(dismissed).toHaveBeenCalled();
+    expect(dismissed).toHaveBeenCalledOnce();
   });
 
   it("stops listening once unmounted", () => {

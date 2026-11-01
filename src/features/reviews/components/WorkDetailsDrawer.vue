@@ -13,6 +13,8 @@
           :current-user-id="currentUserId"
           :is-desktop="isDesktop"
           :dismissing="closing"
+          :save-score="saveScore"
+          :shown-entries="shownEntries"
           @close="close"
           @toggle-reveal="toggleMovieReveal"
         />
@@ -32,6 +34,8 @@
           :current-user-id="currentUserId"
           :is-desktop="isDesktop"
           :dismissing="closing"
+          :save-score="saveScore"
+          :shown-entries="shownEntries"
           @close="close"
           @toggle-reveal="toggleMovieReveal"
         />
@@ -44,6 +48,7 @@
 import { Member } from "../../../../lib/types/club";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
 import VBottomSheet from "../../../common/components/VBottomSheet.vue";
+import { ScoreEntry } from "../reviewScores";
 import WorkDetailsContent from "./WorkDetailsContent.vue";
 import VSideDrawer from "@/common/components/VSideDrawer.vue";
 import { useIsDesktop } from "@/common/composables/useIsDesktop.js";
@@ -55,6 +60,8 @@ defineProps<{
   revealedMovieIds: Set<string>;
   hasRated: (movieId: string) => boolean;
   currentUserId?: string;
+  saveScore?: (score: number) => void;
+  shownEntries?: ScoreEntry[];
 }>();
 
 const emit = defineEmits<{

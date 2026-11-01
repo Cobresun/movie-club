@@ -12,14 +12,17 @@ export function mockIntersectionObserver({ intersecting = false } = {}): void {
   vi.stubGlobal(
     "IntersectionObserver",
     class {
-      constructor(
-        public callback: IntersectionObserverCallback,
-        public options?: IntersectionObserverInit,
-      ) {}
+      readonly callback: IntersectionObserverCallback;
+      readonly options?: IntersectionObserverInit;
+
+      constructor(callback: IntersectionObserverCallback, options?: IntersectionObserverInit) {
+        this.callback = callback;
+        this.options = options;
+      }
 
       readonly root = null;
       readonly rootMargin = "";
-      readonly thresholds: ReadonlyArray<number> = [];
+      readonly thresholds: readonly number[] = [];
 
       observe = vi.fn((target: Element) => {
         if (!intersecting) return;

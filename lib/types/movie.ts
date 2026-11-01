@@ -1,3 +1,5 @@
+import { type CastMember } from "./tmdb";
+
 export interface BaseMovie {
   movieId: number;
 }
@@ -65,12 +67,6 @@ export interface TMDBMovieData {
   vote_count: number;
 }
 
-export interface MovieCastMember {
-  name: string;
-  character: string | null;
-  profilePath: string | null;
-}
-
 /**
  * The list-payload shape of movie metadata: everything except `actors`.
  * Full cast lists dominate bulk payloads (~80% of the reviews response), so
@@ -125,7 +121,7 @@ export interface MovieDataSummary {
  * the per-work details endpoint and the shared-review page, never by bulk
  * list endpoints. */
 export interface DetailedMovieData extends MovieDataSummary {
-  actors: MovieCastMember[];
+  actors: CastMember[];
 }
 
 export interface TMDBWatchProvider {

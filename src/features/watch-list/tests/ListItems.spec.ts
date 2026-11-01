@@ -115,7 +115,7 @@ describe("ListItems", () => {
     await rendered.user.click(screen.getByRole("button", { name: MARIO }));
 
     await waitFor(() => {
-      expect(rendered.emitted()["select"]).toEqual([[watchlist[0].id]]);
+      expect(rendered.emitted().select).toStrictEqual([[watchlist[0].id]]);
     });
   });
 });

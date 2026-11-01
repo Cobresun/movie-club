@@ -7,7 +7,7 @@ import { chartSeriesNames } from "@/mocks/agCharts";
 import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
 import { render } from "@/tests/utils";
 
-vi.mock("ag-charts-vue3", async () => await import("@/mocks/agCharts"));
+vi.mock("ag-charts-vue3", () => import("@/mocks/agCharts"));
 
 mockIntersectionObserver();
 
@@ -33,7 +33,7 @@ const workData = [
   }),
 ];
 
-const props = { workData, clubType: ClubType.movie };
+const props = { workData, clubType: ClubType.MOVIE };
 
 describe("ActivityWidget", () => {
   it("opens on the monthly chart", () => {
@@ -42,7 +42,7 @@ describe("ActivityWidget", () => {
     expect(screen.getByRole("heading", { name: "Club Activity" })).toBeInTheDocument();
     expect(screen.getByText("Movies reviewed per month")).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Monthly" })).toHaveAttribute("aria-selected", "true");
-    expect(chartSeriesNames(screen.getByRole("img", { name: "chart" }))).toEqual(["Movies"]);
+    expect(chartSeriesNames(screen.getByRole("img", { name: "chart" }))).toStrictEqual(["Movies"]);
   });
 
   it("switches to the all-time cumulative chart", async () => {
@@ -104,7 +104,7 @@ describe("ActivityWidget", () => {
     render(ActivityWidget, {
       props: {
         workData: [makeBook({ id: "b1", createdDate: "2023-01-15T00:00:00.000Z" })],
-        clubType: ClubType.book,
+        clubType: ClubType.BOOK,
       },
     });
 
@@ -112,7 +112,7 @@ describe("ActivityWidget", () => {
   });
 
   it("renders nothing for a club with no reviews", () => {
-    render(ActivityWidget, { props: { workData: [], clubType: ClubType.movie } });
+    render(ActivityWidget, { props: { workData: [], clubType: ClubType.MOVIE } });
 
     expect(screen.queryByText("Club Activity")).not.toBeInTheDocument();
   });

@@ -1,27 +1,27 @@
 import { hasValue, isDefined, hasElements } from "../../../lib/checks/checks.js";
-import { Member } from "../../../lib/types/club.js";
-import { MovieCastMember } from "../../../lib/types/movie.js";
-import type {
-  BookData,
-  ClubConsensusEntry,
-  ClubCurmudgeonEntry,
-  ClubRecords,
-  CumulativeCountPoint,
-  GenreStats,
-  GenreWatchCount,
-  GuiltyPleasureEntry,
-  HighestRatedByYearEntry,
-  MemberLeaderboardEntry,
-  MemberPairSimilarity,
-  MonthlyActivityPoint,
-  MovieAgreement,
-  MovieData,
-  ScoreTrendPoint,
-  ScoreVariancePoint,
-  SubjectReadCount,
-  SubjectScoreStats,
-  TmdbDeviationEntry,
-  WorkStatsData,
+import { type Member } from "../../../lib/types/club.js";
+import { type CastMember } from "../../../lib/types/tmdb.js";
+import {
+  type BookData,
+  type ClubConsensusEntry,
+  type ClubCurmudgeonEntry,
+  type ClubRecords,
+  type CumulativeCountPoint,
+  type GenreStats,
+  type GenreWatchCount,
+  type GuiltyPleasureEntry,
+  type HighestRatedByYearEntry,
+  type MemberLeaderboardEntry,
+  type MemberPairSimilarity,
+  type MonthlyActivityPoint,
+  type MovieAgreement,
+  type MovieData,
+  type ScoreTrendPoint,
+  type ScoreVariancePoint,
+  type SubjectReadCount,
+  type SubjectScoreStats,
+  type TmdbDeviationEntry,
+  type WorkStatsData,
 } from "./types";
 
 const MIN_GENRE_COUNT = 2;
@@ -429,7 +429,7 @@ export function computeTopDirectors(movieData: MovieData[]): PersonStats[] {
  */
 export function computeTopActors(
   movieData: MovieData[],
-  castByExternalId: Record<string, MovieCastMember[]> | undefined,
+  castByExternalId: Record<string, CastMember[]> | undefined,
 ): PersonStats[] {
   if (!isDefined(castByExternalId)) return [];
   return computeTopPeople(movieData, (m) =>
@@ -625,7 +625,7 @@ function computeScoreOutliers(
 
     if (outliers.length !== 1) continue;
 
-    const outlier = outliers[0];
+    const [outlier] = outliers;
     const entry: ScoreOutlierMovie = {
       title: movie.title,
       imageUrl: movie.imageUrl,
@@ -807,7 +807,7 @@ export function computeClubRecords(workData: WorkStatsData[]): ClubRecords {
   }
 
   const byAverage = [...workData].sort((a, b) => b.average - a.average);
-  const best = byAverage[0];
+  const [best] = byAverage;
   const worst = byAverage[byAverage.length - 1];
 
   let mostDivisive: ClubRecords["mostDivisive"] = null;

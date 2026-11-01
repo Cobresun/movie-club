@@ -1,15 +1,15 @@
 import { z } from "zod";
 
-import { hasValue } from "../../../lib/checks/checks.js";
+import { hasValue, isDefined } from "../../../lib/checks/checks.js";
 import {
-  ClubListSummary,
-  DetailedReviewListItem,
-  DetailedWorkListItem,
-  ReviewsListIdResponse,
-  UserListItemWithSource,
-  WorkDataSummary,
+  type ClubListSummary,
+  type DetailedReviewListItem,
+  type DetailedWorkListItem,
+  type ReviewsListIdResponse,
+  type UserListItemWithSource,
+  type WorkDataSummary,
+  listInsertDtoSchema,
 } from "../../../lib/types/lists.js";
-import { listInsertDtoSchema } from "../../../lib/types/lists.js";
 import ListRepository from "../repositories/ListRepository";
 import ReviewRepository from "../repositories/ReviewRepository";
 import UserRepository from "../repositories/UserRepository";
@@ -21,7 +21,7 @@ import { requireParam } from "../utils/requireParam";
 import { badRequest, internalServerError, ok } from "../utils/responses";
 import { buildReviewScores } from "../utils/reviewScores";
 import { isRouterResponse, Router } from "../utils/router";
-import { ClubRequest, ListRequest, validListId } from "../utils/validation";
+import { type ClubRequest, type ListRequest, validListId } from "../utils/validation";
 import { BadRequest } from "@/common/errorCodes";
 
 const router = new Router<ClubRequest>("/api/club/:clubSlug/list");
@@ -49,7 +49,7 @@ router.get("/", async ({ clubId }, res) => {
   return res(
     ok<ClubListSummary[]>(
       lists.map((row) => ({
-        id: String(row.id),
+        id: row.id,
         title: row.title,
         systemType: row.system_type,
         itemCount: Number(row.item_count),
@@ -86,7 +86,7 @@ router.post("/", secured, async ({ clubId, event }, res) => {
   const created = await ListRepository.createList(clubId, body.title);
   return res(
     ok<ClubListSummary>({
-      id: String(created.id),
+      id: created.id,
       title: created.title,
       systemType: created.system_type,
       itemCount: 0,
@@ -114,7 +114,7 @@ router.get("/all-items", async ({ clubId }, res) => {
 
   const mapped = items.map((item) => ({
     ...toDetailedListItem(item, externalData),
-    sourceListId: String(item.list_id),
+    sourceListId: item.list_id,
     sourceListTitle: item.list_title,
   }));
   return res(ok<UserListItemWithSource[]>(mapped));
@@ -197,14 +197,24 @@ router.delete(
     if (isRouterResponse(workId)) return workId;
     const exists = await ListRepository.isItemInList(listId, workId);
     if (!exists) {
+      // A child work (a TV episode) is on the list only through its parent:
+      // taking it off the list deletes it, and with it every score it has.
+      if (await ListRepository.isOnList(listId, workId)) {
+        await WorkRepository.delete(clubId, workId);
+        return res(ok());
+      }
       return res(badRequest("This movie does not exist in the list"));
     }
     await ListRepository.deleteItemFromList(listId, workId);
     try {
       await WorkRepository.delete(clubId, workId);
     } catch (e) {
-      const error = e as { constraint?: string };
-      if (error?.constraint !== "fk_work_list_item_work_id") {
+      if (
+        typeof e !== "object" ||
+        e === null ||
+        !("constraint" in e) ||
+        e.constraint !== "fk_work_list_item_work_id"
+      ) {
         return res(internalServerError("Failed to delete work"));
       }
     }
@@ -306,6 +316,22 @@ function toDetailedListItem(
   };
 }
 
+/**
+ * When a work joined the reviews: when it was put on the list, or, for a child
+ * work (which is on the list only through its parent), when it was first
+ * scored.
+ */
+function reviewedDate(
+  rows: { parent_work_id: string | null; time_added: Date; created_date: Date | null }[],
+): Date {
+  const [first] = rows;
+  if (!hasValue(first.parent_work_id)) return first.time_added;
+  const scored = rows.map((row) => row.created_date).filter(isDefined);
+  return scored.length > 0
+    ? new Date(Math.min(...scored.map((date) => date.getTime())))
+    : first.time_added;
+}
+
 async function getReviewList(clubId: string): Promise<DetailedReviewListItem[]> {
   const [reviews, members] = await Promise.all([
     ReviewRepository.getReviewList(clubId),
@@ -339,8 +365,9 @@ async function getReviewList(clubId: string): Promise<DetailedReviewListItem[]> 
 
       return {
         id: key,
+        parentId: review.parent_work_id ?? undefined,
         title: review.title,
-        createdDate: review.time_added.toISOString(),
+        createdDate: reviewedDate(items).toISOString(),
         type: review.type,
         imageUrl: review.image_url ?? undefined,
         externalId: review.external_id ?? undefined,

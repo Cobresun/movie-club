@@ -58,11 +58,7 @@ defineProps<{
 }>();
 
 const emit = defineEmits<{
-  (e: "close"): void;
-  (e: "review"): void;
-  (e: "set-next-work"): void;
-  (e: "clear-next-work"): void;
-  (e: "delete"): void;
+  (e: "close" | "review" | "set-next-work" | "clear-next-work" | "delete"): void;
   (e: "move-to-list", listId: string): void;
 }>();
 

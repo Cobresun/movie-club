@@ -79,6 +79,8 @@
           />
         </div>
 
+        <AcquisitionWidget :acquisition="dashboard.acquisition" :range="dashboard.range" />
+
         <section aria-labelledby="health-heading" class="space-y-3 pt-4">
           <h2 id="health-heading" class="text-sm font-bold uppercase tracking-wide text-slate-400">
             Health
@@ -116,10 +118,11 @@
 </template>
 
 <script setup lang="ts">
-import axios from "axios";
+import { isAxiosError } from "axios";
 import { computed, ref } from "vue";
 
 import { DEFAULT_METRICS_RANGE, MetricsRange } from "../../../../lib/types/metrics";
+import AcquisitionWidget from "../components/AcquisitionWidget.vue";
 import AdminDashboardSkeleton from "../components/AdminDashboardSkeleton.vue";
 import ClubStatusWidget from "../components/ClubStatusWidget.vue";
 import ClubsWidget from "../components/ClubsWidget.vue";
@@ -156,7 +159,7 @@ const refresh = () => Promise.all([refetch(), refetchHistory()]);
  * is where a non-admin finds out.
  */
 const isUnauthorized = computed(
-  () => axios.isAxiosError(error.value) && error.value.response?.status === 401,
+  () => isAxiosError(error.value) && error.value.response?.status === 401,
 );
 
 const pulseTiles = computed(() => {

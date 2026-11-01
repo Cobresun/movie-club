@@ -89,13 +89,13 @@ describe("useAddCategory", () => {
     const { result } = withSetup(withYear(() => useAddCategory("test-club", "2024")));
 
     await vi.waitFor(() => {
-      expect(categories(result.year)).toEqual([]);
+      expect(categories(result.year)).toStrictEqual([]);
     });
 
     result.mutation.mutate("Best Picture");
 
     await vi.waitFor(() => {
-      expect(categories(result.year)).toEqual(["Best Picture:"]);
+      expect(categories(result.year)).toStrictEqual(["Best Picture:"]);
     });
   });
 });
@@ -113,13 +113,13 @@ describe("useDeleteCategory", () => {
     const { result } = withSetup(withYear(() => useDeleteCategory("test-club", "2024")));
 
     await vi.waitFor(() => {
-      expect(categories(result.year)).toEqual(["Best Picture:"]);
+      expect(categories(result.year)).toStrictEqual(["Best Picture:"]);
     });
 
     result.mutation.mutate("Best Picture");
 
     await vi.waitFor(() => {
-      expect(categories(result.year)).toEqual([]);
+      expect(categories(result.year)).toStrictEqual([]);
     });
   });
 });
@@ -137,7 +137,7 @@ describe("useAddNomination", () => {
     const { result } = withSetup(withYear(() => useAddNomination("test-club", "2024")));
 
     await vi.waitFor(() => {
-      expect(categories(result.year)).toEqual(["Best Picture:"]);
+      expect(categories(result.year)).toStrictEqual(["Best Picture:"]);
     });
 
     result.mutation.mutate({
@@ -145,7 +145,7 @@ describe("useAddNomination", () => {
       review: {
         id: "r-1",
         title: "The Shawshank Redemption",
-        type: WorkType.movie,
+        type: WorkType.MOVIE,
         createdDate: "2024-01-01T00:00:00.000Z",
         // The nomination is keyed by TMDB id, so this is what lands.
         externalId: "278",
@@ -155,7 +155,7 @@ describe("useAddNomination", () => {
     });
 
     await vi.waitFor(() => {
-      expect(categories(result.year)).toEqual(["Best Picture:278"]);
+      expect(categories(result.year)).toStrictEqual(["Best Picture:278"]);
     });
   });
 
@@ -167,7 +167,7 @@ describe("useAddNomination", () => {
       review: {
         id: "r-bad",
         title: "Mystery Film",
-        type: WorkType.movie,
+        type: WorkType.MOVIE,
         createdDate: "2024-01-01T00:00:00.000Z",
         scores: {},
       },
@@ -204,13 +204,13 @@ describe("useDeleteNomination", () => {
     const { result } = withSetup(withYear(() => useDeleteNomination("test-club", "2024")));
 
     await vi.waitFor(() => {
-      expect(categories(result.year)).toEqual(["Best Picture:278+389"]);
+      expect(categories(result.year)).toStrictEqual(["Best Picture:278+389"]);
     });
 
     result.mutation.mutate({ awardTitle: "Best Picture", movieId: 278 });
 
     await vi.waitFor(() => {
-      expect(categories(result.year)).toEqual(["Best Picture:389"]);
+      expect(categories(result.year)).toStrictEqual(["Best Picture:389"]);
     });
   });
 });
@@ -245,7 +245,7 @@ describe("useSubmitRanking", () => {
     const { result } = withSetup(withYear(() => useSubmitRanking("test-club", "2024")));
 
     await vi.waitFor(() => {
-      expect(rankings()).toEqual([
+      expect(rankings()).toStrictEqual([
         [278, []],
         [389, []],
       ]);
@@ -254,7 +254,7 @@ describe("useSubmitRanking", () => {
     result.mutation.mutate({ awardTitle: "Best Picture", movies: [389, 278] });
 
     await vi.waitFor(() => {
-      expect(rankings()).toEqual([
+      expect(rankings()).toStrictEqual([
         [278, [2]],
         [389, [1]],
       ]);

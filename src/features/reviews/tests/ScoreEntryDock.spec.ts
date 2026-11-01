@@ -1,9 +1,8 @@
 import { screen, waitFor } from "@testing-library/vue";
 import { http, HttpResponse } from "msw";
-import { vi } from "vitest";
 
 import { WorkType } from "../../../../lib/types/generated/db";
-import { DetailedReviewListItem } from "../../../../lib/types/lists";
+import { type DetailedReviewListItem } from "../../../../lib/types/lists";
 import ScoreEntryDock from "../components/ScoreEntryDock.vue";
 import { ScoreAssistKey } from "../scoreAssist";
 import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
@@ -15,7 +14,7 @@ mockIntersectionObserver();
 function makeTarget(): DetailedReviewListItem {
   return {
     id: "target",
-    type: WorkType.movie,
+    type: WorkType.MOVIE,
     title: "Target Movie",
     createdDate: "2024-01-01",
     scores: {},
@@ -41,7 +40,7 @@ function withAssist(isEligible: boolean) {
   return {
     global: {
       provide: {
-        [ScoreAssistKey]: { isEligible: () => isEligible, open: vi.fn() },
+        [ScoreAssistKey]: { isEligible: () => isEligible, open: vi.fn<() => void>() },
       },
     },
   };
@@ -65,7 +64,7 @@ describe("ScoreEntryDock", () => {
     // Collapsed: only the CTA is accessible; the panel is aria-hidden.
     expect(screen.queryByRole("spinbutton")).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: /Rate this movie/ }));
+    await user.click(screen.getByRole("button", { name: /Rate this movie/u }));
 
     // The dock focuses the field once its expansion finishes; typing before
     // that lands lets the delayed focus interrupt the keystrokes mid-value.
@@ -74,11 +73,15 @@ describe("ScoreEntryDock", () => {
     await user.type(input, "8.5");
     await user.click(screen.getByRole("button", { name: "Save score" }));
 
-    await waitFor(() => expect(posted).toEqual({ workId: "target", score: 8.5 }));
+    await waitFor(() => {
+      expect(posted).toStrictEqual({ workId: "target", score: 8.5 });
+    });
 
     // Saving collapses the panel and restores the CTA.
-    await waitFor(() => expect(screen.queryByRole("spinbutton")).not.toBeInTheDocument());
-    expect(screen.getByRole("button", { name: /Rate this movie/ })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByRole("spinbutton")).not.toBeInTheDocument();
+    });
+    expect(screen.getByRole("button", { name: /Rate this movie/u })).toBeInTheDocument();
   });
 
   it("labels the CTA as an edit when the user already has a review", () => {
@@ -87,7 +90,7 @@ describe("ScoreEntryDock", () => {
       ...withAssist(false),
     });
 
-    expect(screen.getByRole("button", { name: /Edit score/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Edit score/u })).toBeInTheDocument();
   });
 
   it("swaps to the assist flow in place and prefills the dial with its suggestion", async () => {
@@ -108,30 +111,32 @@ describe("ScoreEntryDock", () => {
     });
     logIn(pinia);
 
-    await user.click(screen.getByRole("button", { name: /Rate this movie/ }));
-    await user.click(await screen.findByRole("button", { name: /Compare to decide/ }));
+    await user.click(screen.getByRole("button", { name: /Rate this movie/u }));
+    await user.click(await screen.findByRole("button", { name: /Compare to decide/u }));
 
     // The dial gave way to the comparison flow inside the same panel.
-    expect(await screen.findByText("Which movie did you like more?")).toBeInTheDocument();
+    await expect(screen.findByText("Which movie did you like more?")).resolves.toBeInTheDocument();
     expect(screen.queryByRole("spinbutton")).not.toBeInTheDocument();
 
     // Finishing the flow swaps back to the dial pre-filled with the
     // suggestion (the first pivot's score, 5) — nothing is saved yet.
     await user.click(screen.getByRole("button", { name: "Too close to call" }));
-    expect(await screen.findByRole("spinbutton", { name: "Score" })).toHaveValue(5);
+    await expect(screen.findByRole("spinbutton", { name: "Score" })).resolves.toHaveValue(5);
     expect(posted).toBeUndefined();
 
     // Saving is still the user's call; it persists and collapses the dock
     // back to the CTA.
     await user.click(screen.getByRole("button", { name: "Save score" }));
-    await waitFor(() => expect(posted).toEqual({ workId: "target", score: 5 }));
-    await waitFor(() =>
-      expect(screen.getByRole("button", { name: /Rate this movie/ })).toBeInTheDocument(),
-    );
+    await waitFor(() => {
+      expect(posted).toStrictEqual({ workId: "target", score: 5 });
+    });
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /Rate this movie/u })).toBeInTheDocument();
+    });
   });
 
   it("collapses on Escape without letting the event reach the drawer", async () => {
-    const drawerEscape = vi.fn();
+    const drawerEscape = vi.fn<() => void>();
     window.addEventListener("keydown", drawerEscape);
 
     const { user } = render(ScoreEntryDock, {
@@ -139,13 +144,15 @@ describe("ScoreEntryDock", () => {
       ...withAssist(false),
     });
 
-    await user.click(screen.getByRole("button", { name: /Rate this movie/ }));
-    expect(await screen.findByRole("spinbutton", { name: "Score" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Rate this movie/u }));
+    await expect(screen.findByRole("spinbutton", { name: "Score" })).resolves.toBeInTheDocument();
 
     await user.keyboard("{Escape}");
 
-    await waitFor(() => expect(screen.queryByRole("spinbutton")).not.toBeInTheDocument());
-    expect(screen.getByRole("button", { name: /Rate this movie/ })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByRole("spinbutton")).not.toBeInTheDocument();
+    });
+    expect(screen.getByRole("button", { name: /Rate this movie/u })).toBeInTheDocument();
     // The capture-phase handler stopped propagation, so a bubble-phase
     // listener (VSideDrawer's close-on-escape) never saw the key.
     expect(drawerEscape).not.toHaveBeenCalled();

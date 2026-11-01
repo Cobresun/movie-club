@@ -1,11 +1,13 @@
-import { describe, expect, it } from "vitest";
-
 import { isDefined } from "../../../../lib/checks/checks";
 import { isMajorCastMember } from "../../../../lib/movie/majorCast";
-import { DetailedBookData } from "../../../../lib/types/book";
+import { type DetailedBookData } from "../../../../lib/types/book";
 import { WorkType } from "../../../../lib/types/generated/db";
-import { DetailedReviewListItem, DetailedWorkData, Review } from "../../../../lib/types/lists";
-import { DetailedMovieData } from "../../../../lib/types/movie";
+import {
+  type DetailedReviewListItem,
+  type DetailedWorkData,
+  type Review,
+} from "../../../../lib/types/lists";
+import { type DetailedMovieData } from "../../../../lib/types/movie";
 import { computeReviewFact } from "../reviewFacts";
 
 const MEMBER_A = "member-a";
@@ -91,7 +93,7 @@ function work(
   }
   return {
     id,
-    type: opts.type ?? WorkType.movie,
+    type: opts.type ?? WorkType.MOVIE,
     title: `Work ${id}`,
     createdDate: date,
     scores,
@@ -120,7 +122,7 @@ function filler(
       `${year}-${String(month).padStart(2, "0")}-03T12:00:00.000Z`,
       { [MEMBER_A]: score, [MEMBER_B]: score },
       isDefined(opts.book)
-        ? { type: WorkType.book, externalData: bookData(opts.book) }
+        ? { type: WorkType.BOOK, externalData: bookData(opts.book) }
         : { externalData: movieData({ genres: ["Drama"], ...opts.movie }) },
     );
   });
@@ -450,7 +452,7 @@ describe("computeReviewFact", () => {
       "t",
       "2025-06-01T12:00:00.000Z",
       { [MEMBER_A]: 6, [MEMBER_B]: 6 },
-      { type: WorkType.book, externalData: bookData({ pages: 500 }) },
+      { type: WorkType.BOOK, externalData: bookData({ pages: 500 }) },
     );
     const reviews = [...filler(11, { book: { pages: 420 } }), target];
 
@@ -465,7 +467,7 @@ describe("computeReviewFact", () => {
       "t",
       "2025-06-01T12:00:00.000Z",
       { [MEMBER_A]: 6, [MEMBER_B]: 6 },
-      { type: WorkType.book, externalData: bookData({ pages: 1178 }) },
+      { type: WorkType.BOOK, externalData: bookData({ pages: 1178 }) },
     );
     // 11 priors at 300 pages keep total pages under the 5,000 milestone.
     const reviews = [...filler(11, { book: { pages: 300 } }), target];
@@ -482,7 +484,7 @@ describe("computeReviewFact", () => {
       "2025-06-01T12:00:00.000Z",
       { [MEMBER_A]: 6, [MEMBER_B]: 6 },
       {
-        type: WorkType.book,
+        type: WorkType.BOOK,
         externalData: bookData({ firstPublishYear: 1847 }),
       },
     );
@@ -501,7 +503,7 @@ describe("computeReviewFact", () => {
         date,
         { [MEMBER_A]: score, [MEMBER_B]: score },
         {
-          type: WorkType.book,
+          type: WorkType.BOOK,
           externalData: bookData({ authors: ["Ursula K. Le Guin"] }),
         },
       );
@@ -514,5 +516,62 @@ describe("computeReviewFact", () => {
     const fact = computeReviewFact(reviews, "t");
     expect(fact?.kind).toBe("personHigh");
     expect(fact?.text).toContain("3 books by Ursula K. Le Guin");
+  });
+});
+
+describe("computeReviewFact in a TV club", () => {
+  function tvWork(
+    id: string,
+    date: string,
+    score: number,
+    level: "show" | "episode",
+  ): DetailedReviewListItem {
+    return work(
+      id,
+      date,
+      { [MEMBER_A]: score, [MEMBER_B]: score },
+      {
+        type: WorkType.TV,
+        externalData: {
+          kind: "tv",
+          level,
+          showId: "1",
+          showTitle: "Severance",
+          seasonNumber: 1,
+          title: `Work ${id}`,
+          genres: [],
+          creators: [],
+          networks: [],
+          castNames: [],
+          actors: [],
+        },
+      },
+    );
+  }
+
+  const episodes = (count: number) =>
+    Array.from({ length: count }, (_, i) =>
+      tvWork(
+        `e${i}`,
+        `2025-0${1 + Math.floor(i / 3)}-0${1 + (i % 3)}T12:00:00.000Z`,
+        5 + (i % 3),
+        "episode",
+      ),
+    );
+
+  it("counts episodes alone, leaving out a show the club scored on its own", () => {
+    const show = tvWork("s1", "2025-05-01T12:00:00.000Z", 10, "show");
+    const target = tvWork("t", "2025-06-01T12:00:00.000Z", 6, "episode");
+
+    const fact = computeReviewFact([...episodes(9), show, target], "t");
+
+    expect(fact?.kind).toBe("clubMilestone");
+    expect(fact?.text).toContain("10th episode");
+  });
+
+  it("has nothing to say about a show scored on its own", () => {
+    const show = tvWork("s1", "2025-06-01T12:00:00.000Z", 10, "show");
+
+    expect(computeReviewFact([...episodes(11), show], "s1")).toBeUndefined();
   });
 });

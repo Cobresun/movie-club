@@ -55,7 +55,9 @@ describe("SubjectStatsWidget", () => {
       props: { bookData: [book("1", ["Poetry"], 7), book("2", ["Essays"], 6)] },
     });
 
-    expect(screen.getAllByRole("tab").map((tab) => tab.textContent?.trim())).toEqual(["Most Read"]);
+    expect(screen.getAllByRole("tab").map((tab) => tab.textContent?.trim())).toStrictEqual([
+      "Most Read",
+    ]);
     expect(screen.getByText("Poetry")).toBeInTheDocument();
   });
 

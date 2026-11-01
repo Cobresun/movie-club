@@ -1,16 +1,21 @@
-import { sql, SqlBool } from "kysely";
+import { sql, type SqlBool } from "kysely";
 import { jsonBuildObject } from "kysely/helpers/postgres";
 
 import { isDefined, hasValue } from "../../../../lib/checks/checks.js";
 import { MAJOR_CAST_SIZE, STAR_POPULARITY } from "../../../../lib/movie/majorCast.js";
 import { WorkType } from "../../../../lib/types/generated/db";
-import { DetailedWorkData, WorkDataSummary } from "../../../../lib/types/lists";
-import { MovieCastMember, MovieDataSummary } from "../../../../lib/types/movie";
-import { SimilarWork } from "../../../../lib/types/recommendations";
+import {
+  type DetailedWorkData,
+  type ListInsertDto,
+  type WorkDataSummary,
+} from "../../../../lib/types/lists";
+import { type MovieDataSummary } from "../../../../lib/types/movie";
+import { type SimilarWork } from "../../../../lib/types/recommendations";
+import { type CastMember } from "../../../../lib/types/tmdb";
 import { db } from "../database";
 import { insertMovieDetails, updateMovieDetails } from "../movieDetailsUpdater";
 import { getTMDBMovieData, getTMDBPosterUrlBuilder, getTMDBRecommendations } from "../tmdb";
-import { MediaProvider, numOrUndefined, RefreshResult } from "./types";
+import { type MediaProvider, numOrUndefined, type RefreshResult } from "./types";
 
 /**
  * Builds the `movie_details` + junction aggregates for a set of external IDs,
@@ -132,12 +137,12 @@ async function similarMovies(
 ): Promise<SimilarWork[]> {
   const similar: SimilarWork[] = [];
   for (let page = 1; page <= MAX_SIMILAR_PAGES; page++) {
-    const response = await getTMDBRecommendations(parseInt(externalId), page);
+    const response = await getTMDBRecommendations(Number.parseInt(externalId, 10), page);
     for (const movie of response.results) {
       // Adult titles are excluded to match search (`include_adult=false`). A
       // posterless card reads as broken in the add grid, and TMDB's posterless
       // recommendations are overwhelmingly obscure entries nobody is looking for.
-      if (movie.adult === true || !hasValue(movie.poster_path)) continue;
+      if (movie.adult || !hasValue(movie.poster_path)) continue;
       if (excludedIds.has(String(movie.id))) continue;
       similar.push({
         externalId: String(movie.id),
@@ -185,7 +190,8 @@ export function toMovieDataSummary(row: MovieSummaryRow): MovieDataSummary {
 }
 
 class MovieProvider implements MediaProvider {
-  readonly type = WorkType.movie;
+  readonly type = WorkType.MOVIE;
+  readonly defaultListTitle = "Watch List";
 
   async fetchAndCacheDetails(externalId: string): Promise<void> {
     // Details are immutable enough that a cached row means the TMDB round
@@ -198,7 +204,7 @@ class MovieProvider implements MediaProvider {
       .executeTakeFirst();
     if (isDefined(cached)) return;
 
-    const { data } = await getTMDBMovieData(parseInt(externalId));
+    const { data } = await getTMDBMovieData(Number.parseInt(externalId, 10));
     await insertMovieDetails(externalId, data, db);
   }
 
@@ -233,8 +239,8 @@ class MovieProvider implements MediaProvider {
     return map;
   }
 
-  async getCast(externalIds: string[]): Promise<Map<string, MovieCastMember[]>> {
-    const map = new Map<string, MovieCastMember[]>();
+  async getCast(externalIds: string[]): Promise<Map<string, CastMember[]>> {
+    const map = new Map<string, CastMember[]>();
     if (externalIds.length === 0) return map;
 
     const rows = await db
@@ -254,6 +260,10 @@ class MovieProvider implements MediaProvider {
       map.set(row.external_id, cast);
     }
     return map;
+  }
+
+  resolveChild(): Promise<ListInsertDto | undefined> {
+    return Promise.resolve(undefined);
   }
 
   async getDiscussionPrompt(work: { title: string; externalId: string | null }): Promise<string> {
@@ -306,7 +316,7 @@ If you do not recognize this film or cannot confirm it is a real movie, return 0
     for (const { external_id } of stale) {
       result.processed++;
       try {
-        const { data } = await getTMDBMovieData(parseInt(external_id));
+        const { data } = await getTMDBMovieData(Number.parseInt(external_id, 10));
         await db.transaction().execute((trx) => updateMovieDetails(external_id, data, trx));
         result.updated++;
       } catch (error) {

@@ -1,4 +1,4 @@
-import { Kysely } from "kysely";
+import { type Kysely } from "kysely";
 import { z } from "zod";
 
 /**
@@ -48,8 +48,8 @@ const awardsDataSchema = z
 
 const normalize = (name: string) => name.trim().toLowerCase();
 
-export async function up(db: Kysely<unknown>) {
-  const typedDb = db.withTables<MigrationTables>();
+async function up(db: Kysely<unknown>) {
+  const typedDb = db.$extendTables<MigrationTables>();
 
   const memberRows = await typedDb
     .selectFrom("club_member")
@@ -60,13 +60,13 @@ export async function up(db: Kysely<unknown>) {
   // club_id -> { member IDs, normalized name -> IDs with that name }
   const perClub = new Map<string, { ids: Set<string>; byName: Map<string, string[]> }>();
   for (const m of memberRows) {
-    const clubId = String(m.club_id);
+    const clubId = m.club_id;
     let entry = perClub.get(clubId);
     if (entry === undefined) {
       entry = { ids: new Set(), byName: new Map() };
       perClub.set(clubId, entry);
     }
-    const userId = String(m.userId);
+    const userId = m.userId;
     entry.ids.add(userId);
     const key = normalize(m.name);
     entry.byName.set(key, [...(entry.byName.get(key) ?? []), userId]);
@@ -77,8 +77,8 @@ export async function up(db: Kysely<unknown>) {
   const unresolved: string[] = [];
 
   for (const row of rows) {
-    const clubId = String(row.club_id);
-    const year = String(row.year);
+    const clubId = row.club_id;
+    const year = row.year;
     const entry = perClub.get(clubId);
 
     // The migrator already wraps this in a transaction; FOR UPDATE locks the
@@ -158,4 +158,6 @@ export async function up(db: Kysely<unknown>) {
 
 // No inverse: the original name spelling isn't recorded, and the remapped
 // keys are exactly what 20260706_RekeyAwardsToUserIds would have produced.
-export async function down() {}
+async function down() {}
+
+export default { name: "20261019_RekeyAwardsCaseInsensitiveNames", up, down };

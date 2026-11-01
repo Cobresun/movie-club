@@ -13,7 +13,7 @@ const club = (slug: string) => ({
   clubName: slug,
   slug,
   slugUpdatedAt: undefined,
-  type: ClubType.movie,
+  type: ClubType.MOVIE,
 });
 
 beforeEach(() => {

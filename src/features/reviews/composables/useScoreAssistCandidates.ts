@@ -1,7 +1,7 @@
-import { computed, MaybeRefOrGetter, toValue } from "vue";
+import { computed, type MaybeRefOrGetter, toValue } from "vue";
 
 import { ClubType } from "../../../../lib/types/generated/db";
-import { buildCandidatePool, ScoreAssistTarget } from "./scoreAssistLogic";
+import { buildCandidatePool, type ScoreAssistTarget } from "./scoreAssistLogic";
 import { useClub, useClubSlug } from "@/service/useClub";
 import { useMemberScores } from "@/service/useUser";
 
@@ -16,7 +16,7 @@ export function useScoreAssistCandidates(target: MaybeRefOrGetter<ScoreAssistTar
   const { data: club } = useClub(clubSlug);
   const { data: memberScores } = useMemberScores();
 
-  const clubType = computed(() => club.value?.type ?? ClubType.movie);
+  const clubType = computed(() => club.value?.type ?? ClubType.MOVIE);
   const clubId = computed(() => club.value?.clubId);
   const candidates = computed(() => buildCandidatePool(memberScores.value ?? [], toValue(target)));
 

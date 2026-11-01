@@ -1,6 +1,6 @@
 import { type Component } from "vue";
 
-import { Member } from "../../../lib/types/club.js";
+import { type Member } from "../../../lib/types/club.js";
 import { ClubType } from "../../../lib/types/generated/db";
 import ActivityWidget from "./components/ActivityWidget.vue";
 import AuthorLeaderboardWidget from "./components/AuthorLeaderboardWidget.vue";
@@ -120,7 +120,7 @@ const clubConsensusWidget: StatWidgetDef = {
  * (that would invert the common → feature dependency; see code-quality.md).
  */
 export const STAT_WIDGETS: Record<ClubType, StatWidgetDef[]> = {
-  [ClubType.movie]: [
+  [ClubType.MOVIE]: [
     statsWidget,
     clubRecordsWidget,
     scoreChartsWidget,
@@ -145,7 +145,7 @@ export const STAT_WIDGETS: Record<ClubType, StatWidgetDef[]> = {
       props: (ctx) => ({ movieData: ctx.movieData }),
     },
   ],
-  [ClubType.book]: [
+  [ClubType.BOOK]: [
     statsWidget,
     clubRecordsWidget,
     scoreChartsWidget,
@@ -160,6 +160,19 @@ export const STAT_WIDGETS: Record<ClubType, StatWidgetDef[]> = {
       component: AuthorLeaderboardWidget,
       props: (ctx) => ({ bookData: ctx.bookData }),
     },
+    reviewerLeaderboardWidget,
+    tasteSimilarityWidget,
+    memberOutliersWidget,
+    clubConsensusWidget,
+  ],
+  // Score-based widgets only: every media-specific widget here reads movie or
+  // book metadata. The TV equivalents (best and worst episode, score across a
+  // season, guest-star leaderboards) are their own piece of work.
+  [ClubType.TV]: [
+    statsWidget,
+    clubRecordsWidget,
+    scoreChartsWidget,
+    activityWidget,
     reviewerLeaderboardWidget,
     tasteSimilarityWidget,
     memberOutliersWidget,

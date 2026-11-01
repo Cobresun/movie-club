@@ -1,0 +1,584 @@
+import { isAxiosError } from "axios";
+
+import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
+import { WorkType } from "../../../../lib/types/generated/db";
+import {
+  type DetailedWorkData,
+  type ListInsertDto,
+  type WorkDataSummary,
+} from "../../../../lib/types/lists";
+import { type SimilarWork } from "../../../../lib/types/recommendations";
+import { type CastMember } from "../../../../lib/types/tmdb";
+import {
+  type DetailedTvData,
+  episodeCode,
+  formatTvAddress,
+  parseTvAddress,
+  type TvAddress,
+  type TvDataSummary,
+  tvLevel,
+  type TvSeasonSummary,
+} from "../../../../lib/types/tv";
+import { db } from "../database";
+import { getTMDBTvSeason, getTMDBTvShowData } from "../tmdb";
+import { upsertTvSeasonDetails, upsertTvShowDetails } from "../tvDetailsUpdater";
+import { type MediaProvider, numOrUndefined, type RefreshResult } from "./types";
+
+/** TMDB's season 0 holds specials, which the show's season list leaves out. */
+const SPECIALS_SEASON = "0";
+
+/**
+ * Show-level metadata plus its junction aggregates. Seasons and episodes read
+ * from this too — genres, creators, networks and cast belong to the series,
+ * not to any one episode of it.
+ */
+function showQuery(showIds: string[]) {
+  return db
+    .with("genres_agg", (qb) =>
+      qb
+        .selectFrom("tv_show_genres")
+        .select(["external_id", db.fn.agg<string[]>("array_agg", ["genre_name"]).as("genres")])
+        .groupBy("external_id"),
+    )
+    .with("creators_agg", (qb) =>
+      qb
+        .selectFrom("tv_show_creators")
+        .select((eb) => [
+          "external_id",
+          eb.fn.agg<string[]>("array_agg", ["creator_name"]).as("creators"),
+        ])
+        .groupBy("external_id"),
+    )
+    .with("networks_agg", (qb) =>
+      qb
+        .selectFrom("tv_show_networks")
+        .select((eb) => [
+          "external_id",
+          eb.fn.agg<string[]>("array_agg", ["network_name"]).as("networks"),
+        ])
+        .groupBy("external_id"),
+    )
+    .with("cast_names_agg", (qb) =>
+      qb
+        .selectFrom("tv_show_cast")
+        .select((eb) => [
+          "external_id",
+          eb.fn.agg<string[]>("array_agg", ["actor_name"]).orderBy("cast_order").as("cast_names"),
+        ])
+        .groupBy("external_id"),
+    )
+    .selectFrom("tv_show_details")
+    .where("tv_show_details.external_id", "in", showIds)
+    .leftJoin("genres_agg", "genres_agg.external_id", "tv_show_details.external_id")
+    .leftJoin("creators_agg", "creators_agg.external_id", "tv_show_details.external_id")
+    .leftJoin("networks_agg", "networks_agg.external_id", "tv_show_details.external_id")
+    .leftJoin("cast_names_agg", "cast_names_agg.external_id", "tv_show_details.external_id")
+    .select([
+      "tv_show_details.external_id",
+      "tv_show_details.name",
+      "tv_show_details.overview",
+      "tv_show_details.poster_path",
+      "tv_show_details.backdrop_path",
+      "tv_show_details.first_air_date",
+      "tv_show_details.status",
+      "tv_show_details.original_language",
+      "tv_show_details.number_of_seasons",
+      "tv_show_details.tmdb_score",
+      "genres_agg.genres",
+      "creators_agg.creators",
+      "networks_agg.networks",
+      "cast_names_agg.cast_names",
+    ]);
+}
+
+/** One row of {@link showQuery}. */
+interface ShowRow {
+  external_id: string;
+  name: string | null;
+  overview: string | null;
+  poster_path: string | null;
+  backdrop_path: string | null;
+  first_air_date: Date | null;
+  status: string | null;
+  original_language: string | null;
+  number_of_seasons: string | null;
+  tmdb_score: string | null;
+  genres: string[] | null;
+  creators: string[] | null;
+  networks: string[] | null;
+  cast_names: string[] | null;
+}
+
+interface ShowContext {
+  showTitle: string;
+  genres: string[];
+  creators: string[];
+  networks: string[];
+  castNames: string[];
+  row: ShowRow;
+}
+
+function showContext(row: ShowRow): ShowContext {
+  return {
+    showTitle: row.name ?? "Untitled",
+    genres: row.genres?.filter(hasValue) ?? [],
+    creators: row.creators?.filter(hasValue) ?? [],
+    networks: row.networks?.filter(hasValue) ?? [],
+    castNames: row.cast_names?.filter(hasValue) ?? [],
+    row,
+  };
+}
+
+/** The fields a show and its episodes share, so an episode still filters and
+ * searches by the series it belongs to. */
+function seriesFields(context: ShowContext) {
+  return {
+    kind: "tv" as const,
+    showId: context.row.external_id,
+    showTitle: context.showTitle,
+    genres: context.genres,
+    creators: context.creators,
+    networks: context.networks,
+    castNames: context.castNames,
+  };
+}
+
+function toShowSummary(context: ShowContext): TvDataSummary {
+  const row = context.row;
+  return {
+    ...seriesFields(context),
+    level: "show",
+    title: context.showTitle,
+    overview: row.overview ?? undefined,
+    posterPath: row.poster_path ?? undefined,
+    backdropPath: row.backdrop_path ?? undefined,
+    airDate: row.first_air_date?.toISOString(),
+    status: row.status ?? undefined,
+    originalLanguage: row.original_language ?? undefined,
+    numberOfSeasons: numOrUndefined(row.number_of_seasons),
+    voteAverage: numOrUndefined(row.tmdb_score),
+  };
+}
+
+/**
+ * How old a cached show or season listing may be before a score naming
+ * something it lacks re-reads TMDB, instead of refusing until the scheduled
+ * refresh. Bounded so a bogus season or episode number cannot make every
+ * request a TMDB call.
+ */
+const MISS_REFETCH_AFTER_MS = 15 * 60 * 1000;
+
+function isOlderThanRefetchWindow(updatedDate: Date): boolean {
+  return Date.now() - updatedDate.getTime() > MISS_REFETCH_AFTER_MS;
+}
+
+const TMDB_STILL_BASE = "https://image.tmdb.org/t/p/w300";
+
+/**
+ * What a discussion prompt asks about: one episode, where the club is
+ * watching in order and must not be spoiled, or the whole series once the club
+ * has scored it as a whole.
+ */
+function promptSubject(summary: TvDataSummary | undefined, title: string) {
+  if (isDefined(summary) && isDefined(summary.seasonNumber) && isDefined(summary.episodeNumber)) {
+    const code = episodeCode(summary.seasonNumber, summary.episodeNumber);
+    return {
+      label: `${summary.showTitle} ${code} "${summary.title}"`,
+      unit: "episode",
+      scope:
+        "Prompts may draw on what the series has established so far, but must never reference anything that happens after this episode: the club is watching in order, and a prompt that spoils what comes later ruins the watch.",
+    };
+  }
+  return {
+    label: `"${summary?.title ?? title}"`,
+    unit: "series",
+    scope:
+      "Prompts should take in the series as a whole — its arcs, how its characters change across seasons, the choices its writers made, and how it ends or where it has been heading.",
+  };
+}
+
+function asTvSummary(data: WorkDataSummary | undefined): TvDataSummary | undefined {
+  return data?.kind === "tv" ? data : undefined;
+}
+
+function stillUrl(stillPath: string): string {
+  return `${TMDB_STILL_BASE}${stillPath}`;
+}
+
+class TvProvider implements MediaProvider {
+  readonly type = WorkType.TV;
+  readonly defaultListTitle = "Watch List";
+
+  /**
+   * Cache what the address needs: a show pulls its own details and season
+   * list, an episode also pulls its season's episodes. Safe to call
+   * on a work whose details already exist — every write upserts.
+   */
+  async fetchAndCacheDetails(externalId: string): Promise<void> {
+    const address = parseTvAddress(externalId);
+    if (!isDefined(address)) return;
+
+    await this.cacheShow(address.showId);
+    if (isDefined(address.seasonNumber)) {
+      await this.cacheSeason(address.showId, address.seasonNumber);
+    }
+  }
+
+  async getExternalData(externalIds: string[]): Promise<Map<string, DetailedWorkData>> {
+    const map = new Map<string, DetailedWorkData>();
+    if (externalIds.length === 0) return map;
+
+    const [summaries, casts] = await Promise.all([
+      this.getExternalDataSummary(externalIds),
+      this.getCast(externalIds),
+    ]);
+    for (const [externalId, summary] of summaries) {
+      if (summary.kind !== "tv") continue;
+      const detailed: DetailedTvData = { ...summary, actors: casts.get(externalId) ?? [] };
+      map.set(externalId, detailed);
+    }
+    return map;
+  }
+
+  async getExternalDataSummary(externalIds: string[]): Promise<Map<string, WorkDataSummary>> {
+    const map = new Map<string, WorkDataSummary>();
+    if (externalIds.length === 0) return map;
+
+    const addresses = new Map<string, TvAddress>();
+    for (const externalId of externalIds) {
+      const address = parseTvAddress(externalId);
+      if (isDefined(address)) addresses.set(externalId, address);
+    }
+    if (addresses.size === 0) return map;
+
+    const showIds = [...new Set([...addresses.values()].map((address) => address.showId))];
+    // A season is never a work of its own, so only shows and episodes are
+    // summarised; a show carries its season list instead.
+    const episodeIds = [...addresses]
+      .filter(([, address]) => tvLevel(address) === "episode")
+      .map(([externalId]) => externalId);
+
+    const wantsShow = [...addresses.values()].some((address) => tvLevel(address) === "show");
+
+    const [showRows, showSeasonRows, episodeRows] = await Promise.all([
+      showQuery(showIds).execute(),
+      !wantsShow
+        ? []
+        : db
+            .selectFrom("tv_season_details")
+            .where("show_external_id", "in", showIds)
+            .where("season_number", "!=", SPECIALS_SEASON)
+            .select([
+              "show_external_id",
+              "season_number",
+              "name",
+              "episode_count",
+              "poster_path",
+              "air_date",
+            ])
+            .orderBy("season_number")
+            .execute(),
+      episodeIds.length === 0
+        ? []
+        : db
+            .selectFrom("tv_episode_details")
+            .where("external_id", "in", episodeIds)
+            .selectAll()
+            .execute(),
+    ]);
+
+    const contexts = new Map<string, ShowContext>();
+    for (const row of showRows) contexts.set(row.external_id, showContext(row));
+
+    const seasonsByShow = new Map<string, TvSeasonSummary[]>();
+    for (const row of showSeasonRows) {
+      const seasons = seasonsByShow.get(row.show_external_id) ?? [];
+      seasons.push({
+        seasonNumber: Number(row.season_number),
+        name: row.name ?? `Season ${row.season_number}`,
+        episodeCount: Number(row.episode_count),
+        posterPath: row.poster_path ?? undefined,
+        airDate: row.air_date?.toISOString(),
+      });
+      seasonsByShow.set(row.show_external_id, seasons);
+    }
+
+    for (const [externalId, address] of addresses) {
+      const context = contexts.get(address.showId);
+      if (!isDefined(context)) continue;
+      if (tvLevel(address) === "show") {
+        map.set(externalId, {
+          ...toShowSummary(context),
+          seasons: seasonsByShow.get(address.showId) ?? [],
+        });
+      }
+    }
+
+    for (const row of episodeRows) {
+      const context = contexts.get(row.show_external_id);
+      if (!isDefined(context)) continue;
+      map.set(row.external_id, {
+        ...seriesFields(context),
+        level: "episode",
+        seasonNumber: Number(row.season_number),
+        episodeNumber: Number(row.episode_number),
+        title: row.name ?? episodeCode(Number(row.season_number), Number(row.episode_number)),
+        overview: row.overview ?? undefined,
+        posterPath: context.row.poster_path ?? undefined,
+        stillPath: row.still_path ?? undefined,
+        airDate: row.air_date?.toISOString(),
+        runtime: numOrUndefined(row.runtime),
+        voteAverage: numOrUndefined(row.tmdb_score),
+      });
+    }
+
+    return map;
+  }
+
+  /** The show's recurring cast, keyed by whichever work asked for it — an
+   * episode's leaderboard entry is its series' cast. */
+  async getCast(externalIds: string[]): Promise<Map<string, CastMember[]>> {
+    const map = new Map<string, CastMember[]>();
+    if (externalIds.length === 0) return map;
+
+    const addresses = new Map<string, TvAddress>();
+    for (const externalId of externalIds) {
+      const address = parseTvAddress(externalId);
+      if (isDefined(address)) addresses.set(externalId, address);
+    }
+    if (addresses.size === 0) return map;
+
+    const showIds = [...new Set([...addresses.values()].map((address) => address.showId))];
+    const rows = await db
+      .selectFrom("tv_show_cast")
+      .where("external_id", "in", showIds)
+      .select(["external_id", "actor_name", "character_name", "profile_path"])
+      .orderBy("external_id")
+      .orderBy("cast_order")
+      .execute();
+
+    const byShow = new Map<string, CastMember[]>();
+    for (const row of rows) {
+      const cast = byShow.get(row.external_id) ?? [];
+      cast.push({
+        name: row.actor_name,
+        character: row.character_name,
+        profilePath: row.profile_path,
+      });
+      byShow.set(row.external_id, cast);
+    }
+
+    for (const [externalId, address] of addresses) {
+      const cast = byShow.get(address.showId);
+      if (isDefined(cast)) map.set(externalId, cast);
+    }
+    return map;
+  }
+
+  /**
+   * A show's children are its episodes. The episode's season and number are
+   * the only thing the caller chooses: whether TMDB lists that episode, and
+   * what it is called, is read from the server's own cached TMDB data. A
+   * season is never a child — it is each member's average over their
+   * episodes, computed in the client.
+   */
+  async resolveChild(
+    parent: { externalId: string | null },
+    childExternalId: string,
+  ): Promise<ListInsertDto | undefined> {
+    const show = parseTvAddress(parent.externalId);
+    const child = parseTvAddress(childExternalId);
+    if (!isDefined(show) || !isDefined(child) || tvLevel(show) !== "show") return undefined;
+    if (child.showId !== show.showId || tvLevel(child) !== "episode") return undefined;
+    return this.episodeWork(child);
+  }
+
+  private async episodeWork(address: TvAddress): Promise<ListInsertDto | undefined> {
+    const { showId, seasonNumber } = address;
+    if (!isDefined(seasonNumber)) return undefined;
+    // Only a season the show lists is fetched: TMDB 404s any other, and an
+    // empty answer would otherwise leave a phantom season in the show's list.
+    if (!isDefined(await this.seasonRow({ showId, seasonNumber }))) return undefined;
+
+    // The season may never have been opened, so its episodes are not cached
+    // yet — scoring one of them is exactly the moment they have to exist.
+    if (!(await this.cacheSeason(showId, seasonNumber))) return undefined;
+    let row = await this.episodeRow(address);
+    // The browser reads TMDB live, so it offers an episode the night it airs
+    // while this cache still holds the season as it was earlier.
+    if (!isDefined(row) && (await this.isSeasonStale(showId, seasonNumber))) {
+      await this.cacheSeason(showId, seasonNumber, { force: true });
+      row = await this.episodeRow(address);
+    }
+    if (!isDefined(row)) return undefined;
+    return {
+      type: WorkType.TV,
+      title: row.name ?? episodeCode(Number(row.season_number), Number(row.episode_number)),
+      externalId: formatTvAddress(address),
+      imageUrl: hasValue(row.still_path) ? stillUrl(row.still_path) : undefined,
+    };
+  }
+
+  /** The show's own listing of a season, re-read once if a newly announced
+   * season is missing from a listing older than {@link MISS_REFETCH_AFTER_MS}. */
+  private async seasonRow(address: TvAddress) {
+    const read = () =>
+      db
+        .selectFrom("tv_season_details")
+        .where("external_id", "=", formatTvAddress(address))
+        .select(["name", "season_number", "poster_path"])
+        .executeTakeFirst();
+
+    const row = await read();
+    if (isDefined(row) || !(await this.isShowStale(address.showId))) return row;
+    await this.cacheShow(address.showId, { force: true });
+    return read();
+  }
+
+  private episodeRow(address: TvAddress) {
+    return db
+      .selectFrom("tv_episode_details")
+      .where("external_id", "=", formatTvAddress(address))
+      .select(["name", "season_number", "episode_number", "still_path"])
+      .executeTakeFirst();
+  }
+
+  private async isShowStale(showId: string): Promise<boolean> {
+    const row = await db
+      .selectFrom("tv_show_details")
+      .where("external_id", "=", showId)
+      .select("updated_date")
+      .executeTakeFirst();
+    return !isDefined(row) || isOlderThanRefetchWindow(row.updated_date);
+  }
+
+  private async isSeasonStale(showId: string, seasonNumber: number): Promise<boolean> {
+    const cachedDate = await this.seasonCachedDate(showId, seasonNumber);
+    return !isDefined(cachedDate) || isOlderThanRefetchWindow(cachedDate);
+  }
+
+  /** When the season's episodes were last cached, if ever. A season TMDB lists
+   * with no episodes yet (announced, not aired) stores none, so its own row
+   * stands in until the show's listing gives it some. */
+  private async seasonCachedDate(showId: string, seasonNumber: number) {
+    const row = await db
+      .selectFrom("tv_season_details as season")
+      .leftJoin("tv_episode_details as episode", "episode.season_external_id", "season.external_id")
+      .where("season.external_id", "=", formatTvAddress({ showId, seasonNumber }))
+      .groupBy(["season.episode_count", "season.updated_date"])
+      .select((eb) => [
+        "season.episode_count",
+        "season.updated_date",
+        eb.fn.max("episode.updated_date").as("episodes_updated_date"),
+      ])
+      .executeTakeFirst();
+    if (!isDefined(row)) return undefined;
+    if (isDefined(row.episodes_updated_date)) return row.episodes_updated_date;
+    return Number(row.episode_count) === 0 ? row.updated_date : undefined;
+  }
+
+  async getDiscussionPrompt(work: { title: string; externalId: string | null }): Promise<string> {
+    const address = parseTvAddress(work.externalId);
+    const summary = isDefined(address)
+      ? asTvSummary(
+          (await this.getExternalDataSummary([formatTvAddress(address)])).get(
+            formatTvAddress(address),
+          ),
+        )
+      : undefined;
+    const { label, unit, scope } = promptSubject(summary, work.title);
+    const premise = hasValue(summary?.overview) ? `\n\nWhat happens: ${summary.overview}` : "";
+
+    return `Generate 3 to 5 discussion prompts for a TV club that just watched ${label}.${premise}
+
+Every prompt must be specific to THIS ${unit} — naming its actual characters, scenes, lines, or moments — never a generic question that could apply to any ${unit} of television. ${scope}
+
+Order the prompts by depth: the first should be casual and easy to answer — a low-stakes entry point. Each subsequent prompt should be more thought-provoking than the last, with the final one being substantial.
+
+Whenever the ${unit} supports it, frame prompts as debates: questions with defensible answers on more than one side, designed to spark disagreement among friends rather than consensus. Keep each prompt succinct — one clear, concise question with no preamble.
+
+If you do not recognize this series or cannot confirm it is real, return 0 questions.`;
+  }
+
+  getSimilarWorks(): Promise<Map<string, SimilarWork[]>> {
+    return Promise.resolve(new Map<string, SimilarWork[]>());
+  }
+
+  /**
+   * Refreshes the stalest shows and every season of theirs the club has
+   * already opened. Re-reading the season is what picks up a currently airing
+   * show's new episodes, so a season the club finished mid-run reopens with a
+   * larger denominator rather than silently staying at 9/9.
+   */
+  async refreshStaleDetails(limit: number): Promise<RefreshResult> {
+    const stale = await db
+      .selectFrom("tv_show_details")
+      .select("external_id")
+      .orderBy("updated_date", "asc")
+      .limit(limit)
+      .execute();
+
+    const result: RefreshResult = { processed: 0, updated: 0, errors: [] };
+    for (const { external_id } of stale) {
+      result.processed++;
+      try {
+        const { data } = await getTMDBTvShowData(Number.parseInt(external_id, 10));
+        await db.transaction().execute((trx) => upsertTvShowDetails(external_id, data, trx));
+
+        const cachedSeasons = await db
+          .selectFrom("tv_episode_details")
+          .where("show_external_id", "=", external_id)
+          .select("season_number")
+          .distinct()
+          .execute();
+        for (const { season_number } of cachedSeasons) {
+          await this.cacheSeason(external_id, Number(season_number), { force: true });
+        }
+        result.updated++;
+      } catch (error) {
+        result.errors.push({
+          externalId: external_id,
+          error: error instanceof Error ? error.message : "Unknown error",
+        });
+      }
+    }
+    return result;
+  }
+
+  private async cacheShow(showId: string, options?: { force: boolean }): Promise<void> {
+    if (options?.force !== true) {
+      const cached = await db
+        .selectFrom("tv_show_details")
+        .select("external_id")
+        .where("external_id", "=", showId)
+        .executeTakeFirst();
+      if (isDefined(cached)) return;
+    }
+
+    const { data } = await getTMDBTvShowData(Number.parseInt(showId, 10));
+    await db.transaction().execute((trx) => upsertTvShowDetails(showId, data, trx));
+  }
+
+  /** Whether the season's episodes are cached once this returns: false when
+   * TMDB does not know the season. */
+  private async cacheSeason(
+    showId: string,
+    seasonNumber: number,
+    options?: { force: boolean },
+  ): Promise<boolean> {
+    if (options?.force !== true && isDefined(await this.seasonCachedDate(showId, seasonNumber))) {
+      return true;
+    }
+
+    try {
+      const { data } = await getTMDBTvSeason(Number.parseInt(showId, 10), seasonNumber);
+      await db.transaction().execute((trx) => upsertTvSeasonDetails(showId, data, trx));
+      return true;
+    } catch (error) {
+      if (isAxiosError(error) && error.response?.status === 404) return false;
+      throw error;
+    }
+  }
+}
+
+export default new TvProvider();

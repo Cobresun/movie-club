@@ -1,7 +1,7 @@
-import type { WorkSimilarityScorer } from "../types";
+import { type WorkSimilarityScorer } from "../types";
 import { isDefined } from "@/../lib/checks/checks";
 import { makeMovieScorer } from "@/../lib/movie/similarity";
-import { WorkDataSummary } from "@/../lib/types/lists";
+import { type WorkDataSummary } from "@/../lib/types/lists";
 import { asMovie } from "@/common/workDisplay";
 
 export const makeMovieSimilarity = (

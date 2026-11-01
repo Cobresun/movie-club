@@ -23,17 +23,15 @@ import { computed } from "vue";
 
 interface Props {
   src?: string;
-  name: string;
+  name?: string;
   size?: number;
 }
-const { src, name = "", size = 48 } = defineProps<Props>();
+const { src = "", name = "", size = 48 } = defineProps<Props>();
 
 const initials = computed(() => {
-  const initials = name.split(" ").map((val) => val.charAt(0).toUpperCase());
-  return [initials[0], initials.length > 1 ? initials[initials.length - 1] : undefined].join("");
+  const letters = name.split(" ").map((val) => val.charAt(0).toUpperCase());
+  return [letters[0], letters.length > 1 ? letters[letters.length - 1] : undefined].join("");
 });
 
-const color = computed(() => {
-  return randomColor({ seed: name, luminosity: "bright" });
-});
+const color = computed(() => randomColor({ seed: name, luminosity: "bright" }));
 </script>

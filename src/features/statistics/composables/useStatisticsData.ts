@@ -3,9 +3,11 @@ import { computed } from "vue";
 
 import { isDefined } from "../../../../lib/checks/checks.js";
 import { WorkType } from "../../../../lib/types/generated/db";
-import { DetailedReviewListItem } from "../../../../lib/types/lists";
+import { type DetailedReviewListItem } from "../../../../lib/types/lists";
 import { createHistogramData } from "../scoring";
-import type { WorkStatsBase, WorkStatsData, HistogramData } from "../types";
+import { type HistogramData, type WorkStatsBase, type WorkStatsData } from "../types";
+import { isScoredUnit } from "@/common/clubType";
+import { asTv } from "@/common/clubType/tv/data";
 import { asBook, isMovieData } from "@/common/workDisplay";
 import { useMembers, useClubSlug } from "@/service/useClub";
 import { useReviewsList } from "@/service/useList";
@@ -59,19 +61,26 @@ const WORK_STATS_BUILDERS: Record<
   WorkType,
   (base: WorkStatsBase, review: DetailedReviewListItem) => WorkStatsData | null
 > = {
-  [WorkType.book]: (base, review) => ({
+  [WorkType.BOOK]: (base, review) => ({
     // Book stats are score-only, so a book still counts without metadata.
     ...base,
-    type: WorkType.book,
+    type: WorkType.BOOK,
     externalData: asBook(review.externalData),
   }),
-  [WorkType.movie]: (base, review) => {
+  [WorkType.TV]: (base, review) => ({
+    // One scored episode counts like one scored movie, so an episode stands on
+    // its scores alone.
+    ...base,
+    type: WorkType.TV,
+    externalData: asTv(review.externalData),
+  }),
+  [WorkType.MOVIE]: (base, review) => {
     // Movie stats read external metadata; skip works without it.
-    const externalData = review.externalData;
+    const { externalData } = review;
     if (!isMovieData(externalData)) return null;
     return {
       ...base,
-      type: WorkType.movie,
+      type: WorkType.MOVIE,
       genres: externalData.genres,
       production_companies: externalData.production_companies,
       production_countries: externalData.production_countries,
@@ -104,6 +113,7 @@ function statsBase(review: DetailedReviewListItem): WorkStatsBase {
 
 function mapReviewsToWorks(reviews: DetailedReviewListItem[]): WorkStatsData[] {
   return reviews
+    .filter(isScoredUnit)
     .map((review) => WORK_STATS_BUILDERS[review.type](statsBase(review), review))
     .filter(isDefined)
     .filter((work) => Object.keys(work.userScores).length > 0);

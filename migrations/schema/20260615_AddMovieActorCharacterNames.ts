@@ -1,5 +1,5 @@
 import axios from "axios";
-import { AliasedRawBuilder, Kysely, sql } from "kysely";
+import { type AliasedRawBuilder, type Kysely, sql } from "kysely";
 
 import { hasElements } from "../../lib/checks/checks";
 
@@ -78,12 +78,12 @@ async function characterNameColumnExists(db: Kysely<unknown>): Promise<boolean> 
   );
 }
 
-export async function up(db: Kysely<unknown>) {
+async function up(db: Kysely<unknown>) {
   if (!(await characterNameColumnExists(db))) {
     await db.schema.alterTable("movie_actors").addColumn("character_name", "varchar").execute();
   }
 
-  const typedDb = db.withTables<MigrationTables>();
+  const typedDb = db.$extendTables<MigrationTables>();
 
   // Backfill character names for movies whose actor rows predate this column.
   // Mirrors 20260315_AddPersonProfilePaths.ts: batch TMDB credits requests
@@ -151,7 +151,9 @@ export async function up(db: Kysely<unknown>) {
 
     // Delay between batches to respect TMDB rate limits
     if (i + BATCH_SIZE < movies.length) {
-      await new Promise((resolve) => setTimeout(resolve, BATCH_DELAY_MS));
+      await new Promise((resolve) => {
+        setTimeout(resolve, BATCH_DELAY_MS);
+      });
     }
 
     console.log(`Progress: ${Math.min(i + BATCH_SIZE, movies.length)}/${movies.length}`);
@@ -163,8 +165,10 @@ export async function up(db: Kysely<unknown>) {
   console.log(`Errors: ${errors}`);
 }
 
-export async function down(db: Kysely<unknown>) {
+async function down(db: Kysely<unknown>) {
   if (await characterNameColumnExists(db)) {
     await db.schema.alterTable("movie_actors").dropColumn("character_name").execute();
   }
 }
+
+export default { name: "20260615_AddMovieActorCharacterNames", up, down };

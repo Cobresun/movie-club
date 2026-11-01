@@ -2,12 +2,12 @@ import { z } from "zod";
 
 import { hasValue, isDefined } from "../../../lib/checks/checks.js";
 import {
-  DiscussionQuestionsResponse,
-  ReviewScores,
-  SharedReviewResponse,
-  WorkCommentDto,
+  type DiscussionQuestionsResponse,
+  type ReviewScores,
+  type SharedReviewResponse,
+  type WorkCommentDto,
 } from "../../../lib/types/lists";
-import { MovieCastMember } from "../../../lib/types/movie";
+import { type CastMember } from "../../../lib/types/tmdb";
 import ListRepository from "../repositories/ListRepository";
 import ReviewRepository from "../repositories/ReviewRepository";
 import SettingsRepository from "../repositories/SettingsRepository";
@@ -23,7 +23,7 @@ import { requireParam } from "../utils/requireParam";
 import { badRequest, notFound, ok, unauthorized } from "../utils/responses";
 import { buildReviewScores } from "../utils/reviewScores";
 import { isRouterResponse, Router } from "../utils/router";
-import { ClubRequest } from "../utils/validation";
+import { type ClubRequest } from "../utils/validation";
 
 const router = new Router<ClubRequest>("/api/club/:clubSlug/reviews");
 
@@ -31,8 +31,8 @@ const router = new Router<ClubRequest>("/api/club/:clubSlug/reviews");
 // payload deliberately omits casts (they dominated its size); the statistics
 // leaderboards fetch this endpoint instead, only when that page is open.
 router.get("/cast", async ({ clubId }, res) => {
-  const reviewsListId = await ListRepository.getReviewsListId(clubId);
-  const items = await ListRepository.getListItems(reviewsListId);
+  const rows = await ReviewRepository.getReviewList(clubId);
+  const items = [...new Map(rows.map((row) => [row.id, row])).values()];
 
   const castByType = await Promise.all(
     [...new Set(items.map((item) => item.type))].map((type) =>
@@ -45,33 +45,53 @@ router.get("/cast", async ({ clubId }, res) => {
     ),
   );
 
-  const result: Record<string, MovieCastMember[]> = {};
+  const result: Record<string, CastMember[]> = {};
   for (const map of castByType) {
     for (const [externalId, cast] of map) {
       result[externalId] = cast;
     }
   }
-  return res(ok<Record<string, MovieCastMember[]>>(result));
+  return res(ok<Record<string, CastMember[]>>(result));
 });
 
 const addReviewSchema = z.object({
   score: z.number().min(0).max(10),
   workId: z.string(),
+  /** Scores the child of `workId` this names instead (a TV episode of its
+   * show), which need not be a work yet. Its provider decides whether it
+   * exists. */
+  childExternalId: z.string().min(1).optional(),
 });
 
 router.post("/", secured, async ({ clubId, userId, event }, res) => {
   const body = parseBody(event, addReviewSchema, res);
   if (isRouterResponse(body)) return body;
 
-  const { score, workId } = body;
+  const { score, workId, childExternalId } = body;
 
-  const reviewsListId = await ListRepository.getReviewsListId(clubId);
-  const exists = await ListRepository.isItemInList(reviewsListId, workId);
-  if (!exists) {
-    return res(badRequest("This movie does not exist in the list"));
+  const work = await WorkRepository.getById(clubId, workId);
+  if (!isDefined(work)) {
+    return res(notFound("Work not found"));
   }
 
-  await ReviewRepository.insertReview(reviewsListId, workId, userId, score);
+  const reviewsListId = await ListRepository.getReviewsListId(clubId);
+  if (!(await ListRepository.isOnList(reviewsListId, workId))) {
+    return res(badRequest("This work is not on the reviews list"));
+  }
+
+  let scoredWorkId = workId;
+  if (hasValue(childExternalId)) {
+    const child = await getProvider(work.type).resolveChild(
+      { externalId: work.external_id },
+      childExternalId,
+    );
+    if (!isDefined(child)) {
+      return res(badRequest("There is nothing to score there"));
+    }
+    scoredWorkId = (await WorkRepository.insertChild(clubId, workId, child)).id;
+  }
+
+  await ReviewRepository.setScore(reviewsListId, scoredWorkId, userId, score);
   return res(ok());
 });
 
@@ -189,7 +209,7 @@ router.post("/:workId/discussion-questions", secured, async ({ clubId, params },
   if (isRouterResponse(workId)) return workId;
 
   const settings = await SettingsRepository.getSettings(clubId);
-  if (settings.features.discussionQuestions !== true) {
+  if (!settings.features.discussionQuestions) {
     return res(badRequest("Feature not enabled"));
   }
 

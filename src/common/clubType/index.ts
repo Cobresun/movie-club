@@ -1,28 +1,31 @@
 import { bookClubConfig } from "./book";
 import { movieClubConfig } from "./movie";
-import type {
-  ClubTypeConfig,
-  InviteConfig,
-  StatsConfig,
-  WorkDisplay,
-  WorkSimilarityScorer,
+import { tvClubConfig } from "./tv";
+import {
+  type ClubTypeConfig,
+  type InviteConfig,
+  type StatsConfig,
+  type WorkDisplay,
+  type WorkSimilarityScorer,
 } from "./types";
 import { isDefined } from "@/../lib/checks/checks";
 import { ClubType, WorkType } from "@/../lib/types/generated/db";
-import { WorkDataSummary } from "@/../lib/types/lists";
+import { type DetailedWorkData, type WorkDataSummary } from "@/../lib/types/lists";
+import { type CastMember } from "@/../lib/types/tmdb";
 
 export type * from "./types";
 
 /**
  * Everything that varies by a club's media type, one entry per type. Each type
- * lives in its own folder (`movie/`, `book/`); to add a third club type, add the
+ * lives in its own folder (`movie/`, `book/`, `tv/`); to add another club type, add the
  * enum value (migration + codegen), a sibling folder exporting its
  * `ClubTypeConfig`, and register it here — copy, icons, search, and filters all
  * flow from this registry rather than scattered `if (clubType === ...)` branches.
  */
 export const CLUB_TYPE_CONFIG: Record<ClubType, ClubTypeConfig> = {
-  [ClubType.movie]: movieClubConfig,
-  [ClubType.book]: bookClubConfig,
+  [ClubType.MOVIE]: movieClubConfig,
+  [ClubType.BOOK]: bookClubConfig,
+  [ClubType.TV]: tvClubConfig,
 };
 
 export function clubTypeConfig(type: ClubType): ClubTypeConfig {
@@ -56,6 +59,11 @@ export function clubMetaLine(type: ClubType | undefined, memberCount: number | u
   return `${label} · ${memberCount} ${memberCount === 1 ? "member" : "members"}`;
 }
 
+/** Every club type a club can be created as, in registry order. */
+export function clubTypeOptions(): ClubTypeConfig[] {
+  return Object.values(CLUB_TYPE_CONFIG);
+}
+
 /** Statistics-feature copy and icons for a club's media type. */
 export function clubTypeStats(type: ClubType): StatsConfig {
   return clubTypeConfig(type).stats;
@@ -84,13 +92,15 @@ export function clubTypeInvite(type: ClubType): InviteConfig {
 // helpers can route to the right registry entry without their callers knowing
 // the club type. Both maps are exhaustive (a new type won't compile until added).
 const CLUB_TYPE_BY_KIND: Record<WorkDataSummary["kind"], ClubType> = {
-  movie: ClubType.movie,
-  book: ClubType.book,
+  movie: ClubType.MOVIE,
+  book: ClubType.BOOK,
+  tv: ClubType.TV,
 };
 
 const CLUB_TYPE_BY_WORK_TYPE: Record<WorkType, ClubType> = {
-  [WorkType.movie]: ClubType.movie,
-  [WorkType.book]: ClubType.book,
+  [WorkType.MOVIE]: ClubType.MOVIE,
+  [WorkType.BOOK]: ClubType.BOOK,
+  [WorkType.TV]: ClubType.TV,
 };
 
 function workDisplay(data: WorkDataSummary | undefined): WorkDisplay | undefined {
@@ -118,6 +128,26 @@ export function workMetaLine(data: WorkDataSummary | undefined): string | undefi
 /** The long-form blurb (TMDB overview / book description). */
 export function workOverview(data: WorkDataSummary | undefined): string | undefined {
   return workDisplay(data)?.overview(data);
+}
+
+/** The recurring cast from a work's full details, when its media has one. */
+export function workActors(details: DetailedWorkData | undefined): CastMember[] | undefined {
+  return workDisplay(details)?.actors?.(details);
+}
+
+/** The work's title where it stands alone, e.g. "Severance: Half Loop". */
+export function workTitle(work: { title: string; externalData?: WorkDataSummary }): string {
+  return workDisplay(work.externalData)?.title?.(work.externalData) ?? work.title;
+}
+
+/** What this one work is called, when its media has more than one level. */
+export function workNoun(data: WorkDataSummary | undefined): string | undefined {
+  return workDisplay(data)?.noun?.(data);
+}
+
+/** Whether statistics and review facts count this work (see `isScoredUnit`). */
+export function isScoredUnit(work: { type: WorkType; externalData?: WorkDataSummary }): boolean {
+  return clubTypeConfig(CLUB_TYPE_BY_WORK_TYPE[work.type]).isScoredUnit(work.externalData);
 }
 
 /**

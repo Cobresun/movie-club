@@ -1,5 +1,5 @@
 import { clubScoreFilter, decadePresets, reviewedInFilter } from "../filterOptions";
-import type { ClubTypeConfig } from "../types";
+import { type ClubTypeConfig } from "../types";
 import { movieDisplay } from "./display";
 import { browseMovies, searchMovies } from "./search";
 import { makeMovieSimilarity } from "./similarity";
@@ -8,10 +8,11 @@ import { ClubType, WorkType } from "@/../lib/types/generated/db";
 import { asMovie, formatRuntime } from "@/common/workDisplay";
 
 export const movieClubConfig: ClubTypeConfig = {
-  clubType: ClubType.movie,
-  workType: WorkType.movie,
+  clubType: ClubType.MOVIE,
+  workType: WorkType.MOVIE,
   icon: "movie-open-outline",
   label: "Movie club",
+  pluralLabel: "Movies",
   noun: "movie",
   finishedVerb: "watched",
   searchHint: "Search for a movie to add.",
@@ -108,5 +109,6 @@ export const movieClubConfig: ClubTypeConfig = {
     shareText: "Join my club and score the movies we watch together.",
   },
   display: movieDisplay,
+  isScoredUnit: () => true,
   makeSimilarity: makeMovieSimilarity,
 };

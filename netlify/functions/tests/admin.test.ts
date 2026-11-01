@@ -2,23 +2,24 @@
  * Integration tests for `netlify/functions/admin.ts`.
  *
  * Every dashboard query runs against the real schema, seeded through the same
- * endpoints a club uses. Signups are left unasserted: the auth tables survive
- * between tests (see `helpers/database.ts`), so user counts depend on which
- * files ran first.
+ * endpoints a club uses. Signups are asserted only as the change one sign-up
+ * makes: the auth tables survive between tests (see `helpers/database.ts`), so
+ * absolute user counts depend on which files ran first.
  */
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { AdminDashboard, SnapshotHistoryPoint } from "../../../lib/types/metrics";
+import { SIGNUP_CAMPAIGN_COOKIE, SIGNUP_SOURCE_COOKIE } from "../../../lib/signupSource";
+import { SignupSource } from "../../../lib/types/generated/db";
+import { type AdminDashboard, type SnapshotHistoryPoint } from "../../../lib/types/metrics";
 import { handler } from "../admin";
 import captureSnapshot from "../scheduled-metrics-snapshot";
-import { FIXTURE_USERS, signIn, TestSession } from "./helpers/auth";
+import { FIXTURE_USERS, signIn, signUpNewUser, type TestSession } from "./helpers/auth";
 import {
   addComment,
   addReviewedWork,
   addWork,
   createClub,
   scoreWork,
-  SeededClub,
+  type SeededClub,
 } from "./helpers/factories";
 import { requester } from "./helpers/http";
 
@@ -89,11 +90,11 @@ describe("GET /api/admin/metrics", () => {
 
     const { pulse } = await dashboard("30d");
 
-    expect(pulse.activeClubs).toEqual({ current: 1, previous: 0 });
-    expect(pulse.activeUsers).toEqual({ current: 2, previous: 0 });
-    expect(pulse.reviews).toEqual({ current: 2, previous: 0 });
-    expect(pulse.comments).toEqual({ current: 1, previous: 0 });
-    expect(pulse.newClubs).toEqual({ current: 1, previous: 0 });
+    expect(pulse.activeClubs).toStrictEqual({ current: 1, previous: 0 });
+    expect(pulse.activeUsers).toStrictEqual({ current: 2, previous: 0 });
+    expect(pulse.reviews).toStrictEqual({ current: 2, previous: 0 });
+    expect(pulse.comments).toStrictEqual({ current: 1, previous: 0 });
+    expect(pulse.newClubs).toStrictEqual({ current: 1, previous: 0 });
   });
 
   it("counts a club in every window it was active in", async () => {
@@ -116,9 +117,9 @@ describe("GET /api/admin/metrics", () => {
     const week = await dashboard("7d");
     const month = await dashboard("30d");
 
-    expect(week.pulse.activeClubs).toEqual({ current: 1, previous: 2 });
-    expect(week.pulse.activeUsers).toEqual({ current: 1, previous: 1 });
-    expect(month.pulse.activeClubs).toEqual({ current: 2, previous: 0 });
+    expect(week.pulse.activeClubs).toStrictEqual({ current: 1, previous: 2 });
+    expect(week.pulse.activeUsers).toStrictEqual({ current: 1, previous: 1 });
+    expect(month.pulse.activeClubs).toStrictEqual({ current: 2, previous: 0 });
   });
 
   it("has nothing to compare against over all time", async () => {
@@ -127,7 +128,7 @@ describe("GET /api/admin/metrics", () => {
 
     const { pulse } = await dashboard("all");
 
-    expect(pulse.reviews).toEqual({ current: 1, previous: null });
+    expect(pulse.reviews).toStrictEqual({ current: 1, previous: null });
     expect(pulse.activeClubs.previous).toBeNull();
   });
 
@@ -179,7 +180,7 @@ describe("GET /api/admin/metrics", () => {
 
     const { works } = await dashboard("30d");
 
-    expect(works.mostReviewed.map((work) => work.title)).toEqual([
+    expect(works.mostReviewed.map((work) => work.title)).toStrictEqual([
       "The Matrix",
       "Two Reviews Only",
     ]);
@@ -187,8 +188,8 @@ describe("GET /api/admin/metrics", () => {
     expect(works.mostReviewed[0].spread).toBeCloseTo(Math.sqrt(2));
 
     // Two reviews are not enough to call anything the best or most divisive.
-    expect(works.highestRated.map((work) => work.title)).toEqual(["The Matrix"]);
-    expect(works.mostDivisive.map((work) => work.title)).toEqual(["The Matrix"]);
+    expect(works.highestRated.map((work) => work.title)).toStrictEqual(["The Matrix"]);
+    expect(works.mostDivisive.map((work) => work.title)).toStrictEqual(["The Matrix"]);
   });
 
   it("keeps a watch-list add inside the range it was made in", async () => {
@@ -203,12 +204,12 @@ describe("GET /api/admin/metrics", () => {
     const recent = await dashboard("30d");
     const quarter = await dashboard("90d");
 
-    expect(recent.works.mostWanted).toEqual([]);
-    expect(quarter.works.mostWanted).toEqual([
+    expect(recent.works.mostWanted).toStrictEqual([]);
+    expect(quarter.works.mostWanted).toStrictEqual([
       expect.objectContaining({ title: "Dune", clubs: 2, adds: 2 }),
     ]);
     expect(quarter.pulse.activeClubs.current).toBe(2);
-    expect(recent.pulse.activeClubs).toEqual({ current: 0, previous: 2 });
+    expect(recent.pulse.activeClubs).toStrictEqual({ current: 0, previous: 2 });
   });
 
   it("sorts every club by how recently it did anything", async () => {
@@ -226,7 +227,7 @@ describe("GET /api/admin/metrics", () => {
 
     const { health } = await dashboard("30d");
 
-    expect(health.clubStatus).toEqual({
+    expect(health.clubStatus).toStrictEqual({
       active: 1,
       quiet: 1,
       dormant: 1,
@@ -243,7 +244,7 @@ describe("GET /api/admin/metrics", () => {
 
     const { health } = await dashboard("30d");
 
-    expect(health.discussion).toEqual({ numerator: 1, denominator: 2 });
+    expect(health.discussion).toStrictEqual({ numerator: 1, denominator: 2 });
     // Alice's session is from this test run, and she wrote something.
     expect(health.contribution.numerator).toBeGreaterThanOrEqual(1);
   });
@@ -262,12 +263,12 @@ describe("GET /api/admin/metrics", () => {
 
     const { clubs, people } = await dashboard("7d");
 
-    expect(clubs.busiest.map((club) => club.name)).toEqual(["Busy Club", "Light Club"]);
+    expect(clubs.busiest.map((club) => club.name)).toStrictEqual(["Busy Club", "Light Club"]);
     expect(clubs.busiest[0]).toMatchObject({ reviews: 3, memberNames: ["Alice", "Bob"] });
     expect(clubs.busiest[0].lastActiveAt).not.toBeNull();
-    expect(clubs.newest.map((club) => club.name).sort()).toEqual(["Busy Club", "Light Club"]);
+    expect(clubs.newest.map((club) => club.name).sort()).toStrictEqual(["Busy Club", "Light Club"]);
 
-    expect(people.mostActive.map((person) => person.name)).toEqual(["Alice", "Bob"]);
+    expect(people.mostActive.map((person) => person.name)).toStrictEqual(["Alice", "Bob"]);
     expect(people.mostActive[0]).toMatchObject({ reviews: 2, listAdds: 2, comments: 0, clubs: 1 });
     expect(people.mostActive[1]).toMatchObject({ reviews: 2, listAdds: 1, clubs: 2 });
   });
@@ -279,7 +280,7 @@ describe("GET /api/admin/metrics", () => {
 
     const { feed } = await dashboard("7d");
 
-    expect(feed).toEqual([
+    expect(feed).toStrictEqual([
       expect.objectContaining({ kind: "comment", workTitle: "Arrival", score: null }),
       expect.objectContaining({
         kind: "review",
@@ -315,7 +316,89 @@ describe("GET /api/admin/metrics/history", () => {
     expect(res.body).toHaveLength(1);
     expect(res.body[0].capturedOn).toBe(new Date().toISOString().slice(0, 10));
     expect(res.body[0].metrics.totals).toMatchObject({ clubs: 1, reviews: 1 });
-    expect(res.body[0].metrics.activeClubs).toEqual({ last7Days: 1, last30Days: 1 });
-    expect(res.body[0].metrics.health?.dormantClubs).toEqual({ numerator: 0, denominator: 1 });
+    expect(res.body[0].metrics.activeClubs).toStrictEqual({ last7Days: 1, last30Days: 1 });
+    expect(res.body[0].metrics.health?.dormantClubs).toStrictEqual({
+      numerator: 0,
+      denominator: 1,
+    });
+  });
+});
+
+describe("signup acquisition", () => {
+  const channel = async (source: SignupSource | null) =>
+    (await dashboard()).acquisition.channels.find((row) => row.source === source) ?? {
+      source,
+      signups: 0,
+      activated: 0,
+    };
+
+  it("reports every channel, even before anyone has signed up through it", async () => {
+    const sources = (await dashboard()).acquisition.channels.map((row) => row.source);
+
+    expect(sources).toStrictEqual(expect.arrayContaining(Object.values(SignupSource)));
+  });
+
+  it("credits a signup to the channel its browser arrived through", async () => {
+    const before = await channel(SignupSource.INVITE);
+
+    await signUpNewUser("invited@movie.club", "Invited", {
+      cookie: `${SIGNUP_SOURCE_COOKIE}=${SignupSource.INVITE}`,
+    });
+
+    expect(await channel(SignupSource.INVITE)).toStrictEqual({
+      source: SignupSource.INVITE,
+      signups: before.signups + 1,
+      activated: before.activated,
+    });
+  });
+
+  it("counts a signup with no recognisable channel as not recorded", async () => {
+    const before = await channel(null);
+
+    await signUpNewUser("mystery@movie.club", "Mystery", {
+      cookie: `${SIGNUP_SOURCE_COOKIE}=carrier-pigeon`,
+    });
+
+    expect((await channel(null)).signups).toBe(before.signups + 1);
+  });
+
+  it("names the referrer a referral signup was tagged with", async () => {
+    const referrer = async () =>
+      (await dashboard()).acquisition.referrers.find((row) => row.referrer === "birthdaybot")
+        ?.signups ?? 0;
+    const before = await referrer();
+
+    await signUpNewUser("birthday@movie.club", "Birthday", {
+      cookie: `${SIGNUP_SOURCE_COOKIE}=${SignupSource.REFERRAL}:birthdaybot`,
+    });
+
+    expect(await referrer()).toBe(before + 1);
+  });
+
+  it("credits a signup from a tagged ad to its source and campaign", async () => {
+    await signUpNewUser("from-reddit@movie.club", "From Reddit", {
+      cookie: `${SIGNUP_SOURCE_COOKIE}=${SignupSource.REFERRAL}; ${SIGNUP_CAMPAIGN_COOKIE}=reddit~test1_bookclub`,
+    });
+
+    expect((await dashboard()).acquisition.campaigns).toContainEqual({
+      utmSource: "reddit",
+      utmCampaign: "test1_bookclub",
+      signups: 1,
+      activated: 0,
+    });
+  });
+
+  it("still credits the channel when the campaign cookie was tampered with", async () => {
+    const campaignSignups = async () =>
+      (await dashboard()).acquisition.campaigns.reduce((sum, row) => sum + row.signups, 0);
+    const referralsBefore = (await channel(SignupSource.REFERRAL)).signups;
+    const campaignSignupsBefore = await campaignSignups();
+
+    await signUpNewUser("tampered@movie.club", "Tampered", {
+      cookie: `${SIGNUP_SOURCE_COOKIE}=${SignupSource.REFERRAL}; ${SIGNUP_CAMPAIGN_COOKIE}=<script>`,
+    });
+
+    expect((await channel(SignupSource.REFERRAL)).signups).toBe(referralsBefore + 1);
+    expect(await campaignSignups()).toBe(campaignSignupsBefore);
   });
 });

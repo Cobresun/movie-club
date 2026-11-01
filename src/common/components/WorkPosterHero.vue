@@ -49,23 +49,22 @@ import { computed, ref } from "vue";
 import { hasValue } from "../../../lib/checks/checks.js";
 import PosterImage from "@/common/components/PosterImage.vue";
 
-const props = withDefaults(
-  defineProps<{
-    posterUrl?: string | null;
-    backdropPath?: string | null;
-    title: string;
-    year?: string | number;
-    dateLabel?: string;
-    isDesktop: boolean;
-  }>(),
-  {
-    posterUrl: null,
-    backdropPath: null,
-    year: undefined,
-    dateLabel: "",
-  },
-);
+const {
+  posterUrl = null,
+  backdropPath = null,
+  title,
+  year = undefined,
+  dateLabel = "",
+  isDesktop,
+} = defineProps<{
+  posterUrl?: string | null;
+  backdropPath?: string | null;
+  title: string;
+  year?: string | number;
+  dateLabel?: string;
+  isDesktop: boolean;
+}>();
 
 const backdropLoaded = ref(false);
-const hasBackdrop = computed(() => hasValue(props.backdropPath));
+const hasBackdrop = computed(() => hasValue(backdropPath));
 </script>
