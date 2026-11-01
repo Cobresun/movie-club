@@ -73,7 +73,19 @@
                 :club-name="clubName"
                 :year="year"
               >
-                <component :is="face.card.component" v-bind="face.card.props" />
+                <TriviaCard
+                  v-if="face.card.kind === 'trivia'"
+                  :trivia="face.card.trivia"
+                  :chosen-id="answers[face.card.id]"
+                  @choose="(optionId) => (answers[face.card.id] = optionId)"
+                />
+                <TriviaScoreCard
+                  v-else-if="face.card.kind === 'score'"
+                  :correct-count="correctCount"
+                  :answered-count="Object.keys(answers).length"
+                  :question-count="face.card.questionCount"
+                />
+                <component :is="face.card.component" v-else v-bind="face.card.props" />
               </WrappedCardFrame>
               <div
                 class="pointer-events-none absolute inset-0 bg-black"
@@ -123,6 +135,8 @@ import { useToast } from "vue-toastification";
 import { isDefined } from "../../../../lib/checks/checks.js";
 import { CARD_HEIGHT, CARD_WIDTH, renderCardImage } from "../cardImage";
 import { type WrappedCard } from "../wrappedDeck";
+import TriviaCard from "./cards/TriviaCard.vue";
+import TriviaScoreCard from "./cards/TriviaScoreCard.vue";
 import WrappedCardFrame from "./WrappedCardFrame.vue";
 import { useShare } from "@/common/composables/useShare";
 
@@ -238,6 +252,18 @@ const jumpTo = (index: number) => {
   currentIndex.value = index;
 };
 
+// --- Trivia -----------------------------------------------------------------
+
+/** The option each trivia card was answered with, by card id. */
+const answers = ref<Record<string, string>>({});
+
+const correctCount = computed(
+  () =>
+    props.cards.filter(
+      (card) => card.kind === "trivia" && answers.value[card.id] === card.trivia.answerId,
+    ).length,
+);
+
 // --- Gestures ---------------------------------------------------------------
 
 const cardViewport = ref<HTMLElement>();
@@ -245,6 +271,13 @@ let gesture: { x: number; y: number; time: number; dragging: boolean } | undefin
 
 const onPointerDown = (event: PointerEvent) => {
   if (event.button !== 0) return;
+  // A press on a live control (a trivia option) is that control's, not a turn.
+  if (
+    event.target instanceof Element &&
+    isDefined(event.target.closest("button:not([aria-disabled='true'])"))
+  ) {
+    return;
+  }
   finishSettling();
   gesture = { x: event.clientX, y: event.clientY, time: event.timeStamp, dragging: false };
 };

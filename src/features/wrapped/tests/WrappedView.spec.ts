@@ -94,7 +94,7 @@ describe("WrappedView", () => {
     server.use(reviews(MOVIE_REVIEWS));
     renderWrapped();
 
-    expect(await slide()).toHaveAccessibleName("1 of 9: Club Wrapped");
+    expect(await slide()).toHaveAccessibleName("1 of 14: Club Wrapped");
     const years = screen.getByRole("navigation", { name: "Wrapped years" });
     expect(within(years).getByRole("link", { name: "2025" })).toHaveAttribute(
       "aria-current",
@@ -125,9 +125,9 @@ describe("WrappedView", () => {
     server.use(reviews(MOVIE_REVIEWS));
     const { user } = renderWrapped();
 
-    await user.click(await screen.findByRole("button", { name: "Next card" }));
+    await user.click(await screen.findByRole("button", { name: "Card 3: Time together" }));
 
-    const card = await screen.findByRole("group", { name: "2 of 9: Time together" });
+    const card = await screen.findByRole("group", { name: "3 of 14: Time together" });
     expect(within(card).getByText("8")).toBeInTheDocument();
     expect(within(card).getByText("hours watched")).toBeInTheDocument();
     expect(within(card).getByText("Across 4 movies.")).toBeInTheDocument();
@@ -137,8 +137,8 @@ describe("WrappedView", () => {
     server.use(reviews(MOVIE_REVIEWS));
     const { user } = renderWrapped();
 
-    await user.click(await screen.findByRole("button", { name: "Card 3: Top picks" }));
-    const top = await screen.findByRole("group", { name: "3 of 9: Top picks" });
+    await user.click(await screen.findByRole("button", { name: "Card 5: Top picks" }));
+    const top = await screen.findByRole("group", { name: "5 of 14: Top picks" });
     expect(
       within(top)
         .getAllByRole("listitem")
@@ -146,7 +146,7 @@ describe("WrappedView", () => {
     ).toStrictEqual([expect.stringContaining("Arrival"), expect.stringContaining("Dune")]);
 
     await user.click(screen.getByRole("button", { name: "Next card" }));
-    const bottom = await screen.findByRole("group", { name: "4 of 9: Bottom picks" });
+    const bottom = await screen.findByRole("group", { name: "6 of 14: Bottom picks" });
     expect(
       within(bottom)
         .getAllByRole("listitem")
@@ -158,9 +158,9 @@ describe("WrappedView", () => {
     server.use(reviews(MOVIE_REVIEWS));
     const { user } = renderWrapped();
 
-    await user.click(await screen.findByRole("button", { name: "Card 5: Most divisive" }));
+    await user.click(await screen.findByRole("button", { name: "Card 7: Most divisive" }));
 
-    const card = await screen.findByRole("group", { name: "5 of 9: Most divisive" });
+    const card = await screen.findByRole("group", { name: "7 of 14: Most divisive" });
     expect(within(card).getByRole("img", { name: "Morbius" })).toBeInTheDocument();
     expect(
       within(card)
@@ -173,9 +173,9 @@ describe("WrappedView", () => {
     server.use(reviews(MOVIE_REVIEWS));
     const { user } = renderWrapped();
 
-    await user.click(await screen.findByRole("button", { name: "Card 6: Most-watched director" }));
+    await user.click(await screen.findByRole("button", { name: "Card 8: Most-watched director" }));
 
-    const card = await screen.findByRole("group", { name: "6 of 9: Most-watched director" });
+    const card = await screen.findByRole("group", { name: "8 of 14: Most-watched director" });
     expect(within(card).getByText("Denis Villeneuve")).toBeInTheDocument();
     expect(within(card).getByText("2 movies · 8.7 avg")).toBeInTheDocument();
   });
@@ -184,9 +184,9 @@ describe("WrappedView", () => {
     server.use(reviews(MOVIE_REVIEWS));
     const { user } = renderWrapped();
 
-    await user.click(await screen.findByRole("button", { name: "Card 7: Hot takes" }));
+    await user.click(await screen.findByRole("button", { name: "Card 10: Hot takes" }));
 
-    const card = await screen.findByRole("group", { name: "7 of 9: Hot takes" });
+    const card = await screen.findByRole("group", { name: "10 of 14: Hot takes" });
     const takes = within(card).getAllByRole("listitem");
     expect(takes).toHaveLength(3);
     expect(takes[0]).toHaveTextContent(/cole loved\s*Morbius/);
@@ -200,8 +200,8 @@ describe("WrappedView", () => {
     server.use(reviews(MOVIE_REVIEWS));
     const { user } = renderWrapped();
 
-    await user.click(await screen.findByRole("button", { name: "Card 8: Who agreed with whom" }));
-    const pairs = await screen.findByRole("group", { name: "8 of 9: Who agreed with whom" });
+    await user.click(await screen.findByRole("button", { name: "Card 12: Who agreed with whom" }));
+    const pairs = await screen.findByRole("group", { name: "12 of 14: Who agreed with whom" });
     expect(within(pairs).getByRole("region", { name: "Taste twins" })).toHaveTextContent(
       "dev & user",
     );
@@ -210,7 +210,7 @@ describe("WrappedView", () => {
     );
 
     await user.click(screen.getByRole("button", { name: "Next card" }));
-    const matches = await screen.findByRole("group", { name: "9 of 9: Closest matches" });
+    const matches = await screen.findByRole("group", { name: "13 of 14: Closest matches" });
     expect(
       within(matches)
         .getAllByRole("listitem")
@@ -244,16 +244,97 @@ describe("WrappedView", () => {
     ).toStrictEqual([expect.stringContaining("cole and wes are each other's closest")]);
   });
 
+  describe("trivia", () => {
+    const option = (card: HTMLElement, name: RegExp) => within(card).getByRole("button", { name });
+
+    it("asks before it tells, and says whether the guess was right", async () => {
+      server.use(reviews(MOVIE_REVIEWS));
+      const { user } = renderWrapped();
+
+      await user.click(await screen.findByRole("button", { name: "Card 4: Guess the top pick" }));
+      const card = await screen.findByRole("group", { name: "4 of 14: Guess the top pick" });
+      expect(within(card).getByText("Which movie did the club rate highest?")).toBeInTheDocument();
+      // Dune ties Arrival's average, so it can't be offered as a wrong answer.
+      expect(
+        within(card)
+          .getAllByRole("button")
+          .map((button) => button.textContent?.trim())
+          .sort(),
+      ).toStrictEqual(["Arrival", "Cats", "Morbius"]);
+
+      await user.click(option(card, /Arrival/));
+
+      expect(within(card).getByRole("status")).toHaveTextContent(
+        "Correct! Arrival, averaging 8.7.",
+      );
+      expect(option(card, /Arrival/)).toHaveAccessibleName(/Answer/);
+      expect(screen.getByRole("group", { name: /^4 of 14/ })).toBeInTheDocument();
+    });
+
+    it("shows the real answer next to a wrong guess, and keeps the first guess", async () => {
+      server.use(reviews(MOVIE_REVIEWS));
+      const { user } = renderWrapped();
+
+      await user.click(await screen.findByRole("button", { name: "Card 9: Guess the hot take" }));
+      const card = await screen.findByRole("group", { name: "9 of 14: Guess the hot take" });
+      await user.click(option(card, /^dev/));
+      await user.click(option(card, /^cole/));
+
+      expect(within(card).getByRole("status")).toHaveTextContent(
+        "Not quite. cole loved Morbius, giving it 8 against everyone else's 1.5.",
+      );
+      expect(option(card, /^dev/)).toHaveAccessibleName(/Your guess/);
+      expect(option(card, /^cole/)).toHaveAccessibleName(/Answer/);
+    });
+
+    it("remembers answers while stepping through the story", async () => {
+      server.use(reviews(MOVIE_REVIEWS));
+      const { user } = renderWrapped();
+
+      await user.click(await screen.findByRole("button", { name: "Card 2: Guess the hours" }));
+      await user.click(
+        option(await screen.findByRole("group", { name: /Guess the hours/ }), /^8 hours/),
+      );
+      await user.keyboard("{ArrowRight}{ArrowLeft}");
+
+      const card = await screen.findByRole("group", { name: "2 of 14: Guess the hours" });
+      expect(within(card).getByRole("status")).toHaveTextContent(
+        "Correct! 8 hours across 4 movies.",
+      );
+    });
+
+    it("tallies the guesses on the last card", async () => {
+      server.use(reviews(MOVIE_REVIEWS));
+      const { user } = renderWrapped();
+
+      await user.click(await screen.findByRole("button", { name: "Card 4: Guess the top pick" }));
+      await user.click(option(await screen.findByRole("group", { name: /top pick/ }), /Arrival/));
+      await user.click(screen.getByRole("button", { name: "Card 11: Guess the taste twins" }));
+      await user.click(
+        option(await screen.findByRole("group", { name: /taste twins/ }), /user & cole/),
+      );
+      await user.click(screen.getByRole("button", { name: "Card 14: Trivia score" }));
+
+      const score = await screen.findByRole("group", { name: "14 of 14: Trivia score" });
+      expect(within(score).getByText("1/4")).toBeInTheDocument();
+      expect(within(score).getByText("2 questions skipped")).toBeInTheDocument();
+    });
+  });
+
   it("steps through the cards with the arrow keys", async () => {
     server.use(reviews(MOVIE_REVIEWS));
     const { user } = renderWrapped();
     await slide();
 
     await user.keyboard("{ArrowRight}{ArrowRight}");
-    expect(await screen.findByRole("group", { name: "3 of 9: Top picks" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("group", { name: "3 of 14: Time together" }),
+    ).toBeInTheDocument();
 
     await user.keyboard("{ArrowLeft}");
-    expect(await screen.findByRole("group", { name: "2 of 9: Time together" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("group", { name: "2 of 14: Guess the hours" }),
+    ).toBeInTheDocument();
   });
 
   it("swipes between cards", async () => {
@@ -268,7 +349,9 @@ describe("WrappedView", () => {
       { keys: "[/MouseLeft]", target: card, coords: { clientX: 100, clientY: 310 } },
     ]);
 
-    expect(await screen.findByRole("group", { name: "2 of 9: Time together" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("group", { name: "2 of 14: Guess the hours" }),
+    ).toBeInTheDocument();
   });
 
   it("stops at the ends of the story", async () => {
@@ -277,8 +360,8 @@ describe("WrappedView", () => {
     await slide();
 
     expect(screen.getByRole("button", { name: "Previous card" })).toBeDisabled();
-    await user.click(screen.getByRole("button", { name: "Card 9: Closest matches" }));
-    await screen.findByRole("group", { name: "9 of 9: Closest matches" });
+    await user.click(screen.getByRole("button", { name: "Card 14: Trivia score" }));
+    await screen.findByRole("group", { name: "14 of 14: Trivia score" });
     expect(screen.getByRole("button", { name: "Next card" })).toBeDisabled();
   });
 
@@ -320,7 +403,7 @@ describe("WrappedView", () => {
 
     expect(within(await slide()).getByText("books read")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Next card" }));
+    await user.click(screen.getByRole("button", { name: /^Card \d+: Time together/ }));
     const pages = await screen.findByRole("group", { name: /Time together/ });
     expect(within(pages).getByText("600")).toBeInTheDocument();
     expect(within(pages).getByText("pages read")).toBeInTheDocument();
