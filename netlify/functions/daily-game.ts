@@ -6,8 +6,19 @@ import { isSomebodysToday, puzzleDateSchema, puzzleNumber } from "../../lib/dail
 import { type DailyGamePuzzle } from "../../lib/types/dailyGame";
 import { ClubType } from "../../lib/types/generated/db.js";
 import DailyGameRepository from "./repositories/DailyGameRepository";
-import { answerFor, loadPool, MIN_POOL_SIZE } from "./utils/dailyGamePuzzle";
+import {
+  addMissingWorks,
+  answerFor,
+  type CatalogError,
+  loadPool,
+  MIN_POOL_SIZE,
+} from "./utils/dailyGame";
 import { providerForClub } from "./utils/providers";
+import {
+  type DailyGame,
+  type DailyGamePoolEntry,
+  type MediaProvider,
+} from "./utils/providers/types";
 import { badRequest, notFound, ok } from "./utils/responses";
 import { Router } from "./utils/router";
 
@@ -19,6 +30,27 @@ const router = new Router("/api/daily-game");
  * little while the pool grows during the day; ten minutes is fresh enough.
  */
 const CDN_CACHE_CONTROL = "public, durable, s-maxage=600, stale-while-revalidate=600";
+
+/**
+ * Works cached on the spot when the catalog is too small to play. Only a
+ * published production deploy runs the scheduled catalog job, so a deploy
+ * preview, `netlify dev`, and production before the job's first run would
+ * otherwise never have a game. Kept to about one source page, so a visitor
+ * cannot make a request fetch more than that.
+ */
+const STARTER_CATALOG_SIZE = 20;
+
+async function loadPlayablePool(
+  provider: MediaProvider,
+  game: DailyGame,
+): Promise<DailyGamePoolEntry[]> {
+  const pool = await loadPool(provider);
+  if (pool.length >= MIN_POOL_SIZE) return pool;
+  const errors: CatalogError[] = [];
+  await addMissingWorks(provider, game, STARTER_CATALOG_SIZE, errors);
+  errors.forEach((e) => console.log(`Starter catalog: ${e.externalId}: ${e.error}`));
+  return loadPool(provider);
+}
 
 const paramsSchema = z.object({
   clubType: z.nativeEnum(ClubType),
@@ -46,7 +78,7 @@ router.get("/:clubType/:date", async ({ params }, res) => {
     return res(notFound("The game hadn't started yet on that day"));
   }
 
-  const pool = await loadPool(provider);
+  const pool = await loadPlayablePool(provider, game);
   const notEnough = notFound("Not enough works have been added to play yet");
   if (pool.length < MIN_POOL_SIZE) return res(notEnough);
 
