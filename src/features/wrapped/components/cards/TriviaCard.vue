@@ -64,7 +64,7 @@
 import { computed, useId } from "vue";
 
 import { hasElements, hasValue, isDefined } from "../../../../../lib/checks/checks.js";
-import type { Trivia } from "../../trivia";
+import { type Trivia } from "../../trivia";
 
 const props = defineProps<{ trivia: Trivia; chosenId: string | undefined }>();
 const emit = defineEmits<{ choose: [optionId: string] }>();

@@ -207,18 +207,11 @@ function orientPairToMember(pair: MemberPairSimilarity, memberId: string): Membe
  * Passing `memberId` scopes the comparison to that member's own pairs (who
  * they're most and least alike), with them oriented into the `memberA` slot.
  */
-export function computeTasteSimilarity(
+/** Every pair of members who scored enough of the same works to compare. */
+export function computeMemberPairSimilarities(
   workData: WorkStatsData[],
   members: Member[],
-  memberId?: string,
-): {
-  mostSimilar: MemberPairSimilarity | null;
-  leastSimilar: MemberPairSimilarity | null;
-} {
-  if (members.length < 2) {
-    return { mostSimilar: null, leastSimilar: null };
-  }
-
+): MemberPairSimilarity[] {
   const pairs: MemberPairSimilarity[] = [];
 
   for (let i = 0; i < members.length; i++) {
@@ -273,6 +266,19 @@ export function computeTasteSimilarity(
       });
     }
   }
+
+  return pairs;
+}
+
+export function computeTasteSimilarity(
+  workData: WorkStatsData[],
+  members: Member[],
+  memberId?: string,
+): {
+  mostSimilar: MemberPairSimilarity | null;
+  leastSimilar: MemberPairSimilarity | null;
+} {
+  const pairs = computeMemberPairSimilarities(workData, members);
 
   const scopedPairs = isDefined(memberId)
     ? pairs

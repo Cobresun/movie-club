@@ -260,7 +260,7 @@ describe("WrappedView", () => {
           .getAllByRole("button")
           .map((button) => button.textContent?.trim())
           .sort(),
-      ).toEqual(["Arrival", "Cats", "Morbius"]);
+      ).toStrictEqual(["Arrival", "Cats", "Morbius"]);
 
       await user.click(option(card, /Arrival/));
 

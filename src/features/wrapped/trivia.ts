@@ -1,7 +1,7 @@
 import { isDefined } from "../../../lib/checks/checks.js";
-import type { Member } from "../../../lib/types/club";
-import { computeTasteSimilarity } from "../statistics/statsComputers";
-import type { WorkStatsData } from "../statistics/types";
+import { type Member } from "../../../lib/types/club";
+import { computeMemberPairSimilarities } from "../statistics/statsComputers";
+import { type WorkStatsData } from "../statistics/types";
 import { computeHotTakes, computePicks } from "./wrapped";
 import { firstName } from "@/common/memberName";
 
@@ -28,6 +28,15 @@ export interface Trivia {
 
 const MAX_OPTIONS = 4;
 const MIN_OPTIONS = 2;
+/**
+ * Averages and gaps are unrounded floats, so two equal-looking results reached
+ * by different sums can differ in the last bit. Closer than this is a tie.
+ */
+const TIE_EPSILON = 1e-9;
+
+export function countLabel(count: number, singular: string, plural = `${singular}s`): string {
+  return `${count.toLocaleString("en-US")} ${count === 1 ? singular : plural}`;
+}
 
 /**
  * A string hash feeding a small PRNG, so a year's options come out in the same
@@ -41,7 +50,7 @@ function seededRandom(seed: string): () => number {
   return () => {
     state = (state + 0x6d2b79f5) | 0;
     let t = Math.imul(state ^ (state >>> 15), 1 | state);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    t ^= t + Math.imul(t ^ (t >>> 7), 61 | t);
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
@@ -88,6 +97,7 @@ const NUMBER_SPREADS = [
 export function numberTrivia(
   seed: string,
   value: number,
+  /** Singular; options read "1 hour", "2 hours". */
   unit: string,
   question: string,
   reveal: string,
@@ -98,17 +108,22 @@ export function numberTrivia(
   const used = new Set([value]);
   for (const factor of spread) {
     // Small values round onto each other; step away from the answer until free.
-    let candidate = Math.round(value * factor);
-    while (used.has(candidate)) candidate += factor < 1 ? -1 : 1;
-    if (candidate > 0) used.add(candidate);
+    let candidate = Math.max(1, Math.round(value * factor));
+    let step = factor < 1 ? -1 : 1;
+    while (used.has(candidate)) {
+      // Stepping down from a tiny total runs out of counts above zero, so turn
+      // around and look above the answer instead.
+      if (candidate + step <= 0) step = 1;
+      candidate += step;
+    }
+    used.add(candidate);
   }
-  if (used.size < MAX_OPTIONS) return undefined;
   const values = [...used].sort((a, b) => a - b);
   return {
     question,
     options: values.map((candidate) => ({
       id: String(candidate),
-      label: `${candidate.toLocaleString("en-US")} ${unit}`,
+      label: countLabel(candidate, unit),
     })),
     answerId: String(value),
     reveal,
@@ -131,7 +146,7 @@ export function topPickTrivia(
     seed,
     asOption(best),
     // A work tied with the best would be a right answer marked wrong.
-    workData.filter((work) => work.average < best.average).map(asOption),
+    workData.filter((work) => best.average - work.average > TIE_EPSILON).map(asOption),
     `Which ${noun} did the club rate highest?`,
     `${best.title}, averaging ${best.average.toFixed(1)}.`,
   );
@@ -149,7 +164,9 @@ export function hotTakeTrivia(
   const [hottest, ...rest] = computeHotTakes(workData, members);
   if (!isDefined(hottest)) return undefined;
   const tied = new Set(
-    rest.filter((take) => Math.abs(take.gap) === Math.abs(hottest.gap)).map((t) => t.member.id),
+    rest
+      .filter((take) => Math.abs(Math.abs(take.gap) - Math.abs(hottest.gap)) < TIE_EPSILON)
+      .map((take) => take.member.id),
   );
   const scorers = members.filter((member) =>
     workData.some((work) => isDefined(work.userScores[member.id])),
@@ -171,7 +188,12 @@ export function tasteTwinsTrivia(
   workData: WorkStatsData[],
   members: Member[],
 ): Trivia | undefined {
-  const twins = computeTasteSimilarity(workData, members).mostSimilar;
+  const pairs = computeMemberPairSimilarities(workData, members);
+  const twins = pairs.reduce<(typeof pairs)[number] | undefined>(
+    (best, pair) =>
+      !isDefined(best) || pair.similarityPercent > best.similarityPercent ? pair : best,
+    undefined,
+  );
   if (!isDefined(twins)) return undefined;
 
   const pairOption = (pair: { memberA: Person; memberB: Person }): TriviaOption => ({
@@ -180,19 +202,15 @@ export function tasteTwinsTrivia(
     people: [pair.memberA, pair.memberB],
   });
 
-  const others = members.flatMap((memberA, index) =>
-    members.slice(index + 1).map((memberB) => {
-      const pair = computeTasteSimilarity(workData, [memberA, memberB]).mostSimilar;
-      // Pairs that never overlapped, or tie the twins, can't be wrong answers.
-      if (!isDefined(pair) || pair.similarityPercent >= twins.similarityPercent) return undefined;
-      return pairOption(pair);
-    }),
-  );
+  // Pairs that tie the twins can't be wrong answers.
+  const others = pairs
+    .filter((pair) => pair.similarityPercent < twins.similarityPercent)
+    .map(pairOption);
 
   return multipleChoice(
     seed,
     pairOption(twins),
-    others.filter(isDefined),
+    others,
     "Which two members scored most alike?",
     `${pairOption(twins).label}, ${Math.round(twins.similarityPercent)}% in sync.`,
   );

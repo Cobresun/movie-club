@@ -20,6 +20,7 @@ import RankedWorksCard from "./components/cards/RankedWorksCard.vue";
 import TasteTwinsCard from "./components/cards/TasteTwinsCard.vue";
 import VolumeCard from "./components/cards/VolumeCard.vue";
 import {
+  countLabel,
   hotTakeTrivia,
   numberTrivia,
   tasteTwinsTrivia,
@@ -90,6 +91,8 @@ const MATCHES_PER_CARD = 5;
 const MIN_WORKS_FOR_DIVISIVE = 2;
 /** A "most-watched" director needs to have been watched more than once. */
 const MIN_PERSON_WORKS = 2;
+/** With one work, "how many hours?" is just that work's runtime. */
+const MIN_WORKS_FOR_VOLUME_TRIVIA = 2;
 
 const countNoun = (ctx: WrappedContext): string =>
   clubTypeStats(ctx.clubType).pluralNoun.toLowerCase();
@@ -287,14 +290,15 @@ const hoursTrivia: TriviaCardDef = {
   label: "Guess the hours",
   tone: "blue",
   trivia: (ctx, seed) => {
+    if (ctx.movieData.length < MIN_WORKS_FOR_VOLUME_TRIVIA) return undefined;
     const minutes = minutesWatched(ctx);
     const hours = Math.round(minutes / 60);
     return numberTrivia(
       seed,
       hours,
-      "hours",
+      "hour",
       `How many hours of movies did the club watch in ${ctx.year}?`,
-      `${hours.toLocaleString("en-US")} hours across ${ctx.movieData.length} movies.`,
+      `${countLabel(hours, "hour")} across ${countLabel(ctx.movieData.length, "movie")}.`,
     );
   },
 };
@@ -304,13 +308,14 @@ const pagesTrivia: TriviaCardDef = {
   label: "Guess the pages",
   tone: "blue",
   trivia: (ctx, seed) => {
+    if (ctx.bookData.length < MIN_WORKS_FOR_VOLUME_TRIVIA) return undefined;
     const pages = pagesInYear(ctx);
     return numberTrivia(
       seed,
       pages,
-      "pages",
+      "page",
       `How many pages did the club read in ${ctx.year}?`,
-      `${pages.toLocaleString("en-US")} pages across ${ctx.bookData.length} books.`,
+      `${countLabel(pages, "page")} across ${countLabel(ctx.bookData.length, "book")}.`,
     );
   },
 };
