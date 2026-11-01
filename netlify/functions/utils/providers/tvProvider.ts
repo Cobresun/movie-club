@@ -207,6 +207,7 @@ function stillUrl(stillPath: string): string {
 
 class TvProvider implements MediaProvider {
   readonly type = WorkType.TV;
+  readonly dailyGame = undefined;
   readonly defaultListTitle = "Watch List";
 
   /**

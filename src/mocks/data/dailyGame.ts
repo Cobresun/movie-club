@@ -1,14 +1,16 @@
-import { DailyGameMovie, DailyGamePuzzle } from "../../../lib/types/dailyGame";
+import { type DailyGamePuzzle, type DailyGameWork } from "../../../lib/types/dailyGame";
+import { ClubType } from "../../../lib/types/generated/db";
 
-const movie = (
-  rank: number,
-  title: string,
-  year: number,
-  clues: string[] = [],
-): DailyGameMovie => ({ id: `tmdb-${rank}`, title, year, rank, clues });
+const movie = (rank: number, title: string, year: number, clues: string[] = []): DailyGameWork => ({
+  id: `tmdb-${rank}`,
+  title,
+  year,
+  rank,
+  clues,
+});
 
-/** A small Closer day whose answer is Heat; ranks and clues as the endpoint would send them. */
-export const dailyGameMovies: DailyGameMovie[] = [
+/** A small movie-game day whose answer is Heat; ranks and clues as the endpoint would send them. */
+export const dailyGameMovies: DailyGameWork[] = [
   movie(1, "Heat", 1995),
   movie(2, "Collateral", 2004, ["Same director: Michael Mann", "Crime", "Thriller"]),
   movie(3, "The Insider", 1999, ["Same director: Michael Mann", "Also stars Al Pacino"]),
@@ -32,7 +34,8 @@ export const dailyGameMovies: DailyGameMovie[] = [
 ];
 
 export const dailyGamePuzzle = (date: string, puzzle: number): DailyGamePuzzle => ({
+  clubType: ClubType.MOVIE,
   date,
   puzzle,
-  movies: dailyGameMovies,
+  works: dailyGameMovies,
 });

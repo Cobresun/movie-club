@@ -94,6 +94,7 @@ function detailsQuery(externalIds: string[]) {
 
 class BookProvider implements MediaProvider {
   readonly type = WorkType.BOOK;
+  readonly dailyGame = undefined;
   readonly defaultListTitle = "Reading List";
 
   async fetchAndCacheDetails(externalId: string): Promise<void> {

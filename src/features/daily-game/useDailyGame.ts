@@ -2,10 +2,8 @@ import { computed, ref, watch } from "vue";
 import { z } from "zod";
 
 import { hintRank, previousDate, shareText, temperature, type Temperature } from "./game";
-import { isDefined } from "@/../lib/checks/checks";
-import type { DailyGameMovie, DailyGamePuzzle } from "@/../lib/types/dailyGame";
-
-const STORAGE_KEY = "movieclub:closer";
+import { isDefined, isTrue } from "@/../lib/checks/checks";
+import { type DailyGamePuzzle, type DailyGameWork } from "@/../lib/types/dailyGame";
 
 const entrySchema = z.object({ id: z.string(), hint: z.boolean() });
 const daySchema = z.object({
@@ -18,9 +16,11 @@ const storedSchema = z.object({ days: z.record(z.string(), daySchema) });
 type DayRecord = z.infer<typeof daySchema>;
 type Stored = z.infer<typeof storedSchema>;
 
-const readStored = (): Stored => {
+const storageKey = (puzzle: DailyGamePuzzle) => `movieclub:daily-game:${puzzle.clubType}`;
+
+const readStored = (key: string): Stored => {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(key);
     if (raw === null) return { days: {} };
     const result = storedSchema.safeParse(JSON.parse(raw));
     return result.success ? result.data : { days: {} };
@@ -30,27 +30,28 @@ const readStored = (): Stored => {
 };
 
 export interface RankedGuess {
-  movie: DailyGameMovie;
+  work: DailyGameWork;
   temperature: Temperature;
-  /** 1 for the answer, falling to 0 for the least alike movie in the pool. */
+  /** 1 for the answer, falling to 0 for the least alike work in the pool. */
   closeness: number;
   hint: boolean;
 }
 
 export type GuessOutcome = "added" | "duplicate";
 
-export function useDailyGame(puzzle: DailyGamePuzzle) {
-  const poolSize = puzzle.movies.length;
-  const moviesById = new Map(puzzle.movies.map((movie) => [movie.id, movie]));
-  const answer = puzzle.movies.find((movie) => movie.rank === 1);
+export function useDailyGame(puzzle: DailyGamePuzzle, name: string) {
+  const poolSize = puzzle.works.length;
+  const worksById = new Map(puzzle.works.map((work) => [work.id, work]));
+  const answer = puzzle.works.find((work) => work.rank === 1);
+  const key = storageKey(puzzle);
 
-  const stored = ref<Stored>(readStored());
+  const stored = ref<Stored>(readStored(key));
 
   watch(
     stored,
     (next) => {
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+        localStorage.setItem(key, JSON.stringify(next));
       } catch {
         // localStorage unavailable (private mode, quota) — progress lasts the visit.
       }
@@ -67,12 +68,12 @@ export function useDailyGame(puzzle: DailyGamePuzzle) {
   };
 
   const toGuess = (id: string, hint: boolean): RankedGuess | undefined => {
-    const movie = moviesById.get(id);
-    if (!isDefined(movie)) return undefined;
+    const work = worksById.get(id);
+    if (!isDefined(work)) return undefined;
     return {
-      movie,
-      temperature: temperature(movie.rank, poolSize),
-      closeness: poolSize < 2 ? 1 : 1 - (movie.rank - 1) / (poolSize - 1),
+      work,
+      temperature: temperature(work.rank, poolSize),
+      closeness: poolSize < 2 ? 1 : 1 - (work.rank - 1) / (poolSize - 1),
       hint,
     };
   };
@@ -81,10 +82,12 @@ export function useDailyGame(puzzle: DailyGamePuzzle) {
     record.value.entries.map((entry) => toGuess(entry.id, entry.hint)).filter(isDefined),
   );
   const guessesByRank = computed(() =>
-    [...guesses.value].sort((a, b) => a.movie.rank - b.movie.rank),
+    [...guesses.value].sort((a, b) => a.work.rank - b.work.rank),
   );
   const latestGuess = computed(() => guesses.value.at(-1));
-  const hintCount = computed(() => guesses.value.filter((guess) => guess.hint).length);
+  const ownGuesses = computed(() => guesses.value.filter((guess) => !guess.hint));
+  const guessCount = computed(() => ownGuesses.value.length);
+  const hintCount = computed(() => guesses.value.length - guessCount.value);
 
   const solved = computed(() => record.value.solved);
   const gaveUp = computed(() => record.value.gaveUp && !solved.value);
@@ -105,8 +108,8 @@ export function useDailyGame(puzzle: DailyGamePuzzle) {
   };
 
   const nextHint = computed(() => {
-    const rank = hintRank(new Set(guesses.value.map((g) => g.movie.rank)), poolSize);
-    return isDefined(rank) ? puzzle.movies.find((movie) => movie.rank === rank) : undefined;
+    const rank = hintRank(new Set(guesses.value.map((g) => g.work.rank)), poolSize);
+    return isDefined(rank) ? puzzle.works.find((work) => work.rank === rank) : undefined;
   });
 
   const takeHint = () => {
@@ -124,7 +127,7 @@ export function useDailyGame(puzzle: DailyGamePuzzle) {
     // Today's unfinished puzzle doesn't break a streak that ran through yesterday.
     let date = finished.value ? puzzle.date : previousDate(puzzle.date);
     let streak = 0;
-    while (stored.value.days[date]?.solved === true) {
+    while (isTrue(stored.value.days[date]?.solved)) {
       streak++;
       date = previousDate(date);
     }
@@ -133,8 +136,9 @@ export function useDailyGame(puzzle: DailyGamePuzzle) {
 
   const share = (url: string) =>
     shareText({
+      name,
       puzzle: puzzle.puzzle,
-      guessRanks: guesses.value.map((g) => g.movie.rank),
+      guessRanks: ownGuesses.value.map((g) => g.work.rank),
       poolSize,
       hints: hintCount.value,
       solved: solved.value,
@@ -144,11 +148,12 @@ export function useDailyGame(puzzle: DailyGamePuzzle) {
   return {
     puzzle: puzzle.puzzle,
     answer,
-    pool: puzzle.movies,
+    pool: puzzle.works,
     poolSize,
     guesses,
     guessesByRank,
     latestGuess,
+    guessCount,
     hintCount,
     solved,
     gaveUp,

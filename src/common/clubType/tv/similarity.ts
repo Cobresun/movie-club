@@ -1,6 +1,12 @@
-import { buildIdf, ERA_HALF_LIFE_YEARS, proximityDecay, sum, weightedJaccard } from "@/../lib/similarity";
 import { type WorkSimilarityScorer } from "../types";
 import { asTv, tvAirYear } from "./data";
+import {
+  buildIdf,
+  ERA_HALF_LIFE_YEARS,
+  proximityDecay,
+  sum,
+  weightedJaccard,
+} from "@/../lib/similarity";
 import { type WorkDataSummary } from "@/../lib/types/lists";
 
 // Two episodes of the same series are the comparison a member actually wants
