@@ -78,7 +78,7 @@ Deploy-time behavior lives in Netlify plugins: `netlify/plugins/preview-database
 
 ## Daily game
 
-`/api/daily-game/:clubType/:date` and its catalog are one shape for every club type; a provider's `dailyGame` (undefined for media without a game) supplies what varies — the catalog's source, the ranking and the clues. The scoring core lives in `lib/` (`lib/similarity.ts`, `lib/movie/`) so this handler and Score Assist rank with one implementation. Both tables are keyed by `work_type`, and the handler never branches on it.
+`/api/daily-game/:clubType/:date` and its catalog are one shape for every club type; a provider's `dailyGame` (undefined for media without a game) supplies what varies — the catalog's source, the ranking and the clues. The scoring core lives in `lib/` (`lib/similarity.ts`, `lib/movie/`) so this handler and Score Assist rank with one implementation. Both tables are keyed by `work_type`, and the handler never branches on it. The catalog job records each day's answer ahead of time, so a day nobody plays is still a puzzle; the puzzle number counts calendar days from the game's first puzzle, and a date before that is a 404 rather than a new puzzle #1.
 
 ## Auth
 

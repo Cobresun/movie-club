@@ -81,15 +81,16 @@ class DailyGameRepository {
     return (await this.getAnswer(type, date)) ?? externalId;
   }
 
-  /** The puzzle's number: how many days the game of `type` has had, up to and including `date`. */
-  async getPuzzleNumber(type: WorkType, date: string): Promise<number> {
+  /** The date of the first puzzle the game of `type` has had, as `YYYY-MM-DD`. */
+  async getFirstPuzzleDate(type: WorkType): Promise<string | undefined> {
     const row = await db
       .selectFrom("daily_game_puzzle")
-      .select((eb) => eb.fn.countAll<string>().as("count"))
+      .select((eb) => eb.cast<string>("puzzle_date", "text").as("date"))
       .where("work_type", "=", type)
-      .where("puzzle_date", "<=", asDay(date))
-      .executeTakeFirstOrThrow();
-    return Number(row.count);
+      .orderBy("puzzle_date")
+      .limit(1)
+      .executeTakeFirst();
+    return row?.date;
   }
 }
 

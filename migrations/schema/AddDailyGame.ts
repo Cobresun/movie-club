@@ -2,9 +2,10 @@ import { type Kysely, sql } from "kysely";
 
 /**
  * The daily guessing game, one per work type that has one. `daily_game_puzzle`
- * holds each day's answer, drawn the first time anyone asks for the day and
- * written here so it stays put while the pool keeps growing, and so later draws
- * can avoid repeating it. `daily_game_catalog` holds the works a game draws on —
+ * holds each day's answer, drawn ahead of the day by the scheduled catalog job
+ * (or by the first request, should that come first) and written here so it
+ * stays put while the pool keeps growing, so later draws can avoid repeating
+ * it, and so every day counts towards the puzzle number. `daily_game_catalog` holds the works a game draws on —
  * the source's best-known works, which `scheduled-daily-game-catalog.ts` keeps
  * topping up. Works clubs have added play no part. Metadata stays in each
  * type's own `*_details` tables, so neither table references them.

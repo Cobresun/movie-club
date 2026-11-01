@@ -2,19 +2,16 @@ import { type Handler, type HandlerContext, type HandlerEvent } from "@netlify/f
 import { z } from "zod";
 
 import { hasElements, isDefined } from "../../lib/checks/checks.js";
-import { isSomebodysToday, pickAnswer, puzzleDateSchema } from "../../lib/dailyGame.js";
+import { isSomebodysToday, puzzleDateSchema, puzzleNumber } from "../../lib/dailyGame.js";
 import { type DailyGamePuzzle } from "../../lib/types/dailyGame";
 import { ClubType } from "../../lib/types/generated/db.js";
 import DailyGameRepository from "./repositories/DailyGameRepository";
+import { answerFor, loadPool, MIN_POOL_SIZE } from "./utils/dailyGamePuzzle";
 import { providerForClub } from "./utils/providers";
-import { type DailyGamePoolEntry, type MediaProvider } from "./utils/providers/types";
 import { badRequest, notFound, ok } from "./utils/responses";
 import { Router } from "./utils/router";
 
 const router = new Router("/api/daily-game");
-
-/** Fewer works than this and the ranks give the answer away. */
-const MIN_POOL_SIZE = 10;
 
 /**
  * Ranking every work is the expensive part, and a day's puzzle reads the same
@@ -27,15 +24,6 @@ const paramsSchema = z.object({
   clubType: z.nativeEnum(ClubType),
   date: puzzleDateSchema,
 });
-
-async function loadPool(provider: MediaProvider): Promise<DailyGamePoolEntry[]> {
-  const works = await DailyGameRepository.getPool(provider.type);
-  const details = await provider.getExternalDataSummary(works.map((work) => work.externalId));
-  return works.flatMap((work) => {
-    const data = details.get(work.externalId);
-    return isDefined(data) ? [{ ...work, data }] : [];
-  });
-}
 
 // Public: the game is for anyone who lands on /play, signed in or not. The
 // pool is the catalog of well-known works, so nothing in it comes from a club.
@@ -51,19 +39,19 @@ router.get("/:clubType/:date", async ({ params }, res) => {
   const game = provider.dailyGame;
   if (!isDefined(game)) return res(notFound("This club type has no daily game"));
 
+  // A day before the first puzzle would become puzzle #1 and renumber every
+  // day after it, so the game's history starts where it started.
+  const firstDate = await DailyGameRepository.getFirstPuzzleDate(provider.type);
+  if (isDefined(firstDate) && date < firstDate) {
+    return res(notFound("The game hadn't started yet on that day"));
+  }
+
   const pool = await loadPool(provider);
   const notEnough = notFound("Not enough works have been added to play yet");
   if (pool.length < MIN_POOL_SIZE) return res(notEnough);
 
-  let answerId = await DailyGameRepository.getAnswer(provider.type, date);
-  if (!isDefined(answerId)) {
-    const pick = pickAnswer(
-      game.answerCandidates(pool),
-      await DailyGameRepository.getPastAnswers(provider.type),
-    );
-    if (!isDefined(pick)) return res(notEnough);
-    answerId = await DailyGameRepository.claimAnswer(provider.type, date, pick);
-  }
+  const answerId = await answerFor(provider, game, date, pool);
+  if (!isDefined(answerId)) return res(notEnough);
 
   // Empty only when the day's answer has since left the pool.
   const works = game.rank(answerId, pool);
@@ -72,7 +60,7 @@ router.get("/:clubType/:date", async ({ params }, res) => {
   const response = ok<DailyGamePuzzle>({
     clubType,
     date,
-    puzzle: await DailyGameRepository.getPuzzleNumber(provider.type, date),
+    puzzle: puzzleNumber(firstDate ?? date, date),
     works,
   });
   return res({
