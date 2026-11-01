@@ -181,6 +181,16 @@ async function renderSeverance(reviews: DetailedReviewListItem[] = tvReviews) {
   return rendered;
 }
 
+/** The row on the season's episode list carrying `title`. */
+function episodeRow(title: string) {
+  const episodes = within(screen.getByRole("list", { name: "Season 1 episodes" }));
+  const row = episodes
+    .getAllByRole("listitem")
+    .find((item) => within(item).queryByRole("heading", { name: title }));
+  if (row === undefined) throw new Error(`No episode row for ${title}`);
+  return row;
+}
+
 async function saveScore(user: UserEvent, value: string) {
   await user.type(await screen.findByRole("spinbutton", { name: "Score" }), value);
   await user.click(screen.getByRole("button", { name: "Save score" }));
@@ -285,15 +295,24 @@ describe("TV reviews", () => {
     expect(screen.queryByRole("button", { name: "Score Half Loop" })).not.toBeInTheDocument();
   });
 
-  it("shows only your own score on an episode you rated, on a phone", async () => {
+  it("shows everyone's score on an episode you rated, on a phone", async () => {
     await renderSeverance();
 
     // Member 1 gave both episodes a 6 and member 2, signed in, gave Half Loop
-    // a 10: only the 10 is on the rows, with the club's averages beside them.
-    const episodes = within(screen.getByRole("list", { name: "Season 1 episodes" }));
-    expect(episodes.getByText("10")).toBeInTheDocument();
-    expect(episodes.queryByText("6")).not.toBeInTheDocument();
-    expect(episodes.getByText("8.0")).toBeInTheDocument();
+    // a 10: both are on its row, with the club's average beside them.
+    const halfLoop = within(episodeRow("Half Loop"));
+    const chips = within(halfLoop.getByRole("list", { name: "Scores" }));
+    expect(chips.getByText("6")).toBeInTheDocument();
+    expect(chips.getByText("10")).toBeInTheDocument();
+    expect(halfLoop.getByText("8.0")).toBeInTheDocument();
+  });
+
+  it("keeps others' episode scores from a screen reader until you have scored", async () => {
+    await renderSeverance();
+
+    const goodNews = within(episodeRow("Good News About Hell"));
+    const chips = within(goodNews.getByRole("list", { name: "Scores" }));
+    expect(chips.getByText("6")).toHaveAttribute("aria-hidden", "true");
   });
 
   it("dates each episode, telling the ones still to air apart", async () => {

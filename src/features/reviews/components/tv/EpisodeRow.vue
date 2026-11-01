@@ -59,10 +59,21 @@
             }}</span>
           </span>
         </div>
+        <!-- On a phone everyone's scores sit under the title, small, so the
+             right edge is left for the Score button. Others' stay blurred
+             until you have scored or revealed the episode. -->
+        <ScoreChips
+          v-if="!isDesktop && memberEntries.length > 0"
+          class="mt-1"
+          compact
+          :entries="memberEntries"
+          :current-user-id="currentUserId"
+          :revealed="revealed"
+        />
       </div>
 
-      <!-- The right edge only ever asks for your score or shows the scores in:
-           your own on a phone, everyone's on desktop. -->
+      <!-- The right edge only ever asks for your score, or on desktop shows
+           everyone's. -->
       <button
         v-if="canScore"
         type="button"
@@ -73,10 +84,10 @@
         <mdicon name="plus" :size="18" />
       </button>
       <ScoreChips
-        v-else-if="shownEntries.length > 0"
+        v-else-if="isDesktop && memberEntries.length > 0"
         class="shrink-0 justify-end"
         row
-        :entries="shownEntries"
+        :entries="memberEntries"
         :current-user-id="currentUserId"
         :revealed="revealed"
       />
@@ -140,10 +151,5 @@ const average = computed(() =>
   props.entries.find((entry) => !isDefined(entry.memberId))?.value.toFixed(1),
 );
 
-const shownEntries = computed(() => {
-  const members = props.entries.filter((entry) => isDefined(entry.memberId));
-  return isDesktop.value
-    ? members
-    : members.filter((entry) => entry.memberId === props.currentUserId);
-});
+const memberEntries = computed(() => props.entries.filter((entry) => isDefined(entry.memberId)));
 </script>
