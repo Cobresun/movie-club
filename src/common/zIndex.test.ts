@@ -4,7 +4,7 @@ describe("zIndexClass", () => {
   it.each([
     ["40", "z-40"],
     ["50", "z-50"],
-    ["60", "z-[60]"],
+    ["60", "z-60"],
   ] as const)("maps %s to %s", (zIndex, expected) => {
     expect(zIndexClass(zIndex)).toBe(expected);
   });

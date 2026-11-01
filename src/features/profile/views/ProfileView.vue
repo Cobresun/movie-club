@@ -16,7 +16,7 @@
                  a hover, and the pencil is the only thing saying the avatar is
                  a control. -->
             <span
-              class="absolute bottom-0 right-0 flex h-9 w-9 items-center justify-center rounded-full bg-lowBackground text-white ring-2 ring-background transition-colors duration-fast ease-standard group-hover:bg-white/20"
+              class="bg-lowBackground ring-background duration-fast ease-standard absolute right-0 bottom-0 flex h-9 w-9 items-center justify-center rounded-full text-white ring-2 transition-colors group-hover:bg-white/20"
             >
               <mdicon name="pencil" :size="20" />
             </span>
@@ -24,7 +24,7 @@
 
           <button
             v-if="hasPhoto && !isPhotoPending"
-            class="absolute right-0 top-0 flex h-9 w-9 items-center justify-center rounded-full bg-red-500 text-white ring-2 ring-background transition-colors duration-fast ease-standard hover:bg-red-600"
+            class="ring-background duration-fast ease-standard absolute top-0 right-0 flex h-9 w-9 items-center justify-center rounded-full bg-red-500 text-white ring-2 transition-colors hover:bg-red-600"
             aria-label="Remove photo"
             @click="removePhoto"
           >
@@ -43,7 +43,7 @@
       </section>
 
       <section class="mt-6 border-t border-white/10 pt-5">
-        <h2 class="pb-3 text-[11px] font-semibold uppercase tracking-widest text-white/45">Name</h2>
+        <h2 class="pb-3 text-[11px] font-semibold tracking-widest text-white/45 uppercase">Name</h2>
 
         <form class="flex flex-col gap-4" @submit.prevent="saveName">
           <v-text-field
@@ -62,7 +62,7 @@
       </section>
 
       <section class="mt-6 border-t border-white/10 pt-5">
-        <h2 class="pb-3 text-[11px] font-semibold uppercase tracking-widest text-white/45">
+        <h2 class="pb-3 text-[11px] font-semibold tracking-widest text-white/45 uppercase">
           Password
         </h2>
         <ChangePasswordForm />

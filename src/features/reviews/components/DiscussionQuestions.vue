@@ -1,7 +1,7 @@
 <template>
   <div class="mt-6 w-full text-left">
     <Transition name="fade" mode="out-in">
-      <div v-if="hasQuestions" key="loaded" class="rounded-xl bg-lowBackground p-4">
+      <div v-if="hasQuestions" key="loaded" class="bg-lowBackground rounded-xl p-4">
         <div class="mb-3 flex items-center gap-2 text-sm text-gray-300">
           <mdicon name="creation" size="18" class="text-purple-300" />
           <span class="font-semibold">Discussion questions</span>
@@ -11,7 +11,7 @@
           <li
             v-for="(question, index) in questions"
             :key="`${index}-${question}`"
-            class="animate-fade-up flex gap-3 rounded-lg bg-background/60 p-3 text-sm leading-relaxed"
+            class="animate-fade-up bg-background/60 flex gap-3 rounded-lg p-3 text-sm leading-relaxed"
             :style="{ animationDelay: `${index * 70}ms` }"
           >
             <span class="font-bold text-purple-300">{{ index + 1 }}.</span>

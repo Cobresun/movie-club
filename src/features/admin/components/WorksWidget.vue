@@ -10,7 +10,7 @@
 
     <ol v-if="rows.length > 0" :aria-label="boardLabel" class="divide-y divide-slate-700/40">
       <li v-for="(row, index) in rows" :key="row.key" class="flex items-center gap-3 py-2">
-        <span class="w-4 shrink-0 text-right text-xs tabular-nums text-slate-500">
+        <span class="w-4 shrink-0 text-right text-xs text-slate-500 tabular-nums">
           {{ index + 1 }}
         </span>
         <img
@@ -18,15 +18,15 @@
           :src="row.imageUrl"
           alt=""
           loading="lazy"
-          class="aspect-[2/3] w-9 shrink-0 rounded bg-background/60 object-cover"
+          class="bg-background/60 aspect-2/3 w-9 shrink-0 rounded object-cover"
         />
-        <div v-else class="aspect-[2/3] w-9 shrink-0 rounded bg-background/60" />
+        <div v-else class="bg-background/60 aspect-2/3 w-9 shrink-0 rounded" />
         <div class="min-w-0 flex-1">
           <p class="truncate text-sm font-medium text-white">{{ row.title }}</p>
           <p class="truncate text-xs text-slate-400">{{ row.detail }}</p>
         </div>
         <span
-          class="shrink-0 rounded-full bg-background/60 px-2.5 py-1 text-sm font-semibold tabular-nums text-white"
+          class="bg-background/60 shrink-0 rounded-full px-2.5 py-1 text-sm font-semibold text-white tabular-nums"
           :aria-label="row.valueLabel"
         >
           {{ row.value }}

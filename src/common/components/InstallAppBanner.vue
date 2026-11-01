@@ -2,10 +2,10 @@
   <div v-if="isDefined(mode)" class="px-4 pt-3">
     <section
       aria-labelledby="install-app-heading"
-      class="flex items-center gap-3 rounded-xl bg-lowBackground p-3"
+      class="bg-lowBackground flex items-center gap-3 rounded-xl p-3"
     >
       <img src="/apple-touch-icon.png" alt="" class="h-10 w-10 shrink-0 rounded-lg" />
-      <div class="min-w-0 flex-grow">
+      <div class="min-w-0 grow">
         <h2 id="install-app-heading" class="text-sm font-semibold">
           Add Movie Club to your home screen
         </h2>
@@ -20,7 +20,7 @@
         Install
       </v-btn>
       <button
-        class="flex h-[44px] w-[44px] shrink-0 items-center justify-center text-white/60 transition-colors duration-fast ease-standard hover:text-white"
+        class="duration-fast ease-standard flex h-[44px] w-[44px] shrink-0 items-center justify-center text-white/60 transition-colors hover:text-white"
         aria-label="Dismiss"
         @click="dismiss"
       >

@@ -1,12 +1,13 @@
 /// <reference types="vitest" />
 
+import tailwindcss from "@tailwindcss/vite";
 import vue from "@vitejs/plugin-vue";
 import * as path from "path";
 import { defineConfig } from "vite";
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [vue()],
+  plugins: [tailwindcss(), vue()],
   define: {
     // Netlify sets COMMIT_REF during a deploy build.
     __BUILD_ID__: JSON.stringify(process.env.COMMIT_REF ?? "dev"),

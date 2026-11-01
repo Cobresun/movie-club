@@ -14,18 +14,18 @@
       />
       <div
         v-else
-        class="flex h-[84px] w-14 shrink-0 items-center justify-center rounded-md bg-lowBackground md:h-24 md:w-16"
+        class="bg-lowBackground flex h-[84px] w-14 shrink-0 items-center justify-center rounded-md md:h-24 md:w-16"
       >
         <mdicon name="television-classic" class="text-slate-500" />
       </div>
 
-      <div class="flex min-w-0 flex-grow flex-col gap-1">
+      <div class="flex min-w-0 grow flex-col gap-1">
         <!-- The title is the row's button; its ::after stretches over the
              whole header so anywhere on it opens the show. It sits at z-10
              because the rotated chevron, blurred score and fading poster
              each paint above an unraised overlay and swallow the click; the
              show's own actions sit at z-20 above it. -->
-        <h2 class="text-base font-semibold leading-snug md:text-lg">
+        <h2 class="text-base leading-snug font-semibold md:text-lg">
           <button
             type="button"
             class="line-clamp-2 text-left after:absolute after:inset-0 after:z-10 after:content-['']"
@@ -46,7 +46,7 @@
         <div class="flex items-center gap-2">
           <div class="h-1 w-16 overflow-hidden rounded-full bg-white/10 md:w-28" aria-hidden="true">
             <div
-              class="h-full rounded-full bg-primary"
+              class="bg-primary h-full rounded-full"
               :style="{ width: `${coveragePercent(show.scoredCount, show.episodeCount)}%` }"
             />
           </div>
@@ -61,11 +61,11 @@
           <button
             v-if="isDefined(currentUserId)"
             type="button"
-            class="flex items-center gap-1.5 rounded-full py-1 pl-2 pr-3 text-sm font-medium transition duration-fast ease-standard active:scale-95"
+            class="duration-fast ease-standard flex items-center gap-1.5 rounded-full py-1 pr-3 pl-2 text-sm font-medium transition active:scale-95"
             :class="
               isDefined(ownShowScore)
-                ? 'bg-white/5 text-gray-200 ring-1 ring-inset ring-white/10 hover:bg-white/10'
-                : 'bg-primary/15 text-primary ring-1 ring-inset ring-primary/40 hover:bg-primary/25'
+                ? 'bg-white/5 text-gray-200 ring-1 ring-white/10 ring-inset hover:bg-white/10'
+                : 'bg-primary/15 text-primary ring-primary/40 hover:bg-primary/25 ring-1 ring-inset'
             "
             :aria-label="
               isDefined(ownShowScore)
@@ -86,7 +86,7 @@
           </button>
           <button
             type="button"
-            class="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-sm text-gray-400 transition duration-fast ease-standard hover:bg-white/5 hover:text-gray-200"
+            class="duration-fast ease-standard flex items-center gap-1.5 rounded-full px-2.5 py-1 text-sm text-gray-400 transition hover:bg-white/5 hover:text-gray-200"
             :aria-label="`${show.title} details`"
             @click="detailsOpen = true"
           >
@@ -106,7 +106,7 @@
       />
       <div class="shrink-0 text-right">
         <div
-          class="text-2xl font-bold leading-tight"
+          class="text-2xl leading-tight font-bold"
           :class="[
             isDefined(show.scores.average) ? 'text-primary' : 'text-gray-500',
             isScoreHidden ? 'blur filter' : '',
@@ -120,7 +120,7 @@
       <mdicon
         name="chevron-down"
         :size="22"
-        class="shrink-0 text-white/60 transition-transform duration-base ease-standard"
+        class="duration-base ease-standard shrink-0 text-white/60 transition-transform"
         :class="open ? 'rotate-180' : ''"
         aria-hidden="true"
       />

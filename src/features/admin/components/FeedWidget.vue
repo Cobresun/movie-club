@@ -20,7 +20,7 @@
           <p class="truncate text-xs text-slate-500">
             <router-link
               :to="{ name: 'ClubHome', params: { clubSlug: event.clubSlug } }"
-              class="text-slate-400 hover:text-primary hover:underline"
+              class="hover:text-primary text-slate-400 hover:underline"
             >
               {{ event.clubName }}
             </router-link>
@@ -29,7 +29,7 @@
         </div>
         <span
           v-if="event.score !== null"
-          class="shrink-0 rounded-full bg-primary/15 px-2.5 py-1 text-sm font-semibold tabular-nums text-highlight"
+          class="bg-primary/15 text-highlight shrink-0 rounded-full px-2.5 py-1 text-sm font-semibold tabular-nums"
         >
           {{ formatScore(event.score) }}
         </span>

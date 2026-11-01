@@ -5,7 +5,7 @@
     <Transition name="slide-in-right" appear @after-leave="onTransitionEnd">
       <div
         v-if="isVisible"
-        class="fixed inset-y-0 right-0 z-50 w-[35vw] max-w-full bg-background will-change-transform md:border-l md:border-gray-700 md:shadow-xl"
+        class="bg-background fixed inset-y-0 right-0 z-50 w-[35vw] max-w-full will-change-transform md:border-l md:border-gray-700 md:shadow-xl"
         @click.stop
       >
         <div class="relative h-full overflow-y-auto px-4 pt-8">

@@ -1,12 +1,12 @@
 <template>
   <div class="flex flex-1 flex-col justify-center">
     <mdicon name="help-circle-outline" :size="40" class="text-white/80" />
-    <p :id="questionId" class="mt-3 text-2xl font-bold leading-tight">{{ trivia.question }}</p>
+    <p :id="questionId" class="mt-3 text-2xl leading-tight font-bold">{{ trivia.question }}</p>
     <ul class="mt-5 flex flex-col gap-2" :aria-labelledby="questionId">
       <li v-for="option in trivia.options" :key="option.id">
         <button
           type="button"
-          class="flex min-h-[48px] w-full items-center gap-3 rounded-xl px-3 py-2 text-left transition-colors duration-fast ease-standard"
+          class="duration-fast ease-standard flex min-h-[48px] w-full items-center gap-3 rounded-xl px-3 py-2 text-left transition-colors"
           :class="
             isAnswered
               ? option.id === trivia.answerId
@@ -35,13 +35,13 @@
           <span class="min-w-0 flex-1 truncate font-semibold">{{ option.label }}</span>
           <span
             v-if="isAnswered && option.id === trivia.answerId"
-            class="flex shrink-0 items-center gap-1 text-xs font-bold uppercase tracking-wider"
+            class="flex shrink-0 items-center gap-1 text-xs font-bold tracking-wider uppercase"
           >
             <mdicon name="check" :size="16" />Answer
           </span>
           <span
             v-else-if="option.id === chosenId"
-            class="flex shrink-0 items-center gap-1 text-xs font-bold uppercase tracking-wider"
+            class="flex shrink-0 items-center gap-1 text-xs font-bold tracking-wider uppercase"
           >
             <mdicon name="close" :size="16" />Your guess
           </span>

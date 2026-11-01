@@ -12,11 +12,11 @@
     <div
       role="group"
       :aria-label="`${season.title} scores`"
-      class="mx-3 mb-3 flex flex-wrap items-center gap-x-4 gap-y-2.5 rounded-lg bg-primary/10 px-3 py-2.5 ring-1 ring-inset ring-primary/20 md:mx-4 md:px-4"
+      class="bg-primary/10 ring-primary/20 mx-3 mb-3 flex flex-wrap items-center gap-x-4 gap-y-2.5 rounded-lg px-3 py-2.5 ring-1 ring-inset md:mx-4 md:px-4"
     >
-      <div class="flex min-w-0 flex-grow items-center gap-3">
+      <div class="flex min-w-0 grow items-center gap-3">
         <span
-          class="text-3xl font-bold leading-none"
+          class="text-3xl leading-none font-bold"
           :class="isDefined(average) ? 'text-primary' : 'text-gray-500'"
         >
           <template v-if="!isDefined(average)">—</template>
@@ -26,7 +26,7 @@
           >
         </span>
         <div class="flex min-w-0 flex-col gap-1">
-          <h3 class="text-xs font-semibold uppercase tracking-wide text-primary/90">
+          <h3 class="text-primary/90 text-xs font-semibold tracking-wide uppercase">
             {{ season.title }} average
           </h3>
           <div class="flex items-center gap-2">
@@ -35,7 +35,7 @@
               aria-hidden="true"
             >
               <div
-                class="h-full rounded-full bg-primary"
+                class="bg-primary h-full rounded-full"
                 :style="{ width: `${coveragePercent(season.scoredCount, season.episodeCount)}%` }"
               />
             </div>
@@ -47,7 +47,7 @@
         <button
           v-if="canReveal"
           type="button"
-          class="ml-auto flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-gray-400 transition duration-fast ease-standard hover:bg-white/10 hover:text-gray-200"
+          class="duration-fast ease-standard ml-auto flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-gray-400 transition hover:bg-white/10 hover:text-gray-200"
           :aria-label="`Reveal ${season.title} scores`"
           @click="emit('toggle-reveal', revealKey)"
         >

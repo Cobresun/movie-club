@@ -3,7 +3,7 @@
     <page-header :has-back="false" page-name="Statistics">
       <button
         v-if="!isLoading && hasReviews"
-        class="text-white transition hover:text-primary"
+        class="hover:text-primary text-white transition"
         title="Share statistics"
         aria-label="Share statistics"
         @click="shareStats"

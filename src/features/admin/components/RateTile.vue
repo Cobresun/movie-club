@@ -1,7 +1,7 @@
 <template>
   <!-- A row on phones, so three rates don't stack into a screen of cards. -->
   <div
-    class="flex items-center gap-4 rounded-xl bg-lowBackground p-3.5 sm:flex-col sm:items-start sm:gap-1 sm:p-4"
+    class="bg-lowBackground flex items-center gap-4 rounded-xl p-3.5 sm:flex-col sm:items-start sm:gap-1 sm:p-4"
   >
     <p v-if="percent === null" class="w-16 shrink-0 text-2xl font-bold text-slate-500 sm:w-auto">
       —
@@ -11,7 +11,7 @@
     </p>
 
     <div class="min-w-0 sm:contents">
-      <p class="text-xs font-medium uppercase tracking-wide text-slate-400 sm:order-first">
+      <p class="text-xs font-medium tracking-wide text-slate-400 uppercase sm:order-first">
         {{ label }}
       </p>
       <p class="mt-0.5 text-xs text-slate-300">{{ detail }}</p>

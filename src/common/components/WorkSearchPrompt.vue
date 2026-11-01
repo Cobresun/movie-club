@@ -2,7 +2,7 @@
   <div class="flex h-full flex-col text-center">
     <input
       v-model="searchText"
-      class="rounded-md border-2 border-gray-300 p-1 text-base font-bold text-black outline-none focus:border-primary"
+      class="focus:border-primary rounded-md border-2 border-gray-300 bg-white p-1 text-base font-bold text-black outline-hidden"
       placeholder="Type to filter or search"
     />
     <div class="mt-3 overflow-y-auto">

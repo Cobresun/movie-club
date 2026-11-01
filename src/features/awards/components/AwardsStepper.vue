@@ -12,7 +12,7 @@
           phaseStep < step
             ? 'bg-primary text-text'
             : phaseStep === step
-              ? 'bg-background text-text ring-2 ring-primary'
+              ? 'bg-background text-text ring-primary ring-2'
               : 'bg-lowBackground text-gray-400'
         "
         aria-hidden="true"

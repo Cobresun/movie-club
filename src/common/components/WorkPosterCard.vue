@@ -1,18 +1,18 @@
 <template>
   <div
     class="relative h-full w-40 rounded-lg"
-    :class="[highlighted ? 'outline outline-4 outline-highlightBackground' : '']"
+    :class="[highlighted ? 'outline-highlightBackground outline outline-4' : '']"
   >
     <button
       v-if="showDelete"
-      class="absolute -right-3 -top-3 rounded-full bg-background"
+      class="bg-background absolute -top-3 -right-3 rounded-full"
       :aria-label="`Remove ${title}`"
       @click="emit('delete')"
     >
       <mdicon name="close-circle-outline" />
     </button>
     <div v-if="loading" class="absolute inset-0 flex items-center justify-center">
-      <div class="absolute inset-0 bg-background opacity-50" />
+      <div class="bg-background absolute inset-0 opacity-50" />
       <loading-spinner />
     </div>
     <!-- z-10, not higher: the handle only has to clear the poster below it, and
@@ -20,14 +20,14 @@
          handle at z-20 would paint over the bar as the grid scrolls past it. -->
     <div
       v-if="showDragHandle"
-      class="drag-handle absolute left-1 top-1 z-10 cursor-grab rounded bg-black/60 p-0.5 text-white active:cursor-grabbing"
+      class="drag-handle absolute top-1 left-1 z-10 cursor-grab rounded bg-black/60 p-0.5 text-white active:cursor-grabbing"
     >
       <mdicon name="drag" :size="20" />
     </div>
     <!-- Hover lift is gated on a real hover pointer: on touch, :hover sticks
          after a tap and would leave the card floating. -->
     <div
-      class="flex h-full flex-col rounded-lg bg-slate-700 transition duration-base ease-standard"
+      class="duration-base ease-standard flex h-full flex-col rounded-lg bg-slate-700 transition"
       :class="{
         'group [@media(hover:hover)]:hover:-translate-y-1 [@media(hover:hover)]:hover:shadow-xl [@media(hover:hover)]:hover:shadow-black/40':
           selectable,
@@ -40,7 +40,7 @@
       <button
         v-if="selectable"
         type="button"
-        class="block w-full overflow-hidden rounded-t-lg transition-transform duration-fast ease-standard active:scale-[0.98]"
+        class="duration-fast ease-standard block w-full overflow-hidden rounded-t-lg transition-transform active:scale-[0.98]"
         @click="emit('select')"
       >
         <img
@@ -48,7 +48,7 @@
           :src="posterUrl"
           :alt="title"
           class="w-full rounded-t-lg object-cover [@media(hover:hover)]:group-hover:scale-105"
-          :class="landscape ? 'aspect-video' : 'aspect-[2/3]'"
+          :class="landscape ? 'aspect-video' : 'aspect-2/3'"
         />
       </button>
       <img
@@ -57,10 +57,10 @@
         :src="posterUrl"
         :alt="title"
         class="w-full rounded-t-lg object-cover"
-        :class="landscape ? 'aspect-video' : 'aspect-[2/3]'"
+        :class="landscape ? 'aspect-video' : 'aspect-2/3'"
       />
-      <div class="flex h-auto flex-grow flex-col px-2 pb-2">
-        <div class="my-2 flex flex-grow items-center justify-center">
+      <div class="flex h-auto grow flex-col px-2 pb-2">
+        <div class="my-2 flex grow items-center justify-center">
           <h3 class="h-min font-semibold" style="height: min-content">
             {{ title }}
           </h3>

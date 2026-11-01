@@ -1,6 +1,6 @@
 <template>
   <article
-    class="animate-fade-up rounded-lg border border-primary/30 bg-primary/[0.04] text-left"
+    class="animate-fade-up border-primary/30 bg-primary/[0.04] rounded-lg border text-left"
     aria-busy="true"
   >
     <div class="flex items-center gap-3 p-2.5 md:gap-5 md:p-3">
@@ -14,13 +14,13 @@
         <SkeletonBlock v-else class="h-full w-full" />
       </div>
 
-      <div class="flex min-w-0 flex-grow flex-col gap-1.5">
-        <h2 class="line-clamp-2 text-base font-semibold leading-snug md:text-lg">
+      <div class="flex min-w-0 grow flex-col gap-1.5">
+        <h2 class="line-clamp-2 text-base leading-snug font-semibold md:text-lg">
           {{ review.title }}
         </h2>
         <span role="status" class="flex items-center gap-2 text-xs text-gray-400 md:text-sm">
           <span
-            class="h-3 w-3 shrink-0 animate-spin rounded-full border-2 border-primary border-t-transparent"
+            class="border-primary h-3 w-3 shrink-0 animate-spin rounded-full border-2 border-t-transparent"
             aria-hidden="true"
           />
           {{ status }}

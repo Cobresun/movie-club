@@ -15,7 +15,7 @@
         @click="jumpTo(index)"
       >
         <span
-          class="block h-1 rounded-full transition-colors duration-base ease-standard"
+          class="duration-base ease-standard block h-1 rounded-full transition-colors"
           :class="index <= currentIndex ? 'bg-white' : 'bg-white/25'"
         />
       </button>
@@ -24,7 +24,7 @@
     <div ref="stage" class="flex min-h-0 flex-1 items-center justify-center">
       <div
         ref="cardViewport"
-        class="relative isolate shrink-0 cursor-pointer touch-pan-y select-none overflow-hidden rounded-2xl bg-black shadow-2xl"
+        class="relative isolate shrink-0 cursor-pointer touch-pan-y overflow-hidden rounded-2xl bg-black shadow-2xl select-none"
         :style="{ width: `${displayWidth}px`, height: `${displayHeight}px` }"
         @pointerdown="onPointerDown"
         @pointermove="onPointerMove"
@@ -32,7 +32,7 @@
         @pointercancel="onPointerCancel"
       >
         <div
-          class="absolute left-0 top-0 origin-top-left"
+          class="absolute top-0 left-0 origin-top-left"
           :style="{
             width: `${CARD_WIDTH}px`,
             height: `${CARD_HEIGHT}px`,

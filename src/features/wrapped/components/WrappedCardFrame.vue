@@ -1,6 +1,6 @@
 <template>
   <div
-    class="flex h-full w-full flex-col overflow-hidden bg-gradient-to-br p-6 text-left text-white"
+    class="flex h-full w-full flex-col overflow-hidden bg-linear-to-br p-6 text-left text-white"
     :class="{
       'from-violet-600 via-fuchsia-800 to-slate-900': tone === 'violet',
       'from-primary via-blue-800 to-slate-900': tone === 'blue',
@@ -11,16 +11,16 @@
     }"
   >
     <div
-      class="flex items-center justify-between gap-3 text-[11px] font-semibold uppercase tracking-widest text-white/70"
+      class="flex items-center justify-between gap-3 text-[11px] font-semibold tracking-widest text-white/70 uppercase"
     >
       <span class="truncate">{{ clubName }}</span>
       <span class="shrink-0">Wrapped {{ year }}</span>
     </div>
-    <h2 class="mt-5 text-sm font-bold uppercase tracking-widest text-white/90">{{ title }}</h2>
+    <h2 class="mt-5 text-sm font-bold tracking-widest text-white/90 uppercase">{{ title }}</h2>
     <div class="mt-4 flex min-h-0 flex-1 flex-col">
       <slot />
     </div>
-    <p class="mt-4 text-[11px] font-semibold uppercase tracking-widest text-white/50">Movie Club</p>
+    <p class="mt-4 text-[11px] font-semibold tracking-widest text-white/50 uppercase">Movie Club</p>
   </div>
 </template>
 

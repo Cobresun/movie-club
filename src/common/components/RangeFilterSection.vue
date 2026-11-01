@@ -7,7 +7,7 @@
         type="button"
         :aria-pressed="isPresetActive(preset)"
         :disabled="!isPresetActive(preset) && !presetHasMatches(preset)"
-        class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors duration-fast disabled:cursor-not-allowed disabled:opacity-35"
+        class="duration-fast inline-flex items-center gap-1.5 rounded-full border border-gray-200 px-3 py-1.5 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-35"
         :class="
           isPresetActive(preset)
             ? 'border-primary bg-primary text-white'
@@ -24,7 +24,7 @@
       <div
         v-for="bar in bars"
         :key="bar.start"
-        class="flex-1 rounded-t-sm transition-colors duration-fast"
+        class="duration-fast flex-1 rounded-t-xs transition-colors"
         :class="
           bar.selected ? 'bg-primary' : isDefined(selection) ? 'bg-slate-600/40' : 'bg-slate-500/70'
         "
@@ -36,7 +36,7 @@
       <div class="absolute inset-x-0 top-3 h-1 rounded-full bg-slate-600"></div>
       <div
         v-if="isDefined(selection)"
-        class="absolute top-3 h-1 rounded-full bg-primary"
+        class="bg-primary absolute top-3 h-1 rounded-full"
         :style="selectedTrackStyle"
       ></div>
       <input
@@ -207,6 +207,10 @@ function togglePreset(preset: RangePreset) {
 </script>
 
 <style scoped>
+/* v4: SFC styles are compiled in isolation, so @apply needs a reference to
+   the sheet that defines the theme and utilities. */
+@reference "../../assets/styles/tailwind.css";
+
 /* Stacked range inputs: the tracks are transparent so the shared rail shows
    through, and only the thumbs take pointer events so both stay grabbable. */
 .range-slider input[type="range"] {
@@ -215,13 +219,13 @@ function togglePreset(preset: RangePreset) {
 }
 
 .range-slider input[type="range"]::-webkit-slider-thumb {
-  @apply h-5 w-5 appearance-none rounded-full border-[3px] border-primary bg-white;
+  @apply border-primary h-5 w-5 appearance-none rounded-full border-[3px] bg-white;
   margin-top: 4px;
   pointer-events: auto;
 }
 
 .range-slider input[type="range"]::-moz-range-thumb {
-  @apply h-5 w-5 rounded-full border-[3px] border-primary bg-white;
+  @apply border-primary h-5 w-5 rounded-full border-[3px] bg-white;
   pointer-events: auto;
 }
 </style>

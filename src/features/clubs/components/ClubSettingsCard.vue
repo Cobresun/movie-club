@@ -2,7 +2,7 @@
   <section class="flex flex-col">
     <SectionHeader title="Club settings" />
 
-    <div class="flex flex-col overflow-hidden rounded-xl bg-lowBackground">
+    <div class="bg-lowBackground flex flex-col overflow-hidden rounded-xl">
       <ClubEditableRow
         v-model:editing="isEditingName"
         label="Club name"
@@ -35,7 +35,7 @@
         :key="feature.key"
         class="flex min-h-[56px] items-start gap-3 border-t border-white/[0.08] px-4 py-3.5"
       >
-        <span class="flex min-w-0 flex-grow flex-col gap-1">
+        <span class="flex min-w-0 grow flex-col gap-1">
           <span class="text-[15px] font-medium">{{ feature.title }}</span>
           <span class="text-xs leading-relaxed text-white/50">{{ feature.description }}</span>
           <span class="flex items-center gap-1.5 text-[11px] text-yellow-500">
@@ -47,7 +47,7 @@
           :model-value="isEnabled(feature.key)"
           color="primary"
           :aria-label="feature.title"
-          class="mt-0.5 flex-shrink-0"
+          class="mt-0.5 shrink-0"
           @update:model-value="updateFeature(feature.key, $event)"
         />
       </div>

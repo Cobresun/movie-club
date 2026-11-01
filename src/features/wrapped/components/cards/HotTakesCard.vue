@@ -7,7 +7,7 @@
           <span class="font-semibold">{{ firstName(take.member.name) }}</span
           >{{ " " }}<span class="text-white/75">{{ take.gap > 0 ? "loved" : "panned" }}</span>
         </p>
-        <p class="truncate text-base font-bold leading-snug">{{ take.title }}</p>
+        <p class="truncate text-base leading-snug font-bold">{{ take.title }}</p>
         <p class="text-xs text-white/75">
           Gave it {{ take.memberScore }} · others {{ take.othersAverage.toFixed(1) }}
         </p>

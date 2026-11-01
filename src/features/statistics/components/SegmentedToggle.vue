@@ -2,7 +2,7 @@
   <div
     ref="track"
     role="tablist"
-    class="relative inline-flex max-w-full items-center gap-1 overflow-x-auto rounded-full bg-background/60 p-1"
+    class="bg-background/60 relative inline-flex max-w-full items-center gap-1 overflow-x-auto rounded-full p-1"
   >
     <!-- One pill slides between options. Until it has been measured (and
          where there is no layout, e.g. jsdom) the selected button paints its
@@ -10,7 +10,7 @@
     <span
       v-if="isDefined(pill)"
       aria-hidden="true"
-      class="absolute inset-y-1 left-0 rounded-full bg-primary shadow-md shadow-primary/25 transition-[transform,width] duration-slow ease-emphasized"
+      class="bg-primary shadow-primary/25 duration-slow ease-emphasized absolute inset-y-1 left-0 rounded-full shadow-md transition-[transform,width]"
       :style="{ width: `${pill.width}px`, transform: `translateX(${pill.left}px)` }"
     />
     <button
@@ -18,10 +18,10 @@
       :key="option.value"
       role="tab"
       :aria-selected="option.value === modelValue"
-      class="relative whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium transition-colors duration-base ease-standard"
+      class="duration-base ease-standard relative rounded-full px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-colors"
       :class="
         option.value === modelValue
-          ? ['text-white', isDefined(pill) ? '' : 'bg-primary shadow-md shadow-primary/25']
+          ? ['text-white', isDefined(pill) ? '' : 'bg-primary shadow-primary/25 shadow-md']
           : 'text-gray-400 hover:bg-gray-600/40 hover:text-white'
       "
       @click="emit('update:modelValue', option.value)"

@@ -3,7 +3,7 @@ export type ZIndex = "40" | "50" | "60";
 const CLASS_BY_ZINDEX: Record<ZIndex, string> = {
   "40": "z-40",
   "50": "z-50",
-  "60": "z-[60]",
+  "60": "z-60",
 };
 
 export const zIndexClass = (zIndex: ZIndex): string => CLASS_BY_ZINDEX[zIndex];

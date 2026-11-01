@@ -18,7 +18,7 @@
     <transition-group
       tag="ol"
       move-class="transition duration-slow ease-emphasized"
-      class="grid grid-cols-auto justify-items-center gap-4"
+      class="grid-cols-auto grid justify-items-center gap-4"
     >
       <li v-for="(nomination, index) in nominations" :key="nomination.movieId">
         <WorkPosterCard :title="nomination.movieTitle" :poster-url="nomination.posterUrl">

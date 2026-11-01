@@ -8,9 +8,9 @@
       <div
         v-for="entry in yearlyBest"
         :key="entry.year"
-        class="flex items-center gap-3 rounded-lg border border-slate-700/30 bg-background/50 px-3 py-2.5"
+        class="bg-background/50 flex items-center gap-3 rounded-lg border border-slate-700/30 px-3 py-2.5"
       >
-        <span class="w-12 shrink-0 text-lg font-bold text-primary">
+        <span class="text-primary w-12 shrink-0 text-lg font-bold">
           {{ entry.year }}
         </span>
         <img

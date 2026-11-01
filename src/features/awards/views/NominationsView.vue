@@ -9,7 +9,7 @@
             : `The club didn't review any movies in ${year}, so there's nothing to nominate.`
         }}
       </p>
-      <div class="flex-grow overflow-auto">
+      <div class="grow overflow-auto">
         <WorkSearchPrompt
           :club-type="ClubType.MOVIE"
           :default-list="candidates"
@@ -23,7 +23,7 @@
   <div>
     <h2 class="m-4 text-2xl font-bold">Nominations</h2>
     <div
-      class="mx-auto mb-6 flex w-full max-w-sm items-center justify-between gap-3 rounded-lg bg-gradient-to-r from-blue-500 to-purple-600 px-6 py-3 text-left"
+      class="mx-auto mb-6 flex w-full max-w-sm items-center justify-between gap-3 rounded-lg bg-linear-to-r from-blue-500 to-purple-600 px-6 py-3 text-left"
     >
       <div class="text-white">
         <div class="text-sm font-medium opacity-90">Your nominations</div>
@@ -32,7 +32,7 @@
         </div>
       </div>
       <svg
-        class="h-12 w-12 flex-shrink-0 -rotate-90 transform"
+        class="h-12 w-12 shrink-0 -rotate-90 transform"
         viewBox="0 0 36 36"
         xmlns="http://www.w3.org/2000/svg"
         aria-hidden="true"
@@ -59,7 +59,7 @@
     </div>
     <div v-for="award in userOnlyAwards" :key="award.title">
       <h3 class="mb-2 text-left text-xl font-bold">{{ award.title }}</h3>
-      <div class="grid grid-cols-auto">
+      <div class="grid-cols-auto grid">
         <WorkPosterCard
           v-for="nomination in award.nominations"
           :key="nomination.movieId"

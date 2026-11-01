@@ -1,16 +1,16 @@
 <template>
   <div class="flex items-center justify-between gap-2 p-3 sm:p-4">
-    <div class="flex min-w-0 flex-grow items-center gap-3">
+    <div class="flex min-w-0 grow items-center gap-3">
       <router-link
         :to="logoDestination"
-        class="flex-shrink-0"
+        class="shrink-0"
         :class="{ 'hidden md:block': showClubSwitcher }"
       >
-        <h3 class="text-2xl font-bold text-highlight">MovieClub</h3>
+        <h3 class="text-highlight text-2xl font-bold">MovieClub</h3>
       </router-link>
       <ClubSwitcher v-if="showClubSwitcher" />
     </div>
-    <div v-if="authReady" class="flex flex-shrink-0 items-center">
+    <div v-if="authReady" class="flex shrink-0 items-center">
       <AccountMenu v-if="isLoggedIn" />
       <v-btn v-else @click="login"> Login </v-btn>
     </div>

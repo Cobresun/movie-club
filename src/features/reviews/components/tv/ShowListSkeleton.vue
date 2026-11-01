@@ -1,7 +1,3 @@
-<script setup lang="ts">
-import SkeletonBlock from "@/common/components/SkeletonBlock.vue";
-</script>
-
 <template>
   <!-- Mirrors ReviewView for a TV club: the search/filter bar, then ShowListView's
        show rows — poster, title and coverage, and the club's score. -->
@@ -17,7 +13,7 @@ import SkeletonBlock from "@/common/components/SkeletonBlock.vue";
         class="flex items-center gap-3 rounded-lg border border-white/10 bg-white/[0.03] p-3 md:gap-5"
       >
         <SkeletonBlock class="h-[84px] w-14 shrink-0 rounded-md md:h-24 md:w-16" />
-        <div class="flex min-w-0 flex-grow flex-col gap-2">
+        <div class="flex min-w-0 grow flex-col gap-2">
           <SkeletonBlock class="h-5 w-40 rounded-md" />
           <SkeletonBlock class="h-3 w-32 rounded-full" />
           <SkeletonBlock class="h-1 w-16 rounded-full md:w-28" />
@@ -31,3 +27,7 @@ import SkeletonBlock from "@/common/components/SkeletonBlock.vue";
     </div>
   </div>
 </template>
+
+<script setup lang="ts">
+import SkeletonBlock from "@/common/components/SkeletonBlock.vue";
+</script>
