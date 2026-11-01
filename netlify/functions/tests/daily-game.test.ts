@@ -249,6 +249,19 @@ describe("GET /api/daily-game/:clubType/:date", () => {
     expect(res.statusCode).toBe(404);
   });
 
+  it("is playable before the catalog job has ever run, from one page of TMDB", async () => {
+    mostRated(3, 20);
+
+    const first = await api.get<DailyGamePuzzle>(`/api/daily-game/movie/${TODAY}`);
+    failOnRequest("get", `${TMDB}/discover/movie`);
+    const again = await api.get<DailyGamePuzzle>(`/api/daily-game/movie/${TODAY}`);
+
+    expect(first.statusCode).toBe(200);
+    expect(first.body.puzzle).toBe(1);
+    expect(first.body.works).toHaveLength(20);
+    expect(answerOf(again.body.works)?.id).toBe(answerOf(first.body.works)?.id);
+  });
+
   describe("topping up the catalog from TMDB", () => {
     it("fills a large catalog over several runs without fetching a movie twice", async () => {
       mostRated(4, 20);

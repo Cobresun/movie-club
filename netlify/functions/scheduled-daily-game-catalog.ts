@@ -4,9 +4,16 @@ import { z } from "zod";
 import { isDefined } from "../../lib/checks/checks.js";
 import { upcomingPuzzleDates } from "../../lib/dailyGame.js";
 import DailyGameRepository from "./repositories/DailyGameRepository.js";
-import { answerFor, loadPool, MIN_POOL_SIZE } from "./utils/dailyGamePuzzle";
+import {
+  addMissingWorks,
+  answerFor,
+  type CatalogError,
+  errorMessage,
+  loadPool,
+  MIN_POOL_SIZE,
+} from "./utils/dailyGame";
 import { allProviders } from "./utils/providers";
-import { type CatalogCandidate, type DailyGame, type MediaProvider } from "./utils/providers/types";
+import { type DailyGame, type MediaProvider } from "./utils/providers/types";
 
 const ScheduledFunctionPayloadSchema = z.object({
   next_run: z.string(),
@@ -19,9 +26,6 @@ const ScheduledFunctionPayloadSchema = z.object({
  */
 const BATCH_SIZE = 50;
 
-/** Catalog pages, and then works, fetched from the source at once. */
-const CONCURRENCY = 5;
-
 /**
  * A catalog that grew within this long is still filling, and is topped up
  * every hour. Once it stops growing, the source's best-known works barely
@@ -31,13 +35,11 @@ const CONCURRENCY = 5;
 const FILLING_WINDOW_MS = 2 * 60 * 60 * 1000;
 const DAILY_SWEEP_HOUR = 4;
 
-const errorMessage = (error: unknown) => (error instanceof Error ? error.message : String(error));
-
 interface TopUpResult {
   type: string;
   skipped: boolean;
   added: number;
-  errors: { externalId: string; error: string }[];
+  errors: CatalogError[];
 }
 
 interface GameRunResult extends TopUpResult {
@@ -52,59 +54,12 @@ function isDue(lastAddition: Date | undefined, now: Date): boolean {
   );
 }
 
-/**
- * The source's best-known works not yet in the catalog, best known first, up
- * to {@link BATCH_SIZE}. Reads pages a few at a time and stops once it has a
- * batch; a page the source fails on is skipped rather than ending the run.
- */
-async function findMissing(
-  provider: MediaProvider,
-  game: DailyGame,
-  errors: TopUpResult["errors"],
-): Promise<CatalogCandidate[]> {
-  const missing = new Map<string, CatalogCandidate>();
-  for (let first = 1; first <= game.catalogPages && missing.size < BATCH_SIZE;) {
-    const pages = Array.from(
-      { length: Math.min(CONCURRENCY, game.catalogPages - first + 1) },
-      (_, index) => first + index,
-    );
-    first += pages.length;
-    const results = await Promise.allSettled(pages.map((page) => game.catalogPage(page)));
-    const candidates: CatalogCandidate[] = [];
-    results.forEach((result, index) => {
-      if (result.status === "fulfilled") candidates.push(...result.value);
-      else errors.push({ externalId: `page ${pages[index]}`, error: errorMessage(result.reason) });
-    });
-    const catalogued = await DailyGameRepository.getCatalogued(
-      provider.type,
-      candidates.map((candidate) => candidate.externalId),
-    );
-    for (const candidate of candidates) {
-      if (!catalogued.has(candidate.externalId)) missing.set(candidate.externalId, candidate);
-    }
-  }
-  return [...missing.values()].slice(0, BATCH_SIZE);
-}
-
 async function topUp(provider: MediaProvider, game: DailyGame, now: Date): Promise<TopUpResult> {
   const result: TopUpResult = { type: provider.type, skipped: false, added: 0, errors: [] };
   if (!isDue(await DailyGameRepository.getLastCatalogAddition(provider.type), now)) {
     return { ...result, skipped: true };
   }
-  const missing = await findMissing(provider, game, result.errors);
-  for (let i = 0; i < missing.length; i += CONCURRENCY) {
-    await Promise.all(
-      missing.slice(i, i + CONCURRENCY).map(async (work) => {
-        try {
-          await provider.fetchAndCacheDetails(work.externalId);
-          await DailyGameRepository.addToCatalog(provider.type, work);
-          result.added++;
-        } catch (error) {
-          result.errors.push({ externalId: work.externalId, error: errorMessage(error) });
-        }
-      }),
-    );
-  }
+  result.added = await addMissingWorks(provider, game, BATCH_SIZE, result.errors);
   return result;
 }
 
