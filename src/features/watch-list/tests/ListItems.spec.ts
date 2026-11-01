@@ -1,7 +1,10 @@
 import { screen, waitFor } from "@testing-library/vue";
 import { http, HttpResponse } from "msw";
+import { z } from "zod";
 
+import { type DetailedWorkListItem } from "../../../../lib/types/lists";
 import ListItems from "../components/ListItems.vue";
+import members from "@/mocks/data/members.json";
 import watchlist from "@/mocks/data/watchlist";
 import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
 import { server } from "@/mocks/server";
@@ -117,5 +120,33 @@ describe("ListItems", () => {
     await waitFor(() => {
       expect(rendered.emitted().select).toStrictEqual([[watchlist[0].id]]);
     });
+  });
+
+  it("reattributes the selected item to the member picked as its adder", async () => {
+    let items: DetailedWorkListItem[] = [{ ...watchlist[0], addedBy: "1" }];
+    server.use(
+      nextWorkHandler(),
+      http.get("/api/club/:id/list/:listId", () =>
+        HttpResponse.json<DetailedWorkListItem[]>(items),
+      ),
+      http.get("/api/club/:id/reviews/:workId/comments", () => HttpResponse.json([])),
+      http.put("/api/club/:id/list/:listId/items/:workId/added-by", async ({ request, params }) => {
+        const { userId } = z.object({ userId: z.string() }).parse(await request.json());
+        items = items.map((item) =>
+          item.id === params.workId ? { ...item, addedBy: userId } : item,
+        );
+        return new HttpResponse(null, { status: 200 });
+      }),
+    );
+
+    const rendered = render(ListItems, {
+      props: { ...defaultProps, members, selectedItemId: watchlist[0].id },
+    });
+
+    expect(await screen.findByText(/Added by dev on/)).toBeInTheDocument();
+    await rendered.user.click(screen.getByRole("button", { name: "Change who added" }));
+    await rendered.user.click(await screen.findByRole("option", { name: "cole" }));
+
+    expect(await screen.findByText(/Added by cole on/)).toBeInTheDocument();
   });
 });

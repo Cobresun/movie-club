@@ -63,6 +63,41 @@
           </ListboxOptions>
         </div>
       </Listbox>
+      <Listbox
+        v-if="members.length > 0"
+        :model-value="movie.addedBy"
+        @update:model-value="onAddedBySelect"
+      >
+        <div class="relative">
+          <ListboxButton
+            class="flex items-center gap-1.5 rounded-full bg-lowBackground px-3 py-1.5 text-sm text-gray-200 transition hover:brightness-110"
+          >
+            <mdicon name="account-outline" size="16" />
+            <span>Change who added</span>
+            <mdicon name="chevron-down" size="16" />
+          </ListboxButton>
+          <ListboxOptions
+            class="absolute left-0 top-full z-20 mt-1 max-h-64 w-56 overflow-y-auto rounded-lg border border-gray-700 bg-background py-1 shadow-lg focus:outline-none"
+          >
+            <ListboxOption
+              v-for="member in members"
+              :key="member.id"
+              v-slot="{ active, selected }"
+              :value="member.id"
+              as="template"
+            >
+              <li
+                class="flex cursor-pointer items-center gap-2 px-4 py-2 text-sm"
+                :class="{ 'bg-lowBackground': active }"
+              >
+                <VAvatar :src="member.image" :name="member.name" :size="20" aria-hidden="true" />
+                <span class="flex-1 truncate">{{ member.name }}</span>
+                <mdicon v-if="selected" name="check" size="16" />
+              </li>
+            </ListboxOption>
+          </ListboxOptions>
+        </div>
+      </Listbox>
       <button
         type="button"
         class="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm text-red-400 transition hover:bg-red-500/10"
@@ -188,12 +223,13 @@ const props = defineProps<{
   isDesktop: boolean;
   canReview: boolean;
   otherLists: { id: string; title: string }[];
+  members: Member[];
   addedByMember?: Member;
 }>();
 
 const emit = defineEmits<{
   (e: "close" | "review" | "set-next-work" | "clear-next-work" | "delete"): void;
-  (e: "move-to-list", listId: string): void;
+  (e: "move-to-list" | "change-added-by", id: string): void;
 }>();
 
 const { data: club } = useClub(props.clubSlug);
@@ -224,6 +260,12 @@ const onMoveSelect = async (value: string | null) => {
   }
   await nextTick();
   moveToValue.value = null;
+};
+
+const onAddedBySelect = (userId: string) => {
+  if (userId !== props.movie.addedBy) {
+    emit("change-added-by", userId);
+  }
 };
 
 const movieData = computed(() => asMovie(props.movie.externalData));
