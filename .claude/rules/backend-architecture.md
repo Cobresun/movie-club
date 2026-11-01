@@ -72,9 +72,13 @@ The TV provider resolves an episode from its own TMDB cache. When that cache lac
 
 A review references its work and its list separately (`fk_review_work_id`, `fk_review_list_id`) rather than the list item, so a child can be reviewed without being an item. Taking a work off a list — deleting the item or moving it to another list — therefore deletes that list's reviews of the work and its children explicitly (`ListRepository`); nothing cascades from the item.
 
-Stale-metadata refresh is deliberately _not_ a repository: each `MediaProvider` in `netlify/functions/utils/providers/` implements `refreshStaleDetails(limit)` for its own source (TMDB, Google Books), and `scheduled-work-refresh.ts` sweeps them. `scheduled-db-cleanup.ts` reaps stale preview databases, and `scheduled-metrics-snapshot.ts` records the observability rollups `MetricsRepository` reads.
+Stale-metadata refresh is deliberately _not_ a repository: each `MediaProvider` in `netlify/functions/utils/providers/` implements `refreshStaleDetails(limit)` for its own source (TMDB, Google Books), and `scheduled-work-refresh.ts` sweeps them. `scheduled-daily-game-catalog.ts` tops up each daily game's catalog from its provider's source (it caches details for works no club references, so those are refreshed too), `scheduled-db-cleanup.ts` reaps stale preview databases, and `scheduled-metrics-snapshot.ts` records the observability rollups `MetricsRepository` reads.
 
 Deploy-time behavior lives in Netlify plugins: `netlify/plugins/preview-database/` (per-PR database selection, plus the shared-`dev` migration sync on production deploys) and `netlify/plugins/auth-config/`.
+
+## Daily game
+
+`/api/daily-game/:clubType/:date` and its catalog are one shape for every club type; a provider's `dailyGame` (undefined for media without a game) supplies what varies — the catalog's source, the ranking and the clues. The scoring core lives in `lib/` (`lib/similarity.ts`, `lib/movie/`) so this handler and Score Assist rank with one implementation. Both tables are keyed by `work_type`, and the handler never branches on it.
 
 ## Auth
 

@@ -2,24 +2,24 @@
   <div class="mx-auto flex max-w-2xl flex-col gap-6 px-4 pb-16 pt-2 text-left">
     <header class="text-center">
       <h1 class="text-3xl font-bold sm:text-4xl">
-        Closer <span class="text-highlight">#{{ game.puzzle }}</span>
+        {{ dailyGame.name }} <span class="text-highlight">#{{ game.puzzle }}</span>
       </h1>
       <p class="mt-2 text-white/70">
-        Guess today's mystery movie. Every guess is ranked by how close it is — #1 is the answer.
+        Guess today's mystery {{ noun }}. Every guess is ranked by how close it is — #1 is the
+        answer.
       </p>
     </header>
 
     <section
       v-if="game.finished.value"
-      aria-labelledby="closer-result"
+      aria-labelledby="daily-game-result"
       class="flex flex-col items-center gap-3 rounded-xl bg-gradient-to-br from-secondary to-lowBackground p-6 text-center shadow-lg"
     >
-      <h2 id="closer-result" class="text-xl font-bold">
+      <h2 id="daily-game-result" class="text-xl font-bold">
         {{ game.solved.value ? "You got it!" : "Better luck tomorrow" }}
       </h2>
       <p class="text-white/80">
-        Today's movie was
-        <strong class="text-white">{{ game.answer?.title }}</strong
+        Today's {{ noun }} was <strong class="text-white">{{ game.answer?.title }}</strong
         ><template v-if="isDefined(game.answer?.year)"> ({{ game.answer.year }})</template>.
       </p>
       <p v-if="game.solved.value" class="text-white/80">
@@ -41,19 +41,19 @@
         <mdicon :name="copied ? 'check' : 'share-variant'" :size="20" class="mr-2" />
         {{ copied ? "Copied" : "Share result" }}
       </v-btn>
-      <p class="text-sm text-white/60">A new movie arrives at midnight.</p>
+      <p class="text-sm text-white/60">A new {{ noun }} arrives at midnight.</p>
     </section>
 
     <template v-else>
-      <MovieGuessInput :pool="game.pool" @pick="onPick" />
+      <GuessInput :pool="game.pool" :noun="noun" @pick="onPick" />
       <p v-if="hasValue(notice)" role="status" class="-mt-3 text-sm text-highlight">
         {{ notice }}
       </p>
     </template>
 
-    <section v-if="isDefined(spotlight)" aria-labelledby="closer-latest">
+    <section v-if="isDefined(spotlight)" aria-labelledby="daily-game-latest">
       <h2
-        id="closer-latest"
+        id="daily-game-latest"
         class="mb-2 text-sm font-semibold uppercase tracking-wide text-white/60"
       >
         Latest guess
@@ -63,22 +63,22 @@
       </ul>
     </section>
 
-    <section v-if="hasElements(game.guesses.value)" aria-labelledby="closer-guesses">
+    <section v-if="hasElements(game.guesses.value)" aria-labelledby="daily-game-guesses">
       <div class="mb-2 flex items-baseline justify-between">
-        <h2 id="closer-guesses" class="text-sm font-semibold uppercase tracking-wide text-white/60">
+        <h2
+          id="daily-game-guesses"
+          class="text-sm font-semibold uppercase tracking-wide text-white/60"
+        >
           Your guesses, closest first
         </h2>
-        <p class="text-sm text-white/60">
-          {{ game.guesses.value.length }}
-          {{ game.guesses.value.length === 1 ? "guess" : "guesses" }}
-        </p>
+        <p class="text-sm text-white/60">{{ countSummary }}</p>
       </div>
       <ul class="flex flex-col gap-2" aria-label="Guesses ranked by closeness">
         <GuessRow
           v-for="guess in game.guessesByRank.value"
-          :key="guess.movie.id"
+          :key="guess.work.id"
           :guess="guess"
-          :highlighted="guess.movie.rank === 1"
+          :highlighted="guess.work.rank === 1"
         />
       </ul>
     </section>
@@ -102,19 +102,19 @@
       <summary class="cursor-pointer font-semibold text-white">How to play</summary>
       <ul class="mt-2 list-disc space-y-1.5 pl-5">
         <li>
-          There is one mystery movie a day, drawn from {{ game.poolSize }} well-known films and
-          everything Movie Club's clubs have added. You can guess any of them.
+          There is one mystery {{ noun }} a day, drawn from {{ game.poolSize }} well-known
+          {{ noun }}s and everything Movie Club's clubs have added. You can guess any of them.
         </li>
         <li>
-          Each guess gets a rank: #1 is the answer, #2 the next most similar film, and so on down to
-          #{{ game.poolSize }}.
+          Each guess gets a rank: #1 is the answer, #2 the next most similar {{ noun }}, and so on
+          down to #{{ game.poolSize }}.
         </li>
         <li>
-          Similarity comes from shared directors, cast, studios, genres, era and language. The clues
-          under each guess show what it has in common with the answer.
+          {{ dailyGame.similarityRule }} The clues under each guess show what it has in common with
+          the answer.
         </li>
         <li>
-          Stuck? A hint reveals a movie halfway between your best guess and the answer. Your
+          Stuck? A hint reveals a {{ noun }} halfway between your best guess and the answer. Your
           progress is saved on this device, so you can come back to it.
         </li>
       </ul>
@@ -127,24 +127,30 @@ import { computed, ref } from "vue";
 import { useToast } from "vue-toastification";
 
 import { hasElements, hasValue, isDefined } from "@/../lib/checks/checks";
-import type { DailyGameMovie, DailyGamePuzzle } from "@/../lib/types/dailyGame";
+import { type DailyGamePuzzle, type DailyGameWork } from "@/../lib/types/dailyGame";
+import { type DailyGameConfig } from "@/common/clubType";
+import GuessInput from "@/features/daily-game/components/GuessInput.vue";
 import GuessRow from "@/features/daily-game/components/GuessRow.vue";
-import MovieGuessInput from "@/features/daily-game/components/MovieGuessInput.vue";
 import { useDailyGame } from "@/features/daily-game/useDailyGame";
 
-const { puzzle } = defineProps<{ puzzle: DailyGamePuzzle }>();
+const { puzzle, dailyGame, noun } = defineProps<{
+  puzzle: DailyGamePuzzle;
+  dailyGame: DailyGameConfig;
+  /** One work of the game's media ("movie"). */
+  noun: string;
+}>();
 
-const game = useDailyGame(puzzle);
+const game = useDailyGame(puzzle, dailyGame.name);
 const toast = useToast();
 
 const notice = ref<string>();
 const confirmingGiveUp = ref(false);
 const copied = ref(false);
 
-const onPick = (movie: DailyGameMovie) => {
+const onPick = (work: DailyGameWork) => {
   notice.value =
-    game.guess(movie.id) === "duplicate"
-      ? `You already guessed ${movie.title} — it's #${movie.rank}.`
+    game.guess(work.id) === "duplicate"
+      ? `You already guessed ${work.title} — it's #${work.rank}.`
       : undefined;
 };
 
@@ -159,11 +165,20 @@ const spotlight = computed(() =>
   game.finished.value || game.guesses.value.length < 2 ? undefined : game.latestGuess.value,
 );
 
+const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
+
+const hintText = computed(() => plural(game.hintCount.value, "hint", "hints"));
+
 const guessSummary = computed(() => {
-  const count = game.guesses.value.length;
-  const hints = game.hintCount.value;
-  const hintText = hints === 0 ? "" : ` with ${hints} ${hints === 1 ? "hint" : "hints"}`;
-  return `Solved in ${count} ${count === 1 ? "guess" : "guesses"}${hintText}.`;
+  const guesses = plural(game.guessCount.value, "guess", "guesses");
+  return game.hintCount.value === 0
+    ? `Solved in ${guesses}.`
+    : `Solved in ${guesses} with ${hintText.value}.`;
+});
+
+const countSummary = computed(() => {
+  const guesses = plural(game.guessCount.value, "guess", "guesses");
+  return game.hintCount.value === 0 ? guesses : `${guesses} · ${hintText.value}`;
 });
 
 const stats = computed(() => [
@@ -176,7 +191,9 @@ const shareLabel = computed(() => (copied.value ? "Result copied" : "Share resul
 
 const shareResult = async () => {
   try {
-    await navigator.clipboard.writeText(game.share(`${window.location.origin}/play`));
+    await navigator.clipboard.writeText(
+      game.share(`${window.location.origin}/play/${puzzle.clubType}`),
+    );
     copied.value = true;
     toast.success("Result copied — paste it to your friends!");
   } catch {

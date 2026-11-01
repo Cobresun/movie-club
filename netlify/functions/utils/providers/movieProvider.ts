@@ -15,6 +15,7 @@ import { type CastMember } from "../../../../lib/types/tmdb";
 import { db } from "../database";
 import { insertMovieDetails, updateMovieDetails } from "../movieDetailsUpdater";
 import { getTMDBMovieData, getTMDBPosterUrlBuilder, getTMDBRecommendations } from "../tmdb";
+import { movieDailyGame } from "./movieDailyGame";
 import { type MediaProvider, numOrUndefined, type RefreshResult } from "./types";
 
 /**
@@ -192,6 +193,7 @@ export function toMovieDataSummary(row: MovieSummaryRow): MovieDataSummary {
 class MovieProvider implements MediaProvider {
   readonly type = WorkType.MOVIE;
   readonly defaultListTitle = "Watch List";
+  readonly dailyGame = movieDailyGame;
 
   async fetchAndCacheDetails(externalId: string): Promise<void> {
     // Details are immutable enough that a cached row means the TMDB round

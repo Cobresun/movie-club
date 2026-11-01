@@ -6,7 +6,7 @@ import {
   sum,
   weightedJaccard,
 } from "../similarity.js";
-import { MovieDataSummary } from "../types/movie";
+import { type MovieDataSummary } from "../types/movie";
 import { releaseYear } from "./releaseYear.js";
 
 // A shared director dominates, cast/studio/genre are secondary, era/language

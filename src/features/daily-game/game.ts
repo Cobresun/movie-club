@@ -1,5 +1,5 @@
 import { isDefined } from "@/../lib/checks/checks";
-import type { DailyGameMovie } from "@/../lib/types/dailyGame";
+import { type DailyGameWork } from "@/../lib/types/dailyGame";
 
 /** The player's own calendar day, `YYYY-MM-DD` — the puzzle turns over at their midnight. */
 export function localDate(now: Date): string {
@@ -15,7 +15,7 @@ export function previousDate(date: string): string {
 }
 
 // Cutoffs scale with the pool, so "hot" means the same share of the field
-// whether the pool holds fifty movies or five thousand.
+// whether the pool holds fifty works or five thousand.
 const HOT_SHARE = 0.04;
 const WARM_SHARE = 0.18;
 const FIRST_HINT_SHARE = 0.12;
@@ -51,7 +51,9 @@ const TEMPERATURE_SQUARES: Record<Temperature, string> = {
   cold: "🟥",
 };
 
+/** `guessRanks` are the player's own guesses; hints are counted apart from them. */
 export function shareText({
+  name,
   puzzle,
   guessRanks,
   poolSize,
@@ -59,6 +61,7 @@ export function shareText({
   solved,
   url,
 }: {
+  name: string;
   puzzle: number;
   guessRanks: readonly number[];
   poolSize: number;
@@ -79,7 +82,7 @@ export function shareText({
     ? `I got it in ${guessRanks.length} ${guessWord}${hintNote}`
     : `I gave up after ${guessRanks.length} ${guessWord}${hintNote}`;
   const tally = TEMPERATURES.map((key) => `${TEMPERATURE_SQUARES[key]} ${counts[key]}`).join("  ");
-  return `Closer #${puzzle}: ${outcome}.\n${tally}\n${url}`;
+  return `${name} #${puzzle}: ${outcome}.\n${tally}\n${url}`;
 }
 
 const normalize = (value: string) =>
@@ -90,27 +93,27 @@ const normalize = (value: string) =>
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
 
-/** Movies whose titles match what the player has typed, closest match first. */
-export function searchMovies(
+/** Works whose titles match what the player has typed, closest match first. */
+export function searchPool(
   query: string,
-  pool: readonly DailyGameMovie[],
+  pool: readonly DailyGameWork[],
   limit = 6,
-): DailyGameMovie[] {
+): DailyGameWork[] {
   const needle = normalize(query);
   if (needle.length === 0) return [];
   return pool
-    .map((movie) => {
-      const title = normalize(movie.title);
+    .map((work) => {
+      const title = normalize(work.title);
       const withoutArticle = title.replace(/^(the|a|an) /, "");
-      if (title.startsWith(needle) || withoutArticle.startsWith(needle)) return { movie, score: 0 };
-      if (title.split(" ").some((word) => word.startsWith(needle))) return { movie, score: 1 };
-      if (title.includes(needle)) return { movie, score: 2 };
+      if (title.startsWith(needle) || withoutArticle.startsWith(needle)) return { work, score: 0 };
+      if (title.split(" ").some((word) => word.startsWith(needle))) return { work, score: 1 };
+      if (title.includes(needle)) return { work, score: 2 };
       return undefined;
     })
     .filter(isDefined)
     .sort((a, b) =>
-      a.score === b.score ? a.movie.title.localeCompare(b.movie.title) : a.score - b.score,
+      a.score === b.score ? a.work.title.localeCompare(b.work.title) : a.score - b.score,
     )
     .slice(0, limit)
-    .map(({ movie }) => movie);
+    .map(({ work }) => work);
 }

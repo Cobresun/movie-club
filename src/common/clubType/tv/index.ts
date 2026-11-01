@@ -135,4 +135,5 @@ export const tvClubConfig: ClubTypeConfig = {
   display: tvDisplay,
   isScoredUnit: (data) => asTv(data)?.level === "episode",
   makeSimilarity: makeTvSimilarity,
+  dailyGame: undefined,
 };
