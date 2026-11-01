@@ -3,6 +3,7 @@ import { movieClubConfig } from "./movie";
 import { tvClubConfig } from "./tv";
 import {
   type ClubTypeConfig,
+  type DailyGameConfig,
   type InviteConfig,
   type StatsConfig,
   type WorkDisplay,
@@ -62,6 +63,18 @@ export function clubMetaLine(type: ClubType | undefined, memberCount: number | u
 /** Every club type a club can be created as, in registry order. */
 export function clubTypeOptions(): ClubTypeConfig[] {
   return Object.values(CLUB_TYPE_CONFIG);
+}
+
+/** The daily game for a club's media type, when it has one. */
+export function clubTypeDailyGame(type: ClubType): DailyGameConfig | undefined {
+  return clubTypeConfig(type).dailyGame;
+}
+
+/** Every club type with a daily game, in registry order. */
+export function dailyGameClubTypes(): ClubType[] {
+  return clubTypeOptions()
+    .filter((config) => isDefined(config.dailyGame))
+    .map((config) => config.clubType);
 }
 
 /** Statistics-feature copy and icons for a club's media type. */

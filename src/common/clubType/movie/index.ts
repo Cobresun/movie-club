@@ -1,8 +1,9 @@
 import { clubScoreFilter, decadePresets, reviewedInFilter } from "../filterOptions";
 import { type ClubTypeConfig } from "../types";
-import { movieDisplay, releaseYear } from "./display";
+import { movieDisplay } from "./display";
 import { browseMovies, searchMovies } from "./search";
 import { makeMovieSimilarity } from "./similarity";
+import { releaseYear } from "@/../lib/movie/releaseYear";
 import { ClubType, WorkType } from "@/../lib/types/generated/db";
 import { asMovie, formatRuntime } from "@/common/workDisplay";
 
@@ -110,4 +111,10 @@ export const movieClubConfig: ClubTypeConfig = {
   display: movieDisplay,
   isScoredUnit: () => true,
   makeSimilarity: makeMovieSimilarity,
+  dailyGame: {
+    name: "Reelated",
+    tagline: "One mystery movie a day. Every guess tells you how related it is. No account needed.",
+    similarityRule:
+      "Movies are related through shared directors, cast, studios, genres, era and language.",
+  },
 };

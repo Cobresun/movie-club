@@ -9,6 +9,7 @@ import {
 import { hasElements, isDefined, isString } from "../../lib/checks/checks.js";
 import { ClubType } from "../../lib/types/generated/db";
 import { DEFAULT_CLUB_SECTION } from "../common/clubSections";
+import { dailyGameClubTypes } from "../common/clubType";
 import {
   getLastClubSection,
   rememberClubSection,
@@ -216,6 +217,25 @@ const routes: RouteRecordRaw[] = [
     path: "/share/club/:clubSlug/statistics",
     name: "SharedStatistics",
     component: () => import("../features/statistics/views/SharedStatisticsView.vue"),
+    meta: {
+      noAuth: true,
+    },
+  },
+  {
+    path: "/play",
+    name: "DailyGames",
+    redirect: () => {
+      const [first] = dailyGameClubTypes();
+      return isDefined(first) ? { name: "DailyGame", params: { clubType: first } } : { path: "/" };
+    },
+  },
+  {
+    path: "/play/:clubType",
+    name: "DailyGame",
+    component: () => import("../features/daily-game/views/DailyGameView.vue"),
+    beforeEnter: (to) =>
+      dailyGameClubTypes().some((type) => type === to.params.clubType) || { name: "DailyGames" },
+    props: true,
     meta: {
       noAuth: true,
     },
