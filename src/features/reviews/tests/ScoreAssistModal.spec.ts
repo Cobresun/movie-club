@@ -138,7 +138,7 @@ describe("ScoreAssistModal", () => {
     });
     const target: DetailedReviewListItem = {
       id: "target",
-      type: WorkType.tv,
+      type: WorkType.TV,
       title: "Heatwave",
       createdDate: "2024-01-01",
       scores: {},
@@ -154,7 +154,7 @@ describe("ScoreAssistModal", () => {
     }));
 
     render(ScoreAssistModal, {
-      props: { target, candidates: episodes, clubType: ClubType.tv },
+      props: { target, candidates: episodes, clubType: ClubType.TV },
     });
 
     expect(screen.getByRole("img", { name: "Nobody Wants This: Heatwave" })).toHaveAttribute(
