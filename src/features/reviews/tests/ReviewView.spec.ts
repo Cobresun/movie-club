@@ -1,6 +1,8 @@
 import { screen, waitFor } from "@testing-library/vue";
 import { http, HttpResponse } from "msw";
+import { z } from "zod";
 
+import { type DetailedReviewListItem } from "../../../../lib/types/lists";
 import ReviewView from "../views/ReviewView.vue";
 import reviews from "@/mocks/data/reviews";
 import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
@@ -174,6 +176,32 @@ describe("ReviewView", () => {
     await expect(screen.findByRole("button", { name: /rate this/i })).resolves.toBeInTheDocument();
     expect(screen.getByText(/No scores yet/)).toBeInTheDocument();
     expect(screen.getAllByText("12 Angry Men").length).toBeGreaterThan(0);
+  });
+
+  it("shows who added a work and lets a member reattribute it", async () => {
+    let items: DetailedReviewListItem[] = reviews.map((review) => ({ ...review, addedBy: "1" }));
+    server.use(
+      http.get("/api/club/:clubSlug/list/reviews", () =>
+        HttpResponse.json<DetailedReviewListItem[]>(items),
+      ),
+      http.put("/api/club/:id/list/:listId/items/:workId/added-by", async ({ request, params }) => {
+        const { userId } = z.object({ userId: z.string() }).parse(await request.json());
+        items = items.map((item) =>
+          item.id === params.workId ? { ...item, addedBy: userId } : item,
+        );
+        return new HttpResponse(null, { status: 200 });
+      }),
+    );
+    const { user } = render(ReviewView, { props: { clubSlug: "test-club" } });
+
+    await user.click(await screen.findByRole("button", { name: "12 Angry Men" }));
+    expect(await screen.findByText("Added by dev")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Change who added" }));
+    expect(await screen.findByRole("option", { name: "dev", selected: true })).toBeInTheDocument();
+    await user.click(screen.getByRole("option", { name: "cole" }));
+
+    expect(await screen.findByText("Added by cole")).toBeInTheDocument();
   });
 
   it("keeps the review fact hidden until the club scores are revealed", async () => {
