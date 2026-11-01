@@ -17,9 +17,9 @@
     <div class="relative flex flex-col gap-1.5 px-3 py-2 text-left">
       <div class="flex items-baseline justify-between gap-3">
         <p :id="titleId" class="min-w-0 font-semibold">
-          {{ guess.movie.title }}
-          <span v-if="isDefined(guess.movie.year)" class="font-normal text-white/60"
-            >({{ guess.movie.year }})</span
+          {{ guess.work.title }}
+          <span v-if="isDefined(guess.work.year)" class="font-normal text-white/60"
+            >({{ guess.work.year }})</span
           >
           <span
             v-if="guess.hint"
@@ -30,16 +30,16 @@
         </p>
         <p class="flex-shrink-0 whitespace-nowrap text-right">
           <span class="text-xs uppercase tracking-wide text-white/60">{{ temperatureLabel }}</span>
-          <span class="ml-2 text-lg font-bold">#{{ guess.movie.rank }}</span>
+          <span class="ml-2 text-lg font-bold">#{{ guess.work.rank }}</span>
         </p>
       </div>
       <ul
-        v-if="hasElements(guess.movie.clues)"
-        :aria-label="`What ${guess.movie.title} has in common with the answer`"
+        v-if="hasElements(guess.work.clues)"
+        :aria-label="`What ${guess.work.title} has in common with the answer`"
         class="flex flex-wrap gap-1.5"
       >
         <li
-          v-for="clue in guess.movie.clues"
+          v-for="clue in guess.work.clues"
           :key="clue"
           class="rounded-full bg-background/70 px-2 py-0.5 text-xs text-white/80"
         >
@@ -54,8 +54,8 @@
 import { computed, useId } from "vue";
 
 import { hasElements, isDefined } from "@/../lib/checks/checks";
-import type { Temperature } from "@/features/daily-game/game";
-import type { RankedGuess } from "@/features/daily-game/useDailyGame";
+import { type Temperature } from "@/features/daily-game/game";
+import { type RankedGuess } from "@/features/daily-game/useDailyGame";
 
 const { guess, highlighted = false } = defineProps<{
   guess: RankedGuess;
@@ -71,6 +71,6 @@ const TEMPERATURE_LABELS: Record<Temperature, string> = {
 };
 
 const temperatureLabel = computed(() =>
-  guess.movie.rank === 1 ? "Got it" : TEMPERATURE_LABELS[guess.temperature],
+  guess.work.rank === 1 ? "Got it" : TEMPERATURE_LABELS[guess.temperature],
 );
 </script>

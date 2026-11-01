@@ -1,5 +1,3 @@
-import { describe, expect, it } from "vitest";
-
 import { isSomebodysToday, pickAnswer } from "../dailyGame";
 
 describe("pickAnswer", () => {

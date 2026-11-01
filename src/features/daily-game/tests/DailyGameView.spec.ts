@@ -1,8 +1,9 @@
-import { screen, within } from "@testing-library/vue";
+import { fireEvent, screen, within } from "@testing-library/vue";
 import { http, HttpResponse } from "msw";
 
 import DailyGameView from "../views/DailyGameView.vue";
-import { DailyGamePuzzle } from "@/../lib/types/dailyGame";
+import { type DailyGamePuzzle } from "@/../lib/types/dailyGame";
+import { ClubType } from "@/../lib/types/generated/db";
 import { dailyGamePuzzle } from "@/mocks/data/dailyGame";
 import { server } from "@/mocks/server";
 import { render } from "@/tests/utils";
@@ -10,7 +11,7 @@ import { render } from "@/tests/utils";
 /** The puzzle number the endpoint serves for each day, and nothing for any other. */
 function servePuzzles(days: Record<string, number>) {
   server.use(
-    http.get("/api/daily-game/:date", ({ params }) => {
+    http.get("/api/daily-game/movie/:date", ({ params }) => {
       const date = String(params.date);
       const puzzle = days[date];
       return puzzle === undefined
@@ -21,7 +22,7 @@ function servePuzzles(days: Record<string, number>) {
 }
 
 const renderGame = async () => {
-  const rendered = render(DailyGameView);
+  const rendered = render(DailyGameView, { props: { clubType: ClubType.MOVIE } });
   await screen.findByRole("heading", { level: 1 });
   return rendered;
 };
@@ -61,7 +62,7 @@ describe("DailyGameView", () => {
   it("opens the player's own day's puzzle", async () => {
     await renderGame();
 
-    expect(screen.getByRole("heading", { level: 1, name: "Closer #7" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Reelated #7" })).toBeInTheDocument();
   });
 
   it("ranks a wrong guess and shows what it shares with the answer", async () => {
@@ -79,10 +80,9 @@ describe("DailyGameView", () => {
 
     await user.type(screen.getByRole("combobox", { name: "Guess a movie" }), "godfather");
 
-    expect(screen.getAllByRole("option").map((option) => option.textContent?.trim())).toEqual([
-      "The Godfather (1972)",
-      "The Godfather Part II (1974)",
-    ]);
+    expect(screen.getAllByRole("option").map((option) => option.textContent?.trim())).toStrictEqual(
+      ["The Godfather (1972)", "The Godfather Part II (1974)"],
+    );
   });
 
   it("matches titles without their leading article", async () => {
@@ -100,6 +100,34 @@ describe("DailyGameView", () => {
     await user.keyboard("{ArrowDown}{Enter}");
 
     expect(row("The Godfather Part II")).toBeInTheDocument();
+  });
+
+  it("closes the matches when the player looks away, keeping what they typed", async () => {
+    const { user } = await renderGame();
+    const input = screen.getByRole("combobox", { name: "Guess a movie" });
+
+    await user.type(input, "godfather");
+    await user.keyboard("{Escape}");
+
+    expect(screen.queryAllByRole("option")).toStrictEqual([]);
+    expect(input).toHaveValue("godfather");
+
+    await user.type(input, " part");
+    expect(
+      screen.getByRole("option", { name: "The Godfather Part II (1974)" }),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByText("How to play"));
+    expect(screen.queryAllByRole("option")).toStrictEqual([]);
+  });
+
+  it("picks a match from a click alone, as assistive technology sends it", async () => {
+    const { user } = await renderGame();
+
+    await user.type(screen.getByRole("combobox", { name: "Guess a movie" }), "jaws");
+    await fireEvent.click(screen.getByRole("option", { name: "Jaws (1975)" }));
+
+    expect(row("Jaws")).toBeInTheDocument();
   });
 
   it("explains when a title is not in the game", async () => {
@@ -141,7 +169,7 @@ describe("DailyGameView", () => {
     await user.click(screen.getByRole("button", { name: "Share result" }));
 
     const shared = await navigator.clipboard.readText();
-    expect(shared).toContain("Closer #7: I got it in 2 guesses.");
+    expect(shared).toContain("Reelated #7: I got it in 2 guesses.");
     expect(shared).toContain("🟩 1  🟨 0  🟥 1");
     expect(shared).not.toContain("Heat");
     expect(screen.getByRole("button", { name: "Result copied" })).toBeInTheDocument();
@@ -155,6 +183,35 @@ describe("DailyGameView", () => {
 
     expect(within(row("The Godfather")).getByText("Hint")).toBeInTheDocument();
     expect(within(row("The Godfather")).getByText("#6")).toBeInTheDocument();
+  });
+
+  it("counts hints apart from guesses", async () => {
+    const { user } = await renderGame();
+
+    await guess(user, "Alien");
+    await user.click(screen.getByRole("button", { name: "Get a hint" }));
+    expect(screen.getByText("1 guess · 1 hint")).toBeInTheDocument();
+
+    await guess(user, "Heat");
+    expect(screen.getByText("Solved in 2 guesses with 1 hint.")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Share result" }));
+    const shared = await navigator.clipboard.readText();
+    expect(shared).toContain("Reelated #7: I got it in 2 guesses and 1 hint.");
+    expect(shared).toContain("🟩 1  🟨 0  🟥 1");
+  });
+
+  it("shares a give-up after only a hint without calling the hint a guess", async () => {
+    const { user } = await renderGame();
+
+    await user.click(screen.getByRole("button", { name: "Get a hint" }));
+    await user.click(screen.getByRole("button", { name: "Give up" }));
+    await user.click(screen.getByRole("button", { name: "Yes, reveal it" }));
+    await user.click(screen.getByRole("button", { name: "Share result" }));
+
+    expect(await navigator.clipboard.readText()).toContain(
+      "Reelated #7: I gave up after 0 guesses and 1 hint.",
+    );
   });
 
   it("reveals the answer when the player gives up", async () => {
@@ -187,7 +244,7 @@ describe("DailyGameView", () => {
     vi.setSystemTime(new Date(2026, 9, 23, 9));
     const dayTwo = await renderGame();
 
-    expect(screen.getByRole("heading", { level: 1, name: "Closer #8" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Reelated #8" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "You got it!" })).not.toBeInTheDocument();
 
     await guess(dayTwo.user, "Heat");
@@ -197,15 +254,15 @@ describe("DailyGameView", () => {
 
   it("explains that the game needs more movies before it can start", async () => {
     server.use(
-      http.get("/api/daily-game/:date", () =>
+      http.get("/api/daily-game/movie/:date", () =>
         HttpResponse.json({ error: "Not enough movies" }, { status: 404 }),
       ),
     );
 
-    render(DailyGameView);
+    render(DailyGameView, { props: { clubType: ClubType.MOVIE } });
 
     expect(
-      await screen.findByRole("heading", { name: "Closer is still warming up" }),
+      await screen.findByRole("heading", { name: "Reelated is still warming up" }),
     ).toBeInTheDocument();
   });
 });

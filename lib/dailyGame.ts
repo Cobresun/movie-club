@@ -1,78 +1,60 @@
 import { z } from "zod";
 
 import { hasElements } from "./checks/checks.js";
-import { releaseYear } from "./movie/releaseYear.js";
-import { makeMovieScorer } from "./movie/similarity.js";
-import { DailyGameMovie } from "./types/dailyGame";
-import { MovieDataSummary } from "./types/movie";
+import { type DailyGameWork } from "./types/dailyGame";
 
-export interface PoolMovie {
+export interface PoolWork<T> {
   id: string;
   title: string;
-  data: MovieDataSummary;
-}
-
-/** Shared tags past this many read as a list rather than a clue. */
-const CLUES_PER_FIELD = 3;
-
-const shared = (a: readonly string[], b: readonly string[]) =>
-  a.filter((value) => b.includes(value)).slice(0, CLUES_PER_FIELD);
-
-const decade = (year: number) => Math.floor(year / 10) * 10;
-
-/** What `guess` has in common with `answer`, phrased for the player. */
-export function clues(guess: MovieDataSummary, answer: MovieDataSummary): string[] {
-  const guessYear = releaseYear(guess);
-  const answerYear = releaseYear(answer);
-  const sameDecade =
-    guessYear !== undefined && answerYear !== undefined && decade(guessYear) === decade(answerYear);
-  return [
-    ...shared(
-      guess.directors.map((d) => d.name),
-      answer.directors.map((d) => d.name),
-    ).map((name) => `Same director: ${name}`),
-    ...shared(guess.castNames, answer.castNames).map((name) => `Also stars ${name}`),
-    ...shared(guess.production_companies, answer.production_companies).map(
-      (company) => `Same studio: ${company}`,
-    ),
-    ...shared(guess.genres, answer.genres),
-    ...(sameDecade ? [`Also from the ${decade(guessYear)}s`] : []),
-  ];
+  data: T;
 }
 
 /**
- * Every movie in the pool, ranked by how alike it is to the answer — the same
- * scorer Score Assist uses, with the pool as its corpus. The answer is rank 1;
- * ties keep a stable order by title.
+ * What one club type's daily game needs to know about its media: how alike two
+ * works are, what to tell the player they share, and which works make a fair
+ * answer. `T` is that media's own metadata shape.
  */
-export function rankPool(answerId: string, pool: readonly PoolMovie[]): DailyGameMovie[] {
-  const answer = pool.find((movie) => movie.id === answerId);
+export interface DailyGameRules<T> {
+  /** A scorer in [0,1], weighted by how rare each shared tag is in `corpus`. */
+  makeScorer: (corpus: readonly T[]) => (target: T, candidate: T) => number;
+  /** What `guess` has in common with `answer`, phrased for the player. */
+  clues: (guess: T, answer: T) => string[];
+  year: (data: T) => number | undefined;
+  /** Whether a work has enough metadata that the trail to it never runs cold. */
+  canBeAnswer: (data: T) => boolean;
+}
+
+/**
+ * Every work in the pool, ranked by how alike it is to the answer, with the
+ * pool as the scorer's corpus. The answer is rank 1; ties keep a stable order
+ * by title.
+ */
+export function rankPool<T>(
+  answerId: string,
+  pool: readonly PoolWork<T>[],
+  rules: DailyGameRules<T>,
+): DailyGameWork[] {
+  const answer = pool.find((work) => work.id === answerId);
   if (answer === undefined) return [];
-  const score = makeMovieScorer(pool.map((movie) => movie.data));
+  const score = rules.makeScorer(pool.map((work) => work.data));
   const others = pool
-    .filter((movie) => movie.id !== answerId)
-    .map((movie) => ({ movie, score: score(answer.data, movie.data) }))
+    .filter((work) => work.id !== answerId)
+    .map((work) => ({ work, score: score(answer.data, work.data) }))
     .sort((a, b) =>
-      a.score === b.score ? a.movie.title.localeCompare(b.movie.title) : b.score - a.score,
+      a.score === b.score ? a.work.title.localeCompare(b.work.title) : b.score - a.score,
     );
-  return [answer, ...others.map(({ movie }) => movie)].map((movie, index) => ({
-    id: movie.id,
-    title: movie.title,
-    year: releaseYear(movie.data),
+  return [answer, ...others.map(({ work }) => work)].map((work, index) => ({
+    id: work.id,
+    title: work.title,
+    year: rules.year(work.data),
     rank: index + 1,
-    clues: movie.id === answerId ? [] : clues(movie.data, answer.data),
+    clues: work.id === answerId ? [] : rules.clues(work.data, answer.data),
   }));
 }
 
 /**
- * Whether a movie can be an answer: one with a director to clue towards, so
- * the trail never runs cold on metadata TMDB didn't have.
- */
-export const canBeAnswer = (movie: PoolMovie) => hasElements(movie.data.directors);
-
-/**
- * The next answer: a random movie that has never been one, or the movie whose
- * last turn was longest ago once every movie has had one. `pastAnswers` is
+ * The next answer: a random work that has never been one, or the work whose
+ * last turn was longest ago once every work has had one. `pastAnswers` is
  * oldest first.
  */
 export function pickAnswer(
@@ -87,10 +69,8 @@ export function pickAnswer(
   return [...candidates].sort((a, b) => (lastTurn.get(a) ?? 0) - (lastTurn.get(b) ?? 0))[0];
 }
 
-export const puzzleDateSchema = z
-  .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/)
-  .refine((value) => !Number.isNaN(Date.parse(`${value}T00:00:00Z`)), "Not a calendar date");
+/** A real calendar date, `YYYY-MM-DD` — `2026-02-31` is refused. */
+export const puzzleDateSchema = z.string().date();
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 

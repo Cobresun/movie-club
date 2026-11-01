@@ -91,4 +91,5 @@ export const bookClubConfig: ClubTypeConfig = {
   display: bookDisplay,
   isScoredUnit: () => true,
   makeSimilarity: makeBookSimilarity,
+  dailyGame: undefined,
 };

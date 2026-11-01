@@ -35,21 +35,21 @@
       />
     </div>
 
-    <!-- Daily game -->
+    <!-- Daily games -->
     <div
+      v-for="game in dailyGames"
+      :key="game.clubType"
       class="mx-auto mt-16 flex max-w-4xl flex-col items-center gap-4 rounded-xl bg-gradient-to-r from-secondary to-lowBackground p-6 text-center md:flex-row md:justify-between md:text-left"
     >
       <div>
-        <h2 class="text-2xl font-bold">Play Closer, the daily movie game</h2>
-        <p class="mt-1 font-light">
-          One mystery movie a day. Every guess tells you how close you are. No account needed.
-        </p>
+        <h2 class="text-2xl font-bold">Play {{ game.name }}, the daily {{ game.noun }} game</h2>
+        <p class="mt-1 font-light">{{ game.tagline }}</p>
       </div>
       <router-link
-        :to="{ name: 'DailyGame' }"
+        :to="{ name: 'DailyGame', params: { clubType: game.clubType } }"
         class="whitespace-nowrap rounded-md bg-primary px-4 py-2 text-lg font-bold tracking-wide transition hover:brightness-110 active:brightness-105"
       >
-        Play today's movie
+        Play today's {{ game.noun }}
       </router-link>
     </div>
 
@@ -66,11 +66,18 @@
 
 <script setup lang="ts">
 import LandingFeatureCard from "../components/LandingFeatureCard.vue";
+import { isDefined } from "@/../lib/checks/checks";
 import homeCinemaSvg from "@/assets/images/home_cinema.svg";
 import reviewSvg from "@/assets/images/menu-images/review.svg";
 import statisticsSvg from "@/assets/images/menu-images/statistics.svg";
 import watchlistSvg from "@/assets/images/menu-images/watchlist.svg";
+import { clubTypeConfig, dailyGameClubTypes } from "@/common/clubType";
 import { useAuthStore } from "@/stores/auth";
+
+const dailyGames = dailyGameClubTypes().flatMap((clubType) => {
+  const { noun, dailyGame } = clubTypeConfig(clubType);
+  return isDefined(dailyGame) ? [{ clubType, noun, ...dailyGame }] : [];
+});
 
 interface FeatureHighlight {
   image: string;

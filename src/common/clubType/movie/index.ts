@@ -111,4 +111,10 @@ export const movieClubConfig: ClubTypeConfig = {
   display: movieDisplay,
   isScoredUnit: () => true,
   makeSimilarity: makeMovieSimilarity,
+  dailyGame: {
+    name: "Reelated",
+    tagline: "One mystery movie a day. Every guess tells you how related it is. No account needed.",
+    similarityRule:
+      "Movies are related through shared directors, cast, studios, genres, era and language.",
+  },
 };

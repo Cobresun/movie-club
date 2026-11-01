@@ -126,12 +126,15 @@ export interface ClubSettings {
 export interface DailyGameCatalog {
   created_at: Generated<Timestamp>;
   external_id: string;
+  title: string;
+  work_type: WorkType;
 }
 
 export interface DailyGamePuzzle {
   created_at: Generated<Timestamp>;
   external_id: string;
   puzzle_date: Timestamp;
+  work_type: WorkType;
 }
 
 export interface MetricSnapshot {

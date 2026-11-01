@@ -1,5 +1,11 @@
-import { buildIdf, ERA_HALF_LIFE_YEARS, proximityDecay, sum, weightedJaccard } from "@/../lib/similarity";
 import { type WorkSimilarityScorer } from "../types";
+import {
+  buildIdf,
+  ERA_HALF_LIFE_YEARS,
+  proximityDecay,
+  sum,
+  weightedJaccard,
+} from "@/../lib/similarity";
 import { type WorkDataSummary } from "@/../lib/types/lists";
 import { asBook } from "@/common/workDisplay";
 
