@@ -221,6 +221,14 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
+    path: "/play",
+    name: "DailyGame",
+    component: () => import("../features/daily-game/views/DailyGameView.vue"),
+    meta: {
+      noAuth: true,
+    },
+  },
+  {
     path: "/profile",
     name: "Profile",
     component: () => import("../features/profile/views/ProfileView.vue"),

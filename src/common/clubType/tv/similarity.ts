@@ -1,4 +1,4 @@
-import { buildIdf, ERA_HALF_LIFE_YEARS, proximityDecay, sum, weightedJaccard } from "../similarity";
+import { buildIdf, ERA_HALF_LIFE_YEARS, proximityDecay, sum, weightedJaccard } from "@/../lib/similarity";
 import { type WorkSimilarityScorer } from "../types";
 import { asTv, tvAirYear } from "./data";
 import { type WorkDataSummary } from "@/../lib/types/lists";
