@@ -1,4 +1,5 @@
 import { isDefined } from "../../../../lib/checks/checks.js";
+import { type DailyGameWork } from "../../../../lib/types/dailyGame";
 import { type WorkType } from "../../../../lib/types/generated/db";
 import {
   type DetailedWorkData,
@@ -18,6 +19,41 @@ export interface RefreshResult {
   processed: number;
   updated: number;
   errors: { externalId: string; error: string }[];
+}
+
+/** A work the source puts forward for a daily game's catalog. */
+export interface CatalogCandidate {
+  externalId: string;
+  title: string;
+}
+
+/** A guessable work: one the catalog holds. */
+export interface DailyGamePoolEntry {
+  externalId: string;
+  title: string;
+  data: WorkDataSummary;
+}
+
+/**
+ * One media type's daily guessing game. The handler, the answer draw and the
+ * catalog top-up are shared; what a game ranks by, what it tells the player,
+ * and where its catalog comes from are the provider's.
+ */
+export interface DailyGame {
+  /** How many pages of {@link catalogPage} the catalog covers. */
+  readonly catalogPages: number;
+  /**
+   * One page of the source's best-known works, best known first (pages count
+   * from 1). The catalog, and so the game's whole pool, is drawn from these.
+   */
+  catalogPage: (page: number) => Promise<CatalogCandidate[]>;
+  /**
+   * The pool ranked against `answerId`, the answer first. Entries whose
+   * metadata isn't this game's media are left out.
+   */
+  rank: (answerId: string, pool: readonly DailyGamePoolEntry[]) => DailyGameWork[];
+  /** The external ids in `pool` that are fair answers. */
+  answerCandidates: (pool: readonly DailyGamePoolEntry[]) => string[];
 }
 
 /**
@@ -104,4 +140,7 @@ export interface MediaProvider {
     externalIds: string[],
     excludedIds: ReadonlySet<string>,
   ) => Promise<Map<string, SimilarWork[]>>;
+
+  /** This media's daily guessing game at `/play`, or undefined when it has none. */
+  readonly dailyGame: DailyGame | undefined;
 }

@@ -10,9 +10,19 @@
       </router-link>
       <ClubSwitcher v-if="showClubSwitcher" />
     </div>
-    <div v-if="authReady" class="flex shrink-0 items-center">
-      <AccountMenu v-if="isLoggedIn" />
-      <v-btn v-else @click="login"> Login </v-btn>
+    <div class="flex shrink-0 items-center gap-2 sm:gap-4">
+      <router-link
+        :to="{ name: 'DailyGames' }"
+        aria-label="Play today's daily game"
+        class="text-highlight duration-fast ease-standard flex items-center gap-1.5 rounded-md px-2 py-1 transition-colors hover:bg-white/10"
+      >
+        <mdicon name="lightbulb-on-outline" :size="22" />
+        <span class="hidden text-sm font-semibold sm:inline">Daily game</span>
+      </router-link>
+      <template v-if="authReady">
+        <AccountMenu v-if="isLoggedIn" />
+        <v-btn v-else @click="login"> Login </v-btn>
+      </template>
     </div>
   </div>
 </template>
