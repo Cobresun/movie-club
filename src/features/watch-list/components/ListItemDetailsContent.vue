@@ -70,14 +70,14 @@
       >
         <div class="relative">
           <ListboxButton
-            class="flex items-center gap-1.5 rounded-full bg-lowBackground px-3 py-1.5 text-sm text-gray-200 transition hover:brightness-110"
+            class="bg-lowBackground flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm text-gray-200 transition hover:brightness-110"
           >
             <mdicon name="account-outline" size="16" />
             <span>Change who added</span>
             <mdicon name="chevron-down" size="16" />
           </ListboxButton>
           <ListboxOptions
-            class="absolute left-0 top-full z-20 mt-1 max-h-64 w-56 overflow-y-auto rounded-lg border border-gray-700 bg-background py-1 shadow-lg focus:outline-none"
+            class="bg-background absolute top-full left-0 z-20 mt-1 max-h-64 w-56 overflow-y-auto rounded-lg border border-gray-700 py-1 shadow-lg focus:outline-none"
           >
             <ListboxOption
               v-for="member in members"
