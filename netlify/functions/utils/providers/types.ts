@@ -141,6 +141,6 @@ export interface MediaProvider {
     excludedIds: ReadonlySet<string>,
   ) => Promise<Map<string, SimilarWork[]>>;
 
-  /** This media's daily guessing game at `/play`, or undefined when it has none. */
+  /** This media's daily guessing game, or undefined when it has none. */
   readonly dailyGame: DailyGame | undefined;
 }

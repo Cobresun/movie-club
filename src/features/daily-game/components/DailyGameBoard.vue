@@ -191,9 +191,7 @@ const shareLabel = computed(() => (copied.value ? "Result copied" : "Share resul
 
 const shareResult = async () => {
   try {
-    await navigator.clipboard.writeText(
-      game.share(`${window.location.origin}/play/${puzzle.clubType}`),
-    );
+    await navigator.clipboard.writeText(game.share(`${window.location.origin}${dailyGame.path}`));
     copied.value = true;
     toast.success("Result copied — paste it to your friends!");
   } catch {
