@@ -113,17 +113,11 @@ describe("refreshSession", () => {
     // bypassed and the database — where the upload landed — answers instead.
     const cached = { session: { id: "s-1" }, user: { id: "u-1", image: "https://img/old.png" } };
     const saved = { session: { id: "s-1" }, user: { id: "u-1", image: "https://img/new.png" } };
-    server.use(
-      http.get("/api/auth/get-session", ({ request }) =>
-        HttpResponse.json(
-          new URL(request.url).searchParams.get("disableCookieCache") === "true" ? saved : cached,
-        ),
-      ),
-    );
 
-    const store = mountAuthStore();
-    await vi.waitFor(() => expect(store.user?.image).toBe("https://img/old.png"));
+    const store = await mountWithResolvedSession(cached);
+    expect(store.user?.image).toBe("https://img/old.png");
 
+    answerSessionCheck(saved);
     await store.refreshSession();
 
     expect(store.user?.image).toBe("https://img/new.png");
