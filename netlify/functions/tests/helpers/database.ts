@@ -30,6 +30,7 @@ const DOMAIN_TABLES = [
   "club_member",
   "awards_temp",
   "club",
+  "daily_game_result",
   "daily_game_puzzle",
   "daily_game_catalog",
   "movie_actors",

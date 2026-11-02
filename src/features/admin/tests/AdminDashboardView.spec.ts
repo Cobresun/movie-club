@@ -213,6 +213,34 @@ describe("AdminDashboardView", () => {
     expect(screen.getByText(/clubs have no members left at all/)).toBeInTheDocument();
   });
 
+  it("shows how the daily game's players got on, puzzle by puzzle", async () => {
+    render(AdminDashboardView);
+
+    expect(await screen.findByRole("heading", { name: "Reelated" })).toBeInTheDocument();
+    const players = await pulseTile("Players");
+    expect(players.getByText("48")).toBeInTheDocument();
+    expect(players.getByText("+140%")).toBeInTheDocument();
+    expect((await pulseTile("Games finished")).getByText("130")).toBeInTheDocument();
+    expect(screen.getByText("104 of 130 finished games")).toBeInTheDocument();
+    expect(screen.getByText("7.4 guesses per solve")).toBeInTheDocument();
+    expect(screen.getByText("27 of 48 players")).toBeInTheDocument();
+
+    const puzzles = screen.getByRole("table", { name: "Reelated puzzles" });
+    const [, newest, , unplayed] = within(puzzles).getAllByRole("row");
+    expect(within(newest).getByRole("rowheader")).toHaveTextContent("#12 Sep 26");
+    expect(
+      within(newest)
+        .getAllByRole("cell")
+        .map((cell) => cell.textContent?.trim()),
+    ).toStrictEqual(["Heat", "9", "8", "5.3"]);
+    // A day whose answer has left the catalog and nobody finished.
+    expect(
+      within(unplayed)
+        .getAllByRole("cell")
+        .map((cell) => cell.textContent?.trim()),
+    ).toStrictEqual(["—", "0", "0", "—"]);
+  });
+
   it("explains that monthly actives need snapshots before there is a trend", async () => {
     const { user } = render(AdminDashboardView);
     await pulseTile("Active clubs");

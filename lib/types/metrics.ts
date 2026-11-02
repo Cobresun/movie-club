@@ -266,6 +266,42 @@ export const acquisitionSchema = z.object({
 });
 export type Acquisition = z.infer<typeof acquisitionSchema>;
 
+/** One day's puzzle and how the players who finished it got on. */
+export const dailyGamePuzzleStatsSchema = z.object({
+  /** `YYYY-MM-DD`. */
+  date: z.string(),
+  puzzle: z.number(),
+  /** The answer's title; null if it has left the catalog. */
+  answer: z.string().nullable(),
+  /** Players who finished it, solved or not. */
+  players: z.number(),
+  solved: z.number(),
+  /** Own guesses (hints not counted) per solve; null when nobody solved it. */
+  averageGuesses: z.number().nullable(),
+});
+export type DailyGamePuzzleStats = z.infer<typeof dailyGamePuzzleStatsSchema>;
+
+/**
+ * One daily game, counted from finished puzzles. Players need no account, so a
+ * "player" is a browser: the same person on two devices counts twice.
+ */
+export const dailyGameStatsSchema = z.object({
+  workType: z.nativeEnum(WorkType),
+  /** Distinct players who finished a puzzle in the range. */
+  players: periodCountSchema,
+  /** Puzzles finished in the range, one per player per day. */
+  games: periodCountSchema,
+  /** Finished games, and how many of them were solved rather than given up. */
+  solves: rateSchema,
+  /** Own guesses per solve over the range; null when nothing was solved. */
+  averageGuesses: z.number().nullable(),
+  /** Players in the range, and how many finished more than one day's puzzle. */
+  returning: rateSchema,
+  /** The range's puzzles, newest first. */
+  puzzles: z.array(dailyGamePuzzleStatsSchema),
+});
+export type DailyGameStats = z.infer<typeof dailyGameStatsSchema>;
+
 export const adminDashboardSchema = z.object({
   generatedAt: z.string(),
   range: metricsRangeSchema,
@@ -292,6 +328,8 @@ export const adminDashboardSchema = z.object({
   feed: z.array(feedEventSchema),
   /** Where people who signed up in the range came from. */
   acquisition: acquisitionSchema,
+  /** One entry per game that has had a puzzle. */
+  dailyGames: z.array(dailyGameStatsSchema),
 });
 export type AdminDashboard = z.infer<typeof adminDashboardSchema>;
 

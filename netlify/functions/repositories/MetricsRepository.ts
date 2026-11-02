@@ -7,6 +7,7 @@ import {
 } from "kysely";
 
 import { isDefined } from "../../../lib/checks/checks.js";
+import { puzzleNumber } from "../../../lib/dailyGame.js";
 import {
   type DB,
   type Json,
@@ -21,6 +22,8 @@ import {
   type ClubRow,
   type ClubStatus,
   clubRowSchema,
+  type DailyGamePuzzleStats,
+  type DailyGameStats,
   type FeedEvent,
   type MetricsRange,
   type PeriodCount,
@@ -44,6 +47,9 @@ const LEADERBOARD_LIMIT = 10;
 
 /** Named referrers and campaigns listed under the acquisition channels. */
 const ACQUISITION_LIMIT = 10;
+
+/** Puzzles listed per daily game. */
+const DAILY_GAME_PUZZLE_LIMIT = 14;
 
 /** Entries in the latest-activity feed. */
 const FEED_LIMIT = 12;
@@ -90,6 +96,16 @@ function toIsoDate(value: Date): string {
 }
 
 /** Aggregates over a union can come back as a string rather than a Date. */
+/** A `YYYY-MM-DD` calendar day as the midnight-UTC instant a `date` column compares against. */
+function asDay(date: string): Date {
+  return new Date(`${date}T00:00:00Z`);
+}
+
+/** Postgres `avg()` is `numeric`, which node-postgres hands back as a string. */
+function toAverage(value: string | number | null | undefined): number | null {
+  return isDefined(value) ? Number(value) : null;
+}
+
 function toIsoTimestamp(value: Date | string | null | undefined): string | null {
   return isDefined(value) ? new Date(value).toISOString() : null;
 }
@@ -1038,6 +1054,140 @@ class MetricsRepository {
     };
   }
 
+  /** Finished games of one daily game between `from` and `until`. */
+  private async countDailyGames(type: WorkType, from: Date, until: Date) {
+    const [totals, returning] = await Promise.all([
+      db
+        .selectFrom("daily_game_result")
+        .where("work_type", "=", type)
+        .where("created_at", ">=", from)
+        .where("created_at", "<", until)
+        .select((eb) => [
+          eb.fn.count<string>("player_id").distinct().as("players"),
+          eb.fn.countAll<string>().as("games"),
+          eb.fn.countAll<string>().filterWhere("solved", "=", true).as("solved"),
+          eb.fn.avg<string>("guesses").filterWhere("solved", "=", true).as("average_guesses"),
+        ])
+        .executeTakeFirstOrThrow(),
+      db
+        .selectFrom((eb) =>
+          eb
+            .selectFrom("daily_game_result")
+            .where("work_type", "=", type)
+            .where("created_at", ">=", from)
+            .where("created_at", "<", until)
+            .groupBy("player_id")
+            .having((e) => e.fn.countAll(), ">", 1)
+            .select("player_id")
+            .as("repeat_players"),
+        )
+        .select((eb) => eb.fn.countAll<string>().as("c"))
+        .executeTakeFirstOrThrow(),
+    ]);
+
+    return {
+      players: toCount(totals.players),
+      games: toCount(totals.games),
+      solved: toCount(totals.solved),
+      averageGuesses: toAverage(totals.average_guesses),
+      returning: toCount(returning.c),
+    };
+  }
+
+  /**
+   * The range's puzzles of one game, newest first. Tomorrow's puzzle is
+   * already somebody's today east of UTC, so it is listed once anyone has
+   * finished it, and not before: its answer is drawn a day ahead.
+   */
+  private async getDailyGamePuzzles(
+    type: WorkType,
+    window: RangeWindow,
+  ): Promise<DailyGamePuzzleStats[]> {
+    const today = toIsoDate(window.now);
+    const tomorrow = toIsoDate(new Date(window.now.getTime() + DAY_MS));
+
+    const [first, rows] = await Promise.all([
+      db
+        .selectFrom("daily_game_puzzle")
+        .where("work_type", "=", type)
+        .select((eb) => eb.cast<string>(eb.fn.min("puzzle_date"), "text").as("date"))
+        .executeTakeFirst(),
+      db
+        .selectFrom("daily_game_puzzle as puzzle")
+        .leftJoin("daily_game_catalog as catalog", (join) =>
+          join
+            .onRef("catalog.work_type", "=", "puzzle.work_type")
+            .onRef("catalog.external_id", "=", "puzzle.external_id"),
+        )
+        .leftJoin("daily_game_result as result", (join) =>
+          join
+            .onRef("result.work_type", "=", "puzzle.work_type")
+            .onRef("result.puzzle_date", "=", "puzzle.puzzle_date"),
+        )
+        .where("puzzle.work_type", "=", type)
+        .where("puzzle.puzzle_date", ">=", asDay(toIsoDate(window.since)))
+        .where("puzzle.puzzle_date", "<=", asDay(tomorrow))
+        .groupBy(["puzzle.puzzle_date", "catalog.title"])
+        .select((eb) => [
+          eb.cast<string>("puzzle.puzzle_date", "text").as("date"),
+          "catalog.title",
+          eb.fn.count<string>("result.player_id").as("players"),
+          eb.fn.countAll<string>().filterWhere("result.solved", "=", true).as("solved"),
+          eb.fn
+            .avg<string>("result.guesses")
+            .filterWhere("result.solved", "=", true)
+            .as("average_guesses"),
+        ])
+        .orderBy("puzzle.puzzle_date", "desc")
+        .limit(DAILY_GAME_PUZZLE_LIMIT + 1)
+        .execute(),
+    ]);
+
+    const firstDate = first?.date ?? today;
+    return rows
+      .filter((row) => row.date <= today || toCount(row.players) > 0)
+      .slice(0, DAILY_GAME_PUZZLE_LIMIT)
+      .map((row) => ({
+        date: row.date,
+        puzzle: puzzleNumber(firstDate, row.date),
+        answer: row.title,
+        players: toCount(row.players),
+        solved: toCount(row.solved),
+        averageGuesses: toAverage(row.average_guesses),
+      }));
+  }
+
+  /** Every daily game that has had a puzzle, with how its players got on over the range. */
+  private async getDailyGames(window: RangeWindow): Promise<DailyGameStats[]> {
+    const games = await db
+      .selectFrom("daily_game_puzzle")
+      .select("work_type")
+      .distinct()
+      .orderBy("work_type")
+      .execute();
+
+    return Promise.all(
+      games.map(async ({ work_type: type }) => {
+        const [current, previous, puzzles] = await Promise.all([
+          this.countDailyGames(type, window.since, window.now),
+          window.previousSince === undefined
+            ? undefined
+            : this.countDailyGames(type, window.previousSince, window.since),
+          this.getDailyGamePuzzles(type, window),
+        ]);
+        return {
+          workType: type,
+          players: { current: current.players, previous: previous?.players ?? null },
+          games: { current: current.games, previous: previous?.games ?? null },
+          solves: { numerator: current.solved, denominator: current.games },
+          averageGuesses: current.averageGuesses,
+          returning: { numerator: current.returning, denominator: current.players },
+          puzzles,
+        };
+      }),
+    );
+  }
+
   async getDashboard(range: MetricsRange): Promise<AdminDashboard> {
     const window = rangeWindow(range);
 
@@ -1055,6 +1205,7 @@ class MetricsRepository {
       newestPeople,
       feed,
       acquisition,
+      dailyGames,
     ] = await Promise.all([
       this.getPulse(window),
       this.getActivityBuckets(window),
@@ -1069,6 +1220,7 @@ class MetricsRepository {
       this.getNewestPeople(window.since),
       this.getFeed(),
       this.getAcquisition(window.since),
+      this.getDailyGames(window),
     ]);
 
     return {
@@ -1082,6 +1234,7 @@ class MetricsRepository {
       people: { mostActive: mostActivePeople, newest: newestPeople },
       feed,
       acquisition,
+      dailyGames,
     };
   }
 

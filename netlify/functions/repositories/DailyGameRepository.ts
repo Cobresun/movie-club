@@ -81,6 +81,29 @@ class DailyGameRepository {
     return (await this.getAnswer(type, date)) ?? externalId;
   }
 
+  /**
+   * Records how a player's game of `date` went. Their first finish stands, so
+   * replaying the request leaves the result as it was.
+   */
+  async recordResult(
+    type: WorkType,
+    date: string,
+    result: { playerId: string; solved: boolean; guesses: number; hints: number },
+  ): Promise<void> {
+    await db
+      .insertInto("daily_game_result")
+      .values({
+        work_type: type,
+        puzzle_date: date,
+        player_id: result.playerId,
+        solved: result.solved,
+        guesses: result.guesses,
+        hints: result.hints,
+      })
+      .onConflict((oc) => oc.columns(["work_type", "puzzle_date", "player_id"]).doNothing())
+      .execute();
+  }
+
   /** The date of the first puzzle the game of `type` has had, as `YYYY-MM-DD`. */
   async getFirstPuzzleDate(type: WorkType): Promise<string | undefined> {
     const row = await db
