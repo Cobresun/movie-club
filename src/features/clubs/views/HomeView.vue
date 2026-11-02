@@ -46,7 +46,7 @@
         <p class="mt-1 font-light">{{ game.tagline }}</p>
       </div>
       <router-link
-        :to="{ name: 'DailyGame', params: { clubType: game.clubType } }"
+        :to="game.path"
         class="bg-primary rounded-md px-4 py-2 text-lg font-bold tracking-wide whitespace-nowrap transition hover:brightness-110 active:brightness-105"
       >
         Play today's {{ game.noun }}

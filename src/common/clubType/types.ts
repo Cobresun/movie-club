@@ -139,7 +139,7 @@ export interface ClubTypeConfig {
     corpus: readonly (WorkDataSummary | undefined)[],
   ) => WorkSimilarityScorer;
   /**
-   * The daily guessing game at `/play/<club type>`, for media that have one.
+   * The daily guessing game at its own `path`, for media that have one.
    * Its server half is the `MediaProvider`'s `dailyGame`.
    */
   readonly dailyGame: DailyGameConfig | undefined;
@@ -149,6 +149,8 @@ export interface ClubTypeConfig {
 export interface DailyGameConfig {
   /** The game's name, shown as its title and in shared results. */
   readonly name: string;
+  /** Where the game is played, e.g. `/reelated`. */
+  readonly path: string;
   /** One line inviting someone to play, for the landing page. */
   readonly tagline: string;
   /** What makes two works alike, for "How to play". */
