@@ -85,6 +85,32 @@ export function shareText({
   return `${name} #${puzzle}: ${outcome}.\n${tally}\n${url}`;
 }
 
+/** `/reelated` → `reelated`: the tag that names a game in signup tracking. */
+const gameTag = (path: string) => path.replace(/^\/+/, "");
+
+/**
+ * The game's address as a player shares it. Tagged as a share, so a friend who
+ * plays from it and later signs up is credited to the game's shares on /admin.
+ */
+export function sharedGameUrl(origin: string, path: string): string {
+  const tags = new URLSearchParams({ utm_source: "share", utm_campaign: gameTag(path) });
+  return `${origin}${path}?${tags.toString()}`;
+}
+
+/**
+ * Where a signed-out player goes to start a club from the game. A full page
+ * load, so signup tracking reads these tags off the landing URL; the new club
+ * page keeps them through sign-up as its own redirect.
+ */
+export function startClubFromGameHref(path: string): string {
+  const tags = new URLSearchParams({
+    utm_source: gameTag(path),
+    utm_medium: "daily_game",
+    utm_campaign: "start_club",
+  });
+  return `/newClub?${tags.toString()}`;
+}
+
 const normalize = (value: string) =>
   value
     .normalize("NFD")
