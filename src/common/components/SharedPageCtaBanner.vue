@@ -6,7 +6,7 @@
       :class="{ 'translate-y-[150%]': isHidden }"
     >
       <div
-        class="from-secondary to-lowBackground mx-auto flex max-w-3xl items-center justify-between gap-4 rounded-xl border border-slate-700 bg-linear-to-r px-5 py-3 shadow-lg"
+        class="animate-slide-up from-secondary to-lowBackground mx-auto flex max-w-3xl items-center justify-between gap-4 rounded-xl border border-slate-700 bg-linear-to-r px-5 py-3 shadow-lg"
       >
         <div class="text-left">
           <div class="text-highlight flex items-center gap-1.5">
@@ -35,9 +35,11 @@ import { computed } from "vue";
 import { useHideOnScroll } from "../composables/useHideOnScroll";
 import { useAuthStore } from "@/stores/auth";
 
-const { source } = defineProps<{
-  /** Which share page this is, so signups can be attributed to it. */
-  source: "review" | "list" | "statistics";
+const { source, utmSource = "share" } = defineProps<{
+  /** Which page this is, so signups can be attributed to it. */
+  source: "review" | "list" | "statistics" | "daily_game";
+  /** The channel the page belongs to: share pages by default, or a game by name. */
+  utmSource?: string;
 }>();
 
 // UTM tags on a real page load, so signup tracking can read them off the
@@ -46,7 +48,7 @@ const { source } = defineProps<{
 const startClubHref = computed(
   () =>
     `/newClub?${new URLSearchParams({
-      utm_source: "share",
+      utm_source: utmSource,
       utm_medium: source,
       utm_campaign: "start_club",
     }).toString()}`,

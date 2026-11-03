@@ -220,12 +220,11 @@ describe("DailyGameView", () => {
   it("invites a signed-out player to start a club once they finish", async () => {
     const { user } = await renderGame();
 
-    expect(screen.queryByRole("link", { name: "Start a movie club" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Start your own club" })).not.toBeInTheDocument();
 
     await guess(user, "Heat");
 
-    expect(screen.getByRole("heading", { name: "Love movies? Bring your friends." })).toBeVisible();
-    expect(screen.getByRole("link", { name: "Start a movie club" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Start your own club" })).toHaveAttribute(
       "href",
       "/newClub?utm_source=reelated&utm_medium=daily_game&utm_campaign=start_club",
     );
@@ -237,7 +236,7 @@ describe("DailyGameView", () => {
 
     await guess(user, "Heat");
 
-    expect(screen.queryByRole("link", { name: "Start a movie club" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Start your own club" })).not.toBeInTheDocument();
   });
 
   it("reveals a closer movie as a hint", async () => {

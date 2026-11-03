@@ -44,28 +44,6 @@
       <p class="text-sm text-white/60">A new {{ noun }} arrives at midnight.</p>
     </section>
 
-    <section
-      v-if="game.finished.value && !authStore.isLoggedIn"
-      aria-labelledby="daily-game-start-club"
-      class="bg-lowBackground flex flex-col items-center gap-3 rounded-xl border border-slate-700 p-5 text-center sm:flex-row sm:justify-between sm:text-left"
-    >
-      <div>
-        <h2 id="daily-game-start-club" class="text-lg leading-tight font-bold">
-          Love {{ noun }}s? Bring your friends.
-        </h2>
-        <p class="mt-1 text-sm text-white/70">
-          Start a {{ clubLabel }} to score {{ noun }}s together and see whose taste lines up. It's
-          free.
-        </p>
-      </div>
-      <a
-        :href="startClubHref"
-        class="bg-primary rounded-md px-4 py-2 text-sm font-bold tracking-wide whitespace-nowrap text-white transition hover:brightness-110 active:brightness-105"
-      >
-        Start a {{ clubLabel }}
-      </a>
-    </section>
-
     <template v-else>
       <GuessInput :pool="game.pool" :noun="noun" @pick="onPick" />
       <p v-if="hasValue(notice)" role="status" class="text-highlight -mt-3 text-sm">
@@ -141,6 +119,13 @@
         </li>
       </ul>
     </details>
+
+    <!-- The banner hides itself from signed-in players. -->
+    <SharedPageCtaBanner
+      v-if="game.finished.value"
+      source="daily_game"
+      :utm-source="gameTag(dailyGame.path)"
+    />
   </div>
 </template>
 
@@ -149,13 +134,13 @@ import { computed, ref } from "vue";
 
 import { hasElements, hasValue, isDefined } from "@/../lib/checks/checks";
 import { type DailyGamePuzzle, type DailyGameWork } from "@/../lib/types/dailyGame";
-import { clubTypeLabel, type DailyGameConfig } from "@/common/clubType";
+import { type DailyGameConfig } from "@/common/clubType";
+import SharedPageCtaBanner from "@/common/components/SharedPageCtaBanner.vue";
 import { useShare } from "@/common/composables/useShare";
 import GuessInput from "@/features/daily-game/components/GuessInput.vue";
 import GuessRow from "@/features/daily-game/components/GuessRow.vue";
-import { sharedGameUrl, startClubFromGameHref } from "@/features/daily-game/game";
+import { gameTag, sharedGameUrl } from "@/features/daily-game/game";
 import { useDailyGame } from "@/features/daily-game/useDailyGame";
-import { useAuthStore } from "@/stores/auth";
 
 const { puzzle, dailyGame, noun } = defineProps<{
   puzzle: DailyGamePuzzle;
@@ -166,10 +151,6 @@ const { puzzle, dailyGame, noun } = defineProps<{
 
 const game = useDailyGame(puzzle, dailyGame.name);
 const { shareText } = useShare();
-const authStore = useAuthStore();
-
-const clubLabel = clubTypeLabel(puzzle.clubType).toLowerCase();
-const startClubHref = startClubFromGameHref(dailyGame.path);
 
 const notice = ref<string>();
 const confirmingGiveUp = ref(false);
