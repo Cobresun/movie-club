@@ -1,7 +1,7 @@
 import { type UseQueryReturnType, useQuery } from "@tanstack/vue-query";
 import axios, { type AxiosError } from "axios";
 
-import { type DailyGamePuzzle } from "../../lib/types/dailyGame";
+import { type DailyGameArchive, type DailyGamePuzzle } from "../../lib/types/dailyGame";
 import { type ClubType } from "../../lib/types/generated/db";
 
 /**
@@ -19,5 +19,16 @@ export function useDailyGamePuzzle(
       (await axios.get<DailyGamePuzzle>(`/api/daily-game/${clubType}/${date}`)).data,
     staleTime: Infinity,
     retry: false,
+  });
+}
+
+/** Every puzzle a club type's daily game has had, newest first. Grows by one a day. */
+export function useDailyGameArchive(
+  clubType: ClubType,
+): UseQueryReturnType<DailyGameArchive, AxiosError> {
+  return useQuery({
+    queryKey: ["dailyGame", clubType, "archive"],
+    queryFn: async () =>
+      (await axios.get<DailyGameArchive>(`/api/daily-game/${clubType}/archive`)).data,
   });
 }

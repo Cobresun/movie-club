@@ -1,9 +1,19 @@
-import { type Handler, type HandlerContext, type HandlerEvent } from "@netlify/functions";
+import {
+  type Handler,
+  type HandlerContext,
+  type HandlerEvent,
+  type HandlerResponse,
+} from "@netlify/functions";
 import { z } from "zod";
 
 import { hasElements, isDefined } from "../../lib/checks/checks.js";
-import { isSomebodysToday, puzzleDateSchema, puzzleNumber } from "../../lib/dailyGame.js";
-import { type DailyGamePuzzle } from "../../lib/types/dailyGame";
+import {
+  isSomebodysToday,
+  latestPuzzleDate,
+  puzzleDateSchema,
+  puzzleNumber,
+} from "../../lib/dailyGame.js";
+import { type DailyGameArchive, type DailyGamePuzzle } from "../../lib/types/dailyGame";
 import { ClubType } from "../../lib/types/generated/db.js";
 import DailyGameRepository from "./repositories/DailyGameRepository";
 import {
@@ -52,9 +62,34 @@ async function loadPlayablePool(
   return loadPool(provider);
 }
 
-const paramsSchema = z.object({
-  clubType: z.nativeEnum(ClubType),
-  date: puzzleDateSchema,
+const cdnCached = (response: HandlerResponse): HandlerResponse => ({
+  ...response,
+  headers: { ...response.headers, "Netlify-CDN-Cache-Control": CDN_CACHE_CONTROL },
+});
+
+const clubTypeSchema = z.object({ clubType: z.nativeEnum(ClubType) });
+
+const paramsSchema = clubTypeSchema.extend({ date: puzzleDateSchema });
+
+// Public, like the puzzles it lists. Dates only: an answer is never sent
+// before its puzzle is opened.
+router.get("/:clubType/archive", async ({ params }, res) => {
+  const parsed = clubTypeSchema.safeParse(params);
+  if (!parsed.success) return res(badRequest("Expected a club type"));
+  const { clubType } = parsed.data;
+
+  const provider = providerForClub(clubType);
+  if (!isDefined(provider.dailyGame)) return res(notFound("This club type has no daily game"));
+
+  const dates = await DailyGameRepository.getPuzzleDates(
+    provider.type,
+    latestPuzzleDate(new Date()),
+  );
+  const [firstDate] = dates;
+  const puzzles = dates
+    .map((date) => ({ date, puzzle: puzzleNumber(firstDate ?? date, date) }))
+    .reverse();
+  return res(cdnCached(ok<DailyGameArchive>({ clubType, puzzles })));
 });
 
 // Public: the game is for anyone who lands on it, signed in or not. The
@@ -63,9 +98,8 @@ router.get("/:clubType/:date", async ({ params }, res) => {
   const parsed = paramsSchema.safeParse(params);
   if (!parsed.success) return res(badRequest("Expected a club type and a date like 2026-10-22"));
   const { clubType, date } = parsed.data;
-  if (!isSomebodysToday(date, new Date())) {
-    return res(badRequest("Only today's puzzle can be played"));
-  }
+  const now = new Date();
+  if (date > latestPuzzleDate(now)) return res(badRequest("That puzzle isn't out yet"));
 
   const provider = providerForClub(clubType);
   const game = provider.dailyGame;
@@ -78,27 +112,34 @@ router.get("/:clubType/:date", async ({ params }, res) => {
     return res(notFound("The game hadn't started yet on that day"));
   }
 
+  // A day that is over everywhere plays from the archive with the answer it
+  // had. One without an answer was never a puzzle, and drawing one now would
+  // hand the archive a day nobody could have played.
+  const live = isSomebodysToday(date, now);
+  const archived = live ? undefined : await DailyGameRepository.getAnswer(provider.type, date);
+  if (!live && !isDefined(archived)) return res(notFound("There was no puzzle that day"));
+
   const pool = await loadPlayablePool(provider, game);
   const notEnough = notFound("Not enough works have been added to play yet");
   if (pool.length < MIN_POOL_SIZE) return res(notEnough);
 
-  const answerId = await answerFor(provider, game, date, pool);
+  const answerId = archived ?? (await answerFor(provider, game, date, pool));
   if (!isDefined(answerId)) return res(notEnough);
 
   // Empty only when the day's answer has since left the pool.
   const works = game.rank(answerId, pool);
   if (!hasElements(works)) return res(notFound("Today's answer is no longer available"));
 
-  const response = ok<DailyGamePuzzle>({
-    clubType,
-    date,
-    puzzle: puzzleNumber(firstDate ?? date, date),
-    works,
-  });
-  return res({
-    ...response,
-    headers: { ...response.headers, "Netlify-CDN-Cache-Control": CDN_CACHE_CONTROL },
-  });
+  return res(
+    cdnCached(
+      ok<DailyGamePuzzle>({
+        clubType,
+        date,
+        puzzle: puzzleNumber(firstDate ?? date, date),
+        works,
+      }),
+    ),
+  );
 });
 
 const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>

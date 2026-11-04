@@ -50,7 +50,7 @@
       </li>
     </ul>
     <p v-if="query.trim().length > 1 && !hasElements(matches)" class="text-sm text-white/60">
-      No {{ noun }} in today's game matches “{{ query.trim() }}”.
+      No {{ noun }} in this game matches “{{ query.trim() }}”.
     </p>
   </div>
 </template>

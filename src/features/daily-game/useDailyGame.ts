@@ -2,21 +2,24 @@ import { computed, ref, watch } from "vue";
 import { z } from "zod";
 
 import { hintRank, previousDate, shareText, temperature, type Temperature } from "./game";
-import { isDefined, isTrue } from "@/../lib/checks/checks";
+import { hasElements, isDefined, isTrue } from "@/../lib/checks/checks";
 import { type DailyGamePuzzle, type DailyGameWork } from "@/../lib/types/dailyGame";
+import { type ClubType } from "@/../lib/types/generated/db";
 
 const entrySchema = z.object({ id: z.string(), hint: z.boolean() });
 const daySchema = z.object({
   entries: z.array(entrySchema),
   solved: z.boolean(),
   gaveUp: z.boolean(),
+  /** Played after its day was over, so it counts for nothing in a streak. */
+  fromArchive: z.boolean().default(false),
 });
 const storedSchema = z.object({ days: z.record(z.string(), daySchema) });
 
 type DayRecord = z.infer<typeof daySchema>;
 type Stored = z.infer<typeof storedSchema>;
 
-const storageKey = (puzzle: DailyGamePuzzle) => `movieclub:daily-game:${puzzle.clubType}`;
+const storageKey = (clubType: ClubType) => `movieclub:daily-game:${clubType}`;
 
 const readStored = (key: string): Stored => {
   try {
@@ -29,6 +32,19 @@ const readStored = (key: string): Stored => {
   }
 };
 
+export type DayProgress = "solved" | "gaveUp" | "started";
+
+/** How far the player got with each day's puzzle on this device, by date. */
+export function dailyGameProgress(clubType: ClubType): Map<string, DayProgress> {
+  const progress = new Map<string, DayProgress>();
+  for (const [date, day] of Object.entries(readStored(storageKey(clubType)).days)) {
+    if (day.solved) progress.set(date, "solved");
+    else if (day.gaveUp) progress.set(date, "gaveUp");
+    else if (hasElements(day.entries)) progress.set(date, "started");
+  }
+  return progress;
+}
+
 export interface RankedGuess {
   work: DailyGameWork;
   temperature: Temperature;
@@ -39,11 +55,13 @@ export interface RankedGuess {
 
 export type GuessOutcome = "added" | "duplicate";
 
-export function useDailyGame(puzzle: DailyGamePuzzle, name: string) {
+/** `today` is the player's own date; a puzzle from before it is played from the archive. */
+export function useDailyGame(puzzle: DailyGamePuzzle, name: string, today: string) {
   const poolSize = puzzle.works.length;
   const worksById = new Map(puzzle.works.map((work) => [work.id, work]));
   const answer = puzzle.works.find((work) => work.rank === 1);
-  const key = storageKey(puzzle);
+  const key = storageKey(puzzle.clubType);
+  const fromArchive = puzzle.date < today;
 
   const stored = ref<Stored>(readStored(key));
 
@@ -60,11 +78,22 @@ export function useDailyGame(puzzle: DailyGamePuzzle, name: string) {
   );
 
   const record = computed<DayRecord>(
-    () => stored.value.days[puzzle.date] ?? { entries: [], solved: false, gaveUp: false },
+    () =>
+      stored.value.days[puzzle.date] ?? {
+        entries: [],
+        solved: false,
+        gaveUp: false,
+        fromArchive: false,
+      },
   );
 
   const update = (next: DayRecord) => {
-    stored.value = { days: { ...stored.value.days, [puzzle.date]: next } };
+    stored.value = {
+      days: {
+        ...stored.value.days,
+        [puzzle.date]: { ...next, fromArchive: next.fromArchive || fromArchive },
+      },
+    };
   };
 
   const toGuess = (id: string, hint: boolean): RankedGuess | undefined => {
@@ -124,10 +153,16 @@ export function useDailyGame(puzzle: DailyGamePuzzle, name: string) {
     const days = Object.values(stored.value.days);
     const played = days.filter((day) => day.solved || day.gaveUp).length;
     const won = days.filter((day) => day.solved).length;
-    // Today's unfinished puzzle doesn't break a streak that ran through yesterday.
-    let date = finished.value ? puzzle.date : previousDate(puzzle.date);
+    // The streak runs back from the player's today, whichever day's puzzle is
+    // open, and only through days solved on the day. Today's unfinished puzzle
+    // doesn't break a streak that ran through yesterday.
+    const todays = stored.value.days[today];
+    const finishedToday = isTrue(todays?.solved) || isTrue(todays?.gaveUp);
+    let date = finishedToday ? today : previousDate(today);
     let streak = 0;
-    while (isTrue(stored.value.days[date]?.solved)) {
+    const solvedOnTheDay = (day: DayRecord | undefined) =>
+      isTrue(day?.solved) && !isTrue(day?.fromArchive);
+    while (solvedOnTheDay(stored.value.days[date])) {
       streak++;
       date = previousDate(date);
     }
@@ -147,6 +182,7 @@ export function useDailyGame(puzzle: DailyGamePuzzle, name: string) {
 
   return {
     puzzle: puzzle.puzzle,
+    fromArchive,
     answer,
     pool: puzzle.works,
     poolSize,

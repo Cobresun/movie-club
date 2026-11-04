@@ -86,6 +86,11 @@ export function isSomebodysToday(date: string, now: Date): boolean {
 
 const isoDate = (time: number) => new Date(time).toISOString().slice(0, 10);
 
+/** The furthest-ahead date that is still somebody's today: tomorrow in UTC. */
+export function latestPuzzleDate(now: Date): string {
+  return isoDate(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) + DAY_MS);
+}
+
 /**
  * Today and tomorrow in UTC, the days a scheduled run records an answer for.
  * Tomorrow is already today east of UTC.
