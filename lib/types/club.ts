@@ -45,7 +45,6 @@ export interface InviteTokenResponse {
 export const clubSettingsSchema = z.object({
   features: z.object({
     awards: z.boolean(),
-    discussionQuestions: z.boolean(),
   }),
 });
 

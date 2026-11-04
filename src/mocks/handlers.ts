@@ -50,7 +50,7 @@ export const handlers = [
   ),
   http.get("/api/club/:id/settings", () =>
     HttpResponse.json<ClubSettings>({
-      features: { awards: false, discussionQuestions: false },
+      features: { awards: false },
     }),
   ),
   http.get("/api/club/:id/nextWork", () => HttpResponse.json({})),

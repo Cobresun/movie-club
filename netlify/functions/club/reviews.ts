@@ -10,7 +10,6 @@ import {
 import { type CastMember } from "../../../lib/types/tmdb";
 import ListRepository from "../repositories/ListRepository";
 import ReviewRepository from "../repositories/ReviewRepository";
-import SettingsRepository from "../repositories/SettingsRepository";
 import UserRepository from "../repositories/UserRepository";
 import WorkCommentRepository from "../repositories/WorkCommentRepository";
 import WorkRepository from "../repositories/WorkRepository";
@@ -207,11 +206,6 @@ const discussionQuestionsSchema = z.object({
 router.post("/:workId/discussion-questions", secured, async ({ clubId, params }, res) => {
   const workId = requireParam(params, "workId", res);
   if (isRouterResponse(workId)) return workId;
-
-  const settings = await SettingsRepository.getSettings(clubId);
-  if (!settings.features.discussionQuestions) {
-    return res(badRequest("Feature not enabled"));
-  }
 
   // Resolve the work server-side from the workId so the prompt can't be
   // poisoned by client-supplied input. The work's provider owns the

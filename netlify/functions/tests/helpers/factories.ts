@@ -55,7 +55,7 @@ export async function createClub(
     name?: string;
     type?: ClubType;
     members?: TestSession[];
-    features?: { awards?: boolean; discussionQuestions?: boolean };
+    features?: { awards?: boolean };
   } = {},
 ): Promise<SeededClub> {
   const name = options.name ?? `Test Club ${unique()}`;

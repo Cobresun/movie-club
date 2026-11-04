@@ -8,7 +8,6 @@ import { db } from "../utils/database";
 const DEFAULT_SETTINGS: ClubSettings = {
   features: {
     awards: false,
-    discussionQuestions: false,
   },
 };
 
