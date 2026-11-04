@@ -623,3 +623,23 @@ export function useUpdateAddedDate(clubSlug: string) {
     onSettled: () => queryClient.invalidateQueries({ queryKey: reviewsListKey(clubSlug) }),
   });
 }
+
+/** {@link useUpdateAddedBy} for a work on the reviews list, whose items live in their own cache. */
+export function useUpdateReviewAddedBy(clubSlug: string) {
+  const auth = useAuthStore();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ listId, workId, userId }: { listId: string; workId: string; userId: string }) =>
+      auth.request.put(`/api/club/${clubSlug}/list/${listId}/items/${workId}/added-by`, {
+        userId,
+      }),
+    onMutate: async ({ workId, userId }) => {
+      await queryClient.cancelQueries({ queryKey: reviewsListKey(clubSlug) });
+      queryClient.setQueryData<DetailedReviewListItem[]>(reviewsListKey(clubSlug), (currentList) =>
+        currentList?.map((item) => (item.id === workId ? { ...item, addedBy: userId } : item)),
+      );
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: reviewsListKey(clubSlug) }),
+  });
+}
