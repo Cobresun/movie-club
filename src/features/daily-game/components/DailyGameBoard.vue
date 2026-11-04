@@ -119,6 +119,13 @@
         </li>
       </ul>
     </details>
+
+    <!-- The banner hides itself from signed-in players. -->
+    <SharedPageCtaBanner
+      v-if="game.finished.value"
+      source="daily_game"
+      :utm-source="gameTag(dailyGame.path)"
+    />
   </div>
 </template>
 
@@ -128,9 +135,11 @@ import { computed, ref } from "vue";
 import { hasElements, hasValue, isDefined } from "@/../lib/checks/checks";
 import { type DailyGamePuzzle, type DailyGameWork } from "@/../lib/types/dailyGame";
 import { type DailyGameConfig } from "@/common/clubType";
+import SharedPageCtaBanner from "@/common/components/SharedPageCtaBanner.vue";
 import { useShare } from "@/common/composables/useShare";
 import GuessInput from "@/features/daily-game/components/GuessInput.vue";
 import GuessRow from "@/features/daily-game/components/GuessRow.vue";
+import { gameTag, sharedGameUrl } from "@/features/daily-game/game";
 import { useDailyGame } from "@/features/daily-game/useDailyGame";
 
 const { puzzle, dailyGame, noun } = defineProps<{
@@ -191,7 +200,7 @@ const shareLabel = computed(() => (copied.value ? "Result copied" : "Share resul
 
 const shareResult = async () => {
   copied.value = await shareText({
-    text: game.share(`${window.location.origin}${dailyGame.path}`),
+    text: game.share(sharedGameUrl(window.location.origin, dailyGame.path)),
     copiedMessage: "Result copied — paste it to your friends!",
   });
 };
