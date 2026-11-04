@@ -112,6 +112,18 @@ class DailyGameRepository {
       .execute();
   }
 
+  /** Every day the game of `type` has an answer for, up to `through`, oldest first, as `YYYY-MM-DD`. */
+  async getPuzzleDates(type: WorkType, through: string): Promise<string[]> {
+    const rows = await db
+      .selectFrom("daily_game_puzzle")
+      .select((eb) => eb.cast<string>("puzzle_date", "text").as("date"))
+      .where("work_type", "=", type)
+      .where("puzzle_date", "<=", asDay(through))
+      .orderBy("puzzle_date")
+      .execute();
+    return rows.map((row) => row.date);
+  }
+
   /** The date of the first puzzle the game of `type` has had, as `YYYY-MM-DD`. */
   async getFirstPuzzleDate(type: WorkType): Promise<string | undefined> {
     const row = await db

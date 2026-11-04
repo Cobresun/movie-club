@@ -1,5 +1,6 @@
 import { fireEvent, screen, within } from "@testing-library/vue";
 import { http, HttpResponse } from "msw";
+import { useRouter } from "vue-router";
 
 import DailyGameView from "../views/DailyGameView.vue";
 import { type DailyGamePuzzle } from "@/../lib/types/dailyGame";
@@ -21,8 +22,8 @@ function servePuzzles(days: Record<string, number>) {
   );
 }
 
-const renderGame = async () => {
-  const rendered = render(DailyGameView, { props: { clubType: ClubType.MOVIE } });
+const renderGame = async (date?: string) => {
+  const rendered = render(DailyGameView, { props: { clubType: ClubType.MOVIE, date } });
   await screen.findByRole("heading", { level: 1 });
   return rendered;
 };
@@ -176,7 +177,7 @@ describe("DailyGameView", () => {
 
     await user.type(screen.getByRole("combobox", { name: "Guess a movie" }), "zzzz");
 
-    expect(screen.getByText("No movie in today's game matches “zzzz”.")).toBeInTheDocument();
+    expect(screen.getByText("No movie in this game matches “zzzz”.")).toBeInTheDocument();
   });
 
   it("does not count the same movie twice", async () => {
@@ -391,6 +392,114 @@ describe("DailyGameView", () => {
     await guess(dayTwo.user, "Heat");
 
     expect(statValue("Streak")).toBe("2");
+  });
+
+  describe("from the archive", () => {
+    it("opens a past day's puzzle under its own number and date", async () => {
+      servePuzzles({ "2026-10-20": 5 });
+
+      await renderGame("2026-10-20");
+
+      expect(screen.getByRole("heading", { level: 1, name: "Reelated #5" })).toBeInTheDocument();
+      expect(
+        screen.getByText(/Guess the mystery movie from October 20, 2026\./),
+      ).toBeInTheDocument();
+      expect(screen.getByRole("link", { name: "Today's puzzle" })).toHaveAttribute(
+        "href",
+        "/reelated",
+      );
+    });
+
+    it("links to the archive from today's puzzle", async () => {
+      await renderGame();
+
+      expect(screen.getByRole("link", { name: "Past puzzles" })).toHaveAttribute(
+        "href",
+        "/reelated/archive",
+      );
+      expect(screen.queryByRole("link", { name: "Today's puzzle" })).not.toBeInTheDocument();
+    });
+
+    it("keeps a past day's progress apart from today's", async () => {
+      servePuzzles({ "2026-10-20": 5, "2026-10-22": 7 });
+      const past = await renderGame("2026-10-20");
+      await guess(past.user, "Speed");
+      past.unmount();
+
+      await renderGame();
+
+      expect(screen.queryByRole("list", { name: "Guesses ranked by closeness" })).toBeNull();
+    });
+
+    it("doesn't promise a new movie tomorrow after giving up on an old one", async () => {
+      servePuzzles({ "2026-10-20": 5 });
+      const { user } = await renderGame("2026-10-20");
+
+      await giveUp(user);
+
+      expect(screen.getByRole("heading", { name: "Better luck next time" })).toBeInTheDocument();
+      expect(screen.getByText(/The movie was/)).toBeInTheDocument();
+      expect(screen.queryByText("A new movie arrives at midnight.")).not.toBeInTheDocument();
+    });
+
+    it("shares a link back to that day's puzzle", async () => {
+      servePuzzles({ "2026-10-20": 5 });
+      const { user } = await renderGame("2026-10-20");
+
+      await guess(user, "Heat");
+      await user.click(screen.getByRole("button", { name: "Share result" }));
+
+      const shared = await navigator.clipboard.readText();
+      expect(shared).toContain("Reelated #5: I got it in 1 guess.");
+      expect(shared).toMatch(/\/reelated\/2026-10-20\?utm_source=share&utm_campaign=reelated$/);
+    });
+
+    it("counts a catch-up as played but not towards the streak", async () => {
+      servePuzzles({ "2026-10-21": 6, "2026-10-22": 7 });
+      const yesterday = await renderGame("2026-10-21");
+      await guess(yesterday.user, "Heat");
+
+      expect(statValue("Solved")).toBe("1");
+      expect(statValue("Streak")).toBe("0");
+      yesterday.unmount();
+
+      const today = await renderGame();
+      await guess(today.user, "Heat");
+
+      expect(statValue("Played")).toBe("2");
+      expect(statValue("Streak")).toBe("1");
+    });
+
+    it("keeps a streak built on the day when an old puzzle is played", async () => {
+      servePuzzles({ "2026-10-20": 5, "2026-10-21": 6, "2026-10-22": 7 });
+      vi.setSystemTime(new Date(2026, 9, 21, 12));
+      const onTheDay = await renderGame();
+      await guess(onTheDay.user, "Heat");
+      onTheDay.unmount();
+
+      vi.setSystemTime(new Date(2026, 9, 22, 12));
+      const catchUp = await renderGame("2026-10-20");
+      await guess(catchUp.user, "Heat");
+
+      expect(statValue("Streak")).toBe("1");
+    });
+
+    it("sends the player back to the archive when that day had no puzzle", async () => {
+      server.use(
+        http.get("/api/daily-game/movie/:date", () =>
+          HttpResponse.json({ error: "There was no puzzle that day" }, { status: 404 }),
+        ),
+      );
+      const { user } = render(DailyGameView, {
+        props: { clubType: ClubType.MOVIE, date: "2026-10-19" },
+      });
+
+      expect(
+        await screen.findByRole("heading", { name: "There's no Reelated for October 19, 2026" }),
+      ).toBeInTheDocument();
+      await user.click(screen.getByRole("button", { name: "Past puzzles" }));
+      expect(vi.mocked(useRouter()).push.mock.calls).toStrictEqual([["/reelated/archive"]]);
+    });
   });
 
   it("explains that the game needs more movies before it can start", async () => {

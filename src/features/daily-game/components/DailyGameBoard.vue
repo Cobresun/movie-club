@@ -5,8 +5,10 @@
         {{ dailyGame.name }} <span class="text-highlight">#{{ game.puzzle }}</span>
       </h1>
       <p class="text-white/70">
-        Guess today's mystery {{ noun }}. Every guess is ranked by how close it is — #1 is the
-        answer.
+        Guess
+        {{
+          game.fromArchive ? `the mystery ${noun} from ${puzzleDate}` : `today's mystery ${noun}`
+        }}. Every guess is ranked by how close it is — #1 is the answer.
       </p>
       <Menu as="div" class="relative">
         <MenuButton
@@ -64,6 +66,23 @@
           </MenuItems>
         </transition>
       </Menu>
+      <nav aria-label="Other puzzles" class="flex justify-center gap-4 text-sm">
+        <router-link
+          v-if="game.fromArchive"
+          :to="dailyGame.path"
+          class="text-highlight inline-flex items-center gap-1 hover:underline"
+        >
+          <mdicon name="lightbulb-on-outline" :size="18" />
+          Today's puzzle
+        </router-link>
+        <router-link
+          :to="archivePath(dailyGame)"
+          class="text-highlight inline-flex items-center gap-1 hover:underline"
+        >
+          <mdicon name="history" :size="18" />
+          Past puzzles
+        </router-link>
+      </nav>
     </header>
 
     <section
@@ -74,10 +93,11 @@
     >
       <ConfettiBurst v-if="celebrating" />
       <h2 id="daily-game-result" class="text-xl font-bold">
-        {{ game.solved.value ? "You got it!" : "Better luck tomorrow" }}
+        {{ game.solved.value ? "You got it!" : failedHeading }}
       </h2>
       <p class="text-white/80">
-        Today's {{ noun }} was <strong class="text-white">{{ game.answer?.title }}</strong
+        {{ game.fromArchive ? "The" : "Today's" }} {{ noun }} was
+        <strong class="text-white">{{ game.answer?.title }}</strong
         ><template v-if="isDefined(game.answer?.year)"> ({{ game.answer.year }})</template>.
       </p>
       <p v-if="game.solved.value" class="text-white/80">
@@ -115,7 +135,9 @@
         />
         {{ copied ? "Copied" : "Share result" }}
       </v-btn>
-      <p class="text-sm text-white/60">A new {{ noun }} arrives at midnight.</p>
+      <p v-if="!game.fromArchive" class="text-sm text-white/60">
+        A new {{ noun }} arrives at midnight.
+      </p>
     </section>
 
     <template v-else>
@@ -214,7 +236,11 @@
     <DeleteConfirmationModal
       :show="confirmingGiveUp"
       title="Give up?"
-      :message="`Today's ${noun} will be revealed, and your streak will start over.`"
+      :message="
+        game.fromArchive
+          ? `This ${noun} will be revealed.`
+          : `Today's ${noun} will be revealed, and your streak will start over.`
+      "
       confirm-label="Yes, reveal it"
       @confirm="giveUp"
       @cancel="confirmingGiveUp = false"
@@ -239,29 +265,35 @@ import { type DailyGameConfig } from "@/common/clubType";
 import DeleteConfirmationModal from "@/common/components/DeleteConfirmationModal.vue";
 import SharedPageCtaBanner from "@/common/components/SharedPageCtaBanner.vue";
 import { useShare } from "@/common/composables/useShare";
+import { archivePath, puzzlePath } from "@/features/daily-game/archive";
 import ConfettiBurst from "@/features/daily-game/components/ConfettiBurst.vue";
 import GuessInput from "@/features/daily-game/components/GuessInput.vue";
 import GuessRow from "@/features/daily-game/components/GuessRow.vue";
-import { gameTag, sharedGameUrl } from "@/features/daily-game/game";
+import { formatPuzzleDate, gameTag, sharedGameUrl } from "@/features/daily-game/game";
 import { playerId } from "@/features/daily-game/playerId";
 import { type RankedGuess, useDailyGame } from "@/features/daily-game/useDailyGame";
 import { useRecordDailyGameResult } from "@/service/useDailyGame";
 
-const { puzzle, dailyGame, noun } = defineProps<{
+const { puzzle, dailyGame, noun, today } = defineProps<{
   puzzle: DailyGamePuzzle;
   dailyGame: DailyGameConfig;
   /** One work of the game's media ("movie"). */
   noun: string;
+  /** The player's own date, `YYYY-MM-DD`. */
+  today: string;
 }>();
 
-const game = useDailyGame(puzzle, dailyGame.name);
+const game = useDailyGame(puzzle, dailyGame.name, today);
+const puzzleDate = formatPuzzleDate(puzzle.date);
+const failedHeading = game.fromArchive ? "Better luck next time" : "Better luck tomorrow";
 const { shareText } = useShare();
 
 const { mutate: recordResult } = useRecordDailyGameResult(puzzle.clubType, puzzle.date);
 
-// Only a game finished on this visit is sent; reopening a finished day isn't a new result.
+// Only a game finished on this visit is sent; reopening a finished day isn't a
+// new result. The stats count each puzzle on its own day, so archive plays aren't sent.
 watch(game.finished, (finished) => {
-  if (!finished) return;
+  if (!finished || game.fromArchive) return;
   recordResult({
     playerId: playerId(),
     guesses: game.guesses.value.filter((guess) => !guess.hint).map((guess) => guess.work.id),
@@ -366,7 +398,13 @@ const shareLabel = computed(() => (copied.value ? "Result copied" : "Share resul
 
 const shareResult = async () => {
   copied.value = await shareText({
-    text: game.share(sharedGameUrl(window.location.origin, dailyGame.path)),
+    text: game.share(
+      sharedGameUrl(
+        window.location.origin,
+        dailyGame.path,
+        game.fromArchive ? puzzlePath(dailyGame, puzzle.date) : dailyGame.path,
+      ),
+    ),
     copiedMessage: "Result copied — paste it to your friends!",
   });
 };
