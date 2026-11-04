@@ -68,10 +68,11 @@ export const render = <C>(component: C, options: Partial<RenderOptions<C>> = {})
           // Render router-links as real anchors rather than VTU's
           // `<router-link-stub>`: that keeps the link's slot content in the
           // accessibility tree, so tests query navigation by role and name
-          // instead of counting stub elements.
+          // instead of counting stub elements. A path given as a string
+          // becomes the href, so a test can read where a link goes.
           "router-link": {
             props: ["to"],
-            template: '<a href="#"><slot /></a>',
+            template: "<a :href=\"typeof to === 'string' ? to : '#'\"><slot /></a>",
           },
           "router-view": true,
           ...(Array.isArray(options.global?.stubs)

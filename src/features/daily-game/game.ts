@@ -14,6 +14,13 @@ export function previousDate(date: string): string {
   return day.toISOString().slice(0, 10);
 }
 
+const puzzleDateFormat = new Intl.DateTimeFormat("en-US", { dateStyle: "long", timeZone: "UTC" });
+
+/** A puzzle's `YYYY-MM-DD` date as the player reads it: "October 22, 2026". */
+export function formatPuzzleDate(date: string): string {
+  return puzzleDateFormat.format(new Date(`${date}T00:00:00Z`));
+}
+
 // Cutoffs scale with the pool, so "hot" means the same share of the field
 // whether the pool holds fifty works or five thousand.
 const HOT_SHARE = 0.04;

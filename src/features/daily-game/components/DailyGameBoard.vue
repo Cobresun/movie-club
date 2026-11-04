@@ -5,9 +5,28 @@
         {{ dailyGame.name }} <span class="text-highlight">#{{ game.puzzle }}</span>
       </h1>
       <p class="mt-2 text-white/70">
-        Guess today's mystery {{ noun }}. Every guess is ranked by how close it is — #1 is the
-        answer.
+        Guess
+        {{
+          game.fromArchive ? `the mystery ${noun} from ${puzzleDate}` : `today's mystery ${noun}`
+        }}. Every guess is ranked by how close it is — #1 is the answer.
       </p>
+      <nav aria-label="Other puzzles" class="mt-3 flex justify-center gap-4 text-sm">
+        <router-link
+          v-if="game.fromArchive"
+          :to="dailyGame.path"
+          class="text-highlight inline-flex items-center gap-1 hover:underline"
+        >
+          <mdicon name="lightbulb-on-outline" :size="18" />
+          Today's puzzle
+        </router-link>
+        <router-link
+          :to="archivePath(dailyGame)"
+          class="text-highlight inline-flex items-center gap-1 hover:underline"
+        >
+          <mdicon name="history" :size="18" />
+          Past puzzles
+        </router-link>
+      </nav>
     </header>
 
     <section
@@ -16,10 +35,11 @@
       class="from-secondary to-lowBackground flex flex-col items-center gap-3 rounded-xl bg-linear-to-br p-6 text-center shadow-lg"
     >
       <h2 id="daily-game-result" class="text-xl font-bold">
-        {{ game.solved.value ? "You got it!" : "Better luck tomorrow" }}
+        {{ game.solved.value ? "You got it!" : failedHeading }}
       </h2>
       <p class="text-white/80">
-        Today's {{ noun }} was <strong class="text-white">{{ game.answer?.title }}</strong
+        {{ game.fromArchive ? "The" : "Today's" }} {{ noun }} was
+        <strong class="text-white">{{ game.answer?.title }}</strong
         ><template v-if="isDefined(game.answer?.year)"> ({{ game.answer.year }})</template>.
       </p>
       <p v-if="game.solved.value" class="text-white/80">
@@ -41,7 +61,9 @@
         <mdicon :name="copied ? 'check' : 'share-variant'" :size="20" class="mr-2" />
         {{ copied ? "Copied" : "Share result" }}
       </v-btn>
-      <p class="text-sm text-white/60">A new {{ noun }} arrives at midnight.</p>
+      <p v-if="!game.fromArchive" class="text-sm text-white/60">
+        A new {{ noun }} arrives at midnight.
+      </p>
     </section>
 
     <template v-else>
@@ -129,18 +151,24 @@ import { useToast } from "vue-toastification";
 import { hasElements, hasValue, isDefined } from "@/../lib/checks/checks";
 import { type DailyGamePuzzle, type DailyGameWork } from "@/../lib/types/dailyGame";
 import { type DailyGameConfig } from "@/common/clubType";
+import { archivePath, puzzlePath } from "@/features/daily-game/archive";
 import GuessInput from "@/features/daily-game/components/GuessInput.vue";
 import GuessRow from "@/features/daily-game/components/GuessRow.vue";
+import { formatPuzzleDate } from "@/features/daily-game/game";
 import { useDailyGame } from "@/features/daily-game/useDailyGame";
 
-const { puzzle, dailyGame, noun } = defineProps<{
+const { puzzle, dailyGame, noun, today } = defineProps<{
   puzzle: DailyGamePuzzle;
   dailyGame: DailyGameConfig;
   /** One work of the game's media ("movie"). */
   noun: string;
+  /** The player's own date, `YYYY-MM-DD`. */
+  today: string;
 }>();
 
-const game = useDailyGame(puzzle, dailyGame.name);
+const game = useDailyGame(puzzle, dailyGame.name, today);
+const puzzleDate = formatPuzzleDate(puzzle.date);
+const failedHeading = game.fromArchive ? "Better luck next time" : "Better luck tomorrow";
 const toast = useToast();
 
 const notice = ref<string>();
@@ -191,7 +219,8 @@ const shareLabel = computed(() => (copied.value ? "Result copied" : "Share resul
 
 const shareResult = async () => {
   try {
-    await navigator.clipboard.writeText(game.share(`${window.location.origin}${dailyGame.path}`));
+    const path = game.fromArchive ? puzzlePath(dailyGame, puzzle.date) : dailyGame.path;
+    await navigator.clipboard.writeText(game.share(`${window.location.origin}${path}`));
     copied.value = true;
     toast.success("Result copied — paste it to your friends!");
   } catch {

@@ -8,7 +8,11 @@
  */
 import { http, HttpResponse } from "msw";
 
-import { type DailyGamePuzzle, type DailyGameWork } from "../../../lib/types/dailyGame";
+import {
+  type DailyGameArchive,
+  type DailyGamePuzzle,
+  type DailyGameWork,
+} from "../../../lib/types/dailyGame";
 import { handler } from "../daily-game";
 import topUpCatalog from "../scheduled-daily-game-catalog";
 import { tmdbMovie, tmdbPage } from "./fixtures/external";
@@ -219,6 +223,27 @@ describe("GET /api/daily-game/:clubType/:date", () => {
     expect(today.body.puzzle).toBe(1);
   });
 
+  it("serves a past day's puzzle with the answer it had on the day", async () => {
+    await seedCatalog(12);
+    const onTheDay = (await api.get<DailyGamePuzzle>(`/api/daily-game/movie/${TODAY}`)).body;
+
+    vi.setSystemTime(new Date("2026-10-30T12:00:00Z"));
+    const res = await api.get<DailyGamePuzzle>(`/api/daily-game/movie/${TODAY}`);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.puzzle).toBe(1);
+    expect(answerOf(res.body.works)?.id).toBe(answerOf(onTheDay.works)?.id);
+  });
+
+  it("has no puzzle for a past day that never had an answer, and doesn't make one", async () => {
+    await seedCatalog(12);
+    vi.setSystemTime(new Date("2026-10-30T12:00:00Z"));
+
+    expect((await api.get(`/api/daily-game/movie/2026-10-25`)).statusCode).toBe(404);
+    const archive = await api.get<DailyGameArchive>("/api/daily-game/movie/archive");
+    expect(archive.body.puzzles.map((entry) => entry.date)).not.toContain("2026-10-25");
+  });
+
   it("refuses a date that isn't on the calendar", async () => {
     vi.setSystemTime(new Date("2026-03-02T12:00:00Z"));
     await seedCatalog(12);
@@ -260,6 +285,48 @@ describe("GET /api/daily-game/:clubType/:date", () => {
     expect(first.body.puzzle).toBe(1);
     expect(first.body.works).toHaveLength(20);
     expect(answerOf(again.body.works)?.id).toBe(answerOf(first.body.works)?.id);
+  });
+
+  describe("GET /api/daily-game/:clubType/archive", () => {
+    it("lists every day that had a puzzle, newest first, and never its answer", async () => {
+      await seedCatalog(12);
+      vi.setSystemTime(new Date("2026-10-25T12:00:00Z"));
+      await api.get(`/api/daily-game/movie/2026-10-25`);
+
+      const res = await api.get<DailyGameArchive>("/api/daily-game/movie/archive");
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body).toStrictEqual({
+        clubType: "movie",
+        puzzles: [
+          { date: "2026-10-25", puzzle: 4 },
+          { date: "2026-10-23", puzzle: 2 },
+          { date: "2026-10-22", puzzle: 1 },
+        ],
+      });
+    });
+
+    it("lists no day that isn't yet today anywhere", async () => {
+      // The catalog job draws today's answer and tomorrow's.
+      await seedCatalog(12);
+      vi.setSystemTime(new Date("2026-10-21T12:00:00Z"));
+
+      const { body } = await api.get<DailyGameArchive>("/api/daily-game/movie/archive");
+
+      expect(body.puzzles).toStrictEqual([{ date: "2026-10-22", puzzle: 1 }]);
+    });
+
+    it("is empty before the first puzzle", async () => {
+      const res = await api.get<DailyGameArchive>("/api/daily-game/movie/archive");
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.puzzles).toStrictEqual([]);
+    });
+
+    it("only lists the club types that have a game", async () => {
+      expect((await api.get("/api/daily-game/book/archive")).statusCode).toBe(404);
+      expect((await api.get("/api/daily-game/opera/archive")).statusCode).toBe(400);
+    });
   });
 
   describe("topping up the catalog from TMDB", () => {
