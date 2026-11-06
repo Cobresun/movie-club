@@ -39,6 +39,16 @@ const guessList = () => screen.getByRole("list", { name: "Guesses ranked by clos
 const row = (title: string) =>
   within(guessList()).getByRole("listitem", { name: new RegExp(`^${title} \\(`) });
 
+const chooseFromMenu = async (user: User, item: string) => {
+  await user.click(screen.getByRole("button", { name: "Game options" }));
+  await user.click(screen.getByRole("menuitem", { name: item }));
+};
+
+const giveUp = async (user: User) => {
+  await chooseFromMenu(user, "Give up");
+  await user.click(screen.getByRole("button", { name: "Yes, reveal it" }));
+};
+
 function statValue(label: string): string | undefined {
   return within(screen.getByRole("group", { name: label }))
     .getByRole("definition")
@@ -136,7 +146,7 @@ describe("DailyGameView", () => {
       screen.getByRole("option", { name: "The Godfather Part II (1974)" }),
     ).toBeInTheDocument();
 
-    await user.click(screen.getByText("How to play"));
+    await user.click(screen.getByRole("heading", { level: 1 }));
     expect(screen.queryAllByRole("option")).toStrictEqual([]);
   });
 
@@ -243,7 +253,7 @@ describe("DailyGameView", () => {
     const { user } = await renderGame();
 
     await guess(user, "Alien");
-    await user.click(screen.getByRole("button", { name: "Get a hint" }));
+    await chooseFromMenu(user, "Hint");
 
     expect(within(row("The Godfather")).getByText("Hint")).toBeInTheDocument();
     expect(within(row("The Godfather")).getByText("#6")).toBeInTheDocument();
@@ -253,7 +263,7 @@ describe("DailyGameView", () => {
     const { user } = await renderGame();
 
     await guess(user, "Alien");
-    await user.click(screen.getByRole("button", { name: "Get a hint" }));
+    await chooseFromMenu(user, "Hint");
     expect(screen.getByText("1 guess · 1 hint")).toBeInTheDocument();
 
     await guess(user, "Heat");
@@ -268,9 +278,8 @@ describe("DailyGameView", () => {
   it("shares a give-up after only a hint without calling the hint a guess", async () => {
     const { user } = await renderGame();
 
-    await user.click(screen.getByRole("button", { name: "Get a hint" }));
-    await user.click(screen.getByRole("button", { name: "Give up" }));
-    await user.click(screen.getByRole("button", { name: "Yes, reveal it" }));
+    await chooseFromMenu(user, "Hint");
+    await giveUp(user);
     await user.click(screen.getByRole("button", { name: "Share result" }));
 
     expect(await navigator.clipboard.readText()).toContain(
@@ -281,12 +290,53 @@ describe("DailyGameView", () => {
   it("reveals the answer when the player gives up", async () => {
     const { user } = await renderGame();
 
-    await user.click(screen.getByRole("button", { name: "Give up" }));
-    await user.click(screen.getByRole("button", { name: "Yes, reveal it" }));
+    await giveUp(user);
 
     expect(screen.getByRole("heading", { name: "Better luck tomorrow" })).toBeInTheDocument();
     expect(screen.getByText("Heat")).toBeInTheDocument();
     expect(statValue("Solved")).toBe("0");
+  });
+
+  it("keeps playing when the player backs out of giving up", async () => {
+    const { user } = await renderGame();
+
+    await chooseFromMenu(user, "Give up");
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(screen.queryByRole("heading", { name: "Better luck tomorrow" })).not.toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Guess a movie" })).toBeInTheDocument();
+  });
+
+  it("offers no more hints once only the answer is left to give", async () => {
+    const { user } = await renderGame();
+
+    await guess(user, "Collateral");
+    await user.click(screen.getByRole("button", { name: "Game options" }));
+
+    expect(screen.getByRole("menuitem", { name: "Hint" })).toHaveAttribute("aria-disabled", "true");
+  });
+
+  it("explains the rules from the menu", async () => {
+    const { user } = await renderGame();
+
+    await chooseFromMenu(user, "How to play");
+
+    expect(screen.getByRole("heading", { name: "How to play" })).toBeInTheDocument();
+    expect(screen.getByText(/A hint reveals a movie halfway/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Got it" }));
+    expect(screen.queryByRole("heading", { name: "How to play" })).not.toBeInTheDocument();
+  });
+
+  it("leaves only the rules in the menu once the game is over", async () => {
+    const { user } = await renderGame();
+
+    await guess(user, "Heat");
+    await user.click(screen.getByRole("button", { name: "Game options" }));
+
+    expect(screen.getAllByRole("menuitem").map((item) => item.textContent?.trim())).toStrictEqual([
+      "How to play",
+    ]);
   });
 
   it("keeps the player's progress when they come back", async () => {
