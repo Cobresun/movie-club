@@ -19,6 +19,45 @@
     >
       <template v-if="hasValue(metaLine)" #meta>{{ metaLine }}</template>
       <template v-if="isListed" #date>
+        <Listbox
+          v-if="canChangeAddedBy"
+          :model-value="movie.addedBy"
+          @update:model-value="onAddedBySelect"
+        >
+          <div class="relative mb-1">
+            <ListboxButton
+              aria-label="Change who added"
+              class="hover:text-primary inline-flex items-center gap-2 hover:underline"
+            >
+              <template v-if="isDefined(addedByMember)">
+                <VAvatar :src="addedByMember.image" :name="addedByMember.name" :size="20" />
+                <span>Added by {{ addedByMember.name }}</span>
+              </template>
+              <span v-else>Set who added</span>
+              <mdicon name="pencil" size="14" class="text-current" />
+            </ListboxButton>
+            <ListboxOptions
+              class="bg-background absolute top-full left-0 z-20 mt-1 max-h-64 w-56 overflow-y-auto rounded-lg border border-gray-700 py-1 shadow-lg focus:outline-hidden"
+            >
+              <ListboxOption
+                v-for="member in members"
+                :key="member.id"
+                v-slot="{ active, selected }"
+                :value="member.id"
+                as="template"
+              >
+                <li
+                  class="flex cursor-pointer items-center gap-2 px-4 py-2 text-sm text-gray-200"
+                  :class="{ 'bg-lowBackground': active }"
+                >
+                  <VAvatar :src="member.image" :name="member.name" :size="20" aria-hidden="true" />
+                  <span class="flex-1 truncate">{{ member.name }}</span>
+                  <mdicon v-if="selected" name="check" size="16" />
+                </li>
+              </ListboxOption>
+            </ListboxOptions>
+          </div>
+        </Listbox>
         <template v-if="hasValue(movie.parentId)">
           Reviewed {{ formatDate(movie.createdDate) }}
         </template>
@@ -190,7 +229,7 @@
     <CommentThread v-if="isListed" :work-id="movie.id" :club-slug="clubId" />
 
     <DiscussionQuestions
-      v-if="isListed && discussionQuestionsEnabled"
+      v-if="isListed"
       :club-slug="clubId"
       :work-id="movie.id"
       :media-noun="mediaNoun"
@@ -275,6 +314,7 @@
 </template>
 
 <script setup lang="ts">
+import { Listbox, ListboxButton, ListboxOption, ListboxOptions } from "@headlessui/vue";
 import { DateTime } from "luxon";
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 
@@ -307,16 +347,18 @@ import ExternalLink from "@/common/components/ExternalLink.vue";
 import MovieMetadataGrid from "@/common/components/MovieMetadataGrid.vue";
 import SectionHeader from "@/common/components/SectionHeader.vue";
 import TvMetadataGrid from "@/common/components/TvMetadataGrid.vue";
+import VAvatar from "@/common/components/VAvatar.vue";
 import WatchProviders from "@/common/components/WatchProviders.vue";
 import WorkDescription from "@/common/components/WorkDescription.vue";
 import WorkPosterHero from "@/common/components/WorkPosterHero.vue";
 import { useShare } from "@/common/composables/useShare";
 import { asBook, asMovie, formatDate, workPosterUrl } from "@/common/workDisplay";
-import { useClub, useClubSettings, useClubSlug } from "@/service/useClub";
+import { useClub, useClubSlug } from "@/service/useClub";
 import {
   useReviewsList,
   useReviewsListId,
   useUpdateAddedDate,
+  useUpdateReviewAddedBy,
   useWorkDetails,
 } from "@/service/useList";
 
@@ -356,15 +398,11 @@ const confirmDelete = () => {
 // Date editing state
 const clubId = useClubSlug();
 const { data: club } = useClub(clubId);
-const { data: clubSettings } = useClubSettings(clubId);
 const { data: reviewsListId } = useReviewsListId(clubId);
 const { mutate: updateAddedDate } = useUpdateAddedDate(clubId);
 const isEditingDate = ref(false);
 const editedDate = ref("");
 
-const discussionQuestionsEnabled = computed(
-  () => clubSettings.value?.features?.discussionQuestions === true,
-);
 const formattedDateForInput = computed(() =>
   DateTime.fromISO(props.movie.createdDate).toFormat("yyyy-MM-dd"),
 );
@@ -391,6 +429,21 @@ const saveDateChange = () => {
 
 const cancelDateEdit = () => {
   isEditingDate.value = false;
+};
+
+const { mutate: updateAddedBy } = useUpdateReviewAddedBy(clubId);
+const addedByMember = computed(() =>
+  props.members.find((member) => member.id === props.movie.addedBy),
+);
+// An episode is on the reviews list only through its show, so its adder is the show's.
+const canChangeAddedBy = computed(
+  () => !hasValue(props.movie.parentId) && hasElements(props.members),
+);
+
+const onAddedBySelect = (userId: string) => {
+  if (userId !== props.movie.addedBy && hasValue(reviewsListId.value)) {
+    updateAddedBy({ listId: reviewsListId.value, workId: props.movie.id, userId });
+  }
 };
 
 // The spotlight fact compares this review against the club's whole history,

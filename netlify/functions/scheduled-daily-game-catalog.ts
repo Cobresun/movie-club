@@ -22,7 +22,7 @@ const ScheduledFunctionPayloadSchema = z.object({
 /**
  * New works cached per run and game. Each one is a source round trip plus its
  * inserts, so this keeps a run well inside a scheduled function's time limit;
- * running hourly fills an empty catalog within a day.
+ * running hourly adds about 1200 works a day.
  */
 const BATCH_SIZE = 50;
 

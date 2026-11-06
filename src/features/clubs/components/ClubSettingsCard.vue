@@ -73,18 +73,13 @@ import {
 
 const { clubSlug } = defineProps<{ clubSlug: string }>();
 
-type FeatureKey = "awards" | "discussionQuestions";
+type FeatureKey = "awards";
 
 const FEATURES: readonly { key: FeatureKey; title: string; description: string }[] = [
   {
     key: "awards",
     title: "Awards",
     description: "Season awards, ballots and winners for this club.",
-  },
-  {
-    key: "discussionQuestions",
-    title: "AI discussion questions",
-    description: "Adds a button on each review that drafts questions to spark conversation.",
   },
 ];
 

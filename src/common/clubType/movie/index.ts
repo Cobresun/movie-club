@@ -1,6 +1,7 @@
 import { clubScoreFilter, decadePresets, reviewedInFilter } from "../filterOptions";
 import { type ClubTypeConfig } from "../types";
 import { movieDisplay } from "./display";
+import { movieLandingPreview } from "./landingPreview";
 import { browseMovies, searchMovies } from "./search";
 import { makeMovieSimilarity } from "./similarity";
 import { releaseYear } from "@/../lib/movie/releaseYear";
@@ -113,8 +114,37 @@ export const movieClubConfig: ClubTypeConfig = {
   makeSimilarity: makeMovieSimilarity,
   dailyGame: {
     name: "Reelated",
+    path: "/reelated",
     tagline: "One mystery movie a day. Every guess tells you how related it is. No account needed.",
     similarityRule:
       "Movies are related through shared directors, cast, studios, genres, era and language.",
+    preview: {
+      poolSize: 5000,
+      guesses: [
+        {
+          id: "329865",
+          title: "Arrival",
+          year: 2016,
+          rank: 4,
+          clues: ["Same director: Denis Villeneuve", "Science Fiction", "Also from the 2010s"],
+        },
+        {
+          id: "146233",
+          title: "Prisoners",
+          year: 2013,
+          rank: 11,
+          clues: ["Same director: Denis Villeneuve", "Also from the 2010s"],
+        },
+        {
+          id: "152601",
+          title: "Her",
+          year: 2013,
+          rank: 412,
+          clues: ["Science Fiction", "Also from the 2010s"],
+        },
+        { id: "578", title: "Jaws", year: 1975, rank: 2904, clues: [] },
+      ],
+    },
   },
+  landingPreview: movieLandingPreview,
 };

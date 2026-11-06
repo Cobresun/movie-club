@@ -6,7 +6,7 @@
 import { type ClubSettings } from "../../../lib/types/club";
 import { handler } from "../club/index";
 import { signIn } from "./helpers/auth";
-import { addReviewedWork, createClub } from "./helpers/factories";
+import { createClub } from "./helpers/factories";
 import { requester } from "./helpers/http";
 
 const api = requester(handler);
@@ -19,7 +19,7 @@ describe("GET /api/club/:clubSlug/settings", () => {
     const res = await api.get<ClubSettings>(`/api/club/${club.slug}/settings`, { as: alice });
 
     expect(res.statusCode).toBe(200);
-    expect(res.body).toStrictEqual({ features: { awards: true, discussionQuestions: false } });
+    expect(res.body).toStrictEqual({ features: { awards: true } });
   });
 
   it("returns 401 for a non-member", async () => {
@@ -52,22 +52,10 @@ describe("POST /api/club/:clubSlug/settings", () => {
     });
 
     expect(res.statusCode).toBe(200);
-    expect(res.body).toStrictEqual({ features: { awards: true, discussionQuestions: false } });
+    expect(res.body).toStrictEqual({ features: { awards: true } });
 
     const reread = await api.get<ClubSettings>(`/api/club/${club.slug}/settings`, { as: alice });
     expect(reread.body.features.awards).toBe(true);
-  });
-
-  it("leaves the features it was not given alone", async () => {
-    const alice = await signIn("alice");
-    const club = await createClub(alice, { features: { discussionQuestions: true } });
-
-    const res = await api.post<ClubSettings>(`/api/club/${club.slug}/settings`, {
-      body: { features: { awards: true } },
-      as: alice,
-    });
-
-    expect(res.body).toStrictEqual({ features: { awards: true, discussionQuestions: true } });
   });
 
   it("treats an empty body object as a no-op", async () => {
@@ -80,31 +68,7 @@ describe("POST /api/club/:clubSlug/settings", () => {
     });
 
     expect(res.statusCode).toBe(200);
-    expect(res.body).toStrictEqual({ features: { awards: true, discussionQuestions: false } });
-  });
-
-  it("gates the feature it names — turning discussion questions off closes the route", async () => {
-    const alice = await signIn("alice");
-    const club = await createClub(alice, { features: { discussionQuestions: true } });
-    const work = await addReviewedWork(club, alice, { externalId: null });
-
-    const enabled = await api.post(
-      `/api/club/${club.slug}/reviews/${work.id}/discussion-questions`,
-      { as: alice },
-    );
-    expect(enabled.statusCode).toBe(200);
-
-    await api.post(`/api/club/${club.slug}/settings`, {
-      body: { features: { discussionQuestions: false } },
-      as: alice,
-    });
-
-    const disabled = await api.post<{ error: string }>(
-      `/api/club/${club.slug}/reviews/${work.id}/discussion-questions`,
-      { as: alice },
-    );
-    expect(disabled.statusCode).toBe(400);
-    expect(disabled.body.error).toBe("Feature not enabled");
+    expect(res.body).toStrictEqual({ features: { awards: true } });
   });
 
   it.each([

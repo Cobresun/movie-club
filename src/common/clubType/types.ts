@@ -1,3 +1,4 @@
+import { type DailyGameWork } from "@/../lib/types/dailyGame";
 import { type ClubType, type WorkType } from "@/../lib/types/generated/db";
 import {
   type DetailedWorkData,
@@ -139,20 +140,53 @@ export interface ClubTypeConfig {
     corpus: readonly (WorkDataSummary | undefined)[],
   ) => WorkSimilarityScorer;
   /**
-   * The daily guessing game at `/play/<club type>`, for media that have one.
+   * The daily guessing game at its own `path`, for media that have one.
    * Its server half is the `MediaProvider`'s `dailyGame`.
    */
   readonly dailyGame: DailyGameConfig | undefined;
+  /** The sample club the landing page previews for this club type. */
+  readonly landingPreview: LandingPreview;
+}
+
+/** The landing page's sample club members, the same people in every club type. */
+export type LandingPreviewMember = "Maya" | "Jordan" | "Sam" | "Priya";
+
+/** A sample club gallery for the landing page, newest work first. */
+export interface LandingPreview {
+  readonly clubName: string;
+  /** Frames the artwork 16:9, for media whose gallery shows episode stills. */
+  readonly landscape: boolean;
+  readonly works: readonly LandingPreviewWork[];
+}
+
+export interface LandingPreviewWork {
+  readonly title: string;
+  /** The year, author or episode under the title. */
+  readonly subtitle: string;
+  readonly posterUrl: string;
+  /** A member left out has not scored the work yet. */
+  readonly scores: Readonly<Partial<Record<LandingPreviewMember, number>>>;
 }
 
 /** Copy for one club type's daily guessing game. */
 export interface DailyGameConfig {
   /** The game's name, shown as its title and in shared results. */
   readonly name: string;
+  /** Where the game is played, e.g. `/reelated`. */
+  readonly path: string;
   /** One line inviting someone to play, for the landing page. */
   readonly tagline: string;
   /** What makes two works alike, for "How to play". */
   readonly similarityRule: string;
+  /** Sample guesses the landing page shows to explain the game. */
+  readonly preview: DailyGamePreview;
+}
+
+export interface DailyGamePreview {
+  /** How many works the sample puzzle ranks, which sets each guess's temperature. */
+  readonly poolSize: number;
+  /** Closest first. */
+  readonly guesses: readonly DailyGameWork[];
 }
 
 /**

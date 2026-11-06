@@ -521,7 +521,7 @@ describe("comments on a reviewed work", () => {
 describe("POST /api/club/:clubSlug/reviews/:workId/discussion-questions", () => {
   it("returns the questions Gemini generated for the work", async () => {
     const alice = await signIn("alice");
-    const club = await createClub(alice, { features: { discussionQuestions: true } });
+    const club = await createClub(alice);
     const work = await addReviewedWork(club, alice, {
       title: "The Lord of the Rings",
       externalId: "120",
@@ -547,23 +547,9 @@ describe("POST /api/club/:clubSlug/reviews/:workId/discussion-questions", () => 
     expect(prompt).toContain("The Lord of the Rings (2001)");
   });
 
-  it("returns 400 when the feature is off for the club", async () => {
-    const alice = await signIn("alice");
-    const club = await createClub(alice);
-    const work = await addReviewedWork(club, alice, { externalId: null });
-
-    const res = await api.post<{ error: string }>(
-      `/api/club/${club.slug}/reviews/${work.id}/discussion-questions`,
-      { as: alice },
-    );
-
-    expect(res.statusCode).toBe(400);
-    expect(res.body.error).toBe("Feature not enabled");
-  });
-
   it("returns 400 for a work that is not in the club", async () => {
     const alice = await signIn("alice");
-    const club = await createClub(alice, { features: { discussionQuestions: true } });
+    const club = await createClub(alice);
 
     const res = await api.post<{ error: string }>(
       `/api/club/${club.slug}/reviews/999999/discussion-questions`,
@@ -576,7 +562,7 @@ describe("POST /api/club/:clubSlug/reviews/:workId/discussion-questions", () => 
 
   it("returns 500 when Gemini returns a payload the schema rejects", async () => {
     const alice = await signIn("alice");
-    const club = await createClub(alice, { features: { discussionQuestions: true } });
+    const club = await createClub(alice);
     const work = await addReviewedWork(club, alice, { externalId: null });
     server.use(
       http.post("https://generativelanguage.googleapis.com/*", () =>

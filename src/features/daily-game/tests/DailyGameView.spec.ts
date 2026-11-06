@@ -6,7 +6,7 @@ import { type DailyGamePuzzle } from "@/../lib/types/dailyGame";
 import { ClubType } from "@/../lib/types/generated/db";
 import { dailyGamePuzzle } from "@/mocks/data/dailyGame";
 import { server } from "@/mocks/server";
-import { render } from "@/tests/utils";
+import { logIn, render } from "@/tests/utils";
 
 /** The puzzle number the endpoint serves for each day, and nothing for any other. */
 function servePuzzles(days: Record<string, number>) {
@@ -39,6 +39,16 @@ const guessList = () => screen.getByRole("list", { name: "Guesses ranked by clos
 const row = (title: string) =>
   within(guessList()).getByRole("listitem", { name: new RegExp(`^${title} \\(`) });
 
+const chooseFromMenu = async (user: User, item: string) => {
+  await user.click(screen.getByRole("button", { name: "Game options" }));
+  await user.click(screen.getByRole("menuitem", { name: item }));
+};
+
+const giveUp = async (user: User) => {
+  await chooseFromMenu(user, "Give up");
+  await user.click(screen.getByRole("button", { name: "Yes, reveal it" }));
+};
+
 function statValue(label: string): string | undefined {
   return within(screen.getByRole("group", { name: label }))
     .getByRole("definition")
@@ -56,7 +66,26 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.useRealTimers();
+  Reflect.deleteProperty(navigator, "share");
+  Reflect.deleteProperty(navigator, "userAgent");
 });
+
+/** A phone's share sheet, which jsdom lacks; returns what the player handed it. */
+function mockShareSheet(): ShareData[] {
+  const shared: ShareData[] = [];
+  Object.defineProperty(navigator, "userAgent", {
+    value: "Mozilla/5.0 (Linux; Android 14; Pixel 8) Mobile Safari/537.36",
+    configurable: true,
+  });
+  Object.defineProperty(navigator, "share", {
+    value: (data: ShareData) => {
+      shared.push(data);
+      return Promise.resolve();
+    },
+    configurable: true,
+  });
+  return shared;
+}
 
 describe("DailyGameView", () => {
   it("opens the player's own day's puzzle", async () => {
@@ -117,7 +146,7 @@ describe("DailyGameView", () => {
       screen.getByRole("option", { name: "The Godfather Part II (1974)" }),
     ).toBeInTheDocument();
 
-    await user.click(screen.getByText("How to play"));
+    await user.click(screen.getByRole("heading", { level: 1 }));
     expect(screen.queryAllByRole("option")).toStrictEqual([]);
   });
 
@@ -175,11 +204,56 @@ describe("DailyGameView", () => {
     expect(screen.getByRole("button", { name: "Result copied" })).toBeInTheDocument();
   });
 
+  it("links the shared result back to the game, tagged as a share", async () => {
+    const { user } = await renderGame();
+
+    await guess(user, "Heat");
+    await user.click(screen.getByRole("button", { name: "Share result" }));
+
+    expect(await navigator.clipboard.readText()).toMatch(
+      /\/reelated\?utm_source=share&utm_campaign=reelated$/,
+    );
+  });
+
+  it("opens the phone's share sheet with the result", async () => {
+    const shareSheet = mockShareSheet();
+    const { user } = await renderGame();
+
+    await guess(user, "Heat");
+    await user.click(screen.getByRole("button", { name: "Share result" }));
+
+    expect(shareSheet).toHaveLength(1);
+    expect(shareSheet[0]?.text).toContain("Reelated #7: I got it in 1 guess.");
+    expect(screen.getByRole("button", { name: "Share result" })).toBeInTheDocument();
+  });
+
+  it("invites a signed-out player to start a club once they finish", async () => {
+    const { user } = await renderGame();
+
+    expect(screen.queryByRole("link", { name: "Start your own club" })).not.toBeInTheDocument();
+
+    await guess(user, "Heat");
+
+    expect(screen.getByRole("link", { name: "Start your own club" })).toHaveAttribute(
+      "href",
+      "/newClub?utm_source=reelated&utm_medium=daily_game&utm_campaign=start_club",
+    );
+  });
+
+  it("does not pitch a club to a player who is signed in", async () => {
+    const { user, pinia } = await renderGame();
+    logIn(pinia);
+
+    await guess(user, "Heat");
+
+    expect(screen.queryByRole("link", { name: "Start your own club" })).not.toBeInTheDocument();
+  });
+
   it("reveals a closer movie as a hint", async () => {
     const { user } = await renderGame();
 
     await guess(user, "Alien");
-    await user.click(screen.getByRole("button", { name: "Get a hint" }));
+    await chooseFromMenu(user, "Hint");
 
     expect(within(row("The Godfather")).getByText("Hint")).toBeInTheDocument();
     expect(within(row("The Godfather")).getByText("#6")).toBeInTheDocument();
@@ -189,7 +263,7 @@ describe("DailyGameView", () => {
     const { user } = await renderGame();
 
     await guess(user, "Alien");
-    await user.click(screen.getByRole("button", { name: "Get a hint" }));
+    await chooseFromMenu(user, "Hint");
     expect(screen.getByText("1 guess · 1 hint")).toBeInTheDocument();
 
     await guess(user, "Heat");
@@ -204,9 +278,8 @@ describe("DailyGameView", () => {
   it("shares a give-up after only a hint without calling the hint a guess", async () => {
     const { user } = await renderGame();
 
-    await user.click(screen.getByRole("button", { name: "Get a hint" }));
-    await user.click(screen.getByRole("button", { name: "Give up" }));
-    await user.click(screen.getByRole("button", { name: "Yes, reveal it" }));
+    await chooseFromMenu(user, "Hint");
+    await giveUp(user);
     await user.click(screen.getByRole("button", { name: "Share result" }));
 
     expect(await navigator.clipboard.readText()).toContain(
@@ -217,12 +290,53 @@ describe("DailyGameView", () => {
   it("reveals the answer when the player gives up", async () => {
     const { user } = await renderGame();
 
-    await user.click(screen.getByRole("button", { name: "Give up" }));
-    await user.click(screen.getByRole("button", { name: "Yes, reveal it" }));
+    await giveUp(user);
 
     expect(screen.getByRole("heading", { name: "Better luck tomorrow" })).toBeInTheDocument();
     expect(screen.getByText("Heat")).toBeInTheDocument();
     expect(statValue("Solved")).toBe("0");
+  });
+
+  it("keeps playing when the player backs out of giving up", async () => {
+    const { user } = await renderGame();
+
+    await chooseFromMenu(user, "Give up");
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(screen.queryByRole("heading", { name: "Better luck tomorrow" })).not.toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Guess a movie" })).toBeInTheDocument();
+  });
+
+  it("offers no more hints once only the answer is left to give", async () => {
+    const { user } = await renderGame();
+
+    await guess(user, "Collateral");
+    await user.click(screen.getByRole("button", { name: "Game options" }));
+
+    expect(screen.getByRole("menuitem", { name: "Hint" })).toHaveAttribute("aria-disabled", "true");
+  });
+
+  it("explains the rules from the menu", async () => {
+    const { user } = await renderGame();
+
+    await chooseFromMenu(user, "How to play");
+
+    expect(screen.getByRole("heading", { name: "How to play" })).toBeInTheDocument();
+    expect(screen.getByText(/A hint reveals a movie halfway/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Got it" }));
+    expect(screen.queryByRole("heading", { name: "How to play" })).not.toBeInTheDocument();
+  });
+
+  it("leaves only the rules in the menu once the game is over", async () => {
+    const { user } = await renderGame();
+
+    await guess(user, "Heat");
+    await user.click(screen.getByRole("button", { name: "Game options" }));
+
+    expect(screen.getAllByRole("menuitem").map((item) => item.textContent?.trim())).toStrictEqual([
+      "How to play",
+    ]);
   });
 
   it("keeps the player's progress when they come back", async () => {

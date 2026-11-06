@@ -6,6 +6,12 @@ interface ShareOptions {
   text?: string;
 }
 
+interface ShareTextOptions {
+  /** The whole message, with any link already in it. */
+  text: string;
+  copiedMessage: string;
+}
+
 interface ShareImageOptions {
   blob: Blob;
   fileName: string;
@@ -95,6 +101,32 @@ export function useShare() {
   };
 
   /**
+   * Shares a self-contained message, such as a game result with its link at
+   * the end, through the share sheet on mobile and the clipboard elsewhere.
+   * Only `text` goes to the sheet: with no separate `url` there is nothing for
+   * iOS's Copy action to drop. Resolves to whether the text was copied.
+   */
+  const shareText = async ({ text, copiedMessage }: ShareTextOptions): Promise<boolean> => {
+    if (canUseNativeShare()) {
+      try {
+        await navigator.share({ text });
+        return false;
+      } catch (error) {
+        if (error instanceof Error && error.name === "AbortError") return false;
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success(copiedMessage);
+      return true;
+    } catch (error) {
+      console.error("Failed to copy to clipboard:", error);
+      toast.error("Couldn't copy to the clipboard");
+      return false;
+    }
+  };
+
+  /**
    * Hands an image to the share sheet on mobile, so it can go straight to a
    * story or a chat, and downloads it everywhere else.
    */
@@ -124,6 +156,7 @@ export function useShare() {
 
   return {
     share,
+    shareText,
     shareImage,
     canUseNativeShare,
   };

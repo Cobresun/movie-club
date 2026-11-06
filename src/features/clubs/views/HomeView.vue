@@ -1,106 +1,140 @@
 <template>
-  <div class="px-6 py-10 md:px-24 md:py-16 lg:px-40">
-    <!-- Hero -->
-    <div
-      class="flex flex-col space-y-10 md:flex-row-reverse md:items-center md:space-y-0 md:space-x-14"
+  <div class="px-6 pb-16 md:px-12">
+    <section
+      class="mx-auto flex max-w-5xl flex-col items-center gap-6 pt-10 pb-12 text-center md:pt-16"
     >
-      <div class="grow-0">
-        <img :src="homeCinemaSvg" alt="Friends watching a movie together" />
-      </div>
-
-      <div class="flex flex-col space-y-6 text-left">
-        <h1 class="text-3xl leading-tight font-bold md:text-5xl">
-          Get your 🍿 ready for MovieClub: The Book Club for Movies
-        </h1>
-        <h2 class="text-1xl font-light md:text-2xl">
-          Rate movies, compare favorites, and find patterns.
-        </h2>
-        <div>
-          <v-btn class="px-4 py-1 text-lg" @click="getStarted"> Get started — it's free </v-btn>
-        </div>
-      </div>
-    </div>
-
-    <!-- Feature highlights -->
-    <h2 class="mt-16 mb-8 text-center text-2xl font-bold md:text-3xl">
-      Everything your club needs
-    </h2>
-    <div class="mx-auto grid max-w-4xl gap-6 md:grid-cols-3">
-      <LandingFeatureCard
-        v-for="feature in features"
-        :key="feature.title"
-        :image="feature.image"
-        :title="feature.title"
-        :description="feature.description"
-      />
-    </div>
-
-    <!-- Daily games -->
-    <div
-      v-for="game in dailyGames"
-      :key="game.clubType"
-      class="from-secondary to-lowBackground mx-auto mt-16 flex max-w-4xl flex-col items-center gap-4 rounded-xl bg-linear-to-r p-6 text-center md:flex-row md:justify-between md:text-left"
-    >
-      <div>
-        <h2 class="text-2xl font-bold">Play {{ game.name }}, the daily {{ game.noun }} game</h2>
-        <p class="mt-1 font-light">{{ game.tagline }}</p>
-      </div>
-      <router-link
-        :to="{ name: 'DailyGame', params: { clubType: game.clubType } }"
-        class="bg-primary rounded-md px-4 py-2 text-lg font-bold tracking-wide whitespace-nowrap transition hover:brightness-110 active:brightness-105"
-      >
-        Play today's {{ game.noun }}
-      </router-link>
-    </div>
-
-    <!-- Closing CTA -->
-    <div class="mt-16 flex flex-col items-center space-y-6 text-center">
-      <p class="max-w-2xl text-xl font-light">
-        Movies or books — start a club, invite your friends with a single link, and settle the
-        scores together.
+      <ul class="flex flex-wrap justify-center gap-2" aria-label="Club types">
+        <li
+          v-for="option in clubTypeOptions()"
+          :key="option.clubType"
+          class="bg-lowBackground flex items-center gap-2 rounded-full border border-white/10 px-4 py-1.5 text-sm text-gray-300"
+        >
+          <mdicon :name="option.icon" :size="16" class="text-highlight" aria-hidden="true" />
+          {{ option.pluralLabel }}
+        </li>
+      </ul>
+      <h1 class="max-w-4xl text-4xl leading-tight font-extrabold tracking-tight md:text-6xl">
+        The book club for movies. Every opinion on the record.
+      </h1>
+      <p class="max-w-2xl text-lg leading-relaxed text-gray-300 md:text-xl">
+        Score what your club watches, see everyone’s ratings side by side, find out who shares your
+        taste, and crown the year’s best at your own awards night.
       </p>
-      <v-btn class="px-4 py-1 text-lg" @click="getStarted"> Start your club </v-btn>
-    </div>
+      <div class="flex flex-wrap justify-center gap-3">
+        <v-btn class="px-4 py-2 text-lg" @click="getStarted">Start your club — it’s free</v-btn>
+        <router-link
+          v-for="game in dailyGames"
+          :key="game.path"
+          :to="game.path"
+          class="flex items-center rounded-md border border-white/30 px-5 py-2 text-lg font-bold tracking-wide transition hover:bg-white/10"
+        >
+          Play today’s {{ game.name }}
+        </router-link>
+      </div>
+    </section>
+
+    <LandingClubPreview />
+
+    <LandingShowcase eyebrow="Statistics" title="Find your taste twin. Expose the toughest critic.">
+      <p>
+        Every score feeds your club’s stats. See who agrees with whom, which picks split the room,
+        the genres you keep coming back to, and how your club stacks up against the critics.
+      </p>
+      <template #preview>
+        <LandingStatsPreview />
+      </template>
+    </LandingShowcase>
+
+    <LandingShowcase eyebrow="Club awards" title="Run your own awards season." reversed>
+      <p>
+        At the end of the year, invent your categories, nominate from everything you watched, and
+        vote. Movie Club tallies the ballots and hands out the trophies at your ceremony.
+      </p>
+      <template #preview>
+        <LandingAwardsPreview />
+      </template>
+    </LandingShowcase>
+
+    <LandingShowcase eyebrow="Wrapped" title="Your club’s year, told in stories.">
+      <p>
+        Each year gets a tap-through recap: what you watched, who agreed, the hottest takes, the
+        most divisive pick and a trivia round to close it out.
+      </p>
+      <template #preview>
+        <LandingWrappedPreview />
+      </template>
+    </LandingShowcase>
+
+    <LandingExtras />
+
+    <LandingDailyGamePreview
+      v-for="game in dailyGames"
+      :key="game.path"
+      :daily-game="game"
+      :noun="game.noun"
+    />
+
+    <section
+      aria-labelledby="landing-steps-heading"
+      class="mx-auto flex max-w-6xl flex-col gap-10 py-16 text-left lg:py-24"
+    >
+      <h2 id="landing-steps-heading" class="text-3xl leading-tight font-bold md:text-4xl">
+        Up and running before the trailers end
+      </h2>
+      <ol class="grid gap-4 md:grid-cols-3">
+        <li
+          v-for="(step, index) in STEPS"
+          :key="step.title"
+          class="flex flex-col gap-3 rounded-2xl border border-white/15 p-6"
+        >
+          <span class="text-highlight text-4xl font-extrabold" aria-hidden="true">
+            {{ index + 1 }}
+          </span>
+          <h3 class="text-xl font-bold">{{ step.title }}</h3>
+          <p class="text-gray-300">{{ step.description }}</p>
+        </li>
+      </ol>
+    </section>
+
+    <section class="flex flex-col items-center gap-6 py-12 text-center">
+      <h2 class="max-w-3xl text-4xl leading-tight font-extrabold tracking-tight md:text-5xl">
+        Your next club night deserves a scoreboard.
+      </h2>
+      <p class="text-lg text-gray-300">Free for your whole club.</p>
+      <v-btn class="px-4 py-2 text-lg" @click="getStarted">Start your club</v-btn>
+    </section>
   </div>
 </template>
 
 <script setup lang="ts">
-import LandingFeatureCard from "../components/LandingFeatureCard.vue";
+import LandingAwardsPreview from "../components/landing/LandingAwardsPreview.vue";
+import LandingClubPreview from "../components/landing/LandingClubPreview.vue";
+import LandingDailyGamePreview from "../components/landing/LandingDailyGamePreview.vue";
+import LandingExtras from "../components/landing/LandingExtras.vue";
+import LandingShowcase from "../components/landing/LandingShowcase.vue";
+import LandingStatsPreview from "../components/landing/LandingStatsPreview.vue";
+import LandingWrappedPreview from "../components/landing/LandingWrappedPreview.vue";
 import { isDefined } from "@/../lib/checks/checks";
-import homeCinemaSvg from "@/assets/images/home_cinema.svg";
-import reviewSvg from "@/assets/images/menu-images/review.svg";
-import statisticsSvg from "@/assets/images/menu-images/statistics.svg";
-import watchlistSvg from "@/assets/images/menu-images/watchlist.svg";
-import { clubTypeConfig, dailyGameClubTypes } from "@/common/clubType";
+import { clubTypeConfig, clubTypeOptions, dailyGameClubTypes } from "@/common/clubType";
 import { useAuthStore } from "@/stores/auth";
 
 const dailyGames = dailyGameClubTypes().flatMap((clubType) => {
   const { noun, dailyGame } = clubTypeConfig(clubType);
-  return isDefined(dailyGame) ? [{ clubType, noun, ...dailyGame }] : [];
+  return isDefined(dailyGame) ? [{ noun, ...dailyGame }] : [];
 });
 
-interface FeatureHighlight {
-  image: string;
-  title: string;
-  description: string;
-}
-
-const features: FeatureHighlight[] = [
+const STEPS = [
   {
-    image: reviewSvg,
-    title: "Reviews & Scores",
-    description: "Score every movie as a club and see everyone's ratings side by side.",
+    title: "Start a club",
+    description: "Pick what you’re into and give your club a name.",
   },
   {
-    image: watchlistSvg,
-    title: "Shared Lists",
-    description: "Keep a shared watchlist and backlog so the next pick is never a debate.",
+    title: "Send one link",
+    description: "Drop the invite in your group chat. Friends tap it and they’re in.",
   },
   {
-    image: statisticsSvg,
-    title: "Statistics",
-    description:
-      "Charts reveal your club's patterns — top genres, toughest critics, and taste twins.",
+    title: "Score, compare, repeat",
+    description: "Stats, hot takes and your year-end awards build themselves as you go.",
   },
 ];
 

@@ -1,9 +1,60 @@
 <template>
   <div class="mx-auto flex max-w-2xl flex-col gap-6 px-4 pt-2 pb-16 text-left">
-    <header class="text-center">
-      <h1 class="text-3xl font-bold sm:text-4xl">
+    <header class="relative text-center">
+      <h1 class="px-12 text-3xl font-bold sm:text-4xl">
         {{ dailyGame.name }} <span class="text-highlight">#{{ game.puzzle }}</span>
       </h1>
+      <Menu as="div" class="absolute top-0 right-0">
+        <MenuButton
+          class="duration-fast ease-standard flex size-11 items-center justify-center rounded-full text-white/80 transition-colors hover:bg-white/10"
+          aria-label="Game options"
+        >
+          <mdicon name="dots-vertical" :size="24" />
+        </MenuButton>
+        <transition
+          enter-active-class="transition duration-fast ease-standard"
+          enter-from-class="-translate-y-1 scale-95 opacity-0"
+          leave-active-class="transition duration-fast ease-standard"
+          leave-to-class="-translate-y-1 scale-95 opacity-0"
+        >
+          <MenuItems
+            class="bg-lowBackground absolute top-full right-0 z-50 mt-1 min-w-[200px] origin-top-right overflow-hidden rounded-xl py-1.5 text-left shadow-lg"
+          >
+            <MenuItem v-slot="{ active }">
+              <button
+                class="flex w-full items-center gap-3 px-4 py-2.5"
+                :class="active ? 'bg-white/10' : ''"
+                @click="showRules = true"
+              >
+                <mdicon name="help-circle-outline" :size="20" />
+                How to play
+              </button>
+            </MenuItem>
+            <template v-if="!game.finished.value">
+              <MenuItem v-slot="{ active, disabled }" :disabled="!game.canHint.value">
+                <button
+                  class="flex w-full items-center gap-3 px-4 py-2.5"
+                  :class="[active ? 'bg-white/10' : '', disabled ? 'opacity-40' : '']"
+                  @click="game.takeHint"
+                >
+                  <mdicon name="lightbulb-on-outline" :size="20" />
+                  Hint
+                </button>
+              </MenuItem>
+              <MenuItem v-slot="{ active }">
+                <button
+                  class="flex w-full items-center gap-3 px-4 py-2.5"
+                  :class="active ? 'bg-white/10' : ''"
+                  @click="confirmingGiveUp = true"
+                >
+                  <mdicon name="flag-outline" :size="20" />
+                  Give up
+                </button>
+              </MenuItem>
+            </template>
+          </MenuItems>
+        </transition>
+      </Menu>
       <p class="mt-2 text-white/70">
         Guess today's mystery {{ noun }}. Every guess is ranked by how close it is — #1 is the
         answer.
@@ -83,54 +134,64 @@
       </ul>
     </section>
 
-    <div v-if="!game.finished.value" class="flex flex-wrap justify-center gap-3">
-      <v-btn class="px-3" :disabled="!game.canHint.value" @click="game.takeHint">
-        <mdicon name="lightbulb-on-outline" :size="20" class="mr-2" />
-        Get a hint
-      </v-btn>
-      <template v-if="confirmingGiveUp">
-        <v-btn class="px-3" @click="giveUp">Yes, reveal it</v-btn>
-        <v-btn class="px-3" @click="confirmingGiveUp = false">Keep guessing</v-btn>
-      </template>
-      <v-btn v-else class="px-3" @click="confirmingGiveUp = true">
-        <mdicon name="flag-outline" :size="20" class="mr-2" />
-        Give up
-      </v-btn>
-    </div>
+    <Teleport to="body">
+      <v-modal v-if="showRules" size="sm" z-index="60" @close="showRules = false">
+        <section aria-labelledby="daily-game-rules" class="flex flex-col gap-4 text-left">
+          <h2 id="daily-game-rules" class="text-xl font-bold">How to play</h2>
+          <ul class="list-disc space-y-1.5 pl-5 text-sm text-white/80">
+            <li>
+              There is one mystery {{ noun }} a day, drawn from {{ game.poolSize }} well-known
+              {{ noun }}s. You can guess any of them.
+            </li>
+            <li>
+              Each guess gets a rank: #1 is the answer, #2 the next most similar {{ noun }}, and so
+              on down to #{{ game.poolSize }}.
+            </li>
+            <li>
+              {{ dailyGame.similarityRule }} The clues under each guess show what it has in common
+              with the answer.
+            </li>
+            <li>
+              Stuck? A hint reveals a {{ noun }} halfway between your best guess and the answer.
+              Your progress is saved on this device, so you can come back to it.
+            </li>
+          </ul>
+          <v-btn class="self-end px-4" @click="showRules = false">Got it</v-btn>
+        </section>
+      </v-modal>
+    </Teleport>
 
-    <details class="bg-lowBackground rounded-xl px-4 py-3 text-sm text-white/80">
-      <summary class="cursor-pointer font-semibold text-white">How to play</summary>
-      <ul class="mt-2 list-disc space-y-1.5 pl-5">
-        <li>
-          There is one mystery {{ noun }} a day, drawn from {{ game.poolSize }} well-known
-          {{ noun }}s. You can guess any of them.
-        </li>
-        <li>
-          Each guess gets a rank: #1 is the answer, #2 the next most similar {{ noun }}, and so on
-          down to #{{ game.poolSize }}.
-        </li>
-        <li>
-          {{ dailyGame.similarityRule }} The clues under each guess show what it has in common with
-          the answer.
-        </li>
-        <li>
-          Stuck? A hint reveals a {{ noun }} halfway between your best guess and the answer. Your
-          progress is saved on this device, so you can come back to it.
-        </li>
-      </ul>
-    </details>
+    <DeleteConfirmationModal
+      :show="confirmingGiveUp"
+      title="Give up?"
+      :message="`Today's ${noun} will be revealed, and your streak will start over.`"
+      confirm-label="Yes, reveal it"
+      @confirm="giveUp"
+      @cancel="confirmingGiveUp = false"
+    />
+
+    <!-- The banner hides itself from signed-in players. -->
+    <SharedPageCtaBanner
+      v-if="game.finished.value"
+      source="daily_game"
+      :utm-source="gameTag(dailyGame.path)"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
+import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/vue";
 import { computed, ref, watch } from "vue";
-import { useToast } from "vue-toastification";
 
 import { hasElements, hasValue, isDefined } from "@/../lib/checks/checks";
 import { type DailyGamePuzzle, type DailyGameWork } from "@/../lib/types/dailyGame";
 import { type DailyGameConfig } from "@/common/clubType";
+import DeleteConfirmationModal from "@/common/components/DeleteConfirmationModal.vue";
+import SharedPageCtaBanner from "@/common/components/SharedPageCtaBanner.vue";
+import { useShare } from "@/common/composables/useShare";
 import GuessInput from "@/features/daily-game/components/GuessInput.vue";
 import GuessRow from "@/features/daily-game/components/GuessRow.vue";
+import { gameTag, sharedGameUrl } from "@/features/daily-game/game";
 import { playerId } from "@/features/daily-game/playerId";
 import { useDailyGame } from "@/features/daily-game/useDailyGame";
 import { useRecordDailyGameResult } from "@/service/useDailyGame";
@@ -143,7 +204,7 @@ const { puzzle, dailyGame, noun } = defineProps<{
 }>();
 
 const game = useDailyGame(puzzle, dailyGame.name);
-const toast = useToast();
+const { shareText } = useShare();
 
 const { mutate: recordResult } = useRecordDailyGameResult(puzzle.clubType, puzzle.date);
 
@@ -159,6 +220,7 @@ watch(game.finished, (finished) => {
 
 const notice = ref<string>();
 const confirmingGiveUp = ref(false);
+const showRules = ref(false);
 const copied = ref(false);
 
 const onPick = (work: DailyGameWork) => {
@@ -204,14 +266,9 @@ const stats = computed(() => [
 const shareLabel = computed(() => (copied.value ? "Result copied" : "Share result"));
 
 const shareResult = async () => {
-  try {
-    await navigator.clipboard.writeText(
-      game.share(`${window.location.origin}/play/${puzzle.clubType}`),
-    );
-    copied.value = true;
-    toast.success("Result copied — paste it to your friends!");
-  } catch {
-    toast.error("Couldn't copy your result");
-  }
+  copied.value = await shareText({
+    text: game.share(sharedGameUrl(window.location.origin, dailyGame.path)),
+    copiedMessage: "Result copied — paste it to your friends!",
+  });
 };
 </script>

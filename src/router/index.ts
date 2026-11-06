@@ -9,7 +9,7 @@ import {
 import { hasElements, isDefined, isString } from "../../lib/checks/checks.js";
 import { ClubType } from "../../lib/types/generated/db";
 import { DEFAULT_CLUB_SECTION } from "../common/clubSections";
-import { dailyGameClubTypes } from "../common/clubType";
+import { clubTypeDailyGame, dailyGameClubTypes } from "../common/clubType";
 import {
   getLastClubSection,
   rememberClubSection,
@@ -21,6 +21,23 @@ import ReviewView from "../features/reviews/views/ReviewView.vue";
 import ClubRouterView from "./ClubRouterView.vue";
 import { installViewTransitions } from "./viewTransitions";
 import { useAuthStore } from "@/stores/auth";
+
+const dailyGameRoutes = dailyGameClubTypes().flatMap((clubType) => {
+  const dailyGame = clubTypeDailyGame(clubType);
+  return isDefined(dailyGame)
+    ? [
+        {
+          path: dailyGame.path,
+          name: `DailyGame-${clubType}`,
+          component: () => import("../features/daily-game/views/DailyGameView.vue"),
+          props: { clubType },
+          meta: {
+            noAuth: true,
+          },
+        },
+      ]
+    : [];
+});
 
 const checkClubAccess = async (
   to: RouteLocationNormalized,
@@ -224,22 +241,15 @@ const routes: RouteRecordRaw[] = [
   {
     path: "/play",
     name: "DailyGames",
-    redirect: () => {
-      const [first] = dailyGameClubTypes();
-      return isDefined(first) ? { name: "DailyGame", params: { clubType: first } } : { path: "/" };
-    },
+    redirect: () => dailyGameRoutes[0]?.path ?? "/",
   },
+  // Results shared as /play/<club type> links still reach their game.
   {
     path: "/play/:clubType",
-    name: "DailyGame",
-    component: () => import("../features/daily-game/views/DailyGameView.vue"),
-    beforeEnter: (to) =>
-      dailyGameClubTypes().some((type) => type === to.params.clubType) || { name: "DailyGames" },
-    props: true,
-    meta: {
-      noAuth: true,
-    },
+    redirect: (to) =>
+      dailyGameRoutes.find((route) => route.props.clubType === to.params.clubType)?.path ?? "/play",
   },
+  ...dailyGameRoutes,
   {
     path: "/profile",
     name: "Profile",
