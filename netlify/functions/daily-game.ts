@@ -2,10 +2,16 @@ import { type Handler, type HandlerContext, type HandlerEvent } from "@netlify/f
 import { z } from "zod";
 
 import { hasElements, isDefined } from "../../lib/checks/checks.js";
-import { isSomebodysToday, puzzleDateSchema, puzzleNumber } from "../../lib/dailyGame.js";
+import {
+  dailyGameResultBodySchema,
+  isSomebodysToday,
+  puzzleDateSchema,
+  puzzleNumber,
+} from "../../lib/dailyGame.js";
 import { type DailyGamePuzzle } from "../../lib/types/dailyGame";
 import { ClubType } from "../../lib/types/generated/db.js";
 import DailyGameRepository from "./repositories/DailyGameRepository";
+import { sessionUserId } from "./utils/auth";
 import {
   addMissingWorks,
   answerFor,
@@ -13,6 +19,7 @@ import {
   loadPool,
   MIN_POOL_SIZE,
 } from "./utils/dailyGame";
+import { parseBody } from "./utils/parseBody";
 import { providerForClub } from "./utils/providers";
 import {
   type DailyGame,
@@ -20,7 +27,7 @@ import {
   type MediaProvider,
 } from "./utils/providers/types";
 import { badRequest, notFound, ok } from "./utils/responses";
-import { Router } from "./utils/router";
+import { isRouterResponse, Router } from "./utils/router";
 
 const router = new Router("/api/daily-game");
 
@@ -99,6 +106,36 @@ router.get("/:clubType/:date", async ({ params }, res) => {
     ...response,
     headers: { ...response.headers, "Netlify-CDN-Cache-Control": CDN_CACHE_CONTROL },
   });
+});
+
+// Public like the puzzle itself. Only the guesses are taken from the player:
+// whether they solved it is checked against the day's answer here, and a
+// signed-in player's account comes from their session, never the body.
+router.post("/:clubType/:date/result", async ({ params, event }, res) => {
+  const parsed = paramsSchema.safeParse(params);
+  if (!parsed.success) return res(badRequest("Expected a club type and a date like 2026-10-22"));
+  const { clubType, date } = parsed.data;
+  if (!isSomebodysToday(date, new Date())) {
+    return res(badRequest("Only today's puzzle can be played"));
+  }
+
+  const body = parseBody(event, dailyGameResultBodySchema, res);
+  if (isRouterResponse(body)) return body;
+
+  const provider = providerForClub(clubType);
+  if (!isDefined(provider.dailyGame)) return res(notFound("This club type has no daily game"));
+  const answerId = await DailyGameRepository.getAnswer(provider.type, date);
+  if (!isDefined(answerId)) return res(notFound("There is no puzzle for that day"));
+
+  const guesses = new Set(body.guesses);
+  await DailyGameRepository.recordResult(provider.type, date, {
+    playerId: body.playerId,
+    userId: await sessionUserId(event),
+    solved: guesses.has(answerId),
+    guesses: guesses.size,
+    hints: body.hints,
+  });
+  return res(ok());
 });
 
 const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>

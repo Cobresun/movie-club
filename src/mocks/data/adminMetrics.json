@@ -446,5 +446,41 @@
       { "utmSource": "reddit", "utmCampaign": "test1_bookclub", "signups": 14, "activated": 5 },
       { "utmSource": "share", "utmCampaign": null, "signups": 3, "activated": 1 }
     ]
-  }
+  },
+  "dailyGames": [
+    {
+      "workType": "movie",
+      "players": { "current": 48, "previous": 20 },
+      "games": { "current": 130, "previous": 44 },
+      "solves": { "numerator": 104, "denominator": 130 },
+      "averageGuesses": 7.4,
+      "returning": { "numerator": 27, "denominator": 48 },
+      "puzzles": [
+        {
+          "date": "2026-09-26",
+          "puzzle": 12,
+          "answer": "Heat",
+          "players": 9,
+          "solved": 8,
+          "averageGuesses": 5.25
+        },
+        {
+          "date": "2026-09-25",
+          "puzzle": 11,
+          "answer": "Paddington 2",
+          "players": 14,
+          "solved": 10,
+          "averageGuesses": 9.1
+        },
+        {
+          "date": "2026-09-24",
+          "puzzle": 10,
+          "answer": null,
+          "players": 0,
+          "solved": 0,
+          "averageGuesses": null
+        }
+      ]
+    }
+  ]
 }
