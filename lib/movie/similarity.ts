@@ -33,9 +33,10 @@ function names(people: readonly { name: string }[]): string[] {
  */
 export const makeMovieScorer = (corpus: readonly (MovieDataSummary | undefined)[]): MovieScorer => {
   const directorIdf = buildIdf(corpus, (d) => names(d?.directors ?? []));
-  // Bulk payloads carry cast names only (castNames); full actor objects live in
-  // the per-work detail payload and aren't available for pivot scoring.
-  const castIdf = buildIdf(corpus, (d) => d?.castNames ?? []);
+  // Major cast only (see lib/movie/majorCast.ts): the full credit list runs to
+  // extras and stunt performers, whose length dilutes a shared lead in a big
+  // ensemble and whose rarity makes a shared bit-part outweigh one.
+  const castIdf = buildIdf(corpus, (d) => d?.majorCastNames ?? []);
   const companyIdf = buildIdf(corpus, (d) => d?.production_companies ?? []);
   const genreIdf = buildIdf(corpus, (d) => d?.genres ?? []);
   const totalWeight = sum(Object.values(MOVIE_FIELD_WEIGHTS));
@@ -46,7 +47,7 @@ export const makeMovieScorer = (corpus: readonly (MovieDataSummary | undefined)[
     const weighted =
       MOVIE_FIELD_WEIGHTS.director *
         weightedJaccard(names(a.directors), names(b.directors), directorIdf) +
-      MOVIE_FIELD_WEIGHTS.cast * weightedJaccard(a.castNames, b.castNames, castIdf) +
+      MOVIE_FIELD_WEIGHTS.cast * weightedJaccard(a.majorCastNames, b.majorCastNames, castIdf) +
       MOVIE_FIELD_WEIGHTS.company *
         weightedJaccard(a.production_companies, b.production_companies, companyIdf) +
       MOVIE_FIELD_WEIGHTS.genre * weightedJaccard(a.genres, b.genres, genreIdf) +
