@@ -21,7 +21,7 @@
       <template v-if="isListed" #date>
         <Listbox
           v-if="canChangeAddedBy"
-          :model-value="movie.addedBy"
+          :model-value="movie.addedBy ?? null"
           @update:model-value="onAddedBySelect"
         >
           <div class="relative mb-1">
@@ -53,6 +53,20 @@
                   <VAvatar :src="member.image" :name="member.name" :size="20" aria-hidden="true" />
                   <span class="flex-1 truncate">{{ member.name }}</span>
                   <mdicon v-if="selected" name="check" size="16" />
+                </li>
+              </ListboxOption>
+              <ListboxOption
+                v-if="hasValue(movie.addedBy)"
+                v-slot="{ active }"
+                :value="null"
+                as="template"
+              >
+                <li
+                  class="flex cursor-pointer items-center gap-2 border-t border-gray-700 px-4 py-2 text-sm text-gray-400"
+                  :class="{ 'bg-lowBackground': active }"
+                >
+                  <mdicon name="account-off-outline" size="20" aria-hidden="true" />
+                  <span class="flex-1 truncate">No one</span>
                 </li>
               </ListboxOption>
             </ListboxOptions>
@@ -440,8 +454,8 @@ const canChangeAddedBy = computed(
   () => !hasValue(props.movie.parentId) && hasElements(props.members),
 );
 
-const onAddedBySelect = (userId: string) => {
-  if (userId !== props.movie.addedBy && hasValue(reviewsListId.value)) {
+const onAddedBySelect = (userId: string | null) => {
+  if (userId !== (props.movie.addedBy ?? null) && hasValue(reviewsListId.value)) {
     updateAddedBy({ listId: reviewsListId.value, workId: props.movie.id, userId });
   }
 };

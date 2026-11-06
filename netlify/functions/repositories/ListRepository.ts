@@ -395,7 +395,7 @@ class ListRepository {
       .execute();
   }
 
-  async updateAddedBy(listId: string, workId: string, userId: string) {
+  async updateAddedBy(listId: string, workId: string, userId: string | null) {
     return db
       .updateTable("work_list_item")
       .set("added_by_user_id", userId)

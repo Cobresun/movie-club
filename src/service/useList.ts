@@ -426,14 +426,16 @@ export function useUpdateAddedBy(clubSlug: string, listId: string) {
   const auth = useAuthStore();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ workId, userId }: { workId: string; userId: string }) =>
+    mutationFn: ({ workId, userId }: { workId: string; userId: string | null }) =>
       auth.request.put(`/api/club/${clubSlug}/list/${listId}/items/${workId}/added-by`, {
         userId,
       }),
     onMutate: async ({ workId, userId }) => {
       await queryClient.cancelQueries({ queryKey: listKey(clubSlug, listId) });
       queryClient.setQueryData<DetailedWorkListItem[]>(listKey(clubSlug, listId), (currentList) =>
-        currentList?.map((item) => (item.id === workId ? { ...item, addedBy: userId } : item)),
+        currentList?.map((item) =>
+          item.id === workId ? { ...item, addedBy: userId ?? undefined } : item,
+        ),
       );
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey: listKey(clubSlug, listId) }),
@@ -630,14 +632,24 @@ export function useUpdateReviewAddedBy(clubSlug: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ listId, workId, userId }: { listId: string; workId: string; userId: string }) =>
+    mutationFn: ({
+      listId,
+      workId,
+      userId,
+    }: {
+      listId: string;
+      workId: string;
+      userId: string | null;
+    }) =>
       auth.request.put(`/api/club/${clubSlug}/list/${listId}/items/${workId}/added-by`, {
         userId,
       }),
     onMutate: async ({ workId, userId }) => {
       await queryClient.cancelQueries({ queryKey: reviewsListKey(clubSlug) });
       queryClient.setQueryData<DetailedReviewListItem[]>(reviewsListKey(clubSlug), (currentList) =>
-        currentList?.map((item) => (item.id === workId ? { ...item, addedBy: userId } : item)),
+        currentList?.map((item) =>
+          item.id === workId ? { ...item, addedBy: userId ?? undefined } : item,
+        ),
       );
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey: reviewsListKey(clubSlug) }),

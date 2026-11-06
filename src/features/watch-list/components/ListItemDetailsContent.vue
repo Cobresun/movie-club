@@ -65,7 +65,7 @@
       </Listbox>
       <Listbox
         v-if="members.length > 0"
-        :model-value="movie.addedBy"
+        :model-value="movie.addedBy ?? null"
         @update:model-value="onAddedBySelect"
       >
         <div class="relative">
@@ -93,6 +93,20 @@
                 <VAvatar :src="member.image" :name="member.name" :size="20" aria-hidden="true" />
                 <span class="flex-1 truncate">{{ member.name }}</span>
                 <mdicon v-if="selected" name="check" size="16" />
+              </li>
+            </ListboxOption>
+            <ListboxOption
+              v-if="hasValue(movie.addedBy)"
+              v-slot="{ active }"
+              :value="null"
+              as="template"
+            >
+              <li
+                class="flex cursor-pointer items-center gap-2 border-t border-gray-700 px-4 py-2 text-sm text-gray-400"
+                :class="{ 'bg-lowBackground': active }"
+              >
+                <mdicon name="account-off-outline" size="20" aria-hidden="true" />
+                <span class="flex-1 truncate">No one</span>
               </li>
             </ListboxOption>
           </ListboxOptions>
@@ -229,7 +243,8 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: "close" | "review" | "set-next-work" | "clear-next-work" | "delete"): void;
-  (e: "move-to-list" | "change-added-by", id: string): void;
+  (e: "move-to-list", id: string): void;
+  (e: "change-added-by", userId: string | null): void;
 }>();
 
 const { data: club } = useClub(props.clubSlug);
@@ -262,8 +277,8 @@ const onMoveSelect = async (value: string | null) => {
   moveToValue.value = null;
 };
 
-const onAddedBySelect = (userId: string) => {
-  if (userId !== props.movie.addedBy) {
+const onAddedBySelect = (userId: string | null) => {
+  if (userId !== (props.movie.addedBy ?? null)) {
     emit("change-added-by", userId);
   }
 };
