@@ -232,13 +232,24 @@ describe("AdminDashboardView", () => {
       within(newest)
         .getAllByRole("cell")
         .map((cell) => cell.textContent?.trim()),
-    ).toStrictEqual(["Heat", "9", "8", "5.3"]);
+    ).toStrictEqual(["Reveal", "9", "8", "5.3"]);
     // A day whose answer has left the catalog and nobody finished.
     expect(
       within(unplayed)
         .getAllByRole("cell")
         .map((cell) => cell.textContent?.trim()),
     ).toStrictEqual(["—", "0", "0", "—"]);
+  });
+
+  it("keeps each puzzle's answer hidden until it is asked for", async () => {
+    const { user } = render(AdminDashboardView);
+
+    await user.click(await screen.findByRole("button", { name: "Reveal the answer to #12" }));
+
+    const puzzles = screen.getByRole("table", { name: "Reelated puzzles" });
+    expect(within(puzzles).getByText("Heat")).toBeInTheDocument();
+    expect(within(puzzles).queryByText("Paddington 2")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Reveal the answer to #11" })).toBeInTheDocument();
   });
 
   it("explains that monthly actives need snapshots before there is a trend", async () => {

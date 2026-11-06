@@ -144,6 +144,7 @@ export interface DailyGameResult {
   player_id: string;
   puzzle_date: Timestamp;
   solved: boolean;
+  user_id: Int8 | null;
   work_type: WorkType;
 }
 
