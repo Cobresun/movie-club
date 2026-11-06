@@ -135,7 +135,7 @@ describe("POST /api/club", () => {
       as: alice,
     });
     expect(settings.body).toStrictEqual({
-      features: { awards: false, discussionQuestions: false },
+      features: { awards: false },
     });
   });
 

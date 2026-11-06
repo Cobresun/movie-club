@@ -187,11 +187,10 @@ describe("ClubView", () => {
       ).toBeInTheDocument();
     });
 
-    it("offers the experimental feature switches", async () => {
+    it("offers the experimental awards switch", async () => {
       render(ClubView);
 
       expect(await screen.findByLabelText("Awards")).toBeInTheDocument();
-      expect(screen.getByLabelText("AI discussion questions")).toBeInTheDocument();
     });
   });
 

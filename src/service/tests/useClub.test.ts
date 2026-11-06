@@ -34,7 +34,6 @@ const settingsBodySchema = z.object({
   features: z
     .object({
       awards: z.boolean(),
-      discussionQuestions: z.boolean(),
     })
     .partial()
     .optional(),
@@ -46,7 +45,7 @@ const createClubBodySchema = z.object({
 });
 
 function settingsApi(hold?: { until: Promise<void> }) {
-  const stored = { features: { awards: false, discussionQuestions: false } };
+  const stored = { features: { awards: false } };
 
   return {
     stored,
@@ -132,9 +131,7 @@ describe("useUpdateClubSettings", () => {
 
   it("rolls back to the previous settings when the request fails", async () => {
     server.use(
-      http.get("/api/club/:id/settings", () =>
-        HttpResponse.json({ features: { awards: false, discussionQuestions: false } }),
-      ),
+      http.get("/api/club/:id/settings", () => HttpResponse.json({ features: { awards: false } })),
       http.post("/api/club/:id/settings", () => new HttpResponse(null, { status: 500 })),
     );
 
@@ -151,33 +148,5 @@ describe("useUpdateClubSettings", () => {
     });
     // The optimistic true was shown, then onError restored the snapshot.
     expect(result.seen).toStrictEqual([false, true, false]);
-  });
-
-  it("merges a partial update, leaving the other features alone", async () => {
-    const api = settingsApi();
-    server.use(...api.handlers);
-
-    const { result } = withSetup(() => ({
-      settings: useClubSettings("test-club"),
-      update: useUpdateClubSettings("test-club"),
-    }));
-
-    await vi.waitFor(() => {
-      expect(result.settings.data.value?.features).toStrictEqual({
-        awards: false,
-        discussionQuestions: false,
-      });
-    });
-
-    result.update.mutate({ features: { discussionQuestions: true } });
-
-    // The invalidated query re-reads what the server actually stored.
-    await vi.waitFor(() => {
-      expect(result.update.isSuccess.value).toBe(true);
-      expect(result.settings.data.value?.features).toStrictEqual({
-        awards: false,
-        discussionQuestions: true,
-      });
-    });
   });
 });

@@ -229,7 +229,7 @@
     <CommentThread v-if="isListed" :work-id="movie.id" :club-slug="clubId" />
 
     <DiscussionQuestions
-      v-if="isListed && discussionQuestionsEnabled"
+      v-if="isListed"
       :club-slug="clubId"
       :work-id="movie.id"
       :media-noun="mediaNoun"
@@ -353,7 +353,7 @@ import WorkDescription from "@/common/components/WorkDescription.vue";
 import WorkPosterHero from "@/common/components/WorkPosterHero.vue";
 import { useShare } from "@/common/composables/useShare";
 import { asBook, asMovie, formatDate, workPosterUrl } from "@/common/workDisplay";
-import { useClub, useClubSettings, useClubSlug } from "@/service/useClub";
+import { useClub, useClubSlug } from "@/service/useClub";
 import {
   useReviewsList,
   useReviewsListId,
@@ -398,15 +398,11 @@ const confirmDelete = () => {
 // Date editing state
 const clubId = useClubSlug();
 const { data: club } = useClub(clubId);
-const { data: clubSettings } = useClubSettings(clubId);
 const { data: reviewsListId } = useReviewsListId(clubId);
 const { mutate: updateAddedDate } = useUpdateAddedDate(clubId);
 const isEditingDate = ref(false);
 const editedDate = ref("");
 
-const discussionQuestionsEnabled = computed(
-  () => clubSettings.value?.features?.discussionQuestions === true,
-);
 const formattedDateForInput = computed(() =>
   DateTime.fromISO(props.movie.createdDate).toFormat("yyyy-MM-dd"),
 );
