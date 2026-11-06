@@ -115,7 +115,7 @@ const MAX_RESULT_ENTRIES = 5000;
  * order; whether they solved it is worked out from those against the answer.
  */
 export const dailyGameResultBodySchema = z.object({
-  /** A random id the player's browser keeps, so a day counts once per player. */
+  /** A random id the player's browser keeps, so a day counts once per browser. */
   playerId: z.string().uuid(),
   guesses: z.array(z.string().min(1)).max(MAX_RESULT_ENTRIES),
   hints: z.number().int().min(0).max(MAX_RESULT_ENTRIES),

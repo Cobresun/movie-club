@@ -282,20 +282,21 @@ export const dailyGamePuzzleStatsSchema = z.object({
 export type DailyGamePuzzleStats = z.infer<typeof dailyGamePuzzleStatsSchema>;
 
 /**
- * One daily game, counted from finished puzzles. Players need no account, so a
- * "player" is a browser: the same person on two devices counts twice.
+ * One daily game, counted from finished puzzles of the range's puzzle days.
+ * Players need no account, so a "player" is their account when signed in and
+ * their browser otherwise: a signed-out person on two devices counts twice.
  */
 export const dailyGameStatsSchema = z.object({
   workType: z.nativeEnum(WorkType),
-  /** Distinct players who finished a puzzle in the range. */
+  /** Distinct players who finished one of the range's puzzles. */
   players: periodCountSchema,
-  /** Puzzles finished in the range, one per player per day. */
+  /** The range's puzzles finished, one per player per day. */
   games: periodCountSchema,
   /** Finished games, and how many of them were solved rather than given up. */
   solves: rateSchema,
   /** Own guesses per solve over the range; null when nothing was solved. */
   averageGuesses: z.number().nullable(),
-  /** Players in the range, and how many finished more than one day's puzzle. */
+  /** Players in the range, and how many finished more than one of its puzzles. */
   returning: rateSchema,
   /** The range's puzzles, newest first. */
   puzzles: z.array(dailyGamePuzzleStatsSchema),

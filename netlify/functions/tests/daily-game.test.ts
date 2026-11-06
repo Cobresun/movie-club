@@ -351,8 +351,8 @@ describe("POST /api/daily-game/:clubType/:date/result", () => {
   // so these tests play the real day.
   const today = () => new Date().toISOString().slice(0, 10);
 
-  const record = (body: object, date = today(), clubType = "movie") =>
-    api.post(`/api/daily-game/${clubType}/${date}/result`, { body });
+  const record = (body: object, date = today(), clubType = "movie", as?: TestSession) =>
+    api.post(`/api/daily-game/${clubType}/${date}/result`, { body, as });
 
   const player = () => crypto.randomUUID();
 
@@ -395,6 +395,28 @@ describe("POST /api/daily-game/:clubType/:date/result", () => {
       solved: 1,
       averageGuesses: 2,
     });
+  });
+
+  it("counts a signed-in player once, whichever browser they finish on", async () => {
+    await seedCatalog(12);
+    const puzzle = (await api.get<DailyGamePuzzle>(`/api/daily-game/movie/${today()}`)).body;
+    const answer = answerOf(puzzle.works);
+    const misses = puzzle.works.filter((movie) => movie.rank > 1).map((movie) => movie.id);
+    const bob = await signIn("bob");
+
+    await record({ playerId: player(), guesses: [answer?.id], hints: 0 }, today(), "movie", bob);
+    await record(
+      { playerId: player(), guesses: misses.slice(0, 3), hints: 0 },
+      today(),
+      "movie",
+      bob,
+    );
+    await record({ playerId: player(), guesses: misses.slice(0, 2), hints: 0 });
+
+    const stats = await reelatedStats();
+    expect(stats?.players.current).toBe(2);
+    expect(stats?.games.current).toBe(2);
+    expect(stats?.solves).toStrictEqual({ numerator: 1, denominator: 2 });
   });
 
   it("refuses a result for a day no player could be on", async () => {

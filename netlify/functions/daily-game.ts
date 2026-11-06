@@ -11,6 +11,7 @@ import {
 import { type DailyGamePuzzle } from "../../lib/types/dailyGame";
 import { ClubType } from "../../lib/types/generated/db.js";
 import DailyGameRepository from "./repositories/DailyGameRepository";
+import { sessionUserId } from "./utils/auth";
 import {
   addMissingWorks,
   answerFor,
@@ -108,7 +109,8 @@ router.get("/:clubType/:date", async ({ params }, res) => {
 });
 
 // Public like the puzzle itself. Only the guesses are taken from the player:
-// whether they solved it is checked against the day's answer here.
+// whether they solved it is checked against the day's answer here, and a
+// signed-in player's account comes from their session, never the body.
 router.post("/:clubType/:date/result", async ({ params, event }, res) => {
   const parsed = paramsSchema.safeParse(params);
   if (!parsed.success) return res(badRequest("Expected a club type and a date like 2026-10-22"));
@@ -128,6 +130,7 @@ router.post("/:clubType/:date/result", async ({ params, event }, res) => {
   const guesses = new Set(body.guesses);
   await DailyGameRepository.recordResult(provider.type, date, {
     playerId: body.playerId,
+    userId: await sessionUserId(event),
     solved: guesses.has(answerId),
     guesses: guesses.size,
     hints: body.hints,

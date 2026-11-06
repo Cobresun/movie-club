@@ -82,13 +82,20 @@ class DailyGameRepository {
   }
 
   /**
-   * Records how a player's game of `date` went. Their first finish stands, so
-   * replaying the request leaves the result as it was.
+   * Records how a player's game of `date` went. Their first finish stands —
+   * per browser, and per account when signed in — so replaying the request,
+   * or finishing again on another device, leaves the result as it was.
    */
   async recordResult(
     type: WorkType,
     date: string,
-    result: { playerId: string; solved: boolean; guesses: number; hints: number },
+    result: {
+      playerId: string;
+      userId: string | undefined;
+      solved: boolean;
+      guesses: number;
+      hints: number;
+    },
   ): Promise<void> {
     await db
       .insertInto("daily_game_result")
@@ -96,11 +103,12 @@ class DailyGameRepository {
         work_type: type,
         puzzle_date: date,
         player_id: result.playerId,
+        user_id: result.userId ?? null,
         solved: result.solved,
         guesses: result.guesses,
         hints: result.hints,
       })
-      .onConflict((oc) => oc.columns(["work_type", "puzzle_date", "player_id"]).doNothing())
+      .onConflict((oc) => oc.doNothing())
       .execute();
   }
 
