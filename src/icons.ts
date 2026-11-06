@@ -1,5 +1,6 @@
 import {
   mdiAccountGroupOutline,
+  mdiAccountOffOutline,
   mdiAccountOutline,
   mdiAccountStar,
   mdiAlertCircle,
@@ -124,6 +125,7 @@ import {
  */
 export const icons = {
   mdiAccountGroupOutline,
+  mdiAccountOffOutline,
   mdiAccountOutline,
   mdiAccountStar,
   mdiAlertCircle,
