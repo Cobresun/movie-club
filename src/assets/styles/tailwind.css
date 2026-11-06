@@ -117,6 +117,18 @@
   animation: fade-up var(--motion-slow) var(--ease-standard) both;
 }
 
+/* One-shot entrance from below the viewport for a floating bottom banner.
+   `backwards` only holds the first frame, so it never pins the transform the
+   banner's own hide-on-scroll transition sets on its parent. */
+@keyframes slide-up {
+  from {
+    transform: translateY(150%);
+  }
+}
+.animate-slide-up {
+  animation: slide-up var(--motion-slow) var(--ease-emphasized) backwards;
+}
+
 /* One-shot glow for a row that has just arrived (a show the reader added),
    so the eye finds it; it fades back to the row's own border. */
 @keyframes just-added {

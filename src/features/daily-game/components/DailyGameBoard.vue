@@ -119,18 +119,27 @@
         </li>
       </ul>
     </details>
+
+    <!-- The banner hides itself from signed-in players. -->
+    <SharedPageCtaBanner
+      v-if="game.finished.value"
+      source="daily_game"
+      :utm-source="gameTag(dailyGame.path)"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import { useToast } from "vue-toastification";
 
 import { hasElements, hasValue, isDefined } from "@/../lib/checks/checks";
 import { type DailyGamePuzzle, type DailyGameWork } from "@/../lib/types/dailyGame";
 import { type DailyGameConfig } from "@/common/clubType";
+import SharedPageCtaBanner from "@/common/components/SharedPageCtaBanner.vue";
+import { useShare } from "@/common/composables/useShare";
 import GuessInput from "@/features/daily-game/components/GuessInput.vue";
 import GuessRow from "@/features/daily-game/components/GuessRow.vue";
+import { gameTag, sharedGameUrl } from "@/features/daily-game/game";
 import { useDailyGame } from "@/features/daily-game/useDailyGame";
 
 const { puzzle, dailyGame, noun } = defineProps<{
@@ -141,7 +150,7 @@ const { puzzle, dailyGame, noun } = defineProps<{
 }>();
 
 const game = useDailyGame(puzzle, dailyGame.name);
-const toast = useToast();
+const { shareText } = useShare();
 
 const notice = ref<string>();
 const confirmingGiveUp = ref(false);
@@ -190,12 +199,9 @@ const stats = computed(() => [
 const shareLabel = computed(() => (copied.value ? "Result copied" : "Share result"));
 
 const shareResult = async () => {
-  try {
-    await navigator.clipboard.writeText(game.share(`${window.location.origin}${dailyGame.path}`));
-    copied.value = true;
-    toast.success("Result copied — paste it to your friends!");
-  } catch {
-    toast.error("Couldn't copy your result");
-  }
+  copied.value = await shareText({
+    text: game.share(sharedGameUrl(window.location.origin, dailyGame.path)),
+    copiedMessage: "Result copied — paste it to your friends!",
+  });
 };
 </script>

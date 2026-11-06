@@ -115,4 +115,50 @@ describe("useShare", () => {
 
     await expect(navigator.clipboard.readText()).resolves.toBe(payload.url);
   });
+
+  describe("shareText", () => {
+    const message = {
+      text: "Reelated #7: I got it.\nhttps://movieclub.test/reelated",
+      copiedMessage: "Copied!",
+    };
+
+    it("hands only the text to the share sheet on iOS, link included", async () => {
+      const share = vi.fn(() => Promise.resolve());
+      stubNavigator({ userAgent: IPHONE_UA, share });
+
+      await expect(useShare().shareText(message)).resolves.toBe(false);
+
+      expect(share).toHaveBeenCalledWith({ text: message.text });
+      await expect(navigator.clipboard.readText()).resolves.toBe("");
+    });
+
+    it("copies the whole text on desktop", async () => {
+      stubNavigator({ userAgent: DESKTOP_UA, share: vi.fn(() => Promise.resolve()) });
+
+      await expect(useShare().shareText(message)).resolves.toBe(true);
+
+      await expect(navigator.clipboard.readText()).resolves.toBe(message.text);
+    });
+
+    it("stays quiet when the user dismisses the share sheet", async () => {
+      const abort = new Error("dismissed");
+      abort.name = "AbortError";
+      stubNavigator({ userAgent: ANDROID_UA, share: vi.fn(() => Promise.reject(abort)) });
+
+      await expect(useShare().shareText(message)).resolves.toBe(false);
+
+      await expect(navigator.clipboard.readText()).resolves.toBe("");
+    });
+
+    it("falls back to the clipboard when the share sheet genuinely fails", async () => {
+      stubNavigator({
+        userAgent: ANDROID_UA,
+        share: vi.fn(() => Promise.reject(new Error("share unavailable"))),
+      });
+
+      await expect(useShare().shareText(message)).resolves.toBe(true);
+
+      await expect(navigator.clipboard.readText()).resolves.toBe(message.text);
+    });
+  });
 });
