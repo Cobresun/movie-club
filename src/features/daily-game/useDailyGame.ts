@@ -37,6 +37,15 @@ export interface RankedGuess {
   hint: boolean;
 }
 
+export function rankGuess(work: DailyGameWork, poolSize: number, hint: boolean): RankedGuess {
+  return {
+    work,
+    temperature: temperature(work.rank, poolSize),
+    closeness: poolSize < 2 ? 1 : 1 - (work.rank - 1) / (poolSize - 1),
+    hint,
+  };
+}
+
 export type GuessOutcome = "added" | "duplicate";
 
 export function useDailyGame(puzzle: DailyGamePuzzle, name: string) {
@@ -69,13 +78,7 @@ export function useDailyGame(puzzle: DailyGamePuzzle, name: string) {
 
   const toGuess = (id: string, hint: boolean): RankedGuess | undefined => {
     const work = worksById.get(id);
-    if (!isDefined(work)) return undefined;
-    return {
-      work,
-      temperature: temperature(work.rank, poolSize),
-      closeness: poolSize < 2 ? 1 : 1 - (work.rank - 1) / (poolSize - 1),
-      hint,
-    };
+    return isDefined(work) ? rankGuess(work, poolSize, hint) : undefined;
   };
 
   const guesses = computed(() =>

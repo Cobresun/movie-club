@@ -1,6 +1,7 @@
 import { clubScoreFilter, reviewedInFilter } from "../filterOptions";
 import { type ClubTypeConfig } from "../types";
 import { bookDisplay } from "./display";
+import { bookLandingPreview } from "./landingPreview";
 import { browseBooks, searchBooks } from "./search";
 import { makeBookSimilarity } from "./similarity";
 import { ClubType, WorkType } from "@/../lib/types/generated/db";
@@ -92,4 +93,5 @@ export const bookClubConfig: ClubTypeConfig = {
   isScoredUnit: () => true,
   makeSimilarity: makeBookSimilarity,
   dailyGame: undefined,
+  landingPreview: bookLandingPreview,
 };

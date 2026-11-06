@@ -2,6 +2,7 @@ import { clubScoreFilter, decadePresets, reviewedInFilter } from "../filterOptio
 import { type ClubTypeConfig } from "../types";
 import { asTv, tvAirYear } from "./data";
 import { tvDisplay } from "./display";
+import { tvLandingPreview } from "./landingPreview";
 import { browseTvShows, searchTvShows } from "./search";
 import { makeTvSimilarity } from "./similarity";
 import { ClubType, WorkType } from "@/../lib/types/generated/db";
@@ -136,4 +137,5 @@ export const tvClubConfig: ClubTypeConfig = {
   isScoredUnit: (data) => asTv(data)?.level === "episode",
   makeSimilarity: makeTvSimilarity,
   dailyGame: undefined,
+  landingPreview: tvLandingPreview,
 };
