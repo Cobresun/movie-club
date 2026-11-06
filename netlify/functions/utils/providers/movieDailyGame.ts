@@ -10,8 +10,9 @@ const movies = (pool: readonly DailyGamePoolEntry[]): PoolWork<MovieDataSummary>
   );
 
 export const movieDailyGame: DailyGame = {
-  // 50 pages of 20: the ~1000 movies most people would recognise.
-  catalogPages: 50,
+  // 150 pages of 20: the ~3000 most-rated movies, deep enough that most films a
+  // player thinks to guess are in the pool.
+  catalogPages: 150,
   catalogPage: async (page) =>
     (await getTMDBMostRated(page)).results.map((movie) => ({
       externalId: String(movie.id),
