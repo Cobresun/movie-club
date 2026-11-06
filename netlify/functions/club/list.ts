@@ -263,8 +263,9 @@ router.put(
   },
 );
 
+// `null` clears the attribution, for a work nobody in particular picked.
 const updateAddedBySchema = z.object({
-  userId: z.string().min(1),
+  userId: z.string().min(1).nullable(),
 });
 
 router.put(
@@ -277,9 +278,10 @@ router.put(
     const body = parseBody(event, updateAddedBySchema, res);
     if (isRouterResponse(body)) return body;
 
+    const { userId } = body;
     const [exists, isMember] = await Promise.all([
       ListRepository.isItemInList(listId, workId),
-      ClubRepository.isUserInClub(clubId, body.userId),
+      userId === null || ClubRepository.isUserInClub(clubId, userId),
     ]);
     if (!exists) {
       return res(badRequest("This work does not exist in the list"));
@@ -287,7 +289,7 @@ router.put(
     if (!isMember) {
       return res(badRequest("That user is not a member of this club"));
     }
-    await ListRepository.updateAddedBy(listId, workId, body.userId);
+    await ListRepository.updateAddedBy(listId, workId, userId);
     return res(ok());
   },
 );
