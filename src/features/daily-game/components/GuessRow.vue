@@ -40,10 +40,27 @@
       >
         <li
           v-for="clue in guess.work.clues"
-          :key="clue"
-          class="bg-background/70 rounded-full px-2 py-0.5 text-xs text-white/80"
+          :key="clue.text"
+          class="flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs"
+          :class="{
+            'bg-highlight/25 font-semibold text-white': clue.strength === 'strong',
+            'bg-background/70 text-white/90': clue.strength === 'medium',
+            'bg-background/40 text-white/60': clue.strength === 'weak',
+          }"
         >
-          {{ clue }}
+          <span aria-hidden="true" class="flex items-end gap-px">
+            <span class="h-1.5 w-0.5 rounded-full bg-current" />
+            <span
+              class="h-2 w-0.5 rounded-full"
+              :class="clue.strength === 'weak' ? 'bg-current/25' : 'bg-current'"
+            />
+            <span
+              class="h-2.5 w-0.5 rounded-full"
+              :class="clue.strength === 'strong' ? 'bg-current' : 'bg-current/25'"
+            />
+          </span>
+          <span>{{ clue.text }}</span>
+          <span class="sr-only">{{ ` (${clue.strength} link)` }}</span>
         </li>
       </ul>
     </div>

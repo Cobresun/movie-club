@@ -127,7 +127,7 @@ describe("GET /api/daily-game/:clubType/:date", () => {
     const twinId = String(Number(answer?.id) ^ 1);
     const twin = movies.find((movie) => movie.id === twinId);
     expect(twin?.rank).toBe(2);
-    expect(twin?.clues).toContain(
+    expect(twin?.clues.map((clue) => clue.text)).toContain(
       `Same director: Director of pair ${Math.floor(Number(twinId) / 2)}`,
     );
     expect(answer?.clues).toStrictEqual([]);
@@ -161,7 +161,9 @@ describe("GET /api/daily-game/:clubType/:date", () => {
 
     const { works } = (await api.get<DailyGamePuzzle>(`/api/daily-game/movie/${TODAY}`)).body;
 
-    expect(works.flatMap((work) => work.clues)).not.toContain("Also stars Background Extra");
+    expect(works.flatMap((work) => work.clues.map((clue) => clue.text))).not.toContain(
+      "Also stars Background Extra",
+    );
   });
 
   it("leaves out movies clubs have added that aren't in the catalog", async () => {

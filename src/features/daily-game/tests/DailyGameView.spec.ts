@@ -104,6 +104,26 @@ describe("DailyGameView", () => {
     expect(within(row("Collateral")).getByText("Hot")).toBeInTheDocument();
   });
 
+  it("says how much each clue counts, strongest first", async () => {
+    const { user } = await renderGame();
+
+    await guess(user, "Collateral");
+
+    const clues = within(row("Collateral")).getByRole("list", {
+      name: "What Collateral has in common with the answer",
+    });
+    expect(
+      within(clues)
+        .getAllByRole("listitem")
+        .map((clue) => clue.textContent.replace(/\s+/g, " ").trim()),
+    ).toStrictEqual([
+      "Same director: Michael Mann (strong link)",
+      "Crime (medium link)",
+      "Thriller (weak link)",
+      "Released within 10 years (weak link)",
+    ]);
+  });
+
   it("only offers movies that match what was typed", async () => {
     const { user } = await renderGame();
 
