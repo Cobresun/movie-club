@@ -51,7 +51,8 @@ The data model is in `database.md`.
 
 ## Daily game
 
-- One handler and one pair of tables keyed by `work_type` serve every club type. What varies is the provider's `dailyGame`. The scoring core is in `lib/`, shared with Score Assist.
+- One handler and one pair of tables keyed by `work_type` serve every club type. What varies is the provider's `dailyGame`.
+- **The ranking is not Score Assist's scorer** (`lib/dailyGame.ts`, `lib/movie/dailyGame.ts`). A guess scores only from the clues it is shown, including a genre the answer lacks, which counts against it, so the chips always explain the order. Don't fold in a signal (a Jaccard ratio, an unshown field) that has no clue. Equal scores go to the work released nearer the answer.
 - **Netlify runs scheduled functions only on the production deploy**, never on previews or `netlify dev`, so the endpoint seeds a too-small catalog itself.
 - Only a date that is somebody's today draws an answer or records a result. An earlier date serves its recorded answer or a 404. The archive listing never includes answers.
 - The server decides whether the posted guesses solved the puzzle. Results are one per player per day, keyed by a browser id plus the session's user id when signed in.

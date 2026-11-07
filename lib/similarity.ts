@@ -1,8 +1,7 @@
 import { isDefined } from "./checks/checks.js";
 
 // Score Assist ranks comparison candidates by how "alike" they feel to the work
-// being reviewed, so the user compares familiar things, and the daily game ranks
-// every guess against the day's answer the same way. A scorer returns a value
+// being reviewed, so the user compares familiar things. A scorer returns a value
 // in [0,1] (0 = nothing in common, 1 = identical on every measured axis): a
 // weighted average of per-field overlaps. Per-field weights encode that a shared
 // director/author counts far more than a shared genre/subject. Set overlaps use
