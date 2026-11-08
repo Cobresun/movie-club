@@ -23,7 +23,7 @@
           >
           <span
             v-if="guess.hint"
-            class="bg-highlight/20 text-highlight ml-1 rounded px-1.5 py-0.5 text-xs font-medium"
+            class="bg-highlight/20 text-highlight ml-1 inline-block rounded px-1.5 py-0.5 text-xs font-medium"
           >
             Hint
           </span>
