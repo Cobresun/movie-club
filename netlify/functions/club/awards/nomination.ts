@@ -12,11 +12,11 @@ import AwardsRepository, {
   type AwardsRejection,
   reject,
 } from "../../repositories/AwardsRepository";
-import { secured } from "../../utils/auth";
 import { parseBody } from "../../utils/parseBody";
 import { requireParam } from "../../utils/requireParam";
 import { badRequest, ok } from "../../utils/responses";
 import { isRouterResponse, Router } from "../../utils/router";
+import { secured } from "../../utils/session";
 import { type ClubAwardRequest } from "./utils";
 
 const router = new Router<ClubAwardRequest>("/api/club/:clubSlug/awards/:year<\\d+>/nomination");

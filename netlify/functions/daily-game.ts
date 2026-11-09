@@ -17,7 +17,6 @@ import {
 import { type DailyGameArchive, type DailyGamePuzzle } from "../../lib/types/dailyGame";
 import { ClubType } from "../../lib/types/generated/db.js";
 import DailyGameRepository from "./repositories/DailyGameRepository";
-import { sessionUserId } from "./utils/auth";
 import {
   addMissingWorks,
   answerFor,
@@ -34,6 +33,7 @@ import {
 } from "./utils/providers/types";
 import { badRequest, notFound, ok } from "./utils/responses";
 import { isRouterResponse, Router } from "./utils/router";
+import { sessionUserId } from "./utils/session";
 
 const router = new Router("/api/daily-game");
 

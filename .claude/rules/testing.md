@@ -76,7 +76,7 @@ API calls are mocked with MSW — handlers in `src/mocks/handlers.ts`, fixtures 
 
 ## Integration tests (`netlify/functions/tests/`)
 
-**Arrange and assert through the same interfaces a client has.** No `vi.mock` of repositories, `utils/database` or `utils/auth`, and no direct database reads — a test that queries a table is asserting an implementation detail, and one that seeds a table is describing a state the app may not even be able to produce. `helpers/database.ts` deliberately does not export the Kysely handle.
+**Arrange and assert through the same interfaces a client has.** No `vi.mock` of repositories, `utils/database`, `utils/auth` or `utils/session`, and no direct database reads — a test that queries a table is asserting an implementation detail, and one that seeds a table is describing a state the app may not even be able to produce. `helpers/database.ts` deliberately does not export the Kysely handle.
 
 Real: the routers, `validClubSlug` / `validListId`, BetterAuth's `loggedIn` / `secured`, every repository, Kysely, the migrated schema. Faked, and only at the network boundary via MSW: TMDB, Google Books, Gemini, Resend, Cloudinary — with `onUnhandledRequest: "error"`, so a call to any other host fails the test.
 

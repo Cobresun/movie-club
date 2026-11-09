@@ -3,9 +3,9 @@ import { z } from "zod";
 import { hasValue } from "../../../../lib/checks/checks.js";
 import { type ClubInviteDetails } from "../../../../lib/types/club";
 import ClubRepository from "../../repositories/ClubRepository";
-import { loggedIn } from "../../utils/auth";
 import { badRequest, ok } from "../../utils/responses";
 import { Router } from "../../utils/router";
+import { loggedIn } from "../../utils/session";
 
 const joinSchema = z.object({
   token: z.string(),
