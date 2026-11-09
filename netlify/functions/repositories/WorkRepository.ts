@@ -1,7 +1,6 @@
 import { hasValue } from "../../../lib/checks/checks.js";
 import { type ListInsertDto } from "../../../lib/types/lists.js";
 import { db } from "../utils/database";
-import { getProvider } from "../utils/providers";
 
 class WorkRepository {
   async getNextWork(clubId: string) {
@@ -21,8 +20,7 @@ class WorkRepository {
   }
 
   async insert(clubId: string, work: ListInsertDto) {
-    // First insert the work
-    const insertedWork = await db
+    return db
       .insertInto("work")
       .values({
         club_id: clubId,
@@ -36,20 +34,6 @@ class WorkRepository {
       )
       .returning("id")
       .executeTakeFirstOrThrow();
-
-    // Fetch and cache external metadata via the work's provider. Caching is
-    // best-effort: a provider/API outage must not fail the add — the scheduled
-    // refresh (movies) or a later add fills the details in.
-    const externalId = work.externalId;
-    if (hasValue(externalId)) {
-      try {
-        await getProvider(work.type).fetchAndCacheDetails(externalId);
-      } catch (error) {
-        console.error(`Failed to cache ${work.type} details for ${externalId}: ${String(error)}`);
-      }
-    }
-
-    return insertedWork;
   }
 
   /**

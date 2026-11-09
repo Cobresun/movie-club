@@ -1,10 +1,10 @@
 import { createAwardsYearSchema } from "../../../../lib/awards";
 import { AwardsStep, type BaseAward, type ClubAwards } from "../../../../lib/types/awards";
 import AwardsRepository from "../../repositories/AwardsRepository";
-import { secured } from "../../utils/auth";
 import { parseBody } from "../../utils/parseBody";
 import { badRequest, notFound, ok } from "../../utils/responses";
 import { isRouterResponse, Router } from "../../utils/router";
+import { secured } from "../../utils/session";
 import { getDetailedMovie } from "../../utils/tmdb";
 import { type ClubRequest } from "../../utils/validation";
 import categoryRouter from "./category";

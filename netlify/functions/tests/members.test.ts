@@ -7,12 +7,14 @@
 import { type Member } from "../../../lib/types/club";
 import { handler as clubHandler } from "../club/index";
 import { handler as memberHandler } from "../member";
+import { handler as memberAvatarHandler } from "../member-avatar";
 import { signIn, type TestSession } from "./helpers/auth";
 import { createClub, createInvite, expireInvite, joinClub } from "./helpers/factories";
 import { makeEvent, requester } from "./helpers/http";
 
 const api = requester(clubHandler);
 const memberApi = requester(memberHandler);
+const avatarApi = requester(memberAvatarHandler);
 
 const membersOf = (slug: string) => api.get<Member[]>(`/api/club/${slug}/members`);
 
@@ -29,7 +31,7 @@ function uploadAvatar(session: TestSession) {
     "",
   ].join("\r\n");
 
-  return memberApi.send(
+  return avatarApi.send(
     makeEvent({
       path: "/api/member/avatar",
       httpMethod: "POST",

@@ -53,7 +53,7 @@ Three Vitest projects, all run by `npm test`:
 
 Arrange and assert through the interfaces a client has. Routers, middleware, BetterAuth, repositories and the schema are real. Only TMDB, Google Books, Gemini, Resend and Cloudinary are faked, with MSW.
 
-- **No `vi.mock` of repositories, `utils/database` or `utils/auth`, and no direct database reads or seeds.** `helpers/database.ts` exports only `resetDatabase()`.
+- **No `vi.mock` of repositories, `utils/database`, `utils/auth` or `utils/session`, and no direct database reads or seeds.** `helpers/database.ts` exports only `resetDatabase()`.
 - Use the helpers: `requester(handler)` (`helpers/http.ts`), `signIn("alice")` for a real session cookie (`helpers/auth.ts`), and the factories (`createClub`, `addWork`, `scoreWork`), which drive real endpoints.
 - **Assert a write by reading it back** through the endpoint a client would use.
 - **`failOnRequest(method, path)`** asserts "must not call out again" by making that request throw.

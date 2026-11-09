@@ -1,9 +1,8 @@
 import { sql, type Transaction } from "kysely";
 
 import { isDefined } from "../../../lib/checks/checks";
-import { type ClubType, type DB, WorkListSystemType } from "../../../lib/types/generated/db";
+import { type DB, WorkListSystemType } from "../../../lib/types/generated/db";
 import { db } from "../utils/database";
-import { providerForClub } from "../utils/providers";
 
 /**
  * A list's reviews of a work and of the work's children: a review references
@@ -92,11 +91,11 @@ class ListRepository {
    * "Watch List" plus the invisible system lists used by the reviews and
    * awards features.
    */
-  async createListsForClub(clubId: string, clubType: ClubType) {
+  async createListsForClub(clubId: string, defaultListTitle: string) {
     return db
       .insertInto("work_list")
       .values([
-        { club_id: clubId, title: providerForClub(clubType).defaultListTitle },
+        { club_id: clubId, title: defaultListTitle },
         {
           club_id: clubId,
           title: "Reviews",
