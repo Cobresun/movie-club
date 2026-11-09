@@ -25,6 +25,16 @@ import VSwitch from "@/common/components/VSwitch.vue";
 import VTextField from "@/common/components/VTextField.vue";
 import { recordLandingSource } from "@/common/recordLandingSource";
 
+// Poppins, served from this origin rather than Google Fonts: no third-party
+// stylesheet blocking first paint and no extra connections to open. Each file
+// declares a unicode-range, so only the weights and scripts a page actually
+// uses are downloaded. Same weights as before; same-origin rules are also what
+// lets a saved Wrapped card embed the font.
+import "@fontsource/poppins/300.css";
+import "@fontsource/poppins/400.css";
+import "@fontsource/poppins/500.css";
+import "@fontsource/poppins/600.css";
+import "@fontsource/poppins/700.css";
 import "./assets/styles/tailwind.css";
 import "vue-toastification/dist/index.css";
 

@@ -13,14 +13,24 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black" />
 
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <!-- crossorigin lets a saved Wrapped card read these @font-face rules and
-         embed Poppins; without it the image falls back to a system font. -->
+    <!-- Poppins is bundled (see src/main.ts), so its @font-face rules arrive
+         with the app's own stylesheet. These two weights are on every screen
+         (body text, the header wordmark); preloading them fetches the files
+         alongside the script instead of after the first render asks for them.
+         A font preload is always a CORS request, hence crossorigin. -->
     <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
-      crossorigin="anonymous"
+      rel="preload"
+      as="font"
+      type="font/woff2"
+      href="/node_modules/@fontsource/poppins/files/poppins-latin-400-normal.woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      as="font"
+      type="font/woff2"
+      href="/node_modules/@fontsource/poppins/files/poppins-latin-700-normal.woff2"
+      crossorigin
     />
 
     <title>Movie Club</title>
