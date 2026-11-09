@@ -1,9 +1,8 @@
-import { DateTime } from "luxon";
-
 import { isDefined } from "../../../lib/checks/checks.js";
 import { type Member } from "../../../lib/types/club";
 import { type DetailedReviewListItem } from "../../../lib/types/lists";
 import { AVERAGE_SCORE_ID, memberScoreId, scoreIdMemberId } from "./reviewScores";
+import { parseIsoDate } from "@/common/dates";
 
 const DATE_SORT_ID = "createdDate";
 
@@ -35,7 +34,7 @@ export const reviewSortOptions = (members: Member[]): ReviewSortOption[] => [
 
 const sortValue = (review: DetailedReviewListItem, sortId: string): number | undefined => {
   if (sortId === DATE_SORT_ID) {
-    const millis = DateTime.fromISO(review.createdDate).toMillis();
+    const millis = parseIsoDate(review.createdDate).getTime();
     return Number.isNaN(millis) ? undefined : millis;
   }
   if (sortId === AVERAGE_SCORE_ID) {

@@ -107,7 +107,6 @@
   </li>
 </template>
 <script setup lang="ts">
-import { DateTime } from "luxon";
 import { computed, ref } from "vue";
 
 import { hasValue, isDefined } from "../../../../../lib/checks/checks.js";
@@ -116,6 +115,7 @@ import { ScoreEntry } from "../../reviewScores";
 import ScoreChips from "../ScoreChips.vue";
 import ScoreEntryModal from "../ScoreEntryModal.vue";
 import { useIsDesktop } from "@/common/composables/useIsDesktop";
+import { formatIsoDate } from "@/common/dates";
 
 const props = defineProps<{
   card: EpisodeCard;
@@ -143,8 +143,7 @@ const airDate = computed(() => {
   if (!hasValue(date)) return undefined;
   // An air date is a calendar day (TMDB's "2022-02-18", or the server's
   // midnight-UTC timestamp of it); read in local time it can slip a day.
-  const parsed = DateTime.fromISO(date, { zone: "utc" });
-  return parsed.isValid ? parsed.toLocaleString(DateTime.DATE_MED) : undefined;
+  return formatIsoDate(date, "medium", "utc");
 });
 
 const average = computed(() =>

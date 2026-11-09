@@ -1,4 +1,3 @@
-import { DateTime } from "luxon";
 import { computed } from "vue";
 
 import { isDefined } from "../../../../lib/checks/checks.js";
@@ -8,7 +7,7 @@ import { createHistogramData } from "../scoring";
 import { type HistogramData, type WorkStatsBase, type WorkStatsData } from "../types";
 import { isScoredUnit } from "@/common/clubType";
 import { asTv } from "@/common/clubType/tv/data";
-import { asBook, isMovieData } from "@/common/workDisplay";
+import { asBook, formatCardDate, isMovieData } from "@/common/workDisplay";
 import { useMembers, useClubSlug } from "@/service/useClub";
 import { useReviewsList } from "@/service/useList";
 
@@ -95,7 +94,7 @@ function statsBase(review: DetailedReviewListItem): WorkStatsBase {
     title: review.title,
     externalId: review.externalId,
     addedBy: review.addedBy,
-    dateWatched: DateTime.fromISO(review.createdDate).toLocaleString(),
+    dateWatched: formatCardDate(review.createdDate),
     userScores: Object.keys(review.scores).reduce<Record<string, number | undefined>>(
       (acc, key) => {
         if (key !== "average" && isDefined(review.scores[key].score)) {
