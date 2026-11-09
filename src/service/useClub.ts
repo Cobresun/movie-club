@@ -28,9 +28,18 @@ const fetchClub = async (clubSlug: string) =>
   (await axios.get<ClubPreview>(`/api/club/${clubSlug}`)).data;
 
 export function useClub(clubSlug: string) {
+  const queryClient = useQueryClient();
   return useQuery<ClubPreview>({
     queryKey: ["club", clubSlug],
     queryFn: async () => fetchClub(clubSlug),
+    // A member only reaches a club page once the clubs list has confirmed
+    // they belong to it, and that list holds this same preview. Starting from
+    // it means the page (whose layout hangs on the club's type) renders
+    // without waiting on a request for what is already known; the request
+    // still goes out and replaces it. A visitor on a shared page has no such
+    // entry and loads as usual.
+    initialData: () =>
+      queryClient.getQueryData<ClubPreview[]>(userClubsKey)?.find((club) => club.slug === clubSlug),
   });
 }
 
