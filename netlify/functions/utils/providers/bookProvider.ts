@@ -62,18 +62,22 @@ export async function fetchBookData(externalId: string): Promise<BookData> {
   };
 }
 
+// Each aggregate is filtered to the requested ids itself, so neither reads its
+// junction table whole.
 function detailsQuery(externalIds: string[]) {
   return db
     .with("authors_agg", (qb) =>
       qb
         .selectFrom("book_authors")
         .select(["external_id", db.fn.agg<string[]>("array_agg", ["author_name"]).as("authors")])
+        .where("external_id", "in", externalIds)
         .groupBy("external_id"),
     )
     .with("subjects_agg", (qb) =>
       qb
         .selectFrom("book_subjects")
         .select(["external_id", db.fn.agg<string[]>("array_agg", ["subject"]).as("subjects")])
+        .where("external_id", "in", externalIds)
         .groupBy("external_id"),
     )
     .selectFrom("book_details")

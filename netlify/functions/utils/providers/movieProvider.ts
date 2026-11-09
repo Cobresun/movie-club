@@ -23,6 +23,10 @@ import { type MediaProvider, numOrUndefined, type RefreshResult } from "./types"
  * excluding the cast (see {@link castQuery}). Cast lists dominate row size, so
  * keeping them out of this query keeps bulk list/review responses small and
  * avoids shipping megabytes from the database on every list load.
+ *
+ * Each aggregate is filtered to the requested ids itself, rather than relying
+ * on the planner to push the outer filter through the join: these junction
+ * tables hold every film any club or the daily-game catalog has cached.
  */
 function summaryQuery(externalIds: string[]) {
   return db
@@ -30,6 +34,7 @@ function summaryQuery(externalIds: string[]) {
       qb
         .selectFrom("movie_genres")
         .select(["external_id", db.fn.agg<string[]>("array_agg", ["genre_name"]).as("genres")])
+        .where("external_id", "in", externalIds)
         .groupBy("external_id"),
     )
     .with("companies_agg", (qb) =>
@@ -39,6 +44,7 @@ function summaryQuery(externalIds: string[]) {
           "external_id",
           db.fn.agg<string[]>("array_agg", ["company_name"]).as("production_companies"),
         ])
+        .where("external_id", "in", externalIds)
         .groupBy("external_id"),
     )
     .with("countries_agg", (qb) =>
@@ -48,6 +54,7 @@ function summaryQuery(externalIds: string[]) {
           "external_id",
           db.fn.agg<string[]>("array_agg", ["country_name"]).as("production_countries"),
         ])
+        .where("external_id", "in", externalIds)
         .groupBy("external_id"),
     )
     .with("directors_agg", (qb) =>
@@ -64,6 +71,7 @@ function summaryQuery(externalIds: string[]) {
             )
             .as("directors"),
         ])
+        .where("external_id", "in", externalIds)
         .groupBy("external_id"),
     )
     .with("cast_names_agg", (qb) =>
@@ -88,6 +96,7 @@ function summaryQuery(externalIds: string[]) {
             )
             .as("major_cast_names"),
         ])
+        .where("external_id", "in", externalIds)
         .groupBy("external_id"),
     )
     .selectFrom("movie_details")

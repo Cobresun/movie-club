@@ -30,7 +30,8 @@ const SPECIALS_SEASON = "0";
 /**
  * Show-level metadata plus its junction aggregates. Seasons and episodes read
  * from this too — genres, creators, networks and cast belong to the series,
- * not to any one episode of it.
+ * not to any one episode of it. Each aggregate is filtered to the requested
+ * shows itself, so none of them reads a junction table whole.
  */
 function showQuery(showIds: string[]) {
   return db
@@ -38,6 +39,7 @@ function showQuery(showIds: string[]) {
       qb
         .selectFrom("tv_show_genres")
         .select(["external_id", db.fn.agg<string[]>("array_agg", ["genre_name"]).as("genres")])
+        .where("external_id", "in", showIds)
         .groupBy("external_id"),
     )
     .with("creators_agg", (qb) =>
@@ -47,6 +49,7 @@ function showQuery(showIds: string[]) {
           "external_id",
           eb.fn.agg<string[]>("array_agg", ["creator_name"]).as("creators"),
         ])
+        .where("external_id", "in", showIds)
         .groupBy("external_id"),
     )
     .with("networks_agg", (qb) =>
@@ -56,6 +59,7 @@ function showQuery(showIds: string[]) {
           "external_id",
           eb.fn.agg<string[]>("array_agg", ["network_name"]).as("networks"),
         ])
+        .where("external_id", "in", showIds)
         .groupBy("external_id"),
     )
     .with("cast_names_agg", (qb) =>
@@ -65,6 +69,7 @@ function showQuery(showIds: string[]) {
           "external_id",
           eb.fn.agg<string[]>("array_agg", ["actor_name"]).orderBy("cast_order").as("cast_names"),
         ])
+        .where("external_id", "in", showIds)
         .groupBy("external_id"),
     )
     .selectFrom("tv_show_details")

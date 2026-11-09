@@ -81,18 +81,21 @@ async function dispatchByType<T>(
   works: { externalId: string | null | undefined; type: WorkType }[],
   fetch: (type: WorkType, externalIds: string[]) => Promise<Map<string, T>>,
 ): Promise<Map<string, T>> {
-  const idsByType = new Map<WorkType, string[]>();
+  // A Set, because callers pass one entry per row they read: the reviews list
+  // is one row per (work, score), so a club of six would otherwise ask for
+  // each work six times over.
+  const idsByType = new Map<WorkType, Set<string>>();
   for (const work of works) {
     if (!hasValue(work.externalId)) continue;
-    const ids = idsByType.get(work.type) ?? [];
-    ids.push(work.externalId);
+    const ids = idsByType.get(work.type) ?? new Set<string>();
+    ids.add(work.externalId);
     idsByType.set(work.type, ids);
   }
 
   const merged = new Map<string, T>();
   await Promise.all(
     Array.from(idsByType, async ([type, ids]) => {
-      const data = await fetch(type, ids);
+      const data = await fetch(type, [...ids]);
       for (const [externalId, value] of data) merged.set(externalId, value);
     }),
   );
