@@ -5,7 +5,6 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/vue-query";
-import axios, { type AxiosError } from "axios";
 import { computed, unref, type MaybeRef } from "vue";
 import { useToast } from "vue-toastification";
 
@@ -23,6 +22,7 @@ import {
 } from "../../lib/types/lists.js";
 import { recommendationsKey } from "./useRecommendations";
 import { memberScoresKey } from "./useUser";
+import { http, type HttpError } from "@/common/http";
 import { useAuthStore } from "@/stores/auth";
 
 export const OPTIMISTIC_WORK_ID = "temp";
@@ -75,18 +75,18 @@ async function addPendingReview(
 // Club lists collection (the user lists shown in the list switcher)
 // ---------------------------------------------------------------------------
 
-export function useClubLists(clubSlug: string): UseQueryReturnType<ClubListSummary[], AxiosError> {
+export function useClubLists(clubSlug: string): UseQueryReturnType<ClubListSummary[], HttpError> {
   return useQuery({
     queryKey: clubListsKey(clubSlug),
-    queryFn: async () => (await axios.get<ClubListSummary[]>(`/api/club/${clubSlug}/list`)).data,
+    queryFn: async () => (await http.get<ClubListSummary[]>(`/api/club/${clubSlug}/list`)).data,
   });
 }
 
-export function useReviewsListId(clubSlug: string): UseQueryReturnType<string, AxiosError> {
+export function useReviewsListId(clubSlug: string): UseQueryReturnType<string, HttpError> {
   return useQuery({
     queryKey: reviewsListIdKey(clubSlug),
     queryFn: async () =>
-      (await axios.get<ReviewsListIdResponse>(`/api/club/${clubSlug}/list/reviews-id`)).data.id,
+      (await http.get<ReviewsListIdResponse>(`/api/club/${clubSlug}/list/reviews-id`)).data.id,
   });
 }
 
@@ -194,12 +194,12 @@ export function useDeleteList(clubSlug: string) {
 export function useList(
   clubSlug: string,
   listId: MaybeRef<string>,
-): UseQueryReturnType<DetailedWorkListItem[], AxiosError> {
+): UseQueryReturnType<DetailedWorkListItem[], HttpError> {
   const listIdRef = computed(() => unref(listId));
   return useQuery({
     queryKey: computed(() => listKey(clubSlug, listIdRef.value)),
     queryFn: async () =>
-      (await axios.get<DetailedWorkListItem[]>(`/api/club/${clubSlug}/list/${listIdRef.value}`))
+      (await http.get<DetailedWorkListItem[]>(`/api/club/${clubSlug}/list/${listIdRef.value}`))
         .data,
     enabled: () => listIdRef.value !== "",
   });
@@ -207,11 +207,11 @@ export function useList(
 
 export function useAllUserListItems(
   clubSlug: string,
-): UseQueryReturnType<UserListItemWithSource[], AxiosError> {
+): UseQueryReturnType<UserListItemWithSource[], HttpError> {
   return useQuery({
     queryKey: allUserListItemsKey(clubSlug),
     queryFn: async () =>
-      (await axios.get<UserListItemWithSource[]>(`/api/club/${clubSlug}/list/all-items`)).data,
+      (await http.get<UserListItemWithSource[]>(`/api/club/${clubSlug}/list/all-items`)).data,
   });
 }
 
@@ -222,13 +222,13 @@ export function useAllUserListItems(
 export function useWorkDetails(
   clubSlug: string,
   workId: MaybeRef<string>,
-): UseQueryReturnType<DetailedWorkData | null, AxiosError> {
+): UseQueryReturnType<DetailedWorkData | null, HttpError> {
   const workIdRef = computed(() => unref(workId));
   return useQuery({
     queryKey: computed(() => workDetailsKey(clubSlug, workIdRef.value)),
     queryFn: async () =>
       (
-        await axios.get<DetailedWorkData | null>(
+        await http.get<DetailedWorkData | null>(
           `/api/club/${clubSlug}/work/${workIdRef.value}/details`,
         )
       ).data,
@@ -353,11 +353,11 @@ export function useDeleteReview(clubSlug: string) {
 
 export function useReviewsList(
   clubSlug: string,
-): UseQueryReturnType<DetailedReviewListItem[], AxiosError> {
+): UseQueryReturnType<DetailedReviewListItem[], HttpError> {
   return useQuery({
     queryKey: reviewsListKey(clubSlug),
     queryFn: async () =>
-      (await axios.get<DetailedReviewListItem[]>(`/api/club/${clubSlug}/list/reviews`)).data,
+      (await http.get<DetailedReviewListItem[]>(`/api/club/${clubSlug}/list/reviews`)).data,
   });
 }
 
@@ -542,7 +542,7 @@ export function useNextWork(clubSlug: string) {
   return useQuery({
     queryKey: ["nextWork", clubSlug],
     queryFn: async () => {
-      const response = await axios.get<NextWorkResponse>(`/api/club/${clubSlug}/nextWork`);
+      const response = await http.get<NextWorkResponse>(`/api/club/${clubSlug}/nextWork`);
       return response.data.workId ?? null;
     },
   });
@@ -578,12 +578,11 @@ export function useClearNextWork(clubSlug: string) {
 export function useSharedReview(
   clubSlug: string,
   workId: string,
-): UseQueryReturnType<SharedReviewResponse, AxiosError> {
+): UseQueryReturnType<SharedReviewResponse, HttpError> {
   return useQuery({
     queryKey: ["sharedReview", clubSlug, workId],
     queryFn: async () =>
-      (await axios.get<SharedReviewResponse>(`/api/club/${clubSlug}/reviews/${workId}/shared`))
-        .data,
+      (await http.get<SharedReviewResponse>(`/api/club/${clubSlug}/reviews/${workId}/shared`)).data,
   });
 }
 

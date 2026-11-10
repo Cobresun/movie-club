@@ -70,12 +70,7 @@ export function useUpdateAvatar() {
   const auth = useAuthStore();
   const refreshProfile = useProfileRefresh();
   return useMutation({
-    mutationFn: async (formData: FormData) =>
-      auth.request.post(`/api/member/avatar`, formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      }),
+    mutationFn: async (formData: FormData) => auth.request.post(`/api/member/avatar`, formData),
     onSettled: refreshProfile,
   });
 }
