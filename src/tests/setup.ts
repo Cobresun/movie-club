@@ -9,6 +9,7 @@ const router = vi.hoisted(() => ({
   // Real router.push returns a Promise; code under test may chain .catch()
   push: vi.fn(() => Promise.resolve()),
   replace: vi.fn(() => Promise.resolve()),
+  isReady: vi.fn(() => Promise.resolve()),
   // `useBackButtonClose` registers a navigation guard; return an unregister fn.
   beforeEach: vi.fn(() => vi.fn()),
 }));
@@ -18,6 +19,8 @@ const router = vi.hoisted(() => ({
 const route = vi.hoisted(() => ({
   params: { clubSlug: "test-club" } as Record<string, string>,
   query: {} as Record<string, string>,
+  meta: {} as Record<string, unknown>,
+  fullPath: "/",
   // Components that resolve the active club section read `matched` (see
   // clubSections.sectionNameForRoute); a spec sets it to name the section.
   matched: [] as { name?: string }[],
@@ -51,6 +54,8 @@ beforeEach(() => {
   router.replace.mockClear();
   route.params = { clubSlug: "test-club" };
   route.query = {};
+  route.meta = {};
+  route.fullPath = "/";
   route.matched = [];
   render(PiniaStoreHelper);
 });

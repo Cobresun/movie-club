@@ -76,11 +76,19 @@ const vueQueryOptions: VueQueryPluginOptions = {
       // otherwise paint week-old data in the old shape before revalidating.
       buster: __BUILD_ID__,
       dehydrateOptions: {
-        // "admin" joins "user" in staying out of IndexedDB: site-wide metrics
-        // are not this browser's data to keep, and a persisted copy would
-        // outlive the session that was authorised to see them.
-        shouldDehydrateQuery: (query) =>
-          query.queryKey[0] !== "user" && query.queryKey[0] !== "admin",
+        shouldDehydrateQuery: (query) => {
+          const [scope, name] = query.queryKey;
+          // Site-wide metrics are not this browser's data to keep, and a
+          // persisted copy would outlive the session that was authorised to
+          // see them.
+          if (scope === "admin") return false;
+          // Of the member's own queries only the clubs list is kept. It is
+          // what lets a cold load find its way to a club (and the route guard
+          // confirm membership of it) from disk, before any request has come
+          // back; see `isAssumedSignedIn` in stores/auth.ts.
+          if (scope === "user") return name === "clubs" && isDefined(query.state.data);
+          return true;
+        },
       },
     }),
 };
