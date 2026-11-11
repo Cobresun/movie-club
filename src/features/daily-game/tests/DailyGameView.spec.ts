@@ -40,7 +40,7 @@ const row = (title: string) =>
   within(guessList()).getByRole("listitem", { name: new RegExp(`^${title} \\(`) });
 
 const chooseFromMenu = async (user: User, item: string) => {
-  await user.click(screen.getByRole("button", { name: "Game options" }));
+  await user.click(screen.getByRole("button", { name: "Hints & help" }));
   await user.click(screen.getByRole("menuitem", { name: item }));
 };
 
@@ -259,6 +259,21 @@ describe("DailyGameView", () => {
     expect(within(row("The Godfather")).getByText("#6")).toBeInTheDocument();
   });
 
+  it("offers a hint in place to a player who has guessed a while without one", async () => {
+    const { user } = await renderGame();
+
+    for (const title of ["Alien", "The Matrix", "Amélie", "Paddington 2"]) {
+      await guess(user, title);
+    }
+    expect(screen.queryByRole("button", { name: "Get a hint" })).not.toBeInTheDocument();
+
+    await guess(user, "Toy Story");
+    await user.click(screen.getByRole("button", { name: "Get a hint" }));
+
+    expect(screen.getByText("5 guesses · 1 hint")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Get a hint" })).not.toBeInTheDocument();
+  });
+
   it("counts hints apart from guesses", async () => {
     const { user } = await renderGame();
 
@@ -311,7 +326,7 @@ describe("DailyGameView", () => {
     const { user } = await renderGame();
 
     await guess(user, "Collateral");
-    await user.click(screen.getByRole("button", { name: "Game options" }));
+    await user.click(screen.getByRole("button", { name: "Hints & help" }));
 
     expect(screen.getByRole("menuitem", { name: "Hint" })).toHaveAttribute("aria-disabled", "true");
   });
@@ -332,7 +347,7 @@ describe("DailyGameView", () => {
     const { user } = await renderGame();
 
     await guess(user, "Heat");
-    await user.click(screen.getByRole("button", { name: "Game options" }));
+    await user.click(screen.getByRole("button", { name: "Help" }));
 
     expect(screen.getAllByRole("menuitem").map((item) => item.textContent?.trim())).toStrictEqual([
       "How to play",

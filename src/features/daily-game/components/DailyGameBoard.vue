@@ -1,15 +1,24 @@
 <template>
   <div class="mx-auto flex max-w-2xl flex-col gap-6 px-4 pt-2 pb-16 text-left">
-    <header class="relative text-center">
-      <h1 class="px-12 text-3xl font-bold sm:text-4xl">
+    <header class="flex flex-col items-center gap-3 text-center">
+      <h1 class="text-3xl font-bold sm:text-4xl">
         {{ dailyGame.name }} <span class="text-highlight">#{{ game.puzzle }}</span>
       </h1>
-      <Menu as="div" class="absolute top-0 right-0">
+      <p class="text-white/70">
+        Guess today's mystery {{ noun }}. Every guess is ranked by how close it is — #1 is the
+        answer.
+      </p>
+      <Menu as="div" class="relative">
         <MenuButton
-          class="duration-fast ease-standard flex size-11 items-center justify-center rounded-full text-white/80 transition-colors hover:bg-white/10"
-          aria-label="Game options"
+          class="bg-lowBackground duration-fast ease-standard flex min-h-[44px] items-center gap-2 rounded-full px-4 text-sm font-semibold ring-1 ring-white/[0.12] transition-colors ring-inset hover:bg-white/10"
         >
-          <mdicon name="dots-vertical" :size="24" />
+          <mdicon
+            :name="game.finished.value ? 'help-circle-outline' : 'lightbulb-on-outline'"
+            :size="20"
+            class="text-highlight"
+          />
+          {{ game.finished.value ? "Help" : "Hints & help" }}
+          <mdicon name="chevron-down" :size="18" class="text-white/70" />
         </MenuButton>
         <transition
           enter-active-class="transition duration-fast ease-standard"
@@ -18,7 +27,7 @@
           leave-to-class="-translate-y-1 scale-95 opacity-0"
         >
           <MenuItems
-            class="bg-lowBackground absolute top-full right-0 z-50 mt-1 min-w-[200px] origin-top-right overflow-hidden rounded-xl py-1.5 text-left shadow-lg"
+            class="bg-lowBackground absolute top-full left-1/2 z-50 mt-1 min-w-[200px] origin-top -translate-x-1/2 overflow-hidden rounded-xl py-1.5 text-left shadow-lg"
           >
             <MenuItem v-slot="{ active }">
               <button
@@ -55,10 +64,6 @@
           </MenuItems>
         </transition>
       </Menu>
-      <p class="mt-2 text-white/70">
-        Guess today's mystery {{ noun }}. Every guess is ranked by how close it is — #1 is the
-        answer.
-      </p>
     </header>
 
     <section
@@ -100,6 +105,14 @@
       <p v-if="hasValue(notice)" role="status" class="text-highlight -mt-3 text-sm">
         {{ notice }}
       </p>
+      <div
+        v-if="offerHint"
+        class="bg-lowBackground -mt-2 flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-white/80"
+      >
+        <mdicon name="lightbulb-on-outline" :size="20" class="text-highlight shrink-0" />
+        <p class="grow">Stuck? A hint reveals a {{ noun }} halfway to the answer.</p>
+        <v-btn class="shrink-0 px-2 text-sm" @click="game.takeHint">Get a hint</v-btn>
+      </div>
     </template>
 
     <section v-if="isDefined(spotlight)" aria-labelledby="daily-game-latest">
@@ -225,6 +238,18 @@ const giveUp = () => {
 // over, so the spotlight is only for guesses still in play.
 const spotlight = computed(() =>
   game.finished.value || game.guesses.value.length < 2 ? undefined : game.latestGuess.value,
+);
+
+// Players who never open the menu don't learn hints exist, so offer one in
+// place once they've made a few guesses without taking any.
+const HINT_OFFER_AFTER_GUESSES = 5;
+
+const offerHint = computed(
+  () =>
+    !game.finished.value &&
+    game.canHint.value &&
+    game.hintCount.value === 0 &&
+    game.guessCount.value >= HINT_OFFER_AFTER_GUESSES,
 );
 
 const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
