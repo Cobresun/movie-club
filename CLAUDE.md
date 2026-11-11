@@ -18,8 +18,8 @@ Movie Club: a Vue 3 app for movie, book and TV clubs — reviews, lists, awards.
 ## Fully local stack
 
 - `npm run local:up` starts a single-node CockroachDB in Docker, migrates it from scratch, starts `scripts/local/mailbox.ts` (a Resend stand-in on `:8025`, via `RESEND_BASE_URL`) and writes a `.env` if there is none; it never overwrites yours. Then `netlify dev`, then `npm run local:seed`, which signs up `dev@movie.club` / `movie-club-local` and a second member through the real verification flow and creates one club per type. Both are safe to re-run.
-- The database starts empty. TMDB / Google Books need real `TMDB_API_KEY` / `GOOGLE_BOOKS_API_KEY` in the shell. Google OAuth does not work locally.
-- Cloud sessions: images come from `mirror.gcr.io` (set `TESTCONTAINERS_HUB_IMAGE_NAME_PREFIX=mirror.gcr.io/` for `npm test`), `local:up` starts `dockerd` if needed, and `netlify dev` needs `--internal-disable-edge-functions` (drops only `/share/...` link previews).
+- The database starts empty. TMDB / Google Books need real `TMDB_API_KEY` / `GOOGLE_BOOKS_API_KEY` in the shell; title search runs in the browser and reads `VITE_TMDB_API_KEY` / `VITE_GOOGLE_BOOKS_API_KEY`, which `local:up` copies into the `.env` it manages, so re-run it after a key changes. Google OAuth does not work locally.
+- Cloud sessions: images come from `mirror.gcr.io` (set `TESTCONTAINERS_HUB_IMAGE_NAME_PREFIX=mirror.gcr.io/` for `npm test`), `local:up` starts `dockerd` if needed, and `netlify dev` needs `--internal-disable-edge-functions` (drops only `/share/...` link previews). Google Books answers cloud egress with a geolocation 403, so book search does not work there.
 
 ## What review sends back
 
