@@ -2,6 +2,7 @@
   <div class="relative flex flex-col gap-1.5 text-left">
     <label :for="inputId" class="text-[13px] font-medium text-white/60">Guess a {{ noun }}</label>
     <div
+      ref="field"
       class="bg-lowBackground focus-within:ring-primary flex items-center rounded-[10px] ring-1 ring-white/[0.12] ring-inset focus-within:ring-2"
     >
       <mdicon name="magnify" :size="21" class="ml-3 text-white/40" aria-hidden="true" />
@@ -25,30 +26,35 @@
         @keydown.esc="open = false"
       />
     </div>
-    <ul
-      v-show="isOpen"
-      :id="listId"
-      role="listbox"
-      :aria-label="`Matching ${noun}s`"
-      class="bg-secondary absolute inset-x-0 top-full z-10 mt-1 overflow-hidden rounded-[10px] shadow-lg ring-1 ring-white/[0.12]"
+    <transition
+      enter-active-class="transition duration-fast ease-standard"
+      enter-from-class="-translate-y-1 opacity-0"
     >
-      <!-- mousedown is prevented so the input keeps focus (and the list stays open) until the click lands. -->
-      <li
-        v-for="(work, index) in matches"
-        :id="optionId(index)"
-        :key="work.id"
-        role="option"
-        :aria-selected="index === activeIndex"
-        class="cursor-pointer px-3.5 py-2.5"
-        :class="{ 'bg-primary/40': index === activeIndex }"
-        @mousedown.prevent
-        @click="pick(index)"
-        @mouseenter="activeIndex = index"
+      <ul
+        v-show="isOpen"
+        :id="listId"
+        role="listbox"
+        :aria-label="`Matching ${noun}s`"
+        class="bg-secondary absolute inset-x-0 top-full z-10 mt-1 overflow-hidden rounded-[10px] shadow-lg ring-1 ring-white/[0.12]"
       >
-        {{ work.title }}
-        <span v-if="isDefined(work.year)" class="text-white/60">({{ work.year }})</span>
-      </li>
-    </ul>
+        <!-- mousedown is prevented so the input keeps focus (and the list stays open) until the click lands. -->
+        <li
+          v-for="(work, index) in matches"
+          :id="optionId(index)"
+          :key="work.id"
+          role="option"
+          :aria-selected="index === activeIndex"
+          class="cursor-pointer px-3.5 py-2.5"
+          :class="{ 'bg-primary/40': index === activeIndex }"
+          @mousedown.prevent
+          @click="pick(index)"
+          @mouseenter="activeIndex = index"
+        >
+          {{ work.title }}
+          <span v-if="isDefined(work.year)" class="text-white/60">({{ work.year }})</span>
+        </li>
+      </ul>
+    </transition>
     <p v-if="query.trim().length > 1 && !hasElements(matches)" class="text-sm text-white/60">
       No {{ noun }} in today's game matches “{{ query.trim() }}”.
     </p>
@@ -56,7 +62,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, useId, watch } from "vue";
+import { computed, ref, useId, useTemplateRef, watch } from "vue";
 
 import { hasElements, isDefined } from "@/../lib/checks/checks";
 import { type DailyGameWork } from "@/../lib/types/dailyGame";
@@ -71,6 +77,8 @@ const emit = defineEmits<{
 const inputId = useId();
 const listId = useId();
 const optionId = (index: number) => `${listId}-option-${index}`;
+
+const field = useTemplateRef<HTMLDivElement>("field");
 
 const query = ref("");
 const activeIndex = ref(0);
@@ -101,4 +109,33 @@ const pick = (index: number) => {
 const onEnter = () => {
   if (isOpen.value) pick(activeIndex.value);
 };
+
+// Imperative classList so a second shake while the first is still running
+// restarts it: remove, force a reflow, re-add.
+const shake = () => {
+  const el = field.value;
+  if (el === null) return;
+  el.classList.remove("field-shake");
+  void el.offsetWidth;
+  el.classList.add("field-shake");
+};
+
+defineExpose({ shake });
 </script>
+
+<style scoped>
+.field-shake {
+  animation: field-shake var(--motion-slow) var(--ease-standard);
+}
+
+@keyframes field-shake {
+  20%,
+  60% {
+    transform: translateX(-0.4rem);
+  }
+  40%,
+  80% {
+    transform: translateX(0.4rem);
+  }
+}
+</style>
