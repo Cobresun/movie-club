@@ -15,6 +15,12 @@ Movie Club: a Vue 3 app for movie, book and TV clubs — reviews, lists, awards.
 - A new migration is `migrations/schema/<Description>.ts` (no date), default-exports `{ name, up, down }`, and is appended to `migrations/orderedMigrations.ts`. Data rewrites go in schema migrations; `migrations/data/` is legacy.
 - Never run `migrate:dev` against shared `dev`. Spawn a copy first with `npm run db:spawn <name>` (underscores, no hyphens); `db:snapshot`, `db:list` and `db:cleanup` go with it. Details in `database.md`.
 
+## Fully local stack
+
+- `npm run local:up` starts a single-node CockroachDB in Docker, migrates it from scratch, starts `scripts/local/mailbox.ts` (a Resend stand-in on `:8025`, via `RESEND_BASE_URL`) and writes a `.env` if there is none; it never overwrites yours. Then `netlify dev`, then `npm run local:seed`, which signs up `dev@movie.club` / `movie-club-local` and a second member through the real verification flow and creates one club per type. Both are safe to re-run.
+- The database starts empty. TMDB / Google Books need real `TMDB_API_KEY` / `GOOGLE_BOOKS_API_KEY` in the shell. Google OAuth does not work locally.
+- Cloud sessions: images come from `mirror.gcr.io` (set `TESTCONTAINERS_HUB_IMAGE_NAME_PREFIX=mirror.gcr.io/` for `npm test`), `local:up` starts `dockerd` if needed, and `netlify dev` needs `--internal-disable-edge-functions` (drops only `/share/...` link previews).
+
 ## What review sends back
 
 These account for most review comments. Each has come back after being written down, usually in a form the rule had not named.
