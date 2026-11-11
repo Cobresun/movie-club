@@ -24,7 +24,9 @@
     "db:snapshot": "tsx --env-file=.env scripts/db-snapshot.ts",
     "db:spawn": "tsx --env-file=.env scripts/db-spawn.ts",
     "db:list": "tsx --env-file=.env scripts/db-list.ts",
-    "db:cleanup": "tsx --env-file=.env scripts/db-cleanup.ts"
+    "db:cleanup": "tsx --env-file=.env scripts/db-cleanup.ts",
+    "local:up": "bash scripts/local/up.sh",
+    "local:seed": "tsx scripts/local/seed.ts"
   },
   "dependencies": {
     "@cubos/kysely-cockroach": "^1.0.0",
