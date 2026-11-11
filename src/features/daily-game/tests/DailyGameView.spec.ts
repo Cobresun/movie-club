@@ -104,6 +104,18 @@ describe("DailyGameView", () => {
     expect(within(row("Collateral")).getByText("Hot")).toBeInTheDocument();
   });
 
+  it("calls out a latest guess that beats every earlier one", async () => {
+    const { user } = await renderGame();
+    const latest = () => screen.getByRole("region", { name: "Latest guess" });
+
+    await guess(user, "Alien");
+    await guess(user, "Speed");
+    expect(within(latest()).getByText("Closest yet")).toBeInTheDocument();
+
+    await guess(user, "Jaws");
+    expect(within(latest()).queryByText("Closest yet")).not.toBeInTheDocument();
+  });
+
   it("only offers movies that match what was typed", async () => {
     const { user } = await renderGame();
 
