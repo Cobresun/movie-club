@@ -41,7 +41,7 @@
     <div class="pointer-events-none absolute inset-x-0 bottom-1 flex flex-col items-center gap-1">
       <input
         ref="scoreInput"
-        v-model="model"
+        :value="model"
         type="number"
         inputmode="decimal"
         :min="SCORE_MIN"
@@ -141,19 +141,20 @@ const shakeInput = () => {
   el.classList.add("score-shake");
 };
 
-// v-model owns echoing typed text back to the DOM (its directive skips the
-// write while the input is focused, which keeps partial states like "8."
-// alive — a number input's value setter would sanitize them to ""). This
-// handler only intervenes when sanitizeScoreInput reports a correction (leading
-// zeros, a third decimal, or an out-of-range value): it rewrites both the model
-// and the DOM directly, since Vue won't re-patch when two inputs in a row
-// correct to the same model value (e.g. "12" then "120").
+// Bound with :value rather than v-model: v-model on a type="number" input casts
+// what it emits to a number, which would hand the string model 8.5 for "8.5"
+// and 8 for "8.". Vue re-patches :value only when it differs from the DOM's
+// own value, so partial states like "8." survive while typing — a number
+// input's value setter would sanitize them to "". Corrections from
+// sanitizeScoreInput (leading zeros, a third decimal, or an out-of-range
+// value) are written to the DOM directly, since Vue won't re-patch when two
+// inputs in a row correct to the same model value (e.g. "12" then "120").
 const onInput = (event: Event) => {
   const { target } = event;
   if (!(target instanceof HTMLInputElement)) return;
   const { value, corrected, clampedTo } = sanitizeScoreInput(target.value);
-  if (!corrected) return;
   model.value = value;
+  if (!corrected) return;
   target.value = value;
   shakeInput();
   if (clampedTo === "max") {

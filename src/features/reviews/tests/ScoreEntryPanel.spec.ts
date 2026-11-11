@@ -58,6 +58,21 @@ describe("ScoreEntryPanel", () => {
     expect(screen.getByText("Great")).toBeInTheDocument();
   });
 
+  it("keeps a half-typed score as typed, so the next digit lands after the point", async () => {
+    // The number input must hand the dial its text, not a cast number: a cast
+    // trips the dial's string prop type, and would collapse "8." to 8.
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { user } = render(ScoreEntryPanel, { props: { work: TARGET } });
+
+    const input = screen.getByRole("spinbutton", { name: "Score" });
+    await user.type(input, "8.");
+    await user.type(input, "5");
+
+    expect(input).toHaveValue(8.5);
+    expect(screen.getByText("Great")).toBeInTheDocument();
+    expect(warn).not.toHaveBeenCalled();
+  });
+
   it("shows the verdict band for a prefilled score", () => {
     render(ScoreEntryPanel, {
       props: { work: TARGET, reviewId: "rev1", score: 4.4 },
