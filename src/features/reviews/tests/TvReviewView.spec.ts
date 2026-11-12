@@ -256,6 +256,16 @@ describe("TV reviews", () => {
     expect(screen.queryByText(/No scores yet/)).not.toBeInTheDocument();
   });
 
+  it("copies the link to a show's public episode breakdown when sharing it", async () => {
+    const { user } = await renderSeverance();
+
+    await user.click(screen.getByRole("button", { name: "Share Severance" }));
+
+    await expect(navigator.clipboard.readText()).resolves.toBe(
+      `${window.location.origin}/share/club/${CLUB_SLUG}/review/show-1`,
+    );
+  });
+
   it("shows a show's creators, networks and recurring cast in its details", async () => {
     const { user } = await renderSeverance();
     server.use(

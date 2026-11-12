@@ -109,6 +109,14 @@
           </div>
         </div>
 
+        <component
+          :is="breakdown"
+          v-if="isDefined(breakdown) && isDefined(allReviews)"
+          :reviews="allReviews"
+          :work-id="workId"
+          :members="data.members"
+        />
+
         <!-- Comments Section -->
         <SharedReviewComments v-if="hasElements(data.comments)" :comments="data.comments" />
       </div>
@@ -126,6 +134,7 @@ import { useRoute } from "vue-router";
 import { hasElements, isDefined } from "../../../../lib/checks/checks.js";
 import ReviewFactCard from "../components/ReviewFactCard.vue";
 import { computeReviewFact } from "../reviewFacts";
+import { SHARED_REVIEW_BREAKDOWNS } from "../sharedReviewBreakdowns";
 import { workTitle } from "@/common/clubType";
 import SharedPageCtaBanner from "@/common/components/SharedPageCtaBanner.vue";
 import SharedPageHeader from "@/common/components/SharedPageHeader.vue";
@@ -149,6 +158,10 @@ const { data, isLoading, error } = useSharedReview(clubSlug, workId);
 const { data: allReviews } = useReviewsList(clubSlug);
 const reviewFact = computed(() =>
   isDefined(allReviews.value) ? computeReviewFact(allReviews.value, workId) : undefined,
+);
+
+const breakdown = computed(() =>
+  isDefined(club.value) ? SHARED_REVIEW_BREAKDOWNS[club.value.type] : undefined,
 );
 
 const movieData = computed(() => asMovie(data.value?.work.externalData));
