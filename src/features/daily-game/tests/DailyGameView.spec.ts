@@ -410,6 +410,18 @@ describe("DailyGameView", () => {
       );
     });
 
+    it("follows the date when the same page moves to today's puzzle", async () => {
+      servePuzzles({ "2026-10-20": 5, "2026-10-22": 7 });
+      const past = await renderGame("2026-10-20");
+
+      // The router keeps this view when "Today's puzzle" or Back changes the date.
+      await past.rerender({ clubType: ClubType.MOVIE, date: undefined });
+
+      expect(
+        await screen.findByRole("heading", { level: 1, name: "Reelated #7" }),
+      ).toBeInTheDocument();
+    });
+
     it("links to the archive from today's puzzle", async () => {
       await renderGame();
 

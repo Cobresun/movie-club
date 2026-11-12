@@ -63,7 +63,7 @@ const router = useRouter();
 
 const today = localDate(new Date());
 
-const { data, isLoading, isError, error } = useDailyGamePuzzle(clubType, date ?? today);
+const { data, isLoading, isError, error } = useDailyGamePuzzle(clubType, () => date ?? today);
 
 // Today's puzzle is missing only while the catalog is too small to play; a
 // past one, when that day never had a puzzle.

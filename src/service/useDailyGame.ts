@@ -1,5 +1,6 @@
 import { type UseQueryReturnType, useMutation, useQuery } from "@tanstack/vue-query";
 import axios, { type AxiosError } from "axios";
+import { computed, type MaybeRefOrGetter, toValue } from "vue";
 
 import { type DailyGameResultBody } from "../../lib/dailyGame";
 import { type DailyGameArchive, type DailyGamePuzzle } from "../../lib/types/dailyGame";
@@ -9,15 +10,18 @@ import { type ClubType } from "../../lib/types/generated/db";
  * A day's puzzle for one club type's daily game. The answer for a date never
  * changes once drawn, so the response is kept for the session — and, through
  * the persisted cache, for a player who reopens the page with no connection.
+ *
+ * `date` is reactive: the router reuses the view between `/reelated` and
+ * `/reelated/:date`, so the query has to follow the date it's given.
  */
 export function useDailyGamePuzzle(
   clubType: ClubType,
-  date: string,
+  date: MaybeRefOrGetter<string>,
 ): UseQueryReturnType<DailyGamePuzzle, AxiosError> {
   return useQuery({
-    queryKey: ["dailyGame", clubType, date],
+    queryKey: computed(() => ["dailyGame", clubType, toValue(date)]),
     queryFn: async () =>
-      (await axios.get<DailyGamePuzzle>(`/api/daily-game/${clubType}/${date}`)).data,
+      (await axios.get<DailyGamePuzzle>(`/api/daily-game/${clubType}/${toValue(date)}`)).data,
     staleTime: Infinity,
     retry: false,
   });

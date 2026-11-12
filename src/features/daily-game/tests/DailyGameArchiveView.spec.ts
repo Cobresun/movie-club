@@ -107,5 +107,27 @@ describe("DailyGameArchiveView", () => {
     render(DailyGameArchiveView, { props: { clubType: ClubType.MOVIE } });
 
     expect(await screen.findByRole("heading", { name: "No puzzles yet" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Today's puzzle" })).toHaveAttribute(
+      "href",
+      "/reelated",
+    );
+  });
+
+  it("still links to today's puzzle when the archive can't be loaded", async () => {
+    server.use(
+      http.get("/api/daily-game/movie/archive", () =>
+        HttpResponse.json({ error: "Something went wrong" }, { status: 500 }),
+      ),
+    );
+
+    render(DailyGameArchiveView, { props: { clubType: ClubType.MOVIE } });
+
+    expect(
+      await screen.findByRole("heading", { name: "Couldn't load the archive" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Today's puzzle" })).toHaveAttribute(
+      "href",
+      "/reelated",
+    );
   });
 });

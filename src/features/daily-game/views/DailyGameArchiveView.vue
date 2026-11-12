@@ -11,6 +11,15 @@
         <p class="mt-2 text-white/70">
           Missed a day? Every past {{ noun }} is still here to guess.
         </p>
+        <nav aria-label="Other puzzles" class="mt-3 flex justify-center text-sm">
+          <router-link
+            :to="dailyGame.path"
+            class="text-highlight inline-flex items-center gap-1 hover:underline"
+          >
+            <mdicon name="lightbulb-on-outline" :size="18" />
+            Today's puzzle
+          </router-link>
+        </nav>
       </header>
 
       <div v-if="isLoading" class="flex justify-center py-16">
