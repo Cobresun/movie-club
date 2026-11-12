@@ -53,9 +53,7 @@
                               averageScore.toFixed(1)
                             }}</span>
                             <span class="text-lg text-gray-400"> Club Average </span>
-                            <span class="text-sm text-gray-500">
-                              ({{ data.reviews.length }} ratings)
-                            </span>
+                            <span class="text-sm text-gray-500"> ({{ ratingCount }} ratings) </span>
                           </div>
                         </div>
                       </div>
@@ -91,13 +89,24 @@
                             {{ member.name }}
                           </div>
                           <div class="text-sm text-gray-400">
-                            {{ formatReviewTime(getReviewTimeForMember(member.id)) }}
+                            {{
+                              memberScore(member.id).averaged
+                                ? "Averaged over their episodes"
+                                : formatReviewTime(memberScore(member.id).reviewedAt)
+                            }}
                           </div>
                         </div>
                       </div>
                       <div class="flex items-baseline gap-2">
                         <div class="text-primary text-2xl font-bold">
-                          {{ getScoreForMember(member.id) ?? "-" }}
+                          <template v-if="memberScore(member.id).averaged"
+                            ><mdicon
+                              name="approximately-equal"
+                              :size="20"
+                              class="inline-block align-middle text-gray-400"
+                              aria-hidden="true"
+                            /><span class="sr-only">Averaged </span></template
+                          >{{ memberScore(member.id).score ?? "-" }}
                         </div>
                         <div class="text-base text-gray-400">/ 10</div>
                       </div>
@@ -110,8 +119,8 @@
         </div>
 
         <component
-          :is="breakdown"
-          v-if="isDefined(breakdown) && isDefined(allReviews)"
+          :is="layout.breakdown"
+          v-if="isDefined(layout.breakdown) && isDefined(allReviews)"
           :reviews="allReviews"
           :work-id="workId"
           :members="data.members"
@@ -134,7 +143,7 @@ import { useRoute } from "vue-router";
 import { hasElements, isDefined } from "../../../../lib/checks/checks.js";
 import ReviewFactCard from "../components/ReviewFactCard.vue";
 import { computeReviewFact } from "../reviewFacts";
-import { SHARED_REVIEW_BREAKDOWNS } from "../sharedReviewBreakdowns";
+import { SHARED_REVIEW_LAYOUTS } from "../sharedReviewLayouts";
 import { workTitle } from "@/common/clubType";
 import SharedPageCtaBanner from "@/common/components/SharedPageCtaBanner.vue";
 import SharedPageHeader from "@/common/components/SharedPageHeader.vue";
@@ -160,8 +169,12 @@ const reviewFact = computed(() =>
   isDefined(allReviews.value) ? computeReviewFact(allReviews.value, workId) : undefined,
 );
 
-const breakdown = computed(() =>
-  isDefined(club.value) ? SHARED_REVIEW_BREAKDOWNS[club.value.type] : undefined,
+const layout = computed(() =>
+  isDefined(club.value) ? SHARED_REVIEW_LAYOUTS[club.value.type] : {},
+);
+
+const rollup = computed(() =>
+  isDefined(allReviews.value) ? layout.value.rollup?.(allReviews.value, workId) : undefined,
 );
 
 const movieData = computed(() => asMovie(data.value?.work.externalData));
@@ -170,22 +183,36 @@ const posterSrc = computed(
 );
 
 const averageScore = computed(() => {
+  if (isDefined(rollup.value)) return rollup.value.scores.average?.score ?? 0;
   if (!data.value) return 0;
   const scores = data.value.reviews.map((r) => Number(r.score)).filter(Boolean);
   if (scores.length === 0) return 0;
   return scores.reduce((a, b) => a + b, 0) / scores.length;
 });
 
-const getScoreForMember = (memberId: string): number | undefined => {
-  if (!data.value) return undefined;
-  const review = data.value.reviews.find((r) => r.user_id === memberId);
-  return review?.score;
-};
+const ratingCount = computed(() =>
+  isDefined(rollup.value)
+    ? Object.keys(rollup.value.scores).filter((memberId) => memberId !== "average").length
+    : (data.value?.reviews.length ?? 0),
+);
 
-const getReviewTimeForMember = (memberId: string): string | undefined => {
-  if (!data.value) return undefined;
-  const review = data.value.reviews.find((r) => r.user_id === memberId);
-  return review?.created_date;
+interface MemberScore {
+  score?: number;
+  reviewedAt?: string;
+  /** Averaged from the member's scores one level down, not set on the work. */
+  averaged: boolean;
+}
+
+const memberScore = (memberId: string): MemberScore => {
+  if (isDefined(rollup.value)) {
+    const review = rollup.value.scores[memberId];
+    if (!isDefined(review)) return { averaged: false };
+    return rollup.value.averagedMemberIds.has(memberId)
+      ? { score: Number(review.score.toFixed(1)), averaged: true }
+      : { score: review.score, reviewedAt: review.created_date, averaged: false };
+  }
+  const review = data.value?.reviews.find((r) => r.user_id === memberId);
+  return { score: review?.score, reviewedAt: review?.created_date, averaged: false };
 };
 
 const formatReviewTime = (time?: string) => {

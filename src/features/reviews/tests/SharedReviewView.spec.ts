@@ -211,6 +211,27 @@ describe("SharedReviewView for a TV show", () => {
     expect(episodes.getByText(readsAs("Club average 8.0"))).toBeInTheDocument();
   });
 
+  it("scores the show as the club sees it, averaging a member who scored only episodes", async () => {
+    const [show, ...episodes] = reviews;
+    if (show === undefined) throw new Error("No show in the fixture");
+    server.use(
+      http.get("/api/club/:id/list/reviews", () =>
+        HttpResponse.json<DetailedReviewListItem[]>([
+          { ...show, scores: scores({ "2": 9 }) },
+          ...episodes,
+        ]),
+      ),
+    );
+    render(SharedReviewView);
+
+    // Ben scored the show itself; Ana's 6 is her average over her episodes.
+    expect(await screen.findByText("7.5")).toBeInTheDocument();
+    expect(screen.getByText("(2 ratings)")).toBeInTheDocument();
+    expect(screen.getByText(readsAs("Averaged 6"))).toBeInTheDocument();
+    expect(screen.getAllByText("Averaged over their episodes")).toHaveLength(1);
+    expect(screen.getByText(readsAs("9"))).toBeInTheDocument();
+  });
+
   it("leaves out seasons nobody has scored", async () => {
     render(SharedReviewView);
 
