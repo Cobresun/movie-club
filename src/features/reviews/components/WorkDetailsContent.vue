@@ -269,7 +269,7 @@
           <button
             type="button"
             class="bg-primary text-text flex shrink-0 items-center justify-center gap-2 rounded-lg px-4 py-3 font-bold tracking-wide transition hover:brightness-110 active:scale-[0.98]"
-            @click="shareReview(movie.id)"
+            @click="shareReview(movie)"
           >
             <mdicon name="share" size="20" />
             <span>Share</span>
@@ -292,7 +292,7 @@
           v-if="isDefined(myReviewId)"
           type="button"
           class="bg-primary text-text flex shrink-0 items-center justify-center gap-2 rounded-lg px-4 py-3 font-bold tracking-wide transition hover:brightness-110 active:scale-[0.98]"
-          @click="shareReview(movie.id)"
+          @click="shareReview(movie)"
         >
           <mdicon name="share" size="20" />
           <span>Share</span>
@@ -322,6 +322,7 @@ import { hasElements, hasValue, isDefined } from "../../../../lib/checks/checks.
 import { Member } from "../../../../lib/types/club";
 import { ClubType } from "../../../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
+import { useShareReview } from "../composables/useShareReview";
 import { computeReviewFact } from "../reviewFacts";
 import { ScoreEntry, isOthersScore, isScoreBlurred, workScoreEntries } from "../reviewScores";
 import DiscussionQuestions from "./DiscussionQuestions.vue";
@@ -351,7 +352,6 @@ import VAvatar from "@/common/components/VAvatar.vue";
 import WatchProviders from "@/common/components/WatchProviders.vue";
 import WorkDescription from "@/common/components/WorkDescription.vue";
 import WorkPosterHero from "@/common/components/WorkPosterHero.vue";
-import { useShare } from "@/common/composables/useShare";
 import { asBook, asMovie, formatDate, workPosterUrl } from "@/common/workDisplay";
 import { useClub, useClubSlug } from "@/service/useClub";
 import {
@@ -608,20 +608,7 @@ const close = () => {
   emit("close");
 };
 
-// Share functionality
-const { share } = useShare();
-
-const shareReview = (id: string) => {
-  const url = `${window.location.origin}/share/club/${clubId}/review/${id}`;
-  const title = props.movie.title;
-  const clubName = club.value?.clubName ?? "Movie Club";
-
-  void share({
-    url,
-    title: `${title} - ${clubName} Review`,
-    text: `${clubName}'s review of ${title}`,
-  });
-};
+const shareReview = useShareReview();
 
 const toggleMovieReveal = (movieId: string) => {
   emit("toggle-reveal", movieId);
