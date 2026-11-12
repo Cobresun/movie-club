@@ -117,7 +117,7 @@ export const movieClubConfig: ClubTypeConfig = {
     path: "/reelated",
     tagline: "One mystery movie a day. Every guess tells you how related it is. No account needed.",
     similarityRule:
-      "Movies are related through shared directors, cast, studios, genres, era and language.",
+      "Movies are related by what they share: a director counts most, then a star, then studios, rarer genres, language and decade. Things most movies share, like Drama or being in English, don't count.",
     preview: {
       poolSize: 5000,
       guesses: [
@@ -126,21 +126,31 @@ export const movieClubConfig: ClubTypeConfig = {
           title: "Arrival",
           year: 2016,
           rank: 4,
-          clues: ["Same director: Denis Villeneuve", "Science Fiction", "Also from the 2010s"],
+          clues: [
+            { text: "Same director: Denis Villeneuve", strength: "strong" },
+            { text: "Science Fiction", strength: "weak" },
+            { text: "Also from the 2010s", strength: "weak" },
+          ],
         },
         {
           id: "146233",
           title: "Prisoners",
           year: 2013,
           rank: 11,
-          clues: ["Same director: Denis Villeneuve", "Also from the 2010s"],
+          clues: [
+            { text: "Same director: Denis Villeneuve", strength: "strong" },
+            { text: "Also from the 2010s", strength: "weak" },
+          ],
         },
         {
           id: "152601",
           title: "Her",
           year: 2013,
           rank: 412,
-          clues: ["Science Fiction", "Also from the 2010s"],
+          clues: [
+            { text: "Science Fiction", strength: "weak" },
+            { text: "Also from the 2010s", strength: "weak" },
+          ],
         },
         { id: "578", title: "Jaws", year: 1975, rank: 2904, clues: [] },
       ],

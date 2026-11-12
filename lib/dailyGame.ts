@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { hasElements } from "./checks/checks.js";
-import { type DailyGameWork } from "./types/dailyGame";
+import { type ClueStrength, type DailyGameWork } from "./types/dailyGame";
 
 export interface PoolWork<T> {
   id: string;
@@ -9,25 +9,66 @@ export interface PoolWork<T> {
   data: T;
 }
 
+/** One thing a guess shares with the answer, and how many points it adds. */
+export interface ScoredClue {
+  text: string;
+  points: number;
+}
+
 /**
- * What one club type's daily game needs to know about its media: how alike two
- * works are, what to tell the player they share, and which works make a fair
- * answer. `T` is that media's own metadata shape.
+ * What one club type's daily game needs to know about its media: what two
+ * works have in common, and which works make a fair answer. `T` is that
+ * media's own metadata shape.
  */
 export interface DailyGameRules<T> {
-  /** A scorer in [0,1], weighted by how rare each shared tag is in `corpus`. */
-  makeScorer: (corpus: readonly T[]) => (target: T, candidate: T) => number;
-  /** What `guess` has in common with `answer`, phrased for the player. */
-  clues: (guess: T, answer: T) => string[];
+  /**
+   * Everything `guess` has in common with `answer`, each clue worth points.
+   * A guess's score is the sum of its clues and nothing else, so a player can
+   * always see why one guess outranks another. `pool` is every work in play,
+   * for clues whose worth depends on how rare they are.
+   *
+   * Points share one scale across media: {@link STRONG_CLUE_POINTS} or more
+   * reads as a strong link, {@link MEDIUM_CLUE_POINTS} or more as a medium one.
+   */
+  makeClues: (pool: readonly T[]) => (guess: T, answer: T) => ScoredClue[];
   year: (data: T) => number | undefined;
   /** Whether a work has enough metadata that the trail to it never runs cold. */
   canBeAnswer: (data: T) => boolean;
 }
 
+export const STRONG_CLUE_POINTS = 5;
+export const MEDIUM_CLUE_POINTS = 2;
+
+const strength = (points: number): ClueStrength =>
+  points >= STRONG_CLUE_POINTS ? "strong" : points >= MEDIUM_CLUE_POINTS ? "medium" : "weak";
+
 /**
- * Every work in the pool, ranked by how alike it is to the answer, with the
- * pool as the scorer's corpus. The answer is rank 1; ties keep a stable order
- * by title.
+ * How many points a shared tag is worth, from how rare it is in `pool`:
+ * `ln(pool size / works with the tag)`, capped at `max`. A tag more than half
+ * the pool has ("Drama", English) is worth nothing, so it is no clue at all.
+ */
+export function rarityPoints<T>(
+  pool: readonly T[],
+  extract: (data: T) => readonly string[],
+  max: number,
+): (tag: string) => number {
+  const frequency = new Map<string, number>();
+  for (const data of pool) {
+    for (const tag of new Set(extract(data))) frequency.set(tag, (frequency.get(tag) ?? 0) + 1);
+  }
+  return (tag) => {
+    const share = (frequency.get(tag) ?? 0) / pool.length;
+    if (share === 0 || share > 0.5) return 0;
+    return Math.min(max, Math.log(1 / share));
+  };
+}
+
+const totalPoints = (clues: readonly ScoredClue[]) =>
+  clues.reduce((total, clue) => total + clue.points, 0);
+
+/**
+ * Every work in the pool, ranked by the points its clues add up to. The
+ * answer is rank 1; ties keep a stable order by title.
  */
 export function rankPool<T>(
   answerId: string,
@@ -36,19 +77,24 @@ export function rankPool<T>(
 ): DailyGameWork[] {
   const answer = pool.find((work) => work.id === answerId);
   if (answer === undefined) return [];
-  const score = rules.makeScorer(pool.map((work) => work.data));
+  const cluesFor = rules.makeClues(pool.map((work) => work.data));
   const others = pool
     .filter((work) => work.id !== answerId)
-    .map((work) => ({ work, score: score(answer.data, work.data) }))
+    .map((work) => {
+      const clues = cluesFor(work.data, answer.data)
+        .filter((clue) => clue.points > 0)
+        .sort((a, b) => b.points - a.points);
+      return { work, clues, score: totalPoints(clues) };
+    })
     .sort((a, b) =>
       a.score === b.score ? a.work.title.localeCompare(b.work.title) : b.score - a.score,
     );
-  return [answer, ...others.map(({ work }) => work)].map((work, index) => ({
+  return [{ work: answer, clues: [] }, ...others].map(({ work, clues }, index) => ({
     id: work.id,
     title: work.title,
     year: rules.year(work.data),
     rank: index + 1,
-    clues: work.id === answerId ? [] : rules.clues(work.data, answer.data),
+    clues: clues.map((clue) => ({ text: clue.text, strength: strength(clue.points) })),
   }));
 }
 

@@ -194,8 +194,9 @@
               on down to #{{ game.poolSize }}.
             </li>
             <li>
-              {{ dailyGame.similarityRule }} The clues under each guess show what it has in common
-              with the answer.
+              {{ dailyGame.similarityRule }} The clues under each guess are everything it has in
+              common with the answer — its rank comes from those alone, and the bars show which
+              count most.
             </li>
             <li>
               Stuck? A hint reveals a {{ noun }} halfway between your best guess and the answer.
