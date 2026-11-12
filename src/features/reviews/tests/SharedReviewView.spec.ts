@@ -228,7 +228,7 @@ describe("SharedReviewView for a TV show", () => {
     expect(await screen.findByText("7.5")).toBeInTheDocument();
     expect(screen.getByText("(2 ratings)")).toBeInTheDocument();
     expect(screen.getByText(readsAs("Averaged 6"))).toBeInTheDocument();
-    expect(screen.getAllByText("Averaged over their episodes")).toHaveLength(1);
+    expect(screen.getAllByText("Episode average")).toHaveLength(1);
     expect(screen.getByText(readsAs("9"))).toBeInTheDocument();
   });
 

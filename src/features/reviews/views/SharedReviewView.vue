@@ -91,14 +91,14 @@
                           <div class="text-sm text-gray-400">
                             {{
                               memberScore(member.id).averaged
-                                ? "Averaged over their episodes"
+                                ? "Episode average"
                                 : formatReviewTime(memberScore(member.id).reviewedAt)
                             }}
                           </div>
                         </div>
                       </div>
-                      <div class="flex items-baseline gap-2">
-                        <div class="text-primary text-2xl font-bold">
+                      <div class="flex shrink-0 items-baseline gap-2">
+                        <div class="text-primary text-2xl font-bold whitespace-nowrap">
                           <template v-if="memberScore(member.id).averaged"
                             ><mdicon
                               name="approximately-equal"

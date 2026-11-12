@@ -93,15 +93,6 @@
             <mdicon name="comment-text-outline" :size="16" />
             <span class="hidden sm:inline">Details</span>
           </button>
-          <button
-            type="button"
-            class="duration-fast ease-standard flex items-center gap-1.5 rounded-full px-2.5 py-1 text-sm text-gray-400 transition hover:bg-white/5 hover:text-gray-200"
-            :aria-label="`Share ${show.title}`"
-            @click="shareReview(show.review)"
-          >
-            <mdicon name="share" :size="16" />
-            <span class="hidden sm:inline">Share</span>
-          </button>
         </div>
       </div>
 
@@ -136,12 +127,25 @@
     </div>
 
     <div v-if="open" class="animate-fade-up border-t border-white/10">
-      <SeasonTabs
-        v-if="show.seasons.length > 0"
-        v-model="selectedSeason"
-        :show-id="show.showId"
-        :seasons="show.seasons"
-      />
+      <!-- Share sits with the seasons it shares: the public page breaks the
+           show down the same way. -->
+      <div v-if="show.seasons.length > 0" class="flex items-center gap-1 pr-3 md:pr-4">
+        <SeasonTabs
+          v-model="selectedSeason"
+          class="min-w-0 grow"
+          :show-id="show.showId"
+          :seasons="show.seasons"
+        />
+        <button
+          type="button"
+          class="duration-fast ease-standard flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1.5 text-sm text-gray-400 transition hover:bg-white/5 hover:text-gray-200"
+          :aria-label="`Share ${show.title}`"
+          @click="shareReview(show.review)"
+        >
+          <mdicon name="share" :size="18" />
+          <span class="hidden sm:inline">Share</span>
+        </button>
+      </div>
       <p v-else class="py-3 pl-3 text-sm text-gray-400 md:pl-6">
         This show's seasons haven't loaded yet.
       </p>
