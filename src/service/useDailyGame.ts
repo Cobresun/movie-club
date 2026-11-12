@@ -1,6 +1,7 @@
-import { type UseQueryReturnType, useQuery } from "@tanstack/vue-query";
+import { type UseQueryReturnType, useMutation, useQuery } from "@tanstack/vue-query";
 import axios, { type AxiosError } from "axios";
 
+import { type DailyGameResultBody } from "../../lib/dailyGame";
 import { type DailyGamePuzzle } from "../../lib/types/dailyGame";
 import { type ClubType } from "../../lib/types/generated/db";
 
@@ -19,5 +20,13 @@ export function useDailyGamePuzzle(
       (await axios.get<DailyGamePuzzle>(`/api/daily-game/${clubType}/${date}`)).data,
     staleTime: Infinity,
     retry: false,
+  });
+}
+
+/** Records a finished puzzle for the site's stats. Nothing on screen depends on it. */
+export function useRecordDailyGameResult(clubType: ClubType, date: string) {
+  return useMutation({
+    mutationFn: (result: DailyGameResultBody) =>
+      axios.post(`/api/daily-game/${clubType}/${date}/result`, result),
   });
 }

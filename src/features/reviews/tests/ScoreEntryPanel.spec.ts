@@ -2,15 +2,36 @@ import { screen, waitFor } from "@testing-library/vue";
 import { http, HttpResponse } from "msw";
 
 import { WorkType } from "../../../../lib/types/generated/db";
+import { type MemberScoredWork } from "../../../../lib/types/lists";
 import ScoreEntryPanel from "../components/ScoreEntryPanel.vue";
 import { ScoreAssistKey } from "../scoreAssist";
 import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
 import { server } from "@/mocks/server";
-import { render } from "@/tests/utils";
+import { logIn, render } from "@/tests/utils";
 
 mockIntersectionObserver();
 
 const TARGET = { id: "target", type: WorkType.MOVIE };
+
+/** A score the mock user gave in some club; the test club's id is "1". */
+function memberScore(overrides: Partial<MemberScoredWork>): MemberScoredWork {
+  return {
+    workId: "other-work",
+    clubId: "2",
+    clubName: "Friday Films",
+    clubSlug: "friday-films",
+    type: WorkType.MOVIE,
+    title: "Dune",
+    externalId: "438631",
+    score: 7.5,
+    scoredDate: "2024-05-28T04:46:37.751Z",
+    ...overrides,
+  };
+}
+
+function withMemberScores(scores: MemberScoredWork[]) {
+  server.use(http.get("/api/member/scores", () => HttpResponse.json<MemberScoredWork[]>(scores)));
+}
 
 /** Provide a Score Assist stub so the assist button's gating can be exercised. */
 function withAssist(isEligible: boolean) {
@@ -35,6 +56,21 @@ describe("ScoreEntryPanel", () => {
     await user.type(screen.getByRole("spinbutton", { name: "Score" }), "8.5");
     expect(save).toBeEnabled();
     expect(screen.getByText("Great")).toBeInTheDocument();
+  });
+
+  it("keeps a half-typed score as typed, so the next digit lands after the point", async () => {
+    // The number input must hand the dial its text, not a cast number: a cast
+    // trips the dial's string prop type, and would collapse "8." to 8.
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { user } = render(ScoreEntryPanel, { props: { work: TARGET } });
+
+    const input = screen.getByRole("spinbutton", { name: "Score" });
+    await user.type(input, "8.");
+    await user.type(input, "5");
+
+    expect(input).toHaveValue(8.5);
+    expect(screen.getByText("Great")).toBeInTheDocument();
+    expect(warn).not.toHaveBeenCalled();
   });
 
   it("shows the verdict band for a prefilled score", () => {
@@ -218,6 +254,88 @@ describe("ScoreEntryPanel", () => {
     });
     await user.click(assist);
     expect(rendered.emitted().assist).toHaveLength(1);
+  });
+
+  describe("copying a score from another club", () => {
+    const DUNE = { id: "target", type: WorkType.MOVIE, externalId: "438631" };
+
+    it("fills the dial with the score the user gave the same work in another club", async () => {
+      withMemberScores([memberScore({})]);
+      const { user, pinia } = render(ScoreEntryPanel, { props: { work: DUNE } });
+      logIn(pinia);
+
+      await user.click(
+        await screen.findByRole("button", { name: "Use your 7.5 from Friday Films" }),
+      );
+
+      expect(screen.getByRole("spinbutton", { name: "Score" })).toHaveValue(7.5);
+      expect(screen.getByRole("button", { name: "Save score" })).toBeEnabled();
+    });
+
+    it("offers each other club's score, most recent first", async () => {
+      withMemberScores([
+        memberScore({ clubId: "2", clubName: "Friday Films", score: 7.5 }),
+        memberScore({
+          clubId: "3",
+          clubName: "Work Club",
+          score: 9,
+          scoredDate: "2025-01-01T00:00:00.000Z",
+        }),
+      ]);
+      const { pinia } = render(ScoreEntryPanel, { props: { work: DUNE } });
+      logIn(pinia);
+
+      const offers = await screen.findAllByRole("button", { name: /^Use your/u });
+      expect(offers.map((offer) => offer.textContent?.trim())).toStrictEqual([
+        "Use your 9 from Work Club",
+        "Use your 7.5 from Friday Films",
+      ]);
+    });
+
+    it("ignores this club's own score, other works, and other media", async () => {
+      withMemberScores([
+        memberScore({ clubId: "1", clubName: "Test club", workId: "target" }),
+        memberScore({ externalId: "999" }),
+        memberScore({ type: WorkType.TV }),
+        memberScore({ clubId: "3", clubName: "Work Club", score: 6 }),
+      ]);
+      const { pinia } = render(ScoreEntryPanel, { props: { work: DUNE } });
+      logIn(pinia);
+
+      expect(
+        await screen.findByRole("button", { name: "Use your 6 from Work Club" }),
+      ).toBeInTheDocument();
+      expect(screen.getAllByRole("button", { name: /^Use your/u })).toHaveLength(1);
+    });
+
+    it("leaves out a score that already matches the one saved here", async () => {
+      withMemberScores([
+        memberScore({ score: 7.5 }),
+        memberScore({ clubId: "3", clubName: "Work Club", score: 6 }),
+      ]);
+      const { pinia } = render(ScoreEntryPanel, {
+        props: { work: DUNE, reviewId: "rev1", score: 7.5 },
+      });
+      logIn(pinia);
+
+      await screen.findByRole("button", { name: "Use your 6 from Work Club" });
+      expect(
+        screen.queryByRole("button", { name: "Use your 7.5 from Friday Films" }),
+      ).not.toBeInTheDocument();
+    });
+
+    it("offers nothing for a work with no external id to match on", async () => {
+      withMemberScores([memberScore({ externalId: undefined })]);
+      const { pinia } = render(ScoreEntryPanel, {
+        props: { work: { id: "target", type: WorkType.MOVIE } },
+      });
+      logIn(pinia);
+
+      await waitFor(() => {
+        expect(screen.getByRole("spinbutton", { name: "Score" })).toBeInTheDocument();
+      });
+      expect(screen.queryByRole("button", { name: /^Use your/u })).not.toBeInTheDocument();
+    });
   });
 
   it("hides the assist button when the user is not eligible", () => {

@@ -6,6 +6,7 @@ import {
   type WorkDataSummary,
   type WorkListItem,
 } from "../../../../lib/types/lists";
+import { sameWorkKey } from "../otherClubScores";
 import { isScoredUnit, makeWorkSimilarity, type WorkSimilarityScorer } from "@/common/clubType";
 
 /**
@@ -118,15 +119,6 @@ export function buildCandidatePool(
   return pool.sort((a, b) =>
     a.score !== b.score ? a.score - b.score : a.title.localeCompare(b.title),
   );
-}
-
-/**
- * Identifies the same movie/book across clubs — each club owns its own `work`
- * row, so only the provider's id ties them together. Works with no external id
- * carry no such identity and are never deduplicated.
- */
-function sameWorkKey(type: WorkType, externalId: string | undefined): string | undefined {
-  return hasValue(externalId) ? `${type}:${externalId}` : undefined;
 }
 
 export function isScoreAssistEligible(

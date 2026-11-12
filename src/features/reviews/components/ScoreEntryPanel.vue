@@ -19,6 +19,21 @@
       <span>Not sure? Compare to decide</span>
     </button>
 
+    <div v-if="otherClubScores.length > 0" class="flex max-w-full flex-wrap justify-center gap-2">
+      <button
+        v-for="other in otherClubScores"
+        :key="other.clubId"
+        type="button"
+        class="bg-lowBackground duration-fast ease-standard flex max-w-full items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium text-gray-200 transition hover:brightness-110 active:scale-[0.98]"
+        @click="scoreModel = formatScore(other.score)"
+      >
+        <mdicon name="content-copy" size="16" class="shrink-0" />
+        <span class="truncate"
+          >Use your {{ formatScore(other.score) }} from {{ other.clubName }}</span
+        >
+      </button>
+    </div>
+
     <!-- Styled to mirror the drawer's "Rate this ..." CTA (rounded-lg, py-3)
          so the footer button keeps one consistent size/shape across the
          collapsed and expanded states. -->
@@ -72,11 +87,13 @@ import { computed, inject, nextTick, onBeforeUnmount, onMounted, ref, watch } fr
 
 import { hasValue, isDefined, isTrue } from "../../../../lib/checks/checks.js";
 import { type ScoreAssistTarget } from "../composables/scoreAssistLogic";
+import { scoresFromOtherClubs } from "../otherClubScores";
 import { ScoreAssistKey } from "../scoreAssist";
-import { clampScore, isValidScore } from "../scoreScale";
+import { clampScore, formatScore, isValidScore } from "../scoreScale";
 import ScoreDial from "./ScoreDial.vue";
-import { useClubSlug } from "@/service/useClub";
+import { useClub, useClubSlug } from "@/service/useClub";
 import { useDeleteScore, useSubmitScore } from "@/service/useReviews";
+import { useMemberScores } from "@/service/useUser";
 
 const {
   work,
@@ -145,6 +162,18 @@ const canSave = computed(() => isValidScore(Number.parseFloat(scoreModel.value))
 
 const scoreAssist = inject(ScoreAssistKey, undefined);
 const showAssist = computed(() => isDefined(scoreAssist) && scoreAssist.isEligible(work));
+
+const { data: club } = useClub(clubSlug);
+const { data: memberScores } = useMemberScores();
+// Offered as a starting point only: the dial is filled and the user still
+// saves, so a score that should differ between clubs is one keystroke away.
+const otherClubScores = computed(() => {
+  const clubId = club.value?.clubId;
+  if (!isDefined(clubId)) return [];
+  return scoresFromOtherClubs(memberScores.value ?? [], work, clubId).filter(
+    (other) => other.score !== score,
+  );
+});
 
 const submitScore = useSubmitScore(clubSlug);
 
