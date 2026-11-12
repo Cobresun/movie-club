@@ -93,15 +93,6 @@
             <mdicon name="comment-text-outline" :size="16" />
             <span class="hidden sm:inline">Details</span>
           </button>
-          <button
-            type="button"
-            class="duration-fast ease-standard flex items-center gap-1.5 rounded-full px-2.5 py-1 text-sm text-gray-400 transition hover:bg-white/5 hover:text-gray-200"
-            :aria-label="`Share ${show.title}`"
-            @click="shareReview(show.review)"
-          >
-            <mdicon name="share" :size="16" />
-            <span class="hidden sm:inline">Share</span>
-          </button>
         </div>
       </div>
 
@@ -191,7 +182,6 @@ import { computed, onMounted, ref, useTemplateRef } from "vue";
 
 import { hasValue, isDefined } from "../../../../../lib/checks/checks.js";
 import { Member } from "../../../../../lib/types/club";
-import { useShareReview } from "../../composables/useShareReview";
 import { hasOwnScore, scoreEntries } from "../../reviewScores";
 import {
   coverageLabel,
@@ -229,7 +219,6 @@ const isDesktop = useIsDesktop();
 
 const detailsOpen = ref(false);
 const rating = ref(false);
-const shareReview = useShareReview();
 
 defineExpose({
   workId: computed(() => props.show.workId),

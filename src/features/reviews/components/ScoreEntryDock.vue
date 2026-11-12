@@ -93,15 +93,19 @@
         <!-- The CTA shares its row with an optional secondary action (e.g.
              Share), so both collapse together when the panel expands. -->
         <div class="flex items-center gap-2">
-          <!-- Secondary (muted) once a score exists, because Share becomes the
-               primary action beside it; still primary while unrated, when it's
-               the only CTA. -->
+          <!-- Secondary (muted) once a secondary action such as Share sits
+               beside it as the primary one; still primary while it is the
+               only CTA. -->
           <button
             ref="ctaButton"
             type="button"
             :aria-expanded="expanded"
             class="flex flex-1 items-center justify-center gap-2 rounded-lg py-3 font-bold tracking-wide transition hover:brightness-110 active:scale-[0.98]"
-            :class="isDefined(reviewId) ? 'bg-lowBackground text-gray-200' : 'bg-primary text-text'"
+            :class="
+              isDefined($slots['secondary-action'])
+                ? 'bg-lowBackground text-gray-200'
+                : 'bg-primary text-text'
+            "
             @click="expand"
           >
             <mdicon :name="isDefined(reviewId) ? 'pencil' : 'star'" size="20" />
