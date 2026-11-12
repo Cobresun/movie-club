@@ -23,6 +23,10 @@
       crossorigin="anonymous"
     />
 
+    <!-- Posters are the largest thing on a club page and come from an origin
+         the browser only learns about once the app has rendered. -->
+    <link rel="preconnect" href="https://image.tmdb.org" />
+
     <title>Movie Club</title>
 
     <!-- Default Open Graph Meta Tags (overridden by edge function for shared reviews) -->
