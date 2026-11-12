@@ -115,23 +115,20 @@ describe("movie daily-game clues", () => {
     ]);
   });
 
-  it("names a shared director as the strongest clue, and how near the release years are", () => {
+  it("names a shared director as the strongest clue, and a shared decade but not a nearby year", () => {
     const ranking = rank({
       Answer: film({ directors: [director("Ann Director")], release_date: "2000-05-01" }),
-      Guess: film({ directors: [director("Ann Director")], release_date: "2002-05-01" }),
-      Later: film({ release_date: "2008-05-01" }),
-      Same: film({ release_date: "2000-01-01" }),
+      Guess: film({ directors: [director("Ann Director")], release_date: "2008-05-01" }),
+      "Year before": film({ release_date: "1999-12-01" }),
+      Sixties: film({ release_date: "1965-01-01" }),
+      Seventies: film({ release_date: "1975-01-01" }),
+      Eighties: film({ release_date: "1985-01-01" }),
     });
 
     expect(cluesOf(ranking, "Guess")).toStrictEqual([
       { text: "Same director: Ann Director", strength: "strong" },
-      { text: "Released within 3 years", strength: "medium" },
+      { text: "Also from the 2000s", strength: "weak" },
     ]);
-    expect(cluesOf(ranking, "Later")).toStrictEqual([
-      { text: "Released within 10 years", strength: "weak" },
-    ]);
-    expect(cluesOf(ranking, "Same")).toStrictEqual([
-      { text: "Released the same year", strength: "medium" },
-    ]);
+    expect(cluesOf(ranking, "Year before")).toStrictEqual([]);
   });
 });
