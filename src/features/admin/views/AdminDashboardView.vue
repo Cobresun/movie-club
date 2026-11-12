@@ -81,6 +81,15 @@
 
         <AcquisitionWidget :acquisition="dashboard.acquisition" :range="dashboard.range" />
 
+        <DailyGameWidget
+          v-for="game in dailyGames"
+          :key="game.clubType"
+          :name="game.name"
+          :noun="game.noun"
+          :stats="game.stats"
+          :range="dashboard.range"
+        />
+
         <section aria-labelledby="health-heading" class="space-y-3 pt-4">
           <h2 id="health-heading" class="text-sm font-bold tracking-wide text-slate-400 uppercase">
             Health
@@ -121,11 +130,13 @@
 import { isAxiosError } from "axios";
 import { computed, ref } from "vue";
 
+import { isDefined } from "../../../../lib/checks/checks.js";
 import { DEFAULT_METRICS_RANGE, MetricsRange } from "../../../../lib/types/metrics";
 import AcquisitionWidget from "../components/AcquisitionWidget.vue";
 import AdminDashboardSkeleton from "../components/AdminDashboardSkeleton.vue";
 import ClubStatusWidget from "../components/ClubStatusWidget.vue";
 import ClubsWidget from "../components/ClubsWidget.vue";
+import DailyGameWidget from "../components/DailyGameWidget.vue";
 import FeedWidget from "../components/FeedWidget.vue";
 import PeopleWidget from "../components/PeopleWidget.vue";
 import PulseTile from "../components/PulseTile.vue";
@@ -134,6 +145,7 @@ import TrendsWidget from "../components/TrendsWidget.vue";
 import WorksWidget from "../components/WorksWidget.vue";
 import { formatRelativeTime, rateFraction, ratePercent } from "../formatMetrics";
 import { RANGE_OPTIONS, rangePrevious, rangeWithin } from "../ranges";
+import { clubTypeConfig, dailyGameClubTypes } from "@/common/clubType";
 import SegmentedToggle from "@/features/statistics/components/SegmentedToggle.vue";
 import { useAdminMetrics, useAdminMetricsHistory } from "@/service/useAdminMetrics";
 
@@ -160,6 +172,16 @@ const refresh = () => Promise.all([refetch(), refetchHistory()]);
  */
 const isUnauthorized = computed(
   () => isAxiosError(error.value) && error.value.response?.status === 401,
+);
+
+const dailyGames = computed(() =>
+  dailyGameClubTypes().flatMap((clubType) => {
+    const { dailyGame, noun, workType } = clubTypeConfig(clubType);
+    const stats = dashboard.value?.dailyGames.find((game) => game.workType === workType);
+    return isDefined(dailyGame) && isDefined(stats)
+      ? [{ clubType, name: dailyGame.name, noun, stats }]
+      : [];
+  }),
 );
 
 const pulseTiles = computed(() => {

@@ -137,6 +137,17 @@ export interface DailyGamePuzzle {
   work_type: WorkType;
 }
 
+export interface DailyGameResult {
+  created_at: Generated<Timestamp>;
+  guesses: Int8;
+  hints: Int8;
+  player_id: string;
+  puzzle_date: Timestamp;
+  solved: boolean;
+  user_id: Int8 | null;
+  work_type: WorkType;
+}
+
 export interface MetricSnapshot {
   captured_on: Timestamp;
   created_at: Generated<Timestamp>;
@@ -382,6 +393,7 @@ export interface DB {
   club_settings: ClubSettings;
   daily_game_catalog: DailyGameCatalog;
   daily_game_puzzle: DailyGamePuzzle;
+  daily_game_result: DailyGameResult;
   metric_snapshot: MetricSnapshot;
   movie_actors: MovieActors;
   movie_details: MovieDetails;

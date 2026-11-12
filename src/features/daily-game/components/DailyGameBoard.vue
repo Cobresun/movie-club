@@ -231,7 +231,7 @@
 
 <script setup lang="ts">
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/vue";
-import { computed, ref, useTemplateRef } from "vue";
+import { computed, ref, useTemplateRef, watch } from "vue";
 
 import { hasElements, hasValue, isDefined } from "@/../lib/checks/checks";
 import { type DailyGamePuzzle, type DailyGameWork } from "@/../lib/types/dailyGame";
@@ -243,7 +243,9 @@ import ConfettiBurst from "@/features/daily-game/components/ConfettiBurst.vue";
 import GuessInput from "@/features/daily-game/components/GuessInput.vue";
 import GuessRow from "@/features/daily-game/components/GuessRow.vue";
 import { gameTag, sharedGameUrl } from "@/features/daily-game/game";
+import { playerId } from "@/features/daily-game/playerId";
 import { type RankedGuess, useDailyGame } from "@/features/daily-game/useDailyGame";
+import { useRecordDailyGameResult } from "@/service/useDailyGame";
 
 const { puzzle, dailyGame, noun } = defineProps<{
   puzzle: DailyGamePuzzle;
@@ -254,6 +256,18 @@ const { puzzle, dailyGame, noun } = defineProps<{
 
 const game = useDailyGame(puzzle, dailyGame.name);
 const { shareText } = useShare();
+
+const { mutate: recordResult } = useRecordDailyGameResult(puzzle.clubType, puzzle.date);
+
+// Only a game finished on this visit is sent; reopening a finished day isn't a new result.
+watch(game.finished, (finished) => {
+  if (!finished) return;
+  recordResult({
+    playerId: playerId(),
+    guesses: game.guesses.value.filter((guess) => !guess.hint).map((guess) => guess.work.id),
+    hints: game.hintCount.value,
+  });
+});
 
 const notice = ref<string>();
 const confirmingGiveUp = ref(false);
