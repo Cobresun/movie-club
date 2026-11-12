@@ -117,7 +117,7 @@ export const movieClubConfig: ClubTypeConfig = {
     path: "/reelated",
     tagline: "One mystery movie a day. Every guess tells you how related it is. No account needed.",
     similarityRule:
-      "Movies are related by what they share: a director counts most, then a star, then studios, rarer genres, language and release year. Things most movies share, like Drama or being in English, don't count.",
+      "Movies are related by what they share: a director counts most, then a star, then studios, rarer genres, language and decade. Things most movies share, like Drama or being in English, don't count.",
     preview: {
       poolSize: 5000,
       guesses: [
@@ -128,8 +128,8 @@ export const movieClubConfig: ClubTypeConfig = {
           rank: 4,
           clues: [
             { text: "Same director: Denis Villeneuve", strength: "strong" },
-            { text: "Released within 3 years", strength: "medium" },
             { text: "Science Fiction", strength: "weak" },
+            { text: "Also from the 2010s", strength: "weak" },
           ],
         },
         {
@@ -139,7 +139,7 @@ export const movieClubConfig: ClubTypeConfig = {
           rank: 11,
           clues: [
             { text: "Same director: Denis Villeneuve", strength: "strong" },
-            { text: "Released within 10 years", strength: "weak" },
+            { text: "Also from the 2010s", strength: "weak" },
           ],
         },
         {
@@ -149,7 +149,7 @@ export const movieClubConfig: ClubTypeConfig = {
           rank: 412,
           clues: [
             { text: "Science Fiction", strength: "weak" },
-            { text: "Released within 10 years", strength: "weak" },
+            { text: "Also from the 2010s", strength: "weak" },
           ],
         },
         { id: "578", title: "Jaws", year: 1975, rank: 2904, clues: [] },
