@@ -265,7 +265,7 @@
         <!-- Share graduates to a primary action beside "Edit score" once the
              user has a score to share. It lives in the dock's CTA row so it
              collapses in step when the score panel expands. -->
-        <template v-if="isDefined(myReviewId)" #secondary-action>
+        <template v-if="canShare" #secondary-action>
           <button
             type="button"
             class="bg-primary text-text flex shrink-0 items-center justify-center gap-2 rounded-lg px-4 py-3 font-bold tracking-wide transition hover:brightness-110 active:scale-[0.98]"
@@ -277,19 +277,19 @@
         </template>
       </ScoreEntryDock>
       <div v-else class="flex items-center gap-2">
-        <!-- Secondary (muted) once a score exists, because Share becomes the
-             primary action beside it; still primary while unrated. -->
+        <!-- Secondary (muted) once Share sits beside it as the primary action;
+             still primary while it is the only one. -->
         <button
           type="button"
           class="flex flex-1 items-center justify-center gap-2 rounded-lg py-3 font-bold tracking-wide transition hover:brightness-110 active:scale-[0.98]"
-          :class="isDefined(myReview) ? 'bg-lowBackground text-gray-200' : 'bg-primary text-text'"
+          :class="canShare ? 'bg-lowBackground text-gray-200' : 'bg-primary text-text'"
           @click="showScoreEntry = true"
         >
           <mdicon :name="isDefined(myReview) ? 'pencil' : 'star'" size="20" />
           <span>{{ isDefined(myReview) ? "Edit score" : `Rate this ${mediaNoun}` }}</span>
         </button>
         <button
-          v-if="isDefined(myReviewId)"
+          v-if="canShare"
           type="button"
           class="bg-primary text-text flex shrink-0 items-center justify-center gap-2 rounded-lg px-4 py-3 font-bold tracking-wide transition hover:brightness-110 active:scale-[0.98]"
           @click="shareReview(movie)"
@@ -569,6 +569,15 @@ const myReview = computed(() =>
 // share link and delete — waits until the work is on the reviews list.
 const isListed = computed(() => !isDefined(props.saveScore));
 const myReviewId = computed(() => (isListed.value ? myReview.value?.id : undefined));
+
+// Shared once the reader has a score here — their own, or for a TV show their
+// average over the episodes they scored.
+const canShare = computed(
+  () =>
+    isListed.value &&
+    isDefined(props.currentUserId) &&
+    scoreEntries.value.some((entry) => entry.memberId === props.currentUserId),
+);
 
 // Mobile-only: score entry lives in its own overlay (ScoreEntryModal), opened
 // from the sticky CTA. Desktop entry is inline via ScoreEntryDock instead.
