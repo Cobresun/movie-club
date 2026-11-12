@@ -65,7 +65,7 @@ defineProps<{
 const emit = defineEmits<{
   (e: "close" | "review" | "set-next-work" | "clear-next-work" | "delete"): void;
   (e: "move-to-list", id: string): void;
-  (e: "change-added-by", userId: string | null): void;
+  (e: "change-added-by", userId: string | undefined): void;
 }>();
 
 const isDesktop = useIsDesktop();

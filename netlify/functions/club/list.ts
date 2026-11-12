@@ -263,9 +263,9 @@ router.put(
   },
 );
 
-// `null` clears the attribution, for a work nobody in particular picked.
+// Omitting userId clears the attribution, for a work nobody in particular picked.
 const updateAddedBySchema = z.object({
-  userId: z.string().min(1).nullable(),
+  userId: z.string().min(1).optional(),
 });
 
 router.put(
@@ -281,7 +281,7 @@ router.put(
     const { userId } = body;
     const [exists, isMember] = await Promise.all([
       ListRepository.isItemInList(listId, workId),
-      userId === null || ClubRepository.isUserInClub(clubId, userId),
+      userId === undefined || ClubRepository.isUserInClub(clubId, userId),
     ]);
     if (!exists) {
       return res(badRequest("This work does not exist in the list"));

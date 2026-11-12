@@ -159,9 +159,9 @@ describe("ListItems", () => {
       ),
       http.get("/api/club/:id/reviews/:workId/comments", () => HttpResponse.json([])),
       http.put("/api/club/:id/list/:listId/items/:workId/added-by", async ({ request, params }) => {
-        const { userId } = z.object({ userId: z.string().nullable() }).parse(await request.json());
+        const { userId } = z.object({ userId: z.string().optional() }).parse(await request.json());
         items = items.map((item) =>
-          item.id === params.workId ? { ...item, addedBy: userId ?? undefined } : item,
+          item.id === params.workId ? { ...item, addedBy: userId } : item,
         );
         return new HttpResponse(null, { status: 200 });
       }),

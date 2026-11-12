@@ -19,59 +19,25 @@
     >
       <template v-if="hasValue(metaLine)" #meta>{{ metaLine }}</template>
       <template v-if="isListed" #date>
-        <Listbox
+        <AddedByListbox
           v-if="canChangeAddedBy"
-          :model-value="movie.addedBy ?? null"
-          @update:model-value="onAddedBySelect"
+          class="mb-1"
+          :members="members"
+          :added-by-member="addedByMember"
+          @change="onAddedByChange"
         >
-          <div class="relative mb-1">
-            <ListboxButton
-              aria-label="Change who added"
-              class="hover:text-primary inline-flex items-center gap-2 hover:underline"
-            >
-              <template v-if="isDefined(addedByMember)">
-                <VAvatar :src="addedByMember.image" :name="addedByMember.name" :size="20" />
-                <span>Added by {{ addedByMember.name }}</span>
-              </template>
-              <span v-else>Set who added</span>
-              <mdicon name="pencil" size="14" class="text-current" />
-            </ListboxButton>
-            <ListboxOptions
-              class="bg-background absolute top-full left-0 z-20 mt-1 max-h-64 w-56 overflow-y-auto rounded-lg border border-gray-700 py-1 shadow-lg focus:outline-hidden"
-            >
-              <ListboxOption
-                v-for="member in members"
-                :key="member.id"
-                v-slot="{ active, selected }"
-                :value="member.id"
-                as="template"
-              >
-                <li
-                  class="flex cursor-pointer items-center gap-2 px-4 py-2 text-sm text-gray-200"
-                  :class="{ 'bg-lowBackground': active }"
-                >
-                  <VAvatar :src="member.image" :name="member.name" :size="20" aria-hidden="true" />
-                  <span class="flex-1 truncate">{{ member.name }}</span>
-                  <mdicon v-if="selected" name="check" size="16" />
-                </li>
-              </ListboxOption>
-              <ListboxOption
-                v-if="hasValue(movie.addedBy)"
-                v-slot="{ active }"
-                :value="null"
-                as="template"
-              >
-                <li
-                  class="flex cursor-pointer items-center gap-2 border-t border-gray-700 px-4 py-2 text-sm text-gray-400"
-                  :class="{ 'bg-lowBackground': active }"
-                >
-                  <mdicon name="account-off-outline" size="20" aria-hidden="true" />
-                  <span class="flex-1 truncate">No one</span>
-                </li>
-              </ListboxOption>
-            </ListboxOptions>
-          </div>
-        </Listbox>
+          <ListboxButton
+            aria-label="Change who added"
+            class="hover:text-primary inline-flex items-center gap-2 hover:underline"
+          >
+            <template v-if="isDefined(addedByMember)">
+              <VAvatar :src="addedByMember.image" :name="addedByMember.name" :size="20" />
+              <span>Added by {{ addedByMember.name }}</span>
+            </template>
+            <span v-else>Set who added</span>
+            <mdicon name="pencil" size="14" class="text-current" />
+          </ListboxButton>
+        </AddedByListbox>
         <template v-if="hasValue(movie.parentId)">
           Reviewed {{ formatDate(movie.createdDate) }}
         </template>
@@ -328,7 +294,7 @@
 </template>
 
 <script setup lang="ts">
-import { Listbox, ListboxButton, ListboxOption, ListboxOptions } from "@headlessui/vue";
+import { ListboxButton } from "@headlessui/vue";
 import { DateTime } from "luxon";
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 
@@ -353,6 +319,7 @@ import {
   workTitle,
 } from "@/common/clubType";
 import { asTv } from "@/common/clubType/tv/data";
+import AddedByListbox from "@/common/components/AddedByListbox.vue";
 import BookMetadataGrid from "@/common/components/BookMetadataGrid.vue";
 import CastList from "@/common/components/CastList.vue";
 import CommentThread from "@/common/components/CommentThread.vue";
@@ -454,8 +421,8 @@ const canChangeAddedBy = computed(
   () => !hasValue(props.movie.parentId) && hasElements(props.members),
 );
 
-const onAddedBySelect = (userId: string | null) => {
-  if (userId !== (props.movie.addedBy ?? null) && hasValue(reviewsListId.value)) {
+const onAddedByChange = (userId: string | undefined) => {
+  if (hasValue(reviewsListId.value)) {
     updateAddedBy({ listId: reviewsListId.value, workId: props.movie.id, userId });
   }
 };

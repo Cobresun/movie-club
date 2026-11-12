@@ -631,14 +631,14 @@ describe("PUT /api/club/:clubSlug/list/:listId/items/:workId/added-by", () => {
     expect(items.body[0].addedBy).toBe(bob.userId);
   });
 
-  it("clears the attribution when userId is null", async () => {
+  it("clears the attribution when userId is omitted", async () => {
     const alice = await signIn("alice");
     const club = await createClub(alice);
     const work = await addWork(club, alice, { externalId: null });
 
     const res = await api.put(
       `/api/club/${club.slug}/list/${club.listId}/items/${work.id}/added-by`,
-      { body: { userId: null }, as: alice },
+      { body: {}, as: alice },
     );
 
     expect(res.statusCode).toBe(200);

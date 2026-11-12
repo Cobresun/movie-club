@@ -63,55 +63,20 @@
           </ListboxOptions>
         </div>
       </Listbox>
-      <Listbox
+      <AddedByListbox
         v-if="members.length > 0"
-        :model-value="movie.addedBy ?? null"
-        @update:model-value="onAddedBySelect"
+        :members="members"
+        :added-by-member="addedByMember"
+        @change="(userId) => emit('change-added-by', userId)"
       >
-        <div class="relative">
-          <ListboxButton
-            class="bg-lowBackground flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm text-gray-200 transition hover:brightness-110"
-          >
-            <mdicon name="account-outline" size="16" />
-            <span>Change who added</span>
-            <mdicon name="chevron-down" size="16" />
-          </ListboxButton>
-          <ListboxOptions
-            class="bg-background absolute top-full left-0 z-20 mt-1 max-h-64 w-56 overflow-y-auto rounded-lg border border-gray-700 py-1 shadow-lg focus:outline-none"
-          >
-            <ListboxOption
-              v-for="member in members"
-              :key="member.id"
-              v-slot="{ active, selected }"
-              :value="member.id"
-              as="template"
-            >
-              <li
-                class="flex cursor-pointer items-center gap-2 px-4 py-2 text-sm"
-                :class="{ 'bg-lowBackground': active }"
-              >
-                <VAvatar :src="member.image" :name="member.name" :size="20" aria-hidden="true" />
-                <span class="flex-1 truncate">{{ member.name }}</span>
-                <mdicon v-if="selected" name="check" size="16" />
-              </li>
-            </ListboxOption>
-            <ListboxOption
-              v-if="hasValue(movie.addedBy)"
-              v-slot="{ active }"
-              :value="null"
-              as="template"
-            >
-              <li
-                class="flex cursor-pointer items-center gap-2 border-t border-gray-700 px-4 py-2 text-sm text-gray-400"
-                :class="{ 'bg-lowBackground': active }"
-              >
-                <mdicon name="account-off-outline" size="20" aria-hidden="true" />
-                <span class="flex-1 truncate">No one</span>
-              </li>
-            </ListboxOption>
-          </ListboxOptions>
-        </div>
-      </Listbox>
+        <ListboxButton
+          class="bg-lowBackground flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm text-gray-200 transition hover:brightness-110"
+        >
+          <mdicon name="account-outline" size="16" />
+          <span>Change who added</span>
+          <mdicon name="chevron-down" size="16" />
+        </ListboxButton>
+      </AddedByListbox>
       <button
         type="button"
         class="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm text-red-400 transition hover:bg-red-500/10"
@@ -215,6 +180,7 @@ import {
   workTypeSupportsWatchProviders,
 } from "@/common/clubType";
 import { asTv } from "@/common/clubType/tv/data";
+import AddedByListbox from "@/common/components/AddedByListbox.vue";
 import BookMetadataGrid from "@/common/components/BookMetadataGrid.vue";
 import CastList from "@/common/components/CastList.vue";
 import CommentThread from "@/common/components/CommentThread.vue";
@@ -244,7 +210,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: "close" | "review" | "set-next-work" | "clear-next-work" | "delete"): void;
   (e: "move-to-list", id: string): void;
-  (e: "change-added-by", userId: string | null): void;
+  (e: "change-added-by", userId: string | undefined): void;
 }>();
 
 const { data: club } = useClub(props.clubSlug);
@@ -275,12 +241,6 @@ const onMoveSelect = async (value: string | null) => {
   }
   await nextTick();
   moveToValue.value = null;
-};
-
-const onAddedBySelect = (userId: string | null) => {
-  if (userId !== (props.movie.addedBy ?? null)) {
-    emit("change-added-by", userId);
-  }
 };
 
 const movieData = computed(() => asMovie(props.movie.externalData));

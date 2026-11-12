@@ -244,7 +244,7 @@ const onMove = (workId: string, destinationListId: string) => {
   });
 };
 
-const onChangeAddedBy = (userId: string | null) => {
+const onChangeAddedBy = (userId: string | undefined) => {
   if (selectedItem.value === undefined || isPending(selectedItem.value.id)) return;
   updateAddedBy({ workId: selectedItem.value.id, userId });
 };
