@@ -120,7 +120,6 @@ describe("DailyGameView", () => {
       "Same director: Michael Mann (strong link)",
       "Crime (medium link)",
       "Thriller (weak link)",
-      "Released within 10 years (weak link)",
     ]);
   });
 
