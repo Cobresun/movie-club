@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { hasElements } from "./checks/checks.js";
-import { type ClueStrength, type DailyGameWork } from "./types/dailyGame";
+import { type DailyGameClue, type DailyGameWork } from "./types/dailyGame";
 
 export interface PoolWork<T> {
   id: string;
@@ -9,66 +9,63 @@ export interface PoolWork<T> {
   data: T;
 }
 
-/** One thing a guess shares with the answer, and how many points it adds. */
-export interface ScoredClue {
-  text: string;
-  points: number;
-}
-
 /**
- * What one club type's daily game needs to know about its media: what two
- * works have in common, and which works make a fair answer. `T` is that
+ * What one club type's daily game needs to know about its media: how a guess
+ * compares with the answer, and which works make a fair answer. `T` is that
  * media's own metadata shape.
  */
 export interface DailyGameRules<T> {
   /**
-   * Everything `guess` has in common with `answer`, each clue worth points.
-   * A guess's score is the sum of its clues and nothing else, so a player can
-   * always see why one guess outranks another. `pool` is every work in play,
-   * for clues whose worth depends on how rare they are.
-   *
-   * Points share one scale across media: {@link STRONG_CLUE_POINTS} or more
-   * reads as a strong link, {@link MEDIUM_CLUE_POINTS} or more as a medium one.
+   * What `guess` shares with `answer` and where it differs, each clue worth
+   * whole points. A guess's score is the sum of its clues and nothing else,
+   * so a player can always see why one guess outranks another. `pool` is
+   * every work in play, for clues whose worth depends on how rare they are.
    */
-  makeClues: (pool: readonly T[]) => (guess: T, answer: T) => ScoredClue[];
+  makeClues: (pool: readonly T[]) => (guess: T, answer: T) => DailyGameClue[];
+  /** Also breaks ties: of two guesses with the same score, the one released nearer the answer ranks higher. */
   year: (data: T) => number | undefined;
   /** Whether a work has enough metadata that the trail to it never runs cold. */
   canBeAnswer: (data: T) => boolean;
 }
 
-export const STRONG_CLUE_POINTS = 5;
-export const MEDIUM_CLUE_POINTS = 2;
-
-const strength = (points: number): ClueStrength =>
-  points >= STRONG_CLUE_POINTS ? "strong" : points >= MEDIUM_CLUE_POINTS ? "medium" : "weak";
+/** How many works in `pool` have each tag. */
+export function tagCounts<T>(
+  pool: readonly T[],
+  extract: (data: T) => readonly string[],
+): (tag: string) => number {
+  const counts = new Map<string, number>();
+  for (const data of pool) {
+    for (const tag of new Set(extract(data))) counts.set(tag, (counts.get(tag) ?? 0) + 1);
+  }
+  return (tag) => counts.get(tag) ?? 0;
+}
 
 /**
- * How many points a shared tag is worth, from how rare it is in `pool`:
- * `ln(pool size / works with the tag)`, capped at `max`. A tag more than half
- * the pool has ("Drama", English) is worth nothing, so it is no clue at all.
+ * How many whole points a shared tag is worth, from how rare it is in `pool`:
+ * `ln(pool size / works with the tag)`, rounded and held within `min`–`max`.
+ * A tag more than half the pool has (English) is worth nothing, so it is no
+ * clue at all.
  */
 export function rarityPoints<T>(
   pool: readonly T[],
   extract: (data: T) => readonly string[],
-  max: number,
+  { min, max }: { min: number; max: number },
 ): (tag: string) => number {
-  const frequency = new Map<string, number>();
-  for (const data of pool) {
-    for (const tag of new Set(extract(data))) frequency.set(tag, (frequency.get(tag) ?? 0) + 1);
-  }
+  const count = tagCounts(pool, extract);
   return (tag) => {
-    const share = (frequency.get(tag) ?? 0) / pool.length;
+    const share = count(tag) / pool.length;
     if (share === 0 || share > 0.5) return 0;
-    return Math.min(max, Math.log(1 / share));
+    return Math.min(max, Math.max(min, Math.round(Math.log(1 / share))));
   };
 }
 
-const totalPoints = (clues: readonly ScoredClue[]) =>
+const totalPoints = (clues: readonly DailyGameClue[]) =>
   clues.reduce((total, clue) => total + clue.points, 0);
 
 /**
  * Every work in the pool, ranked by the points its clues add up to. The
- * answer is rank 1; ties keep a stable order by title.
+ * answer is rank 1; equal scores go to the work released nearer the answer,
+ * then by title.
  */
 export function rankPool<T>(
   answerId: string,
@@ -77,24 +74,33 @@ export function rankPool<T>(
 ): DailyGameWork[] {
   const answer = pool.find((work) => work.id === answerId);
   if (answer === undefined) return [];
+  const answerYear = rules.year(answer.data);
+  const yearGap = (data: T) => {
+    const year = rules.year(data);
+    return year === undefined || answerYear === undefined
+      ? Number.MAX_SAFE_INTEGER
+      : Math.abs(year - answerYear);
+  };
   const cluesFor = rules.makeClues(pool.map((work) => work.data));
   const others = pool
     .filter((work) => work.id !== answerId)
     .map((work) => {
       const clues = cluesFor(work.data, answer.data)
-        .filter((clue) => clue.points > 0)
+        .filter((clue) => clue.points !== 0)
         .sort((a, b) => b.points - a.points);
-      return { work, clues, score: totalPoints(clues) };
+      return { work, clues, score: totalPoints(clues), yearGap: yearGap(work.data) };
     })
-    .sort((a, b) =>
-      a.score === b.score ? a.work.title.localeCompare(b.work.title) : b.score - a.score,
-    );
+    .sort((a, b) => {
+      if (a.score !== b.score) return b.score - a.score;
+      if (a.yearGap !== b.yearGap) return a.yearGap - b.yearGap;
+      return a.work.title.localeCompare(b.work.title);
+    });
   return [{ work: answer, clues: [] }, ...others].map(({ work, clues }, index) => ({
     id: work.id,
     title: work.title,
     year: rules.year(work.data),
     rank: index + 1,
-    clues: clues.map((clue) => ({ text: clue.text, strength: strength(clue.points) })),
+    clues,
   }));
 }
 

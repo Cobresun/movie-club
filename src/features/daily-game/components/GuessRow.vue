@@ -57,32 +57,23 @@
       </div>
       <ul
         v-if="hasElements(guess.work.clues)"
-        :aria-label="`What ${guess.work.title} has in common with the answer`"
+        :aria-label="`How ${guess.work.title} compares with the answer`"
         class="flex flex-wrap gap-1.5"
       >
         <li
           v-for="clue in guess.work.clues"
           :key="clue.text"
           class="flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs"
-          :class="{
-            'bg-highlight/25 font-semibold text-white': clue.strength === 'strong',
-            'bg-background/70 text-white/90': clue.strength === 'medium',
-            'bg-background/40 text-white/60': clue.strength === 'weak',
-          }"
+          :class="
+            clue.points > 0 ? 'bg-background/70 text-white/90' : 'bg-background/30 text-white/50'
+          "
         >
-          <span aria-hidden="true" class="flex items-end gap-px">
-            <span class="h-1.5 w-0.5 rounded-full bg-current" />
-            <span
-              class="h-2 w-0.5 rounded-full"
-              :class="clue.strength === 'weak' ? 'bg-current/25' : 'bg-current'"
-            />
-            <span
-              class="h-2.5 w-0.5 rounded-full"
-              :class="clue.strength === 'strong' ? 'bg-current' : 'bg-current/25'"
-            />
-          </span>
-          <span>{{ clue.text }}</span>
-          <span class="sr-only">{{ ` (${clue.strength} link)` }}</span>
+          <span
+            class="font-bold tabular-nums"
+            :class="clue.points > 0 ? 'text-highlight' : 'text-red-300/80'"
+            >{{ signedPoints(clue.points) }}</span
+          >
+          <span>{{ ` ${clue.text}` }}</span>
         </li>
       </ul>
     </div>
@@ -124,6 +115,9 @@ const TEMPERATURE_LABELS: Record<Temperature, string> = {
 const temperatureLabel = computed(() =>
   guess.work.rank === 1 ? "Got it" : TEMPERATURE_LABELS[guess.temperature],
 );
+
+/** `+2`, or `−1` with a true minus sign, so a screen reader says "minus". */
+const signedPoints = (points: number) => (points > 0 ? `+${points}` : `−${Math.abs(points)}`);
 
 const arrivalTone = computed(() => (guess.work.rank === 1 ? "answer" : guess.temperature));
 

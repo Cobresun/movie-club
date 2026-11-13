@@ -1,20 +1,28 @@
 import { hasElements, hasValue, isDefined } from "../checks/checks.js";
-import { type DailyGameRules, rarityPoints, type ScoredClue } from "../dailyGame.js";
+import { type DailyGameRules, rarityPoints, tagCounts } from "../dailyGame.js";
+import { type DailyGameClue } from "../types/dailyGame";
 import { type MovieDataSummary } from "../types/movie";
 import { releaseYear } from "./releaseYear.js";
 
 // A shared director is the strongest link two movies can have, a shared star
-// half that. Studios, genres, language and decade are worth what their rarity
-// says, capped so a tiny co-producer can't outweigh a star.
+// half that. Genres, language and decade are worth what their rarity says. A
+// shared genre is worth at least 2, so it always outweighs the 1 a guess loses
+// for each genre the answer doesn't have.
 const DIRECTOR_POINTS = 10;
 const STAR_POINTS = 5;
-const MAX_STUDIO_POINTS = 5;
-const MAX_GENRE_POINTS = 4;
-const MAX_LANGUAGE_POINTS = 4;
-const MAX_DECADE_POINTS = 3;
+const STUDIO_POINTS = 2;
+const GENRE_POINTS = { min: 2, max: 4 };
+const LANGUAGE_POINTS = { min: 1, max: 4 };
+const DECADE_POINTS = { min: 1, max: 3 };
+const EXTRA_GENRE_POINTS = -1;
 
-/** Shared tags past this many read as a list rather than a clue, so they don't score either. */
-const CLUES_PER_FIELD = 3;
+/**
+ * A studio is a clue when it has a house style: enough films in the pool to
+ * be one (not a co-financier on a handful), and few enough that sharing it
+ * says something (not a major on a tenth of the pool).
+ */
+const MIN_STUDIO_WORKS = 5;
+const MAX_STUDIO_SHARE = 0.03;
 
 const languageNames = new Intl.DisplayNames(["en"], { type: "language", fallback: "none" });
 
@@ -39,42 +47,54 @@ const decades = (movie: MovieDataSummary) => {
   return isDefined(year) ? [String(Math.floor(year / 10) * 10)] : [];
 };
 
+const shared = (guess: readonly string[], answer: readonly string[]) =>
+  [...new Set(guess)].filter((tag) => answer.includes(tag));
+
 function sharedClues(
   guess: readonly string[],
   answer: readonly string[],
   points: (tag: string) => number,
   text: (tag: string) => string,
-): ScoredClue[] {
-  return [...new Set(guess)]
-    .filter((tag) => answer.includes(tag))
-    .map((tag) => ({ text: text(tag), points: points(tag) }))
-    .filter((clue) => clue.points > 0)
-    .sort((a, b) => b.points - a.points)
-    .slice(0, CLUES_PER_FIELD);
+): DailyGameClue[] {
+  return shared(guess, answer).map((tag) => ({ text: text(tag), points: points(tag) }));
 }
+
+/** One chip for a whole field, so a row of shared stars or missing genres reads as one clue. */
+function groupedClue(
+  names: readonly string[],
+  points: (count: number) => number,
+  text: (names: readonly string[]) => string,
+): DailyGameClue[] {
+  return hasElements(names) ? [{ text: text(names), points: points(names.length) }] : [];
+}
+
+const directorNames = (movie: MovieDataSummary) => movie.directors.map((d) => d.name);
 
 /**
  * Clues name major cast only: a full TMDB credit list runs to background
  * extras and stunt performers, who make no sense as "Also stars".
  */
 export function makeMovieClues(pool: readonly MovieDataSummary[]) {
-  const studioPoints = rarityPoints(pool, (movie) => movie.production_companies, MAX_STUDIO_POINTS);
-  const genrePoints = rarityPoints(pool, (movie) => movie.genres, MAX_GENRE_POINTS);
-  const languagePoints = rarityPoints(pool, languages, MAX_LANGUAGE_POINTS);
-  const decadePoints = rarityPoints(pool, decades, MAX_DECADE_POINTS);
+  const studioCount = tagCounts(pool, (movie) => movie.production_companies);
+  const studioPoints = (studio: string) => {
+    const count = studioCount(studio);
+    return count >= MIN_STUDIO_WORKS && count <= pool.length * MAX_STUDIO_SHARE ? STUDIO_POINTS : 0;
+  };
+  const genrePoints = rarityPoints(pool, (movie) => movie.genres, GENRE_POINTS);
+  const languagePoints = rarityPoints(pool, languages, LANGUAGE_POINTS);
+  const decadePoints = rarityPoints(pool, decades, DECADE_POINTS);
 
-  return (guess: MovieDataSummary, answer: MovieDataSummary): ScoredClue[] => [
-    ...sharedClues(
-      guess.directors.map((d) => d.name),
-      answer.directors.map((d) => d.name),
+  return (guess: MovieDataSummary, answer: MovieDataSummary): DailyGameClue[] => [
+    // A directing team is one director's worth.
+    ...groupedClue(
+      shared(directorNames(guess), directorNames(answer)),
       () => DIRECTOR_POINTS,
-      (name) => `Same director: ${name}`,
+      (names) => `Same director: ${names.join(" & ")}`,
     ),
-    ...sharedClues(
-      guess.majorCastNames,
-      answer.majorCastNames,
-      () => STAR_POINTS,
-      (name) => `Also stars ${name}`,
+    ...groupedClue(
+      shared(guess.majorCastNames, answer.majorCastNames),
+      (count) => count * STAR_POINTS,
+      (names) => `Also stars ${names.join(", ")}`,
     ),
     ...sharedClues(
       guess.production_companies,
@@ -94,6 +114,13 @@ export function makeMovieClues(pool: readonly MovieDataSummary[]) {
       decades(answer),
       decadePoints,
       (decade) => `Also from the ${decade}s`,
+    ),
+    // Each genre the guess has and the answer doesn't, so a guess with genres
+    // to spare ranks below an exact match.
+    ...groupedClue(
+      [...new Set(guess.genres)].filter((genre) => !answer.genres.includes(genre)),
+      (count) => count * EXTRA_GENRE_POINTS,
+      (genres) => `Not ${genres.join(", ")}`,
     ),
   ];
 }
