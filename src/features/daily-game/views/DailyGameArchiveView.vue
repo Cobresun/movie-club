@@ -35,33 +35,42 @@
         title="No puzzles yet"
         :description="`The first ${dailyGame.name} hasn't been played yet.`"
       />
-      <ul v-else class="flex flex-col gap-2" aria-label="Puzzles, newest first">
-        <li v-for="entry in puzzles" :key="entry.date">
-          <router-link
-            :to="entry.date === today ? dailyGame.path : puzzlePath(dailyGame, entry.date)"
-            :aria-label="entry.label"
-            class="bg-lowBackground duration-fast ease-standard flex items-center justify-between gap-3 rounded-lg px-4 py-3 transition-colors hover:bg-white/10"
-          >
-            <span class="flex items-baseline gap-3">
-              <span class="text-lg font-bold">#{{ entry.puzzle }}</span>
-              <span class="text-white/70">{{ formatPuzzleDate(entry.date) }}</span>
-              <span
-                v-if="entry.date === today"
-                class="bg-highlight/20 text-highlight rounded px-1.5 py-0.5 text-xs font-medium"
+      <div v-else class="mx-auto flex w-full max-w-md flex-col gap-6">
+        <section v-for="month in months" :key="month.key" :aria-labelledby="`month-${month.key}`">
+          <h2 :id="`month-${month.key}`" class="mb-2 text-lg font-bold">{{ month.label }}</h2>
+          <div class="grid grid-cols-7 gap-1 text-center text-xs text-white/50" aria-hidden="true">
+            <span v-for="weekday in WEEKDAYS" :key="weekday">{{ weekday }}</span>
+          </div>
+          <ul class="mt-1 grid grid-cols-7 gap-1" :aria-label="month.label">
+            <li v-for="blank in month.leadingBlanks" :key="`blank-${blank}`" aria-hidden="true" />
+            <li v-for="day in month.days" :key="day.date" :aria-hidden="!isDefined(day.entry)">
+              <router-link
+                v-if="isDefined(day.entry)"
+                :to="day.date === today ? dailyGame.path : puzzlePath(dailyGame, day.date)"
+                :aria-label="day.entry.label"
+                :aria-current="day.date === today ? 'date' : undefined"
+                class="bg-lowBackground duration-fast ease-standard flex aspect-square flex-col items-center justify-center rounded-lg transition-colors hover:bg-white/10"
+                :class="day.date === today ? 'ring-highlight ring-2' : undefined"
               >
-                Today
+                <span class="text-sm font-bold sm:text-base">{{ day.day }}</span>
+                <mdicon
+                  v-if="isDefined(day.entry.progress)"
+                  :name="day.entry.progress.icon"
+                  :size="16"
+                  class="text-highlight"
+                />
+                <span v-else class="text-xs text-white/50">#{{ day.entry.puzzle }}</span>
+              </router-link>
+              <span
+                v-else
+                class="flex aspect-square items-center justify-center text-sm text-white/20"
+              >
+                {{ day.day }}
               </span>
-            </span>
-            <span
-              v-if="isDefined(entry.progress)"
-              class="flex shrink-0 items-center gap-1 text-sm text-white/70"
-            >
-              <mdicon :name="entry.progress.icon" :size="18" />
-              {{ entry.progress.label }}
-            </span>
-          </router-link>
-        </li>
-      </ul>
+            </li>
+          </ul>
+        </section>
+      </div>
     </template>
   </div>
 </template>
@@ -72,7 +81,7 @@ import { computed } from "vue";
 import { hasElements, isDefined } from "@/../lib/checks/checks";
 import { type ClubType } from "@/../lib/types/generated/db";
 import { clubTypeConfig } from "@/common/clubType";
-import { puzzlePath } from "@/features/daily-game/archive";
+import { calendarMonths, puzzlePath } from "@/features/daily-game/archive";
 import { formatPuzzleDate, localDate } from "@/features/daily-game/game";
 import { dailyGameProgress, type DayProgress } from "@/features/daily-game/useDailyGame";
 import { useDailyGameArchive } from "@/service/useDailyGame";
@@ -86,6 +95,8 @@ const PROGRESS: Record<DayProgress, { label: string; icon: string }> = {
   gaveUp: { label: "Gave up", icon: "flag-outline" },
   started: { label: "In progress", icon: "clock-outline" },
 };
+
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const today = localDate(new Date());
 const progress = dailyGameProgress(clubType);
@@ -109,4 +120,6 @@ const puzzles = computed(() =>
       return { ...entry, progress: status, label: label.join(", ") };
     }),
 );
+
+const months = computed(() => calendarMonths(puzzles.value));
 </script>

@@ -5,9 +5,7 @@
       title="There's no daily game here"
       description="This club type doesn't have a daily game yet."
     />
-    <div v-else-if="isLoading" class="flex justify-center py-16">
-      <loading-spinner />
-    </div>
+    <DailyGameSkeleton v-else-if="isLoading" :name="dailyGame.name" />
     <empty-state
       v-else-if="isError && isDefined(date) && notFound"
       :title="`There's no ${dailyGame.name} for ${formatPuzzleDate(date)}`"
@@ -49,6 +47,7 @@ import { type ClubType } from "@/../lib/types/generated/db";
 import { clubTypeConfig } from "@/common/clubType";
 import { archivePath } from "@/features/daily-game/archive";
 import DailyGameBoard from "@/features/daily-game/components/DailyGameBoard.vue";
+import DailyGameSkeleton from "@/features/daily-game/components/DailyGameSkeleton.vue";
 import { formatPuzzleDate, localDate } from "@/features/daily-game/game";
 import { useDailyGamePuzzle } from "@/service/useDailyGame";
 
