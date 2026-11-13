@@ -65,7 +65,6 @@ import ClubEditableRow from "./ClubEditableRow.vue";
 import SectionHeader from "@/common/components/SectionHeader.vue";
 import {
   useClub,
-  useClubSettings,
   useUpdateClubName,
   useUpdateClubSettings,
   useUpdateClubSlug,
@@ -88,7 +87,6 @@ const SLUG_PATTERN = /^[a-z0-9-]+$/;
 const toast = useToast();
 
 const { data: club } = useClub(clubSlug);
-const { data: settings } = useClubSettings(clubSlug);
 const { mutate: updateName } = useUpdateClubName(clubSlug);
 const { mutate: updateSlug, isPending: isSavingSlug } = useUpdateClubSlug(clubSlug);
 const { mutate: updateSettings } = useUpdateClubSettings(clubSlug);
@@ -101,7 +99,7 @@ const slugError = ref("");
 const currentSlug = computed(() => club.value?.slug ?? clubSlug);
 const urlPrefix = computed(() => `${window.location.origin}/club/`);
 
-const isEnabled = (key: FeatureKey) => settings.value?.features?.[key] === true;
+const isEnabled = (key: FeatureKey) => club.value?.settings.features[key] === true;
 
 const updateFeature = (key: FeatureKey, value: boolean) => {
   const features: Partial<Record<FeatureKey, boolean>> = { [key]: value };

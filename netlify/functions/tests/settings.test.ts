@@ -1,43 +1,41 @@
 /**
- * Integration tests for `netlify/functions/club/settings.ts` — the club feature
- * flags, stored as a JSON blob in `club_settings` and merged on write.
+ * Integration tests for the club feature flags, stored as a JSON blob in
+ * `club_settings`, merged on write (`netlify/functions/club/settings.ts`) and
+ * read back on the club preview.
  */
 
-import { type ClubSettings } from "../../../lib/types/club";
+import { type ClubPreview, type ClubSettings } from "../../../lib/types/club";
 import { handler } from "../club/index";
+import { handler as memberHandler } from "../member";
 import { signIn } from "./helpers/auth";
 import { createClub } from "./helpers/factories";
 import { requester } from "./helpers/http";
 
 const api = requester(handler);
+const memberApi = requester(memberHandler);
 
-describe("GET /api/club/:clubSlug/settings", () => {
-  it("returns the club's stored feature flags", async () => {
+const settingsOf = async (slug: string) =>
+  (await api.get<ClubPreview>(`/api/club/${slug}`)).body.settings;
+
+describe("settings on the club preview", () => {
+  it("carries the club's stored feature flags", async () => {
     const alice = await signIn("alice");
     const club = await createClub(alice, { features: { awards: true } });
 
-    const res = await api.get<ClubSettings>(`/api/club/${club.slug}/settings`, { as: alice });
-
-    expect(res.statusCode).toBe(200);
-    expect(res.body).toStrictEqual({ features: { awards: true } });
+    expect((await settingsOf(club.slug)).features.awards).toBe(true);
   });
 
-  it("returns 401 for a non-member", async () => {
+  it("carries them on each club in the member's clubs list", async () => {
     const alice = await signIn("alice");
-    const bob = await signIn("bob");
-    const club = await createClub(alice, { members: [alice] });
+    const withAwards = await createClub(alice, { features: { awards: true } });
+    const without = await createClub(alice);
 
-    const res = await api.get(`/api/club/${club.slug}/settings`, { as: bob });
+    const clubs = await memberApi.get<ClubPreview[]>("/api/member/clubs", { as: alice });
 
-    expect(res.statusCode).toBe(401);
-  });
-
-  it("returns 404 for an unknown club", async () => {
-    const alice = await signIn("alice");
-
-    const res = await api.get("/api/club/not-a-club/settings", { as: alice });
-
-    expect(res.statusCode).toBe(404);
+    const awardsBySlug = Object.fromEntries(
+      clubs.body.map((club) => [club.slug, club.settings.features.awards]),
+    );
+    expect(awardsBySlug).toStrictEqual({ [withAwards.slug]: true, [without.slug]: false });
   });
 });
 
@@ -54,8 +52,7 @@ describe("POST /api/club/:clubSlug/settings", () => {
     expect(res.statusCode).toBe(200);
     expect(res.body).toStrictEqual({ features: { awards: true } });
 
-    const reread = await api.get<ClubSettings>(`/api/club/${club.slug}/settings`, { as: alice });
-    expect(reread.body.features.awards).toBe(true);
+    expect((await settingsOf(club.slug)).features.awards).toBe(true);
   });
 
   it("treats an empty body object as a no-op", async () => {
@@ -94,7 +91,6 @@ describe("POST /api/club/:clubSlug/settings", () => {
     });
 
     expect(res.statusCode).toBe(401);
-    const settings = await api.get<ClubSettings>(`/api/club/${club.slug}/settings`, { as: alice });
-    expect(settings.body.features.awards).toBe(false);
+    expect((await settingsOf(club.slug)).features.awards).toBe(false);
   });
 });

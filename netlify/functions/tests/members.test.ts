@@ -4,7 +4,7 @@
  * invite-token join flow.
  */
 
-import { type Member } from "../../../lib/types/club";
+import { type ClubInviteDetails, type ClubPreview, type Member } from "../../../lib/types/club";
 import { handler as clubHandler } from "../club/index";
 import { handler as memberHandler } from "../member";
 import { signIn, type TestSession } from "./helpers/auth";
@@ -253,15 +253,26 @@ describe("GET /api/club/joinInfo/:token", () => {
     const club = await createClub(alice, { name: "Invite Club" });
     const token = await createInvite(club, alice);
 
-    const res = await api.get<{ clubId: string; clubName: string; slug: string }>(
-      `/api/club/joinInfo/${token}`,
-    );
+    const res = await api.get<ClubInviteDetails>(`/api/club/joinInfo/${token}`);
 
     expect(res.statusCode).toBe(200);
     expect(res.body.clubId).toBe(club.id);
     expect(res.body.clubName).toBe("Invite Club");
     // The join page needs the slug to redirect the new member into the club.
     expect(res.body.slug).toBe(club.slug);
+  });
+
+  it("describes the club as its preview does, so a new member's clubs list can carry it", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub(alice, { features: { awards: true } });
+    const token = await createInvite(club, alice);
+
+    const { expiresAt, ...invited } = (
+      await api.get<ClubInviteDetails>(`/api/club/joinInfo/${token}`)
+    ).body;
+
+    expect(invited).toStrictEqual((await api.get<ClubPreview>(`/api/club/${club.slug}`)).body);
+    expect(new Date(expiresAt).getTime()).toBeGreaterThan(Date.now());
   });
 
   it("returns 400 for an expired token", async () => {
