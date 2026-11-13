@@ -204,6 +204,32 @@ describe("ReviewView", () => {
     expect(await screen.findByText("Added by cole")).toBeInTheDocument();
   });
 
+  it("lets a member clear who added a work", async () => {
+    let items: DetailedReviewListItem[] = reviews.map((review) => ({ ...review, addedBy: "1" }));
+    server.use(
+      http.get("/api/club/:clubSlug/list/reviews", () =>
+        HttpResponse.json<DetailedReviewListItem[]>(items),
+      ),
+      http.put("/api/club/:id/list/:listId/items/:workId/added-by", async ({ request, params }) => {
+        const { userId } = z.object({ userId: z.string().optional() }).parse(await request.json());
+        items = items.map((item) =>
+          item.id === params.workId ? { ...item, addedBy: userId } : item,
+        );
+        return new HttpResponse(null, { status: 200 });
+      }),
+    );
+    const { user } = render(ReviewView, { props: { clubSlug: "test-club" } });
+
+    await user.click(await screen.findByRole("button", { name: "12 Angry Men" }));
+    expect(await screen.findByText("Added by dev")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Change who added" }));
+    await user.click(await screen.findByRole("option", { name: "No one" }));
+
+    expect(await screen.findByText("Set who added")).toBeInTheDocument();
+    expect(screen.queryByText("Added by dev")).not.toBeInTheDocument();
+  });
+
   it("keeps the review fact hidden until the club scores are revealed", async () => {
     // Ten scored works so all-time records apply; "Flop" — scored only by
     // member "3", not the signed-in user — is the club's lowest-rated.

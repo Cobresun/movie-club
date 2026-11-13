@@ -631,6 +631,20 @@ describe("PUT /api/club/:clubSlug/list/:listId/items/:workId/added-by", () => {
     expect(items.body[0].addedBy).toBe(bob.userId);
   });
 
+  it("clears the attribution when userId is omitted", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub(alice);
+    const work = await addWork(club, alice, { externalId: null });
+
+    const res = await api.put(
+      `/api/club/${club.slug}/list/${club.listId}/items/${work.id}/added-by`,
+      { body: {}, as: alice },
+    );
+
+    expect(res.statusCode).toBe(200);
+    expect((await itemsOf(club.slug, club.listId)).body[0].addedBy).toBeUndefined();
+  });
+
   it("returns 400 when the user is not a member of the club", async () => {
     const alice = await signIn("alice");
     const bob = await signIn("bob");
