@@ -1,8 +1,7 @@
 import { hasElements } from "../checks/checks.js";
 import { type DailyGameRules } from "../dailyGame.js";
-import { type MovieDataSummary } from "../types/movie";
 import { releaseYear } from "./releaseYear.js";
-import { makeMovieScorer } from "./similarity.js";
+import { makeMovieScorer, type MovieSimilarityData } from "./similarity.js";
 
 /** Shared tags past this many read as a list rather than a clue. */
 const CLUES_PER_FIELD = 3;
@@ -16,7 +15,7 @@ const decade = (year: number) => Math.floor(year / 10) * 10;
  * Clues name major cast only: a full TMDB credit list runs to background
  * extras and stunt performers, who make no sense as "Also stars".
  */
-export function movieClues(guess: MovieDataSummary, answer: MovieDataSummary): string[] {
+export function movieClues(guess: MovieSimilarityData, answer: MovieSimilarityData): string[] {
   const guessYear = releaseYear(guess);
   const answerYear = releaseYear(answer);
   const sameDecade =
@@ -36,7 +35,7 @@ export function movieClues(guess: MovieDataSummary, answer: MovieDataSummary): s
 }
 
 /** The movie game ranks with the same scorer as Score Assist. */
-export const movieDailyGameRules: DailyGameRules<MovieDataSummary> = {
+export const movieDailyGameRules: DailyGameRules<MovieSimilarityData> = {
   makeScorer: makeMovieScorer,
   clues: movieClues,
   year: releaseYear,

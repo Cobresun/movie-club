@@ -73,12 +73,12 @@ async function recordPuzzles(provider: MediaProvider, game: DailyGame, now: Date
     if (!isDefined(await DailyGameRepository.getAnswer(provider.type, date))) dates.push(date);
   }
   if (dates.length === 0) return [];
-  const pool = await loadPool(provider);
-  if (pool.length < MIN_POOL_SIZE) return [];
+  const pool = await loadPool(provider, game);
+  if (pool.size < MIN_POOL_SIZE) return [];
   const recorded: string[] = [];
   // One at a time and oldest first, so each draw avoids the one before it.
   for (const date of dates) {
-    if (isDefined(await answerFor(provider, game, date, pool))) recorded.push(date);
+    if (isDefined(await answerFor(provider, date, pool))) recorded.push(date);
   }
   return recorded;
 }
