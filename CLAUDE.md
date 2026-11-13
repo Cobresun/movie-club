@@ -29,6 +29,14 @@ Schema migrations live in `migrations/schema/`. A new one is named `<Description
 
 **Never point `migrate:dev` at shared `dev`.** Spawn first. `.claude/rules/database.md` explains the blast radius; there is a guard rail, but it fails open.
 
+## A fully local stack (no shared database)
+
+`npm run local:up` starts a single-node CockroachDB in Docker, migrates it from scratch, starts `scripts/local/mailbox.ts` — a stand-in for Resend on `:8025`, reached through `RESEND_BASE_URL` — and writes a `.env` for both if there is none (it never overwrites yours). Then `netlify dev`, then `npm run local:seed`, which signs up `dev@movie.club` / `movie-club-local` and a second member through the real sign-up and email-verification flow and creates one club per type. Re-running either is safe. Verification and password-reset emails land in the mailbox, so those flows work end to end.
+
+The database starts empty. TMDB / Google Books calls need real `TMDB_API_KEY` / `GOOGLE_BOOKS_API_KEY` in the shell (both are query parameters, so they cannot be injected as headers). The server reads those names, but title search runs in the browser and reads `VITE_TMDB_API_KEY` / `VITE_GOOGLE_BOOKS_API_KEY` — `local:up` copies the shell's keys into those in the `.env` it manages, so re-run it after a key changes. Google OAuth does not work locally.
+
+In Claude Code cloud sessions: Docker Hub rate-limits the shared egress, so images come from `mirror.gcr.io` (set `TESTCONTAINERS_HUB_IMAGE_NAME_PREFIX=mirror.gcr.io/` for `npm test`); `local:up` starts `dockerd` when it is not running; and `netlify dev` needs `--internal-disable-edge-functions`, because the edge runtime downloads Deno from a host the sandbox blocks. That only drops the `/share/...` link previews. Google Books answers this egress with 403 "Cannot determine user location", so book search and book details do not work in cloud sessions; movies and TV do.
+
 ## Working on an existing PR
 
 When asked to update a PR, address its review comments, fix its CI, or anything similar, push the changes to **that PR's own branch**. Never open a new PR (stacked or otherwise) for that work.
