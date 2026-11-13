@@ -20,6 +20,7 @@ import HomeView from "../features/clubs/views/HomeView.vue";
 import { localDate } from "../features/daily-game/game";
 import ReviewView from "../features/reviews/views/ReviewView.vue";
 import ClubRouterView from "./ClubRouterView.vue";
+import { loadStatisticsView, loadWatchListView } from "./clubSectionViews";
 import { installViewTransitions } from "./viewTransitions";
 import { useAuthStore } from "@/stores/auth";
 
@@ -385,7 +386,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: "lists",
         name: "Watchlists",
-        component: () => import("../features/watch-list/views/WatchListView.vue"),
+        component: loadWatchListView,
         props: true,
       },
       {
@@ -395,7 +396,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: "statistics",
         name: "Statistics",
-        component: () => import("../features/statistics/views/StatisticsView.vue"),
+        component: loadStatisticsView,
         props: true,
       },
       {
