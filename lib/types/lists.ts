@@ -30,6 +30,8 @@ export interface ClubListSummary {
 
 export interface NextWorkResponse {
   workId?: string;
+  /** The next work on the topmost user list it is on; absent when it is on none. */
+  work?: UserListItemWithSource;
 }
 
 export interface WorkListItem {

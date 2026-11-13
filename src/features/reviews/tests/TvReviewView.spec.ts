@@ -4,7 +4,11 @@ import { http, HttpResponse } from "msw";
 
 import { type ClubPreview } from "../../../../lib/types/club";
 import { ClubType, WorkType } from "../../../../lib/types/generated/db";
-import { type DetailedReviewListItem, type ReviewScores } from "../../../../lib/types/lists";
+import {
+  type DetailedReviewListItem,
+  type NextWorkResponse,
+  type ReviewScores,
+} from "../../../../lib/types/lists";
 import { type TMDBTvEpisodeData } from "../../../../lib/types/tv";
 import ReviewView from "../views/ReviewView.vue";
 import club from "@/mocks/data/club";
@@ -599,9 +603,11 @@ describe("TV reviews", () => {
   it("moves the next show into reviews and opens it ready to score", async () => {
     useTvClub();
     server.use(
-      http.get("/api/club/:id/nextWork", () => HttpResponse.json({ workId: theBear.id })),
-      http.get("/api/club/:id/list/all-items", () =>
-        HttpResponse.json([{ ...theBear, sourceListId: "1", sourceListTitle: "Watch List" }]),
+      http.get("/api/club/:id/nextWork", () =>
+        HttpResponse.json<NextWorkResponse>({
+          workId: theBear.id,
+          work: { ...theBear, sourceListId: "1", sourceListTitle: "Watch List" },
+        }),
       ),
     );
     const { user, pinia } = render(ReviewView, { props: { clubSlug: CLUB_SLUG } });
