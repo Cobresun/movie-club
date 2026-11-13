@@ -219,13 +219,30 @@ describe("ListItemDetailsContent", () => {
   it("does not emit change-added-by when the current adder is picked again", async () => {
     const alice: Member = { id: "u1", name: "Alice", email: "a@test.com" };
     const rendered = render(ListItemDetailsContent, {
-      props: { ...baseProps, movie: { ...movie, addedBy: alice.id }, members: [alice] },
+      props: {
+        ...baseProps,
+        movie: { ...movie, addedBy: alice.id },
+        members: [alice],
+        addedByMember: alice,
+      },
     });
 
     await rendered.user.click(screen.getByRole("button", { name: "Change who added" }));
     await rendered.user.click(await screen.findByRole("option", { name: "Alice" }));
 
     expect(rendered.emitted()["change-added-by"]).toBeUndefined();
+  });
+
+  it("offers No one only while the adder is a current member", async () => {
+    const alice: Member = { id: "u1", name: "Alice", email: "a@test.com" };
+    const rendered = render(ListItemDetailsContent, {
+      props: { ...baseProps, movie: { ...movie, addedBy: "former-member" }, members: [alice] },
+    });
+
+    await rendered.user.click(screen.getByRole("button", { name: "Change who added" }));
+
+    expect(await screen.findByRole("option", { name: "Alice" })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "No one" })).not.toBeInTheDocument();
   });
 
   it("hides 'Move to list' when there is no other list", () => {

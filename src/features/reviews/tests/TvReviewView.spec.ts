@@ -256,6 +256,29 @@ describe("TV reviews", () => {
     expect(screen.queryByText(/No scores yet/)).not.toBeInTheDocument();
   });
 
+  it("shares a show from its details once you have scored any of its episodes", async () => {
+    const { user } = await renderSeverance();
+
+    await user.click(screen.getByRole("button", { name: "Severance details" }));
+    await user.click(await screen.findByRole("button", { name: "Share" }));
+
+    await expect(navigator.clipboard.readText()).resolves.toBe(
+      `${window.location.origin}/share/club/${CLUB_SLUG}/review/show-1`,
+    );
+  });
+
+  it("does not offer to share a show you have not scored any of", async () => {
+    const { user } = await renderSeverance([
+      show,
+      episode(1, "Good News About Hell", [{ memberId: "1", score: 6 }]),
+    ]);
+
+    await user.click(screen.getByRole("button", { name: "Severance details" }));
+
+    expect(await screen.findByRole("button", { name: "Rate this show" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Share" })).not.toBeInTheDocument();
+  });
+
   it("shows a show's creators, networks and recurring cast in its details", async () => {
     const { user } = await renderSeverance();
     server.use(

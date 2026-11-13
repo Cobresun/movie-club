@@ -14,6 +14,13 @@ export function previousDate(date: string): string {
   return day.toISOString().slice(0, 10);
 }
 
+const puzzleDateFormat = new Intl.DateTimeFormat("en-US", { dateStyle: "long", timeZone: "UTC" });
+
+/** A puzzle's `YYYY-MM-DD` date as the player reads it: "October 22, 2026". */
+export function formatPuzzleDate(date: string): string {
+  return puzzleDateFormat.format(new Date(`${date}T00:00:00Z`));
+}
+
 // Cutoffs scale with the pool, so "hot" means the same share of the field
 // whether the pool holds fifty works or five thousand.
 const HOT_SHARE = 0.04;
@@ -89,11 +96,12 @@ export function shareText({
 export const gameTag = (path: string) => path.replace(/^\/+/, "");
 
 /**
- * The game's address as a player shares it. Tagged as a share, so a friend who
- * plays from it and later signs up is credited to the game's shares on /admin.
+ * The address of a puzzle as a player shares it. Tagged as a share, so a friend
+ * who plays from it and later signs up is credited to the game's shares on
+ * /admin — under the game, whichever day was shared.
  */
-export function sharedGameUrl(origin: string, path: string): string {
-  const tags = new URLSearchParams({ utm_source: "share", utm_campaign: gameTag(path) });
+export function sharedGameUrl(origin: string, gamePath: string, path = gamePath): string {
+  const tags = new URLSearchParams({ utm_source: "share", utm_campaign: gameTag(gamePath) });
   return `${origin}${path}?${tags.toString()}`;
 }
 

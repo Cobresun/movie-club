@@ -4,15 +4,23 @@
  *
  * The pool is the catalog alone, so movies get there through the real
  * scheduled function; only TMDB is faked, with credits chosen so the ranking
- * has a known shape.
+ * has a known shape. Finished games are read back through the admin dashboard,
+ * the only place they surface.
  */
 import { http, HttpResponse } from "msw";
 
-import { type DailyGamePuzzle, type DailyGameWork } from "../../../lib/types/dailyGame";
+import {
+  type DailyGameArchive,
+  type DailyGamePuzzle,
+  type DailyGameWork,
+} from "../../../lib/types/dailyGame";
+import { WorkType } from "../../../lib/types/generated/db";
+import { type AdminDashboard } from "../../../lib/types/metrics";
+import { handler as adminHandler } from "../admin";
 import { handler } from "../daily-game";
 import topUpCatalog from "../scheduled-daily-game-catalog";
 import { tmdbMovie, tmdbPage } from "./fixtures/external";
-import { signIn, type TestSession } from "./helpers/auth";
+import { FIXTURE_USERS, signIn, type TestSession } from "./helpers/auth";
 import { addWork, createClub, type SeededClub } from "./helpers/factories";
 import { requester } from "./helpers/http";
 import { failOnRequest, server, TMDB } from "./setup/externalApis";
@@ -219,6 +227,27 @@ describe("GET /api/daily-game/:clubType/:date", () => {
     expect(today.body.puzzle).toBe(1);
   });
 
+  it("serves a past day's puzzle with the answer it had on the day", async () => {
+    await seedCatalog(12);
+    const onTheDay = (await api.get<DailyGamePuzzle>(`/api/daily-game/movie/${TODAY}`)).body;
+
+    vi.setSystemTime(new Date("2026-10-30T12:00:00Z"));
+    const res = await api.get<DailyGamePuzzle>(`/api/daily-game/movie/${TODAY}`);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.puzzle).toBe(1);
+    expect(answerOf(res.body.works)?.id).toBe(answerOf(onTheDay.works)?.id);
+  });
+
+  it("has no puzzle for a past day that never had an answer, and doesn't make one", async () => {
+    await seedCatalog(12);
+    vi.setSystemTime(new Date("2026-10-30T12:00:00Z"));
+
+    expect((await api.get(`/api/daily-game/movie/2026-10-25`)).statusCode).toBe(404);
+    const archive = await api.get<DailyGameArchive>("/api/daily-game/movie/archive");
+    expect(archive.body.puzzles.map((entry) => entry.date)).not.toContain("2026-10-25");
+  });
+
   it("refuses a date that isn't on the calendar", async () => {
     vi.setSystemTime(new Date("2026-03-02T12:00:00Z"));
     await seedCatalog(12);
@@ -260,6 +289,48 @@ describe("GET /api/daily-game/:clubType/:date", () => {
     expect(first.body.puzzle).toBe(1);
     expect(first.body.works).toHaveLength(20);
     expect(answerOf(again.body.works)?.id).toBe(answerOf(first.body.works)?.id);
+  });
+
+  describe("GET /api/daily-game/:clubType/archive", () => {
+    it("lists every day that had a puzzle, newest first, and never its answer", async () => {
+      await seedCatalog(12);
+      vi.setSystemTime(new Date("2026-10-25T12:00:00Z"));
+      await api.get(`/api/daily-game/movie/2026-10-25`);
+
+      const res = await api.get<DailyGameArchive>("/api/daily-game/movie/archive");
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body).toStrictEqual({
+        clubType: "movie",
+        puzzles: [
+          { date: "2026-10-25", puzzle: 4 },
+          { date: "2026-10-23", puzzle: 2 },
+          { date: "2026-10-22", puzzle: 1 },
+        ],
+      });
+    });
+
+    it("lists no day that isn't yet today anywhere", async () => {
+      // The catalog job draws today's answer and tomorrow's.
+      await seedCatalog(12);
+      vi.setSystemTime(new Date("2026-10-21T12:00:00Z"));
+
+      const { body } = await api.get<DailyGameArchive>("/api/daily-game/movie/archive");
+
+      expect(body.puzzles).toStrictEqual([{ date: "2026-10-22", puzzle: 1 }]);
+    });
+
+    it("is empty before the first puzzle", async () => {
+      const res = await api.get<DailyGameArchive>("/api/daily-game/movie/archive");
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.puzzles).toStrictEqual([]);
+    });
+
+    it("only lists the club types that have a game", async () => {
+      expect((await api.get("/api/daily-game/book/archive")).statusCode).toBe(404);
+      expect((await api.get("/api/daily-game/opera/archive")).statusCode).toBe(400);
+    });
   });
 
   describe("topping up the catalog from TMDB", () => {
@@ -337,5 +408,106 @@ describe("GET /api/daily-game/:clubType/:date", () => {
       const after = (await api.get<DailyGamePuzzle>(`/api/daily-game/movie/${TODAY}`)).body;
       expect(after.works.map((movie) => movie.id)).toContain("505");
     });
+  });
+});
+
+describe("POST /api/daily-game/:clubType/:date/result", () => {
+  const admin = requester(adminHandler);
+
+  // Results are stamped by the database clock, which fake timers cannot move,
+  // so these tests play the real day.
+  const today = () => new Date().toISOString().slice(0, 10);
+
+  const record = (body: object, date = today(), clubType = "movie", as?: TestSession) =>
+    api.post(`/api/daily-game/${clubType}/${date}/result`, { body, as });
+
+  const player = () => crypto.randomUUID();
+
+  async function reelatedStats() {
+    vi.stubEnv("ADMIN_USER_EMAILS", FIXTURE_USERS.alice.email);
+    const res = await admin.get<AdminDashboard>("/api/admin/metrics", {
+      as: await signIn("alice"),
+    });
+    expect(res.statusCode).toBe(200);
+    return res.body.dailyGames.find((game) => game.workType === WorkType.MOVIE);
+  }
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("counts each player's finished game once, solved only if they guessed the answer", async () => {
+    await seedCatalog(12);
+    const puzzle = (await api.get<DailyGamePuzzle>(`/api/daily-game/movie/${today()}`)).body;
+    const answer = answerOf(puzzle.works);
+    const misses = puzzle.works.filter((movie) => movie.rank > 1).map((movie) => movie.id);
+    const solver = player();
+
+    const solved = await record({ playerId: solver, guesses: [misses[0], answer?.id], hints: 1 });
+    await record({ playerId: player(), guesses: misses.slice(0, 4), hints: 0 });
+    await record({ playerId: solver, guesses: misses.slice(0, 6), hints: 0 });
+
+    expect(solved.statusCode).toBe(200);
+    const stats = await reelatedStats();
+    expect(stats?.players.current).toBe(2);
+    expect(stats?.games.current).toBe(2);
+    expect(stats?.solves).toStrictEqual({ numerator: 1, denominator: 2 });
+    expect(stats?.averageGuesses).toBe(2);
+    expect(stats?.returning).toStrictEqual({ numerator: 0, denominator: 2 });
+    expect(stats?.puzzles.find((day) => day.date === today())).toStrictEqual({
+      date: today(),
+      puzzle: puzzle.puzzle,
+      answer: answer?.title,
+      players: 2,
+      solved: 1,
+      averageGuesses: 2,
+    });
+  });
+
+  it("counts a signed-in player once, whichever browser they finish on", async () => {
+    await seedCatalog(12);
+    const puzzle = (await api.get<DailyGamePuzzle>(`/api/daily-game/movie/${today()}`)).body;
+    const answer = answerOf(puzzle.works);
+    const misses = puzzle.works.filter((movie) => movie.rank > 1).map((movie) => movie.id);
+    const bob = await signIn("bob");
+
+    await record({ playerId: player(), guesses: [answer?.id], hints: 0 }, today(), "movie", bob);
+    await record(
+      { playerId: player(), guesses: misses.slice(0, 3), hints: 0 },
+      today(),
+      "movie",
+      bob,
+    );
+    await record({ playerId: player(), guesses: misses.slice(0, 2), hints: 0 });
+
+    const stats = await reelatedStats();
+    expect(stats?.players.current).toBe(2);
+    expect(stats?.games.current).toBe(2);
+    expect(stats?.solves).toStrictEqual({ numerator: 1, denominator: 2 });
+  });
+
+  it("refuses a result for a day no player could be on", async () => {
+    await seedCatalog(12);
+
+    const res = await record({ playerId: player(), guesses: [], hints: 0 }, "2020-01-01");
+
+    expect(res.statusCode).toBe(400);
+  });
+
+  it("refuses a result without a player id", async () => {
+    await seedCatalog(12);
+    await api.get(`/api/daily-game/movie/${today()}`);
+
+    const res = await record({ playerId: "me", guesses: [], hints: 0 });
+
+    expect(res.statusCode).toBe(400);
+  });
+
+  it("has nowhere to record a game that doesn't exist", async () => {
+    const book = await record({ playerId: player(), guesses: [], hints: 0 }, today(), "book");
+    const unplayed = await record({ playerId: player(), guesses: [], hints: 0 });
+
+    expect(book.statusCode).toBe(404);
+    expect(unplayed.statusCode).toBe(404);
   });
 });

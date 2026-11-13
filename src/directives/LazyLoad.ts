@@ -9,11 +9,22 @@ const markLoaded = (event: Event) => {
   }
 };
 
+// How far outside the viewport an image starts loading, as a share of the
+// viewport's own size. With no margin a poster only began downloading once it
+// was already on screen, so scrolling a list was a row of blanks filling in
+// behind the reader. A screenful of lead time has them there on arrival.
+const LOAD_AHEAD = "100% 0px";
+
+const observers = new WeakMap<HTMLImageElement, IntersectionObserver>();
+
 export default {
   beforeMount(el: HTMLImageElement) {
     el.dataset.src = el.src;
     el.dataset.loaded = "false";
     el.src = "";
+    // Decode off the main thread: a grid of posters arriving together should
+    // not hold up scrolling.
+    el.decoding = "async";
     el.classList.add("lazy-fade");
     el.addEventListener("load", markLoaded);
     el.addEventListener("error", markLoaded);
@@ -28,16 +39,19 @@ export default {
           el.dataset.loaded = "true";
           // No URL means no load event will ever come to fade it in.
           if (src === "") el.classList.add("lazy-loaded");
-          observer.unobserve(el);
+          observer.disconnect();
+          observers.delete(el);
         }
       });
     }
 
     const options = {
       root: null,
+      rootMargin: LOAD_AHEAD,
       threshold: 0,
     };
     const observer = new IntersectionObserver(handleIntersect, options);
+    observers.set(el, observer);
     observer.observe(el);
   },
   beforeUpdate(el: HTMLImageElement) {
@@ -48,6 +62,10 @@ export default {
     }
   },
   unmounted(el: HTMLImageElement) {
+    // An image removed before it ever came near the viewport still has a live
+    // observer holding on to it.
+    observers.get(el)?.disconnect();
+    observers.delete(el);
     el.removeEventListener("load", markLoaded);
     el.removeEventListener("error", markLoaded);
   },
