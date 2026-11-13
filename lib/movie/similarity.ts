@@ -20,7 +20,17 @@ const MOVIE_FIELD_WEIGHTS = {
   language: 0.5,
 } as const;
 
-export type MovieScorer = (target: MovieDataSummary, candidate: MovieDataSummary) => number;
+/** What two movies are compared on: the only metadata a scorer reads. */
+export interface MovieSimilarityData {
+  directors: readonly { name: string }[];
+  majorCastNames: readonly string[];
+  production_companies: readonly string[];
+  genres: readonly string[];
+  release_date?: MovieDataSummary["release_date"];
+  original_language?: MovieDataSummary["original_language"];
+}
+
+export type MovieScorer = (target: MovieSimilarityData, candidate: MovieSimilarityData) => number;
 
 function names(people: readonly { name: string }[]): string[] {
   return people.map((person) => person.name);
@@ -31,7 +41,9 @@ function names(people: readonly { name: string }[]): string[] {
  * in `corpus`. Works with no cached metadata still count towards the corpus
  * size, so pass them as `undefined` rather than dropping them.
  */
-export const makeMovieScorer = (corpus: readonly (MovieDataSummary | undefined)[]): MovieScorer => {
+export const makeMovieScorer = (
+  corpus: readonly (MovieSimilarityData | undefined)[],
+): MovieScorer => {
   const directorIdf = buildIdf(corpus, (d) => names(d?.directors ?? []));
   // Major cast only (see lib/movie/majorCast.ts): the full credit list runs to
   // extras and stunt performers, whose length dilutes a shared lead in a big

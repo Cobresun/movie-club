@@ -27,11 +27,13 @@ export interface CatalogCandidate {
   title: string;
 }
 
-/** A guessable work: one the catalog holds. */
-export interface DailyGamePoolEntry {
-  externalId: string;
-  title: string;
-  data: WorkDataSummary;
+/** A game's guessable works: the catalog's works whose details are cached. */
+export interface DailyGamePool {
+  readonly size: number;
+  /** Every work ranked against `answerId`, the answer first. Empty when the pool lacks it. */
+  rank: (answerId: string) => DailyGameWork[];
+  /** The external ids that are fair answers. */
+  answerCandidates: () => string[];
 }
 
 /**
@@ -48,12 +50,11 @@ export interface DailyGame {
    */
   catalogPage: (page: number) => Promise<CatalogCandidate[]>;
   /**
-   * The pool ranked against `answerId`, the answer first. Entries whose
-   * metadata isn't this game's media are left out.
+   * The pool `catalog` makes, read with only the metadata the game ranks and
+   * clues by: every request ranks the whole catalog, so a work's full details
+   * would be thousands of rows of text nobody reads.
    */
-  rank: (answerId: string, pool: readonly DailyGamePoolEntry[]) => DailyGameWork[];
-  /** The external ids in `pool` that are fair answers. */
-  answerCandidates: (pool: readonly DailyGamePoolEntry[]) => string[];
+  loadPool: (catalog: readonly CatalogCandidate[]) => Promise<DailyGamePool>;
 }
 
 /**

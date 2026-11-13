@@ -27,11 +27,7 @@ import {
 } from "./utils/dailyGame";
 import { parseBody } from "./utils/parseBody";
 import { providerForClub } from "./utils/providers";
-import {
-  type DailyGame,
-  type DailyGamePoolEntry,
-  type MediaProvider,
-} from "./utils/providers/types";
+import { type DailyGame, type DailyGamePool, type MediaProvider } from "./utils/providers/types";
 import { badRequest, notFound, ok } from "./utils/responses";
 import { isRouterResponse, Router } from "./utils/router";
 
@@ -41,8 +37,13 @@ const router = new Router("/api/daily-game");
  * Ranking every work is the expensive part, and a day's puzzle reads the same
  * for everyone, so the CDN answers repeat requests. Ranks can still shift a
  * little while the pool grows during the day; ten minutes is fresh enough.
+ * Past that the CDN still answers at once and fetches the newer ranks behind
+ * the response, so only a date's first player waits on the ranking.
  */
-const CDN_CACHE_CONTROL = "public, durable, s-maxage=600, stale-while-revalidate=600";
+const PUZZLE_CACHE_CONTROL = "public, durable, s-maxage=600, stale-while-revalidate=86400";
+
+/** A stale archive would be missing today's puzzle, so it is only kept briefly. */
+const ARCHIVE_CACHE_CONTROL = "public, durable, s-maxage=600, stale-while-revalidate=600";
 
 /**
  * Works cached on the spot when the catalog is too small to play. Only a
@@ -53,21 +54,18 @@ const CDN_CACHE_CONTROL = "public, durable, s-maxage=600, stale-while-revalidate
  */
 const STARTER_CATALOG_SIZE = 20;
 
-async function loadPlayablePool(
-  provider: MediaProvider,
-  game: DailyGame,
-): Promise<DailyGamePoolEntry[]> {
-  const pool = await loadPool(provider);
-  if (pool.length >= MIN_POOL_SIZE) return pool;
+async function loadPlayablePool(provider: MediaProvider, game: DailyGame): Promise<DailyGamePool> {
+  const pool = await loadPool(provider, game);
+  if (pool.size >= MIN_POOL_SIZE) return pool;
   const errors: CatalogError[] = [];
   await addMissingWorks(provider, game, STARTER_CATALOG_SIZE, errors);
   errors.forEach((e) => console.log(`Starter catalog: ${e.externalId}: ${e.error}`));
-  return loadPool(provider);
+  return loadPool(provider, game);
 }
 
-const cdnCached = (response: HandlerResponse): HandlerResponse => ({
+const cdnCached = (response: HandlerResponse, cacheControl: string): HandlerResponse => ({
   ...response,
-  headers: { ...response.headers, "Netlify-CDN-Cache-Control": CDN_CACHE_CONTROL },
+  headers: { ...response.headers, "Netlify-CDN-Cache-Control": cacheControl },
 });
 
 const clubTypeSchema = z.object({ clubType: z.nativeEnum(ClubType) });
@@ -92,7 +90,7 @@ router.get("/:clubType/archive", async ({ params }, res) => {
   const puzzles = dates
     .map((date) => ({ date, puzzle: puzzleNumber(firstDate ?? date, date) }))
     .reverse();
-  return res(cdnCached(ok<DailyGameArchive>({ clubType, puzzles })));
+  return res(cdnCached(ok<DailyGameArchive>({ clubType, puzzles }), ARCHIVE_CACHE_CONTROL));
 });
 
 // Public: the game is for anyone who lands on it, signed in or not. The
@@ -124,13 +122,13 @@ router.get("/:clubType/:date", async ({ params }, res) => {
 
   const pool = await loadPlayablePool(provider, game);
   const notEnough = notFound("Not enough works have been added to play yet");
-  if (pool.length < MIN_POOL_SIZE) return res(notEnough);
+  if (pool.size < MIN_POOL_SIZE) return res(notEnough);
 
-  const answerId = archived ?? (await answerFor(provider, game, date, pool));
+  const answerId = archived ?? (await answerFor(provider, date, pool));
   if (!isDefined(answerId)) return res(notEnough);
 
   // Empty only when the day's answer has since left the pool.
-  const works = game.rank(answerId, pool);
+  const works = pool.rank(answerId);
   if (!hasElements(works)) return res(notFound("Today's answer is no longer available"));
 
   return res(
@@ -141,6 +139,7 @@ router.get("/:clubType/:date", async ({ params }, res) => {
         puzzle: puzzleNumber(firstDate ?? date, date),
         works,
       }),
+      PUZZLE_CACHE_CONTROL,
     ),
   );
 });
