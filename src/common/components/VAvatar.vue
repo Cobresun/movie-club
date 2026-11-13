@@ -1,6 +1,17 @@
 <template>
   <div>
-    <img v-if="src" class="max-w-none rounded-full" :width="size" :height="size" :src="src" />
+    <!-- Width and height are fixed, so deferring the ones below the fold moves
+         nothing when they arrive. A reviews page shows one per member per
+         work. -->
+    <img
+      v-if="src"
+      class="max-w-none rounded-full"
+      :width="size"
+      :height="size"
+      :src="src"
+      loading="lazy"
+      decoding="async"
+    />
     <div
       v-else
       :style="{
