@@ -16,7 +16,9 @@ router.get("/:clubSlug", validClubSlug, async ({ clubSlug }, res) =>
 );
 ```
 
-Routers are mounted from `netlify/functions/club/index.ts` and `member.ts` — read those for the current route surface rather than relying on a list here.
+Routers are mounted from `netlify/functions/club/index.ts`, `member.ts` and `member-avatar.ts` — read those for the current route surface rather than relying on a list here.
+
+**Keep each function's import graph to what its routes use.** Every module a function imports is evaluated on its cold start, so a heavy dependency that only a rare route needs belongs in a function of its own, with a redirect in `netlify.toml` above `/api/*` — the avatar routes are split from `member` this way, so the clubs list every page load waits on does not load Cloudinary. Use static imports, not a dynamic `import()` inside a route. For the same reason repositories do not import `utils/providers`: a handler that needs both calls the provider itself, since the provider registry loads all three providers and their HTTP clients.
 
 ## Request pipeline
 
@@ -84,8 +86,8 @@ A finished game is posted to `/api/daily-game/:clubType/:date/result` and kept i
 
 ## Auth
 
-`netlify/functions/utils/auth.ts` is the BetterAuth server config — bcrypt hashing, Google OAuth, Resend emails, and a mixed ID strategy (auto-increment for users, UUIDs for sessions). See the `better-auth-best-practices` skill for general patterns.
+`netlify/functions/utils/auth.ts` is the BetterAuth server config behind `/api/auth/*` — bcrypt hashing, Google OAuth, Resend emails and the signup hooks. Every other function checks sessions through `utils/session.ts` (`sessionUserId`, `loggedIn`, `secured`, `siteAdmin`), which builds its own BetterAuth instance without any of those, so they are not loaded on its cold starts. What both instances must agree on to read each other's cookies — base URL, database, session and cookie cache, and the mixed ID strategy (auto-increment for users, UUIDs for sessions) — lives in `utils/authOptions.ts`; a setting that affects how a session is stored or read goes there, not in one instance. See the `better-auth-best-practices` skill for general patterns.
 
 **Set-Cookie gotcha:** `Headers.forEach` folds repeated `Set-Cookie` values into one malformed header. Use `getSetCookie()` and return them via Netlify's `multiValueHeaders`.
 
-**Only the auth endpoint renews sessions.** `loggedIn` reads the session with `disableRefresh`, because `auth.api.getSession` has nowhere to send a Set-Cookie: a renewal there extends the database row while the browser's cookie still lapses a month after it was issued.
+**Only the auth endpoint renews sessions.** `loggedIn` reads the session with `disableRefresh`, because `getSession` called from a handler has nowhere to send a Set-Cookie: a renewal there extends the database row while the browser's cookie still lapses a month after it was issued.

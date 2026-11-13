@@ -14,12 +14,12 @@ import ListRepository from "../repositories/ListRepository";
 import SettingsRepository from "../repositories/SettingsRepository";
 import UserRepository from "../repositories/UserRepository";
 import WorkRepository from "../repositories/WorkRepository";
-import { loggedIn, secured } from "../utils/auth";
 import { db } from "../utils/database";
 import { parseBody } from "../utils/parseBody";
-import { getProvider } from "../utils/providers";
+import { getProvider, providerForClub } from "../utils/providers";
 import { ok, badRequest, notFound } from "../utils/responses";
 import { isRouterResponse, Router } from "../utils/router";
+import { loggedIn, secured } from "../utils/session";
 import { validateSlug } from "../utils/slug";
 import { validClubSlug } from "../utils/validation";
 import awardsRouter from "./awards";
@@ -101,7 +101,7 @@ router.post("/", loggedIn, async ({ event }, res) => {
   }
 
   // Create the default user list (named per media type) + Reviews system list
-  await ListRepository.createListsForClub(newClub.id, type);
+  await ListRepository.createListsForClub(newClub.id, providerForClub(type).defaultListTitle);
 
   // Create default settings
   await SettingsRepository.createDefaultSettings(newClub.id);

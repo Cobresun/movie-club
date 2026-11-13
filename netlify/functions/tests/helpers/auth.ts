@@ -1,5 +1,6 @@
 import { handler as authHandler } from "../../auth";
 import { handler as memberHandler } from "../../member";
+import { handler as memberAvatarHandler } from "../../member-avatar";
 import { lastEmailTo, sentEmails } from "../setup/externalApis";
 import { requester } from "./http";
 
@@ -154,9 +155,10 @@ export async function signUpNewUser(
  */
 export async function restoreFixtureUsers() {
   const member = requester(memberHandler);
+  const avatar = requester(memberAvatarHandler);
   for (const session of sessions.values()) {
     await member.put("/api/member/name", { body: { name: session.name }, as: session });
-    await member.delete("/api/member/avatar", { as: session });
+    await avatar.delete("/api/member/avatar", { as: session });
   }
 }
 

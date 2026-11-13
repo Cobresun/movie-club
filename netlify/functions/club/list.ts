@@ -15,13 +15,13 @@ import ListRepository from "../repositories/ListRepository";
 import ReviewRepository from "../repositories/ReviewRepository";
 import UserRepository from "../repositories/UserRepository";
 import WorkRepository from "../repositories/WorkRepository";
-import { secured } from "../utils/auth";
 import { parseBody } from "../utils/parseBody";
-import { getExternalSummariesForWorks } from "../utils/providers";
+import { getExternalSummariesForWorks, getProvider } from "../utils/providers";
 import { requireParam } from "../utils/requireParam";
 import { badRequest, internalServerError, ok } from "../utils/responses";
 import { buildReviewScores } from "../utils/reviewScores";
 import { isRouterResponse, Router } from "../utils/router";
+import { secured } from "../utils/session";
 import { type ClubRequest, type ListRequest, validListId } from "../utils/validation";
 import { BadRequest } from "@/common/errorCodes";
 
@@ -175,9 +175,21 @@ router.post(
     if (isRouterResponse(body)) return body;
 
     // insert() upserts on (club_id, type, external_id) and always returns the
-    // id, so no lookup-then-insert dance is needed. Its metadata fetch is a
-    // no-op when details are already cached.
+    // id, so no lookup-then-insert dance is needed.
     const work = await WorkRepository.insert(clubId, body);
+
+    // Caching is best-effort and a no-op when the details are already cached:
+    // a provider outage must not fail the add, since the scheduled refresh
+    // (movies) or a later add fills the details in.
+    if (hasValue(body.externalId)) {
+      try {
+        await getProvider(body.type).fetchAndCacheDetails(body.externalId);
+      } catch (error) {
+        console.error(
+          `Failed to cache ${body.type} details for ${body.externalId}: ${String(error)}`,
+        );
+      }
+    }
 
     // Single INSERT ... SELECT computes the position and detects "already in
     // list" via the (list_id, work_id) unique constraint in one round trip.
