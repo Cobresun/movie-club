@@ -1,9 +1,8 @@
-import { DateTime } from "luxon";
-
 import { hasValue } from "@/../lib/checks/checks";
 import { type DetailedBookData } from "@/../lib/types/book";
 import { type WorkDataSummary } from "@/../lib/types/lists";
 import { asTv } from "@/common/clubType/tv/data";
+import { formatIsoDate } from "@/common/dates";
 
 // Movies cache only a bare TMDB poster path; expand it here (w500 — higher res
 // than the w154 url stored on the work). Books store an absolute cover url.
@@ -73,10 +72,10 @@ export function formatRuntime(minutes: number): string {
 
 /** ISO date string → medium-length localized date (e.g. "Jan 5, 2024"). */
 export function formatDate(dateString: string): string {
-  return DateTime.fromISO(dateString).toLocaleString(DateTime.DATE_MED);
+  return formatIsoDate(dateString, "medium") ?? dateString;
 }
 
 /** The compact numeric date a gallery card carries; the details drawer spells it out. */
 export function formatCardDate(dateString: string): string {
-  return DateTime.fromISO(dateString).toLocaleString();
+  return formatIsoDate(dateString, "short") ?? dateString;
 }
