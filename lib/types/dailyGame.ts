@@ -1,12 +1,12 @@
 import { type ClubType } from "./generated/db";
 
-/** How much a clue counts towards a guess's rank, as the player sees it. */
-export type ClueStrength = "strong" | "medium" | "weak";
-
-/** One thing a guess has in common with the answer. */
+/**
+ * One thing a guess has in common with the answer, worth points, or one way it
+ * differs from it, worth negative points. The player sees the points.
+ */
 export interface DailyGameClue {
   text: string;
-  strength: ClueStrength;
+  points: number;
 }
 
 /** One work in a day's daily-game pool, ranked against that day's answer. */
@@ -18,8 +18,9 @@ export interface DailyGameWork {
   /** 1 for the answer, up to the pool size for the least alike work. */
   rank: number;
   /**
-   * What this work has in common with the answer, strongest first. These are
-   * the whole of what ranks it: nothing the player can't see counts.
+   * What this work shares with the answer and where it differs, most points
+   * first. Their points add up to its score: nothing the player can't see
+   * counts. Equal scores go to the work released nearer the answer.
    */
   clues: DailyGameClue[];
 }
