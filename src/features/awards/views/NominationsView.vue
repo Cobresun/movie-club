@@ -84,7 +84,6 @@
   </div>
 </template>
 <script setup lang="ts">
-import { DateTime } from "luxon";
 import { computed, ref } from "vue";
 
 import { NOMINATIONS_PER_AWARD } from "../../../../lib/awards";
@@ -95,6 +94,7 @@ import AddMovieButton from "../components/AddMovieButton.vue";
 import { workSubtitle } from "@/common/clubType";
 import WorkPosterCard from "@/common/components/WorkPosterCard.vue";
 import WorkSearchPrompt from "@/common/components/WorkSearchPrompt.vue";
+import { utcYear } from "@/common/dates";
 import { useAddNomination, useDeleteNomination } from "@/service/useAwards";
 import { useReviewsList } from "@/service/useList";
 import { WorkSearchResult } from "@/service/useMediaSearch";
@@ -143,10 +143,7 @@ const { data: reviews } = useReviewsList(clubSlug);
 const reviewsForYear = computed(() => {
   if (!reviews.value) return [];
   return reviews.value
-    .filter(
-      (review) =>
-        DateTime.fromISO(review.createdDate, { zone: "utc" }).year === Number.parseInt(year, 10),
-    )
+    .filter((review) => utcYear(review.createdDate) === Number.parseInt(year, 10))
     .map<WorkSearchResult>((review) => ({
       externalId: review.externalId ?? "",
       title: review.title,

@@ -295,7 +295,6 @@
 
 <script setup lang="ts">
 import { ListboxButton } from "@headlessui/vue";
-import { DateTime } from "luxon";
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 
 import { hasElements, hasValue, isDefined } from "../../../../lib/checks/checks.js";
@@ -333,6 +332,7 @@ import VAvatar from "@/common/components/VAvatar.vue";
 import WatchProviders from "@/common/components/WatchProviders.vue";
 import WorkDescription from "@/common/components/WorkDescription.vue";
 import WorkPosterHero from "@/common/components/WorkPosterHero.vue";
+import { dateInputValueToIso, parseIsoDate, toDateInputValue } from "@/common/dates";
 import { asBook, asMovie, formatDate, workPosterUrl } from "@/common/workDisplay";
 import { useClub, useClubSlug } from "@/service/useClub";
 import {
@@ -385,7 +385,7 @@ const isEditingDate = ref(false);
 const editedDate = ref("");
 
 const formattedDateForInput = computed(() =>
-  DateTime.fromISO(props.movie.createdDate).toFormat("yyyy-MM-dd"),
+  toDateInputValue(parseIsoDate(props.movie.createdDate)),
 );
 
 const openDateEditor = () => {
@@ -395,9 +395,9 @@ const openDateEditor = () => {
 
 const saveDateChange = () => {
   if (hasValue(editedDate.value)) {
-    const isoDate = DateTime.fromFormat(editedDate.value, "yyyy-MM-dd").startOf("day").toISO();
+    const isoDate = dateInputValueToIso(editedDate.value);
 
-    if (isoDate !== null && hasValue(reviewsListId.value)) {
+    if (isDefined(isoDate) && hasValue(reviewsListId.value)) {
       updateAddedDate({
         listId: reviewsListId.value,
         workId: props.movie.id,

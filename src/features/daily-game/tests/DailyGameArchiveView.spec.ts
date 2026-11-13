@@ -35,15 +35,15 @@ function serveArchive(archive: DailyGameArchive = ARCHIVE) {
 
 const renderArchive = async () => {
   const rendered = render(DailyGameArchiveView, { props: { clubType: ClubType.MOVIE } });
-  await screen.findByRole("list", { name: "Puzzles, newest first" });
+  await screen.findByRole("list", { name: "October 2026" });
   return rendered;
 };
 
-const puzzleLinks = () =>
-  within(screen.getByRole("list", { name: "Puzzles, newest first" })).getAllByRole("link");
+const puzzleLinks = (month = "October 2026") =>
+  within(screen.getByRole("list", { name: month })).getAllByRole("link");
 
-const puzzleLink = (name: string) =>
-  within(screen.getByRole("list", { name: "Puzzles, newest first" })).getByRole("link", { name });
+const puzzleLink = (name: string, month = "October 2026") =>
+  within(screen.getByRole("list", { name: month })).getByRole("link", { name });
 
 beforeEach(() => {
   localStorage.clear();
@@ -57,14 +57,35 @@ afterEach(() => {
 });
 
 describe("DailyGameArchiveView", () => {
-  it("lists every puzzle up to the player's today, newest first", async () => {
+  it("lays out every puzzle up to the player's today on the month's calendar", async () => {
     await renderArchive();
 
-    // The list in order, each found by the name a screen reader announces.
+    // Calendar order, each found by the name a screen reader announces.
     expect(puzzleLinks()).toStrictEqual([
-      puzzleLink("#3, October 22, 2026, Today"),
-      puzzleLink("#2, October 21, 2026"),
       puzzleLink("#1, October 20, 2026"),
+      puzzleLink("#2, October 21, 2026"),
+      puzzleLink("#3, October 22, 2026, Today"),
+    ]);
+    expect(puzzleLink("#3, October 22, 2026, Today")).toHaveAttribute("aria-current", "date");
+  });
+
+  it("shows the newest month first", async () => {
+    serveArchive({
+      clubType: ClubType.MOVIE,
+      puzzles: [
+        { date: "2026-10-02", puzzle: 3 },
+        { date: "2026-10-01", puzzle: 2 },
+        { date: "2026-09-30", puzzle: 1 },
+      ],
+    });
+    await renderArchive();
+
+    expect(screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent)).toStrictEqual([
+      "October 2026",
+      "September 2026",
+    ]);
+    expect(puzzleLinks("September 2026")).toStrictEqual([
+      puzzleLink("#1, September 30, 2026", "September 2026"),
     ]);
   });
 
@@ -95,9 +116,9 @@ describe("DailyGameArchiveView", () => {
     await renderArchive();
 
     expect(puzzleLinks()).toStrictEqual([
-      puzzleLink("#3, October 22, 2026, Today"),
-      puzzleLink("#2, October 21, 2026, In progress"),
       puzzleLink("#1, October 20, 2026, Solved"),
+      puzzleLink("#2, October 21, 2026, In progress"),
+      puzzleLink("#3, October 22, 2026, Today"),
     ]);
   });
 

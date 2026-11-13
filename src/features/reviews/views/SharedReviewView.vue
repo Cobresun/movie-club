@@ -136,7 +136,6 @@
 </template>
 
 <script setup lang="ts">
-import { DateTime } from "luxon";
 import { computed } from "vue";
 import { useRoute } from "vue-router";
 
@@ -148,6 +147,7 @@ import { workTitle } from "@/common/clubType";
 import SharedPageCtaBanner from "@/common/components/SharedPageCtaBanner.vue";
 import SharedPageHeader from "@/common/components/SharedPageHeader.vue";
 import VAvatar from "@/common/components/VAvatar.vue";
+import { formatIsoDate } from "@/common/dates";
 import { asMovie, workPosterUrl } from "@/common/workDisplay";
 import SharedReviewComments from "@/features/reviews/components/SharedReviewComments.vue";
 import SharedReviewSkeleton from "@/features/reviews/components/SharedReviewSkeleton.vue";
@@ -217,6 +217,6 @@ const memberScore = (memberId: string): MemberScore => {
 
 const formatReviewTime = (time?: string) => {
   if (time === undefined) return "";
-  return DateTime.fromISO(time).toLocaleString(DateTime.DATE_FULL);
+  return formatIsoDate(time, "full") ?? time;
 };
 </script>

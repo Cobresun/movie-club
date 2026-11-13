@@ -32,11 +32,11 @@
 </template>
 
 <script setup lang="ts">
-import { DateTime } from "luxon";
 import { reactive } from "vue";
 
 import { WorkCommentDto } from "../../../../lib/types/lists";
 import VAvatar from "@/common/components/VAvatar.vue";
+import { relativeTime } from "@/common/dates";
 
 defineProps<{
   comments: WorkCommentDto[];
@@ -44,6 +44,5 @@ defineProps<{
 
 const revealedSpoilers = reactive(new Set<string>());
 
-const formatRelativeTime = (dateString: string) =>
-  DateTime.fromISO(dateString).toRelative() ?? dateString;
+const formatRelativeTime = (dateString: string) => relativeTime(dateString) ?? dateString;
 </script>

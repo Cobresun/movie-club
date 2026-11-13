@@ -1,5 +1,5 @@
 import { fireEvent, screen, within } from "@testing-library/vue";
-import { http, HttpResponse } from "msw";
+import { delay, http, HttpResponse } from "msw";
 import { useRouter } from "vue-router";
 
 import DailyGameView from "../views/DailyGameView.vue";
@@ -93,6 +93,15 @@ describe("DailyGameView", () => {
     await renderGame();
 
     expect(screen.getByRole("heading", { level: 1, name: "Reelated #7" })).toBeInTheDocument();
+  });
+
+  it("holds the board's shape with a placeholder while the puzzle loads", async () => {
+    server.use(http.get("/api/daily-game/movie/:date", () => delay("infinite")));
+
+    render(DailyGameView, { props: { clubType: ClubType.MOVIE } });
+
+    expect(await screen.findByRole("status", { name: "Loading Reelated" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { level: 1 })).not.toBeInTheDocument();
   });
 
   it("ranks a wrong guess and shows what it shares with the answer", async () => {
