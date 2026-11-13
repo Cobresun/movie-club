@@ -19,13 +19,13 @@ export interface ClubPreview {
   slug: string;
   slugUpdatedAt: string | undefined;
   type: ClubType;
+  /** The club's `reviews` system list, which the reviews page adds works to. */
+  reviewsListId?: string;
+  settings: ClubSettings;
 }
 
-/** `GET /api/club/joinInfo/:token` — enough to show which club an invite is for. */
-export interface ClubInviteDetails {
-  clubId: string;
-  clubName: string;
-  slug: string;
+/** `GET /api/club/joinInfo/:token` — the club an invite is for, and until when. */
+export interface ClubInviteDetails extends ClubPreview {
   expiresAt: string;
 }
 
@@ -49,6 +49,13 @@ export const clubSettingsSchema = z.object({
 });
 
 export type ClubSettings = z.infer<typeof clubSettingsSchema>;
+
+/** What a new club starts with, and what a feature it has never set reads as. */
+export const DEFAULT_CLUB_SETTINGS: ClubSettings = {
+  features: {
+    awards: false,
+  },
+};
 
 /** Every field optional: an update patches whichever features it names. */
 export const clubSettingsUpdateSchema = z.object({

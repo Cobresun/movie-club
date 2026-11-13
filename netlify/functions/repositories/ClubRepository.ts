@@ -1,9 +1,46 @@
 import crypto from "crypto";
+import { type InferResult } from "kysely";
 
 import { isDefined } from "../../../lib/checks/checks.js";
-import { type ClubType } from "../../../lib/types/generated/db.js";
+import { type ClubPreview } from "../../../lib/types/club";
+import { type ClubType, WorkListSystemType } from "../../../lib/types/generated/db.js";
 import { db } from "../utils/database";
 import { generateSlugFromName, generateUniqueSlug } from "../utils/slug";
+import { settingsFromStored } from "./SettingsRepository";
+
+function previewQuery() {
+  return db
+    .selectFrom("club")
+    .leftJoin("work_list", (join) =>
+      join
+        .onRef("work_list.club_id", "=", "club.id")
+        .on("work_list.system_type", "=", WorkListSystemType.REVIEWS),
+    )
+    .leftJoin("club_settings", (join) =>
+      join.onRef("club_settings.club_id", "=", "club.id").on("club_settings.key", "=", "features"),
+    )
+    .select([
+      "club.id",
+      "club.name",
+      "club.slug",
+      "club.slug_updated_at",
+      "club.type",
+      "work_list.id as reviews_list_id",
+      "club_settings.value as settings",
+    ]);
+}
+
+function toClubPreview(row: InferResult<ReturnType<typeof previewQuery>>[number]): ClubPreview {
+  return {
+    clubId: row.id,
+    clubName: row.name,
+    slug: row.slug,
+    slugUpdatedAt: row.slug_updated_at ? String(row.slug_updated_at) : undefined,
+    type: row.type,
+    reviewsListId: row.reviews_list_id ?? undefined,
+    settings: settingsFromStored(row.settings),
+  };
+}
 
 interface JoinClubResult {
   success: boolean;
@@ -57,20 +94,17 @@ class ClubRepository {
     return db.updateTable("club").set({ name }).where("id", "=", clubId).executeTakeFirst();
   }
 
-  getClubPreviewsByUserId(userId: string) {
-    return db
-      .selectFrom("user")
-      .where("user.id", "=", userId)
-      .innerJoin("club_member", "club_member.user_id", "user.id")
-      .innerJoin("club", "club.id", "club_member.club_id")
-      .select([
-        "club.id as club_id",
-        "club.name as club_name",
-        "club.slug",
-        "club.slug_updated_at",
-        "club.type",
-      ])
+  async getPreviewsByUserId(userId: string): Promise<ClubPreview[]> {
+    const rows = await previewQuery()
+      .innerJoin("club_member", "club_member.club_id", "club.id")
+      .where("club_member.user_id", "=", userId)
       .execute();
+    return rows.map(toClubPreview);
+  }
+
+  async getPreview(clubId: string): Promise<ClubPreview | undefined> {
+    const row = await previewQuery().where("club.id", "=", clubId).executeTakeFirst();
+    return isDefined(row) ? toClubPreview(row) : undefined;
   }
 
   async isUserInClub(clubId: string, userId: string) {
@@ -121,18 +155,13 @@ class ClubRepository {
     return { success: true };
   }
 
-  getClubDetailsByInvite(token: string) {
-    return db
-      .selectFrom("club_invite")
-      .innerJoin("club", "club.id", "club_invite.club_id")
-      .select([
-        "club.id as clubId",
-        "club.name as clubName",
-        "club.slug as slug",
-        "club_invite.expires_at as expiresAt",
-      ])
-      .where("token", "=", token)
+  async getInvitedClub(token: string) {
+    const row = await previewQuery()
+      .innerJoin("club_invite", "club_invite.club_id", "club.id")
+      .where("club_invite.token", "=", token)
+      .select("club_invite.expires_at")
       .executeTakeFirst();
+    return isDefined(row) ? { club: toClubPreview(row), expiresAt: row.expires_at } : undefined;
   }
 
   async createClubInvite(clubId: string) {

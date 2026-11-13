@@ -39,13 +39,8 @@ import { hasValue, isDefined } from "../../../../lib/checks/checks";
 import { UserListItemWithSource } from "../../../../lib/types/lists";
 import { workSubtitle } from "@/common/clubType";
 import PosterImage from "@/common/components/PosterImage.vue";
-import {
-  useAllUserListItems,
-  useNextWork,
-  useQueueReview,
-  useReviewsList,
-  useReviewsListId,
-} from "@/service/useList";
+import { useReviewsListId } from "@/service/useClub";
+import { useNextWorkItem, useQueueReview, useReviewsList } from "@/service/useList";
 
 const { clubSlug } = defineProps<{ clubSlug: string }>();
 
@@ -55,23 +50,20 @@ const emit = defineEmits<{
 
 const toast = useToast();
 
-const { data: nextWorkId } = useNextWork(clubSlug);
-const { data: listItems } = useAllUserListItems(clubSlug);
+const { data: nextWork } = useNextWorkItem(clubSlug);
 const { data: reviews } = useReviewsList(clubSlug);
-const { data: reviewsListId } = useReviewsListId(clubSlug);
+const reviewsListId = useReviewsListId(clubSlug);
 const { mutateAsync: queueReview } = useQueueReview(clubSlug);
 
-// all-items is ordered by list position, then item position, so when the
-// pinned work sits on several lists the first match is the topmost list's copy.
 const nextItem = computed(() => {
-  const workId = nextWorkId.value;
-  if (!hasValue(workId)) return undefined;
-  if (reviews.value?.some((review) => review.id === workId) === true) return undefined;
-  return listItems.value?.find((item) => item.id === workId);
+  const work = nextWork.value;
+  if (!isDefined(work)) return undefined;
+  if (reviews.value?.some((review) => review.id === work.id) === true) return undefined;
+  return work;
 });
 
-// The move removes the work from all-items optimistically; hold on to it so
-// the card stays up, visibly pending, until the review exists to open.
+// Hold on to the work while it moves so the card stays up, visibly pending,
+// until the review exists to open.
 const startingItem = ref<UserListItemWithSource>();
 const upNext = computed(() => startingItem.value ?? nextItem.value);
 

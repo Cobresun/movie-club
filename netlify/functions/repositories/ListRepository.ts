@@ -5,6 +5,29 @@ import { type ClubType, type DB, WorkListSystemType } from "../../../lib/types/g
 import { db } from "../utils/database";
 import { providerForClub } from "../utils/providers";
 
+function userListItemsQuery(clubId: string) {
+  return db
+    .selectFrom("work_list_item")
+    .innerJoin("work_list", "work_list.id", "work_list_item.list_id")
+    .innerJoin("work", "work.id", "work_list_item.work_id")
+    .where("work_list.club_id", "=", clubId)
+    .where("work_list.system_type", "is", null)
+    .select([
+      "work.id",
+      "work.title",
+      "work.type",
+      "work.image_url",
+      "work.external_id",
+      "work_list_item.time_added",
+      "work_list_item.added_by_user_id",
+      "work_list_item.list_id",
+      "work_list.title as list_title",
+    ])
+    .orderBy("work_list.position", "asc")
+    .orderBy("work_list.id", "asc")
+    .orderBy("work_list_item.position", "asc");
+}
+
 /**
  * A list's reviews of a work and of the work's children: a review references
  * its work and its list separately, so leaving the list does not cascade.
@@ -149,27 +172,20 @@ class ListRepository {
   // source list, in one query. Ordered by list position then item position so
   // the response groups naturally by list.
   async getAllUserListItems(clubId: string) {
-    return db
-      .selectFrom("work_list_item")
-      .innerJoin("work_list", "work_list.id", "work_list_item.list_id")
-      .innerJoin("work", "work.id", "work_list_item.work_id")
-      .where("work_list.club_id", "=", clubId)
-      .where("work_list.system_type", "is", null)
-      .select([
-        "work.id",
-        "work.title",
-        "work.type",
-        "work.image_url",
-        "work.external_id",
-        "work_list_item.time_added",
-        "work_list_item.added_by_user_id",
-        "work_list_item.list_id",
-        "work_list.title as list_title",
-      ])
-      .orderBy("work_list.position", "asc")
-      .orderBy("work_list.id", "asc")
-      .orderBy("work_list_item.position", "asc")
-      .execute();
+    return userListItemsQuery(clubId).execute();
+  }
+
+  /**
+   * The club's next work as it sits on its user lists: the copy on the topmost
+   * list when it is on several, or undefined when it is on none.
+   */
+  async getNextWorkItem(clubId: string) {
+    return userListItemsQuery(clubId)
+      .innerJoin("next_work", (join) =>
+        join.onRef("next_work.work_id", "=", "work.id").on("next_work.club_id", "=", clubId),
+      )
+      .limit(1)
+      .executeTakeFirst();
   }
 
   /** Whether `workId` is on the list, either itself or through its parent. */

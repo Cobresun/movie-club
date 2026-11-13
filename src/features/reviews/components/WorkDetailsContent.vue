@@ -334,10 +334,9 @@ import WorkDescription from "@/common/components/WorkDescription.vue";
 import WorkPosterHero from "@/common/components/WorkPosterHero.vue";
 import { dateInputValueToIso, parseIsoDate, toDateInputValue } from "@/common/dates";
 import { asBook, asMovie, formatDate, workPosterUrl } from "@/common/workDisplay";
-import { useClub, useClubSlug } from "@/service/useClub";
+import { useClub, useClubSlug, useReviewsListId } from "@/service/useClub";
 import {
   useReviewsList,
-  useReviewsListId,
   useUpdateAddedDate,
   useUpdateReviewAddedBy,
   useWorkDetails,
@@ -379,7 +378,7 @@ const confirmDelete = () => {
 // Date editing state
 const clubId = useClubSlug();
 const { data: club } = useClub(clubId);
-const { data: reviewsListId } = useReviewsListId(clubId);
+const reviewsListId = useReviewsListId(clubId);
 const { mutate: updateAddedDate } = useUpdateAddedDate(clubId);
 const isEditingDate = ref(false);
 const editedDate = ref("");

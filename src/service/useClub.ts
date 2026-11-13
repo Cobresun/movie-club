@@ -1,18 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
-import { type UseQueryReturnType } from "@tanstack/vue-query";
 import axios from "axios";
 import { computed, unref } from "vue";
-import { type MaybeRef } from "vue";
+import { type ComputedRef, type MaybeRef } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 import { hasValue, isDefined } from "../../lib/checks/checks.js";
 import {
   type ClubInviteDetails,
   type ClubPreview,
-  type ClubSettings,
   type ClubSettingsUpdate,
   type ClubSlugResponse,
   type CreatedClubResponse,
+  DEFAULT_CLUB_SETTINGS,
   type InviteTokenResponse,
   type Member,
 } from "../../lib/types/club";
@@ -43,6 +42,11 @@ export function useClub(clubSlug: string) {
   });
 }
 
+export function useReviewsListId(clubSlug: string): ComputedRef<string | undefined> {
+  const { data: club } = useClub(clubSlug);
+  return computed(() => club.value?.reviewsListId);
+}
+
 export function useCreateClub() {
   const auth = useAuthStore();
   const queryClient = useQueryClient();
@@ -67,7 +71,14 @@ export function useCreateClub() {
     onSuccess: ({ data }, { clubName, type }) => {
       queryClient.setQueryData<ClubPreview[]>(userClubsKey, (current) => [
         ...(current ?? []),
-        { clubId: data.clubId, clubName, slug: data.slug, slugUpdatedAt: undefined, type },
+        {
+          clubId: data.clubId,
+          clubName,
+          slug: data.slug,
+          slugUpdatedAt: undefined,
+          type,
+          settings: DEFAULT_CLUB_SETTINGS,
+        },
       ]);
       queryClient.invalidateQueries(userClubsKey).catch(console.error);
     },
@@ -139,8 +150,9 @@ export function useJoinClub(inviteToken: string) {
     // to the membership list gaining the club. The invite page already holds
     // the club's preview, so the list carries it before the refetch lands.
     onSuccess: () => {
-      const joined = queryClient.getQueryData<ClubPreview>(["club-details", inviteToken]);
-      if (isDefined(joined)) {
+      const invited = queryClient.getQueryData<ClubInviteDetails>(["club-details", inviteToken]);
+      if (isDefined(invited)) {
+        const { expiresAt: _expiresAt, ...joined } = invited;
         queryClient.setQueryData<ClubPreview[]>(userClubsKey, (current) =>
           current?.some((club) => club.clubId === joined.clubId) === true
             ? current
@@ -208,52 +220,46 @@ export function useInviteToken(clubSlug: string) {
   });
 }
 
-export function useClubSettings(clubSlug: string): UseQueryReturnType<ClubSettings, unknown> {
-  const auth = useAuthStore();
-  return useQuery<ClubSettings>({
-    queryKey: ["club", clubSlug, "settings"],
-    queryFn: async () => {
-      const response = await auth.request.get<ClubSettings>(`/api/club/${clubSlug}/settings`);
-      return response.data;
-    },
-  });
-}
-
+/** Settings live on the club preview, both the club's own and its entry in the clubs list. */
 export function useUpdateClubSettings(clubSlug: string) {
   const auth = useAuthStore();
   const queryClient = useQueryClient();
+  const clubKey = ["club", clubSlug];
+
+  const withUpdate = (club: ClubPreview, update: ClubSettingsUpdate): ClubPreview => ({
+    ...club,
+    settings: { ...club.settings, features: { ...club.settings.features, ...update.features } },
+  });
 
   return useMutation({
     mutationFn: (newSettings: ClubSettingsUpdate) =>
       auth.request.post(`/api/club/${clubSlug}/settings`, newSettings),
     onMutate: async (newSettings: ClubSettingsUpdate) => {
-      await queryClient.cancelQueries(["club", clubSlug, "settings"]);
-
-      const previousSettings = queryClient.getQueryData<ClubSettings>([
-        "club",
-        clubSlug,
-        "settings",
+      await Promise.all([
+        queryClient.cancelQueries(clubKey, { exact: true }),
+        queryClient.cancelQueries(userClubsKey),
       ]);
-
-      if (previousSettings) {
-        queryClient.setQueryData<ClubSettings>(["club", clubSlug, "settings"], {
-          ...previousSettings,
-          features: {
-            ...previousSettings.features,
-            ...newSettings.features,
-          },
-        });
+      const previousClub = queryClient.getQueryData<ClubPreview>(clubKey);
+      const previousClubs = queryClient.getQueryData<ClubPreview[]>(userClubsKey);
+      if (isDefined(previousClub)) {
+        queryClient.setQueryData<ClubPreview>(clubKey, withUpdate(previousClub, newSettings));
       }
-
-      return { previousSettings };
+      queryClient.setQueryData<ClubPreview[]>(userClubsKey, (current) =>
+        current?.map((club) => (club.slug === clubSlug ? withUpdate(club, newSettings) : club)),
+      );
+      return { previousClub, previousClubs };
     },
     onError: (_error, _variables, context) => {
-      if (context?.previousSettings) {
-        queryClient.setQueryData(["club", clubSlug, "settings"], context.previousSettings);
+      if (isDefined(context?.previousClub)) {
+        queryClient.setQueryData(clubKey, context.previousClub);
+      }
+      if (isDefined(context?.previousClubs)) {
+        queryClient.setQueryData(userClubsKey, context.previousClubs);
       }
     },
     onSettled: () => {
-      queryClient.invalidateQueries(["club", clubSlug, "settings"]).catch(console.error);
+      queryClient.invalidateQueries(clubKey, { exact: true }).catch(console.error);
+      queryClient.invalidateQueries(userClubsKey).catch(console.error);
     },
   });
 }

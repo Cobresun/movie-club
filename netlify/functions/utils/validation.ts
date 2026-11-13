@@ -9,9 +9,6 @@ export type ClubRequest<T extends Request = Request> = T & {
   clubId: string;
   clubSlug: string;
   clubType: ClubType;
-  clubName: string;
-  // Raw column value, forwarded so the club GET doesn't need a second lookup.
-  clubSlugUpdatedAt: Date | null;
 };
 
 export type ListRequest<T extends ClubRequest = ClubRequest> = T & {
@@ -44,8 +41,6 @@ export const validClubSlug: MiddlewareCallback<Request, ClubRequest> = async (re
     clubId,
     clubSlug,
     clubType: club.type,
-    clubName: club.name,
-    clubSlugUpdatedAt: club.slug_updated_at,
   };
 };
 

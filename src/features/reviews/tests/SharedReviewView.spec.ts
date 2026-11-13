@@ -2,7 +2,7 @@ import { screen, within } from "@testing-library/vue";
 import { http, HttpResponse } from "msw";
 import { useRoute } from "vue-router";
 
-import { type ClubPreview } from "../../../../lib/types/club";
+import { type ClubPreview, DEFAULT_CLUB_SETTINGS } from "../../../../lib/types/club";
 import { ClubType, WorkType } from "../../../../lib/types/generated/db";
 import {
   type DetailedReviewListItem,
@@ -178,6 +178,7 @@ describe("SharedReviewView for a TV show", () => {
     slug: "test-club",
     slugUpdatedAt: undefined,
     type: ClubType.TV,
+    settings: DEFAULT_CLUB_SETTINGS,
   };
 
   beforeEach(() => {

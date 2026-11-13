@@ -6,13 +6,13 @@
  * TMDB is faked, and that at the network level (MSW).
  */
 
-import { type ClubPreview, type ClubSettings, type Member } from "../../../lib/types/club";
+import { type ClubPreview, type Member } from "../../../lib/types/club";
 import { ClubType, WorkType } from "../../../lib/types/generated/db";
-import { type ClubListSummary } from "../../../lib/types/lists";
+import { type ClubListSummary, type NextWorkResponse } from "../../../lib/types/lists";
 import { type DetailedMovieData } from "../../../lib/types/movie";
 import { handler } from "../club/index";
 import { signIn } from "./helpers/auth";
-import { addWork, createClub, setNextWork } from "./helpers/factories";
+import { addWork, createClub, createList, setNextWork } from "./helpers/factories";
 import { requester } from "./helpers/http";
 import { failOnRequest, TMDB } from "./setup/externalApis";
 
@@ -31,6 +31,8 @@ describe("GET /api/club/:clubSlug", () => {
       clubName: "Film Buffs",
       slug: club.slug,
       type: ClubType.MOVIE,
+      reviewsListId: club.reviewsListId,
+      settings: { features: { awards: false } },
     });
   });
 
@@ -104,11 +106,9 @@ describe("POST /api/club", () => {
     ]);
     expect(lists.body[0].id).toBeTypeOf("string");
 
-    const reviews = await api.get<{ id: string }>(`/api/club/${res.body.slug}/list/reviews-id`, {
-      as: alice,
-    });
-    expect(reviews.statusCode).toBe(200);
-    expect(reviews.body.id).not.toBe(lists.body[0].id);
+    const club = await api.get<ClubPreview>(`/api/club/${res.body.slug}`);
+    expect(club.body.reviewsListId).toBeTypeOf("string");
+    expect(club.body.reviewsListId).not.toBe(lists.body[0].id);
   });
 
   it("names the default list for the club's media type", async () => {
@@ -131,10 +131,8 @@ describe("POST /api/club", () => {
       as: alice,
     });
 
-    const settings = await api.get<ClubSettings>(`/api/club/${res.body.slug}/settings`, {
-      as: alice,
-    });
-    expect(settings.body).toStrictEqual({
+    const club = await api.get<ClubPreview>(`/api/club/${res.body.slug}`);
+    expect(club.body.settings).toStrictEqual({
       features: { awards: false },
     });
   });
@@ -340,20 +338,59 @@ describe("/api/club/:clubSlug/nextWork", () => {
     const work = await addWork(club, alice, { title: "Up Next" });
     await setNextWork(club, alice, work.id);
 
-    const res = await api.get<{ workId: string }>(`/api/club/${club.slug}/nextWork`);
+    const res = await api.get<NextWorkResponse>(`/api/club/${club.slug}/nextWork`);
 
     expect(res.statusCode).toBe(200);
     expect(res.body.workId).toBe(work.id);
+    expect(res.body.work).toMatchObject({
+      id: work.id,
+      title: "Up Next",
+      sourceListId: club.listId,
+      sourceListTitle: "Watch List",
+    });
+  });
+
+  it("names the topmost list when the next work is on several", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub(alice);
+    const someday = await createList(club, alice, "Someday");
+    const work = await addWork(club, alice, { listId: someday, externalId: "603" });
+    await addWork(club, alice, { externalId: "603" });
+    await setNextWork(club, alice, work.id);
+
+    const res = await api.get<NextWorkResponse>(`/api/club/${club.slug}/nextWork`);
+
+    expect(res.body.work?.sourceListTitle).toBe("Watch List");
+  });
+
+  it("carries no work once the next work has left the club's lists", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub(alice);
+    const work = await addWork(club, alice);
+    await setNextWork(club, alice, work.id);
+    const moved = await api.post(
+      `/api/club/${club.slug}/list/${club.listId}/items/${work.id}/move`,
+      {
+        body: { destinationListId: club.reviewsListId },
+        as: alice,
+      },
+    );
+    expect(moved.statusCode).toBe(200);
+
+    const res = await api.get<NextWorkResponse>(`/api/club/${club.slug}/nextWork`);
+
+    expect(res.body.workId).toBe(work.id);
+    expect(res.body.work).toBeUndefined();
   });
 
   it("returns an empty payload when nothing is queued", async () => {
     const alice = await signIn("alice");
     const club = await createClub(alice);
 
-    const res = await api.get<{ workId?: string }>(`/api/club/${club.slug}/nextWork`);
+    const res = await api.get<NextWorkResponse>(`/api/club/${club.slug}/nextWork`);
 
     expect(res.statusCode).toBe(200);
-    expect(res.body.workId).toBeUndefined();
+    expect(res.body).toStrictEqual({});
   });
 
   it("replaces the previous next work rather than adding a second one", async () => {
@@ -369,7 +406,7 @@ describe("/api/club/:clubSlug/nextWork", () => {
     });
 
     expect(res.statusCode).toBe(200);
-    const after = await api.get<{ workId: string }>(`/api/club/${club.slug}/nextWork`);
+    const after = await api.get<NextWorkResponse>(`/api/club/${club.slug}/nextWork`);
     expect(after.body.workId).toBe(second.id);
   });
 
@@ -382,7 +419,7 @@ describe("/api/club/:clubSlug/nextWork", () => {
     const res = await api.delete(`/api/club/${club.slug}/nextWork`, { as: alice });
 
     expect(res.statusCode).toBe(200);
-    const after = await api.get<{ workId?: string }>(`/api/club/${club.slug}/nextWork`);
+    const after = await api.get<NextWorkResponse>(`/api/club/${club.slug}/nextWork`);
     expect(after.body.workId).toBeUndefined();
   });
 

@@ -10,6 +10,7 @@ import { computed, unref, type MaybeRef } from "vue";
 import { useToast } from "vue-toastification";
 
 import { hasValue, isDefined } from "../../lib/checks/checks.js";
+import { type ClubPreview } from "../../lib/types/club";
 import {
   type ClubListSummary,
   type DetailedReviewListItem,
@@ -17,7 +18,6 @@ import {
   type DetailedWorkListItem,
   type ListInsertDto,
   type NextWorkResponse,
-  type ReviewsListIdResponse,
   type SharedReviewResponse,
   type UserListItemWithSource,
 } from "../../lib/types/lists.js";
@@ -40,9 +40,9 @@ export const reviewsListKey = (clubSlug: string) => ["list", clubSlug, "reviews"
 export const workDetailsKey = (clubSlug: string, workId: string) =>
   ["workDetails", clubSlug, workId] as const;
 
-const reviewsListIdKey = (clubSlug: string) => ["reviewsListId", clubSlug] as const;
-
 const allUserListItemsKey = (clubSlug: string) => ["lists", clubSlug, "all-items"] as const;
+
+const nextWorkKey = (clubSlug: string) => ["nextWork", clubSlug] as const;
 
 /**
  * Puts a work at the top of the reviews page (newest first, as the server
@@ -79,14 +79,6 @@ export function useClubLists(clubSlug: string): UseQueryReturnType<ClubListSumma
   return useQuery({
     queryKey: clubListsKey(clubSlug),
     queryFn: async () => (await axios.get<ClubListSummary[]>(`/api/club/${clubSlug}/list`)).data,
-  });
-}
-
-export function useReviewsListId(clubSlug: string): UseQueryReturnType<string, AxiosError> {
-  return useQuery({
-    queryKey: reviewsListIdKey(clubSlug),
-    queryFn: async () =>
-      (await axios.get<ReviewsListIdResponse>(`/api/club/${clubSlug}/list/reviews-id`)).data.id,
   });
 }
 
@@ -267,13 +259,15 @@ export function useQueueReview(clubSlug: string) {
         queryClient.cancelQueries({ queryKey: listKey(clubSlug, sourceListId) }),
         queryClient.cancelQueries({ queryKey: allUserListItemsKey(clubSlug) }),
       ]);
+      const nextWork = queryClient.getQueryData<NextWorkResponse>(nextWorkKey(clubSlug))?.work;
       const moving =
         queryClient
           .getQueryData<UserListItemWithSource[]>(allUserListItemsKey(clubSlug))
           ?.find((item) => item.id === workId) ??
         queryClient
           .getQueryData<DetailedWorkListItem[]>(listKey(clubSlug, sourceListId))
-          ?.find((item) => item.id === workId);
+          ?.find((item) => item.id === workId) ??
+        (nextWork?.id === workId ? nextWork : undefined);
       queryClient.setQueryData<DetailedWorkListItem[]>(listKey(clubSlug, sourceListId), (current) =>
         current?.filter((item) => item.id !== workId),
       );
@@ -297,6 +291,7 @@ export function useQueueReview(clubSlug: string) {
         queryClient.invalidateQueries({ queryKey: reviewsListKey(clubSlug) }),
         queryClient.invalidateQueries({ queryKey: clubListsKey(clubSlug) }),
         queryClient.invalidateQueries({ queryKey: allUserListItemsKey(clubSlug) }),
+        queryClient.invalidateQueries({ queryKey: nextWorkKey(clubSlug) }),
       ];
       if (hasValue(vars.sourceListId)) {
         invalidations.push(
@@ -505,7 +500,10 @@ export function useMoveListItem(clubSlug: string) {
           (current) => (current ? [...current, movingItem] : [movingItem]),
         );
         // The reviews page reads its own richer shape, not the list's.
-        if (queryClient.getQueryData<string>(reviewsListIdKey(clubSlug)) === destinationListId) {
+        if (
+          queryClient.getQueryData<ClubPreview>(["club", clubSlug])?.reviewsListId ===
+          destinationListId
+        ) {
           await addPendingReview(queryClient, clubSlug, {
             type: movingItem.type,
             title: movingItem.title,
@@ -538,14 +536,22 @@ export function useMoveListItem(clubSlug: string) {
 // Misc
 // ---------------------------------------------------------------------------
 
-export function useNextWork(clubSlug: string) {
+function useNextWorkQuery<T>(clubSlug: string, select: (response: NextWorkResponse) => T) {
   return useQuery({
-    queryKey: ["nextWork", clubSlug],
-    queryFn: async () => {
-      const response = await axios.get<NextWorkResponse>(`/api/club/${clubSlug}/nextWork`);
-      return response.data.workId ?? null;
-    },
+    queryKey: nextWorkKey(clubSlug),
+    queryFn: async () => (await axios.get<NextWorkResponse>(`/api/club/${clubSlug}/nextWork`)).data,
+    select,
   });
+}
+
+/** The id of the work the club has pinned as next, wherever it is. */
+export function useNextWork(clubSlug: string) {
+  return useNextWorkQuery(clubSlug, (response) => response.workId ?? null);
+}
+
+/** The pinned work as it sits on the topmost user list it is on, if any. */
+export function useNextWorkItem(clubSlug: string) {
+  return useNextWorkQuery(clubSlug, (response) => response.work);
 }
 
 export function useSetNextWork(clubSlug: string) {
@@ -555,10 +561,13 @@ export function useSetNextWork(clubSlug: string) {
     mutationFn: (workId: string) => auth.request.put(`/api/club/${clubSlug}/nextWork`, { workId }),
     onMutate: async (workId) => {
       if (!workId) return;
-      await queryClient.cancelQueries({ queryKey: ["nextWork", clubSlug] });
-      queryClient.setQueryData<string>(["nextWork", clubSlug], () => workId);
+      await queryClient.cancelQueries({ queryKey: nextWorkKey(clubSlug) });
+      queryClient.setQueryData<NextWorkResponse>(nextWorkKey(clubSlug), (current) => ({
+        workId,
+        work: current?.work?.id === workId ? current.work : undefined,
+      }));
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ["nextWork", clubSlug] }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: nextWorkKey(clubSlug) }),
   });
 }
 
@@ -568,10 +577,10 @@ export function useClearNextWork(clubSlug: string) {
   return useMutation({
     mutationFn: () => auth.request.delete(`/api/club/${clubSlug}/nextWork`),
     onMutate: async () => {
-      await queryClient.cancelQueries({ queryKey: ["nextWork", clubSlug] });
-      queryClient.setQueryData<string | null>(["nextWork", clubSlug], null);
+      await queryClient.cancelQueries({ queryKey: nextWorkKey(clubSlug) });
+      queryClient.setQueryData<NextWorkResponse>(nextWorkKey(clubSlug), {});
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ["nextWork", clubSlug] }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: nextWorkKey(clubSlug) }),
   });
 }
 

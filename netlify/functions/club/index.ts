@@ -1,7 +1,7 @@
 import { type Handler, type HandlerContext, type HandlerEvent } from "@netlify/functions";
 import { z } from "zod";
 
-import { hasValue } from "../../../lib/checks/checks.js";
+import { hasValue, isDefined } from "../../../lib/checks/checks.js";
 import {
   type ClubPreview,
   type ClubSlugResponse,
@@ -16,6 +16,7 @@ import UserRepository from "../repositories/UserRepository";
 import WorkRepository from "../repositories/WorkRepository";
 import { loggedIn, secured } from "../utils/auth";
 import { db } from "../utils/database";
+import { toUserListItemsWithSource } from "../utils/listItems";
 import { parseBody } from "../utils/parseBody";
 import { getProvider } from "../utils/providers";
 import { ok, badRequest, notFound } from "../utils/responses";
@@ -39,16 +40,10 @@ router.use("/:clubSlug/awards", validClubSlug, awardsRouter);
 router.use("/:clubSlug/invite", validClubSlug, inviteRouter);
 router.use("/:clubSlug/settings", validClubSlug, settingsRouter);
 router.use("/:clubSlug/recommendations", validClubSlug, recommendationsRouter);
-router.get("/:clubSlug", validClubSlug, (req, res) => {
-  // validClubSlug already fetched the club row; no second lookup needed.
-  const result: ClubPreview = {
-    clubId: req.clubId,
-    clubName: req.clubName,
-    slug: req.clubSlug,
-    slugUpdatedAt: req.clubSlugUpdatedAt ? String(req.clubSlugUpdatedAt) : undefined,
-    type: req.clubType,
-  };
-  return Promise.resolve(res(ok<ClubPreview>(result)));
+router.get("/:clubSlug", validClubSlug, async ({ clubId }, res) => {
+  const preview = await ClubRepository.getPreview(clubId);
+  if (!isDefined(preview)) return res(notFound("Club not found"));
+  return res(ok<ClubPreview>(preview));
 });
 
 // Full external metadata (including the cast list) for a single work. Bulk
@@ -134,8 +129,12 @@ router.post("/", loggedIn, async ({ event }, res) => {
 });
 
 router.get("/:clubSlug/nextWork", validClubSlug, async ({ clubId }, res) => {
-  const nextWork = await WorkRepository.getNextWork(clubId);
-  return res(ok<NextWorkResponse>({ workId: nextWork?.work_id }));
+  const [nextWork, item] = await Promise.all([
+    WorkRepository.getNextWork(clubId),
+    ListRepository.getNextWorkItem(clubId),
+  ]);
+  const [work] = isDefined(item) ? await toUserListItemsWithSource([item]) : [];
+  return res(ok<NextWorkResponse>({ workId: nextWork?.work_id, work }));
 });
 
 const nextWorkSchema = z.object({

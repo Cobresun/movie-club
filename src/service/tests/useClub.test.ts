@@ -3,38 +3,34 @@ import { delay, http, HttpResponse } from "msw";
 import { watch } from "vue";
 import { z } from "zod";
 
-import {
-  useClub,
-  useClubSettings,
-  useCreateClub,
-  useIsInClub,
-  useUpdateClubSettings,
-} from "../useClub";
-import { type ClubPreview } from "@/../lib/types/club";
+import { useClub, useCreateClub, useIsInClub, useUpdateClubSettings } from "../useClub";
+import { useUserClubs } from "../useUser";
+import { type ClubPreview, DEFAULT_CLUB_SETTINGS } from "@/../lib/types/club";
 import { ClubType } from "@/../lib/types/generated/db";
+import club from "@/mocks/data/club";
 import { server } from "@/mocks/server";
-import { withSetup } from "@/tests/utils";
+import { logIn, withSetup } from "@/tests/utils";
 
 /**
- * Runs the settings query and its mutation, and records every value `awards`
- * takes. The optimistic write, the rollback and the refetch that follows all
- * land within a few ticks, so the recorded sequence is what shows them —
- * polling would miss the middle values.
+ * Runs the club query and the settings mutation, and records every value
+ * `awards` takes. The optimistic write, the rollback and the refetch that
+ * follows all land within a few ticks, so the recorded sequence is what shows
+ * them — polling would miss the middle values.
  */
 function trackAwards() {
-  const settings = useClubSettings("test-club");
+  const preview = useClub("test-club");
   const update = useUpdateClubSettings("test-club");
   const seen: (boolean | undefined)[] = [];
 
   watch(
-    () => settings.data.value?.features.awards,
+    () => preview.data.value?.settings.features.awards,
     (awards) => {
       if (seen.at(-1) !== awards) seen.push(awards);
     },
     { immediate: true, flush: "sync" },
   );
 
-  return { settings, update, seen };
+  return { preview, update, seen };
 }
 
 /** Club settings the POST actually stores, so a refetch reports the new value. */
@@ -58,7 +54,9 @@ function settingsApi(hold?: { until: Promise<void> }) {
   return {
     stored,
     handlers: [
-      http.get("/api/club/:id/settings", () => HttpResponse.json(stored)),
+      http.get("/api/club/:id", () =>
+        HttpResponse.json<ClubPreview>({ ...club, settings: structuredClone(stored) }),
+      ),
       http.post("/api/club/:id/settings", async ({ request }) => {
         const { features } = settingsBodySchema.parse(await request.json());
         await hold?.until;
@@ -76,6 +74,7 @@ describe("useClub", () => {
     slug: "friday-films",
     slugUpdatedAt: undefined,
     type: ClubType.MOVIE,
+    settings: DEFAULT_CLUB_SETTINGS,
   };
 
   it("has a member's club straight away, from their clubs list", () => {
@@ -172,14 +171,14 @@ describe("useUpdateClubSettings", () => {
     const { result } = withSetup(trackAwards);
 
     await vi.waitFor(() => {
-      expect(result.settings.data.value?.features.awards).toBe(false);
+      expect(result.preview.data.value?.settings.features.awards).toBe(false);
     });
 
     // onMutate writes the merged settings into the cache while the POST is
     // still in flight — the server has not stored anything yet.
     result.update.mutate({ features: { awards: true } });
     await vi.waitFor(() => {
-      expect(result.settings.data.value?.features.awards).toBe(true);
+      expect(result.preview.data.value?.settings.features.awards).toBe(true);
     });
     expect(api.stored.features.awards).toBe(false);
 
@@ -188,21 +187,50 @@ describe("useUpdateClubSettings", () => {
     // onSettled invalidates, and the refetch confirms rather than reverts it.
     await vi.waitFor(() => {
       expect(result.update.isSuccess.value).toBe(true);
-      expect(result.settings.isFetching.value).toBe(false);
+      expect(result.preview.isFetching.value).toBe(false);
     });
     expect(result.seen).toStrictEqual([false, true]);
   });
 
+  it("changes the club's entry in the member's clubs list too", async () => {
+    let release!: () => void;
+    const api = settingsApi({
+      until: new Promise<void>((resolve) => {
+        release = resolve;
+      }),
+    });
+    server.use(
+      ...api.handlers,
+      http.get("/api/member/clubs", () =>
+        HttpResponse.json<ClubPreview[]>([{ ...club, settings: structuredClone(api.stored) }]),
+      ),
+    );
+
+    const { result, pinia } = withSetup(() => ({ clubs: useUserClubs(), ...trackAwards() }));
+    logIn(pinia);
+    await vi.waitFor(() => {
+      expect(result.clubs.data.value?.[0]?.settings.features.awards).toBe(false);
+    });
+
+    result.update.mutate({ features: { awards: true } });
+
+    await vi.waitFor(() => {
+      expect(result.clubs.data.value?.[0]?.settings.features.awards).toBe(true);
+    });
+    expect(api.stored.features.awards).toBe(false);
+    release();
+  });
+
   it("rolls back to the previous settings when the request fails", async () => {
     server.use(
-      http.get("/api/club/:id/settings", () => HttpResponse.json({ features: { awards: false } })),
+      http.get("/api/club/:id", () => HttpResponse.json<ClubPreview>(club)),
       http.post("/api/club/:id/settings", () => new HttpResponse(null, { status: 500 })),
     );
 
     const { result } = withSetup(trackAwards);
 
     await vi.waitFor(() => {
-      expect(result.settings.data.value?.features.awards).toBe(false);
+      expect(result.preview.data.value?.settings.features.awards).toBe(false);
     });
 
     result.update.mutate({ features: { awards: true } });

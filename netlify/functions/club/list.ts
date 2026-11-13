@@ -5,9 +5,7 @@ import {
   type ClubListSummary,
   type DetailedReviewListItem,
   type DetailedWorkListItem,
-  type ReviewsListIdResponse,
   type UserListItemWithSource,
-  type WorkDataSummary,
   listInsertDtoSchema,
 } from "../../../lib/types/lists.js";
 import ClubRepository from "../repositories/ClubRepository";
@@ -16,6 +14,7 @@ import ReviewRepository from "../repositories/ReviewRepository";
 import UserRepository from "../repositories/UserRepository";
 import WorkRepository from "../repositories/WorkRepository";
 import { secured } from "../utils/auth";
+import { toDetailedListItem, toUserListItemsWithSource } from "../utils/listItems";
 import { parseBody } from "../utils/parseBody";
 import { getExternalSummariesForWorks } from "../utils/providers";
 import { requireParam } from "../utils/requireParam";
@@ -57,11 +56,6 @@ router.get("/", async ({ clubId }, res) => {
       })),
     ),
   );
-});
-
-router.get("/reviews-id", secured, async ({ clubId }, res) => {
-  const id = await ListRepository.getReviewsListId(clubId);
-  return res(ok<ReviewsListIdResponse>({ id }));
 });
 
 const createListSchema = z.object({
@@ -109,16 +103,7 @@ router.post("/", secured, async ({ clubId, event }, res) => {
 // which paid its own function invocation + middleware queries).
 router.get("/all-items", async ({ clubId }, res) => {
   const items = await ListRepository.getAllUserListItems(clubId);
-  const externalData = await getExternalSummariesForWorks(
-    items.map((item) => ({ externalId: item.external_id, type: item.type })),
-  );
-
-  const mapped = items.map((item) => ({
-    ...toDetailedListItem(item, externalData),
-    sourceListId: item.list_id,
-    sourceListTitle: item.list_title,
-  }));
-  return res(ok<UserListItemWithSource[]>(mapped));
+  return res(ok<UserListItemWithSource[]>(await toUserListItemsWithSource(items)));
 });
 
 router.get("/:listId", validListId, async ({ listId }, res) => {
@@ -321,32 +306,6 @@ router.post(
 // ---------------------------------------------------------------------------
 // Internal helpers
 // ---------------------------------------------------------------------------
-
-/** Map a joined work + list-item row to the API list-item shape, attaching
- * its external metadata summary. */
-function toDetailedListItem(
-  item: {
-    id: string;
-    title: string;
-    type: DetailedWorkListItem["type"];
-    time_added: Date;
-    image_url: string | null;
-    external_id: string | null;
-    added_by_user_id: string | null;
-  },
-  externalData: Map<string, WorkDataSummary>,
-): DetailedWorkListItem {
-  return {
-    id: item.id,
-    title: item.title,
-    type: item.type,
-    createdDate: item.time_added.toISOString(),
-    imageUrl: item.image_url ?? undefined,
-    externalId: item.external_id ?? undefined,
-    addedBy: item.added_by_user_id ?? undefined,
-    externalData: hasValue(item.external_id) ? externalData.get(item.external_id) : undefined,
-  };
-}
 
 /**
  * When a work joined the reviews: when it was put on the list, or, for a child

@@ -1,6 +1,12 @@
 import { screen, within } from "@testing-library/vue";
 import { http, HttpResponse } from "msw";
 
+import { WorkType } from "../../../../lib/types/generated/db";
+import {
+  type DetailedWorkListItem,
+  type NextWorkResponse,
+  type UserListItemWithSource,
+} from "../../../../lib/types/lists";
 import ReviewView from "../views/ReviewView.vue";
 import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
 import { server } from "@/mocks/server";
@@ -8,23 +14,30 @@ import { logIn, render } from "@/tests/utils";
 
 mockIntersectionObserver();
 
-const work = (id: string, title: string) => ({
+const work = (id: string, title: string): DetailedWorkListItem => ({
   id,
   title,
-  type: "movie",
+  type: WorkType.MOVIE,
   createdDate: "2023-06-17T06:00:00.000Z",
   imageUrl: `https://image.tmdb.org/${id}.jpg`,
   externalId: id,
   externalData: {
     kind: "movie",
     castNames: [],
+    majorCastNames: [],
     directors: [],
     genres: [],
+    production_companies: [],
+    production_countries: [],
     release_date: "2023-04-05",
   },
 });
 
-const onList = (item: ReturnType<typeof work>, listId: string, listTitle: string) => ({
+const onList = (
+  item: DetailedWorkListItem,
+  listId: string,
+  listTitle: string,
+): UserListItemWithSource => ({
   ...item,
   sourceListId: listId,
   sourceListTitle: listTitle,
@@ -36,24 +49,29 @@ const dune = work("dune", "Dune");
 /**
  * The club's lists and reviews list as one store that keeps what a move sends
  * it: the work leaves its source list and lands on the reviews page, the same
- * round trip the API gives the app.
+ * round trip the API gives the app. The next work is reported as it sits on
+ * the topmost list it is still on.
  */
 const clubApi = ({
   nextWorkId,
   listItems,
 }: {
   nextWorkId?: string;
-  listItems: ReturnType<typeof onList>[];
+  listItems: UserListItemWithSource[];
 }) => {
   let items = [...listItems];
   let reviews: unknown[] = [];
 
   return [
-    http.get("/api/club/:id/nextWork", () => HttpResponse.json({ workId: nextWorkId })),
+    http.get("/api/club/:id/nextWork", () =>
+      HttpResponse.json<NextWorkResponse>({
+        workId: nextWorkId,
+        work: items.find((item) => item.id === nextWorkId),
+      }),
+    ),
     http.get("https://api.themoviedb.org/3/movie/:movieId/watch/providers", () =>
       HttpResponse.json({ results: {} }),
     ),
-    http.get("/api/club/:id/list/all-items", () => HttpResponse.json(items)),
     http.get("/api/club/:id/list/reviews", () => HttpResponse.json(reviews)),
     http.post("/api/club/:id/list/:listId/items/:workId/move", ({ params }) => {
       const moving = items.find(
