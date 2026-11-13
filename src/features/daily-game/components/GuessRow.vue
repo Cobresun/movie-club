@@ -64,11 +64,14 @@
           v-for="clue in guess.work.clues"
           :key="clue.text"
           class="flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs"
-          :class="
-            clue.points > 0 ? 'bg-background/70 text-white/90' : 'bg-background/30 text-white/50'
-          "
+          :class="{
+            'bg-background/70 text-white/90': clue.points > 0,
+            'text-white/80 ring-1 ring-white/20 ring-inset': clue.points === 0,
+            'bg-background/30 text-white/50': clue.points < 0,
+          }"
         >
           <span
+            v-if="clue.points !== 0"
             class="font-bold tabular-nums"
             :class="clue.points > 0 ? 'text-highlight' : 'text-red-300/80'"
             >{{ signedPoints(clue.points) }}</span
