@@ -78,6 +78,7 @@ import { ScoreAssistKey } from "../scoreAssist";
 import { clubTypeConfig } from "@/common/clubType";
 import EmptyState from "@/common/components/EmptyState.vue";
 import SearchFilterBar from "@/common/components/SearchFilterBar.vue";
+import { useIdleAfter } from "@/common/composables/useIdleAfter";
 import AddReviewPrompt from "@/features/reviews/components/AddReviewPrompt.vue";
 import { useClub, useMembers, useReviewsListId } from "@/service/useClub";
 import { useDeleteReview, useReviewsList } from "@/service/useList";
@@ -156,7 +157,13 @@ const scoreAssistWorkId = ref<string>();
 const scoreAssistTarget = computed(() =>
   reviews.value?.find((review) => review.id === scoreAssistWorkId.value),
 );
-const { data: memberScores } = useMemberScores();
+// Only score entry reads the member's scores (Score Assist and the offer to
+// copy a score from another club). They load once the page has rendered and
+// gone idle: off the first paint's path, but usually in before score entry
+// opens, so the Score Assist button is there with it. Score entry opened
+// sooner fetches them itself.
+const scoresWanted = useIdleAfter(() => !loading.value);
+const { data: memberScores } = useMemberScores({ enabled: scoresWanted });
 const scoreAssistCandidates = computed(() => {
   const target = scoreAssistTarget.value;
   if (!isDefined(target)) return [];
