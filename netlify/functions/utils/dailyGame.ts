@@ -4,7 +4,7 @@ import DailyGameRepository from "../repositories/DailyGameRepository";
 import {
   type CatalogCandidate,
   type DailyGame,
-  type DailyGamePoolEntry,
+  type DailyGamePool,
   type MediaProvider,
 } from "./providers/types";
 
@@ -121,16 +121,6 @@ export async function addMissingWorks(
   return added;
 }
 
-/** Every work in the game's catalog whose details are cached. */
-export async function loadPool(provider: MediaProvider): Promise<DailyGamePoolEntry[]> {
-  const works = await DailyGameRepository.getPool(provider.type);
-  const details = await provider.getExternalDataSummary(works.map((work) => work.externalId));
-  return works.flatMap((work) => {
-    const data = details.get(work.externalId);
-    return isDefined(data) ? [{ ...work, data }] : [];
-  });
-}
-
 /**
  * The answer for `date`: the one already recorded, or else one drawn from
  * `pool` and recorded so it holds for the rest of the day. Undefined when the
@@ -138,14 +128,13 @@ export async function loadPool(provider: MediaProvider): Promise<DailyGamePoolEn
  */
 export async function answerFor(
   provider: MediaProvider,
-  game: DailyGame,
   date: string,
-  pool: readonly DailyGamePoolEntry[],
+  pool: DailyGamePool,
 ): Promise<string | undefined> {
   const recorded = await DailyGameRepository.getAnswer(provider.type, date);
   if (isDefined(recorded)) return recorded;
   const pick = pickAnswer(
-    await game.answerCandidates(pool),
+    await pool.answerCandidates(),
     await DailyGameRepository.getPastAnswers(provider.type),
   );
   if (!isDefined(pick)) return undefined;
