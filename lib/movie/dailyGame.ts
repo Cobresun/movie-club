@@ -39,13 +39,33 @@ const languages = (movie: MovieDataSummary) =>
   hasValue(movie.original_language) ? [movie.original_language] : [];
 
 /**
- * `["1990"]` for a 1995 release. The decade is the era clue because the player
+ * `1990` for a 1995 release. The decade is the era clue because the player
  * can check it at a glance: 1999 and 2001 are close, but share no clue.
  */
-const decades = (movie: MovieDataSummary) => {
+const decadeOf = (movie: MovieDataSummary) => {
   const year = releaseYear(movie);
-  return isDefined(year) ? [String(Math.floor(year / 10) * 10)] : [];
+  return isDefined(year) ? Math.floor(year / 10) * 10 : undefined;
 };
+
+const decades = (movie: MovieDataSummary) => {
+  const decade = decadeOf(movie);
+  return isDefined(decade) ? [String(decade)] : [];
+};
+
+/**
+ * When the decades differ, which way the answer lies. It scores nothing (the
+ * year tiebreak already favours the nearer movie), but tells the player where
+ * to look next.
+ */
+function eraDirection(guess: MovieDataSummary, answer: MovieDataSummary): DailyGameClue[] {
+  const guessDecade = decadeOf(guess);
+  const answerDecade = decadeOf(answer);
+  if (!isDefined(guessDecade) || !isDefined(answerDecade) || guessDecade === answerDecade) {
+    return [];
+  }
+  const way = answerDecade > guessDecade ? "after" : "before";
+  return [{ text: `Answer is from ${way} the ${guessDecade}s`, points: 0 }];
+}
 
 const shared = (guess: readonly string[], answer: readonly string[]) =>
   [...new Set(guess)].filter((tag) => answer.includes(tag));
@@ -56,7 +76,9 @@ function sharedClues(
   points: (tag: string) => number,
   text: (tag: string) => string,
 ): DailyGameClue[] {
-  return shared(guess, answer).map((tag) => ({ text: text(tag), points: points(tag) }));
+  return shared(guess, answer)
+    .map((tag) => ({ text: text(tag), points: points(tag) }))
+    .filter((clue) => clue.points > 0);
 }
 
 /** One chip for a whole field, so a row of shared stars or missing genres reads as one clue. */
@@ -115,6 +137,7 @@ export function makeMovieClues(pool: readonly MovieDataSummary[]) {
       decadePoints,
       (decade) => `Also from the ${decade}s`,
     ),
+    ...eraDirection(guess, answer),
     // Each genre the guess has and the answer doesn't, so a guess with genres
     // to spare ranks below an exact match.
     ...groupedClue(

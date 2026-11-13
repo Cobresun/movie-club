@@ -18,8 +18,9 @@ export interface DailyGameRules<T> {
   /**
    * What `guess` shares with `answer` and where it differs, each clue worth
    * whole points. A guess's score is the sum of its clues and nothing else,
-   * so a player can always see why one guess outranks another. `pool` is
-   * every work in play, for clues whose worth depends on how rare they are.
+   * so a player can always see why one guess outranks another; a clue worth 0
+   * only points the way. `pool` is every work in play, for clues whose worth
+   * depends on how rare they are.
    */
   makeClues: (pool: readonly T[]) => (guess: T, answer: T) => DailyGameClue[];
   /** Also breaks ties: of two guesses with the same score, the one released nearer the answer ranks higher. */
@@ -85,9 +86,7 @@ export function rankPool<T>(
   const others = pool
     .filter((work) => work.id !== answerId)
     .map((work) => {
-      const clues = cluesFor(work.data, answer.data)
-        .filter((clue) => clue.points !== 0)
-        .sort((a, b) => b.points - a.points);
+      const clues = cluesFor(work.data, answer.data).sort((a, b) => b.points - a.points);
       return { work, clues, score: totalPoints(clues), yearGap: yearGap(work.data) };
     })
     .sort((a, b) => {

@@ -2,7 +2,7 @@ import { type ClubType } from "./generated/db";
 
 /**
  * One thing a guess has in common with the answer, worth points, or one way it
- * differs from it, worth negative points. The player sees the points.
+ * differs from it, worth negative points or none. The player sees the points.
  */
 export interface DailyGameClue {
   text: string;
