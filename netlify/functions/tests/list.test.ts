@@ -9,6 +9,7 @@
  */
 import { http, HttpResponse } from "msw";
 
+import { type ClubPreview } from "../../../lib/types/club";
 import { ClubType, WorkType } from "../../../lib/types/generated/db";
 import {
   type ClubListSummary,
@@ -60,30 +61,6 @@ describe("GET /api/club/:clubSlug/list", () => {
     const res = await listsOf(club.slug);
 
     expect(res.body.map((list) => list.id)).not.toContain(club.reviewsListId);
-  });
-});
-
-describe("GET /api/club/:clubSlug/list/reviews-id", () => {
-  it("returns the id of the reviews system list", async () => {
-    const alice = await signIn("alice");
-    const club = await createClub(alice);
-
-    const res = await api.get<{ id: string }>(`/api/club/${club.slug}/list/reviews-id`, {
-      as: alice,
-    });
-
-    expect(res.statusCode).toBe(200);
-    expect(res.body.id).toBe(club.reviewsListId);
-  });
-
-  it("returns 401 for a non-member", async () => {
-    const alice = await signIn("alice");
-    const bob = await signIn("bob");
-    const club = await createClub(alice, { members: [alice] });
-
-    const res = await api.get(`/api/club/${club.slug}/list/reviews-id`, { as: bob });
-
-    expect(res.statusCode).toBe(401);
   });
 });
 
@@ -305,10 +282,8 @@ describe("DELETE /api/club/:clubSlug/list/:listId", () => {
 
     expect(res.statusCode).toBe(400);
     expect(res.body.error).toBe("Cannot delete a system list");
-    const reviews = await api.get<{ id: string }>(`/api/club/${club.slug}/list/reviews-id`, {
-      as: alice,
-    });
-    expect(reviews.body.id).toBe(club.reviewsListId);
+    const preview = await api.get<ClubPreview>(`/api/club/${club.slug}`);
+    expect(preview.body.reviewsListId).toBe(club.reviewsListId);
   });
 });
 

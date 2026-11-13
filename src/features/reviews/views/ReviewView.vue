@@ -79,8 +79,8 @@ import { clubTypeConfig } from "@/common/clubType";
 import EmptyState from "@/common/components/EmptyState.vue";
 import SearchFilterBar from "@/common/components/SearchFilterBar.vue";
 import AddReviewPrompt from "@/features/reviews/components/AddReviewPrompt.vue";
-import { useClub, useMembers } from "@/service/useClub";
-import { useDeleteReview, useReviewsList, useReviewsListId } from "@/service/useList";
+import { useClub, useMembers, useReviewsListId } from "@/service/useClub";
+import { useDeleteReview, useReviewsList } from "@/service/useList";
 import { useMemberScores, useUser } from "@/service/useUser";
 
 const { clubSlug } = defineProps<{ clubSlug: string }>();
@@ -140,7 +140,7 @@ const openStartedReview = async (workId: string) => {
   gallery.value?.openReview(workId);
 };
 
-const { data: reviewsListId } = useReviewsListId(clubSlug);
+const reviewsListId = useReviewsListId(clubSlug);
 const { mutate: deleteReviewMutation } = useDeleteReview(clubSlug);
 const deleteReview = (workId: string) => {
   if (!hasValue(reviewsListId.value)) return;

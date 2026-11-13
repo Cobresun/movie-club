@@ -39,7 +39,7 @@ The data model is in `database.md`.
 - `POST /reviews` scores `workId`, or the child that `MediaProvider.resolveChild(parent, childExternalId)` resolves, upserted on its first score. An unresolvable child is a 400. There is no per-level score endpoint.
 - Children are never `work_list_item` rows. Queries reach them through the parent's item.
 - A review references its work and its list separately, so taking a work off a list deletes that list's reviews of it and its children explicitly (`ListRepository`). Nothing cascades from the item.
-- The reviews list is a system list: excluded from the list-collection endpoint, and rename and delete are rejected.
+- The reviews list is a system list: excluded from the list-collection endpoint (its id is on the club preview, `ClubPreview.reviewsListId`), and rename and delete are rejected.
 - Reuse the generic list-item endpoints. Moving an item into the reviews list is the move endpoint with that list's id.
 - The TV provider re-reads TMDB for an episode its cache lacks only when the cached listing is over 15 minutes old. A season TMDB 404s is refused, not a 500.
 
