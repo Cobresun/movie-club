@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
-import { computed } from "vue";
+import { computed, type Ref } from "vue";
 
 import { type ClubPreview, type User } from "../../lib/types/club";
 import { type MemberScoredWork } from "../../lib/types/lists";
@@ -38,15 +38,16 @@ export const memberScoresKey = ["user", "scores"] as const;
 /**
  * Every work the signed-in member has scored, across all of their clubs. Score
  * Assist compares against this so its pool isn't limited to the club being
- * reviewed in.
+ * reviewed in. `enabled` holds the request back without hiding scores another
+ * caller has already fetched.
  */
-export function useMemberScores() {
+export function useMemberScores({ enabled }: { enabled?: Readonly<Ref<boolean>> } = {}) {
   const auth = useAuthStore();
-  const isLoggedIn = computed(() => auth.isLoggedIn);
+  const isEnabled = computed(() => auth.isLoggedIn && (enabled?.value ?? true));
 
   return useQuery<MemberScoredWork[]>({
     queryKey: memberScoresKey,
-    enabled: isLoggedIn,
+    enabled: isEnabled,
     queryFn: async () => (await auth.request.get<MemberScoredWork[]>("/api/member/scores")).data,
   });
 }
