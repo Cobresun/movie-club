@@ -4,10 +4,10 @@ import { defineStore } from "pinia";
 import { ref, computed, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
-import { hasValue, isDefined, isTrue } from "../../lib/checks/checks.js";
+import { hasValue, isDefined, isString, isTrue } from "../../lib/checks/checks.js";
 import { type ClubPreview } from "../../lib/types/club";
 import { resolveDefaultClubSlug } from "../common/composables/useLastClubSlug";
-import { getSignedInHint, setSignedInHint } from "../common/composables/useSessionHint";
+import { getRememberedUser, setRememberedUser } from "../common/composables/useSessionHint";
 import { watchUntil } from "../common/composables/watchUntil";
 import { authClient } from "@/lib/auth-client";
 
@@ -21,31 +21,93 @@ export const useAuthStore = defineStore("auth", () => {
   // switch freely after that.
   const authModalOpensOnSignUp = ref(false);
 
-  // Derived state from session
-  const user = computed(() => session.value.data?.user);
-  const isLoggedIn = computed(() => isDefined(session.value.data?.session));
-  const ready = computed(() => !session.value.isPending);
-  const isInitialLoading = computed(() => session.value.isPending);
-
   // Read once, before the session check comes back: it describes the PREVIOUS
   // session, so nothing that happens now can change what it should have said.
-  // It is the app's only clue, during that check, about where it is headed.
-  const wasSignedIn = getSignedInHint();
+  // It is the app's only clue, during that check, about who is here.
+  const rememberedUser = getRememberedUser();
+
+  // Only the first check of a page load is covered by that clue. BetterAuth
+  // goes back to pending whenever it rechecks with no session in hand (after
+  // a sign-out, say), and by then the remembered member is the one who left.
+  const firstCheckSettled = ref(false);
+
+  /**
+   * The session check of a cold load is still out, and the last session this
+   * browser resolved was signed in. Rather than hold the screen for a round
+   * trip that nearly always confirms it, the app carries on as that member:
+   * guards let them through on cached membership and pages paint from the
+   * persisted cache, with the requests they make revalidating behind it. The
+   * server remains the authority on every one of those requests. If the check
+   * comes back signed out, `leaveAssumedSession` undoes it.
+   */
+  const isAssumedSignedIn = computed(
+    () => !firstCheckSettled.value && session.value.isPending && isDefined(rememberedUser),
+  );
+
+  // What the session check itself says, with no assumption in it.
+  const isSessionSettled = computed(() => !session.value.isPending);
+  const hasSession = computed(() => isDefined(session.value.data?.session));
+
+  // Derived state from session
+  const user = computed(
+    () => session.value.data?.user ?? (isAssumedSignedIn.value ? rememberedUser : undefined),
+  );
+  const isLoggedIn = computed(() => hasSession.value || isAssumedSignedIn.value);
+  const ready = computed(() => isSessionSettled.value || isAssumedSignedIn.value);
+  const isInitialLoading = computed(() => !ready.value);
 
   const queryClient = useQueryClient();
+  const router = useRouter();
+  const route = useRoute();
 
-  // Keep the hint honest for the next cold load.
+  // The URL this page load began on. A visit to the site root that turns out
+  // to be signed out belongs on the landing page, not on a members-only notice
+  // for the club its cache sent it to.
+  const arrivedAtRoot = window.location.pathname === "/";
+
+  /**
+   * The assumed session turned out not to exist. Sends the visitor where the
+   * route guards would have, had they waited for the check, and drops what
+   * the cache held for the member who is no longer signed in.
+   */
+  const leaveAssumedSession = async () => {
+    // A navigation the assumption let through may still be on its way in.
+    await router.isReady();
+    if (isTrue(route.meta.authRequired)) {
+      const isClubPage = isString(route.params.clubSlug);
+      await router.replace(
+        isClubPage && !arrivedAtRoot
+          ? { name: "ClubNotFound", query: { redirect: route.fullPath } }
+          : { name: "Clubs" },
+      );
+    }
+    queryClient.removeQueries({ type: "inactive" });
+  };
+
+  // Keep the record honest for the next cold load.
   watch(
-    [ready, isLoggedIn],
-    ([isReady, loggedIn]) => {
-      if (!isReady) return;
-      setSignedInHint(loggedIn);
-      // Nobody's clubs belong in the cache once signed out — including the
-      // failed early fetch below, which would otherwise leave the query in an
-      // error state that a later sign-in's waitForClubsReady reads as settled.
-      if (!loggedIn) {
-        queryClient.resetQueries({ queryKey: ["user", "clubs"] }).catch(console.error);
+    [isSessionSettled, hasSession],
+    ([settled, signedIn]) => {
+      if (!settled) return;
+      const wasAssumed = !firstCheckSettled.value && isDefined(rememberedUser);
+      firstCheckSettled.value = true;
+
+      if (signedIn) {
+        setRememberedUser(session.value.data?.user);
+        return;
       }
+
+      // A check that failed says nothing about the session: the member is
+      // still remembered, so their next load starts just as quickly.
+      const checkFailed = isDefined(session.value.error);
+      if (!checkFailed) setRememberedUser(undefined);
+
+      // Nobody's clubs belong in the cache once signed out — including a
+      // fetch made on the assumption above, which would otherwise leave the
+      // query in an error state that a later sign-in's waitForClubsReady
+      // reads as settled.
+      queryClient.resetQueries({ queryKey: ["user", "clubs"] }).catch(console.error);
+      if (wasAssumed) leaveAssumedSession().catch(console.error);
     },
     { immediate: true },
   );
@@ -53,13 +115,6 @@ export const useAuthStore = defineStore("auth", () => {
   // Axios instance for authenticated requests
   // Better Auth handles cookies automatically, so we don't need to manually add auth headers
   const request = computed(() => create());
-
-  // A browser whose last session was signed in asks for its clubs alongside
-  // the session check rather than after it. Both are slow round trips, and
-  // running them back to back is what holds the loading gate up on a cold
-  // load. Should the session turn out to have expired, the request fails
-  // harmlessly and the query disables itself.
-  const fetchClubsEarly = computed(() => wasSignedIn && isInitialLoading.value);
 
   // Fetch user's clubs
   const {
@@ -73,7 +128,7 @@ export const useAuthStore = defineStore("auth", () => {
       const response = await request.value.get<ClubPreview[]>("/api/member/clubs");
       return response.data;
     },
-    enabled: computed(() => isLoggedIn.value || fetchClubsEarly.value),
+    enabled: isLoggedIn,
     retry: (failureCount) => isLoggedIn.value && failureCount < 3,
   });
 
@@ -91,15 +146,24 @@ export const useAuthStore = defineStore("auth", () => {
   // Resolve once the session can answer "is anyone signed in?". BetterAuth
   // refetches the session on every window focus; a signed-in session already
   // answers that, so only a first check, or a refetch that could still sign
-  // someone in, holds navigation up.
+  // someone in, holds navigation up. A first check that is expected to confirm
+  // a remembered member does not hold it up either.
   const waitForAuthReady = async () => {
-    const mustWait = () =>
-      session.value.isPending || (session.value.isRefetching && !isLoggedIn.value);
+    const mustWait = () => !ready.value || (session.value.isRefetching && !isLoggedIn.value);
     if (mustWait()) {
       await watchUntil(
-        () => [session.value.isPending, session.value.isRefetching, isLoggedIn.value],
+        () => [ready.value, session.value.isRefetching, isLoggedIn.value],
         () => !mustWait(),
       );
+    }
+  };
+
+  // Resolve once the persisted cache has been read back. It is read
+  // asynchronously, so a guard that runs as the app boots would otherwise
+  // ask the cache about membership before the cache has anything in it.
+  const waitForCacheRestored = async () => {
+    if (queryClient.isRestoring.value) {
+      await watchUntil(queryClient.isRestoring, (restoring) => !restoring);
     }
   };
 
@@ -132,9 +196,6 @@ export const useAuthStore = defineStore("auth", () => {
     showAuthModal.value = false;
   };
 
-  const router = useRouter();
-  const route = useRoute();
-
   const logout = async () => {
     // Sign out first, then navigate — if we navigate before signing out,
     // the router guard still sees isLoggedIn=true and redirects back to the club
@@ -153,8 +214,13 @@ export const useAuthStore = defineStore("auth", () => {
     }
 
     if (isTrue(route.meta.authRequired)) {
-      router.push({ name: "Clubs" }).catch(console.error);
+      await router.push({ name: "Clubs" }).catch(console.error);
     }
+
+    // What the member was looking at stays on this device otherwise, for
+    // whoever uses the browser next. A public page they signed out on keeps
+    // the queries it is still showing.
+    queryClient.removeQueries({ type: "inactive" });
   };
 
   // Profile edits write the user row directly, so the signed session_data
@@ -234,9 +300,10 @@ export const useAuthStore = defineStore("auth", () => {
    * A cold load whose last session was signed out is deliberately excluded: it
    * may well be a visitor on their way to the landing page, and painting a
    * club at them is a flash of a screen they never asked for. They get a
-   * held blank frame instead, for the same few hundred milliseconds.
+   * held blank frame instead, for the same few hundred milliseconds. One whose
+   * last session was signed in counts as logged in for this purpose already.
    */
-  const isLoadingClubHome = computed(() => isAppLoading.value && (isLoggedIn.value || wasSignedIn));
+  const isLoadingClubHome = computed(() => isAppLoading.value && isLoggedIn.value);
 
   return {
     // Session data
@@ -268,6 +335,7 @@ export const useAuthStore = defineStore("auth", () => {
 
     // Helper methods for router guards
     waitForAuthReady,
+    waitForCacheRestored,
     waitForClubsReady,
     isNavigatingAfterAuth,
     navigateAfterAuth,

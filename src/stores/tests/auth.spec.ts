@@ -1,15 +1,21 @@
-import { VueQueryPlugin } from "@tanstack/vue-query";
+import { QueryClient, VueQueryPlugin } from "@tanstack/vue-query";
 import { render, waitFor } from "@testing-library/vue";
 import { delay, http, HttpResponse } from "msw";
 import { createPinia } from "pinia";
 import { nextTick } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 
 import { server } from "@/mocks/server";
 import { useAuthStore } from "@/stores/auth";
 import PiniaStoreHelper from "@/tests/PiniaStoreHelper.test.vue";
 
-const signedInSession = { session: { id: "s-1" }, user: { id: "u-1" } };
+const member = { id: "u-1", email: "ada@example.com", name: "Ada", image: null };
+const signedInSession = { session: { id: "s-1" }, user: member };
+
+/** What a browser holds after a session resolved signed in as `member`. */
+const rememberMember = () => {
+  localStorage.setItem("rememberedUser", JSON.stringify(member));
+};
 
 type SessionResponse = typeof signedInSession | null;
 
@@ -32,7 +38,7 @@ const leaveSessionCheckPending = () => {
  * instantiated inside a component so the queries it builds run in a normal
  * setup context; `useAuthStore(pinia)` then hands back that same instance.
  */
-const mountAuthStore = () => {
+const mountAuthStore = (queryClient?: QueryClient) => {
   const pinia = createPinia();
   render(PiniaStoreHelper, {
     global: {
@@ -40,7 +46,12 @@ const mountAuthStore = () => {
         pinia,
         // Disable query retries so error paths surface immediately instead of
         // racing the default 3x exponential backoff.
-        [VueQueryPlugin, { queryClientConfig: { defaultOptions: { queries: { retry: false } } } }],
+        [
+          VueQueryPlugin,
+          queryClient
+            ? { queryClient }
+            : { queryClientConfig: { defaultOptions: { queries: { retry: false } } } },
+        ],
       ],
     },
   });
@@ -69,36 +80,40 @@ afterEach(() => {
   localStorage.clear();
 });
 
-describe("the signed-in hint", () => {
-  it("records how the session resolved, for the next cold load", async () => {
+describe("the remembered member", () => {
+  it("records who the session resolved to, for the next cold load", async () => {
     const store = await mountWithResolvedSession(signedInSession);
 
     expect(store.isLoggedIn).toBe(true);
-    expect(localStorage.getItem("wasSignedIn")).toBe("true");
+    expect(localStorage.getItem("rememberedUser")).toBe(JSON.stringify(member));
   });
 
-  it("clears the hint when the session resolves signed out", async () => {
-    localStorage.setItem("wasSignedIn", "true");
+  it("forgets them when the session resolves signed out", async () => {
+    rememberMember();
 
     const store = await mountWithResolvedSession(null);
 
     expect(store.isLoggedIn).toBe(false);
-    expect(localStorage.getItem("wasSignedIn")).toBeNull();
+    expect(localStorage.getItem("rememberedUser")).toBeNull();
   });
 
-  it("predicts a club home for a cold load whose last session was signed in", async () => {
-    localStorage.setItem("wasSignedIn", "true");
+  it("still remembers them when the session check itself fails", async () => {
+    const store = await mountWithResolvedSession(null);
+    rememberMember();
+    server.use(http.get("/api/auth/get-session", () => new HttpResponse(null, { status: 500 })));
 
-    const store = await mountWithPendingSession();
+    await store.refreshSession();
+    await nextTick();
 
-    expect(store.isAppLoading).toBe(true);
-    expect(store.isLoadingClubHome).toBe(true);
+    expect(store.isLoggedIn).toBe(false);
+    expect(localStorage.getItem("rememberedUser")).toBe(JSON.stringify(member));
   });
 
   it("predicts nothing for a cold load whose last session was signed out", async () => {
-    // The reported bug: with no hint, a still-resolving session must not put a
-    // club home on screen — the visitor may well be headed for the landing
-    // page. The router still waits (isAppLoading), it just waits on a blank.
+    // The reported bug: with nobody remembered, a still-resolving session must
+    // not put a club home on screen — the visitor may well be headed for the
+    // landing page. The router still waits (isAppLoading), it just waits on a
+    // blank.
     const store = await mountWithPendingSession();
 
     expect(store.isAppLoading).toBe(true);
@@ -197,34 +212,153 @@ describe("navigateAfterAuth", () => {
 });
 
 describe("a cold load whose last session was signed in", () => {
-  it("fetches the member's clubs while the session check is still out", async () => {
-    // The session atom is shared across tests; start this one from a
-    // signed-out atom, so the check below is a first one rather than a refetch.
-    await mountWithResolvedSession(null);
-    localStorage.setItem("wasSignedIn", "true");
+  /**
+   * A store created the way a page load creates it: remembering `member`, and
+   * with the session check already out when the store first looks. The session
+   * atom is shared across tests, so an earlier store puts it back to checking
+   * (from signed out, which makes it a first check rather than a refetch).
+   */
+  const mountAsRememberedMember = async (queryClient?: QueryClient) => {
+    const earlier = await mountWithResolvedSession(null);
+    leaveSessionCheckPending();
+    void earlier.refreshSession();
+    await nextTick();
+    rememberMember();
+    return mountAuthStore(queryClient);
+  };
+
+  beforeEach(() => {
     server.use(
       http.get("/api/member/clubs", () =>
         HttpResponse.json([{ clubId: "1", clubName: "Film", slug: "film", type: "movie" }]),
       ),
     );
+  });
 
-    const store = await mountWithPendingSession();
+  // The session atom outlives each test; leave it signed in for the next one.
+  afterEach(async () => {
+    window.history.replaceState({}, "", "/");
+    answerSessionCheck(signedInSession);
+    await mountAuthStore().refreshSession();
+  });
+
+  it("predicts a club home while that member's clubs are still loading", async () => {
+    server.use(http.get("/api/member/clubs", () => delay("infinite")));
+
+    const store = await mountAsRememberedMember();
+
+    expect(store.isAppLoading).toBe(true);
+    expect(store.isLoadingClubHome).toBe(true);
+  });
+
+  it("carries on as that member while the session check is still out", async () => {
+    const store = await mountAsRememberedMember();
+
+    expect(store.session.isPending).toBe(true);
+    expect(store.isLoggedIn).toBe(true);
+    expect(store.user?.name).toBe("Ada");
+    await expect(store.waitForAuthReady()).resolves.toBeUndefined();
+  });
+
+  it("opens the app as soon as the member's clubs are in hand", async () => {
+    const store = await mountAsRememberedMember();
 
     await waitFor(() => {
       expect(store.userClubs?.map((club) => club.slug)).toStrictEqual(["film"]);
     });
-    expect(store.isInitialLoading).toBe(true);
+    expect(store.session.isPending).toBe(true);
+    expect(store.isAppLoading).toBe(false);
+  });
 
-    // The session atom outlives the test; settle it for the next one.
-    answerSessionCheck(signedInSession);
+  it("hands over to the real session once it confirms them", async () => {
+    const store = await mountAsRememberedMember();
+
+    answerSessionCheck({ session: { id: "s-1" }, user: { ...member, name: "Ada Lovelace" } });
     await store.refreshSession();
+
+    expect(store.isLoggedIn).toBe(true);
+    expect(store.user?.name).toBe("Ada Lovelace");
+    expect(useRouter().replace).not.toHaveBeenCalled();
+  });
+
+  it("sends them off a club page when the session turns out to have expired", async () => {
+    window.history.replaceState({}, "", "/club/film/reviews");
+    const route = useRoute();
+    route.meta = { authRequired: true };
+    route.params = { clubSlug: "film" };
+    route.fullPath = "/club/film/reviews";
+    const store = await mountAsRememberedMember();
+
+    answerSessionCheck(null);
+    await store.refreshSession();
+
+    expect(store.isLoggedIn).toBe(false);
+    await waitFor(() => {
+      expect(useRouter().replace).toHaveBeenCalledWith({
+        name: "ClubNotFound",
+        query: { redirect: "/club/film/reviews" },
+      });
+    });
+  });
+
+  it("sends a visit that began at the site root to the landing page instead", async () => {
+    const route = useRoute();
+    route.meta = { authRequired: true };
+    route.params = { clubSlug: "film" };
+    route.fullPath = "/club/film/reviews";
+    const store = await mountAsRememberedMember();
+
+    answerSessionCheck(null);
+    await store.refreshSession();
+
+    await waitFor(() => {
+      expect(useRouter().replace).toHaveBeenCalledWith({ name: "Clubs" });
+    });
+  });
+
+  it("leaves a visitor where they are on a page that needs no session", async () => {
+    const store = await mountAsRememberedMember();
+
+    answerSessionCheck(null);
+    await store.refreshSession();
+    await nextTick();
+
+    expect(store.isLoggedIn).toBe(false);
+    expect(useRouter().replace).not.toHaveBeenCalled();
+  });
+
+  it("drops what the cache held for them when the session has expired", async () => {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    queryClient.setQueryData(["list", "film", "reviews"], [{ id: "1", title: "Alien" }]);
+    const store = await mountAsRememberedMember(queryClient);
+
+    answerSessionCheck(null);
+    await store.refreshSession();
+
+    await waitFor(() => {
+      expect(queryClient.getQueryData(["list", "film", "reviews"])).toBeUndefined();
+    });
+  });
+
+  it("does not assume the same member again once the first check has settled", async () => {
+    const store = await mountAsRememberedMember();
+    answerSessionCheck(null);
+    await store.refreshSession();
+
+    leaveSessionCheckPending();
+    void store.refreshSession();
+    await nextTick();
+
+    expect(store.session.isPending).toBe(true);
+    expect(store.isLoggedIn).toBe(false);
   });
 
   it("leaves the clubs loading, not failed, once the session turns out to have expired", async () => {
-    localStorage.setItem("wasSignedIn", "true");
     server.use(http.get("/api/member/clubs", () => new HttpResponse(null, { status: 401 })));
+    const store = await mountAsRememberedMember();
 
-    const store = await mountWithResolvedSession(null);
+    answerSessionCheck(null);
+    await store.refreshSession();
 
     await waitFor(() => {
       expect(store.isLoadingUserClubs).toBe(true);

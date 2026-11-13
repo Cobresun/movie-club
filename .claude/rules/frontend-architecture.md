@@ -48,6 +48,7 @@ The test suite is how this gets enforced — a spec that cannot find an element 
 - Overlays (`VModal`, `VBottomSheet`, `VSideDrawer`) keep their own Vue `<Transition>`s; they are not page transitions.
 - `checkClubAccess` guards club-scoped routes on membership. `noAuth: true` opts a route out of auth; `authRequired: true` redirects to Clubs when logged out.
 - Guards answer from the cache when it can: membership the clubs list already confirms passes without waiting on a background refetch, and `waitForAuthReady` does not wait out BetterAuth's refetch-on-focus of a signed-in session. So a mutation that changes membership or a slug has to write the clubs cache itself before navigating (see `useClub.ts`) — the guard will not wait for its refetch.
+- A cold load does not wait for the session check when the browser's last session was signed in. The auth store carries on as the remembered member (`isAssumedSignedIn` in `stores/auth.ts`), the clubs list is persisted so the guards can confirm membership from disk (they wait for `waitForCacheRestored` first), and pages paint from the persisted cache while their requests revalidate. So `isLoggedIn` can be true before any session has been confirmed; the server is the authority on every request, and the store sends the visitor off member pages and drops the cached data if the check comes back signed out. Signing out clears the cached data too.
 
 ## Service layer
 
