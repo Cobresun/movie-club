@@ -16,6 +16,7 @@ import UserRepository from "../repositories/UserRepository";
 import WorkRepository from "../repositories/WorkRepository";
 import { loggedIn, secured } from "../utils/auth";
 import { db } from "../utils/database";
+import { toUserListItemsWithSource } from "../utils/listItems";
 import { parseBody } from "../utils/parseBody";
 import { getProvider } from "../utils/providers";
 import { ok, badRequest, notFound } from "../utils/responses";
@@ -128,8 +129,12 @@ router.post("/", loggedIn, async ({ event }, res) => {
 });
 
 router.get("/:clubSlug/nextWork", validClubSlug, async ({ clubId }, res) => {
-  const nextWork = await WorkRepository.getNextWork(clubId);
-  return res(ok<NextWorkResponse>({ workId: nextWork?.work_id }));
+  const [nextWork, item] = await Promise.all([
+    WorkRepository.getNextWork(clubId),
+    ListRepository.getNextWorkItem(clubId),
+  ]);
+  const [work] = isDefined(item) ? await toUserListItemsWithSource([item]) : [];
+  return res(ok<NextWorkResponse>({ workId: nextWork?.work_id, work }));
 });
 
 const nextWorkSchema = z.object({
