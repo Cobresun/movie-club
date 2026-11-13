@@ -18,17 +18,30 @@ export default defineConfig({
     },
   },
   build: {
-    rollupOptions: {
+    rolldownOptions: {
       output: {
         // Group stable framework/data-layer deps into their own long-cached
         // chunks so app-code changes don't invalidate them. Route-level code
         // splitting (see src/router/index.ts) already isolates the heavy
         // feature views (ag-charts only loads on /statistics and /admin).
-        manualChunks(id: string) {
-          if (!id.includes("node_modules")) return;
-          if (/[\\/]node_modules[\\/](vue|vue-router|pinia|@vue)[\\/]/.test(id))
-            return "vendor-vue";
-          if (id.includes("@tanstack")) return "vendor-query";
+        //
+        // Priority matters: a group also takes the dependencies of what it
+        // matches, and TanStack Query depends on Vue. Without Vue's group
+        // claiming its packages first, the Vue runtime ends up in the query
+        // chunk and the split stops meaning what its names say.
+        codeSplitting: {
+          groups: [
+            {
+              name: "vendor-vue",
+              test: /[\\/]node_modules[\\/](vue|vue-router|pinia|@vue)[\\/]/,
+              priority: 2,
+            },
+            {
+              name: "vendor-query",
+              test: /[\\/]node_modules[\\/]@tanstack[\\/]/,
+              priority: 1,
+            },
+          ],
         },
       },
     },

@@ -15,14 +15,27 @@ import {
   rememberClubSection,
   resolveDefaultClubSlug,
 } from "../common/composables/useLastClubSlug";
+import { getSignedInHint } from "../common/composables/useSessionHint";
 import ClubView from "../features/clubs/views/ClubView.vue";
-import HomeView from "../features/clubs/views/HomeView.vue";
 import { localDate } from "../features/daily-game/game";
 import ReviewView from "../features/reviews/views/ReviewView.vue";
 import ClubRouterView from "./ClubRouterView.vue";
 import { loadStatisticsView, loadWatchListView } from "./clubSectionViews";
 import { installViewTransitions } from "./viewTransitions";
 import { useAuthStore } from "@/stores/auth";
+
+// The landing page is only ever shown to a signed-out visitor: a member who
+// opens "/" is redirected to their club before the route's component is
+// needed. So it is its own chunk rather than part of what every member
+// downloads on every visit.
+const loadHomeView = () => import("../features/clubs/views/HomeView.vue");
+
+// For the visitor who will see it, fetch it alongside the session check that
+// "/" waits on rather than after it. A browser whose last session was signed
+// in is headed for a club instead, and skips the download.
+if (window.location.pathname === "/" && !getSignedInHint()) {
+  loadHomeView().catch(console.error);
+}
 
 const dailyGameRoutes = dailyGameClubTypes().flatMap((clubType) => {
   const dailyGame = clubTypeDailyGame(clubType);
@@ -193,7 +206,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: "/",
     name: "Clubs",
-    component: HomeView,
+    component: loadHomeView,
     beforeEnter: async () => {
       const auth = useAuthStore();
       await auth.waitForAuthReady();
