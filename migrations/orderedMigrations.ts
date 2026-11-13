@@ -29,11 +29,13 @@ import AddActorPopularity from "./schema/20260721_AddActorPopularity.js";
 import AddObservability from "./schema/20260729_AddObservability.js";
 import RekeyAwardsCaseInsensitiveNames from "./schema/20261019_RekeyAwardsCaseInsensitiveNames.js";
 import AddDailyGame from "./schema/AddDailyGame.js";
+import AddDailyGameResult from "./schema/AddDailyGameResult.js";
 import AddTvClubType from "./schema/AddTvClubType.js";
 import AddTvDetails from "./schema/AddTvDetails.js";
 import AddTvWorkType from "./schema/AddTvWorkType.js";
 import AddUserSignupSource from "./schema/AddUserSignupSource.js";
 import AddWorkParent from "./schema/AddWorkParent.js";
+import IndexReviewAndCommentLookups from "./schema/IndexReviewAndCommentLookups.js";
 import ReviewReferencesWork from "./schema/ReviewReferencesWork.js";
 
 /** What each file in `migrations/schema/` default-exports. */
@@ -92,4 +94,6 @@ export const orderedMigrations: NamedMigration[] = [
   AddWorkParent,
   ReviewReferencesWork,
   AddDailyGame,
+  AddDailyGameResult,
+  IndexReviewAndCommentLookups,
 ];

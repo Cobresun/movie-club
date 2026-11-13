@@ -38,6 +38,7 @@ export const handlers = [
     HttpResponse.json<AdminDashboard>(adminDashboardSchema.parse(adminMetrics)),
   ),
   http.get("/api/admin/metrics/history", () => HttpResponse.json<SnapshotHistoryPoint[]>([])),
+  http.post("/api/daily-game/:clubType/:date/result", () => new HttpResponse(null)),
   http.get("/api/member/clubs", () => HttpResponse.json<ClubPreview[]>([club])),
   http.get("/api/member/scores", () => HttpResponse.json<MemberScoredWork[]>([])),
   http.put("/api/member/name", () => new HttpResponse(null, { status: 200 })),

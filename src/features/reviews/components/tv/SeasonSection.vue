@@ -112,7 +112,6 @@
 </template>
 
 <script setup lang="ts">
-import { DateTime } from "luxon";
 import { computed, ref } from "vue";
 
 import { isDefined } from "../../../../../lib/checks/checks.js";
@@ -139,6 +138,7 @@ import {
 import ScoreChips from "../ScoreChips.vue";
 import WorkDetailsDrawer from "../WorkDetailsDrawer.vue";
 import EpisodeRow from "./EpisodeRow.vue";
+import { toDateInputValue } from "@/common/dates";
 import { useClubSlug } from "@/service/useClub";
 import { useSubmitScore } from "@/service/useReviews";
 import { useTvSeason } from "@/service/useTMDB";
@@ -169,7 +169,7 @@ const {
   computed(() => props.season.seasonNumber),
 );
 
-const today = DateTime.now().toISODate() ?? "";
+const today = toDateInputValue(new Date());
 
 const cards = computed(() =>
   buildEpisodeCards(

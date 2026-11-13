@@ -1,4 +1,4 @@
-import { type HandlerResponse } from "@netlify/functions";
+import { type HandlerEvent, type HandlerResponse } from "@netlify/functions";
 import bcrypt from "bcrypt";
 import { betterAuth } from "better-auth";
 import { oAuthProxy } from "better-auth/plugins";
@@ -169,22 +169,26 @@ export const auth = betterAuth({
   },
 });
 
+/** The signed-in user's id, or undefined for a request without a session. */
+export const sessionUserId = async (event: HandlerEvent): Promise<string | undefined> => {
+  // `disableRefresh` leaves renewing the session to the client's own
+  // get-session call: a renewal here would push the database expiry out but
+  // drop the Set-Cookie that goes with it, after which get-session sees nothing
+  // left to renew and the browser's cookie lapses a month after sign-in.
+  const session = await auth.api.getSession({
+    headers: new Headers(filterUndefinedProperties(event.headers)),
+    query: { disableRefresh: true },
+  });
+  const userId = session?.user?.id;
+  return hasValue(userId) ? userId : undefined;
+};
+
 export const loggedIn = async <T extends Request>(
   req: T,
   res: (data: HandlerResponse) => RouterResponse,
 ) => {
-  // Get session from Better Auth using request headers. `disableRefresh`
-  // leaves renewing the session to the client's own get-session call: a
-  // renewal here would push the database expiry out but drop the Set-Cookie
-  // that goes with it, after which get-session sees nothing left to renew and
-  // the browser's cookie lapses a month after sign-in.
-  const session = await auth.api.getSession({
-    headers: new Headers(filterUndefinedProperties(req.event.headers)),
-    query: { disableRefresh: true },
-  });
-
-  const userId = session?.user?.id;
-  if (!hasValue(userId)) {
+  const userId = await sessionUserId(req.event);
+  if (!isDefined(userId)) {
     return res(unauthorized());
   }
 

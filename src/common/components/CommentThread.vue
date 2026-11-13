@@ -144,13 +144,13 @@
 </template>
 
 <script setup lang="ts">
-import { DateTime } from "luxon";
 import { computed, reactive, ref, watch } from "vue";
 
 import { hasElements, hasValue } from "../../../lib/checks/checks.js";
 import { WorkCommentDto } from "../../../lib/types/lists";
 import DeleteConfirmationModal from "@/common/components/DeleteConfirmationModal.vue";
 import SectionHeader from "@/common/components/SectionHeader.vue";
+import { relativeTime } from "@/common/dates";
 import {
   useAddReviewComment,
   useDeleteReviewComment,
@@ -250,6 +250,5 @@ const confirmDelete = () => {
   pendingDeleteId.value = null;
 };
 
-const formatRelativeTime = (dateString: string) =>
-  DateTime.fromISO(dateString).toRelative() ?? dateString;
+const formatRelativeTime = (dateString: string) => relativeTime(dateString) ?? dateString;
 </script>

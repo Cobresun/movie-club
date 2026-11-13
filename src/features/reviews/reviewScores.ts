@@ -38,7 +38,7 @@ export const workScoreEntries = (work: DetailedReviewListItem, members: Member[]
  * `averagedMemberIds` are marked as averaged rather than set. */
 export const scoreEntries = (
   scores: ReviewScores,
-  members: Member[],
+  members: Pick<Member, "id" | "name" | "image">[],
   averagedMemberIds: ReadonlySet<string> = new Set(),
 ): ScoreEntry[] => {
   const entries = members.flatMap<ScoreEntry>((member) => {

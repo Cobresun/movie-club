@@ -1,9 +1,8 @@
-import { DateTime } from "luxon";
-
 import { hasElements, hasValue, isDefined } from "../../../lib/checks/checks.js";
 import { WorkType } from "../../../lib/types/generated/db";
 import { type DetailedReviewListItem } from "../../../lib/types/lists";
 import { CLUB_TYPE_CONFIG, isScoredUnit } from "@/common/clubType";
+import { utcYear } from "@/common/dates";
 import { asBook, asMovie, formatRuntime } from "@/common/workDisplay";
 
 /**
@@ -60,7 +59,8 @@ interface FactContext {
   /** 1-based position of the target within {@link works}. */
   position: number;
   targetAverage: number;
-  targetDate: DateTime;
+  /** The calendar year the target was reviewed in. */
+  targetYear: number;
   /** "movie" or "book", from the shared club-type registry. */
   noun: string;
 }
@@ -82,10 +82,6 @@ const memberScoresOf = (work: DetailedReviewListItem): number[] =>
     .filter(([id]) => id !== "average")
     .map(([, review]) => review.score)
     .filter((score) => !isNaN(score));
-
-/** Review timestamps are UTC; read calendar fields in UTC so facts don't
- * shift across timezones (same convention as the statistics computers). */
-const utcDate = (iso: string): DateTime => DateTime.fromISO(iso, { zone: "utc" });
 
 const formatScore = (score: number): string => String(Math.round(score * 10) / 10);
 
@@ -246,8 +242,8 @@ const divisiveRecord: FactGenerator = (ctx) => {
 const MIN_WORKS_FOR_YEAR_RECORD = 5;
 
 const yearRecord: FactGenerator = (ctx) => {
-  const { year } = ctx.targetDate;
-  const cohort = ctx.scored.filter((work) => utcDate(work.createdDate).year === year);
+  const year = ctx.targetYear;
+  const cohort = ctx.scored.filter((work) => utcYear(work.createdDate) === year);
   if (cohort.length < MIN_WORKS_FOR_YEAR_RECORD) return undefined;
   const others = cohort
     .filter((work) => work.id !== ctx.target.id)
@@ -541,7 +537,9 @@ export function computeReviewFact(
     scored: works.filter((work) => isDefined(averageOf(work))),
     position,
     targetAverage,
-    targetDate: utcDate(target.createdDate),
+    // Review timestamps are UTC; the year is read in UTC so facts don't shift
+    // across timezones (same convention as the statistics computers).
+    targetYear: utcYear(target.createdDate),
     noun: nounFor(target.type),
   };
 

@@ -1,8 +1,16 @@
-import { http, HttpResponse } from "msw";
+import { useQueryClient } from "@tanstack/vue-query";
+import { delay, http, HttpResponse } from "msw";
 import { watch } from "vue";
 import { z } from "zod";
 
-import { useClubSettings, useCreateClub, useIsInClub, useUpdateClubSettings } from "../useClub";
+import {
+  useClub,
+  useClubSettings,
+  useCreateClub,
+  useIsInClub,
+  useUpdateClubSettings,
+} from "../useClub";
+import { type ClubPreview } from "@/../lib/types/club";
 import { ClubType } from "@/../lib/types/generated/db";
 import { server } from "@/mocks/server";
 import { withSetup } from "@/tests/utils";
@@ -60,6 +68,62 @@ function settingsApi(hold?: { until: Promise<void> }) {
     ],
   };
 }
+
+describe("useClub", () => {
+  const preview: ClubPreview = {
+    clubId: "7",
+    clubName: "Friday Films",
+    slug: "friday-films",
+    slugUpdatedAt: undefined,
+    type: ClubType.MOVIE,
+  };
+
+  it("has a member's club straight away, from their clubs list", () => {
+    server.use(http.get("/api/club/:slug", () => delay("infinite")));
+
+    const { result } = withSetup(() => {
+      useQueryClient().setQueryData<ClubPreview[]>(["user", "clubs"], [preview]);
+      return useClub("friday-films");
+    });
+
+    expect(result.data.value).toStrictEqual(preview);
+    expect(result.isLoading.value).toBe(false);
+  });
+
+  it("takes the server's copy once it arrives", async () => {
+    server.use(
+      http.get("/api/club/:slug", () =>
+        HttpResponse.json<ClubPreview>({ ...preview, clubName: "Saturday Films" }),
+      ),
+    );
+
+    const { result } = withSetup(() => {
+      useQueryClient().setQueryData<ClubPreview[]>(["user", "clubs"], [preview]);
+      return useClub("friday-films");
+    });
+
+    await vi.waitFor(() => {
+      expect(result.data.value?.clubName).toBe("Saturday Films");
+    });
+  });
+
+  it("loads a club that is not on the clubs list", async () => {
+    server.use(http.get("/api/club/:slug", () => HttpResponse.json<ClubPreview>(preview)));
+
+    const { result } = withSetup(() => {
+      useQueryClient().setQueryData<ClubPreview[]>(
+        ["user", "clubs"],
+        [{ ...preview, clubId: "8", slug: "another-club" }],
+      );
+      return useClub("friday-films");
+    });
+
+    expect(result.data.value).toBeUndefined();
+    await vi.waitFor(() => {
+      expect(result.data.value?.clubName).toBe("Friday Films");
+    });
+  });
+});
 
 describe("useIsInClub", () => {
   it("reports the user is not in the club while their clubs are unknown", async () => {

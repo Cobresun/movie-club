@@ -24,3 +24,18 @@ export interface DailyGamePuzzle {
   puzzle: number;
   works: DailyGameWork[];
 }
+
+/** One day's puzzle as the archive lists it — never with its answer. */
+export interface DailyGameArchiveEntry {
+  date: string;
+  puzzle: number;
+}
+
+/**
+ * `GET /api/daily-game/:clubType/archive` — every puzzle the game has had, up
+ * to the furthest-ahead day somewhere in the world, newest first.
+ */
+export interface DailyGameArchive {
+  clubType: ClubType;
+  puzzles: DailyGameArchiveEntry[];
+}

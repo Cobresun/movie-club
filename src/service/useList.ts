@@ -426,7 +426,7 @@ export function useUpdateAddedBy(clubSlug: string, listId: string) {
   const auth = useAuthStore();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ workId, userId }: { workId: string; userId: string }) =>
+    mutationFn: ({ workId, userId }: { workId: string; userId?: string }) =>
       auth.request.put(`/api/club/${clubSlug}/list/${listId}/items/${workId}/added-by`, {
         userId,
       }),
@@ -630,7 +630,7 @@ export function useUpdateReviewAddedBy(clubSlug: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ listId, workId, userId }: { listId: string; workId: string; userId: string }) =>
+    mutationFn: ({ listId, workId, userId }: { listId: string; workId: string; userId?: string }) =>
       auth.request.put(`/api/club/${clubSlug}/list/${listId}/items/${workId}/added-by`, {
         userId,
       }),

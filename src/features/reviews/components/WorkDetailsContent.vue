@@ -19,45 +19,25 @@
     >
       <template v-if="hasValue(metaLine)" #meta>{{ metaLine }}</template>
       <template v-if="isListed" #date>
-        <Listbox
+        <AddedByListbox
           v-if="canChangeAddedBy"
-          :model-value="movie.addedBy"
-          @update:model-value="onAddedBySelect"
+          class="mb-1"
+          :members="members"
+          :added-by-member="addedByMember"
+          @change="onAddedByChange"
         >
-          <div class="relative mb-1">
-            <ListboxButton
-              aria-label="Change who added"
-              class="hover:text-primary inline-flex items-center gap-2 hover:underline"
-            >
-              <template v-if="isDefined(addedByMember)">
-                <VAvatar :src="addedByMember.image" :name="addedByMember.name" :size="20" />
-                <span>Added by {{ addedByMember.name }}</span>
-              </template>
-              <span v-else>Set who added</span>
-              <mdicon name="pencil" size="14" class="text-current" />
-            </ListboxButton>
-            <ListboxOptions
-              class="bg-background absolute top-full left-0 z-20 mt-1 max-h-64 w-56 overflow-y-auto rounded-lg border border-gray-700 py-1 shadow-lg focus:outline-hidden"
-            >
-              <ListboxOption
-                v-for="member in members"
-                :key="member.id"
-                v-slot="{ active, selected }"
-                :value="member.id"
-                as="template"
-              >
-                <li
-                  class="flex cursor-pointer items-center gap-2 px-4 py-2 text-sm text-gray-200"
-                  :class="{ 'bg-lowBackground': active }"
-                >
-                  <VAvatar :src="member.image" :name="member.name" :size="20" aria-hidden="true" />
-                  <span class="flex-1 truncate">{{ member.name }}</span>
-                  <mdicon v-if="selected" name="check" size="16" />
-                </li>
-              </ListboxOption>
-            </ListboxOptions>
-          </div>
-        </Listbox>
+          <ListboxButton
+            aria-label="Change who added"
+            class="hover:text-primary inline-flex items-center gap-2 hover:underline"
+          >
+            <template v-if="isDefined(addedByMember)">
+              <VAvatar :src="addedByMember.image" :name="addedByMember.name" :size="20" />
+              <span>Added by {{ addedByMember.name }}</span>
+            </template>
+            <span v-else>Set who added</span>
+            <mdicon name="pencil" size="14" class="text-current" />
+          </ListboxButton>
+        </AddedByListbox>
         <template v-if="hasValue(movie.parentId)">
           Reviewed {{ formatDate(movie.createdDate) }}
         </template>
@@ -265,11 +245,11 @@
         <!-- Share graduates to a primary action beside "Edit score" once the
              user has a score to share. It lives in the dock's CTA row so it
              collapses in step when the score panel expands. -->
-        <template v-if="isDefined(myReviewId)" #secondary-action>
+        <template v-if="canShare" #secondary-action>
           <button
             type="button"
             class="bg-primary text-text flex shrink-0 items-center justify-center gap-2 rounded-lg px-4 py-3 font-bold tracking-wide transition hover:brightness-110 active:scale-[0.98]"
-            @click="shareReview(movie.id)"
+            @click="shareReview(movie)"
           >
             <mdicon name="share" size="20" />
             <span>Share</span>
@@ -277,22 +257,22 @@
         </template>
       </ScoreEntryDock>
       <div v-else class="flex items-center gap-2">
-        <!-- Secondary (muted) once a score exists, because Share becomes the
-             primary action beside it; still primary while unrated. -->
+        <!-- Secondary (muted) once Share sits beside it as the primary action;
+             still primary while it is the only one. -->
         <button
           type="button"
           class="flex flex-1 items-center justify-center gap-2 rounded-lg py-3 font-bold tracking-wide transition hover:brightness-110 active:scale-[0.98]"
-          :class="isDefined(myReview) ? 'bg-lowBackground text-gray-200' : 'bg-primary text-text'"
+          :class="canShare ? 'bg-lowBackground text-gray-200' : 'bg-primary text-text'"
           @click="showScoreEntry = true"
         >
           <mdicon :name="isDefined(myReview) ? 'pencil' : 'star'" size="20" />
           <span>{{ isDefined(myReview) ? "Edit score" : `Rate this ${mediaNoun}` }}</span>
         </button>
         <button
-          v-if="isDefined(myReviewId)"
+          v-if="canShare"
           type="button"
           class="bg-primary text-text flex shrink-0 items-center justify-center gap-2 rounded-lg px-4 py-3 font-bold tracking-wide transition hover:brightness-110 active:scale-[0.98]"
-          @click="shareReview(movie.id)"
+          @click="shareReview(movie)"
         >
           <mdicon name="share" size="20" />
           <span>Share</span>
@@ -314,14 +294,14 @@
 </template>
 
 <script setup lang="ts">
-import { Listbox, ListboxButton, ListboxOption, ListboxOptions } from "@headlessui/vue";
-import { DateTime } from "luxon";
+import { ListboxButton } from "@headlessui/vue";
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 
 import { hasElements, hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import { Member } from "../../../../lib/types/club";
 import { ClubType } from "../../../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
+import { useShareReview } from "../composables/useShareReview";
 import { computeReviewFact } from "../reviewFacts";
 import { ScoreEntry, isOthersScore, isScoreBlurred, workScoreEntries } from "../reviewScores";
 import DiscussionQuestions from "./DiscussionQuestions.vue";
@@ -339,6 +319,7 @@ import {
   workTitle,
 } from "@/common/clubType";
 import { asTv } from "@/common/clubType/tv/data";
+import AddedByListbox from "@/common/components/AddedByListbox.vue";
 import BookMetadataGrid from "@/common/components/BookMetadataGrid.vue";
 import CastList from "@/common/components/CastList.vue";
 import CommentThread from "@/common/components/CommentThread.vue";
@@ -351,7 +332,7 @@ import VAvatar from "@/common/components/VAvatar.vue";
 import WatchProviders from "@/common/components/WatchProviders.vue";
 import WorkDescription from "@/common/components/WorkDescription.vue";
 import WorkPosterHero from "@/common/components/WorkPosterHero.vue";
-import { useShare } from "@/common/composables/useShare";
+import { dateInputValueToIso, parseIsoDate, toDateInputValue } from "@/common/dates";
 import { asBook, asMovie, formatDate, workPosterUrl } from "@/common/workDisplay";
 import { useClub, useClubSlug } from "@/service/useClub";
 import {
@@ -404,7 +385,7 @@ const isEditingDate = ref(false);
 const editedDate = ref("");
 
 const formattedDateForInput = computed(() =>
-  DateTime.fromISO(props.movie.createdDate).toFormat("yyyy-MM-dd"),
+  toDateInputValue(parseIsoDate(props.movie.createdDate)),
 );
 
 const openDateEditor = () => {
@@ -414,9 +395,9 @@ const openDateEditor = () => {
 
 const saveDateChange = () => {
   if (hasValue(editedDate.value)) {
-    const isoDate = DateTime.fromFormat(editedDate.value, "yyyy-MM-dd").startOf("day").toISO();
+    const isoDate = dateInputValueToIso(editedDate.value);
 
-    if (isoDate !== null && hasValue(reviewsListId.value)) {
+    if (isDefined(isoDate) && hasValue(reviewsListId.value)) {
       updateAddedDate({
         listId: reviewsListId.value,
         workId: props.movie.id,
@@ -440,8 +421,8 @@ const canChangeAddedBy = computed(
   () => !hasValue(props.movie.parentId) && hasElements(props.members),
 );
 
-const onAddedBySelect = (userId: string) => {
-  if (userId !== props.movie.addedBy && hasValue(reviewsListId.value)) {
+const onAddedByChange = (userId: string | undefined) => {
+  if (hasValue(reviewsListId.value)) {
     updateAddedBy({ listId: reviewsListId.value, workId: props.movie.id, userId });
   }
 };
@@ -570,6 +551,15 @@ const myReview = computed(() =>
 const isListed = computed(() => !isDefined(props.saveScore));
 const myReviewId = computed(() => (isListed.value ? myReview.value?.id : undefined));
 
+// Shared once the reader has a score here — their own, or for a TV show their
+// average over the episodes they scored.
+const canShare = computed(
+  () =>
+    isListed.value &&
+    isDefined(props.currentUserId) &&
+    scoreEntries.value.some((entry) => entry.memberId === props.currentUserId),
+);
+
 // Mobile-only: score entry lives in its own overlay (ScoreEntryModal), opened
 // from the sticky CTA. Desktop entry is inline via ScoreEntryDock instead.
 const showScoreEntry = ref(false);
@@ -608,20 +598,7 @@ const close = () => {
   emit("close");
 };
 
-// Share functionality
-const { share } = useShare();
-
-const shareReview = (id: string) => {
-  const url = `${window.location.origin}/share/club/${clubId}/review/${id}`;
-  const title = props.movie.title;
-  const clubName = club.value?.clubName ?? "Movie Club";
-
-  void share({
-    url,
-    title: `${title} - ${clubName} Review`,
-    text: `${clubName}'s review of ${title}`,
-  });
-};
+const shareReview = useShareReview();
 
 const toggleMovieReveal = (movieId: string) => {
   emit("toggle-reveal", movieId);

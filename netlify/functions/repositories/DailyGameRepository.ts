@@ -81,6 +81,49 @@ class DailyGameRepository {
     return (await this.getAnswer(type, date)) ?? externalId;
   }
 
+  /**
+   * Records how a player's game of `date` went. Their first finish stands —
+   * per browser, and per account when signed in — so replaying the request,
+   * or finishing again on another device, leaves the result as it was.
+   */
+  async recordResult(
+    type: WorkType,
+    date: string,
+    result: {
+      playerId: string;
+      userId: string | undefined;
+      solved: boolean;
+      guesses: number;
+      hints: number;
+    },
+  ): Promise<void> {
+    await db
+      .insertInto("daily_game_result")
+      .values({
+        work_type: type,
+        puzzle_date: date,
+        player_id: result.playerId,
+        user_id: result.userId ?? null,
+        solved: result.solved,
+        guesses: result.guesses,
+        hints: result.hints,
+      })
+      .onConflict((oc) => oc.doNothing())
+      .execute();
+  }
+
+  /** Every day the game of `type` has an answer for, up to `through`, oldest first, as `YYYY-MM-DD`. */
+  async getPuzzleDates(type: WorkType, through: string): Promise<string[]> {
+    const rows = await db
+      .selectFrom("daily_game_puzzle")
+      .select((eb) => eb.cast<string>("puzzle_date", "text").as("date"))
+      .where("work_type", "=", type)
+      .where("puzzle_date", "<=", asDay(through))
+      .orderBy("puzzle_date")
+      .execute();
+    return rows.map((row) => row.date);
+  }
+
   /** The date of the first puzzle the game of `type` has had, as `YYYY-MM-DD`. */
   async getFirstPuzzleDate(type: WorkType): Promise<string | undefined> {
     const row = await db

@@ -149,4 +149,34 @@ describe("ListItems", () => {
 
     expect(await screen.findByText(/Added by cole on/)).toBeInTheDocument();
   });
+
+  it("clears who added the selected item when No one is picked", async () => {
+    let items: DetailedWorkListItem[] = [{ ...watchlist[0], addedBy: "1" }];
+    server.use(
+      nextWorkHandler(),
+      http.get("/api/club/:id/list/:listId", () =>
+        HttpResponse.json<DetailedWorkListItem[]>(items),
+      ),
+      http.get("/api/club/:id/reviews/:workId/comments", () => HttpResponse.json([])),
+      http.put("/api/club/:id/list/:listId/items/:workId/added-by", async ({ request, params }) => {
+        const { userId } = z.object({ userId: z.string().optional() }).parse(await request.json());
+        items = items.map((item) =>
+          item.id === params.workId ? { ...item, addedBy: userId } : item,
+        );
+        return new HttpResponse(null, { status: 200 });
+      }),
+    );
+
+    const rendered = render(ListItems, {
+      props: { ...defaultProps, members, selectedItemId: watchlist[0].id },
+    });
+
+    expect(await screen.findByText(/Added by dev on/)).toBeInTheDocument();
+    await rendered.user.click(screen.getByRole("button", { name: "Change who added" }));
+    await rendered.user.click(await screen.findByRole("option", { name: "No one" }));
+
+    await waitFor(() => {
+      expect(screen.queryByText(/Added by/)).not.toBeInTheDocument();
+    });
+  });
 });

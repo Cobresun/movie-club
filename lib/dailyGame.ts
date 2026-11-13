@@ -86,6 +86,11 @@ export function isSomebodysToday(date: string, now: Date): boolean {
 
 const isoDate = (time: number) => new Date(time).toISOString().slice(0, 10);
 
+/** The furthest-ahead date that is still somebody's today: tomorrow in UTC. */
+export function latestPuzzleDate(now: Date): string {
+  return isoDate(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) + DAY_MS);
+}
+
 /**
  * Today and tomorrow in UTC, the days a scheduled run records an answer for.
  * Tomorrow is already today east of UTC.
@@ -102,3 +107,22 @@ export function upcomingPuzzleDates(now: Date): string[] {
 export function puzzleNumber(firstDate: string, date: string): number {
   return Math.round((Date.parse(date) - Date.parse(firstDate)) / DAY_MS) + 1;
 }
+
+/**
+ * Generous enough for any pool a game draws on, small enough that a request
+ * cannot make the server read an unbounded body.
+ */
+const MAX_RESULT_ENTRIES = 5000;
+
+/**
+ * `POST /api/daily-game/:clubType/:date/result` — a player finished the day's
+ * puzzle. `guesses` are the external ids the player guessed themselves, in
+ * order; whether they solved it is worked out from those against the answer.
+ */
+export const dailyGameResultBodySchema = z.object({
+  /** A random id the player's browser keeps, so a day counts once per browser. */
+  playerId: z.string().uuid(),
+  guesses: z.array(z.string().min(1)).max(MAX_RESULT_ENTRIES),
+  hints: z.number().int().min(0).max(MAX_RESULT_ENTRIES),
+});
+export type DailyGameResultBody = z.infer<typeof dailyGameResultBodySchema>;
