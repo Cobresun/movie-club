@@ -117,7 +117,7 @@ export const movieClubConfig: ClubTypeConfig = {
     path: "/reelated",
     tagline: "One mystery movie a day. Every guess tells you how related it is. No account needed.",
     similarityRule:
-      "Each clue under a guess is worth points, and the points add up to its rank. A shared director is worth 10, each shared star 5, a shared studio 2 (the big ones don't count), and a shared genre, language or decade 1 to 4, the rarer the more. Each genre the guess has that the answer doesn't costs 1. When two guesses tie, the one released nearer the answer ranks higher.",
+      "Each clue under a guess is worth points, and the points add up to its rank. A shared director is worth 10, each shared star 5, a shared studio 2 (the big ones don't count), and a shared genre, language or decade 1 to 4, the rarer the more. Each genre the guess has that the answer doesn't costs 1. A guess from another decade says whether the answer is older or newer. When two guesses tie, the one released nearer the answer ranks higher.",
     preview: {
       poolSize: 3000,
       guesses: [
@@ -162,7 +162,10 @@ export const movieClubConfig: ClubTypeConfig = {
           title: "Jaws",
           year: 1975,
           rank: 2808,
-          clues: [{ text: "Not Horror, Thriller, Adventure", points: -3 }],
+          clues: [
+            { text: "Answer is from after the 1970s", points: 0 },
+            { text: "Not Horror, Thriller, Adventure", points: -3 },
+          ],
         },
       ],
     },

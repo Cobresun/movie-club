@@ -77,12 +77,8 @@ describe("movie daily-game clues", () => {
       Bravo: film({ original_language: "fr", release_date: "1960-01-01" }),
     });
 
-    expect(ranking.map((work) => [work.title, work.clues])).toStrictEqual([
-      ["Answer", []],
-      ["Zulu", []],
-      ["Alpha", []],
-      ["Bravo", []],
-    ]);
+    expect(ranking.map((work) => work.title)).toStrictEqual(["Answer", "Zulu", "Alpha", "Bravo"]);
+    expect(ranking.flatMap((work) => work.clues).every((clue) => clue.points === 0)).toBe(true);
   });
 
   it("ranks a guess with the answer's genres above one with the same genres and more", () => {
@@ -178,6 +174,25 @@ describe("movie daily-game clues", () => {
       { text: "Same director: Ann Director", points: 10 },
       { text: "Also from the 2000s", points: 1 },
     ]);
-    expect(cluesOf(ranking, "Year before")).toStrictEqual([]);
+    expect(cluesOf(ranking, "Year before")).toStrictEqual([
+      { text: "Answer is from after the 1990s", points: 0 },
+    ]);
+  });
+
+  it("says which way the answer's decade lies, without scoring it", () => {
+    const ranking = rank({
+      Answer: film({ release_date: "1985-05-01" }),
+      Older: film({ release_date: "1962-01-01" }),
+      Newer: film({ release_date: "2011-01-01" }),
+      Undated: film(),
+    });
+
+    expect(cluesOf(ranking, "Older")).toStrictEqual([
+      { text: "Answer is from after the 1960s", points: 0 },
+    ]);
+    expect(cluesOf(ranking, "Newer")).toStrictEqual([
+      { text: "Answer is from before the 2010s", points: 0 },
+    ]);
+    expect(cluesOf(ranking, "Undated")).toStrictEqual([]);
   });
 });
