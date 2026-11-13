@@ -13,7 +13,6 @@ import {
   type DetailedWorkListItem,
   type MemberScoredWork,
   type ReviewScores,
-  type ReviewsListIdResponse,
   type UserListItemWithSource,
   type WorkCommentDto,
 } from "../../lib/types/lists";
@@ -55,9 +54,6 @@ export const handlers = [
     }),
   ),
   http.get("/api/club/:id/nextWork", () => HttpResponse.json({})),
-  http.get("/api/club/:id/list/reviews-id", () =>
-    HttpResponse.json<ReviewsListIdResponse>({ id: "reviews" }),
-  ),
   http.get("/api/club/:id/reviews/:workId/comments", () => HttpResponse.json<WorkCommentDto[]>([])),
   http.get("/api/club/:id/list/reviews", () =>
     HttpResponse.json<DetailedReviewListItem[]>(reviews),

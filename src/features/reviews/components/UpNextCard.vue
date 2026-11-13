@@ -39,12 +39,12 @@ import { hasValue, isDefined } from "../../../../lib/checks/checks";
 import { UserListItemWithSource } from "../../../../lib/types/lists";
 import { workSubtitle } from "@/common/clubType";
 import PosterImage from "@/common/components/PosterImage.vue";
+import { useReviewsListId } from "@/service/useClub";
 import {
   useAllUserListItems,
   useNextWork,
   useQueueReview,
   useReviewsList,
-  useReviewsListId,
 } from "@/service/useList";
 
 const { clubSlug } = defineProps<{ clubSlug: string }>();
@@ -58,7 +58,7 @@ const toast = useToast();
 const { data: nextWorkId } = useNextWork(clubSlug);
 const { data: listItems } = useAllUserListItems(clubSlug);
 const { data: reviews } = useReviewsList(clubSlug);
-const { data: reviewsListId } = useReviewsListId(clubSlug);
+const reviewsListId = useReviewsListId(clubSlug);
 const { mutateAsync: queueReview } = useQueueReview(clubSlug);
 
 // all-items is ordered by list position, then item position, so when the

@@ -19,6 +19,8 @@ export interface ClubPreview {
   slug: string;
   slugUpdatedAt: string | undefined;
   type: ClubType;
+  /** The club's `reviews` system list, which the reviews page adds works to. */
+  reviewsListId?: string;
 }
 
 /** `GET /api/club/joinInfo/:token` — enough to show which club an invite is for. */

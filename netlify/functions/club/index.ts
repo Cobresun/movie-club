@@ -1,7 +1,7 @@
 import { type Handler, type HandlerContext, type HandlerEvent } from "@netlify/functions";
 import { z } from "zod";
 
-import { hasValue } from "../../../lib/checks/checks.js";
+import { hasValue, isDefined } from "../../../lib/checks/checks.js";
 import {
   type ClubPreview,
   type ClubSlugResponse,
@@ -39,16 +39,10 @@ router.use("/:clubSlug/awards", validClubSlug, awardsRouter);
 router.use("/:clubSlug/invite", validClubSlug, inviteRouter);
 router.use("/:clubSlug/settings", validClubSlug, settingsRouter);
 router.use("/:clubSlug/recommendations", validClubSlug, recommendationsRouter);
-router.get("/:clubSlug", validClubSlug, (req, res) => {
-  // validClubSlug already fetched the club row; no second lookup needed.
-  const result: ClubPreview = {
-    clubId: req.clubId,
-    clubName: req.clubName,
-    slug: req.clubSlug,
-    slugUpdatedAt: req.clubSlugUpdatedAt ? String(req.clubSlugUpdatedAt) : undefined,
-    type: req.clubType,
-  };
-  return Promise.resolve(res(ok<ClubPreview>(result)));
+router.get("/:clubSlug", validClubSlug, async ({ clubId }, res) => {
+  const preview = await ClubRepository.getPreview(clubId);
+  if (!isDefined(preview)) return res(notFound("Club not found"));
+  return res(ok<ClubPreview>(preview));
 });
 
 // Full external metadata (including the cast list) for a single work. Bulk

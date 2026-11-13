@@ -52,7 +52,7 @@ This is the backend face of the registry rule in `code-quality.md`; adding a clu
 
 ## Lists
 
-Lists are arbitrary and user-titled, keyed by UUID. A club's _reviews_ list is a system list (`system_type = 'reviews'`) and is deliberately filtered out of the list-collection endpoint, fetched instead through a dedicated reviews-id route and a richer reviews shape. Rename and delete are rejected for system lists.
+Lists are arbitrary and user-titled, keyed by UUID. A club's _reviews_ list is a system list (`system_type = 'reviews'`) and is deliberately filtered out of the list-collection endpoint, its id carried on the club preview (`ClubPreview.reviewsListId`) and its items fetched through a richer reviews shape. Rename and delete are rejected for system lists.
 
 `ListRepository.moveItem` is transactional with `ON CONFLICT DO NOTHING`, so moving into the reviews list and moving between user lists share one code path.
 

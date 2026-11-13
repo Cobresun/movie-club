@@ -28,10 +28,6 @@ export interface ClubListSummary {
   itemCount: number;
 }
 
-export interface ReviewsListIdResponse {
-  id: string;
-}
-
 export interface NextWorkResponse {
   workId?: string;
 }

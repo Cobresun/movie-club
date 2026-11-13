@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
 import { type UseQueryReturnType } from "@tanstack/vue-query";
 import axios from "axios";
 import { computed, unref } from "vue";
-import { type MaybeRef } from "vue";
+import { type ComputedRef, type MaybeRef } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 import { hasValue, isDefined } from "../../lib/checks/checks.js";
@@ -41,6 +41,11 @@ export function useClub(clubSlug: string) {
     initialData: () =>
       queryClient.getQueryData<ClubPreview[]>(userClubsKey)?.find((club) => club.slug === clubSlug),
   });
+}
+
+export function useReviewsListId(clubSlug: string): ComputedRef<string | undefined> {
+  const { data: club } = useClub(clubSlug);
+  return computed(() => club.value?.reviewsListId);
 }
 
 export function useCreateClub() {

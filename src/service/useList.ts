@@ -10,6 +10,7 @@ import { computed, unref, type MaybeRef } from "vue";
 import { useToast } from "vue-toastification";
 
 import { hasValue, isDefined } from "../../lib/checks/checks.js";
+import { type ClubPreview } from "../../lib/types/club";
 import {
   type ClubListSummary,
   type DetailedReviewListItem,
@@ -17,7 +18,6 @@ import {
   type DetailedWorkListItem,
   type ListInsertDto,
   type NextWorkResponse,
-  type ReviewsListIdResponse,
   type SharedReviewResponse,
   type UserListItemWithSource,
 } from "../../lib/types/lists.js";
@@ -39,8 +39,6 @@ export const reviewsListKey = (clubSlug: string) => ["list", clubSlug, "reviews"
 
 export const workDetailsKey = (clubSlug: string, workId: string) =>
   ["workDetails", clubSlug, workId] as const;
-
-const reviewsListIdKey = (clubSlug: string) => ["reviewsListId", clubSlug] as const;
 
 const allUserListItemsKey = (clubSlug: string) => ["lists", clubSlug, "all-items"] as const;
 
@@ -79,14 +77,6 @@ export function useClubLists(clubSlug: string): UseQueryReturnType<ClubListSumma
   return useQuery({
     queryKey: clubListsKey(clubSlug),
     queryFn: async () => (await axios.get<ClubListSummary[]>(`/api/club/${clubSlug}/list`)).data,
-  });
-}
-
-export function useReviewsListId(clubSlug: string): UseQueryReturnType<string, AxiosError> {
-  return useQuery({
-    queryKey: reviewsListIdKey(clubSlug),
-    queryFn: async () =>
-      (await axios.get<ReviewsListIdResponse>(`/api/club/${clubSlug}/list/reviews-id`)).data.id,
   });
 }
 
@@ -505,7 +495,10 @@ export function useMoveListItem(clubSlug: string) {
           (current) => (current ? [...current, movingItem] : [movingItem]),
         );
         // The reviews page reads its own richer shape, not the list's.
-        if (queryClient.getQueryData<string>(reviewsListIdKey(clubSlug)) === destinationListId) {
+        if (
+          queryClient.getQueryData<ClubPreview>(["club", clubSlug])?.reviewsListId ===
+          destinationListId
+        ) {
           await addPendingReview(queryClient, clubSlug, {
             type: movingItem.type,
             title: movingItem.title,

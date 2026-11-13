@@ -5,7 +5,6 @@ import {
   type ClubListSummary,
   type DetailedReviewListItem,
   type DetailedWorkListItem,
-  type ReviewsListIdResponse,
   type UserListItemWithSource,
   type WorkDataSummary,
   listInsertDtoSchema,
@@ -57,11 +56,6 @@ router.get("/", async ({ clubId }, res) => {
       })),
     ),
   );
-});
-
-router.get("/reviews-id", secured, async ({ clubId }, res) => {
-  const id = await ListRepository.getReviewsListId(clubId);
-  return res(ok<ReviewsListIdResponse>({ id }));
 });
 
 const createListSchema = z.object({

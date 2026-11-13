@@ -7,6 +7,7 @@ const club: ClubPreview = {
   slug: "test-club",
   slugUpdatedAt: undefined,
   type: ClubType.MOVIE,
+  reviewsListId: "reviews",
 };
 
 export default club;

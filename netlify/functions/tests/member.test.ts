@@ -86,6 +86,7 @@ describe("GET /api/member/clubs", () => {
       clubName: "Movie Night",
       slug: movies.slug,
       type: ClubType.MOVIE,
+      reviewsListId: movies.reviewsListId,
     });
     expect(res.body.map((club) => club.clubName).sort()).toStrictEqual(["Books", "Movie Night"]);
   });

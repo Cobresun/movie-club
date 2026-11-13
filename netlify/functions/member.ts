@@ -20,17 +20,9 @@ const updateNameSchema = z.object({
   name: z.string().trim().min(1, "Name cannot be empty").max(100, "Name is too long"),
 });
 
-router.get("/clubs", loggedIn, async (req, res) => {
-  const clubs = await ClubRepository.getClubPreviewsByUserId(req.userId);
-  const result: ClubPreview[] = clubs.map((club) => ({
-    clubId: club.club_id,
-    clubName: club.club_name,
-    slug: club.slug,
-    slugUpdatedAt: club.slug_updated_at ? String(club.slug_updated_at) : undefined,
-    type: club.type,
-  }));
-  return res(ok<ClubPreview[]>(result));
-});
+router.get("/clubs", loggedIn, async (req, res) =>
+  res(ok<ClubPreview[]>(await ClubRepository.getPreviewsByUserId(req.userId))),
+);
 
 // Every work the member has scored, in any club they belong to. Score Assist
 // draws its comparison pool from here so a member reviewing in one club can be

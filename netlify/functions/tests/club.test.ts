@@ -31,6 +31,7 @@ describe("GET /api/club/:clubSlug", () => {
       clubName: "Film Buffs",
       slug: club.slug,
       type: ClubType.MOVIE,
+      reviewsListId: club.reviewsListId,
     });
   });
 
@@ -104,11 +105,9 @@ describe("POST /api/club", () => {
     ]);
     expect(lists.body[0].id).toBeTypeOf("string");
 
-    const reviews = await api.get<{ id: string }>(`/api/club/${res.body.slug}/list/reviews-id`, {
-      as: alice,
-    });
-    expect(reviews.statusCode).toBe(200);
-    expect(reviews.body.id).not.toBe(lists.body[0].id);
+    const club = await api.get<ClubPreview>(`/api/club/${res.body.slug}`);
+    expect(club.body.reviewsListId).toBeTypeOf("string");
+    expect(club.body.reviewsListId).not.toBe(lists.body[0].id);
   });
 
   it("names the default list for the club's media type", async () => {

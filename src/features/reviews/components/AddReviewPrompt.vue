@@ -21,13 +21,8 @@ import { ClubType } from "../../../../lib/types/generated/db";
 import WorkSearchPrompt from "../../../common/components/WorkSearchPrompt.vue";
 import WorkSearchSkeleton from "../../../common/components/WorkSearchSkeleton.vue";
 import { workSubtitle, workTypeForClub } from "@/common/clubType";
-import { useClub, useClubSlug } from "@/service/useClub";
-import {
-  useAddToReviewsList,
-  useAllUserListItems,
-  useQueueReview,
-  useReviewsListId,
-} from "@/service/useList";
+import { useClub, useClubSlug, useReviewsListId } from "@/service/useClub";
+import { useAddToReviewsList, useAllUserListItems, useQueueReview } from "@/service/useList";
 import { WorkSearchResult } from "@/service/useMediaSearch";
 
 const emit = defineEmits<{
@@ -39,7 +34,7 @@ const { data: club } = useClub(clubId);
 const clubType = computed(() => club.value?.type ?? ClubType.MOVIE);
 
 const { data: listItems, isLoading: listsLoading } = useAllUserListItems(clubId);
-const { data: reviewsListId } = useReviewsListId(clubId);
+const reviewsListId = useReviewsListId(clubId);
 
 const combinedListSearchIndex = computed<WorkSearchResult[]>(
   () =>

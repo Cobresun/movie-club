@@ -1,9 +1,40 @@
 import crypto from "crypto";
+import { type InferResult } from "kysely";
 
 import { isDefined } from "../../../lib/checks/checks.js";
-import { type ClubType } from "../../../lib/types/generated/db.js";
+import { type ClubPreview } from "../../../lib/types/club";
+import { type ClubType, WorkListSystemType } from "../../../lib/types/generated/db.js";
 import { db } from "../utils/database";
 import { generateSlugFromName, generateUniqueSlug } from "../utils/slug";
+
+function previewQuery() {
+  return db
+    .selectFrom("club")
+    .leftJoin("work_list", (join) =>
+      join
+        .onRef("work_list.club_id", "=", "club.id")
+        .on("work_list.system_type", "=", WorkListSystemType.REVIEWS),
+    )
+    .select([
+      "club.id",
+      "club.name",
+      "club.slug",
+      "club.slug_updated_at",
+      "club.type",
+      "work_list.id as reviews_list_id",
+    ]);
+}
+
+function toClubPreview(row: InferResult<ReturnType<typeof previewQuery>>[number]): ClubPreview {
+  return {
+    clubId: row.id,
+    clubName: row.name,
+    slug: row.slug,
+    slugUpdatedAt: row.slug_updated_at ? String(row.slug_updated_at) : undefined,
+    type: row.type,
+    reviewsListId: row.reviews_list_id ?? undefined,
+  };
+}
 
 interface JoinClubResult {
   success: boolean;
@@ -57,20 +88,17 @@ class ClubRepository {
     return db.updateTable("club").set({ name }).where("id", "=", clubId).executeTakeFirst();
   }
 
-  getClubPreviewsByUserId(userId: string) {
-    return db
-      .selectFrom("user")
-      .where("user.id", "=", userId)
-      .innerJoin("club_member", "club_member.user_id", "user.id")
-      .innerJoin("club", "club.id", "club_member.club_id")
-      .select([
-        "club.id as club_id",
-        "club.name as club_name",
-        "club.slug",
-        "club.slug_updated_at",
-        "club.type",
-      ])
+  async getPreviewsByUserId(userId: string): Promise<ClubPreview[]> {
+    const rows = await previewQuery()
+      .innerJoin("club_member", "club_member.club_id", "club.id")
+      .where("club_member.user_id", "=", userId)
       .execute();
+    return rows.map(toClubPreview);
+  }
+
+  async getPreview(clubId: string): Promise<ClubPreview | undefined> {
+    const row = await previewQuery().where("club.id", "=", clubId).executeTakeFirst();
+    return isDefined(row) ? toClubPreview(row) : undefined;
   }
 
   async isUserInClub(clubId: string, userId: string) {
