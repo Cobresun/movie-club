@@ -4,7 +4,6 @@ import {
   useQueryClient,
   type UseQueryReturnType,
 } from "@tanstack/vue-query";
-import axios, { type AxiosError, isAxiosError } from "axios";
 import { computed, type Ref } from "vue";
 import { useToast } from "vue-toastification";
 
@@ -13,6 +12,7 @@ import { type AwardsStep, type ClubAwards } from "../../lib/types/awards";
 import { type DetailedReviewListItem, type WorkDataSummary } from "../../lib/types/lists";
 import { type DetailedMovieData } from "../../lib/types/movie";
 import { useUser } from "./useUser";
+import { http, type HttpError, isHttpError } from "@/common/http";
 import { asMovie } from "@/common/workDisplay";
 import { useAuthStore } from "@/stores/auth";
 
@@ -39,37 +39,37 @@ function toDetailedMovieData(data: WorkDataSummary | undefined): DetailedMovieDa
 function useAwardsErrorToast() {
   const toast = useToast();
   return (error: unknown) => {
-    const message = isAxiosError<{ error?: string }>(error)
+    const message = isHttpError<{ error?: string }>(error)
       ? error.response?.data?.error
       : undefined;
     toast.error(message ?? "Something went wrong. Please try again.");
   };
 }
 
-export function useAwardYears(clubSlug: string): UseQueryReturnType<number[], AxiosError> {
+export function useAwardYears(clubSlug: string): UseQueryReturnType<number[], HttpError> {
   return useQuery({
     queryKey: awardYearsKey(clubSlug),
-    queryFn: async () => (await axios.get<number[]>(`/api/club/${clubSlug}/awards/years`)).data,
+    queryFn: async () => (await http.get<number[]>(`/api/club/${clubSlug}/awards/years`)).data,
   });
 }
 
 /** Years the club reviewed movies in that have no awards yet, newest first. */
-export function useAvailableAwardYears(clubSlug: string): UseQueryReturnType<number[], AxiosError> {
+export function useAvailableAwardYears(clubSlug: string): UseQueryReturnType<number[], HttpError> {
   return useQuery({
     queryKey: availableYearsKey(clubSlug),
     queryFn: async () =>
-      (await axios.get<number[]>(`/api/club/${clubSlug}/awards/available-years`)).data,
+      (await http.get<number[]>(`/api/club/${clubSlug}/awards/available-years`)).data,
   });
 }
 
 export function useAwards(
   clubId: Ref<string>,
   year: Ref<string>,
-): UseQueryReturnType<ClubAwards, AxiosError> {
+): UseQueryReturnType<ClubAwards, HttpError> {
   return useQuery({
     queryKey: ["awards", clubId, year],
     queryFn: async () =>
-      (await axios.get<ClubAwards>(`/api/club/${clubId.value}/awards/${year.value}`)).data,
+      (await http.get<ClubAwards>(`/api/club/${clubId.value}/awards/${year.value}`)).data,
     enabled: computed(() => hasValue(year.value)),
   });
 }

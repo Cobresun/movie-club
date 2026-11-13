@@ -1,10 +1,10 @@
 import { useQuery } from "@tanstack/vue-query";
-import axios from "axios";
 import { computed, type Ref } from "vue";
 
 import { hasValue, isDefined } from "../../lib/checks/checks.js";
 import { type TMDBWatchProvidersResponse } from "../../lib/types/movie";
 import { type TMDBTvSeasonData } from "../../lib/types/tv";
+import { http } from "@/common/http";
 
 const key = import.meta.env.VITE_TMDB_API_KEY;
 
@@ -25,7 +25,7 @@ export function useTvSeason(
     staleTime: 1000 * 60 * 60,
     queryFn: async ({ signal }) =>
       (
-        await axios.get<TMDBTvSeasonData>(
+        await http.get<TMDBTvSeasonData>(
           `https://api.themoviedb.org/3/tv/${showId.value}/season/${seasonNumber.value}?api_key=${key}&language=en-US`,
           { signal },
         )
@@ -42,7 +42,7 @@ export function useWatchProviders(externalId: Ref<string | undefined>) {
     staleTime: 1000 * 60 * 60,
     queryFn: async ({ signal }) =>
       (
-        await axios.get<TMDBWatchProvidersResponse>(
+        await http.get<TMDBWatchProvidersResponse>(
           `https://api.themoviedb.org/3/movie/${externalId.value}/watch/providers?api_key=${key}`,
           { signal },
         )

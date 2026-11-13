@@ -1,8 +1,7 @@
-import axios from "axios";
-
 import { type BrowsePage, type WorkSearchResult } from "../types";
 import { hasValue } from "@/../lib/checks/checks";
 import { type TMDBTvPageResponse, type TMDBTvSearchResult } from "@/../lib/types/tv";
+import { http } from "@/common/http";
 
 const TMDB_KEY = import.meta.env.VITE_TMDB_API_KEY;
 const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w154";
@@ -25,7 +24,7 @@ export async function searchTvShows(
   query: string,
   signal?: AbortSignal,
 ): Promise<WorkSearchResult[]> {
-  const { data } = await axios.get<TMDBTvPageResponse>(
+  const { data } = await http.get<TMDBTvPageResponse>(
     `https://api.themoviedb.org/3/search/tv?api_key=${TMDB_KEY}&query=${encodeURIComponent(query)}&language=en-US&include_adult=false`,
     { signal },
   );
@@ -38,7 +37,7 @@ export async function browseTvShows(
   page: number,
   signal?: AbortSignal,
 ): Promise<BrowsePage> {
-  const { data } = await axios.get<TMDBTvPageResponse>(
+  const { data } = await http.get<TMDBTvPageResponse>(
     `https://api.themoviedb.org/3/tv/${collection}?api_key=${TMDB_KEY}&language=en-US&page=${page}`,
     { signal },
   );

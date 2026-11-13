@@ -1,9 +1,8 @@
-import axios from "axios";
-
 import { type BrowsePage, type WorkSearchResult } from "../types";
 import { hasValue } from "@/../lib/checks/checks";
 import { secureImageUrl, sortVolumesByPopularity } from "@/../lib/googleBooks";
 import { type GoogleBooksSearchResponse, type GoogleBooksVolume } from "@/../lib/types/book";
+import { http } from "@/common/http";
 
 const GOOGLE_BOOKS_KEY = import.meta.env.VITE_GOOGLE_BOOKS_API_KEY;
 const GOOGLE_BOOKS_BASE_URL = "https://www.googleapis.com/books/v1";
@@ -37,7 +36,7 @@ async function fetchBookVolumes(
     ...(hasValue(GOOGLE_BOOKS_KEY) ? { key: GOOGLE_BOOKS_KEY } : {}),
     ...params,
   });
-  const { data } = await axios.get<GoogleBooksSearchResponse>(
+  const { data } = await http.get<GoogleBooksSearchResponse>(
     `${GOOGLE_BOOKS_BASE_URL}/volumes?${searchParams.toString()}`,
     { signal },
   );

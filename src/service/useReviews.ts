@@ -5,7 +5,6 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/vue-query";
-import axios, { type AxiosError, type AxiosInstance } from "axios";
 
 import { hasValue, isDefined } from "../../lib/checks/checks.js";
 import { type Member } from "../../lib/types/club";
@@ -17,6 +16,7 @@ import {
 import { type CastMember } from "../../lib/types/tmdb";
 import { reviewsListKey } from "./useList";
 import { memberScoresKey, useUser } from "./useUser";
+import { http, type HttpClient, type HttpError } from "@/common/http";
 import { useAuthStore } from "@/stores/auth";
 
 /**
@@ -26,11 +26,11 @@ import { useAuthStore } from "@/stores/auth";
  */
 export function useReviewsCast(
   clubSlug: string,
-): UseQueryReturnType<Record<string, CastMember[]>, AxiosError> {
+): UseQueryReturnType<Record<string, CastMember[]>, HttpError> {
   return useQuery({
     queryKey: ["reviewsCast", clubSlug] as const,
     queryFn: async () =>
-      (await axios.get<Record<string, CastMember[]>>(`/api/club/${clubSlug}/reviews/cast`)).data,
+      (await http.get<Record<string, CastMember[]>>(`/api/club/${clubSlug}/reviews/cast`)).data,
   });
 }
 
@@ -45,7 +45,7 @@ const SCORE_POLL_INTERVAL_MS = 500;
 const activeScorePolls = new Map<string, number>();
 
 function startScorePoll(
-  request: AxiosInstance,
+  request: HttpClient,
   queryClient: QueryClient,
   clubSlug: string,
   workId: string,
