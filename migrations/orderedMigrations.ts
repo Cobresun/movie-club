@@ -36,6 +36,7 @@ import AddTvWorkType from "./schema/AddTvWorkType.js";
 import AddUserSignupSource from "./schema/AddUserSignupSource.js";
 import AddWorkParent from "./schema/AddWorkParent.js";
 import IndexReviewAndCommentLookups from "./schema/IndexReviewAndCommentLookups.js";
+import RekeyCredentialAccountIds from "./schema/RekeyCredentialAccountIds.js";
 import ReviewReferencesWork from "./schema/ReviewReferencesWork.js";
 
 /** What each file in `migrations/schema/` default-exports. */
@@ -96,4 +97,5 @@ export const orderedMigrations: NamedMigration[] = [
   AddDailyGame,
   AddDailyGameResult,
   IndexReviewAndCommentLookups,
+  RekeyCredentialAccountIds,
 ];
