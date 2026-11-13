@@ -6,7 +6,7 @@
  * TMDB is faked, and that at the network level (MSW).
  */
 
-import { type ClubPreview, type ClubSettings, type Member } from "../../../lib/types/club";
+import { type ClubPreview, type Member } from "../../../lib/types/club";
 import { ClubType, WorkType } from "../../../lib/types/generated/db";
 import { type ClubListSummary, type NextWorkResponse } from "../../../lib/types/lists";
 import { type DetailedMovieData } from "../../../lib/types/movie";
@@ -32,6 +32,7 @@ describe("GET /api/club/:clubSlug", () => {
       slug: club.slug,
       type: ClubType.MOVIE,
       reviewsListId: club.reviewsListId,
+      settings: { features: { awards: false } },
     });
   });
 
@@ -130,10 +131,8 @@ describe("POST /api/club", () => {
       as: alice,
     });
 
-    const settings = await api.get<ClubSettings>(`/api/club/${res.body.slug}/settings`, {
-      as: alice,
-    });
-    expect(settings.body).toStrictEqual({
+    const club = await api.get<ClubPreview>(`/api/club/${res.body.slug}`);
+    expect(club.body.settings).toStrictEqual({
       features: { awards: false },
     });
   });

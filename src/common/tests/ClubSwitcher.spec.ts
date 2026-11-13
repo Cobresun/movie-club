@@ -3,7 +3,7 @@ import type * as VueRouter from "vue-router";
 import { type Router, useRouter } from "vue-router";
 
 import ClubSwitcher from "../components/ClubSwitcher.vue";
-import { type ClubPreview } from "@/../lib/types/club";
+import { type ClubPreview, DEFAULT_CLUB_SETTINGS } from "@/../lib/types/club";
 import { ClubType } from "@/../lib/types/generated/db";
 import { render, setRouteMatched } from "@/tests/utils";
 
@@ -14,6 +14,7 @@ const makeClub = (slug: string, name: string, type = ClubType.MOVIE): ClubPrevie
   slug,
   slugUpdatedAt: undefined,
   type,
+  settings: DEFAULT_CLUB_SETTINGS,
 });
 
 const testClub = makeClub("test-club", "Test Club");
