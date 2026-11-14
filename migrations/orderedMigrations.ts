@@ -35,6 +35,7 @@ import AddTvDetails from "./schema/AddTvDetails.js";
 import AddTvWorkType from "./schema/AddTvWorkType.js";
 import AddUserSignupSource from "./schema/AddUserSignupSource.js";
 import AddWorkParent from "./schema/AddWorkParent.js";
+import IndexMovieCastLookups from "./schema/IndexMovieCastLookups.js";
 import IndexReviewAndCommentLookups from "./schema/IndexReviewAndCommentLookups.js";
 import ReviewReferencesWork from "./schema/ReviewReferencesWork.js";
 
@@ -96,4 +97,5 @@ export const orderedMigrations: NamedMigration[] = [
   AddDailyGame,
   AddDailyGameResult,
   IndexReviewAndCommentLookups,
+  IndexMovieCastLookups,
 ];
