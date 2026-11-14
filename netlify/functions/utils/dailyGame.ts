@@ -23,9 +23,29 @@ export const errorMessage = (error: unknown) =>
   error instanceof Error ? error.message : String(error);
 
 /**
+ * Catalog pages `pages` of the source, read all at once. A page the source
+ * fails on is noted in `errors` and skipped rather than ending the run.
+ */
+async function readPages(
+  game: DailyGame,
+  pages: number[],
+  errors: CatalogError[],
+): Promise<CatalogCandidate[]> {
+  const results = await Promise.allSettled(pages.map((page) => game.catalogPage(page)));
+  return results.flatMap((result, index) => {
+    if (result.status === "fulfilled") return result.value;
+    errors.push({ externalId: `page ${pages[index]}`, error: errorMessage(result.reason) });
+    return [];
+  });
+}
+
+/** Up to {@link CONCURRENCY} page numbers from `first`, none past `last`. */
+const pageBatch = (first: number, last: number) =>
+  Array.from({ length: Math.min(CONCURRENCY, last - first + 1) }, (_, index) => first + index);
+
+/**
  * The source's best-known works not yet in the catalog, best known first, up
- * to `limit`. Reads pages a few at a time and stops once it has enough; a page
- * the source fails on is skipped rather than ending the run.
+ * to `limit`. Reads pages a few at a time and stops once it has enough.
  */
 async function findMissing(
   provider: MediaProvider,
@@ -35,17 +55,9 @@ async function findMissing(
 ): Promise<CatalogCandidate[]> {
   const missing = new Map<string, CatalogCandidate>();
   for (let first = 1; first <= game.catalogPages && missing.size < limit;) {
-    const pages = Array.from(
-      { length: Math.min(CONCURRENCY, game.catalogPages - first + 1) },
-      (_, index) => first + index,
-    );
+    const pages = pageBatch(first, game.catalogPages);
     first += pages.length;
-    const results = await Promise.allSettled(pages.map((page) => game.catalogPage(page)));
-    const candidates: CatalogCandidate[] = [];
-    results.forEach((result, index) => {
-      if (result.status === "fulfilled") candidates.push(...result.value);
-      else errors.push({ externalId: `page ${pages[index]}`, error: errorMessage(result.reason) });
-    });
+    const candidates = await readPages(game, pages, errors);
     const catalogued = await DailyGameRepository.getCatalogued(
       provider.type,
       candidates.map((candidate) => candidate.externalId),
@@ -55,6 +67,23 @@ async function findMissing(
     }
   }
   return [...missing.values()].slice(0, limit);
+}
+
+/**
+ * The external ids on the game's first {@link DailyGame.answerPages} pages,
+ * read fresh so a work that has slipped down the source's rankings stops
+ * being drawn. A page the source fails on is logged and left out.
+ */
+async function topWorkIds(game: DailyGame): Promise<Set<string>> {
+  const ids = new Set<string>();
+  const errors: CatalogError[] = [];
+  for (let first = 1; first <= game.answerPages;) {
+    const pages = pageBatch(first, game.answerPages);
+    first += pages.length;
+    for (const work of await readPages(game, pages, errors)) ids.add(work.externalId);
+  }
+  errors.forEach((e) => console.log(`Answer pages: ${e.externalId}: ${e.error}`));
+  return ids;
 }
 
 async function cacheAndAdd(provider: MediaProvider, work: CatalogCandidate) {
@@ -101,8 +130,8 @@ export async function loadPool(provider: MediaProvider): Promise<DailyGamePoolEn
 
 /**
  * The answer for `date`: the one already recorded, or else one drawn from
- * `pool` and recorded so it holds for the rest of the day. Undefined when the
- * pool has no fair answer.
+ * the works in `pool` that are on the game's answer pages, and recorded so it
+ * holds for the rest of the day. Undefined when the pool has no fair answer.
  */
 export async function answerFor(
   provider: MediaProvider,
@@ -112,8 +141,9 @@ export async function answerFor(
 ): Promise<string | undefined> {
   const recorded = await DailyGameRepository.getAnswer(provider.type, date);
   if (isDefined(recorded)) return recorded;
+  const top = await topWorkIds(game);
   const pick = pickAnswer(
-    game.answerCandidates(pool),
+    game.answerCandidates(pool).filter((id) => top.has(id)),
     await DailyGameRepository.getPastAnswers(provider.type),
   );
   if (!isDefined(pick)) return undefined;

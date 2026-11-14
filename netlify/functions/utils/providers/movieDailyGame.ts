@@ -13,6 +13,9 @@ export const movieDailyGame: DailyGame = {
   // 150 pages of 20: the ~3000 most-rated movies, deep enough that most films a
   // player thinks to guess are in the pool.
   catalogPages: 150,
+  // The 1000 most-rated: guessable is broad, but the answer should be a
+  // movie most players have seen.
+  answerPages: 50,
   catalogPage: async (page) =>
     (await getTMDBMostRated(page)).results.map((movie) => ({
       externalId: String(movie.id),
