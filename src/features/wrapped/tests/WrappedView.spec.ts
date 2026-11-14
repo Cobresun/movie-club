@@ -49,7 +49,6 @@ function movieReview(
     },
     externalData: {
       kind: "movie",
-      castNames: [],
       majorCastNames: [],
       directors: [{ name: director, profilePath: null }],
       genres: [],

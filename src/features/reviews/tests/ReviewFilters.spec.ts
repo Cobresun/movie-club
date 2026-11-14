@@ -26,7 +26,6 @@ function movieReview(
     scores: { average: { id: "average", created_date: createdDate, score } },
     externalData: {
       kind: "movie",
-      castNames: [],
       majorCastNames: [],
       directors: [],
       genres: [],

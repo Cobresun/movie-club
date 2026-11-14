@@ -27,7 +27,6 @@ function movieReview(overrides: Record<string, unknown> = {}) {
     scores: { "1": score("r1", 8), "2": score("r2", 6), average: score("average", 7) },
     externalData: {
       kind: "movie",
-      castNames: [],
       directors: [],
       genres: ["Science Fiction"],
       production_companies: ["Warner Bros."],

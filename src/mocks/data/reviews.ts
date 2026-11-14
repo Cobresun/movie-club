@@ -23,7 +23,6 @@ const reviews: DetailedReviewListItem[] = [
     },
     externalData: {
       kind: "movie",
-      castNames: [],
       majorCastNames: [],
       directors: [],
       genres: ["Drama"],
@@ -74,7 +73,6 @@ const reviews: DetailedReviewListItem[] = [
     },
     externalData: {
       kind: "movie",
-      castNames: [],
       majorCastNames: [],
       directors: [],
       genres: ["Adventure", "Action", "Science Fiction"],

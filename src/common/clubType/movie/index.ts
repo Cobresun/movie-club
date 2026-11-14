@@ -72,9 +72,9 @@ export const movieClubConfig: ClubTypeConfig = {
       key: "actor",
       label: "Cast",
       icon: "account-star",
-      // Bulk payloads carry names only (castNames); full actor objects are
-      // fetched per-work by the detail drawer.
-      values: (work) => asMovie(work.externalData)?.castNames ?? [],
+      // Bulk payloads carry only the major cast (lib/movie/majorCast); the
+      // detail drawer fetches the full cast per work.
+      values: (work) => asMovie(work.externalData)?.majorCastNames ?? [],
       searchPlaceholder: "Find an actor",
       order: "popular",
     },

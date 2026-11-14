@@ -69,21 +69,18 @@ export interface TMDBMovieData {
 
 /**
  * The list-payload shape of movie metadata: everything except `actors`.
- * Full cast lists dominate bulk payloads (~80% of the reviews response), so
- * list/review endpoints ship this summary and the cast is fetched on demand
- * per work (detail drawer) or in bulk (statistics leaderboards).
+ * Cast lists dominate bulk payloads, so list/review endpoints ship only the
+ * major cast's names, and the full cast is fetched on demand per work (detail
+ * drawer) or in bulk (statistics leaderboards).
  */
 export interface MovieDataSummary {
   kind: "movie";
   // Aggregated relations: the mapper always defaults these to [], so they are
   // never absent.
-  /** Billed-order actor names only — enough for the `actor:` search filter.
-   * Character names and profile photos ride the full shape. */
-  castNames: string[];
   /** Billed-order names of the *major* cast only — top-billed or a popularity
-   * star (see `lib/movie/majorCast.ts`). A pre-filtered subset of `castNames`
-   * so the review spotlight's "Familiar face" fact tracks recurring prominent
-   * actors, not incidental bit-parts, without shipping per-actor popularity. */
+   * star (see `lib/movie/majorCast.ts`). What the Cast filter offers, what the
+   * review spotlight's "Familiar face" fact counts, and what Score Assist and
+   * Reelated compare. Character names and profile photos ride the full shape. */
   majorCastNames: string[];
   directors: { name: string; profilePath: string | null }[];
   genres: string[];

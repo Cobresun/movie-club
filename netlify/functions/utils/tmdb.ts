@@ -116,7 +116,6 @@ export async function getDetailedMovie<T extends BaseMovie>(
       const movieData: DetailedMovieData = {
         kind: "movie",
         actors,
-        castNames: actors.map((a) => a.name),
         majorCastNames: selectMajorCastNames(
           cast.map((c) => ({
             name: c.name,

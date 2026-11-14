@@ -21,7 +21,6 @@ const movie: DetailedWorkListItem = {
   imageUrl: "https://test.com/poster.jpg",
   externalData: {
     kind: "movie",
-    castNames: [],
     majorCastNames: [],
     directors: [],
     genres: [],

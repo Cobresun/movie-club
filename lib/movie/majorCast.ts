@@ -4,8 +4,8 @@ import { isDefined } from "../checks/checks.js";
  * The "major cast" of a movie: the actors prominent enough that a recurring
  * appearance is a genuine "familiar face" for the club, rather than an
  * incidental bit-part buried deep in the credits. Used to build the
- * `majorCastNames` shipped on the list/review summary payload, which the
- * review spotlight's `actorMilestone` fact counts against.
+ * `majorCastNames` shipped on the list/review summary payload, which the Cast
+ * filter offers and the review spotlight's `actorMilestone` fact counts against.
  *
  * An actor qualifies if EITHER:
  *

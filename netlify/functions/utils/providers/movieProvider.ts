@@ -20,9 +20,9 @@ import { type MediaProvider, numOrUndefined, type RefreshResult } from "./types"
 
 /**
  * Builds the `movie_details` + junction aggregates for a set of external IDs,
- * excluding the cast (see {@link castQuery}). Cast lists dominate row size, so
- * keeping them out of this query keeps bulk list/review responses small and
- * avoids shipping megabytes from the database on every list load.
+ * with the major cast's names only (see `lib/movie/majorCast`). Full cast lists
+ * dominate row size, so keeping them out of this query keeps bulk list/review
+ * responses small; {@link MovieProvider.getCast} serves them on demand.
  */
 function summaryQuery(externalIds: string[]) {
   return db
@@ -66,26 +66,23 @@ function summaryQuery(externalIds: string[]) {
         ])
         .groupBy("external_id"),
     )
-    .with("cast_names_agg", (qb) =>
+    .with("major_cast_agg", (qb) =>
       qb
         .selectFrom("movie_actors")
+        .where((eb) =>
+          // cast_order (Int8) and popularity (Numeric) select as strings, so
+          // Kysely rejects a numeric operand outright. Keep the column names
+          // type-checked via eb.ref and bind the numeric thresholds as params.
+          eb.or([
+            sql<SqlBool>`${eb.ref("cast_order")} < ${MAJOR_CAST_SIZE}`,
+            sql<SqlBool>`${eb.ref("popularity")} >= ${STAR_POPULARITY}`,
+          ]),
+        )
         .select((eb) => [
           "external_id",
-          eb.fn.agg<string[]>("array_agg", ["actor_name"]).orderBy("cast_order").as("cast_names"),
-          // Major cast only (top-billed OR a popularity star), filtered in the
-          // DB so the payload still ships names only — see lib/movie/majorCast.
           eb.fn
             .agg<string[]>("array_agg", ["actor_name"])
             .orderBy("cast_order")
-            .filterWhere((fb) =>
-              // cast_order (Int8) and popularity (Numeric) select as strings, so
-              // Kysely rejects a numeric operand outright. Keep the column names
-              // type-checked via fb.ref and bind the numeric thresholds as params.
-              fb.or([
-                sql<SqlBool>`${fb.ref("cast_order")} < ${MAJOR_CAST_SIZE}`,
-                sql<SqlBool>`${fb.ref("popularity")} >= ${STAR_POPULARITY}`,
-              ]),
-            )
             .as("major_cast_names"),
         ])
         .groupBy("external_id"),
@@ -96,7 +93,7 @@ function summaryQuery(externalIds: string[]) {
     .leftJoin("companies_agg", "companies_agg.external_id", "movie_details.external_id")
     .leftJoin("countries_agg", "countries_agg.external_id", "movie_details.external_id")
     .leftJoin("directors_agg", "directors_agg.external_id", "movie_details.external_id")
-    .leftJoin("cast_names_agg", "cast_names_agg.external_id", "movie_details.external_id")
+    .leftJoin("major_cast_agg", "major_cast_agg.external_id", "movie_details.external_id")
     .select([
       "movie_details.external_id",
       "movie_details.tmdb_score",
@@ -119,8 +116,7 @@ function summaryQuery(externalIds: string[]) {
       "companies_agg.production_companies",
       "countries_agg.production_countries",
       "directors_agg.directors",
-      "cast_names_agg.cast_names",
-      "cast_names_agg.major_cast_names",
+      "major_cast_agg.major_cast_names",
     ]);
 }
 
@@ -165,7 +161,6 @@ async function similarMovies(
 export function toMovieDataSummary(row: MovieSummaryRow): MovieDataSummary {
   return {
     kind: "movie",
-    castNames: row.cast_names?.filter(Boolean) ?? [],
     majorCastNames: row.major_cast_names?.filter(Boolean) ?? [],
     directors: row.directors?.filter(isDefined) ?? [],
     genres: row.genres?.filter(Boolean) ?? [],

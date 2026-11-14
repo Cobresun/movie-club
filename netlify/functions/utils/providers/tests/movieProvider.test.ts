@@ -34,7 +34,6 @@ function makeMovieRow(overrides: Partial<MovieRowLike> = {}): MovieRowLike {
     production_companies: ["Warner Bros.", "Legendary Entertainment"],
     production_countries: ["United States of America", "United Kingdom"],
     directors: [{ name: "Christopher Nolan", profilePath: null }],
-    cast_names: ["Leonardo DiCaprio", "Joseph Gordon-Levitt"],
     major_cast_names: ["Leonardo DiCaprio", "Joseph Gordon-Levitt"],
     ...overrides,
   };
@@ -163,25 +162,25 @@ describe("toMovieDataSummary — array handling", () => {
     expect(toMovieDataSummary(row).genres).toStrictEqual([]);
   });
 
-  it("keeps cast names in billed order", () => {
+  it("keeps major cast names in billed order", () => {
     const row = makeMovieRow({
-      cast_names: ["Leonardo DiCaprio", "Joseph Gordon-Levitt", "Elliot Page"],
+      major_cast_names: ["Leonardo DiCaprio", "Joseph Gordon-Levitt", "Elliot Page"],
     });
-    expect(toMovieDataSummary(row).castNames).toStrictEqual([
+    expect(toMovieDataSummary(row).majorCastNames).toStrictEqual([
       "Leonardo DiCaprio",
       "Joseph Gordon-Levitt",
       "Elliot Page",
     ]);
   });
 
-  it("returns an empty array for cast names when null", () => {
-    const row = makeMovieRow({ cast_names: null });
-    expect(toMovieDataSummary(row).castNames).toStrictEqual([]);
+  it("returns an empty array for major cast names when null", () => {
+    const row = makeMovieRow({ major_cast_names: null });
+    expect(toMovieDataSummary(row).majorCastNames).toStrictEqual([]);
   });
 
-  it("drops empty cast names left by the aggregate join", () => {
-    const row = makeMovieRow({ cast_names: ["Leonardo DiCaprio", ""] });
-    expect(toMovieDataSummary(row).castNames).toStrictEqual(["Leonardo DiCaprio"]);
+  it("drops empty major cast names left by the aggregate join", () => {
+    const row = makeMovieRow({ major_cast_names: ["Leonardo DiCaprio", ""] });
+    expect(toMovieDataSummary(row).majorCastNames).toStrictEqual(["Leonardo DiCaprio"]);
   });
 
   it("passes through a populated directors array", () => {

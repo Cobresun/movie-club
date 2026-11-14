@@ -24,7 +24,6 @@ function toDetailedMovieData(data: WorkDataSummary | undefined): DetailedMovieDa
   const movie = asMovie(data);
   return {
     kind: "movie",
-    castNames: movie?.castNames ?? [],
     majorCastNames: movie?.majorCastNames ?? [],
     directors: movie?.directors ?? [],
     genres: movie?.genres ?? [],

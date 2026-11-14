@@ -17,6 +17,7 @@ import {
 } from "../../../lib/types/lists";
 import { type MovieDataSummary } from "../../../lib/types/movie";
 import { handler } from "../club/index";
+import { tmdbMovie } from "./fixtures/external";
 import { signIn } from "./helpers/auth";
 import {
   addReviewedWork,
@@ -189,10 +190,46 @@ describe("GET /api/club/:clubSlug/list/:listId", () => {
     expect(res.statusCode).toBe(200);
     expect(res.body.map((item) => item.title)).toStrictEqual(["Star Wars", "Untracked"]);
     expect(res.body[0].externalData?.overview).toBe("Overview for movie 11");
-    // The bulk payload omits cast lists; only `castNames` rides along.
     expect(res.body[0].externalData).not.toHaveProperty("actors");
-    expect(res.body[0].externalData?.castNames).toStrictEqual(["Lead 11", "Support 11"]);
+    expect(res.body[0].externalData?.majorCastNames).toStrictEqual(["Lead 11", "Support 11"]);
     expect(res.body[1].externalData).toBeUndefined();
+  });
+
+  it("names the leads and the stars of a movie, not its bit-parts", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub(alice);
+    const actor = (order: number, popularity: number) => ({
+      id: 100 + order,
+      name: `Billed ${order + 1}`,
+      character: `Role ${order + 1}`,
+      order,
+      profile_path: null,
+      popularity,
+    });
+    server.use(
+      http.get(`${TMDB}/movie/77`, () =>
+        HttpResponse.json(
+          tmdbMovie(77, {
+            credits: {
+              cast: [0, 1, 2, 3, 4, 5, 6].map((order) => actor(order, order === 6 ? 14 : 1)),
+              crew: [],
+            },
+          }),
+        ),
+      ),
+    );
+    await addWork(club, alice, { externalId: "77" });
+
+    const res = await itemsOf(club.slug, club.listId);
+
+    expect(res.body[0].externalData?.majorCastNames).toStrictEqual([
+      "Billed 1",
+      "Billed 2",
+      "Billed 3",
+      "Billed 4",
+      "Billed 5",
+      "Billed 7",
+    ]);
   });
 
   it("records who added an item and when", async () => {

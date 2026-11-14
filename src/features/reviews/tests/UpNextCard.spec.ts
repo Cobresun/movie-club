@@ -17,7 +17,6 @@ const work = (id: string, title: string) => ({
   externalId: id,
   externalData: {
     kind: "movie",
-    castNames: [],
     directors: [],
     genres: [],
     release_date: "2023-04-05",

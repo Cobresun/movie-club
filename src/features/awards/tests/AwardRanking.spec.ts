@@ -28,7 +28,6 @@ const currentUser = members[0];
 const movieData: DetailedMovieData = {
   kind: "movie",
   actors: [],
-  castNames: [],
   majorCastNames: [],
   directors: [],
   genres: [],

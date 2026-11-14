@@ -22,7 +22,6 @@ const listItems = [
     sourceListTitle: "Watch List",
     externalData: {
       kind: "movie",
-      castNames: [],
       directors: [],
       genres: [],
       release_date: "2023-04-05",

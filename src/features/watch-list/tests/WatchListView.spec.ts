@@ -68,7 +68,6 @@ describe("WatchListView", () => {
               kind: "movie",
               genres: ["Comedy"],
               directors: [],
-              castNames: [],
               production_companies: [],
             },
             sourceListId: "1",

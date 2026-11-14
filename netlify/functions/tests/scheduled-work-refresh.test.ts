@@ -109,7 +109,7 @@ describe("scheduled work refresh", () => {
     await run();
 
     const [metadata] = await metadataOf(club);
-    expect(metadata).toMatchObject({ kind: "movie", castNames: ["Only Actor"] });
+    expect(metadata).toMatchObject({ kind: "movie", majorCastNames: ["Only Actor"] });
   });
 
   it("refreshes book details and their authors", async () => {

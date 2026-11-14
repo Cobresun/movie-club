@@ -78,7 +78,6 @@ function work(id: string, userScores: Record<string, number>): MovieData {
     production_countries: [],
     externalData: {
       kind: "movie",
-      castNames: [],
       majorCastNames: [],
       directors: [],
       genres: [],

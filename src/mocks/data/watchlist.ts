@@ -11,7 +11,6 @@ const watchlist: DetailedWorkListItem[] = [
     externalId: "502356",
     externalData: {
       kind: "movie",
-      castNames: [],
       majorCastNames: [],
       directors: [],
       genres: ["Animation", "Family", "Adventure", "Fantasy", "Comedy"],
