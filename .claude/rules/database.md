@@ -2,78 +2,59 @@
 paths:
   - "migrations/**"
   - "lib/types/**"
-  - "netlify/functions/repositories/**"
+  - "netlify/functions/**"
 ---
 
 # Database
 
-Kysely with the CockroachDB dialect (PostgreSQL-compatible). See the `kysely` skill for query patterns, migration syntax, and type helpers.
+Kysely with the CockroachDB dialect; see the `kysely` skill for syntax. The schema of record is `lib/types/generated/db.ts`. Read it rather than any prose summary, and run `npm run codegen` after a schema change.
 
-- Connection: `netlify/functions/utils/database.ts` (singleton `Kysely<DB>`)
-- **Schema of record: `lib/types/generated/db.ts`** — every table, column, and enum. Read it rather than trusting any prose summary; run `npm run codegen` after schema changes to regenerate it.
-- Migrations: `migrations/schema/<Description>.ts`, appended to `migrations/orderedMigrations.ts` (the dated files predate the list)
+## Model
 
-The shape worth knowing before you read: a `work` is a movie, a book, a TV show, or one of a TV show's episodes; `work_list` holds a club's lists, either user-defined (`system_type IS NULL`, free-form title) or system (`system_type = 'reviews'`), with a partial unique index enforcing at most one of each system list per club. Movie, book and TV metadata are cached in separate `*_details` tables with their own junction tables.
+- A `work` is a movie, a book, a TV show, or an episode. Metadata is cached per type in `*_details` tables.
+- A `work_list` is user-defined (`system_type IS NULL`) or a system list (`'reviews'`, at most one per club by a partial unique index).
+- An episode is a child work of its show (`work.parent_work_id`). Only the show is on a list; deleting it cascades to its episodes and their reviews.
+- A show and each episode carry their own reviews. A show score is never written to its episodes. A season is never a work: it is each member's episode average, computed in the client (`reviewTree.ts`).
+- A TV `external_id` is an address: `"95396"` is a show, `"95396:1:4"` an episode. `tv_season_details` is keyed by a season address (`"95396:1"`) that no work carries. Parse addresses with `parseTvAddress` only inside the TV provider; everywhere else `external_id` is an opaque string.
 
-**A TV episode is a child work of its show.** `work.parent_work_id` links it to the show, which is the only one of the two on the reviews list; deleting the show cascades to its episodes and, through `review.work_id`, to their scores. A TV `work.external_id` is still an address — `"95396"` is the show, `"95396:1:4"` an episode of its first season — because that is what keys TMDB metadata. The show and each episode carry their own reviews: the show work exists from the moment it is added, an episode work once someone scores it, and a show score is never written to the episodes beneath it. A season is never a work: it is each member's average over their episodes, and a member with no direct show score is shown the average of their seasons, both computed in the client (`reviewTree.ts`). `tv_season_details` caches TMDB's season listings, keyed by a season address (`"95396:1"`) that no work carries; it is what a show's season list and the provider's episode lookups read. Parse an address with `parseTvAddress` (`lib/types/tv.ts`) and **only inside the TV provider** — to every shared query `external_id` stays an opaque string.
+## Every query is typed Kysely
 
-## Every query is a typed Kysely query
+Raw `sql` is unchecked against the schema and fails in production instead of at `type-check`. This applies to repositories, providers, scheduled functions and migrations, and to an existing raw query you are editing.
 
-This is the single most repeated piece of review feedback in this repository, and it applies everywhere a query is written — repositories, providers, scheduled functions, migrations — not just to new code. A raw `sql` string is unchecked against the schema: it survives a column rename, a type change, and a table drop, and fails in production instead of at `type-check`.
+- In a migration, `db.withTables<{…}>()` gives the `Kysely<unknown>` handle types for the tables it touches, backfills included.
+- Use the typed `eb.case()` builder and expression helpers before `sql`.
+- Raw `sql` is acceptable only for:
+  - DDL the builder can't express: `ALTER TYPE … ADD VALUE`, `ADD COLUMN IF NOT EXISTS`, `DROP INDEX … CASCADE`, `CREATE`/`DROP DATABASE`.
+  - A `CASE` over a caller-supplied id list (`ListRepository.reorderLists`, `reorderList`).
+  - A scalar expression with no builder function, as a typed fragment (`sql<number>` for `COALESCE(MAX(position), 0) + 1`).
+- Write many rows in one statement: `insertInto(…).values(rows.map(…))` with `onConflict` for an upsert (`utils/tvDetailsUpdater.ts`), never a query per row.
+- Use `selectAll("table")` after a join. Bare `selectAll()` lets joined columns silently shadow base-table columns of the same name. Grep for it when a migration adds a column to a joined table.
+- Declare a small interface for a row a provider or repository hands onward, rather than exporting the inferred join type.
 
-- **Migrations.** The `Kysely<unknown>` handle a migration receives knows no tables; `db.withTables<{...}>()` teaches it the columns that migration touches — including ones it just added — so identifiers are schema-checked. See the `kysely` skill → Migrations.
-- **Conditionals.** Kysely has a typed `case` builder (`eb.case().when(…).then(…).end()`) and typed comparison/expression helpers. Reach for those before dropping into `sql`.
-- **Code you are only passing through.** "I know it's existing, but can we use Kysely here too?" is the standing answer when a change touches a raw query. Converting the query you are already editing is expected, not scope creep.
+## Migrations
 
-The narrow legitimate uses of raw `sql`, all of them present in the codebase:
+- **Validate against a freshly spawned database, never shared `dev`.** PRs without migrations preview against `dev`, so migrating it breaks every other open preview.
 
-- DDL the builder cannot express — `ALTER TYPE ... ADD VALUE` (Kysely 0.27 has no `alterType`; see `20260526_AddBookWorkType`), `ADD COLUMN IF NOT EXISTS`, `DROP INDEX ... CASCADE`, `CREATE`/`DROP DATABASE` (`DatabaseCleanupRepository`).
-- Ordering by a computed alias that is not a column (``.orderBy(sql`total`, "desc")``).
-- A `CASE` over a caller-supplied id list to reorder rows in one statement (`ListRepository.moveItem` and friends), where the number of branches is dynamic.
+  ```bash
+  npm run db:spawn my_change
+  DATABASE_URL='<spawned-url>' npx tsx --env-file=.env ./migrations/schemaMigrator.ts
+  DATABASE_URL='<spawned-url>' npm run codegen
+  npm run db:cleanup my_change
+  ```
 
-Anything else, build with the query builder.
+  `.env` is still needed: some backfills call external APIs (`TMDB_API_KEY`).
 
-## Query gotcha: `selectAll()` after a join
-
-`selectAll()` with a join lets joined columns silently shadow base-table ones of the same name — the row typechecks, but you read the wrong value at runtime. Use `selectAll("table")` to scope it. Worth grepping for whenever a migration adds a column to a table that appears on the joined side of an existing query.
-
-## Migration workflow
-
-**Backfills are typed Kysely queries too** — see the section above; `db.withTables<{...}>()` is how a migration gets types for the tables it touches.
-
-**Validate schema migrations against a freshly spawned database, never your `.env`-pointed one.**
-
-This isn't tidiness. The `preview-database` plugin points every PR that _doesn't_ change migrations straight at shared `dev`. Running `migrate:dev` with `.env` on `postgresql://.../dev` rewrites the schema underneath every other open PR's deploy preview at once — their code expects the old schema, and their previews 500 until it's reverted and they're rebuilt.
-
-```bash
-# 1. Spawn from the latest snapshot (lowercase, numbers, underscores — no hyphens).
-npm run db:spawn arbitrary_lists
-
-# 2. Migrate + codegen against it without touching .env. An inline DATABASE_URL
-#    beats the --env-file value; .env is still needed because some migrations
-#    call external APIs during backfill (see below).
-DATABASE_URL='<spawned-url>' npx tsx --env-file=.env ./migrations/schemaMigrator.ts
-DATABASE_URL='<spawned-url>' npm run codegen
-
-# 3. Clean up.
-npm run db:cleanup arbitrary_lists
-```
-
-**Guard rail.** `schemaMigrator.ts` refuses to run against shared `dev` when `migrations/schema/` contains files not on `origin/main`, including uncommitted ones. It does _not_ cover `migrate:down`, can be bypassed with `FORCE_DEV_MIGRATE=1`, and **fails open when git is unavailable** — so it reduces the blast radius above, it doesn't remove it. If it false-positives on a freshly merged migration, `git fetch` to update `origin/main`.
-
-**Deploy previews migrate forward from a fresh copy, never up → down → up.** A preview exists to look like production, and production only ever runs `up()`. Reusing a preview database by rolling it back through `down()` first assumes the down migration perfectly inverts the up one — for many migrations that is difficult and for some impossible (a dropped column's data is gone), so the preview ends up on a schema production will never have. Do not add optimizations that reuse a preview database across incompatible migration states; spawn a fresh one.
-
-**A new migration goes at the end of `migrations/orderedMigrations.ts`, and its position is its name.** Kysely runs migrations in name order and refuses to run one whose name sorts before one already executed. So `schemaMigrator.ts` records each new entry under its position (`m0035_AddFoo`), which makes list order the run order. The list is append-only, so a branch missing a migration from `main` conflicts there. When resolving, keep `main`'s entries first and yours after: moving an entry renames every migration below it, and Kysely then refuses to run against any database that recorded the old names. The first 28 entries keep the dated names production had recorded when the list was introduced (`LEGACY_MIGRATION_COUNT`). Each file default-exports its own `{ name, up, down }`, and a file that is not in the list never runs.
-
-**Never hardcode row IDs in a migration.** Shared `dev` (and every snapshot spawned from it) has different club and user IDs from production, so an ID read off dev matches nothing on prod and the migration silently no-ops there. Resolve rows by a natural key (slug, email, name within a club) inside the migration instead.
-
-**Shared `dev` self-syncs after merge.** The plugin's `onSuccess` hook migrates shared `dev` on every production deploy, so it tracks `main` unattended. Running `migrate:dev` against `dev` yourself is a fallback for when that hook failed.
+- The guard in `schemaMigrator.ts` refuses shared `dev` when there are migrations not on `origin/main`. It does not cover `migrate:down`, is bypassed by `FORCE_DEV_MIGRATE=1`, and fails open without git. `git fetch` if it false-positives.
+- **Append to `migrations/orderedMigrations.ts`; never reorder.** A migration is recorded under its position (`m0035_AddFoo`), so moving an entry renames everything below it and Kysely refuses to run. On a conflict keep `main`'s entries first. A file not in the list never runs.
+- **Never hardcode row ids.** Dev and production ids differ, so the migration silently no-ops in production. Resolve rows by a natural key.
+- **Backfill only data production holds.** An unshipped feature has rows only in throwaway databases; change the schema and skip the backfill.
+- **Previews migrate forward from a fresh copy**, never up → down → up. `down()` rarely inverts `up()` exactly, so a reused preview drifts from production.
+- Shared `dev` migrates itself on each production deploy. Running `migrate:dev` against it is a fallback for when that hook failed.
 
 ## CockroachDB gotchas
 
-- **No transactional DDL.** A migration erroring midway leaves created enums and columns behind. Either make `up()` idempotent or expect to drop orphans by hand (`DROP TYPE IF EXISTS`, `ALTER TABLE ... DROP COLUMN IF EXISTS`) before re-running.
-- **`ALTER TABLE DROP CONSTRAINT` can't drop UNIQUE** — CockroachDB stores those as unique indexes. Use `DROP INDEX <name> CASCADE` (crdb #42840).
-- **An enum can't be dropped while a column references it.** Drop the column first.
-- **`up()`/`down()` already run inside a transaction** — don't open another with `db.transaction()`.
-- **Never pair `.distinct()` with `.filterWhere()`.** When one SELECT holds several `count(DISTINCT x)` over the same column with different `FILTER` clauses (or one filtered and one not), CockroachDB returns wrong counts — often 0 — with no error. It is data- and plan-dependent, so a small test fixture can pass while production is wrong; it had the admin dashboard reporting one active club while its own leaderboard listed four. Put each window in its own query's `WHERE` instead (`MetricsRepository.countActivity`). A `FILTER` on a non-distinct `countAll()` is fine.
-- **Migrations here aren't pure schema.** Some embed data backfills that call external APIs and need the matching env var (`20260315_AddPersonProfilePaths.ts` calls TMDB and 401s without `TMDB_API_KEY`).
+- **No transactional DDL.** A migration that fails midway leaves enums and columns behind. Make `up()` idempotent or drop the orphans by hand.
+- `up()` and `down()` already run in a transaction. Don't open another.
+- `ALTER TABLE DROP CONSTRAINT` can't drop a UNIQUE. Use `DROP INDEX <name> CASCADE`.
+- An enum can't be dropped while a column references it. Drop the column first.
+- **Never combine `.distinct()` with `.filterWhere()`.** Several `count(DISTINCT x)` with different `FILTER` clauses in one SELECT return wrong counts with no error, depending on data and plan. Give each its own query (`MetricsRepository.countActivity`).
