@@ -3,89 +3,69 @@ paths:
   - "netlify/**"
 ---
 
-# Backend Architecture (Netlify Functions)
-
-## Custom router
-
-`netlify/functions/utils/router.ts` is a hand-rolled, type-safe Express-like router — middleware chaining _with type transformations_, path params via `path-parser`, sub-routers through `use()`, automatic 404/405. Middleware widens the handler's first argument, so a route mounted behind `validClubSlug` receives `clubSlug` already resolved and typed:
-
-```typescript
-router.use("/:clubSlug/list", validClubSlug, listRouter);
-router.get("/:clubSlug", validClubSlug, async ({ clubSlug }, res) =>
-  res(ok<ClubPreview>(await ClubRepository.getBySlug(clubSlug))),
-);
-```
-
-Routers are mounted from `netlify/functions/club/index.ts` and `member.ts` — read those for the current route surface rather than relying on a list here.
+# Backend (Netlify Functions)
 
 ## Request pipeline
 
-A handler is normally middleware + Zod body schema + repository + a helper from `utils/responses.ts` (`ok`, `badRequest`, `unauthorized`, `notFound`, `svg`, `redirect`).
+A handler is middleware, a Zod body schema, a repository call and a helper from `utils/responses.ts`. Routes use the typed router in `utils/router.ts`; middleware widens the handler's first argument. Read `club/index.ts` and `member.ts` for the route surface.
 
-- `loggedIn` — any authenticated user. `secured` — authenticated _and_ a member of the resolved club.
-- `validClubSlug` resolves `:clubSlug`. `validListId` loads `:listId`, asserts it belongs to that club, and exposes `listSystemType` so handlers can gate operations on system lists.
+- `loggedIn` is any authenticated user. `secured` is a member of the resolved club. `validClubSlug` resolves `:clubSlug`. `validListId` loads `:listId`, checks it belongs to the club, and exposes `listSystemType`.
+- **Responses name their contract: `ok<T>(data)`**, where `T` is the `lib/types/` type the frontend service reads. The type argument is required. A shape the frontend reads belongs in `lib/types/`, not in a repository or `src/service/`.
+- **Bodies go through `parseBody(event, schema, res)`.** A cast (`event.body as Dto`) is not validation. Convert a cast in a handler you are editing.
+- An error thrown in a handler becomes a 500. Return `badRequest`, `notFound` or `unauthorized` for expected failures.
 
-**Responses name their contract: `ok<T>(data)`**, where `T` is the type in `lib/types/` that the frontend service reads the same endpoint as. `ok` serializes `data` itself, and its type argument is required — an untyped `ok(data)` does not compile — so the handler and the service cannot drift apart silently. A shape the frontend reads belongs in `lib/types/`, not in `src/service/` or a repository. `ok()` with no argument is an empty 200 for mutations.
+## Authorization
 
-**Bodies go through `parseBody(event, schema, res)`** (`utils/parseBody.ts`) with a Zod schema — it handles missing body, malformed JSON, and schema failure as one 400 each. A cast (`event.body as CreateListDto`) is not validation; it is the bug. This applies to handlers you are only passing through: converting a cast you happened to touch is in scope, not scope creep.
+- **Check ownership on every mutation of a user-owned row** (comment edit, score delete) and return `unauthorized(…)`. `secured` proves club membership, not that the row is the caller's.
+- **Repository methods on club-scoped rows take `clubId` and filter on it.** Scope the query itself; don't resolve an id in one layer and trust the next to have checked.
+- **The acting user comes from the session** (`sessionUserId` in `utils/auth.ts`, or `secured`), never from the body, including on endpoints anonymous callers can also use.
+- **Take ids and look the rest up.** A body carrying `title` next to `workId` is redundant, and an injection vector wherever those fields reach a prompt.
 
-## Authorization and tenancy
+## Keep shared code type-agnostic
 
-`secured` proves the caller is a member of _this_ club. It says nothing about whether the row they are mutating is theirs. Two rules on top of it:
+The backend half of the registry rule in `code-quality.md`: adding a club type should touch a provider, nothing else.
 
-**Check ownership on every mutation of a user-owned row**, and return `unauthorized(...)` when it fails. Comment edit/delete, review score delete — each one needs its own check; membership is not permission to edit someone else's data.
+- Repositories, route handlers and shared utilities never branch on club or work type, import a provider-specific type, or parse a provider's address format. `utils/gemini.ts` is an LLM interface; prompts belong to the provider.
+- Reach a provider from the work: `getProvider(work.type)`. `providerForClub(clubType)` is only for cases with no work to ask (a new club's default list, a club type's daily game).
+- A per-type constant is a field on `MediaProvider` (`defaultListTitle`). A per-type feature is an optional interface on it (`dailyGame`).
+- Names that every club type passes through are media-agnostic: "work", not "movie".
+- Stale-metadata refresh is per provider (`refreshStaleDetails`), swept by `scheduled-work-refresh.ts`. It is deliberately not a repository.
 
-**Repository methods that touch club-scoped rows take `clubId` and filter on it.** Scope the query so cross-tenant data cannot come back, rather than resolving an id in one layer and trusting the next layer to have checked. Pushing the guard up to the caller and documenting the requirement is the pattern that gets rejected in review — if a check is a valid concern, it belongs in the method that runs the query.
+## Works, lists and reviews
 
-```typescript
-// The id alone would happily read another club's list.
-async getListById(listId: string, clubId: string) { … .where("club_id", "=", clubId) }
-```
+The data model is in `database.md`.
 
-**Derive from ids; do not trust the client for anything the server already knows.** A body that carries `title` and `releaseYear` alongside `workId` is both redundant and an injection vector — the discussion-question prompt is built from those fields, so a client could write the prompt. Take the id, look the rest up. The frontend service should not be sending the derivable fields either.
-
-## Keep shared utilities type-agnostic
-
-Generic infrastructure stays generic. `utils/gemini.ts` is an LLM interface, not the discussion-questions feature: prompts belong to the `MediaProvider` that knows what a movie or a book is. Likewise a query in `WorkRepository` should not branch on `WorkType` — that query grows an arm every time a club type is added. Push the type-specific half into the provider and keep the repository query one shape.
-
-This is the backend face of the registry rule in `code-quality.md`; adding a club type should touch a registry and a provider, nothing else.
-
-## Lists
-
-Lists are arbitrary and user-titled, keyed by UUID. A club's _reviews_ list is a system list (`system_type = 'reviews'`) and is deliberately filtered out of the list-collection endpoint, fetched instead through a dedicated reviews-id route and a richer reviews shape. Rename and delete are rejected for system lists.
-
-`ListRepository.moveItem` is transactional with `ON CONFLICT DO NOTHING`, so moving into the reviews list and moving between user lists share one code path.
+- `POST /reviews` scores `workId`, or the child that `MediaProvider.resolveChild(parent, childExternalId)` resolves, upserted on its first score. An unresolvable child is a 400. There is no per-level score endpoint.
+- Children are never `work_list_item` rows. Queries reach them through the parent's item.
+- A review references its work and its list separately, so taking a work off a list deletes that list's reviews of it and its children explicitly (`ListRepository`). Nothing cascades from the item.
+- The reviews list is a system list: excluded from the list-collection endpoint, and rename and delete are rejected.
+- Reuse the generic list-item endpoints. Moving an item into the reviews list is the move endpoint with that list's id.
+- The TV provider re-reads TMDB for an episode its cache lacks only when the cached listing is over 15 minutes old. A season TMDB 404s is refused, not a 500.
 
 ## Awards
 
-A club's awards year is one JSON document in `awards_temp`, rewritten through `AwardsRepository.updateByYear` under `SELECT … FOR UPDATE`. The updater returns the new document or `reject(message)`, which leaves the row alone and becomes the route's 400 — use that for anything the current state forbids rather than throwing, which surfaces as a 500.
-
-The year moves forward through `AwardsStep` one phase at a time and never back — once a phase closes it stays closed (`stepChangeError` in `lib/awards.ts`). The club moves forward together: nominations close only once every current member has a nominee in every category, and voting only once every member has ranked every category with more than one nominee. Each write is gated on its phase: categories only while choosing categories, nominations only during nominations, ballots only during voting. A year can only be opened for a year the club reviewed a movie in (by the UTC year it joined the reviews list, the same year the nominations picker groups by) and does not already have awards; `GET /awards/available-years` lists them. Nominations and ballots are attributed to the session's `userId`, never to an id in the body. Rules the client also shows — the per-member nomination limit, category-title limits, scoring — live in `lib/awards.ts` so both sides read the same ones.
-
-## Data access
-
-Repository classes in `netlify/functions/repositories/` own all queries — one per aggregate, named `<Thing>Repository`. Kysely with generated types throughout.
-
-A score always lands on exactly one work. A work can have children (`work.parent_work_id` — a TV show's episodes), which are on a list only through their parent: they are never `work_list_item` rows, the reviews queries reach them through the parent's item, and deleting the parent cascades to them. `POST /reviews` scores `workId`, or, given an opaque `childExternalId`, the child of `workId` that `MediaProvider.resolveChild(parent, childExternalId)` resolves — upserted under the parent the first time it is scored. A provider with no children, or a child its source does not list (a season, an episode TMDB does not have), returns undefined and the handler refuses it with a 400; so there is no per-level score endpoint and no club-type field or branch in the handler. A TV show score is its own review — it is never written down to the episodes beneath it, and a fan-out that did so is the mistake this design exists to prevent. A season is never scored at all: it is each member's average over their episodes, computed in the client.
-
-The TV provider resolves an episode from its own TMDB cache. When that cache lacks what the client (which reads TMDB live) offered — an episode that aired tonight, a newly announced season — it re-reads TMDB once, and only if the cached listing is over 15 minutes old; a season TMDB 404s is refused, never a 500 or an empty cached season.
-
-A review references its work and its list separately (`fk_review_work_id`, `fk_review_list_id`) rather than the list item, so a child can be reviewed without being an item. Taking a work off a list — deleting the item or moving it to another list — therefore deletes that list's reviews of the work and its children explicitly (`ListRepository`); nothing cascades from the item.
-
-Stale-metadata refresh is deliberately _not_ a repository: each `MediaProvider` in `netlify/functions/utils/providers/` implements `refreshStaleDetails(limit)` for its own source (TMDB, Google Books), and `scheduled-work-refresh.ts` sweeps them. `scheduled-daily-game-catalog.ts` tops up each daily game's catalog from its provider's source (it caches details for works no club references, so those are refreshed too), `scheduled-db-cleanup.ts` reaps stale preview databases, and `scheduled-metrics-snapshot.ts` records the observability rollups `MetricsRepository` reads.
-
-Deploy-time behavior lives in Netlify plugins: `netlify/plugins/preview-database/` (per-PR database selection, plus the shared-`dev` migration sync on production deploys) and `netlify/plugins/auth-config/`.
+- A club's awards year is one JSON document in `awards_temp`, rewritten through `AwardsRepository.updateByYear` under `SELECT … FOR UPDATE`.
+- For anything the current state forbids, return `reject(message)` from the updater (a 400). Throwing is a 500.
+- Steps only move forward (`stepChangeError` in `lib/awards.ts`), and only once every member has finished the current one. Each write is gated on its phase.
+- Rules the client also shows (limits, scoring) live in `lib/awards.ts`.
 
 ## Daily game
 
-`/api/daily-game/:clubType/:date` and its catalog are one shape for every club type; a provider's `dailyGame` (undefined for media without a game) supplies what varies — the catalog's source, the ranking and the clues. The scoring core lives in `lib/` (`lib/similarity.ts`, `lib/movie/`) so this handler and Score Assist rank with one implementation. Both tables are keyed by `work_type`, and the handler never branches on it. The catalog job records each day's answer ahead of time, so a day nobody plays is still a puzzle; the puzzle number counts calendar days from the game's first puzzle, and a date before that is a 404 rather than a new puzzle #1. Only a date that is somebody's today can draw an answer; an earlier one is the archive, served with the answer it recorded on the day, or a 404 when it has none. `/api/daily-game/:clubType/archive` lists the recorded days and their numbers, never their answers. Netlify runs scheduled functions only on the published production deploy — never on deploy previews or under `netlify dev` — so when the catalog is too small to play, the endpoint caches one source page of works itself rather than waiting for a job that will not come.
+- One handler and one pair of tables keyed by `work_type` serve every club type. What varies is the provider's `dailyGame`. The scoring core is in `lib/`, shared with Score Assist.
+- **Netlify runs scheduled functions only on the production deploy**, never on previews or `netlify dev`, so the endpoint seeds a too-small catalog itself.
+- Only a date that is somebody's today draws an answer or records a result. An earlier date serves its recorded answer or a 404. The archive listing never includes answers.
+- The server decides whether the posted guesses solved the puzzle. Results are one per player per day, keyed by a browser id plus the session's user id when signed in.
 
-A finished game is posted to `/api/daily-game/:clubType/:date/result` and kept in `daily_game_result`, one row per player per day, for the admin dashboard. Only a date that is somebody's today is recorded, so a puzzle played from the archive is not posted. Players need no account, so every result carries a random id the browser keeps, and a signed-in player's `user_id` too — read from the session, never the body — which a unique index holds to one result a day across devices; the dashboard counts a player by account when there is one. The body carries the player's own guesses and the handler decides whether they solved it against the stored answer, rather than taking the client's word. The dashboard counts results by puzzle day, not by when they were posted, so its totals are the sum of its puzzle table.
+## External calls and aggregates
+
+- A loop over an external API runs in bounded batches with `Promise.allSettled` and logs failures (`utils/dailyGame.ts`).
+- A response identical for every caller sets `Netlify-CDN-Cache-Control` (`CDN_CACHE_CONTROL` in `daily-game.ts`).
+- A date in a path is `z.string().date()` (`puzzleDateSchema`). A regex or `new Date()` accepts `2026-02-31`.
+- Summary tiles use the same key and date range as the table under them. Never silently cap a listed result.
 
 ## Auth
 
-`netlify/functions/utils/auth.ts` is the BetterAuth server config — bcrypt hashing, Google OAuth, Resend emails, and a mixed ID strategy (auto-increment for users, UUIDs for sessions). See the `better-auth-best-practices` skill for general patterns.
+`utils/auth.ts` is the BetterAuth config; see the `better-auth-best-practices` skill.
 
-**Set-Cookie gotcha:** `Headers.forEach` folds repeated `Set-Cookie` values into one malformed header. Use `getSetCookie()` and return them via Netlify's `multiValueHeaders`.
-
-**Only the auth endpoint renews sessions.** `loggedIn` reads the session with `disableRefresh`, because `auth.api.getSession` has nowhere to send a Set-Cookie: a renewal there extends the database row while the browser's cookie still lapses a month after it was issued.
+- **Set-Cookie:** `Headers.forEach` folds repeated `Set-Cookie` values into one malformed header. Use `getSetCookie()` and return them through `multiValueHeaders`.
+- **Only the auth endpoint renews sessions.** `loggedIn` reads with `disableRefresh`, because `auth.api.getSession` has nowhere to send a Set-Cookie.

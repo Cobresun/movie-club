@@ -3,70 +3,50 @@ paths:
   - "src/**"
 ---
 
-# Frontend Architecture (Vue 3 + Vite)
+# Frontend (Vue 3 + Vite)
 
-Feature-based layout: `src/features/<feature>/` holds views, components, and composables for one domain; `src/common/` holds shared UI and utilities; `src/service/` holds the TanStack Query composables every feature fetches through. `@/*` aliases `src/*`.
-
-A handful of components are registered globally in `src/main.ts` (`v-btn`, `v-modal`, `page-header`, …) — they appear in templates with no import, so check there before assuming a tag is undefined.
-
-## Icons (mdi-vue): the silent-failure trap
-
-Icons are referenced by kebab-case name (`<mdicon name="movie-open-outline">`), but **only icons registered in `src/icons.ts` exist** — that file imports a curated set of `mdiPascalCase` paths from `@mdi/js` so the bundler can tree-shake the other ~7,000. An unregistered name doesn't error; mdi-vue silently renders an `mdiAlert` triangle.
-
-So: when you add or change an icon name, register the matching `mdiPascalCase` export in `src/icons.ts` (import + the `icons` object, alphabetized).
-
-`icons.test.ts` enforces this, but its scan is **static** — it only sees literal names in `.vue` templates (`name="..."` and ternary literals). Names produced by a function or computed are invisible to it:
-
-- Names from `CLUB_TYPE_CONFIG` (`src/common/clubType/`) are covered by a dedicated registry test in `icons.test.ts`. A new club type needs its `icon` there **and** in `src/icons.ts`.
-- Any other computed/ref name (`copyIcon`, default `fallback-icon` props) is covered by nothing. Register those by hand.
+`src/features/<feature>/` holds one domain's views, components and composables. `src/common/` is shared UI. `src/service/` holds the TanStack Query hooks every feature fetches through. A new feature gets a `views/` folder, a `src/service/use<Feature>.ts`, and routes in `src/router/index.ts` (`beforeEnter: checkClubAccess` if club-scoped).
 
 ## UI conventions
 
-These are the nits that come back every review; none of them are negotiable in a PR.
+Before writing a component, open the one next to it and do what it does.
 
-- **Use the globally registered components.** `v-btn`, `v-modal`, `page-header` and friends exist — a hand-rolled `<button class="...">` in a view is a review comment. Check `src/main.ts` first.
-- **Icons are `<mdicon>`, not characters.** `▶`, `▼`, `×`, `…` typed into a template get replaced with the registered icon (and `…` where an ellipsis genuinely is text, not three periods).
-- **Tailwind utilities, not inline or arbitrary CSS.** If a sibling component expresses the same thing with a utility (`aspect-2/3` over a hand-written `padding-top` ratio), match the sibling.
-- **No Tailwind class-list variables.** Assigning a string of classes to a `const` and binding it is treated as an anti-pattern here: inline the classes at both call sites, or, if they genuinely must stay in sync, extract a component.
-- **Charts go through `VChart`**, not `<ag-charts>` directly. It closes the tooltip when the page scrolls — one opened by tapping a series otherwise stays up until the whole chart has left the viewport.
-- **Poster grids use `grid grid-cols-auto`** with `justify-items-center gap-4`, the way `ListItems.vue`, `SharedListView.vue` and the awards views do. Don't invent a breakpoint set — changing grid sizing has broken the watch-list desktop layout before.
-- **Teleport overlays out of animated content.** `animate-fade-up` (and any `transform`) makes its element the containing block for `position: fixed` descendants, so a `VModal`, bottom sheet or drawer mounted inside an expanded row covers that row instead of the screen. Wrap it in `<Teleport to="body">`, as `ShowRow` and `EpisodeRow` do.
-- **Template above script in every SFC.** Every component in the codebase is ordered that way.
-- **Match the sibling.** Most of the above collapses into one habit: before writing a component, open the one next to it and do what it does.
+- **No Tailwind class-list variables.** Write classes on the element. If the same list must stay in sync across places, extract a component.
+- **Use the globally registered components** (`v-btn`, `v-modal`, `page-header`; see `src/main.ts`), not a hand-rolled `<button class="…">`.
+- **Dropdowns, listboxes and menus use `@headlessui/vue`** (`ClubSwitcher.vue`, `AddedByListbox.vue`), which supplies focus handling, Escape, outside-click and ARIA roles.
+- **Icons are `<mdicon>`**, not characters like `▶` or `×`. Only icons registered in `src/icons.ts` exist; an unregistered name silently renders an alert triangle. `icons.test.ts` scans literal names in templates only, so register computed names and default props by hand.
+- **Tailwind utilities, not inline or arbitrary CSS.**
+- **Charts go through `VChart`**, which closes the tooltip on scroll.
+- **Poster grids are `grid grid-cols-auto justify-items-center gap-4`.** Don't invent a breakpoint set.
+- **Teleport overlays out of animated content.** A `transform` (`animate-fade-up`) becomes the containing block for `position: fixed` descendants, so a modal inside it covers that element instead of the screen. Wrap it in `<Teleport to="body">`.
+- **Template above script** in every SFC. Older files that open with `<script>` are not the convention.
+- **Counts read correctly at one** ("1 hour"). Join variable-length lists with `Intl.ListFormat`.
 
-## Accessibility is a functional requirement
+## Accessibility
 
-Every element a user can act on needs a role and an accessible name — a real `<button>` rather than a `<div @click>`, an `aria-label` on an icon-only control, `alt` on a poster image, `aria-pressed` on a toggle, and a state that is conveyed by something other than colour alone. Content hidden behind a spoiler blur must be hidden from screen readers, not merely blurred.
+Every element a user can act on has a role and an accessible name. Specs query by role, so a missing one fails the test (`testing.md`).
 
-A transient state shown as an icon swap — the tick after a copy button is pressed — needs the same treatment: change the control's accessible name (`:aria-label="copyLabel"`) rather than leaving the tick as the only evidence, which leaves a screen reader with no confirmation and a test with nothing but `.mdi-check` to query.
-
-The test suite is how this gets enforced — a spec that cannot find an element without a CSS selector has found a real bug (see `testing.md`). Reviews here have turned up keyboard-unreachable poster cards, unnamed chevron buttons, an inaccessible loading state and a spoiler read out in full. Fix the component; do not reach for a selector or a `data-testid`.
+- A real `<button>`, not `<div @click>`. `aria-label` on icon-only controls, `alt` on posters, `aria-pressed` on toggles. State is never conveyed by colour alone.
+- A transient icon swap (the tick after copy) changes the control's `aria-label` too, on every path that succeeds, including fallbacks.
+- Spoiler-blurred content is `aria-hidden`, and must not leak through an `aria-label`, a `title` or an aggregate built from blurred values.
+- A hand-built popup closes on blur and Escape (without clearing what was typed) and selects on `click` as well as `mousedown`.
 
 ## Router
 
-- Page transitions are one crossfade for every route change, driven by the View Transitions API from `router/viewTransitions.ts` — not by a Vue `<transition>` around a `<router-view>`. Because it snapshots the document, it covers nested router-views too. Don't add per-route or directional (push/pop) animations: `transform` on a page wrapper re-anchors every `position: fixed` descendant (the mobile section bar, un-teleported overlays) to the moving page.
-- Overlays (`VModal`, `VBottomSheet`, `VSideDrawer`) keep their own Vue `<Transition>`s; they are not page transitions.
-- `checkClubAccess` guards club-scoped routes on membership. `noAuth: true` opts a route out of auth; `authRequired: true` redirects to Clubs when logged out.
-- Guards answer from the cache when it can: membership the clubs list already confirms passes without waiting on a background refetch, and `waitForAuthReady` does not wait out BetterAuth's refetch-on-focus of a signed-in session. So a mutation that changes membership or a slug has to write the clubs cache itself before navigating (see `useClub.ts`) — the guard will not wait for its refetch.
+- Page transitions are one crossfade from `router/viewTransitions.ts` (View Transitions API). Don't add per-route or directional animations: a `transform` on a page wrapper re-anchors every `position: fixed` descendant.
+- `checkClubAccess` guards club routes. `noAuth: true` opts a route out of auth; `authRequired: true` redirects to Clubs when logged out.
+- Guards answer from the cache without waiting for a refetch. A mutation that changes membership or a slug must write the clubs cache before navigating (`useClub.ts`).
 
 ## Service layer
 
-`src/service/use<Feature>.ts` wraps every API call in TanStack Query hooks — components should not fetch directly. Response types come from `lib/types/`, the same ones the handler passes to `ok<T>()`; don't declare a response interface in the service. Several accept `MaybeRef` so IDs can be reactive (e.g. `useList(slug, listIdRef)`).
+Components never fetch directly. Response types come from `lib/types/`, the same ones the handler passes to `ok<T>()`. See the `tanstack-query-vue` skill for keys and mutation patterns.
 
-See the `tanstack-query-vue` skill for query-key conventions, mutation patterns, caching config, and optimistic updates.
-
-**Mutations that change something on screen get an optimistic update.** Creating a list, renaming one, reordering, moving an item — waiting for the round trip reads as broken, and "it'll be there after the refetch" is not accepted in review. What to get right:
-
-- **Update both ends of a move.** Removing from the source list and letting the destination wait for the refetch is a half-done optimistic update.
-- **When the real id only exists after the response** (a freshly created list), keep the pending item visibly pending rather than letting the user reorder something that has no id yet.
-- **Cancel before you write.** `await queryClient.cancelQueries(...)` for every key `onMutate` touches. A refetch already in flight — usually the previous mutation's settle — otherwise lands after the optimistic write and snaps the screen back until the next one.
-- **Don't wait on the settle.** Close the modal, clear the editor or navigate when the user acts, not in `onSuccess` of a mutation whose `onSettled` refetches: that is one slow round trip for the write and another for the refetch. Failures come back as a toast (from the service, when the caller has unmounted by then) or by reopening the editor on what was typed.
-- **Write what the response already told you.** When a mutation's response or an already-cached query holds the new state — a created club's slug, the preview on an invite page — put it in the cache in `onSuccess` and invalidate in the background, rather than awaiting the invalidation.
-
-**Don't paper over freshness with `staleTime`.** Scores, lists, comments and awards are collaborative — several people change them while another is looking at the page, and a user who hits refresh expects to see it. `src/main.ts` deliberately drives revalidation from a per-session fetch counter rather than a fixed `staleTime`, so a hard refresh revalidates while navigation within the session stays quiet; a blanket `staleTime` cannot tell those two apart. Read the comment there before changing the query defaults. `staleTime: Infinity` on immutable per-id data (TMDB details, generated discussion questions) is the exception, not the pattern.
-
-**Validate in the client to the same limits the server enforces.** When a route rejects a comment over a length limit, the composer shows the limit and the counter — a silent 400 is a bug. Use Zod for that validation rather than hand-rolled checks, including for anything read back out of `localStorage`.
-
-## Adding a feature
-
-Create `src/features/<name>/` with a `views/` subdirectory, add a `src/service/use<Feature>.ts` for its API calls, then register routes in `src/router/index.ts` with `beforeEnter: checkClubAccess` if club-scoped.
+- **Hook arguments are reactive.** Take ids as `MaybeRefOrGetter<T>` and read them with `toValue` inside a `computed` query key (`useDailyGamePuzzle`). A plain string is captured once, and a reused router view keeps showing the first value.
+- **Mutations that change the screen update optimistically.**
+  - `await queryClient.cancelQueries(…)` for every key `onMutate` writes, or an in-flight refetch snaps the screen back.
+  - Update both ends of a move.
+  - Keep an item whose real id arrives with the response visibly pending.
+  - Close the modal or navigate when the user acts, not in `onSuccess`. Failures come back as a toast.
+  - Write what the response already told you into the cache, then invalidate in the background.
+- **Don't add `staleTime` for freshness.** Scores, lists, comments and awards are collaborative. `src/main.ts` revalidates by a per-session fetch counter so a hard refresh refetches; read its comment before changing defaults. `staleTime: Infinity` is for immutable per-id data only.
+- **Validate in the client to the server's limits**, with Zod, including anything read from `localStorage`. A silent 400 is a bug.
