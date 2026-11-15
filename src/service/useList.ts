@@ -11,6 +11,7 @@ import { useToast } from "vue-toastification";
 import { hasValue, isDefined } from "../../lib/checks/checks.js";
 import { type ClubPreview } from "../../lib/types/club";
 import {
+  type CastNamesByExternalId,
   type ClubListSummary,
   type DetailedReviewListItem,
   type DetailedWorkData,
@@ -43,6 +44,9 @@ export const workDetailsKey = (clubSlug: string, workId: string) =>
 const allUserListItemsKey = (clubSlug: string) => ["lists", clubSlug, "all-items"] as const;
 
 const nextWorkKey = (clubSlug: string) => ["nextWork", clubSlug] as const;
+
+// Under the club's lists key, so adding or moving a work refreshes it too.
+const castNamesKey = (clubSlug: string) => ["lists", clubSlug, "cast-names"] as const;
 
 /**
  * Puts a work at the top of the reviews page (newest first, as the server
@@ -216,6 +220,23 @@ export function useAllUserListItems(
     queryKey: allUserListItemsKey(clubSlug),
     queryFn: async () =>
       (await http.get<UserListItemWithSource[]>(`/api/club/${clubSlug}/list/all-items`)).data,
+  });
+}
+
+/**
+ * Cast names for every work on the club's lists, keyed by external id. Bulk
+ * list payloads leave them out, so the cast filter searches this instead.
+ * `enabled` lets a club type whose payloads already carry the names skip it.
+ */
+export function useCastNames(
+  clubSlug: string,
+  enabled: () => boolean,
+): UseQueryReturnType<CastNamesByExternalId, AxiosError> {
+  return useQuery({
+    queryKey: castNamesKey(clubSlug),
+    queryFn: async () =>
+      (await axios.get<CastNamesByExternalId>(`/api/club/${clubSlug}/list/cast-names`)).data,
+    enabled,
   });
 }
 

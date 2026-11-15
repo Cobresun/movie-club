@@ -23,6 +23,7 @@
         v-model:filtered-data="filteredReviews"
         v-model:has-active-filters="hasActiveFilters"
         :data="reviews ?? []"
+        :club-slug="clubSlug"
         :club-type="club?.type ?? ClubType.MOVIE"
         search-placeholder="Search reviews"
         class-name="mb-4"

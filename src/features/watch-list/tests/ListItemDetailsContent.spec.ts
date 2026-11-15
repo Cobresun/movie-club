@@ -78,6 +78,23 @@ const streamingOn = (providerName: string) => {
 };
 
 describe("ListItemDetailsContent", () => {
+  it("shows the overview from the work's details, which the list payload leaves out", async () => {
+    server.use(
+      http.get("/api/club/:id/work/:workId/details", () =>
+        HttpResponse.json({
+          ...movie.externalData,
+          overview: "A thief who steals secrets through dreams.",
+          actors: [],
+        }),
+      ),
+    );
+    render(ListItemDetailsContent, { props: baseProps });
+
+    expect(
+      await screen.findByText("A thief who steals secrets through dreams."),
+    ).toBeInTheDocument();
+  });
+
   it("renders the work title", async () => {
     render(ListItemDetailsContent, { props: baseProps });
 

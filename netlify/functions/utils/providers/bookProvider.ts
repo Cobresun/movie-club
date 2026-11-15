@@ -181,6 +181,10 @@ class BookProvider implements MediaProvider {
     return Promise.resolve(new Map<string, CastMember[]>());
   }
 
+  getCastNames(): Promise<Map<string, string[]>> {
+    return Promise.resolve(new Map<string, string[]>());
+  }
+
   resolveChild(): Promise<ListInsertDto | undefined> {
     return Promise.resolve(undefined);
   }

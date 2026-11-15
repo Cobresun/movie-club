@@ -54,15 +54,11 @@ describe("scheduled work refresh", () => {
     const alice = await signIn("alice");
     const club = await createClub(alice);
     await addWork(club, alice, { title: "Stale", externalId: "42" });
-    await expect(metadataOf(club)).resolves.toMatchObject([
-      { tagline: "Tagline 42", overview: "Overview for movie 42" },
-    ]);
+    await expect(metadataOf(club)).resolves.toMatchObject([{ runtime: 142, status: "Released" }]);
 
     server.use(
       http.get("https://api.themoviedb.org/3/movie/42", () =>
-        HttpResponse.json(
-          tmdbMovie(42, { tagline: "Fresh tagline", overview: "A freshly fetched overview" }),
-        ),
+        HttpResponse.json(tmdbMovie(42, { runtime: 95, status: "Post Production" })),
       ),
     );
 
@@ -75,7 +71,7 @@ describe("scheduled work refresh", () => {
       updated: 1,
     });
     await expect(metadataOf(club)).resolves.toMatchObject([
-      { tagline: "Fresh tagline", overview: "A freshly fetched overview" },
+      { runtime: 95, status: "Post Production" },
     ]);
   });
 
@@ -109,7 +105,7 @@ describe("scheduled work refresh", () => {
     await run();
 
     const [metadata] = await metadataOf(club);
-    expect(metadata).toMatchObject({ kind: "movie", castNames: ["Only Actor"] });
+    expect(metadata).toMatchObject({ kind: "movie", majorCastNames: ["Only Actor"] });
   });
 
   it("refreshes book details and their authors", async () => {

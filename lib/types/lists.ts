@@ -75,6 +75,13 @@ export type DetailedWorkListItem<T extends WorkDataSummary = WorkDataSummary> = 
 export type DetailedReviewListItem<T extends WorkDataSummary = WorkDataSummary> = ReviewListItem &
   ExternalWorkData<T>;
 
+/**
+ * Billed-order cast names for every work on the club's lists, keyed by external
+ * id (`GET /api/club/:clubSlug/list/cast-names`). Bulk list payloads leave cast
+ * names out, so the cast filter reads them from here.
+ */
+export type CastNamesByExternalId = Record<string, string[]>;
+
 /** An item from any of the club's user lists, tagged with the list it came from. */
 export interface UserListItemWithSource extends DetailedWorkListItem {
   sourceListId: string;

@@ -68,18 +68,16 @@ export interface TMDBMovieData {
 }
 
 /**
- * The list-payload shape of movie metadata: everything except `actors`.
- * Full cast lists dominate bulk payloads (~80% of the reviews response), so
- * list/review endpoints ship this summary and the cast is fetched on demand
- * per work (detail drawer) or in bulk (statistics leaderboards).
+ * The list-payload shape of movie metadata. Bulk payloads grow with the club,
+ * so list/review endpoints ship only what a card, a filter or a statistic
+ * reads from every work at once. The cast and the long-form text are fetched
+ * on demand: per work (detail drawer), or in bulk as names (the cast filter)
+ * and as full cast lists (statistics leaderboards).
  */
 export interface MovieDataSummary {
   kind: "movie";
   // Aggregated relations: the mapper always defaults these to [], so they are
   // never absent.
-  /** Billed-order actor names only — enough for the `actor:` search filter.
-   * Character names and profile photos ride the full shape. */
-  castNames: string[];
   /** Billed-order names of the *major* cast only — top-billed or a popularity
    * star (see `lib/movie/majorCast.ts`). A pre-filtered subset of `castNames`
    * so the review spotlight's "Familiar face" fact tracks recurring prominent
@@ -97,12 +95,10 @@ export interface MovieDataSummary {
   adult?: boolean;
   backdrop_path?: string;
   budget?: number;
-  homepage?: string;
   id?: number;
   imdb_id?: string;
   original_language?: string;
   original_title?: string;
-  overview?: string;
   popularity?: number;
   poster_path?: string;
   release_date?: string;
@@ -110,14 +106,22 @@ export interface MovieDataSummary {
   runtime?: number;
   spoken_languages?: string[];
   status?: string;
-  tagline?: string;
   title?: string;
   video?: boolean;
   vote_average?: number;
   vote_count?: number;
+  // Never in a bulk payload — these three account for most of a movie's bytes.
+  // The full shape carries the text; the cast filter merges `castNames` in from
+  // the club's cast-names index (`GET /api/club/:clubSlug/list/cast-names`).
+  /** Billed-order actor names. */
+  castNames?: string[];
+  homepage?: string;
+  overview?: string;
+  tagline?: string;
 }
 
-/** Full movie metadata: the summary plus the complete cast list. Served by
+/** Full movie metadata: the summary plus its long-form text and the complete
+ * cast list. Served by
  * the per-work details endpoint and the shared-review page, never by bulk
  * list endpoints. */
 export interface DetailedMovieData extends MovieDataSummary {

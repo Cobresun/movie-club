@@ -112,7 +112,7 @@
 <script setup lang="ts" generic="T extends DetailedWorkListItem">
 import { computed, ref, watchEffect } from "vue";
 
-import { hasElements, hasValue } from "../../../lib/checks/checks";
+import { hasElements, hasValue, isDefined } from "../../../lib/checks/checks";
 import { ClubType } from "../../../lib/types/generated/db";
 import { type DetailedWorkListItem } from "../../../lib/types/lists";
 import { clubTypeConfig, type FilterOption } from "../clubType";
@@ -123,9 +123,11 @@ import FilterPanel from "./FilterPanel.vue";
 import { type FilterSelection } from "./filterTypes";
 import VBottomSheet from "./VBottomSheet.vue";
 import VSideDrawer from "./VSideDrawer.vue";
+import { useCastNames } from "@/service/useList";
 
 interface Props {
   data: T[];
+  clubSlug: string;
   clubType: ClubType;
   searchPlaceholder?: string;
   className?: string;
@@ -153,7 +155,24 @@ const selections = ref<Partial<Record<string, FilterSelection>>>({});
 const config = computed(() => clubTypeConfig(props.clubType));
 
 // The same work can sit on several watchlists; count and filter it once.
-const works = computed(() => [...new Map(props.data.map((work) => [work.id, work])).values()]);
+const uniqueWorks = computed(() => new Map(props.data.map((work) => [work.id, work])));
+
+// Cast names load apart from the works, so the page never waits on them; the
+// cast filter appears once they arrive.
+const { data: castNames } = useCastNames(props.clubSlug, () =>
+  isDefined(config.value.withCastNames),
+);
+
+const works = computed(() => {
+  const unique = [...uniqueWorks.value.values()];
+  const names = castNames.value;
+  const { withCastNames } = config.value;
+  if (!isDefined(names) || !isDefined(withCastNames)) return unique;
+  return unique.map((work) => {
+    const cast = hasValue(work.externalId) ? names[work.externalId] : undefined;
+    return isDefined(cast) ? withCastNames(work, cast) : work;
+  });
+});
 
 // Filter options come from the club-type registry (movie/book have different
 // fields); excludeFilterKeys lets a view drop options that don't apply (e.g.
@@ -259,7 +278,9 @@ const resultLabel = computed(() => {
 });
 
 watchEffect(() => {
-  filteredData.value = filtered.value;
+  // Hand back the caller's own works rather than the copies carrying cast
+  // names, so the page does not re-render when the names arrive.
+  filteredData.value = filtered.value.map((work) => uniqueWorks.value.get(work.id) ?? work);
   hasActiveFilters.value = hasElements(activeChips.value) || hasValue(freeText.value);
 });
 </script>

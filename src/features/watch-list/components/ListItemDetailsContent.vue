@@ -247,8 +247,8 @@ const movieData = computed(() => asMovie(props.movie.externalData));
 const bookData = computed(() => asBook(props.movie.externalData));
 const tvData = computed(() => asTv(props.movie.externalData));
 
-// Bulk list payloads carry only summary metadata; fetch the full cast on
-// demand when this drawer opens (skipped for optimistic temp rows).
+// Bulk list payloads carry only summary metadata; fetch the full cast and the
+// overview on demand when this drawer opens (skipped for optimistic temp rows).
 const { data: workDetails } = useWorkDetails(
   props.clubSlug,
   computed(() => props.movie.id),
@@ -267,7 +267,7 @@ const displayYear = computed(() => workSubtitle(props.movie.externalData));
 // the Details section below only carries what the hero doesn't.
 const metaLine = computed(() => workMetaLine(props.movie.externalData));
 
-const overview = computed(() => workOverview(props.movie.externalData));
+const overview = computed(() => workOverview(workDetails.value ?? props.movie.externalData));
 
 // Driven by the work's own type (via the registry) rather than by the cached
 // metadata, so a movie still shows where to stream it when its details haven't

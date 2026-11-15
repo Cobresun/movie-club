@@ -4,6 +4,7 @@ import { movieDisplay } from "./display";
 import { movieLandingPreview } from "./landingPreview";
 import { browseMovies, searchMovies } from "./search";
 import { makeMovieSimilarity } from "./similarity";
+import { isDefined } from "@/../lib/checks/checks";
 import { releaseYear } from "@/../lib/movie/releaseYear";
 import { ClubType, WorkType } from "@/../lib/types/generated/db";
 import { asMovie, formatRuntime } from "@/common/workDisplay";
@@ -72,8 +73,8 @@ export const movieClubConfig: ClubTypeConfig = {
       key: "actor",
       label: "Cast",
       icon: "account-star",
-      // Bulk payloads carry names only (castNames); full actor objects are
-      // fetched per-work by the detail drawer.
+      // Bulk payloads carry no cast: `withCastNames` below attaches the
+      // names once the club's cast-names index has loaded.
       values: (work) => asMovie(work.externalData)?.castNames ?? [],
       searchPlaceholder: "Find an actor",
       order: "popular",
@@ -89,6 +90,10 @@ export const movieClubConfig: ClubTypeConfig = {
     },
     reviewedInFilter,
   ],
+  withCastNames: (work, castNames) => {
+    const movie = asMovie(work.externalData);
+    return isDefined(movie) ? { ...work, externalData: { ...movie, castNames } } : work;
+  },
   search: searchMovies,
   browseTabs: [
     { key: "popular", label: "Popular" },

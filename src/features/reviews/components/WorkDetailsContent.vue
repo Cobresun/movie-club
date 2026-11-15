@@ -473,8 +473,9 @@ const movieData = computed(() => asMovie(props.movie.externalData));
 const bookData = computed(() => asBook(props.movie.externalData));
 const tvData = computed(() => asTv(props.movie.externalData));
 
-// The bulk reviews payload carries only summary metadata; the cast list is
-// fetched on demand when this drawer opens (cached per work for the session).
+// The bulk reviews payload carries only summary metadata; the cast list and
+// the overview are fetched on demand when this drawer opens (cached per work
+// for the session).
 const { data: workDetails } = useWorkDetails(
   clubId,
   computed(() => props.movie.id),
@@ -492,7 +493,7 @@ const displayYear = computed(() => workSubtitle(props.movie.externalData));
 // the Details section below only carries what the hero doesn't.
 const metaLine = computed(() => workMetaLine(props.movie.externalData));
 
-const overview = computed(() => workOverview(props.movie.externalData));
+const overview = computed(() => workOverview(workDetails.value ?? props.movie.externalData));
 
 // TMDB publishes ratings with three decimals (7.783); one is plenty here.
 const tmdbScore = computed(() =>

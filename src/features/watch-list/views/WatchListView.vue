@@ -79,6 +79,7 @@ const shareList = (listId: string) => {
         v-model:filtered-data="filteredItems"
         v-model:has-active-filters="hasActiveFilters"
         :data="searchData"
+        :club-slug="clubSlug"
         :club-type="clubType"
         search-placeholder="Search watchlists"
         :exclude-filter-keys="excludedFilterKeys"

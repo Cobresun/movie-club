@@ -100,6 +100,12 @@ export interface ClubTypeConfig {
   readonly searchableFieldsHint: string;
   /** Filters SearchFilterBar offers for this club type. */
   readonly filterOptions: readonly FilterOption[];
+  /**
+   * Attach a work's cast names, loaded apart from the bulk list payload, where
+   * this club type's cast filter reads them. Left out by a club type whose
+   * payload already carries the names, or whose works have no cast.
+   */
+  readonly withCastNames?: <T extends DetailedWorkListItem>(work: T, castNames: string[]) => T;
   /** Search the club type's external source for works to add. */
   readonly search: (query: string, signal?: AbortSignal) => Promise<WorkSearchResult[]>;
   /** Tabs the add modal offers for browsing without a search; the first is the default. */

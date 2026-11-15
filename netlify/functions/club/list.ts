@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { hasValue, isDefined } from "../../../lib/checks/checks.js";
 import {
+  type CastNamesByExternalId,
   type ClubListSummary,
   type DetailedReviewListItem,
   type DetailedWorkListItem,
@@ -15,7 +16,11 @@ import UserRepository from "../repositories/UserRepository";
 import WorkRepository from "../repositories/WorkRepository";
 import { toDetailedListItem, toUserListItemsWithSource } from "../utils/listItems";
 import { parseBody } from "../utils/parseBody";
-import { getExternalSummariesForWorks, getProvider } from "../utils/providers";
+import {
+  getCastNamesForWorks,
+  getExternalSummariesForWorks,
+  getProvider,
+} from "../utils/providers";
 import { requireParam } from "../utils/requireParam";
 import { badRequest, internalServerError, ok } from "../utils/responses";
 import { buildReviewScores } from "../utils/reviewScores";
@@ -104,6 +109,17 @@ router.post("/", secured, async ({ clubId, event }, res) => {
 router.get("/all-items", async ({ clubId }, res) => {
   const items = await ListRepository.getAllUserListItems(clubId);
   return res(ok<UserListItemWithSource[]>(await toUserListItemsWithSource(items)));
+});
+
+// Cast names for every work on the club's lists, reviews included. The bulk
+// list and review payloads leave them out (they were half of those payloads),
+// so the cast filter loads this beside them rather than ahead of first paint.
+router.get("/cast-names", async ({ clubId }, res) => {
+  const works = await ListRepository.getClubWorks(clubId);
+  const castNames = await getCastNamesForWorks(
+    works.map((work) => ({ externalId: work.external_id, type: work.type })),
+  );
+  return res(ok<CastNamesByExternalId>(Object.fromEntries(castNames)));
 });
 
 router.get("/:listId", validListId, async ({ listId }, res) => {
