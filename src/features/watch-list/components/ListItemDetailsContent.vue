@@ -124,7 +124,7 @@
     <!-- Availability comes straight from TMDB off the work's external id, so it
          stands on its own: a list item whose cached metadata hasn't filled in
          yet still shows where to stream it. -->
-    <WatchProviders v-if="showWatchProviders" :external-id="movie.externalId" class="mt-4" />
+    <WatchProviders :type="movie.type" :external-id="movie.externalId" class="mt-4" />
 
     <CommentThread :work-id="movie.id" :club-slug="clubSlug" />
 
@@ -177,7 +177,6 @@ import {
   workOverview,
   workActors,
   workSubtitle,
-  workTypeSupportsWatchProviders,
 } from "@/common/clubType";
 import { asTv } from "@/common/clubType/tv/data";
 import AddedByListbox from "@/common/components/AddedByListbox.vue";
@@ -268,11 +267,4 @@ const displayYear = computed(() => workSubtitle(props.movie.externalData));
 const metaLine = computed(() => workMetaLine(props.movie.externalData));
 
 const overview = computed(() => workOverview(props.movie.externalData));
-
-// Driven by the work's own type (via the registry) rather than by the cached
-// metadata, so a movie still shows where to stream it when its details haven't
-// been cached.
-const showWatchProviders = computed(
-  () => workTypeSupportsWatchProviders(props.movie.type) && hasValue(props.movie.externalId),
-);
 </script>
