@@ -104,7 +104,7 @@ export const movieClubConfig: ClubTypeConfig = {
     shareTitle: "Movie Club Statistics",
   },
   supportsAwards: true,
-  supportsWatchProviders: true,
+  watchProvidersPath: (externalId) => `movie/${externalId}`,
   supportsRecommendations: true,
   invite: {
     shareText: "Join my club and score the movies we watch together.",

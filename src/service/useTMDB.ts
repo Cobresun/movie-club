@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/vue-query";
-import { computed, type Ref } from "vue";
+import { computed, type MaybeRefOrGetter, type Ref, toValue } from "vue";
 
 import { hasValue, isDefined } from "../../lib/checks/checks.js";
-import { type TMDBWatchProvidersResponse } from "../../lib/types/movie";
+import { type TMDBWatchProvidersResponse } from "../../lib/types/tmdb";
 import { type TMDBTvSeasonData } from "../../lib/types/tv";
 import { http } from "@/common/http";
 
@@ -33,17 +33,21 @@ export function useTvSeason(
   });
 }
 
-export function useWatchProviders(externalId: Ref<string | undefined>) {
+/**
+ * Where a work streams, by region. `tmdbPath` is the TMDB resource the club
+ * type registry names for it ("movie/27205", "tv/95396").
+ */
+export function useWatchProviders(tmdbPath: MaybeRefOrGetter<string | undefined>) {
   return useQuery<TMDBWatchProvidersResponse>({
-    queryKey: ["tmdb", "watch-providers", externalId],
-    enabled: computed(() => hasValue(externalId.value)),
+    queryKey: computed(() => ["tmdb", "watch-providers", toValue(tmdbPath)]),
+    enabled: computed(() => hasValue(toValue(tmdbPath))),
     // Providers change slowly; an hour-long stale window keeps the data far
-    // fresher than the daily-refreshed copy stored for other movie metadata.
+    // fresher than the daily-refreshed copy stored for other work metadata.
     staleTime: 1000 * 60 * 60,
     queryFn: async ({ signal }) =>
       (
         await http.get<TMDBWatchProvidersResponse>(
-          `https://api.themoviedb.org/3/movie/${externalId.value}/watch/providers?api_key=${key}`,
+          `https://api.themoviedb.org/3/${toValue(tmdbPath)}/watch/providers?api_key=${key}`,
           { signal },
         )
       ).data,

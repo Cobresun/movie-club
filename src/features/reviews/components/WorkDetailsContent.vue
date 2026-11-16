@@ -203,7 +203,7 @@
         <ExternalLink label="Rotten Tomatoes" :href="rottenTomatoesUrl" />
       </div>
 
-      <WatchProviders v-if="movieData" :external-id="movie.externalId" class="mt-4" />
+      <WatchProviders :type="movie.type" :external-id="movie.externalId" class="mt-4" />
     </section>
 
     <CommentThread v-if="isListed" :work-id="movie.id" :club-slug="clubId" />

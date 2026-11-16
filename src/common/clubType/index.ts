@@ -9,7 +9,7 @@ import {
   type WorkDisplay,
   type WorkSimilarityScorer,
 } from "./types";
-import { isDefined } from "@/../lib/checks/checks";
+import { hasValue, isDefined } from "@/../lib/checks/checks";
 import { ClubType, WorkType } from "@/../lib/types/generated/db";
 import { type DetailedWorkData, type WorkDataSummary } from "@/../lib/types/lists";
 import { type CastMember } from "@/../lib/types/tmdb";
@@ -88,12 +88,17 @@ export function clubTypeSupportsAwards(type: ClubType): boolean {
 }
 
 /**
- * Whether a work of this type can have streaming availability shown. Driven by
- * the work type rather than the cached metadata, so availability still renders
- * for a work whose external details haven't been cached yet.
+ * The TMDB resource listing where to stream a work, if it has one. Driven by
+ * the work type and external id rather than the cached metadata, so
+ * availability still renders for a work whose details haven't been cached yet.
  */
-export function workTypeSupportsWatchProviders(type: WorkType): boolean {
-  return clubTypeConfig(CLUB_TYPE_BY_WORK_TYPE[type]).supportsWatchProviders;
+export function workWatchProvidersPath(
+  type: WorkType,
+  externalId: string | undefined,
+): string | undefined {
+  return hasValue(externalId)
+    ? clubTypeConfig(CLUB_TYPE_BY_WORK_TYPE[type]).watchProvidersPath(externalId)
+    : undefined;
 }
 
 /** Invite-screen copy for a club's media type. */

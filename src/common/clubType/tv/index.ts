@@ -6,6 +6,7 @@ import { tvLandingPreview } from "./landingPreview";
 import { browseTvShows, searchTvShows } from "./search";
 import { makeTvSimilarity } from "./similarity";
 import { ClubType, WorkType } from "@/../lib/types/generated/db";
+import { parseTvAddress } from "@/../lib/types/tv";
 import { formatRuntime } from "@/common/workDisplay";
 
 export const tvClubConfig: ClubTypeConfig = {
@@ -125,9 +126,11 @@ export const tvClubConfig: ClubTypeConfig = {
     shareTitle: "TV Club Statistics",
   },
   supportsAwards: false,
-  // Where-to-watch only queries TMDB's movie endpoint; a show id there would
-  // resolve to an unrelated movie.
-  supportsWatchProviders: false,
+  // TMDB lists availability per show; an episode streams wherever its show does.
+  watchProvidersPath: (externalId) => {
+    const address = parseTvAddress(externalId);
+    return address === undefined ? undefined : `tv/${address.showId}`;
+  },
   // Recommendations come from TMDB's movie recommendations endpoint only.
   supportsRecommendations: false,
   invite: {
