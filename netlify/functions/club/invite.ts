@@ -1,12 +1,13 @@
 import { type InviteTokenResponse } from "../../../lib/types/club";
 import ClubRepository from "../repositories/ClubRepository";
+import { secured } from "../utils/session";
 import { ok, badRequest } from "../utils/responses";
 import { Router } from "../utils/router";
 import { type ClubRequest } from "../utils/validation";
 
 const router = new Router<ClubRequest>("/api/club/:clubSlug/invite");
 
-router.post("/", async ({ clubId }, res) => {
+router.post("/", secured, async ({ clubId }, res) => {
   try {
     const token = await ClubRepository.createClubInvite(clubId);
     return res(ok<InviteTokenResponse>({ token }));
