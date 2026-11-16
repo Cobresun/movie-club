@@ -144,27 +144,17 @@ describe("DELETE /api/club/:clubSlug/members/:memberId", () => {
 });
 
 describe("GET /api/club/:clubSlug/members/join", () => {
-  it("adds the signed-in user to the club", async () => {
+  it("does not let a signed-in user join without an invite", async () => {
     const alice = await signIn("alice");
     const bob = await signIn("bob");
     const club = await createClub(alice, { members: [alice] });
 
     const res = await api.get(`/api/club/${club.slug}/members/join`, { as: bob });
 
-    expect(res.statusCode).toBe(200);
-    expect((await membersOf(club.slug)).body.map((member) => member.id).sort()).toStrictEqual(
-      [alice.userId, bob.userId].sort(),
-    );
-  });
-
-  it("returns 401 without a session", async () => {
-    const alice = await signIn("alice");
-    const club = await createClub(alice, { members: [] });
-
-    const res = await api.get(`/api/club/${club.slug}/members/join`);
-
-    expect(res.statusCode).toBe(401);
-    expect((await membersOf(club.slug)).body).toStrictEqual([]);
+    expect(res.statusCode).toBe(405);
+    expect((await membersOf(club.slug)).body.map((member) => member.id)).toStrictEqual([
+      alice.userId,
+    ]);
   });
 });
 
@@ -308,7 +298,7 @@ describe("leaving and rejoining", () => {
       [],
     );
 
-    await joinClub(club, bob);
+    await joinClub(club, bob, alice);
     const clubs = await memberApi.get<{ clubName: string }[]>("/api/member/clubs", { as: bob });
     expect(clubs.body.map((entry) => entry.clubName)).toStrictEqual(["Revolving Door"]);
   });

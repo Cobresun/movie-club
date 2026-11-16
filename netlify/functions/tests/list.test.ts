@@ -817,7 +817,7 @@ describe("GET /api/club/:clubSlug/list/reviews", () => {
     await scoreWork(club, bob, work.id, 4);
 
     await leaveClub(club, bob);
-    await joinClub(club, bob);
+    await joinClub(club, bob, alice);
 
     const res = await api.get<DetailedReviewListItem[]>(`/api/club/${club.slug}/list/reviews`);
 
