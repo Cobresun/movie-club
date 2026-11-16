@@ -23,15 +23,15 @@ export const errorMessage = (error: unknown) =>
   error instanceof Error ? error.message : String(error);
 
 /**
- * Catalog pages `pages` of the source, read all at once. A page the source
- * fails on is noted in `errors` and skipped rather than ending the run.
+ * Pages `pages` of the source, read all at once. A page the source fails on
+ * is noted in `errors` and skipped rather than ending the run.
  */
 async function readPages(
-  game: DailyGame,
+  catalogPage: DailyGame["catalogPage"],
   pages: number[],
   errors: CatalogError[],
 ): Promise<CatalogCandidate[]> {
-  const results = await Promise.allSettled(pages.map((page) => game.catalogPage(page)));
+  const results = await Promise.allSettled(pages.map((page) => catalogPage(page)));
   return results.flatMap((result, index) => {
     if (result.status === "fulfilled") return result.value;
     errors.push({ externalId: `page ${pages[index]}`, error: errorMessage(result.reason) });
@@ -57,7 +57,7 @@ async function findMissing(
   for (let first = 1; first <= game.catalogPages && missing.size < limit;) {
     const pages = pageBatch(first, game.catalogPages);
     first += pages.length;
-    const candidates = await readPages(game, pages, errors);
+    const candidates = await readPages(game.catalogPage, pages, errors);
     const catalogued = await DailyGameRepository.getCatalogued(
       provider.type,
       candidates.map((candidate) => candidate.externalId),
@@ -70,19 +70,22 @@ async function findMissing(
 }
 
 /**
- * The external ids on the game's first {@link DailyGame.answerPages} pages,
- * read fresh so a work that has slipped down the source's rankings stops
- * being drawn. A page the source fails on is logged and left out.
+ * The external ids on the source's first `pageCount` pages, read fresh so a
+ * work that has slipped down the source's rankings drops out. A page the
+ * source fails on is logged and left out.
  */
-async function topWorkIds(game: DailyGame): Promise<Set<string>> {
+export async function topWorkIds(
+  catalogPage: DailyGame["catalogPage"],
+  pageCount: number,
+): Promise<Set<string>> {
   const ids = new Set<string>();
   const errors: CatalogError[] = [];
-  for (let first = 1; first <= game.answerPages;) {
-    const pages = pageBatch(first, game.answerPages);
+  for (let first = 1; first <= pageCount;) {
+    const pages = pageBatch(first, pageCount);
     first += pages.length;
-    for (const work of await readPages(game, pages, errors)) ids.add(work.externalId);
+    for (const work of await readPages(catalogPage, pages, errors)) ids.add(work.externalId);
   }
-  errors.forEach((e) => console.log(`Answer pages: ${e.externalId}: ${e.error}`));
+  errors.forEach((e) => console.log(`Top pages: ${e.externalId}: ${e.error}`));
   return ids;
 }
 
@@ -130,8 +133,8 @@ export async function loadPool(provider: MediaProvider): Promise<DailyGamePoolEn
 
 /**
  * The answer for `date`: the one already recorded, or else one drawn from
- * the works in `pool` that are on the game's answer pages, and recorded so it
- * holds for the rest of the day. Undefined when the pool has no fair answer.
+ * `pool` and recorded so it holds for the rest of the day. Undefined when the
+ * pool has no fair answer.
  */
 export async function answerFor(
   provider: MediaProvider,
@@ -141,9 +144,8 @@ export async function answerFor(
 ): Promise<string | undefined> {
   const recorded = await DailyGameRepository.getAnswer(provider.type, date);
   if (isDefined(recorded)) return recorded;
-  const top = await topWorkIds(game);
   const pick = pickAnswer(
-    game.answerCandidates(pool).filter((id) => top.has(id)),
+    await game.answerCandidates(pool),
     await DailyGameRepository.getPastAnswers(provider.type),
   );
   if (!isDefined(pick)) return undefined;

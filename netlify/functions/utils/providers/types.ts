@@ -48,18 +48,16 @@ export interface DailyGame {
    */
   catalogPage: (page: number) => Promise<CatalogCandidate[]>;
   /**
-   * How many of the first {@link catalogPage} pages answers are drawn from.
-   * The rest of the catalog can be guessed but is never the answer, so the
-   * puzzle is always a work most players have heard of.
-   */
-  readonly answerPages: number;
-  /**
    * The pool ranked against `answerId`, the answer first. Entries whose
    * metadata isn't this game's media are left out.
    */
   rank: (answerId: string, pool: readonly DailyGamePoolEntry[]) => DailyGameWork[];
-  /** The external ids in `pool` that are fair answers. */
-  answerCandidates: (pool: readonly DailyGamePoolEntry[]) => string[];
+  /**
+   * The external ids in `pool` that can be the answer. Every work in the pool
+   * can be guessed, but a game may draw answers from a narrower set, such as
+   * only the works most players have heard of.
+   */
+  answerCandidates: (pool: readonly DailyGamePoolEntry[]) => Promise<string[]>;
 }
 
 /**
