@@ -9,7 +9,12 @@ import { server } from "@/mocks/server";
 import { useAuthStore } from "@/stores/auth";
 import PiniaStoreHelper from "@/tests/PiniaStoreHelper.test.vue";
 
-const member = { id: "u-1", email: "ada@example.com", name: "Ada", image: null };
+const member: { id: string; email: string; name: string; image: string | null } = {
+  id: "u-1",
+  email: "ada@example.com",
+  name: "Ada",
+  image: null,
+};
 const signedInSession = { session: { id: "s-1" }, user: member };
 
 /** What a browser holds after a session resolved signed in as `member`. */
@@ -126,8 +131,8 @@ describe("refreshSession", () => {
     // The session endpoint behaves like BetterAuth's: the signed cookie cache
     // answers, still carrying the old avatar, until a caller asks for it to be
     // bypassed and the database — where the upload landed — answers instead.
-    const cached = { session: { id: "s-1" }, user: { id: "u-1", image: "https://img/old.png" } };
-    const saved = { session: { id: "s-1" }, user: { id: "u-1", image: "https://img/new.png" } };
+    const cached = { session: { id: "s-1" }, user: { ...member, image: "https://img/old.png" } };
+    const saved = { session: { id: "s-1" }, user: { ...member, image: "https://img/new.png" } };
 
     const store = await mountWithResolvedSession(cached);
     expect(store.user?.image).toBe("https://img/old.png");
