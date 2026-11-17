@@ -30,6 +30,8 @@ function makeMovieRow(overrides: Partial<MovieRowLike> = {}): MovieRowLike {
     poster_path: "/oYuLEt3zVCKq57qu2F8dT7NIa6f.jpg",
     status: "Released",
     tagline: "Your mind is the scene of the crime.",
+    collection_id: null,
+    collection_name: null,
     genres: ["Action", "Science Fiction", "Adventure"],
     production_companies: ["Warner Bros.", "Legendary Entertainment"],
     production_countries: ["United States of America", "United Kingdom"],
@@ -225,5 +227,22 @@ describe("toMovieDataSummary — array handling", () => {
   it("returns an empty array for production_countries when null", () => {
     const row = makeMovieRow({ production_countries: null });
     expect(toMovieDataSummary(row).production_countries).toStrictEqual([]);
+  });
+});
+
+describe("toMovieDataSummary — collection", () => {
+  it("maps the TMDB collection a movie belongs to", () => {
+    const row = makeMovieRow({
+      collection_id: "263",
+      collection_name: "The Dark Knight Collection",
+    });
+    expect(toMovieDataSummary(row).collection).toStrictEqual({
+      id: 263,
+      name: "The Dark Knight Collection",
+    });
+  });
+
+  it("leaves the collection out for a standalone movie", () => {
+    expect(toMovieDataSummary(makeMovieRow()).collection).toBeUndefined();
   });
 });

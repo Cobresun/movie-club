@@ -3,11 +3,12 @@ import { type DailyGameRules, rarityPoints, type ScoredClue, tagCounts } from ".
 import { type MovieDataSummary } from "../types/movie";
 import { releaseYear } from "./releaseYear.js";
 
-// A shared director is the strongest link two movies can have, a shared star
-// half that. Genres, language and decade are worth what their rarity says. A
+// A shared director is the strongest link two movies can have, a TMDB
+// collection (franchise) close behind, a shared star half a director. Genres, language and decade are worth what their rarity says. A
 // shared genre is worth at least 2, so it always outweighs the 1 a guess loses
 // for each genre the answer doesn't have.
 const DIRECTOR_POINTS = 10;
+const COLLECTION_POINTS = 8;
 const STAR_POINTS = 5;
 const STUDIO_POINTS = 2;
 const GENRE_POINTS = { min: 2, max: 4 };
@@ -71,6 +72,13 @@ function groupedClue(
 
 const directorNames = (movie: MovieDataSummary) => movie.directors.map((d) => d.name);
 
+function collectionClue(guess: MovieDataSummary, answer: MovieDataSummary): ScoredClue[] {
+  const { collection } = guess;
+  return isDefined(collection) && collection.id === answer.collection?.id
+    ? [{ text: `Same series: ${collection.name}`, points: COLLECTION_POINTS }]
+    : [];
+}
+
 /**
  * Clues name major cast only: a full TMDB credit list runs to background
  * extras and stunt performers, who make no sense as "Also stars".
@@ -86,6 +94,7 @@ export function makeMovieClues(pool: readonly MovieDataSummary[]) {
   const decadePoints = rarityPoints(pool, decades, DECADE_POINTS);
 
   return (guess: MovieDataSummary, answer: MovieDataSummary): ScoredClue[] => [
+    ...collectionClue(guess, answer),
     // A directing team is one director's worth.
     ...groupedClue(
       shared(directorNames(guess), directorNames(answer)),
