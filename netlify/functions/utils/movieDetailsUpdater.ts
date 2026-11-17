@@ -34,6 +34,8 @@ export async function insertMovieDetails(
       status: tmdbData.status,
       tagline: tmdbData.tagline,
       title: tmdbData.title,
+      collection_id: tmdbData.belongs_to_collection?.id ?? null,
+      collection_name: tmdbData.belongs_to_collection?.name ?? null,
     })
     .onConflict((oc) => oc.column("external_id").doNothing())
     .execute();
@@ -164,6 +166,8 @@ export async function updateMovieDetails(
       status: tmdbData.status,
       tagline: tmdbData.tagline,
       title: tmdbData.title,
+      collection_id: tmdbData.belongs_to_collection?.id ?? null,
+      collection_name: tmdbData.belongs_to_collection?.name ?? null,
       updated_date: new Date(),
     })
     .where("external_id", "=", externalId)

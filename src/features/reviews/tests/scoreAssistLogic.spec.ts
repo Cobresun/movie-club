@@ -27,6 +27,7 @@ function movieData(
     companies?: string[];
     releaseDate?: string;
     language?: string;
+    collection?: { id: number; name: string };
   } = {},
 ): DetailedMovieData {
   return {
@@ -47,6 +48,7 @@ function movieData(
     production_countries: [],
     release_date: opts.releaseDate,
     original_language: opts.language,
+    collection: opts.collection,
   };
 }
 
@@ -279,6 +281,18 @@ describe("pivot selection", () => {
     expect(session.pivot?.workId).toBe("w4");
   });
 
+  it("prefers a sequel over an unrelated work of the same genre", () => {
+    const lotr = { id: 119, name: "The Lord of the Rings Collection" };
+    const fellowship = movieData({ genres: ["Fantasy"], collection: lotr });
+    const pool = withExternalData(
+      withExternalData(ladder(), ["w4"], movieData({ genres: ["Fantasy"] })),
+      ["w6"],
+      movieData({ genres: ["Fantasy"], collection: lotr }),
+    );
+    const session = startSession(target(fellowship), pool);
+    expect(session.pivot?.workId).toBe("w6");
+  });
+
   it("breaks similarity ties towards the bracket's score midpoint", () => {
     const drama = movieData({ genres: ["Drama"] });
     const pool = withExternalData(ladder(), ["w4", "w5"], drama);
@@ -461,6 +475,37 @@ describe("workSimilarity", () => {
     );
     // Same shared genre, but the diluted candidate's larger union lowers overlap.
     expect(focused).toBeGreaterThan(diluted);
+  });
+
+  it("ranks a sequel above an unrelated work, matching the collection by id", () => {
+    const t = movieData({ collection: { id: 10, name: "Star Wars Collection" } });
+    const sequel = workSimilarity(
+      WorkType.MOVIE,
+      t,
+      movieData({ collection: { id: 10, name: "Star Wars Collection" } }),
+    );
+    const sameName = workSimilarity(
+      WorkType.MOVIE,
+      t,
+      movieData({ collection: { id: 11, name: "Star Wars Collection" } }),
+    );
+    const unrelated = workSimilarity(WorkType.MOVIE, t, movieData());
+    expect(sequel).toBeGreaterThan(unrelated);
+    expect(sameName).toBe(unrelated);
+  });
+
+  it("weights a shared collection below a shared director", () => {
+    const t = movieData({
+      directors: ["Nolan"],
+      collection: { id: 263, name: "The Dark Knight Collection" },
+    });
+    const sharedCollection = workSimilarity(
+      WorkType.MOVIE,
+      t,
+      movieData({ collection: { id: 263, name: "The Dark Knight Collection" } }),
+    );
+    const sharedDirector = workSimilarity(WorkType.MOVIE, t, movieData({ directors: ["Nolan"] }));
+    expect(sharedCollection).toBeLessThan(sharedDirector);
   });
 
   it("rewards a shared lead actor, but less than a shared director", () => {

@@ -21,10 +21,10 @@ Kysely with the CockroachDB dialect; see the `kysely` skill for syntax. The sche
 
 Raw `sql` is unchecked against the schema and fails in production instead of at `type-check`. This applies to repositories, providers, scheduled functions and migrations, and to an existing raw query you are editing.
 
-- In a migration, `db.withTables<{…}>()` gives the `Kysely<unknown>` handle types for the tables it touches, backfills included.
+- In a migration, `db.$extendTables<{…}>()` gives the `Kysely<unknown>` handle types for the tables it touches, backfills included.
 - Use the typed `eb.case()` builder and expression helpers before `sql`.
 - Raw `sql` is acceptable only for:
-  - DDL the builder can't express: `ALTER TYPE … ADD VALUE`, `ADD COLUMN IF NOT EXISTS`, `DROP INDEX … CASCADE`, `CREATE`/`DROP DATABASE`.
+  - DDL the builder can't express: `ALTER TYPE … ADD VALUE`, `DROP INDEX … CASCADE`, `CREATE`/`DROP DATABASE`.
   - A `CASE` over a caller-supplied id list (`ListRepository.reorderLists`, `reorderList`).
   - A scalar expression with no builder function, as a typed fragment (`sql<number>` for `COALESCE(MAX(position), 0) + 1`).
 - Write many rows in one statement: `insertInto(…).values(rows.map(…))` with `onConflict` for an upsert (`utils/tvDetailsUpdater.ts`), never a query per row.
