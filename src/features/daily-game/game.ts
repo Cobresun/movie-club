@@ -14,6 +14,13 @@ export function previousDate(date: string): string {
   return day.toISOString().slice(0, 10);
 }
 
+/** The calendar day after `date`, both `YYYY-MM-DD`. */
+export function nextDate(date: string): string {
+  const day = new Date(`${date}T00:00:00Z`);
+  day.setUTCDate(day.getUTCDate() + 1);
+  return day.toISOString().slice(0, 10);
+}
+
 const puzzleDateFormat = new Intl.DateTimeFormat("en-US", { dateStyle: "long", timeZone: "UTC" });
 
 /** A puzzle's `YYYY-MM-DD` date as the player reads it: "October 22, 2026". */
