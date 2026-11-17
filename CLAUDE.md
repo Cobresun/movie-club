@@ -7,7 +7,7 @@ Movie Club: a Vue 3 app for movie, book and TV clubs — reviews, lists, awards.
 - Run the app with `netlify dev`, not `npm run dev`; the functions backend doesn't exist otherwise.
 - Sign in locally as `cobresunofficial@gmail.com`. The dev `.env` contents are in the Cobresun Notion.
 - `GEMINI_API_KEY` and `ADMIN_USER_EMAILS` are set only in the Netlify console, not in local `.env`. `ADMIN_USER_EMAILS` (comma-separated) is the entire authorization for `/api/admin/*` and fails closed: unset hides `/admin` from everyone.
-- Lint and format are oxlint and oxfmt. Hooks format each file you edit and run `type-check` and lint on changed files when a turn ends. Run `npm run lint` and `npm test` yourself before pushing.
+- Lint and format are oxlint and oxfmt. Hooks format each file you edit and run `type-check` and oxlint on changed files when a turn ends. `npm run lint` also runs knip and `lint/check.mjs`; run it and `npm test` yourself before pushing.
 - `npm test` needs Docker running (the integration project starts CockroachDB). `npm run test:unit` skips it.
 
 ## Database
@@ -25,6 +25,8 @@ These account for most review comments. Each has come back after being written d
 4. **Casts.** `as`, `!`, `as never`: narrow or parse instead.
 5. **Leftovers.** Fields nothing reads, unreachable branches and stale comments from the PR's own first design; stray endpoints, lockfile churn, drive-by reformatting.
 6. **Hand-written checks and helpers** where `lib/checks/checks.ts` or an existing helper already does the job.
+
+`npm run lint` catches the mechanical part of each: the `review/*` rules in `lint/review-plugin.mjs`, and knip for unused files, exports and dependencies. Existing violations are grandfathered per file in `lint/baseline.json`, which may only shrink. After fixing one, run `npm run lint:baseline` and commit the smaller file. Never regenerate it to absorb a new violation: lint compares it with `main` and fails if any count grew.
 
 ## Pull requests
 

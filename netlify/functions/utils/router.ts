@@ -171,14 +171,12 @@ export interface ChainMethod<TInput extends Request> {
     c7: UseItem<F, G>,
     c8: UseItem<G, H>,
     c9: UseItem<H, I>,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- we can't keep enumerating
     ...rest: UseItem<any, RouterResponse>[]
   ): void;
 }
 
 interface Route {
   path: Path<StringRecord>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- storing as any. type is checked on setting up chain
   callbacks: readonly MiddlewareCallback<any, any>[];
 }
 
@@ -235,7 +233,6 @@ export class Router<T extends Request = Request> {
     this.put = this.createChainMethod(HTTPMethod.PUT);
     this.delete = this.createChainMethod(HTTPMethod.DELETE);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- type checking is done on setting up chain
     // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- the rest-param implementation cannot match the overloaded ChainMethod interface without a cast
     this.use = ((path: string, ...items: UseItem<any, unknown>[]) => {
       const callbacks: MiddlewareCallback<unknown, unknown>[] = items.map((item) =>
@@ -249,7 +246,6 @@ export class Router<T extends Request = Request> {
   }
 
   private createChainMethod(method: HTTPMethod): ChainMethod<T> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- type checking is done on setting up chain
     // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- the rest-param implementation cannot match the overloaded ChainMethod interface without a cast
     return ((path: string, ...items: UseItem<any, unknown>[]) => {
       const callbacks: MiddlewareCallback<unknown, unknown>[] = items.map((item) =>

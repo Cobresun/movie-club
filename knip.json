@@ -1,0 +1,21 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": [
+    "netlify/functions/*.ts",
+    "netlify/functions/*/index.ts",
+    "netlify/edge-functions/*.ts",
+    "netlify/plugins/*/index.js",
+    "migrations/data/*.ts",
+    "scripts/*.ts"
+  ],
+  "project": [
+    "src/**/*.{ts,vue,css}",
+    "lib/**/*.ts",
+    "netlify/**/*.{ts,js}",
+    "migrations/**/*.ts",
+    "scripts/**/*.ts",
+    "lint/**/*.mjs"
+  ],
+  "ignoreExportsUsedInFile": true,
+  "netlify": false
+}

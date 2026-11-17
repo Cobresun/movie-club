@@ -27,8 +27,9 @@ Raw `sql` is unchecked against the schema and fails in production instead of at 
   - DDL the builder can't express: `ALTER TYPE … ADD VALUE`, `ADD COLUMN IF NOT EXISTS`, `DROP INDEX … CASCADE`, `CREATE`/`DROP DATABASE`.
   - A `CASE` over a caller-supplied id list (`ListRepository.reorderLists`, `reorderList`).
   - A scalar expression with no builder function, as a typed fragment (`sql<number>` for `COALESCE(MAX(position), 0) + 1`).
+- `review/no-raw-sql` flags every other `sql`. Mark an exception with `// oxlint-disable-next-line review/no-raw-sql -- <which exception>`.
 - Write many rows in one statement: `insertInto(…).values(rows.map(…))` with `onConflict` for an upsert (`utils/tvDetailsUpdater.ts`), never a query per row.
-- Use `selectAll("table")` after a join. Bare `selectAll()` lets joined columns silently shadow base-table columns of the same name. Grep for it when a migration adds a column to a joined table.
+- Use `selectAll("table")` after a join. Bare `selectAll()` lets joined columns silently shadow base-table columns of the same name; `review/select-all-after-join` flags it.
 - Declare a small interface for a row a provider or repository hands onward, rather than exporting the inferred join type.
 
 ## Migrations
