@@ -403,6 +403,41 @@ describe("DailyGameView", () => {
     expect(statValue("Streak")).toBe("2");
   });
 
+  it("reminds a player on a streak to keep it going until they finish", async () => {
+    servePuzzles({ "2026-10-21": 6, "2026-10-22": 7 });
+    vi.setSystemTime(new Date(2026, 9, 21, 12));
+    const yesterday = await renderGame();
+    await guess(yesterday.user, "Heat");
+    yesterday.unmount();
+
+    vi.setSystemTime(new Date(2026, 9, 22, 12));
+    const { user } = await renderGame();
+
+    expect(screen.getByText("1 day in a row. Solve today's to keep it going.")).toBeInTheDocument();
+
+    await guess(user, "Heat");
+
+    expect(screen.queryByText(/in a row/)).not.toBeInTheDocument();
+    expect(statValue("Streak")).toBe("2");
+  });
+
+  it("keeps the best streak after the streak breaks", async () => {
+    servePuzzles({ "2026-10-20": 5, "2026-10-21": 6, "2026-10-22": 7 });
+    for (const day of [20, 21]) {
+      vi.setSystemTime(new Date(2026, 9, day, 12));
+      const onTheDay = await renderGame();
+      await guess(onTheDay.user, "Heat");
+      onTheDay.unmount();
+    }
+
+    vi.setSystemTime(new Date(2026, 9, 22, 12));
+    const { user } = await renderGame();
+    await giveUp(user);
+
+    expect(statValue("Streak")).toBe("0");
+    expect(statValue("Best")).toBe("2");
+  });
+
   it("counts down to the next puzzle at the player's midnight", async () => {
     const { user } = await renderGame();
 

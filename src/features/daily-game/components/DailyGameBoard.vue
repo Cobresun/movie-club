@@ -10,6 +10,13 @@
           game.fromArchive ? `the mystery ${noun} from ${puzzleDate}` : `today's mystery ${noun}`
         }}. Every guess is ranked by how close it is — #1 is the answer.
       </p>
+      <p
+        v-if="!game.fromArchive && !game.finished.value && game.stats.value.streak > 0"
+        class="text-highlight flex items-center gap-1.5 text-sm font-semibold"
+      >
+        <mdicon name="fire" :size="18" aria-hidden="true" />
+        {{ streakLine }}
+      </p>
       <Menu as="div" class="relative">
         <MenuButton
           class="bg-lowBackground duration-slow ease-spring flex min-h-[44px] items-center gap-2 rounded-full px-4 text-sm font-semibold ring-1 ring-white/[0.12] transition ring-inset hover:bg-white/10 active:scale-92 active:duration-75"
@@ -103,7 +110,7 @@
       <p v-if="game.solved.value" class="text-white/80">
         {{ guessSummary }}
       </p>
-      <dl class="mt-1 flex gap-8">
+      <dl class="mt-1 flex gap-6 sm:gap-8">
         <div
           v-for="(stat, index) in stats"
           :key="stat.label"
@@ -396,7 +403,13 @@ const stats = computed(() => [
   { label: "Played", value: game.stats.value.played },
   { label: "Solved", value: game.stats.value.won },
   { label: "Streak", value: game.stats.value.streak },
+  { label: "Best", value: game.stats.value.best },
 ]);
+
+const streakLine = computed(
+  () =>
+    `${plural(game.stats.value.streak, "day", "days")} in a row. Solve today's to keep it going.`,
+);
 
 const shareLabel = computed(() => (copied.value ? "Result copied" : "Share result"));
 
