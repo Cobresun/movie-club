@@ -1,4 +1,4 @@
-import { hintRank, localDate, previousDate, temperature } from "../game";
+import { hintRank, localDate, previousDate, shareText, temperature } from "../game";
 
 describe("hintRank", () => {
   it("halves the distance from the best guess to the answer", () => {
@@ -35,5 +35,28 @@ describe("dates", () => {
 
   it("steps back across a month boundary", () => {
     expect(previousDate("2026-11-01")).toBe("2026-10-31");
+  });
+});
+
+describe("shareText", () => {
+  it("lays a long game out ten squares to a row", () => {
+    const trail = Array.from({ length: 12 }, (_, index) => ({
+      rank: index === 11 ? 1 : 400,
+      hint: false,
+    }));
+
+    expect(
+      shareText({
+        name: "Reelated",
+        puzzle: 7,
+        trail,
+        poolSize: 400,
+        solved: true,
+        streak: 0,
+        url: "https://example.test/reelated",
+      }),
+    ).toBe(
+      "Reelated #7: I got it in 12 guesses.\n🟥🟥🟥🟥🟥🟥🟥🟥🟥🟥\n🟥🟩\nhttps://example.test/reelated",
+    );
   });
 });

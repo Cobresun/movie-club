@@ -183,10 +183,10 @@ export function useDailyGame(puzzle: DailyGamePuzzle, name: string, today: strin
     shareText({
       name,
       puzzle: puzzle.puzzle,
-      guessRanks: ownGuesses.value.map((g) => g.work.rank),
+      trail: guesses.value.map((g) => ({ rank: g.work.rank, hint: g.hint })),
       poolSize,
-      hints: hintCount.value,
       solved: solved.value,
+      streak: fromArchive ? 0 : stats.value.streak,
       url,
     });
 

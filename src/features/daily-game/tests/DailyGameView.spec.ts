@@ -220,8 +220,7 @@ describe("DailyGameView", () => {
     await user.click(screen.getByRole("button", { name: "Share result" }));
 
     const shared = await navigator.clipboard.readText();
-    expect(shared).toContain("Reelated #7: I got it in 2 guesses.");
-    expect(shared).toContain("🟩 1  🟨 0  🟥 1");
+    expect(shared).toContain("Reelated #7: I got it in 2 guesses.\n🟥🟩\n");
     expect(shared).not.toContain("Heat");
     expect(screen.getByRole("button", { name: "Result copied" })).toBeInTheDocument();
   });
@@ -308,8 +307,7 @@ describe("DailyGameView", () => {
 
     await user.click(screen.getByRole("button", { name: "Share result" }));
     const shared = await navigator.clipboard.readText();
-    expect(shared).toContain("Reelated #7: I got it in 2 guesses and 1 hint.");
-    expect(shared).toContain("🟩 1  🟨 0  🟥 1");
+    expect(shared).toContain("Reelated #7: I got it in 2 guesses and 1 hint.\n🟥💡🟩\n");
   });
 
   it("shares a give-up after only a hint without calling the hint a guess", async () => {
@@ -459,6 +457,23 @@ describe("DailyGameView", () => {
       await screen.findByRole("heading", { level: 1, name: "Reelated #8" }),
     ).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "You got it!" })).not.toBeInTheDocument();
+  });
+
+  it("shares a streak that runs back past today", async () => {
+    servePuzzles({ "2026-10-21": 6, "2026-10-22": 7 });
+    vi.setSystemTime(new Date(2026, 9, 21, 12));
+    const yesterday = await renderGame();
+    await guess(yesterday.user, "Heat");
+    yesterday.unmount();
+
+    vi.setSystemTime(new Date(2026, 9, 22, 12));
+    const { user } = await renderGame();
+    await guess(user, "Heat");
+    await user.click(screen.getByRole("button", { name: "Share result" }));
+
+    expect(await navigator.clipboard.readText()).toContain(
+      "Reelated #7: I got it in 1 guess. 🔥 2\n",
+    );
   });
 
   describe("from the archive", () => {
