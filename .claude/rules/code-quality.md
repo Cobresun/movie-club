@@ -19,8 +19,8 @@ paths:
 
 ## Types and checks
 
-- Presence checks use `lib/checks/checks.ts` (`isDefined`, `hasValue`, `hasElements`, `isString`, `isRecord`, `ensure`), not `!== undefined`, `!= null` or `.trim() !== ""`. Lint does not catch the hand-written form; review does.
-- No `as`, `!`, `as never` or `@ts-expect-error`. Each hides a question the compiler was asking. Narrow instead:
+- Presence checks use `lib/checks/checks.ts` (`isDefined`, `hasValue`, `hasElements`, `isString`, `isRecord`, `ensure`), not `!== undefined`, `!= null` or `.trim() !== ""`. Lint flags the hand-written form (`review/no-hand-written-presence-check`).
+- No `as`, `!`, `as never` or `@ts-expect-error`. Each hides a question the compiler was asking. Type-aware lint doesn't reach `.vue` script blocks, so `review/no-vue-cast` covers casts there. Narrow instead:
 
   | Instead of                         | Write                                                    |
   | ---------------------------------- | -------------------------------------------------------- |
@@ -49,7 +49,7 @@ Anything that varies by club or work type (copy, icons, tabs, widgets, behavior,
 - Type registries as `Record<Enum, …>` so a new type fails to compile until every registry covers it.
 - An icon field added to `CLUB_TYPE_CONFIG` also needs `icons.test.ts`'s registry check extended; its static scan can't see computed names.
 
-These are branches too, and have each been sent back:
+`review/no-club-type-branch` flags comparisons, `switch` cases and `??`/`||` defaults on a club or work type outside `src/common/clubType/` and the providers, and `review/club-type-boundary` flags one type's code importing another's. These are branches too, and have each been sent back:
 
 - A default club type while the club loads (`club.value?.type ?? ClubType.MOVIE`). Wait for the club, then look the type up. Existing fallbacks are not a model.
 - A type guard or type-specific field read in a component (`isMovieStats(…)`, `externalData.runtime`). It belongs with that type's registry entry.
@@ -65,5 +65,5 @@ A PR contains the change it says it contains.
 - **No unrequested surface area**: an endpoint that duplicates an existing one, a parameter no caller passes, a behavior change inside a refactor.
 - **Search before adding a helper.** Grep for the existing URL builder, mapper or aggregate and extend it. TMDB images: `src/common/tmdbImages.ts`, `src/common/workDisplay.ts`, `netlify/functions/utils/tmdb.ts`.
 - **Delete dead code completely**: the column, the repository method, the type and the branch together. Before pushing, check that every field, map entry and branch the PR adds is still read after any redesign.
-- **No drive-by diffs**: a lockfile (`package-lock.json`, `deno.lock`) whose manifest didn't change, reformatting of untouched files, stray local files.
+- **No drive-by diffs**: a lockfile (`package-lock.json`, `deno.lock`) whose manifest didn't change (`npm run lint` fails on one), reformatting of untouched files, stray local files.
 - A follow-up is a fair answer to a concern larger than the PR, if it is stated rather than silently deferred.

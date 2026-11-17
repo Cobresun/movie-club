@@ -104,6 +104,7 @@ export default defineConfig({
             "lib/**/*.{test,spec}.ts",
             "netlify/functions/utils/**/*.{test,spec}.ts",
             "scripts/**/*.{test,spec}.ts",
+            "lint/**/*.test.mjs",
           ],
         },
       },

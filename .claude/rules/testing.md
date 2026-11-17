@@ -11,13 +11,13 @@ paths:
 Three Vitest projects, all run by `npm test`:
 
 - **client**: jsdom, `src/**`. Feature tests in `src/features/<feature>/tests/`, helpers in `src/tests/utils.ts`.
-- **server**: node, `lib/**` and `netlify/functions/utils/**`. Pure functions, no database.
+- **server**: node, `lib/**`, `netlify/functions/utils/**` and the lint rules' RuleTester specs in `lint/`. Pure functions, no database.
 - **integration**: node, `netlify/functions/tests/**`. Every handler against a real CockroachDB (needs Docker).
 
 ## What a test may assert on
 
 - **The result, never the request.** Don't capture an outgoing call and check its URL or body. Assert on what was returned or what is on screen. For an optimistic write that refetches, use a stateful fake (`commentsApi()`, `clubListsApi()` in `src/mocks/`).
-- **Query the way a user finds things**: `getByRole`, `getByLabelText`, `getByText`. Never `querySelector`, a class, `getByTitle` or `data-testid`. A modal or sheet is `getByRole("dialog", { name })`.
+- **Query the way a user finds things**: `getByRole`, `getByLabelText`, `getByText`. Never `querySelector`, `container`, a class, `getByTitle` or `data-testid`. A modal or sheet is `getByRole("dialog", { name })`. Lint's `review/test-*` rules flag these, style assertions, clipboard spies, `defineComponent` harnesses and a mid-test `vi.unstubAllEnvs()` in spec files.
 - **If an element can't be found without a selector, fix the component.** It has no role or accessible name, so a screen reader can't reach it either.
 - **Not styling.** No assertions on classes, colours or sizes.
 - **Read the clipboard, never spy on it**: `await navigator.clipboard.readText()`. `render()` installs a working clipboard, which also replaces any spy set up in `beforeEach`.
@@ -53,7 +53,7 @@ Three Vitest projects, all run by `npm test`:
 
 Arrange and assert through the interfaces a client has. Routers, middleware, BetterAuth, repositories and the schema are real. Only TMDB, Google Books, Gemini, Resend and Cloudinary are faked, with MSW.
 
-- **No `vi.mock` of repositories, `utils/database` or `utils/auth`, and no direct database reads or seeds.** `helpers/database.ts` exports only `resetDatabase()`.
+- **No `vi.mock` of repositories, `utils/database` or `utils/auth`, and no direct database reads or seeds.** Lint rejects importing `utils/database`, a repository or `kysely` in a handler test. `helpers/database.ts` exports only `resetDatabase()`.
 - Use the helpers: `requester(handler)` (`helpers/http.ts`), `signIn("alice")` for a real session cookie (`helpers/auth.ts`), and the factories (`createClub`, `addWork`, `scoreWork`), which drive real endpoints.
 - **Assert a write by reading it back** through the endpoint a client would use.
 - **`failOnRequest(method, path)`** asserts "must not call out again" by making that request throw.
