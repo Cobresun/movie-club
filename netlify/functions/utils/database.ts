@@ -8,7 +8,7 @@ import z from "zod";
 import { type DB } from "../../../lib/types/generated/db";
 
 const configFileSchema = z.object({
-  DATABASE_URL: z.string().url().optional(),
+  DATABASE_URL: z.url().optional(),
 });
 
 export function getDbUrl(): string | undefined {

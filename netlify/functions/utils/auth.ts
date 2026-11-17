@@ -35,7 +35,7 @@ const googleClientSecret = ensure(
 );
 
 const authConfigSchema = z.object({
-  siteURL: z.string().url().optional(),
+  siteURL: z.url().optional(),
   trustedOrigins: z.array(z.string()),
 });
 

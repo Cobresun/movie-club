@@ -241,7 +241,7 @@ router.put(
 );
 
 const updateAddedDateSchema = z.object({
-  addedDate: z.string().datetime({ offset: true }),
+  addedDate: z.iso.datetime({ offset: true }),
 });
 
 router.put(

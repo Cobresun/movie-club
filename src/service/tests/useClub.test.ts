@@ -49,7 +49,7 @@ const settingsBodySchema = z.object({
 
 const createClubBodySchema = z.object({
   name: z.string().optional(),
-  type: z.nativeEnum(ClubType),
+  type: z.enum(ClubType),
 });
 
 function settingsApi(hold?: { until: Promise<void> }) {

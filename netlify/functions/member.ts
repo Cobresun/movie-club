@@ -105,7 +105,7 @@ router.put("/name", loggedIn, async (req, res) => {
   const parsed = updateNameSchema.safeParse(JSON.parse(req.event.body ?? "{}"));
 
   if (!parsed.success) {
-    return res(badRequest(parsed.error.errors[0]?.message ?? "Invalid name"));
+    return res(badRequest(parsed.error.issues[0]?.message ?? "Invalid name"));
   }
 
   const { name } = parsed.data;

@@ -219,7 +219,7 @@ async function spawnDatabase(options: SpawnOptions): Promise<string> {
 
     if (hasValue(metadataArg)) {
       try {
-        const parsed = dbMetadataSchema.partial().passthrough().safeParse(JSON.parse(metadataArg));
+        const parsed = dbMetadataSchema.partial().loose().safeParse(JSON.parse(metadataArg));
         if (parsed.success) {
           Object.assign(metadata, parsed.data);
         }
