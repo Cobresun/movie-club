@@ -117,7 +117,7 @@ export const movieClubConfig: ClubTypeConfig = {
     path: "/reelated",
     tagline: "One mystery movie a day. Every guess tells you how related it is. No account needed.",
     similarityRule:
-      "Each clue under a guess is worth points, and the points add up to its rank. A shared director is worth 10, each shared star 5, a shared studio 2 (the big ones don't count), and a shared genre, language or decade 1 to 4, the rarer the more. Each genre the guess has that the answer doesn't costs 1. A guess from another decade says whether the answer is older or newer. When two guesses tie, the one released nearer the answer ranks higher.",
+      "A guess ranks by its clues: a shared director counts most, then shared stars, then a shared studio (the big ones don't count), genre, language or decade, the rarer the more. Each genre the guess has that the answer doesn't counts against it. When two guesses tie, the one released nearer the answer ranks higher.",
     preview: {
       poolSize: 3000,
       guesses: [
@@ -127,11 +127,11 @@ export const movieClubConfig: ClubTypeConfig = {
           year: 2016,
           rank: 2,
           clues: [
-            { text: "Same director: Denis Villeneuve", points: 10 },
-            { text: "Drama", points: 2 },
-            { text: "Science Fiction", points: 2 },
-            { text: "Also from the 2010s", points: 1 },
-            { text: "Not Mystery", points: -1 },
+            { text: "Same director: Denis Villeneuve", shared: true },
+            { text: "Drama", shared: true },
+            { text: "Science Fiction", shared: true },
+            { text: "Also from the 2010s", shared: true },
+            { text: "Not Mystery", shared: false },
           ],
         },
         {
@@ -140,9 +140,9 @@ export const movieClubConfig: ClubTypeConfig = {
           year: 2015,
           rank: 8,
           clues: [
-            { text: "Same director: Denis Villeneuve", points: 10 },
-            { text: "Also from the 2010s", points: 1 },
-            { text: "Not Action, Crime, Thriller", points: -3 },
+            { text: "Same director: Denis Villeneuve", shared: true },
+            { text: "Also from the 2010s", shared: true },
+            { text: "Not Action, Crime, Thriller", shared: false },
           ],
         },
         {
@@ -151,10 +151,10 @@ export const movieClubConfig: ClubTypeConfig = {
           year: 2013,
           rank: 76,
           clues: [
-            { text: "Science Fiction", points: 2 },
-            { text: "Drama", points: 2 },
-            { text: "Also from the 2010s", points: 1 },
-            { text: "Not Romance", points: -1 },
+            { text: "Science Fiction", shared: true },
+            { text: "Drama", shared: true },
+            { text: "Also from the 2010s", shared: true },
+            { text: "Not Romance", shared: false },
           ],
         },
         {
@@ -162,10 +162,7 @@ export const movieClubConfig: ClubTypeConfig = {
           title: "Jaws",
           year: 1975,
           rank: 2808,
-          clues: [
-            { text: "Answer is from after the 1970s", points: 0 },
-            { text: "Not Horror, Thriller, Adventure", points: -3 },
-          ],
+          clues: [{ text: "Not Horror, Thriller, Adventure", shared: false }],
         },
       ],
     },

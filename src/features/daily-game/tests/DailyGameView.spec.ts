@@ -126,7 +126,7 @@ describe("DailyGameView", () => {
     expect(within(latest()).queryByText("Closest yet")).not.toBeInTheDocument();
   });
 
-  it("shows what each clue is worth, the genres the answer doesn't have, and which way its decade lies", async () => {
+  it("shows what a guess shares with the answer and the genres the answer doesn't have", async () => {
     const { user } = await renderGame();
 
     await guess(user, "Collateral");
@@ -137,14 +137,8 @@ describe("DailyGameView", () => {
     expect(
       within(clues)
         .getAllByRole("listitem")
-        .map((clue) => clue.textContent.replace(/\s+/g, " ").trim()),
-    ).toStrictEqual([
-      "+10 Same director: Michael Mann",
-      "+2 Crime",
-      "+2 Drama",
-      "Answer is from before the 2000s",
-      "−1 Not Thriller",
-    ]);
+        .map((clue) => clue.textContent.trim()),
+    ).toStrictEqual(["Same director: Michael Mann", "Crime", "Drama", "Not Thriller"]);
   });
 
   it("only offers movies that match what was typed", async () => {

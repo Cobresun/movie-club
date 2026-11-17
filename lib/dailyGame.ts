@@ -1,12 +1,22 @@
 import { z } from "zod";
 
 import { hasElements } from "./checks/checks.js";
-import { type DailyGameClue, type DailyGameWork } from "./types/dailyGame";
+import { type DailyGameWork } from "./types/dailyGame";
 
 export interface PoolWork<T> {
   id: string;
   title: string;
   data: T;
+}
+
+/**
+ * A clue as the ranking weighs it. Positive points are something the guess
+ * shares with the answer, negative ones a way it differs. The player sees the
+ * clue but not its points.
+ */
+export interface ScoredClue {
+  text: string;
+  points: number;
 }
 
 /**
@@ -17,12 +27,11 @@ export interface PoolWork<T> {
 export interface DailyGameRules<T> {
   /**
    * What `guess` shares with `answer` and where it differs, each clue worth
-   * whole points. A guess's score is the sum of its clues and nothing else,
-   * so a player can always see why one guess outranks another; a clue worth 0
-   * only points the way. `pool` is every work in play, for clues whose worth
-   * depends on how rare they are.
+   * whole points, never 0. A guess's score is the sum of its clues and
+   * nothing else, so a guess's chips always account for its rank. `pool` is
+   * every work in play, for clues whose worth depends on how rare they are.
    */
-  makeClues: (pool: readonly T[]) => (guess: T, answer: T) => DailyGameClue[];
+  makeClues: (pool: readonly T[]) => (guess: T, answer: T) => ScoredClue[];
   /** Also breaks ties: of two guesses with the same score, the one released nearer the answer ranks higher. */
   year: (data: T) => number | undefined;
   /** Whether a work has enough metadata that the trail to it never runs cold. */
@@ -60,7 +69,7 @@ export function rarityPoints<T>(
   };
 }
 
-const totalPoints = (clues: readonly DailyGameClue[]) =>
+const totalPoints = (clues: readonly ScoredClue[]) =>
   clues.reduce((total, clue) => total + clue.points, 0);
 
 /**
@@ -94,12 +103,13 @@ export function rankPool<T>(
       if (a.yearGap !== b.yearGap) return a.yearGap - b.yearGap;
       return a.work.title.localeCompare(b.work.title);
     });
-  return [{ work: answer, clues: [] }, ...others].map(({ work, clues }, index) => ({
+  const answerClues: ScoredClue[] = [];
+  return [{ work: answer, clues: answerClues }, ...others].map(({ work, clues }, index) => ({
     id: work.id,
     title: work.title,
     year: rules.year(work.data),
     rank: index + 1,
-    clues,
+    clues: clues.map((clue) => ({ text: clue.text, shared: clue.points > 0 })),
   }));
 }
 

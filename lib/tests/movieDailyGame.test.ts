@@ -78,7 +78,7 @@ describe("movie daily-game clues", () => {
     });
 
     expect(ranking.map((work) => work.title)).toStrictEqual(["Answer", "Zulu", "Alpha", "Bravo"]);
-    expect(ranking.flatMap((work) => work.clues).every((clue) => clue.points === 0)).toBe(true);
+    expect(ranking.flatMap((work) => work.clues)).toStrictEqual([]);
   });
 
   it("ranks a guess with the answer's genres above one with the same genres and more", () => {
@@ -95,8 +95,8 @@ describe("movie daily-game clues", () => {
       "Romance, Action and Comedy",
     ]);
     expect(cluesOf(ranking, "Romance, Action and Comedy")).toStrictEqual([
-      { text: "Romance", points: 2 },
-      { text: "Not Action, Comedy", points: -2 },
+      { text: "Romance", shared: true },
+      { text: "Not Action, Comedy", shared: false },
     ]);
   });
 
@@ -126,8 +126,8 @@ describe("movie daily-game clues", () => {
     });
 
     expect(cluesOf(ranking, "Guess")).toStrictEqual([
-      { text: "Western", points: 3 },
-      { text: "Also in Korean", points: 3 },
+      { text: "Western", shared: true },
+      { text: "Also in Korean", shared: true },
     ]);
     expect(cluesOf(ranking, "English")).toStrictEqual([]);
   });
@@ -143,7 +143,7 @@ describe("movie daily-game clues", () => {
     });
 
     expect(cluesOf(ranking, "Guess")).toStrictEqual([
-      { text: "Same studio: Small Studio", points: 2 },
+      { text: "Same studio: Small Studio", shared: true },
     ]);
   });
 
@@ -155,8 +155,8 @@ describe("movie daily-game clues", () => {
     });
 
     expect(cluesOf(ranking, "Guess")).toStrictEqual([
-      { text: "Same director: Lana Wachowski & Lilly Wachowski", points: 10 },
-      { text: "Also stars Keanu Reeves, Carrie-Anne Moss", points: 10 },
+      { text: "Same director: Lana Wachowski & Lilly Wachowski", shared: true },
+      { text: "Also stars Keanu Reeves, Carrie-Anne Moss", shared: true },
     ]);
   });
 
@@ -171,28 +171,9 @@ describe("movie daily-game clues", () => {
     });
 
     expect(cluesOf(ranking, "Guess")).toStrictEqual([
-      { text: "Same director: Ann Director", points: 10 },
-      { text: "Also from the 2000s", points: 1 },
+      { text: "Same director: Ann Director", shared: true },
+      { text: "Also from the 2000s", shared: true },
     ]);
-    expect(cluesOf(ranking, "Year before")).toStrictEqual([
-      { text: "Answer is from after the 1990s", points: 0 },
-    ]);
-  });
-
-  it("says which way the answer's decade lies, without scoring it", () => {
-    const ranking = rank({
-      Answer: film({ release_date: "1985-05-01" }),
-      Older: film({ release_date: "1962-01-01" }),
-      Newer: film({ release_date: "2011-01-01" }),
-      Undated: film(),
-    });
-
-    expect(cluesOf(ranking, "Older")).toStrictEqual([
-      { text: "Answer is from after the 1960s", points: 0 },
-    ]);
-    expect(cluesOf(ranking, "Newer")).toStrictEqual([
-      { text: "Answer is from before the 2010s", points: 0 },
-    ]);
-    expect(cluesOf(ranking, "Undated")).toStrictEqual([]);
+    expect(cluesOf(ranking, "Year before")).toStrictEqual([]);
   });
 });

@@ -1,12 +1,10 @@
 import { type ClubType } from "./generated/db";
 
-/**
- * One thing a guess has in common with the answer, worth points, or one way it
- * differs from it, worth negative points or none. The player sees the points.
- */
+/** One thing a guess has in common with the answer, or one way it differs from it. */
 export interface DailyGameClue {
   text: string;
-  points: number;
+  /** True for something the guess shares with the answer, false where it differs. */
+  shared: boolean;
 }
 
 /** One work in a day's daily-game pool, ranked against that day's answer. */
@@ -18,9 +16,9 @@ export interface DailyGameWork {
   /** 1 for the answer, up to the pool size for the least alike work. */
   rank: number;
   /**
-   * What this work shares with the answer and where it differs, most points
-   * first. Their points add up to its score: nothing the player can't see
-   * counts. Equal scores go to the work released nearer the answer.
+   * What this work shares with the answer and where it differs, strongest
+   * first. Its rank comes from these and nothing else: equal clues go to the
+   * work released nearer the answer.
    */
   clues: DailyGameClue[];
 }

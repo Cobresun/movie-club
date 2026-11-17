@@ -63,20 +63,10 @@
         <li
           v-for="clue in guess.work.clues"
           :key="clue.text"
-          class="flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs"
-          :class="{
-            'bg-background/70 text-white/90': clue.points > 0,
-            'text-white/80 ring-1 ring-white/20 ring-inset': clue.points === 0,
-            'bg-background/30 text-white/50': clue.points < 0,
-          }"
+          class="rounded-full px-2 py-0.5 text-xs"
+          :class="clue.shared ? 'bg-background/70 text-white/80' : 'bg-background/30 text-white/50'"
         >
-          <span
-            v-if="clue.points !== 0"
-            class="font-bold tabular-nums"
-            :class="clue.points > 0 ? 'text-highlight' : 'text-red-300/80'"
-            >{{ signedPoints(clue.points) }}</span
-          >
-          <span>{{ ` ${clue.text}` }}</span>
+          {{ clue.text }}
         </li>
       </ul>
     </div>
@@ -118,9 +108,6 @@ const TEMPERATURE_LABELS: Record<Temperature, string> = {
 const temperatureLabel = computed(() =>
   guess.work.rank === 1 ? "Got it" : TEMPERATURE_LABELS[guess.temperature],
 );
-
-/** `+2`, or `−1` with a true minus sign, so a screen reader says "minus". */
-const signedPoints = (points: number) => (points > 0 ? `+${points}` : `−${Math.abs(points)}`);
 
 const arrivalTone = computed(() => (guess.work.rank === 1 ? "answer" : guess.temperature));
 

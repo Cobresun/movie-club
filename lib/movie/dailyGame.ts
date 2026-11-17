@@ -1,6 +1,5 @@
 import { hasElements, hasValue, isDefined } from "../checks/checks.js";
-import { type DailyGameRules, rarityPoints, tagCounts } from "../dailyGame.js";
-import { type DailyGameClue } from "../types/dailyGame";
+import { type DailyGameRules, rarityPoints, type ScoredClue, tagCounts } from "../dailyGame.js";
 import { type MovieDataSummary } from "../types/movie";
 import { releaseYear } from "./releaseYear.js";
 
@@ -42,30 +41,10 @@ const languages = (movie: MovieDataSummary) =>
  * `1990` for a 1995 release. The decade is the era clue because the player
  * can check it at a glance: 1999 and 2001 are close, but share no clue.
  */
-const decadeOf = (movie: MovieDataSummary) => {
-  const year = releaseYear(movie);
-  return isDefined(year) ? Math.floor(year / 10) * 10 : undefined;
-};
-
 const decades = (movie: MovieDataSummary) => {
-  const decade = decadeOf(movie);
-  return isDefined(decade) ? [String(decade)] : [];
+  const year = releaseYear(movie);
+  return isDefined(year) ? [String(Math.floor(year / 10) * 10)] : [];
 };
-
-/**
- * When the decades differ, which way the answer lies. It scores nothing (the
- * year tiebreak already favours the nearer movie), but tells the player where
- * to look next.
- */
-function eraDirection(guess: MovieDataSummary, answer: MovieDataSummary): DailyGameClue[] {
-  const guessDecade = decadeOf(guess);
-  const answerDecade = decadeOf(answer);
-  if (!isDefined(guessDecade) || !isDefined(answerDecade) || guessDecade === answerDecade) {
-    return [];
-  }
-  const way = answerDecade > guessDecade ? "after" : "before";
-  return [{ text: `Answer is from ${way} the ${guessDecade}s`, points: 0 }];
-}
 
 const shared = (guess: readonly string[], answer: readonly string[]) =>
   [...new Set(guess)].filter((tag) => answer.includes(tag));
@@ -75,7 +54,7 @@ function sharedClues(
   answer: readonly string[],
   points: (tag: string) => number,
   text: (tag: string) => string,
-): DailyGameClue[] {
+): ScoredClue[] {
   return shared(guess, answer)
     .map((tag) => ({ text: text(tag), points: points(tag) }))
     .filter((clue) => clue.points > 0);
@@ -86,7 +65,7 @@ function groupedClue(
   names: readonly string[],
   points: (count: number) => number,
   text: (names: readonly string[]) => string,
-): DailyGameClue[] {
+): ScoredClue[] {
   return hasElements(names) ? [{ text: text(names), points: points(names.length) }] : [];
 }
 
@@ -106,7 +85,7 @@ export function makeMovieClues(pool: readonly MovieDataSummary[]) {
   const languagePoints = rarityPoints(pool, languages, LANGUAGE_POINTS);
   const decadePoints = rarityPoints(pool, decades, DECADE_POINTS);
 
-  return (guess: MovieDataSummary, answer: MovieDataSummary): DailyGameClue[] => [
+  return (guess: MovieDataSummary, answer: MovieDataSummary): ScoredClue[] => [
     // A directing team is one director's worth.
     ...groupedClue(
       shared(directorNames(guess), directorNames(answer)),
@@ -137,7 +116,6 @@ export function makeMovieClues(pool: readonly MovieDataSummary[]) {
       decadePoints,
       (decade) => `Also from the ${decade}s`,
     ),
-    ...eraDirection(guess, answer),
     // Each genre the guess has and the answer doesn't, so a guess with genres
     // to spare ranks below an exact match.
     ...groupedClue(
