@@ -1,6 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
 import { type UseQueryReturnType } from "@tanstack/vue-query";
-import axios from "axios";
 import { computed, unref } from "vue";
 import { type MaybeRef } from "vue";
 import { useRoute, useRouter } from "vue-router";
@@ -20,12 +19,13 @@ import { type ClubType } from "../../lib/types/generated/db";
 import { clearLastClubSlug, getLastClubSlug } from "../common/composables/useLastClubSlug";
 import { reviewsListKey } from "./useList";
 import { useUserClubs } from "./useUser";
+import { http } from "@/common/http";
 import { useAuthStore } from "@/stores/auth";
 
 const userClubsKey = ["user", "clubs"] as const;
 
 const fetchClub = async (clubSlug: string) =>
-  (await axios.get<ClubPreview>(`/api/club/${clubSlug}`)).data;
+  (await http.get<ClubPreview>(`/api/club/${clubSlug}`)).data;
 
 export function useClub(clubSlug: string) {
   const queryClient = useQueryClient();
@@ -78,7 +78,7 @@ export function useMembers(clubSlug: MaybeRef<string>) {
   const slug = computed(() => unref(clubSlug));
   return useQuery<Member[]>({
     queryKey: computed(() => ["members", slug.value]),
-    queryFn: async () => (await axios.get<Member[]>(`/api/club/${slug.value}/members`)).data,
+    queryFn: async () => (await http.get<Member[]>(`/api/club/${slug.value}/members`)).data,
     enabled: () => slug.value !== "",
   });
 }
@@ -157,7 +157,7 @@ export function useClubDetails(inviteToken: string) {
     queryKey: ["club-details", inviteToken],
     queryFn: async () => {
       try {
-        const response = await axios.get<ClubInviteDetails>(`/api/club/joinInfo/${inviteToken}`);
+        const response = await http.get<ClubInviteDetails>(`/api/club/joinInfo/${inviteToken}`);
         return response.data;
       } catch (error) {
         console.error("Error fetching club details:", error);
@@ -202,7 +202,7 @@ export function useInviteToken(clubSlug: string) {
   return useQuery({
     queryKey: ["invite-token", clubSlug],
     queryFn: async () => {
-      const response = await axios.post<InviteTokenResponse>(`/api/club/${clubSlug}/invite`);
+      const response = await http.post<InviteTokenResponse>(`/api/club/${clubSlug}/invite`);
       return response.data.token;
     },
   });

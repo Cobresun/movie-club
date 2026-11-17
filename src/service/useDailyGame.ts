@@ -1,10 +1,10 @@
 import { type UseQueryReturnType, useMutation, useQuery } from "@tanstack/vue-query";
-import axios, { type AxiosError } from "axios";
 import { computed, type MaybeRefOrGetter, toValue } from "vue";
 
 import { type DailyGameResultBody } from "../../lib/dailyGame";
 import { type DailyGameArchive, type DailyGamePuzzle } from "../../lib/types/dailyGame";
 import { type ClubType } from "../../lib/types/generated/db";
+import { http, type HttpError } from "@/common/http";
 
 /**
  * A day's puzzle for one club type's daily game. The answer for a date never
@@ -17,11 +17,11 @@ import { type ClubType } from "../../lib/types/generated/db";
 export function useDailyGamePuzzle(
   clubType: ClubType,
   date: MaybeRefOrGetter<string>,
-): UseQueryReturnType<DailyGamePuzzle, AxiosError> {
+): UseQueryReturnType<DailyGamePuzzle, HttpError> {
   return useQuery({
     queryKey: computed(() => ["dailyGame", clubType, toValue(date)]),
     queryFn: async () =>
-      (await axios.get<DailyGamePuzzle>(`/api/daily-game/${clubType}/${toValue(date)}`)).data,
+      (await http.get<DailyGamePuzzle>(`/api/daily-game/${clubType}/${toValue(date)}`)).data,
     staleTime: Infinity,
     retry: false,
   });
@@ -31,17 +31,17 @@ export function useDailyGamePuzzle(
 export function useRecordDailyGameResult(clubType: ClubType, date: string) {
   return useMutation({
     mutationFn: (result: DailyGameResultBody) =>
-      axios.post(`/api/daily-game/${clubType}/${date}/result`, result),
+      http.post(`/api/daily-game/${clubType}/${date}/result`, result),
   });
 }
 
 /** Every puzzle a club type's daily game has had, newest first. Grows by one a day. */
 export function useDailyGameArchive(
   clubType: ClubType,
-): UseQueryReturnType<DailyGameArchive, AxiosError> {
+): UseQueryReturnType<DailyGameArchive, HttpError> {
   return useQuery({
     queryKey: ["dailyGame", clubType, "archive"],
     queryFn: async () =>
-      (await axios.get<DailyGameArchive>(`/api/daily-game/${clubType}/archive`)).data,
+      (await http.get<DailyGameArchive>(`/api/daily-game/${clubType}/archive`)).data,
   });
 }

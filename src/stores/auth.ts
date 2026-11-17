@@ -1,5 +1,4 @@
 import { useQuery, useQueryClient } from "@tanstack/vue-query";
-import { create } from "axios";
 import { defineStore } from "pinia";
 import { ref, computed, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
@@ -9,6 +8,7 @@ import { type ClubPreview } from "../../lib/types/club";
 import { resolveDefaultClubSlug } from "../common/composables/useLastClubSlug";
 import { getSignedInHint, setSignedInHint } from "../common/composables/useSessionHint";
 import { watchUntil } from "../common/composables/watchUntil";
+import { http } from "@/common/http";
 import { authClient } from "@/lib/auth-client";
 
 export const useAuthStore = defineStore("auth", () => {
@@ -50,9 +50,9 @@ export const useAuthStore = defineStore("auth", () => {
     { immediate: true },
   );
 
-  // Axios instance for authenticated requests
-  // Better Auth handles cookies automatically, so we don't need to manually add auth headers
-  const request = computed(() => create());
+  // Better Auth's session is a cookie the browser sends on its own, so an
+  // authenticated request needs nothing added to it.
+  const request = http;
 
   // A browser whose last session was signed in asks for its clubs alongside
   // the session check rather than after it. Both are slow round trips, and
@@ -70,7 +70,7 @@ export const useAuthStore = defineStore("auth", () => {
   } = useQuery({
     queryKey: ["user", "clubs"],
     queryFn: async () => {
-      const response = await request.value.get<ClubPreview[]>("/api/member/clubs");
+      const response = await request.get<ClubPreview[]>("/api/member/clubs");
       return response.data;
     },
     enabled: computed(() => isLoggedIn.value || fetchClubsEarly.value),
@@ -257,7 +257,6 @@ export const useAuthStore = defineStore("auth", () => {
     logout,
     refreshSession,
 
-    // Axios (for backward compatibility)
     request,
 
     // User clubs

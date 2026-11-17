@@ -127,7 +127,6 @@
 </template>
 
 <script setup lang="ts">
-import { isAxiosError } from "axios";
 import { computed, ref } from "vue";
 
 import { isDefined } from "../../../../lib/checks/checks.js";
@@ -146,6 +145,7 @@ import WorksWidget from "../components/WorksWidget.vue";
 import { formatRelativeTime, rateFraction, ratePercent } from "../formatMetrics";
 import { RANGE_OPTIONS, rangePrevious, rangeWithin } from "../ranges";
 import { clubTypeConfig, dailyGameClubTypes } from "@/common/clubType";
+import { type HttpError, isHttpError } from "@/common/http";
 import SegmentedToggle from "@/features/statistics/components/SegmentedToggle.vue";
 import { useAdminMetrics, useAdminMetricsHistory } from "@/service/useAdminMetrics";
 
@@ -171,7 +171,7 @@ const refresh = () => Promise.all([refetch(), refetchHistory()]);
  * is where a non-admin finds out.
  */
 const isUnauthorized = computed(
-  () => isAxiosError(error.value) && error.value.response?.status === 401,
+  () => isHttpError(error.value) && error.value.response?.status === 401,
 );
 
 const dailyGames = computed(() =>

@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/vue-query";
-import axios from "axios";
 import { computed, type MaybeRef, unref } from "vue";
 
 import {
@@ -7,6 +6,7 @@ import {
   type MetricsRange,
   type SnapshotHistoryPoint,
 } from "../../lib/types/metrics";
+import { http } from "@/common/http";
 
 /**
  * The dashboard over a time frame the caller can change.
@@ -23,7 +23,7 @@ export function useAdminMetrics(range: MaybeRef<MetricsRange>) {
     queryKey: ["admin", "metrics", selected],
     queryFn: async () =>
       (
-        await axios.get<AdminDashboard>("/api/admin/metrics", {
+        await http.get<AdminDashboard>("/api/admin/metrics", {
           params: { range: selected.value },
         })
       ).data,
@@ -42,7 +42,7 @@ export function useAdminMetricsHistory(range: MaybeRef<MetricsRange>) {
     queryKey: ["admin", "metrics", "history", selected],
     queryFn: async () =>
       (
-        await axios.get<SnapshotHistoryPoint[]>("/api/admin/metrics/history", {
+        await http.get<SnapshotHistoryPoint[]>("/api/admin/metrics/history", {
           params: { range: selected.value },
         })
       ).data,

@@ -56,13 +56,13 @@
 </template>
 
 <script setup lang="ts">
-import { type AxiosError } from "axios";
 import { computed, ref } from "vue";
 import { useToast } from "vue-toastification";
 
 import { hasValue } from "../../../../lib/checks/checks.js";
 import ClubEditableRow from "./ClubEditableRow.vue";
 import SectionHeader from "@/common/components/SectionHeader.vue";
+import { isHttpError } from "@/common/http";
 import {
   useClub,
   useClubSettings,
@@ -161,8 +161,10 @@ const saveSlug = (slug: string) => {
       isEditingSlug.value = false;
     },
     onError: (error: unknown) => {
-      const axiosError = error as AxiosError<{ error?: string }>;
-      const message = axiosError.response?.data?.error ?? "Failed to update link";
+      const reason = isHttpError<{ error?: string }>(error)
+        ? error.response?.data?.error
+        : undefined;
+      const message = reason ?? "Failed to update link";
       slugError.value = message;
       toast.error(message);
     },
