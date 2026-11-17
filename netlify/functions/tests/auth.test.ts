@@ -8,9 +8,13 @@
  * is also how these tests read the confirmation link, exactly as a user would.
  */
 
+import { Kysely } from "kysely";
+
+import RekeyCredentialAccountIds from "../../../migrations/schema/RekeyCredentialAccountIds";
 import { handler } from "../auth";
 import { handler as clubHandler } from "../club/index";
 import { handler as memberHandler } from "../member";
+import { db, dialect } from "../utils/database";
 import { AUTH_HEADERS } from "./helpers/auth";
 import { requester } from "./helpers/http";
 import { lastEmailTo } from "./setup/externalApis";
@@ -150,6 +154,28 @@ describe("POST /api/auth/sign-in/email", () => {
     const res = await signInRequest("nobody@movie.club");
 
     expect(res.statusCode).toBeGreaterThanOrEqual(400);
+  });
+
+  it("signs in a Netlify Identity-migrated account after RekeyCredentialAccountIds runs", async () => {
+    const email = freshEmail();
+    const created = await signUp(email);
+    await followVerificationLink(email);
+
+    // 20251216_MigrateNetlifyUsers wrote `accountId = email` on credential rows,
+    // which BetterAuth 1.7+ rejects with 401 until RekeyCredentialAccountIds
+    // rewrites `accountId` to the user ID.
+    await db
+      .updateTable("account")
+      .set({ accountId: email })
+      .where("userId", "=", created.body.user.id)
+      .where("providerId", "=", "credential")
+      .execute();
+
+    expect((await signInRequest(email)).statusCode).toBe(401);
+
+    await RekeyCredentialAccountIds.up(new Kysely<unknown>({ dialect }));
+
+    expect((await signInRequest(email)).statusCode).toBe(200);
   });
 });
 
