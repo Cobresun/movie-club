@@ -82,7 +82,8 @@ import { hasElements, isDefined } from "@/../lib/checks/checks";
 import { type ClubType } from "@/../lib/types/generated/db";
 import { clubTypeConfig } from "@/common/clubType";
 import { calendarMonths, puzzlePath } from "@/features/daily-game/archive";
-import { formatPuzzleDate, localDate } from "@/features/daily-game/game";
+import { formatPuzzleDate } from "@/features/daily-game/game";
+import { useClock } from "@/features/daily-game/useClock";
 import { dailyGameProgress, type DayProgress } from "@/features/daily-game/useDailyGame";
 import { useDailyGameArchive } from "@/service/useDailyGame";
 
@@ -98,7 +99,7 @@ const PROGRESS: Record<DayProgress, { label: string; icon: string }> = {
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-const today = localDate(new Date());
+const { today } = useClock();
 const progress = dailyGameProgress(clubType);
 
 const { data, isLoading, isError } = useDailyGameArchive(clubType);
@@ -107,14 +108,14 @@ const { data, isLoading, isError } = useDailyGameArchive(clubType);
 // for this player is not theirs to play yet.
 const puzzles = computed(() =>
   (data.value?.puzzles ?? [])
-    .filter((entry) => entry.date <= today)
+    .filter((entry) => entry.date <= today.value)
     .map((entry) => {
       const played = progress.get(entry.date);
       const status = isDefined(played) ? PROGRESS[played] : undefined;
       const label = [
         `#${entry.puzzle}`,
         formatPuzzleDate(entry.date),
-        entry.date === today ? "Today" : undefined,
+        entry.date === today.value ? "Today" : undefined,
         status?.label,
       ].filter(isDefined);
       return { ...entry, progress: status, label: label.join(", ") };

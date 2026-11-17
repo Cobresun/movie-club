@@ -403,6 +403,29 @@ describe("DailyGameView", () => {
     expect(statValue("Streak")).toBe("2");
   });
 
+  it("counts down to the next puzzle at the player's midnight", async () => {
+    const { user } = await renderGame();
+
+    await guess(user, "Heat");
+
+    expect(screen.getByRole("timer")).toHaveTextContent("Next movie in 0:30:00");
+  });
+
+  it("turns over to the new puzzle when the page is left open past midnight", async () => {
+    servePuzzles({ "2026-10-22": 7, "2026-10-23": 8 });
+    vi.useFakeTimers({ toFake: ["Date", "setInterval", "clearInterval"] });
+    vi.setSystemTime(new Date(2026, 9, 22, 23, 59, 58));
+    const { user } = await renderGame();
+    await guess(user, "Heat");
+
+    vi.advanceTimersByTime(3000);
+
+    expect(
+      await screen.findByRole("heading", { level: 1, name: "Reelated #8" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "You got it!" })).not.toBeInTheDocument();
+  });
+
   describe("from the archive", () => {
     it("opens a past day's puzzle under its own number and date", async () => {
       servePuzzles({ "2026-10-20": 5 });
@@ -460,7 +483,7 @@ describe("DailyGameView", () => {
 
       expect(screen.getByRole("heading", { name: "Better luck next time" })).toBeInTheDocument();
       expect(screen.getByText(/The movie was/)).toBeInTheDocument();
-      expect(screen.queryByText("A new movie arrives at midnight.")).not.toBeInTheDocument();
+      expect(screen.queryByRole("timer")).not.toBeInTheDocument();
     });
 
     it("shares a link back to that day's puzzle", async () => {
