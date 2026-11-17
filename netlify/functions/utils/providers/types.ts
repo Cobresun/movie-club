@@ -40,6 +40,13 @@ export interface DailyGamePoolEntry {
  * and where its catalog comes from are the provider's.
  */
 export interface DailyGame {
+  /**
+   * What the game's links are tagged with: the `utm_source` of its call to
+   * start a club and the `utm_campaign` of its shared results, so the
+   * dashboard can credit signups to the game. The client builds the same tag
+   * from the game's path.
+   */
+  readonly tag: string;
   /** How many pages of {@link catalogPage} the catalog covers. */
   readonly catalogPages: number;
   /**

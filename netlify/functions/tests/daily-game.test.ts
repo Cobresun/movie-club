@@ -9,18 +9,19 @@
  */
 import { http, HttpResponse } from "msw";
 
+import { SIGNUP_CAMPAIGN_COOKIE, SIGNUP_SOURCE_COOKIE } from "../../../lib/signupSource";
 import {
   type DailyGameArchive,
   type DailyGamePuzzle,
   type DailyGameWork,
 } from "../../../lib/types/dailyGame";
-import { WorkType } from "../../../lib/types/generated/db";
+import { SignupSource, WorkType } from "../../../lib/types/generated/db";
 import { type AdminDashboard } from "../../../lib/types/metrics";
 import { handler as adminHandler } from "../admin";
 import { handler } from "../daily-game";
 import topUpCatalog from "../scheduled-daily-game-catalog";
 import { tmdbMovie, tmdbPage } from "./fixtures/external";
-import { FIXTURE_USERS, signIn, type TestSession } from "./helpers/auth";
+import { FIXTURE_USERS, signIn, signUpNewUser, type TestSession } from "./helpers/auth";
 import { addWork, createClub, type SeededClub } from "./helpers/factories";
 import { requester } from "./helpers/http";
 import { failOnRequest, server, TMDB } from "./setup/externalApis";
@@ -509,5 +510,83 @@ describe("POST /api/daily-game/:clubType/:date/result", () => {
 
     expect(book.statusCode).toBe(404);
     expect(unplayed.statusCode).toBe(404);
+  });
+});
+
+describe("POST /api/daily-game/:clubType/:date/cta-click", () => {
+  const admin = requester(adminHandler);
+  const today = () => new Date().toISOString().slice(0, 10);
+  const player = () => crypto.randomUUID();
+
+  const finish = (playerId: string, as?: TestSession) =>
+    api.post(`/api/daily-game/movie/${today()}/result`, {
+      body: { playerId, guesses: [], hints: 0 },
+      as,
+    });
+
+  const click = (body: object, date = today(), clubType = "movie") =>
+    api.post(`/api/daily-game/${clubType}/${date}/cta-click`, { body });
+
+  async function funnel() {
+    vi.stubEnv("ADMIN_USER_EMAILS", FIXTURE_USERS.alice.email);
+    const res = await admin.get<AdminDashboard>("/api/admin/metrics", {
+      as: await signIn("alice"),
+    });
+    expect(res.statusCode).toBe(200);
+    return res.body.dailyGames.find((game) => game.workType === WorkType.MOVIE)?.funnel;
+  }
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("counts the signed-out players who followed the call to start a club, once each", async () => {
+    await seedCatalog(12);
+    await api.get(`/api/daily-game/movie/${today()}`);
+    const [clicker, browser] = [player(), player()];
+    await finish(clicker);
+    await finish(browser);
+    await finish(player(), await signIn("bob"));
+
+    const res = await click({ playerId: clicker });
+    await click({ playerId: clicker });
+
+    expect(res.statusCode).toBe(200);
+    expect((await funnel())?.clicked).toStrictEqual({ numerator: 1, denominator: 2 });
+  });
+
+  it("credits signups to the game's call to start a club and to its shared results", async () => {
+    await seedCatalog(12);
+    await api.get(`/api/daily-game/movie/${today()}`);
+    const before = await funnel();
+
+    await signUpNewUser("from-reelated@movie.club", "From Reelated", {
+      cookie: `${SIGNUP_SOURCE_COOKIE}=${SignupSource.REFERRAL}:reelated; ${SIGNUP_CAMPAIGN_COOKIE}=reelated~start_club`,
+    });
+    await signUpNewUser("from-a-result@movie.club", "From A Result", {
+      cookie: `${SIGNUP_SOURCE_COOKIE}=${SignupSource.SHARE}; ${SIGNUP_CAMPAIGN_COOKIE}=share~reelated`,
+    });
+
+    const after = await funnel();
+    expect(after?.signedUp.numerator).toBe((before?.signedUp.numerator ?? 0) + 1);
+    expect(after?.activated.numerator).toBe(before?.activated.numerator);
+    expect(after?.shareSignups).toBe((before?.shareSignups ?? 0) + 1);
+  });
+
+  it("refuses a click for a day no player could be on, or without a player id", async () => {
+    await seedCatalog(12);
+    await api.get(`/api/daily-game/movie/${today()}`);
+
+    const past = await click({ playerId: player() }, "2020-01-01");
+    const anonymous = await click({ playerId: "me" });
+
+    expect(past.statusCode).toBe(400);
+    expect(anonymous.statusCode).toBe(400);
+  });
+
+  it("has nowhere to record a click for a game that doesn't exist", async () => {
+    const res = await click({ playerId: player() }, today(), "book");
+
+    expect(res.statusCode).toBe(404);
   });
 });

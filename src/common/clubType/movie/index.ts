@@ -118,6 +118,10 @@ export const movieClubConfig: ClubTypeConfig = {
     tagline: "One mystery movie a day. Every guess tells you how related it is. No account needed.",
     similarityRule:
       "Movies are related through shared directors, cast, studios, genres, era and language.",
+    clubPitch: {
+      heading: "Your friends have opinions about movies too",
+      body: "Reelated is made by Movie Club, where friends score the movies they watch together and see whose taste lines up. Start a club and invite them with one link.",
+    },
     preview: {
       poolSize: 5000,
       guesses: [

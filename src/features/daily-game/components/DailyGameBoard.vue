@@ -140,6 +140,8 @@
       </p>
     </section>
 
+    <StartClubCard v-if="game.finished.value" :daily-game="dailyGame" @start="recordStart" />
+
     <template v-else>
       <GuessInput ref="guessInput" :pool="game.pool" :noun="noun" @pick="onPick" />
       <p v-if="hasValue(notice)" role="status" class="text-highlight -mt-3 text-sm">
@@ -245,13 +247,6 @@
       @confirm="giveUp"
       @cancel="confirmingGiveUp = false"
     />
-
-    <!-- The banner hides itself from signed-in players. -->
-    <SharedPageCtaBanner
-      v-if="game.finished.value"
-      source="daily_game"
-      :utm-source="gameTag(dailyGame.path)"
-    />
   </div>
 </template>
 
@@ -263,16 +258,16 @@ import { hasElements, hasValue, isDefined } from "@/../lib/checks/checks";
 import { type DailyGamePuzzle, type DailyGameWork } from "@/../lib/types/dailyGame";
 import { type DailyGameConfig } from "@/common/clubType";
 import DeleteConfirmationModal from "@/common/components/DeleteConfirmationModal.vue";
-import SharedPageCtaBanner from "@/common/components/SharedPageCtaBanner.vue";
 import { useShare } from "@/common/composables/useShare";
 import { archivePath, puzzlePath } from "@/features/daily-game/archive";
 import ConfettiBurst from "@/features/daily-game/components/ConfettiBurst.vue";
 import GuessInput from "@/features/daily-game/components/GuessInput.vue";
 import GuessRow from "@/features/daily-game/components/GuessRow.vue";
-import { formatPuzzleDate, gameTag, sharedGameUrl } from "@/features/daily-game/game";
+import StartClubCard from "@/features/daily-game/components/StartClubCard.vue";
+import { formatPuzzleDate, sharedGameUrl } from "@/features/daily-game/game";
 import { playerId } from "@/features/daily-game/playerId";
 import { type RankedGuess, useDailyGame } from "@/features/daily-game/useDailyGame";
-import { useRecordDailyGameResult } from "@/service/useDailyGame";
+import { recordDailyGameCtaClick, useRecordDailyGameResult } from "@/service/useDailyGame";
 
 const { puzzle, dailyGame, noun, today } = defineProps<{
   puzzle: DailyGamePuzzle;
@@ -300,6 +295,12 @@ watch(game.finished, (finished) => {
     hints: game.hintCount.value,
   });
 });
+
+// Counted against the same days as results, so archive plays aren't sent.
+const recordStart = () => {
+  if (game.fromArchive) return;
+  recordDailyGameCtaClick(puzzle.clubType, puzzle.date, { playerId: playerId() });
+};
 
 const notice = ref<string>();
 const confirmingGiveUp = ref(false);

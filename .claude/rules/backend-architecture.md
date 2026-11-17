@@ -56,6 +56,7 @@ The data model is in `database.md`.
 - **Netlify runs scheduled functions only on the production deploy**, never on previews or `netlify dev`, so the endpoint seeds a too-small catalog itself.
 - Only a date that is somebody's today draws an answer or records a result. An earlier date serves its recorded answer or a 404. The archive listing never includes answers.
 - The server decides whether the posted guesses solved the puzzle. Results are one per player per day, keyed by a browser id plus the session's user id when signed in.
+- A click on the finished game's call to start a club is recorded like a result: today's puzzle only, once per browser id per day. Signups are credited to a game by the provider's `dailyGame.tag`, which must match the `utm_source` the client builds from the game's path.
 
 ## External calls and aggregates
 

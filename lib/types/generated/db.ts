@@ -130,6 +130,13 @@ export interface DailyGameCatalog {
   work_type: WorkType;
 }
 
+export interface DailyGameCtaClick {
+  created_at: Generated<Timestamp>;
+  player_id: string;
+  puzzle_date: Timestamp;
+  work_type: WorkType;
+}
+
 export interface DailyGamePuzzle {
   created_at: Generated<Timestamp>;
   external_id: string;
@@ -392,6 +399,7 @@ export interface DB {
   club_member: ClubMember;
   club_settings: ClubSettings;
   daily_game_catalog: DailyGameCatalog;
+  daily_game_cta_click: DailyGameCtaClick;
   daily_game_puzzle: DailyGamePuzzle;
   daily_game_result: DailyGameResult;
   metric_snapshot: MetricSnapshot;

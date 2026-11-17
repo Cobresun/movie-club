@@ -241,6 +241,16 @@ describe("AdminDashboardView", () => {
     ).toStrictEqual(["—", "0", "0", "—"]);
   });
 
+  it("shows how many of the daily game's signed-out players went on to a club", async () => {
+    render(AdminDashboardView);
+
+    const funnel = within(await screen.findByRole("region", { name: "From player to club" }));
+    expect(funnel.getByText("9 of 31 signed-out players")).toBeInTheDocument();
+    expect(funnel.getByText("4 of 9 who clicked")).toBeInTheDocument();
+    expect(funnel.getByText("Plus 2 signups from shared results")).toBeInTheDocument();
+    expect(funnel.getByText("3 of 4 new accounts")).toBeInTheDocument();
+  });
+
   it("keeps each puzzle's answer hidden until it is asked for", async () => {
     const { user } = render(AdminDashboardView);
 
