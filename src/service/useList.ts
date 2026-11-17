@@ -231,11 +231,11 @@ export function useAllUserListItems(
 export function useCastNames(
   clubSlug: string,
   enabled: () => boolean,
-): UseQueryReturnType<CastNamesByExternalId, AxiosError> {
+): UseQueryReturnType<CastNamesByExternalId, HttpError> {
   return useQuery({
     queryKey: castNamesKey(clubSlug),
     queryFn: async () =>
-      (await axios.get<CastNamesByExternalId>(`/api/club/${clubSlug}/list/cast-names`)).data,
+      (await http.get<CastNamesByExternalId>(`/api/club/${clubSlug}/list/cast-names`)).data,
     enabled,
   });
 }
