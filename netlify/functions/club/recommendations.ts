@@ -1,8 +1,8 @@
 import { type WorkRecommendation } from "../../../lib/types/recommendations";
 import RecommendationService from "../services/RecommendationService";
-import { secured } from "../utils/auth";
 import { ok } from "../utils/responses";
 import { Router } from "../utils/router";
+import { secured } from "../utils/session";
 import { type ClubRequest } from "../utils/validation";
 
 const router = new Router<ClubRequest>("/api/club/:clubSlug/recommendations");

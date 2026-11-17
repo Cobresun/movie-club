@@ -1,9 +1,9 @@
 import { type Member } from "../../../lib/types/club";
 import UserRepository from "../repositories/UserRepository";
-import { loggedIn, secured } from "../utils/auth";
 import { requireParam } from "../utils/requireParam";
 import { ok } from "../utils/responses";
 import { isRouterResponse, Router } from "../utils/router";
+import { loggedIn, secured } from "../utils/session";
 import { type ClubRequest, validClubSlug } from "../utils/validation";
 
 const router = new Router<ClubRequest>("/api/club/:clubSlug/members");
