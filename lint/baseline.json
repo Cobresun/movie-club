@@ -149,7 +149,6 @@
     "src/common/components/VBottomSheet.vue": 1,
     "src/features/auth/views/ResetPasswordView.vue": 2,
     "src/features/auth/views/VerifyEmailView.vue": 1,
-    "src/features/clubs/components/ClubSettingsCard.vue": 1,
     "src/features/reviews/views/SharedReviewView.vue": 2,
     "src/features/settings/views/JoinClubView.vue": 1,
     "src/features/statistics/views/SharedStatisticsView.vue": 1,

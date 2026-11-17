@@ -4,6 +4,8 @@
  * is not a success.
  */
 
+import { isDefined } from "../../lib/checks/checks.js";
+
 /** A request that did not succeed. `response` is absent when no answer came back at all. */
 export class HttpError<T = unknown> extends Error {
   readonly response?: { status: number; data: T };
@@ -56,8 +58,8 @@ async function request<T>(
       method,
       signal,
       // A form sets its own multipart content type, boundary included.
-      headers: body === undefined || isForm ? undefined : { "Content-Type": "application/json" },
-      body: body === undefined || isForm ? body : JSON.stringify(body),
+      headers: !isDefined(body) || isForm ? undefined : { "Content-Type": "application/json" },
+      body: !isDefined(body) || isForm ? body : JSON.stringify(body),
     });
   } catch (error) {
     if (signal?.aborted === true) throw error;
@@ -71,9 +73,7 @@ async function request<T>(
       data,
     });
   }
-  // The response's shape is the caller's contract with the endpoint (the type
-  // its handler passes to `ok<T>()`); nothing here can check it.
-  // oxlint-disable-next-line typescript/no-unsafe-type-assertion
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- the response's shape is the caller's contract with the endpoint (the type its handler passes to `ok<T>()`); nothing here can check it
   return { data: data as T };
 }
 
