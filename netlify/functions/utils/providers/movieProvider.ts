@@ -115,6 +115,8 @@ function summaryQuery(externalIds: string[]) {
       "movie_details.poster_path",
       "movie_details.status",
       "movie_details.tagline",
+      "movie_details.collection_id",
+      "movie_details.collection_name",
       "genres_agg.genres",
       "companies_agg.production_companies",
       "countries_agg.production_countries",
@@ -174,6 +176,10 @@ export function toMovieDataSummary(row: MovieSummaryRow): MovieDataSummary {
     adult: row.adult ?? undefined,
     backdrop_path: row.backdrop_path ?? undefined,
     budget: numOrUndefined(row.budget),
+    collection:
+      isDefined(row.collection_id) && hasValue(row.collection_name)
+        ? { id: Number(row.collection_id), name: row.collection_name }
+        : undefined,
     homepage: row.homepage ?? undefined,
     imdb_id: row.imdb_id ?? undefined,
     original_language: row.original_language ?? undefined,

@@ -39,9 +39,15 @@ export interface TMDBCredits {
   crew: TMDBCrewMember[];
 }
 
+export interface TMDBMovieCollection {
+  id: number;
+  name: string;
+}
+
 export interface TMDBMovieData {
   adult: boolean;
   backdrop_path: string;
+  belongs_to_collection: TMDBMovieCollection | null;
   budget: number;
   credits?: TMDBCredits;
   genres: TMDBGenre[];
@@ -97,6 +103,8 @@ export interface MovieDataSummary {
   adult?: boolean;
   backdrop_path?: string;
   budget?: number;
+  /** The TMDB collection (franchise) the movie belongs to, if any. */
+  collection?: TMDBMovieCollection;
   homepage?: string;
   id?: number;
   imdb_id?: string;

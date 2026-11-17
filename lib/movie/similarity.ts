@@ -1,4 +1,4 @@
-import { hasValue } from "../checks/checks.js";
+import { hasValue, isDefined } from "../checks/checks.js";
 import {
   buildIdf,
   ERA_HALF_LIFE_YEARS,
@@ -9,10 +9,11 @@ import {
 import { type MovieDataSummary } from "../types/movie";
 import { releaseYear } from "./releaseYear.js";
 
-// A shared director dominates, cast/studio/genre are secondary, era/language
-// are gentle nudges.
+// A shared director or collection (franchise) dominates, cast/studio/genre are
+// secondary, era/language are gentle nudges.
 const MOVIE_FIELD_WEIGHTS = {
   director: 5,
+  collection: 4,
   cast: 2,
   company: 1.5,
   genre: 2,
@@ -44,7 +45,9 @@ export const makeMovieScorer = (corpus: readonly (MovieDataSummary | undefined)[
   return (a, b) => {
     const sameLanguage =
       hasValue(a.original_language) && a.original_language === b.original_language;
+    const sameCollection = isDefined(a.collection) && a.collection.id === b.collection?.id;
     const weighted =
+      MOVIE_FIELD_WEIGHTS.collection * (sameCollection ? 1 : 0) +
       MOVIE_FIELD_WEIGHTS.director *
         weightedJaccard(names(a.directors), names(b.directors), directorIdf) +
       MOVIE_FIELD_WEIGHTS.cast * weightedJaccard(a.majorCastNames, b.majorCastNames, castIdf) +

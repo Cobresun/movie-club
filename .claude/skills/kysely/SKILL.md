@@ -268,7 +268,7 @@ await db.schema
 await db.schema.alterTable("work_list_item").dropColumn("old_column").execute();
 ```
 
-**Backfills go through `withTables`, not raw `sql`.** The migration handle is
+**Backfills go through `$extendTables`, not raw `sql`.** The migration handle is
 `Kysely<unknown>`, so every table name and column reads as untyped — that is a
 reason to teach the handle the shape you need, not a reason to drop to a SQL
 string. Declare the columns the migration touches (including ones it just added,
@@ -281,7 +281,7 @@ type MigrationTables = {
   work_list_item: { list_id: string; time_added: Date };
 };
 
-const typedDb = db.withTables<MigrationTables>();
+const typedDb = db.$extendTables<MigrationTables>();
 const clubs = await typedDb.selectFrom("club").select(["id", "created_at"]).execute();
 ```
 
@@ -295,7 +295,7 @@ update, a derived table is a `selectFrom` callback ending in `.as(...)`, and
 `20260721_AddActorPopularity.ts` for a typed bulk `CASE` update.
 
 Reach for raw `sql` only where the builder genuinely can't reach — e.g.
-`ADD COLUMN IF NOT EXISTS`, `DROP INDEX ... CASCADE` — and keep it to that one
+`ALTER TYPE ... ADD VALUE`, `DROP INDEX ... CASCADE` (`addColumn(..., (col) => col.ifNotExists())` covers `ADD COLUMN IF NOT EXISTS`) — and keep it to that one
 statement rather than letting it swallow the surrounding data queries.
 
 ---
@@ -317,7 +317,7 @@ npm run codegen        # Regenerate TypeScript types from schema
 1. **CockroachDB Int8:** Primary keys are `int8` (bigint), which Kysely returns as `string`. Convert with `String()` or `Number()` as needed.
 2. **JSON columns:** typed `Json` (a structural `JsonValue`) in the generated types, so the driver gives you a parsed value, not a string — but one the compiler can't narrow. Insert with `JSON.stringify()`; on the way out, parse with a Zod schema rather than `as MyType`, which asserts a shape nothing checked. (`SettingsRepository` still casts; that's the older pattern, not the one to copy — see `code-quality.md` on `as`.)
 3. **Immutable queries:** `.where()` returns a new query — always reassign: `query = query.where(...)`.
-4. **Migration types:** Use `Kysely<unknown>` in migration functions, not `Kysely<DB>` — the schema may not match during migration. Then `db.withTables<...>()` for anything that reads or writes rows; `Kysely<unknown>` is not a licence to hand-write SQL strings (see Migrations above).
+4. **Migration types:** Use `Kysely<unknown>` in migration functions, not `Kysely<DB>` — the schema may not match during migration. Then `db.$extendTables<...>()` for anything that reads or writes rows; `Kysely<unknown>` is not a licence to hand-write SQL strings (see Migrations above).
 5. **Named constraints:** Always name constraints (`pk_`, `fk_`, `uq_`, `idx_` prefixes) for debugging and `ON CONFLICT` references.
 6. **Aggregate + GROUP BY:** When using multiple aggregates, prefer CTEs (`.with()`) over complex GROUP BY to avoid CockroachDB limitations.
 7. **Condense undeployed migrations:** If a PR has multiple schema migrations touching the same table and none have been deployed to production, merge them into a single migration. This avoids unnecessary intermediate states and reduces deployment failure points. Pair data migrations with the same date prefix as their schema migration.
