@@ -126,3 +126,10 @@ export const dailyGameResultBodySchema = z.object({
   hints: z.number().int().min(0).max(MAX_RESULT_ENTRIES),
 });
 export type DailyGameResultBody = z.infer<typeof dailyGameResultBodySchema>;
+
+/**
+ * `POST /api/daily-game/:clubType/:date/cta-click` — a signed-out player who
+ * finished the day's puzzle followed its call to start a club.
+ */
+export const dailyGameCtaClickBodySchema = dailyGameResultBodySchema.pick({ playerId: true });
+export type DailyGameCtaClickBody = z.infer<typeof dailyGameCtaClickBodySchema>;

@@ -455,6 +455,12 @@
       "solves": { "numerator": 104, "denominator": 130 },
       "averageGuesses": 7.4,
       "returning": { "numerator": 27, "denominator": 48 },
+      "funnel": {
+        "clicked": { "numerator": 9, "denominator": 31 },
+        "signedUp": { "numerator": 4, "denominator": 9 },
+        "activated": { "numerator": 3, "denominator": 4 },
+        "shareSignups": 2
+      },
       "puzzles": [
         {
           "date": "2026-09-26",

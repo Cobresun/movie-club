@@ -286,6 +286,22 @@ export type DailyGamePuzzleStats = z.infer<typeof dailyGamePuzzleStatsSchema>;
  * Players need no account, so a "player" is their account when signed in and
  * their browser otherwise: a signed-out person on two devices counts twice.
  */
+/**
+ * How signed-out players get from a finished puzzle to a club. The call to
+ * start a club shows only to them, so they are its audience.
+ */
+export const dailyGameFunnelSchema = z.object({
+  /** Signed-out players who finished one of the range's puzzles, and how many followed the call to start a club. */
+  clicked: rateSchema,
+  /** Players who followed it, and accounts created in the range through it. */
+  signedUp: rateSchema,
+  /** Those accounts, and how many have since done something in a club. */
+  activated: rateSchema,
+  /** Accounts created in the range from a link in someone's shared result. */
+  shareSignups: z.number(),
+});
+export type DailyGameFunnel = z.infer<typeof dailyGameFunnelSchema>;
+
 export const dailyGameStatsSchema = z.object({
   workType: z.nativeEnum(WorkType),
   /** Distinct players who finished one of the range's puzzles. */
@@ -300,6 +316,7 @@ export const dailyGameStatsSchema = z.object({
   returning: rateSchema,
   /** The range's puzzles, newest first. */
   puzzles: z.array(dailyGamePuzzleStatsSchema),
+  funnel: dailyGameFunnelSchema,
 });
 export type DailyGameStats = z.infer<typeof dailyGameStatsSchema>;
 

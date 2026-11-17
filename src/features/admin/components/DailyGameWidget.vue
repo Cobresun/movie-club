@@ -22,6 +22,35 @@
       />
     </div>
 
+    <section aria-labelledby="daily-game-funnel" class="mt-4">
+      <h3
+        id="daily-game-funnel"
+        class="mb-2 text-xs font-medium tracking-wide text-slate-400 uppercase"
+      >
+        From player to club
+      </h3>
+      <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <RateTile
+          label="Clicked start a club"
+          :percent="ratePercent(stats.funnel.clicked)"
+          :detail="`${rateFraction(stats.funnel.clicked)} signed-out players`"
+          hint="Followed the call to start a club after finishing"
+        />
+        <RateTile
+          label="Signed up"
+          :percent="ratePercent(stats.funnel.signedUp)"
+          :detail="`${rateFraction(stats.funnel.signedUp)} who clicked`"
+          :hint="shareSignupsHint"
+        />
+        <RateTile
+          label="Active in a club"
+          :percent="ratePercent(stats.funnel.activated)"
+          :detail="`${rateFraction(stats.funnel.activated)} new accounts`"
+          hint="Has added, scored or commented on anything since"
+        />
+      </div>
+    </section>
+
     <div v-if="stats.puzzles.length > 0" class="mt-4 max-h-96 overflow-y-auto">
       <table class="w-full text-left text-sm">
         <caption class="sr-only">
@@ -111,6 +140,11 @@ const dayLabel = (date: string) =>
     day: "numeric",
     timeZone: "UTC",
   });
+
+const shareSignupsHint = computed(() => {
+  const count = props.stats.funnel.shareSignups;
+  return `Plus ${formatCount(count)} ${count === 1 ? "signup" : "signups"} from shared results`;
+});
 
 const averageGuessesHint = computed(() =>
   isDefined(props.stats.averageGuesses)

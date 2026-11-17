@@ -105,6 +105,20 @@ export function sharedGameUrl(origin: string, gamePath: string, path = gamePath)
   return `${origin}${path}?${tags.toString()}`;
 }
 
+/**
+ * Where the finished game's call to start a club leads. Tagged with the game,
+ * and followed as a real page load, so the signup that follows is credited to
+ * the game on /admin.
+ */
+export function startClubUrl(gamePath: string): string {
+  const tags = new URLSearchParams({
+    utm_source: gameTag(gamePath),
+    utm_medium: "daily_game",
+    utm_campaign: "start_club",
+  });
+  return `/newClub?${tags.toString()}`;
+}
+
 const normalize = (value: string) =>
   value
     .normalize("NFD")

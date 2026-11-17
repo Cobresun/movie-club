@@ -8,6 +8,7 @@ import { z } from "zod";
 
 import { hasElements, isDefined } from "../../lib/checks/checks.js";
 import {
+  dailyGameCtaClickBodySchema,
   dailyGameResultBodySchema,
   isSomebodysToday,
   latestPuzzleDate,
@@ -172,6 +173,26 @@ router.post("/:clubType/:date/result", async ({ params, event }, res) => {
     guesses: guesses.size,
     hints: body.hints,
   });
+  return res(ok());
+});
+
+// Public like the result it follows. Only today's puzzles count, as with
+// results, so the dashboard's clicks and players cover the same days.
+router.post("/:clubType/:date/cta-click", async ({ params, event }, res) => {
+  const parsed = paramsSchema.safeParse(params);
+  if (!parsed.success) return res(badRequest("Expected a club type and a date like 2026-10-22"));
+  const { clubType, date } = parsed.data;
+  if (!isSomebodysToday(date, new Date())) {
+    return res(badRequest("Only today's puzzle can be played"));
+  }
+
+  const body = parseBody(event, dailyGameCtaClickBodySchema, res);
+  if (isRouterResponse(body)) return body;
+
+  const provider = providerForClub(clubType);
+  if (!isDefined(provider.dailyGame)) return res(notFound("This club type has no daily game"));
+
+  await DailyGameRepository.recordCtaClick(provider.type, date, body.playerId);
   return res(ok());
 });
 

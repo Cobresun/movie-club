@@ -1,7 +1,7 @@
 import { type UseQueryReturnType, useMutation, useQuery } from "@tanstack/vue-query";
 import { computed, type MaybeRefOrGetter, toValue } from "vue";
 
-import { type DailyGameResultBody } from "../../lib/dailyGame";
+import { type DailyGameCtaClickBody, type DailyGameResultBody } from "../../lib/dailyGame";
 import { type DailyGameArchive, type DailyGamePuzzle } from "../../lib/types/dailyGame";
 import { type ClubType } from "../../lib/types/generated/db";
 import { http, type HttpError } from "@/common/http";
@@ -33,6 +33,21 @@ export function useRecordDailyGameResult(clubType: ClubType, date: string) {
     mutationFn: (result: DailyGameResultBody) =>
       http.post(`/api/daily-game/${clubType}/${date}/result`, result),
   });
+}
+
+/**
+ * Records that a player followed the finished puzzle's call to start a club.
+ * A beacon, because the link leaves the page before a request could finish.
+ */
+export function recordDailyGameCtaClick(
+  clubType: ClubType,
+  date: string,
+  click: DailyGameCtaClickBody,
+): void {
+  navigator.sendBeacon(
+    `/api/daily-game/${clubType}/${date}/cta-click`,
+    new Blob([JSON.stringify(click)], { type: "application/json" }),
+  );
 }
 
 /** Every puzzle a club type's daily game has had, newest first. Grows by one a day. */

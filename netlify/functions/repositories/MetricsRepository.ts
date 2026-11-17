@@ -22,6 +22,7 @@ import {
   type ClubRow,
   type ClubStatus,
   clubRowSchema,
+  type DailyGameFunnel,
   type DailyGamePuzzleStats,
   type DailyGameStats,
   type FeedEvent,
@@ -1160,8 +1161,62 @@ class MetricsRepository {
       }));
   }
 
+  /**
+   * Signed-out players of one daily game's puzzles dated after `after` and up
+   * to `through`, and how far they got towards a club. Signups are the
+   * range's accounts whose landing link carried the game's `tag`. Each count
+   * is its own query, never `.distinct()` beside `.filterWhere()`.
+   */
+  private async getDailyGameFunnel(
+    type: WorkType,
+    tag: string,
+    after: string,
+    through: string,
+    since: Date,
+  ): Promise<DailyGameFunnel> {
+    const [players, clicked, signups, shareSignups] = await Promise.all([
+      db
+        .selectFrom("daily_game_result")
+        .where("work_type", "=", type)
+        .where("puzzle_date", ">", asDay(after))
+        .where("puzzle_date", "<=", asDay(through))
+        .where("user_id", "is", null)
+        .select((eb) => eb.fn.count<string>("player_id").distinct().as("count"))
+        .executeTakeFirstOrThrow(),
+      db
+        .selectFrom("daily_game_cta_click")
+        .where("work_type", "=", type)
+        .where("puzzle_date", ">", asDay(after))
+        .where("puzzle_date", "<=", asDay(through))
+        .select((eb) => eb.fn.count<string>("player_id").distinct().as("count"))
+        .executeTakeFirstOrThrow(),
+      signupsSince(since)
+        .where("signups.signup_utm_source", "=", tag)
+        .select((eb) => [
+          eb.fn.countAll<string>().as("signups"),
+          eb.fn.countAll<string>().filterWhere("signups.activated", "=", true).as("activated"),
+        ])
+        .executeTakeFirstOrThrow(),
+      signupsSince(since)
+        .where("signups.signup_utm_source", "=", "share")
+        .where("signups.signup_utm_campaign", "=", tag)
+        .select((eb) => eb.fn.countAll<string>().as("count"))
+        .executeTakeFirstOrThrow(),
+    ]);
+
+    return {
+      clicked: { numerator: toCount(clicked.count), denominator: toCount(players.count) },
+      signedUp: { numerator: toCount(signups.signups), denominator: toCount(clicked.count) },
+      activated: { numerator: toCount(signups.activated), denominator: toCount(signups.signups) },
+      shareSignups: toCount(shareSignups.count),
+    };
+  }
+
   /** Every daily game that has had a puzzle, with how its players got on over the range. */
-  private async getDailyGames(window: RangeWindow): Promise<DailyGameStats[]> {
+  private async getDailyGames(
+    window: RangeWindow,
+    tags: ReadonlyMap<WorkType, string>,
+  ): Promise<DailyGameStats[]> {
     // The range's puzzle days run from the day after `since` through today —
     // the 7d range is the last seven puzzles — plus tomorrow once anyone east
     // of UTC has finished it, which only its results can show.
@@ -1176,14 +1231,21 @@ class MetricsRepository {
       .orderBy("work_type")
       .execute();
 
+    // A game is listed by the provider that plays it, which also names its tag.
+    const tagged = games.flatMap(({ work_type: type }) => {
+      const tag = tags.get(type);
+      return isDefined(tag) ? [{ type, tag }] : [];
+    });
+
     return Promise.all(
-      games.map(async ({ work_type: type }) => {
-        const [current, previous, puzzles] = await Promise.all([
+      tagged.map(async ({ type, tag }) => {
+        const [current, previous, puzzles, funnel] = await Promise.all([
           this.countDailyGames(type, after, tomorrow),
           window.previousSince === undefined
             ? undefined
             : this.countDailyGames(type, toIsoDate(window.previousSince), after),
           this.getDailyGamePuzzles(type, after, today, tomorrow),
+          this.getDailyGameFunnel(type, tag, after, tomorrow, window.since),
         ]);
         return {
           workType: type,
@@ -1193,12 +1255,17 @@ class MetricsRepository {
           averageGuesses: current.averageGuesses,
           returning: { numerator: current.returning, denominator: current.players },
           puzzles,
+          funnel,
         };
       }),
     );
   }
 
-  async getDashboard(range: MetricsRange): Promise<AdminDashboard> {
+  /** `dailyGameTags` is each daily game's link tag, by the work type it plays. */
+  async getDashboard(
+    range: MetricsRange,
+    dailyGameTags: ReadonlyMap<WorkType, string>,
+  ): Promise<AdminDashboard> {
     const window = rangeWindow(range);
 
     const [
@@ -1230,7 +1297,7 @@ class MetricsRepository {
       this.getNewestPeople(window.since),
       this.getFeed(),
       this.getAcquisition(window.since),
-      this.getDailyGames(window),
+      this.getDailyGames(window, dailyGameTags),
     ]);
 
     return {

@@ -180,6 +180,11 @@ export interface DailyGameConfig {
   readonly similarityRule: string;
   /** Sample guesses the landing page shows to explain the game. */
   readonly preview: DailyGamePreview;
+  /** The card that asks a signed-out player who finished the puzzle to start a club. */
+  readonly clubPitch: {
+    readonly heading: string;
+    readonly body: string;
+  };
 }
 
 export interface DailyGamePreview {

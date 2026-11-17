@@ -112,6 +112,15 @@ class DailyGameRepository {
       .execute();
   }
 
+  /** Records that a player followed the call to start a club on `date`; a repeat click changes nothing. */
+  async recordCtaClick(type: WorkType, date: string, playerId: string): Promise<void> {
+    await db
+      .insertInto("daily_game_cta_click")
+      .values({ work_type: type, puzzle_date: date, player_id: playerId })
+      .onConflict((oc) => oc.doNothing())
+      .execute();
+  }
+
   /** Every day the game of `type` has an answer for, up to `through`, oldest first, as `YYYY-MM-DD`. */
   async getPuzzleDates(type: WorkType, through: string): Promise<string[]> {
     const rows = await db

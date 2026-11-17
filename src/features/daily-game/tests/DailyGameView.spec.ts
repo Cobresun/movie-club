@@ -262,6 +262,18 @@ describe("DailyGameView", () => {
     );
   });
 
+  it("tells a signed-out player what a club is when inviting them to start one", async () => {
+    const { user } = await renderGame();
+
+    await guess(user, "Heat");
+
+    const pitch = within(
+      screen.getByRole("region", { name: "Your friends have opinions about movies too" }),
+    );
+    expect(pitch.getByText(/friends score the movies they watch together/)).toBeInTheDocument();
+    expect(pitch.getByRole("link", { name: "Start your own club" })).toBeInTheDocument();
+  });
+
   it("does not pitch a club to a player who is signed in", async () => {
     const { user, pinia } = await renderGame();
     logIn(pinia);

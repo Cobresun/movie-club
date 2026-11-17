@@ -1,5 +1,7 @@
 import { type Handler } from "@netlify/functions";
 
+import { isDefined } from "../../lib/checks/checks.js";
+import { type WorkType } from "../../lib/types/generated/db.js";
 import {
   type AdminDashboard,
   DEFAULT_METRICS_RANGE,
@@ -7,6 +9,7 @@ import {
   type SnapshotHistoryPoint,
 } from "../../lib/types/metrics.js";
 import MetricsRepository from "./repositories/MetricsRepository.js";
+import { allProviders } from "./utils/providers";
 import { ok } from "./utils/responses";
 import { Router } from "./utils/router";
 import { siteAdmin } from "./utils/session";
@@ -19,9 +22,15 @@ const router = new Router("/api/admin");
  */
 const rangeSchema = metricsRangeSchema.catch(DEFAULT_METRICS_RANGE);
 
+const dailyGameTags = new Map(
+  allProviders().flatMap<[WorkType, string]>((provider) =>
+    isDefined(provider.dailyGame) ? [[provider.type, provider.dailyGame.tag]] : [],
+  ),
+);
+
 router.get("/metrics", siteAdmin, async ({ event }, res) => {
   const range = rangeSchema.parse(event.queryStringParameters?.range);
-  const dashboard = await MetricsRepository.getDashboard(range);
+  const dashboard = await MetricsRepository.getDashboard(range, dailyGameTags);
   return res(ok<AdminDashboard>(dashboard));
 });
 

@@ -35,11 +35,9 @@ import { computed } from "vue";
 import { useHideOnScroll } from "../composables/useHideOnScroll";
 import { useAuthStore } from "@/stores/auth";
 
-const { source, utmSource = "share" } = defineProps<{
+const { source } = defineProps<{
   /** Which page this is, so signups can be attributed to it. */
-  source: "review" | "list" | "statistics" | "daily_game";
-  /** The channel the page belongs to: share pages by default, or a game by name. */
-  utmSource?: string;
+  source: "review" | "list" | "statistics";
 }>();
 
 // UTM tags on a real page load, so signup tracking can read them off the
@@ -48,7 +46,7 @@ const { source, utmSource = "share" } = defineProps<{
 const startClubHref = computed(
   () =>
     `/newClub?${new URLSearchParams({
-      utm_source: utmSource,
+      utm_source: "share",
       utm_medium: source,
       utm_campaign: "start_club",
     }).toString()}`,
