@@ -198,6 +198,11 @@ export default defineConfig({
       ],
       rules: { "review/no-raw-sql": "off" },
     },
+    {
+      // Seeds the pre-migration account rows the app can no longer produce, then runs the migration
+      files: ["netlify/functions/tests/auth.test.ts"],
+      rules: { "no-restricted-imports": "off" },
+    },
   ],
   options: {
     typeAware: true,
