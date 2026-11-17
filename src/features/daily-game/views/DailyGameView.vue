@@ -48,7 +48,8 @@ import { clubTypeConfig } from "@/common/clubType";
 import { archivePath } from "@/features/daily-game/archive";
 import DailyGameBoard from "@/features/daily-game/components/DailyGameBoard.vue";
 import DailyGameSkeleton from "@/features/daily-game/components/DailyGameSkeleton.vue";
-import { formatPuzzleDate, localDate } from "@/features/daily-game/game";
+import { formatPuzzleDate } from "@/features/daily-game/game";
+import { useClock } from "@/features/daily-game/useClock";
 import { useDailyGamePuzzle } from "@/service/useDailyGame";
 
 const { clubType, date = undefined } = defineProps<{
@@ -60,9 +61,9 @@ const { clubType, date = undefined } = defineProps<{
 const { noun, dailyGame } = clubTypeConfig(clubType);
 const router = useRouter();
 
-const today = localDate(new Date());
+const { today } = useClock();
 
-const { data, isLoading, isError, error } = useDailyGamePuzzle(clubType, () => date ?? today);
+const { data, isLoading, isError, error } = useDailyGamePuzzle(clubType, () => date ?? today.value);
 
 // Today's puzzle is missing only while the catalog is too small to play; a
 // past one, when that day never had a puzzle.

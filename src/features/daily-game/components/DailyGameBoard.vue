@@ -135,8 +135,9 @@
         />
         {{ copied ? "Copied" : "Share result" }}
       </v-btn>
-      <p v-if="!game.fromArchive" class="text-sm text-white/60">
-        A new {{ noun }} arrives at midnight.
+      <p v-if="!game.fromArchive" role="timer" class="text-sm text-white/60">
+        Next {{ noun }} in
+        <span class="font-semibold text-white tabular-nums">{{ countdown }}</span>
       </p>
     </section>
 
@@ -271,6 +272,7 @@ import GuessInput from "@/features/daily-game/components/GuessInput.vue";
 import GuessRow from "@/features/daily-game/components/GuessRow.vue";
 import { formatPuzzleDate, gameTag, sharedGameUrl } from "@/features/daily-game/game";
 import { playerId } from "@/features/daily-game/playerId";
+import { untilMidnight, useClock } from "@/features/daily-game/useClock";
 import { type RankedGuess, useDailyGame } from "@/features/daily-game/useDailyGame";
 import { useRecordDailyGameResult } from "@/service/useDailyGame";
 
@@ -287,6 +289,8 @@ const game = useDailyGame(puzzle, dailyGame.name, today);
 const puzzleDate = formatPuzzleDate(puzzle.date);
 const failedHeading = game.fromArchive ? "Better luck next time" : "Better luck tomorrow";
 const { shareText } = useShare();
+const { now } = useClock();
+const countdown = computed(() => untilMidnight(now.value));
 
 const { mutate: recordResult } = useRecordDailyGameResult(puzzle.clubType, puzzle.date);
 
