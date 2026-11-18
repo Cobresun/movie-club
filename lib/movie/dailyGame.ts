@@ -4,15 +4,15 @@ import { type MovieDataSummary } from "../types/movie";
 import { releaseYear } from "./releaseYear.js";
 
 // A shared director is the strongest link two movies can have, a shared star
-// half that. Genres, language and decade are worth what their rarity says. A
-// shared genre is worth at least 2, so it always outweighs the 1 a guess loses
-// for each genre the answer doesn't have.
+// half that. Genres, language and decade are worth what their rarity says.
+// A genre the answer doesn't have shows as a miss, so a shared one always
+// shows, however common.
 const DIRECTOR_POINTS = 10;
 const STAR_POINTS = 5;
 const STUDIO_POINTS = 2;
-const GENRE_POINTS = { min: 2, max: 4 };
-const LANGUAGE_POINTS = { min: 1, max: 4 };
-const DECADE_POINTS = { min: 1, max: 3 };
+const GENRE_POINTS = { min: 1, max: 4, dropMajority: false };
+const LANGUAGE_POINTS = { min: 1, max: 4, dropMajority: true };
+const DECADE_POINTS = { min: 1, max: 3, dropMajority: true };
 const EXTRA_GENRE_POINTS = -1;
 
 /**
@@ -117,7 +117,7 @@ export function makeMovieClues(pool: readonly MovieDataSummary[]) {
       (decade) => `Also from the ${decade}s`,
     ),
     // Each genre the guess has and the answer doesn't, so a guess with genres
-    // to spare ranks below an exact match.
+    // to spare ranks below an exact match that shares as much.
     ...groupedClue(
       [...new Set(guess.genres)].filter((genre) => !answer.genres.includes(genre)),
       (count) => count * EXTRA_GENRE_POINTS,

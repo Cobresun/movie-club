@@ -210,7 +210,7 @@ describe("DailyGameView", () => {
     await guess(user, "Jaws");
     await guess(user, "Jaws");
 
-    expect(screen.getByRole("status")).toHaveTextContent("You already guessed Jaws — it's #11.");
+    expect(screen.getByRole("status")).toHaveTextContent("You already guessed Jaws — it's #13.");
     expect(screen.getByText("1 guess")).toBeInTheDocument();
   });
 
@@ -288,7 +288,7 @@ describe("DailyGameView", () => {
   it("reveals a closer movie as a hint", async () => {
     const { user } = await renderGame();
 
-    await guess(user, "Alien");
+    await guess(user, "Toy Story");
     await chooseFromMenu(user, "Hint");
 
     expect(within(row("The Godfather")).getByText("Hint")).toBeInTheDocument();
