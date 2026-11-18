@@ -1,14 +1,13 @@
 import { z } from "zod";
 
 import { awardTitleSchema, isSameCategoryTitle } from "../../../../lib/awards";
-import { isDefined } from "../../../../lib/checks/checks.js";
+import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import { type AwardsData, AwardsStep } from "../../../../lib/types/awards";
 import AwardsRepository, {
   type AwardsRejection,
   reject,
 } from "../../repositories/AwardsRepository";
 import { parseBody } from "../../utils/parseBody";
-import { requireParam } from "../../utils/requireParam";
 import { badRequest, ok } from "../../utils/responses";
 import { isRouterResponse, Router } from "../../utils/router";
 import { secured } from "../../utils/session";
@@ -81,9 +80,11 @@ router.put("/", secured<ClubAwardRequest>, async ({ event, clubId, year }, res) 
   return res(ok());
 });
 
-router.delete("/:awardTitle", secured<ClubAwardRequest>, async ({ params, clubId, year }, res) => {
-  const awardTitle = requireParam(params, "awardTitle", res);
-  if (isRouterResponse(awardTitle)) return awardTitle;
+// The title is free text, so it travels in the query string: Netlify decodes
+// the path before routing, and a space, "/" or "(" no longer matches a segment.
+router.delete("/", secured<ClubAwardRequest>, async ({ event, clubId, year }, res) => {
+  const awardTitle = event.queryStringParameters?.awardTitle;
+  if (!hasValue(awardTitle)) return res(badRequest("Missing award title in query parameters"));
 
   const rejection = await AwardsRepository.updateByYear(
     clubId,
