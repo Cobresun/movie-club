@@ -401,6 +401,40 @@ describe("DailyGameView", () => {
     expect(statValue("Streak")).toBe("2");
   });
 
+  it("charts how many guesses each finished puzzle took, marking this one", async () => {
+    servePuzzles({ "2026-10-20": 5, "2026-10-21": 6, "2026-10-22": 7 });
+    vi.setSystemTime(new Date(2026, 9, 20, 12));
+    const first = await renderGame();
+    await giveUp(first.user);
+    first.unmount();
+
+    vi.setSystemTime(new Date(2026, 9, 21, 12));
+    const second = await renderGame();
+    await guess(second.user, "Heat");
+    second.unmount();
+
+    vi.setSystemTime(new Date(2026, 9, 22, 12));
+    const { user } = await renderGame();
+    for (const title of ["Alien", "The Matrix", "Amélie", "Heat"]) {
+      await guess(user, title);
+    }
+
+    const chart = screen.getByRole("list", { name: "Guesses to solve" });
+    const bands = [
+      "Solved in 1–3 guesses: 1",
+      "Solved in 4–10 guesses: 1, this puzzle",
+      "Solved in 11–25 guesses: 0",
+      "Solved in 26+ guesses: 0",
+      "Gave up: 1",
+    ];
+    for (const name of bands) {
+      expect(within(chart).getByRole("listitem", { name })).toBeInTheDocument();
+    }
+    expect(within(chart).getByRole("listitem", { current: true })).toHaveAccessibleName(
+      "Solved in 4–10 guesses: 1, this puzzle",
+    );
+  });
+
   it("reminds a player on a streak to keep it going until they finish", async () => {
     servePuzzles({ "2026-10-21": 6, "2026-10-22": 7 });
     vi.setSystemTime(new Date(2026, 9, 21, 12));

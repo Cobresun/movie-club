@@ -128,6 +128,7 @@
           </dd>
         </div>
       </dl>
+      <GuessDistribution :rows="game.stats.value.distribution" />
       <v-btn
         class="duration-slow! ease-spring! mt-2 px-3 active:scale-92! active:duration-75!"
         :aria-label="shareLabel"
@@ -282,6 +283,7 @@ import { useShare } from "@/common/composables/useShare";
 import { archivePath, puzzlePath } from "@/features/daily-game/archive";
 import CatchUpLink from "@/features/daily-game/components/CatchUpLink.vue";
 import ConfettiBurst from "@/features/daily-game/components/ConfettiBurst.vue";
+import GuessDistribution from "@/features/daily-game/components/GuessDistribution.vue";
 import GuessInput from "@/features/daily-game/components/GuessInput.vue";
 import GuessRow from "@/features/daily-game/components/GuessRow.vue";
 import { formatPuzzleDate, gameTag, sharedGameUrl } from "@/features/daily-game/game";

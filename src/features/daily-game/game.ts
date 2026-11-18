@@ -109,6 +109,47 @@ export function shareText({
   return [`${name} #${puzzle}: ${outcome}.${streakNote}`, ...rows, url].join("\n");
 }
 
+/** The guess-count bands a solve falls into, by their highest count. */
+const GUESS_BANDS = [
+  { label: "1–3", max: 3 },
+  { label: "4–10", max: 10 },
+  { label: "11–25", max: 25 },
+  { label: "26+", max: Infinity },
+];
+
+export interface DistributionRow {
+  label: string;
+  count: number;
+  /** False for the give-ups row. */
+  solved: boolean;
+  /** The band this puzzle's own finish falls in. */
+  current: boolean;
+}
+
+/**
+ * How many guesses each finished puzzle took, in bands wide enough that a
+ * pool of hundreds still gives each band a share, with give-ups last.
+ * `current` is this puzzle's finish, if it is over.
+ */
+export function guessDistribution(
+  finishes: readonly { guesses: number; solved: boolean }[],
+  current: { guesses: number; solved: boolean } | undefined,
+): DistributionRow[] {
+  const band = (finish: { guesses: number; solved: boolean }) =>
+    finish.solved ? GUESS_BANDS.findIndex(({ max }) => finish.guesses <= max) : GUESS_BANDS.length;
+  const counts = finishes.reduce(
+    (tally, finish) => tally.with(band(finish), (tally[band(finish)] ?? 0) + 1),
+    Array.from({ length: GUESS_BANDS.length + 1 }, () => 0),
+  );
+  const currentBand = isDefined(current) ? band(current) : undefined;
+  return [...GUESS_BANDS.map(({ label }) => label), "Gave up"].map((label, index) => ({
+    label,
+    count: counts[index] ?? 0,
+    solved: index < GUESS_BANDS.length,
+    current: index === currentBand,
+  }));
+}
+
 /** `/reelated` → `reelated`: the tag that names a game in signup tracking. */
 export const gameTag = (path: string) => path.replace(/^\/+/, "");
 
