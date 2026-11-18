@@ -1,7 +1,15 @@
 import { computed, ref, watch } from "vue";
 import { z } from "zod";
 
-import { hintRank, nextDate, previousDate, shareText, temperature, type Temperature } from "./game";
+import {
+  guessDistribution,
+  hintRank,
+  nextDate,
+  previousDate,
+  shareText,
+  temperature,
+  type Temperature,
+} from "./game";
 import { hasElements, isDefined, isTrue } from "@/../lib/checks/checks";
 import { type DailyGamePuzzle, type DailyGameWork } from "@/../lib/types/dailyGame";
 import { type ClubType } from "@/../lib/types/generated/db";
@@ -176,7 +184,15 @@ export function useDailyGame(puzzle: DailyGamePuzzle, name: string, today: strin
     const best = Object.keys(stored.value.days)
       .filter((date) => solvedOnTheDay(date) && !solvedOnTheDay(nextDate(date)))
       .reduce((longest, date) => Math.max(longest, runEndingOn(date)), 0);
-    return { played, won, streak, best };
+    const finish = (day: DayRecord) => ({
+      guesses: day.entries.filter((entry) => !entry.hint).length,
+      solved: day.solved,
+    });
+    const distribution = guessDistribution(
+      days.filter((day) => day.solved || day.gaveUp).map(finish),
+      finished.value ? finish(record.value) : undefined,
+    );
+    return { played, won, streak, best, distribution };
   });
 
   const share = (url: string) =>
