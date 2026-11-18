@@ -3,7 +3,7 @@ import { delay, http, HttpResponse } from "msw";
 import { useRouter } from "vue-router";
 
 import DailyGameView from "../views/DailyGameView.vue";
-import { type DailyGamePuzzle } from "@/../lib/types/dailyGame";
+import { type DailyGameArchive, type DailyGamePuzzle } from "@/../lib/types/dailyGame";
 import { ClubType } from "@/../lib/types/generated/db";
 import { dailyGamePuzzle } from "@/mocks/data/dailyGame";
 import { server } from "@/mocks/server";
@@ -576,6 +576,55 @@ describe("DailyGameView", () => {
       await guess(catchUp.user, "Heat");
 
       expect(statValue("Streak")).toBe("1");
+    });
+
+    describe("catching up", () => {
+      beforeEach(() => {
+        servePuzzles({ "2026-10-20": 5, "2026-10-21": 6, "2026-10-22": 7 });
+        // Listed up to tomorrow in UTC, newest first, as the server does.
+        server.use(
+          http.get("/api/daily-game/movie/archive", () =>
+            HttpResponse.json<DailyGameArchive>({
+              clubType: ClubType.MOVIE,
+              puzzles: [
+                { date: "2026-10-23", puzzle: 8 },
+                { date: "2026-10-22", puzzle: 7 },
+                { date: "2026-10-21", puzzle: 6 },
+                { date: "2026-10-20", puzzle: 5 },
+              ],
+            }),
+          ),
+        );
+      });
+
+      it("points a finisher to the newest past puzzle they haven't finished", async () => {
+        const yesterday = await renderGame("2026-10-21");
+        await guess(yesterday.user, "Heat");
+        yesterday.unmount();
+
+        const { user } = await renderGame();
+        await guess(user, "Heat");
+
+        expect(
+          await screen.findByRole("link", { name: "Catch up on #5 from October 20, 2026" }),
+        ).toHaveAttribute("href", "/reelated/2026-10-20");
+      });
+
+      it("offers a puzzle left half-played, past one given up on", async () => {
+        const started = await renderGame("2026-10-20");
+        await guess(started.user, "Jaws");
+        started.unmount();
+        const abandoned = await renderGame("2026-10-21");
+        await giveUp(abandoned.user);
+        abandoned.unmount();
+
+        const { user } = await renderGame();
+        await guess(user, "Heat");
+
+        expect(
+          await screen.findByRole("link", { name: "Catch up on #5 from October 20, 2026" }),
+        ).toBeInTheDocument();
+      });
     });
 
     it("sends the player back to the archive when that day had no puzzle", async () => {
