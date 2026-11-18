@@ -83,19 +83,30 @@ export const PHASE_WORK: Partial<Record<AwardsStep, string>> = {
 };
 
 /**
+ * Whether the club can step back out of `step` to the one before it. Every step
+ * before the ceremony can be reopened without losing anyone's work. The
+ * ceremony reveals the winners, so it can't.
+ */
+export const canStepBack = (step: AwardsStep) =>
+  step === AwardsStep.Nominations || step === AwardsStep.Ratings;
+
+/**
  * Why the year cannot move to `target`, or `undefined` when it can. The year
- * only ever moves forward, one phase at a time, and the club moves together:
- * nobody can close a phase while a member still has their part of it to do.
- * Once a phase closes it stays closed.
+ * moves one phase at a time, and the club moves forward together: nobody can
+ * close a phase while a member still has their part of it to do.
  */
 export function stepChangeError(
   data: AwardsData,
   target: AwardsStep,
   memberIds: string[],
 ): string | undefined {
+  const previousStep: AwardsStep = data.step - 1;
+  if (target === previousStep) {
+    return canStepBack(data.step) ? undefined : "The ceremony has started, so voting is closed";
+  }
   const nextStep: AwardsStep = data.step + 1;
   if (target !== nextStep) {
-    return "Awards only move forward, one step at a time";
+    return "Awards move one step at a time";
   }
   if (data.step === AwardsStep.CategorySelect && data.awards.length === 0) {
     return "Add at least one category before opening nominations";

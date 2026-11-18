@@ -43,7 +43,7 @@
               type="button"
               class="rounded p-1 hover:bg-white/10"
               :aria-label="`Remove ${element.title}`"
-              @click="deleteCategory(element.title)"
+              @click="removeCategory(element)"
             >
               <mdicon name="delete-outline" />
             </button>
@@ -80,6 +80,14 @@
         </ul>
       </div>
     </div>
+    <DeleteConfirmationModal
+      :show="isDefined(removing)"
+      :title="`Remove ${removing?.title}?`"
+      message="Members have already nominated movies in this category. Removing it removes their nominations too."
+      confirm-label="Remove"
+      @cancel="removing = undefined"
+      @confirm="confirmRemove"
+    />
   </div>
 </template>
 <script setup lang="ts">
@@ -91,9 +99,10 @@ import {
   awardTitleSchema,
   isSameCategoryTitle,
 } from "../../../../lib/awards";
-import { hasElements } from "../../../../lib/checks/checks.js";
+import { hasElements, isDefined } from "../../../../lib/checks/checks.js";
 import { Award, ClubAwards } from "../../../../lib/types/awards";
 import { SUGGESTED_CATEGORIES } from "../constants";
+import DeleteConfirmationModal from "@/common/components/DeleteConfirmationModal.vue";
 import { useAddCategory, useDeleteCategory, useReorderCategories } from "@/service/useAwards";
 
 const { clubAward, clubSlug, year } = defineProps<{
@@ -116,6 +125,21 @@ const move = (from: number, to: number) => {
   const [moved] = reordered.splice(from, 1);
   reordered.splice(to, 0, moved);
   categories.value = reordered;
+};
+
+// A category only has nominations when the club stepped back from nominating,
+// and removing it would quietly throw other members' picks away.
+const removing = ref<Award>();
+const removeCategory = (award: Award) => {
+  if (hasElements(award.nominations)) {
+    removing.value = award;
+  } else {
+    deleteCategory(award.title);
+  }
+};
+const confirmRemove = () => {
+  if (isDefined(removing.value)) deleteCategory(removing.value.title);
+  removing.value = undefined;
 };
 
 const isTaken = (title: string) =>

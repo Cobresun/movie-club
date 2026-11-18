@@ -622,6 +622,59 @@ describe("DELETE /api/club/:clubSlug/awards/:year/nomination/:movieId", () => {
   });
 });
 
+describe("nominations reopened after voting", () => {
+  /** Best Picture with nominees 1 and 2, ranked by alice, back in nominations. */
+  async function reopenedYear() {
+    const { alice, bob, club } = await clubWithTwoMembers();
+    await createAwardsYear(club, alice, YEAR, ["Best Picture", "Best Score"]);
+    await setAwardsStep(club, alice, YEAR, AwardsStep.Nominations);
+    await nominate(club, alice, YEAR, "Best Picture", 1);
+    await nominate(club, bob, YEAR, "Best Picture", 2);
+    await nominate(club, alice, YEAR, "Best Score", 3);
+    await nominate(club, bob, YEAR, "Best Score", 4);
+    await setAwardsStep(club, alice, YEAR, AwardsStep.Ratings);
+    await rankAward(club, alice, YEAR, "Best Picture", [2, 1]);
+    await rankAward(club, alice, YEAR, "Best Score", [3, 4]);
+    await setAwardsStep(club, alice, YEAR, AwardsStep.Nominations);
+    return { alice, bob, club };
+  }
+
+  const ballots = async (club: SeededClub) =>
+    (await awardsOf(club)).body.awards.map((award) =>
+      award.nominations.map((nomination) => nomination.ranking),
+    );
+
+  it("clears a category's ballots once a new nominee joins it, and only that category's", async () => {
+    const { alice, bob, club } = await reopenedYear();
+
+    await nominate(club, bob, YEAR, "Best Picture", 5);
+
+    expect(await ballots(club)).toStrictEqual([
+      [{}, {}, {}],
+      [{ [alice.userId]: 1 }, { [alice.userId]: 2 }],
+    ]);
+  });
+
+  it("clears a category's ballots once a nominee drops out of it", async () => {
+    const { bob, club } = await reopenedYear();
+
+    await api.delete(`/api/club/${club.slug}/awards/${YEAR}/nomination/2`, {
+      query: { awardTitle: "Best Picture" },
+      as: bob,
+    });
+
+    expect((await ballots(club))[0]).toStrictEqual([{}]);
+  });
+
+  it("keeps the ballots when a member backs a movie already nominated", async () => {
+    const { alice, bob, club } = await reopenedYear();
+
+    await nominate(club, bob, YEAR, "Best Picture", 1);
+
+    expect((await ballots(club))[0]).toStrictEqual([{ [alice.userId]: 2 }, { [alice.userId]: 1 }]);
+  });
+});
+
 describe("POST /api/club/:clubSlug/awards/:year/ranking", () => {
   /** A year in voting with three nominees for Best Picture. */
   async function votingYear() {
@@ -715,21 +768,60 @@ describe("PUT /api/club/:clubSlug/awards/:year/step", () => {
     expect((await awardsOf(club)).body.step).toBe(AwardsStep.Nominations);
   });
 
-  it("refuses to go back to a closed step", async () => {
+  it("reopens nominations from voting, keeping every ballot", async () => {
+    const { alice, bob, club } = await clubWithTwoMembers();
+    await createAwardsYear(club, alice, YEAR, ["Best Picture"]);
+    await setAwardsStep(club, alice, YEAR, AwardsStep.Nominations);
+    await nominate(club, alice, YEAR, "Best Picture", 1);
+    await nominate(club, bob, YEAR, "Best Picture", 2);
+    await setAwardsStep(club, alice, YEAR, AwardsStep.Ratings);
+    await rankAward(club, alice, YEAR, "Best Picture", [2, 1]);
+
+    const res = await api.put(`/api/club/${club.slug}/awards/${YEAR}/step`, {
+      body: { step: AwardsStep.Nominations },
+      as: bob,
+    });
+
+    expect(res.statusCode).toBe(200);
+    const awards = await awardsOf(club);
+    expect(awards.body.step).toBe(AwardsStep.Nominations);
+    expect(awards.body.awards[0].nominations.map((nomination) => nomination.ranking)).toStrictEqual(
+      [{ [alice.userId]: 2 }, { [alice.userId]: 1 }],
+    );
+  });
+
+  it("goes back to categories while members are still nominating, keeping their picks", async () => {
+    const { alice, club } = await clubWithTwoMembers();
+    await createAwardsYear(club, alice, YEAR, ["Best Picture"]);
+    await setAwardsStep(club, alice, YEAR, AwardsStep.Nominations);
+    await nominate(club, alice, YEAR, "Best Picture", 1);
+
+    const res = await api.put(`/api/club/${club.slug}/awards/${YEAR}/step`, {
+      body: { step: AwardsStep.CategorySelect },
+      as: alice,
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect((await awardsOf(club)).body.step).toBe(AwardsStep.CategorySelect);
+    expect(await nominees(club)).toStrictEqual({ 1: [alice.userId] });
+  });
+
+  it("refuses to go back once the ceremony has started", async () => {
     const alice = await signIn("alice");
     const club = await createClub(alice);
     await createAwardsYear(club, alice, YEAR, ["Best Picture"]);
     await setAwardsStep(club, alice, YEAR, AwardsStep.Nominations);
     await nominate(club, alice, YEAR, "Best Picture", 1);
     await setAwardsStep(club, alice, YEAR, AwardsStep.Ratings);
+    await setAwardsStep(club, alice, YEAR, AwardsStep.Presentation);
 
     const res = await api.put(`/api/club/${club.slug}/awards/${YEAR}/step`, {
-      body: { step: AwardsStep.Nominations },
+      body: { step: AwardsStep.Ratings },
       as: alice,
     });
 
     expect(res.statusCode).toBe(400);
-    expect((await awardsOf(club)).body.step).toBe(AwardsStep.Ratings);
+    expect((await awardsOf(club)).body.step).toBe(AwardsStep.Presentation);
   });
 
   it("refuses to start voting until every member has nominated in every category", async () => {

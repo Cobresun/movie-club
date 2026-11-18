@@ -19,7 +19,7 @@ const router = new Router<ClubAwardRequest>("/api/club/:clubSlug/awards/:year<\\
 const categoriesLocked = (data: AwardsData): AwardsRejection | undefined =>
   data.step === AwardsStep.CategorySelect
     ? undefined
-    : reject("Categories are locked once nominations open");
+    : reject("Go back to the categories step to change them");
 
 const addCategorySchema = z.object({
   title: awardTitleSchema,

@@ -32,8 +32,16 @@ function updateNominations(
   const target = data.awards.find((award) => award.title === awardTitle);
   if (!target) return reject(`"${awardTitle}" is not a category`);
 
-  const nominations = change(target);
-  if ("rejected" in nominations) return nominations;
+  const changed = change(target);
+  if ("rejected" in changed) return changed;
+
+  // A ballot ranks a category's whole slate. After voting is reopened, a ballot
+  // for a slate that has since gained or lost a nominee no longer fits it, so
+  // that category is voted on again from scratch.
+  const sameSlate =
+    changed.length === target.nominations.length &&
+    changed.every((n) => target.nominations.some((old) => old.movieId === n.movieId));
+  const nominations = sameSlate ? changed : changed.map((n) => ({ ...n, ranking: {} }));
 
   return {
     ...data,

@@ -24,14 +24,24 @@ const NominationsView = defineAsyncComponent(() => import("./views/NominationsVi
 const RankingsView = defineAsyncComponent(() => import("./views/RankingsView.vue"));
 const ResultView = defineAsyncComponent(() => import("./views/ResultView.vue"));
 
+/** A move to a neighbouring phase: where it goes, its button, and what it means for the club. */
+export interface PhaseTransition {
+  step: AwardsStep;
+  label: string;
+  confirm: string;
+}
+
 export interface AwardsPhase {
   label: string;
   /** The page members work on during the phase. */
   view: Component;
   /** What members do during the phase, shown under the progress bar. */
   description: string;
-  /** The phase this one closes into, the button that does it, and what closing means. */
-  next?: { step: AwardsStep; label: string; confirm: string };
+  /** One line on the phase for the "How awards work" overview. */
+  summary: string;
+  next?: PhaseTransition;
+  /** Reopening the phase before this one. Only phases `canStepBack` allows have one. */
+  previous?: PhaseTransition;
 }
 
 /**
@@ -44,21 +54,31 @@ export const AWARDS_PHASES: Record<AwardsStep, AwardsPhase> = {
     label: "Categories",
     view: CategoriesView,
     description:
-      "Decide which awards you're handing out. Add your own or pick from the suggestions, then drag them into the order you'll present them.",
+      "Decide which awards you're handing out. Add your own or pick from the suggestions, then drag them into the order you'll present them. You can come back and change them after nominations open.",
+    summary: "Choose the awards you're handing out, like Best Picture or Funniest Movie.",
     next: {
       step: AwardsStep.Nominations,
       label: "Open nominations",
-      confirm: "Categories will be locked for good.",
+      confirm:
+        "Everyone can start nominating. If you think of another category later, you can come back to this step without losing anyone's nominations.",
     },
   },
   [AwardsStep.Nominations]: {
     label: "Nominations",
     view: NominationsView,
     description: `Everyone nominates at least one (and up to ${NOMINATIONS_PER_AWARD}) of the movies the club reviewed this year in every category. Your picks stay private until voting opens, which happens once everyone is done.`,
+    summary: `Everyone picks up to ${NOMINATIONS_PER_AWARD} of the year's reviewed movies in each category. Picks stay private until voting.`,
     next: {
       step: AwardsStep.Ratings,
       label: "Start voting",
-      confirm: "Nominations will close for good.",
+      confirm:
+        "Nominations close and everyone sees the nominees. If someone wants to change a pick, you can reopen nominations.",
+    },
+    previous: {
+      step: AwardsStep.CategorySelect,
+      label: "Back to categories",
+      confirm:
+        "Nominating pauses while the club changes the categories. Nominations already made are kept, except in a category you remove.",
     },
   },
   [AwardsStep.Ratings]: {
@@ -66,10 +86,18 @@ export const AWARDS_PHASES: Record<AwardsStep, AwardsPhase> = {
     view: RankingsView,
     description:
       "Put each category's nominees in order, most deserving first, and save. Once everyone has voted, the ceremony can start; the nominee with the best total rank across everyone's ballots wins.",
+    summary: "Everyone ranks each category's nominees. The best total rank wins.",
     next: {
       step: AwardsStep.Presentation,
       label: "Start the ceremony",
-      confirm: "Voting will close for good and nobody will be able to change their ballot.",
+      confirm:
+        "Voting closes so the winners can be revealed. This is the one step that can't be undone.",
+    },
+    previous: {
+      step: AwardsStep.Nominations,
+      label: "Reopen nominations",
+      confirm:
+        "Voting pauses so members can change their picks. Saved ballots are kept, except in a category whose nominees change, which everyone ranks again.",
     },
   },
   [AwardsStep.Presentation]: {
@@ -77,11 +105,13 @@ export const AWARDS_PHASES: Record<AwardsStep, AwardsPhase> = {
     view: ResultView,
     description:
       "Get the club together and reveal the winners one category at a time. Once every category is revealed, the awards are complete.",
+    summary: "Get together and reveal the winners one category at a time.",
   },
   [AwardsStep.Completed]: {
     label: "Ceremony",
     view: ResultView,
     description: "The winners are in.",
+    summary: "The winners are in.",
   },
 };
 
