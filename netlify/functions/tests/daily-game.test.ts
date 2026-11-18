@@ -183,6 +183,27 @@ describe("GET /api/daily-game/:clubType/:date", () => {
     expect(movies.map((movie) => movie.id).sort()).toStrictEqual(range(100, 12).map(String));
   });
 
+  it("draws answers only from TMDB's 1000 most-rated movies, though any can be guessed", async () => {
+    // Movie 107 is the 1000th most-rated; the other eleven are just past it.
+    const page50 = [107];
+    const page51 = range(100, 12).filter((id) => id !== 107);
+    server.use(
+      http.get(`${TMDB}/discover/movie`, ({ request }) => {
+        const page = Number(new URL(request.url).searchParams.get("page"));
+        const ids = page === 50 ? page50 : page === 51 ? page51 : [];
+        return HttpResponse.json(tmdbPage(ids.map((id) => tmdbMovie(id))));
+      }),
+    );
+    await runCatalogTopUp();
+
+    const today = await api.get<DailyGamePuzzle>(`/api/daily-game/movie/${TODAY}`);
+    const tomorrow = await api.get<DailyGamePuzzle>(`/api/daily-game/movie/2026-10-23`);
+
+    expect(today.body.works).toHaveLength(12);
+    expect(answerOf(today.body.works)?.id).toBe("107");
+    expect(answerOf(tomorrow.body.works)?.id).toBe("107");
+  });
+
   it("keeps the day's answer while the catalog grows", async () => {
     await seedCatalog(12);
     const before = answerOf(

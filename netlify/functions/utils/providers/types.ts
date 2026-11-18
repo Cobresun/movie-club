@@ -52,8 +52,12 @@ export interface DailyGame {
    * metadata isn't this game's media are left out.
    */
   rank: (answerId: string, pool: readonly DailyGamePoolEntry[]) => DailyGameWork[];
-  /** The external ids in `pool` that are fair answers. */
-  answerCandidates: (pool: readonly DailyGamePoolEntry[]) => string[];
+  /**
+   * The external ids in `pool` that can be the answer. Every work in the pool
+   * can be guessed, but a game may draw answers from a narrower set, such as
+   * only the works most players have heard of.
+   */
+  answerCandidates: (pool: readonly DailyGamePoolEntry[]) => Promise<string[]>;
 }
 
 /**
