@@ -33,6 +33,5 @@ export function parseBody<S extends ZodType>(
   const parsed = schema.safeParse(json);
   if (!parsed.success) return res(badRequest("Invalid body"));
 
-  // oxlint-disable-next-line typescript/no-unsafe-return -- zod v3 types safeParse on a generic schema as `any`; the declared return type z.output<S> is what callers get
   return parsed.data;
 }

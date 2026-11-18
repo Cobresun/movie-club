@@ -15,7 +15,7 @@ const createYearPayloadSchema = z.object({
 });
 
 const stepPayloadSchema = z.object({
-  step: z.nativeEnum(AwardsStep),
+  step: z.enum(AwardsStep),
 });
 
 const titlePayloadSchema = z.object({

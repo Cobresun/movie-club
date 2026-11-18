@@ -143,7 +143,7 @@ export const TRUSTED_CREATED_AT_SINCE = "2026-07-29";
 export const workSummarySchema = z.object({
   key: z.string(),
   title: z.string(),
-  type: z.nativeEnum(WorkType),
+  type: z.enum(WorkType),
   imageUrl: z.string().nullable(),
   clubs: z.number(),
 });
@@ -174,7 +174,7 @@ export const clubRowSchema = z.object({
   clubId: z.string(),
   name: z.string(),
   slug: z.string(),
-  type: z.nativeEnum(ClubType),
+  type: z.enum(ClubType),
   /**
    * Who the members are. A count alone doesn't distinguish a club of four
    * strangers from four people you recognise, which on a site this size is the
@@ -236,7 +236,7 @@ const signupCountsSchema = z.object({
  * whose browser blocked the attribution cookie.
  */
 export const channelSignupsSchema = signupCountsSchema.extend({
-  source: z.nativeEnum(SignupSource).nullable(),
+  source: z.enum(SignupSource).nullable(),
 });
 export type ChannelSignups = z.infer<typeof channelSignupsSchema>;
 
@@ -287,7 +287,7 @@ export type DailyGamePuzzleStats = z.infer<typeof dailyGamePuzzleStatsSchema>;
  * their browser otherwise: a signed-out person on two devices counts twice.
  */
 export const dailyGameStatsSchema = z.object({
-  workType: z.nativeEnum(WorkType),
+  workType: z.enum(WorkType),
   /** Distinct players who finished one of the range's puzzles. */
   players: periodCountSchema,
   /** The range's puzzles finished, one per player per day. */

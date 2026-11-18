@@ -31,20 +31,20 @@ type MigrationTables = {
   };
 };
 
-// Frozen copy of the awards JSON shape as of this migration. passthrough()
+// Frozen copy of the awards JSON shape as of this migration. loose()
 // and spreads keep unknown fields intact.
 const nominationSchema = z
   .object({
     nominatedBy: z.array(z.string()),
     ranking: z.record(z.string(), z.number()),
   })
-  .passthrough();
+  .loose();
 
 const awardsDataSchema = z
   .object({
-    awards: z.array(z.object({ nominations: z.array(nominationSchema) }).passthrough()),
+    awards: z.array(z.object({ nominations: z.array(nominationSchema) }).loose()),
   })
-  .passthrough();
+  .loose();
 
 const normalize = (name: string) => name.trim().toLowerCase();
 

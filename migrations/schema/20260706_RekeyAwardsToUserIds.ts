@@ -56,19 +56,19 @@ type MigrationTables = {
 
 // Frozen copy of the awards JSON shape as of this migration (importing
 // lib/types/awards.ts would let future schema changes rewrite what this
-// migration validates). passthrough() + spreads keep unknown fields intact.
+// migration validates). loose() + spreads keep unknown fields intact.
 const nominationSchema = z
   .object({
     nominatedBy: z.array(z.string()),
     ranking: z.record(z.string(), z.number()),
   })
-  .passthrough();
+  .loose();
 
 const awardsDataSchema = z
   .object({
-    awards: z.array(z.object({ nominations: z.array(nominationSchema) }).passthrough()),
+    awards: z.array(z.object({ nominations: z.array(nominationSchema) }).loose()),
   })
-  .passthrough();
+  .loose();
 
 type KeyResolver = (key: string, context: string) => string;
 

@@ -10,7 +10,7 @@ import { SignupSource } from "./types/generated/db";
  */
 export const SIGNUP_SOURCE_COOKIE = "mc_signup_source";
 
-export const signupSourceSchema = z.nativeEnum(SignupSource);
+export const signupSourceSchema = z.enum(SignupSource);
 
 /**
  * Where a visit came from, as remembered for the sign-up that may follow.

@@ -70,7 +70,7 @@ export function pickAnswer(
 }
 
 /** A real calendar date, `YYYY-MM-DD` — `2026-02-31` is refused. */
-export const puzzleDateSchema = z.string().date();
+export const puzzleDateSchema = z.iso.date();
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -121,7 +121,7 @@ const MAX_RESULT_ENTRIES = 5000;
  */
 export const dailyGameResultBodySchema = z.object({
   /** A random id the player's browser keeps, so a day counts once per browser. */
-  playerId: z.string().uuid(),
+  playerId: z.uuid(),
   guesses: z.array(z.string().min(1)).max(MAX_RESULT_ENTRIES),
   hints: z.number().int().min(0).max(MAX_RESULT_ENTRIES),
 });

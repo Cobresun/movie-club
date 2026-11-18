@@ -70,7 +70,7 @@ const cdnCached = (response: HandlerResponse): HandlerResponse => ({
   headers: { ...response.headers, "Netlify-CDN-Cache-Control": CDN_CACHE_CONTROL },
 });
 
-const clubTypeSchema = z.object({ clubType: z.nativeEnum(ClubType) });
+const clubTypeSchema = z.object({ clubType: z.enum(ClubType) });
 
 const paramsSchema = clubTypeSchema.extend({ date: puzzleDateSchema });
 

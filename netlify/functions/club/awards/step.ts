@@ -13,7 +13,7 @@ import { type ClubAwardRequest } from "./utils";
 const router = new Router<ClubAwardRequest>("/api/club/:clubSlug/awards/:year<\\d+>/step");
 
 const updateStepSchema = z.object({
-  step: z.nativeEnum(AwardsStep),
+  step: z.enum(AwardsStep),
 });
 
 router.put("/", secured<ClubAwardRequest>, async ({ event, clubId, year }, res) => {

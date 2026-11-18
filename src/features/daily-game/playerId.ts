@@ -10,7 +10,7 @@ let visitPlayerId: string | undefined;
  */
 export function playerId(): string {
   try {
-    const stored = z.string().uuid().safeParse(localStorage.getItem(PLAYER_ID_KEY));
+    const stored = z.uuid().safeParse(localStorage.getItem(PLAYER_ID_KEY));
     if (stored.success) return stored.data;
     const id = crypto.randomUUID();
     localStorage.setItem(PLAYER_ID_KEY, id);

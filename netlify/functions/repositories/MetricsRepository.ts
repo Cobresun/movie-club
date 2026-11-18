@@ -735,7 +735,7 @@ class MetricsRepository {
     const memberNames = await this.getMemberNames(rows.map((row) => row.id));
 
     // Parsed rather than cast: `club.type` arrives as a plain string and
-    // clubRowSchema's nativeEnum check is what makes it a ClubType.
+    // clubRowSchema's enum check is what makes it a ClubType.
     return rows.map((row) =>
       clubRowSchema.parse({
         clubId: row.id,

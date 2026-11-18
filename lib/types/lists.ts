@@ -120,7 +120,7 @@ export interface DiscussionQuestionsResponse {
 }
 
 export const listInsertDtoSchema = z.object({
-  type: z.nativeEnum(WorkType),
+  type: z.enum(WorkType),
   title: z.string(),
   externalId: z.string().optional(),
   imageUrl: z.string().optional(),
