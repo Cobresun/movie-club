@@ -142,6 +142,12 @@
         />
         {{ copied ? "Copied" : "Share result" }}
       </v-btn>
+      <CatchUpLink
+        :club-type="puzzle.clubType"
+        :daily-game="dailyGame"
+        :today="today"
+        :current="puzzle.date"
+      />
       <p v-if="!game.fromArchive" role="timer" class="text-sm text-white/60">
         Next {{ noun }} in
         <span class="font-semibold text-white tabular-nums">{{ countdown }}</span>
@@ -274,6 +280,7 @@ import DeleteConfirmationModal from "@/common/components/DeleteConfirmationModal
 import SharedPageCtaBanner from "@/common/components/SharedPageCtaBanner.vue";
 import { useShare } from "@/common/composables/useShare";
 import { archivePath, puzzlePath } from "@/features/daily-game/archive";
+import CatchUpLink from "@/features/daily-game/components/CatchUpLink.vue";
 import ConfettiBurst from "@/features/daily-game/components/ConfettiBurst.vue";
 import GuessInput from "@/features/daily-game/components/GuessInput.vue";
 import GuessRow from "@/features/daily-game/components/GuessRow.vue";
