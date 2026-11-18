@@ -148,7 +148,7 @@ const props = defineProps<{
   listId: string;
   otherLists: { id: string; title: string }[];
   members: Member[];
-  reviewsListId: string | null;
+  reviewsListId?: string;
   randomPickerOpen?: boolean;
   selectedItemId: string | null;
   visibleIds?: Set<string> | null;
@@ -283,7 +283,7 @@ const onMoveToList = ({
 };
 
 const onReview = (workId: string) => {
-  if (props.reviewsListId === null || isPending(workId)) return;
+  if (!hasValue(props.reviewsListId) || isPending(workId)) return;
   // The move lands the work on the reviews page optimistically, so there is
   // nothing to wait for before going there.
   moveItem({

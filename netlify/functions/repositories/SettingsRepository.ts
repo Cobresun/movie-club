@@ -20,19 +20,14 @@ export function settingsFromStored(value: unknown): ClubSettings {
 }
 
 class SettingsRepository {
-  async getSettings(clubId: string): Promise<ClubSettings> {
-    const result = await db
+  async updateSettings(clubId: string, settings: ClubSettingsUpdate): Promise<ClubSettings> {
+    const stored = await db
       .selectFrom("club_settings")
       .select("value")
       .where("club_id", "=", clubId)
       .where("key", "=", "features")
       .executeTakeFirst();
-
-    return settingsFromStored(result?.value);
-  }
-
-  async updateSettings(clubId: string, settings: ClubSettingsUpdate): Promise<ClubSettings> {
-    const existing = await this.getSettings(clubId);
+    const existing = settingsFromStored(stored?.value);
     const merged = {
       features: {
         ...existing.features,

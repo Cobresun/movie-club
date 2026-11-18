@@ -130,7 +130,11 @@ export function useRenameList(clubSlug: string) {
         (current) => current?.map((l) => (l.id === listId ? { ...l, title } : l)),
       );
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: clubListsKey(clubSlug) }),
+    onSettled: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: clubListsKey(clubSlug) }),
+        queryClient.invalidateQueries({ queryKey: nextWorkKey(clubSlug) }),
+      ]),
   });
 }
 
@@ -159,7 +163,11 @@ export function useReorderClubLists(clubSlug: string) {
         queryClient.setQueryData(key, data);
       }
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: clubListsKey(clubSlug) }),
+    onSettled: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: clubListsKey(clubSlug) }),
+        queryClient.invalidateQueries({ queryKey: nextWorkKey(clubSlug) }),
+      ]),
   });
 }
 
@@ -175,7 +183,11 @@ export function useDeleteList(clubSlug: string) {
       );
       queryClient.removeQueries({ queryKey: listKey(clubSlug, listId) });
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: clubListsKey(clubSlug) }),
+    onSettled: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: clubListsKey(clubSlug) }),
+        queryClient.invalidateQueries({ queryKey: nextWorkKey(clubSlug) }),
+      ]),
   });
 }
 
@@ -390,6 +402,7 @@ export function useAddListItem(clubSlug: string, listId: string) {
         queryClient.invalidateQueries({ queryKey: listKey(clubSlug, listId) }),
         queryClient.invalidateQueries({ queryKey: clubListsKey(clubSlug) }),
         queryClient.invalidateQueries({ queryKey: recommendationsKey(clubSlug) }),
+        queryClient.invalidateQueries({ queryKey: nextWorkKey(clubSlug) }),
       ]);
     },
   });
@@ -412,6 +425,7 @@ export function useDeleteListItem(clubSlug: string, listId: string) {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: listKey(clubSlug, listId) }),
         queryClient.invalidateQueries({ queryKey: clubListsKey(clubSlug) }),
+        queryClient.invalidateQueries({ queryKey: nextWorkKey(clubSlug) }),
       ]);
     },
   });
@@ -431,7 +445,11 @@ export function useUpdateAddedBy(clubSlug: string, listId: string) {
         currentList?.map((item) => (item.id === workId ? { ...item, addedBy: userId } : item)),
       );
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: listKey(clubSlug, listId) }),
+    onSettled: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: listKey(clubSlug, listId) }),
+        queryClient.invalidateQueries({ queryKey: nextWorkKey(clubSlug) }),
+      ]),
   });
 }
 
@@ -527,6 +545,7 @@ export function useMoveListItem(clubSlug: string) {
         // reviewsListKey; invalidate it so moving an item into the reviews
         // system list makes the review appear there.
         queryClient.invalidateQueries({ queryKey: reviewsListKey(clubSlug) }),
+        queryClient.invalidateQueries({ queryKey: nextWorkKey(clubSlug) }),
       ]);
     },
   });

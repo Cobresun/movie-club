@@ -1,5 +1,4 @@
 import crypto from "crypto";
-import { type InferResult } from "kysely";
 
 import { isDefined } from "../../../lib/checks/checks.js";
 import { type ClubPreview } from "../../../lib/types/club";
@@ -30,7 +29,17 @@ function previewQuery() {
     ]);
 }
 
-function toClubPreview(row: InferResult<ReturnType<typeof previewQuery>>[number]): ClubPreview {
+interface ClubPreviewRow {
+  id: string;
+  name: string;
+  slug: string;
+  slug_updated_at: Date | null;
+  type: ClubType;
+  reviews_list_id: string | null;
+  settings: unknown;
+}
+
+function toClubPreview(row: ClubPreviewRow): ClubPreview {
   return {
     clubId: row.id,
     clubName: row.name,
