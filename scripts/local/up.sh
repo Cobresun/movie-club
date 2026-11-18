@@ -55,6 +55,14 @@ if curl -fsS "http://localhost:${MAILBOX_PORT}/emails" >/dev/null 2>&1; then
 else
   MAILBOX_PORT="$MAILBOX_PORT" nohup npx tsx scripts/local/mailbox.ts \
     >"$LOG_DIR/movie-club-mailbox.log" 2>&1 &
+  for _ in $(seq 30); do
+    curl -fsS "http://localhost:${MAILBOX_PORT}/emails" >/dev/null 2>&1 && break
+    sleep 1
+  done
+  if ! curl -fsS "http://localhost:${MAILBOX_PORT}/emails" >/dev/null 2>&1; then
+    echo "Mailbox did not start on port $MAILBOX_PORT; see $LOG_DIR/movie-club-mailbox.log" >&2
+    exit 1
+  fi
   echo "Started mailbox on http://localhost:${MAILBOX_PORT} (log: $LOG_DIR/movie-club-mailbox.log)"
 fi
 

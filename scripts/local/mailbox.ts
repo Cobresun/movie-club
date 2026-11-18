@@ -5,6 +5,8 @@ import { createServer, type ServerResponse } from "http";
 import { text as readText } from "stream/consumers";
 import { z } from "zod";
 
+import { hasValue, isDefined, isString } from "../../lib/checks/checks.js";
+
 /**
  * A stand-in for Resend's `POST /emails`, so sign-up, verification and
  * password reset run unmodified against a local stack. `local:up` points the
@@ -24,7 +26,7 @@ const sendEmailSchema = z.object({
   text: z.string().optional(),
 });
 
-export interface MailboxEmail {
+interface MailboxEmail {
   id: string;
   to: string[];
   subject: string;
@@ -55,49 +57,59 @@ function renderInbox() {
     )
     .join("");
   return `<!doctype html><title>Local mailbox</title><h1>Local mailbox</h1>${
-    emails === "" ? "<p>Nothing sent yet.</p>" : emails
+    hasValue(emails) ? emails : "<p>Nothing sent yet.</p>"
   }`;
+}
+
+function parseEmail(raw: string) {
+  try {
+    return sendEmailSchema.safeParse(JSON.parse(raw));
+  } catch {
+    return undefined;
+  }
+}
+
+function receive(raw: string, response: ServerResponse) {
+  const parsed = parseEmail(raw);
+  if (!isDefined(parsed)) {
+    json(response, 422, { name: "validation_error", message: "Body is not JSON" });
+    return;
+  }
+  if (!parsed.success) {
+    json(response, 422, { name: "validation_error", message: parsed.error.message });
+    return;
+  }
+  const { to, subject, html, text } = parsed.data;
+  const email: MailboxEmail = {
+    id: randomUUID(),
+    to: isString(to) ? [to] : to,
+    subject,
+    html: html ?? `<pre>${escapeHtml(text ?? "")}</pre>`,
+    receivedAt: new Date().toISOString(),
+  };
+  inbox.unshift(email);
+  console.log(`Mail to ${email.to.join(", ")}: ${subject}`);
+  json(response, 200, { id: email.id });
 }
 
 const server = createServer((request, response) => {
   const url = new URL(request.url ?? "/", `http://localhost:${PORT}`);
 
   if (request.method === "POST" && url.pathname === "/emails") {
-    void readText(request).then((raw) => {
-      const parsed = z
-        .string()
-        .transform((body, ctx) => {
-          try {
-            return JSON.parse(body) as unknown;
-          } catch {
-            ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Body is not JSON" });
-            return z.NEVER;
-          }
-        })
-        .pipe(sendEmailSchema)
-        .safeParse(raw);
-      if (!parsed.success) {
-        json(response, 422, { name: "validation_error", message: parsed.error.message });
-        return;
-      }
-      const { to, subject, html, text } = parsed.data;
-      const email: MailboxEmail = {
-        id: randomUUID(),
-        to: typeof to === "string" ? [to] : to,
-        subject,
-        html: html ?? `<pre>${escapeHtml(text ?? "")}</pre>`,
-        receivedAt: new Date().toISOString(),
-      };
-      inbox.unshift(email);
-      console.log(`Mail to ${email.to.join(", ")}: ${subject}`);
-      json(response, 200, { id: email.id });
-    });
+    void readText(request)
+      .then((raw) => receive(raw, response))
+      .catch((error: unknown) => {
+        console.error("Reading a POST /emails body failed", error);
+        if (!response.headersSent) {
+          json(response, 400, { name: "bad_request", message: "Could not read the body" });
+        }
+      });
     return;
   }
 
   if (request.method === "GET" && url.pathname === "/emails") {
     const to = url.searchParams.get("to");
-    json(response, 200, to === null ? inbox : inbox.filter((email) => email.to.includes(to)));
+    json(response, 200, isDefined(to) ? inbox.filter((email) => email.to.includes(to)) : inbox);
     return;
   }
 

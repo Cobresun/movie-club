@@ -3,6 +3,7 @@
 import { setTimeout as sleep } from "timers/promises";
 import { z } from "zod";
 
+import { isDefined } from "../../lib/checks/checks.js";
 import { type ClubPreview, type CreatedClubResponse } from "../../lib/types/club.js";
 import { ClubType } from "../../lib/types/generated/db.js";
 
@@ -38,7 +39,7 @@ const HEADERS = { "content-type": "application/json", origin: APP_URL };
 async function post(path: string, body: unknown, cookie?: string) {
   return fetch(`${APP_URL}${path}`, {
     method: "POST",
-    headers: cookie === undefined ? HEADERS : { ...HEADERS, cookie },
+    headers: isDefined(cookie) ? { ...HEADERS, cookie } : HEADERS,
     body: JSON.stringify(body),
     redirect: "manual",
   });
@@ -56,7 +57,7 @@ async function verificationLink(email: string): Promise<string> {
     const response = await fetch(`${MAILBOX_URL}/emails?to=${encodeURIComponent(email)}`);
     const [latest] = mailboxSchema.parse(await response.json());
     const link = /href="(?<href>[^"]*verify-email[^"]*)"/u.exec(latest?.html ?? "")?.groups?.href;
-    if (link !== undefined) return link.replaceAll("&amp;", "&");
+    if (isDefined(link)) return link.replaceAll("&amp;", "&");
     await sleep(250);
   }
   throw new Error(`No verification email reached ${MAILBOX_URL} for ${email}`);
@@ -95,7 +96,7 @@ async function main() {
   for (const type of Object.values(ClubType)) {
     const name = CLUB_NAMES[type];
     const existing = clubs.find((club) => club.clubName === name);
-    if (existing !== undefined) {
+    if (isDefined(existing)) {
       console.log(`Kept ${name}: ${APP_URL}/club/${existing.slug}`);
       continue;
     }
