@@ -81,8 +81,10 @@ import { computed } from "vue";
 import { hasElements, isDefined } from "@/../lib/checks/checks";
 import { type ClubType } from "@/../lib/types/generated/db";
 import { clubTypeConfig } from "@/common/clubType";
+import { usePageTitle } from "@/common/composables/usePageTitle";
 import { calendarMonths, puzzlePath } from "@/features/daily-game/archive";
 import { formatPuzzleDate } from "@/features/daily-game/game";
+import { archivePageHead } from "@/features/daily-game/seo";
 import { useClock } from "@/features/daily-game/useClock";
 import { dailyGameProgress, type DayProgress } from "@/features/daily-game/useDailyGame";
 import { useDailyGameArchive } from "@/service/useDailyGame";
@@ -90,6 +92,8 @@ import { useDailyGameArchive } from "@/service/useDailyGame";
 const { clubType } = defineProps<{ clubType: ClubType }>();
 
 const { noun, dailyGame } = clubTypeConfig(clubType);
+
+usePageTitle(() => (isDefined(dailyGame) ? archivePageHead(dailyGame).title : undefined));
 
 const PROGRESS: Record<DayProgress, { label: string; icon: string }> = {
   solved: { label: "Solved", icon: "check" },
