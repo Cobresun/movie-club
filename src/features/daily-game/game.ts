@@ -65,38 +65,48 @@ const TEMPERATURE_SQUARES: Record<Temperature, string> = {
   cold: "🟥",
 };
 
-/** `guessRanks` are the player's own guesses; hints are counted apart from them. */
+const HINT_MARK = "💡";
+const TRAIL_ROW = 10;
+/** A streak is only worth bragging about once it spans more than today. */
+const SHARED_STREAK_FROM = 2;
+
+/**
+ * The player's game, spoiler-free: a square per entry in the order they were
+ * made, hints marked apart, ten to a row so a long game still reads as a grid.
+ * `streak` is counted only for a puzzle solved on its day.
+ */
 export function shareText({
   name,
   puzzle,
-  guessRanks,
+  trail,
   poolSize,
-  hints,
   solved,
+  streak,
   url,
 }: {
   name: string;
   puzzle: number;
-  guessRanks: readonly number[];
+  trail: readonly { rank: number; hint: boolean }[];
   poolSize: number;
-  hints: number;
   solved: boolean;
+  streak: number;
   url: string;
 }): string {
-  const counts = guessRanks.reduce<Record<Temperature, number>>(
-    (tally, rank) => {
-      const key = temperature(rank, poolSize);
-      return { ...tally, [key]: tally[key] + 1 };
-    },
-    { hot: 0, warm: 0, cold: 0 },
-  );
-  const guessWord = guessRanks.length === 1 ? "guess" : "guesses";
+  const guesses = trail.filter((entry) => !entry.hint).length;
+  const hints = trail.length - guesses;
+  const guessWord = guesses === 1 ? "guess" : "guesses";
   const hintNote = hints === 0 ? "" : ` and ${hints} ${hints === 1 ? "hint" : "hints"}`;
   const outcome = solved
-    ? `I got it in ${guessRanks.length} ${guessWord}${hintNote}`
-    : `I gave up after ${guessRanks.length} ${guessWord}${hintNote}`;
-  const tally = TEMPERATURES.map((key) => `${TEMPERATURE_SQUARES[key]} ${counts[key]}`).join("  ");
-  return `${name} #${puzzle}: ${outcome}.\n${tally}\n${url}`;
+    ? `I got it in ${guesses} ${guessWord}${hintNote}`
+    : `I gave up after ${guesses} ${guessWord}${hintNote}`;
+  const streakNote = solved && streak >= SHARED_STREAK_FROM ? ` 🔥 ${streak}` : "";
+  const marks = trail.map((entry) =>
+    entry.hint ? HINT_MARK : TEMPERATURE_SQUARES[temperature(entry.rank, poolSize)],
+  );
+  const rows = Array.from({ length: Math.ceil(marks.length / TRAIL_ROW) }, (_, index) =>
+    marks.slice(index * TRAIL_ROW, (index + 1) * TRAIL_ROW).join(""),
+  );
+  return [`${name} #${puzzle}: ${outcome}.${streakNote}`, ...rows, url].join("\n");
 }
 
 /** `/reelated` → `reelated`: the tag that names a game in signup tracking. */
