@@ -229,10 +229,7 @@
               Each guess gets a rank: #1 is the answer, #2 the next most similar {{ noun }}, and so
               on down to #{{ game.poolSize }}.
             </li>
-            <li>
-              {{ dailyGame.similarityRule }} The clues under each guess show what it has in common
-              with the answer.
-            </li>
+            <li>{{ dailyGame.similarityRule }} Nothing you can't see counts.</li>
             <li>
               Stuck? A hint reveals a {{ noun }} halfway between your best guess and the answer.
               Your progress is saved on this device, so you can come back to it.

@@ -10,24 +10,75 @@ export interface PoolWork<T> {
 }
 
 /**
- * What one club type's daily game needs to know about its media: how alike two
- * works are, what to tell the player they share, and which works make a fair
- * answer. `T` is that media's own metadata shape.
+ * A clue as the ranking weighs it. Positive points are something the guess
+ * shares with the answer, negative ones a way it differs, which only orders
+ * guesses that share as much. The player sees the clue but not its points.
+ */
+export interface ScoredClue {
+  text: string;
+  points: number;
+}
+
+/**
+ * What one club type's daily game needs to know about its media: how a guess
+ * compares with the answer, and which works make a fair answer. `T` is that
+ * media's own metadata shape.
  */
 export interface DailyGameRules<T> {
-  /** A scorer in [0,1], weighted by how rare each shared tag is in `corpus`. */
-  makeScorer: (corpus: readonly T[]) => (target: T, candidate: T) => number;
-  /** What `guess` has in common with `answer`, phrased for the player. */
-  clues: (guess: T, answer: T) => string[];
+  /**
+   * What `guess` shares with `answer` and where it differs, each clue worth
+   * whole points, never 0. A guess ranks by its clues and nothing else, so a
+   * guess's chips always account for its rank. `pool` is every work in play,
+   * for clues whose worth depends on how rare they are.
+   */
+  makeClues: (pool: readonly T[]) => (guess: T, answer: T) => ScoredClue[];
+  /** Also breaks ties: of two guesses with the same score, the one released nearer the answer ranks higher. */
   year: (data: T) => number | undefined;
   /** Whether a work has enough metadata that the trail to it never runs cold. */
   canBeAnswer: (data: T) => boolean;
 }
 
+/** How many works in `pool` have each tag. */
+export function tagCounts<T>(
+  pool: readonly T[],
+  extract: (data: T) => readonly string[],
+): (tag: string) => number {
+  const counts = new Map<string, number>();
+  for (const data of pool) {
+    for (const tag of new Set(extract(data))) counts.set(tag, (counts.get(tag) ?? 0) + 1);
+  }
+  return (tag) => counts.get(tag) ?? 0;
+}
+
 /**
- * Every work in the pool, ranked by how alike it is to the answer, with the
- * pool as the scorer's corpus. The answer is rank 1; ties keep a stable order
- * by title.
+ * How many whole points a shared tag is worth, from how rare it is in `pool`:
+ * `ln(pool size / works with the tag)`, rounded and held within `min`–`max`.
+ * With `dropMajority`, a tag more than half the pool has (English) is worth
+ * nothing, so it is no clue at all. A field whose misses are shown as clues
+ * keeps its majority tags, or a hit would show nothing where a miss shows.
+ */
+export function rarityPoints<T>(
+  pool: readonly T[],
+  extract: (data: T) => readonly string[],
+  { min, max, dropMajority }: { min: number; max: number; dropMajority: boolean },
+): (tag: string) => number {
+  const count = tagCounts(pool, extract);
+  return (tag) => {
+    const share = count(tag) / pool.length;
+    if (share === 0 || (dropMajority && share > 0.5)) return 0;
+    return Math.min(max, Math.max(min, Math.round(Math.log(1 / share))));
+  };
+}
+
+const sumPoints = (clues: readonly ScoredClue[], include: (points: number) => boolean) =>
+  clues.reduce((total, clue) => (include(clue.points) ? total + clue.points : total), 0);
+
+/**
+ * Every work in the pool, ranked by the points of what it shares with the
+ * answer, so a guess that shares anything ranks above one that shares
+ * nothing. Among guesses that share as much, the one that differs least ranks
+ * higher, then the one released nearer the answer, then by title. The answer
+ * is rank 1.
  */
 export function rankPool<T>(
   answerId: string,
@@ -36,19 +87,39 @@ export function rankPool<T>(
 ): DailyGameWork[] {
   const answer = pool.find((work) => work.id === answerId);
   if (answer === undefined) return [];
-  const score = rules.makeScorer(pool.map((work) => work.data));
+  const answerYear = rules.year(answer.data);
+  const yearGap = (data: T) => {
+    const year = rules.year(data);
+    return year === undefined || answerYear === undefined
+      ? Number.MAX_SAFE_INTEGER
+      : Math.abs(year - answerYear);
+  };
+  const cluesFor = rules.makeClues(pool.map((work) => work.data));
   const others = pool
     .filter((work) => work.id !== answerId)
-    .map((work) => ({ work, score: score(answer.data, work.data) }))
-    .sort((a, b) =>
-      a.score === b.score ? a.work.title.localeCompare(b.work.title) : b.score - a.score,
-    );
-  return [answer, ...others.map(({ work }) => work)].map((work, index) => ({
+    .map((work) => {
+      const clues = cluesFor(work.data, answer.data).sort((a, b) => b.points - a.points);
+      return {
+        work,
+        clues,
+        shared: sumPoints(clues, (points) => points > 0),
+        differs: sumPoints(clues, (points) => points < 0),
+        yearGap: yearGap(work.data),
+      };
+    })
+    .sort((a, b) => {
+      if (a.shared !== b.shared) return b.shared - a.shared;
+      if (a.differs !== b.differs) return b.differs - a.differs;
+      if (a.yearGap !== b.yearGap) return a.yearGap - b.yearGap;
+      return a.work.title.localeCompare(b.work.title);
+    });
+  const answerClues: ScoredClue[] = [];
+  return [{ work: answer, clues: answerClues }, ...others].map(({ work, clues }, index) => ({
     id: work.id,
     title: work.title,
     year: rules.year(work.data),
     rank: index + 1,
-    clues: work.id === answerId ? [] : rules.clues(work.data, answer.data),
+    clues: clues.map((clue) => ({ text: clue.text, shared: clue.points > 0 })),
   }));
 }
 

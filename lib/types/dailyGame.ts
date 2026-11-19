@@ -1,5 +1,12 @@
 import { type ClubType } from "./generated/db";
 
+/** One thing a guess has in common with the answer, or one way it differs from it. */
+export interface DailyGameClue {
+  text: string;
+  /** True for something the guess shares with the answer, false where it differs. */
+  shared: boolean;
+}
+
 /** One work in a day's daily-game pool, ranked against that day's answer. */
 export interface DailyGameWork {
   /** The work's external id (a TMDB id for movies). */
@@ -8,8 +15,12 @@ export interface DailyGameWork {
   year?: number;
   /** 1 for the answer, up to the pool size for the least alike work. */
   rank: number;
-  /** What this work has in common with the answer, as the player sees it. */
-  clues: string[];
+  /**
+   * What this work shares with the answer and where it differs, strongest
+   * first. Its rank comes from these and nothing else: equal clues go to the
+   * work released nearer the answer.
+   */
+  clues: DailyGameClue[];
 }
 
 /**

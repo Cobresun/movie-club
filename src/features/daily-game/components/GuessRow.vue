@@ -57,15 +57,16 @@
       </div>
       <ul
         v-if="hasElements(guess.work.clues)"
-        :aria-label="`What ${guess.work.title} has in common with the answer`"
+        :aria-label="`How ${guess.work.title} compares with the answer`"
         class="flex flex-wrap gap-1.5"
       >
         <li
           v-for="clue in guess.work.clues"
-          :key="clue"
-          class="bg-background/70 rounded-full px-2 py-0.5 text-xs text-white/80"
+          :key="clue.text"
+          class="rounded-full px-2 py-0.5 text-xs"
+          :class="clue.shared ? 'bg-background/70 text-white/80' : 'bg-background/30 text-white/50'"
         >
-          {{ clue }}
+          {{ clue.text }}
         </li>
       </ul>
     </div>

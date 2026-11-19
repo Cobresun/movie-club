@@ -126,6 +126,21 @@ describe("DailyGameView", () => {
     expect(within(latest()).queryByText("Closest yet")).not.toBeInTheDocument();
   });
 
+  it("shows what a guess shares with the answer and the genres the answer doesn't have", async () => {
+    const { user } = await renderGame();
+
+    await guess(user, "Collateral");
+
+    const clues = within(row("Collateral")).getByRole("list", {
+      name: "How Collateral compares with the answer",
+    });
+    expect(
+      within(clues)
+        .getAllByRole("listitem")
+        .map((clue) => clue.textContent.trim()),
+    ).toStrictEqual(["Same director: Michael Mann", "Crime", "Drama", "Not Thriller"]);
+  });
+
   it("only offers movies that match what was typed", async () => {
     const { user } = await renderGame();
 
@@ -195,7 +210,7 @@ describe("DailyGameView", () => {
     await guess(user, "Jaws");
     await guess(user, "Jaws");
 
-    expect(screen.getByRole("status")).toHaveTextContent("You already guessed Jaws — it's #11.");
+    expect(screen.getByRole("status")).toHaveTextContent("You already guessed Jaws — it's #13.");
     expect(screen.getByText("1 guess")).toBeInTheDocument();
   });
 
@@ -273,7 +288,7 @@ describe("DailyGameView", () => {
   it("reveals a closer movie as a hint", async () => {
     const { user } = await renderGame();
 
-    await guess(user, "Alien");
+    await guess(user, "Toy Story");
     await chooseFromMenu(user, "Hint");
 
     expect(within(row("The Godfather")).getByText("Hint")).toBeInTheDocument();
