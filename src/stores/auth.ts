@@ -53,7 +53,13 @@ export const useAuthStore = defineStore("auth", () => {
     () => session.value.data?.user ?? (isAssumedSignedIn.value ? rememberedUser : undefined),
   );
   const isLoggedIn = computed(() => hasSession.value || isAssumedSignedIn.value);
-  const ready = computed(() => isSessionSettled.value || isAssumedSignedIn.value);
+  // Only a page load's first check holds the screen. BetterAuth rechecks on
+  // every return to the tab and, for a visitor with no session, goes back to
+  // pending meanwhile; taking the page down for that unmounts it. Guards still
+  // wait on a recheck that could sign someone in (`waitForAuthReady`).
+  const ready = computed(
+    () => firstCheckSettled.value || isSessionSettled.value || isAssumedSignedIn.value,
+  );
   const isInitialLoading = computed(() => !ready.value);
 
   const queryClient = useQueryClient();

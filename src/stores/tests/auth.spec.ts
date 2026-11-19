@@ -72,13 +72,23 @@ const mountWithResolvedSession = async (body: SessionResponse) => {
   return store;
 };
 
+/**
+ * Puts the session check out the way a page load starts, before the store
+ * under test first looks. The session atom is shared across tests, so an
+ * earlier store puts it back to checking (from signed out, which makes it a
+ * first check rather than a refetch).
+ */
+const startColdLoad = async () => {
+  const earlier = await mountWithResolvedSession(null);
+  leaveSessionCheckPending();
+  void earlier.refreshSession();
+  await nextTick();
+};
+
 /** A store on a cold load, with the session check still out. */
 const mountWithPendingSession = async () => {
-  leaveSessionCheckPending();
-  const store = mountAuthStore();
-  void store.refreshSession();
-  await nextTick();
-  return store;
+  await startColdLoad();
+  return mountAuthStore();
 };
 
 afterEach(() => {
@@ -123,6 +133,25 @@ describe("the remembered member", () => {
 
     expect(store.isAppLoading).toBe(true);
     expect(store.isLoadingClubHome).toBe(false);
+  });
+});
+
+describe("a signed-out visitor returning to the tab", () => {
+  it("keeps the page on screen while the session is rechecked", async () => {
+    // BetterAuth rechecks the session when the tab becomes visible again and,
+    // with no session in hand, reports that recheck as pending.
+    const store = await mountWithResolvedSession(null);
+    leaveSessionCheckPending();
+
+    void store.session.refetch();
+    await nextTick();
+
+    expect(store.session.isPending).toBe(true);
+    expect(store.isAppLoading).toBe(false);
+
+    // The session atom outlives the test; settle it for the next one.
+    answerSessionCheck(null);
+    await store.refreshSession();
   });
 });
 
@@ -211,17 +240,9 @@ describe("navigateAfterAuth", () => {
 });
 
 describe("a cold load whose last session was signed in", () => {
-  /**
-   * A store created the way a page load creates it: remembering `member`, and
-   * with the session check already out when the store first looks. The session
-   * atom is shared across tests, so an earlier store puts it back to checking
-   * (from signed out, which makes it a first check rather than a refetch).
-   */
+  /** A store on a cold load, remembering `member`, with the session check still out. */
   const mountAsRememberedMember = async (queryClient?: QueryClient) => {
-    const earlier = await mountWithResolvedSession(null);
-    leaveSessionCheckPending();
-    void earlier.refreshSession();
-    await nextTick();
+    await startColdLoad();
     rememberMember();
     return mountAuthStore(queryClient);
   };
