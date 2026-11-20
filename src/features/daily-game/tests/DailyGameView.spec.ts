@@ -347,6 +347,19 @@ describe("DailyGameView", () => {
     expect(statValue("Solved")).toBe("0");
   });
 
+  it("shows the answer's poster only once the game is over", async () => {
+    const { user } = await renderGame();
+
+    expect(screen.queryByRole("img", { name: "Heat" })).not.toBeInTheDocument();
+
+    await giveUp(user);
+
+    expect(screen.getByRole("img", { name: "Heat" })).toHaveAttribute(
+      "src",
+      "https://image.tmdb.org/t/p/w342/heat.jpg",
+    );
+  });
+
   it("keeps playing when the player backs out of giving up", async () => {
     const { user } = await renderGame();
 

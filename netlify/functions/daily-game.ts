@@ -140,6 +140,7 @@ router.get("/:clubType/:date", async ({ params }, res) => {
         date,
         puzzle: puzzleNumber(firstDate ?? date, date),
         works,
+        answerImageUrl: game.imageUrl(answerId, pool),
       }),
     ),
   );

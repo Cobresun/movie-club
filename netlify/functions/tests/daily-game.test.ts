@@ -141,6 +141,16 @@ describe("GET /api/daily-game/:clubType/:date", () => {
     expect(answer?.clues).toStrictEqual([]);
   });
 
+  it("sends the answer's poster to show when the game is over", async () => {
+    await seedCatalog(12);
+
+    const puzzle = (await api.get<DailyGamePuzzle>(`/api/daily-game/movie/${TODAY}`)).body;
+
+    expect(puzzle.answerImageUrl).toBe(
+      `https://image.tmdb.org/t/p/w342/poster-${answerOf(puzzle.works)?.id}.jpg`,
+    );
+  });
+
   it("names only major cast as clues, not bit parts every movie happens to share", async () => {
     server.use(
       http.get(`${TMDB}/movie/:movieId`, ({ params }) => {

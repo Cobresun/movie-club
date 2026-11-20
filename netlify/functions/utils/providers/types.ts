@@ -58,6 +58,8 @@ export interface DailyGame {
    * only the works most players have heard of.
    */
   answerCandidates: (pool: readonly DailyGamePoolEntry[]) => Promise<string[]>;
+  /** The poster or cover shown when `answerId` is revealed, if `pool` has one for it. */
+  imageUrl: (answerId: string, pool: readonly DailyGamePoolEntry[]) => string | undefined;
 }
 
 /**
