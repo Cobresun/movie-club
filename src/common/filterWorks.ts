@@ -1,7 +1,6 @@
 import { hasValue } from "@/../lib/checks/checks";
-import { type ClubType } from "@/../lib/types/generated/db";
 import { type DetailedWorkListItem } from "@/../lib/types/lists";
-import { clubTypeConfig } from "@/common/clubType";
+import { type FilterOption } from "@/common/clubType";
 import { type FilterSelection } from "@/common/components/filterTypes";
 import { includesCaseInsensitive, matchesSelection } from "@/common/filterMatchers";
 
@@ -9,9 +8,10 @@ import { includesCaseInsensitive, matchesSelection } from "@/common/filterMatche
  * Filters work/review rows down to those matching every applied filter plus
  * the optional free-text title search.
  *
- * Which filters exist — and what each one reads from a work — is defined by the
- * club type's `filterOptions` registry (see `clubType/`), so this function
- * never grows a branch when a new club type or field is added.
+ * Which filters exist, and what each one reads from a work, comes from
+ * `options`: the club type's `filterOptions` registry (see `clubType/`) plus
+ * any a view adds. This function never grows a branch when a new club type or
+ * field is added.
  *
  * Filters AND together; the values picked within one choice filter OR together,
  * so "Horror" + "Comedy" shows both.
@@ -22,12 +22,12 @@ export function filterWorks<T extends DetailedWorkListItem>(
     selections: Partial<Record<string, FilterSelection>>;
     freeText: string;
   },
-  clubType: ClubType,
+  options: readonly FilterOption[],
 ): T[] {
   const { selections, freeText } = searchQuery;
   let result = [...works];
 
-  for (const option of clubTypeConfig(clubType).filterOptions) {
+  for (const option of options) {
     const selection = selections[option.key];
     if (selection === undefined) continue;
     result = result.filter((work) => matchesSelection(option, work, selection));

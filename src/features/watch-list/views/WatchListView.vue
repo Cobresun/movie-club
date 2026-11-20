@@ -9,6 +9,7 @@ import ListItems from "../components/ListItems.vue";
 import ManageListsModal from "../components/ManageListsModal.vue";
 import WatchListSkeleton from "../components/WatchListSkeleton.vue";
 import { useCollapsedLists } from "../composables/useCollapsedLists";
+import { useStreamingFilter } from "../composables/useStreamingFilter";
 import SearchFilterBar from "@/common/components/SearchFilterBar.vue";
 import { useShare } from "@/common/composables/useShare";
 import { useClub, useClubSlug, useMembers } from "@/service/useClub";
@@ -51,6 +52,12 @@ const { data: allItems } = useAllUserListItems(clubSlug);
 const searchData = computed<DetailedWorkListItem[]>(() => allItems.value ?? []);
 const excludedFilterKeys = ["average_score", "review_date"];
 
+// Streaming services take a TMDB lookup per work, so they load only once
+// someone opens the filters.
+const filtersOpened = shallowRef(false);
+const streamingFilter = useStreamingFilter(searchData, filtersOpened);
+const extraFilterOptions = computed(() => [streamingFilter.value]);
+
 const filteredItems = ref<DetailedWorkListItem[]>([]);
 const hasActiveFilters = ref(false);
 
@@ -83,6 +90,8 @@ const shareList = (listId: string) => {
         :club-type="clubType"
         search-placeholder="Search watchlists"
         :exclude-filter-keys="excludedFilterKeys"
+        :extra-filter-options="extraFilterOptions"
+        @open="filtersOpened = true"
       >
         <template #action-button>
           <v-btn @click="managingLists = true">
