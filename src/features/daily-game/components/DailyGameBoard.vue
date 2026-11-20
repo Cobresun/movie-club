@@ -95,22 +95,37 @@
     <section
       v-if="game.finished.value"
       aria-labelledby="daily-game-result"
-      class="from-secondary to-lowBackground relative flex flex-col items-center gap-3 rounded-xl bg-linear-to-br p-6 text-center shadow-lg"
+      class="from-secondary to-lowBackground relative flex flex-col items-center gap-4 rounded-xl bg-linear-to-br p-5 text-center shadow-lg sm:p-6"
       :class="{ 'result-pop': celebrating, 'animate-fade-up': finishedNow && !celebrating }"
     >
       <ConfettiBurst v-if="celebrating" />
-      <h2 id="daily-game-result" class="text-xl font-bold">
+      <h2 id="daily-game-result" class="text-lg font-semibold text-white/80">
         {{ game.solved.value ? "You got it!" : failedHeading }}
       </h2>
-      <p class="text-white/80">
-        {{ game.fromArchive ? "The" : "Today's" }} {{ noun }} was
-        <strong class="text-white">{{ game.answer?.title }}</strong
-        ><template v-if="isDefined(game.answer?.year)"> ({{ game.answer.year }})</template>.
-      </p>
-      <p v-if="game.solved.value" class="text-white/80">
-        {{ guessSummary }}
-      </p>
-      <dl class="mt-1 flex gap-6 sm:gap-8">
+      <div
+        class="flex w-full flex-col items-center gap-1 rounded-lg px-4 py-5 ring-2"
+        :class="
+          game.solved.value
+            ? 'bg-green-600/25 ring-green-500/60'
+            : 'bg-background/60 ring-highlight/60'
+        "
+      >
+        <p class="flex flex-col items-center gap-1">
+          <span class="text-xs font-semibold tracking-wide text-white/60 uppercase"
+            >{{ game.fromArchive ? "The" : "Today's" }} {{ noun }} was</span
+          >
+          <strong class="text-2xl leading-tight font-bold text-balance text-white sm:text-3xl">{{
+            game.answer?.title
+          }}</strong>
+          <span v-if="isDefined(game.answer?.year)" class="text-white/60">{{
+            game.answer.year
+          }}</span>
+        </p>
+        <p v-if="game.solved.value" class="mt-1 text-sm text-white/80">
+          {{ guessSummary }}
+        </p>
+      </div>
+      <dl class="flex w-full justify-center gap-6 sm:gap-8">
         <div
           v-for="(stat, index) in stats"
           :key="stat.label"
@@ -129,7 +144,7 @@
         </div>
       </dl>
       <v-btn
-        class="duration-slow! ease-spring! mt-2 px-3 active:scale-92! active:duration-75!"
+        class="duration-slow! ease-spring! px-3 active:scale-92! active:duration-75!"
         :aria-label="shareLabel"
         @click="shareResult"
       >
