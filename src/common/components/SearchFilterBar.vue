@@ -36,7 +36,7 @@
             ? 'border-primary bg-primary/15 text-white'
             : 'border-slate-600 text-slate-200 hover:border-slate-400 hover:text-white'
         "
-        @click="panelOpen = true"
+        @click="openFilters"
       >
         <mdicon name="tune-variant" />
         <span class="hidden md:inline">Filters</span>
@@ -130,13 +130,21 @@ interface Props {
   searchPlaceholder?: string;
   className?: string;
   excludeFilterKeys?: string[];
+  /** Filters a view adds after the club type's own. */
+  extraFilterOptions?: FilterOption[];
 }
 
 const props = withDefaults(defineProps<Props>(), {
   searchPlaceholder: "Search",
   className: "mb-4",
   excludeFilterKeys: () => [],
+  extraFilterOptions: () => [],
 });
+
+const emit = defineEmits<{
+  /** The filter panel opened, so a view can start loading what its filters need. */
+  (e: "open"): void;
+}>();
 
 const filteredData = defineModel<T[]>("filteredData", {
   required: true,
@@ -152,15 +160,22 @@ const selections = ref<Partial<Record<string, FilterSelection>>>({});
 
 const config = computed(() => clubTypeConfig(props.clubType));
 
+const filterOptions = computed(() => [...config.value.filterOptions, ...props.extraFilterOptions]);
+
+function openFilters() {
+  panelOpen.value = true;
+  emit("open");
+}
+
 // The same work can sit on several watchlists; count and filter it once.
 const works = computed(() => [...new Map(props.data.map((work) => [work.id, work])).values()]);
 
 // Filter options come from the club-type registry (movie/book have different
-// fields); excludeFilterKeys lets a view drop options that don't apply (e.g.
+// fields) and the view; excludeFilterKeys lets a view drop options that don't apply (e.g.
 // score-based filters on the watchlist). An option no work has a value for
 // would be an empty section, so it is left out.
 const availableOptions = computed(() =>
-  config.value.filterOptions.filter(
+  filterOptions.value.filter(
     (option) =>
       !props.excludeFilterKeys.includes(option.key) &&
       works.value.some((work) =>
@@ -188,7 +203,7 @@ const filtered = computed(() =>
   filterWorks(
     works.value,
     { selections: selections.value, freeText: freeText.value },
-    props.clubType,
+    filterOptions.value,
   ),
 );
 
@@ -201,7 +216,7 @@ const facets = computed(() => {
     result[option.key] = filterWorks(
       works.value,
       { selections: others, freeText: freeText.value },
-      props.clubType,
+      filterOptions.value,
     );
   }
   return result;
@@ -241,7 +256,7 @@ function chipsFor(option: FilterOption, selection: FilterSelection): ActiveChip[
 }
 
 const activeChips = computed(() =>
-  config.value.filterOptions.flatMap((option) => {
+  filterOptions.value.flatMap((option) => {
     const selection = selections.value[option.key];
     return selection === undefined ? [] : chipsFor(option, selection);
   }),

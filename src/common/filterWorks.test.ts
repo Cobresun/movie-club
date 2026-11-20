@@ -2,6 +2,7 @@ import { type DetailedBookData } from "../../lib/types/book";
 import { ClubType, WorkType } from "../../lib/types/generated/db";
 import { type DetailedWorkListItem } from "../../lib/types/lists";
 import { type DetailedMovieData } from "../../lib/types/movie";
+import { clubTypeConfig } from "./clubType";
 import { type FilterSelection } from "./components/filterTypes";
 import { filterWorks } from "./filterWorks";
 
@@ -64,7 +65,7 @@ function filtered(
   clubType: ClubType,
   freeText = "",
 ) {
-  return ids(filterWorks(rows, { selections, freeText }, clubType));
+  return ids(filterWorks(rows, { selections, freeText }, clubTypeConfig(clubType).filterOptions));
 }
 
 const choice = (...values: string[]): FilterSelection => ({ kind: "choice", values });

@@ -34,8 +34,8 @@ import { computed } from "vue";
 
 import { hasElements, hasValue } from "../../../lib/checks/checks";
 import { type WorkType } from "../../../lib/types/generated/db";
-import { type TMDBWatchProvider } from "../../../lib/types/tmdb";
 import { workWatchProvidersPath } from "@/common/clubType";
+import { streamingServices, viewerAvailability } from "@/common/streamingServices";
 import { useWatchProviders } from "@/service/useTMDB";
 
 const { type, externalId = "" } = defineProps<{
@@ -43,36 +43,14 @@ const { type, externalId = "" } = defineProps<{
   externalId?: string;
 }>();
 
-// The user's region drives which availability we show. We never fall back to
-// another country's data: if the locale has no region subtag, or TMDB has no
-// entry for it, `providers` stays empty and the whole section is hidden.
-const region = detectRegion();
-
-function detectRegion(): string | undefined {
-  if (typeof navigator === "undefined" || !hasValue(navigator.language)) {
-    return undefined;
-  }
-  try {
-    return new Intl.Locale(navigator.language).region ?? undefined;
-  } catch {
-    return undefined;
-  }
-}
-
 // A work type with no availability source never fetches, so the section stays hidden.
 const { data } = useWatchProviders(() => workWatchProvidersPath(type, externalId));
 
-const regionData = computed(() => (hasValue(region) ? data.value?.results[region] : undefined));
+const availability = computed(() => viewerAvailability(data.value));
 
-// "Where to watch" shows only subscription streaming services (TMDB's
-// `flatrate` bucket). Free/ad-supported and paid rent/buy are intentionally
-// excluded — these are the services you can actually stream the work on.
-// Ordered by TMDB's display priority.
-const providers = computed<TMDBWatchProvider[]>(() =>
-  [...(regionData.value?.flatrate ?? [])].sort((a, b) => a.display_priority - b.display_priority),
-);
+const providers = computed(() => streamingServices(availability.value));
 
-const justWatchLink = computed(() => regionData.value?.link);
+const justWatchLink = computed(() => availability.value?.link);
 
 const logoUrl = (logoPath: string) => `https://image.tmdb.org/t/p/w92${logoPath}`;
 </script>

@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/vue-query";
+import { useQueries, useQuery } from "@tanstack/vue-query";
 import { computed, type MaybeRefOrGetter, type Ref, toValue } from "vue";
 
 import { hasValue, isDefined } from "../../lib/checks/checks.js";
@@ -33,23 +33,46 @@ export function useTvSeason(
   });
 }
 
+// Providers change slowly; an hour-long stale window keeps the data far
+// fresher than the daily-refreshed copy stored for other work metadata.
+const WATCH_PROVIDERS_STALE_TIME = 1000 * 60 * 60;
+
+const watchProvidersKey = (tmdbPath: string | undefined) => ["tmdb", "watch-providers", tmdbPath];
+
+async function fetchWatchProviders(tmdbPath: string | undefined, signal?: AbortSignal) {
+  return (
+    await http.get<TMDBWatchProvidersResponse>(
+      `https://api.themoviedb.org/3/${tmdbPath}/watch/providers?api_key=${key}`,
+      { signal },
+    )
+  ).data;
+}
+
 /**
  * Where a work streams, by region. `tmdbPath` is the TMDB resource the club
  * type registry names for it ("movie/27205", "tv/95396").
  */
 export function useWatchProviders(tmdbPath: MaybeRefOrGetter<string | undefined>) {
   return useQuery<TMDBWatchProvidersResponse>({
-    queryKey: computed(() => ["tmdb", "watch-providers", toValue(tmdbPath)]),
+    queryKey: computed(() => watchProvidersKey(toValue(tmdbPath))),
     enabled: computed(() => hasValue(toValue(tmdbPath))),
-    // Providers change slowly; an hour-long stale window keeps the data far
-    // fresher than the daily-refreshed copy stored for other work metadata.
-    staleTime: 1000 * 60 * 60,
-    queryFn: async ({ signal }) =>
-      (
-        await http.get<TMDBWatchProvidersResponse>(
-          `https://api.themoviedb.org/3/${toValue(tmdbPath)}/watch/providers?api_key=${key}`,
-          { signal },
-        )
-      ).data,
+    staleTime: WATCH_PROVIDERS_STALE_TIME,
+    queryFn: ({ signal }) => fetchWatchProviders(toValue(tmdbPath), signal),
+  });
+}
+
+/**
+ * {@link useWatchProviders} for many works at once, sharing its cache. The
+ * results come back in the order of `tmdbPaths`.
+ */
+export function useWatchProvidersForEach(tmdbPaths: MaybeRefOrGetter<string[]>) {
+  return useQueries({
+    queries: computed(() =>
+      toValue(tmdbPaths).map((tmdbPath) => ({
+        queryKey: watchProvidersKey(tmdbPath),
+        staleTime: WATCH_PROVIDERS_STALE_TIME,
+        queryFn: ({ signal }: { signal?: AbortSignal }) => fetchWatchProviders(tmdbPath, signal),
+      })),
+    ),
   });
 }
