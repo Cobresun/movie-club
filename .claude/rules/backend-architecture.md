@@ -62,7 +62,7 @@ The data model is in `database.md`.
 ## External calls and aggregates
 
 - A loop over an external API runs in bounded batches with `Promise.allSettled` and logs failures (`utils/dailyGame.ts`).
-- A response identical for every caller sets `Netlify-CDN-Cache-Control` (`CDN_CACHE_CONTROL` in `daily-game.ts`).
+- A response identical for every caller sets `Netlify-CDN-Cache-Control` (`PUZZLE_CACHE_CONTROL` and `ARCHIVE_CACHE_CONTROL` in `daily-game.ts`).
 - A date in a path is `z.string().date()` (`puzzleDateSchema`). A regex or `new Date()` accepts `2026-02-31`.
 - Summary tiles use the same key and date range as the table under them. Never silently cap a listed result.
 

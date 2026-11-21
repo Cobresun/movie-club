@@ -1,7 +1,16 @@
 import { hasElements, hasValue, isDefined } from "../checks/checks.js";
 import { type DailyGameRules, rarityPoints, type ScoredClue, tagCounts } from "../dailyGame.js";
-import { type MovieDataSummary } from "../types/movie";
 import { releaseYear } from "./releaseYear.js";
+
+/** What the game ranks and clues movies by: the only metadata it reads. */
+export interface MovieGameData {
+  directors: readonly { name: string }[];
+  majorCastNames: readonly string[];
+  production_companies: readonly string[];
+  genres: readonly string[];
+  release_date?: string;
+  original_language?: string;
+}
 
 // A shared director is the strongest link two movies can have, a shared star
 // half that. Genres, language and decade are worth what their rarity says.
@@ -34,14 +43,14 @@ function languageName(code: string): string | undefined {
   }
 }
 
-const languages = (movie: MovieDataSummary) =>
+const languages = (movie: MovieGameData) =>
   hasValue(movie.original_language) ? [movie.original_language] : [];
 
 /**
  * `1990` for a 1995 release. The decade is the era clue because the player
  * can check it at a glance: 1999 and 2001 are close, but share no clue.
  */
-const decades = (movie: MovieDataSummary) => {
+const decades = (movie: MovieGameData) => {
   const year = releaseYear(movie);
   return isDefined(year) ? [String(Math.floor(year / 10) * 10)] : [];
 };
@@ -69,13 +78,13 @@ function groupedClue(
   return hasElements(names) ? [{ text: text(names), points: points(names.length) }] : [];
 }
 
-const directorNames = (movie: MovieDataSummary) => movie.directors.map((d) => d.name);
+const directorNames = (movie: MovieGameData) => movie.directors.map((d) => d.name);
 
 /**
  * Clues name major cast only: a full TMDB credit list runs to background
  * extras and stunt performers, who make no sense as "Also stars".
  */
-export function makeMovieClues(pool: readonly MovieDataSummary[]) {
+export function makeMovieClues(pool: readonly MovieGameData[]) {
   const studioCount = tagCounts(pool, (movie) => movie.production_companies);
   const studioPoints = (studio: string) => {
     const count = studioCount(studio);
@@ -85,7 +94,7 @@ export function makeMovieClues(pool: readonly MovieDataSummary[]) {
   const languagePoints = rarityPoints(pool, languages, LANGUAGE_POINTS);
   const decadePoints = rarityPoints(pool, decades, DECADE_POINTS);
 
-  return (guess: MovieDataSummary, answer: MovieDataSummary): ScoredClue[] => [
+  return (guess: MovieGameData, answer: MovieGameData): ScoredClue[] => [
     // A directing team is one director's worth.
     ...groupedClue(
       shared(directorNames(guess), directorNames(answer)),
@@ -126,7 +135,7 @@ export function makeMovieClues(pool: readonly MovieDataSummary[]) {
   ];
 }
 
-export const movieDailyGameRules: DailyGameRules<MovieDataSummary> = {
+export const movieDailyGameRules: DailyGameRules<MovieGameData> = {
   makeClues: makeMovieClues,
   year: releaseYear,
   canBeAnswer: (movie) => hasElements(movie.directors),
