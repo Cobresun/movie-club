@@ -7,6 +7,7 @@ import {
   googleBooksVolume,
   tmdbConfig,
   tmdbMovie,
+  tmdbTvPage,
   tmdbTvSeason,
   tmdbTvShow,
   TV_SEASON_EPISODE_COUNTS,
@@ -79,6 +80,9 @@ export const server = setupServer(
     HttpResponse.json(tmdbTvShow(Number(params.showId))),
   ),
   http.get(`${TMDB}/movie/:movieId/recommendations`, () => HttpResponse.json(tmdbPage([]))),
+  // The daily game catalog reads both games' lists on every run; a test about
+  // one game leaves the other's list empty.
+  http.get(`${TMDB}/discover/tv`, () => HttpResponse.json(tmdbTvPage([]))),
 
   http.get(`${GOOGLE_BOOKS}/volumes/:volumeId`, ({ params }) =>
     HttpResponse.json(googleBooksVolume(String(params.volumeId))),

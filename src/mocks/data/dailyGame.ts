@@ -65,3 +65,34 @@ export const dailyGamePuzzle = (date: string, puzzle: number): DailyGamePuzzle =
   puzzle,
   works: dailyGameMovies,
 });
+
+const show = (
+  rank: number,
+  title: string,
+  year: number,
+  clues: DailyGameClue[] = [],
+): DailyGameWork => ({ id: `tmdb-tv-${rank}`, title, year, rank, clues });
+
+const GILLIGAN = clue("Same creator: Vince Gilligan");
+const AMC = clue("Also on AMC");
+
+/** A small TV-game day whose answer is Better Call Saul. */
+export const dailyGameShows: DailyGameWork[] = [
+  show(1, "Better Call Saul", 2015),
+  show(2, "Breaking Bad", 2008, [GILLIGAN, clue("Also stars Bob Odenkirk"), AMC, CRIME, DRAMA]),
+  show(3, "Mad Men", 2007, [AMC, DRAMA]),
+  show(4, "Fargo", 2014, [CRIME, DRAMA, clue("Also premiered in the 2010s")]),
+  show(5, "The Sopranos", 1999, [CRIME, DRAMA]),
+  show(6, "The Wire", 2002, [CRIME, DRAMA]),
+  show(7, "Succession", 2018, [DRAMA, clue("Also premiered in the 2010s")]),
+  show(8, "The Office", 2005, [not("Comedy")]),
+  show(9, "Friends", 1994, [not("Comedy")]),
+  show(10, "Bluey", 2018, [not("Animation", "Kids", "Comedy")]),
+];
+
+export const dailyGameTvPuzzle = (date: string, puzzle: number): DailyGamePuzzle => ({
+  clubType: ClubType.TV,
+  date,
+  puzzle,
+  works: dailyGameShows,
+});

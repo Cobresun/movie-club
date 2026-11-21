@@ -302,15 +302,14 @@ import { untilMidnight, useClock } from "@/features/daily-game/useClock";
 import { type RankedGuess, useDailyGame } from "@/features/daily-game/useDailyGame";
 import { useRecordDailyGameResult } from "@/service/useDailyGame";
 
-const { puzzle, dailyGame, noun, today } = defineProps<{
+const { puzzle, dailyGame, today } = defineProps<{
   puzzle: DailyGamePuzzle;
   dailyGame: DailyGameConfig;
-  /** One work of the game's media ("movie"). */
-  noun: string;
   /** The player's own date, `YYYY-MM-DD`. */
   today: string;
 }>();
 
+const { noun } = dailyGame;
 const game = useDailyGame(puzzle, dailyGame.name, today);
 const puzzleDate = formatPuzzleDate(puzzle.date);
 const failedHeading = game.fromArchive ? "Better luck next time" : "Better luck tomorrow";

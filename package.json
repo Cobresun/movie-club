@@ -24,7 +24,8 @@
     "db:snapshot": "tsx --env-file=.env scripts/db-snapshot.ts",
     "db:spawn": "tsx --env-file=.env scripts/db-spawn.ts",
     "db:list": "tsx --env-file=.env scripts/db-list.ts",
-    "db:cleanup": "tsx --env-file=.env scripts/db-cleanup.ts"
+    "db:cleanup": "tsx --env-file=.env scripts/db-cleanup.ts",
+    "daily-game:fill": "tsx --env-file=.env scripts/daily-game-fill.ts"
   },
   "dependencies": {
     "@cubos/kysely-cockroach": "^1.0.0",

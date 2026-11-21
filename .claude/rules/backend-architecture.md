@@ -53,9 +53,9 @@ The data model is in `database.md`.
 ## Daily game
 
 - One handler and one pair of tables keyed by `work_type` serve every club type. What varies is the provider's `dailyGame`.
-- **The ranking is not Score Assist's scorer** (`lib/dailyGame.ts`, `lib/movie/dailyGame.ts`). A guess ranks only by the clues it is shown, so the chips always explain the order: first by what it shares, then by the genres it has that the answer lacks, so a miss never sinks a guess below one that shares nothing. Don't fold in a signal (a Jaccard ratio, an unshown field) that has no clue. A tie goes to the work released nearer the answer.
-- Any catalogued work can be guessed, but only what the provider's `answerCandidates` returns can be the answer. For movies that is TMDB's 1000 most-rated, read fresh at draw time so a movie that slips down the rankings stops being drawn.
-- **Netlify runs scheduled functions only on the production deploy**, never on previews or `netlify dev`, so the endpoint seeds a too-small catalog itself.
+- **The ranking is not Score Assist's scorer** (`lib/dailyGame.ts`, and each type's rules in `lib/movie/dailyGame.ts`, `lib/tv/dailyGame.ts`). Clue helpers both types use live in `lib/dailyGame.ts`. A guess ranks only by the clues it is shown, so the chips always explain the order: first by what it shares, then by the genres it has that the answer lacks, so a miss never sinks a guess below one that shares nothing. Don't fold in a signal (a Jaccard ratio, an unshown field) that has no clue. A tie goes to the work released nearer the answer.
+- Any catalogued work can be guessed, but only what the provider's `answerCandidates` returns can be the answer. For movies that is TMDB's 1000 most-rated, for TV its 500 most-rated shows with a creator, each read fresh at draw time so a work that slips down the rankings stops being drawn.
+- **Netlify runs scheduled functions only on the production deploy**, never on previews or `netlify dev`, so the endpoint seeds a too-small catalog itself, with only 20 works. `npm run daily-game:fill <club type>` fills a catalog to full against `.env`'s database: shared `dev` for previews, or production when a new game launches, instead of waiting on the hourly job.
 - Only a date that is somebody's today draws an answer or records a result. An earlier date serves its recorded answer or a 404. The archive listing never includes answers.
 - The server decides whether the posted guesses solved the puzzle. Results are one per player per day, keyed by a browser id plus the session's user id when signed in.
 

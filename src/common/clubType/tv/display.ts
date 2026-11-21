@@ -1,6 +1,7 @@
 import { type WorkDisplay } from "../types";
-import { asTv, isTvData, tmdbStillUrl, tvAirYear } from "./data";
+import { asTv, isTvData, tmdbStillUrl } from "./data";
 import { hasValue, isDefined } from "@/../lib/checks/checks";
+import { tvAirYear } from "@/../lib/tv/airYear";
 import { episodeCode } from "@/../lib/types/tv";
 import { formatRuntime } from "@/common/workDisplay";
 

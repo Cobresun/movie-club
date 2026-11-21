@@ -1,10 +1,12 @@
+import { DAILY_GAME_NAME } from "../dailyGame";
 import { clubScoreFilter, decadePresets, reviewedInFilter } from "../filterOptions";
 import { type ClubTypeConfig } from "../types";
-import { asTv, tvAirYear } from "./data";
+import { asTv } from "./data";
 import { tvDisplay } from "./display";
 import { tvLandingPreview } from "./landingPreview";
 import { browseTvShows, searchTvShows } from "./search";
 import { makeTvSimilarity } from "./similarity";
+import { tvAirYear } from "@/../lib/tv/airYear";
 import { ClubType, WorkType } from "@/../lib/types/generated/db";
 import { formatRuntime } from "@/common/workDisplay";
 
@@ -136,6 +138,60 @@ export const tvClubConfig: ClubTypeConfig = {
   display: tvDisplay,
   isScoredUnit: (data) => asTv(data)?.level === "episode",
   makeSimilarity: makeTvSimilarity,
-  dailyGame: undefined,
+  dailyGame: {
+    name: `${DAILY_GAME_NAME} TV`,
+    mode: "TV",
+    noun: "show",
+    path: "/reelated/tv",
+    tagline: "One mystery show a day. Every guess tells you how related it is. No account needed.",
+    similarityRule:
+      "A guess ranks by its clues: a shared creator counts most, then shared stars from the main cast, then a shared network, genre, language or the decade it premiered in, the rarer the more. Between guesses that share as much, each genre the guess has that the answer doesn't counts against it. When two guesses still tie, the one that premiered nearer the answer ranks higher.",
+    preview: {
+      poolSize: 2000,
+      guesses: [
+        {
+          id: "1396",
+          title: "Breaking Bad",
+          year: 2008,
+          rank: 2,
+          clues: [
+            { text: "Same creator: Vince Gilligan", shared: true },
+            { text: "Also stars Bob Odenkirk", shared: true },
+            { text: "Also on AMC", shared: true },
+            { text: "Crime", shared: true },
+            { text: "Drama", shared: true },
+          ],
+        },
+        {
+          id: "60622",
+          title: "Fargo",
+          year: 2014,
+          rank: 41,
+          clues: [
+            { text: "Crime", shared: true },
+            { text: "Drama", shared: true },
+            { text: "Also premiered in the 2010s", shared: true },
+          ],
+        },
+        {
+          id: "1398",
+          title: "The Sopranos",
+          year: 1999,
+          rank: 187,
+          clues: [
+            { text: "Crime", shared: true },
+            { text: "Drama", shared: true },
+          ],
+        },
+        {
+          id: "1668",
+          title: "Friends",
+          year: 1994,
+          rank: 1874,
+          clues: [{ text: "Not Comedy", shared: false }],
+        },
+      ],
+    },
+  },
   landingPreview: tvLandingPreview,
 };

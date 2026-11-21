@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { hasElements } from "./checks/checks.js";
+import { hasElements, isDefined } from "./checks/checks.js";
 import { type DailyGameWork } from "./types/dailyGame";
 
 export interface PoolWork<T> {
@@ -68,6 +68,49 @@ export function rarityPoints<T>(
     if (share === 0 || (dropMajority && share > 0.5)) return 0;
     return Math.min(max, Math.max(min, Math.round(Math.log(1 / share))));
   };
+}
+
+const languageNames = new Intl.DisplayNames(["en"], { type: "language", fallback: "none" });
+
+/** `ko` → `Korean`; undefined for a code with no name, such as TMDB's `xx`. */
+export function languageName(code: string): string | undefined {
+  try {
+    return languageNames.of(code);
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * `["1990"]` for a work from 1995. The decade is the era clue because the
+ * player can check it at a glance: 1999 and 2001 are close, but share no clue.
+ */
+export const decadeTags = (year: number | undefined): string[] =>
+  isDefined(year) ? [String(Math.floor(year / 10) * 10)] : [];
+
+/** The tags `guess` has that `answer` has too, each once. */
+export const sharedTags = (guess: readonly string[], answer: readonly string[]) =>
+  [...new Set(guess)].filter((tag) => answer.includes(tag));
+
+/** One clue per tag the guess shares with the answer, leaving out tags worth nothing. */
+export function sharedClues(
+  guess: readonly string[],
+  answer: readonly string[],
+  points: (tag: string) => number,
+  text: (tag: string) => string,
+): ScoredClue[] {
+  return sharedTags(guess, answer)
+    .map((tag) => ({ text: text(tag), points: points(tag) }))
+    .filter((clue) => clue.points > 0);
+}
+
+/** One chip for a whole field, so a row of shared stars or missing genres reads as one clue. */
+export function groupedClue(
+  names: readonly string[],
+  points: (count: number) => number,
+  text: (names: readonly string[]) => string,
+): ScoredClue[] {
+  return hasElements(names) ? [{ text: text(names), points: points(names.length) }] : [];
 }
 
 const sumPoints = (clues: readonly ScoredClue[], include: (points: number) => boolean) =>
