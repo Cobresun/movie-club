@@ -1,8 +1,8 @@
 import { type InviteTokenResponse } from "../../../lib/types/club";
 import ClubRepository from "../repositories/ClubRepository";
-import { secured } from "../utils/session";
 import { ok, badRequest } from "../utils/responses";
 import { Router } from "../utils/router";
+import { secured } from "../utils/session";
 import { type ClubRequest } from "../utils/validation";
 
 const router = new Router<ClubRequest>("/api/club/:clubSlug/invite");
