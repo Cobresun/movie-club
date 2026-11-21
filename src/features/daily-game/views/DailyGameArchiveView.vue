@@ -6,6 +6,7 @@
       description="This club type doesn't have a daily game yet."
     />
     <template v-else>
+      <DailyGameModes :current="clubType" :to="(mode) => archivePath(mode)" />
       <header class="text-center">
         <h1 class="text-3xl font-bold sm:text-4xl">{{ dailyGame.name }} archive</h1>
         <p class="mt-2 text-white/70">
@@ -81,7 +82,8 @@ import { computed } from "vue";
 import { hasElements, isDefined } from "@/../lib/checks/checks";
 import { type ClubType } from "@/../lib/types/generated/db";
 import { clubTypeConfig } from "@/common/clubType";
-import { calendarMonths, puzzlePath } from "@/features/daily-game/archive";
+import { archivePath, calendarMonths, puzzlePath } from "@/features/daily-game/archive";
+import DailyGameModes from "@/features/daily-game/components/DailyGameModes.vue";
 import { formatPuzzleDate } from "@/features/daily-game/game";
 import { useClock } from "@/features/daily-game/useClock";
 import { dailyGameProgress, type DayProgress } from "@/features/daily-game/useDailyGame";

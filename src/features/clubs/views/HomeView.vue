@@ -23,12 +23,11 @@
       <div class="flex flex-wrap justify-center gap-3">
         <v-btn class="px-4 py-2 text-lg" @click="getStarted">Start your club — it’s free</v-btn>
         <router-link
-          v-for="game in dailyGames"
-          :key="game.path"
-          :to="game.path"
+          v-if="hasElements(dailyGames)"
+          :to="{ name: 'DailyGames' }"
           class="flex items-center rounded-md border border-white/30 px-5 py-2 text-lg font-bold tracking-wide transition hover:bg-white/10"
         >
-          Play today’s {{ game.name }}
+          Play today’s {{ DAILY_GAME_NAME }}
         </router-link>
       </div>
     </section>
@@ -67,9 +66,7 @@
 
     <LandingExtras />
 
-    <div class="space-y-10">
-      <LandingDailyGamePreview v-for="game in dailyGames" :key="game.path" :daily-game="game" />
-    </div>
+    <LandingDailyGamePreview v-if="hasElements(dailyGames)" :games="dailyGames" />
 
     <section
       aria-labelledby="landing-steps-heading"
@@ -111,8 +108,13 @@ import LandingExtras from "../components/landing/LandingExtras.vue";
 import LandingShowcase from "../components/landing/LandingShowcase.vue";
 import LandingStatsPreview from "../components/landing/LandingStatsPreview.vue";
 import LandingWrappedPreview from "../components/landing/LandingWrappedPreview.vue";
-import { isDefined } from "@/../lib/checks/checks";
-import { clubTypeConfig, clubTypeOptions, dailyGameClubTypes } from "@/common/clubType";
+import { hasElements, isDefined } from "@/../lib/checks/checks";
+import {
+  clubTypeConfig,
+  clubTypeOptions,
+  DAILY_GAME_NAME,
+  dailyGameClubTypes,
+} from "@/common/clubType";
 import { useAuthStore } from "@/stores/auth";
 
 const dailyGames = dailyGameClubTypes().flatMap((clubType) => {
