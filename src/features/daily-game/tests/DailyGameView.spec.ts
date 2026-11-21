@@ -505,6 +505,10 @@ describe("DailyGameView", () => {
         "href",
         "/reelated",
       );
+      expect(screen.getByRole("link", { name: "Past puzzles" })).toHaveAttribute(
+        "href",
+        "/reelated/archive?day=2026-10-20",
+      );
     });
 
     it("follows the date when the same page moves to today's puzzle", async () => {

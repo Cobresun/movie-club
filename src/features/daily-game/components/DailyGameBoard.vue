@@ -83,7 +83,7 @@
           Today's puzzle
         </router-link>
         <router-link
-          :to="archivePath(dailyGame)"
+          :to="archivePath(dailyGame, game.fromArchive ? puzzle.date : undefined)"
           class="text-highlight inline-flex items-center gap-1 hover:underline"
         >
           <mdicon name="history" :size="18" />

@@ -1,6 +1,9 @@
+import { isDefined } from "@/../lib/checks/checks";
 import { type DailyGameConfig } from "@/common/clubType";
 
-export const archivePath = (game: DailyGameConfig) => `${game.path}/archive`;
+/** The archive, with `selected` (`YYYY-MM-DD`) marked as the puzzle the player came from. */
+export const archivePath = (game: DailyGameConfig, selected?: string) =>
+  isDefined(selected) ? `${game.path}/archive?day=${selected}` : `${game.path}/archive`;
 
 export const puzzlePath = (game: DailyGameConfig, date: string) => `${game.path}/${date}`;
 
