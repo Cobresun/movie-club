@@ -20,7 +20,6 @@ const defaultProps = {
   listId: "1",
   otherLists: [],
   members: [],
-  reviewsListId: null,
   selectedItemId: null,
 };
 

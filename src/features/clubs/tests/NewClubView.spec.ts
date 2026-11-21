@@ -4,6 +4,7 @@ import { useRouter } from "vue-router";
 import { z } from "zod";
 
 import NewClubView from "../views/NewClubView.vue";
+import { DEFAULT_CLUB_SETTINGS } from "@/../lib/types/club";
 import { ClubType } from "@/../lib/types/generated/db";
 import { server } from "@/mocks/server";
 import { useAuthStore } from "@/stores/auth";
@@ -39,6 +40,7 @@ describe("NewClubView", () => {
         slug: "test-club",
         slugUpdatedAt: undefined,
         type: ClubType.MOVIE,
+        settings: DEFAULT_CLUB_SETTINGS,
       },
     ];
 

@@ -3,19 +3,24 @@ import { delay, http, HttpResponse } from "msw";
 import { useRouter } from "vue-router";
 
 import JoinClubView from "../views/JoinClubView.vue";
+import { type ClubInviteDetails } from "@/../lib/types/club";
+import club from "@/mocks/data/club";
 import { server } from "@/mocks/server";
 import { logIn, render } from "@/tests/utils";
 
-const clubDetailsResponse = {
+const clubDetailsResponse: ClubInviteDetails = {
+  ...club,
   clubId: "42",
   clubName: "Science Fiction Book Club",
-  type: "movie",
+  expiresAt: "2099-01-01T00:00:00.000Z",
 };
 
 describe("JoinClubView", () => {
   beforeEach(() => {
     server.use(
-      http.get("/api/club/joinInfo/:token", () => HttpResponse.json(clubDetailsResponse)),
+      http.get("/api/club/joinInfo/:token", () =>
+        HttpResponse.json<ClubInviteDetails>(clubDetailsResponse),
+      ),
       http.get("/api/member/clubs", () => HttpResponse.json([])),
     );
   });
@@ -72,7 +77,7 @@ describe("JoinClubView", () => {
     let clubsRequests = 0;
     server.use(
       http.get("/api/club/joinInfo/:token", () =>
-        HttpResponse.json({ ...clubDetailsResponse, slug: "sci-fi" }),
+        HttpResponse.json<ClubInviteDetails>({ ...clubDetailsResponse, slug: "sci-fi" }),
       ),
       http.get("/api/member/clubs", async () => {
         clubsRequests += 1;

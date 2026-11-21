@@ -1,4 +1,6 @@
+import { ensure } from "../../../../lib/checks/checks";
 import { type AwardsStep, type ClubAwards } from "../../../../lib/types/awards";
+import { type ClubPreview } from "../../../../lib/types/club";
 import { ClubType, WorkType } from "../../../../lib/types/generated/db";
 import { type ClubListSummary, type DetailedWorkListItem } from "../../../../lib/types/lists";
 import { handler as clubHandler } from "../../club/index";
@@ -74,28 +76,21 @@ export async function createClub(
   const slug = created.body.slug;
   const lists = await api.get<ClubListSummary[]>(`/api/club/${slug}/list`);
   assertOk(`Reading lists for "${slug}"`, lists);
+  const preview = await api.get<ClubPreview>(`/api/club/${slug}`);
+  assertOk(`Reading the preview of "${slug}"`, preview);
 
-  // `reviews-id` and the settings write are both member-only. A club seeded
-  // with no members still needs its reviews list id, so the owner joins for
-  // the two reads and leaves again — cheaper than exposing the id another way.
-  const seededWithoutMembers = members.length === 0;
-  if (seededWithoutMembers) await joinClub({ slug }, owner);
-  const member = members[0] ?? owner;
-
-  const reviews = await api.get<{ id: string }>(`/api/club/${slug}/list/reviews-id`, {
-    as: member,
-  });
-  assertOk(`Reading the reviews list id for "${slug}"`, reviews);
-
+  // The settings write is member-only. A club seeded with no members still
+  // needs its features set, so the owner joins for the write and leaves again.
   if (options.features) {
+    const seededWithoutMembers = members.length === 0;
+    if (seededWithoutMembers) await joinClub({ slug }, owner);
     const updated = await api.post(`/api/club/${slug}/settings`, {
       body: { features: options.features },
-      as: member,
+      as: members[0] ?? owner,
     });
     assertOk(`Enabling features on "${slug}"`, updated);
+    if (seededWithoutMembers) await leaveClub({ slug }, owner);
   }
-
-  if (seededWithoutMembers) await leaveClub({ slug }, owner);
 
   return {
     id: created.body.clubId,
@@ -103,7 +98,7 @@ export async function createClub(
     name,
     type: options.type ?? ClubType.MOVIE,
     listId: lists.body[0].id,
-    reviewsListId: reviews.body.id,
+    reviewsListId: ensure(preview.body.reviewsListId, `"${slug}" has no reviews list`),
   };
 }
 
