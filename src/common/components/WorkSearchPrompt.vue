@@ -59,7 +59,7 @@
       </div>
       <WorkGridSkeleton v-if="loadingDefault" class="mt-3" size="sm" :count="6" :lines="0" />
       <WorkGridSkeleton
-        v-if="includeSearch && loadingSearch"
+        v-if="searching && searchResults.length === 0"
         class="mt-3"
         size="sm"
         :count="6"
@@ -74,9 +74,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, onUnmounted, watch } from "vue";
 
-import { isDefined } from "../../../lib/checks/checks";
+import { hasValue, isDefined } from "../../../lib/checks/checks";
 import { ClubType } from "../../../lib/types/generated/db";
 import WorkGridSkeleton from "./WorkGridSkeleton.vue";
 import WorkSearchCard from "./WorkSearchCard.vue";
@@ -120,26 +120,50 @@ const filteredDefaultList = computed(() => {
   return defaultList.filter((item) => item.title.toLowerCase().includes(lower));
 });
 
-const { data: searchData, isLoading: loadingSearch } = useMediaSearch(
+const trimmedText = computed(() => searchText.value.trim());
+
+// Searching waits for a pause in typing: a search per keystroke would send a
+// request per letter and swap the grid out between each. Clearing is instant.
+const SEARCH_DEBOUNCE_MS = 300;
+const searchQuery = ref("");
+let debounceTimer: ReturnType<typeof setTimeout> | undefined;
+watch(trimmedText, (text) => {
+  clearTimeout(debounceTimer);
+  if (!hasValue(text)) {
+    searchQuery.value = "";
+    return;
+  }
+  debounceTimer = setTimeout(() => {
+    searchQuery.value = text;
+  }, SEARCH_DEBOUNCE_MS);
+});
+onUnmounted(() => clearTimeout(debounceTimer));
+
+const { data: searchData, isFetching: fetchingSearch } = useMediaSearch(
   clubType,
-  searchText,
+  searchQuery,
   includeSearch,
 );
 
-const searchResults = computed(() => searchData.value ?? []);
+const searchResults = computed(() => (hasValue(trimmedText.value) ? (searchData.value ?? []) : []));
 
-const showLoadMore = computed(() => {
-  const hasNoSearchText = searchText.value.trim().length === 0;
-  return isDefined(onLoadMore) && hasMore && hasNoSearchText;
-});
+// Typed but not searched yet, or a search in flight. The last results stay on
+// screen meanwhile, so the skeleton only shows when there are none.
+const searching = computed(
+  () => includeSearch && (trimmedText.value !== searchQuery.value || fetchingSearch.value),
+);
+
+const showLoadMore = computed(
+  () => isDefined(onLoadMore) && hasMore && !hasValue(trimmedText.value),
+);
 
 const noResults = computed(() => {
-  const hasSearched = searchText.value.trim().length > 0;
+  const hasSearched = hasValue(trimmedText.value);
 
   if (includeSearch) {
     return (
       hasSearched &&
-      !loadingSearch.value &&
+      !searching.value &&
       filteredDefaultList.value.length === 0 &&
       searchResults.value.length === 0
     );
@@ -151,8 +175,8 @@ const noResults = computed(() => {
 const showHint = computed(
   () =>
     !loadingDefault &&
-    !loadingSearch.value &&
-    searchText.value.trim().length === 0 &&
+    !searching.value &&
+    !hasValue(trimmedText.value) &&
     filteredDefaultList.value.length === 0 &&
     searchResults.value.length === 0,
 );
