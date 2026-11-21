@@ -64,7 +64,10 @@ const dailyGameArchiveRoutes: RouteRecordRaw[] = dailyGameClubTypes().flatMap((c
       path: `${dailyGame.path}/archive`,
       name: `DailyGameArchive-${clubType}`,
       component: () => import("../features/daily-game/views/DailyGameArchiveView.vue"),
-      props: { clubType },
+      props: (to) => ({
+        clubType,
+        selected: isString(to.query.day) ? to.query.day : undefined,
+      }),
       meta: { noAuth: true },
     },
     {

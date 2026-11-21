@@ -48,9 +48,9 @@
                 v-if="isDefined(day.entry)"
                 :to="day.date === today ? dailyGame.path : puzzlePath(dailyGame, day.date)"
                 :aria-label="day.entry.label"
-                :aria-current="day.date === today ? 'date' : undefined"
+                :aria-current="day.date === highlighted ? 'date' : undefined"
                 class="bg-lowBackground duration-fast ease-standard flex aspect-square flex-col items-center justify-center rounded-lg transition-colors hover:bg-white/10"
-                :class="day.date === today ? 'ring-highlight ring-2' : undefined"
+                :class="day.date === highlighted ? 'ring-highlight ring-2' : undefined"
               >
                 <span class="text-sm font-bold sm:text-base">{{ day.day }}</span>
                 <mdicon
@@ -87,7 +87,11 @@ import { useClock } from "@/features/daily-game/useClock";
 import { dailyGameProgress, type DayProgress } from "@/features/daily-game/useDailyGame";
 import { useDailyGameArchive } from "@/service/useDailyGame";
 
-const { clubType } = defineProps<{ clubType: ClubType }>();
+const { clubType, selected = undefined } = defineProps<{
+  clubType: ClubType;
+  /** The past puzzle the player came from, `YYYY-MM-DD`. Today's when absent. */
+  selected?: string;
+}>();
 
 const { noun, dailyGame } = clubTypeConfig(clubType);
 
@@ -100,6 +104,7 @@ const PROGRESS: Record<DayProgress, { label: string; icon: string }> = {
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const { today } = useClock();
+const highlighted = computed(() => selected ?? today.value);
 const progress = dailyGameProgress(clubType);
 
 const { data, isLoading, isError } = useDailyGameArchive(clubType);
