@@ -114,6 +114,7 @@ export const movieClubConfig: ClubTypeConfig = {
   makeSimilarity: makeMovieSimilarity,
   dailyGame: {
     name: "Reelated",
+    noun: "movie",
     path: "/reelated",
     tagline: "One mystery movie a day. Every guess tells you how related it is. No account needed.",
     similarityRule:

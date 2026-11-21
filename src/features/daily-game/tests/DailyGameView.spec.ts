@@ -5,7 +5,7 @@ import { useRouter } from "vue-router";
 import DailyGameView from "../views/DailyGameView.vue";
 import { type DailyGameArchive, type DailyGamePuzzle } from "@/../lib/types/dailyGame";
 import { ClubType } from "@/../lib/types/generated/db";
-import { dailyGamePuzzle } from "@/mocks/data/dailyGame";
+import { dailyGamePuzzle, dailyGameTvPuzzle } from "@/mocks/data/dailyGame";
 import { server } from "@/mocks/server";
 import { logIn, render } from "@/tests/utils";
 
@@ -661,6 +661,62 @@ describe("DailyGameView", () => {
       ).toBeInTheDocument();
       await user.click(screen.getByRole("button", { name: "Past puzzles" }));
       expect(vi.mocked(useRouter()).push.mock.calls).toStrictEqual([["/reelated/archive"]]);
+    });
+  });
+
+  describe("the TV game", () => {
+    beforeEach(() => {
+      server.use(
+        http.get("/api/daily-game/tv/archive", () =>
+          HttpResponse.json<DailyGameArchive>({ clubType: ClubType.TV, puzzles: [] }),
+        ),
+        http.get("/api/daily-game/tv/:date", ({ params }) =>
+          HttpResponse.json<DailyGamePuzzle>(dailyGameTvPuzzle(String(params.date), 3)),
+        ),
+      );
+    });
+
+    it("is played with shows, under its own name", async () => {
+      const { user } = render(DailyGameView, { props: { clubType: ClubType.TV } });
+      expect(
+        await screen.findByRole("heading", { level: 1, name: "Remotely #3" }),
+      ).toBeInTheDocument();
+
+      await user.type(screen.getByRole("combobox", { name: "Guess a show" }), "Breaking");
+      await user.click(screen.getByRole("option", { name: /^Breaking Bad \(/ }));
+
+      expect(
+        within(row("Breaking Bad")).getByText("Same creator: Vince Gilligan"),
+      ).toBeInTheDocument();
+    });
+
+    it("shares its result as its own game", async () => {
+      const { user } = render(DailyGameView, { props: { clubType: ClubType.TV } });
+      await screen.findByRole("heading", { level: 1 });
+
+      await user.type(screen.getByRole("combobox", { name: "Guess a show" }), "Better Call");
+      await user.click(screen.getByRole("option", { name: /^Better Call Saul \(/ }));
+      await user.click(screen.getByRole("button", { name: "Share result" }));
+
+      const shared = await navigator.clipboard.readText();
+      expect(shared).toContain("Remotely #3: I got it in 1 guess.");
+      expect(shared).toContain("/remotely?utm_source=share&utm_campaign=remotely");
+    });
+
+    it("says it is waiting for shows, not episodes, before it can start", async () => {
+      server.use(
+        http.get("/api/daily-game/tv/:date", () =>
+          HttpResponse.json({ error: "Not enough works" }, { status: 404 }),
+        ),
+      );
+
+      render(DailyGameView, { props: { clubType: ClubType.TV } });
+
+      expect(
+        await screen.findByText(
+          "Today's show list is still being put together. Check back in a little while.",
+        ),
+      ).toBeInTheDocument();
     });
   });
 

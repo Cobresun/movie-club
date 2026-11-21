@@ -5,7 +5,7 @@
   >
     <div class="flex flex-col items-center gap-4 text-center lg:w-2/5 lg:items-start lg:text-left">
       <p class="text-sm font-semibold tracking-widest text-blue-100 uppercase">
-        Free daily {{ noun }} game
+        Free daily {{ dailyGame.noun }} game
       </p>
       <h2 :id="headingId" class="text-4xl font-extrabold md:text-5xl">{{ dailyGame.name }}</h2>
       <p class="text-lg leading-relaxed text-blue-50">{{ dailyGame.tagline }}</p>
@@ -13,7 +13,7 @@
         :to="dailyGame.path"
         class="bg-text text-background rounded-md px-5 py-3 text-lg font-bold tracking-wide transition hover:brightness-90"
       >
-        Play today’s {{ noun }}
+        Play today’s {{ dailyGame.noun }}
       </router-link>
     </div>
     <div class="bg-background flex w-full flex-col gap-2 rounded-2xl p-4 lg:w-3/5">
@@ -34,7 +34,6 @@ import { rankGuess } from "@/features/daily-game/useDailyGame";
 
 const { dailyGame } = defineProps<{
   dailyGame: DailyGameConfig;
-  noun: string;
 }>();
 
 const headingId = useId();

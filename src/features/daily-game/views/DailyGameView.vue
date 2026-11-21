@@ -19,11 +19,11 @@
       :title="
         notFound
           ? `${dailyGame.name} is still warming up`
-          : `Couldn't load ${isDefined(date) ? 'this' : 'today\'s'} ${noun}`
+          : `Couldn't load ${isDefined(date) ? 'this' : 'today\'s'} ${dailyGame.noun}`
       "
       :description="
         notFound
-          ? `Today's ${noun} list is still being put together. Check back in a little while.`
+          ? `Today's ${dailyGame.noun} list is still being put together. Check back in a little while.`
           : 'Something went wrong fetching the puzzle. Give it another try in a moment.'
       "
     />
@@ -32,7 +32,6 @@
       :key="data.date"
       :puzzle="data"
       :daily-game="dailyGame"
-      :noun="noun"
       :today="today"
     />
   </div>
@@ -58,7 +57,7 @@ const { clubType, date = undefined } = defineProps<{
   date?: string;
 }>();
 
-const { noun, dailyGame } = clubTypeConfig(clubType);
+const { dailyGame } = clubTypeConfig(clubType);
 const router = useRouter();
 
 const { today } = useClock();
