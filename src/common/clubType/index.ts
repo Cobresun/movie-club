@@ -153,9 +153,15 @@ export function workTitle(work: { title: string; externalData?: WorkDataSummary 
   return workDisplay(work.externalData)?.title?.(work.externalData) ?? work.title;
 }
 
-/** What this one work is called, when its media has more than one level. */
-export function workNoun(data: WorkDataSummary | undefined): string | undefined {
-  return workDisplay(data)?.noun?.(data);
+/**
+ * What this one work is called: its own level where its media has more than
+ * one ("show", "episode"), otherwise its work type's noun.
+ */
+export function workNoun(work: { type: WorkType; externalData?: WorkDataSummary }): string {
+  return (
+    workDisplay(work.externalData)?.noun?.(work.externalData) ??
+    clubTypeConfig(CLUB_TYPE_BY_WORK_TYPE[work.type]).noun
+  );
 }
 
 /** The work's own still, for media whose poster is shared across works. */

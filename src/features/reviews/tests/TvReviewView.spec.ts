@@ -260,6 +260,16 @@ describe("TV reviews", () => {
     expect(screen.queryByText(/No scores yet/)).not.toBeInTheDocument();
   });
 
+  it("offers to rate the show, not an episode, from its details on desktop", async () => {
+    setViewport(true);
+    const { user } = await renderSeverance([show]);
+
+    await user.click(screen.getByRole("button", { name: "Severance details" }));
+    await user.click(await screen.findByRole("button", { name: "Rate this show" }));
+
+    expect(screen.getByText("Score this show")).toBeInTheDocument();
+  });
+
   it("shares a show from its details once you have scored any of its episodes", async () => {
     const { user } = await renderSeverance();
 

@@ -126,7 +126,7 @@ import { type DetailedReviewListItem } from "../../../../lib/types/lists";
 import { useScoreAssistCandidates } from "../composables/useScoreAssistCandidates";
 import ScoreAssistFlow from "./ScoreAssistFlow.vue";
 import ScoreEntryPanel from "./ScoreEntryPanel.vue";
-import { clubTypeConfig } from "@/common/clubType";
+import { workNoun } from "@/common/clubType";
 import AnimatedHeight from "@/common/components/AnimatedHeight.vue";
 
 const {
@@ -198,7 +198,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKeydownCapture, tr
 // prop-drilled, mirroring ScoreEntryModal, so the drawer only hands the dock
 // its target work.
 const { clubType, clubId, candidates } = useScoreAssistCandidates(() => target);
-const noun = computed(() => clubTypeConfig(clubType.value).noun);
+const noun = computed(() => workNoun(target));
 
 // The work's title is already in the drawer hero right above, so the heading
 // names the action rather than repeating it.

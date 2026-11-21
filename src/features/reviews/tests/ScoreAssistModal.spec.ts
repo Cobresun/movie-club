@@ -114,7 +114,11 @@ describe("ScoreAssistModal", () => {
 
   it("uses the book noun for book clubs", () => {
     render(ScoreAssistModal, {
-      props: { target: makeTarget(), candidates, clubType: ClubType.BOOK },
+      props: {
+        target: { ...makeTarget(), type: WorkType.BOOK, title: "Target Book" },
+        candidates,
+        clubType: ClubType.BOOK,
+      },
     });
     expect(screen.getByText("Which book did you like more?")).toBeInTheDocument();
   });
