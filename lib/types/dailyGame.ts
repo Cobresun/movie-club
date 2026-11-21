@@ -34,6 +34,8 @@ export interface DailyGamePuzzle {
   /** Counts the days this game has been played, starting at 1. */
   puzzle: number;
   works: DailyGameWork[];
+  /** The answer's poster or cover, revealed once the game is over. */
+  answerImageUrl?: string;
 }
 
 /** One day's puzzle as the archive lists it — never with its answer. */

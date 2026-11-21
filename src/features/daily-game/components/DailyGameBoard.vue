@@ -110,6 +110,13 @@
             : 'bg-background/60 ring-highlight/60'
         "
       >
+        <img
+          v-if="hasValue(puzzle.answerImageUrl) && !posterFailed"
+          :src="puzzle.answerImageUrl"
+          :alt="game.answer?.title"
+          class="mb-3 aspect-2/3 w-28 rounded-md object-cover shadow-lg shadow-black/40 sm:w-32"
+          @error="posterFailed = true"
+        />
         <p class="flex flex-col items-center gap-1">
           <span class="text-xs font-semibold tracking-wide text-white/60 uppercase"
             >{{ game.fromArchive ? "The" : "Today's" }} {{ noun }} was</span
@@ -335,6 +342,7 @@ const notice = ref<string>();
 const confirmingGiveUp = ref(false);
 const showRules = ref(false);
 const copied = ref(false);
+const posterFailed = ref(false);
 
 const guessInput = useTemplateRef("guessInput");
 

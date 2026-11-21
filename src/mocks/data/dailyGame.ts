@@ -64,4 +64,5 @@ export const dailyGamePuzzle = (date: string, puzzle: number): DailyGamePuzzle =
   date,
   puzzle,
   works: dailyGameMovies,
+  answerImageUrl: "https://image.tmdb.org/t/p/w342/heat.jpg",
 });
