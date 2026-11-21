@@ -3,7 +3,11 @@ import { delay, http, HttpResponse } from "msw";
 import { useRouter } from "vue-router";
 
 import DailyGameView from "../views/DailyGameView.vue";
-import { type DailyGameArchive, type DailyGamePuzzle } from "@/../lib/types/dailyGame";
+import {
+  type DailyGameArchive,
+  type DailyGameHistory,
+  type DailyGamePuzzle,
+} from "@/../lib/types/dailyGame";
 import { ClubType } from "@/../lib/types/generated/db";
 import { dailyGamePuzzle } from "@/mocks/data/dailyGame";
 import { server } from "@/mocks/server";
@@ -432,6 +436,32 @@ describe("DailyGameView", () => {
 
     expect(screen.queryByText(/in a row/)).not.toBeInTheDocument();
     expect(statValue("Streak")).toBe("2");
+  });
+
+  it("carries a signed-in player's streak over from their other devices", async () => {
+    server.use(
+      http.get("/api/daily-game/movie/history", () =>
+        HttpResponse.json<DailyGameHistory>({
+          clubType: ClubType.MOVIE,
+          finishes: [
+            { date: "2026-10-20", solved: true },
+            { date: "2026-10-21", solved: true },
+          ],
+        }),
+      ),
+    );
+    const { user, pinia } = await renderGame();
+    logIn(pinia);
+
+    expect(
+      await screen.findByText("2 days in a row. Solve today's to keep it going."),
+    ).toBeInTheDocument();
+
+    await guess(user, "Heat");
+
+    expect(statValue("Played")).toBe("3");
+    expect(statValue("Streak")).toBe("3");
+    expect(statValue("Best")).toBe("3");
   });
 
   it("keeps the best streak after the streak breaks", async () => {

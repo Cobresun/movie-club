@@ -11,6 +11,7 @@ import { http, HttpResponse } from "msw";
 
 import {
   type DailyGameArchive,
+  type DailyGameHistory,
   type DailyGamePuzzle,
   type DailyGameWork,
 } from "../../../lib/types/dailyGame";
@@ -507,6 +508,35 @@ describe("POST /api/daily-game/:clubType/:date/result", () => {
     expect(stats?.players.current).toBe(2);
     expect(stats?.games.current).toBe(2);
     expect(stats?.solves).toStrictEqual({ numerator: 1, denominator: 2 });
+  });
+
+  describe("GET /api/daily-game/:clubType/history", () => {
+    it("gives a signed-in player the days they finished, from whichever browser", async () => {
+      await seedCatalog(12);
+      const puzzle = (await api.get<DailyGamePuzzle>(`/api/daily-game/movie/${today()}`)).body;
+      const answer = answerOf(puzzle.works);
+      const bob = await signIn("bob");
+      await record({ playerId: player(), guesses: [answer?.id], hints: 0 }, today(), "movie", bob);
+      await record({ playerId: player(), guesses: [answer?.id], hints: 0 });
+
+      const res = await api.get<DailyGameHistory>("/api/daily-game/movie/history", { as: bob });
+      const alice = await api.get<DailyGameHistory>("/api/daily-game/movie/history", {
+        as: await signIn("alice"),
+      });
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body).toStrictEqual({
+        clubType: "movie",
+        finishes: [{ date: today(), solved: true }],
+      });
+      expect(alice.body.finishes).toStrictEqual([]);
+    });
+
+    it("is only for a signed-in player", async () => {
+      const res = await api.get("/api/daily-game/movie/history");
+
+      expect(res.statusCode).toBe(401);
+    });
   });
 
   it("refuses a result for a day no player could be on", async () => {

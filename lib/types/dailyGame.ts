@@ -50,3 +50,18 @@ export interface DailyGameArchive {
   clubType: ClubType;
   puzzles: DailyGameArchiveEntry[];
 }
+
+/** A day a signed-in player finished that day's puzzle, on any device. */
+export interface DailyGameFinish {
+  date: string;
+  solved: boolean;
+}
+
+/**
+ * `GET /api/daily-game/:clubType/history` — every puzzle the signed-in player
+ * finished on its own day, oldest first, so their streak follows the account.
+ */
+export interface DailyGameHistory {
+  clubType: ClubType;
+  finishes: DailyGameFinish[];
+}
