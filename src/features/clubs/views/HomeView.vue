@@ -67,12 +67,9 @@
 
     <LandingExtras />
 
-    <LandingDailyGamePreview
-      v-for="game in dailyGames"
-      :key="game.path"
-      :daily-game="game"
-      :noun="game.noun"
-    />
+    <div class="space-y-10">
+      <LandingDailyGamePreview v-for="game in dailyGames" :key="game.path" :daily-game="game" />
+    </div>
 
     <section
       aria-labelledby="landing-steps-heading"
@@ -119,8 +116,8 @@ import { clubTypeConfig, clubTypeOptions, dailyGameClubTypes } from "@/common/cl
 import { useAuthStore } from "@/stores/auth";
 
 const dailyGames = dailyGameClubTypes().flatMap((clubType) => {
-  const { noun, dailyGame } = clubTypeConfig(clubType);
-  return isDefined(dailyGame) ? [{ noun, ...dailyGame }] : [];
+  const { dailyGame } = clubTypeConfig(clubType);
+  return isDefined(dailyGame) ? [dailyGame] : [];
 });
 
 const STEPS = [

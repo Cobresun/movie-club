@@ -4,7 +4,11 @@ import {
   type TMDBMovieData,
   type TMDBPageResponse,
 } from "../../../../lib/types/movie";
-import { type TMDBTvSeasonData, type TMDBTvShowData } from "../../../../lib/types/tv";
+import {
+  type TMDBTvPageResponse,
+  type TMDBTvSeasonData,
+  type TMDBTvShowData,
+} from "../../../../lib/types/tv";
 
 /**
  * Payload builders for the third-party APIs the backend talks to.
@@ -108,6 +112,21 @@ export function tmdbMovie(id: number, overrides: Partial<TMDBMovieData> = {}): T
 /** A single-page TMDB list response, as `/movie/:id/recommendations` returns. */
 export function tmdbPage(results: TMDBMovieData[]): TMDBPageResponse {
   return { page: 1, total_pages: 1, total_results: results.length, results };
+}
+
+/** A single-page TMDB TV list response, as `/discover/tv` returns. */
+export function tmdbTvPage(shows: TMDBTvShowData[]): TMDBTvPageResponse {
+  return {
+    page: 1,
+    total_pages: 1,
+    results: shows.map((show) => ({
+      id: show.id,
+      name: show.name,
+      first_air_date: show.first_air_date,
+      poster_path: show.poster_path,
+      overview: show.overview,
+    })),
+  };
 }
 
 export function googleBooksVolume(

@@ -9,7 +9,7 @@
       <header class="text-center">
         <h1 class="text-3xl font-bold sm:text-4xl">{{ dailyGame.name }} archive</h1>
         <p class="mt-2 text-white/70">
-          Missed a day? Every past {{ noun }} is still here to guess.
+          Missed a day? Every past {{ dailyGame.noun }} is still here to guess.
         </p>
         <nav aria-label="Other puzzles" class="mt-3 flex justify-center text-sm">
           <router-link
@@ -93,7 +93,7 @@ const { clubType, selected = undefined } = defineProps<{
   selected?: string;
 }>();
 
-const { noun, dailyGame } = clubTypeConfig(clubType);
+const { dailyGame } = clubTypeConfig(clubType);
 
 const PROGRESS: Record<DayProgress, { label: string; icon: string }> = {
   solved: { label: "Solved", icon: "check" },

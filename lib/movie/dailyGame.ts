@@ -1,5 +1,15 @@
 import { hasElements, hasValue, isDefined } from "../checks/checks.js";
-import { type DailyGameRules, rarityPoints, type ScoredClue, tagCounts } from "../dailyGame.js";
+import {
+  type DailyGameRules,
+  decadeTags,
+  groupedClue,
+  languageName,
+  rarityPoints,
+  type ScoredClue,
+  sharedClues,
+  sharedTags,
+  tagCounts,
+} from "../dailyGame.js";
 import { type MovieDataSummary } from "../types/movie";
 import { releaseYear } from "./releaseYear.js";
 
@@ -23,51 +33,10 @@ const EXTRA_GENRE_POINTS = -1;
 const MIN_STUDIO_WORKS = 5;
 const MAX_STUDIO_SHARE = 0.03;
 
-const languageNames = new Intl.DisplayNames(["en"], { type: "language", fallback: "none" });
-
-/** `ko` → `Korean`; undefined for a code with no name, such as TMDB's `xx`. */
-function languageName(code: string): string | undefined {
-  try {
-    return languageNames.of(code);
-  } catch {
-    return undefined;
-  }
-}
-
 const languages = (movie: MovieDataSummary) =>
   hasValue(movie.original_language) ? [movie.original_language] : [];
 
-/**
- * `1990` for a 1995 release. The decade is the era clue because the player
- * can check it at a glance: 1999 and 2001 are close, but share no clue.
- */
-const decades = (movie: MovieDataSummary) => {
-  const year = releaseYear(movie);
-  return isDefined(year) ? [String(Math.floor(year / 10) * 10)] : [];
-};
-
-const shared = (guess: readonly string[], answer: readonly string[]) =>
-  [...new Set(guess)].filter((tag) => answer.includes(tag));
-
-function sharedClues(
-  guess: readonly string[],
-  answer: readonly string[],
-  points: (tag: string) => number,
-  text: (tag: string) => string,
-): ScoredClue[] {
-  return shared(guess, answer)
-    .map((tag) => ({ text: text(tag), points: points(tag) }))
-    .filter((clue) => clue.points > 0);
-}
-
-/** One chip for a whole field, so a row of shared stars or missing genres reads as one clue. */
-function groupedClue(
-  names: readonly string[],
-  points: (count: number) => number,
-  text: (names: readonly string[]) => string,
-): ScoredClue[] {
-  return hasElements(names) ? [{ text: text(names), points: points(names.length) }] : [];
-}
+const decades = (movie: MovieDataSummary) => decadeTags(releaseYear(movie));
 
 const directorNames = (movie: MovieDataSummary) => movie.directors.map((d) => d.name);
 
@@ -88,12 +57,12 @@ export function makeMovieClues(pool: readonly MovieDataSummary[]) {
   return (guess: MovieDataSummary, answer: MovieDataSummary): ScoredClue[] => [
     // A directing team is one director's worth.
     ...groupedClue(
-      shared(directorNames(guess), directorNames(answer)),
+      sharedTags(directorNames(guess), directorNames(answer)),
       () => DIRECTOR_POINTS,
       (names) => `Same director: ${names.join(" & ")}`,
     ),
     ...groupedClue(
-      shared(guess.majorCastNames, answer.majorCastNames),
+      sharedTags(guess.majorCastNames, answer.majorCastNames),
       (count) => count * STAR_POINTS,
       (names) => `Also stars ${names.join(", ")}`,
     ),

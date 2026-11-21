@@ -19,7 +19,7 @@ import { type AdminDashboard } from "../../../lib/types/metrics";
 import { handler as adminHandler } from "../admin";
 import { handler } from "../daily-game";
 import topUpCatalog from "../scheduled-daily-game-catalog";
-import { tmdbMovie, tmdbPage } from "./fixtures/external";
+import { tmdbMovie, tmdbPage, tmdbTvPage, tmdbTvShow } from "./fixtures/external";
 import { FIXTURE_USERS, signIn, type TestSession } from "./helpers/auth";
 import { addWork, createClub, type SeededClub } from "./helpers/factories";
 import { requester } from "./helpers/http";
@@ -431,6 +431,81 @@ describe("GET /api/daily-game/:clubType/:date", () => {
       const after = (await api.get<DailyGamePuzzle>(`/api/daily-game/movie/${TODAY}`)).body;
       expect(after.works.map((movie) => movie.id)).toContain("505");
     });
+  });
+});
+
+/**
+ * Shows come in pairs that share a creator and nothing else the ranking can
+ * tell apart (TMDB's fixture otherwise gives each show its own creator and
+ * lead), so whichever show is drawn as the answer, its twin is the closest guess.
+ */
+function tmdbShowPairs() {
+  server.use(
+    http.get(`${TMDB}/tv/:showId`, ({ params }) => {
+      const id = Number(params.showId);
+      const pair = Math.floor(id / 2);
+      return HttpResponse.json(
+        tmdbTvShow(id, {
+          first_air_date: `${1950 + pair * 7}-01-01`,
+          created_by: [{ id: pair, name: `Creator of pair ${pair}`, profile_path: null }],
+        }),
+      );
+    }),
+  );
+}
+
+/** TMDB's most-rated shows: `count` of them on the first page, ids from `firstId` up. */
+async function seedTvCatalog(count: number, firstId = 100) {
+  server.use(
+    http.get(`${TMDB}/discover/tv`, ({ request }) => {
+      const page = Number(new URL(request.url).searchParams.get("page"));
+      const ids = page === 1 ? range(firstId, count) : [];
+      return HttpResponse.json(tmdbTvPage(ids.map((id) => tmdbTvShow(id))));
+    }),
+  );
+  mostRated(0, 0);
+  await runCatalogTopUp();
+}
+
+describe("the TV game", () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(`${TODAY}T12:00:00Z`));
+    tmdbShowPairs();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("ranks TMDB's most-rated shows against one answer, its co-created twin second", async () => {
+    await seedTvCatalog(12);
+
+    const res = await api.get<DailyGamePuzzle>(`/api/daily-game/tv/${TODAY}`);
+
+    expect(res.statusCode).toBe(200);
+    expect(new Set(res.body.works.map((show) => show.id))).toStrictEqual(
+      new Set(range(100, 12).map(String)),
+    );
+    const answer = answerOf(res.body.works);
+    const twinId = String(Number(answer?.id) ^ 1);
+    const twin = res.body.works.find((show) => show.id === twinId);
+    expect(twin?.rank).toBe(2);
+    expect(twin?.clues.map((clue) => clue.text)).toContain(
+      `Same creator: Creator of pair ${Math.floor(Number(twinId) / 2)}`,
+    );
+  });
+
+  it("keeps its shows apart from the movie game's, though TMDB reuses ids across the two", async () => {
+    await seedTvCatalog(12);
+    await seedCatalog(12);
+
+    const shows = (await api.get<DailyGamePuzzle>(`/api/daily-game/tv/${TODAY}`)).body;
+    const movies = (await api.get<DailyGamePuzzle>(`/api/daily-game/movie/${TODAY}`)).body;
+
+    expect(shows.works.map((show) => show.title)).toContain("Show 100");
+    expect(shows.works.map((show) => show.title)).not.toContain("Movie 100");
+    expect(movies.works.map((movie) => movie.title)).not.toContain("Show 100");
   });
 });
 

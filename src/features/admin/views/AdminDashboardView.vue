@@ -176,10 +176,10 @@ const isUnauthorized = computed(
 
 const dailyGames = computed(() =>
   dailyGameClubTypes().flatMap((clubType) => {
-    const { dailyGame, noun, workType } = clubTypeConfig(clubType);
+    const { dailyGame, workType } = clubTypeConfig(clubType);
     const stats = dashboard.value?.dailyGames.find((game) => game.workType === workType);
     return isDefined(dailyGame) && isDefined(stats)
-      ? [{ clubType, name: dailyGame.name, noun, stats }]
+      ? [{ clubType, name: dailyGame.name, noun: dailyGame.noun, stats }]
       : [];
   }),
 );

@@ -11,7 +11,11 @@ import {
   type TMDBMovieData,
   type TMDBPageResponse,
 } from "../../../lib/types/movie";
-import { type TMDBTvSeasonData, type TMDBTvShowData } from "../../../lib/types/tv";
+import {
+  type TMDBTvPageResponse,
+  type TMDBTvSeasonData,
+  type TMDBTvShowData,
+} from "../../../lib/types/tv";
 
 async function makeTMDBApiCall<T>(path: string, params?: Record<string, string>) {
   const tmdbApiKey = process.env.TMDB_API_KEY;
@@ -85,6 +89,16 @@ export async function getTMDBMostRated(page: number): Promise<TMDBPageResponse> 
     sort_by: "vote_count.desc",
     include_adult: "false",
     include_video: "false",
+    page: String(page),
+  });
+  return data;
+}
+
+/** One page of every show on TMDB, most rated first: {@link getTMDBMostRated} for TV. */
+export async function getTMDBTvMostRated(page: number): Promise<TMDBTvPageResponse> {
+  const { data } = await makeTMDBApiCall<TMDBTvPageResponse>("/discover/tv", {
+    sort_by: "vote_count.desc",
+    include_adult: "false",
     page: String(page),
   });
   return data;

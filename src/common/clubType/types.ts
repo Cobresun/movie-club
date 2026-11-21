@@ -172,6 +172,9 @@ export interface LandingPreviewWork {
 export interface DailyGameConfig {
   /** The game's name, shown as its title and in shared results. */
   readonly name: string;
+  /** One work the game is played with ("movie", "show"), which for TV is
+   * not what the club scores. */
+  readonly noun: string;
   /** Where the game is played, e.g. `/reelated`. */
   readonly path: string;
   /** One line inviting someone to play, for the landing page. */
