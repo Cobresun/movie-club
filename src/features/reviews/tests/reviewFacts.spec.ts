@@ -29,7 +29,6 @@ function movieData(
   const actorNames = cast.map((c) => c.name);
   return {
     kind: "movie",
-    castNames: actorNames,
     // Mirror the server's major-cast filtering (lib/movie/majorCast) so
     // reviewFacts sees the same pre-filtered shape it does in production.
     majorCastNames: cast.filter((c, i) => isMajorCastMember(i, c.popularity)).map((c) => c.name),

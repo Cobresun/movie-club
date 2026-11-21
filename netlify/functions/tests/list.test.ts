@@ -12,6 +12,7 @@ import { http, HttpResponse } from "msw";
 import { type ClubPreview } from "../../../lib/types/club";
 import { ClubType, WorkType } from "../../../lib/types/generated/db";
 import {
+  type CastNamesByExternalId,
   type ClubListSummary,
   type DetailedReviewListItem,
   type DetailedWorkListItem,
@@ -165,10 +166,12 @@ describe("GET /api/club/:clubSlug/list/:listId", () => {
 
     expect(res.statusCode).toBe(200);
     expect(res.body.map((item) => item.title)).toStrictEqual(["Star Wars", "Untracked"]);
-    expect(res.body[0].externalData?.overview).toBe("Overview for movie 11");
-    // The bulk payload omits cast lists; only `castNames` rides along.
+    expect(res.body[0].externalData?.vote_average).toBe(7.5);
+    // The bulk payload leaves out what only a details drawer or the cast
+    // filter reads: the cast and the long-form text.
     expect(res.body[0].externalData).not.toHaveProperty("actors");
-    expect(res.body[0].externalData?.castNames).toStrictEqual(["Lead 11", "Support 11"]);
+    expect(res.body[0].externalData).not.toHaveProperty("castNames");
+    expect(res.body[0].externalData).not.toHaveProperty("overview");
     expect(res.body[1].externalData).toBeUndefined();
   });
 
@@ -214,6 +217,35 @@ describe("GET /api/club/:clubSlug/list/all-items", () => {
       ["On Watch List", "Watch List"],
       ["On Shortlist", "Shortlist"],
     ]);
+  });
+});
+
+describe("GET /api/club/:clubSlug/list/cast-names", () => {
+  it("returns the billed cast of every work on the club's lists, reviews included", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub(alice);
+    await addWork(club, alice, { title: "Star Wars", externalId: "11" });
+    await addReviewedWork(club, alice, { title: "Forrest Gump", externalId: "13" });
+    await addWork(club, alice, { title: "Untracked", externalId: null });
+
+    const res = await api.get<CastNamesByExternalId>(`/api/club/${club.slug}/list/cast-names`);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toStrictEqual({
+      "11": ["Lead 11", "Support 11"],
+      "13": ["Lead 13", "Support 13"],
+    });
+  });
+
+  it("leaves out works on another club's lists", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub(alice);
+    const other = await createClub(alice);
+    await addWork(other, alice, { title: "Star Wars", externalId: "11" });
+
+    const res = await api.get<CastNamesByExternalId>(`/api/club/${club.slug}/list/cast-names`);
+
+    expect(res.body).toStrictEqual({});
   });
 });
 
@@ -775,7 +807,7 @@ describe("GET /api/club/:clubSlug/list/reviews", () => {
     expect(res.body[0].scores[alice.userId].score).toBe(8);
     expect(res.body[0].scores[bob.userId].score).toBe(6);
     expect(res.body[0].scores.average.score).toBe(7);
-    expect(res.body[0].externalData?.overview).toBe("Overview for movie 13");
+    expect(res.body[0].externalData?.kind).toBe("movie");
   });
 
   it("credits each reviewed work to the member who added it", async () => {

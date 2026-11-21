@@ -2,6 +2,7 @@ import { http, HttpResponse } from "msw";
 
 import { type ClubPreview, type InviteTokenResponse, type Member } from "../../lib/types/club";
 import {
+  type CastNamesByExternalId,
   type ClubListSummary,
   type DetailedReviewListItem,
   type DetailedWorkData,
@@ -70,6 +71,7 @@ export const handlers = [
       })),
     ),
   ),
+  http.get("/api/club/:id/list/cast-names", () => HttpResponse.json<CastNamesByExternalId>({})),
   http.get("/api/club/:id/list/1", () => HttpResponse.json<DetailedWorkListItem[]>(watchlist)),
   http.get("/api/club/:id/work/:workId/details", () =>
     HttpResponse.json<DetailedWorkData | null>(null),

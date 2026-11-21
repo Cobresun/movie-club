@@ -5,9 +5,8 @@ import { type MovieDataSummary } from "../types/movie";
 const credits = (prefix: string, count: number) =>
   Array.from({ length: count }, (_, i) => `${prefix} ${i + 1}`);
 
-const movie = (castNames: string[], majorCastNames: string[]): MovieDataSummary => ({
+const movie = (majorCastNames: string[]): MovieDataSummary => ({
   kind: "movie",
-  castNames,
   majorCastNames,
   directors: [],
   genres: [],
@@ -16,22 +15,16 @@ const movie = (castNames: string[], majorCastNames: string[]): MovieDataSummary 
 });
 
 describe("rankPool for movies", () => {
-  it("ranks a movie sharing the answer's lead above one sharing only a bit-part", () => {
-    const answer = movie(
-      ["Lead Star", ...credits("Answer extra", 40), "Stunt Double"],
-      ["Lead Star"],
-    );
-    const sharesLead = movie(["Lead Star", ...credits("Ensemble extra", 40)], ["Lead Star"]);
-    const sharesExtra = movie(
-      [...credits("Indie lead", 3), "Stunt Double"],
-      credits("Indie lead", 3),
-    );
+  it("ranks a movie sharing the answer's lead above one sharing none of its major cast", () => {
+    const answer = movie(["Lead Star"]);
+    const sharesLead = movie(["Lead Star"]);
+    const sharesNone = movie(credits("Indie lead", 3));
 
     const ranking = rankPool(
       "answer",
       [
         { id: "answer", title: "Answer", data: answer },
-        { id: "extra", title: "Shares an extra", data: sharesExtra },
+        { id: "none", title: "Shares none", data: sharesNone },
         { id: "lead", title: "Shares the lead", data: sharesLead },
       ],
       movieDailyGameRules,
@@ -40,13 +33,13 @@ describe("rankPool for movies", () => {
     expect(ranking.map((work) => work.title)).toStrictEqual([
       "Answer",
       "Shares the lead",
-      "Shares an extra",
+      "Shares none",
     ]);
   });
 });
 
 const film = (overrides: Partial<MovieDataSummary> = {}): MovieDataSummary => ({
-  ...movie([], []),
+  ...movie([]),
   ...overrides,
 });
 
