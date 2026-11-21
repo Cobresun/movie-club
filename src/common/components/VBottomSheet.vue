@@ -18,7 +18,7 @@
         role="dialog"
         aria-modal="true"
         tabindex="-1"
-        class="sheet bg-background duration-slow ease-emphasized fixed inset-x-0 bottom-0 w-full overflow-y-auto overscroll-contain rounded-t-2xl outline-hidden transition-[transform,height,bottom]"
+        class="sheet bg-background duration-slow ease-emphasized fixed inset-x-0 bottom-0 min-h-0 w-full overflow-y-auto overscroll-contain rounded-t-2xl outline-hidden transition-[transform,min-height,max-height,bottom]"
         :class="contentZIndexClass"
         :style="sheetStyle"
         @click.stop=""
@@ -252,7 +252,7 @@ const handleTouchEnd = async (event: TouchEvent) => {
 // floating mid-screen with a gap underneath. Instead the sheet grows into an
 // expanded state: pinned to the top of the keyboard, filling everything above
 // it, the way a native sheet does when you start typing in one.
-const { keyboardInset, viewportHeight } = useKeyboardInset();
+const { keyboardInset, viewportHeight, viewportOffset } = useKeyboardInset();
 
 const dragStyle = computed(() => {
   if (dismissing.value) return { transform: "translateY(100%)" };
@@ -262,12 +262,19 @@ const dragStyle = computed(() => {
   };
 });
 
+// The expanded state is set through `min-height` and `max-height` rather than
+// `height`: both have a length to ease from at rest, where `height: auto` has
+// none and would snap while `bottom` eased, flinging the sheet's top off
+// screen. The pan goes through `translate`, which isn't transitioned, so the
+// sheet stays put on screen while iOS pans rather than easing after it.
 const keyboardStyle = computed(() => {
   if (keyboardInset.value <= 0) return {};
+  const height = `${viewportHeight.value}px`;
   return {
     bottom: `${keyboardInset.value}px`,
-    height: `${viewportHeight.value}px`,
-    maxHeight: `${viewportHeight.value}px`,
+    minHeight: height,
+    maxHeight: height,
+    translate: `0 ${viewportOffset.value}px`,
   };
 });
 
