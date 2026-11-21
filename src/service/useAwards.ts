@@ -200,9 +200,9 @@ export function useDeleteCategory(clubSlug: string, year: string) {
   const onError = useAwardsErrorToast();
   return useMutation({
     mutationFn: (awardTitle: string) =>
-      auth.request.delete(
-        `/api/club/${clubSlug}/awards/${year}/category/${encodeURIComponent(awardTitle)}`,
-      ),
+      auth.request.delete(`/api/club/${clubSlug}/awards/${year}/category`, {
+        params: { awardTitle },
+      }),
     onMutate: async (awardTitle) => {
       await queryClient.cancelQueries(awardsKey(clubSlug, year));
       queryClient.setQueryData<ClubAwards>(awardsKey(clubSlug, year), (currentAwards) => {

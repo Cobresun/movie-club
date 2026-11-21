@@ -402,17 +402,32 @@ describe("PUT /api/club/:clubSlug/awards/:year/category", () => {
   });
 });
 
-describe("DELETE /api/club/:clubSlug/awards/:year/category/:awardTitle", () => {
-  it("removes just that category", async () => {
+describe("DELETE /api/club/:clubSlug/awards/:year/category", () => {
+  it.each(["Drop", "Best Villain", "Best Film (Animated)", "Sci-Fi/Fantasy", "100% Fun"])(
+    "removes just the category titled %s",
+    async (title) => {
+      const alice = await signIn("alice");
+      const club = await createClub(alice);
+      await createAwardsYear(club, alice, YEAR, ["Keep", title]);
+
+      const res = await api.delete(`/api/club/${club.slug}/awards/${YEAR}/category`, {
+        query: { awardTitle: title },
+        as: alice,
+      });
+
+      expect(res.statusCode).toBe(200);
+      expect(await categoryTitles(club)).toStrictEqual(["Keep"]);
+    },
+  );
+
+  it("returns 400 without a title", async () => {
     const alice = await signIn("alice");
     const club = await createClub(alice);
-    await createAwardsYear(club, alice, YEAR, ["Keep", "Drop"]);
+    await createAwardsYear(club, alice, YEAR, ["Keep"]);
 
-    const res = await api.delete(`/api/club/${club.slug}/awards/${YEAR}/category/Drop`, {
-      as: alice,
-    });
+    const res = await api.delete(`/api/club/${club.slug}/awards/${YEAR}/category`, { as: alice });
 
-    expect(res.statusCode).toBe(200);
+    expect(res.statusCode).toBe(400);
     expect(await categoryTitles(club)).toStrictEqual(["Keep"]);
   });
 
@@ -422,7 +437,8 @@ describe("DELETE /api/club/:clubSlug/awards/:year/category/:awardTitle", () => {
     await createAwardsYear(club, alice, YEAR, ["Keep", "Drop"]);
     await setAwardsStep(club, alice, YEAR, AwardsStep.Nominations);
 
-    const res = await api.delete(`/api/club/${club.slug}/awards/${YEAR}/category/Drop`, {
+    const res = await api.delete(`/api/club/${club.slug}/awards/${YEAR}/category`, {
+      query: { awardTitle: "Drop" },
       as: alice,
     });
 

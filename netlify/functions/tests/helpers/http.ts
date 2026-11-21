@@ -69,7 +69,9 @@ export function makeEvent(
   return {
     rawUrl: `https://localhost${options.path}${rawQuery ? `?${rawQuery}` : ""}`,
     rawQuery,
-    path: options.path,
+    // Production Netlify hands functions a decoded path (`netlify dev` does
+    // not), so a route only matches here if it would match there.
+    path: decodeURIComponent(options.path),
     httpMethod: options.httpMethod,
     headers: {
       ...(options.as ? { cookie: options.as.cookie } : {}),
