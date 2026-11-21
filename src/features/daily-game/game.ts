@@ -109,8 +109,11 @@ export function shareText({
   return [`${name} #${puzzle}: ${outcome}.${streakNote}`, ...rows, url].join("\n");
 }
 
-/** `/reelated` → `reelated`: the tag that names a game in signup tracking. */
-export const gameTag = (path: string) => path.replace(/^\/+/, "");
+/**
+ * `/reelated/tv` → `reelated-tv`: the tag that names a game mode in signup
+ * tracking, which only keeps word characters, dots and hyphens.
+ */
+export const gameTag = (path: string) => path.replace(/^\/+/, "").replaceAll("/", "-");
 
 /**
  * The address of a puzzle as a player shares it. Tagged as a share, so a friend

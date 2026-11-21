@@ -15,6 +15,7 @@ import { type DetailedWorkData, type WorkDataSummary } from "@/../lib/types/list
 import { type CastMember } from "@/../lib/types/tmdb";
 
 export type * from "./types";
+export { DAILY_GAME_NAME } from "./dailyGame";
 
 /**
  * Everything that varies by a club's media type, one entry per type. Each type
@@ -70,7 +71,7 @@ export function clubTypeDailyGame(type: ClubType): DailyGameConfig | undefined {
   return clubTypeConfig(type).dailyGame;
 }
 
-/** Every club type with a daily game, in registry order. */
+/** Every club type the daily game has a mode for, in registry order. The first is the default. */
 export function dailyGameClubTypes(): ClubType[] {
   return clubTypeOptions()
     .filter((config) => isDefined(config.dailyGame))

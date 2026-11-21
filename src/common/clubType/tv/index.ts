@@ -1,3 +1,4 @@
+import { DAILY_GAME_NAME } from "../dailyGame";
 import { clubScoreFilter, decadePresets, reviewedInFilter } from "../filterOptions";
 import { type ClubTypeConfig } from "../types";
 import { asTv } from "./data";
@@ -138,11 +139,11 @@ export const tvClubConfig: ClubTypeConfig = {
   isScoredUnit: (data) => asTv(data)?.level === "episode",
   makeSimilarity: makeTvSimilarity,
   dailyGame: {
-    name: "Remotely",
+    name: `${DAILY_GAME_NAME} TV`,
+    mode: "TV",
     noun: "show",
-    path: "/remotely",
-    tagline:
-      "One mystery show a day. Every guess tells you how remotely related it is. No account needed.",
+    path: "/reelated/tv",
+    tagline: "One mystery show a day. Every guess tells you how related it is. No account needed.",
     similarityRule:
       "A guess ranks by its clues: a shared creator counts most, then shared stars from the main cast, then a shared network, genre, language or the decade it premiered in, the rarer the more. Between guesses that share as much, each genre the guess has that the answer doesn't counts against it. When two guesses still tie, the one that premiered nearer the answer ranks higher.",
     preview: {

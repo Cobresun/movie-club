@@ -664,7 +664,7 @@ describe("DailyGameView", () => {
     });
   });
 
-  describe("the TV game", () => {
+  describe("in TV mode", () => {
     beforeEach(() => {
       server.use(
         http.get("/api/daily-game/tv/archive", () =>
@@ -676,10 +676,10 @@ describe("DailyGameView", () => {
       );
     });
 
-    it("is played with shows, under its own name", async () => {
+    it("is played with shows, numbered apart from the movie puzzles", async () => {
       const { user } = render(DailyGameView, { props: { clubType: ClubType.TV } });
       expect(
-        await screen.findByRole("heading", { level: 1, name: "Remotely #3" }),
+        await screen.findByRole("heading", { level: 1, name: "Reelated TV #3" }),
       ).toBeInTheDocument();
 
       await user.type(screen.getByRole("combobox", { name: "Guess a show" }), "Breaking");
@@ -690,7 +690,7 @@ describe("DailyGameView", () => {
       ).toBeInTheDocument();
     });
 
-    it("shares its result as its own game", async () => {
+    it("shares its result as the TV mode", async () => {
       const { user } = render(DailyGameView, { props: { clubType: ClubType.TV } });
       await screen.findByRole("heading", { level: 1 });
 
@@ -699,8 +699,23 @@ describe("DailyGameView", () => {
       await user.click(screen.getByRole("button", { name: "Share result" }));
 
       const shared = await navigator.clipboard.readText();
-      expect(shared).toContain("Remotely #3: I got it in 1 guess.");
-      expect(shared).toContain("/remotely?utm_source=share&utm_campaign=remotely");
+      expect(shared).toContain("Reelated TV #3: I got it in 1 guess.");
+      expect(shared).toContain("/reelated/tv?utm_source=share&utm_campaign=reelated-tv");
+    });
+
+    it("switches between the movie and TV modes", async () => {
+      render(DailyGameView, { props: { clubType: ClubType.TV } });
+      await screen.findByRole("heading", { level: 1 });
+
+      const modes = screen.getByRole("navigation", { name: "Game mode" });
+      expect(within(modes).getByRole("link", { name: "TV" })).toHaveAttribute(
+        "aria-current",
+        "page",
+      );
+      expect(within(modes).getByRole("link", { name: "Movies" })).toHaveAttribute(
+        "href",
+        "/reelated",
+      );
     });
 
     it("says it is waiting for shows, not episodes, before it can start", async () => {

@@ -1,5 +1,6 @@
 <template>
   <div class="mx-auto max-w-2xl px-4 pt-2 pb-16">
+    <DailyGameModes :current="clubType" :to="(mode) => mode.path" class="mb-4" />
     <empty-state
       v-if="!isDefined(dailyGame)"
       title="There's no daily game here"
@@ -46,6 +47,7 @@ import { type ClubType } from "@/../lib/types/generated/db";
 import { clubTypeConfig } from "@/common/clubType";
 import { archivePath } from "@/features/daily-game/archive";
 import DailyGameBoard from "@/features/daily-game/components/DailyGameBoard.vue";
+import DailyGameModes from "@/features/daily-game/components/DailyGameModes.vue";
 import DailyGameSkeleton from "@/features/daily-game/components/DailyGameSkeleton.vue";
 import { formatPuzzleDate } from "@/features/daily-game/game";
 import { useClock } from "@/features/daily-game/useClock";
