@@ -55,10 +55,25 @@ describe("stepChangeError", () => {
     awards,
   });
 
-  it("never moves back", () => {
-    expect(stepChangeError(year(AwardsStep.Ratings), AwardsStep.Nominations, [])).toBe(
-      "Awards only move forward, one step at a time",
+  it("steps back from nominations or voting even while members are still working", () => {
+    const unfinished = [{ title: "C", nominations: [nominee(1, {})] }];
+    expect(
+      stepChangeError(year(AwardsStep.Nominations, unfinished), AwardsStep.CategorySelect, ["2"]),
+    ).toBeUndefined();
+    expect(
+      stepChangeError(year(AwardsStep.Ratings, unfinished), AwardsStep.Nominations, ["2"]),
+    ).toBeUndefined();
+  });
+
+  it("never steps back out of the ceremony", () => {
+    expect(stepChangeError(year(AwardsStep.Presentation), AwardsStep.Ratings, [])).toBe(
+      "The ceremony has started, so voting is closed",
     );
+    expect(stepChangeError(year(AwardsStep.Completed), AwardsStep.Presentation, [])).toBeDefined();
+  });
+
+  it("refuses to jump back more than one step", () => {
+    expect(stepChangeError(year(AwardsStep.Ratings), AwardsStep.CategorySelect, [])).toBeDefined();
   });
 
   it("refuses to skip or stand still", () => {

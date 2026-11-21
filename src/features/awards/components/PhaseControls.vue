@@ -9,28 +9,37 @@
     </p>
     <p v-else-if="hasValue(advanceBlocked)" class="text-sm text-gray-300">{{ advanceBlocked }}</p>
 
-    <v-btn
-      v-if="phase.next"
-      class="self-end"
-      :disabled="hasValue(advanceBlocked)"
-      @click="confirming = true"
-    >
-      {{ phase.next.label }}<mdicon name="chevron-right" />
-    </v-btn>
+    <div class="flex flex-wrap items-center justify-end gap-4">
+      <button
+        v-if="phase.previous"
+        type="button"
+        class="mr-auto flex items-center text-sm font-semibold text-gray-300 underline-offset-2 hover:underline"
+        @click="confirming = phase.previous"
+      >
+        <mdicon name="chevron-left" :size="18" aria-hidden="true" />{{ phase.previous.label }}
+      </button>
+      <v-btn
+        v-if="phase.next"
+        :disabled="hasValue(advanceBlocked)"
+        @click="confirming = phase.next"
+      >
+        {{ phase.next.label }}<mdicon name="chevron-right" />
+      </v-btn>
+    </div>
 
-    <v-modal v-if="confirming && phase.next" size="sm" @close="confirming = false">
+    <v-modal v-if="confirming" size="sm" @close="confirming = undefined">
       <div class="flex flex-col gap-4 text-left">
-        <h2 class="text-xl font-bold">{{ phase.next.label }}?</h2>
-        <p>{{ phase.next.confirm }} There's no going back.</p>
+        <h2 class="text-xl font-bold">{{ confirming.label }}?</h2>
+        <p>{{ confirming.confirm }}</p>
         <div class="flex items-center justify-end gap-4">
           <button
             type="button"
             class="text-sm font-semibold text-gray-300 underline-offset-2 hover:underline"
-            @click="confirming = false"
+            @click="confirming = undefined"
           >
             Cancel
           </button>
-          <v-btn @click="advance(phase.next.step)">{{ phase.next.label }}</v-btn>
+          <v-btn @click="move(confirming.step)">{{ confirming.label }}</v-btn>
         </div>
       </div>
     </v-modal>
@@ -43,7 +52,7 @@ import { membersYetToFinish, PHASE_WORK, stepChangeError } from "../../../../lib
 import { hasElements, hasValue } from "../../../../lib/checks/checks.js";
 import { AwardsStep, ClubAwards } from "../../../../lib/types/awards";
 import { Member } from "../../../../lib/types/club";
-import { AWARDS_PHASES } from "../constants";
+import { AWARDS_PHASES, type PhaseTransition } from "../constants";
 import { useUpdateStep } from "@/service/useAwards";
 
 const { clubAward, clubSlug, year, members } = defineProps<{
@@ -83,9 +92,9 @@ const listNames = (people: Member[]) => {
 };
 
 const { mutate } = useUpdateStep(clubSlug, year);
-const confirming = ref(false);
-const advance = (step: AwardsStep) => {
-  confirming.value = false;
+const confirming = ref<PhaseTransition>();
+const move = (step: AwardsStep) => {
+  confirming.value = undefined;
   mutate(step);
 };
 </script>

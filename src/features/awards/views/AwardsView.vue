@@ -14,11 +14,13 @@
       <empty-state
         v-else-if="!hasYears"
         title="No awards yet"
-        description="Run your own awards season: choose categories like Best Picture or Funniest Movie, nominate the movies you reviewed, vote, and reveal the winners together."
+        description="Run your own awards season for the movies your club reviewed in a year."
         action-label="Start your first awards"
         action-icon="trophy-outline"
         @action="creating = true"
-      />
+      >
+        <AwardsGuide class="mb-8 w-full max-w-md" />
+      </empty-state>
       <div v-else>
         <div class="flex items-center justify-center gap-2">
           <label class="sr-only" for="awards-year">Awards year</label>
@@ -44,6 +46,7 @@ import { computed, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 import { hasElements, hasValue } from "../../../../lib/checks/checks.js";
+import AwardsGuide from "../components/AwardsGuide.vue";
 import NewAwardsModal from "../components/NewAwardsModal.vue";
 import RowListSkeleton from "@/common/components/RowListSkeleton.vue";
 import SkeletonBlock from "@/common/components/SkeletonBlock.vue";

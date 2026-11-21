@@ -19,6 +19,7 @@ const emit = defineEmits<{
   >
     <h2 class="mb-3 text-2xl font-bold text-white">{{ title }}</h2>
     <p class="mb-6 max-w-md text-base text-gray-400">{{ description }}</p>
+    <slot />
     <v-btn v-if="actionLabel" @click="emit('action')">
       {{ actionLabel }}
       <mdicon v-if="actionIcon" :name="actionIcon" />

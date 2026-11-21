@@ -4,8 +4,8 @@
       <div>
         <h2 class="text-xl font-bold">New awards</h2>
         <p class="mt-1 text-sm text-gray-400">
-          Nominees are the movies the club reviewed during the year you pick. You'll be able to
-          change the categories before nominations open.
+          Nominees are the movies the club reviewed during the year you pick. Whatever you start
+          with, you can change the categories later, even after nominations open.
         </p>
       </div>
 

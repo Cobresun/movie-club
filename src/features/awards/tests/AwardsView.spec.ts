@@ -49,6 +49,7 @@ describe("AwardsView", () => {
     render(AwardsView);
 
     expect(await screen.findByText("No awards yet")).toBeInTheDocument();
+    expect(screen.getByRole("list", { name: "How awards work" })).toBeInTheDocument();
     expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
     expect(vi.mocked(useRouter()).replace).toHaveBeenCalledTimes(0);
   });

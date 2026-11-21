@@ -14,6 +14,15 @@
       <p class="mx-auto mt-4 w-11/12 max-w-lg text-sm text-gray-400">
         {{ AWARDS_PHASES[clubAward.step].description }}
       </p>
+      <details
+        class="bg-lowBackground mx-auto mt-4 w-11/12 max-w-lg rounded-xl px-4 py-3 text-left"
+        :open="clubAward.step === AwardsStep.CategorySelect"
+      >
+        <summary class="flex cursor-pointer items-center gap-2 text-sm font-semibold">
+          <mdicon name="help-circle-outline" :size="18" aria-hidden="true" />How awards work
+        </summary>
+        <AwardsGuide class="mt-3" />
+      </details>
       <component
         :is="AWARDS_PHASES[clubAward.step].view"
         :club-award="clubAward"
@@ -51,6 +60,8 @@ import { ref, toRefs } from "vue";
 import { useRouter } from "vue-router";
 
 import { isDefined } from "../../../../lib/checks/checks.js";
+import { AwardsStep } from "../../../../lib/types/awards";
+import AwardsGuide from "../components/AwardsGuide.vue";
 import AwardsStepper from "../components/AwardsStepper.vue";
 import PhaseControls from "../components/PhaseControls.vue";
 import { AWARDS_PHASES } from "../constants";

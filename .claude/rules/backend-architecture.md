@@ -47,7 +47,8 @@ The data model is in `database.md`.
 
 - A club's awards year is one JSON document in `awards_temp`, rewritten through `AwardsRepository.updateByYear` under `SELECT … FOR UPDATE`.
 - For anything the current state forbids, return `reject(message)` from the updater (a 400). Throwing is a 500.
-- Steps only move forward (`stepChangeError` in `lib/awards.ts`), and only once every member has finished the current one. Each write is gated on its phase.
+- Steps move one at a time (`stepChangeError` in `lib/awards.ts`): forward only once every member has finished the current one, and back from nominations or voting (`canStepBack`) without losing work. The ceremony is the one step that can't be undone. Each write is gated on its phase.
+- A ballot ranks a category's whole slate, so a nomination change that adds or drops a nominee clears that category's ballots.
 - Rules the client also shows (limits, scoring) live in `lib/awards.ts`.
 
 ## Daily game

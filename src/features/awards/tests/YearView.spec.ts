@@ -51,7 +51,11 @@ describe("YearView", () => {
 
     await user.click(await screen.findByRole("button", { name: /Open nominations/ }));
     const dialog = await screen.findByRole("dialog");
-    expect(within(dialog).getByText(/Categories will be locked for good/)).toBeInTheDocument();
+    expect(
+      within(dialog).getByText(
+        /you can come back to this step without losing anyone's nominations/,
+      ),
+    ).toBeInTheDocument();
     await user.click(within(dialog).getByRole("button", { name: "Open nominations" }));
 
     await waitFor(async () => expect(await currentPhase()).toHaveTextContent("Nominations"));
@@ -162,13 +166,114 @@ describe("YearView", () => {
     expect(await currentPhase()).toHaveTextContent("Categories");
   });
 
-  it("offers no way back to an earlier phase", async () => {
+  it("reopens nominations from voting without waiting on anyone", async () => {
+    withYear({
+      step: AwardsStep.Ratings,
+      awards: [
+        {
+          title: "Best Picture",
+          nominations: [awardNominee(1, { nominatedBy: ["1"] }), awardNominee(2)],
+        },
+      ],
+    });
+
+    const { user } = render(YearView, { props });
+
+    await user.click(await screen.findByRole("button", { name: "Reopen nominations" }));
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByText(/Saved ballots are kept/)).toBeInTheDocument();
+    await user.click(within(dialog).getByRole("button", { name: "Reopen nominations" }));
+
+    await waitFor(async () => expect(await currentPhase()).toHaveTextContent("Nominations"));
+    expect(
+      await screen.findByRole("heading", { level: 2, name: "Nominations" }),
+    ).toBeInTheDocument();
+  });
+
+  it("goes back to categories from nominations", async () => {
+    withYear({
+      step: AwardsStep.Nominations,
+      awards: [{ title: "Best Picture", nominations: [] }],
+    });
+
+    const { user } = render(YearView, { props });
+
+    await user.click(await screen.findByRole("button", { name: "Back to categories" }));
+    await user.click(
+      within(await screen.findByRole("dialog")).getByRole("button", { name: "Back to categories" }),
+    );
+
+    await waitFor(async () => expect(await currentPhase()).toHaveTextContent("Categories"));
+  });
+
+  it("warns that the ceremony is the one step that can't be undone", async () => {
     withYear({ step: AwardsStep.Ratings, awards: [{ title: "Best Picture", nominations: [] }] });
+
+    const { user } = render(YearView, { props });
+
+    await user.click(await screen.findByRole("button", { name: /Start the ceremony/ }));
+
+    expect(
+      within(await screen.findByRole("dialog")).getByText(/the one step that can't be undone/),
+    ).toBeInTheDocument();
+  });
+
+  it("removes an empty category straight away", async () => {
+    withYear({
+      awards: [
+        { title: "Best Picture", nominations: [] },
+        { title: "Best Score", nominations: [] },
+      ],
+    });
+
+    const { user } = render(YearView, { props });
+
+    await user.click(await screen.findByRole("button", { name: "Remove Best Score" }));
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByRole("list", { name: "Categories" })).not.toHaveTextContent("Best Score"),
+    );
+  });
+
+  it("asks before removing a category members nominated in before the club stepped back", async () => {
+    withYear({
+      awards: [
+        { title: "Best Picture", nominations: [] },
+        { title: "Best Score", nominations: [awardNominee(1, { nominatedBy: ["2"] })] },
+      ],
+    });
+
+    const { user } = render(YearView, { props });
+
+    await user.click(await screen.findByRole("button", { name: "Remove Best Score" }));
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByText(/removes their nominations too/)).toBeInTheDocument();
+    await user.click(within(dialog).getByRole("button", { name: "Remove" }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("list", { name: "Categories" })).not.toHaveTextContent("Best Score"),
+    );
+  });
+
+  it("explains how awards work, open while the club picks categories", async () => {
+    withYear({ awards: [{ title: "Best Picture", nominations: [] }] });
 
     render(YearView, { props });
 
-    expect(await screen.findByRole("button", { name: /Start the ceremony/ })).toBeInTheDocument();
-    expect(within(controls()).getAllByRole("button")).toHaveLength(1);
+    const guide = await screen.findByRole("list", { name: "How awards work" });
+    expect(guide).toBeVisible();
+    expect(
+      within(guide)
+        .getAllByRole("listitem")
+        .map((step) => step.textContent),
+    ).toStrictEqual([
+      expect.stringContaining("Categories"),
+      expect.stringContaining("Nominations"),
+      expect.stringContaining("Voting"),
+      expect.stringContaining("Ceremony"),
+    ]);
+    expect(screen.getByText(/Nothing is final until the ceremony/)).toBeVisible();
   });
 
   it("leaves the ceremony to finish itself when every category is revealed", async () => {
