@@ -14,7 +14,11 @@ import {
   puzzleDateSchema,
   puzzleNumber,
 } from "../../lib/dailyGame.js";
-import { type DailyGameArchive, type DailyGamePuzzle } from "../../lib/types/dailyGame";
+import {
+  type DailyGameArchive,
+  type DailyGameHistory,
+  type DailyGamePuzzle,
+} from "../../lib/types/dailyGame";
 import { ClubType } from "../../lib/types/generated/db.js";
 import DailyGameRepository from "./repositories/DailyGameRepository";
 import {
@@ -33,7 +37,7 @@ import {
 } from "./utils/providers/types";
 import { badRequest, notFound, ok } from "./utils/responses";
 import { isRouterResponse, Router } from "./utils/router";
-import { sessionUserId } from "./utils/session";
+import { loggedIn, sessionUserId } from "./utils/session";
 
 const router = new Router("/api/daily-game");
 
@@ -93,6 +97,20 @@ router.get("/:clubType/archive", async ({ params }, res) => {
     .map((date) => ({ date, puzzle: puzzleNumber(firstDate ?? date, date) }))
     .reverse();
   return res(cdnCached(ok<DailyGameArchive>({ clubType, puzzles })));
+});
+
+// The signed-in player's own finishes, so a streak built on one device
+// carries to another. Never CDN-cached: it differs per account.
+router.get("/:clubType/history", loggedIn, async ({ params, userId }, res) => {
+  const parsed = clubTypeSchema.safeParse(params);
+  if (!parsed.success) return res(badRequest("Expected a club type"));
+  const { clubType } = parsed.data;
+
+  const provider = providerForClub(clubType);
+  if (!isDefined(provider.dailyGame)) return res(notFound("This club type has no daily game"));
+
+  const finishes = await DailyGameRepository.getFinishes(provider.type, userId);
+  return res(ok<DailyGameHistory>({ clubType, finishes }));
 });
 
 // Public: the game is for anyone who lands on it, signed in or not. The

@@ -1,3 +1,4 @@
+import { type DailyGameFinish } from "../../../lib/types/dailyGame";
 import { type WorkType } from "../../../lib/types/generated/db";
 import { db } from "../utils/database";
 import { type CatalogCandidate } from "../utils/providers/types";
@@ -109,6 +110,20 @@ class DailyGameRepository {
         hints: result.hints,
       })
       .onConflict((oc) => oc.doNothing())
+      .execute();
+  }
+
+  /**
+   * Every day of `type` the account finished, oldest first. Results are only
+   * taken on a puzzle's own day, so each one is a finish on the day.
+   */
+  async getFinishes(type: WorkType, userId: string): Promise<DailyGameFinish[]> {
+    return db
+      .selectFrom("daily_game_result")
+      .select((eb) => [eb.cast<string>("puzzle_date", "text").as("date"), "solved"])
+      .where("work_type", "=", type)
+      .where("user_id", "=", userId)
+      .orderBy("puzzle_date")
       .execute();
   }
 

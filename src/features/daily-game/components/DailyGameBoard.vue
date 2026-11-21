@@ -300,7 +300,7 @@ import { formatPuzzleDate, gameTag, sharedGameUrl } from "@/features/daily-game/
 import { playerId } from "@/features/daily-game/playerId";
 import { untilMidnight, useClock } from "@/features/daily-game/useClock";
 import { type RankedGuess, useDailyGame } from "@/features/daily-game/useDailyGame";
-import { useRecordDailyGameResult } from "@/service/useDailyGame";
+import { useDailyGameHistory, useRecordDailyGameResult } from "@/service/useDailyGame";
 
 const { puzzle, dailyGame, noun, today } = defineProps<{
   puzzle: DailyGamePuzzle;
@@ -311,7 +311,8 @@ const { puzzle, dailyGame, noun, today } = defineProps<{
   today: string;
 }>();
 
-const game = useDailyGame(puzzle, dailyGame.name, today);
+const { data: history } = useDailyGameHistory(puzzle.clubType);
+const game = useDailyGame(puzzle, dailyGame.name, today, () => history.value?.finishes);
 const puzzleDate = formatPuzzleDate(puzzle.date);
 const failedHeading = game.fromArchive ? "Better luck next time" : "Better luck tomorrow";
 const { shareText } = useShare();

@@ -2,9 +2,14 @@ import { type UseQueryReturnType, useMutation, useQuery } from "@tanstack/vue-qu
 import { computed, type MaybeRefOrGetter, toValue } from "vue";
 
 import { type DailyGameResultBody } from "../../lib/dailyGame";
-import { type DailyGameArchive, type DailyGamePuzzle } from "../../lib/types/dailyGame";
+import {
+  type DailyGameArchive,
+  type DailyGameHistory,
+  type DailyGamePuzzle,
+} from "../../lib/types/dailyGame";
 import { type ClubType } from "../../lib/types/generated/db";
 import { http, type HttpError } from "@/common/http";
+import { useAuthStore } from "@/stores/auth";
 
 /**
  * A day's puzzle for one club type's daily game. The answer for a date never
@@ -43,5 +48,21 @@ export function useDailyGameArchive(
     queryKey: ["dailyGame", clubType, "archive"],
     queryFn: async () =>
       (await http.get<DailyGameArchive>(`/api/daily-game/${clubType}/archive`)).data,
+  });
+}
+
+/**
+ * The signed-in player's finished days, from every device they've played on,
+ * so their streak follows the account. Nothing is asked for while signed out.
+ */
+export function useDailyGameHistory(
+  clubType: ClubType,
+): UseQueryReturnType<DailyGameHistory, HttpError> {
+  const auth = useAuthStore();
+  return useQuery({
+    queryKey: ["user", "dailyGameHistory", clubType],
+    enabled: computed(() => auth.isLoggedIn),
+    queryFn: async () =>
+      (await http.get<DailyGameHistory>(`/api/daily-game/${clubType}/history`)).data,
   });
 }

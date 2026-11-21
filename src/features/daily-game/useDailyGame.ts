@@ -1,9 +1,13 @@
-import { computed, ref, watch } from "vue";
+import { computed, type MaybeRefOrGetter, ref, toValue, watch } from "vue";
 import { z } from "zod";
 
 import { hintRank, nextDate, previousDate, shareText, temperature, type Temperature } from "./game";
 import { hasElements, isDefined, isTrue } from "@/../lib/checks/checks";
-import { type DailyGamePuzzle, type DailyGameWork } from "@/../lib/types/dailyGame";
+import {
+  type DailyGameFinish,
+  type DailyGamePuzzle,
+  type DailyGameWork,
+} from "@/../lib/types/dailyGame";
 import { type ClubType } from "@/../lib/types/generated/db";
 
 const entrySchema = z.object({ id: z.string(), hint: z.boolean() });
@@ -64,8 +68,16 @@ export function rankGuess(work: DailyGameWork, poolSize: number, hint: boolean):
 
 export type GuessOutcome = "added" | "duplicate";
 
-/** `today` is the player's own date; a puzzle from before it is played from the archive. */
-export function useDailyGame(puzzle: DailyGamePuzzle, name: string, today: string) {
+/**
+ * `today` is the player's own date; a puzzle from before it is played from the
+ * archive. `history` is what a signed-in player finished on other devices.
+ */
+export function useDailyGame(
+  puzzle: DailyGamePuzzle,
+  name: string,
+  today: string,
+  history: MaybeRefOrGetter<readonly DailyGameFinish[] | undefined>,
+) {
   const poolSize = puzzle.works.length;
   const worksById = new Map(puzzle.works.map((work) => [work.id, work]));
   const answer = puzzle.works.find((work) => work.rank === 1);
@@ -152,28 +164,45 @@ export function useDailyGame(puzzle: DailyGamePuzzle, name: string, today: strin
     update({ ...record.value, gaveUp: true });
   };
 
+  // Every finished day, from this device and the account. The server only
+  // takes results on a puzzle's own day, so its finishes all count for a streak.
+  const finishes = computed(() => {
+    const byDate = new Map<string, { solved: boolean; onTheDay: boolean }>();
+    for (const [date, day] of Object.entries(stored.value.days)) {
+      if (day.solved || day.gaveUp) {
+        byDate.set(date, { solved: day.solved, onTheDay: !day.fromArchive });
+      }
+    }
+    for (const finish of toValue(history) ?? []) {
+      const local = byDate.get(finish.date);
+      byDate.set(finish.date, {
+        solved: finish.solved || isTrue(local?.solved),
+        onTheDay: true,
+      });
+    }
+    return byDate;
+  });
+
   const stats = computed(() => {
-    const days = Object.values(stored.value.days);
-    const played = days.filter((day) => day.solved || day.gaveUp).length;
+    const days = [...finishes.value.values()];
+    const played = days.length;
     const won = days.filter((day) => day.solved).length;
     // The streak runs back from the player's today, whichever day's puzzle is
     // open, and only through days solved on the day. Today's unfinished puzzle
     // doesn't break a streak that ran through yesterday.
-    const todays = stored.value.days[today];
-    const finishedToday = isTrue(todays?.solved) || isTrue(todays?.gaveUp);
     const solvedOnTheDay = (date: string) => {
-      const day = stored.value.days[date];
-      return isTrue(day?.solved) && !isTrue(day?.fromArchive);
+      const day = finishes.value.get(date);
+      return isTrue(day?.solved) && isTrue(day?.onTheDay);
     };
     const runEndingOn = (last: string) => {
       let length = 0;
       for (let date = last; solvedOnTheDay(date); date = previousDate(date)) length++;
       return length;
     };
-    const streak = runEndingOn(finishedToday ? today : previousDate(today));
+    const streak = runEndingOn(finishes.value.has(today) ? today : previousDate(today));
     // Every run ends on a day solved on the day whose next day wasn't, so the
     // longest is the longest run counted back from one of those.
-    const best = Object.keys(stored.value.days)
+    const best = [...finishes.value.keys()]
       .filter((date) => solvedOnTheDay(date) && !solvedOnTheDay(nextDate(date)))
       .reduce((longest, date) => Math.max(longest, runEndingOn(date)), 0);
     return { played, won, streak, best };
