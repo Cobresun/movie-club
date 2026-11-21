@@ -205,8 +205,9 @@ export interface WorkDisplay {
   readonly subtitle: (data: WorkDataSummary | undefined) => string | undefined;
   /** One-line hero meta: "2h 35m · Adventure" / "Frank Herbert · 412 pages". */
   readonly metaLine: (data: WorkDataSummary | undefined) => string | undefined;
-  /** Long-form blurb: the TMDB overview / the book description. */
-  readonly overview: (data: WorkDataSummary | undefined) => string | undefined;
+  /** Long-form blurb: the TMDB overview / the book description. A movie's
+   * comes only with its full details. */
+  readonly overview: (data: WorkDataSummary | DetailedWorkData | undefined) => string | undefined;
   /** The recurring cast from a work's full details (fetched per work), for
    * media that have one. */
   readonly actors?: (details: DetailedWorkData | undefined) => CastMember[] | undefined;

@@ -1,4 +1,5 @@
 import { type WorkDisplay } from "../types";
+import { isDefined } from "@/../lib/checks/checks";
 import { asMovie, formatRuntime } from "@/common/workDisplay";
 
 export const movieDisplay: WorkDisplay = {
@@ -20,6 +21,10 @@ export const movieDisplay: WorkDisplay = {
     }
     return parts.length > 0 ? parts.join(" · ") : undefined;
   },
-  overview: (data) => asMovie(data)?.overview,
+  // Only the full shape carries the overview.
+  overview: (data) => {
+    const movie = asMovie(data);
+    return isDefined(movie) && "overview" in movie ? movie.overview : undefined;
+  },
   actors: (details) => asMovie(details)?.actors,
 };

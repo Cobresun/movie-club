@@ -1,4 +1,4 @@
-import { hasValue } from "../../../../lib/checks/checks.js";
+import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import { ClubType, WorkType } from "../../../../lib/types/generated/db";
 import { type DetailedWorkData, type WorkDataSummary } from "../../../../lib/types/lists";
 import { type SimilarWork } from "../../../../lib/types/recommendations";
@@ -70,7 +70,12 @@ export async function getExternalSummariesForWorks(
 export async function getCastNamesForWorks(
   works: { externalId: string | null | undefined; type: WorkType }[],
 ): Promise<Map<string, string[]>> {
-  return dispatchByType(works, (type, ids) => getProvider(type).getCastNames(ids));
+  return dispatchByType(works, async (type, ids) => {
+    const provider = getProvider(type);
+    return isDefined(provider.getCastNames)
+      ? provider.getCastNames(ids)
+      : new Map<string, string[]>();
+  });
 }
 
 /**

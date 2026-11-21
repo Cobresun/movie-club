@@ -16,7 +16,7 @@
            app's default, the one the app shell paints for a club page too. -->
       <component :is="reviewLayout?.skeleton ?? ReviewsSkeleton" />
     </template>
-    <div v-else>
+    <div v-else-if="isDefined(club)">
       <UpNextCard :club-slug="clubSlug" @started="openStartedReview" />
       <!-- Search Filter Bar -->
       <search-filter-bar
@@ -24,7 +24,7 @@
         v-model:has-active-filters="hasActiveFilters"
         :data="reviews ?? []"
         :club-slug="clubSlug"
-        :club-type="club?.type ?? ClubType.MOVIE"
+        :club-type="club.type"
         search-placeholder="Search reviews"
         class-name="mb-4"
       >

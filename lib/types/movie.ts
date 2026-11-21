@@ -79,7 +79,7 @@ export interface MovieDataSummary {
   // Aggregated relations: the mapper always defaults these to [], so they are
   // never absent.
   /** Billed-order names of the *major* cast only — top-billed or a popularity
-   * star (see `lib/movie/majorCast.ts`). A pre-filtered subset of `castNames`
+   * star (see `lib/movie/majorCast.ts`). A pre-filtered subset of the full cast
    * so the review spotlight's "Familiar face" fact tracks recurring prominent
    * actors, not incidental bit-parts, without shipping per-actor popularity. */
   majorCastNames: string[];
@@ -110,21 +110,22 @@ export interface MovieDataSummary {
   video?: boolean;
   vote_average?: number;
   vote_count?: number;
-  // Never in a bulk payload — these three account for most of a movie's bytes.
-  // The full shape carries the text; the cast filter merges `castNames` in from
-  // the club's cast-names index (`GET /api/club/:clubSlug/list/cast-names`).
-  /** Billed-order actor names. */
-  castNames?: string[];
-  homepage?: string;
-  overview?: string;
-  tagline?: string;
+}
+
+/** A movie summary with its billed-order cast names attached, which the cast
+ * filter searches. The client merges them in from the club's cast-names index
+ * (`GET /api/club/:clubSlug/list/cast-names`); no endpoint serves this shape. */
+export interface MovieDataWithCastNames extends MovieDataSummary {
+  castNames: string[];
 }
 
 /** Full movie metadata: the summary plus its long-form text and the complete
- * cast list. Served by
- * the per-work details endpoint and the shared-review page, never by bulk
- * list endpoints. */
+ * cast list. Served by the per-work details endpoint and the shared-review
+ * page, never by bulk list endpoints. */
 export interface DetailedMovieData extends MovieDataSummary {
+  homepage?: string;
+  overview?: string;
+  tagline?: string;
   actors: CastMember[];
 }
 

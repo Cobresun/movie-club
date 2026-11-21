@@ -48,7 +48,6 @@ export const awardNominee = (
   movieData: {
     kind: "movie",
     actors: [],
-    castNames: [],
     majorCastNames: [],
     directors: [],
     genres: [],

@@ -139,7 +139,9 @@ export function workMetaLine(data: WorkDataSummary | undefined): string | undefi
 }
 
 /** The long-form blurb (TMDB overview / book description). */
-export function workOverview(data: WorkDataSummary | undefined): string | undefined {
+export function workOverview(
+  data: WorkDataSummary | DetailedWorkData | undefined,
+): string | undefined {
   return workDisplay(data)?.overview(data);
 }
 

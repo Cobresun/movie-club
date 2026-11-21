@@ -2,7 +2,11 @@ import { z } from "zod";
 
 import { type DetailedBookData } from "./book";
 import { type WorkListSystemType, WorkType } from "./generated/db";
-import { type DetailedMovieData, type MovieDataSummary } from "./movie";
+import {
+  type DetailedMovieData,
+  type MovieDataSummary,
+  type MovieDataWithCastNames,
+} from "./movie";
 import { type DetailedTvData, type TvDataSummary } from "./tv";
 
 /**
@@ -13,12 +17,17 @@ import { type DetailedTvData, type TvDataSummary } from "./tv";
 export type DetailedWorkData = DetailedMovieData | DetailedBookData | DetailedTvData;
 
 /**
- * The bulk-payload variant of {@link DetailedWorkData}: each member may omit
- * its heavyweight fields (currently just the movie cast list). List and
- * reviews endpoints return this; the per-work details endpoint returns the
- * full shape. Book metadata is small enough to double as its own summary.
+ * The bulk-payload variant of {@link DetailedWorkData}: a movie leaves out its
+ * cast and long-form text. List and reviews endpoints return this; the
+ * per-work details endpoint returns the full shape. Book metadata is small
+ * enough to double as its own summary. A movie gains its cast names in the
+ * client once the cast filter has loaded them.
  */
-export type WorkDataSummary = MovieDataSummary | DetailedBookData | TvDataSummary;
+export type WorkDataSummary =
+  | MovieDataSummary
+  | MovieDataWithCastNames
+  | DetailedBookData
+  | TvDataSummary;
 
 /** One entry in a club's list collection (`GET /api/club/:clubSlug/list`). */
 export interface ClubListSummary {

@@ -376,11 +376,6 @@ class TvProvider implements MediaProvider {
     return map;
   }
 
-  // The show's cast names already ride the TV summary, which similarity reads.
-  getCastNames(): Promise<Map<string, string[]>> {
-    return Promise.resolve(new Map<string, string[]>());
-  }
-
   /**
    * A show's children are its episodes. The episode's season and number are
    * the only thing the caller chooses: whether TMDB lists that episode, and

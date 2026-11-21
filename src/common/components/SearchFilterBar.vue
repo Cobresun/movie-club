@@ -159,8 +159,9 @@ const uniqueWorks = computed(() => new Map(props.data.map((work) => [work.id, wo
 
 // Cast names load apart from the works, so the page never waits on them; the
 // cast filter appears once they arrive.
-const { data: castNames } = useCastNames(props.clubSlug, () =>
-  isDefined(config.value.withCastNames),
+const { data: castNames } = useCastNames(
+  () => props.clubSlug,
+  () => isDefined(config.value.withCastNames),
 );
 
 const works = computed(() => {

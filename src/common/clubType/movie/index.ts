@@ -75,7 +75,10 @@ export const movieClubConfig: ClubTypeConfig = {
       icon: "account-star",
       // Bulk payloads carry no cast: `withCastNames` below attaches the
       // names once the club's cast-names index has loaded.
-      values: (work) => asMovie(work.externalData)?.castNames ?? [],
+      values: (work) => {
+        const movie = asMovie(work.externalData);
+        return isDefined(movie) && "castNames" in movie ? movie.castNames : [];
+      },
       searchPlaceholder: "Find an actor",
       order: "popular",
     },

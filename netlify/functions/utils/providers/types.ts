@@ -105,10 +105,10 @@ export interface MediaProvider {
 
   /**
    * Billed-order cast names for a set of external IDs, keyed by external ID —
-   * what the cast filter searches. Providers whose summary already carries the
-   * names (TV), or whose works have no cast (books), return an empty map.
+   * what the cast filter searches. Only for media whose summary leaves the
+   * names out.
    */
-  getCastNames: (externalIds: string[]) => Promise<Map<string, string[]>>;
+  readonly getCastNames?: (externalIds: string[]) => Promise<Map<string, string[]>>;
 
   /**
    * Re-fetch the `limit` works whose cached details are stalest (oldest
