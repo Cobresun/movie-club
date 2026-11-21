@@ -95,7 +95,7 @@ const { clubType, selected = undefined } = defineProps<{
   selected?: string;
 }>();
 
-const { dailyGame } = clubTypeConfig(clubType);
+const dailyGame = computed(() => clubTypeConfig(clubType).dailyGame);
 
 const PROGRESS: Record<DayProgress, { label: string; icon: string }> = {
   solved: { label: "Solved", icon: "check" },
@@ -107,9 +107,9 @@ const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const { today } = useClock();
 const highlighted = computed(() => selected ?? today.value);
-const progress = dailyGameProgress(clubType);
+const progress = computed(() => dailyGameProgress(clubType));
 
-const { data, isLoading, isError } = useDailyGameArchive(clubType);
+const { data, isLoading, isError } = useDailyGameArchive(() => clubType);
 
 // The server lists up to the furthest-ahead day anywhere; a day still to come
 // for this player is not theirs to play yet.
@@ -117,7 +117,7 @@ const puzzles = computed(() =>
   (data.value?.puzzles ?? [])
     .filter((entry) => entry.date <= today.value)
     .map((entry) => {
-      const played = progress.get(entry.date);
+      const played = progress.value.get(entry.date);
       const status = isDefined(played) ? PROGRESS[played] : undefined;
       const label = [
         `#${entry.puzzle}`,

@@ -159,4 +159,25 @@ describe("DailyGameArchiveView", () => {
       "/reelated",
     );
   });
+
+  it("follows the mode switch to the TV archive", async () => {
+    server.use(
+      http.get("/api/daily-game/tv/archive", () =>
+        HttpResponse.json<DailyGameArchive>({
+          clubType: ClubType.TV,
+          puzzles: [{ date: "2026-10-22", puzzle: 1 }],
+        }),
+      ),
+    );
+    const page = await renderArchive();
+
+    // The router keeps this view when the mode switch changes the route.
+    await page.rerender({ clubType: ClubType.TV });
+
+    expect(
+      await screen.findByRole("heading", { level: 1, name: "Reelated TV archive" }),
+    ).toBeInTheDocument();
+    expect(await screen.findByRole("link", { name: /^#1, / })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /^#3, / })).not.toBeInTheDocument();
+  });
 });

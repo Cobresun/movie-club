@@ -30,7 +30,7 @@
     />
     <DailyGameBoard
       v-else-if="isDefined(data)"
-      :key="data.date"
+      :key="`${data.clubType}:${data.date}`"
       :puzzle="data"
       :daily-game="dailyGame"
       :today="today"
@@ -59,12 +59,15 @@ const { clubType, date = undefined } = defineProps<{
   date?: string;
 }>();
 
-const { dailyGame } = clubTypeConfig(clubType);
+const dailyGame = computed(() => clubTypeConfig(clubType).dailyGame);
 const router = useRouter();
 
 const { today } = useClock();
 
-const { data, isLoading, isError, error } = useDailyGamePuzzle(clubType, () => date ?? today.value);
+const { data, isLoading, isError, error } = useDailyGamePuzzle(
+  () => clubType,
+  () => date ?? today.value,
+);
 
 // Today's puzzle is missing only while the catalog is too small to play; a
 // past one, when that day never had a puzzle.
