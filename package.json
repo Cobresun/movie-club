@@ -26,7 +26,8 @@
     "db:list": "tsx --env-file=.env scripts/db-list.ts",
     "db:cleanup": "tsx --env-file=.env scripts/db-cleanup.ts",
     "local:up": "bash scripts/local/up.sh",
-    "local:seed": "tsx scripts/local/seed.ts"
+    "local:seed": "tsx scripts/local/seed.ts",
+    "daily-game:fill": "tsx --env-file=.env scripts/daily-game-fill.ts"
   },
   "dependencies": {
     "@cubos/kysely-cockroach": "^1.0.0",
