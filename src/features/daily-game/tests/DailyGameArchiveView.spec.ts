@@ -97,6 +97,12 @@ describe("DailyGameArchiveView", () => {
     ]);
   });
 
+  it("names the browser tab after the archive", async () => {
+    await renderArchive();
+
+    expect(document.title).toBe("Reelated archive: play past puzzles");
+  });
+
   it("sends today's puzzle to the game's own page and past ones to their day", async () => {
     await renderArchive();
 

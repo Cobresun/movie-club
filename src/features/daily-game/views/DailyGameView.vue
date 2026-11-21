@@ -45,10 +45,12 @@ import { useRouter } from "vue-router";
 import { isDefined } from "@/../lib/checks/checks";
 import { type ClubType } from "@/../lib/types/generated/db";
 import { clubTypeConfig } from "@/common/clubType";
+import { usePageTitle } from "@/common/composables/usePageTitle";
 import { archivePath } from "@/features/daily-game/archive";
 import DailyGameBoard from "@/features/daily-game/components/DailyGameBoard.vue";
 import DailyGameSkeleton from "@/features/daily-game/components/DailyGameSkeleton.vue";
 import { formatPuzzleDate } from "@/features/daily-game/game";
+import { gamePageHead, pastPuzzleTitle } from "@/features/daily-game/seo";
 import { useClock } from "@/features/daily-game/useClock";
 import { useDailyGamePuzzle } from "@/service/useDailyGame";
 
@@ -62,6 +64,11 @@ const { noun, dailyGame } = clubTypeConfig(clubType);
 const router = useRouter();
 
 const { today } = useClock();
+
+usePageTitle(() => {
+  if (!isDefined(dailyGame)) return undefined;
+  return isDefined(date) ? pastPuzzleTitle(dailyGame, date) : gamePageHead(dailyGame).title;
+});
 
 const { data, isLoading, isError, error } = useDailyGamePuzzle(clubType, () => date ?? today.value);
 

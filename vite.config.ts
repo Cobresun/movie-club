@@ -5,9 +5,16 @@ import vue from "@vitejs/plugin-vue";
 import * as path from "path";
 import { defineConfig } from "vite";
 
+import { dailyGamePages } from "./scripts/dailyGamePages";
+
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [tailwindcss(), vue()],
+  plugins: [
+    tailwindcss(),
+    vue(),
+    // Netlify sets URL to the production site on every build, previews included.
+    dailyGamePages({ origin: process.env.URL ?? "http://localhost:8888" }),
+  ],
   define: {
     // Netlify sets COMMIT_REF during a deploy build.
     __BUILD_ID__: JSON.stringify(process.env.COMMIT_REF ?? "dev"),

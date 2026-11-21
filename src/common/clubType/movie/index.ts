@@ -115,6 +115,9 @@ export const movieClubConfig: ClubTypeConfig = {
   dailyGame: {
     name: "Reelated",
     path: "/reelated",
+    headline: "The daily movie guessing game",
+    description:
+      "Guess the mystery movie of the day. Every guess shows how related it is through shared directors, cast, genres and era. Free, no account needed.",
     tagline: "One mystery movie a day. Every guess tells you how related it is. No account needed.",
     similarityRule:
       "A guess ranks by its clues: a shared director counts most, then shared stars, then a shared studio (the big ones don't count), genre, language or decade, the rarer the more. Between guesses that share as much, each genre the guess has that the answer doesn't counts against it. When two guesses still tie, the one released nearer the answer ranks higher.",

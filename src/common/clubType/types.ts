@@ -174,6 +174,10 @@ export interface DailyGameConfig {
   readonly name: string;
   /** Where the game is played, e.g. `/reelated`. */
   readonly path: string;
+  /** What the game is, in the words someone would search for, e.g. "The daily movie guessing game". */
+  readonly headline: string;
+  /** The game in a sentence or two for search results and link previews, under 160 characters. */
+  readonly description: string;
   /** One line inviting someone to play, for the landing page. */
   readonly tagline: string;
   /** What makes two works alike, for "How to play". */
