@@ -156,7 +156,7 @@
     <Teleport to="body">
       <WorkDetailsDrawer
         v-if="detailsOpen"
-        :movie="show.review"
+        :work="show.review"
         :members="members"
         :delete-review="deleteReview"
         :revealed-movie-ids="revealedMovieIds"

@@ -84,7 +84,7 @@ export const bookClubConfig: ClubTypeConfig = {
     shareTitle: "Book Club Statistics",
   },
   supportsAwards: false,
-  supportsWatchProviders: false,
+  watchProvidersPath: () => undefined,
   supportsRecommendations: false,
   invite: {
     shareText: "Join my club and score the books we read together.",

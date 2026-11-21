@@ -33,10 +33,13 @@
 import { computed } from "vue";
 
 import { hasElements, hasValue } from "../../../lib/checks/checks";
-import { TMDBWatchProvider } from "../../../lib/types/movie";
+import { type WorkType } from "../../../lib/types/generated/db";
+import { type TMDBWatchProvider } from "../../../lib/types/tmdb";
+import { workWatchProvidersPath } from "@/common/clubType";
 import { useWatchProviders } from "@/service/useTMDB";
 
-const { externalId = "" } = defineProps<{
+const { type, externalId = "" } = defineProps<{
+  type: WorkType;
   externalId?: string;
 }>();
 
@@ -56,13 +59,14 @@ function detectRegion(): string | undefined {
   }
 }
 
-const { data } = useWatchProviders(computed(() => externalId));
+// A work type with no availability source never fetches, so the section stays hidden.
+const { data } = useWatchProviders(() => workWatchProvidersPath(type, externalId));
 
 const regionData = computed(() => (hasValue(region) ? data.value?.results[region] : undefined));
 
 // "Where to watch" shows only subscription streaming services (TMDB's
 // `flatrate` bucket). Free/ad-supported and paid rent/buy are intentionally
-// excluded — these are the services you can actually stream the movie on.
+// excluded — these are the services you can actually stream the work on.
 // Ordered by TMDB's display priority.
 const providers = computed<TMDBWatchProvider[]>(() =>
   [...(regionData.value?.flatrate ?? [])].sort((a, b) => a.display_priority - b.display_priority),

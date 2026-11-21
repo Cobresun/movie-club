@@ -1,6 +1,7 @@
 import { screen } from "@testing-library/vue";
 import { http, HttpResponse } from "msw";
 
+import { WorkType } from "../../../lib/types/generated/db";
 import WatchProviders from "../components/WatchProviders.vue";
 import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
 import { server } from "@/mocks/server";
@@ -63,7 +64,7 @@ describe("WatchProviders", () => {
       },
     });
 
-    render(WatchProviders, { props: { externalId: "27205" } });
+    render(WatchProviders, { props: { type: WorkType.MOVIE, externalId: "27205" } });
 
     const logos = await screen.findAllByRole("img");
     expect(logos.map((img) => img.getAttribute("alt"))).toStrictEqual([
@@ -104,7 +105,7 @@ describe("WatchProviders", () => {
       },
     });
 
-    render(WatchProviders, { props: { externalId: "27205" } });
+    render(WatchProviders, { props: { type: WorkType.MOVIE, externalId: "27205" } });
 
     // Give the query time to resolve, then assert no provider logos rendered.
     await Promise.resolve();
@@ -128,7 +129,7 @@ describe("WatchProviders", () => {
       },
     });
 
-    render(WatchProviders, { props: { externalId: "27205" } });
+    render(WatchProviders, { props: { type: WorkType.MOVIE, externalId: "27205" } });
 
     await Promise.resolve();
     expect(screen.queryAllByRole("img")).toHaveLength(0);

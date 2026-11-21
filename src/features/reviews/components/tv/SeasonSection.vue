@@ -97,7 +97,7 @@
       <WorkDetailsDrawer
         v-if="isDefined(openedWork)"
         :key="openedWork.key"
-        :movie="openedWork.work"
+        :work="openedWork.work"
         :members="members"
         :delete-review="deleteReview"
         :revealed-movie-ids="revealedMovieIds"

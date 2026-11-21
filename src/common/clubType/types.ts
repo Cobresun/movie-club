@@ -111,10 +111,10 @@ export interface ClubTypeConfig {
   /** Whether this club type can use the awards feature. */
   readonly supportsAwards: boolean;
   /**
-   * Whether works of this type have streaming availability to show ("where to
-   * watch"). Movies do (TMDB/JustWatch); books don't.
+   * The TMDB resource whose `/watch/providers` lists where to stream a work
+   * ("movie/27205"), or undefined when there is none. Books have none.
    */
-  readonly supportsWatchProviders: boolean;
+  readonly watchProvidersPath: (externalId: string) => string | undefined;
   /**
    * Whether the add modal offers recommendations drawn from the club's
    * review scores. Needs a source of similar works; TMDB has one, Google Books doesn't.
