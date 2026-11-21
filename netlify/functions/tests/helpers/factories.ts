@@ -62,12 +62,17 @@ export async function createClub(
 ): Promise<SeededClub> {
   const name = options.name ?? `Test Club ${unique()}`;
   const members = options.members ?? [owner];
+  // The settings write is member-only. A club seeded with no members still
+  // needs its features set, so the owner is created as its member for the
+  // write and leaves again.
+  const seededWithoutMembers = members.length === 0;
+  const initialMembers = seededWithoutMembers ? [owner] : members;
 
   const created = await api.post<{ clubId: string; slug: string }>("/api/club", {
     body: {
       name,
       type: options.type ?? ClubType.MOVIE,
-      members: members.map((member) => member.email),
+      members: initialMembers.map((member) => member.email),
     },
     as: owner,
   });
@@ -79,18 +84,15 @@ export async function createClub(
   const preview = await api.get<ClubPreview>(`/api/club/${slug}`);
   assertOk(`Reading the preview of "${slug}"`, preview);
 
-  // The settings write is member-only. A club seeded with no members still
-  // needs its features set, so the owner joins for the write and leaves again.
   if (options.features) {
-    const seededWithoutMembers = members.length === 0;
-    if (seededWithoutMembers) await joinClub({ slug }, owner);
     const updated = await api.post(`/api/club/${slug}/settings`, {
       body: { features: options.features },
-      as: members[0] ?? owner,
+      as: initialMembers[0],
     });
     assertOk(`Enabling features on "${slug}"`, updated);
-    if (seededWithoutMembers) await leaveClub({ slug }, owner);
   }
+
+  if (seededWithoutMembers) await leaveClub({ slug }, owner);
 
   return {
     id: created.body.clubId,
@@ -102,9 +104,10 @@ export async function createClub(
   };
 }
 
-/** Join a club as `session` — the same route the invite-less join link uses. */
-export async function joinClub(club: { slug: string }, session: TestSession) {
-  const joined = await api.get(`/api/club/${club.slug}/members/join`, { as: session });
+/** Join a club as `session` through an invite that `inviter`, a member, hands out. */
+export async function joinClub(club: SeededClub, session: TestSession, inviter: TestSession) {
+  const token = await createInvite(club, inviter);
+  const joined = await api.post("/api/club/join", { body: { token }, as: session });
   assertOk(`${session.email} joining "${club.slug}"`, joined);
 }
 

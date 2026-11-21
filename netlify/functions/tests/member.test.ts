@@ -122,7 +122,7 @@ describe("GET /api/member/scores", () => {
     const alice = await signIn("alice");
     const bob = await signIn("bob");
     const club = await createClub(alice, { members: [alice] });
-    await joinClub(club, bob);
+    await joinClub(club, bob, alice);
     const work = await addReviewedWork(club, alice, { externalId: null });
     await scoreWork(club, bob, work.id, 9);
     await leaveClub(club, bob);

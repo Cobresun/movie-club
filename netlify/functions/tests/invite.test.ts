@@ -16,7 +16,7 @@ describe("POST /api/club/:clubSlug/invite", () => {
     const alice = await signIn("alice");
     const club = await createClub(alice, { name: "Invite Club" });
 
-    const res = await api.post<{ token: string }>(`/api/club/${club.slug}/invite`);
+    const res = await api.post<{ token: string }>(`/api/club/${club.slug}/invite`, { as: alice });
 
     expect(res.statusCode).toBe(200);
     expect(res.body.token).toMatch(/^[0-9a-f]{32}$/u);
@@ -30,7 +30,7 @@ describe("POST /api/club/:clubSlug/invite", () => {
     const club = await createClub(alice);
     const existing = await createInvite(club, alice);
 
-    const res = await api.post<{ token: string }>(`/api/club/${club.slug}/invite`);
+    const res = await api.post<{ token: string }>(`/api/club/${club.slug}/invite`, { as: alice });
 
     expect(res.body.token).toBe(existing);
   });
@@ -41,7 +41,7 @@ describe("POST /api/club/:clubSlug/invite", () => {
     const stale = await createInvite(club, alice);
     await expireInvite(stale);
 
-    const res = await api.post<{ token: string }>(`/api/club/${club.slug}/invite`);
+    const res = await api.post<{ token: string }>(`/api/club/${club.slug}/invite`, { as: alice });
 
     expect(res.body.token).not.toBe(stale);
     // The old token no longer resolves; the new one does.
@@ -50,6 +50,25 @@ describe("POST /api/club/:clubSlug/invite", () => {
     );
     const info = await api.get<{ clubId: string }>(`/api/club/joinInfo/${res.body.token}`);
     expect(info.body.clubId).toBe(club.id);
+  });
+
+  it("returns 401 when the request has no session", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub(alice);
+
+    const res = await api.post(`/api/club/${club.slug}/invite`);
+
+    expect(res.statusCode).toBe(401);
+  });
+
+  it("returns 401 for a signed-in user who is not a member", async () => {
+    const alice = await signIn("alice");
+    const bob = await signIn("bob");
+    const club = await createClub(alice, { members: [alice] });
+
+    const res = await api.post(`/api/club/${club.slug}/invite`, { as: bob });
+
+    expect(res.statusCode).toBe(401);
   });
 
   it("returns 404 for an unknown club", async () => {
