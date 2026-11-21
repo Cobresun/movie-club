@@ -38,15 +38,15 @@
             <mdicon name="pencil" size="14" class="text-current" />
           </ListboxButton>
         </AddedByListbox>
-        <template v-if="hasValue(movie.parentId)">
-          Reviewed {{ formatDate(movie.createdDate) }}
+        <template v-if="hasValue(work.parentId)">
+          Reviewed {{ formatDate(work.createdDate) }}
         </template>
         <template v-else-if="!isEditingDate">
           <span
             class="hover:text-primary inline-flex cursor-pointer items-center gap-1 hover:underline"
             @click="openDateEditor"
           >
-            Reviewed {{ formatDate(movie.createdDate) }}
+            Reviewed {{ formatDate(work.createdDate) }}
             <mdicon name="pencil" size="14" class="text-current" />
           </span>
         </template>
@@ -92,7 +92,7 @@
         <div class="flex justify-center">
           <button
             class="bg-lowBackground flex items-center gap-2 rounded-full px-4 py-1.5 text-sm text-gray-300 transition hover:brightness-110"
-            @click="toggleMovieReveal(movie.id)"
+            @click="toggleMovieReveal(work.id)"
           >
             <mdicon name="eye-outline" size="16" />
             <span>Reveal club scores</span>
@@ -151,7 +151,7 @@
     <!-- Synopsis -->
     <section v-if="hasValue(overview)" class="mt-6">
       <SectionHeader title="Synopsis" />
-      <WorkDescription :key="movie.id" :overview="overview" />
+      <WorkDescription :key="work.id" :overview="overview" />
     </section>
 
     <CastList v-if="hasElements(castActors)" :actors="castActors" class="mt-6" />
@@ -203,15 +203,15 @@
         <ExternalLink label="Rotten Tomatoes" :href="rottenTomatoesUrl" />
       </div>
 
-      <WatchProviders :type="movie.type" :external-id="movie.externalId" class="mt-4" />
+      <WatchProviders :type="work.type" :external-id="work.externalId" class="mt-4" />
     </section>
 
-    <CommentThread v-if="isListed" :work-id="movie.id" :club-slug="clubId" />
+    <CommentThread v-if="isListed" :work-id="work.id" :club-slug="clubId" />
 
     <DiscussionQuestions
       v-if="isListed"
       :club-slug="clubId"
-      :work-id="movie.id"
+      :work-id="work.id"
       :media-noun="mediaNoun"
     />
 
@@ -236,7 +236,7 @@
     >
       <ScoreEntryDock
         v-if="isDesktop"
-        :target="movie"
+        :target="work"
         :score="myReview?.score"
         :review-id="myReviewId"
         :save-score="saveScore"
@@ -249,7 +249,7 @@
           <button
             type="button"
             class="bg-primary text-text flex shrink-0 items-center justify-center gap-2 rounded-lg px-4 py-3 font-bold tracking-wide transition hover:brightness-110 active:scale-[0.98]"
-            @click="shareReview(movie)"
+            @click="shareReview(work)"
           >
             <mdicon name="share" size="20" />
             <span>Share</span>
@@ -272,7 +272,7 @@
           v-if="canShare"
           type="button"
           class="bg-primary text-text flex shrink-0 items-center justify-center gap-2 rounded-lg px-4 py-3 font-bold tracking-wide transition hover:brightness-110 active:scale-[0.98]"
-          @click="shareReview(movie)"
+          @click="shareReview(work)"
         >
           <mdicon name="share" size="20" />
           <span>Share</span>
@@ -282,8 +282,8 @@
 
     <ScoreEntryModal
       v-if="showScoreEntry"
-      :key="movie.id"
-      :target="movie"
+      :key="work.id"
+      :target="work"
       :score="myReview?.score"
       :review-id="myReviewId"
       :save-score="saveScore"
@@ -341,7 +341,7 @@ import {
 } from "@/service/useList";
 
 const props = defineProps<{
-  movie: DetailedReviewListItem;
+  work: DetailedReviewListItem;
   members: Member[];
   deleteReview: (workId: string) => void;
   revealedMovieIds: Set<string>;
@@ -368,7 +368,7 @@ const cancelDelete = () => {
   showDeleteConfirmation.value = false;
 };
 const confirmDelete = () => {
-  props.deleteReview(props.movie.id);
+  props.deleteReview(props.work.id);
   showDeleteConfirmation.value = false;
   close();
 };
@@ -381,7 +381,7 @@ const isEditingDate = ref(false);
 const editedDate = ref("");
 
 const formattedDateForInput = computed(() =>
-  toDateInputValue(parseIsoDate(props.movie.createdDate)),
+  toDateInputValue(parseIsoDate(props.work.createdDate)),
 );
 
 const openDateEditor = () => {
@@ -396,7 +396,7 @@ const saveDateChange = () => {
     if (isDefined(isoDate) && hasValue(reviewsListId.value)) {
       updateAddedDate({
         listId: reviewsListId.value,
-        workId: props.movie.id,
+        workId: props.work.id,
         addedDate: isoDate,
       });
     }
@@ -410,16 +410,16 @@ const cancelDateEdit = () => {
 
 const { mutate: updateAddedBy } = useUpdateReviewAddedBy(clubId);
 const addedByMember = computed(() =>
-  props.members.find((member) => member.id === props.movie.addedBy),
+  props.members.find((member) => member.id === props.work.addedBy),
 );
 // An episode is on the reviews list only through its show, so its adder is the show's.
 const canChangeAddedBy = computed(
-  () => !hasValue(props.movie.parentId) && hasElements(props.members),
+  () => !hasValue(props.work.parentId) && hasElements(props.members),
 );
 
 const onAddedByChange = (userId: string | undefined) => {
   if (hasValue(reviewsListId.value)) {
-    updateAddedBy({ listId: reviewsListId.value, workId: props.movie.id, userId });
+    updateAddedBy({ listId: reviewsListId.value, workId: props.work.id, userId });
   }
 };
 
@@ -430,7 +430,7 @@ const onAddedByChange = (userId: string | undefined) => {
 // That scan (every work's full cast list, for actor milestones) is too heavy
 // for the drawer's opening frame, so the computed stays undefined until the
 // browser goes idle after mount — the drawer paints and slides in immediately,
-// then the fact card transitions in. The component is keyed by movie.id, so the
+// then the fact card transitions in. The component is keyed by work.id, so the
 // gate re-arms on every open/work switch.
 //
 // The dismiss animation needs the same protection: the drawer stays mounted
@@ -465,34 +465,34 @@ onBeforeUnmount(() => cancelFactIdle?.());
 // ones that are), so it stays hidden until the scores themselves are revealed.
 const reviewFact = computed(() =>
   factReady.value && isRevealed.value && isDefined(allReviews.value)
-    ? computeReviewFact(allReviews.value, props.movie.id)
+    ? computeReviewFact(allReviews.value, props.work.id)
     : undefined,
 );
 
-const movieData = computed(() => asMovie(props.movie.externalData));
-const bookData = computed(() => asBook(props.movie.externalData));
-const tvData = computed(() => asTv(props.movie.externalData));
+const movieData = computed(() => asMovie(props.work.externalData));
+const bookData = computed(() => asBook(props.work.externalData));
+const tvData = computed(() => asTv(props.work.externalData));
 
 // The bulk reviews payload carries only summary metadata; the cast list is
 // fetched on demand when this drawer opens (cached per work for the session).
 const { data: workDetails } = useWorkDetails(
   clubId,
-  computed(() => props.movie.id),
+  computed(() => props.work.id),
 );
 const castActors = computed(() => workActors(workDetails.value ?? undefined));
-const mediaNoun = computed(() => workNoun(props.movie));
-const posterUrl = computed(() => workPosterUrl(props.movie.externalData, props.movie.imageUrl));
+const mediaNoun = computed(() => workNoun(props.work));
+const posterUrl = computed(() => workPosterUrl(props.work.externalData, props.work.imageUrl));
 
 // Release year (movies) or first-published year (books), via the shared helper.
-const displayTitle = computed(() => workTitle(props.movie));
-const displayYear = computed(() => workSubtitle(props.movie.externalData));
+const displayTitle = computed(() => workTitle(props.work));
+const displayYear = computed(() => workSubtitle(props.work.externalData));
 
 // "2h 35m · Adventure, Science Fiction" (movies) / "Frank Herbert · 412 pages"
 // (books), shown in the hero under the title. Runtime and genres live here, so
 // the Details section below only carries what the hero doesn't.
-const metaLine = computed(() => workMetaLine(props.movie.externalData));
+const metaLine = computed(() => workMetaLine(props.work.externalData));
 
-const overview = computed(() => workOverview(props.movie.externalData));
+const overview = computed(() => workOverview(props.work.externalData));
 
 // TMDB publishes ratings with three decimals (7.783); one is plenty here.
 const tmdbScore = computed(() =>
@@ -510,31 +510,31 @@ const hasDetails = computed(() => {
 });
 
 const letterboxdUrl = computed(() =>
-  hasValue(props.movie.externalId)
-    ? `https://letterboxd.com/tmdb/${props.movie.externalId}/`
+  hasValue(props.work.externalId)
+    ? `https://letterboxd.com/tmdb/${props.work.externalId}/`
     : undefined,
 );
 
 const imdbUrl = computed(() => {
-  const imdbId = asMovie(props.movie.externalData)?.imdb_id;
+  const imdbId = asMovie(props.work.externalData)?.imdb_id;
   return hasValue(imdbId) ? `https://www.imdb.com/title/${imdbId}/` : undefined;
 });
 
 const rottenTomatoesUrl = computed(() => {
-  const title = props.movie.title;
+  const title = props.work.title;
   return hasValue(title)
     ? `https://www.rottentomatoes.com/search?search=${encodeURIComponent(title)}`
     : undefined;
 });
 
 const scoreEntries = computed(
-  () => props.shownEntries ?? workScoreEntries(props.movie, props.members),
+  () => props.shownEntries ?? workScoreEntries(props.work, props.members),
 );
 
 // The current user's own review for this work, if any — prefills the panel and
 // tells it whether to create (POST) or update (PUT).
 const myReview = computed(() =>
-  isDefined(props.currentUserId) ? props.movie.scores[props.currentUserId] : undefined,
+  isDefined(props.currentUserId) ? props.work.scores[props.currentUserId] : undefined,
 );
 
 // Everything addressed by the work's id — its date, comments, questions,
@@ -596,7 +596,7 @@ const toggleMovieReveal = (movieId: string) => {
 };
 
 const isRevealed = computed(
-  () => props.hasRated(props.movie.id) || props.revealedMovieIds.has(props.movie.id),
+  () => props.hasRated(props.work.id) || props.revealedMovieIds.has(props.work.id),
 );
 
 const showRevealPill = computed(
@@ -608,7 +608,7 @@ const showRevealPill = computed(
 const tmdbRevealed = ref(false);
 
 const shouldBlurTmdbScore = computed(() => {
-  if (props.hasRated(props.movie.id) || tmdbRevealed.value) return false;
+  if (props.hasRated(props.work.id) || tmdbRevealed.value) return false;
   return true;
 });
 
