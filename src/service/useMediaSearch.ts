@@ -28,6 +28,9 @@ export function useMediaSearch(clubType: ClubType, query: Ref<string>, enabled: 
   return useQuery<WorkSearchResult[]>({
     queryKey: ["media-search", clubType, query],
     enabled,
+    // Each new query is a new key; hold the last results until it answers
+    // rather than emptying the grid between them.
+    keepPreviousData: true,
     queryFn: async ({ signal }) => {
       const trimmed = query.value.trim();
       if (trimmed.length === 0) return [];
