@@ -11,17 +11,18 @@ import { http, type HttpError } from "@/common/http";
  * changes once drawn, so the response is kept for the session — and, through
  * the persisted cache, for a player who reopens the page with no connection.
  *
- * `date` is reactive: the router reuses the view between `/reelated` and
- * `/reelated/:date`, so the query has to follow the date it's given.
+ * Both arguments are reactive: the router reuses the view between a mode's
+ * days, and between modes, so the query follows what it's given.
  */
 export function useDailyGamePuzzle(
-  clubType: ClubType,
+  clubType: MaybeRefOrGetter<ClubType>,
   date: MaybeRefOrGetter<string>,
 ): UseQueryReturnType<DailyGamePuzzle, HttpError> {
   return useQuery({
-    queryKey: computed(() => ["dailyGame", clubType, toValue(date)]),
+    queryKey: computed(() => ["dailyGame", toValue(clubType), toValue(date)]),
     queryFn: async () =>
-      (await http.get<DailyGamePuzzle>(`/api/daily-game/${clubType}/${toValue(date)}`)).data,
+      (await http.get<DailyGamePuzzle>(`/api/daily-game/${toValue(clubType)}/${toValue(date)}`))
+        .data,
     staleTime: Infinity,
     retry: false,
   });
@@ -37,11 +38,11 @@ export function useRecordDailyGameResult(clubType: ClubType, date: string) {
 
 /** Every puzzle a club type's daily game has had, newest first. Grows by one a day. */
 export function useDailyGameArchive(
-  clubType: ClubType,
+  clubType: MaybeRefOrGetter<ClubType>,
 ): UseQueryReturnType<DailyGameArchive, HttpError> {
   return useQuery({
-    queryKey: ["dailyGame", clubType, "archive"],
+    queryKey: computed(() => ["dailyGame", toValue(clubType), "archive"]),
     queryFn: async () =>
-      (await http.get<DailyGameArchive>(`/api/daily-game/${clubType}/archive`)).data,
+      (await http.get<DailyGameArchive>(`/api/daily-game/${toValue(clubType)}/archive`)).data,
   });
 }

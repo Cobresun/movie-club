@@ -718,6 +718,23 @@ describe("DailyGameView", () => {
       );
     });
 
+    it("follows the switch when the same page moves between modes", async () => {
+      const page = await renderGame();
+
+      // The router keeps this view when the mode switch changes the route.
+      await page.rerender({ clubType: ClubType.TV, date: undefined });
+
+      expect(
+        await screen.findByRole("heading", { level: 1, name: "Reelated TV #3" }),
+      ).toBeInTheDocument();
+      expect(screen.getByRole("combobox", { name: "Guess a show" })).toBeInTheDocument();
+      expect(
+        within(screen.getByRole("navigation", { name: "Game mode" })).getByRole("link", {
+          name: "TV",
+        }),
+      ).toHaveAttribute("aria-current", "page");
+    });
+
     it("says it is waiting for shows, not episodes, before it can start", async () => {
       server.use(
         http.get("/api/daily-game/tv/:date", () =>
