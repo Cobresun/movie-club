@@ -74,9 +74,9 @@ if [ -f .env ] && ! grep -qxF "$ENV_MARKER" .env; then
 else
   # The server reads TMDB_API_KEY / GOOGLE_BOOKS_API_KEY straight from the
   # shell, but title and GIF search run in the browser, which only sees
-  # VITE_-prefixed values. Netlify does not expand ${...} in .env, so they are copied here,
-  # and re-running this script picks up a changed key. The session secret is
-  # kept so a rewrite does not sign everyone out.
+  # VITE_-prefixed values. Netlify does not expand ${...} in .env, so they are
+  # copied here, and re-running this script picks up a changed key. The session
+  # secret is kept so a rewrite does not sign everyone out.
   SECRET=$(sed -n 's/^BETTER_AUTH_SECRET=//p' .env 2>/dev/null || true)
   cat >.env <<EOF
 $ENV_MARKER

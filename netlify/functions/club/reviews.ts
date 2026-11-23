@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { hasValue, isDefined } from "../../../lib/checks/checks.js";
-import { addCommentSchema, updateCommentSchema } from "../../../lib/comments";
+import { addCommentSchema, updateCommentSchema } from "../../../lib/comments.js";
 import {
   type DiscussionQuestionsResponse,
   type ReviewScores,
