@@ -1,11 +1,11 @@
 ---
 name: kysely
-description: Kysely v0.27 query builder patterns with CockroachDB dialect. Use for any database queries, repository classes, or schema migrations.
+description: Kysely v0.29 query builder patterns with CockroachDB dialect. Use for any database queries, repository classes, or schema migrations.
 ---
 
 # Kysely — Project Reference
 
-**Version:** Kysely v0.27.6 with `@cubos/kysely-cockroach` dialect.
+**Version:** Kysely v0.29 with `@cubos/kysely-cockroach` dialect. `Migrator` and `Migration` import from `kysely/migration`; `sql.val` and `sql.lit` replace the removed `sql.value` and `sql.literal`.
 
 **Always consult [kysely.dev](https://kysely.dev) for full API reference.**
 
@@ -320,4 +320,4 @@ npm run codegen        # Regenerate TypeScript types from schema
 4. **Migration types:** Use `Kysely<unknown>` in migration functions, not `Kysely<DB>` — the schema may not match during migration. Then `db.withTables<...>()` for anything that reads or writes rows; `Kysely<unknown>` is not a licence to hand-write SQL strings (see Migrations above).
 5. **Named constraints:** Always name constraints (`pk_`, `fk_`, `uq_`, `idx_` prefixes) for debugging and `ON CONFLICT` references.
 6. **Aggregate + GROUP BY:** When using multiple aggregates, prefer CTEs (`.with()`) over complex GROUP BY to avoid CockroachDB limitations.
-7. **Condense undeployed migrations:** If a PR has multiple schema migrations touching the same table and none have been deployed to production, merge them into a single migration. This avoids unnecessary intermediate states and reduces deployment failure points. Pair data migrations with the same date prefix as their schema migration.
+7. **Condense undeployed migrations:** If a PR has multiple schema migrations touching the same table and none have been deployed to production, merge them into a single migration. This avoids unnecessary intermediate states and reduces deployment failure points. Data rewrites go in the schema migration itself; `migrations/data/` is legacy.

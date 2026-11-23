@@ -1,0 +1,53 @@
+name: Claude Review
+
+# Reviews each pull request once, when it is opened or marked ready, against
+# CLAUDE.md and the path-scoped rules in .claude/rules/. The action restores
+# CLAUDE.md and .claude/ from the base branch first, so a PR is reviewed by
+# main's rules, not its own. Not on every push: a session answering review
+# would get a fresh review each time. Re-run the job for another pass.
+#
+# Needs the Claude GitHub App on the repo and a CLAUDE_CODE_OAUTH_TOKEN secret
+# (`claude setup-token`). Fork and Dependabot PRs get no secrets, so they skip.
+on:
+  pull_request:
+    types: [opened, reopened, ready_for_review]
+
+concurrency:
+  group: claude-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    if: >-
+      !github.event.pull_request.draft &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.user.login != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+
+            Review this pull request. The PR branch is checked out in the working directory.
+
+            1. Read the diff with `gh pr diff` and the description with `gh pr view`.
+            2. Read CLAUDE.md, then every file in .claude/rules/ whose `paths:` frontmatter matches a changed file. Hold the diff to them, and to "What review sends back" in CLAUDE.md above all.
+            3. Look for correctness bugs: wrong behavior for a real input, a missing auth or membership check on an endpoint, a migration that loses data or can't run down.
+
+            Report only what you'd stand behind: a broken rule (name the rule file) or a bug (give the input that breaks it). No style the formatter or lint already enforces, no praise, no summary of what the PR does.
+
+            Post each finding as an inline comment with `mcp__github_inline_comment__create_inline_comment` (with `confirmed: true`) on the line it concerns. Then post one top-level comment with `gh pr comment`: the number of findings, or "No findings." Only post GitHub comments; don't put review text in messages.
+          claude_args: |
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"
