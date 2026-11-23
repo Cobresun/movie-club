@@ -11,6 +11,8 @@
 
 set -uo pipefail
 
+source "$(cd "$(dirname "$0")" && pwd)/ci-paths.sh"
+
 input=$(cat)
 cwd=$(jq -r '.cwd // empty' <<<"$input")
 cd "$(git -C "${cwd:-$CLAUDE_PROJECT_DIR}" rev-parse --show-toplevel)" || exit 0
@@ -20,14 +22,11 @@ cd "$(git -C "${cwd:-$CLAUDE_PROJECT_DIR}" rev-parse --show-toplevel)" || exit 0
 block=2
 [ "$(jq -r '.stop_hook_active // false' <<<"$input")" = true ] && block=1
 
-# The paths `npm run format:check` and `npm run lint` cover.
-paths=(src migrations netlify lib scripts)
-
 base=$(git merge-base HEAD origin/main 2>/dev/null || git rev-parse HEAD)
 mapfile -t changed < <(
   {
-    git diff --name-only --diff-filter=d "$base" -- "${paths[@]}"
-    git ls-files --others --exclude-standard -- "${paths[@]}"
+    git diff --name-only --diff-filter=d "$base" -- "${ci_paths[@]}"
+    git ls-files --others --exclude-standard -- "${ci_paths[@]}"
   } | sort -u
 )
 [ ${#changed[@]} -eq 0 ] && exit 0
