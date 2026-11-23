@@ -73,8 +73,8 @@ if [ -f .env ] && ! grep -qxF "$ENV_MARKER" .env; then
   echo "  RESEND_BASE_URL=http://localhost:${MAILBOX_PORT}"
 else
   # The server reads TMDB_API_KEY / GOOGLE_BOOKS_API_KEY straight from the
-  # shell, but title search runs in the browser, which only sees VITE_-prefixed
-  # values. Netlify does not expand ${...} in .env, so they are copied here,
+  # shell, but title and GIF search run in the browser, which only sees
+  # VITE_-prefixed values. Netlify does not expand ${...} in .env, so they are copied here,
   # and re-running this script picks up a changed key. The session secret is
   # kept so a rewrite does not sign everyone out.
   SECRET=$(sed -n 's/^BETTER_AUTH_SECRET=//p' .env 2>/dev/null || true)
@@ -89,6 +89,7 @@ GOOGLE_CLIENT_ID=local-google-client-id
 GOOGLE_CLIENT_SECRET=local-google-client-secret
 VITE_TMDB_API_KEY=${TMDB_API_KEY:-}
 VITE_GOOGLE_BOOKS_API_KEY=${GOOGLE_BOOKS_API_KEY:-}
+VITE_GIPHY_API_KEY=${GIPHY_API_KEY:-}
 EOF
   echo "Wrote .env for the local stack"
 fi

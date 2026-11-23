@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/vue";
+import { isInaccessible, screen } from "@testing-library/vue";
 
 import { type WorkCommentDto } from "../../../../lib/types/lists";
 import SharedReviewComments from "../components/SharedReviewComments.vue";
@@ -49,11 +49,11 @@ describe("SharedReviewComments", () => {
     // The blur is visual only, so aria-hidden is what actually keeps the
     // spoiler from being read out before the reader asks for it.
     const hidden = screen.getByText("The killer was the butler.");
-    expect(hidden).toHaveAttribute("aria-hidden", "true");
+    expect(isInaccessible(hidden)).toBe(true);
 
     await user.click(hidden);
 
-    expect(screen.getByText("The killer was the butler.")).not.toHaveAttribute("aria-hidden");
+    expect(isInaccessible(screen.getByText("The killer was the butler."))).toBe(false);
   });
 
   it("does not blur non-spoiler comments", () => {
@@ -62,7 +62,7 @@ describe("SharedReviewComments", () => {
     });
 
     expect(screen.queryByText(/Spoiler/)).not.toBeInTheDocument();
-    expect(screen.getByText("No spoilers here.")).not.toHaveAttribute("aria-hidden");
+    expect(isInaccessible(screen.getByText("No spoilers here."))).toBe(false);
   });
 
   it("renders nothing in the list when there are no comments", () => {
@@ -71,5 +71,13 @@ describe("SharedReviewComments", () => {
     // The "Reviews" heading is always present; no comment cards render.
     expect(screen.getByText("Reviews")).toBeInTheDocument();
     expect(screen.queryByText(/Spoiler/)).not.toBeInTheDocument();
+  });
+
+  it("shows a comment's GIF", () => {
+    render(SharedReviewComments, {
+      props: { comments: [makeComment({ content: "", gifId: "sadCat2" })] },
+    });
+
+    expect(screen.getByRole("img", { name: "GIF" })).toBeInTheDocument();
   });
 });

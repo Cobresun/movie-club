@@ -1,8 +1,9 @@
-import { screen } from "@testing-library/vue";
+import { isInaccessible, screen, waitFor } from "@testing-library/vue";
 
 import CommentThread from "../components/CommentThread.vue";
 import { comment, commentsApi } from "@/mocks/comments";
 import memberData from "@/mocks/data/member.json";
+import { giphyApi } from "@/mocks/giphy";
 import { server } from "@/mocks/server";
 import { logIn, render } from "@/tests/utils";
 
@@ -10,11 +11,11 @@ const CLUB_SLUG = "test-club";
 const WORK_ID = "movie-123";
 
 /** A comment by somebody other than the signed-in member. */
-const theirComment = (content: string, spoiler = false) =>
-  comment({ id: `their-${content}`, workId: WORK_ID, userName: "Alice", content, spoiler });
+const theirComment = (content: string, spoiler = false, gifId?: string) =>
+  comment({ id: `their-${content}`, workId: WORK_ID, userName: "Alice", content, spoiler, gifId });
 
 /** A comment the signed-in member wrote, so the owner controls show up. */
-const myComment = (content: string, spoiler = false) =>
+const myComment = (content: string, spoiler = false, gifId?: string) =>
   comment({
     id: `mine-${content}`,
     workId: WORK_ID,
@@ -22,7 +23,13 @@ const myComment = (content: string, spoiler = false) =>
     userName: memberData.name,
     content,
     spoiler,
+    gifId,
   });
+
+const GIFS = [
+  { id: "partyParrot1", title: "Party Parrot" },
+  { id: "sadCat2", title: "Sad Cat" },
+];
 
 const renderThread = () =>
   render(CommentThread, { props: { workId: WORK_ID, clubSlug: CLUB_SLUG } });
@@ -88,11 +95,11 @@ describe("CommentThread", () => {
     // The blur is visual only, so aria-hidden is what actually keeps the
     // spoiler from being read out before the member asks for it.
     const spoiler = await screen.findByText("Secret ending revealed");
-    expect(spoiler).toHaveAttribute("aria-hidden", "true");
+    expect(isInaccessible(spoiler)).toBe(true);
 
     await rendered.user.click(spoiler);
 
-    expect(screen.getByText("Secret ending revealed")).not.toHaveAttribute("aria-hidden");
+    expect(isInaccessible(screen.getByText("Secret ending revealed"))).toBe(false);
   });
 
   it("shows the author their own spoiler comment unmasked", async () => {
@@ -174,5 +181,108 @@ describe("CommentThread", () => {
     await rendered.user.click(screen.getByRole("button", { name: /cancel/i }));
 
     expect(screen.getByText("Delete me")).toBeInTheDocument();
+  });
+
+  describe("GIFs", () => {
+    it("posts a GIF picked from GIPHY's trending GIFs, with no text", async () => {
+      server.use(...commentsApi(), ...giphyApi(GIFS));
+
+      const rendered = renderThread();
+
+      await rendered.user.click(screen.getByRole("button", { name: "Add a GIF" }));
+      await rendered.user.click(await screen.findByRole("button", { name: "Party Parrot" }));
+
+      expect(screen.queryByRole("group", { name: "Choose a GIF" })).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Remove GIF" })).toBeInTheDocument();
+
+      await rendered.user.click(screen.getByRole("button", { name: /send/i }));
+
+      await expect(screen.findByRole("img", { name: "GIF" })).resolves.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Remove GIF" })).not.toBeInTheDocument();
+    });
+
+    it("searches GIPHY for what the member types", async () => {
+      server.use(...commentsApi(), ...giphyApi(GIFS));
+
+      const rendered = renderThread();
+
+      await rendered.user.click(screen.getByRole("button", { name: "Add a GIF" }));
+      await screen.findByRole("button", { name: "Party Parrot" });
+      await rendered.user.type(screen.getByRole("searchbox", { name: "Search GIFs" }), "cat");
+
+      await waitFor(() => {
+        expect(screen.getByRole("button", { name: "Sad Cat" })).toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Party Parrot" })).not.toBeInTheDocument();
+      });
+    });
+
+    it("says so when GIPHY has nothing for the search", async () => {
+      server.use(...commentsApi(), ...giphyApi(GIFS));
+
+      const rendered = renderThread();
+
+      await rendered.user.click(screen.getByRole("button", { name: "Add a GIF" }));
+      await rendered.user.type(
+        await screen.findByRole("searchbox", { name: "Search GIFs" }),
+        "zebra",
+      );
+
+      await expect(screen.findByText("No GIFs found.")).resolves.toBeInTheDocument();
+    });
+
+    it("closes the picker on Escape and returns focus to the GIF button", async () => {
+      server.use(...commentsApi(), ...giphyApi(GIFS));
+
+      const rendered = renderThread();
+
+      await rendered.user.click(screen.getByRole("button", { name: "Add a GIF" }));
+      await rendered.user.type(await screen.findByRole("searchbox", { name: "Search GIFs" }), "c");
+      await rendered.user.keyboard("{Escape}");
+
+      expect(screen.queryByRole("group", { name: "Choose a GIF" })).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Add a GIF" })).toHaveFocus();
+    });
+
+    it("can't send once the attached GIF is removed and there is no text", async () => {
+      server.use(...commentsApi(), ...giphyApi(GIFS));
+
+      const rendered = renderThread();
+
+      await rendered.user.click(screen.getByRole("button", { name: "Add a GIF" }));
+      await rendered.user.click(await screen.findByRole("button", { name: "Party Parrot" }));
+      expect(screen.getByRole("button", { name: /send/i })).not.toBeDisabled();
+
+      await rendered.user.click(screen.getByRole("button", { name: "Remove GIF" }));
+
+      expect(screen.getByRole("button", { name: /send/i })).toBeDisabled();
+    });
+
+    it("keeps a spoiler GIF from assistive tech until it is revealed", async () => {
+      server.use(...commentsApi([theirComment("", true, "sadCat2")]));
+
+      const rendered = renderThread();
+
+      const gif = await screen.findByAltText("GIF");
+      expect(isInaccessible(gif)).toBe(true);
+
+      await rendered.user.click(gif);
+
+      expect(screen.getByRole("img", { name: "GIF" })).toBeInTheDocument();
+    });
+
+    it("takes the GIF off a comment when the edit removes it", async () => {
+      server.use(...commentsApi([myComment("With a GIF", false, "sadCat2")]));
+
+      const rendered = renderThread();
+      logIn(rendered.pinia);
+
+      await expect(screen.findByRole("img", { name: "GIF" })).resolves.toBeInTheDocument();
+      await rendered.user.click(screen.getByRole("button", { name: "Edit comment" }));
+      await rendered.user.click(screen.getByRole("button", { name: "Remove GIF" }));
+      await rendered.user.click(screen.getByRole("button", { name: /save/i }));
+
+      await expect(screen.findByText("With a GIF")).resolves.toBeInTheDocument();
+      expect(screen.queryByRole("img", { name: "GIF" })).not.toBeInTheDocument();
+    });
   });
 });

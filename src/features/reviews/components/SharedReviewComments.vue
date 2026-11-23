@@ -11,21 +11,22 @@
           <span v-if="comment.spoiler" class="text-yellow-500"> &middot; Spoiler </span>
         </div>
       </div>
-      <div class="mt-2">
-        <!-- `blur-xs` is a purely visual filter, so the hidden branch also
-             carries aria-hidden: without it the spoiler is read out in full
-             to a screen reader that cannot see the blur. -->
+      <!-- `blur-xs` is a purely visual filter, so while hidden it also
+           carries aria-hidden: without it the spoiler is read out in full to
+           a screen reader that cannot see the blur. -->
+      <div
+        :aria-hidden="isSpoilerHidden(comment) || undefined"
+        class="mt-2 space-y-2 transition-all"
+        :class="{ 'cursor-pointer blur-xs select-none': isSpoilerHidden(comment) }"
+        @click="revealedSpoilers.add(comment.id)"
+      >
         <p
-          v-if="comment.spoiler && !revealedSpoilers.has(comment.id)"
-          aria-hidden="true"
-          class="cursor-pointer text-left text-sm whitespace-pre-wrap text-gray-200 blur-xs transition-all select-none"
-          @click="revealedSpoilers.add(comment.id)"
+          v-if="hasValue(comment.content)"
+          class="text-left text-sm whitespace-pre-wrap text-gray-200"
         >
           {{ comment.content }}
         </p>
-        <p v-else class="text-left text-sm whitespace-pre-wrap text-gray-200">
-          {{ comment.content }}
-        </p>
+        <CommentGif v-if="isDefined(comment.gifId)" :gif-id="comment.gifId" />
       </div>
     </div>
   </div>
@@ -34,7 +35,9 @@
 <script setup lang="ts">
 import { reactive } from "vue";
 
+import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import { WorkCommentDto } from "../../../../lib/types/lists";
+import CommentGif from "@/common/components/CommentGif.vue";
 import VAvatar from "@/common/components/VAvatar.vue";
 import { relativeTime } from "@/common/dates";
 
@@ -43,6 +46,9 @@ defineProps<{
 }>();
 
 const revealedSpoilers = reactive(new Set<string>());
+
+const isSpoilerHidden = (comment: WorkCommentDto) =>
+  comment.spoiler && !revealedSpoilers.has(comment.id);
 
 const formatRelativeTime = (dateString: string) => relativeTime(dateString) ?? dateString;
 </script>

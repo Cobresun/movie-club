@@ -108,7 +108,9 @@ export interface WorkCommentDto {
   userId: string;
   userName: string;
   userImage?: string;
+  /** Empty when the comment is only a GIF. */
   content: string;
+  gifId?: string;
   createdDate: string;
   spoiler: boolean;
 }
