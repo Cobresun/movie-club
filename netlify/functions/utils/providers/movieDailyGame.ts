@@ -1,10 +1,11 @@
-import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
+import { isDefined } from "../../../../lib/checks/checks.js";
 import { type PoolWork, rankPool } from "../../../../lib/dailyGame.js";
 import { type MovieGameData, movieDailyGameRules } from "../../../../lib/movie/dailyGame.js";
 import { MAJOR_CAST_SIZE, STAR_POPULARITY } from "../../../../lib/movie/majorCast.js";
 import { WorkType } from "../../../../lib/types/generated/db";
 import { topWorkIds } from "../dailyGame";
 import { db } from "../database";
+import { collectionFromRow } from "../movieDetailsUpdater";
 import { getTMDBMostRated } from "../tmdb";
 import { type DailyGame } from "./types";
 
@@ -98,10 +99,7 @@ async function loadMovies(): Promise<PoolWork<MovieGameData>[]> {
       genres: genresById.get(row.external_id) ?? [],
       release_date: row.release_date?.toISOString(),
       original_language: row.original_language ?? undefined,
-      collection:
-        isDefined(row.collection_id) && hasValue(row.collection_name)
-          ? { id: Number(row.collection_id), name: row.collection_name }
-          : undefined,
+      collection: collectionFromRow(row),
     },
   }));
 }

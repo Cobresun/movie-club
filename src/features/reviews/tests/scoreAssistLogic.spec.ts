@@ -27,6 +27,7 @@ function movieData(
     companies?: string[];
     releaseDate?: string;
     language?: string;
+    collection?: { id: number; name: string };
   } = {},
 ): DetailedMovieData {
   return {
@@ -47,6 +48,7 @@ function movieData(
     production_countries: [],
     release_date: opts.releaseDate,
     original_language: opts.language,
+    collection: opts.collection,
   };
 }
 
@@ -469,6 +471,24 @@ describe("workSimilarity", () => {
     const sharedDirector = workSimilarity(WorkType.MOVIE, t, movieData({ directors: ["Nolan"] }));
     expect(sharedActor).toBeGreaterThan(0);
     expect(sharedActor).toBeLessThan(sharedDirector);
+  });
+
+  it("ranks a sequel in the same collection above a movie that only shares the lead", () => {
+    const starWars = { id: 10, name: "Star Wars Collection" };
+    const t = movieData({ directors: ["Lucas"], actors: ["Hamill"], collection: starWars });
+    const sequel = workSimilarity(
+      WorkType.MOVIE,
+      t,
+      movieData({ directors: ["Kershner"], collection: starWars }),
+    );
+    const sharedLead = workSimilarity(WorkType.MOVIE, t, movieData({ actors: ["Hamill"] }));
+    const otherSeries = workSimilarity(
+      WorkType.MOVIE,
+      t,
+      movieData({ collection: { id: 11, name: "Indiana Jones Collection" } }),
+    );
+    expect(sequel).toBeGreaterThan(sharedLead);
+    expect(otherSeries).toBe(0);
   });
 
   it("decays the era signal continuously with release-year distance", () => {

@@ -15,7 +15,7 @@ type MigrationTables = {
   };
 };
 
-/** TMDB allows about 40 requests per 10 seconds. */
+/** 40 requests a second, under TMDB's limit of about 50. */
 const BATCH_SIZE = 40;
 const BATCH_DELAY_MS = 1000;
 
@@ -34,7 +34,10 @@ async function fetchCollection(externalId: string) {
  * refetches those too.
  */
 async function up(db: Kysely<unknown>) {
-  // IF NOT EXISTS keeps a rerun safe: CockroachDB has no transactional DDL.
+  // Kysely's addColumn can't express ADD COLUMN IF NOT EXISTS, which a rerun
+  // relies on (CockroachDB has no transactional DDL, so a mid-run failure
+  // leaves the columns behind). Keep these two steps as raw DDL; the data
+  // queries below run through a typed handle.
   await sql`ALTER TABLE movie_details ADD COLUMN IF NOT EXISTS collection_id INT8`.execute(db);
   await sql`ALTER TABLE movie_details ADD COLUMN IF NOT EXISTS collection_name STRING`.execute(db);
 
@@ -81,6 +84,11 @@ async function up(db: Kysely<unknown>) {
       });
     }
     console.log(`Progress: ${Math.min(i + BATCH_SIZE, movies.length)}/${movies.length}`);
+  }
+  if (movies.length > 0 && errors === movies.length) {
+    // Every request failing means a missing key or TMDB outage, not bad data.
+    // Throwing keeps the migration unapplied so the backfill runs again.
+    throw new Error(`Collection backfill failed for all ${movies.length} movies`);
   }
   console.log(`Collection backfill done with ${errors} errors`);
 }

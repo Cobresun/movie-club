@@ -9,17 +9,23 @@ import {
 import { type MovieDataSummary } from "../types/movie";
 import { releaseYear } from "./releaseYear.js";
 
-// A shared director or collection (franchise) dominates, cast/studio/genre are
-// secondary, era/language are gentle nudges.
+// A shared director dominates, cast/studio/genre are secondary, era/language
+// are gentle nudges.
 const MOVIE_FIELD_WEIGHTS = {
   director: 5,
-  collection: 4,
   cast: 2,
   company: 1.5,
   genre: 2,
   era: 1,
   language: 0.5,
 } as const;
+
+// A shared TMDB collection (a series of sequels and prequels) counts almost as
+// much as a shared director. It is a bonus on top of the normalised fields
+// rather than one of them: adding it to the denominator would shrink every
+// non-series pair's score, and Score Assist balances similarity against a fixed
+// positional weight (POSITION_WEIGHT in scoreAssistLogic.ts).
+const COLLECTION_BONUS = 4;
 
 export type MovieScorer = (target: MovieDataSummary, candidate: MovieDataSummary) => number;
 
@@ -47,7 +53,6 @@ export const makeMovieScorer = (corpus: readonly (MovieDataSummary | undefined)[
       hasValue(a.original_language) && a.original_language === b.original_language;
     const sameCollection = isDefined(a.collection) && a.collection.id === b.collection?.id;
     const weighted =
-      MOVIE_FIELD_WEIGHTS.collection * (sameCollection ? 1 : 0) +
       MOVIE_FIELD_WEIGHTS.director *
         weightedJaccard(names(a.directors), names(b.directors), directorIdf) +
       MOVIE_FIELD_WEIGHTS.cast * weightedJaccard(a.majorCastNames, b.majorCastNames, castIdf) +
@@ -57,6 +62,6 @@ export const makeMovieScorer = (corpus: readonly (MovieDataSummary | undefined)[
       MOVIE_FIELD_WEIGHTS.era *
         proximityDecay(releaseYear(a), releaseYear(b), ERA_HALF_LIFE_YEARS) +
       MOVIE_FIELD_WEIGHTS.language * (sameLanguage ? 1 : 0);
-    return weighted / totalWeight;
+    return Math.min(1, (weighted + (sameCollection ? COLLECTION_BONUS : 0)) / totalWeight);
   };
 };

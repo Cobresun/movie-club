@@ -97,7 +97,8 @@ describe("scheduled work refresh", () => {
     await run();
 
     const [metadata] = await metadataOf(club);
-    expect(metadata).not.toHaveProperty("collection.id");
+    expect(metadata).toMatchObject({ overview: "Overview for movie 42" });
+    expect(metadata).not.toHaveProperty("collection");
   });
 
   it("replaces the cast rather than appending to it", async () => {
