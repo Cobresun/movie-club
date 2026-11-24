@@ -28,12 +28,10 @@ export interface ClubListSummary {
   itemCount: number;
 }
 
-export interface ReviewsListIdResponse {
-  id: string;
-}
-
 export interface NextWorkResponse {
   workId?: string;
+  /** The next work on the topmost user list it is on; absent when it is on none. */
+  work?: UserListItemWithSource;
 }
 
 export interface WorkListItem {
@@ -120,7 +118,7 @@ export interface DiscussionQuestionsResponse {
 }
 
 export const listInsertDtoSchema = z.object({
-  type: z.nativeEnum(WorkType),
+  type: z.enum(WorkType),
   title: z.string(),
   externalId: z.string().optional(),
   imageUrl: z.string().optional(),

@@ -1,5 +1,6 @@
 import { handler as authHandler } from "../../auth";
 import { handler as memberHandler } from "../../member";
+import { handler as memberAvatarHandler } from "../../member-avatar";
 import { lastEmailTo, sentEmails } from "../setup/externalApis";
 import { requester } from "./http";
 
@@ -45,7 +46,12 @@ export interface TestSession {
   cookie: string;
 }
 
-const sessions = new Map<string, TestSession>();
+/**
+ * Signed-in fixture users, with the moment BetterAuth will stop honouring the
+ * cookie. Tests that fake `Date` sign in at their fake time, so a session can
+ * already be expired by the real clock a later test runs on.
+ */
+const sessions = new Map<string, { session: TestSession; expiresAt: Date }>();
 
 /** Collapse a Set-Cookie list into the `cookie` header a browser would send back. */
 function toCookieHeader(setCookies: string[]): string {
@@ -90,11 +96,12 @@ async function signUp(email: string, name: string, headers: Record<string, strin
 
 /**
  * Sign a fixture user in, creating and verifying the account on first use. The
- * session is cached, so repeated calls within a file are free.
+ * session is cached, so repeated calls within a file are free, until it has
+ * expired by the clock the calling test runs on.
  */
 export async function signIn(who: FixtureUser): Promise<TestSession> {
   const cached = sessions.get(who);
-  if (cached) return cached;
+  if (cached && cached.expiresAt.getTime() > Date.now()) return cached.session;
 
   const { email, name } = FIXTURE_USERS[who];
 
@@ -118,16 +125,18 @@ export async function signIn(who: FixtureUser): Promise<TestSession> {
   }
 
   const cookie = toCookieHeader(response.multiValueHeaders["Set-Cookie"] ?? []);
-  const session = await auth.get<{ user: { id: string } } | null>("/api/auth/get-session", {
+  const resolved = await auth.get<{
+    session: { expiresAt: string };
+    user: { id: string };
+  } | null>("/api/auth/get-session", {
     headers: { ...AUTH_HEADERS, cookie },
   });
-  const userId = session.body?.user.id;
-  if (userId === undefined) {
+  if (!resolved.body) {
     throw new Error(`Signed in ${email} but the session cookie did not resolve to a user`);
   }
 
-  const testSession: TestSession = { userId, email, name, cookie };
-  sessions.set(who, testSession);
+  const testSession: TestSession = { userId: resolved.body.user.id, email, name, cookie };
+  sessions.set(who, { session: testSession, expiresAt: new Date(resolved.body.session.expiresAt) });
   return testSession;
 }
 
@@ -154,9 +163,10 @@ export async function signUpNewUser(
  */
 export async function restoreFixtureUsers() {
   const member = requester(memberHandler);
-  for (const session of sessions.values()) {
+  const avatar = requester(memberAvatarHandler);
+  for (const { session } of sessions.values()) {
     await member.put("/api/member/name", { body: { name: session.name }, as: session });
-    await member.delete("/api/member/avatar", { as: session });
+    await avatar.delete("/api/member/avatar", { as: session });
   }
 }
 

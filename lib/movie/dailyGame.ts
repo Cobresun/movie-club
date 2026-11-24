@@ -1,19 +1,30 @@
 import { hasElements, hasValue, isDefined } from "../checks/checks.js";
 import { type DailyGameRules, rarityPoints, type ScoredClue, tagCounts } from "../dailyGame.js";
-import { type MovieDataSummary } from "../types/movie";
 import { releaseYear } from "./releaseYear.js";
 
+/** What the game ranks and clues movies by: the only metadata it reads. */
+export interface MovieGameData {
+  directors: readonly { name: string }[];
+  majorCastNames: readonly string[];
+  production_companies: readonly string[];
+  genres: readonly string[];
+  release_date?: string;
+  original_language?: string;
+  collection?: { id: number; name: string };
+}
+
 // A shared director is the strongest link two movies can have, a TMDB
-// collection (franchise) close behind, a shared star half a director. Genres, language and decade are worth what their rarity says. A
-// shared genre is worth at least 2, so it always outweighs the 1 a guess loses
-// for each genre the answer doesn't have.
+// collection (a series of sequels and prequels) close behind, a shared star
+// half a director. Genres, language and decade are worth what their rarity says.
+// A genre the answer doesn't have shows as a miss, so a shared one always
+// shows, however common.
 const DIRECTOR_POINTS = 10;
 const COLLECTION_POINTS = 8;
 const STAR_POINTS = 5;
 const STUDIO_POINTS = 2;
-const GENRE_POINTS = { min: 2, max: 4 };
-const LANGUAGE_POINTS = { min: 1, max: 4 };
-const DECADE_POINTS = { min: 1, max: 3 };
+const GENRE_POINTS = { min: 1, max: 4, dropMajority: false };
+const LANGUAGE_POINTS = { min: 1, max: 4, dropMajority: true };
+const DECADE_POINTS = { min: 1, max: 3, dropMajority: true };
 const EXTRA_GENRE_POINTS = -1;
 
 /**
@@ -35,14 +46,14 @@ function languageName(code: string): string | undefined {
   }
 }
 
-const languages = (movie: MovieDataSummary) =>
+const languages = (movie: MovieGameData) =>
   hasValue(movie.original_language) ? [movie.original_language] : [];
 
 /**
  * `1990` for a 1995 release. The decade is the era clue because the player
  * can check it at a glance: 1999 and 2001 are close, but share no clue.
  */
-const decades = (movie: MovieDataSummary) => {
+const decades = (movie: MovieGameData) => {
   const year = releaseYear(movie);
   return isDefined(year) ? [String(Math.floor(year / 10) * 10)] : [];
 };
@@ -70,9 +81,9 @@ function groupedClue(
   return hasElements(names) ? [{ text: text(names), points: points(names.length) }] : [];
 }
 
-const directorNames = (movie: MovieDataSummary) => movie.directors.map((d) => d.name);
+const directorNames = (movie: MovieGameData) => movie.directors.map((d) => d.name);
 
-function collectionClue(guess: MovieDataSummary, answer: MovieDataSummary): ScoredClue[] {
+function collectionClue(guess: MovieGameData, answer: MovieGameData): ScoredClue[] {
   const { collection } = guess;
   return isDefined(collection) && collection.id === answer.collection?.id
     ? [{ text: `Same series: ${collection.name}`, points: COLLECTION_POINTS }]
@@ -83,7 +94,7 @@ function collectionClue(guess: MovieDataSummary, answer: MovieDataSummary): Scor
  * Clues name major cast only: a full TMDB credit list runs to background
  * extras and stunt performers, who make no sense as "Also stars".
  */
-export function makeMovieClues(pool: readonly MovieDataSummary[]) {
+export function makeMovieClues(pool: readonly MovieGameData[]) {
   const studioCount = tagCounts(pool, (movie) => movie.production_companies);
   const studioPoints = (studio: string) => {
     const count = studioCount(studio);
@@ -93,7 +104,7 @@ export function makeMovieClues(pool: readonly MovieDataSummary[]) {
   const languagePoints = rarityPoints(pool, languages, LANGUAGE_POINTS);
   const decadePoints = rarityPoints(pool, decades, DECADE_POINTS);
 
-  return (guess: MovieDataSummary, answer: MovieDataSummary): ScoredClue[] => [
+  return (guess: MovieGameData, answer: MovieGameData): ScoredClue[] => [
     ...collectionClue(guess, answer),
     // A directing team is one director's worth.
     ...groupedClue(
@@ -126,7 +137,7 @@ export function makeMovieClues(pool: readonly MovieDataSummary[]) {
       (decade) => `Also from the ${decade}s`,
     ),
     // Each genre the guess has and the answer doesn't, so a guess with genres
-    // to spare ranks below an exact match.
+    // to spare ranks below an exact match that shares as much.
     ...groupedClue(
       [...new Set(guess.genres)].filter((genre) => !answer.genres.includes(genre)),
       (count) => count * EXTRA_GENRE_POINTS,
@@ -135,7 +146,7 @@ export function makeMovieClues(pool: readonly MovieDataSummary[]) {
   ];
 }
 
-export const movieDailyGameRules: DailyGameRules<MovieDataSummary> = {
+export const movieDailyGameRules: DailyGameRules<MovieGameData> = {
   makeClues: makeMovieClues,
   year: releaseYear,
   canBeAnswer: (movie) => hasElements(movie.directors),

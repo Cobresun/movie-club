@@ -11,19 +11,18 @@ import WatchListSkeleton from "../components/WatchListSkeleton.vue";
 import { useCollapsedLists } from "../composables/useCollapsedLists";
 import SearchFilterBar from "@/common/components/SearchFilterBar.vue";
 import { useShare } from "@/common/composables/useShare";
-import { useClub, useClubSlug, useMembers } from "@/service/useClub";
-import { useAllUserListItems, useClubLists, useReviewsListId } from "@/service/useList";
+import { useClub, useClubSlug, useMembers, useReviewsListId } from "@/service/useClub";
+import { useAllUserListItems, useClubLists } from "@/service/useList";
 
 const clubSlug = useClubSlug();
 const { data: club } = useClub(clubSlug);
 const clubType = computed(() => club.value?.type ?? ClubType.MOVIE);
 const { data: lists, isLoading } = useClubLists(clubSlug);
-const { data: reviewsListIdData } = useReviewsListId(clubSlug);
+const reviewsListId = useReviewsListId(clubSlug);
 const { data: membersData } = useMembers(clubSlug);
 
 const userLists = computed<ClubListSummary[]>(() => lists.value ?? []);
 const members = computed(() => membersData.value ?? []);
-const reviewsListId = computed<string | null>(() => reviewsListIdData.value ?? null);
 
 const otherLists = (listId: string) =>
   userLists.value.filter((l) => l.id !== listId).map((l) => ({ id: l.id, title: l.title }));

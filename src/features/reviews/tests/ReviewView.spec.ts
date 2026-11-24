@@ -1,5 +1,5 @@
 import { screen, waitFor } from "@testing-library/vue";
-import { http, HttpResponse } from "msw";
+import { delay, http, HttpResponse } from "msw";
 import { z } from "zod";
 
 import { type DetailedReviewListItem } from "../../../../lib/types/lists";
@@ -321,5 +321,41 @@ describe("ReviewView", () => {
     await expect(screen.findByText("Which movie did you like more?")).resolves.toBeInTheDocument();
     // The entry panel closed when the assist flow took over the modal.
     expect(screen.queryByRole("spinbutton", { name: "Score" })).not.toBeInTheDocument();
+  });
+
+  it("has score assist ready the moment score entry opens on a page that has settled", async () => {
+    server.use(
+      http.get("/api/club/:clubSlug/list/reviews", () =>
+        HttpResponse.json([
+          {
+            id: "t1",
+            title: "Unscored Movie",
+            createdDate: "2024-05-28T04:46:37.751Z",
+            type: "movie",
+            scores: {},
+          },
+        ]),
+      ),
+      http.get("/api/member/scores", async () => {
+        await delay(200);
+        return HttpResponse.json([2, 3, 4, 5, 6, 7].map((n) => memberScore(`m${n}`, n)));
+      }),
+    );
+
+    const { user, pinia } = render(ReviewView, {
+      props: { clubSlug: "test-club" },
+    });
+    logIn(pinia);
+
+    const work = await screen.findByRole("button", { name: "Unscored Movie" });
+    // The page has rendered; give the browser its idle moment, and the scores
+    // time to arrive.
+    await delay(800);
+
+    await user.click(work);
+    await user.click(await screen.findByRole("button", { name: /rate this/iu }));
+
+    await screen.findByRole("spinbutton", { name: "Score" });
+    expect(screen.getByRole("button", { name: /Compare to decide/u })).toBeInTheDocument();
   });
 });

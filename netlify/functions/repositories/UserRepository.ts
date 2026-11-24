@@ -49,17 +49,6 @@ class UserRepository {
     return db.updateTable("user").set({ name }).where("id", "=", userId).execute();
   }
 
-  async addClubMemberByUserId(clubId: string, userId: string, role = "member") {
-    await db
-      .insertInto("club_member")
-      .values({
-        club_id: clubId,
-        user_id: userId,
-        role,
-      })
-      .execute();
-  }
-
   removeClubMember(clubId: string, userId: string) {
     return db
       .deleteFrom("club_member")

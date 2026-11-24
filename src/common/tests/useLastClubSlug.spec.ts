@@ -6,6 +6,7 @@ import {
   setLastClubSection,
   setLastClubSlug,
 } from "../composables/useLastClubSlug";
+import { DEFAULT_CLUB_SETTINGS } from "@/../lib/types/club";
 import { ClubType } from "@/../lib/types/generated/db";
 
 const club = (slug: string) => ({
@@ -14,6 +15,7 @@ const club = (slug: string) => ({
   slug,
   slugUpdatedAt: undefined,
   type: ClubType.MOVIE,
+  settings: DEFAULT_CLUB_SETTINGS,
 });
 
 beforeEach(() => {

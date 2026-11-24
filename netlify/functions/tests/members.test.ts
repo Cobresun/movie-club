@@ -4,15 +4,17 @@
  * invite-token join flow.
  */
 
-import { type Member } from "../../../lib/types/club";
+import { type ClubInviteDetails, type ClubPreview, type Member } from "../../../lib/types/club";
 import { handler as clubHandler } from "../club/index";
 import { handler as memberHandler } from "../member";
+import { handler as memberAvatarHandler } from "../member-avatar";
 import { signIn, type TestSession } from "./helpers/auth";
 import { createClub, createInvite, expireInvite, joinClub } from "./helpers/factories";
 import { makeEvent, requester } from "./helpers/http";
 
 const api = requester(clubHandler);
 const memberApi = requester(memberHandler);
+const avatarApi = requester(memberAvatarHandler);
 
 const membersOf = (slug: string) => api.get<Member[]>(`/api/club/${slug}/members`);
 
@@ -29,7 +31,7 @@ function uploadAvatar(session: TestSession) {
     "",
   ].join("\r\n");
 
-  return memberApi.send(
+  return avatarApi.send(
     makeEvent({
       path: "/api/member/avatar",
       httpMethod: "POST",
@@ -142,27 +144,17 @@ describe("DELETE /api/club/:clubSlug/members/:memberId", () => {
 });
 
 describe("GET /api/club/:clubSlug/members/join", () => {
-  it("adds the signed-in user to the club", async () => {
+  it("does not let a signed-in user join without an invite", async () => {
     const alice = await signIn("alice");
     const bob = await signIn("bob");
     const club = await createClub(alice, { members: [alice] });
 
     const res = await api.get(`/api/club/${club.slug}/members/join`, { as: bob });
 
-    expect(res.statusCode).toBe(200);
-    expect((await membersOf(club.slug)).body.map((member) => member.id).sort()).toStrictEqual(
-      [alice.userId, bob.userId].sort(),
-    );
-  });
-
-  it("returns 401 without a session", async () => {
-    const alice = await signIn("alice");
-    const club = await createClub(alice, { members: [] });
-
-    const res = await api.get(`/api/club/${club.slug}/members/join`);
-
-    expect(res.statusCode).toBe(401);
-    expect((await membersOf(club.slug)).body).toStrictEqual([]);
+    expect(res.statusCode).toBe(405);
+    expect((await membersOf(club.slug)).body.map((member) => member.id)).toStrictEqual([
+      alice.userId,
+    ]);
   });
 });
 
@@ -253,15 +245,26 @@ describe("GET /api/club/joinInfo/:token", () => {
     const club = await createClub(alice, { name: "Invite Club" });
     const token = await createInvite(club, alice);
 
-    const res = await api.get<{ clubId: string; clubName: string; slug: string }>(
-      `/api/club/joinInfo/${token}`,
-    );
+    const res = await api.get<ClubInviteDetails>(`/api/club/joinInfo/${token}`);
 
     expect(res.statusCode).toBe(200);
     expect(res.body.clubId).toBe(club.id);
     expect(res.body.clubName).toBe("Invite Club");
     // The join page needs the slug to redirect the new member into the club.
     expect(res.body.slug).toBe(club.slug);
+  });
+
+  it("describes the club as its preview does, so a new member's clubs list can carry it", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub(alice, { features: { awards: true } });
+    const token = await createInvite(club, alice);
+
+    const { expiresAt, ...invited } = (
+      await api.get<ClubInviteDetails>(`/api/club/joinInfo/${token}`)
+    ).body;
+
+    expect(invited).toStrictEqual((await api.get<ClubPreview>(`/api/club/${club.slug}`)).body);
+    expect(new Date(expiresAt).getTime()).toBeGreaterThan(Date.now());
   });
 
   it("returns 400 for an expired token", async () => {
@@ -295,7 +298,7 @@ describe("leaving and rejoining", () => {
       [],
     );
 
-    await joinClub(club, bob);
+    await joinClub(club, bob, alice);
     const clubs = await memberApi.get<{ clubName: string }[]>("/api/member/clubs", { as: bob });
     expect(clubs.body.map((entry) => entry.clubName)).toStrictEqual(["Revolving Door"]);
   });

@@ -58,7 +58,7 @@ import { useRoute } from "vue-router";
 import { CLUB_SECTIONS, isSectionVisible, sectionNameForRoute } from "../clubSections";
 import { useHideOnScroll } from "../composables/useHideOnScroll";
 import { useIsDesktop } from "../composables/useIsDesktop";
-import { useClub, useClubSettings } from "@/service/useClub";
+import { useClub } from "@/service/useClub";
 
 const { clubSlug } = defineProps<{ clubSlug: string }>();
 
@@ -67,11 +67,10 @@ const isDesktop = useIsDesktop();
 const { isHidden, reveal } = useHideOnScroll();
 
 const { data: club } = useClub(clubSlug);
-const { data: settings } = useClubSettings(clubSlug);
 
 const sections = computed(() =>
   CLUB_SECTIONS.filter((section) =>
-    isSectionVisible(section, club.value?.type, settings.value?.features?.awards),
+    isSectionVisible(section, club.value?.type, club.value?.settings.features.awards),
   ),
 );
 

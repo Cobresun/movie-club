@@ -10,6 +10,13 @@
           game.fromArchive ? `the mystery ${noun} from ${puzzleDate}` : `today's mystery ${noun}`
         }}. Every guess is ranked by how close it is — #1 is the answer.
       </p>
+      <p
+        v-if="!game.fromArchive && !game.finished.value && game.stats.value.streak > 0"
+        class="text-highlight flex items-center gap-1.5 text-sm font-semibold"
+      >
+        <mdicon name="fire" :size="18" aria-hidden="true" />
+        {{ streakLine }}
+      </p>
       <Menu as="div" class="relative">
         <MenuButton
           class="bg-lowBackground duration-slow ease-spring flex min-h-[44px] items-center gap-2 rounded-full px-4 text-sm font-semibold ring-1 ring-white/[0.12] transition ring-inset hover:bg-white/10 active:scale-92 active:duration-75"
@@ -76,7 +83,7 @@
           Today's puzzle
         </router-link>
         <router-link
-          :to="archivePath(dailyGame)"
+          :to="archivePath(dailyGame, game.fromArchive ? puzzle.date : undefined)"
           class="text-highlight inline-flex items-center gap-1 hover:underline"
         >
           <mdicon name="history" :size="18" />
@@ -88,22 +95,37 @@
     <section
       v-if="game.finished.value"
       aria-labelledby="daily-game-result"
-      class="from-secondary to-lowBackground relative flex flex-col items-center gap-3 rounded-xl bg-linear-to-br p-6 text-center shadow-lg"
+      class="from-secondary to-lowBackground relative flex flex-col items-center gap-4 rounded-xl bg-linear-to-br p-5 text-center shadow-lg sm:p-6"
       :class="{ 'result-pop': celebrating, 'animate-fade-up': finishedNow && !celebrating }"
     >
       <ConfettiBurst v-if="celebrating" />
-      <h2 id="daily-game-result" class="text-xl font-bold">
+      <h2 id="daily-game-result" class="text-lg font-semibold text-white/80">
         {{ game.solved.value ? "You got it!" : failedHeading }}
       </h2>
-      <p class="text-white/80">
-        {{ game.fromArchive ? "The" : "Today's" }} {{ noun }} was
-        <strong class="text-white">{{ game.answer?.title }}</strong
-        ><template v-if="isDefined(game.answer?.year)"> ({{ game.answer.year }})</template>.
-      </p>
-      <p v-if="game.solved.value" class="text-white/80">
-        {{ guessSummary }}
-      </p>
-      <dl class="mt-1 flex gap-8">
+      <div
+        class="flex w-full flex-col items-center gap-1 rounded-lg px-4 py-5 ring-2"
+        :class="
+          game.solved.value
+            ? 'bg-green-600/25 ring-green-500/60'
+            : 'bg-background/60 ring-highlight/60'
+        "
+      >
+        <p class="flex flex-col items-center gap-1">
+          <span class="text-xs font-semibold tracking-wide text-white/60 uppercase"
+            >{{ game.fromArchive ? "The" : "Today's" }} {{ noun }} was</span
+          >
+          <strong class="text-2xl leading-tight font-bold text-balance text-white sm:text-3xl">{{
+            game.answer?.title
+          }}</strong>
+          <span v-if="isDefined(game.answer?.year)" class="text-white/60">{{
+            game.answer.year
+          }}</span>
+        </p>
+        <p v-if="game.solved.value" class="mt-1 text-sm text-white/80">
+          {{ guessSummary }}
+        </p>
+      </div>
+      <dl class="flex w-full justify-center gap-6 sm:gap-8">
         <div
           v-for="(stat, index) in stats"
           :key="stat.label"
@@ -122,7 +144,7 @@
         </div>
       </dl>
       <v-btn
-        class="duration-slow! ease-spring! mt-2 px-3 active:scale-92! active:duration-75!"
+        class="duration-slow! ease-spring! px-3 active:scale-92! active:duration-75!"
         :aria-label="shareLabel"
         @click="shareResult"
       >
@@ -135,8 +157,15 @@
         />
         {{ copied ? "Copied" : "Share result" }}
       </v-btn>
-      <p v-if="!game.fromArchive" class="text-sm text-white/60">
-        A new {{ noun }} arrives at midnight.
+      <CatchUpLink
+        :club-type="puzzle.clubType"
+        :daily-game="dailyGame"
+        :today="today"
+        :current="puzzle.date"
+      />
+      <p v-if="!game.fromArchive" role="timer" class="text-sm text-white/60">
+        Next {{ noun }} in
+        <span class="font-semibold text-white tabular-nums">{{ countdown }}</span>
       </p>
     </section>
 
@@ -263,11 +292,13 @@ import DeleteConfirmationModal from "@/common/components/DeleteConfirmationModal
 import SharedPageCtaBanner from "@/common/components/SharedPageCtaBanner.vue";
 import { useShare } from "@/common/composables/useShare";
 import { archivePath, puzzlePath } from "@/features/daily-game/archive";
+import CatchUpLink from "@/features/daily-game/components/CatchUpLink.vue";
 import ConfettiBurst from "@/features/daily-game/components/ConfettiBurst.vue";
 import GuessInput from "@/features/daily-game/components/GuessInput.vue";
 import GuessRow from "@/features/daily-game/components/GuessRow.vue";
 import { formatPuzzleDate, gameTag, sharedGameUrl } from "@/features/daily-game/game";
 import { playerId } from "@/features/daily-game/playerId";
+import { untilMidnight, useClock } from "@/features/daily-game/useClock";
 import { type RankedGuess, useDailyGame } from "@/features/daily-game/useDailyGame";
 import { useRecordDailyGameResult } from "@/service/useDailyGame";
 
@@ -284,6 +315,8 @@ const game = useDailyGame(puzzle, dailyGame.name, today);
 const puzzleDate = formatPuzzleDate(puzzle.date);
 const failedHeading = game.fromArchive ? "Better luck next time" : "Better luck tomorrow";
 const { shareText } = useShare();
+const { now } = useClock();
+const countdown = computed(() => untilMidnight(now.value));
 
 const { mutate: recordResult } = useRecordDailyGameResult(puzzle.clubType, puzzle.date);
 
@@ -389,7 +422,13 @@ const stats = computed(() => [
   { label: "Played", value: game.stats.value.played },
   { label: "Solved", value: game.stats.value.won },
   { label: "Streak", value: game.stats.value.streak },
+  { label: "Best", value: game.stats.value.best },
 ]);
+
+const streakLine = computed(
+  () =>
+    `${plural(game.stats.value.streak, "day", "days")} in a row. Solve today's to keep it going.`,
+);
 
 const shareLabel = computed(() => (copied.value ? "Result copied" : "Share result"));
 

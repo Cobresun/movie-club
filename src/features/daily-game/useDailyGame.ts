@@ -1,7 +1,7 @@
 import { computed, ref, watch } from "vue";
 import { z } from "zod";
 
-import { hintRank, previousDate, shareText, temperature, type Temperature } from "./game";
+import { hintRank, nextDate, previousDate, shareText, temperature, type Temperature } from "./game";
 import { hasElements, isDefined, isTrue } from "@/../lib/checks/checks";
 import { type DailyGamePuzzle, type DailyGameWork } from "@/../lib/types/dailyGame";
 import { type ClubType } from "@/../lib/types/generated/db";
@@ -161,25 +161,32 @@ export function useDailyGame(puzzle: DailyGamePuzzle, name: string, today: strin
     // doesn't break a streak that ran through yesterday.
     const todays = stored.value.days[today];
     const finishedToday = isTrue(todays?.solved) || isTrue(todays?.gaveUp);
-    let date = finishedToday ? today : previousDate(today);
-    let streak = 0;
-    const solvedOnTheDay = (day: DayRecord | undefined) =>
-      isTrue(day?.solved) && !isTrue(day?.fromArchive);
-    while (solvedOnTheDay(stored.value.days[date])) {
-      streak++;
-      date = previousDate(date);
-    }
-    return { played, won, streak };
+    const solvedOnTheDay = (date: string) => {
+      const day = stored.value.days[date];
+      return isTrue(day?.solved) && !isTrue(day?.fromArchive);
+    };
+    const runEndingOn = (last: string) => {
+      let length = 0;
+      for (let date = last; solvedOnTheDay(date); date = previousDate(date)) length++;
+      return length;
+    };
+    const streak = runEndingOn(finishedToday ? today : previousDate(today));
+    // Every run ends on a day solved on the day whose next day wasn't, so the
+    // longest is the longest run counted back from one of those.
+    const best = Object.keys(stored.value.days)
+      .filter((date) => solvedOnTheDay(date) && !solvedOnTheDay(nextDate(date)))
+      .reduce((longest, date) => Math.max(longest, runEndingOn(date)), 0);
+    return { played, won, streak, best };
   });
 
   const share = (url: string) =>
     shareText({
       name,
       puzzle: puzzle.puzzle,
-      guessRanks: ownGuesses.value.map((g) => g.work.rank),
+      trail: guesses.value.map((g) => ({ rank: g.work.rank, hint: g.hint })),
       poolSize,
-      hints: hintCount.value,
       solved: solved.value,
+      streak: fromArchive ? 0 : stats.value.streak,
       url,
     });
 

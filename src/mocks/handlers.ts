@@ -1,11 +1,6 @@
 import { http, HttpResponse } from "msw";
 
-import {
-  type ClubPreview,
-  type ClubSettings,
-  type InviteTokenResponse,
-  type Member,
-} from "../../lib/types/club";
+import { type ClubPreview, type InviteTokenResponse, type Member } from "../../lib/types/club";
 import {
   type ClubListSummary,
   type DetailedReviewListItem,
@@ -13,7 +8,6 @@ import {
   type DetailedWorkListItem,
   type MemberScoredWork,
   type ReviewScores,
-  type ReviewsListIdResponse,
   type UserListItemWithSource,
   type WorkCommentDto,
 } from "../../lib/types/lists";
@@ -49,15 +43,7 @@ export const handlers = [
   http.post("/api/club/:id/invite", () =>
     HttpResponse.json<InviteTokenResponse>({ token: "test-invite-token" }),
   ),
-  http.get("/api/club/:id/settings", () =>
-    HttpResponse.json<ClubSettings>({
-      features: { awards: false },
-    }),
-  ),
   http.get("/api/club/:id/nextWork", () => HttpResponse.json({})),
-  http.get("/api/club/:id/list/reviews-id", () =>
-    HttpResponse.json<ReviewsListIdResponse>({ id: "reviews" }),
-  ),
   http.get("/api/club/:id/reviews/:workId/comments", () => HttpResponse.json<WorkCommentDto[]>([])),
   http.get("/api/club/:id/list/reviews", () =>
     HttpResponse.json<DetailedReviewListItem[]>(reviews),

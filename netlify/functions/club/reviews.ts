@@ -14,7 +14,6 @@ import UserRepository from "../repositories/UserRepository";
 import WorkCommentRepository from "../repositories/WorkCommentRepository";
 import WorkRepository from "../repositories/WorkRepository";
 import SharedReviewService from "../services/SharedReviewService";
-import { secured } from "../utils/auth";
 import { generateJson } from "../utils/gemini";
 import { parseBody } from "../utils/parseBody";
 import { getProvider } from "../utils/providers";
@@ -22,6 +21,7 @@ import { requireParam } from "../utils/requireParam";
 import { badRequest, notFound, ok, unauthorized } from "../utils/responses";
 import { buildReviewScores } from "../utils/reviewScores";
 import { isRouterResponse, Router } from "../utils/router";
+import { secured } from "../utils/session";
 import { type ClubRequest } from "../utils/validation";
 
 const router = new Router<ClubRequest>("/api/club/:clubSlug/reviews");

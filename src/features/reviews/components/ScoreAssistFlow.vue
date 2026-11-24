@@ -107,7 +107,7 @@ const targetTitle = computed(() => workTitle(target));
 // at another level — a show — is compared without naming either.
 const question = computed(() => {
   const noun = clubTypeConfig(clubType).noun;
-  const targetNoun = workNoun(target.externalData) ?? noun;
+  const targetNoun = workNoun(target);
   return targetNoun === noun ? `Which ${noun} did you like more?` : "Which did you like more?";
 });
 

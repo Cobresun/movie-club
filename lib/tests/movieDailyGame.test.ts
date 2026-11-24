@@ -117,7 +117,7 @@ describe("movie daily-game clues", () => {
     ]);
   });
 
-  it("drops what most of the pool shares", () => {
+  it("drops a language most of the pool shares, but still shows a genre most of it shares", () => {
     const ranking = rank({
       Answer: film({ genres: ["Drama", "Western"], original_language: "ko" }),
       Guess: film({ genres: ["Drama", "Western"], original_language: "ko" }),
@@ -128,8 +128,29 @@ describe("movie daily-game clues", () => {
     expect(cluesOf(ranking, "Guess")).toStrictEqual([
       { text: "Western", shared: true },
       { text: "Also in Korean", shared: true },
+      { text: "Drama", shared: true },
     ]);
-    expect(cluesOf(ranking, "English")).toStrictEqual([]);
+    expect(cluesOf(ranking, "English")).toStrictEqual([{ text: "Drama", shared: true }]);
+  });
+
+  it("ranks a guess that shares a clue above one that shares nothing, however many genres it misses", () => {
+    const ranking = rank({
+      Answer: film({ genres: ["Romance"], release_date: "1995-01-01" }),
+      "Nineties, four genres off": film({
+        genres: ["Action", "Adventure", "Science Fiction", "Thriller"],
+        release_date: "1995-01-01",
+      }),
+      "Nothing shared, one genre off": film({ genres: ["Horror"], release_date: "1970-01-01" }),
+      "Nothing at all": film({ release_date: "1970-01-01" }),
+      ...filler(4, { genres: ["Horror"], release_date: "1970-01-01" }),
+    });
+
+    expect(ranking.map((work) => work.title).slice(0, 4)).toStrictEqual([
+      "Answer",
+      "Nineties, four genres off",
+      "Nothing at all",
+      "Filler 1",
+    ]);
   });
 
   it("counts a studio only when it has films enough for a style, and isn't a major", () => {

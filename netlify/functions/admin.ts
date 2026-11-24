@@ -7,9 +7,9 @@ import {
   type SnapshotHistoryPoint,
 } from "../../lib/types/metrics.js";
 import MetricsRepository from "./repositories/MetricsRepository.js";
-import { siteAdmin } from "./utils/auth";
 import { ok } from "./utils/responses";
 import { Router } from "./utils/router";
+import { siteAdmin } from "./utils/session";
 
 const router = new Router("/api/admin");
 

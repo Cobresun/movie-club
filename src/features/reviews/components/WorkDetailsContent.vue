@@ -299,7 +299,6 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 
 import { hasElements, hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import { Member } from "../../../../lib/types/club";
-import { ClubType } from "../../../../lib/types/generated/db";
 import { DetailedReviewListItem } from "../../../../lib/types/lists";
 import { useShareReview } from "../composables/useShareReview";
 import { computeReviewFact } from "../reviewFacts";
@@ -310,7 +309,6 @@ import ScoreEntryDock from "./ScoreEntryDock.vue";
 import ScoreEntryModal from "./ScoreEntryModal.vue";
 import ScoreLabel from "./ScoreLabel.vue";
 import {
-  clubTypeConfig,
   workMetaLine,
   workNoun,
   workOverview,
@@ -334,10 +332,9 @@ import WorkDescription from "@/common/components/WorkDescription.vue";
 import WorkPosterHero from "@/common/components/WorkPosterHero.vue";
 import { dateInputValueToIso, parseIsoDate, toDateInputValue } from "@/common/dates";
 import { asBook, asMovie, formatDate, workPosterUrl } from "@/common/workDisplay";
-import { useClub, useClubSlug } from "@/service/useClub";
+import { useClubSlug, useReviewsListId } from "@/service/useClub";
 import {
   useReviewsList,
-  useReviewsListId,
   useUpdateAddedDate,
   useUpdateReviewAddedBy,
   useWorkDetails,
@@ -378,8 +375,7 @@ const confirmDelete = () => {
 
 // Date editing state
 const clubId = useClubSlug();
-const { data: club } = useClub(clubId);
-const { data: reviewsListId } = useReviewsListId(clubId);
+const reviewsListId = useReviewsListId(clubId);
 const { mutate: updateAddedDate } = useUpdateAddedDate(clubId);
 const isEditingDate = ref(false);
 const editedDate = ref("");
@@ -484,12 +480,7 @@ const { data: workDetails } = useWorkDetails(
   computed(() => props.movie.id),
 );
 const castActors = computed(() => workActors(workDetails.value ?? undefined));
-// Drives book/movie wording in child components (e.g. the discussion-questions
-// "couldn't recognize this ___" message).
-const mediaNoun = computed(
-  () =>
-    workNoun(props.movie.externalData) ?? clubTypeConfig(club.value?.type ?? ClubType.MOVIE).noun,
-);
+const mediaNoun = computed(() => workNoun(props.movie));
 const posterUrl = computed(() => workPosterUrl(props.movie.externalData, props.movie.imageUrl));
 
 // Release year (movies) or first-published year (books), via the shared helper.

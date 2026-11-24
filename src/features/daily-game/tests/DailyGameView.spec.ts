@@ -3,7 +3,7 @@ import { delay, http, HttpResponse } from "msw";
 import { useRouter } from "vue-router";
 
 import DailyGameView from "../views/DailyGameView.vue";
-import { type DailyGamePuzzle } from "@/../lib/types/dailyGame";
+import { type DailyGameArchive, type DailyGamePuzzle } from "@/../lib/types/dailyGame";
 import { ClubType } from "@/../lib/types/generated/db";
 import { dailyGamePuzzle } from "@/mocks/data/dailyGame";
 import { server } from "@/mocks/server";
@@ -210,7 +210,7 @@ describe("DailyGameView", () => {
     await guess(user, "Jaws");
     await guess(user, "Jaws");
 
-    expect(screen.getByRole("status")).toHaveTextContent("You already guessed Jaws — it's #11.");
+    expect(screen.getByRole("status")).toHaveTextContent("You already guessed Jaws — it's #13.");
     expect(screen.getByText("1 guess")).toBeInTheDocument();
   });
 
@@ -235,8 +235,7 @@ describe("DailyGameView", () => {
     await user.click(screen.getByRole("button", { name: "Share result" }));
 
     const shared = await navigator.clipboard.readText();
-    expect(shared).toContain("Reelated #7: I got it in 2 guesses.");
-    expect(shared).toContain("🟩 1  🟨 0  🟥 1");
+    expect(shared).toContain("Reelated #7: I got it in 2 guesses.\n🟥🟩\n");
     expect(shared).not.toContain("Heat");
     expect(screen.getByRole("button", { name: "Result copied" })).toBeInTheDocument();
   });
@@ -289,7 +288,7 @@ describe("DailyGameView", () => {
   it("reveals a closer movie as a hint", async () => {
     const { user } = await renderGame();
 
-    await guess(user, "Alien");
+    await guess(user, "Toy Story");
     await chooseFromMenu(user, "Hint");
 
     expect(within(row("The Godfather")).getByText("Hint")).toBeInTheDocument();
@@ -323,8 +322,7 @@ describe("DailyGameView", () => {
 
     await user.click(screen.getByRole("button", { name: "Share result" }));
     const shared = await navigator.clipboard.readText();
-    expect(shared).toContain("Reelated #7: I got it in 2 guesses and 1 hint.");
-    expect(shared).toContain("🟩 1  🟨 0  🟥 1");
+    expect(shared).toContain("Reelated #7: I got it in 2 guesses and 1 hint.\n🟥💡🟩\n");
   });
 
   it("shares a give-up after only a hint without calling the hint a guess", async () => {
@@ -418,6 +416,81 @@ describe("DailyGameView", () => {
     expect(statValue("Streak")).toBe("2");
   });
 
+  it("reminds a player on a streak to keep it going until they finish", async () => {
+    servePuzzles({ "2026-10-21": 6, "2026-10-22": 7 });
+    vi.setSystemTime(new Date(2026, 9, 21, 12));
+    const yesterday = await renderGame();
+    await guess(yesterday.user, "Heat");
+    yesterday.unmount();
+
+    vi.setSystemTime(new Date(2026, 9, 22, 12));
+    const { user } = await renderGame();
+
+    expect(screen.getByText("1 day in a row. Solve today's to keep it going.")).toBeInTheDocument();
+
+    await guess(user, "Heat");
+
+    expect(screen.queryByText(/in a row/)).not.toBeInTheDocument();
+    expect(statValue("Streak")).toBe("2");
+  });
+
+  it("keeps the best streak after the streak breaks", async () => {
+    servePuzzles({ "2026-10-20": 5, "2026-10-21": 6, "2026-10-22": 7 });
+    for (const day of [20, 21]) {
+      vi.setSystemTime(new Date(2026, 9, day, 12));
+      const onTheDay = await renderGame();
+      await guess(onTheDay.user, "Heat");
+      onTheDay.unmount();
+    }
+
+    vi.setSystemTime(new Date(2026, 9, 22, 12));
+    const { user } = await renderGame();
+    await giveUp(user);
+
+    expect(statValue("Streak")).toBe("0");
+    expect(statValue("Best")).toBe("2");
+  });
+
+  it("counts down to the next puzzle at the player's midnight", async () => {
+    const { user } = await renderGame();
+
+    await guess(user, "Heat");
+
+    expect(screen.getByRole("timer")).toHaveTextContent("Next movie in 0:30:00");
+  });
+
+  it("turns over to the new puzzle when the page is left open past midnight", async () => {
+    servePuzzles({ "2026-10-22": 7, "2026-10-23": 8 });
+    vi.useFakeTimers({ toFake: ["Date", "setInterval", "clearInterval"] });
+    vi.setSystemTime(new Date(2026, 9, 22, 23, 59, 58));
+    const { user } = await renderGame();
+    await guess(user, "Heat");
+
+    vi.advanceTimersByTime(3000);
+
+    expect(
+      await screen.findByRole("heading", { level: 1, name: "Reelated #8" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "You got it!" })).not.toBeInTheDocument();
+  });
+
+  it("shares a streak that runs back past today", async () => {
+    servePuzzles({ "2026-10-21": 6, "2026-10-22": 7 });
+    vi.setSystemTime(new Date(2026, 9, 21, 12));
+    const yesterday = await renderGame();
+    await guess(yesterday.user, "Heat");
+    yesterday.unmount();
+
+    vi.setSystemTime(new Date(2026, 9, 22, 12));
+    const { user } = await renderGame();
+    await guess(user, "Heat");
+    await user.click(screen.getByRole("button", { name: "Share result" }));
+
+    expect(await navigator.clipboard.readText()).toContain(
+      "Reelated #7: I got it in 1 guess. 🔥 2\n",
+    );
+  });
+
   describe("from the archive", () => {
     it("opens a past day's puzzle under its own number and date", async () => {
       servePuzzles({ "2026-10-20": 5 });
@@ -431,6 +504,10 @@ describe("DailyGameView", () => {
       expect(screen.getByRole("link", { name: "Today's puzzle" })).toHaveAttribute(
         "href",
         "/reelated",
+      );
+      expect(screen.getByRole("link", { name: "Past puzzles" })).toHaveAttribute(
+        "href",
+        "/reelated/archive?day=2026-10-20",
       );
     });
 
@@ -475,7 +552,7 @@ describe("DailyGameView", () => {
 
       expect(screen.getByRole("heading", { name: "Better luck next time" })).toBeInTheDocument();
       expect(screen.getByText(/The movie was/)).toBeInTheDocument();
-      expect(screen.queryByText("A new movie arrives at midnight.")).not.toBeInTheDocument();
+      expect(screen.queryByRole("timer")).not.toBeInTheDocument();
     });
 
     it("shares a link back to that day's puzzle", async () => {
@@ -518,6 +595,55 @@ describe("DailyGameView", () => {
       await guess(catchUp.user, "Heat");
 
       expect(statValue("Streak")).toBe("1");
+    });
+
+    describe("catching up", () => {
+      beforeEach(() => {
+        servePuzzles({ "2026-10-20": 5, "2026-10-21": 6, "2026-10-22": 7 });
+        // Listed up to tomorrow in UTC, newest first, as the server does.
+        server.use(
+          http.get("/api/daily-game/movie/archive", () =>
+            HttpResponse.json<DailyGameArchive>({
+              clubType: ClubType.MOVIE,
+              puzzles: [
+                { date: "2026-10-23", puzzle: 8 },
+                { date: "2026-10-22", puzzle: 7 },
+                { date: "2026-10-21", puzzle: 6 },
+                { date: "2026-10-20", puzzle: 5 },
+              ],
+            }),
+          ),
+        );
+      });
+
+      it("points a finisher to the newest past puzzle they haven't finished", async () => {
+        const yesterday = await renderGame("2026-10-21");
+        await guess(yesterday.user, "Heat");
+        yesterday.unmount();
+
+        const { user } = await renderGame();
+        await guess(user, "Heat");
+
+        expect(
+          await screen.findByRole("link", { name: "Catch up on #5 from October 20, 2026" }),
+        ).toHaveAttribute("href", "/reelated/2026-10-20");
+      });
+
+      it("offers a puzzle left half-played, past one given up on", async () => {
+        const started = await renderGame("2026-10-20");
+        await guess(started.user, "Jaws");
+        started.unmount();
+        const abandoned = await renderGame("2026-10-21");
+        await giveUp(abandoned.user);
+        abandoned.unmount();
+
+        const { user } = await renderGame();
+        await guess(user, "Heat");
+
+        expect(
+          await screen.findByRole("link", { name: "Catch up on #5 from October 20, 2026" }),
+        ).toBeInTheDocument();
+      });
     });
 
     it("sends the player back to the archive when that day had no puzzle", async () => {

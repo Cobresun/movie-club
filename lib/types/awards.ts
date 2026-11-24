@@ -23,7 +23,7 @@ export const baseAwardSchema = z.object({
 });
 
 export const awardsDataSchema = z.object({
-  step: z.nativeEnum(AwardsStep),
+  step: z.enum(AwardsStep),
   awards: z.array(baseAwardSchema),
 });
 

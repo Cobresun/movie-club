@@ -69,6 +69,14 @@ describe("DailyGameArchiveView", () => {
     expect(puzzleLink("#3, October 22, 2026, Today")).toHaveAttribute("aria-current", "date");
   });
 
+  it("marks the past puzzle the player came from instead of today", async () => {
+    render(DailyGameArchiveView, { props: { clubType: ClubType.MOVIE, selected: "2026-10-20" } });
+    await screen.findByRole("list", { name: "October 2026" });
+
+    expect(puzzleLink("#1, October 20, 2026")).toHaveAttribute("aria-current", "date");
+    expect(puzzleLink("#3, October 22, 2026, Today")).not.toHaveAttribute("aria-current");
+  });
+
   it("shows the newest month first", async () => {
     serveArchive({
       clubType: ClubType.MOVIE,

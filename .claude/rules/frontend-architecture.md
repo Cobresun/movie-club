@@ -36,6 +36,7 @@ Every element a user can act on has a role and an accessible name. Specs query b
 - Page transitions are one crossfade from `router/viewTransitions.ts` (View Transitions API). Don't add per-route or directional animations: a `transform` on a page wrapper re-anchors every `position: fixed` descendant.
 - `checkClubAccess` guards club routes. `noAuth: true` opts a route out of auth; `authRequired: true` redirects to Clubs when logged out.
 - Guards answer from the cache without waiting for a refetch. A mutation that changes membership or a slug must write the clubs cache before navigating (`useClub.ts`).
+- A cold load doesn't wait for the session check when the browser's last session was signed in. The auth store assumes the remembered member (`isAssumedSignedIn` in `stores/auth.ts`), the clubs list is persisted so guards confirm membership from disk after `waitForCacheRestored`, and pages paint from the persisted cache while they revalidate. So `isLoggedIn` can be true before any session is confirmed. The server is the authority on every request; a signed-out check, or signing out, sends the visitor off member pages and drops the cached data.
 
 ## Service layer
 

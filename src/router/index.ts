@@ -64,7 +64,10 @@ const dailyGameArchiveRoutes: RouteRecordRaw[] = dailyGameClubTypes().flatMap((c
       path: `${dailyGame.path}/archive`,
       name: `DailyGameArchive-${clubType}`,
       component: () => import("../features/daily-game/views/DailyGameArchiveView.vue"),
-      props: { clubType },
+      props: (to) => ({
+        clubType,
+        selected: isString(to.query.day) ? to.query.day : undefined,
+      }),
       meta: { noAuth: true },
     },
     {
@@ -86,7 +89,9 @@ const checkClubAccess = async (
   next: NavigationGuardNext,
 ) => {
   const auth = useAuthStore();
-  await auth.waitForAuthReady();
+  // Membership is read from the cache below, which on a cold load is still
+  // being read back from disk when this runs.
+  await Promise.all([auth.waitForAuthReady(), auth.waitForCacheRestored()]);
   if (!auth.isLoggedIn) {
     next({
       name: "ClubNotFound",
@@ -209,10 +214,15 @@ const routes: RouteRecordRaw[] = [
     component: loadHomeView,
     beforeEnter: async () => {
       const auth = useAuthStore();
-      await auth.waitForAuthReady();
+      await Promise.all([auth.waitForAuthReady(), auth.waitForCacheRestored()]);
       if (!auth.isLoggedIn) return undefined;
 
-      await auth.waitForClubsReady();
+      // A clubs list already in hand picks the destination without waiting on
+      // its revalidation, the way the club guard answers membership. Only an
+      // empty or missing one waits to learn whether there are clubs at all.
+      if (!hasElements(auth.userClubs)) {
+        await auth.waitForClubsReady();
+      }
       const clubs = auth.userClubs;
 
       if (!hasElements(clubs)) {

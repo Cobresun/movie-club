@@ -1,4 +1,6 @@
+import { ensure } from "../../../../lib/checks/checks";
 import { type AwardsStep, type ClubAwards } from "../../../../lib/types/awards";
+import { type ClubPreview } from "../../../../lib/types/club";
 import { ClubType, WorkType } from "../../../../lib/types/generated/db";
 import { type ClubListSummary, type DetailedWorkListItem } from "../../../../lib/types/lists";
 import { handler as clubHandler } from "../../club/index";
@@ -60,12 +62,17 @@ export async function createClub(
 ): Promise<SeededClub> {
   const name = options.name ?? `Test Club ${unique()}`;
   const members = options.members ?? [owner];
+  // The settings write is member-only. A club seeded with no members still
+  // needs its features set, so the owner is created as its member for the
+  // write and leaves again.
+  const seededWithoutMembers = members.length === 0;
+  const initialMembers = seededWithoutMembers ? [owner] : members;
 
   const created = await api.post<{ clubId: string; slug: string }>("/api/club", {
     body: {
       name,
       type: options.type ?? ClubType.MOVIE,
-      members: members.map((member) => member.email),
+      members: initialMembers.map((member) => member.email),
     },
     as: owner,
   });
@@ -74,23 +81,13 @@ export async function createClub(
   const slug = created.body.slug;
   const lists = await api.get<ClubListSummary[]>(`/api/club/${slug}/list`);
   assertOk(`Reading lists for "${slug}"`, lists);
-
-  // `reviews-id` and the settings write are both member-only. A club seeded
-  // with no members still needs its reviews list id, so the owner joins for
-  // the two reads and leaves again — cheaper than exposing the id another way.
-  const seededWithoutMembers = members.length === 0;
-  if (seededWithoutMembers) await joinClub({ slug }, owner);
-  const member = members[0] ?? owner;
-
-  const reviews = await api.get<{ id: string }>(`/api/club/${slug}/list/reviews-id`, {
-    as: member,
-  });
-  assertOk(`Reading the reviews list id for "${slug}"`, reviews);
+  const preview = await api.get<ClubPreview>(`/api/club/${slug}`);
+  assertOk(`Reading the preview of "${slug}"`, preview);
 
   if (options.features) {
     const updated = await api.post(`/api/club/${slug}/settings`, {
       body: { features: options.features },
-      as: member,
+      as: initialMembers[0],
     });
     assertOk(`Enabling features on "${slug}"`, updated);
   }
@@ -103,13 +100,14 @@ export async function createClub(
     name,
     type: options.type ?? ClubType.MOVIE,
     listId: lists.body[0].id,
-    reviewsListId: reviews.body.id,
+    reviewsListId: ensure(preview.body.reviewsListId, `"${slug}" has no reviews list`),
   };
 }
 
-/** Join a club as `session` — the same route the invite-less join link uses. */
-export async function joinClub(club: { slug: string }, session: TestSession) {
-  const joined = await api.get(`/api/club/${club.slug}/members/join`, { as: session });
+/** Join a club as `session` through an invite that `inviter`, a member, hands out. */
+export async function joinClub(club: SeededClub, session: TestSession, inviter: TestSession) {
+  const token = await createInvite(club, inviter);
+  const joined = await api.post("/api/club/join", { body: { token }, as: session });
   assertOk(`${session.email} joining "${club.slug}"`, joined);
 }
 

@@ -6,16 +6,6 @@ import { type CatalogCandidate } from "../utils/providers/types";
 const asDay = (date: string) => new Date(`${date}T00:00:00Z`);
 
 class DailyGameRepository {
-  /** Every work in the catalog of `type`: the game's whole pool. */
-  async getPool(type: WorkType): Promise<CatalogCandidate[]> {
-    const rows = await db
-      .selectFrom("daily_game_catalog")
-      .select(["external_id", "title"])
-      .where("work_type", "=", type)
-      .execute();
-    return rows.map((row) => ({ externalId: row.external_id, title: row.title }));
-  }
-
   /** Which of `externalIds` the catalog of `type` already holds. */
   async getCatalogued(type: WorkType, externalIds: string[]): Promise<Set<string>> {
     if (externalIds.length === 0) return new Set();

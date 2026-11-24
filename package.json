@@ -24,7 +24,9 @@
     "db:snapshot": "tsx --env-file=.env scripts/db-snapshot.ts",
     "db:spawn": "tsx --env-file=.env scripts/db-spawn.ts",
     "db:list": "tsx --env-file=.env scripts/db-list.ts",
-    "db:cleanup": "tsx --env-file=.env scripts/db-cleanup.ts"
+    "db:cleanup": "tsx --env-file=.env scripts/db-cleanup.ts",
+    "local:up": "bash scripts/local/up.sh",
+    "local:seed": "tsx scripts/local/seed.ts"
   },
   "dependencies": {
     "@cubos/kysely-cockroach": "^1.0.0",
@@ -53,7 +55,7 @@
     "vue-draggable-next": "^2.3.0",
     "vue-router": "^4.6.4",
     "vue-toastification": "^2.0.0-rc.5",
-    "zod": "^3.25.76"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@pinia/testing": "^1.0.3",

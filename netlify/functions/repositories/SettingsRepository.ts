@@ -2,41 +2,32 @@ import {
   type ClubSettings,
   type ClubSettingsUpdate,
   clubSettingsUpdateSchema,
+  DEFAULT_CLUB_SETTINGS,
 } from "../../../lib/types/club";
 import { db } from "../utils/database";
 
-const DEFAULT_SETTINGS: ClubSettings = {
-  features: {
-    awards: false,
-  },
-};
+/** A club's `features` row as settings, filling in what the row does not say. */
+export function settingsFromStored(value: unknown): ClubSettings {
+  // The column is untyped JSON, so anything could be in there — a row written
+  // before a feature flag existed reads back as a partial.
+  const storedSettings = clubSettingsUpdateSchema.safeParse(value);
+  return {
+    features: {
+      ...DEFAULT_CLUB_SETTINGS.features,
+      ...(storedSettings.success ? storedSettings.data.features : undefined),
+    },
+  };
+}
 
 class SettingsRepository {
-  async getSettings(clubId: string): Promise<ClubSettings> {
-    const result = await db
+  async updateSettings(clubId: string, settings: ClubSettingsUpdate): Promise<ClubSettings> {
+    const stored = await db
       .selectFrom("club_settings")
       .select("value")
       .where("club_id", "=", clubId)
       .where("key", "=", "features")
       .executeTakeFirst();
-
-    if (!result || result.value === null) {
-      return DEFAULT_SETTINGS;
-    }
-
-    // The column is untyped JSON, so anything could be in there — a row written
-    // before a feature flag existed reads back as a partial.
-    const storedSettings = clubSettingsUpdateSchema.safeParse(result.value);
-    return {
-      features: {
-        ...DEFAULT_SETTINGS.features,
-        ...(storedSettings.success ? storedSettings.data.features : undefined),
-      },
-    };
-  }
-
-  async updateSettings(clubId: string, settings: ClubSettingsUpdate): Promise<ClubSettings> {
-    const existing = await this.getSettings(clubId);
+    const existing = settingsFromStored(stored?.value);
     const merged = {
       features: {
         ...existing.features,
@@ -66,7 +57,7 @@ class SettingsRepository {
       .values({
         club_id: clubId,
         key: "features",
-        value: JSON.stringify(DEFAULT_SETTINGS),
+        value: JSON.stringify(DEFAULT_CLUB_SETTINGS),
       })
       .onConflict((eb) => eb.columns(["club_id", "key"]).doNothing())
       .execute();

@@ -1,10 +1,10 @@
 import { type Member } from "../../../lib/types/club";
 import UserRepository from "../repositories/UserRepository";
-import { loggedIn, secured } from "../utils/auth";
 import { requireParam } from "../utils/requireParam";
 import { ok } from "../utils/responses";
 import { isRouterResponse, Router } from "../utils/router";
-import { type ClubRequest, validClubSlug } from "../utils/validation";
+import { secured } from "../utils/session";
+import { type ClubRequest } from "../utils/validation";
 
 const router = new Router<ClubRequest>("/api/club/:clubSlug/members");
 
@@ -22,11 +22,6 @@ router.get("/", async ({ clubId }, res) => {
 
 router.delete("/self", secured, async ({ clubId, userId }, res) => {
   await UserRepository.removeClubMember(clubId, userId);
-  return res(ok());
-});
-
-router.get("/join", validClubSlug, loggedIn<ClubRequest>, async (req, res) => {
-  await UserRepository.addClubMemberByUserId(req.clubId, req.userId);
   return res(ok());
 });
 

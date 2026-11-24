@@ -3,9 +3,9 @@ import { z } from "zod";
 import { hasValue } from "../../../../lib/checks/checks.js";
 import { type ClubInviteDetails } from "../../../../lib/types/club";
 import ClubRepository from "../../repositories/ClubRepository";
-import { loggedIn } from "../../utils/auth";
 import { badRequest, ok } from "../../utils/responses";
 import { Router } from "../../utils/router";
+import { loggedIn } from "../../utils/session";
 
 const joinSchema = z.object({
   token: z.string(),
@@ -45,7 +45,7 @@ router.get("/joinInfo/:token", async (req, res) => {
     return res(badRequest("Missing request body"));
   }
 
-  const invite = await ClubRepository.getClubDetailsByInvite(req.params.token);
+  const invite = await ClubRepository.getInvitedClub(req.params.token);
   if (!invite) {
     return res(badRequest("Invalid invite token"));
   }
@@ -54,14 +54,7 @@ router.get("/joinInfo/:token", async (req, res) => {
     return res(badRequest("Invite token expired"));
   }
 
-  return res(
-    ok<ClubInviteDetails>({
-      clubId: invite.clubId,
-      clubName: invite.clubName,
-      slug: invite.slug,
-      expiresAt: invite.expiresAt.toISOString(),
-    }),
-  );
+  return res(ok<ClubInviteDetails>({ ...invite.club, expiresAt: invite.expiresAt.toISOString() }));
 });
 
 export default router;

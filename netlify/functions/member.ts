@@ -1,18 +1,16 @@
 import { type Handler, type HandlerContext, type HandlerEvent } from "@netlify/functions";
-import { parse } from "lambda-multipart-parser";
 import { z } from "zod";
 
-import { hasValue, isDefined } from "../../lib/checks/checks.js";
+import { hasValue } from "../../lib/checks/checks.js";
 import { type ClubPreview } from "../../lib/types/club";
 import { type MemberScoredWork } from "../../lib/types/lists";
 import ClubRepository from "./repositories/ClubRepository";
-import ImageRepository from "./repositories/ImageRepository";
 import ReviewRepository from "./repositories/ReviewRepository";
 import UserRepository from "./repositories/UserRepository";
-import { loggedIn } from "./utils/auth";
 import { getExternalSummariesForWorks } from "./utils/providers";
 import { badRequest, ok } from "./utils/responses";
 import { Router } from "./utils/router";
+import { loggedIn } from "./utils/session";
 
 const router = new Router("/api/member");
 
@@ -20,17 +18,9 @@ const updateNameSchema = z.object({
   name: z.string().trim().min(1, "Name cannot be empty").max(100, "Name is too long"),
 });
 
-router.get("/clubs", loggedIn, async (req, res) => {
-  const clubs = await ClubRepository.getClubPreviewsByUserId(req.userId);
-  const result: ClubPreview[] = clubs.map((club) => ({
-    clubId: club.club_id,
-    clubName: club.club_name,
-    slug: club.slug,
-    slugUpdatedAt: club.slug_updated_at ? String(club.slug_updated_at) : undefined,
-    type: club.type,
-  }));
-  return res(ok<ClubPreview[]>(result));
-});
+router.get("/clubs", loggedIn, async (req, res) =>
+  res(ok<ClubPreview[]>(await ClubRepository.getPreviewsByUserId(req.userId))),
+);
 
 // Every work the member has scored, in any club they belong to. Score Assist
 // draws its comparison pool from here so a member reviewing in one club can be
@@ -57,55 +47,11 @@ router.get("/scores", loggedIn, async (req, res) => {
   return res(ok<MemberScoredWork[]>(result));
 });
 
-router.post("/avatar", loggedIn, async (req, res) => {
-  try {
-    // Parse the multipart/form-data request
-    const parsed = await parse(req.event);
-    if (parsed.files.length === 0) return res(badRequest("No file uploaded"));
-
-    const [avatarFile] = parsed.files;
-
-    const user = await UserRepository.getUserById(req.userId);
-    const { url, id } = await ImageRepository.upload(avatarFile.content);
-
-    // Delete old asset
-    if (isDefined(user.image_id)) {
-      await ImageRepository.destroy(user.image_id);
-    }
-
-    await UserRepository.updateImage(req.userId, url, id);
-
-    return res(ok());
-  } catch (error) {
-    console.error("Error updating avatar:", error);
-    return res(badRequest("Error updating avatar"));
-  }
-});
-
-router.delete("/avatar", loggedIn, async (req, res) => {
-  try {
-    const user = await UserRepository.getUserById(req.userId);
-
-    // Delete the image from Cloudinary if it exists
-    if (isDefined(user.image_id)) {
-      await ImageRepository.destroy(user.image_id);
-    }
-
-    // Clear the image URL and ID from the database
-    await UserRepository.updateImage(req.userId, null, null);
-
-    return res(ok());
-  } catch (error) {
-    console.error("Error deleting avatar:", error);
-    return res(badRequest("Error deleting avatar"));
-  }
-});
-
 router.put("/name", loggedIn, async (req, res) => {
   const parsed = updateNameSchema.safeParse(JSON.parse(req.event.body ?? "{}"));
 
   if (!parsed.success) {
-    return res(badRequest(parsed.error.errors[0]?.message ?? "Invalid name"));
+    return res(badRequest(parsed.error.issues[0]?.message ?? "Invalid name"));
   }
 
   const { name } = parsed.data;

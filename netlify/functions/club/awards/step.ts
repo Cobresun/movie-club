@@ -4,16 +4,16 @@ import { stepChangeError } from "../../../../lib/awards";
 import { AwardsStep } from "../../../../lib/types/awards";
 import AwardsRepository, { reject } from "../../repositories/AwardsRepository";
 import UserRepository from "../../repositories/UserRepository";
-import { secured } from "../../utils/auth";
 import { parseBody } from "../../utils/parseBody";
 import { badRequest, ok } from "../../utils/responses";
 import { isRouterResponse, Router } from "../../utils/router";
+import { secured } from "../../utils/session";
 import { type ClubAwardRequest } from "./utils";
 
 const router = new Router<ClubAwardRequest>("/api/club/:clubSlug/awards/:year<\\d+>/step");
 
 const updateStepSchema = z.object({
-  step: z.nativeEnum(AwardsStep),
+  step: z.enum(AwardsStep),
 });
 
 router.put("/", secured<ClubAwardRequest>, async ({ event, clubId, year }, res) => {

@@ -41,6 +41,14 @@
   path = "/share/club/:clubSlug/review/:workId"
   function = "shared-review"
 
+# Avatar uploads are their own function so the Cloudinary SDK and multipart
+# parser stay out of `member`, which serves the clubs list on every page load.
+# Must come before the `/api/*` rule, which would send it to `member`.
+[[redirects]]
+    from = "/api/member/avatar"
+    to = "/.netlify/functions/member-avatar"
+    status = 200
+
 [[redirects]]
     from = "/api/*"
     to = "/.netlify/functions/:splat"

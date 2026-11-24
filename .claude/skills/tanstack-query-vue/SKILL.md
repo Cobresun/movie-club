@@ -29,12 +29,12 @@ The persister and that in-memory map are one mechanism: the map is empty on ever
 
 Always use **string arrays** (not objects). Patterns:
 
-| Pattern                   | Example                          | Used for           |
-| ------------------------- | -------------------------------- | ------------------ |
-| `[resource, id]`          | `["club", clubSlug]`             | Single resource    |
-| `[resource, id, sub]`     | `["club", clubSlug, "settings"]` | Nested resource    |
-| `[resource, id, subId]`   | `["list", clubSlug, listId]`     | Sub-resource by id |
-| `[domain, action, param]` | `["tmdb", "search", query]`      | External API       |
+| Pattern                   | Example                              | Used for           |
+| ------------------------- | ------------------------------------ | ------------------ |
+| `[resource, id]`          | `["club", clubSlug]`                 | Single resource    |
+| `[resource, id, sub]`     | `["dailyGame", clubType, "archive"]` | Nested resource    |
+| `[resource, id, subId]`   | `["list", clubSlug, listId]`         | Sub-resource by id |
+| `[domain, action, param]` | `["tmdb", "search", query]`          | External API       |
 
 `src/service/useList.ts` exports key factories — `clubListsKey`, `listKey`, `reviewsListKey`, `workDetailsKey`. Call those instead of re-typing the array; a mutation that invalidates a hand-written key that has drifted fails silently.
 
@@ -93,7 +93,7 @@ export function useList(
 }
 ```
 
-This matters where an id is itself fetched — a list view resolving `reviewsListId` through `useReviewsListId` first. Callers pass either a plain string or a ref and get the same composable.
+This matters where an id comes from another query — a list view reading `reviewsListId` off the club preview through `useReviewsListId`, which is `undefined` until the club loads. Callers pass either a plain string or a ref and get the same composable.
 
 ---
 
@@ -131,23 +131,25 @@ return useMutation({
 
 ### Pattern 3: Full rollback (cancel + snapshot + restore on error)
 
+`useUpdateClubSettings` (`useClub.ts`) is the full version: it also writes the club's entry in the clubs list and restores both on error.
+
 ```typescript
 return useMutation({
   mutationFn: (newSettings) => auth.request.post(...),
   onMutate: async (newSettings) => {
-    await queryClient.cancelQueries(["club", clubSlug, "settings"]);
-    const previous = queryClient.getQueryData<ClubSettings>(["club", clubSlug, "settings"]);
-    if (previous) {
-      queryClient.setQueryData<ClubSettings>(["club", clubSlug, "settings"], { ...previous, ...newSettings });
+    await queryClient.cancelQueries(["club", clubSlug], { exact: true });
+    const previous = queryClient.getQueryData<ClubPreview>(["club", clubSlug]);
+    if (isDefined(previous)) {
+      queryClient.setQueryData<ClubPreview>(["club", clubSlug], withUpdate(previous, newSettings));
     }
     return { previous };
   },
   onError: (_error, _variables, context) => {
-    if (context?.previous) {
-      queryClient.setQueryData(["club", clubSlug, "settings"], context.previous);
+    if (isDefined(context?.previous)) {
+      queryClient.setQueryData(["club", clubSlug], context.previous);
     }
   },
-  onSettled: () => queryClient.invalidateQueries(["club", clubSlug, "settings"]).catch(console.error),
+  onSettled: () => queryClient.invalidateQueries(["club", clubSlug], { exact: true }).catch(console.error),
 });
 ```
 

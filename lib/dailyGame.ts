@@ -11,8 +11,8 @@ export interface PoolWork<T> {
 
 /**
  * A clue as the ranking weighs it. Positive points are something the guess
- * shares with the answer, negative ones a way it differs. The player sees the
- * clue but not its points.
+ * shares with the answer, negative ones a way it differs, which only orders
+ * guesses that share as much. The player sees the clue but not its points.
  */
 export interface ScoredClue {
   text: string;
@@ -27,9 +27,9 @@ export interface ScoredClue {
 export interface DailyGameRules<T> {
   /**
    * What `guess` shares with `answer` and where it differs, each clue worth
-   * whole points, never 0. A guess's score is the sum of its clues and
-   * nothing else, so a guess's chips always account for its rank. `pool` is
-   * every work in play, for clues whose worth depends on how rare they are.
+   * whole points, never 0. A guess ranks by its clues and nothing else, so a
+   * guess's chips always account for its rank. `pool` is every work in play,
+   * for clues whose worth depends on how rare they are.
    */
   makeClues: (pool: readonly T[]) => (guess: T, answer: T) => ScoredClue[];
   /** Also breaks ties: of two guesses with the same score, the one released nearer the answer ranks higher. */
@@ -53,29 +53,32 @@ export function tagCounts<T>(
 /**
  * How many whole points a shared tag is worth, from how rare it is in `pool`:
  * `ln(pool size / works with the tag)`, rounded and held within `min`–`max`.
- * A tag more than half the pool has (English) is worth nothing, so it is no
- * clue at all.
+ * With `dropMajority`, a tag more than half the pool has (English) is worth
+ * nothing, so it is no clue at all. A field whose misses are shown as clues
+ * keeps its majority tags, or a hit would show nothing where a miss shows.
  */
 export function rarityPoints<T>(
   pool: readonly T[],
   extract: (data: T) => readonly string[],
-  { min, max }: { min: number; max: number },
+  { min, max, dropMajority }: { min: number; max: number; dropMajority: boolean },
 ): (tag: string) => number {
   const count = tagCounts(pool, extract);
   return (tag) => {
     const share = count(tag) / pool.length;
-    if (share === 0 || share > 0.5) return 0;
+    if (share === 0 || (dropMajority && share > 0.5)) return 0;
     return Math.min(max, Math.max(min, Math.round(Math.log(1 / share))));
   };
 }
 
-const totalPoints = (clues: readonly ScoredClue[]) =>
-  clues.reduce((total, clue) => total + clue.points, 0);
+const sumPoints = (clues: readonly ScoredClue[], include: (points: number) => boolean) =>
+  clues.reduce((total, clue) => (include(clue.points) ? total + clue.points : total), 0);
 
 /**
- * Every work in the pool, ranked by the points its clues add up to. The
- * answer is rank 1; equal scores go to the work released nearer the answer,
- * then by title.
+ * Every work in the pool, ranked by the points of what it shares with the
+ * answer, so a guess that shares anything ranks above one that shares
+ * nothing. Among guesses that share as much, the one that differs least ranks
+ * higher, then the one released nearer the answer, then by title. The answer
+ * is rank 1.
  */
 export function rankPool<T>(
   answerId: string,
@@ -96,10 +99,17 @@ export function rankPool<T>(
     .filter((work) => work.id !== answerId)
     .map((work) => {
       const clues = cluesFor(work.data, answer.data).sort((a, b) => b.points - a.points);
-      return { work, clues, score: totalPoints(clues), yearGap: yearGap(work.data) };
+      return {
+        work,
+        clues,
+        shared: sumPoints(clues, (points) => points > 0),
+        differs: sumPoints(clues, (points) => points < 0),
+        yearGap: yearGap(work.data),
+      };
     })
     .sort((a, b) => {
-      if (a.score !== b.score) return b.score - a.score;
+      if (a.shared !== b.shared) return b.shared - a.shared;
+      if (a.differs !== b.differs) return b.differs - a.differs;
       if (a.yearGap !== b.yearGap) return a.yearGap - b.yearGap;
       return a.work.title.localeCompare(b.work.title);
     });
@@ -131,7 +141,7 @@ export function pickAnswer(
 }
 
 /** A real calendar date, `YYYY-MM-DD` — `2026-02-31` is refused. */
-export const puzzleDateSchema = z.string().date();
+export const puzzleDateSchema = z.iso.date();
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -182,7 +192,7 @@ const MAX_RESULT_ENTRIES = 5000;
  */
 export const dailyGameResultBodySchema = z.object({
   /** A random id the player's browser keeps, so a day counts once per browser. */
-  playerId: z.string().uuid(),
+  playerId: z.uuid(),
   guesses: z.array(z.string().min(1)).max(MAX_RESULT_ENTRIES),
   hints: z.number().int().min(0).max(MAX_RESULT_ENTRIES),
 });

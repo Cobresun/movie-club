@@ -2,10 +2,16 @@ import { type UserEvent } from "@testing-library/user-event";
 import { fireEvent, screen, within } from "@testing-library/vue";
 import { http, HttpResponse } from "msw";
 
-import { WorkType } from "../../../../lib/types/generated/db";
-import { type DetailedReviewListItem, type ReviewScores } from "../../../../lib/types/lists";
+import { type ClubPreview } from "../../../../lib/types/club";
+import { ClubType, WorkType } from "../../../../lib/types/generated/db";
+import {
+  type DetailedReviewListItem,
+  type NextWorkResponse,
+  type ReviewScores,
+} from "../../../../lib/types/lists";
 import { type TMDBTvEpisodeData } from "../../../../lib/types/tv";
 import ReviewView from "../views/ReviewView.vue";
+import club from "@/mocks/data/club";
 import { mockIntersectionObserver } from "@/mocks/IntersectionObserver";
 import { server } from "@/mocks/server";
 import { tvReviewsApi } from "@/mocks/tvReviews";
@@ -154,9 +160,7 @@ const theBear: DetailedReviewListItem = {
 
 function useTvClub(reviews: DetailedReviewListItem[] = tvReviews) {
   server.use(
-    http.get("/api/club/:id", () =>
-      HttpResponse.json({ clubId: 1, clubName: "Test club", type: "tv" }),
-    ),
+    http.get("/api/club/:id", () => HttpResponse.json<ClubPreview>({ ...club, type: ClubType.TV })),
     ...tvReviewsApi({ reviews, userId: SIGNED_IN, seasons: tmdbSeasons, catalog: [theBear] }),
     http.get("https://api.themoviedb.org/3/search/tv", () =>
       HttpResponse.json({
@@ -254,6 +258,16 @@ describe("TV reviews", () => {
 
     expect(await screen.findByRole("button", { name: "Rate this show" })).toBeInTheDocument();
     expect(screen.queryByText(/No scores yet/)).not.toBeInTheDocument();
+  });
+
+  it("offers to rate the show, not an episode, from its details on desktop", async () => {
+    setViewport(true);
+    const { user } = await renderSeverance([show]);
+
+    await user.click(screen.getByRole("button", { name: "Severance details" }));
+    await user.click(await screen.findByRole("button", { name: "Rate this show" }));
+
+    expect(screen.getByText("Score this show")).toBeInTheDocument();
   });
 
   it("shares a show from its details once you have scored any of its episodes", async () => {
@@ -599,9 +613,11 @@ describe("TV reviews", () => {
   it("moves the next show into reviews and opens it ready to score", async () => {
     useTvClub();
     server.use(
-      http.get("/api/club/:id/nextWork", () => HttpResponse.json({ workId: theBear.id })),
-      http.get("/api/club/:id/list/all-items", () =>
-        HttpResponse.json([{ ...theBear, sourceListId: "1", sourceListTitle: "Watch List" }]),
+      http.get("/api/club/:id/nextWork", () =>
+        HttpResponse.json<NextWorkResponse>({
+          workId: theBear.id,
+          work: { ...theBear, sourceListId: "1", sourceListTitle: "Watch List" },
+        }),
       ),
     );
     const { user, pinia } = render(ReviewView, { props: { clubSlug: CLUB_SLUG } });
