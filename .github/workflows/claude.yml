@@ -28,11 +28,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          # Full history, so a rebase onto main has the merge base.
+          fetch-depth: 0
 
       - name: Run Claude Code
         id: claude
         uses: anthropics/claude-code-action@v1
+        env:
+          # `git rebase --continue` opens an editor for the commit message, and
+          # the runner has no terminal.
+          GIT_EDITOR: "true"
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
 
@@ -46,5 +51,15 @@ jobs:
           # The `opus` alias tracks the latest Opus model.
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           # or https://code.claude.com/docs/en/cli-reference for available options
-          claude_args: '--model opus'
-
+          #
+          # Rebasing and force pushing: the action's own `git push` wrapper
+          # refuses flags, and its prompt says Claude can't rebase, so the rules
+          # and the appended prompt below grant both. Each rule matches its
+          # command exactly (no `:*`), so flags such as `--exec` or
+          # `--receive-pack` that run programs aren't allowed. The push goes to
+          # the branch checked out, which is the PR's branch; main's ruleset
+          # refuses force pushes and direct pushes.
+          claude_args: |
+            --model opus
+            --allowedTools "Bash(git fetch origin main),Bash(git rebase origin/main),Bash(git rebase --continue),Bash(git rebase --abort),Bash(git push --force-with-lease origin HEAD)"
+            --append-system-prompt 'In this repository you may rebase a pull request onto main and force push it, which overrides the instruction that you cannot rebase or perform other branch operations. Do it when asked to rebase, or to resolve conflicts with main. Run git fetch origin main, then git rebase origin/main. For each conflict, edit the files, stage them with your git add command, then run git rebase --continue; run git rebase --abort if you cannot resolve it. Once the rebase is done, push with git push --force-with-lease origin HEAD, and use that command only while the pull request branch is checked out, never main.'
