@@ -191,4 +191,4 @@ npm run db:snapshot prod
 
 #### Deploy Preview Databases
 
-When you open a PR that modifies database migrations, a preview database is automatically created for your deploy preview. This prevents conflicts with other developers' work. The preview database is automatically cleaned up when the PR is closed or merged.
+When you open a PR that modifies database migrations, a preview database is automatically created for your deploy preview. This prevents conflicts with other developers' work. The preview database is automatically cleaned up when the PR is closed or merged (`.github/workflows/preview-cleanup.yml`).

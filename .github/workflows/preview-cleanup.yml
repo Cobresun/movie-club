@@ -1,0 +1,61 @@
+name: Preview cleanup
+
+# Drops a PR's preview database (pr_<n>) once the PR is merged or closed. The
+# preview-database plugin only creates one for PRs that change migrations, so
+# for most PRs there is nothing to drop and the job ends early.
+on:
+  pull_request:
+    types: [closed]
+
+concurrency:
+  # The Deploy workflow's group for this PR: closing the PR cancels an
+  # in-flight preview deploy, which could otherwise recreate the database
+  # after this drops it.
+  group: deploy-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  drop-preview-database:
+    # Fork and Dependabot PRs get no repository secrets, and Deploy never gave
+    # them a database.
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.user.login != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+      NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      # The cluster's root URL lives in the site's Netlify environment, where
+      # the preview-database plugin reads it, rather than in a second copy
+      # here.
+      - name: Read DATABASE_URL_ROOT from Netlify
+        run: |
+          set -o pipefail
+          url=$(npx --yes netlify-cli@27.16.3 env:get DATABASE_URL_ROOT --context deploy-preview --json \
+            | node -e 'let s = ""; process.stdin.on("data", (d) => (s += d)).on("end", () => process.stdout.write(JSON.parse(s).DATABASE_URL_ROOT ?? ""))')
+          if [ -z "$url" ]; then
+            echo "::error::DATABASE_URL_ROOT is not set in the deploy-preview context"
+            exit 1
+          fi
+          echo "::add-mask::$url"
+          echo "DATABASE_URL_ROOT=$url" >> "$GITHUB_ENV"
+
+      # An exact-name pattern rather than a name: the script reports "No
+      # databases to clean up" instead of failing when the PR never had one.
+      - env:
+          CI: "true"
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: npx tsx scripts/db-cleanup.ts --pattern "^pr_${PR_NUMBER}\$" --force
