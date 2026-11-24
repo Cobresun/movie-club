@@ -30,6 +30,10 @@ netlify dev
 npm run build
 ```
 
+### Deploys
+
+GitHub Actions builds and deploys the site (`.github/workflows/deploy.yml`), not Netlify, so deploys don't use Netlify's build minutes. A merge to `main` deploys production; every push to a PR from this repository updates its deploy preview at `deploy-preview-<number>--<site>.netlify.app`, linked from the PR's "View deployment" button. Pushes that change only Markdown or `.claude/` skip the deploy.
+
 ### Lints and fixes files
 
 ```

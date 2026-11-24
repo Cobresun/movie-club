@@ -1,0 +1,96 @@
+name: Deploy
+
+# Builds the site here and uploads it with the Netlify CLI. A build that runs
+# in Actions doesn't count toward Netlify's 300-min/month build budget (this is
+# a public repo, so Actions minutes are free), so Netlify's own Git-triggered
+# builds are switched off: "Stop builds" under Site configuration → Build &
+# deploy → Continuous deployment.
+#
+# `netlify deploy --build` runs the same pipeline Netlify ran: the
+# `[build] command` from netlify.toml (migrate, generated-types check,
+# `vite build`), both build plugins, and function and edge function bundling.
+# It reads the site's environment variables for the `--context` it is given, at
+# build time and for the deployed functions.
+#
+# Secrets: NETLIFY_AUTH_TOKEN (a personal access token) and NETLIFY_SITE_ID
+# (Site configuration → Site details → Project ID).
+on:
+  push:
+    branches: [main]
+    # Pushes that change only docs or Claude config don't need a deploy.
+    paths-ignore: ["**.md", ".claude/**"]
+  pull_request:
+    paths-ignore: ["**.md", ".claude/**"]
+
+concurrency:
+  group: deploy-${{ github.event.pull_request.number || 'production' }}
+  # A newer push to a PR replaces its in-flight preview. Production deploys
+  # queue instead: cancelling one could stop `npm run migrate` against prod.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  deploy:
+    # Fork and Dependabot PRs get no repository secrets, so they can't deploy.
+    if: >-
+      github.event_name == 'push' ||
+      (github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.user.login != 'dependabot[bot]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    environment:
+      name: ${{ github.event_name == 'push' && 'production' || 'deploy-preview' }}
+      url: ${{ steps.deploy.outputs.url }}
+    env:
+      NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+      NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Deploy the PR's own head commit, as Netlify did, not the merge
+          # commit `pull_request` checks out by default.
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          # The preview-database plugin diffs against origin/main to find
+          # migration changes, and the migrator's shared-`dev` guard lists
+          # origin/main's migrations.
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      # The preview-database plugin keeps each PR's migration hash in the
+      # Netlify build cache, which a CLI build keeps in .netlify/cache. Without
+      # it every push to a migration PR would drop and respawn pr_<id>.
+      - if: github.event_name == 'pull_request'
+        uses: actions/cache@v4
+        with:
+          path: .netlify/cache
+          key: netlify-cache-pr-${{ github.event.pull_request.number }}-${{ github.run_id }}
+          restore-keys: netlify-cache-pr-${{ github.event.pull_request.number }}-
+
+      - id: deploy
+        env:
+          IS_PRODUCTION: ${{ github.event_name == 'push' }}
+          # Netlify sets REVIEW_ID itself only on its own PR builds; the
+          # preview-database plugin names the preview database after it.
+          REVIEW_ID: ${{ github.event.pull_request.number }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message || github.event.pull_request.title }}
+        run: |
+          # Without it the `tee` below would hide a failed deploy.
+          set -o pipefail
+          if [ "$IS_PRODUCTION" = "true" ]; then
+            target=(--prod --context production)
+          else
+            # The alias keeps Netlify's usual preview address,
+            # deploy-preview-<n>--<site>.netlify.app, which the auth-config
+            # plugin reads back as DEPLOY_PRIME_URL.
+            target=(--context deploy-preview --alias "deploy-preview-$REVIEW_ID")
+          fi
+          npx --yes netlify-cli@27.16.3 deploy --build "${target[@]}" \
+            --message "$(printf '%s' "$COMMIT_MESSAGE" | head -n 1)" | tee deploy.log
+          url=$(grep -oE '(Production|Draft) URL: <[^>]+>' deploy.log | head -n 1 | sed -E 's/.*<(.*)>/\1/')
+          echo "url=$url" >> "$GITHUB_OUTPUT"
