@@ -80,7 +80,7 @@
           v-for="review in sortedReviews"
           :key="review.id"
           :title="review.title"
-          :poster-url="review.imageUrl ?? ''"
+          :poster-url="workPosterUrl(review.externalData, review.imageUrl) ?? ''"
           :highlighted="selectedMovieId === review.id"
           :loading="isPendingReview(review.id)"
           :selectable="!isPendingReview(review.id)"
@@ -129,7 +129,7 @@ import WorkDetailsDrawer from "./WorkDetailsDrawer.vue";
 import AverageImg from "@/assets/images/average.svg";
 import VAvatar from "@/common/components/VAvatar.vue";
 import WorkPosterCard from "@/common/components/WorkPosterCard.vue";
-import { formatCardDate } from "@/common/workDisplay";
+import { formatCardDate, workPosterUrl } from "@/common/workDisplay";
 import { OPTIMISTIC_WORK_ID } from "@/service/useList";
 
 const props = defineProps<{
