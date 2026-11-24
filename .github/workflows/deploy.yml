@@ -6,9 +6,10 @@ name: Deploy
 # builds are switched off: "Stop builds" under Site configuration → Build &
 # deploy → Continuous deployment.
 #
-# `netlify deploy --build` runs the same pipeline Netlify ran: the
-# `[build] command` from netlify.toml (migrate, generated-types check,
-# `vite build`), both build plugins, and function and edge function bundling.
+# `netlify deploy`, which builds before it uploads, runs the same pipeline
+# Netlify ran: the `[build] command` from netlify.toml (migrate,
+# generated-types check, `vite build`), both build plugins, and function and
+# edge function bundling.
 # It reads the site's environment variables for the `--context` it is given, at
 # build time and for the deployed functions.
 #
@@ -90,7 +91,7 @@ jobs:
             # plugin reads back as DEPLOY_PRIME_URL.
             target=(--context deploy-preview --alias "deploy-preview-$REVIEW_ID")
           fi
-          npx --yes netlify-cli@27.16.3 deploy --build "${target[@]}" \
+          npx --yes netlify-cli@27.16.3 deploy "${target[@]}" \
             --message "$(printf '%s' "$COMMIT_MESSAGE" | head -n 1)" | tee deploy.log
           url=$(grep -oE '(Production|Draft) URL: <[^>]+>' deploy.log | head -n 1 | sed -E 's/.*<(.*)>/\1/')
           echo "url=$url" >> "$GITHUB_OUTPUT"

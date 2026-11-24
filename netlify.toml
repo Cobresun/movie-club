@@ -1,5 +1,5 @@
 [build]
-  # Deploy-only work, run by `netlify deploy --build` in GitHub Actions
+  # Deploy-only work, run by `netlify deploy` in GitHub Actions
   # (.github/workflows/deploy.yml), not by Netlify. Quality gates (type-check,
   # lint, test) run separately in .github/workflows/ci.yml.
   # `migrate` keeps the target DB (prod on production, the spawned/dev DB on
