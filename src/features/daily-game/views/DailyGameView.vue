@@ -1,5 +1,6 @@
 <template>
   <div class="mx-auto max-w-2xl px-4 pt-2 pb-16">
+    <DailyGameModes :current="clubType" :to="(mode) => mode.path" class="mb-4" />
     <empty-state
       v-if="!isDefined(dailyGame)"
       title="There's no daily game here"
@@ -19,20 +20,19 @@
       :title="
         notFound
           ? `${dailyGame.name} is still warming up`
-          : `Couldn't load ${isDefined(date) ? 'this' : 'today\'s'} ${noun}`
+          : `Couldn't load ${isDefined(date) ? 'this' : 'today\'s'} ${dailyGame.noun}`
       "
       :description="
         notFound
-          ? `Today's ${noun} list is still being put together. Check back in a little while.`
+          ? `Today's ${dailyGame.noun} list is still being put together. Check back in a little while.`
           : 'Something went wrong fetching the puzzle. Give it another try in a moment.'
       "
     />
     <DailyGameBoard
       v-else-if="isDefined(data)"
-      :key="data.date"
+      :key="`${data.clubType}:${data.date}`"
       :puzzle="data"
       :daily-game="dailyGame"
-      :noun="noun"
       :today="today"
     />
   </div>
@@ -47,6 +47,7 @@ import { type ClubType } from "@/../lib/types/generated/db";
 import { clubTypeConfig } from "@/common/clubType";
 import { archivePath } from "@/features/daily-game/archive";
 import DailyGameBoard from "@/features/daily-game/components/DailyGameBoard.vue";
+import DailyGameModes from "@/features/daily-game/components/DailyGameModes.vue";
 import DailyGameSkeleton from "@/features/daily-game/components/DailyGameSkeleton.vue";
 import { formatPuzzleDate } from "@/features/daily-game/game";
 import { useClock } from "@/features/daily-game/useClock";
@@ -58,12 +59,15 @@ const { clubType, date = undefined } = defineProps<{
   date?: string;
 }>();
 
-const { noun, dailyGame } = clubTypeConfig(clubType);
+const dailyGame = computed(() => clubTypeConfig(clubType).dailyGame);
 const router = useRouter();
 
 const { today } = useClock();
 
-const { data, isLoading, isError, error } = useDailyGamePuzzle(clubType, () => date ?? today.value);
+const { data, isLoading, isError, error } = useDailyGamePuzzle(
+  () => clubType,
+  () => date ?? today.value,
+);
 
 // Today's puzzle is missing only while the catalog is too small to play; a
 // past one, when that day never had a puzzle.

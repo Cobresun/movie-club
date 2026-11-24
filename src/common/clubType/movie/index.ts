@@ -1,3 +1,4 @@
+import { DAILY_GAME_NAME } from "../dailyGame";
 import { clubScoreFilter, decadePresets, reviewedInFilter } from "../filterOptions";
 import { type ClubTypeConfig } from "../types";
 import { movieDisplay } from "./display";
@@ -113,7 +114,9 @@ export const movieClubConfig: ClubTypeConfig = {
   isScoredUnit: () => true,
   makeSimilarity: makeMovieSimilarity,
   dailyGame: {
-    name: "Reelated",
+    name: DAILY_GAME_NAME,
+    mode: "Movies",
+    noun: "movie",
     path: "/reelated",
     tagline: "One mystery movie a day. Every guess tells you how related it is. No account needed.",
     similarityRule:

@@ -56,4 +56,17 @@ describe("HomeView", () => {
     expect(within(game).getByRole("link", { name: "Play today’s movie" })).toBeInTheDocument();
     expect(within(game).getByRole("listitem", { name: /^Arrival/ })).toBeInTheDocument();
   });
+
+  it("previews the daily game's TV mode from its tab", async () => {
+    const { user } = render(HomeView);
+    const game = screen.getByRole("region", { name: "Reelated" });
+
+    await user.click(within(game).getByRole("tab", { name: "TV" }));
+
+    expect(within(game).getByRole("link", { name: "Play today’s show" })).toHaveAttribute(
+      "href",
+      "/reelated/tv",
+    );
+    expect(within(game).getByRole("listitem", { name: /^Breaking Bad/ })).toBeInTheDocument();
+  });
 });

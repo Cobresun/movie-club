@@ -168,10 +168,18 @@ export interface LandingPreviewWork {
   readonly scores: Readonly<Partial<Record<LandingPreviewMember, number>>>;
 }
 
-/** Copy for one club type's daily guessing game. */
+/**
+ * One mode of the daily guessing game: the same game played with one club
+ * type's media, with its own puzzle each day.
+ */
 export interface DailyGameConfig {
-  /** The game's name, shown as its title and in shared results. */
+  /** The mode's full name, shown as its title and in shared results ("Reelated TV"). */
   readonly name: string;
+  /** The mode on its own, as the switch between modes labels it ("TV"). */
+  readonly mode: string;
+  /** One work the game is played with ("movie", "show"), which for TV is
+   * not what the club scores. */
+  readonly noun: string;
   /** Where the game is played, e.g. `/reelated`. */
   readonly path: string;
   /** One line inviting someone to play, for the landing page. */

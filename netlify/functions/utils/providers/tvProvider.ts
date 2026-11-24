@@ -22,6 +22,7 @@ import {
 import { db } from "../database";
 import { getTMDBTvSeason, getTMDBTvShowData } from "../tmdb";
 import { upsertTvSeasonDetails, upsertTvShowDetails } from "../tvDetailsUpdater";
+import { makeTvDailyGame } from "./tvDailyGame";
 import { type MediaProvider, numOrUndefined, type RefreshResult } from "./types";
 
 /** TMDB's season 0 holds specials, which the show's season list leaves out. */
@@ -207,7 +208,7 @@ function stillUrl(stillPath: string): string {
 
 class TvProvider implements MediaProvider {
   readonly type = WorkType.TV;
-  readonly dailyGame = undefined;
+  readonly dailyGame = makeTvDailyGame((externalIds) => this.getExternalDataSummary(externalIds));
   readonly defaultListTitle = "Watch List";
 
   /**

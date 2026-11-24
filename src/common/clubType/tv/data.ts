@@ -19,9 +19,3 @@ export function asTv<T extends WorkDataSummary>(data: T | undefined): TvDataSumm
 export function tmdbStillUrl(stillPath: string): string {
   return `${TMDB_STILL_BASE}${stillPath}`;
 }
-
-/** The year a show first aired, or an episode aired. */
-export function tvAirYear(tv: TvDataSummary): number | undefined {
-  const year = tv.airDate !== undefined ? Number.parseInt(tv.airDate.slice(0, 4), 10) : Number.NaN;
-  return Number.isFinite(year) ? year : undefined;
-}

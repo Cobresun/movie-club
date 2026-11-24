@@ -6,10 +6,11 @@
       description="This club type doesn't have a daily game yet."
     />
     <template v-else>
+      <DailyGameModes :current="clubType" :to="(mode) => archivePath(mode)" />
       <header class="text-center">
         <h1 class="text-3xl font-bold sm:text-4xl">{{ dailyGame.name }} archive</h1>
         <p class="mt-2 text-white/70">
-          Missed a day? Every past {{ noun }} is still here to guess.
+          Missed a day? Every past {{ dailyGame.noun }} is still here to guess.
         </p>
         <nav aria-label="Other puzzles" class="mt-3 flex justify-center text-sm">
           <router-link
@@ -81,7 +82,8 @@ import { computed } from "vue";
 import { hasElements, isDefined } from "@/../lib/checks/checks";
 import { type ClubType } from "@/../lib/types/generated/db";
 import { clubTypeConfig } from "@/common/clubType";
-import { calendarMonths, puzzlePath } from "@/features/daily-game/archive";
+import { archivePath, calendarMonths, puzzlePath } from "@/features/daily-game/archive";
+import DailyGameModes from "@/features/daily-game/components/DailyGameModes.vue";
 import { formatPuzzleDate } from "@/features/daily-game/game";
 import { useClock } from "@/features/daily-game/useClock";
 import { dailyGameProgress, type DayProgress } from "@/features/daily-game/useDailyGame";
@@ -93,7 +95,7 @@ const { clubType, selected = undefined } = defineProps<{
   selected?: string;
 }>();
 
-const { noun, dailyGame } = clubTypeConfig(clubType);
+const dailyGame = computed(() => clubTypeConfig(clubType).dailyGame);
 
 const PROGRESS: Record<DayProgress, { label: string; icon: string }> = {
   solved: { label: "Solved", icon: "check" },
@@ -105,9 +107,9 @@ const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const { today } = useClock();
 const highlighted = computed(() => selected ?? today.value);
-const progress = dailyGameProgress(clubType);
+const progress = computed(() => dailyGameProgress(clubType));
 
-const { data, isLoading, isError } = useDailyGameArchive(clubType);
+const { data, isLoading, isError } = useDailyGameArchive(() => clubType);
 
 // The server lists up to the furthest-ahead day anywhere; a day still to come
 // for this player is not theirs to play yet.
@@ -115,7 +117,7 @@ const puzzles = computed(() =>
   (data.value?.puzzles ?? [])
     .filter((entry) => entry.date <= today.value)
     .map((entry) => {
-      const played = progress.get(entry.date);
+      const played = progress.value.get(entry.date);
       const status = isDefined(played) ? PROGRESS[played] : undefined;
       const label = [
         `#${entry.puzzle}`,
