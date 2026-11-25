@@ -3,14 +3,30 @@
 import tailwindcss from "@tailwindcss/vite";
 import vue from "@vitejs/plugin-vue";
 import * as path from "path";
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
+
+// Netlify sets COMMIT_REF during a deploy build.
+const buildId = process.env.COMMIT_REF ?? "dev";
+
+// What is live now, for a page loaded from an earlier deploy to compare
+// against its own `__BUILD_ID__` (useReloadOnDeploy.ts).
+const deployManifest: Plugin = {
+  name: "deploy-manifest",
+  apply: "build",
+  generateBundle() {
+    this.emitFile({
+      type: "asset",
+      fileName: "version.json",
+      source: JSON.stringify({ buildId }),
+    });
+  },
+};
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [tailwindcss(), vue()],
+  plugins: [tailwindcss(), vue(), deployManifest],
   define: {
-    // Netlify sets COMMIT_REF during a deploy build.
-    __BUILD_ID__: JSON.stringify(process.env.COMMIT_REF ?? "dev"),
+    __BUILD_ID__: JSON.stringify(buildId),
   },
   resolve: {
     alias: {

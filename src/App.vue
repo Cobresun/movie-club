@@ -24,8 +24,10 @@
 import AuthModal from "@/common/components/AuthModal.vue";
 import NavBar from "@/common/components/NavBar.vue";
 import SkeletonBlock from "@/common/components/SkeletonBlock.vue";
+import { useReloadOnDeploy } from "@/common/composables/useReloadOnDeploy";
 import ReviewsSkeleton from "@/features/reviews/components/ReviewsSkeleton.vue";
 import { useAuthStore } from "@/stores/auth";
 
 const authStore = useAuthStore();
+useReloadOnDeploy();
 </script>
