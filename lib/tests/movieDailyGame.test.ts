@@ -193,7 +193,7 @@ describe("movie daily-game clues", () => {
 
     expect(cluesOf(ranking, "Guess")).toStrictEqual([
       { text: "Same director: Ann Director", shared: true },
-      { text: "Also from the 2000s", shared: true },
+      { text: "Also from the 2000s", shared: true, era: true },
     ]);
     expect(cluesOf(ranking, "Year before")).toStrictEqual([]);
   });

@@ -40,6 +40,8 @@ const { dailyGame } = defineProps<{
 const headingId = useId();
 
 const guesses = computed(() =>
-  dailyGame.preview.guesses.map((work) => rankGuess(work, dailyGame.preview.poolSize, false)),
+  dailyGame.preview.guesses.map((work) =>
+    rankGuess(work, dailyGame.preview.poolSize, false, dailyGame.preview.answerYear),
+  ),
 );
 </script>

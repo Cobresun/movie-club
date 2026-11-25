@@ -124,7 +124,7 @@ export function makeMovieClues(pool: readonly MovieGameData[]) {
       decades(answer),
       decadePoints,
       (decade) => `Also from the ${decade}s`,
-    ),
+    ).map((clue) => ({ ...clue, era: true })),
     // Each genre the guess has and the answer doesn't, so a guess with genres
     // to spare ranks below an exact match that shares as much.
     ...groupedClue(

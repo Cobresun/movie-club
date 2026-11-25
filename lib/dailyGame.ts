@@ -1,11 +1,12 @@
 import { z } from "zod";
 
-import { hasElements } from "./checks/checks.js";
+import { hasElements, isTrue } from "./checks/checks.js";
 import { type DailyGameWork } from "./types/dailyGame";
 
 export interface PoolWork<T> {
   id: string;
   title: string;
+  imageUrl?: string;
   data: T;
 }
 
@@ -17,6 +18,8 @@ export interface PoolWork<T> {
 export interface ScoredClue {
   text: string;
   points: number;
+  /** The clue about when the work came out (`DailyGameClue.era`). */
+  era?: boolean;
 }
 
 /**
@@ -118,8 +121,13 @@ export function rankPool<T>(
     id: work.id,
     title: work.title,
     year: rules.year(work.data),
+    imageUrl: work.imageUrl,
     rank: index + 1,
-    clues: clues.map((clue) => ({ text: clue.text, shared: clue.points > 0 })),
+    clues: clues.map((clue) => ({
+      text: clue.text,
+      shared: clue.points > 0,
+      ...(isTrue(clue.era) ? { era: true } : {}),
+    })),
   }));
 }
 

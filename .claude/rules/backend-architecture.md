@@ -54,6 +54,7 @@ The data model is in `database.md`.
 
 - One handler and one pair of tables keyed by `work_type` serve every club type. What varies is the provider's `dailyGame`.
 - **The ranking is not Score Assist's scorer** (`lib/dailyGame.ts`, `lib/movie/dailyGame.ts`). A guess ranks only by the clues it is shown, so the chips always explain the order: first by what it shares, then by the genres it has that the answer lacks, so a miss never sinks a guess below one that shares nothing. Don't fold in a signal (a Jaccard ratio, an unshown field) that has no clue. A tie goes to the work released nearer the answer.
+- The board shows the era clue (`DailyGameClue.era`, the shared decade for movies) as a year chip whose arrow points to the answer's year. The arrow is worked out in the client and never ranks; only the era clue under it does.
 - Any catalogued work can be guessed, but only what the provider's `answerCandidates` returns can be the answer. For movies that is TMDB's 1000 most-rated, read fresh at draw time so a movie that slips down the rankings stops being drawn.
 - **Netlify runs scheduled functions only on the production deploy**, never on previews or `netlify dev`, so the endpoint seeds a too-small catalog itself.
 - Only a date that is somebody's today draws an answer or records a result. An earlier date serves its recorded answer or a 404. The archive listing never includes answers.

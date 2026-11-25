@@ -218,6 +218,10 @@
             </li>
             <li>{{ dailyGame.similarityRule }} Nothing you can't see counts.</li>
             <li>
+              Each guess's year chip points to when the answer came out, later or earlier, and
+              whether it's from the same decade. Only a shared decade counts towards the rank.
+            </li>
+            <li>
               Stuck? A hint reveals a {{ noun }} halfway between your best guess and the answer.
               Your progress is saved on this device, so you can come back to it.
             </li>
