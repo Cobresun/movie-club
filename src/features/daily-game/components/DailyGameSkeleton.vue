@@ -9,7 +9,8 @@ defineProps<{
 
 <template>
   <!-- Mirrors DailyGameBoard before a first guess — the title, the blurb, the
-       hints menu and archive links, then the guess field — so nothing shifts
+       rules and give-up buttons, the archive links, then the guess field and
+       its hint button — so nothing shifts
        when the puzzle lands. -->
   <div
     class="mx-auto flex max-w-2xl flex-col gap-6 px-4 pt-2 pb-16"
@@ -22,13 +23,19 @@ defineProps<{
         <SkeletonBlock class="h-4 w-full max-w-md rounded" />
         <SkeletonBlock class="h-4 w-64 max-w-full rounded" />
       </div>
-      <SkeletonBlock class="h-11 w-40 rounded-full" :style="{ '--skeleton-index': 2 }" />
+      <div class="flex gap-2" :style="{ '--skeleton-index': 2 }">
+        <SkeletonBlock class="h-11 w-36 rounded-full" />
+        <SkeletonBlock class="h-11 w-28 rounded-full" />
+      </div>
       <SkeletonBlock class="h-5 w-28 rounded" :style="{ '--skeleton-index': 3 }" />
     </div>
 
     <div class="flex flex-col gap-1.5" :style="{ '--skeleton-index': 4 }">
       <SkeletonBlock class="h-4 w-28 rounded" />
-      <SkeletonBlock class="h-[50px] w-full rounded-[10px]" />
+      <div class="flex gap-2">
+        <SkeletonBlock class="h-[50px] grow rounded-[10px]" />
+        <SkeletonBlock class="h-[50px] w-24 rounded-[10px]" />
+      </div>
     </div>
   </div>
 </template>

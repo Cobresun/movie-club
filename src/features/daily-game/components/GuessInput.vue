@@ -1,30 +1,34 @@
 <template>
   <div class="relative flex flex-col gap-1.5 text-left">
     <label :for="inputId" class="text-[13px] font-medium text-white/60">Guess a {{ noun }}</label>
-    <div
-      ref="field"
-      class="bg-lowBackground focus-within:ring-primary flex items-center rounded-[10px] ring-1 ring-white/[0.12] ring-inset focus-within:ring-2"
-    >
-      <mdicon name="magnify" :size="21" class="ml-3 text-white/40" aria-hidden="true" />
-      <input
-        :id="inputId"
-        v-model="query"
-        type="text"
-        role="combobox"
-        autocomplete="off"
-        placeholder="Start typing a title"
-        aria-autocomplete="list"
-        :aria-expanded="isOpen"
-        :aria-controls="listId"
-        :aria-activedescendant="isOpen ? optionId(activeIndex) : undefined"
-        class="min-h-[50px] min-w-0 grow bg-transparent px-3 text-[15px] text-white placeholder-white/35 focus:outline-hidden"
-        @focus="open = true"
-        @blur="open = false"
-        @keydown.down.prevent="move(1)"
-        @keydown.up.prevent="move(-1)"
-        @keydown.enter.prevent="onEnter"
-        @keydown.esc="open = false"
-      />
+    <div class="flex gap-2">
+      <div
+        ref="field"
+        class="bg-lowBackground focus-within:ring-primary flex min-w-0 grow items-center rounded-[10px] ring-1 ring-white/[0.12] ring-inset focus-within:ring-2"
+      >
+        <mdicon name="magnify" :size="21" class="ml-3 text-white/40" aria-hidden="true" />
+        <input
+          :id="inputId"
+          v-model="query"
+          type="text"
+          role="combobox"
+          autocomplete="off"
+          placeholder="Start typing a title"
+          aria-autocomplete="list"
+          :aria-expanded="isOpen"
+          :aria-controls="listId"
+          :aria-activedescendant="isOpen ? optionId(activeIndex) : undefined"
+          class="min-h-[50px] min-w-0 grow bg-transparent px-3 text-[15px] text-white placeholder-white/35 focus:outline-hidden"
+          @focus="open = true"
+          @blur="open = false"
+          @keydown.down.prevent="move(1)"
+          @keydown.up.prevent="move(-1)"
+          @keydown.enter.prevent="onEnter"
+          @keydown.esc="open = false"
+        />
+      </div>
+      <!-- Sits beside the field, e.g. the hint button. -->
+      <slot />
     </div>
     <transition
       enter-active-class="transition duration-fast ease-standard"
