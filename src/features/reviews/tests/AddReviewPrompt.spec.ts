@@ -106,6 +106,42 @@ describe("AddReviewPrompt", () => {
     expect(screen.queryByText("Dune")).not.toBeInTheDocument();
   });
 
+  it("keeps the search results on screen while a longer search loads", async () => {
+    let release = () => {};
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    server.use(
+      allItems([]),
+      http.get("https://api.themoviedb.org/3/search/movie", async ({ request }) => {
+        const query = new URL(request.url).searchParams.get("query") ?? "";
+        if (query !== "Fight") await gate;
+        return HttpResponse.json({
+          page: 1,
+          total_pages: 1,
+          total_results: 1,
+          results: [{ id: query.length, title: `${query} Result`, release_date: "1999-10-15" }],
+        });
+      }),
+    );
+    const { user } = render(AddReviewPrompt);
+
+    const searchBox = await screen.findByPlaceholderText("Type to filter or search");
+    await user.type(searchBox, "Fight");
+    expect(await screen.findByText("Fight Result")).toBeInTheDocument();
+
+    await user.type(searchBox, " Club");
+    // Past the pause that starts the next search, which is still out.
+    await new Promise((resolve) => {
+      setTimeout(resolve, 500);
+    });
+    expect(screen.getByText("Fight Result")).toBeInTheDocument();
+
+    release();
+    expect(await screen.findByText("Fight Club Result")).toBeInTheDocument();
+    expect(screen.queryByText("Fight Result")).not.toBeInTheDocument();
+  });
+
   it("closes once a work has been picked", async () => {
     server.use(allItems(), ...reviewsApi());
     const rendered = render(AddReviewPrompt);
