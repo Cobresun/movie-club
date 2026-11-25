@@ -125,10 +125,10 @@ export const awardsApi = (initial: ClubAwards[] = [], reviewedYears: number[] = 
       entry.awards = categories.flatMap((title) => awardOf(entry, title) ?? []);
       return ok();
     }),
-    http.delete(`${base}/:year/category/:title`, ({ params }) => {
+    http.delete(`${base}/:year/category`, ({ request, params }) => {
       const entry = yearOf(params);
       if (!entry) return new HttpResponse(null, { status: 404 });
-      const title = decodeURIComponent(String(params.title));
+      const title = new URL(request.url).searchParams.get("awardTitle");
       entry.awards = entry.awards.filter((award) => award.title !== title);
       return ok();
     }),
